@@ -45,8 +45,9 @@ test_that("se() reproduces fixed- and random-effects meta-analysis", {
   expect_lt(abs(as.numeric(logLik(fs)) + op$value), 1e-4)
   expect_gt(sigma(fs), 0)
 
+  # se() is gated on the family's DECLARATION, not on its name
   expect_error(frm(bf(yi | se(sei) ~ 1) + poisson(), data = dd),
-               "gaussian and student")
+               "does not declare that it does")
 })
 
 test_that("proportion response with trials() matches the counts form", {

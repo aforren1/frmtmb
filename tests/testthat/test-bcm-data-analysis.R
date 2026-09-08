@@ -373,18 +373,22 @@ test_that("Planes matches its Stan program", {
 # ChaSaSoon: one observed score of 30 out of 50, and 949 earlier
 # attempts known only to have scored between 15 and 25.
 #
-# A BAND of counts rather than a marginalization. cens("interval") is
-# the grammar's word for it and does not reach here: cens() refuses
-# every family whose type is "discrete", CDF or not. So the band is the
-# family's own business, and inst/bcm/binomial-extras.R spells it as
-# "the response is the smallest count consistent with the row and
-# vint(hi) the largest", which is the exact density when the two agree
-# and the band probability otherwise. weights() carries the repeats.
+# A BAND of counts rather than a marginalization, and cens("interval")
+# is the grammar's word for it. All the core asks of the family is a
+# CDF, which the core binomial has not got and bcm_binomial_cdf()
+# supplies in four lines. frmtmb reads a discrete censoring bound as
+# INCLUSIVE, so the banded row scores F(25) - F(14) = P(15 <= Y <= 25),
+# which is the Stan program below exactly. weights() carries the 949
+# repeats.
+#
+# The band used to be written into the family's own density, because
+# cens() refused every discrete family whatever CDF it supplied. See
+# dev/custom-findings.md for what replaced that gate.
 # ---------------------------------------------------------------------
 
 bcm_chasasoon_data <- function() {
-  data.frame(z = c(30L, 15L), hi = c(30L, 25L),
-             w = c(1, 949), n = 50L)
+  data.frame(z = c(30L, 15L), hi = c(NA_integer_, 25L),
+             cc = c("none", "interval"), w = c(1, 949), n = 50L)
 }
 
 bcm_chasasoon_code <- function() {
@@ -404,13 +408,13 @@ bcm_chasasoon_code <- function() {
 }
 
 bcm_chasasoon_formula <- function() {
-  bf(z | trials(n) + vint(hi) + weights(w) ~ 1)
+  bf(z | trials(n) + cens(cc, hi) + weights(w) ~ 1)
 }
 
 test_that("ChaSaSoon is a band of counts with a repeat count", {
   skip_unless_bcm("binomial-extras.R")
   d <- bcm_chasasoon_data()
-  fit <- frm(bcm_chasasoon_formula(), family = bcm_binomial_band(),
+  fit <- frm(bcm_chasasoon_formula(), family = bcm_binomial_cdf(),
              data = d)
   theta <- plogis(unname(fixef(fit)$mu))
   # the book's answer is about 0.34: well below the 30/50 of the one
@@ -421,37 +425,46 @@ test_that("ChaSaSoon is a band of counts with a repeat count", {
 
 test_that("a band of one count is the ordinary binomial density", {
   skip_unless_bcm("binomial-extras.R")
-  d <- data.frame(z = c(5L, 7L), hi = c(5L, 7L), w = 1, n = 10L)
-  band <- frm(bcm_chasasoon_formula(), family = bcm_binomial_band(),
+  # both ends of a discrete interval are included, so an interval whose
+  # ends agree IS the exact observation
+  d <- data.frame(z = c(5L, 7L), hi = c(5L, 7L), cc = "interval",
+                  w = 1, n = 10L)
+  band <- frm(bcm_chasasoon_formula(), family = bcm_binomial_cdf(),
               data = d)
   plain <- frm(z | trials(n) ~ 1, family = binomial(), data = d)
   expect_equal(as.numeric(logLik(band)), as.numeric(logLik(plain)),
                tolerance = 1e-8)
 })
 
-test_that("cens() refuses a discrete family whatever CDF it supplies", {
+test_that("cens() still needs a CDF, and the core binomial has none", {
   skip_unless_bcm("binomial-extras.R")
   d <- bcm_chasasoon_data()
-  d$cc <- c("none", "interval")
-  d$ub <- c(NA_integer_, 25L)
-  # the core binomial is refused for having no CDF ...
+  # the gate that remains, and the one the port always agreed with
   expect_error(
-    frm(z | trials(n) + cens(cc, ub) + weights(w) ~ 1,
+    frm(z | trials(n) + cens(cc, hi) + weights(w) ~ 1,
         family = binomial(), data = d),
     "family with a CDF")
-  # ... and a family that supplies one is refused for being discrete,
-  # which is why the band above is written into the family instead
-  expect_error(
-    frm(z | trials(n) + vint(hi) + cens(cc, ub) + weights(w) ~ 1,
-        family = bcm_binomial_band(), data = d),
-    "discrete families")
+  # a family that supplies one is admitted, discrete or not
+  expect_silent(
+    frm(bcm_chasasoon_formula(), family = bcm_binomial_cdf(), data = d))
+})
+
+test_that("ChaSaSoon's band is the inclusive interval, by hand", {
+  skip_unless_bcm("binomial-extras.R")
+  d <- bcm_chasasoon_data()
+  fit <- frm(bcm_chasasoon_formula(), family = bcm_binomial_cdf(),
+             data = d)
+  th <- plogis(unname(fixef(fit)$mu))
+  hand <- stats::dbinom(30, 50, th, log = TRUE) +
+    949 * log(stats::pbinom(25, 50, th) - stats::pbinom(14, 50, th))
+  expect_equal(as.numeric(logLik(fit)), hand, tolerance = 1e-10)
 })
 
 test_that("ChaSaSoon matches its Stan program", {
   skip_unless_stan_identity()
   skip_unless_bcm("binomial-extras.R")
   d <- bcm_chasasoon_data()
-  fit <- frm(bcm_chasasoon_formula(), family = bcm_binomial_band(),
+  fit <- frm(bcm_chasasoon_formula(), family = bcm_binomial_cdf(),
              data = d)
   stan_lp_check(
     bcm_chasasoon_code(),

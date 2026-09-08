@@ -319,6 +319,11 @@ None of them is a missing seam. Each is a check keyed on something a
 custom family cannot change, and each has a route around it from
 `inst/bcm/`.
 
+**Items 1 and 2 are CLOSED, after frmtmb 0.53.0.** They are kept below
+as they were written, because the reproductions are still the record of
+what the gates did, with the correction stated at the end of each.
+`dev/custom-findings.md` carries what replaced them.
+
 1. **`se()` is gated on the family NAME.** "se() is supported for
    gaussian and student families only". A custom family that reads
    `aterms[["se"]]` faithfully cannot opt in. ESP's Extraversion needs
@@ -326,6 +331,13 @@ custom family cannot change, and each has a route around it from
    port routes it through `vreal(sd)` instead, which is the channel a
    custom family IS given. One word in the formula, one line in the
    family.
+
+   CLOSED. The name test is a DECLARATION test: a family that names
+   `"se"` in `accepts_aterms` or `required_aterms` gets the term.
+   `bcm_gaussian_probit()` declares `required_aterms = "se"` and the
+   model is `bf(xs | se(sx) ~ 1 + (1 | p | id))`. The identity residual
+   is bit-identical either way, -2.853717262e-12, because `se()` and
+   `vreal()` carry the same column into the same `dnorm`.
 2. **`cens()` is gated on family TYPE, not only on a CDF.** The first
    gate, "cens()/trunc() need a family with a CDF", names the seam and
    `bcm_binomial_cdf()` passed it. The second, "cens() is not supported
@@ -337,6 +349,20 @@ custom family cannot change, and each has a route around it from
    the band probability otherwise, with no branch. `weights()` carries
    the repeats. The test asserts BOTH refusal messages, so the day
    either gate moves the test says so.
+
+   CLOSED, and the second gate was not simply deleted. A discrete
+   response is censored under an INCLUSIVE convention: a bound names a
+   value the response can take, so right censoring at `k` is
+   `P(Y >= k)`, an interval is `P(k <= Y <= k2)`, and every lower edge
+   enters the CDF as `F(k - 1)`, which is the shift `trunc(lb = )`
+   already applied. That is `log(F(hi) - F(lo - 1))` exactly, so the
+   band moved out of the family and into the formula:
+   `z | trials(n) + cens(cc, hi) + weights(w) ~ 1` with
+   `bcm_binomial_cdf()`, which is now the core binomial plus four lines
+   of `lcdf`. The identity residual improved from -3.694822226e-13 to
+   -1.421085472e-14 and the estimate is unchanged. The test that
+   asserted both refusal messages now asserts the one that remains, the
+   CDF, and that a family supplying one is admitted.
 3. **`mixture()` starts a bounded-response mixture at its exchangeable
    point.** Each component's `mu` is initialized from a quantile of the
    response, which for a binomial or a beta-binomial is a COUNT and
@@ -350,15 +376,17 @@ custom family cannot change, and each has a route around it from
    separated start, which reaches mu = (0.51, 0.99). Every free mixture
    in the port is started from two separated rates.
 
-Item 3 is the one worth acting on in core: a silently degenerate fit is
-worse than a refusal, and `init_dpars` for a mixture over a bounded
-family could put the components at two quantiles of `y / trials` rather
-than of `y`.
+Item 3 is the one still open, and the one worth acting on in core: a
+silently degenerate fit is worse than a refusal, and `init_dpars` for a
+mixture over a bounded family could put the components at two quantiles
+of `y / trials` rather than of `y`.
 
 ### Reproductions
 
 `scratchpad/bc-seams.R` and `bc-seam2.R` run all four. Transcript, R
-4.6.1:
+4.6.1, taken at frmtmb 0.52.0. Seams 2 and 3 no longer reproduce: the
+line numbers below are the gates as they stood, and the transcript is
+kept as the record of what they did rather than as something to re-run.
 
 ```
 SEAM 1  no probit link                          R/links.R:14, refusal at :158
@@ -410,6 +438,14 @@ SEAM 4  mixture() starts at the link origin     R/families.R:2917, warned R/fit.
 The fourth is the one to act on in core. A silently degenerate fit that
 returns identical components and a flat posterior, with only a warning
 about a starting value, is worse than a refusal.
+
+Re-run after the seams closed, both former refusals are gone. The
+`se_reader` of SEAM 2 fits once it declares the term
+(`accepts_aterms = c("weights", "se")`) and is still refused without
+the declaration, now by a message that says how to opt in. The
+`bcm_binomial_band()` of SEAM 3 became `bcm_binomial_cdf()` and its
+`cens(cc, hi)` model fits; the core binomial is still refused, for the
+CDF it has not got.
 
 ### What the trigger actually is
 
@@ -742,24 +778,27 @@ declare its own:
 
 | family | would declare |
 |---|---|
-| `bcm_binomial_band()` | `trials`, `vint1`, `weights` |
-| `bcm_gaussian_probit()` | `vreal1` |
+| `bcm_binomial_cdf()` | `trials`, `cens`, `weights` (declared) |
+| `bcm_gaussian_probit()` | `se` (declared, and required) |
 | `bcm_contaminant()`, `bcm_binomial_probit()` | `trials` |
 | `bcm_mpt_pairs()`, `bcm_kappa()` | `trials` |
 | `bcm_gcm()`, `bcm_simple()` | `trials` |
 
-That is an improvement rather than a fix: the declaration produces a
-new REFUSAL, not a new acceptance, so it would not open either of the
-gates seams 2 and 3 record. `se()` stays gated on the family name and
-`cens()` stays refused for discrete families; the protocol lane's own
-notes say it hardens around the second of those rather than opening it.
+That paragraph read, before the seams closed: an improvement rather
+than a fix, because the declaration produces a new REFUSAL and not a
+new acceptance. Half of it turned out to be wrong, and usefully so.
+`accepts_aterms` is what OPENED `se()`: that term's whole effect is
+inside the density, so a declaration is the only thing that can say
+whether writing it does anything, and the vocabulary for saying it
+already existed. `cens()` was opened by a convention rather than by a
+declaration, but a declaration is what makes it reachable
+(`bcm_binomial_cdf()` names `cens`, as `poisson()` now does).
 
-This lane's two cens-gate assertions match the refusal MESSAGES
-verbatim (`tests/testthat/test-bcm-data-analysis.R:420-437`), which is
-the one place a merge could break something quietly. The protocol lane
-states those messages are unchanged, and the assertions were re-run in
-a fresh process against this worktree's core after the review; they
-should be re-run again after the merge rather than assumed.
+This lane's two cens-gate assertions matched the refusal MESSAGES
+verbatim, which was the one place a merge could break something
+quietly. It did, as designed: one of the two messages no longer exists,
+and `tests/testthat/test-bcm-data-analysis.R` now asserts the gate that
+remains, the CDF, and that a family supplying one is admitted.
 
 ## Data
 

@@ -276,7 +276,7 @@ test_that("frm_compat() crosses vector arguments", {
   expect_setequal(many$feature_a, c("cens()", "trunc()"))
   expect_setequal(many$feature_b, c("gaussian", "poisson"))
   expect_equal(many$status[many$feature_a == "cens()" &
-                             many$feature_b == "poisson"], "refused")
+                             many$feature_b == "poisson"], "conditional")
 
   one_side <- frm_compat(c("cens()", "trunc()"))
   expect_true(all(one_side$feature_a %in% c("cens()", "trunc()")))
@@ -306,9 +306,10 @@ test_that("frm_compat() filters by status and rejects unknown input", {
 
 test_that("a more specific rule beats a broader one", {
   # kind:family x cens() refuses, group:cdf_continuous grants, and the
-  # explicit poisson row refuses again
+  # explicit poisson row conditions it on the inclusive discrete
+  # convention (group:discrete would otherwise refuse it)
   expect_equal(frm_compat("cens()", "gaussian")$status, "works")
-  expect_equal(frm_compat("cens()", "poisson")$status, "refused")
+  expect_equal(frm_compat("cens()", "poisson")$status, "conditional")
   expect_equal(frm_compat("cens()", "beta")$status, "refused")
   expect_equal(frm_compat("trunc()", "poisson")$status, "conditional")
   expect_equal(frm_compat("trunc()", "weibull")$status, "works")

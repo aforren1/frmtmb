@@ -657,7 +657,9 @@ frmtmb_compat_groups_lst <- list(
   # trunc() need to form their likelihood contributions
   cdf = c("gaussian", "poisson", "lognormal", "exponential", "weibull",
           "inverse.gaussian", "cox"),
-  # cens() additionally refuses discrete responses, so poisson drops out
+  # cens() reaches these through the continuous convention, where the
+  # endpoints of an interval carry no mass; poisson is censored under
+  # the inclusive discrete convention instead and has a row of its own
   cdf_continuous = c("gaussian", "lognormal", "exponential", "weibull",
                      "inverse.gaussian", "cox"),
   # families whose modelled response is a distribution over categories
@@ -1007,12 +1009,12 @@ frmtmb_compat_rules_tbl <- function() {
     "Supported through the whole surface: the likelihood, fitted(), predict(), simulate(), and residuals().")
   r("cens()", "group:cdf_continuous", "works",
     "Supported through the whole surface; one-step-ahead residuals cover the uncensored rows only, see the residuals_osa rule.")
-  r("cens()", "poisson", "refused",
-    "Refused: censoring is not supported for discrete families yet, even though poisson carries a CDF.")
+  r("cens()", "poisson", "conditional",
+    "Works, under the INCLUSIVE discrete convention: a censoring bound names a value the response can take, so right censoring at k is P(Y >= k), an interval is P(k <= Y <= k2), and a lower edge enters the CDF as F(k - 1). That is trunc(lb = )'s rule. It differs from brms for RIGHT and INTERVAL censoring, where brms emits poisson_lccdf(y | mu) = P(Y > y); LEFT censoring already agrees. Verified against a hand-rolled likelihood for all four codes and composed with trunc(). A non-integer censoring bound is refused (the shift assumes the integer lattice), and residuals(type = \"osa\") is refused.")
   r("cens()", "group:discrete", "refused",
-    "Refused: censoring is not supported for discrete families yet.")
+    "Refused: none of these families carries an AD log-CDF, which is what a censored row needs. It is no longer refused for BEING discrete: a discrete family that supplies lcdf is censored under the inclusive convention, as poisson is.")
   r("trunc()", "poisson", "conditional",
-    "Discrete truncation needs a lower bound of at least 1; trunc(lb = 0) is not truncation and is refused.")
+    "Discrete truncation needs a lower bound of at least 1; trunc(lb = 0) is not truncation and is refused. The bound is INCLUSIVE: trunc(lb = k) is P(Y >= k), scored with F(k - 1). That is brms's rule too, and it is the premise the discrete cens() convention is built on, so that one number means one thing on a response however it is bounded.")
   r("cens()", "trunc()", "works",
     "The response is truncated FIRST and censored inside the window: a right-censored row contributes (F(ub) - F(y)) / Z and a left-censored one (F(y) - F(lb)) / Z, with Z the window mass (F(lb - 1) for a discrete lower bound). Verified against a hand-rolled likelihood for gaussian and for the discrete composed form, and it is the likelihood simulate(censored = TRUE) draws from. Through v0.25 only the normalizer was windowed, which censored the UNtruncated variable and biased the residual sd upward.")
   r("cens()", "weights()", "works",
@@ -1041,7 +1043,7 @@ frmtmb_compat_rules_tbl <- function() {
 
   ## se() ---------------------------------------------------------------
   r("se()", "kind:family", "refused",
-    "Refused: known standard errors are added to the residual variance, which only the gaussian and student families have.")
+    "Refused unless the family DECLARES that it reads the term, with frmtmb_family(accepts_aterms = c(..., \"se\")) or required_aterms = \"se\". se() is the one core addition term whose whole effect is inside the density, so the core cannot act on it for a family that ignores it. gaussian and student are the built-in families that declare it. A declaring family is refused a SECOND way if it has no dpar named `sigma` and carries another free dpar: se() without sigma = TRUE replaces the residual scale, the core maps out only the dpar the convention names, and the other one would be left free and unread - a flat direction and a NaN standard error. A family whose whole scale IS the known one (no dpar beyond its primaries) is unaffected; the ways out are to name the scale `sigma`, pin it in the formula, or write se(x, sigma = TRUE).")
   r("se()", "group:gaussian_like", "works",
     "Supported. se(x, sigma = TRUE) keeps the estimated residual SD alongside the known one.")
 
@@ -1232,7 +1234,7 @@ frmtmb_compat_rules_tbl <- function() {
   r("mixture", "mi()", "refused",
     "Refused: mi() on the mixture response is not supported.")
   r("mixture", "se()", "refused",
-    "Refused: se() is supported for gaussian and student families only.")
+    "Refused: a mixture does not declare se() even when its components do. Reading the term is only half of what se() means; the other half is that the residual scale it replaces is mapped out, and that step names the dpar `sigma`, which sigma1 and sigma2 are not. Measured before the refusal was made explicit: mixture(gaussian, gaussian) with se() fitted with both component sigmas at their starting value and every standard error NaN.")
   r("mixture", "weights()", "works", "Verified by a tiny fit.")
   r("mixture", "simulate", "conditional",
     "Works only when every component family has a simulator.")
@@ -1362,7 +1364,7 @@ frmtmb_compat_rules_tbl <- function() {
   r("residuals_osa", "group:ordinal", "works",
     "oneStepGeneric over the discrete support 1..K; the result is a randomized quantile residual and matches the analytic one to 1e-13.")
   r("residuals_osa", "cens()", "conditional",
-    "Censored rows return NA: what is observed there is an event, not a value, so it carries no one-step CDF. The uncensored rows get residuals conditional on the censoring events, which needs one censoring point per side (type-I censoring). Row-varying censoring points and interval censoring are refused.")
+    "Censored rows return NA: what is observed there is an event, not a value, so it carries no one-step CDF. The uncensored rows get residuals conditional on the censoring events, which needs one censoring point per side (type-I censoring). Row-varying censoring points and interval censoring are refused, and so is a DISCRETE family: its censoring bounds are inclusive, so an uncensored row's support is [lo + 1, hi - 1] rather than the [lo, hi] the one-step window is built on.")
   r("residuals_osa", "trunc()", "conditional",
     "Supported for constant truncation bounds. Row-varying bounds are refused, because the one-step-ahead transform is not defined across changing support.")
   r("residuals_osa", "weights()", "conditional",

@@ -215,46 +215,38 @@ bcm_contaminant <- function(link = "logit", link_phi = "logit") {
     })
 }
 
-## ---- bcm-binomial-band ----
-# A binomial whose response is a BAND of counts rather than one count.
+## ---- bcm-binomial-cdf ----
+# The binomial with a CDF, which is all `cens()` asks a family for.
 #
 # ChaSaSoon (chapter 5.5) is the model that wants it: one observed score
 # of 30 out of 50, and 949 earlier attempts known only to have scored
 # somewhere between 15 and 25. That is interval censoring, and
-# `cens("interval")` is the grammar's word for it, but it does not reach
-# here. TWO gates stand in the way and only the first is a seam:
+# `cens("interval")` is the grammar's word for it.
 #
-#   1. `cens()` needs a family with a CDF, and the core binomial has
-#      none. That gate says how to pass it, and `lcdf` below does.
-#   2. `cens()` refuses ANY family whose `type` is "discrete", CDF or
-#      not: "cens() is not supported for discrete families yet
-#      (truncation is)". A custom family cannot opt in.
+# The core binomial has no `lcdf`, which is the one thing standing
+# between it and a censored row, and the refusal says so. Four lines
+# supply one, and the band is then written where a reader looks for it:
 #
-# So the band is the family's own business instead. The response is the
-# SMALLEST count consistent with the row and `vint(hi)` the largest, so
+#   z | trials(n) + cens(cc, hi) + weights(w) ~ 1
 #
-#   log P(y <= Y <= hi) = log(F(hi) - F(y - 1))
+# frmtmb reads a discrete censoring bound as INCLUSIVE, so the interval
+# row scores F(25) - F(14) = P(15 <= Y <= 25), which is the book's Stan
+# program exactly. `weights()` carries the 949 repeats.
 #
-# which is the exact density when hi == y and the band probability
-# otherwise, with no branch at all. `weights()` then carries how many
-# attempts fell in the band. The gate is recorded in
-# dev/bcm-findings.md.
-#
-# `lcdf` is kept even though nothing in the core reaches it: it is the
-# same arithmetic the band uses, and a family that supplies it is what
-# the first gate asks for.
-bcm_binomial_band <- function(link = "logit") {
+# This family used to carry the band in its own density, because
+# `cens()` refused every discrete family whatever CDF it supplied. That
+# gate is gone; `dev/custom-findings.md` records what replaced it.
+bcm_binomial_cdf <- function(link = "logit") {
   frmtmb_family(
-    "bcm_binomial_band",
+    "bcm_binomial_cdf",
     dpars = "mu",
     links = list(mu = link),
     type = "discrete",
-    required_aterms = "vint1",
+    accepts_aterms = c("trials", "weights", "cens", "trunc"),
     lpdf = function(y, dpars, aterms) {
       size <- aterms[["trials"]]
       if (is.null(size)) size <- 1
-      log(RTMB::pbinom(aterms[["vint1"]], size, dpars[["mu"]]) -
-            RTMB::pbinom(y - 1, size, dpars[["mu"]]))
+      RTMB::dbinom(y, size, dpars[["mu"]], log = TRUE)
     },
     lcdf = function(q, dpars, aterms) {
       size <- aterms[["trials"]]
@@ -264,16 +256,9 @@ bcm_binomial_band <- function(link = "logit") {
     valid_y = function(y, aterms) {
       size <- aterms[["trials"]]
       if (is.null(size)) size <- 1
-      hi <- aterms[["vint1"]]
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
-        stop("bcm_binomial_band(): the response is the smallest count ",
-             "consistent with the row, an integer in [0, trials]",
-             call. = FALSE)
-      }
-      if (any(hi < y) || any(hi > size) || any(hi != round(hi))) {
-        stop("bcm_binomial_band(): vint(hi) is the largest count ",
-             "consistent with the row, so it is an integer in ",
-             "[response, trials]", call. = FALSE)
+        stop("bcm_binomial_cdf(): the response is an integer count in ",
+             "[0, trials]", call. = FALSE)
       }
     },
     init_dpars = list(
@@ -314,25 +299,27 @@ bcm_binomial_band <- function(link = "logit") {
 # a link and the latent pair is an ordinary correlated random intercept
 # shared by two responses.
 #
-# The known standard deviation arrives through `vreal(sd)` rather than
-# `se(sd, sigma = FALSE)`. That is not a preference: the core gates
-# `se()` on the family NAME ("se() is supported for gaussian and student
-# families only"), so a custom family cannot opt in however faithfully
-# it reads the term. `vreal()` is the channel a custom family IS given,
-# and using it costs one word in the formula and one line here. The gap
-# is recorded in dev/bcm-findings.md.
+# The known standard deviation arrives through `se(sd)`, which is the
+# term that means it. A family is given the term by DECLARING that it
+# reads it, and `required_aterms = "se"` both declares it and refuses a
+# model that leaves it out. This used to ride on `vreal(sd)` because
+# the core gated `se()` on the family NAME and a custom family could
+# not opt in; `dev/custom-findings.md` records what replaced that.
 #
 # There is no `sigma` parameter, because there is nothing to estimate: a
-# free residual scale beside a known one is a flat direction.
+# free residual scale beside a known one is a flat direction. That is
+# also why `se(sd, sigma = TRUE)` is refused rather than ignored -
+# there is no sigma to add in quadrature.
 bcm_gaussian_probit <- function() {
   frmtmb_family(
     "bcm_gaussian_probit",
     dpars = "mu",
     links = list(mu = bcm_probit()),
     type = "continuous",
-    required_aterms = "vreal1",
+    accepts_aterms = c("se", "weights"),
+    required_aterms = "se",
     lpdf = function(y, dpars, aterms) {
-      RTMB::dnorm(y, dpars[["mu"]], aterms[["vreal1"]], log = TRUE)
+      RTMB::dnorm(y, dpars[["mu"]], aterms[["se"]], log = TRUE)
     },
     valid_y = function(y, aterms) {
       if (any(y < 0) || any(y > 1)) {
@@ -340,9 +327,10 @@ bcm_gaussian_probit <- function() {
              "predictor, so the response belongs on (0, 1); divide by ",
              "its scale first", call. = FALSE)
       }
-      if (any(aterms[["vreal1"]] <= 0)) {
-        stop("bcm_gaussian_probit(): vreal(sd) carries the known ",
-             "measurement standard deviation, which must be positive",
+      if (isTRUE(aterms[["se_sigma"]])) {
+        stop("bcm_gaussian_probit(): se(sd, sigma = TRUE) adds a free ",
+             "residual scale in quadrature and this family has none, ",
+             "so the known sd is the whole scale: write se(sd)",
              call. = FALSE)
       }
     },
@@ -350,8 +338,8 @@ bcm_gaussian_probit <- function() {
       mu = function(y, aterms) min(max(mean(y), 0.02), 0.98)),
     post = list(
       mean_fn = function(dpars, aterms) dpars[["mu"]],
-      var_fn = function(dpars, aterms) aterms[["vreal1"]]^2),
+      var_fn = function(dpars, aterms) aterms[["se"]]^2),
     sim = function(dpars, aterms, n) {
-      stats::rnorm(n, dpars[["mu"]], aterms[["vreal1"]])
+      stats::rnorm(n, dpars[["mu"]], aterms[["se"]])
     })
 }

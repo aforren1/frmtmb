@@ -117,7 +117,11 @@ under REML.}
 
 \item{lcdf}{Optional vectorized AD log-safe CDF \verb{(q, dpars, aterms)}
 returning probabilities; enables \code{cens()} and \code{trunc()} addition
-terms.}
+terms. It is the only thing either term asks of a family, whatever
+the family's \code{type}: a discrete family that supplies one is
+censored under the inclusive convention (see Censoring a discrete
+response), which reads a lower bound as \code{F(q - 1)} and so calls
+this at one below a recorded value.}
 
 \item{lccdf}{Optional vectorized AD LOG SURVIVOR function
 \verb{(q, dpars, aterms)} returning \code{log(1 - F(q))} directly. A family
@@ -162,7 +166,18 @@ together, so a required term need not be repeated here. Without a
 declaration an unread term is parsed, stored on the fit and
 silently ignored: \code{wiener()} accepted a \code{vint()} it cannot use, and
 \code{lba()} accepted a \code{dec()}, both giving a fit bit-identical to the
-one without the term.}
+one without the term.
+
+Naming \code{"se"} here is more than an allow-list entry: it is how a
+family OPTS IN to \code{se()}. That term is the one whose entire effect
+is inside the density - the core hands over \code{aterms[["se"]]} and
+maps out the residual scale it replaces, and does nothing else with
+it - so a family that does not declare it is refused the term
+rather than given one it would ignore. \code{NULL}, which accepts every
+other term, declares nothing and so does not open this one. Read
+\code{aterms[["se"]]} as the known standard deviation, and
+\code{aterms[["se_sigma"]]} to honor \code{se(x, sigma = TRUE)}, which asks
+for the known and estimated scales in quadrature.}
 
 \item{family_finalize}{Optional function \verb{(fam, y, aterms)} returning
 a family. It runs once at frame assembly, after the response is
@@ -331,9 +346,15 @@ Two families with a CDF do NOT declare one, for measured reasons.
 \code{\link[=inverse.gaussian]{inverse.gaussian()}} gains nothing:
 \code{RTMBdist::pinvgauss(lower.tail = FALSE, log.p = TRUE)} is computed
 on the probability scale and reaches \code{-Inf} at the same
-\verb{log S = -34} that \code{log(1 - F)} does. \code{\link[=poisson]{poisson()}} is discrete, and
-\code{cens()} is refused for discrete families, so the slot would be
-unreachable.
+\verb{log S = -34} that \code{log(1 - F)} does. \code{\link[=poisson]{poisson()}} is censored (see
+Censoring a discrete response) and would use the slot, but cannot
+declare one: \code{RTMB::ppois(lower.tail = FALSE, log.p = TRUE)} is
+exact in R (\code{-2773.28} at \code{q = 700}, \code{lambda = 5}, where
+\code{log(1 - F)} is \code{-Inf})
+and does not TAPE - inside \code{MakeADFun} it reaches
+\code{stats::ppois} and errors with "Non-numeric argument to mathematical
+function". An exact discrete log survivor has to be written out
+before poisson can have one.
 
 \code{lccdf} fixes RIGHT censoring and nothing else. Left censoring is
 still \code{log(F(y) - Flb)}, interval censoring is still a difference of
@@ -342,6 +363,66 @@ LEFT-TRUNCATED survival model - delayed entry, which is routine -
 meets the identical representability problem from the other side.
 Closing that needs a windowed log-difference slot, and this is the
 first step rather than the last one.
+}
+
+\section{Censoring a discrete response}{
+
+A censoring bound on a discrete response NAMES a value the response
+can take, and the value is INCLUDED in the event:
+
+\tabular{lll}{
+\strong{code} \tab \strong{means} \tab \strong{scored as} \cr
+\code{0} "none" \tab \code{Y == y} \tab \code{f(y)} \cr
+\code{-1} "left" \tab \code{Y <= y} \tab \code{F(y)} \cr
+\code{1} "right" \tab \code{Y >= y} \tab \code{1 - F(y - 1)} \cr
+\code{2} "interval" \tab \verb{y <= Y <= y2} \tab \code{F(y2) - F(y - 1)}
+}
+
+Equivalently: every LOWER edge enters the CDF as \code{F(edge - 1)}, and
+upper edges are unchanged because \code{F} already includes its argument.
+It is the rule \code{trunc(lb = )} has always followed on a discrete
+response, so one number means one thing however a response is
+bounded, and it is what a count recorded as "5 or more" means.
+
+It DIFFERS from brms for RIGHT and INTERVAL censoring only, where
+brms emits \code{poisson_lccdf(y | mu)}, that is \code{P(Y > y)}, and reads an
+interval as \verb{(y, y2]}. LEFT censoring is \code{P(Y <= y)} in both packages
+and agrees exactly. Migrating a right- or interval-censored count
+model changes its log-likelihood; on 200 poisson draws at
+\code{lambda = 4} right censored at 6, the two readings differ by 20.8 log
+units and 3.7 percent of the estimate. Subtract one from every
+right-censored and interval lower bound to reproduce a brms fit.
+
+The divergence is deliberate, because \strong{brms is internally
+inconsistent here and frmtmb cannot be both.} brms's own discrete
+truncation emits \code{poisson_lccdf(lb - 1 | mu)}, an INCLUSIVE lower
+bound, \code{P(Y >= lb)}. So in brms \code{trunc(lb = 6)} means \code{Y >= 6} while
+a right-censored row recorded at 6 means \code{Y > 6}: one number, two
+meanings, on one response. frmtmb's \code{trunc()} reproduces brms bit for
+bit (poisson on \verb{y = 3,4,5,6} at \verb{b0 = log 4}, \code{trunc(lb = 2)} gives
+6.9990718955 under both, against 6.2954805379 for the exclusive
+reading), so its \code{cens()} had to choose between matching brms's
+censoring and matching its own truncation. It matches its own.
+
+It is also the only reading consistent with the censored SIMULATOR,
+which predates all of this: \code{simulate(censored = TRUE)} caps a draw
+with \code{pmin(pmax(y, lo), hi)}, recording the value \code{k} exactly when
+the latent draw is \verb{>= k}. Measured on 4000 draws from a fit censored
+at 7, the simulated mass at that point is 0.13250, against
+\code{P(Y >= 7) = 0.12190} inclusive and \code{P(Y > 7) = 0.05763} exclusive.
+The other reading would silently decouple the likelihood from the
+simulator that \code{dharma_residuals()} rests on.
+
+Two consequences worth knowing. A one-point interval (\code{y2 == y}) is
+legal and is the exact observation \code{P(Y = y)}, where on a continuous
+response it is refused as an event of probability zero. And the
+shift assumes the support is the unit integer lattice, so a
+non-integer censoring bound is refused rather than moved onto a
+point the family has no mass at.
+
+\code{residuals(type = "osa")} is refused on a censored discrete fit:
+inclusive bounds make an uncensored row's support \verb{[lo + 1, hi - 1]}
+rather than the \verb{[lo, hi]} the one-step window is built on.
 }
 
 \section{Tape-safe scope}{

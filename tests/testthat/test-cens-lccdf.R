@@ -80,10 +80,12 @@ test_that("weibull, exponential and lognormal log S are closed form", {
 })
 
 test_that("the families that do NOT declare lccdf are the measured ones", {
-  # poisson is discrete and cens() is refused for discrete families;
-  # inverse.gaussian gains nothing, because RTMBdist's upper tail is
-  # computed on the probability scale and reaches -Inf at the same
-  # log S = -34 that log(1 - F) does
+  # poisson IS censored, and still cannot declare one: RTMB's ppois
+  # does not tape lower.tail = FALSE, log.p = TRUE (it reaches
+  # stats::ppois and errors on an advector). inverse.gaussian gains
+  # nothing, because RTMBdist's upper tail is computed on the
+  # probability scale and reaches -Inf at the same log S = -34 that
+  # log(1 - F) does
   for (f in list(gaussian(), lognormal(), exponential(), weibull())) {
     expect_false(is.null(frmtmb:::as_frmtmb_family(f)[["lccdf"]]),
                  label = f$family)

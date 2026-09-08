@@ -86,16 +86,31 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
   if (!is.null(av[["cens"]])) {
     # censoring codes are data, so grouped sub-assignment (one
     # vectorized [<- per group) replaces the density on censored rows
-    # without parameter branching or 0 * -Inf hazards. Right censoring
-    # is P(y < Y <= ub), left censoring is P(lb <= Y <= y); without
-    # trunc() those collapse to the familiar 1 - F(y) and F(y), because
-    # Fub = 1 and Flb = 0. The discrete F(lb - 1) convention carries
-    # over unchanged: F(y) already includes the point y, which is what a
-    # left-censored count observes.
+    # without parameter branching or 0 * -Inf hazards. On a CONTINUOUS
+    # response right censoring is P(y < Y <= ub) and left censoring is
+    # P(lb <= Y <= y); without trunc() those collapse to the familiar
+    # 1 - F(y) and F(y), because Fub = 1 and Flb = 0. On a discrete one
+    # both edges of every event are inclusive, which the shift below
+    # supplies and the rest of this block then reads unchanged.
     cen <- av[["cens"]]
     i_r <- which(cen == 1)
     i_l <- which(cen == -1)
     i_i <- which(cen == 2)
+    # The discrete convention, and the only place it is arithmetic. A
+    # censoring bound on a count NAMES a value the response can take
+    # and is INCLUDED in the event, so every LOWER edge enters the CDF
+    # as F(edge - 1): right censoring at k is P(Y >= k) and an interval
+    # [k, k2] is P(k <= Y <= k2). Left censoring's k is an UPPER edge,
+    # and F(k) already includes the point k, so it is not shifted. This
+    # is the same shift trunc(lb = ) applies twenty lines up, which is
+    # what makes the two terms mean the same thing by the same number.
+    # `yraw` is data, so this is one numeric copy at tape time, one CDF
+    # evaluation for all three codes, and no branch on the tape.
+    ylo <- yraw
+    if (identical(fam[["type"]], "discrete")) {
+      i_lo <- c(i_r, i_i)
+      if (length(i_lo)) ylo[i_lo] <- ylo[i_lo] - 1
+    }
     # `log S` on the LOG scale where the family can supply it. Without
     # `lccdf` a right-censored row is scored as `log(1 - F)`, and once
     # `F` rounds to one that number is not merely inaccurate, it is
@@ -104,10 +119,10 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
     # gaussian tail, `log(1 - pnorm(z))` is -Inf from z = 8.3 and
     # `pnorm(z, lower.tail = FALSE, log.p = TRUE)` is exact to z = 500.
     lS <- if (has_lccdf(fam) && length(i_r)) {
-      fam_lccdf(fam, yraw, dpv, av, extra)
+      fam_lccdf(fam, ylo, dpv, av, extra)
     }
     need_F <- length(i_l) || length(i_i) || (length(i_r) && is.null(lS))
-    Fv <- if (need_F) fam_lcdf(fam, yraw, dpv, av, extra)
+    Fv <- if (need_F) fam_lcdf(fam, ylo, dpv, av, extra)
     if (length(i_r)) {
       ll[i_r] <- if (is.null(lS)) {
         log(bound_rows(Fub, i_r) - Fv[i_r])

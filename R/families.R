@@ -60,7 +60,11 @@
 #'   under REML.
 #' @param lcdf Optional vectorized AD log-safe CDF `(q, dpars, aterms)`
 #'   returning probabilities; enables `cens()` and `trunc()` addition
-#'   terms.
+#'   terms. It is the only thing either term asks of a family, whatever
+#'   the family's `type`: a discrete family that supplies one is
+#'   censored under the inclusive convention (see Censoring a discrete
+#'   response), which reads a lower bound as `F(q - 1)` and so calls
+#'   this at one below a recorded value.
 #' @param lccdf Optional vectorized AD LOG SURVIVOR function
 #'   `(q, dpars, aterms)` returning `log(1 - F(q))` directly. A family
 #'   that declares it scores a RIGHT-censored row from it instead of
@@ -103,6 +107,17 @@
 #'   silently ignored: `wiener()` accepted a `vint()` it cannot use, and
 #'   `lba()` accepted a `dec()`, both giving a fit bit-identical to the
 #'   one without the term.
+#'
+#'   Naming `"se"` here is more than an allow-list entry: it is how a
+#'   family OPTS IN to `se()`. That term is the one whose entire effect
+#'   is inside the density - the core hands over `aterms[["se"]]` and
+#'   maps out the residual scale it replaces, and does nothing else with
+#'   it - so a family that does not declare it is refused the term
+#'   rather than given one it would ignore. `NULL`, which accepts every
+#'   other term, declares nothing and so does not open this one. Read
+#'   `aterms[["se"]]` as the known standard deviation, and
+#'   `aterms[["se_sigma"]]` to honor `se(x, sigma = TRUE)`, which asks
+#'   for the known and estimated scales in quadrature.
 #' @param family_finalize Optional function `(fam, y, aterms)` returning
 #'   a family. It runs once at frame assembly, after the response is
 #'   coerced and validated and before any link is used, and whatever it
@@ -286,9 +301,15 @@
 #' [inverse.gaussian()] gains nothing:
 #' `RTMBdist::pinvgauss(lower.tail = FALSE, log.p = TRUE)` is computed
 #' on the probability scale and reaches `-Inf` at the same
-#' `log S = -34` that `log(1 - F)` does. [poisson()] is discrete, and
-#' `cens()` is refused for discrete families, so the slot would be
-#' unreachable.
+#' `log S = -34` that `log(1 - F)` does. [poisson()] is censored (see
+#' Censoring a discrete response) and would use the slot, but cannot
+#' declare one: `RTMB::ppois(lower.tail = FALSE, log.p = TRUE)` is
+#' exact in R (`-2773.28` at `q = 700`, `lambda = 5`, where
+#' `log(1 - F)` is `-Inf`)
+#' and does not TAPE - inside `MakeADFun` it reaches
+#' `stats::ppois` and errors with "Non-numeric argument to mathematical
+#' function". An exact discrete log survivor has to be written out
+#' before poisson can have one.
 #'
 #' `lccdf` fixes RIGHT censoring and nothing else. Left censoring is
 #' still `log(F(y) - Flb)`, interval censoring is still a difference of
@@ -297,6 +318,64 @@
 #' meets the identical representability problem from the other side.
 #' Closing that needs a windowed log-difference slot, and this is the
 #' first step rather than the last one.
+#'
+#' @section Censoring a discrete response:
+#' A censoring bound on a discrete response NAMES a value the response
+#' can take, and the value is INCLUDED in the event:
+#'
+#' \tabular{lll}{
+#'   \strong{code} \tab \strong{means} \tab \strong{scored as} \cr
+#'   `0` "none" \tab `Y == y` \tab `f(y)` \cr
+#'   `-1` "left" \tab `Y <= y` \tab `F(y)` \cr
+#'   `1` "right" \tab `Y >= y` \tab `1 - F(y - 1)` \cr
+#'   `2` "interval" \tab `y <= Y <= y2` \tab `F(y2) - F(y - 1)`
+#' }
+#'
+#' Equivalently: every LOWER edge enters the CDF as `F(edge - 1)`, and
+#' upper edges are unchanged because `F` already includes its argument.
+#' It is the rule `trunc(lb = )` has always followed on a discrete
+#' response, so one number means one thing however a response is
+#' bounded, and it is what a count recorded as "5 or more" means.
+#'
+#' It DIFFERS from brms for RIGHT and INTERVAL censoring only, where
+#' brms emits `poisson_lccdf(y | mu)`, that is `P(Y > y)`, and reads an
+#' interval as `(y, y2]`. LEFT censoring is `P(Y <= y)` in both packages
+#' and agrees exactly. Migrating a right- or interval-censored count
+#' model changes its log-likelihood; on 200 poisson draws at
+#' `lambda = 4` right censored at 6, the two readings differ by 20.8 log
+#' units and 3.7 percent of the estimate. Subtract one from every
+#' right-censored and interval lower bound to reproduce a brms fit.
+#'
+#' The divergence is deliberate, because **brms is internally
+#' inconsistent here and frmtmb cannot be both.** brms's own discrete
+#' truncation emits `poisson_lccdf(lb - 1 | mu)`, an INCLUSIVE lower
+#' bound, `P(Y >= lb)`. So in brms `trunc(lb = 6)` means `Y >= 6` while
+#' a right-censored row recorded at 6 means `Y > 6`: one number, two
+#' meanings, on one response. frmtmb's `trunc()` reproduces brms bit for
+#' bit (poisson on `y = 3,4,5,6` at `b0 = log 4`, `trunc(lb = 2)` gives
+#' 6.9990718955 under both, against 6.2954805379 for the exclusive
+#' reading), so its `cens()` had to choose between matching brms's
+#' censoring and matching its own truncation. It matches its own.
+#'
+#' It is also the only reading consistent with the censored SIMULATOR,
+#' which predates all of this: `simulate(censored = TRUE)` caps a draw
+#' with `pmin(pmax(y, lo), hi)`, recording the value `k` exactly when
+#' the latent draw is `>= k`. Measured on 4000 draws from a fit censored
+#' at 7, the simulated mass at that point is 0.13250, against
+#' `P(Y >= 7) = 0.12190` inclusive and `P(Y > 7) = 0.05763` exclusive.
+#' The other reading would silently decouple the likelihood from the
+#' simulator that `dharma_residuals()` rests on.
+#'
+#' Two consequences worth knowing. A one-point interval (`y2 == y`) is
+#' legal and is the exact observation `P(Y = y)`, where on a continuous
+#' response it is refused as an event of probability zero. And the
+#' shift assumes the support is the unit integer lattice, so a
+#' non-integer censoring bound is refused rather than moved onto a
+#' point the family has no mass at.
+#'
+#' `residuals(type = "osa")` is refused on a censored discrete fit:
+#' inclusive bounds make an uncensored row's support `[lo + 1, hi - 1]`
+#' rather than the `[lo, hi]` the one-step window is built on.
 #'
 #' @section Tape-safe scope:
 #' `lpdf` and `lcdf` run with RTMB's tape-safe `c()`, `[<-` and
@@ -870,8 +949,7 @@ fam_gaussian <- function(link = "identity") {
 fam_poisson <- function(link = "log") {
   frmtmb_family(
     "poisson",
-    # cens() is refused for a DISCRETE response one guard earlier
-    accepts_aterms = c("weights", "trunc"),
+    accepts_aterms = c("weights", "cens", "trunc"),
     dpars = "mu",
     links = list(mu = link),
     lpdf = function(y, dpars, aterms) {
@@ -3015,8 +3093,18 @@ mixture <- function(..., groups = NULL) {
   fam <- frmtmb_family(
     paste0("mixture(", paste(vapply(comps, `[[`, "", "family"),
                              collapse = ", "), ")"),
+    # `se` is the one exception to the union. A component DOES read it
+    # (through resid_sd), but reading it is only half of what se()
+    # means: the other half is that the residual scale it replaces is
+    # mapped out, and that step names the dpar `sigma`, which a
+    # mixture's `sigma1` and `sigma2` are not. Measured before this
+    # line existed: mixture(gaussian, gaussian) with se() fitted, both
+    # component sigmas sat at their shared starting value 0.9794869
+    # having never moved, and every standard error was NaN. Claiming
+    # the term here would be claiming a capability the mixture has half
+    # of, so it is refused by name instead.
     accepts_aterms = if (!any(vapply(comp_acc, is.null, NA))) {
-      unique(unlist(comp_acc, use.names = FALSE))
+      setdiff(unique(unlist(comp_acc, use.names = FALSE)), "se")
     },
     dpars = dpars,
     links = links,
@@ -4963,6 +5051,24 @@ accepted_aterm_names <- function(fam) {
   req <- unlist(required_aterm_groups(fam[["required_aterms"]]),
                 use.names = FALSE)
   sort(unique(c(acc, vapply(req %||% character(0), aterm_base, ""))))
+}
+
+#' Whether a family EXPLICITLY declares that it reads an addition term.
+#'
+#' `accepted_aterm_names()` answers the allow-list's question - would
+#' this term be IGNORED - and an undeclared family answers "no term is
+#' ignored", which is why it returns NULL. This answers the opposite
+#' question, and an undeclared family answers nothing: it is the test
+#' for a term whose entire effect is inside the density, where the core
+#' cannot act on the value by itself and reading it is the family's own
+#' promise. `se()` is that term.
+#'
+#' @noRd
+family_declares_aterm <- function(fam, term) {
+  req <- unlist(required_aterm_groups(fam[["required_aterms"]]),
+                use.names = FALSE)
+  term %in% c(fam[["accepts_aterms"]] %||% character(0),
+              vapply(req %||% character(0), aterm_base, ""))
 }
 
 #' Refuse an addition term the family does not declare.

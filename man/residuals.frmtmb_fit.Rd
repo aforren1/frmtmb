@@ -46,7 +46,13 @@ row: what is observed there is an event (\code{Y > c}), not a value, and
 an event has no one-step CDF. The uncensored rows get residuals
 conditional on the censoring events, which needs one censoring point
 per side (type-I censoring); row-varying censoring times and interval
-censoring are refused. \code{dharma_residuals()} is not a substitute on a
+censoring are refused, and so is a DISCRETE family. A discrete
+censoring bound is inclusive (right censoring at \code{k} is \code{Y >= k};
+see \code{\link[=frmtmb_family]{frmtmb_family()}}), so an uncensored count's support is
+\verb{[lo + 1, hi - 1]} rather than the \verb{[lo, hi]} this window is built
+on, and no reference has measured the shifted window. Every other
+residual type works there.
+\code{dharma_residuals()} is not a substitute on a
 censored fit, because \code{\link[=simulate.frmtmb_fit]{simulate.frmtmb_fit()}} draws the latent
 uncensored response by default (as brms's \code{posterior_predict()}
 does) and those draws are not comparable with the observed censored

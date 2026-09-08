@@ -1579,12 +1579,48 @@ parse_one_response <- function(bform) {
     }
   }
 
-  if (!is.null(ri$aterms[["se"]]) && !isTRUE(ri$aterms[["se_sigma"]]) &&
-      "sigma" %in% fam[["dpars"]] &&
-      !"sigma" %in% c(names(pforms), names(pfix), nl_dpars)) {
-    # se() without sigma = TRUE: the residual SD is the known se alone,
-    # so the sigma dpar is mapped out (its value is unused by the lpdf)
-    pfix$sigma <- 1
+  if (!is.null(ri$aterms[["se"]]) && !isTRUE(ri$aterms[["se_sigma"]])) {
+    # se() without sigma = TRUE says the residual scale is KNOWN, so
+    # whatever dpar it replaces has to stop being free. The core can map
+    # out only the one the convention names, `sigma`.
+    spoken_for <- c(names(pforms), names(pfix), nl_dpars)
+    if ("sigma" %in% fam[["dpars"]]) {
+      if (!"sigma" %in% spoken_for) {
+        # the residual SD is the known se alone, so sigma is mapped out
+        # (its value is unused by the lpdf)
+        pfix$sigma <- 1
+      }
+    } else if (family_declares_aterm(fam, "se")) {
+      # A family that declares se() and calls its scale something else
+      # leaves that dpar free and unread: the likelihood is flat in it
+      # and every standard error comes back NaN. That is the condition
+      # mixture() is refused for, and opening se() to custom families
+      # opened a second route to it, so it is refused here by name.
+      # Measured before this guard: dpars c("mu", "tau"), tau frozen at
+      # its start value and all three standard errors NaN.
+      #
+      # A family with no dpar beyond its primaries has nothing to map
+      # out and is not refused - that is the ordinary shape of a family
+      # whose whole scale IS the known one. A family carrying `sigma`
+      # is trusted about its other dpars (student's `nu` is estimated
+      # alongside a known se, and always was).
+      loose <- setdiff(fam[["dpars"]], c(primaries, spoken_for))
+      if (length(loose)) {
+        stop("se() without sigma = TRUE replaces the residual scale, ",
+             "and the core maps out the dpar named `sigma` to do it. ",
+             "'", fam[["family"]], "' declares that it reads se() but ",
+             "has no `sigma`, so ",
+             paste0("`", loose, "`", collapse = ", "),
+             if (length(loose) > 1L) " are" else " is",
+             " left free and unused, which is a flat direction and a ",
+             "NaN standard error. Three ways out: name the scale ",
+             "`sigma` so the core maps it out; pin it in the formula (",
+             deparse1(ri$resp), " | se(...) ~ ..., ", loose[[1L]],
+             " = 1); or write se(x, sigma = TRUE) if it stays ",
+             "estimated alongside the known standard deviation",
+             call. = FALSE)
+      }
+    }
   }
   extra <- c(names(pforms), names(pfix), nl_dpars)
   allowed <- c(setdiff(fam[["dpars"]], primaries[1L]), nlpars,
