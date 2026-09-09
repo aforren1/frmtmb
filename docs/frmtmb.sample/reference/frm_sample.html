@@ -17,7 +17,7 @@ formula)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -78,7 +78,8 @@ formula).</p>
 <span>  reparameterize <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  data2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  start <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  control <span class="op">=</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_control.html" class="external-link">frmtmb_control</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  control <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  fit_control <span class="op">=</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_control.html" class="external-link">frmtmb_control</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  na.action <span class="op">=</span> <span class="fu">stats</span><span class="fu">::</span><span class="va"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span>,</span>
 <span>  REML <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  .diagnostic <span class="op">=</span> <span class="cn">FALSE</span></span>
@@ -165,9 +166,32 @@ routes, so <code>reparameterize = FALSE</code> is also the way to reproduce a
 run made before this default existed.</p></dd>
 
 
-<dt id="arg-data-start-control-na-action-reml">data2, start, control, na.action, REML<a class="anchor" aria-label="anchor" href="#arg-data-start-control-na-action-reml"></a></dt>
-<dd><p>As in <code><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frmtmb::frm()</a></code>; used only on
-the formula path.</p></dd>
+<dt id="arg-data-start-fit-control-na-action-reml">data2, start, fit_control, na.action, REML<a class="anchor" aria-label="anchor" href="#arg-data-start-fit-control-na-action-reml"></a></dt>
+<dd><p>As in <code><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frmtmb::frm()</a></code>
+(<code>fit_control</code> is that function's <code>control</code>). They belong to the
+formula path, where they assemble the model this function samples,
+and on a fitted object they are refused by name rather than
+accepted and discarded: the model is already assembled, so nothing
+would read them. <code>fit_control</code> is not the sampler's control list;
+<code>control</code> is.</p></dd>
+
+
+<dt id="arg-control">control<a class="anchor" aria-label="anchor" href="#arg-control"></a></dt>
+<dd><p>The SAMPLER's control list, brms's spelling and
+brms's meaning: <code>control = list(adapt_delta = 0.99, max_treedepth = 12)</code> reaches <code><a href="https://rdrr.io/pkg/tmbstan/man/tmbstan.html" class="external-link">tmbstan::tmbstan()</a></code> and then rstan
+unchanged, so a <code>brm()</code> call ports across with this argument
+included. <code>NULL</code>, the default, leaves rstan's own defaults in
+place, and so does <code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code>. The names are rstan's (<code>adapt_delta</code>,
+<code>max_treedepth</code>, <code>stepsize</code>, <code>metric</code>, ...) and an unrecognized
+one is refused by name, because rstan answers an unknown option by
+returning an empty fit rather than by raising. <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_control.html" class="external-link">frmtmb_control()</a></code>
+fields arriving here are refused by name too and point at
+<code>fit_control</code>: earlier releases spelled the fit-time options
+<code>control</code>, and a silent reinterpretation would hand <code>grad_tol</code> to
+the sampler. So is an ABBREVIATION of the name: only <code>control</code>
+binds to this argument, and a shorter spelling would otherwise
+travel through <code>...</code> and partial-match rstan's own <code>control</code>,
+reaching the sampler unchecked.</p></dd>
 
 
 <dt id="arg--diagnostic">.diagnostic<a class="anchor" aria-label="anchor" href="#arg--diagnostic"></a></dt>
@@ -397,6 +421,55 @@ explicit source that names it, one slot at a time: a call-level
 <code>set_prior(class = "sd")</code> replaces the fit's <code>sd</code> prior and the <code>sd</code>
 default while the <code>Intercept</code> default stays. <code><a href="https://aforren1.github.io/frmtmb/reference/prior_summary.html" class="external-link">prior_summary()</a></code> on
 the returned draws prints what the stack came to.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="the-pre-flight-against-the-compatibility-registry">The pre-flight against the compatibility registry<a class="anchor" aria-label="anchor" href="#the-pre-flight-against-the-compatibility-registry"></a></h2>
+
+
+<p>Some models cannot be sampled at all, and the reason usually
+belongs to the package that supplies the feature rather than to
+this one. Such a package declares the pair through
+<code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.html" class="external-link">frmtmb::frmtmb_register_compat()</a></code> with the status <code>"refused"</code>,
+and this function reads those rows before it does anything else:
+before the rstan and tmbstan namespaces are loaded, before the
+formula route calls <code><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frmtmb::frm()</a></code>, and before either route
+retapes the objective for its priors. <code><a href="as_tmbstan.html">as_tmbstan()</a></code> runs the same
+check. The refusal repeats the registry's own note and names the
+row, so <code>frm_compat("frm_sample", "&lt;feature&gt;")</code> gives the same
+answer without running anything.</p>
+<p><em>What it can decide, and what it will not guess at.</em> Whether a
+model uses a registry feature is settled by WHERE a call sits in
+the formula. The check decides three ways.</p>
+<p>A response FAMILY is matched by name, which is exact, because a
+family is named and never called. It does not look inside
+<code><a href="https://aforren1.github.io/frmtmb/reference/mixture.html" class="external-link">frmtmb::mixture()</a></code>, whose family name is the whole string
+<code>"mixture(gaussian, gaussian)"</code>, so a refused <code>gaussian</code> row does
+not reach a mixture of gaussians.</p>
+<p>An ADDITION TERM is matched by POSITION. It is written inside the
+bar on the left of the response formula and nowhere else, and the
+<code><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf()</a></code> object carries that, so <code>y | se(v) ~ x</code> is separated from
+<code>y ~ a * se(x)</code> with a user's own <code>se()</code>, which frmtmb fits.</p>
+<p>Everything else the vocabulary writes as a call is matched BY
+NAME, on the display name, outside addition-term position, and
+only when a formula actually writes that name and it is not also a
+base R function. This is the part that is justifiable from names
+alone rather than sound: a name test cannot see that a call sits
+where the feature cannot occur, so a refusal registered on <code>mo()</code>,
+<code>ma()</code>, <code>cosy()</code> or <code>mm()</code> would also fire on a user's own
+function of that name in a nonlinear body. Nothing is registered
+on those today. <code>mi_pred()</code>, <code>gp_pred()</code> and <code>cs_pred()</code> are
+spelled in the vocabulary differently from the way a formula
+writes them, which the registry itself reports, so they warn
+rather than matching a call no formula makes.</p>
+<p>A refused row naming anything else, a covariance structure, a
+fitting mode, another post-fit method, WARNS and samples, and so
+does one whose name is a base R function. Refusing would fire on
+correct models; silence would make a registered refusal look like
+a passed check.</p>
+<p><code>frmtmb.ode</code> registers the one refused row there is: an
+<code>frm_ode()</code> fit aborts at the first warmup step inside RTMBode,
+and the abort leaves rstan's autodiff arena unusable for the rest
+of the session, so the refusal is worth more than the attempt.</p>
     </div>
     <div class="section level2">
     <h2 id="multimodal-posteriors">Multimodal posteriors<a class="anchor" aria-label="anchor" href="#multimodal-posteriors"></a></h2>

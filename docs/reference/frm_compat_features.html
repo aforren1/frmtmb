@@ -13,7 +13,7 @@ compatibility status."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.55.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.55.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -86,11 +86,20 @@ compatibility status.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p><code>name</code> is how the feature is written in a formula or a call. <code>key</code>
-is the identifier the package uses internally, which is what lets
-the tests check the registry against <code><a href="frm.html">frm()</a></code>'s real vocabulary.
-Three specials share a name with a covariance structure, so they
-carry the display names <code>mi_pred()</code>, <code>gp_pred()</code>, and <code>cs_pred()</code>.</p>
+    <p><code>key</code> is the PARSER NAME: the identifier <code><a href="frm.html">frm()</a></code> itself matches when
+it reads a formula, which is what lets the tests check the registry
+against the real vocabulary. A caller deciding whether a formula
+could be written with a feature should read <code>key</code>, not <code>name</code>.</p>
+<p><code>name</code> is the DISPLAY name, which is what the printed table shows
+and which carries <code>"()"</code> for a callable feature. It is usually also
+what a formula writes, and for three rows it is not: <code>mi()</code>, <code>gp()</code>
+and <code>cs()</code> each name both a predictor special and a covariance
+structure, so the specials carry the display names <code>mi_pred()</code>,
+<code>gp_pred()</code> and <code>cs_pred()</code> while keeping the keys <code>mi</code>, <code>gp</code> and
+<code>cs</code> that a formula actually writes. Those three are the only rows
+where the two columns differ, and <code>frmtmb.sample</code>'s pre-flight
+refusal asserts exactly that set, so a fourth would fail its tests
+rather than being read as a name no formula writes.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

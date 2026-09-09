@@ -13,7 +13,7 @@ simultaneous over the whole grid."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,6 +65,7 @@ simultaneous over the whole grid.</p>
 <span>  <span class="va">var</span>,</span>
 <span>  order <span class="op">=</span> <span class="fl">1L</span>,</span>
 <span>  newdata <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  contrast <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  dpar <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  re.form <span class="op">=</span> <span class="cn">NA</span>,</span>
@@ -99,6 +100,12 @@ must be a numeric column of the grid.</p></dd>
 <dt id="arg-newdata">newdata<a class="anchor" aria-label="anchor" href="#arg-newdata"></a></dt>
 <dd><p>The grid. Required when <code>object</code> is a fit; taken from
 the curve otherwise.</p></dd>
+
+
+<dt id="arg-contrast">contrast<a class="anchor" aria-label="anchor" href="#arg-contrast"></a></dt>
+<dd><p>A second grid with the same number of rows, or <code>NULL</code>
+for an ordinary curve. With it the curve is <code>newdata</code> minus
+<code>contrast</code>, row by row.</p></dd>
 
 
 <dt id="arg-dpar">dpar<a class="anchor" aria-label="anchor" href="#arg-dpar"></a></dt>
@@ -162,12 +169,26 @@ basis; the only approximation is the difference itself, and <code>eps</code>
 controls that.</p>
     </div>
     <div class="section level2">
+    <h2 id="on-a-difference-curve">On a difference curve<a class="anchor" aria-label="anchor" href="#on-a-difference-curve"></a></h2>
+
+
+<p>A <code>frmtmb_curve</code> from <code>frm_curve(contrast = )</code> carries its second
+grid here, so what is differentiated is the DIFFERENCE. <code>var</code> moves
+in both grids together, so <code>contrast</code> must hold the same values of it
+as <code>newdata</code> does.</p>
+<p>A new <code>newdata</code> on a difference curve needs a new <code>contrast</code> with it,
+and a call that gives one grid and not the other is refused. Without
+the refusal the answer would be the derivative of the FIRST curve
+alone, for an object whose every row is a difference.</p>
+    </div>
+    <div class="section level2">
     <h2 id="past-a-ps-knot-span">Past a <code><a href="https://aforren1.github.io/frmtmb/reference/ps.html" class="external-link">ps()</a></code> knot span<a class="anchor" aria-label="anchor" href="#past-a-ps-knot-span"></a></h2>
 
 
 <p>Warned once per <code><a href="https://aforren1.github.io/frmtmb/reference/ps.html" class="external-link">frmtmb::ps()</a></code> term per call, as <code><a href="frm_curve.html">frm_curve()</a></code>'s
 section describes, and counted over the grid you passed rather than
-over the three-point stencil the design is built on.</p>
+over the three-point stencil the design is built on. A difference
+warns for each of its two grids and says which one.</p>
 <p>Past the outer knot the basis is exactly zero, so the DERIVATIVE
 design is exactly zero and those rows carry a standard error of
 exactly zero. They are covered with probability one, so they leave

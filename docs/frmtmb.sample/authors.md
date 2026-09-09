@@ -11,13 +11,13 @@ Source:
 [`DESCRIPTION`](https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.sample/DESCRIPTION)
 
 Forrence A (2026). *frmtmb.sample: NUTS Sampling and Posterior Methods
-for 'frmtmb'*. R package version 0.3.2,
+for 'frmtmb'*. R package version 0.4.0,
 <https://aforren1.github.io/frmtmb/frmtmb.sample/>.
 
     @Manual{,
       title = {frmtmb.sample: NUTS Sampling and Posterior Methods for 'frmtmb'},
       author = {Alex Forrence},
       year = {2026},
-      note = {R package version 0.3.2},
+      note = {R package version 0.4.0},
       url = {https://aforren1.github.io/frmtmb/frmtmb.sample/},
     }

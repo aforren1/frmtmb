@@ -344,7 +344,7 @@ pk3 <- frm_curve_feature(fit, var = "t", type = "maximum", newdata = gs,
                          re.form = NULL)
 pk3[, c(".estimate", ".se", ".value", ".value_se")]
 #> <frmtmb curve feature> , 1 found, level 
-#>   covariance checked against predict(se.fit = TRUE) to NULL relative
+#>   covariance NOT checked: predict(se.fit = TRUE) is refused for a nonlinear predictor, so there is no second route to compare against
 #>   .estimate         .se   .value   .value_se
 #> 1 0.5388005 0.001575399 1.077853 0.007287812
 ```

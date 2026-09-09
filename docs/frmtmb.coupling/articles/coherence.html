@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.coupling</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -243,6 +243,26 @@ white noise. <code>tapers</code> and <code>smooth</code> may not both
 exceed 1: they widen the same spectral window, so their product is not
 the count. Four tapers smoothed over four bins buys 5.8 draws, not
 16.</p>
+<p><code>window = "hann"</code> is the fourth option and the one that
+buys nothing. Use it where leakage is the larger error, which is a steep
+spectrum: a raised cosine leaves the draw count alone (8.02 measured
+against a nominal 8) and cannot be combined with <code>tapers</code> or
+<code>smooth</code>, for the reason above.</p>
+<p>What a window and a taper both cost is the independence of the rows,
+which <code>n</code> does not describe. At the default eight segments
+the correlation of adjacent frequencies is 0.40 with a Hann window and
+-0.01 without, and 0.75 at <code>tapers = 4</code>. As a variance
+inflation factor for a mean over the rows that is 1.8 for the window,
+4.1 for four tapers and 8.0 for eight, so an <code>s(freq)</code> band
+fitted on a tapered frame is optimistic. The per-row <code>n</code> is
+right in all of them; it is a different quantity.</p>
+<p>A recording with artifact-rejected spans in it is one call.
+<code>NA</code> marks a sample the pair does not have; the record is cut
+there and segments are laid inside the clean spans, so no transform
+crosses a gap and the answer is exactly the sum of the clean pieces.
+<code>n</code> then reports the segments the record supplied rather than
+the number asked for, which is the count every standard error downstream
+is formed from.</p>
 </div>
 <div class="section level2">
 <h2 id="the-one-trap">The one trap<a class="anchor" aria-label="anchor" href="#the-one-trap"></a>

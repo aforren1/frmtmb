@@ -485,6 +485,41 @@ including one containing `frm_ode()`; request a nonlinear parameter with
       "https://kaskr.r-universe.dev",
       "https://cloud.r-project.org"))
 
+## Sampling an ODE fit
+
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
+and
+[`frmtmb.sample::as_tmbstan()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/as_tmbstan.html)
+both refuse a model that contains `frm_ode()`, and the refusal is a
+registered row of the compatibility registry
+([`frmtmb::frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.html))
+rather than a guess. Both doors are guarded, and the second one was the
+worse of the two: it returned an empty `stanfit` with no error at all,
+and the abort behind it left rstan unusable for the rest of the R
+session.
+
+The defect is upstream and is reproduced in
+`dev/upstream/rtmbode-issues.md` without frmtmb, in bare RTMB, RTMBode
+and deSolve.
+[`RTMBode::ode()`](https://rdrr.io/pkg/RTMBode/man/ode.html) calls
+[`deSolve::ode()`](https://rdrr.io/pkg/deSolve/man/ode.html) with no
+guard. deSolve answers an extreme parameter either by raising
+`illegal input detected before taking any integration steps` or by
+returning fewer rows than were asked for, which the fixed-length adjoint
+node reports as `Wrong output length`. An optimizer shortens its step
+and a sampler rejects its proposal only when a failure arrives as `NaN`;
+as an error it is fatal. Stan reaches those parameters by construction,
+because its first warmup step is of size 1 on the unconstrained scale,
+so the chain aborts at iteration 1 even when it starts at the fitted
+optimum. The abort also crosses Stan's C++ boundary and leaves rstan's
+nested autodiff arena unbalanced for the rest of the R session.
+
+Two ways forward. Fit by maximum likelihood and read the Wald intervals,
+which is what the rest of this page describes; or apply the three-patch
+series in `dev/upstream/patches/` to RTMBode, after which the same
+models sample. The refusal disappears on its own once a fixed RTMBode is
+released and this package drops the row.
+
 ## See also
 
 [`frm_ode_failures()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode_failures.md)

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.coupling</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +43,64 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.coupling/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.0" id="frmtmbcoupling-030">frmtmb.coupling 0.3.0<a class="anchor" aria-label="anchor" href="#frmtmbcoupling-030"></a></h2>
+<ul><li><p><code><a href="../reference/frm_cross_spectrum.html">frm_cross_spectrum()</a></code> splits at runs of <code>NA</code> instead of refusing them, so an artifact-rejected record is one call rather than one per clean span. A record with two rejected spans gives the sum of the three clean pieces.</p></li>
+<li><p><code>window = "hann"</code> beside the sine tapers, measured to cost no degrees of freedom (8.021 against 8.008 untapered at a nominal 8, 3000 replicates) and identical to <code><a href="https://rdrr.io/r/stats/spec.pgram.html" class="external-link">stats::spec.pgram()</a></code> to 4.8e-16. Hann with <code>smooth</code> is refused, because it delivers 4.67 to 5.66 where it claims 8.</p></li>
+<li><p>The help now states the cross-row correlation the ordinates carry, which was understated: 0.397 at the default and 0.753 at <code>tapers = 4</code>, which is one independent frequency in four. The degrees of freedom <code>n</code> reports were re-measured and are right.</p></li>
+<li>
+<p><strong><code><a href="../reference/frm_cross_spectrum.html">frm_cross_spectrum()</a></code> splits at NA runs instead of refusing them.</strong> An artifact-rejected recording arrives with gaps in it, and it used to refuse the whole record for one missing sample. <code>NA</code> now marks a sample the pair does not have: the record is cut at it and segments are laid inside the clean spans, so no transform ever crosses a gap and an artifact-rejected recording is one call. A sample is usable only where BOTH signals have it. <code>NaN</code> counts as <code>NA</code>; an infinity is refused by name, because it is a value the arithmetic cannot use rather than a value the record is missing.</p>
+<p>The property that makes one call correct is an identity: a record with two rejected spans returns exactly the sum of the three clean pieces transformed separately, in <code>w11</code>, <code>w22</code>, <code>w12r</code>, <code>w12i</code> and in <code>n</code>, and the test file asserts it. The segment length comes from the usable sample count, each span supplies as many whole segments as fit in it in record order, and <code>n</code> is the count the record actually supplied rather than the count <code>segments</code> asked for. That count falls only when the record breaks into SEVERAL spans, each dropping its own remainder: a record with one clean span always yields the full <code>segments</code> however much was rejected from its ends, because <code>usable %/% segments</code> rounds the segment length down. Nothing warns about the shortfall, because where it happens it is the normal case; <code>n</code> is per-row data the density reads and every standard error downstream is formed from it.</p>
+</li>
+<li>
+<p><strong><code>window = "hann"</code>, a data window beside the sine tapers</strong>, for a spectrum steep enough that the untapered transform’s high frequencies are leakage from its low ones.</p>
+<p><strong>The degrees of freedom it costs are none, and that is measured rather than assumed.</strong> Segments are disjoint, so a window inside each one leaves the number of independent complex draws alone. At a true coherence of zero, 3000 replicates on white noise at 512 samples, 8 segments deliver an effective 8.021 (se 0.127) with the window against 8.008 (se 0.130) without it. The scaling is <code>sqrt(N / sum(w^2))</code>, exactly <code>sqrt(8/3)</code> for the periodic raised cosine, so <code>w11 / n</code> estimates the same spectral density either way: 1.0013 (se 0.0022) untapered and 0.9963 (se 0.0032) windowed, on white noise of unit variance over 400 replicates. The arithmetic is pinned against <code><a href="https://rdrr.io/r/stats/spec.pgram.html" class="external-link">stats::spec.pgram()</a></code> on the windowed segments, which agree to 4.8e-16 of the largest ordinate.</p>
+<p><strong>It cannot be combined with <code>smooth</code>, and that is refused rather than counted wrong</strong>, the way <code>tapers</code> and <code>smooth</code> already are. A Hann window makes each ordinate a weighted sum of itself and its two neighbors, so adjacent bins are correlated and averaging them adds less than it claims: at nominal <code>n = 8</code> throughout, 4 segments over 2 bins delivers 5.66, 2 segments over 4 bins delivers 4.98 and 1 segment over 8 bins delivers 4.68, against 8.19, 8.02 and 8.05 for the same three unwindowed. Declaring the shortfall instead was considered and rejected: there is no one number to declare, since the same window loses a different amount at each width, and frmtmb’s <code><a href="https://aforren1.github.io/frmtmb/reference/whittle.html" class="external-link">whittle()</a></code> measured the same thing from the other side, where an honestly declared equivalent degrees of freedom does not rescue a smoothed spectrum from its raw-periodogram check at kernel widths of 7 and above. It cannot be combined with <code>tapers</code> either, because both are a taper on the same segment.</p>
+<p><strong>What <code>n</code> does not say</strong> is now a section of the help page. <code>n</code> counts the draws behind one row and a window leaves that alone; what a window changes is the relation BETWEEN rows. See the next bullet, which carries the numbers for the window and for <code>tapers</code> together.</p>
+</li>
+<li>
+<p><strong><code>tapers</code> above 1 correlates adjacent frequencies, and nothing said so.</strong> This is not a change of behavior and <code>n</code> is not wrong. That was checked before this bullet was written, because a wrong <code>n</code> would be a correctness bug in a released package. Re-measured at a true coherence of zero over every retained ordinate, 600 replicates at 512 samples:</p>
+<table class="table"><thead><tr><th>configuration</th>
+<th>nominal</th>
+<th>effective n</th>
+</tr></thead><tbody><tr><td><code>segments = 8</code></td>
+<td>8</td>
+<td>7.968 (se 0.051)</td>
+</tr><tr><td><code>segments = 8, window = "hann"</code></td>
+<td>8</td>
+<td>7.964 (se 0.051)</td>
+</tr><tr><td><code>segments = 2, tapers = 4</code></td>
+<td>8</td>
+<td>8.033 (se 0.026)</td>
+</tr><tr><td><code>segments = 1, tapers = 8</code></td>
+<td>8</td>
+<td>8.006 (se 0.018)</td>
+</tr><tr><td><code>segments = 1, tapers = 16</code></td>
+<td>16</td>
+<td>16.144 (se 0.039)</td>
+</tr></tbody></table><p>So the per-row degrees of freedom are right at every taper count this package documents, and a window costs none of them either. What was missing is the OTHER quantity, the relation between rows, which a user fitting <code>s(freq)</code> on a tapered frame has been assuming since 0.1.0.</p>
+<p>Measured on <code><a href="../reference/frm_cross_spectrum.html">frm_cross_spectrum()</a></code>’s own output, 400 replicates of white noise at 1024 samples, as the lag-1 correlation of <code>log(w11)</code> and as the variance inflation factor of a mean over the rows:</p>
+<table class="table"><thead><tr><th>configuration</th>
+<th>lag 1</th>
+<th>inflation</th>
+</tr></thead><tbody><tr><td><code>segments = 8</code></td>
+<td>-0.010</td>
+<td>1.00</td>
+</tr><tr><td><code>segments = 8, window = "hann"</code></td>
+<td>0.397</td>
+<td>1.79</td>
+</tr><tr><td><code>segments = 8, tapers = 2</code></td>
+<td>0.525</td>
+<td>2.24</td>
+</tr><tr><td><code>segments = 4, tapers = 4</code></td>
+<td>0.745</td>
+<td>4.07</td>
+</tr><tr><td><code>segments = 1, tapers = 8</code></td>
+<td>0.876</td>
+<td>8.02</td>
+</tr></tbody></table><p>So a <code>tapers = 4</code> frame carries about one independent frequency in four, against one in 1.8 for a Hann window, and a smooth in frequency fitted on either has fewer effective points than it has rows. The inflation factor is summed over twelve lags: at <code>tapers = 8</code> the correlation is still positive past lag 4, so stopping there reports 6.45 for a row that is really 8.02, and every other row is the same either way. The help page now carries the table, and an earlier draft of this release quoted 0.301 for the window, which is the value at <code>segments = 1</code>, a call the function refuses.</p>
+</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.0" id="frmtmbcoupling-020">frmtmb.coupling 0.2.0<a class="anchor" aria-label="anchor" href="#frmtmbcoupling-020"></a></h2>
 <ul><li>

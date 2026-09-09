@@ -13,6 +13,7 @@ frm_curve_feature(
   type = c("maximum", "minimum", "extremum", "crossing"),
   at = 0,
   newdata = NULL,
+  contrast = NULL,
   dpar = NULL,
   resp = NULL,
   re.form = NA,
@@ -47,6 +48,11 @@ frm_curve_feature(
 
   The grid the search scans, and the values every other covariate is
   held at. Required when `object` is a fit.
+
+- contrast:
+
+  A second grid with the same number of rows, or `NULL` for an ordinary
+  curve. With it the curve is `newdata` minus `contrast`, row by row.
 
 - dpar:
 
@@ -107,6 +113,25 @@ so the standard error of the PEAK HEIGHT is just the pointwise standard
 error of the curve at `t*`. It is reported as `.value_se`, and it is not
 inflated by the uncertainty in the peak's location.
 
+## On a difference curve
+
+A `frmtmb_curve` from `frm_curve(contrast = )` carries its second grid
+here, so the feature located is a feature OF THE DIFFERENCE:
+`type = "crossing"` with `at = 0` is the question a difference curve is
+usually drawn to answer, the place where two curves meet. The delta
+method is the same one, on the same covariance: for a crossing the
+variance of the located position is the variance of the difference at
+that position over the squared slope of the difference.
+
+`var` moves in BOTH grids together, so `contrast` must hold the same
+values of it as `newdata` does, and a contrast that does not is refused
+rather than overwritten.
+
+A new `newdata` on a difference curve needs a new `contrast` with it,
+and a call that gives one grid and not the other is refused. Without the
+refusal the search would run on the FIRST curve alone, for an object
+whose every row is a difference.
+
 ## Past a [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.html) knot span
 
 This function REFUSES rather than warns. A
@@ -128,6 +153,11 @@ whose other columns change from row to row is checked a second time,
 against the whole grid. That is where a second
 [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.html) term can
 leave its span in a row the search itself never predicts at.
+
+A difference curve has two grids and the search pins row 1 of each, so
+the second check asks the question of each of them. It is not asked
+whether the two grids differ from ONE ANOTHER: they always do, because
+that is what a difference is.
 
 ## See also
 

@@ -14,6 +14,7 @@ frm_curve_deriv(
   var,
   order = 1L,
   newdata = NULL,
+  contrast = NULL,
   dpar = NULL,
   resp = NULL,
   re.form = NA,
@@ -48,6 +49,11 @@ frm_curve_deriv(
 
   The grid. Required when `object` is a fit; taken from the curve
   otherwise.
+
+- contrast:
+
+  A second grid with the same number of rows, or `NULL` for an ordinary
+  curve. With it the curve is `newdata` minus `contrast`, row by row.
 
 - dpar:
 
@@ -110,6 +116,18 @@ its covariance is `D V D'`, which is exact for the differenced basis;
 the only approximation is the difference itself, and `eps` controls
 that.
 
+## On a difference curve
+
+A `frmtmb_curve` from `frm_curve(contrast = )` carries its second grid
+here, so what is differentiated is the DIFFERENCE. `var` moves in both
+grids together, so `contrast` must hold the same values of it as
+`newdata` does.
+
+A new `newdata` on a difference curve needs a new `contrast` with it,
+and a call that gives one grid and not the other is refused. Without the
+refusal the answer would be the derivative of the FIRST curve alone, for
+an object whose every row is a difference.
+
 ## Past a [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.html) knot span
 
 Warned once per
@@ -117,7 +135,8 @@ Warned once per
 term per call, as
 [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)'s
 section describes, and counted over the grid you passed rather than over
-the three-point stencil the design is built on.
+the three-point stencil the design is built on. A difference warns for
+each of its two grids and says which one.
 
 Past the outer knot the basis is exactly zero, so the DERIVATIVE design
 is exactly zero and those rows carry a standard error of exactly zero.

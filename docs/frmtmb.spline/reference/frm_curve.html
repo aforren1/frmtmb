@@ -11,7 +11,7 @@ SIMULTANEOUS band that covers the whole curve at once."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -60,6 +60,7 @@ SIMULTANEOUS band that covers the whole curve at once.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">frm_curve</span><span class="op">(</span></span>
 <span>  <span class="va">object</span>,</span>
 <span>  <span class="va">newdata</span>,</span>
+<span>  contrast <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  dpar <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  re.form <span class="op">=</span> <span class="cn">NA</span>,</span>
@@ -84,6 +85,12 @@ SIMULTANEOUS band that covers the whole curve at once.</p>
 <dd><p>The grid, as a data frame. Every variable the linear
 predictor reads must be a column, held at the value the curve is
 wanted at.</p></dd>
+
+
+<dt id="arg-contrast">contrast<a class="anchor" aria-label="anchor" href="#arg-contrast"></a></dt>
+<dd><p>A second grid with the same number of rows, or <code>NULL</code>
+for an ordinary curve. With it the curve is <code>newdata</code> minus
+<code>contrast</code>, row by row.</p></dd>
 
 
 <dt id="arg-dpar">dpar<a class="anchor" aria-label="anchor" href="#arg-dpar"></a></dt>
@@ -227,6 +234,71 @@ depends on the number of coefficients at all. The joint-precision
 solve is now the whole cost, it is paid once because core memoizes
 it, and it grows with the total number of coefficients in the fit
 rather than with the grid.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="a-difference-curve">A difference curve<a class="anchor" aria-label="anchor" href="#a-difference-curve"></a></h2>
+
+
+<p><code>contrast</code> is a second grid of the same height. The curve returned is
+then the DIFFERENCE of the two linear predictors, row by row, and its
+covariance is <code>(A1 - A2) V (A1 - A2)'</code>, so both bands describe the
+difference and the simultaneous one answers "is this difference
+anywhere other than zero" over the whole grid at once. It is the
+quantity <code>gratia::difference_smooths(group_means = TRUE)</code> reports for
+a factor-by smooth, and on the same mgcv fit the two agree. Name that
+argument when you compare: gratia's default, <code>group_means = FALSE</code>,
+zeroes the intercept and the parametric group columns and reports the
+smooth-only difference, which is a different quantity. On the fixture
+<code>test-difference.R</code> uses it is 0.52 away.</p>
+<p>A difference is NOT the difference of two calls to this function. The
+two curves share coefficients, so their covariance is what the
+difference is made of, and adding two standard errors in quadrature
+would ignore it.</p>
+<p>What the difference path cannot do, and refuses by name:</p>
+<ul><li><p><code>transform = TRUE</code>. A difference of linear predictors is not
+a difference of responses under any link but the identity, so
+there is nothing to map it through.</p></li>
+<li><p>Two grids that load on different coefficients.</p></li>
+<li><p>Two grids that load DIFFERENT draws of a latent field whose
+variance is not coefficient uncertainty. See the next section.</p></li>
+</ul><p>The covariance check also means less here, and <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> says so.
+<code>predict(se.fit = TRUE)</code> returns a marginal standard error per row
+and never the covariance between the grids, so the check runs on each
+half and <code>cov_rel_error</code> is the worse of the two: what it licenses is
+that both designs were read correctly.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="an-exact-gp-under-a-difference">An exact <code>gp()</code> under a difference<a class="anchor" aria-label="anchor" href="#an-exact-gp-under-a-difference"></a></h2>
+
+
+<p>An exact <code>gp()</code> evaluated off the observed positions carries
+a kriging residual that is not coefficient uncertainty.
+<code><a href="https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html" class="external-link">frmtmb::frm_lp_basis()</a></code> returns its variance one number per ROW and
+returns no covariance BETWEEN two grids, so <code>var(g1 - g2)</code> has no
+public route.</p>
+<p>It needs none in the ordinary case. A contrast taken across a factor
+at ONE <code>gp()</code> position leaves both grids loading the same residual,
+so it cancels exactly and the difference is <code>(A1 - A2) V (A1 - A2)'</code>
+with nothing left over. That case is computed rather than refused.</p>
+<p>Sameness is decided on the design and not on the numbers: the two
+grids must agree bit for bit on EVERY column of <code>A</code> outside the fixed
+effects. Equality of the variances would not be enough, because two
+levels of one grouping block have identical marginal variances by
+construction and are different draws.</p>
+<p>That test is stricter than the mathematics needs, and it is worth
+knowing where the extra strictness bites. Only the block carrying the
+kriging residual has to match for the residual to cancel, but the
+test asks it of every latent column, so a contrast across <code>fac</code> on
+<code>y ~ fac + s(x, by = fac) + gp(x)</code> is REFUSED even though the <code>gp()</code>
+columns are identical: the by-factor smooth's own columns differ,
+which is what a by-factor smooth is for. It fails closed, so the cost
+is an answer you do not get rather than one you should not trust.</p>
+<p>The rest is refused because the SEAM cannot supply it, not because
+the mathematics is missing. The conditional cross-covariance is
+<code>k(x1, x2) - Xr1 K Xr2'</code>, and core forms every piece of it while
+predicting, but reduces the result to one variance per row before the
+seam returns. Hold every latent term equal between the grids and
+contrast a fixed effect, or read the two curves separately.</p>
     </div>
     <div class="section level2">
     <h2 id="past-a-ps-knot-span">Past a <code><a href="https://aforren1.github.io/frmtmb/reference/ps.html" class="external-link">ps()</a></code> knot span<a class="anchor" aria-label="anchor" href="#past-a-ps-knot-span"></a></h2>

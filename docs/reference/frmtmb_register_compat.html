@@ -17,7 +17,7 @@ all of it."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.55.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.55.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -238,6 +238,39 @@ refusal.</p></dd>
 
 
 </dl></div>
+    <div class="section level2">
+    <h2 id="what-a-refused-row-promises">What a refused row promises<a class="anchor" aria-label="anchor" href="#what-a-refused-row-promises"></a></h2>
+
+
+<p>A <code>refused</code> row is a statement about what the code DOES, not a note
+about what a reader should avoid. The exact promise is: <strong>a refused
+row is enforced wherever the enforcing code can see the feature, and
+that code says what it can see.</strong> A row that says <code>refused</code> while a
+guard that could have seen the feature lets the pair run is a defect
+of the same size as a missing guard.</p>
+<p>The qualification is not a hedge, it is where the two kinds of
+enforcement differ. Most of core's refusals are hand-written guards
+that the row describes, raised where the frame is assembled or where
+the method is called; those see everything, so for them the promise
+is unqualified. The other kind is enforced by CONSULTING this
+registry at the point of use: the caller queries the rows naming its
+own feature, decides whether the model in front of it uses the other
+side, and raises with the registered note verbatim. Deciding that is
+the hard half, because what identifies a feature in a model is
+usually its POSITION in the formula, which the parser owns.</p>
+<p><code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> is the first caller of that kind and is
+worth reading as the worked example. It queries the rows whose
+feature is <code>frm_sample</code> and whose status is <code>refused</code> before it tapes
+anything, so a package that owns a model the sampler cannot run
+declares one row and needs no code in the sampler; <code>frmtmb.ode</code> does
+exactly that. It also documents the rows it cannot decide, and warns
+rather than refusing on those, because a check that fires on a
+correct model is worse than no check. So a registrant who needs a
+refusal ENFORCED rather than only reported should read the caller's
+own documentation and confirm the caller can see the feature; a row
+the caller cannot see is still true, and is still reported by
+<code><a href="frm_compat.html">frm_compat()</a></code>, but it will not stop anything.</p>
+    </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="frm_compat.html">frm_compat()</a></code> for the matrix these fill,

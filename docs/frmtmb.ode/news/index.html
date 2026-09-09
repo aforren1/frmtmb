@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.ode</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +43,12 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.ode/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.2.0" id="frmtmbode-020">frmtmb.ode 0.2.0<a class="anchor" aria-label="anchor" href="#frmtmbode-020"></a></h2>
+<ul><li><p>This package registers <code><a href="../reference/frm_ode.html">frm_ode()</a></code> as refused for <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html" class="external-link">frm_sample()</a></code>, so frmtmb.sample stops before taping instead of handing an empty <code>stanfit</code> back. The tmbstan and RTMBode boundary is still broken and it fails on a FIXED-EFFECT-ONLY model, which <code>dev/feature-gaps.md</code> had recorded as an open question.</p></li>
+<li><p>MEASURED, and it decides where this package goes next: one <code>frm(se = TRUE)</code> on 100 subjects by 8 samples with twice-daily dosing for 7 days takes 3948 seconds, with a 40 second tape build and a 14 second gradient. The truth is recovered, so it is the segmented sensitivity solve rather than the conditioning. An analytic one- to three-compartment path is now a prerequisite for population work rather than an option.</p></li>
+<li><p><strong>The package registers itself with the compatibility matrix.</strong> <code><a href="../reference/frm_ode.html">frm_ode()</a></code> is a feature of kind <code>special</code> in [frmtmb::frm_compat()]’s vocabulary, and the pair <code>frm_ode() x frm_sample</code> is registered as <code>refused</code>. <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html" class="external-link">frmtmb.sample::frm_sample()</a></code> and <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/as_tmbstan.html" class="external-link">frmtmb.sample::as_tmbstan()</a></code> both read that row and stop before taping, so sampling an ODE fit now fails in the time a registry read takes and says why, instead of aborting a chain at warmup iteration 1 and leaving rstan’s autodiff arena unusable for the rest of the session. <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/as_tmbstan.html" class="external-link">as_tmbstan()</a></code> was the worse of the two doors: it returned an empty <code>stanfit</code> with no error at all. The defect is upstream, is reproduced without frmtmb in <code>dev/upstream/</code>, and still reproduces against RTMBode at commit 5242257: <code><a href="https://rdrr.io/pkg/RTMBode/man/ode.html" class="external-link">RTMBode::ode()</a></code> calls <code><a href="https://rdrr.io/pkg/deSolve/man/ode.html" class="external-link">deSolve::ode()</a></code> with no guard, so a failed solve escapes as an R error where a sampler needs <code>NaN</code>. <code><a href="../reference/frm_ode.html">?frm_ode</a></code> gains a “Sampling an ODE fit” section with the evidence and the two ways forward. The row goes away when a fixed RTMBode is released.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.1" id="frmtmbode-011">frmtmb.ode 0.1.1<a class="anchor" aria-label="anchor" href="#frmtmbode-011"></a></h2>
 <p>Requires frmtmb 0.55.0, for the hazard-container lint that now runs in this package’s own check.</p>

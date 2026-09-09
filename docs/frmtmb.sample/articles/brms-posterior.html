@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -151,8 +151,9 @@ maximum-likelihood mode anchors the chains</td>
 </tr>
 <tr class="even">
 <td><code>control = list(adapt_delta = )</code></td>
-<td>not through <code><a href="../reference/frm_sample.html">frm_sample()</a></code>, whose <code>control</code> is
-<code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_control.html" class="external-link">frmtmb_control()</a></code>; see below</td>
+<td>the same name and the same meaning, passed to rstan through
+<code><a href="https://rdrr.io/pkg/tmbstan/man/tmbstan.html" class="external-link">tmbstan::tmbstan()</a></code>
+</td>
 </tr>
 <tr class="odd">
 <td>
@@ -169,17 +170,16 @@ per simulation and returns it with the responses</td>
 </tr>
 </tbody>
 </table>
-<p>The one argument with no route is rstan’s <code>control</code> list.
-<code><a href="../reference/frm_sample.html">frm_sample()</a></code> already spells <code>control</code> as
-<code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_control.html" class="external-link">frmtmb_control()</a></code>, the model-assembly options, so
-<code>adapt_delta</code> and <code>max_treedepth</code> cannot travel
-past it. <code><a href="../reference/as_tmbstan.html">as_tmbstan()</a></code> passes everything to tmbstan and
-takes them:</p>
+<p><code>control</code> is the sampler’s control list here, as it is in
+brms, so a call that tightens the adaptation ports across unchanged:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/as_tmbstan.html">as_tmbstan</a></span><span class="op">(</span><span class="va">fit</span>, chains <span class="op">=</span> <span class="fl">4</span>, control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>adapt_delta <span class="op">=</span> <span class="fl">0.99</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>What that costs is the return value. <code><a href="../reference/as_tmbstan.html">as_tmbstan()</a></code> gives
-back a <code>stanfit</code>, whose parameters carry Stan’s names and
-none of the method surface below.</p>
+<code class="sourceCode R"><span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="va">fit</span>, chains <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>                 control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>adapt_delta <span class="op">=</span> <span class="fl">0.99</span>, max_treedepth <span class="op">=</span> <span class="fl">12</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>The fit-time options <code><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm()</a></code> takes are
+<code>fit_control</code> in this function, and they apply only on the
+formula route, where there is a model to assemble. Earlier releases
+spelled them <code>control</code>, so a call written then is refused by
+name rather than reinterpreted.</p>
 </div>
 <div class="section level2">
 <h2 id="two-routes-and-which-one-to-take">Two routes, and which one to take<a class="anchor" aria-label="anchor" href="#two-routes-and-which-one-to-take"></a>

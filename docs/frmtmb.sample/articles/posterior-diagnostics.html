@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -149,13 +149,16 @@ the funnel.</li>
 <code>chains =</code> pass straight to tmbstan. A low <code>n_eff</code>
 with <code>Rhat</code> near 1 is answered here.</li>
 <li>
-<strong>Tighten the sampler.</strong> <code>adapt_delta</code> does
-not travel through <code><a href="../reference/frm_sample.html">frm_sample()</a></code>: its <code>control</code>
-argument is <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_control.html" class="external-link">frmtmb_control()</a></code>, the assembly options, and
-rstan’s <code>control</code> list has no route past it.
-<code>as_tmbstan(fit, control = list(adapt_delta = 0.99))</code> hands
-everything to tmbstan, at the cost of getting a <code>stanfit</code>
-back rather than a draws object with the method surface on it.</li>
+<strong>Tighten the sampler.</strong>
+<code>frm_sample(fit, control = list(adapt_delta = 0.99))</code> is
+brms’s spelling and brms’s meaning: the list goes to rstan through
+tmbstan. Raising <code>adapt_delta</code> shortens the step size the
+adaptation settles on, which is what removes the divergences a residual
+funnel produces, and the cost is wall-clock time.
+<code>max_treedepth = 12</code> answers the companion warning. Read the
+step size back with <code>nuts_params(ds)</code> to see what the change
+bought. The fit-time options of <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_control.html" class="external-link">frmtmb_control()</a></code> are
+<code>fit_control</code> in this function.</li>
 </ol>
 <p>One check comes before all of these. A tmbstan built against
 StanHeaders 2.39 samples a standard normal instead of the model, and

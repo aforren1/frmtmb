@@ -50,9 +50,29 @@ for the whole naming map.
 The response is the arm chosen, coded 1 or 2. `reward(pay1, pay2)`
 carries what each arm WOULD have paid on this trial, in arm order. The
 likelihood only ever reads the chosen arm's entry, so data that records
-the received outcome alone can pass it twice. The second column is what
-makes the simulator coherent: a simulated choice needs the payoff of the
-arm the subject did not take in the data.
+the received outcome alone can pass it twice: the fit is then EXACTLY
+right rather than nearly so. The unchosen entry is multiplied by a zero
+indicator before it reaches anything, so the objective is bitwise the
+same function of the parameters whatever that column holds.
+
+A DRAW is a different question. A simulated subject chooses for itself,
+so paying it needs what the arm the real subject did not take would have
+given, which a duplicated column does not record. With the two columns
+identical on every trial the drawn choices carry no learning signal at
+all, so [`simulate()`](https://rdrr.io/r/stats/simulate.html),
+[`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.html)
+and
+[`frm_task_simulate()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_task_simulate.md)
+refuse that data by name rather than returning a draw from a task nobody
+ran. Some rows equal is not the signature; every row is. `newdata` is
+not a way round it, because the formula names one column twice and
+`newdata` is read through that same formula; refit with a column per
+arm.
+
+This is true of every family in the package, not only this one. All
+eight read the CHOSEN option's entry alone, which is measured rather
+than asserted: replacing the unchosen entries with noise leaves the
+log-likelihood bitwise unchanged in each of them.
 
 ## Reversal learning, and what the grammar buys
 

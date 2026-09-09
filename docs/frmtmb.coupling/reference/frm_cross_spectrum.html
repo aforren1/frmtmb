@@ -13,7 +13,7 @@ cross_wishart() consumes."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.coupling</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -66,6 +66,7 @@ draws that went into it. Those rows are the response
 <span>  segments <span class="op">=</span> <span class="fl">8L</span>,</span>
 <span>  tapers <span class="op">=</span> <span class="fl">1L</span>,</span>
 <span>  smooth <span class="op">=</span> <span class="fl">1L</span>,</span>
+<span>  window <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"none"</span>, <span class="st">"hann"</span><span class="op">)</span>,</span>
 <span>  frange <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -82,7 +83,8 @@ adds an <code>id</code> column naming the column. A three-column pair is three
 units of the same two signals, not a three-channel recording:
 <code><a href="cross_wishart.html">cross_wishart()</a></code> models a channel PAIR, and a third channel has no
 route in. To relate three channels, fit the three pairs separately
-and say so.</p></dd>
+and say so. <code>NA</code> marks a sample the record does not have; see
+"Gaps in the record".</p></dd>
 
 
 <dt id="arg-sfreq">sfreq<a class="anchor" aria-label="anchor" href="#arg-sfreq"></a></dt>
@@ -91,8 +93,10 @@ default of 1 returns cycles per sample.</p></dd>
 
 
 <dt id="arg-segments">segments<a class="anchor" aria-label="anchor" href="#arg-segments"></a></dt>
-<dd><p>Number of disjoint, non-overlapping blocks the record
-is cut into. Each contributes one complex draw per frequency.</p></dd>
+<dd><p>How many disjoint, non-overlapping blocks the record
+is cut into, at most. Each contributes one complex draw per
+frequency. A record with gaps in it usually supplies fewer, and <code>n</code>
+says how many it supplied.</p></dd>
 
 
 <dt id="arg-tapers">tapers<a class="anchor" aria-label="anchor" href="#arg-tapers"></a></dt>
@@ -107,6 +111,15 @@ returned <code>freq</code> is the middle of each group. <code>tapers</code> and 
 may not both be above 1; see "How many degrees of freedom".</p></dd>
 
 
+<dt id="arg-window">window<a class="anchor" aria-label="anchor" href="#arg-window"></a></dt>
+<dd><p>The data window applied to each segment before its
+transform. <code>"none"</code>, the default, is a boxcar. <code>"hann"</code> is the
+raised cosine, for a spectrum steep enough that the untapered
+transform's high frequencies are leakage from its low ones. It buys
+no degrees of freedom and costs none, and it cannot be combined with
+<code>tapers</code> or <code>smooth</code>; see "How many degrees of freedom".</p></dd>
+
+
 <dt id="arg-frange">frange<a class="anchor" aria-label="anchor" href="#arg-frange"></a></dt>
 <dd><p>Optional <code>c(low, high)</code> in the same units as <code>freq</code>,
 applied after everything else.</p></dd>
@@ -118,7 +131,8 @@ applied after everything else.</p></dd>
 <code>freq</code>, <code>w11</code>, <code>w22</code>, <code>w12r</code>, <code>w12i</code> and <code>n</code>, plus <code>id</code> for the
 matrix form. <code>w11</code> and <code>w22</code> are the two auto-spectra summed over
 draws, <code>w12r</code> and <code>w12i</code> the real and imaginary parts of the summed
-cross-spectrum, and <code>n</code> the degrees of freedom. The matrix is
+cross-spectrum, and <code>n</code> the degrees of freedom the record actually
+supplied. The matrix is
 <code>[[w11, w12r + 1i w12i], [w12r - 1i w12i, w22]]</code>, and it is the SUM
 over draws rather than the average, which is the scaling the
 complex Wishart density is written for. Each draw carries the <code>1/N</code>
@@ -141,6 +155,45 @@ never notices, because the fit still converges.</p>
 what makes frequency zero uninformative in the first place.</p>
     </div>
     <div class="section level2">
+    <h2 id="gaps-in-the-record">Gaps in the record<a class="anchor" aria-label="anchor" href="#gaps-in-the-record"></a></h2>
+
+
+<p><code>NA</code> in either signal marks a sample the pair does not have, which is
+what artifact rejection leaves behind. Such a sample is not
+interpolated and not skipped: the record is cut at it, and the
+segments are laid inside the clean spans that remain, so no transform
+ever crosses a gap. An artifact-rejected recording is then one call
+rather than one call per surviving span and a hand-written sum.</p>
+<p>A sample is usable only where BOTH signals have it, because the
+cross-spectrum is a property of the pair. <code>NaN</code> counts as <code>NA</code>; an
+infinity is refused, because it is a value the arithmetic cannot use
+rather than a value the record is missing.</p>
+<p>The segment LENGTH comes from the usable sample count divided by
+<code>segments</code>, and each clean span then supplies as many whole segments
+as fit in it, in record order, up to <code>segments</code> in total. The samples
+left over at the end of each span are dropped, and a span shorter
+than one segment supplies nothing at all.</p>
+<p>So a record with ONE clean span always yields the full <code>segments</code>,
+whatever was rejected from its ends, because the length divides down.
+A record broken into SEVERAL usually yields fewer, since each span
+drops its own remainder. On such a record, asking for FEWER segments
+can be refused where more would be accepted: the length comes from
+the global usable count, so a small <code>segments</code> can ask for a segment
+longer than any surviving span. Three spans of 700, 1043 and 699 are
+refused at <code>segments = 2</code>, which wants 1221 samples in a row, and
+give 3, 7 and 14 segments at 4, 8 and 16.</p>
+<p>That is not hidden: <code>n</code> is the count the
+record supplied, it is per-row data the density reads, and every
+standard error downstream is formed from it. Nothing warns, because
+on a record with gaps the shortfall is the normal case rather than a
+mistake.</p>
+<p>In the matrix form each column is its own record, so a column with
+more rejected samples than its neighbors gets a shorter segment, its
+own frequency grid and its own <code>n</code>. That is correct and it is why
+<code>freq</code> is a column of the frame rather than an attribute of it: a
+model reads <code>freq</code> per row.</p>
+    </div>
+    <div class="section level2">
     <h2 id="how-many-degrees-of-freedom-and-where-to-get-them">How many degrees of freedom, and where to get them<a class="anchor" aria-label="anchor" href="#how-many-degrees-of-freedom-and-where-to-get-them"></a></h2>
 
 
@@ -152,14 +205,32 @@ it exists.</p>
 true coherence of zero the naive estimate has mean exactly <code>1/n</code>, so
 <code>1 / mean(coherence)</code> reads the effective count straight off a
 simulation. Every accepted configuration was measured that way, 4000
-replicates on white noise, nominal <code>n = 8</code> throughout:</p><table class="table table"><tr><td>configuration</td><td>measured n</td></tr><tr><td><code>segments = 8</code></td><td>7.92</td></tr><tr><td><code>segments = 4, smooth = 2</code></td><td>8.17</td></tr><tr><td><code>segments = 2, smooth = 4</code></td><td>7.99</td></tr><tr><td><code>segments = 1, smooth = 8</code></td><td>7.98</td></tr><tr><td><code>segments = 4, tapers = 2</code></td><td>8.03</td></tr><tr><td><code>segments = 2, tapers = 4</code></td><td>7.76</td></tr><tr><td><code>segments = 1, tapers = 8</code></td><td>7.98</td></tr></table><p>Two combinations are refused rather than counted wrong.</p>
+replicates on white noise, nominal <code>n = 8</code> throughout:</p><table class="table table"><tr><td>configuration</td><td>measured n</td></tr><tr><td><code>segments = 8</code></td><td>7.92</td></tr><tr><td><code>segments = 4, smooth = 2</code></td><td>8.17</td></tr><tr><td><code>segments = 2, smooth = 4</code></td><td>7.99</td></tr><tr><td><code>segments = 1, smooth = 8</code></td><td>7.98</td></tr><tr><td><code>segments = 4, tapers = 2</code></td><td>8.03</td></tr><tr><td><code>segments = 2, tapers = 4</code></td><td>7.76</td></tr><tr><td><code>segments = 1, tapers = 8</code></td><td>7.98</td></tr><tr><td><code>segments = 8, window = "hann"</code></td><td>8.02</td></tr></table><p>Three combinations are refused rather than counted wrong.</p>
 <p><strong>Tapers and smoothing together.</strong> Both widen the same spectral
 window, so their product is not the degrees of freedom: 4 tapers
 smoothed over 4 bins measures 5.80 against a nominal 16, and 2 tapers
 over 2 bins measures 2.70 against 4. Raise <code>segments</code> instead.</p>
-<p><strong>Overlapping segments.</strong> Overlap raises the nominal count without
-raising the independent one, so <code>n</code> would be a lie and every standard
-error downstream would be too small.</p>
+<p><strong>A window and smoothing together</strong>, for the same reason and by the
+same arithmetic. A Hann window makes each ordinate a weighted sum of
+its two neighbors and itself, so adjacent bins are correlated and
+averaging them adds less than it claims. Measured at a true coherence
+of zero, 3000 replicates a cell, nominal <code>n = 8</code> throughout: 4
+segments smoothed over 2 bins delivers 5.66, 2 segments over 4 bins
+delivers 4.98 and 1 segment over 8 bins delivers 4.68, against 8.19,
+8.02 and 8.05 for the same three without the window.</p>
+<p>Declaring the shortfall instead of refusing it was considered and
+rejected. There is no one number to declare: the same window loses a
+different amount at each smoothing width, and frmtmb's own
+<code><a href="https://aforren1.github.io/frmtmb/reference/whittle.html" class="external-link">whittle()</a></code> measured the same thing from the other side, where an
+honestly declared equivalent degrees of freedom does not rescue a
+smoothed spectrum from its raw-periodogram check at kernel widths of
+7 and above (<code>dev/reviews/2026-09-08-spectral2.md</code>). The correlation
+is a property of the estimate, not of the number attached to it.</p>
+<p><strong>A window and tapers together.</strong> Both are a taper on the same
+segment, and applying one over the other is neither.</p>
+<p><strong>Overlapping segments</strong> stay refused. Overlap raises the nominal
+count without raising the independent one, so <code>n</code> would be a lie and
+every standard error downstream would be too small.</p>
 <p>Frequency smoothing assumes the spectrum is flat across the bins it
 averages, so it is the route with a cost that a white-noise
 measurement cannot see. Measured on an AR(1) spectrum with
@@ -173,8 +244,37 @@ pooled, <strong>that cost is not detectable at these widths</strong>: nominal 2,
 frequency bin per replicate instead of all of them, and it did not
 survive replication. Smoothing is safe at the widths anyone uses;
 what is not safe is smoothing across a band where the COHERENCE
-varies, which is a modelling error rather than a degrees-of-freedom
+varies, which is a modeling error rather than a degrees-of-freedom
 one and no count will catch it.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="what-a-window-does-to-the-rows-which-n-does-not-say">What a window does to the rows, which <code>n</code> does not say<a class="anchor" aria-label="anchor" href="#what-a-window-does-to-the-rows-which-n-does-not-say"></a></h2>
+
+
+<p><code>n</code> counts the draws behind ONE row and a window leaves that count
+alone, which the table above measures. What a window and what
+<code>tapers</code> both change is the relation BETWEEN rows, and <code>n</code> says
+nothing about that.</p>
+<p>Measured on the log of <code>w11</code> from this function, 400 replicates of
+white noise at 1024 samples, at calls this function accepts. The last
+column is the variance inflation factor of a mean over the rows,
+<code>1 + 2 * sum</code> of the positive correlations, which is the number a
+smooth in frequency actually pays. It is summed over twelve lags,
+which matters for one row: at <code>tapers = 8</code> the correlation is still
+positive past lag 4, and stopping there gives 6.45 instead of 8.02.
+Every other row has died by lag 3 and is the same either way.</p><table class="table table"><tr><td>configuration</td><td>lag 1</td><td>lag 2</td><td>lag 3</td><td>inflation</td></tr><tr><td><code>segments = 8</code></td><td>-0.010</td><td>-0.015</td><td>-0.021</td><td>1.00</td></tr><tr><td><code>segments = 8, window = "hann"</code></td><td>0.397</td><td>-0.009</td><td>-0.027</td><td>1.79</td></tr><tr><td><code>segments = 8, tapers = 2</code></td><td>0.525</td><td>0.104</td><td>-0.035</td><td>2.24</td></tr><tr><td><code>segments = 4, tapers = 4</code></td><td>0.745</td><td>0.502</td><td>0.271</td><td>4.07</td></tr><tr><td><code>segments = 1, tapers = 8</code></td><td>0.876</td><td>0.744</td><td>0.615</td><td>8.02</td></tr></table><p>So a Hann-windowed frame carries about one independent frequency in
+1.8, and <code>tapers</code> costs MORE rather than less: a <code>tapers = 4</code> frame
+carries about one in four, and eight tapers cost a factor of eight,
+with ordinates still correlated 0.6 three bins apart. An <code>s(freq)</code>
+smooth fitted on either has fewer effective points than it has rows,
+so its band is optimistic. By how much is not measured here: the
+inflation factor says how much information the rows carry, not what
+a penalized smooth does with it.</p>
+<p>None of that touches <code>n</code>, which is right in every one of these
+configurations: the per-row degrees of freedom and the correlation
+between rows are different quantities, and <code>n</code> claims only the first.</p>
+<p>Use a window or a taper where leakage is the larger error, which is a
+steep spectrum, and not by default.</p>
     </div>
 
     <div class="section level2">

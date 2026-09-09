@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.55.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.55.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -61,6 +61,11 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.55.1" id="frmtmb-0551">frmtmb 0.55.1<a class="anchor" aria-label="anchor" href="#frmtmb-0551"></a></h2>
+<ul><li><p><code><a href="../reference/frm_compat_features.html">?frm_compat_features</a></code> now says which column a caller may key on. <code>name</code> was documented as “how the feature is written in a formula”, which is false for the three <code>_pred</code> rows: a formula writes <code>mi(x)</code>, never <code>mi_pred(x)</code>. <code>key</code> is the parser name, and frmtmb.sample’s new pre-flight refusal depends on that, so it is a contract rather than an observed regularity now. No behavior changed.</p></li>
+<li><p><code><a href="../reference/frmtmb_register_compat.html">?frmtmb_register_compat</a></code> states what a <code>refused</code> row promises: the row is a claim about what the code does, not a note for a reader, and it is enforced wherever the enforcing code can see the feature, with that code saying what it can see. Most of core’s refusals are hand-written guards the row describes, and those see everything. The other kind CONSULTS the registry at the point of use, and <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> is the first caller of that kind, so a package that owns a model the sampler cannot run declares one row and needs no code in the sampler. The qualification is where the two differ: deciding whether a model uses a feature usually means knowing WHERE its call sits in the formula, which the parser owns and nothing public carries out of core, so a consulting caller documents the rows it cannot decide and warns rather than refusing on those. Documentation only; the registry itself is unchanged.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.55.0" id="frmtmb-0550">frmtmb 0.55.0<a class="anchor" aria-label="anchor" href="#frmtmb-0550"></a></h2>
 <p>Two densities were silently wrong and are fixed. The student-t log density cancelled its own digits as <code>nu</code> ran off, by 57 log units at <code>nu = 1e50</code>, which the grammar fuzz tier had recorded as two optima under a row permutation; and a Bayesian Cognitive Modeling family read a probability on the wrong scale, by 1.5716 nats per observation on the identity link. Neither is a regression: both have been wrong for longer than 0.54.0.</p>

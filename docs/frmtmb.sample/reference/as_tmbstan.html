@@ -11,7 +11,7 @@ parameters including random effects are sampled unless laplace = TRUE is passed 
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -70,19 +70,44 @@ parameters including random effects are sampled unless <code>laplace = TRUE</cod
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed to <code><a href="https://rdrr.io/pkg/tmbstan/man/tmbstan.html" class="external-link">tmbstan::tmbstan()</a></code> (chains, iter, laplace, ...).</p></dd>
+<dd><p>Passed to <code><a href="https://rdrr.io/pkg/tmbstan/man/tmbstan.html" class="external-link">tmbstan::tmbstan()</a></code> (chains, iter, laplace,
+<code>control</code>, ...).</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A <code>stanfit</code> object.</p>
+    <p>A <code>stanfit</code> object holding draws. <strong>It is never an empty
+one:</strong> rstan answers some failures by declining to sample, printing
+its reason and returning the shell of a <code>stanfit</code>, and until 0.3.2
+this function passed that shell back, so a failed run looked like a
+successful one until an accessor came back empty. It now stops with
+a message naming the run, which is a change to this function's
+return contract. A model that cannot be sampled at all is a
+different refusal and is raised earlier; see Details.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>It hands over the fit's OWN objective and nothing else: no default
 priors, no non-centering, no named draws. <code><a href="frm_sample.html">frm_sample()</a></code> is the
 route that applies brms's default priors and returns the draws
-surface; this one is the escape hatch to tmbstan's own arguments.</p>
+surface; this one is the escape hatch to tmbstan's own arguments.
+<code>control</code> means here what it means in <code><a href="frm_sample.html">frm_sample()</a></code> and in brms,
+the sampler's own list, because everything reaches
+<code><a href="https://rdrr.io/pkg/tmbstan/man/tmbstan.html" class="external-link">tmbstan::tmbstan()</a></code> unchanged.</p>
+<p>Two things are NOT an escape hatch, and both are failures this
+function used to pass on in silence.</p>
+<p>The first is the compatibility registry's refusals. This function
+runs the same pre-flight <code><a href="frm_sample.html">frm_sample()</a></code> does (see its "The pre-flight
+against the compatibility registry" section), because a model the
+sampler cannot run fails harder here, and the abort that produces the
+failure can leave rstan unusable for the rest of the R session.</p>
+<p>The second is an empty result. rstan answers some failures by
+declining to sample, printing its reason to the console and returning
+a <code>stanfit</code> with nothing in it; this function returned that object.
+It now stops instead, with the same message <code><a href="frm_sample.html">frm_sample()</a></code> raises,
+naming this function. The two refusals are deliberately different
+sentences: the pre-flight one says the model cannot be sampled at
+all, and this one says the run in front of you produced nothing.</p>
     </div>
 
     <div class="section level2">

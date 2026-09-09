@@ -4,7 +4,7 @@ pkgdown_sha: ~
 articles:
   curve-inference: curve-inference.html
   royston-parmar: royston-parmar.html
-last_built: 2026-09-08T17:34Z
+last_built: 2026-09-09T04:58Z
 urls:
   reference: https://aforren1.github.io/frmtmb/frmtmb.spline/reference
   article: https://aforren1.github.io/frmtmb/frmtmb.spline/articles

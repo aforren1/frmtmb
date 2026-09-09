@@ -46,28 +46,25 @@ frm_sample(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
 | `prior = prior(...)` | `prior = set_prior(...)`; a `brmsprior` that brms itself built is translated row by row |
 | the default prior set | applied on both routes, read off [`brms::default_prior()`](https://paulbuerkner.com/brms/reference/default_prior.html); `prior = "flat"` opts out |
 | `init =`, `init_r =` | `init =`, `init_jitter =`; from a fit the maximum-likelihood mode anchors the chains |
-| `control = list(adapt_delta = )` | not through [`frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.md), whose `control` is [`frmtmb_control()`](https://aforren1.github.io/frmtmb/reference/frmtmb_control.html); see below |
+| `control = list(adapt_delta = )` | the same name and the same meaning, passed to rstan through [`tmbstan::tmbstan()`](https://rdrr.io/pkg/tmbstan/man/tmbstan.html) |
 | `backend =`, `threads =`, `stan_model_args =` | nothing to configure: there is no Stan program to compile |
 | `sample_prior = "only"` | [`frmtmb::frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.html), which draws a parameter vector per simulation and returns it with the responses |
 
-The one argument with no route is rstan’s `control` list.
-[`frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.md)
-already spells `control` as
-[`frmtmb_control()`](https://aforren1.github.io/frmtmb/reference/frmtmb_control.html),
-the model-assembly options, so `adapt_delta` and `max_treedepth` cannot
-travel past it.
-[`as_tmbstan()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/as_tmbstan.md)
-passes everything to tmbstan and takes them:
+`control` is the sampler’s control list here, as it is in brms, so a
+call that tightens the adaptation ports across unchanged:
 
 ``` r
 
-sf <- as_tmbstan(fit, chains = 4, control = list(adapt_delta = 0.99))
+ds <- frm_sample(fit, chains = 4,
+                 control = list(adapt_delta = 0.99, max_treedepth = 12))
 ```
 
-What that costs is the return value.
-[`as_tmbstan()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/as_tmbstan.md)
-gives back a `stanfit`, whose parameters carry Stan’s names and none of
-the method surface below.
+The fit-time options
+[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) takes
+are `fit_control` in this function, and they apply only on the formula
+route, where there is a model to assemble. Earlier releases spelled them
+`control`, so a call written then is refused by name rather than
+reinterpreted.
 
 ## Two routes, and which one to take
 

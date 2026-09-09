@@ -1,5 +1,138 @@
 # Changelog
 
+## frmtmb.eam 0.6.0
+
+A random effect on the non-decision time is broken, and with
+`variability` set it is broken SILENTLY. Read the first bullet before
+fitting a hierarchical DDM.
+
+- [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)
+  bounds the non-decision time by `min(rt)`, the GLOBAL fastest response
+  in the data, through a scaled logit. With a random effect on `ndt`
+  this is the wrong constraint: the information about a subject’s
+  non-decision time is that subject’s own fastest response, and a
+  subject whose true `ndt` is above the global minimum cannot be
+  represented at any value of the random effect. At 30 subjects by 400
+  trials with a between-subject `ndt` spread of 26 ms on a mean of 250
+  ms, 20 of the 30 subjects are in that position while NONE is
+  inconsistent with its own data. Without `variability` the fit does not
+  converge and says so: maximum absolute gradient 1.3e11, Hessian not
+  positive definite, all seven standard errors `NaN`. With
+  `variability = "sv"` it CONVERGES: code 0, maximum gradient 7.5e-05,
+  positive definite Hessian, no bad standard errors, and
+  [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.html)
+  reports nothing. The population non-decision time then comes back
+  pinned at the bound, 0.2236 against a truth of 0.25 and 0.42 of a
+  standard error below `min(rt)`, with a delta-method standard error of
+  7.2e-06 on it, because the scaled logit’s derivative vanishes where
+  the estimate has been pushed. Do not put a random effect on `ndt`
+  until the per-subject bound lands; the same defect reaches `rlddm()`
+  in frmtmb.learn, which takes its diffusion parameterization from this
+  package. Fitting the same data with the bound raised above every
+  subject’s truth recovers everything and finds a log likelihood 121.4
+  units higher at the same parameter count.
+
+- `valid_y` warns when the fastest response exceeds 20 seconds and names
+  milliseconds as the likely cause, across all five families. Zero false
+  alarms over 192 designs a two-choice task produces. Where it can fire
+  on a correct model the help reports the rate with the fastest response
+  beside it, because the rate is not a function of the median: at about
+  50 seconds it spans 0.185 to 0.935 depending on drift.
+
+- **A units guard.** Every default in this package reads the response as
+  a time in SECONDS: the starting values, the bound the `ndt` link is
+  scaled onto, `gddm_control(dt = 0.01)` and the window `t_max` takes
+  from the data. Nothing in any of the five likelihoods refused
+  milliseconds. The fit converged and reported a boundary separation
+  three orders of magnitude out, which is the silent wrong answer this
+  project ranks first. `valid_y` now warns when the fastest response in
+  the data is above 20, names milliseconds as the likely cause and says
+  to divide by 1000. All five families raise it, in their own name.
+
+  Where 20 comes from. It is a ceiling on the fastest response in the
+  WHOLE data set rather than on any one trial, so one slow trial does
+  not reach it and cannot. Over 81 cells at the standard published range
+  (drift 0.5 to 3, boundary 0.8 to 2.5, non-decision time 0.15 to 0.6,
+  at 200, 400 and 12000 trials) the fastest response ran from 0.157 to
+  0.801 seconds: 0 of 81 false alarms, and 81 of 81 caught when the same
+  data is read as milliseconds. In the other direction the miss rate is
+  0 of 81 at every threshold up to 100 and 14 of 81 at 200, so 20 sits a
+  factor of five inside the band where nothing is missed.
+
+  **Where it CAN fire on a correct model**, which the first sweep hid.
+  That sweep held the trial count at 200 and up, where the fastest
+  response is pinned just above the non-decision time and the guard
+  reduces to “is the non-decision time above 20 seconds”. A SHORT
+  session of SLOW decisions is the exposed case, because the minimum of
+  a few draws sits far above the floor. Measured with
+  [`ddm_simulate()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ddm_simulate.md)
+  at a drift of 0.18 and a non-decision time of 1.5 seconds, 200
+  replicates a cell. The FASTEST response is in the table beside the
+  median, because the fastest is what the guard reads:
+
+  | median | 20 trials      | 60 trials      | 200 trials     |
+  |--------|----------------|----------------|----------------|
+  | 28 s   | 0.000 (9.2 s)  | 0.000 (7.3 s)  | 0.000 (6.0 s)  |
+  | 39 s   | 0.045 (13.4 s) | 0.000 (10.3 s) | 0.000 (8.5 s)  |
+  | 45 s   | 0.155 (15.7 s) | 0.000 (12.2 s) | 0.000 (10.1 s) |
+  | 61 s   | 0.690 (22.7 s) | 0.285 (18.2 s) | 0.000 (15.1 s) |
+  | 100 s  | 1.000 (41.7 s) | 0.995 (34.8 s) | 0.995 (29.1 s) |
+
+  A 20-trial session with a median near 40 seconds is a deliberation,
+  insight or matrix-reasoning design, not a stress test, and its
+  non-decision time is 1 to 2 seconds rather than 20.
+
+  **The median does not determine the rate**, which is why the fastest
+  response is in the table. Holding the median near 50 seconds and
+  reaching it three ways at 20 trials: drift 0.10 and boundary 18.7
+  gives a median of 57.0 s, a fastest of 15.7 s and a rate of 0.185;
+  drift 0.18 and boundary 21.5 gives 49.4 s, 17.5 s and 0.260; drift
+  0.35 and boundary 37.6 gives 52.4 s, 26.9 s and **0.935**. A task that
+  is slow because the boundary is far and the evidence is strong has a
+  tight response time distribution, so the fastest of twenty trials sits
+  close to the median; a task that is slow because the evidence is weak
+  has a long right tail and a fast minimum. At one median the rate spans
+  0.185 to 0.935, and it tracks the fastest response throughout.
+
+  So the honest one-line cost is the one the guard implements: it fires
+  when the FASTEST response passes 20 seconds, and how far the fastest
+  sits below the median depends on the spread as much as on the center.
+
+  Nothing a standard two-choice task produces reaches the ceiling. Over
+  192 cells at boundary separations of 2 to 5, non-decision times of 0.5
+  to 5 seconds, drifts of 0.3 to 2 and 12 to 80 trials, the fastest
+  response ran from 0.599 to 6.605 seconds and there were 0 false
+  alarms.
+
+  A warning and not a refusal for exactly that reason, and it carries
+  the class `frmtmb_eam_units_warning`, so a genuinely slow design can
+  silence this one condition without also hiding the convergence
+  warnings beside it. It is raised once per FIT: counted over eleven
+  entry points,
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) raises
+  it once and [`update()`](https://rdrr.io/r/stats/update.html) once,
+  because [`update()`](https://rdrr.io/r/stats/update.html) reassembles
+  the frame, and the nine post-fit methods raise it zero times.
+
+  **What it misses**, stated because it is measurable: a millisecond
+  record with fast-guess contamination in it. At 12000 rows with 5
+  percent of trials drawn uniformly over the observed range, only 2 of
+  30 were caught, because one contaminant below 20 ms hides the whole
+  data set.
+
+  That is not softened by the record being broken in seconds too. On one
+  such record the SECONDS reading raises no warning of any kind, reports
+  “No convergence problems detected” with a maximum gradient of 1.2e-05
+  and a positive definite Hessian, and estimates a boundary separation
+  of 2.06 against a truth of 1.4, which is 47 percent out. So it is a
+  second SILENT wrong answer rather than a visible failure, and the
+  right closure for it is the contaminant mixture of item 3.5 rather
+  than a wider units guard. A median-based arm would catch the
+  millisecond half, because a millisecond median sits near 600 and
+  contamination cannot move a median; it was not shipped because it was
+  not measured for false alarms, and an unmeasured second heuristic
+  inside a guard is what this project’s rules forbid.
+
 ## frmtmb.eam 0.5.1
 
 Requires frmtmb 0.55.0, for the hazard-container lint that now runs in

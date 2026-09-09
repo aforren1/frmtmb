@@ -1,5 +1,12 @@
 # Changelog
 
+## frmtmb.latent 0.2.2
+
+- Requires frmtmb 0.55.1. A scale row in the gated measurement tier,
+  which finds the hidden Markov post-fit passes are 0.25 and 0.09
+  seconds at 50 sequences by 500 steps, so the R loops there are not a
+  cost worth removing.
+
 ## frmtmb.latent 0.2.1
 
 Requires frmtmb 0.55.0, for the hazard-container lint that now runs in

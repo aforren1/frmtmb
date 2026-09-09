@@ -15,7 +15,7 @@ dec() addition term."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -156,6 +156,31 @@ integer column:</p>
 <p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">frm</span>(<span class="fu">bf</span>(rt <span class="sc">|</span> <span class="fu">vint</span>(upper) <span class="sc">~</span> condition), <span class="at">family =</span> <span class="fu">wiener</span>(), <span class="at">data =</span> dat)</span></code></pre><p></p></div>
 <p>Supplying neither is refused with a message that says so, because the
 failure is otherwise silent.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="the-unit-of-the-response">The unit of the response<a class="anchor" aria-label="anchor" href="#the-unit-of-the-response"></a></h2>
+
+
+<p>SECONDS. Every default in this package assumes it: the starting
+values, the bound the <code>ndt</code> link is scaled onto, and
+<code>gddm_control(dt = )</code> and the window it takes from the data. Nothing
+in any of the likelihoods refuses milliseconds, and a fit to
+millisecond data converges and reports a boundary separation three
+orders of magnitude out.</p>
+<p>So every family here warns when the fastest response in the data is
+above 20, names milliseconds as the likely cause and says to divide
+by 1000. It is a ceiling on the fastest response in the WHOLE data
+set rather than on any one trial, so one slow trial does not reach
+it.</p>
+<p>It is a warning rather than a refusal because it CAN fire on a
+correct model: a slow task with a short session. Measured, the rate
+is zero over 192 designs at the parameters a two-choice task
+produces, and rises to 0.07 at 20 trials of a task whose median
+response is 39 seconds, 0.56 at 60 seconds and 1.00 at 100 seconds.
+A deliberation or matrix-reasoning design is where that lands. The
+warning carries the class <code>frmtmb_eam_units_warning</code> so that such a
+design can silence this one condition and keep the rest. <code>NEWS.md</code>
+carries the full tables.</p>
     </div>
     <div class="section level2">
     <h2 id="non-decision-time">Non-decision time<a class="anchor" aria-label="anchor" href="#non-decision-time"></a></h2>
