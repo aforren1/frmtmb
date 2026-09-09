@@ -3,6 +3,14 @@
 \name{frmtmb-links}
 \alias{frmtmb-links}
 \title{Link functions}
+\value{
+A link is not a free-standing function. It is named to a
+family constructor, which resolves it against the registry and
+carries it on the fitted model, so the value a link contributes is
+the scale each distributional parameter is estimated on. Read it
+back with \code{frm_family()}, and read a custom link's own fields with
+the list that was supplied. This page documents the roster.
+}
 \description{
 The links frmtmb accepts, what each one maps, and where each one may
 be used. Every family constructor takes a \code{link} argument for the

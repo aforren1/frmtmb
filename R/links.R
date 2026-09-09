@@ -152,6 +152,12 @@
 #' interval read. `logit_eta` and `log_eta` are optional; supply one
 #' only if it is exact.
 #'
+#' @return A link is not a free-standing function. It is named to a
+#'   family constructor, which resolves it against the registry and
+#'   carries it on the fitted model, so the value a link contributes is
+#'   the scale each distributional parameter is estimated on. Read it
+#'   back with `frm_family()`, and read a custom link's own fields with
+#'   the list that was supplied. This page documents the roster.
 #' @seealso [frmtmb-families] for the constructors that take these,
 #'   [set_prior()] for what a link does to a prior.
 #' @name frmtmb-links
