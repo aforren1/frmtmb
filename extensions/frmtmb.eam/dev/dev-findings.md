@@ -573,3 +573,21 @@ knows the full vocabulary at that point, the check is a `setdiff()`,
 and the current behavior means the seam's failure mode is a table that
 looks complete and is not. A contributor's first sign of trouble
 should not be counting rows.
+
+## The scale row
+
+This package has THREE rows in the Phase 0 measurement tier of
+`dev/extension-gaps-plan.md`: `eam`, `eam-sv` and `eam-unbounded`, in
+`tests/testthat/test-scale.R` behind `FRMTMB_SCALE_TESTS=true`. The
+design and the numbers are in `dev/scale-row.md` beside this file and
+in the repository root's `dev/scale-findings.md`.
+
+The tier follows the convention above, with one exception this file
+should own rather than leave to the findings document. A fresh process
+per timed fit, one seed stated per row, and a control on every row:
+yes. But this package's own `eam` row carries the WORST control in the
+table, 2.90, because it was measured while an `R CMD check` was
+running on the same machine. Its gradient numbers are upper bounds and
+the findings document says so. The estimates from that row reproduced
+to every digit across two independent processes; it is only the clock
+that was disturbed.

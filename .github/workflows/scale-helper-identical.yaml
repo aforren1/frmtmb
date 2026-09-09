@@ -1,0 +1,58 @@
+# The Phase 0 scale tier's helper is copied into all seven extensions
+# rather than shared, because a testthat helper lives under
+# `tests/testthat/` and is not installed, so an installed frmtmb.eam
+# cannot read a helper that lives in frmtmb. Sharing it would mean
+# putting it in core's `inst/` and reaching it with `system.file()`,
+# which is a public promise about a test helper.
+#
+# Copying is the right call and drift is its price. That price is real
+# in this repository: `test-message-uniqueness.R` is also seven copies
+# and they are seven DIFFERENT files, 72 to 114 lines. This job is the
+# cheapest possible guard, and it is a repository-level job because
+# comparing the seven copies is impossible from inside any one package.
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'extensions/*/tests/testthat/helper-scale.R'
+      - '.github/workflows/scale-helper-identical.yaml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'extensions/*/tests/testthat/helper-scale.R'
+      - '.github/workflows/scale-helper-identical.yaml'
+  workflow_dispatch:
+
+name: scale-helper-identical
+
+jobs:
+  identical:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: The seven copies must be byte-identical
+        run: |
+          set -eu
+          files=$(ls extensions/*/tests/testthat/helper-scale.R)
+          n=$(echo "$files" | wc -l)
+          hashes=$(sha256sum $files | awk '{print $1}' | sort -u | wc -l)
+          echo "$n copies, $hashes distinct hash(es)"
+          sha256sum $files
+          # The COUNT is asserted, not just reported. Without this the
+          # job passes when a copy is DELETED: one file still hashes to
+          # one distinct value, and a guard that does not notice a file
+          # vanishing is not a guard. This is the empty-sweep shape that
+          # bit two other lanes this round.
+          if [ "$n" -ne 7 ]; then
+            echo "expected 7 copies of helper-scale.R, found $n." >&2
+            echo "A copy was added or deleted. If an extension gained" >&2
+            echo "or lost a scale row, update this number and" >&2
+            echo "dev/scale-lane-notes.md together." >&2
+            exit 1
+          fi
+          if [ "$hashes" -ne 1 ]; then
+            echo "helper-scale.R has drifted between packages." >&2
+            echo "It is copied on purpose and must stay identical;" >&2
+            echo "see dev/scale-lane-notes.md." >&2
+            exit 1
+          fi

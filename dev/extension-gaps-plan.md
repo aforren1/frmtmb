@@ -50,7 +50,7 @@ what a typical paper in the field collects, not a stress test.
 | learn | 100 subjects x 200 trials, correlated random effects on every parameter | 20,000 |
 | latent, hmm | 50 sequences x 500 steps, K = 3, random effect on a transition | 25,000 |
 | latent, lca | n = 2000, 10 items, K = 4, two covariates on membership | 2,000 |
-| ode | 100 subjects x 8 samples, two compartments, twice-daily dosing for 7 days | 800, 28 segments each |
+| ode | 100 subjects x 8 samples, a depot and a central state, twice-daily dosing for 7 days | 800; 14 dose events per subject and, with one `ss` row at the default `n_ss = 20`, about 35 solves per group per gradient |
 | spline, curves | 40 subjects, per-subject `fs` curves, 200 points each | 8,000 |
 | spline, RP | 2000 subjects, 40 percent censored, one frailty | 2,000 |
 | coupling | 40 subjects x 2 conditions x 60 frequencies, smooth in frequency plus random effects | 4,800 |
@@ -58,43 +58,62 @@ what a typical paper in the field collects, not a stress test.
 
 ## Phase 0. The measurement tier
 
-One fit per package at the scale above, in a gated test tier
-(`FRMTMB_SCALE_TESTS=true`), recording tape build, one gradient, the
-whole `frm()` call including `sdreport()`, and the estimate against the
-truth. Results go to `dev/scale-findings.md` as one table, and each
-package's `dev/` notes gain a pointer to its row.
+DONE, 2026-09-08. One fit per package at the scale above, in a gated
+test tier (`FRMTMB_SCALE_TESTS=true`) that lives in each package's
+`tests/testthat/test-scale.R`, recording tape build, one gradient, the
+whole `frm()` call including `sdreport()`, peak memory and the estimate
+against the truth. The numbers are in `dev/scale-findings.md` as one
+table, how the run was made is in `dev/scale-lane-notes.md`, and each
+package's `dev/scale-row.md` points at its own row.
 
-| package | fit | decides |
+| package | fit | decided |
 |---|---|---|
-| eam | wiener with the three random effects; a second run with `variability = "sv"` | whether hierarchical DDM is minutes or hours; whether the bounded ndt link tolerates a random effect at all |
-| learn | bandit2arm_delta with `(1 \| p \| id)` on both parameters, then rlddm the same way | whether the per-trial recursion scales to the population designs in the literature |
-| hmm | K = 3 gaussian with `tr12 ~ (1 \| id)` | tape-build growth past T = 20,000 was measured in the probe; this measures the post-fit passes, which are R loops |
-| lca | K = 4 | cheap; included for the table's completeness |
-| ode | the design above with `ii`/`addl` and one `ss` row | whether the segmented sensitivity solve is usable at population scale, or whether Phase 5's closed-form path is a prerequisite rather than an option |
-| spline | `s(t) + s(t, subject, bs = "fs")` at 40 subjects, then `frm_curve()` and `frm_curve_feature()` on it | the memoized joint-precision solve was 6.9 s at 8006 random coefficients in the docs; this checks the feature search, which calls `predict()` per Newton step |
-| coupling | promote the four scratchpad benchmarks from the survey to the tier | already measured once: 2.4 s, 14.6 s, 52.5 s, 28.9 s; the tier makes it a regression |
-| sample | 4 x 2000 on the GLMM, then `posterior_epred()` and `loo()` on the draws | how slow the per-draw R loops are; whether Phase 4's caching is needed before anything else in that package |
+| eam | wiener with the three random effects; a second run with `variability = "sv"`; a third on the same data with the ndt bound lifted | MINUTES, not hours: 309 s over three passes. The bounded ndt link does NOT tolerate a random effect. 20 of the 30 subjects have a true `ndt` above `min(rt)`, which is the bound; the plain arm does not converge (gradient 1.25e11, seven NaN standard errors) and the `sv` arm converges to the link's edge, coming back PINNED 0.42 of a standard error below the bound with a standard error of 7.2e-06 on a population `ndt` that is wrong by ten percent, with nothing from `diagnose()`. Lifting the bound on the same data recovers everything and finds a log-likelihood 121.4 units higher at the same parameter count |
+| learn | bandit2arm_delta with `(1 \| p \| id)` on both parameters, then rlddm the same way | the recursion scales: the delta learner is 7.0 s at 20,000 rows and recovers. rlddm is 12.3 minutes over two passes, 738 s against a 600 s rule, and fails the eam failure because it takes its diffusion from frmtmb.eam |
+| hmm | K = 3 gaussian with `tr12 ~ (1 \| id)` | the post-fit passes are NOT a cost: over three interleaved rounds `hmm_probs()` is 0.10 s and `hmm_viterbi()` 0.06 s against a 118 s fit. The tape build is 0.84 s at 25,000 rows, near where `dev/hmm-feasibility.md` put it |
+| lca | K = 4 | cheap, as expected: 0.54 s |
+| ode | the design above with `ii`/`addl` and one `ss` row | NOT usable at population scale: 3948 s, 65.8 minutes, on 800 rows, with the truth recovered. The closed-form path is a prerequisite, not an option |
+| spline | `s(t) + s(t, subject, bs = "fs")` at 40 subjects, then `frm_curve()` and `frm_curve_feature()` on it | the curve surface is NOT the cost, and it decomposes into a memoized joint-precision solve paid ONCE per fit by whichever curve call comes first, 0.48 s, and cheap calls after it: the simultaneous band 0.071 s, the feature search 0.0098 s, the pointwise band 0.0031 s, against a 6.0 s fit. The feature search's own cold cost is 0.40 s when it is the call that pays the solve. The number to carry forward is memory: 1.32 GB of process working set |
+| coupling | five models on one 4,800-row design | seconds, not minutes, across the whole ladder. The survey's benchmarks ARE recoverable, from its own session transcript: its 52.5 s and 28.9 s fits are the ladder's top two rungs, so the promotion this row asked for is done, though the survey ran 0.53.0 under `load_all()` and this runs 0.55.0 installed so no speedup is claimed. Both rungs recover the contrast, 0.486 (0.451, 0.520) and 0.488 (0.415, 0.561) against 0.5, so the survey's 0.77 was noise. What the cheap rungs get wrong is the interval WIDTH, and adding `(1 \| id)` does not fix it: the contrast is within-subject, so only `(1 \| id:cond)` widens it, and without that term the interval is 53 percent too narrow |
+| sample | 4 x 2000 on the GLMM, then `posterior_epred()` and `loo()` on the draws | the per-draw loops are NOT the cost: `posterior_epred()` over 4000 draws and 2000 rows is 1.01 s against 120 s of sampling, and the three calls item 4.6 rewrites are 2.2 percent of the time it took to produce the draws. Phase 4's caching is not needed before anything else |
 
 Decision rule: a fit past ten minutes on its design moves that
-package's cost item to the front of Phase 1. Estimated size: 3 days.
-The scripts are short; the runs are not.
+package's cost item to the front of Phase 1. TWO packages breached:
+frmtmb.ode at 3948 s, comfortably, and frmtmb.learn at 738 s through `rlddm()`, by only 1.23x once that row was reproduced as the procedure requires.
+What moved is in Phase 1 below, and why is in
+`dev/scale-findings.md`, "The decision rule, applied". Actual size: one
+day of work and about four hours of runs.
 
 ## Phase 1. Small, high leverage
 
 Each of these is under two days and removes a wall a user hits on day
-one.
+one, EXCEPT the three Phase 0 moved here, which are larger and are at
+the top because nothing behind them is worth doing first.
 
 | item | what | where | check | days |
 |---|---|---|---|---|
+| 1.0a | The per-subject non-decision-time bound in eam, moved here from item 3.4 by Phase 0. `ndt`'s scaled logit is bounded by `min(y)`, the GLOBAL fastest response, so a subject deviation on it is a deviation on a fraction of one subject's floor: at the plan's own eam design 20 of 30 subjects have a true `ndt` above that bound and none is above its OWN fastest response. `ndt` becomes a fraction of the group's floor inside `lpdf`, and the help page says that is what `ndt`'s linear predictor means | `frmtmb.eam/R/ddm-shared.R`, `wiener-family.R` | the eam scale row converges with a positive definite Hessian and recovers `sd(ndt)`; the log-likelihood is at least the -7027.4 the bound-lifted arm reaches, against -7148.8 today. That target is reachable under a per-subject bound: at that optimum every subject's `ndt` is below its own fastest response with 22 ms to spare | 1.5 |
+| 1.0b | The same bound in rlddm, moved here from item 3.3 by Phase 0. `rlddm()` takes its diffusion parameterization from frmtmb.eam and inherits the failure: at 100 x 200 the fit runs 12.3 minutes to a gradient of 6.36e9 with `sd(ndt)` at 2.24 on its link. It moves with 1.0a under Rule 3 rather than on its clock, whose margin over the ten-minute rule is only 1.23x. The rest of item 3.3, which is `session =`, stays in Phase 3 | `frmtmb.learn/R/rlddm.R` | the learn-rlddm scale row converges with a positive definite Hessian and no NaN standard errors | 0.5 |
+| 1.0c | `frm_lincmt()`, moved here from item 5.4 by Phase 0. The plan already said Phase 0 would decide whether 5.4 is Phase 5 or Phase 1; the design's `frm()` call is 3948 s, so it is Phase 1. Details and check are unchanged from 5.4 | `frmtmb.ode/R/lincmt.R` | identity with `frm_ode()` on the same schedule to 1e-8; the Phase 0 design's wall clock, before and after. The before is 3948 s | 3 |
 | 1.1 | DONE, and not as written. `frm_sample(control = list(adapt_delta =, max_treedepth =))` takes brms's spelling AND brms's meaning, and the fit-time options move to `fit_control =`. The `stan_control` of the original row was rejected: brms compatibility is a locked goal (SPEC.md section 5, "brms code ports mechanically"), `control` IS the Stan control in brms, and a second name would have left `vignette("brms-posterior")`'s "no route" row standing with a footnote instead of removing it. Putting the sampler options in `frmtmb_control()` was also considered and rejected: core has no Stan dependency by design (SPEC.md section 3) and `frmtmb_control()` validates eagerly, so core would validate options for a sampler it does not know, and `frm()` would accept `adapt_delta` and ignore it. The rename is breaking; the old shape is refused by name, keyed on the `frmtmb_control()` field names, which share none of rstan's fifteen | `frmtmb.sample/R/sample.R` | divergence count on a centered funnel falls between 0.8 and 0.99; `nuts_params()` reads the tightened step size back | 0.5 |
 | 1.2 | DONE as written, except that the patches are prepared for filing rather than filed. `frm_sample()` reads the registry rows that name it with status `refused` and stops before taping; `frmtmb.ode` registers `frm_ode()` as a feature and `frm_ode() x frm_sample` as `refused`. The breakage was re-confirmed on 0.55.0 against RTMBode at commit 5242257, which is still the only build available. What the pre-flight can match against a model is a formula call and a family name; a refused row it cannot match warns rather than passing. `?frmtmb_register_compat` now promises that a `refused` row is consulted, which is a documentation change in core. The three patches are current and unapplied; the filing text is in `dev/stanctl-findings.md` | `frmtmb.sample/R/sample.R`, `frmtmb.ode/R/zzz.R` | an ODE fit refuses in under a second with no Stan call; the eam and latent rows stay `conditional` | 1 |
-| 1.3 | A difference curve. `frm_curve(object, newdata, contrast = newdata2)` returns `A1 - A2` with `(A1 - A2) V (A1 - A2)'`, pointwise and simultaneous, and `frm_curve_feature()` on it locates where the difference crosses zero. Everything it needs is already assembled in `curve-cov.R` | `frmtmb.spline/R/curve.R`, `curve-cov.R`, `curve-feature.R` | identity with `gratia::difference_smooths()` on the same mgcv fit; simultaneous-band coverage as a rate over seeds, the way `test-gratia.R` is posed | 1.5 |
-| 1.4 | A units guard in eam. Every default assumes seconds; `valid_y` warns when the smallest response is above 20, names milliseconds as the likely cause, and says what to divide by | `frmtmb.eam/R/ddm-shared.R` | a millisecond fixture warns; a seconds fixture does not | 0.25 |
-| 1.5 | `reward(pay)` with one column, for data that records the received outcome alone. The arity-1 spelling duplicates the column and `simulate()` refuses on it by name, since it cannot know what the other arm paid | `frmtmb.learn/R/zzz.R`, `bandit2arm-delta.R` | the two spellings give one log-likelihood; `simulate()` names the missing column | 0.5 |
-| 1.6 | `frm_cross_spectrum()` splits at NA runs instead of refusing them, so an artifact-rejected record is one call; a `window = "hann"` option beside the sine tapers, with the degrees of freedom it costs stated in `n` | `frmtmb.coupling/R/cross-spectrum.R` | a record with two rejected spans gives the sum of the three clean pieces; Hann against `stats::spec.pgram()` on one clean segment. Note that core's `whittle()` stopped refusing Hann-tapered responses in 0.55.0, so the option no longer needs a caveat about the sibling refusal | 1 |
+| 1.3 | DONE. `frm_curve(object, newdata, contrast = newdata2)` returns the difference with pointwise and simultaneous bands, and `frm_curve_feature()` finds its zero crossing. The gratia identity holds and the estimate gap is provably the fit rather than the arithmetic (5.55e-16); simultaneous coverage 0.970 over 200 seeds against a binomial mcse of 0.0154. An exact `gp()` is answered where the kriging residual is the same random variable, decided on the DESIGN rather than the numbers, and refused otherwise. It uncovered a pre-existing one-grid defect: `sp_sim_crit()` standardizes by a variance it did not draw from, so a simultaneous band over an exact `gp()` off the observed positions is at least 17 percent too narrow. That waits on the same core seam as the general cross-covariance | `frmtmb.spline/R/curve.R`, `curve-cov.R`, `curve-feature.R` | done | 1.5 |
+| 1.4 | DONE. `valid_y` warns above 20 s across all five eam families and names milliseconds. 0 false alarms over 192 designs a two-choice task produces. Where it CAN fire on a correct model the rate is reported with the fastest response beside it, because the rate is not a function of the median: at about 50 s it spans 0.185 to 0.935 depending on drift | `frmtmb.eam/R/ddm-shared.R` | done | 0.25 |
+| 1.5 | HALF DONE, and the half that is missing is a core seam. `reward(pay1)` is refused by CORE: `frmtmb_register_aterm(arity =)` holds one integer and the parser compares for equality, so registering at 1 would refuse the two-column spelling every example writes. Filed as a min-and-max arity, whose shape is settled by a measurement: under a plain range the derivation makes one group of three and the check skips for the TWO-column spelling as well, undoing this item's own fix. What WAS buildable closed a silent wrong answer: a duplicated schedule fits identically and simulates a different experiment, and is now refused across all eight families from a derivation rather than a declaration | `frmtmb.learn` | done | 0.5 |
+| 1.6 | DONE. `frm_cross_spectrum()` splits at NA runs, so an artifact-rejected record is one call, and takes `window = "hann"`, measured to cost no degrees of freedom (8.021 against 8.008 at nominal 8) and identical to `stats::spec.pgram()` to 4.8e-16. Hann with `smooth` is refused, measured, because it delivers 4.67 to 5.66 where it claims 8. Recorded on the way: the cross-row correlation the docs understated is 0.397 at the default and 0.753 at `tapers = 4`, one independent frequency in four, though shipped `n` itself is right | `frmtmb.coupling/R/cross-spectrum.R` | done | 1 |
 
-Phase 1 total: about 5 days. Items 1.1 through 1.6 are independent and
-can run as parallel lanes.
+Phase 1 total: about 10 days. Items 1.1 through 1.6 are independent and
+can run as parallel lanes. Items 1.0a, 1.0b and 1.0c are the Phase 0
+moves; 1.0b waits on 1.0a, because the fix is one parameterization
+shared by two packages, and 1.0c is independent of both.
+
+The order WITHIN the three is the plan's own Rule 3, "a silent wrong
+answer outranks a refusal, and a refusal outranks a missing feature".
+Item 1.0a is a silent wrong answer: the `sv` arm of the eam row
+converges, reports no warning, and gives a population non-decision time
+that is wrong by ten percent with a standard error of 7.2e-06 on it,
+because the scaled logit's derivative vanishes at the edge it has been
+pushed to. Item 1.0c is a cost. So the eam and rlddm bound goes first.
 
 ## Phase 2. Hierarchy: validate what is claimed
 
@@ -104,12 +123,12 @@ family's help page whatever it says.
 
 | item | what | reference | expected trouble | days |
 |---|---|---|---|---|
-| 2.1 | eam: `mu ~ cond + (1 \| s)`, `bs ~ (1 \| s)`, `ndt ~ (1 \| s)`, 30 x 400, 60 replicates; `check_laplace()` on one dataset, and `diagnose()` on every replicate | hierarchical Wiener in brms on one dataset (gated tier), estimates within Monte Carlo error | the ndt link is bounded by the GLOBAL minimum response time, so a subject random effect on it is a random effect on a fraction of one subject's floor. If recovery fails here, item 3.4 gains a per-subject bound. 0.55.0's `unbounded_dpar` check reports a dpar running to its link's edge, which is the shape this failure takes, so a replicate that recovers badly and diagnoses clean is now a stronger negative than it was | 1.5 |
-| 2.2 | learn: `(1 \| p \| id)` on every parameter of bandit2arm_delta and rlddm, 100 x 200, 60 replicates; the importance correction's success rate at that scale, counted with 0.55.0's `imp_stalled()` rather than by eye | the family's own Stan program with the correlated block added | variance-component collapse is documented at 20 to 60 trials; this measures 200, which is where the field's designs sit. A stalled correction is now distinguishable from a slow one, and the threshold that separates them has margins of only 1.54 and 2.10, so a rate near either edge is a finding about the threshold as much as about the model | 1.5 |
+| 2.1 | eam: `mu ~ cond + (1 \| s)`, `bs ~ (1 \| s)`, `ndt ~ (1 \| s)`, 30 x 400, 60 replicates; `check_laplace()` on one dataset, and `diagnose()` on every replicate. WAITS ON ITEM 1.0a: at this design today the fit does not converge, so 60 replicates of it would measure the bound and not the model | hierarchical Wiener in brms on one dataset (gated tier), estimates within Monte Carlo error | Phase 0 settled the expected trouble and it is worse than expected. The ndt bound is the GLOBAL minimum response time and 20 of 30 subjects have a true `ndt` above it; the plain fit does not converge and the `sv` fit converges to the edge with a 7.2e-06 standard error on a wrong answer. 0.55.0's `unbounded_dpar` check does not fire, and NOT because it fails to look: it reads the fixed `ndt` intercept, which stands at 11.20 on the link with a link-scale standard error of 2.37, PASSES its `abs(est) > 10` half and fails the `se > abs(est)` half. Its evidence pair is calibrated for an unbounded link where running away explodes the standard error; on a bounded link the derivative vanishes at the edge and the standard error COLLAPSES instead, so both halves point the wrong way. `extreme_theta` does read variance components, but its threshold of 8 is link-agnostic and the `ndt` block's log sd is 2.05. So a replicate that recovers badly and diagnoses clean is exactly what this design produces today; the seam is filed | 1.5 |
+| 2.2 | learn: `(1 \| p \| id)` on every parameter of bandit2arm_delta and rlddm, 100 x 200, 60 replicates; the importance correction's success rate at that scale, counted with 0.55.0's `imp_stalled()` rather than by eye. The rlddm half WAITS ON ITEM 1.0b; the delta half does not, and Phase 0 already showed it fits in 7 s and recovers on one seed | the family's own Stan program with the correlated block added | variance-component collapse is documented at 20 to 60 trials; this measures 200, which is where the field's designs sit. 60 replicates of rlddm at 12.3 minutes each is 12 hours, which is a second reason 1.0b comes first. A stalled correction is now distinguishable from a slow one, and the threshold that separates them has margins of only 1.54 and 2.10, so a rate near either edge is a finding about the threshold as much as about the model | 1.5 |
 | 2.3 | hmm: K = 3 gaussian against depmixS4; `tr12 ~ (1 \| id)` against hmmTMB with the same random effect | depmixS4, hmmTMB | multimodality. The probe found a cold start 8.1 log-likelihood units under the optimum with every diagnostic clean. Ships with `hmm_starts(fit, n, jitter)`: n refits from jittered starting values, the best returned, the spread reported. Generalize to core later (see Core seams) | 2 |
 | 2.4 | lca: K = 4 at n = 2000 against poLCA | poLCA | none expected | 0.5 |
 | 2.5 | spline RP: `(1 \| centre)` frailty against rstpm2's log-normal frailty on the same data; a random effect on `gamma1` | rstpm2 | the current frailty test is a smoke test for finiteness | 1 |
-| 2.6 | coupling: `coh ~ cond + s(freq, by = cond) + (1 \| id) + (1 \| id:cond)`, promoted from the scratchpad benchmark to a recovery assertion on the condition contrast, with its standard error captured this time | the simulator's truth | the survey saw a contrast of 0.77 against a truth of 0.5 with no SE recorded; this settles whether that was noise | 0.5 |
+| 2.6 | coupling: `coh ~ cond + s(freq, by = cond) + (1 \| id) + (1 \| id:cond)`, promoted from the scratchpad benchmark to a recovery assertion on the condition contrast, with its standard error captured this time | the simulator's truth | the survey's constructions ARE recorded, in its own session transcript, and its 0.77 came from `coh ~ cond + s(freq, by = cond) + (1 \| id)`, a subject effect WITHOUT the subject-by-condition effect the simulator has. Phase 0 runs both on one seed at the realistic design: this row's own model gives 0.488 (0.415, 0.561) with components 0.313 and 0.146 against 0.35 and 0.20, and the survey's model gives 0.486 (0.451, 0.520). Both cover 0.5, so the 0.77 was noise. What is left for this row is the replicate count, and the interval WIDTH, which is where the misspecified rungs actually go wrong: they are 53 percent narrower than the correct model's | 0.5 |
 
 Phase 2 total: about 7 days, parallel by package.
 
@@ -119,22 +138,25 @@ Phase 2 total: about 7 days, parallel by package.
 |---|---|---|---|---|
 | 3.1 | `frm_ode_records(d, id, time, evid, amt, cmt, rate, ii, addl, ss)`: one NONMEM-shaped table in, `list(data, events)` out. Pure reshaping; every unknown column refused by name | `frmtmb.ode/R/records.R` | round trip against `rxode2::et()` on the same schedule; the vignette's Theoph example rewritten through it | 1.5 |
 | 3.2 | coupling ingestion: `frm_cross_spectrum()` takes a list of epochs of unequal length with a `group` vector, the way core's `frm_periodogram()` does; `frm_cross_pairs(X, pairs)` stacks channel pairs with a `pair` factor, so `(1 \| pair)` and `s(freq, by = pair)` are the multiple-comparison story, and the vignette says so | `frmtmb.coupling/R/cross-spectrum.R`, `pairs.R` | an epoch list equals the concatenated-and-split call when lengths agree; a 4-channel pairwise frame fits with `(1 \| pair)` and the per-pair coherences match four two-channel fits | 2.5 |
-| 3.3 | learn: `session =` on every family, so `init` runs again at each session boundary and the importance block stays the subject; rlddm's non-decision bound per subject, with `ndt` estimated as a fraction of that subject's floor inside `lpdf` and the help page saying that is what `ndt`'s linear predictor means | `frmtmb.learn/R/engine.R`, `family.R`, `rlddm.R` | a two-session dataset equals two single-session fits with shared parameters; one anticipatory trial no longer moves every other subject's estimate | 1.5 |
-| 3.4 | eam censoring. `wiener()` gains `lcdf` as the log-sum of the lower-boundary distribution function in `wiener-cdf.R` and its reflection for the upper, blended the way the density is; `gddm()` reads the absorbed mass off its own grid; `lba()` uses the race identity, one minus the product of survivors. Then `cens()` and `trunc()` work on all three, and a deadline design is `rt \| dec(r) + cens(c)` | `frmtmb.eam/R/wiener-family.R`, `wiener-cdf.R`, `gddm.R`, `lba.R` | `RWiener::pwiener()` to 1e-10 over the same grid the density is pinned on; right-censored log-likelihood against the likelihood written by hand, as `test-rdm-gng.R` already does for rdm | 3 |
+| 3.3 | learn: `session =` on every family, so `init` runs again at each session boundary and the importance block stays the subject. The per-subject non-decision bound that used to be the second half of this item is now item 1.0b, moved by Phase 0 | `frmtmb.learn/R/engine.R`, `family.R` | a two-session dataset equals two single-session fits with shared parameters | 1 |
+| 3.4 | eam censoring, and censoring ONLY: the per-subject non-decision bound that item 2.1 said this item would gain is now item 1.0a, moved by Phase 0. `wiener()` gains `lcdf` as the log-sum of the lower-boundary distribution function in `wiener-cdf.R` and its reflection for the upper, blended the way the density is; `gddm()` reads the absorbed mass off its own grid; `lba()` uses the race identity, one minus the product of survivors. Then `cens()` and `trunc()` work on all three, and a deadline design is `rt \| dec(r) + cens(c)` | `frmtmb.eam/R/wiener-family.R`, `wiener-cdf.R`, `gddm.R`, `lba.R` | `RWiener::pwiener()` to 1e-10 over the same grid the density is pinned on; right-censored log-likelihood against the likelihood written by hand, as `test-rdm-gng.R` already does for rdm | 3 |
 | 3.5 | eam contaminant. `wiener(contaminant = TRUE)` mixes the density with a uniform over the observed response range at a mixing dpar `lambda` on a logit link, inside the family, so it needs no core mixture and no uniform family. Same option on `lba()` and `rdm()` | `frmtmb.eam/R/wiener-family.R` | recovery of `lambda` at 5 percent contamination, 30 x 400; the log-likelihood at `lambda = 0` equals the plain family's | 1.5 |
 
-Phase 3 total: about 10 days.
+Phase 3 total: about 9.5 days, one half-day having moved to Phase 1.
+Item 3.4 keeps its three days: item 2.1 said 3.4 would GAIN a
+per-subject bound rather than already carry one, and that gain became
+item 1.0a's day and a half.
 
 ## Phase 4. The post-fit surface
 
 | item | what | where | check | days |
 |---|---|---|---|---|
 | 4.1 | RP predictions. `rp_predict(fit, newdata, times, type = c("survival", "hazard", "cumhaz", "rmst", "median"), level, simultaneous)`, on the basis rebuilt from an exported `rp_knots(fit)`, with delta-method bands through the same covariance path `frm_curve()` uses; delayed entry and interval censoring get tests against flexsurvspline's counting-process and `interval2` forms | `frmtmb.spline/R/rp-predict.R` | point estimates identical to `flexsurv::summary()` at the same parameters; bands compared loosely, since flexsurv bootstraps; delayed-entry log-likelihood identical to flexsurv's | 3 |
-| 4.2 | hmm on new data. `hmm_probs(fit, newdata)` and `hmm_viterbi(fit, newdata)` under the same group and time contract; `residuals(fit, type = "pseudo")`, the forward pseudo-residuals of Zucchini and others, chapter 6 | `frmtmb.latent/R/hmm.R` | decoding on the training frame passed as newdata equals the fit's own; pseudo-residuals against hmmTMB's on the same fit | 2.5 |
+| 4.2 | hmm on new data. `hmm_probs(fit, newdata)` and `hmm_viterbi(fit, newdata)` under the same group and time contract; `residuals(fit, type = "pseudo")`, the forward pseudo-residuals of Zucchini and others, chapter 6 | `frmtmb.latent/R/hmm.R` | decoding on the training frame passed as newdata equals the fit's own; pseudo-residuals against hmmTMB's on the same fit. Phase 0 measured the existing passes at 0.25 s and 0.09 s on 25,000 rows, so this item is about the newdata contract and not about speed | 2.5 |
 | 4.3 | lca tooling. `lca_profiles(se = TRUE)` by the delta method; `lca_enumerate(formula, data, K = 2:6)` returning one row per K with log-likelihood, AIC, BIC, entropy and the smallest class share; `lca_blrt(small, large, nsim)` by simulate-and-refit, gated | `frmtmb.latent/R/lca-tools.R` | profile SEs against poLCA's `probs.se`; the enumeration table's BIC minimum on carcinoma agrees with the literature | 2.5 |
 | 4.4 | learn's two missing pieces. frmtmb.eam exports the conditional mean of a Wiener first-passage time, the one export `dev/learn2-findings.md` asked for, and rlddm gains `fitted()`; `learn_family(init, update, choose, ...)` becomes a public constructor with the rule contract on its help page and `check_learn_family()` beside it, mirroring core's `check_custom_family()` | `frmtmb.eam/R/wiener-post.R`, `frmtmb.learn/R/family.R` | a user-written delta learner through `learn_family()` equals `bandit2arm_delta()` to 1e-12; `check_learn_family()` passes it | 3 |
 | 4.5 | eam model checking. `ddm_qp(fit, newdata, quantiles)`: the quantile-probability table per condition and boundary from `simulate()`, with a plot method, which is the figure every DDM paper shows | `frmtmb.eam/R/wiener-post.R` | observed and simulated tables agree on data the fit simulated | 1 |
-| 4.6 | sample throughput and vocabulary. Build the design once and multiply per draw in `posterior_epred()`, `posterior_linpred()`, `posterior_predict()`, `ranef()` and `coef()`; bulk and tail ESS from `posterior::ess_bulk()` in `summary()`; `constant()` as a prior spelling that maps the parameter; a `class = "Intercept"` route to ordinal thresholds; `laplace = TRUE` draws refused by `posterior_epred()`, `ranef()` and `hypothesis()` the way `loo()` already refuses them | `frmtmb.sample/R/methods-draws.R`, `sample.R` | Phase 0's `posterior_epred()` time falls by the factor the tier measures; identical values before and after | 3 |
+| 4.6 | sample throughput and vocabulary. Build the design once and multiply per draw in `posterior_epred()`, `posterior_linpred()`, `posterior_predict()`, `ranef()` and `coef()`; bulk and tail ESS from `posterior::ess_bulk()` in `summary()`; `constant()` as a prior spelling that maps the parameter; a `class = "Intercept"` route to ordinal thresholds; `laplace = TRUE` draws refused by `posterior_epred()`, `ranef()` and `hypothesis()` the way `loo()` already refuses them | `frmtmb.sample/R/methods-draws.R`, `sample.R` | Phase 0's `posterior_epred()` time falls by the factor the tier measures; identical values before and after. Phase 0 measured that time at 1.59 s for 4000 draws over 2000 rows against 213 s of sampling, so this item is worth doing for the vocabulary half and NOT for the throughput half, and it stays in Phase 4 | 3 |
 
 Phase 4 total: about 15 days.
 
@@ -148,10 +170,11 @@ These are new families and measures. Each ships with the full bar in
 | 5.1 | learn: `bandit_delta(n_option = K, lapse = FALSE, perseveration = FALSE, decay = FALSE, q0 = FALSE)`, one family covering hBayesDM's `bandit4arm_lapse`, `bandit4arm_2par_lapse`, `bandit4arm_4par`, `bandit4arm_lapse_decay` and `banditNarm_*` by option, with those names as aliases in `frm_learn_families()`; the engine already vectorizes over K for the Kalman filter | `frmtmb.learn/R/bandit-delta.R` | a Stan program per option set, identity to 1e-12; recovery at 100 x 200 per option | 4 |
 | 5.2 | hmm multi-stream emissions. A matrix response, following `lca()`'s precedent rather than `mvbf()`, with `family = list(gamma(), von_mises())` one per column, per-state dpars per stream, and the product of stream densities in the forward pass; circular quantile starts for angles | `frmtmb.latent/R/hmm.R`, `hmm-streams.R` | step and angle on the elk tracks moveHMM ships, against moveHMM and hmmTMB to 1e-6 in log-likelihood | 5 |
 | 5.3 | coupling inference. `frm_imag_coherence(fit)`, the volume-conduction-robust quantity `sqrt(C) sin(phase)`, with a delta-method interval; `frm_coherence_test(fit)`, a likelihood-ratio test of zero coherence against two independent Whittle fits, with the boundary correction, and a max-over-frequency version from the simultaneous band on the coherence curve | `frmtmb.coupling/R/coupling.R`, `test.R` | size of the test at the null over 500 simulated pairs; imaginary coherence against FieldTrip's on one exported dataset | 2.5 |
-| 5.4 | ode closed forms. `frm_lincmt(ncmt, ...)`, the analytic one- to three-compartment solution with event superposition as an nl body, so a linear PK model never enters the solver; the vignette's hand-written closed form becomes a call | `frmtmb.ode/R/lincmt.R` | identity with `frm_ode()` on the same schedule to 1e-8; the Phase 0 design's wall clock, before and after | 3 |
 
-Phase 5 total: about 15 days. Whether 5.4 is Phase 5 or Phase 1 is
-what Phase 0 decides.
+Phase 5 total: about 12 days. Item 5.4, the ode closed forms, is no
+longer here: Phase 0 measured the design at 3948 s and moved it to
+Phase 1 as item 1.0c, which is what this line used to say Phase 0 would
+decide.
 
 ## Core seams
 
@@ -168,6 +191,7 @@ extension item that is waiting.
 | `required_aterms` as a disjunction | closes eam dev-findings #2 | "one of `dec()`, `vint()`" cannot be declared; the check is hand-rolled in `valid_y` |
 | a `constraints` slot on `frmtmb_family()` | closes eam dev-findings #9 | functions of the whole dpar vector, checked at the start and reported at the optimum; the joint constraints on `sz`/`bias` and `st`/`ndt` have no other home |
 | a prior-only objective | 4.6, deferred | `sample_prior = "only"` needs the likelihood term dropped at tape build, which is a core control, not a sampler option |
+| `diagnose()`'s `unbounded_dpar` inverts on a BOUNDED link | 1.0a, 1.0b | filed by Phase 0. The check's evidence pair is `abs(est) > 10` and a standard error LARGER than the estimate, calibrated on `student()`'s `nu` where running off an unbounded link explodes the standard error. On a scaled logit the derivative vanishes at the edge, so the standard error collapses and the linear predictor saturates below 10. Measured on the Phase 0 eam rows: `ndt: (Intercept)` at 11.20 with a link-scale se of 2.37, which is 0.99999 of the bound and does not fire; and 7.17 in the non-convergent arm, below the magnitude threshold entirely at 0.9992 of the bound. `extreme_theta` does look at random-effect log standard deviations but its threshold of 8 is link-agnostic and the `ndt` component stands at 2.05. Four bounded `ndt` links ship today (`wiener()`, `lba()`, `rdm()`, `gddm()`), so the check needs to know whether a link is bounded and, if it is, to test proximity to the bound rather than magnitude plus a large standard error |
 | `mixture()` over families whose primary dpar is not `mu` | eam races | `mixture(rdm(), ...)` is refused because the dpars are `v1..vn`; a structure-level opt-in would unblock it |
 
 ## Not doing, and why
@@ -197,24 +221,28 @@ extension item that is waiting.
 
 | phase | days | runs in parallel with | gate |
 |---|---|---|---|
-| 0, measurement | 3 | nothing; it is first | none |
-| 1, small and high leverage | 5 | 2 | Phase 0's table |
-| 2, hierarchy validation | 7 | 1 | Phase 0's table |
-| 3, real data in | 10 | 4 | 2.1 decides 3.3's ndt bound |
+| 0, measurement | 1, done | nothing; it was first | none |
+| 1, small and high leverage | 10 | 2 | none; Phase 0's table has landed |
+| 2, hierarchy validation | 7 | 1 | 2.1 waits on 1.0a, 2.2's rlddm half on 1.0b |
+| 3, real data in | 9.5 | 4 | none left: 2.1 decided 1.0a and it moved |
 | 4, post-fit surface | 15 | 3 | 1.3 lands before 4.1 |
-| 5, model menu | 15 | nothing | Phase 0 decides whether 5.4 moves up |
-| total | about 55 | | |
+| 5, model menu | 12 | nothing | none left: Phase 0 moved 5.4 to 1.0c |
+| total | about 54.5 | | |
 
 Days are single-lane estimates at the sizing convention of
 `dev/hmm-feasibility.md`, which came in on the low side of its own
-estimate. Phases 1 and 2 are per-package lanes and can run as seven
-lanes at once; the sequence within a package is what the gate column
-constrains.
+estimate. Phase 0 came in at one day of work against an estimate of
+three, with about four hours of runs on top. Phases 1 and 2 are
+per-package lanes and can run as seven lanes at once; the sequence
+within a package is what the gate column constrains.
 
 ## What this document is not
 
-It is not a promise of order beyond Phase 0. The survey's ranking rests
-on doc figures and one afternoon of benchmarks, and Phase 0 exists to
-replace it with measurements. When it does, the items move, and the
+It is not a promise of order beyond Phase 0. The survey's ranking rested
+on doc figures and one afternoon of benchmarks, and Phase 0 existed to
+replace it with measurements. It has: three items moved, two phase
+totals changed, and two of the survey's cost worries turned out to be
+nothing while a defect it had not looked for turned out to be the
+worst thing in the table. The items moved, and the
 table above is edited rather than appended to, so that the plan reads as
 one document and not as a changelog.
