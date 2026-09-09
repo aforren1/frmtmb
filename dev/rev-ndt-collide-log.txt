@@ -1,0 +1,18 @@
+WARNING: '--max-connections' value is too small: ignored
+vectorized hash agrees with the package's: TRUE 
+
+-- 1. the no-wrap bound for printable ASCII
+  n=1  max h1 126 vs P1 33554393 no wrap |  max h2 263 vs P2 16777213 no wrap
+  n=2  max h1 16632 vs P1 33554393 no wrap |  max h2 36157 vs P2 16777213 no wrap
+  n=3  max h1 2178918 vs P1 33554393 no wrap |  max h2 4953635 vs P2 16777213 no wrap
+  n=4  max h1 285438384 vs P1 33554393 WRAPS |  max h2 678648121 vs P2 16777213 WRAPS
+  n=5  max h1 37392428430 vs P1 33554393 WRAPS |  max h2 92974792703 vs P2 16777213 WRAPS
+  so no two labels of 3 or fewer printable ASCII characters can
+  collide: 95^1 + 95^2 + 95^3 = 866495 labels, all distinct.
+  exhaustive check over all 866495 of them: duplicates = 0
+
+-- 2. "S" plus eight digits, 1e+08 labels
+   expected colliding pairs, birthday: 8.88
+   hashed in 368.0 s
+   spot check against the package: TRUE
+   colliding labels found: 0

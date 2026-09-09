@@ -107,14 +107,23 @@
 #' constant is refused when the constant is checked against the log
 #' link's range.
 #'
-#' @section Non-decision time:
+#' @section Non-decision time, and what its coefficients mean:
 #' The density is zero at and below `ndt`, so the likelihood has a hard
-#' edge at `ndt = min(rt)`. As [wiener()] does, `ndt` gets a logit
-#' scaled onto `(0, max_ndt)` instead of a log link, which makes the
-#' constraint structural. `max_ndt` defaults to the smallest observed
-#' response time, taken when the model frame is assembled. Pass it
-#' explicitly to pin the bound, which matters if you will `predict()`
-#' on new data whose minimum differs.
+#' edge at the fastest response and a log link would let the optimizer
+#' walk over it.
+#'
+#' Without `ndt_group()` the bound is one number, the fastest response
+#' in the data or `max_ndt`, and it stays IN the link: `ndt` is a time,
+#' as it has always been. Write
+#' `rt | vint(choice) + ndt_group(subject) ~ ...` when `ndt` carries a
+#' subject deviation, and the bound becomes that subject's own fastest
+#' response. A per-row bound cannot live in a link, so under a grouping
+#' `ndt` is a FRACTION of the row's bound and the density multiplies:
+#' `predict(dpar = "ndt", type = "response")` then reports the fraction
+#' and [ndt_time()] reports the time either way. A single bound is the
+#' global fastest response, and a subject whose non-decision time is
+#' above it cannot be represented at any value of the random effect;
+#' [wiener()] has the measurement.
 #'
 #' @section The response, and why not `dec()`:
 #' A trial is a `(choice, time)` pair. The time is the response and the
@@ -195,7 +204,11 @@
 #' @param posdrift Truncate the drift distribution at zero? `TRUE`, the
 #'   default, matches `rtdists` and makes the likelihood proper.
 #' @param max_ndt Upper bound for the non-decision time, in the units of
-#'   the response. `NULL`, the default, takes it from the data.
+#'   the response, applied to every row. `NULL`, the default, takes the
+#'   fastest response of each row's `ndt_group()`, or of the whole data
+#'   set when the model has no `ndt_group()`. It cannot be combined with
+#'   `ndt_group()`. Give it when a component of a [frmtmb::mixture()]
+#'   needs the bound up front.
 #'
 #' @return A `frmtmb_family`.
 #'
@@ -250,7 +263,10 @@ lba <- function(n, sd_v = 1, posdrift = TRUE, max_ndt = NULL) {
 
   vp <- paste0("v", seq_len(n))
   dpn <- c(vp, "A", "k", "ndt")
-  lk <- c(rep(list("identity"), n), list("log"), list("log"), list("log"))
+  # `ndt`'s entry is a placeholder that ddm_ndt_install() replaces once
+  # the bound is known; see the head of R/ddm-shared.R.
+  lk <- c(rep(list("identity"), n), list("log"), list("log"),
+          list("logit"))
   names(lk) <- dpn
 
   fam <- frmtmb::custom_family(
@@ -264,7 +280,7 @@ lba <- function(n, sd_v = 1, posdrift = TRUE, max_ndt = NULL) {
     },
     valid_y = function(y, aterms) lba_check_response(y, aterms, n),
     family_finalize = function(fam, y, aterms) {
-      lba_finalize(fam, y, max_ndt)
+      lba_finalize(fam, y, aterms, max_ndt)
     },
     required_aterms = "vint1",
     init_dpars = lba_inits(vp),
@@ -273,6 +289,10 @@ lba <- function(n, sd_v = 1, posdrift = TRUE, max_ndt = NULL) {
       lba_sim_rt(dpars, aterms, n_, vp, sd_v, posdrift)
     },
     primary_dpars = vp)
+  # `ndt` is a fraction of a bound the data settles, so the family
+  # carries a bound from the moment it is built: the one `max_ndt`
+  # names, or a refusing placeholder. See ddm_ndt_preinstall().
+  fam <- ddm_ndt_preinstall(fam, max_ndt, "lba")
 
   # Carried so that a reader of the fitted object can see what was held
   # fixed, and so that the simulator and the post-fit helpers do not
@@ -465,24 +485,16 @@ lba_check_response <- function(y, aterms, n) {
 #' says what it is, and the bound cannot be read before it is set.
 #'
 #' @noRd
-lba_finalize <- function(fam, y, max_ndt) {
-  ub <- if (is.null(max_ndt)) min(y) else max_ndt
-  if (!is.null(max_ndt) && ub > min(y)) {
-    stop("lba: max_ndt = ", format(ub), " is above the fastest response ",
-         "(", format(min(y)), "). No accumulator can arrive before the ",
-         "non-decision time, so a bound above the fastest response ",
-         "admits parameter values at which that trial has no ",
+lba_finalize <- function(fam, y, aterms, max_ndt) {
+  sp <- ddm_ndt_spec(y, aterms, max_ndt, "lba")
+  if (!is.null(max_ndt) && sp$ub > min(y)) {
+    stop("lba: max_ndt = ", format(sp$ub), " is above the fastest ",
+         "response (", format(min(y)), "). No accumulator can arrive ",
+         "before the non-decision time, so a bound above the fastest ",
+         "response admits parameter values at which that trial has no ",
          "likelihood.", call. = FALSE)
   }
-  fam[["links"]][["ndt"]] <- list(
-    name = paste0("scaled_logit(0, ", signif(ub, 4), ")"),
-    linkfun = function(mu) log(mu / (ub - mu)),
-    linkinv = function(eta) ub / (1 + exp(-eta)),
-    mu_eta = function(eta) {
-      p <- 1 / (1 + exp(-eta))
-      ub * p * (1 - p)
-    })
-  fam
+  ddm_ndt_install(fam, sp$ub, sp$floors, "lba")
 }
 
 #' Starting values.
@@ -495,6 +507,7 @@ lba_finalize <- function(fam, y, max_ndt) {
 lba_inits <- function(vp) {
   out <- list(A = function(y, aterms) 0.5,
               k = function(y, aterms) 0.5,
+              # a placeholder; ddm_ndt_install() sets the real one
               ndt = function(y, aterms) 0.5 * min(y))
   for (j in seq_along(vp)) {
     out[[vp[j]]] <- local({

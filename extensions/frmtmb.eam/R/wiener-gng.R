@@ -357,8 +357,14 @@
 #' @param deadline The response deadline, in the units of the response.
 #'   One positive number when every trial shares it. `NULL`, the
 #'   default, takes it per row from `vreal()`.
-#' @param max_ndt Upper bound for the non-decision time. `NULL`, the
-#'   default, takes it from the fastest go response.
+#' @param max_ndt Upper bound for the non-decision time, applied to
+#'   every row. `NULL`, the default, takes the fastest GO response of
+#'   each row's `ndt_group()`, or of the whole data set when the model
+#'   has no `ndt_group()`. Without a grouping `ndt` is a time on a
+#'   logit scaled onto that bound, as it has always been; with one it
+#'   is a FRACTION of the row's own bound and [ndt_time()] reports the
+#'   time. See [wiener()]. `max_ndt` cannot be combined with
+#'   `ndt_group()`.
 #' @param variability Which across-trial variability parameters to
 #'   estimate: any of `"sv"` (drift rate), `"sz"` (start point) and
 #'   `"st"` (non-decision time), exactly as [wiener()] takes them. The
@@ -423,7 +429,11 @@ wiener_gng <- function(deadline = NULL, max_ndt = NULL,
                                                   "wiener_gng"),
               nodes = ddm_check_nodes(nodes),
               nogo_nodes = gng_check_nodes(nogo_nodes))
-  gng_family(cfg, ub = max_ndt %||% NA_real_, delta = 1e-9)
+  # `ndt` is a fraction of a bound the data settles, so the family
+  # carries a bound from the moment it is built: the one `max_ndt`
+  # names, or a refusing placeholder. See ddm_ndt_preinstall().
+  ddm_ndt_preinstall(gng_family(cfg, delta = 1e-9), max_ndt,
+                     "wiener_gng", y_of = gng_go_rt)
 }
 
 #' Merge a user's node counts over the NO-GO branch's defaults.
@@ -509,7 +519,7 @@ gng_nodes <- function(variability, nodes) {
 #' bit only if the two margins agree.
 #'
 #' @noRd
-gng_family <- function(cfg, ub, delta) {
+gng_family <- function(cfg, delta) {
   deadline <- cfg$deadline
   vv <- cfg$variability
   # Two rules, because the two branches are two integrands. The go
@@ -518,13 +528,14 @@ gng_family <- function(cfg, ub, delta) {
   ndc <- gng_nodes(vv, cfg$nogo_nodes)
   st_on <- "st" %in% vv
   dpars <- c("mu", "bs", "ndt", "bias", vv)
-  links <- list(mu = "identity", bs = "log", ndt = "log", bias = "logit")
+  # placeholders that ddm_ndt_install() replaces once the bound, taken
+  # over the GO rows, is known.
+  links <- list(mu = "identity", bs = "log", ndt = "logit",
+                bias = "logit")
   if ("sv" %in% vv) links$sv <- "log"
   if ("sz" %in% vv) links$sz <- "logit"
-  if (st_on) {
-    links$st <- ddm_scaled_logit(if (is.na(ub)) NA_real_ else 2 * ub,
-                                 "non-decision time range")
-  }
+  # a placeholder, as ndt's is
+  if (st_on) links$st <- "logit"
 
   need <- if (is.null(deadline)) c("dec", "vreal1") else "dec"
 
@@ -546,8 +557,8 @@ gng_family <- function(cfg, ub, delta) {
     # same optimum; the cost was 0 to 5 extra iterations. A wrong start
     # against a documented contract is worth one word whatever it costs.
     bs = function(y, aterms) 1.4,
-    # The bound is not known here, so the start is expressed against
-    # the go responses the bound will be taken from.
+    # a placeholder; ddm_ndt_install() sets the real one against the
+    # GO responses the bound is taken from
     ndt = function(y, aterms) 0.5 * min(gng_go_rt(y, aterms)),
     bias = function(y, aterms) 0.5)
   # Small starts, for the reason wiener() gives: zero is on the boundary
@@ -567,7 +578,7 @@ gng_family <- function(cfg, ub, delta) {
       gng_check_response(y, aterms, deadline)
     },
     family_finalize = function(fam, y, aterms) {
-      gng_finalize(cfg, y, aterms)
+      gng_finalize(fam, cfg, y, aterms)
     },
     required_aterms = need,
     init_dpars = init,
@@ -696,8 +707,19 @@ gng_lccdf <- function(q, dpars, nd) {
 #'
 #' @noRd
 gng_go_rt <- function(y, aterms) {
+  y[gng_go_which(aterms)]
+}
+
+#' Which rows produced a response.
+#'
+#' Split out of `gng_go_rt()` because the non-decision-time bound now
+#' has a second per-row vector to subset by exactly the same rows: the
+#' `ndt_group()` a per-group bound is keyed on.
+#'
+#' @noRd
+gng_go_which <- function(aterms) {
   go <- as.numeric(aterms[["dec"]])
-  y[!is.na(go) & go > 0.5]
+  !is.na(go) & go > 0.5
 }
 
 #' Response, indicator and deadline validation.
@@ -763,18 +785,41 @@ gng_check_response <- function(y, aterms, deadline) {
 #' time range is held below each row's own response time. A no-go row's
 #' entry is a placeholder, so neither is allowed to read one.
 #'
-#' The family is rebuilt rather than patched, because the `st` link is
-#' scaled onto twice the bound and a link cannot be given its scale
-#' after the fact. `ddm_ndt_finalize()` then installs the `ndt` link and
-#' raises the bound refusal, so that the sentence a user sees is the one
-#' the shared helper has always written.
+#' The family is rebuilt rather than patched, because `delta` is a
+#' margin in the response's units and a density cannot be given it after
+#' the fact. `ddm_ndt_finalize()` then installs the bound and raises its
+#' refusal, so that the sentence a user sees is the one the shared
+#' helper has always written.
+#'
+#' The GO ROWS ALONE decide the bound, so `ndt_group()` is subset to
+#' them too: a no-go row's response entry is a placeholder, and letting
+#' a placeholder into a group's minimum would let it set that group's
+#' bound.
 #'
 #' @noRd
-gng_finalize <- function(cfg, y, aterms) {
-  go <- gng_go_rt(y, aterms)
+gng_finalize <- function(fam0, cfg, y, aterms) {
+  keep <- gng_go_which(aterms)
+  go <- y[keep]
   lo <- min(go)
-  fam <- gng_family(cfg, ub = cfg$max_ndt %||% lo, delta = 1e-9 * lo)
-  ddm_ndt_finalize(fam, go, cfg$max_ndt, "wiener_gng")
+  at <- aterms
+  if (!is.null(at[["ndt_group"]])) {
+    at[["ndt_group"]] <- rep_len(at[["ndt_group"]], length(y))[keep]
+  }
+  sp <- ddm_ndt_spec(go, at, cfg$max_ndt, "wiener_gng")
+  if (!is.null(cfg$max_ndt) && sp$ub > lo) {
+    stop("wiener_gng: max_ndt = ", format(sp$ub), " is above the ",
+         "fastest response (", format(lo), "). Nothing can be observed ",
+         "before the non-decision time, so a bound above the fastest ",
+         "response admits values at which that trial has no ",
+         "likelihood.", call. = FALSE)
+  }
+  # a settled bound is KEPT, for the reason ddm_finalize() gives
+  keep <- ddm_ndt_keep(fam0)
+  ddm_ndt_install(gng_family(cfg, delta = 1e-9 * lo),
+                  keep[["ub"]] %||% sp$ub,
+                  if (is.null(keep)) sp$floors else keep[["floors"]],
+                  "wiener_gng", y_of = gng_go_rt,
+                  sizes = if (is.null(keep)) sp$sizes else keep[["sizes"]])
 }
 
 #' Draw a response time conditional on each row's own outcome.

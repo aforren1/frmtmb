@@ -11,7 +11,7 @@
 .onLoad <- function(libname, pkgname) {
   frmtmb_register_compat(
     features = c(wiener = "family", gddm = "family", lba = "family",
-                 "dec()" = "aterm"),
+                 "dec()" = "aterm", "ndt_group()" = "aterm"),
     rules = ddm_compat_rules)
   # The spelling every reference on the drift-diffusion model uses, and
   # the one brms takes. Before frmtmb had an addition-term registry the
@@ -19,6 +19,18 @@
   # a factor to 0/1 for a family that could have done it. This is that
   # coercion, contributed once.
   frmtmb_register_aterm("dec", arity = 1L, coerce = ddm_coerce_dec)
+  # Which trials share a non-decision-time bound. The bound is the
+  # group's own fastest response, so a subject deviation on `ndt` is a
+  # deviation on a fraction of that subject's floor rather than of the
+  # whole data set's. See the head of R/ddm-shared.R.
+  frmtmb_register_aterm("ndt_group", arity = 1L,
+                        coerce = ddm_coerce_ndt_group)
+  # A term nothing consumed is the failure this package has fixed
+  # before, when `rt | dec(u) + vint(1 - u)` fitted with the second
+  # column unread. mixture() takes the union of its components'
+  # allow-lists and never finalizes them, so it accepts ndt_group() and
+  # no per-group bound is ever built from it.
+  frmtmb_register_frame_check(ddm_check_ndt_group_read)
   # The two families added after the first three, registered in their own
   # call rather than folded into the one above. Two reasons: the rows
   # below were measured on this worktree and the ones above were not, and
@@ -28,6 +40,36 @@
     features = c(rdm = "family", wiener_gng = "family"),
     rules = rdm_gng_compat_rules)
   invisible()
+}
+
+#' Refuse an `ndt_group()` that no family consumed.
+#'
+#' The allow-list is a declaration and cannot see whether the term was
+#' USED. `mixture()`'s is the union of its components' and it never runs
+#' their `family_finalize`, so a `mixture(wiener(max_ndt = ), ...)`
+#' model accepts the grouping and scores every row against the one
+#' scalar bound instead. A per-group bound leaves a table behind, so its
+#' absence is exactly the condition to refuse on.
+#'
+#' @noRd
+ddm_check_ndt_group_read <- function(spec, frame) {
+  av <- frame[["aterm_values"]]
+  if (!length(av)) return(invisible(NULL))
+  sp <- frame[["spec"]]
+  if (is.null(sp)) sp <- spec
+  for (rn in names(av)) {
+    if (is.null(av[[rn]][["ndt_group"]])) next
+    bd <- sp$responses[[rn]]$family[["ndt_bound"]]
+    if (!is.null(bd) && !is.null(bd[["floors"]])) next
+    stop("ndt_group() was supplied for `", rn, "` and no family read ",
+         "it, so the term would travel into the fit unread and every ",
+         "row would be scored against one bound. Inside mixture() that ",
+         "is what happens: a mixture never finalizes its components, ",
+         "so their bound has to be max_ndt and the grouping cannot be ",
+         "used. Drop ndt_group(), or fit the component family on its ",
+         "own.", call. = FALSE)
+  }
+  invisible(NULL)
 }
 
 #' Coerce a decision indicator to the 0/1 the density reads.
@@ -73,6 +115,8 @@ ddm_compat_rules <- function() {
   r <- b$r
   r("wiener", "dec()", "works",
     "The spelling to use, contributed to frmtmb's addition-term registry when this package loads. It takes a factor, a character vector or a logical the way brms does, reading the second level as the upper boundary, and it is required: the boundary a trial ended at is data and the density is meaningless without it.")
+  r("wiener", "ndt_group()", "works",
+    "The grouping the non-decision time's bound is taken per. Without it `ndt` is a fraction of the whole data set's fastest response, which is the 0.6.0 behavior and the right one for a model with no subject deviation on `ndt`; with it the fraction is of the group's own fastest response, which is what a random effect on `ndt` needs. Measured on the Phase 0 eam design: without it the fit does not converge (gradient 1.25e11, seven NaN standard errors) and with it it does. It cannot be combined with max_ndt, which sets the same bound to a different thing, and that pair is refused by name.")
   r("wiener", "vint()", "works",
     "The other spelling for the same thing, carrying the indicator as a plain 0/1 integer. It was the only route before frmtmb had an addition-term registry and it still works unchanged. Supplying neither is refused, because the density would otherwise read a NULL and the log likelihood would silently collapse to zero terms.")
   r("wiener", "cens()", "refused",
@@ -107,6 +151,8 @@ ddm_compat_rules <- function() {
   # family.
   r("gddm", "dec()", "works",
     "The boundary is read from dec() when it is there and from vint() otherwise, as wiener() does. vint() numbers positionally: alongside dec() the condition index is the first vint() value, and inside vint(upper, cond) it is the second.")
+  r("gddm", "ndt_group()", "refused",
+    "Refused by declaration: gddm() does not name it in accepts_aterms, and the exclusion is on SCOPE rather than on impossibility. gd_densities() reads every dpar at the FIRST ROW of its condition, and ?gddm already requires every row sharing a condition to share every parameter value, so a valid model whose non-decision time varies by subject already carries a condition per subject; a per-condition bound would then reach the density exactly as ndt itself does, at the cost of one Fokker-Planck solve per subject. That cost, not a limit of the mechanism, is why this family keeps the single scaled logit and its ndt stays a TIME. See dev/ndt-findings.md.")
   r("gddm", "vint()", "works",
     "Required, and twice over: vint1 is the boundary a trial ended at, coded 0/1, and vint2 is the condition index the solver groups on. Both are declared, so omitting either is refused by name rather than silently summed over no rows.")
   r("gddm", "vreal()", "works",
@@ -136,6 +182,8 @@ ddm_compat_rules <- function() {
 
   r("lba", "dec()", "refused",
     "Refused by the family, and by declaration rather than by a check of its own: lba() names the addition terms it takes in frmtmb_family(accepts_aterms =), dec() is not among them, and frame assembly refuses it by name. Until frmtmb 0.53.0 there was no such declaration and the refusal was a hand-written check shared with rdm(); before that check this row was wrong in a way worth recording, because a model written rt | dec(two) + vint(choice) FITTED, dropping the term with no warning and with fixed effects bit-identical to the model without it. dec() IS the spelling under wiener(), so a ported model quietly ignored half of what its author wrote.")
+  r("lba", "ndt_group()", "works",
+    "The same grouping wiener() takes, through the same shared helper: the bound on `ndt` becomes the group's own fastest response instead of the whole data set's. Verified on this package's own per-group bound tests rather than on a race design at scale, so what is promised is that the term is read and the bound is per group, not that a hierarchical LBA recovers.")
   r("lba", "vint()", "works",
     "Required: vint1 is which accumulator won, counted from 1. Note that this is 1-based where wiener's boundary indicator is 0-based, which is a difference between the two families and not a typo.")
   r("lba", "cens()", "refused",
@@ -184,6 +232,8 @@ rdm_gng_compat_rules <- function() {
   b <- compat_rule_builder()
   r <- b$r
 
+  r("rdm", "ndt_group()", "works",
+    "As for lba(), through the same shared helper. The bound also reaches the declared lcdf and lccdf, so a censored or truncated row is scored against its own group's bound rather than the data set's.")
   r("rdm", "vint()", "works",
     "Required: vint1 is which accumulator reached the threshold, counted from 1, exactly as it is for lba(). Omitting it is refused by name, because the density indexes it.")
   r("rdm", "dec()", "refused",
@@ -215,6 +265,8 @@ rdm_gng_compat_rules <- function() {
 
   r("wiener_gng", "dec()", "works",
     "Required, and the only spelling: dec() says whether a trial produced a response, coded 1, or did not, coded 0. With one observable boundary that is the same 0/1 wiener() reads and it means the same thing. A logical column gives the same fit as a 0/1 one, verified.")
+  r("wiener_gng", "ndt_group()", "works",
+    "The same grouping wiener() takes. The bound is taken over the GO rows of each group alone, because a no-go row's response entry is a placeholder and letting one into a minimum would let it set that group's bound. A group with no go trials therefore has no bound and is refused by name.")
   r("wiener_gng", "vint()", "refused",
     "Refused by name, so that a model written against wiener()'s vint(upper) spelling fails loudly rather than fitting with the indicator ignored. The response indicator travels through dec() here.")
   r("wiener_gng", "vreal()", "works",

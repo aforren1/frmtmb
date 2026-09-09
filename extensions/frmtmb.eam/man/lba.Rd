@@ -17,7 +17,11 @@ identifies the scale. One positive number, or one per accumulator.}
 default, matches \code{rtdists} and makes the likelihood proper.}
 
 \item{max_ndt}{Upper bound for the non-decision time, in the units of
-the response. \code{NULL}, the default, takes it from the data.}
+the response, applied to every row. \code{NULL}, the default, takes the
+fastest response of each row's \code{ndt_group()}, or of the whole data
+set when the model has no \code{ndt_group()}. It cannot be combined with
+\code{ndt_group()}. Give it when a component of a \code{\link[frmtmb:mixture]{frmtmb::mixture()}}
+needs the bound up front.}
 }
 \value{
 A \code{frmtmb_family}.
@@ -139,15 +143,24 @@ constant is refused when the constant is checked against the log
 link's range.
 }
 
-\section{Non-decision time}{
+\section{Non-decision time, and what its coefficients mean}{
 
 The density is zero at and below \code{ndt}, so the likelihood has a hard
-edge at \code{ndt = min(rt)}. As \code{\link[=wiener]{wiener()}} does, \code{ndt} gets a logit
-scaled onto \verb{(0, max_ndt)} instead of a log link, which makes the
-constraint structural. \code{max_ndt} defaults to the smallest observed
-response time, taken when the model frame is assembled. Pass it
-explicitly to pin the bound, which matters if you will \code{predict()}
-on new data whose minimum differs.
+edge at the fastest response and a log link would let the optimizer
+walk over it.
+
+Without \code{ndt_group()} the bound is one number, the fastest response
+in the data or \code{max_ndt}, and it stays IN the link: \code{ndt} is a time,
+as it has always been. Write
+\code{rt | vint(choice) + ndt_group(subject) ~ ...} when \code{ndt} carries a
+subject deviation, and the bound becomes that subject's own fastest
+response. A per-row bound cannot live in a link, so under a grouping
+\code{ndt} is a FRACTION of the row's bound and the density multiplies:
+\code{predict(dpar = "ndt", type = "response")} then reports the fraction
+and \code{\link[=ndt_time]{ndt_time()}} reports the time either way. A single bound is the
+global fastest response, and a subject whose non-decision time is
+above it cannot be represented at any value of the random effect;
+\code{\link[=wiener]{wiener()}} has the measurement.
 }
 
 \section{The response, and why not \code{dec()}}{

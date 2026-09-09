@@ -35,8 +35,14 @@ size of that bias can be measured, not because it is ever the better
 model.}
 
 \item{max_ndt}{Upper bound for the non-decision time, in the units of
-the response. \code{NULL} takes the smallest response time. See
-\code{\link[=wiener]{wiener()}}, whose \code{ndt} link this shares.}
+the response. \code{NULL} takes the smallest response time. This family
+keeps the single scaled logit, so its \code{ndt} is a TIME, as it is for
+every model of the other four families that does not use
+\code{ndt_group()}. \code{ndt_group()} itself is refused here on scope: the
+solver reads every parameter at the first row of its condition and
+this family already requires a condition per distinct parameter
+value, so a per-group bound would cost one Fokker-Planck solve per
+group.}
 
 \item{tridiagonal}{How the tridiagonal solve inside each step reaches
 the tape. \code{"recorded"}, the default, lets 'RTMB' record the sweep:

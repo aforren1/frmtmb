@@ -73,30 +73,116 @@
 #' design can silence this one condition and keep the rest. `NEWS.md`
 #' carries the full tables.
 #'
-#' @section Non-decision time:
+#' @section Non-decision time, and what its coefficients mean:
 #' The density is zero for a response time at or below `ndt`, so the
-#' likelihood has a hard edge at `ndt = min(rt)` and an ordinary log
-#' link would let the optimizer walk straight over it. The `ndt` link is
-#' a logit scaled onto `(0, max_ndt)` instead, which makes the
-#' constraint structural rather than a thing the optimizer has to
-#' discover.
+#' likelihood has a hard edge at the fastest response and an ordinary
+#' log link would let the optimizer walk straight over it. The `ndt`
+#' link makes the constraint structural instead, and it does so in one
+#' of two ways.
 #'
-#' `max_ndt` defaults to the smallest response time in the data, found
-#' when the model frame is assembled. Give it explicitly to pin the
-#' bound, which is worth doing when you will `predict()` on new data
-#' whose minimum differs from the training minimum.
+#' **Without `ndt_group()`, `ndt` is a TIME**, on a logit scaled onto
+#' `(0, ub)` with `ub` the fastest response in the whole data set, or
+#' `max_ndt` when you give one. This is the parameterization the family
+#' has always had. `predict(dpar = "ndt", type = "response")` reports
+#' seconds, a `prior(class = "ndt")` is a density on those seconds, and
+#' a `bf(ndt = 0.2)` constant is 0.2 seconds.
+#'
+#' **With `ndt_group()`, `ndt` is a FRACTION of the row's own bound**,
+#' on a plain logit, and the density multiplies it by that bound. The
+#' bound is the fastest response of the row's group. Write
+#'
+#' ```
+#' frm(bf(rt | dec(response) + ndt_group(subject) ~ coherence,
+#'        ndt ~ 1 + (1 | subject), bias = 0.5),
+#'     family = wiener(), data = dat)
+#' ```
+#'
+#' and each subject's non-decision time is bounded by its own fastest
+#' response. That is what a random effect on `ndt` needs; the next
+#' section is what one global bound does to it. The price is that `ndt`
+#' is on a different scale: `predict(dpar = "ndt", type = "response")`
+#' reports the fraction, and [ndt_time()] reports the time for either
+#' parameterization. A `prior(class = "ndt")` and a `bf(ndt = )`
+#' constant are fractions under a grouping too.
+#'
+#' Give the grouping as a factor, a character vector, a logical or
+#' integer codes. It is keyed on the group's LABEL, so subsetting,
+#' `droplevels()`, `relevel()` and a prediction grid you build yourself
+#' all pair a row with the same bound the fit used. `max_ndt` and
+#' `ndt_group()` cannot be combined, because they set the same bound to
+#' different things, and an `ndt_group()` no family reads is refused
+#' rather than carried into the fit unused.
 #'
 #' A `max_ndt` above the smallest response time is refused, because for
 #' this family alone it admits parameter values at which some observed
 #' row has no likelihood. Inside a [frmtmb::mixture()] that is exactly
 #' what the other component is for, so `allow_unreachable = TRUE` lifts
-#' the refusal; see Mixtures.
+#' the refusal; see Mixtures. A mixture never finalizes its components,
+#' so a component needs `max_ndt` given up front and cannot use
+#' `ndt_group()`.
+#'
+#' Whichever parameterization a model is in, the bound is fixed when
+#' the model frame is assembled and is a property of the FITTED data,
+#' so a prediction on new rows is scaled by the bound the fit used
+#' rather than by one re-derived from the new rows. A group the fit
+#' never saw has no bound and is refused.
 #'
 #' Past a linear predictor of about 37 the logit saturates in double
-#' precision and `ndt` rounds to `max_ndt` exactly. Nothing guards that,
-#' and nothing needs to: the density falls off a cliff as the decision
-#' time goes to zero, so the log likelihood is already unreachable long
-#' before the link runs out of digits.
+#' precision. Nothing guards that, and nothing needs to: the density
+#' falls off a cliff as the decision time goes to zero, so the log
+#' likelihood is already unreachable long before the link runs out of
+#' digits.
+#'
+#' @section Why one bound is the wrong constraint under a random effect:
+#' A single bound is the GLOBAL fastest response, so a subject whose
+#' true `ndt` is above it cannot be represented at any value of the
+#' random effect. At 30 subjects by 400 trials with a between-subject
+#' spread of 26 ms on a mean of 250 ms, 20 of the 30 subjects are in
+#' that position and NONE is inconsistent with its own data. Without
+#' `variability` such a fit does not converge; with
+#' `variability = "sv"` it converges, reports nothing from `diagnose()`,
+#' and returns a population `ndt` pinned at the bound and wrong by ten
+#' percent with a standard error of 7.2e-06 on it.
+#'
+#' What settles it is what happens as data accumulates. On that design,
+#' the per-subject root mean squared error of the fitted non-decision
+#' times:
+#'
+#' \tabular{rll}{
+#'   trials \tab with ndt_group(s) \tab one global bound \cr
+#'   100 \tab 20.91 ms \tab 27.23 ms \cr
+#'   200 \tab 14.08 ms \tab 20.51 ms \cr
+#'   400 \tab 7.67 ms \tab 30.37 ms
+#' }
+#'
+#' The per-group bound converges on the truth and the global bound does
+#' not, because more data lowers the global minimum and tightens the
+#' ceiling on every subject at once.
+#'
+#' @section What sd(ndt) does and does not tell you:
+#' A grouped model estimates `ndt` as a fraction of each group's own
+#' floor, so the fitted per-subject times vary with those floors even
+#' when the variance component is exactly zero. On the design above an
+#' estimator with NO random effect on `ndt` returns a between-subject
+#' standard deviation of 0.02748 against a truth of 0.02629, where the
+#' full model returns 0.02543, and at 100 trials per subject the two
+#' are identical in every digit.
+#'
+#' The variance component is not empty: at 400 trials it buys 8.44
+#' log-likelihood units and cuts the per-subject error from 11.90 ms to
+#' 7.67 ms. But a between-subject standard deviation is the wrong
+#' statistic to read that off. Compare the per-subject non-decision
+#' times from [ndt_time()] against what you believe, and compare
+#' log-likelihoods, rather than reading `VarCorr()`'s `ndt` row as
+#' evidence that the component was estimated.
+#'
+#' The bound's own quality is a function of the group's trial count.
+#' The group's fastest response overshoots its true non-decision time
+#' by about 47 ms at 400 trials and 78 ms at 50, and a group of one
+#' trial gets that trial's own response time as its bound. Nothing
+#' refuses a small group, because any threshold would fire on correct
+#' models; the trial counts are recorded on the fitted family, at
+#' `family(fit)$ndt_bound$sizes`.
 #'
 #' @section Across-trial variability:
 #' Ratcliff's full diffusion model draws three of the four parameters
@@ -116,8 +202,10 @@
 #'     width is below 1 and the start point stays inside the boundaries
 #'     whenever `bias` is 0.5.}
 #'   \item{`st`}{Width of a uniform non-decision time, centered on
-#'     `ndt`, in the units of the response. Logit link scaled onto
-#'     `(0, 2 * max_ndt)`.}
+#'     `ndt`, and on whichever scale `ndt` is on: a duration in the
+#'     units of the response, on a logit scaled onto `(0, 2 * bound)`,
+#'     or a FRACTION of twice the row's own bound under
+#'     `ndt_group()`.}
 #' }
 #'
 #' The likelihood is the analytic Wiener density averaged over those
@@ -184,7 +272,11 @@
 #' 50. See `vignette("ddm")`.
 #'
 #' @param max_ndt Upper bound for the non-decision time, in the units of
-#'   the response. `NULL`, the default, takes it from the data.
+#'   the response, applied to every row. `NULL`, the default, takes the
+#'   fastest response of each row's `ndt_group()`, or of the whole data
+#'   set when the model has no `ndt_group()`. It cannot be combined with
+#'   `ndt_group()`. Give it when a component of a [frmtmb::mixture()]
+#'   needs the bound up front.
 #' @param variability Which across-trial variability parameters to
 #'   estimate: any of `"sv"` (drift rate), `"sz"` (start point) and
 #'   `"st"` (non-decision time). The default estimates none, which is
@@ -241,7 +333,10 @@ wiener <- function(max_ndt = NULL, variability = character(0),
               allow_unreachable = isTRUE(allow_unreachable),
               variability = ddm_check_variability(variability),
               nodes = ddm_check_nodes(nodes))
-  ddm_family(cfg, ub = max_ndt %||% NA_real_, delta = 1e-9)
+  # `ndt` is a fraction of a bound the data settles, so the family
+  # carries a bound from the moment it is built: the one `max_ndt`
+  # names, or a refusing placeholder. See ddm_ndt_preinstall().
+  ddm_ndt_preinstall(ddm_family(cfg, delta = 1e-9), max_ndt, "wiener")
 }
 
 #' The variability names, in the order the dpars are declared.
@@ -287,52 +382,28 @@ ddm_check_nodes <- function(nodes) {
 
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
-#' A logit scaled onto `(0, ub)`.
-#'
-#' `ub` may be `NA`, which is the state a family constructed without
-#' `max_ndt` is in before [frm()] hands it the data. Using such a link
-#' says so rather than returning a silent `NA`.
-#'
-#' @noRd
-ddm_scaled_logit <- function(ub, dpar) {
-  force(ub)
-  force(dpar)
-  bound <- function() {
-    if (is.na(ub)) {
-      stop("wiener(): the ", dpar, " bound is not set yet. This ",
-           "happens when a wiener() family object is used outside ",
-           "frm(), for example to inspect its links before a fit. Pass ",
-           "`max_ndt` to wiener() to set the bound up front.",
-           call. = FALSE)
-    }
-    ub
-  }
-  list(
-    name = "scaled_logit",
-    linkfun = function(mu) { U <- bound(); log(mu / (U - mu)) },
-    linkinv = function(eta) bound() / (1 + exp(-eta)),
-    mu_eta = function(eta) {
-      p <- 1 / (1 + exp(-eta))
-      bound() * p * (1 - p)
-    })
-}
-
 #' Build the family object, given whatever the data has settled.
 #'
-#' Called twice: once by [wiener()], with the bound the user supplied or
-#' `NA`, and once more from `family_finalize()` with the bound and the
-#' unreachable-row margin the response determines. The second call is
-#' what the fit actually uses.
+#' Called twice: once by [wiener()], before any data exists, and once
+#' more from `family_finalize()` with the unreachable-row margin the
+#' response determines. The second call is what the fit actually uses.
+#'
+#' Every density, mean and simulator below is written in TIMES.
+#' `ddm_ndt_install()` wraps them so that each receives `ndt` and `st`
+#' multiplied by the row's own bound; nothing here knows that the
+#' estimated quantity is a fraction.
 #'
 #' @noRd
-ddm_family <- function(cfg, ub, delta) {
+ddm_family <- function(cfg, delta) {
   vv <- cfg$variability
   nd <- ddm_nodes(vv, cfg$nodes)
   st_on <- "st" %in% vv
   dpars <- c("mu", "bs", "ndt", "bias", vv)
-  links <- list(mu = cfg$link, bs = "log",
-                ndt = ddm_scaled_logit(ub, "non-decision time"),
-                bias = "logit")
+  # Both `ndt` links are PLACEHOLDERS. ddm_ndt_install() replaces them
+  # once the bound is known: with a scaled logit carrying that bound
+  # when there is one number, and with a plain logit on a fraction when
+  # ndt_group() makes it per row. See the head of ddm-shared.R.
+  links <- list(mu = cfg$link, bs = "log", ndt = "logit", bias = "logit")
   if ("sv" %in% vv) links$sv <- "log"
   # a width on the same (0, 1) scale as bias, so the logit is the
   # scaled logit its own support asks for
@@ -342,10 +413,7 @@ ddm_family <- function(cfg, ub, delta) {
   # link here lets the optimizer walk out to a width no response time
   # could have come from, where every row's range is cut and the
   # surface is flat
-  if (st_on) {
-    links$st <- ddm_scaled_logit(if (is.na(ub)) NA_real_ else 2 * ub,
-                                 "non-decision time range")
-  }
+  if (st_on) links$st <- "logit"
 
   lpdf <- if (!length(vv) && !cfg$allow_unreachable) {
     # The plain Wiener density, untouched: no variability parameter
@@ -385,6 +453,8 @@ ddm_family <- function(cfg, ub, delta) {
     # the wrong sign costs more than a start at the middle.
     mu = function(y, aterms) 0,
     bs = function(y, aterms) 1.5,
+    # a placeholder; ddm_ndt_install() sets the real one, which is
+    # half the fastest response or half the group's own bound
     ndt = function(y, aterms) 0.5 * min(y),
     bias = function(y, aterms) 0.5)
   # Small starts for the variability parameters, because zero is on the
@@ -392,6 +462,7 @@ ddm_family <- function(cfg, ub, delta) {
   # first quadrature straddle a range the data cannot support.
   if ("sv" %in% vv) init$sv <- function(y, aterms) 0.3
   if ("sz" %in% vv) init$sz <- function(y, aterms) 0.05
+  # a placeholder, as ndt's is
   if (st_on) init$st <- function(y, aterms) 0.1 * min(y)
 
   frmtmb::custom_family(
@@ -411,7 +482,7 @@ ddm_family <- function(cfg, ub, delta) {
     # contradicted each other. The pair order is that precedence.
     exclusive_aterms = list(c("dec", "vint1")),
     family_finalize = function(fam, y, aterms) {
-      ddm_finalize(cfg, y)
+      ddm_finalize(fam, cfg, y, aterms)
     },
     init_dpars = init,
     type = "continuous",
@@ -445,22 +516,33 @@ ddm_family <- function(cfg, ub, delta) {
 #' worked only for as long as the undocumented call order held.
 #'
 #' @noRd
-ddm_finalize <- function(cfg, y) {
+ddm_finalize <- function(fam, cfg, y, aterms) {
   lo <- min(y)
-  ub <- cfg$max_ndt %||% lo
-  if (!is.null(cfg$max_ndt) && ub > lo && !cfg$allow_unreachable) {
-    # min(y) itself is allowed, and is the default: the scaled logit
-    # never reaches its own bound at a finite linear predictor, so
-    # ndt < min(rt) stays strict. Anything above min(y) does admit
-    # parameter values with no likelihood.
-    stop("wiener: max_ndt = ", format(ub), " is above the smallest ",
+  sp <- ddm_ndt_spec(y, aterms, cfg$max_ndt, "wiener")
+  if (!is.null(cfg$max_ndt) && sp$ub > lo && !cfg$allow_unreachable) {
+    # min(y) itself is allowed, and is the default: the logit never
+    # reaches 1 at a finite linear predictor, so ndt < the bound stays
+    # strict. Anything above min(y) does admit parameter values with no
+    # likelihood.
+    stop("wiener: max_ndt = ", format(sp$ub), " is above the smallest ",
          "response time (", format(lo), "). The density is zero at ",
          "and below the non-decision time, so a bound above min(rt) ",
          "admits parameter values with no likelihood. In a mixture ",
          "the other component covers those trials, and ",
          "allow_unreachable = TRUE says so.", call. = FALSE)
   }
-  ddm_family(cfg, ub = ub, delta = 1e-9 * lo)
+  # A settled bound is KEPT rather than re-derived. The family is
+  # rebuilt from `cfg` here, so the install's own guard cannot see the
+  # carried bound and has to be handed it: without this a leave-one-out
+  # refit that dropped the fastest trial would be a refit of a
+  # DIFFERENT model, which is what the review measured at 0.334522
+  # against 0.345458.
+  keep <- ddm_ndt_keep(fam)
+  ddm_ndt_install(ddm_family(cfg, delta = 1e-9 * lo),
+                  keep[["ub"]] %||% sp$ub,
+                  if (is.null(keep)) sp$floors else keep[["floors"]],
+                  "wiener",
+                  sizes = if (is.null(keep)) sp$sizes else keep[["sizes"]])
 }
 
 #' The decision indicator, under whichever spelling supplied it.

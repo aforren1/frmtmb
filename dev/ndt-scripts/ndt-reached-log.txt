@@ -1,0 +1,41 @@
+﻿test-ndt-bound.R               exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 79 ]
+test-family.R                  exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 51 ]
+test-defects.R                 exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 59 ]
+test-brms-parity.R             exit=0 [ FAIL 1 | WARN 0 | SKIP 0 | PASS 12 ]
+---- detail for test-brms-parity.R ----
+
+> FAILURE: 'test-brms-parity.R:25:3' ----------------
+  Expected `nm(ow$links$ndt)` to equal "scaled_logit".
+  Differences:
+  `actual`:   "scaled_logit(0, 0.3)"
+  `expected`: "scaled_logit"        
+  
+  
+  [ FAIL 1 | WARN 0 | SKIP 0 | PASS 12 ]
+
+
+
+test-variability.R             exit=0 [ FAIL 1 | WARN 0 | SKIP 0 | PASS 139 ]
+---- detail for test-variability.R ----
+
+> FAILURE: 'test-variability.R:302:3' ---------------
+  Expected `lk$name` to equal "scaled_logit".
+  Differences:
+  `actual`:   "scaled_logit(0, 0.8)"
+  `expected`: "scaled_logit"        
+  
+  
+  [ FAIL 1 | WARN 0 | SKIP 0 | PASS 139 ]
+
+
+
+test-lba.R                     exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 109 ]
+test-rdm-gng.R                 exit=0 [ FAIL 0 | WARN 1 | SKIP 0 | PASS 221 ]
+test-simulate-density.R        exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 69 ]
+test-extension-api.R           exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 14 ]
+test-gddm-family.R             exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 77 ]
+test-bracket-access.R          exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 1 ]
+test-message-uniqueness.R      exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 4 ]
+test-surface.R                 exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 50 ]
+test-sampling.R                exit=0 [ FAIL 0 | WARN 0 | SKIP 1 | PASS 94 ]
+==== REACHED FILES DONE ====

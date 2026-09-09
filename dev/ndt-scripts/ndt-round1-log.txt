@@ -1,0 +1,14 @@
+arm: new 
+
+min(rt): 0.3145218 
+ndt link name        : scaled_logit 
+predict(ndt, response): 0.27528808 
+ndt_time()            : 0.27528808 
+logLik                : -205.767667983 
+prior normal( 0.3 , 0.01) class=ndt -> ndt = 0.28073215 
+prior normal( 0.1 , 0.01) class=ndt -> ndt = 0.16063194 
+prior on the Intercept, dpar=ndt -> eta = 0.44280466 
+pinned ndt = 0.2 with max_ndt = 0.25: logLik -237.065325  fitted[1] 0.793986 
+pinned ndt = 0.2 with a bare wiener():  refused: wiener(): the non-decision time bound is not set 
+
+group floors: s1=0.31784  s2=0.325382  s3=0.324485 

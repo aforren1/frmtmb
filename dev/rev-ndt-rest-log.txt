@@ -1,0 +1,67 @@
+﻿==== idempotent 2026-09-09T07:54:45.9840071-04:00 ====
+min(rt) all rows 0.334522  without the fastest 0.345458 
+
+wiener   lpdf after one finalize -172.843011695744, after two -172.843011695744  IDENTICAL
+wiener   bound after one 0.33452180, after two 0.33452180
+rdm      lpdf after one finalize 0.000000000000, after two 0.000000000000  IDENTICAL
+rdm      bound after one 0.21978849, after two 0.21978849
+
+wiener   bound on all rows 0.33452180, refinalized without the fastest 0.34545807  RE-DERIVED
+rdm      bound on all rows 0.21978849, refinalized without the fastest 0.21978849  KEPT
+
+predict(ndt) on 5 rows, full data   0.88353472 
+predict(ndt) on 5 rows, fastest out 0.88353472 
+fitted mean, full data              0.72627710 
+fitted mean, fastest out            0.72627710 
+ndt_time, full data                 0.29556162 
+ndt_time, fastest out               0.29556162 
+
+==== iters new-group 2026-09-09T07:54:47.7887293-04:00 ====
+ITERROW	arm=new-group	fit_s=80.13	conv=0	logLik=-7003.007837	iterations=3	counts=
+
+==== iters old-plain 2026-09-09T07:56:11.3266033-04:00 ====
+Rscript.exe : There were 18 warnings (use warnings() to see them)
+At C:\Users\adf44\source\r\frmtmb-wt-ndt\dev\rev-ndt-rest.ps1:14 char:3
++   & $Rexe --vanilla "$Dir/rev-ndt-iters.R" 2>&1 | Out-String -Width 4 ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (There were 18 w...() to see them):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ITERROW	arm=old-plain	fit_s=261.56	conv=1	logLik=-7148.806478	iterations=1	counts=
+
+==== iters new-group 2026-09-09T08:00:39.8995440-04:00 ====
+ITERROW	arm=new-group	fit_s=61.89	conv=0	logLik=-7003.007837	iterations=3	counts=
+
+==== iters old-plain 2026-09-09T08:01:45.1428734-04:00 ====
+Rscript.exe : There were 18 warnings (use warnings() to see them)
+At C:\Users\adf44\source\r\frmtmb-wt-ndt\dev\rev-ndt-rest.ps1:14 char:3
++   & $Rexe --vanilla "$Dir/rev-ndt-iters.R" 2>&1 | Out-String -Width 4 ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (There were 18 w...() to see them):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ITERROW	arm=old-plain	fit_s=268.65	conv=1	logLik=-7148.806478	iterations=1	counts=
+
+==== floors 2026-09-09T08:06:17.2618352-04:00 ====
+nt=100  floors: overshoot mean 63.68 ms sd 25.09 max 133.67 | sd(floor) 0.03928 sd(truth) 0.02629 | above GLOBAL floor 18/30
+nt=200  floors: overshoot mean 59.02 ms sd 18.21 max 105.86 | sd(floor) 0.03578 sd(truth) 0.02629 | above GLOBAL floor 13/30
+nt=400  floors: overshoot mean 47.08 ms sd 13.81 max 81.25 | sd(floor) 0.03231 sd(truth) 0.02629 | above GLOBAL floor 20/30
+
+nt=100  arm=re      conv=0 logLik=   -1887.866 ndt_mean=0.25005 bias_ms=  +6.59 sd_hat=0.03198 sd_true=0.02629 rmse_ms= 20.91 cor=0.7770 floor_gap_ms= 63.68 below=30/30 s=16.8
+nt=100  arm=nore    conv=0 logLik=   -1887.866 ndt_mean=0.25005 bias_ms=  +6.59 sd_hat=0.03198 sd_true=0.02629 rmse_ms= 20.91 cor=0.7770 floor_gap_ms= 63.68 below=30/30 s=11.0
+nt=100  arm=global  conv=1 logLik=   -1926.759 ndt_mean=0.98397 bias_ms=+740.52 sd_hat=0.02838 sd_true=0.02629 rmse_ms=740.93 cor=0.5867 floor_gap_ms= 63.68 below=0/30 s=62.7
+nt=200  arm=re      conv=0 logLik=   -3704.555 ndt_mean=0.24986 bias_ms=  +6.40 sd_hat=0.02882 sd_true=0.02629 rmse_ms= 14.08 cor=0.8970 floor_gap_ms= 59.02 below=30/30 s=30.9
+nt=200  arm=nore    conv=0 logLik=   -3704.934 ndt_mean=0.24997 bias_ms=  +6.51 sd_hat=0.02957 sd_true=0.02629 rmse_ms= 15.68 cor=0.8716 floor_gap_ms= 59.02 below=30/30 s=23.0
+nt=200  arm=global  conv=0 logLik=   -3755.676 ndt_mean=0.96544 bias_ms=+721.99 sd_hat=0.05081 sd_true=0.02629 rmse_ms=722.89 cor=0.7206 floor_gap_ms= 59.02 below=0/30 s=62.1
+nt=400  arm=re      conv=0 logLik=   -7003.008 ndt_mean=0.24615 bias_ms=  +2.69 sd_hat=0.02543 sd_true=0.02629 rmse_ms=  7.67 cor=0.9607 floor_gap_ms= 47.08 below=30/30 s=68.1
+nt=400  arm=nore    conv=0 logLik=   -7011.446 ndt_mean=0.24709 bias_ms=  +3.64 sd_hat=0.02748 sd_true=0.02629 rmse_ms= 11.90 cor=0.9092 floor_gap_ms= 47.08 below=30/30 s=58.4
+nt=400  arm=global  conv=1 logLik=   -7149.635 ndt_mean=0.99009 bias_ms=+746.64 sd_hat=0.02556 sd_true=0.02629 rmse_ms=747.05 cor=0.5325 floor_gap_ms= 47.08 below=0/30 s=238.5
+Rscript.exe : There were 31 warnings (use warnings() to see them)
+At C:\Users\adf44\source\r\frmtmb-wt-ndt\dev\rev-ndt-rest.ps1:19 char:1
++ & $Rexe --vanilla "$Dir/rev-ndt-floors.R" 2>&1 | Out-String -Width 40 ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (There were 31 w...() to see them):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+==== REST DONE 2026-09-09T08:16:12.2707537-04:00 ====

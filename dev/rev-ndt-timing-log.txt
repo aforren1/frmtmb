@@ -1,0 +1,95 @@
+﻿==== ARM new-plain  2026-09-09T07:19:45.6123900-04:00 ====
+Rscript.exe : Warning message:
+At C:\Users\adf44\source\r\frmtmb-wt-ndt\dev\rev-ndt-timing.ps1:21 char:3
++   & $Rexe --vanilla $Script 2>&1 | Out-String -Width 500
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning message::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Large maximum absolute gradient at the optimum (0.00122); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+There were 21 warnings (use warnings() to see them)
+REVROW	arm=new-plain	ctrl_s=1.443	fit_s=331.369	logLik=-7149.635130	conv=1	maxgrad=4.55664e+09	pdHess=FALSE	nbadse=7	npar=7	mu_cond=0.890609	mu_cond_lo=NaN	mu_cond_hi=NaN	ndt_pop=0.22606019	ndt_pop_se=NaN	sd_ndt_nat=0.00578213	sd_ndt_true=0.02629186	sd_mu=0.334428	sd_bs=0.173076	below_own=30	n_sub=30	min_margin_ms=22.6441
+
+==== ARM new-unbounded  2026-09-09T07:26:14.1968081-04:00 ====
+Rscript.exe : Warning message:
+At C:\Users\adf44\source\r\frmtmb-wt-ndt\dev\rev-ndt-timing.ps1:21 char:3
++   & $Rexe --vanilla $Script 2>&1 | Out-String -Width 500
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning message::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Large maximum absolute gradient at the optimum (0.00122); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00293); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+REVROW	arm=new-unbounded	ctrl_s=2.428	fit_s=147.438	logLik=-7027.370892	conv=0	maxgrad=0.00293143	pdHess=TRUE	nbadse=0	npar=7	mu_cond=0.909497	mu_cond_lo=0.856902	mu_cond_hi=0.962091	ndt_pop=0.24374708	ndt_pop_se=0.00447641	sd_ndt_nat=0.02254978	sd_ndt_true=0.02629186	sd_mu=0.335918	sd_bs=0.154773	below_own=30	n_sub=30	min_margin_ms=21.9385
+
+==== ARM new-group  2026-09-09T07:29:11.7091468-04:00 ====
+Rscript.exe : Warning message:
+At C:\Users\adf44\source\r\frmtmb-wt-ndt\dev\rev-ndt-timing.ps1:21 char:3
++   & $Rexe --vanilla $Script 2>&1 | Out-String -Width 500
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning message::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Large maximum absolute gradient at the optimum (0.00122); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+REVROW	arm=new-group	ctrl_s=1.558	fit_s=86.846	logLik=-7003.007837	conv=0	maxgrad=0.000987279	pdHess=TRUE	nbadse=0	npar=7	mu_cond=0.910877	mu_cond_lo=0.858162	mu_cond_hi=0.963592	ndt_pop=0.24686709	ndt_pop_se=0.00196390	sd_ndt_nat=0.02542529	sd_ndt_true=0.02629186	sd_mu=0.335564	sd_bs=0.143446	below_own=30	n_sub=30	min_margin_ms=27.3347
+
+==== ARM old-plain  2026-09-09T07:31:15.9410185-04:00 ====
+Rscript.exe : Warning message:
+At C:\Users\adf44\source\r\frmtmb-wt-ndt\dev\rev-ndt-timing.ps1:21 char:3
++   & $Rexe --vanilla $Script 2>&1 | Out-String -Width 500
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning message::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Large maximum absolute gradient at the optimum (0.00122); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+There were 19 warnings (use warnings() to see them)
+REVROW	arm=old-plain	ctrl_s=2.475	fit_s=369.226	logLik=-7148.806478	conv=1	maxgrad=1.25361e+11	pdHess=FALSE	nbadse=7	npar=7	mu_cond=0.890609	mu_cond_lo=NaN	mu_cond_hi=NaN	ndt_pop=0.22606019	ndt_pop_se=NaN	sd_ndt_nat=0.00578213	sd_ndt_true=0.02629186	sd_mu=0.334428	sd_bs=0.173076	below_own=30	n_sub=30	min_margin_ms=22.6441
+
+==== ARM new-group  2026-09-09T07:38:18.2256314-04:00 ====
+Rscript.exe : Warning message:
+At C:\Users\adf44\source\r\frmtmb-wt-ndt\dev\rev-ndt-timing.ps1:21 char:3
++   & $Rexe --vanilla $Script 2>&1 | Out-String -Width 500
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning message::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Large maximum absolute gradient at the optimum (0.00122); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+REVROW	arm=new-group	ctrl_s=1.615	fit_s=99.112	logLik=-7003.007837	conv=0	maxgrad=0.000987279	pdHess=TRUE	nbadse=0	npar=7	mu_cond=0.910877	mu_cond_lo=0.858162	mu_cond_hi=0.963592	ndt_pop=0.24686709	ndt_pop_se=0.00196390	sd_ndt_nat=0.02542529	sd_ndt_true=0.02629186	sd_mu=0.335564	sd_bs=0.143446	below_own=30	n_sub=30	min_margin_ms=27.3347
+
+==== ARM old-plain  2026-09-09T07:40:38.4487173-04:00 ====
+Rscript.exe : Warning message:
+At C:\Users\adf44\source\r\frmtmb-wt-ndt\dev\rev-ndt-timing.ps1:21 char:3
++   & $Rexe --vanilla $Script 2>&1 | Out-String -Width 500
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning message::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Large maximum absolute gradient at the optimum (0.00122); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+There were 19 warnings (use warnings() to see them)
+REVROW	arm=old-plain	ctrl_s=2.575	fit_s=296.114	logLik=-7148.806478	conv=1	maxgrad=1.25361e+11	pdHess=FALSE	nbadse=7	npar=7	mu_cond=0.890609	mu_cond_lo=NaN	mu_cond_hi=NaN	ndt_pop=0.22606019	ndt_pop_se=NaN	sd_ndt_nat=0.00578213	sd_ndt_true=0.02629186	sd_mu=0.334428	sd_bs=0.173076	below_own=30	n_sub=30	min_margin_ms=22.6441
+
+==== ARM new-group  2026-09-09T07:46:49.3315597-04:00 ====
+Rscript.exe : Warning message:
+At C:\Users\adf44\source\r\frmtmb-wt-ndt\dev\rev-ndt-timing.ps1:21 char:3
++   & $Rexe --vanilla $Script 2>&1 | Out-String -Width 500
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning message::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Large maximum absolute gradient at the optimum (0.00122); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+REVROW	arm=new-group	ctrl_s=5.097	fit_s=82.467	logLik=-7003.007837	conv=0	maxgrad=0.000987279	pdHess=TRUE	nbadse=0	npar=7	mu_cond=0.910877	mu_cond_lo=0.858162	mu_cond_hi=0.963592	ndt_pop=0.24686709	ndt_pop_se=0.00196390	sd_ndt_nat=0.02542529	sd_ndt_true=0.02629186	sd_mu=0.335564	sd_bs=0.143446	below_own=30	n_sub=30	min_margin_ms=27.3347
+
+==== ARM old-plain  2026-09-09T07:48:38.1689718-04:00 ====
+Rscript.exe : Warning message:
+At C:\Users\adf44\source\r\frmtmb-wt-ndt\dev\rev-ndt-timing.ps1:21 char:3
++   & $Rexe --vanilla $Script 2>&1 | Out-String -Width 500
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning message::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Large maximum absolute gradient at the optimum (0.00122); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+There were 19 warnings (use warnings() to see them)
+REVROW	arm=old-plain	ctrl_s=1.790	fit_s=304.645	logLik=-7148.806478	conv=1	maxgrad=1.25361e+11	pdHess=FALSE	nbadse=7	npar=7	mu_cond=0.890609	mu_cond_lo=NaN	mu_cond_hi=NaN	ndt_pop=0.22606019	ndt_pop_se=NaN	sd_ndt_nat=0.00578213	sd_ndt_true=0.02629186	sd_mu=0.334428	sd_bs=0.173076	below_own=30	n_sub=30	min_margin_ms=22.6441
+
+==== TIMING DONE 2026-09-09T07:54:27.8668096-04:00 ====

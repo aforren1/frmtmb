@@ -1,0 +1,373 @@
+﻿test-bracket-access.R            exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 1 ]
+test-brms-parity.R               exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 13 ]
+test-defects.R                   exit=0 [ FAIL 2 | WARN 0 | SKIP 0 | PASS 61 ]
+---- detail for test-defects.R ----
+
+> FAILURE: 'test-defects.R:85:3' --------------------
+  Expected `ndt` > `min(dat$rt)`.
+  Actual comparison: 0.0000003 <= 0.1813492
+  Difference: -0.1813490 <= 0
+  
+> FAILURE: 'test-defects.R:89:3' --------------------
+  Expected `all(is.finite(stats::residuals(fit, type = "response")))` to be TRUE.
+  Differences:
+  `actual`:   FALSE
+  `expected`: TRUE 
+  
+  
+  [ FAIL 2 | WARN 0 | SKIP 0 | PASS 61 ]
+
+
+
+test-density.R                   exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 132 ]
+test-extension-api.R             exit=0 [ FAIL 1 | WARN 0 | SKIP 0 | PASS 12 ]
+---- detail for test-extension-api.R ----
+
+> ERROR: 'test-extension-api.R:17:5' ----------------
+> Error: wiener(): the non-decision time's bound is not set yet. It comes from the response, so frm() sets it when it assembles the model frame. mixture() does not finalize its components, so a component of a mixture needs max_ndt = given to wiener() up front.
+  Backtrace:
+      ▆
+   1. └─fam$lpdf(t, dp, list(dec = rep(up, length(t)))) at test-extension-api.R:17:5
+   2.   ├─frmtmb.eam (local) f(y, ddm_ndt_natural(dpars, aterms, scale), aterms)
+   3.   │ └─frmtmb.eam:::ddm_lpdf_both(...)
+   4.   │   └─frmtmb.eam:::ddm_lpdf_lower(...)
+   5.   └─frmtmb.eam:::ddm_ndt_natural(dpars, aterms, scale)
+
+
+
+test-family.R                    exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 52 ]
+test-gddm-family.R               exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 77 ]
+test-gddm-gradients.R            exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 22 ]
+test-gddm-recovery.R             exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 28 ]
+test-gddm-reference.R            exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 166 ]
+test-gddm-solver.R               exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 94 ]
+test-lba.R                       exit=0 [ FAIL 5 | WARN 0 | SKIP 0 | PASS 104 ]
+---- detail for test-lba.R ----
+
+> FAILURE: 'test-lba.R:152:3' -----------------------
+  Expected `abs(ll - sum(ref))` < 1e-06.
+  Actual comparison: Inf >= 0.000001
+  Difference: Inf >= 0
+  
+> FAILURE: 'test-lba.R:514:3' -----------------------
+  Expected `lk$name` to match regexp "^scaled_logit".
+  Actual text:
+  x | logit
+  
+> FAILURE: 'test-lba.R:517:3' -----------------------
+  Expected `lk$linkinv(10000)` < `min(d$rt) + 1e-12`.
+  Actual comparison: 1.00 >= 0.34
+  Difference: 0.66 >= 0
+  
+> FAILURE: 'test-lba.R:518:3' -----------------------
+  Expected `lk$linkinv(fixef(fit)$ndt[[1]])` < `min(d$rt)`.
+  Actual comparison: 0.73 >= 0.34
+  Difference: 0.39 >= 0
+  
+> FAILURE: 'test-lba.R:557:3' -----------------------
+  Expected `abs(as.numeric(logLik(fu)) - ref)` < 1e-06.
+  Actual comparison: Inf >= 0.000001
+  Difference: Inf >= 0
+  
+  [ FAIL 5 | WARN 0 | SKIP 0 | PASS 104 ]
+  
+
+
+
+test-message-uniqueness.R        exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 4 ]
+test-moments.R                   exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 29 ]
+test-ndt-bound.R                 exit=0 [ FAIL 1 | WARN 0 | SKIP 0 | PASS 40 ]
+---- detail for test-ndt-bound.R ----
+
+> FAILURE: 'test-ndt-bound.R:272:3' -----------------
+  Expected `0.4/(1 + exp(-e[["ndt1.(Intercept)"]]))` > `min(d$rt)`.
+  Actual comparison: 0.34795 <= 0.34833
+  Difference: -0.00037 <= 0
+  
+  [ FAIL 1 | WARN 0 | SKIP 0 | PASS 40 ]
+  
+
+
+
+test-rdm-gng.R                   exit=0 [ FAIL 19 | WARN 1 | SKIP 0 | PASS 202 ]
+---- detail for test-rdm-gng.R ----
+
+> FAILURE: 'test-rdm-gng.R:153:3' -------------------
+  Expected `abs(as.numeric(logLik(fit)) - sum(ref))` < 1e-06.
+  Actual comparison: Inf >= 0.000001
+  Difference: Inf >= 0
+  
+> FAILURE: 'test-rdm-gng.R:568:3' -------------------
+  Expected `go_mass + no_mass` to equal 1.
+  Differences:
+    `actual`: 0.90
+  `expected`: 1.00
+  
+  
+> FAILURE: 'test-rdm-gng.R:591:7' -------------------
+  Expected mass at deadline 0.8, mu 1.5 to equal 1.
+  Differences:
+    `actual`: 0.73
+  `expected`: 1.00
+  
+  
+> FAILURE: 'test-rdm-gng.R:591:7' -------------------
+  Expected mass at deadline 0.8, mu -0.5 to equal 1.
+  Differences:
+    `actual`: 0.99960
+  `expected`: 1.00000
+  
+  
+> FAILURE: 'test-rdm-gng.R:591:7' -------------------
+  Expected mass at deadline 0.8, mu 0 to equal 1.
+  Differences:
+    `actual`: 0.83
+  `expected`: 1.00
+  
+  
+> FAILURE: 'test-rdm-gng.R:591:7' -------------------
+  Expected mass at deadline 0.8, mu 3 to equal 1.
+  Differences:
+    `actual`: 0.83
+  `expected`: 1.00
+  
+  
+> FAILURE: 'test-rdm-gng.R:591:7' -------------------
+  Expected mass at deadline 1.5, mu 1.5 to equal 1.
+  Differences:
+    `actual`: 0.73
+  `expected`: 1.00
+  
+  
+> FAILURE: 'test-rdm-gng.R:591:7' -------------------
+  Expected mass at deadline 1.5, mu -0.5 to equal 1.
+  Differences:
+    `actual`: 0.99960
+  `expected`: 1.00000
+  
+  
+> FAILURE: 'test-rdm-gng.R:591:7' -------------------
+  Expected mass at deadline 1.5, mu 0 to equal 1.
+  Differences:
+    `actual`: 0.83
+  `expected`: 1.00
+  
+  
+> FAILURE: 'test-rdm-gng.R:591:7' -------------------
+  Expected mass at deadline 1.5, mu 3 to equal 1.
+  Differences:
+    `actual`: 0.83
+  `expected`: 1.00
+  
+  
+> FAILURE: 'test-rdm-gng.R:591:7' -------------------
+  Expected mass at deadline 4, mu 1.5 to equal 1.
+  Differences:
+    `actual`: 0.73
+  `expected`: 1.00
+  
+  
+> FAILURE: 'test-rdm-gng.R:591:7' -------------------
+  Expected mass at deadline 4, mu -0.5 to equal 1.
+  Differences:
+    `actual`: 0.99960
+  `expected`: 1.00000
+  
+  
+> FAILURE: 'test-rdm-gng.R:591:7' -------------------
+  Expected mass at deadline 4, mu 0 to equal 1.
+  Differences:
+    `actual`: 0.83
+  `expected`: 1.00
+  
+  
+> FAILURE: 'test-rdm-gng.R:591:7' -------------------
+  Expected mass at deadline 4, mu 3 to equal 1.
+  Differences:
+    `actual`: 0.83
+  `expected`: 1.00
+  
+  
+> FAILURE: 'test-rdm-gng.R:719:3' -------------------
+  Expected `sum((obs - ex)^2/ex)` < `stats::qchisq(1 - 1e-06, length(obs))`.
+  Actual comparison: 13101.8 >= 38.3
+  Difference: 13063.6 >= 0
+  
+  WARNING: 'test-rdm-gng.R:733:5' -------------------
+  Large maximum absolute gradient at the optimum (0.00181); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+  Backtrace:
+> FAILURE: 'test-rdm-gng.R:746:5' -------------------
+  Expected recovery of ndt < `max(4 * mcse, 0.05)`.
+  Actual comparison: 0.62 >= 0.05
+  Difference: 0.57 >= 0
+  
+> FAILURE: 'test-rdm-gng.R:814:3' -------------------
+  Expected `lk$linkinv(0)` to equal `fastest_go/2`.
+  Differences:
+    `actual`: 0.50
+  `expected`: 0.14
+  
+  
+> FAILURE: 'test-rdm-gng.R:1096:3' ------------------
+  Expected `abs(as.numeric(logLik(fit)) - sum(hand))/abs(as.numeric(logLik(fit)))` < 1e-12.
+  Actual comparison: 28951.976591234063 >= 0.000000000001
+  Difference: 28951.976591234063 >= 0
+  
+> FAILURE: 'test-rdm-gng.R:1138:3' ------------------
+  Expected `abs(as.numeric(logLik(fit)) - sum(hand))/abs(as.numeric(logLik(fit)))` < 1e-12.
+  Actual comparison: Inf >= 0.000000000001
+  Difference: Inf >= 0
+  
+  [ FAIL 19 | WARN 1 | SKIP 0 | PASS 202 ]
+  
+
+
+
+test-sampling.R                  exit=0 [ FAIL 0 | WARN 0 | SKIP 1 | PASS 94 ]
+test-scale.R                     exit=0 [ FAIL 0 | WARN 0 | SKIP 3 | PASS 0 ]
+test-simulate-density.R          exit=0 [ FAIL 18 | WARN 0 | SKIP 0 | PASS 45 ]
+---- detail for test-simulate-density.R ----
+
+> ERROR: 'test-simulate-density.R:99:5' -------------
+> Error: wiener(): the non-decision time's bound is not set yet. It comes from the response, so frm() sets it when it assembles the model frame. mixture() does not finalize its components, so a component of a mixture needs max_ndt = given to wiener() up front.
+  Backtrace:
+      ▆
+   1. └─fam[["sim"]](...) at test-simulate-density.R:99:5
+   2.   ├─frmtmb.eam (local) f(ddm_ndt_natural(dpars, aterms, scale), aterms, n)
+   3.   │ └─frmtmb.eam:::ddm_sim_rt(dpars, aterms, n)
+   4.   └─frmtmb.eam:::ddm_ndt_natural(dpars, aterms, scale)
+   5.     └─frmtmb.eam (local) scale(aterms)
+> FAILURE: 'test-simulate-density.R:125:3' ----------
+  Expected `all(v > dp[["ndt"]])` to be TRUE.
+  Differences:
+  `actual`:   FALSE
+  `expected`: TRUE 
+  
+  
+> FAILURE: 'test-simulate-density.R:133:5' ----------
+  Expected wiener/frm_simulate[0] chi-square (df 7) < `stats::qchisq(1 - DDM_ALPHA, df)`.
+  Actual comparison: 456.5 >= 40.5
+  Difference: 416.0 >= 0
+  Backtrace:
+      ▆
+   1. └─frmtmb.eam (local) expect_ddm_gof(...) at test-simulate-density.R:133:5
+   2.   └─testthat::expect_lt(...) at test-simulate-density.R:78:3
+> FAILURE: 'test-simulate-density.R:133:5' ----------
+  Expected wiener/frm_simulate[1] chi-square (df 7) < `stats::qchisq(1 - DDM_ALPHA, df)`.
+  Actual comparison: 487.3 >= 40.5
+  Difference: 446.7 >= 0
+  Backtrace:
+      ▆
+   1. └─frmtmb.eam (local) expect_ddm_gof(...) at test-simulate-density.R:133:5
+   2.   └─testthat::expect_lt(...) at test-simulate-density.R:78:3
+> FAILURE: 'test-simulate-density.R:229:5' ----------
+  Expected lba[winner 1] above the non-decision time to be TRUE.
+  Differences:
+  `actual`:   FALSE
+  `expected`: TRUE 
+  
+  
+> FAILURE: 'test-simulate-density.R:229:5' ----------
+  Expected lba[winner 2] above the non-decision time to be TRUE.
+  Differences:
+  `actual`:   FALSE
+  `expected`: TRUE 
+  
+  
+> FAILURE: 'test-simulate-density.R:280:5' ----------
+  Expected rdm[winner 1] above the non-decision time to be TRUE.
+  Differences:
+  `actual`:   FALSE
+  `expected`: TRUE 
+  
+  
+> FAILURE: 'test-simulate-density.R:282:5' ----------
+  Expected rdm[winner 1] chi-square (df 7) < `stats::qchisq(1 - DDM_ALPHA, df)`.
+  Actual comparison: 1458.6 >= 40.5
+  Difference: 1418.1 >= 0
+  Backtrace:
+      ▆
+   1. └─frmtmb.eam (local) expect_ddm_gof(draws, cells, lab) at test-simulate-density.R:282:5
+   2.   └─testthat::expect_lt(...) at test-simulate-density.R:78:3
+> FAILURE: 'test-simulate-density.R:280:5' ----------
+  Expected rdm[winner 2] above the non-decision time to be TRUE.
+  Differences:
+  `actual`:   FALSE
+  `expected`: TRUE 
+  
+  
+> FAILURE: 'test-simulate-density.R:282:5' ----------
+  Expected rdm[winner 2] chi-square (df 7) < `stats::qchisq(1 - DDM_ALPHA, df)`.
+  Actual comparison: 1492.9 >= 40.5
+  Difference: 1452.4 >= 0
+  Backtrace:
+      ▆
+   1. └─frmtmb.eam (local) expect_ddm_gof(draws, cells, lab) at test-simulate-density.R:282:5
+   2.   └─testthat::expect_lt(...) at test-simulate-density.R:78:3
+> FAILURE: 'test-simulate-density.R:286:3' ----------
+  Expected `mass` to equal 1.
+  Differences:
+    `actual`: 0.78
+  `expected`: 1.00
+  
+  
+> FAILURE: 'test-simulate-density.R:308:3' ----------
+  Expected `all(v > dp[["ndt"]])` to be TRUE.
+  Differences:
+  `actual`:   FALSE
+  `expected`: TRUE 
+  
+  
+> FAILURE: 'test-simulate-density.R:315:5' ----------
+  Expected rdm/frm_simulate[1] chi-square (df 7) < `stats::qchisq(1 - DDM_ALPHA, df)`.
+  Actual comparison: 8765.4 >= 40.5
+  Difference: 8724.8 >= 0
+  Backtrace:
+      ▆
+   1. └─frmtmb.eam (local) expect_ddm_gof(...) at test-simulate-density.R:315:5
+   2.   └─testthat::expect_lt(...) at test-simulate-density.R:78:3
+> FAILURE: 'test-simulate-density.R:315:5' ----------
+  Expected rdm/frm_simulate[2] chi-square (df 7) < `stats::qchisq(1 - DDM_ALPHA, df)`.
+  Actual comparison: 4778.9 >= 40.5
+  Difference: 4738.4 >= 0
+  Backtrace:
+      ▆
+   1. └─frmtmb.eam (local) expect_ddm_gof(...) at test-simulate-density.R:315:5
+   2.   └─testthat::expect_lt(...) at test-simulate-density.R:78:3
+> FAILURE: 'test-simulate-density.R:333:3' ----------
+  Expected `all(draws > dp[["ndt"]] & draws <= td)` to be TRUE.
+  Differences:
+  `actual`:   FALSE
+  `expected`: TRUE 
+  
+  
+> FAILURE: 'test-simulate-density.R:334:3' ----------
+  Expected wiener_gng[go] chi-square (df 7) < `stats::qchisq(1 - DDM_ALPHA, df)`.
+  Actual comparison: 460.1 >= 40.5
+  Difference: 419.6 >= 0
+  Backtrace:
+      ▆
+   1. └─frmtmb.eam (local) expect_ddm_gof(draws, cells, "wiener_gng[go]") at test-simulate-density.R:334:3
+   2.   └─testthat::expect_lt(...) at test-simulate-density.R:78:3
+> FAILURE: 'test-simulate-density.R:346:3' ----------
+  Expected `cells[["mass"]] + nogo` to equal 1.
+  Differences:
+    `actual`: 0.904
+  `expected`: 1.000
+  
+  
+> FAILURE: 'test-simulate-density.R:371:3' ----------
+  Expected wiener_gng/frm_simulate[go] chi-square (df 7) < `stats::qchisq(1 - DDM_ALPHA, df)`.
+  Actual comparison: 1363.1 >= 40.5
+  Difference: 1322.6 >= 0
+  Backtrace:
+      ▆
+   1. └─frmtmb.eam (local) expect_ddm_gof(v[idx], cells, "wiener_gng/frm_simulate[go]") at test-simulate-density.R:371:3
+   2.   └─testthat::expect_lt(...) at test-simulate-density.R:78:3
+
+
+
+test-surface.R                   exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 50 ]
+test-units.R                     exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 32 ]
+test-variability.R               exit=0 [ FAIL 0 | WARN 0 | SKIP 0 | PASS 140 ]
+==== SUITE DONE ====

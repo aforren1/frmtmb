@@ -1,0 +1,14 @@
+difference box (2S+1)^4 / (P1*P2) = 2.98 expected solutions
+left keys: 40972801
+right keys: 40972801
+meet-in-the-middle hits: 5
+
+  difference vector: -140 -3145 -3027 2299
+  label A code points: 11860 8855 8973 14299
+  label B code points: 12000 12000 12000 12000
+  distinct labels: TRUE
+  ddm_label_code(A) = 93108023994132
+  ddm_label_code(B) = 93108023994132
+  COLLIDE: TRUE
+
+collision constructed: TRUE
