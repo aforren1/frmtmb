@@ -17,6 +17,8 @@ on:
     paths:
       - 'extensions/frmtmb.sample/**'
       - 'extensions/frmtmb.latent/**'
+      - 'extensions/frmtmb.ode/**'
+      - 'extensions/frmtmb.eam/**'
       - 'R/**'
       - 'DESCRIPTION'
       - 'NAMESPACE'
@@ -26,6 +28,8 @@ on:
     paths:
       - 'extensions/frmtmb.sample/**'
       - 'extensions/frmtmb.latent/**'
+      - 'extensions/frmtmb.ode/**'
+      - 'extensions/frmtmb.eam/**'
       - 'R/**'
       - 'DESCRIPTION'
       - 'NAMESPACE'
@@ -61,13 +65,30 @@ jobs:
       - name: Install the core package from this checkout
         run: R CMD INSTALL --no-multiarch --with-keep.source .
         shell: bash
-      # frmtmb.latent is a Suggests of this package and is in no
-      # repository, so it comes from the checkout like the core does.
-      # Without it the hmm and lca sampling tests skip instead of run,
-      # which would hide exactly the cross-package pair this job exists
-      # to exercise.
-      - name: Install frmtmb.latent from this checkout
-        run: R CMD INSTALL --no-multiarch --with-keep.source extensions/frmtmb.latent
+      # frmtmb.latent, frmtmb.ode and frmtmb.eam are Suggests of this
+      # package and are in no repository, so they come from the checkout
+      # like the core does. Two reasons, and the first one is fatal
+      # rather than merely degrading: `R CMD check` fails at "checking
+      # package dependencies" with an ERROR for a Suggests it cannot
+      # find, before it runs a single test, because
+      # `_R_CHECK_FORCE_SUGGESTS_` is at its default of true and nothing
+      # here sets it. The generic dependency step below cannot help,
+      # since it calls install.packages() and these three exist only in
+      # this repository.
+      #
+      # The second reason is the one the frmtmb.latent line was added
+      # for and it now covers all three. Without frmtmb.latent the hmm
+      # and lca sampling tests skip instead of run; without frmtmb.ode
+      # the compatibility pre-flight's end-to-end refusal skips; and
+      # without frmtmb.eam the block asserting that the eam and latent
+      # rows stay `conditional`, which is the extension-gaps plan's own
+      # check for item 1.2, skips. Each would hide exactly the
+      # cross-package pair this job exists to exercise.
+      - name: Install the sibling extensions from this checkout
+        run: |
+          R CMD INSTALL --no-multiarch --with-keep.source extensions/frmtmb.latent
+          R CMD INSTALL --no-multiarch --with-keep.source extensions/frmtmb.ode
+          R CMD INSTALL --no-multiarch --with-keep.source extensions/frmtmb.eam
         shell: bash
       # The extension's dependencies, read from its DESCRIPTION and
       # installed directly rather than through pak: pak resolves against

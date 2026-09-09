@@ -9,10 +9,18 @@ as_tmbstan(fit, ...)
 \arguments{
 \item{fit}{A \code{frmtmb_fit}.}
 
-\item{...}{Passed to \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}} (chains, iter, laplace, ...).}
+\item{...}{Passed to \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}} (chains, iter, laplace,
+\code{control}, ...).}
 }
 \value{
-A \code{stanfit} object.
+A \code{stanfit} object holding draws. \strong{It is never an empty
+one:} rstan answers some failures by declining to sample, printing
+its reason and returning the shell of a \code{stanfit}, and until 0.3.2
+this function passed that shell back, so a failed run looked like a
+successful one until an accessor came back empty. It now stops with
+a message naming the run, which is a change to this function's
+return contract. A model that cannot be sampled at all is a
+different refusal and is raised earlier; see Details.
 }
 \description{
 Hands the fitted RTMB object to \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}}; from Stan's
@@ -24,6 +32,26 @@ It hands over the fit's OWN objective and nothing else: no default
 priors, no non-centering, no named draws. \code{\link[=frm_sample]{frm_sample()}} is the
 route that applies brms's default priors and returns the draws
 surface; this one is the escape hatch to tmbstan's own arguments.
+\code{control} means here what it means in \code{\link[=frm_sample]{frm_sample()}} and in brms,
+the sampler's own list, because everything reaches
+\code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}} unchanged.
+
+Two things are NOT an escape hatch, and both are failures this
+function used to pass on in silence.
+
+The first is the compatibility registry's refusals. This function
+runs the same pre-flight \code{\link[=frm_sample]{frm_sample()}} does (see its "The pre-flight
+against the compatibility registry" section), because a model the
+sampler cannot run fails harder here, and the abort that produces the
+failure can leave rstan unusable for the rest of the R session.
+
+The second is an empty result. rstan answers some failures by
+declining to sample, printing its reason to the console and returning
+a \code{stanfit} with nothing in it; this function returned that object.
+It now stops instead, with the same message \code{\link[=frm_sample]{frm_sample()}} raises,
+naming this function. The two refusals are deliberately different
+sentences: the pre-flight one says the model cannot be sampled at
+all, and this one says the run in front of you produced nothing.
 }
 \examples{
 \donttest{
