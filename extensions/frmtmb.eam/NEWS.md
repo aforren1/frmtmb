@@ -1,3 +1,120 @@
+# frmtmb.eam (development version)
+
+The non-decision time can now be bounded PER GROUP, which fixes the
+defect 0.6.0 disclosed. A model that does not ask for it is unchanged.
+
+* **`ndt_group()` is a new addition term: the grouping the bound is
+  taken per.** Write `rt | dec(r) + ndt_group(subject) ~ ...` and each
+  row's non-decision time is bounded by its own subject's fastest
+  response instead of by the whole data set's. That is what a random
+  effect on `ndt` needs, and 0.6.0 disclosed what happens without it.
+  On the Phase 0 design of `dev/extension-gaps-plan.md`, 30 subjects by
+  400 trials, the same data and the same model:
+
+  | | 0.6.0, one global bound | with `ndt_group(s)` |
+  |---|---|---|
+  | convergence code | 1 | 0 |
+  | maximum absolute gradient | 1.25e11 | 9.9e-04 |
+  | positive definite Hessian | no | yes |
+  | standard errors that are `NaN` | 7 of 7 | 0 of 7 |
+  | log-likelihood | -7148.81 | -7003.01 |
+  | population `ndt`, truth 0.25 | 0.2261 | 0.2469 (se 0.0020) |
+  | condition effect, truth 0.9 | 0.891, no interval | 0.911 (0.858, 0.964) |
+  | whole `frm()` call | 269 s | 108 s |
+
+  145.8 log-likelihood units better at the same parameter count, and
+  faster. At the optimum all 30 subjects sit below their own fastest
+  response, the tightest by 27.3 ms.
+
+  **The argument that settles it is what happens as data accumulates.**
+  Same design, same truths, at 100, 200 and 400 trials per subject, the
+  per-subject root mean squared error of the fitted non-decision times:
+
+  | trials | with `ndt_group(s)` | one global bound |
+  |---|---|---|
+  | 100 | 20.91 ms | 27.23 ms |
+  | 200 | 14.08 ms | 20.51 ms |
+  | 400 | **7.67 ms** | **30.37 ms** |
+
+  The per-group bound converges on the truth and the global bound does
+  not, because more data lowers the global minimum and tightens the
+  ceiling on every subject at once.
+
+  Give the grouping as a factor, a character vector, a logical or
+  integer codes: it is keyed on the group's LABEL, so subsetting,
+  `droplevels()`, `relevel()` and a prediction grid you build yourself
+  all pair each row with the same bound the fit used. A group the fit
+  never saw is refused rather than given the global bound.
+
+* **Under `ndt_group()`, and only there, `ndt` is a FRACTION of the
+  row's own bound rather than a time.** A per-row bound cannot live in
+  a link, so with a grouping the `ndt` link is a plain logit and the
+  density multiplies. What that changes, for a model that uses the new
+  term: `predict(fit, dpar = "ndt", type = "response")` returns a
+  number in `(0, 1)`, a `prior(class = "ndt")` is a density on that
+  fraction, and a `bf(ndt = )` constant is a fraction. The new
+  `ndt_time()` returns the non-decision time in the units of the
+  response for either parameterization and is the call to reach for.
+  `st` follows `ndt`: with a grouping it is a fraction of twice the
+  row's bound.
+
+  **Without `ndt_group()` nothing moved.** The bound is one number and
+  stays in the link exactly as before, so `ndt` is still a time,
+  `predict(dpar = "ndt", type = "response")` still reports seconds, a
+  ported `prior(normal(0.30, 0.01), class = "ndt")` still means 300 ms,
+  and `bf(ndt = 0.2)` is still 0.2 s and is still refused when the
+  family has no bound to measure it against.
+
+* `ndt_time(fit, newdata = )` reports the non-decision time in the
+  units of the response, for `wiener()`, `lba()`, `rdm()` and
+  `wiener_gng()`. The bound each row was measured against is on the
+  fitted family, at `family(fit)$ndt_bound`, with the trial count per
+  group beside it. The bound it uses is a property of the data the model
+  was FITTED to, so a prediction on new rows uses the bound the fit
+  used.
+
+* `max_ndt` still means one absolute upper bound applied to every row,
+  and a `max_ndt` above the fastest response is still refused outside a
+  mixture. Combining it with `ndt_group()` is refused: the two set the
+  same bound to different things. An `ndt_group()` no family reads is
+  refused too, which is what a grouping inside a `mixture()` would be,
+  because a mixture never finalizes its components.
+
+* **On upgrading a model that does not use `ndt_group()`**: nothing
+  changes. The bound stays in the link, where 0.6.0 put it, so this is
+  not an equivalent parameterization but the same one. The objective
+  and its gradient are BITWISE identical to 0.6.0's, 0 ulp over 50
+  fixed-parameter probes taken at the starting values and off the
+  optimum, across `wiener()` plain and with `max_ndt`, with `st` and
+  with `sv`, `sz` and `st` together, `rdm()` plain and censored,
+  `lba()`, `wiener_gng()` plain and with `st`, and `gddm()`. Refitting
+  fourteen models and reading every reachable quantity off each gives
+  119 of 120 identical, the one difference being the wording of an
+  error message.
+
+* **`sd(ndt)` reads as recovered and the floors do most of the work.**
+  The table above is a real improvement and this is the caveat that
+  belongs beside it: because a grouped model estimates `ndt` as a
+  fraction of each group's own floor, the fitted per-subject times vary
+  with the floors even when the variance component is zero. At the
+  design above an estimator with NO random effect on `ndt` returns
+  `sd(ndt)` = 0.02748 against a truth of 0.02629, where the full model
+  returns 0.02543, and at 100 trials per subject the two are identical
+  in every digit. The variance component is not empty at 400 trials, it
+  buys 8.44 log-likelihood units and cuts the per-subject RMSE from
+  11.90 ms to 7.67 ms, but `sd(ndt)` is the wrong statistic to read
+  that off. Read the per-subject error and the log-likelihood instead.
+
+* `gddm()` does NOT take `ndt_group()`, and keeps the single scaled
+  logit, so its `ndt` is a time. The exclusion is on SCOPE: its solver
+  reads every parameter at the first row of each condition and `?gddm`
+  already requires every row sharing a condition to share every
+  parameter value, so a valid model whose non-decision time varies by
+  subject already carries a condition per subject and a per-condition
+  bound would reach the density exactly as `ndt` does. What it would
+  cost is a Fokker-Planck solve per subject. `frm_compat("gddm")` says
+  so.
+
 # frmtmb.eam 0.6.0
 
 A random effect on the non-decision time is broken, and with

@@ -1,0 +1,26 @@
+﻿== design B, ndt CONSTANT at 0.25, log bs spread 0.25 ==
+    15 subjects x 250 trials, 8 seeds
+Rscript.exe : Warning message:
+At line:1 char:344
++ ... tmb-wt-ndt; & "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" --vanilla  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning message::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Large maximum absolute gradient at the optimum (0.00304); the fit may not have converged. diagnose() names the 
+offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+  pg_conv        mean     0.0000  sd    0.0000  range     0.0000     0.0000
+  pg_bias_ms     mean   -23.5817  sd    6.0621  range   -32.9571   -14.6682
+  pg_sd_ms       mean     6.3967  sd    0.9376  range     5.3778     8.0359
+  pg_rmse_ms     mean    24.4386  sd    5.8472  range    16.2715    33.8591
+  pg_ll          mean -2060.0778  sd  326.8468  range -2553.3445 -1668.3359
+  gl_conv        mean     0.0000  sd    0.0000  range     0.0000     0.0000
+  gl_bias_ms     mean   -23.8656  sd    6.0472  range   -33.4739   -15.2707
+  gl_sd_ms       mean     0.0000  sd    0.0000  range     0.0000     0.0000
+  gl_rmse_ms     mean    23.8656  sd    6.0472  range    15.2707    33.4739
+  gl_ll          mean -2060.8541  sd  326.9127  range -2555.3164 -1670.6242
+  floor_sd_ms    mean     7.9614  sd    1.3304  range     6.5740    10.5909
+  floor_min_ms   mean   267.5895  sd    3.7279  range   262.6643   272.9662
+
+per-seed log-likelihood difference, per-group less global:
+[1]  2.141  0.784 -2.571  1.958  2.288  0.945 -1.308  1.972

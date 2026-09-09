@@ -17,8 +17,14 @@ wiener_gng(
 One positive number when every trial shares it. \code{NULL}, the
 default, takes it per row from \code{vreal()}.}
 
-\item{max_ndt}{Upper bound for the non-decision time. \code{NULL}, the
-default, takes it from the fastest go response.}
+\item{max_ndt}{Upper bound for the non-decision time, applied to
+every row. \code{NULL}, the default, takes the fastest GO response of
+each row's \code{ndt_group()}, or of the whole data set when the model
+has no \code{ndt_group()}. Without a grouping \code{ndt} is a time on a
+logit scaled onto that bound, as it has always been; with one it
+is a FRACTION of the row's own bound and \code{\link[=ndt_time]{ndt_time()}} reports the
+time. See \code{\link[=wiener]{wiener()}}. \code{max_ndt} cannot be combined with
+\code{ndt_group()}.}
 
 \item{variability}{Which across-trial variability parameters to
 estimate: any of \code{"sv"} (drift rate), \code{"sz"} (start point) and

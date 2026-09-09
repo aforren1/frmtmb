@@ -1,0 +1,31 @@
+﻿
+== A: ndt varies  ( 15 x 250 , 8 seeds ) ==
+converged: 8 of 8 
+  sd_true              mean    0.02745  sd    0.00421  range    0.01985    0.03271
+  sd_hat               mean    0.02534  sd    0.00541  range    0.01543    0.03226
+  sd_floor_only        mean    0.02526  sd    0.00553  range    0.01501    0.03226
+  sd_floor             mean    0.02981  sd    0.00638  range    0.01770    0.03750
+  cor_hat_true         mean    0.95651  sd    0.01946  range    0.92744    0.97978
+  cor_floor_true       mean    0.95135  sd    0.02997  range    0.88755    0.97839
+  bias_ms              mean    0.45813  sd    2.05450  range   -2.54325    4.26490
+  rmse_ms              mean    8.03418  sd    1.08756  range    6.19295    9.88060
+  rmse_floor_only_ms   mean    8.24900  sd    1.08546  range    6.45481    9.88061
+
+== B: ndt constant, bs varies  ( 15 x 250 , 8 seeds ) ==
+converged: 8 of 8 
+  sd_true              mean    0.00000  sd    0.00000  range    0.00000    0.00000
+  sd_hat               mean    0.00640  sd    0.00094  range    0.00538    0.00804
+  sd_floor_only        mean    0.00640  sd    0.00094  range    0.00538    0.00804
+  sd_floor             mean    0.00796  sd    0.00133  range    0.00657    0.01059
+  cor_hat_true         mean         NA  sd         NA  range         NA         NA
+  cor_floor_true       mean         NA  sd         NA  range         NA         NA
+  bias_ms              mean  -23.58170  sd    6.06215  range  -32.95707  -14.66821
+  rmse_ms              mean   24.43858  sd    5.84717  range   16.27150   33.85909
+  rmse_floor_only_ms   mean   24.43858  sd    5.84717  range   16.27150   33.85909
+Rscript.exe : There were 18 warnings (use warnings() to see them)
+At line:1 char:344
++ ... tmb-wt-ndt; & "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" --vanilla  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (There were 18 w...() to see them):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

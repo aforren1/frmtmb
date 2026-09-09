@@ -1,0 +1,22 @@
+﻿Rscript.exe : Warning message:
+At line:1 char:344
++ ... tmb-wt-ndt; & "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" --vanilla  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning message::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Large maximum absolute gradient at the optimum (0.00108); the fit may not have converged. diagnose() names the 
+offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+sv-per-group  logLik -6926.653092 | conv 0 | maxgrad 0.00108 
+sv-per-group  mu.condb 0.822318 ( 0.762119 , 0.882516 ) covers 0.9: FALSE 
+sv-per-group  mu0 0.449712 | sv 0.310539 | sd(ndt) 0.028212 truth 0.026292 | ndt bias ms 3.785 
+
+sv-global     logLik -7129.875891 | conv 0 | maxgrad 7.52e-05 
+sv-global     mu.condb 0.856549 ( 0.793555 , 0.919543 ) covers 0.9: TRUE 
+sv-global     mu0 0.480576 | sv 0.558949 | sd(ndt) 0.0077296 truth 0.026292 | ndt bias ms -22.67 
+
+plain-pg(sv)  logLik -6928.698794 | conv 0 | maxgrad 0.000241 
+plain-pg(sv)  mu.condb 0.798152 ( 0.744934 , 0.85137 ) covers 0.9: FALSE 
+Error in b[["sv.(Intercept)"]] : subscript out of bounds
+Calls: report -> cat
+Execution halted

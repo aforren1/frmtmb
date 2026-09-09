@@ -14,7 +14,11 @@ wiener(
 }
 \arguments{
 \item{max_ndt}{Upper bound for the non-decision time, in the units of
-the response. \code{NULL}, the default, takes it from the data.}
+the response, applied to every row. \code{NULL}, the default, takes the
+fastest response of each row's \code{ndt_group()}, or of the whole data
+set when the model has no \code{ndt_group()}. It cannot be combined with
+\code{ndt_group()}. Give it when a component of a \code{\link[frmtmb:mixture]{frmtmb::mixture()}}
+needs the bound up front.}
 
 \item{variability}{Which across-trial variability parameters to
 estimate: any of \code{"sv"} (drift rate), \code{"sz"} (start point) and
@@ -116,31 +120,120 @@ design can silence this one condition and keep the rest. \code{NEWS.md}
 carries the full tables.
 }
 
-\section{Non-decision time}{
+\section{Non-decision time, and what its coefficients mean}{
 
 The density is zero for a response time at or below \code{ndt}, so the
-likelihood has a hard edge at \code{ndt = min(rt)} and an ordinary log
-link would let the optimizer walk straight over it. The \code{ndt} link is
-a logit scaled onto \verb{(0, max_ndt)} instead, which makes the
-constraint structural rather than a thing the optimizer has to
-discover.
+likelihood has a hard edge at the fastest response and an ordinary
+log link would let the optimizer walk straight over it. The \code{ndt}
+link makes the constraint structural instead, and it does so in one
+of two ways.
 
-\code{max_ndt} defaults to the smallest response time in the data, found
-when the model frame is assembled. Give it explicitly to pin the
-bound, which is worth doing when you will \code{predict()} on new data
-whose minimum differs from the training minimum.
+\strong{Without \code{ndt_group()}, \code{ndt} is a TIME}, on a logit scaled onto
+\verb{(0, ub)} with \code{ub} the fastest response in the whole data set, or
+\code{max_ndt} when you give one. This is the parameterization the family
+has always had. \code{predict(dpar = "ndt", type = "response")} reports
+seconds, a \code{prior(class = "ndt")} is a density on those seconds, and
+a \code{bf(ndt = 0.2)} constant is 0.2 seconds.
+
+\strong{With \code{ndt_group()}, \code{ndt} is a FRACTION of the row's own bound},
+on a plain logit, and the density multiplies it by that bound. The
+bound is the fastest response of the row's group. Write
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{frm(bf(rt | dec(response) + ndt_group(subject) ~ coherence,
+       ndt ~ 1 + (1 | subject), bias = 0.5),
+    family = wiener(), data = dat)
+}\if{html}{\out{</div>}}
+
+and each subject's non-decision time is bounded by its own fastest
+response. That is what a random effect on \code{ndt} needs; the next
+section is what one global bound does to it. The price is that \code{ndt}
+is on a different scale: \code{predict(dpar = "ndt", type = "response")}
+reports the fraction, and \code{\link[=ndt_time]{ndt_time()}} reports the time for either
+parameterization. A \code{prior(class = "ndt")} and a \code{bf(ndt = )}
+constant are fractions under a grouping too.
+
+Give the grouping as a factor, a character vector, a logical or
+integer codes. It is keyed on the group's LABEL, so subsetting,
+\code{droplevels()}, \code{relevel()} and a prediction grid you build yourself
+all pair a row with the same bound the fit used. \code{max_ndt} and
+\code{ndt_group()} cannot be combined, because they set the same bound to
+different things, and an \code{ndt_group()} no family reads is refused
+rather than carried into the fit unused.
 
 A \code{max_ndt} above the smallest response time is refused, because for
 this family alone it admits parameter values at which some observed
 row has no likelihood. Inside a \code{\link[frmtmb:mixture]{frmtmb::mixture()}} that is exactly
 what the other component is for, so \code{allow_unreachable = TRUE} lifts
-the refusal; see Mixtures.
+the refusal; see Mixtures. A mixture never finalizes its components,
+so a component needs \code{max_ndt} given up front and cannot use
+\code{ndt_group()}.
+
+Whichever parameterization a model is in, the bound is fixed when
+the model frame is assembled and is a property of the FITTED data,
+so a prediction on new rows is scaled by the bound the fit used
+rather than by one re-derived from the new rows. A group the fit
+never saw has no bound and is refused.
 
 Past a linear predictor of about 37 the logit saturates in double
-precision and \code{ndt} rounds to \code{max_ndt} exactly. Nothing guards that,
-and nothing needs to: the density falls off a cliff as the decision
-time goes to zero, so the log likelihood is already unreachable long
-before the link runs out of digits.
+precision. Nothing guards that, and nothing needs to: the density
+falls off a cliff as the decision time goes to zero, so the log
+likelihood is already unreachable long before the link runs out of
+digits.
+}
+
+\section{Why one bound is the wrong constraint under a random effect}{
+
+A single bound is the GLOBAL fastest response, so a subject whose
+true \code{ndt} is above it cannot be represented at any value of the
+random effect. At 30 subjects by 400 trials with a between-subject
+spread of 26 ms on a mean of 250 ms, 20 of the 30 subjects are in
+that position and NONE is inconsistent with its own data. Without
+\code{variability} such a fit does not converge; with
+\code{variability = "sv"} it converges, reports nothing from \code{diagnose()},
+and returns a population \code{ndt} pinned at the bound and wrong by ten
+percent with a standard error of 7.2e-06 on it.
+
+What settles it is what happens as data accumulates. On that design,
+the per-subject root mean squared error of the fitted non-decision
+times:
+
+\tabular{rll}{
+trials \tab with ndt_group(s) \tab one global bound \cr
+100 \tab 20.91 ms \tab 27.23 ms \cr
+200 \tab 14.08 ms \tab 20.51 ms \cr
+400 \tab 7.67 ms \tab 30.37 ms
+}
+
+The per-group bound converges on the truth and the global bound does
+not, because more data lowers the global minimum and tightens the
+ceiling on every subject at once.
+}
+
+\section{What sd(ndt) does and does not tell you}{
+
+A grouped model estimates \code{ndt} as a fraction of each group's own
+floor, so the fitted per-subject times vary with those floors even
+when the variance component is exactly zero. On the design above an
+estimator with NO random effect on \code{ndt} returns a between-subject
+standard deviation of 0.02748 against a truth of 0.02629, where the
+full model returns 0.02543, and at 100 trials per subject the two
+are identical in every digit.
+
+The variance component is not empty: at 400 trials it buys 8.44
+log-likelihood units and cuts the per-subject error from 11.90 ms to
+7.67 ms. But a between-subject standard deviation is the wrong
+statistic to read that off. Compare the per-subject non-decision
+times from \code{\link[=ndt_time]{ndt_time()}} against what you believe, and compare
+log-likelihoods, rather than reading \code{VarCorr()}'s \code{ndt} row as
+evidence that the component was estimated.
+
+The bound's own quality is a function of the group's trial count.
+The group's fastest response overshoots its true non-decision time
+by about 47 ms at 400 trials and 78 ms at 50, and a group of one
+trial gets that trial's own response time as its bound. Nothing
+refuses a small group, because any threshold would fire on correct
+models; the trial counts are recorded on the fitted family, at
+\code{family(fit)$ndt_bound$sizes}.
 }
 
 \section{Across-trial variability}{
@@ -161,8 +254,10 @@ parameter that takes its own formula:
 width is below 1 and the start point stays inside the boundaries
 whenever \code{bias} is 0.5.}
 \item{\code{st}}{Width of a uniform non-decision time, centered on
-\code{ndt}, in the units of the response. Logit link scaled onto
-\verb{(0, 2 * max_ndt)}.}
+\code{ndt}, and on whichever scale \code{ndt} is on: a duration in the
+units of the response, on a logit scaled onto \verb{(0, 2 * bound)},
+or a FRACTION of twice the row's own bound under
+\code{ndt_group()}.}
 }
 
 The likelihood is the analytic Wiener density averaged over those

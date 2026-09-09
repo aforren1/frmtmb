@@ -102,14 +102,23 @@
 #' `(choice, rt)` unchanged. EMC2 divides `A`, `B` and `v` by its `s`
 #' and so fixes the same quantity in the same place.
 #'
-#' @section Non-decision time:
+#' @section Non-decision time, and what its coefficients mean:
 #' The density is zero at and below `ndt`, so the likelihood has a hard
-#' edge at `ndt = min(rt)`. As [wiener()] and [lba()] do, `ndt` gets a
-#' logit scaled onto `(0, max_ndt)` rather than a log link, which makes
-#' the constraint structural. `max_ndt` defaults to the smallest
-#' observed response time, taken when the model frame is assembled. Pass
-#' it explicitly to pin the bound, which matters if you will `predict()`
-#' on new data whose minimum differs.
+#' edge at the fastest response and a log link would let the optimizer
+#' walk over it.
+#'
+#' Without `ndt_group()` the bound is one number, the fastest response
+#' in the data or `max_ndt`, and it stays IN the link: `ndt` is a time,
+#' as it has always been. Write
+#' `rt | vint(choice) + ndt_group(subject) ~ ...` when `ndt` carries a
+#' subject deviation, and the bound becomes that subject's own fastest
+#' response. A per-row bound cannot live in a link, so under a grouping
+#' `ndt` is a FRACTION of the row's bound and the density multiplies:
+#' `predict(dpar = "ndt", type = "response")` then reports the fraction
+#' and [ndt_time()] reports the time either way. A single bound is the
+#' global fastest response, and a subject whose non-decision time is
+#' above it cannot be represented at any value of the random effect;
+#' [wiener()] has the measurement.
 #'
 #' @section The response, and why not `dec()`:
 #' A trial is a `(choice, time)` pair. The time is the response and the
@@ -196,7 +205,11 @@
 #' @param n Number of accumulators, so the number of response
 #'   alternatives. At least 2.
 #' @param max_ndt Upper bound for the non-decision time, in the units of
-#'   the response. `NULL`, the default, takes it from the data.
+#'   the response, applied to every row. `NULL`, the default, takes the
+#'   fastest response of each row's `ndt_group()`, or of the whole data
+#'   set when the model has no `ndt_group()`. It cannot be combined with
+#'   `ndt_group()`. Give it when a component of a [frmtmb::mixture()]
+#'   needs the bound up front.
 #'
 #' @return A `frmtmb_family`.
 #'
@@ -239,6 +252,9 @@ rdm <- function(n, max_ndt = NULL) {
   dpn <- c(vp, "A", "k", "ndt")
   lk <- rep(list("log"), length(dpn))
   names(lk) <- dpn
+  # a placeholder that ddm_ndt_install() replaces once the bound is
+  # known; see the head of R/ddm-shared.R.
+  lk[["ndt"]] <- "logit"
 
   fam <- frmtmb::custom_family(
     "rdm",
@@ -258,7 +274,7 @@ rdm <- function(n, max_ndt = NULL) {
       ddm_floor(-expm1(rdm_lccdf(q, dpars, vp)), 1e-300)
     },
     family_finalize = function(fam, y, aterms) {
-      ddm_ndt_finalize(fam, y, max_ndt, "rdm")
+      ddm_ndt_finalize(fam, y, aterms, max_ndt, "rdm")
     },
     required_aterms = "vint1",
     init_dpars = rdm_inits(vp),
@@ -284,6 +300,10 @@ rdm <- function(n, max_ndt = NULL) {
       rdm_sim_rt(dpars, aterms, n_, vp)
     },
     primary_dpars = vp)
+  # `ndt` is a fraction of a bound the data settles, so the family
+  # carries a bound from the moment it is built: the one `max_ndt`
+  # names, or a refusing placeholder. See ddm_ndt_preinstall().
+  fam <- ddm_ndt_preinstall(fam, max_ndt, "rdm")
 
   # Carried so that a reader of the fitted object can see how many
   # accumulators raced, and so that the post-fit helpers do not have to
@@ -426,6 +446,7 @@ rdm_check_response <- function(y, aterms, n) {
 rdm_inits <- function(vp) {
   out <- list(A = function(y, aterms) 0.3,
               k = function(y, aterms) 0.5,
+              # a placeholder; ddm_ndt_install() sets the real one
               ndt = function(y, aterms) 0.5 * min(y))
   for (j in seq_along(vp)) {
     out[[vp[j]]] <- local({
