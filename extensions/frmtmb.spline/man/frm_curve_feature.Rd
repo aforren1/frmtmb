@@ -10,6 +10,7 @@ frm_curve_feature(
   type = c("maximum", "minimum", "extremum", "crossing"),
   at = 0,
   newdata = NULL,
+  contrast = NULL,
   dpar = NULL,
   resp = NULL,
   re.form = NA,
@@ -32,6 +33,10 @@ passes \code{at}.}
 
 \item{newdata}{The grid the search scans, and the values every other
 covariate is held at. Required when \code{object} is a fit.}
+
+\item{contrast}{A second grid with the same number of rows, or \code{NULL}
+for an ordinary curve. With it the curve is \code{newdata} minus
+\code{contrast}, row by row.}
 
 \item{dpar}{Distributional parameter to read the curve off. \code{NULL},
 the default, is the location parameter \code{mu}.}
@@ -79,6 +84,26 @@ there, so the standard error of the PEAK HEIGHT is just the pointwise
 standard error of the curve at \verb{t*}. It is reported as \code{.value_se},
 and it is not inflated by the uncertainty in the peak's location.
 }
+\section{On a difference curve}{
+
+A \code{frmtmb_curve} from \code{frm_curve(contrast = )} carries its second
+grid here, so the feature located is a feature OF THE DIFFERENCE:
+\code{type = "crossing"} with \code{at = 0} is the question a difference curve
+is usually drawn to answer, the place where two curves meet. The
+delta method is the same one, on the same covariance: for a crossing
+the variance of the located position is the variance of the
+difference at that position over the squared slope of the difference.
+
+\code{var} moves in BOTH grids together, so \code{contrast} must hold the same
+values of it as \code{newdata} does, and a contrast that does not is
+refused rather than overwritten.
+
+A new \code{newdata} on a difference curve needs a new \code{contrast} with it,
+and a call that gives one grid and not the other is refused. Without
+the refusal the search would run on the FIRST curve alone, for an
+object whose every row is a difference.
+}
+
 \section{Past a \code{ps()} knot span}{
 
 This function REFUSES rather than warns. A \code{\link[frmtmb:ps]{frmtmb::ps()}} basis
@@ -99,6 +124,11 @@ The search holds every column but \code{var} at row 1's value, so a grid
 whose other columns change from row to row is checked a second time,
 against the whole grid. That is where a second \code{ps()} term can leave
 its span in a row the search itself never predicts at.
+
+A difference curve has two grids and the search pins row 1 of each,
+so the second check asks the question of each of them. It is not
+asked whether the two grids differ from ONE ANOTHER: they always do,
+because that is what a difference is.
 }
 
 \examples{
