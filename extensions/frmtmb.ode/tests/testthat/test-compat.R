@@ -19,6 +19,19 @@ test_that("frm_ode() is in the compatibility vocabulary", {
   expect_equal(ft$key[ft$name == "frm_ode()"], "frm_ode")
 })
 
+test_that("frm_lincmt() is in the vocabulary and carries no refusal", {
+  ft <- frmtmb::frm_compat_features()
+  expect_true("frm_lincmt()" %in% ft$name)
+  expect_equal(ft$kind[ft$name == "frm_lincmt()"], "special")
+  expect_equal(ft$key[ft$name == "frm_lincmt()"], "frm_lincmt")
+  # the absence of a rule is the claim: frm_ode()'s refusal is about
+  # RTMBode calling deSolve unguarded, and the closed form calls
+  # neither, so nothing here may quietly inherit that row
+  rl <- frmtmb::frm_compat_rules()
+  expect_equal(nrow(rl[rl$feature_a == "frm_lincmt()" |
+                         rl$feature_b == "frm_lincmt()", ]), 0L)
+})
+
 test_that("sampling an frm_ode() model is registered as refused", {
   rl <- frmtmb::frm_compat_rules()
   row <- rl[rl$feature_a == "frm_ode()" & rl$feature_b == "frm_sample", ]

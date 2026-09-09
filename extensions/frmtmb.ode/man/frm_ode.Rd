@@ -345,14 +345,32 @@ has to be fixed before the tape is built. So \code{n_ss} cycles is an
 \strong{approximation}, and its error is geometric - for linear kinetics
 the shortfall after \code{n} cycles is the accumulation factor to the
 power \code{n}, which is \code{exp(-n * k * ii)} for a one-compartment system.
-At the default \code{n_ss = 20} that is \code{1e-21} for a drug eliminated over
-its dosing interval and only a percent or two for one whose
-half-life is many intervals long. Off the tape - a direct call,
-\code{\link[=predict]{predict()}}, \code{\link[=simulate]{simulate()}}, a body holding no estimated parameter -
-the last two cycles are compared and \code{frm_ode()} warns when they
-still differ by more than \code{ss_tol}. During a fit that check cannot
-run, so read the warning from a numeric call and raise \code{n_ss} if it
-fires.
+The rate \code{k} in that expression is the SLOWEST disposition
+eigenvalue, \code{lambda_z}, so the shortfall is
+\code{exp(-n_ss * lambda_z * ii)} and it is set by the terminal half-life
+measured in dosing intervals. \strong{Choose \code{n_ss} so that
+\code{n_ss * lambda_z * ii} is at least 20}, which puts the shortfall at
+2e-09. The default of 20 does that only when the terminal half-life
+is under about three dosing intervals. Measured, on a
+two-compartment oral model at \code{n_ss = 20}: a 23 hour half-life dosed
+every 8 hours is 4e-03 short, a 107 hour half-life dosed daily is
+1.2e-02 short, and a 265 hour half-life dosed daily is 9e-02 short.
+A half-life of ten dosing intervals is 25 percent short. It moves
+estimates: on one 30-subject dataset simulated from the exact steady
+state, fitting at \code{n_ss = 20} rather than at the limit moved \code{k21}
+by a factor of 3.2 and \code{ke} by 11 percent.
+
+Off the tape - a direct call, \code{\link[=predict]{predict()}}, \code{\link[=simulate]{simulate()}}, a body
+holding no estimated parameter - the last two cycles are compared
+and \code{frm_ode()} warns when they still differ by more than \code{ss_tol}.
+During a fit that check cannot run at all. \strong{Do not choose \code{n_ss}
+from that warning}: it reports the CYCLE-TO-CYCLE movement, which
+understates the distance to the limit by about \code{1 / (lambda_z * ii)}
+and so understates it most exactly where the error is largest
+(measured at 3.1x, 6.6x and 10.8x as the half-life grows). Compare
+\code{n_ss} against \code{2 * n_ss} numerically instead, or, for a linear
+compartment model, use \code{frm_lincmt()}, whose default sums the series
+and has nothing to truncate.
 
 The cost is \code{n_ss} extra solves per group (two per cycle for an
 infusion), so a steady-state population fit is several times a plain

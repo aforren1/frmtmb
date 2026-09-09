@@ -1,0 +1,47 @@
+frmtmb.ode 0.2.0 from C:/Users/adf44/source/r/lincmt-lib 
+frmtmb 0.55.1 
+started 2026-09-09 11:24:22 
+
+===== AFTER: frm_lincmt(), n_ss = 20 =====
+wall clock (s): 118.51 
+logLik: -434.720406373 
+ka: 0.9841612  true 1 
+ke: 0.1482791  true 0.15  CI 0.1397548 0.1573233 
+V : 19.62513  true 20 
+sd_lka: 0.2692418  sd_lke: 0.2612086 
+nlminb code: 0  max |grad|: 0.0004653253 
+finished 2026-09-09 11:26:21 
+
+===== AFTER: frm_lincmt(), n_ss = Inf =====
+wall clock (s): 55 
+logLik: -434.720406373 
+ka: 0.9841612  true 1 
+ke: 0.1482791  true 0.15  CI 0.1397548 0.1573233 
+V : 19.62513  true 20 
+sd_lka: 0.2692418  sd_lke: 0.2612086 
+nlminb code: 0  max |grad|: 0.0004652855 
+finished 2026-09-09 11:27:16 
+
+===== BEFORE: frm_ode() =====
+wall clock (s): 5374.8 
+logLik: -434.720406555 
+ka: 0.9841609  true 1 
+ke: 0.1482791  true 0.15  CI 0.1397548 0.1573234 
+V : 19.62511  true 20 
+sd_lka: 0.269241  sd_lke: 0.2612094 
+nlminb code: 1  max |grad|: 0.006105974 
+finished 2026-09-09 12:57:02 
+Warning messages:
+1: Optimizer did not report convergence: false convergence (8). This is a nonlinear model; unless `start` or a located prior placed them, the fit began at zero, which is rarely in the right region (see par_template()) 
+2: Large maximum absolute gradient at the optimum (0.00611); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+
+===== summary =====
+before (frm_ode)       5374.8 s
+after  (n_ss = 20)     118.51 s
+after  (n_ss = Inf)    55 s
+speedup n_ss = 20      45.353 x
+speedup n_ss = Inf     97.724 x
+logLik difference      -1.82419e-07 
+max |par difference|   3.154367e-06 
+
+total session 5560.89 s
