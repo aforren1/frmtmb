@@ -291,7 +291,16 @@ ln_compat_rules <- function() {
              "simulate(), posterior_predict() and frm_simulate() all ",
              "reach it. It is coherent because the payoff schedule of ",
              "every arm is fixed in advance, which is what the reward() ",
-             "and payoff() terms carry."))
+             "and payoff() terms carry. A schedule that does NOT carry ",
+             "it is refused by name, on all eight families: where every ",
+             "column of the term holds the same value on every trial, ",
+             "the data records the received outcome alone, the fit is ",
+             "still exactly right and the draw is not, because the ",
+             "option a simulated subject picks has no payoff to read. ",
+             "Measured on the two-armed design, a duplicated schedule ",
+             "draws at exact chance where the real one reproduces the ",
+             "data. frm_task_simulate() is checked the same way, which ",
+             "is what covers rlddm() and ts_par7()."))
   }
   r("ts_par7", "simulate", "refused",
     paste0("REFUSED, and the only capability that differs between this ",
@@ -305,14 +314,29 @@ ln_compat_rules <- function() {
   r("bandit2arm_delta", "reward()", "works",
     paste0("Carries what each arm would have paid on this trial, in arm ",
            "order. The likelihood reads only the chosen arm's entry, so ",
-           "data recording the received outcome alone can pass it twice; ",
-           "the second column is what makes the simulator coherent."))
+           "data recording the received outcome alone can pass it twice ",
+           "and the fit is exactly right; measured, the two spellings ",
+           "give one log likelihood to printed precision. The second ",
+           "column is what makes the SIMULATOR coherent, and passing it ",
+           "twice is refused there rather than drawn from. The ",
+           "arity-one spelling reward(pay) is not available: an ",
+           "addition term's arity is fixed at registration and frmtmb's ",
+           "parser refuses any other argument count, so one column has ",
+           "to be written twice."))
   r("bandit2arm_dual", "reward()", "works", "As bandit2arm_delta().")
   r("prl_fictitious", "reward()", "works",
-    paste0("Both columns are READ here rather than only carried: ",
-           "counterfactual updating moves the unchosen option's value ",
-           "too, so the second column enters the likelihood and not just ",
-           "the simulator."))
+    paste0("As bandit2arm_delta(), and this row said the opposite from ",
+           "0.1.0 until it was measured. It claimed both columns were ",
+           "READ here because counterfactual updating moves the ",
+           "unchosen option's value. The update forms the outcome as ",
+           "c1 * reward1 + c2 * reward2 with the CHOSEN indicators and ",
+           "then FLIPS ITS SIGN, so what moves the unchosen value is ",
+           "the negative of the realized outcome and the second column ",
+           "never enters. Measured: replacing the unchosen entries with ",
+           "N(100, 50) noise leaves the log likelihood bitwise ",
+           "unchanged. ?prl_fictitious said this correctly all along. ",
+           "So the second column is carried for the SIMULATOR here too, ",
+           "and a duplicated schedule is refused there."))
   r("bandit4arm2_kalman_filter", "payoff()", "works",
     "Four columns, one per arm, for the same reason reward() has two.")
   r("igt_pvl_delta", "payoff()", "works",
@@ -321,7 +345,9 @@ ln_compat_rules <- function() {
     paste0("Four columns, one per stage-two option, indexed as ",
            "2 * (state - 1) + choice. The likelihood reads the realized ",
            "one; frm_task_simulate() reads whichever the drawn path ",
-           "reaches."))
+           "reaches, so four identical columns are refused there. ",
+           "stage2() is NOT checked that way: its two columns are the ",
+           "observed state and choice rather than a payoff schedule."))
   r("ts_par7", "stage2()", "works",
     paste0("Carries the observed stage-two state and choice, which are ",
            "data the likelihood conditions on. The transition ",
@@ -340,7 +366,10 @@ ln_compat_rules <- function() {
   r("rlddm", "reward()", "works",
     paste0("As bandit2arm_delta(). The learning rule is that family's ",
            "exactly; what differs is that the value difference drives a ",
-           "drift rate rather than a softmax."))
+           "drift rate rather than a softmax. simulate() refuses on ",
+           "this family for its own reason, but frm_task_simulate() is ",
+           "the route the refusal names, so the duplicated-schedule ",
+           "check runs there."))
   r("rlddm", "simulate", "refused",
     paste0("REFUSED, for the reason ts_par7() refuses it. One trial's ",
            "draw is two numbers, the boundary reached and the time it ",

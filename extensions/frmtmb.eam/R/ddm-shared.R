@@ -40,6 +40,82 @@ ddm_expdiff <- function(la, lb) {
 #' @noRd
 ddm_lphi <- function(x) -0.5 * log(2 * pi) - 0.5 * x * x
 
+#' The fastest response, in seconds, above which the data is read as a
+#' unit mistake rather than as a slow task.
+#'
+#' Not a plausible single response time. It is a ceiling on the fastest
+#' response IN THE WHOLE DATA SET, which is a much rarer thing: one slow
+#' trial does not reach it and cannot.
+#'
+#' Where 20 comes from, measured on simulated wiener data
+#' (`dev/smallitems-findings.md` carries the tables). Over 192 cells at
+#' the parameters a two-choice task actually produces, boundary 2 to 5,
+#' non-decision time 0.5 to 5 seconds, drift 0.3 to 2, at 12 to 80
+#' trials, the fastest response ran from 0.599 to 6.605 seconds and
+#' NONE false alarmed; and over 81 cells at the standard published
+#' range, all 81 are caught when the same data is read as milliseconds.
+#' In the other direction the miss rate is zero at every threshold up to
+#' 100 and rises at 200, so 20 sits a factor of five inside the band
+#' where nothing is missed.
+#'
+#' It CAN fire on a correct model, and the rate is worth knowing rather
+#' than assuming. The exposed design is a slow one with a short
+#' session. At 20 trials the rate is 0.045 where the fastest response
+#' averages 13.4 seconds, 0.155 at 15.7, 0.690 at 22.7 and 1.000 at
+#' 41.7; sixty trials of the same tasks give 0.000, 0.000, 0.285 and
+#' 0.995, because the fastest of more draws settles toward the floor.
+#'
+#' Quoted against the FASTEST response and not the median, because the
+#' median does not determine the rate: at a median near 50 seconds the
+#' rate runs from 0.185 to 0.935 depending on whether the task is slow
+#' from a far boundary or from weak evidence, and the fastest response
+#' tracks it in every one of those cells. The cost falls on
+#' deliberation, insight and matrix-reasoning designs, whose
+#' non-decision time is 1 to 2 seconds rather than 20.
+#'
+#' @noRd
+ddm_seconds_ceiling <- 20
+
+#' Warn when the response is not on the scale the defaults assume.
+#'
+#' Every default in this package reads the response as SECONDS. The
+#' starting values, `gddm_control(dt = 0.01)` and the window `t_max`
+#' takes from the data are all absolute times, and nothing in any of the
+#' five likelihoods refuses milliseconds: the fit converges and reports
+#' a boundary separation three orders of magnitude out. That is the
+#' silent wrong answer this package ranks first, so it is worth a
+#' warning even at the cost of an occasional false alarm.
+#'
+#' A warning and not a refusal, because a design with no trial under 20
+#' seconds is possible, if rare. It carries a class so that such a
+#' design can silence this one condition without also hiding the
+#' convergence warnings beside it.
+#'
+#' Called from each family's `valid_y` rather than once from here, so
+#' that the sentence a user sees names the family they wrote.
+#'
+#' @noRd
+ddm_check_units <- function(y, what) {
+  if (!length(y)) return(invisible(NULL))
+  lo <- min(y)
+  if (!is.finite(lo) || lo <= ddm_seconds_ceiling) return(invisible(NULL))
+  warning(warningCondition(paste0(
+    what, ": the fastest response in these data is ",
+    format(lo, digits = 4), ", and every default in this package reads ",
+    "the response as a time in SECONDS. Milliseconds is the usual ",
+    "cause: a millisecond clock puts a typical response near 500, and a ",
+    "task in which no trial at all finishes within ",
+    ddm_seconds_ceiling, " seconds is rare. Divide the response by 1000 ",
+    "if that is what happened, which puts these times between ",
+    format(lo / 1000, digits = 4), " and ",
+    format(max(y) / 1000, digits = 4), " seconds. If the task really is ",
+    "this slow then the fit is correct and this warning is its only ",
+    "cost; it carries the class frmtmb_eam_units_warning so that it can ",
+    "be silenced on its own"),
+    class = "frmtmb_eam_units_warning"))
+  invisible(NULL)
+}
+
 #' Fit a bounded non-decision-time link to the observed response.
 #'
 #' The density of every family here is zero at and below `ndt`, so the

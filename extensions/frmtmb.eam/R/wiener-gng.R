@@ -730,6 +730,11 @@ gng_check_response <- function(y, aterms, deadline) {
          "response time distribution. A go/no-go model needs go ",
          "trials.", call. = FALSE)
   }
+  # The GO responses alone, for the reason gng_finalize() reads them: a
+  # no-go row's entry is a placeholder rather than a response time, and
+  # a user who wrote a small number there would hide the whole data
+  # set's scale behind it.
+  ddm_check_units(gng_go_rt(y, aterms), "wiener_gng")
   td <- if (is.null(deadline)) aterms[["vreal1"]] else deadline
   if (any(!is.finite(td)) || any(td <= 0)) {
     stop("wiener_gng: the deadline must be positive and finite on ",

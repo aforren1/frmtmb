@@ -228,6 +228,10 @@ frm_task_simulate <- function(family, data, pars, nsim = 1L,
          "so on, and this route reads them by those names", call. = FALSE)
   }
   for (k in names(dm)) cd[[k]] <- as.numeric(data[[dm[[k]]]])
+  # The same check the fitted route makes, on the same fact, because
+  # this route reaches the same recursion with a design a user built by
+  # hand and can duplicate a column in just as easily.
+  ln_check_counterfactual(nm, cd, lrn[["counterfactual"]])
   # A family whose choice rule is a DENSITY has a response that is not
   # an option code: rlddm()'s is a response time, which is continuous
   # and belongs in a column called rt rather than choice. Both facts

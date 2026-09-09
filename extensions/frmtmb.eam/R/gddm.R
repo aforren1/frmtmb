@@ -1091,6 +1091,7 @@ gd_check_response <- function(y, aterms, comp) {
     stop("gddm: the response must be a strictly positive, finite ",
          "response time.", call. = FALSE)
   }
+  ddm_check_units(y, "gddm")
   ix <- gd_indicator(aterms)
   up <- ix[["up"]]
   if (any(!is.finite(up))) {
