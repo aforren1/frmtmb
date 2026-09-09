@@ -23,6 +23,25 @@
 # wherever core has an independent route to that number. What the check
 # now verifies is that this package reads the seam correctly, rather
 # than that a reconstruction reproduced it.
+#
+# A DIFFERENCE CURVE is the same object twice. `contrast = ` builds the
+# seam at a second grid, subtracts the two designs and reports
+# `(A1 - A2) V (A1 - A2)'`. What the seam does NOT hand over is a second
+# route to that number: `predict(se.fit = TRUE)` returns a marginal
+# standard error per row and never the covariance BETWEEN the two grids,
+# which is the whole content of a difference. So the check is run on
+# each half and `cov_rel_error` is the worse of the two, and what it
+# licenses is that both designs were read correctly, not that the
+# difference's own standard error was verified against anything.
+#
+# `extra_var` meets the same limit from the other side. An exact `gp()`
+# at an unseen position contributes a kriging residual per ROW, and the
+# seam returns no covariance between the two grids, so `var(g1 - g2)`
+# has no public route. It does not need one when the two grids load the
+# same residual, which they do whenever their non-fixed design columns
+# agree, and then the term is exactly zero rather than unknown. That is
+# the ordinary case and it is now computed; the refusal is what is left.
+# `sp_same_latent()` carries the test and the measurements behind it.
 
 #' Run `expr`, holding back any `ps()` knot-span warning frmtmb raises
 #' inside it.
@@ -91,6 +110,35 @@ sp_span_on_grid <- function(fit, nd, dpar, resp, re.form) {
   sp_catch_span(sp_predict_eta(fit, nd, dpar, resp, re.form))$span
 }
 
+#' The same question over BOTH grids of a difference curve, with each
+#' message saying which grid raised it.
+#'
+#' A difference is built from two frames, so every span statement this
+#' package makes has two grids to make it about, and a reader who is
+#' told "a value is outside the frozen knot span" without being told
+#' which frame holds it has to guess. `contrast = NULL` is the ordinary
+#' one-grid case and costs exactly what it did.
+#'
+#' The tag is pasted here rather than inside the `stop()` or `warning()`
+#' that carries it, so the two doors keep one message template each.
+#'
+#' @noRd
+sp_span_both <- function(span_a, span_b) {
+  unique(c(span_a,
+           if (length(span_b)) paste0("In `contrast`: ", span_b)))
+}
+
+#' The grid span messages over whichever grids the search actually
+#' holds: one for a curve, both for a difference.
+#'
+#' @noRd
+sp_grid_span <- function(sp, nd, ct) {
+  sp_span_both(
+    sp_span_on_grid(sp$fit, nd, sp$dpar, sp$resp, sp$re.form),
+    if (is.null(ct)) character(0) else
+      sp_span_on_grid(sp$fit, ct, sp$dpar, sp$resp, sp$re.form))
+}
+
 #' Does the grid hold every column but `var` at row 1's value?
 #'
 #' [frm_curve_feature()] evaluates nothing but row 1 with `var` moved:
@@ -125,6 +173,138 @@ sp_predict_eta <- function(fit, newdata, dpar, resp, re.form) {
                             dpar = dpar, resp = resp, re.form = re.form))
 }
 
+#' The seam read at ONE grid: the design, its covariance and the
+#' standard error the check compares.
+#'
+#' Split out because a difference curve needs it twice and the halves
+#' must come off the same seam at the same coefficient rows before the
+#' subtraction means anything.
+#'
+#' The standard error is `diag(A V A')` and NOT the `rowSums((A %*% V)
+#' * A)` core writes it with, even though a difference discards both
+#' halves' full covariances and keeps only its own.
+#'
+#' What that buys is one ulp, and it is worth being exact about how
+#' little that is. Both spellings read the same `A`, `V` and
+#' `extra_var` out of the same `frm_lp_basis()` call, so their only
+#' independence is summation order. A real misreading of the seam is
+#' caught either way: with `V`'s first two rows and columns swapped both
+#' spellings refuse at 0.101 relative. What core's spelling costs is the
+#' ability of `tol` to mean anything at zero. Measured: it reports 0
+#' exactly, and `test-curve.R`'s "a tolerance no covariance could meet
+#' refuses rather than returning" stops refusing (PASS=61 FAIL=1). That
+#' is the whole reason for the triple product, and the extra work is
+#' paid on a call whose cost is dominated by one joint-precision solve.
+#'
+#' @noRd
+sp_one_basis <- function(fit, nd, dpar, resp, re.form) {
+  lbc <- sp_catch_span(frmtmb::frm_lp_basis(fit, newdata = nd, dpar = dpar,
+                                            resp = resp, re.form = re.form))
+  lb <- lbc$value
+  C <- as.matrix(lb$A)
+  Sigma <- unname(C %*% lb$V %*% t(C))
+  list(lb = lb, C = C, Sigma = Sigma,
+       se = unname(sqrt(pmax(diag(Sigma) + lb$extra_var, 0))),
+       span = lbc$span)
+}
+
+#' Do the two grids of a difference load the SAME latent draw?
+#'
+#' Variance that is not coefficient uncertainty, which for a curve is an
+#' exact `gp()` kriging residual, arrives from the seam as one
+#' number per ROW with no covariance between the two grids, so a
+#' difference cannot form `var(g1 - g2)` in general. It does not have to
+#' when `g1` and `g2` are the SAME random variable: the term is then
+#' exactly zero and the difference is `(A1 - A2) V (A1 - A2)'` with
+#' nothing left over.
+#'
+#' The test is on the DESIGN and not on the numbers. A latent block
+#' reaches a prediction only through its own columns of `A`, so two
+#' grids whose non-fixed columns are bit-identical load one functional
+#' of one field, and whatever that functional leaves unexplained is one
+#' residual rather than two. Equality of `extra_var` alone would NOT do:
+#' two different levels of one grouping block have identical marginal
+#' variances by construction and are different draws. Measured on
+#' `y ~ fac + s(x, k = 6) + (1 | g)` at `re.form = NULL`, contrasting
+#' level 1 against level 2: `extra_var` identical, non-fixed design
+#' columns not identical, so this returns `FALSE` where the numbers
+#' agree.
+#'
+#' Sensitivity, on `y ~ fac + gp(x)` at n = 90 with the grid off the
+#' observed positions: a contrast across `fac` at one `x` gives `TRUE`,
+#' and moving the second grid's `x` by 1e-10, or mirroring it about the
+#' range midpoint, gives `FALSE`.
+#'
+#' It is STRICTER than the mathematics needs, and the refusal says so.
+#' Only the block that carries `extra_var` has to match for the residual
+#' to cancel; this asks it of every non-fixed column. So a contrast
+#' across `fac` on `y ~ fac + s(x, by = fac) + gp(x)` is refused even
+#' though the `gp()` columns are bit-identical, because the by-factor
+#' smooth's own columns differ, which is what a by-factor smooth is for.
+#' Narrowing to the right block needs the block identity, and the only
+#' public route to it is the `b.<block>.<level>` shape of
+#' `frm_joint_cov()$labels`, which is name parsing this package does not
+#' do. It fails closed, so the cost is a refused answer and not a wrong
+#' one, and the core seam that returns a matrix-valued `extra_cov`
+#' removes the need for the predicate entirely.
+#'
+#' What it assumes: for an exact `gp()` the kriging weights fix the
+#' position uniquely unless every observed position is equidistant from
+#' the two grids' positions. In one dimension that needs every
+#' observation at one point, which makes the kernel matrix singular; in
+#' two it needs them collinear with the two positions mirrored across
+#' that line. That design was built: `gp(u, v)` with 60 observations all
+#' at `v = 0` and grids at `v = +0.75` and `v = -0.75`. This returns
+#' TRUE there and the omitted standard error is 0.888, so the escape is
+#' real and large. It is blocked by a SECOND condition rather than by
+#' this one: a `gp()` carries one length scale per dimension, so
+#' observations on a line do not identify the scale across it, the fit
+#' comes back singular and `frm_curve()` refuses at the covariance
+#' check. Moving three observations off the line makes the fit healthy
+#' and makes this predicate return `FALSE`. A fit that pinned the second
+#' length scale with a prior or a bound would be non-singular and would
+#' take the escape, so this is a second line of defence and not an
+#' airtight one.
+#'
+#' Everything else fails closed: a component vector that does not line
+#' up with the design, or no non-fixed column at all, returns `FALSE`
+#' and the call refuses.
+#'
+#' @noRd
+sp_same_latent <- function(fit, a, b) {
+  nm <- frmtmb::frm_joint_cov(fit)$names[a$lb$coef_pos]
+  if (length(nm) != ncol(a$C) || anyNA(nm)) return(FALSE)
+  keep <- !(nm %in% c("beta", "betad"))
+  if (!any(keep)) return(FALSE)
+  identical(a$C[, keep, drop = FALSE], b$C[, keep, drop = FALSE]) &&
+    identical(a$lb$extra_var, b$lb$extra_var)
+}
+
+#' `sqrt(diag(A V A') + extra_var)` against `predict(se.fit = TRUE)`, or
+#' a refusal.
+#'
+#' One template, called once for an ordinary curve and twice for a
+#' difference; `side` names the grid at run time so that the two calls
+#' still resolve to one line of source.
+#'
+#' @noRd
+sp_cov_check <- function(fit, nd, se, dpar, resp, re.form, tol, side) {
+  ref <- stats::predict(fit, newdata = nd, type = "link", dpar = dpar,
+                        resp = resp, re.form = re.form, se.fit = TRUE)
+  se_ref <- as.numeric(ref$se.fit)
+  rel <- max(abs(se / pmax(se_ref, .Machine$double.eps) - 1))
+  if (!is.finite(rel) || rel > tol) {
+    stop("frm_curve(): the assembled covariance of ", side,
+         " disagrees with predict(se.fit = TRUE) by ",
+         format(rel, digits = 3),
+         " relative, which is above the tolerance ", format(tol),
+         ". Both come from frm_lp_basis(); a disagreement means this ",
+         "package is reading the seam wrongly, and a fit where the two ",
+         "disagree is one it must not report a band for", call. = FALSE)
+  }
+  rel
+}
+
 #' Everything the three exported functions share: the grid, the design,
 #' the covariance, and the check that the covariance is the right one.
 #'
@@ -136,8 +316,25 @@ sp_predict_eta <- function(fit, newdata, dpar, resp, re.form) {
 #' nothing to compare against: the check is skipped and `rel` is `NA`,
 #' which `print()` reports rather than hides.
 #'
+#' With `contrast`, the reported functional is `(A1 - A2) c` and its
+#' covariance is `(A1 - A2) V (A1 - A2)'`. Three things the one-grid
+#' path takes for granted have to be established first, and they are the
+#' whole difference between "the covariance is already assembled" and a
+#' difference curve:
+#'
+#' 1. The two designs must sit at the SAME rows of `V`. `coef_pos` says
+#'    where each one sits, so the subtraction is checked rather than
+#'    assumed.
+#' 2. `extra_var` is a per-row variance with no covariance between the
+#'    grids. Where the two grids load the SAME latent draw the cross
+#'    term is exactly zero and there is nothing to fetch, which
+#'    `sp_same_latent()` decides; otherwise the difference is refused.
+#' 3. The check compares each half against `predict(se.fit = TRUE)`.
+#'    There is no second route to the difference's own standard error.
+#'
 #' @noRd
-sp_curve_parts <- function(fit, newdata, dpar, resp, re.form, tol) {
+sp_curve_parts <- function(fit, newdata, dpar, resp, re.form, tol,
+                           contrast = NULL) {
   if (!inherits(fit, "frmtmb_fit")) {
     stop("frm_curve(): `object` must be a frmtmb fit, the model a curve ",
          "is read off, not an object of class ", class(fit)[1L],
@@ -147,39 +344,66 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re.form, tol) {
     stop("`newdata` must be a data frame with at least one row: it is ",
          "the grid the curve is evaluated on", call. = FALSE)
   }
-  lbc <- sp_catch_span(frmtmb::frm_lp_basis(fit, newdata = newdata,
-                                            dpar = dpar, resp = resp,
-                                            re.form = re.form))
-  lb <- lbc$value
-  C <- as.matrix(lb$A)
-  Sigma <- unname(C %*% lb$V %*% t(C))
-  se <- unname(sqrt(pmax(diag(Sigma) + lb$extra_var, 0)))
-
-  # A nonlinear body is the case core refuses se.fit for, so there is no
-  # second number to check against. Everything else is checked.
-  if (sp_is_nl(fit, dpar, resp)) {
-    return(list(eta = lb$eta, C = C, V = lb$V, Sigma = Sigma, se = se,
-                se_ref = rep(NA_real_, length(se)), rel = NA_real_,
-                n_predict = 0L, newdata = newdata, dpar = dpar,
-                resp = resp, re.form = re.form, fit = fit,
-                span = lbc$span))
+  a <- sp_one_basis(fit, newdata, dpar, resp, re.form)
+  nl <- sp_is_nl(fit, dpar, resp)
+  out <- list(eta = a$lb$eta, C = a$C, V = a$lb$V, Sigma = a$Sigma,
+              se = a$se, rel = NA_real_, n_predict = 0L,
+              newdata = newdata, contrast = contrast, dpar = dpar,
+              resp = resp, re.form = re.form, fit = fit, span = a$span)
+  if (is.null(contrast)) {
+    # A nonlinear body is the case core refuses se.fit for, so there is
+    # no second number to check against. Everything else is checked.
+    if (!nl) {
+      out$rel <- sp_cov_check(fit, newdata, a$se, dpar, resp, re.form,
+                              tol, "this grid")
+      out$n_predict <- 1L
+    }
+    return(out)
   }
-  ref <- stats::predict(fit, newdata = newdata, type = "link", dpar = dpar,
-                        resp = resp, re.form = re.form, se.fit = TRUE)
-  se_ref <- as.numeric(ref$se.fit)
-  rel <- max(abs(se / pmax(se_ref, .Machine$double.eps) - 1))
-  if (!is.finite(rel) || rel > tol) {
-    stop("frm_curve(): the assembled curve covariance disagrees with ",
-         "predict(se.fit = TRUE) by ", format(rel, digits = 3),
-         " relative, which is above the tolerance ", format(tol),
-         ". Both come from frm_lp_basis(); a disagreement means this ",
-         "package is reading the seam wrongly, and a fit where the two ",
-         "disagree is one it must not report a band for", call. = FALSE)
+  b <- sp_one_basis(fit, contrast, dpar, resp, re.form)
+  if (!identical(a$lb$coef_pos, b$lb$coef_pos)) {
+    stop("frm_curve(contrast = ): the two grids load on different ",
+         "coefficients (", length(a$lb$coef_pos), " and ",
+         length(b$lb$coef_pos), " of them), so subtracting their ",
+         "designs would pair columns that belong to different ",
+         "parameters. Both grids must reach the same linear predictor ",
+         "under the same re.form", call. = FALSE)
   }
-  list(eta = lb$eta, C = C, V = lb$V, Sigma = Sigma, se = se,
-       se_ref = se_ref, rel = rel, n_predict = 1L,
-       newdata = newdata, dpar = dpar, resp = resp, re.form = re.form,
-       fit = fit, span = lbc$span)
+  # Variance that is not coefficient uncertainty arrives per row with no
+  # covariance between the grids, so a difference can only report it
+  # when the two rows carry the SAME residual and it cancels exactly.
+  # That is the ordinary case, a contrast across a factor at one gp()
+  # position, and refusing it would refuse an answer that is right.
+  if ((any(a$lb$extra_var != 0) || any(b$lb$extra_var != 0)) &&
+      !sp_same_latent(fit, a, b)) {
+    stop("frm_curve(contrast = ): this prediction carries variance that ",
+         "is not coefficient uncertainty, which for a curve is an exact ",
+         "gp() kriging residual. A difference can only report it when ",
+         "both grids load the same one, and that is decided on the ",
+         "whole latent design: EVERY column of it outside the fixed ",
+         "effects has to match, not only the gp() block's. Here they do ",
+         "not, so the gp() positions may well be identical and some ",
+         "other random-effect or smooth term is what differs. ",
+         "frm_lp_basis() returns that variance per row and no covariance ",
+         "between the grids, so there is no cross term to fall back on. ",
+         "Hold every latent term equal between the grids and contrast a ",
+         "fixed effect, or read the two curves separately",
+         call. = FALSE)
+  }
+  out$C <- a$C - b$C
+  out$Sigma <- unname(out$C %*% out$V %*% t(out$C))
+  out$se <- unname(sqrt(pmax(diag(out$Sigma), 0)))
+  out$eta <- a$lb$eta - b$lb$eta
+  out$span <- sp_span_both(a$span, b$span)
+  if (!nl) {
+    out$rel <- max(
+      sp_cov_check(fit, newdata, a$se, dpar, resp, re.form, tol,
+                   "`newdata`"),
+      sp_cov_check(fit, contrast, b$se, dpar, resp, re.form, tol,
+                   "`contrast`"))
+    out$n_predict <- 2L
+  }
+  out
 }
 
 #' Is this linear predictor computed by a nonlinear body?

@@ -56,6 +56,24 @@
 #' @param maxit Newton iterations allowed per root.
 #' @inheritParams frm_curve
 #'
+#' @section On a difference curve:
+#' A `frmtmb_curve` from `frm_curve(contrast = )` carries its second
+#' grid here, so the feature located is a feature OF THE DIFFERENCE:
+#' `type = "crossing"` with `at = 0` is the question a difference curve
+#' is usually drawn to answer, the place where two curves meet. The
+#' delta method is the same one, on the same covariance: for a crossing
+#' the variance of the located position is the variance of the
+#' difference at that position over the squared slope of the difference.
+#'
+#' `var` moves in BOTH grids together, so `contrast` must hold the same
+#' values of it as `newdata` does, and a contrast that does not is
+#' refused rather than overwritten.
+#'
+#' A new `newdata` on a difference curve needs a new `contrast` with it,
+#' and a call that gives one grid and not the other is refused. Without
+#' the refusal the search would run on the FIRST curve alone, for an
+#' object whose every row is a difference.
+#'
 #' @return A data frame with one row per root: `.feature`, `.var`,
 #'   `.estimate` (the located position), `.se`, `.lower_ci`, `.upper_ci`,
 #'   `.value` (the curve there) and `.value_se`. The `"check"` attribute
@@ -81,6 +99,11 @@
 #' against the whole grid. That is where a second `ps()` term can leave
 #' its span in a row the search itself never predicts at.
 #'
+#' A difference curve has two grids and the search pins row 1 of each,
+#' so the second check asks the question of each of them. It is not
+#' asked whether the two grids differ from ONE ANOTHER: they always do,
+#' because that is what a difference is.
+#'
 #' @seealso [frm_curve()], [frm_curve_deriv()]
 #' @examples
 #' set.seed(1)
@@ -95,9 +118,10 @@
 frm_curve_feature <- function(object, var,
                               type = c("maximum", "minimum", "extremum",
                                        "crossing"),
-                              at = 0, newdata = NULL, dpar = NULL,
-                              resp = NULL, re.form = NA, level = 0.95,
-                              eps = NULL, maxit = 50L, tol = 1e-6) {
+                              at = 0, newdata = NULL, contrast = NULL,
+                              dpar = NULL, resp = NULL, re.form = NA,
+                              level = 0.95, eps = NULL, maxit = 50L,
+                              tol = 1e-6) {
   type <- match.arg(type)
   sp_check_level(level)
   sp_check_count(maxit, "maxit")
@@ -105,12 +129,15 @@ frm_curve_feature <- function(object, var,
     stop("`at` must be one finite number: the level the crossing is of",
          call. = FALSE)
   }
-  sp <- sp_spec(object, newdata, dpar, resp, re.form)
+  sp <- sp_spec(object, newdata, contrast, dpar, resp, re.form)
   # before the root scan, not after: a search that finds no root returns
   # early and would otherwise never reach the covariance
   sp_rp_gate(sp$fit)
   nd <- sp$newdata
+  ct <- sp$contrast
+  sp_check_contrast(nd, ct)
   sp_check_var(nd, var)
+  sp_check_contrast_var(nd, ct, var)
   x <- as.numeric(nd[[var]])
   if (length(x) < 3L) {
     stop("A feature search needs a grid of at least three points along '",
@@ -119,18 +146,27 @@ frm_curve_feature <- function(object, var,
   }
   ord <- order(x)
   nd <- nd[ord, , drop = FALSE]
+  if (!is.null(ct)) ct <- ct[ord, , drop = FALSE]
   x <- x[ord]
   e1 <- sp_eps(eps, x, 1L)
   e2 <- sp_eps(eps, x, 2L)
   row1 <- nd[1L, , drop = FALSE]
+  crow1 <- if (is.null(ct)) NULL else ct[1L, , drop = FALSE]
 
   # g() is the function whose root is wanted, evaluated with one
   # predict() call per point set: the curve itself for a crossing, its
-  # first derivative for a stationary point.
+  # first derivative for a stationary point. A difference curve moves
+  # `var` in BOTH frames and subtracts, which costs one more predict()
+  # per point set and changes nothing else: a root of a difference is
+  # found the way a root of a curve is.
   eta_at <- function(tv) {
     d <- row1[rep(1L, length(tv)), , drop = FALSE]
     d[[var]] <- tv
-    sp_predict_eta(sp$fit, d, sp$dpar, sp$resp, sp$re.form)
+    ev <- sp_predict_eta(sp$fit, d, sp$dpar, sp$resp, sp$re.form)
+    if (is.null(crow1)) return(ev)
+    d2 <- crow1[rep(1L, length(tv)), , drop = FALSE]
+    d2[[var]] <- tv
+    ev - sp_predict_eta(sp$fit, d2, sp$dpar, sp$resp, sp$re.form)
   }
   gfun <- if (type == "crossing") {
     function(tv) eta_at(tv) - at
@@ -168,7 +204,7 @@ frm_curve_feature <- function(object, var,
   # entirely inside the span. The refusal told them to narrow the grid
   # to the span, and doing that reproduced the refusal.
   if (length(scan$span)) {
-    sp_span_stop(sp_span_on_grid(sp$fit, nd, sp$dpar, sp$resp, sp$re.form))
+    sp_span_stop(sp_grid_span(sp, nd, ct))
   }
   cross <- which(gv[-length(gv)] * gv[-1L] < 0)
   if (type %in% c("maximum", "minimum")) {
@@ -213,7 +249,7 @@ frm_curve_feature <- function(object, var,
                     .lower_ci = numeric(0), .upper_ci = numeric(0),
                     .value = numeric(0), .value_se = numeric(0))
   ck <- list(cov_rel_error = NA_real_, n_predict = NA_integer_,
-             crit_mcse = NA_real_)
+             crit_mcse = NA_real_, contrast = !is.null(ct))
   if (!length(roots)) {
     return(structure(out, class = c("frmtmb_feature", "data.frame"),
                      check = ck, level = level, type = type,
@@ -240,8 +276,17 @@ frm_curve_feature <- function(object, var,
   # gate that fired was `t`'s stencil fringe. The stencil's own fringe
   # is not asked about here on purpose, the same way frm_curve_deriv()
   # counts the grid and not the stencil it widens the grid into.
-  if (!sp_grid_pinned(nd, var)) {
-    sp_span_stop(sp_span_on_grid(sp$fit, nd, sp$dpar, sp$resp, sp$re.form))
+  #
+  # A DIFFERENCE has two grids and the search pins row 1 of each, so the
+  # gate asks the question of each. The gate does NOT fire because the
+  # two grids differ from one another: that is what a difference is, and
+  # by construction at least one column does. It fires when a column
+  # other than `var` varies DOWN either grid, which is still the only
+  # way a value the search never predicts at can reach a second ps()
+  # term.
+  if (!sp_grid_pinned(nd, var) ||
+      (!is.null(ct) && !sp_grid_pinned(ct, var))) {
+    sp_span_stop(sp_grid_span(sp, nd, ct))
   }
 
   # One design pass over the whole five-point stencil at every root: the
@@ -249,13 +294,19 @@ frm_curve_feature <- function(object, var,
   # use, so a feature and a band on one fit cannot disagree about the
   # covariance.
   stk <- row1[rep(1L, 5L * length(roots)), , drop = FALSE]
-  stk[[var]] <- c(roots - e2, roots - e1, roots, roots + e1, roots + e2)
-  parts <- sp_curve_parts(sp$fit, stk, sp$dpar, sp$resp, sp$re.form, tol)
+  sv <- c(roots - e2, roots - e1, roots, roots + e1, roots + e2)
+  stk[[var]] <- sv
+  cstk <- NULL
+  if (!is.null(crow1)) {
+    cstk <- crow1[rep(1L, 5L * length(roots)), , drop = FALSE]
+    cstk[[var]] <- sv
+  }
+  parts <- sp_curve_parts(sp$fit, stk, sp$dpar, sp$resp, sp$re.form, tol,
+                          cstk)
   nr <- length(roots)
   blk <- function(k) parts$C[(k - 1L) * nr + seq_len(nr), , drop = FALSE]
   eta <- function(k) parts$eta[(k - 1L) * nr + seq_len(nr)]
   D1 <- (blk(4L) - blk(2L)) / (2 * e1)
-  D2 <- (blk(5L) - 2 * blk(3L) + blk(1L)) / e2^2
   f1 <- (eta(4L) - eta(2L)) / (2 * e1)
   f2 <- (eta(5L) - 2 * eta(3L) + eta(1L)) / e2^2
   f0 <- eta(3L)
@@ -276,7 +327,8 @@ frm_curve_feature <- function(object, var,
   structure(out, class = c("frmtmb_feature", "data.frame"),
             check = list(cov_rel_error = parts$rel,
                          n_predict = parts$n_predict,
-                         crit_mcse = NA_real_),
+                         crit_mcse = NA_real_,
+                         contrast = !is.null(ct)),
             level = level, type = type,
             slope = f1, curvature = f2,
             row.names = seq_len(nrow(out)))
@@ -288,8 +340,22 @@ print.frmtmb_feature <- function(x, ...) {
   cat("<frmtmb curve feature> ", attr(x, "type"), ", ", nrow(x),
       " found, level ", attr(x, "level"), "\n", sep = "")
   if (nrow(x)) {
-    cat("  covariance checked against predict(se.fit = TRUE) to ",
-        format(ck$cov_rel_error, digits = 3), " relative\n", sep = "")
+    # a nonlinear predictor has no predict(se.fit = TRUE) to compare
+    # against, so cov_rel_error is NA and neither sentence below is
+    # true: "checked to NA relative" reads as a check that ran
+    if (!length(ck$cov_rel_error) || is.na(ck$cov_rel_error)) {
+      cat("  covariance NOT checked: predict(se.fit = TRUE) is refused",
+          " for a nonlinear predictor, so there is no second route to",
+          " compare against\n", sep = "")
+    } else if (isTRUE(ck$contrast)) {
+      cat("  each grid checked against predict(se.fit = TRUE) to ",
+          format(ck$cov_rel_error, digits = 3),
+          " relative; the difference itself has no second route\n",
+          sep = "")
+    } else {
+      cat("  covariance checked against predict(se.fit = TRUE) to ",
+          format(ck$cov_rel_error, digits = 3), " relative\n", sep = "")
+    }
     print(as.data.frame(x))
   } else {
     cat("  the grid brackets no sign change, so the curve has no ",

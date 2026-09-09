@@ -1,3 +1,112 @@
+# frmtmb.spline (development version)
+
+* `frm_curve(object, newdata, contrast = )` returns a DIFFERENCE curve.
+  With a second grid of the same height the reported curve is the
+  difference of the two linear predictors and its covariance is
+  `(A1 - A2) V (A1 - A2)'`, so the pointwise and simultaneous bands are
+  bands on the difference and the simultaneous one answers "is this
+  difference anywhere other than zero" over the whole grid at once.
+  `frm_curve_deriv()` and `frm_curve_feature()` carry the second grid
+  through, so `frm_curve_feature(type = "crossing", at = 0)` on a
+  difference curve locates where the two curves meet, with the
+  implicit-function standard error. Measured against
+  `gratia::difference_smooths(group_means = TRUE)` on the same mgcv ML
+  fit: the difference agrees to 1.95e-08, which is 1.5 times the gap
+  between the two packages' own fitted curves and is provably that gap
+  rather than the difference arithmetic, since the difference's
+  disagreement equals the difference of the two curves' own to 5.6e-16.
+  The standard errors agree to 1.6 percent, which sits between the two
+  curves' own 1.5 and 3.1 percent: mgcv's Vp is conditional on the
+  smoothing parameter and the joint precision this package inverts is
+  not, and nothing measurable cancels. Simultaneous coverage of the
+  true difference over the whole grid is 0.970 over 200 seeds against a
+  pointwise band's 0.685.
+
+  A difference is not two curves compared afterwards, and the argument
+  exists because doing it by hand gets the covariance wrong: the two
+  curves share coefficients, so adding their standard errors in
+  quadrature ignores exactly the term the difference is made of. A grid
+  differenced with itself returns zero with a standard error of
+  `identical()` zero, where quadrature returns `sqrt(2)` times a
+  positive number.
+
+  Refused by name: `transform = TRUE`, because a difference of linear
+  predictors is not a difference of responses; two grids that load on
+  different coefficients; a difference whose two grids sit at different
+  exact `gp()` positions, since the kriging residual arrives per row
+  and the seam returns no covariance between the grids; a new `newdata`
+  passed to `frm_curve_deriv()` or `frm_curve_feature()` on a
+  difference curve without a new `contrast` beside it, which would
+  otherwise return the FIRST curve's answer without a word; and, for a
+  derivative or a feature, a `contrast` whose search variable disagrees
+  with `newdata`'s, since both are moved together.
+
+  A `gp()` difference at ONE position is computed rather than refused.
+  Both grids then load the same kriging residual of the same field, so
+  it cancels exactly. Sameness is decided on the design rather than on
+  the numbers: the two grids must agree bit for bit on EVERY column of
+  `A` outside the fixed effects. Equality of the variances would not be
+  enough, since two levels of one grouping block have identical
+  marginal variances by construction and are different draws. Measured
+  on `y ~ fac + gp(x)` at n = 90 with the grid off the observed
+  positions: the difference across `fac` comes back flat at
+  0.0618114535, which is `sqrt(vcov(fit)["facB", "facB"])` to 12
+  digits, and moving the second grid's `x` by 1e-10 refuses.
+
+  That test is STRICTER than the mathematics needs, and the refusal
+  says so rather than blaming the `gp()` positions. Only the block
+  carrying the residual has to match for it to cancel, so a contrast
+  across `fac` on `y ~ fac + s(x, by = fac, k = 6) + gp(x)` is refused
+  even though its `gp()` columns are bit-identical, because the
+  by-factor smooth's own columns differ. It fails closed, so that is an
+  answer you do not get rather than one you should not trust, and the
+  core seam below removes the need for the test altogether.
+
+  The built-in covariance check means less on this path and `print()`
+  says so. `predict(se.fit = TRUE)` returns a marginal standard error
+  per row and never the covariance between two grids, so the check runs
+  on each half and `cov_rel_error` is the worse of the two.
+
+* KNOWN DEFECT, not introduced here and not fixed here: a SIMULTANEOUS
+  band over an exact `gp()` evaluated off the observed positions is too
+  narrow. `frm_curve(simultaneous = TRUE)` draws its max-deviation
+  process from `A V A'` and standardizes it by
+  `sqrt(diag(A V A') + extra_var)`, and off the observed positions
+  those are not the same object: an exact `gp()`'s kriging variance is
+  in the divisor and not in the draw. The standardized maxima are then
+  too small and the `level` quantile of them is too small with them.
+
+  This is a ONE-GRID defect. It has nothing to do with a difference and
+  it affects any fit with an exact `gp()` term whose grid leaves the
+  observed positions. `simultaneous = FALSE` is unaffected, and so is
+  every pointwise column, including `.se`.
+
+  Bounded with public quantities, since `extra_var` comes from
+  `frm_lp_basis()` and the divisor from `predict(se.fit = TRUE)`. On
+  `y ~ fac + gp(x)`, 60 observations on [0, 6], noise 0.2,
+  `nsim = 20000`: the critical value is 1.00009 of the correctly scaled
+  one on a grid inside the data, 1.00007 at the edge, and **1.17485 on
+  a grid that extrapolates past the observed positions**. So the band
+  is at least 17 percent too narrow exactly where it should be widening.
+  That ratio is a LOWER bound: rescaling fixes the marginal scale and
+  keeps `A V A'`'s correlation, and a kriging residual that
+  decorrelates faster than the mean function pushes the critical value
+  higher still.
+
+  The fix needs the conditional cross-covariance of the `gp()`, which
+  no public seam returns; it is filed as a core seam in
+  `dev/diffcurve-findings.md` and as a backlog entry in
+  `dev/feature-gaps.md`. Until then, read a band over an extrapolating
+  `gp()` grid as a lower bound on its own width.
+
+* `frm_curve_feature()`'s second span gate asks its question of each
+  grid of a difference. The gate is unchanged for one grid: it fires
+  when a column other than the search variable varies DOWN a grid. It
+  is not asked whether the two grids of a difference differ from one
+  another, which they always do. An out-of-span row in the `contrast`
+  grid refuses exactly as one in `newdata` does, and every span message
+  says which grid raised it.
+
 # frmtmb.spline 0.4.0
 
 * FIX: `frm_curve_feature()`'s second span check reads the grid you

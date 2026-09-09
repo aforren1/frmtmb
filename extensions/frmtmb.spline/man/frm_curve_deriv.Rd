@@ -9,6 +9,7 @@ frm_curve_deriv(
   var,
   order = 1L,
   newdata = NULL,
+  contrast = NULL,
   dpar = NULL,
   resp = NULL,
   re.form = NA,
@@ -32,6 +33,10 @@ must be a numeric column of the grid.}
 
 \item{newdata}{The grid. Required when \code{object} is a fit; taken from
 the curve otherwise.}
+
+\item{contrast}{A second grid with the same number of rows, or \code{NULL}
+for an ordinary curve. With it the curve is \code{newdata} minus
+\code{contrast}, row by row.}
 
 \item{dpar}{Distributional parameter to read the curve off. \code{NULL},
 the default, is the location parameter \code{mu}.}
@@ -79,11 +84,25 @@ and its covariance is \verb{D V D'}, which is exact for the differenced
 basis; the only approximation is the difference itself, and \code{eps}
 controls that.
 }
+\section{On a difference curve}{
+
+A \code{frmtmb_curve} from \code{frm_curve(contrast = )} carries its second
+grid here, so what is differentiated is the DIFFERENCE. \code{var} moves
+in both grids together, so \code{contrast} must hold the same values of it
+as \code{newdata} does.
+
+A new \code{newdata} on a difference curve needs a new \code{contrast} with it,
+and a call that gives one grid and not the other is refused. Without
+the refusal the answer would be the derivative of the FIRST curve
+alone, for an object whose every row is a difference.
+}
+
 \section{Past a \code{ps()} knot span}{
 
 Warned once per \code{\link[frmtmb:ps]{frmtmb::ps()}} term per call, as \code{\link[=frm_curve]{frm_curve()}}'s
 section describes, and counted over the grid you passed rather than
-over the three-point stencil the design is built on.
+over the three-point stencil the design is built on. A difference
+warns for each of its two grids and says which one.
 
 Past the outer knot the basis is exactly zero, so the DERIVATIVE
 design is exactly zero and those rows carry a standard error of

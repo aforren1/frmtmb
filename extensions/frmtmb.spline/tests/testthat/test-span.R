@@ -357,3 +357,99 @@ test_that("a second ps() term's span refuses at a root in the middle", {
   expect_warning(frm_curve(o$fit, newdata = g_out, simultaneous = FALSE),
                  "leaves a ps() term's knot span", fixed = TRUE)
 })
+
+## A DIFFERENCE CURVE against the same gate.
+##
+## The gate asks whether a column other than `var` varies DOWN a grid.
+## A difference is built from two grids that differ from ONE ANOTHER by
+## construction, so the first thing to establish is that this does not
+## make the gate fire: the two questions are unrelated, and a gate that
+## confused them would refuse every difference curve on a ps() model.
+## The second is that widening the search to two grids did not narrow
+## the gate: an out-of-span row in the CONTRAST is a row nothing the
+## search evaluates ever sees, exactly as one in `newdata` is, and it
+## must refuse from either side.
+##
+## The fixture is the two-ps() one with an interaction added, so that
+## the difference across `w` varies in `t` and a crossing exists to
+## refine. Without it the model is additive, the difference is constant
+## in `t`, and the gate is never reached because the scan finds no root.
+sp_span_fit3 <- function(seed = 4242, n = 400) {
+  set.seed(seed)
+  d <- data.frame(t = sort(stats::runif(n)), z = stats::runif(n, 0, 1),
+                  w = rep(c(0, 1), length.out = n))
+  d$y <- 2 + sin(2 * pi * d$t) + 0.5 * d$z +
+    d$w * (-0.6 + 1.5 * d$t) + stats::rnorm(n, 0, 0.25)
+  fit <- frmtmb::frm(
+    frmtmb::bf(y ~ lev + ps(t, k = 10, pad = 0.3) + b1 * w + b2 * w * t +
+                 ps(z, k = 8, pad = 0.02),
+               lev ~ 1, b1 ~ 1, b2 ~ 1, nl = TRUE),
+    family = stats::gaussian(), data = d)
+  pt <- fit$frame$linpreds[["y.mu"]]$ps_terms
+  list(fit = fit, t_span = pt[[1]]$knot_range,
+       z_span = pt[[2]]$knot_range)
+}
+
+test_that("a clean difference curve is not refused for being a difference", {
+  skip_on_cran()
+  o <- sp_span_fit3()
+  g <- seq(0.05, 0.95, length.out = 21)
+  nd <- data.frame(t = g, z = 0.5, w = 1)
+  ct <- data.frame(t = g, z = 0.5, w = 0)
+  # every grid value inside both spans, and each grid pinned in every
+  # column but `t`. The two grids differ in `w`, which is the whole
+  # point of a contrast and is not what the gate asks about.
+  expect_true(all(nd$t >= o$t_span[1] & nd$t <= o$t_span[2]))
+  expect_true(all(c(nd$z, ct$z) >= o$z_span[1] &
+                    c(nd$z, ct$z) <= o$z_span[2]))
+  expect_no_warning(cv <- frm_curve(o$fit, newdata = nd, contrast = ct,
+                                    simultaneous = FALSE))
+  expect_no_error(ft <- frm_curve_feature(o$fit, var = "t",
+                                          type = "crossing", at = 0,
+                                          newdata = nd, contrast = ct))
+  expect_equal(nrow(ft), 1L)
+  # the crossing of (b1 + b2 t) at zero, which the fit puts near the
+  # truth -0.6 / 1.5. The distance is judged in units of the standard
+  # error this run reports for it, not against a constant window
+  expect_gt(ft$.se, 0)
+  expect_lt(abs(ft$.estimate - 0.4), 6 * ft$.se)
+  expect_no_warning(frm_curve_deriv(o$fit, var = "t", newdata = nd,
+                                    contrast = ct, simultaneous = FALSE))
+})
+
+test_that("an out-of-span row refuses from either grid of a difference", {
+  skip_on_cran()
+  o <- sp_span_fit3()
+  g <- seq(0.05, 0.95, length.out = 21)
+  nd <- data.frame(t = g, z = 0.5, w = 1)
+  ct <- data.frame(t = g, z = 0.5, w = 0)
+
+  # in `newdata`: z varies down the grid, so the gate fires and the
+  # whole-grid predict() reports z outside its span
+  nd_out <- nd
+  nd_out$z[10] <- o$z_span[2] + 5
+  e <- expect_error(frm_curve_feature(o$fit, var = "t", type = "crossing",
+                                      at = 0, newdata = nd_out,
+                                      contrast = ct),
+                    "the search bracket leaves", fixed = TRUE)
+  expect_match(conditionMessage(e), "ps(z, k = 8", fixed = TRUE)
+
+  # in `contrast`: `newdata` is pinned and clean, so a gate that looked
+  # only at `newdata` would locate the root and report it in silence.
+  # The message says which grid it came from.
+  ct_out <- ct
+  ct_out$z[10] <- o$z_span[2] + 5
+  e2 <- expect_error(frm_curve_feature(o$fit, var = "t", type = "crossing",
+                                       at = 0, newdata = nd,
+                                       contrast = ct_out),
+                     "the search bracket leaves", fixed = TRUE)
+  expect_match(conditionMessage(e2), "ps(z, k = 8", fixed = TRUE)
+  expect_match(conditionMessage(e2), "In `contrast`:", fixed = TRUE)
+
+  # and frm_curve() warns about the same contrast grid rather than
+  # refusing, which is the same split the one-grid case has
+  w <- expect_warning(frm_curve(o$fit, newdata = nd, contrast = ct_out,
+                                simultaneous = FALSE),
+                      "leaves a ps() term's knot span", fixed = TRUE)
+  expect_match(conditionMessage(w), "In `contrast`:", fixed = TRUE)
+})

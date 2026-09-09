@@ -58,10 +58,22 @@
 #' @return A `frmtmb_curve` data frame, as [frm_curve()] returns, whose
 #'   `.estimate` is the derivative.
 #'
+#' @section On a difference curve:
+#' A `frmtmb_curve` from `frm_curve(contrast = )` carries its second
+#' grid here, so what is differentiated is the DIFFERENCE. `var` moves
+#' in both grids together, so `contrast` must hold the same values of it
+#' as `newdata` does.
+#'
+#' A new `newdata` on a difference curve needs a new `contrast` with it,
+#' and a call that gives one grid and not the other is refused. Without
+#' the refusal the answer would be the derivative of the FIRST curve
+#' alone, for an object whose every row is a difference.
+#'
 #' @section Past a `ps()` knot span:
 #' Warned once per [frmtmb::ps()] term per call, as [frm_curve()]'s
 #' section describes, and counted over the grid you passed rather than
-#' over the three-point stencil the design is built on.
+#' over the three-point stencil the design is built on. A difference
+#' warns for each of its two grids and says which one.
 #'
 #' Past the outer knot the basis is exactly zero, so the DERIVATIVE
 #' design is exactly zero and those rows carry a standard error of
@@ -86,10 +98,10 @@
 #' head(cbind(g, fitted = d1$.estimate, truth = 2 * pi * cos(pi * g$x)))
 #' @export
 frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
-                            dpar = NULL, resp = NULL, re.form = NA,
-                            level = 0.95, simultaneous = TRUE,
-                            nsim = 10000L, eps = NULL, seed = NULL,
-                            tol = 1e-6) {
+                            contrast = NULL, dpar = NULL, resp = NULL,
+                            re.form = NA, level = 0.95,
+                            simultaneous = TRUE, nsim = 10000L,
+                            eps = NULL, seed = NULL, tol = 1e-6) {
   sp_check_level(level)
   sp_check_flag(simultaneous, "simultaneous")
   if (!identical(order, 1L) && !identical(order, 2L) &&
@@ -100,19 +112,31 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
          call. = FALSE)
   }
   order <- as.integer(order)
-  sp <- sp_spec(object, newdata, dpar, resp, re.form)
+  sp <- sp_spec(object, newdata, contrast, dpar, resp, re.form)
   sp_rp_gate(sp$fit)
   nd <- sp$newdata
+  ct <- sp$contrast
+  sp_check_contrast(nd, ct)
   sp_check_var(nd, var)
+  sp_check_contrast_var(nd, ct, var)
   x <- as.numeric(nd[[var]])
   e <- sp_eps(eps, x, order)
 
   # One perturbation pass over the stacked grid: the design at the three
   # stencil positions costs the same number of predict() calls as the
-  # design at one, because a call already returns every row.
+  # design at one, because a call already returns every row. A
+  # difference stacks its second grid the same way, so the derivative of
+  # the difference is the difference of the stencils rather than a
+  # second pass.
   stack <- rbind(nd, nd, nd)
   stack[[var]] <- c(x - e, x, x + e)
-  parts <- sp_curve_parts(sp$fit, stack, sp$dpar, sp$resp, sp$re.form, tol)
+  cstack <- NULL
+  if (!is.null(ct)) {
+    cstack <- rbind(ct, ct, ct)
+    cstack[[var]] <- c(x - e, x, x + e)
+  }
+  parts <- sp_curve_parts(sp$fit, stack, sp$dpar, sp$resp, sp$re.form, tol,
+                          cstack)
   m <- nrow(nd)
   lo <- seq_len(m)
   mid <- m + lo
@@ -128,13 +152,14 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
   Sigma <- D %*% parts$V %*% t(D)
   se <- sqrt(pmax(diag(Sigma), 0))
   parts$newdata <- nd
+  parts$contrast <- ct
   # core counted the STENCIL it was handed, `c(x - e, x, x + e)`, which
   # reaches e past both ends of the grid; a grid ending exactly on a
   # knot is outside that and inside itself. Re-ask on the grid, and only
   # when the stencil saw something, because the stencil's point set
   # contains the grid's.
   span <- if (length(parts$span)) {
-    sp_span_on_grid(sp$fit, nd, sp$dpar, sp$resp, sp$re.form)
+    sp_grid_span(sp, nd, ct)
   } else {
     character(0)
   }
@@ -149,29 +174,73 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
   }
   out <- sp_assemble(parts, est, se, Sigma, level, simultaneous, nsim,
                      FALSE, seed, nd,
-                     what = paste0("derivative of order ", order,
-                                   " in ", var))
+                     what = paste0("derivative of order ", order, " in ",
+                                   var,
+                                   if (!is.null(ct)) ", differenced"))
   attr(out, "eps") <- e
   out
 }
 
 #' Resolve the (fit, grid, predictor) triple from either input form.
 #'
+#' A difference curve carries its second grid through here too. Dropping
+#' it would be the worst kind of answer: the derivative or the feature
+#' of the FIRST curve, returned without complaint, for an object whose
+#' every printed row is a difference.
+#'
 #' @noRd
-sp_spec <- function(object, newdata, dpar, resp, re.form) {
+sp_spec <- function(object, newdata, contrast, dpar, resp, re.form) {
   if (inherits(object, "frmtmb_curve")) {
     s <- attr(object, "spec")
     nd <- if (is.null(newdata)) s$newdata else newdata
-    return(list(fit = attr(object, "fit"), newdata = nd, dpar = s$dpar,
-                resp = s$resp, re.form = s$re.form))
+    ct <- if (is.null(newdata)) s$contrast else contrast
+    # a new grid replaces the stored one, and it has to replace the
+    # stored CONTRAST with it. Keyed on `newdata` alone, a caller who
+    # passes a grid and no second grid gets the FIRST curve's answer
+    # back on a difference object, which is the silent wrong answer
+    # this file's own comment says it must not return.
+    if (!is.null(s$contrast) && !is.null(newdata) && is.null(contrast)) {
+      stop("`object` is a difference curve, so a new `newdata` needs a ",
+           "new `contrast` with it. Without one the answer would be the ",
+           "derivative or the feature of the FIRST curve alone, returned ",
+           "without complaint for an object whose every row is a ",
+           "difference. Pass both grids, or pass neither and the pair ",
+           "the difference was built on is reused", call. = FALSE)
+    }
+    return(list(fit = attr(object, "fit"), newdata = nd, contrast = ct,
+                dpar = s$dpar, resp = s$resp, re.form = s$re.form))
   }
   if (is.null(newdata)) {
     stop("`newdata` is required when the first argument is a fit: it is ",
          "the grid the curve is evaluated on. Pass a frmtmb_curve from ",
          "frm_curve() to reuse a grid instead", call. = FALSE)
   }
-  list(fit = object, newdata = newdata, dpar = dpar, resp = resp,
-       re.form = re.form)
+  list(fit = object, newdata = newdata, contrast = contrast, dpar = dpar,
+       resp = resp, re.form = re.form)
+}
+
+#' The second grid of a difference must carry the SAME values of the
+#' variable a derivative or a feature moves.
+#'
+#' Both of those functions replace `var` in each frame with the same
+#' stencil or scan positions, so a contrast whose `var` column says
+#' something else has had it overwritten. Refusing is the only honest
+#' answer: the alternative is a number computed at positions the caller
+#' never asked for.
+#'
+#' @noRd
+sp_check_contrast_var <- function(nd, ct, var) {
+  if (is.null(ct)) return(invisible(NULL))
+  same <- !is.null(ct[[var]]) && is.numeric(ct[[var]]) &&
+    isTRUE(all.equal(as.numeric(ct[[var]]), as.numeric(nd[[var]])))
+  if (!same) {
+    stop("A derivative and a feature move '", var, "' in both grids ",
+         "together, so `contrast` must hold the same values of it as ",
+         "`newdata` does. Differencing against one fixed profile is a ",
+         "curve rather than a derivative or a feature of one, and ",
+         "frm_curve() reads it", call. = FALSE)
+  }
+  invisible(NULL)
 }
 
 #' @noRd

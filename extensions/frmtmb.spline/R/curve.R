@@ -91,10 +91,82 @@
 #' it, and it grows with the total number of coefficients in the fit
 #' rather than with the grid.
 #'
+#' @section A difference curve:
+#' `contrast` is a second grid of the same height. The curve returned is
+#' then the DIFFERENCE of the two linear predictors, row by row, and its
+#' covariance is `(A1 - A2) V (A1 - A2)'`, so both bands describe the
+#' difference and the simultaneous one answers "is this difference
+#' anywhere other than zero" over the whole grid at once. It is the
+#' quantity `gratia::difference_smooths(group_means = TRUE)` reports for
+#' a factor-by smooth, and on the same mgcv fit the two agree. Name that
+#' argument when you compare: gratia's default, `group_means = FALSE`,
+#' zeroes the intercept and the parametric group columns and reports the
+#' smooth-only difference, which is a different quantity. On the fixture
+#' `test-difference.R` uses it is 0.52 away.
+#'
+#' A difference is NOT the difference of two calls to this function. The
+#' two curves share coefficients, so their covariance is what the
+#' difference is made of, and adding two standard errors in quadrature
+#' would ignore it.
+#'
+#' What the difference path cannot do, and refuses by name:
+#'
+#' \itemize{
+#'   \item `transform = TRUE`. A difference of linear predictors is not
+#'     a difference of responses under any link but the identity, so
+#'     there is nothing to map it through.
+#'   \item Two grids that load on different coefficients.
+#'   \item Two grids that load DIFFERENT draws of a latent field whose
+#'     variance is not coefficient uncertainty. See the next section.
+#' }
+#'
+#' The covariance check also means less here, and `print()` says so.
+#' `predict(se.fit = TRUE)` returns a marginal standard error per row
+#' and never the covariance between the grids, so the check runs on each
+#' half and `cov_rel_error` is the worse of the two: what it licenses is
+#' that both designs were read correctly.
+#'
+#' @section An exact `gp()` under a difference:
+#' An exact `gp()` evaluated off the observed positions carries
+#' a kriging residual that is not coefficient uncertainty.
+#' [frmtmb::frm_lp_basis()] returns its variance one number per ROW and
+#' returns no covariance BETWEEN two grids, so `var(g1 - g2)` has no
+#' public route.
+#'
+#' It needs none in the ordinary case. A contrast taken across a factor
+#' at ONE `gp()` position leaves both grids loading the same residual,
+#' so it cancels exactly and the difference is `(A1 - A2) V (A1 - A2)'`
+#' with nothing left over. That case is computed rather than refused.
+#'
+#' Sameness is decided on the design and not on the numbers: the two
+#' grids must agree bit for bit on EVERY column of `A` outside the fixed
+#' effects. Equality of the variances would not be enough, because two
+#' levels of one grouping block have identical marginal variances by
+#' construction and are different draws.
+#'
+#' That test is stricter than the mathematics needs, and it is worth
+#' knowing where the extra strictness bites. Only the block carrying the
+#' kriging residual has to match for the residual to cancel, but the
+#' test asks it of every latent column, so a contrast across `fac` on
+#' `y ~ fac + s(x, by = fac) + gp(x)` is REFUSED even though the `gp()`
+#' columns are identical: the by-factor smooth's own columns differ,
+#' which is what a by-factor smooth is for. It fails closed, so the cost
+#' is an answer you do not get rather than one you should not trust.
+#'
+#' The rest is refused because the SEAM cannot supply it, not because
+#' the mathematics is missing. The conditional cross-covariance is
+#' `k(x1, x2) - Xr1 K Xr2'`, and core forms every piece of it while
+#' predicting, but reduces the result to one variance per row before the
+#' seam returns. Hold every latent term equal between the grids and
+#' contrast a fixed effect, or read the two curves separately.
+#'
 #' @param object A `frmtmb_fit` from [frmtmb::frm()].
 #' @param newdata The grid, as a data frame. Every variable the linear
 #'   predictor reads must be a column, held at the value the curve is
 #'   wanted at.
+#' @param contrast A second grid with the same number of rows, or `NULL`
+#'   for an ordinary curve. With it the curve is `newdata` minus
+#'   `contrast`, row by row.
 #' @param dpar Distributional parameter to read the curve off. `NULL`,
 #'   the default, is the location parameter `mu`.
 #' @param resp Response name, for a multivariate fit.
@@ -155,15 +227,23 @@
 #'                 nsim = 2000)
 #' head(cv[, c("x", ".estimate", ".se", ".lower_ci", ".lower_sim")])
 #' @export
-frm_curve <- function(object, newdata, dpar = NULL, resp = NULL,
-                      re.form = NA, level = 0.95, simultaneous = TRUE,
-                      nsim = 10000L, transform = FALSE, seed = NULL,
-                      tol = 1e-6) {
+frm_curve <- function(object, newdata, contrast = NULL, dpar = NULL,
+                      resp = NULL, re.form = NA, level = 0.95,
+                      simultaneous = TRUE, nsim = 10000L,
+                      transform = FALSE, seed = NULL, tol = 1e-6) {
   sp_check_level(level)
   sp_check_flag(simultaneous, "simultaneous")
   sp_check_flag(transform, "transform")
+  sp_check_contrast(newdata, contrast)
+  if (!is.null(contrast) && isTRUE(transform)) {
+    stop("frm_curve(contrast = , transform = TRUE): a difference of two ",
+         "linear predictors is not the difference of two responses ",
+         "under any link but the identity, so there is no inverse to ",
+         "return it through. Leave transform = FALSE", call. = FALSE)
+  }
   sp_rp_gate(object)
-  parts <- sp_curve_parts(object, newdata, dpar, resp, re.form, tol)
+  parts <- sp_curve_parts(object, newdata, dpar, resp, re.form, tol,
+                          contrast)
   # re-raised under this function's own name rather than let out of the
   # seam as it stands: the user called frm_curve(), not frm_lp_basis(),
   # and the sibling functions hand the seam a stencil rather than the
@@ -176,7 +256,8 @@ frm_curve <- function(object, newdata, dpar = NULL, resp = NULL,
       class = "frmtmb_ps_span_warning"))
   }
   sp_assemble(parts, parts$eta, parts$se, parts$Sigma, level, simultaneous,
-              nsim, transform, seed, newdata, what = "value")
+              nsim, transform, seed, newdata,
+              what = if (is.null(contrast)) "value" else "difference")
 }
 
 #' Build the returned data frame from an estimate, a standard error and
@@ -221,8 +302,9 @@ sp_assemble <- function(parts, est, se, Sigma, level, simultaneous, nsim,
             class = c("frmtmb_curve", "data.frame"),
             Sigma = Sigma, fit = parts$fit, what = what,
             level = level,
-            spec = list(newdata = newdata, dpar = parts$dpar,
-                        resp = parts$resp, re.form = parts$re.form),
+            spec = list(newdata = newdata, contrast = parts$contrast,
+                        dpar = parts$dpar, resp = parts$resp,
+                        re.form = parts$re.form),
             check = list(cov_rel_error = parts$rel,
                          n_predict = parts$n_predict,
                          crit_mcse = if (is.null(sim)) NA_real_ else sim$mcse),
@@ -279,6 +361,15 @@ print.frmtmb_curve <- function(x, ...) {
     cat("  covariance NOT checked: predict(se.fit = TRUE) is refused",
         " for a nonlinear predictor, so there is no second route to",
         " compare against\n", sep = "")
+  } else if (!is.null(attr(x, "spec")[["contrast"]])) {
+    # the number is the worse of the two grids, and it says the two
+    # DESIGNS were read correctly. predict(se.fit = TRUE) has no
+    # covariance between the grids to offer, so the difference's own
+    # standard error has no second route and print() must not imply one
+    cat("  each grid checked against predict(se.fit = TRUE) to ",
+        format(ck$cov_rel_error, digits = 3),
+        " relative; the difference itself has no second route\n",
+        sep = "")
   } else {
     cat("  covariance checked against predict(se.fit = TRUE) to ",
         format(ck$cov_rel_error, digits = 3), " relative\n",
@@ -306,6 +397,34 @@ sp_check_level <- function(level) {
 sp_check_flag <- function(x, nm) {
   if (!is.logical(x) || length(x) != 1L || is.na(x)) {
     stop("`", nm, "` must be TRUE or FALSE", call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' The second grid of a difference curve, checked before anything is
+#' predicted.
+#'
+#' Equal height is the contract, not recycling: `A1 - A2` is row by row,
+#' and a one-row contrast silently recycled against a fifty-row grid is
+#' a different quantity from the one the argument name promises. A user
+#' who wants a fixed reference profile repeats the row themselves, which
+#' says so in their own code.
+#'
+#' @noRd
+sp_check_contrast <- function(newdata, contrast) {
+  if (is.null(contrast)) return(invisible(NULL))
+  if (!is.data.frame(contrast) || !nrow(contrast)) {
+    stop("`contrast` must be a data frame with at least one row: it is ",
+         "the second grid the curve is differenced against",
+         call. = FALSE)
+  }
+  if (!is.data.frame(newdata) || nrow(contrast) != nrow(newdata)) {
+    stop("`contrast` must have the same number of rows as `newdata`, ",
+         "because the difference is taken row by row. It has ",
+         nrow(contrast), " against ",
+         if (is.data.frame(newdata)) nrow(newdata) else "none",
+         ". Repeat the row yourself to difference against one profile",
+         call. = FALSE)
   }
   invisible(NULL)
 }

@@ -1516,6 +1516,52 @@ harmless.
    tally, which is where `frmtmb.coupling` was caught. Either the lane
    brief for a new package names the guard, or the guard moves.
 
+## A simultaneous band over an exact `gp()` is too narrow (2026-09-08)
+
+Found by lane `wt-diffcurve` while filing a core seam, confirmed by its
+review on a build of 780dec1 with identical numbers. Shipped in
+`frmtmb.spline` 0.4.0 and earlier. NOT a difference-curve defect: it is
+a ONE-GRID defect and the difference work only found it.
+
+`frmtmb.spline::frm_curve(simultaneous = TRUE)` calls `sp_sim_crit()`
+with two arguments that stop matching off the observed `gp()`
+positions: the deviation process is drawn from `Sigma = A V A'`, and it
+is standardized by `se = sqrt(diag(A V A') + extra_var)`. An exact
+`gp()`'s kriging variance is in the divisor and not in the draw, so the
+standardized maxima have marginal standard deviation `sqrt(1 - r)`
+rather than 1, with `r = extra_var / se^2`, and the `level` quantile of
+them is too small. The band is too narrow. `simultaneous = FALSE` and
+every pointwise column, `.se` included, are correct.
+
+Bounded with public quantities: `extra_var` comes from
+`frm_lp_basis()` and the divisor from `predict(se.fit = TRUE)`, so `r`
+is computable and the simulation can be rerun standardized by
+`sqrt(diag(Sigma))`. On `y ~ fac + gp(x)`, 60 observations on [0, 6],
+noise 0.2, `nsim = 20000`, seed 1:
+
+| grid | `r` range | crit shipped | crit rescaled | ratio |
+|---|---|---|---|---|
+| inside the data, [1, 5] | [0.00008, 0.00025] | 2.76566 | 2.76591 | 1.00009 |
+| at the edge, [5.5, 6.5] | [0.00010, 0.00288] | 2.37258 | 2.37275 | 1.00007 |
+| extrapolating, [7, 12] | [0.01649, 0.70908] | 2.01622 | 2.36877 | 1.17485 |
+
+Under a hundredth of a percent inside the data, and at least 17 percent
+too narrow on a grid that extrapolates past the observed positions,
+which is exactly where a reader expects a band to widen. The ratio is a
+LOWER bound on the correction: rescaling fixes the marginal scale and
+keeps `A V A'`'s correlation, and a kriging residual that decorrelates
+faster than the mean function pushes the critical value higher still.
+
+The correct fix needs the conditional cross-covariance of the `gp()`,
+which no public seam returns; it is the same core seam
+`dev/diffcurve-findings.md` files for the difference curve, and closing
+that closes this. Two partial moves are available now and both are
+judgement calls: standardize the draw by `sqrt(diag(Sigma))`, which is
+right in scale, still misses the correlation and changes a released
+number; or warn on `simultaneous = TRUE` when `max(r)` is large, with
+`r` measured as above. Nobody owns it.
+
+
 ## Follow-ups carried out of the 0.55.0 round (2026-09-08)
 
 All nine items of the 0.54.0 list are closed. These are what the five

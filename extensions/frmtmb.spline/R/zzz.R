@@ -28,7 +28,7 @@
 .onLoad <- function(libname, pkgname) {
   frmtmb_register_compat(
     features = c(royston_parmar = "family", frm_curve = "method",
-                 rp_floored = "method"),
+                 frm_curve_contrast = "method", rp_floored = "method"),
     rules = sp_compat_rules)
   invisible()
 }
@@ -93,6 +93,28 @@ sp_compat_rules <- function() {
     "A multivariate fit reaches the right linear predictor through resp =, which is passed through to predict(). Not exercised.")
   r("frm_curve", "nl", "works",
     "The consumer dev/spline-seam-proposal.md was written for. A nonlinear body is not linear in its coefficients, so the linearity probe this package used to run refused it; frm_lp_basis() tapes the body instead and returns d eta / d coef as a Jacobian. predict(se.fit = TRUE) is still refused for a nonlinear predictor, so there is NO second route to check against: cov_rel_error comes back NA and print() says the check did not run. Measured on the warped-growth model of D'Alessandro, Thoresen and Sorensen (2026) fitted to brokenstick::smocc_200, and on a smaller ps() fit whose Jacobian agrees with a central difference of predict() to 1e-5.")
+  ## ---- the difference curve ---------------------------------------
+  r("frm_curve_contrast", "s()", "works",
+    "The case it is for. On y ~ fac + s(x, by = fac, k = 8) at n = 400 the difference agrees with gratia::difference_smooths(group_means = TRUE) on the same mgcv ML fit to 1.95e-08, which is 1.5 times the gap between the two packages' own fitted curves (1.29e-08) and so is the fit difference rather than a method difference. The attribution is provable rather than argued: the difference's disagreement with gratia equals the difference of the two curves' own disagreements to 5.55e-16. The standard errors agree to 1.56 percent, which sits BETWEEN curve A's 1.49 and curve B's 3.11 rather than below both, and does the same under unconditional = TRUE (1.32 between 1.15 and 1.58). mgcv's Vp is conditional on the smoothing parameter and the joint precision this package inverts is not; nothing measurable cancels, and the difference tracks the better curve. Simultaneous-band coverage of the true difference over the whole grid is 0.970 over 200 seeds (binomial mcse 0.0154) against a pointwise band's 0.685.")
+  r("frm_curve_contrast", "smooth", "works",
+    "Same thing named as a covariance structure. The two designs must sit at the same rows of the joint covariance for the subtraction to mean anything; coef_pos is compared on every call and a mismatch refuses rather than pairing the wrong columns.")
+  r("frm_curve_contrast", "nl", "works",
+    "Measured on a two-ps() nonlinear body, y ~ lev + ps(t) + b1 w + b2 w t + ps(z), differencing across w. frm_lp_basis() tapes the body and returns a Jacobian per grid, and the difference of two Jacobians is the Jacobian of the difference because the subtraction is linear. predict(se.fit = TRUE) is refused for a nonlinear predictor, so cov_rel_error is NA here for the same reason it is NA for one curve, and print() says so.")
+  r("frm_curve_contrast", "ps()", "works",
+    "Both grids are checked against the frozen knot span, and each message says which grid raised it. frm_curve_feature()'s second span gate asks whether a column other than the search variable varies DOWN each grid; it does NOT ask whether the two grids differ from one another, which they always do. Measured on the fixture above: a clean difference curve is accepted with no warning, and an out-of-span row in row 10 of either grid refuses by name.")
+  r("frm_curve_contrast", "predict", "works",
+    "Two calls rather than one, one per grid, and both are the covariance check. What predict(se.fit = TRUE) cannot supply is the covariance BETWEEN the grids, which is the whole content of a difference, so the check licenses the two designs and not the difference's own standard error.")
+  r("frm_curve_contrast", "gp", "conditional",
+    "Works when the two grids sit at the SAME gp() positions, which is the ordinary case: both then load the same kriging residual of the same field and it cancels exactly, so the difference is (A1 - A2) V (A1 - A2)' with nothing left over. Measured on y ~ fac + gp(x) over 90 points with the grid offset off the observed positions: the difference across fac is flat at 0.0618114535, which is sqrt(vcov(fit)[\"facB\", \"facB\"]) to 12 digits. Sameness is tested on the DESIGN, not on the variances: the two grids must agree bit for bit on EVERY column of A outside the fixed effects, where equality of extra_var alone would pass two different levels of one grouping block, which have identical marginal variances by construction and are different draws. That test is stricter than the mathematics needs and the refusal says so: only the block carrying the residual has to match, so a contrast across fac on y ~ fac + s(x, by = fac, k = 6) + gp(x) is refused even though its gp() columns are bit-identical, because the by-factor smooth's own columns differ. It fails closed, so that is a missing answer and not a wrong one. Refused too when the two grids sit at different gp() positions, which moving the second grid's x by 1e-10 already triggers. That refusal is a SEAM limit and not a mathematical one: the conditional cross-covariance is k(x1, x2) - Xr1 K Xr2' and core forms every piece of it at R/predict.R:383-405, but reduces the result to one variance per row before frm_lp_basis() returns. Filed as a core seam in dev/diffcurve-findings.md.")
+  r("frm_curve_contrast", "frm_lp_basis", "works",
+    "The whole implementation is two reads of that seam and one subtraction. Where core has a second route to the answer, the two agree bit for bit: on y ~ fac * x with no random effect the difference standard error is identical() to the one formed from vcov() and the same contrast matrix.")
+  r("frm_curve_contrast", "t2()", "untested",
+    "Nothing about a tensor smooth argues against it, since the assembly is per coefficient rather than per block, but no difference was taken across one.")
+  r("frm_curve_contrast", "rr", "untested",
+    "A reduced-rank block's loading columns reach A through rr_jacobians() and would subtract like any other column. Not exercised.")
+  r("frm_curve_contrast", "mvbf", "untested",
+    "resp = is passed to both grids alike. Not exercised.")
+
   r("rp_floored", "cens()", "works",
     "It still reports the censored rows whose fitted -log S passes 19.2, and since frmtmb 0.52.0 it does not REFUSE for them: the family supplies lccdf and the term is exact there. The count is kept because a censored row whose fitted survival probability is exp(-40) is one the data barely constrain, whatever the arithmetic does. What refuses is the monotonicity floor.")
   r("rp_floored", "royston_parmar", "works",

@@ -7,6 +7,7 @@
 frm_curve(
   object,
   newdata,
+  contrast = NULL,
   dpar = NULL,
   resp = NULL,
   re.form = NA,
@@ -24,6 +25,10 @@ frm_curve(
 \item{newdata}{The grid, as a data frame. Every variable the linear
 predictor reads must be a column, held at the value the curve is
 wanted at.}
+
+\item{contrast}{A second grid with the same number of rows, or \code{NULL}
+for an ordinary curve. With it the curve is \code{newdata} minus
+\code{contrast}, row by row.}
 
 \item{dpar}{Distributional parameter to read the curve off. \code{NULL},
 the default, is the location parameter \code{mu}.}
@@ -156,6 +161,79 @@ depends on the number of coefficients at all. The joint-precision
 solve is now the whole cost, it is paid once because core memoizes
 it, and it grows with the total number of coefficients in the fit
 rather than with the grid.
+}
+
+\section{A difference curve}{
+
+\code{contrast} is a second grid of the same height. The curve returned is
+then the DIFFERENCE of the two linear predictors, row by row, and its
+covariance is \verb{(A1 - A2) V (A1 - A2)'}, so both bands describe the
+difference and the simultaneous one answers "is this difference
+anywhere other than zero" over the whole grid at once. It is the
+quantity \code{gratia::difference_smooths(group_means = TRUE)} reports for
+a factor-by smooth, and on the same mgcv fit the two agree. Name that
+argument when you compare: gratia's default, \code{group_means = FALSE},
+zeroes the intercept and the parametric group columns and reports the
+smooth-only difference, which is a different quantity. On the fixture
+\code{test-difference.R} uses it is 0.52 away.
+
+A difference is NOT the difference of two calls to this function. The
+two curves share coefficients, so their covariance is what the
+difference is made of, and adding two standard errors in quadrature
+would ignore it.
+
+What the difference path cannot do, and refuses by name:
+
+\itemize{
+\item \code{transform = TRUE}. A difference of linear predictors is not
+a difference of responses under any link but the identity, so
+there is nothing to map it through.
+\item Two grids that load on different coefficients.
+\item Two grids that load DIFFERENT draws of a latent field whose
+variance is not coefficient uncertainty. See the next section.
+}
+
+The covariance check also means less here, and \code{print()} says so.
+\code{predict(se.fit = TRUE)} returns a marginal standard error per row
+and never the covariance between the grids, so the check runs on each
+half and \code{cov_rel_error} is the worse of the two: what it licenses is
+that both designs were read correctly.
+}
+
+\section{An exact \code{gp()} under a difference}{
+
+An exact \code{gp()} evaluated off the observed positions carries
+a kriging residual that is not coefficient uncertainty.
+\code{\link[frmtmb:frm_lp_basis]{frmtmb::frm_lp_basis()}} returns its variance one number per ROW and
+returns no covariance BETWEEN two grids, so \code{var(g1 - g2)} has no
+public route.
+
+It needs none in the ordinary case. A contrast taken across a factor
+at ONE \code{gp()} position leaves both grids loading the same residual,
+so it cancels exactly and the difference is \verb{(A1 - A2) V (A1 - A2)'}
+with nothing left over. That case is computed rather than refused.
+
+Sameness is decided on the design and not on the numbers: the two
+grids must agree bit for bit on EVERY column of \code{A} outside the fixed
+effects. Equality of the variances would not be enough, because two
+levels of one grouping block have identical marginal variances by
+construction and are different draws.
+
+That test is stricter than the mathematics needs, and it is worth
+knowing where the extra strictness bites. Only the block carrying the
+kriging residual has to match for the residual to cancel, but the
+test asks it of every latent column, so a contrast across \code{fac} on
+\code{y ~ fac + s(x, by = fac) + gp(x)} is REFUSED even though the \code{gp()}
+columns are identical: the by-factor smooth's own columns differ,
+which is what a by-factor smooth is for. It fails closed, so the cost
+is an answer you do not get rather than one you should not trust.
+
+The rest is refused because the SEAM cannot supply it, not because
+the mathematics is missing. The conditional cross-covariance is
+\verb{k(x1, x2) - Xr1 K Xr2'}, and core forms every piece of it while
+predicting, but reduces the result to one variance per row before the
+seam returns. Hold every latent term equal between the grids and
+contrast a fixed effect, or read the two curves separately.
 }
 
 \section{Past a \code{ps()} knot span}{
