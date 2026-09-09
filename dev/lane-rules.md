@@ -141,6 +141,24 @@ leaves hollow directories.
   log-scale gate and do not read `.eta_<dpar>` directly: it is reserved,
   not API.
 
+## Cost, which is a real constraint
+
+- **Use the round's shared reference library. Do not build one.** The
+  organizing session installs ONE copy of the base commit per round and
+  gives you its path. It is READ-ONLY: never install into it, and put it
+  after your own private library in `.libPaths()`. Your private library
+  holds your change; the shared one holds the base you measure against.
+- **`R CMD check --as-cran` runs ONCE, on your final pass.** It is ten
+  to twenty-five minutes, and the consolidating session runs the
+  authoritative one anyway. Running it after every edit is the single
+  largest avoidable cost in a lane.
+- **While you iterate, run the test files your change can reach.** The
+  whole package suite runs once, on that same final pass.
+- **Record the seed and the script path beside every number.** A number
+  without its construction gets re-derived from scratch by whoever reads
+  it next, and that has twice produced a confident and wrong claim that
+  a shipped figure was false.
+
 ## What you deliver
 
 1. The change in your worktree, roxygenised, installed into your private

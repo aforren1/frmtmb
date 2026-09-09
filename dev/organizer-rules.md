@@ -72,6 +72,47 @@ Put these in every brief you write.
   the false-alarm rate before shipping one, on designs the field
   actually produces rather than on the designs where it cannot fail.
 
+## Cost discipline
+
+The 0.55.1 round cost about ten million tokens and the workers and
+reviewers were nearly all of it. The verification is not what to cut:
+the reviewers found something real in every lane. These five are the
+waste that sat beside it.
+
+1. **One reference build per ROUND, not one per reviewer.** Every
+   reviewer last round installed its own copy of the base commit to
+   measure against. Build it once, before you spawn anything, and give
+   every lane the path READ-ONLY. Nobody installs into it. A lane still
+   needs its own private library for its own change, which is the rule
+   in `dev/lane-rules.md`; the shared one holds the BASE commit and
+   nothing else.
+2. **`R CMD check --as-cran` runs once per lane, at the end.** It is ten
+   to twenty-five minutes. Several lanes ran it three or four times, and
+   the consolidating session runs the authoritative one anyway. Say so
+   in the brief.
+3. **A full package suite runs once per lane, at the end.** While it
+   iterates, a lane runs the files its change can reach. Several lanes
+   ran everything three or four times.
+4. **Every recorded number carries its seed and its script path.** Twice
+   last round a reviewer could not find how a number was made,
+   re-measured from scratch, and wrongly called the record false. A
+   number with its construction attached is much cheaper to verify than
+   to rebuild, which is the second reason `dev/lane-rules.md` asks for
+   it.
+5. **Cosmetic corrections batch into the last punch round.** A round
+   that exists to fix wording and stale numbers in a findings file costs
+   a full cycle of re-reading state. Hold them.
+
+**Scope the review to the blast radius.** A change to a shipped density,
+to a public API or to a refusal gets the full adversarial pass against
+the reference build. A lane that adds documentation, or that inherits a
+fix another lane already proved, does not. Decide which you are buying
+before you spawn the reviewer, and say it in the brief.
+
+**Cap the punch rounds.** Two, and a third only when a finding is a
+BLOCKER rather than a nit. A re-check that moves nothing is a signal to
+stop, not to look harder.
+
 ## Reporting
 
 When the reviewer says mergeable, report to the main session:
