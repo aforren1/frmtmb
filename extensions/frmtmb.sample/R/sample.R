@@ -1762,7 +1762,8 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' @examples
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
-#'     requireNamespace("rstan", quietly = TRUE)) {
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
 #' set.seed(9)
 #' dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
 #' dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
@@ -2092,7 +2093,8 @@ print.frmtmb_draws <- function(x, ...) {
 #' @examples
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
-#'     requireNamespace("rstan", quietly = TRUE)) {
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
 #' # a binary GLMM with small clusters: the regime where the Laplace
 #' # approximation and Wald intervals are least reliable
 #' set.seed(4)
@@ -2212,7 +2214,8 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
 #' @examples
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
-#'     requireNamespace("rstan", quietly = TRUE)) {
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
 #' set.seed(9)
 #' dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
 #' dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
@@ -2309,6 +2312,35 @@ check_stan_draws <- function(sf, what) {
 #' per session) and names the exact defect, so a user on an affected
 #' build gets a refusal before any sampling rather than plausible
 #' garbage after it.
+#'
+#' WHERE IT FAILS OPEN, which is deliberate and has to stay written
+#' down. `nzchar(hpp) &&` makes an unreadable installation count as
+#' healthy. Three shapes were measured through that door and all three
+#' return FALSE, so the sampler runs (dev/tmbstan-findings.md):
+#'
+#' - no model.hpp at all;
+#' - a model.hpp that is present but EMPTY;
+#' - the defect written under a renamed placeholder, say
+#'   `std_normal_lpdf<propto__, false>(y)`.
+#'
+#' Fail-open is right HERE and only here. Refusing every installation
+#' whose model.hpp cannot be read would break correct machines, and
+#' each reachable absence also breaks tmbstan itself: its `configure`
+#' runs autogen at install time and `stopifnot(length(i) >= 1)` aborts
+#' the build rather than shipping a package without the file, so the
+#' user meets a loud runtime error and not plausible draws. A CALLER
+#' THAT TURNS THIS ANSWER INTO A PRINTED CLAIM MUST NOT INHERIT IT:
+#' the pin step in .github/workflows/check-frmtmb-sample.yaml keeps
+#' absent and empty as outcomes of their own and fails the job on
+#' them.
+#'
+#' A renamed placeholder is the shape no string check can cover. What
+#' covers it is the entry point the defect actually replaces:
+#' `rstan::grad_log_prob()` reads the unpatched reverse-mode overload,
+#' so on an affected build it returns the standard normal's gradient
+#' rather than the model's. tests/testthat/test-tmbstan-build-guard.R
+#' asserts those two against each other and takes no position on any
+#' string.
 #'
 #' @noRd
 tmbstan_build_broken <- local({

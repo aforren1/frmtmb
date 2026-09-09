@@ -7,8 +7,7 @@
 
 test_that("frm_sample runs parallel chains, formula route with ncp", {
   skip_on_cran()
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   skip_if_not_installed("posterior")
   # a load_all() dev namespace cannot be rebuilt on a worker; only the
   # installed package serializes

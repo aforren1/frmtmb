@@ -42,8 +42,7 @@ sample_scale_data <- function(seed = 20260908L) {
 test_that("the sample scale row samples and reports its cost", {
   skip_unless_scale()
   scale_row_on("sample")
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   tr <- sample_truth
   d <- sample_scale_data()
   chains <- if (scale_small()) 2L else tr$chains

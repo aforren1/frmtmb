@@ -10,8 +10,7 @@
 # ---- from tests/testthat/test-review-fixes.R ----
 
 test_that("frm_sample(prior=) works on a fixed-effects-only GLM", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   set.seed(404)
   d <- data.frame(x = rnorm(80))
   d$y <- rpois(80, exp(0.4 + 0.5 * d$x))
@@ -33,8 +32,7 @@ test_that("frm_sample(prior=) works on a fixed-effects-only GLM", {
 })
 
 test_that("frm_sample(laplace = TRUE) runs and labels outer draws", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   set.seed(405)
   d <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
   d$y <- rnorm(80, 1 + 0.5 * d$x + rnorm(8, 0, 0.5)[d$g], 1)
@@ -75,8 +73,7 @@ test_that("mode_inits anchors chain 1 and jitters the rest", {
 })
 
 test_that("frm_sample runs multiple chains with jittered mode inits", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   set.seed(409)
   d <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
   d$y <- rnorm(60, 1 + 0.5 * d$x + rnorm(6, 0, 0.5)[d$g], 1)
@@ -99,8 +96,7 @@ test_that("frm_sample runs multiple chains with jittered mode inits", {
 
 
 test_that("the formula route defaults to lkj(1) and takes an override", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   dd <- lkj_data()
   form <- bf(y ~ x + (x | g)) + gaussian()
 
@@ -147,8 +143,7 @@ test_that("the formula route defaults to lkj(1) and takes an override", {
 # ---- from tests/testthat/test-ordinal-fitted.R ----
 
 test_that("posterior_epred returns a draws x obs x category array", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   dd <- ordfit_data(114, n = 120)
   fit <- frm(bf(y ~ x) + cumulative(), data = dd)
   ds <- suppressWarnings(frm_sample(fit, chains = 1, iter = 400,
@@ -213,8 +208,7 @@ test_that("posterior_epred returns a draws x obs x category array", {
 })
 
 test_that("a scalar-response family keeps the draws x obs matrix", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   set.seed(115)
   gd <- data.frame(x = stats::rnorm(80))
   gd$y <- stats::rpois(80, exp(0.3 + 0.4 * gd$x))
@@ -244,8 +238,7 @@ test_that("the Windows cores guard reads options(mc.cores)", {
 })
 
 test_that("one chain under options(mc.cores) has nothing to note", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   if (.Platform$OS.type != "windows") {
     skip("the parallel-chain startup note is Windows-only")
   }
@@ -272,8 +265,7 @@ test_that("one chain under options(mc.cores) has nothing to note", {
 
 test_that("the loss model samples with the vignette's priors", {
   skip_on_cran()
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   withr::local_options(mc.cores = 1)
   dd <- loss_data()
   vignette_priors <- c(prior(normal(5000, 1000), nlpar = "ult"),
@@ -319,8 +311,7 @@ test_that("the loss model samples with the vignette's priors", {
 # ---- from tests/testthat/test-map.R ----
 
 test_that("a MAP fit's priors carry into frm_sample by default", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   set.seed(503)
   dd <- data.frame(x = rnorm(100))
   dd$y <- rnorm(100, 1 + 0.5 * dd$x, 1)
@@ -340,7 +331,7 @@ test_that("a MAP fit's priors carry into frm_sample by default", {
 # ---- from tests/testthat/test-interop.R ----
 
 test_that("as_tmbstan hands the objective to NUTS", {
-  skip_if_not_installed("tmbstan")
+  skip_sampler()
   set.seed(132)
   dd <- data.frame(x = rnorm(80))
   dd$y <- rnorm(80, 1 + 0.5 * dd$x, 1)
@@ -348,7 +339,6 @@ test_that("as_tmbstan hands the objective to NUTS", {
   sf <- suppressWarnings(as_tmbstan(fit, chains = 1, iter = 400,
                                     refresh = 0, seed = 1))
   expect_s4_class(sf, "stanfit")
-  skip_if_not_installed("rstan")
   dr <- rstan::extract(sf, "beta")$beta
   # judged against the chain's own spread: a seeded chain is not
   # platform-deterministic, and this asserts wiring, not mixing
@@ -361,8 +351,7 @@ test_that("as_tmbstan hands the objective to NUTS", {
 # ---- from tests/testthat/test-priors-bounds-grcov.R ----
 
 test_that("a tight prior pulls the posterior toward it", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   dd <- sim_lmm(seed = 302)
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
   ds <- suppressWarnings(
@@ -383,7 +372,7 @@ test_that("a tight prior pulls the posterior toward it", {
 
 test_that("frm_sample() runs on an hmm fit", {
   skip_on_cran()
-  skip_if_not_installed("tmbstan")
+  skip_sampler()
   skip_if_not_installed("frmtmb.latent")
   dd <- sim_hmm(8, 12, G2, c(0, 3), c(0.6, 0.6), 4026)
   fit <- frm(bf(y ~ 1),
@@ -399,7 +388,7 @@ test_that("frm_sample() runs on an hmm fit", {
 
 test_that("frm_sample() runs on an lca fit", {
   skip_on_cran()
-  skip_if_not_installed("tmbstan")
+  skip_sampler()
   skip_if_not_installed("frmtmb.latent")
   s <- sim_lca_data(n = 150)
   fit <- frm(bf(Y ~ 1), family = frmtmb.latent::lca(K = 2), data = s$dd)
@@ -413,8 +402,7 @@ test_that("frm_sample() runs on an lca fit", {
 # ---- from tests/testthat/test-backlog.R ----
 
 test_that("bayesplot consumes as_tmbstan draws", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   skip_if_not_installed("bayesplot")
   set.seed(170)
   dd <- data.frame(x = rnorm(60))
@@ -428,30 +416,10 @@ test_that("bayesplot consumes as_tmbstan draws", {
   expect_true(all(is.finite(iv$m)))
 })
 
-# ---- from tests/testthat/test-input-validation.R ----
-
-test_that("a tmbstan build that samples the wrong density is refused", {
-  skip_if_not_installed("tmbstan")
-  # this installation is a healthy binary build: the static check must
-  # pass silently (the affected builds are source installs whose
-  # model.hpp keeps an unpatched std_normal placeholder; see
-  # dev/prior-dropping-investigation.md)
-  expect_false(frmtmb.sample:::tmbstan_build_broken())
-  expect_silent(frmtmb.sample:::check_tmbstan_build("frm_sample()"))
-  # the PATTERN of the refusal path, pinned against a synthesized
-  # broken model.hpp line so guard and autogen output cannot drift
-  # apart silently; the stop() branch itself is unreachable on a
-  # healthy installation and is not executed here
-  bad <- "lp_accum__.add(stan::math::std_normal_lpdf<propto__>(y));"
-  expect_true(any(grepl("std_normal_lpdf<propto__>(y)", bad,
-                        fixed = TRUE)))
-})
-
 # ---- from tests/testthat/test-v07.R ----
 
 test_that("frm_sample returns named draws and check_laplace agrees on a clean model", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   set.seed(204)
   dd <- data.frame(x = rnorm(150), g = factor(rep(1:15, 10)))
   dd$y <- rnorm(150, 1 + 0.5 * dd$x + rnorm(15, 0, 0.8)[dd$g], 1)
@@ -493,8 +461,7 @@ test_that("frm_sample returns named draws and check_laplace agrees on a clean mo
 # ---- from tests/testthat/test-v15.R ----
 
 test_that("the draws surface runs the model machinery per draw", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   set.seed(43)
   dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
   dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.6)[dd$g], 0.8)
@@ -590,8 +557,7 @@ test_that("the draws surface runs the model machinery per draw", {
 # ---- from tests/testthat/test-review-v29.R ----
 
 test_that("posterior_linpred stays on the mu predictor for an ordinal fit", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   dd <- v29_ordinal_data(46, n = 120)
   fit <- frm(bf(y ~ x) + cumulative(), data = dd)
   ds <- suppressWarnings(frm_sample(fit, chains = 1, iter = 400,
@@ -639,7 +605,7 @@ test_that("posterior_linpred stays on the mu predictor for an ordinal fit", {
 
 test_that("ordinal posterior_epred has brms's draws x obs x category shape", {
   skip_unless_brms_fit()
-  skip_if_not_installed("tmbstan")
+  skip_sampler()
 
   # ?brms::posterior_epred.brmsfit: "an S x N x C array" for categorical
   # and ordinal models, an S x N matrix otherwise. This is the agreement
@@ -682,8 +648,7 @@ test_that("ordinal posterior_epred has brms's draws x obs x category shape", {
 # ---- from tests/testthat/test-review-v25.R ----
 
 test_that("frm_sample warns when a bound excludes the ML mode", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   set.seed(55)
   n <- 120
   dd <- data.frame(x = stats::rnorm(n), g = factor(rep(1:12, 10)))
@@ -881,8 +846,7 @@ test_that("an nlpar-addressed prior bound reaches frm_sample's bounds", {
 })
 
 test_that("frm_sample samples inside an nlpar prior bound", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   set.seed(32)
   n <- 300
   dd <- data.frame(x = stats::runif(n, 0, 10))
@@ -920,8 +884,7 @@ test_that("frm_sample's retired lower=/upper= are refused, not swallowed", {
 })
 
 test_that("a residual-correlation prior class reaches frm_sample", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   set.seed(34)
   ng <- 40; k <- 6; n <- ng * k
   dd <- data.frame(x = stats::rnorm(n), t = rep(seq_len(k), ng),

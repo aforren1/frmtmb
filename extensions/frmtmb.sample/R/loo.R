@@ -237,7 +237,8 @@ draws_row_loglik <- function(fit, resp) {
 #' @examples
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
-#'     requireNamespace("rstan", quietly = TRUE)) {
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
 #'   set.seed(9)
 #'   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
 #'   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
@@ -342,7 +343,8 @@ log_lik.frmtmb_draws <- function(object, ndraws = NULL, resp = NULL,
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
 #'     requireNamespace("rstan", quietly = TRUE) &&
-#'     requireNamespace("loo", quietly = TRUE)) {
+#'     requireNamespace("loo", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
 #'   set.seed(9)
 #'   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
 #'   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
@@ -547,7 +549,8 @@ WAIC.frmtmb_draws <- function(x, ...) {
 #' @examples
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
-#'     requireNamespace("rstan", quietly = TRUE)) {
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
 #'   set.seed(9)
 #'   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
 #'   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
@@ -628,7 +631,8 @@ bayes_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
 #' @examples
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
-#'     requireNamespace("rstan", quietly = TRUE)) {
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
 #'   set.seed(1)
 #'   dd <- data.frame(x = rnorm(40))
 #'   dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)

@@ -153,7 +153,8 @@ double as "unset". The behavior when neither is given is unchanged:
 \examples{
 \donttest{
 if (requireNamespace("tmbstan", quietly = TRUE) &&
-    requireNamespace("rstan", quietly = TRUE)) {
+    requireNamespace("rstan", quietly = TRUE) &&
+    !frmtmb.sample:::tmbstan_build_broken()) {
 set.seed(9)
 dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
 dd$y <- rpois(80, exp(0.3 + 0.4 * dd$x + rnorm(8, 0, 0.5)[dd$g]))

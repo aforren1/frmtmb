@@ -12,6 +12,14 @@ test_that("frm_sample runs a short chain on a wiener model", {
   skip_if_not_installed("RWiener")
   skip_if_not_installed("frmtmb.sample")
   skip_if_not_installed("tmbstan")
+  # Installed is not the same as working. A tmbstan built against
+  # StanHeaders >= 2.39 samples a standard normal instead of the
+  # model, and frm_sample() refuses it, so without this the block
+  # ERRORS rather than skipping. No CI job installs both frmtmb.sample
+  # and tmbstan here, but a developer machine does.
+  skip_if(frmtmb.sample:::tmbstan_build_broken(),
+          paste("this tmbstan samples a standard normal instead of",
+                "the model; see dev/prior-dropping-investigation.md"))
 
   set.seed(77)
   dat <- ddm_simulate(250, mu = 0.9, bs = 1.4, ndt = 0.25)

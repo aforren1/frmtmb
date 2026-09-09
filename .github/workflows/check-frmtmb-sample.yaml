@@ -11,6 +11,12 @@
 # compiles nothing, and its compiled dependencies (RTMB, rstan,
 # StanHeaders, tmbstan) come as binaries from the RSPM build. No
 # extra-repositories input: everything it needs is on CRAN.
+#
+# A binary is not enough for tmbstan, which is why the pin step below
+# exists. tmbstan generates its Stan model when it is BUILT and ships
+# the result inside the package, so the build decides whether the
+# sampler evaluates the model or a standard normal. Read that step
+# before changing anything about how tmbstan gets here.
 on:
   push:
     branches: [main, master]
@@ -49,6 +55,14 @@ jobs:
       # pkgcheck workflow: platform sampler variance is real, and the
       # structural assertions are never gated
       FRMTMB_SAMPLER_GATES: "false"
+      # The donttest examples carry this lane's build guard, and they
+      # are the only place a sampler call is not a test. This runs them
+      # so that guard is exercised. Restoring --as-cran would do it
+      # too, and was rejected: under check-r-package's error-on:
+      # warning default it promotes unrelated verdicts, a missing qpdf
+      # among them, for nothing this job needs. Incoming checks are off
+      # either way; the action sets _R_CHECK_CRAN_INCOMING_ to false.
+      _R_CHECK_DONTTEST_EXAMPLES_: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: r-lib/actions/setup-pandoc@v2
@@ -102,6 +116,170 @@ jobs:
           p <- trimws(sub("[(].*", "", p))
           p <- setdiff(p[nzchar(p)], rownames(installed.packages()))
           if (length(p)) install.packages(p)
+        shell: Rscript {0}
+      # WHY THIS STEP EXISTS, and what deleting it costs.
+      #
+      # tmbstan runs tools/autogen.R when it is BUILT: it rewrites a
+      # std_normal placeholder in the stanc output into the call that
+      # evaluates the TMB objective, and installs the result as
+      # model.hpp. stanc 2.39.0, which arrived with StanHeaders 2.39.1
+      # on CRAN on 2026-09-02, emits TWO log_prob_impl overloads where
+      # 2.32 emitted one, and autogen replaces only the first match.
+      # HMC reads the second, so every chain samples a standard normal
+      # with the objective, the data and the priors all absent, and it
+      # does so silently. dev/prior-dropping-investigation.md has the
+      # full record; frmtmb.sample refuses such a build statically.
+      #
+      # This is not a source-build problem that binaries dodge. RSPM
+      # REBUILT its noble R-4.6 binary of tmbstan 1.2.0 on 2026-09-03,
+      # against 2.39.1. Measured on the artifacts themselves:
+      #
+      #   __linux__/noble/latest      built 2026-09-03  1 unpatched
+      #   __linux__/noble/2026-09-01  built 2026-08-28  0 unpatched
+      #
+      # So the pin is a DATE, not a version, and it is the whole Stan
+      # trio rather than tmbstan alone, so the three stay the set RSPM
+      # built against each other.
+      #
+      # What this cost before it existed: run 34258865676 of this job,
+      # 2026-09-08, reported FAIL 0 | SKIP 10 | PASS 890 and Status OK
+      # while its tmbstan sampled a standard normal. The draws tests
+      # assert structure, and structure is satisfied by noise.
+      #
+      # DELETE THIS STEP when kaskr/tmbstan patches every match in
+      # tools/autogen.R and CRAN ships it. The probe at the end tells
+      # you when: it warns on every run once the pin is unnecessary.
+      - name: Pin a tmbstan whose generated model.hpp is patched
+        run: |
+          marker <- "std_normal_lpdf<propto__>(y)"
+          # Three outcomes, not two. An unreadable model.hpp is not a
+          # patched one, and this step turns its answer into a printed
+          # claim in the job summary, so "cannot tell" must be its own
+          # result and must stop. The package's own detector folds
+          # absent into clean on purpose, because refusing every
+          # installation it cannot read would break correct machines;
+          # a report may not borrow that.
+          verdict <- function(path) {
+            if (!nzchar(path) || !file.exists(path)) return("absent")
+            ln <- readLines(path, warn = FALSE)
+            if (!length(ln)) return("empty")
+            if (any(grepl(marker, ln, fixed = TRUE))) "unpatched"
+            else "patched"
+          }
+          # The repository to pin FROM is the RSPM one, which is NOT
+          # the CRAN entry. r-lib/actions/setup-r@v2 with
+          # use-public-rspm writes both, and its `cran` input has no
+          # default, so the CRAN entry is the literal
+          # https://cran.rstudio.com and the '/latest' substitution
+          # below is a no-op on it. The runner prints the pair itself,
+          # in setup-r-dependencies under "Repo status".
+          #
+          # `[[` on a name the vector does not carry is an error, not
+          # NULL, so the lookup is guarded: without this the fallback
+          # below is unreachable and a runner with no RSPM entry dies
+          # on "subscript out of bounds" instead of the message it
+          # needs.
+          rp <- getOption("repos")
+          repo <- if ("RSPM" %in% names(rp)) rp[["RSPM"]] else ""
+          if (is.na(repo) || !nzchar(repo)) repo <- Sys.getenv("RSPM")
+          if (!nzchar(repo)) {
+            stop("no RSPM repository is configured, so this step ",
+                 "cannot pin a tmbstan build and MUST NOT pretend it ",
+                 "did: the sampler tier would then run against ",
+                 "whatever tmbstan the resolver produced, which since ",
+                 "2026-09-03 is one that samples a standard normal. ",
+                 "Set use-public-rspm: true on setup-r, or delete ",
+                 "this step and say in the job that the tier is ",
+                 "unpinned")
+          }
+          pin <- sub("/latest/?$", "/2026-09-01", repo)
+          if (identical(pin, repo)) {
+            stop("could not derive a dated snapshot from ", repo,
+                 ": this step assumes the RSPM '/latest' layout that ",
+                 "use-public-rspm configures. If the runner is already ",
+                 "pinned to a dated snapshot, check that its date is ",
+                 "2026-09-02 or earlier and then delete this step")
+          }
+          install.packages(c("StanHeaders", "rstan", "tmbstan"),
+                           repos = pin)
+          hpp <- system.file("model.hpp", package = "tmbstan")
+          state <- verdict(hpp)
+          bad <- !identical(state, "patched")
+          vers <- vapply(c("tmbstan", "StanHeaders", "rstan"),
+                         function(p) format(packageVersion(p)), "")
+          summ <- Sys.getenv("GITHUB_STEP_SUMMARY")
+          say <- function(...) {
+            cat(..., "\n", sep = "")
+            if (nzchar(summ)) cat(..., "\n", sep = "", file = summ,
+                                  append = TRUE)
+          }
+          say("### tmbstan build check")
+          say("- pin: `", pin, "`")
+          say("- ", paste(names(vers), vers, collapse = ", "))
+          say("- model.hpp: **", state, "**")
+          if (identical(state, "unpatched")) {
+            stop("the pinned tmbstan STILL carries an unpatched ",
+                 "log-density overload, so every chain would sample a ",
+                 "standard normal. The sampler tier cannot run. Do not ",
+                 "silence this by removing the pin: find a snapshot ",
+                 "whose model.hpp is patched, or say in the job that ",
+                 "the tier did not run")
+          }
+          if (bad) {
+            stop("tmbstan's model.hpp is ", state, ", so this step ",
+                 "cannot tell whether the build samples the model or a ",
+                 "standard normal. That is not a pass. tmbstan's own ",
+                 "configure aborts when it cannot generate the file, ",
+                 "so reaching here means the installation is damaged")
+          }
+          # Is the pin still needed? Answered by reading the UNPINNED
+          # artifact, not a version number: through this whole episode
+          # tmbstan stayed at 1.2.0 and only its build date moved, so a
+          # version comparison would never fire. The version comes from
+          # the unpinned repository rather than from what was just
+          # installed, or the probe would ask for a version that no
+          # longer exists there the day tmbstan is bumped, 404, and go
+          # quiet exactly when it is most wanted.
+          #
+          # Non-fatal, so a network hiccup cannot fail an otherwise
+          # good run, but loud on every run so the pin cannot quietly
+          # outlive its reason.
+          #
+          # A TRAP FOR THE NEXT PERSON, so do not "fix" the path below.
+          # `repo` must be the RSPM one, where X-Package-Type is binary
+          # and the archive holds the BUILT tmbstan/model.hpp. A CRAN
+          # SOURCE tarball holds two other copies, inst/model.hpp and
+          # src/include/model.hpp, byte-identical and always the stale
+          # CLEAN one: configure regenerates both at install time, so
+          # the shipped pair says nothing about what any build
+          # produced. Pointing this probe at either of those paths
+          # would make it warn "upstream is fixed" on every run
+          # forever. If the path below stops matching, the right
+          # response is to check that `repo` is still RSPM, not to
+          # hunt for a model.hpp deeper in the tree.
+          try({
+            av <- available.packages(repos = repo)
+            ver <- av["tmbstan", "Version"]
+            if (!identical(ver, vers[["tmbstan"]])) {
+              say("- the unpinned repository now has tmbstan ", ver,
+                  ", against the pinned ", vers[["tmbstan"]])
+            }
+            u <- paste0(repo, "/src/contrib/tmbstan_", ver, ".tar.gz")
+            tf <- tempfile(fileext = ".tar.gz")
+            td <- tempfile()
+            download.file(u, tf, quiet = TRUE)
+            dir.create(td)
+            untar(tf, exdir = td)
+            live <- file.path(td, "tmbstan", "model.hpp")
+            if (identical(verdict(live), "patched")) {
+              say("- :warning: the UNPINNED tmbstan at `", repo,
+                  "` is patched again. Upstream looks fixed: delete ",
+                  "this step.")
+              cat("::warning title=tmbstan pin is obsolete::the ",
+                  "unpinned tmbstan build is patched again; delete ",
+                  "the pin step in check-frmtmb-sample.yaml\n", sep = "")
+            }
+          }, silent = TRUE)
         shell: Rscript {0}
       - uses: r-lib/actions/check-r-package@v2
         with:

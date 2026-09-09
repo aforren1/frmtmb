@@ -335,7 +335,8 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
 #' @examples
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
-#'     requireNamespace("rstan", quietly = TRUE)) {
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
 #' set.seed(9)
 #' dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
 #' dd$y <- rpois(80, exp(0.3 + 0.4 * dd$x + rnorm(8, 0, 0.5)[dd$g]))
@@ -573,7 +574,10 @@ pp_check.frmtmb_draws <- function(object, type = "dens_overlay",
 #'   and one row per draw.
 #' @examples
 #' \donttest{
-#' if (requireNamespace("posterior", quietly = TRUE)) {
+#' if (requireNamespace("posterior", quietly = TRUE) &&
+#'     requireNamespace("tmbstan", quietly = TRUE) &&
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
 #'   set.seed(9)
 #'   dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
 #'   dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
@@ -702,7 +706,8 @@ as.mcmc.frmtmb_draws <- function(x, combine_chains = FALSE, ...) {
 #' @examples
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
-#'     requireNamespace("rstan", quietly = TRUE)) {
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
 #'   set.seed(9)
 #'   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
 #'   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
@@ -774,7 +779,8 @@ nvariables.frmtmb_draws <- function(x) ncol(x$draws)
 #' @examples
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
-#'     requireNamespace("rstan", quietly = TRUE)) {
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
 #'   set.seed(9)
 #'   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
 #'   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
@@ -917,7 +923,8 @@ predictive_error.frmtmb_draws <- function(object, resp = NULL,
 #' @examples
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
-#'     requireNamespace("rstan", quietly = TRUE)) {
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
 #'   set.seed(9)
 #'   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
 #'   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
@@ -1032,7 +1039,8 @@ draws_summarize_coef <- function(per) {
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
 #'     requireNamespace("rstan", quietly = TRUE) &&
-#'     requireNamespace("bayesplot", quietly = TRUE)) {
+#'     requireNamespace("bayesplot", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
 #'   set.seed(9)
 #'   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
 #'   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
@@ -1178,7 +1186,8 @@ draws_bayesplot_ns <- function(what) {
 #' @examples
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
-#'     requireNamespace("rstan", quietly = TRUE)) {
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
 #'   set.seed(4)
 #'   dd <- data.frame(y = c(rnorm(60, -2), rnorm(60, 3)))
 #'   fit <- frm(bf(y ~ 1), family = frmtmb::mixture(gaussian(), gaussian()),
@@ -1234,7 +1243,8 @@ pp_mixture.frmtmb_draws <- function(x, summary = TRUE, ndraws = NULL,
 #' @examples
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
-#'     requireNamespace("rstan", quietly = TRUE)) {
+#'     requireNamespace("rstan", quietly = TRUE) &&
+#'     !frmtmb.sample:::tmbstan_build_broken()) {
 #'   set.seed(1)
 #'   dd <- data.frame(x = rnorm(40))
 #'   dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
