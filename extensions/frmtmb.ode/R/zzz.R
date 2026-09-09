@@ -5,6 +5,10 @@
 #' group, and the one pair the package knows to be unusable. Registering
 #' at load time is what keeps frmtmb free of any mention of ODEs.
 #'
+#' `frm_lincmt()` is in the vocabulary and carries NO refusal. That is
+#' a claim, not an omission: the refusal on `frm_ode()` is about
+#' RTMBode calling deSolve unguarded, and `frm_lincmt()` calls neither.
+#'
 #' @noRd
 .onLoad <- function(libname, pkgname) {
   frmtmb::frmtmb_register_frame_check(check_ode_constancy)
@@ -12,9 +16,10 @@
   # neither depends on nor suggests it. Declaring the forward reference
   # is what keeps the rule from dangling; without it frmtmb refuses the
   # whole registration.
-  frmtmb::frmtmb_register_compat(features = c("frm_ode()" = "special"),
-                                 rules = ode_compat_rules,
-                                 expects = "frm_sample")
+  frmtmb::frmtmb_register_compat(
+    features = c("frm_ode()" = "special", "frm_lincmt()" = "special"),
+    rules = ode_compat_rules,
+    expects = "frm_sample")
   invisible()
 }
 

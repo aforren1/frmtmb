@@ -12,6 +12,14 @@ run was made is in `dev/scale-lane-notes.md`.
 This is the row the plan singles out: "Whether 5.4 is Phase 5 or Phase
 1 is what Phase 0 decides."
 
+**It decided, and the item is built.** `frm_lincmt()` is the analytic
+one- to three-compartment path, and it takes this row's design from
+3948 s to under a minute at its default. The identity with `frm_ode()`,
+the numerics against a 240-bit reference, the timing with its control
+arm and what the closed form refuses are in the repository root's
+`dev/lincmt-findings.md`; the scripts that produced every number are in
+`dev/lincmt/`.
+
 Run it with:
 
     $env:NOT_CRAN = "true"

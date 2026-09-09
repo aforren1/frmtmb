@@ -149,7 +149,8 @@ ode_columns <- function(x, n_obs, arg) {
 #' where the actual values are available.
 #'
 #' @noRd
-ode_check_constant <- function(cols, groups, arg, labels) {
+ode_check_constant <- function(cols, groups, arg, labels,
+                               who = "frm_ode()") {
   for (j in seq_along(cols)) {
     v <- cols[[j]]
     if (inherits(v, "advector") || length(v) == 1L || !is.numeric(v)) {
@@ -163,10 +164,10 @@ ode_check_constant <- function(cols, groups, arg, labels) {
             1e-8 * max(1, max(abs(rng)))) {
         stop("`", arg, "` column ", j, " is not constant within group '",
              labels[[g]], "' (values ", format(rng[1L]), " to ",
-             format(rng[2L]), "). frm_ode() solves one system per group ",
-             "and reads each dynamics input off the group's first row, ",
-             "so a within-group covariate cannot enter the likelihood.",
-             call. = FALSE)
+             format(rng[2L]), "). ", who, " evaluates one system per ",
+             "group and reads each dynamics input off the group's ",
+             "first row, so a within-group covariate cannot enter the ",
+             "likelihood.", call. = FALSE)
       }
     }
   }
@@ -1001,14 +1002,32 @@ ode_solve_events <- function(run, y0, pv, tvals, ev, tstart, n_state,
 #' **approximation**, and its error is geometric - for linear kinetics
 #' the shortfall after `n` cycles is the accumulation factor to the
 #' power `n`, which is `exp(-n * k * ii)` for a one-compartment system.
-#' At the default `n_ss = 20` that is `1e-21` for a drug eliminated over
-#' its dosing interval and only a percent or two for one whose
-#' half-life is many intervals long. Off the tape - a direct call,
-#' [predict()], [simulate()], a body holding no estimated parameter -
-#' the last two cycles are compared and `frm_ode()` warns when they
-#' still differ by more than `ss_tol`. During a fit that check cannot
-#' run, so read the warning from a numeric call and raise `n_ss` if it
-#' fires.
+#' The rate `k` in that expression is the SLOWEST disposition
+#' eigenvalue, `lambda_z`, so the shortfall is
+#' `exp(-n_ss * lambda_z * ii)` and it is set by the terminal half-life
+#' measured in dosing intervals. **Choose `n_ss` so that
+#' `n_ss * lambda_z * ii` is at least 20**, which puts the shortfall at
+#' 2e-09. The default of 20 does that only when the terminal half-life
+#' is under about three dosing intervals. Measured, on a
+#' two-compartment oral model at `n_ss = 20`: a 23 hour half-life dosed
+#' every 8 hours is 4e-03 short, a 107 hour half-life dosed daily is
+#' 1.2e-02 short, and a 265 hour half-life dosed daily is 9e-02 short.
+#' A half-life of ten dosing intervals is 25 percent short. It moves
+#' estimates: on one 30-subject dataset simulated from the exact steady
+#' state, fitting at `n_ss = 20` rather than at the limit moved `k21`
+#' by a factor of 3.2 and `ke` by 11 percent.
+#'
+#' Off the tape - a direct call, [predict()], [simulate()], a body
+#' holding no estimated parameter - the last two cycles are compared
+#' and `frm_ode()` warns when they still differ by more than `ss_tol`.
+#' During a fit that check cannot run at all. **Do not choose `n_ss`
+#' from that warning**: it reports the CYCLE-TO-CYCLE movement, which
+#' understates the distance to the limit by about `1 / (lambda_z * ii)`
+#' and so understates it most exactly where the error is largest
+#' (measured at 3.1x, 6.6x and 10.8x as the half-life grows). Compare
+#' `n_ss` against `2 * n_ss` numerically instead, or, for a linear
+#' compartment model, use `frm_lincmt()`, whose default sums the series
+#' and has nothing to truncate.
 #'
 #' The cost is `n_ss` extra solves per group (two per cycle for an
 #' infusion), so a steady-state population fit is several times a plain
@@ -1706,7 +1725,12 @@ frm_ode_failures <- function() {
 # frmtmb calls this through frmtmb_register_frame_check(), which .onLoad
 # fills in. The core therefore names neither this package nor frm_ode().
 
-#' Every `frm_ode()` call inside an expression, matched to its formals.
+#' Every `frm_ode()` or `frm_lincmt()` call inside an expression,
+#' matched to its formals.
+#'
+#' Both are covered because both read their dynamics inputs off the
+#' group's first row, so both are wrong in the same silent way when a
+#' covariate varies inside a group.
 #'
 #' @noRd
 find_ode_calls <- function(expr, out = list()) {
@@ -1716,9 +1740,10 @@ find_ode_calls <- function(expr, out = list()) {
       if (is.call(fn) && identical(as.character(fn[[1L]]), "::")) {
         as.character(fn[[3L]])
       } else ""
-    if (identical(nm, "frm_ode")) {
+    if (nm %in% c("frm_ode", "frm_lincmt")) {
+      f <- if (identical(nm, "frm_ode")) frm_ode else frm_lincmt
       out <- c(out, list(
-        tryCatch(match.call(frm_ode, expr), error = function(e) NULL)
+        tryCatch(match.call(f, expr), error = function(e) NULL)
       ))
     }
     for (i in seq_along(expr)) {
@@ -1741,11 +1766,12 @@ missing_arg <- function(x) is.name(x) && !nzchar(as.character(x))
 #' Refuse a dynamics parameter that varies inside a solve group.
 #'
 #' Walks the nonlinear body of every linear predictor for `frm_ode()`
-#' calls, and for each nonlinear parameter appearing in that call's
-#' `init` or `parms` argument checks that the parameter's design is
-#' constant within the levels of the call's `group` column. Only a bare
-#' symbol `group =` can be resolved against the model frame; anything
-#' computed is left to the runtime check in [frm_ode()].
+#' and `frm_lincmt()` calls, and for each nonlinear parameter appearing
+#' in that call's `init` or `parms` argument checks that the
+#' parameter's design is constant within the levels of the call's
+#' `group` column. Only a bare symbol `group =` can be resolved against
+#' the model frame; anything computed is left to the runtime check in
+#' [frm_ode()].
 #'
 #' The signature is `frmtmb_register_frame_check()`'s: `frame` supplies
 #' the model frame and the `linpred()` accessor.
@@ -1781,10 +1807,11 @@ check_ode_constancy <- function(spec, frame) {
                    ode_varying_cols(lp[["Z"]], gi))
           if (length(bad)) {
             stop("Nonlinear parameter '", np, "' is a dynamics input of ",
-                 "frm_ode() but is not constant within '", gname,
+                 utils::tail(as.character(cl[[1L]]), 1L),
+                 "() but is not constant within '", gname,
                  "': ", paste(unique(bad), collapse = ", "),
-                 ". frm_ode() solves one system per group and reads ",
-                 "each dynamics input off the group's first row, so a ",
+                 ". One system is solved per group and every dynamics ",
+                 "input is read off the group's first row, so a ",
                  "term that varies within a group cannot enter the ",
                  "likelihood - the fit would leave its coefficient at ",
                  "the start value with an indefinite Hessian. Move the ",
