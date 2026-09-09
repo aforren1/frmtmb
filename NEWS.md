@@ -1,4 +1,11 @@
-# frmtmb (development version)
+# frmtmb 0.55.1
+
+* `?frm_compat_features` now says which column a caller may key on.
+  `name` was documented as "how the feature is written in a formula",
+  which is false for the three `_pred` rows: a formula writes `mi(x)`,
+  never `mi_pred(x)`. `key` is the parser name, and frmtmb.sample's
+  new pre-flight refusal depends on that, so it is a contract rather
+  than an observed regularity now. No behavior changed.
 
 * `?frmtmb_register_compat` states what a `refused` row promises: the
   row is a claim about what the code does, not a note for a reader,

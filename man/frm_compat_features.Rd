@@ -16,11 +16,21 @@ mode, model structure, and post-fit method that has a declared
 compatibility status.
 }
 \details{
-\code{name} is how the feature is written in a formula or a call. \code{key}
-is the identifier the package uses internally, which is what lets
-the tests check the registry against \code{\link[=frm]{frm()}}'s real vocabulary.
-Three specials share a name with a covariance structure, so they
-carry the display names \code{mi_pred()}, \code{gp_pred()}, and \code{cs_pred()}.
+\code{key} is the PARSER NAME: the identifier \code{\link[=frm]{frm()}} itself matches when
+it reads a formula, which is what lets the tests check the registry
+against the real vocabulary. A caller deciding whether a formula
+could be written with a feature should read \code{key}, not \code{name}.
+
+\code{name} is the DISPLAY name, which is what the printed table shows
+and which carries \code{"()"} for a callable feature. It is usually also
+what a formula writes, and for three rows it is not: \code{mi()}, \code{gp()}
+and \code{cs()} each name both a predictor special and a covariance
+structure, so the specials carry the display names \code{mi_pred()},
+\code{gp_pred()} and \code{cs_pred()} while keeping the keys \code{mi}, \code{gp} and
+\code{cs} that a formula actually writes. Those three are the only rows
+where the two columns differ, and \code{frmtmb.sample}'s pre-flight
+refusal asserts exactly that set, so a fourth would fail its tests
+rather than being read as a name no formula writes.
 }
 \examples{
 head(frm_compat_features())

@@ -1,4 +1,41 @@
-# frmtmb.eam (development version)
+# frmtmb.eam 0.6.0
+
+A random effect on the non-decision time is broken, and with
+`variability` set it is broken SILENTLY. Read the first bullet before
+fitting a hierarchical DDM.
+
+* `wiener()` bounds the non-decision time by `min(rt)`, the GLOBAL
+  fastest response in the data, through a scaled logit. With a random
+  effect on `ndt` this is the wrong constraint: the information about
+  a subject's non-decision time is that subject's own fastest
+  response, and a subject whose true `ndt` is above the global minimum
+  cannot be represented at any value of the random effect. At 30
+  subjects by 400 trials with a between-subject `ndt` spread of 26 ms
+  on a mean of 250 ms, 20 of the 30 subjects are in that position
+  while NONE is inconsistent with its own data. Without `variability`
+  the fit does not converge and says so: maximum absolute gradient
+  1.3e11, Hessian not positive definite, all seven standard errors
+  `NaN`. With `variability = "sv"` it CONVERGES: code 0, maximum
+  gradient 7.5e-05, positive definite Hessian, no bad standard errors,
+  and `diagnose()` reports nothing. The population non-decision time
+  then comes back pinned at the bound, 0.2236 against a truth of 0.25
+  and 0.42 of a standard error below `min(rt)`, with a delta-method
+  standard error of 7.2e-06 on it, because the scaled logit's
+  derivative vanishes where the estimate has been pushed. Do not put a
+  random effect on `ndt` until the per-subject bound lands; the same
+  defect reaches `rlddm()` in frmtmb.learn, which takes its diffusion
+  parameterization from this package. Fitting the same data with the
+  bound raised above every subject's truth recovers everything and
+  finds a log likelihood 121.4 units higher at the same parameter
+  count.
+
+* `valid_y` warns when the fastest response exceeds 20 seconds and
+  names milliseconds as the likely cause, across all five families.
+  Zero false alarms over 192 designs a two-choice task produces. Where
+  it can fire on a correct model the help reports the rate with the
+  fastest response beside it, because the rate is not a function of
+  the median: at about 50 seconds it spans 0.185 to 0.935 depending on
+  drift.
 
 * **A units guard.** Every default in this package reads the response as
   a time in SECONDS: the starting values, the bound the `ndt` link is

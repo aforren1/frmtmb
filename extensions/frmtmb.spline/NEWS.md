@@ -1,4 +1,29 @@
-# frmtmb.spline (development version)
+# frmtmb.spline 0.5.0
+
+`frm_curve(object, newdata, contrast = newdata2)` returns the
+difference of two curves with pointwise and simultaneous bands, and
+`frm_curve_feature()` on it finds where they meet.
+
+* Checked against `gratia::difference_smooths()`. The estimate gap is
+  provably the fit rather than the arithmetic, at 5.55e-16, and
+  simultaneous coverage is 0.970 over 200 seeds against a binomial
+  Monte Carlo error of 0.0154.
+
+* An exact `gp()` under a difference is answered where the kriging
+  residual is the same random variable and refused where it is not,
+  and sameness is decided on the DESIGN rather than on the numbers. A
+  tolerant test is not merely laxer: on a mirrored grid the two
+  variances agree to 1.1e-16 while being different draws, and
+  differencing them anyway drops a term worth 1.3e-03 of standard
+  error.
+
+* FOUND, NOT FIXED, and present in every earlier version:
+  `sp_sim_crit()` draws from `A V A'` and standardizes by
+  `sqrt(diag(A V A') + extra_var)`, so a SINGLE grid's simultaneous
+  band over an exact `gp()` off the observed positions is at least 17
+  percent too narrow, exactly where it should widen. `simultaneous =
+  FALSE` and every pointwise column are correct. The fix waits on a
+  core seam.
 
 * `frm_curve(object, newdata, contrast = )` returns a DIFFERENCE curve.
   With a second grid of the same height the reported curve is the

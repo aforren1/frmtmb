@@ -1,4 +1,26 @@
-# frmtmb.learn (development version)
+# frmtmb.learn 0.3.0
+
+A duplicated reward schedule fitted correctly and then simulated a
+different experiment. `reward(pay1, pay2)` and `reward(rec, rec)` give
+a bitwise identical log-likelihood and identical `fixef()`, because the
+density reads only the chosen arm, while the simulator drew a P(better
+arm) of 0.5470 against 0.8616 with 0.8633 observed. Exact chance, from
+a task nobody ran, with no error anywhere.
+
+* The guard is DERIVED rather than declared: the schedule columns are
+  read off the addition terms a family already names, so all eight
+  families are covered and one that gains a `reward()` term later is
+  covered without anyone remembering. What that costs is written down:
+  a schedule under a third name is invisible, so a test asserts every
+  multi-column term is classified or excluded with a reason.
+
+* A compatibility row said `prl_fictitious()` reads both columns. It
+  does not: its update takes the chosen payoff and flips the sign.
+  That row has been false since 0.2.0.
+
+* `rlddm()` inherits frmtmb.eam's non-decision-time bound and the
+  defect that comes with it. See that package's 0.6.0 notes; do not
+  put a random effect on `ndt` yet.
 
 * **A draw needs a column a fit does not, and `simulate()` now refuses
   when the data does not carry it.** ALL EIGHT families read only the

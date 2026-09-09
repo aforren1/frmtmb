@@ -1,6 +1,6 @@
 Package: frmtmb.spline
 Title: Spline Curves and Curve Inference for 'frmtmb' Models
-Version: 0.4.0
+Version: 0.5.0
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"),
@@ -31,7 +31,7 @@ Language: en-US
 Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.1),
-    frmtmb (>= 0.55.0)
+    frmtmb (>= 0.55.1)
 Imports:
     RTMB (>= 1.9),
     stats

@@ -1,6 +1,6 @@
 Package: frmtmb.sample
 Title: NUTS Sampling and Posterior Methods for 'frmtmb'
-Version: 0.3.2
+Version: 0.4.0
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"),
@@ -25,7 +25,7 @@ Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.1)
 Imports:
-    frmtmb (>= 0.55.0),
+    frmtmb (>= 0.55.1),
     graphics,
     RTMB (>= 1.9),
     stats,

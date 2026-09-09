@@ -1,4 +1,20 @@
-# frmtmb.coupling (development version)
+# frmtmb.coupling 0.3.0
+
+* `frm_cross_spectrum()` splits at runs of `NA` instead of refusing
+  them, so an artifact-rejected record is one call rather than one per
+  clean span. A record with two rejected spans gives the sum of the
+  three clean pieces.
+
+* `window = "hann"` beside the sine tapers, measured to cost no
+  degrees of freedom (8.021 against 8.008 untapered at a nominal 8,
+  3000 replicates) and identical to `stats::spec.pgram()` to 4.8e-16.
+  Hann with `smooth` is refused, because it delivers 4.67 to 5.66
+  where it claims 8.
+
+* The help now states the cross-row correlation the ordinates carry,
+  which was understated: 0.397 at the default and 0.753 at
+  `tapers = 4`, which is one independent frequency in four. The
+  degrees of freedom `n` reports were re-measured and are right.
 
 * **`frm_cross_spectrum()` splits at NA runs instead of refusing them.**
   An artifact-rejected recording arrives with gaps in it, and it used to

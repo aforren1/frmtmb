@@ -1,4 +1,36 @@
-# frmtmb.sample (development version)
+# frmtmb.sample 0.4.0
+
+BREAKING. `frm_sample(control =)` is the SAMPLER's control list now,
+brms's spelling and brms's meaning, passed to tmbstan unchanged. The
+fit-time options move to `fit_control =`. `as_tmbstan()` already meant
+`control` that way, so the two entry points agree rather than offering
+a third convention, and brms code that tightens `adapt_delta` ports
+across unchanged.
+
+* That closes a silent discard. On the fitted-object route
+  `control = list(adapt_delta = 0.99)` was IGNORED:
+  `stan_args[[1]]$control` came back NULL where 0.97 was asked for,
+  and the mean `accept_stat__` was 0.9266 against 0.9836 once the
+  setting arrives. `fit_control`, `start`, `data2`, `na.action` and
+  `REML` were silently ignored on that route too, and are refused by
+  name. An abbreviation is refused as well: `contro =` fell into
+  `...`, reached `rstan::sampling()` and partial matched onto ITS
+  `control`, bypassing every check.
+
+* `as_tmbstan()` no longer returns an empty `stanfit` without saying
+  so. That was worse than a missing refusal: it bricked the session,
+  and every later model failed with `empty_nested() must be true`.
+  Both doors share one check, and a run that produced nothing is
+  worded apart from a model that cannot be sampled at all, because
+  those want different fixes.
+
+* `frm_sample()` reads the compatibility registry before taping and
+  refuses a fit the sampler cannot run, in about half a second with
+  rstan never loaded, against the roughly three seconds the failure
+  used to take. Where the formula position settles it the match is
+  made on position; where it cannot, the match is made on names, and
+  `?frm_sample` says that is the largest set justifiable that way
+  rather than a sound one.
 
 * **`frm_sample(control =)` is the SAMPLER's control list now, which is
   what brms means by the name.**

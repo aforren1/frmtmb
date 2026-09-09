@@ -777,11 +777,15 @@ compat_core_family_accepts <- function() {
 
 #' The feature vocabulary of the registry, one row per feature.
 #'
-#' `name`: how the feature is written in a formula or a call argument.
-#' `key`:  the identifier the package itself uses, so tests can look the
-#'         feature up in `family_registry`, `covstruct_registry`, and the
-#'         parser vocabularies. Display names carry `"()"` for callable
-#'         features; the key never does.
+#' `name`: the DISPLAY name, carrying `"()"` for a callable feature.
+#'         Usually what a formula writes; see `key` for the exception.
+#' `key`:  the PARSER NAME, so tests can look the feature up in
+#'         `family_registry`, `covstruct_registry` and the parser
+#'         vocabularies, and so a caller can ask whether a formula
+#'         could write this feature. The key never carries `"()"`.
+#'         For `mi_pred()`, `gp_pred()` and `cs_pred()` the two
+#'         differ, because those specials share a display name with a
+#'         covariance structure and the key is what the formula holds.
 #'
 #' @noRd
 frmtmb_compat_features_tbl <- function(extra = NULL) {
@@ -1971,11 +1975,21 @@ compat_displacement_frame <- function(a, b, was) {
 #' mode, model structure, and post-fit method that has a declared
 #' compatibility status.
 #'
-#' `name` is how the feature is written in a formula or a call. `key`
-#' is the identifier the package uses internally, which is what lets
-#' the tests check the registry against [frm()]'s real vocabulary.
-#' Three specials share a name with a covariance structure, so they
-#' carry the display names `mi_pred()`, `gp_pred()`, and `cs_pred()`.
+#' `key` is the PARSER NAME: the identifier [frm()] itself matches when
+#' it reads a formula, which is what lets the tests check the registry
+#' against the real vocabulary. A caller deciding whether a formula
+#' could be written with a feature should read `key`, not `name`.
+#'
+#' `name` is the DISPLAY name, which is what the printed table shows
+#' and which carries `"()"` for a callable feature. It is usually also
+#' what a formula writes, and for three rows it is not: `mi()`, `gp()`
+#' and `cs()` each name both a predictor special and a covariance
+#' structure, so the specials carry the display names `mi_pred()`,
+#' `gp_pred()` and `cs_pred()` while keeping the keys `mi`, `gp` and
+#' `cs` that a formula actually writes. Those three are the only rows
+#' where the two columns differ, and `frmtmb.sample`'s pre-flight
+#' refusal asserts exactly that set, so a fourth would fail its tests
+#' rather than being read as a name no formula writes.
 #'
 #' @return A data frame with columns `name`, `key`, and `kind`.
 #' @seealso [frm_compat()], [frm_compat_rules()]
