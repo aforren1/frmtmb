@@ -443,6 +443,7 @@ lba_check_response <- function(y, aterms, n) {
          "response time. A time of zero or less has no decision in it ",
          "for any non-decision time.", call. = FALSE)
   }
+  ddm_check_units(y, "lba")
   ch <- aterms[["vint1"]]
   if (any(!is.finite(ch)) || any(ch != round(ch)) ||
       any(ch < 1) || any(ch > n)) {

@@ -11,6 +11,7 @@ frm_cross_spectrum(
   segments = 8L,
   tapers = 1L,
   smooth = 1L,
+  window = c("none", "hann"),
   frange = NULL
 )
 }
@@ -22,13 +23,16 @@ adds an \code{id} column naming the column. A three-column pair is three
 units of the same two signals, not a three-channel recording:
 \code{\link[=cross_wishart]{cross_wishart()}} models a channel PAIR, and a third channel has no
 route in. To relate three channels, fit the three pairs separately
-and say so.}
+and say so. \code{NA} marks a sample the record does not have; see
+"Gaps in the record".}
 
 \item{sfreq}{Sampling rate in Hz. \code{freq} comes back in Hz; the
 default of 1 returns cycles per sample.}
 
-\item{segments}{Number of disjoint, non-overlapping blocks the record
-is cut into. Each contributes one complex draw per frequency.}
+\item{segments}{How many disjoint, non-overlapping blocks the record
+is cut into, at most. Each contributes one complex draw per
+frequency. A record with gaps in it usually supplies fewer, and \code{n}
+says how many it supplied.}
 
 \item{tapers}{Number of orthogonal sine tapers applied within each
 segment. Each contributes one further draw. \code{1}, the default, means
@@ -38,6 +42,13 @@ no taper at all rather than the first sine taper.}
 returned \code{freq} is the middle of each group. \code{tapers} and \code{smooth}
 may not both be above 1; see "How many degrees of freedom".}
 
+\item{window}{The data window applied to each segment before its
+transform. \code{"none"}, the default, is a boxcar. \code{"hann"} is the
+raised cosine, for a spectrum steep enough that the untapered
+transform's high frequencies are leakage from its low ones. It buys
+no degrees of freedom and costs none, and it cannot be combined with
+\code{tapers} or \code{smooth}; see "How many degrees of freedom".}
+
 \item{frange}{Optional \code{c(low, high)} in the same units as \code{freq},
 applied after everything else.}
 }
@@ -46,7 +57,8 @@ A data frame with one row per retained frequency and columns
 \code{freq}, \code{w11}, \code{w22}, \code{w12r}, \code{w12i} and \code{n}, plus \code{id} for the
 matrix form. \code{w11} and \code{w22} are the two auto-spectra summed over
 draws, \code{w12r} and \code{w12i} the real and imaginary parts of the summed
-cross-spectrum, and \code{n} the degrees of freedom. The matrix is
+cross-spectrum, and \code{n} the degrees of freedom the record actually
+supplied. The matrix is
 \verb{[[w11, w12r + 1i w12i], [w12r - 1i w12i, w22]]}, and it is the SUM
 over draws rather than the average, which is the scaling the
 complex Wishart density is written for. Each draw carries the \code{1/N}
@@ -74,6 +86,49 @@ The mean is removed from every segment before its transform, which is
 what makes frequency zero uninformative in the first place.
 }
 
+\section{Gaps in the record}{
+
+\code{NA} in either signal marks a sample the pair does not have, which is
+what artifact rejection leaves behind. Such a sample is not
+interpolated and not skipped: the record is cut at it, and the
+segments are laid inside the clean spans that remain, so no transform
+ever crosses a gap. An artifact-rejected recording is then one call
+rather than one call per surviving span and a hand-written sum.
+
+A sample is usable only where BOTH signals have it, because the
+cross-spectrum is a property of the pair. \code{NaN} counts as \code{NA}; an
+infinity is refused, because it is a value the arithmetic cannot use
+rather than a value the record is missing.
+
+The segment LENGTH comes from the usable sample count divided by
+\code{segments}, and each clean span then supplies as many whole segments
+as fit in it, in record order, up to \code{segments} in total. The samples
+left over at the end of each span are dropped, and a span shorter
+than one segment supplies nothing at all.
+
+So a record with ONE clean span always yields the full \code{segments},
+whatever was rejected from its ends, because the length divides down.
+A record broken into SEVERAL usually yields fewer, since each span
+drops its own remainder. On such a record, asking for FEWER segments
+can be refused where more would be accepted: the length comes from
+the global usable count, so a small \code{segments} can ask for a segment
+longer than any surviving span. Three spans of 700, 1043 and 699 are
+refused at \code{segments = 2}, which wants 1221 samples in a row, and
+give 3, 7 and 14 segments at 4, 8 and 16.
+
+That is not hidden: \code{n} is the count the
+record supplied, it is per-row data the density reads, and every
+standard error downstream is formed from it. Nothing warns, because
+on a record with gaps the shortfall is the normal case rather than a
+mistake.
+
+In the matrix form each column is its own record, so a column with
+more rejected samples than its neighbors gets a shorter segment, its
+own frequency grid and its own \code{n}. That is correct and it is why
+\code{freq} is a column of the frame rather than an attribute of it: a
+model reads \code{freq} per row.
+}
+
 \section{How many degrees of freedom, and where to get them}{
 
 The density needs \code{n >= 2}, because a cross-periodogram from a single
@@ -94,19 +149,41 @@ replicates on white noise, nominal \code{n = 8} throughout:\tabular{ll}{
    \verb{segments = 4, tapers = 2} \tab 8.03 \cr
    \verb{segments = 2, tapers = 4} \tab 7.76 \cr
    \verb{segments = 1, tapers = 8} \tab 7.98 \cr
+   \verb{segments = 8, window = "hann"} \tab 8.02 \cr
 }
 
 
-Two combinations are refused rather than counted wrong.
+Three combinations are refused rather than counted wrong.
 
 \strong{Tapers and smoothing together.} Both widen the same spectral
 window, so their product is not the degrees of freedom: 4 tapers
 smoothed over 4 bins measures 5.80 against a nominal 16, and 2 tapers
 over 2 bins measures 2.70 against 4. Raise \code{segments} instead.
 
-\strong{Overlapping segments.} Overlap raises the nominal count without
-raising the independent one, so \code{n} would be a lie and every standard
-error downstream would be too small.
+\strong{A window and smoothing together}, for the same reason and by the
+same arithmetic. A Hann window makes each ordinate a weighted sum of
+its two neighbors and itself, so adjacent bins are correlated and
+averaging them adds less than it claims. Measured at a true coherence
+of zero, 3000 replicates a cell, nominal \code{n = 8} throughout: 4
+segments smoothed over 2 bins delivers 5.66, 2 segments over 4 bins
+delivers 4.98 and 1 segment over 8 bins delivers 4.68, against 8.19,
+8.02 and 8.05 for the same three without the window.
+
+Declaring the shortfall instead of refusing it was considered and
+rejected. There is no one number to declare: the same window loses a
+different amount at each smoothing width, and frmtmb's own
+\code{whittle()} measured the same thing from the other side, where an
+honestly declared equivalent degrees of freedom does not rescue a
+smoothed spectrum from its raw-periodogram check at kernel widths of
+7 and above (\code{dev/reviews/2026-09-08-spectral2.md}). The correlation
+is a property of the estimate, not of the number attached to it.
+
+\strong{A window and tapers together.} Both are a taper on the same
+segment, and applying one over the other is neither.
+
+\strong{Overlapping segments} stay refused. Overlap raises the nominal
+count without raising the independent one, so \code{n} would be a lie and
+every standard error downstream would be too small.
 
 Frequency smoothing assumes the spectrum is flat across the bins it
 averages, so it is the route with a cost that a white-noise
@@ -122,8 +199,49 @@ An earlier draft of this package reported a 5 percent loss at
 frequency bin per replicate instead of all of them, and it did not
 survive replication. Smoothing is safe at the widths anyone uses;
 what is not safe is smoothing across a band where the COHERENCE
-varies, which is a modelling error rather than a degrees-of-freedom
+varies, which is a modeling error rather than a degrees-of-freedom
 one and no count will catch it.
+}
+
+\section{What a window does to the rows, which \code{n} does not say}{
+
+\code{n} counts the draws behind ONE row and a window leaves that count
+alone, which the table above measures. What a window and what
+\code{tapers} both change is the relation BETWEEN rows, and \code{n} says
+nothing about that.
+
+Measured on the log of \code{w11} from this function, 400 replicates of
+white noise at 1024 samples, at calls this function accepts. The last
+column is the variance inflation factor of a mean over the rows,
+\code{1 + 2 * sum} of the positive correlations, which is the number a
+smooth in frequency actually pays. It is summed over twelve lags,
+which matters for one row: at \code{tapers = 8} the correlation is still
+positive past lag 4, and stopping there gives 6.45 instead of 8.02.
+Every other row has died by lag 3 and is the same either way.\tabular{lllll}{
+   configuration \tab lag 1 \tab lag 2 \tab lag 3 \tab inflation \cr
+   \code{segments = 8} \tab -0.010 \tab -0.015 \tab -0.021 \tab 1.00 \cr
+   \verb{segments = 8, window = "hann"} \tab 0.397 \tab -0.009 \tab -0.027 \tab 1.79 \cr
+   \verb{segments = 8, tapers = 2} \tab 0.525 \tab 0.104 \tab -0.035 \tab 2.24 \cr
+   \verb{segments = 4, tapers = 4} \tab 0.745 \tab 0.502 \tab 0.271 \tab 4.07 \cr
+   \verb{segments = 1, tapers = 8} \tab 0.876 \tab 0.744 \tab 0.615 \tab 8.02 \cr
+}
+
+
+So a Hann-windowed frame carries about one independent frequency in
+1.8, and \code{tapers} costs MORE rather than less: a \code{tapers = 4} frame
+carries about one in four, and eight tapers cost a factor of eight,
+with ordinates still correlated 0.6 three bins apart. An \code{s(freq)}
+smooth fitted on either has fewer effective points than it has rows,
+so its band is optimistic. By how much is not measured here: the
+inflation factor says how much information the rows carry, not what
+a penalized smooth does with it.
+
+None of that touches \code{n}, which is right in every one of these
+configurations: the per-row degrees of freedom and the correlation
+between rows are different quantities, and \code{n} claims only the first.
+
+Use a window or a taper where leakage is the larger error, which is a
+steep spectrum, and not by default.
 }
 
 \examples{

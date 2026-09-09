@@ -49,6 +49,30 @@
 #' Supplying neither is refused with a message that says so, because the
 #' failure is otherwise silent.
 #'
+#' @section The unit of the response:
+#' SECONDS. Every default in this package assumes it: the starting
+#' values, the bound the `ndt` link is scaled onto, and
+#' `gddm_control(dt = )` and the window it takes from the data. Nothing
+#' in any of the likelihoods refuses milliseconds, and a fit to
+#' millisecond data converges and reports a boundary separation three
+#' orders of magnitude out.
+#'
+#' So every family here warns when the fastest response in the data is
+#' above 20, names milliseconds as the likely cause and says to divide
+#' by 1000. It is a ceiling on the fastest response in the WHOLE data
+#' set rather than on any one trial, so one slow trial does not reach
+#' it.
+#'
+#' It is a warning rather than a refusal because it CAN fire on a
+#' correct model: a slow task with a short session. Measured, the rate
+#' is zero over 192 designs at the parameters a two-choice task
+#' produces, and rises to 0.07 at 20 trials of a task whose median
+#' response is 39 seconds, 0.56 at 60 seconds and 1.00 at 100 seconds.
+#' A deliberation or matrix-reasoning design is where that lands. The
+#' warning carries the class `frmtmb_eam_units_warning` so that such a
+#' design can silence this one condition and keep the rest. `NEWS.md`
+#' carries the full tables.
+#'
 #' @section Non-decision time:
 #' The density is zero for a response time at or below `ndt`, so the
 #' likelihood has a hard edge at `ndt = min(rt)` and an ordinary log
@@ -468,6 +492,7 @@ ddm_check_response <- function(y, aterms) {
     stop("wiener: the response must be a strictly positive, finite ",
          "response time.", call. = FALSE)
   }
+  ddm_check_units(y, "wiener")
   up <- ddm_indicator(aterms)
   if (any(!is.finite(up)) || any(up != 0 & up != 1)) {
     stop("wiener: the decision indicator must be 0 (lower boundary) ",

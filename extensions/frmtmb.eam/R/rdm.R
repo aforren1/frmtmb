@@ -390,6 +390,7 @@ rdm_check_response <- function(y, aterms, n) {
          "response time. A time of zero or less leaves no decision ",
          "time for any non-decision time at all.", call. = FALSE)
   }
+  ddm_check_units(y, "rdm")
   ch <- aterms[["vint1"]]
   if (any(!is.finite(ch)) || any(ch != round(ch)) ||
       any(ch < 1) || any(ch > n)) {

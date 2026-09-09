@@ -109,6 +109,167 @@ ln_valid_y <- function(y, k, nm) {
   }
 }
 
+#' The addition terms that carry a per-option PAYOFF SCHEDULE.
+#'
+#' `reward()` and `payoff()` and nothing else, TODAY. The set is the
+#' whole content of the derivation below, so a term registered later
+#' and left out of both this vector and `ln_not_schedule_terms` is a
+#' family that draws from a degenerate schedule in silence. That is the
+#' one direction a derived rule is weaker than a per-family
+#' declaration: a forgotten declaration sits in the family's source
+#' next to `aterms =`, and a derivation that does not recognize a name
+#' returns NULL and says nothing.
+#'
+#' `test-counterfactual.R` closes it from the only place that can see
+#' it, this package's own registration table: every `ln_aterms` entry
+#' of arity 2 or more must appear in one of the two vectors here, so
+#' registering a fourth term without classifying it turns the suite
+#' red. Item 5.1's `bandit_delta(n_option = K)` is the family that will
+#' meet it, because a K-armed schedule for K outside 2 and 4 has to
+#' register a name of its own.
+#'
+#' @noRd
+ln_schedule_terms <- c("reward", "payoff")
+
+#' The multi-column terms that are deliberately NOT payoff schedules,
+#' with the reason each one is not.
+#'
+#' Read by the test rather than by any code path, which is the point:
+#' the reason has to be written down somewhere a reviewer can disagree
+#' with it.
+#'
+#' @noRd
+ln_not_schedule_terms <- c(
+  stage2 = paste0("the observed stage-two state and the choice made ",
+                  "in it, which are data the likelihood conditions on ",
+                  "rather than what each option would have paid. Two ",
+                  "trials whose state and choice happen to agree ",
+                  "everywhere are an ordinary data set and must draw."))
+
+#' The schedule columns a family names, read off its own `aterms`.
+#'
+#' Derived rather than declared per family, and that is the whole point.
+#' The first version of this guard was declared on five families and
+#' left three off, one of them by an explicit exemption resting on a
+#' misreading of the code. Deriving it means a ninth family cannot be
+#' added without the question being asked, because the answer comes from
+#' the terms it already names.
+#'
+#' Stripping the trailing digits is what makes a term of ANY arity
+#' resolve to its name, so `reward` at arity 3 would produce `reward31`
+#' through `reward33` and be picked up. That is luck rather than
+#' design, and it is recorded so that nobody reads it as the rule: the
+#' rule is the NAME, and a schedule under an unrecognized name is
+#' invisible here.
+#'
+#' @noRd
+ln_counterfactual_of <- function(aterms) {
+  term <- sub("[0-9]+$", "", aterms)
+  hit <- term %in% ln_schedule_terms
+  if (!any(hit)) return(NULL)
+  grp <- split(aterms[hit], term[hit])
+  grp <- grp[lengths(grp) >= 2L]
+  if (!length(grp)) return(NULL)
+  unname(grp)
+}
+
+#' Read `ln_family(counterfactual =)`, and refuse anything else.
+#'
+#' The argument this whole guard hangs on had no validation, and every
+#' value that was not `NULL` or a list of groups turned the guard OFF
+#' in silence: `NA`, `0`, `"no"`, `list()` and, worst,
+#' `counterfactual = TRUE`, which is the spelling a maintainer reaches
+#' for to mean "yes, guard this one". The affirmative answer to "was
+#' the question asked?" meant no.
+#'
+#' So: `NULL` derives, `FALSE` opts out, a character vector or a list
+#' of them is taken as written, and anything else stops the family
+#' being built at all. A refusal at construction rather than at the
+#' draw, because a family object that looks built and has quietly lost
+#' its guard is the failure this replaces.
+#'
+#' @noRd
+ln_read_counterfactual <- function(x, nm, aterms) {
+  if (is.null(x)) return(ln_counterfactual_of(aterms))
+  if (isFALSE(x)) return(NULL)
+  if (is.character(x) && length(x) >= 2L && !anyNA(x)) return(list(x))
+  ok <- is.list(x) && length(x) > 0L &&
+    all(vapply(x, function(z) {
+      is.character(z) && length(z) >= 2L && !anyNA(z)
+    }, TRUE))
+  if (ok) return(unname(x))
+  stop(nm, "(): ln_family(counterfactual =) takes NULL to derive the ",
+       "guarded columns from `aterms`, identical(FALSE) to opt this ",
+       "family out of the duplicated-schedule refusal, or the columns ",
+       "themselves as a character vector of two or more names or a ",
+       "list of such vectors. It does NOT take TRUE: there is nothing ",
+       "for TRUE to mean, because deriving is already the default, and ",
+       "reading it as an opt-in would make the one spelling that says ",
+       "'yes' the one that turns the guard off. Saw ",
+       paste(class(x), collapse = "/"), " of length ", length(x), ".",
+       call. = FALSE)
+}
+
+#' The column a DRAW needs and a fit does not.
+#'
+#' EVERY family in this package reads only the CHOSEN option's payoff,
+#' and that is measured rather than read off the source. Replacing the
+#' unchosen entries with N(100, 50) noise leaves the log-likelihood
+#' bitwise unchanged, because each option's prediction error is
+#' multiplied by a 0/1 chosen indicator and zero times a finite number
+#' is exactly zero. So a record of the received outcome alone is fitted
+#' exactly right by passing the one column once per option.
+#'
+#' `prl_fictitious()` is NOT an exception, although this package's
+#' compatibility table said it was until the claim was measured. Its
+#' update forms the outcome as `c1 * reward1 + c2 * reward2` with the
+#' CHOSEN indicators and then flips its sign, so the unchosen column
+#' never enters. `?prl_fictitious` says as much in its own words.
+#'
+#' A draw is a different question, and the difference had been silent. A
+#' simulated subject chooses for itself, so the option it takes is not
+#' the option the data recorded, and paying it needs the schedule of
+#' EVERY option. With the columns duplicated there is no schedule: the
+#' options pay the same on every trial, so the drawn choices carry no
+#' learning signal at all and the draw is from a task nobody ran. It ran
+#' without complaint and returned a plausible-looking vector of option
+#' codes, which is the silent wrong answer this package ranks first.
+#'
+#' The signature is ALL of the term's columns identical on every row.
+#' Some columns identical is not it: the data then still says what at
+#' least one option not taken would have paid.
+#'
+#' @noRd
+ln_check_counterfactual <- function(nm, cd, groups) {
+  for (cols in groups) {
+    if (length(cols) < 2L) next
+    v <- lapply(cols, function(k) cd[[k]])
+    if (any(vapply(v, is.null, TRUE))) next
+    v <- lapply(v, as.numeric)
+    # isTRUE() and not all(): a design built by hand can carry NA in a
+    # payoff column, and all(NA) is NA, which `if` cannot read.
+    same <- all(vapply(v[-1L], function(z) {
+      length(z) == length(v[[1L]]) && isTRUE(all(z == v[[1L]]))
+    }, TRUE))
+    if (!same) next
+    term <- paste0(sub("[0-9]+$", "", cols[[1L]]), "()")
+    stop(nm, "(): every column of ", term, " holds the same value on ",
+         "every trial, so these data do not say what the options the ",
+         "subject did not take would have paid, and a draw needs that. ",
+         "The FIT does not: the likelihood reads only the chosen ",
+         "option's entry, so a record of the received outcome alone is ",
+         "correct passed ", length(cols), " times over. A simulated ",
+         "subject chooses for itself, and paying it needs the schedule ",
+         "of every option, so the second and later columns of ", term,
+         " are the ones missing here. newdata cannot supply them, ",
+         "because the formula names one column ", length(cols),
+         " times and newdata is read through that same formula: refit ",
+         "with a column per option, or build a schedule with ",
+         "frm_task_design() and draw from that.", call. = FALSE)
+  }
+  invisible(NULL)
+}
+
 #' Refusals that follow from the likelihood not factorizing over rows.
 #'
 #' @noRd
@@ -212,7 +373,7 @@ ln_trace_at <- function(fit, block, spec, nm) {
 #'
 #' @noRd
 ln_structure <- function(nm, spec, sim = TRUE, refusals = list(),
-                         saturated = TRUE) {
+                         saturated = TRUE, counterfactual = NULL) {
   # A family whose choice rule is a density has a response that is not
   # an option code, and three of its refusals then say something else.
   # Read off the rule rather than declared again beside it.
@@ -296,6 +457,10 @@ ln_structure <- function(nm, spec, sim = TRUE, refusals = list(),
     sim_ctx = if (sim) {
       function(ctx) {
         blk <- ctx[["block"]]
+        # Before the walk rather than inside it: the draw is refused on
+        # a property of the whole design, and one refusal is worth more
+        # than one per trial.
+        ln_check_counterfactual(nm, ctx[["aterms"]], counterfactual)
         ln_recurse(blk,
                    c(lapply(ctx[["dpars"]], as.numeric), ctx[["aterms"]]),
                    rep(1, blk[["n"]]), spec, "simulate")[["y"]]
@@ -314,7 +479,13 @@ ln_family <- function(nm, subject_expr, trial_expr, dpars, links, primary,
                       inits, aterms, spec, sim = TRUE, data_map = NULL,
                       constants = list(), refusals = list(),
                       sim_refusal = NULL, saturated = TRUE,
-                      valid_y = NULL, finalize = NULL) {
+                      valid_y = NULL, finalize = NULL,
+                      counterfactual = NULL) {
+  # NULL derives the guard from the terms the family already names, and
+  # FALSE is the explicit opt-out that no family in this package takes.
+  # Anything else is refused here, at construction. See
+  # ln_read_counterfactual().
+  counterfactual <- ln_read_counterfactual(counterfactual, nm, aterms)
   if (is.null(subject_expr)) {
     stop(nm, "(subject =) names the column that separates one learner's ",
          "trial sequence from the next", call. = FALSE)
@@ -342,14 +513,16 @@ ln_family <- function(nm, subject_expr, trial_expr, dpars, links, primary,
     },
     family_finalize = finalize,
     init_dpars = inits,
-    structure = ln_structure(nm, spec, sim, refusals, saturated))
+    structure = ln_structure(nm, spec, sim, refusals, saturated,
+                             counterfactual))
   # Core reads this slot when a family has no simulator, and appends it
   # to whichever entry point refused. It is not a `supports` flag,
   # because having a simulator is not a capability the protocol tracks.
   if (!is.null(sim_refusal)) fam[["sim_refusal"]] <- sim_refusal
   fam[["learn"]] <- c(list(subject_expr = subject_expr,
                            trial_expr = trial_expr, spec = spec,
-                           dpars = dpars, data_map = data_map),
+                           dpars = dpars, data_map = data_map,
+                           counterfactual = counterfactual),
                       constants)
   fam
 }

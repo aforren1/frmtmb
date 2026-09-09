@@ -1,3 +1,115 @@
+# frmtmb.learn (development version)
+
+* **A draw needs a column a fit does not, and `simulate()` now refuses
+  when the data does not carry it.** ALL EIGHT families read only the
+  CHOSEN option's payoff. That is what lets a record of the received
+  outcome alone be fitted, by passing the one column once per option,
+  and it is exact rather than approximate: each option's prediction
+  error is multiplied by a 0/1 chosen indicator, and zero times a finite
+  number is exactly zero, so the objective is bitwise the same function
+  of the parameters whatever the unchosen entry holds. Measured by
+  replacing the unchosen entries with `N(100, 50)` noise and comparing
+  the objective at one parameter vector: bitwise identical.
+
+  A DRAW is a different question, and the difference had been silent. A
+  simulated subject chooses for itself, so paying it needs the schedule
+  of every option, and with the columns duplicated there is no
+  schedule. Measured on the shipped two-armed design, 30 subjects by
+  100 trials, where arm 1 pays with probability 0.7 and arm 2 with 0.3:
+
+  | family, route | real | duplicated |
+  | --- | --- | --- |
+  | bandit2arm_delta, simulate | 0.7444 (0.0024) | 0.5004 (0.0035) |
+  | prl_fictitious, simulate | 0.8616 (0.0027) | 0.5470 (0.0090) |
+  | prl_fictitious, task_simulate | 0.8367 (0.0037) | 0.5072 (0.0083) |
+  | rlddm, task_simulate | 0.1443 (0.0036) | 0.5040 (0.0071) |
+
+  The statistic is the proportion of trials in the second half that took
+  arm 1, over 40 draws (20 for `rlddm()`); the observed proportions in
+  the data being fitted are 0.7593 and 0.8633. Every duplicated column
+  gives exact chance, because with both arms paying the same on every
+  trial there is nothing to learn, and each came back as a
+  plausible-looking vector of option codes with no error and no
+  warning. `ts_par7()` drew 800 rows the same way.
+
+  The signature is EVERY column of `reward()` or `payoff()` identical on
+  every row. Some columns identical is not it, because the data then
+  still says what at least one option not taken would have paid, and the
+  test file pins that case as accepted. `stage2()` is not read as a
+  schedule at all: its two columns are the observed state and choice.
+
+  The guard is DERIVED from the terms a family names rather than
+  declared per family, so a ninth family cannot be added without the
+  question being asked. `ln_family(counterfactual =)` takes `NULL` to
+  derive, `identical(FALSE)` to opt out, or the columns themselves, and
+  refuses anything else while the family is being built rather than
+  when a draw is asked for. It does not take `TRUE`: deriving is
+  already the default, so there is nothing for `TRUE` to mean, and
+  reading it as an opt-in would make the one spelling that says yes the
+  one that turned the guard off.
+
+  What the derivation is weaker at than a declaration is a NAME it does
+  not know. A schedule arriving through a term that is not `reward()`
+  or `payoff()` is not guarded, and nothing says so; a forgotten
+  declaration would at least sit in the family's source. The package's
+  own registration table is the only place that is visible, so the test
+  suite now asserts that every term it registers at arity 2 or more is
+  classified as a payoff schedule or explicitly excluded with a reason.
+  Registering a fourth term without answering the question turns the
+  suite red. All four routes to a draw are covered:
+  `simulate()`, `frm_simulate()` and `frmtmb.sample::posterior_predict()`
+  through the family's `sim_ctx` slot, and `frm_task_simulate()` on the
+  design it is handed, which is the only route `rlddm()` and
+  `ts_par7()` have because `simulate()` already refuses them and their
+  own refusal messages send users there.
+
+  `newdata` is not a way round the refusal and the message says so: the
+  formula names one column twice and `newdata` is read through that
+  same formula, so a user whose record holds the received outcome alone
+  has to refit with a column per option, or build a schedule with
+  `frm_task_design()`.
+
+* **A released compatibility row was wrong, and it is corrected.** Since
+  0.1.0 the `prl_fictitious()` / `reward()` row has said "Both columns
+  are READ here rather than only carried: counterfactual updating moves
+  the unchosen option's value too, so the second column enters the
+  likelihood and not just the simulator". It does not. The update forms
+  the outcome as `c1 * reward1 + c2 * reward2` with the CHOSEN
+  indicators and then FLIPS ITS SIGN, so what moves the unchosen value
+  is the negative of the realized outcome and the second column never
+  enters. Measured: replacing the unchosen entries with `N(100, 50)`
+  noise leaves the log-likelihood bitwise unchanged at
+  -937.55332137794574.
+
+  `?prl_fictitious` has always said this correctly, that the
+  counterfactual outcome is the negative of the realized one "rather
+  than a reading of the second `reward()` column". Two documents in one
+  package said opposite things about the same family, and a user
+  choosing a family on that table would have chosen this one for a
+  property it does not have. An earlier draft of the release above
+  exempted `prl_fictitious()` from the new guard on the strength of the
+  wrong one.
+
+* **`reward(pay)` with one argument is still refused, and the refusal
+  belongs to frmtmb rather than to this package.** An addition term's
+  arity is fixed when it is registered: `frmtmb_register_aterm(arity =)`
+  takes one whole number and the parser refuses any other argument
+  count, so `reward(pay1)` stops at "`reward()` takes 2 arguments, not
+  1" before this package sees anything. Registering `reward` at arity 1
+  instead would refuse `reward(pay1, pay2)`, which every example,
+  vignette and test writes.
+
+  What the core seam buys is the SPELLING and not the capability. A
+  one-column route needs no core change at all: a second term name
+  registered at arity 1 keys its value at `aterms[["reward1"]]`, which
+  is the key the two-column spelling's first argument already uses, so
+  a family that reads `reward2` with a fallback takes both spellings.
+  Verified as far as the parser: `reward1(rec)` is routed to that key
+  and the shipped family then refuses on its own `required_aterms`
+  declaration, which is this package's to change and not core's.
+  `reward(rec, rec)` remains the spelling that works today and is
+  exactly right for the likelihood.
+
 # frmtmb.learn 0.2.1
 
 Requires frmtmb 0.55.0. The hazard-container lint runs in this
