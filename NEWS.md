@@ -1,3 +1,20 @@
+# frmtmb (development version)
+
+* `?frmtmb_register_compat` states what a `refused` row promises: the
+  row is a claim about what the code does, not a note for a reader,
+  and it is enforced wherever the enforcing code can see the feature,
+  with that code saying what it can see. Most of core's refusals are
+  hand-written guards the row describes, and those see everything. The
+  other kind CONSULTS the registry at the point of use, and
+  `frmtmb.sample::frm_sample()` is the first caller of that kind, so a
+  package that owns a model the sampler cannot run declares one row
+  and needs no code in the sampler. The qualification is where the two
+  differ: deciding whether a model uses a feature usually means
+  knowing WHERE its call sits in the formula, which the parser owns
+  and nothing public carries out of core, so a consulting caller
+  documents the rows it cannot decide and warns rather than refusing
+  on those. Documentation only; the registry itself is unchanged.
+
 # frmtmb 0.55.0
 
 Two densities were silently wrong and are fixed. The student-t log

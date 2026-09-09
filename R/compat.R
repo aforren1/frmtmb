@@ -166,6 +166,38 @@ compat_cache_extend <- function(add, before) {
 #'     refusal.}
 #' }
 #'
+#' @section What a refused row promises:
+#' A `refused` row is a statement about what the code DOES, not a note
+#' about what a reader should avoid. The exact promise is: **a refused
+#' row is enforced wherever the enforcing code can see the feature, and
+#' that code says what it can see.** A row that says `refused` while a
+#' guard that could have seen the feature lets the pair run is a defect
+#' of the same size as a missing guard.
+#'
+#' The qualification is not a hedge, it is where the two kinds of
+#' enforcement differ. Most of core's refusals are hand-written guards
+#' that the row describes, raised where the frame is assembled or where
+#' the method is called; those see everything, so for them the promise
+#' is unqualified. The other kind is enforced by CONSULTING this
+#' registry at the point of use: the caller queries the rows naming its
+#' own feature, decides whether the model in front of it uses the other
+#' side, and raises with the registered note verbatim. Deciding that is
+#' the hard half, because what identifies a feature in a model is
+#' usually its POSITION in the formula, which the parser owns.
+#'
+#' `frmtmb.sample::frm_sample()` is the first caller of that kind and is
+#' worth reading as the worked example. It queries the rows whose
+#' feature is `frm_sample` and whose status is `refused` before it tapes
+#' anything, so a package that owns a model the sampler cannot run
+#' declares one row and needs no code in the sampler; `frmtmb.ode` does
+#' exactly that. It also documents the rows it cannot decide, and warns
+#' rather than refusing on those, because a check that fires on a
+#' correct model is worse than no check. So a registrant who needs a
+#' refusal ENFORCED rather than only reported should read the caller's
+#' own documentation and confirm the caller can see the feature; a row
+#' the caller cannot see is still true, and is still reported by
+#' [frm_compat()], but it will not stop anything.
+#'
 #' @param features Named character vector mapping a feature's DISPLAY
 #'   name to its kind: `c("hmm" = "structure")`, `c("dec()" = "aterm")`.
 #'   The display name is how the feature is written in a formula or a

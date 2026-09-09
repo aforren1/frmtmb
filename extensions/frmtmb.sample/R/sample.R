@@ -33,6 +33,486 @@ refuse_retired_priors <- function(dots, what) {
   invisible(NULL)
 }
 
+# --- the two `control` lists -------------------------------------------
+#
+# `frm_sample(control =)` is the SAMPLER's control list, which is what
+# brms means by the name, so a brms call ports across unchanged. The
+# fit-time options frm() takes are `fit_control =`. The two names used
+# to be the other way round, and adapt_delta then had no route at all;
+# vignette("brms-posterior") carried a row saying so.
+#
+# Nothing bridges the two names. A frmtmb_control() list arriving in
+# `control` is refused rather than reinterpreted, because passing its
+# fields on would ask rstan to adapt on `grad_tol`.
+
+#' rstan's own control vocabulary, copied from `rstan:::config_argss()`.
+#'
+#' Checked here rather than left to rstan because rstan does not raise
+#' on an unknown option: it prints the complaint, declines to sample,
+#' and returns an EMPTY stanfit. That lands on the "returned no draws"
+#' refusal further down, whose text is about a tape calling an external
+#' solver, so a typo in `control` would be reported as a solver failure.
+#'
+#' @noRd
+stan_control_names <- c(
+  "adapt_engaged", "adapt_gamma", "adapt_delta", "adapt_kappa",
+  "adapt_t0", "adapt_init_buffer", "adapt_term_buffer", "adapt_window",
+  "stepsize", "stepsize_jitter", "metric", "int_time", "max_treedepth",
+  "epsilon", "error"
+)
+
+#' Refuse a `frmtmb_control()` list where the sampler's control belongs.
+#'
+#' frmtmb_control() returns a PLAIN list, so there is no class to
+#' dispatch on and the two lists have to be told apart by their field
+#' names. That works because the two vocabularies are disjoint: rstan's
+#' fifteen names above share none of frmtmb_control()'s thirteen. The
+#' refusal names the fields it keyed on, so it reports what it saw
+#' rather than asserting what the caller meant.
+#'
+#' @noRd
+check_stan_control <- function(control, what) {
+  # an empty list is a legitimate no-op, and it is what building the
+  # list programmatically gives when no option was added
+  if (is.null(control) || (is.list(control) && !length(control))) {
+    return(invisible(NULL))
+  }
+  if (!is.list(control)) {
+    stop(what, " takes `control` as a NAMED list of rstan sampler ",
+         "options, control = list(adapt_delta = 0.99), which is the ",
+         "spelling brms uses; got an object of class ",
+         paste(class(control), collapse = "/"),
+         ". The fit-time options of frmtmb_control() are ",
+         "`fit_control` now", call. = FALSE)
+  }
+  nms <- names(control) %||% rep("", length(control))
+  if (!all(nzchar(nms))) {
+    stop(what, ": every element of `control` names a sampler option, ",
+         "and ", sum(!nzchar(nms)), " of ", length(control),
+         " have no name. Write control = list(adapt_delta = 0.99); an ",
+         "unnamed element cannot reach rstan as anything",
+         call. = FALSE)
+  }
+  fitside <- intersect(nms, names(frmtmb_control()))
+  if (length(fitside)) {
+    stop(what, ": `control` is the SAMPLER's control list here, as in ",
+         "brms (control = list(adapt_delta = 0.99)), and this one ",
+         "carries the frmtmb_control() field(s) ",
+         paste(fitside, collapse = ", "),
+         ". Those are fit-time options and go to `fit_control` now: ",
+         "fit_control = frmtmb_control(...). They are not passed on to ",
+         "rstan, which would otherwise be asked to adapt on them",
+         call. = FALSE)
+  }
+  bad <- setdiff(nms, stan_control_names)
+  if (length(bad)) {
+    stop(what, ": rstan has no sampler option named ",
+         paste(bad, collapse = ", "), ". The options are ",
+         paste(stan_control_names, collapse = ", "),
+         ". rstan does not raise on an unknown one; it declines to ",
+         "sample and returns an empty fit, so this is refused here ",
+         "instead", call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' Refuse an abbreviation of `control` that would reach rstan anyway.
+#'
+#' `control` follows `...` in this function's formals, so R binds only
+#' its exact spelling and an abbreviation lands in `...` instead. That
+#' is where the reasoning used to stop, and it stopped one step early:
+#' `...` is handed to `tmbstan::tmbstan()` and then to
+#' `rstan::sampling()`, whose `control` argument comes BEFORE that
+#' method's own `...`, so R partial-matches the abbreviation onto it
+#' there. Measured: `frm_sample(fit, contro = list(adapt_delta = 0.97))`
+#' reached the sampler with adapt_delta 0.97 and never passed
+#' `check_stan_control()`, and `contro = frmtmb_control()` reached it
+#' too and came back as the "returned no draws ... external solver"
+#' report, which is the exact mis-report that check exists to prevent.
+#'
+#' rstan already rejects a dots name that is not a prefix of one of its
+#' own formals ("passing unknown arguments: fit_contro"), so the hole
+#' is only the partial-match set, and `control` is the one member of it
+#' this package validates itself.
+#'
+#' @noRd
+refuse_partial_control <- function(dots, what) {
+  nms <- names(dots)
+  if (is.null(nms)) return(invisible(NULL))
+  # duplicates.ok, or a second abbreviation in the same call matches
+  # nothing and slips through
+  hit <- !is.na(pmatch(nms, "control", duplicates.ok = TRUE))
+  bad <- nms[nzchar(nms) & hit & nms != "control"]
+  if (length(bad)) {
+    stop(what, ": `", paste(bad, collapse = "`, `"),
+         "` is an abbreviation of `control`, and an abbreviation is ",
+         "not harmless here. It lands in `...`, and `...` reaches ",
+         "rstan::sampling(), where `control` comes before that ",
+         "function's own `...` and partial matching binds it, so the ",
+         "list would reach the sampler without being checked. Spell ",
+         "it `control`; the fit-time options are `fit_control`",
+         call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+# --- the pre-flight against the compatibility registry -----------------
+#
+# A pair this sampler cannot run is declared once, in the registry, by
+# whichever package makes the pair possible, and read here. The
+# alternative is a guard written into this file that names a package
+# this one does not depend on, and a registry row saying the same thing
+# that nothing consults; the row would then be documentation of a
+# refusal rather than the refusal itself.
+#
+# WHAT IT CAN SEE, AND WHY THE ANSWER IS AS NARROW AS IT IS.
+#
+# What decides whether a model uses a registry feature is the POSITION
+# of a call in the formula: `se` inside the bar on the response's left
+# is the `se()` addition term, and `se` in a nonlinear body is whatever
+# function the user has of that name. The parser owns position, and
+# most of what it knows is not carried out of core, so this pre-flight
+# decides three ways.
+#
+#   1. kind "family": matched against the response families by name. A
+#      family is named, never called, so no call can be confused with
+#      one. It does NOT decompose mixture(): a mixture's family name is
+#      the whole string "mixture(gaussian, gaussian)", so a refused
+#      `gaussian` row misses a mixture of gaussians. A miss.
+#   2. kind "aterm", spelled with parentheses: matched BY POSITION.
+#      An addition term is written inside the bar on the left-hand side
+#      of the response formula and nowhere else, and the bf() object
+#      carries that, so this needs nothing from core and is sound. It
+#      is what separates `bf(y | se(v) ~ x)` from
+#      `bf(y ~ a * se(x), a ~ 1, nl = TRUE)`, which frmtmb fits.
+#   3. any other display name ending in "()": matched BY NAME, on the
+#      display name minus its parentheses, over calls OUTSIDE aterm
+#      position, and only when a formula actually writes that name and
+#      it is not a function of a base-priority R package. Both tests
+#      are read off the registry and the installed base packages at
+#      call time, not assumed.
+#
+# WHAT (3) BUYS, EXACTLY, because the first version of this comment
+# overstated it. The two tests remove two ENUMERABLE classes of name
+# collision: a name two features share, and a name base R also uses.
+# They do not touch the class that motivates the whole design, which is
+# a call written where the feature cannot occur. `mo`, `ma`, `cosy` and
+# `mm` all pass both tests and would all fire on a user's own function
+# of that name in a nonlinear body. So (3) is the largest set
+# justifiable FROM NAMES ALONE, not a sound one. It is used only where
+# position is unavailable, and every remaining hole is a false ALARM
+# that would need someone to register a refusal on one of those rows
+# first; the only refused row today is `frm_ode()`.
+#
+# WHY THE DISPLAY NAME AND NOT THE REGISTRY KEY. The key is the parser
+# name, which reads better, and the first version used it. It is also
+# shared: `mi()`/`mi_pred()`, `gp`/`gp_pred()` and `cs`/`cs_pred()` each
+# share one, a collision R/compat.R records as deliberate. Keying on it
+# therefore had to degrade to a warning whenever a key was shared, and
+# that made a REGISTERED REFUSAL REVOCABLE BY A THIRD PARTY: registering
+# a bare `frm_ode` display name, which core accepts, downgraded
+# frmtmb.ode's refusal to a warning, and the model then sampled, which
+# is the thing that leaves rstan unusable for the rest of the session.
+#
+# The display name cannot be attacked that way, and the reason is a
+# proof rather than a measurement. Two call-shaped rows cannot want the
+# same call name, because core refuses a second registration of a
+# display name ("One display name carries one KIND", and the kind is as
+# load-bearing here as the name, since the route is chosen from both),
+# and because dropping a fixed "()" suffix is injective over the names
+# that carry it. A bare name cannot compete for a call either, and that
+# is a property of the CODE and not of the vocabulary: `ar1` and
+# `gr_cov` are bare rows that a formula DOES write as calls, and what
+# stops them is that the parentheses test above returns before a bare
+# name can reach this route at all.
+#
+# What matching the display name costs is the three `_pred` specials,
+# whose display names no formula writes. They do not silently miss:
+# case 3 compares the display name against the registry KEY, which is
+# the parser name, and routes the three rows where the two differ to
+# the warning. Silence there would be the failing-open shape this file
+# exists to close. The filed seam is what would decide them.
+#
+# Everything else warns and samples: a bare display name, a fitting
+# mode, another post-fit method. Warning rather than passing in silence
+# keeps a registered refusal from looking like a passed check; warning
+# rather than refusing keeps the check from firing on a correct model.
+# `frm_features_used(spec)` is filed in dev/extension-gaps-plan.md and
+# would close the `special`, `autocor` and `grammar` kinds; case 2
+# above is the `aterm` kind closed without it.
+
+#' The calls a model's formulas make, split by whether they sit in
+#' ADDITION-TERM position.
+#'
+#' Returns `list(aterm =, other =)`. An addition term is written inside
+#' the bar on the left-hand side of a response formula, `y | se(v) ~ x`,
+#' and nowhere else; everything else a formula calls goes in `other`.
+#' That split is the one position test available without reading
+#' anything from core, and it is what separates the `se()` addition
+#' term from a user's own `se()` in a nonlinear body.
+#'
+#' Walks the `bf()` object, which is where a call-shaped feature is
+#' written: the response formula, the dpar and nonlinear formulas of
+#' `pforms`, and the `nlf()` bodies. Reached on both of
+#' `frm_sample()`'s routes, so the refusal lands before the formula
+#' route assembles anything.
+#'
+#' Only the RESPONSE formula has an aterm side. A `pforms` entry is a
+#' distributional or nonlinear parameter's formula and a `|` there is
+#' something else, so those contribute to `other` in full.
+#'
+#' @noRd
+formula_calls <- function(x) {
+  out <- list(aterm = character(0), other = character(0))
+  add <- function(a, b) {
+    list(aterm = unique(c(a$aterm, b$aterm)),
+         other = unique(c(a$other, b$other)))
+  }
+  if (inherits(x, "frmtmb_mvformula")) {
+    for (f in x[["forms"]]) out <- add(out, formula_calls(f))
+    return(out)
+  }
+  if (inherits(x, c("frmtmb_formula", "brmsformula"))) {
+    out <- add(out, response_formula_calls(x[["formula"]]))
+    for (p in c(x[["pforms"]], x[["nlforms"]])) {
+      out <- add(out, list(aterm = character(0),
+                           other = expr_call_names(p)))
+    }
+    return(out)
+  }
+  # a bare formula reaching here is a response formula
+  response_formula_calls(x)
+}
+
+#' Split ONE response formula at the bar on its left-hand side.
+#'
+#' @noRd
+response_formula_calls <- function(f) {
+  if (!inherits(f, "formula") || length(f) < 3L) {
+    return(list(aterm = character(0), other = expr_call_names(f)))
+  }
+  lhs <- f[[2L]]
+  rest <- expr_call_names(f[[3L]])
+  if (is.call(lhs) && is.name(lhs[[1L]]) &&
+        identical(as.character(lhs[[1L]]), "|")) {
+    # y | <aterms> ~ rhs. The response expression itself is lhs[[2]] and
+    # is not aterm position; cbind() and friends live there.
+    list(aterm = expr_call_names(lhs[[3L]]),
+         other = unique(c(expr_call_names(lhs[[2L]]), rest)))
+  } else {
+    list(aterm = character(0),
+         other = unique(c(expr_call_names(lhs), rest)))
+  }
+}
+
+#' Every function called anywhere in one expression.
+#'
+#' `pkg::fn` resolves to `fn`, which is deliberate: a qualified call is
+#' the same feature. It is also why a THIRD party's `somepkg::s(x)`
+#' matches `s()`, which is one of the holes the header comment names.
+#'
+#' @noRd
+expr_call_names <- function(x, out = character(0)) {
+  if (inherits(x, "formula") || is.call(x)) {
+    if (!inherits(x, "formula")) {
+      fn <- x[[1L]]
+      nm <- if (is.name(fn)) {
+        as.character(fn)
+      } else if (is.call(fn) &&
+                   identical(as.character(fn[[1L]]), "::")) {
+        as.character(fn[[3L]])
+      } else {
+        ""
+      }
+      if (nzchar(nm)) out <- c(out, nm)
+    }
+    for (i in seq_along(x)) {
+      e <- x[[i]]
+      # match.call() leaves an unsupplied argument as the empty symbol,
+      # which is neither NULL nor missing to is.null()
+      if (is.name(e) && !nzchar(as.character(e))) next
+      out <- expr_call_names(e, out)
+    }
+  }
+  unique(out)
+}
+
+#' The family names of a model, from whichever of the two routes it
+#' arrived on.
+#'
+#' It does NOT decompose a mixture. `mixture(gaussian, gaussian)` has
+#' the single family name `"mixture(gaussian, gaussian)"`, on the
+#' `bf()` object and on the fitted object alike, so a refused
+#' `gaussian` row misses a mixture of gaussians while reaching a plain
+#' gaussian correctly. A miss, not a false alarm.
+#'
+#' @noRd
+model_family_names <- function(x, family = NULL) {
+  nm <- function(f) {
+    if (is.null(f)) return(character(0))
+    if (is.character(f)) return(f)
+    if (is.function(f)) f <- tryCatch(f(), error = function(e) NULL)
+    as.character(f[["family"]] %||% character(0))
+  }
+  if (inherits(x, "frmtmb_fit")) {
+    return(unique(unlist(lapply(x[["spec"]][["responses"]],
+                                function(r) nm(r[["family"]])))))
+  }
+  bf_fams <- if (inherits(x, "frmtmb_mvformula")) {
+    unlist(lapply(x[["forms"]], function(f) nm(f[["family"]])))
+  } else if (inherits(x, "frmtmb_formula")) {
+    nm(x[["family"]])
+  }
+  unique(c(nm(family), bf_fams))
+}
+
+#' Is this name a function of a base-priority R package?
+#'
+#' `trunc()`, `weights()` and `ar()` are registry display names AND
+#' functions of base or stats, so a formula that writes one of them is
+#' as likely to be doing arithmetic as to be using the feature. All
+#' fourteen base-priority packages are checked, because they are the
+#' ones present in every R installation; that is what makes the answer
+#' independent of what the session has attached, which a search-path
+#' test would not be. `inherits = FALSE`, so a user's own masking
+#' definition cannot flip it either way.
+#'
+#' Memoized, because a name that matches nothing loads all fourteen
+#' namespaces to find that out, and this now runs on a path deliberately
+#' cleared of package loading. The answer cannot change within a
+#' session: base-priority packages ship with R and are not replaced.
+#'
+#' @noRd
+base_r_function <- local({
+  seen <- new.env(parent = emptyenv())
+  function(nm) {
+    if (!is.null(seen[[nm]])) return(seen[[nm]])
+    pkgs <- c("base", "stats", "utils", "methods", "graphics",
+              "grDevices", "splines", "stats4", "grid", "tools",
+              "parallel", "compiler", "datasets", "tcltk")
+    ans <- FALSE
+    for (p in pkgs) {
+      ns <- tryCatch(asNamespace(p), error = function(e) NULL)
+      if (!is.null(ns) && exists(nm, ns, inherits = FALSE) &&
+            is.function(get(nm, ns))) {
+        ans <- TRUE
+        break
+      }
+    }
+    seen[[nm]] <- ans
+    ans
+  }
+})
+
+#' The name a formula writes for a call-shaped feature.
+#'
+#' The DISPLAY name minus its parentheses, not the registry key. The
+#' key is the parser name and reads better, but three keys are shared
+#' between two features each, so keying on it forced a downgrade to a
+#' warning on a shared key, and that downgrade could be triggered by
+#' anybody's later registration. See the header comment.
+#'
+#' @noRd
+feature_call_name <- function(feat) sub("[(][)]$", "", feat)
+
+#' What a refused row can be matched against, and why not, when not.
+#'
+#' Returns `"family"`, `"aterm"`, `"call"`, or a sentence naming the
+#' reason the row cannot be decided from a formula. Everything it reads
+#' comes from the registry and from the installed base packages at call
+#' time, so a collision registered later is detected rather than
+#' assumed away.
+#'
+#' @noRd
+preflight_route <- function(feat, kind, ft) {
+  if (identical(kind, "family")) return("family")
+  if (!grepl("[(][)]$", feat)) {
+    return(paste0("the vocabulary writes it without parentheses, so ",
+                  "it is not declared as a call a formula can hold"))
+  }
+  # An addition term has a position of its own and needs no name test.
+  if (identical(kind, "aterm")) return("aterm")
+  nm <- feature_call_name(feat)
+  # No uniqueness test is needed, and none is written, because two
+  # call-shaped rows cannot want the same call name. Display names are
+  # unique (core refuses a second registration of one: "One display
+  # name carries one kind"), dropping a fixed "()" suffix is injective
+  # over the names that carry it, and a bare name cannot reach this
+  # point at all because the test above returns first. That is what
+  # makes a registered refusal un-revocable; see the header comment.
+  #
+  # The display name is not always what a formula writes, though, and
+  # where it is not, matching it would MISS IN SILENCE while every
+  # other undecidable case warns. The registry says which those are:
+  # its key is the parser name, so key and display name agree for every
+  # call-shaped row except `mi_pred()`, `gp_pred()` and `cs_pred()`,
+  # whose keys are `mi`, `gp` and `cs`. Those three warn.
+  key <- ft$key[match(feat, ft$name)]
+  if (!is.na(key) && !identical(key, nm)) {
+    return(paste0("no formula writes the call '", nm, "': the ",
+                  "vocabulary spells this feature '", feat,
+                  "' and a formula writes it '", key,
+                  "', which another feature also writes"))
+  }
+  if (base_r_function(nm)) {
+    return(paste0("'", nm, "' is also a base R function, so a call to ",
+                  "it in a formula need not be the feature at all"))
+  }
+  "call"
+}
+
+#' Stop when the registry declares this sampler refused for something
+#' the model uses.
+#'
+#' Runs before anything is taped, before the formula route calls
+#' `frm()`, and before the rstan and tmbstan namespaces are loaded, so
+#' the cost of a refused model is the registry read and nothing else.
+#'
+#' `rows` defaults to the registry and is an argument so that the tests
+#' can drive each branch of the decision. Registering a synthetic
+#' feature instead would append to a registry that lives as long as the
+#' session, and every later test file would inherit it.
+#'
+#' @noRd
+sample_preflight <- function(x, family = NULL, rows = NULL,
+                             what = "frm_sample()") {
+  rows <- rows %||% frmtmb::frm_compat("frm_sample", status = "refused")
+  if (!nrow(rows)) return(invisible(NULL))
+  ft <- frmtmb::frm_compat_features()
+  calls <- formula_calls(
+    if (inherits(x, "frmtmb_fit")) x[["bform"]] else x)
+  fams <- model_family_names(x, family)
+  for (i in seq_len(nrow(rows))) {
+    feat <- rows$feature_b[[i]]
+    route <- preflight_route(feat, rows$kind_b[[i]], ft)
+    nm <- feature_call_name(feat)
+    hit <- switch(route,
+                  family = nm %in% fams,
+                  aterm = nm %in% calls$aterm,
+                  call = nm %in% calls$other,
+                  {
+                    # Undecidable from a formula. Saying nothing would
+                    # make a registered refusal look like a passed
+                    # check; refusing anyway would fire on models that
+                    # do not use the feature at all.
+                    warning(what, ": the registry refuses this sampler ",
+                            "with '", feat, "', and the pre-flight ",
+                            "cannot tell whether this model uses it: ",
+                            route, ". Sampling anyway. See ",
+                            "frm_compat(\"frm_sample\", \"", feat,
+                            "\")", call. = FALSE)
+                    FALSE
+                  })
+    if (isTRUE(hit)) {
+      stop(what, " is refused on a model using ", feat, ": ",
+           rows$note[[i]], " (registry row: ",
+           "frm_compat(\"frm_sample\", \"", feat, "\"))",
+           call. = FALSE)
+    }
+  }
+  invisible(NULL)
+}
+
 # --- sampler start values and bounds -----------------------------------
 
 #' Pull a start value strictly inside the bounding box. Stan turns a
@@ -422,7 +902,7 @@ dev_namespaces_of <- function(fit) {
 #'
 #' @noRd
 sample_assemble <- function(formula, data, family, data2, start,
-                            control, na.action, REML) {
+                            fit_control, na.action, REML) {
   if (!inherits(formula, c("formula", "frmtmb_formula",
                            "frmtmb_mvformula"))) {
     stop("frm_sample() takes a frmtmb fit or a formula; got an object ",
@@ -437,7 +917,7 @@ sample_assemble <- function(formula, data, family, data2, start,
   # no bounds here: the unfitted object is never optimized, and the box
   # Stan is given is resolved from the prior further down
   frm(formula, data, family = family, REML = REML, start = start,
-      control = control, na.action = na.action,
+      control = fit_control, na.action = na.action,
       data2 = data2, dry_run = "objective")
 }
 
@@ -1137,8 +1617,29 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' @param family Family, when `fit` is a plain formula that does not
 #'   carry one (`frm_sample(bf(y ~ x), data = dd, family = poisson())`;
 #'   the `+` spelling `bf(y ~ x) + poisson()` works too).
-#' @param data2,start,control,na.action,REML As in [frmtmb::frm()]; used only on
-#'   the formula path.
+#' @param data2,start,fit_control,na.action,REML As in [frmtmb::frm()]
+#'   (`fit_control` is that function's `control`). They belong to the
+#'   formula path, where they assemble the model this function samples,
+#'   and on a fitted object they are refused by name rather than
+#'   accepted and discarded: the model is already assembled, so nothing
+#'   would read them. `fit_control` is not the sampler's control list;
+#'   `control` is.
+#' @param control The SAMPLER's control list, brms's spelling and
+#'   brms's meaning: `control = list(adapt_delta = 0.99,
+#'   max_treedepth = 12)` reaches [tmbstan::tmbstan()] and then rstan
+#'   unchanged, so a `brm()` call ports across with this argument
+#'   included. `NULL`, the default, leaves rstan's own defaults in
+#'   place, and so does `list()`. The names are rstan's (`adapt_delta`,
+#'   `max_treedepth`, `stepsize`, `metric`, ...) and an unrecognized
+#'   one is refused by name, because rstan answers an unknown option by
+#'   returning an empty fit rather than by raising. `frmtmb_control()`
+#'   fields arriving here are refused by name too and point at
+#'   `fit_control`: earlier releases spelled the fit-time options
+#'   `control`, and a silent reinterpretation would hand `grad_tol` to
+#'   the sampler. So is an ABBREVIATION of the name: only `control`
+#'   binds to this argument, and a shorter spelling would otherwise
+#'   travel through `...` and partial-match rstan's own `control`,
+#'   reaching the sampler unchecked.
 #' @param ... Passed to [tmbstan::tmbstan()] (`chains`, `iter`,
 #'   `laplace`, `cores`, ...). `cores` parallelizes over chains on
 #'   every platform. On Windows the chains run on socket workers, each
@@ -1201,6 +1702,57 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   `reparam` note saying which. The `stanfit` holds the parameters as
 #'   Stan sampled them, so on a non-centered run its random-effect
 #'   columns are `z` while the draws matrix holds `b`.
+#' @section The pre-flight against the compatibility registry:
+#'   Some models cannot be sampled at all, and the reason usually
+#'   belongs to the package that supplies the feature rather than to
+#'   this one. Such a package declares the pair through
+#'   [frmtmb::frmtmb_register_compat()] with the status `"refused"`,
+#'   and this function reads those rows before it does anything else:
+#'   before the rstan and tmbstan namespaces are loaded, before the
+#'   formula route calls [frmtmb::frm()], and before either route
+#'   retapes the objective for its priors. [as_tmbstan()] runs the same
+#'   check. The refusal repeats the registry's own note and names the
+#'   row, so `frm_compat("frm_sample", "<feature>")` gives the same
+#'   answer without running anything.
+#'
+#'   *What it can decide, and what it will not guess at.* Whether a
+#'   model uses a registry feature is settled by WHERE a call sits in
+#'   the formula. The check decides three ways.
+#'
+#'   A response FAMILY is matched by name, which is exact, because a
+#'   family is named and never called. It does not look inside
+#'   [frmtmb::mixture()], whose family name is the whole string
+#'   `"mixture(gaussian, gaussian)"`, so a refused `gaussian` row does
+#'   not reach a mixture of gaussians.
+#'
+#'   An ADDITION TERM is matched by POSITION. It is written inside the
+#'   bar on the left of the response formula and nowhere else, and the
+#'   `bf()` object carries that, so `y | se(v) ~ x` is separated from
+#'   `y ~ a * se(x)` with a user's own `se()`, which frmtmb fits.
+#'
+#'   Everything else the vocabulary writes as a call is matched BY
+#'   NAME, on the display name, outside addition-term position, and
+#'   only when a formula actually writes that name and it is not also a
+#'   base R function. This is the part that is justifiable from names
+#'   alone rather than sound: a name test cannot see that a call sits
+#'   where the feature cannot occur, so a refusal registered on `mo()`,
+#'   `ma()`, `cosy()` or `mm()` would also fire on a user's own
+#'   function of that name in a nonlinear body. Nothing is registered
+#'   on those today. `mi_pred()`, `gp_pred()` and `cs_pred()` are
+#'   spelled in the vocabulary differently from the way a formula
+#'   writes them, which the registry itself reports, so they warn
+#'   rather than matching a call no formula makes.
+#'
+#'   A refused row naming anything else, a covariance structure, a
+#'   fitting mode, another post-fit method, WARNS and samples, and so
+#'   does one whose name is a base R function. Refusing would fire on
+#'   correct models; silence would make a registered refusal look like
+#'   a passed check.
+#'
+#'   `frmtmb.ode` registers the one refused row there is: an
+#'   `frm_ode()` fit aborts at the first warmup step inside RTMBode,
+#'   and the abort leaves rstan's autodiff arena unusable for the rest
+#'   of the session, so the refusal is worth more than the attempt.
 #' @section Multimodal posteriors:
 #'   For [frmtmb::mixture()] fits the posterior is multimodal by construction
 #'   (label switching at minimum). Mode-centered inits, jittered or
@@ -1241,12 +1793,55 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                        prior = NULL, init = NULL,
                        init_jitter = 0.25, reparameterize = TRUE,
                        data2 = list(), start = NULL,
-                       control = frmtmb_control(),
+                       control = NULL,
+                       fit_control = frmtmb_control(),
                        na.action = stats::na.omit, REML = FALSE,
                        .diagnostic = FALSE) {
   # `...` goes to tmbstan, which would take the retired spelling as an
   # unknown sampler option and run the model with no priors at all
   refuse_retired_priors(list(...), "frm_sample()")
+  # `control` binds only on its exact spelling here, but an
+  # abbreviation is not therefore harmless: it lands in `...` and
+  # partial-matches rstan's own `control` further down
+  refuse_partial_control(list(...), "frm_sample()")
+  check_stan_control(control, "frm_sample()")
+  from_formula <- !inherits(fit, "frmtmb_fit")
+  if (!from_formula) {
+    if (!is.null(data) || !is.null(family)) {
+      stop("frm_sample(data =, family =) belongs to the formula ",
+           "interface; the model of a fitted object is already fixed. ",
+           "Drop them, or pass the formula instead of the fit",
+           call. = FALSE)
+    }
+    # The same rule, applied to the rest of the assembly arguments,
+    # which used to be accepted and discarded. `fit_control` is the one
+    # that matters most: it is the name the `control` refusal points a
+    # confused user at, so accepting a sampler list under it and
+    # sampling with the defaults would recreate, under a new name, the
+    # silence this release removes. missing() rather than a default
+    # comparison, so a caller who passes the default explicitly is
+    # still told the argument does nothing here.
+    inert <- c(if (!missing(fit_control)) "fit_control",
+               if (!missing(start)) "start",
+               if (!missing(data2)) "data2",
+               if (!missing(na.action)) "na.action",
+               if (!missing(REML)) "REML")
+    if (length(inert)) {
+      stop("frm_sample(", paste0(inert, " =", collapse = ", "),
+           ") belongs to the formula interface: those arguments ",
+           "assemble a model, and a fitted object is already ",
+           "assembled, so they were read by nothing. Pass the formula ",
+           "instead of the fit, or refit with frm(). The SAMPLER's ",
+           "options are `control`, control = list(adapt_delta = 0.99)",
+           call. = FALSE)
+    }
+  }
+  # Before the namespace loads, before frm() on the formula route and
+  # before any retape on the fit route, so a refused model costs the
+  # registry read and nothing else. The pre-flight needs neither rstan
+  # nor tmbstan, and a model that cannot be sampled at all is a more
+  # useful thing to be told than which package is missing.
+  sample_preflight(fit, family)
   prior <- as_priorlist(prior)
   if (!requireNamespace("tmbstan", quietly = TRUE) ||
       !requireNamespace("rstan", quietly = TRUE)) {
@@ -1259,16 +1854,10 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
          "non-centered sampling parameterization of the random-effect ",
          "blocks that have one", call. = FALSE)
   }
-  from_formula <- !inherits(fit, "frmtmb_fit")
   if (from_formula) {
     fit <- sample_assemble(fit, data, family, data2 = data2,
-                           start = start, control = control,
+                           start = start, fit_control = fit_control,
                            na.action = na.action, REML = REML)
-  } else if (!is.null(data) || !is.null(family)) {
-    stop("frm_sample(data =, family =) belongs to the formula ",
-         "interface; the model of a fitted object is already fixed. ",
-         "Drop them, or pass the formula instead of the fit",
-         call. = FALSE)
   }
   # no mode to anchor on when the model was never optimized
   init <- init %||% if (from_formula) "random" else "last.par.best"
@@ -1370,6 +1959,8 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                        mb$lower, mb$upper)
   }
   args <- list(obj = obj, init = init, ...)
+  # tmbstan forwards `control` to rstan::sampling() untouched
+  if (!is.null(control)) args$control <- control
   # A development namespace cannot travel to a worker, so this is caught
   # here by name rather than reported by rstan as empty chains.
   dev <- if (.Platform$OS.type == "windows" && stan_cores(args) > 1 &&
@@ -1405,20 +1996,7 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   }
   check_tmbstan_build("frm_sample()")
   sf <- do.call(tmbstan::tmbstan, args)
-  if (!length(sf@sim) || !length(sf@sim$samples)) {
-    # Deliberately generic about the cause. The known case is a tape
-    # that calls an external solver, and the package supplying such a
-    # tape documents its own failure; naming that package from here
-    # would tie this message to something frmtmb.sample does not depend
-    # on, for a pointer that package's own documentation gives better.
-    stop("frm_sample(): the sampler returned no draws (rstan printed ",
-         "the cause above). A known case: a tape that calls an ",
-         "external solver can fail inside tmbstan even at the fitted ",
-         "optimum, where the same tape optimizes without complaint; ",
-         "the package supplying such a tape documents that. A solver ",
-         "failure mid-run also corrupts rstan's sampler state, so ",
-         "retry in a fresh R session", call. = FALSE)
-  }
+  check_stan_draws(sf, "frm_sample()")
   a <- rstan::extract(sf, permuted = FALSE)   # iter x chain x par
   stan_names <- dimnames(a)[[3]]
   # laplace draws skip the inner components entirely; labeling them
@@ -1599,10 +2177,38 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
 #' priors, no non-centering, no named draws. [frm_sample()] is the
 #' route that applies brms's default priors and returns the draws
 #' surface; this one is the escape hatch to tmbstan's own arguments.
+#' `control` means here what it means in [frm_sample()] and in brms,
+#' the sampler's own list, because everything reaches
+#' [tmbstan::tmbstan()] unchanged.
+#'
+#' Two things are NOT an escape hatch, and both are failures this
+#' function used to pass on in silence.
+#'
+#' The first is the compatibility registry's refusals. This function
+#' runs the same pre-flight [frm_sample()] does (see its "The pre-flight
+#' against the compatibility registry" section), because a model the
+#' sampler cannot run fails harder here, and the abort that produces the
+#' failure can leave rstan unusable for the rest of the R session.
+#'
+#' The second is an empty result. rstan answers some failures by
+#' declining to sample, printing its reason to the console and returning
+#' a `stanfit` with nothing in it; this function returned that object.
+#' It now stops instead, with the same message [frm_sample()] raises,
+#' naming this function. The two refusals are deliberately different
+#' sentences: the pre-flight one says the model cannot be sampled at
+#' all, and this one says the run in front of you produced nothing.
 #'
 #' @param fit A `frmtmb_fit`.
-#' @param ... Passed to [tmbstan::tmbstan()] (chains, iter, laplace, ...).
-#' @return A `stanfit` object.
+#' @param ... Passed to [tmbstan::tmbstan()] (chains, iter, laplace,
+#'   `control`, ...).
+#' @return A `stanfit` object holding draws. **It is never an empty
+#'   one:** rstan answers some failures by declining to sample, printing
+#'   its reason and returning the shell of a `stanfit`, and until 0.3.2
+#'   this function passed that shell back, so a failed run looked like a
+#'   successful one until an accessor came back empty. It now stops with
+#'   a message naming the run, which is a change to this function's
+#'   return contract. A model that cannot be sampled at all is a
+#'   different refusal and is raised earlier; see Details.
 #' @examples
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
@@ -1624,11 +2230,66 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
 #' }
 #' @export
 as_tmbstan <- function(fit, ...) {
+  # The pre-flight belongs on BOTH doors, and this is the door where a
+  # refused model does more damage: frm_sample() at least catches an
+  # empty stanfit, while this function hands one back without a word,
+  # and the abort that produced it leaves rstan's nested autodiff arena
+  # unbalanced for the rest of the session ("empty_nested() must be
+  # true before calling recover_memory()"), so every later chain in
+  # that session fails too. Verified end to end on an frm_ode() fit.
+  sample_preflight(fit, what = "as_tmbstan()")
   if (!requireNamespace("tmbstan", quietly = TRUE)) {
     stop("as_tmbstan() needs the 'tmbstan' package", call. = FALSE)
   }
   check_tmbstan_build("as_tmbstan()")
-  tmbstan::tmbstan(fit$obj, ...)
+  sf <- tmbstan::tmbstan(fit$obj, ...)
+  check_stan_draws(sf, "as_tmbstan()")
+  sf
+}
+
+#' Refuse an empty stanfit rather than hand one back.
+#'
+#' tmbstan can return a stanfit with no draws in it AND no error: rstan
+#' declines to sample, prints its reason to the console, and gives back
+#' the shell. `frm_sample()` has always refused that. `as_tmbstan()`
+#' returned it, so the escape hatch answered a failed run with an object
+#' whose every accessor is empty and whose emptiness the caller had to
+#' notice for themselves. Both call this now, and the message names the
+#' caller.
+#'
+#' The message says what the failure is NOT, because there are two ways
+#' to get nothing out of this package and they want different fixes: a
+#' model the sampler cannot run at all is refused by the compatibility
+#' pre-flight before any chain starts, and this one is a failure of the
+#' run in front of you.
+#'
+#' The cause is left generic on purpose. The known case is a tape that
+#' calls an external solver, and the package supplying such a tape
+#' documents its own failure; naming that package from here would tie
+#' this message to something frmtmb.sample does not depend on, for a
+#' pointer that package's own documentation gives better.
+#'
+#' On the reads: `@` cannot partial-match (R raises "no slot of name"),
+#' and `[[` rather than `$` on `sim` is the house rule, not a fix.
+#' Nothing was reachable through the old `$`: rstan's `sim` carries
+#' twelve names and none but `samples` begins with "samples", and on a
+#' failed run `sim` is empty, so `||` short-circuits and the second
+#' test is never evaluated.
+#'
+#' @noRd
+check_stan_draws <- function(sf, what) {
+  if (length(sf@sim) && length(sf@sim[["samples"]])) {
+    return(invisible(NULL))
+  }
+  stop(what, ": the sampler returned no draws (rstan printed the cause ",
+       "above). This is a failure of THIS RUN, not a model that cannot ",
+       "be sampled at all: those are refused before any chain starts, ",
+       "and frm_compat(\"frm_sample\") lists them. A known case here: ",
+       "a tape that calls an external solver can fail inside tmbstan ",
+       "even at the fitted optimum, where the same tape optimizes ",
+       "without complaint; the package supplying such a tape documents ",
+       "that. A solver failure mid-run also corrupts rstan's sampler ",
+       "state, so retry in a fresh R session", call. = FALSE)
 }
 
 #' Refuse a tmbstan build that silently samples the wrong density.

@@ -15,7 +15,8 @@ frm_sample(
   reparameterize = TRUE,
   data2 = list(),
   start = NULL,
-  control = frmtmb_control(),
+  control = NULL,
+  fit_control = frmtmb_control(),
   na.action = stats::na.omit,
   REML = FALSE,
   .diagnostic = FALSE
@@ -82,8 +83,29 @@ starts at the ML mode: it is mapped through
 routes, so \code{reparameterize = FALSE} is also the way to reproduce a
 run made before this default existed.}
 
-\item{data2, start, control, na.action, REML}{As in \code{\link[frmtmb:frm]{frmtmb::frm()}}; used only on
-the formula path.}
+\item{data2, start, fit_control, na.action, REML}{As in \code{\link[frmtmb:frm]{frmtmb::frm()}}
+(\code{fit_control} is that function's \code{control}). They belong to the
+formula path, where they assemble the model this function samples,
+and on a fitted object they are refused by name rather than
+accepted and discarded: the model is already assembled, so nothing
+would read them. \code{fit_control} is not the sampler's control list;
+\code{control} is.}
+
+\item{control}{The SAMPLER's control list, brms's spelling and
+brms's meaning: \code{control = list(adapt_delta = 0.99, max_treedepth = 12)} reaches \code{\link[tmbstan:tmbstan]{tmbstan::tmbstan()}} and then rstan
+unchanged, so a \code{brm()} call ports across with this argument
+included. \code{NULL}, the default, leaves rstan's own defaults in
+place, and so does \code{list()}. The names are rstan's (\code{adapt_delta},
+\code{max_treedepth}, \code{stepsize}, \code{metric}, ...) and an unrecognized
+one is refused by name, because rstan answers an unknown option by
+returning an empty fit rather than by raising. \code{frmtmb_control()}
+fields arriving here are refused by name too and point at
+\code{fit_control}: earlier releases spelled the fit-time options
+\code{control}, and a silent reinterpretation would hand \code{grad_tol} to
+the sampler. So is an ABBREVIATION of the name: only \code{control}
+binds to this argument, and a shorter spelling would otherwise
+travel through \code{...} and partial-match rstan's own \code{control},
+reaching the sampler unchecked.}
 
 \item{.diagnostic}{Internal, and named with a dot because there is no
 reason to set it by hand. \code{TRUE} turns the default priors off and
@@ -344,6 +366,60 @@ explicit source that names it, one slot at a time: a call-level
 \code{set_prior(class = "sd")} replaces the fit's \code{sd} prior and the \code{sd}
 default while the \code{Intercept} default stays. \code{prior_summary()} on
 the returned draws prints what the stack came to.
+}
+
+\section{The pre-flight against the compatibility registry}{
+
+Some models cannot be sampled at all, and the reason usually
+belongs to the package that supplies the feature rather than to
+this one. Such a package declares the pair through
+\code{\link[frmtmb:frmtmb_register_compat]{frmtmb::frmtmb_register_compat()}} with the status \code{"refused"},
+and this function reads those rows before it does anything else:
+before the rstan and tmbstan namespaces are loaded, before the
+formula route calls \code{\link[frmtmb:frm]{frmtmb::frm()}}, and before either route
+retapes the objective for its priors. \code{\link[=as_tmbstan]{as_tmbstan()}} runs the same
+check. The refusal repeats the registry's own note and names the
+row, so \code{frm_compat("frm_sample", "<feature>")} gives the same
+answer without running anything.
+
+\emph{What it can decide, and what it will not guess at.} Whether a
+model uses a registry feature is settled by WHERE a call sits in
+the formula. The check decides three ways.
+
+A response FAMILY is matched by name, which is exact, because a
+family is named and never called. It does not look inside
+\code{\link[frmtmb:mixture]{frmtmb::mixture()}}, whose family name is the whole string
+\code{"mixture(gaussian, gaussian)"}, so a refused \code{gaussian} row does
+not reach a mixture of gaussians.
+
+An ADDITION TERM is matched by POSITION. It is written inside the
+bar on the left of the response formula and nowhere else, and the
+\code{bf()} object carries that, so \code{y | se(v) ~ x} is separated from
+\code{y ~ a * se(x)} with a user's own \code{se()}, which frmtmb fits.
+
+Everything else the vocabulary writes as a call is matched BY
+NAME, on the display name, outside addition-term position, and
+only when a formula actually writes that name and it is not also a
+base R function. This is the part that is justifiable from names
+alone rather than sound: a name test cannot see that a call sits
+where the feature cannot occur, so a refusal registered on \code{mo()},
+\code{ma()}, \code{cosy()} or \code{mm()} would also fire on a user's own
+function of that name in a nonlinear body. Nothing is registered
+on those today. \code{mi_pred()}, \code{gp_pred()} and \code{cs_pred()} are
+spelled in the vocabulary differently from the way a formula
+writes them, which the registry itself reports, so they warn
+rather than matching a call no formula makes.
+
+A refused row naming anything else, a covariance structure, a
+fitting mode, another post-fit method, WARNS and samples, and so
+does one whose name is a base R function. Refusing would fire on
+correct models; silence would make a registered refusal look like
+a passed check.
+
+\code{frmtmb.ode} registers the one refused row there is: an
+\code{frm_ode()} fit aborts at the first warmup step inside RTMBode,
+and the abort leaves rstan's autodiff arena unusable for the rest
+of the session, so the refusal is worth more than the attempt.
 }
 
 \section{Multimodal posteriors}{

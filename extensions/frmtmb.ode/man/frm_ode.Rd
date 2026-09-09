@@ -444,6 +444,38 @@ with \code{predict(dpar = )} instead.
 }\if{html}{\out{</div>}}
 }
 
+\section{Sampling an ODE fit}{
+
+\code{frmtmb.sample::frm_sample()} and \code{frmtmb.sample::as_tmbstan()} both
+refuse a model that contains \code{frm_ode()}, and the refusal is a
+registered row of the compatibility registry
+(\code{\link[frmtmb:frm_compat]{frmtmb::frm_compat()}}) rather than a guess. Both doors are guarded,
+and the second one was the worse of the two: it returned an empty
+\code{stanfit} with no error at all, and the abort behind it left rstan
+unusable for the rest of the R session.
+
+The defect is upstream and is reproduced in
+\code{dev/upstream/rtmbode-issues.md} without frmtmb, in bare RTMB,
+RTMBode and deSolve. \code{RTMBode::ode()} calls \code{deSolve::ode()} with no
+guard. deSolve answers an extreme parameter either by raising
+\verb{illegal input detected before taking any integration steps} or by
+returning fewer rows than were asked for, which the fixed-length
+adjoint node reports as \verb{Wrong output length}. An optimizer shortens
+its step and a sampler rejects its proposal only when a failure
+arrives as \code{NaN}; as an error it is fatal. Stan reaches those
+parameters by construction, because its first warmup step is of size
+1 on the unconstrained scale, so the chain aborts at iteration 1 even
+when it starts at the fitted optimum. The abort also crosses Stan's
+C++ boundary and leaves rstan's nested autodiff arena unbalanced for
+the rest of the R session.
+
+Two ways forward. Fit by maximum likelihood and read the Wald
+intervals, which is what the rest of this page describes; or apply
+the three-patch series in \verb{dev/upstream/patches/} to RTMBode, after
+which the same models sample. The refusal disappears on its own once
+a fixed RTMBode is released and this package drops the row.
+}
+
 \examples{
 # One-compartment oral pharmacokinetics with between-subject
 # variability on the absorption and elimination rates.
