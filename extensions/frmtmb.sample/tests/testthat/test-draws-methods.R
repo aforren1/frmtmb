@@ -6,11 +6,6 @@
 skip_on_cran()
 withr::local_options(mc.cores = 1, .local_envir = teardown_env())
 
-skip_sampler <- function() {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
-}
-
 dm_case <- local({
   cache <- NULL
   function() {

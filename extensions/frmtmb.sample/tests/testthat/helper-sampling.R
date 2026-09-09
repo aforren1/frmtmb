@@ -26,9 +26,67 @@ sampler_gates_on <- function() {
 
 # The skip that three of frmtmb's files each defined for themselves,
 # defined once here now that they share a package.
+#
+# It asks whether the sampler WORKS, not only whether it is installed.
+# A tmbstan built against StanHeaders >= 2.39 is installed, imports,
+# and samples a standard normal instead of the model, so the installed
+# check passes it and every block behind that check reached
+# frm_sample() and ERRORED on the refusal. A test that needs draws has
+# nothing to say about such a build, so it skips. The package's own
+# detector is called rather than reimplemented, so the skip and the
+# refusal cannot drift apart.
 skip_sampler <- function() {
   testthat::skip_if_not_installed("tmbstan")
   testthat::skip_if_not_installed("rstan")
+  if (frmtmb.sample:::tmbstan_build_broken()) {
+    testthat::skip(paste(
+      "this tmbstan was built against StanHeaders >= 2.39 and samples",
+      "a standard normal instead of the model; see",
+      "dev/prior-dropping-investigation.md"))
+  }
+}
+
+# Run `code` with the build detector pointed at a synthesized
+# model.hpp, so that the refusal branch and the skip above are executed
+# on a machine whose own tmbstan is healthy.
+#
+# The seam is `tmbstan_build_broken()` being a local() closure: its
+# enclosing environment is writable, a `system.file` bound there
+# shadows base's for the one call the detector makes, and the memo in
+# `cached` sits in the same place. Nothing is installed, .libPaths() is
+# untouched and the real tmbstan is not disturbed. Prepending a
+# synthesized library was tried first and does NOT work: once tmbstan
+# is loaded, which it is by the time these tests run, system.file()
+# resolves from the loaded namespace and ignores .libPaths().
+with_tmbstan_hpp <- function(broken, code) {
+  env <- environment(frmtmb.sample:::tmbstan_build_broken)
+  dir <- tempfile("tmbstan-hpp")
+  dir.create(dir)
+  path <- file.path(dir, "model.hpp")
+  # the shape stanc 2.39 emits: TWO log_prob_impl overloads where 2.32
+  # emitted one. autogen.R replaces the first match only, so the
+  # second keeps the placeholder that HMC actually reads.
+  writeLines(c(
+    "inline auto log_prob_impl(VecR& params_r__) {",
+    "    lp_accum__.add(custom_func::custom_func(y));",
+    "}",
+    "inline double log_prob_impl(VecR& params_r__) const {",
+    if (broken) {
+      "    lp_accum__.add(stan::math::std_normal_lpdf<propto__>(y));"
+    } else {
+      "    lp_accum__.add(custom_func::custom_func(y));"
+    },
+    "}"), path)
+  on.exit({
+    if (exists("system.file", envir = env, inherits = FALSE)) {
+      rm("system.file", envir = env)
+    }
+    assign("cached", NULL, envir = env)
+    unlink(dir, recursive = TRUE)
+  }, add = TRUE)
+  assign("system.file", function(...) path, envir = env)
+  assign("cached", NULL, envir = env)
+  force(code)
 }
 
 # Copied from frmtmb's helper-reference.R rather than reached for: a

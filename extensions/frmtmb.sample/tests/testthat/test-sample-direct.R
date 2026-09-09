@@ -19,8 +19,7 @@ sd_data <- function(seed = 9, n = 60L, ng = 6L) {
 ## ---- sampling ---------------------------------------------------------
 
 test_that("the formula route samples the same posterior as the fit route", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   withr::local_options(mc.cores = 1)
   dd <- sd_data()
   form <- bf(y ~ x + (1 | g)) + gaussian()
@@ -258,8 +257,7 @@ test_that("every slot left flat is announced, never silently dropped", {
 })
 
 test_that("the formula route discloses its defaults and reproduces them", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   withr::local_options(mc.cores = 1)
   dd <- sd_data()
   form <- bf(y ~ x + (1 | g)) + gaussian()
@@ -294,8 +292,7 @@ test_that("the formula route discloses its defaults and reproduces them", {
 })
 
 test_that("an ordinal formula-route call announces its threshold gap", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   withr::local_options(mc.cores = 1)
   dd <- sd_prior_data()
 
@@ -314,8 +311,7 @@ test_that("an ordinal formula-route call announces its threshold gap", {
 })
 
 test_that("prior = 'flat' opts out and warns about propriety", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   withr::local_options(mc.cores = 1)
   dd <- sd_data()
   form <- bf(y ~ x + (1 | g)) + gaussian()
@@ -352,8 +348,7 @@ test_that("prior = 'flat' opts out and warns about propriety", {
 })
 
 test_that("the fit route defaults to the brms priors, and flat opts out", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   withr::local_options(mc.cores = 1)
   dd <- sd_data()
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
@@ -386,8 +381,7 @@ test_that("the fit route defaults to the brms priors, and flat opts out", {
 })
 
 test_that("the fit route unpins a chain from a boundary variance mode", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   withr::local_options(mc.cores = 1)
   # no group effect in the data at all, so maximum likelihood puts the
   # variance component on the boundary: the kidney pathology in
@@ -424,8 +418,7 @@ test_that("the fit route unpins a chain from a boundary variance mode", {
 })
 
 test_that("a MAP fit's prior stacks under a call prior and the defaults", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   withr::local_options(mc.cores = 1)
   dd <- sd_data()
   form <- bf(y ~ x + (1 | g)) + gaussian()
@@ -511,8 +504,7 @@ test_that("a prior is added to the sampled density exactly once", {
 })
 
 test_that("user priors override the defaults per class", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   withr::local_options(mc.cores = 1)
   dd <- sd_data()
   form <- bf(y ~ x + (1 | g)) + gaussian()
@@ -540,8 +532,7 @@ test_that("user priors override the defaults per class", {
 })
 
 test_that("defaults tame a variance component flat priors cannot", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   withr::local_options(mc.cores = 1)
   set.seed(101)
   # three groups and no group-level signal: nothing stops a flat prior
@@ -583,8 +574,7 @@ test_that("the formula route validates its own arguments", {
 })
 
 test_that("a mixture sampled from a formula uses random inits", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   withr::local_options(mc.cores = 1)
   set.seed(17)
   dd <- data.frame(y = c(stats::rnorm(60, -2, 0.6),
@@ -610,8 +600,7 @@ test_that("a mixture sampled from a formula uses random inits", {
 ## ---- the draws-side name convention ----------------------------------
 
 test_that("every draws accessor speaks the same parenthesis-free names", {
-  skip_if_not_installed("tmbstan")
-  skip_if_not_installed("rstan")
+  skip_sampler()
   skip_if_not_installed("posterior")
   withr::local_options(mc.cores = 1)
   dd <- sd_data()

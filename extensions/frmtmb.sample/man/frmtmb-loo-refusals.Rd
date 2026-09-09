@@ -75,7 +75,8 @@ log-posterior evaluator that the RTMB tape does not expose.
 \examples{
 \donttest{
 if (requireNamespace("tmbstan", quietly = TRUE) &&
-    requireNamespace("rstan", quietly = TRUE)) {
+    requireNamespace("rstan", quietly = TRUE) &&
+    !frmtmb.sample:::tmbstan_build_broken()) {
   set.seed(1)
   dd <- data.frame(x = rnorm(40))
   dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
