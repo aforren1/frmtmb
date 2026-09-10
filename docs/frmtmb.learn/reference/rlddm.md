@@ -28,7 +28,9 @@ rlddm(subject, trial = NULL, max_ndt = NULL)
 
   Upper bound for the non-decision time. `NULL`, the default, uses the
   fastest response in the data. A value above it is refused, because it
-  admits parameters at which the fastest trial has no likelihood.
+  admits parameters at which the fastest trial has no likelihood. It
+  cannot be combined with `ndt_group()`, which sets the same bound per
+  group. It is also what `bf(ndt = )` now needs: see below.
 
 ## Value
 
@@ -107,13 +109,91 @@ it is what makes `drift` and `bs` easier to separate on a short session.
 ## The non-decision time is bounded, not logged
 
 The density is zero at and below `ndt`, so the likelihood has a hard
-edge at `ndt = min(rt)` and a log link would let the optimizer walk over
-it. `ndt` therefore gets a logit scaled onto `(0, max_ndt)`, with
-`max_ndt` defaulting to the fastest response in the data, which makes
-the constraint structural. This is the same construction
+edge at the fastest response and a log link would let the optimizer walk
+over it. `ndt` therefore gets a logit scaled onto `(0, ub)`, which makes
+the constraint structural. The bound comes from
+[`frmtmb.eam::ndt_bound()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound.html),
+so this family and
 [`frmtmb.eam::wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.html)
-uses and it is written again here rather than borrowed, because a link
-is not what that package exports.
+derive it the same way and refuse the same things.
+
+## One bound, or one per learner
+
+`ub` is one number for the whole data set unless the model says
+otherwise, and the whole data set's fastest response is the wrong
+ceiling for a hierarchical fit. The information about one subject's
+non-decision time is that SUBJECT's own fastest response, and with 100
+learners the global minimum is the fastest of all of them, so a subject
+deviation on `ndt` is a deviation on a fraction of somebody else's
+floor. The scale tier measured what that costs: the 100 by 200 design
+reached a maximum gradient of 6.36e+09, a Hessian that was not positive
+definite and four `NaN` standard errors.
+
+`ndt_group()` is the fix, and it is opt-in:
+
+    frm(bf(rt | dec(choice) + reward(pay1, pay2) + ndt_group(id) ~
+             1 + (1 | p | id),
+           drift ~ 1 + (1 | p | id), bs ~ 1 + (1 | p | id),
+           ndt ~ 1 + (1 | p | id), bias = 0.5),
+        family = rlddm(subject = id, trial = trial), data = d)
+
+With it, each row's bound is its own group's fastest response, `ndt` is
+a FRACTION of that bound on a plain logit, and the density multiplies it
+back out. `predict(dpar = "ndt", type = "response")` then reports the
+fraction, and
+[`frmtmb.eam::ndt_time()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.html)
+reports the non-decision time in seconds whichever parameterization a
+fit is in. Without it nothing about the family moved.
+
+The grouping need not be the learner: it is whatever shares a floor.
+`max_ndt` and `ndt_group()` together are refused, because they set one
+bound to two different things.
+
+## What the per-learner spread of ndt does and does not say
+
+Under `ndt_group()` a learner's non-decision time is a FRACTION times
+that learner's own floor, so the fitted times differ between learners
+even when the random effect on `ndt` is exactly zero, purely because the
+floors differ. A spread across learners is therefore not evidence that
+the variance component recovered anything.
+
+Measured on the 100 by 200 design of `dev/rlddm-findings.md`, where the
+drawn truths have a spread of 0.0393041: the full model returns
+**0.0333713** and the same model with the random effect on `ndt`
+switched OFF returns **0.0380049**. On this statistic the random effect
+is not neutral, it is worse.
+
+What the random effect IS worth on the same fit is the per-learner
+accuracy, and there it is not close: 13.996 ms of error against the
+drawn truths and a correlation of 0.9404, where no estimator without it
+can beat 21.075 ms or 0.8478, because the correlation of any constant
+multiple of the floors with the truth is fixed at 0.847780. So read the
+per-learner error and the correlation, not the spread.
+[`frmtmb.eam::wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.html)
+carries the same warning for the same reason.
+
+## Pinning the non-decision time needs max_ndt
+
+`bf(ndt = 0.2)` on a bare `rlddm()` is refused, and the message says to
+pass `max_ndt`. `bf()` transforms a pinned constant at PARSE time,
+before the response has been seen, so a family with no bound yet has no
+scale to transform it on. Write the bound down instead:
+
+    frm(bf(rt | dec(choice) + reward(pay1, pay2) ~ 1,
+           drift ~ 1, bs ~ 1, ndt = 0.2, bias = 0.5),
+        family = rlddm(subject = id, trial = trial, max_ndt = 0.26),
+        data = d)
+
+**This is a change, and it is one thing that stops working.** Through
+0.3.0 `bf(ndt = 0.2)` on a bare family was accepted and fitted 0.2
+exactly, so far as the constant was below the fastest response. What it
+did NOT do is check the constant against the bound the fit would
+actually use: `bf(ndt = 0.3)` with `max_ndt = 0.26` was accepted too,
+and reached the objective as `NaN`, surfacing as an optimizer failure
+that named nothing. Both cases are now settled before the formula is
+parsed, which is how
+[`frmtmb.eam::wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.html)
+and its siblings have behaved since frmtmb.eam 0.7.0.
 
 ## Recovery, measured
 
@@ -152,13 +232,16 @@ the likelihood is
 [`frmtmb.eam::wiener_lpdf()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_lpdf.html)
 and is exact either way.
 
-## Where the density comes from
+## Where the density and the bound come from
 
-[`frmtmb.eam::wiener_lpdf()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_lpdf.html),
-through the export rather than through a colon. The Navarro and Fuss
-(2009) series pair, its smooth blend and its tape safety all belong to
-that package and are not repeated here. This is the only dependency one
-extension of frmtmb has on another, and it is one function.
+[`frmtmb.eam::wiener_lpdf()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_lpdf.html)
+and
+[`frmtmb.eam::ndt_bound()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound.html),
+through the exports rather than through a colon. The Navarro and Fuss
+(2009) series pair, its smooth blend and its tape safety belong to that
+package, and so does the bound, its `ndt_group()` behavior and every
+refusal either of them owes. This family writes the learning rule and
+one multiplication.
 
 ## References
 

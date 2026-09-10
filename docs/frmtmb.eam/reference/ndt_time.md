@@ -24,7 +24,8 @@ ndt_time(object, newdata = NULL, ...)
   [`rdm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/rdm.md)
   or
   [`wiener_gng()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_gng.md)
-  model.
+  model, or a fit from another package whose family carries a bound from
+  [`ndt_bound_attach()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound_attach.md).
 
 - newdata:
 
@@ -48,10 +49,19 @@ family was given. Whichever it is, it is a property of the data the
 model was FITTED to, so a prediction on new rows is scaled by the same
 bound the fit used.
 
+It reads the bound record rather than the family's name, so a fit from
+ANOTHER package whose family carries a bound through
+[`ndt_bound_attach()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound_attach.md)
+is reported here too, and
+[`frmtmb.learn::rlddm()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/rlddm.html)
+is the first of those.
+
 ## See also
 
 [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)
-for what the two parameterizations are and why there are two.
+for what the two parameterizations are and why there are two,
+[`ndt_bound()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound.md)
+for the seam another package's family reaches them through.
 
 ## Examples
 

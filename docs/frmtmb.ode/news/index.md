@@ -1,5 +1,110 @@
 # Changelog
 
+## frmtmb.ode 0.4.0
+
+- **[`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)’s
+  steady-state run-in sums the tail it used to drop.** An `ss` row is
+  reached by repeating the dosing cycle `n_ss` times, and truncating
+  there leaves the state short of the limit by
+  `exp(-n_ss * lambda_z * ii)`, where `lambda_z` is the slowest
+  disposition eigenvalue. That shortfall grows with the terminal
+  half-life measured in dosing intervals, no check could run during a
+  fit, and it moved estimates: the gradient with respect to `log(k21)`
+  on a 107 hour two-compartment oral model had the WRONG SIGN, +10.37
+  where the exact steady state gives -1.30, which is how a fit at
+  `n_ss = 20` moved `k21` by a factor of 3.2. At population scale, on a
+  30-subject dataset simulated from the exact steady state, truncating
+  the run-in moves the objective by 60.66 units and turns `d/dlog(k21)`
+  from +2.915 into -294.63.
+
+  The run-in already computes the last cycle-start states, and their
+  successive differences give the per-cycle contraction, so the sum that
+  is left is `d * r / (1 - r)`. Adding it is arithmetic on tape
+  variables, so unlike a convergence test it runs DURING a fit, at
+  whatever parameters the fit has reached, and it costs no extra solve:
+  the count is 21 solves per group at `n_ss = 20` either way. Measured
+  worst over one dosing interval against the exact limit, at the shipped
+  default and `atol = rtol = 1e-8`, on two-compartment oral models:
+  3.9e-03 to 9.9e-09 at a 23 hour half-life dosed every 8 hours, 1.2e-02
+  to 2.6e-09 at 107 hours dosed daily, and 2.1e-01 to 1.4e-08 at 670
+  hours dosed daily. On 22 ordinary population pharmacokinetic schedules
+  the error is now 6.6e-10 to 6.1e-08 everywhere, which is the
+  integrator’s own tolerance rather than the run-in’s.
+
+  **This changes the numbers a model with `ss` rows returns.**
+  `ss_extrapolate = FALSE` restores the truncated run-in, bit for bit
+  against 0.3.0 on 26 schedules,
+  [`identical()`](https://rdrr.io/r/base/identical.html) on 26 of 26.
+
+  **The default can lose, and where it does is bounded.** The ratio the
+  run-in reads is a weighted mean of the cycle map’s modes, and when two
+  of the weights have opposite signs it overshoots. Opposite signs are
+  the normal arrangement in an oral model, so the hazard is `ka` near
+  `lambda_z`: **flip-flop kinetics**, which extended-release and depot
+  formulations are written to produce. Over 338 two-compartment oral
+  cycle maps the correction loses on 8, worst by a factor of 2.27, and
+  every one of those has `lambda_z * ii` = 0.05. The bound is what makes
+  the default defensible: the smallest error truncation leaves on a
+  losing case is 0.40 and the largest it leaves on a winning one is
+  0.96, so the correction never loses where truncation was usable, and
+  the warning fires on every losing case in BOTH arms. Through
+  [`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)
+  on the worst such model, a 333 hour terminal half-life dosed daily:
+  5.2e-01 truncated against 8.0e-01 extrapolated. On a Michaelis-Menten
+  system deep in its saturated regime it improved a 1.1e-01 shortfall to
+  7.2e-03 and no further.
+
+  The correction is applied in full while the measured ratio is between
+  0.05 and 0.9875, gated to nothing below the first and stood down to
+  nothing as it reaches 1. The gate is the degree-7 smootherstep, whose
+  first three derivatives vanish at both ends; the stand-down is that
+  same shape divided by its argument, degree 6, whose slope at 1 is -1,
+  the slope that joins `r / (1 - r)` below the cap. Measured rather than
+  asserted, **the objective has no corner in the parameters** at any of
+  the four junctions, which matters because a fit whose `k21` runs to
+  zero walks through one of them. It costs about 260 nodes on the tape,
+  a fixed cost independent of `n_ss`, which is +124 percent of the outer
+  tape at `n_ss` = 20 on a three-state model; the truncated arm’s tape
+  is 0.3.0’s node for node.
+
+- **The run-in warning now reports a distance to the limit.** It used to
+  report the movement between the last two cycles, which understates the
+  distance by about `1 / (lambda_z * ii)` and so understated it most
+  exactly where the error was largest: measured 0.79x, 3.1x, 6.6x and
+  10.8x as the half-life grows. What it prints now is within 0.65x to
+  0.84x of the true error on the same four rows. It also says so by name
+  when a state is not contracting between cycles at all, which means no
+  `n_ss` reaches a steady state for it, and that is reported on its own
+  evidence rather than through the distance. On 28 schedules classified
+  against the exact limit there is **no false alarm and no miss in
+  either arm**, including three constructions where each of the
+  correction’s own guards fires, two where `n_ss` is too small for a
+  tail to be read at all, and three where it is in the hundreds and
+  inside the stand-down band.
+
+  **Treat the number as a detector and not as a measurement.** It is
+  built out of the same geometric model the correction is, so where that
+  model is poor it is poor with it, and it is a lower bound rather than
+  an estimate: measured across 64 runs the ratio of what it prints to
+  the true error spans 0.0104 to 9.17e+09. It is good for deciding
+  whether to look, not for how much to trust the third digit.
+
+  A very long run-in has a limit that raising `n_ss` cannot pass. The
+  cycles are chained solves, so the integrator’s own error accumulates
+  over all `n_ss + 1` of them: at `atol = rtol = 1e-8` and `n_ss` = 1000
+  it contributes about 2e-05, larger than the run-in shortfall the extra
+  cycles were bought to remove. Past a few hundred cycles, tighten the
+  tolerances too.
+
+- `ss_tol` is documented as a distance to the steady state rather than
+  as a relative change between cycles, which is what it now compares
+  against.
+
+- [`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)
+  gains `ss_extrapolate`, default `TRUE`. It sits between `ss_tol` and
+  `method`, so a call that matched `method`, `atol`, `rtol`, `on_error`
+  or `penalty` POSITIONALLY now matches one argument earlier. Name them.
+
 ## frmtmb.ode 0.3.0
 
 - **[`frm_lincmt()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_lincmt.md),

@@ -19,7 +19,7 @@ predictors compose with it unchanged."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.latent</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -161,7 +161,21 @@ reported as <code>hmm_ldel_1 ...</code> and counted in <code>df</code>.</p></dd>
 <dd><p>Fixed at <code>1 / K</code>.</p></dd>
 
 
-</dl></div>
+</dl><p><code>"estimated"</code> estimates ONE initial distribution shared across every
+sequence. This is worth knowing before comparing with <code>hmmTMB</code>,
+whose <code>initial_state = "estimated"</code> estimates a SEPARATE one per
+sequence. On 20 sequences of 100 rows that is 38 extra parameters on
+hmmTMB's side and <strong>19.678 log-likelihood units</strong>, with nothing in
+either package's output saying the two fits are of different models.
+(Against <code>init = "uniform"</code> here the same hmmTMB fit is 21.231 units
+higher, because uniform costs frmtmb its own two initial-distribution
+parameters as well; the two figures differ by that 1.553 and it is
+the first that belongs to the sentence above.)</p>
+<p>Pin the initial distribution on both sides before comparing.
+<code>init = "uniform"</code> here against <code>fixpar = list(delta0 = &lt;all NA&gt;)</code>
+there makes the two likelihoods the same function, and they then
+agree to 1e-11 relative (<code>dev/latent-2p3-hmmtmb-probe4.R</code>).</p>
+    </div>
     <div class="section level2">
     <h2 id="decoding-and-the-fitted-values">Decoding and the fitted values<a class="anchor" aria-label="anchor" href="#decoding-and-the-fitted-values"></a></h2>
 
@@ -182,11 +196,74 @@ any single state's.</p>
 means start at spread response quantiles (see <code><a href="https://aforren1.github.io/frmtmb/reference/mixture.html" class="external-link">frmtmb::mixture()</a></code>); a start
 with every state mean equal sits on the symmetry axis and the
 optimizer never leaves it. Relabeling between runs is expected and is
-not fought. Multimodality is real and is not signalled by any
-convergence diagnostic: on a random-effect model the default cold
-start has been measured converging 8.1 log-likelihood units below the
-global optimum with <code>convergence == 0</code> and a positive-definite
-Hessian. Compare several starts (<code><a href="https://aforren1.github.io/frmtmb/reference/frm_allfit.html" class="external-link">frm_allfit()</a></code>) before reporting.</p>
+not fought.</p>
+<p>Multimodality is real and NO convergence diagnostic reports it. On a
+two-state model with a random intercept in each state mean, 25
+sequences of 30, the default cold start converges to
+-1096.09575602 where the optimum is -1087.99646521: <strong>8.099
+log-likelihood units below it</strong>, with <code>convergence == 0</code>, a positive
+definite Hessian, no non-finite standard error, a largest gradient
+of 7.00028e-04 (6.4e-07 of the log-likelihood), and <code>diagnose()</code>
+printing "No convergence problems detected". That last clause is
+true of this fit by a factor of 1.43: <code>diagnose()</code>'s clean verdict
+needs <code>max|grad|</code> under 1e-3 ABSOLUTE, and a construction whose
+gradient landed just the other side of that would get a warning
+instead. What is 8.099 units wrong here is the answer, not the
+gradient, and no threshold on a gradient can see that. The optimum is confirmed
+independently by a hand-rolled <code>MakeADFun(random =)</code> and by hmmTMB
+to the last digit (<code>dev/hmm-feasibility.md</code>, probe D4;
+<code>dev/latent-2p3-repro81.R</code> reproduces it against this family).</p>
+<p><code><a href="hmm_starts.html">hmm_starts()</a></code> is the remedy: it refits from jittered starting
+values, returns the best, and reports the spread of the OPTIMA the
+refits reached. On that probe, <code>hmm_starts(fit, n = 8, jitter = 2)</code>
+recovered the better optimum on 5 of 5 seeds, and so did <code>jitter = 1</code>, <code>4</code> and <code>8</code>; <code>jitter = 0.5</code> recovered it on 1 of 5, which is
+what the default of 2 is chosen from.</p>
+<p><code><a href="https://aforren1.github.io/frmtmb/reference/frm_allfit.html" class="external-link">frm_allfit()</a></code> is a different check, and on this probe it is a
+reassuring one: it re-runs every optimizer from the SAME start, so it
+tests the optimizer rather than the surface. All four (nlminb, optim,
+bobyqa, NLopt L-BFGS) reach -1096.096 with <code>convergence == 0</code> and a
+log-likelihood spread of 7.8e-07, which is agreement on the wrong
+answer (<code>dev/latent-2p3-allfit.R</code>).</p>
+    </div>
+    <div class="section level2">
+    <h2 id="recovery-at-a-realistic-scale">Recovery at a realistic scale<a class="anchor" aria-label="anchor" href="#recovery-at-a-realistic-scale"></a></h2>
+
+
+<p>Measured at the design named in the realistic-scale table of
+<code>dev/extension-gaps-plan.md</code>: 50 sequences of 500 steps, 25 000 rows,
+<code>K = 3</code> gaussian with state means -2, 0 and 3 and a common standard
+deviation of 0.7, and a transition matrix whose free logits are
+<code>tr12</code> -1.5, <code>tr13</code> -2.5, <code>tr22</code> 2.0, <code>tr23</code> -1.0, <code>tr32</code> -1.0 and
+<code>tr33</code> 2.0. Scripts and tables: <code>dev/latent-2p3-hmm.R</code> and
+<code>dev/latent-findings.md</code>.</p>
+<p><strong>Fixed transitions, against depmixS4.</strong> Recovery over 40 replicates
+(seeds 20260910 to 20260949): the largest bias on any of the twelve
+parameters is 0.014 on a transition logit whose own standard error is
+0.083, the spread across replicates matches the standard error each
+fit reports, and Wald coverage is 95.6 percent (459 of 480, Monte
+Carlo interval 93.8 to 97.5). On the response scale the state means
+come back within 0.021, the state standard deviations within 0.017,
+and every cell of the transition matrix within 0.014. The fitted
+labels were the true labels in 40 of 40, and the Hessian was positive
+definite in 40 of 40. Against depmixS4 on the same data, best of four
+random EM starts at <code>tol = 1e-12</code>, over 3 replicates: the two
+log-likelihoods agree to between 3.1e-14 and 4.9e-12 relative, and
+the means, standard deviations and transition matrix to 1.5e-06,
+which is 1.6e-04 of one of this fit's own standard errors.</p>
+<p><strong><code>tr12 ~ (1 | id)</code>, against hmmTMB.</strong> Recovery over 15 replicates,
+with a true <code>sd(tr12 | id)</code> of 0.6: it comes back at 0.615 on average
+with a spread of 0.067, and Wald coverage over all thirteen
+parameters is 94.4 percent (184 of 195, Monte Carlo interval 91.1 to
+97.6). Against hmmTMB fitting the same model on the same data, over
+6 replicates, the two Laplace marginal log-likelihoods agree to
+between 6.1e-12 and 6.9e-11 relative and the estimates to 1.3e-04,
+which is 1.5e-02 of one standard error. Fifteen replicates put about
+ten points of Monte Carlo error on any single parameter's coverage,
+so read the overall figure rather than the rows.</p>
+<p>No replicate of either arm converged to a local optimum. That is a
+statement about these two designs and not about the family: see
+"Label switching and local optima" for a design where the cold start
+does exactly that, with every diagnostic clean.</p>
     </div>
     <div class="section level2">
     <h2 id="missing-responses">Missing responses<a class="anchor" aria-label="anchor" href="#missing-responses"></a></h2>
@@ -257,7 +334,8 @@ and the model is a <code><a href="https://aforren1.github.io/frmtmb/reference/mi
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="hmm_probs.html">hmm_probs()</a></code>, <code><a href="hmm_viterbi.html">hmm_viterbi()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/mixture.html" class="external-link">frmtmb::mixture()</a></code></p></div>
+    <div class="dont-index"><p><code><a href="hmm_probs.html">hmm_probs()</a></code>, <code><a href="hmm_viterbi.html">hmm_viterbi()</a></code>, <code><a href="hmm_starts.html">hmm_starts()</a></code>,
+<code><a href="https://aforren1.github.io/frmtmb/reference/mixture.html" class="external-link">frmtmb::mixture()</a></code></p></div>
     </div>
 
     <div class="section level2">

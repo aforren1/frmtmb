@@ -1,5 +1,140 @@
 # Changelog
 
+## frmtmb.eam 0.8.0
+
+- **A second export seam: the bound a non-decision time is measured
+  against.**
+  [`ndt_bound()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound.md)
+  derives it from the response, `ndt_group()` and `max_ndt`;
+  [`ndt_bound_attach()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound_attach.md)
+  puts it on a family object;
+  [`ndt_bound_of()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound_of.md)
+  reads back the bound a family already carries;
+  [`ndt_bound_pending()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound_pending.md)
+  is the state a family is in before `frm()` has seen a response;
+  [`ndt_apply()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_apply.md)
+  puts the non-decision time back on the response’s own scale wherever a
+  density would have read `dpars$ndt`, with the refusal that goes with
+  it; and
+  [`ndt_bound_key()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound_key.md)
+  is the coercion an `ndt_group()` column goes through, for a caller
+  assembling the `aterms` list by hand. A family in another package now
+  gets this package’s bound, its `ndt_group()` behavior and every
+  refusal that goes with them without writing any of it again.
+  [`frmtmb.learn::rlddm()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/rlddm.html)
+  is the first consumer and had written its own copy of the scaled
+  logit, which is how it inherited the one-global-bound defect item 1.0a
+  removed here.
+
+  What is promised is the bound and the one multiplication that goes
+  with it. The four densities’ internals stay internal, and so does the
+  slot WRAPPING this package does for its own families:
+  [`ndt_bound_attach()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound_attach.md)
+  sets the link, the per-row floor and the record, and the consumer’s
+  density calls
+  [`ndt_apply()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_apply.md).
+  That last one is exported rather than documented as three lines
+  because the refusal it carries is longer than the arithmetic and is
+  the half that stops a fraction being read as seconds.
+
+  Attaching a bound to one of THIS package’s own five families is
+  refused by name.
+  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md),
+  [`lba()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/lba.md),
+  [`rdm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/rdm.md)
+  and
+  [`wiener_gng()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_gng.md)
+  install theirs through their constructor’s `max_ndt`, and a
+  half-install would leave the link and the density disagreeing;
+  [`gddm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/gddm.md)
+  takes no per-group bound at all, and an earlier version of the guard
+  let it through, replacing its bounded link with a plain logit and
+  moving its `ndt` starting value from 0.155 s to 0.5.
+
+- [`ndt_time()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.md)
+  reads the bound RECORD rather than the family’s name, so a fit from
+  another package whose family carries a bound is reported here too.
+
+- The record a fitted family carries at `family(fit)$ndt_bound` is now
+  an object of class `"frmtmb_eam_ndt_bound"` and carries the family’s
+  name in `what`. Its `ub`, `floors`, `sizes` and `pending` entries are
+  unchanged.
+
+- **[`gddm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/gddm.md)
+  now refuses a parameter that varies inside a condition, instead of
+  ignoring it.** One solve of the Fokker-Planck equation serves a whole
+  condition and every parameter is read at that condition’s FIRST ROW.
+  [`?gddm`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/gddm.md)
+  has always required every row of a condition to share every parameter
+  value, and nothing enforced it, so a model that broke the contract
+  fitted with no error and no warning and the varying term reached
+  nothing. Measured on 120 rows in two conditions, at a FITTED parameter
+  vector, adding 100 to a covariate on 118 of the 120 rows:
+
+  | model      | objective as drawn | with the covariate moved | identical |
+  |------------|--------------------|--------------------------|-----------|
+  | `mu ~ x`   | 18.962737109172043 | 18.962737109172043       | yes       |
+  | `ndt ~ x`  | 18.810414088214987 | 18.810414088214987       | yes       |
+  | `bs ~ x`   | 18.948550650674157 | 18.948550650674157       | yes       |
+  | `bias ~ x` | 17.746051487984953 | 17.746051487984953       | yes       |
+
+  Bitwise identical, on every one. A random effect whose grouping
+  crosses the index fails the same way from the other side: with four
+  subjects across two conditions, the two subjects that never sit on a
+  condition’s first row keep deviations of exactly 0, and the fit
+  reports a between-subject standard deviation of 7.6e-11 rather than
+  refusing.
+
+  The refusal names the parameter, the variable and a condition it
+  varies inside, and the remedy is to name that variable in the index as
+  well, which
+  [`gddm_conditions()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/gddm_conditions.md)
+  does. The cost of the extra resolution is one solve per condition, and
+  it is why this is a refusal rather than a silent refinement: at 120
+  rows on a coarse grid, one solve per row against one per condition is
+  41 times the tape build and about 52 times the evaluation.
+
+  The check compares each parameter’s model-frame columns against its
+  condition’s first row, so it is sufficient rather than exact, in the
+  direction that refuses. It carries a tolerance,
+  `1e-8 * max(|a|, |b|) + 1e-11 * max|column|`, because
+  [`poly()`](https://rdrr.io/r/stats/poly.html) returns rows 8.7e-14
+  apart, relative to the column maximum, for bitwise identical inputs.
+  The band under that tolerance is the guard’s limit and it is stated
+  rather than hidden: the check misses a within-condition difference `s`
+  on a column whose largest entry is `M` once `M / s` passes about 1e11,
+  which takes a sentinel value a thousand billion times the data to
+  reach. On 21 correct designs covering drift by coherence, boundary by
+  block, start point by cue, non-decision time by subject, subject
+  random intercepts and slopes, a spline, a monotonic ordered predictor,
+  an offset, a collapsing boundary, a lapse rate and the coherence drift
+  nonlinearity, it fires 0 times; on the 26 ways of dropping one
+  variable from those same indices it fires 26 times and names the
+  dropped variable every time. One refusal names every offending
+  parameter and variable and hands back the
+  [`gddm_conditions()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/gddm_conditions.md)
+  call that fixes them.
+
+  A random effect is where this bites hardest, and `frm_compat("gddm")`
+  now says so: `(1 | g)` works when `g` is in the condition index and is
+  refused when it is not. Before the refusal, four subjects across two
+  conditions left the two not on a condition’s first row with deviations
+  of exactly 0, and the fit reported a between-subject standard
+  deviation of 7.6e-11.
+
+- **[`gddm_simulate()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/gddm_simulate.md)
+  refuses a parameter that varies between trials sharing a coherence,
+  instead of drawing every trial from the first one.** It solves once
+  per distinct value of `coh` and read every parameter at that value’s
+  first trial, which is the same defect one layer over. Measured on 400
+  trials with `mu = c(rep(-2.5, 200), rep(2.5, 200))` and `coh = 0`:
+  both halves were drawn from `mu = -2.5`, giving upper-boundary rates
+  of 0.010 and 0.000, where the same values with `coh` separating them
+  give 0.010 and 0.990. No error and no warning. Give `coh` a distinct
+  value per parameter setting, or call the function once per setting. A
+  scalar parameter, and a length-`n` one that is constant within each
+  `coh`, are unaffected.
+
 ## frmtmb.eam 0.7.0
 
 The non-decision time can now be bounded PER GROUP, which fixes the

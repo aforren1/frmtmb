@@ -374,7 +374,7 @@ pl <- poLCA::poLCA(cbind(A, B, C, D, E, F, G) ~ 1, dp, nclass = 2,
 c(frmtmb = as.numeric(logLik(flca)), poLCA = pl$llik,
   difference = as.numeric(logLik(flca)) - pl$llik)
 #>        frmtmb         poLCA    difference 
-#> -8.130282e+02 -8.130282e+02 -1.469857e-09
+#> -8.130282e+02 -8.130282e+02 -3.806463e-09
 ```
 
 ``` r
@@ -397,7 +397,7 @@ perm <- if (sum(abs(ours - theirs)) <= sum(abs(ours[2:1, ] - theirs))) {
 c(profiles = max(abs(ours[perm, ] - theirs)),
   posterior = max(abs(lca_probs(flca)[, perm] - pl$posterior)))
 #>     profiles    posterior 
-#> 6.922964e-07 4.450914e-06
+#> 1.353604e-06 2.165668e-06
 ```
 
 ``` r

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,6 +44,44 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.eam/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.8.0" id="frmtmbeam-080">frmtmb.eam 0.8.0<a class="anchor" aria-label="anchor" href="#frmtmbeam-080"></a></h2>
+<ul><li>
+<p><strong>A second export seam: the bound a non-decision time is measured against.</strong> <code><a href="../reference/ndt_bound.html">ndt_bound()</a></code> derives it from the response, <code>ndt_group()</code> and <code>max_ndt</code>; <code><a href="../reference/ndt_bound_attach.html">ndt_bound_attach()</a></code> puts it on a family object; <code><a href="../reference/ndt_bound_of.html">ndt_bound_of()</a></code> reads back the bound a family already carries; <code><a href="../reference/ndt_bound_pending.html">ndt_bound_pending()</a></code> is the state a family is in before <code>frm()</code> has seen a response; <code><a href="../reference/ndt_apply.html">ndt_apply()</a></code> puts the non-decision time back on the response’s own scale wherever a density would have read <code>dpars$ndt</code>, with the refusal that goes with it; and <code><a href="../reference/ndt_bound_key.html">ndt_bound_key()</a></code> is the coercion an <code>ndt_group()</code> column goes through, for a caller assembling the <code>aterms</code> list by hand. A family in another package now gets this package’s bound, its <code>ndt_group()</code> behavior and every refusal that goes with them without writing any of it again. <code><a href="https://aforren1.github.io/frmtmb/frmtmb.learn/reference/rlddm.html" class="external-link">frmtmb.learn::rlddm()</a></code> is the first consumer and had written its own copy of the scaled logit, which is how it inherited the one-global-bound defect item 1.0a removed here.</p>
+<p>What is promised is the bound and the one multiplication that goes with it. The four densities’ internals stay internal, and so does the slot WRAPPING this package does for its own families: <code><a href="../reference/ndt_bound_attach.html">ndt_bound_attach()</a></code> sets the link, the per-row floor and the record, and the consumer’s density calls <code><a href="../reference/ndt_apply.html">ndt_apply()</a></code>. That last one is exported rather than documented as three lines because the refusal it carries is longer than the arithmetic and is the half that stops a fraction being read as seconds.</p>
+<p>Attaching a bound to one of THIS package’s own five families is refused by name. <code><a href="../reference/wiener.html">wiener()</a></code>, <code><a href="../reference/lba.html">lba()</a></code>, <code><a href="../reference/rdm.html">rdm()</a></code> and <code><a href="../reference/wiener_gng.html">wiener_gng()</a></code> install theirs through their constructor’s <code>max_ndt</code>, and a half-install would leave the link and the density disagreeing; <code><a href="../reference/gddm.html">gddm()</a></code> takes no per-group bound at all, and an earlier version of the guard let it through, replacing its bounded link with a plain logit and moving its <code>ndt</code> starting value from 0.155 s to 0.5.</p>
+</li>
+<li><p><code><a href="../reference/ndt_time.html">ndt_time()</a></code> reads the bound RECORD rather than the family’s name, so a fit from another package whose family carries a bound is reported here too.</p></li>
+<li><p>The record a fitted family carries at <code>family(fit)$ndt_bound</code> is now an object of class <code>"frmtmb_eam_ndt_bound"</code> and carries the family’s name in <code>what</code>. Its <code>ub</code>, <code>floors</code>, <code>sizes</code> and <code>pending</code> entries are unchanged.</p></li>
+<li>
+<p><strong><code><a href="../reference/gddm.html">gddm()</a></code> now refuses a parameter that varies inside a condition, instead of ignoring it.</strong> One solve of the Fokker-Planck equation serves a whole condition and every parameter is read at that condition’s FIRST ROW. <code><a href="../reference/gddm.html">?gddm</a></code> has always required every row of a condition to share every parameter value, and nothing enforced it, so a model that broke the contract fitted with no error and no warning and the varying term reached nothing. Measured on 120 rows in two conditions, at a FITTED parameter vector, adding 100 to a covariate on 118 of the 120 rows:</p>
+<table class="table"><thead><tr><th>model</th>
+<th>objective as drawn</th>
+<th>with the covariate moved</th>
+<th>identical</th>
+</tr></thead><tbody><tr><td><code>mu ~ x</code></td>
+<td>18.962737109172043</td>
+<td>18.962737109172043</td>
+<td>yes</td>
+</tr><tr><td><code>ndt ~ x</code></td>
+<td>18.810414088214987</td>
+<td>18.810414088214987</td>
+<td>yes</td>
+</tr><tr><td><code>bs ~ x</code></td>
+<td>18.948550650674157</td>
+<td>18.948550650674157</td>
+<td>yes</td>
+</tr><tr><td><code>bias ~ x</code></td>
+<td>17.746051487984953</td>
+<td>17.746051487984953</td>
+<td>yes</td>
+</tr></tbody></table><p>Bitwise identical, on every one. A random effect whose grouping crosses the index fails the same way from the other side: with four subjects across two conditions, the two subjects that never sit on a condition’s first row keep deviations of exactly 0, and the fit reports a between-subject standard deviation of 7.6e-11 rather than refusing.</p>
+<p>The refusal names the parameter, the variable and a condition it varies inside, and the remedy is to name that variable in the index as well, which <code><a href="../reference/gddm_conditions.html">gddm_conditions()</a></code> does. The cost of the extra resolution is one solve per condition, and it is why this is a refusal rather than a silent refinement: at 120 rows on a coarse grid, one solve per row against one per condition is 41 times the tape build and about 52 times the evaluation.</p>
+<p>The check compares each parameter’s model-frame columns against its condition’s first row, so it is sufficient rather than exact, in the direction that refuses. It carries a tolerance, <code>1e-8 * max(|a|, |b|) + 1e-11 * max|column|</code>, because <code><a href="https://rdrr.io/r/stats/poly.html" class="external-link">poly()</a></code> returns rows 8.7e-14 apart, relative to the column maximum, for bitwise identical inputs. The band under that tolerance is the guard’s limit and it is stated rather than hidden: the check misses a within-condition difference <code>s</code> on a column whose largest entry is <code>M</code> once <code>M / s</code> passes about 1e11, which takes a sentinel value a thousand billion times the data to reach. On 21 correct designs covering drift by coherence, boundary by block, start point by cue, non-decision time by subject, subject random intercepts and slopes, a spline, a monotonic ordered predictor, an offset, a collapsing boundary, a lapse rate and the coherence drift nonlinearity, it fires 0 times; on the 26 ways of dropping one variable from those same indices it fires 26 times and names the dropped variable every time. One refusal names every offending parameter and variable and hands back the <code><a href="../reference/gddm_conditions.html">gddm_conditions()</a></code> call that fixes them.</p>
+<p>A random effect is where this bites hardest, and <code>frm_compat("gddm")</code> now says so: <code>(1 | g)</code> works when <code>g</code> is in the condition index and is refused when it is not. Before the refusal, four subjects across two conditions left the two not on a condition’s first row with deviations of exactly 0, and the fit reported a between-subject standard deviation of 7.6e-11.</p>
+</li>
+<li><p><strong><code><a href="../reference/gddm_simulate.html">gddm_simulate()</a></code> refuses a parameter that varies between trials sharing a coherence, instead of drawing every trial from the first one.</strong> It solves once per distinct value of <code>coh</code> and read every parameter at that value’s first trial, which is the same defect one layer over. Measured on 400 trials with <code>mu = c(rep(-2.5, 200), rep(2.5, 200))</code> and <code>coh = 0</code>: both halves were drawn from <code>mu = -2.5</code>, giving upper-boundary rates of 0.010 and 0.000, where the same values with <code>coh</code> separating them give 0.010 and 0.990. No error and no warning. Give <code>coh</code> a distinct value per parameter setting, or call the function once per setting. A scalar parameter, and a length-<code>n</code> one that is constant within each <code>coh</code>, are unaffected.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.7.0" id="frmtmbeam-070">frmtmb.eam 0.7.0<a class="anchor" aria-label="anchor" href="#frmtmbeam-070"></a></h2>
 <p>The non-decision time can now be bounded PER GROUP, which fixes the defect 0.6.0 disclosed. A model that does not ask for it is unchanged.</p>

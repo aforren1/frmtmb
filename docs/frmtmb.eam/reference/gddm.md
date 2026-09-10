@@ -111,14 +111,34 @@ the pair in the order the two lines above show. A drift term that reads
 a covariate needs `vreal()` as well, for example
 `bf(rt | dec(response) + vint(cond) + vreal(coh) ~ 1)`.
 
-**Every row sharing a condition must share every parameter value.** The
-family cannot check this, because checking would mean comparing values
-on the tape, so it is your side of the contract: build the index from
-every variable that appears on the right-hand side of any of the
-family's formulas, which is what
+**Every row sharing a condition must share every parameter value.**
+Build the index from every variable that appears on the right-hand side
+of any of the family's formulas, which is what
 [`gddm_conditions()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/gddm_conditions.md)
-does. What the family can check, and does, is that the `vreal()`
-covariates are constant within a condition.
+does.
+
+The family enforces this and refuses the model by name, naming the
+parameter and a condition it varies inside. It cannot compare parameter
+VALUES, which live on the tape, so it compares the model-frame columns
+each parameter is built from against that condition's own first row: a
+design constant there gives a parameter constant there, so the check is
+sufficient rather than exact and errs toward refusing. A `vreal()`
+covariate a drift term reads is refused too, by a separate and EXACT
+comparison, because it is data as supplied and carries no arithmetic of
+its own; a design column is computed, so its comparison carries a small
+tolerance.
+
+The refusal is not a style rule. The solver reads every parameter at its
+condition's first row, so a term that varies inside a condition reaches
+nothing: the log likelihood does not move at all when the other rows
+change, and the term's coefficient would be fitted from one row per
+condition, with no error and no warning. A condition of a single row
+cannot vary and is never refused.
+
+What to do instead is name the varying variable in the index as well.
+The index then has one condition per distinct parameter vector and the
+fit does one Fokker-Planck solve per condition, which is what the extra
+resolution costs. See the Cost section.
 
 ## Cost, honestly
 

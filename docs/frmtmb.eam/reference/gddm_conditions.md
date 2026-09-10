@@ -30,8 +30,10 @@ An integer vector, one entry per row of `data`.
 
 Name every variable that appears on the right-hand side of any formula
 in the model, and every covariate a drift term reads. Naming more than
-that is safe and only costs solves; naming fewer is wrong, and wrong in
-a way nothing downstream can detect.
+that is safe and only costs solves. Naming fewer is refused by
+[`gddm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/gddm.md),
+which compares each parameter's design against its condition's first row
+and says which variable is missing from the index.
 
 ## See also
 

@@ -8,6 +8,13 @@
 - [`hmm_probs()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_probs.md)
   : Posterior state probabilities of an hmm fit
 
+- [`hmm_starts()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_starts.md)
+  :
+
+  Refits of an
+  [`hmm()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm.md)
+  model from jittered starting values
+
 - [`hmm_viterbi()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_viterbi.md)
   : Most likely state path of an hmm fit (Viterbi)
 

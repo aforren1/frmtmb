@@ -13,7 +13,7 @@ bandit2arm_delta()'s exactly:"></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.learn</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -80,7 +80,9 @@ unquoted. <code>NULL</code> uses the order the rows appear in.</p></dd>
 <dd><p>Upper bound for the non-decision time. <code>NULL</code>, the
 default, uses the fastest response in the data. A value above it is
 refused, because it admits parameters at which the fastest trial
-has no likelihood.</p></dd>
+has no likelihood. It cannot be combined with
+<code>ndt_group()</code>, which sets the same bound per group. It is also what
+<code>bf(ndt = )</code> now needs: see below.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -160,12 +162,84 @@ short session.</p>
 
 
 <p>The density is zero at and below <code>ndt</code>, so the likelihood has a hard
-edge at <code>ndt = min(rt)</code> and a log link would let the optimizer walk
-over it. <code>ndt</code> therefore gets a logit scaled onto <code>(0, max_ndt)</code>,
-with <code>max_ndt</code> defaulting to the fastest response in the data, which
-makes the constraint structural. This is the same construction
-<code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.html" class="external-link">frmtmb.eam::wiener()</a></code> uses and it is written again here rather than
-borrowed, because a link is not what that package exports.</p>
+edge at the fastest response and a log link would let the optimizer
+walk over it. <code>ndt</code> therefore gets a logit scaled onto <code>(0, ub)</code>,
+which makes the constraint structural. The bound comes from
+<code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound.html" class="external-link">frmtmb.eam::ndt_bound()</a></code>, so this family and <code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.html" class="external-link">frmtmb.eam::wiener()</a></code>
+derive it the same way and refuse the same things.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="one-bound-or-one-per-learner">One bound, or one per learner<a class="anchor" aria-label="anchor" href="#one-bound-or-one-per-learner"></a></h2>
+
+
+<p><code>ub</code> is one number for the whole data set unless the model says
+otherwise, and the whole data set's fastest response is the wrong
+ceiling for a hierarchical fit. The information about one subject's
+non-decision time is that SUBJECT's own fastest response, and with
+100 learners the global minimum is the fastest of all of them, so a
+subject deviation on <code>ndt</code> is a deviation on a fraction of somebody
+else's floor. The scale tier measured what that costs: the 100 by 200
+design reached a maximum gradient of 6.36e+09, a Hessian that was not
+positive definite and four <code>NaN</code> standard errors.</p>
+<p><code>ndt_group()</code> is the fix, and it is opt-in:</p>
+<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">frm</span>(<span class="fu">bf</span>(rt <span class="sc">|</span> <span class="fu">dec</span>(choice) <span class="sc">+</span> <span class="fu">reward</span>(pay1, pay2) <span class="sc">+</span> <span class="fu">ndt_group</span>(id) <span class="sc">~</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>         <span class="dv">1</span> <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> p <span class="sc">|</span> id),</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>       drift <span class="sc">~</span> <span class="dv">1</span> <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> p <span class="sc">|</span> id), bs <span class="sc">~</span> <span class="dv">1</span> <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> p <span class="sc">|</span> id),</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>       ndt <span class="sc">~</span> <span class="dv">1</span> <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> p <span class="sc">|</span> id), <span class="at">bias =</span> <span class="fl">0.5</span>),</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>    <span class="at">family =</span> <span class="fu">rlddm</span>(<span class="at">subject =</span> id, <span class="at">trial =</span> trial), <span class="at">data =</span> d)</span></code></pre><p></p></div>
+<p>With it, each row's bound is its own group's fastest response, <code>ndt</code>
+is a FRACTION of that bound on a plain logit, and the density
+multiplies it back out. <code>predict(dpar = "ndt", type = "response")</code>
+then reports the fraction, and <code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.html" class="external-link">frmtmb.eam::ndt_time()</a></code> reports the
+non-decision time in seconds whichever parameterization a fit is in.
+Without it nothing about the family moved.</p>
+<p>The grouping need not be the learner: it is whatever shares a floor.
+<code>max_ndt</code> and <code>ndt_group()</code> together are refused, because they set
+one bound to two different things.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="what-the-per-learner-spread-of-ndt-does-and-does-not-say">What the per-learner spread of ndt does and does not say<a class="anchor" aria-label="anchor" href="#what-the-per-learner-spread-of-ndt-does-and-does-not-say"></a></h2>
+
+
+<p>Under <code>ndt_group()</code> a learner's non-decision time is a FRACTION times
+that learner's own floor, so the fitted times differ between learners
+even when the random effect on <code>ndt</code> is exactly zero, purely because
+the floors differ. A spread across learners is therefore not evidence
+that the variance component recovered anything.</p>
+<p>Measured on the 100 by 200 design of <code>dev/rlddm-findings.md</code>, where
+the drawn truths have a spread of 0.0393041: the full model returns
+<strong>0.0333713</strong> and the same model with the random effect on <code>ndt</code>
+switched OFF returns <strong>0.0380049</strong>. On this statistic the random
+effect is not neutral, it is worse.</p>
+<p>What the random effect IS worth on the same fit is the per-learner
+accuracy, and there it is not close: 13.996 ms of error against the
+drawn truths and a correlation of 0.9404, where no estimator without
+it can beat 21.075 ms or 0.8478, because the correlation of any
+constant multiple of the floors with the truth is fixed at 0.847780.
+So read the per-learner error and the correlation, not the spread.
+<code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.html" class="external-link">frmtmb.eam::wiener()</a></code> carries the same warning for the same reason.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="pinning-the-non-decision-time-needs-max-ndt">Pinning the non-decision time needs max_ndt<a class="anchor" aria-label="anchor" href="#pinning-the-non-decision-time-needs-max-ndt"></a></h2>
+
+
+<p><code>bf(ndt = 0.2)</code> on a bare <code>rlddm()</code> is refused, and the message says
+to pass <code>max_ndt</code>. <code>bf()</code> transforms a pinned constant at PARSE time,
+before the response has been seen, so a family with no bound yet has
+no scale to transform it on. Write the bound down instead:</p>
+<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">frm</span>(<span class="fu">bf</span>(rt <span class="sc">|</span> <span class="fu">dec</span>(choice) <span class="sc">+</span> <span class="fu">reward</span>(pay1, pay2) <span class="sc">~</span> <span class="dv">1</span>,</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>       drift <span class="sc">~</span> <span class="dv">1</span>, bs <span class="sc">~</span> <span class="dv">1</span>, <span class="at">ndt =</span> <span class="fl">0.2</span>, <span class="at">bias =</span> <span class="fl">0.5</span>),</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>    <span class="at">family =</span> <span class="fu">rlddm</span>(<span class="at">subject =</span> id, <span class="at">trial =</span> trial, <span class="at">max_ndt =</span> <span class="fl">0.26</span>),</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>    <span class="at">data =</span> d)</span></code></pre><p></p></div>
+<p><strong>This is a change, and it is one thing that stops working.</strong> Through
+0.3.0 <code>bf(ndt = 0.2)</code> on a bare family was accepted and fitted 0.2
+exactly, so far as the constant was below the fastest response. What
+it did NOT do is check the constant against the bound the fit would
+actually use: <code>bf(ndt = 0.3)</code> with <code>max_ndt = 0.26</code> was accepted too,
+and reached the objective as <code>NaN</code>, surfacing as an optimizer failure
+that named nothing. Both cases are now settled before the formula is
+parsed, which is how <code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.html" class="external-link">frmtmb.eam::wiener()</a></code> and its siblings have
+behaved since frmtmb.eam 0.7.0.</p>
     </div>
     <div class="section level2">
     <h2 id="recovery-measured">Recovery, measured<a class="anchor" aria-label="anchor" href="#recovery-measured"></a></h2>
@@ -205,14 +279,15 @@ that says what it needs. Nothing about FITTING needs <code>RWiener</code>; the
 likelihood is <code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_lpdf.html" class="external-link">frmtmb.eam::wiener_lpdf()</a></code> and is exact either way.</p>
     </div>
     <div class="section level2">
-    <h2 id="where-the-density-comes-from">Where the density comes from<a class="anchor" aria-label="anchor" href="#where-the-density-comes-from"></a></h2>
+    <h2 id="where-the-density-and-the-bound-come-from">Where the density and the bound come from<a class="anchor" aria-label="anchor" href="#where-the-density-and-the-bound-come-from"></a></h2>
 
 
-<p><code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_lpdf.html" class="external-link">frmtmb.eam::wiener_lpdf()</a></code>, through the export rather than through a
-colon. The Navarro and Fuss (2009) series pair, its smooth blend and
-its tape safety all belong to that package and are not repeated here.
-This is the only dependency one extension of frmtmb has on another,
-and it is one function.</p>
+<p><code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_lpdf.html" class="external-link">frmtmb.eam::wiener_lpdf()</a></code> and <code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound.html" class="external-link">frmtmb.eam::ndt_bound()</a></code>, through
+the exports rather than through a colon. The Navarro and Fuss (2009)
+series pair, its smooth blend and its tape safety belong to that
+package, and so does the bound, its <code>ndt_group()</code> behavior and every
+refusal either of them owes. This family writes the learning rule and
+one multiplication.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

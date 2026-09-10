@@ -13,7 +13,7 @@ Written so that a caller need not know which of the two a fit is."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -69,7 +69,8 @@ Written so that a caller need not know which of the two a fit is.</p>
 
 <dl><dt id="arg-object">object<a class="anchor" aria-label="anchor" href="#arg-object"></a></dt>
 <dd><p>A fitted <code><a href="wiener.html">wiener()</a></code>, <code><a href="lba.html">lba()</a></code>, <code><a href="rdm.html">rdm()</a></code> or <code><a href="wiener_gng.html">wiener_gng()</a></code>
-model.</p></dd>
+model, or a fit from another package whose family carries a bound
+from <code><a href="ndt_bound_attach.html">ndt_bound_attach()</a></code>.</p></dd>
 
 
 <dt id="arg-newdata">newdata<a class="anchor" aria-label="anchor" href="#arg-newdata"></a></dt>
@@ -93,11 +94,16 @@ the whole data set when the model has no <code>ndt_group()</code>, or the
 <code>max_ndt</code> the family was given. Whichever it is, it is a property of
 the data the model was FITTED to, so a prediction on new rows is
 scaled by the same bound the fit used.</p>
+<p>It reads the bound record rather than the family's name, so a fit
+from ANOTHER package whose family carries a bound through
+<code><a href="ndt_bound_attach.html">ndt_bound_attach()</a></code> is reported here too, and
+<code><a href="https://aforren1.github.io/frmtmb/frmtmb.learn/reference/rlddm.html" class="external-link">frmtmb.learn::rlddm()</a></code> is the first of those.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="wiener.html">wiener()</a></code> for what the two parameterizations are and why
-there are two.</p></div>
+there are two, <code><a href="ndt_bound.html">ndt_bound()</a></code> for the seam another package's family
+reaches them through.</p></div>
     </div>
 
     <div class="section level2">

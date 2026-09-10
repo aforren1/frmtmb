@@ -100,6 +100,22 @@ last row never contributes a transition - again `depmixS4`'s convention.
 
   Fixed at `1 / K`.
 
+`"estimated"` estimates ONE initial distribution shared across every
+sequence. This is worth knowing before comparing with `hmmTMB`, whose
+`initial_state = "estimated"` estimates a SEPARATE one per sequence. On
+20 sequences of 100 rows that is 38 extra parameters on hmmTMB's side
+and **19.678 log-likelihood units**, with nothing in either package's
+output saying the two fits are of different models. (Against
+`init = "uniform"` here the same hmmTMB fit is 21.231 units higher,
+because uniform costs frmtmb its own two initial-distribution parameters
+as well; the two figures differ by that 1.553 and it is the first that
+belongs to the sentence above.)
+
+Pin the initial distribution on both sides before comparing.
+`init = "uniform"` here against `fixpar = list(delta0 = <all NA>)` there
+makes the two likelihoods the same function, and they then agree to
+1e-11 relative (`dev/latent-2p3-hmmtmb-probe4.R`).
+
 ## Decoding and the fitted values
 
 `E[y_t]` under an HMM is `sum_k P(S_t = k | y) mu_k(x_t)`, which needs
@@ -124,13 +140,78 @@ start at spread response quantiles (see
 [`frmtmb::mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html));
 a start with every state mean equal sits on the symmetry axis and the
 optimizer never leaves it. Relabeling between runs is expected and is
-not fought. Multimodality is real and is not signalled by any
-convergence diagnostic: on a random-effect model the default cold start
-has been measured converging 8.1 log-likelihood units below the global
-optimum with `convergence == 0` and a positive-definite Hessian. Compare
-several starts
-([`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.html))
-before reporting.
+not fought.
+
+Multimodality is real and NO convergence diagnostic reports it. On a
+two-state model with a random intercept in each state mean, 25 sequences
+of 30, the default cold start converges to -1096.09575602 where the
+optimum is -1087.99646521: **8.099 log-likelihood units below it**, with
+`convergence == 0`, a positive definite Hessian, no non-finite standard
+error, a largest gradient of 7.00028e-04 (6.4e-07 of the
+log-likelihood), and `diagnose()` printing "No convergence problems
+detected". That last clause is true of this fit by a factor of 1.43:
+`diagnose()`'s clean verdict needs `max|grad|` under 1e-3 ABSOLUTE, and
+a construction whose gradient landed just the other side of that would
+get a warning instead. What is 8.099 units wrong here is the answer, not
+the gradient, and no threshold on a gradient can see that. The optimum
+is confirmed independently by a hand-rolled `MakeADFun(random =)` and by
+hmmTMB to the last digit (`dev/hmm-feasibility.md`, probe D4;
+`dev/latent-2p3-repro81.R` reproduces it against this family).
+
+[`hmm_starts()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_starts.md)
+is the remedy: it refits from jittered starting values, returns the
+best, and reports the spread of the OPTIMA the refits reached. On that
+probe, `hmm_starts(fit, n = 8, jitter = 2)` recovered the better optimum
+on 5 of 5 seeds, and so did `jitter = 1`, `4` and `8`; `jitter = 0.5`
+recovered it on 1 of 5, which is what the default of 2 is chosen from.
+
+[`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.html)
+is a different check, and on this probe it is a reassuring one: it
+re-runs every optimizer from the SAME start, so it tests the optimizer
+rather than the surface. All four (nlminb, optim, bobyqa, NLopt L-BFGS)
+reach -1096.096 with `convergence == 0` and a log-likelihood spread of
+7.8e-07, which is agreement on the wrong answer
+(`dev/latent-2p3-allfit.R`).
+
+## Recovery at a realistic scale
+
+Measured at the design named in the realistic-scale table of
+`dev/extension-gaps-plan.md`: 50 sequences of 500 steps, 25 000 rows,
+`K = 3` gaussian with state means -2, 0 and 3 and a common standard
+deviation of 0.7, and a transition matrix whose free logits are `tr12`
+-1.5, `tr13` -2.5, `tr22` 2.0, `tr23` -1.0, `tr32` -1.0 and `tr33` 2.0.
+Scripts and tables: `dev/latent-2p3-hmm.R` and `dev/latent-findings.md`.
+
+**Fixed transitions, against depmixS4.** Recovery over 40 replicates
+(seeds 20260910 to 20260949): the largest bias on any of the twelve
+parameters is 0.014 on a transition logit whose own standard error is
+0.083, the spread across replicates matches the standard error each fit
+reports, and Wald coverage is 95.6 percent (459 of 480, Monte Carlo
+interval 93.8 to 97.5). On the response scale the state means come back
+within 0.021, the state standard deviations within 0.017, and every cell
+of the transition matrix within 0.014. The fitted labels were the true
+labels in 40 of 40, and the Hessian was positive definite in 40 of 40.
+Against depmixS4 on the same data, best of four random EM starts at
+`tol = 1e-12`, over 3 replicates: the two log-likelihoods agree to
+between 3.1e-14 and 4.9e-12 relative, and the means, standard deviations
+and transition matrix to 1.5e-06, which is 1.6e-04 of one of this fit's
+own standard errors.
+
+**`tr12 ~ (1 | id)`, against hmmTMB.** Recovery over 15 replicates, with
+a true `sd(tr12 | id)` of 0.6: it comes back at 0.615 on average with a
+spread of 0.067, and Wald coverage over all thirteen parameters is 94.4
+percent (184 of 195, Monte Carlo interval 91.1 to 97.6). Against hmmTMB
+fitting the same model on the same data, over 6 replicates, the two
+Laplace marginal log-likelihoods agree to between 6.1e-12 and 6.9e-11
+relative and the estimates to 1.3e-04, which is 1.5e-02 of one standard
+error. Fifteen replicates put about ten points of Monte Carlo error on
+any single parameter's coverage, so read the overall figure rather than
+the rows.
+
+No replicate of either arm converged to a local optimum. That is a
+statement about these two designs and not about the family: see "Label
+switching and local optima" for a design where the cold start does
+exactly that, with every diagnostic clean.
 
 ## Missing responses
 
@@ -203,6 +284,7 @@ is refused too: the chain is then unidentified and the model is a
 
 [`hmm_probs()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_probs.md),
 [`hmm_viterbi()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_viterbi.md),
+[`hmm_starts()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_starts.md),
 [`frmtmb::mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html)
 
 ## Examples

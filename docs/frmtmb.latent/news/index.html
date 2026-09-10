@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.latent</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +43,16 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.latent/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.0" id="frmtmblatent-030">frmtmb.latent 0.3.0<a class="anchor" aria-label="anchor" href="#frmtmblatent-030"></a></h2>
+<ul><li><p><strong><code><a href="../reference/hmm_starts.html">hmm_starts()</a></code> refits from jittered starting values and reports the spread of the optima.</strong> The default cold start has been measured converging <strong>8.099 log-likelihood units below the optimum</strong> with <code>convergence</code> 0, a positive definite Hessian, and <code>diagnose()</code> printing “No convergence problems detected”; <code>frm_allfit()</code> reaches that same wrong optimum on all four optimizers with a spread of 7.8e-07, so agreement between optimizers is not evidence here. <code><a href="../reference/hmm_starts.html">hmm_starts()</a></code> recovers from it on 5 of 5 seeds at jitter 1 and above. It costs about 176 seconds per refit at 50 sequences by 500 steps, so <code><a href="../reference/hmm.html">?hmm</a></code> deliberately recommends no default <code>n</code>.</p></li>
+<li>
+<p><strong>BREAKING: <code><a href="../reference/lca.html">lca()</a></code>’s starting values changed, and a fit can move.</strong> The old rule cut subjects on the mean of their item codes, which is blind to any design whose classes differ in WHICH items they endorse rather than how many. On the realistic-scale design that score explains 0.000814 of its own variance between the true classes, and the old rule reached a local optimum 243 to 284 log-likelihood units below <code>poLCA(nrep = 10)</code> on 8 of 200 replicates, with a positive definite Hessian on seven of the eight. On at least two of those the cause was the start and not the surface: all 10 of 10 poLCA single random starts found the global optimum there.</p>
+<p>The rule now clusters on the response pattern and shrinks each class profile nine tenths of the way toward the pooled one. It reaches poLCA’s optimum on 200 of 200 replicates of the block its one constant was tuned on, and on 200 of 200 of a second block of seeds it never saw.</p>
+<p>A fit therefore moves where the two starts differ, and it moves to the better optimum. Class 1 is still the low-score end wherever that score means anything; where it does not, the labeling is deterministic but need not match 0.2.2. <strong>A 0.2.2 fit can be reproduced</strong>: <code><a href="../reference/lca.html">?lca</a></code> carries the old rule as ten lines of R, checked to reproduce the old starting values and the old log-likelihood at a relative difference of exactly 0.</p>
+</li>
+<li><p><strong>Two coefficients under-cover, and there is no remedy yet.</strong> Pooled over 400 replicates of the realistic-scale design, <code>class3:x2</code> covers 91.75 percent and <code>class4:x2</code> 90.75 against a nominal 95, while the third binary gating slope and the other six coefficients contain 95. A profile interval was measured and does not help, 103 of 118 both ways, because the standardized error has no heavy tail and no curvature: the shortfall is in the magnitude of the standard error rather than the shape of the likelihood. <code><a href="../reference/lca.html">?lca</a></code> says so rather than recommending a remedy nobody has measured.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.2" id="frmtmblatent-022">frmtmb.latent 0.2.2<a class="anchor" aria-label="anchor" href="#frmtmblatent-022"></a></h2>
 <ul><li>Requires frmtmb 0.55.1. A scale row in the gated measurement tier, which finds the hidden Markov post-fit passes are 0.25 and 0.09 seconds at 50 sequences by 500 steps, so the R loops there are not a cost worth removing.</li>

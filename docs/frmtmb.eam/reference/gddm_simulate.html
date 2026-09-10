@@ -15,7 +15,7 @@ much the step misses excursions between monitoring times."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -87,12 +87,17 @@ much the step misses excursions between monitoring times.</p>
 <dd><p>Parameter values by name: <code>mu</code>, <code>bs</code>, <code>ndt</code> and whatever else
 the chosen components need (<code>alpha</code>, <code>leak</code>, <code>tau</code>, <code>kappa</code>, <code>bias</code>,
 <code>sz</code>, <code>lapse</code>). Anything not given takes the component's own starting
-value.</p></dd>
+value. Each is recycled to length <code>n</code> and must be constant within
+every distinct value of <code>coh</code>, because one solve serves each of
+those and reads its parameters at its first trial. A parameter that
+varies inside one is refused by name; give <code>coh</code> a distinct value
+per parameter setting, or call this once per setting.</p></dd>
 
 
 <dt id="arg-coh">coh<a class="anchor" aria-label="anchor" href="#arg-coh"></a></dt>
-<dd><p>Coherence covariate, recycled to length <code>n</code>. Only meaningful
-with <code><a href="gddm-drift.html">gddm_drift_coherence()</a></code>.</p></dd>
+<dd><p>Coherence covariate, recycled to length <code>n</code>. It is also what
+separates parameter settings, whether or not a drift term reads it.
+Only the drift value is meaningful with <code><a href="gddm-drift.html">gddm_drift_coherence()</a></code>.</p></dd>
 
 
 <dt id="arg-drift-bound-start-lapse-control">drift, bound, start, lapse, control<a class="anchor" aria-label="anchor" href="#arg-drift-bound-start-lapse-control"></a></dt>

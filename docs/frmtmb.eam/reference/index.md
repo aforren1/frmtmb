@@ -64,6 +64,26 @@
 - [`lba_simulate()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/lba_simulate.md)
   : Simulate from a linear ballistic accumulator
 
+- [`ndt_apply()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_apply.md)
+  : The non-decision time on the response's own scale
+
+- [`ndt_bound()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound.md)
+  : The bound a non-decision time is measured against
+
+- [`ndt_bound_attach()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound_attach.md)
+  : Put a non-decision-time bound on a family
+
+- [`ndt_bound_key()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound_key.md)
+  :
+
+  The code an `ndt_group()` column is keyed on
+
+- [`ndt_bound_of()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound_of.md)
+  : The non-decision-time bound a family already carries
+
+- [`ndt_bound_pending()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound_pending.md)
+  : The bound a family carries before it has seen a response
+
 - [`ndt_time()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.md)
   : The non-decision time, in the response's own units
 

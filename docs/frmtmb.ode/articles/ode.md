@@ -217,7 +217,7 @@ then puts the results back in the row order of the data.
 | `t0` | The initial time. Defaults to 0. |
 | `events`, `event_scale` | A dosing table, and an estimated multiplier on its amounts. |
 | `tv`, `tv_break` | Constants that change with time, and where they change. |
-| `n_ss`, `ss_tol` | The length of a steady-state run-in, and when to complain about it. |
+| `n_ss`, `ss_tol`, `ss_extrapolate` | The length of a steady-state run-in, whether its tail is summed, and when to complain about it. |
 | `method`, `atol`, `rtol` | Integrator and tolerances. |
 
 `init` and `parms` are given as lists of **columns**, not as one row of
@@ -476,47 +476,84 @@ and the cycle is then repeated `n_ss` times before the record’s time.
 The record’s own dose lands afterwards, so an observation at the
 record’s time is the steady-state trough.
 
-`n_ss` is where the honesty is. A real steady state is “repeat until the
-state at the start of the cycle stops moving”, and that test branches on
-a value, which the tape cannot do: the number of solves has to be fixed
-before the tape is built. So `n_ss` cycles is an **approximation**. Its
-error is geometric: for linear kinetics the shortfall after `n` cycles
-is the accumulation factor to the power `n`, which for a one-compartment
-system is `exp(-n * k * ii)`.
+A real steady state is “repeat until the state at the start of the cycle
+stops moving”, and that test branches on a value, which the tape cannot
+do: the number of solves has to be fixed before the tape is built.
+Stopping at `n_ss` cycles leaves the state short of the limit, and for
+linear kinetics the shortfall is the accumulation factor to the power
+`n`, `exp(-n * lambda_z * ii)`, where `lambda_z` is the slowest
+disposition rate. It grows toward 1 as the terminal half-life grows
+against the dosing interval.
 
-A one-compartment intravenous model shows the size of it, because there
-the exact steady-state trough is known:
+That tail is a geometric series whose ratio the run-in has already
+measured, though. `ss_extrapolate = TRUE`, the default, reads the ratio
+off the last cycle-start differences and adds the rest of the sum. It is
+arithmetic on tape variables, so unlike the convergence test it runs
+during a fit, and it costs no extra solve.
+
+A one-compartment intravenous model shows the size of both, because
+there the exact steady-state trough is known. Set a long half-life
+against the interval so the tail is worth summing:
 
 ``` r
 
 decay <- function(t, y, p) {
   list(c(-p[1] * y[1]))
 }
+k <- 0.01                          # a half-life of 5.8 dosing intervals
 iv_ss <- data.frame(time = 0, value = 100, ii = 12, ss = TRUE)
-tr <- 100 * exp(-0.2 * 12) / (1 - exp(-0.2 * 12))    # the exact trough
+tr <- 100 * exp(-k * 12) / (1 - exp(-k * 12))        # the exact trough
 
-vapply(c(2, 4, 8, 20), function(n) {
-  g <- frm_ode(decay, init = list(0), times = 0, parms = list(0.2),
-               events = iv_ss, n_ss = n, ss_tol = 1)
+short <- function(n, ext) {
+  g <- frm_ode(decay, init = list(0), times = 0, parms = list(k),
+               events = iv_ss, n_ss = n, ss_tol = Inf,
+               ss_extrapolate = ext, atol = 1e-10, rtol = 1e-10)
   abs(g - tr) / tr
-}, 0)
-#> [1] 8.229741e-03 6.772261e-05 1.543656e-09 6.130838e-09
+}
+rbind(truncated = vapply(c(4, 8, 20), short, 0, ext = FALSE),
+      summed    = vapply(c(4, 8, 20), short, 0, ext = TRUE))
+#>                   [,1]         [,2]         [,3]
+#> truncated 6.187834e-01 3.828929e-01 9.071795e-02
+#> summed    5.937775e-10 6.675075e-10 7.552169e-10
 ```
 
-Two cycles are 0.8% short, which is `exp(-2 * 0.2 * 12)` exactly; by
-eight the run-in error is under the integrator’s own tolerance, and the
-last two columns are solver noise, not run-in error. The shortfall
-matters only when the half-life is long against the dosing interval, and
-there
-[`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)
-says so: off the tape it compares the last two cycles and warns when
-they still differ by more than `ss_tol`. During a fit that comparison
-cannot run at all, so read the warning from a
-[`predict()`](https://rdrr.io/r/stats/predict.html) or a direct call and
-raise `n_ss` if it fires.
+The truncated row is `exp(-n * k * 12)` exactly. The summed row is the
+integrator’s own tolerance, not the run-in’s, at every `n_ss` in it.
 
-The cost is `n_ss` extra solves per group, so a steady-state population
-fit is several times a plain one.
+The correction is exact for linear kinetics only up to the
+second-slowest mode, so it is not a licence to stop thinking about
+`n_ss`. On a strongly nonlinear system it helps less, and on **flip-flop
+absorption**, where `ka` is near `lambda_z`, it can be worse than
+truncating: measured over 338 two-compartment oral cycle maps it loses
+on 8 of them, worst by a factor of 2.27. That is bounded and it is why
+the default stays `TRUE`. The smallest error truncation leaves on a
+losing case is 0.40 of the trajectory’s own scale, so the correction
+never loses where truncation was usable, and the warning below fires on
+every losing case in both arms.
+[`?frm_ode`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)
+has the mechanism.
+
+Off the tape
+[`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)
+says how far the answer it returned still is from the limit, and warns
+when that is more than `ss_tol`; it also says so by name when a state is
+not contracting between cycles at all, which means no `n_ss` settles it.
+Read that number as a DETECTOR rather than a measurement: it comes from
+the same geometric model the correction does, so where the model is poor
+it is poor with it. During a fit the comparison cannot run at all, so
+read the warning from a
+[`predict()`](https://rdrr.io/r/stats/predict.html) or a direct call.
+`ss_extrapolate = FALSE` restores the truncated run-in bit for bit.
+
+Raising `n_ss` a long way has its own limit. The cycles are chained
+solves, so the integrator’s error accumulates over all of them: at the
+default tolerances and `n_ss` = 1000 it contributes about 2e-05, more
+than the run-in shortfall the extra cycles were bought to remove.
+Tighten `atol` and `rtol` alongside `n_ss`, or the extra cycles buy
+nothing.
+
+The cost is `n_ss` extra solves per group either way, so a steady-state
+population fit is several times a plain one.
 
 ### Resetting the system
 
@@ -811,26 +848,17 @@ tolerance and not the closed form’s error.
 Three practical differences are worth knowing.
 
 **`n_ss` defaults to `Inf`.**
-[`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)
-reaches a steady state by simulating `n_ss` cycles, and twenty cycles
-are not always enough. On the two-compartment schedule in this package’s
-tests they leave the state **0.4 percent** below the true steady state
-(0.00396 of the trajectory’s own scale). Do not read that off the
-warning
-[`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)
-prints, which reports the CYCLE-TO-CYCLE movement, 0.0023 on the same
-schedule: the two are different quantities and the movement is the
-smaller one. The shortfall is about `exp(-n_ss * lambda_z * ii)`, where
-`lambda_z` is the slowest disposition rate, so it grows quickly for a
-drug whose terminal half-life is long against its dosing interval: a 107
-hour half-life dosed daily is 1.2 percent short at `n_ss = 20`, and a
-139 hour half-life dosed twice daily is 29 percent short. Choose `n_ss`
-so that `n_ss * lambda_z * ii` is at least 20.
 [`frm_lincmt()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_lincmt.md)
-sums the series instead, so there is nothing to be short of. Passing a
-whole number writes that many cycles out, which is what reproduces a
-[`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)
-fit exactly.
+sums the steady-state series in closed form, so there is nothing to
+truncate and nothing to be short of. Passing a whole number writes that
+many cycles out instead, which is what reproduces
+`frm_ode(ss_extrapolate = FALSE)` exactly.
+[`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)’s
+default sums the tail its run-in truncates rather than dropping it, so
+the two DEFAULTS agree: on the two-compartment schedule in this
+package’s tests, truncating at twenty cycles leaves the state **0.4
+percent** short of the limit (0.00396 of the trajectory’s own scale) and
+summing the tail leaves it at the integrator’s tolerance.
 
 **It needs no solver.** Neither **RTMBode** nor **deSolve** is involved,
 so

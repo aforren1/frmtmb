@@ -13,7 +13,7 @@ $posterior."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.latent</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -105,14 +105,14 @@ two return the same matrix for an <code><a href="lca.html">lca()</a></code> fit.
 <span class="r-in"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu">lca_probs</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>           class1       class2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 0.050260948 0.9497390516</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 0.999644971 0.0003550287</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 0.001387876 0.9986121235</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4,] 0.041479368 0.9585206322</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [5,] 0.991678548 0.0083214516</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [6,] 0.986656917 0.0133430834</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 0.050257364 0.9497426357</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 0.999644964 0.0003550359</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 0.001387834 0.9986121658</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [4,] 0.041477823 0.9585221775</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [5,] 0.991678284 0.0083217163</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [6,] 0.986657236 0.0133427645</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">p</span>, <span class="st">"entropy"</span><span class="op">)</span>            <span class="co"># classification quality, 0 to 1</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.8561927</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.8561932</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/maxCol.html" class="external-link">max.col</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span>, truth <span class="op">=</span> <span class="va">cl</span><span class="op">)</span> <span class="co"># the modal assignment, up to relabeling</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    truth</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      1  2</span>

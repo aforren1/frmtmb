@@ -1,5 +1,95 @@
 # Changelog
 
+## frmtmb.learn 0.4.0
+
+- **[`rlddm()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/rlddm.md)
+  can bound the non-decision time PER GROUP.** Write
+  `rt | dec(choice) + reward(pay1, pay2) + ndt_group(id) ~ ...` and each
+  row’s `ndt` is bounded by its own learner’s fastest response instead
+  of by the fastest response of every learner in the data set. That is
+  what a random effect on `ndt` needs. On the scale tier’s own design,
+  100 learners by 200 trials, the same data and the same model:
+
+  |  | 0.3.0, one global bound | with `ndt_group(id)` |
+  |----|----|----|
+  | convergence code | 1 | 0 |
+  | maximum absolute gradient | 6.36e+09 | 3.12e-03 |
+  | positive definite Hessian | no | yes |
+  | standard errors that are `NaN` | 4 | 0 |
+  | log-likelihood | -8333.1 | -7781.2 |
+  | `sd(ndt)` on the link | 2.236 | 0.3261 |
+  | learners below their own fastest response | (n/a) | 100 of 100 |
+  | per-learner `ndt` error against the drawn truths | (n/a) | 14.0 ms |
+
+  551.9 log-likelihood units at the same fourteen parameters. The `ndt`
+  variance component is the clearest single symptom: under one bound it
+  is a random effect running away on a scaled logit against a wall.
+
+  Under the grouping `ndt` is a FRACTION of the row’s own bound and
+  `predict(dpar = "ndt", type = "response")` reports that fraction;
+  [`frmtmb.eam::ndt_time()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.html)
+  reports the non-decision time in the response’s own units under either
+  parameterization. `max_ndt` and `ndt_group()` together are refused,
+  because they set one bound to two different things. A model that does
+  not write `ndt_group()` is unchanged: the log-likelihood, every
+  coefficient, every fitted value and the value trace are identical in
+  every digit to 0.3.0’s.
+
+- The bound, its refusals and the `ndt_group()` coercion now come from
+  [`frmtmb.eam::ndt_bound()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound.html)
+  rather than from a second copy of the scaled logit written here. The
+  copy is what made this family inherit the one-global-bound defect in
+  the first place.
+
+- **BREAKING: `bf(ndt = )` on a bare
+  [`rlddm()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/rlddm.md)
+  is refused and needs `rlddm(max_ndt = )`.** `bf()` transforms a pinned
+  constant at PARSE time, before the response has been seen, so a family
+  with no bound yet has no scale to transform it on. Pass the bound
+  instead: `rlddm(subject = id, trial = trial, max_ndt = 0.26)`. This is
+  the contract
+  [`frmtmb.eam::wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.html)
+  and its siblings have had since frmtmb.eam 0.7.0, and
+  [`rlddm()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/rlddm.md)
+  now shares it rather than being the exception.
+
+  **The capability is respelled, not lost.** The same model under the
+  new spelling is the same fit: `bf(ndt = 0.2)` with
+  `rlddm(max_ndt = 0.26)` gives a log-likelihood of -86.3374111 on this
+  version and -86.3374111 on 0.3.0, which is also what `bf(ndt = 0.2)`
+  on a bare 0.3.0 family gave. Add the argument and the numbers do not
+  move.
+
+  **Nothing that worked was wrong, and no fitted model needs redoing.**
+  Through 0.3.0 an in-range `bf(ndt = 0.2)` was fitted at exactly 0.2:
+  the parse-time call only range-checks the constant, and the transform
+  that reaches the parameter runs later, against the settled link. What
+  the old behavior did NOT do is check the constant against the bound
+  the fit would actually use. `bf(ndt = 0.3)` with `max_ndt = 0.26` was
+  accepted, reached the objective as `NaN`, and surfaced as
+  `NA/NaN gradient evaluation` from the optimizer, naming neither the
+  parameter nor the constant. That case is now refused before the
+  formula is parsed, by name:
+  `Constant ndt = 0.3 is not in the range of the scaled_logit link`.
+
+- [`summary()`](https://rdrr.io/r/base/summary.html) on an ungrouped
+  [`rlddm()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/rlddm.md)
+  fit prints the `ndt` link as `scaled_logit` where 0.3.0 printed
+  `scaled_logit(0, 0.2615)`. The link’s arithmetic is unchanged and the
+  bound is now on the fitted family at `family(fit)$ndt_bound$ub`, which
+  0.3.0 did not carry.
+
+- THIS PACKAGE’S FLOOR ON frmtmb.eam HAS TO RISE.
+  [`rlddm()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/rlddm.md)
+  now calls `ndt_bound()`, `ndt_bound_attach()`, `ndt_bound_of()`,
+  `ndt_bound_pending()` and `ndt_apply()`, which frmtmb.eam gains in the
+  same round. `DESCRIPTION` still says `frmtmb.eam (>= 0.6.0)` and is
+  not edited here, because the version those exports ship in is not this
+  lane’s to choose.
+  [`library(frmtmb.learn)`](https://aforren1.github.io/frmtmb/frmtmb.learn)
+  against frmtmb.eam 0.6.0 fails at namespace load, so the floor must
+  rise in the same commit that lands the exports.
+
 ## frmtmb.learn 0.3.0
 
 A duplicated reward schedule fitted correctly and then simulated a

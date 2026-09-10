@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.ode</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -300,10 +300,11 @@ order the derivative function indexes them.</td>
 </tr>
 <tr class="even">
 <td>
-<code>n_ss</code>, <code>ss_tol</code>
+<code>n_ss</code>, <code>ss_tol</code>,
+<code>ss_extrapolate</code>
 </td>
-<td>The length of a steady-state run-in, and when to complain about
-it.</td>
+<td>The length of a steady-state run-in, whether its tail is summed, and
+when to complain about it.</td>
 </tr>
 <tr class="odd">
 <td>
@@ -533,39 +534,73 @@ NONMEM and rxode2 read a steady-state record and why the row overrides
 <code>init</code>, and the cycle is then repeated <code>n_ss</code>
 times before the record’s time. The record’s own dose lands afterwards,
 so an observation at the record’s time is the steady-state trough.</p>
-<p><code>n_ss</code> is where the honesty is. A real steady state is
-“repeat until the state at the start of the cycle stops moving”, and
-that test branches on a value, which the tape cannot do: the number of
-solves has to be fixed before the tape is built. So <code>n_ss</code>
-cycles is an <strong>approximation</strong>. Its error is geometric: for
-linear kinetics the shortfall after <code>n</code> cycles is the
-accumulation factor to the power <code>n</code>, which for a
-one-compartment system is <code>exp(-n * k * ii)</code>.</p>
-<p>A one-compartment intravenous model shows the size of it, because
-there the exact steady-state trough is known:</p>
+<p>A real steady state is “repeat until the state at the start of the
+cycle stops moving”, and that test branches on a value, which the tape
+cannot do: the number of solves has to be fixed before the tape is
+built. Stopping at <code>n_ss</code> cycles leaves the state short of
+the limit, and for linear kinetics the shortfall is the accumulation
+factor to the power <code>n</code>,
+<code>exp(-n * lambda_z * ii)</code>, where <code>lambda_z</code> is the
+slowest disposition rate. It grows toward 1 as the terminal half-life
+grows against the dosing interval.</p>
+<p>That tail is a geometric series whose ratio the run-in has already
+measured, though. <code>ss_extrapolate = TRUE</code>, the default, reads
+the ratio off the last cycle-start differences and adds the rest of the
+sum. It is arithmetic on tape variables, so unlike the convergence test
+it runs during a fit, and it costs no extra solve.</p>
+<p>A one-compartment intravenous model shows the size of both, because
+there the exact steady-state trough is known. Set a long half-life
+against the interval so the tail is worth summing:</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">decay</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">t</span>, <span class="va">y</span>, <span class="va">p</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="va">p</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">*</span> <span class="va">y</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
+<span><span class="va">k</span> <span class="op">&lt;-</span> <span class="fl">0.01</span>                          <span class="co"># a half-life of 5.8 dosing intervals</span></span>
 <span><span class="va">iv_ss</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fl">0</span>, value <span class="op">=</span> <span class="fl">100</span>, ii <span class="op">=</span> <span class="fl">12</span>, ss <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fl">100</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.2</span> <span class="op">*</span> <span class="fl">12</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.2</span> <span class="op">*</span> <span class="fl">12</span><span class="op">)</span><span class="op">)</span>    <span class="co"># the exact trough</span></span>
+<span><span class="va">tr</span> <span class="op">&lt;-</span> <span class="fl">100</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">k</span> <span class="op">*</span> <span class="fl">12</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">k</span> <span class="op">*</span> <span class="fl">12</span><span class="op">)</span><span class="op">)</span>        <span class="co"># the exact trough</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">4</span>, <span class="fl">8</span>, <span class="fl">20</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">g</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">decay</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="fl">0</span>, parms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">0.2</span><span class="op">)</span>,</span>
-<span>               events <span class="op">=</span> <span class="va">iv_ss</span>, n_ss <span class="op">=</span> <span class="va">n</span>, ss_tol <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">short</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">n</span>, <span class="va">ext</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">g</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">decay</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="fl">0</span>, parms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">k</span><span class="op">)</span>,</span>
+<span>               events <span class="op">=</span> <span class="va">iv_ss</span>, n_ss <span class="op">=</span> <span class="va">n</span>, ss_tol <span class="op">=</span> <span class="cn">Inf</span>,</span>
+<span>               ss_extrapolate <span class="op">=</span> <span class="va">ext</span>, atol <span class="op">=</span> <span class="fl">1e-10</span>, rtol <span class="op">=</span> <span class="fl">1e-10</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">g</span> <span class="op">-</span> <span class="va">tr</span><span class="op">)</span> <span class="op">/</span> <span class="va">tr</span></span>
-<span><span class="op">}</span>, <span class="fl">0</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 8.229741e-03 6.772261e-05 1.543656e-09 6.130838e-09</span></span></code></pre></div>
-<p>Two cycles are 0.8% short, which is <code>exp(-2 * 0.2 * 12)</code>
-exactly; by eight the run-in error is under the integrator’s own
-tolerance, and the last two columns are solver noise, not run-in error.
-The shortfall matters only when the half-life is long against the dosing
-interval, and there <code><a href="../reference/frm_ode.html">frm_ode()</a></code> says so: off the tape it
-compares the last two cycles and warns when they still differ by more
-than <code>ss_tol</code>. During a fit that comparison cannot run at
-all, so read the warning from a <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> or a direct call
-and raise <code>n_ss</code> if it fires.</p>
-<p>The cost is <code>n_ss</code> extra solves per group, so a
+<span><span class="op">}</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>truncated <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">8</span>, <span class="fl">20</span><span class="op">)</span>, <span class="va">short</span>, <span class="fl">0</span>, ext <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
+<span>      summed    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">8</span>, <span class="fl">20</span><span class="op">)</span>, <span class="va">short</span>, <span class="fl">0</span>, ext <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;                   [,1]         [,2]         [,3]</span></span>
+<span><span class="co">#&gt; truncated 6.187834e-01 3.828929e-01 9.071795e-02</span></span>
+<span><span class="co">#&gt; summed    5.937775e-10 6.675075e-10 7.552169e-10</span></span></code></pre></div>
+<p>The truncated row is <code>exp(-n * k * 12)</code> exactly. The
+summed row is the integrator’s own tolerance, not the run-in’s, at every
+<code>n_ss</code> in it.</p>
+<p>The correction is exact for linear kinetics only up to the
+second-slowest mode, so it is not a licence to stop thinking about
+<code>n_ss</code>. On a strongly nonlinear system it helps less, and on
+<strong>flip-flop absorption</strong>, where <code>ka</code> is near
+<code>lambda_z</code>, it can be worse than truncating: measured over
+338 two-compartment oral cycle maps it loses on 8 of them, worst by a
+factor of 2.27. That is bounded and it is why the default stays
+<code>TRUE</code>. The smallest error truncation leaves on a losing case
+is 0.40 of the trajectory’s own scale, so the correction never loses
+where truncation was usable, and the warning below fires on every losing
+case in both arms. <code><a href="../reference/frm_ode.html">?frm_ode</a></code> has the mechanism.</p>
+<p>Off the tape <code><a href="../reference/frm_ode.html">frm_ode()</a></code> says how far the answer it
+returned still is from the limit, and warns when that is more than
+<code>ss_tol</code>; it also says so by name when a state is not
+contracting between cycles at all, which means no <code>n_ss</code>
+settles it. Read that number as a DETECTOR rather than a measurement: it
+comes from the same geometric model the correction does, so where the
+model is poor it is poor with it. During a fit the comparison cannot run
+at all, so read the warning from a <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> or a direct
+call. <code>ss_extrapolate = FALSE</code> restores the truncated run-in
+bit for bit.</p>
+<p>Raising <code>n_ss</code> a long way has its own limit. The cycles
+are chained solves, so the integrator’s error accumulates over all of
+them: at the default tolerances and <code>n_ss</code> = 1000 it
+contributes about 2e-05, more than the run-in shortfall the extra cycles
+were bought to remove. Tighten <code>atol</code> and <code>rtol</code>
+alongside <code>n_ss</code>, or the extra cycles buy nothing.</p>
+<p>The cost is <code>n_ss</code> extra solves per group either way, so a
 steady-state population fit is several times a plain one.</p>
 </div>
 <div class="section level3">
@@ -872,23 +907,16 @@ it, so it is <code><a href="../reference/frm_ode.html">frm_ode()</a></code>’s 
 form’s error.</p>
 <p>Three practical differences are worth knowing.</p>
 <p><strong><code>n_ss</code> defaults to <code>Inf</code>.</strong>
-<code><a href="../reference/frm_ode.html">frm_ode()</a></code> reaches a steady state by simulating
-<code>n_ss</code> cycles, and twenty cycles are not always enough. On
-the two-compartment schedule in this package’s tests they leave the
-state <strong>0.4 percent</strong> below the true steady state (0.00396
-of the trajectory’s own scale). Do not read that off the warning
-<code><a href="../reference/frm_ode.html">frm_ode()</a></code> prints, which reports the CYCLE-TO-CYCLE
-movement, 0.0023 on the same schedule: the two are different quantities
-and the movement is the smaller one. The shortfall is about
-<code>exp(-n_ss * lambda_z * ii)</code>, where <code>lambda_z</code> is
-the slowest disposition rate, so it grows quickly for a drug whose
-terminal half-life is long against its dosing interval: a 107 hour
-half-life dosed daily is 1.2 percent short at <code>n_ss = 20</code>,
-and a 139 hour half-life dosed twice daily is 29 percent short. Choose
-<code>n_ss</code> so that <code>n_ss * lambda_z * ii</code> is at least
-20. <code><a href="../reference/frm_lincmt.html">frm_lincmt()</a></code> sums the series instead, so there is
-nothing to be short of. Passing a whole number writes that many cycles
-out, which is what reproduces a <code><a href="../reference/frm_ode.html">frm_ode()</a></code> fit exactly.</p>
+<code><a href="../reference/frm_lincmt.html">frm_lincmt()</a></code> sums the steady-state series in closed form,
+so there is nothing to truncate and nothing to be short of. Passing a
+whole number writes that many cycles out instead, which is what
+reproduces <code>frm_ode(ss_extrapolate = FALSE)</code> exactly.
+<code><a href="../reference/frm_ode.html">frm_ode()</a></code>’s default sums the tail its run-in truncates
+rather than dropping it, so the two DEFAULTS agree: on the
+two-compartment schedule in this package’s tests, truncating at twenty
+cycles leaves the state <strong>0.4 percent</strong> short of the limit
+(0.00396 of the trajectory’s own scale) and summing the tail leaves it
+at the integrator’s tolerance.</p>
 <p><strong>It needs no solver.</strong> Neither <strong>RTMBode</strong>
 nor <strong>deSolve</strong> is involved, so
 <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html" class="external-link">frmtmb.sample::frm_sample()</a></code> works on a

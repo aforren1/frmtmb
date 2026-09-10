@@ -34,10 +34,17 @@ gddm_simulate(
   Parameter values by name: `mu`, `bs`, `ndt` and whatever else the
   chosen components need (`alpha`, `leak`, `tau`, `kappa`, `bias`, `sz`,
   `lapse`). Anything not given takes the component's own starting value.
+  Each is recycled to length `n` and must be constant within every
+  distinct value of `coh`, because one solve serves each of those and
+  reads its parameters at its first trial. A parameter that varies
+  inside one is refused by name; give `coh` a distinct value per
+  parameter setting, or call this once per setting.
 
 - coh:
 
-  Coherence covariate, recycled to length `n`. Only meaningful with
+  Coherence covariate, recycled to length `n`. It is also what separates
+  parameter settings, whether or not a drift term reads it. Only the
+  drift value is meaningful with
   [`gddm_drift_coherence()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/gddm-drift.md).
 
 - drift, bound, start, lapse, control:

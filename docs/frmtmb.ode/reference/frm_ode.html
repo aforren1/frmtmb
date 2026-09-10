@@ -21,7 +21,7 @@ solver's adjoint."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.ode</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -86,6 +86,7 @@ solver's adjoint.</p>
 <span>  tv_break <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  n_ss <span class="op">=</span> <span class="fl">20L</span>,</span>
 <span>  ss_tol <span class="op">=</span> <span class="fl">1e-06</span>,</span>
+<span>  ss_extrapolate <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  method <span class="op">=</span> <span class="st">"lsoda"</span>,</span>
 <span>  atol <span class="op">=</span> <span class="fl">1e-08</span>,</span>
 <span>  rtol <span class="op">=</span> <span class="fl">1e-08</span>,</span>
@@ -195,9 +196,20 @@ of the approximation.</p></dd>
 
 
 <dt id="arg-ss-tol">ss_tol<a class="anchor" aria-label="anchor" href="#arg-ss-tol"></a></dt>
-<dd><p>Relative change between the last two run-in cycles that
-<code>frm_ode()</code> will accept without warning. Checked on the numeric
-path only.</p></dd>
+<dd><p>Distance to the steady state, relative to the state's
+own scale, that <code>frm_ode()</code> will accept without warning. Checked on
+the numeric path only.</p></dd>
+
+
+<dt id="arg-ss-extrapolate">ss_extrapolate<a class="anchor" aria-label="anchor" href="#arg-ss-extrapolate"></a></dt>
+<dd><p>Sum the geometric tail that truncating the
+run-in at <code>n_ss</code> cycles leaves, using the contraction ratio the
+run-in itself measures. <code>TRUE</code>, the default, is exact for linear
+kinetics up to the second-slowest mode and costs no extra solve,
+though it does add about 170 nodes to the tape. <code>FALSE</code> truncates,
+which is what versions before 0.4.0 did, bit for bit. Read
+"Where the correction is worse than truncating" before assuming
+the default is always the better one. See "Steady-state dosing".</p></dd>
 
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
@@ -409,42 +421,137 @@ The record's own dose is applied afterwards, so an observation at the
 record's time reads the steady-state <strong>trough</strong>.</p>
 <p></p><div class="sourceCode r"><pre><code><span><span class="co"># 100 into the depot every 12 hours, already at steady state at t = 0</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fl">0</span>, state <span class="op">=</span> <span class="st">"depot"</span>, value <span class="op">=</span> <span class="fl">100</span>, ii <span class="op">=</span> <span class="fl">12</span>, ss <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre><p></p></div>
-<p><code>n_ss</code> is the honest part of this. A real steady state is the limit
-of repeating until the cycle-start state stops moving, and that test
-branches on a value, which the tape cannot do: the number of solves
-has to be fixed before the tape is built. So <code>n_ss</code> cycles is an
-<strong>approximation</strong>, and its error is geometric - for linear kinetics
-the shortfall after <code>n</code> cycles is the accumulation factor to the
-power <code>n</code>, which is <code>exp(-n * k * ii)</code> for a one-compartment system.
-The rate <code>k</code> in that expression is the SLOWEST disposition
-eigenvalue, <code>lambda_z</code>, so the shortfall is
-<code>exp(-n_ss * lambda_z * ii)</code> and it is set by the terminal half-life
-measured in dosing intervals. <strong>Choose <code>n_ss</code> so that
-<code>n_ss * lambda_z * ii</code> is at least 20</strong>, which puts the shortfall at
-2e-09. The default of 20 does that only when the terminal half-life
-is under about three dosing intervals. Measured, on a
-two-compartment oral model at <code>n_ss = 20</code>: a 23 hour half-life dosed
-every 8 hours is 4e-03 short, a 107 hour half-life dosed daily is
-1.2e-02 short, and a 265 hour half-life dosed daily is 9e-02 short.
-A half-life of ten dosing intervals is 25 percent short. It moves
-estimates: on one 30-subject dataset simulated from the exact steady
-state, fitting at <code>n_ss = 20</code> rather than at the limit moved <code>k21</code>
-by a factor of 3.2 and <code>ke</code> by 11 percent.</p>
-<p>Off the tape - a direct call, <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>, a body
-holding no estimated parameter - the last two cycles are compared
-and <code>frm_ode()</code> warns when they still differ by more than <code>ss_tol</code>.
-During a fit that check cannot run at all. <strong>Do not choose <code>n_ss</code>
-from that warning</strong>: it reports the CYCLE-TO-CYCLE movement, which
-understates the distance to the limit by about <code>1 / (lambda_z * ii)</code>
-and so understates it most exactly where the error is largest
-(measured at 3.1x, 6.6x and 10.8x as the half-life grows). Compare
-<code>n_ss</code> against <code>2 * n_ss</code> numerically instead, or, for a linear
-compartment model, use <code><a href="frm_lincmt.html">frm_lincmt()</a></code>, whose default sums the series
-and has nothing to truncate.</p>
+<p>A real steady state is the limit of repeating until the cycle-start
+state stops moving, and that test branches on a value, which the tape
+cannot do: the number of solves has to be fixed before the tape is
+built. Truncating at <code>n_ss</code> cycles leaves a geometric tail. For
+linear kinetics what is left after <code>n</code> cycles is the accumulation
+factor to the power <code>n</code>, <code>exp(-n * lambda_z * ii)</code>, where <code>lambda_z</code>
+is the SLOWEST disposition eigenvalue, so the shortfall is set by the
+terminal half-life measured in dosing intervals and grows toward 1 as
+that half-life grows. It moves estimates, not just trajectories: on
+one 30-subject dataset simulated from the exact steady state,
+truncating at 20 cycles rather than taking the limit moved <code>k21</code> by a
+factor of 3.2 and <code>ke</code> by 11 percent.</p>
+<p><code>ss_extrapolate = TRUE</code>, the default, <strong>sums that tail instead of
+dropping it</strong>. The run-in already computes the last cycle-start
+states, and their successive differences give the per-cycle
+contraction <code>r</code>, so the sum that is left is <code>d * r / (1 - r)</code>. That
+is arithmetic on tape variables, so it runs during a fit, at whatever
+parameters the fit has reached, and it costs no extra solve. The
+ratio is read one state at a time, damped by the integrator's own
+tolerance, and stood down as <code>r</code> approaches 1. Each of the three is
+needed; <code>dev/nss-findings.md</code> gives the construction that breaks the
+rule without it.</p>
+<p>Measured worst over the run-in states against the exact limit, on a
+two-compartment oral model at <code>n_ss = 20</code> and <code>atol = rtol = 1e-8</code>:</p><table class="table table"><tr><td>terminal half-life</td><td><code>ii</code></td><td>truncated</td><td>extrapolated</td></tr><tr><td>23 h</td><td>8</td><td>8.5e-03</td><td>7.6e-12</td></tr><tr><td>107 h</td><td>24</td><td>4.5e-02</td><td>4.2e-12</td></tr><tr><td>107 h</td><td>12</td><td>2.1e-01</td><td>7.8e-11</td></tr><tr><td>265 h</td><td>24</td><td>2.8e-01</td><td>4.9e-11</td></tr><tr><td>670 h</td><td>24</td><td>6.1e-01</td><td>5.0e-10</td></tr></table><p>The column above is worst over the run-in STATES; NEWS.md quotes the
+same designs worst over one dosing interval on the observable, which
+is the smaller number, 1.2e-02 rather than 4.5e-02 at 107 hours.
+What is left after the correction is the integrator's own tolerance
+<strong>amplified by about <code>1 / (1 - r)</code></strong>, so it grows with the terminal
+half-life: measured in units of <code>atol = rtol</code>, 0.3 to 1.4 on the five
+rows above and 62.8 at a 1655 hour half-life dosed daily.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="where-the-correction-is-worse-than-truncating">Where the correction is worse than truncating<a class="anchor" aria-label="anchor" href="#where-the-correction-is-worse-than-truncating"></a></h2>
+    <p>The ratio the run-in reads is a weighted mean of the cycle map's
+modes. Where every weight has the same sign that mean lies between
+the slowest and the fastest, so the correction can only undershoot.
+Where two weights have opposite signs it lies OUTSIDE their range and
+the correction overshoots, and opposite signs are the normal
+arrangement in an oral model, which is why a concentration rises
+before it falls. The hazard is therefore <code>ka</code> near <code>lambda_z</code>:
+<strong>flip-flop kinetics</strong>, which extended-release and depot
+formulations are written to produce.</p>
+<p>Measured over 338 two-compartment oral cycle maps, <code>lambda_z * ii</code>
+from 0.02 to 3 and <code>ka / lambda_z</code> from 0.1 to 50: the correction
+loses on <strong>8</strong> of them, worst by a factor of <strong>2.27</strong>, and every
+losing case has <code>lambda_z * ii</code> = 0.05 with <code>ka / lambda_z</code> of 1.5 or
+2. It is bounded, and the bound is what makes the default defensible:
+the smallest error truncation leaves on a losing case is <strong>0.40</strong>,
+the largest it leaves on a winning one is 0.96, and the warning below
+fires on every losing case in both arms. The correction never loses
+where truncation was usable, and where it loses the user is told.
+Through <code>frm_ode()</code> on the worst such model, a 333 hour terminal
+half-life with <code>ka / lambda_z</code> = 1.5 dosed daily: 5.2e-01 truncated
+against 8.0e-01 extrapolated, both warned.</p>
+<p>The correction is exact only up to the second-slowest mode for other
+reasons too. On a Michaelis-Menten system deep in its saturated
+regime it improved a 1.1e-01 shortfall to 7.2e-03 and no further, and
+on a system with two modes of nearly the same rate it removes their
+combination and leaves what is left of the other.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="the-stand-down-and-the-objective-s-smoothness">The stand-down, and the objective's smoothness<a class="anchor" aria-label="anchor" href="#the-stand-down-and-the-objective-s-smoothness"></a></h2>
+    <p>The correction is applied in full while the measured ratio is between
+0.05 and 0.9875, gated to nothing below the first and stood down to
+nothing as it reaches 1. The gate is the degree-7 smootherstep, whose
+first three derivatives vanish at both ends; the stand-down is that
+same shape divided by its argument, degree 6, whose slope at 1 is -1,
+which is exactly the slope that joins <code>r / (1 - r)</code> below the cap.
+Measured rather than asserted, <strong>the objective has no corner in the
+parameters</strong> at any of the four junctions: a one-sided first
+difference there reads the curvature <code>2 / (1 - r)^3</code> to five figures,
+the same law it reads at ratios with no junction at all. That
+matters because an optimizer walks into this region: a fit whose
+<code>k21</code> runs to zero drives <code>lambda_z</code> to zero and <code>r</code> to 1, and it
+crosses 0.9875 on the way. A hard cap there left the two one-sided
+derivatives at -0.09 and +150, not converging as the bracket
+tightened.</p>
+<p>Measured on the factor itself, as the gap between the two one-sided
+difference quotients: at <code>r</code> = 0 it falls to exactly 0 by a bracket
+of 1e-4; at <code>r</code> = 1 it falls like the square of the bracket; and at
+<code>r</code> = 0.05 and <code>r</code> = 0.9875 the gap divided by the bracket is 2.333
+and 1.024e+06, which are <code>2 / (1 - r)^3</code>, the factor's own second
+derivative, to four figures. A one-sided first difference carries an
+error of exactly that size, so at those two junctions the probe is
+reading curvature and there is no discontinuity left in it to find.</p>
+<p><code>ss_extrapolate = FALSE</code> restores the truncated run-in exactly, bit
+for bit, and with the base commit's tape. Then the shortfall is
+<code>exp(-n_ss * lambda_z * ii)</code> again, and <strong>choose <code>n_ss</code> so that
+<code>n_ss * lambda_z * ii</code> is at least 20</strong>, which puts it at 2e-09. On
+the 107 hour, <code>ii = 24</code> model that is <code>n_ss = 134</code>, not 20, and the
+run-in is most of the solve count.</p>
+<p>A very long run-in has a second limit that raising <code>n_ss</code> cannot
+pass. The cycles are chained solves, so the integrator's own error
+accumulates across all <code>n_ss + 1</code> of them: at <code>atol = rtol = 1e-8</code>
+and <code>n_ss</code> = 1000 it contributes about 2e-05, which is larger than
+the run-in shortfall it was raised to remove. Past a few hundred
+cycles, tighten <code>atol</code> and <code>rtol</code> as well or the extra cycles buy
+nothing.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="what-frm-ode-will-tell-you">What frm_ode() will tell you<a class="anchor" aria-label="anchor" href="#what-frm-ode-will-tell-you"></a></h2>
+    <p>Off the tape - a direct call, <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>, a body
+holding no estimated parameter - <code>frm_ode()</code> reports how far the
+value IT RETURNED still is from the limit, and warns when that is
+more than <code>ss_tol</code>. <strong>That is a distance to the limit</strong>, which the
+warning before 0.4.0 was not: it reported the cycle-to-cycle
+movement, which understates the distance by about
+<code>1 / (lambda_z * ii)</code>, measured at 3.1x, 6.6x and 10.8x as the
+half-life grows, so it understated it most exactly where the error
+was largest. It also says so by name when a state is not contracting
+between cycles at all, which means no <code>n_ss</code> settles it.</p>
+<p><strong>Treat it as a detector and not as a measurement.</strong> It is built out
+of the same geometric model the correction is, so where that model
+is poor the number is poor with it, and it is bounded below by the
+cycle-to-cycle movement rather than being an estimate in its own
+right. On a state whose ratio is not a contraction it reports that
+movement, which can be far from the distance to a limit that does
+not exist. What it is good for is deciding whether to look, not how
+much to trust the third digit.</p>
+<p>On 31 schedules classified against the exact limit there is no false
+alarm and no miss in either arm, and the set now reaches both ends
+of the range: three flip-flop models, <code>n_ss</code> of 1, 2 and 4, and a
+1653 hour half-life at <code>n_ss</code> of 650, 1000 and 2000, which is the
+region the paragraph above sends a long-half-life user to.</p>
+<p>During a fit the check still cannot run at all. For a linear
+compartment model <code><a href="frm_lincmt.html">frm_lincmt()</a></code> sums the series in closed form and
+has nothing to truncate.</p>
 <p>The cost is <code>n_ss</code> extra solves per group (two per cycle for an
 infusion), so a steady-state population fit is several times a plain
-one. One <code>ss</code> row per group is allowed; write later doses out with
-<code>ii</code> and <code>addl</code>.</p>
+one, and <code>ss_extrapolate</code> does not change that count. One <code>ss</code> row
+per group is allowed; write later doses out with <code>ii</code> and <code>addl</code>.</p>
 <p>The doses are not handed to <span class="pkg">deSolve</span> as events. <code>frm_ode()</code>
 splits the integration at the event times and chains one solve per
 interval, carrying the state across the break itself. That is a

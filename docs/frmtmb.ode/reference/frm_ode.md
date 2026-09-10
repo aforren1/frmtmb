@@ -26,6 +26,7 @@ frm_ode(
   tv_break = NULL,
   n_ss = 20L,
   ss_tol = 1e-06,
+  ss_extrapolate = TRUE,
   method = "lsoda",
   atol = 1e-08,
   rtol = 1e-08,
@@ -130,8 +131,20 @@ frm_ode(
 
 - ss_tol:
 
-  Relative change between the last two run-in cycles that `frm_ode()`
-  will accept without warning. Checked on the numeric path only.
+  Distance to the steady state, relative to the state's own scale, that
+  `frm_ode()` will accept without warning. Checked on the numeric path
+  only.
+
+- ss_extrapolate:
+
+  Sum the geometric tail that truncating the run-in at `n_ss` cycles
+  leaves, using the contraction ratio the run-in itself measures.
+  `TRUE`, the default, is exact for linear kinetics up to the
+  second-slowest mode and costs no extra solve, though it does add about
+  170 nodes to the tape. `FALSE` truncates, which is what versions
+  before 0.4.0 did, bit for bit. Read "Where the correction is worse
+  than truncating" before assuming the default is always the better one.
+  See "Steady-state dosing".
 
 - method:
 
@@ -382,45 +395,157 @@ record's time reads the steady-state **trough**.
     # 100 into the depot every 12 hours, already at steady state at t = 0
     data.frame(time = 0, state = "depot", value = 100, ii = 12, ss = TRUE)
 
-`n_ss` is the honest part of this. A real steady state is the limit of
-repeating until the cycle-start state stops moving, and that test
-branches on a value, which the tape cannot do: the number of solves has
-to be fixed before the tape is built. So `n_ss` cycles is an
-**approximation**, and its error is geometric - for linear kinetics the
-shortfall after `n` cycles is the accumulation factor to the power `n`,
-which is `exp(-n * k * ii)` for a one-compartment system. The rate `k`
-in that expression is the SLOWEST disposition eigenvalue, `lambda_z`, so
-the shortfall is `exp(-n_ss * lambda_z * ii)` and it is set by the
-terminal half-life measured in dosing intervals. **Choose `n_ss` so that
-`n_ss * lambda_z * ii` is at least 20**, which puts the shortfall at
-2e-09. The default of 20 does that only when the terminal half-life is
-under about three dosing intervals. Measured, on a two-compartment oral
-model at `n_ss = 20`: a 23 hour half-life dosed every 8 hours is 4e-03
-short, a 107 hour half-life dosed daily is 1.2e-02 short, and a 265 hour
-half-life dosed daily is 9e-02 short. A half-life of ten dosing
-intervals is 25 percent short. It moves estimates: on one 30-subject
-dataset simulated from the exact steady state, fitting at `n_ss = 20`
-rather than at the limit moved `k21` by a factor of 3.2 and `ke` by 11
-percent.
+A real steady state is the limit of repeating until the cycle-start
+state stops moving, and that test branches on a value, which the tape
+cannot do: the number of solves has to be fixed before the tape is
+built. Truncating at `n_ss` cycles leaves a geometric tail. For linear
+kinetics what is left after `n` cycles is the accumulation factor to the
+power `n`, `exp(-n * lambda_z * ii)`, where `lambda_z` is the SLOWEST
+disposition eigenvalue, so the shortfall is set by the terminal
+half-life measured in dosing intervals and grows toward 1 as that
+half-life grows. It moves estimates, not just trajectories: on one
+30-subject dataset simulated from the exact steady state, truncating at
+20 cycles rather than taking the limit moved `k21` by a factor of 3.2
+and `ke` by 11 percent.
+
+`ss_extrapolate = TRUE`, the default, **sums that tail instead of
+dropping it**. The run-in already computes the last cycle-start states,
+and their successive differences give the per-cycle contraction `r`, so
+the sum that is left is `d * r / (1 - r)`. That is arithmetic on tape
+variables, so it runs during a fit, at whatever parameters the fit has
+reached, and it costs no extra solve. The ratio is read one state at a
+time, damped by the integrator's own tolerance, and stood down as `r`
+approaches 1. Each of the three is needed; `dev/nss-findings.md` gives
+the construction that breaks the rule without it.
+
+Measured worst over the run-in states against the exact limit, on a
+two-compartment oral model at `n_ss = 20` and `atol = rtol = 1e-8`:
+
+|                    |      |           |              |
+|--------------------|------|-----------|--------------|
+| terminal half-life | `ii` | truncated | extrapolated |
+| 23 h               | 8    | 8.5e-03   | 7.6e-12      |
+| 107 h              | 24   | 4.5e-02   | 4.2e-12      |
+| 107 h              | 12   | 2.1e-01   | 7.8e-11      |
+| 265 h              | 24   | 2.8e-01   | 4.9e-11      |
+| 670 h              | 24   | 6.1e-01   | 5.0e-10      |
+
+The column above is worst over the run-in STATES; NEWS.md quotes the
+same designs worst over one dosing interval on the observable, which is
+the smaller number, 1.2e-02 rather than 4.5e-02 at 107 hours. What is
+left after the correction is the integrator's own tolerance **amplified
+by about `1 / (1 - r)`**, so it grows with the terminal half-life:
+measured in units of `atol = rtol`, 0.3 to 1.4 on the five rows above
+and 62.8 at a 1655 hour half-life dosed daily.
+
+## Where the correction is worse than truncating
+
+The ratio the run-in reads is a weighted mean of the cycle map's modes.
+Where every weight has the same sign that mean lies between the slowest
+and the fastest, so the correction can only undershoot. Where two
+weights have opposite signs it lies OUTSIDE their range and the
+correction overshoots, and opposite signs are the normal arrangement in
+an oral model, which is why a concentration rises before it falls. The
+hazard is therefore `ka` near `lambda_z`: **flip-flop kinetics**, which
+extended-release and depot formulations are written to produce.
+
+Measured over 338 two-compartment oral cycle maps, `lambda_z * ii` from
+0.02 to 3 and `ka / lambda_z` from 0.1 to 50: the correction loses on
+**8** of them, worst by a factor of **2.27**, and every losing case has
+`lambda_z * ii` = 0.05 with `ka / lambda_z` of 1.5 or 2. It is bounded,
+and the bound is what makes the default defensible: the smallest error
+truncation leaves on a losing case is **0.40**, the largest it leaves on
+a winning one is 0.96, and the warning below fires on every losing case
+in both arms. The correction never loses where truncation was usable,
+and where it loses the user is told. Through `frm_ode()` on the worst
+such model, a 333 hour terminal half-life with `ka / lambda_z` = 1.5
+dosed daily: 5.2e-01 truncated against 8.0e-01 extrapolated, both
+warned.
+
+The correction is exact only up to the second-slowest mode for other
+reasons too. On a Michaelis-Menten system deep in its saturated regime
+it improved a 1.1e-01 shortfall to 7.2e-03 and no further, and on a
+system with two modes of nearly the same rate it removes their
+combination and leaves what is left of the other.
+
+## The stand-down, and the objective's smoothness
+
+The correction is applied in full while the measured ratio is between
+0.05 and 0.9875, gated to nothing below the first and stood down to
+nothing as it reaches 1. The gate is the degree-7 smootherstep, whose
+first three derivatives vanish at both ends; the stand-down is that same
+shape divided by its argument, degree 6, whose slope at 1 is -1, which
+is exactly the slope that joins `r / (1 - r)` below the cap. Measured
+rather than asserted, **the objective has no corner in the parameters**
+at any of the four junctions: a one-sided first difference there reads
+the curvature `2 / (1 - r)^3` to five figures, the same law it reads at
+ratios with no junction at all. That matters because an optimizer walks
+into this region: a fit whose `k21` runs to zero drives `lambda_z` to
+zero and `r` to 1, and it crosses 0.9875 on the way. A hard cap there
+left the two one-sided derivatives at -0.09 and +150, not converging as
+the bracket tightened.
+
+Measured on the factor itself, as the gap between the two one-sided
+difference quotients: at `r` = 0 it falls to exactly 0 by a bracket of
+1e-4; at `r` = 1 it falls like the square of the bracket; and at `r` =
+0.05 and `r` = 0.9875 the gap divided by the bracket is 2.333 and
+1.024e+06, which are `2 / (1 - r)^3`, the factor's own second
+derivative, to four figures. A one-sided first difference carries an
+error of exactly that size, so at those two junctions the probe is
+reading curvature and there is no discontinuity left in it to find.
+
+`ss_extrapolate = FALSE` restores the truncated run-in exactly, bit for
+bit, and with the base commit's tape. Then the shortfall is
+`exp(-n_ss * lambda_z * ii)` again, and **choose `n_ss` so that
+`n_ss * lambda_z * ii` is at least 20**, which puts it at 2e-09. On the
+107 hour, `ii = 24` model that is `n_ss = 134`, not 20, and the run-in
+is most of the solve count.
+
+A very long run-in has a second limit that raising `n_ss` cannot pass.
+The cycles are chained solves, so the integrator's own error accumulates
+across all `n_ss + 1` of them: at `atol = rtol = 1e-8` and `n_ss` = 1000
+it contributes about 2e-05, which is larger than the run-in shortfall it
+was raised to remove. Past a few hundred cycles, tighten `atol` and
+`rtol` as well or the extra cycles buy nothing.
+
+## What frm_ode() will tell you
 
 Off the tape - a direct call,
 [`predict()`](https://rdrr.io/r/stats/predict.html),
 [`simulate()`](https://rdrr.io/r/stats/simulate.html), a body holding no
-estimated parameter - the last two cycles are compared and `frm_ode()`
-warns when they still differ by more than `ss_tol`. During a fit that
-check cannot run at all. **Do not choose `n_ss` from that warning**: it
-reports the CYCLE-TO-CYCLE movement, which understates the distance to
-the limit by about `1 / (lambda_z * ii)` and so understates it most
-exactly where the error is largest (measured at 3.1x, 6.6x and 10.8x as
-the half-life grows). Compare `n_ss` against `2 * n_ss` numerically
-instead, or, for a linear compartment model, use
-[`frm_lincmt()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_lincmt.md),
-whose default sums the series and has nothing to truncate.
+estimated parameter - `frm_ode()` reports how far the value IT RETURNED
+still is from the limit, and warns when that is more than `ss_tol`.
+**That is a distance to the limit**, which the warning before 0.4.0 was
+not: it reported the cycle-to-cycle movement, which understates the
+distance by about `1 / (lambda_z * ii)`, measured at 3.1x, 6.6x and
+10.8x as the half-life grows, so it understated it most exactly where
+the error was largest. It also says so by name when a state is not
+contracting between cycles at all, which means no `n_ss` settles it.
+
+**Treat it as a detector and not as a measurement.** It is built out of
+the same geometric model the correction is, so where that model is poor
+the number is poor with it, and it is bounded below by the
+cycle-to-cycle movement rather than being an estimate in its own right.
+On a state whose ratio is not a contraction it reports that movement,
+which can be far from the distance to a limit that does not exist. What
+it is good for is deciding whether to look, not how much to trust the
+third digit.
+
+On 31 schedules classified against the exact limit there is no false
+alarm and no miss in either arm, and the set now reaches both ends of
+the range: three flip-flop models, `n_ss` of 1, 2 and 4, and a 1653 hour
+half-life at `n_ss` of 650, 1000 and 2000, which is the region the
+paragraph above sends a long-half-life user to.
+
+During a fit the check still cannot run at all. For a linear compartment
+model
+[`frm_lincmt()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_lincmt.md)
+sums the series in closed form and has nothing to truncate.
 
 The cost is `n_ss` extra solves per group (two per cycle for an
 infusion), so a steady-state population fit is several times a plain
-one. One `ss` row per group is allowed; write later doses out with `ii`
-and `addl`.
+one, and `ss_extrapolate` does not change that count. One `ss` row per
+group is allowed; write later doses out with `ii` and `addl`.
 
 The doses are not handed to deSolve as events. `frm_ode()` splits the
 integration at the event times and chains one solve per interval,
