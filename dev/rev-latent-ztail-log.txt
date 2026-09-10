@@ -1,0 +1,19 @@
+﻿
+==== latent-2p4-recheck-oos.tsv ====
+coef      sd(z) IQR(z)/1.349    ratio   kurtosis |z|>1.96
+c2_3     1.0322     1.0520   0.9812      2.515     9/200
+c3_3     1.0847     1.1204   0.9681      2.600    19/200
+c4_3     1.1770     1.1599   1.0147      2.950    22/200
+c3_2     0.9809     1.0328   0.9497      2.386     7/200
+
+==== latent-2p4-recheck.tsv ====
+coef      sd(z) IQR(z)/1.349    ratio   kurtosis |z|>1.96
+c2_3     0.9727     0.9077   1.0716      3.404    12/200
+c3_3     1.0343     0.9524   1.0860      3.086    14/200
+c4_3     0.9761     0.8855   1.1023      3.063    15/200
+c3_2     0.9901     1.0094   0.9808      2.450     9/200
+
+sd(z) is 1 when the reported standard error matches the spread.
+sd(z) / (IQR(z)/1.349) near 1 means the inflation is in the whole
+distribution and not in a tail, so there is no curvature for a
+profile interval to find.

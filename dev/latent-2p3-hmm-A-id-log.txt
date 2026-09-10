@@ -1,0 +1,15 @@
+converged at iteration 71 with logLik: -39087.47 
+converged at iteration 68 with logLik: -39087.47 
+converged at iteration 116 with logLik: -39171.66 
+converged at iteration 69 with logLik: -39087.47 
+A rep   1  ll -39087.4745 ref -39087.4745  relgap 4.93e-12  estgap 1.48e-06   mu_err 0.0102 tpm_err 0.0074 perm 123  12s/18s
+converged at iteration 72 with logLik: -39488.68 
+converged at iteration 72 with logLik: -39488.68 
+converged at iteration 3854 with logLik: -43349.45 
+converged at iteration 79 with logLik: -39488.68 
+A rep   2  ll -39488.6782 ref -39488.6782  relgap 7.87e-13  estgap 8.25e-07   mu_err 0.0117 tpm_err 0.0059 perm 123  20s/263s
+converged at iteration 63 with logLik: -38973.33 
+converged at iteration 71 with logLik: -38973.33 
+A rep   3  ll -38973.3313 ref -38973.3313  relgap 3.14e-14  estgap 7.92e-07   mu_err 0.0099 tpm_err 0.0054 perm 123  12s/645s
+converged at iteration 85 with logLik: -39210.49 
+converged at iteration 61 with logLik: -39210.49 

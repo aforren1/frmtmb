@@ -1,0 +1,31 @@
+frm logLik: -39152.062645 
+hmmTMB llk : -39152.0626454 
+relative gap: 9.05e-12 
+
+tr12  frm: -1.39321375   hmmTMB: -1.39322981 
+tr13  frm: -2.47338704   hmmTMB: -2.47337785 
+  the fit's own SEs on those two: 0.08577 0.04857 
+  gap as a fraction of one SE   : 0.0003308 
+
+sequence 1's conditional mode on tr12: 0.282799 
+
+frmtmb POPULATION tpm:
+         [,1]     [,2]     [,3]
+[1,] 0.750427 0.186313 0.063260
+[2,] 0.118871 0.836629 0.044500
+[3,] 0.115238 0.038894 0.845868
+
+frmtmb tpm WITH sequence 1's mode on tr12:
+         [,1]     [,2]     [,3]
+[1,] 0.707353 0.233018 0.059629
+[2,] 0.118871 0.836629 0.044500
+[3,] 0.115238 0.038894 0.845868
+
+hmmTMB par()$tpm[, , 1]:
+         [,1]     [,2]     [,3]
+[1,] 0.707353 0.233018 0.059630
+[2,] 0.118871 0.836631 0.044498
+[3,] 0.115237 0.038895 0.845868
+
+max |population - hmmTMB[, , 1]|      : 0.0467 
+max |with-sequence-1 - hmmTMB[, , 1]| : 1.842e-06 

@@ -1,0 +1,16 @@
+﻿<environment: namespace:poLCA>
+seed 20270476 
+shipped default logLik: -11507.6035576   (1.27 s)
+poLCA(nrep = 10)      : -11507.6035576 
+relative gap          : 4.677e-13 
+reaches it            : TRUE 
+
+what this seed separates, from dev/rev-latent-oos4.R:
+  w = 0, 0.25, 0.5, 0.99 lose it by 242 to 256 units
+  w = 0.75, 0.9, 0.95 reach it
+so one lca() fit on this seed, at 1.27 s, is a pin on the constant
+in BOTH directions. Nothing in test-lca.R does that today.
+
+grep for the constant in the package:
+  R/lca.R:304  p <- 0.1 * p + 0.9 * pool
+mentions of 'shrink' or 'pool' in test-lca.R: 0 

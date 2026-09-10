@@ -1,0 +1,29 @@
+﻿fresh-block replicates whose perm starts with 4: 59 
+on those the scored contrast IS a raw parameter.
+
+  10 of 59  (1.7 min)
+  20 of 59  (3.66 min)
+  30 of 59  (5.03 min)
+  40 of 59  (6.67 min)
+  50 of 59  (7.96 min)
+
+==== the 59-replicate subset, Wald against profile ====
+profile intervals that failed to compute: 0 of 118 
+
+c3_3 (theta2_x21)
+  Wald    : 0.8644 (51/59)  MC 95%: 0.7770 to 0.9518 
+  profile : 0.8644 (51/59)  MC 95%: 0.7770 to 0.9518 
+  median interval width, Wald 0.5592  profile 0.5597  ratio 1.001 
+
+c4_3 (theta3_x21)
+  Wald    : 0.8814 (52/59)  MC 95%: 0.7988 to 0.9639 
+  profile : 0.8814 (52/59)  MC 95%: 0.7988 to 0.9639 
+  median interval width, Wald 0.6182  profile 0.6188  ratio 1.001 
+
+both coefficients pooled on this subset:
+  Wald    : 0.8729 (103/118)  MC 95%: 0.8128 to 0.9330 
+  profile : 0.8729 (103/118)  MC 95%: 0.8128 to 0.9330 
+  profile wider than Wald on 118 of 118 intervals
+  median width ratio, profile over Wald: 1.001 
+  median seconds per profile interval: 4.027 
+  total wall clock: 9.569 minutes

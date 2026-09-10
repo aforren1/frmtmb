@@ -1,0 +1,27 @@
+﻿
+======== Ia (redone). last.par.best, moved by a BETTER evaluation ========
+cold logLik: -1096.09575602 
+best logLik: -1087.9964652 
+AFTER hmm_starts(): the original's confint identical: TRUE   last.par.best identical: TRUE 
+one fn() call at the BETTER point, value -1087.9964652 
+  last.par.best moved                : TRUE 
+  max |change| in last.par.best      : 3.038 
+  the original fit's confint() moved : FALSE 
+  logLik(fit) now reads              : -1096.09575602 
+
+======== IV. the cost instrument, run at a size a review can afford ========
+rows: 1800  sequences: 12 
+one frm() fit: 5.624 s,  4 gradient calls
+the deferred sdreport: 1.495 s
+block 1: 14.34 s, 15 gradient calls, best -2848.261480
+block 2: 13.07 s, 15 gradient calls, best -2848.261480
+block 3: 13.46 s, 15 gradient calls, best -2848.261480
+
+CONTROL, max / min       : 1.097   (the lane reports 1.023 at 25 000 rows on a quiet machine)
+gradient calls per block : 15 15 15 
+identical across blocks  : TRUE   <- the load-independent check, which is the one to prefer
+seconds per refit, min   : 6.5327 
+seconds per gradient call, refit: 0.871 
+seconds per gradient call, plain fit: 1.406 
+ratio                    : 0.6195   (the lane's own numbers give 6.63 / 11.47 = 0.578)
+other R processes on the machine right now: 5 lines of tasklist

@@ -1,0 +1,233 @@
+﻿
+======== A. the better mode is ABSENT ========
+-- small_data, n = 8, jitter = 2, seed 8801 --
+  n_converged/not/error: 8 0 0   sum == 8 : TRUE 
+  original_converged: TRUE   scale_how: se 
+  spread    : 1.346819545e-09 
+  spread_all: 1.346819545e-09 
+  modes     : 1 rows
+ start         logLik          grad_rel    status         seconds fn_evals
+     0 -245.621368872 1.07680821406e-06  original              NA       33
+     1 -245.621368872 2.14611070188e-07 converged 0.1344740390778       38
+     2 -245.621368872 1.35366496142e-06 converged 0.0184721946716       45
+     3 -245.621368872 3.06824911651e-08 converged 0.0124368667603       31
+     4 -245.621368872 7.50975866642e-07 converged 0.0132491588593       40
+     5 -245.621368873 2.13104203129e-06 converged 0.0133531093597       35
+     6 -245.621368872 3.82568003362e-07 converged 0.0135250091553       37
+     7 -245.621368873 1.45278197134e-06 converged 0.0138649940491       39
+     8 -245.621368873 1.66917368700e-06 converged 0.0142951011658       42
+ gr_evals
+       25
+       32
+       34
+       26
+       32
+       30
+       30
+       31
+       30
+  best logLik    : -245.621368872 
+  original logLik: -245.62136887233 
+  best IS the original object: FALSE 
+  best beats the original by: 3.33387e-10 
+  best is the SAME fit object as the incumbent: FALSE 
+  print says 'the original fit was the best found': FALSE 
+  print says 'BELOW the best': TRUE 
+--- print(), verbatim ---
+<hmm_starts> 8 refits, jitter 2 (standard errors)
+  converged      8 of 8
+
+  best logLik    -245.6213689
+  original       -245.6213689   (3.334e-10 BELOW the best: the original fit found a local optimum)
+
+  logLik spread, the original and the 8 converged refits: 1.346819545e-09
+  logLik spread, every one of the 9 that finished    : 1.346819545e-09
+
+  distinct optima among the converged: 1
+       logLik found
+ -245.6213689     9
+
+  seconds: 0.2337 total, 0.0137 median per refit
+  gradient evaluations: 245 total, 30.5 median per refit 
+
+======== B. incumbent is best, refits converge cleanly to a WORSE optimum ========
+warm incumbent logLik: -1087.9964652035 
+-- warm d4 incumbent, n = 8, jitter = 2, seed 4101 --
+  n_converged/not/error: 8 0 0   sum == 8 : TRUE 
+  original_converged: TRUE   scale_how: se 
+  spread    : 1.524063009e-08 
+  spread_all: 1.524063009e-08 
+  modes     : 1 rows
+ start         logLik          grad_rel    status        seconds fn_evals
+     0 -1087.99646520 3.54503811140e-07  original             NA        6
+     1 -1087.99646522 7.19402094361e-07 converged 0.381850004196       41
+     2 -1087.99646521 8.74059214264e-07 converged 0.404143095016       10
+     3 -1087.99646520 2.30633965788e-07 converged 0.432775020599        9
+     4 -1087.99646520 4.00581263607e-07 converged 0.580214023590       11
+     5 -1087.99646521 1.39297621328e-06 converged 0.372950792313        8
+     6 -1087.99646520 2.94869574523e-07 converged 0.310871839523        9
+     7 -1087.99646520 4.42853804268e-07 converged 0.410618066788        7
+     8 -1087.99646520 7.13269038496e-07 converged 0.418206214905       10
+ gr_evals
+        3
+       31
+        6
+        5
+        7
+        4
+        5
+        3
+        6
+  best logLik    : -1087.9964652035 
+  original logLik: -1087.9964652035 
+  best IS the original object: FALSE 
+  CONVERGED refits strictly worse than the incumbent: 0 
+  best stayed the incumbent: TRUE 
+  print says 'the original fit was the best found': TRUE 
+--- print(), verbatim ---
+<hmm_starts> 8 refits, jitter 2 (standard errors)
+  converged      8 of 8
+
+  best logLik    -1087.996465
+  original       -1087.996465   (the original fit was the best found)
+
+  logLik spread, the original and the 8 converged refits: 1.524063009e-08
+  logLik spread, every one of the 9 that finished    : 1.524063009e-08
+
+  distinct optima among the converged: 1
+       logLik found
+ -1087.996465     9
+
+  seconds: 3.312 total, 0.4074 median per refit
+  gradient evaluations: 67 total, 5.5 median per refit 
+
+======== C. the better optimum found, but failing the convergence test ========
+-- cold d4, grad_tol = 1e-12, n = 6, jitter = 2, seed 4101 --
+  n_converged/not/error: 0 6 0   sum == 6 : TRUE 
+  original_converged: FALSE   scale_how: se 
+  spread    : 0 
+  spread_all: 8.099290834 
+  modes     : 1 rows
+ start         logLik          grad_rel        status        seconds fn_evals
+     0 -1096.09575602 6.38655838422e-07      original             NA       43
+     1 -1087.99646520 1.34774443416e-07 not converged 0.422387838364       10
+     2 -1087.99646520 5.01484612888e-07 not converged 0.354347944260        8
+     3 -1096.09575604 8.26255633931e-07 not converged 0.297560930252       38
+     4 -1096.09575602 1.00215427060e-06 not converged 0.350822925568       10
+     5 -1087.99646521 1.77874090974e-06 not converged 0.302530050278        9
+     6 -1096.09575603 9.02450940111e-07 not converged 0.323517084122       40
+ gr_evals
+       28
+        6
+        5
+       30
+        6
+        5
+       29
+  best logLik    : -1096.0957560243 
+  original logLik: -1096.0957560243 
+  best IS the original object: FALSE 
+  highest not-converged logLik: -1087.9964652036 
+  best logLik                 : -1096.0957560243 
+  a NON-CONVERGED refit that is 8.09929 units better did NOT win: TRUE 
+  converged spread reads: 0  <- with only the incumbent in it, this is a printed zero
+  spread_all reads      : 8.09929 
+--- print(), verbatim ---
+<hmm_starts> 6 refits, jitter 2 (standard errors)
+  converged      0 of 6
+  not converged  6 (max|grad| / |logLik| above 1e-12), and OUT of the converged spread below
+
+  best logLik    -1096.095756
+  original       -1096.095756   (the original fit was the best found)
+
+  the ORIGINAL fit does not meet that test either (max|grad| / |logLik| = 6.39e-07).
+  It stays in both spreads below, as the point they are measured from.
+
+  logLik spread, the original and the 0 converged refits: 0
+  logLik spread, every one of the 7 that finished    : 8.099290834
+
+  distinct optima among the converged: 1
+       logLik found
+ -1096.095756     1
+
+  seconds: 2.051 total, 0.3372 median per refit
+  gradient evaluations: 81 total, 6 median per refit 
+
+======== D. every refit errors ========
+-- small_data, jitter = 1e6, n = 4 --
+  n_converged/not/error: 0 0 4   sum == 4 : TRUE 
+  original_converged: TRUE   scale_how: se 
+  spread    : 0 
+  spread_all: 0 
+  modes     : 1 rows
+ start         logLik          grad_rel   status         seconds fn_evals
+     0 -245.621368872 1.07680821406e-06 original              NA       33
+     1             NA                NA    error 0.0119700431824       NA
+     2             NA                NA    error 0.0107982158661       NA
+     3             NA                NA    error 0.0108640193939       NA
+     4             NA                NA    error 0.0253829956055       NA
+ gr_evals
+       25
+       NA
+       NA
+       NA
+       NA
+  best logLik    : -245.62136887233 
+  original logLik: -245.62136887233 
+  best IS the original object: FALSE 
+  all four errored: TRUE 
+  spread / spread_all: 0 / 0   <- both read 0 on a run that measured NOTHING
+  modes rows: 1 
+--- print(), verbatim ---
+<hmm_starts> 4 refits, jitter 1e+06 (standard errors)
+  converged      0 of 4
+  errored        4, reaching no optimum at all, and out of BOTH spreads
+
+  best logLik    -245.6213689
+  original       -245.6213689   (the original fit was the best found)
+
+  logLik spread, the original and the 0 converged refits: 0
+  logLik spread, every one of the 1 that finished    : 0
+
+  distinct optima among the converged: 1
+       logLik found
+ -245.6213689     1
+
+  seconds: 0.05902 total, 0.01142 median per refit 
+
+======== E. the spread is a spread of optima, checked by re-evaluation ========
+-- cold d4, n = 6, jitter = 2, seed 4101 --
+  n_converged/not/error: 6 0 0   sum == 6 : TRUE 
+  original_converged: TRUE   scale_how: se 
+  spread    : 8.099290834 
+  spread_all: 8.099290834 
+  modes     : 2 rows
+ start         logLik          grad_rel    status        seconds fn_evals
+     0 -1096.09575602 6.38655838422e-07  original             NA       43
+     1 -1087.99646520 1.34774443416e-07 converged 0.399324178696       10
+     2 -1087.99646520 5.01484612888e-07 converged 0.554529905319        8
+     3 -1096.09575604 8.26255633931e-07 converged 0.577418088913       38
+     4 -1096.09575602 1.00215427060e-06 converged 0.449173927307       10
+     5 -1087.99646521 1.77874090974e-06 converged 0.532827854156        9
+     6 -1096.09575603 9.02450940111e-07 converged 0.467128992081       40
+ gr_evals
+       28
+        6
+        5
+       30
+        6
+        5
+       29
+  best logLik    : -1087.9964652036 
+  original logLik: -1096.0957560243 
+  best IS the original object: FALSE 
+  spread == diff(range(converged + original)): TRUE 
+  winning start is a list by value: TRUE 
+Rscript : Error: attempt to apply non-function
+At line:3 char:1
++ Rscript dev/rev-latent-guard2.R 2>&1 | Tee-Object -FilePath dev/rev-l ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Error: attempt to apply non-function:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Execution halted

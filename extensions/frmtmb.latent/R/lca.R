@@ -144,38 +144,164 @@ lca_profile_tables <- function(extra, K) {
   })
 }
 
-#' Deterministic starting profiles.
+#' The subject scoring the class labels are ordered by: the mean item
+#' code, rescaled so that every item contributes on `[0, 1]`.
 #'
-#' A categorical likelihood has no analog of `mixture()`'s
-#' response-quantile means, and poLCA's answer is random restarts. The
-#' analog used here is a deterministic one: score each subject by the
-#' mean of its item codes rescaled to `[0, 1]`, cut the scores at `K`
-#' equal quantiles, and take each slice's smoothed empirical category
-#' proportions as that class's starting profile. The labels are
-#' therefore ordered by that score - class 1 is the low-score end - so
-#' a given data set always starts, and usually ends, with the same
-#' labeling. Laplace smoothing keeps a slice that never saw a category
-#' off the -Inf boundary.
+#' This used to do the slicing as well, and that is what went wrong.
+#' See `lca_init_slice()`.
 #'
 #' @noRd
-lca_init_extras <- function(y, ncat, K) {
-  n <- nrow(y)
-  J <- ncol(y)
+lca_init_score <- function(y, ncat) {
   span <- pmax(ncat - 1L, 1L)
   sc <- rowMeans(sweep(y - 1, 2L, span, "/"), na.rm = TRUE)
   fin <- is.finite(sc)
   sc[!fin] <- if (any(fin)) stats::median(sc[fin]) else 0
-  # rank-based cut: ties in the score cannot collapse a slice to zero
-  # rows the way quantile() breakpoints can on coarse binary items
-  slice <- pmin(1L + ((rank(sc, ties.method = "first") - 1L) * K) %/% n, K)
+  sc
+}
+
+#' Which starting class each subject is assigned to.
+#'
+#' WHY THIS IS NOT A SCORE CUT ANY MORE. Until 0.2.2 this scored each
+#' subject by the mean of its item codes and cut the scores into `K`
+#' equal-count slices. That rule is blind to any design whose classes
+#' differ in WHICH items they endorse rather than in HOW MANY, and such
+#' designs are the ordinary case: on the four-class, ten-item design in
+#' `dev/extension-gaps-plan.md`'s realistic-scale table every class
+#' endorses exactly three items strongly and seven weakly, so all four
+#' classes have the same expected score. Measured on that design, the
+#' score explains **0.08 percent** of its own variance between the true
+#' classes, and the four slices it produces are four samples of the same
+#' mixture. The fit then reached a local optimum **243 to 284
+#' log-likelihood units** below `poLCA(nrep = 10)` on 8 of 200 replicate
+#' data sets, with a positive definite Hessian and a relative gradient
+#' near 1e-09 on seven of the eight
+#' (`dev/latent-findings.md`, `dev/latent-2p4-startfix.R`).
+#'
+#' WHAT IT DOES INSTEAD. Slice on the response PATTERN. One-hot the item
+#' codes, seed `K` centers by farthest point (the subject furthest from
+#' the column means, then repeatedly the subject furthest from every
+#' center already chosen), and run hard Lloyd iterations to a fixed
+#' point. It is deterministic, it costs `O(n K J)` and no fitting, and
+#' the clusters are relabelled by the SAME mean score afterwards, so the
+#' documented low-to-high class ordering survives wherever that score
+#' carries information and is at least reproducible where it does not.
+#'
+#' The score cut is kept as the fallback for the shapes clustering
+#' cannot handle: fewer subjects than classes, or a response matrix with
+#' no variation at all.
+#'
+#' @noRd
+lca_init_slice <- function(y, ncat, K) {
+  n <- nrow(y)
+  J <- ncol(y)
+  sc <- lca_init_score(y, ncat)
+  score_cut <- function() {
+    pmin(1L + ((rank(sc, ties.method = "first") - 1L) * K) %/% n, K)
+  }
+  if (n < K) return(score_cut())
+  X <- matrix(0, n, sum(ncat))
+  off <- 0L
+  for (j in seq_len(J)) {
+    v <- y[, j]
+    tb <- tabulate(v[!is.na(v)], nbins = ncat[j])
+    v[is.na(v)] <- if (sum(tb)) which.max(tb) else 1L
+    v <- pmin(pmax(as.integer(v), 1L), ncat[j])
+    X[cbind(seq_len(n), off + v)] <- 1
+    off <- off + ncat[j]
+  }
+  if (!any(apply(X, 2L, stats::var) > 0)) return(score_cut())
+  d2 <- rowSums(sweep(X, 2L, colMeans(X), "-")^2)
+  idx <- integer(K)
+  idx[1L] <- which.max(d2)
+  dmin <- rowSums(sweep(X, 2L, X[idx[1L], ], "-")^2)
+  if (K > 1L) {
+    for (k in 2:K) {
+      idx[k] <- which.max(dmin)
+      dmin <- pmin(dmin, rowSums(sweep(X, 2L, X[idx[k], ], "-")^2))
+    }
+  }
+  cen <- X[idx, , drop = FALSE]
+  cl <- rep(1L, n)
+  for (it in seq_len(25L)) {
+    dd <- vapply(seq_len(K),
+                 function(k) rowSums(sweep(X, 2L, cen[k, ], "-")^2),
+                 numeric(n))
+    new <- max.col(-dd, ties.method = "first")
+    if (it > 1L && identical(new, cl)) break
+    cl <- new
+    for (k in seq_len(K)) {
+      if (any(cl == k)) cen[k, ] <- colMeans(X[cl == k, , drop = FALSE])
+    }
+  }
+  # a cluster that emptied keeps its own seed subject, so every class
+  # starts from a real response pattern rather than from nothing
+  for (k in seq_len(K)) if (!any(cl == k)) cl[idx[k]] <- k
+  ord <- order(vapply(seq_len(K),
+                      function(k) mean(sc[cl == k]), numeric(1)))
+  match(cl, ord)
+}
+
+#' Deterministic starting profiles.
+#'
+#' A categorical likelihood has no analog of `mixture()`'s
+#' response-quantile means, and poLCA's answer is random restarts. The
+#' analog used here is a deterministic one: assign each subject to a
+#' starting class (`lca_init_slice()`), and take each class's smoothed
+#' empirical category proportions, SHRUNK nine tenths of the way toward
+#' the pooled proportions, as that class's starting profile. Laplace
+#' smoothing keeps a class that never saw a category off the -Inf
+#' boundary.
+#'
+#' WHY THE SHRINK, AND WHY 0.9. A hard partition produces a start that
+#' is more confident than any fitted profile will be, and that
+#' confidence is its own basin; at the other end `w = 1` makes every
+#' class profile the pooled profile, which is the label-symmetry axis a
+#' mixture start must not sit on. So there is a usable interval with a
+#' boundary at each end, and the weight belongs in its interior rather
+#' than at either edge.
+#'
+#' The interval was located on TWO independent blocks of 200 replicates
+#' of the design in `dev/extension-gaps-plan.md`'s realistic-scale
+#' table, seeds 20260910 to 20261109 and 20270401 to 20270600, scored
+#' against the best log-likelihood anything reached on each data set
+#' (`dev/latent-2p4-weight-summarize.R`; the tuning block is
+#' `dev/latent-2p4-shrink.tsv` and `-shrink2.tsv`, the fresh one
+#' `dev/latent-2p4-oos.tsv`):
+#'
+#' \preformatted{
+#'   w      first 200   second 200
+#'   0        6 lost      7 lost
+#'   0.25     2           1
+#'   0.5      0           1
+#'   0.75     1           0
+#'   0.9      0           0
+#'   0.95     0           0
+#'   0.99     0           1
+#'   1      199         200
+#' }
+#'
+#' Only 0.9 and 0.95 lose nothing on either block. 0.9 ships because it
+#' has more room on the side that fails catastrophically: 0.09 below
+#' 0.99, where a loss reappears, against 0.95's 0.04, and 0.15 above
+#' 0.75. The 0.2.2 score cut loses 8 of the first 200 for comparison.
+#'
+#' @noRd
+lca_init_extras <- function(y, ncat, K) {
+  J <- ncol(y)
+  slice <- lca_init_slice(y, ncat, K)
   out <- vector("list", J)
   for (j in seq_len(J)) {
+    aj <- y[, j]
+    aj <- aj[!is.na(aj)]
+    pool <- tabulate(aj, nbins = ncat[j]) + 1
+    pool <- pool / sum(pool)
     v <- numeric(0)
     for (k in seq_len(K)) {
       cj <- y[slice == k, j]
       cj <- cj[!is.na(cj)]
       cnt <- tabulate(cj, nbins = ncat[j]) + 1   # Laplace smoothing
       p <- cnt / sum(cnt)
+      p <- 0.1 * p + 0.9 * pool
       v <- c(v, log(p[-1L]) - log(p[1L]))
     }
     out[[j]] <- v
@@ -256,18 +382,75 @@ lca_comp_lpdf <- function(y, K, extra, k) {
 #'
 #' @section Labeling and starting values:
 #' A latent class likelihood is invariant to relabeling the classes and
-#' is genuinely multimodal, so the answer depends on where the
-#' optimizer starts. poLCA uses random restarts (`nrep`). The starting
-#' values here are deterministic instead: subjects are scored by the
-#' mean of their item codes rescaled to `[0, 1]`, cut into `K`
-#' equal-count slices by that score, and each slice's smoothed
-#' empirical category proportions become one class's starting profile.
-#' Class 1 is therefore the low-score end and class `K` the high-score
-#' end, and re-running the same data gives the same labeling.
+#' is genuinely multimodal, so the answer depends on where the optimizer
+#' starts. poLCA uses random restarts (`nrep`). The starting values here
+#' are deterministic instead: subjects are clustered by their RESPONSE
+#' PATTERN, and each cluster's smoothed empirical category proportions,
+#' shrunk halfway toward the pooled proportions, become one class's
+#' starting profile. The clusters are then ordered by the mean of each
+#' subject's item codes, so class 1 is the low-score end where that
+#' score carries information, and re-running the same data gives the
+#' same labeling either way.
 #'
-#' That fixes reproducibility, not multimodality. Do what
-#' `poLCA(..., nrep = 10)` does and compare starts before reading a
-#' solution: perturb the item parameters and refit,
+#' **What this replaced, and why.** Until 0.2.2 the rule was to score
+#' each subject by the mean of its item codes and cut the scores into
+#' `K` equal-count slices. A scalar score is blind to any design whose
+#' classes differ in WHICH items they endorse rather than in how many,
+#' and such designs are the ordinary case. On the four-class, ten-item
+#' design in the realistic-scale table of `dev/extension-gaps-plan.md`,
+#' where every class endorses three items strongly and seven weakly, the
+#' score explains **0.08 percent** of its own variance between the true
+#' classes and the four slices are four samples of the same mixture. The
+#' fit then reached a local optimum **243 to 284 log-likelihood units**
+#' below `poLCA(nrep = 10)` on **8 of 200** replicate data sets, and
+#' seven of those eight passed every convergence test this project has:
+#' positive definite Hessian, relative gradient between 1.9e-09 and
+#' 2.7e-08. Only one of the eight would have shown a user anything at
+#' all.
+#'
+#' **How the rule now shipped was tuned, and what it scored on data it
+#' was not tuned on.** Its one free constant is the shrink weight, and
+#' it was chosen on the SAME 200 replicates the failure above was found
+#' on. A constant chosen that way has to be scored somewhere else
+#' before it means anything, so it was, on a second block of 200
+#' replicates of the same design drawn from disjoint seeds:
+#'
+#' \preformatted{
+#'                       tuned on         scored on
+#'                       20260910-        20270401-
+#'                       20261109         20270600
+#'   the 0.2.2 score cut   8 lost           not run
+#'   the rule now shipped  0 lost           0 lost
+#' }
+#'
+#' Both blocks are 200 data sets, scored against the best
+#' log-likelihood anything reached on each one, and on none of the 400
+#' did any start beat `poLCA(nrep = 10)`. The scripts are
+#' `dev/latent-2p4-shrink.R`, `-shrink2.R` and `-oos.R`, and
+#' `dev/latent-2p4-weight-summarize.R` reads them without pooling the
+#' two blocks.
+#'
+#' The shrink is not decoration. Clustering with NO shrink fixes all
+#' eight data sets the score cut lost and breaks six it had won, by 79
+#' to 303 units, and 7 more in the second block; a hard partition is a
+#' more confident start than any fitted profile, and that confidence is
+#' its own basin. At the other end `w = 1` is the label-symmetry axis
+#' and loses 199 of the first block and 200 of the second, by up to
+#' 1558 units. Both edges of the usable interval are measured in
+#' `lca_init_extras()`'s own notes.
+#'
+#' **None of that makes the surface unimodal.** It is multimodal for
+#' everyone: on those same eight data sets poLCA's own single-start EM
+#' landed below its best of ten on 0 to 4 of 10 seeds. But the range
+#' contains its own counterexample and the honest reading is narrower
+#' than "the surface is the cause". On 2 of the 8 (seeds 20261010 and
+#' 20261013) all TEN poLCA single starts found the global optimum while
+#' the old deterministic start landed 274 to 278 units below every one
+#' of them, and no poLCA start ever visited the mode it found. On those
+#' two the starting rule and not the surface is what failed.
+#'
+#' So compare starts before reading a solution, exactly as
+#' `poLCA(..., nrep = 10)` does. Perturb the item parameters and refit:
 #'
 #' ```
 #' p0 <- fit$frame$par_template[fit$frame$extra_names]
@@ -277,10 +460,51 @@ lca_comp_lpdf <- function(y, K, extra, k) {
 #' sapply(refits, logLik)
 #' ```
 #'
-#' and keep the best. [frm_allfit()] is a different check: it re-runs
-#' the four optimizers from the SAME start, so it tests the optimizer,
-#' not the surface. Ordering the gating intercepts through `lower` and
-#' `upper` is the way to pin the labeling itself.
+#' and keep the best. On the eight data sets above, run against the OLD
+#' start, ten such refits recovered poLCA's optimum on 8 of 8 and took
+#' 6 to 17 seconds. Perturbing the OPTIMUM instead does not: two
+#' standard errors around the local optimum, ten refits, still left 72
+#' to 273 log-likelihood units on the table. The thing to scatter is the
+#' item parameters at the start, not the answer the optimizer already
+#' found.
+#'
+#' **Reproducing a fit made before 0.3.0.** The old rule is gone from
+#' the package, so a published result from 0.2.2 or earlier has to be
+#' refit from that start explicitly. This is it: score each subject by
+#' the mean item code, cut the ranks into `K` equal-count slices, and
+#' take each slice's Laplace-smoothed category proportions with no
+#' shrink.
+#'
+#' ```
+#' old_start <- function(Y, K) {
+#'   ncat <- apply(Y, 2, max, na.rm = TRUE)
+#'   sc <- rowMeans(sweep(Y - 1, 2, pmax(ncat - 1, 1), "/"), na.rm = TRUE)
+#'   sl <- pmin(1 + ((rank(sc, ties.method = "first") - 1) * K) %/%
+#'                nrow(Y), K)
+#'   setNames(lapply(seq_len(ncol(Y)), function(j) {
+#'     unlist(lapply(seq_len(K), function(k) {
+#'       p <- tabulate(Y[sl == k, j], nbins = ncat[j]) + 1
+#'       p <- p / sum(p)
+#'       log(p[-1]) - log(p[1])
+#'     }))
+#'   }), paste0("pi", seq_len(ncol(Y))))
+#' }
+#' frm(bf(Y ~ 1), family = lca(K = 3), data = dd,
+#'     start = old_start(dd$Y, 3))
+#' ```
+#'
+#' Checked rather than asserted: on three seeds of the design below,
+#' including two the old rule got wrong, that block reproduces the old
+#' starting values to the last bit and the old log-likelihood to a
+#' relative difference of exactly 0
+#' (`dev/latent-2p4-oldstart.R`). It handles binary and polytomous
+#' items alike but not missing responses, which the shipped rule masks
+#' and this block does not.
+#'
+#' [frm_allfit()] is a different check: it re-runs the four optimizers
+#' from the SAME start, so it tests the optimizer, not the surface.
+#' Ordering the gating intercepts through `lower` and `upper` is the way
+#' to pin the labeling itself.
 #'
 #' Asking for more classes than the data hold drives item
 #' probabilities to 0 and 1. The optimizer then reports singular
@@ -288,6 +512,79 @@ lca_comp_lpdf <- function(y, K, extra, k) {
 #' boundary showing through rather than a fault; poLCA lands on the
 #' same solutions. Compare `AIC()` and `BIC()` across `K` and read
 #' [lca_probs()]'s entropy before committing to a `K`.
+#'
+#' @section Recovery at a realistic scale:
+#' Measured on TWO blocks of 200 replicate data sets at the design named
+#' in the realistic-scale table of `dev/extension-gaps-plan.md`:
+#' `K = 4`, `n = 2000`, ten binary items whose endorsement probabilities
+#' are 0.85 inside a class's own block and 0.2 outside it, and two
+#' covariates on membership. Classes are matched to the truth, and to
+#' poLCA, by item profile before anything is scored. The first block,
+#' seeds 20260910 to 20261109, is the one the starting rule's shrink
+#' weight was tuned on; the second, 20270401 to 20270600, is not. Both
+#' are reported, and they are never pooled.
+#' `dev/latent-2p4-recheck.R` is the script and `dev/latent-findings.md`
+#' holds the full tables.
+#'
+#' \preformatted{
+#'                                    tuned on      not tuned on
+#'   reaches poLCA(nrep = 10)'s
+#'     optimum                        200 of 200    200 of 200
+#'   the two log-likelihoods agree
+#'     to, relative                   1.5e-14       4.4e-11
+#'   Wald coverage, 9 gating
+#'     coefficients x 200             94.3 percent  93.4 percent
+#'     Monte Carlo interval           93.3 to 95.4  92.3 to 94.6
+#'   positive definite Hessian        200 of 200    200 of 200
+#'   largest bias on a coefficient    0.012         0.032
+#'   item probabilities, max error    0.098         0.105
+#'   modal-class accuracy, median     89.7 percent  89.6 percent
+#' }
+#'
+#' **Two coefficients under-cover, and there is no remedy for it yet.**
+#' At 200 replicates the Monte Carlo half-width on one coefficient is
+#' about 3 points, so neither block on its own can separate a 91 percent
+#' row from 95. Pooled over all 400 (`dev/latent-2p4-pooled.R`), two of
+#' the nine rows have a Wald interval that excludes 95 and every other
+#' row contains it:
+#'
+#' \preformatted{
+#'   coefficient      covered      rate    95 percent interval   se/sd
+#'   class3:x2        367 / 400   91.75    89.05 to 94.45        0.940
+#'   class4:x2        363 / 400   90.75    87.91 to 93.59        0.922
+#'   overall         3380 / 3600  93.89    93.11 to 94.67
+#' }
+#'
+#' So it belongs to the DESIGN and not to one draw. It is **two of the
+#' three slopes on the binary covariate, not all three**: `class2:x2`
+#' pools to 94.75 percent and is fine. The shortfall is 3.3 and 4.3
+#' points below nominal pooled, and 4.5 and 6.0 on the second block
+#' alone.
+#'
+#' The mechanism is measured, and it rules out the obvious remedy.
+#' Writing `z` for the error over the reported standard error, `sd(z)`
+#' is 1.06 and 1.08 on these two, the robust `IQR(z) / 1.349` agrees
+#' with it to within 6 percent, and the kurtosis is 2.82 and 3.10. There
+#' is no heavy tail and no curvature: the whole distribution is
+#' inflated, which is to say the standard error the fit reports is
+#' uniformly 6 to 8 percent below the spread the estimator actually has.
+#' A profile interval fixes the SHAPE of a likelihood, so it does not
+#' address this, and on the subset where it can even be computed it does
+#' not: 103 of 118 both ways, wider on 118 of 118 by a median ratio of
+#' 1.001, and not one interval changed a verdict. (It reaches only the
+#' 59 replicates of 200 where the scored quantity is a raw parameter
+#' rather than a contrast; `hypothesis(method = "profile")` with a
+#' `lincomb` is the only profile route to the rest.)
+#'
+#' **So: on a binary gating covariate at this size, treat the Wald
+#' interval as 3 to 4 points narrow, and know that nothing here has been
+#' measured to fix it.** A bootstrap interval estimates the spread
+#' instead of reading it off the Hessian and is the obvious candidate,
+#' but it has not been measured on this design and is not recommended on
+#' that basis.
+#'
+#' A fit is only as good as the mode it found. Read "Labeling and
+#' starting values" above before quoting any of this.
 #'
 #' @section Missing item responses:
 #' With `na.rm = TRUE` (the default, poLCA's default) a subject with

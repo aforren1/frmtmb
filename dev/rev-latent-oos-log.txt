@@ -1,0 +1,75 @@
+﻿<environment: namespace:poLCA>
+frmtmb.latent from: C:/Users/adf44/source/r/rev-latent-lib2/frmtmb.latent 
+  1 seed 20270401: polca -11310.0097  ship -0.0000  old -0.0000
+  2 seed 20270402: polca -11282.4047  ship -0.0000  old -0.0000
+  3 seed 20270403: polca -11295.3060  ship -0.0000  old -0.0000
+  4 seed 20270404: polca -11227.2993  ship -0.0000  old -0.0000
+  5 seed 20270405: polca -11361.9591  ship -0.0000  old -0.0000
+  6 seed 20270406: polca -11337.5622  ship -0.0000  old -0.0000
+  7 seed 20270407: polca -11298.0135  ship -0.0000  old -0.0000
+  8 seed 20270408: polca -11440.0401  ship -0.0000  old -0.0000
+  9 seed 20270409: polca -11300.4503  ship -0.0000  old -0.0000
+ 10 seed 20270410: polca -11471.1875  ship -0.0000  old -0.0000
+ 11 seed 20270411: polca -11432.1121  ship -0.0000  old -0.0000
+ 12 seed 20270412: polca -11411.0913  ship -0.0000  old -0.0000
+ 13 seed 20270413: polca -11350.0440  ship -0.0000  old -0.0000
+ 14 seed 20270414: polca -11288.0973  ship -0.0000  old -0.0000
+ 15 seed 20270415: polca -11383.0569  ship -0.0000  old -0.0000
+ 16 seed 20270416: polca -11413.1008  ship -0.0000  old -0.0000
+ 17 seed 20270417: polca -11413.8641  ship -0.0000  old -0.0000
+ 18 seed 20270418: polca -11386.5701  ship -0.0000  old -0.0000
+ 19 seed 20270419: polca -11390.5060  ship -0.0000  old -0.0000
+ 20 seed 20270420: polca -11401.5279  ship -0.0000  old -0.0000
+ 21 seed 20270421: polca -11409.7773  ship -0.0000  old -0.0000
+ 22 seed 20270422: polca -11314.1107  ship -0.0000  old -0.0000
+ 23 seed 20270423: polca -11349.2663  ship -0.0000  old -0.0000
+ 24 seed 20270424: polca -11448.1061  ship -0.0000  old -0.0000
+ 25 seed 20270425: polca -11453.5858  ship -0.0000  old -0.0000
+ 26 seed 20270426: polca -11330.1542  ship -0.0000  old -0.0000
+ 27 seed 20270427: polca -11431.5974  ship -0.0000  old -0.0000
+ 28 seed 20270428: polca -11228.4303  ship -0.0000  old -0.0000
+ 29 seed 20270429: polca -11251.3546  ship -0.0000  old -0.0000
+ 30 seed 20270430: polca -11192.3067  ship -0.0000  old -0.0000
+ 31 seed 20270431: polca -11373.5928  ship -0.0000  old -0.0000
+ 32 seed 20270432: polca -11378.1020  ship -0.0000  old -0.0000
+ 33 seed 20270433: polca -11449.9115  ship -0.0000  old -0.0000
+ 34 seed 20270434: polca -11327.9289  ship -0.0000  old -0.0000
+ 35 seed 20270435: polca -11302.5873  ship -0.0000  old -0.0000
+ 36 seed 20270436: polca -11315.3377  ship -0.0000  old -0.0000
+ 37 seed 20270437: polca -11313.0486  ship -0.0000  old -0.0000
+ 38 seed 20270438: polca -11306.3939  ship -0.0000  old -0.0000
+ 39 seed 20270439: polca -11306.4537  ship -0.0000  old -0.0000
+ 40 seed 20270440: polca -11447.1853  ship -0.0000  old -0.0000
+Rscript : Warning messages:
+At line:3 char:1
++ Rscript dev/rev-latent-oos.R 40 > dev/rev-latent-oos-log.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning messages::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+1: In sqrt(diag(VCE.beta)) : NaNs produced
+2: In sqrt(diag(VCE.mix)) : NaNs produced
+
+==== OUT OF SAMPLE, seeds 20270401 to 20270440 ====
+replicates: 40 
+  starting rule                  lost  reaches
+  OLD score cut                     0 40 of 40
+  SHIPPED lca_init_extras()         0 40 of 40
+
+  the weight grid, out of sample:
+  0      lost  1   worst gap    -513.27   errored 0
+  0.1    lost  0   worst gap          0   errored 0
+  0.25   lost  0   worst gap          0   errored 0
+  0.5    lost  0   worst gap          0   errored 0
+  0.75   lost  0   worst gap          0   errored 0
+  0.9    lost  0   worst gap          0   errored 0
+
+  does the shipped default match the w = 0.5 helper?
+    max |ll_ship - ll_w05| : 0 
+
+  where the two rules differ (out of sample):
+    none
+
+  pdHess: 40 of 40   maxgrad_rel range: 7.26e-10 1.03e-08 
+  Wald coverage: 0.1889 (68/360) MC 0.1485 to 0.2293 
+  median fit seconds, shipped: 0.3233 

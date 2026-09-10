@@ -57,18 +57,75 @@ interpretable as measurement.
 \section{Labeling and starting values}{
 
 A latent class likelihood is invariant to relabeling the classes and
-is genuinely multimodal, so the answer depends on where the
-optimizer starts. poLCA uses random restarts (\code{nrep}). The starting
-values here are deterministic instead: subjects are scored by the
-mean of their item codes rescaled to \verb{[0, 1]}, cut into \code{K}
-equal-count slices by that score, and each slice's smoothed
-empirical category proportions become one class's starting profile.
-Class 1 is therefore the low-score end and class \code{K} the high-score
-end, and re-running the same data gives the same labeling.
+is genuinely multimodal, so the answer depends on where the optimizer
+starts. poLCA uses random restarts (\code{nrep}). The starting values here
+are deterministic instead: subjects are clustered by their RESPONSE
+PATTERN, and each cluster's smoothed empirical category proportions,
+shrunk halfway toward the pooled proportions, become one class's
+starting profile. The clusters are then ordered by the mean of each
+subject's item codes, so class 1 is the low-score end where that
+score carries information, and re-running the same data gives the
+same labeling either way.
 
-That fixes reproducibility, not multimodality. Do what
-\code{poLCA(..., nrep = 10)} does and compare starts before reading a
-solution: perturb the item parameters and refit,
+\strong{What this replaced, and why.} Until 0.2.2 the rule was to score
+each subject by the mean of its item codes and cut the scores into
+\code{K} equal-count slices. A scalar score is blind to any design whose
+classes differ in WHICH items they endorse rather than in how many,
+and such designs are the ordinary case. On the four-class, ten-item
+design in the realistic-scale table of \code{dev/extension-gaps-plan.md},
+where every class endorses three items strongly and seven weakly, the
+score explains \strong{0.08 percent} of its own variance between the true
+classes and the four slices are four samples of the same mixture. The
+fit then reached a local optimum \strong{243 to 284 log-likelihood units}
+below \code{poLCA(nrep = 10)} on \strong{8 of 200} replicate data sets, and
+seven of those eight passed every convergence test this project has:
+positive definite Hessian, relative gradient between 1.9e-09 and
+2.7e-08. Only one of the eight would have shown a user anything at
+all.
+
+\strong{How the rule now shipped was tuned, and what it scored on data it
+was not tuned on.} Its one free constant is the shrink weight, and
+it was chosen on the SAME 200 replicates the failure above was found
+on. A constant chosen that way has to be scored somewhere else
+before it means anything, so it was, on a second block of 200
+replicates of the same design drawn from disjoint seeds:
+
+\preformatted{
+                      tuned on         scored on
+                      20260910-        20270401-
+                      20261109         20270600
+  the 0.2.2 score cut   8 lost           not run
+  the rule now shipped  0 lost           0 lost
+}
+
+Both blocks are 200 data sets, scored against the best
+log-likelihood anything reached on each one, and on none of the 400
+did any start beat \code{poLCA(nrep = 10)}. The scripts are
+\verb{dev/latent-2p4-shrink.R}, \code{-shrink2.R} and \code{-oos.R}, and
+\verb{dev/latent-2p4-weight-summarize.R} reads them without pooling the
+two blocks.
+
+The shrink is not decoration. Clustering with NO shrink fixes all
+eight data sets the score cut lost and breaks six it had won, by 79
+to 303 units, and 7 more in the second block; a hard partition is a
+more confident start than any fitted profile, and that confidence is
+its own basin. At the other end \code{w = 1} is the label-symmetry axis
+and loses 199 of the first block and 200 of the second, by up to
+1558 units. Both edges of the usable interval are measured in
+\code{lca_init_extras()}'s own notes.
+
+\strong{None of that makes the surface unimodal.} It is multimodal for
+everyone: on those same eight data sets poLCA's own single-start EM
+landed below its best of ten on 0 to 4 of 10 seeds. But the range
+contains its own counterexample and the honest reading is narrower
+than "the surface is the cause". On 2 of the 8 (seeds 20261010 and
+20261013) all TEN poLCA single starts found the global optimum while
+the old deterministic start landed 274 to 278 units below every one
+of them, and no poLCA start ever visited the mode it found. On those
+two the starting rule and not the surface is what failed.
+
+So compare starts before reading a solution, exactly as
+\code{poLCA(..., nrep = 10)} does. Perturb the item parameters and refit:
 
 \if{html}{\out{<div class="sourceCode">}}\preformatted{p0 <- fit$frame$par_template[fit$frame$extra_names]
 refits <- replicate(10, simplify = FALSE,
@@ -77,10 +134,50 @@ refits <- replicate(10, simplify = FALSE,
 sapply(refits, logLik)
 }\if{html}{\out{</div>}}
 
-and keep the best. \code{\link[frmtmb:frm_allfit]{frm_allfit()}} is a different check: it re-runs
-the four optimizers from the SAME start, so it tests the optimizer,
-not the surface. Ordering the gating intercepts through \code{lower} and
-\code{upper} is the way to pin the labeling itself.
+and keep the best. On the eight data sets above, run against the OLD
+start, ten such refits recovered poLCA's optimum on 8 of 8 and took
+6 to 17 seconds. Perturbing the OPTIMUM instead does not: two
+standard errors around the local optimum, ten refits, still left 72
+to 273 log-likelihood units on the table. The thing to scatter is the
+item parameters at the start, not the answer the optimizer already
+found.
+
+\strong{Reproducing a fit made before 0.3.0.} The old rule is gone from
+the package, so a published result from 0.2.2 or earlier has to be
+refit from that start explicitly. This is it: score each subject by
+the mean item code, cut the ranks into \code{K} equal-count slices, and
+take each slice's Laplace-smoothed category proportions with no
+shrink.
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{old_start <- function(Y, K) \{
+  ncat <- apply(Y, 2, max, na.rm = TRUE)
+  sc <- rowMeans(sweep(Y - 1, 2, pmax(ncat - 1, 1), "/"), na.rm = TRUE)
+  sl <- pmin(1 + ((rank(sc, ties.method = "first") - 1) * K) \%/\%
+               nrow(Y), K)
+  setNames(lapply(seq_len(ncol(Y)), function(j) \{
+    unlist(lapply(seq_len(K), function(k) \{
+      p <- tabulate(Y[sl == k, j], nbins = ncat[j]) + 1
+      p <- p / sum(p)
+      log(p[-1]) - log(p[1])
+    \}))
+  \}), paste0("pi", seq_len(ncol(Y))))
+\}
+frm(bf(Y ~ 1), family = lca(K = 3), data = dd,
+    start = old_start(dd$Y, 3))
+}\if{html}{\out{</div>}}
+
+Checked rather than asserted: on three seeds of the design below,
+including two the old rule got wrong, that block reproduces the old
+starting values to the last bit and the old log-likelihood to a
+relative difference of exactly 0
+(\verb{dev/latent-2p4-oldstart.R}). It handles binary and polytomous
+items alike but not missing responses, which the shipped rule masks
+and this block does not.
+
+\code{\link[frmtmb:frm_allfit]{frm_allfit()}} is a different check: it re-runs the four optimizers
+from the SAME start, so it tests the optimizer, not the surface.
+Ordering the gating intercepts through \code{lower} and \code{upper} is the way
+to pin the labeling itself.
 
 Asking for more classes than the data hold drives item
 probabilities to 0 and 1. The optimizer then reports singular
@@ -88,6 +185,81 @@ convergence and the standard errors come back \code{NaN}, which is the
 boundary showing through rather than a fault; poLCA lands on the
 same solutions. Compare \code{AIC()} and \code{BIC()} across \code{K} and read
 \code{\link[=lca_probs]{lca_probs()}}'s entropy before committing to a \code{K}.
+}
+
+\section{Recovery at a realistic scale}{
+
+Measured on TWO blocks of 200 replicate data sets at the design named
+in the realistic-scale table of \code{dev/extension-gaps-plan.md}:
+\code{K = 4}, \code{n = 2000}, ten binary items whose endorsement probabilities
+are 0.85 inside a class's own block and 0.2 outside it, and two
+covariates on membership. Classes are matched to the truth, and to
+poLCA, by item profile before anything is scored. The first block,
+seeds 20260910 to 20261109, is the one the starting rule's shrink
+weight was tuned on; the second, 20270401 to 20270600, is not. Both
+are reported, and they are never pooled.
+\verb{dev/latent-2p4-recheck.R} is the script and \code{dev/latent-findings.md}
+holds the full tables.
+
+\preformatted{
+                                   tuned on      not tuned on
+  reaches poLCA(nrep = 10)'s
+    optimum                        200 of 200    200 of 200
+  the two log-likelihoods agree
+    to, relative                   1.5e-14       4.4e-11
+  Wald coverage, 9 gating
+    coefficients x 200             94.3 percent  93.4 percent
+    Monte Carlo interval           93.3 to 95.4  92.3 to 94.6
+  positive definite Hessian        200 of 200    200 of 200
+  largest bias on a coefficient    0.012         0.032
+  item probabilities, max error    0.098         0.105
+  modal-class accuracy, median     89.7 percent  89.6 percent
+}
+
+\strong{Two coefficients under-cover, and there is no remedy for it yet.}
+At 200 replicates the Monte Carlo half-width on one coefficient is
+about 3 points, so neither block on its own can separate a 91 percent
+row from 95. Pooled over all 400 (\verb{dev/latent-2p4-pooled.R}), two of
+the nine rows have a Wald interval that excludes 95 and every other
+row contains it:
+
+\preformatted{
+  coefficient      covered      rate    95 percent interval   se/sd
+  class3:x2        367 / 400   91.75    89.05 to 94.45        0.940
+  class4:x2        363 / 400   90.75    87.91 to 93.59        0.922
+  overall         3380 / 3600  93.89    93.11 to 94.67
+}
+
+So it belongs to the DESIGN and not to one draw. It is \strong{two of the
+three slopes on the binary covariate, not all three}: \code{class2:x2}
+pools to 94.75 percent and is fine. The shortfall is 3.3 and 4.3
+points below nominal pooled, and 4.5 and 6.0 on the second block
+alone.
+
+The mechanism is measured, and it rules out the obvious remedy.
+Writing \code{z} for the error over the reported standard error, \code{sd(z)}
+is 1.06 and 1.08 on these two, the robust \code{IQR(z) / 1.349} agrees
+with it to within 6 percent, and the kurtosis is 2.82 and 3.10. There
+is no heavy tail and no curvature: the whole distribution is
+inflated, which is to say the standard error the fit reports is
+uniformly 6 to 8 percent below the spread the estimator actually has.
+A profile interval fixes the SHAPE of a likelihood, so it does not
+address this, and on the subset where it can even be computed it does
+not: 103 of 118 both ways, wider on 118 of 118 by a median ratio of
+1.001, and not one interval changed a verdict. (It reaches only the
+59 replicates of 200 where the scored quantity is a raw parameter
+rather than a contrast; \code{hypothesis(method = "profile")} with a
+\code{lincomb} is the only profile route to the rest.)
+
+\strong{So: on a binary gating covariate at this size, treat the Wald
+interval as 3 to 4 points narrow, and know that nothing here has been
+measured to fix it.} A bootstrap interval estimates the spread
+instead of reading it off the Hessian and is the obvious candidate,
+but it has not been measured on this design and is not recommended on
+that basis.
+
+A fit is only as good as the mode it found. Read "Labeling and
+starting values" above before quoting any of this.
 }
 
 \section{Missing item responses}{

@@ -1,0 +1,38 @@
+﻿frmtmb.latent from: C:/Users/adf44/source/r/rev-latent-lib2/frmtmb.latent 
+  20 seeds
+  40 seeds
+  60 seeds
+  80 seeds
+  100 seeds
+  120 seeds
+  140 seeds
+  160 seeds
+
+==== OUT OF SAMPLE, 200 fresh seeds: 20270401 to 20270600 ====
+reference: the best of the eight starts on each data set.
+on the 40 that also carry a poLCA(nrep = 10) arm, that best WAS
+poLCA's optimum on 40 of 40 
+
+  starting rule                  lost      worst gap
+  SHIPPED lca_init_extras()         1       -256.432
+  OLD score cut                     2       -256.009
+  grid w = 0                        7       -513.268
+  grid w = 0.1                      2       -255.807
+  grid w = 0.25                     1       -241.826
+  grid w = 0.5                      1       -256.432
+  grid w = 0.75                     0              0
+  grid w = 0.9                      0              0
+
+the seeds where the SHIPPED start lost:
+     seed      ll_ship       ll_old        ll_w0       ll_w01      ll_w025
+ 20270476 -11764.03594 -11507.60356 -11763.41018 -11763.41018 -11749.42928
+       ll_w05      ll_w075       ll_w09
+ -11764.03594 -11507.60356 -11507.60356
+
+the seeds where the OLD start lost:
+     seed       ll_old      ll_ship
+ 20270506 -11529.69982 -11273.69113
+ 20270591 -11674.25412 -11437.82322
+  on those, the shipped start reached the best: 2 of 2 
+
+shipped default identical to the w = 0.5 helper on all 200: TRUE 

@@ -1,0 +1,32 @@
+arms done, starting the cost measurement at 01:53
+rows: 25000   sequences: 50 
+one frm() fit, se deferred      : 183.5 s
+the deferred sdreport, once     : 37.23 s  (hmm_starts() pays this once, for the jitter scale)
+outer parameters                : 13 
+the fit's own gradient calls    : 16 
+
+block 1: 351.40 s for 2 refits, 53 gradient calls, best -39152.062645, 2 converged, 0 not, 0 errored
+block 2: 359.35 s for 2 refits, 53 gradient calls, best -39152.062645, 2 converged, 0 not, 0 errored
+block 3: 354.21 s for 2 refits, 53 gradient calls, best -39152.062645, 2 converged, 0 not, 0 errored
+
+== the instrument ==
+  block seconds        : 351.40 359.35 354.21 
+  CONTROL, max / min   : 1.023  (must be near 1.0)
+  gradient calls/block : 53 53 53 
+  identical across blocks: TRUE 
+
+== the cost ==
+  seconds per refit, minimum over 3 blocks: 175.7 
+  gradient calls per refit       : 26.5 
+  so hmm_starts(n) costs about   : 175.7 s x n, plus 37.2 s once
+    n =  4 : 12.3 minutes
+    n =  8 : 24.0 minutes
+    n = 16 : 47.5 minutes
+
+per-refit seconds, every block:
+       [,1]   [,2]
+[1,] 182.58 167.18
+[2,] 187.42 170.71
+[3,] 174.48 178.53
+COST exit=0 at 02:15
+COST DONE

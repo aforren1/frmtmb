@@ -1,0 +1,26 @@
+OUT-OF-SAMPLE: 200 seeds from 20270401, 06:31
+<environment: namespace:poLCA>
+  20 seeds
+  40 seeds
+  60 seeds
+  80 seeds
+  100 seeds
+  120 seeds
+  140 seeds
+  160 seeds
+  180 seeds
+  200 seeds
+wrote dev/latent-2p4-oos.tsv 
+oos exit=0 at 06:49
+IN-SAMPLE right end: w = 0.95, 0.99, 1
+  25 seeds
+  50 seeds
+  75 seeds
+  100 seeds
+  125 seeds
+  150 seeds
+  175 seeds
+  200 seeds
+wrote dev/latent-2p4-shrink2.tsv 
+shrink2 exit=0 at 06:52
+WEIGHT EVIDENCE DONE

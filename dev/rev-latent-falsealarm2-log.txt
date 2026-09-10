@@ -1,0 +1,73 @@
+﻿======== mode notol ========
+mode notol reverted in C:\Users\adf44\source\r\latent-absent/R/hmm-starts.R 
+
+* DONE (frmtmb.latent)
+install exit=0
+BLOCKS  18 
+ASSERT  84 
+PASS    77 
+FAIL    7 
+ERROR   0 
+SKIP    0 
+  [FAIL] a unimodal fit is not told it found a local optimum
+      Expected `n_false` to be identical to 0L.
+      Differences:
+        `actual`: 6
+      `expected`: 0
+      
+      Expected `n_moved` to be identical to 0L.
+      Differences:
+        `actual`: 6
+      `expected`: 0
+      
+  [FAIL] the three tolerances are one value
+      Expected `ck$ok` to be TRUE.
+      Differences:
+      `actual`:   FALSE
+      `expected`: TRUE 
+      
+      Expected `ck$better` to be identical to `as.numeric(logLik(ms$best)) > ms$original_logLik`.
+      Differences:
+      `actual`:   FALSE
+      `expected`: TRUE 
+      
+  [FAIL] no grad_tol makes the printout contradict itself
+      Expected `ck$ok` to be TRUE.
+      Differences:
+      `actual`:   FALSE
+      `expected`: TRUE 
+      
+      grad_tol 0.086: modes 1, says_local TRUE, better FALSE
+      Expected `ck$ok` to be TRUE.
+      Differences:
+      `actual`:   FALSE
+      `expected`: TRUE 
+      
+      grad_tol 0.09: modes 1, says_local TRUE, better FALSE
+      Expected `ck$ok` to be TRUE.
+      Differences:
+      `actual`:   FALSE
+      `expected`: TRUE 
+      
+      grad_tol 0.1: modes 1, says_local TRUE, better FALSE
+RUN exit=1 (non-zero is the point)
+======== mode refs ========
+mode refs reverted in C:\Users\adf44\source\r\latent-absent/R/hmm-starts.R 
+* DONE (frmtmb.latent)
+install exit=0
+BLOCKS  18 
+ASSERT  84 
+PASS    83 
+FAIL    1 
+ERROR   0 
+SKIP    0 
+  [FAIL] no grad_tol makes the printout contradict itself
+      Expected `ck$ok` to be TRUE.
+      Differences:
+      `actual`:   FALSE
+      `expected`: TRUE 
+      
+      grad_tol 0.086: modes 2, says_local FALSE, better TRUE
+RUN exit=1 (non-zero is the point)
+
+

@@ -1,0 +1,6 @@
+<environment: namespace:poLCA>
+seed 20261043: cold -11496.2046  poLCA10 -11227.2983  gap -268.906   conv 1 pdHess TRUE  poLCA nrep=1 low 2/10   multistart best -11320.2601 (-92.962, 2 better)
+  diagnose() said:
+    Optimizer convergence code: 1 (false convergence (8)) 
+    Max |gradient|: 3.188e-05 at theta3_(Intercept) 
+    Hessian positive definite: TRUE  
