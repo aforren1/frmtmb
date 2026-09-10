@@ -1,4 +1,4 @@
-# frmtmb.eam (development version)
+# frmtmb.eam 0.8.0
 
 * **A second export seam: the bound a non-decision time is measured
   against.** `ndt_bound()` derives it from the response, `ndt_group()`

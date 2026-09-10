@@ -1,4 +1,4 @@
-# frmtmb.ode (development version)
+# frmtmb.ode 0.4.0
 
 * **`frm_ode()`'s steady-state run-in sums the tail it used to drop.**
   An `ss` row is reached by repeating the dosing cycle `n_ss` times, and

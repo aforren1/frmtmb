@@ -1,6 +1,6 @@
 Package: frmtmb.learn
 Title: Reinforcement-Learning Families for 'frmtmb' Models
-Version: 0.3.0
+Version: 0.4.0
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"),
@@ -36,7 +36,7 @@ Depends:
     R (>= 4.1),
     frmtmb (>= 0.55.1)
 Imports:
-    frmtmb.eam (>= 0.6.0),
+    frmtmb.eam (>= 0.8.0),
     RTMB (>= 1.9),
     stats,
     utils

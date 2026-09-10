@@ -148,3 +148,42 @@ there does not survive either event. A pin outside it survives both,
 and it makes the version question explicit at the top of every lane
 script instead of implicit in whatever the last restore happened to
 install.
+
+## The fourth loss, 2026-09-10, and what it settled
+
+It happened again during the 0.55.3 consolidation, and this time the
+canary answered the question it was placed for.
+
+- **136 of 375** package directories were emptied, not all 375. A
+  PARTIAL sweep.
+- **`ZZZ-canary.txt` survived.** It was written on 2026-09-09, the day
+  before.
+- `SilentCleanup` had run at **09:21:06** that morning.
+- Free space went from 48.8 GB to **110.7 GB**, so roughly 62 GB was
+  released.
+
+A sweep that spares a file written the previous day while removing 136
+older package trees is selecting on ACCESS TIME. That is what Disk
+Cleanup does and it is not how an endpoint agent quarantines files, so
+the two-suspect framing above is superseded: **Disk Cleanup, driven by
+the low-disk-space trigger, is the explanation.** The earlier total
+loss is consistent with the same mechanism running when nothing in the
+library had been touched recently.
+
+Two decisions from 2026-09-09 were tested by this and both held.
+
+The pin lives outside `%LOCALAPPDATA%`, and
+`C:/Users/adf44/source/r/pinlib` and the release library
+`C:/Users/adf44/source/r/rellib-r3` were **untouched**: 8 packages and
+1 package, zero hollow, correct versions throughout. A pin inside the
+user library would have gone with the other 136.
+
+And the restore is a script rather than a recipe to retype under
+pressure: `dev/release/restore-library.R` recovered **129 of 129** in
+one run. Total cost of the fourth loss was about fifteen minutes
+against roughly an hour for the first.
+
+What is still not fixed is the cause. The library remains under
+`%LOCALAPPDATA%` by the user's decision, so this will recur. What has
+changed is that it is now cheap: run the restore script, verify the pin
+and release libraries, and carry on.

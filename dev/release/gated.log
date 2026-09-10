@@ -1,0 +1,25 @@
+== gated 23 files ==
+RESULT test-bcm-bart.R pass=12 fail=0 err=0 skip=0
+RESULT test-bcm-binomial.R pass=37 fail=0 err=0 skip=0
+RESULT test-bcm-data-analysis.R pass=46 fail=0 err=0 skip=0
+RESULT test-bcm-esp.R pass=17 fail=0 err=0 skip=0
+RESULT test-bcm-gaussian.R pass=23 fail=0 err=0 skip=0
+RESULT test-bcm-gcm.R pass=17 fail=0 err=0 skip=0
+RESULT test-bcm-latent-mixtures.R pass=52 fail=0 err=0 skip=0
+RESULT test-bcm-model-selection.R pass=29 fail=0 err=0 skip=0
+RESULT test-bcm-mpt.R pass=27 fail=0 err=0 skip=0
+RESULT test-bcm-psychophysics.R pass=28 fail=0 err=0 skip=0
+RESULT test-bcm-retention.R pass=32 fail=0 err=0 skip=0
+RESULT test-bcm-signal-detection.R pass=30 fail=0 err=0 skip=0
+RESULT test-bcm-simple.R pass=13 fail=0 err=0 skip=0
+RESULT test-brms-agreement.R pass=187 fail=0 err=0 skip=0
+RESULT test-brms-likelihood.R pass=404 fail=0 err=0 skip=0
+RESULT test-brms-methods.R pass=950 fail=0 err=0 skip=0
+RESULT test-brms-priors.R pass=103 fail=0 err=0 skip=0
+RESULT test-brms-port.R pass=18 fail=0 err=0 skip=0
+RESULT test-rl-example.R pass=102 fail=0 err=0 skip=0
+RESULT test-fuzz.R pass=2 fail=0 err=0 skip=0
+RESULT test-stan-identity.R pass=55 fail=0 err=0 skip=0
+RESULT test-loo.R pass=79 fail=0 err=0 skip=0
+RESULT test-sampling-ported.R pass=212 fail=0 err=0 skip=0
+GATED ran 23 of 23

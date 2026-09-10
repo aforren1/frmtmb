@@ -1,8 +1,8 @@
 # The per-file suite baseline, and what it is for
 
-`dev/suite-baseline.tsv` records one row per test file as of frmtmb
-0.55.2: package, file, passing assertions, skips. It is a floor, not a
-target.
+`dev/suite-baseline.tsv` records one row per test file as of the round 3
+release, at frmtmb 0.55.2 and frmtmb.eam 0.8.0: package, file, passing
+assertions, skips. It is a floor, not a target.
 
 ## Why it exists
 
@@ -68,3 +68,22 @@ every file fail to load reported `pass=0 fail=0 err=0` for all eight
 packages, and a second bug that left the packages unattached reported
 plausible-looking damage in the one package the round had rewritten.
 Read the file count and the load errors before reading the failures.
+
+## What the round 3 release added
+
+Regenerated at 220 rows and 13124 assertions, from 216 and 12794. Four
+files are new: `frmtmb.eam/test-ndt-seam.R` and
+`frmtmb.eam/test-gddm-conditions.R`, `frmtmb.learn/test-rlddm-ndt.R`,
+and `frmtmb.latent/test-hmm-starts.R`. No file was removed.
+
+Exactly one count fell, and it had an answer:
+`frmtmb.sample/test-tmbstan-build-guard.R` from 24 to 23. The file
+carries a conditional `succeed()` on the branch where the installed
+StanHeaders cannot be compiled against, and pinning StanHeaders to
+2.32.10 outside the user library takes that branch away. The assertion
+is gone because the condition it stood in for cannot occur on this
+machine any more.
+
+That is worth keeping in mind when reading a drop here: a count can
+fall because the ENVIRONMENT changed rather than because the tests did,
+and the diff of the test file will show nothing.

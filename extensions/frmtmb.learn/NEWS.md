@@ -1,4 +1,4 @@
-# frmtmb.learn (development version)
+# frmtmb.learn 0.4.0
 
 * **`rlddm()` can bound the non-decision time PER GROUP.** Write
   `rt | dec(choice) + reward(pay1, pay2) + ndt_group(id) ~ ...` and
