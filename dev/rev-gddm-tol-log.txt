@@ -1,0 +1,28 @@
+﻿arm: C:/Users/adf44/source/r/rev-gddm-lib  frmtmb.eam 0.7.0 
+
+== 1. is poly() row-deterministic on identical inputs?
+  poly column 1: max |row - first row of its own value| = 3.463e-15   bitwise identical to first row on all 480 rows: FALSE
+  poly column 2: max |row - first row of its own value| = 6.030e-15   bitwise identical to first row on all 480 rows: FALSE
+  whole matrix, all rows vs their own value's first row: max diff 6.03e-15
+
+== 2. the same question the check asks: condition = coh
+  (the sweep's poly design has one condition per coherence level)
+  column max: 0.069437 0.058849   tolerance: 6.944e-10 5.885e-10
+
+== 3. does an EXACT comparison false-alarm on this design?
+  poly(cohn, 2) with cond = cohn, current tolerance: accepted
+  exact comparison on the poly matrix, per condition: 1 conditions flagged
+
+== 4. ulp of the column maximum
+  column 1 max 0.0694365, 1 ulp = 1.542e-17, 6.03e-15 = 782.2 ulp
+  column 2 max 0.058849, 1 ulp = 1.307e-17, 6.03e-15 = 922.9 ulp
+
+== 5. other computed model-frame columns: are they row-deterministic?
+  scale(x)             max |row - first| = 0.000e+00   bitwise equal: TRUE
+  poly(x, 2)           max |row - first| = 6.030e-15   bitwise equal: FALSE
+  poly(x, 3)           max |row - first| = 2.265e-14   bitwise equal: FALSE
+  splines::bs(x, 4)    max |row - first| = 0.000e+00   bitwise equal: TRUE
+  splines::ns(x, 3)    max |row - first| = 0.000e+00   bitwise equal: TRUE
+  log1p(x)             max |row - first| = 0.000e+00   bitwise equal: TRUE
+  I(x/sd(x))           max |row - first| = 0.000e+00   bitwise equal: TRUE
+  cut(x, 3)            max |row - first| = 0.000e+00   bitwise equal: TRUE

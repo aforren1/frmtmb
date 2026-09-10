@@ -1,0 +1,40 @@
+arm: C:/Users/adf44/source/r/gddm-lib   frmtmb.eam 0.7.0 
+
+levels   degree   worst dev     dev / its tol flagged
+4        1        5.2e-17       2.54e-07      0
+4        2        2.39e-15      5.24e-06      0
+4        3        7.17e-15      1.17e-05      0
+6        1        1.67e-16      4.15e-07      0
+6        2        8.53e-16      1.4e-06       0
+6        3        3.25e-15      5.57e-06      0
+6        4        7.43e-15      2.51e-05      0
+8        1        1.25e-16      1.79e-07      0
+8        2        4.04e-15      5.79e-06      0
+8        3        2.6e-14       6.54e-05      0
+8        4        2.94e-14      0.000188      0
+12       1        5.55e-17      7.63e-08      0
+12       2        2.97e-15      5.2e-06       0
+12       3        4.22e-15      6.32e-05      0
+12       4        1.63e-14      6.32e-05      0
+
+worst ratio anywhere: 0.000188, at 8 levels, degree 4
+headroom, the reciprocal: 5.33e+03 x
+cells flagged: 0 of 15 (0 is right; every one of these is a correct design)
+
+== the review's design, reproduced
+    4 levels, poly degree 1: worst/tol = 2.830e-07
+    4 levels, poly degree 2: worst/tol = 4.404e-06
+    4 levels, poly degree 3: worst/tol = 2.296e-05
+    6 levels, poly degree 1: worst/tol = 8.300e-08
+    6 levels, poly degree 2: worst/tol = 3.239e-06
+    6 levels, poly degree 3: worst/tol = 4.673e-06
+    6 levels, poly degree 4: worst/tol = 4.527e-05
+    8 levels, poly degree 1: worst/tol = 1.392e-07
+    8 levels, poly degree 2: worst/tol = 9.942e-07
+    8 levels, poly degree 3: worst/tol = 9.942e-07
+    8 levels, poly degree 4: worst/tol = 8.294e-06
+   12 levels, poly degree 1: worst/tol = 7.626e-08
+   12 levels, poly degree 2: worst/tol = 1.870e-06
+   12 levels, poly degree 3: worst/tol = 1.870e-06
+   12 levels, poly degree 4: worst/tol = 9.939e-06
+worst ratio: 4.53e-05, headroom 2.21e+04 x, cells flagged 0 of 15

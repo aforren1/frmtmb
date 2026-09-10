@@ -1,0 +1,42 @@
+﻿arm: C:/Users/adf44/source/r/rev-gddm-lib  frmtmb.eam 0.7.0 
+
+delay column: max 3.15e+08  tolerance 3.15 s
+within-condition spread, per block: 2 2 0 0 
+distinct delays in block 1: 1 2 3 
+
+== 1. does the guard fire?
+  ACCEPTED, no error and no warning
+
+== 2. does the density read the rows the guard let through?
+  data set B: every non-first short-arm row set to 1 s
+  guard on data set B: ACCEPTED
+  fn(A) 18628.047467767221
+  fn(B) 18628.047467767221
+  identical: TRUE
+  fn, first rows only + 1 s: 18654.093542184564   moved: TRUE
+
+== 3. what the fit reports
+Rscript.exe : Warning messages:
+At line:1 char:345
++ ... mb-wt-gddm; & "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" dev/rev-gd ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning messages::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+1: Optimizer did not report convergence: false convergence (8) 
+2: Large maximum absolute gradient at the optimum (110); the fit may not have converged. diagnose() names the 
+offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+  coefficients: mu.(Intercept)=1.84499  mu.delay=3.22315e-10  bs.(Intercept)=0.871825  bias.(Intercept)=0  ndt.(Intercept)=0.851414 
+  the delay coefficient is fitted from 4 rows of 120 
+
+== 4. the same column after the user centers it
+  centered column max 157500000  tolerance 1.575 
+  REFUSED
+
+== 5. how tight could the constant be?
+  poly(x, 1): worst row-vs-first-row difference is 1.199e-14 of its column maximum
+  poly(x, 2): worst row-vs-first-row difference is 1.199e-14 of its column maximum
+  poly(x, 3): worst row-vs-first-row difference is 2.397e-14 of its column maximum
+Error in poly(x, deg) : 
+  'degree' must be less than number of unique points
+Execution halted

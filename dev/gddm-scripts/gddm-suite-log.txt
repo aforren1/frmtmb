@@ -1,0 +1,50 @@
+FILE test-bracket-access.R  PASS 1  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-bracket-access.R
+FILE test-brms-parity.R  PASS 13  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-brms-parity.R
+FILE test-defects.R  PASS 59  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-defects.R
+FILE test-density.R  PASS 132  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-density.R
+FILE test-extension-api.R  PASS 14  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-extension-api.R
+FILE test-family.R  PASS 51  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-family.R
+FILE test-gddm-conditions.R  PASS 58  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-gddm-conditions.R
+FILE test-gddm-family.R  PASS 77  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-gddm-family.R
+FILE test-gddm-gradients.R  PASS 22  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-gddm-gradients.R
+FILE test-gddm-recovery.R  PASS 28  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-gddm-recovery.R
+FILE test-gddm-reference.R  PASS 166  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-gddm-reference.R
+FILE test-gddm-solver.R  PASS 94  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-gddm-solver.R
+FILE test-lba.R  PASS 109  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-lba.R
+FILE test-message-uniqueness.R  PASS 4  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-message-uniqueness.R
+FILE test-moments.R  PASS 29  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-moments.R
+FILE test-ndt-bound.R  PASS 79  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-ndt-bound.R
+FILE test-rdm-gng.R  PASS 221  FAIL 0  ERROR 0  WARN 1  SKIP 0
+EXIT 0 test-rdm-gng.R
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.6, 2.5)
+  b                  (flat), as brms leaves slopes
+FILE test-sampling.R  PASS 97  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-sampling.R
+FILE test-scale.R  PASS 0  FAIL 0  ERROR 0  WARN 0  SKIP 3
+EXIT 0 test-scale.R
+FILE test-simulate-density.R  PASS 69  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-simulate-density.R
+FILE test-surface.R  PASS 50  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-surface.R
+FILE test-units.R  PASS 32  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-units.R
+FILE test-variability.R  PASS 140  FAIL 0  ERROR 0  WARN 0  SKIP 0
+EXIT 0 test-variability.R
+SUITE-DONE

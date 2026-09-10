@@ -890,13 +890,33 @@ gd_normalize_drift <- function(drift) {
 #' a covariate needs `vreal()` as well, for example
 #' `bf(rt | dec(response) + vint(cond) + vreal(coh) ~ 1)`.
 #'
-#' **Every row sharing a condition must share every parameter value.** The
-#' family cannot check this, because checking would mean comparing values
-#' on the tape, so it is your side of the contract: build the index from
-#' every variable that appears on the right-hand side of any of the
-#' family's formulas, which is what [gddm_conditions()] does. What the
-#' family can check, and does, is that the `vreal()` covariates are
-#' constant within a condition.
+#' **Every row sharing a condition must share every parameter value.**
+#' Build the index from every variable that appears on the right-hand
+#' side of any of the family's formulas, which is what
+#' [gddm_conditions()] does.
+#'
+#' The family enforces this and refuses the model by name, naming the
+#' parameter and a condition it varies inside. It cannot compare
+#' parameter VALUES, which live on the tape, so it compares the
+#' model-frame columns each parameter is built from against that
+#' condition's own first row: a design constant there gives a parameter
+#' constant there, so the check is sufficient rather than exact and errs
+#' toward refusing. A `vreal()` covariate a drift term reads is refused
+#' too, by a separate and EXACT comparison, because it is data as
+#' supplied and carries no arithmetic of its own; a design column is
+#' computed, so its comparison carries a small tolerance.
+#'
+#' The refusal is not a style rule. The solver reads every parameter at
+#' its condition's first row, so a term that varies inside a condition
+#' reaches nothing: the log likelihood does not move at all when the
+#' other rows change, and the term's coefficient would be fitted from
+#' one row per condition, with no error and no warning. A condition of a
+#' single row cannot vary and is never refused.
+#'
+#' What to do instead is name the varying variable in the index as
+#' well. The index then has one condition per distinct parameter vector
+#' and the fit does one Fokker-Planck solve per condition, which is
+#' what the extra resolution costs. See the Cost section.
 #'
 #' @section Cost, honestly:
 #' This is much slower than [wiener()] and you should use [wiener()]
@@ -1164,6 +1184,277 @@ gd_check_response <- function(y, aterms, comp) {
   invisible(NULL)
 }
 
+# ---------------------------------------------------------------------------
+# The within-condition contract, enforced
+# ---------------------------------------------------------------------------
+
+#' Elementwise inequality that treats two missing values as equal.
+#'
+#' `NA != NA` is `NA`, and an `NA` reaching the caller's `any()` would
+#' report a variation that is not there. Two missing values in the same
+#' column are the same datum for this purpose; one missing and one not
+#' is a difference.
+#'
+#' @noRd
+gd_ne <- function(a, b) {
+  ne <- a != b
+  na <- is.na(a) | is.na(b)
+  ne[na] <- xor(is.na(a)[na], is.na(b)[na])
+  ne
+}
+
+#' The absolute floor under a COMPUTED column's comparison tolerance.
+#'
+#' `poly(x, 2)` returns rows that differ for BITWISE IDENTICAL inputs,
+#' because its orthogonalization sweeps the whole column: measured at
+#' 6.03e-15 on a column whose largest entry is 0.0694. Its entries near
+#' zero are where that noise is largest relative to the entries
+#' themselves, so a purely per-pair tolerance is not enough and this
+#' floor carries them. It is `1e-11` of the column's largest finite
+#' entry. An all-zero column gets zero, which is an exact comparison.
+#'
+#' The constant is measured rather than chosen. Over the 26 gddm frames
+#' the false-alarm sweep accepts, the largest deviation any correct
+#' design produced from its own condition's first row, relative to the
+#' column maximum, is 1.03e-13, and every comparison outside
+#' `poly(cohn, 2)` is exactly 0. Scanned wider, over 4 to 12 levels by
+#' degrees 1 to 4, `poly()`'s worst deviation is 4.53e-05 of its own
+#' tolerance, so the floor keeps 2.2e+04x there.
+#'
+#' It is charged to EVERY column, and a round tried charging it only to
+#' a column whose name parses to a call, on the argument that the noise
+#' comes from the model frame re-evaluating one. That was measured and
+#' declined. A column computed UPSTREAM and stored under a bare name
+#' carries the same noise and would have lost the floor: over
+#' `poly()` precomputed at 3, 5, 7 and 9 symmetric levels by degrees 1
+#' to 3, 3 of 21 columns are refused without it and all 21 are accepted
+#' with it, and the worst deviation to carry is 2e-14 of the column
+#' maximum. The tension is structural: that noise is scaled to the
+#' COLUMN, so any floor carrying it is column-scaled, and any
+#' column-scaled floor can be widened by one unrelated large entry.
+#' `dev/gddm-findings.md` has the band that leaves and why it is not
+#' reachable from a covariate this field writes.
+#'
+#' @noRd
+gd_col_floor <- function(v) {
+  if (!is.numeric(v)) return(0)
+  fin <- v[is.finite(v)]
+  if (!length(fin)) return(0)
+  1e-11 * max(abs(fin))
+}
+
+#' Elementwise "differs", tolerant on a numeric column and exact
+#' everywhere else.
+#'
+#' The tolerance is `1e-8 * max(|a|, |b|) + gd_col_floor(a)`: scaled by
+#' the two entries BEING COMPARED rather than by the column maximum,
+#' plus the floor a near-zero `poly()` entry needs.
+#'
+#' Scaling by the column maximum alone was the first shipped form and it
+#' failed open on a wide-range column. Review construction, an
+#' intertemporal-choice delay of 1, 2 and 3 seconds beside ten years:
+#' the column maximum is 3.15e8, so the band was 3.15 s against a
+#' within-condition spread of 2 s, the model was accepted, and two data
+#' sets differing on 116 of 120 rows gave a bitwise equal objective with
+#' `mu.delay` fitted from 4 rows of 120. Centering the same column
+#' flipped it to refused, so the guard's answer depended on whether the
+#' user had centered. A per-pair term has no such dependence at any
+#' dynamic range.
+#'
+#' The floor is what the per-pair form still leaves a band under: it is
+#' absolute, so on a column of maximum `M` it hides a real
+#' within-condition difference `s` once `M / s` passes about 1e11. That
+#' band is measured rather than argued in `dev/gddm-findings.md`, along
+#' with the form that would close it and why that form was declined.
+#'
+#' A non-finite entry keeps the exact answer, so an `Inf` in the column
+#' cannot inflate the tolerance and open the guard. frmtmb refuses a
+#' non-finite design column before this runs, so that is defense in
+#' depth rather than a reachable path.
+#'
+#' @noRd
+gd_ne_col <- function(a, b) {
+  ne <- gd_ne(a, b)
+  if (!is.numeric(a)) return(ne)
+  fin <- is.finite(a) & is.finite(b)
+  if (any(fin)) {
+    tol <- 1e-8 * pmax(abs(a[fin]), abs(b[fin])) + gd_col_floor(a)
+    ne[fin] <- abs(a[fin] - b[fin]) > tol
+  }
+  ne
+}
+
+#' `a`, `b` and `c`, backquoted, for a refusal that names a list.
+#'
+#' @noRd
+gd_and <- function(x) {
+  x <- paste0("`", x, "`")
+  n <- length(x)
+  if (n <= 1L) return(paste(x, collapse = ""))
+  paste0(paste(x[-n], collapse = ", "), " and ", x[[n]])
+}
+
+#' Which conditions a model-frame column is not constant within.
+#'
+#' Every row is compared with its own condition's first row, which is
+#' the row `gd_densities()` reads, so the comparison answers exactly the
+#' question the density asks.
+#'
+#' @noRd
+gd_varying_groups <- function(v, gi, first) {
+  ref <- first[gi]
+  if (is.list(v) && !is.data.frame(v)) {
+    d <- !vapply(seq_along(v),
+                 function(i) identical(v[[i]], v[[ref[[i]]]]), TRUE)
+  } else if (is.matrix(v) || is.data.frame(v)) {
+    m <- as.matrix(v)
+    r <- m[ref, , drop = FALSE]
+    # per column, because a design matrix mixes an intercept with a
+    # covariate whose scale is nothing like it
+    ne <- vapply(seq_len(ncol(m)),
+                 function(k) gd_ne_col(m[, k], r[, k]),
+                 logical(nrow(m)))
+    dim(ne) <- dim(m)
+    d <- apply(ne, 1L, any)
+  } else {
+    d <- gd_ne_col(v, v[ref])
+  }
+  sort(unique(gi[which(d)]))
+}
+
+#' The variables one distributional parameter is built from.
+#'
+#' Taken from the parsed right-hand side rather than from a design
+#' matrix, because a design matrix is not where every term keeps its
+#' data: a smooth and a `gp()` put their basis in `Z`, and `mo()` leaves
+#' a column of multipliers in `X` with the level codes beside it. A
+#' check written against `X` alone passes on a `mo()` term that varies,
+#' which is the guard failing open. The right-hand side names every
+#' variable whatever the term does with it.
+#'
+#' A nonlinear parameter appears as its own entry in `dpars`, so its
+#' own right-hand side is reached on its own pass; what is added here is
+#' the covariates the nonlinear BODY reads directly.
+#'
+#' @noRd
+gd_dpar_vars <- function(resp, dpn) {
+  dp <- resp[["dpars"]][[dpn]]
+  if (is.null(dp)) return(character(0))
+  v <- all.vars(dp[["rhs"]])
+  nl <- dp[["nl_body"]]
+  if (!is.null(nl)) {
+    v <- c(v, setdiff(all.vars(nl), resp[["nlpars"]] %||% character(0)))
+  }
+  unique(v)
+}
+
+#' Refuse a distributional parameter that varies inside a condition.
+#'
+#' `gd_densities()` solves the Fokker-Planck equation once per condition
+#' and reads every parameter at that condition's FIRST ROW, so a
+#' parameter that varies inside a condition never reaches the
+#' likelihood. The failure is silent and total: with a covariate added
+#' to 118 of 120 rows the objective is BITWISE unchanged at the same
+#' parameter vector, for `mu`, for `ndt`, for `bs` and for `bias` alike,
+#' and a random effect whose grouping crosses the index leaves the
+#' deviations of every subject not on a first row at exactly zero.
+#' `?gddm` has always stated the contract; this enforces it.
+#'
+#' It is the same statement `gd_check_response()` already makes about
+#' the `vreal()` covariates, made the same way, by exact comparison
+#' against the condition's first row. What it cannot be made from is the
+#' parameter VALUE, which is on the tape. It is made from the
+#' model-frame columns the parameter is built out of, so it is
+#' sufficient rather than exact, and conservative in the direction that
+#' refuses.
+#'
+#' It cannot live in `valid_y()`: that seam is handed the response and
+#' the addition terms and no design at all.
+#' `frmtmb_register_frame_check()` is the seam that runs once the
+#' predictors exist, and frmtmb.ode refuses the identical problem there
+#' for `frm_ode()`.
+#'
+#' @noRd
+gd_check_condition_constancy <- function(spec, frame) {
+  sp <- frame[["spec"]] %||% spec
+  mf <- frame[["data_frame"]]
+  av <- frame[["aterm_values"]]
+  if (is.null(sp) || is.null(mf) || !nrow(mf)) return(invisible(NULL))
+  # This runs on every frame frmtmb assembles once this package is
+  # loaded, so a model with no gddm() response leaves before anything
+  # is parsed.
+  gd <- vapply(sp[["responses"]],
+               function(r) !is.null(r[["family"]][["gddm"]]), TRUE)
+  if (!any(gd)) return(invisible(NULL))
+  # Which variables each model-frame column is built from. A column can
+  # be named for a call rather than for a variable, `offset(w)`, so the
+  # mapping is parsed instead of assumed.
+  cols <- names(mf)
+  colvars <- lapply(cols, function(cn)
+    tryCatch(all.vars(str2lang(cn)), error = function(e) cn))
+  for (rn in names(sp[["responses"]])[gd]) {
+    resp <- sp[["responses"]][[rn]]
+    cnd <- gd_indicator(av[[rn]])[["cond"]]
+    # a missing or malformed index is gd_check_response()'s refusal to
+    # make, and it makes it by name
+    if (is.null(cnd) || anyNA(cnd) || length(cnd) != nrow(mf)) next
+    lev <- sort(unique(cnd))
+    gi <- match(cnd, lev)
+    first <- match(seq_along(lev), gi)
+    # Everything is collected before anything is said. A refusal that
+    # stops at the first offender makes a user with three missing
+    # variables pay three round trips, each a whole frame assembly, and
+    # the complete list is what they have to hand gddm_conditions().
+    done <- rep(FALSE, length(cols))
+    varying <- vector("list", length(cols))
+    bad_par <- character(0)
+    hits <- list()
+    for (dpn in names(resp[["dpars"]])) {
+      vars <- gd_dpar_vars(resp, dpn)
+      if (!length(vars)) next
+      hit <- FALSE
+      for (k in seq_along(cols)) {
+        shared <- intersect(colvars[[k]], vars)
+        if (!length(shared)) next
+        # once per column, however many parameters read it
+        if (!done[[k]]) {
+          varying[[k]] <- gd_varying_groups(mf[[k]], gi, first)
+          done[[k]] <- TRUE
+        }
+        if (!length(varying[[k]])) next
+        hit <- TRUE
+        for (v in shared) {
+          if (is.null(hits[[v]])) hits[[v]] <- varying[[k]]
+        }
+      }
+      if (hit) bad_par <- c(bad_par, dpn)
+    }
+    if (!length(bad_par)) next
+    vn <- sort(names(hits))
+    clause <- vapply(vn, function(v) {
+      g <- hits[[v]]
+      paste0("`", v, "` varies inside condition ",
+             format(lev[[g[[1L]]]]), ", and inside ", length(g), " of ",
+             length(lev), " conditions in all")
+    }, character(1))
+    stop("gddm: the parameter", if (length(bad_par) > 1L) "s" else "",
+         " ", gd_and(bad_par), " ",
+         if (length(bad_par) > 1L) "are" else "is",
+         " not constant within every condition. One solve of the ",
+         "Fokker-Planck equation serves a whole condition and every ",
+         "parameter is read at that condition's FIRST ROW, so a term ",
+         "that varies inside a condition never reaches the likelihood: ",
+         "the objective does not move at all when the other rows ",
+         "change, and the coefficient would be fitted from one row per ",
+         "condition. ", paste(clause, collapse = "; "),
+         ". Name every one of them in the index as well, which is what ",
+         "gddm_conditions() is for: gddm_conditions(data, ",
+         paste(vn, collapse = ", "), "), beside whatever the index ",
+         "already uses.", call. = FALSE)
+  }
+  invisible(NULL)
+}
+
 #' Resolve the grid, the links and the density against the data.
 #'
 #' `family_finalize` is the sanctioned seam for a family that derives
@@ -1382,8 +1673,10 @@ gd_sim_rt <- function(dpars, aterms, comp, ctl, n) {
 #'
 #' Name every variable that appears on the right-hand side of any formula
 #' in the model, and every covariate a drift term reads. Naming more than
-#' that is safe and only costs solves; naming fewer is wrong, and wrong in
-#' a way nothing downstream can detect.
+#' that is safe and only costs solves. Naming fewer is refused by
+#' [gddm()], which compares each parameter's design against its
+#' condition's first row and says which variable is missing from the
+#' index.
 #'
 #' @param data A data frame.
 #' @param ... Bare variable names, or a one-sided formula naming them.
@@ -1492,9 +1785,14 @@ gddm_floored <- function(fit) {
 #' @param ... Parameter values by name: `mu`, `bs`, `ndt` and whatever else
 #'   the chosen components need (`alpha`, `leak`, `tau`, `kappa`, `bias`,
 #'   `sz`, `lapse`). Anything not given takes the component's own starting
-#'   value.
-#' @param coh Coherence covariate, recycled to length `n`. Only meaningful
-#'   with [gddm_drift_coherence()].
+#'   value. Each is recycled to length `n` and must be constant within
+#'   every distinct value of `coh`, because one solve serves each of
+#'   those and reads its parameters at its first trial. A parameter that
+#'   varies inside one is refused by name; give `coh` a distinct value
+#'   per parameter setting, or call this once per setting.
+#' @param coh Coherence covariate, recycled to length `n`. It is also what
+#'   separates parameter settings, whether or not a drift term reads it.
+#'   Only the drift value is meaningful with [gddm_drift_coherence()].
 #' @param drift,bound,start,lapse,control As in [gddm()].
 #'
 #' @return A data frame with `rt`, `upper`, `cond` and, when a coherence
@@ -1546,6 +1844,27 @@ gddm_simulate <- function(n, ..., coh = 0,
     rep_len(as.numeric(v), n)
   })
   names(pv) <- dpnames
+  # The simulator solves once per coherence level and reads every
+  # parameter at that level's first row, exactly as the density does per
+  # condition. A per-trial parameter vector was accepted and half of it
+  # was ignored: `mu = c(rep(-2.5, 200), rep(2.5, 200))` at `coh = 0`
+  # drew BOTH halves from -2.5, upper rates 0.045 and 0.02, where the
+  # same values split by coherence give 0.025 and 0.98. No error, no
+  # warning. Refused here for the same reason gddm() refuses it at frame
+  # assembly, and with the same remedy: separate the settings.
+  vary <- names(pv)[vapply(pv, function(v)
+    length(gd_varying_groups(v, cnd, first)) > 0L, TRUE)]
+  if (length(vary)) {
+    stop("gddm_simulate(): ", gd_and(vary),
+         if (length(vary) > 1L) " vary" else " varies",
+         " between trials that share a coherence. One ",
+         "Fokker-Planck solve serves each distinct value of `coh` and ",
+         "every parameter is read at that value's first trial, so the ",
+         "rest of a per-trial parameter vector is never used and the ",
+         "draws come from the first trial's setting alone. Give `coh` ",
+         "a distinct value for each parameter setting, or call this ",
+         "once per setting and stack the results.", call. = FALSE)
+  }
   if (max(pv$ndt) >= t_max) {
     stop("gddm_simulate(): ndt is at or past the end of the simulated ",
          "window, so no trial can produce a response time inside it. ",

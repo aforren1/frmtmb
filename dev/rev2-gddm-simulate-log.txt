@@ -1,0 +1,32 @@
+﻿arm: C:/Users/adf44/source/r/rev-gddm-lib  frmtmb.eam 0.7.0 
+
+== OK arm: legitimate calls, which must NOT be refused
+   scalars only                                   ok, 100 rows
+   length-n mu constant within two coh levels     ok, 100 rows
+   length-n mu constant within four coh levels    ok, 100 rows
+   length-2 mu recycled, coh alternating with it  ok, 100 rows
+   coh given as a character vector                ok, 100 rows
+   coh given as a factor                          ok, 100 rows
+   every parameter a vector, all constant within coh ok, 100 rows
+   ndt a vector constant within coh               ok, 100 rows
+   a computed within-coh constant, ave()          ok, 100 rows
+>>> lapse uniform, lapse scalar                    REFUSED: 'arg' must be NULL or a character vector
+   collapsing bound, tau constant within coh      ok, 100 rows
+   uniform start, sz constant within coh          ok, 100 rows
+   leaky drift, leak scalar                       ok, 100 rows
+   coherence drift, coh the covariate it reads    ok, 100 rows
+   n = 1                                          ok, 1 rows
+   one coh level, one trial per parameter setting ok, 4 rows
+   the help page's own example                    ok, 20 rows
+
+  legitimate shapes: 17   FALSE ALARMS: 1 
+
+== BAD arm: calls that must be refused, and must name the
+   parameter
+    mu varying inside one coh level          refused, names `mu`
+    mu drawn per trial                       refused, names `mu`
+    ndt varying inside a coh level           refused, names `ndt`
+    two parameters varying                   refused, names `bs`
+    bias varying inside a coh level          refused, names `bias`
+
+  bad shapes: 5   missed: 0   unnamed: 0 

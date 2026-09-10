@@ -21,10 +21,15 @@ gddm_simulate(
 \item{...}{Parameter values by name: \code{mu}, \code{bs}, \code{ndt} and whatever else
 the chosen components need (\code{alpha}, \code{leak}, \code{tau}, \code{kappa}, \code{bias},
 \code{sz}, \code{lapse}). Anything not given takes the component's own starting
-value.}
+value. Each is recycled to length \code{n} and must be constant within
+every distinct value of \code{coh}, because one solve serves each of
+those and reads its parameters at its first trial. A parameter that
+varies inside one is refused by name; give \code{coh} a distinct value
+per parameter setting, or call this once per setting.}
 
-\item{coh}{Coherence covariate, recycled to length \code{n}. Only meaningful
-with \code{\link[=gddm_drift_coherence]{gddm_drift_coherence()}}.}
+\item{coh}{Coherence covariate, recycled to length \code{n}. It is also what
+separates parameter settings, whether or not a drift term reads it.
+Only the drift value is meaningful with \code{\link[=gddm_drift_coherence]{gddm_drift_coherence()}}.}
 
 \item{drift, bound, start, lapse, control}{As in \code{\link[=gddm]{gddm()}}.}
 }

@@ -31,6 +31,13 @@
   # allow-lists and never finalizes them, so it accepts ndt_group() and
   # no per-group bound is ever built from it.
   frmtmb_register_frame_check(ddm_check_ndt_group_read)
+  # gddm() solves the Fokker-Planck equation once per condition and
+  # reads every parameter at that condition's FIRST ROW, so a parameter
+  # varying inside a condition never reaches the likelihood: the
+  # objective is bitwise unchanged when the other rows move. ?gddm has
+  # always stated that contract and nothing enforced it. The check needs
+  # the design, which valid_y() never sees, so it runs here.
+  frmtmb_register_frame_check(gd_check_condition_constancy)
   # The two families added after the first three, registered in their own
   # call rather than folded into the one above. Two reasons: the rows
   # below were measured on this worktree and the ones above were not, and
@@ -167,18 +174,27 @@ ddm_compat_rules <- function() {
     "gddm_simulate() draws from the same solved density the likelihood scores, so the simulator and the density are one statement of the model.")
   r("gddm", "fitted", "works",
     "The family defines post$mean_fn, so the mean response time comes back on the response scale.")
-  r("gddm", "predict", "works",
-    "Both vint() columns are mandatory on newdata, so the boundary and the condition must be supplied there as well.")
+  r("gddm", "predict", "conditional",
+    "type = \"link\" works, on the training data and on newdata. type = \"response\" works on the training data and FAILS on newdata, and this row read works until it was run: predict(fit, newdata =, type = \"response\") dies in gd_densities() at vector(\"list\", 2L * d$ncond) with `invalid 'length' argument`, because the .gddm index the density reads is not rebuilt on that path. conditional_effects() fails the same way, since it predicts on a grid. Note what the old row claimed and what was measured: neither vint() column is mandatory on newdata today, because dropping cond and dropping upper each leave the link prediction returning the same values, and the response path that would read them fails for every newdata. Measured on frmtmb.eam 0.7.0 and unchanged by the within-condition refusal added after it; see dev/gddm-findings.md.")
   r("gddm", "residuals", "conditional",
     "type = \"response\" works. \"pearson\" and \"deviance\" are refused for the same reason as wiener: no variance function and no unit deviance.")
   r("gddm", "residuals_osa", "untested",
     "One-step-ahead residuals re-tape the objective with the response promoted to a parameter. Nothing exercises that path.")
   r("gddm", "REML", "untested",
     "Not exercised.")
-  r("gddm", "mixture", "untested",
-    "Not exercised, and worth exercising before it is relied on: gddm does not floor its density where wiener does, so a below-support row is a NaN rather than a finite zero, and a NaN inside a log-sum-exp takes every other component with it.")
+  r("gddm", "mixture", "refused",
+    "Exercised, and it cannot reach a likelihood. mixture() builds one family out of its components and never runs their family_finalize, so gddm()'s non-decision-time link is never resolved: the model is accepted at frame assembly and refused at objective build by the family's own pending-link stop, with and without max_ndt in gddm_control(). This row read untested and worried about the unfloored density; that worry is moot, because the path stops earlier. It is also why the within-condition refusal does not have to know about mixtures: a mixture family carries no gddm marker and would not be checked, and no mixture with a gddm component ever gets as far as a density.")
   r("gddm", "quadrature", "refused",
     "By frmtmb, for the same reason it refuses wiener: quadrature = TRUE integrates random effects, and this family has no random effect to integrate.")
+  # The kind-level default from core says every family x covstruct pair
+  # works, because a covariance structure acts on the linear predictor
+  # and not on the response. That sentence is still true and the
+  # CONCLUSION is now false for this family: a random effect enters the
+  # predictor, the predictor is read at its condition's first row, and
+  # the grouping therefore has to be in the condition index. One row, on
+  # the family side, beats the kind-level default on specificity.
+  r("gddm", "kind:covstruct", "conditional",
+    "Works when the grouping is in the condition index, and is refused by name when it is not. This is the one place the kind-level default (a covariance structure acts on the predictor, so it is independent of the response distribution) reaches the wrong conclusion: one Fokker-Planck solve serves a whole condition and reads every parameter at that condition's FIRST ROW, so a deviation whose grouping crosses the index never reaches the density. Measured before the refusal existed: with four subjects across two conditions the two subjects not on a first row kept deviations of exactly 0 and the fit reported a between-subject standard deviation of 7.6e-11, with no error and no warning. Put the grouping in the index, which gddm_conditions() does, and the model fits; leave it out and frame assembly refuses it and says which variable is missing.")
 
   r("lba", "dec()", "refused",
     "Refused by the family, and by declaration rather than by a check of its own: lba() names the addition terms it takes in frmtmb_family(accepts_aterms =), dec() is not among them, and frame assembly refuses it by name. Until frmtmb 0.53.0 there was no such declaration and the refusal was a hand-written check shared with rdm(); before that check this row was wrong in a way worth recording, because a model written rt | dec(two) + vint(choice) FITTED, dropping the term with no warning and with fixed effects bit-identical to the model without it. dec() IS the spelling under wiener(), so a ported model quietly ignored half of what its author wrote.")

@@ -1,0 +1,66 @@
+﻿arm: C:/Users/adf44/source/r/rev-gddm-lib  frmtmb.eam 0.7.0 
+
+== 1. the review's delay column under the new form
+    1/2/3 s beside ten years               max 3.15e+08  floor 0.00315  spread 2  REFUSED
+    the same column, centered              max 1.57e+08  floor 0.00157  spread 2  REFUSED
+
+== 2. the residual band, priced in the column's own units
+   the floor on a ten-year column is 1e-11 * 3.15e8 = 3.15e-3 s
+    within-condition step of 1.0e-01 s     max 3.15e+08  floor 0.00315  spread 0.1  REFUSED
+    within-condition step of 1.0e-02 s     max 3.15e+08  floor 0.00315  spread 0.01  REFUSED
+    within-condition step of 3.2e-03 s     max 3.15e+08  floor 0.00315  spread 0.0032  REFUSED
+    within-condition step of 3.1e-03 s     max 3.15e+08  floor 0.00315  spread 0.0031  accepted
+    within-condition step of 1.0e-03 s     max 3.15e+08  floor 0.00315  spread 0.001  accepted
+    within-condition step of 1.0e-06 s     max 3.15e+08  floor 0.00315  spread 1e-06  accepted
+
+== 3. the other side: what range is estimable at all?
+   a column is dropped as rank deficient below some relative
+   total range. Measured on the same model, base 1e9:
+   relative total range 1e-04: accepted, column kept
+   relative total range 1e-05: accepted, column kept
+   relative total range 1e-06: accepted, column kept
+Rscript.exe : Fixed-effect design of 'rt.mu' is rank deficient; dropping column(s): delay
+At line:1 char:345
++ ... mb-wt-gddm; & "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" dev/rev2-g ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Fixed-effect de...olumn(s): delay:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+   relative total range 1e-07: accepted, column kept
+Fixed-effect design of 'rt.mu' is rank deficient; dropping column(s): delay
+   relative total range 1e-08: accepted, column kept
+Fixed-effect design of 'rt.mu' is rank deficient; dropping column(s): delay
+   relative total range 1e-09: accepted, column kept
+Fixed-effect design of 'rt.mu' is rank deficient; dropping column(s): delay
+   relative total range 1e-10: accepted, column kept
+Fixed-effect design of 'rt.mu' is rank deficient; dropping column(s): delay
+Fixed-effect design of 'rt.mu' is rank deficient; dropping column(s): delay
+   relative total range 1e-11: accepted, column kept
+   relative total range 1e-12: accepted, column kept
+
+== 4. a column with a sentinel, which is how 1e11 of dynamic
+      range can appear without 1e11 of meaningful range
+    real values 1 and 3, sentinel 1e+06    max 1e+06  floor 1e-05  spread 2  REFUSED
+    real values 1 and 3, sentinel 1e+09    max 1e+09  floor 0.01  spread 2  REFUSED
+    real values 1 and 3, sentinel 1e+11    max 1e+11  floor 1  spread 2  REFUSED
+>>> real values 1 and 3, sentinel 1e+12    max 1e+12  floor 10  spread 2  accepted
+
+== 5. false-alarm risk under the TIGHTER form: poly() near zero
+   the per-pair term nearly vanishes at an entry near zero, so
+   only the floor carries it. Worst |row - first| against its own
+   tolerance, over degree and number of levels:
+    4 levels, poly degree 1: worst/tol = 2.830e-07
+    4 levels, poly degree 2: worst/tol = 4.404e-06
+    4 levels, poly degree 3: worst/tol = 2.296e-05
+    6 levels, poly degree 1: worst/tol = 8.300e-08
+    6 levels, poly degree 2: worst/tol = 3.239e-06
+    6 levels, poly degree 3: worst/tol = 4.673e-06
+    6 levels, poly degree 4: worst/tol = 4.527e-05
+    8 levels, poly degree 1: worst/tol = 1.392e-07
+    8 levels, poly degree 2: worst/tol = 9.942e-07
+    8 levels, poly degree 3: worst/tol = 9.942e-07
+    8 levels, poly degree 4: worst/tol = 8.294e-06
+   12 levels, poly degree 1: worst/tol = 7.626e-08
+   12 levels, poly degree 2: worst/tol = 1.870e-06
+   12 levels, poly degree 3: worst/tol = 1.870e-06
+   12 levels, poly degree 4: worst/tol = 9.939e-06

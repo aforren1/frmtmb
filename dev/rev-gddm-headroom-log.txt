@@ -1,0 +1,75 @@
+﻿arm: C:/Users/adf44/source/r/rev-gddm-lib   frmtmb.eam 0.7.0 
+block within subject, distinct values per subject: 2 2 2 2 2 2 
+
+== designs
+                                    model nvar ncond_ok  live refused_ok
+                           intercept only    0        1 FALSE      FALSE
+                       drift by coherence    1        4  TRUE      FALSE
+    drift by coherence, boundary by block    2        8  TRUE      FALSE
+           drift by coherence times block    2        8  TRUE      FALSE
+             non-decision time by subject    1        6  TRUE      FALSE
+                       start point by cue    1        2  TRUE      FALSE
+                      all four parameters    4       96  TRUE      FALSE
+    subject random intercept on the drift    1        6  TRUE      FALSE
+        subject random slope in coherence    2       24  TRUE      FALSE
+ subject random intercept on the boundary    1        6  TRUE      FALSE
+            drift polynomial in coherence    1        4  TRUE      FALSE
+                drift spline in coherence    1        4  TRUE      FALSE
+     drift monotonic in ordered coherence    1        4  TRUE      FALSE
+                     drift with an offset    1        2  TRUE      FALSE
+                 cell means, no intercept    1        4  TRUE      FALSE
+               drift by numeric coherence    1        4  TRUE      FALSE
+       collapsing boundary, rate by block    1        2  TRUE      FALSE
+             uniform start width by block    1        2  TRUE      FALSE
+                      lapse rate by block    1        2  TRUE      FALSE
+             coherence drift nonlinearity    1        8  TRUE      FALSE
+         leaky integration, leak by block    1        2  TRUE      FALSE
+
+== ok arm: index built from every variable in the model
+  designs: 21   of which the check could fire on: 20 
+  FALSE ALARMS: 0 
+
+== drop arm: one variable removed from the index
+  cases: 26   missed: 0   refused without naming the variable: 0 
+
+one row per condition, every parameter varying between rows: accepted with 480 conditions
+
+== other families, a covariate varying across every grouping
+  gaussian: accepted
+  wiener: accepted
+  lba: accepted
+  rdm: accepted
+  wiener_gng: accepted
+
+== the tolerance
+  poly(cohn, 2) rows from identical inputs differ by 6.03e-15  (391.1 ulp of the column maximum 0.06944)
+  the tolerance on that column is 6.94e-10, a factor of 1.15e+05 above the noise
+  a within-condition step of 1e-04 on a column of max 0.512: refused
+  a within-condition step of 1e-05 on a column of max 0.512: refused
+  a within-condition step of 1e-06 on a column of max 0.512: refused
+  a within-condition step of 1e-07 on a column of max 0.512: refused
+  a within-condition step of 1e-08 on a column of max 0.512: refused
+  a within-condition step of 1e-09 on a column of max 0.512: ACCEPTED
+  a within-condition step of 1e-10 on a column of max 0.512: ACCEPTED
+  a within-condition step of 1e-11 on a column of max 0.512: ACCEPTED
+  a within-condition step of 1e-12 on a column of max 0.512: ACCEPTED
+  smallest step refused: 1e-08, which is 2.0e-08 relative
+
+
+== recorder: columns of ACCEPTED gddm frames
+  gddm frames accepted: 26 
+  column-condition comparisons recorded: 9 
+  of which exactly zero: 3   nonzero: 6 
+  the nonzero relative deviations, largest first:
+    w[1]                     1.953e-09
+    w[1]                     1.953e-10
+    w[1]                     1.953e-11
+    w[1]                     1.953e-12
+    poly(cohn, 2)[2]         1.025e-13
+    poly(cohn, 2)[1]         4.987e-14
+  worst: 1.953e-09   shipped tolerance: 1.0e-08   headroom 5.12
+    a constant of 1e-09 would false-alarm on 1 of 9 accepted comparisons
+    a constant of 1e-10 would false-alarm on 2 of 9 accepted comparisons
+    a constant of 1e-11 would false-alarm on 3 of 9 accepted comparisons
+    a constant of 1e-12 would false-alarm on 4 of 9 accepted comparisons
+    a constant of 1e-13 would false-alarm on 5 of 9 accepted comparisons

@@ -1,0 +1,14 @@
+﻿arm: C:/Users/adf44/source/r/rellib-0552   frmtmb.eam 0.7.0 
+
+== mu ~ 1 + (1 | s), s crossing conditions
+  fn, data as drawn                        19.029283685334875
+  fn, s collapsed on 118 of 120 rows (not first) 19.029283685334875  identical: TRUE 
+  fn, s relabelled on the 2 FIRST rows only  19.029283685334875  moved: FALSE 
+  random-effect sd: 7.639656e-11 
+
+coherence by condition:
+   
+    0.3 0.7
+  1  30  30
+  2  30  30
+vreal() varying within a condition: REFUSED: gddm: vreal1 is not constant within every condition. One solve serves a whole condition, so a covariate the drift reads has to take one value there. Split the condition index, or build it with gddm_conditions(). 

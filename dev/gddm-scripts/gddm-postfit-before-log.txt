@@ -1,0 +1,12 @@
+arm: C:/Users/adf44/source/r/rellib-0552   frmtmb.eam 0.7.0 
+conditions: 4 
+logLik: -32.94046 
+
+== post-fit paths on a correct model
+  fitted(): ok (0.8073163, 0.8441867 ...)
+  residuals(): ok (-0.1603910680, -0.2167382348 ...)
+  predict(type = link): ok (2.067089, 1.873491 ...)
+  simulate(nsim = 2): ok (0.6739797, 1.0001989 ...)
+  predict(newdata = one row per condition): ok (2.067089, 1.873491 ...)
+  predict(newdata = index collapsed by hand): ok (2.067089, 1.873491 ...)
+  conditional_effects(): REFUSED: invalid 'length' argument

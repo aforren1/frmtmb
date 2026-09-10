@@ -1,0 +1,34 @@
+﻿FILE test-gddm-conditions.R  PASS 13  FAIL 17  ERROR 5  WARN 0  SKIP 0
+  BAD: a dpar varying within a condition is refused, and named
+    Expected `gc_frame(...)` to throw a error.
+    Expected `gc_frame(...)` to throw a error.
+    Expected `gc_frame(...)` to throw a error.
+  BAD: every parameter of the family is covered, not just mu
+    Expected `gc_frame(...)` to throw a error.
+    Expected `gc_frame(...)` to throw a error.
+    Expected `gc_frame(...)` to throw a error.
+    Expected `gc_frame(...)` to throw a error.
+    Expected `gc_frame(...)` to throw a error.
+  BAD: a random effect whose grouping crosses the index is refused
+    Expected `gc_frame(...)` to throw a error.
+    Expected `gc_frame(...)` to throw a error.
+  BAD: the message names the user's own condition label
+    Expected `gc_frame(...)` to throw a error.
+  BAD: a computed design column is not refused for its own rounding
+    Error in `gd_col_floor(as.vector(P))`: could not find function "gd_col_floor"
+  BAD: the check reads the condition under either spelling
+    Expected `frm(...)` to throw a error.
+  BAD: a non-finite entry cannot open the tolerance
+    Error in `gd_varying_groups(v, gi, first)`: could not find function "gd_varying_groups"
+  BAD: the tolerance does not widen with the column's largest entry
+    Error in `gd_varying_groups(wide, gi, first)`: could not find function "gd_varying_groups"
+  BAD: every offending variable is named in one message
+    Expected `gc_frame(...)` to throw a error.
+    Error in `UseMethod("conditionMessage")`: no applicable method for 'conditionMessage' applied to an object of class "NULL"
+  BAD: gddm_simulate() refuses a parameter it would half-read
+    Expected `gddm_simulate(n, mu = mu, bs = 2, ndt = 0.2, coh = 0, control = ctl)` to throw a error.
+    Expected `gddm_simulate(...)` to throw a error.
+    Error in `UseMethod("conditionMessage")`: no applicable method for 'conditionMessage' applied to an object of class "NULL"
+  BAD: a nonlinear formula is covered from both sides
+    Expected `gc_frame(...)` to throw a error.
+    Expected `gc_frame(...)` to throw a error.

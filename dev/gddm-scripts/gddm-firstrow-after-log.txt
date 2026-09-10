@@ -1,0 +1,22 @@
+arm: C:/Users/adf44/source/r/gddm-lib 
+frmtmb 0.55.2  frmtmb.eam 0.7.0 
+
+== mu ~ x
+  REFUSED: gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck equation serves a whole condition and every parameter is read at that condition's FIRST ROW, so a term that varies inside a condition never reaches the likelihood: the objective does not move at all when the other rows change, and the coefficient would be fitted from one row per condition. `x` varies inside condition 1, and inside 2 of 2 conditions in all. Name it in the index as well, which is what gddm_conditions() is for: the index has to separate every distinct parameter vector, and one solve is then done per condition.
+
+== ndt ~ x
+  REFUSED: gddm: the parameter `ndt` is not constant within every condition. One solve of the Fokker-Planck equation serves a whole condition and every parameter is read at that condition's FIRST ROW, so a term that varies inside a condition never reaches the likelihood: the objective does not move at all when the other rows change, and the coefficient would be fitted from one row per condition. `x` varies inside condition 1, and inside 2 of 2 conditions in all. Name it in the index as well, which is what gddm_conditions() is for: the index has to separate every distinct parameter vector, and one solve is then done per condition.
+
+== bs ~ x
+  REFUSED: gddm: the parameter `bs` is not constant within every condition. One solve of the Fokker-Planck equation serves a whole condition and every parameter is read at that condition's FIRST ROW, so a term that varies inside a condition never reaches the likelihood: the objective does not move at all when the other rows change, and the coefficient would be fitted from one row per condition. `x` varies inside condition 1, and inside 2 of 2 conditions in all. Name it in the index as well, which is what gddm_conditions() is for: the index has to separate every distinct parameter vector, and one solve is then done per condition.
+
+== bias ~ x
+  REFUSED: gddm: the parameter `bias` is not constant within every condition. One solve of the Fokker-Planck equation serves a whole condition and every parameter is read at that condition's FIRST ROW, so a term that varies inside a condition never reaches the likelihood: the objective does not move at all when the other rows change, and the coefficient would be fitted from one row per condition. `x` varies inside condition 1, and inside 2 of 2 conditions in all. Name it in the index as well, which is what gddm_conditions() is for: the index has to separate every distinct parameter vector, and one solve is then done per condition.
+
+== mu ~ 1 + (1 | s), a random effect crossing conditions
+  REFUSED: gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck equation serves a whole condition and every parameter is read at that condition's FIRST ROW, so a term that varies inside a condition never reaches the likelihood: the objective does not move at all when the other rows change, and the coefficient would be fitted from one row per condition. `s` varies inside condition 1, and inside 2 of 2 conditions in all. Name it in the index as well, which is what gddm_conditions() is for: the index has to separate every distinct parameter vector, and one solve is then done per condition.
+
+fit of a within-condition-varying dpar: ERR: gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck equation serves a whole condition and every parameter is read at that condition's FIRST ROW, so a term that varies inside a condition never reaches the likelihood: the objective does not move at all when the other rows change, and the coefficient would be fitted from one row per condition. `x` varies inside condition 1, and inside 2 of 2 conditions in all. Name it in the index as well, which is what gddm_conditions() is for: the index has to separate every distinct parameter vector, and one solve is then done per condition.warnings: NONE 
+
+vreal() varying within a condition: REFUSED: gddm: vreal1 is not constant within every condition. One solve serves a whole condition, so a covariate the drift reads has to take one value there. Split the condition index, or build it with gddm_conditions(). 
+vreal() constant within a condition: accepted 
