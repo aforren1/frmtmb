@@ -8,7 +8,7 @@ reading before you run anything.
 ## Where the tree stands
 
 Main is at the 0.55.2 release, `3ff5d8e`, plus its docs rebuild
-`883dfc4`. Eleven commits sit ahead of `origin/main`. **The user
+`883dfc4`, and it is PUSHED: `origin/main` is at `cb9a2cd`. **The user
 pushes; no session pushes for them.**
 
 Versions: frmtmb 0.55.2, frmtmb.eam 0.7.0, frmtmb.ode 0.3.0,
@@ -108,21 +108,35 @@ The generalization worth carrying: **a release harness is a guard, and
 every guard built in the last two rounds failed open on its first
 try.**
 
+## What the user settled at 0.55.2, so a session does not reopen it
+
+- **The release is pushed.** `origin/main` is at `cb9a2cd`.
+- **StanHeaders is pinned OUTSIDE the user library**, in
+  `C:/Users/adf44/source/r/pinlib` at 2.32.10, with the tarball beside
+  it. The user library keeps 2.39.1 and is not to be downgraded.
+  `dev/lane-rules.md` has the `.libPaths()` order and the two checks
+  worth running before believing a Stan-backed tier. A pin in the user
+  library would not survive the next restore or the next loss; this one
+  survives both.
+- **The R user library stays under `%LOCALAPPDATA%`**, knowing it has
+  been destroyed three times in nine days. The canary is in place.
+  `dev/machine-library.md` has the restore recipe.
+- **The tmbstan defect gets no disclosure.** Nothing external depends
+  on this package yet. The guard's own error message already tells a
+  user to distrust draws from an affected installation, and that stays.
+- **Item 1.0d is the user's next piece of work**, not a lane's.
+
 ## Open decisions that belong to the user, not to a session
 
-- Whether to push. Eleven commits are waiting.
-- The R user library still holds StanHeaders 2.39.1. A future session
-  hits the same wall until it is pinned to 2.32.10 there; the release
-  library has the pin, the shared one does not.
-- Moving the R user library off `%LOCALAPPDATA%`, which
-  `dev/machine-library.md` argues for. It was destroyed three times in
-  nine days and the canary `ZZZ-canary.txt` is in place to identify the
-  next one.
-- Whether the tmbstan defect needs a disclosure for anyone who sampled
-  before the guard shipped.
 - Any change that alters what a shipped parameter MEANS. The standing
-  policy is to break backward compatibility freely, but the user has
-  wanted to hear about each one.
+  policy is to break backward compatibility freely, since nothing
+  external depends on this yet, but the user has wanted to hear about
+  each one, and each needs a NEWS bullet saying plainly what stops
+  working.
+- Where a disclosure goes, on the rare occasion one is wanted. The
+  0.6.0 `ndt` disclosure went in frmtmb.eam's NEWS only, at the user's
+  direction, rather than anywhere more visible. It is discharged as of
+  0.7.0.
 
 ## Worktrees
 

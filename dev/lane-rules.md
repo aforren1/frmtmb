@@ -37,6 +37,42 @@ leaves hollow directories.
 - Other lanes may be running. Your private library is yours alone, so
   your installs are safe; installing anywhere else is not.
 
+## The pinned-package library, and why `.libPaths()` order matters
+
+`C:/Users/adf44/source/r/pinlib` holds packages this project pins to a
+version the shared user library does not have. It is READ-ONLY to you:
+never install into it.
+
+Today it holds one, and it is not optional if you touch Stan. `rstan`
+2.32.7 declares `StanHeaders (>= 2.32.0)`, an open bound, so the user
+library carries 2.39.1, which rstan cannot compile against. Any test
+that compiles a FRESH Stan program dies in `compileCode()` at
+`make: *** Error 1`, while anything served from `FRMTMB_STAN_CACHE`
+passes, so a green suite is not evidence. `dev/machine-library.md` has
+the measurement.
+
+Order your paths so the pin wins over the user library and your own
+library wins over both:
+
+    .libPaths(c(LIB,
+                "C:/Users/adf44/source/r/pinlib",
+                "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+
+Check it rather than assume it, because the failure is quiet:
+
+    packageVersion("StanHeaders")   # must be 2.32.10, not 2.39.1
+    packageVersion("rstan")         # 2.32.7
+
+Rebuilding the pin, if it is ever lost. The tarball is kept beside it
+in `pinlib/.src`, and its source is the CRAN archive:
+
+    https://cran.r-project.org/src/contrib/Archive/StanHeaders/StanHeaders_2.32.10.tar.gz
+
+`R CMD INSTALL --library=<pinlib>` with Rtools 4.5 on PATH, which takes
+about a minute. A dated Posit Package Manager snapshot would serve the
+same purpose on a fresh machine; the archive URL is used here because
+it names the exact version rather than a date that has to be looked up.
+
 ## Toolchain
 
 - R 4.6.1 at `C:\Program Files\R\R-4.6.1\bin`.

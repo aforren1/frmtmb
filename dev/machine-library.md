@@ -125,3 +125,26 @@ So: after any restore, pin StanHeaders before believing a Stan-backed
 tier, and check `packageVersion("StanHeaders")` against
 `packageVersion("rstan")` rather than checking that the suite is green.
 A cache makes a green suite the weaker evidence.
+
+## What was decided, 2026-09-09
+
+The library stays under `%LOCALAPPDATA%`. The user's call, made knowing
+it has been destroyed three times in nine days. `ZZZ-canary.txt` is in
+place so the next loss identifies itself as a file-level sweep rather
+than being rediscovered by a failing build, and the restore recipe
+above recovers 364 packages in about ten minutes.
+
+The user library also keeps StanHeaders 2.39.1. Rather than downgrade
+it, the pin lives in a separate read-only library,
+`C:/Users/adf44/source/r/pinlib`, which holds StanHeaders 2.32.10 and
+the tarball it was built from. A lane puts it on `.libPaths()` between
+its own private library and the user library. `dev/lane-rules.md` has
+the ordering and the two version checks worth running before believing
+a Stan-backed tier.
+
+That split is deliberate. The user library is the one that keeps being
+destroyed and the one a restore rewrites to latest, so a pin placed
+there does not survive either event. A pin outside it survives both,
+and it makes the version question explicit at the top of every lane
+script instead of implicit in whatever the last restore happened to
+install.
