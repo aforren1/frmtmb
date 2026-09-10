@@ -1,116 +1,130 @@
 # Handing a round to a new session
 
-Written 2026-09-09, at frmtmb 0.55.1. Read this, then
+Written 2026-09-09, at frmtmb 0.55.2. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
-`dev/lane-rules.md`.
+`dev/lane-rules.md`. `dev/machine-library.md` is new and is worth
+reading before you run anything.
 
 ## Where the tree stands
 
-Main is at the 0.55.1 release: `9033a26` plus its docs rebuild
-`fad7a9f`. Twelve commits sit ahead of `origin/main`. **The user pushes;
-no session pushes for them.**
+Main is at the 0.55.2 release, `3ff5d8e`, plus its docs rebuild
+`883dfc4`. Eleven commits sit ahead of `origin/main`. **The user
+pushes; no session pushes for them.**
 
-Versions: frmtmb 0.55.1, frmtmb.eam 0.6.0, frmtmb.learn 0.3.0,
-frmtmb.sample 0.4.0, frmtmb.spline 0.5.0, frmtmb.coupling 0.3.0,
-frmtmb.ode 0.2.0, frmtmb.latent 0.2.2. Every extension floors on frmtmb
-0.55.1; frmtmb.learn also floors on frmtmb.eam 0.6.0.
+Versions: frmtmb 0.55.2, frmtmb.eam 0.7.0, frmtmb.ode 0.3.0,
+frmtmb.sample 0.4.1, frmtmb.learn 0.3.0, frmtmb.spline 0.5.0,
+frmtmb.coupling 0.3.0, frmtmb.latent 0.2.2. Every extension floors on
+frmtmb 0.55.1; frmtmb.learn also floors on frmtmb.eam 0.6.0.
 
-Verified at that commit, one test file per R process: core 134 files
-8482 passing, eam 1408, sample 1118, coupling 428, spline 407, learn
-333, latent 228, ode 223, no failures and no crashes. Gated tiers with
-no skips: brms likelihood 404, agreement 187, methods 950, priors 103,
-port 18, BCM 363 over thirteen chapters, reinforcement-learning identity
-102, fuzz green, sample 327, learn 388. The scale tier green in all
-three configurations. `R CMD check --as-cran` with four packages at OK
-and four carrying only the environmental V8 NOTE.
+Verified at that commit, one test file per R process, all eight
+packages installed into one library: 216 files, 12794 assertions, no
+failures and no errors. Gated tiers with no skips, 23 files and 2475
+assertions: BCM 363 over thirteen chapters, brms likelihood 404,
+methods 950, agreement 187, priors 103, port 18,
+reinforcement-learning identity 102, learn Stan identity 55, sample
+loo 79 and sampling-ported 212, fuzz green. Scale tier, 7 files and 14
+rows, no skips. `R CMD check --as-cran` OK on all eight with no NOTE
+and no WARNING, though that run passed `--no-manual`, so the
+environmental V8 note earlier releases carried was not exercised.
 
 ## What is next, in order
 
 `dev/extension-gaps-plan.md` is the plan and it is edited in place
-rather than appended to. Phase 0 is done and Phase 1 is closed except
-for the three items Phase 0 promoted into it:
+rather than appended to. Phase 1 is down to two items:
 
-- **1.0a**, the per-subject non-decision-time bound in frmtmb.eam. This
-  is the most consequential item in the backlog, because it fixes a
-  silent wrong answer that SHIPPED in 0.6.0 with a disclosure and no
-  fix. Its acceptance criterion is measured: reach at least -7027.4,
-  against -7148.8 today, with a positive definite Hessian and `sd(ndt)`
-  recovered. `extensions/frmtmb.eam/tests/testthat/test-scale.R`
-  currently asserts the DEFECT, with the recovery assertion commented
-  beneath it, so it flips when this lands.
-- **1.0b**, the same bound in `rlddm()`. It WAITS ON 1.0a, because
-  frmtmb.learn takes its diffusion parameterization from frmtmb.eam and
-  inherits both the bug and the fix.
-- **1.0c**, `frm_lincmt()`, the analytic one- to three-compartment
-  solution. Independent of the other two and can run beside 1.0a. It was
-  Phase 5 until Phase 0 measured one `frm(se = TRUE)` on the plan's ode
-  design at 3948 seconds. Its acceptance criterion is an identity with
-  `frm_ode()` to 1e-8 across the schedule space, and that half is what
-  makes the speed half worth anything.
+- **1.0b**, the per-group non-decision-time bound in `rlddm()`. It is
+  unblocked: `ndt_group()` works as it stands. What it needs first is
+  an export seam from frmtmb.eam for four functions that are `@noRd`
+  today, whose shape depends on `rlddm()`, so 1.0a did not guess it.
+  Half a day. The scale tier still records the failure it fixes:
+  `learn-rlddm` at a maximum gradient of 6.36e+09 with a non positive
+  definite Hessian and four bad standard errors.
+- **1.0d**, the `frm_ode(n_ss =)` default, found by 1.0c. One day. It
+  is a silent wrong answer during a fit and by Rule 3 it outranks the
+  rest of the backlog. `?frm_ode` is already corrected; what is left
+  is the default and the diagnostic. The review's unbuilt `"auto"`
+  proposal is in the row and is FASTER than today's default on the
+  common case.
 
-After those, Phase 2 opens: recovery tables and third-party identities
-at the scale Phase 0 measured. It was gated on Phase 0's table, which
-now exists in `dev/scale-findings.md`.
+Then Phase 2 opens. Item 2.1 is unblocked and its row carries three
+warnings, of which the important one is: do not assert `sd(ndt)`. The
+criterion is satisfiable without the model doing any work, because the
+observed floors carry the spread. Assert the per-subject error and the
+log-likelihood.
+
+One unnumbered item is filed in the Phase 1 prose: `gddm()` reads every
+dpar at the first row of its condition, so a dpar that varies within a
+condition is silently ignored. That is wider than the `ndt` case that
+exposed it.
 
 ## How a round runs here
 
 Lanes in manual git worktrees off main, one item or one coherent group
 per lane. A worker writes; a reviewer whose job is to FALSIFY rather
-than confirm reads the same worktree against a reference build of the
-base commit; punch rounds go back to the worker; the same reviewer
-re-checks, because it holds the harness it already built. Two to four
-rounds is normal. Nobody but the consolidating session commits.
+than confirm reads the same worktree against a shared reference build
+of the base commit; punch rounds go back to the worker; the same
+reviewer re-checks, because it holds the harness it already built.
 
     git worktree add ../frmtmb-wt-<name> -b wt-<name> <sha>
 
-Consolidation: commit each lane on its branch, merge in an order that
-puts renames first, resolve, set versions, roxygenise, install all eight
-into one private library, run the suites and the gated tiers and the
-checks and the docs, commit the release and the docs separately, remove
-the worktrees, prune merged branches, update memory.
+Two rounds is the cap, with a third only for a blocker. Build ONE
+reference library for the whole round rather than one per reviewer.
+`dev/organizer-rules.md` has the rest, including the five cost rules.
 
-Two artifacts help and are worth keeping current:
+Consolidation: commit each lane on its branch, merge, set versions,
+roxygenise, install all eight into one private library, run the suites
+and the gated tiers and the scale tier and the checks and the docs,
+commit the release and the docs separately, remove the worktrees,
+prune merged branches, regenerate `dev/suite-baseline.tsv`.
 
-- `dev/suite-baseline.tsv` and its note. A file-count audit cannot see a
-  file that RAN and asserted less, which happens when a `test_that()`
-  block throws. Regenerate it at each release from the release run.
-- `tests/testthat/test-ci-siblings.R`. An extension depending on a
-  sibling needs its workflow to install that sibling and to list it in
-  `paths:`. frmtmb.learn's CI failed exactly that way.
+## The thing this round is actually evidence for
 
-## What the last two rounds cost, and what to carry
+Three lanes and three reviewers found six defects in shipped code. The
+consolidating session, running the release harness, produced FIVE
+broken measurements of its own:
 
-`dev/lane-rules.md` and `dev/organizer-rules.md` carry the operational
-rules. The two that generalize furthest:
+- a runner whose file paths were empty, so 216 files load-errored and
+  the summary read `pass=0 fail=0 err=0` for all eight packages;
+- a runner that never attached the packages, so every test reported
+  `could not find function` and the damage looked like a regression in
+  the one package the round had rewritten;
+- an `R CMD build --no-build-vignettes` flag that manufactured two
+  WARNINGs and a NOTE on all eight packages, including four the round
+  never touched;
+- a library restore that installed StanHeaders 2.39.1 against rstan
+  2.32.7, which a populated Stan cache hid everywhere except the two
+  blocks that compile something new;
+- a PowerShell driver whose `$env:PATH` used forward slashes so `cmd`
+  could not be resolved, which ran nothing and still wrote its
+  completion marker.
 
-**Every guard built in the 0.55.1 round failed open on its first try.**
-A loop that hit `next` on every name and asserted nothing. A hash check
-that passed on a deleted file. An argument whose affirmative value
-silently disabled the guard it gated. A count computed and never
-asserted. When reviewing a guard, construct the case where the thing it
-guards is ABSENT, not merely wrong.
+Four of the five reported plausibly. None failed loudly. The evidence
+standard in `dev/lane-rules.md` is written for lane code and every one
+of these would have been caught by applying it to the harness instead:
+read the file count and the skip count before the failure count, and
+construct the case where the thing you are measuring is ABSENT.
 
-**Instruments need checking as much as code.** Two timing claims
-evaporated under replication, three test counts turned out to be capped
-or stale, two contention artifacts were nearly filed as regressions, and
-one reviewer's own patch had three holes. A number that will not
-reproduce usually means the construction has not been found yet, not
-that the record is wrong: twice a lane called a shipped figure false and
-twice it was the lane that was wrong.
+The generalization worth carrying: **a release harness is a guard, and
+every guard built in the last two rounds failed open on its first
+try.**
 
 ## Open decisions that belong to the user, not to a session
 
-- Whether to push. Twelve commits are waiting.
-- Any change that alters what a shipped parameter MEANS, or that refuses
-  a model which currently fits. The standing policy is to break
-  backward compatibility freely, since nothing external depends on this
-  yet, but the user has wanted to hear about each one, and each needs a
-  NEWS bullet saying plainly what stops working.
-- Where a disclosure goes. The 0.6.0 `ndt` disclosure went in
-  frmtmb.eam's NEWS only, at the user's direction, rather than anywhere
-  more visible.
+- Whether to push. Eleven commits are waiting.
+- The R user library still holds StanHeaders 2.39.1. A future session
+  hits the same wall until it is pinned to 2.32.10 there; the release
+  library has the pin, the shared one does not.
+- Moving the R user library off `%LOCALAPPDATA%`, which
+  `dev/machine-library.md` argues for. It was destroyed three times in
+  nine days and the canary `ZZZ-canary.txt` is in place to identify the
+  next one.
+- Whether the tmbstan defect needs a disclosure for anyone who sampled
+  before the guard shipped.
+- Any change that alters what a shipped parameter MEANS. The standing
+  policy is to break backward compatibility freely, but the user has
+  wanted to hear about each one.
 
 ## Worktrees
 
-Two were created for 1.0a and 1.0c and then removed unused when this
-handoff was written. Create fresh ones off the current main.
+`wt-ndt`, `wt-lincmt` and `wt-tmbstan` are merged and removed. Create
+fresh ones off the current main.
