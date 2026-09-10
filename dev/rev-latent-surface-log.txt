@@ -1,0 +1,39 @@
+﻿<environment: namespace:poLCA>
+
+======== seed 20261010 ========
+frm cold      : -11647.3821151 
+poLCA nrep=10 : -11369.5799088 
+poLCA nrep=1, ten seeds:
+  -11369.5799088
+  -11369.5799088
+  -11369.5799088
+  -11369.5799088
+  -11369.5799088
+  -11369.5799088
+  -11369.5799088
+  -11369.5799088
+  -11369.5799088
+  -11369.5799088 
+landed low  : 0 of 10
+landed at frm's own local optimum (within 1 unit): 0 of 10
+worst single start: -11369.5799088   frm's cold start: -11647.3821151 
+is frm's cold start worse than EVERY poLCA single start? TRUE 
+
+======== seed 20260999 ========
+frm cold      : -11645.7792541 
+poLCA nrep=10 : -11402.7435261 
+poLCA nrep=1, ten seeds:
+  -11894.8537193
+  -11402.7435261
+  -11649.9907267
+  -11402.7435261
+  -11402.7435261
+  -12835.6891435
+  -11649.2241339
+  -11402.7435261
+  -11402.7435261
+  -11402.7435261 
+landed low  : 4 of 10
+landed at frm's own local optimum (within 1 unit): 0 of 10
+worst single start: -12835.6891435   frm's cold start: -11645.7792541 
+is frm's cold start worse than EVERY poLCA single start? FALSE 

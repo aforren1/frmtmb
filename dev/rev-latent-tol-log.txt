@@ -1,0 +1,56 @@
+﻿
+======== A0. the tolerance, priced against the noise it is protecting from ========
+a unimodal fit at logLik -245.6213689 
+  observed spread over 8 refits on ONE optimum: 3.303e-10 absolute, 1.345e-12 relative
+  hmm_starts_tol(1e-3, ll)                   : 0.0002456 absolute, 1e-06 relative
+  headroom, tolerance over observed noise    : 743657 x
+
+======== A1. two REAL optima merged, by loosening grad_tol ========
+d4 cold logLik: -1096.09575602   known better optimum 8.099 units up
+break point: grad_tol above sqrt(8.099 / |ll|) = 0.085961 makes the tolerance exceed the real gap
+
+grad_tol 0.001   tol    0.0011  modes 2  best -1087.9964652  says local: TRUE
+grad_tol 0.01    tol    0.1096  modes 2  best -1087.9964652  says local: TRUE
+grad_tol 0.03    tol    0.9865  modes 2  best -1087.9964652  says local: TRUE
+grad_tol 0.086   tol    8.1067  modes 2  best -1096.09575602  says local: FALSE
+grad_tol 0.1     tol   10.9610  modes 1  best -1096.09575602  says local: FALSE
+
+the two knobs are tied QUADRATICALLY: a 100x looser grad_tol is
+a 10 000x looser merge threshold, and nothing on the help page
+says so.
+
+======== A2. is there a boundary optimum in this family at all? ========
+every constrained quantity here is on a link: a state sd through
+log, a transition through a reference-cell logit, a random-effect
+sd through log. The outer coordinates are unbounded, so the
+'smooth and interior' precondition is structural rather than
+lucky. The nearest thing to a boundary is a variance running to
+zero, which is an ASYMPTOTE in theta, not a boundary:
+
+  logLik -670.8669946  theta -3.4147 -2.1459 
+  sd(re) on the natural scale: 0.03289 
+  max|grad| / |logLik|: 2.103e-07   <- small, so the gradient DOES vanish here
+  hmm_starts(): converged 4  not 0  error 0  modes 2 
+  scale_how: se 
+
+======== B. the replacement alignment check, on a REAL fit ========
+confint() rownames: mu1_(Intercept) | mu2_(Intercept) | sigma1_(Intercept) | sigma2_(Intercept) | tr12_(Intercept) | tr22_(Intercept) | theta_1 | theta_2 
+vcov()    rownames: mu1_(Intercept) | mu2_(Intercept) | sigma1_(Intercept) | sigma2_(Intercept) | tr12_(Intercept) | tr22_(Intercept) 
+shared rows        : 6 of 8 : mu1_(Intercept) | mu2_(Intercept) | sigma1_(Intercept) | sigma2_(Intercept) | tr12_(Intercept) | tr22_(Intercept) 
+rows with NO second path: theta_1 | theta_2 
+baseline scale_how : se 
+
+-- B1: permute two rows that HAVE a second path --
+   rows 1 and 2 : mu1_(Intercept) and mu2_(Intercept) 
+   their standard errors: 0.1341 0.1551 
+   scale_how: unit  <- CAUGHT 
+
+-- B2: permute two `theta_` rows, which have no second path --
+   rows 7 and 8 : theta_1 and theta_2 
+   their standard errors: 0.1540 0.1612 
+   scale_how: se  <- MISSED, as the comment says 
+   the cost of missing it: the two are jittered by each other's
+   standard error, a factor of 1.047 
+
+-- B3: a permutation ACROSS the two groups --
+   rows mu1_(Intercept) and theta_1 : scale_how unit  <- CAUGHT 

@@ -1,0 +1,89 @@
+﻿
+==== 1b. is the old score blind on this design, by construction? ====
+the truth's item table, P(endorse) by class and item:
+     [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
+[1,] 0.85 0.85 0.85 0.20 0.20 0.20 0.20 0.20 0.20   0.2
+[2,] 0.20 0.20 0.85 0.85 0.85 0.20 0.20 0.20 0.20   0.2
+[3,] 0.20 0.20 0.20 0.20 0.85 0.85 0.85 0.20 0.20   0.2
+[4,] 0.20 0.20 0.20 0.20 0.20 0.20 0.85 0.85 0.85   0.2
+
+row sums (the expected mean item code, minus 1, per class):
+[1] 0.395 0.395 0.395 0.395
+every class endorses exactly 3 of 10 items at 0.85 and the rest at 0.2, so the EXPECTED
+score is identical across classes: TRUE 
+
+seed 20260970: R2 of the score between the TRUE classes = 0.000814
+  class means: 0.3949 0.3919 0.3956 0.3865 
+  within-class sd: 0.128   (lane: 0.127 on seed 20260970)
+  the four slices' composition by true class:
+     truth
+slice     1     2     3     4
+    1 0.188 0.162 0.402 0.248
+    2 0.172 0.158 0.442 0.228
+    3 0.206 0.152 0.446 0.196
+    4 0.212 0.146 0.410 0.232
+
+seed 20260910: R2 of the score between the TRUE classes = 0.002555
+  class means: 0.3874 0.4014 0.3952 0.4067 
+  within-class sd: 0.1259   (lane: 0.127 on seed 20260970)
+  the four slices' composition by true class:
+     truth
+slice     1     2     3     4
+    1 0.182 0.148 0.458 0.212
+    2 0.200 0.130 0.474 0.196
+    3 0.176 0.154 0.440 0.230
+    4 0.174 0.140 0.458 0.228
+
+seed 20270401: R2 of the score between the TRUE classes = 0.000289
+  class means: 0.3927 0.3964 0.3938 0.3983 
+  within-class sd: 0.1226   (lane: 0.127 on seed 20260970)
+  the four slices' composition by true class:
+     truth
+slice     1     2     3     4
+    1 0.194 0.140 0.430 0.236
+    2 0.186 0.148 0.492 0.174
+    3 0.170 0.174 0.456 0.200
+    4 0.186 0.156 0.434 0.224
+
+==== 4. the re-measured recovery table ====
+columns: rep seed perm_truth ll_frm ll_polca ll_rel_gap reached_polca prof_err_max prof_err_rmse coef_err_max coef_cover_9 share_err_max entropy modal_acc s_frm maxgrad_rel pdhess err_c2_1 err_c2_2 err_c2_3 err_c3_1 err_c3_2 err_c3_3 err_c4_1 err_c4_2 err_c4_3 se_c2_1 se_c2_2 se_c2_3 se_c3_1 se_c3_2 se_c3_3 se_c4_1 se_c4_2 se_c4_3 
+rows: 200  distinct seeds: 200  contiguous 20260910..20261109: TRUE 
+
+reaches poLCA's optimum (|d|/|ll| < 1e-6): 200 of 200   claim 200 of 200
+worst |d|/|ll|: 1.84e-14  claim 1.8e-14
+pdHess TRUE: 200 of 200  claim 200 of 200
+maxgrad_rel range: 7.49e-10 6.47e-09  claim 7.5e-10 to 6.5e-09
+
+coverage columns: 0 :  
+NA cells: 0   non-0/1 cells: 0 
+overall: NaN (0/0)  MC 95%: NaN to NaN  claim 94.3 percent, 1698 of 1800, MC 93.3 to 95.4
+
+DENOMINATOR: 200 replicates x 9 coefficients = 1800, against the
+first table's 192 x 9 = 1728. The 8 that were excluded as a
+different optimum are now IN, because the start reaches the same
+optimum on all 200. 1800 - 1728 = 72 = 8 x 9.
+
+median fit seconds: 0.3407  claim 0.341 (old start 0.376)
+
+per-coefficient, recomputed:
+ coef truth       bias    rmse   empSD  meanSE cover95 nNA
+ c2_1  -0.4  0.0117892 0.15166 0.15158 0.14738    95.5   0
+ c2_2   0.8  0.0001696 0.11231 0.11259 0.11140    96.0   0
+ c2_3  -0.5 -0.0042095 0.19629 0.19674 0.20193    94.0   0
+ c3_1   0.2  0.0103083 0.11105 0.11085 0.10774    94.0   0
+ c3_2  -0.6 -0.0070310 0.08021 0.08010 0.08071    95.5   0
+ c3_3   0.9  0.0023341 0.14724 0.14759 0.14251    93.0   0
+ c4_1  -0.1  0.0113024 0.11593 0.11567 0.11618    95.5   0
+ c4_2   0.3  0.0043727 0.09504 0.09518 0.08863    93.0   0
+ c4_3   0.4 -0.0081303 0.15521 0.15539 0.15830    92.5   0
+sum of per-coef covered: 1698  vs matrix total  0 
+
+==== the in-sample weight sweep, recomputed ====
+rows: 200  seeds contiguous: TRUE 
+  w 0     lost  6  errored 0  worst gap    -303.44
+  w 0.1   lost  5  errored 0  worst gap    -303.44
+  w 0.25  lost  2  errored 0  worst gap    -288.87
+  w 0.5   lost  0  errored 0  worst gap  -2.11e-10
+  w 0.75  lost  1  errored 0  worst gap    -303.44
+  w 0.9   lost  0  errored 0  worst gap -3.4015e-10
+  lane's claim: 6, 5, 2, 0, 1, 0

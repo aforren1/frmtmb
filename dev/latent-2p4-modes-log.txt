@@ -1,0 +1,38 @@
+<environment: namespace:poLCA>
+seed 20260970: cold -11581.7842  poLCA10 -11299.4340  gap -282.350   conv 0 pdHess TRUE  poLCA nrep=1 low 2/10   multistart best -11569.8935 (-270.459, 1 better)
+  diagnose() said:
+    Optimizer convergence code: 0 (relative convergence (4)) 
+    Max |gradient|: 2.471e-05 at theta3_(Intercept) 
+    Hessian positive definite: TRUE 
+    No convergence problems detected 
+seed 20260990: cold -11673.9074  poLCA10 -11392.7061  gap -281.201   conv 1 pdHess TRUE  poLCA nrep=1 low 1/10   multistart best -11464.5518 (-71.846, 1 better)
+  diagnose() said:
+    Optimizer convergence code: 1 (singular convergence (7)) 
+    Max |gradient|: 0.0003172 at theta2_(Intercept) 
+    Hessian positive definite: TRUE  
+seed 20260996: cold -11657.2914  poLCA10 -11375.1752  gap -282.116   conv 1 pdHess FALSE  poLCA nrep=1 low 1/10   multistart best -11470.3900 (-95.215, 1 better)
+  diagnose() said:
+    Optimizer convergence code: 1 (false convergence (8)) 
+    Max |gradient|: 2.096e-05 at theta3_(Intercept) 
+    Hessian positive definite: FALSE 
+    Non-finite standard errors: pi3_1  
+seed 20260999: cold -11645.7793  poLCA10 -11402.7435  gap -243.036   conv 1 pdHess TRUE  poLCA nrep=1 low 4/10   multistart best -11631.6357 (-228.892, 1 better)
+  diagnose() said:
+    Optimizer convergence code: 1 (false convergence (8)) 
+    Max |gradient|: 2.819e-05 at theta3_x21 
+    Hessian positive definite: TRUE  
+seed 20261010: cold -11647.3821  poLCA10 -11369.5799  gap -277.802   conv 1 pdHess TRUE  poLCA nrep=1 low 0/10   multistart best -11473.0366 (-103.457, 1 better)
+  diagnose() said:
+    Optimizer convergence code: 1 (false convergence (8)) 
+    Max |gradient|: 2.382e-05 at theta3_(Intercept) 
+    Hessian positive definite: TRUE  
+seed 20261013: cold -11612.7964  poLCA10 -11339.4453  gap -273.351   conv 1 pdHess TRUE  poLCA nrep=1 low 0/10   multistart best -11612.7964 (-273.351, 0 better)
+  diagnose() said:
+    Optimizer convergence code: 1 (false convergence (8)) 
+    Max |gradient|: 3.599e-05 at theta2_(Intercept) 
+    Hessian positive definite: TRUE  
+seed 20261042: cold -11691.7885  poLCA10 -11407.9778  gap -283.811   conv 1 pdHess TRUE  poLCA nrep=1 low 1/10   multistart best -11489.4264 (-81.449, 1 better)
+  diagnose() said:
+    Optimizer convergence code: 1 (false convergence (8)) 
+    Max |gradient|: 2.276e-05 at theta2_(Intercept) 
+    Hessian positive definite: TRUE  

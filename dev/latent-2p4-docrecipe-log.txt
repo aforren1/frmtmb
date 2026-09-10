@@ -1,0 +1,9 @@
+<environment: namespace:poLCA>
+seed 20260970: cold -11581.784  poLCA10 -11299.434  docrecipe -11299.434   gap_cold -282.35 gap_doc -0.00  better 9/10 err 0   spread 284.66  6.3s
+seed 20260990: cold -11673.907  poLCA10 -11392.706  docrecipe -11392.706   gap_cold -281.20 gap_doc -0.00  better 9/10 err 0   spread 282.79  7.1s
+seed 20260996: cold -11657.291  poLCA10 -11375.175  docrecipe -11375.175   gap_cold -282.12 gap_doc -0.00  better 10/10 err 0   spread 0.00  6.1s
+seed 20260999: cold -11645.779  poLCA10 -11402.744  docrecipe -11402.744   gap_cold -243.04 gap_doc -0.00  better 9/10 err 0   spread 243.04  15.6s
+seed 20261010: cold -11647.382  poLCA10 -11369.580  docrecipe -11369.580   gap_cold -277.80 gap_doc -0.00  better 8/10 err 0   spread 277.80  16.8s
+seed 20261013: cold -11612.796  poLCA10 -11339.445  docrecipe -11339.445   gap_cold -273.35 gap_doc -0.00  better 10/10 err 0   spread 0.00  6.2s
+seed 20261042: cold -11691.789  poLCA10 -11407.978  docrecipe -11407.978   gap_cold -283.81 gap_doc -0.00  better 9/10 err 0   spread 283.81  7.4s
+seed 20261043: cold -11496.205  poLCA10 -11227.298  docrecipe -11227.298   gap_cold -268.91 gap_doc -0.00  better 8/10 err 0   spread 272.28  6.9s

@@ -1,0 +1,70 @@
+﻿
+======== T1a. hmmTMB initial_state = 'estimated' against frmtmb's ========
+sequences                          : 20 
+hmmTMB free delta0 entries         : 40   ( (K-1) x n_seq = 40 )
+frmtmb free initial-distribution df: 2 
+extra parameters hmmTMB carries    : 38   claim 38
+frmtmb logLik  : -3086.49259156 
+hmmTMB llk()   : -3066.81487199 
+hmmTMB minus frmtmb: 19.6777   claim 21.2
+does either output say the two models differ? checked by hand:
+  frmtmb df attr(logLik)  : 15 
+  hmmTMB edf()            : 62.621044 
+Rscript : Warning message:
+At line:3 char:1
++ Rscript dev/rev-latent-hmmtmb.R > dev/rev-latent-hmmtmb-log.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning message::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+In prec_to_cov(Q) :
+  Inversion of precision matrix using 'solve' failed: system is computationally singular: reciprocal condition number 
+= 1.0988e-17. Using 'MASS::ginv' instead (uncertainty estimates may be unreliable).
+
+======== T1b. the RETRACTED explanation, priced ========
+hmmTMB sd_re                       : 0.52936808 
+-(k/2) log(2 pi sd^2), k = 20      : -5.6573451   findings say 5.66 at the lane's own draw
+gap                                : 19.67772 
+residual after the normalizer      : 14.020375  <- not zero, so the normalizer is not the explanation
+
+======== T1c. the CORRECT explanation: pin delta0 on both sides ========
+frmtmb init = 'uniform'            : -3088.0453781018 
+hmmTMB delta0 pinned at uniform    : -3088.0453781016 
+absolute difference                : 2.028e-10 
+relative difference                : 6.568e-14   claim 1e-11 or better
+is delta0 actually uniform there?  :
+     state1    state2    state3
+1 0.3333333 0.3333333 0.3333333
+2 0.3333333 0.3333333 0.3333333
+
+======== T2. the tpm column: population, or sequence 1's own matrix? ========
+sequence 1's conditional mode on tr12: -0.227046 
+
+frmtmb POPULATION tpm:
+         [,1]     [,2]     [,3]
+[1,] 0.831757 0.108926 0.059317
+[2,] 0.100622 0.847015 0.052363
+[3,] 0.119431 0.036111 0.844459
+frmtmb tpm + sequence 1's mode:
+         [,1]     [,2]     [,3]
+[1,] 0.850576 0.088766 0.060659
+[2,] 0.100622 0.847015 0.052363
+[3,] 0.119431 0.036111 0.844459
+hmmTMB par()$tpm[, , 1]:
+         [,1]     [,2]     [,3]
+[1,] 0.850577 0.088765 0.060658
+[2,] 0.100622 0.847015 0.052363
+[3,] 0.119429 0.036112 0.844459
+
+max |population   - hmmTMB[, , 1]| : 0.02016 
+max |with mode u1 - hmmTMB[, , 1]| : 1.892e-06  <- the harness artifact, confirmed
+ratio of the two                   : 10656 
+
+conditional modes, first five      : -0.22705  0.16754  0.04389  0.91418  0.16889 
+which sequence's mode closes it    : 1  (gap 1.89e-06 )
+second best                        : 10  (gap 0.00245 )
+
+======== T3. does a `state` column still get read as known states? ========
+with a `state` column, hmmTMB llk(): -3202.76240826 
+without it                         : -3066.81487199 
+difference                         : -135.948  <- non-zero means the column changed the model, silently

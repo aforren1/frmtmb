@@ -477,6 +477,150 @@ test_that("hmm agrees with hmmTMB on the stationary fixed-effect model", {
   expect_equal(as.numeric(hp$tpm[, , 1]), as.numeric(G), tolerance = 1e-5)
 })
 
+## ---- item 2.3: the two third-party identities of the plan's row -------
+##
+## Both are the plan's model shrunk to a size the ordinary suite can
+## afford: K = 3 gaussian with the same transition matrix, and the same
+## random effect on `tr12`. The realistic scale, 50 sequences of 500,
+## runs in dev/latent-2p3-hmm.R and its tables are in ?hmm and
+## dev/latent-findings.md. Every tolerance here is a RATIO to something
+## the run measures.
+
+# item 2.3's transition matrix, state 1 the reference of every row
+eta3 <- rbind(c(-1.5, -2.5), c(2.0, -1.0), c(-1.0, 2.0))
+tpm3 <- t(apply(cbind(0, eta3), 1L,
+                function(z) exp(z) / sum(exp(z))))
+
+test_that("a three-state gaussian HMM agrees with depmixS4", {
+  skip_on_cran()
+  skip_if_not_installed("depmixS4")
+  dd <- sim_hmm(20, 100, tpm3, c(-2, 0, 3), rep(0.7, 3), 20260910L)
+  # the absolute-gradient warning fires on any long chain, because the
+  # objective's own magnitude sets the scale the optimizer stops at
+  # (see the Cost section of ?hmm). It is suppressed here and the
+  # RELATIVE gradient asserted instead, so nothing is silenced blind.
+  fit <- suppressWarnings(
+    frm(bf(y ~ 1),
+        family = hmm(K = 3, gaussian(), time = t, group = id,
+                     init = "estimated"), data = dd))
+  ll <- as.numeric(logLik(fit))
+  expect_lt(frmtmb::diagnose(fit, quiet = TRUE)$max_grad / abs(ll), 1e-5)
+  dm <- depmixS4::depmix(y ~ 1, data = dd, nstates = 3,
+                         ntimes = as.integer(table(dd$id)))
+  set.seed(900001L)
+  best <- -Inf
+  bp <- NULL
+  for (i in 1:4) {
+    ff <- try(suppressMessages(depmixS4::fit(
+      dm, verbose = FALSE, emcontrol = depmixS4::em.control(
+        random.start = TRUE, tol = 1e-12, maxit = 5000))), silent = TRUE)
+    if (!inherits(ff, "try-error")) {
+      v <- as.numeric(depmixS4::logLik(ff))
+      if (v > best) { best <- v; bp <- depmixS4::getpars(ff) }
+    }
+  }
+  # NOT skip_if(): a reference that never converged, or a label order
+  # the two packages do not share, would abandon this block after one
+  # or two of its five assertions and print a green line for an
+  # identity that was never checked
+  expect_true(is.finite(best))
+  expect_lt(abs(ll - best) / abs(ll), 1e-8)
+
+  # depmixS4 lays out K prior parameters, then K rows of K transition
+  # probabilities, then per state (mean, sd)
+  Gr <- matrix(bp[4:12], 3, 3, byrow = TRUE)
+  mr <- bp[12 + seq(1L, 6L, by = 2L)]
+  sr <- bp[12 + seq(2L, 6L, by = 2L)]
+  e <- icpt(fit)
+  mu <- c(e[["mu1"]], e[["mu2"]], e[["mu3"]])
+  sg <- exp(c(e[["sigma1"]], e[["sigma2"]], e[["sigma3"]]))
+  G <- rbind(ref_tpm(c(e[["tr12"]], e[["tr13"]])),
+             ref_tpm(c(e[["tr22"]], e[["tr23"]])),
+             ref_tpm(c(e[["tr32"]], e[["tr33"]])))
+  p <- vapply(seq_len(3L), function(k) which.min(abs(mr - mu[k])),
+              integer(1))
+  expect_identical(anyDuplicated(p), 0L)
+  # the yardstick is the fit's OWN standard error on the state means,
+  # which is what the run measures the agreement against
+  se_mu <- max(sqrt(diag(vcov(fit)))[1:3])
+  expect_lt(max(abs(mu - mr[p])) / se_mu, 1e-2)
+  expect_lt(max(abs(sg - sr[p])) / se_mu, 1e-2)
+  expect_lt(max(abs(G - Gr[p, p, drop = FALSE])) / se_mu, 1e-2)
+})
+
+test_that("a random effect on a transition agrees with hmmTMB", {
+  skip_on_cran()
+  skip_if_not_installed("hmmTMB")
+  # one random intercept per sequence on the 1 -> 2 transition, which
+  # is the plan's row 2.3 model
+  set.seed(20260910L)
+  ns <- 15L
+  tl <- 120L
+  u <- stats::rnorm(ns, 0, 0.6)
+  dd <- do.call(rbind, lapply(seq_len(ns), function(i) {
+    e <- eta3
+    e[1L, 1L] <- e[1L, 1L] + u[i]
+    G <- t(apply(cbind(0, e), 1L, function(z) exp(z) / sum(exp(z))))
+    s <- integer(tl)
+    s[1L] <- sample.int(3L, 1L)
+    for (t in seq_len(tl)[-1L]) {
+      s[t] <- sample.int(3L, 1L, prob = G[s[t - 1L], ])
+    }
+    data.frame(id = i, t = seq_len(tl),
+               y = stats::rnorm(tl, c(-2, 0, 3)[s], 0.7))
+  }))
+  dd$id <- factor(dd$id)
+
+  # init = "uniform" on BOTH sides. hmmTMB's initial_state =
+  # "estimated" fits one initial distribution PER SEQUENCE where
+  # frmtmb's fits one shared, which is a different model and a
+  # different log-likelihood (dev/latent-findings.md).
+  fit <- suppressWarnings(
+    frm(bf(y ~ 1, tr12 ~ 1 + (1 | id)),
+        family = hmm(K = 3, gaussian(), time = t, group = id,
+                     init = "uniform"), data = dd))
+  ll <- as.numeric(logLik(fit))
+
+  # `state` is absent by construction: hmmTMB reads such a column as
+  # KNOWN states, silently (probe D3)
+  dh <- data.frame(ID = factor(dd$id), t = dd$t, y = dd$y)
+  fmat <- matrix("~1", 3, 3)
+  diag(fmat) <- "."
+  fmat[1L, 2L] <- "~s(ID, bs = \"re\")"
+  h0 <- suppressMessages(hmmTMB::MarkovChain$new(
+    data = dh, n_states = 3, formula = fmat,
+    initial_state = "estimated"))
+  ld <- h0$delta0(log = TRUE, as_matrix = FALSE)
+  hid <- suppressMessages(hmmTMB::MarkovChain$new(
+    data = dh, n_states = 3, formula = fmat,
+    initial_state = "estimated",
+    fixpar = list(delta0 = stats::setNames(rep(NA_real_, length(ld)),
+                                           rownames(ld)))))
+  obs <- hmmTMB::Observation$new(
+    data = dh, n_states = 3, dists = list(y = "norm"),
+    par = list(y = list(mean = c(-2, 0, 3), sd = rep(0.7, 3))))
+  hm <- hmmTMB::HMM$new(obs = obs, hid = hid)
+  suppressWarnings(hm$fit(silent = TRUE))
+
+  # the two Laplace marginals are the same function once the initial
+  # distribution is pinned on both sides
+  expect_lt(abs(ll - hm$llk()) / abs(ll), 1e-8)
+
+  hp <- hm$par()
+  e <- icpt(fit)
+  mu <- c(e[["mu1"]], e[["mu2"]], e[["mu3"]])
+  mr <- as.numeric(hp$obspar["y.mean", , 1])
+  p <- vapply(seq_len(3L), function(k) which.min(abs(mr - mu[k])),
+              integer(1))
+  expect_identical(anyDuplicated(p), 0L)
+  se_mu <- max(sqrt(diag(vcov(fit)))[1:3])
+  expect_lt(max(abs(mu - mr[p])) / se_mu, 1e-2)
+  # and the variance component itself, against hmmTMB's own
+  sd_f <- sqrt(VarCorr(fit)[[1L]][1L, 1L])
+  sd_h <- as.numeric(hid$sd_re()[1L, 1L])
+  expect_lt(abs(sd_f - sd_h) / sd_f, 1e-3)
+})
+
 ## ---- stage 5: post-processing ------------------------------------------
 
 test_that("hmm_probs() and hmm_viterbi() match a per-sequence reference", {

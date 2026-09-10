@@ -1,0 +1,35 @@
+﻿mutant F1 applied to C:\Users\adf44\source\r\rev-latent-fix/R/hmm-starts.R 
+
+* DONE (frmtmb.latent)
+install exit=0
+======== the six unimodal fits, with the fix ========
+frmtmb.latent from: C:/Users/adf44/source/r/rev-latent-fixlib/frmtmb.latent 
+
+-- the six unimodal fits (guard3 case F) --
+ data_seed modes best_is_original says_local_optimum says_original_best
+      4501     1             TRUE              FALSE               TRUE
+      4502     1             TRUE              FALSE               TRUE
+      4503     1             TRUE              FALSE               TRUE
+      4504     1             TRUE              FALSE               TRUE
+      4505     1             TRUE              FALSE               TRUE
+      4506     1             TRUE              FALSE               TRUE
+false alarms with the fix: 0 of 6  (without it: 6 of 6)
+best left as the incumbent: 6 of 6
+
+-- the d4 probe, where the message must still fire --
+cold logLik : -1096.09575602 
+best logLik : -1087.9964652 
+gap         : 8.0992908 
+modes       : 2 
+still says 'found a local optimum': TRUE 
+margin over the new threshold, as a ratio: 7389.2 
+======== test-hmm-starts.R, with the fix ========
+BLOCKS  13 
+ASSERT  57 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+  RUN exit=0
+======== done ========
+
+

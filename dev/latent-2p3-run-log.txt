@@ -1,0 +1,60 @@
+A recovery: 40 replicates, no third-party arm, 00:40
+A rep   1  ll -39087.4745 ref -  relgap -  estgap -   mu_err 0.0102 tpm_err 0.0074 perm 123  11s/0s
+A rep   2  ll -39488.6782 ref -  relgap -  estgap -   mu_err 0.0117 tpm_err 0.0059 perm 123  7s/0s
+A rep   3  ll -38973.3313 ref -  relgap -  estgap -   mu_err 0.0099 tpm_err 0.0054 perm 123  7s/0s
+A rep   4  ll -39210.4890 ref -  relgap -  estgap -   mu_err 0.0131 tpm_err 0.0069 perm 123  14s/0s
+A rep   5  ll -39012.3482 ref -  relgap -  estgap -   mu_err 0.0147 tpm_err 0.0068 perm 123  9s/0s
+A rep   6  ll -39093.2748 ref -  relgap -  estgap -   mu_err 0.0076 tpm_err 0.0061 perm 123  9s/0s
+A rep   7  ll -39115.5494 ref -  relgap -  estgap -   mu_err 0.0132 tpm_err 0.0030 perm 123  9s/0s
+A rep   8  ll -39155.0469 ref -  relgap -  estgap -   mu_err 0.0086 tpm_err 0.0043 perm 123  9s/0s
+A rep   9  ll -39006.9114 ref -  relgap -  estgap -   mu_err 0.0176 tpm_err 0.0092 perm 123  11s/0s
+A rep  10  ll -38854.8300 ref -  relgap -  estgap -   mu_err 0.0088 tpm_err 0.0072 perm 123  11s/0s
+A rep  11  ll -39462.3843 ref -  relgap -  estgap -   mu_err 0.0169 tpm_err 0.0080 perm 123  15s/0s
+A rep  12  ll -39197.4882 ref -  relgap -  estgap -   mu_err 0.0178 tpm_err 0.0078 perm 123  15s/0s
+A rep  13  ll -39360.8913 ref -  relgap -  estgap -   mu_err 0.0166 tpm_err 0.0075 perm 123  26s/0s
+A rep  14  ll -38714.7749 ref -  relgap -  estgap -   mu_err 0.0056 tpm_err 0.0050 perm 123  13s/0s
+A rep  15  ll -39189.3649 ref -  relgap -  estgap -   mu_err 0.0047 tpm_err 0.0021 perm 123  7s/0s
+A rep  16  ll -39082.7446 ref -  relgap -  estgap -   mu_err 0.0101 tpm_err 0.0049 perm 123  7s/0s
+A rep  17  ll -39019.7040 ref -  relgap -  estgap -   mu_err 0.0117 tpm_err 0.0077 perm 123  6s/0s
+A rep  18  ll -39029.9469 ref -  relgap -  estgap -   mu_err 0.0162 tpm_err 0.0064 perm 123  7s/0s
+A rep  19  ll -39268.3905 ref -  relgap -  estgap -   mu_err 0.0116 tpm_err 0.0053 perm 123  6s/0s
+A rep  20  ll -39026.0911 ref -  relgap -  estgap -   mu_err 0.0096 tpm_err 0.0126 perm 123  6s/0s
+A rep  21  ll -39259.5984 ref -  relgap -  estgap -   mu_err 0.0214 tpm_err 0.0093 perm 123  7s/0s
+A rep  22  ll -39189.6033 ref -  relgap -  estgap -   mu_err 0.0137 tpm_err 0.0107 perm 123  7s/0s
+A rep  23  ll -39025.8147 ref -  relgap -  estgap -   mu_err 0.0109 tpm_err 0.0028 perm 123  6s/0s
+A rep  24  ll -38874.8330 ref -  relgap -  estgap -   mu_err 0.0068 tpm_err 0.0056 perm 123  9s/0s
+A rep  25  ll -38940.5613 ref -  relgap -  estgap -   mu_err 0.0167 tpm_err 0.0065 perm 123  10s/0s
+A rep  26  ll -38975.7860 ref -  relgap -  estgap -   mu_err 0.0122 tpm_err 0.0121 perm 123  7s/0s
+A rep  27  ll -38724.2400 ref -  relgap -  estgap -   mu_err 0.0169 tpm_err 0.0107 perm 123  5s/0s
+A rep  28  ll -39299.9513 ref -  relgap -  estgap -   mu_err 0.0190 tpm_err 0.0059 perm 123  13s/0s
+A rep  29  ll -38968.3926 ref -  relgap -  estgap -   mu_err 0.0207 tpm_err 0.0060 perm 123  15s/0s
+A rep  30  ll -39210.7602 ref -  relgap -  estgap -   mu_err 0.0093 tpm_err 0.0106 perm 123  13s/0s
+A rep  31  ll -38924.9587 ref -  relgap -  estgap -   mu_err 0.0077 tpm_err 0.0046 perm 123  8s/0s
+A rep  32  ll -39122.7197 ref -  relgap -  estgap -   mu_err 0.0122 tpm_err 0.0046 perm 123  5s/0s
+A rep  33  ll -38978.0235 ref -  relgap -  estgap -   mu_err 0.0138 tpm_err 0.0115 perm 123  10s/0s
+A rep  34  ll -39079.2054 ref -  relgap -  estgap -   mu_err 0.0104 tpm_err 0.0084 perm 123  9s/0s
+A rep  35  ll -38910.3796 ref -  relgap -  estgap -   mu_err 0.0096 tpm_err 0.0080 perm 123  12s/0s
+A rep  36  ll -38868.7111 ref -  relgap -  estgap -   mu_err 0.0071 tpm_err 0.0140 perm 123  12s/0s
+A rep  37  ll -39073.0911 ref -  relgap -  estgap -   mu_err 0.0059 tpm_err 0.0045 perm 123  11s/0s
+A rep  38  ll -39058.9254 ref -  relgap -  estgap -   mu_err 0.0178 tpm_err 0.0070 perm 123  9s/0s
+A rep  39  ll -39102.7996 ref -  relgap -  estgap -   mu_err 0.0106 tpm_err 0.0089 perm 123  11s/0s
+A rep  40  ll -39161.2715 ref -  relgap -  estgap -   mu_err 0.0171 tpm_err 0.0061 perm 123  10s/0s
+A exit=0 at 00:49
+B: 15 replicates, hmmTMB on the first 6, 00:49
+B rep   1  ll -39152.0626 ref -39152.0626  relgap 9.05e-12  estgap 9.95e-06   mu_err 0.0091 tpm_err 0.0157 perm 123  264s/169s
+B rep   2  ll -38993.4029 ref -38993.4029  relgap 2.09e-11  estgap 5.18e-06   mu_err 0.0101 tpm_err 0.0139 perm 123  199s/78s
+B rep   3  ll -38792.8272 ref -38792.8272  relgap 6.86e-11  estgap 2.04e-05   mu_err 0.0149 tpm_err 0.0069 perm 123  152s/133s
+B rep   4  ll -39030.4853 ref -39030.4853  relgap 2.43e-11  estgap 3.49e-05   mu_err 0.0143 tpm_err 0.0070 perm 123  194s/112s
+B rep   5  ll -38964.1838 ref -38964.1838  relgap 2.71e-11  estgap 1.30e-04   mu_err 0.0085 tpm_err 0.0106 perm 123  145s/98s
+B rep   6  ll -38698.9619 ref -38698.9619  relgap 6.10e-12  estgap 2.07e-05   mu_err 0.0105 tpm_err 0.0078 perm 123  137s/81s
+B rep   7  ll -38956.3271 ref -  relgap -  estgap -   mu_err 0.0105 tpm_err 0.0066 perm 123  160s/0s
+B rep   8  ll -38804.9220 ref -  relgap -  estgap -   mu_err 0.0118 tpm_err 0.0126 perm 123  127s/0s
+B rep   9  ll -39091.7795 ref -  relgap -  estgap -   mu_err 0.0090 tpm_err 0.0302 perm 123  147s/0s
+B rep  10  ll -38887.1424 ref -  relgap -  estgap -   mu_err 0.0170 tpm_err 0.0240 perm 123  211s/0s
+B rep  11  ll -39169.6659 ref -  relgap -  estgap -   mu_err 0.0114 tpm_err 0.0085 perm 123  139s/0s
+B rep  12  ll -38881.0638 ref -  relgap -  estgap -   mu_err 0.0134 tpm_err 0.0228 perm 123  139s/0s
+B rep  13  ll -39143.0259 ref -  relgap -  estgap -   mu_err 0.0050 tpm_err 0.0096 perm 123  210s/0s
+B rep  14  ll -38886.1286 ref -  relgap -  estgap -   mu_err 0.0077 tpm_err 0.0098 perm 123  229s/0s
+B rep  15  ll -38830.9074 ref -  relgap -  estgap -   mu_err 0.0047 tpm_err 0.0230 perm 123  184s/0s
+B exit=0 at 01:53
+ARMS DONE

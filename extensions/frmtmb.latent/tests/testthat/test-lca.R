@@ -151,6 +151,113 @@ test_that("a covariate on the formula gates class membership", {
 
 # -------------------------------------------------- poLCA agreement
 
+# Item 2.4 of dev/extension-gaps-plan.md's realistic-scale design, at
+# one seed: n = 2000, ten binary items, four classes, two covariates on
+# membership. Byte-identical to `lca_sim()` in dev/latent-lca-sim.R,
+# which is what every replicate sweep in that item used, so a fit here
+# and a row in dev/latent-2p4-lca.tsv or -oos.tsv are the same data.
+sim_lca_scale <- function(seed, n = 2000L, J = 10L, K = 4L) {
+  set.seed(seed)
+  x1 <- stats::rnorm(n)
+  x2 <- stats::rbinom(n, 1L, 0.5)
+  gam <- rbind(c(0, 0, 0), c(-0.4, 0.8, -0.5), c(0.2, -0.6, 0.9),
+               c(-0.1, 0.3, 0.4))
+  eta <- cbind(1, x1, x2) %*% t(gam)
+  pr <- exp(eta) / rowSums(exp(eta))
+  cl <- apply(pr, 1L, function(p) sample.int(K, 1L, prob = p))
+  base <- matrix(0.2, K, J)
+  for (k in seq_len(K)) {
+    base[k, ((k - 1L) * 2L + 1L):((k - 1L) * 2L + 3L)] <- 0.85
+  }
+  Y <- matrix(0L, n, J)
+  for (j in seq_len(J)) Y[, j] <- 1L + stats::rbinom(n, 1L, base[cl, j])
+  dd <- data.frame(x1 = x1, x2 = factor(x2))
+  dd$Y <- Y
+  list(dd = dd, Y = Y, cl = cl, base = base, gam = gam, K = K, J = J)
+}
+
+test_that("the starting rule's shrink weight is pinned", {
+  skip_on_cran()
+  # THE ONE CONSTANT IN THE STARTING RULE, WHICH MOVED TWICE IN REVIEW.
+  # It is one number in one place (`lca_init_extras()`), it ships at
+  # 0.9, and until this block nothing in the suite noticed it moving.
+  #
+  # Seed 20270476 discriminates in BOTH directions, which is why it is
+  # the one used. Measured in dev/latent-2p4-oos.tsv, poLCA start seed
+  # 930076: shrink weights 0, 0.25, 0.5 and 0.99 reach -11763.41,
+  # -11749.43, -11764.04 and -11763.41 there, while 0.75, 0.9 and 0.95
+  # all reach poLCA(nrep = 10)'s -11507.6035576. So an edit toward
+  # either edge of the usable interval fails this, and the assertions
+  # below are one bound on each side.
+  s <- sim_lca_scale(20270476L)
+  fit <- suppressWarnings(suppressMessages(
+    frm(bf(Y ~ x1 + x2), family = lca(K = s$K), data = s$dd,
+        control = tight())))
+  ll <- as.numeric(logLik(fit))
+  # the optimum, relative to its own magnitude rather than as an
+  # absolute difference
+  expect_lt(abs(ll - (-11507.6035576)) / abs(ll), 1e-8)
+  # and clear of every losing weight's optimum by more than 200 units,
+  # stated as a ratio to the log-likelihood so nothing here is absolute
+  expect_gt((ll - (-11749.4292809)) / abs(ll), 1e-2)
+})
+
+test_that("lca() reproduces poLCA at the realistic scale (K = 4, n = 2000)", {
+  skip_on_cran()
+  skip_if_not_installed("poLCA")
+  suppressMessages(loadNamespace("poLCA"))
+  # one replicate of the 200 in dev/latent-2p4-lca.R, at that run's
+  # first seed
+  s <- sim_lca_scale(20260910L)
+  n <- 2000L
+  J <- s$J
+  K <- s$K
+  base <- s$base
+  dd <- s$dd
+  Y <- s$Y
+  dp <- data.frame(x1 = dd$x1, x2 = dd$x2)
+  for (j in seq_len(J)) dp[[paste0("I", j)]] <- Y[, j]
+
+  fit <- suppressWarnings(suppressMessages(
+    frm(bf(Y ~ x1 + x2), family = lca(K = K), data = dd,
+        control = tight())))
+  set.seed(700001L)
+  pl <- poLCA::poLCA(
+    stats::as.formula(paste0("cbind(",
+      paste(paste0("I", seq_len(J)), collapse = ", "), ") ~ x1 + x2")),
+    dp, nclass = K, nrep = 10L, verbose = FALSE, maxiter = 20000,
+    tol = 1e-12)
+
+  ll <- as.numeric(logLik(fit))
+  expect_lt(abs(ll - pl$llik) / abs(ll), 1e-10)
+
+  # every tolerance below is a RATIO to something this run measured:
+  # poLCA's own standard errors on the very quantities being compared
+  Pf <- vapply(lca_profiles(fit), function(m) m[, 2L], numeric(K))
+  Pp <- vapply(pl$probs, function(m) m[, 2L], numeric(K))
+  perms <- as.matrix(expand.grid(rep(list(seq_len(K)), K)))
+  perms <- perms[apply(perms, 1L, function(p) length(unique(p)) == K), ]
+  dst <- apply(perms, 1L, function(p) max(abs(Pf[p, ] - Pp)))
+  pm <- perms[which.min(dst), ]
+  se_pr <- max(vapply(pl$probs.se, function(m) m[, 2L], numeric(K)))
+  expect_lt(min(dst) / se_pr, 1e-3)
+
+  # the gating coefficients, both re-referenced to poLCA's class 1
+  Bf <- rbind(matrix(unlist(lapply(seq_len(K - 1L), function(k) {
+    unname(fixef(fit)[[paste0("theta", k)]])
+  })), nrow = K - 1L, byrow = TRUE), 0)[pm, , drop = FALSE]
+  Bf <- sweep(Bf, 2L, Bf[1L, ], "-")
+  expect_lt(max(abs(Bf - rbind(0, t(pl$coeff)))) / max(pl$coeff.se),
+            1e-3)
+
+  # and the model recovers the truth exactly as well as poLCA does on
+  # the same data, which is the only recovery claim ONE replicate can
+  # carry. The 200-replicate table is in ?lca and dev/latent-findings.md
+  dt <- apply(perms, 1L, function(p) max(abs(Pf[p, ] - base)))
+  dq <- apply(perms, 1L, function(p) max(abs(Pp[p, ] - base)))
+  expect_lt(abs(min(dt) - min(dq)) / se_pr, 1e-3)
+})
+
 test_that("lca() reproduces poLCA on the carcinoma data (K = 3)", {
   skip_if_not_installed("poLCA")
   suppressMessages(loadNamespace("poLCA"))
@@ -196,8 +303,12 @@ test_that("lca() reproduces poLCA's latent class regression", {
   # the items are factors; data.matrix() takes their level order, which
   # is the documented conversion and poLCA's own
   dd$Y <- data.matrix(election[items])
-  fit <- suppressMessages(
-    frm(bf(Y ~ PARTY), family = lca(K = 2), data = dd, control = tight()))
+  # the election solution sits on a boundary, so nlminb reports singular
+  # convergence at an optimum poLCA reaches too; the log-likelihood
+  # comparison two lines below is the check, exactly as on carcinoma
+  fit <- suppressWarnings(suppressMessages(
+    frm(bf(Y ~ PARTY), family = lca(K = 2), data = dd,
+        control = tight())))
 
   # poLCA drops incomplete cases (na.rm = TRUE) and so does na.omit
   expect_equal(stats::nobs(fit), pl$N)

@@ -1,0 +1,9 @@
+  25 seeds
+  50 seeds
+  75 seeds
+  100 seeds
+  125 seeds
+  150 seeds
+  175 seeds
+  200 seeds
+wrote dev/latent-2p4-recheck-oos.tsv 

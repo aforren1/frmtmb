@@ -1,0 +1,35 @@
+﻿
+======== I. does hmm_starts() move the original fit's standard errors? ========
+confint() bitwise identical before and after: TRUE 
+vcov()    bitwise identical before and after: TRUE 
+obj$env$last.par.best identical             : TRUE 
+logLik(fit) unchanged                       : TRUE 
+
+======== Ia. and what a REUSED objective would have done, for contrast ========
+one fn() call away from the optimum moved last.par.best: FALSE 
+  max |change| in last.par.best: 0 
+  so the header's reason for re-evaluating the call is a real
+  hazard, not a hypothetical one.
+
+======== II. is $best a usable fit? ========
+best is a refit rather than the incumbent: TRUE 
+  summary  on $best : ok
+  confint  on $best : ok
+  vcov     on $best : ok
+  fixef    on $best : ok
+  logLik   on $best : ok
+  frmtmb::diagnose() on $best: ok 
+
+======== III. the two tolerances, side by side ========
+grad_tol default          : 0.001 
+mode_tol = grad_tol^2     : 1e-06  relative
+on a fit at logLik -245.62137 two optima are MERGED when they
+  differ by less than 0.0002456 log-likelihood units.
+the sentence 'the original fit found a local optimum' fires when
+  the best refit is ANY amount above the incumbent: the test is
+  `gap > 0` in print.frmtmb_hmm_starts(), and the swap that makes
+  the gap is `lli > logLik(best)` in hmm_starts(). Neither has a
+  tolerance.
+measured gaps that triggered it on unimodal fits (guard3, case F):
+  6.0e-11 to 1.5e-09, against a merge threshold of 0.000246 
+ratio, threshold over the largest false trigger: 167751 

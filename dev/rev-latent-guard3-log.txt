@@ -1,0 +1,83 @@
+﻿
+======== F. 'the original fit found a local optimum', on a unimodal fit ========
+Six independent data sets, one hmm_starts(n = 8, jitter = 2) each.
+Every refit reaching the SAME optimum is the correct answer; the
+question is what the summary then SAYS.
+
+ data_seed modes      spread gap_best_minus_orig says_local_optimum
+      4501     1 1.34682e-09         3.33387e-10               TRUE
+      4502     1 1.31888e-09         9.40020e-10               TRUE
+      4503     1 4.64439e-10         4.64439e-10               TRUE
+      4504     1 2.03437e-09         6.04246e-11               TRUE
+      4505     1 1.46420e-09         1.46420e-09               TRUE
+      4506     1 9.45039e-09         5.72413e-11               TRUE
+ says_original_best
+              FALSE
+              FALSE
+              FALSE
+              FALSE
+              FALSE
+              FALSE
+
+runs on a single-optimum surface that were told the original
+fit found a LOCAL optimum: 6 of 6
+largest gap that triggered it: 1.46e-09 
+the spread printed beside it: 9.45e-09 
+`lli > logLik(best)` and `gap > 0` carry no tolerance, so on a
+unimodal surface the incumbent loses to optimizer noise whenever
+any of the n refits lands a fraction of a ulp higher.
+
+======== G. a refit that converges cleanly to a WORSE optimum ========
+warm incumbent logLik: -1087.9964652035 
+
+jitter 4 : converged 8  not 0  error 0  modes 1  spread 1.7486855e-08 
+  CONVERGED refits strictly worse than the incumbent: 0 
+  best stayed the incumbent: TRUE 
+        logLik n
+ -1087.9964652 9
+
+jitter 8 : converged 8  not 0  error 0  modes 3  spread 48.546414 
+  CONVERGED refits strictly worse than the incumbent: 2 
+  logLiks: -1136.54287943 -1101.14374580 
+  grad_rel: 3.99e-08 2.32e-07 
+  deepest below the incumbent: 48.546414 
+  best stayed the incumbent: TRUE 
+         logLik n
+ -1087.99646520 7
+ -1101.14374580 1
+ -1136.54287943 1
+
+======== H. hmm_starts_scale()'s 'unit' fallback, by construction ========
+The branch is reached when confint() errors, returns the wrong
+number of rows, disagrees with fit$opt$par, or reports no usable
+standard error at all. Each is tried below.
+
+-- H1: can the alignment test EVER fail? --
+confint.frmtmb_fit() sets its `est` column to object$opt$par
+(R/confint.R:383). The test compares that column with
+fit[['opt']][['par']], so it is a vector against itself unless
+confint()'s own length(est) != length(se) fallback fires, which
+the core comments call defensive only.
+identical(ci[,'est'], opt$par): TRUE 
+nrow(ci) == length(opt$par): TRUE 
+
+-- H2: a fit with NO usable standard error --
+Over-stating K on data from a single state leaves the extra
+state's parameters unidentified. If every standard error comes
+back non-finite, `!any(ok)` fires and scale_how is 'unit'.
+  K=2 on one-state data        npar  6  se finite&pos 6 of 6
+  K=2 on one-state data        scale_how = se
+  K=3 on one-state data        npar 12  se finite&pos 12 of 12
+  K=3 on one-state data        scale_how = se
+  K=3 on 8 rows                npar 12  se finite&pos 11 of 12
+  K=3 on 8 rows                scale_how = se-partial
+  collinear covariate          npar  8  se finite&pos 8 of 8
+  collinear covariate          scale_how = se
+  y constant within state      npar  6  se finite&pos 5 of 6
+  y constant within state      scale_how = se-partial
+
+-- H3: the fallback's own arithmetic, called directly --
+A fit whose confint() cannot be produced at all reaches the
+branch; the branch itself is exercised here on a stub, to show
+what it returns rather than to claim a fit reaches it.
+  confint() on a stub errors -> how = unit  s = 1 1 1 

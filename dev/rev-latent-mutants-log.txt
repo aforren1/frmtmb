@@ -1,0 +1,87 @@
+﻿================ MUTANT M1 ================
+mutant M1 applied to C:\Users\adf44\source\r\rev-latent-mut/R/hmm-starts.R 
+
+* DONE (frmtmb.latent)
+  install exit=0
+frmtmb.latent from: C:/Users/adf44/source/r/rev-latent-mutlib/frmtmb.latent 
+BLOCKS  13 
+ASSERT  54 
+FAIL    2 
+ERROR   0 
+SKIP    1 
+  [FAIL] hmm_starts() escapes it and reports the two optima
+      Expected `(llb - ll0)/abs(ll0)` > `ms$grad_tol`.
+      Actual comparison: 0.000000000008 <= 0.001000000000
+      Difference: -0.000999999992 <= 0
+      Expected `nrow(ms$modes)` >= 2L.
+      Actual comparison: 1 < 2
+      Difference: -1 < 0
+  [SKIP] a refit that errors is counted and is in neither spread
+      Reason: no refit errored at this jitter; nothing to assert here
+  RUN exit=1  (non-zero means the suite CAUGHT this mutant)
+================ MUTANT M2 ================
+mutant M2 applied to C:\Users\adf44\source\r\rev-latent-mut/R/hmm-starts.R 
+* DONE (frmtmb.latent)
+  install exit=0
+frmtmb.latent from: C:/Users/adf44/source/r/rev-latent-mutlib/frmtmb.latent 
+BLOCKS  13 
+ASSERT  57 
+FAIL    2 
+ERROR   0 
+SKIP    0 
+  [FAIL] a refit that does not converge is counted and never wins
+      Expected `as.numeric(logLik(ms$best))` < `max(nc)`.
+      Actual comparison: -268.8 >= -268.8
+      Difference: 0.0 >= 0
+      Expected `as.numeric(logLik(ms$best)) %in% ms$table$logLik[keep]` to be TRUE.
+      Differences:
+      `actual`:   FALSE
+      `expected`: TRUE 
+      
+  RUN exit=1  (non-zero means the suite CAUGHT this mutant)
+================ MUTANT M3 ================
+mutant M3 applied to C:\Users\adf44\source\r\rev-latent-mut/R/hmm-starts.R 
+* DONE (frmtmb.latent)
+  install exit=0
+frmtmb.latent from: C:/Users/adf44/source/r/rev-latent-mutlib/frmtmb.latent 
+BLOCKS  13 
+ASSERT  57 
+FAIL    1 
+ERROR   0 
+SKIP    0 
+  [FAIL] a refit that does not converge is counted and never wins
+      Expected `ms$spread` to equal `diff(range(ms$table$logLik[keep]))`.
+      Differences:
+        `actual`: 22.0
+      `expected`:  0.0
+      
+  RUN exit=1  (non-zero means the suite CAUGHT this mutant)
+================ MUTANT M4 ================
+mutant M4 applied to C:\Users\adf44\source\r\rev-latent-mut/R/hmm-starts.R 
+* DONE (frmtmb.latent)
+  install exit=0
+frmtmb.latent from: C:/Users/adf44/source/r/rev-latent-mutlib/frmtmb.latent 
+BLOCKS  13 
+ASSERT  57 
+FAIL    2 
+ERROR   0 
+SKIP    0 
+  [FAIL] a refit that does not converge is counted and never wins
+      Expected `ms$original_converged` to be FALSE.
+      Differences:
+      `actual`:   TRUE 
+      `expected`: FALSE
+      
+      Expected `paste(utils::capture.output(print(ms)), collapse = " ")` to match regexp "ORIGINAL fit does not meet 
+that test".
+      Actual text:
+      x | <hmm_starts> 4 refits, jitter 2 (standard errors, some imputed)   converged      0 of 4   not converged  4 
+(max|grad| / |logLik| above 0.001), and OUT of the converged spread below    best logLik    -290.8438152   original    
+   -290.8438152   (the original fit was the best found)    logLik spread, the original and the 0 converged refits: 0   
+logLik spread, every one of the 5 that finished    : 22.00140378    distinct optima among the converged: 1        
+logLik found  -290.8438152     1    seconds: 0.06001 total, 0.0143 median per refit   gradient evaluations: 12 total, 
+3 median per refit
+  RUN exit=1  (non-zero means the suite CAUGHT this mutant)
+================ done ================
+
+

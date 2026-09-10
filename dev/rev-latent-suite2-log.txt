@@ -1,0 +1,103 @@
+﻿frmtmb.latent from: C:/Users/adf44/source/r/rev-latent-lib2/frmtmb.latent 
+
+FILE    C:\Users\adf44\source\r\frmtmb-wt-latent\extensions\frmtmb.latent\tests\testthat\test-bracket-access.R 
+BLOCKS  1 
+ASSERT  1 
+PASS    1 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECONDS 0.2337 
+frmtmb.latent from: C:/Users/adf44/source/r/rev-latent-lib2/frmtmb.latent 
+converged at iteration 19 with logLik: -746.6946 
+converged at iteration 25 with logLik: -746.6946 
+converged at iteration 21 with logLik: -746.6946 
+converged at iteration 29 with logLik: -746.6946 
+converged at iteration 28 with logLik: -701.2889 
+converged at iteration 32 with logLik: -701.2889 
+converged at iteration 25 with logLik: -701.2889 
+converged at iteration 29 with logLik: -701.2889 
+converged at iteration 27 with logLik: -701.2889 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 13 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 453 with logLik: -685.3785 
+converged at iteration 408 with logLik: -685.3785 
+converged at iteration 404 with logLik: -685.3785 
+converged at iteration 430 with logLik: -685.3785 
+converged at iteration 400 with logLik: -685.3785 
+converged at iteration 54 with logLik: -3093.27 
+converged at iteration 2054 with logLik: -3433.42 
+converged at iteration 67 with logLik: -3093.27 
+converged at iteration 1803 with logLik: -3433.42 
+
+FILE    C:\Users\adf44\source\r\frmtmb-wt-latent\extensions\frmtmb.latent\tests\testthat\test-hmm.R 
+BLOCKS  25 
+ASSERT  115 
+PASS    115 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECONDS 28.82 
+frmtmb.latent from: C:/Users/adf44/source/r/rev-latent-lib2/frmtmb.latent 
+
+FILE    C:\Users\adf44\source\r\frmtmb-wt-latent\extensions\frmtmb.latent\tests\testthat\test-hmm-starts.R 
+BLOCKS  17 
+ASSERT  75 
+PASS    75 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECONDS 10.63 
+frmtmb.latent from: C:/Users/adf44/source/r/rev-latent-lib2/frmtmb.latent 
+
+FILE    C:\Users\adf44\source\r\frmtmb-wt-latent\extensions\frmtmb.latent\tests\testthat\test-lca.R 
+BLOCKS  14 
+ASSERT  103 
+PASS    103 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECONDS 6.345 
+frmtmb.latent from: C:/Users/adf44/source/r/rev-latent-lib2/frmtmb.latent 
+
+FILE    C:\Users\adf44\source\r\frmtmb-wt-latent\extensions\frmtmb.latent\tests\testthat\test-message-uniqueness.R 
+BLOCKS  1 
+ASSERT  4 
+PASS    4 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECONDS 0.3886 
+frmtmb.latent from: C:/Users/adf44/source/r/rev-latent-lib2/frmtmb.latent 
+
+FILE    C:\Users\adf44\source\r\frmtmb-wt-latent\extensions\frmtmb.latent\tests\testthat\test-scale.R 
+BLOCKS  2 
+ASSERT  2 
+PASS    2 
+FAIL    0 
+ERROR   0 
+SKIP    2 
+WARN    0 
+SECONDS 0.1685 
+  [SKIP] the hmm scale row fits and reports its cost
+      Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
+  [SKIP] the lca scale row fits and reports its cost
+      Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
+frmtmb.latent from: C:/Users/adf44/source/r/rev-latent-lib2/frmtmb.latent 
+
+FILE    C:\Users\adf44\source\r\frmtmb-wt-latent\extensions\frmtmb.latent\tests\testthat\test-structure-latent.R 
+BLOCKS  3 
+ASSERT  20 
+PASS    20 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECONDS 0.463 

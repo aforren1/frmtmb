@@ -1,0 +1,19 @@
+﻿frmtmb.latent from: C:/Users/adf44/source/r/rev-latent-lib3/frmtmb.latent 
+cold logLik: -1096.09575602   known gap 8.099291 
+predicted break point, sqrt(gap / |ll0|): 0.0859606 
+
+grad_tol     $mode_tol   gt^2*|ll0|  modes says_local  found best - orig
+0.001        0.0010961    0.0010961      2       TRUE   TRUE    8.09929
+0.01           0.10961      0.10961      2       TRUE   TRUE    8.09929
+0.03          0.986486     0.986486      2       TRUE   TRUE    8.09929
+0.05           2.74024      2.74024      2       TRUE   TRUE    8.09929
+0.08           7.01501      7.01501      2       TRUE   TRUE    8.09929
+0.085          7.91929      7.91929      2       TRUE   TRUE    8.09929
+0.0859         8.08788      8.08788      2       TRUE   TRUE    8.09929
+0.086          8.10672      8.10672      1      FALSE  FALSE          0
+0.09           8.87838      8.87838      1      FALSE  FALSE          0
+0.1             10.961       10.961      1      FALSE  FALSE          0
+
+`$mode_tol` equals grad_tol^2 * max(|ll0|, 1) on every row above: checked column by column.
+the detection is GONE the moment $mode_tol exceeds the gap, which 
+is at grad_tol = 0.085961 ; the help page says 'about 0.08 ... gone at 0.086'.

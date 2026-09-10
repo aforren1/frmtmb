@@ -1,0 +1,65 @@
+== 1. is the shipped scoring statistic informative here? ==
+mean item-code score, by TRUE class:
+     1      2      3      4 
+0.3949 0.3919 0.3956 0.3865 
+its standard deviation within class: 0.1269 0.1273 0.1282 0.1295 
+between-class share of the score's variance (R squared): 0.0008141 
+
+shipped slice against the true class:
+     true
+slice   1   2   3   4
+    1  94  81 201 124
+    2  86  79 221 114
+    3 103  76 223  98
+    4 106  73 205 116
+
+candidate slice against the true class:
+     true
+slice   1   2   3   4
+    1 320  10   7  12
+    2  24   1  93 412
+    3  11   4 636   8
+    4  34 294 114  20
+
+== 2. the candidates on every seed of the sweep ==
+  25 seeds done
+  50 seeds done
+  75 seeds done
+  100 seeds done
+  125 seeds done
+  150 seeds done
+  175 seeds done
+  200 seeds done
+
+seeds: 200 
+  shipped start below poLCA           : 8 
+  kmeans start below poLCA            : 6 
+  kmeans shrunk 0.5 below poLCA       : 0 
+  better of the two kmeans starts     : 0 
+  better of all three starts          : 0 
+  any start ABOVE poLCA by 1e-6 rel   : 0 
+  errors: km 0  km05 0 
+
+the eight the shipped start loses:
+     seed gap_shipped       gap_km     gap_km05
+ 20260970    -282.350 -6.00267e-11 -4.91127e-11
+ 20260990    -281.201 -4.72937e-11 -6.91216e-11
+ 20260996    -282.116 -6.00267e-11 -2.54659e-11
+ 20260999    -243.036 -8.73115e-11 -2.91038e-11
+ 20261010    -277.802 -7.82165e-11 -1.00044e-10
+ 20261013    -273.351 -6.18456e-11 -5.09317e-11
+ 20261042    -283.811 -6.54836e-11 -9.45874e-11
+ 20261043    -268.906 -4.54747e-11 -6.18456e-11
+
+gap_km loses 6 seeds the shipped start does NOT:
+     seed  gap_shipped    gap_km     gap_km05
+ 20260911 -4.91127e-11  -78.8058 -5.63887e-11
+ 20260953 -5.82077e-11 -293.7200 -5.27507e-11
+ 20261009 -3.09228e-11 -206.3840 -4.91127e-11
+ 20261071 -5.09317e-11 -248.5350 -4.91127e-11
+ 20261100 -5.09317e-11 -303.4370 -4.36557e-11
+ 20261109 -4.91127e-11 -282.7990 -1.10958e-10
+
+gap_km05 loses 0 seeds the shipped start does NOT:
+
+two frm fits with the candidate starts, seconds: min 0.379  median 0.637  max 2.12 

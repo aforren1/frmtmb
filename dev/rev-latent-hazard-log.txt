@@ -1,0 +1,25 @@
+﻿======== hazard ABSENT (the shipped source) ========
+
+* DONE (frmtmb.latent)
+ASSERT  1 
+FAIL    0 
+ERROR   0 
+  RUN exit=0
+======== hazard PLANTED in hmm-starts.R ========
+hazard planted in C:\Users\adf44\source\r\rev-latent-haz/R/hmm-starts.R 
+* DONE (frmtmb.latent)
+ASSERT  1 
+FAIL    1 
+ERROR   0 
+  [FAIL] no frmtmb.latent function reads a hazard container
+      Expected `hits` to be identical to `character(0)`.
+      Differences:
+      `actual`:   "hmm_starts_scale: est$b"
+      `expected`:                          
+      
+      Use [["name"]], or rename the local: these names are reserved. See ?frmtmb::frm_hazard_reads.
+      hmm_starts_scale: est$b
+  RUN exit=1  (non-zero means the scanner reaches hmm-starts.R)
+======== done ========
+
+

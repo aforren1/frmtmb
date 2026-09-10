@@ -1,0 +1,111 @@
+﻿<environment: namespace:poLCA>
+
+======== seed 20260910 ========
+frm  logLik: -11472.886970364  (1.7 s)
+poLCA nrep=10: -11472.886970364  (2.4 s)
+gap          : -7.6397555e-11 
+|d|/|ll|     : 6.66e-15 
+nlminb code  : 0   pdHess: TRUE   bad_se: 0   flat: 0 
+max_grad/|ll|: 4.603e-09 
+diagnose(), verbatim:
+  | Optimizer convergence code: 0 (relative convergence (4)) 
+  | Max |gradient|: 5.28e-05 at theta1_x1 
+  | Hessian positive definite: TRUE 
+  | No convergence problems detected 
+prints 'No convergence problems detected': TRUE 
+
+-- the ?lca recipe, verbatim --
+  extra_names           : pi1 pi2 pi3 pi4 pi5 pi6 pi7 pi8 pi9 pi10 
+  p0 components         : pi1 pi2 pi3 pi4 pi5 pi6 pi7 pi8 pi9 pi10 
+  p0 lengths            : 4 4 4 4 4 4 4 4 4 4 
+  p0 is the ITEM logits, not the gating coefficients: TRUE 
+  ten refit logLiks     :
+    -11472.8869704
+    -11472.8869704
+    -11472.8869704
+    -11472.8869704
+    -11472.8869704
+    -11472.8869704
+    -11472.8869704
+    -11472.8869704
+    -11472.8869704
+    -11472.8869704 
+  best over the ten     : -11472.886970364 
+  gap to poLCA(nrep=10) : -4.911e-11 
+  reached poLCA's optimum: TRUE 
+  refits better than cold: 0 of 10
+  errors                 : 0 
+  seconds for ten refits : 5.944   (?lca says 'about 5 seconds')
+
+======== seed 20260970 ========
+frm  logLik: -11581.784247378  (2.4 s)
+poLCA nrep=10: -11299.434029155  (6.1 s)
+gap          : -282.35022 
+|d|/|ll|     : 0.0244 
+nlminb code  : 0   pdHess: TRUE   bad_se: 0   flat: 0 
+max_grad/|ll|: 2.133e-09 
+diagnose(), verbatim:
+  | Optimizer convergence code: 0 (relative convergence (4)) 
+  | Max |gradient|: 2.471e-05 at theta3_(Intercept) 
+  | Hessian positive definite: TRUE 
+  | No convergence problems detected 
+prints 'No convergence problems detected': TRUE 
+
+-- the ?lca recipe, verbatim --
+  extra_names           : pi1 pi2 pi3 pi4 pi5 pi6 pi7 pi8 pi9 pi10 
+  p0 components         : pi1 pi2 pi3 pi4 pi5 pi6 pi7 pi8 pi9 pi10 
+  p0 lengths            : 4 4 4 4 4 4 4 4 4 4 
+  p0 is the ITEM logits, not the gating coefficients: TRUE 
+  ten refit logLiks     :
+    -11299.4340292
+    -11299.4340292
+    -11299.4340292
+    -11299.4340292
+    -11299.4340292
+    -11299.4340292
+    -11584.0965997
+    -11299.4340292
+    -11299.4340292
+    -11299.4340292 
+  best over the ten     : -11299.434029155 
+  gap to poLCA(nrep=10) : -3.82e-11 
+  reached poLCA's optimum: TRUE 
+  refits better than cold: 9 of 10
+  errors                 : 0 
+  seconds for ten refits : 7.086   (?lca says 'about 5 seconds')
+
+======== seed 20261013 ========
+frm  logLik: -11612.796412437  (1.3 s)
+poLCA nrep=10: -11339.44530553  (4.3 s)
+gap          : -273.35111 
+|d|/|ll|     : 0.0235 
+nlminb code  : 1   pdHess: TRUE   bad_se: 0   flat: 0 
+max_grad/|ll|: 3.099e-09 
+diagnose(), verbatim:
+  | Optimizer convergence code: 1 (false convergence (8)) 
+  | Max |gradient|: 3.599e-05 at theta2_(Intercept) 
+  | Hessian positive definite: TRUE  
+prints 'No convergence problems detected': FALSE 
+
+-- the ?lca recipe, verbatim --
+  extra_names           : pi1 pi2 pi3 pi4 pi5 pi6 pi7 pi8 pi9 pi10 
+  p0 components         : pi1 pi2 pi3 pi4 pi5 pi6 pi7 pi8 pi9 pi10 
+  p0 lengths            : 4 4 4 4 4 4 4 4 4 4 
+  p0 is the ITEM logits, not the gating coefficients: TRUE 
+  ten refit logLiks     :
+    -11339.4453055
+    -11339.4453055
+    -11339.4453055
+    -11339.4453055
+    -11339.4453055
+    -11339.4453055
+    -11339.4453055
+    -11339.4453055
+    -11339.4453055
+    -11339.4453055 
+  best over the ten     : -11339.44530553 
+  gap to poLCA(nrep=10) : -3.456e-11 
+  reached poLCA's optimum: TRUE 
+  refits better than cold: 10 of 10
+  errors                 : 0 
+  seconds for ten refits : 6.405   (?lca says 'about 5 seconds')

@@ -1,0 +1,34 @@
+﻿outer par names : beta | beta | betad | betad | betad | betad 
+estimates names : beta | betad 
+lengths of estimates components:
+ beta betad 
+    2     4 
+counts by outer par component:
+
+ beta betad 
+    2     4 
+
+scale_how: se 
+scale s   : 0.05316 0.06979 0.06804 0.09445 0.31906 0.30620 
+all finite and positive: TRUE 
+
+confint() est identical to opt$par: TRUE 
+max |est - opt$par|: 0 
+NOTE: confint.frmtmb_fit() builds its `est` column AS object$opt$par (R/confint.R:383),
+  so the alignment check in hmm_starts_scale() compares a vector with itself.
+
+relist: components in the returned start: beta | betad 
+  beta     n_outer=2   n_est=2   moved=yes  max|move|=0.183
+  betad    n_outer=4   n_est=4   moved=yes  max|move|=0.347
+components actually perturbed: 2 of 2 
+
+---- the d4 random-effect fit ----
+outer par names : beta | beta | betad | betad | betad | betad | theta | theta 
+estimates names : beta | betad | b | theta 
+ beta betad     b theta 
+    2     4    50     2 
+scale_how: se  s: 0.13410 0.15512 0.04217 0.03954 0.13991 0.13653 0.15402 0.16125 
+  beta     n_outer=2   n_est=2   moved=yes
+  betad    n_outer=4   n_est=4   moved=yes
+  theta    n_outer=2   n_est=2   moved=yes
+random-effect component `b` carried over unchanged (by design): TRUE 

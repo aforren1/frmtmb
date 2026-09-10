@@ -1,0 +1,30 @@
+﻿both tolerances reverted in C:\Users\adf44\source\r\latent-absent/R/hmm-starts.R 
+
+* DONE (frmtmb.latent)
+install exit=0
+BLOCKS  17 
+ASSERT  75 
+PASS    72 
+FAIL    3 
+ERROR   0 
+SKIP    0 
+  [FAIL] a unimodal fit is not told it found a local optimum
+      Expected `n_false` to be identical to 0L.
+      Differences:
+        `actual`: 6
+      `expected`: 0
+      
+      Expected `n_moved` to be identical to 0L.
+      Differences:
+        `actual`: 6
+      `expected`: 0
+      
+  [FAIL] the three tolerances are one tolerance
+      Expected `one_mode && says_local` to be FALSE.
+      Differences:
+      `actual`:   TRUE 
+      `expected`: FALSE
+      
+RUN exit=1 (non-zero is the point)
+
+

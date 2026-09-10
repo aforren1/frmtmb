@@ -1,0 +1,50 @@
+﻿libPaths:
+  C:/Users/adf44/source/r/rev-latent-lib
+  C:/Users/adf44/source/r/rellib-0552
+  C:/Users/adf44/source/r/pinlib
+  C:/Users/adf44/AppData/Local/R/win-library/4.6
+  C:/Program Files/R/R-4.6.1/library 
+  frmtmb         0.55.2     C:/Users/adf44/source/r/rellib-0552/frmtmb
+  frmtmb.latent  0.2.2      C:/Users/adf44/source/r/rev-latent-lib/frmtmb.latent
+  RTMB           1.9        C:/Users/adf44/AppData/Local/R/win-library/4.6/RTMB
+  TMB            1.9.25     C:/Users/adf44/AppData/Local/R/win-library/4.6/TMB
+  depmixS4       1.5.4      C:/Users/adf44/AppData/Local/R/win-library/4.6/depmixS4
+  hmmTMB         1.1.2      C:/Users/adf44/AppData/Local/R/win-library/4.6/hmmTMB
+  poLCA          1.6.0.2    C:/Users/adf44/AppData/Local/R/win-library/4.6/poLCA
+  StanHeaders    2.32.10    C:/Users/adf44/source/r/rellib-0552/StanHeaders
+
+rows 750  sum(y) 1124.83790391 
+cold fit seconds: 1.46 
+cold logLik (16 sig)   : -1096.095756024304 
+claim                  : -1096.09575602
+relative gap to claim  : 3.93e-12 
+
+---- diagnose(), verbatim, NOT quiet ----
+Optimizer convergence code: 0 (relative convergence (4)) 
+Max |gradient|: 7e-04 at theta_2 
+Hessian positive definite: TRUE 
+No convergence problems detected 
+---- end diagnose() ----
+prints 'No convergence problems detected': TRUE 
+convergence: 0  pdHess: TRUE  nbadse: 0  nflat: 0 
+max_grad (absolute): 0.000700028   claim 7e-4; diagnose()'s own clean test is max_grad < 1e-3
+max_grad / |logLik| : 6.39e-07   claim 6.4e-07
+margin to diagnose()'s 1e-3 threshold, as a ratio: 0.7 
+
+warm logLik            : -1087.996465203527 
+claim                  : -1087.99646521
+gap this run           : 8.099290821   claim 8.09929
+warm: convergence 0  pdHess TRUE  max_grad 0.000386 
+
+---- frm_allfit() on the COLD fit ----
+allfit seconds: 2.92 
+    optimizer    logLik convergence seconds
+       nlminb -1096.096           0    0.38
+        optim -1096.096           0    0.34
+       bobyqa -1096.096           0    1.55
+ nloptr_lbfgs -1096.096           0    0.64
+
+logLik spread: 7.84e-07 
+max fixed-effect spread: 9.95e-05 
+
+names on the allfit object: fits times 
