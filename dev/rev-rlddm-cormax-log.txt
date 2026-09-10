@@ -1,0 +1,52 @@
+mode : fit 
+learn: 0.3.0 at C:/Users/adf44/source/r/rev-rlddm-lib 
+eam  : 0.7.0 at C:/Users/adf44/source/r/rev-rlddm-lib 
+
+rows 20000  learners 100 
+
+-- the deviations the design drew --
+          alpha   drift     bs ndt_log
+alpha    1.0000 -0.1158 0.0139  0.0028
+drift   -0.1158  1.0000 0.0695  0.1591
+bs       0.0139  0.0695 1.0000  0.0604
+ndt_log  0.0028  0.1591 0.0604  1.0000
+max abs off-diagonal: 0.159095 
+
+-- the same truths, in the parameterization the row now fits --
+           alpha   drift      bs ndt_frac
+alpha     1.0000 -0.1158  0.0139   0.0085
+drift    -0.1158  1.0000  0.0695   0.0880
+bs        0.0139  0.0695  1.0000  -0.7768
+ndt_frac  0.0085  0.0880 -0.7768   1.0000
+max abs off-diagonal: 0.776847 
+
+-- the mechanism: what a learner's own floor is made of --
+  cor(log floor, alpha  deviation) = -0.002018
+  cor(log floor, drift  deviation) = +0.112141
+  cor(log floor, bs     deviation) = +0.495360
+  cor(log floor, ndt    deviation) = +0.843307
+  cor(log floor, log true ndt)     = +0.843307
+  cor(qlogis(frac), drift dev)     = +0.088014
+  sd of the drawn ndt deviation, log scale  = 0.153096
+  sd of the fitted-parameterization deviation = 0.439177
+
+  learners whose truth is ABOVE the global floor 0.234300: 64 of 100
+  (those have no representable value under one bound, which is
+   why the 0.396 was measured on a fit that did not converge)
+
+fit wall s: 449.158 
+
+-- the FITTED correlation matrix of the random-effect block --
+                     rt.alpha:(Intercept) rt.drift:(Intercept)
+rt.alpha:(Intercept)               1.0000              -0.2545
+rt.drift:(Intercept)              -0.2545               1.0000
+rt.bs:(Intercept)                 -0.0224               0.1034
+rt.ndt:(Intercept)                 0.0458               0.1163
+                     rt.bs:(Intercept) rt.ndt:(Intercept)
+rt.alpha:(Intercept)           -0.0224             0.0458
+rt.drift:(Intercept)            0.1034             0.1163
+rt.bs:(Intercept)               1.0000            -0.9160
+rt.ndt:(Intercept)             -0.9160             1.0000
+max abs off-diagonal: 0.916032 
+the pair that carries it: rt.ndt:(Intercept) rt.bs:(Intercept) 
+wrote dev/rev-rlddm-cormax.rds

@@ -485,9 +485,26 @@ ddm_ndt_install <- function(fam, ub, floors, what, pending = FALSE,
     if (has_st) fam[["init_dpars"]][["st"]] <- function(y, aterms) 0.05
   }
   fam[["ndt_raw"]] <- raw
-  fam[["ndt_bound"]] <- list(ub = ub, floors = floors, pending = pending,
-                             sizes = sizes)
+  fam[["ndt_bound"]] <- ddm_ndt_bound_new(ub, floors, pending, sizes,
+                                          what)
   fam
+}
+
+#' The bound record a family carries, in one shape.
+#'
+#' Written once rather than at each site because the shape is now API:
+#' [ndt_bound()] returns one of these and [ndt_bound_of()] reads one
+#' back off a family, so a package outside this one depends on the
+#' names. The class is what lets [ndt_bound_attach()] refuse a
+#' hand-assembled list, and `what` rides along so that a refusal raised
+#' by a per-group lookup names the family the user wrote rather than
+#' this one.
+#'
+#' @noRd
+ddm_ndt_bound_new <- function(ub, floors, pending, sizes, what) {
+  structure(list(ub = ub, floors = floors, pending = pending,
+                 sizes = sizes, what = what),
+            class = "frmtmb_eam_ndt_bound")
 }
 
 #' Half the fastest response, in the response's own units.
@@ -593,8 +610,14 @@ ddm_ndt_finalize <- function(fam, y, aterms, max_ndt, what,
 #' the data the model was FITTED to, so a prediction on new rows is
 #' scaled by the same bound the fit used.
 #'
+#' It reads the bound record rather than the family's name, so a fit
+#' from ANOTHER package whose family carries a bound through
+#' [ndt_bound_attach()] is reported here too, and
+#' `frmtmb.learn::rlddm()` is the first of those.
+#'
 #' @param object A fitted [wiener()], [lba()], [rdm()] or [wiener_gng()]
-#'   model.
+#'   model, or a fit from another package whose family carries a bound
+#'   from [ndt_bound_attach()].
 #' @param newdata Optional data frame. It must carry the model's
 #'   `ndt_group()` column when the model has one.
 #' @param ... Passed to [stats::predict()]; `re.form` and
@@ -602,7 +625,8 @@ ddm_ndt_finalize <- function(fam, y, aterms, max_ndt, what,
 #'
 #' @return A numeric vector, one non-decision time per row.
 #' @seealso [wiener()] for what the two parameterizations are and why
-#'   there are two.
+#'   there are two, [ndt_bound()] for the seam another package's family
+#'   reaches them through.
 #' @examples
 #' set.seed(1)
 #' d <- ddm_simulate(300, mu = 1.2, bs = 1.5, ndt = 0.25)

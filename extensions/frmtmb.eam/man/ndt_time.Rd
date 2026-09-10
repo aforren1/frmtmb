@@ -8,7 +8,8 @@ ndt_time(object, newdata = NULL, ...)
 }
 \arguments{
 \item{object}{A fitted \code{\link[=wiener]{wiener()}}, \code{\link[=lba]{lba()}}, \code{\link[=rdm]{rdm()}} or \code{\link[=wiener_gng]{wiener_gng()}}
-model.}
+model, or a fit from another package whose family carries a bound
+from \code{\link[=ndt_bound_attach]{ndt_bound_attach()}}.}
 
 \item{newdata}{Optional data frame. It must carry the model's
 \code{ndt_group()} column when the model has one.}
@@ -31,6 +32,11 @@ the whole data set when the model has no \code{ndt_group()}, or the
 \code{max_ndt} the family was given. Whichever it is, it is a property of
 the data the model was FITTED to, so a prediction on new rows is
 scaled by the same bound the fit used.
+
+It reads the bound record rather than the family's name, so a fit
+from ANOTHER package whose family carries a bound through
+\code{\link[=ndt_bound_attach]{ndt_bound_attach()}} is reported here too, and
+\code{frmtmb.learn::rlddm()} is the first of those.
 }
 \examples{
 set.seed(1)
@@ -43,5 +49,6 @@ head(ndt_time(fit), 3)
 }
 \seealso{
 \code{\link[=wiener]{wiener()}} for what the two parameterizations are and why
-there are two.
+there are two, \code{\link[=ndt_bound]{ndt_bound()}} for the seam another package's family
+reaches them through.
 }

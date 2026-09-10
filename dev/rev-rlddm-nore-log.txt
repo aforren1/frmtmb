@@ -1,0 +1,37 @@
+arm  : nore 
+learn: 0.3.0 at C:/Users/adf44/source/r/rev-rlddm-lib 
+eam  : 0.7.0 at C:/Users/adf44/source/r/rev-rlddm-lib 
+frmtmb: 0.55.2 at C:/Users/adf44/source/r/rellib-0552 
+
+-- the floors alone, no fit anywhere --
+rows                     : 20000 
+learners                 : 100 
+sd(truths)          ms   : 39.3041077 
+mean(truths)        ms   : 254.744366 
+mean(own floors)    ms   : 312.880663 
+cor(own floor, truth)    : 0.847779986 
+least-squares fraction   : 0.812474567 
+floors x least-squares k           rmse_ms=  21.0751  cor=0.847780  ratio=0.536205
+floors x 0.828719 (fit's k)        rmse_ms=  21.6918  cor=0.847780  ratio=0.551896
+floors x mean(tru/own)             rmse_ms=  21.0992  cor=0.847780  ratio=0.536819
+one number for everybody           rmse_ms=  39.1071  cor=NA  ratio=0.994987
+the floor itself, unscaled         rmse_ms=  62.9210  cor=0.847780  ratio=1.600876
+
+fit wall s               : 324.87 
+
+-- the fit --
+logLik                   : -7878.35917 
+n par                    : 10 
+convergence              : 0 
+max abs gradient         : 0.00959323 
+pdHess                   : TRUE 
+non-finite se            : 0 
+population fraction      : 0.833591085 
+mean(floors)             : 0.312880663 
+below own floor          : 100 of 100 
+tightest margin ms       : 38.9896 
+sd(hat)                  : 0.0380049479 
+the fit's own hat                  rmse_ms=  22.1072  cor=0.847780  ratio=0.562465
+cor(hat, own floor)      : 1 
+max |hat - k*own| ms     : 1.66533e-13 
+wrote dev/rev-rlddm-nore.rds 

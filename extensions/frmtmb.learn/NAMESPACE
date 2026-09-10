@@ -23,6 +23,11 @@ importFrom(frmtmb,
 )
 importFrom(frmtmb.eam,
   ddm_simulate,
+  ndt_apply,
+  ndt_bound,
+  ndt_bound_attach,
+  ndt_bound_of,
+  ndt_bound_pending,
   wiener_lpdf
 )
 importFrom(stats,setNames)

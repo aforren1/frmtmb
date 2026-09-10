@@ -16,7 +16,9 @@ unquoted. \code{NULL} uses the order the rows appear in.}
 \item{max_ndt}{Upper bound for the non-decision time. \code{NULL}, the
 default, uses the fastest response in the data. A value above it is
 refused, because it admits parameters at which the fastest trial
-has no likelihood.}
+has no likelihood. It cannot be combined with
+\code{ndt_group()}, which sets the same bound per group. It is also what
+\code{bf(ndt = )} now needs: see below.}
 }
 \value{
 A \code{frmtmb_family} object, for \code{frm(family = )}.
@@ -106,12 +108,91 @@ short session.
 \section{The non-decision time is bounded, not logged}{
 
 The density is zero at and below \code{ndt}, so the likelihood has a hard
-edge at \code{ndt = min(rt)} and a log link would let the optimizer walk
-over it. \code{ndt} therefore gets a logit scaled onto \verb{(0, max_ndt)},
-with \code{max_ndt} defaulting to the fastest response in the data, which
-makes the constraint structural. This is the same construction
-\code{\link[frmtmb.eam:wiener]{frmtmb.eam::wiener()}} uses and it is written again here rather than
-borrowed, because a link is not what that package exports.
+edge at the fastest response and a log link would let the optimizer
+walk over it. \code{ndt} therefore gets a logit scaled onto \verb{(0, ub)},
+which makes the constraint structural. The bound comes from
+\code{\link[frmtmb.eam:ndt_bound]{frmtmb.eam::ndt_bound()}}, so this family and \code{\link[frmtmb.eam:wiener]{frmtmb.eam::wiener()}}
+derive it the same way and refuse the same things.
+}
+
+\section{One bound, or one per learner}{
+
+\code{ub} is one number for the whole data set unless the model says
+otherwise, and the whole data set's fastest response is the wrong
+ceiling for a hierarchical fit. The information about one subject's
+non-decision time is that SUBJECT's own fastest response, and with
+100 learners the global minimum is the fastest of all of them, so a
+subject deviation on \code{ndt} is a deviation on a fraction of somebody
+else's floor. The scale tier measured what that costs: the 100 by 200
+design reached a maximum gradient of 6.36e+09, a Hessian that was not
+positive definite and four \code{NaN} standard errors.
+
+\code{ndt_group()} is the fix, and it is opt-in:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{frm(bf(rt | dec(choice) + reward(pay1, pay2) + ndt_group(id) ~
+         1 + (1 | p | id),
+       drift ~ 1 + (1 | p | id), bs ~ 1 + (1 | p | id),
+       ndt ~ 1 + (1 | p | id), bias = 0.5),
+    family = rlddm(subject = id, trial = trial), data = d)
+}\if{html}{\out{</div>}}
+
+With it, each row's bound is its own group's fastest response, \code{ndt}
+is a FRACTION of that bound on a plain logit, and the density
+multiplies it back out. \code{predict(dpar = "ndt", type = "response")}
+then reports the fraction, and \code{\link[frmtmb.eam:ndt_time]{frmtmb.eam::ndt_time()}} reports the
+non-decision time in seconds whichever parameterization a fit is in.
+Without it nothing about the family moved.
+
+The grouping need not be the learner: it is whatever shares a floor.
+\code{max_ndt} and \code{ndt_group()} together are refused, because they set
+one bound to two different things.
+}
+
+\section{What the per-learner spread of ndt does and does not say}{
+
+Under \code{ndt_group()} a learner's non-decision time is a FRACTION times
+that learner's own floor, so the fitted times differ between learners
+even when the random effect on \code{ndt} is exactly zero, purely because
+the floors differ. A spread across learners is therefore not evidence
+that the variance component recovered anything.
+
+Measured on the 100 by 200 design of \code{dev/rlddm-findings.md}, where
+the drawn truths have a spread of 0.0393041: the full model returns
+\strong{0.0333713} and the same model with the random effect on \code{ndt}
+switched OFF returns \strong{0.0380049}. On this statistic the random
+effect is not neutral, it is worse.
+
+What the random effect IS worth on the same fit is the per-learner
+accuracy, and there it is not close: 13.996 ms of error against the
+drawn truths and a correlation of 0.9404, where no estimator without
+it can beat 21.075 ms or 0.8478, because the correlation of any
+constant multiple of the floors with the truth is fixed at 0.847780.
+So read the per-learner error and the correlation, not the spread.
+\code{\link[frmtmb.eam:wiener]{frmtmb.eam::wiener()}} carries the same warning for the same reason.
+}
+
+\section{Pinning the non-decision time needs max_ndt}{
+
+\code{bf(ndt = 0.2)} on a bare \code{rlddm()} is refused, and the message says
+to pass \code{max_ndt}. \code{bf()} transforms a pinned constant at PARSE time,
+before the response has been seen, so a family with no bound yet has
+no scale to transform it on. Write the bound down instead:
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{frm(bf(rt | dec(choice) + reward(pay1, pay2) ~ 1,
+       drift ~ 1, bs ~ 1, ndt = 0.2, bias = 0.5),
+    family = rlddm(subject = id, trial = trial, max_ndt = 0.26),
+    data = d)
+}\if{html}{\out{</div>}}
+
+\strong{This is a change, and it is one thing that stops working.} Through
+0.3.0 \code{bf(ndt = 0.2)} on a bare family was accepted and fitted 0.2
+exactly, so far as the constant was below the fastest response. What
+it did NOT do is check the constant against the bound the fit would
+actually use: \code{bf(ndt = 0.3)} with \code{max_ndt = 0.26} was accepted too,
+and reached the objective as \code{NaN}, surfacing as an optimizer failure
+that named nothing. Both cases are now settled before the formula is
+parsed, which is how \code{\link[frmtmb.eam:wiener]{frmtmb.eam::wiener()}} and its siblings have
+behaved since frmtmb.eam 0.7.0.
 }
 
 \section{Recovery, measured}{
@@ -150,13 +231,14 @@ that says what it needs. Nothing about FITTING needs \code{RWiener}; the
 likelihood is \code{\link[frmtmb.eam:wiener_lpdf]{frmtmb.eam::wiener_lpdf()}} and is exact either way.
 }
 
-\section{Where the density comes from}{
+\section{Where the density and the bound come from}{
 
-\code{\link[frmtmb.eam:wiener_lpdf]{frmtmb.eam::wiener_lpdf()}}, through the export rather than through a
-colon. The Navarro and Fuss (2009) series pair, its smooth blend and
-its tape safety all belong to that package and are not repeated here.
-This is the only dependency one extension of frmtmb has on another,
-and it is one function.
+\code{\link[frmtmb.eam:wiener_lpdf]{frmtmb.eam::wiener_lpdf()}} and \code{\link[frmtmb.eam:ndt_bound]{frmtmb.eam::ndt_bound()}}, through
+the exports rather than through a colon. The Navarro and Fuss (2009)
+series pair, its smooth blend and its tape safety belong to that
+package, and so does the bound, its \code{ndt_group()} behavior and every
+refusal either of them owes. This family writes the learning rule and
+one multiplication.
 }
 
 \examples{

@@ -1,0 +1,13 @@
+﻿package frmtmb.learn  files 12
+RESULT file=test-bracket-access.R pass=1 fail=0 err=0 skip=0 tests=1 exit=0
+RESULT file=test-clean-session.R pass=4 fail=0 err=0 skip=0 tests=1 exit=0
+RESULT file=test-counterfactual.R pass=67 fail=0 err=0 skip=0 tests=15 exit=0
+RESULT file=test-engine.R pass=19 fail=0 err=0 skip=0 tests=9 exit=0
+RESULT file=test-factorization.R pass=35 fail=0 err=0 skip=0 tests=9 exit=0
+RESULT file=test-families.R pass=45 fail=0 err=0 skip=0 tests=15 exit=0
+RESULT file=test-message-uniqueness.R pass=4 fail=0 err=0 skip=0 tests=1 exit=0
+RESULT file=test-reference.R pass=12 fail=0 err=0 skip=0 tests=8 exit=0
+RESULT file=test-rlddm-ndt.R pass=53 fail=0 err=0 skip=0 tests=12 exit=0
+RESULT file=test-scale.R pass=0 fail=0 err=0 skip=2 tests=2 exit=0
+RESULT file=test-stan-identity.R pass=0 fail=0 err=0 skip=9 tests=9 exit=0
+RESULT file=test-surface.R pass=146 fail=0 err=0 skip=0 tests=11 exit=0

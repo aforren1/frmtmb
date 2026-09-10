@@ -1,0 +1,14 @@
+﻿pkg         : frmtmb.learn 0.3.0 at C:/Users/adf44/source/r/rlddm-lib 
+StanHeaders : 2.32.10 at C:/Users/adf44/source/r/pinlib 
+rstan       : 2.32.7 
+stan cache  : dev/stan-cache 113 files
+stan-identity: ........WW...............................................
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+1. bandit2arm_dual reproduces Stan under both splits ('test-stan-identity.R:73:5') - Optimizer did not report convergence: false convergence (8)
+
+2. bandit2arm_dual reproduces Stan under both splits ('test-stan-identity.R:73:5') - Large maximum absolute gradient at the optimum (0.293); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT file=test-stan-identity.R pass=55 fail=0 err=0 skip=0 tests=9

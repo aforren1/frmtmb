@@ -1,0 +1,4 @@
+Warning message:
+In stats::cor(hat, tru) : the standard deviation is zero
+Warning message:
+Large maximum absolute gradient at the optimum (0.00312); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 

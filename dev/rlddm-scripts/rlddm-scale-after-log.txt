@@ -1,0 +1,50 @@
+﻿row  : learn-rlddm 
+lib  : C:/Users/adf44/source/r/rlddm-lib 
+learn: 0.3.0 at C:/Users/adf44/source/r/rlddm-lib 
+eam  : 0.7.0 at C:/Users/adf44/source/r/rlddm-lib 
+Rscript.exe : SCALE row=learn-rlddm	small=FALSE	rows=  20000	n_par=     14	build_s=7.28465	frame_s=0.205871	
+grad_start_s=17.4674	grad_start_calls=      1	grad_opt_s=1.03889	control_ratio=1.16179	fit_s=574.417	mem_mb=  322.9	
+logLik=-7781.2	key=alpha.(Intercept)	est=-0.518618	truth=-0.619039	est_lo=-0.643462	est_hi=-0.393773	
+sd_all=rt.alpha:(Intercept)=0.5073;rt.drift:(Intercept)=1.094;rt.bs:(Intercept)=0.1915;rt.ndt:(Intercept)=0.3261	
+sd_true=alpha=0.5;drift=1;bs=0.2;ndt=no link truth	n_sd=      4	cor_max_abs=0.916032	cor_true=      0	ndt_pop=0.25929	
+ndt_pop_se=0.00175853	ndt_pop_true=   0.25	ndt_pop_z=5.28296	ndt_floor_mean=0.312881	ndt_frac=0.828719	
+ndt_sub_mean=0.257234	ndt_sub_mean_true=0.254744	ndt_mean_err_ratio=0.0633537	ndt_rmse_ratio=0.356091	
+ndt_rmse_ms=13.9959	ndt_cor_true=0.940379	sd_ndt_natural=0.0333713	sd_ndt_natural_true=0.0393041	
+ndt_margin_min_ms=20.8741	ndt_below_own_floor=    100	n_subjects=    100	n_bad_se=      0	
+diag=conv=0,maxgrad=0.00312,pdHess=TRUE,nbadse=0,nflat=0,unbounded=none
+At line:5 char:1
++ & "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" dev/rlddm-scripts/rldd ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (SCALE row=learn...,unbounded=none:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+scale: SW...........
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. the learn bandit scale row fits and reports its cost ('test-scale.R:202:3') - Reason: FRMTMB_SCALE_ROW is set to 'learn-rlddm'
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+1. the learn rlddm scale row fits and reports its cost ('test-scale.R:226:3') - Large maximum absolute gradient at the optimum (0.00312); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+[ FAIL 0 | WARN 1 | SKIP 1 | PASS 11 ]
+
+══ Skipped tests (1) ═══════════════════════════════════════════════════════════
+• FRMTMB_SCALE_ROW is set to 'learn-rlddm' (1): 'test-scale.R:202:3'
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+── Warning ('test-scale.R:226:3'): the learn rlddm scale row fits and reports its cost ──
+Large maximum absolute gradient at the optimum (0.00312); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. └─frmtmb.learn (local) learn_scale_run(...) at test-scale.R:226:3
+ 2.   ├─frmtmb.learn:::scale_elapsed(...) at test-scale.R:120:3
+ 3.   │ └─base::force(expr) at ./helper-scale.R:61:3
+ 4.   └─frmtmb::frm(form, family = fam, data = d, se = TRUE)
+ 5.     └─frmtmb:::fit_assembled(...) at frmtmb/R/fit.R:555:3
+ 6.       └─frmtmb:::check_convergence(fit, control) at frmtmb/R/fit.R:995:3
+
+[ FAIL 0 | WARN 1 | SKIP 1 | PASS 11 ]
+
+wall: 912.117 s
+FILE test-scale.R  pass=11 fail=0 err=0 skip=1

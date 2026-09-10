@@ -68,7 +68,10 @@ ln_register_aterms <- function() {
     # unusable from a clean session for exactly that reason. `expects =`
     # tolerates a name already present either way, and is what stops
     # this call failing if the ordering ever changes.
-    expects = "dec()",
+    # `ndt_group()` is the same story: frmtmb.eam's term, registered in
+    # the same .onLoad(), and read by rlddm() through that package's
+    # bound seam.
+    expects = c("dec()", "ndt_group()"),
     rules = ln_compat_rules)
   invisible(NULL)
 }
@@ -279,6 +282,21 @@ ln_compat_rules <- function() {
   # it is the one whose missing mean has a different reason. Everything
   # else about the eight is the same, which is what one engine buys.
   for (nm in fams) ln_common_rules(r, nm, nominal = nm != "rlddm")
+  # ndt_group() is frmtmb.eam's term and only the one family here with a
+  # non-decision time reads it. The other seven are refused at frame
+  # assembly rather than by their own declaration, because the refusal
+  # belongs to the term's owner: a grouping no family read leaves no
+  # per-group table behind, and frmtmb.eam's frame check refuses exactly
+  # that. The row says so rather than leaving the pair untested.
+  for (nm in setdiff(fams, "rlddm")) {
+    r(nm, "ndt_group()", "refused",
+      paste0("Refused at frame assembly, by frmtmb.eam's own check. The ",
+             "term says which trials share a non-decision-time bound ",
+             "and this family has no non-decision time: its trial ",
+             "contributes a choice probability, not a response-time ",
+             "density. rlddm() is the family in this package that reads ",
+             "it."))
+  }
 
   ## ---- what differs, family by family ------------------------------
   for (nm in setdiff(fams, c("ts_par7", "rlddm"))) {
@@ -363,6 +381,26 @@ ln_compat_rules <- function() {
            "family here. The term is registered by frmtmb.eam, which ",
            "this package imports for the density, so it is present ",
            "whenever rlddm() is."))
+  r("rlddm", "ndt_group()", "works",
+    paste0("Which trials share a non-decision-time BOUND, and this is ",
+           "the one family in this package that reads it. Without it ",
+           "the bound is the whole data set's fastest response, which ",
+           "for a hierarchical fit is the fastest of every learner: a ",
+           "subject deviation on `ndt` is then a deviation on a ",
+           "fraction of somebody else's floor, and the scale tier's 100 ",
+           "by 200 design reached a maximum gradient of 6.36e+09 with a ",
+           "Hessian that was not positive definite and four NaN ",
+           "standard errors. With ndt_group(id) each row is bounded by ",
+           "its own group's fastest response, `ndt` is a fraction of ",
+           "that bound on a plain logit, and the density multiplies it ",
+           "back out. The term, its coercion and the bound are ",
+           "frmtmb.eam's, reached through ndt_bound() rather than ",
+           "copied. max_ndt and ndt_group() together are refused: they ",
+           "set one bound to two different things. ",
+           "frmtmb.eam::ndt_time() reports the fitted non-decision time ",
+           "in seconds under either parameterization, and ",
+           "predict(dpar = 'ndt', type = 'response') reports the ",
+           "FRACTION under this one."))
   r("rlddm", "reward()", "works",
     paste0("As bandit2arm_delta(). The learning rule is that family's ",
            "exactly; what differs is that the value difference drives a ",

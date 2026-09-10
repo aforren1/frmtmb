@@ -1,0 +1,137 @@
+﻿lib : C:/Users/adf44/source/r/rellib-0552 
+pkg : frmtmb.learn 0.3.0 at C:/Users/adf44/source/r/rellib-0552 
+file: extensions/frmtmb.learn/tests/testthat/test-rlddm-ndt.R 
+rlddm-ndt: 1.2345..6789ab.cde.fg
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-rlddm-ndt.R:46:3'): ln_ndt_at reads a fraction only when the 
+Error in `eval(code, test_env)`: object 'ln_ndt_at' not found
+
+── 2. Failure ('test-rlddm-ndt.R:67:3'): a family with no ndt_group carries one 
+Expected `bd[["ub"]]` to be identical to `min(s$rt)`.
+Differences:
+`actual` is NULL
+`expected` is a double vector (0.222372475743442)
+
+
+── 3. Failure ('test-rlddm-ndt.R:68:3'): a family with no ndt_group carries one 
+Expected `fam[["links"]][["ndt"]][["name"]]` to be identical to "scaled_logit".
+Differences:
+`actual`:   "scaled_logit(0, 0.2224)"
+`expected`: "scaled_logit"           
+
+
+── 4. Error ('test-rlddm-ndt.R:72:3'): a family with no ndt_group carries one bo
+Error: ndt_time(): a rlddm model does not estimate the non-decision time against a bound this can rescale. ndt_time() reports for wiener(), lba(), rdm() and wiener_gng(); on a gddm() fit predict(dpar = "ndt", type = "response") already gives the time.
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_equal(...) at test-rlddm-ndt.R:72:3
+ 2. │ └─testthat::quasi_label(enquo(object), label)
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─base::suppressWarnings(frmtmb.eam::ndt_time(fit))
+ 5. │ └─base::withCallingHandlers(...)
+ 6. └─frmtmb.eam::ndt_time(fit)
+
+── 5. Error ('test-rlddm-ndt.R:82:3'): ndt_group makes the bound each group's ow
+Error: ndt_group() was supplied for `rt` and no family read it, so the term would travel into the fit unread and every row would be scored against one bound. Inside mixture() that is what happens: a mixture never finalizes its components, so their bound has to be max_ndt and the grouping cannot be used. Drop ndt_group(), or fit the component family on its own.
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-rlddm-ndt.R:82:3
+ 2.   └─frmtmb:::assemble_frame(...) at frmtmb/R/fit.R:543:3
+ 3.     └─frmtmb:::run_frame_checks(spec, frame_so_far) at frmtmb/R/frame.R:2604:3
+ 4.       └─frmtmb.eam (local) fn(spec, frame) at frmtmb/R/structure.R:1100:3
+
+── 6. Error ('test-rlddm-ndt.R:124:3'): the per-group bound fits a group the glo
+Error: ndt_group() was supplied for `rt` and no family read it, so the term would travel into the fit unread and every row would be scored against one bound. Inside mixture() that is what happens: a mixture never finalizes its components, so their bound has to be max_ndt and the grouping cannot be used. Drop ndt_group(), or fit the component family on its own.
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-rlddm-ndt.R:124:3
+ 2.   └─frmtmb:::assemble_frame(...) at frmtmb/R/fit.R:543:3
+ 3.     └─frmtmb:::run_frame_checks(spec, frame_so_far) at frmtmb/R/frame.R:2604:3
+ 4.       └─frmtmb.eam (local) fn(spec, frame) at frmtmb/R/structure.R:1100:3
+
+── 7. Error ('test-rlddm-ndt.R:153:3'): the grouped fit converges with usable st
+Error: ndt_group() was supplied for `rt` and no family read it, so the term would travel into the fit unread and every row would be scored against one bound. Inside mixture() that is what happens: a mixture never finalizes its components, so their bound has to be max_ndt and the grouping cannot be used. Drop ndt_group(), or fit the component family on its own.
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-rlddm-ndt.R:153:3
+ 2.   └─frmtmb:::assemble_frame(...) at frmtmb/R/fit.R:543:3
+ 3.     └─frmtmb:::run_frame_checks(spec, frame_so_far) at frmtmb/R/frame.R:2604:3
+ 4.       └─frmtmb.eam (local) fn(spec, frame) at frmtmb/R/structure.R:1100:3
+
+── 8. Error ('test-rlddm-ndt.R:180:3'): the per-row bound survives the stacked d
+Error: ndt_group() was supplied for `rt` and no family read it, so the term would travel into the fit unread and every row would be scored against one bound. Inside mixture() that is what happens: a mixture never finalizes its components, so their bound has to be max_ndt and the grouping cannot be used. Drop ndt_group(), or fit the component family on its own.
+Backtrace:
+    ▆
+ 1. ├─base::suppressWarnings(...) at test-rlddm-ndt.R:180:3
+ 2. │ └─base::withCallingHandlers(...)
+ 3. └─frmtmb::frm(...)
+ 4.   └─frmtmb:::assemble_frame(...) at frmtmb/R/fit.R:543:3
+ 5.     └─frmtmb:::run_frame_checks(spec, frame_so_far) at frmtmb/R/frame.R:2604:3
+ 6.       └─frmtmb.eam (local) fn(spec, frame) at frmtmb/R/structure.R:1100:3
+
+── 9. Error ('test-rlddm-ndt.R:200:3'): the group's identity is its label, not i
+Error: ndt_group() was supplied for `rt` and no family read it, so the term would travel into the fit unread and every row would be scored against one bound. Inside mixture() that is what happens: a mixture never finalizes its components, so their bound has to be max_ndt and the grouping cannot be used. Drop ndt_group(), or fit the component family on its own.
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(f, family = rlddm(subject = id, trial = trial), data = s) at test-rlddm-ndt.R:200:3
+ 2.   └─frmtmb:::assemble_frame(...) at frmtmb/R/fit.R:543:3
+ 3.     └─frmtmb:::run_frame_checks(spec, frame_so_far) at frmtmb/R/frame.R:2604:3
+ 4.       └─frmtmb.eam (local) fn(spec, frame) at frmtmb/R/structure.R:1100:3
+
+── 10. Error ('test-rlddm-ndt.R:225:3'): a bound the fit never saw is refused ra
+Error: ndt_group() was supplied for `rt` and no family read it, so the term would travel into the fit unread and every row would be scored against one bound. Inside mixture() that is what happens: a mixture never finalizes its components, so their bound has to be max_ndt and the grouping cannot be used. Drop ndt_group(), or fit the component family on its own.
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-rlddm-ndt.R:225:3
+ 2.   └─frmtmb:::assemble_frame(...) at frmtmb/R/fit.R:543:3
+ 3.     └─frmtmb:::run_frame_checks(spec, frame_so_far) at frmtmb/R/frame.R:2604:3
+ 4.       └─frmtmb.eam (local) fn(spec, frame) at frmtmb/R/structure.R:1100:3
+
+── 11. Error ('test-rlddm-ndt.R:244:3'): max_ndt and ndt_group together are refu
+Error: ndt_group() was supplied for `rt` and no family read it, so the term would travel into the fit unread and every row would be scored against one bound. Inside mixture() that is what happens: a mixture never finalizes its components, so their bound has to be max_ndt and the grouping cannot be used. Drop ndt_group(), or fit the component family on its own.
+Backtrace:
+     ▆
+  1. ├─testthat::expect_error(...) at test-rlddm-ndt.R:244:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb::frm(...)
+  8.   └─frmtmb:::assemble_frame(...) at frmtmb/R/fit.R:543:3
+  9.     └─frmtmb:::run_frame_checks(spec, frame_so_far) at frmtmb/R/frame.R:2604:3
+ 10.       └─frmtmb.eam (local) fn(spec, frame) at frmtmb/R/structure.R:1100:3
+
+── 12. Failure ('test-rlddm-ndt.R:267:3'): ndt_group on a family with no non-dec
+Expected `frmtmb::frm_compat("bandit2arm_delta", "ndt_group()")$status` to be identical to "refused".
+Differences:
+`actual`:   "untested"
+`expected`: "refused" 
+
+
+── 13. Failure ('test-rlddm-ndt.R:269:3'): ndt_group on a family with no non-dec
+Expected `frmtmb::frm_compat("rlddm", "ndt_group()")$status` to be identical to "works".
+Differences:
+`actual`:   "untested"
+`expected`: "works"   
+
+
+── 14. Failure ('test-rlddm-ndt.R:290:3'): a pinned ndt needs a bound, and is ch
+Expected `frm(...)` to throw a error.
+
+── 15. Failure ('test-rlddm-ndt.R:314:3'): a pinned ndt needs a bound, and is ch
+Expected `suppressWarnings(...)` to throw a error.
+
+── 16. Error ('test-rlddm-ndt.R:328:3'): a settled bound is kept when the family
+Error: ndt_group() was supplied for `rt` and no family read it, so the term would travel into the fit unread and every row would be scored against one bound. Inside mixture() that is what happens: a mixture never finalizes its components, so their bound has to be max_ndt and the grouping cannot be used. Drop ndt_group(), or fit the component family on its own.
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-rlddm-ndt.R:328:3
+ 2.   └─frmtmb:::assemble_frame(...) at frmtmb/R/fit.R:543:3
+ 3.     └─frmtmb:::run_frame_checks(spec, frame_so_far) at frmtmb/R/frame.R:2604:3
+ 4.       └─frmtmb.eam (local) fn(spec, frame) at frmtmb/R/structure.R:1100:3
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT file=test-rlddm-ndt.R pass=5 fail=6 err=10 skip=0 tests=12

@@ -1,0 +1,34 @@
+﻿lib : C:/Users/adf44/source/r/rlddm-lib 
+pkg : frmtmb.learn 0.3.0 at C:/Users/adf44/source/r/rlddm-lib 
+file: extensions/frmtmb.learn/tests/testthat/test-scale.R 
+Rscript.exe : SCALE row=learn-rlddm	small=TRUE	rows=    150	n_par=     14	build_s=0.11179	frame_s=0.0262401	
+grad_start_s=0.0211447	grad_start_calls=     64	grad_opt_s=0.00681851	control_ratio=1.04972	fit_s=1.95082	mem_mb=  
+265.9	logLik=-74.8403	key=alpha.(Intercept)	est=-1.07448	truth=-0.619039	est_lo=-1.63854	est_hi=-0.510417	
+sd_all=rt.alpha:(Intercept)=0.2581;rt.drift:(Intercept)=0.8259;rt.bs:(Intercept)=0.2739;rt.ndt:(Intercept)=0.5848	
+sd_true=alpha=0.5;drift=1;bs=0.2;ndt=no link truth	n_sd=      4	cor_max_abs=0.998372	cor_true=0.875197	
+ndt_pop=0.253874	ndt_pop_se=0.0273553	ndt_pop_true=   0.25	ndt_pop_z=0.141605	ndt_floor_mean=0.36419	ndt_frac=0.697092	
+ndt_sub_mean=0.245047	ndt_sub_mean_true=0.242976	ndt_mean_err_ratio=0.0607716	ndt_rmse_ratio=0.919247	ndt_rmse_ms= 
+31.327	ndt_cor_true=0.419063	sd_ndt_natural=0.0305275	sd_ndt_natural_true=0.0340789	sd_ndt_floor_only=0.0423824	
+cor_max_pair=rt.ndt:(Intercept) vs rt.bs:(Intercept)	ndt_margin_min_ms=40.7619	ndt_below_own_floor=      5	n_subjects= 
+     5	n_bad_se=      0	diag=conv=1,maxgrad=13.4,pdHess=FALSE,nbadse=0,nflat=0,unbounded=none
+At line:5 char:8
++ $out = & "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" dev/rlddm-scrip ...
++        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (SCALE row=learn...,unbounded=none:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+scale: SWWW..
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. the learn bandit scale row fits and reports its cost ('test-scale.R:255:3') - Reason: FRMTMB_SCALE_ROW is set to 'learn-rlddm'
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+1. the learn rlddm scale row fits and reports its cost ('test-scale.R:279:3') - Optimizer did not report convergence: false convergence (8)
+
+2. the learn rlddm scale row fits and reports its cost ('test-scale.R:279:3') - Large maximum absolute gradient at the optimum (13.4); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+
+3. the learn rlddm scale row fits and reports its cost ('test-scale.R:279:3') - Hessian is not positive definite; standard errors are unreliable. The model may be overparameterized
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT file=test-scale.R pass=2 fail=0 err=0 skip=1 tests=2

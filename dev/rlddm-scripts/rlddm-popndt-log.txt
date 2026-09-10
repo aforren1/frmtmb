@@ -1,0 +1,14 @@
+﻿mean(floors), implied by pop/frac : 0.312880
+
+the gap, step by step:
+  stated truth                      0.250000
+  E[ndt] = 0.25 * exp(sd^2/2)       0.252828  +2.83 ms
+  realized mean of the 100 draws    0.254744  +1.92 ms
+  fitted mean of the 100 learners   0.257234  +2.49 ms
+  plogis(b0) * mean(floors)         0.259290  +2.06 ms
+
+  z of the last against the first   5.28
+  the fit's own error, as a fraction of the truth's own
+  spread                            0.0634
+  per-learner RMSE / sd(truth)      0.3561
+  correlation with the truth        0.9404
