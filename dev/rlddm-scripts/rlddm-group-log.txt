@@ -1,0 +1,51 @@
+﻿lib  : C:/Users/adf44/source/r/rlddm-lib 
+learn: 0.3.0 at C:/Users/adf44/source/r/rlddm-lib 
+
+global min(rt)      : 0.225935102 
+per-group min(rt)   : fast 0.225935102  slow 0.455662732 
+true ndt per group  : fast 0.18  slow 0.40
+slow truth above the GLOBAL floor: TRUE 
+
+--- one global bound ---
+logLik      : -392.339337 
+fitted ndt  : fast 0.14740766  slow 0.22593510 
+rel error   : fast 18.1%  slow 43.5% 
+diagnose    : conv=0 maxgrad=2.86e-07 pdHess=TRUE nbadse=0 
+
+--- one bound per group ---
+logLik      : -237.703404 
+fitted ndt  : fast 0.19269606  slow 0.40614955 
+rel error   : fast 7.1%  slow 1.5% 
+diagnose    : conv=0 maxgrad=2.8e-05 pdHess=TRUE nbadse=0 
+bound record: 428117017399832 0.455662732  497590797688115 0.225935102 
+sizes       : 480  480 
+ndt link    : logit 
+predict()   : 0.85288233 0.89133810 
+at the wall?: fitted ndt against the group's own floor
+  margin ms : 33.239 49.513 
+
+--- refusals ---
+max_ndt + ndt_group        rlddm: max_ndt and ndt_group() both set the non-decision time's upper bound and they set it to different things. max_ndt
+ndt_time, unseen group     factor grp has new levels brandnew
+predict, unseen group      factor grp has new levels brandnew
+ndt_time, column gone      object 'grp' not found
+ndt_group on a softmax family ndt_group() was supplied for `pick` and no family read it, so the term would travel into the fit unread and every row wo
+unseen group, ndt_time     ndt_time(): 1 row(s) name an ndt_group() the model was not fitted to, so there is no fastest response to bound their non
+unseen group, predict()    NO ERROR
+column gone, ndt_time      ndt_time(): this model bounds the non-decision time by each ndt_group()'s own fastest response, and grp could not be eva
+missing group, ndt_time    ndt_group(): the grouping says which trials share a non-decision-time bound, so every row needs one, and this column has
+in-sample ndt_time head: 0.192696057 0.192696057 0.192696057 
+
+--- the level order does not matter ---
+subset then droplevels : 0.406149555 0.406149555 
+levels reversed        : 0.192696057 0.406149555 
+character spelling ll  : -237.703403967   factor ll   -237.703403967 
+
+--- the bound is KEPT across a refit on fewer rows ---
+floors, all rows       : 0.455662732 0.225935102 
+floors, fastest dropped: 0.455662732 0.225935102 
+kept                   : TRUE 
+
+--- the trace and the row factorization still hold ---
+sum(log(dens)) : -237.703403967 
+logLik(fit)    : -237.703403967 

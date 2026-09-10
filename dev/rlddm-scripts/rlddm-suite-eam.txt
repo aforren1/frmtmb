@@ -1,0 +1,24 @@
+﻿package frmtmb.eam  files 23
+RESULT file=test-bracket-access.R pass=1 fail=0 err=0 skip=0 tests=1 exit=0
+RESULT file=test-brms-parity.R pass=13 fail=0 err=0 skip=0 tests=4 exit=0
+RESULT file=test-defects.R pass=59 fail=0 err=0 skip=0 tests=10 exit=0
+RESULT file=test-density.R pass=132 fail=0 err=0 skip=0 tests=6 exit=0
+RESULT file=test-extension-api.R pass=14 fail=0 err=0 skip=0 tests=6 exit=0
+RESULT file=test-family.R pass=51 fail=0 err=0 skip=0 tests=13 exit=0
+RESULT file=test-gddm-family.R pass=77 fail=0 err=0 skip=0 tests=20 exit=0
+RESULT file=test-gddm-gradients.R pass=22 fail=0 err=0 skip=0 tests=5 exit=0
+RESULT file=test-gddm-recovery.R pass=28 fail=0 err=0 skip=0 tests=5 exit=0
+RESULT file=test-gddm-reference.R pass=166 fail=0 err=0 skip=0 tests=8 exit=0
+RESULT file=test-gddm-solver.R pass=94 fail=0 err=0 skip=0 tests=14 exit=0
+RESULT file=test-lba.R pass=109 fail=0 err=0 skip=0 tests=31 exit=0
+RESULT file=test-message-uniqueness.R pass=4 fail=0 err=0 skip=0 tests=1 exit=0
+RESULT file=test-moments.R pass=29 fail=0 err=0 skip=0 tests=8 exit=0
+RESULT file=test-ndt-bound.R pass=79 fail=0 err=0 skip=0 tests=15 exit=0
+RESULT file=test-ndt-seam.R pass=83 fail=0 err=0 skip=0 tests=13 exit=0
+RESULT file=test-rdm-gng.R pass=221 fail=0 err=0 skip=0 tests=49 exit=0
+RESULT file=test-sampling.R pass=97 fail=0 err=0 skip=0 tests=3 exit=0
+RESULT file=test-scale.R pass=0 fail=0 err=0 skip=3 tests=3 exit=0
+RESULT file=test-simulate-density.R pass=69 fail=0 err=0 skip=0 tests=11 exit=0
+RESULT file=test-surface.R pass=50 fail=0 err=0 skip=0 tests=10 exit=0
+RESULT file=test-units.R pass=32 fail=0 err=0 skip=0 tests=5 exit=0
+RESULT file=test-variability.R pass=140 fail=0 err=0 skip=0 tests=15 exit=0

@@ -1,0 +1,8 @@
+lib: C:/Users/adf44/source/r/rev-rlddm-lib  eam 0.7.0 at C:/Users/adf44/source/r/rev-rlddm-lib 
+wrote dev/rev-rlddm-eam-new2.rds   entries: 41 
+ll_wiener        -252.828383398628
+ll_wiener_sv     -251.640468870187
+ll_wiener_mx     -254.663704087151
+ll_rdm           -251.830539055894
+ll_lba           -250.923161869910
+ll_wiener_grp    -227.925065282607

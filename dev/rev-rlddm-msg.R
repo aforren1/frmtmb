@@ -1,0 +1,6 @@
+.libPaths(c("C:/Users/adf44/source/r/rev-rlddm-lib","C:/Users/adf44/source/r/pinlib","C:/Users/adf44/source/r/rellib-0552","C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+suppressPackageStartupMessages({library(frmtmb);library(frmtmb.eam);library(frmtmb.learn)})
+f <- rlddm(subject = id, trial = trial)
+m <- tryCatch(f[["links"]][["ndt"]]$linkinv(0), error = function(e) conditionMessage(e))
+cat(strwrap(m, 72), sep = "\n")
+cat("\n\ncontains 'bf(non-decision time = )': ", grepl("bf(non-decision time = )", m, fixed = TRUE), "\n")

@@ -1,0 +1,93 @@
+﻿lib  : C:/Users/adf44/source/r/rellib-0552 
+learn: 0.3.0 at C:/Users/adf44/source/r/rellib-0552 
+
+min(rt): 0.261523214 
+
+== the case the lane wrongly called a defect ==
+--- bf(ndt = 0.2), no max_ndt 
+  fitted ndt link       : scaled_logit(0, 0.2615) 
+  eta in the template   : 1.1789028 
+  the time it decodes to: 0.2 
+  relative error        : 0.00% 
+  negative logLik       : 88.624345656 
+--- bf(ndt = 0.2), max_ndt = 0.26 
+  fitted ndt link       : scaled_logit(0, 0.26) 
+  eta in the template   : 1.2039728 
+  the time it decodes to: 0.2 
+  relative error        : 0.00% 
+  negative logLik       : 88.624345656 
+
+== the case that IS a defect, and what a pending bound catches ==
+--- bf(ndt = 0.3), max_ndt = 0.26, OUT OF RANGE 
+  fitted ndt link       : scaled_logit(0, 0.26) 
+  eta in the template   : NaN 
+  the time it decodes to: NaN 
+  relative error        : NaN% 
+  negative logLik       : NaN 
+Rscript.exe : Warning message:
+At line:3 char:6
++ $a = & "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" dev/rlddm-scripts ...
++      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning message::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+In log(mu/(ub - mu)) : NaNs produced
+
+== an ordinary estimated ndt is untouched ==
+  nll at the start parameter: 128.165938367 
+
+== what a user SEES for the out-of-range case, on a real fit ==
+  outcome : REFUSED: The optimizer failed on this model (rlddm, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer s 
+  warnings: NaNs produced | NA/NaN function evaluation 
+
+== the four eam families already refuse a bare bf(ndt = ) ==
+  wiener(bare    ) bf(ndt = 0.15): REFUSED: wiener(): the non-decision time bound is not set ye
+  wiener(max_ndt ) bf(ndt = 0.15): ACCEPTED
+
+== the capability is RESPELLED, not lost ==
+  bf(ndt = 0.2), bare          logLik -86.3374111
+  bf(ndt = 0.2), max_ndt = 0.26 logLik -86.3374111
+
+=== LANE ===
+lib  : C:/Users/adf44/source/r/rlddm-lib 
+learn: 0.3.0 at C:/Users/adf44/source/r/rlddm-lib 
+
+min(rt): 0.261523214 
+
+== the case the lane wrongly called a defect ==
+--- bf(ndt = 0.2), no max_ndt 
+  REFUSED: rlddm(): the non-decision time bound is not set yet. This happens when a rlddm() family object is used outside frm(), for example to inspect its links 
+--- bf(ndt = 0.2), max_ndt = 0.26 
+  fitted ndt link       : scaled_logit 
+  eta in the template   : 1.2039728 
+  the time it decodes to: 0.2 
+  relative error        : 0.00% 
+  negative logLik       : 88.624345656 
+
+== the case that IS a defect, and what a pending bound catches ==
+Rscript.exe : Warning message:
+At line:4 char:6
++ $b = & "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" dev/rlddm-scripts ...
++      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning message::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+--- bf(ndt = 0.3), max_ndt = 0.26, OUT OF RANGE 
+In log(mu/(U - mu)) : NaNs produced
+  REFUSED: Constant ndt = 0.3 is not in the range of the scaled_logit link 
+
+== an ordinary estimated ndt is untouched ==
+  nll at the start parameter: 128.165938367 
+
+== what a user SEES for the out-of-range case, on a real fit ==
+  outcome : REFUSED: Constant ndt = 0.3 is not in the range of the scaled_logit link 
+  warnings: NaNs produced 
+
+== the four eam families already refuse a bare bf(ndt = ) ==
+  wiener(bare    ) bf(ndt = 0.15): REFUSED: wiener(): the non-decision time bound is not set ye
+  wiener(max_ndt ) bf(ndt = 0.15): ACCEPTED
+
+== the capability is RESPELLED, not lost ==
+  bf(ndt = 0.2), bare          REFUSED: rlddm(): the non-decision time bound is not set yet. This ha
+  bf(ndt = 0.2), max_ndt = 0.26 logLik -86.3374111
+

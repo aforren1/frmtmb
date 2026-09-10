@@ -1,4 +1,7 @@
-# The one thing this package offers ANOTHER extension package.
+# The first of the two things this package offers ANOTHER extension
+# package. R/ndt-seam.R carries the second, the BOUND a non-decision
+# time is measured against, which item 1.0b asked for and which this
+# file's closing paragraph anticipated.
 #
 # WHY IT EXISTS. frmtmb.learn's `rlddm()` is a delta learning rule whose
 # value difference drives the drift rate of a Wiener first-passage

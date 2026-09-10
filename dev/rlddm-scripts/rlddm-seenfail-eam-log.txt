@@ -1,0 +1,70 @@
+﻿lib : C:/Users/adf44/source/r/rellib-0552 
+pkg : frmtmb.eam 0.7.0 at C:/Users/adf44/source/r/rellib-0552 
+file: extensions/frmtmb.eam/tests/testthat/test-ndt-seam.R 
+ndt-seam: 123456789abcde
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-ndt-seam.R:14:3'): ndt_bound derives one bound, or one per gr
+Error in `ndt_bound(rt)`: could not find function "ndt_bound"
+
+── 2. Error ('test-ndt-seam.R:41:3'): ndt_bound_key is a function of the label a
+Error in `ndt_bound_key(g)`: could not find function "ndt_bound_key"
+
+── 3. Error ('test-ndt-seam.R:51:3'): ndt_bound_pending is the state a family ha
+Error in `ndt_bound_pending(what = "my_family")`: could not find function "ndt_bound_pending"
+
+── 4. Error ('test-ndt-seam.R:89:3'): ndt_bound_attach puts a scalar bound in th
+Error in `ndt_bound_attach(fam, ndt_bound(rt, what = "seamtest"))`: could not find function "ndt_bound_attach"
+
+── 5. Error ('test-ndt-seam.R:104:3'): a per-group bound becomes a logit plus pe
+Error in `ndt_bound_key(g)`: could not find function "ndt_bound_key"
+
+── 6. Error ('test-ndt-seam.R:123:3'): attaching twice replaces the bound instea
+Error in `ndt_bound_key(c("a", "a", "a", "b", "b"))`: could not find function "ndt_bound_key"
+
+── 7. Error ('test-ndt-seam.R:138:3'): a family that composes its own aterm_data
+Error in `ndt_bound_key(c("a", "a", "a", "b", "b"))`: could not find function "ndt_bound_key"
+
+── 8. Error ('test-ndt-seam.R:147:3'): ndt_bound_attach refuses what it cannot h
+Error in `ndt_bound(rt, what = "s")`: could not find function "ndt_bound"
+
+── 9. Error ('test-ndt-seam.R:182:3'): ndt_bound refuses a response no bound can
+Error in `ndt_bound("a", what = "f")`: could not find function "ndt_bound"
+Backtrace:
+    ▆
+ 1. └─testthat::expect_error(ndt_bound("a", what = "f"), "positive, finite times") at test-ndt-seam.R:182:3
+ 2.   └─testthat:::expect_condition_matching_(...)
+ 3.     └─testthat:::quasi_capture(...)
+ 4.       ├─testthat (local) .capture(...)
+ 5.       │ └─base::withCallingHandlers(...)
+ 6.       └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+
+── 10. Error ('test-ndt-seam.R:204:3'): ndt_apply multiplies the floor out, or r
+Error in `ndt_apply(list(ndt = 0.2))`: could not find function "ndt_apply"
+Backtrace:
+    ▆
+ 1. └─testthat::expect_identical(ndt_apply(list(ndt = 0.2)), 0.2) at test-ndt-seam.R:204:3
+ 2.   └─testthat::quasi_label(enquo(object), label)
+ 3.     └─rlang::eval_bare(expr, quo_get_env(quo))
+
+── 11. Error ('test-ndt-seam.R:229:3'): a family that uses the seam end to end s
+Error in `ndt_bound_key(c("a", "a", "a", "b", "b"))`: could not find function "ndt_bound_key"
+
+── 12. Error ('test-ndt-seam.R:246:3'): the pending state refuses rather than re
+Error in `ndt_bound_attach(seam_family(), ndt_bound_pending(what = "seamtest"))`: could not find function "ndt_bound_attach"
+
+── 13. Failure ('test-ndt-seam.R:268:3'): a family carrying the seam's bound is 
+Expected `bd` to be an S3 object.
+Actual OO type: none.
+
+── 14. Error ('test-ndt-seam.R:269:3'): a family carrying the seam's bound is re
+Error in `ndt_bound_of(frmtmb::single_response(fit)[["family"]])`: could not find function "ndt_bound_of"
+Backtrace:
+    ▆
+ 1. └─testthat::expect_identical(...) at test-ndt-seam.R:269:3
+ 2.   └─testthat::quasi_label(enquo(object), label)
+ 3.     └─rlang::eval_bare(expr, quo_get_env(quo))
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT file=test-ndt-seam.R pass=0 fail=1 err=13 skip=0 tests=13

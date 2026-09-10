@@ -1,3 +1,48 @@
+# frmtmb.eam (development version)
+
+* **A second export seam: the bound a non-decision time is measured
+  against.** `ndt_bound()` derives it from the response, `ndt_group()`
+  and `max_ndt`; `ndt_bound_attach()` puts it on a family object;
+  `ndt_bound_of()` reads back the bound a family already carries;
+  `ndt_bound_pending()` is the state a family is in before `frm()` has
+  seen a response; `ndt_apply()` puts the non-decision time back on the
+  response's own scale wherever a density would have read `dpars$ndt`,
+  with the refusal that goes with it; and `ndt_bound_key()` is the
+  coercion an `ndt_group()` column goes through, for a caller
+  assembling the `aterms` list by hand. A family in another package now
+  gets this package's
+  bound, its `ndt_group()` behavior and every refusal that goes with
+  them without writing any of it again. `frmtmb.learn::rlddm()` is the
+  first consumer and had written its own copy of the scaled logit,
+  which is how it inherited the one-global-bound defect item 1.0a
+  removed here.
+
+  What is promised is the bound and the one multiplication that goes
+  with it. The four densities' internals stay internal, and so does the
+  slot WRAPPING this package does for its own families:
+  `ndt_bound_attach()` sets the link, the per-row floor and the record,
+  and the consumer's density calls `ndt_apply()`. That last one is
+  exported rather than documented as three lines because the refusal it
+  carries is longer than the arithmetic and is the half that stops a
+  fraction being read as seconds.
+
+  Attaching a bound to one of THIS package's own five families is
+  refused by name. `wiener()`, `lba()`, `rdm()` and `wiener_gng()`
+  install theirs through their constructor's `max_ndt`, and a
+  half-install would leave the link and the density disagreeing;
+  `gddm()` takes no per-group bound at all, and an earlier version of
+  the guard let it through, replacing its bounded link with a plain
+  logit and moving its `ndt` starting value from 0.155 s to 0.5.
+
+* `ndt_time()` reads the bound RECORD rather than the family's name, so
+  a fit from another package whose family carries a bound is reported
+  here too.
+
+* The record a fitted family carries at `family(fit)$ndt_bound` is now
+  an object of class `"frmtmb_eam_ndt_bound"` and carries the family's
+  name in `what`. Its `ub`, `floors`, `sizes` and `pending` entries are
+  unchanged.
+
 # frmtmb.eam 0.7.0
 
 The non-decision time can now be bounded PER GROUP, which fixes the

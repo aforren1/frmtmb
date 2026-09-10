@@ -80,12 +80,87 @@
 #'
 #' @section The non-decision time is bounded, not logged:
 #' The density is zero at and below `ndt`, so the likelihood has a hard
-#' edge at `ndt = min(rt)` and a log link would let the optimizer walk
-#' over it. `ndt` therefore gets a logit scaled onto `(0, max_ndt)`,
-#' with `max_ndt` defaulting to the fastest response in the data, which
-#' makes the constraint structural. This is the same construction
-#' [frmtmb.eam::wiener()] uses and it is written again here rather than
-#' borrowed, because a link is not what that package exports.
+#' edge at the fastest response and a log link would let the optimizer
+#' walk over it. `ndt` therefore gets a logit scaled onto `(0, ub)`,
+#' which makes the constraint structural. The bound comes from
+#' [frmtmb.eam::ndt_bound()], so this family and [frmtmb.eam::wiener()]
+#' derive it the same way and refuse the same things.
+#'
+#' @section One bound, or one per learner:
+#' `ub` is one number for the whole data set unless the model says
+#' otherwise, and the whole data set's fastest response is the wrong
+#' ceiling for a hierarchical fit. The information about one subject's
+#' non-decision time is that SUBJECT's own fastest response, and with
+#' 100 learners the global minimum is the fastest of all of them, so a
+#' subject deviation on `ndt` is a deviation on a fraction of somebody
+#' else's floor. The scale tier measured what that costs: the 100 by 200
+#' design reached a maximum gradient of 6.36e+09, a Hessian that was not
+#' positive definite and four `NaN` standard errors.
+#'
+#' `ndt_group()` is the fix, and it is opt-in:
+#'
+#' ```
+#' frm(bf(rt | dec(choice) + reward(pay1, pay2) + ndt_group(id) ~
+#'          1 + (1 | p | id),
+#'        drift ~ 1 + (1 | p | id), bs ~ 1 + (1 | p | id),
+#'        ndt ~ 1 + (1 | p | id), bias = 0.5),
+#'     family = rlddm(subject = id, trial = trial), data = d)
+#' ```
+#'
+#' With it, each row's bound is its own group's fastest response, `ndt`
+#' is a FRACTION of that bound on a plain logit, and the density
+#' multiplies it back out. `predict(dpar = "ndt", type = "response")`
+#' then reports the fraction, and [frmtmb.eam::ndt_time()] reports the
+#' non-decision time in seconds whichever parameterization a fit is in.
+#' Without it nothing about the family moved.
+#'
+#' The grouping need not be the learner: it is whatever shares a floor.
+#' `max_ndt` and `ndt_group()` together are refused, because they set
+#' one bound to two different things.
+#'
+#' @section What the per-learner spread of ndt does and does not say:
+#' Under `ndt_group()` a learner's non-decision time is a FRACTION times
+#' that learner's own floor, so the fitted times differ between learners
+#' even when the random effect on `ndt` is exactly zero, purely because
+#' the floors differ. A spread across learners is therefore not evidence
+#' that the variance component recovered anything.
+#'
+#' Measured on the 100 by 200 design of `dev/rlddm-findings.md`, where
+#' the drawn truths have a spread of 0.0393041: the full model returns
+#' **0.0333713** and the same model with the random effect on `ndt`
+#' switched OFF returns **0.0380049**. On this statistic the random
+#' effect is not neutral, it is worse.
+#'
+#' What the random effect IS worth on the same fit is the per-learner
+#' accuracy, and there it is not close: 13.996 ms of error against the
+#' drawn truths and a correlation of 0.9404, where no estimator without
+#' it can beat 21.075 ms or 0.8478, because the correlation of any
+#' constant multiple of the floors with the truth is fixed at 0.847780.
+#' So read the per-learner error and the correlation, not the spread.
+#' [frmtmb.eam::wiener()] carries the same warning for the same reason.
+#'
+#' @section Pinning the non-decision time needs max_ndt:
+#' `bf(ndt = 0.2)` on a bare `rlddm()` is refused, and the message says
+#' to pass `max_ndt`. `bf()` transforms a pinned constant at PARSE time,
+#' before the response has been seen, so a family with no bound yet has
+#' no scale to transform it on. Write the bound down instead:
+#'
+#' ```
+#' frm(bf(rt | dec(choice) + reward(pay1, pay2) ~ 1,
+#'        drift ~ 1, bs ~ 1, ndt = 0.2, bias = 0.5),
+#'     family = rlddm(subject = id, trial = trial, max_ndt = 0.26),
+#'     data = d)
+#' ```
+#'
+#' **This is a change, and it is one thing that stops working.** Through
+#' 0.3.0 `bf(ndt = 0.2)` on a bare family was accepted and fitted 0.2
+#' exactly, so far as the constant was below the fastest response. What
+#' it did NOT do is check the constant against the bound the fit would
+#' actually use: `bf(ndt = 0.3)` with `max_ndt = 0.26` was accepted too,
+#' and reached the objective as `NaN`, surfacing as an optimizer failure
+#' that named nothing. Both cases are now settled before the formula is
+#' parsed, which is how [frmtmb.eam::wiener()] and its siblings have
+#' behaved since frmtmb.eam 0.7.0.
 #'
 #' @section Recovery, measured:
 #' `dev/learn-recovery-round2.R` runs it and `?frmtmb.learn` carries the
@@ -119,12 +194,13 @@
 #' that says what it needs. Nothing about FITTING needs `RWiener`; the
 #' likelihood is [frmtmb.eam::wiener_lpdf()] and is exact either way.
 #'
-#' @section Where the density comes from:
-#' [frmtmb.eam::wiener_lpdf()], through the export rather than through a
-#' colon. The Navarro and Fuss (2009) series pair, its smooth blend and
-#' its tape safety all belong to that package and are not repeated here.
-#' This is the only dependency one extension of frmtmb has on another,
-#' and it is one function.
+#' @section Where the density and the bound come from:
+#' [frmtmb.eam::wiener_lpdf()] and [frmtmb.eam::ndt_bound()], through
+#' the exports rather than through a colon. The Navarro and Fuss (2009)
+#' series pair, its smooth blend and its tape safety belong to that
+#' package, and so does the bound, its `ndt_group()` behavior and every
+#' refusal either of them owes. This family writes the learning rule and
+#' one multiplication.
 #'
 #' @param subject The column separating one learner's trial sequence
 #'   from the next, given unquoted.
@@ -133,7 +209,9 @@
 #' @param max_ndt Upper bound for the non-decision time. `NULL`, the
 #'   default, uses the fastest response in the data. A value above it is
 #'   refused, because it admits parameters at which the fastest trial
-#'   has no likelihood.
+#'   has no likelihood. It cannot be combined with
+#'   `ndt_group()`, which sets the same bound per group. It is also what
+#'   `bf(ndt = )` now needs: see below.
 #'
 #' @return A `frmtmb_family` object, for `frm(family = )`.
 #'
@@ -177,15 +255,23 @@ rlddm <- function(subject, trial = NULL, max_ndt = NULL) {
     choice_map = function(v) v + 1,
     logp = function(state, d, ch) {
       v <- d[["drift"]] * (state[["q2"]] - state[["q1"]])
-      wiener_lpdf(d[[".y"]] - d[["ndt"]], v, d[["bs"]], d[["bias"]],
+      wiener_lpdf(d[[".y"]] - ln_ndt_at(d), v, d[["bs"]], d[["bias"]],
                   ch[[2L]])
     },
+    # The draw reads the non-decision time the same way the density
+    # does, and today that is a no-op on the only path that reaches it:
+    # frm_task_simulate() builds its per-row values out of `pars` and
+    # the data map, so no ndt_floor and no ndt_group is ever in them and
+    # `ndt` arrives as a time already. It goes through ln_ndt_at()
+    # anyway, because the two halves of a family reading one parameter
+    # two different ways is how a fraction gets drawn as seconds the day
+    # a simulator is turned on here.
     draw = function(state, d) {
       ns <- length(state[["q1"]])
       v <- as.numeric(d[["drift"]] * (state[["q2"]] - state[["q1"]]))
       sim <- ddm_simulate(
         ns, v, as.numeric(rep_len(d[["bs"]], ns)),
-        as.numeric(rep_len(d[["ndt"]], ns)),
+        as.numeric(rep_len(ln_ndt_at(d), ns)),
         as.numeric(rep_len(d[["bias"]], ns)))
       d[["dec"]] <- sim[["upper"]]
       list(y = sim[["rt"]], choice = sim[["upper"]] + 1, d = d)
@@ -203,7 +289,7 @@ rlddm <- function(subject, trial = NULL, max_ndt = NULL) {
            pe = c1 * pe1 + c2 * pe2)
     },
     sim_cols = "dec")
-  ln_family("rlddm", substitute(subject), substitute(trial),
+  fam <- ln_family("rlddm", substitute(subject), substitute(trial),
             dpars = c("alpha", "drift", "bs", "ndt", "bias"),
             links = list(alpha = "logit", drift = "identity",
                          bs = "log", ndt = "log", bias = "logit"),
@@ -232,7 +318,16 @@ rlddm <- function(subject, trial = NULL, max_ndt = NULL) {
             # there is no constant to compare a fitted row against. The
             # six softmax families do have one, and it is zero.
             saturated = FALSE,
-            finalize = function(fam, y, aterms) ln_ndt_link(fam, y, max_ndt),
+            finalize = function(fam, y, aterms) {
+              # The refusals come FIRST, before the carried bound is
+              # read, so that a max_ndt above the fastest response is
+              # still refused on the second finalize of a family whose
+              # bound is already settled. frmtmb.eam's own families put
+              # them in the same order for the same reason.
+              bd <- ndt_bound(y, aterms, max_ndt, "rlddm")
+              if (!is.null(ndt_bound_of(fam))) return(fam)
+              ndt_bound_attach(fam, bd)
+            },
             sim_refusal = paste0(
               "One rlddm() trial's draw is two numbers, the boundary ",
               "reached and the time it took, and a response vector ",
@@ -241,6 +336,29 @@ rlddm <- function(subject, trial = NULL, max_ndt = NULL) {
               "which is a draw from a different model. Use ",
               "frmtmb.learn::frm_task_simulate(), which returns whole ",
               "data frames"))
+  # THE BOUND BEFORE THERE IS DATA. `ndt`'s declared link above is a
+  # placeholder, and through 0.3.0 it was what a family object carried
+  # until frm() replaced it.
+  #
+  # WHAT THAT DID AND DID NOT COST, measured, because a first version of
+  # this comment claimed the wrong one. frmtmb transforms a constant
+  # dpar twice: parse.R only RANGE-CHECKS it against whatever link the
+  # family is carrying, and frame.R does the transform that reaches the
+  # parameter, after family_finalize() has settled the link. So an
+  # in-range `bf(ndt = 0.2)` was fitted at exactly 0.2 and nothing was
+  # wrong with it. What was wrong is the range check: at 0.3.0 it ran
+  # against the placeholder `log`, which accepts any positive constant,
+  # so `bf(ndt = 0.3)` with max_ndt = 0.26 passed it, produced NaN in
+  # frame.R with no finiteness check, and surfaced as "NA/NaN gradient
+  # evaluation" from the optimizer rather than as anything naming the
+  # constant.
+  #
+  # A pending bound makes the check honest, at the price of `bf(ndt = )`
+  # needing `max_ndt` on a bare family. That price is the one
+  # wiener(), lba(), rdm() and wiener_gng() have paid since
+  # frmtmb.eam 0.7.0, and paying it here is what makes one contract
+  # across the five families rather than four and an exception.
+  ndt_bound_attach(fam, ndt_bound_pending(max_ndt, "rlddm"))
 }
 
 #' The response of a joint choice-and-time family.
@@ -257,39 +375,31 @@ ln_valid_rt <- function(y, aterms) {
   invisible(NULL)
 }
 
-#' A logit scaled onto `(0, ub)` for the non-decision time.
+#' The non-decision time at one trial's rows, as a TIME.
 #'
-#' WHY IT IS WRITTEN HERE. The density is zero at and below `ndt`, so
-#' the likelihood has a hard edge at `ndt = min(rt)`; a log link lets an
-#' optimizer step over it into a region where the fastest trial has no
-#' likelihood at all. Making the bound part of the link makes the
-#' constraint structural instead.
+#' The whole of what a per-group bound costs this likelihood, and it is
+#' one call. With `ndt_group()` the `ndt` link is a plain logit on a
+#' FRACTION of the row's own bound, and that bound arrives beside the
+#' addition-term values as `ndt_floor`, one entry per row, so the
+#' recursion indexes it at each trial exactly as it indexes the payoffs.
+#' Without the grouping there is no `ndt_floor`, `ndt` is already a
+#' time, and it comes back untouched: a model that does not opt in is
+#' the arithmetic 0.3.0 shipped.
 #'
-#' `frmtmb.eam` builds the same link for the same reason, and this is
-#' the one thing this family reproduces rather than imports. What that
-#' package exports is a DENSITY; a link is not part of the promise it
-#' makes, and asking for a second export whose subject is link
-#' construction would widen its public surface for ten lines of
-#' arithmetic. The duplication is recorded in dev/learn2-findings.md
-#' rather than hidden.
+#' THE ARITHMETIC IS NOT THE PART THAT MATTERS. A grouped model whose
+#' density is reached without `ndt_floor` would read the fraction as
+#' seconds and report a converged fit at a non-decision time several
+#' times too small. That refusal is longer than the multiplication it
+#' guards, which is why it is [frmtmb.eam::ndt_apply()]'s and not a
+#' copy here: the review of this item found that a consumer copying the
+#' documented arithmetic and not the undocumented refusal gets exactly
+#' the defect the item exists to remove.
+#'
+#' The engine merges the distributional parameters and the addition-term
+#' values into one list, so `d` is passed once and serves as both.
+#' `ndt_apply()` is imported by name rather than reached with `::`,
+#' because this runs once per trial per objective evaluation and a
+#' namespace lookup does not belong in that loop.
 #'
 #' @noRd
-ln_ndt_link <- function(fam, y, max_ndt) {
-  ub <- if (is.null(max_ndt)) min(y) else max_ndt
-  if (!is.null(max_ndt) && ub > min(y)) {
-    stop("rlddm(max_ndt = ", format(ub), ") is above the fastest ",
-         "response (", format(min(y)), "). Nothing is observed before ",
-         "the non-decision time, so a bound above the fastest response ",
-         "admits values at which that trial has no likelihood",
-         call. = FALSE)
-  }
-  fam[["links"]][["ndt"]] <- list(
-    name = paste0("scaled_logit(0, ", signif(ub, 4), ")"),
-    linkfun = function(mu) log(mu / (ub - mu)),
-    linkinv = function(eta) ub / (1 + exp(-eta)),
-    mu_eta = function(eta) {
-      p <- 1 / (1 + exp(-eta))
-      ub * p * (1 - p)
-    })
-  fam
-}
+ln_ndt_at <- function(d) ndt_apply(d, d, "rlddm()")

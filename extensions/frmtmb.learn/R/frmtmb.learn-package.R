@@ -300,5 +300,9 @@ NULL
 # imports before running its `.onLoad()`, so `dec()` is in the registry
 # before this package's own compat rules name it.
 # `test-clean-session.R` runs a fresh R process to keep this true.
-#' @importFrom frmtmb.eam wiener_lpdf ddm_simulate
+# The same reasoning covers `ndt_group()`, which frmtmb.eam registers in
+# the same `.onLoad()` and which `rlddm()` now reads through frmtmb.eam's
+# own bound seam rather than through a second copy of the link.
+#' @importFrom frmtmb.eam wiener_lpdf ddm_simulate ndt_bound
+#'   ndt_bound_attach ndt_bound_of ndt_bound_pending ndt_apply
 NULL

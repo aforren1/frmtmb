@@ -1,0 +1,16 @@
+﻿lib: C:/Users/adf44/source/r/rlddm-lib  eam 0.7.0 
+
+aterm names in the fitted frame : dec, ndt_group, ndt_floor 
+attributes on the fitted value  : NONE 
+aterm names on newdata          : dec, ndt_group 
+attributes on the newdata value : NONE 
+attributes after v[1:3]         : NONE 
+
+the two call sites that strip it:
+  frame.R  : as.numeric(v) 
+  predict.R: v <- tryCatch(as.numeric(if (is.null(reg_at)) { 
+
+the code the floor table is keyed on:
+  ndt_bound_key('a')        : 1627390186 
+  below 2^49                : TRUE 
+  distinct codes over 10^6 identifiers S000000..S999999: 1000000 of 1000000 

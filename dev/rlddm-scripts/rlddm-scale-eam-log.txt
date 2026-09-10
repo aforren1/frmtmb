@@ -1,0 +1,13 @@
+﻿lib : C:/Users/adf44/source/r/rlddm-lib 
+pkg : frmtmb.eam 0.7.0 at C:/Users/adf44/source/r/rlddm-lib 
+file: extensions/frmtmb.eam/tests/testthat/test-scale.R 
+scale: .......SS
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. the eam scale row fits with the ndt bound lifted ('test-scale.R:219:3') - Reason: FRMTMB_SCALE_ROW is set to 'eam'
+
+2. the eam scale row fits with across-trial drift variability ('test-scale.R:238:3') - Reason: FRMTMB_SCALE_ROW is set to 'eam'
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+RESULT file=test-scale.R pass=7 fail=0 err=0 skip=2 tests=3

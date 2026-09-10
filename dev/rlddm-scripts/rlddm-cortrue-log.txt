@@ -1,0 +1,38 @@
+﻿lib: C:/Users/adf44/source/r/rlddm-lib 
+
+rows: 20000  learners: 100 
+mean(ndt truth): 0.254744366 
+mean(own floor): 0.312880663 
+
+-- the four deviations AS DRAWN -- 
+  alpha  drift  -0.1158
+  alpha  bs     +0.0139
+  alpha  ndt    +0.0028
+  drift  bs     +0.0695
+  drift  ndt    +0.1591
+  bs     ndt    +0.0604
+  max abs off-diagonal: 0.1591
+
+-- the same truths in the parameterization now fitted -- 
+  alpha  drift  -0.1158
+  alpha  bs     +0.0139
+  alpha  ndt    +0.0085
+  drift  bs     +0.0695
+  drift  ndt    +0.0880
+  bs     ndt    -0.7768
+  max abs off-diagonal: 0.7768
+
+-- the mechanism --
+  cor(log floor, bs deviation) : +0.4954
+  cor(log floor, ndt deviation): +0.8433
+
+cor_true for the learn-rlddm row: 0.776847 
+what the row recorded before punch round 2: 0
+── Skip: the learn bandit scale row fits and reports its cost ──────────────────
+Reason: FRMTMB_SCALE_ROW is set to 'no-such-row'
+── Skip: the learn rlddm scale row fits and reports its cost ───────────────────
+Reason: FRMTMB_SCALE_ROW is set to 'no-such-row'
+rows: 20000  learners: 100 
+cor_true the row will record: 0.776847 
+the same truths as DRAWN    : 0.159095 
+mean(own floor)             : 0.312880663 

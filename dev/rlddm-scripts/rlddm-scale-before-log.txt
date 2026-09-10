@@ -1,0 +1,360 @@
+﻿row  : learn-rlddm 
+lib  : C:/Users/adf44/source/r/rellib-0552 
+learn: 0.3.0 at C:/Users/adf44/source/r/rellib-0552 
+eam  : 0.7.0 at C:/Users/adf44/source/r/rellib-0552 
+Rscript.exe : SCALE row=learn-rlddm	small=FALSE	rows=  20000	n_par=     14	build_s=5.36788	frame_s=0.101917	
+grad_start_s=8.80604	grad_start_calls=      1	grad_opt_s=0.637147	control_ratio=1.44352	fit_s=1101.47	mem_mb=  323.7	
+logLik=-8333.1	key=alpha.(Intercept)	est=-0.550625	truth=-0.619039	est_lo=-0.666037	est_hi=-0.435213	
+sd_all=rt.alpha:(Intercept)= 0.52;rt.drift:(Intercept)=1.138;rt.bs:(Intercept)=0.2119;rt.ndt:(Intercept)=2.236	
+sd_true=alpha=0.5;drift=1;bs=0.2;ndt=no link truth	n_sd=      4	cor_max_abs=0.396405	cor_true=      0	
+diag=conv=1,maxgrad=6.36e+09,pdHess=FALSE,nbadse=4,nflat=0,unbounded=none
+At line:4 char:1
++ & "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" dev/rlddm-scripts/rldd ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (SCALE row=learn...,unbounded=none:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+scale: SWWWWWWWWWWWWW.
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. the learn bandit scale row fits and reports its cost ('test-scale.R:138:3') - Reason: FRMTMB_SCALE_ROW is set to 'learn-rlddm'
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+1. the learn rlddm scale row fits and reports its cost ('test-scale.R:159:3') - NA/NaN function evaluation
+
+2. the learn rlddm scale row fits and reports its cost ('test-scale.R:159:3') - NA/NaN function evaluation
+
+3. the learn rlddm scale row fits and reports its cost ('test-scale.R:159:3') - NA/NaN function evaluation
+
+4. the learn rlddm scale row fits and reports its cost ('test-scale.R:159:3') - NA/NaN function evaluation
+
+5. the learn rlddm scale row fits and reports its cost ('test-scale.R:159:3') - NA/NaN function evaluation
+
+6. the learn rlddm scale row fits and reports its cost ('test-scale.R:159:3') - NA/NaN function evaluation
+
+7. the learn rlddm scale row fits and reports its cost ('test-scale.R:159:3') - NA/NaN function evaluation
+
+8. the learn rlddm scale row fits and reports its cost ('test-scale.R:159:3') - NA/NaN function evaluation
+
+9. the learn rlddm scale row fits and reports its cost ('test-scale.R:159:3') - NA/NaN function evaluation
+
+10. the learn rlddm scale row fits and reports its cost ('test-scale.R:159:3') - NA/NaN function evaluation
+
+11. the learn rlddm scale row fits and reports its cost ('test-scale.R:159:3') - Optimizer did not report convergence: false convergence (8)
+
+12. the learn rlddm scale row fits and reports its cost ('test-scale.R:159:3') - Large maximum absolute gradient at the optimum (6.36e+09); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+
+13. the learn rlddm scale row fits and reports its cost ('test-scale.R:159:3') - Hessian is not positive definite; standard errors are unreliable. The model may be overparameterized
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+[ FAIL 0 | WARN 13 | SKIP 1 | PASS 1 ]
+
+══ Skipped tests (1) ═══════════════════════════════════════════════════════════
+• FRMTMB_SCALE_ROW is set to 'learn-rlddm' (1): 'test-scale.R:138:3'
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+── Warning ('test-scale.R:159:3'): the learn rlddm scale row fits and reports its cost ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb.learn (local) learn_scale_run(...) at test-scale.R:159:3
+  2.   ├─frmtmb.learn:::scale_elapsed(...) at test-scale.R:103:3
+  3.   │ └─base::force(expr) at ./helper-scale.R:61:3
+  4.   └─frmtmb::frm(form, family = fam, data = d, se = TRUE)
+  5.     └─frmtmb:::fit_assembled(...) at frmtmb/R/fit.R:555:3
+  6.       ├─frmtmb:::fit_error_context(...) at frmtmb/R/fit.R:915:5
+  7.       │ ├─base::withCallingHandlers(...) at frmtmb/R/fit.R:1838:3
+  8.       │ └─base::tryCatch(...) at frmtmb/R/fit.R:1838:3
+  9.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       ├─base::tryCatch(...) at frmtmb/R/fit.R:915:5
+ 13.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 14.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 15.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 16.       └─frmtmb:::optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb) at frmtmb/R/fit.R:915:5
+ 17.         └─frmtmb (local) run(start_par) at frmtmb/R/fit.R:1777:3
+ 18.           ├─base::tryCatch(...) at frmtmb/R/fit.R:1769:5
+ 19.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 20.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 21.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 22.           └─frmtmb:::run_optimizer(...) at frmtmb/R/fit.R:1769:5
+ 23.             └─stats::nlminb(...) at frmtmb/R/fit.R:1617:3
+── Warning ('test-scale.R:159:3'): the learn rlddm scale row fits and reports its cost ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb.learn (local) learn_scale_run(...) at test-scale.R:159:3
+  2.   ├─frmtmb.learn:::scale_elapsed(...) at test-scale.R:103:3
+  3.   │ └─base::force(expr) at ./helper-scale.R:61:3
+  4.   └─frmtmb::frm(form, family = fam, data = d, se = TRUE)
+  5.     └─frmtmb:::fit_assembled(...) at frmtmb/R/fit.R:555:3
+  6.       ├─frmtmb:::fit_error_context(...) at frmtmb/R/fit.R:915:5
+  7.       │ ├─base::withCallingHandlers(...) at frmtmb/R/fit.R:1838:3
+  8.       │ └─base::tryCatch(...) at frmtmb/R/fit.R:1838:3
+  9.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       ├─base::tryCatch(...) at frmtmb/R/fit.R:915:5
+ 13.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 14.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 15.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 16.       └─frmtmb:::optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb) at frmtmb/R/fit.R:915:5
+ 17.         └─frmtmb (local) run(opt$par) at frmtmb/R/fit.R:1783:5
+ 18.           ├─base::tryCatch(...) at frmtmb/R/fit.R:1769:5
+ 19.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 20.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 21.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 22.           └─frmtmb:::run_optimizer(...) at frmtmb/R/fit.R:1769:5
+ 23.             └─stats::nlminb(...) at frmtmb/R/fit.R:1617:3
+── Warning ('test-scale.R:159:3'): the learn rlddm scale row fits and reports its cost ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb.learn (local) learn_scale_run(...) at test-scale.R:159:3
+  2.   ├─frmtmb.learn:::scale_elapsed(...) at test-scale.R:103:3
+  3.   │ └─base::force(expr) at ./helper-scale.R:61:3
+  4.   └─frmtmb::frm(form, family = fam, data = d, se = TRUE)
+  5.     └─frmtmb:::fit_assembled(...) at frmtmb/R/fit.R:555:3
+  6.       ├─frmtmb:::fit_error_context(...) at frmtmb/R/fit.R:915:5
+  7.       │ ├─base::withCallingHandlers(...) at frmtmb/R/fit.R:1838:3
+  8.       │ └─base::tryCatch(...) at frmtmb/R/fit.R:1838:3
+  9.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       ├─base::tryCatch(...) at frmtmb/R/fit.R:915:5
+ 13.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 14.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 15.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 16.       └─frmtmb:::optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb) at frmtmb/R/fit.R:915:5
+ 17.         └─frmtmb (local) run(opt$par) at frmtmb/R/fit.R:1783:5
+ 18.           ├─base::tryCatch(...) at frmtmb/R/fit.R:1769:5
+ 19.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 20.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 21.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 22.           └─frmtmb:::run_optimizer(...) at frmtmb/R/fit.R:1769:5
+ 23.             └─stats::nlminb(...) at frmtmb/R/fit.R:1617:3
+── Warning ('test-scale.R:159:3'): the learn rlddm scale row fits and reports its cost ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb.learn (local) learn_scale_run(...) at test-scale.R:159:3
+  2.   ├─frmtmb.learn:::scale_elapsed(...) at test-scale.R:103:3
+  3.   │ └─base::force(expr) at ./helper-scale.R:61:3
+  4.   └─frmtmb::frm(form, family = fam, data = d, se = TRUE)
+  5.     └─frmtmb:::fit_assembled(...) at frmtmb/R/fit.R:555:3
+  6.       ├─frmtmb:::fit_error_context(...) at frmtmb/R/fit.R:915:5
+  7.       │ ├─base::withCallingHandlers(...) at frmtmb/R/fit.R:1838:3
+  8.       │ └─base::tryCatch(...) at frmtmb/R/fit.R:1838:3
+  9.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       ├─base::tryCatch(...) at frmtmb/R/fit.R:915:5
+ 13.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 14.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 15.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 16.       └─frmtmb:::optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb) at frmtmb/R/fit.R:915:5
+ 17.         └─frmtmb (local) run(opt$par) at frmtmb/R/fit.R:1783:5
+ 18.           ├─base::tryCatch(...) at frmtmb/R/fit.R:1769:5
+ 19.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 20.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 21.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 22.           └─frmtmb:::run_optimizer(...) at frmtmb/R/fit.R:1769:5
+ 23.             └─stats::nlminb(...) at frmtmb/R/fit.R:1617:3
+── Warning ('test-scale.R:159:3'): the learn rlddm scale row fits and reports its cost ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb.learn (local) learn_scale_run(...) at test-scale.R:159:3
+  2.   ├─frmtmb.learn:::scale_elapsed(...) at test-scale.R:103:3
+  3.   │ └─base::force(expr) at ./helper-scale.R:61:3
+  4.   └─frmtmb::frm(form, family = fam, data = d, se = TRUE)
+  5.     └─frmtmb:::fit_assembled(...) at frmtmb/R/fit.R:555:3
+  6.       ├─frmtmb:::fit_error_context(...) at frmtmb/R/fit.R:915:5
+  7.       │ ├─base::withCallingHandlers(...) at frmtmb/R/fit.R:1838:3
+  8.       │ └─base::tryCatch(...) at frmtmb/R/fit.R:1838:3
+  9.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       ├─base::tryCatch(...) at frmtmb/R/fit.R:915:5
+ 13.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 14.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 15.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 16.       └─frmtmb:::optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb) at frmtmb/R/fit.R:915:5
+ 17.         └─frmtmb (local) run(opt$par) at frmtmb/R/fit.R:1783:5
+ 18.           ├─base::tryCatch(...) at frmtmb/R/fit.R:1769:5
+ 19.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 20.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 21.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 22.           └─frmtmb:::run_optimizer(...) at frmtmb/R/fit.R:1769:5
+ 23.             └─stats::nlminb(...) at frmtmb/R/fit.R:1617:3
+── Warning ('test-scale.R:159:3'): the learn rlddm scale row fits and reports its cost ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb.learn (local) learn_scale_run(...) at test-scale.R:159:3
+  2.   ├─frmtmb.learn:::scale_elapsed(...) at test-scale.R:103:3
+  3.   │ └─base::force(expr) at ./helper-scale.R:61:3
+  4.   └─frmtmb::frm(form, family = fam, data = d, se = TRUE)
+  5.     └─frmtmb:::fit_assembled(...) at frmtmb/R/fit.R:555:3
+  6.       ├─frmtmb:::fit_error_context(...) at frmtmb/R/fit.R:915:5
+  7.       │ ├─base::withCallingHandlers(...) at frmtmb/R/fit.R:1838:3
+  8.       │ └─base::tryCatch(...) at frmtmb/R/fit.R:1838:3
+  9.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       ├─base::tryCatch(...) at frmtmb/R/fit.R:915:5
+ 13.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 14.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 15.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 16.       └─frmtmb:::optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb) at frmtmb/R/fit.R:915:5
+ 17.         └─frmtmb (local) run(opt$par) at frmtmb/R/fit.R:1783:5
+ 18.           ├─base::tryCatch(...) at frmtmb/R/fit.R:1769:5
+ 19.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 20.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 21.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 22.           └─frmtmb:::run_optimizer(...) at frmtmb/R/fit.R:1769:5
+ 23.             └─stats::nlminb(...) at frmtmb/R/fit.R:1617:3
+── Warning ('test-scale.R:159:3'): the learn rlddm scale row fits and reports its cost ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb.learn (local) learn_scale_run(...) at test-scale.R:159:3
+  2.   ├─frmtmb.learn:::scale_elapsed(...) at test-scale.R:103:3
+  3.   │ └─base::force(expr) at ./helper-scale.R:61:3
+  4.   └─frmtmb::frm(form, family = fam, data = d, se = TRUE)
+  5.     └─frmtmb:::fit_assembled(...) at frmtmb/R/fit.R:555:3
+  6.       ├─frmtmb:::fit_error_context(...) at frmtmb/R/fit.R:915:5
+  7.       │ ├─base::withCallingHandlers(...) at frmtmb/R/fit.R:1838:3
+  8.       │ └─base::tryCatch(...) at frmtmb/R/fit.R:1838:3
+  9.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       ├─base::tryCatch(...) at frmtmb/R/fit.R:915:5
+ 13.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 14.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 15.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 16.       └─frmtmb:::optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb) at frmtmb/R/fit.R:915:5
+ 17.         └─frmtmb (local) run(opt$par) at frmtmb/R/fit.R:1783:5
+ 18.           ├─base::tryCatch(...) at frmtmb/R/fit.R:1769:5
+ 19.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 20.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 21.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 22.           └─frmtmb:::run_optimizer(...) at frmtmb/R/fit.R:1769:5
+ 23.             └─stats::nlminb(...) at frmtmb/R/fit.R:1617:3
+── Warning ('test-scale.R:159:3'): the learn rlddm scale row fits and reports its cost ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb.learn (local) learn_scale_run(...) at test-scale.R:159:3
+  2.   ├─frmtmb.learn:::scale_elapsed(...) at test-scale.R:103:3
+  3.   │ └─base::force(expr) at ./helper-scale.R:61:3
+  4.   └─frmtmb::frm(form, family = fam, data = d, se = TRUE)
+  5.     └─frmtmb:::fit_assembled(...) at frmtmb/R/fit.R:555:3
+  6.       ├─frmtmb:::fit_error_context(...) at frmtmb/R/fit.R:915:5
+  7.       │ ├─base::withCallingHandlers(...) at frmtmb/R/fit.R:1838:3
+  8.       │ └─base::tryCatch(...) at frmtmb/R/fit.R:1838:3
+  9.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       ├─base::tryCatch(...) at frmtmb/R/fit.R:915:5
+ 13.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 14.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 15.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 16.       └─frmtmb:::optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb) at frmtmb/R/fit.R:915:5
+ 17.         └─frmtmb (local) run(opt$par) at frmtmb/R/fit.R:1783:5
+ 18.           ├─base::tryCatch(...) at frmtmb/R/fit.R:1769:5
+ 19.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 20.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 21.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 22.           └─frmtmb:::run_optimizer(...) at frmtmb/R/fit.R:1769:5
+ 23.             └─stats::nlminb(...) at frmtmb/R/fit.R:1617:3
+── Warning ('test-scale.R:159:3'): the learn rlddm scale row fits and reports its cost ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb.learn (local) learn_scale_run(...) at test-scale.R:159:3
+  2.   ├─frmtmb.learn:::scale_elapsed(...) at test-scale.R:103:3
+  3.   │ └─base::force(expr) at ./helper-scale.R:61:3
+  4.   └─frmtmb::frm(form, family = fam, data = d, se = TRUE)
+  5.     └─frmtmb:::fit_assembled(...) at frmtmb/R/fit.R:555:3
+  6.       ├─frmtmb:::fit_error_context(...) at frmtmb/R/fit.R:915:5
+  7.       │ ├─base::withCallingHandlers(...) at frmtmb/R/fit.R:1838:3
+  8.       │ └─base::tryCatch(...) at frmtmb/R/fit.R:1838:3
+  9.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       ├─base::tryCatch(...) at frmtmb/R/fit.R:915:5
+ 13.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 14.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 15.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 16.       └─frmtmb:::optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb) at frmtmb/R/fit.R:915:5
+ 17.         └─frmtmb (local) run(opt$par) at frmtmb/R/fit.R:1783:5
+ 18.           ├─base::tryCatch(...) at frmtmb/R/fit.R:1769:5
+ 19.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 20.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 21.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 22.           └─frmtmb:::run_optimizer(...) at frmtmb/R/fit.R:1769:5
+ 23.             └─stats::nlminb(...) at frmtmb/R/fit.R:1617:3
+── Warning ('test-scale.R:159:3'): the learn rlddm scale row fits and reports its cost ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. └─frmtmb.learn (local) learn_scale_run(...) at test-scale.R:159:3
+  2.   ├─frmtmb.learn:::scale_elapsed(...) at test-scale.R:103:3
+  3.   │ └─base::force(expr) at ./helper-scale.R:61:3
+  4.   └─frmtmb::frm(form, family = fam, data = d, se = TRUE)
+  5.     └─frmtmb:::fit_assembled(...) at frmtmb/R/fit.R:555:3
+  6.       ├─frmtmb:::fit_error_context(...) at frmtmb/R/fit.R:915:5
+  7.       │ ├─base::withCallingHandlers(...) at frmtmb/R/fit.R:1838:3
+  8.       │ └─base::tryCatch(...) at frmtmb/R/fit.R:1838:3
+  9.       │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       ├─base::tryCatch(...) at frmtmb/R/fit.R:915:5
+ 13.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 14.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 15.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 16.       └─frmtmb:::optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb) at frmtmb/R/fit.R:915:5
+ 17.         └─frmtmb (local) run(opt$par) at frmtmb/R/fit.R:1783:5
+ 18.           ├─base::tryCatch(...) at frmtmb/R/fit.R:1769:5
+ 19.           │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 20.           │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 21.           │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 22.           └─frmtmb:::run_optimizer(...) at frmtmb/R/fit.R:1769:5
+ 23.             └─stats::nlminb(...) at frmtmb/R/fit.R:1617:3
+── Warning ('test-scale.R:159:3'): the learn rlddm scale row fits and reports its cost ──
+Optimizer did not report convergence: false convergence (8)
+Backtrace:
+    ▆
+ 1. └─frmtmb.learn (local) learn_scale_run(...) at test-scale.R:159:3
+ 2.   ├─frmtmb.learn:::scale_elapsed(...) at test-scale.R:103:3
+ 3.   │ └─base::force(expr) at ./helper-scale.R:61:3
+ 4.   └─frmtmb::frm(form, family = fam, data = d, se = TRUE)
+ 5.     └─frmtmb:::fit_assembled(...) at frmtmb/R/fit.R:555:3
+ 6.       └─frmtmb:::check_convergence(fit, control) at frmtmb/R/fit.R:995:3
+── Warning ('test-scale.R:159:3'): the learn rlddm scale row fits and reports its cost ──
+Large maximum absolute gradient at the optimum (6.36e+09); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. └─frmtmb.learn (local) learn_scale_run(...) at test-scale.R:159:3
+ 2.   ├─frmtmb.learn:::scale_elapsed(...) at test-scale.R:103:3
+ 3.   │ └─base::force(expr) at ./helper-scale.R:61:3
+ 4.   └─frmtmb::frm(form, family = fam, data = d, se = TRUE)
+ 5.     └─frmtmb:::fit_assembled(...) at frmtmb/R/fit.R:555:3
+ 6.       └─frmtmb:::check_convergence(fit, control) at frmtmb/R/fit.R:995:3
+── Warning ('test-scale.R:159:3'): the learn rlddm scale row fits and reports its cost ──
+Hessian is not positive definite; standard errors are unreliable. The model may be overparameterized
+Backtrace:
+    ▆
+ 1. └─frmtmb.learn (local) learn_scale_run(...) at test-scale.R:159:3
+ 2.   ├─frmtmb.learn:::scale_elapsed(...) at test-scale.R:103:3
+ 3.   │ └─base::force(expr) at ./helper-scale.R:61:3
+ 4.   └─frmtmb::frm(form, family = fam, data = d, se = TRUE)
+ 5.     └─frmtmb:::fit_assembled(...) at frmtmb/R/fit.R:555:3
+ 6.       └─frmtmb:::check_convergence(fit, control) at frmtmb/R/fit.R:995:3
+
+[ FAIL 0 | WARN 13 | SKIP 1 | PASS 1 ]
+
+wall: 1220.15 s
+FILE test-scale.R  pass=1 fail=0 err=0 skip=1

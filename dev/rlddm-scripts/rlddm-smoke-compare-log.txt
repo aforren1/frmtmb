@@ -1,0 +1,27 @@
+﻿quantity             identical  max ulp
+n                    YES            0
+min_rt               YES            0
+sim_rt               YES            0
+sim_choice           YES            0
+ll_plain             YES            0
+coef_plain           YES            0
+sd_plain             YES            0
+vcov_plain           YES            0
+ci_plain             YES            0
+varcorr_plain        YES            0
+ndt_response         YES            0
+eta_plain            YES            0
+trace                YES            0
+conv_plain           YES            0
+par_plain            YES            0
+pin_02               no         
+   ref: 88.62435
+   new: rlddm(): the non-decision time bound is not set yet. This happens when a rlddm() family object is us
+pin_015              no         
+   ref: 111.6344
+   new: rlddm(): the non-decision time bound is not set yet. This happens when a rlddm() family object is us
+ll_maxndt            YES            0
+coef_maxndt          YES            0
+err_maxndt_high      no         
+wiener_lpdf_bare     YES            0
+wiener_link_bare     YES        

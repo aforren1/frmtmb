@@ -1,0 +1,17 @@
+﻿lib: C:/Users/adf44/source/r/rlddm-lib  eam 0.7.0 
+
+family       ndt_raw ndt link                 attach
+wiener          TRUE scaled_logit             REFUSED by name
+lba             TRUE scaled_logit             REFUSED by name
+rdm             TRUE scaled_logit             REFUSED by name
+wiener_gng      TRUE scaled_logit             REFUSED by name
+gddm           FALSE scaled_logit(0, from data) REFUSED by name
+
+-- what the OLD guard would have done to gddm(), by hand --
+  old guard would refuse it: FALSE 
+  ndt link before          : scaled_logit(0, from data) 
+  ndt start before         : 0.155 
+  its density reads ndt_floor: FALSE 
+
+-- a family from ANOTHER package is still accepted --
+  ACCEPTED, ndt link now logit and aterm_data adds ndt_floor 

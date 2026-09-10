@@ -1,0 +1,42 @@
+﻿quantity             identical  max ulp
+min_rt               YES            0
+rt                   YES            0
+upper                YES            0
+ll_wiener            YES            0
+cf_wiener            YES            0
+par_wiener           YES            0
+fit_wiener           YES            0
+ndt_wiener           YES            0
+ll_wiener_sv         YES            0
+cf_wiener_sv         YES            0
+par_wiener_sv        YES            0
+fit_wiener_sv        YES            0
+ndt_wiener_sv        YES            0
+ll_wiener_mx         YES            0
+cf_wiener_mx         YES            0
+par_wiener_mx        YES            0
+fit_wiener_mx        YES            0
+ndt_wiener_mx        YES            0
+ll_rdm               YES            0
+cf_rdm               YES            0
+par_rdm              YES            0
+fit_rdm              YES        
+ndt_rdm              YES            0
+ll_lba               YES            0
+cf_lba               YES            0
+par_lba              YES            0
+fit_lba              YES        
+ndt_lba              YES            0
+ll_wiener_grp        YES            0
+cf_wiener_grp        YES            0
+par_wiener_grp       YES            0
+fit_wiener_grp       YES            0
+ndt_wiener_grp       YES            0
+floors               YES            0
+floor_names          YES        
+sizes                YES            0
+ub                   YES            0
+ndt_time_grp         YES            0
+pin_wiener           YES            0
+pin_rdm              YES            0
+pin_lba              YES            0
