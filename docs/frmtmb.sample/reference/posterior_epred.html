@@ -15,7 +15,7 @@ them; re.form is the accepted alias, see Argument spellings)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -71,8 +71,8 @@ them; <code>re.form</code> is the accepted alias, see <em>Argument spellings</em
 <span>  <span class="va">object</span>,</span>
 <span>  newdata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  re_formula <span class="op">=</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">arg_unset</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  re.form <span class="op">=</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">arg_unset</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  re_formula <span class="op">=</span> <span class="fu">arg_unset</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  re.form <span class="op">=</span> <span class="fu">arg_unset</span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  ndraws <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
@@ -85,8 +85,8 @@ them; <code>re.form</code> is the accepted alias, see <em>Argument spellings</em
 <span>  transform <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  newdata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  re_formula <span class="op">=</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">arg_unset</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  re.form <span class="op">=</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">arg_unset</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  re_formula <span class="op">=</span> <span class="fu">arg_unset</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  re.form <span class="op">=</span> <span class="fu">arg_unset</span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  dpar <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  ndraws <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -99,8 +99,8 @@ them; <code>re.form</code> is the accepted alias, see <em>Argument spellings</em
 <span>  <span class="va">object</span>,</span>
 <span>  newdata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  re_formula <span class="op">=</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">arg_unset</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  re.form <span class="op">=</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">arg_unset</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  re_formula <span class="op">=</span> <span class="fu">arg_unset</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  re.form <span class="op">=</span> <span class="fu">arg_unset</span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  ndraws <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -225,7 +225,8 @@ double as "unset". The behavior when neither is given is unchanged:
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"tmbstan"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">&amp;&amp;</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"rstan"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"rstan"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">&amp;&amp;</span></span></span>
+<span class="r-in"><span>    <span class="op">!</span><span class="fu">frmtmb.sample</span><span class="fu">:::</span><span class="fu">tmbstan_build_broken</span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">9</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">80</span><span class="op">)</span>, g <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">8</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="fl">80</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fl">0.3</span> <span class="op">+</span> <span class="fl">0.4</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">8</span>, <span class="fl">0</span>, <span class="fl">0.5</span><span class="op">)</span><span class="op">[</span><span class="va">dd</span><span class="op">$</span><span class="va">g</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></span>

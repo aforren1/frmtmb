@@ -63,9 +63,7 @@ Three things this package used to work around are seams in frmtmb
 What is still missing is one thing, and it is the protocol's rather than
 this family's. `frmtmb_structure(loglik =)` returns one AD scalar, so
 core never sees the individual factors of a likelihood that factorizes.
-A **per-row log-likelihood slot** would give
-[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html) and
-[`waic()`](https://aforren1.github.io/frmtmb/reference/loo.html) the
+A **per-row log-likelihood slot** would give `loo()` and `waic()` the
 pointwise matrix they need, and a **per-group log-likelihood slot**
 would give `frm(importance =)` the one value per group it corrects with.
 Neither exists, so [`logLik()`](https://rdrr.io/r/stats/logLik.html) and

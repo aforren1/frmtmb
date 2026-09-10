@@ -71,8 +71,7 @@
   over 8 bins delivers 4.68, against 8.19, 8.02 and 8.05 for the same
   three unwindowed. Declaring the shortfall instead was considered and
   rejected: there is no one number to declare, since the same window
-  loses a different amount at each width, and frmtmb’s
-  [`whittle()`](https://aforren1.github.io/frmtmb/reference/whittle.html)
+  loses a different amount at each width, and frmtmb’s `whittle()`
   measured the same thing from the other side, where an honestly
   declared equivalent degrees of freedom does not rescue a smoothed
   spectrum from its raw-periodogram check at kernel widths of 7 and
@@ -130,12 +129,12 @@
 ## frmtmb.coupling 0.2.0
 
 - The coherence complement now comes from frmtmb’s public accessor,
-  [`dpar_log1m()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.html),
-  rather than from this package’s own copy of the same arithmetic. The
-  copy existed because the accessor was internal to frmtmb: a family
-  defined outside that package could see the reserved `.eta_<dpar>`
-  entry and had no sanctioned way to read it. The two agree to the last
-  bit on the tape, which is the path a fit runs on: measured on the full
+  `dpar_log1m()`, rather than from this package’s own copy of the same
+  arithmetic. The copy existed because the accessor was internal to
+  frmtmb: a family defined outside that package could see the reserved
+  `.eta_<dpar>` entry and had no sanctioned way to read it. The two
+  agree to the last bit on the tape, which is the path a fit runs on:
+  measured on the full
   [`cross_wishart()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/cross_wishart.md)
   log density over 961 values of the coherence linear predictor from 10
   to 700, the maximum difference is 0. Off the tape, where both fall
@@ -149,10 +148,9 @@
   naive form. This is a change of source, not of arithmetic.
 
 - **This release needs a newer frmtmb.** The `Depends:` floor has to
-  rise to the frmtmb release that exports
-  [`dpar_log1m()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.html).
-  Building against an older frmtmb fails at install time, where the
-  import cannot be resolved, rather than at run time.
+  rise to the frmtmb release that exports `dpar_log1m()`. Building
+  against an older frmtmb fails at install time, where the import cannot
+  be resolved, rather than at run time.
 
 - `RTMB` leaves `Imports:`. Its only use was the `logspace_add()` call
   the accessor replaces; the density is taped by frmtmb and calls no
@@ -235,11 +233,9 @@ signal pair, with coherence and phase as distributional parameters.
   every case, including the two where the hook was silent.
 
 - More than two channels is refused as a SCOPE decision of this package.
-  Core is not the obstacle:
-  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html)
-  carries a matrix-valued response and a custom family reading `y[, 1]`
-  and `y[, 2]` fits today. An earlier draft of this package said
-  otherwise and was wrong.
+  Core is not the obstacle: `frm()` carries a matrix-valued response and
+  a custom family reading `y[, 1]` and `y[, 2]` fits today. An earlier
+  draft of this package said otherwise and was wrong.
 
 - The measurements behind all of this are in `dev/xspec-findings.md`:
   the naive coherence bias table, the effective degrees of freedom of

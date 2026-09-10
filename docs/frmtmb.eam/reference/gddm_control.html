@@ -11,7 +11,7 @@ the grid and what is done with the answer."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -101,8 +101,14 @@ model.</p></dd>
 
 <dt id="arg-max-ndt">max_ndt<a class="anchor" aria-label="anchor" href="#arg-max-ndt"></a></dt>
 <dd><p>Upper bound for the non-decision time, in the units of
-the response. <code>NULL</code> takes the smallest response time. See
-<code><a href="wiener.html">wiener()</a></code>, whose <code>ndt</code> link this shares.</p></dd>
+the response. <code>NULL</code> takes the smallest response time. This family
+keeps the single scaled logit, so its <code>ndt</code> is a TIME, as it is for
+every model of the other four families that does not use
+<code>ndt_group()</code>. <code>ndt_group()</code> itself is refused here on scope: the
+solver reads every parameter at the first row of its condition and
+this family already requires a condition per distinct parameter
+value, so a per-group bound would cost one Fokker-Planck solve per
+group.</p></dd>
 
 
 <dt id="arg-tridiagonal">tridiagonal<a class="anchor" aria-label="anchor" href="#arg-tridiagonal"></a></dt>

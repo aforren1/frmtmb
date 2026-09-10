@@ -133,12 +133,10 @@ and all 127 response, Pearson and deviance residuals are finite. Past
 ## What it refuses
 
 - More than two channels. This is a scope decision, and **core is not
-  the obstacle**:
-  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html)
-  carries a matrix-valued response, and both a gaussian fit and a custom
-  family indexing `y[, 1]` and `y[, 2]` work today. What is missing is
-  here rather than there. A `p`-channel model needs `p^2` linear
-  predictors written out by hand; the clean
+  the obstacle**: `frm()` carries a matrix-valued response, and both a
+  gaussian fit and a custom family indexing `y[, 1]` and `y[, 2]` work
+  today. What is missing is here rather than there. A `p`-channel model
+  needs `p^2` linear predictors written out by hand; the clean
   `power, power, coherence, phase` coordinates of this family do not
   survive past `p = 2`, so it would be written on raw Cholesky entries
   that mean nothing to a reader; and the log determinant and the trace

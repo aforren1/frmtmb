@@ -76,12 +76,10 @@ frm_sample(
   unchanged. On both paths the brms default priors apply to whatever
   this argument, and a MAP fit's own prior, leave alone (see Default
   priors), and `prior = "flat"` opts out of them entirely. A `brmsprior`
-  object built by brms's own
-  [`prior()`](https://aforren1.github.io/frmtmb/reference/prior.html) is
-  translated row by row. The argument takes brms's spelling, `prior`;
-  the `priors` of releases before 0.43 is gone rather than aliased, and
-  because this function's `...` would otherwise swallow it, the old name
-  is refused by name.
+  object built by brms's own `prior()` is translated row by row. The
+  argument takes brms's spelling, `prior`; the `priors` of releases
+  before 0.43 is gone rather than aliased, and because this function's
+  `...` would otherwise swallow it, the old name is refused by name.
 
 - init:
 
@@ -134,15 +132,13 @@ frm_sample(
   names are rstan's (`adapt_delta`, `max_treedepth`, `stepsize`,
   `metric`, ...) and an unrecognized one is refused by name, because
   rstan answers an unknown option by returning an empty fit rather than
-  by raising.
-  [`frmtmb_control()`](https://aforren1.github.io/frmtmb/reference/frmtmb_control.html)
-  fields arriving here are refused by name too and point at
-  `fit_control`: earlier releases spelled the fit-time options
-  `control`, and a silent reinterpretation would hand `grad_tol` to the
-  sampler. So is an ABBREVIATION of the name: only `control` binds to
-  this argument, and a shorter spelling would otherwise travel through
-  `...` and partial-match rstan's own `control`, reaching the sampler
-  unchecked.
+  by raising. `frmtmb_control()` fields arriving here are refused by
+  name too and point at `fit_control`: earlier releases spelled the
+  fit-time options `control`, and a silent reinterpretation would hand
+  `grad_tol` to the sampler. So is an ABBREVIATION of the name: only
+  `control` binds to this argument, and a shorter spelling would
+  otherwise travel through `...` and partial-match rstan's own
+  `control`, reaching the sampler unchecked.
 
 - .diagnostic:
 
@@ -501,7 +497,8 @@ there and inspect chains individually.
 ``` r
 # \donttest{
 if (requireNamespace("tmbstan", quietly = TRUE) &&
-    requireNamespace("rstan", quietly = TRUE)) {
+    requireNamespace("rstan", quietly = TRUE) &&
+    !frmtmb.sample:::tmbstan_build_broken()) {
 set.seed(9)
 dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
 dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)

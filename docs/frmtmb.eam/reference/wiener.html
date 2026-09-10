@@ -15,7 +15,7 @@ dec() addition term."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -78,7 +78,11 @@ time; which boundary was touched is data, supplied through the
 
 <dl><dt id="arg-max-ndt">max_ndt<a class="anchor" aria-label="anchor" href="#arg-max-ndt"></a></dt>
 <dd><p>Upper bound for the non-decision time, in the units of
-the response. <code>NULL</code>, the default, takes it from the data.</p></dd>
+the response, applied to every row. <code>NULL</code>, the default, takes the
+fastest response of each row's <code>ndt_group()</code>, or of the whole data
+set when the model has no <code>ndt_group()</code>. It cannot be combined with
+<code>ndt_group()</code>. Give it when a component of a <code><a href="https://aforren1.github.io/frmtmb/reference/mixture.html" class="external-link">frmtmb::mixture()</a></code>
+needs the bound up front.</p></dd>
 
 
 <dt id="arg-variability">variability<a class="anchor" aria-label="anchor" href="#arg-variability"></a></dt>
@@ -183,29 +187,103 @@ design can silence this one condition and keep the rest. <code>NEWS.md</code>
 carries the full tables.</p>
     </div>
     <div class="section level2">
-    <h2 id="non-decision-time">Non-decision time<a class="anchor" aria-label="anchor" href="#non-decision-time"></a></h2>
+    <h2 id="non-decision-time-and-what-its-coefficients-mean">Non-decision time, and what its coefficients mean<a class="anchor" aria-label="anchor" href="#non-decision-time-and-what-its-coefficients-mean"></a></h2>
 
 
 <p>The density is zero for a response time at or below <code>ndt</code>, so the
-likelihood has a hard edge at <code>ndt = min(rt)</code> and an ordinary log
-link would let the optimizer walk straight over it. The <code>ndt</code> link is
-a logit scaled onto <code>(0, max_ndt)</code> instead, which makes the
-constraint structural rather than a thing the optimizer has to
-discover.</p>
-<p><code>max_ndt</code> defaults to the smallest response time in the data, found
-when the model frame is assembled. Give it explicitly to pin the
-bound, which is worth doing when you will <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> on new data
-whose minimum differs from the training minimum.</p>
+likelihood has a hard edge at the fastest response and an ordinary
+log link would let the optimizer walk straight over it. The <code>ndt</code>
+link makes the constraint structural instead, and it does so in one
+of two ways.</p>
+<p><strong>Without <code>ndt_group()</code>, <code>ndt</code> is a TIME</strong>, on a logit scaled onto
+<code>(0, ub)</code> with <code>ub</code> the fastest response in the whole data set, or
+<code>max_ndt</code> when you give one. This is the parameterization the family
+has always had. <code>predict(dpar = "ndt", type = "response")</code> reports
+seconds, a <code>prior(class = "ndt")</code> is a density on those seconds, and
+a <code>bf(ndt = 0.2)</code> constant is 0.2 seconds.</p>
+<p><strong>With <code>ndt_group()</code>, <code>ndt</code> is a FRACTION of the row's own bound</strong>,
+on a plain logit, and the density multiplies it by that bound. The
+bound is the fastest response of the row's group. Write</p>
+<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">frm</span>(<span class="fu">bf</span>(rt <span class="sc">|</span> <span class="fu">dec</span>(response) <span class="sc">+</span> <span class="fu">ndt_group</span>(subject) <span class="sc">~</span> coherence,</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>       ndt <span class="sc">~</span> <span class="dv">1</span> <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> subject), <span class="at">bias =</span> <span class="fl">0.5</span>),</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>    <span class="at">family =</span> <span class="fu">wiener</span>(), <span class="at">data =</span> dat)</span></code></pre><p></p></div>
+<p>and each subject's non-decision time is bounded by its own fastest
+response. That is what a random effect on <code>ndt</code> needs; the next
+section is what one global bound does to it. The price is that <code>ndt</code>
+is on a different scale: <code>predict(dpar = "ndt", type = "response")</code>
+reports the fraction, and <code><a href="ndt_time.html">ndt_time()</a></code> reports the time for either
+parameterization. A <code>prior(class = "ndt")</code> and a <code>bf(ndt = )</code>
+constant are fractions under a grouping too.</p>
+<p>Give the grouping as a factor, a character vector, a logical or
+integer codes. It is keyed on the group's LABEL, so subsetting,
+<code><a href="https://rdrr.io/r/base/droplevels.html" class="external-link">droplevels()</a></code>, <code><a href="https://rdrr.io/r/stats/relevel.html" class="external-link">relevel()</a></code> and a prediction grid you build yourself
+all pair a row with the same bound the fit used. <code>max_ndt</code> and
+<code>ndt_group()</code> cannot be combined, because they set the same bound to
+different things, and an <code>ndt_group()</code> no family reads is refused
+rather than carried into the fit unused.</p>
 <p>A <code>max_ndt</code> above the smallest response time is refused, because for
 this family alone it admits parameter values at which some observed
 row has no likelihood. Inside a <code><a href="https://aforren1.github.io/frmtmb/reference/mixture.html" class="external-link">frmtmb::mixture()</a></code> that is exactly
 what the other component is for, so <code>allow_unreachable = TRUE</code> lifts
-the refusal; see Mixtures.</p>
+the refusal; see Mixtures. A mixture never finalizes its components,
+so a component needs <code>max_ndt</code> given up front and cannot use
+<code>ndt_group()</code>.</p>
+<p>Whichever parameterization a model is in, the bound is fixed when
+the model frame is assembled and is a property of the FITTED data,
+so a prediction on new rows is scaled by the bound the fit used
+rather than by one re-derived from the new rows. A group the fit
+never saw has no bound and is refused.</p>
 <p>Past a linear predictor of about 37 the logit saturates in double
-precision and <code>ndt</code> rounds to <code>max_ndt</code> exactly. Nothing guards that,
-and nothing needs to: the density falls off a cliff as the decision
-time goes to zero, so the log likelihood is already unreachable long
-before the link runs out of digits.</p>
+precision. Nothing guards that, and nothing needs to: the density
+falls off a cliff as the decision time goes to zero, so the log
+likelihood is already unreachable long before the link runs out of
+digits.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="why-one-bound-is-the-wrong-constraint-under-a-random-effect">Why one bound is the wrong constraint under a random effect<a class="anchor" aria-label="anchor" href="#why-one-bound-is-the-wrong-constraint-under-a-random-effect"></a></h2>
+
+
+<p>A single bound is the GLOBAL fastest response, so a subject whose
+true <code>ndt</code> is above it cannot be represented at any value of the
+random effect. At 30 subjects by 400 trials with a between-subject
+spread of 26 ms on a mean of 250 ms, 20 of the 30 subjects are in
+that position and NONE is inconsistent with its own data. Without
+<code>variability</code> such a fit does not converge; with
+<code>variability = "sv"</code> it converges, reports nothing from <code>diagnose()</code>,
+and returns a population <code>ndt</code> pinned at the bound and wrong by ten
+percent with a standard error of 7.2e-06 on it.</p>
+<p>What settles it is what happens as data accumulates. On that design,
+the per-subject root mean squared error of the fitted non-decision
+times:</p>
+<table class="table table"><tr><td>trials</td><td>with ndt_group(s)</td><td>one global bound</td></tr><tr><td>100</td><td>20.91 ms</td><td>27.23 ms</td></tr><tr><td>200</td><td>14.08 ms</td><td>20.51 ms</td></tr><tr><td>400</td><td>7.67 ms</td><td>30.37 ms</td></tr></table><p>The per-group bound converges on the truth and the global bound does
+not, because more data lowers the global minimum and tightens the
+ceiling on every subject at once.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="what-sd-ndt-does-and-does-not-tell-you">What sd(ndt) does and does not tell you<a class="anchor" aria-label="anchor" href="#what-sd-ndt-does-and-does-not-tell-you"></a></h2>
+
+
+<p>A grouped model estimates <code>ndt</code> as a fraction of each group's own
+floor, so the fitted per-subject times vary with those floors even
+when the variance component is exactly zero. On the design above an
+estimator with NO random effect on <code>ndt</code> returns a between-subject
+standard deviation of 0.02748 against a truth of 0.02629, where the
+full model returns 0.02543, and at 100 trials per subject the two
+are identical in every digit.</p>
+<p>The variance component is not empty: at 400 trials it buys 8.44
+log-likelihood units and cuts the per-subject error from 11.90 ms to
+7.67 ms. But a between-subject standard deviation is the wrong
+statistic to read that off. Compare the per-subject non-decision
+times from <code><a href="ndt_time.html">ndt_time()</a></code> against what you believe, and compare
+log-likelihoods, rather than reading <code>VarCorr()</code>'s <code>ndt</code> row as
+evidence that the component was estimated.</p>
+<p>The bound's own quality is a function of the group's trial count.
+The group's fastest response overshoots its true non-decision time
+by about 47 ms at 400 trials and 78 ms at 50, and a group of one
+trial gets that trial's own response time as its bound. Nothing
+refuses a small group, because any threshold would fire on correct
+models; the trial counts are recorded on the fitted family, at
+<code>family(fit)$ndt_bound$sizes</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="across-trial-variability">Across-trial variability<a class="anchor" aria-label="anchor" href="#across-trial-variability"></a></h2>
@@ -228,8 +306,10 @@ whenever <code>bias</code> is 0.5.</p></dd>
 
 <dt><code>st</code></dt>
 <dd><p>Width of a uniform non-decision time, centered on
-<code>ndt</code>, in the units of the response. Logit link scaled onto
-<code>(0, 2 * max_ndt)</code>.</p></dd>
+<code>ndt</code>, and on whichever scale <code>ndt</code> is on: a duration in the
+units of the response, on a logit scaled onto <code>(0, 2 * bound)</code>,
+or a FRACTION of twice the row's own bound under
+<code>ndt_group()</code>.</p></dd>
 
 
 </dl><p>The likelihood is the analytic Wiener density averaged over those
@@ -309,9 +389,9 @@ times and parameter variability. <em>Psychonomic Bulletin &amp; Review</em>,
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="ddm_simulate.html">ddm_simulate</a></span><span class="op">(</span><span class="fl">300</span>, mu <span class="op">=</span> <span class="fl">0.8</span>, bs <span class="op">=</span> <span class="fl">1.4</span>, ndt <span class="op">=</span> <span class="fl">0.3</span>, bias <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">dec</span><span class="op">(</span><span class="va">upper</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>, bias <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">dec</span><span class="op">(</span><span class="va">upper</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>, bias <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>           family <span class="op">=</span> <span class="fu">wiener</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $mu</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   0.6956708 </span>

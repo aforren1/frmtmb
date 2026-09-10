@@ -96,9 +96,7 @@ Most of the reinforcement-learning literature fixes `bias` at 0.5,
 because with two ARMS rather than a correct and an error response there
 is no reason for the accumulator to start nearer one boundary. It is an
 ordinary distributional parameter here, so it is estimated by default
-and held with
-[`bf()`](https://aforren1.github.io/frmtmb/reference/bf.html)'s constant
-form:
+and held with `bf()`'s constant form:
 
     frm(bf(rt | dec(choice) + reward(pay1, pay2) ~ 1 + (1 | id),
            drift ~ 1, bs ~ 1, ndt ~ 1, bias = 0.5), ...)

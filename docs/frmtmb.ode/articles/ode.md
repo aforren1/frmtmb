@@ -7,8 +7,7 @@ from it; a population grows and is eaten.
 puts such a system inside a nonlinear formula, so the constants of the
 system are ordinary nonlinear parameters with fixed effects, random
 effects and covariates, and the model is fitted by maximum likelihood
-like any other
-[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) model.
+like any other `frm()` model.
 
 ## Setup
 
@@ -160,8 +159,7 @@ c(ka = ka, ke = ke, V = V,
 
 Everything downstream works as usual:
 [`predict()`](https://rdrr.io/r/stats/predict.html) on new times,
-[`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.html) for
-the subject deviations,
+`ranef()` for the subject deviations,
 [`confint()`](https://rdrr.io/r/stats/confint.html),
 [`simulate()`](https://rdrr.io/r/stats/simulate.html), `REML = TRUE`.
 
@@ -655,11 +653,9 @@ model is proportional plus additive,
 \mathrm{sd} = \sqrt{a^2 + (b\,\mu)^2},
 ```
 
-which [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.html)
-writes directly, because an
-[`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.html) body may
-read another parameter’s per-row value. `sigma` is reported on the log
-scale, so the body is half the log of the variance:
+which `nlf()` writes directly, because an `nlf()` body may read another
+parameter’s per-row value. `sigma` is reported on the log scale, so the
+body is half the log of the variance:
 
 ``` r
 
@@ -673,10 +669,8 @@ bf(conc ~ frm_ode(pk_dyn, init = list(dose, 0), times = time,
 
 `exp(ladd)` is the additive component and `exp(lprop)` the proportional
 one, both on the log scale so both stay positive. This needs no new
-machinery: it is
-[`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.html) plus the
-ODE body, and the two components come back separately in
-[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.html).
+machinery: it is `nlf()` plus the ODE body, and the two components come
+back separately in `fixef()`.
 
 ## Three things that will bite
 
@@ -741,9 +735,8 @@ means: do not try to fold the subjects into the state vector yourself.
 The tape is built once, but every gradient evaluation replays one
 adjoint solve per group, so the cost is linear in the number of groups
 and does not shrink with tape reuse. For the two-state model above,
-eight timepoints per subject, a whole
-[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) call
-including `sdreport()`:
+eight timepoints per subject, a whole `frm()` call including
+`sdreport()`:
 
 | subjects | rows | with [`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md) | with the closed form |
 |----|----|----|----|
@@ -753,8 +746,109 @@ including `sdreport()`:
 | 50 | 400 | 19.9 s | 0.11 s |
 
 About 0.4 s per subject. A 200-subject population model is a couple of
-minutes. If your system has a closed-form solution, write that instead:
-it gives the same answer roughly a hundred times faster.
+minutes, and an intensively dosed one is much worse than that, because
+the solve is split at every dose: 100 subjects sampled eight times,
+dosed twice daily for a week and started from a steady state, is **3717
+seconds**, and that is not the data being large. It is 33 numerical
+solves per subject for every evaluation of the likelihood.
+
+If your system is LINEAR, do not pay any of that. See the next section.
+
+## The linear case has a closed form
+
+A one-, two- or three-compartment model with first-order absorption and
+first-order elimination is linear, and a linear system does not need an
+integrator.
+[`frm_lincmt()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_lincmt.md)
+writes the analytic solution: the amount in a compartment is the
+superposition of the impulse responses of the doses that came before the
+observation, and a steady-state record is the geometric series of that
+superposition rather than a run-in.
+
+It takes the same `events` table, the same `group`, the same
+`event_scale`, and it sits in a `bf(nl = TRUE)` body the same way. What
+changes is that the system is named rather than written:
+
+``` r
+
+form <- bf(
+  conc ~ frm_lincmt(parms = list(ka = exp(lka), ke = exp(lke),
+                                 V = exp(lV)),
+                    times = Time, group = Subject,
+                    ncmt = 1, depot = TRUE,
+                    init = list(depot = Dose)),
+  lka ~ 1 + (1 | Subject),
+  lke ~ 1 + (1 | Subject),
+  lV  ~ 1,
+  nl = TRUE
+)
+```
+
+`ncmt` counts the disposition compartments and `depot` says whether an
+absorption compartment feeds them. `parms` is named because which
+parameters a shape needs depends on those two, and it reads either rate
+constants (`ke`, `k12`, `k21`, `k13`, `k31`, `ka`, `V`) or clearances
+(`CL`, `V`, `Q2`, `V2`, `Q3`, `V3`, `ka`).
+
+The two agree, and the closed form is far cheaper. On the design that
+costs 3717 s above,
+[`frm_lincmt()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_lincmt.md)
+at its default takes **55 s**, and the same fit with the steady-state
+run-in written out at `n_ss = 20` takes 119 s. Comparing each arm’s
+slowest measurement against the other’s fastest, that is **at least 67
+times faster** at the default and at least 31 times at `n_ss = 20`; at a
+size where all three fits are cheap enough to repeat, and where the
+optimizer takes the same number of iterations in each, the factors are
+95 and 47. The two return the same estimates to seven significant digits
+(`ka` 0.9841612 against 0.9841609). On 118 schedules spanning bolus and
+infusion, single and repeated dosing, steady state, one to three
+compartments with and without a depot, they differ by at most 2.6e-12 of
+the trajectory’s own scale, and tightening the solver drives that
+difference down rather than leaving it, so it is
+[`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)’s
+tolerance and not the closed form’s error.
+
+Three practical differences are worth knowing.
+
+**`n_ss` defaults to `Inf`.**
+[`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)
+reaches a steady state by simulating `n_ss` cycles, and twenty cycles
+are not always enough. On the two-compartment schedule in this package’s
+tests they leave the state **0.4 percent** below the true steady state
+(0.00396 of the trajectory’s own scale). Do not read that off the
+warning
+[`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)
+prints, which reports the CYCLE-TO-CYCLE movement, 0.0023 on the same
+schedule: the two are different quantities and the movement is the
+smaller one. The shortfall is about `exp(-n_ss * lambda_z * ii)`, where
+`lambda_z` is the slowest disposition rate, so it grows quickly for a
+drug whose terminal half-life is long against its dosing interval: a 107
+hour half-life dosed daily is 1.2 percent short at `n_ss = 20`, and a
+139 hour half-life dosed twice daily is 29 percent short. Choose `n_ss`
+so that `n_ss * lambda_z * ii` is at least 20.
+[`frm_lincmt()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_lincmt.md)
+sums the series instead, so there is nothing to be short of. Passing a
+whole number writes that many cycles out, which is what reproduces a
+[`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)
+fit exactly.
+
+**It needs no solver.** Neither **RTMBode** nor **deSolve** is involved,
+so
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
+works on a
+[`frm_lincmt()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_lincmt.md)
+model where it refuses a
+[`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)
+one.
+
+**It refuses what superposition cannot carry**, by name rather than
+quietly: `method = "replace"` and `method = "multiply"`, a `"reset"` to
+a non-zero level, a dose into or an output from a peripheral
+compartment, an infusion into the depot (that is zero-order absorption),
+`tv`, and an infusion still running when the schedule restarts. Every
+one of those is a model
+[`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)
+fits.
 
 ## What is out of scope
 
@@ -846,7 +940,5 @@ Numerically it will name the group that cannot be solved.
 
 Solver warnings from **deSolve** (“corrector convergence failed
 repeatedly”, “exceeded maxsteps”) during a fit are normal noise from
-those probing steps. Judge the fit by
-[`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.html)
-and the gradient at the optimum, not by whether the solver complained on
-the way.
+those probing steps. Judge the fit by `diagnose()` and the gradient at
+the optimum, not by whether the solver complained on the way.

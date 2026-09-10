@@ -62,9 +62,8 @@ Nothing below is told any of it.
 
 `s(t)` is the population curve and `s(t, subject, bs = "fs")` gives
 every subject its own departure from it, with one shared smoothing
-parameter. This is an ordinary
-[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) call;
-nothing in this package changes how a model is fitted.
+parameter. This is an ordinary `frm()` call; nothing in this package
+changes how a model is fitted.
 
 ``` r
 

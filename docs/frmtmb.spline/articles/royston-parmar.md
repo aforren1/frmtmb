@@ -45,9 +45,7 @@ bc$censored <- 1 - bc$censrec
 knots plus one. `df = 3` gives two interior knots and four coefficients,
 which is Royston and Parmar’s usual starting point. The knots go at
 equally spaced quantiles of the log UNCENSORED times, which needs the
-response, so they are chosen when
-[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html)
-assembles the model frame.
+response, so they are chosen when `frm()` assembles the model frame.
 
 ``` r
 

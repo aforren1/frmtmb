@@ -132,12 +132,12 @@ smooth estimates, and it is the thing to compare against:</p>
 <p><code>s(t)</code> is the population curve and
 <code>s(t, subject, bs = "fs")</code> gives every subject its own
 departure from it, with one shared smoothing parameter. This is an
-ordinary <code><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm()</a></code> call; nothing in this package changes how a
+ordinary <code>frm()</code> call; nothing in this package changes how a
 model is fitted.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">v</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">t</span>, k <span class="op">=</span> <span class="fl">12</span><span class="op">)</span> <span class="op">+</span> <span class="fu">s</span><span class="op">(</span><span class="va">t</span>, <span class="va">subject</span>, bs <span class="op">=</span> <span class="st">"fs"</span>, k <span class="op">=</span> <span class="fl">5</span><span class="op">)</span><span class="op">)</span>,</span>
+<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">v</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">t</span>, k <span class="op">=</span> <span class="fl">12</span><span class="op">)</span> <span class="op">+</span> <span class="fu">s</span><span class="op">(</span><span class="va">t</span>, <span class="va">subject</span>, bs <span class="op">=</span> <span class="st">"fs"</span>, k <span class="op">=</span> <span class="fl">5</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>           family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/VarCorr.html" class="external-link">VarCorr</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
+<span><span class="fu">VarCorr</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   s(t) </span></span>
 <span><span class="co">#&gt;        Name Std.Dev.</span></span>
 <span><span class="co">#&gt;  sd(wiggle)   1.2222</span></span>

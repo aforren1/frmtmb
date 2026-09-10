@@ -53,7 +53,8 @@ the rows are groups, as in
 ``` r
 # \donttest{
 if (requireNamespace("tmbstan", quietly = TRUE) &&
-    requireNamespace("rstan", quietly = TRUE)) {
+    requireNamespace("rstan", quietly = TRUE) &&
+    !frmtmb.sample:::tmbstan_build_broken()) {
   set.seed(4)
   dd <- data.frame(y = c(rnorm(60, -2), rnorm(60, 3)))
   fit <- frm(bf(y ~ 1), family = frmtmb::mixture(gaussian(), gaussian()),

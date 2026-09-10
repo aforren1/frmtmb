@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,6 +45,13 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.sample/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.4.1" id="frmtmbsample-041">frmtmb.sample 0.4.1<a class="anchor" aria-label="anchor" href="#frmtmbsample-041"></a></h2>
+<ul><li><p><strong>A broken <code>tmbstan</code> now skips the sampler tests instead of erroring them</strong>, and <code>skip_sampler()</code> asks the package’s own detector rather than only whether <code>tmbstan</code> is installed. 111 test blocks reach a sampler; 47 of them had been using a file-local copy of <code>skip_sampler()</code>, so searching for the helper’s name looked like coverage. All 111 go through it now.</p></li>
+<li><p><strong>The <code>\donttest</code> examples carried the same weak guard.</strong> Fifteen topics called a sampler behind <code><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace()</a></code>, which a broken build satisfies. An example cannot skip, so it must not run.</p></li>
+<li><p><strong>A check that does not depend on the marker string.</strong> On an affected build <code><a href="https://mc-stan.org/rstan/reference/stanfit-method-logprob.html" class="external-link">rstan::grad_log_prob()</a></code> disagrees with <code>-fit$obj$gr()</code>, since the patched log-density overload is <code>require_not_st_var</code> and the missed one is <code>require_st_var</code>. With infinite bounds the two are the same number bitwise, 0 ulp over four model shapes and five points, so this catches an upstream that renames the placeholder, which the marker cannot.</p></li>
+<li><p>The check workflow pins the Stan trio to a dated snapshot and fails if <code>model.hpp</code> is still unpatched, reporting the state it measured rather than a boolean. Public RSPM rebuilt <code>tmbstan</code> the day after StanHeaders 2.39.1 landed, and four consecutive green runs of this package’s checks sampled a standard normal instead of the model.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.0" id="frmtmbsample-040">frmtmb.sample 0.4.0<a class="anchor" aria-label="anchor" href="#frmtmbsample-040"></a></h2>
 <p>BREAKING. <code>frm_sample(control =)</code> is the SAMPLER’s control list now, brms’s spelling and brms’s meaning, passed to tmbstan unchanged. The fit-time options move to <code>fit_control =</code>. <code><a href="../reference/as_tmbstan.html">as_tmbstan()</a></code> already meant <code>control</code> that way, so the two entry points agree rather than offering a third convention, and brms code that tightens <code>adapt_delta</code> ports across unchanged.</p>

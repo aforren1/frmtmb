@@ -48,10 +48,8 @@ multinomial logit against class `K`, and the main model formula applies
 to every one of them. So `bf(cbind(a, b, c) ~ 1)` is the plain
 measurement model and `bf(cbind(a, b, c) ~ age + educ)` is poLCA's
 latent class regression: covariates on class membership come from the
-ordinary linear-predictor machinery, with the usual
-[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.html),
-[`confint()`](https://rdrr.io/r/stats/confint.html) and
-[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.html)
+ordinary linear-predictor machinery, with the usual `fixef()`,
+[`confint()`](https://rdrr.io/r/stats/confint.html) and `hypothesis()`
 on top. Individual gating predictors are overridable as
 `bf(Y ~ x, theta2 ~ 1)` (all but `theta1`, which the main formula owns).
 
@@ -134,13 +132,9 @@ instead. [`predict()`](https://rdrr.io/r/stats/predict.html) itself
 returns the gating linear predictor (`theta1` by default, any `theta`
 with `dpar =`), on `newdata` as well.
 
-The gating coefficients are ordinary fixed effects, so
-[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.html),
+The gating coefficients are ordinary fixed effects, so `fixef()`,
 [`confint()`](https://rdrr.io/r/stats/confint.html) (Wald, profile and
-uniroot),
-[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.html),
-[`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.html),
-`lower`/`upper` bounds and
+uniroot), `hypothesis()`, `set_prior()`, `lower`/`upper` bounds and
 [`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
 all work on them; [`anova()`](https://rdrr.io/r/stats/anova.html)
 compares nested gating formulas at one `K`.

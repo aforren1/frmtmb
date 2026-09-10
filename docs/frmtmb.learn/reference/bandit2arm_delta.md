@@ -60,8 +60,7 @@ so paying it needs what the arm the real subject did not take would have
 given, which a duplicated column does not record. With the two columns
 identical on every trial the drawn choices carry no learning signal at
 all, so [`simulate()`](https://rdrr.io/r/stats/simulate.html),
-[`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.html)
-and
+`frm_simulate()` and
 [`frm_task_simulate()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_task_simulate.md)
 refuse that data by name rather than returning a draw from a task nobody
 ran. Some rows equal is not the signature; every row is. `newdata` is

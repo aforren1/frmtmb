@@ -33,8 +33,13 @@ lba(n, sd_v = 1, posdrift = TRUE, max_ndt = NULL)
 
 - max_ndt:
 
-  Upper bound for the non-decision time, in the units of the response.
-  `NULL`, the default, takes it from the data.
+  Upper bound for the non-decision time, in the units of the response,
+  applied to every row. `NULL`, the default, takes the fastest response
+  of each row's `ndt_group()`, or of the whole data set when the model
+  has no `ndt_group()`. It cannot be combined with `ndt_group()`. Give
+  it when a component of a
+  [`frmtmb::mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html)
+  needs the bound up front.
 
 ## Value
 
@@ -149,17 +154,26 @@ would start already finished, is not a state the optimizer can reach.
 Pinning `k` to zero or a negative constant is refused when the constant
 is checked against the log link's range.
 
-## Non-decision time
+## Non-decision time, and what its coefficients mean
 
 The density is zero at and below `ndt`, so the likelihood has a hard
-edge at `ndt = min(rt)`. As
+edge at the fastest response and a log link would let the optimizer walk
+over it.
+
+Without `ndt_group()` the bound is one number, the fastest response in
+the data or `max_ndt`, and it stays IN the link: `ndt` is a time, as it
+has always been. Write `rt | vint(choice) + ndt_group(subject) ~ ...`
+when `ndt` carries a subject deviation, and the bound becomes that
+subject's own fastest response. A per-row bound cannot live in a link,
+so under a grouping `ndt` is a FRACTION of the row's bound and the
+density multiplies: `predict(dpar = "ndt", type = "response")` then
+reports the fraction and
+[`ndt_time()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.md)
+reports the time either way. A single bound is the global fastest
+response, and a subject whose non-decision time is above it cannot be
+represented at any value of the random effect;
 [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)
-does, `ndt` gets a logit scaled onto `(0, max_ndt)` instead of a log
-link, which makes the constraint structural. `max_ndt` defaults to the
-smallest observed response time, taken when the model frame is
-assembled. Pass it explicitly to pin the bound, which matters if you
-will [`predict()`](https://rdrr.io/r/stats/predict.html) on new data
-whose minimum differs.
+has the measurement.
 
 ## The response, and why not `dec()`
 

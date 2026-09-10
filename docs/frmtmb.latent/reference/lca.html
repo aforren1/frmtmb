@@ -101,7 +101,7 @@ applies to every one of them. So <code>bf(cbind(a, b, c) ~ 1)</code> is the
 plain measurement model and <code>bf(cbind(a, b, c) ~ age + educ)</code> is
 poLCA's latent class regression: covariates on class membership come
 from the ordinary linear-predictor machinery, with the usual
-<code><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef()</a></code>, <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> and <code><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis()</a></code> on top. Individual gating
+<code>fixef()</code>, <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> and <code>hypothesis()</code> on top. Individual gating
 predictors are overridable as <code>bf(Y ~ x, theta2 ~ 1)</code> (all but
 <code>theta1</code>, which the main formula owns).</p>
 <p>The item profiles are family extra parameters, held as
@@ -171,9 +171,9 @@ item code" would be an average of arbitrary labels. Read
 <code><a href="lca_probs.html">lca_probs()</a></code> and <code><a href="lca_profiles.html">lca_profiles()</a></code> instead. <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> itself
 returns the gating linear predictor (<code>theta1</code> by default, any
 <code>theta</code> with <code>dpar =</code>), on <code>newdata</code> as well.</p>
-<p>The gating coefficients are ordinary fixed effects, so <code><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef()</a></code>,
-<code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> (Wald, profile and uniroot), <code><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis()</a></code>,
-<code><a href="https://aforren1.github.io/frmtmb/reference/set_prior.html" class="external-link">set_prior()</a></code>, <code>lower</code>/<code>upper</code> bounds and
+<p>The gating coefficients are ordinary fixed effects, so <code>fixef()</code>,
+<code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> (Wald, profile and uniroot), <code>hypothesis()</code>,
+<code>set_prior()</code>, <code>lower</code>/<code>upper</code> bounds and
 <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html" class="external-link">frmtmb.sample::frm_sample()</a></code> all work on
 them; <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> compares nested gating formulas at one <code>K</code>.</p>
 <p>Refused in this version: random effects and smooths anywhere in the
@@ -209,7 +209,7 @@ clustering of a numeric matrix.</p></div>
 <span class="r-in"><span><span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="va">Y</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">Y</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">lca</span><span class="op">(</span>K <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">Y</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">lca</span><span class="op">(</span>K <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="lca_profiles.html">lca_profiles</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;lca profiles&gt; 2 classes, 4 items</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
@@ -246,7 +246,7 @@ clustering of a numeric matrix.</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [6,] 0.061162256 0.938837744</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># latent class regression: covariates gate class membership</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">Y</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">lca</span><span class="op">(</span>K <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">Y</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">lca</span><span class="op">(</span>K <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: Y ~ x </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Family: lca(K = 2)   Method: ML </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Links: theta1 = identity</span>

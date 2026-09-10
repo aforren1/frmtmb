@@ -56,11 +56,10 @@ mean(d$choice == 1)
 
 ## The fit
 
-This is an ordinary
-[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) call.
-The main right-hand side is the LEARNING RATE’s predictor, because the
-family declares `alpha` as its primary distributional parameter; `tau`,
-the softmax sensitivity, gets its own.
+This is an ordinary `frm()` call. The main right-hand side is the
+LEARNING RATE’s predictor, because the family declares `alpha` as its
+primary distributional parameter; `tau`, the softmax sensitivity, gets
+its own.
 
 ``` r
 
@@ -187,8 +186,7 @@ fitted(fit)
 
 [`frm_value_trace()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_value_trace.md)
 above returns everything a mean would have carried, and more.
-[`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.html)
-is the place to ask what else refuses:
+`frm_compat()` is the place to ask what else refuses:
 
 ``` r
 

@@ -23,10 +23,7 @@ vignette against a known truth.
 
 One recorded signal needs no new likelihood. A periodogram ordinate of a
 stationary series is exponential about the spectral density, so a
-spectral model of one channel is an
-[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) fit with
-an
-[`exponential()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.html)
+spectral model of one channel is an `frm()` fit with an `exponential()`
 family and a log link, and `dev/frequency-domain-todo.md` in the
 repository measures that it already works.
 

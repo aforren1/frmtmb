@@ -49,9 +49,13 @@ gddm_control(
 - max_ndt:
 
   Upper bound for the non-decision time, in the units of the response.
-  `NULL` takes the smallest response time. See
-  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md),
-  whose `ndt` link this shares.
+  `NULL` takes the smallest response time. This family keeps the single
+  scaled logit, so its `ndt` is a TIME, as it is for every model of the
+  other four families that does not use `ndt_group()`. `ndt_group()`
+  itself is refused here on scope: the solver reads every parameter at
+  the first row of its condition and this family already requires a
+  condition per distinct parameter value, so a per-group bound would
+  cost one Fokker-Planck solve per group.
 
 - tridiagonal:
 

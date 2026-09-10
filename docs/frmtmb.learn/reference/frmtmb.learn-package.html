@@ -122,7 +122,7 @@ and works now. The correction reweights draws from the Laplace
 Gaussian and needs one log-likelihood value per GROUP; these
 likelihoods factorize over subjects and again over trials, so the
 values always existed, and what was missing was a slot to put them
-in. <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_structure.html" class="external-link">frmtmb_structure()</a></code> grew two, <code>loglik_row</code> and <code>loglik_group</code>,
+in. <code>frmtmb_structure()</code> grew two, <code>loglik_row</code> and <code>loglik_group</code>,
 and every family here declares both off the same recursion the
 objective tapes. A subject is the group, a trial is the row, and
 <code>unit</code> is unchanged at "one subject's trial sequence", because
@@ -163,9 +163,9 @@ correction, and read the warning if there is one.</p>
 subject. <code>(1 | something_else)</code> gives a per-subject likelihood
 against a per-something-else proposal, and the core refuses it by
 name rather than adding up numbers that do not add up.</p>
-<p>THE SAME SLOTS ALSO TURN <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo()</a></code> ON, at subject granularity, and an
-earlier draft of this page said the opposite. <code><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm()</a></code> itself is
-maximum likelihood and has no draws to average over, so <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo()</a></code> on a
+<p>THE SAME SLOTS ALSO TURN <code>loo()</code> ON, at subject granularity, and an
+earlier draft of this page said the opposite. <code>frm()</code> itself is
+maximum likelihood and has no draws to average over, so <code>loo()</code> on a
 <code>frmtmb_fit</code> still refuses for that core-wide reason; the route that
 changed is <code>frmtmb.sample</code>, which admits any structure declaring
 <code>loglik</code> together with either factorization slot and then reads the
@@ -176,7 +176,7 @@ matrix is admitted, it has 6 columns rather than 180, it carries
 <p>Read that literally. A column is a SUBJECT, so leaving one out drops
 that subject's whole sequence, which is the only honest leave-one-out
 for a recursion: a trial cannot be dropped because every later
-trial's value store depends on it. <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo()</a></code> prints "Computed from N by
+trial's value store depends on it. <code>loo()</code> prints "Computed from N by
 K" and says nothing about what a column is, so <code>frmtmb.sample</code>
 messages the unit when the matrix carries one.</p>
 <p>Deviance residuals are
@@ -217,16 +217,16 @@ standard deviation and <code>sigmaD</code> sets how fast it grows.</p>
 
 
 <p>Nothing. Every accessor it uses is exported and documented:
-<code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_family.html" class="external-link">frmtmb_family()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_structure.html" class="external-link">frmtmb_structure()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.html" class="external-link">frmtmb_register_aterm()</a></code>,
-<code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.html" class="external-link">frmtmb_register_compat()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.html" class="external-link">compat_rule_builder()</a></code>,
-<code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.html" class="external-link">single_response()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.html" class="external-link">eval_dpars()</a></code> and <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.html" class="external-link">frame_block_of()</a></code>. There is
+<code>frmtmb_family()</code>, <code>frmtmb_structure()</code>, <code>frmtmb_register_aterm()</code>,
+<code>frmtmb_register_compat()</code>, <code>compat_rule_builder()</code>,
+<code>single_response()</code>, <code>eval_dpars()</code> and <code>frame_block_of()</code>. There is
 one thing it wanted and could not have, and it is recorded rather
-than worked around: <code><a href="https://aforren1.github.io/frmtmb/reference/frm_compat_features.html" class="external-link">frm_compat_features()</a></code> shows that an addition
+than worked around: <code>frm_compat_features()</code> shows that an addition
 term is registered but not at what ARITY, so this package cannot
 verify that a <code>reward</code> term another package registered is the
 two-column one its families need. It declines to register over the
 top of an existing term, and the mismatch surfaces one step later as
-<code><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm()</a></code> refusing a missing <code>reward2</code>.</p>
+<code>frm()</code> refusing a missing <code>reward2</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="not-built-and-named">Not built, and named<a class="anchor" aria-label="anchor" href="#not-built-and-named"></a></h2>
@@ -243,7 +243,7 @@ again. That is a second seam and it is recorded rather than guessed
 at. <code><a href="frm_value_trace.html">frm_value_trace()</a></code> gives the per-trial density and drift rate
 meanwhile.</p></li>
 <li><p><strong>A mixture over learning strategies.</strong> A real model and a wanted
-one. Core's <code><a href="https://aforren1.github.io/frmtmb/reference/mixture.html" class="external-link">mixture()</a></code> combines per-ROW densities and would need
+one. Core's <code>mixture()</code> combines per-ROW densities and would need
 per-sequence ones; the families now declare their per-sequence
 values, so what is left is a change under core's <code>R/</code> rather than a
 declaration this package can make.</p></li>

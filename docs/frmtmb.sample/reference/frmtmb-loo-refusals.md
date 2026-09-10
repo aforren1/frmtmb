@@ -57,9 +57,8 @@ These functions never return; they signal an error.
 ## Details
 
 - `loo_moment_match()`, `loo_subsample()`, `reloo()` and `kfold()` all
-  need to refit the model on modified data.
-  [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.html)
-  is the resampling machinery frmtmb does have, and
+  need to refit the model on modified data. `frm_bootstrap()` is the
+  resampling machinery frmtmb does have, and
   [`AIC()`](https://rdrr.io/r/stats/AIC.html) on the maximum-likelihood
   fits answers the comparison question directly.
 
@@ -74,7 +73,8 @@ These functions never return; they signal an error.
 ``` r
 # \donttest{
 if (requireNamespace("tmbstan", quietly = TRUE) &&
-    requireNamespace("rstan", quietly = TRUE)) {
+    requireNamespace("rstan", quietly = TRUE) &&
+    !frmtmb.sample:::tmbstan_build_broken()) {
   set.seed(1)
   dd <- data.frame(x = rnorm(40))
   dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)

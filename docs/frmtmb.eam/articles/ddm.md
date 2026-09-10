@@ -338,6 +338,7 @@ frm_compat("wiener")[, c("feature_b", "status")]
 #> 72               mm()       works
 #> 73              mmc() conditional
 #> 74              dec()       works
+#> 75        ndt_group()       works
 ```
 
 ## The full model: across-trial variability

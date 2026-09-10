@@ -102,12 +102,11 @@ and works now. The correction reweights draws from the Laplace Gaussian
 and needs one log-likelihood value per GROUP; these likelihoods
 factorize over subjects and again over trials, so the values always
 existed, and what was missing was a slot to put them in.
-[`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.html)
-grew two, `loglik_row` and `loglik_group`, and every family here
-declares both off the same recursion the objective tapes. A subject is
-the group, a trial is the row, and `unit` is unchanged at "one subject's
-trial sequence", because dropping a trial changes every later trial's
-value store.
+`frmtmb_structure()` grew two, `loglik_row` and `loglik_group`, and
+every family here declares both off the same recursion the objective
+tapes. A subject is the group, a trial is the row, and `unit` is
+unchanged at "one subject's trial sequence", because dropping a trial
+changes every later trial's value store.
 
 What the correction is worth depends on the design rather than on the
 family. Measured on
@@ -162,13 +161,9 @@ subject. `(1 | something_else)` gives a per-subject likelihood against a
 per-something-else proposal, and the core refuses it by name rather than
 adding up numbers that do not add up.
 
-THE SAME SLOTS ALSO TURN
-[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html) ON, at
-subject granularity, and an earlier draft of this page said the
-opposite.
-[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) itself
-is maximum likelihood and has no draws to average over, so
-[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html) on a
+THE SAME SLOTS ALSO TURN `loo()` ON, at subject granularity, and an
+earlier draft of this page said the opposite. `frm()` itself is maximum
+likelihood and has no draws to average over, so `loo()` on a
 `frmtmb_fit` still refuses for that core-wide reason; the route that
 changed is `frmtmb.sample`, which admits any structure declaring
 `loglik` together with either factorization slot and then reads the
@@ -180,10 +175,9 @@ is admitted, it has 6 columns rather than 180, it carries
 Read that literally. A column is a SUBJECT, so leaving one out drops
 that subject's whole sequence, which is the only honest leave-one-out
 for a recursion: a trial cannot be dropped because every later trial's
-value store depends on it.
-[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html) prints
-"Computed from N by K" and says nothing about what a column is, so
-`frmtmb.sample` messages the unit when the matrix carries one.
+value store depends on it. `loo()` prints "Computed from N by K" and
+says nothing about what a column is, so `frmtmb.sample` messages the
+unit when the matrix carries one.
 
 Deviance residuals are closer but still refused: the magnitude is now
 available from `loglik_row()`, and what is missing is the SIGN, because
@@ -254,24 +248,16 @@ deviation and `sigmaD` sets how fast it grows.
 ## What this package reads that frmtmb does not promise
 
 Nothing. Every accessor it uses is exported and documented:
-[`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.html),
-[`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.html),
-[`frmtmb_register_aterm()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.html),
-[`frmtmb_register_compat()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.html),
-[`compat_rule_builder()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.html),
-[`single_response()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.html),
-[`eval_dpars()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.html)
-and
-[`frame_block_of()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.html).
-There is one thing it wanted and could not have, and it is recorded
-rather than worked around:
-[`frm_compat_features()`](https://aforren1.github.io/frmtmb/reference/frm_compat_features.html)
-shows that an addition term is registered but not at what ARITY, so this
-package cannot verify that a `reward` term another package registered is
-the two-column one its families need. It declines to register over the
-top of an existing term, and the mismatch surfaces one step later as
-[`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) refusing
-a missing `reward2`.
+`frmtmb_family()`, `frmtmb_structure()`, `frmtmb_register_aterm()`,
+`frmtmb_register_compat()`, `compat_rule_builder()`,
+`single_response()`, `eval_dpars()` and `frame_block_of()`. There is one
+thing it wanted and could not have, and it is recorded rather than
+worked around: `frm_compat_features()` shows that an addition term is
+registered but not at what ARITY, so this package cannot verify that a
+`reward` term another package registered is the two-column one its
+families need. It declines to register over the top of an existing term,
+and the mismatch surfaces one step later as `frm()` refusing a missing
+`reward2`.
 
 ## Not built, and named
 
@@ -292,12 +278,10 @@ and the Kalman filter's exploration bonus. What is still out:
   gives the per-trial density and drift rate meanwhile.
 
 - **A mixture over learning strategies.** A real model and a wanted one.
-  Core's
-  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html)
-  combines per-ROW densities and would need per-sequence ones; the
-  families now declare their per-sequence values, so what is left is a
-  change under core's `R/` rather than a declaration this package can
-  make.
+  Core's `mixture()` combines per-ROW densities and would need
+  per-sequence ones; the families now declare their per-sequence values,
+  so what is left is a change under core's `R/` rather than a
+  declaration this package can make.
 
 - **`accepts_aterms` on these families.** frmtmb gained an addition-term
   allow-list, and these families do not declare one, so a term none of

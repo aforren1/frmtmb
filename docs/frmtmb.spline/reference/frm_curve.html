@@ -209,7 +209,7 @@ compares it with <code>predict(se.fit = TRUE)</code>, and refuses when the two
 disagree by more than <code>tol</code>. The measured agreement is in the
 <code>"check"</code> attribute and is reported by <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code>.</p>
 <p>The one case with nothing to check against is a nonlinear (<code>nl = TRUE</code>) body: <code>predict(se.fit = TRUE)</code> is refused there, so
-<code><a href="https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html" class="external-link">frm_lp_basis()</a></code> is the only route to the number and <code>cov_rel_error</code>
+<code>frm_lp_basis()</code> is the only route to the number and <code>cov_rel_error</code>
 is <code>NA</code>. <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> says so rather than reporting a check that never
 ran.</p>
     </div>
@@ -228,7 +228,7 @@ random coefficients: 0.98 s.</p></li>
 <li><p>the same over 4000 subjects, 8006 random coefficients:
 6.87 s.</p></li>
 </ul><p>The design rebuild that used to sit beside those figures, and that
-was a tenth of them at every size, is gone: <code><a href="https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html" class="external-link">frm_lp_basis()</a></code> returns
+was a tenth of them at every size, is gone: <code>frm_lp_basis()</code> returns
 the design core already had, so the <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> call count no longer
 depends on the number of coefficients at all. The joint-precision
 solve is now the whole cost, it is paid once because core memoizes
@@ -301,7 +301,7 @@ seam returns. Hold every latent term equal between the grids and
 contrast a fixed effect, or read the two curves separately.</p>
     </div>
     <div class="section level2">
-    <h2 id="past-a-ps-knot-span">Past a <code><a href="https://aforren1.github.io/frmtmb/reference/ps.html" class="external-link">ps()</a></code> knot span<a class="anchor" aria-label="anchor" href="#past-a-ps-knot-span"></a></h2>
+    <h2 id="past-a-ps-knot-span">Past a <code>ps()</code> knot span<a class="anchor" aria-label="anchor" href="#past-a-ps-knot-span"></a></h2>
 
 
 <p>A <code><a href="https://aforren1.github.io/frmtmb/reference/ps.html" class="external-link">frmtmb::ps()</a></code> basis is a partition of unity only between its
@@ -310,7 +310,7 @@ zero, so a curve drawn there bends smoothly to whatever the rest of
 the body gives, which is exactly the shape a reader does not
 question. <code>predict(newdata = )</code> says so, and so does
 <code><a href="https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html" class="external-link">frmtmb::frm_lp_basis()</a></code>, the seam this function reads. It is
-surfaced again here, ONCE per <code><a href="https://aforren1.github.io/frmtmb/reference/ps.html" class="external-link">ps()</a></code> term per call and carrying the
+surfaced again here, ONCE per <code>ps()</code> term per call and carrying the
 span, so that the sentence names the function you called: this one
 reads the seam on the grid, but <code><a href="frm_curve_deriv.html">frm_curve_deriv()</a></code> reads it on a
 three-point difference stencil and <code><a href="frm_curve_feature.html">frm_curve_feature()</a></code> on a

@@ -80,7 +80,7 @@ frequency is an ordinary <code><a href="https://aforren1.github.io/frmtmb/refere
 
 
 
-<p></p><div class="sourceCode r"><pre><code><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">w11</span> <span class="op">|</span> <span class="fu">vreal</span><span class="op">(</span><span class="va">w22</span>, <span class="va">w12r</span>, <span class="va">w12i</span><span class="op">)</span> <span class="op">+</span> <span class="fu">vint</span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>,</span>
+<p></p><div class="sourceCode r"><pre><code><span><span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">w11</span> <span class="op">|</span> <span class="fu">vreal</span><span class="op">(</span><span class="va">w22</span>, <span class="va">w12r</span>, <span class="va">w12i</span><span class="op">)</span> <span class="op">+</span> <span class="fu">vint</span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>,</span>
 <span>       <span class="va">pow2</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">coh</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">phase</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>    family <span class="op">=</span> <span class="fu"><a href="../reference/cross_wishart.html">cross_wishart</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">xs</span><span class="op">)</span></span></code></pre><p></p></div>
 <p><code><a href="frm_cross_spectrum.html">frm_cross_spectrum()</a></code> returns exactly those columns under exactly
@@ -176,7 +176,7 @@ Past 36.74 they would be <code>NaN</code>, and no floor is applied to hide it.</
 
 
 <ul><li><p>More than two channels. This is a scope decision, and <strong>core is not
-the obstacle</strong>: <code><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm()</a></code> carries a matrix-valued response, and both
+the obstacle</strong>: <code>frm()</code> carries a matrix-valued response, and both
 a gaussian fit and a custom family indexing <code>y[, 1]</code> and <code>y[, 2]</code>
 work today. What is missing is here rather than there. A
 <code>p</code>-channel model needs <code>p^2</code> linear predictors written out by

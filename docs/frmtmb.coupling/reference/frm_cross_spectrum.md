@@ -182,8 +182,7 @@ three without the window.
 
 Declaring the shortfall instead of refusing it was considered and
 rejected. There is no one number to declare: the same window loses a
-different amount at each smoothing width, and frmtmb's own
-[`whittle()`](https://aforren1.github.io/frmtmb/reference/whittle.html)
+different amount at each smoothing width, and frmtmb's own `whittle()`
 measured the same thing from the other side, where an honestly declared
 equivalent degrees of freedom does not rescue a smoothed spectrum from
 its raw-periodogram check at kernel widths of 7 and above

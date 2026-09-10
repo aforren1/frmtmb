@@ -64,6 +64,9 @@
 - [`lba_simulate()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/lba_simulate.md)
   : Simulate from a linear ballistic accumulator
 
+- [`ndt_time()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.md)
+  : The non-decision time, in the response's own units
+
 - [`rdm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/rdm.md)
   : The racing diffusion model
 

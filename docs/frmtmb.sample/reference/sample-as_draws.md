@@ -58,7 +58,10 @@ one column per sampled variable and one row per draw.
 
 ``` r
 # \donttest{
-if (requireNamespace("posterior", quietly = TRUE)) {
+if (requireNamespace("posterior", quietly = TRUE) &&
+    requireNamespace("tmbstan", quietly = TRUE) &&
+    requireNamespace("rstan", quietly = TRUE) &&
+    !frmtmb.sample:::tmbstan_build_broken()) {
   set.seed(9)
   dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
   dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)

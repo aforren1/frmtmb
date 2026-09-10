@@ -22,8 +22,13 @@ wiener(
 
 - max_ndt:
 
-  Upper bound for the non-decision time, in the units of the response.
-  `NULL`, the default, takes it from the data.
+  Upper bound for the non-decision time, in the units of the response,
+  applied to every row. `NULL`, the default, takes the fastest response
+  of each row's `ndt_group()`, or of the whole data set when the model
+  has no `ndt_group()`. It cannot be combined with `ndt_group()`. Give
+  it when a component of a
+  [`frmtmb::mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html)
+  needs the bound up front.
 
 - variability:
 
@@ -130,32 +135,116 @@ design is where that lands. The warning carries the class
 `frmtmb_eam_units_warning` so that such a design can silence this one
 condition and keep the rest. `NEWS.md` carries the full tables.
 
-## Non-decision time
+## Non-decision time, and what its coefficients mean
 
 The density is zero for a response time at or below `ndt`, so the
-likelihood has a hard edge at `ndt = min(rt)` and an ordinary log link
-would let the optimizer walk straight over it. The `ndt` link is a logit
-scaled onto `(0, max_ndt)` instead, which makes the constraint
-structural rather than a thing the optimizer has to discover.
+likelihood has a hard edge at the fastest response and an ordinary log
+link would let the optimizer walk straight over it. The `ndt` link makes
+the constraint structural instead, and it does so in one of two ways.
 
-`max_ndt` defaults to the smallest response time in the data, found when
-the model frame is assembled. Give it explicitly to pin the bound, which
-is worth doing when you will
-[`predict()`](https://rdrr.io/r/stats/predict.html) on new data whose
-minimum differs from the training minimum.
+**Without `ndt_group()`, `ndt` is a TIME**, on a logit scaled onto
+`(0, ub)` with `ub` the fastest response in the whole data set, or
+`max_ndt` when you give one. This is the parameterization the family has
+always had. `predict(dpar = "ndt", type = "response")` reports seconds,
+a `prior(class = "ndt")` is a density on those seconds, and a
+`bf(ndt = 0.2)` constant is 0.2 seconds.
+
+**With `ndt_group()`, `ndt` is a FRACTION of the row's own bound**, on a
+plain logit, and the density multiplies it by that bound. The bound is
+the fastest response of the row's group. Write
+
+    frm(bf(rt | dec(response) + ndt_group(subject) ~ coherence,
+           ndt ~ 1 + (1 | subject), bias = 0.5),
+        family = wiener(), data = dat)
+
+and each subject's non-decision time is bounded by its own fastest
+response. That is what a random effect on `ndt` needs; the next section
+is what one global bound does to it. The price is that `ndt` is on a
+different scale: `predict(dpar = "ndt", type = "response")` reports the
+fraction, and
+[`ndt_time()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.md)
+reports the time for either parameterization. A `prior(class = "ndt")`
+and a `bf(ndt = )` constant are fractions under a grouping too.
+
+Give the grouping as a factor, a character vector, a logical or integer
+codes. It is keyed on the group's LABEL, so subsetting,
+[`droplevels()`](https://rdrr.io/r/base/droplevels.html),
+[`relevel()`](https://rdrr.io/r/stats/relevel.html) and a prediction
+grid you build yourself all pair a row with the same bound the fit used.
+`max_ndt` and `ndt_group()` cannot be combined, because they set the
+same bound to different things, and an `ndt_group()` no family reads is
+refused rather than carried into the fit unused.
 
 A `max_ndt` above the smallest response time is refused, because for
 this family alone it admits parameter values at which some observed row
 has no likelihood. Inside a
 [`frmtmb::mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html)
 that is exactly what the other component is for, so
-`allow_unreachable = TRUE` lifts the refusal; see Mixtures.
+`allow_unreachable = TRUE` lifts the refusal; see Mixtures. A mixture
+never finalizes its components, so a component needs `max_ndt` given up
+front and cannot use `ndt_group()`.
+
+Whichever parameterization a model is in, the bound is fixed when the
+model frame is assembled and is a property of the FITTED data, so a
+prediction on new rows is scaled by the bound the fit used rather than
+by one re-derived from the new rows. A group the fit never saw has no
+bound and is refused.
 
 Past a linear predictor of about 37 the logit saturates in double
-precision and `ndt` rounds to `max_ndt` exactly. Nothing guards that,
-and nothing needs to: the density falls off a cliff as the decision time
-goes to zero, so the log likelihood is already unreachable long before
-the link runs out of digits.
+precision. Nothing guards that, and nothing needs to: the density falls
+off a cliff as the decision time goes to zero, so the log likelihood is
+already unreachable long before the link runs out of digits.
+
+## Why one bound is the wrong constraint under a random effect
+
+A single bound is the GLOBAL fastest response, so a subject whose true
+`ndt` is above it cannot be represented at any value of the random
+effect. At 30 subjects by 400 trials with a between-subject spread of 26
+ms on a mean of 250 ms, 20 of the 30 subjects are in that position and
+NONE is inconsistent with its own data. Without `variability` such a fit
+does not converge; with `variability = "sv"` it converges, reports
+nothing from `diagnose()`, and returns a population `ndt` pinned at the
+bound and wrong by ten percent with a standard error of 7.2e-06 on it.
+
+What settles it is what happens as data accumulates. On that design, the
+per-subject root mean squared error of the fitted non-decision times:
+
+|        |                   |                  |
+|--------|-------------------|------------------|
+| trials | with ndt_group(s) | one global bound |
+| 100    | 20.91 ms          | 27.23 ms         |
+| 200    | 14.08 ms          | 20.51 ms         |
+| 400    | 7.67 ms           | 30.37 ms         |
+
+The per-group bound converges on the truth and the global bound does
+not, because more data lowers the global minimum and tightens the
+ceiling on every subject at once.
+
+## What sd(ndt) does and does not tell you
+
+A grouped model estimates `ndt` as a fraction of each group's own floor,
+so the fitted per-subject times vary with those floors even when the
+variance component is exactly zero. On the design above an estimator
+with NO random effect on `ndt` returns a between-subject standard
+deviation of 0.02748 against a truth of 0.02629, where the full model
+returns 0.02543, and at 100 trials per subject the two are identical in
+every digit.
+
+The variance component is not empty: at 400 trials it buys 8.44
+log-likelihood units and cuts the per-subject error from 11.90 ms to
+7.67 ms. But a between-subject standard deviation is the wrong statistic
+to read that off. Compare the per-subject non-decision times from
+[`ndt_time()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.md)
+against what you believe, and compare log-likelihoods, rather than
+reading `VarCorr()`'s `ndt` row as evidence that the component was
+estimated.
+
+The bound's own quality is a function of the group's trial count. The
+group's fastest response overshoots its true non-decision time by about
+47 ms at 400 trials and 78 ms at 50, and a group of one trial gets that
+trial's own response time as its bound. Nothing refuses a small group,
+because any threshold would fire on correct models; the trial counts are
+recorded on the fitted family, at `family(fit)$ndt_bound$sizes`.
 
 ## Across-trial variability
 
@@ -179,8 +268,10 @@ takes its own formula:
 
 - `st`:
 
-  Width of a uniform non-decision time, centered on `ndt`, in the units
-  of the response. Logit link scaled onto `(0, 2 * max_ndt)`.
+  Width of a uniform non-decision time, centered on `ndt`, and on
+  whichever scale `ndt` is on: a duration in the units of the response,
+  on a logit scaled onto `(0, 2 * bound)`, or a FRACTION of twice the
+  row's own bound under `ndt_group()`.
 
 The likelihood is the analytic Wiener density averaged over those
 distributions, and the three are done three different ways because they

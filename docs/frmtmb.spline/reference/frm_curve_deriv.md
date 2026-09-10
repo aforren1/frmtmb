@@ -128,7 +128,7 @@ and a call that gives one grid and not the other is refused. Without the
 refusal the answer would be the derivative of the FIRST curve alone, for
 an object whose every row is a difference.
 
-## Past a [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.html) knot span
+## Past a `ps()` knot span
 
 Warned once per
 [`frmtmb::ps()`](https://aforren1.github.io/frmtmb/reference/ps.html)

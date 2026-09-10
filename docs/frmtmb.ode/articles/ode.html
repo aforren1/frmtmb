@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.ode</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -80,7 +80,7 @@ is cleared from it; a population grows and is eaten.
 <code><a href="../reference/frm_ode.html">frm_ode()</a></code> puts such a system inside a nonlinear formula, so
 the constants of the system are ordinary nonlinear parameters with fixed
 effects, random effects and covariates, and the model is fitted by
-maximum likelihood like any other <code><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm()</a></code> model.</p>
+maximum likelihood like any other <code>frm()</code> model.</p>
 <div class="section level2">
 <h2 id="setup">Setup<a class="anchor" aria-label="anchor" href="#setup"></a>
 </h2>
@@ -145,7 +145,7 @@ hours.</p>
 how a concentration is produced; the three nonlinear parameter formulas
 say how each constant varies between subjects.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">form</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">form</span> <span class="op">&lt;-</span> <span class="fu">bf</span><span class="op">(</span></span>
 <span>  <span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>,</span>
 <span>                 init   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">Dose</span>, <span class="fl">0</span><span class="op">)</span>,</span>
 <span>                 times  <span class="op">=</span> <span class="va">Time</span>,</span>
@@ -159,7 +159,7 @@ say how each constant varies between subjects.</p>
 <span>  nl <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="va">form</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span>, se <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="va">form</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span>, se <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>           start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">0.08</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">0.5</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Family: gaussian </span></span>
@@ -199,8 +199,8 @@ say how each constant varies between subjects.</p>
 <p>The typical subject’s constants come back on the natural scale, and
 the derived quantities a pharmacokineticist reads off them follow:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ka</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">lka</span><span class="op">)</span>; <span class="va">ke</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">lke</span><span class="op">)</span></span>
-<span><span class="va">V</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">lV</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">ka</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">lka</span><span class="op">)</span>; <span class="va">ke</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">lke</span><span class="op">)</span></span>
+<span><span class="va">V</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">lV</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>ka <span class="op">=</span> <span class="va">ka</span>, ke <span class="op">=</span> <span class="va">ke</span>, V <span class="op">=</span> <span class="va">V</span>,</span>
 <span>  half_life <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span> <span class="op">/</span> <span class="va">ke</span>,       <span class="co"># hours</span></span>
 <span>  clearance <span class="op">=</span> <span class="va">ke</span> <span class="op">*</span> <span class="va">V</span><span class="op">)</span>            <span class="co"># L/h per kg of body weight</span></span>
@@ -209,7 +209,7 @@ the derived quantities a pharmacokineticist reads off them follow:</p>
 <span><span class="co">#&gt; half_life.(Intercept) clearance.(Intercept) </span></span>
 <span><span class="co">#&gt;            7.43627852            0.04100571</span></span></code></pre></div>
 <p>Everything downstream works as usual: <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> on new
-times, <code><a href="https://aforren1.github.io/frmtmb/reference/ranef.html" class="external-link">ranef()</a></code> for the subject deviations,
+times, <code>ranef()</code> for the subject deviations,
 <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>,
 <code>REML = TRUE</code>.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
@@ -430,8 +430,8 @@ three doses twelve hours apart, with between-subject variability on
 <span>  <span class="fu">super</span><span class="op">(</span><span class="va">dd</span><span class="op">$</span><span class="va">time</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, <span class="va">ka_i</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, <span class="va">ke_i</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, <span class="fl">10</span>, <span class="fl">100</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">12</span>, <span class="fl">24</span><span class="op">)</span><span class="op">)</span>, <span class="fl">0</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">dd</span><span class="op">)</span>, <span class="fl">0</span>, <span class="fl">0.3</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">dose_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">time</span>,</span>
+<span><span class="va">dose_fit</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span></span>
+<span>  <span class="fu">bf</span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">time</span>,</span>
 <span>                    parms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lka</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lke</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lV</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                    group <span class="op">=</span> <span class="va">id</span>, states <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"depot"</span>, <span class="st">"central"</span><span class="op">)</span>,</span>
 <span>                    output <span class="op">=</span> <span class="st">"central"</span>,</span>
@@ -440,7 +440,7 @@ three doses twelve hours apart, with between-subject variability on
 <span>     <span class="va">lka</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span>, <span class="va">lke</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span>, <span class="va">lV</span> <span class="op">~</span> <span class="fl">1</span>, nl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">dd</span>, start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">0.25</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">8</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">dose_fit</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">dose_fit</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   lka.(Intercept)   lke.(Intercept)    lV.(Intercept) sigma.(Intercept) </span></span>
 <span><span class="co">#&gt;        0.04225596       -1.44209990        2.28231919       -1.30575528</span></span></code></pre></div>
 <p>The truth is <code>lka = 0</code>, <code>lke = -1.61</code> and
@@ -473,7 +473,7 @@ value per observation, constant within group, multiplying every amount
 in that group. A bioavailability is then an ordinary nonlinear
 parameter, free to carry covariates and random effects:</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">time</span>,</span>
+<code class="sourceCode R"><span><span class="fu">bf</span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">time</span>,</span>
 <span>                  parms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lka</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lke</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lV</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                  group <span class="op">=</span> <span class="va">id</span>, states <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"depot"</span>, <span class="st">"central"</span><span class="op">)</span>,</span>
 <span>                  output <span class="op">=</span> <span class="st">"central"</span>,</span>
@@ -649,13 +649,13 @@ to compare, because RTMB refuses comparison on AD types, so
 <span>                  <span class="fl">100</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">k_e</span> <span class="op">*</span> <span class="fl">12</span><span class="op">)</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="va">k_l</span> <span class="op">*</span> <span class="op">(</span><span class="va">dv</span><span class="op">$</span><span class="va">time</span> <span class="op">-</span> <span class="fl">12</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">dv</span><span class="op">)</span>, <span class="fl">0</span>, <span class="fl">0.6</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">tv_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">decay</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">time</span>,</span>
+<span><span class="va">tv_fit</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span></span>
+<span>  <span class="fu">bf</span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">decay</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">time</span>,</span>
 <span>                    tv <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lk</span><span class="op">)</span><span class="op">)</span>, tv_break <span class="op">=</span> <span class="va">phase</span>,</span>
 <span>                    group <span class="op">=</span> <span class="va">id</span>, output <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span>,</span>
 <span>     <span class="va">lk</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="va">phase</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span>, nl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">dv</span>, start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">0.2</span><span class="op">)</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">tv_fit</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">tv_fit</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    lk.(Intercept)      lk.phaselate sigma.(Intercept) </span></span>
 <span><span class="co">#&gt;       -1.78812648        0.75055986       -0.08544209</span></span></code></pre></div>
 <p><code>lk</code> is a linear predictor that varies within a subject,
@@ -676,7 +676,7 @@ of a predator-prey series stack the same way. Given one
 <code>output</code> value per row, <code><a href="../reference/frm_ode.html">frm_ode()</a></code> solves the
 system once per group and each row reads the state its label names:</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pm_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">dose</span>, <span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">time</span>,</span>
+<code class="sourceCode R"><span><span class="fu">bf</span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pm_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">dose</span>, <span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">time</span>,</span>
 <span>               parms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lka</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lkm</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lke</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>               group <span class="op">=</span> <span class="va">id</span>, output <span class="op">=</span> <span class="va">cmt</span><span class="op">)</span>,      <span class="co"># cmt is 2 or 3 per row</span></span>
 <span>   <span class="va">lka</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">lkm</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">lke</span> <span class="op">~</span> <span class="fl">1</span>, nl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
@@ -692,22 +692,22 @@ states.</p>
 <p>Assay error in pharmacokinetics is rarely purely additive. The usual
 model is proportional plus additive,</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">d</mi></mrow><mo>=</mo><msqrt><mrow><msup><mi>a</mi><mn>2</mn></msup><mo>+</mo><mo stretchy="false" form="prefix">(</mo><mi>b</mi><mspace width="0.167em"></mspace><mi>μ</mi><msup><mo stretchy="false" form="postfix">)</mo><mn>2</mn></msup></mrow></msqrt><mo>,</mo></mrow><annotation encoding="application/x-tex">\mathrm{sd} = \sqrt{a^2 + (b\,\mu)^2},</annotation></semantics></math></p>
-<p>which <code><a href="https://aforren1.github.io/frmtmb/reference/nlf.html" class="external-link">nlf()</a></code> writes directly, because an
-<code><a href="https://aforren1.github.io/frmtmb/reference/nlf.html" class="external-link">nlf()</a></code> body may read another parameter’s per-row value.
+<p>which <code>nlf()</code> writes directly, because an
+<code>nlf()</code> body may read another parameter’s per-row value.
 <code>sigma</code> is reported on the log scale, so the body is half the
 log of the variance:</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">dose</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">time</span>,</span>
+<code class="sourceCode R"><span><span class="fu">bf</span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">dose</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">time</span>,</span>
 <span>                  parms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lka</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lke</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lV</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                  group <span class="op">=</span> <span class="va">id</span>, output <span class="op">=</span> <span class="fl">2L</span><span class="op">)</span>,</span>
 <span>   <span class="va">lka</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span>, <span class="va">lke</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span>, <span class="va">lV</span> <span class="op">~</span> <span class="fl">1</span>, nl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/nlf.html" class="external-link">nlf</a></span><span class="op">(</span><span class="va">sigma</span> <span class="op">~</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">ladd</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">lprop</span><span class="op">)</span> <span class="op">*</span> <span class="va">mu</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/lf.html" class="external-link">lf</a></span><span class="op">(</span><span class="va">ladd</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">lprop</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<span>  <span class="fu">nlf</span><span class="op">(</span><span class="va">sigma</span> <span class="op">~</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">ladd</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">lprop</span><span class="op">)</span> <span class="op">*</span> <span class="va">mu</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">lf</span><span class="op">(</span><span class="va">ladd</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">lprop</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><code>exp(ladd)</code> is the additive component and
 <code>exp(lprop)</code> the proportional one, both on the log scale so
 both stay positive. This needs no new machinery: it is
-<code><a href="https://aforren1.github.io/frmtmb/reference/nlf.html" class="external-link">nlf()</a></code> plus the ODE body, and the two components come back
-separately in <code><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef()</a></code>.</p>
+<code>nlf()</code> plus the ODE body, and the two components come back
+separately in <code>fixef()</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="three-things-that-will-bite">Three things that will bite<a class="anchor" aria-label="anchor" href="#three-things-that-will-bite"></a>
@@ -722,7 +722,7 @@ same subject therefore describes a model this helper cannot solve, and
 it is refused by name at frame assembly:</p>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">d</span><span class="op">$</span><span class="va">phase</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">Time</span> <span class="op">&lt;=</span> <span class="fl">2</span>, <span class="st">"early"</span>, <span class="st">"late"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">Dose</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">Time</span>,</span>
+<span><span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_ode.html">frm_ode</a></span><span class="op">(</span><span class="va">pk_dyn</span>, init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">Dose</span>, <span class="fl">0</span><span class="op">)</span>, times <span class="op">=</span> <span class="va">Time</span>,</span>
 <span>                      parms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lka</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lke</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lV</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                      group <span class="op">=</span> <span class="va">Subject</span>, output <span class="op">=</span> <span class="fl">2L</span><span class="op">)</span>,</span>
 <span>       <span class="va">lka</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">Subject</span><span class="op">)</span>,</span>
@@ -773,7 +773,7 @@ yourself.</p>
 <p>The tape is built once, but every gradient evaluation replays one
 adjoint solve per group, so the cost is linear in the number of groups
 and does not shrink with tape reuse. For the two-state model above,
-eight timepoints per subject, a whole <code><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm()</a></code> call including
+eight timepoints per subject, a whole <code>frm()</code> call including
 <code>sdreport()</code>:</p>
 <table class="table">
 <thead><tr class="header">
@@ -811,8 +811,96 @@ eight timepoints per subject, a whole <code><a href="https://aforren1.github.io/
 </tbody>
 </table>
 <p>About 0.4 s per subject. A 200-subject population model is a couple
-of minutes. If your system has a closed-form solution, write that
-instead: it gives the same answer roughly a hundred times faster.</p>
+of minutes, and an intensively dosed one is much worse than that,
+because the solve is split at every dose: 100 subjects sampled eight
+times, dosed twice daily for a week and started from a steady state, is
+<strong>3717 seconds</strong>, and that is not the data being large. It
+is 33 numerical solves per subject for every evaluation of the
+likelihood.</p>
+<p>If your system is LINEAR, do not pay any of that. See the next
+section.</p>
+</div>
+<div class="section level2">
+<h2 id="the-linear-case-has-a-closed-form">The linear case has a closed form<a class="anchor" aria-label="anchor" href="#the-linear-case-has-a-closed-form"></a>
+</h2>
+<p>A one-, two- or three-compartment model with first-order absorption
+and first-order elimination is linear, and a linear system does not need
+an integrator. <code><a href="../reference/frm_lincmt.html">frm_lincmt()</a></code> writes the analytic solution:
+the amount in a compartment is the superposition of the impulse
+responses of the doses that came before the observation, and a
+steady-state record is the geometric series of that superposition rather
+than a run-in.</p>
+<p>It takes the same <code>events</code> table, the same
+<code>group</code>, the same <code>event_scale</code>, and it sits in a
+<code>bf(nl = TRUE)</code> body the same way. What changes is that the
+system is named rather than written:</p>
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">form</span> <span class="op">&lt;-</span> <span class="fu">bf</span><span class="op">(</span></span>
+<span>  <span class="va">conc</span> <span class="op">~</span> <span class="fu"><a href="../reference/frm_lincmt.html">frm_lincmt</a></span><span class="op">(</span>parms <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>ka <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lka</span><span class="op">)</span>, ke <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lke</span><span class="op">)</span>,</span>
+<span>                                 V <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">lV</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                    times <span class="op">=</span> <span class="va">Time</span>, group <span class="op">=</span> <span class="va">Subject</span>,</span>
+<span>                    ncmt <span class="op">=</span> <span class="fl">1</span>, depot <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>                    init <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>depot <span class="op">=</span> <span class="va">Dose</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="va">lka</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">Subject</span><span class="op">)</span>,</span>
+<span>  <span class="va">lke</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">Subject</span><span class="op">)</span>,</span>
+<span>  <span class="va">lV</span>  <span class="op">~</span> <span class="fl">1</span>,</span>
+<span>  nl <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><code>ncmt</code> counts the disposition compartments and
+<code>depot</code> says whether an absorption compartment feeds them.
+<code>parms</code> is named because which parameters a shape needs
+depends on those two, and it reads either rate constants
+(<code>ke</code>, <code>k12</code>, <code>k21</code>, <code>k13</code>,
+<code>k31</code>, <code>ka</code>, <code>V</code>) or clearances
+(<code>CL</code>, <code>V</code>, <code>Q2</code>, <code>V2</code>,
+<code>Q3</code>, <code>V3</code>, <code>ka</code>).</p>
+<p>The two agree, and the closed form is far cheaper. On the design that
+costs 3717 s above, <code><a href="../reference/frm_lincmt.html">frm_lincmt()</a></code> at its default takes
+<strong>55 s</strong>, and the same fit with the steady-state run-in
+written out at <code>n_ss = 20</code> takes 119 s. Comparing each arm’s
+slowest measurement against the other’s fastest, that is <strong>at
+least 67 times faster</strong> at the default and at least 31 times at
+<code>n_ss = 20</code>; at a size where all three fits are cheap enough
+to repeat, and where the optimizer takes the same number of iterations
+in each, the factors are 95 and 47. The two return the same estimates to
+seven significant digits (<code>ka</code> 0.9841612 against 0.9841609).
+On 118 schedules spanning bolus and infusion, single and repeated
+dosing, steady state, one to three compartments with and without a
+depot, they differ by at most 2.6e-12 of the trajectory’s own scale, and
+tightening the solver drives that difference down rather than leaving
+it, so it is <code><a href="../reference/frm_ode.html">frm_ode()</a></code>’s tolerance and not the closed
+form’s error.</p>
+<p>Three practical differences are worth knowing.</p>
+<p><strong><code>n_ss</code> defaults to <code>Inf</code>.</strong>
+<code><a href="../reference/frm_ode.html">frm_ode()</a></code> reaches a steady state by simulating
+<code>n_ss</code> cycles, and twenty cycles are not always enough. On
+the two-compartment schedule in this package’s tests they leave the
+state <strong>0.4 percent</strong> below the true steady state (0.00396
+of the trajectory’s own scale). Do not read that off the warning
+<code><a href="../reference/frm_ode.html">frm_ode()</a></code> prints, which reports the CYCLE-TO-CYCLE
+movement, 0.0023 on the same schedule: the two are different quantities
+and the movement is the smaller one. The shortfall is about
+<code>exp(-n_ss * lambda_z * ii)</code>, where <code>lambda_z</code> is
+the slowest disposition rate, so it grows quickly for a drug whose
+terminal half-life is long against its dosing interval: a 107 hour
+half-life dosed daily is 1.2 percent short at <code>n_ss = 20</code>,
+and a 139 hour half-life dosed twice daily is 29 percent short. Choose
+<code>n_ss</code> so that <code>n_ss * lambda_z * ii</code> is at least
+20. <code><a href="../reference/frm_lincmt.html">frm_lincmt()</a></code> sums the series instead, so there is
+nothing to be short of. Passing a whole number writes that many cycles
+out, which is what reproduces a <code><a href="../reference/frm_ode.html">frm_ode()</a></code> fit exactly.</p>
+<p><strong>It needs no solver.</strong> Neither <strong>RTMBode</strong>
+nor <strong>deSolve</strong> is involved, so
+<code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html" class="external-link">frmtmb.sample::frm_sample()</a></code> works on a
+<code><a href="../reference/frm_lincmt.html">frm_lincmt()</a></code> model where it refuses a
+<code><a href="../reference/frm_ode.html">frm_ode()</a></code> one.</p>
+<p><strong>It refuses what superposition cannot carry</strong>, by name
+rather than quietly: <code>method = "replace"</code> and
+<code>method = "multiply"</code>, a <code>"reset"</code> to a non-zero
+level, a dose into or an output from a peripheral compartment, an
+infusion into the depot (that is zero-order absorption),
+<code>tv</code>, and an infusion still running when the schedule
+restarts. Every one of those is a model <code><a href="../reference/frm_ode.html">frm_ode()</a></code> fits.</p>
 </div>
 <div class="section level2">
 <h2 id="what-is-out-of-scope">What is out of scope<a class="anchor" aria-label="anchor" href="#what-is-out-of-scope"></a>
@@ -872,7 +960,7 @@ detected, and by default its rows are filled with
 <p>A penalty is never written silently. <code><a href="../reference/frm_ode.html">frm_ode()</a></code> warns and
 names the groups, and <code><a href="../reference/frm_ode_failures.html">frm_ode_failures()</a></code> reads the record
 back afterwards:</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">nd</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Warning: frm_ode(): the solve failed for 1 of 3 groups (2). Their rows</span></span>
 <span><span class="co">#&gt; hold penalty = 1e+06, not a solution. ...</span></span>
@@ -888,7 +976,7 @@ missing.</p>
 cannot be solved.</p>
 <p>Solver warnings from <strong>deSolve</strong> (“corrector convergence
 failed repeatedly”, “exceeded maxsteps”) during a fit are normal noise
-from those probing steps. Judge the fit by <code><a href="https://aforren1.github.io/frmtmb/reference/diagnose.html" class="external-link">diagnose()</a></code> and
+from those probing steps. Judge the fit by <code>diagnose()</code> and
 the gradient at the optimum, not by whether the solver complained on the
 way.</p>
 </div>

@@ -111,7 +111,8 @@ draws, and `predictive_error()` is the matrix of predictive residuals
 ``` r
 # \donttest{
 if (requireNamespace("tmbstan", quietly = TRUE) &&
-    requireNamespace("rstan", quietly = TRUE)) {
+    requireNamespace("rstan", quietly = TRUE) &&
+    !frmtmb.sample:::tmbstan_build_broken()) {
   set.seed(9)
   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)

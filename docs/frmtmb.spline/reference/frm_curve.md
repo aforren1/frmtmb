@@ -162,9 +162,8 @@ attribute and is reported by
 [`print()`](https://rdrr.io/r/base/print.html).
 
 The one case with nothing to check against is a nonlinear (`nl = TRUE`)
-body: `predict(se.fit = TRUE)` is refused there, so
-[`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html)
-is the only route to the number and `cov_rel_error` is `NA`.
+body: `predict(se.fit = TRUE)` is refused there, so `frm_lp_basis()` is
+the only route to the number and `cov_rel_error` is `NA`.
 [`print()`](https://rdrr.io/r/base/print.html) says so rather than
 reporting a check that never ran.
 
@@ -184,9 +183,8 @@ process each:
 - the same over 4000 subjects, 8006 random coefficients: 6.87 s.
 
 The design rebuild that used to sit beside those figures, and that was a
-tenth of them at every size, is gone:
-[`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html)
-returns the design core already had, so the
+tenth of them at every size, is gone: `frm_lp_basis()` returns the
+design core already had, so the
 [`predict()`](https://rdrr.io/r/stats/predict.html) call count no longer
 depends on the number of coefficients at all. The joint-precision solve
 is now the whole cost, it is paid once because core memoizes it, and it
@@ -265,7 +263,7 @@ predicting, but reduces the result to one variance per row before the
 seam returns. Hold every latent term equal between the grids and
 contrast a fixed effect, or read the two curves separately.
 
-## Past a [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.html) knot span
+## Past a `ps()` knot span
 
 A [`frmtmb::ps()`](https://aforren1.github.io/frmtmb/reference/ps.html)
 basis is a partition of unity only between its frozen outer knots. Past
@@ -274,10 +272,9 @@ bends smoothly to whatever the rest of the body gives, which is exactly
 the shape a reader does not question. `predict(newdata = )` says so, and
 so does
 [`frmtmb::frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html),
-the seam this function reads. It is surfaced again here, ONCE per
-[`ps()`](https://aforren1.github.io/frmtmb/reference/ps.html) term per
-call and carrying the span, so that the sentence names the function you
-called: this one reads the seam on the grid, but
+the seam this function reads. It is surfaced again here, ONCE per `ps()`
+term per call and carrying the span, so that the sentence names the
+function you called: this one reads the seam on the grid, but
 [`frm_curve_deriv()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve_deriv.md)
 reads it on a three-point difference stencil and
 [`frm_curve_feature()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve_feature.md)

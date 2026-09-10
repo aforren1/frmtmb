@@ -281,11 +281,10 @@ groups, and
 reports them afterwards. Treat those rows as missing, not as
 predictions.
 
-If a fit reports `NA/NaN gradient evaluation`, run
-[`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.html)
-on it, then call `frm_ode()` directly at the suspect parameter values
-with `on_error = "error"`: numerically it will name the group that
-cannot be solved.
+If a fit reports `NA/NaN gradient evaluation`, run `diagnose()` on it,
+then call `frm_ode()` directly at the suspect parameter values with
+`on_error = "error"`: numerically it will name the group that cannot be
+solved.
 
 Solver warnings from deSolve ("corrector convergence failed repeatedly",
 "exceeded maxsteps") during a fit come from the optimizer's probing
@@ -389,16 +388,34 @@ branches on a value, which the tape cannot do: the number of solves has
 to be fixed before the tape is built. So `n_ss` cycles is an
 **approximation**, and its error is geometric - for linear kinetics the
 shortfall after `n` cycles is the accumulation factor to the power `n`,
-which is `exp(-n * k * ii)` for a one-compartment system. At the default
-`n_ss = 20` that is `1e-21` for a drug eliminated over its dosing
-interval and only a percent or two for one whose half-life is many
-intervals long. Off the tape - a direct call,
+which is `exp(-n * k * ii)` for a one-compartment system. The rate `k`
+in that expression is the SLOWEST disposition eigenvalue, `lambda_z`, so
+the shortfall is `exp(-n_ss * lambda_z * ii)` and it is set by the
+terminal half-life measured in dosing intervals. **Choose `n_ss` so that
+`n_ss * lambda_z * ii` is at least 20**, which puts the shortfall at
+2e-09. The default of 20 does that only when the terminal half-life is
+under about three dosing intervals. Measured, on a two-compartment oral
+model at `n_ss = 20`: a 23 hour half-life dosed every 8 hours is 4e-03
+short, a 107 hour half-life dosed daily is 1.2e-02 short, and a 265 hour
+half-life dosed daily is 9e-02 short. A half-life of ten dosing
+intervals is 25 percent short. It moves estimates: on one 30-subject
+dataset simulated from the exact steady state, fitting at `n_ss = 20`
+rather than at the limit moved `k21` by a factor of 3.2 and `ke` by 11
+percent.
+
+Off the tape - a direct call,
 [`predict()`](https://rdrr.io/r/stats/predict.html),
 [`simulate()`](https://rdrr.io/r/stats/simulate.html), a body holding no
 estimated parameter - the last two cycles are compared and `frm_ode()`
 warns when they still differ by more than `ss_tol`. During a fit that
-check cannot run, so read the warning from a numeric call and raise
-`n_ss` if it fires.
+check cannot run at all. **Do not choose `n_ss` from that warning**: it
+reports the CYCLE-TO-CYCLE movement, which understates the distance to
+the limit by about `1 / (lambda_z * ii)` and so understates it most
+exactly where the error is largest (measured at 3.1x, 6.6x and 10.8x as
+the half-life grows). Compare `n_ss` against `2 * n_ss` numerically
+instead, or, for a linear compartment model, use
+[`frm_lincmt()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_lincmt.md),
+whose default sums the series and has nothing to truncate.
 
 The cost is `n_ss` extra solves per group (two per cycle for an
 infusion), so a steady-state population fit is several times a plain

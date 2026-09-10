@@ -82,7 +82,8 @@ installed. See the Laplace approximation section of
 ``` r
 # \donttest{
 if (requireNamespace("tmbstan", quietly = TRUE) &&
-    requireNamespace("rstan", quietly = TRUE)) {
+    requireNamespace("rstan", quietly = TRUE) &&
+    !frmtmb.sample:::tmbstan_build_broken()) {
 # a binary GLMM with small clusters: the regime where the Laplace
 # approximation and Wald intervals are least reliable
 set.seed(4)

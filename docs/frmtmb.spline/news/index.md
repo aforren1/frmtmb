@@ -116,16 +116,15 @@ on it finds where they meet.
   every pointwise column, including `.se`.
 
   Bounded with public quantities, since `extra_var` comes from
-  [`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html)
-  and the divisor from `predict(se.fit = TRUE)`. On `y ~ fac + gp(x)`,
-  60 observations on \[0, 6\], noise 0.2, `nsim = 20000`: the critical
-  value is 1.00009 of the correctly scaled one on a grid inside the
-  data, 1.00007 at the edge, and **1.17485 on a grid that extrapolates
-  past the observed positions**. So the band is at least 17 percent too
-  narrow exactly where it should be widening. That ratio is a LOWER
-  bound: rescaling fixes the marginal scale and keeps `A V A'`’s
-  correlation, and a kriging residual that decorrelates faster than the
-  mean function pushes the critical value higher still.
+  `frm_lp_basis()` and the divisor from `predict(se.fit = TRUE)`. On
+  `y ~ fac + gp(x)`, 60 observations on \[0, 6\], noise 0.2,
+  `nsim = 20000`: the critical value is 1.00009 of the correctly scaled
+  one on a grid inside the data, 1.00007 at the edge, and **1.17485 on a
+  grid that extrapolates past the observed positions**. So the band is
+  at least 17 percent too narrow exactly where it should be widening.
+  That ratio is a LOWER bound: rescaling fixes the marginal scale and
+  keeps `A V A'`’s correlation, and a kriging residual that decorrelates
+  faster than the mean function pushes the critical value higher still.
 
   The fix needs the conditional cross-covariance of the `gp()`, which no
   public seam returns; it is filed as a core seam in
@@ -149,18 +148,16 @@ on it finds where they meet.
   stencil at the located roots. The stencil reaches `eps` past each
   root, so the old gate was true when a root happened to land within
   that distance of a knot and false otherwise, whatever the grid held.
-  On a fit with two
-  [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.html) terms,
-  one row whose `z` left the second term’s span was refused when the
-  crossing landed at the end of the bracket and returned in silence,
-  with a bit-identical estimate, when it landed in the middle; and the
-  refusal it did raise quoted `z`’s span while the gate that fired was
-  `t`’s stencil fringe. The check now runs when, and only when, a column
-  other than the search variable varies down the grid, which is the one
-  thing the grid scan cannot see, and it refuses on what that question
-  answers. A grid whose other columns are pinned to row 1, which is
-  every grid in this package’s own examples, is unaffected and costs no
-  extra prediction.
+  On a fit with two `ps()` terms, one row whose `z` left the second
+  term’s span was refused when the crossing landed at the end of the
+  bracket and returned in silence, with a bit-identical estimate, when
+  it landed in the middle; and the refusal it did raise quoted `z`’s
+  span while the gate that fired was `t`’s stencil fringe. The check now
+  runs when, and only when, a column other than the search variable
+  varies down the grid, which is the one thing the grid scan cannot see,
+  and it refuses on what that question answers. A grid whose other
+  columns are pinned to row 1, which is every grid in this package’s own
+  examples, is unaffected and costs no extra prediction.
 
 ## frmtmb.spline 0.3.0
 
@@ -170,16 +167,14 @@ drew it, the feature search refuses, and
 no longer dies on its default simultaneous band. Requires frmtmb 0.53.0
 for the classed span warning.
 
-- The three curve functions say when the grid leaves a
-  [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.html) knot
-  span. They are the doors a user actually draws a curve through, and
-  they were the ones that said nothing useful:
+- The three curve functions say when the grid leaves a `ps()` knot span.
+  They are the doors a user actually draws a curve through, and they
+  were the ones that said nothing useful:
   [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
   and
   [`frm_curve_deriv()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve_deriv.md)
-  read the curve through
-  [`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html),
-  which did not raise it at all, while
+  read the curve through `frm_lp_basis()`, which did not raise it at
+  all, while
   [`frm_curve_feature()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve_feature.md)
   reached it through
   [`predict()`](https://rdrr.io/r/stats/predict.html), which did, ELEVEN
@@ -201,15 +196,14 @@ for the classed span warning.
 
 - FIX:
   [`frm_curve_deriv()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve_deriv.md)
-  past a [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.html)
-  knot span works on its own DEFAULT arguments. It warned and then died
-  in `quantile.default()` with “missing values and NaN’s not allowed”,
-  naming neither the span nor the function. Past the outer knot the
-  derivative design is exactly zero, so those rows carry a standard
-  error of exactly zero, and the max-deviation simulation standardized
-  their (exactly zero) deviation by it. Such a point is covered with
-  probability one and cannot be the argmax, so it now leaves the
-  maximization; the band is computed over the rows that carry
+  past a `ps()` knot span works on its own DEFAULT arguments. It warned
+  and then died in `quantile.default()` with “missing values and NaN’s
+  not allowed”, naming neither the span nor the function. Past the outer
+  knot the derivative design is exactly zero, so those rows carry a
+  standard error of exactly zero, and the max-deviation simulation
+  standardized their (exactly zero) deviation by it. Such a point is
+  covered with probability one and cannot be the argmax, so it now
+  leaves the maximization; the band is computed over the rows that carry
   uncertainty and the zero rows get a zero-width one. A grid on which
   EVERY row is past the outer knot refuses by name instead. Dropping
   nothing is bit-identical to the old arithmetic, so an ordinary grid is
@@ -257,10 +251,8 @@ for the classed span warning.
   0.2.0, and named “an `lccdf` slot, or a post-fit family hook” as fixes
   core owed, both of which landed and both of which this package uses.
   What is still missing is named for what it is: a per-row
-  log-likelihood slot, which
-  [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html) and
-  [`waic()`](https://aforren1.github.io/frmtmb/reference/loo.html) need,
-  and a per-group one, which `frm(importance =)` corrects with. The
+  log-likelihood slot, which `loo()` and `waic()` need, and a per-group
+  one, which `frm(importance =)` corrects with. The
   [`vignette("royston-parmar")`](https://aforren1.github.io/frmtmb/frmtmb.spline/articles/royston-parmar.md)
   paragraphs that predated the same seams are corrected with them.
 
@@ -284,12 +276,10 @@ The three things this package had to work around are seams in frmtmb
   used to rebuild the grid design by unit perturbation, one
   [`predict()`](https://rdrr.io/r/stats/predict.html) call per
   contributing coefficient plus one probe per block of 24 that
-  contributed nothing;
-  [`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html)
-  returns the design core already had. The
-  [`predict()`](https://rdrr.io/r/stats/predict.html) call count no
-  longer depends on the number of coefficients at all, and the linearity
-  probe that guarded the perturbation is no longer needed.
+  contributed nothing; `frm_lp_basis()` returns the design core already
+  had. The [`predict()`](https://rdrr.io/r/stats/predict.html) call
+  count no longer depends on the number of coefficients at all, and the
+  linearity probe that guarded the perturbation is no longer needed.
 - [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
   now works on a NONLINEAR (`nl = TRUE`) linear predictor, which it used
   to refuse. `A` is a Jacobian there rather than a design, and
@@ -302,14 +292,11 @@ The three things this package had to work around are seams in frmtmb
   refuse through the covariance check. A reduced-rank block’s loadings
   live in `theta`; the perturbation could not see the derivative with
   respect to them and the assembled standard errors came out 27 percent
-  away from `predict(se.fit = TRUE)`’s.
-  [`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html)
-  carries the loading columns, and the two now agree exactly.
+  away from `predict(se.fit = TRUE)`’s. `frm_lp_basis()` carries the
+  loading columns, and the two now agree exactly.
 - An exact `gp()` term works too. Its kriging variance is not
-  coefficient uncertainty, and
-  [`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html)
-  returns it separately as `extra_var` rather than folding it into
-  `A V A'`.
+  coefficient uncertainty, and `frm_lp_basis()` returns it separately as
+  `extra_var` rather than folding it into `A V A'`.
 - [`royston_parmar()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/royston_parmar.md)
   declares frmtmb’s new `lccdf` slot, so a right-censored row is scored
   from `log S` directly, in closed form on all three scales: `-exp(eta)`
@@ -569,10 +556,8 @@ survival family whose parameter is a spline.
 - No `post$mean_fn`, so
   [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
   `predict(type = "response")` are refused. The mean of a Royston-Parmar
-  survival time has no closed form, and core’s
-  [`cox()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.html)
-  refuses for the same reason. Read the fitted log cumulative hazard
-  with
+  survival time has no closed form, and core’s `cox()` refuses for the
+  same reason. Read the fitted log cumulative hazard with
   [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
   instead.
 - No exact basis derivative in

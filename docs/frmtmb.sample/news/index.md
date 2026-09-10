@@ -1,5 +1,34 @@
 # Changelog
 
+## frmtmb.sample 0.4.1
+
+- **A broken `tmbstan` now skips the sampler tests instead of erroring
+  them**, and `skip_sampler()` asks the package’s own detector rather
+  than only whether `tmbstan` is installed. 111 test blocks reach a
+  sampler; 47 of them had been using a file-local copy of
+  `skip_sampler()`, so searching for the helper’s name looked like
+  coverage. All 111 go through it now.
+
+- **The `\donttest` examples carried the same weak guard.** Fifteen
+  topics called a sampler behind
+  [`requireNamespace()`](https://rdrr.io/r/base/ns-load.html), which a
+  broken build satisfies. An example cannot skip, so it must not run.
+
+- **A check that does not depend on the marker string.** On an affected
+  build
+  [`rstan::grad_log_prob()`](https://mc-stan.org/rstan/reference/stanfit-method-logprob.html)
+  disagrees with `-fit$obj$gr()`, since the patched log-density overload
+  is `require_not_st_var` and the missed one is `require_st_var`. With
+  infinite bounds the two are the same number bitwise, 0 ulp over four
+  model shapes and five points, so this catches an upstream that renames
+  the placeholder, which the marker cannot.
+
+- The check workflow pins the Stan trio to a dated snapshot and fails if
+  `model.hpp` is still unpatched, reporting the state it measured rather
+  than a boolean. Public RSPM rebuilt `tmbstan` the day after
+  StanHeaders 2.39.1 landed, and four consecutive green runs of this
+  package’s checks sampled a standard normal instead of the model.
+
 ## frmtmb.sample 0.4.0
 
 BREAKING. `frm_sample(control =)` is the SAMPLER’s control list now,

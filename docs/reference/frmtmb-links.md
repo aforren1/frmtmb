@@ -7,6 +7,16 @@ parameters, so `student(link_sigma = "softplus")` puts sigma on a
 softplus. The roster follows brms 2.23.0: a model ported from brms is
 fitted through the same inverse link.
 
+## Value
+
+A link is not a free-standing function. It is named to a family
+constructor, which resolves it against the registry and carries it on
+the fitted model, so the value a link contributes is the scale each
+distributional parameter is estimated on. Read it back with
+[`frm_family()`](https://aforren1.github.io/frmtmb/reference/frm_family.md),
+and read a custom link's own fields with the list that was supplied.
+This page documents the roster.
+
 ## Details
 
 A link is defined here over plain arithmetic that RTMB overloads, not

@@ -148,7 +148,7 @@ same arm order as every other family here.</p>
 because with two ARMS rather than a correct and an error response
 there is no reason for the accumulator to start nearer one boundary.
 It is an ordinary distributional parameter here, so it is estimated
-by default and held with <code><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf()</a></code>'s constant form:</p>
+by default and held with <code>bf()</code>'s constant form:</p>
 <p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">frm</span>(<span class="fu">bf</span>(rt <span class="sc">|</span> <span class="fu">dec</span>(choice) <span class="sc">+</span> <span class="fu">reward</span>(pay1, pay2) <span class="sc">~</span> <span class="dv">1</span> <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id),</span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>       drift <span class="sc">~</span> <span class="dv">1</span>, bs <span class="sc">~</span> <span class="dv">1</span>, ndt <span class="sc">~</span> <span class="dv">1</span>, <span class="at">bias =</span> <span class="fl">0.5</span>), ...)</span></code></pre><p></p></div>
 <p>Estimating it is the more general model and costs one parameter;

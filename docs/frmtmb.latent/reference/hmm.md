@@ -195,9 +195,8 @@ location coefficients, which matches no standard definition),
 [`trunc()`](https://rdrr.io/r/base/Round.html), `se()` and `mi()` on the
 response, multivariate models and `rescor`, `residuals(type = "osa")`,
 `predict(se.fit = TRUE)` on the response scale, and
-[`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.html).
-A grouping in which every sequence has length 1 is refused too: the
-chain is then unidentified and the model is a
+`conditional_effects()`. A grouping in which every sequence has length 1
+is refused too: the chain is then unidentified and the model is a
 [`frmtmb::mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html).
 
 ## See also

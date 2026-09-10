@@ -86,7 +86,7 @@ as it is returned rather than only when someone calls
 than this family's. <code>frmtmb_structure(loglik =)</code> returns one AD
 scalar, so core never sees the individual factors of a likelihood
 that factorizes. A <strong>per-row log-likelihood slot</strong> would give
-<code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo()</a></code> and <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">waic()</a></code> the pointwise matrix they need, and a
+<code>loo()</code> and <code>waic()</code> the pointwise matrix they need, and a
 <strong>per-group log-likelihood slot</strong> would give <code>frm(importance =)</code> the
 one value per group it corrects with. Neither exists, so <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code>
 and <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code> on a <code><a href="royston_parmar.html">royston_parmar()</a></code> fit still report whatever the

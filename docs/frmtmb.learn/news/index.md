@@ -4,11 +4,10 @@
 
 A duplicated reward schedule fitted correctly and then simulated a
 different experiment. `reward(pay1, pay2)` and `reward(rec, rec)` give a
-bitwise identical log-likelihood and identical
-[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.html),
-because the density reads only the chosen arm, while the simulator drew
-a P(better arm) of 0.5470 against 0.8616 with 0.8633 observed. Exact
-chance, from a task nobody ran, with no error anywhere.
+bitwise identical log-likelihood and identical `fixef()`, because the
+density reads only the chosen arm, while the simulator drew a P(better
+arm) of 0.5470 against 0.8616 with 0.8633 observed. Exact chance, from a
+task nobody ran, with no error anywhere.
 
 - The guard is DERIVED rather than declared: the schedule columns are
   read off the addition terms a family already names, so all eight
@@ -89,8 +88,7 @@ chance, from a task nobody ran, with no error anywhere.
   Registering a fourth term without answering the question turns the
   suite red. All four routes to a draw are covered:
   [`simulate()`](https://rdrr.io/r/stats/simulate.html),
-  [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.html)
-  and
+  `frm_simulate()` and
   [`frmtmb.sample::posterior_predict()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.html)
   through the family’s `sim_ctx` slot, and
   [`frm_task_simulate()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_task_simulate.md)
@@ -382,10 +380,9 @@ and computational-psychiatry literature, written as frmtmb families.
   be paid.
 - [`frm_task_simulate()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_task_simulate.md)
   draws whole datasets from the generative process, taking parameters
-  directly rather than through a formula.
-  [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.html)
-  is the other route and goes through the fitted grammar; the two share
-  the recursion and are checked against each other.
+  directly rather than through a formula. `frm_simulate()` is the other
+  route and goes through the fitted grammar; the two share the recursion
+  and are checked against each other.
 - [`frm_learn_families()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_learn_families.md)
   is the reference table, including the map from each parameter to
   hBayesDM’s spelling of it.

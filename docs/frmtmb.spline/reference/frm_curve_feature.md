@@ -132,7 +132,7 @@ and a call that gives one grid and not the other is refused. Without the
 refusal the search would run on the FIRST curve alone, for an object
 whose every row is a difference.
 
-## Past a [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.html) knot span
+## Past a `ps()` knot span
 
 This function REFUSES rather than warns. A
 [`frmtmb::ps()`](https://aforren1.github.io/frmtmb/reference/ps.html)
@@ -150,9 +150,8 @@ outside the stencil's.
 
 The search holds every column but `var` at row 1's value, so a grid
 whose other columns change from row to row is checked a second time,
-against the whole grid. That is where a second
-[`ps()`](https://aforren1.github.io/frmtmb/reference/ps.html) term can
-leave its span in a row the search itself never predicts at.
+against the whole grid. That is where a second `ps()` term can leave its
+span in a row the search itself never predicts at.
 
 A difference curve has two grids and the search pins row 1 of each, so
 the second check asks the question of each of them. It is not asked

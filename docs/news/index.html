@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.55.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.55.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -61,6 +61,11 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.55.2" id="frmtmb-0552">frmtmb 0.55.2<a class="anchor" aria-label="anchor" href="#frmtmb-0552"></a></h2>
+<ul><li>
+<code>?frmtmb-links</code> documents a return value. pkgcheck reports any help page with no <code>\docType</code>, no <code>datasets</code> or <code>internal</code> keyword and no <code>\value</code> as a function with no documented return, and this was the only page in the package that matched. Written the way <code>?frmtmb-autocor</code> and <code>?frmtmb-multimembership</code> already answer it, since those are concept pages too.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.55.1" id="frmtmb-0551">frmtmb 0.55.1<a class="anchor" aria-label="anchor" href="#frmtmb-0551"></a></h2>
 <ul><li><p><code><a href="../reference/frm_compat_features.html">?frm_compat_features</a></code> now says which column a caller may key on. <code>name</code> was documented as “how the feature is written in a formula”, which is false for the three <code>_pred</code> rows: a formula writes <code>mi(x)</code>, never <code>mi_pred(x)</code>. <code>key</code> is the parser name, and frmtmb.sample’s new pre-flight refusal depends on that, so it is a contract rather than an observed regularity now. No behavior changed.</p></li>

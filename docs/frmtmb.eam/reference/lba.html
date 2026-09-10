@@ -19,7 +19,7 @@ non-decision time."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -93,7 +93,11 @@ default, matches <code>rtdists</code> and makes the likelihood proper.</p></dd>
 
 <dt id="arg-max-ndt">max_ndt<a class="anchor" aria-label="anchor" href="#arg-max-ndt"></a></dt>
 <dd><p>Upper bound for the non-decision time, in the units of
-the response. <code>NULL</code>, the default, takes it from the data.</p></dd>
+the response, applied to every row. <code>NULL</code>, the default, takes the
+fastest response of each row's <code>ndt_group()</code>, or of the whole data
+set when the model has no <code>ndt_group()</code>. It cannot be combined with
+<code>ndt_group()</code>. Give it when a component of a <code><a href="https://aforren1.github.io/frmtmb/reference/mixture.html" class="external-link">frmtmb::mixture()</a></code>
+needs the bound up front.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -210,16 +214,24 @@ constant is refused when the constant is checked against the log
 link's range.</p>
     </div>
     <div class="section level2">
-    <h2 id="non-decision-time">Non-decision time<a class="anchor" aria-label="anchor" href="#non-decision-time"></a></h2>
+    <h2 id="non-decision-time-and-what-its-coefficients-mean">Non-decision time, and what its coefficients mean<a class="anchor" aria-label="anchor" href="#non-decision-time-and-what-its-coefficients-mean"></a></h2>
 
 
 <p>The density is zero at and below <code>ndt</code>, so the likelihood has a hard
-edge at <code>ndt = min(rt)</code>. As <code><a href="wiener.html">wiener()</a></code> does, <code>ndt</code> gets a logit
-scaled onto <code>(0, max_ndt)</code> instead of a log link, which makes the
-constraint structural. <code>max_ndt</code> defaults to the smallest observed
-response time, taken when the model frame is assembled. Pass it
-explicitly to pin the bound, which matters if you will <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>
-on new data whose minimum differs.</p>
+edge at the fastest response and a log link would let the optimizer
+walk over it.</p>
+<p>Without <code>ndt_group()</code> the bound is one number, the fastest response
+in the data or <code>max_ndt</code>, and it stays IN the link: <code>ndt</code> is a time,
+as it has always been. Write
+<code>rt | vint(choice) + ndt_group(subject) ~ ...</code> when <code>ndt</code> carries a
+subject deviation, and the bound becomes that subject's own fastest
+response. A per-row bound cannot live in a link, so under a grouping
+<code>ndt</code> is a FRACTION of the row's bound and the density multiplies:
+<code>predict(dpar = "ndt", type = "response")</code> then reports the fraction
+and <code><a href="ndt_time.html">ndt_time()</a></code> reports the time either way. A single bound is the
+global fastest response, and a subject whose non-decision time is
+above it cannot be represented at any value of the random effect;
+<code><a href="wiener.html">wiener()</a></code> has the measurement.</p>
     </div>
     <div class="section level2">
     <h2 id="the-response-and-why-not-dec-">The response, and why not <code>dec()</code><a class="anchor" aria-label="anchor" href="#the-response-and-why-not-dec-"></a></h2>
@@ -309,8 +321,8 @@ for the two-choice diffusion.</p></div>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="lba_simulate.html">lba_simulate</a></span><span class="op">(</span><span class="fl">400</span>, v <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2.4</span>, <span class="fl">1.6</span>, <span class="fl">1.0</span><span class="op">)</span>, A <span class="op">=</span> <span class="fl">0.5</span>, k <span class="op">=</span> <span class="fl">0.4</span>,</span></span>
 <span class="r-in"><span>                    ndt <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">choice</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">lba</span><span class="op">(</span><span class="fl">3</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">choice</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">lba</span><span class="op">(</span><span class="fl">3</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $v1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    2.178808 </span>

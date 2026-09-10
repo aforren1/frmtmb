@@ -1,5 +1,137 @@
 # Changelog
 
+## frmtmb.eam 0.7.0
+
+The non-decision time can now be bounded PER GROUP, which fixes the
+defect 0.6.0 disclosed. A model that does not ask for it is unchanged.
+
+- **`ndt_group()` is a new addition term: the grouping the bound is
+  taken per.** Write `rt | dec(r) + ndt_group(subject) ~ ...` and each
+  row’s non-decision time is bounded by its own subject’s fastest
+  response instead of by the whole data set’s. That is what a random
+  effect on `ndt` needs, and 0.6.0 disclosed what happens without it. On
+  the Phase 0 design of `dev/extension-gaps-plan.md`, 30 subjects by 400
+  trials, the same data and the same model:
+
+  |  | 0.6.0, one global bound | with `ndt_group(s)` |
+  |----|----|----|
+  | convergence code | 1 | 0 |
+  | maximum absolute gradient | 1.25e11 | 9.9e-04 |
+  | positive definite Hessian | no | yes |
+  | standard errors that are `NaN` | 7 of 7 | 0 of 7 |
+  | log-likelihood | -7148.81 | -7003.01 |
+  | population `ndt`, truth 0.25 | 0.2261 | 0.2469 (se 0.0020) |
+  | condition effect, truth 0.9 | 0.891, no interval | 0.911 (0.858, 0.964) |
+  | whole `frm()` call | 269 s | 108 s |
+
+  145.8 log-likelihood units better at the same parameter count, and
+  faster. At the optimum all 30 subjects sit below their own fastest
+  response, the tightest by 27.3 ms.
+
+  **The argument that settles it is what happens as data accumulates.**
+  Same design, same truths, at 100, 200 and 400 trials per subject, the
+  per-subject root mean squared error of the fitted non-decision times:
+
+  | trials | with `ndt_group(s)` | one global bound |
+  |--------|---------------------|------------------|
+  | 100    | 20.91 ms            | 27.23 ms         |
+  | 200    | 14.08 ms            | 20.51 ms         |
+  | 400    | **7.67 ms**         | **30.37 ms**     |
+
+  The per-group bound converges on the truth and the global bound does
+  not, because more data lowers the global minimum and tightens the
+  ceiling on every subject at once.
+
+  Give the grouping as a factor, a character vector, a logical or
+  integer codes: it is keyed on the group’s LABEL, so subsetting,
+  [`droplevels()`](https://rdrr.io/r/base/droplevels.html),
+  [`relevel()`](https://rdrr.io/r/stats/relevel.html) and a prediction
+  grid you build yourself all pair each row with the same bound the fit
+  used. A group the fit never saw is refused rather than given the
+  global bound.
+
+- **Under `ndt_group()`, and only there, `ndt` is a FRACTION of the
+  row’s own bound rather than a time.** A per-row bound cannot live in a
+  link, so with a grouping the `ndt` link is a plain logit and the
+  density multiplies. What that changes, for a model that uses the new
+  term: `predict(fit, dpar = "ndt", type = "response")` returns a number
+  in `(0, 1)`, a `prior(class = "ndt")` is a density on that fraction,
+  and a `bf(ndt = )` constant is a fraction. The new
+  [`ndt_time()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.md)
+  returns the non-decision time in the units of the response for either
+  parameterization and is the call to reach for. `st` follows `ndt`:
+  with a grouping it is a fraction of twice the row’s bound.
+
+  **Without `ndt_group()` nothing moved.** The bound is one number and
+  stays in the link exactly as before, so `ndt` is still a time,
+  `predict(dpar = "ndt", type = "response")` still reports seconds, a
+  ported `prior(normal(0.30, 0.01), class = "ndt")` still means 300 ms,
+  and `bf(ndt = 0.2)` is still 0.2 s and is still refused when the
+  family has no bound to measure it against.
+
+- `ndt_time(fit, newdata = )` reports the non-decision time in the units
+  of the response, for
+  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md),
+  [`lba()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/lba.md),
+  [`rdm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/rdm.md)
+  and
+  [`wiener_gng()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_gng.md).
+  The bound each row was measured against is on the fitted family, at
+  `family(fit)$ndt_bound`, with the trial count per group beside it. The
+  bound it uses is a property of the data the model was FITTED to, so a
+  prediction on new rows uses the bound the fit used.
+
+- `max_ndt` still means one absolute upper bound applied to every row,
+  and a `max_ndt` above the fastest response is still refused outside a
+  mixture. Combining it with `ndt_group()` is refused: the two set the
+  same bound to different things. An `ndt_group()` no family reads is
+  refused too, which is what a grouping inside a `mixture()` would be,
+  because a mixture never finalizes its components.
+
+- **On upgrading a model that does not use `ndt_group()`**: nothing
+  changes. The bound stays in the link, where 0.6.0 put it, so this is
+  not an equivalent parameterization but the same one. The objective and
+  its gradient are BITWISE identical to 0.6.0’s, 0 ulp over 50
+  fixed-parameter probes taken at the starting values and off the
+  optimum, across
+  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)
+  plain and with `max_ndt`, with `st` and with `sv`, `sz` and `st`
+  together,
+  [`rdm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/rdm.md)
+  plain and censored,
+  [`lba()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/lba.md),
+  [`wiener_gng()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_gng.md)
+  plain and with `st`, and
+  [`gddm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/gddm.md).
+  Refitting fourteen models and reading every reachable quantity off
+  each gives 119 of 120 identical, the one difference being the wording
+  of an error message.
+
+- **`sd(ndt)` reads as recovered and the floors do most of the work.**
+  The table above is a real improvement and this is the caveat that
+  belongs beside it: because a grouped model estimates `ndt` as a
+  fraction of each group’s own floor, the fitted per-subject times vary
+  with the floors even when the variance component is zero. At the
+  design above an estimator with NO random effect on `ndt` returns
+  `sd(ndt)` = 0.02748 against a truth of 0.02629, where the full model
+  returns 0.02543, and at 100 trials per subject the two are identical
+  in every digit. The variance component is not empty at 400 trials, it
+  buys 8.44 log-likelihood units and cuts the per-subject RMSE from
+  11.90 ms to 7.67 ms, but `sd(ndt)` is the wrong statistic to read that
+  off. Read the per-subject error and the log-likelihood instead.
+
+- [`gddm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/gddm.md)
+  does NOT take `ndt_group()`, and keeps the single scaled logit, so its
+  `ndt` is a time. The exclusion is on SCOPE: its solver reads every
+  parameter at the first row of each condition and
+  [`?gddm`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/gddm.md)
+  already requires every row sharing a condition to share every
+  parameter value, so a valid model whose non-decision time varies by
+  subject already carries a condition per subject and a per-condition
+  bound would reach the density exactly as `ndt` does. What it would
+  cost is a Fokker-Planck solve per subject. `frm_compat("gddm")` says
+  so.
+
 ## frmtmb.eam 0.6.0
 
 A random effect on the non-decision time is broken, and with
@@ -19,8 +151,7 @@ fitting a hierarchical DDM.
   converge and says so: maximum absolute gradient 1.3e11, Hessian not
   positive definite, all seven standard errors `NaN`. With
   `variability = "sv"` it CONVERGES: code 0, maximum gradient 7.5e-05,
-  positive definite Hessian, no bad standard errors, and
-  [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.html)
+  positive definite Hessian, no bad standard errors, and `diagnose()`
   reports nothing. The population non-decision time then comes back
   pinned at the bound, 0.2236 against a truth of 0.25 and 0.42 of a
   standard error below `min(rt)`, with a delta-method standard error of
@@ -108,11 +239,10 @@ fitting a hierarchical DDM.
   the class `frmtmb_eam_units_warning`, so a genuinely slow design can
   silence this one condition without also hiding the convergence
   warnings beside it. It is raised once per FIT: counted over eleven
-  entry points,
-  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) raises
-  it once and [`update()`](https://rdrr.io/r/stats/update.html) once,
-  because [`update()`](https://rdrr.io/r/stats/update.html) reassembles
-  the frame, and the nine post-fit methods raise it zero times.
+  entry points, `frm()` raises it once and
+  [`update()`](https://rdrr.io/r/stats/update.html) once, because
+  [`update()`](https://rdrr.io/r/stats/update.html) reassembles the
+  frame, and the nine post-fit methods raise it zero times.
 
   **What it misses**, stated because it is measurable: a millisecond
   record with fast-guess contamination in it. At 12000 rows with 5
@@ -160,15 +290,12 @@ Requires frmtmb 0.54.0 for the exclusivity declaration.
   `dec()` and `vint1` are two data, the boundary and the condition
   index, not two spellings of one.
 
-- Every family x addition-term cell in
-  [`frm_compat()`](https://aforren1.github.io/frmtmb/reference/frm_compat.html)
-  is now decided. The refusals each family has already declared in
-  `accepts_aterms` are derived through frmtmb’s
-  [`compat_aterm_rules()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.html)
-  rather than written out again, so `trials()`, and `vreal()` where the
-  family does not read it, stop reading `untested`. Rows written by hand
-  keep their own notes: the derivation defers to any pair already
-  refused.
+- Every family x addition-term cell in `frm_compat()` is now decided.
+  The refusals each family has already declared in `accepts_aterms` are
+  derived through frmtmb’s `compat_aterm_rules()` rather than written
+  out again, so `trials()`, and `vreal()` where the family does not read
+  it, stop reading `untested`. Rows written by hand keep their own
+  notes: the derivation defers to any pair already refused.
 
   The allow-lists themselves move to one `ddm_accepts` list that the
   five constructors and the compatibility rows both read, so the table
@@ -421,16 +548,13 @@ Requires frmtmb 0.53.0 for the allow-list.
   records what the reference covers, what it does not, and the one case
   where the two disagree.
 
-- [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.html)
-  now works for
+- `frm_simulate()` now works for
   [`gddm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/gddm.md).
   The family installs its density and its simulator in
   `family_finalize()`, so before frame assembly the family object
-  carries neither, and frmtmb’s
-  [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.html)
-  read the family as written and refused the model for having no
-  simulator. [`simulate()`](https://rdrr.io/r/stats/simulate.html) on a
-  fitted
+  carries neither, and frmtmb’s `frm_simulate()` read the family as
+  written and refused the model for having no simulator.
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) on a fitted
   [`gddm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/gddm.md)
   was unaffected, because a fit carries the finalized family. The fix is
   in frmtmb rather than here: nothing in this package’s wiring was
@@ -568,8 +692,7 @@ Requires frmtmb 0.53.0 for the allow-list.
 - The compatibility rows for both families were RUN rather than reasoned
   about, and several first guesses were wrong: `REML` and `quadrature`
   both work where they had been written down as refused or untested,
-  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html)
-  refuses
+  `mixture()` refuses
   [`rdm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/rdm.md)
   outright because its components need a dpar called `mu`, and neither
   family makes its addition terms mandatory on newdata for a link-scale
@@ -695,11 +818,10 @@ compatibility table.
   branches on a parameter. With the walls stationary the scheme is
   Crank-Nicolson, which a solver that chases a moving bound cannot use.
 - The likelihood is an ordinary rowwise family, not a
-  [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.html).
-  frmtmb calls `lpdf` once per objective evaluation with full-length
-  vectors, and the condition a trial belongs to is data, so a rowwise
-  density does one solve per condition, which is all a structure would
-  have bought, and it keeps
+  `frmtmb_structure()`. frmtmb calls `lpdf` once per objective
+  evaluation with full-length vectors, and the condition a trial belongs
+  to is data, so a rowwise density does one solve per condition, which
+  is all a structure would have bought, and it keeps
   [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
   [`predict()`](https://rdrr.io/r/stats/predict.html),
   [`simulate()`](https://rdrr.io/r/stats/simulate.html) and
@@ -894,19 +1016,16 @@ compatibility table.
 ### What frmtmb 0.49.0 let this package delete
 
 - **`dec()` is the spelling now.** frmtmb gained
-  [`frmtmb_register_aterm()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.html),
-  this package registers `dec` when it loads, and
-  `rt | dec(response) ~ x` works and takes a factor, a character vector
-  or a logical the way brms does. `vint()` carries the same thing as a
-  0/1 integer and is unchanged.
+  `frmtmb_register_aterm()`, this package registers `dec` when it loads,
+  and `rt | dec(response) ~ x` works and takes a factor, a character
+  vector or a logical the way brms does. `vint()` carries the same thing
+  as a 0/1 integer and is unchanged.
 - **The environment the link closures read is gone.** The bound on the
   non-decision time is a property of the response, and the family object
-  is built before
-  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) has
-  any; this package used to have `valid_y()` write the bound into an
-  environment, which worked only for as long as an undocumented slot
-  order held. `family_finalize()` is the documented slot for it and the
-  family now derives itself from the data there.
+  is built before `frm()` has any; this package used to have `valid_y()`
+  write the bound into an environment, which worked only for as long as
+  an undocumented slot order held. `family_finalize()` is the documented
+  slot for it and the family now derives itself from the data there.
 - One hand-rolled check remains, and is not `required_aterms`’s fault:
   that argument names the terms a density needs ALL of, and this family
   needs EITHER `dec()` or `vint()`. See `dev-findings.md`.

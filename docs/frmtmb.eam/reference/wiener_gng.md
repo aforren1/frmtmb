@@ -30,8 +30,16 @@ wiener_gng(
 
 - max_ndt:
 
-  Upper bound for the non-decision time. `NULL`, the default, takes it
-  from the fastest go response.
+  Upper bound for the non-decision time, applied to every row. `NULL`,
+  the default, takes the fastest GO response of each row's
+  `ndt_group()`, or of the whole data set when the model has no
+  `ndt_group()`. Without a grouping `ndt` is a time on a logit scaled
+  onto that bound, as it has always been; with one it is a FRACTION of
+  the row's own bound and
+  [`ndt_time()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.md)
+  reports the time. See
+  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md).
+  `max_ndt` cannot be combined with `ndt_group()`.
 
 - variability:
 
