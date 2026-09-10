@@ -1,0 +1,70 @@
+arm: lane 
+  frmtmb       0.55.2   C:/Users/adf44/source/r/rellib-0552
+  frmtmb.ode   0.3.0    C:/Users/adf44/source/r/rev-nss-lib
+  RTMB         1.9      C:/Users/adf44/AppData/Local/R/win-library/4.6
+  RTMBode      1.0      C:/Users/adf44/AppData/Local/R/win-library/4.6
+  deSolve      1.42     C:/Users/adf44/AppData/Local/R/win-library/4.6
+  StanHeaders  2.32.10  C:/Users/adf44/source/r/rellib-0552
+
+
+======== design 264.6 h: ke 0.100 k12 0.200 k21 0.0080 ka 1.0
+         lambda_z 0.002620 -> terminal half-life 264.6 h, ii 24, lambda_z*ii 0.0629 ========
+
+seed 101
+  par        truth |  limit est  limit se    cov |  trunc est  trunc se    cov | se ratio
+  lke      -2.3026 |    -2.3258    0.0414   TRUE |    -2.4421    0.1335   TRUE |    0.31
+  lka       0.0000 |    -0.0350    0.0692   TRUE |    -0.0545    0.0666   TRUE |    1.04
+  lk12     -1.6094 |    -1.6223    0.0462   TRUE |    -1.5386    0.0351  FALSE |    1.31
+  lk21     -4.8283 |    -5.5455    1.7236   TRUE |    -4.3923    0.3181   TRUE |    5.42
+  lV        2.3026 |     2.3092    0.0282   TRUE |     2.2818    0.0231   TRUE |    1.22
+
+seed 102
+  par        truth |  limit est  limit se    cov |  trunc est  trunc se    cov | se ratio
+  lke      -2.3026 |    -2.2330    0.0487   TRUE |    -2.2533    0.0601   TRUE |    0.81
+  lka       0.0000 |     0.0697    0.0712   TRUE |     0.0733    0.0717   TRUE |    0.99
+  lk12     -1.6094 |    -1.5522    0.0493   TRUE |    -1.5489    0.0449   TRUE |    1.10
+  lk21     -4.8283 |    -3.7457    0.2715  FALSE |    -3.7478    0.2654  FALSE |    1.02
+  lV        2.3026 |     2.2804    0.0287   TRUE |     2.2806    0.0280   TRUE |    1.02
+
+seed 103
+  par        truth |  limit est  limit se    cov |  trunc est  trunc se    cov | se ratio
+  lke      -2.3026 |    -2.3505    0.0431   TRUE |    -2.7684    0.2859   TRUE |    0.15
+  lka       0.0000 |     0.1143    0.0574  FALSE |     0.1027    0.0553   TRUE |    1.04
+  lk12     -1.6094 |    -1.6760    0.0296  FALSE |    -1.5103    0.0634   TRUE |    0.47
+  lk21     -4.8283 |   -31.0494    0.2656  FALSE |    -4.8855    0.2645   TRUE |    1.00
+  lV        2.3026 |     2.3437    0.0158  FALSE |     2.3191    0.0169   TRUE |    0.94
+
+seed 104
+  par        truth |  limit est  limit se    cov |  trunc est  trunc se    cov | se ratio
+  lke      -2.3026 |    -2.2865    0.0421   TRUE |    -2.3922    0.1340   TRUE |    0.31
+  lka       0.0000 |    -0.0336    0.0574   TRUE |    -0.0371    0.0571   TRUE |    1.01
+  lk12     -1.6094 |    -1.5568    0.0488   TRUE |    -1.5050    0.0335  FALSE |    1.46
+  lk21     -4.8283 |    -4.6240    0.6669   TRUE |    -4.3047    0.3651   TRUE |    1.83
+  lV        2.3026 |     2.2692    0.0301   TRUE |     2.2569    0.0266   TRUE |    1.13
+
+seed 105
+  par        truth |  limit est  limit se    cov |  trunc est  trunc se    cov | se ratio
+  lke      -2.3026 |    -2.3290    0.0406   TRUE |    -2.5993    0.3271   TRUE |    0.12
+  lka       0.0000 |     0.0115    0.0593   TRUE |     0.0125    0.0585   TRUE |    1.01
+  lk12     -1.6094 |    -1.6112    0.0465   TRUE |    -1.5073    0.0712   TRUE |    0.65
+  lk21     -4.8283 |    -5.2385    1.2672   TRUE |    -4.6732    0.4720   TRUE |    2.68
+  lV        2.3026 |     2.3017    0.0281   TRUE |     2.2884    0.0227   TRUE |    1.24
+
+seed 106
+  par        truth |  limit est  limit se    cov |  trunc est  trunc se    cov | se ratio
+  lke      -2.3026 |    -2.3143    0.0418   TRUE |    -2.5120    0.1815   TRUE |    0.23
+  lka       0.0000 |     0.0313    0.0620   TRUE |     0.0088    0.0581   TRUE |    1.07
+  lk12     -1.6094 |    -1.6330    0.0451   TRUE |    -1.5160    0.0469  FALSE |    0.96
+  lk21     -4.8283 |    -7.5384   12.8111   TRUE |    -4.5987    0.3077   TRUE |   41.64
+  lV        2.3026 |     2.3179    0.0273   TRUE |     2.2870    0.0208   TRUE |    1.31
+
+-- se ratio (limit / truncated) by parameter, six seeds --
+Error in round(tapply(s$ratio, s$par, function(x) c(min = min(x), median = stats::median(x),  : 
+  non-numeric argument to mathematical function
+Calls: print
+In addition: Warning messages:
+1: In stats::nlminb(par, fn, gr, control = control, scale = if (is.null(par_units)) 1 else 1/par_units,  :
+  NA/NaN function evaluation
+2: Optimizer did not report convergence: false convergence (8). This is a nonlinear model; unless `start` or a located prior placed them, the fit began at zero, which is rarely in the right region (see par_template()) 
+3: Large maximum absolute gradient at the optimum (0.791); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+Execution halted

@@ -1,0 +1,72 @@
+arm: lane 
+  frmtmb       0.55.2   C:/Users/adf44/source/r/rellib-0552
+  frmtmb.ode   0.3.0    C:/Users/adf44/source/r/rev-nss-lib
+  RTMB         1.9      C:/Users/adf44/AppData/Local/R/win-library/4.6
+  RTMBode      1.0      C:/Users/adf44/AppData/Local/R/win-library/4.6
+  deSolve      1.42     C:/Users/adf44/AppData/Local/R/win-library/4.6
+  StanHeaders  2.32.10  C:/Users/adf44/source/r/rellib-0552
+
+== A. walking n_ss through the miss window, ss_extrapolate = TRUE ==
+   a MISS is true error > ss_tol with the warning silent
+
+case                                n_ss  true error     it said said/true   warned verdict
+big peripheral 100x, t1/2z 340 h      20   4.595e-03    8.13e-05    0.0177     TRUE ok warn
+big peripheral 100x, t1/2z 340 h      40   3.701e-03    6.54e-05    0.0177     TRUE ok warn
+big peripheral 100x, t1/2z 340 h      60   2.981e-03    5.26e-05    0.0176     TRUE ok warn
+big peripheral 100x, t1/2z 340 h      80   2.401e-03    4.23e-05    0.0176     TRUE ok warn
+big peripheral 100x, t1/2z 340 h     100   1.934e-03    3.41e-05    0.0176     TRUE ok warn
+big peripheral 100x, t1/2z 340 h     120   1.557e-03    2.74e-05    0.0176     TRUE ok warn
+big peripheral 100x, t1/2z 340 h     150   1.126e-03    1.98e-05    0.0176     TRUE ok warn
+big peripheral 100x, t1/2z 340 h     200   6.554e-04    1.15e-05    0.0175     TRUE ok warn
+big peripheral 100x, t1/2z 340 h     260   3.424e-04    6.02e-06    0.0176     TRUE ok warn
+big peripheral 100x, t1/2z 340 h     320   1.789e-04    3.14e-06    0.0176     TRUE ok warn
+
+ramp band, 1 cmt t1/2 1653 h          20   2.654e-02    0.000278    0.0105     TRUE ok warn
+ramp band, 1 cmt t1/2 1653 h          60   1.775e-02    0.000184    0.0104     TRUE ok warn
+ramp band, 1 cmt t1/2 1653 h         120   9.703e-03    9.99e-05    0.0103     TRUE ok warn
+ramp band, 1 cmt t1/2 1653 h         200   4.338e-03    4.44e-05    0.0102     TRUE ok warn
+ramp band, 1 cmt t1/2 1653 h         300   1.586e-03    1.62e-05    0.0102     TRUE ok warn
+ramp band, 1 cmt t1/2 1653 h         400   5.796e-04    5.91e-06    0.0102     TRUE ok warn
+ramp band, 1 cmt t1/2 1653 h         500   2.119e-04    2.16e-06    0.0102     TRUE ok warn
+ramp band, 1 cmt t1/2 1653 h         650   4.682e-05           -         -    FALSE MISS
+ramp band, 1 cmt t1/2 1653 h         800   1.035e-05           -         -    FALSE MISS
+ramp band, 1 cmt t1/2 1653 h        1000   1.385e-06           -         -    FALSE MISS
+
+big peripheral 400x, t1/2z 900 h      60   7.763e-01      0.0156    0.0201     TRUE ok warn
+big peripheral 400x, t1/2z 900 h     120   7.238e-01     0.00764    0.0106     TRUE ok warn
+big peripheral 400x, t1/2z 900 h     200   6.592e-01      0.0044   0.00667     TRUE ok warn
+big peripheral 400x, t1/2z 900 h     300   5.866e-01     0.00277   0.00472     TRUE ok warn
+big peripheral 400x, t1/2z 900 h     400   5.219e-01     0.00195   0.00374     TRUE ok warn
+big peripheral 400x, t1/2z 900 h     550   4.380e-01     0.00129   0.00295     TRUE ok warn
+big peripheral 400x, t1/2z 900 h     700   3.676e-01     0.00092    0.0025     TRUE ok warn
+big peripheral 400x, t1/2z 900 h     900   2.910e-01    0.000626   0.00215     TRUE ok warn
+
+misses found: 3 
+
+== B. the ratio ode_ss_extrapolate() actually sees ==
+  1 cmt, ke 0.12482, ka 1, ii 24: exp(-ke * ii) = 0.05000
+    n_ss  r the code sees |d1| / |y| central
+       3     0.000000e+00                NaN
+       4     0.000000e+00                NaN
+       5     0.000000e+00                NaN
+       8     0.000000e+00                NaN
+      12     0.000000e+00                NaN
+      20     0.000000e+00                NaN
+
+== B2. the same one-sided sweep at an n_ss the gate survives ==
+
+-- n_ss = 3, ke at r = 0.050 --
+       eps     d/dlke below     d/dlke above          gap    gap/eps
+     1e-03    -149.13048999    -149.48647849    3.560e-01   3.56e+02
+     1e-04    -149.28859293    -149.32794698    3.935e-02   3.94e+02
+     1e-05    -149.30441888    -149.31210958    7.691e-03   7.69e+02
+     1e-06    -149.30600164    -149.31052600    4.524e-03   4.52e+03
+
+-- n_ss = 20, ke at r = 0.050 --
+       eps     d/dlke below     d/dlke above          gap    gap/eps
+     1e-03    -149.13457490    -149.48647849    3.519e-01   3.52e+02
+     1e-04    -149.29275665    -149.32794698    3.519e-02   3.52e+02
+     1e-05    -149.30859055    -149.31210958    3.519e-03   3.52e+02
+     1e-06    -149.31017410    -149.31052600    3.519e-04   3.52e+02
+
+done

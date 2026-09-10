@@ -1,0 +1,145 @@
+frmtmb.ode from C:/Users/adf44/source/r/nsslib-var-hardcap 
+ode-events: ....................................................................................12................3................................DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Above warning has been issued I1 times.  
+     It will not be issued again for this problem.
+In above message, I1 = 10
+ 
+DLSODA-  At current T (=R1), MXSTEP (=I1) steps   
+      taken on this call before reaching TOUT     
+In above message, I1 = 5000
+ 
+In above message, R1 = 2
+ 
+......DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Above warning has been issued I1 times.  
+     It will not be issued again for this problem.
+In above message, I1 = 10
+ 
+DLSODA-  At current T (=R1), MXSTEP (=I1) steps   
+      taken on this call before reaching TOUT     
+In above message, I1 = 5000
+ 
+In above message, R1 = 2
+ 
+.
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-ode-events.R:750:3'): the low gate takes tail away and neve
+Expected `which.max(ratio)` to be identical to `length(ratio)`.
+Differences:
+  `actual`:   6
+`expected`: 400
+
+
+── 2. Failure ('test-ode-events.R:751:3'): the low gate takes tail away and neve
+Expected `max(ratio)` < `1 + 1024 * .Machine$double.eps`.
+Actual comparison: 1.000000000 >= 1.000000000
+Difference: 0.000000000 >= 0
+
+── 3. Failure ('test-ode-events.R:900:3'): the tail correction leaves the object
+Expected `tight` < `wide/5`.
+Actual comparison: 85.4 >= 17.1
+Difference: 68.4 >= 0
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FILE test-ode-events.R files=1 pass=139 fail=3 err=0 skip=0 nb_tests=52
+BROKE: the low gate takes tail away and never adds to it | the tail correction leaves the objective differentiable 

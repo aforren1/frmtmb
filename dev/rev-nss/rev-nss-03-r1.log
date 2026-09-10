@@ -1,0 +1,55 @@
+arm: lane 
+  frmtmb       0.55.2   C:/Users/adf44/source/r/rellib-0552
+  frmtmb.ode   0.3.0    C:/Users/adf44/source/r/rev-nss-lib
+  RTMB         1.9      C:/Users/adf44/AppData/Local/R/win-library/4.6
+  RTMBode      1.0      C:/Users/adf44/AppData/Local/R/win-library/4.6
+  deSolve      1.42     C:/Users/adf44/AppData/Local/R/win-library/4.6
+  StanHeaders  2.32.10  C:/Users/adf44/source/r/rellib-0552
+
+== A. boundary of the geometric assumption, 2 cmt oral, n_ss = 20 ==
+rows: 738   extrapolation loses on: 11 
+smallest truncated error on a LOSING row: 3.679e-01
+largest truncated error on a WINNING row:  9.608e-01
+worst ratio: 2.27 (trunc 6.405e-01 -> extrap 1.456e+00)
+
+losing rows, worst 12 by ratio:
+ lzii krat       shape trunc extrap ratio    rel warns
+ 0.05 1.50     4/8/1.2 0.640  1.456  2.27 0.2571  TRUE
+ 0.05 1.50  10/30/1.05 0.649  1.451  2.23 0.0582  TRUE
+ 0.05 1.50    2/2/0.33 0.495  1.093  2.21 0.3443  TRUE
+ 0.05 3.00 1.5/0.6/1.5 0.391  0.599  1.53 0.7982  TRUE
+ 0.05 2.00    2/2/0.33 0.607  0.718  1.18 0.1508  TRUE
+ 0.05 0.90 1.5/0.6/1.5 0.407  0.473  1.16 0.1209  TRUE
+ 0.05 2.00     4/8/1.2 0.602  0.680  1.13 0.1406  TRUE
+ 0.05 0.95 1.5/0.6/1.5 0.387  0.427  1.10 0.1348  TRUE
+ 0.05 0.80 1.5/0.6/1.5 0.449  0.483  1.08 0.1132  TRUE
+ 0.05 1.00 1.5/0.6/1.5 0.368  0.389  1.06 0.1171  TRUE
+ 0.05 2.00  10/30/1.05 0.592  0.599  1.01 0.1193  TRUE
+
+ka/lambda_z of every losing row:
+[1] 0.80 0.90 0.95 1.00 1.50 2.00 3.00
+
+== B. attack 8: the guarded thing PRESENT, is the guard quiet? ==
+A row is a MISS if extrapolated error > ss_tol = 1e-06 and rel <= ss_tol.
+
+misses: 1  false alarms: 0  of 738 rows
+ lzii krat       shape   trunc   extrap   ratio      rel warns miss false_alarm
+  0.5  1.2 1.5/0.6/1.5 0.00011 1.06e-06 0.00967 9.21e-07 FALSE TRUE       FALSE
+
+understatement rel/extrap on the LOSING rows:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+0.04012 0.20296 0.23417 0.32600 0.30794 1.33198 
+
+== C. same design through frm_ode(), not through this file ==
+ke 0.022267  k12 0.044534  k21 0.006680  ka 0.003125  lambda_z 0.002083  t1/2z 332.7 h  ii 24
+truncated   max rel err over the interval: 5.229e-01
+extrapolated max rel err over the interval: 7.951e-01
+ratio: 1.52
+
+warning, ss_extrapolate = FALSE:
+   frm_ode(): after 20 steady-state run-in cycles the state at the start of the cycle is still 3.5 (relative) away from the limit it is approaching, more than ss_tol = 1e-06, in 1 group (1). Raise n_ss, or leave ss_extrapolate at TRUE, which sums this tail instead of truncating it. This check runs on the numeric path only - on the tape RTMB refuses comparison, so a fit cannot repeat it 
+
+warning, ss_extrapolate = TRUE (the shipped default):
+   frm_ode(): after 20 steady-state run-in cycles the state at the start of the cycle is still 0.257 (relative) away from the limit it is approaching, more than ss_tol = 1e-06, in 1 group (1). Raise n_ss. This check runs on the numeric path only - on the tape RTMB refuses comparison, so a fit cannot repeat it 
+
+done

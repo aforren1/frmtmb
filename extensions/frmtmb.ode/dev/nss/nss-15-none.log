@@ -1,0 +1,183 @@
+frmtmb.ode from C:/Users/adf44/source/r/nsslib-variant 
+ode-events: .............................................................................12..3..4.56........7.......8.9....a.......................DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Above warning has been issued I1 times.  
+     It will not be issued again for this problem.
+In above message, I1 = 10
+ 
+DLSODA-  At current T (=R1), MXSTEP (=I1) steps   
+      taken on this call before reaching TOUT     
+In above message, I1 = 5000
+ 
+In above message, R1 = 2
+ 
+......DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.92545e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Warning..Internal T (=R1) and H (=R2) are
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+In above message, R1 = 2, R2 = 1.58234e-16
+ 
+DLSODA-  Above warning has been issued I1 times.  
+     It will not be issued again for this problem.
+In above message, I1 = 10
+ 
+DLSODA-  At current T (=R1), MXSTEP (=I1) steps   
+      taken on this call before reaching TOUT     
+In above message, I1 = 5000
+ 
+In above message, R1 = 2
+ 
+.
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-ode-events.R:682:3'): the geometric tail is summed rather t
+Expected `as.numeric(e_ext)` < `as.numeric(e_trunc)/10000`.
+Actual comparison: 0.090718 >= 0.000009
+Difference: 0.090709 >= 0
+
+── 2. Failure ('test-ode-events.R:707:3'): a state with no steady state does not
+Expected `as.numeric(e_ext)` < `as.numeric(e_trunc)/10000`.
+Actual comparison: 0.090718 >= 0.000009
+Difference: 0.090709 >= 0
+
+── 3. Failure ('test-ode-events.R:723:3'): a state whose difference is exactly z
+Expected `z$y[2L]` to equal `2.5 + 0.5 * (0.5/0.5)`.
+Differences:
+  `actual`: 2.50
+`expected`: 3.00
+
+
+── 4. Failure ('test-ode-events.R:750:3'): the low gate takes tail away and neve
+Expected `which.max(ratio)` to be identical to `length(ratio)`.
+Differences:
+  `actual`:   1
+`expected`: 400
+
+
+── 5. Failure ('test-ode-events.R:752:3'): the low gate takes tail away and neve
+Expected `ratio[length(ratio)]` > 0.99.
+Actual comparison: 0.0 <= 1.0
+Difference: -1.0 <= 0
+
+── 6. Failure ('test-ode-events.R:760:3'): the low gate takes tail away and neve
+Expected `gap(1e-05)` < `gap(0.001)/10`.
+Actual comparison: 0.0 >= 0.0
+Difference: 0.0 >= 0
+
+── 7. Failure ('test-ode-events.R:832:3'): a long run-in in the stand-down band 
+Expected `said/z$err` > 0.5.
+Actual comparison: 0.02 <= 0.50
+Difference: -0.48 <= 0
+
+── 8. Failure ('test-ode-events.R:928:3'): the run-in warning reports a distance
+Expected `said/true` > 0.5.
+Actual comparison: 0.28 <= 0.50
+Difference: -0.22 <= 0
+
+── 9. Failure ('test-ode-events.R:932:3'): the run-in warning reports a distance
+Expected `frm_ode(...)` to run silently.
+Actual noise: warnings.
+
+── 10. Failure ('test-ode-events.R:1009:3'): the tail correction fixes the gradi
+Expected `e_ext` < `e_trunc/1000`.
+Actual comparison: 0.2874 >= 0.0003
+Difference: 0.2871 >= 0
+
+Maximum number of 10 failures reached, some test results may be missing.
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FILE test-ode-events.R files=1 pass=132 fail=10 err=0 skip=0 nb_tests=52
+BROKE: the geometric tail is summed rather than dropped | a state with no steady state does not disable the tail | a state whose difference is exactly zero is left alone | the low gate takes tail away and never adds to it | a long run-in in the stand-down band still warns | the run-in warning reports a distance to the limit | the tail correction fixes the gradient, not only the value 

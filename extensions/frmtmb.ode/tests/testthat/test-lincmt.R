@@ -109,21 +109,31 @@ test_that("two and three compartments match frm_ode(), with and
   P <- list(ka = 1.1, ke = 0.2, k12 = 0.4, k21 = 0.1, V = 10)
   ev <- data.frame(time = c(0, 8), state = "depot", value = 100,
                    ii = c(8, 8), addl = c(0L, 3L), ss = c(TRUE, FALSE))
+  # The DEFAULT arms are compared, and they agree because both reach
+  # the limit: frm_lincmt() sums the geometric series and frm_ode()
+  # sums the tail its run-in would otherwise truncate. Before frm_ode()
+  # summed that tail this comparison was 3.5e-02 apart on this
+  # schedule, and the test matched the two truncations to each other.
   a <- frm_lincmt(parms = P, times = tt, ncmt = 2, depot = TRUE,
-                  events = ev, n_ss = 20L)
-  # frm_ode() warns that 20 run-in cycles have not settled on this
-  # schedule. Both arms truncate at the same 20 cycles, so the warning
-  # is about the approximation and not about the comparison; that the
-  # closed form does not need it is the point of `n_ss = Inf`.
-  ode_at <- function(tol) suppressWarnings({
+                  events = ev)
+  ode_at <- function(tol, ...) suppressWarnings({
     frm_ode(pk2_dyn, init = list(0, 0, 0), times = tt,
             parms = list(P$ke, P$k12, P$k21, P$ka),
             states = c("depot", "central", "peripheral1"),
             output = "central", events = ev, n_ss = 20L,
-            atol = tol, rtol = tol) / P$V
+            atol = tol, rtol = tol, ...) / P$V
   })
   loose <- ode_at(1e-9); tight <- ode_at(1e-12)
   expect_lt(max(abs(a - tight)), solver_bar(loose, tight))
+  # and the matched truncations still agree with each other, which is
+  # what ss_extrapolate = FALSE is for
+  b <- frm_lincmt(parms = P, times = tt, ncmt = 2, depot = TRUE,
+                  events = ev, n_ss = 20L)
+  loose2 <- ode_at(1e-9, ss_extrapolate = FALSE)
+  tight2 <- ode_at(1e-12, ss_extrapolate = FALSE)
+  expect_lt(max(abs(b - tight2)), solver_bar(loose2, tight2))
+  # the two truncations are far from the limit, which is the defect
+  expect_gt(max(abs(b - a)), 1e-3 * max(abs(a)))
 
   # three compartments, no depot, an intravenous infusion
   P3 <- list(ke = 0.2, k12 = 0.4, k21 = 0.1, k13 = 0.05, k31 = 0.01,

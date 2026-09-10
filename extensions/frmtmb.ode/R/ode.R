@@ -47,6 +47,31 @@ ode_giveup_pattern <- paste(
 # through the adjoint node starts returning NaN (integrator-dependent).
 ode_state_warn <- 8L
 
+# The two constants of the steady-state tail correction, both settled
+# by the sweep in `dev/nss/nss-06-rule.R`.
+#
+# `ode_ss_rcap` is where the correction begins standing down, and it is
+# applied in full below it. It is 0.9875 rather than 0.99 so that the
+# LARGEST factor the smooth shape can apply, 99.02 at r = 0.99119, is
+# the same bound a hard cap at 0.99 gave, 98.99: the shape is wider
+# than the ramp it replaced, and left at 0.99 it would have raised that
+# bound to 124. `ode_ss_noise` scales the integrator's own tolerance
+# into the damping term, so a difference within a few multiples of the
+# solver's noise sets no ratio. At 4 the sweep's worst row is 0.57
+# against truncation's 0.61 and its median is 0.065 of it; at a hard
+# cap and no damping the worst row is 36.
+ode_ss_rcap <- 0.9875
+ode_ss_noise <- 4
+# Below this ratio the tail is at most 0.053 of the last difference, so
+# gating it away is invisible and it lets the bottom end be closed
+# smoothly instead of clamped.
+ode_ss_rlow <- 0.05
+# How much of the geometric tail the correction has to have summed
+# before the numeric report is willing to quote that tail as a
+# distance. Below it the stand-down has already said the ratio is not
+# to be trusted, and the report falls back to the movement.
+ode_ss_trust <- 0.5
+
 # One-shot warning bookkeeping: the nl body is taped, so the R code
 # below runs once or twice per fit, but re-fitting in the same session
 # should not repeat a structural warning the user has already read.
@@ -585,13 +610,41 @@ ode_tv_blocks <- function(tv_cols, brk, idx, times, tstart, label) {
 #' cycle-start state stops moving - branches on a value, which the tape
 #' cannot do: the number of solves has to be settled before the tape is
 #' built. So the run-in is a FIXED number of cycles, `n_ss`, given as
-#' data. The approximation is a geometric one: for linear kinetics the
-#' state after `n` cycles differs from the true steady state by the
-#' accumulation factor raised to `n`, so the error falls off fast in
-#' `n_ss` and is only worth worrying about for a drug whose half-life is
-#' long against its interdose interval. Off the tape, where the values
-#' are ordinary numbers, the last two cycles are compared and the caller
-#' warns if they still disagree.
+#' data, and after `n` of them a linear system is still the accumulation
+#' factor raised to `n` away from the limit.
+#'
+#' That tail is not unknown, though: it is a geometric series whose
+#' ratio the run-in has already measured. Three successive cycle-start
+#' states give `d1 = y[n-1] - y[n-2]` and `d2 = y[n] - y[n-1]`, and
+#' their ratio is the slowest mode's per-cycle contraction, so the
+#' remaining sum is `d2 * r / (1 - r)`. Adding it is ordinary arithmetic
+#' on tape variables, so unlike the convergence test it RUNS DURING A
+#' FIT, at the parameters the fit is currently at, and it costs no extra
+#' solve. This is Aitken's extrapolation, and for linear kinetics it is
+#' exact up to the second-slowest mode.
+#'
+#' Three things stop it from being applied blind, each measured in
+#' `dev/nss-findings.md`:
+#'
+#' - a state with no steady state at all, an AUC compartment being the
+#'   ordinary example, has a ratio of 1 and an unbounded tail. The
+#'   ratio is read PER STATE so that such a state cannot corrupt the
+#'   states that do settle;
+#' - a system that has already converged has differences at the
+#'   integrator's own noise level, and a ratio read off noise is noise.
+#'   The denominator carries the noise floor, so a difference that small
+#'   returns `r` near 0 and no correction;
+#' - a component that is GROWING has a ratio above 1, and reading it as
+#'   "nearly stopped" is the worst possible reading. The weight `w`
+#'   falls to 0 as `r` reaches 1, so such a component is left exactly
+#'   where truncation leaves it.
+#'
+#' Off the tape, where the values are ordinary numbers, the extrapolant
+#' from the last three cycles is compared with the one from the three
+#' before it, and the caller warns when they still disagree. That is a
+#' distance to the LIMIT rather than the cycle-to-cycle movement the
+#' warning used to report, which understated it by about
+#' `1 / (lambda_z * ii)`.
 #'
 #' Returns the state at `t_ss` BEFORE the record's own dose - the trough
 #' - because the caller applies that dose as an ordinary "add" row.
@@ -600,19 +653,24 @@ ode_tv_blocks <- function(tv_cols, brk, idx, times, tstart, label) {
 #'
 #' @noRd
 ode_run_in <- function(run, pv, state, amt, ii, dur, t_ss, n_state,
-                       dyn_rate, n_ss, ss_tol, ss_acc, label) {
+                       dyn_rate, n_ss, ss_tol, ss_acc, label,
+                       ss_extrapolate = TRUE, atol = 1e-8,
+                       rtol = 1e-8) {
   "[<-" <- RTMB::ADoverload("[<-")
   "c" <- RTMB::ADoverload("c")
   zero <- numeric(n_state)
   y <- zero
-  prev <- NULL
   step <- function(y, from, to, rate) {
     s <- run(y, c(from, to),
              if (is.null(dyn_rate)) pv else c(pv, rate), dyn_rate)
     s[nrow(s), 1L + seq_len(n_state)]
   }
+  # the three cycle-start states before the last one, so the tail can be
+  # measured from four iterates and its own extrapolation checked
+  keep <- vector("list", 3L)
   for (k in seq_len(n_ss)) {
-    if (k == n_ss) prev <- y
+    j <- k - (n_ss - 3L)
+    if (j >= 1L) keep[[j]] <- y
     a0 <- t_ss - (n_ss - k + 1L) * ii
     if (dur > 0) {
       rate <- zero
@@ -624,15 +682,173 @@ ode_run_in <- function(run, pv, state, amt, ii, dur, t_ss, n_state,
       y <- step(y, a0, a0 + ii, zero)
     }
   }
-  if (!is.null(prev) && !inherits(y, "advector") &&
-        !inherits(prev, "advector")) {
-    a <- as.numeric(y)
-    b <- as.numeric(prev)
-    rel <- max(abs(a - b)) / max(1e-12, max(abs(a)))
-    if (is.finite(rel) && rel > ss_tol) {
-      ss_acc$groups <- unique(c(ss_acc$groups, label))
-      ss_acc$rel <- max(ss_acc$rel %||% 0, rel)
-    }
+  ode_run_in_finish(keep, y, ss_tol, ss_acc, label, ss_extrapolate,
+                    atol, rtol)
+}
+
+#' The geometric tail of a run-in, and how far it says the run-in is
+#' from its limit.
+#'
+#' Split out of `ode_run_in()` so it can be tested on iterates a caller
+#' supplies, including the ones that made the guards necessary: an
+#' unbounded state, a system already inside the integrator's noise, and
+#' a component that is growing rather than shrinking.
+#'
+#' @noRd
+ode_ss_extrapolate <- function(ya, yb, yc, atol, rtol) {
+  d1 <- yb - ya
+  d2 <- yc - yb
+  # A difference no larger than the integrator's own tolerance carries
+  # no information about the ratio; damping the denominator by it sends
+  # `r` to 0 there rather than to whatever the noise happens to say.
+  del <- (ode_ss_noise * (atol + rtol * abs(yc)))^2
+  r <- (d1 * d2) / (d1 * d1 + del)
+  # pmin()/pmax() compare, which RTMB refuses on the tape; abs() is
+  # taped, and min(a, b) = (a + b - |a - b|) / 2 is the same function
+  lo <- function(x, a) (x + a + abs(x - a)) / 2
+  hi <- function(x, a) (x + a - abs(x - a)) / 2
+  # `u` is 1 while the contraction is convincing and 0 once the measured
+  # ratio reaches 1, and `um` keeps `1 - r` out of a denominator: it is
+  # `1 - r` while that is at least `h`, and `h` after, so the factor is
+  # finite AT r = 1 instead of 0 times Inf.
+  h <- 1 - ode_ss_rcap
+  u <- (1 - r) / h
+  uc <- lo(hi(u, 1), 0)
+  um <- lo(u, 1)
+  # `smooth` is the degree-7 smootherstep S: S(0) = 0, S(1) = 1, and its
+  # first three derivatives vanish at both ends. `step` is S(x) / x,
+  # which is the shape the STAND-DOWN needs: `step'(1)` is -1, and -1 is
+  # exactly the slope that joins `r / (1 - r)` below the cap, which is
+  # why that junction comes out C3 rather than merely continuous. A
+  # cubic smoothstep would leave a kink at r = 1.
+  smooth <- function(x) x^4 * (35 - x * (84 - x * (70 - 20 * x)))
+  step <- function(x) x^3 * (35 - x * (84 - x * (70 - 20 * x)))
+  # The gate closes the bottom end, where a ratio below 0 says the
+  # differences alternate and there is no geometric tail to sum. It
+  # spans [0, ode_ss_rlow], where the tail is at most rlow / (1 - rlow)
+  # of the last difference. A gate has to SATURATE FLAT, so it is S and
+  # not S(x) / x: with the latter the same -1 that is right for the
+  # stand-down left a corner of 1 / (1 - rlow) at rlow, and made the
+  # correction overshoot the tail by up to 1.2487x below it.
+  gate <- smooth(lo(hi(r / ode_ss_rlow, 1), 0))
+  fac <- (r / (um * h)) * step(uc) * gate
+  # `f` and `d` are already on the tape; returning them lets the numeric
+  # report say how much of the tail the stand-down declined to sum,
+  # which is where the warning used to go quiet at large `n_ss`.
+  list(y = yc + d2 * fac, r = r, f = fac, d = d2)
+}
+
+#' Apply the tail correction, and say how far the answer that is
+#' RETURNED still is from the limit.
+#'
+#' `keep` holds the three cycle-start states before the last one and
+#' `y` is the last, so four iterates are available whenever `n_ss` is at
+#' least three, three at `n_ss` = 2 and two at `n_ss` = 1.
+#'
+#' The correction is built INSIDE the `ss_extrapolate` branch, not
+#' before it. Built before it, `ss_extrapolate = FALSE` puts the whole
+#' correction on the tape and throws the value away: 147 nodes, 69
+#' percent of the outer tape at `n_ss` = 20, on an arm documented as
+#' unchanged.
+#'
+#' @noRd
+ode_run_in_finish <- function(keep, y, ss_tol, ss_acc, label,
+                              ss_extrapolate, atol, rtol) {
+  have <- !vapply(keep, is.null, TRUE)
+  last <- y
+  three <- have[2L] && have[3L]
+  if (isTRUE(ss_extrapolate) && three) {
+    y <- ode_ss_extrapolate(keep[[2L]], keep[[3L]], last, atol,
+                            rtol)[["y"]]
+  }
+  # The convergence report is a comparison, so it exists on the numeric
+  # path only. See the "Steady-state dosing" section of ?frm_ode for why
+  # a fit cannot repeat it. Because there is no tape here, the report
+  # may form the correction again without costing the FALSE arm a node.
+  if (is.null(ss_acc) || !have[3L] || inherits(y, "advector") ||
+        inherits(keep[[3L]], "advector")) {
+    return(y)
+  }
+  ode_run_in_report(keep, last, y, have, three, ss_tol, ss_acc, label,
+                    ss_extrapolate, atol, rtol)
+}
+
+#' How far the returned run-in state is from its limit, on the numeric
+#' path.
+#'
+#' Every quantity here has to be one with NO HOLE IN IT, and that is the
+#' whole difficulty. Each guard in `ode_ss_extrapolate()` works by
+#' driving the correction to exactly zero, so a report built only out of
+#' the correction is silent on precisely the states the guards exist
+#' for. Measured when it was: three constructions, three silent, one of
+#' them returning a value 0.2701 from its limit
+#' (`dev/rev-nss/rev-nss-08-failopen.R`). `move`, the movement between
+#' the last two cycle-start states, is the quantity the run-in has
+#' always been able to compute and is what every branch falls back to.
+#'
+#' @noRd
+ode_run_in_report <- function(keep, last, y, have, three, ss_tol,
+                              ss_acc, label, ss_extrapolate, atol,
+                              rtol) {
+  scale <- max(1e-12, max(abs(as.numeric(y))))
+  move <- abs(as.numeric(last) - as.numeric(keep[[3L]]))
+  rel <- max(move) / scale
+  stalled <- FALSE
+  if (three) {
+    ext <- ode_ss_extrapolate(keep[[2L]], keep[[3L]], last, atol, rtol)
+    r <- as.numeric(ext[["r"]])
+    dd <- abs(as.numeric(ext[["d"]]))
+    # The WHOLE geometric tail, what the correction actually summed of
+    # it, and what the stand-down declined. Where the ratio says there
+    # is no tail the difference is zero and the `bad` floor below takes
+    # over. The declined part is what made the warning fall silent at
+    # large `n_ss`: with the correction partly stood down, successive
+    # extrapolants agree with each other while both sit short of the
+    # limit.
+    fac <- as.numeric(ext[["f"]])
+    whole <- r / (1 - r)
+    # Where the correction has substantially STOOD DOWN the code has
+    # already declared the ratio untrustworthy, so `whole` may not be
+    # quoted either: for a state with no steady state it is 1e+10 times
+    # the last difference, which is arithmetically true of a divergent
+    # series and useless in a warning. There the model-free bound, the
+    # movement itself, is what gets reported.
+    modelled <- is.finite(whole) & r < 1 &
+      abs(fac) >= ode_ss_trust * abs(whole)
+    full <- ifelse(modelled, dd * abs(whole), move)
+    undone <- ifelse(modelled, dd * abs(whole - fac), move)
+    resid <- if (have[1L]) {
+      prev <- ode_ss_extrapolate(keep[[1L]], keep[[2L]], keep[[3L]],
+                                 atol, rtol)
+      abs(as.numeric(ext[["y"]]) - as.numeric(prev[["y"]]))
+    } else dd * abs(fac)
+    # With only three iterates `resid` is the correction's own size, so
+    # the truncated arm would count the same tail twice; the
+    # extrapolated arm keeps it, where it is the only bound available on
+    # the correction it just made.
+    rel <- if (isTRUE(ss_extrapolate)) max(undone + resid) / scale
+           else max(if (have[1L]) full + resid else full) / scale
+    # A state whose movement is not already negligible and whose ratio
+    # is not a contraction inside (0, 1) has no geometric model at all,
+    # so neither `tail` nor `resid` describes it and its own movement is
+    # the only bound left. A converged state fails the ratio test too -
+    # an oral depot's differences are zero to the last bit, which reads
+    # as a ratio of 0 - so the movement test comes first, or every oral
+    # model would carry this floor.
+    moving <- move > ss_tol * scale
+    bad <- moving & !(r > 0 & r < 1)
+    if (any(bad)) rel <- max(rel, max(move[bad]) / scale)
+    stalled <- any(bad & r >= 1)
+  }
+  # A ratio at or above 1 says a state is not contracting between cycles
+  # at all, so no `n_ss` reaches a steady state for it. That is its own
+  # evidence and is reported on its own: inside the `rel` gate it was
+  # suppressed by the same zero correction that suppressed `rel`.
+  if (isTRUE(stalled) || (is.finite(rel) && rel > ss_tol)) {
+    ss_acc$groups <- unique(c(ss_acc$groups, label))
+    ss_acc$rel <- max(ss_acc$rel %||% 0,
+                      if (is.finite(rel)) rel else 0)
+    ss_acc$stalled <- isTRUE(ss_acc$stalled) || isTRUE(stalled)
   }
   y
 }
@@ -653,7 +869,9 @@ ode_run_in <- function(run, pv, state, amt, ii, dur, t_ss, n_state,
 #' @noRd
 ode_solve_events <- function(run, y0, pv, tvals, ev, tstart, n_state,
                              dyn_rate, scale, tvb = NULL, n_ss = 0L,
-                             ss_tol = 1e-6, ss_acc = NULL, label = "1") {
+                             ss_tol = 1e-6, ss_acc = NULL, label = "1",
+                             ss_extrapolate = TRUE, atol = 1e-8,
+                             rtol = 1e-8) {
   "[<-" <- RTMB::ADoverload("[<-")
   "c" <- RTMB::ADoverload("c")
 
@@ -703,7 +921,8 @@ ode_solve_events <- function(run, y0, pv, tvals, ev, tstart, n_state,
   for (h in which(ev$ss & ev$time == tstart)) {
     y0 <- ode_run_in(run, parms_at(tstart), ev$state[h], val[h],
                      ev$ii[h], ev$duration[h], tstart, n_state, dyn_rate,
-                     n_ss, ss_tol, ss_acc, label)
+                     n_ss, ss_tol, ss_acc, label, ss_extrapolate,
+                     atol, rtol)
     ss_done[h] <- TRUE
   }
 
@@ -729,7 +948,7 @@ ode_solve_events <- function(run, y0, pv, tvals, ev, tstart, n_state,
     for (h in which(ev$ss & !ss_done & ev$time == a)) {
       y <- ode_run_in(run, pvs, ev$state[h], val[h], ev$ii[h],
                       ev$duration[h], a, n_state, dyn_rate, n_ss,
-                      ss_tol, ss_acc, label)
+                      ss_tol, ss_acc, label, ss_extrapolate, atol, rtol)
       # An observation at the record's own time reads the run-in's
       # trough, overriding the value the preceding segment left, and it
       # is still pre-dose.
@@ -995,44 +1214,158 @@ ode_solve_events <- function(run, y0, pv, tvals, ev, tstart, n_state,
 #' data.frame(time = 0, state = "depot", value = 100, ii = 12, ss = TRUE)
 #' ```
 #'
-#' `n_ss` is the honest part of this. A real steady state is the limit
-#' of repeating until the cycle-start state stops moving, and that test
-#' branches on a value, which the tape cannot do: the number of solves
-#' has to be fixed before the tape is built. So `n_ss` cycles is an
-#' **approximation**, and its error is geometric - for linear kinetics
-#' the shortfall after `n` cycles is the accumulation factor to the
-#' power `n`, which is `exp(-n * k * ii)` for a one-compartment system.
-#' The rate `k` in that expression is the SLOWEST disposition
-#' eigenvalue, `lambda_z`, so the shortfall is
-#' `exp(-n_ss * lambda_z * ii)` and it is set by the terminal half-life
-#' measured in dosing intervals. **Choose `n_ss` so that
-#' `n_ss * lambda_z * ii` is at least 20**, which puts the shortfall at
-#' 2e-09. The default of 20 does that only when the terminal half-life
-#' is under about three dosing intervals. Measured, on a
-#' two-compartment oral model at `n_ss = 20`: a 23 hour half-life dosed
-#' every 8 hours is 4e-03 short, a 107 hour half-life dosed daily is
-#' 1.2e-02 short, and a 265 hour half-life dosed daily is 9e-02 short.
-#' A half-life of ten dosing intervals is 25 percent short. It moves
-#' estimates: on one 30-subject dataset simulated from the exact steady
-#' state, fitting at `n_ss = 20` rather than at the limit moved `k21`
-#' by a factor of 3.2 and `ke` by 11 percent.
+#' A real steady state is the limit of repeating until the cycle-start
+#' state stops moving, and that test branches on a value, which the tape
+#' cannot do: the number of solves has to be fixed before the tape is
+#' built. Truncating at `n_ss` cycles leaves a geometric tail. For
+#' linear kinetics what is left after `n` cycles is the accumulation
+#' factor to the power `n`, `exp(-n * lambda_z * ii)`, where `lambda_z`
+#' is the SLOWEST disposition eigenvalue, so the shortfall is set by the
+#' terminal half-life measured in dosing intervals and grows toward 1 as
+#' that half-life grows. It moves estimates, not just trajectories: on
+#' one 30-subject dataset simulated from the exact steady state,
+#' truncating at 20 cycles rather than taking the limit moved `k21` by a
+#' factor of 3.2 and `ke` by 11 percent.
+#'
+#' `ss_extrapolate = TRUE`, the default, **sums that tail instead of
+#' dropping it**. The run-in already computes the last cycle-start
+#' states, and their successive differences give the per-cycle
+#' contraction `r`, so the sum that is left is `d * r / (1 - r)`. That
+#' is arithmetic on tape variables, so it runs during a fit, at whatever
+#' parameters the fit has reached, and it costs no extra solve. The
+#' ratio is read one state at a time, damped by the integrator's own
+#' tolerance, and stood down as `r` approaches 1. Each of the three is
+#' needed; `dev/nss-findings.md` gives the construction that breaks the
+#' rule without it.
+#'
+#' Measured worst over the run-in states against the exact limit, on a
+#' two-compartment oral model at `n_ss = 20` and `atol = rtol = 1e-8`:
+#'
+#' | terminal half-life | `ii` | truncated | extrapolated |
+#' | --- | --- | --- | --- |
+#' | 23 h | 8 | 8.5e-03 | 7.6e-12 |
+#' | 107 h | 24 | 4.5e-02 | 4.2e-12 |
+#' | 107 h | 12 | 2.1e-01 | 7.8e-11 |
+#' | 265 h | 24 | 2.8e-01 | 4.9e-11 |
+#' | 670 h | 24 | 6.1e-01 | 5.0e-10 |
+#'
+#' The column above is worst over the run-in STATES; NEWS.md quotes the
+#' same designs worst over one dosing interval on the observable, which
+#' is the smaller number, 1.2e-02 rather than 4.5e-02 at 107 hours.
+#' What is left after the correction is the integrator's own tolerance
+#' **amplified by about `1 / (1 - r)`**, so it grows with the terminal
+#' half-life: measured in units of `atol = rtol`, 0.3 to 1.4 on the five
+#' rows above and 62.8 at a 1655 hour half-life dosed daily.
+#'
+#' # Where the correction is worse than truncating
+#'
+#' The ratio the run-in reads is a weighted mean of the cycle map's
+#' modes. Where every weight has the same sign that mean lies between
+#' the slowest and the fastest, so the correction can only undershoot.
+#' Where two weights have opposite signs it lies OUTSIDE their range and
+#' the correction overshoots, and opposite signs are the normal
+#' arrangement in an oral model, which is why a concentration rises
+#' before it falls. The hazard is therefore `ka` near `lambda_z`:
+#' **flip-flop kinetics**, which extended-release and depot
+#' formulations are written to produce.
+#'
+#' Measured over 338 two-compartment oral cycle maps, `lambda_z * ii`
+#' from 0.02 to 3 and `ka / lambda_z` from 0.1 to 50: the correction
+#' loses on **8** of them, worst by a factor of **2.27**, and every
+#' losing case has `lambda_z * ii` = 0.05 with `ka / lambda_z` of 1.5 or
+#' 2. It is bounded, and the bound is what makes the default defensible:
+#' the smallest error truncation leaves on a losing case is **0.40**,
+#' the largest it leaves on a winning one is 0.96, and the warning below
+#' fires on every losing case in both arms. The correction never loses
+#' where truncation was usable, and where it loses the user is told.
+#' Through `frm_ode()` on the worst such model, a 333 hour terminal
+#' half-life with `ka / lambda_z` = 1.5 dosed daily: 5.2e-01 truncated
+#' against 8.0e-01 extrapolated, both warned.
+#'
+#' The correction is exact only up to the second-slowest mode for other
+#' reasons too. On a Michaelis-Menten system deep in its saturated
+#' regime it improved a 1.1e-01 shortfall to 7.2e-03 and no further, and
+#' on a system with two modes of nearly the same rate it removes their
+#' combination and leaves what is left of the other.
+#'
+#' # The stand-down, and the objective's smoothness
+#'
+#' The correction is applied in full while the measured ratio is between
+#' 0.05 and 0.9875, gated to nothing below the first and stood down to
+#' nothing as it reaches 1. The gate is the degree-7 smootherstep, whose
+#' first three derivatives vanish at both ends; the stand-down is that
+#' same shape divided by its argument, degree 6, whose slope at 1 is -1,
+#' which is exactly the slope that joins `r / (1 - r)` below the cap.
+#' Measured rather than asserted, **the objective has no corner in the
+#' parameters** at any of the four junctions: a one-sided first
+#' difference there reads the curvature `2 / (1 - r)^3` to five figures,
+#' the same law it reads at ratios with no junction at all. That
+#' matters because an optimizer walks into this region: a fit whose
+#' `k21` runs to zero drives `lambda_z` to zero and `r` to 1, and it
+#' crosses 0.9875 on the way. A hard cap there left the two one-sided
+#' derivatives at -0.09 and +150, not converging as the bracket
+#' tightened.
+#'
+#' Measured on the factor itself, as the gap between the two one-sided
+#' difference quotients: at `r` = 0 it falls to exactly 0 by a bracket
+#' of 1e-4; at `r` = 1 it falls like the square of the bracket; and at
+#' `r` = 0.05 and `r` = 0.9875 the gap divided by the bracket is 2.333
+#' and 1.024e+06, which are `2 / (1 - r)^3`, the factor's own second
+#' derivative, to four figures. A one-sided first difference carries an
+#' error of exactly that size, so at those two junctions the probe is
+#' reading curvature and there is no discontinuity left in it to find.
+#'
+#' `ss_extrapolate = FALSE` restores the truncated run-in exactly, bit
+#' for bit, and with the base commit's tape. Then the shortfall is
+#' `exp(-n_ss * lambda_z * ii)` again, and **choose `n_ss` so that
+#' `n_ss * lambda_z * ii` is at least 20**, which puts it at 2e-09. On
+#' the 107 hour, `ii = 24` model that is `n_ss = 134`, not 20, and the
+#' run-in is most of the solve count.
+#'
+#' A very long run-in has a second limit that raising `n_ss` cannot
+#' pass. The cycles are chained solves, so the integrator's own error
+#' accumulates across all `n_ss + 1` of them: at `atol = rtol = 1e-8`
+#' and `n_ss` = 1000 it contributes about 2e-05, which is larger than
+#' the run-in shortfall it was raised to remove. Past a few hundred
+#' cycles, tighten `atol` and `rtol` as well or the extra cycles buy
+#' nothing.
+#'
+#' # What frm_ode() will tell you
 #'
 #' Off the tape - a direct call, [predict()], [simulate()], a body
-#' holding no estimated parameter - the last two cycles are compared
-#' and `frm_ode()` warns when they still differ by more than `ss_tol`.
-#' During a fit that check cannot run at all. **Do not choose `n_ss`
-#' from that warning**: it reports the CYCLE-TO-CYCLE movement, which
-#' understates the distance to the limit by about `1 / (lambda_z * ii)`
-#' and so understates it most exactly where the error is largest
-#' (measured at 3.1x, 6.6x and 10.8x as the half-life grows). Compare
-#' `n_ss` against `2 * n_ss` numerically instead, or, for a linear
-#' compartment model, use `frm_lincmt()`, whose default sums the series
-#' and has nothing to truncate.
+#' holding no estimated parameter - `frm_ode()` reports how far the
+#' value IT RETURNED still is from the limit, and warns when that is
+#' more than `ss_tol`. **That is a distance to the limit**, which the
+#' warning before 0.4.0 was not: it reported the cycle-to-cycle
+#' movement, which understates the distance by about
+#' `1 / (lambda_z * ii)`, measured at 3.1x, 6.6x and 10.8x as the
+#' half-life grows, so it understated it most exactly where the error
+#' was largest. It also says so by name when a state is not contracting
+#' between cycles at all, which means no `n_ss` settles it.
+#'
+#' **Treat it as a detector and not as a measurement.** It is built out
+#' of the same geometric model the correction is, so where that model
+#' is poor the number is poor with it, and it is bounded below by the
+#' cycle-to-cycle movement rather than being an estimate in its own
+#' right. On a state whose ratio is not a contraction it reports that
+#' movement, which can be far from the distance to a limit that does
+#' not exist. What it is good for is deciding whether to look, not how
+#' much to trust the third digit.
+#'
+#' On 31 schedules classified against the exact limit there is no false
+#' alarm and no miss in either arm, and the set now reaches both ends
+#' of the range: three flip-flop models, `n_ss` of 1, 2 and 4, and a
+#' 1653 hour half-life at `n_ss` of 650, 1000 and 2000, which is the
+#' region the paragraph above sends a long-half-life user to.
+#'
+#' During a fit the check still cannot run at all. For a linear
+#' compartment model [frm_lincmt()] sums the series in closed form and
+#' has nothing to truncate.
 #'
 #' The cost is `n_ss` extra solves per group (two per cycle for an
 #' infusion), so a steady-state population fit is several times a plain
-#' one. One `ss` row per group is allowed; write later doses out with
-#' `ii` and `addl`.
+#' one, and `ss_extrapolate` does not change that count. One `ss` row
+#' per group is allowed; write later doses out with `ii` and `addl`.
 #'
 #' The doses are not handed to \pkg{deSolve} as events. `frm_ode()`
 #' splits the integration at the event times and chains one solve per
@@ -1166,9 +1499,17 @@ ode_solve_events <- function(run, y0, pv, tvals, ev, tstart, n_state,
 #'   before an `events` row marked `ss = TRUE`. The steady state is
 #'   approached, not solved for; see "Steady-state dosing" for the size
 #'   of the approximation.
-#' @param ss_tol Relative change between the last two run-in cycles that
-#'   `frm_ode()` will accept without warning. Checked on the numeric
-#'   path only.
+#' @param ss_tol Distance to the steady state, relative to the state's
+#'   own scale, that `frm_ode()` will accept without warning. Checked on
+#'   the numeric path only.
+#' @param ss_extrapolate Sum the geometric tail that truncating the
+#'   run-in at `n_ss` cycles leaves, using the contraction ratio the
+#'   run-in itself measures. `TRUE`, the default, is exact for linear
+#'   kinetics up to the second-slowest mode and costs no extra solve,
+#'   though it does add about 170 nodes to the tape. `FALSE` truncates,
+#'   which is what versions before 0.4.0 did, bit for bit. Read
+#'   "Where the correction is worse than truncating" before assuming
+#'   the default is always the better one. See "Steady-state dosing".
 #' @param method Integrator, passed to [deSolve::ode()]. Must be
 #'   adaptive; fixed-step integrators such as `"rk4"` and `"euler"`
 #'   return a different likelihood and are refused.
@@ -1298,7 +1639,7 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
                     output = NULL, states = NULL, t0 = 0,
                     events = NULL, event_scale = 1,
                     tv = NULL, tv_break = NULL,
-                    n_ss = 20L, ss_tol = 1e-6,
+                    n_ss = 20L, ss_tol = 1e-6, ss_extrapolate = TRUE,
                     method = "lsoda", atol = 1e-8, rtol = 1e-8,
                     on_error = c("penalize", "error"),
                     penalty = 1e6, ...) {
@@ -1344,6 +1685,10 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
          "dosing cycles a steady-state run-in simulates", call. = FALSE)
   }
   n_ss <- as.integer(n_ss)
+  if (length(ss_extrapolate) != 1L || !is.logical(ss_extrapolate) ||
+        is.na(ss_extrapolate)) {
+    stop("`ss_extrapolate` must be TRUE or FALSE", call. = FALSE)
+  }
   times <- as.numeric(times)
   n_obs <- length(times)
   if (!n_obs) stop("`times` is empty", call. = FALSE)
@@ -1565,6 +1910,7 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
   ss_acc <- new.env(parent = emptyenv())
   ss_acc$groups <- character(0)
   ss_acc$rel <- 0
+  ss_acc$stalled <- FALSE
 
   for (g in seq_along(groups)) {
     idx <- groups[[g]]
@@ -1601,7 +1947,8 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
           col_at(scale_cols[[1L]], i1)
         ode_solve_events(run_solve, y0, pv, times[idx], ev, tstart,
                          n_state, dyn_rate, scale_g, tvb, n_ss, ss_tol,
-                         ss_acc, labels[[g]])
+                         ss_acc, labels[[g]], ss_extrapolate, atol,
+                         rtol)
       },
       error = function(e) e
     )
@@ -1649,21 +1996,37 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
   }
 
   # The run-in is a fixed number of cycles, so nothing forces it to have
-  # arrived. Off the tape the last two cycles can be compared, and that
-  # is the only place the shortfall is visible at all, so it is said out
-  # loud there.
+  # arrived. Off the tape the successive extrapolants can be compared,
+  # and that is the only place the shortfall is visible at all, so it is
+  # said out loud there. The number reported is a distance to the LIMIT;
+  # the cycle-to-cycle movement this used to print understated it by
+  # about 1 / (lambda_z * ii), which is worst where the error is worst.
   if (length(ss_acc$groups)) {
     warning(
       "frm_ode(): after ", n_ss, " steady-state run-in cycles the ",
-      "state at the start of the cycle was still moving by ",
-      format(signif(ss_acc$rel, 3)), " (relative), more than ss_tol = ",
-      format(ss_tol), ", in ", length(ss_acc$groups), " group",
+      "state at the start of the cycle is about ",
+      format(signif(ss_acc$rel, 3)), " (relative) away from the limit ",
+      "it is approaching, more than ss_tol = ", format(ss_tol), ", in ",
+      length(ss_acc$groups), " group",
       if (length(ss_acc$groups) == 1L) "" else "s", " (",
       paste(utils::head(ss_acc$groups, 5L), collapse = ", "),
-      if (length(ss_acc$groups) > 5L) ", ..." else "",
-      "). An `ss` row is an approximation of order n_ss; raise n_ss. ",
-      "This check runs on the numeric path only - on the tape RTMB ",
-      "refuses comparison, so a fit cannot repeat it", call. = FALSE)
+      if (length(ss_acc$groups) > 5L) ", ..." else "", "). ",
+      if (isTRUE(ss_acc$stalled))
+        paste0("At least one state is not contracting between cycles ",
+               "at all, so it has no steady state to reach and no ",
+               "n_ss is enough for it: an `ss` row assumes every state ",
+               "settles. ")
+      else if (ss_extrapolate)
+        "Raise n_ss. "
+      else
+        paste0("Raise n_ss, or leave ss_extrapolate at TRUE, which ",
+               "sums this tail instead of truncating it. "),
+      "That figure DETECTS rather than measures: it is built from the ",
+      "same geometric model the correction is, so where the model is ",
+      "poor it is poor with it, and it is a lower bound rather than ",
+      "an estimate. This check runs on the numeric path only - on the ",
+      "tape RTMB refuses comparison, so a fit cannot repeat it",
+      call. = FALSE)
   }
 
   if (!is.null(out_sel)) {

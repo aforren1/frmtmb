@@ -1,0 +1,8 @@
+FILE test-bracket-access.R pass=1 fail=0 err=0 skip=0 tests=1
+FILE test-compat.R pass=15 fail=0 err=0 skip=0 tests=4
+FILE test-lincmt.R pass=65 fail=0 err=0 skip=0 tests=17
+FILE test-ode.R pass=72 fail=0 err=0 skip=0 tests=26
+FILE test-ode-events.R pass=142 fail=0 err=0 skip=0 tests=52
+FILE test-ode-nlf.R pass=4 fail=0 err=0 skip=0 tests=2
+FILE test-ode-tv.R pass=27 fail=0 err=0 skip=0 tests=11
+FILE test-scale.R pass=0 fail=0 err=0 skip=1 tests=1

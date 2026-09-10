@@ -1,0 +1,79 @@
+arm: lane 
+  frmtmb       0.55.2   C:/Users/adf44/source/r/rellib-0552
+  frmtmb.ode   0.3.0    C:/Users/adf44/source/r/rev-nss-lib
+  RTMB         1.9      C:/Users/adf44/AppData/Local/R/win-library/4.6
+  RTMBode      1.0      C:/Users/adf44/AppData/Local/R/win-library/4.6
+  deSolve      1.42     C:/Users/adf44/AppData/Local/R/win-library/4.6
+  StanHeaders  2.32.10  C:/Users/adf44/source/r/rellib-0552
+
+case                               n_ss   arm  true error   warned     it said said/true verdict
+ramp band, t1/2z 1653 h              20  TRUE   2.654e-02     TRUE    0.000278    0.0105 ok warn
+ramp band, t1/2z 1653 h              20 FALSE   8.109e-01     TRUE        4.34      5.35 ok warn
+ramp band, t1/2z 3306 h              20  TRUE   6.369e-01     TRUE     0.00895    0.0141 ok warn
+ramp band, t1/2z 3306 h              20 FALSE   9.005e-01     TRUE         2.8      3.11 ok warn
+ramp band, t1/2z 16530 h             20  TRUE   9.781e-01     TRUE      0.0467    0.0477 ok warn
+ramp band, t1/2z 16530 h             20 FALSE   9.793e-01     TRUE       0.109     0.111 ok warn
+ramp band, 2 cmt t1/2z 2000 h        20  TRUE   3.667e-01     TRUE      0.0195    0.0532 ok warn
+ramp band, 2 cmt t1/2z 2000 h        20 FALSE   4.022e-01     TRUE        1.32      3.28 ok warn
+ramp band, t1/2z 1653 h              40  TRUE   2.171e-02     TRUE    0.000226    0.0104 ok warn
+ramp band, t1/2z 1653 h              40 FALSE   6.631e-01     TRUE        1.95      2.94 ok warn
+ramp band, t1/2z 3306 h              40  TRUE   5.759e-01     TRUE     0.00692     0.012 ok warn
+ramp band, t1/2z 3306 h              40 FALSE   8.143e-01     TRUE        1.33      1.63 ok warn
+ramp band, t1/2z 16530 h             40  TRUE   9.586e-01     TRUE      0.0238    0.0248 ok warn
+ramp band, t1/2z 16530 h             40 FALSE   9.597e-01     TRUE      0.0538    0.0561 ok warn
+ramp band, 2 cmt t1/2z 2000 h        40  TRUE   3.429e-01     TRUE      0.0132    0.0385 ok warn
+ramp band, 2 cmt t1/2z 2000 h        40 FALSE   3.761e-01     TRUE       0.636      1.69 ok warn
+big peripheral 20x, t1/2z 107 h      20  TRUE   4.231e-11    FALSE           -         - ok silent
+big peripheral 20x, t1/2z 107 h      20 FALSE   1.182e-02     TRUE      0.0468      3.96 ok warn
+big peripheral 100x, t1/2z 340 h     20  TRUE   4.595e-03     TRUE    8.13e-05    0.0177 ok warn
+big peripheral 100x, t1/2z 340 h     20 FALSE   4.986e-01     TRUE         4.1      8.22 ok warn
+big peripheral 400x, t1/2z 900 h     20  TRUE   8.135e-01     TRUE      0.0453    0.0557 ok warn
+big peripheral 400x, t1/2z 900 h     20 FALSE   8.152e-01     TRUE       0.139     0.171 ok warn
+big peripheral 2000x, t1/2z 2800 h   20  TRUE   9.448e-01     TRUE      0.0499    0.0528 ok warn
+big peripheral 2000x, t1/2z 2800 h   20 FALSE   9.448e-01     TRUE      0.0501     0.053 ok warn
+big peripheral 20x, t1/2z 107 h      40  TRUE   1.466e-10    FALSE           -         - ok silent
+big peripheral 20x, t1/2z 107 h      40 FALSE   5.288e-04     TRUE     0.00201       3.8 ok warn
+big peripheral 100x, t1/2z 340 h     40  TRUE   3.701e-03     TRUE    6.54e-05    0.0177 ok warn
+big peripheral 100x, t1/2z 340 h     40 FALSE   4.016e-01     TRUE        1.83      4.56 ok warn
+big peripheral 400x, t1/2z 900 h     40  TRUE   7.947e-01     TRUE      0.0234    0.0294 ok warn
+big peripheral 400x, t1/2z 900 h     40 FALSE   7.964e-01     TRUE      0.0685     0.086 ok warn
+big peripheral 2000x, t1/2z 2800 h   40  TRUE   9.426e-01     TRUE      0.0249    0.0264 ok warn
+big peripheral 2000x, t1/2z 2800 h   40 FALSE   9.426e-01     TRUE       0.025    0.0265 ok warn
+short run-in, 1 cmt t1/2 35 h         1  TRUE   4.149e-01     TRUE           1      2.41 ok warn
+short run-in, 1 cmt t1/2 35 h         1 FALSE   4.149e-01     TRUE           1      2.41 ok warn
+short run-in, 2 cmt t1/2z 107 h       1  TRUE   2.261e-01     TRUE           1      4.42 ok warn
+short run-in, 2 cmt t1/2z 107 h       1 FALSE   2.261e-01     TRUE           1      4.42 ok warn
+short run-in, 1 cmt t1/2 35 h         2  TRUE   4.179e-11     TRUE       0.383  9.17e+09 FALSE ALARM
+short run-in, 1 cmt t1/2 35 h         2 FALSE   2.568e-01     TRUE        0.62      2.41 ok warn
+short run-in, 2 cmt t1/2z 107 h       2  TRUE   1.397e-03     TRUE       0.733       525 ok warn
+short run-in, 2 cmt t1/2z 107 h       2 FALSE   1.935e-01     TRUE        2.75      14.2 ok warn
+short run-in, 1 cmt t1/2 35 h         3  TRUE   6.129e-12    FALSE           -         - ok silent
+short run-in, 1 cmt t1/2 35 h         3 FALSE   1.589e-01     TRUE        0.31      1.95 ok warn
+short run-in, 2 cmt t1/2z 107 h       3  TRUE   2.043e-08     TRUE    0.000238     11600 FALSE ALARM
+short run-in, 2 cmt t1/2z 107 h       3 FALSE   1.657e-01     TRUE        1.69      10.2 ok warn
+short run-in, 1 cmt t1/2 35 h         4  TRUE   6.348e-12    FALSE           -         - ok silent
+short run-in, 1 cmt t1/2 35 h         4 FALSE   9.831e-02     TRUE       0.172      1.75 ok warn
+short run-in, 2 cmt t1/2z 107 h       4  TRUE   2.094e-10    FALSE           -         - ok silent
+short run-in, 2 cmt t1/2z 107 h       4 FALSE   1.419e-01     TRUE        1.16      8.18 ok warn
+short run-in, 1 cmt t1/2 35 h         5  TRUE   6.346e-12    FALSE           -         - ok silent
+short run-in, 1 cmt t1/2 35 h         5 FALSE   6.083e-02     TRUE      0.0998      1.64 ok warn
+short run-in, 2 cmt t1/2z 107 h       5  TRUE   3.741e-11    FALSE           -         - ok silent
+short run-in, 2 cmt t1/2z 107 h       5 FALSE   1.214e-01     TRUE       0.852      7.02 ok warn
+short run-in, 1 cmt t1/2 35 h         6  TRUE   6.348e-12    FALSE           -         - ok silent
+short run-in, 1 cmt t1/2 35 h         6 FALSE   3.764e-02     TRUE      0.0595      1.58 ok warn
+short run-in, 2 cmt t1/2z 107 h       6  TRUE   1.266e-10    FALSE           -         - ok silent
+short run-in, 2 cmt t1/2z 107 h       6 FALSE   1.040e-01     TRUE        0.65      6.25 ok warn
+flip-flop ka/lz 1.5, t1/2z 333 h     20  TRUE   7.952e-01     TRUE       0.256     0.322 ok warn
+flip-flop ka/lz 1.5, t1/2z 333 h     20 FALSE   5.228e-01     TRUE         3.5      6.69 ok warn
+flip-flop ka/lz 0.8, t1/2z 83 h      20  TRUE   7.772e-03     TRUE     0.00195     0.251 ok warn
+flip-flop ka/lz 0.8, t1/2z 83 h      20 FALSE   9.646e-02     TRUE      0.0791      0.82 ok warn
+flip-flop ka/lz 1.5, t1/2z 333 h     40  TRUE   3.679e-02     TRUE     0.00675     0.183 ok warn
+flip-flop ka/lz 1.5, t1/2z 333 h     40 FALSE   2.269e-01     TRUE       0.386       1.7 ok warn
+flip-flop ka/lz 0.8, t1/2z 83 h      40  TRUE   8.493e-05     TRUE    1.66e-05     0.195 ok warn
+flip-flop ka/lz 0.8, t1/2z 83 h      40 FALSE   4.973e-03     TRUE     0.00366     0.736 ok warn
+
+-- tally --
+  ss_extrapolate = TRUE   ok silent 9  ok warn 21  FALSE ALARM 2  MISS 0
+  ss_extrapolate = FALSE  ok silent 0  ok warn 32  FALSE ALARM 0  MISS 0
+
+done

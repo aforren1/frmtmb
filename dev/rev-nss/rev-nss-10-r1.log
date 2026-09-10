@@ -1,0 +1,27 @@
+arm: lane 
+  frmtmb       0.55.2   C:/Users/adf44/source/r/rellib-0552
+  frmtmb.ode   0.3.0    C:/Users/adf44/source/r/rev-nss-lib
+  RTMB         1.9      C:/Users/adf44/AppData/Local/R/win-library/4.6
+  RTMBode      1.0      C:/Users/adf44/AppData/Local/R/win-library/4.6
+  deSolve      1.42     C:/Users/adf44/AppData/Local/R/win-library/4.6
+  StanHeaders  2.32.10  C:/Users/adf44/source/r/rellib-0552
+
+arm                                     objective        d/dlk21         d/dlke
+frm_ode ss_extrapolate=TRUE            -86.042093         2.9148       115.5525
+frm_ode ss_extrapolate=FALSE           -25.384669      -294.6276      2458.9516
+frm_lincmt n_ss=Inf                    -86.042092         2.9148       115.5524
+frm_lincmt n_ss=20                     -25.384669      -294.6276      2458.9516
+
+-- the licence: does frm_ode match frm_lincmt arm for arm? --
+  frm_ode ss_extrapolate=TRUE    objective rel  6.88e-09  gradient max rel  3.40e-07 over 66
+  frm_ode ss_extrapolate=FALSE   objective rel  3.37e-09  gradient max rel  1.20e-08 over 66
+
+-- the contrast NEWS.md publishes --
+  objective moves 60.6574 units (-86.042092 -> -25.384669)
+  d/dlk21 +2.9148 -> -294.6276
+
+-- and through frm_ode itself, which NEWS does not say --
+  objective moves 60.6574 units
+  d/dlk21 +2.9148 -> -294.6276
+
+done

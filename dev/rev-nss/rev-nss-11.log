@@ -1,0 +1,42 @@
+arm: lane 
+  frmtmb       0.55.2   C:/Users/adf44/source/r/rellib-0552
+  frmtmb.ode   0.3.0    C:/Users/adf44/source/r/rev-nss-lib
+  RTMB         1.9      C:/Users/adf44/AppData/Local/R/win-library/4.6
+  RTMBode      1.0      C:/Users/adf44/AppData/Local/R/win-library/4.6
+  deSolve      1.42     C:/Users/adf44/AppData/Local/R/win-library/4.6
+  StanHeaders  2.32.10  C:/Users/adf44/source/r/rellib-0552
+
+t1/2z       ii     lz*ii         r   truncated extrapolated      gain   err/tol
+
+-- atol = rtol = 1e-06 --
+23.2 h       8    0.2388  0.787612   3.939e-03   1.104e-06   3.6e+03       1.1
+107.1 h     24    0.1553  0.856132   1.182e-02   6.562e-07   1.8e+04       0.7
+107.1 h     12    0.0777  0.925274   8.763e-02   1.699e-06   5.2e+04       1.7
+264.6 h     24    0.0629  0.939063   9.024e-02   1.663e-06   5.4e+04       1.7
+669.9 h     24    0.0248  0.975474   2.092e-01   2.160e-05   9.7e+03      21.6
+1655 h      24    0.0101  0.990000   2.228e-01   3.357e-06   6.6e+04       3.4
+3.5 h       24    2.4000  0.090718   2.425e-07   2.425e-07   1.0e+00       0.2
+
+-- atol = rtol = 1e-08 --
+23.2 h       8    0.2388  0.787612   3.939e-03   9.879e-09   4.0e+05       1.0
+107.1 h     24    0.1553  0.856132   1.182e-02   2.623e-09   4.5e+06       0.3
+107.1 h     12    0.0777  0.925274   8.763e-02   8.935e-09   9.8e+06       0.9
+264.6 h     24    0.0629  0.939063   9.024e-02   5.733e-09   1.6e+07       0.6
+669.9 h     24    0.0248  0.975474   2.092e-01   1.351e-08   1.5e+07       1.4
+1655 h      24    0.0101  0.990000   2.228e-01   6.277e-07   3.5e+05      62.8
+3.5 h       24    2.4000  0.090718   5.463e-09   5.463e-09   1.0e+00       0.5
+
+-- atol = rtol = 1e-10 --
+23.2 h       8    0.2388  0.787612   3.939e-03   5.401e-11   7.3e+07       0.5
+107.1 h     24    0.1553  0.856132   1.182e-02   4.237e-11   2.8e+08       0.4
+107.1 h     12    0.0777  0.925274   8.763e-02   3.656e-11   2.4e+09       0.4
+264.6 h     24    0.0629  0.939063   9.024e-02   1.796e-10   5.0e+08       1.8
+669.9 h     24    0.0248  0.975474   2.092e-01   6.788e-09   3.1e+07      67.9
+1655 h      24    0.0101  0.990000   2.228e-01   2.406e-09   9.3e+07      24.1
+3.5 h       24    2.4000  0.090718   3.523e-11   3.523e-11   1.0e+00       0.4
+
+err/tol is the extrapolated error in units of the integrator's own
+tolerance. 1 supports "the extrapolated column is the integrator's
+tolerance"; 1 / (1 - r) is what the geometric sum predicts.
+
+done

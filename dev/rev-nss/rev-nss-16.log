@@ -1,0 +1,149 @@
+arm: lane 
+  frmtmb       0.55.2   C:/Users/adf44/source/r/rellib-0552
+  frmtmb.ode   0.3.0    C:/Users/adf44/source/r/rev-nss-lib
+  RTMB         1.9      C:/Users/adf44/AppData/Local/R/win-library/4.6
+  RTMBode      1.0      C:/Users/adf44/AppData/Local/R/win-library/4.6
+  deSolve      1.42     C:/Users/adf44/AppData/Local/R/win-library/4.6
+  StanHeaders  2.32.10  C:/Users/adf44/source/r/rellib-0552
+
+rcap 0.9875  rlow 0.05  trust 0.5 
+
+== 1. gap / eps against 2 / (1 - r)^3 ==
+   the two junctions, and five points where there is no junction at all
+
+        r 2/(1-r)^3         0.01        0.001        1e-04        1e-05        1e-06
+   0.0500     2.333        11.56       2.0578       2.3298       2.3326       2.3306   <- junction
+   0.2000     3.906       3.9069       3.9063       3.9063       3.9063       3.9062
+   0.3000     5.831       5.8321       5.8309       5.8309       5.8309         5.83
+   0.5000        16       16.006           16           16           16       16.002
+   0.7000     74.07       74.156       74.075       74.074       74.074       74.071
+   0.9000      2000       2020.2       2000.2         2000         2000       2000.1
+   0.9500   1.6e+04        16667        16006        16000        16000        16000
+   0.9875 1.024e+06   1.0125e+06   9.2949e+05   1.0229e+06    1.024e+06    1.024e+06   <- junction
+
+   ratio of the eps = 1e-5 column to 2/(1-r)^3:
+     r = 0.0500    0.99997
+     r = 0.2000    1.00000
+     r = 0.3000    1.00000
+     r = 0.5000    1.00000
+     r = 0.7000    1.00000
+     r = 0.9000    1.00000
+     r = 0.9500    1.00000
+     r = 0.9875    0.99999
+
+   gate overshoot: max F / (r/(1-r)) on (0, rlow] = 1.0000
+
+== 2a. the gate band: is `undone` a false alarm? ==
+There were 20 warnings (use warnings() to see them)
+== 2b. undone == 0 but the answer wrong ==
+Warning messages:
+1: In go(ncmt, pv, ii, n_ss, e, tol) : NAs introduced by coercion
+2: In go(ncmt, pv, ii, n_ss, e, tol) : NAs introduced by coercion
+Warning messages:
+1: In go(ncmt, pv, ii, n_ss, e, tol) : NAs introduced by coercion
+2: In go(ncmt, pv, ii, n_ss, e, tol) : NAs introduced by coercion
+Warning messages:
+1: In go(ncmt, pv, ii, n_ss, e, tol) : NAs introduced by coercion
+2: In go(ncmt, pv, ii, n_ss, e, tol) : NAs introduced by coercion
+Warning messages:
+1: In go(ncmt, pv, ii, n_ss, e, tol) : NAs introduced by coercion
+2: In go(ncmt, pv, ii, n_ss, e, tol) : NAs introduced by coercion
+== 2c. the 1000 to 2000 boundary ==
+Warning messages:
+1: In go(ncmt, pv, ii, n_ss, e, tol) : NAs introduced by coercion
+2: In go(ncmt, pv, ii, n_ss, e, tol) : NAs introduced by coercion
+3: In go(ncmt, pv, ii, n_ss, e, tol) : NAs introduced by coercion
+4: In go(ncmt, pv, ii, n_ss, e, tol) : NAs introduced by coercion
+5: In go(ncmt, pv, ii, n_ss, e, tol) : NAs introduced by coercion
+
+case                       n_ss    arm     tol  true error     it said  said/true verdict
+gate band r=0.010             3   TRUE   1e-10   1.766e-08           -          - FALSE ALARM
+gate band r=0.010             3  FALSE   1e-10   1.827e-08           -          - FALSE ALARM
+gate band r=0.010             4   TRUE   1e-10   1.762e-10           -          - FALSE ALARM
+gate band r=0.010             4  FALSE   1e-10   1.823e-10           -          - FALSE ALARM
+gate band r=0.010             5   TRUE   1e-10   2.272e-11           -          - ok silent
+gate band r=0.010             5  FALSE   1e-10   4.078e-11           -          - ok silent
+gate band r=0.010             6   TRUE   1e-10   2.419e-11           -          - ok silent
+gate band r=0.010             6  FALSE   1e-10   3.966e-11           -          - ok silent
+gate band r=0.010             8   TRUE   1e-10   2.420e-11           -          - ok silent
+gate band r=0.010             8  FALSE   1e-10   2.420e-11           -          - ok silent
+gate band r=0.020             3   TRUE   1e-10   1.929e-07           -          - FALSE ALARM
+gate band r=0.020             3  FALSE   1e-10   2.716e-07           -          - FALSE ALARM
+gate band r=0.020             4   TRUE   1e-10   3.857e-09           -          - FALSE ALARM
+gate band r=0.020             4  FALSE   1e-10   5.431e-09           -          - FALSE ALARM
+gate band r=0.020             5   TRUE   1e-10   7.635e-11           -          - ok silent
+gate band r=0.020             5  FALSE   1e-10   1.078e-10           -          - ok silent
+gate band r=0.020             6   TRUE   1e-10   2.197e-11           -          - ok silent
+gate band r=0.020             6  FALSE   1e-10   2.151e-11           -          - ok silent
+gate band r=0.020             8   TRUE   1e-10   2.308e-11           -          - ok silent
+gate band r=0.020             8  FALSE   1e-10   2.308e-11           -          - ok silent
+gate band r=0.035             3   TRUE   1e-10   3.023e-07           -          - FALSE ALARM
+gate band r=0.035             3  FALSE   1e-10   2.398e-06           -          - ok warn
+gate band r=0.035             4   TRUE   1e-10   1.059e-08           -          - FALSE ALARM
+gate band r=0.035             4  FALSE   1e-10   8.395e-08           -          - FALSE ALARM
+gate band r=0.035             5   TRUE   1e-10   3.785e-10           -          - ok silent
+gate band r=0.035             5  FALSE   1e-10   2.947e-09           -          - ok silent
+gate band r=0.035             6   TRUE   1e-10   4.302e-11           -          - ok silent
+gate band r=0.035             6  FALSE   1e-10   1.212e-10           -          - ok silent
+gate band r=0.035             8   TRUE   1e-10   1.769e-11           -          - ok silent
+gate band r=0.035             8  FALSE   1e-10   1.769e-11           -          - ok silent
+gate band r=0.049             3   TRUE   1e-10   6.074e-11           -          - ok silent
+gate band r=0.049             3  FALSE   1e-10   8.882e-06           -          - ok warn
+gate band r=0.049             4   TRUE   1e-10   2.158e-11           -          - ok silent
+gate band r=0.049             4  FALSE   1e-10   4.352e-07           -          - FALSE ALARM
+gate band r=0.049             5   TRUE   1e-10   1.965e-11           -          - ok silent
+gate band r=0.049             5  FALSE   1e-10   2.133e-08           -          - ok silent
+gate band r=0.049             6   TRUE   1e-10   2.024e-11           -          - ok silent
+gate band r=0.049             6  FALSE   1e-10   1.048e-09           -          - ok silent
+gate band r=0.049             8   TRUE   1e-10   1.543e-11           -          - ok silent
+gate band r=0.049             8  FALSE   1e-10   3.220e-11           -          - ok silent
+gate band r=0.060             3   TRUE   1e-10   3.547e-11           -          - ok silent
+gate band r=0.060             3  FALSE   1e-10   1.952e-05           -          - ok warn
+gate band r=0.060             4   TRUE   1e-10   3.547e-11           -          - ok silent
+gate band r=0.060             4  FALSE   1e-10   1.171e-06           -          - ok warn
+gate band r=0.060             5   TRUE   1e-10   3.547e-11           -          - ok silent
+gate band r=0.060             5  FALSE   1e-10   7.027e-08           -          - ok silent
+gate band r=0.060             6   TRUE   1e-10   3.547e-11           -          - ok silent
+gate band r=0.060             6  FALSE   1e-10   4.199e-09           -          - ok silent
+gate band r=0.060             8   TRUE   1e-10   3.547e-11           -          - ok silent
+gate band r=0.060             8  FALSE   1e-10   3.138e-11           -          - ok silent
+gate band r=0.120             3   TRUE   1e-10   3.541e-11           -          - ok silent
+gate band r=0.120             3  FALSE   1e-10   2.867e-04           -          - ok warn
+gate band r=0.120             4   TRUE   1e-10   3.555e-11           -          - ok silent
+gate band r=0.120             4  FALSE   1e-10   3.440e-05           -          - ok warn
+gate band r=0.120             5   TRUE   1e-10   4.373e-11           -          - ok silent
+gate band r=0.120             5  FALSE   1e-10   4.128e-06           -          - ok warn
+gate band r=0.120             6   TRUE   1e-10   3.598e-11           -          - ok silent
+gate band r=0.120             6  FALSE   1e-10   4.953e-07           -          - FALSE ALARM
+gate band r=0.120             8   TRUE   1e-10   4.367e-11           -          - ok silent
+gate band r=0.120             8  FALSE   1e-10   7.106e-09           -          - ok silent
+flip-flop ka/lz 1.5          20   TRUE   1e-10   7.951e-01           -          - ok warn
+flip-flop ka/lz 1.5          20  FALSE   1e-10   5.229e-01           -          - ok warn
+flip-flop ka/lz 0.8          20   TRUE   1e-10   7.772e-03           -          - ok warn
+flip-flop ka/lz 0.8          20  FALSE   1e-10   9.646e-02           -          - ok warn
+two near modes               20   TRUE   1e-10   6.328e-11           -          - ok silent
+two near modes               20  FALSE   1e-10   6.328e-11           -          - ok silent
+big peripheral 100x          20   TRUE   1e-10   4.595e-03           -          - ok warn
+big peripheral 100x          20  FALSE   1e-10   4.986e-01           -          - ok warn
+big peripheral 100x         320   TRUE   1e-10   1.789e-04           -          - ok warn
+big peripheral 100x         320  FALSE   1e-10   1.941e-02           -          - ok warn
+t1/2 1653 h                 650   TRUE   1e-12   4.682e-05           -          - ok warn
+t1/2 1653 h                 650  FALSE   1e-12   1.430e-03           -          - ok warn
+t1/2 1653 h                1000   TRUE   1e-12   1.383e-06           -          - ok warn
+t1/2 1653 h                1000  FALSE   1e-12   4.224e-05           -          - ok warn
+t1/2 1653 h                1200   TRUE   1e-12   1.847e-07           -          - ok silent
+t1/2 1653 h                1200  FALSE   1e-12   5.644e-06           -          - ok warn
+t1/2 1653 h                1400   TRUE   1e-12   2.469e-08           -          - ok silent
+t1/2 1653 h                1400  FALSE   1e-12   7.541e-07           -          - ok silent
+t1/2 1653 h                1700   TRUE   1e-12   1.438e-09           -          - ok silent
+t1/2 1653 h                1700  FALSE   1e-12   3.683e-08           -          - ok silent
+t1/2 1653 h                2000   TRUE   1e-12   1.481e-09           -          - ok silent
+t1/2 1653 h                2000  FALSE   1e-12   1.799e-09           -          - ok silent
+
+-- tally over 82 runs --
+       
+        FALSE ALARM ok silent ok warn
+  FALSE           7        20      14
+  TRUE            6        29       6
+
+done

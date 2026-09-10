@@ -615,13 +615,16 @@ test_that("n_ss controls the run-in and its error falls off geometrically", {
   skip_if_not_installed("RTMBode")
   k <- 0.2
   tr <- ss_trough(100, k, 12)
-  # ss_tol = 1 silences the shortfall warning that is the point of the
-  # next test; here the shortfall itself is what is being measured
+  # ss_extrapolate = FALSE: this measures the TRUNCATION law, and the
+  # default sums the tail that law describes rather than dropping it
+  # ss_tol = Inf silences the shortfall warning that is the point of
+  # the next test; here the shortfall itself is what is measured
   err <- vapply(c(2L, 4L, 8L), function(n) {
     g <- frm_ode(decay1, init = list(0), times = 0, parms = list(k),
                  events = data.frame(time = 0, value = 100, ii = 12,
                                      ss = TRUE),
-                 n_ss = n, ss_tol = 1, atol = 1e-12, rtol = 1e-12)
+                 n_ss = n, ss_tol = Inf, ss_extrapolate = FALSE,
+                 atol = 1e-12, rtol = 1e-12)
     abs(g - tr) / tr
   }, 0)
   # exactly exp(-n k tau) for linear kinetics
@@ -636,19 +639,314 @@ test_that("n_ss controls the run-in and its error falls off geometrically", {
 
 test_that("an unconverged run-in warns on the numeric path", {
   skip_if_not_installed("RTMBode")
-  # a drug whose half-life is long against its interval: three cycles is
-  # nowhere near the steady state, and only the numeric path can say so
+  # a drug whose half-life is long against its interval: three truncated
+  # cycles are nowhere near the steady state, and only the numeric path
+  # can say so
   expect_warning(
     frm_ode(decay1, init = list(0), times = c(0, 5), parms = list(0.005),
             events = data.frame(time = 0, value = 100, ii = 6,
-                                ss = TRUE), n_ss = 3),
+                                ss = TRUE), n_ss = 3,
+            ss_extrapolate = FALSE),
     "steady-state run-in cycles"
   )
   expect_silent(
     frm_ode(decay1, init = list(0), times = c(0, 5), parms = list(0.005),
             events = data.frame(time = 0, value = 100, ii = 6,
-                                ss = TRUE), n_ss = 3, ss_tol = 1)
+                                ss = TRUE), n_ss = 3, ss_tol = Inf,
+            ss_extrapolate = FALSE)
   )
+})
+
+# --- the steady-state tail ------------------------------------------
+
+test_that("the geometric tail is summed rather than dropped", {
+  skip_if_not_installed("RTMBode")
+  # k * ii = 0.12, a terminal half-life of about six dosing intervals,
+  # which is where the truncated run-in is worst
+  k <- 0.01
+  tau <- 12
+  tr <- ss_trough(100, k, tau)
+  ev <- data.frame(time = 0, value = 100, ii = tau, ss = TRUE)
+  got <- function(ext) {
+    frm_ode(decay1, init = list(0), times = 0, parms = list(k),
+            events = ev, n_ss = 20L, ss_tol = Inf, ss_extrapolate = ext,
+            atol = 1e-10, rtol = 1e-10)
+  }
+  e_trunc <- abs(got(FALSE) - tr) / tr
+  e_ext <- abs(got(TRUE) - tr) / tr
+  # the shortfall the truncation leaves is exp(-n k tau), so this pins
+  # the size of the defect and not only its direction
+  expect_equal(as.numeric(e_trunc), exp(-20 * k * tau),
+               tolerance = 1e-5)
+  # the bar is a ratio to what the same run measured, never a constant
+  expect_lt(as.numeric(e_ext), as.numeric(e_trunc) / 1e4)
+})
+
+test_that("a state with no steady state does not disable the tail", {
+  skip_if_not_installed("RTMBode")
+  # the second state is an AUC compartment: it grows without bound, so
+  # its cycle-to-cycle change never shrinks. Read one shared ratio over
+  # all states and it is that state that sets it, which stands the
+  # correction down for the state that DOES settle.
+  k <- 0.01
+  tau <- 12
+  tr <- ss_trough(100, k, tau)
+  withauc <- function(t, y, p) {
+    "c" <- RTMB::ADoverload("c")
+    list(c(-p[1] * y[1], y[1]))
+  }
+  ev <- data.frame(time = 0, state = 1L, value = 100, ii = tau,
+                   ss = TRUE)
+  got <- function(ext) {
+    frm_ode(withauc, init = list(0, 0), times = 0, parms = list(k),
+            events = ev, output = 1L, n_ss = 20L, ss_tol = Inf,
+            ss_extrapolate = ext, atol = 1e-10, rtol = 1e-10)
+  }
+  e_trunc <- abs(got(FALSE) - tr) / tr
+  e_ext <- abs(got(TRUE) - tr) / tr
+  expect_lt(as.numeric(e_ext), as.numeric(e_trunc) / 1e4)
+})
+
+test_that("a state whose difference is exactly zero is left alone", {
+  # An oral depot empties to the same trough every cycle once the
+  # run-in has settled, so its successive differences are zero to the
+  # last bit and an undamped ratio would be 0 / 0. Called directly
+  # because that state is the one a caller never reads.
+  ya <- c(0, 1)
+  yb <- c(0, 2)
+  yc <- c(0, 2.5)
+  z <- ode_ss_extrapolate(ya, yb, yc, 1e-8, 1e-8)
+  expect_true(all(is.finite(z$y)))
+  expect_identical(z$y[1L], 0)
+  # the state that IS moving still gets its tail: r = 0.5 here, so the
+  # sum of the rest is 0.5 / (1 - 0.5) of the last difference
+  expect_equal(z$y[2L], 2.5 + 0.5 * (0.5 / 0.5), tolerance = 1e-6)
+})
+
+test_that("a state that is growing between cycles is left alone", {
+  # A ratio above 1 says the component is moving FURTHER each cycle, so
+  # there is no tail to sum. Capping such a ratio at the top of its
+  # range would read it as "nearly stopped", which is the worst reading
+  # available: it multiplies the last difference by 1 / (1 - cap).
+  z <- ode_ss_extrapolate(c(0, 1), c(0, 2), c(0, 4), 1e-8, 1e-8)
+  expect_identical(z$y, c(0, 4))
+  expect_gt(z$r[2L], 1)
+})
+
+test_that("the low gate takes tail away and never adds to it", {
+  # With ya = 0, yb = 1/r and yc = 1/r + 1 the differences are 1/r and
+  # 1, the damping is negligible and the ratio read is r, so what comes
+  # back IS the correction factor. A gate may only remove tail: the
+  # geometric tail is r / (1 - r) and the factor must not exceed it.
+  # Shaped as S(x)/x rather than S(x) the gate overshot it by 1.2487x.
+  fac <- function(r) {
+    z <- ode_ss_extrapolate(0, 1 / r, 1 / r + 1, 1e-300, 1e-300)
+    as.numeric(z$y) - (1 / r + 1)
+  }
+  rs <- seq(1e-4, ode_ss_rlow, length.out = 400)
+  ratio <- vapply(rs, fac, 0) / (rs / (1 - rs))
+  # a gate that saturates flat rises to the tail AT rlow and nowhere
+  # exceeds it; the overshooting shape peaked inside the interval
+  expect_identical(which.max(ratio), length(ratio))
+  expect_lt(max(ratio), 1 + 1024 * .Machine$double.eps)
+  expect_gt(ratio[length(ratio)], 0.99)
+  # the junction is smooth: a corner holds the gap between the two
+  # one-sided difference quotients up as the bracket shrinks
+  gap <- function(eps) {
+    f0 <- fac(ode_ss_rlow)
+    abs((fac(ode_ss_rlow + eps) - f0) / eps -
+          (f0 - fac(ode_ss_rlow - eps)) / eps)
+  }
+  expect_lt(gap(1e-5), gap(1e-3) / 10)
+})
+
+test_that("the guards cannot silence the warning they act on", {
+  skip_if_not_installed("RTMBode")
+  # Every guard works by driving the correction to exactly zero, so a
+  # report built out of the correction alone is silent on exactly the
+  # states the guards exist for. Three constructions, both arms: a state
+  # with no steady state read AS THE OUTPUT, a run-in that oscillates,
+  # and a run-in too short for the tail to be read at all.
+  auc <- function(t, y, p) {
+    "c" <- RTMB::ADoverload("c")
+    list(c(-p[2] * y[1], p[2] * y[1] - p[1] * y[2], y[2]))
+  }
+  osc <- function(t, y, p) {
+    "c" <- RTMB::ADoverload("c")
+    list(c(y[2], -p[1] * p[1] * y[1] - 2 * p[2] * p[1] * y[2]))
+  }
+  ev <- function(ii) data.frame(time = 0, state = 1L, value = 100,
+                                ii = ii, ss = TRUE)
+  for (ext in c(TRUE, FALSE)) {
+    expect_warning(
+      frm_ode(auc, init = list(0, 0, 0), times = c(0, 6),
+              parms = list(0.05, 1), events = ev(12), output = 3L,
+              n_ss = 20L, ss_extrapolate = ext, atol = 1e-10,
+              rtol = 1e-10),
+      "run-in", label = paste("AUC output, ss_extrapolate =", ext))
+    expect_warning(
+      frm_ode(osc, init = list(0, 0), times = c(0, 0.5),
+              parms = list(3, 0.05), events = ev(1), output = 1L,
+              n_ss = 20L, ss_extrapolate = ext, atol = 1e-10,
+              rtol = 1e-10),
+      "run-in", label = paste("oscillator, ss_extrapolate =", ext))
+    expect_warning(
+      frm_ode(decay1, init = list(0), times = 0, parms = list(0.01),
+              events = ev(12), n_ss = 1L, ss_extrapolate = ext,
+              atol = 1e-10, rtol = 1e-10),
+      "run-in", label = paste("n_ss = 1, ss_extrapolate =", ext))
+  }
+})
+
+test_that("a long run-in in the stand-down band still warns", {
+  skip_if_not_installed("RTMBode")
+  skip_on_cran()
+  # `?frm_ode` sends a long-half-life user to a large `n_ss`, and that
+  # is where the warning used to go quiet: the ratio sits ABOVE the
+  # stand-down point, so part of the tail is deliberately not summed,
+  # and successive extrapolants then agree with each other while both
+  # sit short of the limit. The report adds the declined part back.
+  k <- log(2) / 1653          # r = 0.98999, above ode_ss_rcap
+  tau <- 24
+  tr <- ss_trough(100, k, tau)
+  ev <- data.frame(time = 0, value = 100, ii = tau, ss = TRUE)
+  got <- function(n) {
+    msg <- NULL
+    v <- withCallingHandlers(
+      frm_ode(decay1, init = list(0), times = 0, parms = list(k),
+              events = ev, n_ss = n, atol = 1e-12, rtol = 1e-12),
+      warning = function(w) {
+        msg <<- conditionMessage(w)
+        invokeRestart("muffleWarning")
+      })
+    list(err = abs(as.numeric(v) - tr) / tr, msg = msg)
+  }
+  z <- got(650L)
+  # the error is real and above the default ss_tol, so silence here
+  # would be a miss
+  expect_gt(z$err, 1e-6)
+  expect_true(!is.null(z$msg))
+  said <- as.numeric(sub(".*about ([0-9.e+-]+) [(]relative.*", "\\1",
+                         z$msg))
+  # and what it says is the size of that error, not a token
+  expect_gt(said / z$err, 0.5)
+  expect_lt(said / z$err, 2)
+  # far enough out it is right and says nothing; one call, because
+  # every cycle is a solve and this test runs in every variant build
+  far <- got(2000L)
+  expect_lt(far$err, 1e-6)
+  expect_null(far$msg)
+})
+
+test_that("ss_extrapolate = FALSE does not build the correction", {
+  skip_if_not_installed("RTMBode")
+  skip_on_cran()
+  # Built outside the branch, the truncated arm puts the whole
+  # correction on the tape and throws the value away. The node count is
+  # load-independent, which a clock is not; the printed operation stack
+  # is one line per node.
+  ev <- data.frame(time = 0, value = 100, ii = 12, ss = TRUE)
+  nodes <- function(ext) {
+    tp <- RTMB::MakeTape(function(th) {
+      "c" <- RTMB::ADoverload("c")
+      sum(frm_ode(decay1, init = list(0), times = c(0, 6),
+                  parms = list(exp(th[1])), events = ev, n_ss = 20L,
+                  ss_tol = Inf, ss_extrapolate = ext))
+    }, log(0.01))
+    length(capture.output(tp$print(depth = 1))) - 1L
+  }
+  a <- nodes(FALSE)
+  b <- nodes(TRUE)
+  expect_gt(b, a)
+  # and the difference is one correction, not a rounding difference
+  expect_gt(b - a, 0.1 * a)
+})
+
+test_that("the tail correction leaves the objective differentiable", {
+  skip_if_not_installed("RTMBode")
+  skip_on_cran()
+  # The correction stands down as the measured ratio approaches 1, and
+  # a HARD cap there makes the objective C0 but not C1: the two
+  # one-sided derivatives were -0.09 and +150 and did not converge as
+  # the bracket tightened. The shape that replaced it is C1, so the gap
+  # falls with the bracket.
+  ke <- 0.15; k12 <- 0.3; ka <- 1.0; ii <- 24
+  # k21 that puts exp(-lambda_z * ii) exactly at the stand-down point
+  bigL <- -log(ode_ss_rcap) / ii
+  k0 <- (bigL * bigL - (ke + k12) * bigL) / (bigL - ke)
+  ev <- data.frame(time = 0, state = 1L, value = 100, ii = ii,
+                   ss = TRUE)
+  dyn <- function(t, y, p) {
+    "c" <- RTMB::ADoverload("c")
+    list(c(-p[4] * y[1], p[4] * y[1] - (p[1] + p[2]) * y[2] +
+             p[3] * y[3], p[2] * y[2] - p[3] * y[3]))
+  }
+  g <- function(lk) {
+    tp <- RTMB::MakeTape(function(th) {
+      "c" <- RTMB::ADoverload("c")
+      sum(frm_ode(dyn, init = list(0, 0, 0), times = c(0, 6, 23.9),
+                  parms = list(ke, k12, exp(th[1]), ka), events = ev,
+                  output = 2L, n_ss = 20L, ss_tol = Inf,
+                  atol = 1e-12, rtol = 1e-12))
+    }, lk)
+    as.numeric(tp$jacfun()(lk))
+  }
+  gap <- function(eps) abs(g(log(k0 * (1 + eps))) -
+                             g(log(k0 * (1 - eps))))
+  wide <- gap(1e-3)
+  tight <- gap(1e-4)
+  # a derivative discontinuity holds the gap up as the bracket shrinks;
+  # the bar is a ratio to what the same run measured
+  expect_lt(tight, wide / 5)
+})
+
+test_that("the run-in warning reports a distance to the limit", {
+  skip_if_not_installed("RTMBode")
+  # The number the warning used to print was the movement between the
+  # last two cycles, which is smaller than the distance to the limit by
+  # about 1 / (k * ii) and so understated the error most where it was
+  # largest. Here 1 / (k * ii) is about 8.
+  k <- 0.01
+  tau <- 12
+  tr <- ss_trough(100, k, tau)
+  ev <- data.frame(time = 0, value = 100, ii = tau, ss = TRUE)
+  msg <- NULL
+  got <- withCallingHandlers(
+    frm_ode(decay1, init = list(0), times = 0, parms = list(k),
+            events = ev, n_ss = 20L, ss_extrapolate = FALSE,
+            atol = 1e-10, rtol = 1e-10),
+    warning = function(w) {
+      msg <<- conditionMessage(w)
+      invokeRestart("muffleWarning")
+    })
+  expect_true(!is.null(msg))
+  said <- as.numeric(sub(".*about ([0-9.e+-]+) [(]relative.*", "\\1",
+                         msg))
+  true <- abs(as.numeric(got) - tr) / tr
+  # what it prints is the distance, so the ratio to the measured
+  # distance is of order 1 rather than of order k * ii
+  expect_gt(said / true, 0.5)
+  expect_lt(said / true, 2)
+  # and it is silent when the tail is summed, because then the answer
+  # really is right
+  expect_silent(
+    frm_ode(decay1, init = list(0), times = 0, parms = list(k),
+            events = ev, n_ss = 20L, atol = 1e-10, rtol = 1e-10)
+  )
+})
+
+test_that("ss_extrapolate is validated", {
+  skip_if_not_installed("RTMBode")
+  expect_error(
+    frm_ode(decay1, init = list(0), times = 0, parms = list(0.2),
+            events = data.frame(time = 0, value = 100, ii = 12,
+                                ss = TRUE), ss_extrapolate = "yes"),
+    "`ss_extrapolate` must be TRUE or FALSE")
+  expect_error(
+    frm_ode(decay1, init = list(0), times = 0, parms = list(0.2),
+            events = data.frame(time = 0, value = 100, ii = 12,
+                                ss = TRUE), ss_extrapolate = NA),
+    "`ss_extrapolate` must be TRUE or FALSE")
 })
 
 test_that("the gradient through a steady-state run-in is exact", {
@@ -676,6 +974,39 @@ test_that("the gradient through a steady-state run-in is exact", {
   expect_equal(tp(x0), ref(x0), tolerance = 1e-6)
   expect_equal(as.numeric(tp$jacfun()(x0)), central_fd(ref, x0),
                tolerance = 1e-5)
+})
+
+test_that("the tail correction fixes the gradient, not only the value", {
+  skip_if_not_installed("RTMBode")
+  skip_on_cran()
+  # The truncated run-in differentiates its own answer correctly and
+  # that answer is the wrong one, which is what makes the shortfall a
+  # wrong answer during a FIT rather than a slow one. k * ii = 0.12.
+  tau <- 12
+  obs <- c(0, 3, 9)
+  x0 <- log(0.01)
+  ev <- data.frame(time = 0, value = 100, ii = tau, ss = TRUE)
+  ref <- function(th) {
+    k <- exp(th[1])
+    tr <- ss_trough(100, k, tau)
+    v <- (tr + 100) * exp(-k * obs)
+    v[1] <- tr
+    sum(v)
+  }
+  g_ref <- central_fd(ref, x0)
+  g <- function(ext) {
+    tp <- RTMB::MakeTape(function(th) {
+      "c" <- RTMB::ADoverload("c")
+      sum(frm_ode(decay1, init = list(0), times = obs,
+                  parms = list(exp(th[1])), events = ev, n_ss = 20L,
+                  ss_tol = Inf, ss_extrapolate = ext, atol = 1e-10,
+                  rtol = 1e-10))
+    }, x0)
+    as.numeric(tp$jacfun()(x0))
+  }
+  e_trunc <- abs(g(FALSE) - g_ref) / abs(g_ref)
+  e_ext <- abs(g(TRUE) - g_ref) / abs(g_ref)
+  expect_lt(e_ext, e_trunc / 1e3)
 })
 
 test_that("steady-state rows are validated", {

@@ -1,0 +1,65 @@
+arm: lane 
+  frmtmb       0.55.2   C:/Users/adf44/source/r/rellib-0552
+  frmtmb.ode   0.3.0    C:/Users/adf44/source/r/rev-nss-lib
+  RTMB         1.9      C:/Users/adf44/AppData/Local/R/win-library/4.6
+  RTMBode      1.0      C:/Users/adf44/AppData/Local/R/win-library/4.6
+  deSolve      1.42     C:/Users/adf44/AppData/Local/R/win-library/4.6
+  StanHeaders  2.32.10  C:/Users/adf44/source/r/rellib-0552
+
+
+======== design 107.1 h: ke 0.150 k12 0.300 k21 0.0200 ka 1.0
+         lambda_z 0.006472 -> terminal half-life 107.1 h, ii 24, lambda_z*ii 0.1553 ========
+
+seed 101
+  par        truth |  limit est  limit se    cov |  trunc est  trunc se    cov | se ratio
+  lke      -1.8971 |    -1.9244    0.0663   TRUE |    -1.9461    0.0897   TRUE |    0.74
+  lka       0.0000 |    -0.0290    0.0982   TRUE |    -0.0428    0.0965   TRUE |    1.02
+  lk12     -1.2040 |    -1.2228    0.0823   TRUE |    -1.1917    0.0715   TRUE |    1.15
+  lk21     -3.9120 |    -4.0947    0.4302   TRUE |    -3.9293    0.2983   TRUE |    1.44
+  lV        2.3026 |     2.3132    0.0589   TRUE |     2.2986    0.0568   TRUE |    1.04
+
+seed 102
+  par        truth |  limit est  limit se    cov |  trunc est  trunc se    cov | se ratio
+  lke      -1.8971 |    -1.7728    0.0766   TRUE |    -1.7767    0.0782   TRUE |    0.98
+  lka       0.0000 |    -0.0033    0.1023   TRUE |    -0.0021    0.1024   TRUE |    1.00
+  lk12     -1.2040 |    -1.0697    0.0886   TRUE |    -1.0698    0.0880   TRUE |    1.01
+  lk21     -3.9120 |    -3.3295    0.1763  FALSE |    -3.3287    0.1748  FALSE |    1.01
+  lV        2.3026 |     2.2269    0.0655   TRUE |     2.2274    0.0653   TRUE |    1.00
+
+seed 103
+  par        truth |  limit est  limit se    cov |  trunc est  trunc se    cov | se ratio
+  lke      -1.8971 |    -1.9733    0.0579   TRUE |    -2.1066    0.2008   TRUE |    0.29
+  lka       0.0000 |     0.1606    0.0880   TRUE |     0.1799    0.0881  FALSE |    1.00
+  lk12     -1.2040 |    -1.3014    0.0698   TRUE |    -1.2694    0.0478   TRUE |    1.46
+  lk21     -3.9120 |    -4.2970    0.5468   TRUE |    -4.3870    0.5154   TRUE |    1.06
+  lV        2.3026 |     2.3716    0.0465   TRUE |     2.3794    0.0424   TRUE |    1.10
+
+seed 104
+  par        truth |  limit est  limit se    cov |  trunc est  trunc se    cov | se ratio
+  lke      -1.8971 |    -1.8706    0.0700   TRUE |    -1.8972    0.0932   TRUE |    0.75
+  lka       0.0000 |    -0.0485    0.0907   TRUE |    -0.0537    0.0905   TRUE |    1.00
+  lk12     -1.2040 |    -1.1523    0.0862   TRUE |    -1.1317    0.0772   TRUE |    1.12
+  lk21     -3.9120 |    -4.0000    0.3716   TRUE |    -3.9065    0.2971   TRUE |    1.25
+  lV        2.3026 |     2.2590    0.0638   TRUE |     2.2514    0.0626   TRUE |    1.02
+
+seed 105
+  par        truth |  limit est  limit se    cov |  trunc est  trunc se    cov | se ratio
+  lke      -1.8971 |    -1.9192    0.0651   TRUE |    -1.9632    0.1022   TRUE |    0.64
+  lka       0.0000 |     0.0048    0.0900   TRUE |     0.0052    0.0897   TRUE |    1.00
+  lk12     -1.2040 |    -1.2041    0.0814   TRUE |    -1.1848    0.0676   TRUE |    1.20
+  lk21     -3.9120 |    -4.0703    0.4125   TRUE |    -4.0116    0.3447   TRUE |    1.20
+  lV        2.3026 |     2.2965    0.0584   TRUE |     2.2933    0.0564   TRUE |    1.03
+
+seed 106
+  par        truth |  limit est  limit se    cov |  trunc est  trunc se    cov | se ratio
+  lke      -1.8971 |    -1.9376    0.0597   TRUE |    -2.0244    0.1404   TRUE |    0.42
+  lka       0.0000 |     0.0733    0.0894   TRUE |     0.0635    0.0861   TRUE |    1.04
+  lk12     -1.2040 |    -1.2724    0.0730   TRUE |    -1.2196    0.0516   TRUE |    1.41
+  lk21     -3.9120 |    -4.5640    0.6984   TRUE |    -4.3005    0.3872   TRUE |    1.80
+  lV        2.3026 |     2.3475    0.0506   TRUE |     2.3346    0.0461   TRUE |    1.10
+
+-- se ratio (limit / truncated) by parameter, six seeds --
+Error in round(tapply(s$ratio, s$par, function(x) c(min = min(x), median = stats::median(x),  : 
+  non-numeric argument to mathematical function
+Calls: print
+Execution halted
