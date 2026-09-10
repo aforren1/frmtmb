@@ -1,3 +1,12 @@
+# frmtmb 0.55.2
+
+* `?frmtmb-links` documents a return value. pkgcheck reports any help
+  page with no `\docType`, no `datasets` or `internal` keyword and no
+  `\value` as a function with no documented return, and this was the
+  only page in the package that matched. Written the way
+  `?frmtmb-autocor` and `?frmtmb-multimembership` already answer it,
+  since those are concept pages too.
+
 # frmtmb 0.55.1
 
 * `?frm_compat_features` now says which column a caller may key on.

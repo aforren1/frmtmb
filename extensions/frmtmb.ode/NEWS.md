@@ -1,4 +1,4 @@
-# frmtmb.ode (development version)
+# frmtmb.ode 0.3.0
 
 * **`frm_lincmt()`, the analytic one- to three-compartment model.** A
   linear compartment model has a closed form, and this one writes it:

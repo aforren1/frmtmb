@@ -1,7 +1,7 @@
 # The per-file suite baseline, and what it is for
 
 `dev/suite-baseline.tsv` records one row per test file as of frmtmb
-0.55.0: package, file, passing assertions, skips. It is a floor, not a
+0.55.2: package, file, passing assertions, skips. It is a floor, not a
 target.
 
 ## Why it exists
@@ -43,3 +43,28 @@ previous release, which is how the 0.55.0 round confirmed that rewriting
 the student-t density moved no brms or BCM figure. Folding them in wants
 a stable way to name a tier, since the same file appears gated and
 ungated with different counts.
+
+## What the 0.55.2 round added
+
+The baseline earned its place twice, in opposite directions.
+
+It caught a real drop: `frmtmb.sample/test-sampling-ported.R` fell from
+208 to 205. The answer was legitimate, a three-assertion block removed
+because the same ground is now covered properly by
+`test-tmbstan-build-guard.R`, which constructs a broken build instead of
+matching a synthesized string. A drop is a question, and this one had an
+answer.
+
+And it was itself found stale. The eam rows summed to 1376 over 19
+files rather than the 1408 recorded, and `test-units.R` was missing
+altogether, so a regression in that file could not have been seen. A
+baseline is only a floor while it is regenerated at every release, which
+is what the instruction above says and what did not happen last time.
+
+One trap worth naming, because the release harness fell into it twice
+in this round. A runner that reports only `pass` and `fail` cannot tell
+a green run from a run where nothing executed: a harness bug that made
+every file fail to load reported `pass=0 fail=0 err=0` for all eight
+packages, and a second bug that left the packages unattached reported
+plausible-looking damage in the one package the round had rewritten.
+Read the file count and the load errors before reading the failures.

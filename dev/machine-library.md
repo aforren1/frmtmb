@@ -94,3 +94,34 @@ Every private library and every reference build is derived from this
 one, so a loss invalidates all of them. Rebuild the round's shared
 reference library after a restore, and treat any measurement taken
 across the boundary as suspect.
+
+## The StanHeaders trap, which a restore walks straight into
+
+`rstan` 2.32.7 declares `StanHeaders (>= 2.32.0)`. The bound is open at
+the top, so `install.packages()` resolves it to the newest StanHeaders
+on CRAN, which is 2.39.1. rstan 2.32.7 cannot compile against 2.39
+headers. Every test block that compiles a FRESH Stan program then dies
+in `compileCode()` at `make: *** Error 1`, while every block served from
+`FRMTMB_STAN_CACHE` passes, so the damage looks selective and does not
+look like a toolchain problem.
+
+Measured on 2026-09-09, after the restore above: 20 of 23 gated files
+green, and the three failures were exactly the ones compiling something
+new. `tests/testthat/test-brms-agreement.R` came in at 168 passing
+against the 187 the 0.55.1 release recorded, because its two blocks at
+lines 522 and 554 call `rstan::stan_model()` directly rather than
+through the cache.
+
+The remedy is the one `frmtmb.sample`'s own `check_tmbstan_build()`
+names: install StanHeaders 2.32.10 to match rstan 2.32.7.
+
+This is the same defect as the CI failure of the same day, seen from
+the other side. There, public RSPM built `tmbstan` against StanHeaders
+2.39 and every chain sampled a standard normal. Here, rstan cannot
+build against 2.39 at all. One open version bound, two very different
+symptoms, and only one of them was loud.
+
+So: after any restore, pin StanHeaders before believing a Stan-backed
+tier, and check `packageVersion("StanHeaders")` against
+`packageVersion("rstan")` rather than checking that the suite is green.
+A cache makes a green suite the weaker evidence.

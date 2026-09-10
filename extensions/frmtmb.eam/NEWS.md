@@ -1,4 +1,4 @@
-# frmtmb.eam (development version)
+# frmtmb.eam 0.7.0
 
 The non-decision time can now be bounded PER GROUP, which fixes the
 defect 0.6.0 disclosed. A model that does not ask for it is unchanged.
