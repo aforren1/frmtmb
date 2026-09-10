@@ -1,0 +1,8 @@
+arm: C:/Users/adf44/source/r/rellib-0552   frmtmb.eam 0.7.0 
+parameter slots: beta betad betad theta 
+probe vector: beta=2 betad=0.405 betad=0 theta=-0.357 
+
+== mu ~ 1 + (1 | s), s crossing conditions, b set nonzero
+  fn, data as drawn                          81.96205143289275
+  fn, s collapsed on 118 of 120 rows (not first) 81.962051432892736  identical: FALSE 
+  fn, s relabelled on the 2 FIRST rows only   81.96205143289275  moved: FALSE 

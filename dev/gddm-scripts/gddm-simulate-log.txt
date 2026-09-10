@@ -1,0 +1,31 @@
+########## C:/Users/adf44/source/r/rellib-0552
+arm: C:/Users/adf44/source/r/rellib-0552   frmtmb.eam 0.7.0 
+
+== coh = 0, one condition: mu varies inside it
+  upper rate: first half 0.010  second half 0.000
+  error or warning: none 
+
+== coh separating the halves
+  upper rate: first half 0.010  second half 0.990
+  error or warning: none 
+
+== the uses that must keep working
+  scalar parameters: ok, 100 rows, upper rate 0.980
+  length-n parameter constant within each coh: ok, 100 rows, upper rate 0.970
+  a coherence drift, parameters scalar: ok, 100 rows, upper rate 0.750
+  the help page's own example: ok, 20 rows, upper rate 1.000
+########## C:/Users/adf44/source/r/gddm-lib
+arm: C:/Users/adf44/source/r/gddm-lib   frmtmb.eam 0.7.0 
+
+== coh = 0, one condition: mu varies inside it
+  refused: gddm_simulate(): `mu` varies between trials that share a coherence. One Fokker-Planck solve serves each distinct value of `coh` and every parameter is read at that value's first trial, so the rest of a per-trial paramete
+
+== coh separating the halves
+  upper rate: first half 0.010  second half 0.990
+  error or warning: none 
+
+== the uses that must keep working
+  scalar parameters: ok, 100 rows, upper rate 0.980
+  length-n parameter constant within each coh: ok, 100 rows, upper rate 0.970
+  a coherence drift, parameters scalar: ok, 100 rows, upper rate 0.750
+  the help page's own example: ok, 20 rows, upper rate 1.000

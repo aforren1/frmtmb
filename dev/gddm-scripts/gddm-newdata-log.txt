@@ -1,0 +1,10 @@
+arm: C:/Users/adf44/source/r/gddm-lib   frmtmb.eam 0.7.0 
+
+== newdata, four conditions correctly indexed
+  predict link: 1.873491218  1.873491218  2.067088806  2.067088806
+  predict response: REFUSED: invalid 'length' argument
+
+== the same four rows with the index collapsed to one
+  predict link: 1.873491218  1.873491218  2.067088806  2.067088806
+  predict response: REFUSED: invalid 'length' argument
+  (a link prediction never touches the density; a response one does, so the collapsed index gives every row the first row's mean)

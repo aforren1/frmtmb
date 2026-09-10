@@ -1,0 +1,63 @@
+﻿arm: C:/Users/adf44/source/r/rev-gddm-lib   frmtmb.eam 0.7.0 
+block within subject, distinct values per subject: 2 2 2 2 2 2 
+
+== designs
+                                    model nvar ncond_ok  live refused_ok
+                           intercept only    0        1 FALSE      FALSE
+                       drift by coherence    1        4  TRUE      FALSE
+    drift by coherence, boundary by block    2        8  TRUE      FALSE
+           drift by coherence times block    2        8  TRUE      FALSE
+             non-decision time by subject    1        6  TRUE      FALSE
+                       start point by cue    1        2  TRUE      FALSE
+                      all four parameters    4       96  TRUE      FALSE
+    subject random intercept on the drift    1        6  TRUE      FALSE
+        subject random slope in coherence    2       24  TRUE      FALSE
+ subject random intercept on the boundary    1        6  TRUE      FALSE
+            drift polynomial in coherence    1        4  TRUE      FALSE
+                drift spline in coherence    1        4  TRUE      FALSE
+     drift monotonic in ordered coherence    1        4  TRUE      FALSE
+                     drift with an offset    1        2  TRUE      FALSE
+                 cell means, no intercept    1        4  TRUE      FALSE
+               drift by numeric coherence    1        4  TRUE      FALSE
+       collapsing boundary, rate by block    1        2  TRUE      FALSE
+             uniform start width by block    1        2  TRUE      FALSE
+                      lapse rate by block    1        2  TRUE      FALSE
+             coherence drift nonlinearity    1        8  TRUE      FALSE
+         leaky integration, leak by block    1        2  TRUE      FALSE
+
+== ok arm: index built from every variable in the model
+  designs: 21   of which the check could fire on: 20 
+  FALSE ALARMS: 0 
+
+== drop arm: one variable removed from the index
+  cases: 26   missed: 0   refused without naming the variable: 0 
+
+one row per condition, every parameter varying between rows: accepted with 480 conditions
+
+== other families, a covariate varying across every grouping
+  gaussian: accepted
+  wiener: accepted
+  lba: accepted
+  rdm: accepted
+  wiener_gng: accepted
+
+== the tolerance
+  poly(cohn, 2) rows from identical inputs differ by 6.03e-15, on a column of max 0.06944
+  that is 8.684e-14 relative to the column maximum, and 391.1 ulp of it
+  worst deviation / its own tolerance: 1.169e-05
+  headroom, the reciprocal: 8.551e+04 x
+  a step of 1e-04 on a column of max 0.512: refused
+  a step of 1e-05 on a column of max 0.512: refused
+  a step of 1e-06 on a column of max 0.512: refused
+  a step of 1e-07 on a column of max 0.512: refused
+  a step of 1e-08 on a column of max 0.512: refused
+  a step of 1e-09 on a column of max 0.512: refused
+  a step of 1e-10 on a column of max 0.512: refused
+  a step of 1e-11 on a column of max 0.512: refused
+  a step of 1e-12 on a column of max 0.512: ACCEPTED
+  a step of 1e-13 on a column of max 0.512: ACCEPTED
+  a step of 1e-14 on a column of max 0.512: ACCEPTED
+  a step of 1e-15 on a column of max 0.512: ACCEPTED
+  a step of 1e-16 on a column of max 0.512: ACCEPTED
+  smallest step refused: 1e-11, 2.0e-11 relative to the column maximum
+  wide-range column (1, 2, 3 s beside ten years): 1 conditions flagged, 1 when centered

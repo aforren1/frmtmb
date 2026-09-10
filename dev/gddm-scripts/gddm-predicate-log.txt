@@ -1,0 +1,71 @@
+arm: C:/Users/adf44/source/r/gddm-lib   frmtmb.eam 0.7.0 
+
+== 1. what the predicate calls computed
+bare symbol                accepted; columns: z=as supplied
+poly()                     accepted; columns: poly(z, 2)=computed
+scale()                    accepted; columns: scale(z)=computed
+bs()                       accepted; columns: splines::bs(z, df = 3)=computed
+ns()                       accepted; columns: splines::ns(z, df = 3)=computed
+log1p()                    accepted; columns: log1p(z)=computed
+cut()                      accepted; columns: cut(z, 3)=computed
+I()                        accepted; columns: I(z^2)=computed
+offset()                   accepted; columns: offset(off)=computed
+mo()                       accepted; columns: ord=as supplied
+s()                        accepted; columns: z=as supplied
+factor grouping            accepted; columns: g=as supplied
+precomputed poly column    accepted; columns: pre=as supplied
+precomputed scale column   accepted; columns: prescale=as supplied
+precomputed ave column     accepted; columns: preave=as supplied
+
+== 2. the floor is still charged to a call, and the slack each one has
+  poly(z, 2)               worst dev 5.83e-16   dev/tol 5.39e-07   without the floor 5.4e-07
+  scale(z)                 worst dev 0          dev/tol 0   without the floor 0
+  splines::bs(z, df=3)     worst dev 0          dev/tol 0   without the floor 0
+  splines::ns(z, df=3)     worst dev 0          dev/tol 0   without the floor 0
+  log1p(z)                 worst dev 0          dev/tol 0   without the floor 0
+  z, a bare symbol         worst dev 0          dev/tol 0   without the floor 0
+
+== 2b. a bare symbol whose values were computed before frm()
+  poly(zc, 1) at the middle level: 1.4e-17  (entries near zero are where a per-pair tolerance vanishes)
+  zc   stored, treated as supplied: 0 conditions   with a floor: 0
+  p1   stored, treated as supplied: 1 conditions   with a floor: 0
+  sc   stored, treated as supplied: 0 conditions   with a floor: 0
+Fixed-effect design of 'rt.mu' is rank deficient; dropping column(s): sc
+  a model on both precomputed columns: accepted 
+
+== 3. the band the predicate closes
+  sentinel   floor      as a call (floor)      as a bare symbol (none)
+  1e+06      1e-05      refused                refused
+  1e+09      0.01       refused                refused
+  1e+11      1          refused                refused
+  1e+12      10         ACCEPTED               refused
+  1e+15      1e+04      ACCEPTED               refused
+  1e+18      1e+07      ACCEPTED               refused
+  values 1 and 3 inside condition 1, sentinel alone in condition 2
+
+== 2c. precomputed poly() stored bare, the shape 2b found
+  levels   degree  worst dev    rel to colmax no floor  with floor
+  3        1.1     1.4e-17      1.25e-16     REFUSED   accepted
+  3        2.1     1.4e-17      1.25e-16     REFUSED   accepted
+  3        2.2     2.58e-15     2e-14        accepted  accepted
+  5        1.1     9.71e-17     7.52e-16     accepted  accepted
+  5        2.1     9.71e-17     7.52e-16     accepted  accepted
+  5        2.2     1.8e-16      1.65e-15     accepted  accepted
+  5        3.1     9.71e-17     7.52e-16     accepted  accepted
+  5        3.2     1.8e-16      1.65e-15     accepted  accepted
+  5        3.3     9.44e-16     7.31e-15     REFUSED   accepted
+  7        1.1     1.67e-16     1.21e-15     accepted  accepted
+  7        2.1     1.67e-16     1.21e-15     accepted  accepted
+  7        2.2     4.16e-16     3.14e-15     accepted  accepted
+  7        3.1     1.67e-16     1.21e-15     accepted  accepted
+  7        3.2     4.16e-16     3.14e-15     accepted  accepted
+  7        3.3     1.25e-15     1.24e-14     accepted  accepted
+  9        1.1     6.94e-17     4.84e-16     accepted  accepted
+  9        2.1     6.94e-17     4.84e-16     accepted  accepted
+  9        2.2     3.61e-16     2.44e-15     accepted  accepted
+  9        3.1     6.94e-17     4.84e-16     accepted  accepted
+  9        3.2     3.61e-16     2.44e-15     accepted  accepted
+  9        3.3     1.05e-15     8.53e-15     accepted  accepted
+
+  false alarms without the floor: 3 of 21 columns
+  worst relative deviation to carry: 2e-14, that is 90.05 ulp of the column maximum

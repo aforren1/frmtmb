@@ -1,0 +1,16 @@
+arm: C:/Users/adf44/source/r/gddm-lib   frmtmb.eam 0.7.0 
+
+== 120 rows, grid dt = 0.05, ny = 51, t_max = 2
+   ncond  tape build s      one fn s  ms per solve fn vs ncond=2
+       2         0.970        0.0002         0.081           1.0
+       4         1.500        0.0003         0.076           1.9
+       8         3.650        0.0007         0.092           4.6
+      20         8.220        0.0017         0.083          10.4
+      60        24.440        0.0066         0.111          41.2
+     120        39.710        0.0084         0.070          51.9
+
+control, ncond = 2 at both ends of the palindrome: fn 1.348, tape 0.990 (1.0 is right)
+control, ncond = 4 at both ends: fn 1.328, tape 1.067
+
+one solve per ROW against one per condition, 120 rows: fn 51.9x, tape build 40.9x
+solves per likelihood evaluation IS ncond, exactly, no clock

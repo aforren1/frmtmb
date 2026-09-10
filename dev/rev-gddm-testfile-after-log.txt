@@ -1,0 +1,1 @@
+﻿FILE test-gddm-conditions.R  PASS 39  FAIL 0  ERROR 0  WARN 0  SKIP 0

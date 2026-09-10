@@ -1,0 +1,12 @@
+﻿arm: C:/Users/adf44/source/r/rev-gddm-lib  frmtmb.eam 0.7.0 
+
+x by condition, observed values: 0.3  0.7 
+missing entries: 4 on rows 3,4,5,6 
+
+mu ~ mi(x), four latent values inside two conditions:
+  refused: gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck equation serves a whole condition and every parameter is read at that condition's FIRST ROW, so
+the same rows observed and varying:
+  refused: gddm: the parameter `mu` is not constant within every condition. One s
+
+condition 1 entirely missing (32 latent values in it):
+  refused: gddm: the parameter `mu` is not constant within every condition. One s

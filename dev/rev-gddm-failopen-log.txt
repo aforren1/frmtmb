@@ -1,0 +1,67 @@
+﻿arm: C:/Users/adf44/source/r/rev-gddm-lib  frmtmb.eam 0.7.0 
+
+== A. the guard PRESENT: the base case both arms agree on
+    mu ~ x, x varying inside a condition                 REFUSED
+      gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck 
+    mu ~ xc, xc constant inside a condition              accepted
+
+== B. non-finite and degenerate columns
+    x varies, one Inf elsewhere in the column            REFUSED
+      NA/NaN/Inf in foreign function call (arg 1)
+Rscript.exe : 1 row removed because of missing values (na.action)
+At line:1 char:345
++ ... mb-wt-gddm; & "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" dev/rev-gd ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (1 row removed b...ues (na.action):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    x varies, one NaN elsewhere in the column            REFUSED
+      gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck 
+    all-zero column, one 1e-300 inside a condition       REFUSED
+      gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck 
+>>> column of all Inf (no variation)                     REFUSED
+      NA/NaN/Inf in foreign function call (arg 1)
+    column of Inf with one finite entry inside           REFUSED
+      NA/NaN/Inf in foreign function call (arg 1)
+120 rows removed because of missing values (na.action)
+>>> column of all NA                                     REFUSED
+      No complete observations after removing NAs
+1 row removed because of missing values (na.action)
+    x varies and carries one NA (rows dropped by na.omit) REFUSED
+      gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck 
+
+== C. the condition index itself
+1 row removed because of missing values (na.action)
+    index with one NA                                    REFUSED
+      gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck 
+    one row per condition, x varying between rows        accepted
+    one condition of 1 row, one of 119, x varying        REFUSED
+      gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck 
+    x varies inside condition 1 only                     REFUSED
+      gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck 
+
+== D. factors
+>>> factor constant, two unused levels                   REFUSED
+      contrasts can be applied only to factors with 2 or more levels
+    factor constant within condition, one unused level   accepted
+    factor varying within condition                      REFUSED
+      gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck 
+
+== E. the tolerance band, on covariates a field writes
+   trial onset, epoch ms, 5 s inside a condition tol 1.757e+04  within-condition spread 5.9e+04
+Fixed-effect design of 'rt.mu' is rank deficient; dropping column(s): x
+       -> trial onset, epoch ms, 5 s inside a condition  REFUSED
+      gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck 
+   trial onset, epoch ms, 2 s inside a condition tol 1.757e+04  within-condition spread 0
+Fixed-effect design of 'rt.mu' is rank deficient; dropping column(s): x
+>>>    -> trial onset, epoch ms, 2 s inside a condition  accepted
+   trial onset, epoch s, 2 s inside a condition tol 17.57  within-condition spread 0
+Fixed-effect design of 'rt.mu' is rank deficient; dropping column(s): x
+>>>    -> trial onset, epoch s, 2 s inside a condition   accepted
+   delay in seconds, 1 s to 10 years, 1 s inside tol 3.15  within-condition spread 0
+>>>    -> delay in seconds, 1 s to 10 years, 1 s inside  accepted
+
+== F. what the band accepts, priced in the user's own units
+   epoch ms   column max 1.757e+12  tolerance 1.757e+04 ms
+   epoch s    column max 1.757e+09  tolerance 17.57 s
+   delay s    column max 3.15e+08  tolerance 3.15 s

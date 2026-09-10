@@ -1,0 +1,19 @@
+﻿arm: C:/Users/adf44/source/r/rev-gddm-lib  frmtmb.eam 0.7.0 
+
+== every clause of the corrected predict row
+  predict(type = "link"), training data          ok: 2.0670888 1.8734912 2.0670888
+  predict(type = "response"), training data      ok: 0.80731630 0.84418666 0.85633456
+  predict(newdata =, type = "link")              ok: 1.8734912 1.8734912 2.0670888
+  predict(newdata =, type = "response")          FAILS: invalid 'length' argument
+  conditional_effects()                          FAILS: invalid 'length' argument
+  fitted()                                       ok: 0.80731630 0.84418666 0.85633456
+  residuals(type = "response")                   ok: -0.160391068 -0.216738235 -0.013366943
+  simulate(nsim = 1)                             ok: 0.67397972 1.00019893 0.73949438
+
+  newdata missing a vint() column, the row's other clause:
+  predict(newdata = without cond, type = "link") ok: 1.8734912 1.8734912 2.0670888
+  predict(newdata = without upper, type = "link") ok: 1.8734912 1.8734912 2.0670888
+
+== the row as frm_compat() prints it
+[1] feature_a kind_a    feature_b
+<0 rows> (or 0-length row.names)

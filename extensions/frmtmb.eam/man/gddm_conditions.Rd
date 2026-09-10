@@ -24,8 +24,10 @@ combinations of the variables you name, numbered.
 \details{
 Name every variable that appears on the right-hand side of any formula
 in the model, and every covariate a drift term reads. Naming more than
-that is safe and only costs solves; naming fewer is wrong, and wrong in
-a way nothing downstream can detect.
+that is safe and only costs solves. Naming fewer is refused by
+\code{\link[=gddm]{gddm()}}, which compares each parameter's design against its
+condition's first row and says which variable is missing from the
+index.
 }
 \examples{
 d <- data.frame(coh = c(0, 0, 0.5, 0.5), block = c(1, 2, 1, 2))

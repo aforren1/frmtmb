@@ -1,0 +1,24 @@
+########## C:/Users/adf44/source/r/rellib-0552
+arm: C:/Users/adf44/source/r/rellib-0552   frmtmb.eam 0.7.0 
+delay column: max 3.15e+08  old tolerance (1e-8 * colmax) 3.15 
+within-condition spread per block: 2 2 0 0 
+
+1. does the guard fire?   ACCEPTED, no error and no warning 
+2. the same column centered: ACCEPTED   (the two must agree)
+3. fn(A) 27.317069148979115
+   fn(B) 27.317069148979115   identical: TRUE
+   coefficients: mu.(Intercept)=1.84499  mu.delay=3.22315e-10  bs.(Intercept)=0.871825  bias.(Intercept)=0  ndt.(Intercept)=0.851414 
+Warning messages:
+1: Optimizer did not report convergence: false convergence (8) 
+2: Large maximum absolute gradient at the optimum (110); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+
+new tolerance on the pair (1 s, 2 s) of that column: 0.00315002 s, against a spread of 2 s
+########## C:/Users/adf44/source/r/gddm-lib
+arm: C:/Users/adf44/source/r/gddm-lib   frmtmb.eam 0.7.0 
+delay column: max 3.15e+08  old tolerance (1e-8 * colmax) 3.15 
+within-condition spread per block: 2 2 0 0 
+
+1. does the guard fire?   refused: gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck equation serves a whole condition and every parameter is read at that condition's FIRST ROW, so 
+2. the same column centered: refused   (the two must agree)
+
+new tolerance on the pair (1 s, 2 s) of that column: 0.00315002 s, against a spread of 2 s

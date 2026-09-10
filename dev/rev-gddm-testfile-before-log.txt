@@ -1,0 +1,27 @@
+﻿FILE test-gddm-conditions.R  PASS 15  FAIL 15  ERROR 2  WARN 0  SKIP 0
+  BAD: a dpar varying within a condition is refused, and named
+    Expected `gc_frame(...)` to throw a error.
+    Expected `gc_frame(...)` to throw a error.
+    Expected `gc_frame(...)` to throw a error.
+  BAD: every parameter of the family is covered, not just mu
+    Expected `gc_frame(...)` to throw a error.
+    Expected `gc_frame(...)` to throw a error.
+    Expected `gc_frame(...)` to throw a error.
+    Expected `gc_frame(...)` to throw a error.
+    Expected `gc_frame(...)` to throw a error.
+  BAD: a random effect whose grouping crosses the index is refused
+    Expected `gc_frame(...)` to throw a error.
+    Expected `gc_frame(...)` to throw a error.
+  BAD: the message names the user's own condition label
+    Expected `gc_frame(...)` to throw a error.
+  BAD: a computed design column is not refused for its own rounding
+    Expected `gc_frame(...)` to throw a error.
+  BAD: the check reads the condition under either spelling
+    Expected `frm(...)` to throw a error.
+  BAD: a non-finite entry cannot open the tolerance
+    Error in `gd_varying_groups(v, gi, first)`: could not find function "gd_varying_groups"
+  BAD: the tolerance is relative to each column, not to one
+    Error in `gd_varying_groups(small, gi, first)`: could not find function "gd_varying_groups"
+  BAD: a nonlinear formula is covered from both sides
+    Expected `gc_frame(...)` to throw a error.
+    Expected `gc_frame(...)` to throw a error.

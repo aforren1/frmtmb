@@ -1,0 +1,49 @@
+﻿arm: C:/Users/adf44/source/r/rev-gddm-lib  frmtmb.eam 0.7.0 
+
+== A. unbalanced conditions and missing cells
+   condition sizes: 1 10 11 12 13 14 15 16 ...
+    unbalanced conditions, index correct               accepted
+    unbalanced conditions, x left out of the index     REFUSED
+      gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck equation serve
+   cells present: 3 of 4, 182 rows
+Rscript.exe : Fixed-effect design of 'rt.mu' is rank deficient; dropping column(s): cohlo:blk2
+At line:1 char:345
++ ... mb-wt-gddm; & "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" dev/rev-gd ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Fixed-effect de...(s): cohlo:blk2:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    missing cell, index correct                        accepted
+Fixed-effect design of 'rt.mu' is rank deficient; dropping column(s): cohlo:blk2
+    missing cell, blk left out of the index            REFUSED
+      gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck equation serve
+
+== B. a continuous covariate constant within condition by
+      construction, which is the shape a check comparing rows
+      rather than values could get wrong
+    z drawn once per condition, mu ~ z                 accepted
+    z = ave(rt, cond, mean), a computed constant       accepted
+    z = ave(rt, cond, mean) but the index is coarser   REFUSED
+      gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck equation serve
+
+== C. mo(), which is why the check reads columns and not X
+    mo(ord), index names ord                           accepted
+    mo(ord), ord left out of the index                 REFUSED
+      gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck equation serve
+
+== D. more than one variable missing from the index
+    mu ~ x + w, both missing, bs ~ blk also missing    REFUSED
+      gddm: the parameter `mu` is not constant within every condition. One solve of the Fokker-Planck equation serve
+   variables named in the one message: x 
+   parameters named in the one message: mu 
+
+== E. mixture(gddm(), ...), reachability
+   dry_run = frame : REFUSED: dpar(s) not available for family 'mixture(gddm, gddm)': bs, ndt, bias (available: bs1, bia 
+   dry_run = objective : REFUSED: dpar(s) not available for family 'mixture(gddm, gddm)': bs, ndt, bias (available: bs1, bia 
+
+== F. the other eam families, per row or per group?
+   gaussian: accepted
+   wiener: accepted
+   lba: accepted
+   rdm: accepted
+   wiener_gng: REFUSED: wiener_gng: the density needs `vreal1`, which nothing on this response

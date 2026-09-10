@@ -1,0 +1,7 @@
+arm: C:/Users/adf44/source/r/rellib-0552   frmtmb.eam 0.7.0 
+joint parameter slots: beta betad betad b b b b theta 
+b entries: 4 
+Error in EvalADFunObject(ADFun, theta, order = order, hessiancols = cols,  : 
+  Wrong parameter length.
+Calls: joint -> <Anonymous> -> EvalADFunObject
+Execution halted

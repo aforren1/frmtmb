@@ -1,0 +1,38 @@
+arm: C:/Users/adf44/source/r/rellib-0552 
+frmtmb 0.55.2  frmtmb.eam 0.7.0 
+
+== mu ~ x
+  fitted coefficients: mu.(Intercept)=1.82071  mu.x=0.329958  bs.(Intercept)=1.00958  bias.(Intercept)=0  ndt.(Intercept)=0.298628 
+  fn, data as drawn                      18.962737109172043
+  fn, x + 100 on 118 of 120 rows (not first) 18.962737109172043  identical: TRUE 
+  fn, x + 0.01 on the 2 FIRST rows only   18.963062916902754  moved: TRUE 
+
+== ndt ~ x
+  fitted coefficients: mu.(Intercept)=2.15472  bs.(Intercept)=1.00192  bias.(Intercept)=0  ndt.(Intercept)=-0.630854  ndt.x=0.942222 
+  fn, data as drawn                      18.810414088214987
+  fn, x + 100 on 118 of 120 rows (not first) 18.810414088214987  identical: TRUE 
+  fn, x + 0.01 on the 2 FIRST rows only   18.811489838876835  moved: TRUE 
+
+== bs ~ x
+  fitted coefficients: mu.(Intercept)=2.15477  bs.(Intercept)=0.882347  bs.x=0.11864  bias.(Intercept)=0  ndt.(Intercept)=0.319721 
+  fn, data as drawn                      18.948550650674157
+  fn, x + 100 on 118 of 120 rows (not first) 18.948550650674157  identical: TRUE 
+  fn, x + 0.01 on the 2 FIRST rows only   18.948948928461569  moved: TRUE 
+
+== bias ~ x
+  fitted coefficients: mu.(Intercept)=1.86308  bs.(Intercept)=2.32079  bias.(Intercept)=2.41378  bias.x=-0.183973  ndt.(Intercept)=1.62967 
+  fn, data as drawn                      17.746051487984953
+  fn, x + 100 on 118 of 120 rows (not first) 17.746051487984953  identical: TRUE 
+  fn, x + 0.01 on the 2 FIRST rows only   17.746570516609207  moved: TRUE 
+
+== mu ~ 1 + (1 | s), a random effect crossing conditions
+  fitted coefficients: mu.(Intercept)=2.15724  bs.(Intercept)=1.0084  bias.(Intercept)=0  ndt.(Intercept)=0.300511 
+  fn, data as drawn                      19.029283685334875
+  fn, x + 100 on 118 of 120 rows (not first) 19.029283685334875  identical: TRUE 
+  fn, x + 0.01 on the 2 FIRST rows only   19.029283685334875  moved: FALSE 
+
+fit of a within-condition-varying dpar: FITTED, no error
+warnings: NONE 
+
+vreal() varying within a condition: REFUSED: gddm: vreal1 is not constant within every condition. One solve serves a whole condition, so a covariate the drift reads has to take one value there. Split the condition index, or build it with gddm_conditions(). 
+vreal() constant within a condition: accepted 

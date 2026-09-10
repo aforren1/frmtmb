@@ -1,0 +1,11 @@
+arm: C:/Users/adf44/source/r/rellib-0552   frmtmb.eam 0.7.0 
+
+== s crosses the condition index: 2 conditions
+  subjects on a condition's first row: 1,2 
+  inner b: -1.7661182357184526  -1.8037352708150676  0  0 
+  b bitwise zero: 2 of 4 
+
+== the condition index names s: 4 conditions
+  subjects on a condition's first row: 1,2,3,4 
+  inner b: -1.7139534070630635  -1.7318098627138403  -1.6806985634184075  -1.7396174727615084 
+  b bitwise zero: 0 of 4 
