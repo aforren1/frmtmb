@@ -95,9 +95,9 @@ parameterization.
 
 Parameter names drop parentheses on the draws side: `Intercept`, not
 `(Intercept)`. That is the vocabulary posterior, bayesplot and
-[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.html)
+[`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)
 already speak, so a ported
-[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.html)
+[`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)
 string usually needs no edit.
 
 ``` r
@@ -117,28 +117,27 @@ own names.
 
 The post-processing generics are brms’s own, on a `frmtmb_draws` object,
 so most ported code runs unchanged:
-[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.html),
-[`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.html),
-[`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.html),
+[`fixef()`](https://rdrr.io/pkg/nlme/man/fixed.effects.html),
+[`ranef()`](https://rdrr.io/pkg/nlme/man/random.effects.html),
+[`VarCorr()`](https://rdrr.io/pkg/nlme/man/VarCorr.html),
 [`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
 [`posterior_predict()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
 [`posterior_linpred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
 [`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md),
-[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html),
-[`waic()`](https://aforren1.github.io/frmtmb/reference/loo.html),
-[`bayes_R2()`](https://aforren1.github.io/frmtmb/reference/bayes_R2.html),
-[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.html),
-[`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.html),
-[`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.html),
+[`loo()`](https://mc-stan.org/loo/reference/loo.html),
+[`waic()`](https://mc-stan.org/loo/reference/waic.html),
+[`bayes_R2()`](https://mc-stan.org/rstantools/reference/bayes_R2.html),
+[`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html),
+[`conditional_effects()`](https://paulbuerkner.com/brms/reference/conditional_effects.brmsfit.html),
+[`pp_check()`](https://mc-stan.org/bayesplot/reference/pp_check.html),
 [`mcmc_plot()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md),
-[`prior_summary()`](https://aforren1.github.io/frmtmb/reference/prior_summary.html),
-[`as_draws()`](https://aforren1.github.io/frmtmb/reference/as_draws.html)
-and the `posterior` and `coda` conversions.
+[`prior_summary()`](https://mc-stan.org/rstantools/reference/prior_summary.html),
+[`as_draws()`](https://mc-stan.org/posterior/reference/draws.html) and
+the `posterior` and `coda` conversions.
 
-[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html) here is
-the real leave-one-out, not the
-[`AIC()`](https://rdrr.io/r/stats/AIC.html) substitute core offers, and
-it returns the loo package’s own object.
+[`loo()`](https://mc-stan.org/loo/reference/loo.html) here is the real
+leave-one-out, not the [`AIC()`](https://rdrr.io/r/stats/AIC.html)
+substitute core offers, and it returns the loo package’s own object.
 
 ## What refuses, and what to write instead
 
@@ -167,8 +166,7 @@ Two groups refuse for reasons that are not spelling.
 and
 [`loo_subsample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-loo-refusals.md)
 each need to refit the model on modified data, and that machinery is not
-here. When
-[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html) reports
+here. When [`loo()`](https://mc-stan.org/loo/reference/loo.html) reports
 high Pareto k values, sample under the default priors rather than
 `prior = "flat"` and read the number again; if the warning survives,
 compare the maximum-likelihood fits by

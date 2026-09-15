@@ -15,7 +15,7 @@ generics work whether or not that package is attached."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -55,9 +55,9 @@ generics work whether or not that package is attached."></head><body>
     </div>
 
     <div class="ref-description section level2">
-    <p><code><a href="https://aforren1.github.io/frmtmb/reference/draws-dimensions.html" class="external-link">ndraws()</a></code> counts the post-warmup draws (all chains pooled),
-<code><a href="https://aforren1.github.io/frmtmb/reference/draws-dimensions.html" class="external-link">niterations()</a></code> the draws per chain, <code><a href="https://aforren1.github.io/frmtmb/reference/draws-dimensions.html" class="external-link">nchains()</a></code> the chains and
-<code><a href="https://aforren1.github.io/frmtmb/reference/draws-dimensions.html" class="external-link">nvariables()</a></code> the sampled parameters. The names and meanings are
+    <p><code><a href="https://mc-stan.org/posterior/reference/draws-index.html" class="external-link">ndraws()</a></code> counts the post-warmup draws (all chains pooled),
+<code><a href="https://mc-stan.org/posterior/reference/draws-index.html" class="external-link">niterations()</a></code> the draws per chain, <code><a href="https://mc-stan.org/posterior/reference/draws-index.html" class="external-link">nchains()</a></code> the chains and
+<code><a href="https://mc-stan.org/posterior/reference/variables.html" class="external-link">nvariables()</a></code> the sampled parameters. The names and meanings are
 posterior's; frmtmb registers methods with posterior so that the
 generics work whether or not that package is attached.</p>
     </div>
@@ -65,16 +65,16 @@ generics work whether or not that package is attached.</p>
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/draws-dimensions.html" class="external-link">ndraws</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://mc-stan.org/posterior/reference/draws-index.html" class="external-link">ndraws</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/draws-dimensions.html" class="external-link">nchains</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://mc-stan.org/posterior/reference/draws-index.html" class="external-link">nchains</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/draws-dimensions.html" class="external-link">niterations</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://mc-stan.org/posterior/reference/draws-index.html" class="external-link">niterations</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/draws-dimensions.html" class="external-link">nvariables</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://mc-stan.org/posterior/reference/variables.html" class="external-link">nvariables</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -83,6 +83,11 @@ generics work whether or not that package is attached.</p>
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
 <dd><p>A <code>frmtmb_draws</code> from <code><a href="frm_sample.html">frm_sample()</a></code>.</p></dd>
+
+
+<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
+<dd><p>Unused. <code><a href="https://mc-stan.org/posterior/reference/variables.html" class="external-link">nvariables()</a></code> carries it because
+posterior's generic does.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -101,7 +106,7 @@ generics work whether or not that package is attached.</p>
 <span class="r-in"><span>  <span class="va">dd</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">60</span>, <span class="fl">1</span> <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">6</span>, <span class="fl">0</span>, <span class="fl">0.5</span><span class="op">)</span><span class="op">[</span><span class="va">dd</span><span class="op">$</span><span class="va">g</span><span class="op">]</span>, <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                   data <span class="op">=</span> <span class="va">dd</span>, chains <span class="op">=</span> <span class="fl">1</span>, iter <span class="op">=</span> <span class="fl">500</span>, refresh <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/draws-dimensions.html" class="external-link">ndraws</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>, <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/draws-dimensions.html" class="external-link">niterations</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>, <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/draws-dimensions.html" class="external-link">nchains</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>, <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/draws-dimensions.html" class="external-link">nvariables</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://mc-stan.org/posterior/reference/draws-index.html" class="external-link">ndraws</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>, <span class="fu"><a href="https://mc-stan.org/posterior/reference/draws-index.html" class="external-link">niterations</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>, <span class="fu"><a href="https://mc-stan.org/posterior/reference/draws-index.html" class="external-link">nchains</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>, <span class="fu"><a href="https://mc-stan.org/posterior/reference/variables.html" class="external-link">nvariables</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept          student_t(3, 0.8, 2.5)</span>

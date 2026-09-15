@@ -23,7 +23,7 @@ arguments the way the user-facing surface does."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.55.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.56.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -230,6 +230,17 @@ expression in it - so a caller with many parameter vectors parses
 once, then per vector swaps the estimates in and calls
 <code>hyp_vals_only()</code> and <code>hyp_env_vals()</code> again.
 <code>hyp_tail_p()</code> is the tail probability of a directional claim.</p>
+<p><code>hyp_shadow_arm()</code> and <code>hyp_shadow_disarm(old)</code> bracket ONE
+user-level <code><a href="hypothesis.html">hypothesis()</a></code> call. A covariate named like a reserved
+quantity, <code>sigma</code> or <code>sd_&lt;group&gt;__&lt;term&gt;</code>, shadows it, and the note
+saying which one was read is detected inside <code>hyp_env_vals()</code>, which
+runs many times per call; it is emitted only while armed, and once
+per name. Every <code><a href="hypothesis.html">hypothesis()</a></code> METHOD arms it on entry and restores
+the returned state on exit:
+<code>old &lt;- hyp_shadow_arm(); on.exit(hyp_shadow_disarm(old), add = TRUE)</code>.
+The generic cannot do it, because the exported <code>hypothesis</code> is
+brms's generic whenever brms is loaded, and a method that does not
+arm loses the note in every session.</p>
     </div>
     <div class="section level2">
     <h2 id="the-conditional-effects-engine">The conditional-effects engine<a class="anchor" aria-label="anchor" href="#the-conditional-effects-engine"></a></h2>

@@ -76,6 +76,7 @@ serum concentrations over 25 hours.
 d <- datasets::Theoph
 d$Subject <- factor(as.character(d$Subject))
 head(d, 3)
+#> Grouped Data: conc ~ Time | Subject
 #>   Subject   Wt Dose Time conc
 #> 1       1 79.6 4.02 0.00 0.74
 #> 2       1 79.6 4.02 0.25 2.84

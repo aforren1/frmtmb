@@ -236,6 +236,14 @@ Random effects enter conditional on their modes, the same convention
 (`allow_new_levels = TRUE`) add their block's marginal variance,
 propagated through the same gradients.
 
+## See also
+
+[frmtmb-scales](https://aforren1.github.io/frmtmb/reference/frmtmb-scales.md),
+which states which scale every method reports. The default here is the
+LINK scale, where brms's
+[`predict()`](https://rdrr.io/r/stats/predict.html) gives the response
+scale.
+
 ## Examples
 
 ``` r

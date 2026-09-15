@@ -1,6 +1,6 @@
 # Summaries and intervals of draws
 
-[`posterior_summary()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.html)
+[`posterior_summary()`](https://paulbuerkner.com/brms/reference/posterior_summary.html)
 reduces draws to estimate, error and quantiles in brms's column layout
 (`Estimate`, `Est.Error`, `Q2.5`, `Q97.5`); `posterior_interval()` gives
 the central interval alone, in rstantools' layout. Both work on a
@@ -12,7 +12,7 @@ the central interval alone, in rstantools' layout. Both work on a
 ``` r
 # S3 method for class 'frmtmb_draws'
 posterior_summary(
-  object,
+  x,
   probs = c(0.025, 0.975),
   robust = FALSE,
   variable = NULL,
@@ -53,14 +53,16 @@ predictive_error(
 
 ## Arguments
 
-- object:
+- x:
 
-  A `frmtmb_draws`, or a matrix of draws (variables in columns).
+  The same, for
+  [`posterior_summary()`](https://paulbuerkner.com/brms/reference/posterior_summary.html),
+  whose generic is brms's and names its first argument `x`.
 
 - probs:
 
   Quantiles for
-  [`posterior_summary()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.html).
+  [`posterior_summary()`](https://paulbuerkner.com/brms/reference/posterior_summary.html).
 
 - robust:
 
@@ -73,6 +75,10 @@ predictive_error(
 - ...:
 
   Unused.
+
+- object:
+
+  A `frmtmb_draws`, or a matrix of draws (variables in columns).
 
 - prob:
 

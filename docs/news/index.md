@@ -1,5 +1,100 @@
 # Changelog
 
+## frmtmb 0.56.0
+
+- **frmtmb no longer breaks brms, lme4, posterior, loo, rstantools or
+  bayesplot for objects that already exist.** Attaching frmtmb after one
+  of them used to cost that package every S3 method it had on a name the
+  two share, because frmtmb defined and exported its own generic and
+  [`UseMethod()`](https://rdrr.io/r/base/UseMethod.html) reads the
+  method table of the namespace where the generic it reached was
+  defined. Measured on the previous release:
+  [`library(brms); library(frmtmb)`](https://github.com/paul-buerkner/brms)
+  then `loo(fit)` on an existing `brmsfit` lost all 27 of the generics
+  the two share, two of them SILENTLY by falling into frmtmb’s own
+  `.default`; it is now 0 of 27, in every load order tested.
+  [`library(lme4); library(frmtmb)`](https://github.com/lme4/lme4/) lost
+  all 5 of the names lme4 and frmtmb share; it is now 0 of 5.
+
+  frmtmb now shares the owner’s generic instead of shadowing it.
+  [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md),
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md) and
+  [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
+  are imported from nlme, which is Recommended and is where lme4,
+  glmmTMB and brms get them too, and
+  [`refit()`](https://aforren1.github.io/frmtmb/reference/refit.md) from
+  generics. The rest resolve to the owner’s generic at run time when the
+  owner is loaded, and to frmtmb’s own when it is not, so nothing new
+  appears in Imports.
+
+- **BREAKING, one call.**
+  [`posterior_summary()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.md)’s
+  first argument is now `x`, not `object`, matching brms’s generic, so
+  `posterior_summary(object = m)` fails and `posterior_summary(x = m)`
+  or `posterior_summary(m)` is the spelling. That is the only
+  caller-visible break:
+  [`nvariables()`](https://aforren1.github.io/frmtmb/reference/draws-dimensions.md)
+  and
+  [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
+  change too, but both only GAIN an argument (`...` from posterior,
+  `sigma` from nlme), so no call that named their first argument breaks.
+
+  [`refit()`](https://aforren1.github.io/frmtmb/reference/refit.md) is a
+  fourth changed signature and a subtler one: it is `(object, ...)` from
+  generics normally and `(object, newresp, ...)` when lme4 is loaded,
+  because lme4 defines its own `refit` generic rather than importing
+  one, so `args(refit)` now depends on what else is loaded. No caller
+  breaks on it.
+
+  **If you write an S3 method on any of these names, match the OWNER’s
+  formals, not frmtmb’s.** `frmtmb.sample` is updated here for that
+  reason and its `frmtmb (>= ...)` floor moves with this release.
+
+- [`as_draws()`](https://aforren1.github.io/frmtmb/reference/as_draws.md),
+  [`as_draws_array()`](https://aforren1.github.io/frmtmb/reference/as_draws.md),
+  [`as_draws_df()`](https://aforren1.github.io/frmtmb/reference/as_draws.md),
+  [`as_draws_list()`](https://aforren1.github.io/frmtmb/reference/as_draws.md),
+  [`as_draws_matrix()`](https://aforren1.github.io/frmtmb/reference/as_draws.md),
+  [`as_draws_rvars()`](https://aforren1.github.io/frmtmb/reference/as_draws.md),
+  [`ndraws()`](https://aforren1.github.io/frmtmb/reference/draws-dimensions.md),
+  [`nchains()`](https://aforren1.github.io/frmtmb/reference/draws-dimensions.md),
+  [`niterations()`](https://aforren1.github.io/frmtmb/reference/draws-dimensions.md)
+  and
+  [`nvariables()`](https://aforren1.github.io/frmtmb/reference/draws-dimensions.md)
+  now refuse a `frmtmb_fit` by name and point at
+  [`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html).
+  They had no method for the class at all, which was R’s own “no
+  applicable method” before and would have become posterior’s “All list
+  elements must be lists themselves” after, since a fit is a bare list.
+
+- [`hyp_shadow_arm()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  and
+  [`hyp_shadow_disarm()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  join the extension API on `?frmtmb-sampling-api`. A
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  method in another package must arm the reserved-name shadowing note
+  itself, because the generic that dispatched to it may be brms’s;
+  `frmtmb.sample`’s method for draws had relied on core’s generic doing
+  it and lost the note in every session until it did.
+
+- `posterior (>= 1.0.0)` is declared in Suggests. frmtmb registers
+  methods on
+  [`as_draws_rvars()`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
+  and
+  [`as_draws_list()`](https://aforren1.github.io/frmtmb/reference/as_draws.md)
+  now, and a partial or pre-release `posterior` that lacks one of them
+  stops frmtmb from loading. posterior 1.0.0, its first CRAN release,
+  already exports both.
+
+- `?frmtmb-scales` is new and says, per method, whether a number is on
+  the link scale, the response scale or neither. Two places where frmtmb
+  and brms disagree are written down there rather than left to be
+  discovered: [`predict()`](https://rdrr.io/r/stats/predict.html)
+  returns the linear predictor where brms returns the response scale,
+  and [`summary()`](https://rdrr.io/r/base/summary.html) prints `sigma`
+  on its log link where [`sigma()`](https://rdrr.io/r/stats/sigma.html)
+  back-transforms.
+
 ## frmtmb 0.55.2
 
 - `?frmtmb-links` documents a return value. pkgcheck reports any help

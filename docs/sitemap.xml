@@ -313,6 +313,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/expose_functions.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/family.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/fitted.frmtmb_fit.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/fixef.frmtmb_fit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/fixef.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/formula.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm.html</loc></url>
@@ -327,6 +328,8 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-priors.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-scales.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-shared-generics.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-student-re.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb_ad_overload.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb_control.html</loc></url>
@@ -436,6 +439,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/ps.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/psis.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/psis.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/ranef.frmtmb_fit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/ranef.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/refit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/reloo.frmtmb_draws.html</loc></url>
@@ -455,6 +459,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/standata.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/update.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/update.frmtmb_fit.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/VarCorr.frmtmb_fit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/VarCorr.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/variables.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/variables.html</loc></url>

@@ -1,5 +1,32 @@
 # Changelog
 
+## frmtmb.sample 0.4.2
+
+- **Requires frmtmb 0.56.0, and the requirement is a hard one.**
+  [`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)
+  on a `frmtmb_draws` object now arms the note about a covariate that
+  shadows a distributional parameter itself, through
+  [`frmtmb::hyp_shadow_arm()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html)
+  and
+  [`hyp_shadow_disarm()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html),
+  which no earlier frmtmb exports. Before this release the draws method
+  relied on core’s generic to arm that note; once frmtmb 0.56.0 stopped
+  owning the `hypothesis` generic, the note fired on a fitted model and
+  never on draws, in every session and whether or not brms was loaded.
+
+- The generics this package re-exports from frmtmb no longer break
+  brms’s methods when brms is loaded. With brms loaded but not attached,
+  26 of 26 re-exports lost their brms method in 0.4.1 and 0 of 26 do
+  now. That repair comes from frmtmb 0.56.0 and reaches this package for
+  free.
+
+- Three method signatures now carry their generics’ full formals,
+  because an S3 method must accept every argument its generic declares
+  and the generics are now the owners’ rather than frmtmb’s.
+
+- This package still DEFINES 28 generics of its own that break brms’s
+  methods in the same way frmtmb’s did. That is not fixed here.
+
 ## frmtmb.sample 0.4.1
 
 - **A broken `tmbstan` now skips the sampler tests instead of erroring
@@ -175,22 +202,22 @@ this package’s own check.
   Stan build which samples the wrong density silently. The two chunks
   that need no sampler now run, so the page shows output.
 
-- [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html) on a
-  group-unit matrix says which unit it left out.
+- [`loo()`](https://mc-stan.org/loo/reference/loo.html) on a group-unit
+  matrix says which unit it left out.
   [`loo::loo.matrix()`](https://mc-stan.org/loo/reference/loo.html)
   never sees the attribute the log-likelihood matrix carries, so the
   printed estimate was indistinguishable from a per-observation one.
 
 ## frmtmb.sample 0.3.0
 
-[`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.html)
+[`conditional_effects()`](https://paulbuerkner.com/brms/reference/conditional_effects.brmsfit.html)
 on draws returns core’s frame, grid and display quantity;
-[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.html)
+[`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)
 reports Savage-Dickey evidence ratios validated against brms;
-[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html) says
-which unit it leaves out. Requires frmtmb 0.53.0 for the seam exports.
+[`loo()`](https://mc-stan.org/loo/reference/loo.html) says which unit it
+leaves out. Requires frmtmb 0.53.0 for the seam exports.
 
-- [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.html)
+- [`conditional_effects()`](https://paulbuerkner.com/brms/reference/conditional_effects.brmsfit.html)
   on a draws object now returns the frame core’s fit method returns,
   which closes the divergence 0.2.0 recorded. The columns and their
   order are core’s
@@ -209,7 +236,7 @@ which unit it leaves out. Requires frmtmb 0.53.0 for the seam exports.
   or that read `ce$x` on an ordinal fit, has to be read again.
 
 - BUG FIX.
-  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.html)
+  [`conditional_effects()`](https://paulbuerkner.com/brms/reference/conditional_effects.brmsfit.html)
   on draws drew the `mu` predictor where the fit method draws the
   EXPECTED RESPONSE, on every family whose mean is not the inverse link
   of `mu` and on every [`trunc()`](https://rdrr.io/r/base/Round.html)
@@ -226,14 +253,14 @@ which unit it leaves out. Requires frmtmb 0.53.0 for the seam exports.
   and a sign change before it. An explicitly named `dpar =` was always
   correct and is unchanged.
 
-- [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.html)
+- [`conditional_effects()`](https://paulbuerkner.com/brms/reference/conditional_effects.brmsfit.html)
   on draws accepts `allow_new_levels` and lme4’s `allow.new.levels`,
   which the fit method has always accepted and this method warned about
   as unknown. It reads them with core’s own
   [`ce_dots()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html),
   so the accepted set cannot drift again.
 
-- [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.html)
+- [`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)
   refuses `abs(x) = 0` instead of reporting a Bayes factor twice too
   large. The affine check probed only non-negative points, where
   [`abs()`](https://rdrr.io/r/base/MathFun.html) is the identity; it now
@@ -265,11 +292,11 @@ which unit it leaves out. Requires frmtmb 0.53.0 for the seam exports.
   (1.92 to 3.93 in mean width on the model in
   `dev/sample-ce-findings.md`). `seed =` makes the draw reproducible.
 
-- [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.html)
+- [`conditional_effects()`](https://paulbuerkner.com/brms/reference/conditional_effects.brmsfit.html)
   on draws reports an argument it cannot use instead of discarding it in
   silence.
 
-- [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.html)
+- [`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)
   on a draws object reports `evid_ratio` and `post_prob`, brms’s
   `Evid.Ratio` and `Post.Prob`. A directional hypothesis gets the
   posterior odds of the claim, which needs no prior. A POINT hypothesis
@@ -298,9 +325,9 @@ which unit it leaves out. Requires frmtmb 0.53.0 for the seam exports.
   means, not about the coefficient) refuses for its own stated reason.
 
 - [`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md),
-  [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html) and
-  [`waic()`](https://aforren1.github.io/frmtmb/reference/loo.html)
-  accept a structured family that declares how its likelihood factorizes
+  [`loo()`](https://mc-stan.org/loo/reference/loo.html) and
+  [`waic()`](https://mc-stan.org/loo/reference/waic.html) accept a
+  structured family that declares how its likelihood factorizes
   (`frmtmb::frmtmb_structure(loglik_group = )` or `(loglik_row = )`),
   instead of refusing every family whose likelihood is not rowwise. The
   columns are the pieces the family declares, at the coarsest
@@ -313,20 +340,20 @@ which unit it leaves out. Requires frmtmb 0.53.0 for the seam exports.
 ## frmtmb.sample 0.2.0
 
 - BEHAVIOR CHANGE, following core.
-  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.html) on
-  a `frmtmb_draws` object is keyed by the GROUPING FACTOR rather than by
+  [`ranef()`](https://rdrr.io/pkg/nlme/man/random.effects.html) on a
+  `frmtmb_draws` object is keyed by the GROUPING FACTOR rather than by
   the block, so `ranef(draws)[["1 | g"]]` returns `NULL` where it used
   to return an array and `ranef(draws)$g` returns it instead. The method
   delegates to core’s
-  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.html)
-  once per draw, so it follows core’s re-key exactly; the block label
-  rides along in each array’s `"term"` attribute, as it does in core. A
-  model with two blocks on ONE factor gives two entries under one name,
-  and the method now assembles them BY POSITION: keyed by name,
+  [`ranef()`](https://rdrr.io/pkg/nlme/man/random.effects.html) once per
+  draw, so it follows core’s re-key exactly; the block label rides along
+  in each array’s `"term"` attribute, as it does in core. A model with
+  two blocks on ONE factor gives two entries under one name, and the
+  method now assembles them BY POSITION: keyed by name,
   `out[[tn]] <- st` wrote the same name twice, so the SECOND block was
   dropped entirely and the list came back with one entry instead of two.
 
-- [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.html)
+- [`conditional_effects()`](https://paulbuerkner.com/brms/reference/conditional_effects.brmsfit.html)
   on a draws object inherits four grid changes from core, because it
   builds its grids with core’s
   [`ce_grids_build()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html):
@@ -397,14 +424,14 @@ First release, extracted from frmtmb 0.46.0.
   loo, posterior, bayesplot, rstantools, coda and bridgesampling
   generics:
   [`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md),
-  [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html),
-  [`waic()`](https://aforren1.github.io/frmtmb/reference/loo.html),
+  [`loo()`](https://mc-stan.org/loo/reference/loo.html),
+  [`waic()`](https://mc-stan.org/loo/reference/waic.html),
   [`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
   [`posterior_predict()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
-  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.html),
-  [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.html)
+  [`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html),
+  [`conditional_effects()`](https://paulbuerkner.com/brms/reference/conditional_effects.brmsfit.html)
   on draws,
-  [`bayes_R2()`](https://aforren1.github.io/frmtmb/reference/bayes_R2.html),
+  [`bayes_R2()`](https://mc-stan.org/rstantools/reference/bayes_R2.html),
   [`mcmc_plot()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md),
   and the rest.
 - [`check_laplace()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/check_laplace.md)

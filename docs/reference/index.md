@@ -244,6 +244,8 @@
   [`hyp_env_vals`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`hyp_eval`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`hyp_tail_p`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`hyp_shadow_arm`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`hyp_shadow_disarm`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`ce_grids_build`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`ce_boot_one`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`ce_frame`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
@@ -298,19 +300,19 @@
   : Conditional effects of predictors
 - [`simulate(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/simulate.frmtmb_fit.md)
   : Simulate responses from a frmtmb fit
-- [`refit()`](https://aforren1.github.io/frmtmb/reference/refit.md) :
-  Refit a model to a new response
+- [`refit(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/refit.md)
+  : Refit a model to a new response
 - [`update(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/update.frmtmb_fit.md)
   : Update and refit a model
 - [`coef(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/coef.frmtmb_fit.md)
   : Per-group coefficients (fixed effects plus conditional modes)
-- [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) :
-  Extract fixed effects
-- [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md) :
-  Extract random-effect modes
+- [`fixef(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/fixef.md)
+  : Extract fixed effects
+- [`ranef(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/ranef.md)
+  : Extract random-effect modes
 - [`ngrps()`](https://aforren1.github.io/frmtmb/reference/ngrps.md) :
   Number of levels per random-effect grouping factor
-- [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
+- [`VarCorr(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
   : Extract random-effect covariance matrices
 - [`rescor_matrix()`](https://aforren1.github.io/frmtmb/reference/rescor_matrix.md)
   : Estimated residual correlation matrix (rescor fits), else NULL
@@ -322,6 +324,8 @@
   : The joint covariance of the fixed and random coefficients
 - [`sigma(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/sigma.frmtmb_fit.md)
   : Residual standard deviation
+- [`frmtmb-scales`](https://aforren1.github.io/frmtmb/reference/frmtmb-scales.md)
+  : Which scale each method reports
 
 ## Feature compatibility
 

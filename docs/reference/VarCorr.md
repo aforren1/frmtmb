@@ -5,10 +5,8 @@ Extract random-effect covariance matrices
 ## Usage
 
 ``` r
-VarCorr(x, ...)
-
 # S3 method for class 'frmtmb_fit'
-VarCorr(x, ...)
+VarCorr(x, sigma = 1, ...)
 ```
 
 ## Arguments
@@ -16,6 +14,12 @@ VarCorr(x, ...)
 - x:
 
   A `frmtmb_fit`.
+
+- sigma:
+
+  Ignored. It is carried by nlme's generic, which frmtmb now shares
+  rather than shadows, for the models that scale a covariance by a
+  residual standard deviation.
 
 - ...:
 

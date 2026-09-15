@@ -8,15 +8,15 @@ every draws object in this ecosystem converts to.
 ## Usage
 
 ``` r
-posterior_summary(object, ...)
+posterior_summary(x, ...)
 
 # Default S3 method
-posterior_summary(object, probs = c(0.025, 0.975), robust = FALSE, ...)
+posterior_summary(x, probs = c(0.025, 0.975), robust = FALSE, ...)
 ```
 
 ## Arguments
 
-- object:
+- x:
 
   A matrix of draws, variables in columns.
 

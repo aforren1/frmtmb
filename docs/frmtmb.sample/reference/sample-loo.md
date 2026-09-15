@@ -1,9 +1,9 @@
 # Approximate leave-one-out cross-validation
 
-[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html) runs
+[`loo()`](https://mc-stan.org/loo/reference/loo.html) runs
 Pareto-smoothed importance-sampling LOO and
-[`waic()`](https://aforren1.github.io/frmtmb/reference/loo.html) the
-widely applicable information criterion, both on the
+[`waic()`](https://mc-stan.org/loo/reference/waic.html) the widely
+applicable information criterion, both on the
 [`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md)
 matrix, by handing it to
 [`loo::loo.matrix()`](https://mc-stan.org/loo/reference/loo.html) and
@@ -12,7 +12,7 @@ unchanged. The returned objects are the loo package's own, so
 [`print()`](https://rdrr.io/r/base/print.html) and
 [`loo::pareto_k_table()`](https://mc-stan.org/loo/reference/pareto-k-diagnostic.html)
 work on them directly.
-[`loo_compare()`](https://aforren1.github.io/frmtmb/reference/loo.html)
+[`loo_compare()`](https://mc-stan.org/loo/reference/loo_compare.html)
 computes the criterion for each draws object it is given and ranks them;
 handed criteria instead of draws, it is
 [`loo::loo_compare()`](https://mc-stan.org/loo/reference/loo_compare.html)
@@ -49,7 +49,7 @@ WAIC(x, ...)
   A `frmtmb_draws` from
   [`frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.md),
   or (for
-  [`loo_compare()`](https://aforren1.github.io/frmtmb/reference/loo.html))
+  [`loo_compare()`](https://mc-stan.org/loo/reference/loo_compare.html))
   already-computed criteria.
 
 - ndraws, resp:
@@ -60,13 +60,13 @@ WAIC(x, ...)
 - ...:
 
   Further models for
-  [`loo_compare()`](https://aforren1.github.io/frmtmb/reference/loo.html);
+  [`loo_compare()`](https://mc-stan.org/loo/reference/loo_compare.html);
   otherwise passed to the loo package function.
 
 - criterion:
 
   Which criterion
-  [`loo_compare()`](https://aforren1.github.io/frmtmb/reference/loo.html)
+  [`loo_compare()`](https://mc-stan.org/loo/reference/loo_compare.html)
   computes for each draws object.
 
 - model_names:
@@ -85,9 +85,9 @@ A `loo`, `waic`, `compare.loo` or `psis` object from the loo package.
 
 ## Details
 
-[`LOO()`](https://aforren1.github.io/frmtmb/reference/loo.html) and
-[`WAIC()`](https://aforren1.github.io/frmtmb/reference/loo.html) are
-brms's deprecated capitalized spellings and are defined only to name
+[`LOO()`](https://paulbuerkner.com/brms/reference/loo.brmsfit.html) and
+[`WAIC()`](https://paulbuerkner.com/brms/reference/waic.brmsfit.html)
+are brms's deprecated capitalized spellings and are defined only to name
 their replacements.
 
 ## Priors, and what these numbers mean

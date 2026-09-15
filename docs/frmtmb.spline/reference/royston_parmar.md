@@ -152,7 +152,7 @@ Monte Carlo error of 0.0154.
 
 rstpm2 reports `logtheta`, and theta is the frailty's VARIANCE, so
 `sqrt(exp(logtheta))` is the number
-[`frmtmb::VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.html)'s
+[`frmtmb::VarCorr()`](https://rdrr.io/pkg/nlme/man/VarCorr.html)'s
 standard deviation matches.
 
 The two do NOT report the same log likelihood, and the difference is the

@@ -9,8 +9,6 @@ bootstrap: simulate responses with
 ## Usage
 
 ``` r
-refit(object, newresp, ...)
-
 # S3 method for class 'frmtmb_fit'
 refit(object, newresp, start = NULL, ...)
 ```
@@ -26,15 +24,15 @@ refit(object, newresp, start = NULL, ...)
   Replacement response: a vector of the original length, or a matrix of
   the original dimensions for matrix responses.
 
-- ...:
-
-  Unused.
-
 - start:
 
   Optional named start list (as in
   [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md)); when
   given it replaces the warm start.
+
+- ...:
+
+  Unused.
 
 ## Value
 

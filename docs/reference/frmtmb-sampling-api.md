@@ -152,6 +152,19 @@ vector swaps the estimates in and calls `hyp_vals_only()` and
 `hyp_env_vals()` again. `hyp_tail_p()` is the tail probability of a
 directional claim.
 
+`hyp_shadow_arm()` and `hyp_shadow_disarm(old)` bracket ONE user-level
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+call. A covariate named like a reserved quantity, `sigma` or
+`sd_<group>__<term>`, shadows it, and the note saying which one was read
+is detected inside `hyp_env_vals()`, which runs many times per call; it
+is emitted only while armed, and once per name. Every
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+METHOD arms it on entry and restores the returned state on exit:
+`old <- hyp_shadow_arm(); on.exit(hyp_shadow_disarm(old), add = TRUE)`.
+The generic cannot do it, because the exported `hypothesis` is brms's
+generic whenever brms is loaded, and a method that does not arm loses
+the note in every session.
+
 ## The conditional-effects engine
 
 `ce_grids_build()` builds the prediction grids, effect list, condition

@@ -207,7 +207,7 @@ Recovery on the same run: <code>beta</code> 0.5984 against 0.6 at 93.0 percent
 coverage, <code>sd</code> 0.4905 against 0.5 at 92.0 percent, against a binomial
 Monte Carlo error of 0.0154.</p>
 <p>rstpm2 reports <code>logtheta</code>, and theta is the frailty's VARIANCE, so
-<code>sqrt(exp(logtheta))</code> is the number <code><a href="https://aforren1.github.io/frmtmb/reference/VarCorr.html" class="external-link">frmtmb::VarCorr()</a></code>'s standard
+<code>sqrt(exp(logtheta))</code> is the number <code><a href="https://rdrr.io/pkg/nlme/man/VarCorr.html" class="external-link">frmtmb::VarCorr()</a></code>'s standard
 deviation matches.</p>
 <p>The two do NOT report the same log likelihood, and the difference is
 the way the frailty is integrated out rather than the model. frmtmb
@@ -354,7 +354,7 @@ hazard off with a band.</p></div>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">t</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmin</a></span><span class="op">(</span><span class="va">dd</span><span class="op">$</span><span class="va">t</span>, <span class="fl">3</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">frmtmb</span><span class="fu">::</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu">frmtmb</span><span class="fu">::</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">t</span> <span class="op">|</span> <span class="fu">cens</span><span class="op">(</span><span class="va">censored</span><span class="op">)</span> <span class="op">~</span> <span class="va">trt</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                   family <span class="op">=</span> <span class="fu">royston_parmar</span><span class="op">(</span>df <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">frmtmb</span><span class="fu">::</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span></span></span>
+<span class="r-in"><span><span class="fu">frmtmb</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/nlme/man/fixed.effects.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)         trt </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  -1.7692803   0.6424672 </span>
 </code></pre></div>

@@ -15,7 +15,19 @@ nchains(x)
 
 niterations(x)
 
-nvariables(x)
+nvariables(x, ...)
+
+# S3 method for class 'frmtmb_fit'
+ndraws(x)
+
+# S3 method for class 'frmtmb_fit'
+nchains(x)
+
+# S3 method for class 'frmtmb_fit'
+niterations(x)
+
+# S3 method for class 'frmtmb_fit'
+nvariables(x, ...)
 ```
 
 ## Arguments
@@ -23,6 +35,12 @@ nvariables(x)
 - x:
 
   An object holding draws.
+
+- ...:
+
+  Unused. Carried because posterior's `nvariables()` generic has it and
+  frmtmb hands these generics back to posterior when posterior is
+  loaded.
 
 ## Value
 
@@ -40,6 +58,5 @@ number come from
 dd <- data.frame(y = rnorm(40), x = rnorm(40))
 fits <- frm_multiple(bf(y ~ x) + gaussian(), data = list(dd, dd))
 try(ndraws(fits))
-#> Error in UseMethod("ndraws") : 
-#>   no applicable method for 'ndraws' applied to an object of class "frmtmb_multiple"
+#> Error : ndraws() needs draws, and a frm_multiple() result has none: it is m maximum-likelihood fits pooled by Rubin's rules, with no chains. Read the pooled tables from `x$pooled` and `x$pooled_varcorr` or test with hypothesis(), and use frm_sample() on one imputation's fit (`x$fits[[1]]`) for draws
 ```

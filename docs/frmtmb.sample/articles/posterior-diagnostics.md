@@ -108,7 +108,7 @@ detail.
 
 ## Does the model describe the data?
 
-[`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.html)
+[`pp_check()`](https://mc-stan.org/bayesplot/reference/pp_check.html)
 overlays the observed response with responses drawn from the posterior
 predictive distribution. This is the check brms users already run, on
 the same bayesplot displays, and it is a stronger statement than the
@@ -121,10 +121,10 @@ pp_check(ds)
 pp_check(ds, type = "stat", stat = "sd")
 ```
 
-[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html) is the
-real leave-one-out here, not the
-[`AIC()`](https://rdrr.io/r/stats/AIC.html) substitute core offers. It
-runs Pareto-smoothed importance sampling on the
+[`loo()`](https://mc-stan.org/loo/reference/loo.html) is the real
+leave-one-out here, not the [`AIC()`](https://rdrr.io/r/stats/AIC.html)
+substitute core offers. It runs Pareto-smoothed importance sampling on
+the
 [`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md)
 matrix and returns the loo package’s own object, so
 [`print()`](https://rdrr.io/r/base/print.html) and
@@ -230,7 +230,7 @@ question.
 | did the optimizer converge | [`vignette("diagnostics", package = "frmtmb")`](https://aforren1.github.io/frmtmb/articles/diagnostics.html) |
 | does the family describe the data (ML) | same page: [`dharma_residuals()`](https://aforren1.github.io/frmtmb/reference/dharma_residuals.html), `residuals(type = "osa")` |
 | did the chains converge | here |
-| does the model describe the data (posterior) | here: [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.html), [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html) |
+| does the model describe the data (posterior) | here: [`pp_check()`](https://mc-stan.org/bayesplot/reference/pp_check.html), [`loo()`](https://mc-stan.org/loo/reference/loo.html) |
 | is the Laplace approximation good enough | here: [`check_laplace()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/check_laplace.md) |
 
 [`vignette("sampling", package = "frmtmb.sample")`](https://aforren1.github.io/frmtmb/frmtmb.sample/articles/sampling.md)

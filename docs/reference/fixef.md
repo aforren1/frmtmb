@@ -14,8 +14,6 @@ response prefixed ahead of that in a multivariate fit.
 ## Usage
 
 ``` r
-fixef(object, ...)
-
 # S3 method for class 'frmtmb_fit'
 fixef(object, flatten = FALSE, ...)
 ```
@@ -25,10 +23,6 @@ fixef(object, flatten = FALSE, ...)
 - object:
 
   A `frmtmb_fit`.
-
-- ...:
-
-  Unused.
 
 - flatten:
 
@@ -44,6 +38,10 @@ fixef(object, flatten = FALSE, ...)
   [`vcov()`](https://rdrr.io/r/stats/vcov.html) diagonal is `NA` for
   those entries, and `intersect(names(cf), rownames(vcov(fit)))` selects
   the ones a standard error exists for.
+
+- ...:
+
+  Unused.
 
 ## Value
 

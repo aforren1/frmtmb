@@ -1,12 +1,12 @@
 # Size of a draws object
 
-[`ndraws()`](https://aforren1.github.io/frmtmb/reference/draws-dimensions.html)
+[`ndraws()`](https://mc-stan.org/posterior/reference/draws-index.html)
 counts the post-warmup draws (all chains pooled),
-[`niterations()`](https://aforren1.github.io/frmtmb/reference/draws-dimensions.html)
+[`niterations()`](https://mc-stan.org/posterior/reference/draws-index.html)
 the draws per chain,
-[`nchains()`](https://aforren1.github.io/frmtmb/reference/draws-dimensions.html)
+[`nchains()`](https://mc-stan.org/posterior/reference/draws-index.html)
 the chains and
-[`nvariables()`](https://aforren1.github.io/frmtmb/reference/draws-dimensions.html)
+[`nvariables()`](https://mc-stan.org/posterior/reference/variables.html)
 the sampled parameters. The names and meanings are posterior's; frmtmb
 registers methods with posterior so that the generics work whether or
 not that package is attached.
@@ -24,7 +24,7 @@ nchains(x)
 niterations(x)
 
 # S3 method for class 'frmtmb_draws'
-nvariables(x)
+nvariables(x, ...)
 ```
 
 ## Arguments
@@ -33,6 +33,12 @@ nvariables(x)
 
   A `frmtmb_draws` from
   [`frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.md).
+
+- ...:
+
+  Unused.
+  [`nvariables()`](https://mc-stan.org/posterior/reference/variables.html)
+  carries it because posterior's generic does.
 
 ## Value
 

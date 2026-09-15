@@ -52,8 +52,8 @@ samples `b` alongside everything else, so each row of the draws matrix
 is a complete parameter vector and no integration is left to do. This is
 exactly brms's convention, where the Stan model also samples the
 group-level parameters. The consequence is worth stating plainly:
-[`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html) on such
-a matrix is leave-one-OBSERVATION-out with the groups held fixed, not
+[`loo()`](https://mc-stan.org/loo/reference/loo.html) on such a matrix
+is leave-one-OBSERVATION-out with the groups held fixed, not
 leave-one-group-out, and for a model with few observations per group the
 two differ.
 
@@ -102,8 +102,8 @@ then carries `attr(x, "unit")` naming what a column is.
 [`loo::loo.matrix()`](https://mc-stan.org/loo/reference/loo.html) never
 sees that attribute and its printout says only "Computed from N by K
 log-likelihood matrix", which reads exactly like a per-observation one,
-so [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html),
-[`waic()`](https://aforren1.github.io/frmtmb/reference/loo.html) and
+so [`loo()`](https://mc-stan.org/loo/reference/loo.html),
+[`waic()`](https://mc-stan.org/loo/reference/waic.html) and
 [`psis()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-loo.md)
 emit a message naming the unit and the column count when they are handed
 such a matrix. The elpd is then leave-one-UNIT-out, and the number

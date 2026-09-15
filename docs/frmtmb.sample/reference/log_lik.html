@@ -13,7 +13,7 @@ matrix, and frmtmb::loo(), frmtmb::waic() and loo::psis() take it directly."></h
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -103,7 +103,7 @@ observation (the rows the model was fitted on).</p>
 the draws matrix is a complete parameter vector and no integration is
 left to do. This is exactly brms's convention, where the Stan model
 also samples the group-level parameters. The consequence is worth
-stating plainly: <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo()</a></code> on such a matrix is leave-one-OBSERVATION-out
+stating plainly: <code><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo()</a></code> on such a matrix is leave-one-OBSERVATION-out
 with the groups held fixed, not leave-one-group-out, and for a model
 with few observations per group the two differ.</p>
 <p>Addition terms enter exactly as they enter the fitted objective,
@@ -146,7 +146,7 @@ droppable, which is exactly the question a leave-one-out column asks.
 The matrix then carries <code>attr(x, "unit")</code> naming what a column is.
 <code><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo::loo.matrix()</a></code> never sees that attribute and its printout says
 only "Computed from N by K log-likelihood matrix", which reads
-exactly like a per-observation one, so <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">waic()</a></code> and
+exactly like a per-observation one, so <code><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo()</a></code>, <code><a href="https://mc-stan.org/loo/reference/waic.html" class="external-link">waic()</a></code> and
 <code><a href="sample-loo.html">psis()</a></code> emit a message naming the unit and the column count when
 they are handed such a matrix. The elpd is then leave-one-UNIT-out,
 and the number itself carries no mark of that.</p>

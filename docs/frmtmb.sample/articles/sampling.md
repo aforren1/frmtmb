@@ -162,9 +162,9 @@ works through them with the tools this package provides for each:
 and
 [`nuts_params()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
 for the sampler,
-[`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.html)
-and [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html) for
-the model, and
+[`pp_check()`](https://mc-stan.org/bayesplot/reference/pp_check.html)
+and [`loo()`](https://mc-stan.org/loo/reference/loo.html) for the model,
+and
 [`check_laplace()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/check_laplace.md)
 for the approximation.
 
@@ -187,7 +187,7 @@ mcmc_plot(ds, type = "trace")
 
 Parameter names drop parentheses on the draws side – `Intercept`, not
 `(Intercept)` – because that is the vocabulary posterior, bayesplot and
-[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.html)
+[`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)
 already speak. `variables(ds)` lists them.
 
 ## Conditional effects draw the frame the fit draws
@@ -232,7 +232,7 @@ over a grid you build yourself.
 
 ## Evidence ratios and Bayes factors
 
-[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.html)
+[`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)
 reports `evid_ratio` and `post_prob` beside the interval. They are
 brms’s `Evid.Ratio` and `Post.Prob`, and they answer two different
 questions depending on how the hypothesis is written.

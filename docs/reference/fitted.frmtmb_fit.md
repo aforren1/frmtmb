@@ -44,7 +44,9 @@ the coefficients live and where `se.fit` is available, is
 ## See also
 
 [`predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md),
-[`residuals.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/residuals.frmtmb_fit.md)
+[`residuals.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/residuals.frmtmb_fit.md),
+[frmtmb-scales](https://aforren1.github.io/frmtmb/reference/frmtmb-scales.md)
+for which scale each method reports
 
 ## Examples
 

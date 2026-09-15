@@ -199,9 +199,9 @@ bounds the prior carries.
 
 The returned object supports the whole draws surface -
 [`summary()`](https://rdrr.io/r/base/summary.html),
-[`frmtmb::fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.html),
-[`frmtmb::VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.html),
-[`frmtmb::ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.html),
+[`frmtmb::fixef()`](https://rdrr.io/pkg/nlme/man/fixed.effects.html),
+[`frmtmb::VarCorr()`](https://rdrr.io/pkg/nlme/man/VarCorr.html),
+[`frmtmb::ranef()`](https://rdrr.io/pkg/nlme/man/random.effects.html),
 [`frmtmb::hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.html),
 [`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
 [`posterior_predict()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
@@ -218,9 +218,9 @@ embedded object reachable as `x$fit`,
 [`vcov()`](https://rdrr.io/r/stats/vcov.html),
 [`confint()`](https://rdrr.io/r/stats/confint.html),
 [`logLik()`](https://rdrr.io/r/stats/logLik.html),
-[`frmtmb::fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.html),
-[`frmtmb::ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.html),
-[`frmtmb::VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.html),
+[`frmtmb::fixef()`](https://rdrr.io/pkg/nlme/man/fixed.effects.html),
+[`frmtmb::ranef()`](https://rdrr.io/pkg/nlme/man/random.effects.html),
+[`frmtmb::VarCorr()`](https://rdrr.io/pkg/nlme/man/VarCorr.html),
 [`predict()`](https://rdrr.io/r/stats/predict.html),
 [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
 [`residuals()`](https://rdrr.io/r/stats/residuals.html) and
@@ -241,7 +241,7 @@ ITS OWN `theta`, so the `b[i]` columns of the draws matrix hold the same
 quantity in the same order under the same names as
 `reparameterize = FALSE` gives, and every method downstream
 ([`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
-[`frmtmb::ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.html),
+[`frmtmb::ranef()`](https://rdrr.io/pkg/nlme/man/random.effects.html),
 [`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md),
 [`frmtmb::loo()`](https://aforren1.github.io/frmtmb/reference/loo.html),
 [`frmtmb::conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.html),
@@ -370,7 +370,7 @@ deliberately left flat, so a model that gets few defaults - or none -
 says so rather than looking flat by accident. Wrap it in
 [`suppressMessages()`](https://rdrr.io/r/base/message.html) to silence
 that.
-[`prior_summary()`](https://aforren1.github.io/frmtmb/reference/prior_summary.html)
+[`prior_summary()`](https://mc-stan.org/rstantools/reference/prior_summary.html)
 on the returned draws reproduces the chosen priors exactly.
 
 *What is deliberately NOT matched.* Each of these is named in the
@@ -426,7 +426,7 @@ defaults. Each addressed slot is settled by the most explicit source
 that names it, one slot at a time: a call-level
 `set_prior(class = "sd")` replaces the fit's `sd` prior and the `sd`
 default while the `Intercept` default stays.
-[`prior_summary()`](https://aforren1.github.io/frmtmb/reference/prior_summary.html)
+[`prior_summary()`](https://mc-stan.org/rstantools/reference/prior_summary.html)
 on the returned draws prints what the stack came to.
 
 ## The pre-flight against the compatibility registry

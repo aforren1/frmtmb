@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -206,12 +206,12 @@ parameterization.</p>
 </h2>
 <p>Parameter names drop parentheses on the draws side:
 <code>Intercept</code>, not <code>(Intercept)</code>. That is the
-vocabulary posterior, bayesplot and <code><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis()</a></code> already
-speak, so a ported <code><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis()</a></code> string usually needs no
+vocabulary posterior, bayesplot and <code><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis()</a></code> already
+speak, so a ported <code><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis()</a></code> string usually needs no
 edit.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/variables.html" class="external-link">variables</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://mc-stan.org/posterior/reference/variables.html" class="external-link">variables</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"</span><span class="op">)</span></span></code></pre></div>
 <p><code><a href="../reference/draws-diagnostics.html">rhat()</a></code>, <code><a href="../reference/draws-diagnostics.html">neff_ratio()</a></code> and
 <code><a href="../reference/draws-diagnostics.html">nuts_params()</a></code> are the exception. They read the
 <code>stanfit</code> directly and report Stan’s own names.</p>
@@ -221,15 +221,15 @@ edit.</p>
 </h2>
 <p>The post-processing generics are brms’s own, on a
 <code>frmtmb_draws</code> object, so most ported code runs unchanged:
-<code><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/ranef.html" class="external-link">ranef()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/VarCorr.html" class="external-link">VarCorr()</a></code>,
+<code><a href="https://rdrr.io/pkg/nlme/man/fixed.effects.html" class="external-link">fixef()</a></code>, <code><a href="https://rdrr.io/pkg/nlme/man/random.effects.html" class="external-link">ranef()</a></code>, <code><a href="https://rdrr.io/pkg/nlme/man/VarCorr.html" class="external-link">VarCorr()</a></code>,
 <code><a href="../reference/posterior_epred.html">posterior_epred()</a></code>, <code><a href="../reference/posterior_epred.html">posterior_predict()</a></code>,
 <code><a href="../reference/posterior_epred.html">posterior_linpred()</a></code>, <code><a href="../reference/log_lik.html">log_lik()</a></code>,
-<code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">waic()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/bayes_R2.html" class="external-link">bayes_R2()</a></code>,
-<code><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/conditional_effects.html" class="external-link">conditional_effects()</a></code>,
-<code><a href="https://aforren1.github.io/frmtmb/reference/pp_check.html" class="external-link">pp_check()</a></code>, <code><a href="../reference/draws-diagnostics.html">mcmc_plot()</a></code>,
-<code><a href="https://aforren1.github.io/frmtmb/reference/prior_summary.html" class="external-link">prior_summary()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/as_draws.html" class="external-link">as_draws()</a></code> and the
+<code><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo()</a></code>, <code><a href="https://mc-stan.org/loo/reference/waic.html" class="external-link">waic()</a></code>, <code><a href="https://mc-stan.org/rstantools/reference/bayes_R2.html" class="external-link">bayes_R2()</a></code>,
+<code><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis()</a></code>, <code><a href="https://paulbuerkner.com/brms/reference/conditional_effects.brmsfit.html" class="external-link">conditional_effects()</a></code>,
+<code><a href="https://mc-stan.org/bayesplot/reference/pp_check.html" class="external-link">pp_check()</a></code>, <code><a href="../reference/draws-diagnostics.html">mcmc_plot()</a></code>,
+<code><a href="https://mc-stan.org/rstantools/reference/prior_summary.html" class="external-link">prior_summary()</a></code>, <code><a href="https://mc-stan.org/posterior/reference/draws.html" class="external-link">as_draws()</a></code> and the
 <code>posterior</code> and <code>coda</code> conversions.</p>
-<p><code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo()</a></code> here is the real leave-one-out, not the
+<p><code><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo()</a></code> here is the real leave-one-out, not the
 <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code> substitute core offers, and it returns the loo
 package’s own object.</p>
 </div>
@@ -319,7 +319,7 @@ it</td>
 <p><strong>The refit-based loo remedies.</strong> <code><a href="../reference/frmtmb-loo-refusals.html">reloo()</a></code>,
 <code><a href="../reference/frmtmb-loo-refusals.html">kfold()</a></code>, <code><a href="../reference/frmtmb-loo-refusals.html">loo_moment_match()</a></code> and
 <code><a href="../reference/frmtmb-loo-refusals.html">loo_subsample()</a></code> each need to refit the model on modified
-data, and that machinery is not here. When <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo()</a></code> reports
+data, and that machinery is not here. When <code><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo()</a></code> reports
 high Pareto k values, sample under the default priors rather than
 <code>prior = "flat"</code> and read the number again; if the warning
 survives, compare the maximum-likelihood fits by <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code>, or

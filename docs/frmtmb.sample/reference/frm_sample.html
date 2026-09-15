@@ -17,7 +17,7 @@ formula)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -248,14 +248,14 @@ guards). There is no mode, so the default <code>init</code> is <code>"random"</c
 Stan's own overdispersed initialization on the unconstrained scale,
 inside any bounds the prior carries.</p>
 <p>The returned object supports the whole draws surface -
-<code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">frmtmb::fixef()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/VarCorr.html" class="external-link">frmtmb::VarCorr()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/ranef.html" class="external-link">frmtmb::ranef()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">frmtmb::hypothesis()</a></code>,
+<code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/pkg/nlme/man/fixed.effects.html" class="external-link">frmtmb::fixef()</a></code>, <code><a href="https://rdrr.io/pkg/nlme/man/VarCorr.html" class="external-link">frmtmb::VarCorr()</a></code>, <code><a href="https://rdrr.io/pkg/nlme/man/random.effects.html" class="external-link">frmtmb::ranef()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">frmtmb::hypothesis()</a></code>,
 <code><a href="posterior_epred.html">posterior_epred()</a></code>, <code><a href="posterior_epred.html">posterior_predict()</a></code>, <code><a href="posterior_epred.html">posterior_linpred()</a></code>,
 <code><a href="https://aforren1.github.io/frmtmb/reference/pp_check.html" class="external-link">frmtmb::pp_check()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/as_draws.html" class="external-link">frmtmb::as_draws()</a></code> - because those read the model frame and
 one draw at a time. The methods that report a maximum-likelihood
 quantity refuse instead of inventing one: <code><a href="check_laplace.html">check_laplace()</a></code> (it
 compares NUTS against a mode that does not exist here), and on the
 embedded object reachable as <code>x$fit</code>, <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code>,
-<code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">frmtmb::fixef()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/ranef.html" class="external-link">frmtmb::ranef()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/VarCorr.html" class="external-link">frmtmb::VarCorr()</a></code>,
+<code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code>, <code><a href="https://rdrr.io/pkg/nlme/man/fixed.effects.html" class="external-link">frmtmb::fixef()</a></code>, <code><a href="https://rdrr.io/pkg/nlme/man/random.effects.html" class="external-link">frmtmb::ranef()</a></code>, <code><a href="https://rdrr.io/pkg/nlme/man/VarCorr.html" class="external-link">frmtmb::VarCorr()</a></code>,
 <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>, <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> and <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>.</p>
     </div>
     <div class="section level2">
@@ -273,7 +273,7 @@ Cholesky factor, which is brms's construction. Each draw is mapped back
 through ITS OWN <code>theta</code>, so the <code>b[i]</code> columns of the draws matrix
 hold the same quantity in the same order under the same names as
 <code>reparameterize = FALSE</code> gives, and every method downstream
-(<code><a href="posterior_epred.html">posterior_epred()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/ranef.html" class="external-link">frmtmb::ranef()</a></code>, <code><a href="log_lik.html">log_lik()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">frmtmb::loo()</a></code>,
+(<code><a href="posterior_epred.html">posterior_epred()</a></code>, <code><a href="https://rdrr.io/pkg/nlme/man/random.effects.html" class="external-link">frmtmb::ranef()</a></code>, <code><a href="log_lik.html">log_lik()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">frmtmb::loo()</a></code>,
 <code><a href="https://aforren1.github.io/frmtmb/reference/conditional_effects.html" class="external-link">frmtmb::conditional_effects()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">frmtmb::hypothesis()</a></code>) reads them without knowing
 which route produced them. Only the <code>stanfit</code> inside the object
 carries <code>z</code>.</p>
@@ -375,7 +375,7 @@ location.</p>
 class, AND one line per slot it deliberately left flat, so a model
 that gets few defaults - or none - says so rather than looking flat
 by accident. Wrap it in <code><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages()</a></code> to silence that.
-<code><a href="https://aforren1.github.io/frmtmb/reference/prior_summary.html" class="external-link">prior_summary()</a></code> on the returned draws reproduces the chosen priors
+<code><a href="https://mc-stan.org/rstantools/reference/prior_summary.html" class="external-link">prior_summary()</a></code> on the returned draws reproduces the chosen priors
 exactly.</p>
 <p><em>What is deliberately NOT matched.</em> Each of these is named in the
 message whenever the model has one.</p><ul><li><p>A <code>toep()</code> correlation stays flat. Its banded parameterization is
@@ -419,7 +419,7 @@ makes a MAP fit, and that prior is part of the model the fit is),
 then the defaults. Each addressed slot is settled by the most
 explicit source that names it, one slot at a time: a call-level
 <code>set_prior(class = "sd")</code> replaces the fit's <code>sd</code> prior and the <code>sd</code>
-default while the <code>Intercept</code> default stays. <code><a href="https://aforren1.github.io/frmtmb/reference/prior_summary.html" class="external-link">prior_summary()</a></code> on
+default while the <code>Intercept</code> default stays. <code><a href="https://mc-stan.org/rstantools/reference/prior_summary.html" class="external-link">prior_summary()</a></code> on
 the returned draws prints what the stack came to.</p>
     </div>
     <div class="section level2">
@@ -494,7 +494,7 @@ individually.</p>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu">frm_sample</span><span class="op">(</span><span class="va">fit</span>, chains <span class="op">=</span> <span class="fl">1</span>, iter <span class="op">=</span> <span class="fl">500</span>, refresh <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/pkg/nlme/man/fixed.effects.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># the same model sampled straight from the formula, with no ML fit.</span></span></span>
@@ -503,7 +503,7 @@ individually.</p>
 <span class="r-in"><span><span class="va">ds2</span> <span class="op">&lt;-</span> <span class="fu">frm_sample</span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                  chains <span class="op">=</span> <span class="fl">1</span>, iter <span class="op">=</span> <span class="fl">500</span>, refresh <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/prior_summary.html" class="external-link">prior_summary</a></span><span class="op">(</span><span class="va">ds2</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">ds2</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/pkg/nlme/man/fixed.effects.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">ds2</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># a set_prior() specification takes over the classes it names and</span></span></span>
 <span class="r-in"><span><span class="co"># leaves the rest of the defaults alone</span></span></span>

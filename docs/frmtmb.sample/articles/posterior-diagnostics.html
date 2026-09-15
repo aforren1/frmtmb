@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -169,25 +169,25 @@ every diagnostic on this page looks perfect when it does.
 <div class="section level2">
 <h2 id="does-the-model-describe-the-data">Does the model describe the data?<a class="anchor" aria-label="anchor" href="#does-the-model-describe-the-data"></a>
 </h2>
-<p><code><a href="https://aforren1.github.io/frmtmb/reference/pp_check.html" class="external-link">pp_check()</a></code> overlays the observed response with responses
+<p><code><a href="https://mc-stan.org/bayesplot/reference/pp_check.html" class="external-link">pp_check()</a></code> overlays the observed response with responses
 drawn from the posterior predictive distribution. This is the check brms
 users already run, on the same bayesplot displays, and it is a stronger
 statement than the maximum-likelihood version in core, because the draws
 carry parameter uncertainty into the simulated responses.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/pp_check.html" class="external-link">pp_check</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/pp_check.html" class="external-link">pp_check</a></span><span class="op">(</span><span class="va">ds</span>, type <span class="op">=</span> <span class="st">"stat"</span>, stat <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span></span></code></pre></div>
-<p><code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo()</a></code> is the real leave-one-out here, not the
+<code class="sourceCode R"><span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/pp_check.html" class="external-link">pp_check</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/pp_check.html" class="external-link">pp_check</a></span><span class="op">(</span><span class="va">ds</span>, type <span class="op">=</span> <span class="st">"stat"</span>, stat <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo()</a></code> is the real leave-one-out here, not the
 <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code> substitute core offers. It runs Pareto-smoothed
 importance sampling on the <code><a href="../reference/log_lik.html">log_lik()</a></code> matrix and returns the
 loo package’s own object, so <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> and
 <code><a href="https://mc-stan.org/loo/reference/pareto-k-diagnostic.html" class="external-link">loo::pareto_k_table()</a></code> work on it unchanged.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># a comparison is two sampled models, each with its own elpd</span></span>
 <span><span class="va">ds0</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span>, chains <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo_compare</a></span><span class="op">(</span><span class="va">ds</span>, <span class="va">ds0</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://mc-stan.org/loo/reference/loo_compare.html" class="external-link">loo_compare</a></span><span class="op">(</span><span class="va">ds</span>, <span class="va">ds0</span><span class="op">)</span></span></code></pre></div>
 <p>A high Pareto k is a real finding here, because the refit-based
 remedies are absent: <code><a href="../reference/frmtmb-loo-refusals.html">reloo()</a></code>, <code><a href="../reference/frmtmb-loo-refusals.html">kfold()</a></code>,
 <code><a href="../reference/frmtmb-loo-refusals.html">loo_moment_match()</a></code> and <code><a href="../reference/frmtmb-loo-refusals.html">loo_subsample()</a></code> all
@@ -289,7 +289,7 @@ usually not the question.</p>
 </tr>
 <tr class="even">
 <td>does the model describe the data (posterior)</td>
-<td>here: <code><a href="https://aforren1.github.io/frmtmb/reference/pp_check.html" class="external-link">pp_check()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo()</a></code>
+<td>here: <code><a href="https://mc-stan.org/bayesplot/reference/pp_check.html" class="external-link">pp_check()</a></code>, <code><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo()</a></code>
 </td>
 </tr>
 <tr class="odd">

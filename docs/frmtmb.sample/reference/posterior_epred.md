@@ -176,7 +176,7 @@ rather than a value, because `NULL` (keep the random effects) and `NA`
 (drop them) are both real settings here and neither can double as
 "unset". The behavior when neither is given is unchanged: `NULL` on
 every draws method, `NA` on
-[`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.html)
+[`pp_check()`](https://mc-stan.org/bayesplot/reference/pp_check.html)
 for a fit.
 
 ## Examples

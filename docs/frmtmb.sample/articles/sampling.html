@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -175,7 +175,7 @@ partial-override rule.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="va">fit</span>, chains <span class="op">=</span> <span class="fl">4</span>,</span>
 <span>                 prior <span class="op">=</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/set_prior.html" class="external-link">set_prior</a></span><span class="op">(</span><span class="st">"exponential(1)"</span>, class <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/prior_summary.html" class="external-link">prior_summary</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://mc-stan.org/rstantools/reference/prior_summary.html" class="external-link">prior_summary</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="non-centering">Non-centering<a class="anchor" aria-label="anchor" href="#non-centering"></a>
@@ -209,8 +209,8 @@ maximum-likelihood fit held in the first place are three separate
 questions, and <code><a href="../articles/posterior-diagnostics.html">vignette("posterior-diagnostics")</a></code> works
 through them with the tools this package provides for each:
 <code><a href="../reference/draws-diagnostics.html">rhat()</a></code>, <code><a href="../reference/draws-diagnostics.html">neff_ratio()</a></code> and
-<code><a href="../reference/draws-diagnostics.html">nuts_params()</a></code> for the sampler, <code><a href="https://aforren1.github.io/frmtmb/reference/pp_check.html" class="external-link">pp_check()</a></code> and
-<code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo()</a></code> for the model, and <code><a href="../reference/check_laplace.html">check_laplace()</a></code> for
+<code><a href="../reference/draws-diagnostics.html">nuts_params()</a></code> for the sampler, <code><a href="https://mc-stan.org/bayesplot/reference/pp_check.html" class="external-link">pp_check()</a></code> and
+<code><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo()</a></code> for the model, and <code><a href="../reference/check_laplace.html">check_laplace()</a></code> for
 the approximation.</p>
 </div>
 <div class="section level2">
@@ -219,17 +219,17 @@ the approximation.</p>
 <p>The draws object supports the post-processing surface a brmsfit does,
 on the same generics:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/ranef.html" class="external-link">ranef</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/VarCorr.html" class="external-link">VarCorr</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/nlme/man/fixed.effects.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/pkg/nlme/man/random.effects.html" class="external-link">ranef</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/pkg/nlme/man/VarCorr.html" class="external-link">VarCorr</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/posterior_epred.html">posterior_epred</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="../reference/posterior_epred.html">posterior_predict</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="../reference/posterior_epred.html">posterior_linpred</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/conditional_effects.html" class="external-link">conditional_effects</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/pp_check.html" class="external-link">pp_check</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/log_lik.html">log_lik</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">loo</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">waic</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bayes_R2.html" class="external-link">bayes_R2</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/as_draws.html" class="external-link">as_draws</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/base/array.html" class="external-link">as.array</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="../reference/sample-as_draws.html">as.mcmc</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/conditional_effects.brmsfit.html" class="external-link">conditional_effects</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/pp_check.html" class="external-link">pp_check</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/log_lik.html">log_lik</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="https://mc-stan.org/loo/reference/waic.html" class="external-link">waic</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="https://mc-stan.org/rstantools/reference/bayes_R2.html" class="external-link">bayes_R2</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://mc-stan.org/posterior/reference/draws.html" class="external-link">as_draws</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/base/array.html" class="external-link">as.array</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span>; <span class="fu"><a href="../reference/sample-as_draws.html">as.mcmc</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/draws-diagnostics.html">mcmc_plot</a></span><span class="op">(</span><span class="va">ds</span>, type <span class="op">=</span> <span class="st">"trace"</span><span class="op">)</span></span></code></pre></div>
 <p>Parameter names drop parentheses on the draws side –
 <code>Intercept</code>, not <code>(Intercept)</code> – because that is
-the vocabulary posterior, bayesplot and <code><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis()</a></code>
+the vocabulary posterior, bayesplot and <code><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis()</a></code>
 already speak. <code>variables(ds)</code> lists them.</p>
 </div>
 <div class="section level2">
@@ -258,11 +258,11 @@ parameters. The band is wider than the population band by what that
 group’s variance adds, which is the whole point of asking.
 <code>seed =</code> makes the draw reproducible.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/conditional_effects.html" class="external-link">conditional_effects</a></span><span class="op">(</span><span class="va">ds</span>, effects <span class="op">=</span> <span class="st">"x"</span><span class="op">)</span>                 <span class="co"># population</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/conditional_effects.html" class="external-link">conditional_effects</a></span><span class="op">(</span><span class="va">ds</span>, effects <span class="op">=</span> <span class="st">"x"</span>, re_formula <span class="op">=</span> <span class="cn">NULL</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/conditional_effects.html" class="external-link">conditional_effects</a></span><span class="op">(</span><span class="va">ds</span>, effects <span class="op">=</span> <span class="st">"x:z"</span>,</span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/conditional_effects.brmsfit.html" class="external-link">conditional_effects</a></span><span class="op">(</span><span class="va">ds</span>, effects <span class="op">=</span> <span class="st">"x"</span><span class="op">)</span>                 <span class="co"># population</span></span>
+<span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/conditional_effects.brmsfit.html" class="external-link">conditional_effects</a></span><span class="op">(</span><span class="va">ds</span>, effects <span class="op">=</span> <span class="st">"x"</span>, re_formula <span class="op">=</span> <span class="cn">NULL</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/conditional_effects.brmsfit.html" class="external-link">conditional_effects</a></span><span class="op">(</span><span class="va">ds</span>, effects <span class="op">=</span> <span class="st">"x:z"</span>,</span>
 <span>                    int_conditions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>z <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>low <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>, high <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/conditional_effects.html" class="external-link">conditional_effects</a></span><span class="op">(</span><span class="va">ds</span>, categorical <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>  <span class="co"># ordinal: E[category]</span></span></code></pre></div>
+<span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/conditional_effects.brmsfit.html" class="external-link">conditional_effects</a></span><span class="op">(</span><span class="va">ds</span>, categorical <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>  <span class="co"># ordinal: E[category]</span></span></code></pre></div>
 <p>There is no <code>method =</code> and no <code>band =</code>. The
 curves ARE the posterior, so there is no wald/profile/boot choice to
 make. For a predictive band, quantile <code><a href="../reference/posterior_epred.html">posterior_predict()</a></code>
@@ -271,7 +271,7 @@ over a grid you build yourself.</p>
 <div class="section level2">
 <h2 id="evidence-ratios-and-bayes-factors">Evidence ratios and Bayes factors<a class="anchor" aria-label="anchor" href="#evidence-ratios-and-bayes-factors"></a>
 </h2>
-<p><code><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis()</a></code> reports <code>evid_ratio</code> and
+<p><code><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis()</a></code> reports <code>evid_ratio</code> and
 <code>post_prob</code> beside the interval. They are brms’s
 <code>Evid.Ratio</code> and <code>Post.Prob</code>, and they answer two
 different questions depending on how the hypothesis is written.</p>
@@ -279,7 +279,7 @@ different questions depending on how the hypothesis is written.</p>
 posterior odds of the claim, counted from the draws. No prior enters it,
 so it is always available.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">h</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"x &gt; 0"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">h</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"x &gt; 0"</span><span class="op">)</span></span>
 <span><span class="va">h</span><span class="op">$</span><span class="va">evid_ratio</span>   <span class="co"># P(x &gt; 0) / P(x &lt; 0)</span></span>
 <span><span class="va">h</span><span class="op">$</span><span class="va">post_prob</span>    <span class="co"># P(x &gt; 0)</span></span></code></pre></div>
 <p>A POINT hypothesis is the Savage-Dickey density ratio: the posterior
@@ -290,7 +290,7 @@ the Bayes factor. It needs a proper prior on the parameter, and
 because brms does, so write one:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="va">fit</span>, prior <span class="op">=</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/set_prior.html" class="external-link">set_prior</a></span><span class="op">(</span><span class="st">"normal(0, 1)"</span>, class <span class="op">=</span> <span class="st">"b"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"x = 0"</span><span class="op">)</span><span class="op">$</span><span class="va">evid_ratio</span></span></code></pre></div>
+<span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"x = 0"</span><span class="op">)</span><span class="op">$</span><span class="va">evid_ratio</span></span></code></pre></div>
 <p>Without a proper prior the ratio is <code>NA</code> and a warning
 names the parameter and says what to write. The other rows of the same
 call still report.</p>
@@ -305,7 +305,7 @@ error goes away with it.</p>
 <p>A density ratio deserves an error bar. The between-chain Monte Carlo
 error of each ratio rides on the returned object:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">h</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"x = 0"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">h</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"x = 0"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">h</span>, <span class="st">"evid_ratio_mcse"</span><span class="op">)</span></span></code></pre></div>
 <div class="section level3">
 <h3 id="what-a-point-ratio-refuses">What a point ratio refuses<a class="anchor" aria-label="anchor" href="#what-a-point-ratio-refuses"></a>

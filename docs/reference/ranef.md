@@ -5,8 +5,6 @@ Extract random-effect modes
 ## Usage
 
 ``` r
-ranef(object, ...)
-
 # S3 method for class 'frmtmb_fit'
 ranef(object, condVar = FALSE, ...)
 ```
@@ -17,15 +15,15 @@ ranef(object, condVar = FALSE, ...)
 
   A `frmtmb_fit`.
 
-- ...:
-
-  Unused.
-
 - condVar:
 
   If `TRUE`, attach the conditional SDs of the modes (from the Laplace
   posterior) as a `"condSD"` attribute on each matrix, in matching
   layout.
+
+- ...:
+
+  Unused.
 
 ## Value
 

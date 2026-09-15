@@ -150,6 +150,11 @@ convention), which for a mixed model is the Laplace-approximated
 marginal deviance and does **not** equal
 `sum(residuals(fit, type = "deviance")^2)`.
 
+## See also
+
+[frmtmb-scales](https://aforren1.github.io/frmtmb/reference/frmtmb-scales.md)
+for which scale each type is on.
+
 ## Examples
 
 ``` r
