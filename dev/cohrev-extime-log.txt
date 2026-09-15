@@ -1,0 +1,16 @@
+RESULT lane round 1 ex_cpu 3.53 ex_user 3.23 ex_sys 0.30 ex_elapsed 3.98 calib_cpu 0.210 calib_elapsed 0.200
+WORK lane objective 305.7981502108 iters 2 evals 3,2 npar 4
+RESULT base round 1 ex_cpu 6.75 ex_user 6.02 ex_sys 0.73 ex_elapsed 12.75 calib_cpu 0.890 calib_elapsed 1.450
+WORK base objective 305.7981502108 iters 2 evals 3,2 npar 4
+RESULT lane round 1 ex_cpu 6.57 ex_user 5.93 ex_sys 0.64 ex_elapsed 17.38 calib_cpu 0.940 calib_elapsed 1.540
+WORK lane objective 305.7981502108 iters 2 evals 3,2 npar 4
+RESULT base round 1 ex_cpu 3.10 ex_user 2.80 ex_sys 0.30 ex_elapsed 3.97 calib_cpu 0.950 calib_elapsed 1.330
+WORK base objective 305.7981502108 iters 2 evals 3,2 npar 4
+RESULT lane round 1 ex_cpu 2.95 ex_user 2.67 ex_sys 0.28 ex_elapsed 4.26 calib_cpu 0.220 calib_elapsed 0.240
+WORK lane objective 305.7981502108 iters 2 evals 3,2 npar 4
+RESULT base round 1 ex_cpu 3.15 ex_user 2.93 ex_sys 0.22 ex_elapsed 3.79 calib_cpu 0.280 calib_elapsed 0.280
+WORK base objective 305.7981502108 iters 2 evals 3,2 npar 4
+RESULT lane round 1 ex_cpu 3.05 ex_user 2.75 ex_sys 0.30 ex_elapsed 3.15 calib_cpu 0.270 calib_elapsed 0.340
+WORK lane objective 305.7981502108 iters 2 evals 3,2 npar 4
+RESULT base round 1 ex_cpu 2.82 ex_user 2.50 ex_sys 0.32 ex_elapsed 3.00 calib_cpu 0.320 calib_elapsed 0.310
+WORK base objective 305.7981502108 iters 2 evals 3,2 npar 4

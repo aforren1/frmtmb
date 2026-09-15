@@ -251,6 +251,134 @@ test_that("a random effect on every dpar keeps the variance component alive", {
   expect_lt(collapsed, R / 2)
 })
 
+## Item 2.6's design, small enough for the ordinary suite: one
+## subject-by-condition cell per (id, cond) with `n_rep` replicate rows
+## drawn from the same spectral matrix, no frequency axis, and only the
+## coherence carrying structure.
+##
+## The id-by-condition deviations are drawn at sd 1 and SCALED, because
+## `rnorm(n, 0, 0)` returns without touching the random-number stream:
+## the two arms below have to differ in that one component and in
+## nothing else, and drawing at sd 0 would move every Wishart draw
+## after it as well.
+##
+## cp_units() reads HALF the logit coherence, since its coherence is
+## `plogis(2 * eta)`, so a contrast of `b_cond` on the logit scale is
+## passed as `b_cond / 2`.
+##
+## `lb` is not free. cp_units() builds the second channel as
+## `cm z1 + b z2` with `cm = b exp(eta)`, so its power is
+## `b^2 (1 + exp(2 eta))`: leaving `lb` at 0 would tie the second
+## channel's POWER to the coherence and give a 2.6-fold power spread
+## across these rows, which is the trap `?cross_wishart` warns about and
+## which `pow2 ~ 1` would then be the wrong model for. Choosing `lb` to
+## cancel that factor holds both powers at 1 and leaves the coherence
+## alone, since coherence is invariant to scaling a channel.
+cp_cells <- function(seed, n_sub, n_rep, sd_idcond, sd_id = 0.35,
+                     b0 = -0.6, b_cond = 0.5, n = 8L) {
+  set.seed(seed)
+  d <- expand.grid(rep = seq_len(n_rep), cond = factor(c("a", "b")),
+                   id = factor(seq_len(n_sub)))
+  u_id <- stats::rnorm(n_sub) * sd_id
+  u_ic <- stats::rnorm(n_sub * 2L) * sd_idcond
+  ic <- as.integer(d$id) + n_sub * (as.integer(d$cond) - 1L)
+  lc <- b0 + b_cond * (d$cond == "b") + u_id[as.integer(d$id)] + u_ic[ic]
+  w <- cp_units(lc / 2, rep(0.4, nrow(d)), n = n,
+                la = numeric(nrow(d)), lb = -0.5 * log1p(exp(lc)))
+  cbind(d[, c("id", "cond")],
+        w[, c("w11", "w22", "w12r", "w12i", "n")])
+}
+
+## The powers and the phase are constants in that design, so an
+## intercept is the correct model for them and only the coherence
+## carries the ladder.
+cp_bf_coh <- function(rhs) {
+  frmtmb::bf(cp_form("1"), pow2 ~ 1,
+             stats::as.formula(paste0("coh ~ ", rhs)), phase ~ 1)
+}
+
+cp_width <- function(rhs, d) {
+  fit <- suppressWarnings(
+    frmtmb::frm(cp_bf_coh(rhs), family = cross_wishart(), data = d,
+                se = TRUE))
+  ci <- suppressWarnings(stats::confint(fit))
+  unname(ci["coh_condb", "upr"] - ci["coh_condb", "lwr"])
+}
+
+test_that("a within-condition contrast needs the within-subject term", {
+  # Item 2.6 of dev/extension-gaps-plan.md. `cond` varies INSIDE a
+  # subject, so `(1 | id)` shifts both of that subject's conditions
+  # together and cancels out of the contrast: `(1 | id:cond)` is the
+  # term that carries the contrast's between-subject spread. Drop it
+  # and the estimate hardly moves while its interval collapses, which
+  # is the failure one fit cannot see.
+  #
+  # At the realistic design, 40 subjects x 2 conditions x 60
+  # frequencies, dev/coh-findings.md measures the interval of
+  # `cond + s(freq, by = cond) + (1 | id)` at 0.37 times the correct
+  # model's over 148 replicates, covering a truth of 0.5 on 78 of them
+  # against the correct model's 141.
+  #
+  # The two arms. TREATMENT has the subject-by-condition effect; NULL
+  # does not, which makes `(1 | id)` correct there too, so a widening
+  # that were really "an added term always widens an interval" would
+  # show up in both.
+  #
+  # The statistic is PAIRED, seed by seed, and that is not a
+  # refinement. The unpaired version, the mean treatment ratio against
+  # the largest null ratio, PASSED on data whose truth had no
+  # subject-by-condition effect at all, 1.0889 against 1.0772
+  # (dev/coh-absent.R): two blocks of four from one distribution land
+  # either way often enough. Paired at one seed the two arms differ
+  # only by the scaling of the deviations, so with the effect absent
+  # they are the SAME data and the quotient is exactly 1, which fails
+  # this assertion rather than flipping a coin. Over 40 seeds of this
+  # generator the quotient runs 1.422 to 2.596 with a median of 1.893
+  # (dev/coh-paired.R).
+  #
+  # How often it would fire on correct data, observation first: 0 of
+  # those 40 fired, which bounds the rate below 0.072 a seed and below
+  # 0.26 for the minimum of four, at 95 percent confidence and assuming
+  # no shape. A lognormal fit to the same 40 reads far rarer, about 1
+  # in 2,200, and a normal fit to them reads 1 in 90, so treat the
+  # small number as the fit's and not the run's (dev/coh-falsealarm2.R).
+  #
+  # Where it stops discriminating, so that a failure there is read as
+  # the limit it is rather than as a defect: with the effect PRESENT
+  # but SMALL, `sd_idcond` at 0.15 on seeds 2700:2703, the assertion
+  # FAILS at min(treat / null) = 0.999999956, because the correct
+  # model's component collapses to zero on two of those four seeds. The
+  # floor is between 0.15 and 0.5.
+  skip_on_cran()
+  # The pairing is load-bearing and costs no fit to check. The two arms
+  # are the same data at `sd_idcond = 0` only because the generator
+  # writes `rnorm(n) * sd`: `rnorm(n, 0, 0)` returns without drawing at
+  # all, and that spelling would leave the arms with different Wishart
+  # draws and quietly turn the quotient below into the unpaired
+  # statistic that failed open.
+  stream_after <- function(sd_ic) {
+    cp_cells(2610L, n_sub = 4L, n_rep = 2L, sd_idcond = sd_ic)
+    .Random.seed
+  }
+  expect_identical(stream_after(0), stream_after(0.5))
+  ratio <- function(sd_ic, seeds) {
+    vapply(seeds, function(s) {
+      d <- cp_cells(s, n_sub = 16L, n_rep = 6L, sd_idcond = sd_ic)
+      cp_width("cond + (1 | id) + (1 | id:cond)", d) /
+        cp_width("cond + (1 | id)", d)
+    }, numeric(1))
+  }
+  seeds <- 2610:2613
+  treat <- ratio(0.5, seeds)
+  null <- ratio(0, seeds)
+  expect_gt(min(treat / null), 1)
+  # A sign check, and only that: adding the term must never NARROW the
+  # interval. It does not discriminate, and dev/coh-absent.R shows it
+  # passing with the effect absent, so it is here for the direction and
+  # the line above is the one that carries the claim.
+  expect_gt(min(treat), 1)
+})
+
 test_that("frm_cross_simulate draws matrices with the fitted first moment", {
   set.seed(209)
   d <- cp_units(rep(0.5, 25L), rep(0.7, 25L), n = 12L)
