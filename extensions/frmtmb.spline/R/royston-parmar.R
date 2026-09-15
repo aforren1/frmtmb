@@ -83,6 +83,128 @@
 #' call it for you, because the fitted curve of a floored fit is a floor
 #' artifact too.
 #'
+#' @section A frailty, and a random effect on gamma1:
+#' `mu` is `gamma_0`, so `(1 | centre)` on `mu` adds a centre deviation
+#' `b` to the whole log cumulative hazard and multiplies the cumulative
+#' hazard by `exp(b)`. That is a shared log-normal frailty, and it is
+#' the model `rstpm2::stpm2(cluster =, RandDist = "LogN")` fits. The two
+#' are one model in two bases: rstpm2 writes the spline in `nsx()`
+#' coordinates and this family in Royston and Parmar's, and the change
+#' of basis between them is exact to 3.0e-14 of the linear predictor's
+#' own scale.
+#'
+#' Measured over 200 replicates at 2000 subjects in 40 centres, 40
+#' percent censored, `df = 3`, true `sd` 0.5, seeds 20260910 upward
+#' (`dev/frailty-findings.md`): the treatment coefficient agrees with
+#' rstpm2's to 3.2e-04 of the run's own standard error on average and
+#' 8.8e-04 at worst, the frailty standard deviation to 1.4e-03 relative,
+#' and the two standard errors on that coefficient to 2.6e-06 relative.
+#' Recovery on the same run: `beta` 0.5984 against 0.6 at 93.0 percent
+#' coverage, `sd` 0.4905 against 0.5 at 92.0 percent, against a binomial
+#' Monte Carlo error of 0.0154.
+#'
+#' rstpm2 reports `logtheta`, and theta is the frailty's VARIANCE, so
+#' `sqrt(exp(logtheta))` is the number [frmtmb::VarCorr()]'s standard
+#' deviation matches.
+#'
+#' The two do NOT report the same log likelihood, and the difference is
+#' the way the frailty is integrated out rather than the model. frmtmb
+#' takes the Laplace approximation and rstpm2 takes 9-node adaptive
+#' Gauss-Hermite quadrature. Against an exact per-cluster integral at
+#' the same parameters, the Laplace value is 0.058 log likelihood units
+#' low on this design and rstpm2's is 4.9e-06 low, so the whole reported
+#' gap is the rule. It costs the ESTIMATE almost nothing: the exact log
+#' likelihood at frmtmb's estimate is 5.5e-05 units below the exact log
+#' likelihood at rstpm2's, which is 0.1 percent of the offset itself.
+#' The offset grows as the cluster shrinks: 0.0066 units at 200
+#' subjects per centre, 0.058 at 50, and 1.38 at 4.
+#'
+#' A random effect on `gamma1` is NOT a frailty. `gamma1` multiplies
+#' `log t`, so a centre deviation `u` gives that centre a cumulative
+#' hazard `t^(gamma_1 + u)` and a hazard ratio against another centre of
+#' `t^(u - u')`, which moves with time. At `df = 1` it is a per-centre
+#' Weibull shape. It recovers: over 60 replicates at 2000 subjects in 40
+#' centres with a true `sd` of 0.2, the estimate is 0.1994 at 90 percent
+#' coverage (Monte Carlo error 0.028), and the per-centre shape error is
+#' 0.089 against 0.163 for the same fit with its centre deviations
+#' dropped, better on 60 of 60.
+#'
+#' Two things to know before writing one.
+#'
+#' First, `gamma_1 + u` has to stay positive, or that centre's spline
+#' turns over and there is no hazard there. The link is the identity and
+#' does not hold it. The LIKELIHOOD holds it for a centre that has
+#' EVENTS: at `df = 1` the log density carries `log(gamma_1 + u)`, so
+#' such a centre pays 16.81 log units per event at a slope of exactly
+#' zero and 32.01 at -0.2, against a normal prior that spends a fraction
+#' of one. Nothing was floored over those 60 replicates, nor over 15
+#' more on a design built to reach it at 10 subjects per centre, where
+#' the smallest fitted per-centre slope was 0.0332.
+#'
+#' A group with NO events is the exception, and NOTHING REPORTS IT. The
+#' barrier lives in the density, and an all-censored group contributes
+#' no density term at all; what it does contribute pushes its slope
+#' DOWN, because the score in `u` is then `-sum(x_i H_i)`, which is
+#' negative for rows past `t = 1`. [rp_floored()] tests the observed
+#' EVENT rows for a non-positive `d(eta)/d(log t)`, so for such a group
+#' it has nothing to test and returns a count of zero. Measured on 40
+#' centres of 10 with five of them followed to a common administrative
+#' time and no deaths in any of them: on 4 of 6 seeds those five come
+#' back with slopes of -0.21 to -0.31, and on one of them the fit
+#' converges with no warning, a maximum absolute gradient of 2.7e-05 and
+#' a positive definite Hessian, [rp_floored()] reports no non-monotone
+#' row and does not refuse, [frm_curve()] passes it through, and one
+#' centre's fitted survival RISES with time rather than falling: 4.2e-50
+#' at `t = 1e-12` against 0.774 at `t = 2.8`. A survival function that
+#' increases is not one.
+#'
+#' So where a group can have no events, check it yourself, in two lines:
+#'
+#' ```
+#' slope <- fixef(fit)$gamma1[["(Intercept)"]] +
+#'   ranef(fit)[["centre"]][, "time.gamma1:(Intercept)"]
+#' rownames(ranef(fit)[["centre"]])[slope <= 0]
+#' ```
+#'
+#' and confirm that comes back empty. Name the column: under the paired
+#' spelling recommended below, that grouping carries TWO of them, and
+#' the `mu` one is the frailty deviation, which says nothing about
+#' monotonicity. With a block on `gamma1` alone there is one column and
+#' `[, 1]` will do.
+#'
+#' Those two lines are the `df = 1` FORM, and they are exact only
+#' there, because `d(eta)/d(log t)` is `gamma_1 + u` and nothing else.
+#' Above `df = 1` the derivative carries the interior coefficients too,
+#' `gamma_1 + u + sum_j gamma_{j+1} v'_j(x)`, so the two lines drop
+#' terms and they err OPTIMISTIC: on a `df = 3` fit they read 1.207 to
+#' 2.162 where the real derivative at the rows runs 0.768 to 2.017, a
+#' margin 20 to 36 percent too generous per centre. What that leaves
+#' exposed is narrow, because [rp_floored()] already answers any group
+#' WITH events at any `df`: it is a group with NO events at `df >= 2`,
+#' and there the honest check evaluates the derivative on the basis
+#' rather than reading `gamma1` off.
+#'
+#' Widening [rp_floored()] to test censored rows too would change a
+#' shipped refusal and needs a false-alarm rate behind it, so it is
+#' filed rather than done.
+#'
+#' Second, a block on `gamma1` ALONE is anchored at `t = 1`, and `t = 1`
+#' is a unit rather than a fact. Rescale time by `c` and `log t` moves
+#' by `log c`, so the same model in the new units carries a random
+#' INTERCEPT of `-u log c` beside the slope. Measured on one dataset in
+#' years, months and days, comparing log likelihoods as
+#' `logLik + n_event log c`, which is what a density owes a rescale: the
+#' slope-only fit moves by 8.19 units and its `sd(gamma1 | centre)`
+#' falls from 0.2201 to 0.0370, while the paired block
+#' `(1 | c | centre)` on `mu` and `gamma1` together moves by 4.3e-08
+#' units and holds `sd(gamma1 | centre)` at 0.2259 in all three. Pair
+#' the block unless you mean the anchor.
+#'
+#' The anchor is not a property of the block being RANDOM. Fixed
+#' per-centre slopes, `gamma1 ~ centre`, with a shared intercept move
+#' 11.453 units over the same rescale. It follows from letting the slope
+#' vary while holding the intercept common, however that is spelled.
+#'
 #' @section Censoring, truncation, and the accuracy limit on log S:
 #' The family declares both a density and a distribution function, so
 #' `cens()` and `trunc()` both work, and right, left and interval
