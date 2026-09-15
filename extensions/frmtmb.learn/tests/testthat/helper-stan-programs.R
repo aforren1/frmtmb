@@ -314,3 +314,123 @@ ln_stan_code_rlddm <- function() {
     "  }",
     ln_stan_tail(), sep = "\n")
 }
+
+# --------------------------------------------------- correlated blocks
+#
+# Item 2.2 of dev/extension-gaps-plan.md asks whether a correlated block
+# over EVERY parameter of a family recovers. Its check column is this
+# file's own programs with that block added, so that the claim rests on
+# an identity rather than on one estimator agreeing with itself.
+#
+# WHAT CHANGES, AND WHAT DOES NOT. The recursion is copied unchanged
+# from the program above it, because the recursion is not what the
+# correlated block is a claim about. What changes is that every
+# parameter now varies by subject: `u` is a subject-by-parameter matrix
+# instead of a vector, and the block's covariance rides along as DATA
+# the way one standard deviation does in the programs above, which is
+# what keeps the map to frmtmb's parameters the identity.
+#
+# The declaration order of `u`'s COLUMNS is the order the formula
+# declares the distributional parameters in, which is the order frmtmb
+# lays the block's coefficients out in per level. helper-stan.R's
+# ln_stan_pars_cor() is where that is turned into a matrix.
+
+ln_stan_head_cor <- function(nd, p, extra = "", choice_lb = 1L) {
+  paste(
+    "data {",
+    "  int<lower=1> N; int<lower=1> S; int<lower=1> T; int<lower=1> K;",
+    "  array[S, T] int<lower=1> idx;",
+    "  matrix[S, T] mask;",
+    "  array[N] int<lower=1> subj;",
+    paste0("  array[N] int<lower=", choice_lb, "> choice;"),
+    "  matrix[N, K] X;",
+    paste0("  cov_matrix[", p, "] Sigma;"),
+    extra,
+    "}",
+    "parameters {",
+    paste0("  vector[K] b; vector[", nd, "] bd; matrix[S, ", p, "] u;"),
+    "}",
+    "model {",
+    "  vector[N] eta = X * b;",
+    "  for (i in 1:N) eta[i] += u[subj[i], 1];",
+    sep = "\n")
+}
+
+# multi_normal_lpdf per level, which is what frmtmb's `us` block
+# evaluates: dmvnorm() over the level-major coefficients with the full
+# normalizing constant, no dropped terms on either side.
+ln_stan_tail_cor <- function(p) {
+  paste(
+    "  for (s in 1:S)",
+    paste0("    target += multi_normal_lpdf(u[s]' | rep_vector(0, ", p,
+           "), Sigma);"),
+    "}", sep = "\n")
+}
+
+# bandit2arm_delta with `(1 | p | id)` on the learning rate AND the
+# inverse temperature. `tau` was a scalar in ln_stan_code_delta(); here
+# it is one value per subject, which is the whole difference.
+ln_stan_code_delta_cor <- function() {
+  paste(
+    ln_stan_head_cor(1, 2, "  vector[N] pay1; vector[N] pay2;"),
+    "  vector[N] alpha = inv_logit(eta);",
+    "  vector[S] tau;",
+    "  for (s in 1:S) tau[s] = exp(bd[1] + u[s, 2]);",
+    "  vector[S] q1 = rep_vector(0, S);",
+    "  vector[S] q2 = rep_vector(0, S);",
+    "  for (t in 1:T) {",
+    "    for (s in 1:S) {",
+    "      if (mask[s, t] == 1) {",
+    "        int i = idx[s, t];",
+    "        vector[2] v;",
+    "        v[1] = tau[s] * q1[s]; v[2] = tau[s] * q2[s];",
+    "        target += v[choice[i]] - log_sum_exp(v);",
+    "        if (choice[i] == 1) q1[s] += alpha[i] * (pay1[i] - q1[s]);",
+    "        else q2[s] += alpha[i] * (pay2[i] - q2[s]);",
+    "      }",
+    "    }",
+    "  }",
+    ln_stan_tail_cor(2), sep = "\n")
+}
+
+# rlddm with `(1 | p | id)` on the learning rate, the drift, the
+# boundary separation and the non-decision time, `bias` held at a half.
+#
+# `ndt_ub` is a VECTOR here and a scalar in ln_stan_code_rlddm(), and
+# that is item 1.0b's whole subject: under `ndt_group(id)` each
+# learner's non-decision time is a fraction of its OWN fastest response.
+# Passing the global minimum instead would compare two different
+# parameterizations, and the residual would say so.
+ln_stan_code_rlddm_cor <- function() {
+  paste(
+    ln_stan_head_cor(3, 4, paste(
+      "  vector[N] pay1; vector[N] pay2;",
+      "  vector<lower=0>[N] rt;",
+      "  vector<lower=0>[S] ndt_ub;",
+      "  real<lower=0, upper=1> bias;", sep = "\n"), choice_lb = 0L),
+    "  vector[N] alpha = inv_logit(eta);",
+    "  vector[S] drift; vector[S] bs; vector[S] ndt;",
+    "  for (s in 1:S) {",
+    "    drift[s] = bd[1] + u[s, 2];",
+    "    bs[s] = exp(bd[2] + u[s, 3]);",
+    "    ndt[s] = ndt_ub[s] * inv_logit(bd[3] + u[s, 4]);",
+    "  }",
+    "  vector[S] q1 = rep_vector(0, S);",
+    "  vector[S] q2 = rep_vector(0, S);",
+    "  for (t in 1:T) {",
+    "    for (s in 1:S) {",
+    "      if (mask[s, t] == 1) {",
+    "        int i = idx[s, t];",
+    "        real v = drift[s] * (q2[s] - q1[s]);",
+    "        if (choice[i] == 1) {",
+    "          target += wiener_lpdf(rt[i] | bs[s], ndt[s], bias, v);",
+    "          q2[s] += alpha[i] * (pay2[i] - q2[s]);",
+    "        } else {",
+    "          target += wiener_lpdf(rt[i] | bs[s], ndt[s], 1 - bias, -v);",
+    "          q1[s] += alpha[i] * (pay1[i] - q1[s]);",
+    "        }",
+    "      }",
+    "    }",
+    "  }",
+    ln_stan_tail_cor(4), sep = "\n")
+}

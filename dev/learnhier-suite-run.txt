@@ -1,0 +1,41 @@
+﻿FILES TO RUN: 12  gates: 'stan'
+---- test-bracket-access.R
+
+FILE test-bracket-access.R
+PASS=1 FAIL=0 ERROR=0 SKIP=0 WARN=0 secs=0.4
+---- test-clean-session.R
+FILE test-clean-session.R
+PASS=4 FAIL=0 ERROR=0 SKIP=0 WARN=0 secs=2.2
+---- test-counterfactual.R
+FILE test-counterfactual.R
+PASS=67 FAIL=0 ERROR=0 SKIP=0 WARN=0 secs=2.7
+---- test-engine.R
+FILE test-engine.R
+PASS=19 FAIL=0 ERROR=0 SKIP=0 WARN=0 secs=2
+---- test-factorization.R
+FILE test-factorization.R
+PASS=35 FAIL=0 ERROR=0 SKIP=0 WARN=0 secs=2.5
+---- test-families.R
+FILE test-families.R
+PASS=45 FAIL=0 ERROR=0 SKIP=0 WARN=0 secs=4.3
+---- test-message-uniqueness.R
+FILE test-message-uniqueness.R
+PASS=4 FAIL=0 ERROR=0 SKIP=0 WARN=0 secs=0.5
+---- test-reference.R
+FILE test-reference.R
+PASS=12 FAIL=0 ERROR=0 SKIP=0 WARN=0 secs=3.1
+---- test-rlddm-ndt.R
+FILE test-rlddm-ndt.R
+PASS=53 FAIL=0 ERROR=0 SKIP=0 WARN=0 secs=15.9
+---- test-scale.R
+FILE test-scale.R
+PASS=0 FAIL=0 ERROR=0 SKIP=2 WARN=0 secs=0.4
+---- test-stan-identity.R
+FILE test-stan-identity.R
+PASS=71 FAIL=0 ERROR=0 SKIP=0 WARN=4 secs=42
+---- test-surface.R
+FILE test-surface.R
+PASS=146 FAIL=0 ERROR=0 SKIP=0 WARN=0 secs=22.3
+FILES WITH FAILURES OR ERRORS: 0 of 12
+
+

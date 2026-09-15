@@ -231,6 +231,93 @@ this size whether or not the bonus is on.\tabular{llllll}{
 standard deviation and \code{sigmaD} sets how fast it grows.
 }
 
+\section{A correlated block over every parameter, at 100 by 200}{
+
+The tables above put ONE random intercept on the primary parameter.
+This one puts \code{(1 | p | id)} on every parameter at once, at the scale
+the field's designs sit at, and asks whether the CORRELATIONS come
+back as well as the variances. \code{dev/learnhier-findings.md} has the
+construction, the seeds and the scripts; the summary is here.
+
+The design draws a block with real off-diagonal structure, because a
+design that draws independent deviations cannot say whether an
+estimator recovers a correlation, only whether it invents one. Both
+questions are answered by running the block twice.
+
+\strong{\code{\link[=bandit2arm_delta]{bandit2arm_delta()}}}, \code{(1 | p | id)} on the learning rate and the
+inverse temperature, 100 learners by 200 trials, 60 replicates per
+arm. Everything on the link the family estimates it on.\tabular{llllll}{
+   component \tab truth \tab mean estimate \tab bias \tab mc se \tab coverage \cr
+   \code{alpha_(Intercept)} \tab -0.619 \tab -0.6191 \tab -0.0001 \tab 0.0091 \tab 0.92 \cr
+   \code{tau_(Intercept)} \tab 1.099 \tab 1.1019 \tab +0.0033 \tab 0.0041 \tab 1.00 \cr
+   \code{sd(alpha)} \tab 0.5 \tab 0.4925 \tab -0.0075 \tab 0.0088 \tab 0.92 \cr
+   \code{sd(tau)} \tab 0.3 \tab 0.2980 \tab -0.0020 \tab 0.0039 \tab 0.93 \cr
+   \code{cor(alpha, tau)} \tab 0.5 \tab 0.5322 \tab +0.0322 \tab 0.0181 \tab 0.97 \cr
+}
+
+
+The same design with a correlation of ZERO returns 0.0214 with a
+Monte Carlo error of 0.0192 and coverage 0.93, so the estimator does
+not manufacture a correlation that is not there. Both biases on the
+correlation are inside twice their own Monte Carlo error.
+
+60 of 60 fits in each arm reached convergence code 0 with a positive
+definite Hessian and no \code{NaN} standard errors, and no component
+collapsed: over the 120 fits the smallest \code{sd(alpha)} was 0.328 and
+the smallest \code{sd(tau)} 0.194. Collapse is documented for this family
+at 20 to 60 trials and is absent at 200.
+
+\strong{READ THE INTERVAL, NOT THE POINT ESTIMATE, FOR A CORRELATION.} The
+spread of the estimates across replicates is 0.140 in both arms and
+the observed range is 0.172 to 0.804 against a truth of 0.5. One
+dataset of this size locates a correlation to about half a unit, and
+the Wald interval says so where the point estimate does not.
+
+At 60 replicates a coverage carries a standard error of 2.8 points at
+the nominal 95, so nothing between about 89 and 100 percent in these
+tables is distinguishable from nominal.
+
+\strong{\code{\link[=rlddm]{rlddm()}}} under \code{ndt_group(id)}, \code{(1 | p | id)} on \code{alpha},
+\code{drift}, \code{bs} and \code{ndt}, \code{bias} held at 0.5, 60 replicates. 60 of 60
+fitted, none with a log-likelihood below the objective at its own
+realized truths, no \code{NaN} standard errors.\tabular{llllll}{
+   component \tab truth \tab mean estimate \tab bias \tab mc se \tab coverage \cr
+   \code{alpha_(Intercept)} \tab -0.619 \tab -0.6224 \tab -0.0033 \tab 0.0087 \tab 0.97 \cr
+   \code{drift_(Intercept)} \tab 2.500 \tab 2.5075 \tab +0.0075 \tab 0.0142 \tab 0.95 \cr
+   \code{bs_(Intercept)} \tab 0.4055 \tab 0.3993 \tab -0.0062 \tab 0.0023 \tab 0.98 \cr
+   \code{sd(alpha)} \tab 0.5 \tab 0.4746 \tab -0.0254 \tab 0.0071 \tab 0.90 \cr
+   \code{sd(drift)} \tab 1.0 \tab 0.9981 \tab -0.0019 \tab 0.0098 \tab 0.95 \cr
+   \code{sd(bs)} \tab 0.2 \tab 0.1986 \tab -0.0014 \tab 0.0017 \tab 0.97 \cr
+   \code{cor(alpha, drift)} \tab 0.4 \tab 0.3803 \tab -0.0197 \tab 0.0164 \tab 0.95 \cr
+   \code{cor(alpha, bs)} \tab 0.0 \tab 0.0127 \tab +0.0127 \tab 0.0150 \tab 0.95 \cr
+   \code{cor(drift, bs)} \tab -0.3 \tab -0.2836 \tab +0.0164 \tab 0.0130 \tab 0.93 \cr
+}
+
+
+Every parameter with a population truth on the scale it is fitted on
+recovers. The four that have none are the \code{ndt} row and column, and
+two of those do NOT recover against their realized targets:
+\code{sd(ndt)} at a rate of 0.28 and \code{cor(bs, ndt)} at 0.08, where every
+other component on either target sits between 0.93 and 1.00.
+
+\strong{That is a property of the parameterization and not of the
+estimator}, and \code{?rlddm} has the one line of algebra: under
+\code{ndt_group()} the fitted deviation is \code{log(ndt) - log(m)} where \code{m}
+is an observed minimum, so about 94 percent of the link-scale
+component's variance is a property of the data. Read the per-learner
+non-decision times through \code{\link[frmtmb.eam:ndt_time]{frmtmb.eam::ndt_time()}} instead; they
+never pass through that term.
+
+The same fits are checked against an independent Stan program of the
+same model with the correlated block added, at frmtmb's own
+estimates: agreement to 2.6e-15 relative for the delta learner's
+two-by-two block, 4.9e-15 at the full 100 by 200 design, and 1.7e-11
+for \code{rlddm()}'s four-by-four block, which is looser because Stan
+implements the Wiener density itself and that row therefore checks
+two independent implementations of the density as well as of the
+recursion.
+}
+
 \section{What this package reads that frmtmb does not promise}{
 
 Nothing. Every accessor it uses is exported and documented:

@@ -1,0 +1,46 @@
+CHAIN waiting for the main arm at 23:18
+CHAIN main arm complete at 23:44
+START learnhier-rlddm-20261010 pid=20112 lane_procs_before=0 left=11 at 23:44:34
+START learnhier-rlddm-20261020 pid=29268 lane_procs_before=2 left=10 at 23:45:05
+START learnhier-rlddm-20261030 pid=16880 lane_procs_before=4 left=9 at 23:45:36
+START learnhier-rlddm-20261040 pid=15024 lane_procs_before=4 left=8 at 23:50:14
+START learnhier-rlddm-20261050 pid=17364 lane_procs_before=4 left=7 at 23:50:46
+START learnhier-rlddm-20261060 pid=13012 lane_procs_before=4 left=6 at 23:52:18
+START learnhier-rlddm-20261070 pid=28936 lane_procs_before=4 left=5 at 23:55:34
+START learnhier-rlddm-20261080 pid=17548 lane_procs_before=4 left=4 at 23:56:05
+START learnhier-rlddm-20261090 pid=8364 lane_procs_before=4 left=3 at 23:56:36
+START learnhier-rlddm-20261100 pid=15496 lane_procs_before=4 left=2 at 00:00:11
+START learnhier-rlddm-20261110 pid=6172 lane_procs_before=4 left=1 at 00:00:43
+START learnhier-rlddm-20261120 pid=17176 lane_procs_before=4 left=0 at 00:01:14
+ALL DONE run rlddm n=12
+CHAIN nt=100 done at 00:06
+START learnhier-imp-bandit-100-20261010 pid=26156 lane_procs_before=0 left=23 at 00:06:14
+START learnhier-imp-bandit-100-20261020 pid=8864 lane_procs_before=0 left=22 at 00:06:36
+START learnhier-imp-bandit-100-20261030 pid=11004 lane_procs_before=0 left=21 at 00:06:57
+START learnhier-imp-bandit-100-20261040 pid=18028 lane_procs_before=0 left=20 at 00:07:18
+START learnhier-imp-bandit-100-20261050 pid=27776 lane_procs_before=0 left=19 at 00:07:40
+START learnhier-imp-bandit-100-20261060 pid=14296 lane_procs_before=0 left=18 at 00:08:01
+START learnhier-imp-bandit-100-20261070 pid=27416 lane_procs_before=0 left=17 at 00:08:22
+START learnhier-imp-bandit-100-20261080 pid=3920 lane_procs_before=0 left=16 at 00:08:44
+START learnhier-imp-bandit-100-20261090 pid=12372 lane_procs_before=0 left=15 at 00:09:05
+START learnhier-imp-bandit-100-20261100 pid=3928 lane_procs_before=0 left=14 at 00:09:27
+START learnhier-imp-bandit-100-20261110 pid=4092 lane_procs_before=2 left=13 at 00:09:48
+START learnhier-imp-bandit-100-20261120 pid=28860 lane_procs_before=4 left=12 at 00:10:09
+START learnhier-imp-bandit-100-20261130 pid=6580 lane_procs_before=4 left=11 at 00:12:33
+START learnhier-imp-bandit-100-20261140 pid=9468 lane_procs_before=2 left=10 at 00:12:55
+START learnhier-imp-bandit-100-20261150 pid=24164 lane_procs_before=4 left=9 at 00:13:16
+START learnhier-imp-bandit-100-20261160 pid=8204 lane_procs_before=2 left=8 at 00:15:20
+START learnhier-imp-bandit-100-20261170 pid=20312 lane_procs_before=2 left=7 at 00:15:41
+START learnhier-imp-bandit-100-20261180 pid=28368 lane_procs_before=4 left=6 at 00:16:03
+START learnhier-imp-bandit-100-20261190 pid=23912 lane_procs_before=2 left=5 at 00:18:06
+START learnhier-imp-bandit-100-20261200 pid=15740 lane_procs_before=2 left=4 at 00:18:27
+START learnhier-imp-bandit-100-20261210 pid=28736 lane_procs_before=4 left=3 at 00:18:49
+START learnhier-imp-bandit-100-20261220 pid=27028 lane_procs_before=4 left=2 at 00:20:32
+START learnhier-imp-bandit-100-20261230 pid=17852 lane_procs_before=4 left=1 at 00:20:53
+START learnhier-imp-bandit-100-20261240 pid=17936 lane_procs_before=4 left=0 at 00:21:14
+ALL DONE imp bandit n=24
+CHAIN importance done at 00:23
+START learnhier-rlddm5-20261010 pid=15824 lane_procs_before=0 left=1 at 00:24:00
+START learnhier-rlddm5-20261020 pid=28780 lane_procs_before=2 left=0 at 00:25:01
+ALL DONE run rlddm5 n=2
+CHAIN ALL ARMS DONE at 00:42

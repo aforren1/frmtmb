@@ -1,3 +1,54 @@
+# frmtmb.learn (development version)
+
+* **A correlated block over every parameter is validated at the
+  population scale, and one of its components turns out not to mean
+  what it looks like.** Item 2.2 of `dev/extension-gaps-plan.md`:
+  `(1 | p | id)` on every parameter of `bandit2arm_delta()` and
+  `rlddm()`, 100 learners by 200 trials, 60 replicates per arm.
+  `dev/learnhier-findings.md` has the construction, the seeds and the
+  scripts.
+
+  `bandit2arm_delta()` recovers everything. With a true correlation of
+  0.5 the block returns 0.5322 with a Monte Carlo error of 0.0181 and
+  coverage 0.97; with a true correlation of 0 it returns 0.0214, so the
+  estimator neither misses a correlation nor invents one. 120 of 120
+  fits converged with a positive definite Hessian and no component
+  collapsed.
+
+  `rlddm()` recovers every parameter that HAS a population truth on the
+  scale it is fitted on: nine of nine components cover between 0.90 and
+  0.98.
+
+* **`sd(ndt)` under `ndt_group()` is about 94 percent a property of the
+  data rather than of the learners, and `?rlddm` now says why in one
+  line of algebra.** A learner's floor is its own non-decision time plus
+  the fastest decision it happened to make, so
+  `qlogis(ndt / floor) = log(ndt) - log(m)` identically, where `m` is an
+  observed minimum. Over 60 replicates the design's own `sd(log ndt)` is
+  0.1494 while `sd(log m)` is 0.4404. More trials do not repair it: the
+  nuisance share reads 107.9, 106.7 and 108.2 percent at 100, 200 and
+  400 trials.
+
+  The same term drives `cor(bs, ndt)` toward -1, because `log(m)`
+  correlates 0.872 with a learner's own `bs` deviation. The correlation
+  the design drew is recovered exactly once that term is removed,
+  `cor(bs, log ndt)` of +0.2989 against a drawn 0.3.
+
+  **Nothing about the family's behaviour changed**; this is a
+  measurement and a documentation change. The per-learner non-decision
+  times read through `frmtmb.eam::ndt_time()` are unaffected and remain
+  what `?rlddm` tells you to read: 12.3 ms of error against the drawn
+  truths at a correlation of 0.947, where the best constant fraction of
+  each learner's own floor manages 20.4 ms and 0.871.
+
+* **The identity tier gains the correlated block.**
+  `ln_stan_code_delta_cor()` and `ln_stan_code_rlddm_cor()` carry `u` as
+  a subject-by-parameter matrix with the block's covariance as DATA, so
+  the map to frmtmb's parameters stays the identity and the comparison
+  carries no Jacobian. Agreement is 2.6e-15 relative for the
+  two-by-two block, 4.9e-15 at the full 100 by 200 design, and 1.7e-11
+  for the four-by-four block under `ndt_group(id)`.
+
 # frmtmb.learn 0.4.0
 
 * **`rlddm()` can bound the non-decision time PER GROUP.** Write

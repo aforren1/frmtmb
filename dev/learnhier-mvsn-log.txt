@@ -1,0 +1,24 @@
+﻿............ nt=100
+............ nt=200
+............ nt=400
+
+== the nuisance term against the trial count ==
+paired on learners: the same seeds give the same hundred learners at every count
+  nt  n mean_log_m sd_log_m sd_log_ndt sd_eta share_min_pct cor_eta_bs
+ 100 12    -2.8476   0.4526     0.1517 0.4362      107.9390    -0.7680
+ 200 12    -2.9810   0.4361     0.1517 0.4226      106.6954    -0.7863
+ 400 12    -3.1018   0.4288     0.1517 0.4130      108.1676    -0.8062
+ cor_logndt_bs
+         0.324
+         0.324
+         0.324
+
+== paired differences, 400 trials minus 100 ==
+  mean_log_m    -0.2542  95% CI (-0.2688, -0.2397)  p = 4.58e-13
+  sd_log_m      -0.0238  95% CI (-0.0421, -0.0054)  p = 0.0157
+  sd_eta        -0.0232  95% CI (-0.0435, -0.0030)  p = 0.028
+  share_min     +0.0023  95% CI (-0.0350, +0.0395)  p = 0.895
+  cor_eta_bs    -0.0382  95% CI (-0.0615, -0.0148)  p = 0.00418
+
+with 12 paired seeds a difference in sd(log m) smaller than about 0.0187 is not resolvable here.
+wrote dev/learnhier-mvsn.rds
