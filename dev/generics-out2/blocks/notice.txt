@@ -1,0 +1,28 @@
+```
+== the regression R CMD check found, and the fix ==
+dev/generics-notice.R: the shadowing note, with and without brms
+--- BASE, nobrms
+brms loaded            FALSE
+hypothesis resolves to frmtmb
+shadowing notes        1
+--- BASE, brms
+brms loaded            TRUE
+hypothesis resolves to frmtmb
+shadowing notes        1
+--- SWAP, nobrms
+brms loaded            FALSE
+hypothesis resolves to frmtmb
+shadowing notes        1
+--- SWAP, brms
+brms loaded            TRUE
+hypothesis resolves to brms
+shadowing notes        0
+--- ACTIVE, nobrms
+brms loaded            FALSE
+hypothesis resolves to frmtmb
+shadowing notes        1
+--- ACTIVE, brms
+brms loaded            TRUE
+hypothesis resolves to brms
+shadowing notes        1
+```

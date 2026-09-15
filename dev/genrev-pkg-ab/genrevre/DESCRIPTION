@@ -1,0 +1,7 @@
+Package: genrevre
+Version: 0.1.0
+Title: Re-exporter
+Authors@R: person("R","E",role=c("aut","cre"),email="r@e.tt")
+Description: Re-exports the adopter's generic.
+License: GPL-3
+Imports: genrevads

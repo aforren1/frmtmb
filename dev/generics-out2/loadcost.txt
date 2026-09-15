@@ -1,0 +1,33 @@
+```
+== load cost, dev/generics-loadcost.R, R 4.6.1 ==
+30 replicates, interleaved, one fresh process each
+proc.time() tick here: min 0.0100 s, median 0.0200 s
+Sys.time()  tick here: min 0.000001 s, median 0.000002 s
+The first is the instrument that produced the withdrawn 0.040 s.
+
+arm                     min(pt)  med(pt) |   min(hr)   med(hr)
+frmtmb FIX (active)       0.170    0.180 |    0.1669    0.1783
+frmtmb SWAP (round 1)     0.170    0.185 |    0.1700    0.1797
+frmtmb BASE               0.140    0.160 |    0.1459    0.1549
+BASE + nlme + gen         0.150    0.170 |    0.1627    0.1680
+control Matrix FIX        0.360    0.405 |    0.3595    0.3983
+control Matrix BASE       0.350    0.385 |    0.3650    0.3824
+control nothing FIX       0.000    0.000 |    0.0002    0.0002
+control nothing BASE      0.000    0.000 |    0.0002    0.0002
+lme4 (2.5c price)         0.610    0.750 |    0.6199    0.7529
+nlme (2.5a price)         0.030    0.050 |    0.0386    0.0422
+generics (2.5a price)     0.000    0.020 |    0.0077    0.0086
+
+ACTIVE - BASE on minima, hi-res:  +0.0210 s  p = 0.0000
+SWAP   - BASE, same:              +0.0241 s  p = 0.0000
+ACTIVE - SWAP, same:              -0.0031 s  p = 0.1251
+CONTROL Matrix, same:             -0.0056 s  p = 0.5043
+CONTROL nothing, same:            -0.0000 s  p = 0.0293
+ACTIVE - BASE on proc.time():      +0.0300 s (3.0 ticks)
+
+ATTRIBUTION, hi-res minima:
+  BASE + nlme + generics, minus BASE: +0.0168 s
+  ACTIVE minus that arm:              +0.0042 s
+  SWAP   minus that arm:              +0.0073 s
+20000 permutations, seed 20260915
+```

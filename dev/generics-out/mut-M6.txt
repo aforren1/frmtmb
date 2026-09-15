@@ -1,0 +1,31 @@
+frmtmb from: C:/Users/adf44/source/r/generics-mut-M6-lib/frmtmb  version 0.55.2
+
+FILE    tests/testthat/test-scale-contract.R 
+BLOCKS  9 
+ASSERT  25 
+PASS    20 
+FAIL    5 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    3.9 
+BAD     predict(type = 'response') and fitted() are the same call 
+         Expected `max(abs(a - b))` <= `4 * .Machine$double.eps * max(abs(b))`.
+         Actual comparison: 890.651786856628 > 0.000000000009
+         Difference: 890.651786856619 > 0 
+BAD     fitted() on a lognormal is the MEAN, not the median 
+         Expected `max(abs(fitted(f) - exp(mu + sg^2/2)))` <= `8 * .Machine$double.eps * max(fitted(f))`.
+         Actual comparison: 890.65178685663 > 0.00000000002
+         Difference: 890.65178685661 > 0 
+         Expected `(ratio - 1)/se_ratio` > 5.
+         Actual comparison: 0.0 <= 5.0
+         Difference: -5.0 <= 0 
+         Expected `isTRUE(all.equal(fitted(f), exp(mu)))` to be FALSE.
+         Differences:
+         `actual`:   TRUE 
+         `expected`: FALSE
+          
+BAD     residuals() default is on the RESPONSE scale 
+         Expected `max(abs(residuals(f) + fitted(f) - y))` <= `8 * .Machine$double.eps * max(abs(y))`.
+         Actual comparison: 890.65178685663 > 0.00000000005
+         Difference: 890.65178685658 > 0 

@@ -1983,6 +1983,12 @@ hyp_shadow_state <- new.env(parent = emptyenv())
 #' Arm the shadowing note for one user-level call and return the state
 #' to restore afterwards (nested calls therefore stay one-shot too).
 #'
+#' Exported for the methods that live in other packages, and documented
+#' on `?frmtmb-sampling-api`: every `hypothesis()` method has to arm the
+#' note itself, because the generic that dispatched to it may be
+#' brms's. `frmtmb.sample`'s draws method lost the note when this
+#' arming left core's generic and before this pair was exported.
+#'
 #' @noRd
 hyp_shadow_arm <- function() {
   old <- list(armed = hyp_shadow_state$armed, seen = hyp_shadow_state$seen)
@@ -2482,14 +2488,7 @@ hyp_fd_grad <- function(f, v) {
 #' hypothesis(fit, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)",
 #'            method = "boot", nsim = 20, seed = 1)
 #' @export
-hypothesis <- function(x, ...) {
-  # the shadowing note belongs to the call the user typed, not to any of
-  # the many environment rebuilds it triggers, so it is armed here and
-  # restored when the method returns (on.exit survives UseMethod)
-  old <- hyp_shadow_arm()
-  on.exit(hyp_shadow_disarm(old), add = TRUE)
-  UseMethod("hypothesis")
-}
+hypothesis <- function(x, ...) UseMethod("hypothesis")
 
 #' Usable parameter names
 #'
@@ -2537,6 +2536,24 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
                                   method = c("wald", "profile", "boot"),
                                   nsim = 500, seed = NULL, class = NULL,
                                   group = NULL, vcov = NULL, ...) {
+  # The shadowing note belongs to the call the user typed, not to
+  # any of the many environment rebuilds it triggers, so it is
+  # armed once here and restored when this method returns.
+  #
+  # It is armed in the METHOD and not in the generic on purpose.
+  # frmtmb's exported `hypothesis` is an active binding that
+  # resolves to brms's generic whenever brms is loaded
+  # (R/generic-owners.R), and brms's generic is a bare
+  # UseMethod(): anything this package puts in its own generic is
+  # simply not run then. Every hypothesis() method arms it the same
+  # way, including frmtmb.sample's draws method, which is why the pair
+  # is on the ?frmtmb-sampling-api export list. Measured, when it was
+  # in the generic:
+  # test-naming-collisions.R lost 8 assertions under R CMD check,
+  # which runs the suite in one process where an earlier file had
+  # already loaded brms.
+  old <- hyp_shadow_arm()
+  on.exit(hyp_shadow_disarm(old), add = TRUE)
   method <- match.arg(method)
   if (!is.null(vcov) && method != "wald") {
     stop("hypothesis(vcov = ) applies to method = 'wald' only: ",

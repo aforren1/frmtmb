@@ -1,0 +1,61 @@
+```
+== does core's fix reach frmtmb.sample? dev/generics-propagate.R ==
+S = library(brms) then library(frmtmb.sample)
+T = the reverse; U = frmtmb.sample attached, brms merely LOADED
+BASE = the base commit, SWAP = this lane's round 1, ACTIVE = now
+lost = the CLASS method is unreachable (method-table lookup)
+--- BASE mode S
+re-exported from core      lost 26 of 26
+  of which answered by a .default  2  loo_compare,posterior_summary
+defined by frmtmb.sample   lost 28 of 28
+as_draws binding active in package:frmtmb.sample  FALSE
+as_draws resolves to       frmtmb
+--- BASE mode T
+re-exported from core      lost 0 of 26
+  of which answered by a .default  0  
+defined by frmtmb.sample   lost 0 of 28
+as_draws binding active in package:frmtmb.sample  FALSE
+as_draws resolves to       posterior
+--- BASE mode U
+re-exported from core      lost 26 of 26
+  of which answered by a .default  2  loo_compare,posterior_summary
+defined by frmtmb.sample   lost 28 of 28
+as_draws binding active in package:frmtmb.sample  FALSE
+as_draws resolves to       frmtmb
+--- SWAP mode S
+re-exported from core      lost 0 of 26
+  of which answered by a .default  0  
+defined by frmtmb.sample   lost 28 of 28
+as_draws binding active in package:frmtmb.sample  FALSE
+as_draws resolves to       posterior
+--- SWAP mode T
+re-exported from core      lost 0 of 26
+  of which answered by a .default  0  
+defined by frmtmb.sample   lost 0 of 28
+as_draws binding active in package:frmtmb.sample  FALSE
+as_draws resolves to       posterior
+--- SWAP mode U
+re-exported from core      lost 23 of 26
+  of which answered by a .default  2  loo_compare,posterior_summary
+defined by frmtmb.sample   lost 28 of 28
+as_draws binding active in package:frmtmb.sample  FALSE
+as_draws resolves to       frmtmb
+--- ACTIVE mode S
+re-exported from core      lost 0 of 26
+  of which answered by a .default  0  
+defined by frmtmb.sample   lost 28 of 28
+as_draws binding active in package:frmtmb.sample  TRUE
+as_draws resolves to       posterior
+--- ACTIVE mode T
+re-exported from core      lost 0 of 26
+  of which answered by a .default  0  
+defined by frmtmb.sample   lost 0 of 28
+as_draws binding active in package:frmtmb.sample  TRUE
+as_draws resolves to       posterior
+--- ACTIVE mode U
+re-exported from core      lost 0 of 26
+  of which answered by a .default  0  
+defined by frmtmb.sample   lost 28 of 28
+as_draws binding active in package:frmtmb.sample  TRUE
+as_draws resolves to       posterior
+```

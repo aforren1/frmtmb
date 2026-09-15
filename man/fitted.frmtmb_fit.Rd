@@ -39,5 +39,6 @@ fit <- frm(bf(y ~ x) + poisson(), data = dd)
 max(abs(fitted(fit) - predict(fit, type = "response")))
 }
 \seealso{
-\code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}}, \code{\link[=residuals.frmtmb_fit]{residuals.frmtmb_fit()}}
+\code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}}, \code{\link[=residuals.frmtmb_fit]{residuals.frmtmb_fit()}},
+\link{frmtmb-scales} for which scale each method reports
 }

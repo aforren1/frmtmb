@@ -148,3 +148,6 @@ sum(residuals(fit, type = "pearson")^2) / df.residual(fit)
 r <- residuals(fit, type = "osa")
 qqnorm(r); qqline(r)
 }
+\seealso{
+\link{frmtmb-scales} for which scale each type is on.
+}

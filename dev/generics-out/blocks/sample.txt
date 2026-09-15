@@ -1,0 +1,40 @@
+```
+== frmtmb.sample, dev/generics-audit4.R ==
+exported S3 generics                       54
+  re-exported from core, adopted with core 26
+  defined by frmtmb.sample itself          28
+  of those, a name another package owns    28
+
+the names frmtmb.sample still owns that someone else owns:
+  as.mcmc                brms, coda
+  bayes_factor           bridgesampling, brms
+  bridge_sampler         bridgesampling, brms
+  kfold                  brms, loo
+  log_lik                brms, rstantools
+  log_posterior          bayesplot, brms
+  loo_moment_match       brms, loo, rstan
+  loo_subsample          brms, loo
+  mcmc_plot              brms
+  neff_ratio             bayesplot, brms
+  nsamples               brms, rstantools
+  nuts_params            bayesplot, brms
+  parnames               bbmle, brms
+  post_prob              bridgesampling, brms
+  posterior_epred        brms, rstantools
+  posterior_interval     brms, rstantools
+  posterior_linpred      brms, rstantools
+  posterior_predict      brms, rstantools
+  posterior_samples      brms, gratia
+  pp_mixture             brms
+  predictive_error       brms, rstantools
+  predictive_interval    brms, rstantools
+  psis                   brms, loo
+  reloo                  brms
+  restructure            brms
+  rhat                   bayesplot, brms, posterior
+  stancode               brms
+  standata               brms
+
+how those re-exports resolved in THIS process, where no optional owner was attached:
+   frmtmb=23 nlme=3 
+```

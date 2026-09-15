@@ -1,0 +1,47 @@
+MODE A CLASS brmsfit
+generic              resolves-to  getS3meth  dispatch  
+as_draws             posterior    TRUE       dispatched
+as_draws_array       posterior    TRUE       dispatched
+as_draws_df          posterior    TRUE       dispatched
+as_draws_list        posterior    TRUE       dispatched
+as_draws_matrix      posterior    TRUE       dispatched
+as_draws_rvars       posterior    TRUE       dispatched
+nchains              posterior    TRUE       dispatched
+ndraws               posterior    TRUE       dispatched
+niterations          posterior    TRUE       dispatched
+nvariables           posterior    TRUE       dispatched
+variables            posterior    TRUE       dispatched
+loo                  loo          TRUE       dispatched
+loo_compare          loo          TRUE       dispatched
+waic                 loo          TRUE       dispatched
+bayes_R2             rstantools   TRUE       dispatched
+prior_summary        rstantools   TRUE       dispatched
+pp_check             bayesplot    TRUE       dispatched
+conditional_effects  brms         TRUE       dispatched
+expose_functions     brms         TRUE       dispatched
+hypothesis           brms         TRUE       dispatched
+posterior_summary    brms         TRUE       dispatched
+LOO                  brms         TRUE       dispatched
+WAIC                 brms         TRUE       dispatched
+ngrps                brms         TRUE       dispatched
+fixef                nlme         TRUE       dispatched
+ranef                nlme         TRUE       dispatched
+VarCorr              nlme         TRUE       dispatched
+refit                generics     FALSE      NO METHOD 
+Warning messages:
+1: Models fitted with brms < 1.0 are no longer offically supported and post-processing them may fail. I recommend refitting the model with the latest version of brms. 
+2: Models fitted with brms < 1.0 are no longer offically supported and post-processing them may fail. I recommend refitting the model with the latest version of brms. 
+3: Models fitted with brms < 1.0 are no longer offically supported and post-processing them may fail. I recommend refitting the model with the latest version of brms. 
+4: Models fitted with brms < 1.0 are no longer offically supported and post-processing them may fail. I recommend refitting the model with the latest version of brms. 
+5: Models fitted with brms < 1.0 are no longer offically supported and post-processing them may fail. I recommend refitting the model with the latest version of brms. 
+6: Models fitted with brms < 1.0 are no longer offically supported and post-processing them may fail. I recommend refitting the model with the latest version of brms. 
+7: Models fitted with brms < 1.0 are no longer offically supported and post-processing them may fail. I recommend refitting the model with the latest version of brms. 
+No priors were set (plain maximum likelihood).
+BROKEN_FRMTMBFIT 0 of 17
+REFIT_OK TRUE
+NGRPS 6
+POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+Warning message:
+In mean.default(newX[, i], ...) :
+  argument is not numeric or logical: returning NA
+DONE

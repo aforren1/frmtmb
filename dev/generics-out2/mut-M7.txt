@@ -1,0 +1,18 @@
+frmtmb from: C:/Users/adf44/source/r/generics-mut-M7-lib/frmtmb  version 0.55.2
+
+FILE    tests/testthat/test-scale-contract.R 
+BLOCKS  12 
+ASSERT  36 
+PASS    34 
+FAIL    2 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    1.8 
+BAD     the LINK scale is the log scale, proved by the twin fit 
+         Expected `abs(va - vb)/vb` < 0.01.
+         Actual comparison: 233157.17 >= 0.01
+         Difference: 233157.16 >= 0 
+         Expected `stats::sd(fits$dd$y)/sqrt(va)` > 100.
+         Actual comparison: 2.2 <= 100.0
+         Difference: -97.8 <= 0 

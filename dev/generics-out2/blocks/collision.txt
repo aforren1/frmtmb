@@ -1,0 +1,60 @@
+```
+== Phase 2.5 generic-collision measurement ==
+dev/generics-check.R + dev/generics-summary.R; ONE PROCESS PER ROW
+seed 20260915, R 4.6.1, brms 2.23.0, lme4 2.0.6
+DAMAGE is the loss of the CLASS method, found by reproducing
+UseMethod()'s lookup in the method table of environment(generic),
+not by reading an error message. The denominator is the generics
+for which the control resolves a class method.
+
+BASE = base commit, SWAP = round 1, FIX = the active binding
+
+BASE  brms then frmtmb     class-method lost 27/27  getS3method lost 27/27
+    SILENTLY answered by a .default instead:  loo_compare, posterior_summary 
+    no method at all:   as_draws, as_draws_array, as_draws_df, as_draws_list, as_draws_matrix, as_draws_rvars, bayes_R2, conditional_effects, expose_functions, fixef, hypothesis, loo, LOO, nchains, ndraws, ngrps, niterations, nvariables, pp_check, prior_summary, ranef, VarCorr, variables, waic, WAIC 
+SWAP  brms then frmtmb     class-method lost  0/27  getS3method lost  0/27
+FIX   brms then frmtmb     class-method lost  0/27  getS3method lost  0/27
+BASE  frmtmb then brms     class-method lost  0/27  getS3method lost  0/27
+SWAP  frmtmb then brms     class-method lost  0/27  getS3method lost  0/27
+FIX   frmtmb then brms     class-method lost  0/27  getS3method lost  0/27
+BASE  brms loaded only     class-method lost 27/27  getS3method lost 27/27
+    SILENTLY answered by a .default instead:  loo_compare, posterior_summary 
+    no method at all:   as_draws, as_draws_array, as_draws_df, as_draws_list, as_draws_matrix, as_draws_rvars, bayes_R2, conditional_effects, expose_functions, fixef, hypothesis, loo, LOO, nchains, ndraws, ngrps, niterations, nvariables, pp_check, prior_summary, ranef, VarCorr, variables, waic, WAIC 
+SWAP  brms loaded only     class-method lost  0/27  getS3method lost  0/27
+FIX   brms loaded only     class-method lost  0/27  getS3method lost  0/27
+BASE  lme4 then frmtmb     class-method lost  5/5  getS3method lost  5/5
+    no method at all:   fixef, ngrps, ranef, refit, VarCorr 
+SWAP  lme4 then frmtmb     class-method lost  0/5  getS3method lost  0/5
+FIX   lme4 then frmtmb     class-method lost  0/5  getS3method lost  0/5
+
+frmtmb's OWN methods on a frmtmb_fit: does the method that
+would run belong to frmtmb? A foreign .default is a FAILURE.
+  base-A   FITMETHOD_NOT_OURS 10 of 26 | FITMETHOD_LIST as_draws,as_draws_df,as_draws_array,as_draws_list,as_draws_matrix,as_draws_rvars,ndraws,nchains,niterations,nvariables | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  swap-A   FITMETHOD_NOT_OURS 10 of 26 | FITMETHOD_LIST as_draws,as_draws_df,as_draws_array,as_draws_list,as_draws_matrix,as_draws_rvars,ndraws,nchains,niterations,nvariables | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  fix-A    FITMETHOD_NOT_OURS 0 of 26 | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  base-C   FITMETHOD_NOT_OURS 10 of 26 | FITMETHOD_LIST as_draws,as_draws_df,as_draws_array,as_draws_list,as_draws_matrix,as_draws_rvars,ndraws,nchains,niterations,nvariables | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  swap-C   FITMETHOD_NOT_OURS 10 of 26 | FITMETHOD_LIST as_draws,as_draws_df,as_draws_array,as_draws_list,as_draws_matrix,as_draws_rvars,ndraws,nchains,niterations,nvariables | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  fix-C    FITMETHOD_NOT_OURS 0 of 26 | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  base-D   FITMETHOD_NOT_OURS 10 of 26 | FITMETHOD_LIST as_draws,as_draws_df,as_draws_array,as_draws_list,as_draws_matrix,as_draws_rvars,ndraws,nchains,niterations,nvariables | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  swap-D   FITMETHOD_NOT_OURS 10 of 26 | FITMETHOD_LIST as_draws,as_draws_df,as_draws_array,as_draws_list,as_draws_matrix,as_draws_rvars,ndraws,nchains,niterations,nvariables | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  fix-D    FITMETHOD_NOT_OURS 0 of 26 | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  base-L   FITMETHOD_NOT_OURS 10 of 26 | FITMETHOD_LIST as_draws,as_draws_df,as_draws_array,as_draws_list,as_draws_matrix,as_draws_rvars,ndraws,nchains,niterations,nvariables | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  swap-L   FITMETHOD_NOT_OURS 10 of 26 | FITMETHOD_LIST as_draws,as_draws_df,as_draws_array,as_draws_list,as_draws_matrix,as_draws_rvars,ndraws,nchains,niterations,nvariables | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  fix-L    FITMETHOD_NOT_OURS 0 of 26 | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+
+the message a frmtmb_fit gets from two of the six that regressed:
+  base-A   MSG as_draws: no applicable method for 'as_draws' applied to an object of clas
+  base-A   MSG as_draws_df: no applicable method for 'as_draws_df' applied to an object of c
+  swap-A   MSG as_draws: All list elements must be lists themselves.
+  swap-A   MSG as_draws_df: All list elements must be lists themselves.
+  fix-A    MSG as_draws: as_draws() needs posterior draws and a frmtmb_fit has none: frm(
+  fix-A    MSG as_draws_df: as_draws_df() needs posterior draws and a frmtmb_fit has none: f
+
+which namespace each generic resolves to:
+  base-A   frmtmb=28
+  fix-A    bayesplot=1 brms=7 generics=1 loo=3 nlme=3 posterior=11 rstantools=2
+  fix-B    bayesplot=1 brms=7 generics=1 loo=3 nlme=3 posterior=11 rstantools=2
+  fix-C    frmtmb=24 generics=1 nlme=3
+  fix-D    bayesplot=1 brms=7 generics=1 loo=3 nlme=3 posterior=11 rstantools=2
+  fix-L    frmtmb=23 lme4=2 nlme=3
+```

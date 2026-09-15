@@ -1,0 +1,6 @@
+Package: genrevads
+Version: 0.1.0
+Title: Adopter
+Authors@R: person("R","E",role=c("aut","cre"),email="r@e.tt")
+Description: Adopts the owner's generic with an active binding.
+License: GPL-3

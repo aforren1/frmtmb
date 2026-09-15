@@ -1,0 +1,150 @@
+frmtmb from: C:/Users/adf44/source/r/rellib-r3/frmtmb  version 0.55.2
+
+FILE    tests/testthat/test-generic-collision.R 
+BLOCKS  11 
+ASSERT  43 
+PASS    24 
+FAIL    19 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    15.7 
+BAD     attaching frmtmb after brms leaves every brms method reachable 
+         Expected `parse_field(out, "LOSTDISPATCH")` to equal `character()`.
+         Differences:
+              actual            | expected                
+          [1] "as_draws"        -                         
+          [2] "as_draws_array"  -                         
+          [3] "as_draws_df"     -                         
+          [4] "as_draws_list"   -                         
+          [5] "as_draws_matrix" -                         
+          [6] "as_draws_rvars"  -                         
+          [7] "nchains"         -                         
+          [8] "ndraws"          -                         
+          [9] "niterations"     -                         
+         [10] "nvariables"      -                         
+          ... ...                 ...      and 17 more ...
+          
+         Expected `parse_field(out, "LOSTMETHOD")` to equal `character()`.
+         Differences:
+              actual            | expected                
+          [1] "as_draws"        -                         
+          [2] "as_draws_array"  -                         
+          [3] "as_draws_df"     -                         
+          [4] "as_draws_list"   -                         
+          [5] "as_draws_matrix" -                         
+          [6] "as_draws_rvars"  -                         
+          [7] "nchains"         -                         
+          [8] "ndraws"          -                         
+          [9] "niterations"     -                         
+         [10] "nvariables"      -                         
+          ... ...                 ...      and 17 more ...
+          
+BAD     brms loaded but never attached is reachable too 
+         Expected `parse_field(out, "LOSTDISPATCH")` to equal `character()`.
+         Differences:
+              actual            | expected                
+          [1] "as_draws"        -                         
+          [2] "as_draws_array"  -                         
+          [3] "as_draws_df"     -                         
+          [4] "as_draws_list"   -                         
+          [5] "as_draws_matrix" -                         
+          [6] "as_draws_rvars"  -                         
+          [7] "nchains"         -                         
+          [8] "ndraws"          -                         
+          [9] "niterations"     -                         
+         [10] "nvariables"      -                         
+          ... ...                 ...      and 17 more ...
+          
+         Expected `parse_field(out, "LOSTMETHOD")` to equal `character()`.
+         Differences:
+              actual            | expected                
+          [1] "as_draws"        -                         
+          [2] "as_draws_array"  -                         
+          [3] "as_draws_df"     -                         
+          [4] "as_draws_list"   -                         
+          [5] "as_draws_matrix" -                         
+          [6] "as_draws_rvars"  -                         
+          [7] "nchains"         -                         
+          [8] "ndraws"          -                         
+          [9] "niterations"     -                         
+         [10] "nvariables"      -                         
+          ... ...                 ...      and 17 more ...
+          
+BAD     attaching frmtmb after lme4 leaves lme4's own methods reachable 
+         Expected `parse_field(out, "LOSTDISPATCH")` to equal `character()`.
+         Differences:
+         `actual`:   "fixef" "ranef" "VarCorr" "ngrps" "refit"
+         `expected`:                                          
+          
+         Expected `parse_field(out, "LOSTMETHOD")` to equal `character()`.
+         Differences:
+         `actual`:   "fixef" "ranef" "VarCorr" "ngrps" "refit"
+         `expected`:                                          
+          
+BAD     a shared generic resolves to its owner, not to frmtmb 
+         Expected `parse_field(out, "AS_DRAWS")` to equal "posterior".
+         Differences:
+         `actual`:   "frmtmb"   
+         `expected`: "posterior"
+          
+         Expected `parse_field(out, "NDRAWS")` to equal "posterior".
+         Differences:
+         `actual`:   "frmtmb"   
+         `expected`: "posterior"
+          
+         Expected `parse_field(out, "LOO")` to equal "loo".
+         Differences:
+         `actual`:   "frmtmb"
+         `expected`: "loo"   
+          
+         Expected `parse_field(out, "FIXEF")` to equal "nlme".
+         Differences:
+         `actual`:   "frmtmb"
+         `expected`: "nlme"  
+          
+BAD     an owner unloaded and reloaded does not leave a stale generic 
+         Expected `parse_field(out, "ENV")` to equal "loo".
+         Differences:
+         `actual`:   "frmtmb"
+         `expected`: "loo"   
+          
+         Expected `parse_field(out, "STALE")` to equal "FALSE".
+         Differences:
+         `actual`:   "TRUE" 
+         `expected`: "FALSE"
+          
+         Expected `parse_field(out, "BRMSFIT")` to equal "TRUE".
+         Differences:
+         `actual`:   "FALSE"
+         `expected`: "TRUE" 
+          
+BAD     the binding is ACTIVE, and stays active through a re-export 
+         Expected `parse_field(out, "NS")` to equal "TRUE".
+         Differences:
+         `actual`:   "FALSE"
+         `expected`: "TRUE" 
+          
+         Expected `parse_field(out, "ATT")` to equal "TRUE".
+         Differences:
+         `actual`:   "FALSE"
+         `expected`: "TRUE" 
+          
+BAD     no shared generic carries work in its own body 
+         Expected `out` to match string "CHILDOK".
+         Actual text:
+         x | Error in get("frm_generic_owners", envir = ns) : 
+           |   object 'frm_generic_owners' not found
+           | Execution halted 
+         Expected `parse_field(out, "OWNERSLOADED")` to equal "0".
+         Differences:
+         `actual`:   NA 
+         `expected`: "0"
+          
+         Expected `as.integer(parse_field(out, "NAMES"))` > 20L.
+         Actual comparison: NA <= 20 
+         Expected `parse_field(out, "WITHWORK")` to equal `character()`.
+         Differences:
+         `actual`:   NA
+         `expected`:   
+          

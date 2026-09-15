@@ -1,0 +1,19 @@
+state none  elapsed tick min 0.0100 s median 0.0200 s
+  frmtmb loo (active)                2097152 reps    1.27 us  (267 ticks per block)
+  frmtmb ngrps (2 owners)             524288 reps    3.95 us  (207 ticks per block)
+  CONTROL same code, scratch env     2097152 reps    1.22 us  (256 ticks per block)
+  CONTROL active constant            2097152 reps    0.79 us  (166 ticks per block)
+  CONTROL plain binding              4194304 reps    0.63 us  (266 ticks per block)
+  CONTROL identity                  16777216 reps    0.17 us  (289 ticks per block)
+frmtmb loo / plain binding = 2.01 ; same-code control / frmtmb loo = 0.959
+GENREVDONE
+<environment: namespace:posterior>
+state owners  elapsed tick min 0.0100 s median 0.0200 s
+  frmtmb loo (active)                 524288 reps    2.75 us  (144 ticks per block)
+  frmtmb ngrps (2 owners)             262144 reps    4.12 us  (108 ticks per block)
+  CONTROL same code, scratch env      524288 reps    2.71 us  (142 ticks per block)
+  CONTROL active constant            1048576 reps    0.92 us  (96 ticks per block)
+  CONTROL plain binding              1048576 reps    0.62 us  (65 ticks per block)
+  CONTROL identity                   4194304 reps    0.17 us  (70 ticks per block)
+frmtmb loo / plain binding = 4.43 ; same-code control / frmtmb loo = 0.986
+GENREVDONE

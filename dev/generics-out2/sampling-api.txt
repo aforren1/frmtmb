@@ -1,0 +1,235 @@
+_C_o_r_e _i_n_t_e_r_n_a_l_s _f_o_r _a _s_a_m_p_l_i_n_g _e_x_t_e_n_s_i_o_n
+
+_D_e_s_c_r_i_p_t_i_o_n:
+
+     These functions are the interface 'frmtmb.sample' is written
+     against. They were internal until the sampling surface moved to
+     its own package, and they are documented here as one contract
+     rather than one page each, because what has to be reviewed is the
+     set.
+
+     They are lower-level than the rest of frmtmb: they take assembled
+     frames, resolved prior entries and single random-effect blocks,
+     not formulas. Most users want 'frm()', 'set_prior()' and
+     'frmtmb.sample::frm_sample()' instead. Nothing here validates its
+     arguments the way the user-facing surface does.
+
+_A_r_g_u_m_e_n_t_s:
+
+   frame: An assembled model frame ('fit$frame').
+
+      bk: One element of 'frame$re_blocks'.
+
+     fit: A 'frmtmb_fit'.
+
+     ...: Arguments of the individual functions; see the sections above
+          and the source, which is the reference for these.
+
+_V_a_l_u_e:
+
+     As described per function above.
+
+_T_h_e _o_b_j_e_c_t_i_v_e _s_e_a_m:
+
+     'build_objective(frame)' returns the bare negative log-likelihood
+     closure of an assembled frame, ready for 'RTMB::MakeADFun()'. It
+     honors two fields a caller may set on a COPY of the frame:
+     'frame$map', and 'frame$ncp_blocks', the indices of the
+     random-effect blocks to build in their non-centered form (b =
+     L(theta) z). A prior-augmented objective is this closure plus
+     'neg_log_prior_fn()''s.
+
+     'row_lpdf(fam, y, yobs, dpars, aterms, extra)' is the per-row
+     log-density composition the objective itself runs, with 'cens()'
+     and 'trunc()' folded in; it runs on numeric dpar values as readily
+     as on the tape, which is what makes a pointwise 'log_lik()'
+     reproduce the fitted density exactly instead of approximating it.
+     'with_cs_offsets(fit, rspec, dpv)' takes one response spec from
+     'fit$spec$responses' and the dpar-value list 'eval_dpars()'
+     returns for that response, and gives back the same list with the
+     category-specific ('cs()') offsets applied; on a model without
+     'cs()' terms it returns 'dpv' unchanged, so it is safe to call
+     unconditionally before 'row_lpdf()'. 'us_chol_cor(theta, K)' is
+     the unstructured correlation matrix of a 'thetar' segment, which a
+     'set_rescor(TRUE)' model's joint row density needs.
+
+_T_h_e _p_r_i_o_r _s_e_a_m:
+
+     The prior VOCABULARY - 'set_prior()', 'prior_normal()' and its
+     relatives, 'get_prior()', 'prior_summary()' - is ordinary exported
+     API and is not part of this page. What is here is the RESOLUTION
+     machinery underneath it: 'as_priorlist()' coerces the accepted
+     spellings (including a brms 'brmsprior') to one,
+     'resolve_prior_input()' turns a priorlist plus a model into
+     'list(entries, lower, upper)' on the internal parameter scale,
+     'neg_log_prior_fn()' turns resolved entries into a tapeable
+     closure, 'resolve_bounds()' turns user-spelled bounds into
+     internal-scale vectors over the outer parameters, 'spec_target()'
+     names the slot one specification addresses, and 'spec_spelling()'
+     gives back the class and dpar it was WRITTEN with, which for a
+     density on a distributional parameter itself is that parameter's
+     own class rather than the intercept slot the resolver assigns to.
+
+     'frmtmb_register_prior_defaults()' is the other direction: it lets
+     a package tell 'get_prior()' what defaults it would apply.
+     'get_prior()' reads the registry under 'route = "sample"' ONLY,
+     and refuses that route when nothing is registered. Its default
+     'route = "fit"' reports what 'frm()' applies and reads nothing, so
+     a registration cannot change the answer of a call that did not ask
+     about the sampling route.
+
+_T_h_e _c_o_v_s_t_r_u_c_t _b_l_o_c_k _r_e_a_d_e_r_s:
+
+     Each takes ONE element of 'frame$re_blocks' and answers one
+     structural question about it. 'ncp_eligible()' says whether the
+     block has a linear Cholesky factor and only standard-deviation and
+     correlation parameters, so that b = L(theta) z is a bijection;
+     'ncp_scale_b()' and 'ncp_unscale_b()' are that map and its
+     inverse. 'covstruct_has_chol()' is the first half of eligibility
+     on its own (a factor is registered at all), 'block_sd_idx()' gives
+     the block's standard-deviation positions within its theta segment,
+     'block_n_cor()' counts its correlation positions,
+     'block_cor_prior()' says whether an LKJ density fits them
+     ('"none"', '"lkj"' or '"unsupported"'), and 'is_student_block()'
+     reports a Student-t latent, which is a scale mixture and so has no
+     linear factor at all.
+
+     The registry these read is deliberately NOT exported: exporting it
+     would make every field of every structure's entry into API, and
+     these eight questions are the ones anything outside covstruct.R
+     has ever needed to ask.
+
+_T_h_e _s_i_m_u_l_a_t_o_r _s_e_a_m:
+
+     'sim_can()' and 'sim_note()' say whether a family can be simulated
+     from and what is missing when it cannot; 'sim_context()' builds
+     the context one draw is taken from and 'sim_draw()' takes it.
+     'sim_is_structured()' reports whether the draw walks a fitted
+     structure - a hidden state sequence, a group-level latent class, a
+     correlated residual - which is what makes 'newdata' and
+     're_formula' refusable rather than merely unimplemented on a
+     predictive method.
+
+_P_a_r_a_m_e_t_e_r _l_a_b_e_l_i_n_g _a_n_d _f_i_t_t_e_d _q_u_a_n_t_i_t_i_e_s:
+
+     'par_name_bare()' is the draws-side spelling of a parameter name,
+     with parentheses dropped ('Intercept', not '(Intercept)');
+     'outer_par_names()' names the outer parameter vector in
+     'confint()' row order; 'estimated_coef_names()' names the
+     estimated coefficient vector with mapped 'betad' entries excluded;
+     'log_sd_theta_index()' says which theta positions are log standard
+     deviations, so that a variance at its boundary can be told from an
+     AR(1) coefficient at its own. 'sdr_of()' is the cached
+     'TMB::sdreport()', and 'require_fitted()' is the refusal a
+     maximum-likelihood-only method owes an object that was assembled
+     but never optimized.
+
+_T_h_e _h_y_p_o_t_h_e_s_i_s _e_x_p_r_e_s_s_i_o_n _e_n_g_i_n_e:
+
+     'hyp_parse_all()' turns hypothesis strings into expressions and
+     per-expression directions, once. 'hyp_vals_only(fit)' reads the
+     fit's current estimates into a flat named value vector plus a
+     parallel component vector (which template component each value
+     came from); 'hyp_env_vals(fit, vals, comp)' takes exactly that
+     pair and builds the evaluation environment, and 'hyp_eval()'
+     evaluates one expression in it - so a caller with many parameter
+     vectors parses once, then per vector swaps the estimates in and
+     calls 'hyp_vals_only()' and 'hyp_env_vals()' again. 'hyp_tail_p()'
+     is the tail probability of a directional claim.
+
+     'hyp_shadow_arm()' and 'hyp_shadow_disarm(old)' bracket ONE
+     user-level 'hypothesis()' call. A covariate named like a reserved
+     quantity, 'sigma' or sd_<group>__<term>, shadows it, and the note
+     saying which one was read is detected inside 'hyp_env_vals()',
+     which runs many times per call; it is emitted only while armed,
+     and once per name. Every 'hypothesis()' METHOD arms it on entry
+     and restores the returned state on exit: old <- hyp_shadow_arm();
+     on.exit(hyp_shadow_disarm(old), add = TRUE). The generic cannot do
+     it, because the exported 'hypothesis' is brms's generic whenever
+     brms is loaded, and a method that does not arm loses the note in
+     every session.
+
+_T_h_e _c_o_n_d_i_t_i_o_n_a_l-_e_f_f_e_c_t_s _e_n_g_i_n_e:
+
+     'ce_grids_build()' builds the prediction grids, effect list,
+     condition sets and base values; 'ce_boot_one()' evaluates one grid
+     at one parameter vector and flattens it; 'ce_frame()' lays out one
+     grid's rows in the column order brms's frame carries (the varied
+     predictor(s), every other model variable at its held value,
+     'cond__', 'cats__', 'effect1__', 'effect2__'), and 'ce_finalize()'
+     assembles the per-effect data frames into the returned object with
+     the attributes 'plot()' reads. 'ce_cats_display()' says whether
+     the display is per-category and 'ce_display_kind()' which of the
+     three displays a call asks for, 'ce_structure_check()' is the
+     refusal a structured likelihood owes a grid, and 'ce_re_formula()'
+     resolves the random-effect argument of such a call.
+
+     'ce_pred_dpar()' says what to PREDICT, which is not always the
+     dpar the display is labeled with. It returns 'NULL' - the expected
+     response - whenever no dpar was named and the family's mean is not
+     the inverse link of 'mu', or the response carries 'trunc()'
+     bounds. Call it rather than passing a resolved 'dpar' straight to
+     'ce_boot_one()': on a zero-inflated fit the mu predictor alone is
+     '1 / (1 - zi)' times the mean, on a mixture it is one component's
+     mean, and on a response truncated below at zero it can be
+     negative. The predicate underneath stays private, because what an
+     extension needs is the decision and not the test that makes it.
+
+     'ce_dots()' is the argument surface itself: it pulls
+     'allow_new_levels' (and lme4's 'allow.new.levels') out of a call's
+     dots, returns whether either was set, and reports whatever is left
+     as unknown. An extension that hand-rolls the same check accepts a
+     different set of arguments from the fit method, which is how
+     'allow_new_levels' came to work on a fit and warn on draws.
+
+     Four more serve one purpose between them: making an unobserved
+     group a DRAWN group rather than letting the first observed one
+     stand in for it silently. 'ce_group_vars()' names the grouping
+     variables a 're_formula = NULL' call blanks in its grid;
+     'ce_new_level_spec()' reads the blocks that blanking reaches;
+     'ce_boot_grids()' puts a placeholder level back in the grid the
+     design has to map; and 'ce_draw_new_levels()' overwrites that
+     level's coefficients with one draw from the covariance the passed
+     object's own 'theta' implies. A sampler calls the last one per
+     POSTERIOR DRAW where the fit method calls it per bootstrap
+     replicate; the construction is the same and the frames stay
+     comparable.
+
+_T_h_e _t_w_o-_d_i_a_l_e_c_t _a_r_g_u_m_e_n_t _s_e_a_m:
+
+     frmtmb answers to two argument dialects: a brms-named function
+     takes 're_formula', frmtmb's own fit surface takes lme4's
+     're.form', and the brms-named ones accept both. 'arg_unset()' is
+     the "not supplied" marker a formal defaults to when 'NULL' and
+     'NA' are both real settings and neither can double as unset;
+     're_form_arg()' resolves the pair, refusing rather than guessing
+     when both are given.
+
+_S_e_e _A_l_s_o:
+
+     frmtmb-extension-api for the family-level accessors a structured
+     family uses, 'frmtmb_structure()' for the protocol those serve,
+     and 'frmtmb_register_compat()' for the compatibility registry,
+     which was documented here while it had no page of its own.
+
+_E_x_a_m_p_l_e_s:
+
+     set.seed(1)
+     dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
+     dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
+     fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+     
+     # the objective seam: the bare likelihood closure of the frame
+     nll <- build_objective(fit$frame)
+     nll(fit$estimates)
+     
+     # a block reader: this one has a diagonal factor and one sd, so it
+     # can be sampled non-centered
+     bk <- fit$frame$re_blocks[[1]]
+     c(eligible = ncp_eligible(bk), n_cor = block_n_cor(bk),
+       cor_prior = block_cor_prior(bk))
+     
+     # parameter labeling, in the two spellings
+     head(outer_par_names(fit))
+     head(par_name_bare(outer_par_names(fit)))
+     

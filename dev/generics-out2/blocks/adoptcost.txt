@@ -1,0 +1,24 @@
+```
+== active-binding cost, dev/generics-adoptcost.R ==
+proc.time() tick here: 0.0100 s
+names in the table 25, distinct owners 6
+
+-- NO owner loaded: the fallback path, arms interleaved --
+active binding, get('loo')                   1048576 reps     1.29 us
+active binding, get('ngrps'), 2 owners        262144 reps     4.35 us
+CONTROL get('frm'), ordinary binding         4194304 reps     0.64 us
+CONTROL identity(1)                         16777216 reps     0.16 us
+fixef(fit), a real accessor call              262144 reps    14.61 us
+<environment: namespace:posterior>
+<environment: namespace:loo>
+
+-- posterior and loo loaded: the adopted path --
+active binding, get('loo')                   1048576 reps     3.18 us
+active binding, get('as_draws_df')           1048576 reps     3.28 us
+CONTROL get('frm'), ordinary binding         4194304 reps     0.80 us
+fixef(fit), a real accessor call               65536 reps    12.36 us
+
+fallback path 1.29 us, adopted path 3.18 us
+adopted path is 4.0x an ordinary binding lookup (0.80 us)
+and 0.26 of one fixef() call (12.36 us), same round
+```

@@ -1,0 +1,4 @@
+borrowed-name registrations in frmtmb's own table: 28 
+lacking an owner-table twin: 2 
+  loo_compare.default has no loo:: twin
+  posterior_summary.default has no brms:: twin

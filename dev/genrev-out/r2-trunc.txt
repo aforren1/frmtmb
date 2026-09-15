@@ -1,0 +1,16 @@
+lb =  2000  rows 308  bound position a: -3.76 .. 1.41 sigma
+   lane's statistic max|diff|/max(fitted)   0.1150
+   relative error at the worst row          0.5163
+   median row                               0.0516
+   closed form 1 - Phi(-a)/Phi(s-a), max    0.5163  max |diff| vs row 2.50e-16
+lb =   500  rows 400  bound position a: -7.60 .. -0.57 sigma
+   lane's statistic max|diff|/max(fitted)   0.0098
+   relative error at the worst row          0.1429
+   median row                               0.0000
+   closed form 1 - Phi(-a)/Phi(s-a), max    0.1429  max |diff| vs row 2.08e-16
+lb =  5000  rows 104  bound position a: -1.77 .. 4.02 sigma
+   lane's statistic max|diff|/max(fitted)   0.3650
+   relative error at the worst row          0.8430
+   median row                               0.3513
+   closed form 1 - Phi(-a)/Phi(s-a), max    0.8430  max |diff| vs row 2.22e-16
+GENREVDONE

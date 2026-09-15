@@ -1,0 +1,7 @@
+posterior_summary owner before=frmtmb after=brms
+cols before=Estimate,Est.Error,Q2.5,Q97.5 after=Estimate,Est.Error,Q2.5,Q97.5
+identical plain=TRUE robust=TRUE
+max abs diff plain=0.000e+00 robust=0.000e+00
+loo_compare owner=loo
+frmtmb loo_compare.default exists=TRUE
+GENREVDONE

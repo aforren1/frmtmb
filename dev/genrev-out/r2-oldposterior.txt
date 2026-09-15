@@ -1,0 +1,43 @@
+LIB C:/Users/adf44/source/r/rellib-r3  order first
+  loadNamespace(old posterior)       ok
+  library(frmtmb)                    ok
+Warning message:
+In loadNamespace("posterior") :
+  package 'posterior' has no 'package.rds' in Meta/
+  posterior version loaded: 0.9.0
+LIB C:/Users/adf44/source/r/rellib-r3  order after
+  library(frmtmb)                    ok
+  loadNamespace(old posterior)       ok
+Warning message:
+In loadNamespace("posterior") :
+  package 'posterior' has no 'package.rds' in Meta/
+  posterior version loaded: 0.9.0
+LIB C:/Users/adf44/source/r/genrev-lib  order first
+  loadNamespace(old posterior)       ok
+  library(frmtmb)                    ok
+Warning message:
+In loadNamespace("posterior") :
+  package 'posterior' has no 'package.rds' in Meta/
+  posterior version loaded: 0.9.0
+LIB C:/Users/adf44/source/r/genrev-lib  order after
+  library(frmtmb)                    ok
+  loadNamespace(old posterior)       ok
+Warning message:
+In loadNamespace("posterior") :
+  package 'posterior' has no 'package.rds' in Meta/
+  posterior version loaded: 0.9.0
+LIB C:/Users/adf44/source/r/genrev2-lib  order first
+  loadNamespace(old posterior)       ok
+  library(frmtmb)                    FAILED: package or namespace load failed for 'frmtmb' in get(genname, envir = envir):
+ object 'as_
+Warning message:
+In loadNamespace("posterior") :
+  package 'posterior' has no 'package.rds' in Meta/
+  posterior version loaded: 0.9.0
+LIB C:/Users/adf44/source/r/genrev2-lib  order after
+  library(frmtmb)                    ok
+  loadNamespace(old posterior)       ok
+Warning message:
+In loadNamespace("posterior") :
+  package 'posterior' has no 'package.rds' in Meta/
+  posterior version loaded: 0.9.0

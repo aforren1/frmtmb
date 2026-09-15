@@ -236,3 +236,8 @@ predict(fit, newdata = nd_new, allow_new_levels = TRUE)
 fit2 <- frm(bf(y ~ x, sigma ~ x) + gaussian(), data = dd)
 head(predict(fit2, dpar = "sigma", type = "response"))
 }
+\seealso{
+\link{frmtmb-scales}, which states which scale every
+method reports. The default here is the LINK scale, where
+brms's \code{predict()} gives the response scale.
+}

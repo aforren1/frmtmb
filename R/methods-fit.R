@@ -646,11 +646,8 @@ coef.frmtmb_fit <- function(object, ...) {
 #' # so a standard error goes with its coefficient by name
 #' cf <- fixef(fit, flatten = TRUE)
 #' cf / sqrt(diag(vcov(fit))[names(cf)])
-#' @export
-fixef <- function(object, ...) UseMethod("fixef")
-
 #' @rdname fixef
-#' @exportS3Method nlme::fixef
+#' @aliases fixef
 #' @export
 fixef.frmtmb_fit <- function(object, flatten = FALSE, ...) {
   require_fitted(object, "fixef()")
@@ -723,11 +720,8 @@ fixef.frmtmb_fit <- function(object, flatten = FALSE, ...) {
 #'      plot(condval, seq_along(condval), pch = 16,
 #'           xlim = range(condval - 2 * condsd, condval + 2 * condsd),
 #'           xlab = "conditional mode", ylab = "group"))
-#' @export
-ranef <- function(object, ...) UseMethod("ranef")
-
 #' @rdname ranef
-#' @exportS3Method nlme::ranef
+#' @aliases ranef
 #' @export
 ranef.frmtmb_fit <- function(object, condVar = FALSE, ...) {
   require_fitted(object, "ranef()")
@@ -915,6 +909,9 @@ as.data.frame.VarCorr_frmtmb <- function(x, ...) {
 
 #' Extract random-effect covariance matrices
 #' @param x A `frmtmb_fit`.
+#' @param sigma Ignored. It is carried by nlme's generic, which
+#'   frmtmb now shares rather than shadows, for the models that
+#'   scale a covariance by a residual standard deviation.
 #' @param ... Unused.
 #' @return A named list of covariance matrices, one per random-effect
 #'   term. The names are the term labels, which can repeat when two
@@ -934,13 +931,10 @@ as.data.frame.VarCorr_frmtmb <- function(x, ...) {
 #' VarCorr(fit)[["x | g"]]
 #' # tidy shape for broom.mixed-style code
 #' as.data.frame(VarCorr(fit))
-#' @export
-VarCorr <- function(x, ...) UseMethod("VarCorr")
-
 #' @rdname VarCorr
-#' @exportS3Method nlme::VarCorr
+#' @aliases VarCorr
 #' @export
-VarCorr.frmtmb_fit <- function(x, ...) {
+VarCorr.frmtmb_fit <- function(x, sigma = 1, ...) {
   require_fitted(x, "VarCorr()")
   th <- x$estimates[["theta"]]
   out <- lapply(x$frame[["re_blocks"]], function(bk) {

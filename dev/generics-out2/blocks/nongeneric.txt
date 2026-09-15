@@ -1,0 +1,19 @@
+```
+== names frmtmb and brms both export, dev/generics-audit3.R ==
+brms exports                       306
+frmtmb exports                     187
+both                               67
+  of which S3 generics             27
+  of which already handed to owner 3
+  of which NOT generics            40
+
+the non-generic collisions:
+   acat, asym_laplace, bernoulli, Beta, beta_binomial 
+   bf, categorical, cox, cratio, cumulative 
+   custom_family, exgaussian, exponential, geometric, get_prior 
+   hurdle_gamma, hurdle_lognormal, hurdle_poisson, lf, lognormal 
+   mixture, multinomial, mvbf, negbinomial, nlf 
+   prior, prior_, prior_string, set_prior, set_rescor 
+   shifted_lognormal, skew_normal, sratio, student, von_mises 
+   weibull, zero_inflated_beta, zero_inflated_binomial, zero_inflated_negbinomial, zero_inflated_poisson 
+```

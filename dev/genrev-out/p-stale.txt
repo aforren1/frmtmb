@@ -1,0 +1,9 @@
+frmtmb ns loo -> loo
+hook for loo: 2
+unload loo: ok
+loo re-loaded fresh: TRUE
+  loo          generic=loo        method=<none>     STALE=TRUE
+  waic         generic=loo        method=<none>     STALE=TRUE
+  loo_compare  generic=loo        method=<none>     STALE=TRUE
+frmtmb ns loo identical to live loo::loo: FALSE
+GENREVDONE

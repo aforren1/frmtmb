@@ -1,0 +1,6 @@
+FILE test-scale-contract.R LIB C:/Users/adf44/source/r/generics-mut-M6-lib
+BLOCKS 9 ASSERT 25 PASS 20 FAIL 5 ERROR 0 SKIP 0
+  FAILBLOCK: predict(type = 'response') and fitted() are the same call (failed=1 error=0)
+  FAILBLOCK: fitted() on a lognormal is the MEAN, not the median (failed=3 error=0)
+  FAILBLOCK: residuals() default is on the RESPONSE scale (failed=1 error=0)
+GENREVDONE

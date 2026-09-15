@@ -1,0 +1,6 @@
+LIB genrev-lib patch FALSE owners loaded 
+FITMETHOD_NOT_OURS 10 of 26  as_draws,as_draws_df,as_draws_array,as_draws_list,as_draws_matrix,as_draws_rvars,ndraws,nchains,niterations,nvariables
+LIB genrev-lib patch TRUE owners loaded 
+FITMETHOD_NOT_OURS 0 of 26  
+LIB genrev2-lib patch FALSE owners loaded 
+FITMETHOD_NOT_OURS 0 of 26  

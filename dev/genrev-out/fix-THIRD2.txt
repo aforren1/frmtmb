@@ -1,0 +1,32 @@
+<environment: namespace:brms>
+GENREVMODE THIRD2 CLASS brmsfit
+SEARCH .GlobalEnv package:genrevdep package:stats package:graphics package:grDevices package:utils package:datasets package:methods Autoloads package:base
+ROW	as_draws	<absent>	<absent>	<absent>	<none>
+ROW	as_draws_array	<absent>	<absent>	<absent>	<none>
+ROW	as_draws_df	frmtmb	<none>	none	<none>
+ROW	as_draws_list	<absent>	<absent>	<absent>	<none>
+ROW	as_draws_matrix	<absent>	<absent>	<absent>	<none>
+ROW	as_draws_rvars	<absent>	<absent>	<absent>	<none>
+ROW	nchains	<absent>	<absent>	<absent>	<none>
+ROW	ndraws	<absent>	<absent>	<absent>	<none>
+ROW	niterations	<absent>	<absent>	<absent>	<none>
+ROW	nvariables	<absent>	<absent>	<absent>	<none>
+ROW	variables	<absent>	<absent>	<absent>	<none>
+ROW	loo	frmtmb	<none>	none	<none>
+ROW	loo_compare	<absent>	<absent>	<absent>	<none>
+ROW	waic	<absent>	<absent>	<absent>	<none>
+ROW	bayes_R2	<absent>	<absent>	<absent>	<none>
+ROW	prior_summary	<absent>	<absent>	<absent>	<none>
+ROW	pp_check	frmtmb	<none>	none	<none>
+ROW	conditional_effects	<absent>	<absent>	<absent>	<none>
+ROW	expose_functions	<absent>	<absent>	<absent>	<none>
+ROW	hypothesis	<absent>	<absent>	<absent>	<none>
+ROW	posterior_summary	frmtmb	frmtmb	default	<none>
+ROW	LOO	<absent>	<absent>	<absent>	<none>
+ROW	WAIC	<absent>	<absent>	<absent>	<none>
+ROW	ngrps	frmtmb	<none>	none	<none>
+ROW	fixef	nlme	brms	class	brms
+ROW	ranef	<absent>	<absent>	<absent>	<none>
+ROW	VarCorr	nlme	brms	class	brms
+ROW	refit	<absent>	<absent>	<absent>	<none>
+GENREVDONE

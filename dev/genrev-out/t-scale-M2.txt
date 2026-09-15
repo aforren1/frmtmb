@@ -1,0 +1,5 @@
+FILE test-scale-contract.R LIB C:/Users/adf44/source/r/generics-mut-M2-lib
+BLOCKS 9 ASSERT 25 PASS 20 FAIL 5 ERROR 0 SKIP 0
+  FAILBLOCK: predict() reports the LINK scale and nothing else (failed=3 error=0)
+  FAILBLOCK: a log-link count fit puts predict() and fitted() an exp apart (failed=2 error=0)
+GENREVDONE

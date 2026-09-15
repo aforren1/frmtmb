@@ -1,0 +1,11 @@
+frmtmb from: C:/Users/adf44/source/r/generics-lib/frmtmb  version 0.55.2
+
+FILE    tests/testthat/test-bcm-mpt.R 
+BLOCKS  5 
+ASSERT  27 
+PASS    27 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    5.1 

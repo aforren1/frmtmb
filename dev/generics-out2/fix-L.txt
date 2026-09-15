@@ -1,0 +1,65 @@
+MODE L CLASS merMod
+generic              generic-from method-from  matched    getS3 
+as_draws             frmtmb       none         none       FALSE 
+as_draws_array       frmtmb       none         none       FALSE 
+as_draws_df          frmtmb       none         none       FALSE 
+as_draws_list        frmtmb       none         none       FALSE 
+as_draws_matrix      frmtmb       none         none       FALSE 
+as_draws_rvars       frmtmb       none         none       FALSE 
+nchains              frmtmb       none         none       FALSE 
+ndraws               frmtmb       none         none       FALSE 
+niterations          frmtmb       none         none       FALSE 
+nvariables           frmtmb       none         none       FALSE 
+variables            frmtmb       none         none       FALSE 
+loo                  frmtmb       none         none       FALSE 
+loo_compare          frmtmb       frmtmb       default    FALSE 
+waic                 frmtmb       none         none       FALSE 
+bayes_R2             frmtmb       none         none       FALSE 
+prior_summary        frmtmb       none         none       FALSE 
+pp_check             frmtmb       none         none       FALSE 
+conditional_effects  frmtmb       none         none       FALSE 
+expose_functions     frmtmb       none         none       FALSE 
+hypothesis           frmtmb       none         none       FALSE 
+posterior_summary    frmtmb       frmtmb       default    FALSE 
+LOO                  frmtmb       none         none       FALSE 
+WAIC                 frmtmb       none         none       FALSE 
+ngrps                lme4         lme4         merMod     TRUE  
+fixef                nlme         lme4         merMod     TRUE  
+ranef                nlme         lme4         merMod     TRUE  
+VarCorr              nlme         lme4         merMod     TRUE  
+refit                lme4         lme4         merMod     TRUE  
+
+-- frmtmb_fit, method that would run --
+  fixef                frmtmb       frmtmb_fit   ok
+  ranef                frmtmb       frmtmb_fit   ok
+  VarCorr              frmtmb       frmtmb_fit   ok
+  ngrps                frmtmb       frmtmb_fit   ok
+  prior_summary        frmtmb       frmtmb_fit   ok
+  loo                  frmtmb       frmtmb_fit   ok
+  waic                 frmtmb       frmtmb_fit   ok
+  bayes_R2             frmtmb       frmtmb_fit   ok
+  LOO                  frmtmb       frmtmb_fit   ok
+  WAIC                 frmtmb       frmtmb_fit   ok
+  hypothesis           frmtmb       frmtmb_fit   ok
+  conditional_effects  frmtmb       frmtmb_fit   ok
+  expose_functions     frmtmb       frmtmb_fit   ok
+  variables            frmtmb       frmtmb_fit   ok
+  as_draws             frmtmb       frmtmb_fit   ok
+  as_draws_df          frmtmb       frmtmb_fit   ok
+  as_draws_array       frmtmb       frmtmb_fit   ok
+  as_draws_list        frmtmb       frmtmb_fit   ok
+  as_draws_matrix      frmtmb       frmtmb_fit   ok
+  as_draws_rvars       frmtmb       frmtmb_fit   ok
+  ndraws               frmtmb       frmtmb_fit   ok
+  nchains              frmtmb       frmtmb_fit   ok
+  niterations          frmtmb       frmtmb_fit   ok
+  nvariables           frmtmb       frmtmb_fit   ok
+  pp_check             frmtmb       frmtmb_fit   ok
+  refit                frmtmb       frmtmb_fit   ok
+FITMETHOD_NOT_OURS 0 of 26
+MSG as_draws: as_draws() needs posterior draws and a frmtmb_fit has none: frm(
+MSG as_draws_df: as_draws_df() needs posterior draws and a frmtmb_fit has none: f
+REFIT_OK TRUE
+NGRPS 6
+POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+DONE

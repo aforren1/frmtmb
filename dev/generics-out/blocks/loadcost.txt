@@ -1,0 +1,16 @@
+```
+== load cost, dev/generics-loadcost.R, R 4.6.1 ==
+12 replicates, interleaved, one fresh process each
+
+arm                           min   median      max
+frmtmb FIX                  0.220    0.340    0.580
+frmtmb BASE                 0.180    0.275    0.420
+control Matrix FIX          0.420    0.505    0.930
+control Matrix BASE         0.440    0.565    1.130
+lme4 (2.5c price)           0.860    1.205    2.330
+nlme (2.5a price)           0.040    0.060    0.130
+generics (2.5a price)       0.000    0.015    0.040
+
+frmtmb FIX minus BASE, on minima:  +0.040 s
+CONTROL  FIX minus BASE, on minima: -0.020 s   (must be about 0)
+```

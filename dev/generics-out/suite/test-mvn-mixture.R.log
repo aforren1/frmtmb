@@ -1,0 +1,11 @@
+frmtmb from: C:/Users/adf44/source/r/generics-lib/frmtmb  version 0.55.2
+
+FILE    tests/testthat/test-mvn-mixture.R 
+BLOCKS  9 
+ASSERT  277 
+PASS    277 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    8 

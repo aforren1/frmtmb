@@ -6,6 +6,10 @@
 \alias{nchains}
 \alias{niterations}
 \alias{nvariables}
+\alias{ndraws.frmtmb_fit}
+\alias{nchains.frmtmb_fit}
+\alias{niterations.frmtmb_fit}
+\alias{nvariables.frmtmb_fit}
 \title{Size of a draws object}
 \usage{
 ndraws(x)
@@ -14,10 +18,22 @@ nchains(x)
 
 niterations(x)
 
-nvariables(x)
+nvariables(x, ...)
+
+\method{ndraws}{frmtmb_fit}(x)
+
+\method{nchains}{frmtmb_fit}(x)
+
+\method{niterations}{frmtmb_fit}(x)
+
+\method{nvariables}{frmtmb_fit}(x, ...)
 }
 \arguments{
 \item{x}{An object holding draws.}
+
+\item{...}{Unused. Carried because posterior's \code{nvariables()}
+generic has it and frmtmb hands these generics back to
+posterior when posterior is loaded.}
 }
 \value{
 A single integer.

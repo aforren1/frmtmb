@@ -1,0 +1,13 @@
+frmtmb from: C:/Users/adf44/source/r/generics-lib/frmtmb  version 0.55.2
+2 rows removed because of missing values (na.action)
+2 rows removed because of missing values (na.action)
+
+FILE    tests/testthat/test-backlog.R 
+BLOCKS  11 
+ASSERT  35 
+PASS    35 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    3.2 

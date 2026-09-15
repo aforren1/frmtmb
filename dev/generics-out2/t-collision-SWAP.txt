@@ -1,0 +1,50 @@
+frmtmb from: C:/Users/adf44/source/r/genrev-lib/frmtmb  version 0.55.2
+
+FILE    tests/testthat/test-generic-collision.R 
+BLOCKS  11 
+ASSERT  43 
+PASS    36 
+FAIL    7 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    16.6 
+BAD     an owner unloaded and reloaded does not leave a stale generic 
+         Expected `parse_field(out, "STALE")` to equal "FALSE".
+         Differences:
+         `actual`:   "TRUE" 
+         `expected`: "FALSE"
+          
+         Expected `parse_field(out, "BRMSFIT")` to equal "TRUE".
+         Differences:
+         `actual`:   "FALSE"
+         `expected`: "TRUE" 
+          
+BAD     the binding is ACTIVE, and stays active through a re-export 
+         Expected `parse_field(out, "NS")` to equal "TRUE".
+         Differences:
+         `actual`:   "FALSE"
+         `expected`: "TRUE" 
+          
+         Expected `parse_field(out, "ATT")` to equal "TRUE".
+         Differences:
+         `actual`:   "FALSE"
+         `expected`: "TRUE" 
+          
+         Expected `parse_field(out, "UNLOCKED")` to equal "FALSE".
+         Differences:
+         `actual`:   "TRUE" 
+         `expected`: "FALSE"
+          
+BAD     an owner that exports a NON-generic does not take the name 
+         Expected `parse_field(out, "PPCHECK")` to equal "frmtmb".
+         Differences:
+         `actual`:   "bayesplot"
+         `expected`: "frmtmb"   
+          
+BAD     no shared generic carries work in its own body 
+         Expected `parse_field(out, "WITHWORK")` to equal `character()`.
+         Differences:
+         `actual`:   "hypothesis"
+         `expected`:             
+          

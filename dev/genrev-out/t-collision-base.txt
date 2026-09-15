@@ -1,0 +1,7 @@
+FILE test-generic-collision.R LIB C:/Users/adf44/source/r/rellib-r3
+BLOCKS 6 ASSERT 23 PASS 13 FAIL 10 ERROR 0 SKIP 0
+  FAILBLOCK: attaching frmtmb after brms leaves every brms method reachable (failed=2 error=0)
+  FAILBLOCK: brms loaded but never attached is reachable too (failed=2 error=0)
+  FAILBLOCK: attaching frmtmb after lme4 leaves lme4's own methods reachable (failed=2 error=0)
+  FAILBLOCK: a shared generic resolves to its owner, not to frmtmb (failed=4 error=0)
+GENREVDONE

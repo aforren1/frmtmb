@@ -1,0 +1,13 @@
+```
+== suite: frmtmb.sample, 17 files, one process per file, punch round 2 ==
+test files with a result   17 of 17
+test blocks                195
+assertions                 1145
+pass                       1145
+FAIL                       0
+ERROR                      0
+skip                       3
+warning                    0
+
+no file reported a failure or an error
+```

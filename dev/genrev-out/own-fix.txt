@@ -1,0 +1,33 @@
+LIB C:/Users/adf44/source/r/genrev-lib
+as_draws             gen=posterior   meth=<none>      ERR:All list elements must be lists themselves.
+as_draws_df          gen=posterior   meth=<none>      ERR:All list elements must be lists themselves.
+as_draws_list        gen=posterior   meth=<none>      ERR:All list elements must be lists themselves.
+as_draws_rvars       gen=posterior   meth=<none>      ERR:All list elements must be lists themselves.
+as_draws_array       gen=posterior   meth=<none>      ERR:All list elements must be lists themselves.
+as_draws_matrix      gen=posterior   meth=<none>      ERR:All list elements must be lists themselves.
+nvariables           gen=posterior   meth=<none>      ERR:no applicable method for 'nvariables' applied to an obj
+niterations          gen=posterior   meth=<none>      ERR:no applicable method for 'niterations' applied to an ob
+nchains              gen=posterior   meth=<none>      ERR:no applicable method for 'nchains' applied to an object
+ndraws               gen=posterior   meth=<none>      ERR:no applicable method for 'ndraws' applied to an object 
+variables            gen=posterior   meth=frmtmb      OK:character
+loo_compare          gen=loo         meth=<none>      ERR:All inputs should have class 'loo'.
+posterior_summary    gen=frmtmb      meth=<none>      ERR:is.atomic(x) is not TRUE
+loo                  gen=loo         meth=frmtmb      ERR:loo() is a posterior quantity and this is a maximum-lik
+waic                 gen=loo         meth=frmtmb      ERR:waic() averages the likelihood over posterior draws and
+LOO                  gen=frmtmb      meth=frmtmb      ERR:LOO() is the deprecated brms spelling, and on a maximum
+WAIC                 gen=frmtmb      meth=frmtmb      ERR:WAIC() is the deprecated brms spelling, and it averages
+bayes_R2             gen=frmtmb      meth=frmtmb      ERR:bayes_R2() is computed per posterior draw and this is a
+No priors were set (plain maximum likelihood).
+prior_summary        gen=frmtmb      meth=frmtmb      OK:NULL
+hypothesis           gen=frmtmb      meth=frmtmb      ERR:argument "hypothesis" is missing, with no default
+conditional_effects  gen=frmtmb      meth=frmtmb      OK:frmtmb_conditional_effects
+expose_functions     gen=frmtmb      meth=frmtmb      ERR:expose_functions() has no Stan program to read on a frm
+pp_check             gen=bayesplot   meth=frmtmb      OK:ggplot2::ggplot
+ngrps                gen=frmtmb      meth=frmtmb      OK:integer
+fixef                gen=nlme        meth=frmtmb      OK:list
+ranef                gen=nlme        meth=frmtmb      OK:ranef_frmtmb
+VarCorr              gen=nlme        meth=frmtmb      OK:VarCorr_frmtmb
+Warning message:
+In mean.default(newX[, i], ...) :
+  argument is not numeric or logical: returning NA
+GENREVDONE

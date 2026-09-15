@@ -1,0 +1,20 @@
+80 rounds, arms shuffled within each round, hi-res clock
+
+arm               min      q10   median
+BASE           0.1482   0.1548   0.1716
+IMPORTS        0.1677   0.1735   0.1885
+SWAP           0.1726   0.1770   0.1938
+ACTIVE         0.1732   0.1764   0.1982
+NULL_BASE      0.0002   0.0002   0.0002
+NULL_ACTIVE    0.0002   0.0002   0.0002
+
+IMPORTS - BASE     paired median +0.0213 [+0.0164, +0.0251]  min-diff +0.0195  q10-diff +0.0187
+SWAP - BASE        paired median +0.0245 [+0.0213, +0.0319]  min-diff +0.0244  q10-diff +0.0222
+ACTIVE - BASE      paired median +0.0267 [+0.0229, +0.0391]  min-diff +0.0249  q10-diff +0.0215
+SWAP - IMPORTS     paired median +0.0039 [-0.0004, +0.0075]  min-diff +0.0049  q10-diff +0.0035
+ACTIVE - IMPORTS   paired median +0.0026 [-0.0005, +0.0084]  min-diff +0.0054  q10-diff +0.0029
+ACTIVE - SWAP      paired median -0.0008 [-0.0074, +0.0032]  min-diff +0.0005  q10-diff -0.0007
+NULL_ACTIVE - NULL_BASE paired median -0.0000 [-0.0000, +0.0000]  min-diff -0.0000  q10-diff -0.0000
+
+SWAP-BASE on minima of a random 30 rounds: 5% +0.0214  50% +0.0249  95% +0.0280
+GENREVDONE

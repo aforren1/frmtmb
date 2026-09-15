@@ -1,0 +1,67 @@
+<environment: namespace:brms>
+MODE D CLASS brmsfit
+generic              generic-from method-from  matched    getS3 
+as_draws             frmtmb       none         none       FALSE 
+as_draws_array       frmtmb       none         none       FALSE 
+as_draws_df          frmtmb       none         none       FALSE 
+as_draws_list        frmtmb       none         none       FALSE 
+as_draws_matrix      frmtmb       none         none       FALSE 
+as_draws_rvars       frmtmb       none         none       FALSE 
+nchains              frmtmb       none         none       FALSE 
+ndraws               frmtmb       none         none       FALSE 
+niterations          frmtmb       none         none       FALSE 
+nvariables           frmtmb       none         none       FALSE 
+variables            frmtmb       none         none       FALSE 
+loo                  frmtmb       none         none       FALSE 
+loo_compare          frmtmb       frmtmb       default    FALSE 
+waic                 frmtmb       none         none       FALSE 
+bayes_R2             frmtmb       none         none       FALSE 
+prior_summary        frmtmb       none         none       FALSE 
+pp_check             frmtmb       none         none       FALSE 
+conditional_effects  frmtmb       none         none       FALSE 
+expose_functions     frmtmb       none         none       FALSE 
+hypothesis           frmtmb       none         none       FALSE 
+posterior_summary    frmtmb       frmtmb       default    FALSE 
+LOO                  frmtmb       none         none       FALSE 
+WAIC                 frmtmb       none         none       FALSE 
+ngrps                frmtmb       none         none       FALSE 
+fixef                frmtmb       none         none       FALSE 
+ranef                frmtmb       none         none       FALSE 
+VarCorr              frmtmb       none         none       FALSE 
+refit                frmtmb       none         none       FALSE 
+
+-- frmtmb_fit, method that would run --
+  fixef                frmtmb       frmtmb_fit   ok
+  ranef                frmtmb       frmtmb_fit   ok
+  VarCorr              frmtmb       frmtmb_fit   ok
+  ngrps                frmtmb       frmtmb_fit   ok
+  prior_summary        frmtmb       frmtmb_fit   ok
+  loo                  frmtmb       frmtmb_fit   ok
+  waic                 frmtmb       frmtmb_fit   ok
+  bayes_R2             frmtmb       frmtmb_fit   ok
+  LOO                  frmtmb       frmtmb_fit   ok
+  WAIC                 frmtmb       frmtmb_fit   ok
+  hypothesis           frmtmb       frmtmb_fit   ok
+  conditional_effects  frmtmb       frmtmb_fit   ok
+  expose_functions     frmtmb       frmtmb_fit   ok
+  variables            frmtmb       frmtmb_fit   ok
+  as_draws             none         none         NOT OURS
+  as_draws_df          none         none         NOT OURS
+  as_draws_array       none         none         NOT OURS
+  as_draws_list        none         none         NOT OURS
+  as_draws_matrix      none         none         NOT OURS
+  as_draws_rvars       none         none         NOT OURS
+  ndraws               none         none         NOT OURS
+  nchains              none         none         NOT OURS
+  niterations          none         none         NOT OURS
+  nvariables           none         none         NOT OURS
+  pp_check             frmtmb       frmtmb_fit   ok
+  refit                frmtmb       frmtmb_fit   ok
+FITMETHOD_NOT_OURS 10 of 26
+FITMETHOD_LIST as_draws,as_draws_df,as_draws_array,as_draws_list,as_draws_matrix,as_draws_rvars,ndraws,nchains,niterations,nvariables
+MSG as_draws: no applicable method for 'as_draws' applied to an object of clas
+MSG as_draws_df: no applicable method for 'as_draws_df' applied to an object of c
+REFIT_OK TRUE
+NGRPS 6
+POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+DONE

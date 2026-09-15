@@ -1,0 +1,10 @@
+frmtmb.sample from: C:/Users/adf44/source/r/generics-lib/frmtmb.sample  frmtmb from: C:/Users/adf44/source/r/generics-lib/frmtmb
+
+FILE    tests/testthat/test-message-uniqueness.R 
+BLOCKS  1 
+ASSERT  6 
+PASS    6 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 

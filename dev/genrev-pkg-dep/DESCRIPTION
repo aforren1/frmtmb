@@ -1,0 +1,9 @@
+Package: genrevdep
+Version: 0.1.0
+Title: A Third Package That Imports frmtmb Without Attaching It
+Authors@R: person("R", "Eviewer", role = c("aut", "cre"), email = "r@e.tt")
+Description: Review scaffolding. Imports frmtmb and re-exports some of
+    its generics, the way frmtmb.sample does.
+License: GPL-3
+Imports: frmtmb
+Encoding: UTF-8

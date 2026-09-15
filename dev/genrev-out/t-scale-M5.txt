@@ -1,0 +1,4 @@
+FILE test-scale-contract.R LIB C:/Users/adf44/source/r/generics-mut-M5-lib
+BLOCKS 9 ASSERT 25 PASS 23 FAIL 2 ERROR 0 SKIP 0
+  FAILBLOCK: simulate() draws on the RESPONSE scale (failed=2 error=0)
+GENREVDONE

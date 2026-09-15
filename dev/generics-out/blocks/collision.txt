@@ -1,0 +1,43 @@
+```
+== Phase 2.5 generic-collision measurement ==
+script dev/generics-check.R + dev/generics-summary.R
+seed 20260915, R 4.6.1, brms 2.23.0, lme4 2.0.6; ONE PROCESS PER ROW
+control = the owner attached WITHOUT frmtmb.  Denominator = the
+generics that exist in that control; damage = one the control
+dispatches on an existing fit that the test cannot.
+
+BASE  brms then frmtmb     dispatch-damage 25/27  getS3method-damage 27/27
+    lost dispatch:     as_draws, as_draws_array, as_draws_df, as_draws_list, as_draws_matrix, as_draws_rvars, bayes_R2, conditional_effects, expose_functions, fixef, hypothesis, loo, LOO, nchains, ndraws, ngrps, niterations, nvariables, pp_check, prior_summary, ranef, VarCorr, variables, waic, WAIC 
+    lost getS3method:  as_draws, as_draws_array, as_draws_df, as_draws_list, as_draws_matrix, as_draws_rvars, bayes_R2, conditional_effects, expose_functions, fixef, hypothesis, loo, LOO, loo_compare, nchains, ndraws, ngrps, niterations, nvariables, posterior_summary, pp_check, prior_summary, ranef, VarCorr, variables, waic, WAIC 
+FIX   brms then frmtmb     dispatch-damage  0/27  getS3method-damage  0/27
+BASE  frmtmb then brms     dispatch-damage  0/27  getS3method-damage  0/27
+FIX   frmtmb then brms     dispatch-damage  0/27  getS3method-damage  0/27
+BASE  brms loaded only     dispatch-damage 25/27  getS3method-damage 27/27
+    lost dispatch:     as_draws, as_draws_array, as_draws_df, as_draws_list, as_draws_matrix, as_draws_rvars, bayes_R2, conditional_effects, expose_functions, fixef, hypothesis, loo, LOO, nchains, ndraws, ngrps, niterations, nvariables, pp_check, prior_summary, ranef, VarCorr, variables, waic, WAIC 
+    lost getS3method:  as_draws, as_draws_array, as_draws_df, as_draws_list, as_draws_matrix, as_draws_rvars, bayes_R2, conditional_effects, expose_functions, fixef, hypothesis, loo, LOO, loo_compare, nchains, ndraws, ngrps, niterations, nvariables, posterior_summary, pp_check, prior_summary, ranef, VarCorr, variables, waic, WAIC 
+FIX   brms loaded only     dispatch-damage  0/27  getS3method-damage  0/27
+BASE  lme4 then frmtmb     dispatch-damage  5/5  getS3method-damage  5/5
+    lost dispatch:     fixef, ngrps, ranef, refit, VarCorr 
+    lost getS3method:  fixef, ngrps, ranef, refit, VarCorr 
+FIX   lme4 then frmtmb     dispatch-damage  0/5  getS3method-damage  0/5
+
+frmtmb's own dispatch and accessors, per mode:
+  base-A   BROKEN_FRMTMBFIT 1 of 17 | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  fix-A    BROKEN_FRMTMBFIT 0 of 17 | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  base-B   BROKEN_FRMTMBFIT 0 of 17 | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  fix-B    BROKEN_FRMTMBFIT 0 of 17 | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  base-C   BROKEN_FRMTMBFIT 1 of 17 | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  fix-C    BROKEN_FRMTMBFIT 1 of 17 | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  base-D   BROKEN_FRMTMBFIT 1 of 17 | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  fix-D    BROKEN_FRMTMBFIT 0 of 17 | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  base-L   BROKEN_FRMTMBFIT 1 of 17 | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+  fix-L    BROKEN_FRMTMBFIT 1 of 17 | REFIT_OK TRUE | NGRPS 6 | POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+
+which namespace each generic resolves to:
+  base-A   frmtmb=28
+  fix-A    bayesplot=1 brms=7 generics=1 loo=3 nlme=3 posterior=11 rstantools=2
+  fix-B    bayesplot=1 brms=7 generics=1 loo=3 nlme=3 posterior=11 rstantools=2
+  fix-C    frmtmb=23 generics=1 loo=1 nlme=3
+  fix-D    bayesplot=1 brms=7 generics=1 loo=3 nlme=3 posterior=11 rstantools=2
+  fix-L    frmtmb=22 lme4=2 loo=1 nlme=3
+```

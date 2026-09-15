@@ -1,0 +1,31 @@
+GENREVMODE C CLASS brmsfit
+SEARCH .GlobalEnv package:frmtmb package:stats package:graphics package:grDevices package:utils package:datasets package:methods Autoloads package:base
+ROW	as_draws	frmtmb	<none>	none	<none>
+ROW	as_draws_array	frmtmb	<none>	none	<none>
+ROW	as_draws_df	frmtmb	<none>	none	<none>
+ROW	as_draws_list	frmtmb	<none>	none	<none>
+ROW	as_draws_matrix	frmtmb	<none>	none	<none>
+ROW	as_draws_rvars	frmtmb	<none>	none	<none>
+ROW	nchains	frmtmb	<none>	none	<none>
+ROW	ndraws	frmtmb	<none>	none	<none>
+ROW	niterations	frmtmb	<none>	none	<none>
+ROW	nvariables	frmtmb	<none>	none	<none>
+ROW	variables	frmtmb	<none>	none	<none>
+ROW	loo	frmtmb	<none>	none	<none>
+ROW	loo_compare	frmtmb	frmtmb	default	<none>
+ROW	waic	frmtmb	<none>	none	<none>
+ROW	bayes_R2	frmtmb	<none>	none	<none>
+ROW	prior_summary	frmtmb	<none>	none	<none>
+ROW	pp_check	frmtmb	<none>	none	<none>
+ROW	conditional_effects	frmtmb	<none>	none	<none>
+ROW	expose_functions	frmtmb	<none>	none	<none>
+ROW	hypothesis	frmtmb	<none>	none	<none>
+ROW	posterior_summary	frmtmb	frmtmb	default	<none>
+ROW	LOO	frmtmb	<none>	none	<none>
+ROW	WAIC	frmtmb	<none>	none	<none>
+ROW	ngrps	frmtmb	<none>	none	<none>
+ROW	fixef	nlme	<none>	none	<none>
+ROW	ranef	nlme	<none>	none	<none>
+ROW	VarCorr	nlme	<none>	none	<none>
+ROW	refit	generics	<none>	none	<none>
+GENREVDONE

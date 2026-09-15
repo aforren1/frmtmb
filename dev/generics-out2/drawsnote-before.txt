@@ -1,0 +1,16 @@
+frmtmb.sample from: C:/Users/adf44/source/r/generics-lib/frmtmb.sample  frmtmb from: C:/Users/adf44/source/r/generics-lib/frmtmb
+
+FILE    tests/testthat/test-draws-methods.R 
+BLOCKS  18 
+ASSERT  99 
+PASS    98 
+FAIL    1 
+ERROR   0 
+SKIP    0 
+WARN    0 
+BAD     hypothesis() on draws gives the reserved-name note, once 
+         Expected `sum(grepl(pat, on_draws, fixed = TRUE))` to equal 1L.
+         Differences:
+           `actual`: 0
+         `expected`: 1
+          

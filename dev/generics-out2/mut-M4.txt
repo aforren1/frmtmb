@@ -1,0 +1,22 @@
+frmtmb from: C:/Users/adf44/source/r/generics-mut-M4-lib/frmtmb  version 0.55.2
+
+FILE    tests/testthat/test-scale-contract.R 
+BLOCKS  12 
+ASSERT  36 
+PASS    33 
+FAIL    3 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    2.3 
+BAD     residuals() default is on the RESPONSE scale 
+         Expected `max(abs(residuals(f) + fitted(f) - y))` <= `8 * .Machine$double.eps * max(abs(y))`.
+         Actual comparison: 17206.84154082662 > 0.00000000005
+         Difference: 17206.84154082656 > 0 
+BAD     residuals(type = 'pearson') is unitless 
+         Expected `abs(stats::sd(r) - 1)` < `6/sqrt(2 * n)`.
+         Actual comparison: 1.00 >= 0.21
+         Difference: 0.79 >= 0 
+         Expected `stats::sd(residuals(f))` > 100.
+         Actual comparison: 0.4 <= 100.0
+         Difference: -99.6 <= 0 

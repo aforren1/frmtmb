@@ -1,3 +1,71 @@
+# frmtmb (development version)
+
+* **frmtmb no longer breaks brms, lme4, posterior, loo, rstantools or
+  bayesplot for objects that already exist.** Attaching frmtmb after
+  one of them used to cost that package every S3 method it had on a
+  name the two share, because frmtmb defined and exported its own
+  generic and `UseMethod()` reads the method table of the namespace
+  where the generic it reached was defined. Measured on the previous
+  release: `library(brms); library(frmtmb)` then `loo(fit)` on an
+  existing `brmsfit` lost all 27 of the generics the two share, two of
+  them SILENTLY by falling into frmtmb's own `.default`; it is now 0
+  of 27, in every load order tested. `library(lme4); library(frmtmb)`
+  lost all 5 of the names lme4 and frmtmb share; it is now 0 of 5.
+
+  frmtmb now shares the owner's generic instead of shadowing it.
+  `fixef()`, `ranef()` and `VarCorr()` are imported from nlme, which
+  is Recommended and is where lme4, glmmTMB and brms get them too, and
+  `refit()` from generics. The rest resolve to the owner's generic at
+  run time when the owner is loaded, and to frmtmb's own when it is
+  not, so nothing new appears in Imports.
+
+* **BREAKING, one call.** `posterior_summary()`'s first argument is
+  now `x`, not `object`, matching brms's generic, so
+  `posterior_summary(object = m)` fails and `posterior_summary(x = m)`
+  or `posterior_summary(m)` is the spelling. That is the only
+  caller-visible break: `nvariables()` and `VarCorr()` change too, but
+  both only GAIN an argument (`...` from posterior, `sigma` from
+  nlme), so no call that named their first argument breaks.
+
+  `refit()` is a fourth changed signature and a subtler one: it is
+  `(object, ...)` from generics normally and `(object, newresp, ...)`
+  when lme4 is loaded, because lme4 defines its own `refit` generic
+  rather than importing one, so `args(refit)` now depends on what else
+  is loaded. No caller breaks on it.
+
+  **If you write an S3 method on any of these names, match the
+  OWNER's formals, not frmtmb's.** `frmtmb.sample` is updated here for
+  that reason and its `frmtmb (>= ...)` floor moves with this release.
+
+* `as_draws()`, `as_draws_array()`, `as_draws_df()`,
+  `as_draws_list()`, `as_draws_matrix()`, `as_draws_rvars()`,
+  `ndraws()`, `nchains()`, `niterations()` and `nvariables()` now
+  refuse a `frmtmb_fit` by name and point at
+  `frmtmb.sample::frm_sample()`. They had no method for the class at
+  all, which was R's own "no applicable method" before and would have
+  become posterior's "All list elements must be lists themselves"
+  after, since a fit is a bare list.
+
+* `hyp_shadow_arm()` and `hyp_shadow_disarm()` join the extension API on
+  `?frmtmb-sampling-api`. A `hypothesis()` method in another package
+  must arm the reserved-name shadowing note itself, because the generic
+  that dispatched to it may be brms's; `frmtmb.sample`'s method for
+  draws had relied on core's generic doing it and lost the note in
+  every session until it did.
+
+* `posterior (>= 1.0.0)` is declared in Suggests. frmtmb registers
+  methods on `as_draws_rvars()` and `as_draws_list()` now, and a
+  partial or pre-release `posterior` that lacks one of them stops
+  frmtmb from loading. posterior 1.0.0, its first CRAN release,
+  already exports both.
+
+* `?frmtmb-scales` is new and says, per method, whether a number is on
+  the link scale, the response scale or neither. Two places where
+  frmtmb and brms disagree are written down there rather than left to
+  be discovered: `predict()` returns the linear predictor where brms
+  returns the response scale, and `summary()` prints `sigma` on its
+  log link where `sigma()` back-transforms.
+
 # frmtmb 0.55.2
 
 * `?frmtmb-links` documents a return value. pkgcheck reports any help

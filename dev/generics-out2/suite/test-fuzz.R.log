@@ -1,0 +1,11 @@
+frmtmb from: C:/Users/adf44/source/r/generics-lib/frmtmb  version 0.55.2
+
+FILE    tests/testthat/test-fuzz.R 
+BLOCKS  1 
+ASSERT  1 
+PASS    1 
+FAIL    0 
+ERROR   0 
+SKIP    1 
+WARN    0 
+SECS    1.1 

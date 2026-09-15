@@ -1,0 +1,65 @@
+MODE C CLASS brmsfit
+generic              generic-from method-from  matched   
+as_draws             frmtmb       none         none      
+as_draws_array       frmtmb       none         none      
+as_draws_df          frmtmb       none         none      
+as_draws_list        frmtmb       none         none      
+as_draws_matrix      frmtmb       none         none      
+as_draws_rvars       frmtmb       none         none      
+nchains              frmtmb       none         none      
+ndraws               frmtmb       none         none      
+niterations          frmtmb       none         none      
+nvariables           frmtmb       none         none      
+variables            frmtmb       none         none      
+loo                  frmtmb       none         none      
+loo_compare          frmtmb       frmtmb       default   
+waic                 frmtmb       none         none      
+bayes_R2             frmtmb       none         none      
+prior_summary        frmtmb       none         none      
+pp_check             frmtmb       none         none      
+conditional_effects  frmtmb       none         none      
+expose_functions     frmtmb       none         none      
+hypothesis           frmtmb       none         none      
+posterior_summary    frmtmb       frmtmb       default   
+LOO                  frmtmb       none         none      
+WAIC                 frmtmb       none         none      
+ngrps                frmtmb       none         none      
+fixef                nlme         none         none      
+ranef                nlme         none         none      
+VarCorr              nlme         none         none      
+refit                generics     none         none      
+
+-- frmtmb_fit, method that would run --
+  fixef                frmtmb       frmtmb_fit   ok
+  ranef                frmtmb       frmtmb_fit   ok
+  VarCorr              frmtmb       frmtmb_fit   ok
+  ngrps                frmtmb       frmtmb_fit   ok
+  prior_summary        frmtmb       frmtmb_fit   ok
+  loo                  frmtmb       frmtmb_fit   ok
+  waic                 frmtmb       frmtmb_fit   ok
+  bayes_R2             frmtmb       frmtmb_fit   ok
+  LOO                  frmtmb       frmtmb_fit   ok
+  WAIC                 frmtmb       frmtmb_fit   ok
+  hypothesis           frmtmb       frmtmb_fit   ok
+  conditional_effects  frmtmb       frmtmb_fit   ok
+  expose_functions     frmtmb       frmtmb_fit   ok
+  variables            frmtmb       frmtmb_fit   ok
+  as_draws             frmtmb       frmtmb_fit   ok
+  as_draws_df          frmtmb       frmtmb_fit   ok
+  as_draws_array       frmtmb       frmtmb_fit   ok
+  as_draws_list        frmtmb       frmtmb_fit   ok
+  as_draws_matrix      frmtmb       frmtmb_fit   ok
+  as_draws_rvars       frmtmb       frmtmb_fit   ok
+  ndraws               frmtmb       frmtmb_fit   ok
+  nchains              frmtmb       frmtmb_fit   ok
+  niterations          frmtmb       frmtmb_fit   ok
+  nvariables           frmtmb       frmtmb_fit   ok
+  pp_check             frmtmb       frmtmb_fit   ok
+  refit                frmtmb       frmtmb_fit   ok
+FITMETHOD_NOT_OURS 0 of 26
+MSG as_draws: as_draws() needs posterior draws and a frmtmb_fit has none: frm(
+MSG as_draws_df: as_draws_df() needs posterior draws and a frmtmb_fit has none: f
+REFIT_OK TRUE
+NGRPS 6
+POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+DONE

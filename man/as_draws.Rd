@@ -7,6 +7,12 @@
 \alias{as_draws_df}
 \alias{as_draws_list}
 \alias{as_draws_rvars}
+\alias{as_draws.frmtmb_fit}
+\alias{as_draws_matrix.frmtmb_fit}
+\alias{as_draws_array.frmtmb_fit}
+\alias{as_draws_df.frmtmb_fit}
+\alias{as_draws_list.frmtmb_fit}
+\alias{as_draws_rvars.frmtmb_fit}
 \alias{as_draws.frmtmb_multiple}
 \title{Convert to a posterior draws object}
 \usage{
@@ -21,6 +27,18 @@ as_draws_df(x, ...)
 as_draws_list(x, ...)
 
 as_draws_rvars(x, ...)
+
+\method{as_draws}{frmtmb_fit}(x, ...)
+
+\method{as_draws_matrix}{frmtmb_fit}(x, ...)
+
+\method{as_draws_array}{frmtmb_fit}(x, ...)
+
+\method{as_draws_df}{frmtmb_fit}(x, ...)
+
+\method{as_draws_list}{frmtmb_fit}(x, ...)
+
+\method{as_draws_rvars}{frmtmb_fit}(x, ...)
 
 \method{as_draws}{frmtmb_multiple}(x, ...)
 }
@@ -47,9 +65,12 @@ and sample with \code{frmtmb.sample::frm_sample()} to get an object these
 convert.
 }
 \examples{
+# a maximum-likelihood fit carries no draws, and says so by name
+dd <- data.frame(y = rnorm(40), x = rnorm(40))
+try(as_draws_df(frm(bf(y ~ x) + gaussian(), data = dd)))
+
 # frm_multiple() pools estimates rather than carrying draws, so it
 # answers with the reason rather than a matrix
-dd <- data.frame(y = rnorm(40), x = rnorm(40))
 fits <- frm_multiple(bf(y ~ x) + gaussian(), data = list(dd, dd))
 try(as_draws(fits))
 }

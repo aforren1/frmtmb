@@ -1,0 +1,5 @@
+LIB C:/Users/adf44/source/r/genrev2-lib
+inside the loo onLoad hook: loaded=TRUE exported=TRUE frmtmb loo -> loo
+after load: frmtmb loo -> loo ; loo.brmsfit reachable TRUE
+waic (never read in the window) -> loo
+GENREVDONE

@@ -1,0 +1,5 @@
+LIBS genrev3-mut-scope > genrev3-lib
+frmtmb.sample source: C:/Users/adf44/source/r/genrev3-mut-scope
+ASSERT 101 PASS 100 FAIL 1 ERROR 0 SKIP 0
+  [expectation_failure] hypothesis() on draws gives the reserved-name note, once :: Expected `sum(grepl(pat, on_draws, fixed = TRUE))` to equal 1L. Differences: `actual`: 0 `expected`: 1 
+GENREVDONE

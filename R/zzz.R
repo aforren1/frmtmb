@@ -1,4 +1,9 @@
-#' Load hook for the optional downstream integrations. It registers the
+#' Load hook for the optional downstream integrations. It first turns
+#' every borrowed generic into an active binding that resolves to the
+#' package that owns it, which has to happen here rather than in the
+#' NAMESPACE because the owners are optional, and here rather than
+#' anywhere else because the namespace is still unsealed (see
+#' `R/generic-owners.R`). It then registers the
 #' `frmtmb_fit` class with emmeans when that suggested package is
 #' installed, and adds the class to the `marginaleffects` model
 #' whitelist, because marginaleffects only dispatches to methods for
@@ -6,6 +11,7 @@
 #'
 #' @noRd
 .onLoad <- function(libname, pkgname) {
+  frm_install_generics(pkgname)
   if (requireNamespace("emmeans", quietly = TRUE)) {
     emmeans::.emm_register("frmtmb_fit", pkgname)
   }

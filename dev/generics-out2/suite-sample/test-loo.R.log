@@ -1,0 +1,10 @@
+frmtmb.sample from: C:/Users/adf44/source/r/generics-lib/frmtmb.sample  frmtmb from: C:/Users/adf44/source/r/generics-lib/frmtmb
+
+FILE    tests/testthat/test-loo.R 
+BLOCKS  20 
+ASSERT  75 
+PASS    75 
+FAIL    0 
+ERROR   0 
+SKIP    1 
+WARN    0 

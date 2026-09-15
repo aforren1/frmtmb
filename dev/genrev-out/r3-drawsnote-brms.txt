@@ -1,0 +1,9 @@
+<environment: namespace:brms>
+Warning message:
+hypothesis(): no evidence ratio for 1 of 1 point hypothesis. A Savage-Dickey ratio divides the posterior density at the tested point by the PRIOR density there, and
+  sigma = 0: sigma has no proper prior (frm_sample() leaves class "b" flat, as brms does); write one with set_prior(class = "b") and resample to get a Bayes factor for it 
+LIB C:/Users/adf44/source/r/genrev3-lib brms-loaded TRUE
+hypothesis resolves to brms
+frmtmb_fit   note lines: 1  hypothesis() reads 'sigma' as the coefficient of the model term of tha
+frmtmb_draws note lines: 1  hypothesis() reads 'sigma' as the coefficient of the model term of tha
+GENREVDONE

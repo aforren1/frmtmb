@@ -197,8 +197,9 @@ prior_summary.frmtmb_fit <- function(object, ...) {
 #'   replaces the warm start.
 #' @param ... Unused.
 #' @return A new `frmtmb_fit`.
-#' @export
-refit <- function(object, newresp, ...) UseMethod("refit")
+#' @name refit
+#' @aliases refit
+NULL
 
 #' @examples
 #' set.seed(2)
@@ -210,6 +211,7 @@ refit <- function(object, newresp, ...) UseMethod("refit")
 #' rf <- refit(fit, ysim)
 #' fixef(rf)
 #' @rdname refit
+#' @exportS3Method lme4::refit
 #' @export
 refit.frmtmb_fit <- function(object, newresp, start = NULL, ...) {
   frame <- object$frame

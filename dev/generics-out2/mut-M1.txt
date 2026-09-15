@@ -1,0 +1,55 @@
+frmtmb from: C:/Users/adf44/source/r/generics-mut-M1-lib/frmtmb  version 0.55.2
+
+FILE    tests/testthat/test-scale-contract.R 
+BLOCKS  12 
+ASSERT  36 
+PASS    31 
+FAIL    5 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    2.6 
+BAD     fitted() on a lognormal is the MEAN, not the median 
+         Expected `max(abs(fitted(f) - exp(mu + sg^2/2)))` <= `8 * .Machine$double.eps * max(fitted(f))`.
+         Actual comparison: 890.65178685663 > 0.00000000002
+         Difference: 890.65178685661 > 0 
+         Expected `(ratio - 1)/se_ratio` > 5.
+         Actual comparison: 0.0 <= 5.0
+         Difference: -5.0 <= 0 
+         Expected `isTRUE(all.equal(fitted(f), exp(mu)))` to be FALSE.
+         Differences:
+         `actual`:   TRUE 
+         `expected`: FALSE
+          
+BAD     the lognormal identity holds only for a constant sigma 
+         Expected `fitted(f2)` to be identical to `exp(mu + sv^2/2)`.
+         Differences:
+              actual | expected                 
+          [1] 6168.0 - 6682.5   [1]             
+          [2] 2391.5 - 2594.7   [2]             
+          [3] 2315.0 - 2508.9   [3]             
+          [4] 2528.1 - 2740.5   [4]             
+          [5] 1969.3 - 2135.9   [5]             
+          [6] 643.4  - 699.0    [6]             
+          [7] 3726.6 - 4042.1   [7]             
+          [8] 2997.1 - 3251.7   [8]             
+          [9] 2950.0 - 3197.2   [9]             
+         [10] 1647.3 - 1786.3   [10]            
+          ... ...      ...      and 390 more ...
+          
+BAD     the lognormal identity fails under truncation 
+         Expected `fitted(ln)` to be identical to `exp(predict(ln, type = "link") + sigma(ln)^2/2)`.
+         Differences:
+              actual | expected                 
+          [1] 6171.9 - 6689.9   [1]             
+          [2] 2390.2 - 2590.8   [2]             
+          [3] 2313.6 - 2507.8   [3]             
+          [4] 2528.3 - 2740.5   [4]             
+          [5] 1970.7 - 2136.1   [5]             
+          [6] 644.1  - 698.2    [6]             
+          [7] 3725.5 - 4038.1   [7]             
+          [8] 2995.9 - 3247.3   [8]             
+          [9] 2950.3 - 3197.9   [9]             
+         [10] 1648.6 - 1787.0   [10]            
+          ... ...      ...      and 390 more ...
+          

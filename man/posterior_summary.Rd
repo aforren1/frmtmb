@@ -5,12 +5,12 @@
 \alias{posterior_summary.default}
 \title{Summaries and intervals of draws}
 \usage{
-posterior_summary(object, ...)
+posterior_summary(x, ...)
 
-\method{posterior_summary}{default}(object, probs = c(0.025, 0.975), robust = FALSE, ...)
+\method{posterior_summary}{default}(x, probs = c(0.025, 0.975), robust = FALSE, ...)
 }
 \arguments{
-\item{object}{A matrix of draws, variables in columns.}
+\item{x}{A matrix of draws, variables in columns.}
 
 \item{...}{Passed to methods.}
 

@@ -1,0 +1,13 @@
+```
+== adoption cost, dev/generics-adoptcost.R ==
+clock tick, measured on this box: 20.0 ms
+names in the table 25, distinct owners 6
+
+hooks on brms::onLoad after 1 and after 4 calls: 9, 9
+  (these must be equal; they were 1 and 4 before the fix)
+
+frm_adopt_generics(), steady state         1024 reps   1.730 s    1689.5 us each
+frm_adopt_target() over every name         1024 reps   1.330 s    1298.8 us each
+unlock/assign/lock over every name        16384 reps   3.230 s     197.1 us each
+CONTROL exists() over every name          65536 reps   1.080 s      16.5 us each
+```

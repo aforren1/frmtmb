@@ -1,0 +1,43 @@
+MODE L CLASS merMod
+generic              resolves-to  getS3meth  dispatch  
+as_draws             frmtmb       FALSE      NO METHOD 
+as_draws_array       frmtmb       FALSE      NO METHOD 
+as_draws_df          frmtmb       FALSE      NO METHOD 
+as_draws_list        frmtmb       FALSE      NO METHOD 
+as_draws_matrix      frmtmb       FALSE      NO METHOD 
+as_draws_rvars       frmtmb       FALSE      NO METHOD 
+nchains              frmtmb       FALSE      NO METHOD 
+ndraws               frmtmb       FALSE      NO METHOD 
+niterations          frmtmb       FALSE      NO METHOD 
+nvariables           frmtmb       FALSE      NO METHOD 
+variables            frmtmb       FALSE      NO METHOD 
+loo                  frmtmb       FALSE      NO METHOD 
+loo_compare          frmtmb       FALSE      dispatched
+waic                 loo          FALSE      NO METHOD 
+bayes_R2             frmtmb       FALSE      NO METHOD 
+prior_summary        frmtmb       FALSE      NO METHOD 
+pp_check             frmtmb       FALSE      NO METHOD 
+conditional_effects  frmtmb       FALSE      NO METHOD 
+expose_functions     frmtmb       FALSE      NO METHOD 
+hypothesis           frmtmb       FALSE      NO METHOD 
+posterior_summary    frmtmb       FALSE      dispatched
+LOO                  frmtmb       FALSE      NO METHOD 
+WAIC                 frmtmb       FALSE      NO METHOD 
+ngrps                lme4         TRUE       dispatched
+fixef                nlme         TRUE       dispatched
+ranef                nlme         TRUE       dispatched
+VarCorr              nlme         TRUE       dispatched
+refit                lme4         TRUE       dispatched
+Warning message:
+In mean.default(newX[, i], ...) :
+  argument is not numeric or logical: returning NA
+No priors were set (plain maximum likelihood).
+  frmtmb_fit as_draws             NO METHOD
+BROKEN_FRMTMBFIT 1 of 17
+REFIT_OK TRUE
+NGRPS 6
+POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+Warning message:
+In mean.default(newX[, i], ...) :
+  argument is not numeric or logical: returning NA
+DONE

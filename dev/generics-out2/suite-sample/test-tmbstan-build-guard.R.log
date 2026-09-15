@@ -1,0 +1,10 @@
+frmtmb.sample from: C:/Users/adf44/source/r/generics-lib/frmtmb.sample  frmtmb from: C:/Users/adf44/source/r/generics-lib/frmtmb
+
+FILE    tests/testthat/test-tmbstan-build-guard.R 
+BLOCKS  6 
+ASSERT  23 
+PASS    23 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 

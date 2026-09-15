@@ -14,10 +14,13 @@
 
 \method{niterations}{frmtmb_draws}(x)
 
-\method{nvariables}{frmtmb_draws}(x)
+\method{nvariables}{frmtmb_draws}(x, ...)
 }
 \arguments{
 \item{x}{A \code{frmtmb_draws} from \code{\link[=frm_sample]{frm_sample()}}.}
+
+\item{...}{Unused. \code{nvariables()} carries it because
+posterior's generic does.}
 }
 \value{
 A single integer.

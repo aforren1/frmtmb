@@ -1,0 +1,4 @@
+importFrom(frmtmb, loo, ngrps, posterior_summary, as_draws_df, pp_check, VarCorr, fixef)
+export(loo, ngrps, posterior_summary, as_draws_df, pp_check, VarCorr, fixef)
+export(genrev_owner)
+export(genrev_lookup)

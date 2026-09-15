@@ -1,0 +1,4 @@
+LIBS genrev3-lib
+frmtmb.sample source: C:/Users/adf44/source/r/genrev3-lib
+ASSERT 101 PASS 101 FAIL 0 ERROR 0 SKIP 0
+GENREVDONE

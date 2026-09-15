@@ -1,0 +1,11 @@
+frmtmb from: C:/Users/adf44/source/r/generics-lib/frmtmb  version 0.55.2
+
+FILE    tests/testthat/test-prior-compat.R 
+BLOCKS  28 
+ASSERT  196 
+PASS    196 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    1 
+SECS    6.1 

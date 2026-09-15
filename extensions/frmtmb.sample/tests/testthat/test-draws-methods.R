@@ -348,3 +348,73 @@ test_that("conditional_effects() on draws refuses what it cannot mean", {
                        drop = FALSE]
   expect_error(conditional_effects(ld), "laplace = TRUE")
 })
+
+## ---- hypothesis() naming notes --------------------------------------
+
+test_that("hypothesis() on draws gives the reserved-name note, once", {
+  # A covariate named `sigma` shadows the residual SD, and hypothesis()
+  # says which one it read. The note is ARMED per user-level call and
+  # emitted deep inside hyp_env_vals(), so the method the user reached
+  # has to arm it.
+  #
+  # Core used to arm it in its GENERIC. Core's exported `hypothesis`
+  # now resolves to brms's generic whenever brms is loaded, so the
+  # arming moved into core's own methods, and this method, which had
+  # relied on the generic, lost the note in EVERY session, brms or not.
+  # Measured before the fix: 1 note on the frmtmb_fit, 0 on its draws.
+  #
+  # fake_draws() rather than the sampler: the note is emitted while the
+  # hypothesis is parsed against the fit, before any draw is read, so
+  # zero draws exercise exactly the path in question and this test
+  # needs no Stan build to run.
+  set.seed(3)
+  n <- 200
+  dd <- data.frame(sigma = stats::rnorm(n),
+                   g = factor(rep(1:10, length.out = n)))
+  dd$y <- stats::rnorm(n, 1 + 0.7 * dd$sigma +
+                         stats::rnorm(10, 0, 0.5)[dd$g], 1)
+  fit <- frm(bf(y ~ sigma + (1 | g)), family = gaussian(), data = dd)
+  pat <- "reads 'sigma' as the coefficient"
+
+  # the control, on the fit, so a missing note on draws cannot be a
+  # construction that never shadows anything
+  on_fit <- capture_messages(hypothesis(fit, "sigma = 0"))
+  expect_equal(sum(grepl(pat, on_fit, fixed = TRUE)), 1L)
+
+  ds <- fake_draws(fit)
+  on_draws <- capture_messages(
+    suppressWarnings(hypothesis(ds, "sigma = 0")))
+  expect_equal(sum(grepl(pat, on_draws, fixed = TRUE)), 1L)
+})
+
+test_that("every hypothesis() method arms the note itself", {
+  # The structural half of the test above, and the reason it exists.
+  #
+  # Core guards that no borrowed generic carries work in its body
+  # (tests/testthat/test-generic-collision.R), because the exported
+  # generic may be brms's and then that work does not run. That guard
+  # stops work coming BACK into a generic. It cannot see work that LEFT
+  # the generic and did not reach every method, which is exactly what
+  # happened here: the arming moved into core's two methods and this
+  # package's draws method was not one of them. So this asserts where
+  # the work WENT, over every hypothesis() method both packages define.
+  meths <- c(
+    ls(asNamespace("frmtmb"), all.names = TRUE, pattern = "^hypothesis[.]"),
+    ls(asNamespace("frmtmb.sample"), all.names = TRUE,
+       pattern = "^hypothesis[.]"))
+  # the guard is only a guard if it found the methods it is about
+  expect_true(all(c("hypothesis.frmtmb_fit", "hypothesis.frmtmb_multiple",
+                    "hypothesis.frmtmb_draws") %in% meths))
+  arms <- vapply(meths, function(m) {
+    ns <- if (exists(m, envir = asNamespace("frmtmb.sample"),
+                     inherits = FALSE)) "frmtmb.sample" else "frmtmb"
+    f <- get(m, envir = asNamespace(ns), inherits = FALSE)
+    b <- paste(deparse(body(f)), collapse = " ")
+    # The disarm must sit in on.exit(): a disarm called straight after the
+    # arm leaves the note switched off for the parse it was meant to cover,
+    # and a bare call would satisfy a check that only asks it to appear.
+    grepl("hyp_shadow_arm()", b, fixed = TRUE) &&
+      grepl("on.exit(hyp_shadow_disarm(", b, fixed = TRUE)
+  }, NA)
+  expect_equal(names(arms)[!arms], character())
+})

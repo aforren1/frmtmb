@@ -1,0 +1,8 @@
+adopted-at-load loo=loo posterior=posterior
+unloaded: TRUE
+  loo              generic-from=loo          method=brms         stale=FALSE
+  waic             generic-from=loo          method=brms         stale=FALSE
+  ndraws           generic-from=posterior    method=brms         stale=FALSE
+  as_draws_df      generic-from=posterior    method=brms         stale=FALSE
+  variables        generic-from=posterior    method=brms         stale=FALSE
+GENREVDONE

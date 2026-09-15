@@ -1,0 +1,12 @@
+frmtmb from: C:/Users/adf44/source/r/generics-lib/frmtmb  version 0.55.2
+5 rows removed because of missing values (na.action)
+
+FILE    tests/testthat/test-pooled-anova.R 
+BLOCKS  6 
+ASSERT  64 
+PASS    64 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    4.7 

@@ -1,0 +1,12 @@
+frmtmb from: C:/Users/adf44/source/r/generics-lib/frmtmb  version 0.55.2
+Setting order = 'mu' for mixtures of the same family.
+
+FILE    tests/testthat/test-brms-methods.R 
+BLOCKS  47 
+ASSERT  950 
+PASS    950 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    75.7 

@@ -1,0 +1,28 @@
+StanHeaders 2.32.10  rstan 2.32.7 
+Compiling Stan program...
+Start sampling
+brms fit sampled and cached
+
+== row 1, the four numbers ==
+frmtmb predict()   default (link)   8.727767
+frmtmb fitted()    (response)       6689.863
+brms   fitted()    Estimate         6756.484
+brms   predict()   Estimate         6710.084
+brms predict() / exp(frmtmb link)   1.087194
+exp(sigma^2/2), sigma = 0.401452       1.083918
+
+== agreement on the response scale, n = 400 rows ==
+max |frmtmb/brms - 1|                      0.010627
+median relative posterior SD of brms epred 0.089755
+max |difference| / its own posterior SD    0.1130
+median |difference| / its own posterior SD 0.0584
+
+== the DEFAULT of predict() is a different scale ==
+max |frmtmb predict() / brms predict() - 1| 0.999193
+ratio brms predict() to frmtmb predict()   443.1
+
+== sigma: link scale in summary(), response in sigma() ==
+frmtmb summary() sigma Estimate  -0.912666 (log scale)
+frmtmb sigma()                   0.401452
+brms   sigma posterior mean      0.403424
+DONE

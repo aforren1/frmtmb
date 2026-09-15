@@ -1,0 +1,11 @@
+frmtmb from: C:/Users/adf44/source/r/generics-lib/frmtmb  version 0.55.2
+
+FILE    tests/testthat/test-review-v28.R 
+BLOCKS  13 
+ASSERT  73 
+PASS    73 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    2.9 

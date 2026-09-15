@@ -1,0 +1,31 @@
+GENREVMODE ctrlL CLASS merMod
+SEARCH .GlobalEnv package:lme4 package:Matrix package:stats package:graphics package:grDevices package:utils package:datasets package:methods Autoloads package:base
+ROW	as_draws	<absent>	<absent>	<absent>	<none>
+ROW	as_draws_array	<absent>	<absent>	<absent>	<none>
+ROW	as_draws_df	<absent>	<absent>	<absent>	<none>
+ROW	as_draws_list	<absent>	<absent>	<absent>	<none>
+ROW	as_draws_matrix	<absent>	<absent>	<absent>	<none>
+ROW	as_draws_rvars	<absent>	<absent>	<absent>	<none>
+ROW	nchains	<absent>	<absent>	<absent>	<none>
+ROW	ndraws	<absent>	<absent>	<absent>	<none>
+ROW	niterations	<absent>	<absent>	<absent>	<none>
+ROW	nvariables	<absent>	<absent>	<absent>	<none>
+ROW	variables	<absent>	<absent>	<absent>	<none>
+ROW	loo	<absent>	<absent>	<absent>	<none>
+ROW	loo_compare	<absent>	<absent>	<absent>	<none>
+ROW	waic	<absent>	<absent>	<absent>	<none>
+ROW	bayes_R2	<absent>	<absent>	<absent>	<none>
+ROW	prior_summary	<absent>	<absent>	<absent>	<none>
+ROW	pp_check	<absent>	<absent>	<absent>	<none>
+ROW	conditional_effects	<absent>	<absent>	<absent>	<none>
+ROW	expose_functions	<absent>	<absent>	<absent>	<none>
+ROW	hypothesis	<absent>	<absent>	<absent>	<none>
+ROW	posterior_summary	<absent>	<absent>	<absent>	<none>
+ROW	LOO	<absent>	<absent>	<absent>	<none>
+ROW	WAIC	<absent>	<absent>	<absent>	<none>
+ROW	ngrps	lme4	lme4	class	lme4
+ROW	fixef	nlme	lme4	class	lme4
+ROW	ranef	nlme	lme4	class	lme4
+ROW	VarCorr	nlme	lme4	class	lme4
+ROW	refit	lme4	lme4	class	lme4
+GENREVDONE

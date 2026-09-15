@@ -1,0 +1,15 @@
+```
+== lognormal under trunc(lb), dev/generics-trunc.R, seed 2026 ==
+per-row relative error of exp(mu + s^2/2) against fitted():
+  (fitted - naive) / fitted = 1 - Phi(-a) / Phi(s - a),
+  a = (log(lb) - mu) / s
+
+    lb  rows  old stat worst row    median        a range   identity
+   500   400    0.0098    0.1429    0.0000  -7.60..-0.57   2.08e-16
+  2000   308    0.1150    0.5163    0.0516  -3.76.. 1.41   2.50e-16
+  5000   104    0.3650    0.8430    0.3513  -1.77.. 4.02   2.22e-16
+
+`old stat` is max|diff|/max(fitted), the number the page used to
+call the worst row. `identity` is the largest per-row difference
+between the measured error and the closed form.
+```

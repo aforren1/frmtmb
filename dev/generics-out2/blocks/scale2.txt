@@ -1,0 +1,28 @@
+```
+== the rows the contract was missing, dev/generics-scale2.R ==
+same 400-row lognormal fit, seed 2026
+
+-- conditional_effects(), the row that matters most --
+effect plotted                  x
+estimate__ range                1274.05 to 9689.08
+predict() on the same fit       8.7278
+fitted() range                  698.20 to 11504.04
+so conditional_effects() is RESPONSE, the opposite of predict()
+
+-- the identity, and the two conditions it is stated without --
+constant sigma: identical(fitted, exp(mu+s^2/2))  TRUE
+distributional sigma: sigma(fit) is              NA
+  identity with sigma():   NA, the formula fails
+  identity with predict(dpar = 'sigma'): identical TRUE
+truncated y | trunc(lb = 2000): max relative error of
+  exp(mu + sigma^2/2) against fitted()            0.1150
+  fitted()[1] 6596.12 against the naive formula 6570.00
+
+-- the four methods stated nowhere --
+posterior_summary(fit)          ERR: is.atomic(x) is not TRUE
+posterior_summary(matrix)       Estimate,Est.Error,Q2.5,Q97.5
+pp_check(fit)                   returned
+bayes_R2(fit)                   refuses: bayes_R2() is computed per posterior dra
+hypothesis() returns frmtmb_hypothesis/data.frame with columns hypothesis,estimate,se,lwr,upr,z,p
+hypothesis(fit, 'x = 0') Estimate 0.391238  vs fixef 0.391238
+```

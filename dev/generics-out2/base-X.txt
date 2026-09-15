@@ -1,0 +1,31 @@
+MODE X CLASS brmsfit
+generic              generic-from method-from  matched    getS3 
+as_draws             posterior    brms         brmsfit    TRUE  
+as_draws_array       posterior    brms         brmsfit    TRUE  
+as_draws_df          posterior    brms         brmsfit    TRUE  
+as_draws_list        posterior    brms         brmsfit    TRUE  
+as_draws_matrix      posterior    brms         brmsfit    TRUE  
+as_draws_rvars       posterior    brms         brmsfit    TRUE  
+nchains              posterior    brms         brmsfit    TRUE  
+ndraws               posterior    brms         brmsfit    TRUE  
+niterations          posterior    brms         brmsfit    TRUE  
+nvariables           posterior    brms         brmsfit    TRUE  
+variables            posterior    brms         brmsfit    TRUE  
+loo                  loo          brms         brmsfit    TRUE  
+loo_compare          loo          brms         brmsfit    TRUE  
+waic                 loo          brms         brmsfit    TRUE  
+bayes_R2             rstantools   brms         brmsfit    TRUE  
+prior_summary        rstantools   brms         brmsfit    TRUE  
+pp_check             bayesplot    brms         brmsfit    TRUE  
+conditional_effects  brms         brms         brmsfit    TRUE  
+expose_functions     brms         brms         brmsfit    TRUE  
+hypothesis           brms         brms         brmsfit    TRUE  
+posterior_summary    brms         brms         brmsfit    TRUE  
+LOO                  brms         brms         brmsfit    TRUE  
+WAIC                 brms         brms         brmsfit    TRUE  
+ngrps                brms         brms         brmsfit    TRUE  
+fixef                nlme         brms         brmsfit    TRUE  
+ranef                nlme         brms         brmsfit    TRUE  
+VarCorr              nlme         brms         brmsfit    TRUE  
+refit                -            absent       absent     FALSE 
+DONE

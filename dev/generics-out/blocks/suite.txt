@@ -1,0 +1,13 @@
+```
+== suite: frmtmb core, 136 files, one process per file, NOT_CRAN and FRMTMB_BRMS_FIT_TESTS true ==
+test files with a result   136 of 136
+test blocks                1454
+assertions                 10176
+pass                       10176
+FAIL                       0
+ERROR                      0
+skip                       1
+warning                    2
+
+no file reported a failure or an error
+```

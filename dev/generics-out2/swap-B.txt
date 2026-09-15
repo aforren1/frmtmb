@@ -1,0 +1,66 @@
+MODE B CLASS brmsfit
+generic              generic-from method-from  matched    getS3 
+as_draws             posterior    brms         brmsfit    TRUE  
+as_draws_array       posterior    brms         brmsfit    TRUE  
+as_draws_df          posterior    brms         brmsfit    TRUE  
+as_draws_list        posterior    brms         brmsfit    TRUE  
+as_draws_matrix      posterior    brms         brmsfit    TRUE  
+as_draws_rvars       posterior    brms         brmsfit    TRUE  
+nchains              posterior    brms         brmsfit    TRUE  
+ndraws               posterior    brms         brmsfit    TRUE  
+niterations          posterior    brms         brmsfit    TRUE  
+nvariables           posterior    brms         brmsfit    TRUE  
+variables            posterior    brms         brmsfit    TRUE  
+loo                  loo          brms         brmsfit    TRUE  
+loo_compare          loo          brms         brmsfit    TRUE  
+waic                 loo          brms         brmsfit    TRUE  
+bayes_R2             rstantools   brms         brmsfit    TRUE  
+prior_summary        rstantools   brms         brmsfit    TRUE  
+pp_check             bayesplot    brms         brmsfit    TRUE  
+conditional_effects  brms         brms         brmsfit    TRUE  
+expose_functions     brms         brms         brmsfit    TRUE  
+hypothesis           brms         brms         brmsfit    TRUE  
+posterior_summary    brms         brms         brmsfit    TRUE  
+LOO                  brms         brms         brmsfit    TRUE  
+WAIC                 brms         brms         brmsfit    TRUE  
+ngrps                brms         brms         brmsfit    TRUE  
+fixef                nlme         brms         brmsfit    TRUE  
+ranef                nlme         brms         brmsfit    TRUE  
+VarCorr              nlme         brms         brmsfit    TRUE  
+refit                generics     none         none       FALSE 
+
+-- frmtmb_fit, method that would run --
+  fixef                frmtmb       frmtmb_fit   ok
+  ranef                frmtmb       frmtmb_fit   ok
+  VarCorr              frmtmb       frmtmb_fit   ok
+  ngrps                frmtmb       frmtmb_fit   ok
+  prior_summary        frmtmb       frmtmb_fit   ok
+  loo                  frmtmb       frmtmb_fit   ok
+  waic                 frmtmb       frmtmb_fit   ok
+  bayes_R2             frmtmb       frmtmb_fit   ok
+  LOO                  frmtmb       frmtmb_fit   ok
+  WAIC                 frmtmb       frmtmb_fit   ok
+  hypothesis           frmtmb       frmtmb_fit   ok
+  conditional_effects  frmtmb       frmtmb_fit   ok
+  expose_functions     frmtmb       frmtmb_fit   ok
+  variables            frmtmb       frmtmb_fit   ok
+  as_draws             posterior    default      NOT OURS
+  as_draws_df          posterior    default      NOT OURS
+  as_draws_array       posterior    default      NOT OURS
+  as_draws_list        posterior    default      NOT OURS
+  as_draws_matrix      posterior    default      NOT OURS
+  as_draws_rvars       posterior    default      NOT OURS
+  ndraws               none         none         NOT OURS
+  nchains              none         none         NOT OURS
+  niterations          none         none         NOT OURS
+  nvariables           none         none         NOT OURS
+  pp_check             frmtmb       frmtmb_fit   ok
+  refit                frmtmb       frmtmb_fit   ok
+FITMETHOD_NOT_OURS 10 of 26
+FITMETHOD_LIST as_draws,as_draws_df,as_draws_array,as_draws_list,as_draws_matrix,as_draws_rvars,ndraws,nchains,niterations,nvariables
+MSG as_draws: All list elements must be lists themselves.
+MSG as_draws_df: All list elements must be lists themselves.
+REFIT_OK TRUE
+NGRPS 6
+POSTSUMMARY Estimate,Est.Error,Q2.5,Q97.5
+DONE

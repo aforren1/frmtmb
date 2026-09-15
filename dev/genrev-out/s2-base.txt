@@ -1,0 +1,7 @@
+LIB C:/Users/adf44/source/r/rellib-r3
+Warning message:
+In mean.default(newX[, i], ...) :
+  argument is not numeric or logical: returning NA
+posterior_summary(frmtmb_fit) ERROR: is.atomic(x) is not TRUE
+Error: unexpected 'else' in "else"
+Execution halted

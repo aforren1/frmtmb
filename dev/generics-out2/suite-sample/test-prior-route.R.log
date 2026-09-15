@@ -1,0 +1,10 @@
+frmtmb.sample from: C:/Users/adf44/source/r/generics-lib/frmtmb.sample  frmtmb from: C:/Users/adf44/source/r/generics-lib/frmtmb
+
+FILE    tests/testthat/test-prior-route.R 
+BLOCKS  3 
+ASSERT  9 
+PASS    9 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 

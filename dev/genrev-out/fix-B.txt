@@ -1,0 +1,31 @@
+GENREVMODE B CLASS brmsfit
+SEARCH .GlobalEnv package:brms package:Rcpp package:frmtmb package:stats package:graphics package:grDevices package:utils package:datasets package:methods Autoloads package:base
+ROW	as_draws	posterior	brms	class	brms
+ROW	as_draws_array	posterior	brms	class	brms
+ROW	as_draws_df	posterior	brms	class	brms
+ROW	as_draws_list	posterior	brms	class	brms
+ROW	as_draws_matrix	posterior	brms	class	brms
+ROW	as_draws_rvars	posterior	brms	class	brms
+ROW	nchains	posterior	brms	class	brms
+ROW	ndraws	posterior	brms	class	brms
+ROW	niterations	posterior	brms	class	brms
+ROW	nvariables	posterior	brms	class	brms
+ROW	variables	posterior	brms	class	brms
+ROW	loo	loo	brms	class	brms
+ROW	loo_compare	loo	brms	class	brms
+ROW	waic	loo	brms	class	brms
+ROW	bayes_R2	rstantools	brms	class	brms
+ROW	prior_summary	rstantools	brms	class	brms
+ROW	pp_check	bayesplot	brms	class	brms
+ROW	conditional_effects	brms	brms	class	brms
+ROW	expose_functions	brms	brms	class	brms
+ROW	hypothesis	brms	brms	class	brms
+ROW	posterior_summary	brms	brms	class	brms
+ROW	LOO	brms	brms	class	brms
+ROW	WAIC	brms	brms	class	brms
+ROW	ngrps	brms	brms	class	brms
+ROW	fixef	nlme	brms	class	brms
+ROW	ranef	nlme	brms	class	brms
+ROW	VarCorr	nlme	brms	class	brms
+ROW	refit	generics	<none>	none	<none>
+GENREVDONE

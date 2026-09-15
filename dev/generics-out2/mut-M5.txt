@@ -1,0 +1,18 @@
+frmtmb from: C:/Users/adf44/source/r/generics-mut-M5-lib/frmtmb  version 0.55.2
+
+FILE    tests/testthat/test-scale-contract.R 
+BLOCKS  12 
+ASSERT  36 
+PASS    34 
+FAIL    2 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    2.3 
+BAD     simulate() draws on the RESPONSE scale 
+         Expected `abs(mean(log(sim)) - mean(log(y)))/se` < 6.
+         Actual comparison: 187.5 >= 6.0
+         Difference: 181.5 >= 0 
+         Expected `stats::median(sim)` > 100.
+         Actual comparison: 8.1 <= 100.0
+         Difference: -91.9 <= 0 

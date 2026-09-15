@@ -1,0 +1,13 @@
+```
+== suite: punch round 2, the core test files this round can reach, one process each ==
+test files with a result   6 of 6
+test blocks                74
+assertions                 287
+pass                       287
+FAIL                       0
+ERROR                      0
+skip                       0
+warning                    0
+
+no file reported a failure or an error
+```

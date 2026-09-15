@@ -1,0 +1,15 @@
+```
+== R CMD check --as-cran, built WITH vignettes, no --no-manual ==
+dev/generics-cran.sh, mirroring dev/release/run-check.ps1
+
+frmtmb         Status: 2 NOTEs
+   R code for possible problems ... [27s] NOTE
+     Found the following possibly unsafe calls:
+     File 'frmtmb/R/generic-owners.R':
+       unlockBinding(nm, env)
+   HTML version of manual ... [18s] NOTE
+     Skipping checking math rendering: package 'V8' unavailable
+
+frmtmb.sample  Status: OK
+
+```

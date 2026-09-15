@@ -1,0 +1,12 @@
+frmtmb from: C:/Users/adf44/source/r/generics-lib/frmtmb  version 0.55.2
+the number of chains is less than 1; sampling not done
+
+FILE    tests/testthat/test-brms-agreement.R 
+BLOCKS  19 
+ASSERT  187 
+PASS    187 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    118.3 

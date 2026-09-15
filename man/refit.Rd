@@ -5,8 +5,6 @@
 \alias{refit.frmtmb_fit}
 \title{Refit a model to a new response}
 \usage{
-refit(object, newresp, ...)
-
 \method{refit}{frmtmb_fit}(object, newresp, start = NULL, ...)
 }
 \arguments{
@@ -15,10 +13,10 @@ refit(object, newresp, ...)
 \item{newresp}{Replacement response: a vector of the original length,
 or a matrix of the original dimensions for matrix responses.}
 
-\item{...}{Unused.}
-
 \item{start}{Optional named start list (as in \code{\link[=frm]{frm()}}); when given it
 replaces the warm start.}
+
+\item{...}{Unused.}
 }
 \value{
 A new \code{frmtmb_fit}.

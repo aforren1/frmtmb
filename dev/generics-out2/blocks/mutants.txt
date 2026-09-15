@@ -1,0 +1,35 @@
+```
+== item 2.5d: the scale test seen FAILING, per mutant ==
+dev/generics-mutants.R and dev/generics-mutants2.R build each
+mutant from this worktree, install it into its own library, and
+dev/generics-runtests.R runs the UNMODIFIED test file against it.
+
+mut  what it breaks                                      pass  fail
+M1   lognormal fitted() is the MEDIAN exp(mu)              31     5
+       caught by: fitted() on a lognormal is the MEAN, not the median
+       caught by: the lognormal identity holds only for a constant sigma
+       caught by: the lognormal identity fails under truncation
+M2   predict() defaults to the RESPONSE scale              30     6
+       caught by: predict() reports the LINK scale and nothing else
+       caught by: a log-link count fit puts predict() and fitted() an exp apart
+       caught by: conditional_effects() is on the RESPONSE scale
+M3   sigma() returns the LINK scale, log(sigma)            31     5
+       caught by: fitted() on a lognormal is the MEAN, not the median
+       caught by: summary() and fixef() report every dpar on its own LINK
+       caught by: the lognormal identity fails under truncation
+M4   residuals() default is formed on the LINK scale       33     3
+       caught by: residuals() default is on the RESPONSE scale
+       caught by: residuals(type = 'pearson') is unitless
+M5   simulate() draws on the LINK scale                    34     2
+       caught by: simulate() draws on the RESPONSE scale
+M6   fitted() is the median, predict(response) the mean    28     8
+       caught by: predict(type = 'response') and fitted() are the same call
+       caught by: fitted() on a lognormal is the MEAN, not the median
+       caught by: residuals() default is on the RESPONSE scale
+       caught by: the lognormal identity holds only for a constant sigma
+       caught by: the lognormal identity fails under truncation
+M7   VarCorr() is on the RESPONSE scale                    34     2
+       caught by: the LINK scale is the log scale, proved by the twin fit
+
+distinct test blocks caught by at least one mutant: 12
+```

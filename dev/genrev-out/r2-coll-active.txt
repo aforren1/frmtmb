@@ -1,0 +1,3 @@
+FILE test-generic-collision.R LIB C:/Users/adf44/source/r/genrev2-lib
+BLOCKS 11 ASSERT 43 PASS 43 FAIL 0 ERROR 0 SKIP 0
+GENREVDONE

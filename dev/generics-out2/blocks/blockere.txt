@@ -1,0 +1,27 @@
+```
+== BLOCKER E: the shadowing note on draws, frmtmb.sample ==
+extensions/frmtmb.sample/tests/testthat/test-draws-methods.R, one process
+dev/generics-runtests-sample.R; libraries named are put FIRST
+build                                                      assertions / pass / fail
+BASE core + BASE sample (rellib-r3), note test only        99 / 99 / 0
+FIX core + UNFIXED draws method, before the fix            99 / 98 / 1
+    failing: hypothesis() on draws gives the reserved-name note, once 
+FIX core + FIX sample, note test only                      99 / 99 / 0
+BASE core + BASE sample, with the guard                    101 / 100 / 1
+    failing: every hypothesis() method arms the note itself 
+FIX core + UNFIXED draws method, with the guard            101 / 99 / 2
+    failing: hypothesis() on draws gives the reserved-name note, once 
+    failing: every hypothesis() method arms the note itself 
+FIX core + FIX sample, with the guard                      101 / 101 / 0
+
+the guard names, on the construction that matters (FIX core, UNFIXED draws):
+    `actual`:   "hypothesis.frmtmb_draws"
+
+the review's own probe, dev/genrev-r2-drawsnote.R, FIX build, 1 chain x 300:
+  brms-loaded FALSE
+frmtmb_fit   note lines: 1
+frmtmb_draws note lines: 1
+  brms-loaded TRUE
+frmtmb_fit   note lines: 1
+frmtmb_draws note lines: 1
+```

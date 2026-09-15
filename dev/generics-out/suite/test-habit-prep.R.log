@@ -1,0 +1,11 @@
+frmtmb from: C:/Users/adf44/source/r/generics-lib/frmtmb  version 0.55.2
+
+FILE    tests/testthat/test-habit-prep.R 
+BLOCKS  3 
+ASSERT  16 
+PASS    16 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    1.5 

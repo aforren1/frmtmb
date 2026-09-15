@@ -12,7 +12,7 @@
 \title{Summaries and intervals of draws}
 \usage{
 \method{posterior_summary}{frmtmb_draws}(
-  object,
+  x,
   probs = c(0.025, 0.975),
   robust = FALSE,
   variable = NULL,
@@ -48,8 +48,8 @@ predictive_error(object, ...)
 )
 }
 \arguments{
-\item{object}{A \code{frmtmb_draws}, or a matrix of draws
-(variables in columns).}
+\item{x}{The same, for \code{posterior_summary()}, whose generic
+is brms's and names its first argument \code{x}.}
 
 \item{probs}{Quantiles for \code{posterior_summary()}.}
 
@@ -58,6 +58,9 @@ predictive_error(object, ...)
 \item{variable}{Optional subset of variables, by name.}
 
 \item{...}{Unused.}
+
+\item{object}{A \code{frmtmb_draws}, or a matrix of draws
+(variables in columns).}
 
 \item{prob}{Central interval width for \code{posterior_interval()} and
 \code{predictive_interval()}.}

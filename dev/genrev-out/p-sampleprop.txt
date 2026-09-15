@@ -1,0 +1,5 @@
+MODE frmtmb.sample attached, brms loaded only
+re-exported-from-core lost 22 of 26
+lost: loo, ngrps, posterior_summary, as_draws_df, pp_check, variables, waic, bayes_R2, hypothesis, conditional_effects, prior_summary, nchains, ndraws, niterations, nvariables, as_draws, as_draws_array, as_draws_list, as_draws_matrix, as_draws_rvars, LOO, WAIC
+own-defined log_lik generic owner: frmtmb.sample
+GENREVDONE

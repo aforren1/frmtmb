@@ -1,0 +1,4 @@
+FILE test-scale-contract.R LIB C:/Users/adf44/source/r/generics-mut-M1-lib
+BLOCKS 9 ASSERT 25 PASS 22 FAIL 3 ERROR 0 SKIP 0
+  FAILBLOCK: fitted() on a lognormal is the MEAN, not the median (failed=3 error=0)
+GENREVDONE

@@ -1,0 +1,12 @@
+frmtmb from: C:/Users/adf44/source/r/generics-lib/frmtmb  version 0.55.2
+2 rows removed because of missing values (na.action)
+
+FILE    tests/testthat/test-ordinal-fitted.R 
+BLOCKS  13 
+ASSERT  87 
+PASS    87 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    4.1 

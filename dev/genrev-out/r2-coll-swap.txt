@@ -1,0 +1,7 @@
+FILE test-generic-collision.R LIB C:/Users/adf44/source/r/genrev-lib
+BLOCKS 11 ASSERT 43 PASS 36 FAIL 7 ERROR 0 SKIP 0
+  FAILBLOCK: an owner unloaded and reloaded does not leave a stale generic (failed=2 error=0)
+  FAILBLOCK: the binding is ACTIVE, and stays active through a re-export (failed=3 error=0)
+  FAILBLOCK: an owner that exports a NON-generic does not take the name (failed=1 error=0)
+  FAILBLOCK: no shared generic carries work in its own body (failed=1 error=0)
+GENREVDONE

@@ -1,0 +1,11 @@
+```
+== R CMD check --as-cran, built WITH vignettes, no --no-manual ==
+dev/generics-cran.sh, mirroring dev/release/run-check.ps1
+
+frmtmb         Status: 1 NOTE
+   HTML version of manual ... [19s] NOTE
+     Skipping checking math rendering: package 'V8' unavailable
+
+frmtmb.sample  Status: OK
+
+```

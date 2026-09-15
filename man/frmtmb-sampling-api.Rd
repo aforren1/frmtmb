@@ -39,6 +39,8 @@
 \alias{hyp_env_vals}
 \alias{hyp_eval}
 \alias{hyp_tail_p}
+\alias{hyp_shadow_arm}
+\alias{hyp_shadow_disarm}
 \alias{ce_grids_build}
 \alias{ce_boot_one}
 \alias{ce_frame}
@@ -192,6 +194,18 @@ expression in it - so a caller with many parameter vectors parses
 once, then per vector swaps the estimates in and calls
 \code{hyp_vals_only()} and \code{hyp_env_vals()} again.
 \code{hyp_tail_p()} is the tail probability of a directional claim.
+
+\code{hyp_shadow_arm()} and \code{hyp_shadow_disarm(old)} bracket ONE
+user-level \code{hypothesis()} call. A covariate named like a reserved
+quantity, \code{sigma} or \verb{sd_<group>__<term>}, shadows it, and the note
+saying which one was read is detected inside \code{hyp_env_vals()}, which
+runs many times per call; it is emitted only while armed, and once
+per name. Every \code{hypothesis()} METHOD arms it on entry and restores
+the returned state on exit:
+\verb{old <- hyp_shadow_arm(); on.exit(hyp_shadow_disarm(old), add = TRUE)}.
+The generic cannot do it, because the exported \code{hypothesis} is
+brms's generic whenever brms is loaded, and a method that does not
+arm loses the note in every session.
 }
 
 \section{The conditional-effects engine}{

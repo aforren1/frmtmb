@@ -1,0 +1,16 @@
+BEFORE  frmtmb loaded=TRUE  brms loaded=FALSE
+  pre  loo                  user=frmtmb       inside-dep=frmtmb
+  pre  ngrps                user=frmtmb       inside-dep=frmtmb
+  pre  posterior_summary    user=frmtmb       inside-dep=frmtmb
+  pre  as_draws_df          user=frmtmb       inside-dep=frmtmb
+  pre  pp_check             user=frmtmb       inside-dep=frmtmb
+  pre  VarCorr              user=nlme         inside-dep=nlme
+  pre  fixef                user=nlme         inside-dep=nlme
+  post loo                  user=frmtmb       method=<none>       inside-dep=frmtmb  ns-frmtmb=loo
+  post ngrps                user=frmtmb       method=<none>       inside-dep=frmtmb  ns-frmtmb=brms
+  post posterior_summary    user=frmtmb       method=<none>       inside-dep=frmtmb  ns-frmtmb=brms
+  post as_draws_df          user=frmtmb       method=<none>       inside-dep=frmtmb  ns-frmtmb=posterior
+  post pp_check             user=frmtmb       method=<none>       inside-dep=frmtmb  ns-frmtmb=bayesplot
+  post VarCorr              user=nlme         method=brms         inside-dep=nlme  ns-frmtmb=nlme
+  post fixef                user=nlme         method=brms         inside-dep=nlme  ns-frmtmb=nlme
+GENREVDONE

@@ -1,0 +1,5 @@
+mutated R/predict.R 
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb)
+LIB C:/Users/adf44/source/r/generics-mut-M4-lib 

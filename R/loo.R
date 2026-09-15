@@ -90,13 +90,16 @@ loo_compare <- function(x, ...) UseMethod("loo_compare")
 #' @rdname loo
 #' @export
 loo_compare.default <- function(x, ...) {
-  # frmtmb's generic would otherwise mask loo's own function for anyone
-  # who attaches both, and `loo_compare(loo(d1), loo(d2))`, the
-  # spelling the sampling package's help page recommends, would stop at
-  # "no applicable method", because loo does not export its default
-  # method for the search path to find. Reaching for loo's METHOD rather
-  # than calling loo::loo_compare() is deliberate: dispatch from inside
-  # this namespace would find this function again and recurse forever.
+  # Reached only when loo is NOT loaded, because frmtmb's exported
+  # `loo_compare` is an active binding that resolves to loo's own
+  # generic whenever loo is there (R/generic-owners.R). Before that
+  # change this method carried the whole burden: frmtmb's generic
+  # masked loo's function for anyone who attached both, and
+  # `loo_compare(loo(d1), loo(d2))` stopped at "no applicable
+  # method" because loo does not export its default method for the
+  # search path to find. Reaching for loo's METHOD rather than
+  # calling loo::loo_compare() is still deliberate: dispatch from
+  # inside this namespace would find this function again and recurse.
   if (!requireNamespace("loo", quietly = TRUE)) {
     stop("loo_compare() on already-computed criteria is the loo ",
          "package's own function, and the package is not installed",

@@ -1,0 +1,6 @@
+Package: genrevown
+Version: 0.1.0
+Title: Owner
+Authors@R: person("R","E",role=c("aut","cre"),email="r@e.tt")
+Description: Owner of the zap generic.
+License: GPL-3

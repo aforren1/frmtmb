@@ -1,0 +1,31 @@
+MODE M CLASS merMod
+generic              generic-from method-from  matched    getS3 
+as_draws             -            absent       absent     FALSE 
+as_draws_array       -            absent       absent     FALSE 
+as_draws_df          -            absent       absent     FALSE 
+as_draws_list        -            absent       absent     FALSE 
+as_draws_matrix      -            absent       absent     FALSE 
+as_draws_rvars       -            absent       absent     FALSE 
+nchains              -            absent       absent     FALSE 
+ndraws               -            absent       absent     FALSE 
+niterations          -            absent       absent     FALSE 
+nvariables           -            absent       absent     FALSE 
+variables            -            absent       absent     FALSE 
+loo                  -            absent       absent     FALSE 
+loo_compare          -            absent       absent     FALSE 
+waic                 -            absent       absent     FALSE 
+bayes_R2             -            absent       absent     FALSE 
+prior_summary        -            absent       absent     FALSE 
+pp_check             -            absent       absent     FALSE 
+conditional_effects  -            absent       absent     FALSE 
+expose_functions     -            absent       absent     FALSE 
+hypothesis           -            absent       absent     FALSE 
+posterior_summary    -            absent       absent     FALSE 
+LOO                  -            absent       absent     FALSE 
+WAIC                 -            absent       absent     FALSE 
+ngrps                lme4         lme4         merMod     TRUE  
+fixef                nlme         lme4         merMod     TRUE  
+ranef                nlme         lme4         merMod     TRUE  
+VarCorr              nlme         lme4         merMod     TRUE  
+refit                lme4         lme4         merMod     TRUE  
+DONE

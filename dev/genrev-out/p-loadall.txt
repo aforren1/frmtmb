@@ -1,0 +1,5 @@
+hooks-before lme4=0 bayesplot=0
+load_all 1: ok hooks lme4=4 bayesplot=1 loo=loo/brms postsum=brms/brms
+load_all 2: ok hooks lme4=7 bayesplot=2 loo=loo/brms postsum=brms/brms
+load_all 3: ok hooks lme4=10 bayesplot=3 loo=loo/brms postsum=brms/brms
+GENREVDONE

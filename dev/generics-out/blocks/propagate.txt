@@ -1,0 +1,20 @@
+```
+== does core's fix reach frmtmb.sample? dev/generics-propagate.R ==
+FIX build first, then the BASE build for comparison
+--- FIX mode S
+MODE S
+re-exported from core      lost 0 of 26
+defined by frmtmb.sample   lost 28 of 28
+--- FIX mode T
+MODE T
+re-exported from core      lost 0 of 26
+defined by frmtmb.sample   lost 0 of 28
+--- BASE mode S
+MODE S
+re-exported from core      lost 24 of 26
+defined by frmtmb.sample   lost 28 of 28
+--- BASE mode T
+MODE T
+re-exported from core      lost 0 of 26
+defined by frmtmb.sample   lost 0 of 28
+```

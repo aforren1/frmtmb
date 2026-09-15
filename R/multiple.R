@@ -549,6 +549,9 @@ d3_stat <- function(dbar, dtilde, k, m) {
 #' @export
 hypothesis.frmtmb_multiple <- function(x, hypothesis, alpha = 0.05,
                                        class = NULL, group = NULL, ...) {
+  # armed in the method, not the generic: see hypothesis.frmtmb_fit
+  old <- hyp_shadow_arm()
+  on.exit(hyp_shadow_disarm(old), add = TRUE)
   if (...length()) {
     warning("ignoring arguments unused by pooled hypothesis tests: ",
             paste(...names(), collapse = ", "), call. = FALSE)

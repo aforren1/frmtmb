@@ -126,6 +126,18 @@
 #' `hyp_vals_only()` and `hyp_env_vals()` again.
 #' `hyp_tail_p()` is the tail probability of a directional claim.
 #'
+#' `hyp_shadow_arm()` and `hyp_shadow_disarm(old)` bracket ONE
+#' user-level `hypothesis()` call. A covariate named like a reserved
+#' quantity, `sigma` or `sd_<group>__<term>`, shadows it, and the note
+#' saying which one was read is detected inside `hyp_env_vals()`, which
+#' runs many times per call; it is emitted only while armed, and once
+#' per name. Every `hypothesis()` METHOD arms it on entry and restores
+#' the returned state on exit:
+#' `old <- hyp_shadow_arm(); on.exit(hyp_shadow_disarm(old), add = TRUE)`.
+#' The generic cannot do it, because the exported `hypothesis` is
+#' brms's generic whenever brms is loaded, and a method that does not
+#' arm loses the note in every session.
+#'
 #' @section The conditional-effects engine:
 #' `ce_grids_build()` builds the prediction grids, effect list,
 #' condition sets and base values; `ce_boot_one()` evaluates one grid
@@ -251,6 +263,8 @@
 #' @aliases hyp_env_vals
 #' @aliases hyp_eval
 #' @aliases hyp_tail_p
+#' @aliases hyp_shadow_arm
+#' @aliases hyp_shadow_disarm
 #' @aliases ce_grids_build
 #' @aliases ce_boot_one
 #' @aliases ce_frame
@@ -278,7 +292,8 @@
 #'   sim_draw, sim_is_structured, par_name_bare, outer_par_names,
 #'   estimated_coef_names, log_sd_theta_index, sdr_of, require_fitted,
 #'   hyp_parse_all, hyp_vals_only, hyp_env_vals, hyp_eval, hyp_tail_p,
-#'   ce_grids_build, ce_boot_one, ce_frame, ce_finalize,
+#'   hyp_shadow_arm, hyp_shadow_disarm, ce_grids_build, ce_boot_one,
+#'   ce_frame, ce_finalize,
 #'   ce_cats_display, ce_display_kind, ce_pred_dpar, ce_group_vars,
 #'   ce_new_level_spec, ce_boot_grids, ce_draw_new_levels,
 #'   ce_structure_check, ce_re_formula, ce_dots, find_linpred,

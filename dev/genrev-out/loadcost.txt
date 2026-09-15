@@ -1,0 +1,23 @@
+proc.time() elapsed tick: min 0.010000 s median 0.020000 s (n=201)
+Sys.time()   tick:        min Inf s median NA s (n=0)
+Warning message:
+In min(st) : no non-missing arguments to min; returning Inf
+
+30 replicates, interleaved, one fresh process each
+arm                               min(st)  med(st) |    min(hr)    med(hr)    q10(hr)
+frmtmb FIX                          0.200    0.250 |     0.2158     0.2683     0.2249
+frmtmb BASE                         0.180    0.240 |     0.1990     0.2508     0.2038
+frmtmb BASE + nlme + generics       0.200    0.255 |     0.2173     0.2667     0.2249
+control Matrix FIX                  0.440    0.550 |     0.4462     0.5634     0.4728
+control Matrix BASE                 0.440    0.550 |     0.4555     0.5700     0.4802
+control nothing FIX                 0.000    0.000 |     0.0128     0.0181     0.0142
+control nothing BASE                0.000    0.000 |     0.0132     0.0175     0.0137
+nlme alone                          0.030    0.055 |     0.0584     0.0744     0.0611
+
+FIX - BASE      minima: system.time +0.020  hi-res +0.0167
+CONTROL Matrix  minima: system.time +0.000  hi-res -0.0093
+CONTROL nothing minima: system.time +0.000  hi-res -0.0004
+BASE+nlme+generics - BASE minima: hi-res +0.0183  (the attribution)
+FIX - (BASE+nlme+generics) minima: hi-res -0.0015  (residual)
+permutation p for the FIX-BASE gap on minima: 0.0043 (obs +0.0167)
+GENREVDONE

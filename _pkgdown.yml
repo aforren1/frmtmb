@@ -122,6 +122,7 @@ reference:
   - frm_lp_basis
   - frm_joint_cov
   - sigma.frmtmb_fit
+  - frmtmb-scales
 - title: Feature compatibility
   contents:
   - frm_compat

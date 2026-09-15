@@ -1,0 +1,43 @@
+```
+== lognormal fit, seed 2026, n = 400, dev/generics-scale.R ==
+sigma(fit)                      0.4014523891
+predict(fit)[1]  (default)      8.7277667035
+predict(type='link')[1]         8.7277667035
+predict(type='response')[1]     6689.8632629972
+fitted(fit)[1]                  6689.8632629972
+exp(mu)[1]        (median)      6171.9289610356
+exp(mu+s^2/2)[1]  (mean)        6689.8632629972
+
+relative residuals at full precision (identities, not fits):
+predict() vs predict(type='link')          0.000e+00
+predict(type='response') vs fitted()       0.000e+00
+fitted() vs exp(mu + sigma^2/2)            0.000e+00
+fitted()/exp(mu), the plan's 1.079         1.083918
+exp(sigma^2/2)                             1.083918
+
+residuals:
+residuals() vs y - fitted()                0.000e+00
+residuals('pearson') vs resp/sd            8.857e-17
+
+coefficient tables, link scale or response scale:
+fixef()$mu['(Intercept)']       8.0658105190
+fixef()$sigma['(Intercept)']    -0.9126663352
+exp(that)                       0.4014523891
+sigma(fit)                      0.4014523891
+
+summary() coefficient blocks:  mu, sigma 
+  mu Estimate[1] = 8.0658105190 
+  sigma Estimate[1] = -0.9126663352 
+
+VarCorr()[[1]] (variance of the mu linear predictor)  0.1042556532 
+sqrt of it                                            0.3228864402 
+
+simulate()[1:3] (response scale)  15459.63 1478.36 1750.83 
+observed y[1:3]                   7975.90 2475.47 4096.99 
+
+== poisson fit ==
+predict()[1] (link)             1.4581725525
+fitted()[1]  (response)         4.2980977990
+exp(link)[1]                    4.2980977990
+sigma(f2) (no dispersion param) 1.0000000000
+```

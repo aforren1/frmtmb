@@ -1,0 +1,15 @@
+```
+== a posterior missing ONLY as_draws_rvars, loaded before frmtmb ==
+dev/generics-shadowload.R; the shadow exports the other ten names
+--- BASE
+SHADOW_LOADS: TRUE 
+FRMTMB: loaded 
+--- SWAP
+SHADOW_LOADS: TRUE 
+FRMTMB: loaded 
+--- ACTIVE
+SHADOW_LOADS: TRUE 
+FRMTMB: FAILED: package or namespace load failed for 'frmtmb' in get(genname, envir =  
+--- CRAN posterior on this machine exports as_draws_rvars:
+1.7.0 TRUE 
+```

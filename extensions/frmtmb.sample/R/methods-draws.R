@@ -112,7 +112,7 @@ fixef.frmtmb_draws <- function(object, ...) {
 
 #' @exportS3Method nlme::VarCorr
 #' @export
-VarCorr.frmtmb_draws <- function(x, ...) {
+VarCorr.frmtmb_draws <- function(x, sigma = 1, ...) {
   # a structural template only: every number in `base` is replaced by a
   # posterior summary below, so the starting values of a formula-sampled
   # object never reach the result
@@ -191,6 +191,14 @@ ranef.frmtmb_draws <- function(object, ...) {
 #' @export
 hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
                                     class = NULL, group = NULL, ...) {
+  # Arm core's reserved-name shadowing note for this call. It used to
+  # be armed by core's GENERIC, and this method relied on that. The
+  # exported `hypothesis` now resolves to brms's generic whenever brms
+  # is loaded, so core moved the arming into its methods, and this one
+  # lost the note in every session until it armed it too. Measured on
+  # a covariate named `sigma`: 1 note on the fit, 0 on its draws.
+  old <- hyp_shadow_arm()
+  on.exit(hyp_shadow_disarm(old), add = TRUE)
   fit <- x$fit
   vo <- hyp_vals_only(fit)
   hp <- hyp_parse_all(hypothesis,
@@ -702,6 +710,8 @@ as.mcmc.frmtmb_draws <- function(x, combine_chains = FALSE, ...) {
 #' generics work whether or not that package is attached.
 #'
 #' @param x A `frmtmb_draws` from [frm_sample()].
+#' @param ... Unused. `nvariables()` carries it because
+#'   posterior's generic does.
 #' @return A single integer.
 #' @examples
 #' \donttest{
@@ -719,8 +729,10 @@ as.mcmc.frmtmb_draws <- function(x, combine_chains = FALSE, ...) {
 #' @name draws-dimensions
 NULL
 
-# posterior's nchains()/ndraws()/niterations()/nvariables() generics take
-# x alone, so these methods do too
+# posterior's nchains(), ndraws() and niterations() generics take x
+# alone and nvariables() takes (x, ...); dev/generics-audit2.R in
+# core measured it. The signatures have to agree, because core now
+# hands these generics back to posterior.
 #' @rdname draws-dimensions
 #' @exportS3Method posterior::ndraws
 #' @export
@@ -743,7 +755,7 @@ niterations.frmtmb_draws <- function(x) {
 #' @rdname draws-dimensions
 #' @exportS3Method posterior::nvariables
 #' @export
-nvariables.frmtmb_draws <- function(x) ncol(x$draws)
+nvariables.frmtmb_draws <- function(x, ...) ncol(x$draws)
 
 # ---- posterior summaries ---------------------------------------------
 
@@ -762,6 +774,8 @@ nvariables.frmtmb_draws <- function(x) ncol(x$draws)
 #'
 #' @param object A `frmtmb_draws`, or a matrix of draws
 #'   (variables in columns).
+#' @param x The same, for `posterior_summary()`, whose generic
+#'   is brms's and names its first argument `x`.
 #' @param probs Quantiles for `posterior_summary()`.
 #' @param prob Central interval width for `posterior_interval()` and
 #'   `predictive_interval()`.
@@ -798,11 +812,11 @@ NULL
 #' @rdname sample-posterior_summary
 #' @exportS3Method brms::posterior_summary
 #' @export
-posterior_summary.frmtmb_draws <- function(object, probs = c(0.025, 0.975),
+posterior_summary.frmtmb_draws <- function(x, probs = c(0.025, 0.975),
                                            robust = FALSE,
                                            variable = NULL, ...) {
   # the generic dispatches to core's default method on a matrix
-  posterior_summary(draws_columns(object, variable),
+  posterior_summary(draws_columns(x, variable),
                     probs = probs, robust = robust)
 }
 

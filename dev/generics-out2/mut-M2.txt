@@ -1,0 +1,48 @@
+frmtmb from: C:/Users/adf44/source/r/generics-mut-M2-lib/frmtmb  version 0.55.2
+
+FILE    tests/testthat/test-scale-contract.R 
+BLOCKS  12 
+ASSERT  36 
+PASS    30 
+FAIL    6 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    2.6 
+BAD     predict() reports the LINK scale and nothing else 
+         Expected `predict(f)` to be identical to `predict(f, type = "link")`.
+         Differences:
+              actual | expected                 
+          [1] 6689.9 - 8.7      [1]             
+          [2] 2590.8 - 7.8      [2]             
+          [3] 2507.8 - 7.7      [3]             
+          [4] 2740.5 - 7.8      [4]             
+          [5] 2136.1 - 7.6      [5]             
+          [6] 698.2  - 6.5      [6]             
+          [7] 4038.1 - 8.2      [7]             
+          [8] 3247.3 - 8.0      [8]             
+          [9] 3197.9 - 8.0      [9]             
+         [10] 1787.0 - 7.4      [10]            
+          ... ...      ...      and 390 more ...
+          
+         Expected `isTRUE(all.equal(predict(f), fitted(f)))` to be FALSE.
+         Differences:
+         `actual`:   TRUE 
+         `expected`: FALSE
+          
+         Expected `ratio` > 100.
+         Actual comparison: 1.0 <= 100.0
+         Difference: -99.0 <= 0 
+BAD     a log-link count fit puts predict() and fitted() an exp apart 
+         Expected `max(abs(fitted(f) - exp(predict(f))))` <= `8 * .Machine$double.eps * max(fitted(f))`.
+         Actual comparison: 153.977829535816198 > 0.000000000000009
+         Difference: 153.977829535816198 > 0 
+         Expected `isTRUE(all.equal(fitted(f), predict(f)))` to be FALSE.
+         Differences:
+         `actual`:   TRUE 
+         `expected`: FALSE
+          
+BAD     conditional_effects() is on the RESPONSE scale 
+         Expected `stats::median(est)/stats::median(predict(f))` > 100.
+         Actual comparison: 1.0 <= 100.0
+         Difference: -99.0 <= 0 

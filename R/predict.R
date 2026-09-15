@@ -1145,6 +1145,9 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #' # a distributional parameter instead of the mean
 #' fit2 <- frm(bf(y ~ x, sigma ~ x) + gaussian(), data = dd)
 #' head(predict(fit2, dpar = "sigma", type = "response"))
+#' @seealso [frmtmb-scales], which states which scale every
+#'   method reports. The default here is the LINK scale, where
+#'   brms's `predict()` gives the response scale.
 #' @export
 predict.frmtmb_fit <- function(object, newdata = NULL,
                                type = c("link", "response",
@@ -1842,7 +1845,8 @@ napred <- function(fit, x) {
 #' convention. `cs()` terms are honored. The latent linear predictor,
 #' which is where the coefficients live and where `se.fit` is available,
 #' is `predict(object, type = "link")`.
-#' @seealso [predict.frmtmb_fit()], [residuals.frmtmb_fit()]
+#' @seealso [predict.frmtmb_fit()], [residuals.frmtmb_fit()],
+#'   [frmtmb-scales] for which scale each method reports
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(100))
@@ -2426,6 +2430,7 @@ osa_cens_domain <- function(av, y, discrete = FALSE) {
 #' # correctly specified model, whatever the family
 #' r <- residuals(fit, type = "osa")
 #' qqnorm(r); qqline(r)
+#' @seealso [frmtmb-scales] for which scale each type is on.
 #' @export
 residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
                                                   "deviance", "osa"),

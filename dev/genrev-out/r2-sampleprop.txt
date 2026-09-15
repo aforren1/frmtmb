@@ -1,0 +1,15 @@
+LIB C:/Users/adf44/source/r/rellib-r3
+re-exported borrowed generics: 26
+class method reached: 0  default: 2  none: 24  absent: 0
+not class: as_draws=none, as_draws_array=none, as_draws_df=none, as_draws_list=none, as_draws_matrix=none, as_draws_rvars=none, nchains=none, ndraws=none, niterations=none, nvariables=none, variables=none, loo=none, loo_compare=default(frmtmb), waic=none, bayes_R2=none, prior_summary=none, pp_check=none, conditional_effects=none, hypothesis=none, posterior_summary=default(frmtmb), LOO=none, WAIC=none, ngrps=none, fixef=none, ranef=none, VarCorr=none 
+GENREVDONE
+LIB C:/Users/adf44/source/r/genrev-lib
+re-exported borrowed generics: 26
+class method reached: 3  default: 2  none: 21  absent: 0
+not class: as_draws=none, as_draws_array=none, as_draws_df=none, as_draws_list=none, as_draws_matrix=none, as_draws_rvars=none, nchains=none, ndraws=none, niterations=none, nvariables=none, variables=none, loo=none, loo_compare=default(frmtmb), waic=none, bayes_R2=none, prior_summary=none, pp_check=none, conditional_effects=none, hypothesis=none, posterior_summary=default(frmtmb), LOO=none, WAIC=none, ngrps=none 
+GENREVDONE
+LIB C:/Users/adf44/source/r/genrev2-lib
+re-exported borrowed generics: 26
+class method reached: 26  default: 0  none: 0  absent: 0
+not class:  
+GENREVDONE

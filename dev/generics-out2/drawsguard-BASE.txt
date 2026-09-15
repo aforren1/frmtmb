@@ -1,0 +1,18 @@
+frmtmb.sample from: C:/Users/adf44/source/r/rellib-r3/frmtmb.sample  frmtmb from: C:/Users/adf44/source/r/rellib-r3/frmtmb
+
+FILE    tests/testthat/test-draws-methods.R 
+BLOCKS  19 
+ASSERT  101 
+PASS    100 
+FAIL    1 
+ERROR   0 
+SKIP    0 
+WARN    0 
+BAD     every hypothesis() method arms the note itself 
+         Expected `names(arms)[!arms]` to equal `character()`.
+         Differences:
+             actual                       | expected 
+         [1] "hypothesis.frmtmb_fit"      -          
+         [2] "hypothesis.frmtmb_multiple" -          
+         [3] "hypothesis.frmtmb_draws"    -          
+          
