@@ -211,6 +211,91 @@
 #' 0.12. Both scale the same term: `phi` multiplies the posterior
 #' standard deviation and `sigmaD` sets how fast it grows.
 #'
+#' @section A correlated block over every parameter, at 100 by 200:
+#' The tables above put ONE random intercept on the primary parameter.
+#' This one puts `(1 | p | id)` on every parameter at once, at the scale
+#' the field's designs sit at, and asks whether the CORRELATIONS come
+#' back as well as the variances. `dev/learnhier-findings.md` has the
+#' construction, the seeds and the scripts; the summary is here.
+#'
+#' The design draws a block with real off-diagonal structure, because a
+#' design that draws independent deviations cannot say whether an
+#' estimator recovers a correlation, only whether it invents one. Both
+#' questions are answered by running the block twice.
+#'
+#' **[bandit2arm_delta()]**, `(1 | p | id)` on the learning rate and the
+#' inverse temperature, 100 learners by 200 trials, 60 replicates per
+#' arm. Everything on the link the family estimates it on.
+#'
+#' | component | truth | mean estimate | bias | mc se | coverage |
+#' |---|---|---|---|---|---|
+#' | `alpha_(Intercept)` | -0.619 | -0.6191 | -0.0001 | 0.0091 | 0.92 |
+#' | `tau_(Intercept)` | 1.099 | 1.1019 | +0.0033 | 0.0041 | 1.00 |
+#' | `sd(alpha)` | 0.5 | 0.4925 | -0.0075 | 0.0088 | 0.92 |
+#' | `sd(tau)` | 0.3 | 0.2980 | -0.0020 | 0.0039 | 0.93 |
+#' | `cor(alpha, tau)` | 0.5 | 0.5322 | +0.0322 | 0.0181 | 0.97 |
+#'
+#' The same design with a correlation of ZERO returns 0.0214 with a
+#' Monte Carlo error of 0.0192 and coverage 0.93, so the estimator does
+#' not manufacture a correlation that is not there. Both biases on the
+#' correlation are inside twice their own Monte Carlo error.
+#'
+#' 60 of 60 fits in each arm reached convergence code 0 with a positive
+#' definite Hessian and no `NaN` standard errors, and no component
+#' collapsed: over the 120 fits the smallest `sd(alpha)` was 0.328 and
+#' the smallest `sd(tau)` 0.194. Collapse is documented for this family
+#' at 20 to 60 trials and is absent at 200.
+#'
+#' **READ THE INTERVAL, NOT THE POINT ESTIMATE, FOR A CORRELATION.** The
+#' spread of the estimates across replicates is 0.140 in both arms and
+#' the observed range is 0.172 to 0.804 against a truth of 0.5. One
+#' dataset of this size locates a correlation to about half a unit, and
+#' the Wald interval says so where the point estimate does not.
+#'
+#' At 60 replicates a coverage carries a standard error of 2.8 points at
+#' the nominal 95, so nothing between about 89 and 100 percent in these
+#' tables is distinguishable from nominal.
+#'
+#' **[rlddm()]** under `ndt_group(id)`, `(1 | p | id)` on `alpha`,
+#' `drift`, `bs` and `ndt`, `bias` held at 0.5, 60 replicates. 60 of 60
+#' fitted, none with a log-likelihood below the objective at its own
+#' realized truths, no `NaN` standard errors.
+#'
+#' | component | truth | mean estimate | bias | mc se | coverage |
+#' |---|---|---|---|---|---|
+#' | `alpha_(Intercept)` | -0.619 | -0.6224 | -0.0033 | 0.0087 | 0.97 |
+#' | `drift_(Intercept)` | 2.500 | 2.5075 | +0.0075 | 0.0142 | 0.95 |
+#' | `bs_(Intercept)` | 0.4055 | 0.3993 | -0.0062 | 0.0023 | 0.98 |
+#' | `sd(alpha)` | 0.5 | 0.4746 | -0.0254 | 0.0071 | 0.90 |
+#' | `sd(drift)` | 1.0 | 0.9981 | -0.0019 | 0.0098 | 0.95 |
+#' | `sd(bs)` | 0.2 | 0.1986 | -0.0014 | 0.0017 | 0.97 |
+#' | `cor(alpha, drift)` | 0.4 | 0.3803 | -0.0197 | 0.0164 | 0.95 |
+#' | `cor(alpha, bs)` | 0.0 | 0.0127 | +0.0127 | 0.0150 | 0.95 |
+#' | `cor(drift, bs)` | -0.3 | -0.2836 | +0.0164 | 0.0130 | 0.93 |
+#'
+#' Every parameter with a population truth on the scale it is fitted on
+#' recovers. The four that have none are the `ndt` row and column, and
+#' two of those do NOT recover against their realized targets:
+#' `sd(ndt)` at a rate of 0.28 and `cor(bs, ndt)` at 0.08, where every
+#' other component on either target sits between 0.93 and 1.00.
+#'
+#' **That is a property of the parameterization and not of the
+#' estimator**, and `?rlddm` has the one line of algebra: under
+#' `ndt_group()` the fitted deviation is `log(ndt) - log(m)` where `m`
+#' is an observed minimum, so about 94 percent of the link-scale
+#' component's variance is a property of the data. Read the per-learner
+#' non-decision times through [frmtmb.eam::ndt_time()] instead; they
+#' never pass through that term.
+#'
+#' The same fits are checked against an independent Stan program of the
+#' same model with the correlated block added, at frmtmb's own
+#' estimates: agreement to 2.6e-15 relative for the delta learner's
+#' two-by-two block, 4.9e-15 at the full 100 by 200 design, and 1.7e-11
+#' for `rlddm()`'s four-by-four block, which is looser because Stan
+#' implements the Wiener density itself and that row therefore checks
+#' two independent implementations of the density as well as of the
+#' recursion.
+#'
 #' @section What this package reads that frmtmb does not promise:
 #' Nothing. Every accessor it uses is exported and documented:
 #' `frmtmb_family()`, `frmtmb_structure()`, `frmtmb_register_aterm()`,

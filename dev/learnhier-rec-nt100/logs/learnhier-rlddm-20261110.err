@@ -1,0 +1,4 @@
+Warning messages:
+1: Optimizer did not report convergence: false convergence (8) 
+2: Large maximum absolute gradient at the optimum (0.205); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+3: Hessian is not positive definite; standard errors are unreliable. The model may be overparameterized 

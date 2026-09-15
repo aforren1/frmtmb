@@ -1,0 +1,34 @@
+﻿seeds 22: 20261010 to 20261230
+......................
+
+== marginal shape of the fitted-scale deviations, per column ==
+alpha, drift and bs are the drawn deviations untouched and are the CONTROL.
+ column control  n mean_skew mean_ex_kurt shapiro_rejects_05 median_shapiro_p
+  alpha    TRUE 22   0.08206      0.11420                  3           0.3843
+  drift    TRUE 22  -0.04550     -0.08196                  1           0.6684
+     bs    TRUE 22  -0.04958     -0.06009                  2           0.5268
+    ndt   FALSE 22   0.02463     -0.18530                  1           0.6109
+
+== pairwise: Pearson against Spearman, and a nonlinear conditional mean ==
+        pair involves_ndt  n mean_pearson mean_spearman  mean_gap
+ alpha~drift        FALSE 22      0.40750       0.39130 -0.016250
+    alpha~bs        FALSE 22      0.01684       0.01603  0.005408
+   alpha~ndt         TRUE 22      0.07735       0.08142  0.004788
+    drift~bs        FALSE 22     -0.24450      -0.23860 -0.005862
+   drift~ndt         TRUE 22      0.35980       0.35260 -0.007178
+      bs~ndt         TRUE 22     -0.77480      -0.75720 -0.017570
+ nonlin_rejects_05
+                 3
+                 2
+                 2
+                 1
+                 0
+                 0
+
+== the mechanism check ==
+Shapiro rejects at 0.05, control columns: 6 of 66 (nominal would be about 3.3)
+Shapiro rejects at 0.05, ndt column:      1 of 22
+nonlinear conditional mean, pairs WITHOUT ndt: 6 of 66
+nonlinear conditional mean, pairs WITH ndt:    2 of 66
+
+wrote dev/learnhier-gauss.rds

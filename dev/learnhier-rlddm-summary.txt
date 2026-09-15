@@ -1,0 +1,100 @@
+﻿
+================ rlddm ================
+records 60, fitted 60
+100 learners x 200 trials, 20000 rows, 14 outer parameters
+seeds: 60 distinct of 60 files, 20261010 to 20261600 step 10; no gaps
+fit seconds: min 414.3, median 708.7, max 1513.1, total 773.8 min
+convergence code 0: 58 of 60; positive definite Hessian: 54; NaN se: 0
+max |gradient|: median 0.00138, worst 0.104
+logLik minus the oracle at this replicate's own truths: min 8.535, median 17.623, max 33.17; below zero on 0 of 60
+
+             component  n no_ci pop_truth mean_est bias_pop   mcse sd_est
+1  b_alpha.(Intercept) 60     0   -0.6190  -0.6224  -0.0033 0.0087 0.0677
+2  b_drift.(Intercept) 60     0    2.5000   2.5075   0.0075 0.0142 0.1100
+3     b_bs.(Intercept) 60     0    0.4055   0.3993  -0.0062 0.0023 0.0182
+4    b_ndt.(Intercept) 60     0        NA   1.6001      NaN 0.0052 0.0407
+5             sd_alpha 60     0    0.5000   0.4746  -0.0254 0.0071 0.0549
+6             sd_drift 60     0    1.0000   0.9981  -0.0019 0.0098 0.0756
+7                sd_bs 60     0    0.2000   0.1986  -0.0014 0.0017 0.0130
+8               sd_ndt 60     0        NA   0.3376      NaN 0.0043 0.0334
+9      cor_alpha~drift 60     0    0.4000   0.3803  -0.0197 0.0164 0.1272
+10        cor_alpha~bs 60     0    0.0000   0.0127   0.0127 0.0150 0.1160
+11       cor_alpha~ndt 60     0        NA   0.0933      NaN 0.0180 0.1395
+12        cor_drift~bs 60     0   -0.3000  -0.2836   0.0164 0.0130 0.1003
+13       cor_drift~ndt 60     0        NA   0.4692      NaN 0.0127 0.0984
+14          cor_bs~ndt 60     0        NA  -0.9400      NaN 0.0038 0.0295
+   cov_pop cov_pop_se
+1   0.9667     0.0232
+2   0.9500     0.0281
+3   0.9833     0.0165
+4       NA         NA
+5   0.9000     0.0387
+6   0.9500     0.0281
+7   0.9667     0.0232
+8       NA         NA
+9   0.9500     0.0281
+10  0.9500     0.0281
+11      NA         NA
+12  0.9333     0.0322
+13      NA         NA
+14      NA         NA
+
+the same components against the REALIZED target (see the header of this script for why that is not a coverage)
+             component mean_real bias_real cov_real cov_real_se min_est max_est
+1  b_alpha.(Intercept)       NaN       NaN       NA          NA -0.7519 -0.4064
+2  b_drift.(Intercept)       NaN       NaN       NA          NA  2.2977  2.8528
+3     b_bs.(Intercept)       NaN       NaN       NA          NA  0.3562  0.4318
+4    b_ndt.(Intercept)    1.5812    0.0189   1.0000      0.0000  1.5118  1.6970
+5             sd_alpha    0.4969   -0.0223   0.9833      0.0165  0.3449  0.6414
+6             sd_drift    0.9964    0.0017   1.0000      0.0000  0.8487  1.1841
+7                sd_bs    0.1999   -0.0013   1.0000      0.0000  0.1632  0.2258
+8               sd_ndt    0.4245   -0.0869   0.2833      0.0582  0.2659  0.4162
+9      cor_alpha~drift    0.3928   -0.0125   1.0000      0.0000  0.0999  0.6303
+10        cor_alpha~bs    0.0058    0.0070   1.0000      0.0000 -0.2552  0.3095
+11       cor_alpha~ndt    0.0710    0.0222   0.9833      0.0165 -0.2102  0.3818
+12        cor_drift~bs   -0.2818   -0.0018   1.0000      0.0000 -0.4991 -0.0481
+13       cor_drift~ndt    0.3859    0.0832   0.9833      0.0165  0.2118  0.7029
+14          cor_bs~ndt   -0.7894   -0.1507   0.0833      0.0357 -0.9876 -0.8672
+
+exclusion on convergence code 0: dropping 2 of 60 replicates
+  largest change in any coverage against a population truth: 0.0149; components whose coverage moves by more than the binomial standard error at this count (0.029): 0
+           component   cov_all  cov_kept         delta
+ b_alpha.(Intercept) 0.9666667 0.9655172 -0.0011494253
+ b_drift.(Intercept) 0.9500000 0.9482759 -0.0017241379
+    b_bs.(Intercept) 0.9833333 0.9827586 -0.0005747126
+            sd_alpha 0.9000000 0.8965517 -0.0034482759
+            sd_drift 0.9500000 0.9482759 -0.0017241379
+               sd_bs 0.9666667 0.9655172 -0.0011494253
+     cor_alpha~drift 0.9500000 0.9482759 -0.0017241379
+        cor_alpha~bs 0.9500000 0.9482759 -0.0017241379
+        cor_drift~bs 0.9333333 0.9482759  0.0149425287
+
+exclusion on positive definite Hessian: dropping 6 of 60 replicates
+  largest change in any coverage against a population truth: 0.0296; components whose coverage moves by more than the binomial standard error at this count (0.03): 0
+           component   cov_all  cov_kept        delta
+ b_alpha.(Intercept) 0.9666667 0.9629630 -0.003703704
+ b_drift.(Intercept) 0.9500000 0.9444444 -0.005555556
+    b_bs.(Intercept) 0.9833333 0.9814815 -0.001851852
+            sd_alpha 0.9000000 0.8888889 -0.011111111
+            sd_drift 0.9500000 0.9444444 -0.005555556
+               sd_bs 0.9666667 0.9629630 -0.003703704
+     cor_alpha~drift 0.9500000 0.9444444 -0.005555556
+        cor_alpha~bs 0.9500000 0.9629630  0.012962963
+        cor_drift~bs 0.9333333 0.9629630  0.029629630
+
+per-learner non-decision time, at 200 trials (a floor is an OBSERVED minimum and moves with this count)
+                    mean     sd      min      max
+rmse_ms          12.3010 1.1519   9.5539  15.8406
+rmse_ratio        0.3260 0.0376   0.2532   0.4255
+mean_err_ratio    0.0493 0.0255   0.0035   0.1187
+cor_true          0.9466 0.0128   0.9112   0.9681
+floor_rmse_ms    20.4852 3.0134  15.0798  29.6568
+floor_cor_true    0.8718 0.0317   0.8149   0.9254
+sd_hat            0.0349 0.0031   0.0299   0.0433
+sd_true           0.0379 0.0029   0.0334   0.0460
+sd_floor_only     0.0425 0.0036   0.0350   0.0512
+frac_pop          0.8320 0.0057   0.8193   0.8451
+floor_mean        0.3091 0.0044   0.3006   0.3203
+margin_min_ms    19.0785 3.2840  11.6246  25.7789
+below_own_floor 100.0000 0.0000 100.0000 100.0000
+n_subject       100.0000 0.0000 100.0000 100.0000

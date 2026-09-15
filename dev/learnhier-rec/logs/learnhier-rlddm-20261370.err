@@ -1,0 +1,5 @@
+Warning messages:
+1: In stats::nlminb(par, fn, gr, control = control, scale = if (is.null(par_units)) 1 else 1/par_units,  :
+  NA/NaN function evaluation
+2: In he(par) : restarting interrupted promise evaluation
+3: Large maximum absolute gradient at the optimum (0.00267); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 

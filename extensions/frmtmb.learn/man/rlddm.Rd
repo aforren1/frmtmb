@@ -171,6 +171,64 @@ So read the per-learner error and the correlation, not the spread.
 \code{\link[frmtmb.eam:wiener]{frmtmb.eam::wiener()}} carries the same warning for the same reason.
 }
 
+\section{Why the ndt variance component is not what it looks like}{
+
+The section above says to read the per-learner error rather than the
+spread. This one says WHY, in one line of algebra, because the reason
+is exact rather than empirical.
+
+A learner's floor is its own non-decision time plus the fastest
+DECISION it happened to make, \code{floor = ndt + m}. So the quantity
+\code{ndt ~ (1 | p | id)} estimates under \code{ndt_group()} is
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{qlogis(ndt / floor) = log(ndt / (floor - ndt)) = log(ndt) - log(m)
+}\if{html}{\out{</div>}}
+
+identically. The fitted deviation is not the non-decision time on a
+link. It is the log non-decision time MINUS the log of an observed
+minimum, and that second term depends on how fast the learner
+happened to decide, which is a property of their drift, their
+boundary and the luck of their trials.
+
+Measured over 60 replicates at 100 learners by 200 trials
+(\code{dev/learnhier-findings.md}), where the design drew
+\verb{sd(log ndt) = 0.15}:\tabular{ll}{
+   term \tab value \cr
+   \verb{sd(log ndt)}, the random effect the design drew \tab 0.1494 \cr
+   \verb{sd(log m)}, the observed-minimum term it did not \tab 0.4404 \cr
+   \code{sd} of the fitted-scale deviation \tab 0.4264 \cr
+   variance share from the observed minimum \tab \strong{107 percent} \cr
+}
+
+
+\strong{So \code{sd(ndt)} on the link scale is about 94 percent a property of
+the data rather than of the learners}, and more trials do not repair
+it: over 100, 200 and 400 trials the share reads 107.9, 106.7 and
+108.2 percent, a paired difference of +0.002 with a 95 percent
+interval of (-0.035, +0.040).
+
+The same term explains the correlation. \code{log(m)} correlates 0.872
+with a learner's own \code{bs} deviation, so the parameterization presses
+\code{cor(bs, ndt)} toward -1: the fit returns -0.940 and the realized
+value is -0.789, while the correlation the design actually drew comes
+back exactly once the nuisance term is removed, \verb{cor(bs, log ndt)} of
+\strong{+0.2989 against a drawn 0.3}.
+
+\strong{What this does NOT affect.} Every parameter with a population
+truth on the scale it is fitted on recovers at that design: over 60
+replicates the three intercepts, the three other standard deviations
+and the three other correlations all cover between 0.900 and 0.983
+against a nominal 0.95. And the per-learner non-decision times
+themselves are unaffected, because \code{\link[frmtmb.eam:ndt_time]{frmtmb.eam::ndt_time()}} reports
+them on the response's own scale and never passes through the
+nuisance term.
+
+\strong{What it would take to change it} is a deviation defined against
+something other than an observed minimum, and the cost is that the
+bound stops being structural, which is the reason it is a scaled
+logit in the first place. That trade is not made here.
+}
+
 \section{Pinning the non-decision time needs max_ndt}{
 
 \code{bf(ndt = 0.2)} on a bare \code{rlddm()} is refused, and the message says

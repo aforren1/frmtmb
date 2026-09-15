@@ -128,6 +128,38 @@ ln_stan_pars <- function(par) {
        u = as.array(unname(par[names(par) == "b"])))
 }
 
+# The same split for a CORRELATED block over `p` parameters, where `u`
+# is a subject-by-parameter matrix rather than a vector.
+#
+# The reshape is the one thing here a reader has to take on trust, so it
+# is stated: frmtmb lays `b` out LEVEL-MAJOR, `p` coefficients
+# contiguous per level, in the order the block's `cnms` name them, which
+# is the order the formula declares the distributional parameters in.
+# `matrix(b, nrow = p)` therefore has one LEVEL per column and its
+# transpose is the subject-by-parameter matrix the programs declare.
+# Getting it wrong is not a silent disagreement: it permutes the
+# deviations between parameters, and check B fails outright.
+ln_stan_pars_cor <- function(par, p) {
+  list(b = as.array(unname(par[names(par) == "beta"])),
+       bd = as.array(unname(par[names(par) == "betad"])),
+       u = t(matrix(unname(par[names(par) == "b"]), nrow = p)))
+}
+
+# The block itself as DATA, exactly as one standard deviation rides
+# along as data in the uncorrelated programs, and for the same reason:
+# the map from Stan's parameters to frmtmb's stays the identity, so the
+# comparison carries no Jacobian, and a covariance matrix cannot be a
+# Stan parameter without one.
+ln_stan_data_cor <- function(fit, data, form, extra = list()) {
+  blk <- ln_stan_block(data)
+  X <- unname(stats::model.matrix(form, data))
+  Sigma <- unname(as.matrix(frmtmb::VarCorr(fit)[[1L]]))
+  c(list(N = nrow(data), S = blk$S, T = blk$T, K = ncol(X),
+         idx = blk$idx, mask = blk$mask, subj = blk$subj,
+         choice = as.integer(data$choice), X = X, Sigma = Sigma),
+    extra)
+}
+
 # The two checks, at one point.
 #
 #   A  Stan's log_prob at frmtmb's estimates equals frmtmb's joint log
@@ -154,12 +186,21 @@ ln_stan_pars <- function(par) {
 # numbers there. The identity table in dev/learn-findings.md is that
 # file rather than a transcription of it, so the published residuals
 # cannot drift from the ones the suite asserts.
+#
+# `block_dim` is the dimension of a CORRELATED random-effect block, and
+# `NULL` means the one-intercept programs. It changes only how `b` is
+# reshaped for Stan; every check below is the same check.
 ln_lp_check <- function(fit, code, sdat, par = NULL, tol = 1e-6,
-                        tol_grad = 1e-4, check_grad = TRUE, label = NA) {
+                        tol_grad = 1e-4, check_grad = TRUE, label = NA,
+                        block_dim = NULL) {
   mod <- ln_stan_model(code)
   sf <- suppressMessages(rstan::sampling(mod, data = sdat, chains = 0))
   par <- if (is.null(par)) fit$obj$env$last.par.best else par
-  pars <- ln_stan_pars(par)
+  pars <- if (is.null(block_dim)) {
+    ln_stan_pars(par)
+  } else {
+    ln_stan_pars_cor(par, block_dim)
+  }
   up <- rstan::unconstrain_pars(sf, pars)
   lp <- rstan::log_prob(sf, up, adjust_transform = FALSE, gradient = FALSE)
   ours <- -fit$obj$env$f(par)

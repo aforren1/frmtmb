@@ -109,6 +109,23 @@ usually collapsed the component to zero already. \code{?frmtmb.learn}
 carries the per-dataset table.
 }
 
+\section{A correlated block on both parameters, measured}{
+
+\code{(1 | p | id)} on the learning rate AND the inverse temperature is
+this family's whole parameter vector, and it recovers at 100 learners
+by 200 trials: over 60 replicates the two standard deviations come
+back at 0.4925 and 0.2980 against 0.5 and 0.3, and the correlation at
+0.5322 against 0.5, with coverage 0.92 to 0.97. The same design with
+a correlation of ZERO returns 0.0214, so the estimator does not
+invent one. \code{?frmtmb.learn} has the tables and
+\code{dev/learnhier-findings.md} the construction.
+
+Read a correlation's INTERVAL rather than its point estimate. The
+estimates spread by 0.140 across those replicates and range from
+0.172 to 0.804 for a truth of 0.5, so one dataset of this size
+locates a correlation to about half a unit.
+}
+
 \examples{
 d <- frm_task_design("bandit2arm", n_subject = 8, n_trial = 40,
                      seed = 1)

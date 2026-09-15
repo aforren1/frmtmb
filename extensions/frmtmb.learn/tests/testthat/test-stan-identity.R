@@ -285,3 +285,112 @@ test_that("rlddm reproduces a Stan program of the same model", {
                                 ndt_ub = min(d$rt))),
               label = "rlddm")
 })
+
+## ------------------------------------------------- correlated blocks
+##
+## Item 2.2's check column: the family's own Stan program with a
+## correlated block over EVERY parameter added. The block is what the
+## item is a claim about, so it is checked the way the recursion is,
+## by an identity at one point rather than by two estimators agreeing.
+##
+## The fixtures are larger than the ones above because a correlated
+## block over a short session COLLAPSES: with every fitted standard
+## deviation near zero the subject deviations are all zero, and the
+## gradient check then asserts nothing. Each test below states that as
+## an assertion on the fit rather than leaving it to the fixture.
+
+## The smallest fitted standard deviation as a fraction of the largest.
+## A collapsed component takes this to zero, so it is the one number
+## that says the fixture is exercising the block it claims to.
+ln_block_spread <- function(fit) {
+  sds <- sqrt(diag(frmtmb::VarCorr(fit)[[1L]]))
+  min(sds) / max(sds)
+}
+
+test_that("bandit2arm_delta reproduces Stan with a correlated block", {
+  skip_unless_stan()
+  set.seed(203)
+  ns <- 20L
+  d <- frm_task_design("bandit2arm", n_subject = ns, n_trial = 120,
+                       seed = 203)
+  ## a real correlation between the two deviations, so that a program
+  ## which read the block as diagonal would disagree rather than round
+  L <- chol(matrix(c(1, 0.6, 0.6, 1), 2L, 2L))
+  U <- matrix(stats::rnorm(2L * ns), ns, 2L) %*% L
+  U <- sweep(U, 2L, c(0.7, 0.4), "*")
+  i <- as.integer(d$id)
+  fam <- bandit2arm_delta(subject = id, trial = trial)
+  d$choice <- frm_task_simulate(
+    fam, d,
+    pars = list(alpha = stats::plogis(stats::qlogis(0.35) + U[i, 1L]),
+                tau = exp(log(3) + U[i, 2L])), seed = 203)[[1L]]$choice
+  fit <- frmtmb::frm(
+    frmtmb::bf(choice | reward(pay1, pay2) ~ 1 + (1 | p | id),
+               tau ~ 1 + (1 | p | id)),
+    family = fam, data = d)
+  expect_gt(ln_block_spread(fit), 0.05)
+  r <- ln_lp_check(fit, ln_stan_code_delta_cor(),
+                   ln_stan_data_cor(fit, d, ~ 1,
+                                    list(pay1 = as.numeric(d$pay1),
+                                         pay2 = as.numeric(d$pay2))),
+                   block_dim = 2L, label = "bandit2arm_delta (2x2 block)")
+  ## and away from the optimum, so the agreement cannot be an artifact
+  ## of both sides sitting at a stationary point
+  p2 <- fit$obj$env$last.par.best
+  p2[names(p2) == "b"] <- p2[names(p2) == "b"] + 0.3
+  r2 <- ln_lp_check(fit, ln_stan_code_delta_cor(),
+                    ln_stan_data_cor(fit, d, ~ 1,
+                                     list(pay1 = as.numeric(d$pay1),
+                                          pay2 = as.numeric(d$pay2))),
+                    par = p2, check_grad = FALSE, block_dim = 2L,
+                    label = "bandit2arm_delta (2x2 block, displaced)")
+  expect_lt(abs(r2$const), 1e-6 * max(1, abs(r2$ours)))
+  expect_false(isTRUE(all.equal(r$ours, r2$ours)))
+})
+
+test_that("rlddm reproduces Stan with a correlated block on all four", {
+  skip_unless_stan()
+  skip_if_not_installed("RWiener")
+  set.seed(204)
+  ns <- 20L
+  fam <- rlddm(subject = id, trial = trial)
+  d <- frm_task_design("bandit2arm", n_subject = ns, n_trial = 120,
+                       seed = 204)
+  R <- matrix(c(1.0,  0.4,  0.0,  0.0,
+                0.4,  1.0, -0.3,  0.0,
+                0.0, -0.3,  1.0,  0.3,
+                0.0,  0.0,  0.3,  1.0), 4L, 4L, byrow = TRUE)
+  U <- matrix(stats::rnorm(4L * ns), ns, 4L) %*% chol(R)
+  U <- sweep(U, 2L, c(0.5, 1.0, 0.2, 0.15), "*")
+  i <- as.integer(d$id)
+  d <- frm_task_simulate(
+    fam, d,
+    pars = list(alpha = stats::plogis(stats::qlogis(0.35) + U[i, 1L]),
+                drift = 2.5 + U[i, 2L], bs = 1.5 * exp(U[i, 3L]),
+                ndt = 0.25 * exp(U[i, 4L]), bias = 0.5),
+    seed = 204)[[1L]]
+  fit <- frmtmb::frm(
+    frmtmb::bf(rt | dec(choice) + reward(pay1, pay2) +
+                 ndt_group(id) ~ 1 + (1 | p | id),
+               drift ~ 1 + (1 | p | id), bs ~ 1 + (1 | p | id),
+               ndt ~ 1 + (1 | p | id), bias = 0.5),
+    family = fam, data = d)
+  expect_gt(ln_block_spread(fit), 0.05)
+  ## PER-LEARNER bounds. Under ndt_group(id) the link's ceiling is each
+  ## learner's own fastest response, so the Stan program takes a vector
+  ## where the uncorrelated row above takes a scalar. Passing the global
+  ## minimum would compare two different parameterizations.
+  floors <- as.numeric(tapply(d$rt, d$id, min))
+  ## the same floors the family derived, so a lookup that paired a
+  ## learner with somebody else's floor is caught here and not by a
+  ## residual that a reader would have to interpret
+  bd <- frmtmb::single_response(fit)[["family"]][["ndt_bound"]]
+  expect_equal(sort(unname(bd[["floors"]])), sort(floors))
+  ln_lp_check(fit, ln_stan_code_rlddm_cor(),
+              ln_stan_data_cor(fit, d, ~ 1,
+                               list(pay1 = as.numeric(d$pay1),
+                                    pay2 = as.numeric(d$pay2),
+                                    rt = as.numeric(d$rt),
+                                    ndt_ub = floors, bias = 0.5)),
+              block_dim = 4L, label = "rlddm (4x4 block)")
+})
