@@ -19,7 +19,7 @@ RESULT test-brms-priors.R pass=103 fail=0 err=0 skip=0
 RESULT test-brms-port.R pass=18 fail=0 err=0 skip=0
 RESULT test-rl-example.R pass=102 fail=0 err=0 skip=0
 RESULT test-fuzz.R pass=2 fail=0 err=0 skip=0
-RESULT test-stan-identity.R pass=55 fail=0 err=0 skip=0
+RESULT test-stan-identity.R pass=71 fail=0 err=0 skip=0
 RESULT test-loo.R pass=79 fail=0 err=0 skip=0
 RESULT test-sampling-ported.R pass=212 fail=0 err=0 skip=0
 GATED ran 23 of 23

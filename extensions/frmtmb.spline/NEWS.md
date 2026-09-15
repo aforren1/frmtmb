@@ -1,4 +1,4 @@
-# frmtmb.spline (unreleased)
+# frmtmb.spline 0.5.1
 
 The Royston-Parmar frailty is a MEASUREMENT rather than a smoke test.
 Item 2.5 of `dev/extension-gaps-plan.md`; the numbers, the seeds and

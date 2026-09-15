@@ -136,7 +136,7 @@ RESULT test-zi.R pass=11 fail=0 err=0 skip=0
 == frmtmb END ==
 == frmtmb.eam 24 files ==
 RESULT test-bracket-access.R pass=1 fail=0 err=0 skip=0
-RESULT test-brms-parity.R pass=13 fail=0 err=0 skip=0
+RESULT test-brms-parity.R pass=18 fail=0 err=0 skip=0
 RESULT test-defects.R pass=59 fail=0 err=0 skip=0
 RESULT test-density.R pass=132 fail=0 err=0 skip=0
 RESULT test-extension-api.R pass=14 fail=0 err=0 skip=0
@@ -181,25 +181,26 @@ RESULT test-tmbstan-build-guard.R pass=23 fail=0 err=0 skip=0
 == frmtmb.sample END ==
 == frmtmb.coupling 7 files ==
 RESULT test-bracket-access.R pass=1 fail=0 err=0 skip=0
-RESULT test-coherence.R pass=58 fail=0 err=0 skip=0
+RESULT test-coherence.R pass=61 fail=0 err=0 skip=0
 RESULT test-cross-spectrum.R pass=96 fail=0 err=0 skip=0
 RESULT test-cross-wishart.R pass=211 fail=0 err=0 skip=0
 RESULT test-message-uniqueness.R pass=4 fail=0 err=0 skip=0
 RESULT test-scale.R pass=0 fail=0 err=0 skip=5
 RESULT test-surface.R pass=58 fail=0 err=0 skip=0
 == frmtmb.coupling END ==
-== frmtmb.spline 11 files ==
+== frmtmb.spline 12 files ==
 RESULT test-bracket-access.R pass=1 fail=0 err=0 skip=0
 RESULT test-curve.R pass=62 fail=0 err=0 skip=0
 RESULT test-deriv.R pass=38 fail=0 err=0 skip=0
 RESULT test-difference.R pass=59 fail=0 err=0 skip=0
+RESULT test-frailty.R pass=28 fail=0 err=0 skip=0
 RESULT test-gratia.R pass=13 fail=0 err=0 skip=0
 RESULT test-message-uniqueness.R pass=4 fail=0 err=0 skip=0
 RESULT test-royston-parmar.R pass=67 fail=0 err=0 skip=0
 RESULT test-rp-floored.R pass=42 fail=0 err=0 skip=0
 RESULT test-scale.R pass=0 fail=0 err=0 skip=1
 RESULT test-span.R pass=73 fail=0 err=0 skip=0
-RESULT test-surface.R pass=48 fail=0 err=0 skip=0
+RESULT test-surface.R pass=47 fail=0 err=0 skip=0
 == frmtmb.spline END ==
 == frmtmb.learn 12 files ==
 RESULT test-bracket-access.R pass=1 fail=0 err=0 skip=0
@@ -212,7 +213,7 @@ RESULT test-message-uniqueness.R pass=4 fail=0 err=0 skip=0
 RESULT test-reference.R pass=12 fail=0 err=0 skip=0
 RESULT test-rlddm-ndt.R pass=53 fail=0 err=0 skip=0
 RESULT test-scale.R pass=0 fail=0 err=0 skip=2
-RESULT test-stan-identity.R pass=0 fail=0 err=0 skip=9
+RESULT test-stan-identity.R pass=0 fail=0 err=0 skip=11
 RESULT test-surface.R pass=146 fail=0 err=0 skip=0
 == frmtmb.learn END ==
 == frmtmb.latent 7 files ==
@@ -234,4 +235,4 @@ RESULT test-ode-nlf.R pass=4 fail=0 err=0 skip=0
 RESULT test-ode-tv.R pass=27 fail=0 err=0 skip=0
 RESULT test-scale.R pass=0 fail=0 err=0 skip=1
 == frmtmb.ode END ==
-SUITE ran 220 of 220
+SUITE ran 221 of 221

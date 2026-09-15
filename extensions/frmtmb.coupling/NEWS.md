@@ -1,4 +1,4 @@
-# frmtmb.coupling (development version)
+# frmtmb.coupling 0.3.1
 
 * **A within-subject contrast needs `(1 | id:cond)`, and without it the
   interval is 2.7 times too narrow rather than in the wrong place.**

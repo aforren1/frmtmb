@@ -215,7 +215,6 @@ Writing `articles/gddm.html`
 -- Building news ---------------------------------------------------------------
 Writing `news/index.html`
 -- Building sitemap ------------------------------------------------------------
-Writing `sitemap.xml`
 -- Building docs for llms ------------------------------------------------------
 -- Building redirects ----------------------------------------------------------
 -- Building search index -------------------------------------------------------
@@ -234,37 +233,23 @@ Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.latent
 ? Reference metadata ok.
 -- Initialising site -----------------------------------------------------------
 -- Building home ---------------------------------------------------------------
-Writing `authors.html`
 Reading 'DESCRIPTION'
-Writing `index.html`
 Writing `404.html`
 -- Building function reference -------------------------------------------------
-Writing `reference/index.html`
 Loading required package: frmtmb
 Reading man/frmtmb.latent-package.Rd
-Writing `reference/frmtmb.latent-package.html`
 Reading man/hmm.Rd
-Writing `reference/hmm.html`
 Reading man/hmm_probs.Rd
-Writing `reference/hmm_probs.html`
 Reading man/hmm_starts.Rd
 Writing `reference/hmm_starts.html`
 Reading man/hmm_viterbi.Rd
-Writing `reference/hmm_viterbi.html`
 Reading man/lca.Rd
-Writing `reference/lca.html`
 Reading man/lca_probs.Rd
-Writing `reference/lca_probs.html`
 Reading man/lca_profiles.Rd
-Writing `reference/lca_profiles.html`
 -- Building articles -----------------------------------------------------------
-Writing `articles/index.html`
 Reading vignettes/latent.Rmd
-Writing `articles/latent.html`
 -- Building news ---------------------------------------------------------------
-Writing `news/index.html`
 -- Building sitemap ------------------------------------------------------------
-Writing `sitemap.xml`
 -- Building docs for llms ------------------------------------------------------
 -- Building redirects ----------------------------------------------------------
 -- Building search index -------------------------------------------------------
@@ -283,27 +268,17 @@ Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.ode
 ? Reference metadata ok.
 -- Initialising site -----------------------------------------------------------
 -- Building home ---------------------------------------------------------------
-Writing `authors.html`
 Reading 'DESCRIPTION'
-Writing `index.html`
 Writing `404.html`
 -- Building function reference -------------------------------------------------
-Writing `reference/index.html`
 Loading required package: frmtmb
 Reading man/frmtmb.ode-package.Rd
-Writing `reference/frmtmb.ode-package.html`
 Reading man/frm_lincmt.Rd
-Writing `reference/frm_lincmt.html`
 Reading man/frm_ode.Rd
-Writing `reference/frm_ode.html`
 Reading man/frm_ode_failures.Rd
-Writing `reference/frm_ode_failures.html`
 -- Building articles -----------------------------------------------------------
-Writing `articles/index.html`
 Reading vignettes/ode.Rmd
-Writing `articles/ode.html`
 -- Building news ---------------------------------------------------------------
-Writing `news/index.html`
 -- Building sitemap ------------------------------------------------------------
 -- Building docs for llms ------------------------------------------------------
 -- Building redirects ----------------------------------------------------------
@@ -323,20 +298,33 @@ Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.spline
 ? Reference metadata ok.
 -- Initialising site -----------------------------------------------------------
 -- Building home ---------------------------------------------------------------
+Writing `authors.html`
 Reading 'DESCRIPTION'
+Writing `index.html`
 Writing `404.html`
 -- Building function reference -------------------------------------------------
+Writing `reference/index.html`
 Loading required package: frmtmb
 Reading man/frmtmb.spline-package.Rd
+Writing `reference/frmtmb.spline-package.html`
 Reading man/frm_curve.Rd
+Writing `reference/frm_curve.html`
 Reading man/frm_curve_deriv.Rd
+Writing `reference/frm_curve_deriv.html`
 Reading man/frm_curve_feature.Rd
+Writing `reference/frm_curve_feature.html`
 Reading man/royston_parmar.Rd
+Writing `reference/royston_parmar.html`
 Reading man/rp_floored.Rd
+Writing `reference/rp_floored.html`
 -- Building articles -----------------------------------------------------------
+Writing `articles/index.html`
 Reading vignettes/curve-inference.Rmd
+Writing `articles/curve-inference.html`
 Reading vignettes/royston-parmar.Rmd
+Writing `articles/royston-parmar.html`
 -- Building news ---------------------------------------------------------------
+Writing `news/index.html`
 -- Building sitemap ------------------------------------------------------------
 -- Building docs for llms ------------------------------------------------------
 -- Building redirects ----------------------------------------------------------
@@ -356,18 +344,29 @@ Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.coupling
 ? Reference metadata ok.
 -- Initialising site -----------------------------------------------------------
 -- Building home ---------------------------------------------------------------
+Writing `authors.html`
 Reading 'DESCRIPTION'
+Writing `index.html`
 Writing `404.html`
 -- Building function reference -------------------------------------------------
+Writing `reference/index.html`
 Loading required package: frmtmb
 Reading man/cross_wishart.Rd
+Writing `reference/cross_wishart.html`
 Reading man/frmtmb.coupling-package.Rd
+Writing `reference/frmtmb.coupling-package.html`
 Reading man/frm_coherence.Rd
+Writing `reference/frm_coherence.html`
 Reading man/frm_cross_simulate.Rd
+Writing `reference/frm_cross_simulate.html`
 Reading man/frm_cross_spectrum.Rd
+Writing `reference/frm_cross_spectrum.html`
 -- Building articles -----------------------------------------------------------
+Writing `articles/index.html`
 Reading vignettes/coherence.Rmd
+Writing `articles/coherence.html`
 -- Building news ---------------------------------------------------------------
+Writing `news/index.html`
 -- Building sitemap ------------------------------------------------------------
 -- Building docs for llms ------------------------------------------------------
 -- Building redirects ----------------------------------------------------------

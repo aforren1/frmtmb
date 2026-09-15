@@ -1,4 +1,4 @@
-# frmtmb.learn (development version)
+# frmtmb.learn 0.4.1
 
 * **A correlated block over every parameter is validated at the
   population scale, and one of its components turns out not to mean

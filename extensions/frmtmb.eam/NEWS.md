@@ -1,3 +1,60 @@
+# frmtmb.eam 0.8.1
+
+Documentation and tests only. No density, estimate, fitted value or
+exported behavior changed. Item 2.1 of the extension plan validated the
+hierarchical Wiener at 30 subjects by 400 trials, and found three
+defects proving it.
+
+* **`?wiener` gains what a hierarchical fit recovers, and what it does
+  not.** Over 60 replicates at 30 x 400 every fixed effect and both
+  variance components recover with no Wilson interval excluding 95, and
+  the page says what that null is worth: the study detects a ten-point
+  coverage shortfall and cannot detect seven. Neither variance
+  component is separately biased; one common maximum-likelihood
+  shrinkage of `sqrt(1 - 1/30) * (1 - 1/116) = 0.974716` covers both.
+  Read a variance component from 30 groups as a slight underestimate.
+
+* **`sv` can run to its log link's floor with nothing reporting it.**
+  On 1 fit in 60, 1.7 percent with a Wilson interval of 0.3 to 8.9,
+  `sv` collapses with `confint()` returning `(-1163, 1147)`,
+  convergence code 0, a positive definite Hessian, and `diagnose()`
+  printing "No convergence problems detected". The likelihood really is
+  flat there: profiled at 11 grid points it is monotone to the floor,
+  `sv` at 0.4 costs 4.0458 log units, dropping the term moves the
+  log-likelihood by -7.2e-07, and three optimizers land in the flat
+  region. A restart does not fix it.
+
+  The signature a user can read off ONE fit is the standard error:
+  `se(log sv)` is **589.25** against 0.050094 for the largest of the
+  other four coefficients, a ratio of **11,763**. `?wiener` says to
+  check it. This is a fourth failure mode for core's `unbounded_dpar`
+  check rather than another instance of the filed one: that entry
+  describes a BOUNDED link whose standard error collapses, while here
+  the standard error explodes and the estimate, 7.7306, fails the
+  magnitude half. Testing proximity to a bound cannot reach a link that
+  has no bound.
+
+* **The scale tier recorded a non-decision time multiplied by its own
+  bound.** `ndt = 0.131463` where `ndt_time()` gives 0.292139. Fixed,
+  with a two-route consistency expectation that catches the whole
+  class, seen failing before the fix and passing after, and raising no
+  false alarm on the grouped rows.
+
+* **The tier's own `ndt` assertion failed on about 1 seed in 8** and
+  reached `z = 11.35`, because it scored against 0.25, the MEDIAN of
+  the drawn non-decision times, while a 30-subject sample mean carries
+  5.5 ms of error against the fit's 2.5 ms. Retargeted to the draw's
+  own mean: 60 of 60 at a maximum of 2.60, with the per-subject error
+  assertion beside it.
+
+* **`ndt_time(se.fit = TRUE)` fails, and one of its two messages blames
+  `newdata`.** Filed rather than fixed; this release adds no features.
+
+* Five unescaped `%` in a new `\preformatted{}` table silently dropped
+  the minus signs from the rendered coverage column, because `%` starts
+  a comment in Rd even inside verbatim macros. Fixed, and verified by
+  RENDERING the page rather than by reading the source.
+
 # frmtmb.eam 0.8.0
 
 * **A second export seam: the bound a non-decision time is measured

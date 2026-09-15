@@ -1,7 +1,7 @@
 # The per-file suite baseline, and what it is for
 
 `dev/suite-baseline.tsv` records one row per test file as of the round 3
-release, at frmtmb 0.55.2 and frmtmb.eam 0.8.0: package, file, passing
+release, at frmtmb 0.55.2 and frmtmb.eam 0.8.1: package, file, passing
 assertions, skips. It is a floor, not a target.
 
 ## Why it exists
@@ -87,3 +87,16 @@ machine any more.
 That is worth keeping in mind when reading a drop here: a count can
 fall because the ENVIRONMENT changed rather than because the tests did,
 and the diff of the test file will show nothing.
+
+## What the Phase 2 round added
+
+Regenerated at 221 rows and 13159 assertions, from 220 and 13124. One
+file is new, `frmtmb.spline/test-frailty.R` at 28, which replaces a
+smoke test that asserted only finiteness. No file was removed.
+
+Exactly one count fell and it had an answer before anyone asked:
+`frmtmb.spline/test-surface.R` from 48 to 47. Item 2.5 removed three
+assertions and added two, so the arithmetic closes at 48 - 3 + 2. The
+lane's reviewer had already reconciled it independently, which is the
+cheapest form this question can take: a drop explained in the review is
+a drop nobody has to re-derive at release time.
