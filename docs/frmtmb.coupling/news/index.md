@@ -1,5 +1,48 @@
 # Changelog
 
+## frmtmb.coupling 0.3.1
+
+- **A within-subject contrast needs `(1 | id:cond)`, and without it the
+  interval is 2.7 times too narrow rather than in the wrong place.**
+  Measured over 148 replicates of 40 subjects by 2 conditions by 60
+  frequencies, with a true condition contrast of 0.5 on the logit scale:
+  `coh ~ cond + s(freq, by = cond) + (1 | id) + (1 | id:cond)` covers
+  141 of 148, 0.953 (0.906, 0.977), and recovers both components, while
+  the same model without `(1 | id:cond)` covers 78 of 148, 0.527 (0.447,
+  0.606). Paired on the same data its estimate sits 0.0036 from the
+  correct model’s, so what fails is the width: on 63 of the 148
+  replicates it missed where the correct model covered, and it never
+  covered where the correct model missed.
+  [`?cross_wishart`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/cross_wishart.md)
+  and
+  [`vignette("coherence")`](https://aforren1.github.io/frmtmb/frmtmb.coupling/articles/coherence.md)
+  carry the table, and `dev/coh-findings.md` the construction, the seeds
+  and a null arm in which the two models agree to a median width ratio
+  of 1.000.
+
+  Dropping `(1 | id)` instead, and keeping `(1 | id:cond)`, goes the
+  other way: 1.9 times too wide, coverage 148 of 148. So the rule is
+  neither more random effects nor fewer. A within-subject contrast needs
+  both terms, the subject one for the intercept and the crossed one for
+  the contrast.
+
+- **A model with no random effects estimates the MARGINAL contrast, and
+  estimates it correctly.** `coh ~ cond` and
+  `coh ~ cond + s(freq, by = cond)` sit -0.0197 and -0.0133 from the
+  subject-level contrast over the same 148 replicates. That is not a
+  bias to be widened away: a logit contrast is not collapsible, and the
+  factor `1 / sqrt(1 + 0.346 V)` with `V` the omitted variance predicts
+  -0.0196 and -0.0135 from the simulator’s constants with nothing
+  fitted.
+  [`?cross_wishart`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/cross_wishart.md)
+  and the vignette now say which of the two failures a reader is looking
+  at, since the remedies differ. `dev/scale-findings.md` recorded the
+  attenuation, at 0.016 across the ladder, before this study ran.
+
+- The gated scale tier records `coh_cond_se`, the standard error of the
+  condition contrast, beside the interval it produced. That is the
+  column the five rungs of the ladder differ in.
+
 ## frmtmb.coupling 0.3.0
 
 - [`frm_cross_spectrum()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frm_cross_spectrum.md)

@@ -151,6 +151,61 @@ Measured over 150 replicates, 40 people; `dev/xspec-findings.md` in the
 repository has the full table. It is the failure that looks most like
 success.
 
+### A contrast needs the grouping it varies within
+
+Two conditions measured in the same people is the other design where an
+interval quietly comes back the wrong width. `(1 | id)` does not fix it:
+a subject effect shifts both of that subject’s conditions together, so
+it cancels out of their difference. The term that carries a
+within-subject contrast is `(1 | id:cond)`.
+
+``` r
+
+coh ~ cond + s(freq, by = cond) + (1 | id) + (1 | id:cond)
+```
+
+Over 148 replicates of 40 people by 2 conditions by 60 frequencies, with
+a true contrast of 0.5 on the logit scale, `sd(id)` 0.35 and
+`sd(id:cond)` 0.20:
+
+| coherence model                             | 95% coverage | interval width |
+|---------------------------------------------|--------------|----------------|
+| condition, smooth and a subject effect      | 0.527        | 0.37           |
+| the same plus a subject-by-condition effect | 0.953        | 1.00           |
+
+Both models put the contrast in the same place, within 0.0036 of each
+other on the same data. The one without `(1 | id:cond)` reports an
+interval 2.7 times too narrow, and on 63 of the 148 replicates it missed
+the truth where the correct model covered. It never covered where the
+correct model missed. Width is the whole difference: with the component
+absent from the truth the two models agree to a median width ratio of
+1.000, and the interval the shorter model reports on data that HAS the
+component, 0.070, is the interval the correct model reports on data that
+does not, 0.072.
+
+The direction depends on which term is missing. Keeping `(1 | id:cond)`
+and dropping `(1 | id)` gives an interval 1.9 times too WIDE, because
+the subject variance is then forced into the crossed term. So the rule
+is neither more random effects nor fewer: a within-subject contrast
+needs both terms, the subject one for the intercept and the crossed one
+for the contrast.
+
+#### Dropping the random effects entirely is a different thing
+
+A model with no random effect at all, `coh ~ cond` or
+`coh ~ cond + s(freq, by = cond)`, is not making a small version of the
+same mistake. Its interval is narrow for the same reason, but its
+estimate has also moved, by -0.0197 and -0.0133 over those 148
+replicates, and that movement is not an error. A contrast on a logit
+scale is not collapsible: leave variance out of the linear predictor and
+the fit is consistent for the **population-averaged** contrast, which is
+smaller than the subject-level one by about `1 / sqrt(1 + 0.346 V)` with
+`V` the variance left out. From the simulation’s own constants, with
+nothing fitted, that factor predicts -0.0196 and -0.0135.
+
+So decide which contrast you want. If it is the subject-level one, model
+the variance; a wider interval does not convert one into the other.
+
 ## From signals to rows
 
 [`frm_cross_spectrum()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frm_cross_spectrum.md)

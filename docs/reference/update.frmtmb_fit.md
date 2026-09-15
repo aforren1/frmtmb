@@ -64,10 +64,10 @@ fit <- frm(bf(y ~ x), family = gaussian(), data = dd)
 fit2 <- update(fit, ~ . + z)
 formula(fit2)
 #> y ~ x + z
-#> <environment: 0x00000225fe63f000>
+#> <environment: 0x00000208c3c894d0>
 formula(update(fit, . ~ . + z))
 #> y ~ x + z
-#> <environment: 0x00000225fe63f000>
+#> <environment: 0x00000208c3c894d0>
 fit3 <- update(fit, formula. = ~ . - x, newdata = dd[1:40, ])
 nobs(fit3)
 #> [1] 40

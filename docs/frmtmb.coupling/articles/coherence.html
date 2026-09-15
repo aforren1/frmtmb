@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.coupling</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -217,6 +217,73 @@ time instead of 95.</p>
 <code>dev/xspec-findings.md</code> in the repository has the full table.
 It is the failure that looks most like success.</p>
 </div>
+<div class="section level3">
+<h3 id="a-contrast-needs-the-grouping-it-varies-within">A contrast needs the grouping it varies within<a class="anchor" aria-label="anchor" href="#a-contrast-needs-the-grouping-it-varies-within"></a>
+</h3>
+<p>Two conditions measured in the same people is the other design where
+an interval quietly comes back the wrong width. <code>(1 | id)</code>
+does not fix it: a subject effect shifts both of that subject’s
+conditions together, so it cancels out of their difference. The term
+that carries a within-subject contrast is
+<code>(1 | id:cond)</code>.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">coh</span> <span class="op">~</span> <span class="va">cond</span> <span class="op">+</span> <span class="fu">s</span><span class="op">(</span><span class="va">freq</span>, by <span class="op">=</span> <span class="va">cond</span><span class="op">)</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">id</span><span class="op">:</span><span class="va">cond</span><span class="op">)</span></span></code></pre></div>
+<p>Over 148 replicates of 40 people by 2 conditions by 60 frequencies,
+with a true contrast of 0.5 on the logit scale, <code>sd(id)</code> 0.35
+and <code>sd(id:cond)</code> 0.20:</p>
+<table class="table">
+<thead><tr class="header">
+<th>coherence model</th>
+<th>95% coverage</th>
+<th>interval width</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>condition, smooth and a subject effect</td>
+<td>0.527</td>
+<td>0.37</td>
+</tr>
+<tr class="even">
+<td>the same plus a subject-by-condition effect</td>
+<td>0.953</td>
+<td>1.00</td>
+</tr>
+</tbody>
+</table>
+<p>Both models put the contrast in the same place, within 0.0036 of each
+other on the same data. The one without <code>(1 | id:cond)</code>
+reports an interval 2.7 times too narrow, and on 63 of the 148
+replicates it missed the truth where the correct model covered. It never
+covered where the correct model missed. Width is the whole difference:
+with the component absent from the truth the two models agree to a
+median width ratio of 1.000, and the interval the shorter model reports
+on data that HAS the component, 0.070, is the interval the correct model
+reports on data that does not, 0.072.</p>
+<p>The direction depends on which term is missing. Keeping
+<code>(1 | id:cond)</code> and dropping <code>(1 | id)</code> gives an
+interval 1.9 times too WIDE, because the subject variance is then forced
+into the crossed term. So the rule is neither more random effects nor
+fewer: a within-subject contrast needs both terms, the subject one for
+the intercept and the crossed one for the contrast.</p>
+<div class="section level4">
+<h4 id="dropping-the-random-effects-entirely-is-a-different-thing">Dropping the random effects entirely is a different thing<a class="anchor" aria-label="anchor" href="#dropping-the-random-effects-entirely-is-a-different-thing"></a>
+</h4>
+<p>A model with no random effect at all, <code>coh ~ cond</code> or
+<code>coh ~ cond + s(freq, by = cond)</code>, is not making a small
+version of the same mistake. Its interval is narrow for the same reason,
+but its estimate has also moved, by -0.0197 and -0.0133 over those 148
+replicates, and that movement is not an error. A contrast on a logit
+scale is not collapsible: leave variance out of the linear predictor and
+the fit is consistent for the <strong>population-averaged</strong>
+contrast, which is smaller than the subject-level one by about
+<code>1 / sqrt(1 + 0.346 V)</code> with <code>V</code> the variance left
+out. From the simulation’s own constants, with nothing fitted, that
+factor predicts -0.0196 and -0.0135.</p>
+<p>So decide which contrast you want. If it is the subject-level one,
+model the variance; a wider interval does not convert one into the
+other.</p>
+</div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="from-signals-to-rows">From signals to rows<a class="anchor" aria-label="anchor" href="#from-signals-to-rows"></a>
@@ -226,7 +293,7 @@ including the parts that are easy to get wrong and impossible to notice:
 it drops frequency zero and the Nyquist frequency, whose coefficients
 are real rather than complex, and it counts the degrees of freedom
 honestly.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sfreq</span> <span class="op">&lt;-</span> <span class="fl">128</span></span>
 <span><span class="va">src</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">4096</span><span class="op">)</span>, <span class="fl">0.9</span>, method <span class="op">=</span> <span class="st">"recursive"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">a</span> <span class="op">&lt;-</span> <span class="va">src</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">4096</span>, <span class="fl">0</span>, <span class="fl">0.5</span><span class="op">)</span></span>
@@ -271,7 +338,7 @@ is formed from.</p>
 too simple for the spectrum does not merely leave the powers wrong; it
 reweights the rows each coherence parameter pools and moves the
 coherence with them.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sp</span><span class="op">$</span><span class="va">band</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">sp</span><span class="op">$</span><span class="va">freq</span> <span class="op">&lt;</span> <span class="fl">32</span>, <span class="st">"low"</span>, <span class="st">"high"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"low"</span>, <span class="st">"high"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">flat</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">w11</span> <span class="op">|</span> <span class="fu">vreal</span><span class="op">(</span><span class="va">w22</span>, <span class="va">w12r</span>, <span class="va">w12i</span><span class="op">)</span> <span class="op">+</span> <span class="fu">vint</span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>,</span>
 <span>               <span class="va">pow2</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">coh</span> <span class="op">~</span> <span class="va">band</span>, <span class="va">phase</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>,</span>
@@ -294,7 +361,7 @@ coherences were right. A check that punishes correct models teaches
 people to ignore it, so it was withdrawn.</p>
 <p><strong>Compare AIC instead.</strong> Fit the powers with and without
 a frequency term and keep the one AIC prefers:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">good</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">w11</span> <span class="op">|</span> <span class="fu">vreal</span><span class="op">(</span><span class="va">w22</span>, <span class="va">w12r</span>, <span class="va">w12i</span><span class="op">)</span> <span class="op">+</span> <span class="fu">vint</span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">freq</span>, k <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>,</span>
 <span>               <span class="va">pow2</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">freq</span>, k <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>, <span class="va">coh</span> <span class="op">~</span> <span class="va">band</span>, <span class="va">phase</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>            family <span class="op">=</span> <span class="fu"><a href="../reference/cross_wishart.html">cross_wishart</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">sp</span><span class="op">)</span></span>
@@ -371,7 +438,7 @@ the powers before reading any coherence.</strong></p>
 It cannot leave <code>(0, 1)</code> at any point on the smooth, because
 the logit link is the positive definiteness constraint rather than a
 convenience.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">spec</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">w11</span> <span class="op">|</span> <span class="fu">vreal</span><span class="op">(</span><span class="va">w22</span>, <span class="va">w12r</span>, <span class="va">w12i</span><span class="op">)</span> <span class="op">+</span> <span class="fu">vint</span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">freq</span>, k <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,</span>
 <span>               <span class="va">pow2</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">freq</span>, k <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>, <span class="va">coh</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">freq</span>, k <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>, <span class="va">phase</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>            family <span class="op">=</span> <span class="fu"><a href="../reference/cross_wishart.html">cross_wishart</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">sp</span><span class="op">)</span></span>
@@ -394,7 +461,7 @@ is a whole Hermitian matrix and the response slot carries one of its
 four numbers, so a simulated <code>w11</code> sitting beside the
 observed rest is not a draw from anything.
 <code><a href="../reference/frm_cross_simulate.html">frm_cross_simulate()</a></code> returns all four columns.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rep1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_cross_simulate.html">frm_cross_simulate</a></span><span class="op">(</span><span class="va">spec</span>, nsim <span class="op">=</span> <span class="fl">1</span>, seed <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">rep1</span><span class="op">)</span></span>
 <span><span class="co">#&gt; 'data.frame':    127 obs. of  5 variables:</span></span>

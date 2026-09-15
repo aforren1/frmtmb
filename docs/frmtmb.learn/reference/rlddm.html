@@ -13,7 +13,7 @@ bandit2arm_delta()'s exactly:"></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.learn</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -218,6 +218,48 @@ it can beat 21.075 ms or 0.8478, because the correlation of any
 constant multiple of the floors with the truth is fixed at 0.847780.
 So read the per-learner error and the correlation, not the spread.
 <code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.html" class="external-link">frmtmb.eam::wiener()</a></code> carries the same warning for the same reason.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="why-the-ndt-variance-component-is-not-what-it-looks-like">Why the ndt variance component is not what it looks like<a class="anchor" aria-label="anchor" href="#why-the-ndt-variance-component-is-not-what-it-looks-like"></a></h2>
+
+
+<p>The section above says to read the per-learner error rather than the
+spread. This one says WHY, in one line of algebra, because the reason
+is exact rather than empirical.</p>
+<p>A learner's floor is its own non-decision time plus the fastest
+DECISION it happened to make, <code>floor = ndt + m</code>. So the quantity
+<code>ndt ~ (1 | p | id)</code> estimates under <code>ndt_group()</code> is</p>
+<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">qlogis</span>(ndt <span class="sc">/</span> floor) <span class="ot">=</span> <span class="fu">log</span>(ndt <span class="sc">/</span> (floor <span class="sc">-</span> ndt)) <span class="ot">=</span> <span class="fu">log</span>(ndt) <span class="sc">-</span> <span class="fu">log</span>(m)</span></code></pre><p></p></div>
+<p>identically. The fitted deviation is not the non-decision time on a
+link. It is the log non-decision time MINUS the log of an observed
+minimum, and that second term depends on how fast the learner
+happened to decide, which is a property of their drift, their
+boundary and the luck of their trials.</p>
+<p>Measured over 60 replicates at 100 learners by 200 trials
+(<code>dev/learnhier-findings.md</code>), where the design drew
+<code>sd(log ndt) = 0.15</code>:</p><table class="table table"><tr><td>term</td><td>value</td></tr><tr><td><code>sd(log ndt)</code>, the random effect the design drew</td><td>0.1494</td></tr><tr><td><code>sd(log m)</code>, the observed-minimum term it did not</td><td>0.4404</td></tr><tr><td><code>sd</code> of the fitted-scale deviation</td><td>0.4264</td></tr><tr><td>variance share from the observed minimum</td><td><strong>107 percent</strong></td></tr></table><p><strong>So <code>sd(ndt)</code> on the link scale is about 94 percent a property of
+the data rather than of the learners</strong>, and more trials do not repair
+it: over 100, 200 and 400 trials the share reads 107.9, 106.7 and
+108.2 percent, a paired difference of +0.002 with a 95 percent
+interval of (-0.035, +0.040).</p>
+<p>The same term explains the correlation. <code>log(m)</code> correlates 0.872
+with a learner's own <code>bs</code> deviation, so the parameterization presses
+<code>cor(bs, ndt)</code> toward -1: the fit returns -0.940 and the realized
+value is -0.789, while the correlation the design actually drew comes
+back exactly once the nuisance term is removed, <code>cor(bs, log ndt)</code> of
+<strong>+0.2989 against a drawn 0.3</strong>.</p>
+<p><strong>What this does NOT affect.</strong> Every parameter with a population
+truth on the scale it is fitted on recovers at that design: over 60
+replicates the three intercepts, the three other standard deviations
+and the three other correlations all cover between 0.900 and 0.983
+against a nominal 0.95. And the per-learner non-decision times
+themselves are unaffected, because <code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.html" class="external-link">frmtmb.eam::ndt_time()</a></code> reports
+them on the response's own scale and never passes through the
+nuisance term.</p>
+<p><strong>What it would take to change it</strong> is a deviation defined against
+something other than an observed minimum, and the cost is that the
+bound stops being structural, which is the reason it is a scaled
+logit in the first place. That trade is not made here.</p>
     </div>
     <div class="section level2">
     <h2 id="pinning-the-non-decision-time-needs-max-ndt">Pinning the non-decision time needs max_ndt<a class="anchor" aria-label="anchor" href="#pinning-the-non-decision-time-needs-max-ndt"></a></h2>

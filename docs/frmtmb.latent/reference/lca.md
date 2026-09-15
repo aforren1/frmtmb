@@ -97,7 +97,6 @@ constant chosen that way has to be scored somewhere else before it means
 anything, so it was, on a second block of 200 replicates of the same
 design drawn from disjoint seeds:
 
-
                           tuned on         scored on
                           20260910-        20270401-
                           20261109         20270600
@@ -202,7 +201,6 @@ second, 20270401 to 20270600, is not. Both are reported, and they are
 never pooled. `dev/latent-2p4-recheck.R` is the script and
 `dev/latent-findings.md` holds the full tables.
 
-
                                        tuned on      not tuned on
       reaches poLCA(nrep = 10)'s
         optimum                        200 of 200    200 of 200
@@ -222,7 +220,6 @@ points, so neither block on its own can separate a 91 percent row from
 95. Pooled over all 400 (`dev/latent-2p4-pooled.R`), two of the nine
 rows have a Wald interval that excludes 95 and every other row contains
 it:
-
 
       coefficient      covered      rate    95 percent interval   se/sd
       class3:x2        367 / 400   91.75    89.05 to 94.45        0.940

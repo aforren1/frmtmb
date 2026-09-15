@@ -222,6 +222,16 @@ c(proportional = as.numeric(logLik(fit)),
 `gamma1` multiplies `log(t)`, so letting it vary by group lets each
 group’s hazard ratio drift with time rather than holding still.
 
+A RANDOM effect can go on either coefficient, and the two mean different
+things. `(1 | centre)` on `mu` is a shared log-normal frailty, the model
+`rstpm2::stpm2(cluster =, RandDist = "LogN")` fits.
+`gamma1 ~ (1 | centre)` gives each centre its own slope in log time,
+which is a per-centre time-varying effect and not a frailty, and it is
+anchored at `t = 1` unless you pair it with a block on `mu`. Read
+[`?royston_parmar`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/royston_parmar.md),
+section “A frailty, and a random effect on gamma1”, for what each one
+estimates and what each one was measured to recover.
+
 ## What this family will not do
 
 [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and

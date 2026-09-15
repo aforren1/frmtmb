@@ -19,7 +19,7 @@ frequency is an ordinary frmtmb::frm() formula."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.coupling</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -135,6 +135,72 @@ correctly specified fits recover 0.35 and 0.05 throughout.</p>
 <p>So: fit the powers twice, once with a frequency term and once
 without, and read the coherence off the one AIC prefers.
 <strong>Model the powers before reading any coherence.</strong></p>
+    </div>
+    <div class="section level2">
+    <h2 id="what-a-condition-contrast-recovers-and-what-the-interval-costs">What a condition contrast recovers, and what the interval costs<a class="anchor" aria-label="anchor" href="#what-a-condition-contrast-recovers-and-what-the-interval-costs"></a></h2>
+
+
+<p>A contrast between two conditions measured in the same subjects
+needs a random effect on the grouping the contrast varies WITHIN.
+<code>(1 | id)</code> is not it: a subject effect shifts both of that subject's
+conditions together and cancels out of their difference, so it
+widens the intercept's interval and leaves the contrast's alone.
+Measured on three seeds of a 16-subject design, <code>(1 | id)</code>
+multiplies the intercept's standard error by 1.678, 1.937 and 2.096
+and the contrast's by 1.005, 1.034 and 1.071. The term that carries
+the contrast's between-subject spread is <code>(1 | id:cond)</code>. Omit it and
+the estimate hardly moves while its interval collapses, which is the
+failure a single fit cannot show.</p>
+<p>Measured over <strong>148 replicates</strong> of the design in
+<code>dev/scale-findings.md</code>: 40 subjects, 2 conditions, 60 frequencies,
+8 segments a row. The truth is on the logit scale, with intercept
+-0.6, a condition contrast of <strong>0.5</strong>, a Gaussian bump of 0.8 over
+frequency, <code>sd(id)</code> 0.35 and <code>sd(id:cond)</code> 0.20. Every model below
+gives the powers and the phase an intercept, which is correct here.
+<code>width</code> is the mean interval width relative to the last row's, and
+<code>sd(z)</code> is the spread of <code>(estimate - truth) / se</code> over replicates,
+where 1.0 is an honest interval:</p><table class="table table"><tr><td>coherence formula</td><td>coverage</td><td>width</td><td>sd(z)</td></tr><tr><td>condition only</td><td>0.493 (0.414, 0.573)</td><td>0.37</td><td>2.75</td></tr><tr><td>and a smooth over frequency</td><td>0.486 (0.407, 0.566)</td><td>0.38</td><td>2.75</td></tr><tr><td>and a subject effect</td><td>0.527 (0.447, 0.606)</td><td>0.37</td><td>2.77</td></tr><tr><td>crossed effect, no subject effect</td><td>1.000 (0.975, 1.000)</td><td>1.90</td><td>0.56</td></tr><tr><td>both, the correct model</td><td>0.953 (0.906, 0.977)</td><td>1.00</td><td>1.06</td></tr></table><p>The correct model covers at its nominal rate and recovers both
+components, <code>sd(id)</code> 0.341 plus or minus 0.049 and <code>sd(id:cond)</code>
+0.197 plus or minus 0.027. The model without <code>(1 | id:cond)</code> puts
+the contrast within 0.0036 of the correct model's on the same data,
+and reports an interval two and three quarter times too narrow: on
+63 of the 148 replicates it missed where the correct model covered,
+and it never covered where the correct model missed. <strong>That is the
+rung a wider interval would repair, and it is the only one.</strong></p>
+<p><strong>The first two rows are a different failure.</strong> A model with no
+random effect at all is not estimating 0.5 badly. A logit contrast
+is not collapsible, so a model that
+leaves variance out of the linear predictor is consistent for the
+population-averaged contrast, which is smaller. The factor
+<code>1 / sqrt(1 + 0.346 V)</code>, with <code>V</code> the omitted variance taken from the
+truth and nothing fitted, predicts -0.0196 for the first row against
+-0.0197 measured and -0.0135 for the second against -0.0133. Their
+coverage is low for that reason and a wider interval does not repair
+it: the remedy is to model the variance, or to say that the marginal
+contrast is the quantity wanted. <code>dev/scale-findings.md</code> recorded
+this attenuation, at 0.016 across the ladder, before the replicate
+study ran.</p>
+<p><strong>The direction depends on which term is missing.</strong> Dropping
+<code>(1 | id)</code> and keeping <code>(1 | id:cond)</code> goes the other way, 1.9 times
+too wide, because the subject variance is then forced into the
+crossed term. So the rule is not "more random effects" and not
+"fewer": a within-subject contrast needs BOTH terms, the subject one
+for the intercept and the crossed one for the contrast. The two
+one-term models fail in OPPOSITE directions, which is what makes the
+pair worth naming: the crossed term alone is conservative and covers
+148 of 148, while the subject term alone is anti-conservative and
+covers 78. An interval that is too wide costs power; one that is too
+narrow reports a finding that is not there.</p>
+<p>The width is what changes, not the arithmetic. On the same generator
+with <code>sd(id:cond)</code> set to 0, over 36 replicates, the two models agree
+to a paired width ratio of 1.000 at the median and 1.264 at its
+largest, and the extra component is estimated at 0.015 plus or minus
+0.018. One number says it best: on data that HAS the component, the
+model without it reports a mean width of 0.070, and 0.072 is what the
+correct model reports on data that does not. Leaving the term out
+answers a different experiment's question.</p>
+<p><code>dev/coh-findings.md</code> in the repository has the construction, the
+seeds and the null arm in full.</p>
     </div>
     <div class="section level2">
     <h2 id="why-the-links-are-the-constraint-in-floating-point-too">Why the links are the constraint, in floating point too<a class="anchor" aria-label="anchor" href="#why-the-links-are-the-constraint-in-floating-point-too"></a></h2>

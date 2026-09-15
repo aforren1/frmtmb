@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.coupling</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +43,15 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.coupling/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.1" id="frmtmbcoupling-031">frmtmb.coupling 0.3.1<a class="anchor" aria-label="anchor" href="#frmtmbcoupling-031"></a></h2>
+<ul><li>
+<p><strong>A within-subject contrast needs <code>(1 | id:cond)</code>, and without it the interval is 2.7 times too narrow rather than in the wrong place.</strong> Measured over 148 replicates of 40 subjects by 2 conditions by 60 frequencies, with a true condition contrast of 0.5 on the logit scale: <code>coh ~ cond + s(freq, by = cond) + (1 | id) + (1 | id:cond)</code> covers 141 of 148, 0.953 (0.906, 0.977), and recovers both components, while the same model without <code>(1 | id:cond)</code> covers 78 of 148, 0.527 (0.447, 0.606). Paired on the same data its estimate sits 0.0036 from the correct model’s, so what fails is the width: on 63 of the 148 replicates it missed where the correct model covered, and it never covered where the correct model missed. <code><a href="../reference/cross_wishart.html">?cross_wishart</a></code> and <code><a href="../articles/coherence.html">vignette("coherence")</a></code> carry the table, and <code>dev/coh-findings.md</code> the construction, the seeds and a null arm in which the two models agree to a median width ratio of 1.000.</p>
+<p>Dropping <code>(1 | id)</code> instead, and keeping <code>(1 | id:cond)</code>, goes the other way: 1.9 times too wide, coverage 148 of 148. So the rule is neither more random effects nor fewer. A within-subject contrast needs both terms, the subject one for the intercept and the crossed one for the contrast.</p>
+</li>
+<li><p><strong>A model with no random effects estimates the MARGINAL contrast, and estimates it correctly.</strong> <code>coh ~ cond</code> and <code>coh ~ cond + s(freq, by = cond)</code> sit -0.0197 and -0.0133 from the subject-level contrast over the same 148 replicates. That is not a bias to be widened away: a logit contrast is not collapsible, and the factor <code>1 / sqrt(1 + 0.346 V)</code> with <code>V</code> the omitted variance predicts -0.0196 and -0.0135 from the simulator’s constants with nothing fitted. <code><a href="../reference/cross_wishart.html">?cross_wishart</a></code> and the vignette now say which of the two failures a reader is looking at, since the remedies differ. <code>dev/scale-findings.md</code> recorded the attenuation, at 0.016 across the ladder, before this study ran.</p></li>
+<li><p>The gated scale tier records <code>coh_cond_se</code>, the standard error of the condition contrast, beside the interval it produced. That is the column the five rungs of the ladder differ in.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.0" id="frmtmbcoupling-030">frmtmb.coupling 0.3.0<a class="anchor" aria-label="anchor" href="#frmtmbcoupling-030"></a></h2>
 <ul><li><p><code><a href="../reference/frm_cross_spectrum.html">frm_cross_spectrum()</a></code> splits at runs of <code>NA</code> instead of refusing them, so an artifact-rejected record is one call rather than one per clean span. A record with two rejected spans gives the sum of the three clean pieces.</p></li>

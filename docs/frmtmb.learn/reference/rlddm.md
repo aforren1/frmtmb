@@ -172,6 +172,64 @@ per-learner error and the correlation, not the spread.
 [`frmtmb.eam::wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.html)
 carries the same warning for the same reason.
 
+## Why the ndt variance component is not what it looks like
+
+The section above says to read the per-learner error rather than the
+spread. This one says WHY, in one line of algebra, because the reason is
+exact rather than empirical.
+
+A learner's floor is its own non-decision time plus the fastest DECISION
+it happened to make, `floor = ndt + m`. So the quantity
+`ndt ~ (1 | p | id)` estimates under `ndt_group()` is
+
+    qlogis(ndt / floor) = log(ndt / (floor - ndt)) = log(ndt) - log(m)
+
+identically. The fitted deviation is not the non-decision time on a
+link. It is the log non-decision time MINUS the log of an observed
+minimum, and that second term depends on how fast the learner happened
+to decide, which is a property of their drift, their boundary and the
+luck of their trials.
+
+Measured over 60 replicates at 100 learners by 200 trials
+(`dev/learnhier-findings.md`), where the design drew
+`sd(log ndt) = 0.15`:
+
+|                                                   |                 |
+|---------------------------------------------------|-----------------|
+| term                                              | value           |
+| `sd(log ndt)`, the random effect the design drew  | 0.1494          |
+| `sd(log m)`, the observed-minimum term it did not | 0.4404          |
+| `sd` of the fitted-scale deviation                | 0.4264          |
+| variance share from the observed minimum          | **107 percent** |
+
+**So `sd(ndt)` on the link scale is about 94 percent a property of the
+data rather than of the learners**, and more trials do not repair it:
+over 100, 200 and 400 trials the share reads 107.9, 106.7 and 108.2
+percent, a paired difference of +0.002 with a 95 percent interval of
+(-0.035, +0.040).
+
+The same term explains the correlation. `log(m)` correlates 0.872 with a
+learner's own `bs` deviation, so the parameterization presses
+`cor(bs, ndt)` toward -1: the fit returns -0.940 and the realized value
+is -0.789, while the correlation the design actually drew comes back
+exactly once the nuisance term is removed, `cor(bs, log ndt)` of
+**+0.2989 against a drawn 0.3**.
+
+**What this does NOT affect.** Every parameter with a population truth
+on the scale it is fitted on recovers at that design: over 60 replicates
+the three intercepts, the three other standard deviations and the three
+other correlations all cover between 0.900 and 0.983 against a nominal
+0.95. And the per-learner non-decision times themselves are unaffected,
+because
+[`frmtmb.eam::ndt_time()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.html)
+reports them on the response's own scale and never passes through the
+nuisance term.
+
+**What it would take to change it** is a deviation defined against
+something other than an observed minimum, and the cost is that the bound
+stops being structural, which is the reason it is a scaled logit in the
+first place. That trade is not made here.
+
 ## Pinning the non-decision time needs max_ndt
 
 `bf(ndt = 0.2)` on a bare `rlddm()` is refused, and the message says to

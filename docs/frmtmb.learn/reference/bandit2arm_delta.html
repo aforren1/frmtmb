@@ -13,7 +13,7 @@ arm's estimate toward what it just paid:"></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.learn</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -159,6 +159,23 @@ moves a well-identified subject-level standard deviation up by about
 20 trials it has nothing to correct because the Laplace fit has
 usually collapsed the component to zero already. <code><a href="frmtmb.learn-package.html">?frmtmb.learn</a></code>
 carries the per-dataset table.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="a-correlated-block-on-both-parameters-measured">A correlated block on both parameters, measured<a class="anchor" aria-label="anchor" href="#a-correlated-block-on-both-parameters-measured"></a></h2>
+
+
+<p><code>(1 | p | id)</code> on the learning rate AND the inverse temperature is
+this family's whole parameter vector, and it recovers at 100 learners
+by 200 trials: over 60 replicates the two standard deviations come
+back at 0.4925 and 0.2980 against 0.5 and 0.3, and the correlation at
+0.5322 against 0.5, with coverage 0.92 to 0.97. The same design with
+a correlation of ZERO returns 0.0214, so the estimator does not
+invent one. <code><a href="frmtmb.learn-package.html">?frmtmb.learn</a></code> has the tables and
+<code>dev/learnhier-findings.md</code> the construction.</p>
+<p>Read a correlation's INTERVAL rather than its point estimate. The
+estimates spread by 0.140 across those replicates and range from
+0.172 to 0.804 for a truth of 0.5, so one dataset of this size
+locates a correlation to about half a unit.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

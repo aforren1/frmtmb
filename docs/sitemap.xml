@@ -61,6 +61,12 @@
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.eam/reference/index.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.eam/reference/lba.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.eam/reference/lba_simulate.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_apply.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound_attach.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound_key.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound_of.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound_pending.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.eam/reference/rdm.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.eam/reference/rdm_simulate.html</loc></url>
@@ -78,6 +84,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.latent/reference/frmtmb.latent.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_probs.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_starts.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_viterbi.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.latent/reference/index.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.latent/reference/lca.html</loc></url>

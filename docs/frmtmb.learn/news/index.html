@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.learn</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +43,20 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.learn/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.4.1" id="frmtmblearn-041">frmtmb.learn 0.4.1<a class="anchor" aria-label="anchor" href="#frmtmblearn-041"></a></h2>
+<ul><li>
+<p><strong>A correlated block over every parameter is validated at the population scale, and one of its components turns out not to mean what it looks like.</strong> Item 2.2 of <code>dev/extension-gaps-plan.md</code>: <code>(1 | p | id)</code> on every parameter of <code><a href="../reference/bandit2arm_delta.html">bandit2arm_delta()</a></code> and <code><a href="../reference/rlddm.html">rlddm()</a></code>, 100 learners by 200 trials, 60 replicates per arm. <code>dev/learnhier-findings.md</code> has the construction, the seeds and the scripts.</p>
+<p><code><a href="../reference/bandit2arm_delta.html">bandit2arm_delta()</a></code> recovers everything. With a true correlation of 0.5 the block returns 0.5322 with a Monte Carlo error of 0.0181 and coverage 0.97; with a true correlation of 0 it returns 0.0214, so the estimator neither misses a correlation nor invents one. 120 of 120 fits converged with a positive definite Hessian and no component collapsed.</p>
+<p><code><a href="../reference/rlddm.html">rlddm()</a></code> recovers every parameter that HAS a population truth on the scale it is fitted on: nine of nine components cover between 0.90 and 0.98.</p>
+</li>
+<li>
+<p><strong><code>sd(ndt)</code> under <code>ndt_group()</code> is about 94 percent a property of the data rather than of the learners, and <code><a href="../reference/rlddm.html">?rlddm</a></code> now says why in one line of algebra.</strong> A learner’s floor is its own non-decision time plus the fastest decision it happened to make, so <code>qlogis(ndt / floor) = log(ndt) - log(m)</code> identically, where <code>m</code> is an observed minimum. Over 60 replicates the design’s own <code>sd(log ndt)</code> is 0.1494 while <code>sd(log m)</code> is 0.4404. More trials do not repair it: the nuisance share reads 107.9, 106.7 and 108.2 percent at 100, 200 and 400 trials.</p>
+<p>The same term drives <code>cor(bs, ndt)</code> toward -1, because <code>log(m)</code> correlates 0.872 with a learner’s own <code>bs</code> deviation. The correlation the design drew is recovered exactly once that term is removed, <code>cor(bs, log ndt)</code> of +0.2989 against a drawn 0.3.</p>
+<p><strong>Nothing about the family’s behaviour changed</strong>; this is a measurement and a documentation change. The per-learner non-decision times read through <code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.html" class="external-link">frmtmb.eam::ndt_time()</a></code> are unaffected and remain what <code><a href="../reference/rlddm.html">?rlddm</a></code> tells you to read: 12.3 ms of error against the drawn truths at a correlation of 0.947, where the best constant fraction of each learner’s own floor manages 20.4 ms and 0.871.</p>
+</li>
+<li><p><strong>The identity tier gains the correlated block.</strong> <code>ln_stan_code_delta_cor()</code> and <code>ln_stan_code_rlddm_cor()</code> carry <code>u</code> as a subject-by-parameter matrix with the block’s covariance as DATA, so the map to frmtmb’s parameters stays the identity and the comparison carries no Jacobian. Agreement is 2.6e-15 relative for the two-by-two block, 4.9e-15 at the full 100 by 200 design, and 1.7e-11 for the four-by-four block under <code>ndt_group(id)</code>.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.0" id="frmtmblearn-040">frmtmb.learn 0.4.0<a class="anchor" aria-label="anchor" href="#frmtmblearn-040"></a></h2>
 <ul><li>

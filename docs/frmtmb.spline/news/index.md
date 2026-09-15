@@ -1,5 +1,94 @@
 # Changelog
 
+## frmtmb.spline 0.5.1
+
+The Royston-Parmar frailty is a MEASUREMENT rather than a smoke test.
+Item 2.5 of `dev/extension-gaps-plan.md`; the numbers, the seeds and the
+scripts are in `dev/frailty-findings.md`. No density, estimate or fitted
+value changed; what did change is the compatibility table, in the last
+bullet below.
+
+- `(1 | centre)` on `mu` is a shared log-normal frailty, and it is the
+  model `rstpm2::stpm2(cluster =, RandDist = "LogN")` fits. The two
+  write the same natural cubic spline in different bases, and the change
+  of basis between them is exact to 3.0e-14 of the linear predictor’s
+  own scale. Over 200 replicates at 2000 subjects in 40 centres, 40
+  percent censored: the treatment coefficient agrees to 3.2e-04 of the
+  run’s own standard error on average and 8.8e-04 at worst, the frailty
+  standard deviation to 1.4e-03 relative, and the two standard errors on
+  that coefficient to 2.6e-06 relative. Recovery on the same run: `beta`
+  0.5984 against 0.6 at 93.0 percent coverage and `sd` 0.4905 against
+  0.5 at 92.0 percent, against a binomial Monte Carlo error of 0.0154.
+
+- The two do NOT report the same log likelihood, and the whole
+  difference is the integration rule. frmtmb takes the Laplace
+  approximation and rstpm2 takes 9-node adaptive Gauss-Hermite
+  quadrature. Against an exact per-cluster integral written in plain R
+  at the same parameters, the Laplace value is 0.058 units low on this
+  design and rstpm2’s is 4.9e-06 low. It costs the ESTIMATE 5.5e-05
+  units of exact log likelihood, 0.1 percent of the offset itself,
+  though frmtmb’s point was the worse one under the exact criterion on
+  200 of 200 replicates. The offset grows as the cluster shrinks: 0.0066
+  units at 200 subjects per centre, 0.058 at 50, and 1.38 at 4, where it
+  also changes sign. Compare
+  [`logLik()`](https://rdrr.io/r/stats/logLik.html) across frmtmb fits,
+  not across packages.
+
+- rstpm2’s `theta` is the frailty’s VARIANCE. `sqrt(exp(logtheta))` is
+  what `VarCorr()`’s standard deviation matches, and the test asserts it
+  as a ratio, so reading `theta` as a standard deviation fails.
+
+- A random effect on `gamma1` is NOT a frailty and it works. `gamma1`
+  multiplies `log t`, so a centre deviation gives that centre a
+  cumulative hazard `t^(gamma1 + u)` and a hazard ratio against another
+  centre of `t^(u - u')`, which moves with time; at `df = 1` it is a
+  per-centre Weibull shape. Over 60 replicates at 2000 subjects in 40
+  centres with a true `sd` of 0.2 it recovers 0.1994 at 90 percent
+  coverage (Monte Carlo error 0.028), and the per-centre shape error is
+  0.089 against 0.163 for the same fit with its own centre deviations
+  dropped, better on 60 of 60.
+
+- A block on `gamma1` ALONE is ANCHORED at `t = 1`, and `t = 1` is a
+  unit rather than a fact. Rescaling time by `c` moves `log t` by
+  `log c`, so the same model in the new units carries a random intercept
+  of `-u log c` as well. Measured on one dataset read in years, months
+  and days, with the `n_event log c` a density owes a rescale: the
+  slope-only fit’s log likelihood moves by 8.19 units and its
+  `sd(gamma1 | centre)` falls from 0.2201 to 0.0370, while the paired
+  block `(1 | c | centre)` on `mu` and `gamma1` together moves by
+  4.3e-08 units and holds `sd(gamma1 | centre)` at 0.2259 in all three.
+  [`?royston_parmar`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/royston_parmar.md)
+  says to pair the block unless the anchor is meant.
+
+- FOUND, NOT FIXED, and present in every earlier version: a group with
+  NO EVENTS escapes
+  [`rp_floored()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/rp_floored.md).
+  Its monotonicity check reads `cens == 0 & detadx <= 0`, so it tests
+  observed EVENT rows only. With a random effect on `gamma1` an
+  all-censored group has no barrier holding its slope positive, since
+  the barrier is in the density, and the score in its deviation is
+  negative for rows past `t = 1`, so the fit drives that slope down.
+  Measured on 40 centres of 10 with five followed to a common
+  administrative time and no deaths: on 4 of 6 seeds those five come
+  back at slopes of -0.21 to -0.31, the fit converges with no warning
+  and a positive definite Hessian,
+  [`rp_floored()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/rp_floored.md)
+  reports nothing and does not refuse,
+  [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
+  passes it through, and one centre’s fitted survival RISES from 4.2e-50
+  to 0.774.
+  [`?royston_parmar`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/royston_parmar.md)
+  now says which rows the check tests and gives the two-line check to
+  run instead. Widening the check changes a shipped refusal and needs a
+  measured false-alarm rate first, so it is filed rather than done.
+
+- `royston_parmar x us` and `royston_parmar x |ID|` join the
+  compatibility table, and `rstpm2` joins Suggests. The comparison tests
+  skip without it. This is the one user-visible behaviour change in the
+  release: `frm_compat("royston_parmar", "|ID|")$status` moves from
+  `untested` to `works`, and the `us` row carries the frailty
+  measurement instead of the blanket covariance-structure note.
+
 ## frmtmb.spline 0.5.0
 
 `frm_curve(object, newdata, contrast = newdata2)` returns the difference

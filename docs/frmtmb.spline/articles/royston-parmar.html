@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -263,6 +263,16 @@ ordinary second formula.</p>
 <p><code>gamma1</code> multiplies <code>log(t)</code>, so letting it
 vary by group lets each group’s hazard ratio drift with time rather than
 holding still.</p>
+<p>A RANDOM effect can go on either coefficient, and the two mean
+different things. <code>(1 | centre)</code> on <code>mu</code> is a
+shared log-normal frailty, the model
+<code>rstpm2::stpm2(cluster =, RandDist = "LogN")</code> fits.
+<code>gamma1 ~ (1 | centre)</code> gives each centre its own slope in
+log time, which is a per-centre time-varying effect and not a frailty,
+and it is anchored at <code>t = 1</code> unless you pair it with a block
+on <code>mu</code>. Read <code><a href="../reference/royston_parmar.html">?royston_parmar</a></code>, section “A
+frailty, and a random effect on gamma1”, for what each one estimates and
+what each one was measured to recover.</p>
 </div>
 <div class="section level2">
 <h2 id="what-this-family-will-not-do">What this family will not do<a class="anchor" aria-label="anchor" href="#what-this-family-will-not-do"></a>
