@@ -20,7 +20,7 @@ between them.
 
 A file-level sweep that walks the tree and deletes files is what fits.
 
-## The two suspects, neither excluded
+## The suspects, none excluded
 
 1. **Windows Disk Cleanup.** `\Microsoft\Windows\DiskCleanup\SilentCleanup`
    ran at 04:52 on 2026-09-09, about forty minutes before the loss was
@@ -33,8 +33,15 @@ A file-level sweep that walks the tree and deletes files is what fits.
 2. **A managed endpoint agent.** `Get-MpPreference` is unavailable on
    this machine, so Defender is policy-managed or replaced. An endpoint
    agent that quarantines files produces the same signature.
+3. **Interrupted install machinery.** Added after the fifth loss. R
+   installs by deleting a package directory's contents and then
+   unpacking, so a hollow directory is what an install that began and
+   did not finish leaves behind. This is the only one of the three
+   that explains a sweep reaching `C:/Users/adf44/source/r/rellib-r3`,
+   which is not under `%LOCALAPPDATA%` and is not a temporary
+   directory. See the fifth loss below.
 
-Evidence that would separate them is not available here. The Task
+Evidence that would separate the first two is not available here. The Task
 Scheduler operational log holds about four hours (1451 records spanning
 01:32 to 05:33 on 2026-09-09), so it cannot reach a previous loss, and
 raising its size needs rights this account does not have.
@@ -149,41 +156,110 @@ and it makes the version question explicit at the top of every lane
 script instead of implicit in whatever the last restore happened to
 install.
 
-## The fourth loss, 2026-09-10, and what it settled
+## The fourth and fifth losses, 2026-09-10, and why the cause is NOT settled
 
-It happened again during the 0.55.3 consolidation, and this time the
-canary answered the question it was placed for.
+Two losses happened on the same day, about eight hours apart. After
+the fourth, this file said the cause was settled. **That was wrong,
+and the fifth loss is what shows it.** The claim is withdrawn here
+rather than edited quietly, because a confident wrong diagnosis costs
+more than an open question: it tells the next session to stop looking.
 
-- **136 of 375** package directories were emptied, not all 375. A
-  PARTIAL sweep.
-- **`ZZZ-canary.txt` survived.** It was written on 2026-09-09, the day
-  before.
-- `SilentCleanup` had run at **09:21:06** that morning.
-- Free space went from 48.8 GB to **110.7 GB**, so roughly 62 GB was
-  released.
+### The two signatures, side by side
 
-A sweep that spares a file written the previous day while removing 136
-older package trees is selecting on ACCESS TIME. That is what Disk
-Cleanup does and it is not how an endpoint agent quarantines files, so
-the two-suspect framing above is superseded: **Disk Cleanup, driven by
-the low-disk-space trigger, is the explanation.** The earlier total
-loss is consistent with the same mechanism running when nothing in the
-library had been touched recently.
+| | fourth, 09:21 | fifth, 17:24 |
+|---|---|---|
+| user-library directories emptied | 136 of 375 | 74 of 375 |
+| window | not measured | **6 seconds**, 17:24:44 to 17:24:50 |
+| `ZZZ-canary.txt` | **survived** | **destroyed** |
+| `rellib-r3`, outside `%LOCALAPPDATA%` | untouched, 8 of 8 | **`frmtmb` emptied**, at 17:24:29 |
+| `pinlib`, outside `%LOCALAPPDATA%` | untouched | untouched |
+| packages removed outright rather than hollowed | none noted | `Matrix`, `mgcv` |
+| `SilentCleanup` | ran at 09:21:06 | not established |
+| free space released | 48.8 to 110.7 GB | not measured |
+| preceded by | a consolidation running | a session ending |
 
-Two decisions from 2026-09-09 were tested by this and both held.
+### Why the fourth loss did not settle anything
 
-The pin lives outside `%LOCALAPPDATA%`, and
-`C:/Users/adf44/source/r/pinlib` and the release library
-`C:/Users/adf44/source/r/rellib-r3` were **untouched**: 8 packages and
-1 package, zero hollow, correct versions throughout. A pin inside the
-user library would have gone with the other 136.
+The argument was: a sweep that spares a file written the previous day
+while removing 136 older package trees is selecting on ACCESS TIME,
+which is what Disk Cleanup does. The reasoning is sound. The evidence
+was one observation of one file, and a single canary surviving one
+sweep cannot distinguish "spared because recently accessed" from
+"spared by chance". The fifth sweep destroyed a canary of the same
+age.
 
-And the restore is a script rather than a recipe to retype under
-pressure: `dev/release/restore-library.R` recovered **129 of 129** in
-one run. Total cost of the fourth loss was about fifteen minutes
-against roughly an hour for the first.
+Worse for that theory, the fifth sweep reached **`C:/Users/adf44/source/r/rellib-r3`**,
+which is not under `%LOCALAPPDATA%`, not a temporary directory, and not
+anywhere Disk Cleanup sweeps. It emptied exactly one package there,
+`frmtmb`, and left the other seven intact.
 
-What is still not fixed is the cause. The library remains under
-`%LOCALAPPDATA%` by the user's decision, so this will recur. What has
-changed is that it is now cheap: run the restore script, verify the pin
-and release libraries, and carry on.
+### What the fifth signature looks like instead
+
+R installs a package by deleting the target directory's contents and
+then unpacking into it, so **a hollow package directory is the
+signature of an install that began and did not finish**. That is
+already the stated reason for this project's absolute rule about
+private libraries. Seventy-four directories emptied in six seconds,
+one specific package emptied in a second library fifteen seconds
+earlier, and two packages removed outright, is a much better match for
+install machinery interrupted mid-flight than for a disk cleaner.
+
+It is not proof. Nothing here establishes which process it was, and
+the fourth loss's `SilentCleanup` timing and 62 GB of released space
+remain real and unexplained by this reading. **Both mechanisms may be
+present.** That is the honest state.
+
+### What to collect next time, so the sixth loss decides it
+
+The two theories differ in ways that are cheap to distinguish, but
+only if the evidence is captured before the restore overwrites it:
+
+- **The exact mtime spread.** A cleaner walking a tree and an
+  interrupted install have different timing shapes. Record the full
+  sorted list, not the range.
+- **Whether anything outside `%LOCALAPPDATA%` was hit.** This is the
+  single most discriminating fact and it takes one command. Disk
+  Cleanup does not touch `source/r`.
+- **Whether hollow directories carry a `00LOCK`.** R's installer
+  leaves one; a cleaner does not.
+- **What was running.** Check for an R process, a session teardown, or
+  an install started by any lane in the minutes before the timestamps.
+- **The Windows event log** around the timestamp, for `SilentCleanup`
+  or an antimalware action, rather than inferring from free space.
+
+### What held through both, and is therefore worth keeping
+
+The two decisions from 2026-09-09 both survived five losses:
+
+**The pin lives outside `%LOCALAPPDATA%`.** `pinlib` was untouched by
+the fourth AND the fifth, and StanHeaders still reads 2.32.10 against
+rstan 2.32.7. A pin inside the user library would have gone twice.
+
+**The restore is a script, not a recipe to retype under pressure.**
+`dev/release/restore-library.R` recovered 129 of 129 at the fourth
+loss and 67 of 67 at the fifth. The frmtmb packages it deliberately
+skips, because they are not on CRAN, are reinstalled from the tree:
+core first, then the extensions, into both the user library and
+`rellib-r3`.
+
+Total cost of the fifth loss was under fifteen minutes to a verified
+toolchain, against roughly an hour for the first.
+
+### Verify with a fit, not with a version string
+
+A hollow directory still answers `packageVersion()`. It has a
+`DESCRIPTION` only if the sweep spared that file, and the check that
+matters is whether the package LOADS and FITS. After any restore, run
+something that produces a number and compare it, rather than reading a
+version:
+
+    gaussian GLMM, seed 1, 200 rows, (1 | g)   logLik -268.5330674
+    wiener DDM, seed 2, 400 trials             logLik -128.3133341
+
+Ten digits, so a future restore can be compared rather than eyeballed.
+
+### What is still not fixed
+
+The library remains under `%LOCALAPPDATA%` by the user's decision, so
+this will recur. What has changed is that it is cheap, and that the
+next session knows the cause is open rather than closed.

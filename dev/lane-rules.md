@@ -177,6 +177,122 @@ it names the exact version rather than a date that has to be looked up.
   log-scale gate and do not read `.eta_<dpar>` directly: it is reserved,
   not API.
 
+## Added after the Phase 2 round, 2026-09-10 to 09-14
+
+Four lanes ran at once. Every rule below is something a lane or a
+reviewer paid for in that round, and most were found by a lane in its
+own work rather than in review.
+
+### Provenance: the number must come from the thing it describes
+
+- **Generate counts into the document; do not type them.** A lane wrote
+  "24 of 24 settled" from its target count while 9 files existed. Its
+  own verifier did not catch it, and the reason generalizes: **the
+  verifier checks files and this was a sentence.** The fix is
+  structural, not vigilance. Emit counts from the summariser into a
+  marked block and paste that block verbatim. A generated block also
+  makes a PENDING figure resolve itself instead of waiting to be
+  remembered. When that lane did this, the first run found its
+  convergence rate was 2 of 54 by code and 5 of 54 by Hessian, not the
+  "about 1 in 9" it had been carrying.
+- **Count from results, never from launches.** A launcher tallied a
+  replicate that ran 44 minutes and wrote nothing. Print distinct seeds
+  and gaps against the grid.
+- **Results live in the worktree.** Two lanes wrote replicate output to
+  the session scratchpad. One was moved in time and kept 129 files
+  through a session restart AND a library loss; the other was not and
+  lost four arms of 60. `dev/release/` is in the repository for the
+  same reason.
+- **Do not edit a runner while `Rscript` is reading it.** R reads a
+  script incrementally, so an edit mid-run produces a half-old,
+  half-new execution. It cost one 44-minute fit and left 90 files with
+  a drifted schema. Write a new file and switch the launcher instead.
+
+### Guards
+
+- **The guard's positive condition must be one you have OBSERVED to be
+  true.** A stall guard grepped `ps -W` for a script name, but Git
+  Bash's `ps -W` prints the executable path and never the arguments, so
+  the "alive" branch was unreachable and the guard fired immediately.
+  This is the complement of the standing rule about constructing the
+  absent case, and it would have caught this in one step.
+- Two guards in this round failed CLOSED on their first spelling, after
+  three rounds in which every guard failed open. Both were written with
+  their inverse case at the same time as the assertion, rather than
+  after it. One was deliberately built to FAIL when a filed defect gets
+  fixed, with a comment saying to flip it rather than delete it.
+
+### Reporting a number
+
+- **Observation first, fit second.** A lane put "about 1 in 2,200" in
+  the plan from a lognormal fit to 40 seeds with nothing in the tail.
+  Shapiro-Wilk rejected neither lognormal nor raw normal; four shapes
+  that fit the same body gave 1 in 2,202, 1 in 568, 1 in 99 and 1 in
+  90; and the model-free bound from 0 of 40 was about 1 in 4. Report
+  what happened, then the fit, and name a disagreeing shape.
+- **Say whether a relation is an IDENTITY or a measurement.** Three
+  claims this round were arithmetic presented as confirmation: a
+  ratio of 1.0000 with sd 0.0000 whose two sides were the same
+  expression; a residual said to equal another rung's value, which it
+  does exactly because paired differences subtract; and a variance
+  ratio quoted over 30 replicates that was algebra plus rounding. State
+  the identity, then give the residual as a numerical check at full
+  precision. `%.6f` renders 1.8e-11 as 0.000000.
+- **Power for a coverage study is ONE-sample.** A count is compared
+  against a nominal rate known exactly. Using `power.prop.test` gave
+  435 replicates where 202 were needed, a 2.1x overbuy. Power is also
+  NOT monotone in n, because the rejection region advances in whole
+  counts: 0.80 is first reached at n = 180 and only sustained from n =
+  202. And the sawtooth is paid for in SIZE, 0.0374 at 180 against
+  0.0259 at 202, so report the size beside the count.
+- **An early signal at a small count is not a finding.** Two dissolved
+  this round: a coverage of 3 of 6 that became 0.85 at 20, and an
+  `se/sd` of 0.694 at 14 replicates that became 0.984 at 60. The second
+  is the instructive one: 0.694 sat at the 0.3rd percentile of 20,000
+  random 14-subsets, so it was an unlucky prefix rather than a noisy
+  statistic, and the coverage count agreed with it at 14. Both
+  instruments were too few. Record a dissolved signal rather than
+  deleting it; it is a result about the count.
+- **A shortfall in a variance component is usually ordinary.** ML
+  shrinkage at q groups is about `sqrt(1 - 1/q)`. Two lanes reported an
+  apparent bias that this explains: 0.4889 against 0.5 at 40 centres,
+  and two eam components at 30 subjects that a single common factor
+  covers. Check it before calling a component biased.
+- **A withdrawn refutation must be withdrawn ON THE PAGE.** A lane
+  refuted a candidate, later found its own argument wrong, and had to
+  restore the candidate. A retraction left only in conversation is
+  worse than never having made it, because the next reader will not
+  re-open it.
+
+### House style and Rd
+
+- **`%` starts a comment in Rd even inside `\preformatted{}` and other
+  verbatim macros.** Five unescaped signs in a new coverage table
+  silently dropped the minus signs from the rendered column. Escape as
+  `\%`, and **verify an Rd by RENDERING it**, with `Rd2txt` and a grep
+  on the output, not by reading the source.
+
+### The machine and the release harness
+
+- **Do not pass `--no-manual` to `R CMD check`.** It skips the HTML and
+  PDF manual sections, which is where the `%` defect above would have
+  surfaced, and it makes the result incomparable to other lanes.
+- **An examples-timing NOTE on this box measures LOAD.** Established
+  with a control: the fixed arithmetic control swings a factor of 4.7
+  on identical work, and the BASE build crossed the 5 second threshold
+  at 6.75 s while the lane's own minimum was faster. The release
+  harness's own timing file has the same example at 1.05 s when the
+  machine was quiet and 5.28 s when it was not.
+- **A stale CI expectation count is a record defect, not a breakage**,
+  unless a step actually compares it. In this repo those counts sit in
+  a comment block that no workflow parses. Fix them, but do not file
+  them as failures.
+- **Verify a restored library with a FIT, not a version string.** A
+  hollow directory still answers `packageVersion()`.
+  `dev/machine-library.md` carries two ten-digit reference values for
+  this.
+
+
 ## Cost, which is a real constraint
 
 - **Use the round's shared reference library. Do not build one.** The

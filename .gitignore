@@ -14,3 +14,6 @@ dev/brmslp/
 # testthat writes these beside the tests when a run has failures
 _problems/
 testthat-problems.rds
+
+# knitr writes this beside a vignette when knitted outside its own directory
+figure/
