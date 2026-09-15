@@ -89,13 +89,23 @@ jobs:
       # job would report a green check that asserts nothing about the
       # measurement the package exists to make.
       #
-      # Measured locally, one process, counted per file: 384 expectations
-      # in 63 s with NOT_CRAN (coherence 58, cross-spectrum 61,
-      # cross-wishart 203, message-uniqueness 4, surface 58), against 369
-      # with 5 skips in 16 s without it. Inside R CMD check that is one
-      # skip more, because test-message-uniqueness.R skips itself when
-      # the sources are not there to scan: this job, which does pass
-      # NOT_CRAN through, reports FAIL 0 | SKIP 1 | PASS 380.
+      # Measured locally, one process, counted per file: 431
+      # expectations and 5 skips in 112 s with NOT_CRAN (bracket-access
+      # 1, coherence 61, cross-spectrum 96, cross-wishart 211,
+      # message-uniqueness 4, surface 58, and scale 0 with all five of
+      # its rows skipped), against 408 and 13 skips without it. Inside
+      # R CMD check there is one skip more, because
+      # test-message-uniqueness.R skips itself when the sources are not
+      # there to scan and its 4 expectations go with it: this job, which
+      # does pass NOT_CRAN through, reports FAIL 0 | SKIP 6 | PASS 427.
+      #
+      # These counts are a record, not an assertion. No step here
+      # compares them, so drift cannot fail the job, which is how the
+      # previous set went stale. Remeasured 2026-09-10 with
+      # dev/coh-suite-onefile.R. Of the change from that set, coherence
+      # 58 to 61 is item 2.6's new test; cross-spectrum 61 to 96,
+      # cross-wishart 203 to 211, and the two files the old list did not
+      # name were already drifting and were refreshed in the same pass.
       - uses: r-lib/actions/check-r-package@v2
         env:
           NOT_CRAN: "true"

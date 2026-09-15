@@ -130,6 +130,13 @@ coupling_one <- function(row, rhs, d) {
   ci <- suppressWarnings(stats::confint(fit))
   j <- grep("coh_condb", rownames(ci), fixed = TRUE)
   i_c <- if (length(j)) as.numeric(ci[j[1L], 1:2]) else c(NA, NA)
+  # The standard error itself, not only the interval it produced. Item
+  # 2.6 asks for it because the WIDTH is what separates these rungs:
+  # every one of them puts the contrast near 0.5 and only the top rung
+  # reports an honest error on it.
+  se_all <- sqrt(diag(stats::vcov(fit)))
+  k <- match("coh_condb", names(se_all))
+  se_c <- if (is.na(k)) NA_real_ else unname(se_all[k])
   # Every variance component, BY NAME. A rung whose id components
   # collapsed to zero has silently become the rung below it and its
   # contrast would then say nothing about this model, so the components
@@ -155,6 +162,7 @@ coupling_one <- function(row, rhs, d) {
     logLik = as.numeric(stats::logLik(fit)),
     coh_cond = unname(b["coh.condb"]) %||% NA_real_,
     coh_cond_true = tr$b_cond,
+    coh_cond_se = se_c,
     coh_cond_lo = i_c[1L], coh_cond_hi = i_c[2L],
     diag = scale_diag(fit))
   list(fit = fit, interval = i_c)

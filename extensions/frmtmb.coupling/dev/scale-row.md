@@ -19,6 +19,12 @@ contrast, and only at the realistic size: the rungs below it omit
 random effects the truth has, and at the small size the assertion has
 no power.
 
+The top rung's recovery is no longer a one-seed claim. Item 2.6 of
+`dev/extension-gaps-plan.md` ran this ladder over 148 replicates and
+recorded coverage AND interval width for every rung; the numbers are in
+the repository root's `dev/coh-findings.md` and in `?cross_wishart`.
+This row now also records `coh_cond_se`, the standard error itself.
+
 The plan asked for "the four scratchpad benchmarks from the survey" to
 be promoted here. Their constructions are in the survey's session
 transcript, and the top two rungs are the survey's third and fourth

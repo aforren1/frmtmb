@@ -99,6 +99,86 @@ without, and read the coherence off the one AIC prefers.
 \strong{Model the powers before reading any coherence.}
 }
 
+\section{What a condition contrast recovers, and what the interval costs}{
+
+A contrast between two conditions measured in the same subjects
+needs a random effect on the grouping the contrast varies WITHIN.
+\code{(1 | id)} is not it: a subject effect shifts both of that subject's
+conditions together and cancels out of their difference, so it
+widens the intercept's interval and leaves the contrast's alone.
+Measured on three seeds of a 16-subject design, \code{(1 | id)}
+multiplies the intercept's standard error by 1.678, 1.937 and 2.096
+and the contrast's by 1.005, 1.034 and 1.071. The term that carries
+the contrast's between-subject spread is \code{(1 | id:cond)}. Omit it and
+the estimate hardly moves while its interval collapses, which is the
+failure a single fit cannot show.
+
+Measured over \strong{148 replicates} of the design in
+\code{dev/scale-findings.md}: 40 subjects, 2 conditions, 60 frequencies,
+8 segments a row. The truth is on the logit scale, with intercept
+-0.6, a condition contrast of \strong{0.5}, a Gaussian bump of 0.8 over
+frequency, \code{sd(id)} 0.35 and \code{sd(id:cond)} 0.20. Every model below
+gives the powers and the phase an intercept, which is correct here.
+\code{width} is the mean interval width relative to the last row's, and
+\code{sd(z)} is the spread of \code{(estimate - truth) / se} over replicates,
+where 1.0 is an honest interval:\tabular{llll}{
+   coherence formula \tab coverage \tab width \tab sd(z) \cr
+   condition only \tab 0.493 (0.414, 0.573) \tab 0.37 \tab 2.75 \cr
+   and a smooth over frequency \tab 0.486 (0.407, 0.566) \tab 0.38 \tab 2.75 \cr
+   and a subject effect \tab 0.527 (0.447, 0.606) \tab 0.37 \tab 2.77 \cr
+   crossed effect, no subject effect \tab 1.000 (0.975, 1.000) \tab 1.90 \tab 0.56 \cr
+   both, the correct model \tab 0.953 (0.906, 0.977) \tab 1.00 \tab 1.06 \cr
+}
+
+
+The correct model covers at its nominal rate and recovers both
+components, \code{sd(id)} 0.341 plus or minus 0.049 and \code{sd(id:cond)}
+0.197 plus or minus 0.027. The model without \code{(1 | id:cond)} puts
+the contrast within 0.0036 of the correct model's on the same data,
+and reports an interval two and three quarter times too narrow: on
+63 of the 148 replicates it missed where the correct model covered,
+and it never covered where the correct model missed. \strong{That is the
+rung a wider interval would repair, and it is the only one.}
+
+\strong{The first two rows are a different failure.} A model with no
+random effect at all is not estimating 0.5 badly. A logit contrast
+is not collapsible, so a model that
+leaves variance out of the linear predictor is consistent for the
+population-averaged contrast, which is smaller. The factor
+\verb{1 / sqrt(1 + 0.346 V)}, with \code{V} the omitted variance taken from the
+truth and nothing fitted, predicts -0.0196 for the first row against
+-0.0197 measured and -0.0135 for the second against -0.0133. Their
+coverage is low for that reason and a wider interval does not repair
+it: the remedy is to model the variance, or to say that the marginal
+contrast is the quantity wanted. \code{dev/scale-findings.md} recorded
+this attenuation, at 0.016 across the ladder, before the replicate
+study ran.
+
+\strong{The direction depends on which term is missing.} Dropping
+\code{(1 | id)} and keeping \code{(1 | id:cond)} goes the other way, 1.9 times
+too wide, because the subject variance is then forced into the
+crossed term. So the rule is not "more random effects" and not
+"fewer": a within-subject contrast needs BOTH terms, the subject one
+for the intercept and the crossed one for the contrast. The two
+one-term models fail in OPPOSITE directions, which is what makes the
+pair worth naming: the crossed term alone is conservative and covers
+148 of 148, while the subject term alone is anti-conservative and
+covers 78. An interval that is too wide costs power; one that is too
+narrow reports a finding that is not there.
+
+The width is what changes, not the arithmetic. On the same generator
+with \code{sd(id:cond)} set to 0, over 36 replicates, the two models agree
+to a paired width ratio of 1.000 at the median and 1.264 at its
+largest, and the extra component is estimated at 0.015 plus or minus
+0.018. One number says it best: on data that HAS the component, the
+model without it reports a mean width of 0.070, and 0.072 is what the
+correct model reports on data that does not. Leaving the term out
+answers a different experiment's question.
+
+\code{dev/coh-findings.md} in the repository has the construction, the
+seeds and the null arm in full.
+}
+
 \section{Why the links are the constraint, in floating point too}{
 
 The spectral matrix must be positive definite at every frequency, in
