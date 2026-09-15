@@ -1,0 +1,4 @@
+ERROR: dependencies 'reformulas', 'RTMB', 'RTMBdist', 'TMB' are not available for package 'frmtmb'
+Perhaps try a variation of:
+install.packages(c('reformulas', 'RTMB', 'RTMBdist', 'TMB'))
+* removing 'C:/Users/adf44/source/r/eamhier-lib/frmtmb'

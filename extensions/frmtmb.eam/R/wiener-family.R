@@ -184,6 +184,59 @@
 #' models; the trial counts are recorded on the fitted family, at
 #' `family(fit)$ndt_bound$sizes`.
 #'
+#' @section Recovery at 30 subjects by 400 trials:
+#' Measured on 60 replicate data sets at the design named in the
+#' realistic-scale table of `dev/extension-gaps-plan.md`: 30 subjects,
+#' 400 trials each, two conditions, `mu ~ cond + (1 | s)`,
+#' `bs ~ 1 + (1 | s)` and `ndt ~ 1 + (1 | s)` with `ndt_group(s)`. The
+#' truths are a drift of 0.4 and 1.3, a boundary separation of 1.4, a
+#' non-decision time of 250 ms, and between-subject standard deviations
+#' of 0.35 on the drift, 0.20 on the log boundary and 0.12 on the log
+#' non-decision time. Seeds 20260910 to 20260969.
+#' `dev/eamhier-findings.md` holds the tables and
+#' `dev/eamhier-scripts/` the harness.
+#'
+#' All 60 fits converged with a positive definite Hessian, no `NaN`
+#' standard error and nothing from `diagnose()`, and every subject's
+#' fitted non-decision time stayed below its own fastest response.
+#'
+#' \preformatted{
+#'   quantity              truth    mean     mcse     Wald coverage
+#'   mu intercept          0.4      0.4019   0.0094   54/60   90.0\%
+#'   mu condition effect   0.9      0.9004   0.0035   57/60   95.0\%
+#'   bs                    1.4      1.3900   0.0067   56/60   93.3\%
+#'   sd(mu | s)            0.35     0.3474   0.0059   55/60   91.7\%
+#'   sd(log bs | s)        0.20     0.1898   0.0037   54/60   90.0\%
+#' }
+#'
+#' **What 60 replicates can resolve.** The rule applied is that a
+#' coverage misses when its Wilson interval excludes 0.95, which at
+#' n = 60 rejects on 53 or fewer. Against a nominal rate that is known
+#' rather than estimated, the exact binomial power of that rule is 0.82
+#' at a true 85 percent, 0.59 at 88 and 0.39 at 90, with a size of
+#' 0.030. So the table can show a ten-point shortfall and cannot show
+#' seven. No coefficient's interval excludes 95.
+#'
+#' **Both variance components come back about as low as maximum
+#' likelihood is expected to put them.** The shrinkage at 30 groups,
+#' including the term for reporting a standard deviation rather than a
+#' variance, is `sqrt(1 - 1/30) * (1 - 1/116) = 0.9747`, that is 2.5
+#' percent low. Against that expectation `sd(mu | s)` sits 1.06 Monte
+#' Carlo standard errors high and `sd(log bs | s)` 1.39 low: one common
+#' shrinkage covers both, and neither is a separate finding. Read a
+#' variance component from 30 groups as a slight underestimate.
+#'
+#' The non-decision time is read per subject rather than as a spread,
+#' for the reason the section above gives. Its root mean squared error
+#' is 7.9 ms against a between-subject spread of 30.2 ms, it is smaller
+#' than that spread on 60 of 60 replicates, and its correlation with
+#' the drawn values is 0.967. The population value comes back about
+#' 2 ms high.
+#'
+#' The same 60 draws with `variability = "sv"` recover the same
+#' quantities to the same accuracy. What they add is in the next
+#' section.
+#'
 #' @section Across-trial variability:
 #' Ratcliff's full diffusion model draws three of the four parameters
 #' afresh on every trial. `variability` names which of those to
@@ -243,6 +296,31 @@
 #' includes a negative non-decision time. Neither can be made structural
 #' from outside frmtmb: both are joint constraints on two distributional
 #' parameters, and a link is a property of one.
+#'
+#' **How well `sv` is identified, measured.** On 60 replicates of one
+#' subject with 12,000 trials, no random effects, and a true `sv` of
+#' 0.4, the estimate ranges from 0.194 to 0.599 and its Wald interval
+#' covers on 57 of the 59 fits that report a usable one. The estimated
+#' `sv` and an estimated drift contrast are correlated, 0.59 by rank: a
+#' draw that returns a low `sv` returns a low contrast with it, and
+#' every replicate that missed on the contrast had an `sv` below the
+#' truth. Read the two together rather than one at a time. In the
+#' hierarchical design of "Recovery at 30 subjects by 400 trials" both
+#' cover at 57 of 60.
+#'
+#' **One fit in 60 lost `sv` entirely and nothing reported it.** At one
+#' seed the estimate ran to the log link's floor, 4.4e-04, with a Wald
+#' interval of (-1163, 1147) on the log scale, convergence code 0, a
+#' positive definite Hessian and `diagnose()` printing "No convergence
+#' problems detected". The likelihood is genuinely flat there on that
+#' draw: dropping the `sv` term moves the log-likelihood by 7e-07,
+#' while holding `sv` at its true value costs 4.05 units. So the fit is
+#' not wrong, but the interval it prints is not a statement about
+#' anything. Read the interval `confint()` gives `sv` before you read
+#' the estimate. The signature is inside that one fit and needs no
+#' replicates: the standard error on `log sv` was 589.25 where the
+#' largest of the other four was 0.0501, a ratio of 11,763. Nothing
+#' else in the fit reports it.
 #'
 #' @section Mixtures:
 #' A contaminant component covers the trials the diffusion process

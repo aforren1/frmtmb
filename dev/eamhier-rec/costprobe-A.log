@@ -1,0 +1,7 @@
+Error in library(frmtmb) : there is no package called 'frmtmb'
+Calls: suppressMessages -> withCallingHandlers -> library
+Execution halted
+
+real	0m0.537s
+user	0m0.015s
+sys	0m0.140s

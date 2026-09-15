@@ -1,0 +1,11 @@
+arm B, 15 subjects x 250 trials, 30 paired seeds (771 to 800)
+  population ndt bias, ms  pg  -24.3177 (sd  8.1584)  gl  -24.5553 (sd  8.1605)  diff   0.2376 +- 0.0663 
+  reported sd(ndt), ms     pg    6.7188 (sd  1.3645)  gl    0.0521 (sd  0.2850)  diff   6.6667 +- 0.2387 
+  per-subject rmse, ms     pg   25.3432 (sd  7.6941)  gl   24.5618 (sd  8.1472)  diff   0.7814 +- 0.1432 
+  logLik                   pg -2064.3279 (sd 326.0463)  gl -2064.7313 (sd 326.2613)  diff   0.4033 +- 0.4029 
+  sd(floor), ms            pg    8.3894 (sd  1.7909)  gl    8.3894 (sd  1.7909)  diff   0.0000 +- 0.0000 
+  per-group better on 17 of 30 seeds
+  ndt component under 1e-4: pg 27, gl 28 of 30
+  convergence 0: pg 30, gl 30 | pdHess TRUE: pg 28, gl 29
+  correlation of pg sd(ndt) with sd(floor): 0.9843
+  pg sd(ndt) / (fraction x sd(floor)): mean 1.0000, sd 0.0000

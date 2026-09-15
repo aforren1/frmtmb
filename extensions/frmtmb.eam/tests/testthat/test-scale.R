@@ -102,9 +102,15 @@ eam_scale_run <- function(row, fam, sv, group = TRUE) {
 
   ci <- suppressWarnings(stats::confint(fit))
   b <- unlist(fixef(fit))
-  # `ndt` is a FRACTION of the row's own bound now, so the
+  # ONLY the grouped link reports a fraction. Under `ndt_group()` the
+  # link is a plain logit on a fraction of the row's own bound, so the
   # population non-decision time is that fraction on the mean of the
-  # bounds the fit used. The delta-method standard error rides with it.
+  # bounds the fit used, and the delta-method standard error rides with
+  # it. Under the scalar bound the bound stays INSIDE the link, a scaled
+  # logit onto (0, ub), so `predict()` already reports a time; this line
+  # used to multiply by `ub` in that case too and the `eam-unbounded`
+  # row recorded `time * ub`, 0.1315 s where `ndt_time()` on the same
+  # fit said 0.2921. The expectation below is what now catches it.
   nd <- suppressWarnings(
     stats::predict(fit, newdata = d[1L, , drop = FALSE], dpar = "ndt",
                    type = "response", re.form = NA, se.fit = TRUE))
@@ -112,9 +118,9 @@ eam_scale_run <- function(row, fam, sv, group = TRUE) {
   ndt_frac_se <- as.numeric(nd$se.fit[1L])
   rsp <- frmtmb::single_response(fit)
   bnd <- rsp[["family"]][["ndt_bound"]]
-  floors <- if (is.null(bnd[["floors"]])) bnd[["ub"]] else bnd[["floors"]]
-  ndt_hat <- ndt_frac * mean(floors)
-  ndt_se <- ndt_frac_se * mean(floors)
+  to_time <- if (is.null(bnd[["floors"]])) 1 else mean(bnd[["floors"]])
+  ndt_hat <- ndt_frac * to_time
+  ndt_se <- ndt_frac_se * to_time
   vc <- VarCorr(fit)
   sds <- vapply(vc, function(m) sqrt(m[1L, 1L]), numeric(1))
   # by name as well as by position, so that a reader can check the
@@ -131,6 +137,16 @@ eam_scale_run <- function(row, fam, sv, group = TRUE) {
   own <- as.numeric(tapply(d$rt, d$s, min))[match(as.character(one$s),
                                                   levels(d$s))]
   margin_ms <- 1000 * (own - ndt_sub)
+  # THE SAME QUANTITY BY TWO ROUTES, which checks this file's own
+  # arithmetic rather than the model: the population prediction put back
+  # on the response's scale, and `ndt_time()` on the subjects. The two
+  # differ by the random effects alone, so the tolerance is built from
+  # the spread this run measured and the standard error it reported, and
+  # never from a constant. The ungrouped row used to fail it by a factor
+  # of its own bound: `ndt` was recorded as 0.1315 s where `ndt_time()`
+  # on the same fit said 0.2921 (dev/eamhier-findings.md).
+  testthat::expect_lt(abs(ndt_hat - mean(ndt_sub)),
+                      3 * (stats::sd(ndt_sub) + ndt_se))
 
   tr <- eam_truth
   i_cond <- eam_ci(ci, "condb")
@@ -146,8 +162,22 @@ eam_scale_run <- function(row, fam, sv, group = TRUE) {
     mu_cond_lo = i_cond[1L], mu_cond_hi = i_cond[2L],
     bs = exp(unname(b["bs.(Intercept)"])), bs_true = tr$bs,
     ndt = ndt_hat, ndt_se = ndt_se, ndt_true = tr$ndt,
+    # BOTH z scores, because the row is read for two different
+    # questions and the assertions above use the second. `ndt_z` scores
+    # against the population constant, which is the MEDIAN of the
+    # per-subject draw and is what a reader comparing rows across seeds
+    # wants; `ndt_z_drawn` scores against the mean of the 30 subjects
+    # this seed drew, which is the estimand the fit is actually
+    # estimating. They differ by more than the fit's own standard
+    # error: the first exceeds 4 on 8 of 60 replicates and the second
+    # on 0 of 60 (dev/eamhier-findings.md).
     ndt_z = scale_z(ndt_hat, ndt_se, tr$ndt),
+    ndt_z_drawn = scale_z(ndt_hat, ndt_se,
+                          mean(attr(d, "ndt_subject"))),
     ndt_frac = ndt_frac, ndt_frac_se = ndt_frac_se,
+    # 1 when `predict()` already reported a time, the mean floor when it
+    # reported a fraction, so the row says which scale it was read on
+    ndt_to_time = to_time,
     ndt_sub_mean = mean(ndt_sub),
     ndt_sub_mean_true = mean(attr(d, "ndt_subject")),
     ndt_margin_min_ms = min(margin_ms),
@@ -196,21 +226,45 @@ test_that("the eam scale row fits and reports its cost", {
     # the most brittle constant of all. What IS asserted is what this
     # run measures about itself.
     expect_true(all(is.finite(r$fit$sdr$sd)))
-    # the population non-decision time, as a z against the fit's OWN
-    # standard error, which is what scale_z() is here for
+    # The population non-decision time, as a z against the fit's OWN
+    # standard error, which is what scale_z() is here for, and against
+    # the DRAW's own mean rather than against `eam_truth$ndt`.
+    #
+    # WHY the target moved. `ndt` is drawn as 0.25 * exp(u) with u
+    # normal of standard deviation 0.12, so 0.25 is the MEDIAN of the
+    # per-subject non-decision times and their mean is 0.2518. With 30
+    # subjects the sample mean of that log-normal carries a standard
+    # error of about 5.5 ms, more than twice the 2.5 ms this fit
+    # reports, so scoring against the constant tests the draw and not
+    # the fit. Measured over 60 replicates of this design
+    # (dev/eamhier-findings.md): against 0.25 the assertion passes on
+    # 52 of 60 and reaches z = 10.10 at seed 20260936, whose 30
+    # subjects have a mean ndt of 0.27013 and whose fit returns
+    # 0.27545; against the draw's own mean, 60 of 60 with a maximum of
+    # 2.60. The eam-sv row below already scores against the draw, and
+    # is 60 of 60 there at a maximum of 2.98.
+    d <- eam_scale_data(sv = 0)
+    one <- d[match(levels(d$s), as.character(d$s)), , drop = FALSE]
     nd <- suppressWarnings(stats::predict(
       r$fit, newdata = d1_of(r), dpar = "ndt", type = "response",
       re.form = NA, se.fit = TRUE))
     bd <- frmtmb::single_response(r$fit)[["family"]][["ndt_bound"]]
     fl <- mean(bd[["floors"]])
     expect_lt(scale_z(as.numeric(nd$fit[1L]) * fl,
-                      as.numeric(nd$se.fit[1L]) * fl, eam_truth$ndt), 4)
+                      as.numeric(nd$se.fit[1L]) * fl,
+                      mean(attr(d, "ndt_subject"))), 4)
+    # ITEM 1.0a's note, and item 2.1's first carry-in: what separates
+    # this model from its floors is the PER-SUBJECT error, so that is
+    # what is asserted, against the between-subject spread this same
+    # run measured rather than against a constant. Over the same 60
+    # replicates the ratio is under 1 on 60 of 60 and 0.468 at worst.
+    hat <- as.numeric(ndt_time(r$fit, newdata = one))
+    t0 <- attr(d, "ndt_subject")
+    expect_lt(sqrt(mean((hat - t0)^2)), stats::sd(t0))
     # and the constraint the per-subject bound exists to respect: every
     # subject's fitted non-decision time below its OWN fastest response
-    d <- eam_scale_data(sv = 0)
-    one <- d[match(levels(d$s), as.character(d$s)), , drop = FALSE]
     own <- as.numeric(tapply(d$rt, d$s, min))
-    expect_true(all(ndt_time(r$fit, newdata = one) < own))
+    expect_true(all(hat < own))
   }
 })
 
@@ -263,6 +317,17 @@ test_that("the eam scale row fits with across-trial drift variability", {
     # `ndt` right it is not. That is a question for Phase 2's 60
     # replicates, which is where recovery is decided, so this row
     # RECORDS the estimate and asserts only what one draw can carry.
+    #
+    # Item 2.1 has since measured the trade-off over replicates, in a
+    # design with NO hierarchy and NO per-group bound: 60 single-subject
+    # replicates of the same 12,000 trials recover `sv` (57 of 59
+    # covered once one collapsed fit is set aside), the estimated `sv`
+    # and the estimated condition effect correlate at 0.59 (Spearman),
+    # and every replicate that misses on the condition effect has a low
+    # `sv`. So a single seed's 0.31 was inside this estimator's
+    # ordinary spread. And THIS row's arm, at 60 replicates, covers the
+    # condition effect 57 times and `sv` 57 times, both nominal.
+    # dev/eamhier-findings.md.
     expect_identical(r$fit$opt$convergence, 0L)
     expect_true(all(is.finite(i)))
     # the non-decision time itself does recover under the bound, which
@@ -270,8 +335,13 @@ test_that("the eam scale row fits with across-trial drift variability", {
     d <- eam_scale_data(sv = eam_truth$sv)
     one <- d[match(levels(d$s), as.character(d$s)), , drop = FALSE]
     own <- as.numeric(tapply(d$rt, d$s, min))
-    hat <- ndt_time(r$fit, newdata = one)
+    hat <- as.numeric(ndt_time(r$fit, newdata = one))
     expect_true(all(hat < own))
+    # the per-subject error against the between-subject spread the same
+    # run measured, as in the `eam` row above: under 1 on 60 of 60
+    # replicates of this arm, 0.483 at worst
+    t0 <- attr(d, "ndt_subject")
+    expect_lt(sqrt(mean((hat - t0)^2)), stats::sd(t0))
     # a z against the fit's own standard error rather than an absolute
     # 20 ms, which is the rule helper-scale.R states above scale_z()
     nd <- suppressWarnings(stats::predict(

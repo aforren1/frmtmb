@@ -1,0 +1,27 @@
+FILE test-bracket-access.R tests 1 pass 1 fail 0 error 0 skip 0
+FILE test-brms-parity.R tests 5 pass 18 fail 0 error 0 skip 0
+FILE test-defects.R tests 10 pass 59 fail 0 error 0 skip 0
+FILE test-density.R tests 6 pass 132 fail 0 error 0 skip 0
+FILE test-extension-api.R tests 6 pass 14 fail 0 error 0 skip 0
+FILE test-family.R tests 13 pass 51 fail 0 error 0 skip 0
+FILE test-gddm-conditions.R tests 15 pass 58 fail 0 error 0 skip 0
+FILE test-gddm-family.R tests 20 pass 77 fail 0 error 0 skip 0
+FILE test-gddm-gradients.R tests 5 pass 22 fail 0 error 0 skip 0
+FILE test-gddm-recovery.R tests 5 pass 28 fail 0 error 0 skip 0
+FILE test-gddm-reference.R tests 8 pass 166 fail 0 error 0 skip 0
+FILE test-gddm-solver.R tests 14 pass 94 fail 0 error 0 skip 0
+FILE test-lba.R tests 31 pass 109 fail 0 error 0 skip 0
+FILE test-message-uniqueness.R tests 1 pass 4 fail 0 error 0 skip 0
+FILE test-moments.R tests 8 pass 29 fail 0 error 0 skip 0
+FILE test-ndt-bound.R tests 15 pass 79 fail 0 error 0 skip 0
+FILE test-ndt-seam.R tests 13 pass 83 fail 0 error 0 skip 0
+FILE test-rdm-gng.R tests 49 pass 221 fail 0 error 0 skip 0
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.6, 2.5)
+  b                  (flat), as brms leaves slopes
+FILE test-sampling.R tests 3 pass 97 fail 0 error 0 skip 0
+FILE test-scale.R tests 3 pass 0 fail 0 error 0 skip 3
+FILE test-simulate-density.R tests 11 pass 69 fail 0 error 0 skip 0
+FILE test-surface.R tests 10 pass 50 fail 0 error 0 skip 0
+FILE test-units.R tests 5 pass 32 fail 0 error 0 skip 0
+FILE test-variability.R tests 15 pass 140 fail 0 error 0 skip 0
