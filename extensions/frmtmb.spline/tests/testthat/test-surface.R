@@ -90,18 +90,18 @@ test_that("par_template and set_prior reach the gamma dpars", {
             abs(unlist(frmtmb::fixef(o$fit))[["mu.groupPoor"]]))
 })
 
-test_that("a random effect and a smooth both reach a spline coefficient", {
+test_that("a smooth reaches a spline coefficient", {
   skip_if_not_installed("flexsurv")
   o <- sp_surface_fit()
   d <- o$dat
   set.seed(2)
-  d$centre <- factor(rep(1:12, length.out = nrow(d)))
-  fr <- frmtmb::frm(frmtmb::bf(recyrs | cens(censored) ~ group + (1 | centre)),
-                    family = royston_parmar(df = 2), data = d)
-  expect_s3_class(fr, "frmtmb_fit")
-  expect_true(is.finite(as.numeric(stats::logLik(fr))))
-  expect_gte(length(frmtmb::ranef(fr)), 1L)
-
+  # The random-effect half of this test used to fit `(1 | centre)` on
+  # twelve centre labels dealt round robin, which carry no centre
+  # effect at all, and assert that the log likelihood came back finite.
+  # That is not evidence of agreement with anything. It is now a
+  # measurement against rstpm2's log-normal frailty, in test-frailty.R.
+  # `set.seed(2)` still runs here because the smooth arm below draws
+  # `age` from it; the centre labels consumed no random numbers.
   d$age <- stats::runif(nrow(d), 40, 80)
   fs <- frmtmb::frm(frmtmb::bf(recyrs | cens(censored) ~ group + s(age, k = 5)),
                     family = royston_parmar(df = 2), data = d)
@@ -136,6 +136,13 @@ test_that("the compatibility rows this package registered resolve", {
   expect_identical(frmtmb::frm_compat("royston_parmar", "cens()")$status,
                    "works")
   expect_identical(frmtmb::frm_compat("frm_curve", "nl")$status, "works")
+  # the frailty rows item 2.5 measured. "us" is the covariance
+  # structure a plain (1 | centre) block resolves to, and "|ID|" is the
+  # (1 | c | centre) spelling that pairs mu with gamma1.
+  expect_identical(frmtmb::frm_compat("royston_parmar", "us")$status,
+                   "works")
+  expect_identical(frmtmb::frm_compat("royston_parmar", "|ID|")$status,
+                   "works")
 })
 
 test_that("print methods say what was checked", {
