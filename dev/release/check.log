@@ -7,7 +7,7 @@
 * checking for LF line-endings in source and make files and shell scripts
 * checking for empty or unneeded directories
 Removed empty directory 'frmtmb/tests/testthat/_snaps'
-* building 'frmtmb_0.55.2.tar.gz'
+* building 'frmtmb_0.56.0.tar.gz'
 R.exe : 
 At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
 +   & $R CMD build $p 2>&1 | Out-File -FilePath $LOG -Append -Encoding  ...
@@ -23,10 +23,10 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
     GNU Fortran (GCC) 14.3.0
 * running under: Windows 11 x64 (build 26200)
 * using session charset: UTF-8
-* current time: 2026-09-15 04:03:35 UTC
+* current time: 2026-09-15 19:24:51 UTC
 * using option '--as-cran'
 * checking for file 'frmtmb/DESCRIPTION' ... OK
-* this is package 'frmtmb' version '0.55.2'
+* this is package 'frmtmb' version '0.56.0'
 * package encoding: UTF-8
 * checking CRAN incoming feasibility ... OK
 * checking package namespace information ... OK
@@ -36,7 +36,7 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
 * checking for executable files ... OK
 * checking for hidden files and directories ... OK
 * checking for portable file names ... OK
-* checking whether package 'frmtmb' can be installed ... [15s] OK
+* checking whether package 'frmtmb' can be installed ... [35s] OK
 * checking installed package size ... OK
 * checking package directory ... OK
 * checking for future file timestamps ... OK
@@ -60,7 +60,7 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
 * checking S3 generic/method consistency ... OK
 * checking replacement functions ... OK
 * checking foreign function calls ... OK
-* checking R code for possible problems ... [27s] OK
+* checking R code for possible problems ... [56s] OK
 * checking Rd files ... OK
 * checking Rd metadata ... OK
 * checking Rd line widths ... OK
@@ -76,15 +76,15 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
 * checking data for ASCII and uncompressed saves ... OK
 * checking installed files from 'inst/doc' ... OK
 * checking files in 'vignettes' ... OK
-* checking examples ... [27s] OK
-* checking examples with --run-donttest ... [27s] OK
+* checking examples ... [36s] OK
+* checking examples with --run-donttest ... [44s] OK
 * checking for unstated dependencies in 'tests' ... OK
 * checking tests ...
-  Running 'testthat.R' [466s]
- [466s] OK
+  Running 'testthat.R' [20m]
+ [20m] OK
 * checking for unstated dependencies in vignettes ... OK
 * checking package vignettes ... OK
-* checking re-building of vignette outputs ... [157s] OK
+* checking re-building of vignette outputs ... [237s] OK
 * checking PDF version of manual ... OK
 * checking HTML version of manual ... [18s] NOTE
 Skipping checking math rendering: package 'V8' unavailable
@@ -128,7 +128,7 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
     GNU Fortran (GCC) 14.3.0
 * running under: Windows 11 x64 (build 26200)
 * using session charset: UTF-8
-* current time: 2026-09-15 04:17:15 UTC
+* current time: 2026-09-15 19:54:33 UTC
 * using option '--as-cran'
 * checking for file 'frmtmb.eam/DESCRIPTION' ... OK
 * this is package 'frmtmb.eam' version '0.8.1'
@@ -181,13 +181,13 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
 * checking examples with --run-donttest ... OK
 * checking for unstated dependencies in 'tests' ... OK
 * checking tests ...
-  Running 'testthat.R' [440s]
- [440s] OK
+  Running 'testthat.R' [27m]
+ [27m] OK
 * checking for unstated dependencies in vignettes ... OK
 * checking package vignettes ... OK
-* checking re-building of vignette outputs ... [30s] OK
+* checking re-building of vignette outputs ... [100s] OK
 * checking PDF version of manual ... OK
-* checking HTML version of manual ... NOTE
+* checking HTML version of manual ... [11s] NOTE
 Skipping checking math rendering: package 'V8' unavailable
 * checking for non-standard things in the check directory ... OK
 * checking for detritus in the temp directory ... OK
@@ -229,7 +229,7 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
     GNU Fortran (GCC) 14.3.0
 * running under: Windows 11 x64 (build 26200)
 * using session charset: UTF-8
-* current time: 2026-09-15 04:26:14 UTC
+* current time: 2026-09-15 20:24:14 UTC
 * using option '--as-cran'
 * checking for file 'frmtmb.latent/DESCRIPTION' ... OK
 * this is package 'frmtmb.latent' version '0.3.0'
@@ -282,11 +282,11 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
 * checking examples with --run-donttest ... OK
 * checking for unstated dependencies in 'tests' ... OK
 * checking tests ...
-  Running 'testthat.R' [52s]
- [53s] OK
+  Running 'testthat.R' [194s]
+ [195s] OK
 * checking for unstated dependencies in vignettes ... OK
 * checking package vignettes ... OK
-* checking re-building of vignette outputs ... OK
+* checking re-building of vignette outputs ... [11s] OK
 * checking PDF version of manual ... OK
 * checking HTML version of manual ... NOTE
 Skipping checking math rendering: package 'V8' unavailable
@@ -330,7 +330,7 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
     GNU Fortran (GCC) 14.3.0
 * running under: Windows 11 x64 (build 26200)
 * using session charset: UTF-8
-* current time: 2026-09-15 04:28:15 UTC
+* current time: 2026-09-15 20:29:31 UTC
 * using option '--as-cran'
 * checking for file 'frmtmb.ode/DESCRIPTION' ... OK
 * this is package 'frmtmb.ode' version '0.4.0'
@@ -383,17 +383,18 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
 * checking examples with --run-donttest ... OK
 * checking for unstated dependencies in 'tests' ... OK
 * checking tests ...
-  Running 'testthat.R' [65s]
- [65s] OK
+  Running 'testthat.R' [218s]
+ [218s] OK
 * checking for unstated dependencies in vignettes ... OK
 * checking package vignettes ... OK
-* checking re-building of vignette outputs ... [20s] OK
+* checking re-building of vignette outputs ... [61s] OK
 * checking PDF version of manual ... OK
 * checking HTML version of manual ... NOTE
 Skipping checking math rendering: package 'V8' unavailable
 * checking for non-standard things in the check directory ... OK
 * checking for detritus in the temp directory ... OK
 * DONE
+Status: 1 NOTE
 R.exe : 
 At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:5
 +     & $R CMD check --as-cran $tgz.FullName 2>&1 | Out-File -FilePath  ...
@@ -401,7 +402,6 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:5
     + CategoryInfo          : NotSpecified: (:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
  
-Status: 1 NOTE
 See
   'C:/Users/adf44/source/r/checkout-r3/frmtmb.ode.Rcheck/00check.log'
 for details.
@@ -431,7 +431,7 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
     GNU Fortran (GCC) 14.3.0
 * running under: Windows 11 x64 (build 26200)
 * using session charset: UTF-8
-* current time: 2026-09-15 04:30:29 UTC
+* current time: 2026-09-15 20:35:08 UTC
 * using option '--as-cran'
 * checking for file 'frmtmb.spline/DESCRIPTION' ... OK
 * this is package 'frmtmb.spline' version '0.5.1'
@@ -483,11 +483,11 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
 * checking examples ... OK
 * checking for unstated dependencies in 'tests' ... OK
 * checking tests ...
-  Running 'testthat.R' [44s]
- [44s] OK
+  Running 'testthat.R' [134s]
+ [135s] OK
 * checking for unstated dependencies in vignettes ... OK
 * checking package vignettes ... OK
-* checking re-building of vignette outputs ... OK
+* checking re-building of vignette outputs ... [12s] OK
 * checking PDF version of manual ... OK
 * checking HTML version of manual ... NOTE
 Skipping checking math rendering: package 'V8' unavailable
@@ -531,7 +531,7 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
     GNU Fortran (GCC) 14.3.0
 * running under: Windows 11 x64 (build 26200)
 * using session charset: UTF-8
-* current time: 2026-09-15 04:32:04 UTC
+* current time: 2026-09-15 20:38:28 UTC
 * using option '--as-cran'
 * checking for file 'frmtmb.coupling/DESCRIPTION' ... OK
 * this is package 'frmtmb.coupling' version '0.3.1'
@@ -583,8 +583,8 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
 * checking examples ... OK
 * checking for unstated dependencies in 'tests' ... OK
 * checking tests ...
-  Running 'testthat.R' [28s]
- [28s] OK
+  Running 'testthat.R' [88s]
+ [88s] OK
 * checking for unstated dependencies in vignettes ... OK
 * checking package vignettes ... OK
 * checking re-building of vignette outputs ... OK
@@ -611,7 +611,7 @@ Status: OK
 * checking for LF line-endings in source and make files and shell scripts
 * checking for empty or unneeded directories
 Removed empty directory 'frmtmb.sample/tests/testthat/_snaps'
-* building 'frmtmb.sample_0.4.1.tar.gz'
+* building 'frmtmb.sample_0.4.2.tar.gz'
 R.exe : 
 At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
 +   & $R CMD build $p 2>&1 | Out-File -FilePath $LOG -Append -Encoding  ...
@@ -627,10 +627,10 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
     GNU Fortran (GCC) 14.3.0
 * running under: Windows 11 x64 (build 26200)
 * using session charset: UTF-8
-* current time: 2026-09-15 04:33:18 UTC
+* current time: 2026-09-15 20:40:50 UTC
 * using option '--as-cran'
 * checking for file 'frmtmb.sample/DESCRIPTION' ... OK
-* this is package 'frmtmb.sample' version '0.4.1'
+* this is package 'frmtmb.sample' version '0.4.2'
 * package encoding: UTF-8
 * checking CRAN incoming feasibility ... OK
 * checking package namespace information ... OK
@@ -677,11 +677,11 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
 * checking installed files from 'inst/doc' ... OK
 * checking files in 'vignettes' ... OK
 * checking examples ... OK
-* checking examples with --run-donttest ... [12s] OK
+* checking examples with --run-donttest ... [28s] OK
 * checking for unstated dependencies in 'tests' ... OK
 * checking tests ...
-  Running 'testthat.R' [118s]
- [118s] OK
+  Running 'testthat.R' [355s]
+ [355s] OK
 * checking for unstated dependencies in vignettes ... OK
 * checking package vignettes ... OK
 * checking re-building of vignette outputs ... OK
@@ -697,8 +697,8 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:5
     + CategoryInfo          : NotSpecified: (:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
  
-
 Status: OK
+
 ===== CHECK C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.learn =====
 * checking for file 'C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.learn/DESCRIPTION' ... OK
 * preparing 'frmtmb.learn':
@@ -724,7 +724,7 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
     GNU Fortran (GCC) 14.3.0
 * running under: Windows 11 x64 (build 26200)
 * using session charset: UTF-8
-* current time: 2026-09-15 04:36:24 UTC
+* current time: 2026-09-15 20:48:20 UTC
 * using option '--as-cran'
 * checking for file 'frmtmb.learn/DESCRIPTION' ... OK
 * this is package 'frmtmb.learn' version '0.4.1'
@@ -776,8 +776,8 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:47 char:3
 * checking examples ... OK
 * checking for unstated dependencies in 'tests' ... OK
 * checking tests ...
-  Running 'testthat.R' [46s]
- [46s] OK
+  Running 'testthat.R' [145s]
+ [145s] OK
 * checking for unstated dependencies in vignettes ... OK
 * checking package vignettes ... OK
 * checking re-building of vignette outputs ... OK

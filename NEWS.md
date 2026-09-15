@@ -1,4 +1,4 @@
-# frmtmb (development version)
+# frmtmb 0.56.0
 
 * **frmtmb no longer breaks brms, lme4, posterior, loo, rstantools or
   bayesplot for objects that already exist.** Attaching frmtmb after

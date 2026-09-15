@@ -1,6 +1,6 @@
 # Handing a round to a new session
 
-Written 2026-09-14, at the Phase 2 release. Read this, then
+Written 2026-09-15, at the Phase 2.5 release. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
 `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
 anything: this machine has lost its R library five times, and the cause
@@ -13,12 +13,12 @@ Main carries the Phase 2 release. Four lanes merged: `wt-frailty`,
 docs rebuild are separate commits, in that order. **The user pushes; no
 session pushes for them.**
 
-Versions: frmtmb **0.55.2, unchanged for the second round running**,
-frmtmb.eam 0.8.1, frmtmb.learn 0.4.1, frmtmb.spline 0.5.1,
-frmtmb.coupling 0.3.1, frmtmb.ode 0.4.0, frmtmb.latent 0.3.0,
-frmtmb.sample 0.4.1. All four bumps are PATCH because no exported
-function, argument, likelihood, estimate or fitted value moved in any
-lane: this round was documentation, tests and measurement.
+Versions: frmtmb **0.56.0**, frmtmb.sample **0.4.2**, frmtmb.eam 0.8.1,
+frmtmb.learn 0.4.1, frmtmb.spline 0.5.1, frmtmb.coupling 0.3.1, frmtmb.ode
+0.4.0, frmtmb.latent 0.3.0. Core's bump is MINOR because it breaks callers:
+four exported generic signatures now match their owners' formals.
+frmtmb.sample floors on core 0.56.0 as a HARD requirement, because its draws
+method calls two exports no earlier core has.
 
 **Core is not a lane by default.** The user does brms compatibility
 there separately. Phase 2.5 is the exception and they asked for it
@@ -43,21 +43,31 @@ for again.
 
 ## What is next, in order
 
-**Phase 2.5 comes before Phase 3**, and it is the only thing in the plan
-that is a defect in shipped code rather than a gap. Attaching frmtmb
-after brms breaks 15 of 17 generics for brms's OWN objects: frmtmb
-defines rival S3 generics for 27 exported names, brms has methods on 24
-of them, and frmtmb's generic wins the search path while its method
-table has no `brmsfit` entry. The user reported it from their own
-session and has approved 2.5a, 2.5b and 2.5d.
+**Phase 2.5 is done except item 2.5e.** frmtmb no longer breaks brms:
+it stopped owning 28 generics it never owned, adopting them from their real
+owners through a `makeActiveBinding()` installed in `.onLoad`. In every load
+order tested, 27 of 27 brms methods lost at base became 0 of 27.
 
-**Item 2.5c is a decision waiting on the user and it gates 2.5a.**
-`fixef`, `ranef` and `VarCorr` have one owner, lme4; nlme does not
-export them. The options are priced in the row. Do not build 2.5a
-before it is answered, because the answer changes its shape.
+**In flight: the `samplegen` lane**, worktree `frmtmb-wt-samplegen`, which
+gives `frmtmb.sample` the same fix for the 28 generics IT defines. It was told
+to reuse core's `frm_install_generics()` rather than copy it.
 
-Then Phase 3, about 10.5 days, which now includes item 3.6, the
-`rp_floored()` widening filed by item 2.5.
+**Next, in order:**
+
+- **Item 2.5e, a silent wrong answer.** `fitted(fit, re_formula = NA)` is
+  swallowed by `...` and returns the conditional fit. The user set brms as
+  the TIEBREAKER on API conflicts, and nobody uses this package, so a name
+  having shipped is never a reason to keep it.
+- **Phase 2.6, pass brms's own test suite.** Starts by fetching the brms
+  source, since CRAN binaries drop `tests/`, and sizing the work.
+- **tmbstan 1.2.1**, the user's upstream fix kaskr/tmbstan#33. Verify it in
+  a PRIVATE library, then raise the Suggests floor. Keep the StanHeaders pin:
+  it has two reasons and 1.2.1 resolves only one.
+- **`frmtmb_control(vectorize = FALSE)`**, designed under Core seams.
+
+**Settled, do not reopen:** the 40 NON-generic name collisions with brms stay.
+`::` is sufficient in both load orders, tested, because each package resolves
+its own names through its own namespace first.
 
 ## How a round runs here
 

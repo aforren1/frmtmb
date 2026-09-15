@@ -1,3 +1,27 @@
+# frmtmb.sample 0.4.2
+
+* **Requires frmtmb 0.56.0, and the requirement is a hard one.**
+  `hypothesis()` on a `frmtmb_draws` object now arms the note about a
+  covariate that shadows a distributional parameter itself, through
+  `frmtmb::hyp_shadow_arm()` and `hyp_shadow_disarm()`, which no earlier
+  frmtmb exports. Before this release the draws method relied on core's
+  generic to arm that note; once frmtmb 0.56.0 stopped owning the
+  `hypothesis` generic, the note fired on a fitted model and never on
+  draws, in every session and whether or not brms was loaded.
+
+* The generics this package re-exports from frmtmb no longer break
+  brms's methods when brms is loaded. With brms loaded but not
+  attached, 26 of 26 re-exports lost their brms method in 0.4.1 and 0
+  of 26 do now. That repair comes from frmtmb 0.56.0 and reaches this
+  package for free.
+
+* Three method signatures now carry their generics' full formals,
+  because an S3 method must accept every argument its generic declares
+  and the generics are now the owners' rather than frmtmb's.
+
+* This package still DEFINES 28 generics of its own that break brms's
+  methods in the same way frmtmb's did. That is not fixed here.
+
 # frmtmb.sample 0.4.1
 
 * **A broken `tmbstan` now skips the sampler tests instead of erroring

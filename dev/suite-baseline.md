@@ -1,7 +1,7 @@
 # The per-file suite baseline, and what it is for
 
 `dev/suite-baseline.tsv` records one row per test file as of the round 3
-release, at frmtmb 0.55.2 and frmtmb.eam 0.8.1: package, file, passing
+release, at frmtmb 0.56.0 and frmtmb.sample 0.4.2: package, file, passing
 assertions, skips. It is a floor, not a target.
 
 ## Why it exists
@@ -100,3 +100,19 @@ assertions and added two, so the arithmetic closes at 48 - 3 + 2. The
 lane's reviewer had already reconciled it independently, which is the
 cheapest form this question can take: a drop explained in the review is
 a drop nobody has to re-derive at release time.
+
+## What the Phase 2.5 release added
+
+Regenerated at 223 rows and 13247 assertions, from 221 and 13159. No
+count fell. Two files are new, `frmtmb/test-generic-collision.R` at 47
+and `frmtmb/test-scale-contract.R` at 37, and one rose,
+`frmtmb.sample/test-draws-methods.R` from 97 to 101 for the two tests
+that pin the shadowing note on draws. That is 47 + 37 + 4 = 88, the
+whole of the increase.
+
+This is the release where a silent drop was most likely and did not
+happen. The lane's own round found `test-naming-collisions.R` losing 8
+of its 31 assertions under the first design, because `hypothesis()`'s
+note stopped firing once its generic belonged to brms. A file that
+still runs green while asserting less is exactly what this baseline
+exists to catch, and it holds its count here.
