@@ -18,10 +18,13 @@ test_that("the links match brms, except where ndt's bound lives", {
   expect_equal(nm(ow$links$bias), bw$link_bias)   # logit
   expect_equal(nm(ow$links$mu), bw$link)          # identity
 
-  # ndt is the deliberate difference. brms declares a log link and then
-  # bounds the parameter in Stan's parameter block as
-  # `real<lower=0,upper=min_Y> ndt`. frmtmb has no parameter block to
-  # bound, so the same constraint is carried by the link itself.
+  # ndt is the deliberate difference. With no formula on `ndt`, brms
+  # declares a log link and then bounds the parameter in Stan's
+  # parameter block as `real<lower=0,upper=min_Y> ndt`. frmtmb has no
+  # parameter block to bound, so the same constraint is carried by the
+  # link itself. Give `ndt` a formula and brms drops that bound
+  # entirely; the test below reads both spellings off brms's own
+  # generated program.
   expect_equal(nm(ow$links$ndt), "scaled_logit")
   # over the working range the bound holds strictly
   eta <- c(-40, -5, 0, 5, 30)
@@ -33,6 +36,40 @@ test_that("the links match brms, except where ndt's bound lives", {
   # this is a known edge rather than a reachable state.
   expect_equal(ow$links$ndt$linkinv(40), 0.3)
   expect_lt(ddm_lpdf_lower(1e-8, 1, 1.4, 0.5), -1e6)
+})
+
+test_that("brms bounds ndt only where ndt has no formula", {
+  skip_if_not_installed("brms")
+  # WHY this is asserted rather than remembered. The bound is the whole
+  # difference between the two parameterizations, and the sentence above
+  # describes only brms's SCALAR spelling. A hierarchical Wiener writes
+  # `ndt ~ 1 + (1 | s)`, and there brms emits a plain log link with no
+  # upper bound and no uniform prior: what keeps the non-decision time
+  # under the response time is `wiener_diffusion_lpdf` itself rejecting
+  # a row whose decision time is not positive, which is a PER-ROW
+  # constraint and so, through a subject's own rows, a per-subject one.
+  # That is `ndt_group()`'s constraint, not the global one this family
+  # used to carry, and it decides what a brms cross-check of item 2.1
+  # would even be comparing. See dev/eamhier-findings.md.
+  set.seed(3)
+  d <- ddm_simulate(120, mu = 0.8, bs = 1.4, ndt = 0.25)
+  d$s <- factor(rep(1:4, each = 30))
+  scalar <- as.character(brms::make_stancode(
+    brms::bf(rt | dec(upper) ~ 1, bs ~ 1, bias = 0.5),
+    family = brms::wiener(), data = d))
+  formula <- as.character(brms::make_stancode(
+    brms::bf(rt | dec(upper) ~ 1, bs ~ 1, ndt ~ 1 + (1 | s),
+             bias = 0.5),
+    family = brms::wiener(), data = d))
+  # the scalar spelling: bounded in the parameter block, and given the
+  # uniform prior that bound implies
+  expect_match(scalar, "real<lower=0,upper=min_Y> ndt")
+  expect_match(scalar, "uniform_lpdf(ndt | 0, min_Y)", fixed = TRUE)
+  # the formula spelling: neither. Both of the assertions above fail on
+  # this program, which is the point of making them separately.
+  expect_false(grepl("upper=min_Y> ndt", formula, fixed = TRUE))
+  expect_false(grepl("uniform_lpdf(ndt", formula, fixed = TRUE))
+  expect_match(formula, "ndt = exp(ndt)", fixed = TRUE)
 })
 
 test_that("dec() and vint() carry the same 0/1 coding", {

@@ -1,0 +1,50 @@
+== B. power, one sample against a KNOWN 0.95 ==
+  n = 60, rejection region X <= 53 
+    truth 0.95  power 0.0297
+    truth 0.93  power 0.1250
+    truth 0.92  power 0.2020
+    truth 0.90  power 0.3935
+    truth 0.88  power 0.5908
+    truth 0.85  power 0.8152
+    truth 0.80  power 0.9692
+  first n whose power reaches 0.80 at a true 0.90:  180 
+  smallest n from which it STAYS at or above 0.80:  202 
+  two-sample formula, for comparison: power 0.1776, n 434.4
+
+== C. the sv range in the single-level control ==
+  all 60, six smallest:  0.000439 0.194020 0.198021 0.203566 0.230795 0.234448 
+  collapsed:1 usable range: 0.194020 to 0.599008
+  seed of the smallest usable:  20260955 
+
+== F. the within-fit signature of the collapse ==
+  seed 20260935  se(log sv) 589.2506 
+  the others:  mu0 0.019060  mu_cond 0.028371  lbs 0.004641 
+  ndt (link scale), from the refit's confint:  0.050094 
+  ratio to the largest of the other four:  11763 
+  1 of 60, Wilson:  0.3 to 8.9  percent
+
+== E. arm B's ratio is an identity: the residual ==
+  mean 0.9999999419  sd 1.355e-07
+  min 0.9999993784  max 1
+  identical(ratio, 1) for how many: 0 of 30
+  cor(ratio - 1, fitted ndt component):  -0.9355 
+  fitted ndt component: mean 3.801e-05, under 1e-4 on 27 of 30
+
+== the retraction: was 0.694 ordinary noise? ==
+  first 14 seeds: log sv se/sd 0.6936, mu_cond se/sd 0.8452
+  20,000 random 14-subsets: mean 0.963, sd 0.159, 2.5 to 97.5 percent 0.744 to 1.363
+  P(a random 14-subset is at or below 0.694) =  0.0024 
+
+== the variance components against ML shrinkage ==
+  sqrt(1 - 1/30) * (1 - 1/116) = 0.974716, that is 2.53 percent low
+  sd1 mean 0.34743 mcse 0.00591  z vs truth  -0.44  z vs ML   1.06
+  sd2 mean 0.18978 mcse 0.00371  z vs truth  -2.75  z vs ML  -1.39
+
+== the sawtooth is paid for in SIZE ==
+  n  60  region X <=  53  size 0.0297  power at 0.90 0.3935
+  n 180  region X <= 165  size 0.0374  power at 0.90 0.8057
+  n 184  region X <= 169  size 0.0439  power at 0.90 0.8307
+  n 185  region X <= 169  size 0.0240  power at 0.90 0.7643
+  n 199  region X <= 183  size 0.0427  power at 0.90 0.8518
+  n 200  region X <= 183  size 0.0238  power at 0.90 0.7925
+  n 202  region X <= 185  size 0.0259  power at 0.90 0.8053

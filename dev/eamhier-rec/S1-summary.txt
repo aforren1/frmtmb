@@ -1,0 +1,23 @@
+single-level sv control: 60 replicates, n = 12000 rows, sv true 0.4
+  seeds 20260910 to 20260969
+  convergence 0: 60 | pdHess TRUE: 60 | any NaN se: 0
+  fit seconds: median 9.6, max 22.1
+ -- estimates and Wald coverage, nominal 95 --
+  mu0          mean   0.4025  bias   0.0025 (mcse 0.0025)  sd  0.0193  mean se  0.0217  se/sd 1.123  cover 59/60 =  98.3% (91.1,  99.7)
+  mu_cond      mean   0.9025  bias   0.0025 (mcse 0.0043)  sd  0.0331  mean se  0.0329  se/sd 0.995  cover 55/60 =  91.7% (81.9,  96.4)
+  log bs       mean   0.3371  bias   0.0006 (mcse 0.0008)  sd  0.0065  mean se  0.0070  se/sd 1.076  cover 58/60 =  96.7% (88.6,  99.1)
+  log sv       mean  -1.0765  bias  -0.1602 (mcse 0.1175)  sd  0.9102  mean se 10.0688  se/sd 11.062  cover 58/60 =  96.7% (88.6,  99.1)
+  ndt, s       mean   0.2499  bias  -0.0001 (mcse 0.0002)  sd  0.0012  mean se  0.0012  se/sd 0.988  cover 56/60 =  93.3% (84.1,  97.4)
+  sv on the response scale: mean 0.3865, median 0.3971, 0.0004 to 0.5990
+  log sv standard error: median 0.2113, max 589.2506
+  collapsed fits (se > 5x median): 1 of 60, sv = 0.0004392
+  with the collapsed fits removed:
+    log sv     mean  -0.9637  bias  -0.0474 (mcse 0.0335)  sd  0.2577  mean se  0.2521  se/sd 0.978  cover 57/59 =  96.6% (88.5,  99.1)
+    mu_cond    mean   0.9028  bias   0.0028 (mcse 0.0043)  sd  0.0333  mean se  0.0330  se/sd 0.990  cover 54/59 =  91.5% (81.6,  96.3)
+ -- the trade-off, over replicates --
+  cor(sv hat, mu_cond hat)   0.2228 pearson   0.5848 spearman
+  cor(sv hat, mu0 hat)       0.2842 pearson   0.2392 spearman
+  cor(sv hat, ndt hat)      -0.0802 pearson   0.0376 spearman
+  replicates that miss on mu_cond: 20260917 20260938 20260939 20260946 20260958
+  their sv: 0.249 0.399 0.245 0.234 0.204
+  mean sv on the misses 0.2663 against 0.3975 on the rest

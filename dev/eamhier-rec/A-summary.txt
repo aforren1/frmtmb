@@ -1,0 +1,39 @@
+
+== A/pg/30/400  n = 60 replicates ==
+  fits: ok 60, error 0 | conv!=0 0 | pdHess FALSE 0 | any NaN se 0 | flat 0 | extreme_theta 0
+  diagnose unbounded_dpar: none:60
+  fit seconds: median 148.9, max 194.9
+ -- estimates --
+  mu0                    mean    0.40191  mcse  0.00944  sd  0.07315  bias   0.00191  z   0.20  n 60
+  mu_cond                mean    0.90037  mcse  0.00352  sd  0.02725  bias   0.00037  z   0.10  n 60
+  bs = exp(lbs)          mean    1.38996  mcse  0.00672  sd  0.05207  bias  -0.01004  z  -1.49  n 60
+   variance components, in VarCorr order: 1 | s | bs: 1 | s | ndt: 1 | s
+  sd1 (1 | s)            mean    0.34743  mcse  0.00591  sd  0.04577  min    0.2529  max    0.4532  n 60
+  sd2 (bs: 1 | s)        mean    0.18978  mcse  0.00371  sd  0.02872  min    0.1334  max    0.2903  n 60
+  sd3 (ndt: 1 | s)       mean    0.37158  mcse  0.00994  sd  0.07699  min    0.2281  max    0.6358  n 60
+  ndt population, s      mean    0.25499  mcse  0.00074  sd  0.00572  bias   0.00318  z   4.31  n 60
+  ndt bias, ms           mean    2.13314  mcse  0.17226  sd  1.33434  bias   2.13314  z  12.38  n 60
+  ndt per-subject rmse ms mean    7.91806  mcse  0.22240  sd  1.72273  min    4.8184  max   14.3372  n 60
+  ndt spread hat, ms     mean   30.31148  mcse  0.45045  sd  3.48919  min   21.4693  max   38.0634  n 60
+  ndt spread true, ms    mean   30.15729  mcse  0.43741  sd  3.38819  min   22.6539  max   38.2091  n 60
+  ndt corr with truth    mean    0.96659  mcse  0.00200  sd  0.01551  min    0.9108  max    0.9910  n 60
+  logLik                 mean -6137.83825  mcse 95.26736  sd 737.93778  min -7840.5391  max -4481.3977  n 60
+  min margin to floor ms mean   20.85223  mcse  0.58617  sd  4.54049  min   13.8997  max   32.0533  n 60
+  subjects below their own floor: 60 of 60 replicates have all subjects inside
+ -- Wald coverage, nominal 95 --
+  mu0                     54/ 60 =  90.0%  (79.9,  95.3)  truth 0.4        se/sd 0.907  bias/sd  0.026
+  mu_cond                 57/ 60 =  95.0%  (86.3,  98.3)  truth 0.9        se/sd 1.020  bias/sd  0.014
+  log bs                  56/ 60 =  93.3%  (84.1,  97.4)  truth 0.336472   se/sd 0.940  bias/sd -0.212
+  sd(mu|s)                55/ 60 =  91.7%  (81.9,  96.4)  truth 0.35       se/sd 1.050  bias/sd -0.056
+  sd(log bs|s)            54/ 60 =  90.0%  (79.9,  95.3)  truth 0.2        se/sd 0.880  bias/sd -0.356
+  ndt population          37/ 60 =  61.7%  (49.0,  72.9)  truth 0.251806 
+  ndt vs drawn mean       50/ 60 =  83.3%  (72.0,  90.7)  the draw's own mean
+ -- the standardized error, z = (est - truth) / reported se --
+  mu0                    sd(z) 1.148  IQR/1.349 0.935  kurtosis  3.19  |z|>1.96 6 of 60
+  mu_cond                sd(z) 0.979  IQR/1.349 1.006  kurtosis  2.71  |z|>1.96 3 of 60
+  log bs                 sd(z) 1.100  IQR/1.349 1.065  kurtosis  2.52  |z|>1.96 4 of 60
+  sd(mu|s)               sd(z) 1.032  IQR/1.349 0.920  kurtosis  2.93  |z|>1.96 5 of 60
+  sd(log bs|s)           sd(z) 1.183  IQR/1.349 0.952  kurtosis  3.21  |z|>1.96 7 of 60
+  tier assertion z < 4 on ndt: 52 of 60 pass, z median 1.94, max 10.10
+  the same z against the draw's own mean: 60 of 60 under 4, max 2.60
+  per-subject rmse / true spread: 60 of 60 under 1, max 0.468
