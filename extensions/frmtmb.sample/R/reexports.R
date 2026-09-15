@@ -6,9 +6,13 @@
 # `library(frmtmb.sample); loo(ds)` works on its own: one generic per
 # name in the session, whichever of the two packages is attached.
 #
-# The generics with no frmtmb method left - log_lik(), psis(),
-# posterior_epred() and the rest - are DEFINED in this package, not
-# re-exported, and are not on this page.
+# The generics with no frmtmb method left, such as log_lik(), psis() and
+# posterior_epred(), are DEFINED in this package and are not on this
+# page. Each of those names is owned by another package, so each is
+# replaced at load time by a binding to its owner's generic
+# (R/generic-owners.R). The re-exports here need no such step: frmtmb
+# already binds them, and an active binding stays active through the
+# import.
 
 #' @importFrom frmtmb loo
 #' @export

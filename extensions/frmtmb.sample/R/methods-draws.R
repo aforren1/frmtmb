@@ -409,7 +409,9 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
 
 #' @rdname posterior_epred
 #' @export
-posterior_linpred <- function(object, ...) UseMethod("posterior_linpred")
+posterior_linpred <- function(object, transform = FALSE, ...) {
+  UseMethod("posterior_linpred")
+}
 
 #' @rdname posterior_epred
 #' @param transform For `posterior_linpred()`: if `TRUE`, apply the
@@ -1146,13 +1148,14 @@ log_posterior.frmtmb_draws <- function(object, ...) {
 
 #' @rdname draws-diagnostics
 #' @export
-rhat <- function(object, ...) UseMethod("rhat")
+rhat <- function(x, ...) UseMethod("rhat")
 
 #' @rdname draws-diagnostics
 #' @exportS3Method bayesplot::rhat
+#' @rawNamespace S3method(posterior::rhat,frmtmb_draws)
 #' @export
-rhat.frmtmb_draws <- function(object, ...) {
-  draws_bayesplot_ns("rhat()")$rhat(object$stanfit, ...)
+rhat.frmtmb_draws <- function(x, ...) {
+  draws_bayesplot_ns("rhat()")$rhat(x$stanfit, ...)
 }
 
 #' @rdname draws-diagnostics
@@ -1252,7 +1255,7 @@ pp_mixture.frmtmb_draws <- function(x, summary = TRUE, ndraws = NULL,
 #' the vignette-port audit measured most of its post-processing failures
 #' as.
 #'
-#' @param object,x,... Ignored; these functions always stop.
+#' @param object,x,pars,... Ignored; these functions always stop.
 #' @return These functions never return; they signal an error.
 #' @examples
 #' \donttest{
@@ -1349,12 +1352,15 @@ restructure.frmtmb_draws <- function(x, ...) {
 
 #' @rdname frmtmb-draws-refusals
 #' @export
-posterior_samples <- function(x, ...) UseMethod("posterior_samples")
+posterior_samples <- function(x, pars = NA, ...) {
+  UseMethod("posterior_samples")
+}
 
 #' @rdname frmtmb-draws-refusals
 #' @exportS3Method brms::posterior_samples
+#' @rawNamespace S3method(gratia::posterior_samples,frmtmb_draws)
 #' @export
-posterior_samples.frmtmb_draws <- function(x, ...) {
+posterior_samples.frmtmb_draws <- function(x, pars = NA, ...) {
   stop("posterior_samples() is the deprecated brms spelling. Use ",
        "as_draws(x) for a posterior draws_matrix, as.matrix(x) for a ",
        "plain matrix, or as.data.frame(x)", call. = FALSE)

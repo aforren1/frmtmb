@@ -191,6 +191,34 @@
 #' settings and neither can double as unset; `re_form_arg()` resolves
 #' the pair, refusing rather than guessing when both are given.
 #'
+#' @section The borrowed-generic seam:
+#' An extension that DEFINES a generic under a name another package
+#' owns breaks that package. `UseMethod()` reads the method table of
+#' the namespace where the generic it reached was defined, so the
+#' extension's generic, reached first on the search path, sends the
+#' owner's objects into a table with no method for them. Delayed
+#' registration with `S3method(pkg::generic, class)` does not prevent
+#' this: it puts the extension's method in the owner's table, and it
+#' does nothing about the extension's rival generic.
+#'
+#' `frm_install_generics(pkgname, owners)` is the repair frmtmb applies
+#' to itself. `owners` is a named list with one entry per generic name,
+#' each a character vector of the packages that own that name, in the
+#' order to prefer when more than one is loaded and none is attached.
+#' Each name becomes an active binding that returns the owner's generic
+#' while the owner is loaded, and the package's own generic while it is
+#' not. Call it FIRST in the extension's own `.onLoad()`, with the
+#' extension's `pkgname`: the binding can only be installed while the
+#' namespace is unsealed, which is during that call and at no later
+#' time.
+#'
+#' Three rules come with it. The extension's own generic must be a bare
+#' `UseMethod()`, because whenever the owner is loaded that generic is
+#' not the one that runs. Its formals must match the owner's. And every
+#' method must be registered twice, with `S3method(generic, class)` for
+#' the package's own table and `S3method(owner::generic, class)` for
+#' each owner's, or it is unreachable while that owner is loaded.
+#'
 #' @param frame An assembled model frame (`fit$frame`).
 #' @param bk One element of `frame$re_blocks`.
 #' @param fit A `frmtmb_fit`.
@@ -282,6 +310,7 @@
 #' @aliases find_linpred
 #' @aliases arg_unset
 #' @aliases re_form_arg
+#' @aliases frm_install_generics
 #' @rawNamespace export(build_objective, row_lpdf, with_cs_offsets,
 #'   us_chol_cor, aterms_for_newdata, has_trunc, as_priorlist,
 #'   resolve_prior_input, neg_log_prior_fn, resolve_bounds, spec_target,
@@ -297,7 +326,7 @@
 #'   ce_cats_display, ce_display_kind, ce_pred_dpar, ce_group_vars,
 #'   ce_new_level_spec, ce_boot_grids, ce_draw_new_levels,
 #'   ce_structure_check, ce_re_formula, ce_dots, find_linpred,
-#'   arg_unset, re_form_arg)
+#'   arg_unset, re_form_arg, frm_install_generics)
 NULL
 
 # ---- the prior-defaults registry -------------------------------------

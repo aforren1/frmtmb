@@ -1,0 +1,11 @@
+frmtmb from: C:/Users/adf44/source/r/samplegen-lib/frmtmb  version 0.55.2
+
+FILE    tests/testthat/test-spectral.R 
+BLOCKS  21 
+ASSERT  113 
+PASS    113 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    3.9 

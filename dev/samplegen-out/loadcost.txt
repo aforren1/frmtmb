@@ -1,0 +1,13 @@
+Sys.time() tick here: min 0.0000010 s, median 0.0000019 s
+
+25 rounds, 100 fresh processes, arms shuffled per round
+arm                        min    median
+sample_BASE             0.1829    0.2024
+sample_FIX              0.1841    0.2072
+control_core_BASE       0.1544    0.1687
+control_core_FIX        0.1544    0.1684
+
+paired per-round difference, median [95% bootstrap interval]
+frmtmb.sample FIX - BASE   +0.0000 s [-0.0063, +0.0059]
+CONTROL frmtmb FIX - BASE  -0.0021 s [-0.0056, +0.0031]
+seed 20260915, B = 20000

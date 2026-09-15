@@ -1,0 +1,4 @@
+[1] TRUE
+** building package indices
+** installing vignettes
+* DONE (frmtmb.sample)

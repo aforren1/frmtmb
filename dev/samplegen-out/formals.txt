@@ -1,0 +1,181 @@
+<environment: namespace:brms>
+<environment: namespace:frmtmb.sample>
+
+as.mcmc
+  frmtmb.sample   (x, ...)
+    its method    (x, combine_chains = FALSE, ...)
+  coda            (x, ...)  body: UseMethod("as.mcmc")
+  brmsfit method  (x, pars = NA, fixed = FALSE, combine_chains = FALSE, inc_warmup = FALSE, ...)
+
+bayes_factor
+  frmtmb.sample   (x, ...)
+    its method    (x, ...)
+  bridgesampling  (x1, x2, log = FALSE, ...)  body: {     UseMethod("bayes_factor", x1) }
+  brmsfit method  (x1, x2, log = FALSE, ...)
+
+bridge_sampler
+  frmtmb.sample   (x, ...)
+    its method    (x, ...)
+  bridgesampling  (samples, ...)  body: {     UseMethod("bridge_sampler", samples) }
+  brmsfit method  (samples, recompile = FALSE, ...)
+
+post_prob
+  frmtmb.sample   (x, ...)
+    its method    (x, ...)
+  bridgesampling  (x, ..., prior_prob = NULL, model_names = NULL)  body: {     UseMethod("post_prob", x) }
+  brmsfit method  (x, ..., prior_prob = NULL, model_names = NULL)
+
+kfold
+  frmtmb.sample   (x, ...)
+    its method    (x, ...)
+  loo             (x, ...)  body: {     UseMethod("kfold") }
+  brmsfit method  (x, ..., K = 10, Ksub = NULL, folds = NULL, group = NULL, joint = FALSE, compare = TRUE, resp = NULL, model_names = NULL, save_fits = FALSE, recompile = NULL, future_args = list())
+
+loo_moment_match
+  frmtmb.sample   (x, ...)
+    its method    (x, ...)
+  loo             (x, ...)  body: {     UseMethod("loo_moment_match") }
+  brmsfit method  (x, loo = NULL, k_threshold = 0.7, newdata = NULL, resp = NULL, check = TRUE, recompile = FALSE, ...)
+
+loo_subsample
+  frmtmb.sample   (x, ...)
+    its method    (x, ...)
+  loo             (x, ...)  body: {     UseMethod("loo_subsample") }
+  brmsfit method  (x, ..., compare = TRUE, resp = NULL, model_names = NULL)
+
+psis
+  frmtmb.sample   (log_ratios, ...)
+    its method    (log_ratios, ndraws = NULL, resp = NULL, ...)
+  loo             (log_ratios, ...)  body: UseMethod("psis")
+  brmsfit method  (log_ratios, newdata = NULL, resp = NULL, model_name = NULL, ...)
+
+log_lik
+  frmtmb.sample   (object, ...)
+    its method    (object, ndraws = NULL, resp = NULL, ...)
+  rstantools      (object, ...)  body: {     UseMethod("log_lik") }
+  brmsfit method  (object, newdata = NULL, re_formula = NULL, resp = NULL, ndraws = NULL, draw_ids = NULL, pointwise = FALSE, combine = TRUE, add_point_estimate = FALSE, cores = NULL, ...)
+
+nsamples
+  frmtmb.sample   (object, ...)
+    its method    (object, ...)
+  rstantools      (object, ...)  body: {     UseMethod("nsamples") }
+  brmsfit method  (object, subset = NULL, incl_warmup = FALSE, ...)
+
+posterior_epred
+  frmtmb.sample   (object, ...)
+    its method    (object, newdata = NULL, resp = NULL, re_formula = arg_unset(), re.form = arg_unset(), ndraws = NULL, ...)
+  rstantools      (object, ...)  body: {     UseMethod("posterior_epred") }
+  brmsfit method  (object, newdata = NULL, re_formula = NULL, re.form = NULL, resp = NULL, dpar = NULL, nlpar = NULL, ndraws = NULL, draw_ids = NULL, sort = FALSE, ...)
+
+posterior_interval
+  frmtmb.sample   (object, ...)
+    its method    (object, prob = 0.95, variable = NULL, ...)
+  rstantools      (object, ...)  body: {     UseMethod("posterior_interval") }
+  brmsfit method  (object, pars = NA, variable = NULL, prob = 0.95, ...)
+
+posterior_linpred
+  frmtmb.sample   (object, ...)
+    its method    (object, transform = FALSE, newdata = NULL, resp = NULL, re_formula = arg_unset(), re.form = arg_unset(), dpar = NULL, ndraws = NULL, ...)
+  rstantools      (object, transform = FALSE, ...)  body: {     UseMethod("posterior_linpred") }
+  brmsfit method  (object, transform = FALSE, newdata = NULL, re_formula = NULL, re.form = NULL, resp = NULL, dpar = NULL, nlpar = NULL, incl_thres = NULL, ndraws = NULL, draw_ids = NULL, sort = FALSE, ...)
+
+posterior_predict
+  frmtmb.sample   (object, ...)
+    its method    (object, newdata = NULL, resp = NULL, re_formula = arg_unset(), re.form = arg_unset(), ndraws = NULL, ...)
+  rstantools      (object, ...)  body: {     UseMethod("posterior_predict") }
+  brmsfit method  (object, newdata = NULL, re_formula = NULL, re.form = NULL, transform = NULL, resp = NULL, negative_rt = FALSE, ndraws = NULL, draw_ids = NULL, sort = FALSE, ntrys = 5, cores = NULL, ...)
+
+predictive_error
+  frmtmb.sample   (object, ...)
+    its method    (object, resp = NULL, re_formula = arg_unset(), re.form = arg_unset(), ndraws = NULL, ...)
+  rstantools      (object, ...)  body: {     UseMethod("predictive_error") }
+  brmsfit method  (object, newdata = NULL, re_formula = NULL, re.form = NULL, method = "posterior_predict", resp = NULL, ndraws = NULL, draw_ids = NULL, sort = FALSE, ...)
+
+predictive_interval
+  frmtmb.sample   (object, ...)
+    its method    (object, prob = 0.9, newdata = NULL, resp = NULL, re_formula = arg_unset(), re.form = arg_unset(), ndraws = NULL, ...)
+  rstantools      (object, ...)  body: {     UseMethod("predictive_interval") }
+  brmsfit method  (object, prob = 0.9, ...)
+
+log_posterior
+  frmtmb.sample   (object, ...)
+    its method    (object, ...)
+  bayesplot       (object, ...)  body: {     UseMethod("log_posterior") }
+  brmsfit method  (object, ...)
+
+neff_ratio
+  frmtmb.sample   (object, ...)
+    its method    (object, ...)
+  bayesplot       (object, ...)  body: {     UseMethod("neff_ratio") }
+  brmsfit method  (object, pars = NULL, ...)
+
+nuts_params
+  frmtmb.sample   (object, ...)
+    its method    (object, ...)
+  bayesplot       (object, ...)  body: {     UseMethod("nuts_params") }
+  brmsfit method  (object, pars = NULL, ...)
+
+rhat
+  frmtmb.sample   (object, ...)
+    its method    (object, ...)
+  posterior       (x, ...)  body: UseMethod("rhat")
+  bayesplot       (object, ...)  body: {     UseMethod("rhat") }
+  brmsfit method  (x, pars = NULL, ...)
+
+mcmc_plot
+  frmtmb.sample   (object, ...)
+    its method    (object, type = "intervals", variable = NULL, ...)
+  brms            (object, ...)  body: {     UseMethod("mcmc_plot") }
+  brmsfit method  (object, pars = NA, type = "intervals", variable = NULL, regex = FALSE, fixed = FALSE, ...)
+
+parnames
+  frmtmb.sample   (x, ...)
+    its method    (x, ...)
+  brms            (x, ...)  body: {     warning2("'parnames' is deprecated. Please use 'variables' instead.")     UseMethod("parnames") }
+  brmsfit method  (x, ...)
+
+posterior_samples
+  frmtmb.sample   (x, ...)
+    its method    (x, ...)
+  brms            (x, pars = NA, ...)  body: {     warning2("Method 'posterior_samples' is deprecated. ", "Please see ?as_draws for recommended alternatives.")     UseMethod("posterior_samples") }
+  gratia          (model, ...)  body: {     UseMethod("posterior_samples") }
+  brmsfit method  (x, pars = NA, fixed = FALSE, add_chain = FALSE, subset = NULL, as.matrix = FALSE, as.array = FALSE, ...)
+
+pp_mixture
+  frmtmb.sample   (x, ...)
+    its method    (x, summary = TRUE, ndraws = NULL, ...)
+  brms            (x, ...)  body: {     UseMethod("pp_mixture") }
+  brmsfit method  (x, newdata = NULL, re_formula = NULL, resp = NULL, ndraws = NULL, draw_ids = NULL, log = FALSE, summary = TRUE, robust = FALSE, probs = c(0.025, 0.975), ...)
+
+reloo
+  frmtmb.sample   (x, ...)
+    its method    (x, ...)
+  brms            (x, ...)  body: {     UseMethod("reloo") }
+  brmsfit method  (x, loo = NULL, k_threshold = 0.7, newdata = NULL, resp = NULL, check = TRUE, recompile = NULL, future_args = list(), ...)
+
+restructure
+  frmtmb.sample   (x, ...)
+    its method    (x, ...)
+  brms            (x, ...)  body: {     UseMethod("restructure") }
+  brmsfit method  (x, ...)
+
+stancode
+  frmtmb.sample   (object, ...)
+    its method    (object, ...)
+  brms            (object, ...)  body: {     UseMethod("stancode") }
+  brmsfit method  (object, version = TRUE, regenerate = NULL, threads = NULL, backend = NULL, ...)
+
+standata
+  frmtmb.sample   (object, ...)
+    its method    (object, ...)
+  brms            (object, ...)  body: {     UseMethod("standata") }
+  brmsfit method  (object, newdata = NULL, re_formula = NULL, newdata2 = NULL, new_objects = NULL, incl_autocor = TRUE, ...)
+
+coda            0.19.4.1
+bridgesampling  1.2.1
+loo             2.10.1
+rstantools      2.7.1
+bayesplot       1.16.0
+posterior       1.7.0
+brms            2.23.0
+gratia          0.11.2

@@ -419,3 +419,24 @@ test_that("every borrowed method frmtmb registers has its owner's twin", {
   expect_equal(missing_twins(m[-drop, , drop = FALSE]),
                sort(c(deliberate, "loo::loo.frmtmb_fit")))
 })
+
+test_that("frm_install_generics() takes a table and refuses a bad one", {
+  # frmtmb.sample calls this from its own .onLoad with its own table, so
+  # the table is an argument. A malformed one must be refused: a loop
+  # over a table with no usable names installs nothing and says nothing,
+  # which is the defect back again with a green load.
+  bad <- list(list(), list("posterior"), list(a = 1), list(a = character()),
+              list(a = NA_character_), setNames(list("loo"), ""))
+  for (b in bad) {
+    expect_error(frm_install_generics("frmtmb", owners = b),
+                 "named list of non-empty character vectors")
+  }
+  # the inverse: a well-formed table is accepted, and a name frmtmb has
+  # already bound is left as it is rather than re-captured
+  ns <- asNamespace("frmtmb")
+  before <- bindingIsActive("loo", ns)
+  expect_true(before)
+  expect_identical(frm_install_generics("frmtmb", owners = list(loo = "loo")),
+                   "loo")
+  expect_true(bindingIsActive("loo", ns))
+})

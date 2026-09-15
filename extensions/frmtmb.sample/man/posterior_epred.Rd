@@ -21,7 +21,7 @@ posterior_epred(object, ...)
   ...
 )
 
-posterior_linpred(object, ...)
+posterior_linpred(object, transform = FALSE, ...)
 
 \method{posterior_linpred}{frmtmb_draws}(
   object,

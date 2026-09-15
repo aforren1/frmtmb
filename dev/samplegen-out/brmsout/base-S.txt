@@ -1,0 +1,23 @@
+as.mcmc              ERROR 60cec1d8d4ac7f54ff52d85d72ec8a25 c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'as.mcmc' applied to an object of c
+log_lik              ERROR 7fa3a98df1ea3ceae9e8387d0a9e4589 c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'log_lik' applied to an object of c
+log_posterior        ERROR bccd9249364c309a42e7d3b0b7c2851d c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'log_posterior' applied to an objec
+loo_subsample        ERROR 829cc0aebe5a0d35013a12d5771362d6 c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'loo_subsample' applied to an objec
+mcmc_plot            ERROR 600294642b614c0f1048cfa94c8ddb4a c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'mcmc_plot' applied to an object of
+neff_ratio           ERROR 5b381fa93f669d95ae8bd8bef6d3088b c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'neff_ratio' applied to an object o
+nsamples             ERROR e603258b68e75e76d3699fb6eecd4246 c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'nsamples' applied to an object of 
+nuts_params          ERROR d70b8fc90eff08a1a73cfee1b5d73e8d c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'nuts_params' applied to an object 
+parnames             ERROR 0515969c3320792ff1973e5f336315bb c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'parnames' applied to an object of 
+posterior_epred      ERROR e9bc14cea3eb1e1d2bc842e1b9c76a1c c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'posterior_epred' applied to an obj
+posterior_interval   ERROR b92fab8d3789d4dcb12154b6dee129ba c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'posterior_interval' applied to an 
+posterior_linpred    ERROR db6a5c67421b3fe30a4c69f1fca6cd0b c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'posterior_linpred' applied to an o
+posterior_predict    ERROR 5b20d442eff5850fb68462709b7741e5 c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'posterior_predict' applied to an o
+posterior_samples    ERROR d39ef3d07b284717936622282f8b06b1 c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'posterior_samples' applied to an o
+pp_mixture           ERROR 8641c770cddcfe879b83661ebedbf4a6 c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'pp_mixture' applied to an object o
+predictive_error     ERROR 627e7ca915f268bbd48b0bf09a1f3f1d c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'predictive_error' applied to an ob
+predictive_interval  ERROR e7d656ec4e548ccc2070c73e1b74cb5a c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'predictive_interval' applied to an
+psis                 ERROR 2b7580972b2a8e4f4bd47ee3c5fb1261 c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'psis' applied to an object of clas
+restructure          ERROR 9301bb61d445e7fe2e093b8c11e00b31 c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'restructure' applied to an object 
+rhat                 ERROR 16af118e285716bee80210b0261598d3 c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'rhat' applied to an object of clas
+stancode             ERROR 0103b34c41e0de1c55fa3cac5ca8ca79 c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'stancode' applied to an object of 
+standata             ERROR 9c909ab49918f4921856f7117d146b06 c7dc0cdbac5c1b9214448cf4d8102862  no applicable method for 'standata' applied to an object of 
+DONE

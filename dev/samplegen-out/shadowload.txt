@@ -1,0 +1,24 @@
+BUILD rellib-r3 shadow first 
+  SHADOW posterior without rhat loaded 
+  FRMTMB.SAMPLE loaded 
+BUILD rellib-r3 sample first 
+  FRMTMB.SAMPLE loaded 
+  SHADOW posterior without rhat loaded 
+BUILD rellib-r3 shadow first 
+  SHADOW gratia without posterior_samples loaded 
+  FRMTMB.SAMPLE loaded 
+BUILD rellib-r3 sample first 
+  FRMTMB.SAMPLE loaded 
+  SHADOW gratia without posterior_samples loaded 
+BUILD samplegen-lib shadow first 
+  SHADOW posterior without rhat loaded 
+  FRMTMB.SAMPLE FAILED: object 'rhat' not found 
+BUILD samplegen-lib sample first 
+  FRMTMB.SAMPLE loaded 
+  SHADOW posterior without rhat loaded 
+BUILD samplegen-lib shadow first 
+  SHADOW gratia without posterior_samples loaded 
+  FRMTMB.SAMPLE FAILED: object 'posterior_samples' not found 
+BUILD samplegen-lib sample first 
+  FRMTMB.SAMPLE loaded 
+  SHADOW gratia without posterior_samples loaded 

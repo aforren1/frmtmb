@@ -1,0 +1,48 @@
+```
+== frmtmb.sample collision table, dev/samplegen-check.R ==
+one process per row; lookup in the method table of environment(generic)
+brmsfit: brms's class method unreachable (rows where brms is loaded)
+draws:   the method that would run for a frmtmb_draws is not this
+         package's own (a foreign .default counts as a failure)
+owners:  owner class methods the CONTROL reaches and the test does not
+
+build mode order                                     brmsfit   draws   owners
+BASE  S    brms, then frmtmb.sample                  28/28     0/28    77/77
+  resolves: frmtmb.sample=28 | active in namespace: FALSE 
+BASE  T    frmtmb.sample, then brms                  0/28      1/28    0/77
+  draws to a foreign .default: rhat<-posterior.default
+  resolves: bayesplot=3 bridgesampling=3 brms=8 coda=1 loo=4 posterior=1 rstantools=8 | active in namespace: FALSE 
+BASE  U    frmtmb.sample; brms only loaded           28/28     0/28    0/0
+BASE  I    brms; an importer loaded, probed inside   28/28     0/28    n/a
+  resolves: frmtmb.sample=28 | active in namespace: FALSE | in importer: FALSE
+BASE  D    brms, sample; detach and reattach both    0/28      1/28    0/77
+BASE  R    loo, sample; loo unloaded; brms loaded    28/28     0/28    0/0
+  psis resolves to frmtmb.sample  stale: TRUE
+  resolves: frmtmb.sample=28 | active in namespace: FALSE 
+BASE  N    frmtmb.sample alone                       n/a       0/28    0/0
+BASE  P    7 other owners, then frmtmb.sample        n/a       0/28    41/41
+BASE  Q    frmtmb.sample, then 7 other owners        n/a       1/28    0/41
+  draws to a foreign .default: posterior_samples<-gratia.default
+  resolves: bayesplot=4 bridgesampling=3 coda=1 frmtmb.sample=7 gratia=1 loo=4 rstantools=8 | active in namespace: FALSE 
+BASE  G    gratia, then frmtmb.sample                n/a       0/28    3/3
+  posterior_samples.gam reachable: FALSE
+  resolves: frmtmb.sample=28 | active in namespace: FALSE 
+FIX   S    brms, then frmtmb.sample                  0/28      0/28    0/77
+  resolves: bayesplot=3 bridgesampling=3 brms=8 coda=1 loo=4 posterior=1 rstantools=8 | active in namespace: TRUE 
+FIX   T    frmtmb.sample, then brms                  0/28      0/28    0/77
+  resolves: bayesplot=3 bridgesampling=3 brms=8 coda=1 loo=4 posterior=1 rstantools=8 | active in namespace: TRUE 
+FIX   U    frmtmb.sample; brms only loaded           0/28      0/28    0/0
+FIX   I    brms; an importer loaded, probed inside   0/28      0/28    n/a
+  resolves: bayesplot=3 bridgesampling=3 brms=8 coda=1 loo=4 posterior=1 rstantools=8 | active in namespace: TRUE | in importer: TRUE
+FIX   D    brms, sample; detach and reattach both    0/28      0/28    0/77
+FIX   R    loo, sample; loo unloaded; brms loaded    0/28      0/28    0/0
+  psis resolves to loo  stale: FALSE
+  resolves: bayesplot=3 bridgesampling=3 brms=8 coda=1 loo=4 posterior=1 rstantools=8 | active in namespace: TRUE 
+FIX   N    frmtmb.sample alone                       n/a       0/28    0/0
+FIX   P    7 other owners, then frmtmb.sample        n/a       0/28    0/41
+FIX   Q    frmtmb.sample, then 7 other owners        n/a       0/28    0/41
+  resolves: bayesplot=4 bridgesampling=3 coda=1 frmtmb.sample=7 gratia=1 loo=4 rstantools=8 | active in namespace: TRUE 
+FIX   G    gratia, then frmtmb.sample                n/a       0/28    0/3
+  posterior_samples.gam reachable: TRUE
+  resolves: coda=1 frmtmb.sample=26 gratia=1 | active in namespace: TRUE 
+```

@@ -8,6 +8,10 @@
 
 #' @noRd
 .onLoad <- function(libname, pkgname) {
+  # First, and here rather than anywhere later: the active bindings can
+  # only be installed while this namespace is unsealed, and loadNamespace()
+  # seals it as soon as this hook returns (R/generic-owners.R).
+  frm_install_generics(pkgname, sample_generic_owners)
   # expects =: hmm and lca belong to frmtmb.latent, which this package
   # only suggests, so the two rules naming them are a forward reference
   # rather than a misspelling. Declaring them is what says so; without

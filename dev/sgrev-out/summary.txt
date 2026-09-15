@@ -1,0 +1,81 @@
+== reviewer collision probe, dev/sgrev-probe.R ==
+one process per cell; TEST vs a CONTROL process with the same
+order and frmtmb.sample absent. lookup = caller env, then the
+.__S3MethodsTable__. of environment(generic).
+brmsfit: control reaches a brmsfit method, test does not reach the same one
+draws:   frmtmb_draws method that would run is not frmtmb.sample's (a foreign .default counts as lost)
+owners:  (name,class) pairs the control resolves to a CLASS method and the test does not reach
+gS3:     the same comparison through getS3method()
+
+build mode order                                      brmsfit   draws   owners    gS3      
+BASE  S    brms, then frmtmb.sample                   28/28     0/28    39/39     67/67    
+      active in namespace: 0/28
+BASE  T    frmtmb.sample, then brms                   0/28      1/28    0/39      0/67     
+      draws lost:  DRAWS:rhat<-posterior.default 
+      active in namespace: 0/28
+BASE  U    frmtmb.sample; brms only loaded            0/0       0/28    0/0       0/0      
+      active in namespace: 0/28
+BASE  N    frmtmb.sample alone                        0/0       0/28    0/0       0/0      
+      active in namespace: 0/28
+BASE  P    7 other owners, then frmtmb.sample         0/0       0/28    29/29     28/29    
+      active in namespace: 0/28
+BASE  Q    frmtmb.sample, then 7 other owners         0/0       2/28    0/29      0/29     
+      draws lost:  DRAWS:posterior_samples<-gratia.default DRAWS:rhat<-posterior.default 
+      active in namespace: 0/28
+BASE  G    gratia, then frmtmb.sample                 0/0       0/28    2/2       2/2      
+      active in namespace: 0/28
+BASE  D    brms, sample; detach and reattach both     28/28     0/28    39/39     67/67    
+      active in namespace: 0/28
+BASE  R    loo, sample; loo unloaded; brms loaded     0/28      1/28    0/39      0/67     
+      draws lost:  DRAWS:rhat<-posterior.default 
+      notes:  loo namespace loaded after unload: FALSE 
+      active in namespace: 0/28
+BASE  RN   brms attached; sample requireNamespace ONLY 0/28      1/28    0/39      0/67     
+      draws lost:  DRAWS:rhat<-posterior.default 
+      notes:  frmtmb.sample attached: FALSE 
+      active in namespace: 0/28
+BASE  RN2  sample requireNamespace ONLY; then brms    0/28      1/28    0/39      0/67     
+      draws lost:  DRAWS:rhat<-posterior.default 
+      active in namespace: 0/28
+BASE  BR   both attached; brms unloaded and RELOADED  0/28      1/28    0/39      0/67     
+      draws lost:  DRAWS:rhat<-posterior.default 
+      notes:  brms namespace loaded after unload: FALSE | brms reloaded, same namespace env: FALSE 
+      active in namespace: 0/28
+BASE  CA   brms, frmtmb, then frmtmb.sample           28/28     0/28    39/39     67/67    
+      active in namespace: 0/28
+BASE  CA2  brms, frmtmb.sample, then frmtmb           28/28     0/28    39/39     67/67    
+      active in namespace: 0/28
+FIX   S    brms, then frmtmb.sample                   0/28      0/28    0/39      0/67     
+      active in namespace: 28/28
+FIX   T    frmtmb.sample, then brms                   0/28      0/28    0/39      0/67     
+      active in namespace: 28/28
+FIX   U    frmtmb.sample; brms only loaded            0/0       0/28    0/0       0/0      
+      active in namespace: 28/28
+FIX   N    frmtmb.sample alone                        0/0       0/28    0/0       0/0      
+      active in namespace: 28/28
+FIX   P    7 other owners, then frmtmb.sample         0/0       0/28    0/29      0/29     
+      active in namespace: 28/28
+FIX   Q    frmtmb.sample, then 7 other owners         0/0       0/28    0/29      0/29     
+      active in namespace: 28/28
+FIX   G    gratia, then frmtmb.sample                 0/0       0/28    0/2       0/2      
+      active in namespace: 28/28
+FIX   D    brms, sample; detach and reattach both     0/28      0/28    0/39      0/67     
+      active in namespace: 28/28
+FIX   R    loo, sample; loo unloaded; brms loaded     0/28      0/28    0/39      0/67     
+      notes:  loo namespace loaded after unload: FALSE 
+      active in namespace: 28/28
+FIX   RN   brms attached; sample requireNamespace ONLY 0/28      0/28    0/39      0/67     
+      notes:  frmtmb.sample attached: FALSE 
+      active in namespace: 28/28
+FIX   RN2  sample requireNamespace ONLY; then brms    0/28      0/28    0/39      0/67     
+      active in namespace: 28/28
+FIX   BR   both attached; brms unloaded and RELOADED  0/28      0/28    0/39      0/67     
+      notes:  brms namespace loaded after unload: FALSE | brms reloaded, same namespace env: FALSE 
+      active in namespace: 28/28
+FIX   CA   brms, frmtmb, then frmtmb.sample           0/28      0/28    0/39      0/67     
+      active in namespace: 28/28
+FIX   CA2  brms, frmtmb.sample, then frmtmb           0/28      0/28    0/39      0/67     
+      active in namespace: 28/28
+
+resolutions that came from the CALLER-ENV leg (leg 1):  0 
+DONE

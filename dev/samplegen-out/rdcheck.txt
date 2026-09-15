@@ -1,0 +1,13 @@
+ok   frmtmb-sampling-api.Rd                        The borrowed-generic seam
+ok   frmtmb-sampling-api.Rd                        frm_install_generics(pkgname, owners)
+ok   frmtmb-sampling-api.Rd                        S3method(owner::generic, class)
+ok   frmtmb-sampling-api.Rd                        bare UseMethod()
+ok   frmtmb-loo-refusals.Rd                        bridge_sampler(samples, ...)
+ok   frmtmb-loo-refusals.Rd                        bayes_factor(x1, x2, log = FALSE, ...)
+ok   frmtmb-loo-refusals.Rd                        post_prob(x, ..., prior_prob = NULL, model_names = NULL)
+ok   frmtmb-loo-refusals.Rd                        x, x1, x2, samples, log, prior_prob, model_names, ...
+ok   draws-diagnostics.Rd                          rhat(x, ...)
+ok   frmtmb-draws-refusals.Rd                      posterior_samples(x, pars = NA, ...)
+ok   frmtmb-draws-refusals.Rd                      object, x, pars, ...
+ok   posterior_epred.Rd                            posterior_linpred(object, transform = FALSE, ...)
+missing: 0 

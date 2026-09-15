@@ -1,0 +1,24 @@
+<environment: namespace:brms>
+as.mcmc              value 89be2871fce9b9da13cec47d9c60372f 6ae5a120a0bb11216a4da446b1f2a059  
+log_lik              value 29745abd2e41c6e4968a56a2c77669e3 c7dc0cdbac5c1b9214448cf4d8102862  
+log_posterior        value 6de31fceb9b32cf94114563307178f6e c7dc0cdbac5c1b9214448cf4d8102862  
+loo_subsample        value 2a1a2314a704d899883f096a95b4e872 c7dc0cdbac5c1b9214448cf4d8102862  
+mcmc_plot            value 1837cf888e54a136f1ff2131d45b8fef c7dc0cdbac5c1b9214448cf4d8102862  
+neff_ratio           value a526742e1258a5839866656f34c83fa7 c7dc0cdbac5c1b9214448cf4d8102862  
+nsamples             value 52bb52c36661169a16232b7693132a41 6362dcc5c5c4943fc59fd0544de5045a  
+nuts_params          value 09d489da7ab83f9decea04fef5b63b80 c7dc0cdbac5c1b9214448cf4d8102862  
+parnames             value 35ef548797c4d2df519d16fdc2c57d11 d6f68fc7f0ac84479792af128ef4863d  
+posterior_epred      value 31b1c442e0097d865899cfe9594eff71 c7dc0cdbac5c1b9214448cf4d8102862  
+posterior_interval   value a78bf884f9f1abcdc5da47a4609ac615 c7dc0cdbac5c1b9214448cf4d8102862  
+posterior_linpred    value 67d3a866835e890f20b39abd992fd30b c7dc0cdbac5c1b9214448cf4d8102862  
+posterior_predict    value 172e392afab37452bde91a2fb3113978 c7dc0cdbac5c1b9214448cf4d8102862  
+posterior_samples    value d4a23b255730282f92bf2be84820b085 b3cb1380d0facca572a7cfd5b4ef9273  
+pp_mixture           ERROR 1d9d99e92f0c0a2816c186f7128aea82 c7dc0cdbac5c1b9214448cf4d8102862  Method 'pp_mixture' can only be applied to mixture models.
+predictive_error     value 87cc1cf4ba7e2fbfeed7ce691aeffc57 c7dc0cdbac5c1b9214448cf4d8102862  
+predictive_interval  value 38ed92c0aba2376efb444a53ae9949a2 c7dc0cdbac5c1b9214448cf4d8102862  
+psis                 value e0163a2e84910adae527903cfa83358a c7dc0cdbac5c1b9214448cf4d8102862  
+restructure          value 879c6c6c56ba1c84c6b3bee5bc9974cb c7dc0cdbac5c1b9214448cf4d8102862  
+rhat                 value 3f9b8a52bce49f2d77680bbc23b768e6 c7dc0cdbac5c1b9214448cf4d8102862  
+stancode             value b44a4514bee3bc6df8dd0969c14cf2de c7dc0cdbac5c1b9214448cf4d8102862  
+standata             value 89f4f3ba5c709105007e4005c235f1b5 c7dc0cdbac5c1b9214448cf4d8102862  
+DONE

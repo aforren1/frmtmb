@@ -485,20 +485,36 @@ test_that("a group-unit matrix says so, because loo() cannot", {
   # The message is the only place a caller learns which they asked for.
   ll <- matrix(rnorm(30), 5, 6)
   attr(ll, "unit") <- "one subject's trial sequence"
+  # The METHOD is mocked, not the generic. `log_lik` in this namespace is
+  # an active binding to rstantools' generic (R/generic-owners.R), and
+  # an assignment to an active binding calls its function with the
+  # value, so mocking the generic fails with "unused argument".
+  #
+  # Mocking the method works here, and the reason bounds when it works.
+  # local_mocked_bindings() patches the namespace binding and THIS
+  # package's method table, never the owner's. With rstantools loaded,
+  # the exported generic is rstantools' and its table still holds the
+  # real method, so only a caller INSIDE this namespace sees the mock:
+  # UseMethod() searches the calling environment before any table, and
+  # loo_matrix() is such a caller. A mock of this shape does not cover a
+  # caller at the prompt.
   # .package named so the mock does not depend on a pkgload dev namespace
-  local_mocked_bindings(log_lik = function(x, ndraws = NULL, resp = NULL,
-                                           ...) ll,
-                        .package = "frmtmb.sample")
-  expect_message(loo_matrix(NULL, NULL, NULL, "loo()"),
+  fd <- structure(list(), class = "frmtmb_draws")
+  local_mocked_bindings(
+    log_lik.frmtmb_draws = function(object, ndraws = NULL, resp = NULL,
+                                    ...) ll,
+    .package = "frmtmb.sample")
+  expect_message(loo_matrix(fd, NULL, NULL, "loo()"),
                  "leave-one-out over the 6 units")
-  expect_message(loo_matrix(NULL, NULL, NULL, "loo()"),
+  expect_message(loo_matrix(fd, NULL, NULL, "loo()"),
                  "one subject's trial sequence", fixed = TRUE)
-  expect_message(loo_matrix(NULL, NULL, NULL, "waic()"),
+  expect_message(loo_matrix(fd, NULL, NULL, "waic()"),
                  "waic() is leave-one-out", fixed = TRUE)
   # a per-observation matrix carries no unit and says nothing
   plain <- matrix(rnorm(30), 5, 6)
-  local_mocked_bindings(log_lik = function(x, ndraws = NULL, resp = NULL,
-                                           ...) plain,
-                        .package = "frmtmb.sample")
-  expect_no_message(loo_matrix(NULL, NULL, NULL, "loo()"))
+  local_mocked_bindings(
+    log_lik.frmtmb_draws = function(object, ndraws = NULL, resp = NULL,
+                                    ...) plain,
+    .package = "frmtmb.sample")
+  expect_no_message(loo_matrix(fd, NULL, NULL, "loo()"))
 })

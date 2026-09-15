@@ -1,0 +1,15 @@
+MODE N 
+SAMPLE_FROM C:/Users/adf44/source/r/rellib-r3/frmtmb.sample 
+CORE_FROM   C:/Users/adf44/source/r/rellib-r3/frmtmb 
+BRMSFIT_LOST 28 of 28
+BRMSFIT_LOST_LIST as.mcmc,bayes_factor,bridge_sampler,kfold,log_lik,log_posterior,loo_moment_match,loo_subsample,mcmc_plot,neff_ratio,nsamples,nuts_params,parnames,post_prob,posterior_epred,posterior_interval,posterior_linpred,posterior_predict,posterior_samples,pp_mixture,predictive_error,predictive_interval,psis,reloo,restructure,rhat,stancode,standata 
+BRMSFIT_SILENT_DEFAULT  
+DRAWS_NOT_OURS 0 of 28
+DRAWS_NOT_OURS_LIST  
+DRAWS_FOREIGN_DEFAULT  
+OWNER_METHODS_LOST 0 of 0
+OWNER_METHODS_LOST_LIST  
+RESOLVES frmtmb.sample=28 
+ACTIVE_NS FALSE 
+ACTIVE_ATTACHED FALSE 
+CHILDOK

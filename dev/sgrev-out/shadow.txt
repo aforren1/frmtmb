@@ -1,0 +1,41 @@
+LIB rellib-r3  owner posterior (no rhat)  order shadow-first
+  SHADOW posterior: loaded
+  the shadow is what got loaded (it lacks rhat): TRUE
+  frmtmb.sample: loaded
+DONE
+LIB rellib-r3  owner posterior (no rhat)  order sample-first
+  frmtmb.sample: loaded
+  SHADOW posterior: loaded
+  the shadow is what got loaded (it lacks rhat): TRUE
+DONE
+LIB rellib-r3  owner gratia (no posterior_samples)  order shadow-first
+  SHADOW gratia: loaded
+  the shadow is what got loaded (it lacks posterior_samples): TRUE
+  frmtmb.sample: loaded
+DONE
+LIB rellib-r3  owner gratia (no posterior_samples)  order sample-first
+  frmtmb.sample: loaded
+  SHADOW gratia: loaded
+  the shadow is what got loaded (it lacks posterior_samples): TRUE
+DONE
+LIB sgrev-lib  owner posterior (no rhat)  order shadow-first
+  SHADOW posterior: loaded
+  the shadow is what got loaded (it lacks rhat): TRUE
+  frmtmb.sample: FAILED: object 'rhat' not found
+DONE
+LIB sgrev-lib  owner posterior (no rhat)  order sample-first
+  frmtmb.sample: loaded
+  SHADOW posterior: loaded
+  the shadow is what got loaded (it lacks rhat): TRUE
+DONE
+LIB sgrev-lib  owner gratia (no posterior_samples)  order shadow-first
+  SHADOW gratia: loaded
+  the shadow is what got loaded (it lacks posterior_samples): TRUE
+  frmtmb.sample: FAILED: object 'posterior_samples' not found
+DONE
+LIB sgrev-lib  owner gratia (no posterior_samples)  order sample-first
+  frmtmb.sample: loaded
+  object 'posterior_samples' not found
+  SHADOW gratia: loaded
+  the shadow is what got loaded (it lacks posterior_samples): TRUE
+DONE

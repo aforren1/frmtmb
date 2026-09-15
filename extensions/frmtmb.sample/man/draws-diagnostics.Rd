@@ -29,9 +29,9 @@ log_posterior(object, ...)
 
 \method{log_posterior}{frmtmb_draws}(object, ...)
 
-rhat(object, ...)
+rhat(x, ...)
 
-\method{rhat}{frmtmb_draws}(object, ...)
+\method{rhat}{frmtmb_draws}(x, ...)
 
 neff_ratio(object, ...)
 

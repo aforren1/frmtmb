@@ -1,0 +1,12 @@
+libs:  C:/Users/adf44/source/r/sgrev-mut-loglik-lib | C:/Users/adf44/source/r/sgrev-lib 
+frmtmb.sample from: C:/Users/adf44/source/r/sgrev-mut-loglik-lib
+frmtmb from:  C:/Users/adf44/source/r/sgrev-lib 
+FILE    extensions/frmtmb.sample/tests/testthat/test-generic-collision.R 
+BLOCKS  13 
+PASS    57 
+FAIL    1 
+ERROR   0 
+SKIP    0 
+  failing: with no owner usable, it loads and its generics are bare
+       Expected `parse_field(out, "WITHWORK")` to equal `character()`. Differences: `actual`:   "log_lik" `expected`:            
+DONE

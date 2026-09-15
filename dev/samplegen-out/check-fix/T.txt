@@ -1,0 +1,15 @@
+MODE T 
+SAMPLE_FROM C:/Users/adf44/source/r/samplegen-lib/frmtmb.sample 
+CORE_FROM   C:/Users/adf44/source/r/samplegen-lib/frmtmb 
+BRMSFIT_LOST 0 of 28
+BRMSFIT_LOST_LIST  
+BRMSFIT_SILENT_DEFAULT  
+DRAWS_NOT_OURS 0 of 28
+DRAWS_NOT_OURS_LIST  
+DRAWS_FOREIGN_DEFAULT  
+OWNER_METHODS_LOST 0 of 77
+OWNER_METHODS_LOST_LIST  
+RESOLVES bayesplot=3 bridgesampling=3 brms=8 coda=1 loo=4 posterior=1 rstantools=8 
+ACTIVE_NS TRUE 
+ACTIVE_ATTACHED TRUE 
+CHILDOK

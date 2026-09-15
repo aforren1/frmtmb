@@ -53,6 +53,13 @@
   draws had relied on core's generic doing it and lost the note in
   every session until it did.
 
+* `frm_install_generics(pkgname, owners)` joins the extension API on
+  `?frmtmb-sampling-api`. It is the mechanism frmtmb uses on itself,
+  and `owners` is now an argument, so an extension that defines a
+  generic under a name another package owns calls it from its own
+  `.onLoad()` with its own table. `frmtmb.sample` does this for 28
+  names. A malformed table is refused rather than installing nothing.
+
 * `posterior (>= 1.0.0)` is declared in Suggests. frmtmb registers
   methods on `as_draws_rvars()` and `as_draws_list()` now, and a
   partial or pre-release `posterior` that lacks one of them stops

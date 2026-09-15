@@ -1,0 +1,12 @@
+frmtmb from: C:/Users/adf44/source/r/samplegen-lib/frmtmb  version 0.55.2
+hypothesis() reads 'sigma' as the coefficient of the model term of that name, not the residual standard deviation; that quantity is available as '.sigma'.
+
+FILE    tests/testthat/test-review-fixes.R 
+BLOCKS  6 
+ASSERT  17 
+PASS    17 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    2.5 

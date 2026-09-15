@@ -1,0 +1,10 @@
+== instrument check, dev/sgrev-dispatchcheck.R ==
+build FIX mode P 
+generic              class  PREDICTED by the probe                         OBSERVED in the call stack                     agree
+log_posterior        frmtmb frmtmb.sample::log_posterior.frmtmb_draws      NONE::no applicable method                     NO
+neff_ratio           frmtmb frmtmb.sample::neff_ratio.frmtmb_draws         NONE::no applicable method                     NO
+nuts_params          frmtmb frmtmb.sample::nuts_params.frmtmb_draws        NONE::no applicable method                     NO
+rhat                 frmtmb frmtmb.sample::rhat.frmtmb_draws               NONE::no applicable method                     NO
+
+agree 51  disagree 4  undetermined (no error raised inside a method) 1 
+DONE

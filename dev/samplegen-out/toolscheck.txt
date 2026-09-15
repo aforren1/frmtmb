@@ -1,0 +1,12 @@
+==== frmtmb from C:/Users/adf44/source/r/samplegen-lib/frmtmb 
+-- undoc            clean
+-- codoc            clean
+-- checkDocFiles    clean
+-- checkS3methods   clean
+-- checkReplaceFuns clean
+==== frmtmb.sample from C:/Users/adf44/source/r/samplegen-lib/frmtmb.sample 
+-- undoc            clean
+-- codoc            clean
+-- checkDocFiles    clean
+-- checkS3methods   clean
+-- checkReplaceFuns clean

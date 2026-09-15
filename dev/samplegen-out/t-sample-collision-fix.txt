@@ -1,0 +1,10 @@
+frmtmb.sample from: C:/Users/adf44/source/r/samplegen-lib/frmtmb.sample  frmtmb from: C:/Users/adf44/source/r/samplegen-lib/frmtmb
+
+FILE    extensions/frmtmb.sample/tests/testthat/test-generic-collision.R 
+BLOCKS  13 
+ASSERT  58 
+PASS    58 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 

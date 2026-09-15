@@ -1,0 +1,12 @@
+frmtmb.sample from: C:/Users/adf44/source/r/samplegen-lib/frmtmb.sample  frmtmb from: C:/Users/adf44/source/r/samplegen-lib/frmtmb
+Error : 'control' list contains unknown members of names: nonsense_option.
+error in specifying arguments; sampling not done
+
+FILE    extensions/frmtmb.sample/tests/testthat/test-stan-control.R 
+BLOCKS  11 
+ASSERT  54 
+PASS    54 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 

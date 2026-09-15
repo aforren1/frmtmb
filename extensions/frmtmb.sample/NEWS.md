@@ -1,3 +1,57 @@
+# frmtmb.sample (development version)
+
+* **frmtmb.sample no longer breaks brms, rstantools, loo,
+  bridgesampling, bayesplot, posterior, coda or gratia.** This package
+  defined its own generic for 28 names those packages own, such as
+  `log_lik()`, `posterior_epred()`, `psis()`, `rhat()` and
+  `as.mcmc()`. `UseMethod()` reads the method table of the namespace
+  where the generic it reached was defined, so after
+  `library(brms); library(frmtmb.sample)`, `log_lik(fit)` on a
+  `brmsfit` found no method. Measured on the previous release: all 28
+  lost after brms, all 28 with brms only loaded, all 28 inside a
+  package that imports frmtmb.sample, and every gratia method for
+  `posterior_samples()` after gratia. It is now 0 in each of those
+  orders. The package now calls `frmtmb::frm_install_generics()` from
+  its `.onLoad()`, so each name resolves to the owner's generic while
+  the owner is loaded and to this package's own while it is not.
+
+* Two methods reached a foreign `.default` in silence and now reach
+  their own. With posterior loaded after this package, `rhat()` on
+  draws went to posterior's `rhat.default`; with gratia loaded after
+  it, `posterior_samples()` went to gratia's. Both are now also
+  registered on those owners' generics.
+
+* **BREAKING.** Three generics take their owner's first argument, so a
+  call that NAMED the old one fails:
+
+  - `bridge_sampler(samples, ...)`, was `(x, ...)`, as bridgesampling.
+  - `bayes_factor(x1, x2, log = FALSE, ...)`, was `(x, ...)`, as
+    bridgesampling.
+  - `rhat(x, ...)`, was `(object, ...)`. posterior and bayesplot both
+    define `rhat` with different first arguments; this follows
+    posterior, which is the one brms uses.
+
+  Two only GAIN arguments and break nothing: `post_prob()` gains
+  `prior_prob` and `model_names` from bridgesampling, and
+  `posterior_samples()` gains `pars` from brms. `posterior_linpred()`'s
+  generic gains `transform`, which its method already had.
+
+  **If you write an S3 method on any of these names, match the
+  owner's formals.**
+
+* While brms is loaded, `parnames()` and `posterior_samples()` on draws
+  give brms's own deprecation warning before this package's refusal,
+  because the generic that runs is brms's.
+
+* `gratia (>= 0.9.0)` joins Suggests, the first gratia with
+  `posterior_samples()`, and `posterior` gains the floor `(>= 1.0.0)`,
+  whose `rhat()` this package now registers a method on. As in frmtmb,
+  a partial install of either on the library path that lacks the
+  generic, loaded before this package, stops it loading.
+
+* The `frmtmb` floor moves to the release that exports
+  `frm_install_generics()`.
+
 # frmtmb.sample 0.4.1
 
 * **A broken `tmbstan` now skips the sampler tests instead of erroring

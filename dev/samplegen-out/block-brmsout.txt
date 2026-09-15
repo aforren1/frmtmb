@@ -1,0 +1,18 @@
+```
+== brms output with and without frmtmb.sample, dev/samplegen-brmsout.R ==
+cached 400-row lognormal brmsfit, seed 20260915 before every call
+control: library(brms) alone, fix-none.txt
+calls in the control: 22 (1 of them brms's own error)
+
+build  arm                                    calls differing from control
+base   library(brms); library(frmtmb.sample)  22 of 22
+base   library(frmtmb.sample); brms loaded    22 of 22
+fix    library(brms); library(frmtmb.sample)  0 of 22
+fix    library(frmtmb.sample); library(brms)  0 of 22
+fix    library(frmtmb.sample); brms loaded    0 of 22
+
+base-S, the first three differing calls:
+  as.mcmc ERROR   no applicable method for 'as.mcmc' applied to an object of c
+  log_lik ERROR   no applicable method for 'log_lik' applied to an object of c
+  log_posterior ERROR   no applicable method for 'log_posterior' applied to an objec
+```

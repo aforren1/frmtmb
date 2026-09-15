@@ -1,0 +1,11 @@
+frmtmb from: C:/Users/adf44/source/r/samplegen-lib/frmtmb  version 0.55.2
+
+FILE    tests/testthat/test-v07.R 
+BLOCKS  6 
+ASSERT  25 
+PASS    25 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    13.1 

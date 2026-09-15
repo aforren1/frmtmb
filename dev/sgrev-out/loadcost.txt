@@ -1,0 +1,18 @@
+Sys.time() tick: min 9.54e-07 s  median 2.15e-06 s
+
+30 rounds, 150 fresh processes, arms shuffled within each round
+arm                           min   median
+sample_BASE                0.2231   0.3480
+sample_FIX                 0.2161   0.3268
+core_BASE                  0.1896   0.2849
+core_FIX                   0.1860   0.2613
+POSCTRL_BASE_plus_10ms     0.2440   0.3454
+
+paired per-round difference, median [95% bootstrap interval]
+sample_FIX - sample_BASE            -0.0132 s [-0.0594, +0.0042]
+core_FIX - core_BASE                -0.0076 s [-0.0192, +0.0039]
+POSCTRL_BASE_plus_10ms - sample_BASE  +0.0260 s [-0.0166, +0.0438]
+
+the positive control must read about +0.0100 s. If it does, an effect
+of that size would not have been missed.
+DONE

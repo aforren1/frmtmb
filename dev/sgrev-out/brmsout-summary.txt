@@ -1,0 +1,62 @@
+== reviewer output harness, dev/sgrev-brmsout.R ==
+cached 400-row lognormal brmsfit, seed 20260915 before every call
+60 calls. Each compared on VALUE, WARNINGS, MESSAGES and the PRINTED form.
+
+CONTROL brms-only vs brms-only, two processes: 0 of 60 differ
+   (these calls are not deterministic across processes and are excluded below)
+
+deterministic calls: 60 of 60 
+
+arm                                   value     warnings  messages  printed  
+BASE-S                                12/60     3/60      1/60      12/60    
+   differing:  mcmc_plot_n(val,printed) parnames(val,warn,printed) posterior_samples(val,warn,printed) pp_mixture(val,printed) restructure(val,printed) stancode(val,printed) standata(val,printed) post_samples_pos(val,warn,printed) pp_mixture_pos(val,printed) stancode_v(val,printed) standata_nd(val,printed) mcmc_plot_hist(val,msg,printed) 
+     mcmc_plot_n error control=[] arm=[no applicable method for 'mcmc_plot' applied to an object of class "brmsfit"]
+     mcmc_plot_n class control=integer arm=sgrev_err
+     parnames warnings control=['parnames' is deprecated. Please use 'variables' instead.] arm=[]
+     parnames error control=[] arm=[no applicable method for 'parnames' applied to an object of class "brmsfit"]
+     parnames class control=character arm=sgrev_err
+     posterior_samples warnings control=[Method 'posterior_samples' is deprecated. Please see ?as_draws for recommended alternatives.] arm=[]
+     posterior_samples error control=[] arm=[no applicable method for 'posterior_samples' applied to an object of class "brmsfit"]
+     posterior_samples class control=data.frame arm=sgrev_err
+     pp_mixture error control=[Method 'pp_mixture' can only be applied to mixture models.] arm=[no applicable method for 'pp_mixture' applied to an object of class "brmsfit"]
+     restructure error control=[] arm=[no applicable method for 'restructure' applied to an object of class "brmsfit"]
+     restructure class control=list arm=sgrev_err
+     stancode error control=[] arm=[no applicable method for 'stancode' applied to an object of class "brmsfit"]
+     stancode class control=character,brmsmodel arm=sgrev_err
+     standata error control=[] arm=[no applicable method for 'standata' applied to an object of class "brmsfit"]
+     standata class control=standata,list arm=sgrev_err
+     post_samples_pos warnings control=[Method 'posterior_samples' is deprecated. Please see ?as_draws for recommended alternatives.] arm=[]
+     post_samples_pos error control=[] arm=[no applicable method for 'posterior_samples' applied to an object of class "brmsfit"]
+     post_samples_pos class control=integer arm=sgrev_err
+     stancode_v error control=[] arm=[no applicable method for 'stancode' applied to an object of class "brmsfit"]
+     stancode_v class control=character,brmsmodel arm=sgrev_err
+     standata_nd error control=[] arm=[no applicable method for 'standata' applied to an object of class "brmsfit"]
+     standata_nd class control=character arm=sgrev_err
+     mcmc_plot_hist messages control=[`stat_bin()` using `bins = 30`. Pick better value `binwidth`.] arm=[]
+     mcmc_plot_hist error control=[] arm=[no applicable method for 'mcmc_plot' applied to an object of class "brmsfit"]
+     mcmc_plot_hist class control=list arm=sgrev_err
+BASE-T                                0/60      0/60      0/60      0/60     
+FIX-S                                 0/60      0/60      0/60      0/60     
+FIX-T                                 0/60      0/60      0/60      0/60     
+FIX-U                                 0/60      0/60      0/60      0/60     
+FIX-SC                                0/60      0/60      0/60      0/60     
+
+-- every call's ERROR text in the brms-only control --
+  pp_mixture             Method 'pp_mixture' can only be applied to mixture models.
+  rhat                   no applicable method for 'rhat' applied to an object of class "brmsfit"
+  rhat_pars              no applicable method for 'rhat' applied to an object of class "brmsfit"
+
+-- calls that WARN in the brms-only control --
+  as.mcmc                as.mcmc.brmsfit is deprecated and will eventually be removed.
+  nsamples               'nsamples.brmsfit' is deprecated. Please use 'ndraws' instead.
+  parnames               'parnames' is deprecated. Please use 'variables' instead.
+  posterior_samples      Method 'posterior_samples' is deprecated. Please see ?as_draws for recommended alternative
+  as_mcmc_pos            as.mcmc.brmsfit is deprecated and will eventually be removed.
+  post_interval_pos      Argument 'pars' is deprecated. Please use 'variable' instead.
+  post_samples_pos       Method 'posterior_samples' is deprecated. Please see ?as_draws for recommended alternative
+  waic_fit               
+3 (0.8%) p_waic estimates greater than 0.4. We recommend trying loo instead.
+
+-- calls that MESSAGE in the brms-only control --
+  mcmc_plot_hist         `stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+DONE

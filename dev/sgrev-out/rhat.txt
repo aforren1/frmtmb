@@ -1,0 +1,60 @@
+== 1. where brms's rhat comes from ==
+brms's rhat generic environment:  posterior 
+  rhat.brmsfit in posterior's table: TRUE
+  rhat.brmsfit in bayesplot's table: FALSE
+brms's rhat.brmsfit body:
+{
+    contains_draws(x)
+    draws <- as_draws_array(x, variable = pars, ...)
+    tmp <- posterior::summarise_draws(draws, rhat = posterior::rhat)
+    rhat <- tmp$rhat
+    names(rhat) <- tmp$variable
+    rhat
+} 
+
+== 2. what each implementation computes ==
+-- frmtmb.sample's rhat.frmtmb_draws --
+{
+    draws_bayesplot_ns("rhat()")$rhat(x$stanfit, ...)
+} 
+-- bayesplot's rhat.stanfit --
+rhat.CmdStanMCMC rhat.frmtmb_draws rhat.stanfit rhat.stanreg 
+{
+    suggested_package("rstan")
+    s <- if (!is.null(pars)) {
+        rstan::summary(object, pars = pars, ...)
+    }
+    else {
+        rstan::summary(object, ...)
+    }
+    validate_rhat(s$summary[, "Rhat"])
+} 
+-- posterior's rhat.default / rhat.draws --
+rhat.brmsfit rhat.default rhat.frmtmb_draws rhat.rvar rhat_basic.default rhat_basic.rvar rhat_nested.default rhat_nested.rvar 
+{
+    rhat_bulk <- .rhat(z_scale(.split_chains(x)))
+    rhat_tail <- .rhat(z_scale(.split_chains(fold_draws(x))))
+    max(rhat_bulk, rhat_tail)
+} 
+
+== 3. the numbers ==
+rhat(ds) length  11  names  beta[1],beta[2],betad,b[1],b[2],b[3] 
+variables in common:  7 
+variable                   rhat(ds)    posterior post(extract)   rel.diff
+b[1]                     1.00772300   1.00530366   1.00530366  2.407e-03
+b[2]                     1.00333508   1.00533295   1.00533295  1.987e-03
+b[3]                     1.00544315   1.00588723   1.00588723  4.415e-04
+b[4]                     1.00696662   1.00457556   1.00457556  2.380e-03
+b[5]                     1.00052987   1.00619584   1.00619584  5.631e-03
+b[6]                     0.99941111   1.00383618   1.00383618  4.408e-03
+lp__                     1.01059816   1.01003176   1.01003176  5.608e-04
+
+max relative difference rhat(ds) vs posterior::rhat:  0.00563108 
+identical():    FALSE 
+how far from 1 is the DIAGNOSTIC itself: max |posterior - 1| =  0.0100318 
+difference as a fraction of (posterior rhat - 1):  1.15351 
+
+-- yardstick: rstan's classic split-Rhat on the same stanfit --
+max |rhat(ds) - rstan Rhat| over  11  vars:  0 
+max |posterior - rstan Rhat|:  NA 
+DONE
