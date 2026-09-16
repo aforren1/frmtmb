@@ -1,4 +1,4 @@
-# frmtmb.sample (development version)
+# frmtmb.sample 0.5.0
 
 * **frmtmb.sample no longer breaks brms, rstantools, loo,
   bridgesampling, bayesplot, posterior, coda or gratia.** This package

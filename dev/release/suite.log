@@ -51,7 +51,7 @@ RESULT test-fit-end-hook.R pass=18 fail=0 err=0 skip=0
 RESULT test-frame.R pass=22 fail=0 err=0 skip=0
 RESULT test-functional.R pass=3 fail=0 err=0 skip=0
 RESULT test-fuzz.R pass=0 fail=0 err=0 skip=1
-RESULT test-generic-collision.R pass=47 fail=0 err=0 skip=0
+RESULT test-generic-collision.R pass=56 fail=0 err=0 skip=0
 RESULT test-get-prior-route.R pass=75 fail=0 err=0 skip=0
 RESULT test-glmm-binomial.R pass=10 fail=0 err=0 skip=0
 RESULT test-glmm-gaussian.R pass=17 fail=0 err=0 skip=0
@@ -162,13 +162,14 @@ RESULT test-surface.R pass=50 fail=0 err=0 skip=0
 RESULT test-units.R pass=32 fail=0 err=0 skip=0
 RESULT test-variability.R pass=140 fail=0 err=0 skip=0
 == frmtmb.eam END ==
-== frmtmb.sample 17 files ==
+== frmtmb.sample 18 files ==
 RESULT test-bracket-access.R pass=1 fail=0 err=0 skip=0
 RESULT test-compat-preflight.R pass=81 fail=0 err=0 skip=0
 RESULT test-conditional-effects-draws.R pass=57 fail=0 err=0 skip=0
 RESULT test-draws-methods.R pass=101 fail=0 err=0 skip=0
 RESULT test-draws-spellings.R pass=48 fail=0 err=0 skip=0
 RESULT test-evidence-ratio.R pass=33 fail=0 err=0 skip=0
+RESULT test-generic-collision.R pass=58 fail=0 err=0 skip=0
 RESULT test-loo.R pass=74 fail=0 err=0 skip=1
 RESULT test-message-uniqueness.R pass=6 fail=0 err=0 skip=0
 RESULT test-parallel-chains.R pass=4 fail=0 err=0 skip=0
@@ -237,4 +238,4 @@ RESULT test-ode-nlf.R pass=4 fail=0 err=0 skip=0
 RESULT test-ode-tv.R pass=27 fail=0 err=0 skip=0
 RESULT test-scale.R pass=0 fail=0 err=0 skip=1
 == frmtmb.ode END ==
-SUITE ran 223 of 223
+SUITE ran 224 of 224

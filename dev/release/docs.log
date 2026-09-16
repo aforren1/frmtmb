@@ -232,33 +232,10 @@ Writing `articles/spectral.html`
 -- Building news ---------------------------------------------------------------
 Writing `news/index.html`
 -- Building sitemap ------------------------------------------------------------
-Writing `sitemap.xml`
 -- Building docs for llms ------------------------------------------------------
 -- Building redirects ----------------------------------------------------------
-Adding redirect from reference/as_draws.frmtmb_fit.html to
-reference/as_draws.html.
-Adding redirect from reference/as_draws_array.frmtmb_fit.html to
-reference/as_draws.html.
-Adding redirect from reference/as_draws_df.frmtmb_fit.html to
-reference/as_draws.html.
-Adding redirect from reference/as_draws_list.frmtmb_fit.html to
-reference/as_draws.html.
-Adding redirect from reference/as_draws_matrix.frmtmb_fit.html to
-reference/as_draws.html.
-Adding redirect from reference/as_draws_rvars.frmtmb_fit.html to
-reference/as_draws.html.
-Adding redirect from reference/hyp_shadow_arm.html to
+Adding redirect from reference/frm_install_generics.html to
 reference/frmtmb-sampling-api.html.
-Adding redirect from reference/hyp_shadow_disarm.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/nchains.frmtmb_fit.html to
-reference/draws-dimensions.html.
-Adding redirect from reference/ndraws.frmtmb_fit.html to
-reference/draws-dimensions.html.
-Adding redirect from reference/niterations.frmtmb_fit.html to
-reference/draws-dimensions.html.
-Adding redirect from reference/nvariables.frmtmb_fit.html to
-reference/draws-dimensions.html.
 -- Building search index -------------------------------------------------------
 -- Checking for problems -------------------------------------------------------
 -- Finished building pkgdown site for package frmtmb ---------------------------
@@ -375,7 +352,6 @@ Reading man/frm_ode.Rd
 Reading man/frm_ode_failures.Rd
 -- Building articles -----------------------------------------------------------
 Reading vignettes/ode.Rmd
-Writing `articles/ode.html`
 -- Building news ---------------------------------------------------------------
 -- Building sitemap ------------------------------------------------------------
 -- Building docs for llms ------------------------------------------------------
@@ -405,7 +381,6 @@ Reading man/frm_curve.Rd
 Reading man/frm_curve_deriv.Rd
 Reading man/frm_curve_feature.Rd
 Reading man/royston_parmar.Rd
-Writing `reference/royston_parmar.html`
 Reading man/rp_floored.Rd
 -- Building articles -----------------------------------------------------------
 Reading vignettes/curve-inference.Rmd
@@ -535,12 +510,9 @@ Writing `404.html`
 -- Building function reference -------------------------------------------------
 Loading required package: frmtmb
 Reading man/bandit2arm_delta.Rd
-Writing `reference/bandit2arm_delta.html`
 Reading man/bandit2arm_dual.Rd
-Writing `reference/bandit2arm_dual.html`
 Reading man/bandit4arm2_kalman_filter.Rd
 Reading man/frmtmb.learn-package.Rd
-Writing `reference/frmtmb.learn-package.html`
 Reading man/frm_learn_families.Rd
 Reading man/frm_task_design.Rd
 Reading man/frm_task_simulate.Rd
@@ -548,9 +520,7 @@ Reading man/frm_value_trace.Rd
 Reading man/igt_orl.Rd
 Reading man/igt_pvl_delta.Rd
 Reading man/prl_fictitious.Rd
-Writing `reference/prl_fictitious.html`
 Reading man/rlddm.Rd
-Writing `reference/rlddm.html`
 Reading man/ts_par7.Rd
 -- Building articles -----------------------------------------------------------
 Reading vignettes/learning.Rmd

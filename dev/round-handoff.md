@@ -1,6 +1,6 @@
 # Handing a round to a new session
 
-Written 2026-09-15, at the Phase 2.5 release. Read this, then
+Written 2026-09-15, at the frmtmb.sample generics release. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
 `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
 anything: this machine has lost its R library five times, and the cause
@@ -13,12 +13,11 @@ Main carries the Phase 2 release. Four lanes merged: `wt-frailty`,
 docs rebuild are separate commits, in that order. **The user pushes; no
 session pushes for them.**
 
-Versions: frmtmb **0.56.0**, frmtmb.sample **0.4.2**, frmtmb.eam 0.8.1,
+Versions: frmtmb **0.57.0**, frmtmb.sample **0.5.0**, frmtmb.eam 0.8.1,
 frmtmb.learn 0.4.1, frmtmb.spline 0.5.1, frmtmb.coupling 0.3.1, frmtmb.ode
-0.4.0, frmtmb.latent 0.3.0. Core's bump is MINOR because it breaks callers:
-four exported generic signatures now match their owners' formals.
-frmtmb.sample floors on core 0.56.0 as a HARD requirement, because its draws
-method calls two exports no earlier core has.
+0.4.0, frmtmb.latent 0.3.0. frmtmb.sample floors on core 0.57.0 as a HARD
+requirement: it cannot load against 0.56.0, because its `.onLoad()` calls
+`frm_install_generics()`, which 0.56.0 does not export.
 
 **Core is not a lane by default.** The user does brms compatibility
 there separately. Phase 2.5 is the exception and they asked for it
@@ -43,31 +42,27 @@ for again.
 
 ## What is next, in order
 
-**Phase 2.5 is done except item 2.5e.** frmtmb no longer breaks brms:
-it stopped owning 28 generics it never owned, adopting them from their real
-owners through a `makeActiveBinding()` installed in `.onLoad`. In every load
-order tested, 27 of 27 brms methods lost at base became 0 of 27.
+**Phase 2.5 is done except items 2.5e and 2.5f.** Neither frmtmb nor
+frmtmb.sample owns a generic it did not define any more. Both adopt from
+the real owners through ONE implementation, core's
+`frm_install_generics(pkgname, owners)`, exported on the extension API.
+Across 14 load orders, 67 of 67 brms methods lost at base became 0 of 67,
+and 60 calls on a brms fit that differed on 12 now differ on 0.
 
-**In flight: the `samplegen` lane**, worktree `frmtmb-wt-samplegen`, which
-gives `frmtmb.sample` the same fix for the 28 generics IT defines. It was told
-to reuse core's `frm_install_generics()` rather than copy it.
+**Next, and the user has decided both:**
 
-**Next, in order:**
+- **2.5e**, core's argument spellings. `fitted(fit, re_formula = NA)` is
+  swallowed by `...` and silently returns the conditional fit.
+- **2.5f**, frmtmb.sample matching brms. `rhat()` and `neff_ratio()` answer
+  a DIFFERENT QUESTION from brms, and 10 of 28 methods take arguments in a
+  different order, 2 of which answer silently. **Match brms on all of it.**
+- Then Phase 2.6, pass brms's own test suite; tmbstan 1.2.1's verification;
+  and `frmtmb_control(vectorize = FALSE)`.
 
-- **Item 2.5e, a silent wrong answer.** `fitted(fit, re_formula = NA)` is
-  swallowed by `...` and returns the conditional fit. The user set brms as
-  the TIEBREAKER on API conflicts, and nobody uses this package, so a name
-  having shipped is never a reason to keep it.
-- **Phase 2.6, pass brms's own test suite.** Starts by fetching the brms
-  source, since CRAN binaries drop `tests/`, and sizing the work.
-- **tmbstan 1.2.1**, the user's upstream fix kaskr/tmbstan#33. Verify it in
-  a PRIVATE library, then raise the Suggests floor. Keep the StanHeaders pin:
-  it has two reasons and 1.2.1 resolves only one.
-- **`frmtmb_control(vectorize = FALSE)`**, designed under Core seams.
-
-**Settled, do not reopen:** the 40 NON-generic name collisions with brms stay.
-`::` is sufficient in both load orders, tested, because each package resolves
-its own names through its own namespace first.
+**Settled, do not reopen:** the non-generic name collisions with brms stay,
+since `::` is sufficient in both load orders. And a gratia older than 0.9.0
+loaded before frmtmb.sample now stops it loading; the user accepted that and
+the declared floor as sufficient.
 
 ## How a round runs here
 

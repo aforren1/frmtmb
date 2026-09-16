@@ -1,7 +1,7 @@
 # The per-file suite baseline, and what it is for
 
 `dev/suite-baseline.tsv` records one row per test file as of the round 3
-release, at frmtmb 0.56.0 and frmtmb.sample 0.4.2: package, file, passing
+release, at frmtmb 0.57.0 and frmtmb.sample 0.5.0: package, file, passing
 assertions, skips. It is a floor, not a target.
 
 ## Why it exists
@@ -116,3 +116,17 @@ of its 31 assertions under the first design, because `hypothesis()`'s
 note stopped firing once its generic belonged to brms. A file that
 still runs green while asserting less is exactly what this baseline
 exists to catch, and it holds its count here.
+
+## What the frmtmb.sample generics release added
+
+Regenerated at 224 rows and 13314 assertions, from 223 and 13247. No
+count fell. One file is new, `frmtmb.sample/test-generic-collision.R` at
+58, and one rose, `frmtmb/test-generic-collision.R` from 47 to 56, which
+gained a behavioral block replacing one that had failed only on an
+unused argument. 58 + 9 = 67, the whole of the increase.
+
+`frmtmb.sample/test-loo.R` holding at 79 is the row worth reading here.
+That file broke during the lane because `local_mocked_bindings()` cannot
+mock an active binding: assigning to one calls it. It was repaired by
+mocking the method instead, and an unchanged count is the evidence that
+the repair restored the assertions rather than removing them.

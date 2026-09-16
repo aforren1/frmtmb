@@ -50,7 +50,7 @@ frmtmb	test-fit-end-hook.R	18	0
 frmtmb	test-frame.R	22	0
 frmtmb	test-functional.R	3	0
 frmtmb	test-fuzz.R	0	1
-frmtmb	test-generic-collision.R	47	0
+frmtmb	test-generic-collision.R	56	0
 frmtmb	test-get-prior-route.R	75	0
 frmtmb	test-glmm-binomial.R	10	0
 frmtmb	test-glmm-gaussian.R	17	0
@@ -164,6 +164,7 @@ frmtmb.sample	test-conditional-effects-draws.R	57	0
 frmtmb.sample	test-draws-methods.R	101	0
 frmtmb.sample	test-draws-spellings.R	48	0
 frmtmb.sample	test-evidence-ratio.R	33	0
+frmtmb.sample	test-generic-collision.R	58	0
 frmtmb.sample	test-loo.R	74	1
 frmtmb.sample	test-message-uniqueness.R	6	0
 frmtmb.sample	test-parallel-chains.R	4	0
