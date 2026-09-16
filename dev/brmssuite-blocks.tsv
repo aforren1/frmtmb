@@ -1,0 +1,352 @@
+file	desc	expects	match2
+tests.brm.R	brm works fully with mock backend	2	0
+tests.brm.R	brm(file = xx) works fully with mock backend	7	0
+tests.brm.R	brm produces expected errors	23	0
+tests.brmsfit-helpers.R	first_greater returns expected results	2	0
+tests.brmsfit-helpers.R	array2list performs correct conversion	1	0
+tests.brmsfit-helpers.R	probit and probit_approx produce similar results	1	0
+tests.brmsfit-helpers.R	autocorrelation matrices are computed correctly	5	0
+tests.brmsfit-helpers.R	evidence_ratio returns expected results	4	0
+tests.brmsfit-helpers.R	find_vars finds all valid variable names in a string	1	0
+tests.brmsfit-helpers.R	.predictor_arma runs without errors	4	0
+tests.brmsfit-helpers.R	make_conditions works correctly	2	0
+tests.brmsfit-helpers.R	brmsfit_needs_refit works correctly	14	0
+tests.brmsfit-helpers.R	insert_refcat() works correctly	3	0
+tests.brmsfit-helpers.R	split_folder_and_file returns expected results	1	0
+tests.brmsfit-helpers.R	check_brmsfit_file returns expected results	1	0
+tests.brmsfit-helpers.R	get_cache_folder returns expected results	1	0
+tests.brmsfit-methods.R	as_draws and friends have resonable outputs	14	0
+tests.brmsfit-methods.R	as.data.frame has reasonable ouputs	8	0
+tests.brmsfit-methods.R	as.matrix has reasonable ouputs	2	0
+tests.brmsfit-methods.R	as.array has reasonable ouputs	4	0
+tests.brmsfit-methods.R	as.mcmc has reasonable ouputs	4	0
+tests.brmsfit-methods.R	autocor has reasonable ouputs	2	0
+tests.brmsfit-methods.R	bayes_R2 has reasonable ouputs	3	0
+tests.brmsfit-methods.R	bayes_factor has reasonable ouputs	0	0
+tests.brmsfit-methods.R	bridge_sampler has reasonable ouputs	0	0
+tests.brmsfit-methods.R	coef has reasonable ouputs	4	0
+tests.brmsfit-methods.R	combine_models has reasonable ouputs	1	0
+tests.brmsfit-methods.R	conditional_effects has reasonable ouputs	24	0
+tests.brmsfit-methods.R	plot of conditional_effects has reasonable outputs	4	0
+tests.brmsfit-methods.R	conditional_smooths has reasonable ouputs	5	0
+tests.brmsfit-methods.R	family has reasonable ouputs	4	0
+tests.brmsfit-methods.R	fitted has reasonable outputs	23	0
+tests.brmsfit-methods.R	fixef has reasonable ouputs	2	0
+tests.brmsfit-methods.R	formula has reasonable ouputs	1	0
+tests.brmsfit-methods.R	inits has reasonable ouputs	4	0
+tests.brmsfit-methods.R	hypothesis has reasonable ouputs	17	0
+tests.brmsfit-methods.R	launch_shinystan has reasonable ouputs	0	0
+tests.brmsfit-methods.R	log_lik has reasonable ouputs	3	0
+tests.brmsfit-methods.R	loo has reasonable outputs	13	0
+tests.brmsfit-methods.R	loo_subsample has reasonable outputs	3	0
+tests.brmsfit-methods.R	loo_R2 has reasonable outputs	2	0
+tests.brmsfit-methods.R	loo_epred has reasonable outputs	4	0
+tests.brmsfit-methods.R	loo_linpred has reasonable outputs	4	0
+tests.brmsfit-methods.R	loo_predict has reasonable outputs	4	0
+tests.brmsfit-methods.R	loo_predictive_interval has reasonable outputs	1	0
+tests.brmsfit-methods.R	loo_model_weights has reasonable outputs	2	0
+tests.brmsfit-methods.R	model.frame has reasonable ouputs	1	0
+tests.brmsfit-methods.R	model_weights has reasonable ouputs	1	0
+tests.brmsfit-methods.R	ndraws and friends have reasonable ouputs	3	0
+tests.brmsfit-methods.R	ngrps has reasonable ouputs	2	0
+tests.brmsfit-methods.R	nobs has reasonable ouputs	1	0
+tests.brmsfit-methods.R	nsamples has reasonable ouputs	3	0
+tests.brmsfit-methods.R	pairs has reasonable outputs	1	0
+tests.brmsfit-methods.R	plot has reasonable outputs	4	0
+tests.brmsfit-methods.R	post_prob has reasonable ouputs	1	0
+tests.brmsfit-methods.R	posterior_average has reasonable outputs	4	0
+tests.brmsfit-methods.R	posterior_samples has reasonable outputs	4	0
+tests.brmsfit-methods.R	posterior_summary has reasonable outputs	1	0
+tests.brmsfit-methods.R	posterior_interval has reasonable outputs	1	0
+tests.brmsfit-methods.R	posterior_predict has reasonable outputs	1	0
+tests.brmsfit-methods.R	posterior_linpred has reasonable outputs	1	0
+tests.brmsfit-methods.R	pp_average has reasonable outputs	3	0
+tests.brmsfit-methods.R	pp_check has reasonable outputs	17	0
+tests.brmsfit-methods.R	posterior_epred has reasonable outputs	3	0
+tests.brmsfit-methods.R	pp_mixture has reasonable outputs	2	0
+tests.brmsfit-methods.R	predict has reasonable outputs	15	0
+tests.brmsfit-methods.R	predictive_error has reasonable outputs	1	0
+tests.brmsfit-methods.R	print has reasonable outputs	1	0
+tests.brmsfit-methods.R	prior_draws has reasonable outputs	4	0
+tests.brmsfit-methods.R	prior_summary has reasonable outputs	1	0
+tests.brmsfit-methods.R	ranef has reasonable outputs	4	0
+tests.brmsfit-methods.R	residuals has reasonable outputs	7	0
+tests.brmsfit-methods.R	stancode has reasonable outputs	4	0
+tests.brmsfit-methods.R	standata has reasonable outputs	2	0
+tests.brmsfit-methods.R	mcmc_plot has reasonable outputs	12	0
+tests.brmsfit-methods.R	summary has reasonable outputs	9	0
+tests.brmsfit-methods.R	update has reasonable outputs	15	0
+tests.brmsfit-methods.R	VarCorr has reasonable outputs	7	0
+tests.brmsfit-methods.R	variables has reasonable ouputs	4	0
+tests.brmsfit-methods.R	vcov has reasonable outputs	2	0
+tests.brmsfit-methods.R	waic has reasonable outputs	8	0
+tests.brmsfit-methods.R	diagnostic convenience functions have reasonable outputs	4	0
+tests.brmsfit-methods.R	contrasts of grouping factors are not stored #214	1	0
+tests.brmsformula.R	brmsformula validates formulas of non-linear parameters	3	0
+tests.brmsformula.R	brmsformula validates formulas of auxiliary parameters	1	0
+tests.brmsformula.R	brmsformula detects use if '~~'	1	0
+tests.brmsformula.R	brmsformula does not change a 'brmsformula' object	2	0
+tests.brmsformula.R	brmsformula detects auxiliary parameter equations	5	0
+tests.brmsformula.R	update_adterms works correctly	4	0
+tests.brmsterms.R	brmsterms finds all variables in very long formulas	1	0
+tests.brmsterms.R	brmsterms handles very long RE terms	1	0
+tests.brmsterms.R	brmsterms correctly handles auxiliary parameter 'mu'	1	0
+tests.brmsterms.R	brmsterms correctly check fixed auxiliary parameters	4	0
+tests.brmsterms.R	check_re_formula returns correct REs	4	0
+tests.brmsterms.R	update_re_terms works correctly	11	0
+tests.brmsterms.R	unused variables are correctly incorporated	1	0
+tests.data-helpers.R	validate_newdata handles factors correctly	3	0
+tests.data-helpers.R	validate_data returns correct model.frames	3	0
+tests.distributions.R	student distribution works correctly	5	0
+tests.distributions.R	multivariate normal and student distributions work correctly	12	0
+tests.distributions.R	von_mises distribution functions run without errors	3	0
+tests.distributions.R	skew_normal distribution functions run without errors	5	0
+tests.distributions.R	exgaussian distribution functions run without errors	3	0
+tests.distributions.R	frechet distribution functions run without errors	5	0
+tests.distributions.R	inv_gaussian distribution functions run without errors	3	0
+tests.distributions.R	beta_binomial distribution functions run without errors	3	0
+tests.distributions.R	gen_extreme_value distribution functions run without errors	4	0
+tests.distributions.R	asym_laplace distribution functions run without errors	3	0
+tests.distributions.R	zero-inflated distribution functions run without errors	10	0
+tests.distributions.R	hurdle distribution functions run without errors	8	0
+tests.distributions.R	wiener distribution functions run without errors	3	0
+tests.distributions.R	d<ordinal_family>() works correctly	8	0
+tests.distributions.R	inv_link_<ordinal_family>() works correctly for arrays	8	0
+tests.distributions.R	link_<ordinal_family>() works correctly for arrays	8	0
+tests.distributions.R	inv_link_<ordinal_family>() inverts link_<ordinal_family>()	4	0
+tests.distributions.R	link_<ordinal_family>() inverts inv_link_<ordinal_family>()	4	0
+tests.distributions.R	paste dsratio() and dcratio() give the same results for symmetric distribution functions	2	0
+tests.distributions.R	paste inv_link_sratio() and inv_link_cratio() applied to arrays give the same results for symmetric distribution functions (when respecting the sign appropriately).	2	0
+tests.distributions.R	paste link_sratio() and link_cratio() applied to arrays give the same results for symmetric distribution functions (when respecting the sign appropriately).	2	0
+tests.distributions.R	dcategorical() works correctly	2	0
+tests.distributions.R	inv_link_categorical() works correctly for arrays	2	0
+tests.distributions.R	link_categorical() works correctly for arrays	2	0
+tests.distributions.R	inv_link_categorical() inverts link_categorical()	1	0
+tests.distributions.R	link_categorical() inverts inv_link_categorical()	1	0
+tests.emmeans.R	emmeans returns expected output structure	6	0
+tests.emmeans.R	emmeans supports 'epred' predictions	3	0
+tests.emmeans.R	emmeans supports multilevel terms	2	0
+tests.exclude_pars.R	exclude_pars returns expected parameter names	9	0
+tests.families.R	family functions returns expected results	67	0
+tests.families.R	print brmsfamily works correctly	2	0
+tests.families.R	mixture returns expected results and errors	8	0
+tests.families.R	response interval is defined correctly	3	0
+tests.families.R	distributional parameters are as expected	1	0
+tests.families.R	default priors are as expected	2	0
+tests.families.R	correct STAN code is used	1	0
+tests.log_lik.R	log_lik for location shift models works as expected	3	0
+tests.log_lik.R	log_lik for various skewed normal models works as expected	4	0
+tests.log_lik.R	log_lik of aysm_laplace models runs without errors	2	0
+tests.log_lik.R	log_lik for multivariate linear models runs without errors	2	0
+tests.log_lik.R	log_lik for ARMA models runs without errors	2	0
+tests.log_lik.R	log_lik for SAR models runs without errors	4	0
+tests.log_lik.R	log_lik for FCOR models runs without errors	2	0
+tests.log_lik.R	log_lik for FCOR student-t models works as expected	1	0
+tests.log_lik.R	log_lik for count and survival models works correctly	14	0
+tests.log_lik.R	log_lik for bernoulli and beta models works correctly	2	0
+tests.log_lik.R	log_lik for circular models runs without errors	2	0
+tests.log_lik.R	log_lik for zero-inflated and hurdle models runs without erros	10	0
+tests.log_lik.R	log_lik for ordinal models runs without erros	6	0
+tests.log_lik.R	log_lik for categorical and related models runs without erros	6	0
+tests.log_lik.R	censored and truncated log_lik run without errors	2	0
+tests.log_lik.R	log_lik for the wiener diffusion model runs without errors	1	0
+tests.log_lik.R	log_lik for the xbeta model runs without errors	1	0
+tests.log_lik.R	log_lik_custom runs without errors	1	0
+tests.misc.R	p performs correct indexing	4	0
+tests.misc.R	rmNULL removes all NULL entries	2	0
+tests.misc.R	rename returns an error on duplicated names	3	0
+tests.misc.R	rename perform correct renaming	2	0
+tests.misc.R	collapse_lists performs correct collapsing after names	3	0
+tests.misc.R	nlist works correctly	3	0
+tests.misc.R	use_alias works correctly	3	0
+tests.misc.R	rhs keeps attributes	1	0
+tests.misc.R	lsp works correctly	2	0
+tests.posterior_epred.R	posterior_epred helper functions run without errors	26	0
+tests.posterior_epred.R	posterior_epred_lagsar runs without errors	2	0
+tests.posterior_epred.R	posterior_epred for advanced count data distributions runs without errors	2	0
+tests.posterior_epred.R	posterior_epred for multinomial, dirichlet_multinomial and dirichlet models runs without errors	4	0
+tests.posterior_epred.R	posterior_epred_xbeta runs without errors	2	0
+tests.posterior_epred.R	posterior_epred can be reproduced by using d<family>()	1	0
+tests.posterior_predict.R	posterior_predict for location shift models runs without errors	2	0
+tests.posterior_predict.R	posterior_predict for various skewed models runs without errors	4	0
+tests.posterior_predict.R	posterior_predict for aysm_laplace models runs without errors	2	0
+tests.posterior_predict.R	posterior_predict for multivariate linear models runs without errors	2	0
+tests.posterior_predict.R	posterior_predict for ARMA covariance models runs without errors	2	0
+tests.posterior_predict.R	loglik for SAR models runs without errors	4	0
+tests.posterior_predict.R	posterior_predict for FCOR models runs without errors	2	0
+tests.posterior_predict.R	posterior_predict for count and survival models runs without errors	14	0
+tests.posterior_predict.R	posterior_predict for bernoulli and beta models works correctly	2	0
+tests.posterior_predict.R	posterior_predict for xbeta models works correctly	2	0
+tests.posterior_predict.R	posterior_predict for circular models runs without errors	1	0
+tests.posterior_predict.R	posterior_predict for zero-inflated and hurdle models runs without erros	9	0
+tests.posterior_predict.R	posterior_predict for ordinal models runs without errors	6	0
+tests.posterior_predict.R	posterior_predict for categorical and related models runs without erros	9	0
+tests.posterior_predict.R	truncated posterior_predict run without errors	3	0
+tests.posterior_predict.R	posterior_predict for the wiener diffusion model runs without errors	1	0
+tests.posterior_predict.R	posterior_predict_custom runs without errors	1	0
+tests.priors.R	default_prior finds all classes for which priors can be specified	2	0
+tests.priors.R	set_prior allows arguments to be vectors	3	0
+tests.priors.R	print for class brmsprior works correctly	4	0
+tests.priors.R	default_prior returns correct nlpar names for random effects pars	1	0
+tests.priors.R	default_prior returns correct fixed effect names for GAMMs	2	0
+tests.priors.R	default_prior returns correct prior names for auxiliary parameters	1	0
+tests.priors.R	default_prior returns correct priors for multivariate models	6	0
+tests.priors.R	default_prior returns correct priors for categorical models	1	0
+tests.priors.R	set_prior alias functions produce equivalent results	4	0
+tests.priors.R	external interface of validate_prior works correctly	2	0
+tests.priors.R	overall intercept priors are adjusted for the intercept	1	0
+tests.priors.R	as.brmsprior works correctly	5	0
+tests.priors.R	prior tags are correctly applied	5	0
+tests.priorsense.R	create_priorsense_data returns expected output structure	7	0
+tests.priorsense.R	powerscale returns without error	2	0
+tests.priorsense.R	powerscale_sensitivity returns without error	1	0
+tests.read_csv_as_stanfit.R	read methods identical: single chain with samples	0	0
+tests.read_csv_as_stanfit.R	read methods identical: multiple chains with samples	0	0
+tests.read_csv_as_stanfit.R	read methods identical: warmup	0	0
+tests.read_csv_as_stanfit.R	read methods identical: dense warmup	0	0
+tests.read_csv_as_stanfit.R	read methods identical: no samples	0	0
+tests.read_csv_as_stanfit.R	read methods identical: thinned samples	0	0
+tests.read_csv_as_stanfit.R	read methods identical: variational inference	0	0
+tests.read_csv_as_stanfit.R	rstan can locate max_treedepth	1	0
+tests.rename_pars.R	make_index_names returns correct 1 and 2 dimensional indices	3	0
+tests.restructure.R	restructure can be run without error	2	0
+tests.restructure.R	restructure_formula_v1 works correctly	6	0
+tests.restructure.R	rename_prior returns expected lists	2	0
+tests.restructure.R	rename_old_re and rename_old_re2 return expected lists	2	0
+tests.restructure.R	rename_old_sm return expected lists	1	0
+tests.restructure.R	rename_old_mo returns expected lists	1	0
+tests.restructure.R	rename_old_categorical works correctly	1	0
+tests.stan_functions.R	self-defined Stan functions work correctly	44	0
+tests.stancode.R	specified priors appear in the Stan code	52	48
+tests.stancode.R	special shrinkage priors appear in the Stan code	38	32
+tests.stancode.R	priors can be fixed to constants	24	23
+tests.stancode.R	link functions appear in the Stan code	10	10
+tests.stancode.R	Stan GLM primitives are applied correctly	8	8
+tests.stancode.R	customized covariances appear in the Stan code	8	7
+tests.stancode.R	truncation appears in the Stan code	6	6
+tests.stancode.R	stancode handles models without fixed effects	1	1
+tests.stancode.R	stancode correctly restricts FE parameters	4	4
+tests.stancode.R	self-defined functions appear in the Stan code	24	24
+tests.stancode.R	invalid combinations of modeling options are detected	3	0
+tests.stancode.R	Stan code for multivariate models is correct	21	20
+tests.stancode.R	Stan code for categorical models is correct	15	15
+tests.stancode.R	Stan code for multinomial models is correct	6	6
+tests.stancode.R	Stan code for dirichlet_multinomial models is correct	7	7
+tests.stancode.R	Stan code for dirichlet models is correct	15	15
+tests.stancode.R	Stan code for logistic_normal models is correct	16	16
+tests.stancode.R	Stan code for ARMA models is correct	18	17
+tests.stancode.R	Stan code for compound symmetry models is correct	5	5
+tests.stancode.R	Stan code for UNSTR covariance terms is correct	9	9
+tests.stancode.R	Stan code for intercept only models is correct	3	3
+tests.stancode.R	Stan code of ordinal models is correct	29	29
+tests.stancode.R	Stan code for xbeta models is correct	2	2
+tests.stancode.R	ordinal disc parameters appear in the Stan code	3	3
+tests.stancode.R	grouped ordinal thresholds appear in the Stan code	18	18
+tests.stancode.R	Stan code of hurdle cumulative model is correct	8	8
+tests.stancode.R	monotonic effects appear in the Stan code	17	14
+tests.stancode.R	Stan code for non-linear models is correct	9	9
+tests.stancode.R	Stan code for nested non-linear parameters is correct	2	2
+tests.stancode.R	stancode is correct for non-linear matrix covariates	2	2
+tests.stancode.R	stancode accepts very long non-linear formulas	1	0
+tests.stancode.R	no loop in trans-par is defined for simple 'identity' models	2	0
+tests.stancode.R	known standard errors appear in the Stan code	4	4
+tests.stancode.R	functions defined in 'stan_funs' appear in the functions block	1	1
+tests.stancode.R	FCOR matrices appear in the Stan code	2	2
+tests.stancode.R	Stan code for GAMMs is correct	15	15
+tests.stancode.R	Stan code of response times models is correct	10	10
+tests.stancode.R	Stan code of wiener diffusion models is correct	5	4
+tests.stancode.R	Group IDs appear in the Stan code	4	4
+tests.stancode.R	weighted, censored, and truncated likelihoods are correct	18	18
+tests.stancode.R	noise-free terms appear in the Stan code	25	25
+tests.stancode.R	Stan code of multi-membership models is correct	3	3
+tests.stancode.R	by variables in grouping terms are handled correctly	4	4
+tests.stancode.R	Group syntax | and || is handled correctly,	3	3
+tests.stancode.R	predicting zi and hu works correctly	20	13
+tests.stancode.R	fixing auxiliary parameters is possible	1	1
+tests.stancode.R	Stan code of quantile regression models is correct	5	5
+tests.stancode.R	Stan code of addition term 'rate' is correct	6	6
+tests.stancode.R	Stan code of GEV models is correct	6	6
+tests.stancode.R	Stan code of Cox models is correct	7	7
+tests.stancode.R	offsets appear in the Stan code	2	2
+tests.stancode.R	prior only models are correctly checked	2	1
+tests.stancode.R	Stan code of mixture model is correct	27	24
+tests.stancode.R	sparse matrix multiplication is applied correctly	8	8
+tests.stancode.R	QR decomposition is included in the Stan code	9	9
+tests.stancode.R	Stan code for Gaussian processes is correct	27	25
+tests.stancode.R	Stan code for SAR models is correct	7	6
+tests.stancode.R	Stan code for CAR models is correct	21	21
+tests.stancode.R	Stan code for skew_normal models is correct	10	10
+tests.stancode.R	Stan code for missing value terms works correctly	18	18
+tests.stancode.R	Stan code for overimputation works correctly	3	3
+tests.stancode.R	Missing value terms can be combined with 'subset'	4	4
+tests.stancode.R	Stan code for advanced count data distribution is correct	3	3
+tests.stancode.R	argument 'stanvars' is handled correctly	10	10
+tests.stancode.R	custom families are handled correctly	10	10
+tests.stancode.R	likelihood of distributional beta models is correct	1	1
+tests.stancode.R	student-t group-level effects work without errors	6	6
+tests.stancode.R	centering design matrices can be changed correctly	3	3
+tests.stancode.R	to_vector() is correctly removed from prior of SD parameters	2	2
+tests.stancode.R	Dirichlet priors can be flexibly included	1	1
+tests.stancode.R	threaded Stan code is correct	22	22
+tests.stancode.R	Un-normalized Stan code is correct	16	16
+tests.stancode.R	Normalizing Stan code works correctly	10	0
+tests.stancode.R	Grouping prior weights are added to the Stan code	9	9
+tests.standata.R	paste standata returns correct data names  for fixed and random effects	6	0
+tests.standata.R	paste standata handles variables used as fixed effects and grouping factors at the same time	3	0
+tests.standata.R	standata returns correct data names for addition terms	9	0
+tests.standata.R	paste standata accepts correct response variables depending on the family	15	0
+tests.standata.R	paste standata rejects incorrect response variables depending on the family	9	0
+tests.standata.R	standata suggests using family bernoulli if appropriate	3	0
+tests.standata.R	standata returns correct values for addition terms	9	0
+tests.standata.R	standata rejects incorrect addition terms	4	0
+tests.standata.R	standata handles multivariate models	10	0
+tests.standata.R	standata removes NAs correctly	1	0
+tests.standata.R	standata handles the 'subset' addition argument correctly	4	0
+tests.standata.R	standata returns correct data for ARMA terms	5	0
+tests.standata.R	standata returns correct data for UNSTR covariance terms	3	0
+tests.standata.R	standata allows to retrieve the initial data order	3	0
+tests.standata.R	standata handles covariance matrices correctly	7	0
+tests.standata.R	standata correctly prepares data for non-linear models	4	0
+tests.standata.R	standata correctly prepares data for monotonic effects	13	0
+tests.standata.R	standata returns FCOR covariance matrices	3	0
+tests.standata.R	standata returns data for GAMMs	15	0
+tests.standata.R	standata returns correct group ID data	2	0
+tests.standata.R	standata handles population-level intercepts	3	0
+tests.standata.R	standata handles category specific effects	5	0
+tests.standata.R	standata handles wiener diffusion models	3	0
+tests.standata.R	standata handles noise-free terms	5	0
+tests.standata.R	standata handles noise-free terms with grouping factors	3	0
+tests.standata.R	standata handles missing value terms	4	0
+tests.standata.R	standata handles overimputation	3	0
+tests.standata.R	standata handles 'mi' terms with 'subset'	4	0
+tests.standata.R	standata handles multi-membership models	12	0
+tests.standata.R	by variables in grouping terms are handled correctly	5	0
+tests.standata.R	standata handles calls to the 'poly' function	1	0
+tests.standata.R	standata allows fixed distributional parameters	3	0
+tests.standata.R	Cell-mean coding can be disabled	5	0
+tests.standata.R	standata correctly includes offsets	3	0
+tests.standata.R	standata includes data for mixture models	6	0
+tests.standata.R	standata includes data for Gaussian processes	6	0
+tests.standata.R	standata includes data for approximate Gaussian processes	6	0
+tests.standata.R	standata includes data for SAR models	2	0
+tests.standata.R	standata includes data for CAR models	15	0
+tests.standata.R	standata includes data of special priors	13	0
+tests.standata.R	dots in formula are correctly expanded	1	0
+tests.standata.R	argument 'stanvars' is handled correctly	3	0
+tests.standata.R	addition arguments 'vint' and 'vreal' work correctly	3	0
+tests.standata.R	reserved variables 'Intercept' is handled correctly	3	0
+tests.standata.R	data for multinomial, dirichlet_multinomial and dirichlet models is correct	11	0
+tests.standata.R	standata handles cox models correctly	8	0
+tests.standata.R	standata handles addition term 'rate' is correctly	1	0
+tests.standata.R	standata handles grouped ordinal thresholds correctly	11	0
+tests.standata.R	information for threading is handled correctly	1	0
+tests.standata.R	variables in data2 can be used in population-level effects	3	0
+tests.standata.R	NAs are allowed in unused interval censoring variables	3	0
+tests.standata.R	drop_unused_factor levels works correctly	2	0
+tests.standata.R	Group prior weights are correctly created	7	0
+tests.stop2.R	stop2() throws a brms_error with simple message	1	0
+tests.stop2.R	stop2() throws a brms_error with simple message	1	0
+tests.stop2.R	stop2() supports custom subclasses	3	0
+tests.stop2.R	stop2() supports custom subclasses	2	0
+tests.stop2.R	stop2() respects an explicit call argument	2	0
+tests.stop2.R	stop2() respects an explicit call argument	2	0

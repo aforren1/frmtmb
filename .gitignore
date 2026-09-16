@@ -17,3 +17,6 @@ testthat-problems.rds
 
 # knitr writes this beside a vignette when knitted outside its own directory
 figure/
+
+# a vendored copy of brms's own source, fetched for Phase 2.6
+dev/brms-suite/
