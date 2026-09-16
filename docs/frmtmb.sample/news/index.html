@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,6 +45,25 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.sample/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.5.0" id="frmtmbsample-050">frmtmb.sample 0.5.0<a class="anchor" aria-label="anchor" href="#frmtmbsample-050"></a></h2>
+<ul><li><p><strong>frmtmb.sample no longer breaks brms, rstantools, loo, bridgesampling, bayesplot, posterior, coda or gratia.</strong> This package defined its own generic for 28 names those packages own, such as <code><a href="../reference/log_lik.html">log_lik()</a></code>, <code><a href="../reference/posterior_epred.html">posterior_epred()</a></code>, <code><a href="../reference/sample-loo.html">psis()</a></code>, <code><a href="../reference/draws-diagnostics.html">rhat()</a></code> and <code><a href="../reference/sample-as_draws.html">as.mcmc()</a></code>. <code><a href="https://rdrr.io/r/base/UseMethod.html" class="external-link">UseMethod()</a></code> reads the method table of the namespace where the generic it reached was defined, so after <code><a href="https://github.com/paul-buerkner/brms" class="external-link">library(brms); library(frmtmb.sample)</a></code>, <code>log_lik(fit)</code> on a <code>brmsfit</code> found no method. Measured on the previous release: all 28 lost after brms, all 28 with brms only loaded, all 28 inside a package that imports frmtmb.sample, and every gratia method for <code><a href="../reference/frmtmb-draws-refusals.html">posterior_samples()</a></code> after gratia. It is now 0 in each of those orders. The package now calls <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">frmtmb::frm_install_generics()</a></code> from its <code>.onLoad()</code>, so each name resolves to the owner’s generic while the owner is loaded and to this package’s own while it is not.</p></li>
+<li><p>Two methods reached a foreign <code>.default</code> in silence and now reach their own. With posterior loaded after this package, <code><a href="../reference/draws-diagnostics.html">rhat()</a></code> on draws went to posterior’s <code>rhat.default</code>; with gratia loaded after it, <code><a href="../reference/frmtmb-draws-refusals.html">posterior_samples()</a></code> went to gratia’s. Both are now also registered on those owners’ generics.</p></li>
+<li>
+<p><strong>BREAKING.</strong> Three generics take their owner’s first argument, so a call that NAMED the old one fails:</p>
+<ul><li>
+<code>bridge_sampler(samples, ...)</code>, was <code>(x, ...)</code>, as bridgesampling.</li>
+<li>
+<code>bayes_factor(x1, x2, log = FALSE, ...)</code>, was <code>(x, ...)</code>, as bridgesampling.</li>
+<li>
+<code>rhat(x, ...)</code>, was <code>(object, ...)</code>. posterior and bayesplot both define <code>rhat</code> with different first arguments; this follows posterior, which is the one brms uses.</li>
+</ul><p>Two only GAIN arguments and break nothing: <code><a href="../reference/frmtmb-loo-refusals.html">post_prob()</a></code> gains <code>prior_prob</code> and <code>model_names</code> from bridgesampling, and <code><a href="../reference/frmtmb-draws-refusals.html">posterior_samples()</a></code> gains <code>pars</code> from brms. <code><a href="../reference/posterior_epred.html">posterior_linpred()</a></code>’s generic gains <code>transform</code>, which its method already had.</p>
+<p><strong>If you write an S3 method on any of these names, match the owner’s formals.</strong></p>
+</li>
+<li><p>While brms is loaded, <code><a href="../reference/frmtmb-draws-refusals.html">parnames()</a></code> and <code><a href="../reference/frmtmb-draws-refusals.html">posterior_samples()</a></code> on draws give brms’s own deprecation warning before this package’s refusal, because the generic that runs is brms’s.</p></li>
+<li><p><code>gratia (&gt;= 0.9.0)</code> joins Suggests, the first gratia with <code><a href="../reference/frmtmb-draws-refusals.html">posterior_samples()</a></code>, and <code>posterior</code> gains the floor <code>(&gt;= 1.0.0)</code>, whose <code><a href="../reference/draws-diagnostics.html">rhat()</a></code> this package now registers a method on. As in frmtmb, a partial install of either on the library path that lacks the generic, loaded before this package, stops it loading.</p></li>
+<li><p>The <code>frmtmb</code> floor moves to the release that exports <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">frm_install_generics()</a></code>.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.2" id="frmtmbsample-042">frmtmb.sample 0.4.2<a class="anchor" aria-label="anchor" href="#frmtmbsample-042"></a></h2>
 <ul><li><p><strong>Requires frmtmb 0.56.0, and the requirement is a hard one.</strong> <code><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis()</a></code> on a <code>frmtmb_draws</code> object now arms the note about a covariate that shadows a distributional parameter itself, through <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">frmtmb::hyp_shadow_arm()</a></code> and <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">hyp_shadow_disarm()</a></code>, which no earlier frmtmb exports. Before this release the draws method relied on core’s generic to arm that note; once frmtmb 0.56.0 stopped owning the <code>hypothesis</code> generic, the note fired on a fitted model and never on draws, in every session and whether or not brms was loaded.</p></li>

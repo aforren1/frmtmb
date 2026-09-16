@@ -263,6 +263,7 @@
   [`find_linpred`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`arg_unset`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`re_form_arg`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`frm_install_generics`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   : Core internals for a sampling extension
 - [`influence(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)
   [`cooks.distance(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)

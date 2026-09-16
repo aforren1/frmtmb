@@ -13,7 +13,7 @@ are documented so the reason is findable.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -81,28 +81,30 @@ are documented so the reason is findable.</p>
 <span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
 <span><span class="fu">kfold</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">bridge_sampler</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">bridge_sampler</span><span class="op">(</span><span class="va">samples</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu">bridge_sampler</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">bridge_sampler</span><span class="op">(</span><span class="va">samples</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">bayes_factor</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu">bayes_factor</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu">post_prob</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">bayes_factor</span><span class="op">(</span><span class="va">x1</span>, <span class="va">x2</span>, log <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu">post_prob</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">bayes_factor</span><span class="op">(</span><span class="va">x1</span>, <span class="va">x2</span>, log <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu">post_prob</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span>, prior_prob <span class="op">=</span> <span class="cn">NULL</span>, model_names <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
+<span><span class="fu">post_prob</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span>, prior_prob <span class="op">=</span> <span class="cn">NULL</span>, model_names <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-x-">x, ...<a class="anchor" aria-label="anchor" href="#arg-x-"></a></dt>
-<dd><p>Ignored; these methods always stop.</p></dd>
+<dl><dt id="arg-x-x-x-samples-log-prior-prob-model-names-">x, x1, x2, samples, log, prior_prob, model_names, ...<a class="anchor" aria-label="anchor" href="#arg-x-x-x-samples-log-prior-prob-model-names-"></a></dt>
+<dd><p>Ignored; these
+methods always stop. The names are the formals of each generic's
+owner, loo or bridgesampling, which a method must carry.</p></dd>
 
 </dl></div>
     <div class="section level2">

@@ -28,27 +28,28 @@ kfold(x, ...)
 # S3 method for class 'frmtmb_draws'
 kfold(x, ...)
 
-bridge_sampler(x, ...)
+bridge_sampler(samples, ...)
 
 # S3 method for class 'frmtmb_draws'
-bridge_sampler(x, ...)
+bridge_sampler(samples, ...)
 
-bayes_factor(x, ...)
-
-# S3 method for class 'frmtmb_draws'
-bayes_factor(x, ...)
-
-post_prob(x, ...)
+bayes_factor(x1, x2, log = FALSE, ...)
 
 # S3 method for class 'frmtmb_draws'
-post_prob(x, ...)
+bayes_factor(x1, x2, log = FALSE, ...)
+
+post_prob(x, ..., prior_prob = NULL, model_names = NULL)
+
+# S3 method for class 'frmtmb_draws'
+post_prob(x, ..., prior_prob = NULL, model_names = NULL)
 ```
 
 ## Arguments
 
-- x, ...:
+- x, x1, x2, samples, log, prior_prob, model_names, ...:
 
-  Ignored; these methods always stop.
+  Ignored; these methods always stop. The names are the formals of each
+  generic's owner, loo or bridgesampling, which a method must carry.
 
 ## Value
 

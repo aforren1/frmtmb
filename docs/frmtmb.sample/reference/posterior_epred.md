@@ -22,7 +22,7 @@ posterior_epred(
   ...
 )
 
-posterior_linpred(object, ...)
+posterior_linpred(object, transform = FALSE, ...)
 
 # S3 method for class 'frmtmb_draws'
 posterior_linpred(

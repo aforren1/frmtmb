@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.56.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.57.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -61,6 +61,11 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.57.0" id="frmtmb-0570">frmtmb 0.57.0<a class="anchor" aria-label="anchor" href="#frmtmb-0570"></a></h2>
+<ul><li>
+<code>frm_install_generics(pkgname, owners)</code> joins the extension API on <code>?frmtmb-sampling-api</code>. It is the mechanism frmtmb uses on itself, and <code>owners</code> is now an argument, so an extension that defines a generic under a name another package owns calls it from its own <code>.onLoad()</code> with its own table. <code>frmtmb.sample</code> does this for 28 names. A malformed table is refused rather than installing nothing.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.56.0" id="frmtmb-0560">frmtmb 0.56.0<a class="anchor" aria-label="anchor" href="#frmtmb-0560"></a></h2>
 <ul><li>

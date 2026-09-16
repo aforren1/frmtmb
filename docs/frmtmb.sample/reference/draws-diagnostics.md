@@ -28,10 +28,10 @@ log_posterior(object, ...)
 # S3 method for class 'frmtmb_draws'
 log_posterior(object, ...)
 
-rhat(object, ...)
+rhat(x, ...)
 
 # S3 method for class 'frmtmb_draws'
-rhat(object, ...)
+rhat(x, ...)
 
 neff_ratio(object, ...)
 

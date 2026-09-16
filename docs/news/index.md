@@ -1,5 +1,14 @@
 # Changelog
 
+## frmtmb 0.57.0
+
+- `frm_install_generics(pkgname, owners)` joins the extension API on
+  `?frmtmb-sampling-api`. It is the mechanism frmtmb uses on itself, and
+  `owners` is now an argument, so an extension that defines a generic
+  under a name another package owns calls it from its own `.onLoad()`
+  with its own table. `frmtmb.sample` does this for 28 names. A
+  malformed table is refused rather than installing nothing.
+
 ## frmtmb 0.56.0
 
 - **frmtmb no longer breaks brms, lme4, posterior, loo, rstantools or

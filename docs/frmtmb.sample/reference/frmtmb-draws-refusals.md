@@ -33,10 +33,10 @@ restructure(x, ...)
 # S3 method for class 'frmtmb_draws'
 restructure(x, ...)
 
-posterior_samples(x, ...)
+posterior_samples(x, pars = NA, ...)
 
 # S3 method for class 'frmtmb_draws'
-posterior_samples(x, ...)
+posterior_samples(x, pars = NA, ...)
 
 nsamples(object, ...)
 
@@ -51,7 +51,7 @@ parnames(x, ...)
 
 ## Arguments
 
-- object, x, ...:
+- object, x, pars, ...:
 
   Ignored; these functions always stop.
 
