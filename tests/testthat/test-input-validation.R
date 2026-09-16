@@ -106,7 +106,7 @@ test_that("the bespoke refusals name their argument and contract", {
                "single string")
   expect_error(bernoulli(link = 1L), "single string")
   expect_error(predict(cs$fit, newdata = "nope"), "`newdata`")
-  expect_error(predict(cs$fit, re.form = "oops"), "`re.form`")
+  expect_error(predict(cs$fit, re_formula = "oops"), "`re_formula`")
   expect_error(confint(cs$fit, parm = 1i), "`parm`")
 })
 

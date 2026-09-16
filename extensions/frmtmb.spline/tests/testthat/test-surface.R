@@ -130,7 +130,7 @@ test_that("the compatibility rows this package registered resolve", {
                    "refused")
   # "works" since this package reads frmtmb::frm_lp_basis(): the
   # reduced-rank loadings live in theta and the design over (beta, b)
-  # alone was incomplete, which is why re.form = NULL used to be
+  # alone was incomplete, which is why re_formula = NULL used to be
   # refused. test-curve.R measures both settings.
   expect_identical(frmtmb::frm_compat("frm_curve", "rr")$status, "works")
   expect_identical(frmtmb::frm_compat("royston_parmar", "cens()")$status,

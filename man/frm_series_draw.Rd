@@ -28,7 +28,7 @@ as the numbers themselves. A model written in terms of a
 transformed frequency keeps no \code{freq} column, so passing
 \code{pg$freq} is the general route.}
 
-\item{...}{Passed to \code{\link[=predict]{predict()}}, for example \code{re.form}.}
+\item{...}{Passed to \code{\link[=predict]{predict()}}, for example \code{re_formula}.}
 }
 \value{
 A \code{ts} matrix with \code{2 * nf + 1} rows and \code{nsim} columns, at

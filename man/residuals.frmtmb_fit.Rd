@@ -24,7 +24,13 @@ integration domain and discrete support taken from the \code{trunc()}
 bounds or the censoring window, which must then be the same for
 every row.}
 
-\item{...}{For \code{type = "osa"}: passed to \code{\link[TMB:oneStepPredict]{TMB::oneStepPredict()}}.}
+\item{...}{For \code{type = "osa"}: passed to \code{\link[TMB:oneStepPredict]{TMB::oneStepPredict()}},
+and checked against that function's own formals. For every other
+type: refused, naming the argument. The \code{residuals.brmsfit()}
+arguments this one does not have (\code{newdata}, \code{re_formula},
+\code{method}, \code{resp}, \code{ndraws}, \code{draw_ids}, \code{sort}, \code{summary},
+\code{robust}, \code{probs}) are refused with the reason rather than
+reported as unknown names.}
 }
 \value{
 A numeric vector, \code{NA} on censored rows.

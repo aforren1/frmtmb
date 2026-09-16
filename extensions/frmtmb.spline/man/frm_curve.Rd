@@ -10,7 +10,7 @@ frm_curve(
   contrast = NULL,
   dpar = NULL,
   resp = NULL,
-  re.form = NA,
+  re_formula = NA,
   level = 0.95,
   simultaneous = TRUE,
   nsim = 10000L,
@@ -35,7 +35,7 @@ the default, is the location parameter \code{mu}.}
 
 \item{resp}{Response name, for a multivariate fit.}
 
-\item{re.form}{\code{NA} (the default) evaluates the population curve, the
+\item{re_formula}{\code{NA} (the default) evaluates the population curve, the
 convention \code{mgcv} and \code{gratia} plot. \code{NULL} keeps every random
 effect, so the grid must carry the grouping columns and the curve is
 that group's own.}
@@ -143,7 +143,7 @@ ran.
 What this call costs is dominated by ONE thing: the single
 \code{predict(se.fit = TRUE)} check call, inside which core inverts the
 fit's joint precision matrix over EVERY coefficient, including the
-ones this curve does not touch. Measured at \code{re.form = NA} on a
+ones this curve does not touch. Measured at \code{re_formula = NA} on a
 20-point grid, one process each:
 
 \itemize{

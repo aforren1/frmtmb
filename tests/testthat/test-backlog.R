@@ -22,13 +22,13 @@ test_that("non-default contrasts survive prediction (glmmTMB#439)", {
                predict(fit2), tolerance = 1e-8)
 })
 
-test_that("re.form = NA needs no grouping columns in newdata (glmmTMB#923)", {
+test_that("re_formula = NA needs no grouping columns in newdata (glmmTMB#923)", {
   set.seed(162)
   dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
   dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.6)[dd$g], 1)
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
   nd <- data.frame(x = c(-1, 0, 1))    # no g column at all
-  p <- predict(fit, newdata = nd, re.form = NA, se.fit = TRUE)
+  p <- predict(fit, newdata = nd, re_formula = NA, se.fit = TRUE)
   expect_length(p$fit, 3)
   expect_true(all(is.finite(p$se.fit)))
 })
@@ -109,10 +109,13 @@ test_that("Inf responses error; dpar names with underscores rejected", {
   expect_error(bf(y ~ x, my_par ~ z), "dots or underscores")
 })
 
-test_that("predict warns on unknown arguments", {
+test_that("predict refuses unknown arguments", {
   dd <- data.frame(y = rnorm(30), x = rnorm(30))
   fit <- frm(bf(y ~ x) + gaussian(), data = dd)
-  expect_warning(predict(fit, bogus = 1), "ignoring unknown arguments")
+  # a WARNING here was the defect of plan item 2.5e in miniature: the
+  # call returned a number, and under suppressWarnings() or in a loop
+  # the record of the ignored argument was gone
+  expect_error(predict(fit, bogus = 1), "bogus")
   # the common typo se= partial-matches se.fit and just works
   p <- predict(fit, se = TRUE)
   expect_named(p, c("fit", "se.fit"))

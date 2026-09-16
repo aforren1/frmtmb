@@ -230,7 +230,8 @@ draws_row_loglik <- function(fit, resp) {
 #'   matrix (default: all of them).
 #' @param resp For a multivariate model without `rescor`, the response
 #'   whose contribution to report; the default sums over responses.
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return A numeric matrix with one row per draw and one column per
 #'   observation (the rows the model was fitted on).
 #' @seealso [frmtmb::loo()], [frmtmb::waic()], [frmtmb::bayes_R2()]
@@ -266,6 +267,7 @@ log_lik <- function(object, ...) {
 #' @export
 log_lik.frmtmb_draws <- function(object, ndraws = NULL, resp = NULL,
                                  ...) {
+  frm_check_dots(...)
   fit <- draws_base_fit(object)
   draws_require_b(object, "log_lik()")
   draws_loglik_factors(fit, "log_lik()")
@@ -544,7 +546,8 @@ WAIC.frmtmb_draws <- function(x, ...) {
 #'   `ndraws x 1` matrix of R-squared draws.
 #' @param probs Quantiles for the summary.
 #' @param ndraws Number of draws to use (default: all).
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return A one-row summary matrix, or the matrix of draws when
 #'   `summary = FALSE`.
 #' @seealso [log_lik()], [frmtmb::loo()]
@@ -572,6 +575,7 @@ NULL
 bayes_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
                                   probs = c(0.025, 0.975),
                                   ndraws = NULL, ...) {
+  frm_check_dots(...)
   fit <- draws_base_fit(object)
   resp <- resp %||% names(fit$spec$responses)[1L]
   y <- fit$frame[["y"]][[resp]]

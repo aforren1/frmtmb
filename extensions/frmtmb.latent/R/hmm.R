@@ -646,15 +646,15 @@ hmm_structure <- function(fam) {
         "own linear predictor with dpar = (for example dpar = ",
         "\"mu2\"), or use hmm_probs() on the training data"),
       re_form = paste0(
-        "re.form is not supported on the response scale for an hmm() ",
+        "re_formula is not supported on the response scale for an hmm() ",
         "family: the state probabilities are computed at the ",
         "random-effect modes, so a different random-effect ",
         "conditioning would need a second forward-backward pass. ",
         "Use type = \"link\" with dpar ="),
       re_form.simulate = paste0(
-        "simulate(re.form =) is not supported for an hmm() fit: the ",
+        "simulate(re_formula =) is not supported for an hmm() fit: the ",
         "state path is drawn at the random-effect modes. Drop ",
-        "re.form to simulate conditionally on them"),
+        "re_formula to simulate conditionally on them"),
       cens_trunc.simulate = paste0(
         "simulate(censored = TRUE) is not supported for an hmm() ",
         "fit, because cens() is refused on an hmm() response"),
@@ -1523,7 +1523,7 @@ hmm_compat_rules <- function() {
   r("hmm", "residuals_osa", "refused",
     "Refused: one-step prediction needs the taped density of one observation given the earlier ones, and the tape holds a forward recursion over each whole sequence with no registered observation vector.")
   r("hmm", "simulate", "conditional",
-    "A draw walks the chain forward per sequence and then emits, so it needs the emission family to have a simulator. re.form and censored = TRUE are refused. Since v0.36 the chain walk is the family's structured simulator (fam$sim_ctx), so posterior_predict() and frm_simulate() reach it too; posterior_predict(newdata =) is refused, because the sequence structure indexes the fitted rows.")
+    "A draw walks the chain forward per sequence and then emits, so it needs the emission family to have a simulator. re_formula and censored = TRUE are refused. Since v0.36 the chain walk is the family's structured simulator (fam$sim_ctx), so posterior_predict() and frm_simulate() reach it too; posterior_predict(newdata =) is refused, because the sequence structure indexes the fitted rows.")
   r("hmm", "emmeans", "untested", "")
   r("hmm", "confint_profile", "untested", "")
   r("hmm", "hypothesis_profile", "untested", "")

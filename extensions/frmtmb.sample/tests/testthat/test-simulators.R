@@ -373,13 +373,13 @@ test_that("a structured draw refuses trunc() and newdata", {
     "residual correlation term")
 })
 
-test_that("simulate() still refuses re.form and censored on an hmm", {
+test_that("simulate() still refuses re_formula and censored on an hmm", {
   skip_if_not_installed("frmtmb.latent")
   G2 <- matrix(c(0.9, 0.1, 0.25, 0.75), 2L, 2L, byrow = TRUE)
   dd <- sim_hmm_data(10L, 10L, G2, c(0, 4), c(0.5, 0.5), 91)
   fit <- frm(bf(y ~ 1) +
                frmtmb.latent::hmm(K = 2, gaussian(), time = t, group = id),
              data = dd)
-  expect_error(simulate(fit, re.form = NA), "re.form")
+  expect_error(simulate(fit, re_formula = NA), "re_formula")
   expect_error(simulate(fit, censored = TRUE), "cens\\(\\)")
 })

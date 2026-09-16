@@ -264,7 +264,7 @@ family that keeps its rowwise likelihood), every name defaults to
 \item{\code{profile}}{\code{frmtmb_control(profile = TRUE)}.}
 \item{\code{newdata_response}}{\code{predict(newdata =, type = "response")}.}
 \item{\code{se_fit_response}}{\code{predict(se.fit = TRUE, type = "response")}.}
-\item{\code{re_form}}{\verb{re.form =} in \code{predict()} and \code{simulate()}.}
+\item{\code{re_form}}{\verb{re_formula =} in \code{predict()} and \code{simulate()}.}
 \item{\code{conditional_effects}}{\code{\link[=conditional_effects]{conditional_effects()}}.}
 \item{\code{osa}}{\code{residuals(type = "osa")}.}
 \item{\code{deviance}}{\code{residuals(type = "deviance")}.}

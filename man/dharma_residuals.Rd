@@ -4,14 +4,14 @@
 \alias{dharma_residuals}
 \title{DHARMa residual diagnostics}
 \usage{
-dharma_residuals(fit, nsim = 250, re.form = NULL, seed = NULL, ...)
+dharma_residuals(fit, nsim = 250, re_formula = NULL, seed = NULL, ...)
 }
 \arguments{
 \item{fit}{A \code{frmtmb_fit} (univariate; the family needs a simulator).}
 
 \item{nsim}{Number of simulated response vectors.}
 
-\item{re.form}{Passed to \code{\link[=simulate.frmtmb_fit]{simulate.frmtmb_fit()}}: \code{NULL} (default)
+\item{re_formula}{Passed to \code{\link[=simulate.frmtmb_fit]{simulate.frmtmb_fit()}}: \code{NULL} (default)
 conditions on the estimated random effects; \code{NA} redraws them.}
 
 \item{seed}{Optional RNG seed for the simulations.}

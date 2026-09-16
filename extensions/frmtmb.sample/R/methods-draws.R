@@ -71,6 +71,7 @@ draws_subsample <- function(x, ndraws) {
 
 #' @export
 summary.frmtmb_draws <- function(object, ...) {
+  frm_check_dots(...)
   m <- object$draws
   keep <- setdiff(colnames(m),
                   c("lp__", grep("^b\\[", colnames(m), value = TRUE)))
@@ -96,6 +97,7 @@ summary.frmtmb_draws <- function(object, ...) {
 fixef.frmtmb_draws <- function(object, ...) {
   # the draws-side spelling: parenthesis-free, matching the draws
   # matrix, summary(), variables() and hypothesis()
+  frm_check_dots(...)
   nm <- par_name_bare(estimated_coef_names(object$fit))
   idx <- draws_par_index(object$fit)
   cols <- c(idx$beta, idx$betad)
@@ -116,6 +118,7 @@ VarCorr.frmtmb_draws <- function(x, sigma = 1, ...) {
   # a structural template only: every number in `base` is replaced by a
   # posterior summary below, so the starting values of a formula-sampled
   # object never reach the result
+  frm_check_dots(...)
   fit <- draws_base_fit(x)
   idx <- draws_par_index(fit)
   if (is.null(idx$theta)) return(NULL)
@@ -139,6 +142,7 @@ VarCorr.frmtmb_draws <- function(x, sigma = 1, ...) {
 #' @exportS3Method rstantools::prior_summary
 #' @export
 prior_summary.frmtmb_draws <- function(object, ...) {
+  frm_check_dots(...)
   pl <- object$fit$prior
   if (is.null(pl) || (!length(unclass(pl)) &&
                         !length(attr(pl, "overrides")))) {
@@ -152,6 +156,7 @@ prior_summary.frmtmb_draws <- function(object, ...) {
 #' @exportS3Method nlme::ranef
 #' @export
 ranef.frmtmb_draws <- function(object, ...) {
+  frm_check_dots(...)
   fit <- object$fit
   if (!length(fit$frame[["re_blocks"]])) return(list())
   idx <- draws_par_index(fit)
@@ -197,6 +202,7 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
   # is loaded, so core moved the arming into its methods, and this one
   # lost the note in every session until it armed it too. Measured on
   # a covariate named `sigma`: 1 note on the fit, 0 on its draws.
+  frm_check_dots(...)
   old <- hyp_shadow_arm()
   on.exit(hyp_shadow_disarm(old), add = TRUE)
   fit <- x$fit
@@ -265,7 +271,8 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
 #' draw; `posterior_predict()` additionally simulates responses from
 #' the family, giving the posterior predictive distribution. Both
 #' condition on each draw's own random effects (`re_formula = NA` drops
-#' them; `re.form` is the accepted alias, see *Argument spellings*).
+#' them; `re.form` is an accepted alias here, see *Argument
+#' spellings*).
 #'
 #' @section Categorical outcomes:
 #' An ordinal family predicts a DISTRIBUTION per observation, not one
@@ -303,19 +310,30 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
 #' the model was fitted on, so `newdata` is refused for them.
 #'
 #' @section Argument spellings:
-#' frmtmb answers to two dialects, and this family sits on the seam.
-#' The rule is that a brms-NAMED function speaks brms's argument names,
-#' while frmtmb's own fit surface ([frmtmb::predict.frmtmb_fit()],
-#' [frmtmb::simulate.frmtmb_fit()], [frmtmb::frm_bootstrap()]) keeps lme4's, because
-#' that is the heritage each name comes from and a reader should be able
-#' to tell which library a call was written against.
+#' One rule decides every name in this package: where lme4 or glmmTMB
+#' and brms disagree, brms wins. The random-effect switch is therefore
+#' `re_formula` everywhere, on the draws methods here and on
+#' [frmtmb::predict.frmtmb_fit()] and
+#' [frmtmb::simulate.frmtmb_fit()] alike; lme4's `re.form` was dropped
+#' from the fit surface and is refused there by name.
 #'
-#' `posterior_epred()` and its relatives are brms functions, so the
-#' random-effect switch is `re_formula`. They also SHIPPED taking
-#' lme4's `re.form`, so that spelling keeps working and means exactly
-#' the same thing: both names feed one internal setting, and whichever
-#' one is given wins. brms does the same on `posterior_epred.brmsfit()`,
-#' which carries `re_formula` and `re.form` side by side.
+#' Five methods take BOTH spellings, and they are exactly the five
+#' where brms ITSELF accepts both. Four declare them:
+#' `posterior_epred()`, `posterior_linpred()`, `posterior_predict()`
+#' and `predictive_error()` carry `re_formula` and `re.form` side by
+#' side on `brmsfit`. The fifth does not declare them and accepts them
+#' anyway: `predictive_interval.brmsfit()`'s whole body is
+#' `posterior_predict(object, ...)`, so the alias reaches a formal one
+#' frame down. What brms ACCEPTS is the test, not what it declares.
+#'
+#' `pp_check()` is the one method that lost the alias, and the same
+#' test is why it stays lost. brms DOES honor `re.form` there, through
+#' the same dots forwarding, but it warns "unrecognized and ignored"
+#' while doing it. Matching brms means matching what brms decided, and
+#' a warn-then-honor path is a leak rather than a decision: the
+#' argument changes the answer and the message says it did not.
+#' `predictive_interval()` is the contrast, where brms honors the alias
+#' silently and this package follows.
 #'
 #' Giving both at once is refused rather than resolved. Two names for
 #' one setting supplied together is a question about what was meant, and
@@ -332,11 +350,14 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
 #' @param re_formula The random-effect switch, in brms's spelling:
 #'   `NULL` (the default) conditions on each draw's own random effects,
 #'   `NA` or `~0` gives the population-level quantity. Its meaning is
-#'   [frmtmb::predict.frmtmb_fit()]'s `re.form`; see *Argument spellings*.
-#' @param re.form lme4's spelling of `re_formula`, accepted as an alias.
-#'   Pass one or the other, not both.
+#'   [frmtmb::predict.frmtmb_fit()]'s `re_formula`; see *Argument
+#'   spellings*.
+#' @param re.form lme4's spelling of `re_formula`, accepted on the four
+#'   methods where brms accepts it too. Pass one or the other, not
+#'   both.
 #' @param ndraws Number of draws to use (default: all).
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return A draws-by-observations matrix; for a categorical outcome
 #'   `posterior_epred()` returns a draws-by-observations-by-categories
 #'   array (see the section below).
@@ -378,6 +399,7 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
                                          re_formula = arg_unset(),
                                          re.form = arg_unset(),
                                          ndraws = NULL, ...) {
+  frm_check_dots(...)
   re_form <- re_form_arg(re_formula, re.form, "posterior_epred()")
   idx <- draws_par_index(object$fit)
   rows <- draws_subsample(object, ndraws)
@@ -385,7 +407,8 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
   cat_out <- FALSE
   for (k in seq_along(rows)) {
     sh <- draws_fit_at(object, rows[k], idx)
-    p <- predict(sh, newdata = newdata, resp = resp, re.form = re_form,
+    p <- predict(sh, newdata = newdata, resp = resp,
+                 re_formula = re_form,
                  type = "response")
     if (is.null(out)) {
       # A categorical outcome predicts a matrix per draw (an ordinal
@@ -428,6 +451,7 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
                                            re.form = arg_unset(),
                                            dpar = NULL,
                                            ndraws = NULL, ...) {
+  frm_check_dots(...)
   re_form <- re_form_arg(re_formula, re.form, "posterior_linpred()")
   idx <- draws_par_index(object$fit)
   rows <- draws_subsample(object, ndraws)
@@ -441,7 +465,7 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
   for (k in seq_along(rows)) {
     sh <- draws_fit_at(object, rows[k], idx)
     p <- predict(sh, newdata = newdata, resp = resp, dpar = dpar,
-                 re.form = re_form,
+                 re_formula = re_form,
                  type = if (transform) "response" else "link")
     if (is.null(out)) out <- matrix(NA_real_, length(rows), length(p))
     out[k, ] <- p
@@ -472,6 +496,7 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
                                            re_formula = arg_unset(),
                                            re.form = arg_unset(),
                                            ndraws = NULL, ...) {
+  frm_check_dots(...)
   re_form <- re_form_arg(re_formula, re.form, "posterior_predict()")
   fit <- object$fit
   resp <- resp %||% names(fit$spec$responses)[1L]
@@ -528,7 +553,7 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
       for (dnm in names(rspec$dpars)) {
         dpv[[dnm]] <- as.vector(predict(sh, newdata = newdata,
                                         dpar = dnm, resp = resp,
-                                        re.form = re_form,
+                                        re_formula = re_form,
                                         type = "response"))
       }
       dpv
@@ -554,17 +579,41 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   out
 }
 
+#' The one retired spelling `pp_check()` has to refuse itself.
+#'
+#' Its dots go to bayesplot, which accepts any name, so without this the
+#' spelling that used to select the population check would go on
+#' selecting nothing.
+#'
+#' @noRd
+pp_check_retired_draws <- c(
+  re.form = paste("lme4's spelling, no longer accepted. brms LEAKS it:",
+                  "pp_check.brmsfit() forwards its dots to",
+                  "posterior_predict(), so brms honors `re.form` there",
+                  "while WARNING that it ignored it. Warn-then-honor is",
+                  "the failure this refusal exists to stop, so the",
+                  "spelling is refused here rather than copied. Pass",
+                  "re_formula =")
+)
+
 #' @exportS3Method bayesplot::pp_check
 #' @export
 pp_check.frmtmb_draws <- function(object, type = "dens_overlay",
                                   ndraws = 50,
-                                  re_formula = arg_unset(),
-                                  re.form = arg_unset(), ...) {
+                                  re_formula = NULL, ...) {
+  # bayesplot's ppc_* function takes dots of its own, so an unknown
+  # name there is its business. The retired lme4 spelling is not: it
+  # named a real setting until the rename, so it is refused here
+  # rather than passed on to be ignored.
+  frm_check_dots(..., .allow = TRUE, .unsupported = pp_check_retired_draws)
   # the draws method's default is NULL, not the fit method's NA: a draw
   # already CARRIES its random effects, so conditioning on them is the
   # posterior predictive check, while the fit method has one point
   # estimate and has to simulate new levels to get a spread at all
-  re_form <- re_form_arg(re_formula, re.form, "pp_check()")
+  # `re.form` is NOT accepted here. brms honors it on pp_check() while
+  # warning that it ignored it, which is a leak through its dots into
+  # posterior_predict() rather than an intention to copy.
+  re_form <- re_formula
   fit <- object$fit
   rspec <- single_response(fit, "pp_check()")
   y <- fit$frame[["y"]][[1L]]
@@ -579,7 +628,8 @@ pp_check.frmtmb_draws <- function(object, type = "dens_overlay",
 #' Convert draws to a posterior draws object
 #'
 #' @param x A `frmtmb_draws` object.
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return A `posterior::draws_matrix`: one column per sampled variable
 #'   and one row per draw.
 #' @examples
@@ -609,17 +659,20 @@ NULL
 #' @exportS3Method posterior::as_draws
 #' @export
 as_draws.frmtmb_draws <- function(x, ...) {
+  frm_check_dots(...)
   posterior::as_draws_matrix(x$draws)
 }
 
 #' @exportS3Method posterior::variables
 #' @export
 variables.frmtmb_draws <- function(x, ...) {
+  frm_check_dots(...)
   colnames(x$draws)
 }
 
 #' @export
 as.data.frame.frmtmb_draws <- function(x, ...) {
+  frm_check_dots(...)
   as.data.frame(x$draws)
 }
 
@@ -632,6 +685,7 @@ as.array.frmtmb_draws <- function(x, ...) {
   # functions and posterior's draws_array both read. frm_sample()
   # rbinds the chains in order, so the draws matrix is already
   # chain-major and reshapes without a permutation.
+  frm_check_dots(...)
   m <- x$draws
   nc <- x$stanfit@sim$chains %||% 1L
   if (nc <= 1L || nrow(m) %% nc != 0L) nc <- 1L
@@ -644,6 +698,7 @@ as.array.frmtmb_draws <- function(x, ...) {
 #' @exportS3Method posterior::as_draws_matrix
 #' @export
 as_draws_matrix.frmtmb_draws <- function(x, ...) {
+  frm_check_dots(...)
   posterior::as_draws_matrix(x$draws)
 }
 
@@ -654,6 +709,7 @@ as_draws_array.frmtmb_draws <- function(x, ...) {
   # through as.array(), so the chains stay separate: a draws_array
   # built from the flattened matrix would claim one chain and every
   # convergence diagnostic computed on it would be wrong
+  frm_check_dots(...)
   posterior::as_draws_array(as.array(x))
 }
 
@@ -661,6 +717,7 @@ as_draws_array.frmtmb_draws <- function(x, ...) {
 #' @exportS3Method posterior::as_draws_df
 #' @export
 as_draws_df.frmtmb_draws <- function(x, ...) {
+  frm_check_dots(...)
   posterior::as_draws_df(as_draws_array(x))
 }
 
@@ -668,6 +725,7 @@ as_draws_df.frmtmb_draws <- function(x, ...) {
 #' @exportS3Method posterior::as_draws_list
 #' @export
 as_draws_list.frmtmb_draws <- function(x, ...) {
+  frm_check_dots(...)
   posterior::as_draws_list(as_draws_array(x))
 }
 
@@ -675,6 +733,7 @@ as_draws_list.frmtmb_draws <- function(x, ...) {
 #' @exportS3Method posterior::as_draws_rvars
 #' @export
 as_draws_rvars.frmtmb_draws <- function(x, ...) {
+  frm_check_dots(...)
   posterior::as_draws_rvars(as_draws_array(x))
 }
 
@@ -689,6 +748,7 @@ as.mcmc <- function(x, ...) UseMethod("as.mcmc")
 #' @exportS3Method coda::as.mcmc
 #' @export
 as.mcmc.frmtmb_draws <- function(x, combine_chains = FALSE, ...) {
+  frm_check_dots(...)
   if (!requireNamespace("coda", quietly = TRUE)) {
     stop("as.mcmc() needs the 'coda' package; as_draws() and ",
          "as.array() give the same draws without it", call. = FALSE)
@@ -757,7 +817,10 @@ niterations.frmtmb_draws <- function(x) {
 #' @rdname draws-dimensions
 #' @exportS3Method posterior::nvariables
 #' @export
-nvariables.frmtmb_draws <- function(x, ...) ncol(x$draws)
+nvariables.frmtmb_draws <- function(x, ...) {
+  frm_check_dots(...)
+  ncol(x$draws)
+}
 
 # ---- posterior summaries ---------------------------------------------
 
@@ -788,7 +851,8 @@ nvariables.frmtmb_draws <- function(x, ...) ncol(x$draws)
 #'   takes brms's `re_formula` and accepts lme4's `re.form` as an alias
 #'   of it. Pass one or the other; see the *Argument spellings* section
 #'   of [posterior_epred()].
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return A matrix with one row per variable (or per observation, for
 #'   the predictive functions), except `predictive_error()`, which
 #'   returns a draws-by-observations matrix.
@@ -818,6 +882,7 @@ posterior_summary.frmtmb_draws <- function(x, probs = c(0.025, 0.975),
                                            robust = FALSE,
                                            variable = NULL, ...) {
   # the generic dispatches to core's default method on a matrix
+  frm_check_dots(...)
   posterior_summary(draws_columns(x, variable),
                     probs = probs, robust = robust)
 }
@@ -854,6 +919,7 @@ posterior_interval <- function(object, ...) UseMethod("posterior_interval")
 #' @export
 posterior_interval.frmtmb_draws <- function(object, prob = 0.95,
                                             variable = NULL, ...) {
+  frm_check_dots(...)
   m <- draws_columns(object, variable)
   a <- (1 - prob) / 2
   t(apply(m, 2L, stats::quantile, probs = c(a, 1 - a)))
@@ -871,6 +937,12 @@ predictive_interval.frmtmb_draws <- function(object, prob = 0.9,
                                              re_formula = arg_unset(),
                                              re.form = arg_unset(),
                                              ndraws = NULL, ...) {
+  # Both spellings, on the strength of what brms DOES rather than what
+  # it declares. `predictive_interval.brmsfit` declares neither, but its
+  # whole body is `posterior_predict(object, ...)` and
+  # `posterior_predict.brmsfit` has a `re.form` formal, so brms accepts
+  # and honors `predictive_interval(x, re.form = NA)` one frame down.
+  frm_check_dots(...)
   re_form <- re_form_arg(re_formula, re.form, "predictive_interval()")
   yrep <- posterior_predict(object, newdata = newdata, resp = resp,
                             re_formula = re_form, ndraws = ndraws)
@@ -896,6 +968,7 @@ predictive_error.frmtmb_draws <- function(object, resp = NULL,
                                           re_formula = arg_unset(),
                                           re.form = arg_unset(),
                                           ndraws = NULL, ...) {
+  frm_check_dots(...)
   re_form <- re_form_arg(re_formula, re.form, "predictive_error()")
   fit <- draws_base_fit(object)
   resp <- resp %||% names(fit$spec$responses)[1L]
@@ -934,7 +1007,8 @@ predictive_error.frmtmb_draws <- function(object, resp = NULL,
 #' `coef.brmsfit` layout.
 #'
 #' @param object,x A `frmtmb_draws` from [frm_sample()].
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return As for the corresponding `frmtmb_fit` method.
 #' @examples
 #' \donttest{
@@ -957,35 +1031,43 @@ NULL
 #' @rdname draws-structure
 #' @export
 nobs.frmtmb_draws <- function(object, ...) {
+  frm_check_dots(...)
   stats::nobs(draws_base_fit(object))
 }
 
 #' @rdname draws-structure
 #' @export
 formula.frmtmb_draws <- function(x, ...) {
+  frm_check_dots(...)
   stats::formula(draws_base_fit(x))
 }
 
 #' @rdname draws-structure
 #' @export
 family.frmtmb_draws <- function(object, ...) {
+  frm_check_dots(...)
   stats::family(draws_base_fit(object))
 }
 
 #' @rdname draws-structure
 #' @export
-getCall.frmtmb_draws <- function(x, ...) x$fit$call
+getCall.frmtmb_draws <- function(x, ...) {
+  frm_check_dots(...)
+  x$fit$call
+}
 
 #' @exportS3Method brms::ngrps
 #' @rawNamespace S3method(lme4::ngrps,frmtmb_draws)
 #' @export
 ngrps.frmtmb_draws <- function(object, ...) {
+  frm_check_dots(...)
   ngrps(draws_base_fit(object))
 }
 
 #' @rdname draws-structure
 #' @export
 coef.frmtmb_draws <- function(object, ...) {
+  frm_check_dots(...)
   idx <- draws_par_index(object$fit)
   n <- nrow(object$draws)
   per <- lapply(seq_len(n), function(i) coef(draws_fit_at(object, i, idx)))
@@ -1196,7 +1278,8 @@ draws_bayesplot_ns <- function(what) {
 #'   `observations x statistics x components` array of summaries;
 #'   otherwise the raw `draws x observations x components` array.
 #' @param ndraws Number of draws to use (default: all).
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return An array; see `summary`. For a group-level mixture
 #'   (`mixture(groups = )`, `frmtmb.latent::lca()`) the rows are groups, as in
 #'   [frmtmb::mixture_probs()].
@@ -1221,6 +1304,7 @@ pp_mixture <- function(x, ...) UseMethod("pp_mixture")
 #' @export
 pp_mixture.frmtmb_draws <- function(x, summary = TRUE, ndraws = NULL,
                                     ...) {
+  frm_check_dots(...)
   idx <- draws_par_index(x$fit)
   rows <- draws_subsample(x, ndraws)
   out <- NULL

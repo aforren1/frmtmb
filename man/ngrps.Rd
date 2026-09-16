@@ -12,7 +12,8 @@ ngrps(object, ...)
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 }
 \value{
 A named integer vector (smooth terms are excluded).

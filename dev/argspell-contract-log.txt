@@ -1,0 +1,23 @@
+---- GENERATED: S3 generic contract scan ----
+packages scanned: stats, base, utils, graphics, grDevices, methods 
+generics with a dots-refusing method: 65
+call sites, table EMPTY             : 62
+call sites, table APPLIED           : 0
+
+what the table carries, generic to the names R itself passes:
+  as.data.frame  fix.empty.names, optional, row.names, stringsAsFactors
+  as.matrix      rownames.force
+  confint        type
+  drop1          scale, trace
+  formula        env
+  influence      do.coef
+  model.frame    data, na.action, xlev
+  model.matrix   contrasts.arg, data
+  nobs           use.fallback
+  plot           add, angle, asp, axes, bg, border, cex, ci, col, col.lab, density, font.lab, freq, horiz, labels, leaflab, lend, log, lty, lwd, main, mgp, panel.first, pch, sub, type, verticals, xaxs, xaxt, xlab, xlim, xy.labels, xy.lines, y, yaxs, ylab, ylim
+  predict        terms
+  print          quote, steps, useS4
+  summary        dispersion
+  terms          allowDotAsName, data, specials
+  weights        type
+---- END GENERATED: S3 generic contract scan ----

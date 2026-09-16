@@ -1450,7 +1450,7 @@ compat_hand_rules_tbl <- function() {
   ## frm_lp_basis(): the same rows frm_curve() has, because they are the
   ## same rows. The two that are worth naming are rr and gp.
   r("frm_lp_basis", "s()", "works",
-    "The case the seam exists for: a penalized smooth's wiggly part is a random-effect block, so A spans b and V is the joint covariance. Verified against predict(se.fit = TRUE) at 2.8e-17 relative on a s(x, k = 8) + (1 | g) fit at both re.form = NA and re.form = NULL.")
+    "The case the seam exists for: a penalized smooth's wiggly part is a random-effect block, so A spans b and V is the joint covariance. Verified against predict(se.fit = TRUE) at 2.8e-17 relative on a s(x, k = 8) + (1 | g) fit at both re_formula = NA and re_formula = NULL.")
   r("frm_lp_basis", "smooth", "works",
     "The same thing named as a covariance structure rather than as a formula term.")
   r("frm_lp_basis", "nl", "works",

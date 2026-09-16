@@ -81,7 +81,7 @@ test_that("t2 smooths predict on newdata", {
   # PredictMat honors; the frame drops it (smoothCon modCon = 3) so the
   # newdata basis IS the fit basis and the round-trip is exact
   expect_equal(predict(fit, newdata = dd), predict(fit), tolerance = 1e-10)
-  expect_equal(predict(fit, newdata = dd, re.form = NA), predict(fit),
+  expect_equal(predict(fit, newdata = dd, re_formula = NA), predict(fit),
                tolerance = 1e-10)
   s_in <- predict(fit, se.fit = TRUE)
   s_nd <- predict(fit, newdata = dd, se.fit = TRUE)
@@ -140,7 +140,7 @@ test_that("te() errors with guidance; smooth predictions round-trip", {
   # newdata equal to training reproduces in-sample predictions
   expect_equal(predict(fit, newdata = dd), predict(fit), tolerance = 1e-8)
   # smooth curve survives population-level predictions
-  expect_equal(predict(fit, newdata = dd, re.form = NA), predict(fit),
+  expect_equal(predict(fit, newdata = dd, re_formula = NA), predict(fit),
                tolerance = 1e-8)
   # interpolation with standard errors
   nd <- data.frame(x = seq(0.1, 0.9, length.out = 11))

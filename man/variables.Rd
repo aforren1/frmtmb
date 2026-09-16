@@ -12,7 +12,8 @@ variables(x, ...)
 \arguments{
 \item{x}{A \code{frmtmb_fit} or \code{frmtmb_draws}.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 }
 \value{
 A character vector.

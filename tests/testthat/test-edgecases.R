@@ -82,11 +82,11 @@ test_that("data-dependent bases are frozen at fit time (glmmTMB#402)", {
   m2 <- frm(bf(y ~ poly(x, 2, raw = TRUE) + (1 | g)) + gaussian(),
             data = dd)
   nd <- data.frame(x = c(0, 2.5, 9), g = factor(1, levels = levels(dd$g)))
-  expect_equal(predict(m1, newdata = nd, re.form = NA),
-               predict(m2, newdata = nd, re.form = NA), tolerance = 1e-6)
+  expect_equal(predict(m1, newdata = nd, re_formula = NA),
+               predict(m2, newdata = nd, re_formula = NA), tolerance = 1e-6)
   # single-row newdata is the killer case (brms#494)
-  p1 <- predict(m1, newdata = nd[2, , drop = FALSE], re.form = NA)
-  expect_equal(p1, predict(m1, newdata = nd, re.form = NA)[2],
+  p1 <- predict(m1, newdata = nd[2, , drop = FALSE], re_formula = NA)
+  expect_equal(p1, predict(m1, newdata = nd, re_formula = NA)[2],
                tolerance = 1e-8)
   # scale() in the formula round-trips through prediction
   m3 <- frm(bf(y ~ scale(x) + (1 | g)) + gaussian(), data = dd)
@@ -195,7 +195,7 @@ test_that("NA handling: rows dropped consistently, Inf rejected upstream", {
   # NA rows in newdata propagate NA predictions, not errors
   nd <- dd[1:6, ]
   nd$x[2] <- NA
-  p <- predict(m, newdata = nd, re.form = NA)
+  p <- predict(m, newdata = nd, re_formula = NA)
   expect_false(is.na(p[1]))   # NA was only in y/g, x is fine
   expect_true(is.na(p[2]))    # NA predictor rows come back NA
 })

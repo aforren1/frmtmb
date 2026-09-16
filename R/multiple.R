@@ -130,6 +130,7 @@ frm_multiple <- function(formula, data, level = 0.95, ...) {
 
 #' @export
 print.frmtmb_multiple <- function(x, digits = 4, ...) {
+  frm_check_dots(...)
   cat("Pooled over", x$m, "imputations (Rubin's rules):\n\n")
   print(signif(x$pooled, digits))
   if (!is.null(x$pooled_varcorr)) {
@@ -298,6 +299,7 @@ anova.frmtmb_multiple <- function(object, ...,
 
 #' @export
 print.frmtmb_pooled_anova <- function(x, digits = 4, ...) {
+  frm_check_dots(...)
   cat("Pooled model comparison over ", attr(x, "m"), " imputations (",
       attr(x, "method"),
       if (!is.null(attr(x, "use"))) paste0(", ", attr(x, "use")),
@@ -552,10 +554,9 @@ hypothesis.frmtmb_multiple <- function(x, hypothesis, alpha = 0.05,
   # armed in the method, not the generic: see hypothesis.frmtmb_fit
   old <- hyp_shadow_arm()
   on.exit(hyp_shadow_disarm(old), add = TRUE)
-  if (...length()) {
-    warning("ignoring arguments unused by pooled hypothesis tests: ",
-            paste(...names(), collapse = ", "), call. = FALSE)
-  }
+  # refused, not warned about: a pooled table built as if the argument
+  # had not been given is a wrong answer with a note beside it
+  frm_check_dots(...)
   vo <- hyp_vals_only(x$fits[[1]])
   hp <- hyp_parse_all(hypothesis,
                       names(hyp_env_vals(x$fits[[1]], vo$vals, vo$comp)),
@@ -626,7 +627,9 @@ multiple_no_draws <- function(fn) {
 #' @rdname as_draws
 #' @exportS3Method posterior::as_draws
 #' @export
-as_draws.frmtmb_multiple <- function(x, ...) multiple_no_draws("as_draws")
+as_draws.frmtmb_multiple <- function(x, ...) {
+  multiple_no_draws("as_draws")
+}
 
 #' @exportS3Method posterior::as_draws_array
 as_draws_array.frmtmb_multiple <- function(x, ...) {

@@ -98,7 +98,8 @@ new_par_template <- function(tpl, frame, fitted) {
 #'   shows the nonlinear starting values its locations place. Formula
 #'   method only.
 #' @param na.action,data2 As in [frm()]. Formula method only.
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return A `frmtmb_par_template`: a named list of named numeric
 #'   vectors, accepted directly as `frm(start =)` and as
 #'   `frm_simulate(newparams =)`.
@@ -125,6 +126,7 @@ par_template <- function(object, ...) UseMethod("par_template")
 #' @rdname par_template
 #' @export
 par_template.frmtmb_fit <- function(object, ...) {
+  frm_check_dots(...)
   new_par_template(object$estimates, object$frame,
                    fitted = !inherits(object, "frmtmb_unfitted"))
 }
@@ -135,6 +137,7 @@ par_template.default <- function(object, data, family = NULL,
                                  start = NULL, prior = NULL,
                                  na.action = stats::na.omit,
                                  data2 = list(), ...) {
+  frm_check_dots(...)
   if (missing(data)) {
     stop("par_template() needs `data` to assemble the design: the ",
          "parameter vector's length and names are properties of the ",
@@ -161,6 +164,7 @@ par_template.default <- function(object, data, family = NULL,
 
 #' @export
 print.frmtmb_par_template <- function(x, n = 10L, ...) {
+  frm_check_dots(...)
   cat("<frmtmb parameter template> ",
       if (attr(x, "fitted")) "estimates" else "starting values", "\n",
       sep = "")

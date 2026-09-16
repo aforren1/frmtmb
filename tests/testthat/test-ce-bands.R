@@ -34,7 +34,7 @@ test_that("boot bands are percentiles of one shared bootstrap", {
     fit,
     FUN = function(f) {
       as.vector(predict(f, newdata = grid, type = "response", dpar = "mu",
-                        resp = "y", re.form = NA))
+                        resp = "y", re_formula = NA))
     },
     nsim = 25, seed = 11
   )
@@ -80,7 +80,7 @@ test_that("boot bands on a mixed model match a hand-run bootstrap", {
     fs,
     FUN = function(f) {
       as.vector(predict(f, newdata = grid, type = "response", dpar = "mu",
-                        resp = "Reaction", re.form = NA))
+                        resp = "Reaction", re_formula = NA))
     },
     nsim = 20, seed = 3
   )

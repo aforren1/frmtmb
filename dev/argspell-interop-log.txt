@@ -1,0 +1,74 @@
+frmtmb from: C:/Users/adf44/source/r/argspell-lib 
+version    : 0.57.0 
+
+fit ok
+
+---- emmeans ----
+emmeans 2.0.4 
+ok    emmeans(fit, ~ f)                              emmGrid
+ok    emmeans(fit, pairwise ~ f)                     emm_list/list
+ok    ref_grid(fit)                                  emmGrid
+ok    emtrends(fit, ~ f, var='x')                    emmGrid
+ok    recover_data via ref_grid(data=)               emmGrid
+ok    emmeans(fit, ~f, weights='cells')              emmGrid
+
+---- insight ----
+insight 1.5.4 
+ok    get_parameters(fit)                            data.frame
+ok    get_parameters(fit, effects='all')             data.frame
+ok    n_parameters(fit)                              integer
+FAIL  n_parameters(fit, effects='fixed')             formal argument "effects" matched by multiple actual arguments
+ok    find_formula(fit)                              insight_formula/list
+ok    find_random(fit)                               list
+ok    find_statistic(fit)                            character
+ok    link_function(fit)                             function
+ok    link_inverse(fit)                              function
+ok    get_varcov(fit)                                matrix/array
+FAIL  get_predicted(fit)                             'length = 2' in coercion to 'logical(1)'
+FAIL  model_info(fit)                                'length = 2' in coercion to 'logical(1)'
+ok    get_data(fit)                                  data.frame
+ok    get_variance(fit)                              NULL
+Warning message:
+Objects of class `frmtmb_fit` are not supported. 
+
+---- parameters / performance ----
+parameters NOT INSTALLED
+performance NOT INSTALLED
+
+---- marginaleffects ----
+marginaleffects 1.0.0 
+ok    avg_slopes(fit)                                slopes/marginaleffects/data.frame
+ok    slopes(fit)                                    slopes/marginaleffects/data.frame
+ok    predictions(fit)                               predictions/data.frame
+ok    avg_predictions(fit, by='f')                   predictions/data.frame
+ok    avg_comparisons(fit)                           comparisons/data.frame
+ok    hypotheses(avg_slopes)                         hypotheses/data.frame
+Warning message:
+
+It is essential to check the order of estimates when specifying hypothesis tests using positional indices like b1, b2, etc. The indices of estimates can change depending on the order of rows in the original dataset, user-supplied arguments, model-fitting package, and version of `marginaleffects`.
+
+It is also good practice to use assertions that ensure the order of estimates is consistent across different runs of the same code. Example:
+
+```r
+mod <- lm(mpg ~ am * carb, data = mtcars)
+
+# assertion for safety
+p <- avg_predictions(mod, by = 'carb')
+stopifnot(p$carb[1] == 1, p$carb[2] == 2)
+
+# hypothesis test
+avg_predictions(mod, by = 'carb', hypothesis = 'b1 - b2 = 0')
+```
+
+Disable this warning with: `options(marginaleffects_safe = FALSE)`
+ This warning appears once per session. 
+
+---- other dots consumers on the fit surface ----
+FAIL  broom.mixed::tidy                              not installed
+FAIL  modelsummary                                   not installed
+ok    stats::confint(fit)                            matrix/array
+ok    stats::update(fit)                             frmtmb_fit
+FAIL  anova(fit)                                     anova() needs at least two frmtmb fits to compare
+FAIL  car::Anova(fit)                                not installed
+
+DONE

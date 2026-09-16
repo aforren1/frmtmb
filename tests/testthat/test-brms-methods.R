@@ -737,13 +737,13 @@ test_that("conditional_effects draws the expected response, zero-inflated", {
     mu <- brms::posterior_linpred(s$brmsfit, newdata = nd,
                                   transform = TRUE, re_formula = NA)[1, ]
     expect_exact_num(mu, predict(s$fit, newdata = nd,
-                                 type = "conditional", re.form = ~ 0),
+                                 type = "conditional", re_formula = ~ 0),
                      label = paste("exp(eta) is type=conditional,", nm))
     expect_gt(max(mu / cf$estimate__ - 1), 0.15)
 
     # the routes that always agreed still do
     expect_exact_num(predict(s$fit, newdata = nd, type = "response",
-                             re.form = ~ 0), ep,
+                             re_formula = ~ 0), ep,
                      label = paste("predict(response) is epred,", nm))
     cfp <- suppressWarnings(conditional_effects(s$fit,
                                                 method = "predict"))$x
@@ -873,20 +873,19 @@ test_that("an unknown argument is named against conditional_effects()", {
   dd$y <- 1 + 0.8 * dd$x - 0.4 * dd$z + rnorm(n)
   fg <- frm(frmtmb::bf(y ~ x + z) + gaussian(), data = dd)
 
-  # one warning per call now, not one per internal predict() call
-  w <- capture_warnings(conditional_effects(fg, nosucharg = 1))
-  expect_length(w, 1L)
-  expect_match(w, "conditional_effects\\(\\) is ignoring unknown")
-  expect_match(w, "nosucharg")
+  # an ERROR per call now, not a warning per internal predict() call: a
+  # warning still returned a curve, so the ignored argument left no
+  # record in anything the caller kept
+  expect_error(conditional_effects(fg, nosucharg = 1),
+               "conditional_effects\\(\\) has no argument")
+  expect_error(conditional_effects(fg, nosucharg = 1), "nosucharg")
 
-  # the ordinal path warns for the same argument, where it used to be
+  # the ordinal path refuses the same argument, where it used to be
   # silent for every one of these three
-  wo <- capture_warnings(conditional_effects(fo, nosucharg = 1))
-  expect_length(wo, 1L)
-  expect_match(wo, "nosucharg")
+  expect_error(conditional_effects(fo, nosucharg = 1), "nosucharg")
 
   # and the two arguments that USED to be swallowed are arguments now,
-  # so neither warns
+  # so neither is refused
   expect_silent(conditional_effects(fo, categorical = TRUE))
   expect_silent(conditional_effects(fo, int_conditions = list(x = c(-1, 1))))
 
@@ -1272,11 +1271,11 @@ test_that("re_formula: prediction agrees, and so does the population curve", {
 
   # the prediction surface agrees on BOTH settings
   expect_exact_num(brms::posterior_epred(s$brmsfit, re_formula = NA)[1, ],
-                   predict(s$fit, type = "response", re.form = ~ 0),
+                   predict(s$fit, type = "response", re_formula = ~ 0),
                    label = "epred re_formula = NA")
   expect_exact_num(brms::posterior_epred(s$brmsfit,
                                          re_formula = NULL)[1, ],
-                   predict(s$fit, type = "response", re.form = NULL),
+                   predict(s$fit, type = "response", re_formula = NULL),
                    label = "epred re_formula = NULL")
 
   # and so does conditional_effects at the default re_formula = NA
@@ -1336,12 +1335,13 @@ test_that("an unknown argument is reported against the function called", {
   skip_unless_brms_fit()
   skip_if_not_installed("lme4")
 
-  # frmtmb spells brms's re_formula as re.form on predict(), and brms's
-  # spelling reaches ... and is dropped with a warning that names it.
-  # That is the right behavior for a DIRECT call.
+  # predict() now takes brms's re_formula itself, and an argument it
+  # does not have is an ERROR naming it rather than a warning: a
+  # warning let `re_formula` change nothing and still return a number.
   s <- brms_shape("rC0")
-  expect_warning(predict(s$fit, type = "response", re_formula = NULL),
-                 "ignoring unknown arguments to predict\\(\\): re_formula")
+  expect_silent(predict(s$fit, type = "response", re_formula = NULL))
+  expect_error(predict(s$fit, type = "response", re_frmula = NULL),
+               "re_frmula")
 
   # conditional_effects() used to forward its dots to that same
   # predict(), so an argument IT did not know was reported against a
@@ -1350,9 +1350,9 @@ test_that("an unknown argument is reported against the function called", {
   # its arguments rather than an unknown one.
   expect_silent(conditional_effects(s$fit, effects = "Days",
                                     int_conditions = list(Days = c(1, 2))))
-  expect_warning(conditional_effects(s$fit, effects = "Days",
-                                     nosucharg = 1),
-                 "conditional_effects\\(\\) is ignoring unknown")
+  expect_error(conditional_effects(s$fit, effects = "Days",
+                                   nosucharg = 1),
+               "conditional_effects\\(\\) has no argument")
 })
 
 test_that("hypothesis returns a different object in each package", {

@@ -327,7 +327,7 @@ resolve_par_index <- function(fit, parm, what) {
 #'   degrees of freedom (as `vcov_cluster()`'s does, `G - 1`) switches
 #'   the interval from a normal to a `t` quantile.
 #' @param ... Passed to the TMB profiling functions, or to
-#'   [frm_bootstrap()] for `method = "boot"` (e.g. `re.form`).
+#'   [frm_bootstrap()] for `method = "boot"` (e.g. `re_formula`).
 #' @return A matrix with columns `lwr`, `upr`, `est`.
 #'
 #' @srrstats {RE4.3} Confidence intervals on the model coefficients are
@@ -364,6 +364,15 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
                                ...) {
   method <- match.arg(method)
   if (method == "Wald") method <- "wald"
+  # The dots are forwarded on three of the four methods and swallowed on
+  # the fourth, so they are checked against whatever THIS method really
+  # passes them to. Before this, confint(method = "wald", re_formula =)
+  # changed nothing and said nothing.
+  frm_check_dots(..., .allow = switch(method,
+    boot = names(formals(frm_bootstrap)),
+    profile = names(formals(TMB::tmbprofile)),
+    uniroot = names(formals(TMB::tmbroot)),
+    NULL))
   # A length-2 level makes a length-2 quantile, which then RECYCLES
   # against the parameter vector: rows 1 and 3 of one table came back at
   # 90% and rows 2 and 4 at 95%, with nothing in the output recording
@@ -1664,7 +1673,8 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
 #'   allows ([stats::drop.scope()]).
 #' @param test `"Chisq"` adds likelihood-ratio tests.
 #' @param k AIC penalty per parameter.
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return An `anova` table with one row per dropped term.
 #' @examples
 #' set.seed(1)
@@ -1682,6 +1692,10 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
 #' @export
 drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
                              k = 2, ...) {
+  # `scale` and `trace` are not named here: they are in
+  # `s3_contract_args`, with every other name R's own machinery passes
+  # through a generic. step() reaches this one after nobs().
+  frm_check_dots(...)
   test <- match.arg(test)
   if (object$REML) {
     stop("drop1() compares fixed effects; refit with REML = FALSE",
@@ -2462,7 +2476,7 @@ hyp_fd_grad <- function(f, v) {
 #' @param ... Backend controls: passed to [TMB::tmbprofile()] for
 #'   `method = "profile"` (e.g. `ytol`, `ystep`, `maxit`,
 #'   `parm.range`) and to [frm_bootstrap()] for `method = "boot"`
-#'   (e.g. `re.form = NULL` for a conditional bootstrap). Unused for
+#'   (e.g. `re_formula = NULL` for a conditional bootstrap). Unused for
 #'   `"wald"` (a warning).
 #' @return A `frmtmb_hypothesis` object: a data frame with one row per
 #'   hypothesis (`estimate`, `se`, `lwr`, `upr`, `z`, `p`) carrying the
@@ -2511,7 +2525,8 @@ hypothesis <- function(x, ...) UseMethod("hypothesis")
 #' blocks contribute names" section of [hypothesis()].
 #'
 #' @param x A `frmtmb_fit` or `frmtmb_draws`.
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return A character vector.
 #' @examples
 #' dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
@@ -2525,6 +2540,7 @@ variables <- function(x, ...) UseMethod("variables")
 #' @exportS3Method posterior::variables
 #' @export
 variables.frmtmb_fit <- function(x, ...) {
+  frm_check_dots(...)
   vo <- hyp_vals_only(x)
   hyp_public_names(hyp_env_vals(x, vo$vals, vo$comp))
 }
@@ -2560,10 +2576,13 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
          "method = '", method, "' does not go through a covariance ",
          "matrix", call. = FALSE)
   }
-  if (method == "wald" && ...length()) {
-    warning("ignoring arguments unused by method = 'wald': ",
-            paste(...names(), collapse = ", "), call. = FALSE)
-  }
+  # Same rule as confint(): checked against what THIS method forwards
+  # them to, and refused rather than warned about, because a warning
+  # returns a table built as if the argument had not been given.
+  frm_check_dots(..., .allow = switch(method,
+    boot = names(formals(frm_bootstrap)),
+    profile = names(formals(TMB::tmbprofile)),
+    NULL))
   vo <- hyp_vals_only(x)
   known <- names(hyp_env_vals(x, vo$vals, vo$comp))
   hp <- hyp_parse_all(hypothesis, known, class, group)
@@ -2695,6 +2714,7 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
 
 #' @export
 print.frmtmb_hypothesis <- function(x, digits = 4, ...) {
+  frm_check_dots(...)
   method <- attr(x, "method")
   cat("Hypothesis tests (method = ", method, ")\n", sep = "")
   if (identical(method, "boot")) {
@@ -2717,6 +2737,7 @@ print.frmtmb_hypothesis <- function(x, digits = 4, ...) {
 
 #' @export
 plot.frmtmb_hypothesis <- function(x, ask = NULL, ...) {
+  frm_check_dots(...)
   method <- attr(x, "method") %||% "wald"
   alpha <- attr(x, "alpha") %||% 0.05
   n <- nrow(x)

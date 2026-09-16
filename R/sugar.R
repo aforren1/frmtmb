@@ -30,7 +30,8 @@ find_linpred <- function(object, resp = NULL, dpar = "mu") {
 #' Families without a `sigma` parameter return 1, following glmmTMB.
 #'
 #' @param object A `frmtmb_fit`.
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return A scalar, or a named vector for multivariate fits.
 #' @examples
 #' set.seed(1)
@@ -49,6 +50,7 @@ find_linpred <- function(object, resp = NULL, dpar = "mu") {
 #' sigma(frm(bf(cnt ~ x) + poisson(), data = dd))
 #' @export
 sigma.frmtmb_fit <- function(object, ...) {
+  frm_check_dots(...)
   out <- vapply(object$spec$responses, function(rsp) {
     if (!"sigma" %in% rsp$family[["dpars"]]) return(1)
     av <- object$frame[["aterm_values"]][[rsp$resp_name]]
@@ -75,17 +77,20 @@ sigma.frmtmb_fit <- function(object, ...) {
 
 #' @export
 terms.frmtmb_fit <- function(x, resp = NULL, dpar = "mu", ...) {
+  frm_check_dots(...)
   find_linpred(x, resp, dpar)$terms
 }
 
 #' @export
 model.matrix.frmtmb_fit <- function(object, resp = NULL, dpar = "mu",
                                     ...) {
+  frm_check_dots(...)
   find_linpred(object, resp, dpar)$X
 }
 
 #' @export
 weights.frmtmb_fit <- function(object, resp = NULL, ...) {
+  frm_check_dots(...)
   rn <- if (is.null(resp)) names(object$frame[["y"]])[1L] else resp
   w <- object$frame[["aterm_values"]][[rn]][["weights"]]
   if (is.null(w)) rep(1, object$frame[["n_obs"]]) else w
@@ -93,16 +98,19 @@ weights.frmtmb_fit <- function(object, resp = NULL, ...) {
 
 #' @export
 na.action.frmtmb_fit <- function(object, ...) {
+  frm_check_dots(...)
   object$frame[["na_action"]]
 }
 
 #' @export
 deviance.frmtmb_fit <- function(object, ...) {
+  frm_check_dots(...)
   -2 * as.numeric(logLik(object))
 }
 
 #' @export
 extractAIC.frmtmb_fit <- function(fit, scale = 0, k = 2, ...) {
+  frm_check_dots(...)
   ll <- logLik(fit)
   edf <- attr(ll, "df")
   c(edf, -2 * as.numeric(ll) + k * edf)
@@ -111,7 +119,8 @@ extractAIC.frmtmb_fit <- function(fit, scale = 0, k = 2, ...) {
 #' Number of levels per random-effect grouping factor
 #'
 #' @param object A `frmtmb_fit`.
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return A named integer vector (smooth terms are excluded).
 #' @examples
 #' set.seed(1)
@@ -134,6 +143,7 @@ ngrps <- function(object, ...) UseMethod("ngrps")
 #' @rawNamespace S3method(lme4::ngrps,frmtmb_fit)
 #' @export
 ngrps.frmtmb_fit <- function(object, ...) {
+  frm_check_dots(...)
   bks <- Filter(function(bk) bk[["covstruct"]] != "smooth",
                 object$frame[["re_blocks"]])
   ng <- vapply(bks, `[[`, 0L, "n_levels")
@@ -151,7 +161,8 @@ ngrps.frmtmb_fit <- function(object, ...) {
 #'
 #' @param object A `frmtmb_fit`, or a `frmtmb_draws` from
 #'   `frmtmb.sample::frm_sample()`.
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return The `frmtmb_priorlist` the fit was penalized with, or that
 #'   the sampler used, or (invisibly) `NULL` when there were none.
 #' @examples
@@ -175,6 +186,7 @@ prior_summary <- function(object, ...) UseMethod("prior_summary")
 #' @exportS3Method rstantools::prior_summary
 #' @export
 prior_summary.frmtmb_fit <- function(object, ...) {
+  frm_check_dots(...)
   if (is.null(object$prior)) {
     cat("No priors were set (plain maximum likelihood).\n")
     return(invisible(NULL))
@@ -195,7 +207,8 @@ prior_summary.frmtmb_fit <- function(object, ...) {
 #'   or a matrix of the original dimensions for matrix responses.
 #' @param start Optional named start list (as in [frm()]); when given it
 #'   replaces the warm start.
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return A new `frmtmb_fit`.
 #' @name refit
 #' @aliases refit
@@ -207,13 +220,14 @@ NULL
 #' dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
 #' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 #' # refit to a simulated response (the parametric-bootstrap step)
-#' ysim <- simulate(fit, nsim = 1, re.form = NA)[[1]]
+#' ysim <- simulate(fit, nsim = 1, re_formula = NA)[[1]]
 #' rf <- refit(fit, ysim)
 #' fixef(rf)
 #' @rdname refit
 #' @exportS3Method lme4::refit
 #' @export
 refit.frmtmb_fit <- function(object, newresp, start = NULL, ...) {
+  frm_check_dots(...)
   frame <- object$frame
   if (length(frame[["y"]]) != 1L) {
     stop("refit() supports univariate models", call. = FALSE)

@@ -404,7 +404,7 @@ test_that("one new level reached through both members is ONE draw", {
                   levels = c("zz", "qq", levels(dd$g2)))
 
   p <- predict(fit, newdata = nd, allow_new_levels = TRUE, se.fit = TRUE)
-  base <- predict(fit, newdata = nd, se.fit = TRUE, re.form = NA)
+  base <- predict(fit, newdata = nd, se.fit = TRUE, re_formula = NA)
   extra <- unname(p$se.fit^2 - base$se.fit^2)
   expect_equal(extra[1:2], rep((0.5 + 0.5)^2 * S, 2), tolerance = 1e-8)
   expect_equal(extra[3:4], rep(2 * 0.5^2 * S, 2), tolerance = 1e-8)
@@ -429,7 +429,7 @@ test_that("the expected-response path groups new levels the same way", {
   p <- predict(fit, newdata = nd, type = "response",
                allow_new_levels = TRUE, se.fit = TRUE)
   base <- predict(fit, newdata = nd, type = "response", se.fit = TRUE,
-                  re.form = NA)
+                  re_formula = NA)
   extra <- unname(p$se.fit^2 - base$se.fit^2)
   expect_equal(extra[1], extra[2], tolerance = 1e-10)
   expect_equal(extra[3], extra[4], tolerance = 1e-10)

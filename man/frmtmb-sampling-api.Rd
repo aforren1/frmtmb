@@ -59,6 +59,7 @@
 \alias{arg_unset}
 \alias{re_form_arg}
 \alias{frm_install_generics}
+\alias{frm_check_dots}
 \title{Core internals for a sampling extension}
 \arguments{
 \item{frame}{An assembled model frame (\code{fit$frame}).}
@@ -236,11 +237,11 @@ The predicate underneath stays private, because what an extension
 needs is the decision and not the test that makes it.
 
 \code{ce_dots()} is the argument surface itself: it pulls
-\code{allow_new_levels} (and lme4's \code{allow.new.levels}) out of a call's
-dots, returns whether either was set, and reports whatever is left
-as unknown. An extension that hand-rolls the same check accepts a
-different set of arguments from the fit method, which is how
-\code{allow_new_levels} came to work on a fit and warn on draws.
+\code{allow_new_levels} out of a call's dots, returns whether it was set,
+and REFUSES whatever is left, naming it. An extension that
+hand-rolls the same check accepts a different set of arguments from
+the fit method, which is how \code{allow_new_levels} came to work on a
+fit and warn on draws.
 
 Four more serve one purpose between them: making an unobserved
 group a DRAWN group rather than letting the first observed one
@@ -259,7 +260,7 @@ comparable.
 \section{The two-dialect argument seam}{
 
 frmtmb answers to two argument dialects: a brms-named function takes
-\code{re_formula}, frmtmb's own fit surface takes lme4's \code{re.form}, and
+\code{re_formula}, frmtmb's own fit surface takes lme4's \code{re_formula}, and
 the brms-named ones accept both. \code{arg_unset()} is the "not supplied"
 marker a formal defaults to when \code{NULL} and \code{NA} are both real
 settings and neither can double as unset; \code{re_form_arg()} resolves

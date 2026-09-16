@@ -113,7 +113,7 @@ eam_scale_run <- function(row, fam, sv, group = TRUE) {
   # fit said 0.2921. The expectation below is what now catches it.
   nd <- suppressWarnings(
     stats::predict(fit, newdata = d[1L, , drop = FALSE], dpar = "ndt",
-                   type = "response", re.form = NA, se.fit = TRUE))
+                   type = "response", re_formula = NA, se.fit = TRUE))
   ndt_frac <- as.numeric(nd$fit[1L])
   ndt_frac_se <- as.numeric(nd$se.fit[1L])
   rsp <- frmtmb::single_response(fit)
@@ -247,7 +247,7 @@ test_that("the eam scale row fits and reports its cost", {
     one <- d[match(levels(d$s), as.character(d$s)), , drop = FALSE]
     nd <- suppressWarnings(stats::predict(
       r$fit, newdata = d1_of(r), dpar = "ndt", type = "response",
-      re.form = NA, se.fit = TRUE))
+      re_formula = NA, se.fit = TRUE))
     bd <- frmtmb::single_response(r$fit)[["family"]][["ndt_bound"]]
     fl <- mean(bd[["floors"]])
     expect_lt(scale_z(as.numeric(nd$fit[1L]) * fl,
@@ -346,7 +346,7 @@ test_that("the eam scale row fits with across-trial drift variability", {
     # 20 ms, which is the rule helper-scale.R states above scale_z()
     nd <- suppressWarnings(stats::predict(
       r$fit, newdata = one[1L, , drop = FALSE], dpar = "ndt",
-      type = "response", re.form = NA, se.fit = TRUE))
+      type = "response", re_formula = NA, se.fit = TRUE))
     bd <- frmtmb::single_response(r$fit)[["family"]][["ndt_bound"]]
     fl <- mean(bd[["floors"]])
     expect_lt(scale_z(as.numeric(nd$fit[1L]) * fl,

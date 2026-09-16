@@ -156,8 +156,8 @@ test_that("sparse_x keeps dense naming, smooths, and NA semantics", {
   nd <- data.frame(x = seq(-2, 2, length.out = 25),
                    f = factor("c", levels = letters[1:8]),
                    g = factor(1, levels = levels(dd$g)))
-  p_d <- predict(f_d, newdata = nd, se.fit = TRUE, re.form = NA)
-  p_s <- predict(f_s, newdata = nd, se.fit = TRUE, re.form = NA)
+  p_d <- predict(f_d, newdata = nd, se.fit = TRUE, re_formula = NA)
+  p_s <- predict(f_s, newdata = nd, se.fit = TRUE, re_formula = NA)
   expect_vector_equal(p_s$fit, p_d$fit, tol = 1e-8)
   expect_vector_equal(p_s$se.fit, p_d$se.fit, tol = 1e-8)
   r_d <- frm(form, data = dd, REML = TRUE)
@@ -171,8 +171,8 @@ test_that("sparse_x keeps dense naming, smooths, and NA semantics", {
   ndna <- data.frame(x = c(0, 0.5), f = factor(c("a", NA),
                                                levels = letters[1:8]),
                      g = factor(c(1, 2), levels = levels(dd$g)))
-  pna_d <- predict(f_d, newdata = ndna, re.form = NA)
-  pna_s <- predict(f_s, newdata = ndna, re.form = NA)
+  pna_d <- predict(f_d, newdata = ndna, re_formula = NA)
+  pna_s <- predict(f_s, newdata = ndna, re_formula = NA)
   expect_identical(is.na(pna_s), is.na(pna_d))
   expect_true(is.na(pna_s[2]))
   expect_equal(pna_s[1], pna_d[1], tolerance = 1e-8)

@@ -24,7 +24,8 @@ par_template(object, ...)
 \arguments{
 \item{object}{A \code{frmtmb_fit}, or a \code{\link[=bf]{bf()}} formula or plain formula.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 
 \item{data}{Model data. Required when \code{object} is a formula.}
 

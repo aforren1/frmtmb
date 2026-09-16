@@ -28,7 +28,8 @@ stored raw (e.g. inside \code{poly()}).}
 
 \item{force}{Allow observation-wise deletion for n > 500.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 }
 \value{
 A \code{frmtmb_influence} object: \code{fixed} and \code{theta} matrices

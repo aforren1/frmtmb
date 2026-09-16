@@ -620,7 +620,7 @@ ddm_ndt_finalize <- function(fam, y, aterms, max_ndt, what,
 #'   from [ndt_bound_attach()].
 #' @param newdata Optional data frame. It must carry the model's
 #'   `ndt_group()` column when the model has one.
-#' @param ... Passed to [stats::predict()]; `re.form` and
+#' @param ... Passed to [stats::predict()]; `re_formula` and
 #'   `allow_new_levels` are the useful ones.
 #'
 #' @return A numeric vector, one non-decision time per row.

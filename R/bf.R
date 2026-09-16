@@ -225,6 +225,7 @@ lf <- function(...) {
 
 #' @export
 print.frmtmb_lf <- function(x, ...) {
+  frm_check_dots(...)
   for (f in x$pforms) cat(deparse1(f), "\n")
   invisible(x)
 }
@@ -319,6 +320,7 @@ nlf <- function(formula, ..., loop = NULL) {
 
 #' @export
 print.frmtmb_nlf <- function(x, ...) {
+  frm_check_dots(...)
   for (f in x$nlforms) cat(deparse1(f), " (nonlinear)\n", sep = "")
   for (f in x$pforms) cat(deparse1(f), "\n")
   invisible(x)
@@ -508,6 +510,7 @@ set_rescor <- function(rescor = arg_unset(),
 
 #' @export
 print.frmtmb_mvformula <- function(x, ...) {
+  frm_check_dots(...)
   for (f in x$forms) print(f)
   cat("rescor:", x$rescor, "\n")
   invisible(x)
@@ -515,6 +518,7 @@ print.frmtmb_mvformula <- function(x, ...) {
 
 #' @export
 print.frmtmb_formula <- function(x, ...) {
+  frm_check_dots(...)
   cat(deparse1(x$formula), if (isTRUE(x$nl)) " (nonlinear)" else "", "\n",
       sep = "")
   for (f in x$nlforms) cat(deparse1(f), " (nonlinear)\n", sep = "")

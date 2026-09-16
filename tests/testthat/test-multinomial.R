@@ -62,6 +62,8 @@ test_that("multinomial validation", {
   expect_error(frm(bf(Y ~ x) + multinomial(K = 4), data = dd),
                "n x 4")
   expect_error(multinomial(), "number of categories")
+  # fitted() delegates to predict(type = "response") now, so the refusal
+  # is the FAMILY's own and says why rather than only that it refused
   expect_error(fitted(frm(bf(Y ~ x) + multinomial(K = 3), data = dd)),
-               "not defined")
+               "declares no mean")
 })

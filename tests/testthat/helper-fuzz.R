@@ -972,7 +972,7 @@ fuzz_inv_simulate_mean <- function(recs, sp, fit, nsim = 200L) {
   # Per observation, not just in total. Two scalars agree whenever the
   # two vectors are permutations of each other, so the aggregate check
   # is blind to exactly the row-order class of defect the rest of the
-  # harness hunts. simulate() conditions on the fitted modes (re.form =
+  # harness hunts. simulate() conditions on the fitted modes (re_formula =
   # NULL), so each column is a draw from the same per-row distribution
   # predict(type = "response") gives the mean of: row i's draw mean is
   # then predict_i plus noise of a known size, and the standardized

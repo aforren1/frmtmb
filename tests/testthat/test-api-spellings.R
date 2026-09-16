@@ -1,10 +1,12 @@
-# The brms argument-naming rule where it has to be dual: a brms-NAMED
-# function speaks brms's argument names, but the draws surface SHIPPED
-# taking lme4's `re.form`, so both spellings stay live and mean one
-# thing. What is asserted here is the compatibility claim itself - the
-# alias resolves to the same internal setting, the defaults are the ones
-# that were there before the alias existed, and giving both spellings at
-# once is refused rather than silently resolved.
+# The argument-naming rule: brms is the TIEBREAKER. Where
+# lme4 or glmmTMB and brms disagree on a name, this package takes brms's
+# and DROPS the other one; whether the other one already shipped is not
+# a consideration. Two spellings of one setting survive only where brms
+# ITSELF carries both, which is `posterior_epred()`,
+# `posterior_linpred()`, `posterior_predict()` and `predictive_error()`
+# on a `brmsfit`, and those are asserted in frmtmb.sample's
+# test-draws-spellings.R. What is asserted here is that the FIT surface
+# now speaks brms alone.
 
 skip_on_cran()
 withr::local_options(mc.cores = 1, .local_envir = teardown_env())
@@ -38,61 +40,39 @@ sp_case <- local({
 
 # ---- the surface itself ----------------------------------------------
 
-test_that("the brms-named fit method carries both spellings", {
-  # a structural guard, so a method added later cannot quietly ship one
-  # spelling: the list is the contract. pp_check() on a FIT is the only
-  # brms-named frmtmb method that takes a re_formula; the draws methods
-  # that were in this list are asserted the same way, in the same
-  # words, by frmtmb.sample.
-  fo <- formals(getFromNamespace("pp_check.frmtmb_fit", "frmtmb"))
-  expect_true(all(c("re_formula", "re.form") %in% names(fo)))
-  ns <- asNamespace("frmtmb")
-  expect_true(frmtmb:::is_arg_unset(eval(fo[["re_formula"]], ns)))
-  expect_true(frmtmb:::is_arg_unset(eval(fo[["re.form"]], ns)))
+test_that("pp_check() on a fit takes re_formula alone", {
+  # brms's own pp_check.brmsfit() forwards to prepare_predictions(),
+  # whose formals carry `re_formula` and NOT `re.form`, so the alias
+  # this method used to accept had no brms precedent behind it.
+  fo <- names(formals(getFromNamespace("pp_check.frmtmb_fit", "frmtmb")))
+  expect_true("re_formula" %in% fo)
+  expect_false("re.form" %in% fo)
 })
 
-test_that("giving both spellings is refused on a fit, not resolved", {
+test_that("the retired lme4 spelling is refused by pp_check(), not passed on", {
+  # pp_check() forwards its dots to bayesplot's ppc_* function, which
+  # takes dots of its own and would have accepted `re.form` and done
+  # nothing with it. The retired spelling is therefore checked here
+  # before the forward, which is the only name that is.
+  fo <- names(formals(getFromNamespace("pp_check.frmtmb_fit", "frmtmb")))
+  expect_false("re.form" %in% fo)
   cs <- sp_case()
   skip_if_not_installed("bayesplot")
-
-  expect_error(pp_check(cs$fit, re_formula = NA, re.form = NA),
-               "pp_check")
-  # the refusal names both spellings and says which one the function is
-  # named after, so it can be acted on without reading the manual
-  msg <- tryCatch(pp_check(cs$fit, re_formula = NA, re.form = NA),
-                  error = conditionMessage)
-  expect_match(msg, "re_formula")
-  expect_match(msg, "re.form")
-
-  # agreeing values are refused too: the point is that the call did not
-  # say which name it meant, not that the two disagreed
-  expect_error(pp_check(cs$fit, re_formula = NULL, re.form = NULL),
-               "two spellings of ONE setting")
+  expect_error(pp_check(cs$fit, ndraws = 5, re.form = NA), "re_formula")
+  expect_error(predict(cs$fit, re.form = NA), "re.form", fixed = TRUE)
 })
 
-test_that("re_formula and re.form give identical pp_check() output", {
-  skip_if_not_installed("bayesplot")
-  cs <- sp_case()
-
-  set.seed(7)
-  p1 <- pp_check(cs$fit, ndraws = 5, re_formula = NA)
-  set.seed(7)
-  p2 <- pp_check(cs$fit, ndraws = 5, re.form = NA)
-  expect_equal(p1$data, p2$data)
-})
-
-
-test_that("the fit surface keeps lme4's spelling alone", {
-  # the other half of the rule: predict(), simulate() and frm_bootstrap()
-  # are frmtmb's own, not brms's, so they do NOT gain re_formula
+test_that("the fit surface speaks brms alone", {
+  # the rule itself: predict(), simulate() and frm_bootstrap() take
+  # brms's `re_formula` and lme4's `re.form` is gone from all three
   for (nm in c("predict.frmtmb_fit", "simulate.frmtmb_fit")) {
     fo <- names(formals(getFromNamespace(nm, "frmtmb")))
-    expect_true("re.form" %in% fo)
-    expect_false("re_formula" %in% fo)
+    expect_true("re_formula" %in% fo)
+    expect_false("re.form" %in% fo)
   }
   fo <- names(formals(frm_bootstrap))
-  expect_true("re.form" %in% fo)
-  expect_false("re_formula" %in% fo)
+  expect_true("re_formula" %in% fo)
+  expect_false("re.form" %in% fo)
 })
 
 # ---- equivalence ------------------------------------------------------
@@ -108,13 +88,13 @@ test_that("pp_check() on a fit still defaults to NA", {
   set.seed(10)
   p0 <- pp_check(cs$fit, ndraws = 5)
   set.seed(10)
-  pna <- pp_check(cs$fit, ndraws = 5, re.form = NA)
+  pna <- pp_check(cs$fit, ndraws = 5, re_formula = NA)
   expect_equal(p0$data, pna$data)
 
   # NA simulates new levels, NULL reuses the fitted modes, so the
   # default is identifiable rather than merely asserted
   set.seed(10)
-  pnull <- pp_check(cs$fit, ndraws = 5, re.form = NULL)
+  pnull <- pp_check(cs$fit, ndraws = 5, re_formula = NULL)
   expect_false(isTRUE(all.equal(p0$data, pnull$data)))
 })
 

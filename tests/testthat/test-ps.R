@@ -103,13 +103,13 @@ test_that("a ps() curve recovers a known shape and predicts on newdata", {
 
   grid <- seq(0.05, 0.95, length.out = 15)
   nd <- data.frame(t = grid, id = factor(1, levels = levels(d$id)))
-  pop <- predict(fit, newdata = nd, re.form = NA)
+  pop <- predict(fit, newdata = nd, re_formula = NA)
   expect_lt(sqrt(mean((pop - (3 + sin(2 * pi * grid)))^2)), 0.15)
 
   # the frozen basis: prediction on new data uses the FITTED knots, so
   # a grid over a sub-range gives the same curve as the full grid
   nd2 <- nd[5:10, ]
-  expect_equal(predict(fit, newdata = nd2, re.form = NA), pop[5:10])
+  expect_equal(predict(fit, newdata = nd2, re_formula = NA), pop[5:10])
 
   # in sample, and through simulate()
   expect_equal(length(fitted(fit)), nrow(d))
@@ -136,8 +136,8 @@ test_that("frm_lp_basis() reaches a ps() block's coefficients", {
            lev ~ 1, shift ~ 0 + (1 | id), nl = TRUE), d, gaussian()))
   nd <- data.frame(t = seq(0.1, 0.9, length.out = 9),
                    id = factor(1, levels = levels(d$id)))
-  lb <- frm_lp_basis(fit, newdata = nd, re.form = NA)
-  expect_equal(lb$eta, unname(predict(fit, newdata = nd, re.form = NA)))
+  lb <- frm_lp_basis(fit, newdata = nd, re_formula = NA)
+  expect_equal(lb$eta, unname(predict(fit, newdata = nd, re_formula = NA)))
   # the block's own coefficients are in the design
   pt <- fit$frame$linpreds[["y.mu"]]$ps_terms[[1]]
   expect_identical(ncol(lb$A), 1L + pt$n_fixed + pt$n_pen)
@@ -155,8 +155,8 @@ test_that("frm_lp_basis() reaches a ps() block's coefficients", {
       fp$estimates[[comp[pos]]][idx[pos]] + h
     fm <- fit; fm$estimates[[comp[pos]]][idx[pos]] <-
       fm$estimates[[comp[pos]]][idx[pos]] - h
-    fd <- (predict(fp, newdata = nd, re.form = NA) -
-             predict(fm, newdata = nd, re.form = NA)) / (2 * h)
+    fd <- (predict(fp, newdata = nd, re_formula = NA) -
+             predict(fm, newdata = nd, re_formula = NA)) / (2 * h)
     worst <- max(worst, max(abs(fd - lb$A[, k])))
   }
   expect_lt(worst, 1e-5)
@@ -201,17 +201,17 @@ test_that("predict() at newdata past the knot span says so", {
   # inside the span: silent, and that is the ordinary case
   nd_in <- data.frame(t = seq(0.1, 0.9, length.out = 9),
                       id = factor(1, levels = levels(d$id)))
-  expect_no_warning(p_in <- predict(fit, newdata = nd_in, re.form = NA))
+  expect_no_warning(p_in <- predict(fit, newdata = nd_in, re_formula = NA))
 
   # outside it: the basis is a partial sum and then exactly zero, so the
   # curve decays and the prediction bends to the rest of the body. The
   # arithmetic is right and silence about it is the defect.
   nd_out <- data.frame(t = c(0.5, span[2] + 0.5, span[2] + 2),
                        id = factor(1, levels = levels(d$id)))
-  expect_warning(p_out <- predict(fit, newdata = nd_out, re.form = NA),
+  expect_warning(p_out <- predict(fit, newdata = nd_out, re_formula = NA),
                  "outside the frozen knot span")
   # the message carries the span itself, which is what a reader needs
-  w <- tryCatch(predict(fit, newdata = nd_out, re.form = NA),
+  w <- tryCatch(predict(fit, newdata = nd_out, re_formula = NA),
                 warning = function(e) conditionMessage(e))
   expect_true(grepl(format(span[1], digits = 4), w, fixed = TRUE))
   expect_true(grepl(format(span[2], digits = 4), w, fixed = TRUE))
@@ -221,7 +221,7 @@ test_that("predict() at newdata past the knot span says so", {
   # prediction is the rest of the body and nothing else
   far <- data.frame(t = 50, id = factor(1, levels = levels(d$id)))
   expect_equal(suppressWarnings(predict(fit, newdata = far,
-                                        re.form = NA))[[1]],
+                                        re_formula = NA))[[1]],
                fixef(fit)$lev[[1]], tolerance = 1e-8)
 
   # in sample it stays quiet: the fit-end report has already said it
@@ -248,18 +248,18 @@ test_that("frm_lp_basis() at newdata past the knot span says so, once", {
 
   # in sample and inside the span, the two silent cases predict() has
   expect_no_warning(frm_lp_basis(fit))
-  expect_no_warning(frm_lp_basis(fit, newdata = nd_in, re.form = NA))
+  expect_no_warning(frm_lp_basis(fit, newdata = nd_in, re_formula = NA))
 
   # the defect the spline-core review left: the seam the curve functions
   # read was silent where predict() warned
-  expect_warning(frm_lp_basis(fit, newdata = nd_out, re.form = NA),
+  expect_warning(frm_lp_basis(fit, newdata = nd_out, re_formula = NA),
                  "outside the frozen knot span")
 
   # ONCE, not once per row and not once per coefficient. A is 3 x 10
   # here, and a tape build is free to re-enter the closure.
   ws <- character(0)
   lb <- withCallingHandlers(
-    frm_lp_basis(fit, newdata = nd_out, re.form = NA),
+    frm_lp_basis(fit, newdata = nd_out, re_formula = NA),
     warning = function(w) {
       ws <<- c(ws, conditionMessage(w))
       invokeRestart("muffleWarning")
@@ -268,20 +268,20 @@ test_that("frm_lp_basis() at newdata past the knot span says so, once", {
   expect_gt(ncol(lb$A), 1L)
 
   # and it is the SAME sentence predict() raises, not a paraphrase
-  wp <- tryCatch(predict(fit, newdata = nd_out, re.form = NA),
+  wp <- tryCatch(predict(fit, newdata = nd_out, re_formula = NA),
                  warning = function(e) conditionMessage(e))
   expect_identical(ws[[1]], wp)
 
   # the values did not move
   expect_equal(lb$eta,
                unname(suppressWarnings(predict(fit, newdata = nd_out,
-                                               re.form = NA))),
+                                               re_formula = NA))),
                tolerance = 0)
 
   # this model is the case naive arming could not do at all: `shift` is
   # a random effect, so `t + shift` reaches the check as an advector
   # while the body is taped, and a comparison raises there
-  expect_no_error(frm_lp_basis(fit, newdata = nd_in, re.form = NULL))
+  expect_no_error(frm_lp_basis(fit, newdata = nd_in, re_formula = NULL))
 })
 
 test_that("each ps() term in one body gets its own span warning", {

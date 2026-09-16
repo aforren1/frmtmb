@@ -4,7 +4,13 @@
 \alias{frm_cross_simulate}
 \title{Draw whole cross-spectral matrices from a fitted coupling model}
 \usage{
-frm_cross_simulate(fit, nsim = 1L, seed = NULL, newdata = NULL, re.form = NULL)
+frm_cross_simulate(
+  fit,
+  nsim = 1L,
+  seed = NULL,
+  newdata = NULL,
+  re_formula = NULL
+)
 }
 \arguments{
 \item{fit}{A \code{\link[=cross_wishart]{cross_wishart()}} fit.}
@@ -15,7 +21,7 @@ frm_cross_simulate(fit, nsim = 1L, seed = NULL, newdata = NULL, re.form = NULL)
 
 \item{newdata}{Optional data frame of predictor values.}
 
-\item{re.form}{Passed to \code{\link[stats:predict]{stats::predict()}}; \code{NULL} keeps the random
+\item{re_formula}{Passed to \code{\link[stats:predict]{stats::predict()}}; \code{NULL} keeps the random
 effects.}
 }
 \value{

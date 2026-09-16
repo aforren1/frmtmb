@@ -207,7 +207,7 @@ learn_rlddm_extra <- function(fit, d) {
                     colnames(cr)[lo[1L, 2L]])
   nd <- suppressWarnings(stats::predict(
     fit, newdata = one[1L, , drop = FALSE], dpar = "ndt",
-    type = "response", re.form = NA, se.fit = TRUE))
+    type = "response", re_formula = NA, se.fit = TRUE))
   pop <- as.numeric(nd$fit[1L]) * fl
   pop_se <- as.numeric(nd$se.fit[1L]) * fl
   list(ndt_pop = pop, ndt_pop_se = pop_se,

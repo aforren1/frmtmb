@@ -138,7 +138,7 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   f1 <- draws_fit_at(x, rows[1L], idx)
   cats <- if (poly) {
     colnames(predict(f1, newdata = egrids[[1L]]$nd, type = "response",
-                     resp = resp, re.form = re_formula,
+                     resp = resp, re_formula = re_formula,
                      allow_new_levels = anl))
   }
   lens <- vapply(egrids, function(g) {

@@ -151,7 +151,7 @@ test_that("REML predictions agree with fixef (glmmTMB#1143, #983)", {
   for (reml in c(FALSE, TRUE)) {
     fit <- frm(bf(count ~ 0 + cat + (1 | year)) + poisson(), data = td,
                REML = reml)
-    pr <- predict(fit, newdata = data.frame(cat = "cat1"), re.form = NA,
+    pr <- predict(fit, newdata = data.frame(cat = "cat1"), re_formula = NA,
                   type = "link", allow_new_levels = TRUE)
     expect_equal(unname(pr), unname(fixef(fit)$mu[1]), tolerance = 1e-8)
   }

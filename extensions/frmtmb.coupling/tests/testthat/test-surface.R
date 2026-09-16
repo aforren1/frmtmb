@@ -124,7 +124,7 @@ test_that("a random effect and a smooth both reach the coherence dpar", {
   expect_s3_class(fr, "frmtmb_fit")
   expect_true(is.finite(as.numeric(stats::logLik(fr))))
   expect_gte(length(frmtmb::ranef(fr)), 1L)
-  co <- frm_coherence(fr, re.form = NA)
+  co <- frm_coherence(fr, re_formula = NA)
   expect_true(co$.lower[1] > 0 && co$.upper[1] < 1)
 
   fs <- frmtmb::frm(

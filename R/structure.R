@@ -191,7 +191,7 @@ refusal_flag <- function(nm) sub("\\..*$", "", nm)
 #'   \item{`newdata_response`}{`predict(newdata =, type = "response")`.}
 #'   \item{`se_fit_response`}{`predict(se.fit = TRUE, type =
 #'     "response")`.}
-#'   \item{`re_form`}{`re.form =` in `predict()` and `simulate()`.}
+#'   \item{`re_form`}{`re_formula =` in `predict()` and `simulate()`.}
 #'   \item{`conditional_effects`}{[conditional_effects()].}
 #'   \item{`osa`}{`residuals(type = "osa")`.}
 #'   \item{`deviance`}{`residuals(type = "deviance")`.}
@@ -509,6 +509,7 @@ validate_refusals <- function(refusals, supports) {
 
 #' @export
 print.frmtmb_structure <- function(x, ...) {
+  frm_check_dots(...)
   sup <- x[["supports"]]
   cat("<frmtmb_structure>\n")
   cat("  slots:    ",
@@ -563,6 +564,7 @@ latent_probs.default <- function(fit, ...) {
 
 #' @export
 latent_probs.frmtmb_fit <- function(fit, ...) {
+  frm_check_dots(...)
   rspec <- single_response(fit, "latent_probs()")
   lp <- fam_structure(rspec$family)[["latent_probs"]]
   if (is.null(lp)) {
@@ -991,7 +993,7 @@ check_structure_fit <- function(spec, frame, template, REML, quadrature,
 #' Refuse a capability in the family's own words.
 #'
 #' `context` names the call site when one flag is refused for two
-#' different reasons (`re.form` in `predict()` and in `simulate()`);
+#' different reasons (`re_formula` in `predict()` and in `simulate()`);
 #' the bare flag name is the fallback, and `generic` the fallback for a
 #' family that declared the refusal without explaining it.
 #'

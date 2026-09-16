@@ -9,7 +9,8 @@
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 }
 \value{
 A named list of data frames, one per grouping factor, each

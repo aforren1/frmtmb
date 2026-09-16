@@ -392,8 +392,8 @@ test_that("a gp() difference at DIFFERENT positions is still refused", {
   gp_g <- c(0.125, 1.125, 2.125)
   mA <- data.frame(x = gp_g, fac = factor("A", levels = levels(ds$fac)))
   mB <- data.frame(x = -gp_g, fac = factor("B", levels = levels(ds$fac)))
-  lma <- frmtmb::frm_lp_basis(fs, newdata = mA, re.form = NA)
-  lmb <- frmtmb::frm_lp_basis(fs, newdata = mB, re.form = NA)
+  lma <- frmtmb::frm_lp_basis(fs, newdata = mA, re_formula = NA)
+  lmb <- frmtmb::frm_lp_basis(fs, newdata = mB, re_formula = NA)
   expect_lt(max(abs(lma$extra_var - lmb$extra_var)),
             1e-6 * max(lma$extra_var))
   expect_error(frm_curve(fs, newdata = mA, contrast = mB,
@@ -418,8 +418,8 @@ test_that("a gp() difference at DIFFERENT positions is still refused", {
                    g = factor(1, levels = levels(d$g)))
   g2 <- g1
   g2$g <- factor(2, levels = levels(d$g))
-  la <- frmtmb::frm_lp_basis(fit, newdata = g1, re.form = NULL)
-  lb <- frmtmb::frm_lp_basis(fit, newdata = g2, re.form = NULL)
+  la <- frmtmb::frm_lp_basis(fit, newdata = g1, re_formula = NULL)
+  lb <- frmtmb::frm_lp_basis(fit, newdata = g2, re_formula = NULL)
   expect_identical(la$extra_var, lb$extra_var)
   expect_false(sp_same_latent(fit, list(lb = la, C = as.matrix(la$A)),
                               list(lb = lb, C = as.matrix(lb$A))))
@@ -427,7 +427,7 @@ test_that("a gp() difference at DIFFERENT positions is still refused", {
   # never runs on it and the difference across levels goes through
   expect_true(all(la$extra_var == 0))
   expect_s3_class(frm_curve(fit, newdata = g1, contrast = g2,
-                            re.form = NULL, simultaneous = FALSE),
+                            re_formula = NULL, simultaneous = FALSE),
                   "frmtmb_curve")
 })
 

@@ -30,8 +30,8 @@ test_that("frm_lp_basis() reproduces predict(se.fit = TRUE) exactly", {
   nd <- data.frame(x = seq(-2, 2, length.out = 12),
                    g = factor(1, levels = levels(o$d$g)))
   for (rf in list(NA, NULL)) {
-    lb <- frm_lp_basis(o$fit, newdata = nd, re.form = rf)
-    pr <- predict(o$fit, newdata = nd, re.form = rf, se.fit = TRUE)
+    lb <- frm_lp_basis(o$fit, newdata = nd, re_formula = rf)
+    pr <- predict(o$fit, newdata = nd, re_formula = rf, se.fit = TRUE)
     expect_equal(lb$eta, pr$fit)
     se <- sqrt(rowSums((lb$A %*% lb$V) * lb$A) + lb$extra_var)
     expect_equal(se, pr$se.fit, tolerance = 1e-12)
@@ -40,10 +40,10 @@ test_that("frm_lp_basis() reproduces predict(se.fit = TRUE) exactly", {
     expect_identical(dim(lb$V), c(ncol(lb$A), ncol(lb$A)))
   }
   # the whole grid covariance, which predict() reduces to its diagonal
-  lb <- frm_lp_basis(o$fit, newdata = nd, re.form = NA)
+  lb <- frm_lp_basis(o$fit, newdata = nd, re_formula = NA)
   Sigma <- lb$A %*% lb$V %*% t(lb$A)
   expect_equal(sqrt(diag(Sigma)),
-               predict(o$fit, newdata = nd, re.form = NA,
+               predict(o$fit, newdata = nd, re_formula = NA,
                        se.fit = TRUE)$se.fit,
                tolerance = 1e-12)
   expect_true(isSymmetric(unname(Sigma), tol = 1e-10))
@@ -74,8 +74,8 @@ test_that("frm_lp_basis() gives a nonlinear body an exact Jacobian", {
                 ult ~ 1 + (1 | id), lrc ~ 1, nl = TRUE), d3, gaussian())
   nd <- data.frame(t = seq(0, 3, length.out = 7),
                    id = factor(1, levels = levels(d3$id)))
-  lb <- frm_lp_basis(fit, newdata = nd, re.form = NA)
-  expect_equal(lb$eta, unname(predict(fit, newdata = nd, re.form = NA)))
+  lb <- frm_lp_basis(fit, newdata = nd, re_formula = NA)
+  expect_equal(lb$eta, unname(predict(fit, newdata = nd, re_formula = NA)))
 
   # A is d eta / d coef; check every column against a central difference
   jc <- frm_joint_cov(fit)
@@ -89,8 +89,8 @@ test_that("frm_lp_basis() gives a nonlinear body an exact Jacobian", {
       fp$estimates[[comp[pos]]][idx[pos]] + h
     fm <- fit; fm$estimates[[comp[pos]]][idx[pos]] <-
       fm$estimates[[comp[pos]]][idx[pos]] - h
-    fd <- (predict(fp, newdata = nd, re.form = NA) -
-             predict(fm, newdata = nd, re.form = NA)) / (2 * h)
+    fd <- (predict(fp, newdata = nd, re_formula = NA) -
+             predict(fm, newdata = nd, re_formula = NA)) / (2 * h)
     worst <- max(worst, max(abs(fd - lb$A[, k])))
   }
   expect_lt(worst, 1e-6)
@@ -105,7 +105,7 @@ test_that("frm_lp_basis() refuses arguments it cannot interpret", {
   skip_on_cran()
   o <- sp_fit()
   expect_error(frm_lp_basis(o$fit, newdata = 1:3), "must be a data frame")
-  expect_error(frm_lp_basis(o$fit, re.form = "g"), "must be NULL")
+  expect_error(frm_lp_basis(o$fit, re_formula = "g"), "must be NULL")
   expect_error(frm_lp_basis(o$fit, dpar = "nope"), "unknown dpar")
   expect_error(frm_lp_basis(o$fit, resp = "nope"), "Unknown response")
 })

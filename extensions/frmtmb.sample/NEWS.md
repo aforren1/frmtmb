@@ -1,3 +1,28 @@
+# frmtmb.sample (development version)
+
+* Two spellings of the random-effect switch survive on the five
+  methods where brms itself ACCEPTS both, which is not the same as the
+  four that declare both. `posterior_epred()`, `posterior_linpred()`,
+  `posterior_predict()` and `predictive_error()` declare `re_formula`
+  and lme4's `re.form` on `brmsfit`. `predictive_interval()` declares
+  neither and honors both anyway, because its whole brms body is
+  `posterior_predict(object, ...)`, so the alias reaches a formal one
+  frame down. `tests/testthat/test-draws-spellings.R` derives "brms
+  accepts it" from brms's own code rather than restating a list.
+
+* **BREAKING, one method.** `pp_check()` no longer takes `re.form`.
+  Note that this is the one place the package is knowingly narrower
+  than brms: `pp_check.brmsfit()` forwards its dots to
+  `posterior_predict()` through `do_call()`, so brms accepts the alias
+  there too. `dev/argspell-brms-accepts.R` in the monorepo has the
+  measurement, and the decision is open rather than settled.
+
+* **BREAKING.** An argument that lands in a method's `...` is an error
+  naming it, rather than being swallowed. Every method of this package
+  that took a `...` it never read now refuses one; `dev/argspell-report.R`
+  in the monorepo reports 0 still swallowing. See the frmtmb NEWS entry
+  for why the refusal is the part that prevents the class.
+
 # frmtmb.sample 0.5.0
 
 * **frmtmb.sample no longer breaks brms, rstantools, loo,

@@ -209,7 +209,7 @@ test_that("data2 outlives its calling environment across saveRDS", {
 
   # refit() reuses the assembled frame, so it only has to survive the
   # round trip: the restored objective is a dead pointer and is rebuilt
-  rf <- refit(r_d2, stats::simulate(r_d2, nsim = 1, re.form = NA)[[1]])
+  rf <- refit(r_d2, stats::simulate(r_d2, nsim = 1, re_formula = NA)[[1]])
   expect_s3_class(rf, "frmtmb_fit")
   expect_equal(names(rf$data2), "A")
   unlink(c(f_env, f_d2))

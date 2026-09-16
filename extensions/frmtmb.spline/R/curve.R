@@ -72,7 +72,7 @@
 #' What this call costs is dominated by ONE thing: the single
 #' `predict(se.fit = TRUE)` check call, inside which core inverts the
 #' fit's joint precision matrix over EVERY coefficient, including the
-#' ones this curve does not touch. Measured at `re.form = NA` on a
+#' ones this curve does not touch. Measured at `re_formula = NA` on a
 #' 20-point grid, one process each:
 #'
 #' \itemize{
@@ -170,7 +170,7 @@
 #' @param dpar Distributional parameter to read the curve off. `NULL`,
 #'   the default, is the location parameter `mu`.
 #' @param resp Response name, for a multivariate fit.
-#' @param re.form `NA` (the default) evaluates the population curve, the
+#' @param re_formula `NA` (the default) evaluates the population curve, the
 #'   convention `mgcv` and `gratia` plot. `NULL` keeps every random
 #'   effect, so the grid must carry the grouping columns and the curve is
 #'   that group's own.
@@ -228,7 +228,7 @@
 #' head(cv[, c("x", ".estimate", ".se", ".lower_ci", ".lower_sim")])
 #' @export
 frm_curve <- function(object, newdata, contrast = NULL, dpar = NULL,
-                      resp = NULL, re.form = NA, level = 0.95,
+                      resp = NULL, re_formula = NA, level = 0.95,
                       simultaneous = TRUE, nsim = 10000L,
                       transform = FALSE, seed = NULL, tol = 1e-6) {
   sp_check_level(level)
@@ -242,7 +242,7 @@ frm_curve <- function(object, newdata, contrast = NULL, dpar = NULL,
          "return it through. Leave transform = FALSE", call. = FALSE)
   }
   sp_rp_gate(object)
-  parts <- sp_curve_parts(object, newdata, dpar, resp, re.form, tol,
+  parts <- sp_curve_parts(object, newdata, dpar, resp, re_formula, tol,
                           contrast)
   # re-raised under this function's own name rather than let out of the
   # seam as it stands: the user called frm_curve(), not frm_lp_basis(),
@@ -304,7 +304,7 @@ sp_assemble <- function(parts, est, se, Sigma, level, simultaneous, nsim,
             level = level,
             spec = list(newdata = newdata, contrast = parts$contrast,
                         dpar = parts$dpar, resp = parts$resp,
-                        re.form = parts$re.form),
+                        re_formula = parts$re_formula),
             check = list(cov_rel_error = parts$rel,
                          n_predict = parts$n_predict,
                          crit_mcse = if (is.null(sim)) NA_real_ else sim$mcse),
@@ -321,10 +321,10 @@ sp_assemble <- function(parts, est, se, Sigma, level, simultaneous, nsim,
 sp_linkinv <- function(parts) {
   fit <- parts$fit
   nd <- parts$newdata[1L, , drop = FALSE]
-  lk <- sp_predict_eta(fit, nd, parts$dpar, parts$resp, parts$re.form)
+  lk <- sp_predict_eta(fit, nd, parts$dpar, parts$resp, parts$re_formula)
   rs <- try(as.numeric(stats::predict(fit, newdata = nd, type = "response",
                                       dpar = parts$dpar, resp = parts$resp,
-                                      re.form = parts$re.form)),
+                                      re_formula = parts$re_formula)),
             silent = TRUE)
   if (inherits(rs, "try-error") || length(rs) != 1L) {
     stop("frm_curve(transform = TRUE): this linear predictor has no ",

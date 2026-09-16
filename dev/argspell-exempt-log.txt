@@ -1,0 +1,45 @@
+  emmeans::emm_basis.gamm  emm_basis(object$gam, ...)
+  emmeans::emm_basis.mira  bas = emm_basis(object$analyses[[1]], trms, xlev, grid, ...)
+  emmeans::emm_basis.svyolr  emm_basis(object, ...)
+emmeans: 3 call sites forwarding dots into emm_basis\(
+
+  emmeans::.cf.refgrid  data = recover_data(object, ...)
+  emmeans::recover_data.averaging  recover_data(fcall, trms, na.action = NULL, ...)
+  emmeans::recover_data.betareg  recover_data(fcall, trms, object$na.action, ...)
+  emmeans::recover_data.carbayes  recover_data(cl, trms, NULL, data, ...)
+  emmeans::recover_data.gamm  return(recover_data(gam, data = data, ...))
+  emmeans::recover_data.geese  recover_data(fcall, delete.response(trms), na.action, ...)
+  emmeans::recover_data.hurdle  recover_data(fcall, trms, object$na.action, ...)
+  emmeans::recover_data.mcmc  recover_data(cl, trms, NULL, data, ...)
+  emmeans::recover_data.nlme  recover_data(fcall, trms, object$na.action, ...)
+  emmeans::recover_data.nls  recover_data(fcall, trms, object$na.action, ...)
+  emmeans::recover_data.svyolr  recover_data(object, data = data, ...)
+  emmeans::recover_data.zeroinfl  recover_data(fcall, trms, object$na.action, ...)
+  emmeans::ref_grid  data = try(recover_data(object, data = NULL, ...))
+emmeans: 14 call sites forwarding dots into recover_data\(
+
+  insight::find_formula.afex_aov  fff <- find_formula(x$lm, verbose = verbose, ...)
+  insight::find_formula.estimate_contrasts  find_formula(get_model(x), verbose = verbose, ...)
+  insight::find_formula.estimate_means  find_formula(get_model(x), verbose = verbose, ...)
+  insight::find_formula.estimate_slopes  find_formula(get_model(x), verbose = verbose, ...)
+  insight::find_formula.marginaleffects  find_formula(m, verbose = verbose, ...)
+  insight::find_formula.merModList  find_formula(x[[1]], ...)
+  insight::find_formula.model_fit  find_formula(x$fit, ...)
+insight: 7 call sites forwarding dots into find_formula\(
+
+  insight::.n_parameters_component  params <- get_parameters(x, component = component, ...)
+  insight::.n_parameters_effects  params <- get_parameters(x, effects = effects, ...)
+  insight::get_parameters.afex_aov  get_parameters(x$lm, ...)
+  insight::get_parameters.mira  get_parameters(mice::pool(x), ...)
+  insight::get_parameters.model_fit  get_parameters(x$fit, ...)
+  insight::get_statistic.betamfx  parms <- get_parameters(x, component = "all", ...)
+  insight::get_statistic.betaor  parms <- get_parameters(x, component = "all", ...)
+  insight::get_statistic.logitmfx  parms <- get_parameters(x, component = "all", ...)
+  insight::get_statistic.negbinmfx  parms <- get_parameters(x, component = "all", ...)
+  insight::get_statistic.poissonmfx  parms <- get_parameters(x, component = "all", ...)
+  insight::get_statistic.probitmfx  parms <- get_parameters(x, component = "all", ...)
+insight: 12 call sites forwarding dots into get_parameters\(
+
+  marginaleffects::get_group_names.nestedLogit  out <- get_predict(model, type = type, ...)
+marginaleffects: 1 call sites forwarding dots into get_predict\(
+

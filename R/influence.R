@@ -19,7 +19,8 @@
 #'   frame, which works unless the formula uses variables that are not
 #'   stored raw (e.g. inside `poly()`).
 #' @param force Allow observation-wise deletion for n > 500.
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return A `frmtmb_influence` object: `fixed` and `theta` matrices
 #'   (one row per deleted unit) plus the full-data reference.
 #' @examples
@@ -34,6 +35,7 @@
 #' @export
 influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
                                  force = FALSE, ...) {
+  frm_check_dots(...)
   data <- data %||% model$frame[["data_frame"]]
   if (!is.null(groups)) {
     gv <- data[[groups]]
@@ -113,6 +115,7 @@ outer_theta_names <- function(fit) {
 
 #' @export
 print.frmtmb_influence <- function(x, n = 6, ...) {
+  frm_check_dots(...)
   cd <- cooks.distance(x)
   cat("Case-deletion influence over ",
       if (is.null(x$groups)) "observations" else
@@ -236,17 +239,20 @@ cooks.distance.frmtmb_fit <- function(model, ...) {
 dfbeta.frmtmb_influence <- function(model, ...) {
   # stats convention: the change when the unit is deleted,
   # full-data estimate minus leave-one-out estimate
+  frm_check_dots(...)
   -sweep(model$fixed, 2, model$fixed_full)
 }
 
 #' @rdname influence.frmtmb_fit
 #' @export
 dfbetas.frmtmb_influence <- function(model, ...) {
+  frm_check_dots(...)
   sweep(dfbeta(model), 2, sqrt(diag(vcov(model$fit))), `/`)
 }
 
 #' @export
 cooks.distance.frmtmb_influence <- function(model, ...) {
+  frm_check_dots(...)
   V <- vcov(model$fit)
   p <- ncol(V)
   Vi <- solve(V)

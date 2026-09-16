@@ -20,7 +20,8 @@ ESTIMATED coefficients only - so dividing by a \code{vcov()} diagonal is
 \code{intersect(names(cf), rownames(vcov(fit)))} selects the ones a
 standard error exists for.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 }
 \value{
 A named list of coefficient vectors, one per dpar, or with

@@ -1,4 +1,4 @@
-# re.form = NA on a model with smooths: what is a population effect and
+# re_formula = NA on a model with smooths: what is a population effect and
 # what is a group deviation.
 #
 # The reference is mgcv, which spells the same distinction as
@@ -20,7 +20,7 @@ fosr_data <- function(N = 20L, nt = 15L, seed = 101) {
              y = as.vector(t(Y)))
 }
 
-test_that("re.form = NA keeps the population smooth and drops the fs term", {
+test_that("re_formula = NA keeps the population smooth and drops the fs term", {
   d <- fosr_data()
   fit <- frm(bf(y ~ s(t, k = 8) + s(t, subject, bs = "fs", k = 5) +
                   (1 | subject)),
@@ -36,7 +36,7 @@ test_that("re.form = NA keeps the population smooth and drops the fs term", {
   # population prediction: mgcv's own exclusion of the two group terms
   pop_gam <- as.numeric(predict(gm,
                                 exclude = c("s(t,subject)", "s(subject)")))
-  expect_lt(max(abs(as.numeric(predict(fit, re.form = NA)) - pop_gam)), 1e-6)
+  expect_lt(max(abs(as.numeric(predict(fit, re_formula = NA)) - pop_gam)), 1e-6)
 
   # and it is NOT merely the fs term left in (the pre-fix behavior)
   kept_fs <- as.numeric(predict(gm, exclude = "s(subject)"))
@@ -46,17 +46,17 @@ test_that("re.form = NA keeps the population smooth and drops the fs term", {
                    subject = factor(levels(d$subject)[1],
                                     levels = levels(d$subject)))
   expect_lt(max(abs(
-    as.numeric(predict(fit, newdata = nd, re.form = NA)) -
+    as.numeric(predict(fit, newdata = nd, re_formula = NA)) -
       as.numeric(predict(gm, newdata = nd,
                          exclude = c("s(t,subject)", "s(subject)"))))), 1e-6)
 
   # the population prediction still carries a standard error
-  se <- predict(fit, newdata = nd, re.form = NA, se.fit = TRUE)
+  se <- predict(fit, newdata = nd, re_formula = NA, se.fit = TRUE)
   expect_true(all(is.finite(se$se.fit)))
   expect_true(all(se$se.fit > 0))
 })
 
-test_that("re.form = NA needs no grouping column for a dropped fs term", {
+test_that("re_formula = NA needs no grouping column for a dropped fs term", {
   d <- fosr_data()
   fit <- frm(bf(y ~ s(t, k = 8) + s(t, subject, bs = "fs", k = 5)),
              family = gaussian(), data = d)
@@ -65,7 +65,7 @@ test_that("re.form = NA needs no grouping column for a dropped fs term", {
               data = d, method = "ML"))
   nd <- data.frame(t = seq(0, 1, length.out = 7))   # no `subject` column
   expect_lt(max(abs(
-    as.numeric(predict(fit, newdata = nd, re.form = NA)) -
+    as.numeric(predict(fit, newdata = nd, re_formula = NA)) -
       as.numeric(predict(gm,
                          newdata = transform(nd,
                                              subject = d$subject[1]),
@@ -74,7 +74,7 @@ test_that("re.form = NA needs no grouping column for a dropped fs term", {
   # the conditional prediction does need it, and says so by name
   expect_error(predict(fit, newdata = nd),
                "needs the grouping column `subject`")
-  expect_error(predict(fit, newdata = nd), "re\\.form = NA")
+  expect_error(predict(fit, newdata = nd), "re_formula = NA")
 
   # a population smooth missing its own covariate is a different fault
   expect_error(predict(fit, newdata = data.frame(subject = d$subject[1])),
@@ -91,7 +91,7 @@ test_that("an unseen fs level errors, and is allowed at the population level", {
   # allowed: the term contributes nothing, which is the population curve
   expect_equal(as.numeric(predict(fit, newdata = nd,
                                   allow_new_levels = TRUE)),
-               as.numeric(predict(fit, newdata = nd, re.form = NA)),
+               as.numeric(predict(fit, newdata = nd, re_formula = NA)),
                tolerance = 1e-10)
 })
 
@@ -105,20 +105,20 @@ test_that("s(g, bs = 're') is a group-level smooth", {
              family = gaussian(), data = d)
   gre <- mgcv::gam(y ~ s(t, k = 6) + s(g, bs = "re"), data = d,
                    method = "ML")
-  expect_lt(max(abs(as.numeric(predict(fre, re.form = NA)) -
+  expect_lt(max(abs(as.numeric(predict(fre, re_formula = NA)) -
                       as.numeric(predict(gre, exclude = "s(g)")))), 1e-5)
   # the wiggly part of s(t) survived: a flat line would not
-  expect_gt(diff(range(predict(fre, re.form = NA))), 0.5)
+  expect_gt(diff(range(predict(fre, re_formula = NA))), 0.5)
 
   # an unseen level of a factor bs = "re" smooth: named refusal by
   # default, and a second named refusal under allow_new_levels = TRUE
   # (the design has one column per fitted level, no zero row), with
-  # re.form = NA as the way out both times
+  # re_formula = NA as the way out both times
   nd_new <- data.frame(t = c(0.2, 0.6), g = factor(c("zz", "a")))
   expect_error(predict(fre, newdata = nd_new), "New levels")
   expect_error(predict(fre, newdata = nd_new, allow_new_levels = TRUE),
                "no zero row")
-  expect_length(predict(fre, newdata = nd_new, re.form = NA), 2L)
+  expect_length(predict(fre, newdata = nd_new, re_formula = NA), 2L)
 })
 
 test_that("the group/population split is read off the smooth object", {

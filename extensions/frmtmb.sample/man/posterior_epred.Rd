@@ -50,17 +50,20 @@ posterior_predict(object, ...)
 \arguments{
 \item{object}{A \code{frmtmb_draws} from \code{\link[=frm_sample]{frm_sample()}}.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 
 \item{newdata, resp}{As in \code{\link[frmtmb:predict.frmtmb_fit]{frmtmb::predict.frmtmb_fit()}}.}
 
 \item{re_formula}{The random-effect switch, in brms's spelling:
 \code{NULL} (the default) conditions on each draw's own random effects,
 \code{NA} or \code{~0} gives the population-level quantity. Its meaning is
-\code{\link[frmtmb:predict.frmtmb_fit]{frmtmb::predict.frmtmb_fit()}}'s \code{re.form}; see \emph{Argument spellings}.}
+\code{\link[frmtmb:predict.frmtmb_fit]{frmtmb::predict.frmtmb_fit()}}'s \code{re_formula}; see \emph{Argument
+spellings}.}
 
-\item{re.form}{lme4's spelling of \code{re_formula}, accepted as an alias.
-Pass one or the other, not both.}
+\item{re.form}{lme4's spelling of \code{re_formula}, accepted on the four
+methods where brms accepts it too. Pass one or the other, not
+both.}
 
 \item{ndraws}{Number of draws to use (default: all).}
 
@@ -82,7 +85,8 @@ array (see the section below).
 draw; \code{posterior_predict()} additionally simulates responses from
 the family, giving the posterior predictive distribution. Both
 condition on each draw's own random effects (\code{re_formula = NA} drops
-them; \code{re.form} is the accepted alias, see \emph{Argument spellings}).
+them; \code{re.form} is an accepted alias here, see \emph{Argument
+spellings}).
 }
 \section{Categorical outcomes}{
 
@@ -125,19 +129,30 @@ the model was fitted on, so \code{newdata} is refused for them.
 
 \section{Argument spellings}{
 
-frmtmb answers to two dialects, and this family sits on the seam.
-The rule is that a brms-NAMED function speaks brms's argument names,
-while frmtmb's own fit surface (\code{\link[frmtmb:predict.frmtmb_fit]{frmtmb::predict.frmtmb_fit()}},
-\code{\link[frmtmb:simulate.frmtmb_fit]{frmtmb::simulate.frmtmb_fit()}}, \code{\link[frmtmb:frm_bootstrap]{frmtmb::frm_bootstrap()}}) keeps lme4's, because
-that is the heritage each name comes from and a reader should be able
-to tell which library a call was written against.
+One rule decides every name in this package: where lme4 or glmmTMB
+and brms disagree, brms wins. The random-effect switch is therefore
+\code{re_formula} everywhere, on the draws methods here and on
+\code{\link[frmtmb:predict.frmtmb_fit]{frmtmb::predict.frmtmb_fit()}} and
+\code{\link[frmtmb:simulate.frmtmb_fit]{frmtmb::simulate.frmtmb_fit()}} alike; lme4's \code{re.form} was dropped
+from the fit surface and is refused there by name.
 
-\code{posterior_epred()} and its relatives are brms functions, so the
-random-effect switch is \code{re_formula}. They also SHIPPED taking
-lme4's \code{re.form}, so that spelling keeps working and means exactly
-the same thing: both names feed one internal setting, and whichever
-one is given wins. brms does the same on \code{posterior_epred.brmsfit()},
-which carries \code{re_formula} and \code{re.form} side by side.
+Five methods take BOTH spellings, and they are exactly the five
+where brms ITSELF accepts both. Four declare them:
+\code{posterior_epred()}, \code{posterior_linpred()}, \code{posterior_predict()}
+and \code{predictive_error()} carry \code{re_formula} and \code{re.form} side by
+side on \code{brmsfit}. The fifth does not declare them and accepts them
+anyway: \code{predictive_interval.brmsfit()}'s whole body is
+\code{posterior_predict(object, ...)}, so the alias reaches a formal one
+frame down. What brms ACCEPTS is the test, not what it declares.
+
+\code{pp_check()} is the one method that lost the alias, and the same
+test is why it stays lost. brms DOES honor \code{re.form} there, through
+the same dots forwarding, but it warns "unrecognized and ignored"
+while doing it. Matching brms means matching what brms decided, and
+a warn-then-honor path is a leak rather than a decision: the
+argument changes the answer and the message says it did not.
+\code{predictive_interval()} is the contrast, where brms honors the alias
+silently and this package follows.
 
 Giving both at once is refused rather than resolved. Two names for
 one setting supplied together is a question about what was meant, and

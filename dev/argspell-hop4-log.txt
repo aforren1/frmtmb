@@ -1,0 +1,24 @@
+frmtmb from: C:/Users/adf44/source/r/argspell-lib 
+as.formula(fit)                            ok formula
+terms(fit)                                 ok terms/formula
+terms(fit, data = dd)                      ok terms/formula
+model.matrix(fit)                          ok matrix/array
+model.frame(fit)                           ok data.frame
+model.frame(fit, data = dd)                ok data.frame
+influence.measures(fit)                    ERROR: 'arg' should be one of "response", "pearson", "deviance", "osa"
+profile(fit)                               ERROR: argument "parm" is missing, with no default
+confint(fit, trace = FALSE)                ok matrix/array
+case.names(fit)                            ok NULL
+variable.names(fit)                        ok NULL
+formula(fit)                               ok formula
+getCall(fit)                               ok call
+effects(fit)                               ERROR: no applicable method for 'effects' applied to an object of class "frmtmb_fit"
+proj(fit)                                  ERROR: argument does not include a 'qr' component
+dummy.coef(fit)                            ERROR: no applicable method for 'dummy.coef' applied to an object of class "frmtmb_fit"
+relevel-ish: update(fit, data = dd)        ok frmtmb_fit
+simulate(fit, nsim = 2, seed = 1)          ok data.frame
+residuals(fit, na.rm = TRUE)               ok numeric
+df.residual(fit, na.rm = TRUE)             ERROR: df.residual() has no argument `na.rm`. It takes: object
+coef(fit, digits = 3)                      ERROR: coef() has no argument `digits`. It takes: object
+
+DONE

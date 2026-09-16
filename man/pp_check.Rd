@@ -7,14 +7,7 @@
 \usage{
 pp_check(object, ...)
 
-\method{pp_check}{frmtmb_fit}(
-  object,
-  type = "dens_overlay",
-  ndraws = 10,
-  re_formula = arg_unset(),
-  re.form = arg_unset(),
-  ...
-)
+\method{pp_check}{frmtmb_fit}(object, type = "dens_overlay", ndraws = 10, re_formula = NA, ...)
 }
 \arguments{
 \item{object}{A \code{frmtmb_fit} for a univariate model.}
@@ -30,11 +23,10 @@ pp_check(object, ...)
 (\code{pp_check()} is a brms function). On a fit it is passed to
 \code{\link[=simulate]{simulate()}} and defaults to \code{NA}, which simulates new random
 effects; on draws it is passed to \code{posterior_predict()} and
-defaults to \code{NULL}, because a draw already carries its own.}
-
-\item{re.form}{lme4's spelling of \code{re_formula}, accepted as an alias.
-Pass one or the other, not both; see the \emph{Argument spellings}
-section of \code{frmtmb.sample::posterior_epred()}.}
+defaults to \code{NULL}, because a draw already carries its own. lme4's
+\code{re.form} is refused. brms honors it on \code{pp_check()} and warns that
+it ignored it, which is a leak through its dots rather than a
+decision to copy.}
 }
 \value{
 A ggplot object, as returned by the bayesplot \verb{ppc_*}

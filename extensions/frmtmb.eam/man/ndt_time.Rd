@@ -14,7 +14,7 @@ from \code{\link[=ndt_bound_attach]{ndt_bound_attach()}}.}
 \item{newdata}{Optional data frame. It must carry the model's
 \code{ndt_group()} column when the model has one.}
 
-\item{...}{Passed to \code{\link[stats:predict]{stats::predict()}}; \code{re.form} and
+\item{...}{Passed to \code{\link[stats:predict]{stats::predict()}}; \code{re_formula} and
 \code{allow_new_levels} are the useful ones.}
 }
 \value{

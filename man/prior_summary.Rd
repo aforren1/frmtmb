@@ -13,7 +13,8 @@ prior_summary(object, ...)
 \item{object}{A \code{frmtmb_fit}, or a \code{frmtmb_draws} from
 \code{frmtmb.sample::frm_sample()}.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 }
 \value{
 The \code{frmtmb_priorlist} the fit was penalized with, or that

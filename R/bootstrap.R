@@ -19,7 +19,7 @@
 #'   with the Wald one by name.
 #' @param nsim Number of bootstrap draws.
 #' @param seed Optional seed.
-#' @param re.form Passed to [simulate()]; the default `NA` simulates
+#' @param re_formula Passed to [simulate()]; the default `NA` simulates
 #'   marginally (new random effects), which is the standard parametric
 #'   bootstrap for mixed models.
 #' @return A `frmtmb_boot` object: `t0` (FUN at the original fit), `t`
@@ -35,7 +35,7 @@
 #' confint(bs)
 #' @export
 frm_bootstrap <- function(fit, FUN = function(f) fixef(f, flatten = TRUE),
-                          nsim = 500, seed = NULL, re.form = NA) {
+                          nsim = 500, seed = NULL, re_formula = NA) {
   # nsim is passed straight to simulate() as a length, and a bad one
   # used to surface as "invalid 'length' argument" from inside the
   # bootstrap loop
@@ -47,7 +47,7 @@ frm_bootstrap <- function(fit, FUN = function(f) fixef(f, flatten = TRUE),
   }
   # refit() replaces the response of the FITTED rows, so the na.exclude
   # padding simulate() adds has to come back off
-  sims <- na_unpad(fit, simulate(fit, nsim = nsim, re.form = re.form))
+  sims <- na_unpad(fit, simulate(fit, nsim = nsim, re_formula = re_formula))
   # An ordinal draw arrives as an ordered factor carrying the response's
   # own levels, but the fit stores the 1..K codes and refit() takes
   # newresp as given: handed a factor, as.vector() turns it into text and
@@ -75,6 +75,7 @@ frm_bootstrap <- function(fit, FUN = function(f) fixef(f, flatten = TRUE),
 
 #' @export
 print.frmtmb_boot <- function(x, ...) {
+  frm_check_dots(...)
   cat("Parametric bootstrap:", x$nsim, "refits,",
       sum(!x$converged), "failed or not converged\n\n")
   bmean <- colMeans(x$t, na.rm = TRUE)
@@ -92,6 +93,7 @@ print.frmtmb_boot <- function(x, ...) {
 
 #' @export
 confint.frmtmb_boot <- function(object, parm = NULL, level = 0.95, ...) {
+  frm_check_dots(...)
   a <- (1 - level) / 2
   ci <- cbind(
     lwr = apply(object$t, 2, stats::quantile, a, na.rm = TRUE),

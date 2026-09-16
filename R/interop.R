@@ -134,6 +134,12 @@ emm_mu_linpred <- function(object) {
 
 #' @exportS3Method marginaleffects::get_coef
 get_coef.frmtmb_fit <- function(model, ...) {
+  # Exempt: marginaleffects reaches this through its numderiv machinery
+  # with `variables`, `numderiv` and `internal_call` in the dots, and
+  # NEITHER static call-site count saw it, because the call is assembled
+  # rather than written out. Guarding it broke avg_slopes(), slopes(),
+  # avg_comparisons() and hypotheses(); dev/argspell-interop-log.txt has
+  # the run. A count of zero written call sites is not evidence here.
   est <- model$estimates
   bd <- est[["betad"]]
   if (length(model$frame[["betad_fixed_idx"]])) {
@@ -144,6 +150,12 @@ get_coef.frmtmb_fit <- function(model, ...) {
 
 #' @exportS3Method marginaleffects::set_coef
 set_coef.frmtmb_fit <- function(model, coefs, ...) {
+  # Exempt: marginaleffects reaches this through its numderiv machinery
+  # with `variables`, `numderiv` and `internal_call` in the dots, and
+  # NEITHER static call-site count saw it, because the call is assembled
+  # rather than written out. Guarding it broke avg_slopes(), slopes(),
+  # avg_comparisons() and hypotheses(); dev/argspell-interop-log.txt has
+  # the run. A count of zero written call sites is not evidence here.
   tpl <- model$frame[["par_template"]]
   nb <- length(tpl[["beta"]])
   model$estimates[["beta"]][] <- coefs[seq_len(nb)]
@@ -328,7 +340,8 @@ getME_flist <- function(object) {
 #'   returns a named list.
 #' @param resp Response name, for the design extractors on a
 #'   multivariate fit.
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return The requested component, or a named list when `name` names
 #'   several.
 #'
@@ -367,6 +380,7 @@ getME_flist <- function(object) {
 #' }
 #' @exportS3Method lme4::getME
 getME.frmtmb_fit <- function(object, name, resp = NULL, ...) {
+  frm_check_dots(...)
   if (missing(name) || !is.character(name) || !length(name)) {
     stop("getME() needs one or more names: ",
          paste(frmtmb_getME_vocab, collapse = ", "), call. = FALSE)

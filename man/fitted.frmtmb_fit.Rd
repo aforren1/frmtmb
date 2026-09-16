@@ -4,12 +4,40 @@
 \alias{fitted.frmtmb_fit}
 \title{Fitted values}
 \usage{
-\method{fitted}{frmtmb_fit}(object, ...)
+\method{fitted}{frmtmb_fit}(
+  object,
+  newdata = NULL,
+  re_formula = NULL,
+  scale = c("response", "linear"),
+  resp = NULL,
+  dpar = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
 
-\item{...}{Unused.}
+\item{newdata}{Optional data frame to evaluate on. Defaults to the
+training data.}
+
+\item{re_formula}{\code{NULL} (default) keeps the random effects, so the
+answer is conditional on the modes; \code{NA} or \code{~0} gives the
+population-level answer. brms's spelling, and the only one:
+lme4's \code{re.form} is not accepted here.}
+
+\item{scale}{\code{"response"} (default) for the modelled response, or
+\code{"linear"} for the linear predictor. brms's spelling of what
+\code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} calls \code{type}.}
+
+\item{resp}{For multivariate fits: which response (defaults to the
+first).}
+
+\item{dpar}{Which distributional parameter to report instead of the
+mean.}
+
+\item{...}{Refused. An argument this method does not have is an
+error naming it, because a swallowed \code{re_formula} returned the
+conditional fit and said nothing.}
 }
 \value{
 A numeric vector of expected responses; for an ordinal family
@@ -21,6 +49,16 @@ The modelled response at the estimates, conditional on the
 random-effect modes. Equal to \code{predict(object, type = "response")} on
 the training data, for every family.
 }
+\section{Arguments brms has and this does not}{
+
+\code{fitted.brmsfit()} summarizes posterior draws, so it also takes
+\code{ndraws}, \code{draw_ids}, \code{sort}, \code{summary}, \code{robust} and \code{probs}. A
+maximum likelihood fit has no draws to thin or summarize, so each of
+those is refused by name and the message says where the argument does
+work: \code{frmtmb.sample}'s \code{posterior_epred()}. \code{nlpar} is refused too;
+a non-linear parameter is reached through \code{dpar}.
+}
+
 \section{Ordinal responses}{
 
 An ordinal response has no mean, so \code{fitted()} returns the \verb{n x K}

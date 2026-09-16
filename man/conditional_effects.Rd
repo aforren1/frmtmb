@@ -89,12 +89,9 @@ group, name it in \code{conditions} (\code{conditions = list(g = "3")}).
 brms draws a new group's random effects afresh from the fitted
 covariance in every posterior draw, so its curve is stochastic
 around this one; a maximum-likelihood fit has the mode and the
-variance instead of draws. The fit surface's
-\code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} spells the same
-setting \code{re.form} after lme4; \code{conditional_effects()} takes brms's
-name because it is brms's function, and says so if handed the
-other spelling. \code{band = "profile"} exists only for the
-population-level curve.}
+variance instead of draws. \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} spells the same
+setting the same way; lme4's \code{re.form} is refused and says so.
+\code{band = "profile"} exists only for the population-level curve.}
 
 \item{ndraws}{Simulated responses per grid point for
 \code{method = "predict"}. For the draws method: how many evenly spaced
@@ -164,7 +161,7 @@ response (a message says so).
 For each requested effect, predicts over a grid of that predictor
 with every other predictor held at a reference value (numeric: mean;
 factor: first level; matrix covariate: column means) and random
-effects excluded (\code{re.form = NA}). Confidence bands are Wald
+effects excluded (\code{re_formula = NA}). Confidence bands are Wald
 intervals computed on the link scale and back-transformed. Smooth
 terms are included, so this also covers what brms calls
 \code{conditional_smooths()}.

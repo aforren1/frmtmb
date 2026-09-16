@@ -146,13 +146,15 @@ test_that("backend controls pass through hypothesis's dots", {
   r2 <- diff(range(attr(h2, "profiles")[[1]][[1]]))
   expect_gt(r2, r1)
 
-  # boot: re.form reaches frm_bootstrap (conditional bootstrap runs)
+  # boot: re_formula reaches frm_bootstrap (conditional bootstrap runs)
   hb <- hypothesis(fit, "x", method = "boot", nsim = 10, seed = 5,
-                   re.form = NULL)
+                   re_formula = NULL)
   expect_equal(dim(attr(hb, "draws")), c(10L, 1L))
 
-  # wald: stray arguments warn instead of vanishing
-  expect_warning(hypothesis(fit, "x", ytol = 8), "unused by method")
+  # wald: a stray argument is REFUSED instead of vanishing. ytol is a
+  # real TMB::tmbprofile() argument, so the point is not that the name
+  # is unknown but that this method never reaches a profile.
+  expect_error(hypothesis(fit, "x", ytol = 8), "ytol")
 })
 
 test_that("hypothesis objects print and plot for every method", {

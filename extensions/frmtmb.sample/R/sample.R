@@ -2017,10 +2017,14 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
 }
 
 #' @export
-as.matrix.frmtmb_draws <- function(x, ...) x$draws
+as.matrix.frmtmb_draws <- function(x, ...) {
+  frm_check_dots(...)
+  x$draws
+}
 
 #' @export
 print.frmtmb_draws <- function(x, ...) {
+  frm_check_dots(...)
   m <- x$draws
   keep <- setdiff(colnames(m),
                   c("lp__", grep("^b\\[", colnames(m), value = TRUE)))

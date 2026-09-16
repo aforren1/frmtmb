@@ -14,7 +14,8 @@
 (from the Laplace posterior) as a \code{"condSD"} attribute on each
 matrix, in matching layout.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 }
 \value{
 A named list of levels-by-coefficients matrices, one per

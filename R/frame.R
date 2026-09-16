@@ -1947,7 +1947,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             nr = nr, nf = nf, xf_idx = xf_idx,
             comp_ids = sm_comp_ids, block_ids = NULL,
             # the grouping factor this basis is indexed by, if any: what
-            # separates a per-level curve (which re.form = NA drops)
+            # separates a per-level curve (which re_formula = NA drops)
             # from a population smooth (which it keeps). Read off the
             # smooth object here, where the model frame is still around
             # to say which of its terms are factors.
@@ -2628,6 +2628,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
 
 #' @export
 print.frmtmb_frame <- function(x, ...) {
+  frm_check_dots(...)
   cat("<frmtmb frame> ", x$n_obs, " observations, ",
       length(x$spec$responses), " response(s)\n", sep = "")
   for (lp in x$linpreds) {

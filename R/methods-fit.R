@@ -94,8 +94,54 @@ cat_family_links <- function(responses) {
   invisible(NULL)
 }
 
+#' The brms arguments the point-estimate accessors cannot answer.
+#'
+#' Named rather than reported as unknown, for the reason
+#' `fitted_no_draws` gives: each of these is a REAL argument of the
+#' `brmsfit` method of the same generic, so "there is no such argument"
+#' sends the caller looking for a typo that is not there. Every one of
+#' them was accepted in silence before the dots were refused.
+#'
+#' @noRd
+brms_draws_summary_args <- c(
+  summary = paste("brms summarizes posterior draws; this is one",
+                  "estimate, so the return value is already what",
+                  "`summary = TRUE` would produce. Draw from the fit",
+                  "with frmtmb.sample::frm_sample() for the posterior"),
+  robust = paste("a median and MAD over draws need draws.",
+                 "frmtmb.sample's posterior_summary() takes robust"),
+  probs = paste("quantiles over draws need draws. For an interval",
+                "around a coefficient here use confint()"),
+  pars = paste("brms's `pars` filters parameter names with a regular",
+               "expression. Subset the returned value instead;",
+               "variables() lists the names this package uses")
+)
+
+#' The brms arguments the two print methods and summary() cannot honor.
+#'
+#' @noRd
+brms_print_args <- c(
+  digits = paste("not implemented here yet. brms's print() takes it",
+                 "and this one does not; summary(object) returns the",
+                 "coefficient table, which round() accepts"),
+  short = paste("brms's short display has no counterpart here.",
+                "print() already prints the short form")
+)
+
+#' @noRd
+brms_summary_args <- c(
+  priors = paste("brms prints the priors it sampled under.",
+                 "prior_summary(object) reports them here"),
+  prob = paste("brms's `prob` sets the width of a posterior interval;",
+               "this table carries standard errors and a Wald test.",
+               "confint(object, level = ) takes the coverage"),
+  mc_se = paste("Monte Carlo standard errors describe a sampler, and",
+                "a maximum likelihood fit has none")
+)
+
 #' @export
 print.frmtmb_fit <- function(x, ...) {
+  frm_check_dots(..., .unsupported = brms_print_args)
   require_fitted(x, "print()")
   if (inherits(x$bform, "frmtmb_mvformula")) {
     for (f in x$bform$forms) cat("frmtmb fit:", deparse1(f$formula), "\n")
@@ -149,6 +195,8 @@ coef_block_key <- function(fit, lp) {
 # model-based standard errors either way.
 #' @export
 summary.frmtmb_fit <- function(object, vcov = NULL, ...) {
+  frm_check_dots(..., .unsupported = c(brms_summary_args,
+                                       brms_draws_summary_args))
   rdf <- NULL
   if (!is.null(vcov)) {
     # resolve once: `vcov` may be a function of the fit
@@ -229,6 +277,7 @@ summary.frmtmb_fit <- function(object, vcov = NULL, ...) {
 
 #' @export
 print.summary.frmtmb_fit <- function(x, ...) {
+  frm_check_dots(..., .unsupported = brms_print_args)
   cat("Family:", x$family[["family"]], "\n")
   cat_family_links(x$links %||% family_link_str(x$family))
   cat("Formula:", deparse1(x$formula), "\n")
@@ -295,6 +344,7 @@ n_outer_est <- function(object) {
 
 #' @export
 logLik.frmtmb_fit <- function(object, ...) {
+  frm_check_dots(...)
   require_fitted(object, "logLik() (and AIC(), BIC(), anova())")
   structure(-object$opt$objective,
             df = n_outer_est(object),
@@ -304,15 +354,26 @@ logLik.frmtmb_fit <- function(object, ...) {
 }
 
 #' @export
-nobs.frmtmb_fit <- function(object, ...) object$frame[["n_obs"]]
+nobs.frmtmb_fit <- function(object, ...) {
+  # `use.fallback` is not named here: it is in `s3_contract_args`, with
+  # every other name R's own machinery passes through a generic.
+  frm_check_dots(..., .unsupported = c(resp = paste(
+                   "a multivariate fit here shares one set of rows, so",
+                   "every response has the same nobs()")))
+  object$frame[["n_obs"]]
+}
 
 #' @export
 df.residual.frmtmb_fit <- function(object, ...) {
+  frm_check_dots(...)
   object$frame[["n_obs"]] - n_outer_est(object)
 }
 
 #' @export
 family.frmtmb_fit <- function(object, ...) {
+  frm_check_dots(..., .unsupported = c(resp = paste(
+    "family() returns a NAMED LIST of families for a multivariate fit,",
+    "so index it by response name instead")))
   fams <- lapply(object$spec$responses, `[[`, "family")
   if (length(fams) == 1) fams[[1]] else fams
 }
@@ -353,6 +414,7 @@ rescor_matrix <- function(fit) {
 
 #' @export
 formula.frmtmb_fit <- function(x, ...) {
+  frm_check_dots(...)
   if (inherits(x$bform, "frmtmb_mvformula")) {
     x$bform$forms[[1]]$formula
   } else {
@@ -408,7 +470,8 @@ estimated_coef_names <- function(fit) {
 #'   model-based one.
 #' @param type Small-sample correction for `cluster`, see
 #'   [vcov_cluster()].
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return A covariance matrix.
 #' @seealso [confint_varcorr()] for natural-scale intervals on the same
 #'   covariance parameters, and [hypothesis()] for delta-method tests of
@@ -440,6 +503,10 @@ estimated_coef_names <- function(fit) {
 #' @export
 vcov.frmtmb_fit <- function(object, full = FALSE, cluster = NULL,
                             type = "CR0", ...) {
+  frm_check_dots(..., .unsupported = c(
+    correlation = paste("brms returns the correlation matrix instead;",
+                        "here, cov2cor(vcov(object))"),
+    pars = brms_draws_summary_args[["pars"]]))
   if (!is.null(cluster)) {
     return(vcov_cluster(object, cluster, type = type, full = full))
   }
@@ -507,7 +574,8 @@ vcov.frmtmb_fit <- function(object, full = FALSE, cluster = NULL,
 #' vector when there is one linear predictor).
 #'
 #' @param object A `frmtmb_fit`.
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return A named list of data frames, one per grouping factor, each
 #'   with one row per group level and one column per coefficient. When
 #'   random effects appear in more than one linear predictor, the list is
@@ -537,6 +605,7 @@ vcov.frmtmb_fit <- function(object, full = FALSE, cluster = NULL,
 #' coef(frm(bf(y ~ x) + gaussian(), data = dd))
 #' @export
 coef.frmtmb_fit <- function(object, ...) {
+  frm_check_dots(..., .unsupported = brms_draws_summary_args)
   fe <- fixef(object)
   cvec <- coef_b(object)
   out <- list()
@@ -624,7 +693,8 @@ coef.frmtmb_fit <- function(object, ...) {
 #'   `NA` for those entries, and
 #'   `intersect(names(cf), rownames(vcov(fit)))` selects the ones a
 #'   standard error exists for.
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return A named list of coefficient vectors, one per dpar, or with
 #'   `flatten = TRUE` a single named vector.
 #' @seealso [vcov.frmtmb_fit()] and [confint.frmtmb_fit()], which name
@@ -650,6 +720,7 @@ coef.frmtmb_fit <- function(object, ...) {
 #' @aliases fixef
 #' @export
 fixef.frmtmb_fit <- function(object, flatten = FALSE, ...) {
+  frm_check_dots(..., .unsupported = brms_draws_summary_args)
   require_fitted(object, "fixef()")
   check_flag(flatten, "flatten")
   est <- object$estimates
@@ -677,7 +748,8 @@ fixef.frmtmb_fit <- function(object, flatten = FALSE, ...) {
 #' @param condVar If `TRUE`, attach the conditional SDs of the modes
 #'   (from the Laplace posterior) as a `"condSD"` attribute on each
 #'   matrix, in matching layout.
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return A named list of levels-by-coefficients matrices, one per
 #'   random-effect term, KEYED BY THE GROUPING FACTOR as brms and lme4
 #'   key it (so `ranef(fit)$g` and `coef(fit)$g` name the same group).
@@ -724,6 +796,9 @@ fixef.frmtmb_fit <- function(object, flatten = FALSE, ...) {
 #' @aliases ranef
 #' @export
 ranef.frmtmb_fit <- function(object, condVar = FALSE, ...) {
+  frm_check_dots(..., .unsupported = c(brms_draws_summary_args,
+    groups = paste("brms's `groups` selects grouping factors; the",
+                   "return value here is a named list, so index it")))
   require_fitted(object, "ranef()")
   check_flag(condVar, "condVar")
   cvec <- coef_b(object)
@@ -838,6 +913,7 @@ ranef_pick <- function(x, i) {
 
 #' @export
 print.ranef_frmtmb <- function(x, ...) {
+  frm_check_dots(...)
   for (i in seq_along(x)) {           # by position: names can repeat
     tl <- attr(x[[i]], "term")
     cat("$", names(x)[i], if (!is.null(tl)) paste0("   (", tl, ")"),
@@ -850,6 +926,7 @@ print.ranef_frmtmb <- function(x, ...) {
 
 #' @export
 as.data.frame.ranef_frmtmb <- function(x, ...) {
+  frm_check_dots(...)
   rows <- lapply(seq_along(x), function(i) {   # by position: see print()
     M <- x[[i]]
     # `grp` names the BLOCK, which is what tells two terms on one factor
@@ -874,6 +951,7 @@ as.data.frame.ranef_frmtmb <- function(x, ...) {
 
 #' @export
 as.data.frame.VarCorr_frmtmb <- function(x, ...) {
+  frm_check_dots(...)
   rows <- list()
   # by position, not by name: two blocks can share a term label (an
   # animal model's (1 | gr(id, cov = A)) and its permanent-environment
@@ -912,7 +990,8 @@ as.data.frame.VarCorr_frmtmb <- function(x, ...) {
 #' @param sigma Ignored. It is carried by nlme's generic, which
 #'   frmtmb now shares rather than shadows, for the models that
 #'   scale a covariance by a residual standard deviation.
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return A named list of covariance matrices, one per random-effect
 #'   term. The names are the term labels, which can repeat when two
 #'   blocks deparse the same way (`(1 | gr(id, cov = A)) + (1 | id)`, the
@@ -935,6 +1014,7 @@ as.data.frame.VarCorr_frmtmb <- function(x, ...) {
 #' @aliases VarCorr
 #' @export
 VarCorr.frmtmb_fit <- function(x, sigma = 1, ...) {
+  frm_check_dots(..., .unsupported = brms_draws_summary_args)
   require_fitted(x, "VarCorr()")
   th <- x$estimates[["theta"]]
   out <- lapply(x$frame[["re_blocks"]], function(bk) {
@@ -968,6 +1048,7 @@ print.VarCorr_frmtmb <- function(x, ...) {
   # by position: duplicate term labels are legal (see
   # as.data.frame.VarCorr_frmtmb), and name lookup would print the
   # first block once per duplicate and never print the others
+  frm_check_dots(...)
   for (i in seq_along(x)) {
     nm <- names(x)[i]
     V <- x[[i]]

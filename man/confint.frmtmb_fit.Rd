@@ -59,7 +59,7 @@ degrees of freedom (as \code{vcov_cluster()}'s does, \code{G - 1}) switches
 the interval from a normal to a \code{t} quantile.}
 
 \item{...}{Passed to the TMB profiling functions, or to
-\code{\link[=frm_bootstrap]{frm_bootstrap()}} for \code{method = "boot"} (e.g. \code{re.form}).}
+\code{\link[=frm_bootstrap]{frm_bootstrap()}} for \code{method = "boot"} (e.g. \code{re_formula}).}
 }
 \value{
 A matrix with columns \code{lwr}, \code{upr}, \code{est}.

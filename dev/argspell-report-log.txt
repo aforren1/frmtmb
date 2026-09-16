@@ -1,0 +1,101 @@
+frmtmb       : C:/Users/adf44/source/r/argspell-lib 
+frmtmb.sample: C:/Users/adf44/source/r/argspell-lib 
+brms         : 2.23.0 
+
+---- GENERATED: method counts ----
+frmtmb
+  registered S3 methods (deduped) : 123
+  taking `...`                    : 114
+  with `...` never read           : 9
+  of those, exempt by contract    : 9
+  with a brms counterpart         : 84
+frmtmb.sample
+  registered S3 methods (deduped) : 68
+  taking `...`                    : 65
+  with `...` never read           : 0
+  of those, exempt by contract    : 0
+  with a brms counterpart         : 68
+
+METHODS STILL SWALLOWING THEIR DOTS: 0
+frm_check_dots(...) call sites: frmtmb 72, frmtmb.sample 36
+---- END GENERATED: method counts ----
+
+---- GENERATED: re.form / re_formula surface ----
+predict.frmtmb_fit               re_formula TRUE re.form FALSE
+fitted.frmtmb_fit                re_formula TRUE re.form FALSE
+simulate.frmtmb_fit              re_formula TRUE re.form FALSE
+residuals.frmtmb_fit             re_formula FALSE re.form FALSE
+conditional_effects.frmtmb_fit   re_formula TRUE re.form FALSE
+pp_check.frmtmb_fit              re_formula TRUE re.form FALSE
+frm_bootstrap                    re_formula TRUE re.form FALSE
+dharma_residuals                 re_formula TRUE re.form FALSE
+posterior_epred.frmtmb_draws     ours TRUE  brms declares TRUE  accepts TRUE
+posterior_linpred.frmtmb_draws   ours TRUE  brms declares TRUE  accepts TRUE
+posterior_predict.frmtmb_draws   ours TRUE  brms declares TRUE  accepts TRUE
+predictive_error.frmtmb_draws    ours TRUE  brms declares TRUE  accepts TRUE
+predictive_interval.frmtmb_draws ours TRUE  brms declares FALSE accepts TRUE
+pp_check.frmtmb_draws            ours FALSE brms declares FALSE accepts TRUE
+---- END GENERATED: re.form / re_formula surface ----
+
+---- GENERATED: formals diff against brms, prediction family ----
+VarCorr.frmtmb_fit
+  ours: x, sigma, ...
+  brms: x, sigma, summary, robust, probs, ...
+  brms-only: summary, robust, probs
+conditional_effects.frmtmb_fit
+  ours: x, effects, resp, dpar, resolution, prob, method, band, re_formula, ndraws, boot, profile_points, seed, conditions, surface, data, int_conditions, categorical, ...
+  brms: x, effects, conditions, int_conditions, re_formula, prob, robust, method, spaghetti, surface, categorical, ordinal, transform, resolution, select_points, too_far, probs, ...
+  brms-only: robust, spaghetti, ordinal, transform, select_points, too_far, probs
+hypothesis.frmtmb_fit
+  ours: x, hypothesis, alpha, method, nsim, seed, class, group, vcov, ...
+  brms: x, hypothesis, class, group, scope, alpha, robust, seed, ...
+  brms-only: scope, robust
+coef.frmtmb_fit
+  ours: object, ...
+  brms: object, summary, robust, probs, ...
+  brms-only: summary, robust, probs
+fitted.frmtmb_fit
+  ours: object, newdata, re_formula, scale, resp, dpar, ...
+  brms: object, newdata, re_formula, scale, resp, dpar, nlpar, ndraws, draw_ids, sort, summary, robust, probs, ...
+  brms-only: nlpar, ndraws, draw_ids, sort, summary, robust, probs
+fixef.frmtmb_fit
+  ours: object, flatten, ...
+  brms: object, summary, robust, probs, pars, ...
+  brms-only: summary, robust, probs, pars
+predict.frmtmb_fit
+  ours: object, newdata, type, dpar, resp, re_formula, se.fit, allow_new_levels, ...
+  brms: object, newdata, re_formula, transform, resp, negative_rt, ndraws, draw_ids, sort, ntrys, cores, summary, robust, probs, ...
+  brms-only: transform, negative_rt, ndraws, draw_ids, sort, ntrys, cores, summary, robust, probs
+ranef.frmtmb_fit
+  ours: object, condVar, ...
+  brms: object, summary, robust, probs, pars, groups, ...
+  brms-only: summary, robust, probs, pars, groups
+residuals.frmtmb_fit
+  ours: object, type, osa_method, ...
+  brms: object, newdata, re_formula, method, type, resp, ndraws, draw_ids, sort, summary, robust, probs, ...
+  brms-only: newdata, re_formula, method, resp, ndraws, draw_ids, sort, summary, robust, probs
+pp_mixture.frmtmb_draws
+  ours: x, summary, ndraws, ...
+  brms: x, newdata, re_formula, resp, ndraws, draw_ids, log, summary, robust, probs, ...
+  brms-only: newdata, re_formula, resp, draw_ids, log, robust, probs
+log_lik.frmtmb_draws
+  ours: object, ndraws, resp, ...
+  brms: object, newdata, re_formula, resp, ndraws, draw_ids, pointwise, combine, add_point_estimate, cores, ...
+  brms-only: newdata, re_formula, draw_ids, pointwise, combine, add_point_estimate, cores
+posterior_epred.frmtmb_draws
+  ours: object, newdata, resp, re_formula, re.form, ndraws, ...
+  brms: object, newdata, re_formula, re.form, resp, dpar, nlpar, ndraws, draw_ids, sort, ...
+  brms-only: dpar, nlpar, draw_ids, sort
+posterior_linpred.frmtmb_draws
+  ours: object, transform, newdata, resp, re_formula, re.form, dpar, ndraws, ...
+  brms: object, transform, newdata, re_formula, re.form, resp, dpar, nlpar, incl_thres, ndraws, draw_ids, sort, ...
+  brms-only: nlpar, incl_thres, draw_ids, sort
+posterior_predict.frmtmb_draws
+  ours: object, newdata, resp, re_formula, re.form, ndraws, ...
+  brms: object, newdata, re_formula, re.form, transform, resp, negative_rt, ndraws, draw_ids, sort, ntrys, cores, ...
+  brms-only: transform, negative_rt, draw_ids, sort, ntrys, cores
+predictive_error.frmtmb_draws
+  ours: object, resp, re_formula, re.form, ndraws, ...
+  brms: object, newdata, re_formula, re.form, method, resp, ndraws, draw_ids, sort, ...
+  brms-only: newdata, method, draw_ids, sort
+---- END GENERATED: formals diff ----
