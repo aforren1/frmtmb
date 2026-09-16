@@ -19,7 +19,14 @@
 
 psis(log_ratios, ...)
 
-\method{psis}{frmtmb_draws}(log_ratios, ndraws = NULL, resp = NULL, ...)
+\method{psis}{frmtmb_draws}(
+  log_ratios,
+  newdata = NULL,
+  resp = NULL,
+  model_name = NULL,
+  ndraws = NULL,
+  ...
+)
 
 \method{LOO}{frmtmb_draws}(x, ...)
 
@@ -42,6 +49,12 @@ the arguments, as loo does.}
 
 \item{log_ratios}{For \code{psis()}, the draws object whose negative
 pointwise log-likelihood supplies the importance ratios.}
+
+\item{newdata}{For \code{psis()}, accepted in brms's own second position
+and refused, because \code{\link[=log_lik]{log_lik()}} does not take it.}
+
+\item{model_name}{For \code{psis()}, brms's label for the model.
+Accepted and unused: a \code{psis} object has nothing to label.}
 }
 \value{
 A \code{loo}, \code{waic}, \code{compare.loo} or \code{psis} object from the loo

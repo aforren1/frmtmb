@@ -17,7 +17,15 @@
 \usage{
 mcmc_plot(object, ...)
 
-\method{mcmc_plot}{frmtmb_draws}(object, type = "intervals", variable = NULL, ...)
+\method{mcmc_plot}{frmtmb_draws}(
+  object,
+  pars = NA,
+  type = "intervals",
+  variable = NULL,
+  regex = FALSE,
+  fixed = FALSE,
+  ...
+)
 
 \method{pairs}{frmtmb_draws}(x, variable = NULL, ...)
 
@@ -31,40 +39,99 @@ log_posterior(object, ...)
 
 rhat(x, ...)
 
-\method{rhat}{frmtmb_draws}(x, ...)
+\method{rhat}{frmtmb_draws}(x, pars = NULL, regex = FALSE, ...)
 
 neff_ratio(object, ...)
 
-\method{neff_ratio}{frmtmb_draws}(object, ...)
+\method{neff_ratio}{frmtmb_draws}(object, pars = NULL, regex = FALSE, ...)
 }
 \arguments{
 \item{object, x}{A \code{frmtmb_draws} from \code{\link[=frm_sample]{frm_sample()}}.}
 
-\item{...}{Passed to the bayesplot function.}
+\item{...}{For \code{mcmc_plot()} and \code{pairs()}, passed to the bayesplot
+function; for \code{nuts_params()} and \code{log_posterior()}, passed to
+bayesplot's own \code{stanfit} method, so \code{nuts_params(x, "stepsize__")}
+reaches its \code{pars}. \strong{\code{rhat()} and \code{neff_ratio()} read nothing
+from it}: they take \code{pars} and \code{regex} and no more, so an
+argument they do not have, such as \code{variable = "x"}, is accepted
+and IGNORED rather than refused, and the whole set of variables
+comes back. brms errors on that call. A refusal is coming from
+\code{frm_check_dots()} (plan item 2.5e); until it lands, this is the
+accurate statement of what happens.}
+
+\item{pars}{Which variables to report, in brms's spelling. The rule
+differs by method; see \emph{Two different \code{pars} rules, both brms's}.}
 
 \item{type}{The bayesplot function to call, without the \code{mcmc_}
 prefix (default \code{"intervals"}).}
 
-\item{variable}{Variables to plot; defaults to everything except the
-group-level modes and \code{lp__}.}
+\item{variable}{For \code{mcmc_plot()} and \code{pairs()}, the variables to
+use, by name; it defaults to everything except the group-level
+modes and \code{lp__}. \code{rhat()} and \code{neff_ratio()} do not take it,
+because brms's do not: their selector is \code{pars}. Naming it on
+either of those two is silently ignored today; see \code{...}.}
+
+\item{regex}{For \code{rhat()} and \code{neff_ratio()}, \code{TRUE} makes \code{pars} a
+regular expression; for \code{mcmc_plot()}, it makes \code{variable} one.}
+
+\item{fixed}{For \code{mcmc_plot()}, \code{TRUE} matches \code{pars} by exact name
+rather than as a regular expression.}
 }
 \value{
 A ggplot object, or the diagnostic data frame / vector
 bayesplot returns.
 }
 \description{
-\code{nuts_params()}, \code{log_posterior()}, \code{rhat()} and \code{neff_ratio()}
-delegate to bayesplot's \code{stanfit} methods on the \code{stanfit} inside the
-draws object, so every \verb{bayesplot::mcmc_nuts_*()} display works.
-\code{mcmc_plot()} is brms's spelling for "call a bayesplot \verb{mcmc_*}
-function on these draws"; \code{pairs()} is \code{bayesplot::mcmc_pairs()}.
+\code{rhat()} and \code{neff_ratio()} are the convergence diagnostics brms
+reports, computed by the posterior package on these draws:
+\code{rhat()} is the rank-normalized split-R-hat and \code{neff_ratio()} is
+\code{min(ess_bulk, ess_tail) / ndraws}. \code{nuts_params()} and
+\code{log_posterior()} delegate to bayesplot's \code{stanfit} methods on the
+\code{stanfit} inside the draws object, which is what brms does too, so
+every \verb{bayesplot::mcmc_nuts_*()} display works. \code{mcmc_plot()} is
+brms's spelling for "call a bayesplot \verb{mcmc_*} function on these
+draws"; \code{pairs()} is \code{bayesplot::mcmc_pairs()}.
 }
 \details{
-The parameter names bayesplot sees are the frmtmb draws-side names
-(no parentheses), not Stan's \code{par[1]}, because \code{as.array()} relabels
-them, except in \code{nuts_params()}, \code{rhat()} and \code{neff_ratio()}, which
-read the \code{stanfit} directly and therefore show Stan's own names.
+All of these report the frmtmb draws-side parameter names (no
+parentheses), not Stan's \code{par[1]}, except \code{nuts_params()}, whose
+rows are the sampler's own quantities and not model parameters.
 }
+\section{Which R-hat this is}{
+
+\code{rhat()} follows brms, whose \code{rhat.brmsfit()} is
+\code{posterior::summarise_draws(rhat = posterior::rhat)}. That is the
+rank-normalized split-R-hat of Vehtari et al. (2021), the maximum of
+the bulk and tail quantities, and it is NOT the classic split-R-hat
+that \code{rstan::summary()} reports. The two disagree by about the size
+of the excess over 1 that either of them reports, so \code{rhat(ds)} and
+\code{ds$stanfit} do not agree and are not meant to.
+
+\code{summary(ds)} agrees with \code{rhat(ds)}, because it reports the same
+three posterior quantities \code{brms:::summary.brmsfit()} reports, under
+the same column names: \code{Rhat}, \code{Bulk_ESS} and \code{Tail_ESS}. The
+sampler's own classic split-R-hat and \code{n_eff} are in
+\code{rstan::summary(ds$stanfit)$summary} for anyone who wants them.
+}
+
+\section{Two different \code{pars} rules, both brms's}{
+
+brms spells two different selectors \code{pars}, and this page carries
+both because it documents methods on either side of the line.
+
+\code{mcmc_plot()} takes brms's deprecated alias of \code{variable}: \code{NA} is
+every variable, a string is a regular expression unless
+\code{fixed = TRUE}, and anything that is neither \code{NA} nor character is
+refused. \code{as.mcmc()} and \code{posterior_interval()} take the same one.
+
+\code{rhat()} and \code{neff_ratio()} do not. brms's \code{rhat.brmsfit()} passes
+\code{variable = pars} straight to \code{as_draws_array()}, so \code{NULL} is every
+variable, a string is an EXACT variable name, \code{regex = TRUE} makes
+it a regular expression, and a name that is not there is an error.
+These two follow that rule, which is why their default is \code{NULL} and
+not \code{NA}.
+}
+
 \examples{
 \donttest{
 if (requireNamespace("tmbstan", quietly = TRUE) &&

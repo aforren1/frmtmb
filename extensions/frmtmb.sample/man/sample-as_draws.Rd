@@ -29,16 +29,34 @@
 
 as.mcmc(x, ...)
 
-\method{as.mcmc}{frmtmb_draws}(x, combine_chains = FALSE, ...)
+\method{as.mcmc}{frmtmb_draws}(
+  x,
+  pars = NA,
+  fixed = FALSE,
+  combine_chains = FALSE,
+  inc_warmup = FALSE,
+  ...
+)
 }
 \arguments{
 \item{x}{A \code{frmtmb_draws} object.}
 
 \item{...}{Unused.}
 
+\item{pars}{Variables to keep, in brms's spelling: \code{NA} (the
+default) for all of them, otherwise a character vector matched as
+a regular expression unless \code{fixed = TRUE}. The argument sits in
+brms's own second position, so \code{as.mcmc(x, TRUE)} is refused here
+exactly as brms refuses it.}
+
+\item{fixed}{If \code{TRUE}, \code{pars} is matched by exact name.}
+
 \item{combine_chains}{If \code{TRUE}, one \code{mcmc} object over the pooled
 draws; otherwise an \code{mcmc.list} with one component per chain, which
 is what coda's diagnostics (\code{gelman.diag()}) need.}
+
+\item{inc_warmup}{Accepted for brms's signature and only \code{FALSE} is
+supported: a \code{frmtmb_draws} keeps the post-warmup draws alone.}
 }
 \value{
 A \code{posterior::draws_matrix}: one column per sampled variable

@@ -184,3 +184,145 @@ test_that("giving both spellings is refused, not resolved", {
   expect_error(posterior_epred(ds, re_formula = NULL, re.form = NULL),
                "two spellings of ONE setting")
 })
+
+## ---- brms's positional slots ----------------------------------------
+#
+# The other half of the seam. A brms-named method speaks brms's argument
+# NAMES, and it must also put them in brms's ORDER, or a positional call
+# ported from brms answers a different question with nothing said.
+# dev/samplegen-findings.md item 4 found ten methods diverging at a
+# positional slot, two of them silently.
+
+brms_ten <- c("as.mcmc", "log_lik", "mcmc_plot", "posterior_epred",
+              "posterior_interval", "posterior_linpred",
+              "posterior_predict", "pp_mixture", "predictive_error",
+              "psis")
+
+# the arguments a caller can reach positionally: everything before the
+# method's own `...`
+positional_args <- function(f) {
+  a <- names(formals(f))
+  a[seq_len(match("...", a, nomatch = length(a) + 1L) - 1L)]
+}
+
+# the review's own criterion: the first position at which the two
+# names differ, over the positions both sides have
+first_divergence <- function(b, o) {
+  k <- min(length(b), length(o))
+  if (!k) return(NA_integer_)
+  d <- which(b[seq_len(k)] != o[seq_len(k)])
+  if (length(d)) d[[1L]] else NA_integer_
+}
+
+test_that("ten brms-facing methods take brms's arguments in brms's order", {
+  # generated from the installed brms rather than typed, so it cannot
+  # drift from the package it is matching
+  skip_if_not_installed("brms")
+  tb <- get(".__S3MethodsTable__.", envir = asNamespace("frmtmb.sample"),
+            inherits = FALSE)
+  bad <- character()
+  for (nm in brms_ten) {
+    b <- positional_args(get(paste0(nm, ".brmsfit"),
+                             envir = asNamespace("brms")))
+    o <- positional_args(get(paste0(nm, ".frmtmb_draws"), envir = tb))
+    p <- first_divergence(b, o)
+    if (!is.na(p)) {
+      bad <- c(bad, sprintf("%s: position %d is brms's `%s` and this ",
+                            nm, p, b[[p]]))
+    }
+  }
+  expect_equal(bad, character())
+
+  # the guard is only a guard if it read ten methods and can name a
+  # wrong one. The vector below is the signature log_lik() shipped with,
+  # and its second position was ndraws where brms's is newdata
+  expect_length(brms_ten, 10L)
+  expect_equal(
+    first_divergence(
+      positional_args(get("log_lik.brmsfit", envir = asNamespace("brms"))),
+      c("object", "ndraws", "resp")),
+    2L)
+})
+
+test_that("brms's positional calls mean here what they mean in brms", {
+  cs <- sp_case()
+  ds <- cs$ds
+  nd <- data.frame(x = c(-1, 0, 1),
+                   g = factor(1, levels = levels(cs$dd$g)))
+
+  # position 3 of the predictive methods is re_formula, so brms's
+  # `re_formula = NA` idiom drops the random effects rather than naming
+  # a response
+  expect_equal(posterior_epred(ds, nd, NA),
+               posterior_epred(ds, newdata = nd, re_formula = NA))
+  expect_false(isTRUE(all.equal(posterior_epred(ds, nd, NA),
+                                posterior_epred(ds, newdata = nd))))
+  expect_equal(posterior_linpred(ds, FALSE, nd, NA),
+               posterior_linpred(ds, newdata = nd, re_formula = NA))
+  set.seed(4)
+  a <- posterior_predict(ds, nd, NA)
+  set.seed(4)
+  b <- posterior_predict(ds, newdata = nd, re_formula = NA)
+  expect_equal(a, b)
+
+  # the two that used to ANSWER a different question. brms's answer to
+  # both is a refusal, because that slot is `pars` and brms takes only
+  # NA or a character vector there
+  expect_error(as.mcmc(ds, TRUE), "must be NA or a character vector")
+  expect_error(posterior_interval(ds, 0.9),
+               "must be NA or a character vector")
+  # and the call brms does answer in that slot works
+  expect_equal(rownames(posterior_interval(ds, "^x$")), "x")
+  expect_equal(colnames(as.mcmc(ds, "^x$")[[1L]]), "x")
+  skip_if_not_installed("ggplot2")
+  skip_if_not_installed("bayesplot")
+  expect_s3_class(mcmc_plot(ds, "^x$"), "ggplot")
+})
+
+test_that("the slots this package cannot answer refuse by name", {
+  cs <- sp_case()
+  ds <- cs$ds
+  nd <- data.frame(x = c(-1, 0, 1),
+                   g = factor(1, levels = levels(cs$dd$g)))
+  expect_error(log_lik(ds, nd), "does not take newdata")
+  expect_error(log_lik(ds, re_formula = NA), "does not take re_formula")
+  expect_error(psis(ds, nd), "does not take newdata")
+  # brms's own default, spelled out positionally, is the no-op these
+  # methods already do and is NOT refused
+  expect_silent(ll <- log_lik(ds, NULL, NULL, NULL, 5L))
+  expect_equal(nrow(ll), 5L)
+  expect_error(as.mcmc(ds, NA, FALSE, FALSE, TRUE),
+               "nothing to include")
+  expect_error(posterior_predict(ds, negative_rt = TRUE), "wiener")
+  expect_error(posterior_linpred(ds, incl_thres = TRUE), "thresholds")
+})
+
+test_that("predictive_error takes brms's newdata and method slots", {
+  cs <- sp_case()
+  ds <- cs$ds
+  ndy <- data.frame(x = c(-1, 0, 1),
+                    g = factor(1, levels = levels(cs$dd$g)),
+                    y = c(0.2, 0.4, 0.6))
+  pe <- predictive_error(ds, ndy, NA, method = "posterior_epred")
+  expect_equal(pe, sweep(-posterior_epred(ds, newdata = ndy,
+                                          re_formula = NA),
+                         2L, ndy$y, "+"))
+  # the response must be there to subtract, and the refusal says so
+  expect_error(predictive_error(ds, ndy[, c("x", "g")]),
+               "needs the observed response")
+})
+
+test_that("draw_ids names the draws, in brms's own position", {
+  cs <- sp_case()
+  ds <- cs$ds
+  ids <- c(2L, 5L, 11L)
+  ep <- posterior_epred(ds, draw_ids = ids)
+  expect_equal(nrow(ep), 3L)
+  expect_equal(ep, posterior_epred(ds)[ids, , drop = FALSE])
+  expect_equal(log_lik(ds, draw_ids = ids), log_lik(ds)[ids, ,
+                                                        drop = FALSE])
+  expect_error(posterior_epred(ds, ndraws = 3, draw_ids = ids),
+               "only one of them")
+  expect_error(posterior_epred(ds, draw_ids = c(0L, 1L)),
+               "whole numbers between 1 and")
+})

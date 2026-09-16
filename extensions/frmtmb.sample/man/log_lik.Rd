@@ -7,18 +7,33 @@
 \usage{
 log_lik(object, ...)
 
-\method{log_lik}{frmtmb_draws}(object, ndraws = NULL, resp = NULL, ...)
+\method{log_lik}{frmtmb_draws}(
+  object,
+  newdata = NULL,
+  re_formula = arg_unset(),
+  resp = NULL,
+  ndraws = NULL,
+  draw_ids = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{A \code{frmtmb_draws} from \code{\link[=frm_sample]{frm_sample()}}.}
 
 \item{...}{Unused.}
 
-\item{ndraws}{Number of draws to use, evenly spaced through the
-matrix (default: all of them).}
+\item{newdata, re_formula}{Accepted in brms's own second and third
+positions and refused: see \emph{What is conditioned on}. The refusal
+names the reason and the replacement.}
 
 \item{resp}{For a multivariate model without \code{rescor}, the response
 whose contribution to report; the default sums over responses.}
+
+\item{ndraws}{Number of draws to use, evenly spaced through the
+matrix (default: all of them).}
+
+\item{draw_ids}{The draws to use, by row index, instead of the
+evenly spaced subsample \code{ndraws} takes. Give one or the other.}
 }
 \value{
 A numeric matrix with one row per draw and one column per

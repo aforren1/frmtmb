@@ -58,13 +58,30 @@ draws_fit_at <- function(x, i, idx = draws_par_index(x$fit)) {
   fit
 }
 
-#' Row indices of an evenly spaced subsample of the draws. Predictive
-#' methods run the whole model per draw, so a thinned set keeps them
-#' affordable without favoring one part of the chain.
+#' Row indices of an evenly spaced subsample of the draws, or of the
+#' draws named by `draw_ids`. Predictive methods run the whole model per
+#' draw, so a thinned set keeps them affordable without favoring one
+#' part of the chain.
 #'
 #' @noRd
-draws_subsample <- function(x, ndraws) {
+draws_subsample <- function(x, ndraws, draw_ids = NULL) {
   n <- nrow(x$draws)
+  if (!is.null(draw_ids)) {
+    if (!is.null(ndraws)) {
+      stop("`ndraws` and `draw_ids` both choose which draws to use, so ",
+           "only one of them can be given: `ndraws` takes an evenly ",
+           "spaced subsample of that size, `draw_ids` takes the rows ",
+           "you name", call. = FALSE)
+    }
+    ok <- is.numeric(draw_ids) && length(draw_ids) &&
+      !anyNA(draw_ids) && all(draw_ids == round(draw_ids)) &&
+      all(draw_ids >= 1L) && all(draw_ids <= n)
+    if (!ok) {
+      stop("`draw_ids` must be whole numbers between 1 and ", n,
+           ", the number of draws", call. = FALSE)
+    }
+    return(as.integer(draw_ids))
+  }
   if (is.null(ndraws) || ndraws >= n) return(seq_len(n))
   round(seq(1, n, length.out = ndraws))
 }
@@ -79,14 +96,20 @@ summary.frmtmb_draws <- function(object, ...) {
       `2.5%` = unname(stats::quantile(m[, nm], 0.025)),
       `97.5%` = unname(stats::quantile(m[, nm], 0.975)))
   }, numeric(4)))
-  if (requireNamespace("rstan", quietly = TRUE)) {
-    ss <- rstan::summary(object$stanfit)$summary
-    n_keep <- min(nrow(ss), ncol(m))
-    conv <- ss[seq_len(n_keep), c("n_eff", "Rhat"), drop = FALSE]
-    rownames(conv) <- colnames(m)[seq_len(n_keep)]
-    ok <- intersect(keep, rownames(conv))
-    tab <- cbind(tab, n_eff = NA_real_, Rhat = NA_real_)
-    tab[ok, c("n_eff", "Rhat")] <- conv[ok, ]
+  # The SAME three quantities `brms:::summary.brmsfit` reports, from the
+  # same posterior functions: `Rhat = posterior::rhat`, `Bulk_ESS =
+  # posterior::ess_bulk`, `Tail_ESS = posterior::ess_tail`. They used to
+  # be rstan's `n_eff` and classic split-Rhat, which put a column headed
+  # `Rhat` beside `rhat(object)` carrying a different definition, below
+  # 1 in one and above it in the other on a measured fit.
+  if (requireNamespace("posterior", quietly = TRUE)) {
+    a <- posterior::subset_draws(as_draws_array(object), variable = keep)
+    d <- posterior::summarise_draws(a, Rhat = posterior::rhat,
+                                    Bulk_ESS = posterior::ess_bulk,
+                                    Tail_ESS = posterior::ess_tail)
+    i <- match(keep, d$variable)
+    tab <- cbind(tab, Rhat = d$Rhat[i], Bulk_ESS = d$Bulk_ESS[i],
+                 Tail_ESS = d$Tail_ESS[i])
   }
   tab
 }
@@ -321,6 +344,11 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
 #' one setting supplied together is a question about what was meant, and
 #' guessing at it would silently ignore one of them.
 #'
+#' The argument ORDER is brms's too, so a positional brms call means
+#' the same thing here: `newdata` then `re_formula` then `re.form` then
+#' `resp`, after `transform` in `posterior_linpred()` and before it in
+#' `posterior_predict()`.
+#'
 #' The literal default of both formals is an internal "not supplied"
 #' marker rather than a value, because `NULL` (keep the random effects)
 #' and `NA` (drop them) are both real settings here and neither can
@@ -336,6 +364,18 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
 #' @param re.form lme4's spelling of `re_formula`, accepted as an alias.
 #'   Pass one or the other, not both.
 #' @param ndraws Number of draws to use (default: all).
+#' @param draw_ids The draws to use, by row index, instead of the
+#'   evenly spaced subsample `ndraws` takes. Give one or the other.
+#' @param nlpar The parameter an `nlf()` body names. brms keeps it
+#'   apart from `dpar`; frmtmb asks for either by the `dpar` name, so
+#'   this is the same setting and the slot is here for brms's position.
+#' @param incl_thres For `posterior_linpred()`: refused. brms subtracts
+#'   a cumulative family's thresholds from the predictor; frmtmb
+#'   returns the latent predictor itself.
+#' @param negative_rt For `posterior_predict()`: refused. It is brms's
+#'   sign convention for its own wiener family.
+#' @param transform For `posterior_predict()`: a function applied to
+#'   the finished draws, in brms's own fifth position.
 #' @param ... Unused.
 #' @return A draws-by-observations matrix; for a categorical outcome
 #'   `posterior_epred()` returns a draws-by-observations-by-categories
@@ -374,19 +414,21 @@ posterior_epred <- function(object, ...) UseMethod("posterior_epred")
 #' @exportS3Method rstantools::posterior_epred
 #' @export
 posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
-                                         resp = NULL,
                                          re_formula = arg_unset(),
                                          re.form = arg_unset(),
-                                         ndraws = NULL, ...) {
+                                         resp = NULL, dpar = NULL,
+                                         nlpar = NULL, ndraws = NULL,
+                                         draw_ids = NULL, ...) {
   re_form <- re_form_arg(re_formula, re.form, "posterior_epred()")
+  dpar <- draws_dpar_arg(dpar, nlpar, "posterior_epred()")
   idx <- draws_par_index(object$fit)
-  rows <- draws_subsample(object, ndraws)
+  rows <- draws_subsample(object, ndraws, draw_ids)
   out <- NULL
   cat_out <- FALSE
   for (k in seq_along(rows)) {
     sh <- draws_fit_at(object, rows[k], idx)
-    p <- predict(sh, newdata = newdata, resp = resp, re.form = re_form,
-                 type = "response")
+    p <- predict(sh, newdata = newdata, resp = resp, dpar = dpar,
+                 re.form = re_form, type = "response")
     if (is.null(out)) {
       # A categorical outcome predicts a matrix per draw (an ordinal
       # family's n x K category probabilities), so the draws stack into
@@ -418,19 +460,33 @@ posterior_linpred <- function(object, transform = FALSE, ...) {
 #'   inverse link (the value of the `mu` dpar on its natural scale,
 #'   brms's convention; unlike `posterior_epred()` this is not the
 #'   response mean for zero-inflated and similar families).
-#' @param dpar For `posterior_linpred()`: which distributional
-#'   parameter's linear predictor to evaluate.
+#' @param dpar Which distributional parameter to evaluate: its linear
+#'   predictor for `posterior_linpred()`, its response-scale value for
+#'   `posterior_epred()`. The default is the family's `mu`.
 #' @exportS3Method rstantools::posterior_linpred
 #' @export
 posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
-                                           newdata = NULL, resp = NULL,
+                                           newdata = NULL,
                                            re_formula = arg_unset(),
                                            re.form = arg_unset(),
-                                           dpar = NULL,
-                                           ndraws = NULL, ...) {
+                                           resp = NULL, dpar = NULL,
+                                           nlpar = NULL,
+                                           incl_thres = NULL,
+                                           ndraws = NULL,
+                                           draw_ids = NULL, ...) {
   re_form <- re_form_arg(re_formula, re.form, "posterior_linpred()")
+  dpar <- draws_dpar_arg(dpar, nlpar, "posterior_linpred()")
+  if (!is.null(incl_thres) && !identical(incl_thres, FALSE)) {
+    stop("posterior_linpred(incl_thres = TRUE) subtracts an ordinal ",
+         "family's thresholds from the linear predictor, which brms ",
+         "supports for cumulative families alone. frmtmb keeps the ",
+         "thresholds out of the predictor: predict(type = \"link\") ",
+         "and this function return the latent predictor itself, and ",
+         "the thresholds are coefficients you can read off ",
+         "posterior_summary()", call. = FALSE)
+  }
   idx <- draws_par_index(object$fit)
-  rows <- draws_subsample(object, ndraws)
+  rows <- draws_subsample(object, ndraws, draw_ids)
   # This function is about ONE distributional parameter, so the dpar is
   # resolved here rather than left to predict()'s type dispatch: on an
   # ordinal fit `type = "response"` with no dpar is the whole category
@@ -447,6 +503,27 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
     out[k, ] <- p
   }
   out
+}
+
+#' brms's `dpar` and `nlpar` are ONE argument here.
+#'
+#' brms separates the distributional parameters of a family from the
+#' parameters an `nlf()` body names; frmtmb asks for either through
+#' `dpar`, because `predict.frmtmb_fit()` resolves a non-linear
+#' parameter by that name too. The `nlpar` slot is carried so that a
+#' positional brms call lands where brms puts it, and it feeds the same
+#' setting.
+#'
+#' @noRd
+draws_dpar_arg <- function(dpar, nlpar, what) {
+  if (is.null(nlpar)) return(dpar)
+  if (!is.null(dpar)) {
+    stop(what, " was given both `dpar` and `nlpar`. frmtmb asks for a ",
+         "non-linear parameter by the same `dpar` name a family's own ",
+         "parameters use, so the two are one setting here. Pass one of ",
+         "them", call. = FALSE)
+  }
+  nlpar
 }
 
 #' The dpar `predict()` defaults to for one response: `mu` when the
@@ -468,11 +545,23 @@ posterior_predict <- function(object, ...) UseMethod("posterior_predict")
 #' @exportS3Method rstantools::posterior_predict
 #' @export
 posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
-                                           resp = NULL,
                                            re_formula = arg_unset(),
                                            re.form = arg_unset(),
-                                           ndraws = NULL, ...) {
+                                           transform = NULL,
+                                           resp = NULL,
+                                           negative_rt = FALSE,
+                                           ndraws = NULL,
+                                           draw_ids = NULL, ...) {
   re_form <- re_form_arg(re_formula, re.form, "posterior_predict()")
+  check_flag(negative_rt, "negative_rt")
+  if (negative_rt) {
+    stop("posterior_predict(negative_rt = TRUE) is brms's sign ",
+         "convention for its wiener family, which codes the lower ",
+         "boundary as a negative reaction time. frmtmb's ",
+         "evidence-accumulation families return the response and the ",
+         "time as they declare them; see the family's own ",
+         "documentation in frmtmb.eam", call. = FALSE)
+  }
   fit <- object$fit
   resp <- resp %||% names(fit$spec$responses)[1L]
   rspec <- fit$spec$responses[[resp]]
@@ -481,7 +570,7 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
          "' has no simulator yet", sim_note(rspec$family), call. = FALSE)
   }
   idx <- draws_par_index(object$fit)
-  rows <- draws_subsample(object, ndraws)
+  rows <- draws_subsample(object, ndraws, draw_ids)
   av <- if (is.null(newdata)) {
     fit$frame[["aterm_values"]][[resp]]
   } else if (has_trunc(rspec)) {
@@ -551,6 +640,10 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
     }
     if (arr) out[k, , ] <- ys else out[k, ] <- ys
   }
+  # brms's fifth positional slot: a function applied to the finished
+  # draws. It is carried so that a positional brms call means the same
+  # thing here, and it does the same thing brms does with it
+  if (!is.null(transform)) out <- match.fun(transform)(out)
   out
 }
 
@@ -683,18 +776,42 @@ as_draws_rvars.frmtmb_draws <- function(x, ...) {
 as.mcmc <- function(x, ...) UseMethod("as.mcmc")
 
 #' @rdname sample-as_draws
+#' @param pars Variables to keep, in brms's spelling: `NA` (the
+#'   default) for all of them, otherwise a character vector matched as
+#'   a regular expression unless `fixed = TRUE`. The argument sits in
+#'   brms's own second position, so `as.mcmc(x, TRUE)` is refused here
+#'   exactly as brms refuses it.
+#' @param fixed If `TRUE`, `pars` is matched by exact name.
 #' @param combine_chains If `TRUE`, one `mcmc` object over the pooled
 #'   draws; otherwise an `mcmc.list` with one component per chain, which
 #'   is what coda's diagnostics (`gelman.diag()`) need.
+#' @param inc_warmup Accepted for brms's signature and only `FALSE` is
+#'   supported: a `frmtmb_draws` keeps the post-warmup draws alone.
 #' @exportS3Method coda::as.mcmc
 #' @export
-as.mcmc.frmtmb_draws <- function(x, combine_chains = FALSE, ...) {
+as.mcmc.frmtmb_draws <- function(x, pars = NA, fixed = FALSE,
+                                 combine_chains = FALSE,
+                                 inc_warmup = FALSE, ...) {
   if (!requireNamespace("coda", quietly = TRUE)) {
     stop("as.mcmc() needs the 'coda' package; as_draws() and ",
          "as.array() give the same draws without it", call. = FALSE)
   }
-  if (combine_chains) return(coda::as.mcmc(x$draws))
+  check_flag(combine_chains, "combine_chains")
+  check_flag(inc_warmup, "inc_warmup")
+  if (inc_warmup) {
+    stop("as.mcmc(inc_warmup = TRUE) has nothing to include: the draws ",
+         "matrix holds the post-warmup draws only, which is what ",
+         "frm_sample() keeps. The warmup, if the sampler saved it, is ",
+         "in `x$stanfit`", call. = FALSE)
+  }
+  sel <- draws_select_variables(x, pars, NULL, FALSE, fixed, "as.mcmc()")
+  if (combine_chains) {
+    m <- x$draws
+    if (!is.null(sel)) m <- m[, sel, drop = FALSE]
+    return(coda::as.mcmc(m))
+  }
   a <- as.array(x)
+  if (!is.null(sel)) a <- a[, , sel, drop = FALSE]
   dn <- list(NULL, dimnames(a)[[3L]])
   coda::as.mcmc.list(lapply(seq_len(dim(a)[2L]), function(ch) {
     coda::as.mcmc(array(a[, ch, ], dim(a)[c(1L, 3L)], dimnames = dn))
@@ -783,7 +900,21 @@ nvariables.frmtmb_draws <- function(x, ...) ncol(x$draws)
 #'   `predictive_interval()`.
 #' @param robust If `TRUE`, median and MAD instead of mean and SD.
 #' @param variable Optional subset of variables, by name.
-#' @param ndraws,newdata,resp Passed to [posterior_predict()].
+#' @param pars brms's alias of `variable`, in brms's own second
+#'   position on `posterior_interval()`: `NA` (the default) for every
+#'   variable, otherwise a character vector matched as a regular
+#'   expression unless `fixed = TRUE`. brms refuses a `pars` that is
+#'   neither `NA` nor character, and so does this, which is why
+#'   `posterior_interval(x, 0.9)` is a refusal and not an interval.
+#' @param regex If `TRUE`, `variable` is a regular expression.
+#' @param fixed If `TRUE`, `pars` is matched by exact name.
+#' @param method For `predictive_error()`, which predictive draws the
+#'   error is taken against: `"posterior_predict"` (the default) or
+#'   `"posterior_epred"`.
+#' @param ndraws,draw_ids,newdata,resp Passed to
+#'   [posterior_predict()]. `predictive_error(newdata =)` re-evaluates
+#'   the response term on `newdata`, so `newdata` must carry the
+#'   response.
 #' @param re_formula,re.form Passed to [posterior_predict()], which
 #'   takes brms's `re_formula` and accepts lme4's `re.form` as an alias
 #'   of it. Pass one or the other; see the *Argument spellings* section
@@ -845,6 +976,59 @@ draws_columns <- function(x, variable = NULL) {
   m[, variable, drop = FALSE]
 }
 
+#' brms's `pars` argument, resolved to variable names.
+#'
+#' brms's `extract_pars()` takes `NA` for "every variable" and
+#' otherwise a character vector matched as a regular expression against
+#' the variable names, or by exact name when `fixed = TRUE`. Anything
+#' else brms refuses with the message repeated here, which is why
+#' `posterior_interval(ds, 0.9)` and `as.mcmc(ds, TRUE)` are refusals
+#' and not answers: in brms that second position is `pars`.
+#'
+#' @noRd
+draws_extract_pars <- function(pars, all_pars, fixed = FALSE) {
+  if (!(anyNA(pars) || is.character(pars))) {
+    stop("Argument 'pars' must be NA or a character vector.",
+         call. = FALSE)
+  }
+  if (anyNA(pars)) return(all_pars)
+  check_flag(fixed, "fixed")
+  if (fixed) return(intersect(pars, all_pars))
+  unique(unlist(lapply(pars, function(p) all_pars[grepl(p, all_pars)])))
+}
+
+#' The variables a brms-style `pars`/`variable` pair selects, or `NULL`
+#' for "the calling method's own default".
+#'
+#' brms's rule, which this follows: `variable` is exact unless `regex`,
+#' `pars` is a regular expression unless `fixed`, and `pars` wins when
+#' both are given because it is the older spelling of the same thing.
+#'
+#' @noRd
+draws_select_variables <- function(x, pars = NA, variable = NULL,
+                                   regex = FALSE, fixed = FALSE,
+                                   what = "this function") {
+  all_pars <- colnames(x$draws)
+  if (!(is.logical(pars) && length(pars) == 1L && is.na(pars))) {
+    return(draws_extract_pars(pars, all_pars, fixed = fixed))
+  }
+  if (is.null(variable)) return(NULL)
+  if (!is.character(variable)) {
+    stop(what, ": `variable` names variables and must be a character ",
+         "vector; variables(x) lists what is there", call. = FALSE)
+  }
+  check_flag(regex, "regex")
+  if (regex) return(draws_extract_pars(variable, all_pars))
+  miss <- setdiff(variable, all_pars)
+  if (length(miss)) {
+    stop(what, ": variable = names ", paste(miss, collapse = ", "),
+         ", which the draws do not contain. variables() lists what is ",
+         "there; note the draws-side spelling drops parentheses ",
+         "(Intercept, not (Intercept))", call. = FALSE)
+  }
+  variable
+}
+
 #' @rdname sample-posterior_summary
 #' @export
 posterior_interval <- function(object, ...) UseMethod("posterior_interval")
@@ -852,9 +1036,14 @@ posterior_interval <- function(object, ...) UseMethod("posterior_interval")
 #' @rdname sample-posterior_summary
 #' @exportS3Method rstantools::posterior_interval
 #' @export
-posterior_interval.frmtmb_draws <- function(object, prob = 0.95,
-                                            variable = NULL, ...) {
-  m <- draws_columns(object, variable)
+posterior_interval.frmtmb_draws <- function(object, pars = NA,
+                                            variable = NULL,
+                                            prob = 0.95, regex = FALSE,
+                                            fixed = FALSE, ...) {
+  sel <- draws_select_variables(object, pars, variable, regex, fixed,
+                                "posterior_interval()")
+  check_probability(prob, "prob")
+  m <- draws_columns(object, sel)
   a <- (1 - prob) / 2
   t(apply(m, 2L, stats::quantile, probs = c(a, 1 - a)))
 }
@@ -892,14 +1081,17 @@ predictive_error <- function(object, ...) UseMethod("predictive_error")
 #' @rdname sample-posterior_summary
 #' @exportS3Method rstantools::predictive_error
 #' @export
-predictive_error.frmtmb_draws <- function(object, resp = NULL,
+predictive_error.frmtmb_draws <- function(object, newdata = NULL,
                                           re_formula = arg_unset(),
                                           re.form = arg_unset(),
-                                          ndraws = NULL, ...) {
+                                          method = "posterior_predict",
+                                          resp = NULL, ndraws = NULL,
+                                          draw_ids = NULL, ...) {
   re_form <- re_form_arg(re_formula, re.form, "predictive_error()")
+  method <- match.arg(method, c("posterior_predict", "posterior_epred"))
   fit <- draws_base_fit(object)
   resp <- resp %||% names(fit$spec$responses)[1L]
-  y <- fit$frame[["y"]][[resp]]
+  y <- draws_response_values(fit, resp, newdata, "predictive_error()")
   if (is.matrix(y)) {
     stop("predictive_error() needs a vector response; this one is a ",
          "matrix (multinomial counts, mixture_mvn columns or lca ",
@@ -907,10 +1099,41 @@ predictive_error.frmtmb_draws <- function(object, resp = NULL,
          "Subtract the column you want from posterior_predict() ",
          "yourself", call. = FALSE)
   }
-  yrep <- posterior_predict(object, resp = resp, re_formula = re_form,
-                            ndraws = ndraws)
+  # brms's `method`: the predictive draws the error is taken against,
+  # either the predictive distribution or the expectation
+  yrep <- if (identical(method, "posterior_epred")) {
+    posterior_epred(object, newdata = newdata, re_formula = re_form,
+                    resp = resp, ndraws = ndraws, draw_ids = draw_ids)
+  } else {
+    posterior_predict(object, newdata = newdata, re_formula = re_form,
+                      resp = resp, ndraws = ndraws,
+                      draw_ids = draw_ids)
+  }
   # brms's convention: the error is y - yrep, one row per draw
   sweep(-yrep, 2L, as.numeric(y), "+")
+}
+
+#' The observed response the predictive error is taken against: the
+#' fitted rows, or `newdata`'s own column when one is given.
+#'
+#' The response TERM is re-evaluated on `newdata`, not looked up by
+#' column name, so a transformed response (`log(y) ~ x`) is handled the
+#' same way the model frame handled it.
+#'
+#' @noRd
+draws_response_values <- function(fit, resp, newdata, what) {
+  if (is.null(newdata)) return(fit$frame[["y"]][[resp]])
+  rspec <- fit$spec$responses[[resp]]
+  y <- tryCatch(eval(rspec$resp_expr, newdata, rspec$formula_env),
+                error = function(e) NULL)
+  if (is.null(y) || length(y) != nrow(newdata)) {
+    stop(what, " needs the observed response to subtract from, and ",
+         "newdata does not supply '", deparse1(rspec$resp_expr),
+         "' for its ", nrow(newdata), " rows. Add the response column ",
+         "to newdata, or call posterior_predict(newdata =) and ",
+         "subtract your own", call. = FALSE)
+  }
+  y
 }
 
 # ---- structural delegations to the originating fit -------------------
@@ -1032,23 +1255,75 @@ draws_summarize_coef <- function(per) {
 
 #' Sampler diagnostics and MCMC plots
 #'
-#' `nuts_params()`, `log_posterior()`, `rhat()` and `neff_ratio()`
-#' delegate to bayesplot's `stanfit` methods on the `stanfit` inside the
-#' draws object, so every `bayesplot::mcmc_nuts_*()` display works.
-#' `mcmc_plot()` is brms's spelling for "call a bayesplot `mcmc_*`
-#' function on these draws"; `pairs()` is `bayesplot::mcmc_pairs()`.
+#' `rhat()` and `neff_ratio()` are the convergence diagnostics brms
+#' reports, computed by the posterior package on these draws:
+#' `rhat()` is the rank-normalized split-R-hat and `neff_ratio()` is
+#' `min(ess_bulk, ess_tail) / ndraws`. `nuts_params()` and
+#' `log_posterior()` delegate to bayesplot's `stanfit` methods on the
+#' `stanfit` inside the draws object, which is what brms does too, so
+#' every `bayesplot::mcmc_nuts_*()` display works. `mcmc_plot()` is
+#' brms's spelling for "call a bayesplot `mcmc_*` function on these
+#' draws"; `pairs()` is `bayesplot::mcmc_pairs()`.
 #'
-#' The parameter names bayesplot sees are the frmtmb draws-side names
-#' (no parentheses), not Stan's `par[1]`, because `as.array()` relabels
-#' them, except in `nuts_params()`, `rhat()` and `neff_ratio()`, which
-#' read the `stanfit` directly and therefore show Stan's own names.
+#' All of these report the frmtmb draws-side parameter names (no
+#' parentheses), not Stan's `par[1]`, except `nuts_params()`, whose
+#' rows are the sampler's own quantities and not model parameters.
+#'
+#' @section Which R-hat this is:
+#' `rhat()` follows brms, whose `rhat.brmsfit()` is
+#' `posterior::summarise_draws(rhat = posterior::rhat)`. That is the
+#' rank-normalized split-R-hat of Vehtari et al. (2021), the maximum of
+#' the bulk and tail quantities, and it is NOT the classic split-R-hat
+#' that `rstan::summary()` reports. The two disagree by about the size
+#' of the excess over 1 that either of them reports, so `rhat(ds)` and
+#' `ds$stanfit` do not agree and are not meant to.
+#'
+#' `summary(ds)` agrees with `rhat(ds)`, because it reports the same
+#' three posterior quantities `brms:::summary.brmsfit()` reports, under
+#' the same column names: `Rhat`, `Bulk_ESS` and `Tail_ESS`. The
+#' sampler's own classic split-R-hat and `n_eff` are in
+#' `rstan::summary(ds$stanfit)$summary` for anyone who wants them.
+#'
+#' @section Two different `pars` rules, both brms's:
+#' brms spells two different selectors `pars`, and this page carries
+#' both because it documents methods on either side of the line.
+#'
+#' `mcmc_plot()` takes brms's deprecated alias of `variable`: `NA` is
+#' every variable, a string is a regular expression unless
+#' `fixed = TRUE`, and anything that is neither `NA` nor character is
+#' refused. `as.mcmc()` and `posterior_interval()` take the same one.
+#'
+#' `rhat()` and `neff_ratio()` do not. brms's `rhat.brmsfit()` passes
+#' `variable = pars` straight to `as_draws_array()`, so `NULL` is every
+#' variable, a string is an EXACT variable name, `regex = TRUE` makes
+#' it a regular expression, and a name that is not there is an error.
+#' These two follow that rule, which is why their default is `NULL` and
+#' not `NA`.
 #'
 #' @param object,x A `frmtmb_draws` from [frm_sample()].
 #' @param type The bayesplot function to call, without the `mcmc_`
 #'   prefix (default `"intervals"`).
-#' @param variable Variables to plot; defaults to everything except the
-#'   group-level modes and `lp__`.
-#' @param ... Passed to the bayesplot function.
+#' @param variable For `mcmc_plot()` and `pairs()`, the variables to
+#'   use, by name; it defaults to everything except the group-level
+#'   modes and `lp__`. `rhat()` and `neff_ratio()` do not take it,
+#'   because brms's do not: their selector is `pars`. Naming it on
+#'   either of those two is silently ignored today; see `...`.
+#' @param pars Which variables to report, in brms's spelling. The rule
+#'   differs by method; see *Two different `pars` rules, both brms's*.
+#' @param regex For `rhat()` and `neff_ratio()`, `TRUE` makes `pars` a
+#'   regular expression; for `mcmc_plot()`, it makes `variable` one.
+#' @param fixed For `mcmc_plot()`, `TRUE` matches `pars` by exact name
+#'   rather than as a regular expression.
+#' @param ... For `mcmc_plot()` and `pairs()`, passed to the bayesplot
+#'   function; for `nuts_params()` and `log_posterior()`, passed to
+#'   bayesplot's own `stanfit` method, so `nuts_params(x, "stepsize__")`
+#'   reaches its `pars`. **`rhat()` and `neff_ratio()` read nothing
+#'   from it**: they take `pars` and `regex` and no more, so an
+#'   argument they do not have, such as `variable = "x"`, is accepted
+#'   and IGNORED rather than refused, and the whole set of variables
+#'   comes back. brms errors on that call. A refusal is coming from
+#'   `frm_check_dots()` (plan item 2.5e); until it lands, this is the
+#'   accurate statement of what happens.
 #' @return A ggplot object, or the diagnostic data frame / vector
 #'   bayesplot returns.
 #' @examples
@@ -1077,15 +1352,19 @@ mcmc_plot <- function(object, ...) UseMethod("mcmc_plot")
 #' @rdname draws-diagnostics
 #' @exportS3Method brms::mcmc_plot
 #' @export
-mcmc_plot.frmtmb_draws <- function(object, type = "intervals",
-                                   variable = NULL, ...) {
+mcmc_plot.frmtmb_draws <- function(object, pars = NA,
+                                   type = "intervals", variable = NULL,
+                                   regex = FALSE, fixed = FALSE, ...) {
+  sel <- draws_select_variables(object, pars, variable, regex, fixed,
+                                "mcmc_plot()")
   fun <- draws_bayesplot_fun(paste0("mcmc_", type), "mcmc_plot(type =)")
   a <- as.array(object)
-  keep <- if (is.null(variable)) {
+  keep <- sel %||%
     setdiff(dimnames(a)[[3L]],
             c("lp__", grep("^b\\[", dimnames(a)[[3L]], value = TRUE)))
-  } else {
-    variable
+  if (!length(keep)) {
+    stop("mcmc_plot(): no variable was selected. variables(x) lists ",
+         "what is there", call. = FALSE)
   }
   fun(a[, , keep, drop = FALSE], ...)
 }
@@ -1093,8 +1372,12 @@ mcmc_plot.frmtmb_draws <- function(object, type = "intervals",
 #' @rdname draws-diagnostics
 #' @export
 pairs.frmtmb_draws <- function(x, variable = NULL, ...) {
+  # the same validation mcmc_plot() does, so a name that is not there
+  # gets the message that lists variables() rather than base R's
+  # "subscript out of bounds" out of the array index below
+  sel <- draws_select_variables(x, NA, variable, FALSE, FALSE, "pairs()")
   a <- as.array(x)
-  keep <- variable %||%
+  keep <- sel %||%
     utils::head(setdiff(dimnames(a)[[3L]],
                         c("lp__",
                           grep("^b\\[", dimnames(a)[[3L]],
@@ -1154,8 +1437,10 @@ rhat <- function(x, ...) UseMethod("rhat")
 #' @exportS3Method bayesplot::rhat
 #' @rawNamespace S3method(posterior::rhat,frmtmb_draws)
 #' @export
-rhat.frmtmb_draws <- function(x, ...) {
-  draws_bayesplot_ns("rhat()")$rhat(x$stanfit, ...)
+rhat.frmtmb_draws <- function(x, pars = NULL, regex = FALSE, ...) {
+  a <- draws_diag_array(x, pars, regex, "rhat()")
+  tab <- posterior::summarise_draws(a, rhat = posterior::rhat)
+  stats::setNames(tab$rhat, tab$variable)
 }
 
 #' @rdname draws-diagnostics
@@ -1165,8 +1450,47 @@ neff_ratio <- function(object, ...) UseMethod("neff_ratio")
 #' @rdname draws-diagnostics
 #' @exportS3Method bayesplot::neff_ratio
 #' @export
-neff_ratio.frmtmb_draws <- function(object, ...) {
-  draws_bayesplot_ns("neff_ratio()")$neff_ratio(object$stanfit, ...)
+neff_ratio.frmtmb_draws <- function(object, pars = NULL, regex = FALSE,
+                                    ...) {
+  a <- draws_diag_array(object, pars, regex, "neff_ratio()")
+  tab <- posterior::summarise_draws(a, ess_bulk = posterior::ess_bulk,
+                                    ess_tail = posterior::ess_tail)
+  # brms's neff_ratio.brmsfit: the SMALLER of the bulk and tail
+  # effective sizes over the draw count, not rstan's n_eff
+  stats::setNames(pmin(tab$ess_bulk, tab$ess_tail) /
+                    posterior::ndraws(a), tab$variable)
+}
+
+#' The chain-separated draws array the two convergence diagnostics are
+#' computed on, restricted to the variables `pars` names.
+#'
+#' It goes through `as_draws_array()` rather than through the
+#' `stanfit`, which is what puts frmtmb's own parameter names on the
+#' result: the `stanfit` carries Stan's `beta[1]`, `betad` and `theta`,
+#' which `variables(x)` does not list and `rhat(x)["x"]` cannot reach.
+#'
+#' `pars` is handled the way brms's `rhat.brmsfit()` handles it, which
+#' is NOT the way brms's `as.mcmc()`, `mcmc_plot()` and
+#' `posterior_interval()` handle an argument of the same name. Those
+#' three go through brms's `extract_pars()`, where `NA` means "every
+#' variable" and a string is a regular expression. These two instead
+#' pass `variable = pars` to `as_draws_array()`, so `NULL` means every
+#' variable and a string is an EXACT name unless `regex = TRUE`. The
+#' difference is brms's, not this package's, and it is measured in
+#' `dev/brmsmatch-findings.md`.
+#'
+#' @noRd
+draws_diag_array <- function(x, pars, regex, what) {
+  if (!requireNamespace("posterior", quietly = TRUE)) {
+    stop(what, " needs the 'posterior' package: it computes the ",
+         "diagnostic brms reports, which is posterior's. The sampler's ",
+         "own classic split-R-hat and n_eff are in `x$stanfit` without ",
+         "it", call. = FALSE)
+  }
+  a <- as_draws_array(x)
+  if (is.null(pars)) return(a)
+  check_flag(regex, "regex")
+  posterior::subset_draws(a, variable = pars, regex = regex)
 }
 
 #' bayesplot's namespace, or an error naming the accessor that wanted it.
@@ -1191,11 +1515,24 @@ draws_bayesplot_ns <- function(what) {
 #' [frmtmb::mixture_probs()] computation is run at every draw. brms calls this
 #' `pp_mixture()`.
 #'
+#' The argument order is brms's, so `summary` sits in brms's own
+#' eighth position and not in the second: the second is `newdata`.
+#'
 #' @param x A `frmtmb_draws` from [frm_sample()].
+#' @param newdata,re_formula Accepted for brms's signature and refused:
+#'   [frmtmb::mixture_probs()] is a statement about the rows the model
+#'   was fitted on.
+#' @param resp The response whose mixture to report, for a
+#'   multivariate model.
+#' @param log If `TRUE`, log probabilities.
 #' @param summary If `TRUE` (the default, as in brms), an
 #'   `observations x statistics x components` array of summaries;
 #'   otherwise the raw `draws x observations x components` array.
+#' @param robust If `TRUE`, median and MAD instead of mean and SD.
+#' @param probs The two quantiles the summary reports.
 #' @param ndraws Number of draws to use (default: all).
+#' @param draw_ids The draws to use, by row index, instead of the
+#'   evenly spaced subsample `ndraws` takes.
 #' @param ... Unused.
 #' @return An array; see `summary`. For a group-level mixture
 #'   (`mixture(groups = )`, `frmtmb.latent::lca()`) the rows are groups, as in
@@ -1219,10 +1556,30 @@ pp_mixture <- function(x, ...) UseMethod("pp_mixture")
 #' @rdname pp_mixture
 #' @exportS3Method brms::pp_mixture
 #' @export
-pp_mixture.frmtmb_draws <- function(x, summary = TRUE, ndraws = NULL,
-                                    ...) {
+pp_mixture.frmtmb_draws <- function(x, newdata = NULL,
+                                    re_formula = arg_unset(),
+                                    resp = NULL, ndraws = NULL,
+                                    draw_ids = NULL,
+                                    log = FALSE, summary = TRUE,
+                                    robust = FALSE,
+                                    probs = c(0.025, 0.975), ...) {
+  draws_refuse_newdata(newdata, re_formula, arg_unset(), "pp_mixture()",
+                       "mixture_probs() classifies the rows the model ",
+                       "was fitted on: the component probability of a ",
+                       "row is a statement about that row's own ",
+                       "response, and newdata carries no response to ",
+                       "classify")
+  if (!is.null(resp) && !resp %in% names(x$fit$spec$responses)) {
+    stop("pp_mixture(resp = \"", resp, "\") names no response of this ",
+         "model; it has ",
+         paste(names(x$fit$spec$responses), collapse = ", "),
+         call. = FALSE)
+  }
+  check_flag(log, "log")
+  check_flag(summary, "summary")
+  check_flag(robust, "robust")
   idx <- draws_par_index(x$fit)
-  rows <- draws_subsample(x, ndraws)
+  rows <- draws_subsample(x, ndraws, draw_ids)
   out <- NULL
   for (k in seq_along(rows)) {
     P <- mixture_probs(draws_fit_at(x, rows[k], idx))
@@ -1232,16 +1589,65 @@ pp_mixture.frmtmb_draws <- function(x, summary = TRUE, ndraws = NULL,
     }
     out[k, , ] <- P
   }
+  if (log) out <- log(out)
   if (!summary) return(out)
+  draws_summarize_margin(out, probs, robust)
+}
+
+#' brms's `posterior_summary()` over the first margin of a
+#' draws x rows x components array, with its statistic and quantile
+#' switches.
+#'
+#' @noRd
+draws_summarize_margin <- function(out, probs = c(0.025, 0.975),
+                                   robust = FALSE) {
+  if (!is.numeric(probs) || length(probs) != 2L || anyNA(probs) ||
+        any(probs <= 0) || any(probs >= 1)) {
+    stop("probs must be two numbers strictly between 0 and 1",
+         call. = FALSE)
+  }
+  qn <- paste0("Q", probs * 100)
   st <- array(NA_real_, c(dim(out)[2L], 4L, dim(out)[3L]),
               dimnames = list(dimnames(out)[[2L]],
-                              c("Estimate", "Est.Error", "Q2.5", "Q97.5"),
+                              c("Estimate", "Est.Error", qn),
                               dimnames(out)[[3L]]))
-  st[, "Estimate", ] <- apply(out, c(2, 3), mean)
-  st[, "Est.Error", ] <- apply(out, c(2, 3), stats::sd)
-  st[, "Q2.5", ] <- apply(out, c(2, 3), stats::quantile, 0.025)
-  st[, "Q97.5", ] <- apply(out, c(2, 3), stats::quantile, 0.975)
+  st[, "Estimate", ] <- apply(out, c(2, 3),
+                              if (robust) stats::median else mean)
+  st[, "Est.Error", ] <- apply(out, c(2, 3),
+                               if (robust) stats::mad else stats::sd)
+  st[, qn[1L], ] <- apply(out, c(2, 3), stats::quantile, probs[1L])
+  st[, qn[2L], ] <- apply(out, c(2, 3), stats::quantile, probs[2L])
   st
+}
+
+#' The refusal the methods that carry brms's `newdata` and
+#' `re_formula` slots without supporting them share.
+#'
+#' They carry the slots so that a positional brms call asks the same
+#' question it asks in brms; they refuse the values so that it does not
+#' get a different question's answer instead.
+#'
+#' @noRd
+draws_refuse_newdata <- function(newdata, re_formula, re.form, what,
+                                 ...) {
+  if (!is.null(newdata)) {
+    stop(what, " does not take newdata. ", ..., call. = FALSE)
+  }
+  # core's marker class, read directly: `is_arg_unset()` is internal to
+  # frmtmb while `arg_unset()` is the exported half of the pair.
+  #
+  # `re_formula = NULL` is NOT refused. It is brms's own default and it
+  # means "condition on the group-level values", which is what these
+  # methods already do, so refusing it would refuse the no-op a
+  # positional brms call spells out. Only a value that asks for
+  # something else is refused.
+  asks <- function(v) {
+    !inherits(v, "frmtmb_arg_unset") && !is.null(v)
+  }
+  if (asks(re_formula) || asks(re.form)) {
+    stop(what, " does not take re_formula. ", ..., call. = FALSE)
+  }
+  invisible(NULL)
 }
 
 # ---- refusals and renamed spellings ----------------------------------

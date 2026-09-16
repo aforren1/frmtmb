@@ -562,7 +562,7 @@ test_that("defaults tame a variance component flat priors cannot", {
               stats::sd(d), 0.5)
   expect_gt(stats::sd(f) / stats::sd(d), 1.3)
   # and it mixes worse for it
-  expect_gt(min(summary(def)[, "n_eff"]), min(summary(flat)[, "n_eff"]))
+  expect_gt(min(summary(def)[, "Bulk_ESS"]), min(summary(flat)[, "Bulk_ESS"]))
 })
 
 test_that("the formula route validates its own arguments", {

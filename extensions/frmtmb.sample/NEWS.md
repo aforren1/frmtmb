@@ -1,3 +1,113 @@
+# frmtmb.sample (development version)
+
+* **BREAKING, and a published number moves. `rhat()` and
+  `neff_ratio()` now answer brms's question.** They called
+  `bayesplot::rhat()` and `bayesplot::neff_ratio()` on the `stanfit`,
+  which is `rstan::summary()`'s classic split-R-hat and rstan's
+  `n_eff`. brms computes neither. `rhat.brmsfit` is
+  `posterior::summarise_draws(rhat = posterior::rhat)`, the
+  rank-normalized split-R-hat, and `neff_ratio.brmsfit` is
+  `min(ess_bulk, ess_tail) / ndraws`. Both now do the same, computed on
+  the draws array rather than on the `stanfit`.
+
+  Measured on 4 chains of 500 (`dev/brmsmatch-findings.md`): the old
+  `rhat()` differed from brms's by 0.00563108 at most, against a whole
+  signal of `max|rhat - 1| = 0.0100318`, so by 1.15 times the entire
+  excess over 1 that the diagnostic reports. `neff_ratio()` differed by
+  0.43165, which is 77 times larger and is the number a user reads to
+  decide whether to sample longer.
+
+  These two no longer agree with `ds$stanfit`, which carries a
+  different definition of the same idea.
+  `rstan::summary(ds$stanfit)$summary` still has the sampler's own
+  numbers for anyone who wants them.
+
+* **BREAKING. `summary()`'s convergence columns move with them.** It
+  reported rstan's `n_eff` and classic split-R-hat; it now reports
+  `Rhat`, `Bulk_ESS` and `Tail_ESS` from posterior, which is what
+  `brms:::summary.brmsfit()` reports, under brms's own column names.
+
+  **The `n_eff` column is gone.** `summary(ds)[, "Rhat"]` is now
+  exactly `rhat(ds)` on those rows and `neff_ratio(ds)` is exactly
+  `pmin(Bulk_ESS, Tail_ESS) / ndraws(ds)`, so the package no longer
+  disagrees with itself. It did: on the fit measured in
+  `dev/reviews/20260915-brmsmatch.md`, `sigma_Intercept` read
+  0.99990396 in the `Rhat` column against 1.0037623 from `rhat(ds)`,
+  BELOW 1 in one place and above it in the other, and `x` read 1600.37
+  effective draws against 1028.60, a 55.6 percent overstatement of the
+  number a user reads to decide whether to sample longer.
+
+* **`rhat()` and `neff_ratio()` now report frmtmb's parameter names.**
+  They reported Stan's, because they read the `stanfit`: 4 of 11
+  entries on the measured fit (`beta[1]`, `beta[2]`, `betad`, `theta`)
+  were not addressable by the names `variables(ds)` lists, so
+  `rhat(ds)["x"]` was `NA`. It is now a number. This falls out of the
+  change above rather than being separate work.
+
+* Both take brms's `pars`, and it is brms's `pars` FOR THESE TWO, which
+  is not the `pars` that `as.mcmc()`, `mcmc_plot()` and
+  `posterior_interval()` take. `brms:::rhat.brmsfit()` passes
+  `variable = pars` to `as_draws_array()` rather than through
+  `extract_pars()`, so `NULL` is the default and means every variable,
+  a string is an EXACT variable name, `regex = TRUE` makes it a regular
+  expression, and a name that is not there is an error. The other three
+  keep the `extract_pars` rule, where `NA` means every variable and a
+  string is a regular expression. `?draws-diagnostics` documents both
+  under *Two different `pars` rules, both brms's*.
+
+* **BREAKING. Ten methods take brms's arguments in brms's POSITIONS.**
+  A positional call ported from brms used to answer a different
+  question, twice without saying so. Every method below now matches
+  brms's method name for name, as far as this package's own arguments
+  go, and `tests/testthat/test-draws-spellings.R` asserts that against
+  the installed brms.
+
+  - `as.mcmc(x, pars, fixed, combine_chains, inc_warmup, ...)`, was
+    `(x, combine_chains, ...)`. `as.mcmc(ds, TRUE)` used to return the
+    pooled draws; brms reads that slot as `pars` and refuses a `pars`
+    that is neither `NA` nor character, and so does this now.
+  - `posterior_interval(object, pars, variable, prob, regex, fixed,
+    ...)`, was `(object, prob, variable, ...)`.
+    `posterior_interval(ds, 0.9)` used to return a 90% interval; it is
+    now the same refusal brms gives.
+  - `log_lik(object, newdata, re_formula, resp, ndraws, draw_ids,
+    ...)`, was `(object, ndraws, resp, ...)`.
+  - `mcmc_plot(object, pars, type, variable, regex, fixed, ...)`, was
+    `(object, type, variable, ...)`.
+  - `posterior_epred(object, newdata, re_formula, re.form, resp, dpar,
+    nlpar, ndraws, draw_ids, ...)`, was `(object, newdata, resp,
+    re_formula, re.form, ndraws, ...)`.
+  - `posterior_linpred(object, transform, newdata, re_formula, re.form,
+    resp, dpar, nlpar, incl_thres, ndraws, draw_ids, ...)`.
+  - `posterior_predict(object, newdata, re_formula, re.form, transform,
+    resp, negative_rt, ndraws, draw_ids, ...)`.
+  - `pp_mixture(x, newdata, re_formula, resp, ndraws, draw_ids, log,
+    summary, robust, probs, ...)`, was `(x, summary, ndraws, ...)`.
+  - `predictive_error(object, newdata, re_formula, re.form, method,
+    resp, ndraws, draw_ids, ...)`, was `(object, resp, re_formula,
+    re.form, ndraws, ...)`.
+  - `psis(log_ratios, newdata, resp, model_name, ndraws, ...)`, was
+    `(log_ratios, ndraws, resp, ...)`.
+
+  **A call that named its arguments is unaffected. A call that passed
+  them positionally must be re-read.**
+
+* New along the way, because brms puts them in those positions:
+  `draw_ids` on the predictive methods, on `log_lik()` and on
+  `pp_mixture()` names the draws to use by row index; `dpar` on
+  `posterior_epred()`; `log`, `robust` and `probs` on `pp_mixture()`;
+  `method` on `predictive_error()`, which also takes `newdata` now and
+  re-evaluates the response term on it.
+
+* Eight brms arguments are carried in brms's position and refused, each
+  with the reason and the replacement: `log_lik(newdata =)`,
+  `log_lik(re_formula =)`, `psis(newdata =)`, `pp_mixture(newdata =)`,
+  `pp_mixture(re_formula =)`, `as.mcmc(inc_warmup = TRUE)`,
+  `posterior_linpred(incl_thres = TRUE)` and
+  `posterior_predict(negative_rt = TRUE)`. `re_formula = NULL` is
+  brms's own default and is refused nowhere: it is the no-op these
+  methods already do.
+
 # frmtmb.sample 0.5.0
 
 * **frmtmb.sample no longer breaks brms, rstantools, loo,

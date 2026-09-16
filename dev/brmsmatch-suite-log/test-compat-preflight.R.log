@@ -1,0 +1,10 @@
+﻿libs:  C:/Users/adf44/source/r/brmsmatch-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsmatch-lib
+frmtmb from:  C:/Users/adf44/source/r/rellib-r3 
+FILE    C:/Users/adf44/source/r/frmtmb-wt-brmsmatch/extensions/frmtmb.sample/tests/testthat/test-compat-preflight.R 
+BLOCKS  16 
+PASS    81 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+DONE

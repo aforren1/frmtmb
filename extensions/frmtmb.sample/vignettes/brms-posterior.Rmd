@@ -101,8 +101,9 @@ variables(ds)
 hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)")
 ```
 
-`rhat()`, `neff_ratio()` and `nuts_params()` are the exception. They
-read the `stanfit` directly and report Stan's own names.
+`nuts_params()` is the exception. It reads the `stanfit` directly, as
+brms's own `nuts_params()` does, and its rows are the sampler's
+quantities rather than model parameters.
 
 ## The method surface ports
 

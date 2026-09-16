@@ -1,0 +1,15 @@
+﻿libs:  C:/Users/adf44/source/r/brmsmatch-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsmatch-lib
+frmtmb from:  C:/Users/adf44/source/r/rellib-r3 
+C:/Program Files/R/R-4.6.1/bin/Rscript.exe : Error : 'control' list contains unknown members of names: nonsense_option.
+    + CategoryInfo          : NotSpecified: (Error : 'contro...onsense_option.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+error in specifying arguments; sampling not done
+FILE    C:/Users/adf44/source/r/frmtmb-wt-brmsmatch/extensions/frmtmb.sample/tests/testthat/test-stan-control.R 
+BLOCKS  11 
+PASS    54 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+DONE

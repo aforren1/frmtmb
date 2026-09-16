@@ -195,13 +195,105 @@ test_that("coef() is fixef broadcast plus each group's own draws", {
 
 ## ---- sampler diagnostics and plots ----------------------------------
 
+test_that("rhat() and neff_ratio() are brms's, on this package's names", {
+  # brms's rhat.brmsfit is summarise_draws(rhat = posterior::rhat), the
+  # rank-normalized split-R-hat, and its neff_ratio.brmsfit is
+  # min(ess_bulk, ess_tail) / ndraws. Both used to be bayesplot on the
+  # stanfit, which is rstan's classic split-R-hat and rstan's n_eff and
+  # which reported STAN's parameter names. dev/brmsmatch-findings.md
+  # has the size of both gaps, measured on 4 chains of 500.
+  cs <- dm_case()
+  skip_if_not_installed("posterior")
+  a <- posterior::as_draws_array(cs$ds)
+  want_r <- posterior::summarise_draws(a, rhat = posterior::rhat)
+  expect_equal(rhat(cs$ds),
+               stats::setNames(want_r$rhat, want_r$variable))
+  want_e <- posterior::summarise_draws(a, ess_bulk = posterior::ess_bulk,
+                                       ess_tail = posterior::ess_tail)
+  expect_equal(neff_ratio(cs$ds),
+               stats::setNames(pmin(want_e$ess_bulk, want_e$ess_tail) /
+                                 posterior::ndraws(a), want_e$variable))
+
+  # the frmtmb names fall out of computing through posterior on the
+  # relabeled draws, so these two line up with every other accessor
+  expect_equal(names(rhat(cs$ds)), variables(cs$ds))
+  expect_equal(names(neff_ratio(cs$ds)), variables(cs$ds))
+  expect_false(is.na(rhat(cs$ds)["x"]))
+  expect_false(is.na(neff_ratio(cs$ds)["x"]))
+
+  # both move away from the sampler's own numbers, and summary() moves
+  # with them rather than being left behind
+  skip_if_not_installed("bayesplot")
+  expect_false(isTRUE(all.equal(unname(rhat(cs$ds)),
+                                unname(bayesplot::rhat(cs$ds$stanfit)))))
+  expect_false(isTRUE(all.equal(
+    unname(neff_ratio(cs$ds)),
+    unname(bayesplot::neff_ratio(cs$ds$stanfit)))))
+})
+
+test_that("summary() reports brms's three diagnostics, agreeing with rhat()", {
+  # brms:::summary.brmsfit adds
+  #   Rhat = posterior::rhat, Bulk_ESS = ess_bulk, Tail_ESS = ess_tail
+  # so in brms summary(fit)[, "Rhat"] and rhat(fit) are one number.
+  # This used to be rstan's classic split-R-hat under the same header
+  # beside a rank-normalized rhat(), below 1 in one column and above it
+  # in the other on the fit dev/reviews/20260915-brmsmatch.md measured.
+  cs <- dm_case()
+  skip_if_not_installed("posterior")
+  s <- summary(cs$ds)
+  expect_equal(colnames(s), c("mean", "sd", "2.5%", "97.5%",
+                              "Rhat", "Bulk_ESS", "Tail_ESS"))
+  expect_false("n_eff" %in% colnames(s))
+  # the agreement itself, which is the point
+  expect_equal(s[, "Rhat"], rhat(cs$ds)[rownames(s)])
+  a <- posterior::subset_draws(posterior::as_draws_array(cs$ds),
+                               variable = rownames(s))
+  d <- posterior::summarise_draws(a, ess_bulk = posterior::ess_bulk,
+                                  ess_tail = posterior::ess_tail)
+  expect_equal(unname(s[, "Bulk_ESS"]), d$ess_bulk)
+  expect_equal(unname(s[, "Tail_ESS"]), d$ess_tail)
+  # and neff_ratio() is the smaller of the two over the draw count.
+  #
+  # THE DIRECTION OF THIS ONE IS LOAD-BEARING. Written as a division,
+  # both sides are the same division of the same two numbers and the
+  # relation is EXACT: identical() holds. Turned around into "pmin
+  # equals neff_ratio times ndraws" it becomes a round trip through
+  # x/N*N, which on this fit is off by 0.51 ulp on one row, 5.684e-14.
+  # Do not "simplify" it into the multiplication: that form needs a
+  # tolerance and this one does not.
+  expect_equal(unname(neff_ratio(cs$ds)[rownames(s)]),
+               unname(pmin(s[, "Bulk_ESS"], s[, "Tail_ESS"]) /
+                        ndraws(cs$ds)))
+})
+
+test_that("rhat() and neff_ratio() take brms's OTHER `pars` rule", {
+  # brms's rhat.brmsfit passes `variable = pars` to as_draws_array(),
+  # so NULL is every variable and a string is an EXACT name. It does
+  # NOT go through brms's extract_pars(), which is the rule mcmc_plot()
+  # and posterior_interval() follow on this same argument name.
+  cs <- dm_case()
+  skip_if_not_installed("posterior")
+  expect_equal(names(rhat(cs$ds, "x")), "x")
+  expect_equal(names(rhat(cs$ds, c("x", "Intercept"))),
+               c("x", "Intercept"))
+  expect_equal(names(neff_ratio(cs$ds, "^b\\[", regex = TRUE)),
+               grep("^b\\[", variables(cs$ds), value = TRUE))
+  # NULL is brms's own default for this slot and means every variable
+  expect_equal(rhat(cs$ds, NULL), rhat(cs$ds))
+  expect_equal(neff_ratio(cs$ds, NULL), neff_ratio(cs$ds))
+  # an exact name that is not there is an error, as in brms; a regular
+  # expression without regex = TRUE is such a name
+  expect_error(rhat(cs$ds, "^x$"))
+  expect_error(neff_ratio(cs$ds, "nosuchvariable"))
+  # the extract_pars rule is the OTHER methods', and they still have it
+  expect_error(posterior_interval(cs$ds, 0.9),
+               "must be NA or a character vector")
+  expect_equal(rownames(posterior_interval(cs$ds, "^x$")), "x")
+})
+
 test_that("the bayesplot accessors read the stanfit", {
   cs <- dm_case()
   skip_if_not_installed("bayesplot")
-  expect_equal(unname(rhat(cs$ds)),
-               unname(bayesplot::rhat(cs$ds$stanfit)))
-  expect_equal(unname(neff_ratio(cs$ds)),
-               unname(bayesplot::neff_ratio(cs$ds$stanfit)))
   np <- nuts_params(cs$ds)
   expect_true(all(c("Chain", "Iteration", "Parameter", "Value") %in%
                     names(np)))
@@ -251,6 +343,20 @@ test_that("pp_mixture() propagates parameter uncertainty into the probabilities"
                unname(apply(raw[, , 1L], 2L, mean)), tolerance = 1e-12)
   # the data are well separated, so the assignment is nearly certain
   expect_gt(mean(apply(st[, "Estimate", ], 1, max)), 0.95)
+
+  # brms's own signature: `summary` is the eighth argument and the
+  # second is `newdata`, with log, robust and probs alongside it
+  expect_equal(pp_mixture(ds, log = TRUE, summary = FALSE), log(raw))
+  rb <- pp_mixture(ds, robust = TRUE)
+  expect_equal(unname(rb[, "Estimate", 1L]),
+               unname(apply(raw[, , 1L], 2L, stats::median)),
+               tolerance = 1e-12)
+  pr <- pp_mixture(ds, probs = c(0.1, 0.9))
+  expect_equal(dimnames(pr)[[2L]],
+               c("Estimate", "Est.Error", "Q10", "Q90"))
+  expect_error(pp_mixture(ds, dd), "does not take newdata")
+  expect_equal(pp_mixture(ds, draw_ids = c(2L, 4L), summary = FALSE),
+               raw[c(2L, 4L), , , drop = FALSE])
 })
 
 ## ---- refusals and renamed spellings ---------------------------------
