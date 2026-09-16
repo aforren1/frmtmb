@@ -21,7 +21,15 @@
 
 posterior_interval(object, ...)
 
-\method{posterior_interval}{frmtmb_draws}(object, prob = 0.95, variable = NULL, ...)
+\method{posterior_interval}{frmtmb_draws}(
+  object,
+  pars = NA,
+  variable = NULL,
+  prob = 0.95,
+  regex = FALSE,
+  fixed = FALSE,
+  ...
+)
 
 predictive_interval(object, ...)
 
@@ -40,10 +48,13 @@ predictive_error(object, ...)
 
 \method{predictive_error}{frmtmb_draws}(
   object,
-  resp = NULL,
+  newdata = NULL,
   re_formula = arg_unset(),
   re.form = arg_unset(),
+  method = "posterior_predict",
+  resp = NULL,
   ndraws = NULL,
+  draw_ids = NULL,
   ...
 )
 }
@@ -63,15 +74,33 @@ error naming it, rather than silently changing nothing.}
 \item{object}{A \code{frmtmb_draws}, or a matrix of draws
 (variables in columns).}
 
+\item{pars}{brms's alias of \code{variable}, in brms's own second
+position on \code{posterior_interval()}: \code{NA} (the default) for every
+variable, otherwise a character vector matched as a regular
+expression unless \code{fixed = TRUE}. brms refuses a \code{pars} that is
+neither \code{NA} nor character, and so does this, which is why
+\code{posterior_interval(x, 0.9)} is a refusal and not an interval.}
+
 \item{prob}{Central interval width for \code{posterior_interval()} and
 \code{predictive_interval()}.}
+
+\item{regex}{If \code{TRUE}, \code{variable} is a regular expression.}
+
+\item{fixed}{If \code{TRUE}, \code{pars} is matched by exact name.}
 
 \item{re_formula, re.form}{Passed to \code{\link[=posterior_predict]{posterior_predict()}}, which
 takes brms's \code{re_formula} and accepts lme4's \code{re.form} as an alias
 of it. Pass one or the other; see the \emph{Argument spellings} section
 of \code{\link[=posterior_epred]{posterior_epred()}}.}
 
-\item{ndraws, newdata, resp}{Passed to \code{\link[=posterior_predict]{posterior_predict()}}.}
+\item{ndraws, draw_ids, newdata, resp}{Passed to
+\code{\link[=posterior_predict]{posterior_predict()}}. \code{predictive_error(newdata =)} re-evaluates
+the response term on \code{newdata}, so \code{newdata} must carry the
+response.}
+
+\item{method}{For \code{predictive_error()}, which predictive draws the
+error is taken against: \code{"posterior_predict"} (the default) or
+\code{"posterior_epred"}.}
 }
 \value{
 A matrix with one row per variable (or per observation, for

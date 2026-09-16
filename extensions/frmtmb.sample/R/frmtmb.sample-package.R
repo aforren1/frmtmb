@@ -50,6 +50,17 @@ check_count <- function(x, arg, min = 0L) {
   invisible(TRUE)
 }
 
+#' A single TRUE or FALSE.
+#'
+#' @noRd
+check_flag <- function(x, arg) {
+  if (!is.logical(x) || length(x) != 1L || is.na(x)) {
+    stop(arg, " must be TRUE or FALSE; got ",
+         paste(format(x), collapse = ", "), call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
 #' A single number strictly inside (0, 1).
 #'
 #' @noRd

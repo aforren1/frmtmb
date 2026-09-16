@@ -7,19 +7,46 @@
 \usage{
 pp_mixture(x, ...)
 
-\method{pp_mixture}{frmtmb_draws}(x, summary = TRUE, ndraws = NULL, ...)
+\method{pp_mixture}{frmtmb_draws}(
+  x,
+  newdata = NULL,
+  re_formula = arg_unset(),
+  resp = NULL,
+  ndraws = NULL,
+  draw_ids = NULL,
+  log = FALSE,
+  summary = TRUE,
+  robust = FALSE,
+  probs = c(0.025, 0.975),
+  ...
+)
 }
 \arguments{
 \item{x}{A \code{frmtmb_draws} from \code{\link[=frm_sample]{frm_sample()}}.}
 
-\item{...}{Refused: an argument the method does not have is an
-error naming it, rather than silently changing nothing.}
+\item{...}{Unused.}
+
+\item{newdata, re_formula}{Accepted for brms's signature and refused:
+\code{\link[frmtmb:mixture_probs]{frmtmb::mixture_probs()}} is a statement about the rows the model
+was fitted on.}
+
+\item{resp}{The response whose mixture to report, for a
+multivariate model.}
+
+\item{ndraws}{Number of draws to use (default: all).}
+
+\item{draw_ids}{The draws to use, by row index, instead of the
+evenly spaced subsample \code{ndraws} takes.}
+
+\item{log}{If \code{TRUE}, log probabilities.}
 
 \item{summary}{If \code{TRUE} (the default, as in brms), an
 \verb{observations x statistics x components} array of summaries;
 otherwise the raw \verb{draws x observations x components} array.}
 
-\item{ndraws}{Number of draws to use (default: all).}
+\item{robust}{If \code{TRUE}, median and MAD instead of mean and SD.}
+
+\item{probs}{The two quantiles the summary reports.}
 }
 \value{
 An array; see \code{summary}. For a group-level mixture
@@ -32,6 +59,10 @@ probability that each observation came from each component,
 propagating the uncertainty in the parameters: the fit-side
 \code{\link[frmtmb:mixture_probs]{frmtmb::mixture_probs()}} computation is run at every draw. brms calls this
 \code{pp_mixture()}.
+}
+\details{
+The argument order is brms's, so \code{summary} sits in brms's own
+eighth position and not in the second: the second is \code{newdata}.
 }
 \examples{
 \donttest{

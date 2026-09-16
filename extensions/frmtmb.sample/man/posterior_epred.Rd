@@ -14,10 +14,13 @@ posterior_epred(object, ...)
 \method{posterior_epred}{frmtmb_draws}(
   object,
   newdata = NULL,
-  resp = NULL,
   re_formula = arg_unset(),
   re.form = arg_unset(),
+  resp = NULL,
+  dpar = NULL,
+  nlpar = NULL,
   ndraws = NULL,
+  draw_ids = NULL,
   ...
 )
 
@@ -27,11 +30,14 @@ posterior_linpred(object, transform = FALSE, ...)
   object,
   transform = FALSE,
   newdata = NULL,
-  resp = NULL,
   re_formula = arg_unset(),
   re.form = arg_unset(),
+  resp = NULL,
   dpar = NULL,
+  nlpar = NULL,
+  incl_thres = NULL,
   ndraws = NULL,
+  draw_ids = NULL,
   ...
 )
 
@@ -40,18 +46,20 @@ posterior_predict(object, ...)
 \method{posterior_predict}{frmtmb_draws}(
   object,
   newdata = NULL,
-  resp = NULL,
   re_formula = arg_unset(),
   re.form = arg_unset(),
+  transform = NULL,
+  resp = NULL,
+  negative_rt = FALSE,
   ndraws = NULL,
+  draw_ids = NULL,
   ...
 )
 }
 \arguments{
 \item{object}{A \code{frmtmb_draws} from \code{\link[=frm_sample]{frm_sample()}}.}
 
-\item{...}{Refused: an argument the method does not have is an
-error naming it, rather than silently changing nothing.}
+\item{...}{Unused.}
 
 \item{newdata, resp}{As in \code{\link[frmtmb:predict.frmtmb_fit]{frmtmb::predict.frmtmb_fit()}}.}
 
@@ -65,15 +73,30 @@ spellings}.}
 methods where brms accepts it too. Pass one or the other, not
 both.}
 
+\item{dpar}{Which distributional parameter to evaluate: its linear
+predictor for \code{posterior_linpred()}, its response-scale value for
+\code{posterior_epred()}. The default is the family's \code{mu}.}
+
+\item{nlpar}{The parameter an \code{nlf()} body names. brms keeps it
+apart from \code{dpar}; frmtmb asks for either by the \code{dpar} name, so
+this is the same setting and the slot is here for brms's position.}
+
 \item{ndraws}{Number of draws to use (default: all).}
+
+\item{draw_ids}{The draws to use, by row index, instead of the
+evenly spaced subsample \code{ndraws} takes. Give one or the other.}
 
 \item{transform}{For \code{posterior_linpred()}: if \code{TRUE}, apply the
 inverse link (the value of the \code{mu} dpar on its natural scale,
 brms's convention; unlike \code{posterior_epred()} this is not the
 response mean for zero-inflated and similar families).}
 
-\item{dpar}{For \code{posterior_linpred()}: which distributional
-parameter's linear predictor to evaluate.}
+\item{incl_thres}{For \code{posterior_linpred()}: refused. brms subtracts
+a cumulative family's thresholds from the predictor; frmtmb
+returns the latent predictor itself.}
+
+\item{negative_rt}{For \code{posterior_predict()}: refused. It is brms's
+sign convention for its own wiener family.}
 }
 \value{
 A draws-by-observations matrix; for a categorical outcome
@@ -157,6 +180,11 @@ silently and this package follows.
 Giving both at once is refused rather than resolved. Two names for
 one setting supplied together is a question about what was meant, and
 guessing at it would silently ignore one of them.
+
+The argument ORDER is brms's too, so a positional brms call means
+the same thing here: \code{newdata} then \code{re_formula} then \code{re.form} then
+\code{resp}, after \code{transform} in \code{posterior_linpred()} and before it in
+\code{posterior_predict()}.
 
 The literal default of both formals is an internal "not supplied"
 marker rather than a value, because \code{NULL} (keep the random effects)

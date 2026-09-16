@@ -226,8 +226,13 @@ draws_row_loglik <- function(fit, resp) {
 #' and the number itself carries no mark of that.
 #'
 #' @param object A `frmtmb_draws` from [frm_sample()].
+#' @param newdata,re_formula Accepted in brms's own second and third
+#'   positions and refused: see *What is conditioned on*. The refusal
+#'   names the reason and the replacement.
 #' @param ndraws Number of draws to use, evenly spaced through the
 #'   matrix (default: all of them).
+#' @param draw_ids The draws to use, by row index, instead of the
+#'   evenly spaced subsample `ndraws` takes. Give one or the other.
 #' @param resp For a multivariate model without `rescor`, the response
 #'   whose contribution to report; the default sums over responses.
 #' @param ... Refused: an argument the method does not have is an
@@ -265,9 +270,20 @@ log_lik <- function(object, ...) {
 #' @rdname log_lik
 #' @exportS3Method rstantools::log_lik
 #' @export
-log_lik.frmtmb_draws <- function(object, ndraws = NULL, resp = NULL,
-                                 ...) {
-  frm_check_dots(...)
+log_lik.frmtmb_draws <- function(object, newdata = NULL,
+                                 re_formula = arg_unset(),
+                                 resp = NULL, ndraws = NULL,
+                                 draw_ids = NULL, ...) {
+  draws_refuse_newdata(
+    newdata, re_formula, arg_unset(), "log_lik()",
+    "the pointwise log-density runs the fitted objective's own ",
+    "composition over the assembled frame, which is what carries the ",
+    "response, the addition terms (cens(), trunc(), weights(), ",
+    "trials()) and the case weights, for the rows the model was ",
+    "fitted on; newdata supplies none of them. The density is also ",
+    "CONDITIONAL on each draw's own group-level values, which is what ",
+    "re_formula would remove. Use posterior_epred(newdata =) or ",
+    "posterior_predict(newdata =) for a quantity on other rows")
   fit <- draws_base_fit(object)
   draws_require_b(object, "log_lik()")
   draws_loglik_factors(fit, "log_lik()")
@@ -278,7 +294,7 @@ log_lik.frmtmb_draws <- function(object, ndraws = NULL, resp = NULL,
          call. = FALSE)
   }
   idx <- draws_par_index(fit)
-  rows <- draws_subsample(object, ndraws)
+  rows <- draws_subsample(object, ndraws, draw_ids)
   out <- NULL
   unit <- NULL
   for (k in seq_along(rows)) {
@@ -289,7 +305,7 @@ log_lik.frmtmb_draws <- function(object, ndraws = NULL, resp = NULL,
     }
     out[k, ] <- v
   }
-  attr(out, "chain_id") <- if (length(rows) == nrow(object$draws)) {
+  attr(out, "chain_id") <- if (identical(rows, seq_len(nrow(object$draws)))) {
     draws_chain_id(object)
   }
   # what a column IS, when it is not an observation. Carried on the
@@ -485,14 +501,26 @@ loo_call_names <- function(cl, n) {
 #' @rdname sample-loo
 #' @param log_ratios For `psis()`, the draws object whose negative
 #'   pointwise log-likelihood supplies the importance ratios.
+#' @param newdata For `psis()`, accepted in brms's own second position
+#'   and refused, because [log_lik()] does not take it.
+#' @param model_name For `psis()`, brms's label for the model.
+#'   Accepted and unused: a `psis` object has nothing to label.
 #' @export
 psis <- function(log_ratios, ...) UseMethod("psis")
 
 #' @rdname sample-loo
 #' @exportS3Method loo::psis
 #' @export
-psis.frmtmb_draws <- function(log_ratios, ndraws = NULL, resp = NULL,
-                              ...) {
+psis.frmtmb_draws <- function(log_ratios, newdata = NULL, resp = NULL,
+                              model_name = NULL, ndraws = NULL, ...) {
+  # brms's psis.brmsfit passes newdata down to its log_lik, which this
+  # log_lik() refuses; the slot is carried so that the positional call
+  # asks the same question. `model_name` is brms's label for the fit
+  # and loo::psis has nothing to attach it to, so it is accepted and
+  # unused, exactly as it is in brms.
+  draws_refuse_newdata(newdata, arg_unset(), arg_unset(), "psis()",
+                       "it is built from log_lik(), which does not ",
+                       "take newdata: see ?log_lik")
   # the leave-one-out importance ratios are the NEGATIVE log-likelihood
   # (down-weighting the draws the held-out point likes), which is what
   # loo::loo.matrix smooths internally and what brms's psis.brmsfit

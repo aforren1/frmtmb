@@ -1,0 +1,23 @@
+﻿libs:  C:/Users/adf44/source/r/brmsmatch-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsmatch-lib
+frmtmb from:  C:/Users/adf44/source/r/rellib-r3 
+C:/Program Files/R/R-4.6.1/bin/Rscript.exe : frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+    + CategoryInfo          : NotSpecified: (frm_sample(): d...flat" opts out):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  Intercept          student_t(3, 1.7, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, -0.4, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+FILE    C:/Users/adf44/source/r/frmtmb-wt-brmsmatch/extensions/frmtmb.sample/tests/testthat/test-reparam.R 
+BLOCKS  28 
+PASS    260 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+DONE

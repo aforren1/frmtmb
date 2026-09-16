@@ -1,0 +1,332 @@
+﻿Rscript.exe : ℹ Loading frmtmb
+At line:10 char:3
++   & $RS -e "roxygen2::roxygenise('$p', load_code = roxygen2::load_pkg ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ℹ Loading frmtmb:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+✖ families.R:552: @description Could not resolve link to topic "get_link" in
+  the dependencies or base packages..
+ℹ If you haven't documented "get_link" yet, or just changed its name, this is
+  normal. Once "get_link" is documented, this warning goes away.
+ℹ Make sure that the name of the topic is spelled correctly.
+ℹ Always list the linked package as a dependency.
+ℹ Alternatively, you can fully qualify the link with a package name.
+✖ families.R:557: @details Could not resolve link to topic "get_link" in the
+  dependencies or base packages..
+ℹ If you haven't documented "get_link" yet, or just changed its name, this is
+  normal. Once "get_link" is documented, this warning goes away.
+ℹ Make sure that the name of the topic is spelled correctly.
+ℹ Always list the linked package as a dependency.
+ℹ Alternatively, you can fully qualify the link with a package name.
+✖ families.R:609: @title Could not resolve link to topic "robust_logit" in the
+  dependencies or base packages..
+ℹ If you haven't documented "robust_logit" yet, or just changed its name, this
+  is normal. Once "robust_logit" is documented, this warning goes away.
+ℹ Make sure that the name of the topic is spelled correctly.
+ℹ Always list the linked package as a dependency.
+ℹ Alternatively, you can fully qualify the link with a package name.
+✖ families.R:2040: @title Could not resolve link to topic "fam_binomial" in the
+  dependencies or base packages..
+ℹ If you haven't documented "fam_binomial" yet, or just changed its name, this
+  is normal. Once "fam_binomial" is documented, this warning goes away.
+ℹ Make sure that the name of the topic is spelled correctly.
+ℹ Always list the linked package as a dependency.
+ℹ Alternatively, you can fully qualify the link with a package name.
+✖ families.R:3133: @description Could not resolve link to topic "ord_link" in
+  the dependencies or base packages..
+ℹ If you haven't documented "ord_link" yet, or just changed its name, this is
+  normal. Once "ord_link" is documented, this warning goes away.
+ℹ Make sure that the name of the topic is spelled correctly.
+ℹ Always list the linked package as a dependency.
+ℹ Alternatively, you can fully qualify the link with a package name.
+✖ links.R:419: @title Could not resolve link to topic "log_inv_logit" in the
+  dependencies or base packages..
+ℹ If you haven't documented "log_inv_logit" yet, or just changed its name, this
+  is normal. Once "log_inv_logit" is documented, this warning goes away.
+ℹ Make sure that the name of the topic is spelled correctly.
+ℹ Always list the linked package as a dependency.
+ℹ Alternatively, you can fully qualify the link with a package name.
+✖ links.R:509: @description Could not resolve link to topic "get_link" in the
+  dependencies or base packages..
+ℹ If you haven't documented "get_link" yet, or just changed its name, this is
+  normal. Once "get_link" is documented, this warning goes away.
+ℹ Make sure that the name of the topic is spelled correctly.
+ℹ Always list the linked package as a dependency.
+ℹ Alternatively, you can fully qualify the link with a package name.
+✖ helper-fuzz.R:1489: @param Could not resolve link to topic "fuzz_plan" in the
+  dependencies or base packages..
+ℹ If you haven't documented "fuzz_plan" yet, or just changed its name, this is
+  normal. Once "fuzz_plan" is documented, this warning goes away.
+ℹ Make sure that the name of the topic is spelled correctly.
+ℹ Always list the linked package as a dependency.
+ℹ Alternatively, you can fully qualify the link with a package name.
+──────────────────── rOpenSci Statistical Software Standards ───────────────────
+
+── @srrstats standards (120 / 130): 
+  * [G2.0, G2.1, G2.14c, RE2.2] in function 'bf()' on line#69 of file [R/bf.R]
+  * [RE6.0, RE6.2, RE6.1] in function 'plot.frmtmb_fit()' on line#2383 of file [R/conditional-effects.R]
+  * [RE4.3] in function 'confint.frmtmb_fit()' on line#360 of file [R/confint.R]
+  * [RE2.4b, RE4.7] in function 'diagnose()' on line#1166 of file [R/confint.R]
+  * [RE4.11] in function 'anova.frmtmb_fit()' on line#1597 of file [R/confint.R]
+  * [G2.0, G2.1, RE4.12] in function 'frmtmb_family()' on line#437 of file [R/families.R]
+  * [RE1.4, RE1.0, G2.4, G2.4a, G2.4b, G2.4c, G2.4e, G2.5, G2.6, G2.8, G2.13, G2.14, G2.14a, G2.14b, G2.15, G2.16, 
+RE2.1, RE2.4, RE2.4a, RE3.0, RE3.1, RE4.0, RE4.1, RE4.4, RE4.5, RE4.8, RE4.17, RE4.18] in function 'frm()' on line#479 
+of file [R/fit.R]
+  * [RE2.0, RE2.3, RE3.2, RE3.3] in function 'frmtmb_control()' on line#1461 of file [R/fit.R]
+  * [G2.5, G2.9, G2.4d] in function 'report_datetime_columns()' on line#962 of file [R/frame.R]
+  * [G1.0, G1.1, G1.2, G1.4, G1.4a, G5.0, G5.10, G5.12] on line#177 of file [R/frmtmb-package.R]
+  * [RE4.13] in function 'getME.frmtmb_fit()' on line#382 of file [R/interop.R]
+  * [RE4.6] in function 'vcov.frmtmb_fit()' on line#504 of file [R/methods-fit.R]
+  * [RE4.2] in function 'coef.frmtmb_fit()' on line#607 of file [R/methods-fit.R]
+  * [G2.1, G2.14c] in function 'frm_multiple()' on line#73 of file [R/multiple.R]
+  * [G2.3, G2.3a, G3.0, RE1.3, RE4.9, RE4.14, RE4.16] in function 'predict.frmtmb_fit()' on line#1191 of file 
+[R/predict.R]
+  * [G2.2, RE4.10] in function 'residuals.frmtmb_fit()' on line#2544 of file [R/predict.R]
+  * [G2.0, G2.1, G2.3a] in function 'set_prior()' on line#402 of file [R/priors.R]
+  * [RE4.6] in function 'vcov_cluster()' on line#447 of file [R/sandwich.R]
+  * [G5.2a] on line#103 of file [R/srr-stats-standards.R]
+  * [G2.0, G2.1, G5.2, G5.2a] in function 'frmtmb_structure()' on line#326 of file [R/structure.R]
+  * [G5.4, G5.4a, G5.4b, G5.5, G5.6, G5.6a] on line#45 of file [tests/testthat/helper-reference.R]
+  * [G5.8, G5.8b, G5.8a, G5.8c, G5.8d, G5.9, G5.9a, RE7.1, RE7.1a, RE7.2, RE7.0, RE7.0a] on line#74 of file 
+[tests/testthat/test-edgecases.R]
+  * [G5.6b, G5.9b] on line#40 of file [tests/testthat/test-fuzz.R]
+  * [RE7.3] on line#21 of file [tests/testthat/test-methods-audit.R]
+  * [G5.2, G5.2b] on line#20 of file [tests/testthat/test-open-issues.R]
+  * [G5.7] on line#12 of file [tests/testthat/test-perf.R]
+  * [G5.3] on line#29 of file [tests/testthat/test-quadrature-defects.R]
+  * [G2.7, G2.10, G2.11, G2.12] on line#20 of file [tests/testthat/test-tabular-inputs.R]
+  * [G1.3, G1.5, G1.6, G2.0a, G2.1a, G2.3b, G2.5, RE1.1, RE1.2, RE1.3a, RE5.0] on line#618 of file 
+[vignettes/inputs.Rmd]
+
+── @srrstatsNA standards (10 / 130): 
+  * [G3.1, G3.1a, G4.0, G5.1, G5.4c, G5.11, G5.11a, RE4.15, RE6.3, RE7.4] on line#151 of file [R/srr-stats-standards.R]
+────────────────────────────────────────────────────────────────────────────────
+R.exe : * installing *source* package 'frmtmb' ...
+At line:11 char:3
++   & $R CMD INSTALL --library=$LIB $p 2>&1 | Out-File -FilePath $log - ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (* installing *s...ge 'frmtmb' ...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+** this is package 'frmtmb' version '0.57.0'
+** using staged installation
+** R
+** data
+*** moving datasets to lazyload DB
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb)
+Rscript.exe : ℹ Loading frmtmb.eam
+At line:10 char:3
++   & $RS -e "roxygen2::roxygenise('$p', load_code = roxygen2::load_pkg ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ℹ Loading frmtmb.eam:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Loading required package: frmtmb
+✖ gddm.R:169: @details Could not resolve link to topic "gd_tri_df" in the
+  dependencies or base packages..
+ℹ If you haven't documented "gd_tri_df" yet, or just changed its name, this is
+  normal. Once "gd_tri_df" is documented, this warning goes away.
+ℹ Make sure that the name of the topic is spelled correctly.
+ℹ Always list the linked package as a dependency.
+ℹ Alternatively, you can fully qualify the link with a package name.
+R.exe : * installing *source* package 'frmtmb.eam' ...
+At line:11 char:3
++   & $R CMD INSTALL --library=$LIB $p 2>&1 | Out-File -FilePath $log - ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (* installing *s...frmtmb.eam' ...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+** this is package 'frmtmb.eam' version '0.8.1'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.eam)
+Rscript.exe : ℹ Loading frmtmb.spline
+At line:10 char:3
++   & $RS -e "roxygen2::roxygenise('$p', load_code = roxygen2::load_pkg ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ℹ Loading frmtmb.spline:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Loading required package: frmtmb
+R.exe : * installing *source* package 'frmtmb.spline' ...
+At line:11 char:3
++   & $R CMD INSTALL --library=$LIB $p 2>&1 | Out-File -FilePath $log - ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (* installing *s...tmb.spline' ...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+** this is package 'frmtmb.spline' version '0.5.1'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.spline)
+Rscript.exe : ℹ Loading frmtmb.ode
+At line:10 char:3
++   & $RS -e "roxygen2::roxygenise('$p', load_code = roxygen2::load_pkg ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ℹ Loading frmtmb.ode:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Loading required package: frmtmb
+
+
+Quitting from :1-1
+✖ ode.R:1010: @details failed to evaluate inline markdown code.
+Caused by error:
+! Failed to parse the inline R code: `r / (1 - r)`
+Reason: <text>:1:1: unexpected '/'
+1: /
+    ^
+R.exe : * installing *source* package 'frmtmb.ode' ...
+At line:11 char:3
++   & $R CMD INSTALL --library=$LIB $p 2>&1 | Out-File -FilePath $log - ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (* installing *s...frmtmb.ode' ...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+** this is package 'frmtmb.ode' version '0.4.0'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.ode)
+Rscript.exe : ℹ Loading frmtmb.latent
+At line:10 char:3
++   & $RS -e "roxygen2::roxygenise('$p', load_code = roxygen2::load_pkg ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ℹ Loading frmtmb.latent:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Loading required package: frmtmb
+R.exe : * installing *source* package 'frmtmb.latent' ...
+At line:11 char:3
++   & $R CMD INSTALL --library=$LIB $p 2>&1 | Out-File -FilePath $log - ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (* installing *s...tmb.latent' ...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+** this is package 'frmtmb.latent' version '0.3.0'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.latent)
+Rscript.exe : ℹ Loading frmtmb.coupling
+At line:10 char:3
++   & $RS -e "roxygen2::roxygenise('$p', load_code = roxygen2::load_pkg ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ℹ Loading frmtmb.coupling:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Loading required package: frmtmb
+R.exe : * installing *source* package 'frmtmb.coupling' ...
+At line:11 char:3
++   & $R CMD INSTALL --library=$LIB $p 2>&1 | Out-File -FilePath $log - ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (* installing *s...b.coupling' ...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+** this is package 'frmtmb.coupling' version '0.3.1'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.coupling)
+Rscript.exe : ℹ Loading frmtmb.sample
+At line:10 char:3
++   & $RS -e "roxygen2::roxygenise('$p', load_code = roxygen2::load_pkg ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ℹ Loading frmtmb.sample:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Writing 'posterior_epred.Rd'
+Writing 'pp_mixture.Rd'
+R.exe : * installing *source* package 'frmtmb.sample' ...
+At line:11 char:3
++   & $R CMD INSTALL --library=$LIB $p 2>&1 | Out-File -FilePath $log - ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (* installing *s...tmb.sample' ...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+** this is package 'frmtmb.sample' version '0.5.0'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.sample)
+Rscript.exe : ℹ Loading frmtmb.learn
+At line:10 char:3
++   & $RS -e "roxygen2::roxygenise('$p', load_code = roxygen2::load_pkg ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ℹ Loading frmtmb.learn:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Loading required package: frmtmb
+R.exe : * installing *source* package 'frmtmb.learn' ...
+At line:11 char:3
++   & $R CMD INSTALL --library=$LIB $p 2>&1 | Out-File -FilePath $log - ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (* installing *s...mtmb.learn' ...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+** this is package 'frmtmb.learn' version '0.4.1'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.learn)
