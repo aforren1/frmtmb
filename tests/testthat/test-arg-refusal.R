@@ -207,8 +207,35 @@ ar_is_dots_name <- function(x) {
 # with no name" where "no pooled version" is the answer.
 ar_refusers <- c("stop", "fit_no_draws", "multiple_no_draws")
 
+# Under covr every statement arrives as
+# `if (TRUE) { covr:::count(key); <statement> }`, so a one-call body no
+# longer LOOKS like one call and all 20 refusers read as swallowers in
+# the coverage job only. This removes exactly that wrapper, at the top
+# level, which is the only level the shape checks read; anything else
+# is returned untouched, so a real branch still fails them.
+ar_uncovr <- function(e) {
+  if (is.call(e) && identical(e[[1L]], as.name("if")) &&
+        length(e) == 3L && isTRUE(e[[2L]])) {
+    i <- e[[3L]]
+    if (is.call(i) && identical(i[[1L]], as.name("{")) &&
+          length(i) == 3L && is.call(i[[2L]]) &&
+          identical(i[[2L]][[1L]], quote(covr:::count))) {
+      return(i[[3L]])
+    }
+  }
+  e
+}
+
+ar_body <- function(fn) {
+  b <- ar_uncovr(body(fn))
+  if (is.call(b) && identical(b[[1L]], as.name("{")) && length(b) > 1L) {
+    for (k in 2:length(b)) b[[k]] <- ar_uncovr(b[[k]])
+  }
+  b
+}
+
 ar_refuses_always <- function(fn) {
-  b <- body(fn)
+  b <- ar_body(fn)
   head_is_refusal <- function(e) {
     is.call(e) && as.character(e[[1L]])[1L] %in% ar_refusers
   }
@@ -362,13 +389,25 @@ test_that("frm_check_dots() is only ever called from a dots-taker", {
   # One frame down, from a helper the method delegates to, it names the
   # helper and prints an empty formal list. Today no call site does
   # that; this fails if one ever appears, instead of degrading quietly.
-  roots <- c(file.path(testthat::test_path("..", ".."), "R"),
-             file.path(testthat::test_path("..", "..", "..", ".."),
-                       "extensions", "frmtmb.sample", "R"))
+  #
+  # Both roots hang off the package root, and that root must PROVE it is
+  # frmtmb's source. Under R CMD check `../..` is the .Rcheck directory,
+  # and the old `../../../..` for frmtmb.sample reached a real
+  # extensions/ only when the check directory happened to sit two levels
+  # inside the repository, as it does on CI. That run scanned the
+  # extension alone, found 28 call sites and no definition, and failed;
+  # a source run scanned core alone, because the same path pointed above
+  # the repository.
+  pkg_root <- testthat::test_path("..", "..")
+  desc <- file.path(pkg_root, "DESCRIPTION")
+  is_src <- file.exists(desc) && dir.exists(file.path(pkg_root, "R")) &&
+    identical(unname(read.dcf(desc, "Package")[1L, 1L]), "frmtmb")
+  skip_if(!is_src, "frmtmb's own sources are not beside the tests")
+  roots <- c(file.path(pkg_root, "R"),
+             file.path(pkg_root, "extensions", "frmtmb.sample", "R"))
   files <- unlist(lapply(roots, function(d) {
     if (dir.exists(d)) list.files(d, pattern = "[.]R$", full.names = TRUE)
   }))
-  skip_if(!length(files), "sources not reachable from the test dir")
 
   # Counted two ways rather than walked: `all.names()` finds EVERY
   # mention of the helper anywhere in a file, and the structured pass
@@ -427,7 +466,7 @@ test_that("the two refusal helpers really are unconditional", {
   # 38 become exempt SWALLOWERS with nothing failing.
   for (nm in c("fit_no_draws", "multiple_no_draws")) {
     fn <- getFromNamespace(nm, "frmtmb")
-    b <- body(fn)
+    b <- ar_body(fn)
     expect_true(is.call(b) && identical(as.character(b[[1L]]), "{"),
                 label = paste(nm, "has a braced body"))
     expect_identical(length(b), 2L, label = paste(nm, "has one statement"))
@@ -436,13 +475,33 @@ test_that("the two refusal helpers really are unconditional", {
   }
   # the absent case: a helper with a branch must NOT satisfy this
   branchy <- function(fn) {
-    b <- body(fn)
+    b <- ar_body(fn)
     is.call(b) && identical(as.character(b[[1L]]), "{") &&
       length(b) == 2L && identical(as.character(b[[2L]][[1L]]), "stop")
   }
   expect_false(branchy(function(x) {
     if (x) stop("a")
     invisible(NULL)
+  }))
+  # and covr's wrapper removal does not launder a branch: the same
+  # body in the shape covr writes still fails, as does a lone branch
+  expect_true(branchy(function(x) {
+    if (TRUE) {
+      covr:::count("k")
+      stop("a")
+    }
+  }))
+  expect_false(branchy(function(x) {
+    if (TRUE) {
+      covr:::count("k")
+      if (x) stop("a")
+    }
+  }))
+  expect_false(ar_refuses_always(function(x, ...) {
+    if (TRUE) {
+      covr:::count("k")
+      if (x) fit_no_draws("f")
+    }
   }))
 })
 
