@@ -1,4 +1,4 @@
-# frmtmb.sample (development version)
+# frmtmb.sample 0.6.0
 
 * **BREAKING, and a published number moves. `rhat()` and
   `neff_ratio()` now answer brms's question.** They called

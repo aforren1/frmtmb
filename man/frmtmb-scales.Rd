@@ -3,6 +3,10 @@
 \name{frmtmb-scales}
 \alias{frmtmb-scales}
 \title{Which scale each method reports}
+\value{
+This page documents a convention. It is not a function, so it
+returns no value.
+}
 \description{
 Every quantity a fitted model reports lives on one of three scales,
 and nothing in the output says which. This page says it once, per

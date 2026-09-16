@@ -1,5 +1,6 @@
 frmtmb	test-aliased-grouping.R	33	0
-frmtmb	test-api-spellings.R	36	0
+frmtmb	test-api-spellings.R	33	0
+frmtmb	test-arg-refusal.R	118	0
 frmtmb	test-autocor.R	191	0
 frmtmb	test-autoscale.R	46	0
 frmtmb	test-backlog.R	35	0
@@ -20,7 +21,7 @@ frmtmb	test-boot.R	44	0
 frmtmb	test-bracket-access.R	33	0
 frmtmb	test-brms-agreement.R	168	2
 frmtmb	test-brms-likelihood.R	20	32
-frmtmb	test-brms-methods.R	18	45
+frmtmb	test-brms-methods.R	16	45
 frmtmb	test-brms-port.R	18	0
 frmtmb	test-brms-priors.R	0	12
 frmtmb	test-car-spde.R	135	0
@@ -161,8 +162,8 @@ frmtmb.eam	test-variability.R	140	0
 frmtmb.sample	test-bracket-access.R	1	0
 frmtmb.sample	test-compat-preflight.R	81	0
 frmtmb.sample	test-conditional-effects-draws.R	57	0
-frmtmb.sample	test-draws-methods.R	101	0
-frmtmb.sample	test-draws-spellings.R	48	0
+frmtmb.sample	test-draws-methods.R	127	0
+frmtmb.sample	test-draws-spellings.R	79	0
 frmtmb.sample	test-evidence-ratio.R	33	0
 frmtmb.sample	test-generic-collision.R	58	0
 frmtmb.sample	test-loo.R	74	1
@@ -197,7 +198,7 @@ frmtmb.spline	test-span.R	73	0
 frmtmb.spline	test-surface.R	47	0
 frmtmb.learn	test-bracket-access.R	1	0
 frmtmb.learn	test-clean-session.R	4	0
-frmtmb.learn	test-counterfactual.R	67	0
+frmtmb.learn	test-counterfactual.R	68	0
 frmtmb.learn	test-engine.R	19	0
 frmtmb.learn	test-factorization.R	35	0
 frmtmb.learn	test-families.R	45	0

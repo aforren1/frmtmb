@@ -352,6 +352,12 @@ test_that("no shared generic carries work in its own body", {
   #
   # Run in a child with NO owner loaded, so every binding hands back
   # its own fallback rather than the owner's generic.
+  #
+  # covr rewrites every statement in place as
+  # `if (TRUE) { covr:::count(key); <statement> }`, so under coverage a
+  # bare UseMethod() read as work and this failed only in the coverage
+  # job. Only that exact wrapper is removed: a body with a second
+  # statement keeps two wrapped statements and is still caught.
   skip_on_cran()
   out <- run_child(c(
     "suppressMessages(library(frmtmb))",
@@ -359,13 +365,28 @@ test_that("no shared generic carries work in its own body", {
     "tab <- get('frm_generic_owners', envir = ns)",
     "loaded <- intersect(unique(unlist(tab)), loadedNamespaces())",
     "cat('OWNERSLOADED:', length(loaded), '\\n')",
+    "unwrap <- function(b) {",
+    "  repeat {",
+    "    if (is.call(b) && identical(b[[1L]], as.name('{')) &&",
+    "        length(b) == 2L) { b <- b[[2L]]; next }",
+    "    if (is.call(b) && identical(b[[1L]], as.name('if')) &&",
+    "        length(b) == 3L && isTRUE(b[[2L]])) {",
+    "      i <- b[[3L]]",
+    "      if (is.call(i) && identical(i[[1L]], as.name('{')) &&",
+    "          length(i) == 3L && is.call(i[[2L]]) &&",
+    "          identical(i[[2L]][[1L]], quote(covr:::count))) {",
+    "        b <- i[[3L]]; next",
+    "      }",
+    "    }",
+    "    break",
+    "  }",
+    "  b",
+    "}",
     "bad <- character()",
     "for (g in names(tab)) {",
     "  f <- tryCatch(get(g), error = function(e) NULL)",
     "  if (!is.function(f)) { bad <- c(bad, g); next }",
-    "  b <- body(f)",
-    "  if (is.call(b) && identical(b[[1L]], as.name('{')))",
-    "    b <- if (length(b) == 2L) b[[2L]] else b",
+    "  b <- unwrap(body(f))",
     "  if (!(is.call(b) && identical(b[[1L]], as.name('UseMethod'))))",
     "    bad <- c(bad, g)",
     "}",

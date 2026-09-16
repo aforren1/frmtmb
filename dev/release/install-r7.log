@@ -1,0 +1,155 @@
+﻿R.exe : * installing *source* package 'frmtmb' ...
+At line:10 char:3
++   & $R CMD INSTALL --library=$LIB $p 2>&1 | Out-File -FilePath $log - ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (* installing *s...ge 'frmtmb' ...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+** this is package 'frmtmb' version '0.58.0'
+** using staged installation
+** R
+** data
+*** moving datasets to lazyload DB
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb)
+R.exe : * installing *source* package 'frmtmb.eam' ...
+At line:10 char:3
++   & $R CMD INSTALL --library=$LIB $p 2>&1 | Out-File -FilePath $log - ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (* installing *s...frmtmb.eam' ...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+** this is package 'frmtmb.eam' version '0.8.1'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.eam)
+R.exe : * installing *source* package 'frmtmb.spline' ...
+At line:10 char:3
++   & $R CMD INSTALL --library=$LIB $p 2>&1 | Out-File -FilePath $log - ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (* installing *s...tmb.spline' ...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+** this is package 'frmtmb.spline' version '0.5.1'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.spline)
+R.exe : * installing *source* package 'frmtmb.ode' ...
+At line:10 char:3
++   & $R CMD INSTALL --library=$LIB $p 2>&1 | Out-File -FilePath $log - ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (* installing *s...frmtmb.ode' ...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+** this is package 'frmtmb.ode' version '0.4.0'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.ode)
+R.exe : * installing *source* package 'frmtmb.latent' ...
+At line:10 char:3
++   & $R CMD INSTALL --library=$LIB $p 2>&1 | Out-File -FilePath $log - ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (* installing *s...tmb.latent' ...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+** this is package 'frmtmb.latent' version '0.3.0'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.latent)
+R.exe : * installing *source* package 'frmtmb.coupling' ...
+At line:10 char:3
++   & $R CMD INSTALL --library=$LIB $p 2>&1 | Out-File -FilePath $log - ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (* installing *s...b.coupling' ...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+** this is package 'frmtmb.coupling' version '0.3.1'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.coupling)
+R.exe : * installing *source* package 'frmtmb.sample' ...
+At line:10 char:3
++   & $R CMD INSTALL --library=$LIB $p 2>&1 | Out-File -FilePath $log - ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (* installing *s...tmb.sample' ...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+** this is package 'frmtmb.sample' version '0.6.0'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.sample)
+R.exe : * installing *source* package 'frmtmb.learn' ...
+At line:10 char:3
++   & $R CMD INSTALL --library=$LIB $p 2>&1 | Out-File -FilePath $log - ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (* installing *s...mtmb.learn' ...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+** this is package 'frmtmb.learn' version '0.4.1'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.learn)

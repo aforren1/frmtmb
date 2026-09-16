@@ -37,6 +37,13 @@ jobs:
           print(cov)
           covr::to_cobertura(cov, file = "cobertura.xml")
         shell: Rscript {0}
+      # covr's error shows only the tail of the testthat output, which
+      # names the counts but not the failing test or the warning
+      - name: Show testthat output
+        if: always()
+        run: |
+          find "${RUNNER_TEMP}/package" -name 'testthat.Rout*' -exec cat '{}' \; || true
+        shell: bash
       - uses: codecov/codecov-action@v4
         if: env.CODECOV_TOKEN != ''
         with:

@@ -1,4 +1,4 @@
-# frmtmb (development version)
+# frmtmb 0.58.0
 
 * **BREAKING, and the rule behind it.** Where lme4 or glmmTMB and brms
   disagree on an argument name, brms is now the tiebreaker: this

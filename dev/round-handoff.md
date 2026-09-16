@@ -1,6 +1,6 @@
 # Handing a round to a new session
 
-Written 2026-09-15, at the frmtmb.sample generics release. Read this, then
+Written 2026-09-16, at the brms-matching release. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
 `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
 anything: this machine has lost its R library five times, and the cause
@@ -8,61 +8,64 @@ is OPEN rather than settled.
 
 ## Where the tree stands
 
-Main carries the Phase 2 release. Four lanes merged: `wt-frailty`,
-`wt-eamhier`, `wt-learnhier` and `wt-coh`. The release commit and the
+Main carries items 2.5e and 2.5f. Two lanes merged: `wt-argspell` for
+core, and `wt-brmsmatch` for frmtmb.sample. The two conflicted in 12
+places, and both suites verified the merge. The release commit and the
 docs rebuild are separate commits, in that order. **The user pushes; no
 session pushes for them.**
 
-Versions: frmtmb **0.57.0**, frmtmb.sample **0.5.0**, frmtmb.eam 0.8.1,
+Versions: frmtmb **0.58.0**, frmtmb.sample **0.6.0**, frmtmb.eam 0.8.1,
 frmtmb.learn 0.4.1, frmtmb.spline 0.5.1, frmtmb.coupling 0.3.1, frmtmb.ode
-0.4.0, frmtmb.latent 0.3.0. frmtmb.sample floors on core 0.57.0 as a HARD
-requirement: it cannot load against 0.56.0, because its `.onLoad()` calls
-`frm_install_generics()`, which 0.56.0 does not export.
+0.4.0, frmtmb.latent 0.3.0. frmtmb.sample floors on core 0.58.0.
 
 **Core is not a lane by default.** The user does brms compatibility
-there separately. Phase 2.5 is the exception and they asked for it
-directly; see below.
+there separately. Phase 2.5 was the exception, and they asked for it
+directly.
 
 ### Verified at the release commit
 
-- Suite: 221 files, 13159 assertions, no failures and no errors.
-- Gated, NO SKIPS: 23 of 23 files, 2491 assertions. Every row identical
-  to the previous release except `test-stan-identity.R` at 71 from 55,
-  which is the correlated-block Stan programs item 2.2 added, exactly
-  the +16 the total moved by.
-- Scale tier and `R CMD check --as-cran` and pkgdown: see the release
-  commit message for the numbers.
-- One baseline count fell, `frmtmb.spline/test-surface.R` 48 to 47, and
-  it was reconciled in review before release: three assertions removed,
-  two added.
+- Suite: 225 files, 13485 assertions, no failures and no errors. Two
+  counts fell, and review reconciled both before the release. The
+  release suite found one REGRESSION in frmtmb.learn, and it was fixed
+  first. `dev/suite-baseline.md` has the details.
+- Gated, no skips: 23 of 23 files, 2490 assertions. The only change is
+  `test-brms-methods.R`, 950 to 949: seven warning expectations became
+  six error expectations.
+- Scale: 7 of 7. `R CMD check --as-cran`: 8 of 8, with no warnings or
+  errors. Five packages carry the environmental "V8 unavailable" NOTE.
+- CI at 0.57.0 failed two jobs, and this release fixes both. pkgcheck
+  wanted a value section on the `frmtmb-scales` topic page. The coverage
+  job failed because covr instruments function bodies, and the "bare
+  UseMethod()" guard in `test-generic-collision.R` read covr's counter
+  as work. The coverage job also reported one WARN that the log did not
+  locate. The workflow now prints the full testthat output, so the next
+  run names it.
 
 **Read the comment at the top of each `dev/release/` script before you
-change it.** Two flags are forbidden there for reasons this round paid
-for again.
+change it.** Two flags are forbidden there.
 
 ## What is next, in order
 
-**Phase 2.5 is done except items 2.5e and 2.5f.** Neither frmtmb nor
-frmtmb.sample owns a generic it did not define any more. Both adopt from
-the real owners through ONE implementation, core's
-`frm_install_generics(pkgname, owners)`, exported on the extension API.
-Across 14 load orders, 67 of 67 brms methods lost at base became 0 of 67,
-and 60 calls on a brms fit that differed on 12 now differ on 0.
+**Phase 2.5 is done.** No method swallows an argument any more. Every S3
+method taking `...` refuses a name its generic does not document. brms
+is the tiebreaker on spelling, and frmtmb.sample's `rhat()` and
+`neff_ratio()` are `identical()` to brms's.
 
-**Next, and the user has decided both:**
+- **2.6c**, the defects brms's own suite found. Two of them are silent:
+  `family$link` partial-matches to a list, and an invalid `mu` link fits.
+  The row also holds the items carried over from 2.5f.
+- Then **2.6b**, the port of bin 1; tmbstan 1.2.1's verification in a
+  private library; and `frmtmb_control(vectorize = FALSE)`.
 
-- **2.5e**, core's argument spellings. `fitted(fit, re_formula = NA)` is
-  swallowed by `...` and silently returns the conditional fit.
-- **2.5f**, frmtmb.sample matching brms. `rhat()` and `neff_ratio()` answer
-  a DIFFERENT QUESTION from brms, and 10 of 28 methods take arguments in a
-  different order, 2 of which answer silently. **Match brms on all of it.**
-- Then Phase 2.6, pass brms's own test suite; tmbstan 1.2.1's verification;
-  and `frmtmb_control(vectorize = FALSE)`.
+**Open question for the user:** should `predict()` default to the
+response scale, as brms's does? The recommendation on record is to
+keep the link scale and add a sentence to the migration vignette. The
+user has not answered.
 
-**Settled, do not reopen:** the non-generic name collisions with brms stay,
-since `::` is sufficient in both load orders. And a gratia older than 0.9.0
-loaded before frmtmb.sample now stops it loading; the user accepted that and
-the declared floor as sufficient.
+**Settled, do not reopen:** the non-generic name collisions with brms
+stay, because `::` is sufficient in both load orders. A gratia older
+than 0.9.0, loaded before frmtmb.sample, stops frmtmb.sample loading.
+The user accepted that, and the declared floor, as sufficient.
 
 ## How a round runs here
 

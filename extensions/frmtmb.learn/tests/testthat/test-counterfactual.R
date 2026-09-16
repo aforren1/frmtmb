@@ -103,10 +103,15 @@ test_that("simulate() refuses the duplicated column and names it", {
   # something is, and it has to say that newdata is not a way round it
   expect_error(simulate(one, nsim = 1L, seed = 3L), "second")
   expect_error(simulate(one, nsim = 1L, seed = 3L), "newdata")
-  # and newdata really is not a way round it: the formula names one
-  # column twice, so a real schedule supplied there is read through it
+  # and newdata is not a way round it, for a blunter reason than this
+  # test used to assert: simulate() has NO newdata argument and never
+  # read one. Until frmtmb 0.58.0 the name was swallowed by `...`, so
+  # this call reached the reward() refusal and looked as though newdata
+  # had been considered and rejected. It had been dropped.
   expect_error(simulate(one, newdata = d, nsim = 1L, seed = 3L),
-               "reward\\(\\)")
+               "newdata", fixed = TRUE)
+  expect_false("newdata" %in% names(formals(
+    getS3method("simulate", "frmtmb_fit"))))
   # the de novo route reaches the same slot and refuses there too
   expect_error(
     frm_simulate(bf(choice | reward(rec, rec) ~ 1, tau ~ 1), d,

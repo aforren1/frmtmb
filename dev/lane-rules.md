@@ -305,6 +305,13 @@ own work rather than in review.
   hollow directory still answers `packageVersion()`.
   `dev/machine-library.md` carries two ten-digit reference values for
   this.
+- **Remove an exemption only against a run.** A count of zero written
+  call sites is not evidence that nothing reaches the exempted path,
+  because dots, `do.call()` and other packages' generics dispatch
+  without any call site in this repository. Run every suite that can
+  reach the path, including the other extensions' suites. The 0.58.0
+  dots refusal broke frmtmb.learn, which no grep of core would have
+  found.
 
 
 ## Cost, which is a real constraint

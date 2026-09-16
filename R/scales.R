@@ -117,5 +117,7 @@
 #' # sigma is printed on its log link and back-transformed by sigma()
 #' summary(fit)$coefficients$sigma[1, 1]
 #' sigma(fit)
+#' @return This page documents a convention. It is not a function, so it
+#'   returns no value.
 #' @name frmtmb-scales
 NULL

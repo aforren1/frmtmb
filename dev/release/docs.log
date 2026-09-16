@@ -234,7 +234,7 @@ Writing `news/index.html`
 -- Building sitemap ------------------------------------------------------------
 -- Building docs for llms ------------------------------------------------------
 -- Building redirects ----------------------------------------------------------
-Adding redirect from reference/frm_install_generics.html to
+Adding redirect from reference/frm_check_dots.html to
 reference/frmtmb-sampling-api.html.
 -- Building search index -------------------------------------------------------
 -- Checking for problems -------------------------------------------------------
@@ -278,6 +278,7 @@ Reading man/ndt_bound_key.Rd
 Reading man/ndt_bound_of.Rd
 Reading man/ndt_bound_pending.Rd
 Reading man/ndt_time.Rd
+Writing `reference/ndt_time.html`
 Reading man/rdm.Rd
 Reading man/rdm_simulate.Rd
 Reading man/wiener.Rd
@@ -378,12 +379,16 @@ Writing `404.html`
 Loading required package: frmtmb
 Reading man/frmtmb.spline-package.Rd
 Reading man/frm_curve.Rd
+Writing `reference/frm_curve.html`
 Reading man/frm_curve_deriv.Rd
+Writing `reference/frm_curve_deriv.html`
 Reading man/frm_curve_feature.Rd
+Writing `reference/frm_curve_feature.html`
 Reading man/royston_parmar.Rd
 Reading man/rp_floored.Rd
 -- Building articles -----------------------------------------------------------
 Reading vignettes/curve-inference.Rmd
+Writing `articles/curve-inference.html`
 Reading vignettes/royston-parmar.Rmd
 -- Building news ---------------------------------------------------------------
 -- Building sitemap ------------------------------------------------------------
@@ -412,10 +417,13 @@ Loading required package: frmtmb
 Reading man/cross_wishart.Rd
 Reading man/frmtmb.coupling-package.Rd
 Reading man/frm_coherence.Rd
+Writing `reference/frm_coherence.html`
 Reading man/frm_cross_simulate.Rd
+Writing `reference/frm_cross_simulate.html`
 Reading man/frm_cross_spectrum.Rd
 -- Building articles -----------------------------------------------------------
 Reading vignettes/coherence.Rmd
+Writing `articles/coherence.html`
 -- Building news ---------------------------------------------------------------
 -- Building sitemap ------------------------------------------------------------
 -- Building docs for llms ------------------------------------------------------
@@ -524,6 +532,7 @@ Reading man/rlddm.Rd
 Reading man/ts_par7.Rd
 -- Building articles -----------------------------------------------------------
 Reading vignettes/learning.Rmd
+Writing `articles/learning.html`
 -- Building news ---------------------------------------------------------------
 -- Building sitemap ------------------------------------------------------------
 -- Building docs for llms ------------------------------------------------------

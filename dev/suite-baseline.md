@@ -1,7 +1,7 @@
 # The per-file suite baseline, and what it is for
 
 `dev/suite-baseline.tsv` records one row per test file as of the round 3
-release, at frmtmb 0.57.0 and frmtmb.sample 0.5.0: package, file, passing
+release, at frmtmb 0.58.0 and frmtmb.sample 0.6.0: package, file, passing
 assertions, skips. It is a floor, not a target.
 
 ## Why it exists
@@ -130,3 +130,25 @@ That file broke during the lane because `local_mocked_bindings()` cannot
 mock an active binding: assigning to one calls it. It was repaired by
 mocking the method instead, and an unchanged count is the evidence that
 the repair restored the assertions rather than removing them.
+
+## What the brms-matching release added
+
+Regenerated at 225 rows and 13485 assertions, from 224 and 13314. One
+file is new, `frmtmb/test-arg-refusal.R` at 118.
+
+TWO counts fell, and both were derived line by line in review before
+release rather than explained after it. `frmtmb/test-api-spellings.R`
+went from 36 to 33 because three assertions checked `re.form` aliases
+that item 2.5e removed outright. `frmtmb/test-brms-methods.R` went from
+18 to 16 as a split of 3 to 2 and 2 to 1, where warnings that had been
+asserted became errors.
+
+A third drop was a REGRESSION and is not in this table because it was
+fixed first. `frmtmb.learn/test-counterfactual.R` fell from 67 to 65
+with one error. `simulate()` never had a `newdata` argument, and at
+0.57.0 the name was silently swallowed by `...`, so a test passing
+`newdata = d` reached an unrelated refusal and looked as though newdata
+had been considered. The new dots refusal named it, the test was
+correcting the bug, and it now stands at 68. The lane that caused it
+had declared plainly that it did not run the five other extensions'
+suites, and that is exactly where the release suite found it.
