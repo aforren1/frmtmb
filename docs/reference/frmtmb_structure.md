@@ -326,8 +326,8 @@ family names only what it refuses:
 
 - `re_form`:
 
-  `re.form =` in [`predict()`](https://rdrr.io/r/stats/predict.html) and
-  [`simulate()`](https://rdrr.io/r/stats/simulate.html).
+  `re_formula =` in [`predict()`](https://rdrr.io/r/stats/predict.html)
+  and [`simulate()`](https://rdrr.io/r/stats/simulate.html).
 
 - `conditional_effects`:
 

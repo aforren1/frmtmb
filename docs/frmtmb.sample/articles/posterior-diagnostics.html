@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -101,22 +101,35 @@ says more about why, and its own prior tables do run.</p>
 <div class="section level2">
 <h2 id="did-the-sampler-explore-the-posterior">Did the sampler explore the posterior?<a class="anchor" aria-label="anchor" href="#did-the-sampler-explore-the-posterior"></a>
 </h2>
-<p><code>summary(ds)</code> puts <code>n_eff</code> and
-<code>Rhat</code> beside each estimate, which is where to start. Read
-the pattern and not only the worst entry. One parameter with a low
-effective sample size and a clean <code>Rhat</code> is a slow chain.
-Several at once usually means the geometry is wrong rather than the run
-too short, and sampling longer will not fix it.</p>
+<p><code>summary(ds)</code> puts <code>Rhat</code>,
+<code>Bulk_ESS</code> and <code>Tail_ESS</code> beside each estimate,
+which is where to start. Read the pattern and not only the worst entry.
+One parameter with a low effective sample size and a clean
+<code>Rhat</code> is a slow chain. Several at once usually means the
+geometry is wrong rather than the run too short, and sampling longer
+will not fix it. A high <code>Bulk_ESS</code> with a low
+<code>Tail_ESS</code> says the centre of the posterior is well explored
+and the extreme quantiles are not, so an interval is less trustworthy
+than a mean.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/draws-diagnostics.html">rhat</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/draws-diagnostics.html">neff_ratio</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span></code></pre></div>
-<p><code><a href="../reference/draws-diagnostics.html">rhat()</a></code> and <code><a href="../reference/draws-diagnostics.html">neff_ratio()</a></code> read the
-<code>stanfit</code> inside the draws object directly, so they report
-Stan’s own parameter names (<code>par[1]</code> and its relatives).
-Everything else in this package relabels to the frmtmb draws-side names,
-which <code>variables(ds)</code> lists. That difference is worth knowing
-before you try to match two printouts by eye.</p>
+<p>These are brms’s diagnostics throughout, computed by the posterior
+package on these draws and reported under the frmtmb draws-side names
+that <code>variables(ds)</code> lists. <code><a href="../reference/draws-diagnostics.html">rhat()</a></code> is the
+rank-normalized split-R-hat, <code><a href="../reference/draws-diagnostics.html">neff_ratio()</a></code> is
+<code>min(ess_bulk, ess_tail) / ndraws</code>, and
+<code>summary(ds)</code> reports the same <code>Rhat</code> with the two
+effective sizes it takes the minimum of. The three columns and the two
+accessors are one set of numbers: <code>summary(ds)[, "Rhat"]</code> IS
+<code>rhat(ds)</code> on those rows.</p>
+<p>None of them is what the sampler itself recorded. Stan’s own classic
+split-R-hat and <code>n_eff</code> are a different definition of the
+same idea, and they are in
+<code>rstan::summary(ds$stanfit)$summary</code> if you want to compare.
+Expect them to disagree by about the size of the excess over 1 that
+either R-hat reports.</p>
 <p>The sampler’s own record is in <code><a href="../reference/draws-diagnostics.html">nuts_params()</a></code>, with the
 divergent transitions, the tree depths and the step size per iteration,
 and the log posterior is <code><a href="../reference/draws-diagnostics.html">log_posterior()</a></code>. Both feed
@@ -146,8 +159,9 @@ usual fix, and it fixes two things at once: it closes the flat tail at
 the funnel.</li>
 <li>
 <strong>Sample longer.</strong> <code>iter =</code> and
-<code>chains =</code> pass straight to tmbstan. A low <code>n_eff</code>
-with <code>Rhat</code> near 1 is answered here.</li>
+<code>chains =</code> pass straight to tmbstan. A low
+<code>Bulk_ESS</code> with <code>Rhat</code> near 1 is answered
+here.</li>
 <li>
 <strong>Tighten the sampler.</strong>
 <code>frm_sample(fit, control = list(adapt_delta = 0.99))</code> is

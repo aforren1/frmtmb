@@ -35,7 +35,7 @@ ndt_time(object, newdata = NULL, ...)
 - ...:
 
   Passed to [`stats::predict()`](https://rdrr.io/r/stats/predict.html);
-  `re.form` and `allow_new_levels` are the useful ones.
+  `re_formula` and `allow_new_levels` are the useful ones.
 
 ## Value
 

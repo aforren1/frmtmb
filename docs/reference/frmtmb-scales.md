@@ -4,6 +4,11 @@ Every quantity a fitted model reports lives on one of three scales, and
 nothing in the output says which. This page says it once, per method, so
 that a ported script can be read without guessing.
 
+## Value
+
+This page documents a convention. It is not a function, so it returns no
+value.
+
 ## Details
 
 The three scales are:

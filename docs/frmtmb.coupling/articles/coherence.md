@@ -117,7 +117,7 @@ fit <- frm(bf(w11 | vreal(w22, w12r, w12i) + vint(n) ~ 1 + (1 | id),
               coh ~ 1 + (1 | id),
               phase ~ 1 + (1 | id)),
            family = cross_wishart(), data = xs)
-frm_coherence(fit, newdata = xs[1, ], re.form = NA)
+frm_coherence(fit, newdata = xs[1, ], re_formula = NA)
 #>   .estimate       .se    .lower    .upper       .eta
 #> 1 0.4695287 0.1226127 0.4103901 0.5295356 -0.1220363
 ```

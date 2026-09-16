@@ -12,7 +12,7 @@ predict(
   type = c("link", "response", "conditional", "zprob", "zlink", "disp"),
   dpar = NULL,
   resp = NULL,
-  re.form = NULL,
+  re_formula = NULL,
   se.fit = FALSE,
   allow_new_levels = FALSE,
   ...
@@ -52,11 +52,11 @@ predict(
   For multivariate fits: which response to predict (defaults to the
   first).
 
-- re.form:
+- re_formula:
 
   `NULL` (default) includes random effects; `NA` or `~0` gives
-  population-level predictions. See *What `re.form = NA` drops* for what
-  that means when the model has smooths.
+  population-level predictions. See *What `re_formula = NA` drops* for
+  what that means when the model has smooths.
 
 - se.fit:
 
@@ -75,7 +75,10 @@ predict(
 
 - ...:
 
-  Unused.
+  Refused. An argument this method does not have is an error naming it,
+  and the two lme4 spellings that were live in 0.57.0 (`re.form`,
+  `allow.new.levels`) are refused by name with the brms spelling that
+  replaced them.
 
 ## Value
 
@@ -145,9 +148,9 @@ about a mean with a latent predictor is the confusion this section
 exists to remove. Ask for the predictor by name (`type = "link"`, or
 `dpar = "mu"`) when that is what you want.
 
-## What `re.form = NA` drops
+## What `re_formula = NA` drops
 
-`re.form = NA` (equivalently `~0`) asks for the POPULATION-level
+`re_formula = NA` (equivalently `~0`) asks for the POPULATION-level
 prediction. Every `(x | g)` block is dropped, and so is any smooth whose
 basis gives each level of a grouping factor its own curve. Everything
 else stays.
@@ -197,7 +200,7 @@ per-level curve is not a population quantity, and mgcv, the authority
 frmtmb's smooth estimation already follows, drops it too.
 
 A dropped factor-smooth term needs nothing from `newdata`, so the
-grouping column may be left out entirely when `re.form = NA`. It is
+grouping column may be left out entirely when `re_formula = NA`. It is
 required for a conditional prediction, and its absence is reported by
 name rather than by an mgcv internal message.
 
@@ -259,9 +262,9 @@ head(predict(fit))
 max(abs(predict(fit, type = "response") - fitted(fit)))
 #> [1] 0
 
-# re.form = NA drops the random effects: the population prediction
+# re_formula = NA drops the random effects: the population prediction
 nd <- data.frame(x = c(-1, 0, 1), g = factor(1, levels = levels(dd$g)))
-predict(fit, newdata = nd, re.form = NA, type = "response")
+predict(fit, newdata = nd, re_formula = NA, type = "response")
 #>         1         2         3 
 #> 0.9340309 1.3398092 1.9218728 
 

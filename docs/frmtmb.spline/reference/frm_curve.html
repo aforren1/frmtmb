@@ -63,7 +63,7 @@ SIMULTANEOUS band that covers the whole curve at once.</p>
 <span>  contrast <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  dpar <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  re.form <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  re_formula <span class="op">=</span> <span class="cn">NA</span>,</span>
 <span>  level <span class="op">=</span> <span class="fl">0.95</span>,</span>
 <span>  simultaneous <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  nsim <span class="op">=</span> <span class="fl">10000L</span>,</span>
@@ -102,7 +102,7 @@ the default, is the location parameter <code>mu</code>.</p></dd>
 <dd><p>Response name, for a multivariate fit.</p></dd>
 
 
-<dt id="arg-re-form">re.form<a class="anchor" aria-label="anchor" href="#arg-re-form"></a></dt>
+<dt id="arg-re-formula">re_formula<a class="anchor" aria-label="anchor" href="#arg-re-formula"></a></dt>
 <dd><p><code>NA</code> (the default) evaluates the population curve, the
 convention <code>mgcv</code> and <code>gratia</code> plot. <code>NULL</code> keeps every random
 effect, so the grid must carry the grouping columns and the curve is
@@ -220,7 +220,7 @@ ran.</p>
 <p>What this call costs is dominated by ONE thing: the single
 <code>predict(se.fit = TRUE)</code> check call, inside which core inverts the
 fit's joint precision matrix over EVERY coefficient, including the
-ones this curve does not touch. Measured at <code>re.form = NA</code> on a
+ones this curve does not touch. Measured at <code>re_formula = NA</code> on a
 20-point grid, one process each:</p>
 <ul><li><p><code>s(x, k = 10)</code>, 8 random coefficients: 0.29 s.</p></li>
 <li><p><code>s(t, k = 8) + (1 + t | subject)</code>, 1000 subjects and 2006

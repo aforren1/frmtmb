@@ -3,8 +3,8 @@
 `posterior_epred()` evaluates the response-scale expectation per draw;
 `posterior_predict()` additionally simulates responses from the family,
 giving the posterior predictive distribution. Both condition on each
-draw's own random effects (`re_formula = NA` drops them; `re.form` is
-the accepted alias, see *Argument spellings*).
+draw's own random effects (`re_formula = NA` drops them; `re.form` is an
+accepted alias here, see *Argument spellings*).
 
 ## Usage
 
@@ -15,10 +15,13 @@ posterior_epred(object, ...)
 posterior_epred(
   object,
   newdata = NULL,
-  resp = NULL,
   re_formula = arg_unset(),
   re.form = arg_unset(),
+  resp = NULL,
+  dpar = NULL,
+  nlpar = NULL,
   ndraws = NULL,
+  draw_ids = NULL,
   ...
 )
 
@@ -29,11 +32,14 @@ posterior_linpred(
   object,
   transform = FALSE,
   newdata = NULL,
-  resp = NULL,
   re_formula = arg_unset(),
   re.form = arg_unset(),
+  resp = NULL,
   dpar = NULL,
+  nlpar = NULL,
+  incl_thres = NULL,
   ndraws = NULL,
+  draw_ids = NULL,
   ...
 )
 
@@ -43,10 +49,13 @@ posterior_predict(object, ...)
 posterior_predict(
   object,
   newdata = NULL,
-  resp = NULL,
   re_formula = arg_unset(),
   re.form = arg_unset(),
+  transform = NULL,
+  resp = NULL,
+  negative_rt = FALSE,
   ndraws = NULL,
+  draw_ids = NULL,
   ...
 )
 ```
@@ -73,16 +82,33 @@ posterior_predict(
   conditions on each draw's own random effects, `NA` or `~0` gives the
   population-level quantity. Its meaning is
   [`frmtmb::predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.html)'s
-  `re.form`; see *Argument spellings*.
+  `re_formula`; see *Argument spellings*.
 
 - re.form:
 
-  lme4's spelling of `re_formula`, accepted as an alias. Pass one or the
-  other, not both.
+  lme4's spelling of `re_formula`, accepted on the four methods where
+  brms accepts it too. Pass one or the other, not both.
+
+- dpar:
+
+  Which distributional parameter to evaluate: its linear predictor for
+  `posterior_linpred()`, its response-scale value for
+  `posterior_epred()`. The default is the family's `mu`.
+
+- nlpar:
+
+  The parameter an `nlf()` body names. brms keeps it apart from `dpar`;
+  frmtmb asks for either by the `dpar` name, so this is the same setting
+  and the slot is here for brms's position.
 
 - ndraws:
 
   Number of draws to use (default: all).
+
+- draw_ids:
+
+  The draws to use, by row index, instead of the evenly spaced subsample
+  `ndraws` takes. Give one or the other.
 
 - transform:
 
@@ -91,10 +117,16 @@ posterior_predict(
   `posterior_epred()` this is not the response mean for zero-inflated
   and similar families).
 
-- dpar:
+- incl_thres:
 
-  For `posterior_linpred()`: which distributional parameter's linear
-  predictor to evaluate.
+  For `posterior_linpred()`: refused. brms subtracts a cumulative
+  family's thresholds from the predictor; frmtmb returns the latent
+  predictor itself.
+
+- negative_rt:
+
+  For `posterior_predict()`: refused. It is brms's sign convention for
+  its own wiener family.
 
 ## Value
 
@@ -151,25 +183,44 @@ refused for them.
 
 ## Argument spellings
 
-frmtmb answers to two dialects, and this family sits on the seam. The
-rule is that a brms-NAMED function speaks brms's argument names, while
-frmtmb's own fit surface
-([`frmtmb::predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.html),
-[`frmtmb::simulate.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/simulate.frmtmb_fit.html),
-[`frmtmb::frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.html))
-keeps lme4's, because that is the heritage each name comes from and a
-reader should be able to tell which library a call was written against.
+One rule decides every name in this package: where lme4 or glmmTMB and
+brms disagree, brms wins. The random-effect switch is therefore
+`re_formula` everywhere, on the draws methods here and on
+[`frmtmb::predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.html)
+and
+[`frmtmb::simulate.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/simulate.frmtmb_fit.html)
+alike; lme4's `re.form` was dropped from the fit surface and is refused
+there by name.
 
-`posterior_epred()` and its relatives are brms functions, so the
-random-effect switch is `re_formula`. They also SHIPPED taking lme4's
-`re.form`, so that spelling keeps working and means exactly the same
-thing: both names feed one internal setting, and whichever one is given
-wins. brms does the same on `posterior_epred.brmsfit()`, which carries
-`re_formula` and `re.form` side by side.
+Five methods take BOTH spellings, and they are exactly the five where
+brms ITSELF accepts both. Four declare them: `posterior_epred()`,
+`posterior_linpred()`, `posterior_predict()` and
+[`predictive_error()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-posterior_summary.md)
+carry `re_formula` and `re.form` side by side on `brmsfit`. The fifth
+does not declare them and accepts them anyway:
+`predictive_interval.brmsfit()`'s whole body is
+`posterior_predict(object, ...)`, so the alias reaches a formal one
+frame down. What brms ACCEPTS is the test, not what it declares.
+
+[`pp_check()`](https://mc-stan.org/bayesplot/reference/pp_check.html) is
+the one method that lost the alias, and the same test is why it stays
+lost. brms DOES honor `re.form` there, through the same dots forwarding,
+but it warns "unrecognized and ignored" while doing it. Matching brms
+means matching what brms decided, and a warn-then-honor path is a leak
+rather than a decision: the argument changes the answer and the message
+says it did not.
+[`predictive_interval()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-posterior_summary.md)
+is the contrast, where brms honors the alias silently and this package
+follows.
 
 Giving both at once is refused rather than resolved. Two names for one
 setting supplied together is a question about what was meant, and
 guessing at it would silently ignore one of them.
+
+The argument ORDER is brms's too, so a positional brms call means the
+same thing here: `newdata` then `re_formula` then `re.form` then `resp`,
+after `transform` in `posterior_linpred()` and before it in
+`posterior_predict()`.
 
 The literal default of both formals is an internal "not supplied" marker
 rather than a value, because `NULL` (keep the random effects) and `NA`

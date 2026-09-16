@@ -22,7 +22,15 @@ posterior_summary(
 posterior_interval(object, ...)
 
 # S3 method for class 'frmtmb_draws'
-posterior_interval(object, prob = 0.95, variable = NULL, ...)
+posterior_interval(
+  object,
+  pars = NA,
+  variable = NULL,
+  prob = 0.95,
+  regex = FALSE,
+  fixed = FALSE,
+  ...
+)
 
 predictive_interval(object, ...)
 
@@ -43,10 +51,13 @@ predictive_error(object, ...)
 # S3 method for class 'frmtmb_draws'
 predictive_error(
   object,
-  resp = NULL,
+  newdata = NULL,
   re_formula = arg_unset(),
   re.form = arg_unset(),
+  method = "posterior_predict",
+  resp = NULL,
   ndraws = NULL,
+  draw_ids = NULL,
   ...
 )
 ```
@@ -74,16 +85,34 @@ predictive_error(
 
 - ...:
 
-  Unused.
+  Refused: an argument the method does not have is an error naming it,
+  rather than silently changing nothing.
 
 - object:
 
   A `frmtmb_draws`, or a matrix of draws (variables in columns).
 
+- pars:
+
+  brms's alias of `variable`, in brms's own second position on
+  `posterior_interval()`: `NA` (the default) for every variable,
+  otherwise a character vector matched as a regular expression unless
+  `fixed = TRUE`. brms refuses a `pars` that is neither `NA` nor
+  character, and so does this, which is why `posterior_interval(x, 0.9)`
+  is a refusal and not an interval.
+
 - prob:
 
   Central interval width for `posterior_interval()` and
   `predictive_interval()`.
+
+- regex:
+
+  If `TRUE`, `variable` is a regular expression.
+
+- fixed:
+
+  If `TRUE`, `pars` is matched by exact name.
 
 - re_formula, re.form:
 
@@ -94,10 +123,17 @@ predictive_error(
   section of
   [`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md).
 
-- ndraws, newdata, resp:
+- ndraws, draw_ids, newdata, resp:
 
   Passed to
   [`posterior_predict()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md).
+  `predictive_error(newdata =)` re-evaluates the response term on
+  `newdata`, so `newdata` must carry the response.
+
+- method:
+
+  For `predictive_error()`, which predictive draws the error is taken
+  against: `"posterior_predict"` (the default) or `"posterior_epred"`.
 
 ## Value
 

@@ -11,7 +11,14 @@ see the same support the likelihood was normalized on.
 
 ``` r
 # S3 method for class 'frmtmb_fit'
-simulate(object, nsim = 1, seed = NULL, re.form = NULL, censored = FALSE, ...)
+simulate(
+  object,
+  nsim = 1,
+  seed = NULL,
+  re_formula = NULL,
+  censored = FALSE,
+  ...
+)
 ```
 
 ## Arguments
@@ -31,7 +38,7 @@ simulate(object, nsim = 1, seed = NULL, re.form = NULL, censored = FALSE, ...)
   the global RNG state is restored afterwards, and the seed used is
   attached as the `"seed"` attribute.
 
-- re.form:
+- re_formula:
 
   `NULL` (default) conditions on the estimated random effects; `NA`
   redraws them from their estimated distribution (marginal simulation).
@@ -43,7 +50,8 @@ simulate(object, nsim = 1, seed = NULL, re.form = NULL, censored = FALSE, ...)
 
 - ...:
 
-  Unused.
+  Refused: an argument the method does not have is an error naming it,
+  rather than silently changing nothing.
 
 ## Value
 
@@ -140,9 +148,9 @@ attr(sims, "seed")
 #> [1] "Rejection"
 #> 
 
-# re.form = NA redraws the group effects, which is the right choice
+# re_formula = NA redraws the group effects, which is the right choice
 # for a parametric bootstrap over new groups
-sims_m <- simulate(fit, nsim = 5, re.form = NA, seed = 42)
+sims_m <- simulate(fit, nsim = 5, re_formula = NA, seed = 42)
 apply(sims_m, 2, var) > apply(sims, 2, var)
 #> sim_1 sim_2 sim_3 sim_4 sim_5 
 #>  TRUE FALSE FALSE FALSE  TRUE 

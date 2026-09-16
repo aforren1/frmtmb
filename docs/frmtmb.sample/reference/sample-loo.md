@@ -33,7 +33,14 @@ loo_compare(x, ..., criterion = c("loo", "waic"), model_names = NULL)
 psis(log_ratios, ...)
 
 # S3 method for class 'frmtmb_draws'
-psis(log_ratios, ndraws = NULL, resp = NULL, ...)
+psis(
+  log_ratios,
+  newdata = NULL,
+  resp = NULL,
+  model_name = NULL,
+  ndraws = NULL,
+  ...
+)
 
 # S3 method for class 'frmtmb_draws'
 LOO(x, ...)
@@ -78,6 +85,18 @@ WAIC(x, ...)
 
   For `psis()`, the draws object whose negative pointwise log-likelihood
   supplies the importance ratios.
+
+- newdata:
+
+  For `psis()`, accepted in brms's own second position and refused,
+  because
+  [`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md)
+  does not take it.
+
+- model_name:
+
+  For `psis()`, brms's label for the model. Accepted and unused: a
+  `psis` object has nothing to label.
 
 ## Value
 

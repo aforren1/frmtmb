@@ -29,7 +29,14 @@ as_draws_rvars(x, ...)
 as.mcmc(x, ...)
 
 # S3 method for class 'frmtmb_draws'
-as.mcmc(x, combine_chains = FALSE, ...)
+as.mcmc(
+  x,
+  pars = NA,
+  fixed = FALSE,
+  combine_chains = FALSE,
+  inc_warmup = FALSE,
+  ...
+)
 ```
 
 ## Arguments
@@ -40,13 +47,31 @@ as.mcmc(x, combine_chains = FALSE, ...)
 
 - ...:
 
-  Unused.
+  Refused: an argument the method does not have is an error naming it,
+  rather than silently changing nothing.
+
+- pars:
+
+  Variables to keep, in brms's spelling: `NA` (the default) for all of
+  them, otherwise a character vector matched as a regular expression
+  unless `fixed = TRUE`. The argument sits in brms's own second
+  position, so `as.mcmc(x, TRUE)` is refused here exactly as brms
+  refuses it.
+
+- fixed:
+
+  If `TRUE`, `pars` is matched by exact name.
 
 - combine_chains:
 
   If `TRUE`, one `mcmc` object over the pooled draws; otherwise an
   `mcmc.list` with one component per chain, which is what coda's
   diagnostics (`gelman.diag()`) need.
+
+- inc_warmup:
+
+  Accepted for brms's signature and only `FALSE` is supported: a
+  `frmtmb_draws` keeps the post-warmup draws alone.
 
 ## Value
 

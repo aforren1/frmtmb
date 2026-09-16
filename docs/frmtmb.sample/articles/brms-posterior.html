@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -212,9 +212,10 @@ edit.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://mc-stan.org/posterior/reference/variables.html" class="external-link">variables</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"</span><span class="op">)</span></span></code></pre></div>
-<p><code><a href="../reference/draws-diagnostics.html">rhat()</a></code>, <code><a href="../reference/draws-diagnostics.html">neff_ratio()</a></code> and
-<code><a href="../reference/draws-diagnostics.html">nuts_params()</a></code> are the exception. They read the
-<code>stanfit</code> directly and report Stan’s own names.</p>
+<p><code><a href="../reference/draws-diagnostics.html">nuts_params()</a></code> is the exception. It reads the
+<code>stanfit</code> directly, as brms’s own <code><a href="../reference/draws-diagnostics.html">nuts_params()</a></code>
+does, and its rows are the sampler’s quantities rather than model
+parameters.</p>
 </div>
 <div class="section level2">
 <h2 id="the-method-surface-ports">The method surface ports<a class="anchor" aria-label="anchor" href="#the-method-surface-ports"></a>

@@ -42,7 +42,7 @@ hypothesis(x, hypothesis, alpha = 0.05, class = NULL, group = NULL, ...)
   `method = "profile"` (e.g. `ytol`, `ystep`, `maxit`, `parm.range`) and
   to
   [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
-  for `method = "boot"` (e.g. `re.form = NULL` for a conditional
+  for `method = "boot"` (e.g. `re_formula = NULL` for a conditional
   bootstrap). Unused for `"wald"` (a warning).
 
 - hypothesis:

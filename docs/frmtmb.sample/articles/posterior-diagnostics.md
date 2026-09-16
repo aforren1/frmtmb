@@ -31,11 +31,14 @@ ds <- frm_sample(fit, chains = 4)
 
 ## Did the sampler explore the posterior?
 
-`summary(ds)` puts `n_eff` and `Rhat` beside each estimate, which is
-where to start. Read the pattern and not only the worst entry. One
-parameter with a low effective sample size and a clean `Rhat` is a slow
-chain. Several at once usually means the geometry is wrong rather than
-the run too short, and sampling longer will not fix it.
+`summary(ds)` puts `Rhat`, `Bulk_ESS` and `Tail_ESS` beside each
+estimate, which is where to start. Read the pattern and not only the
+worst entry. One parameter with a low effective sample size and a clean
+`Rhat` is a slow chain. Several at once usually means the geometry is
+wrong rather than the run too short, and sampling longer will not fix
+it. A high `Bulk_ESS` with a low `Tail_ESS` says the centre of the
+posterior is well explored and the extreme quantiles are not, so an
+interval is less trustworthy than a mean.
 
 ``` r
 
@@ -44,14 +47,22 @@ rhat(ds)
 neff_ratio(ds)
 ```
 
+These are brms’s diagnostics throughout, computed by the posterior
+package on these draws and reported under the frmtmb draws-side names
+that `variables(ds)` lists.
 [`rhat()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
-and
+is the rank-normalized split-R-hat,
 [`neff_ratio()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
-read the `stanfit` inside the draws object directly, so they report
-Stan’s own parameter names (`par[1]` and its relatives). Everything else
-in this package relabels to the frmtmb draws-side names, which
-`variables(ds)` lists. That difference is worth knowing before you try
-to match two printouts by eye.
+is `min(ess_bulk, ess_tail) / ndraws`, and `summary(ds)` reports the
+same `Rhat` with the two effective sizes it takes the minimum of. The
+three columns and the two accessors are one set of numbers:
+`summary(ds)[, "Rhat"]` IS `rhat(ds)` on those rows.
+
+None of them is what the sampler itself recorded. Stan’s own classic
+split-R-hat and `n_eff` are a different definition of the same idea, and
+they are in `rstan::summary(ds$stanfit)$summary` if you want to compare.
+Expect them to disagree by about the size of the excess over 1 that
+either R-hat reports.
 
 The sampler’s own record is in
 [`nuts_params()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md),
@@ -86,7 +97,7 @@ Three moves, in the order worth trying:
     flat tail at `sd = 0` and it unlocks the reparameterization that
     removes the funnel.
 2.  **Sample longer.** `iter =` and `chains =` pass straight to tmbstan.
-    A low `n_eff` with `Rhat` near 1 is answered here.
+    A low `Bulk_ESS` with `Rhat` near 1 is answered here.
 3.  **Tighten the sampler.**
     `frm_sample(fit, control = list(adapt_delta = 0.99))` is brms’s
     spelling and brms’s meaning: the list goes to rstan through tmbstan.

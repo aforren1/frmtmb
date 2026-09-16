@@ -106,12 +106,11 @@ variables(ds)
 hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)")
 ```
 
-[`rhat()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md),
-[`neff_ratio()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
-and
 [`nuts_params()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
-are the exception. They read the `stanfit` directly and report Stan’s
-own names.
+is the exception. It reads the `stanfit` directly, as brms’s own
+[`nuts_params()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
+does, and its rows are the sampler’s quantities rather than model
+parameters.
 
 ## The method surface ports
 

@@ -13,7 +13,7 @@ frm_curve(
   contrast = NULL,
   dpar = NULL,
   resp = NULL,
-  re.form = NA,
+  re_formula = NA,
   level = 0.95,
   simultaneous = TRUE,
   nsim = 10000L,
@@ -49,7 +49,7 @@ frm_curve(
 
   Response name, for a multivariate fit.
 
-- re.form:
+- re_formula:
 
   `NA` (the default) evaluates the population curve, the convention
   `mgcv` and `gratia` plot. `NULL` keeps every random effect, so the
@@ -172,8 +172,8 @@ reporting a check that never ran.
 What this call costs is dominated by ONE thing: the single
 `predict(se.fit = TRUE)` check call, inside which core inverts the fit's
 joint precision matrix over EVERY coefficient, including the ones this
-curve does not touch. Measured at `re.form = NA` on a 20-point grid, one
-process each:
+curve does not touch. Measured at `re_formula = NA` on a 20-point grid,
+one process each:
 
 - `s(x, k = 10)`, 8 random coefficients: 0.29 s.
 

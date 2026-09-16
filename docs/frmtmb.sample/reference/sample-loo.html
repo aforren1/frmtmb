@@ -23,7 +23,7 @@ weights alone."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -88,7 +88,14 @@ weights alone.</p>
 <span><span class="fu">psis</span><span class="op">(</span><span class="va">log_ratios</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu">psis</span><span class="op">(</span><span class="va">log_ratios</span>, ndraws <span class="op">=</span> <span class="cn">NULL</span>, resp <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">psis</span><span class="op">(</span></span>
+<span>  <span class="va">log_ratios</span>,</span>
+<span>  newdata <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  model_name <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  ndraws <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
 <span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/loo.brmsfit.html" class="external-link">LOO</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
@@ -128,6 +135,16 @@ the arguments, as loo does.</p></dd>
 <dt id="arg-log-ratios">log_ratios<a class="anchor" aria-label="anchor" href="#arg-log-ratios"></a></dt>
 <dd><p>For <code>psis()</code>, the draws object whose negative
 pointwise log-likelihood supplies the importance ratios.</p></dd>
+
+
+<dt id="arg-newdata">newdata<a class="anchor" aria-label="anchor" href="#arg-newdata"></a></dt>
+<dd><p>For <code>psis()</code>, accepted in brms's own second position
+and refused, because <code><a href="log_lik.html">log_lik()</a></code> does not take it.</p></dd>
+
+
+<dt id="arg-model-name">model_name<a class="anchor" aria-label="anchor" href="#arg-model-name"></a></dt>
+<dd><p>For <code>psis()</code>, brms's label for the model.
+Accepted and unused: a <code>psis</code> object has nothing to label.</p></dd>
 
 </dl></div>
     <div class="section level2">

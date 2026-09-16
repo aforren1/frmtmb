@@ -15,7 +15,15 @@ directly.
 log_lik(object, ...)
 
 # S3 method for class 'frmtmb_draws'
-log_lik(object, ndraws = NULL, resp = NULL, ...)
+log_lik(
+  object,
+  newdata = NULL,
+  re_formula = arg_unset(),
+  resp = NULL,
+  ndraws = NULL,
+  draw_ids = NULL,
+  ...
+)
 ```
 
 ## Arguments
@@ -27,17 +35,29 @@ log_lik(object, ndraws = NULL, resp = NULL, ...)
 
 - ...:
 
-  Unused.
+  Refused: an argument the method does not have is an error naming it,
+  rather than silently changing nothing.
+
+- newdata, re_formula:
+
+  Accepted in brms's own second and third positions and refused: see
+  *What is conditioned on*. The refusal names the reason and the
+  replacement.
+
+- resp:
+
+  For a multivariate model without `rescor`, the response whose
+  contribution to report; the default sums over responses.
 
 - ndraws:
 
   Number of draws to use, evenly spaced through the matrix (default: all
   of them).
 
-- resp:
+- draw_ids:
 
-  For a multivariate model without `rescor`, the response whose
-  contribution to report; the default sums over responses.
+  The draws to use, by row index, instead of the evenly spaced subsample
+  `ndraws` takes. Give one or the other.
 
 ## Value
 

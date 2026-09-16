@@ -56,7 +56,7 @@ cross_wishart() fit and returns them with confidence intervals."></head><body>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">frm_coherence</span><span class="op">(</span></span>
 <span>  <span class="va">fit</span>,</span>
 <span>  newdata <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  re.form <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  re_formula <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  level <span class="op">=</span> <span class="fl">0.95</span>,</span>
 <span>  allow_new_levels <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
@@ -64,7 +64,7 @@ cross_wishart() fit and returns them with confidence intervals."></head><body>
 <span><span class="fu">frm_phase</span><span class="op">(</span></span>
 <span>  <span class="va">fit</span>,</span>
 <span>  newdata <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  re.form <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  re_formula <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  level <span class="op">=</span> <span class="fl">0.95</span>,</span>
 <span>  allow_new_levels <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -83,7 +83,7 @@ cross_wishart() fit and returns them with confidence intervals."></head><body>
 the data the model was fitted to.</p></dd>
 
 
-<dt id="arg-re-form">re.form<a class="anchor" aria-label="anchor" href="#arg-re-form"></a></dt>
+<dt id="arg-re-formula">re_formula<a class="anchor" aria-label="anchor" href="#arg-re-formula"></a></dt>
 <dd><p><code>NULL</code> keeps the random effects, so the answer is per
 group; <code>NA</code> drops them, so the answer is the population one. Passed
 through to <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">stats::predict()</a></code>.</p></dd>

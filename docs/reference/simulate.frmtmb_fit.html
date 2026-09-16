@@ -13,7 +13,7 @@ likelihood was normalized on."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.57.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -78,7 +78,14 @@ likelihood was normalized on.</p>
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># S3 method for class 'frmtmb_fit'</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate</a></span><span class="op">(</span><span class="va">object</span>, nsim <span class="op">=</span> <span class="fl">1</span>, seed <span class="op">=</span> <span class="cn">NULL</span>, re.form <span class="op">=</span> <span class="cn">NULL</span>, censored <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate</a></span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  nsim <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  re_formula <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  censored <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -99,7 +106,7 @@ contract: the global RNG state is restored afterwards, and the
 seed used is attached as the <code>"seed"</code> attribute.</p></dd>
 
 
-<dt id="arg-re-form">re.form<a class="anchor" aria-label="anchor" href="#arg-re-form"></a></dt>
+<dt id="arg-re-formula">re_formula<a class="anchor" aria-label="anchor" href="#arg-re-formula"></a></dt>
 <dd><p><code>NULL</code> (default) conditions on the estimated random
 effects; <code>NA</code> redraws them from their estimated distribution
 (marginal simulation).</p></dd>
@@ -111,7 +118,8 @@ effects; <code>NA</code> redraws them from their estimated distribution
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Unused.</p></dd>
+<dd><p>Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -199,9 +207,9 @@ is refused too.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Rejection"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># re.form = NA redraws the group effects, which is the right choice</span></span></span>
+<span class="r-in"><span><span class="co"># re_formula = NA redraws the group effects, which is the right choice</span></span></span>
 <span class="r-in"><span><span class="co"># for a parametric bootstrap over new groups</span></span></span>
-<span class="r-in"><span><span class="va">sims_m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate</a></span><span class="op">(</span><span class="va">fit</span>, nsim <span class="op">=</span> <span class="fl">5</span>, re.form <span class="op">=</span> <span class="cn">NA</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">sims_m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate</a></span><span class="op">(</span><span class="va">fit</span>, nsim <span class="op">=</span> <span class="fl">5</span>, re_formula <span class="op">=</span> <span class="cn">NA</span>, seed <span class="op">=</span> <span class="fl">42</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">sims_m</span>, <span class="fl">2</span>, <span class="va">var</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">sims</span>, <span class="fl">2</span>, <span class="va">var</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> sim_1 sim_2 sim_3 sim_4 sim_5 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  TRUE FALSE FALSE FALSE  TRUE </span>

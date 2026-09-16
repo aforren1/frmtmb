@@ -181,7 +181,7 @@ category code.
 
 fitted(fit)
 #> Error:
-#> ! fitted() is not defined for family 'bandit2arm_delta'
+#> ! family 'bandit2arm_delta' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted() and predict(type = "response") have nothing to return. Ask for type = "link" or a dpar by name.
 ```
 
 [`frm_value_trace()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_value_trace.md)

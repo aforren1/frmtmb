@@ -13,7 +13,7 @@ mislead.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.57.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -109,7 +109,13 @@ every row.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>For <code>type = "osa"</code>: passed to <code><a href="https://rdrr.io/pkg/TMB/man/oneStepPredict.html" class="external-link">TMB::oneStepPredict()</a></code>.</p></dd>
+<dd><p>For <code>type = "osa"</code>: passed to <code><a href="https://rdrr.io/pkg/TMB/man/oneStepPredict.html" class="external-link">TMB::oneStepPredict()</a></code>,
+and checked against that function's own formals. For every other
+type: refused, naming the argument. The <code>residuals.brmsfit()</code>
+arguments this one does not have (<code>newdata</code>, <code>re_formula</code>,
+<code>method</code>, <code>resp</code>, <code>ndraws</code>, <code>draw_ids</code>, <code>sort</code>, <code>summary</code>,
+<code>robust</code>, <code>probs</code>) are refused with the reason rather than
+reported as unknown names.</p></dd>
 
 </dl></div>
     <div class="section level2">

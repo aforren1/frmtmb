@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.57.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -800,8 +800,10 @@ the model was written.</p>
 <div class="section level2">
 <h2 id="method-conventions">Method conventions<a class="anchor" aria-label="anchor" href="#method-conventions"></a>
 </h2>
-<p>frmtmb keeps the brms spelling for functions that originate in brms
-and the stats/lme4 spelling for standard generics:</p>
+<p>frmtmb takes <strong>brms’s argument names everywhere</strong>. Where
+lme4 or glmmTMB and brms disagree on a name, brms decides; the lme4 name
+is dropped and refused, not kept as an alias. What still follows stats
+is the SHAPE of what a standard generic returns:</p>
 <ul>
 <li>brms-origin, same names and argument spellings:
 <code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> (includes what
@@ -812,18 +814,35 @@ through bayesplot’s <code>ppc_*</code> functions),
 <code><a href="../reference/ranef.html">ranef()</a></code>, <code><a href="../reference/VarCorr.html">VarCorr()</a></code>, <code><a href="../reference/ngrps.html">ngrps()</a></code>,
 <code><a href="../reference/variables.html">variables()</a></code> (the usable parameter names, e.g.
 <code>sd_Subject__Days</code>).</li>
-<li>stats-origin generics follow stats/lme4/glmmTMB, not brms:
-<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> returns a vector (with
+<li>stats-origin generics return stats-shaped values, not brms-shaped
+ones: <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> returns a vector (with
 <code>se.fit = TRUE</code>, a list), not a draws matrix with
 <code>Estimate</code>/<code>Q2.5</code> columns; <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>
 and <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> return vectors; <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>
-takes <code>level =</code>, not <code>probs =</code>;
-<code>re.form</code> replaces <code>re_formula</code>. The exception is
-an ordinal family, where <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> follows brms and returns
-the <code>n</code> by <code>K</code> matrix of category probabilities
-named by the response levels, exactly as
+takes <code>level =</code>, not <code>probs =</code>. Their ARGUMENT
+names are brms’s: <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and
+<code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> take <code>re_formula</code> and
+<code>allow_new_levels</code>, and lme4’s <code>re.form</code> and
+<code>allow.new.levels</code> are refused with the replacement named in
+the message. An argument none of them has is an error rather than a
+silently ignored name. The exception to the shape rule is an ordinal
+family, where <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> follows brms and returns the
+<code>n</code> by <code>K</code> matrix of category probabilities named
+by the response levels, exactly as
 <code>predict(type = "response")</code> does; the latent linear
 predictor is <code>predict(type = "link")</code>.</li>
+<li>
+<strong>The name transfers; the SCALE does not.</strong>
+<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> takes brms’s <code>re_formula</code> now, but it
+still defaults to the LINK scale where the brms call it replaces returns
+the response scale. A ported <code>predict(fit, re_formula = NA)</code>
+is therefore accepted in silence and answers on a different scale: on a
+poisson fit the two differ by the inverse link, 0.114223 against
+1.121002. Ask for <code>type = "response"</code>, or use
+<code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>, which is on the response scale by default. Before
+the rename that same call warned that it was ignoring an unknown
+argument, so the warning that used to flag the port is gone while the
+scale difference is not.</li>
 <li>
 <code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> on an ordinal fit draws one
 probability curve per response category, which is what brms draws under

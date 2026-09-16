@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.57.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -414,12 +414,12 @@ silent, 1 stage progress, 2 optimizer trace. An explicit
 <code>verbose</code>.</p>
 <p><code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> takes <code>newdata</code> (a data frame),
 <code>type</code>, <code>dpar</code>, <code>resp</code>,
-<code>re.form</code>, <code>se.fit</code> and
-<code>allow_new_levels</code>. Note the spelling <code>re.form</code>,
-which follows lme4 rather than brms <code>re_formula</code>. Unknown
-arguments in <code>...</code> produce a warning, not an error, because
-<code>allow.new.levels</code> is accepted as an lme4 and glmmTMB
-spelling.</p>
+<code>re_formula</code>, <code>se.fit</code> and
+<code>allow_new_levels</code>. Every name is brms’s: where brms and lme4
+or glmmTMB disagree, brms decides. An argument that is not in that list
+is an ERROR naming it. The lme4 spellings <code>re.form</code> and
+<code>allow.new.levels</code> were live until the rename and are refused
+by name, with the replacement in the message.</p>
 </div>
 <div class="section level2">
 <h2 id="predictor-classes">Predictor classes<a class="anchor" aria-label="anchor" href="#predictor-classes"></a>

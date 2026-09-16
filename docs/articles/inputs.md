@@ -211,11 +211,12 @@ takes `optimizer` (`"nlminb"`, `"optim"`, or a function), `optCtrl`,
 `check_nlev_1`, `check_olre` and `verbose`.
 
 [`predict()`](https://rdrr.io/r/stats/predict.html) takes `newdata` (a
-data frame), `type`, `dpar`, `resp`, `re.form`, `se.fit` and
-`allow_new_levels`. Note the spelling `re.form`, which follows lme4
-rather than brms `re_formula`. Unknown arguments in `...` produce a
-warning, not an error, because `allow.new.levels` is accepted as an lme4
-and glmmTMB spelling.
+data frame), `type`, `dpar`, `resp`, `re_formula`, `se.fit` and
+`allow_new_levels`. Every name is brms’s: where brms and lme4 or glmmTMB
+disagree, brms decides. An argument that is not in that list is an ERROR
+naming it. The lme4 spellings `re.form` and `allow.new.levels` were live
+until the rename and are refused by name, with the replacement in the
+message.
 
 ## Predictor classes
 

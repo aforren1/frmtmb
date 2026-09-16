@@ -15,7 +15,7 @@ pp_mixture()."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -67,7 +67,19 @@ propagating the uncertainty in the parameters: the fit-side
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">pp_mixture</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu">pp_mixture</span><span class="op">(</span><span class="va">x</span>, summary <span class="op">=</span> <span class="cn">TRUE</span>, ndraws <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">pp_mixture</span><span class="op">(</span></span>
+<span>  <span class="va">x</span>,</span>
+<span>  newdata <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  re_formula <span class="op">=</span> <span class="fu">arg_unset</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  ndraws <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  draw_ids <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  log <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  summary <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  robust <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  probs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.025</span>, <span class="fl">0.975</span><span class="op">)</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -82,14 +94,42 @@ propagating the uncertainty in the parameters: the fit-side
 <dd><p>Unused.</p></dd>
 
 
+<dt id="arg-newdata-re-formula">newdata, re_formula<a class="anchor" aria-label="anchor" href="#arg-newdata-re-formula"></a></dt>
+<dd><p>Accepted for brms's signature and refused:
+<code><a href="https://aforren1.github.io/frmtmb/reference/mixture_probs.html" class="external-link">frmtmb::mixture_probs()</a></code> is a statement about the rows the model
+was fitted on.</p></dd>
+
+
+<dt id="arg-resp">resp<a class="anchor" aria-label="anchor" href="#arg-resp"></a></dt>
+<dd><p>The response whose mixture to report, for a
+multivariate model.</p></dd>
+
+
+<dt id="arg-ndraws">ndraws<a class="anchor" aria-label="anchor" href="#arg-ndraws"></a></dt>
+<dd><p>Number of draws to use (default: all).</p></dd>
+
+
+<dt id="arg-draw-ids">draw_ids<a class="anchor" aria-label="anchor" href="#arg-draw-ids"></a></dt>
+<dd><p>The draws to use, by row index, instead of the
+evenly spaced subsample <code>ndraws</code> takes.</p></dd>
+
+
+<dt id="arg-log">log<a class="anchor" aria-label="anchor" href="#arg-log"></a></dt>
+<dd><p>If <code>TRUE</code>, log probabilities.</p></dd>
+
+
 <dt id="arg-summary">summary<a class="anchor" aria-label="anchor" href="#arg-summary"></a></dt>
 <dd><p>If <code>TRUE</code> (the default, as in brms), an
 <code>observations x statistics x components</code> array of summaries;
 otherwise the raw <code>draws x observations x components</code> array.</p></dd>
 
 
-<dt id="arg-ndraws">ndraws<a class="anchor" aria-label="anchor" href="#arg-ndraws"></a></dt>
-<dd><p>Number of draws to use (default: all).</p></dd>
+<dt id="arg-robust">robust<a class="anchor" aria-label="anchor" href="#arg-robust"></a></dt>
+<dd><p>If <code>TRUE</code>, median and MAD instead of mean and SD.</p></dd>
+
+
+<dt id="arg-probs">probs<a class="anchor" aria-label="anchor" href="#arg-probs"></a></dt>
+<dd><p>The two quantiles the summary reports.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -97,6 +137,11 @@ otherwise the raw <code>draws x observations x components</code> array.</p></dd>
     <p>An array; see <code>summary</code>. For a group-level mixture
 (<code>mixture(groups = )</code>, <code><a href="https://aforren1.github.io/frmtmb/frmtmb.latent/reference/lca.html" class="external-link">frmtmb.latent::lca()</a></code>) the rows are groups, as in
 <code><a href="https://aforren1.github.io/frmtmb/reference/mixture_probs.html" class="external-link">frmtmb::mixture_probs()</a></code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>The argument order is brms's, so <code>summary</code> sits in brms's own
+eighth position and not in the second: the second is <code>newdata</code>.</p>
     </div>
 
     <div class="section level2">

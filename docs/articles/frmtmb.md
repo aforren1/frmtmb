@@ -44,7 +44,7 @@ The usual methods work:
 [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md),
 [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md),
 [`predict()`](https://rdrr.io/r/stats/predict.html) (with `newdata`,
-`se.fit`, and `re.form`),
+`se.fit`, and `re_formula`),
 [`confint()`](https://rdrr.io/r/stats/confint.html) (Wald, profile, or
 likelihood-root), [`simulate()`](https://rdrr.io/r/stats/simulate.html),
 [`anova()`](https://rdrr.io/r/stats/anova.html) for likelihood-ratio

@@ -194,11 +194,10 @@ stays private, because what an extension needs is the decision and not
 the test that makes it.
 
 `ce_dots()` is the argument surface itself: it pulls `allow_new_levels`
-(and lme4's `allow.new.levels`) out of a call's dots, returns whether
-either was set, and reports whatever is left as unknown. An extension
-that hand-rolls the same check accepts a different set of arguments from
-the fit method, which is how `allow_new_levels` came to work on a fit
-and warn on draws.
+out of a call's dots, returns whether it was set, and REFUSES whatever
+is left, naming it. An extension that hand-rolls the same check accepts
+a different set of arguments from the fit method, which is how
+`allow_new_levels` came to work on a fit and warn on draws.
 
 Four more serve one purpose between them: making an unobserved group a
 DRAWN group rather than letting the first observed one stand in for it
@@ -214,11 +213,11 @@ replicate; the construction is the same and the frames stay comparable.
 ## The two-dialect argument seam
 
 frmtmb answers to two argument dialects: a brms-named function takes
-`re_formula`, frmtmb's own fit surface takes lme4's `re.form`, and the
-brms-named ones accept both. `arg_unset()` is the "not supplied" marker
-a formal defaults to when `NULL` and `NA` are both real settings and
-neither can double as unset; `re_form_arg()` resolves the pair, refusing
-rather than guessing when both are given.
+`re_formula`, frmtmb's own fit surface takes lme4's `re_formula`, and
+the brms-named ones accept both. `arg_unset()` is the "not supplied"
+marker a formal defaults to when `NULL` and `NA` are both real settings
+and neither can double as unset; `re_form_arg()` resolves the pair,
+refusing rather than guessing when both are given.
 
 ## The borrowed-generic seam
 

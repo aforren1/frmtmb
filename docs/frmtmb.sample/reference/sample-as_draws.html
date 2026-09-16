@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -76,7 +76,14 @@
 <span><span class="fu">as.mcmc</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu">as.mcmc</span><span class="op">(</span><span class="va">x</span>, combine_chains <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">as.mcmc</span><span class="op">(</span></span>
+<span>  <span class="va">x</span>,</span>
+<span>  pars <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  fixed <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  combine_chains <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  inc_warmup <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -88,13 +95,31 @@
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Unused.</p></dd>
+<dd><p>Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.</p></dd>
+
+
+<dt id="arg-pars">pars<a class="anchor" aria-label="anchor" href="#arg-pars"></a></dt>
+<dd><p>Variables to keep, in brms's spelling: <code>NA</code> (the
+default) for all of them, otherwise a character vector matched as
+a regular expression unless <code>fixed = TRUE</code>. The argument sits in
+brms's own second position, so <code>as.mcmc(x, TRUE)</code> is refused here
+exactly as brms refuses it.</p></dd>
+
+
+<dt id="arg-fixed">fixed<a class="anchor" aria-label="anchor" href="#arg-fixed"></a></dt>
+<dd><p>If <code>TRUE</code>, <code>pars</code> is matched by exact name.</p></dd>
 
 
 <dt id="arg-combine-chains">combine_chains<a class="anchor" aria-label="anchor" href="#arg-combine-chains"></a></dt>
 <dd><p>If <code>TRUE</code>, one <code>mcmc</code> object over the pooled
 draws; otherwise an <code>mcmc.list</code> with one component per chain, which
 is what coda's diagnostics (<code>gelman.diag()</code>) need.</p></dd>
+
+
+<dt id="arg-inc-warmup">inc_warmup<a class="anchor" aria-label="anchor" href="#arg-inc-warmup"></a></dt>
+<dd><p>Accepted for brms's signature and only <code>FALSE</code> is
+supported: a <code>frmtmb_draws</code> keeps the post-warmup draws alone.</p></dd>
 
 </dl></div>
     <div class="section level2">

@@ -574,8 +574,10 @@ still resolving where the model was written.
 
 ## Method conventions
 
-frmtmb keeps the brms spelling for functions that originate in brms and
-the stats/lme4 spelling for standard generics:
+frmtmb takes **brms’s argument names everywhere**. Where lme4 or glmmTMB
+and brms disagree on a name, brms decides; the lme4 name is dropped and
+refused, not kept as an alias. What still follows stats is the SHAPE of
+what a standard generic returns:
 
 - brms-origin, same names and argument spellings:
   [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
@@ -591,19 +593,37 @@ the stats/lme4 spelling for standard generics:
   [`ngrps()`](https://aforren1.github.io/frmtmb/reference/ngrps.md),
   [`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
   (the usable parameter names, e.g. `sd_Subject__Days`).
-- stats-origin generics follow stats/lme4/glmmTMB, not brms:
-  [`predict()`](https://rdrr.io/r/stats/predict.html) returns a vector
-  (with `se.fit = TRUE`, a list), not a draws matrix with
+- stats-origin generics return stats-shaped values, not brms-shaped
+  ones: [`predict()`](https://rdrr.io/r/stats/predict.html) returns a
+  vector (with `se.fit = TRUE`, a list), not a draws matrix with
   `Estimate`/`Q2.5` columns;
   [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
   [`residuals()`](https://rdrr.io/r/stats/residuals.html) return
   vectors; [`confint()`](https://rdrr.io/r/stats/confint.html) takes
-  `level =`, not `probs =`; `re.form` replaces `re_formula`. The
-  exception is an ordinal family, where
-  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) follows brms
-  and returns the `n` by `K` matrix of category probabilities named by
-  the response levels, exactly as `predict(type = "response")` does; the
-  latent linear predictor is `predict(type = "link")`.
+  `level =`, not `probs =`. Their ARGUMENT names are brms’s:
+  [`predict()`](https://rdrr.io/r/stats/predict.html),
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) take
+  `re_formula` and `allow_new_levels`, and lme4’s `re.form` and
+  `allow.new.levels` are refused with the replacement named in the
+  message. An argument none of them has is an error rather than a
+  silently ignored name. The exception to the shape rule is an ordinal
+  family, where [`fitted()`](https://rdrr.io/r/stats/fitted.values.html)
+  follows brms and returns the `n` by `K` matrix of category
+  probabilities named by the response levels, exactly as
+  `predict(type = "response")` does; the latent linear predictor is
+  `predict(type = "link")`.
+- **The name transfers; the SCALE does not.**
+  [`predict()`](https://rdrr.io/r/stats/predict.html) takes brms’s
+  `re_formula` now, but it still defaults to the LINK scale where the
+  brms call it replaces returns the response scale. A ported
+  `predict(fit, re_formula = NA)` is therefore accepted in silence and
+  answers on a different scale: on a poisson fit the two differ by the
+  inverse link, 0.114223 against 1.121002. Ask for `type = "response"`,
+  or use [`fitted()`](https://rdrr.io/r/stats/fitted.values.html), which
+  is on the response scale by default. Before the rename that same call
+  warned that it was ignoring an unknown argument, so the warning that
+  used to flag the port is gone while the scale difference is not.
 - [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
   on an ordinal fit draws one probability curve per response category,
   which is what brms draws under `categorical = TRUE`, and keys the

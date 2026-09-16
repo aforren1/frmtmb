@@ -24,7 +24,8 @@ prior_summary(object, ...)
 
 - ...:
 
-  Unused.
+  Refused: an argument the method does not have is an error naming it,
+  rather than silently changing nothing.
 
 ## Value
 

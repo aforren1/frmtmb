@@ -17,7 +17,7 @@ frm_curve_deriv(
   contrast = NULL,
   dpar = NULL,
   resp = NULL,
-  re.form = NA,
+  re_formula = NA,
   level = 0.95,
   simultaneous = TRUE,
   nsim = 10000L,
@@ -33,7 +33,7 @@ frm_curve_deriv(
 
   A `frmtmb_fit`, or a `frmtmb_curve` from
   [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md),
-  in which case its grid and its `dpar`, `resp` and `re.form` are
+  in which case its grid and its `dpar`, `resp` and `re_formula` are
   reused.
 
 - var:
@@ -64,7 +64,7 @@ frm_curve_deriv(
 
   Response name, for a multivariate fit.
 
-- re.form:
+- re_formula:
 
   `NA` (the default) evaluates the population curve, the convention
   `mgcv` and `gratia` plot. `NULL` keeps every random effect, so the

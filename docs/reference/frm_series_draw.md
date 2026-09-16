@@ -50,7 +50,7 @@ frm_series_draw(
 - ...:
 
   Passed to [`predict()`](https://rdrr.io/r/stats/predict.html), for
-  example `re.form`.
+  example `re_formula`.
 
 ## Value
 

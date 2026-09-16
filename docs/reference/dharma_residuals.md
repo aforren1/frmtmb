@@ -12,7 +12,7 @@ and friends on it.
 ## Usage
 
 ``` r
-dharma_residuals(fit, nsim = 250, re.form = NULL, seed = NULL, ...)
+dharma_residuals(fit, nsim = 250, re_formula = NULL, seed = NULL, ...)
 ```
 
 ## Arguments
@@ -25,7 +25,7 @@ dharma_residuals(fit, nsim = 250, re.form = NULL, seed = NULL, ...)
 
   Number of simulated response vectors.
 
-- re.form:
+- re_formula:
 
   Passed to
   [`simulate.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/simulate.frmtmb_fit.md):

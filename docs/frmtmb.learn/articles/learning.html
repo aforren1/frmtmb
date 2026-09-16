@@ -227,7 +227,7 @@ arithmetic on a category code.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> fitted() is not defined for family 'bandit2arm_delta'</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> family 'bandit2arm_delta' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted() and predict(type = "response") have nothing to return. Ask for type = "link" or a dpar by name.</span></span></code></pre></div>
 <p><code><a href="../reference/frm_value_trace.html">frm_value_trace()</a></code> above returns everything a mean would
 have carried, and more. <code>frm_compat()</code> is the place to ask
 what else refuses:</p>

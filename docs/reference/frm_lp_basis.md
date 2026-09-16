@@ -18,7 +18,7 @@ frm_lp_basis(
   newdata = NULL,
   dpar = NULL,
   resp = NULL,
-  re.form = NULL,
+  re_formula = NULL,
   allow_new_levels = FALSE
 )
 ```
@@ -39,7 +39,7 @@ frm_lp_basis(
   of. Both default the way
   [`predict()`](https://rdrr.io/r/stats/predict.html) defaults them.
 
-- re.form:
+- re_formula:
 
   `NULL` keeps every random effect, `NA` drops them all, a one-sided
   formula keeps the ones it names.
@@ -133,7 +133,7 @@ dd <- data.frame(x = rnorm(120), g = factor(rep(1:12, each = 10)))
 dd$y <- rnorm(120, 1 + 2 * dd$x + rnorm(12, 0, 0.5)[dd$g], 0.4)
 fit <- frm(bf(y ~ x + (1 | g)), data = dd)
 nd <- data.frame(x = c(-1, 0, 1), g = factor(1, levels = levels(dd$g)))
-lb <- frm_lp_basis(fit, newdata = nd, re.form = NA)
+lb <- frm_lp_basis(fit, newdata = nd, re_formula = NA)
 str(lb$A)
 #>  num [1:3, 1:2] 1 1 1 -1 0 1
 #>  - attr(*, "dimnames")=List of 2
@@ -146,6 +146,6 @@ lb$coef_names
 # diagonal
 Sigma <- lb$A %*% lb$V %*% t(lb$A)
 all.equal(sqrt(diag(Sigma)),
-          predict(fit, newdata = nd, re.form = NA, se.fit = TRUE)$se.fit)
+          predict(fit, newdata = nd, re_formula = NA, se.fit = TRUE)$se.fit)
 #> [1] TRUE
 ```

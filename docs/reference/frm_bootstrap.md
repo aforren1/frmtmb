@@ -15,7 +15,7 @@ frm_bootstrap(
   FUN = function(f) fixef(f, flatten = TRUE),
   nsim = 500,
   seed = NULL,
-  re.form = NA
+  re_formula = NA
 )
 ```
 
@@ -40,7 +40,7 @@ frm_bootstrap(
 
   Optional seed.
 
-- re.form:
+- re_formula:
 
   Passed to [`simulate()`](https://rdrr.io/r/stats/simulate.html); the
   default `NA` simulates marginally (new random effects), which is the

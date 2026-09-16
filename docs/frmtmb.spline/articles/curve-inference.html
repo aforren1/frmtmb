@@ -155,11 +155,11 @@ model is fitted.</p>
 <h2 id="the-curve-with-a-band-that-covers-all-of-it">1. The curve, with a band that covers all of it<a class="anchor" aria-label="anchor" href="#the-curve-with-a-band-that-covers-all-of-it"></a>
 </h2>
 <p><code><a href="../reference/frm_curve.html">frm_curve()</a></code> evaluates the fitted linear predictor on a
-grid. <code>re.form = NA</code> drops the per-subject curves, so what
+grid. <code>re_formula = NA</code> drops the per-subject curves, so what
 comes back is the POPULATION curve.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>t <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, length.out <span class="op">=</span> <span class="fl">80</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">cv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_curve.html">frm_curve</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">grid</span>, re.form <span class="op">=</span> <span class="cn">NA</span>, nsim <span class="op">=</span> <span class="fl">20000</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">cv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_curve.html">frm_curve</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">grid</span>, re_formula <span class="op">=</span> <span class="cn">NA</span>, nsim <span class="op">=</span> <span class="fl">20000</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">cv</span></span>
 <span><span class="co">#&gt; &lt;frmtmb curve&gt; value, 80 grid points, level 0.95</span></span>
 <span><span class="co">#&gt;   critical value: pointwise 1.96, simultaneous 2.7215 (mcse 0.012)</span></span>
@@ -212,9 +212,9 @@ figures:</p>
 <span><span class="co">#&gt; [1] 2.220446e-16</span></span></code></pre></div>
 <p>If they ever did not, <code><a href="../reference/frm_curve.html">frm_curve()</a></code> would refuse rather
 than report a band. The count of <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> calls the
-rebuild cost is there too, and it is small: at <code>re.form = NA</code>
-the per-subject coefficients contribute nothing and are skipped in
-blocks rather than one at a time.</p>
+rebuild cost is there too, and it is small: at
+<code>re_formula = NA</code> the per-subject coefficients contribute
+nothing and are skipped in blocks rather than one at a time.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">cv</span>, <span class="st">"check"</span><span class="op">)</span><span class="op">$</span><span class="va">n_predict</span></span>
 <span><span class="co">#&gt; [1] 1</span></span></code></pre></div>
@@ -265,7 +265,7 @@ intervals. Where its band excludes zero, the speed is changing.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">g2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>t <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.95</span>, length.out <span class="op">=</span> <span class="fl">40</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">d1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_curve_deriv.html">frm_curve_deriv</a></span><span class="op">(</span><span class="va">fit</span>, var <span class="op">=</span> <span class="st">"t"</span>, order <span class="op">=</span> <span class="fl">1</span>, newdata <span class="op">=</span> <span class="va">g2</span>,</span>
-<span>                      re.form <span class="op">=</span> <span class="cn">NA</span>, nsim <span class="op">=</span> <span class="fl">20000</span>, seed <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span>                      re_formula <span class="op">=</span> <span class="cn">NA</span>, nsim <span class="op">=</span> <span class="fl">20000</span>, seed <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="va">rising</span> <span class="op">&lt;-</span> <span class="va">d1</span><span class="op">$</span><span class="va">.lower_sim</span> <span class="op">&gt;</span> <span class="fl">0</span></span>
 <span><span class="va">falling</span> <span class="op">&lt;-</span> <span class="va">d1</span><span class="op">$</span><span class="va">.upper_sim</span> <span class="op">&lt;</span> <span class="fl">0</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>rising_from <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">g2</span><span class="op">$</span><span class="va">t</span><span class="op">[</span><span class="va">rising</span><span class="op">]</span><span class="op">)</span>, rising_to <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">g2</span><span class="op">$</span><span class="va">t</span><span class="op">[</span><span class="va">rising</span><span class="op">]</span><span class="op">)</span>,</span>
@@ -286,7 +286,7 @@ it.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>order_1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">d1</span>, <span class="st">"eps"</span><span class="op">)</span>,</span>
 <span>  order_2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="fu"><a href="../reference/frm_curve_deriv.html">frm_curve_deriv</a></span><span class="op">(</span><span class="va">fit</span>, var <span class="op">=</span> <span class="st">"t"</span>, order <span class="op">=</span> <span class="fl">2</span>, newdata <span class="op">=</span> <span class="va">g2</span>,</span>
-<span>                                 re.form <span class="op">=</span> <span class="cn">NA</span>, simultaneous <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
+<span>                                 re_formula <span class="op">=</span> <span class="cn">NA</span>, simultaneous <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
 <span>                 <span class="st">"eps"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; order_1 order_2 </span></span>
 <span><span class="co">#&gt;   9e-07   9e-05</span></span></code></pre></div>
@@ -317,7 +317,7 @@ of its location:</p>
 <p><code>var(t*) = var(f'(t*)) / f''(t*)^2</code></p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pk</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_curve_feature.html">frm_curve_feature</a></span><span class="op">(</span><span class="va">fit</span>, var <span class="op">=</span> <span class="st">"t"</span>, type <span class="op">=</span> <span class="st">"maximum"</span>, newdata <span class="op">=</span> <span class="va">g2</span>,</span>
-<span>                        re.form <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span></span>
+<span>                        re_formula <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span></span>
 <span><span class="va">pk</span></span>
 <span><span class="co">#&gt; &lt;frmtmb curve feature&gt; maximum, 1 found, level 0.95</span></span>
 <span><span class="co">#&gt;   covariance checked against predict(se.fit = TRUE) to 0 relative</span></span>
@@ -335,7 +335,7 @@ against zero. Every crossing the grid brackets comes back, so a
 threshold the profile passes twice gives two rows:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/frm_curve_feature.html">frm_curve_feature</a></span><span class="op">(</span><span class="va">fit</span>, var <span class="op">=</span> <span class="st">"t"</span>, type <span class="op">=</span> <span class="st">"crossing"</span>, at <span class="op">=</span> <span class="fl">0.2</span>,</span>
-<span>                  newdata <span class="op">=</span> <span class="va">g2</span>, re.form <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span></span>
+<span>                  newdata <span class="op">=</span> <span class="va">g2</span>, re_formula <span class="op">=</span> <span class="cn">NA</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;frmtmb curve feature&gt; crossing, 2 found, level 0.95</span></span>
 <span><span class="co">#&gt;   covariance checked against predict(se.fit = TRUE) to 2.22e-16 relative</span></span>
 <span><span class="co">#&gt;   .feature .var .estimate         .se .lower_ci .upper_ci .value  .value_se</span></span>
@@ -345,14 +345,14 @@ threshold the profile passes twice gives two rows:</p>
 <div class="section level2">
 <h2 id="per-subject-curves">Per-subject curves<a class="anchor" aria-label="anchor" href="#per-subject-curves"></a>
 </h2>
-<p>Drop <code>re.form = NA</code> and supply the grouping column, and
+<p>Drop <code>re_formula = NA</code> and supply the grouping column, and
 the same three functions describe THAT subject’s curve, with the
 subject’s own deviation and its uncertainty included.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">gs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>t <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.95</span>, length.out <span class="op">=</span> <span class="fl">40</span><span class="op">)</span>,</span>
 <span>                 subject <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fl">3</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">subject</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">pk3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_curve_feature.html">frm_curve_feature</a></span><span class="op">(</span><span class="va">fit</span>, var <span class="op">=</span> <span class="st">"t"</span>, type <span class="op">=</span> <span class="st">"maximum"</span>, newdata <span class="op">=</span> <span class="va">gs</span>,</span>
-<span>                         re.form <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
+<span>                         re_formula <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
 <span><span class="va">pk3</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">".estimate"</span>, <span class="st">".se"</span>, <span class="st">".value"</span>, <span class="st">".value_se"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; &lt;frmtmb curve feature&gt; , 1 found, level </span></span>
 <span><span class="co">#&gt;   covariance NOT checked: predict(se.fit = TRUE) is refused for a nonlinear predictor, so there is no second route to compare against</span></span>

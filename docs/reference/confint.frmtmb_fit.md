@@ -87,7 +87,7 @@ confint(
 
   Passed to the TMB profiling functions, or to
   [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
-  for `method = "boot"` (e.g. `re.form`).
+  for `method = "boot"` (e.g. `re_formula`).
 
 ## Value
 

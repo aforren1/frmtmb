@@ -41,7 +41,12 @@ residuals(
 - ...:
 
   For `type = "osa"`: passed to
-  [`TMB::oneStepPredict()`](https://rdrr.io/pkg/TMB/man/oneStepPredict.html).
+  [`TMB::oneStepPredict()`](https://rdrr.io/pkg/TMB/man/oneStepPredict.html),
+  and checked against that function's own formals. For every other type:
+  refused, naming the argument. The `residuals.brmsfit()` arguments this
+  one does not have (`newdata`, `re_formula`, `method`, `resp`,
+  `ndraws`, `draw_ids`, `sort`, `summary`, `robust`, `probs`) are
+  refused with the reason rather than reported as unknown names.
 
 ## Value
 

@@ -13,7 +13,7 @@ matrix, and frmtmb::loo(), frmtmb::waic() and loo::psis() take it directly."></h
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -64,7 +64,15 @@ matrix, and <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html"
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">log_lik</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu">log_lik</span><span class="op">(</span><span class="va">object</span>, ndraws <span class="op">=</span> <span class="cn">NULL</span>, resp <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">log_lik</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  newdata <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  re_formula <span class="op">=</span> <span class="fu">arg_unset</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  ndraws <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  draw_ids <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -76,7 +84,19 @@ matrix, and <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html"
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Unused.</p></dd>
+<dd><p>Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.</p></dd>
+
+
+<dt id="arg-newdata-re-formula">newdata, re_formula<a class="anchor" aria-label="anchor" href="#arg-newdata-re-formula"></a></dt>
+<dd><p>Accepted in brms's own second and third
+positions and refused: see <em>What is conditioned on</em>. The refusal
+names the reason and the replacement.</p></dd>
+
+
+<dt id="arg-resp">resp<a class="anchor" aria-label="anchor" href="#arg-resp"></a></dt>
+<dd><p>For a multivariate model without <code>rescor</code>, the response
+whose contribution to report; the default sums over responses.</p></dd>
 
 
 <dt id="arg-ndraws">ndraws<a class="anchor" aria-label="anchor" href="#arg-ndraws"></a></dt>
@@ -84,9 +104,9 @@ matrix, and <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html"
 matrix (default: all of them).</p></dd>
 
 
-<dt id="arg-resp">resp<a class="anchor" aria-label="anchor" href="#arg-resp"></a></dt>
-<dd><p>For a multivariate model without <code>rescor</code>, the response
-whose contribution to report; the default sums over responses.</p></dd>
+<dt id="arg-draw-ids">draw_ids<a class="anchor" aria-label="anchor" href="#arg-draw-ids"></a></dt>
+<dd><p>The draws to use, by row index, instead of the
+evenly spaced subsample <code>ndraws</code> takes. Give one or the other.</p></dd>
 
 </dl></div>
     <div class="section level2">

@@ -15,7 +15,7 @@ optimizer does not report convergence are kept but flagged."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.57.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -85,7 +85,7 @@ optimizer does not report convergence are kept but flagged.</p>
 <span>  FUN <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="va">f</span>, flatten <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
 <span>  nsim <span class="op">=</span> <span class="fl">500</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  re.form <span class="op">=</span> <span class="cn">NA</span></span>
+<span>  re_formula <span class="op">=</span> <span class="cn">NA</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -112,7 +112,7 @@ with the Wald one by name.</p></dd>
 <dd><p>Optional seed.</p></dd>
 
 
-<dt id="arg-re-form">re.form<a class="anchor" aria-label="anchor" href="#arg-re-form"></a></dt>
+<dt id="arg-re-formula">re_formula<a class="anchor" aria-label="anchor" href="#arg-re-formula"></a></dt>
 <dd><p>Passed to <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>; the default <code>NA</code> simulates
 marginally (new random effects), which is the standard parametric
 bootstrap for mixed models.</p></dd>

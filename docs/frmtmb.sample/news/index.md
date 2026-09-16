@@ -1,5 +1,165 @@
 # Changelog
 
+## frmtmb.sample 0.6.0
+
+- **BREAKING, and a published number moves.
+  [`rhat()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
+  and
+  [`neff_ratio()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
+  now answer brms’s question.** They called
+  [`bayesplot::rhat()`](https://mc-stan.org/bayesplot/reference/bayesplot-extractors.html)
+  and
+  [`bayesplot::neff_ratio()`](https://mc-stan.org/bayesplot/reference/bayesplot-extractors.html)
+  on the `stanfit`, which is `rstan::summary()`’s classic split-R-hat
+  and rstan’s `n_eff`. brms computes neither. `rhat.brmsfit` is
+  `posterior::summarise_draws(rhat = posterior::rhat)`, the
+  rank-normalized split-R-hat, and `neff_ratio.brmsfit` is
+  `min(ess_bulk, ess_tail) / ndraws`. Both now do the same, computed on
+  the draws array rather than on the `stanfit`.
+
+  Measured on 4 chains of 500 (`dev/brmsmatch-findings.md`): the old
+  [`rhat()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
+  differed from brms’s by 0.00563108 at most, against a whole signal of
+  `max|rhat - 1| = 0.0100318`, so by 1.15 times the entire excess over 1
+  that the diagnostic reports.
+  [`neff_ratio()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
+  differed by 0.43165, which is 77 times larger and is the number a user
+  reads to decide whether to sample longer.
+
+  These two no longer agree with `ds$stanfit`, which carries a different
+  definition of the same idea. `rstan::summary(ds$stanfit)$summary`
+  still has the sampler’s own numbers for anyone who wants them.
+
+- **BREAKING. [`summary()`](https://rdrr.io/r/base/summary.html)’s
+  convergence columns move with them.** It reported rstan’s `n_eff` and
+  classic split-R-hat; it now reports `Rhat`, `Bulk_ESS` and `Tail_ESS`
+  from posterior, which is what `brms:::summary.brmsfit()` reports,
+  under brms’s own column names.
+
+  **The `n_eff` column is gone.** `summary(ds)[, "Rhat"]` is now exactly
+  `rhat(ds)` on those rows and `neff_ratio(ds)` is exactly
+  `pmin(Bulk_ESS, Tail_ESS) / ndraws(ds)`, so the package no longer
+  disagrees with itself. It did: on the fit measured in
+  `dev/reviews/20260915-brmsmatch.md`, `sigma_Intercept` read 0.99990396
+  in the `Rhat` column against 1.0037623 from `rhat(ds)`, BELOW 1 in one
+  place and above it in the other, and `x` read 1600.37 effective draws
+  against 1028.60, a 55.6 percent overstatement of the number a user
+  reads to decide whether to sample longer.
+
+- **[`rhat()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
+  and
+  [`neff_ratio()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
+  now report frmtmb’s parameter names.** They reported Stan’s, because
+  they read the `stanfit`: 4 of 11 entries on the measured fit
+  (`beta[1]`, `beta[2]`, `betad`, `theta`) were not addressable by the
+  names `variables(ds)` lists, so `rhat(ds)["x"]` was `NA`. It is now a
+  number. This falls out of the change above rather than being separate
+  work.
+
+- Both take brms’s `pars`, and it is brms’s `pars` FOR THESE TWO, which
+  is not the `pars` that
+  [`as.mcmc()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-as_draws.md),
+  [`mcmc_plot()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
+  and
+  [`posterior_interval()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-posterior_summary.md)
+  take. `brms:::rhat.brmsfit()` passes `variable = pars` to
+  [`as_draws_array()`](https://mc-stan.org/posterior/reference/draws_array.html)
+  rather than through `extract_pars()`, so `NULL` is the default and
+  means every variable, a string is an EXACT variable name,
+  `regex = TRUE` makes it a regular expression, and a name that is not
+  there is an error. The other three keep the `extract_pars` rule, where
+  `NA` means every variable and a string is a regular expression.
+  `?draws-diagnostics` documents both under *Two different `pars` rules,
+  both brms’s*.
+
+- **BREAKING. Ten methods take brms’s arguments in brms’s POSITIONS.** A
+  positional call ported from brms used to answer a different question,
+  twice without saying so. Every method below now matches brms’s method
+  name for name, as far as this package’s own arguments go, and
+  `tests/testthat/test-draws-spellings.R` asserts that against the
+  installed brms.
+
+  - `as.mcmc(x, pars, fixed, combine_chains, inc_warmup, ...)`, was
+    `(x, combine_chains, ...)`. `as.mcmc(ds, TRUE)` used to return the
+    pooled draws; brms reads that slot as `pars` and refuses a `pars`
+    that is neither `NA` nor character, and so does this now.
+  - `posterior_interval(object, pars, variable, prob, regex, fixed, ...)`,
+    was `(object, prob, variable, ...)`. `posterior_interval(ds, 0.9)`
+    used to return a 90% interval; it is now the same refusal brms
+    gives.
+  - `log_lik(object, newdata, re_formula, resp, ndraws, draw_ids, ...)`,
+    was `(object, ndraws, resp, ...)`.
+  - `mcmc_plot(object, pars, type, variable, regex, fixed, ...)`, was
+    `(object, type, variable, ...)`.
+  - `posterior_epred(object, newdata, re_formula, re.form, resp, dpar, nlpar, ndraws, draw_ids, ...)`,
+    was `(object, newdata, resp, re_formula, re.form, ndraws, ...)`.
+  - `posterior_linpred(object, transform, newdata, re_formula, re.form, resp, dpar, nlpar, incl_thres, ndraws, draw_ids, ...)`.
+  - `posterior_predict(object, newdata, re_formula, re.form, transform, resp, negative_rt, ndraws, draw_ids, ...)`.
+  - `pp_mixture(x, newdata, re_formula, resp, ndraws, draw_ids, log, summary, robust, probs, ...)`,
+    was `(x, summary, ndraws, ...)`.
+  - `predictive_error(object, newdata, re_formula, re.form, method, resp, ndraws, draw_ids, ...)`,
+    was `(object, resp, re_formula, re.form, ndraws, ...)`.
+  - `psis(log_ratios, newdata, resp, model_name, ndraws, ...)`, was
+    `(log_ratios, ndraws, resp, ...)`.
+
+  **A call that named its arguments is unaffected. A call that passed
+  them positionally must be re-read.**
+
+- New along the way, because brms puts them in those positions:
+  `draw_ids` on the predictive methods, on
+  [`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md)
+  and on
+  [`pp_mixture()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/pp_mixture.md)
+  names the draws to use by row index; `dpar` on
+  [`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md);
+  `log`, `robust` and `probs` on
+  [`pp_mixture()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/pp_mixture.md);
+  `method` on
+  [`predictive_error()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-posterior_summary.md),
+  which also takes `newdata` now and re-evaluates the response term on
+  it.
+
+- Eight brms arguments are carried in brms’s position and refused, each
+  with the reason and the replacement: `log_lik(newdata =)`,
+  `log_lik(re_formula =)`, `psis(newdata =)`, `pp_mixture(newdata =)`,
+  `pp_mixture(re_formula =)`, `as.mcmc(inc_warmup = TRUE)`,
+  `posterior_linpred(incl_thres = TRUE)` and
+  `posterior_predict(negative_rt = TRUE)`. `re_formula = NULL` is brms’s
+  own default and is refused nowhere: it is the no-op these methods
+  already do.
+
+- Two spellings of the random-effect switch survive on the five methods
+  where brms itself ACCEPTS both, which is not the same as the four that
+  declare both.
+  [`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
+  [`posterior_linpred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md)
+  and
+  [`predictive_error()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-posterior_summary.md)
+  declare `re_formula` and lme4’s `re.form` on `brmsfit`.
+  [`predictive_interval()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-posterior_summary.md)
+  declares neither and honors both anyway, because its whole brms body
+  is `posterior_predict(object, ...)`, so the alias reaches a formal one
+  frame down. `tests/testthat/test-draws-spellings.R` derives “brms
+  accepts it” from brms’s own code rather than restating a list.
+
+- **BREAKING, one method.**
+  [`pp_check()`](https://mc-stan.org/bayesplot/reference/pp_check.html)
+  no longer takes `re.form`. Note that this is the one place the package
+  is knowingly narrower than brms: `pp_check.brmsfit()` forwards its
+  dots to
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md)
+  through `do_call()`, so brms accepts the alias there too.
+  `dev/argspell-brms-accepts.R` in the monorepo has the measurement, and
+  the decision is open rather than settled.
+
+- **BREAKING.** An argument that lands in a method’s `...` is an error
+  naming it, rather than being swallowed. Every method of this package
+  that took a `...` it never read now refuses one;
+  `dev/argspell-report.R` in the monorepo reports 0 still swallowing.
+  See the frmtmb NEWS entry for why the refusal is the part that
+  prevents the class.
+
 ## frmtmb.sample 0.5.0
 
 - **frmtmb.sample no longer breaks brms, rstantools, loo,

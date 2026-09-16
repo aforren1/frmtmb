@@ -3,7 +3,7 @@
 For each requested effect, predicts over a grid of that predictor with
 every other predictor held at a reference value (numeric: mean; factor:
 first level; matrix covariate: column means) and random effects excluded
-(`re.form = NA`). Confidence bands are Wald intervals computed on the
+(`re_formula = NA`). Confidence bands are Wald intervals computed on the
 link scale and back-transformed. Smooth terms are included, so this also
 covers what brms calls `conditional_smooths()`.
 
@@ -114,12 +114,11 @@ conditional_effects(
   (`conditions = list(g = "3")`). brms draws a new group's random
   effects afresh from the fitted covariance in every posterior draw, so
   its curve is stochastic around this one; a maximum-likelihood fit has
-  the mode and the variance instead of draws. The fit surface's
+  the mode and the variance instead of draws.
   [`predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md)
-  spells the same setting `re.form` after lme4; `conditional_effects()`
-  takes brms's name because it is brms's function, and says so if handed
-  the other spelling. `band = "profile"` exists only for the
-  population-level curve.
+  spells the same setting the same way; lme4's `re.form` is refused and
+  says so. `band = "profile"` exists only for the population-level
+  curve.
 
 - ndraws:
 

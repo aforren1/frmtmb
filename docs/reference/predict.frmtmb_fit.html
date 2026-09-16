@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.57.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -75,7 +75,7 @@
 <span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"link"</span>, <span class="st">"response"</span>, <span class="st">"conditional"</span>, <span class="st">"zprob"</span>, <span class="st">"zlink"</span>, <span class="st">"disp"</span><span class="op">)</span>,</span>
 <span>  dpar <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  re.form <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  re_formula <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  se.fit <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  allow_new_levels <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -117,10 +117,10 @@ family's first location parameter (<code>"mu"</code> for most families).</p></dd
 to the first).</p></dd>
 
 
-<dt id="arg-re-form">re.form<a class="anchor" aria-label="anchor" href="#arg-re-form"></a></dt>
+<dt id="arg-re-formula">re_formula<a class="anchor" aria-label="anchor" href="#arg-re-formula"></a></dt>
 <dd><p><code>NULL</code> (default) includes random effects; <code>NA</code> or <code>~0</code>
 gives population-level predictions. See
-<em>What <code>re.form = NA</code> drops</em> for what that means when the model has
+<em>What <code>re_formula = NA</code> drops</em> for what that means when the model has
 smooths.</p></dd>
 
 
@@ -140,7 +140,10 @@ contributes nothing, which leaves the population curve.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Unused.</p></dd>
+<dd><p>Refused. An argument this method does not have is an
+error naming it, and the two lme4 spellings that were live in
+0.57.0 (<code>re.form</code>, <code>allow.new.levels</code>) are refused by name with
+the brms spelling that replaced them.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -205,10 +208,10 @@ exists to remove. Ask for the predictor by name (<code>type = "link"</code>, or
 <code>dpar = "mu"</code>) when that is what you want.</p>
     </div>
     <div class="section level2">
-    <h2 id="what-re-form-na-drops">What <code>re.form = NA</code> drops<a class="anchor" aria-label="anchor" href="#what-re-form-na-drops"></a></h2>
+    <h2 id="what-re-formula-na-drops">What <code>re_formula = NA</code> drops<a class="anchor" aria-label="anchor" href="#what-re-formula-na-drops"></a></h2>
 
 
-<p><code>re.form = NA</code> (equivalently <code>~0</code>) asks for the POPULATION-level
+<p><code>re_formula = NA</code> (equivalently <code>~0</code>) asks for the POPULATION-level
 prediction. Every <code>(x | g)</code> block is dropped, and so is any smooth
 whose basis gives each level of a grouping factor its own curve.
 Everything else stays.</p>
@@ -245,7 +248,7 @@ on purpose: the retained per-level curve is not a population
 quantity, and mgcv, the authority frmtmb's smooth estimation
 already follows, drops it too.</p>
 <p>A dropped factor-smooth term needs nothing from <code>newdata</code>, so the
-grouping column may be left out entirely when <code>re.form = NA</code>. It is
+grouping column may be left out entirely when <code>re_formula = NA</code>. It is
 required for a conditional prediction, and its absence is reported by
 name rather than by an mgcv internal message.</p>
 <p><code><a href="conditional_effects.html">conditional_effects()</a></code> draws its curves at the population level, so
@@ -300,9 +303,9 @@ brms's <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># re.form = NA drops the random effects: the population prediction</span></span></span>
+<span class="r-in"><span><span class="co"># re_formula = NA drops the random effects: the population prediction</span></span></span>
 <span class="r-in"><span><span class="va">nd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>, g <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fl">1</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">dd</span><span class="op">$</span><span class="va">g</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">nd</span>, re.form <span class="op">=</span> <span class="cn">NA</span>, type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">nd</span>, re_formula <span class="op">=</span> <span class="cn">NA</span>, type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         1         2         3 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 0.9340309 1.3398092 1.9218728 </span>
 <span class="r-in"><span></span></span>

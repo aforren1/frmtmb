@@ -11,14 +11,7 @@ installed, but not necessarily attached).
 pp_check(object, ...)
 
 # S3 method for class 'frmtmb_fit'
-pp_check(
-  object,
-  type = "dens_overlay",
-  ndraws = 10,
-  re_formula = arg_unset(),
-  re.form = arg_unset(),
-  ...
-)
+pp_check(object, type = "dens_overlay", ndraws = 10, re_formula = NA, ...)
 ```
 
 ## Arguments
@@ -47,13 +40,9 @@ pp_check(
   [`simulate()`](https://rdrr.io/r/stats/simulate.html) and defaults to
   `NA`, which simulates new random effects; on draws it is passed to
   `posterior_predict()` and defaults to `NULL`, because a draw already
-  carries its own.
-
-- re.form:
-
-  lme4's spelling of `re_formula`, accepted as an alias. Pass one or the
-  other, not both; see the *Argument spellings* section of
-  [`frmtmb.sample::posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.html).
+  carries its own. lme4's `re.form` is refused. brms honors it on
+  `pp_check()` and warns that it ignored it, which is a leak through its
+  dots rather than a decision to copy.
 
 ## Value
 

@@ -13,7 +13,7 @@ and handed to the corresponding bayesplot ppc_* function
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.57.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -80,14 +80,7 @@ and handed to the corresponding bayesplot <code>ppc_*</code> function
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">pp_check</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'frmtmb_fit'</span></span>
-<span><span class="fu">pp_check</span><span class="op">(</span></span>
-<span>  <span class="va">object</span>,</span>
-<span>  type <span class="op">=</span> <span class="st">"dens_overlay"</span>,</span>
-<span>  ndraws <span class="op">=</span> <span class="fl">10</span>,</span>
-<span>  re_formula <span class="op">=</span> <span class="fu"><a href="frmtmb-sampling-api.html">arg_unset</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  re.form <span class="op">=</span> <span class="fu"><a href="frmtmb-sampling-api.html">arg_unset</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  <span class="va">...</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">pp_check</span><span class="op">(</span><span class="va">object</span>, type <span class="op">=</span> <span class="st">"dens_overlay"</span>, ndraws <span class="op">=</span> <span class="fl">10</span>, re_formula <span class="op">=</span> <span class="cn">NA</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -116,13 +109,10 @@ and handed to the corresponding bayesplot <code>ppc_*</code> function
 (<code>pp_check()</code> is a brms function). On a fit it is passed to
 <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> and defaults to <code>NA</code>, which simulates new random
 effects; on draws it is passed to <code>posterior_predict()</code> and
-defaults to <code>NULL</code>, because a draw already carries its own.</p></dd>
-
-
-<dt id="arg-re-form">re.form<a class="anchor" aria-label="anchor" href="#arg-re-form"></a></dt>
-<dd><p>lme4's spelling of <code>re_formula</code>, accepted as an alias.
-Pass one or the other, not both; see the <em>Argument spellings</em>
-section of <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.html">frmtmb.sample::posterior_epred()</a></code>.</p></dd>
+defaults to <code>NULL</code>, because a draw already carries its own. lme4's
+<code>re.form</code> is refused. brms honors it on <code>pp_check()</code> and warns that
+it ignored it, which is a leak through its dots rather than a
+decision to copy.</p></dd>
 
 </dl></div>
     <div class="section level2">

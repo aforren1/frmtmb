@@ -87,13 +87,13 @@ VarCorr(fit)
 ## 1. The curve, with a band that covers all of it
 
 [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
-evaluates the fitted linear predictor on a grid. `re.form = NA` drops
+evaluates the fitted linear predictor on a grid. `re_formula = NA` drops
 the per-subject curves, so what comes back is the POPULATION curve.
 
 ``` r
 
 grid <- data.frame(t = seq(0, 1, length.out = 80))
-cv <- frm_curve(fit, newdata = grid, re.form = NA, nsim = 20000, seed = 1)
+cv <- frm_curve(fit, newdata = grid, re_formula = NA, nsim = 20000, seed = 1)
 cv
 #> <frmtmb curve> value, 80 grid points, level 0.95
 #>   critical value: pointwise 1.96, simultaneous 2.7215 (mcse 0.012)
@@ -161,7 +161,7 @@ If they ever did not,
 [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
 would refuse rather than report a band. The count of
 [`predict()`](https://rdrr.io/r/stats/predict.html) calls the rebuild
-cost is there too, and it is small: at `re.form = NA` the per-subject
+cost is there too, and it is small: at `re_formula = NA` the per-subject
 coefficients contribute nothing and are skipped in blocks rather than
 one at a time.
 
@@ -232,7 +232,7 @@ intervals. Where its band excludes zero, the speed is changing.
 
 g2 <- data.frame(t = seq(0.05, 0.95, length.out = 40))
 d1 <- frm_curve_deriv(fit, var = "t", order = 1, newdata = g2,
-                      re.form = NA, nsim = 20000, seed = 2)
+                      re_formula = NA, nsim = 20000, seed = 2)
 rising <- d1$.lower_sim > 0
 falling <- d1$.upper_sim < 0
 c(rising_from = min(g2$t[rising]), rising_to = max(g2$t[rising]),
@@ -257,7 +257,7 @@ first difference notices. Pass `eps =` to override it.
 
 c(order_1 = attr(d1, "eps"),
   order_2 = attr(frm_curve_deriv(fit, var = "t", order = 2, newdata = g2,
-                                 re.form = NA, simultaneous = FALSE),
+                                 re_formula = NA, simultaneous = FALSE),
                  "eps"))
 #> order_1 order_2 
 #>   9e-07   9e-05
@@ -299,7 +299,7 @@ variance of its location:
 ``` r
 
 pk <- frm_curve_feature(fit, var = "t", type = "maximum", newdata = g2,
-                        re.form = NA)
+                        re_formula = NA)
 pk
 #> <frmtmb curve feature> maximum, 1 found, level 0.95
 #>   covariance checked against predict(se.fit = TRUE) to 0 relative
@@ -321,7 +321,7 @@ threshold the profile passes twice gives two rows:
 ``` r
 
 frm_curve_feature(fit, var = "t", type = "crossing", at = 0.2,
-                  newdata = g2, re.form = NA)
+                  newdata = g2, re_formula = NA)
 #> <frmtmb curve feature> crossing, 2 found, level 0.95
 #>   covariance checked against predict(se.fit = TRUE) to 2.22e-16 relative
 #>   .feature .var .estimate         .se .lower_ci .upper_ci .value  .value_se
@@ -331,8 +331,8 @@ frm_curve_feature(fit, var = "t", type = "crossing", at = 0.2,
 
 ## Per-subject curves
 
-Drop `re.form = NA` and supply the grouping column, and the same three
-functions describe THAT subject’s curve, with the subject’s own
+Drop `re_formula = NA` and supply the grouping column, and the same
+three functions describe THAT subject’s curve, with the subject’s own
 deviation and its uncertainty included.
 
 ``` r
@@ -340,7 +340,7 @@ deviation and its uncertainty included.
 gs <- data.frame(t = seq(0.05, 0.95, length.out = 40),
                  subject = factor(3, levels = levels(d$subject)))
 pk3 <- frm_curve_feature(fit, var = "t", type = "maximum", newdata = gs,
-                         re.form = NULL)
+                         re_formula = NULL)
 pk3[, c(".estimate", ".se", ".value", ".value_se")]
 #> <frmtmb curve feature> , 1 found, level 
 #>   covariance NOT checked: predict(se.fit = TRUE) is refused for a nonlinear predictor, so there is no second route to compare against

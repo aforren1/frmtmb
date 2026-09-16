@@ -10,7 +10,7 @@ fit and returns them with confidence intervals.
 frm_coherence(
   fit,
   newdata = NULL,
-  re.form = NULL,
+  re_formula = NULL,
   level = 0.95,
   allow_new_levels = FALSE
 )
@@ -18,7 +18,7 @@ frm_coherence(
 frm_phase(
   fit,
   newdata = NULL,
-  re.form = NULL,
+  re_formula = NULL,
   level = 0.95,
   allow_new_levels = FALSE
 )
@@ -38,7 +38,7 @@ frm_phase(
   Optional data frame of predictor values. Defaults to the data the
   model was fitted to.
 
-- re.form:
+- re_formula:
 
   `NULL` keeps the random effects, so the answer is per group; `NA`
   drops them, so the answer is the population one. Passed through to

@@ -35,7 +35,8 @@ vcov(object, full = FALSE, cluster = NULL, type = "CR0", ...)
 
 - ...:
 
-  Unused.
+  Refused: an argument the method does not have is an error naming it,
+  rather than silently changing nothing.
 
 ## Value
 

@@ -32,7 +32,8 @@ refit(object, newresp, start = NULL, ...)
 
 - ...:
 
-  Unused.
+  Refused: an argument the method does not have is an error naming it,
+  rather than silently changing nothing.
 
 ## Value
 
@@ -46,7 +47,7 @@ dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
 dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
 fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 # refit to a simulated response (the parametric-bootstrap step)
-ysim <- simulate(fit, nsim = 1, re.form = NA)[[1]]
+ysim <- simulate(fit, nsim = 1, re_formula = NA)[[1]]
 rf <- refit(fit, ysim)
 fixef(rf)
 #> $mu

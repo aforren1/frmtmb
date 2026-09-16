@@ -17,7 +17,7 @@ posterior_summary(bayes_R2(ds, summary = FALSE)) work."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -79,7 +79,15 @@ matrix of draws, which is what makes
 <span><span class="fu">posterior_interval</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu">posterior_interval</span><span class="op">(</span><span class="va">object</span>, prob <span class="op">=</span> <span class="fl">0.95</span>, variable <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">posterior_interval</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  pars <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  variable <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  prob <span class="op">=</span> <span class="fl">0.95</span>,</span>
+<span>  regex <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  fixed <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">predictive_interval</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
@@ -100,10 +108,13 @@ matrix of draws, which is what makes
 <span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
 <span><span class="fu">predictive_error</span><span class="op">(</span></span>
 <span>  <span class="va">object</span>,</span>
-<span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  newdata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  re_formula <span class="op">=</span> <span class="fu">arg_unset</span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  re.form <span class="op">=</span> <span class="fu">arg_unset</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"posterior_predict"</span>,</span>
+<span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  ndraws <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  draw_ids <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -130,7 +141,8 @@ is brms's and names its first argument <code>x</code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Unused.</p></dd>
+<dd><p>Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.</p></dd>
 
 
 <dt id="arg-object">object<a class="anchor" aria-label="anchor" href="#arg-object"></a></dt>
@@ -138,9 +150,26 @@ is brms's and names its first argument <code>x</code>.</p></dd>
 (variables in columns).</p></dd>
 
 
+<dt id="arg-pars">pars<a class="anchor" aria-label="anchor" href="#arg-pars"></a></dt>
+<dd><p>brms's alias of <code>variable</code>, in brms's own second
+position on <code>posterior_interval()</code>: <code>NA</code> (the default) for every
+variable, otherwise a character vector matched as a regular
+expression unless <code>fixed = TRUE</code>. brms refuses a <code>pars</code> that is
+neither <code>NA</code> nor character, and so does this, which is why
+<code>posterior_interval(x, 0.9)</code> is a refusal and not an interval.</p></dd>
+
+
 <dt id="arg-prob">prob<a class="anchor" aria-label="anchor" href="#arg-prob"></a></dt>
 <dd><p>Central interval width for <code>posterior_interval()</code> and
 <code>predictive_interval()</code>.</p></dd>
+
+
+<dt id="arg-regex">regex<a class="anchor" aria-label="anchor" href="#arg-regex"></a></dt>
+<dd><p>If <code>TRUE</code>, <code>variable</code> is a regular expression.</p></dd>
+
+
+<dt id="arg-fixed">fixed<a class="anchor" aria-label="anchor" href="#arg-fixed"></a></dt>
+<dd><p>If <code>TRUE</code>, <code>pars</code> is matched by exact name.</p></dd>
 
 
 <dt id="arg-re-formula-re-form">re_formula, re.form<a class="anchor" aria-label="anchor" href="#arg-re-formula-re-form"></a></dt>
@@ -150,8 +179,17 @@ of it. Pass one or the other; see the <em>Argument spellings</em> section
 of <code><a href="posterior_epred.html">posterior_epred()</a></code>.</p></dd>
 
 
-<dt id="arg-ndraws-newdata-resp">ndraws, newdata, resp<a class="anchor" aria-label="anchor" href="#arg-ndraws-newdata-resp"></a></dt>
-<dd><p>Passed to <code><a href="posterior_epred.html">posterior_predict()</a></code>.</p></dd>
+<dt id="arg-ndraws-draw-ids-newdata-resp">ndraws, draw_ids, newdata, resp<a class="anchor" aria-label="anchor" href="#arg-ndraws-draw-ids-newdata-resp"></a></dt>
+<dd><p>Passed to
+<code><a href="posterior_epred.html">posterior_predict()</a></code>. <code>predictive_error(newdata =)</code> re-evaluates
+the response term on <code>newdata</code>, so <code>newdata</code> must carry the
+response.</p></dd>
+
+
+<dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
+<dd><p>For <code>predictive_error()</code>, which predictive draws the
+error is taken against: <code>"posterior_predict"</code> (the default) or
+<code>"posterior_epred"</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">

@@ -1466,10 +1466,10 @@ and use `bs = "fs"` when they are not.
 
 xg <- data.frame(t = seq(0, 1, length.out = 100), x = 0)
 xg1 <- transform(xg, x = 1)
-# re.form = NA drops the per-subject fs curves, so this IS the
+# re_formula = NA drops the per-subject fs curves, so this IS the
 # population coefficient function; no subject column is needed
-f0 <- as.numeric(predict(ffs, newdata = xg, re.form = NA))
-f1 <- as.numeric(predict(ffs, newdata = xg1, re.form = NA)) - f0
+f0 <- as.numeric(predict(ffs, newdata = xg, re_formula = NA))
+f1 <- as.numeric(predict(ffs, newdata = xg1, re_formula = NA)) - f0
 tinyplot::tinyplot(x = xg$t, y = f0, type = "l", col = "steelblue4",
                    lwd = 2, theme = "clean2", xlab = "t",
                    ylab = "coefficient function",
@@ -2186,7 +2186,7 @@ its columns sit at.
 
 grid <- data.frame(age = seq(0, 130, length.out = 120), sex = 0, ga = 0,
                    id = factor(levels(smocc$id)[1], levels(smocc$id)))
-lb <- frm_lp_basis(fit_smocc, newdata = grid, re.form = NA)
+lb <- frm_lp_basis(fit_smocc, newdata = grid, re_formula = NA)
 se <- sqrt(pmax(rowSums((lb$A %*% lb$V) * lb$A), 0))
 band <- data.frame(age = grid$age, fit = lb$eta,
                    lo = lb$eta - 1.96 * se, hi = lb$eta + 1.96 * se)
@@ -2277,10 +2277,10 @@ and each one is handled above:
   maximizes under `method = "ML"` and reports as `-gam$gcv.ubre`.
   `logLik.gam` is the unpenalized likelihood at the fit and is the wrong
   number to compare against. Section 10 compares the right pair.
-- On a model with an `fs` factor-smooth, `predict(re.form = NA)` drops
-  the per-subject curves and gives the population coefficient function
-  directly, with no grouping column needed in `newdata`. Section 10
-  draws its figure that way.
+- On a model with an `fs` factor-smooth, `predict(re_formula = NA)`
+  drops the per-subject curves and gives the population coefficient
+  function directly, with no grouping column needed in `newdata`.
+  Section 10 draws its figure that way.
 - A custom family may pass a link OBJECT rather than a link name, which
   is how section 11 bounds a shift parameter by the data. The object
   needs `name`, `linkfun`, `linkinv` and `mu_eta`.

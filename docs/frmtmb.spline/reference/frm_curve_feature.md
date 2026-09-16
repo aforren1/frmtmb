@@ -16,7 +16,7 @@ frm_curve_feature(
   contrast = NULL,
   dpar = NULL,
   resp = NULL,
-  re.form = NA,
+  re_formula = NA,
   level = 0.95,
   eps = NULL,
   maxit = 50L,
@@ -63,7 +63,7 @@ frm_curve_feature(
 
   Response name, for a multivariate fit.
 
-- re.form:
+- re_formula:
 
   `NA` (the default) evaluates the population curve, the convention
   `mgcv` and `gratia` plot. `NULL` keeps every random effect, so the

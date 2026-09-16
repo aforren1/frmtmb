@@ -10,7 +10,13 @@ frame can be refitted or compared against the observed one.
 ## Usage
 
 ``` r
-frm_cross_simulate(fit, nsim = 1L, seed = NULL, newdata = NULL, re.form = NULL)
+frm_cross_simulate(
+  fit,
+  nsim = 1L,
+  seed = NULL,
+  newdata = NULL,
+  re_formula = NULL
+)
 ```
 
 ## Arguments
@@ -34,7 +40,7 @@ frm_cross_simulate(fit, nsim = 1L, seed = NULL, newdata = NULL, re.form = NULL)
 
   Optional data frame of predictor values.
 
-- re.form:
+- re_formula:
 
   Passed to [`stats::predict()`](https://rdrr.io/r/stats/predict.html);
   `NULL` keeps the random effects.

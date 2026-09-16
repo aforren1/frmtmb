@@ -23,7 +23,7 @@ arguments the way the user-facing surface does."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.57.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -269,11 +269,11 @@ mean, and on a response truncated below at zero it can be negative.
 The predicate underneath stays private, because what an extension
 needs is the decision and not the test that makes it.</p>
 <p><code>ce_dots()</code> is the argument surface itself: it pulls
-<code>allow_new_levels</code> (and lme4's <code>allow.new.levels</code>) out of a call's
-dots, returns whether either was set, and reports whatever is left
-as unknown. An extension that hand-rolls the same check accepts a
-different set of arguments from the fit method, which is how
-<code>allow_new_levels</code> came to work on a fit and warn on draws.</p>
+<code>allow_new_levels</code> out of a call's dots, returns whether it was set,
+and REFUSES whatever is left, naming it. An extension that
+hand-rolls the same check accepts a different set of arguments from
+the fit method, which is how <code>allow_new_levels</code> came to work on a
+fit and warn on draws.</p>
 <p>Four more serve one purpose between them: making an unobserved
 group a DRAWN group rather than letting the first observed one
 stand in for it silently. <code>ce_group_vars()</code> names
@@ -292,7 +292,7 @@ comparable.</p>
 
 
 <p>frmtmb answers to two argument dialects: a brms-named function takes
-<code>re_formula</code>, frmtmb's own fit surface takes lme4's <code>re.form</code>, and
+<code>re_formula</code>, frmtmb's own fit surface takes lme4's <code>re_formula</code>, and
 the brms-named ones accept both. <code>arg_unset()</code> is the "not supplied"
 marker a formal defaults to when <code>NULL</code> and <code>NA</code> are both real
 settings and neither can double as unset; <code>re_form_arg()</code> resolves

@@ -66,7 +66,7 @@ method.</p>
 <span>  contrast <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  dpar <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  re.form <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  re_formula <span class="op">=</span> <span class="cn">NA</span>,</span>
 <span>  level <span class="op">=</span> <span class="fl">0.95</span>,</span>
 <span>  eps <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  maxit <span class="op">=</span> <span class="fl">50L</span>,</span>
@@ -116,7 +116,7 @@ the default, is the location parameter <code>mu</code>.</p></dd>
 <dd><p>Response name, for a multivariate fit.</p></dd>
 
 
-<dt id="arg-re-form">re.form<a class="anchor" aria-label="anchor" href="#arg-re-form"></a></dt>
+<dt id="arg-re-formula">re_formula<a class="anchor" aria-label="anchor" href="#arg-re-formula"></a></dt>
 <dd><p><code>NA</code> (the default) evaluates the population curve, the
 convention <code>mgcv</code> and <code>gratia</code> plot. <code>NULL</code> keeps every random
 effect, so the grid must carry the grouping columns and the curve is

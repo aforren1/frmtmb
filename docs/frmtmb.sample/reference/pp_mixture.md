@@ -16,7 +16,19 @@ computation is run at every draw. brms calls this `pp_mixture()`.
 pp_mixture(x, ...)
 
 # S3 method for class 'frmtmb_draws'
-pp_mixture(x, summary = TRUE, ndraws = NULL, ...)
+pp_mixture(
+  x,
+  newdata = NULL,
+  re_formula = arg_unset(),
+  resp = NULL,
+  ndraws = NULL,
+  draw_ids = NULL,
+  log = FALSE,
+  summary = TRUE,
+  robust = FALSE,
+  probs = c(0.025, 0.975),
+  ...
+)
 ```
 
 ## Arguments
@@ -30,15 +42,42 @@ pp_mixture(x, summary = TRUE, ndraws = NULL, ...)
 
   Unused.
 
+- newdata, re_formula:
+
+  Accepted for brms's signature and refused:
+  [`frmtmb::mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.html)
+  is a statement about the rows the model was fitted on.
+
+- resp:
+
+  The response whose mixture to report, for a multivariate model.
+
+- ndraws:
+
+  Number of draws to use (default: all).
+
+- draw_ids:
+
+  The draws to use, by row index, instead of the evenly spaced subsample
+  `ndraws` takes.
+
+- log:
+
+  If `TRUE`, log probabilities.
+
 - summary:
 
   If `TRUE` (the default, as in brms), an
   `observations x statistics x components` array of summaries; otherwise
   the raw `draws x observations x components` array.
 
-- ndraws:
+- robust:
 
-  Number of draws to use (default: all).
+  If `TRUE`, median and MAD instead of mean and SD.
+
+- probs:
+
+  The two quantiles the summary reports.
 
 ## Value
 
@@ -47,6 +86,11 @@ An array; see `summary`. For a group-level mixture
 [`frmtmb.latent::lca()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/lca.html))
 the rows are groups, as in
 [`frmtmb::mixture_probs()`](https://aforren1.github.io/frmtmb/reference/mixture_probs.html).
+
+## Details
+
+The argument order is brms's, so `summary` sits in brms's own eighth
+position and not in the second: the second is `newdata`.
 
 ## Examples
 
