@@ -183,11 +183,13 @@ test_that("predict type aliases and spellings on gaussian fits", {
                predict(fit, type = "response"), tolerance = 1e-12)
   expect_equal(unique(round(predict(fit, type = "disp"), 10)),
                round(sigma(fit), 10))
-  # the lme4/glmmTMB dot spelling of allow_new_levels is accepted
+  # the lme4/glmmTMB dot spelling of allow_new_levels is REFUSED now:
+  # brms is the tiebreaker on a name, so allow_new_levels is the only
+  # one, and the refusal says so rather than accepting both
   nd <- data.frame(x = 0, g = factor("99"))
-  expect_identical(predict(fit, newdata = nd, allow.new.levels = TRUE),
-                   predict(fit, newdata = nd, allow_new_levels = TRUE))
-  expect_warning(predict(fit, bogus_arg = 1), "bogus_arg")
+  expect_error(predict(fit, newdata = nd, allow.new.levels = TRUE),
+               "allow_new_levels")
+  expect_error(predict(fit, bogus_arg = 1), "bogus_arg")
 })
 
 test_that("predict type = 'response' scales binomial means by trials", {

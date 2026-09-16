@@ -118,7 +118,7 @@ fit <- frm(bf(w11 | vreal(w22, w12r, w12i) + vint(n) ~ 1 + (1 | id),
               coh ~ 1 + (1 | id),
               phase ~ 1 + (1 | id)),
            family = cross_wishart(), data = xs)
-frm_coherence(fit, newdata = xs[1, ], re.form = NA)
+frm_coherence(fit, newdata = xs[1, ], re_formula = NA)
 ```
 
 The interval is a Wald interval on the logit scale pushed through

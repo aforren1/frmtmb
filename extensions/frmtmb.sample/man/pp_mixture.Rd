@@ -12,7 +12,8 @@ pp_mixture(x, ...)
 \arguments{
 \item{x}{A \code{frmtmb_draws} from \code{\link[=frm_sample]{frm_sample()}}.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 
 \item{summary}{If \code{TRUE} (the default, as in brms), an
 \verb{observations x statistics x components} array of summaries;

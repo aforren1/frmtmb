@@ -39,6 +39,7 @@ posterior_summary <- function(x, ...) UseMethod("posterior_summary")
 #' @export
 posterior_summary.default <- function(x, probs = c(0.025, 0.975),
                                       robust = FALSE, ...) {
+  frm_check_dots(...)
   m <- as.matrix(x)
   ctr <- if (robust) stats::median else mean
   spr <- if (robust) stats::mad else stats::sd
@@ -125,7 +126,9 @@ fit_no_draws <- function(fn) {
 #' @rdname as_draws
 #' @exportS3Method posterior::as_draws
 #' @export
-as_draws.frmtmb_fit <- function(x, ...) fit_no_draws("as_draws")
+as_draws.frmtmb_fit <- function(x, ...) {
+  fit_no_draws("as_draws")
+}
 
 #' @rdname as_draws
 #' @exportS3Method posterior::as_draws_matrix
@@ -144,7 +147,9 @@ as_draws_array.frmtmb_fit <- function(x, ...) {
 #' @rdname as_draws
 #' @exportS3Method posterior::as_draws_df
 #' @export
-as_draws_df.frmtmb_fit <- function(x, ...) fit_no_draws("as_draws_df")
+as_draws_df.frmtmb_fit <- function(x, ...) {
+  fit_no_draws("as_draws_df")
+}
 
 #' @rdname as_draws
 #' @exportS3Method posterior::as_draws_list

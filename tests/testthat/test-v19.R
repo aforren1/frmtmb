@@ -53,7 +53,7 @@ test_that("latent classes with class-specific intercept REs work", {
   P <- mixture_probs(fit)
   acc <- mean((P[, 1] > 0.5) == (s$cls == 0))
   expect_gt(max(acc, 1 - acc), 0.95)
-  sm <- simulate(fit, nsim = 1, re.form = NA, seed = 1)
+  sm <- simulate(fit, nsim = 1, re_formula = NA, seed = 1)
   expect_equal(stats::sd(tapply(sm[[1]], dd$g, mean)),
                stats::sd(tapply(dd$y, dd$g, mean)), tolerance = 0.25)
 })

@@ -12,7 +12,7 @@ frm_curve_deriv(
   contrast = NULL,
   dpar = NULL,
   resp = NULL,
-  re.form = NA,
+  re_formula = NA,
   level = 0.95,
   simultaneous = TRUE,
   nsim = 10000L,
@@ -23,7 +23,7 @@ frm_curve_deriv(
 }
 \arguments{
 \item{object}{A \code{frmtmb_fit}, or a \code{frmtmb_curve} from \code{\link[=frm_curve]{frm_curve()}},
-in which case its grid and its \code{dpar}, \code{resp} and \code{re.form} are
+in which case its grid and its \code{dpar}, \code{resp} and \code{re_formula} are
 reused.}
 
 \item{var}{Name of the covariate to differentiate with respect to. It
@@ -43,7 +43,7 @@ the default, is the location parameter \code{mu}.}
 
 \item{resp}{Response name, for a multivariate fit.}
 
-\item{re.form}{\code{NA} (the default) evaluates the population curve, the
+\item{re_formula}{\code{NA} (the default) evaluates the population curve, the
 convention \code{mgcv} and \code{gratia} plot. \code{NULL} keeps every random
 effect, so the grid must carry the grouping columns and the curve is
 that group's own.}

@@ -1193,10 +1193,10 @@ and use `bs = "fs"` when they are not.
 ```{r fosr-fig, eval = has_tinyplot, fig.width = 7, fig.height = 4, fig.alt = "Plot of the two functional coefficients against t on the unit interval. A blue line is the fitted intercept function, which rises to about 3 near t equal to 0.25 and falls to about minus 1 near t equal to 0.75. A red line is the fitted slope function, an inverted parabola peaking near 1.5 at t equal to 0.5. Dashed gray lines are the simulated truth, and each fitted line follows its own dashed line closely."}
 xg <- data.frame(t = seq(0, 1, length.out = 100), x = 0)
 xg1 <- transform(xg, x = 1)
-# re.form = NA drops the per-subject fs curves, so this IS the
+# re_formula = NA drops the per-subject fs curves, so this IS the
 # population coefficient function; no subject column is needed
-f0 <- as.numeric(predict(ffs, newdata = xg, re.form = NA))
-f1 <- as.numeric(predict(ffs, newdata = xg1, re.form = NA)) - f0
+f0 <- as.numeric(predict(ffs, newdata = xg, re_formula = NA))
+f1 <- as.numeric(predict(ffs, newdata = xg1, re_formula = NA)) - f0
 tinyplot::tinyplot(x = xg$t, y = f0, type = "l", col = "steelblue4",
                    lwd = 2, theme = "clean2", xlab = "t",
                    ylab = "coefficient function",
@@ -1777,7 +1777,7 @@ exactly the rows its columns sit at.
 ```{r smocc-curve, eval = has_brokenstick}
 grid <- data.frame(age = seq(0, 130, length.out = 120), sex = 0, ga = 0,
                    id = factor(levels(smocc$id)[1], levels(smocc$id)))
-lb <- frm_lp_basis(fit_smocc, newdata = grid, re.form = NA)
+lb <- frm_lp_basis(fit_smocc, newdata = grid, re_formula = NA)
 se <- sqrt(pmax(rowSums((lb$A %*% lb$V) * lb$A), 0))
 band <- data.frame(age = grid$age, fit = lb$eta,
                    lo = lb$eta - 1.96 * se, hi = lb$eta + 1.96 * se)
@@ -1852,7 +1852,7 @@ and each one is handled above:
   and reports as `-gam$gcv.ubre`. `logLik.gam` is the unpenalized
   likelihood at the fit and is the wrong number to compare against.
   Section 10 compares the right pair.
-- On a model with an `fs` factor-smooth, `predict(re.form = NA)`
+- On a model with an `fs` factor-smooth, `predict(re_formula = NA)`
   drops the per-subject curves and gives the population coefficient
   function directly, with no grouping column needed in `newdata`.
   Section 10 draws its figure that way.

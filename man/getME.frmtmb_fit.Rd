@@ -15,7 +15,8 @@ returns a named list.}
 \item{resp}{Response name, for the design extractors on a
 multivariate fit.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 }
 \value{
 The requested component, or a named list when \code{name} names

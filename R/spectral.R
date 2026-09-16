@@ -582,7 +582,7 @@ pgram_grid <- function(f) {
 #'   as the numbers themselves. A model written in terms of a
 #'   transformed frequency keeps no `freq` column, so passing
 #'   `pg$freq` is the general route.
-#' @param ... Passed to [predict()], for example `re.form`.
+#' @param ... Passed to [predict()], for example `re_formula`.
 #' @return A `ts` matrix with `2 * nf + 1` rows and `nsim` columns, at
 #'   the sampling rate the grid implies.
 #' @seealso [whittle()], [frm_periodogram()].

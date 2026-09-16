@@ -169,13 +169,14 @@ test_that("categorical = FALSE draws the expected category number", {
                "needs an ordinal or")
 })
 
-test_that("the draws method reports the arguments it cannot use", {
+test_that("the draws method refuses the arguments it cannot use", {
   cs <- ce_case()
-  expect_warning(conditional_effects(cs$ds, effects = "x", resolution = 4,
-                                     nonesuch = 1),
-                 "ignoring unknown argument")
+  expect_error(conditional_effects(cs$ds, effects = "x", resolution = 4,
+                                   nonesuch = 1),
+               "has no argument")
+  # the retired lme4 spelling is named rather than reported as unknown
   expect_error(conditional_effects(cs$ds, effects = "x", re.form = NA),
-               "spells this argument")
+               "re_formula")
 })
 
 
@@ -307,17 +308,18 @@ test_that("a mixture draws curve is the mixture mean", {
   }
 })
 
-test_that("allow_new_levels is accepted, not warned about", {
+test_that("allow_new_levels is accepted and its lme4 spelling refused", {
   cs <- ce_case()
-  # core pulls both spellings out of the dots; the draws method used to
-  # warn "ignoring unknown argument" for the same call
+  # core pulls the brms spelling out of the dots; the lme4 one is
+  # refused by name now, on the draws method and the fit method alike
   expect_no_warning(
     conditional_effects(cs$ds, effects = "x", resolution = 4,
                         allow_new_levels = TRUE))
-  expect_no_warning(
+  expect_error(
     conditional_effects(cs$ds, effects = "x", resolution = 4,
-                        allow.new.levels = TRUE))
-  expect_warning(conditional_effects(cs$ds, effects = "x", resolution = 4,
-                                     nonesuch = 1),
-                 "ignoring unknown argument")
+                        allow.new.levels = TRUE),
+    "allow_new_levels")
+  expect_error(conditional_effects(cs$ds, effects = "x", resolution = 4,
+                                   nonesuch = 1),
+               "has no argument")
 })

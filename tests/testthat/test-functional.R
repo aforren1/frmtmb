@@ -28,7 +28,7 @@ test_that("function-on-scalar regression matches mgcv", {
   # predict at x = 1 minus x = 0, population level
   nd1 <- data.frame(t = tt, x = 1, id = factor(1, levels = levels(dd$id)))
   nd0 <- data.frame(t = tt, x = 0, id = factor(1, levels = levels(dd$id)))
-  beta1_hat <- predict(fit, newdata = nd1, re.form = NA) -
-    predict(fit, newdata = nd0, re.form = NA)
+  beta1_hat <- predict(fit, newdata = nd1, re_formula = NA) -
+    predict(fit, newdata = nd0, re_formula = NA)
   expect_lt(max(abs(beta1_hat - f1(tt))), 0.25)
 })

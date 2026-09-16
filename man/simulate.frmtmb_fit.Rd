@@ -4,7 +4,14 @@
 \alias{simulate.frmtmb_fit}
 \title{Simulate responses from a frmtmb fit}
 \usage{
-\method{simulate}{frmtmb_fit}(object, nsim = 1, seed = NULL, re.form = NULL, censored = FALSE, ...)
+\method{simulate}{frmtmb_fit}(
+  object,
+  nsim = 1,
+  seed = NULL,
+  re_formula = NULL,
+  censored = FALSE,
+  ...
+)
 }
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
@@ -15,14 +22,15 @@
 contract: the global RNG state is restored afterwards, and the
 seed used is attached as the \code{"seed"} attribute.}
 
-\item{re.form}{\code{NULL} (default) conditions on the estimated random
+\item{re_formula}{\code{NULL} (default) conditions on the estimated random
 effects; \code{NA} redraws them from their estimated distribution
 (marginal simulation).}
 
 \item{censored}{Apply the fitted \code{cens()} mechanism to the draws
 (see Censored responses). Ignored without \code{cens()}.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 }
 \value{
 A data frame with \code{nsim} columns and a \code{"seed"} attribute.
@@ -93,9 +101,9 @@ sims <- simulate(fit, nsim = 5, seed = 42)
 str(sims)
 attr(sims, "seed")
 
-# re.form = NA redraws the group effects, which is the right choice
+# re_formula = NA redraws the group effects, which is the right choice
 # for a parametric bootstrap over new groups
-sims_m <- simulate(fit, nsim = 5, re.form = NA, seed = 42)
+sims_m <- simulate(fit, nsim = 5, re_formula = NA, seed = 42)
 apply(sims_m, 2, var) > apply(sims, 2, var)
 
 # a posterior-predictive check by hand: does the fit reproduce the

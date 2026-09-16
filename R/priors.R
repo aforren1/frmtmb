@@ -996,6 +996,7 @@ c.frmtmb_priorlist <- function(...) {
 
 #' @export
 print.frmtmb_priorlist <- function(x, ...) {
+  frm_check_dots(...)
   for (s in unclass(x)) {
     d <- if (is.null(s$dist)) "(bounds only)" else {
       # brms spelling on the way out as well as on the way in, so a

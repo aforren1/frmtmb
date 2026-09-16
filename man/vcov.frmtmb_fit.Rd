@@ -20,7 +20,8 @@ model-based one.}
 \item{type}{Small-sample correction for \code{cluster}, see
 \code{\link[=vcov_cluster]{vcov_cluster()}}.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 }
 \value{
 A covariance matrix.

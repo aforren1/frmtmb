@@ -53,11 +53,19 @@ get_varcov.frmtmb_fit <- function(x, ...) {
 
 #' @exportS3Method insight::find_statistic
 find_statistic.frmtmb_fit <- function(x, ...) {
+  # No measured call site in insight or marginaleffects passes a
+  # name this method lacks (dev/argspell-exempt2.R), so the
+  # exemption was a hole rather than a contract.
+  frm_check_dots(...)
   "z-statistic"
 }
 
 #' @exportS3Method insight::link_inverse
 link_inverse.frmtmb_fit <- function(x, ...) {
+  # No measured call site in insight or marginaleffects passes a
+  # name this method lacks (dev/argspell-exempt2.R), so the
+  # exemption was a hole rather than a contract.
+  frm_check_dots(...)
   rspec <- x$spec$responses[[1L]]
   dp <- rspec$dpars[["mu"]] %||% rspec$dpars[[1L]]
   dp[["link"]]$linkinv
@@ -65,6 +73,10 @@ link_inverse.frmtmb_fit <- function(x, ...) {
 
 #' @exportS3Method insight::link_function
 link_function.frmtmb_fit <- function(x, ...) {
+  # No measured call site in insight or marginaleffects passes a
+  # name this method lacks (dev/argspell-exempt2.R), so the
+  # exemption was a hole rather than a contract.
+  frm_check_dots(...)
   rspec <- x$spec$responses[[1L]]
   dp <- rspec$dpars[["mu"]] %||% rspec$dpars[[1L]]
   dp[["link"]]$linkfun

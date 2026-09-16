@@ -278,7 +278,7 @@ test_that("quadrature x predict(se.fit) reports modes-conditional SEs", {
   expect_true(all(is.finite(pr$se.fit)))
 
   # population-level prediction adds no b columns, so it is unaffected
-  expect_silent(p0 <- predict(fit, se.fit = TRUE, re.form = NA))
+  expect_silent(p0 <- predict(fit, se.fit = TRUE, re_formula = NA))
   expect_true(all(is.finite(p0$se.fit)))
 })
 

@@ -29,7 +29,7 @@ hypothesis(x, ...)
 \item{...}{Backend controls: passed to \code{\link[TMB:tmbprofile]{TMB::tmbprofile()}} for
 \code{method = "profile"} (e.g. \code{ytol}, \code{ystep}, \code{maxit},
 \code{parm.range}) and to \code{\link[=frm_bootstrap]{frm_bootstrap()}} for \code{method = "boot"}
-(e.g. \code{re.form = NULL} for a conditional bootstrap). Unused for
+(e.g. \code{re_formula = NULL} for a conditional bootstrap). Unused for
 \code{"wald"} (a warning).}
 
 \item{hypothesis}{Character vector of hypotheses.}

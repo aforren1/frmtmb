@@ -57,7 +57,8 @@ is brms's and names its first argument \code{x}.}
 
 \item{variable}{Optional subset of variables, by name.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 
 \item{object}{A \code{frmtmb_draws}, or a matrix of draws
 (variables in columns).}

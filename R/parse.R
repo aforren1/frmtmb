@@ -1900,6 +1900,7 @@ parse_spec <- function(bform) {
 
 #' @export
 print.frmtmb_spec <- function(x, ...) {
+  frm_check_dots(...)
   cat("<frmtmb spec>\n")
   for (r in x$responses) {
     cat("Response: ", r$resp_name, "  [", r$family[["family"]], "]\n", sep = "")

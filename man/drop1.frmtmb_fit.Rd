@@ -18,7 +18,8 @@ allows (\code{\link[stats:drop.scope]{stats::drop.scope()}}).}
 
 \item{k}{AIC penalty per parameter.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 }
 \value{
 An \code{anova} table with one row per dropped term.

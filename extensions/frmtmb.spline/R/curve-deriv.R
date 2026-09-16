@@ -44,7 +44,7 @@
 #' controls that.
 #'
 #' @param object A `frmtmb_fit`, or a `frmtmb_curve` from [frm_curve()],
-#'   in which case its grid and its `dpar`, `resp` and `re.form` are
+#'   in which case its grid and its `dpar`, `resp` and `re_formula` are
 #'   reused.
 #' @param var Name of the covariate to differentiate with respect to. It
 #'   must be a numeric column of the grid.
@@ -99,7 +99,7 @@
 #' @export
 frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
                             contrast = NULL, dpar = NULL, resp = NULL,
-                            re.form = NA, level = 0.95,
+                            re_formula = NA, level = 0.95,
                             simultaneous = TRUE, nsim = 10000L,
                             eps = NULL, seed = NULL, tol = 1e-6) {
   sp_check_level(level)
@@ -112,7 +112,7 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
          call. = FALSE)
   }
   order <- as.integer(order)
-  sp <- sp_spec(object, newdata, contrast, dpar, resp, re.form)
+  sp <- sp_spec(object, newdata, contrast, dpar, resp, re_formula)
   sp_rp_gate(sp$fit)
   nd <- sp$newdata
   ct <- sp$contrast
@@ -135,7 +135,7 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
     cstack <- rbind(ct, ct, ct)
     cstack[[var]] <- c(x - e, x, x + e)
   }
-  parts <- sp_curve_parts(sp$fit, stack, sp$dpar, sp$resp, sp$re.form, tol,
+  parts <- sp_curve_parts(sp$fit, stack, sp$dpar, sp$resp, sp$re_formula, tol,
                           cstack)
   m <- nrow(nd)
   lo <- seq_len(m)
@@ -189,7 +189,7 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
 #' every printed row is a difference.
 #'
 #' @noRd
-sp_spec <- function(object, newdata, contrast, dpar, resp, re.form) {
+sp_spec <- function(object, newdata, contrast, dpar, resp, re_formula) {
   if (inherits(object, "frmtmb_curve")) {
     s <- attr(object, "spec")
     nd <- if (is.null(newdata)) s$newdata else newdata
@@ -208,7 +208,7 @@ sp_spec <- function(object, newdata, contrast, dpar, resp, re.form) {
            "the difference was built on is reused", call. = FALSE)
     }
     return(list(fit = attr(object, "fit"), newdata = nd, contrast = ct,
-                dpar = s$dpar, resp = s$resp, re.form = s$re.form))
+                dpar = s$dpar, resp = s$resp, re_formula = s$re_formula))
   }
   if (is.null(newdata)) {
     stop("`newdata` is required when the first argument is a fit: it is ",
@@ -216,7 +216,7 @@ sp_spec <- function(object, newdata, contrast, dpar, resp, re.form) {
          "frm_curve() to reuse a grid instead", call. = FALSE)
   }
   list(fit = object, newdata = newdata, contrast = contrast, dpar = dpar,
-       resp = resp, re.form = re.form)
+       resp = resp, re_formula = re_formula)
 }
 
 #' The second grid of a difference must carry the SAME values of the

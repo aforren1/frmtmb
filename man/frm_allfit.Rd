@@ -12,7 +12,8 @@ frm_allfit(fit, optimizers = NULL, ...)
 \item{optimizers}{Named list of optimizers (names or functions, as
 in \code{\link[=frmtmb_control]{frmtmb_control()}}). Default: everything available.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 }
 \value{
 A \code{frmtmb_allfit} object: \verb{$fits} (the refits, \code{NULL} where

@@ -6,7 +6,7 @@
 #' @param fit A [frmtmb::frm()] fit whose family is [cross_wishart()].
 #' @param newdata Optional data frame of predictor values. Defaults to
 #'   the data the model was fitted to.
-#' @param re.form `NULL` keeps the random effects, so the answer is per
+#' @param re_formula `NULL` keeps the random effects, so the answer is per
 #'   group; `NA` drops them, so the answer is the population one. Passed
 #'   through to [stats::predict()].
 #' @param level Confidence level.
@@ -55,9 +55,9 @@
 #' frm_coherence(fit, newdata = xs[1, ])
 #' frm_phase(fit, newdata = xs[1, ])
 #' @export
-frm_coherence <- function(fit, newdata = NULL, re.form = NULL,
+frm_coherence <- function(fit, newdata = NULL, re_formula = NULL,
                           level = 0.95, allow_new_levels = FALSE) {
-  p <- cp_link_se(fit, "coh", newdata, re.form, level, allow_new_levels)
+  p <- cp_link_se(fit, "coh", newdata, re_formula, level, allow_new_levels)
   data.frame(.estimate = stats::plogis(p$fit), .se = p$se.fit,
              .lower = stats::plogis(p$fit - p$z * p$se.fit),
              .upper = stats::plogis(p$fit + p$z * p$se.fit),
@@ -66,9 +66,9 @@ frm_coherence <- function(fit, newdata = NULL, re.form = NULL,
 
 #' @rdname frm_coherence
 #' @export
-frm_phase <- function(fit, newdata = NULL, re.form = NULL,
+frm_phase <- function(fit, newdata = NULL, re_formula = NULL,
                       level = 0.95, allow_new_levels = FALSE) {
-  p <- cp_link_se(fit, "phase", newdata, re.form, level, allow_new_levels)
+  p <- cp_link_se(fit, "phase", newdata, re_formula, level, allow_new_levels)
   data.frame(.estimate = p$fit, .se = p$se.fit,
              .lower = p$fit - p$z * p$se.fit,
              .upper = p$fit + p$z * p$se.fit)
@@ -78,11 +78,11 @@ frm_phase <- function(fit, newdata = NULL, re.form = NULL,
 #'
 #' Everything is read through predict(se.fit = TRUE), which is a
 #' documented seam, rather than by reassembling a design from the fit's
-#' internals. That is why re.form and allow_new_levels work here at all:
+#' internals. That is why re_formula and allow_new_levels work here at all:
 #' they are predict()'s, passed through.
 #'
 #' @noRd
-cp_link_se <- function(fit, dpar, newdata, re.form, level,
+cp_link_se <- function(fit, dpar, newdata, re_formula, level,
                        allow_new_levels) {
   cp_require_family(fit, if (identical(dpar, "coh")) "frm_coherence()"
                     else "frm_phase()")
@@ -92,7 +92,7 @@ cp_link_se <- function(fit, dpar, newdata, re.form, level,
          call. = FALSE)
   }
   p <- stats::predict(fit, newdata = newdata, type = "link", dpar = dpar,
-                      re.form = re.form, se.fit = TRUE,
+                      re_formula = re_formula, se.fit = TRUE,
                       allow_new_levels = allow_new_levels)
   if (!is.list(p) || is.null(p$se.fit)) {
     stop("predict() returned no standard error for `", dpar,
@@ -144,7 +144,7 @@ cp_require_family <- function(fit, what) {
 #' @param nsim Number of replicate data frames.
 #' @param seed Optional seed, set with [set.seed()] before drawing.
 #' @param newdata Optional data frame of predictor values.
-#' @param re.form Passed to [stats::predict()]; `NULL` keeps the random
+#' @param re_formula Passed to [stats::predict()]; `NULL` keeps the random
 #'   effects.
 #'
 #' @return A list of `nsim` data frames, each with the columns
@@ -173,13 +173,13 @@ cp_require_family <- function(fit, what) {
 #' str(frm_cross_simulate(fit, nsim = 2, seed = 1)[[1]])
 #' @export
 frm_cross_simulate <- function(fit, nsim = 1L, seed = NULL,
-                               newdata = NULL, re.form = NULL) {
+                               newdata = NULL, re_formula = NULL) {
   cp_require_family(fit, "frm_cross_simulate()")
   nsim <- cp_count(nsim, "nsim")
   if (!is.null(seed)) set.seed(seed)
   get <- function(dp) as.numeric(stats::predict(fit, newdata = newdata,
                                                 type = "link", dpar = dp,
-                                                re.form = re.form))
+                                                re_formula = re_formula))
   s11 <- exp(get("mu")); s22 <- exp(get("pow2"))
   ch <- stats::plogis(get("coh")); ph <- get("phase")
   dat <- if (is.null(newdata)) fit$frame[["data"]] else newdata

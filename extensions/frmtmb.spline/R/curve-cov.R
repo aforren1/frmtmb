@@ -106,8 +106,8 @@ sp_span_stop <- function(span) {
 #' shape this package documents.
 #'
 #' @noRd
-sp_span_on_grid <- function(fit, nd, dpar, resp, re.form) {
-  sp_catch_span(sp_predict_eta(fit, nd, dpar, resp, re.form))$span
+sp_span_on_grid <- function(fit, nd, dpar, resp, re_formula) {
+  sp_catch_span(sp_predict_eta(fit, nd, dpar, resp, re_formula))$span
 }
 
 #' The same question over BOTH grids of a difference curve, with each
@@ -134,9 +134,9 @@ sp_span_both <- function(span_a, span_b) {
 #' @noRd
 sp_grid_span <- function(sp, nd, ct) {
   sp_span_both(
-    sp_span_on_grid(sp$fit, nd, sp$dpar, sp$resp, sp$re.form),
+    sp_span_on_grid(sp$fit, nd, sp$dpar, sp$resp, sp$re_formula),
     if (is.null(ct)) character(0) else
-      sp_span_on_grid(sp$fit, ct, sp$dpar, sp$resp, sp$re.form))
+      sp_span_on_grid(sp$fit, ct, sp$dpar, sp$resp, sp$re_formula))
 }
 
 #' Does the grid hold every column but `var` at row 1's value?
@@ -168,9 +168,9 @@ sp_grid_pinned <- function(nd, var) {
 #' One prediction on the link scale, as a plain numeric vector.
 #'
 #' @noRd
-sp_predict_eta <- function(fit, newdata, dpar, resp, re.form) {
+sp_predict_eta <- function(fit, newdata, dpar, resp, re_formula) {
   as.numeric(stats::predict(fit, newdata = newdata, type = "link",
-                            dpar = dpar, resp = resp, re.form = re.form))
+                            dpar = dpar, resp = resp, re_formula = re_formula))
 }
 
 #' The seam read at ONE grid: the design, its covariance and the
@@ -197,9 +197,9 @@ sp_predict_eta <- function(fit, newdata, dpar, resp, re.form) {
 #' paid on a call whose cost is dominated by one joint-precision solve.
 #'
 #' @noRd
-sp_one_basis <- function(fit, nd, dpar, resp, re.form) {
+sp_one_basis <- function(fit, nd, dpar, resp, re_formula) {
   lbc <- sp_catch_span(frmtmb::frm_lp_basis(fit, newdata = nd, dpar = dpar,
-                                            resp = resp, re.form = re.form))
+                                            resp = resp, re_formula = re_formula))
   lb <- lbc$value
   C <- as.matrix(lb$A)
   Sigma <- unname(C %*% lb$V %*% t(C))
@@ -225,7 +225,7 @@ sp_one_basis <- function(fit, nd, dpar, resp, re.form) {
 #' residual rather than two. Equality of `extra_var` alone would NOT do:
 #' two different levels of one grouping block have identical marginal
 #' variances by construction and are different draws. Measured on
-#' `y ~ fac + s(x, k = 6) + (1 | g)` at `re.form = NULL`, contrasting
+#' `y ~ fac + s(x, k = 6) + (1 | g)` at `re_formula = NULL`, contrasting
 #' level 1 against level 2: `extra_var` identical, non-fixed design
 #' columns not identical, so this returns `FALSE` where the numbers
 #' agree.
@@ -288,9 +288,9 @@ sp_same_latent <- function(fit, a, b) {
 #' still resolve to one line of source.
 #'
 #' @noRd
-sp_cov_check <- function(fit, nd, se, dpar, resp, re.form, tol, side) {
+sp_cov_check <- function(fit, nd, se, dpar, resp, re_formula, tol, side) {
   ref <- stats::predict(fit, newdata = nd, type = "link", dpar = dpar,
-                        resp = resp, re.form = re.form, se.fit = TRUE)
+                        resp = resp, re_formula = re_formula, se.fit = TRUE)
   se_ref <- as.numeric(ref$se.fit)
   rel <- max(abs(se / pmax(se_ref, .Machine$double.eps) - 1))
   if (!is.finite(rel) || rel > tol) {
@@ -333,7 +333,7 @@ sp_cov_check <- function(fit, nd, se, dpar, resp, re.form, tol, side) {
 #'    There is no second route to the difference's own standard error.
 #'
 #' @noRd
-sp_curve_parts <- function(fit, newdata, dpar, resp, re.form, tol,
+sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula, tol,
                            contrast = NULL) {
   if (!inherits(fit, "frmtmb_fit")) {
     stop("frm_curve(): `object` must be a frmtmb fit, the model a curve ",
@@ -344,30 +344,30 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re.form, tol,
     stop("`newdata` must be a data frame with at least one row: it is ",
          "the grid the curve is evaluated on", call. = FALSE)
   }
-  a <- sp_one_basis(fit, newdata, dpar, resp, re.form)
+  a <- sp_one_basis(fit, newdata, dpar, resp, re_formula)
   nl <- sp_is_nl(fit, dpar, resp)
   out <- list(eta = a$lb$eta, C = a$C, V = a$lb$V, Sigma = a$Sigma,
               se = a$se, rel = NA_real_, n_predict = 0L,
               newdata = newdata, contrast = contrast, dpar = dpar,
-              resp = resp, re.form = re.form, fit = fit, span = a$span)
+              resp = resp, re_formula = re_formula, fit = fit, span = a$span)
   if (is.null(contrast)) {
     # A nonlinear body is the case core refuses se.fit for, so there is
     # no second number to check against. Everything else is checked.
     if (!nl) {
-      out$rel <- sp_cov_check(fit, newdata, a$se, dpar, resp, re.form,
+      out$rel <- sp_cov_check(fit, newdata, a$se, dpar, resp, re_formula,
                               tol, "this grid")
       out$n_predict <- 1L
     }
     return(out)
   }
-  b <- sp_one_basis(fit, contrast, dpar, resp, re.form)
+  b <- sp_one_basis(fit, contrast, dpar, resp, re_formula)
   if (!identical(a$lb$coef_pos, b$lb$coef_pos)) {
     stop("frm_curve(contrast = ): the two grids load on different ",
          "coefficients (", length(a$lb$coef_pos), " and ",
          length(b$lb$coef_pos), " of them), so subtracting their ",
          "designs would pair columns that belong to different ",
          "parameters. Both grids must reach the same linear predictor ",
-         "under the same re.form", call. = FALSE)
+         "under the same re_formula", call. = FALSE)
   }
   # Variance that is not coefficient uncertainty arrives per row with no
   # covariance between the grids, so a difference can only report it
@@ -397,9 +397,9 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re.form, tol,
   out$span <- sp_span_both(a$span, b$span)
   if (!nl) {
     out$rel <- max(
-      sp_cov_check(fit, newdata, a$se, dpar, resp, re.form, tol,
+      sp_cov_check(fit, newdata, a$se, dpar, resp, re_formula, tol,
                    "`newdata`"),
-      sp_cov_check(fit, contrast, b$se, dpar, resp, re.form, tol,
+      sp_cov_check(fit, contrast, b$se, dpar, resp, re_formula, tol,
                    "`contrast`"))
     out$n_predict <- 2L
   }

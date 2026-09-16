@@ -9,7 +9,7 @@ frm_lp_basis(
   newdata = NULL,
   dpar = NULL,
   resp = NULL,
-  re.form = NULL,
+  re_formula = NULL,
   allow_new_levels = FALSE
 )
 }
@@ -23,7 +23,7 @@ training data.}
 the linear predictor of. Both default the way \code{\link[=predict]{predict()}} defaults
 them.}
 
-\item{re.form}{\code{NULL} keeps every random effect, \code{NA} drops them all,
+\item{re_formula}{\code{NULL} keeps every random effect, \code{NA} drops them all,
 a one-sided formula keeps the ones it names.}
 
 \item{allow_new_levels}{Whether a grouping level the fit never saw is
@@ -94,7 +94,7 @@ dd <- data.frame(x = rnorm(120), g = factor(rep(1:12, each = 10)))
 dd$y <- rnorm(120, 1 + 2 * dd$x + rnorm(12, 0, 0.5)[dd$g], 0.4)
 fit <- frm(bf(y ~ x + (1 | g)), data = dd)
 nd <- data.frame(x = c(-1, 0, 1), g = factor(1, levels = levels(dd$g)))
-lb <- frm_lp_basis(fit, newdata = nd, re.form = NA)
+lb <- frm_lp_basis(fit, newdata = nd, re_formula = NA)
 str(lb$A)
 lb$coef_names
 
@@ -102,7 +102,7 @@ lb$coef_names
 # diagonal
 Sigma <- lb$A \%*\% lb$V \%*\% t(lb$A)
 all.equal(sqrt(diag(Sigma)),
-          predict(fit, newdata = nd, re.form = NA, se.fit = TRUE)$se.fit)
+          predict(fit, newdata = nd, re_formula = NA, se.fit = TRUE)$se.fit)
 }
 \seealso{
 \code{\link[=frm_joint_cov]{frm_joint_cov()}} for the covariance alone,

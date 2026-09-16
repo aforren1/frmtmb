@@ -164,11 +164,11 @@
 #' needs is the decision and not the test that makes it.
 #'
 #' `ce_dots()` is the argument surface itself: it pulls
-#' `allow_new_levels` (and lme4's `allow.new.levels`) out of a call's
-#' dots, returns whether either was set, and reports whatever is left
-#' as unknown. An extension that hand-rolls the same check accepts a
-#' different set of arguments from the fit method, which is how
-#' `allow_new_levels` came to work on a fit and warn on draws.
+#' `allow_new_levels` out of a call's dots, returns whether it was set,
+#' and REFUSES whatever is left, naming it. An extension that
+#' hand-rolls the same check accepts a different set of arguments from
+#' the fit method, which is how `allow_new_levels` came to work on a
+#' fit and warn on draws.
 #'
 #' Four more serve one purpose between them: making an unobserved
 #' group a DRAWN group rather than letting the first observed one
@@ -185,7 +185,7 @@
 #'
 #' @section The two-dialect argument seam:
 #' frmtmb answers to two argument dialects: a brms-named function takes
-#' `re_formula`, frmtmb's own fit surface takes lme4's `re.form`, and
+#' `re_formula`, frmtmb's own fit surface takes lme4's `re_formula`, and
 #' the brms-named ones accept both. `arg_unset()` is the "not supplied"
 #' marker a formal defaults to when `NULL` and `NA` are both real
 #' settings and neither can double as unset; `re_form_arg()` resolves
@@ -311,6 +311,7 @@
 #' @aliases arg_unset
 #' @aliases re_form_arg
 #' @aliases frm_install_generics
+#' @aliases frm_check_dots
 #' @rawNamespace export(build_objective, row_lpdf, with_cs_offsets,
 #'   us_chol_cor, aterms_for_newdata, has_trunc, as_priorlist,
 #'   resolve_prior_input, neg_log_prior_fn, resolve_bounds, spec_target,
@@ -326,7 +327,7 @@
 #'   ce_cats_display, ce_display_kind, ce_pred_dpar, ce_group_vars,
 #'   ce_new_level_spec, ce_boot_grids, ce_draw_new_levels,
 #'   ce_structure_check, ce_re_formula, ce_dots, find_linpred,
-#'   arg_unset, re_form_arg, frm_install_generics)
+#'   arg_unset, re_form_arg, frm_check_dots, frm_install_generics)
 NULL
 
 # ---- the prior-defaults registry -------------------------------------

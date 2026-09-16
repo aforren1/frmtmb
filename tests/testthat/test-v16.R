@@ -50,7 +50,7 @@ test_that("rr() matches glmmTMB and nests us() at full rank", {
   r <- ranef(fit)
   expect_equal(dim(r[[1]]), c(60L, 6L))
   expect_equal(nrow(as.data.frame(VarCorr(fit))), 6L + 15L)
-  s <- simulate(fit, nsim = 2, re.form = NA)
+  s <- simulate(fit, nsim = 2, re_formula = NA)
   expect_equal(nrow(s), nrow(dd))
   # se.fit works since v0.17 (loadings Jacobian)
   ps <- predict(fit, se.fit = TRUE)

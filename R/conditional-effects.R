@@ -466,15 +466,25 @@ ce_method <- function(method) {
 #' @noRd
 ce_dots <- function(dots) {
   anl <- FALSE
-  for (nm in c("allow_new_levels", "allow.new.levels")) {
-    if (nm %in% names(dots)) {
-      anl <- isTRUE(dots[[nm]])
-      dots[[nm]] <- NULL
-    }
+  if ("allow_new_levels" %in% names(dots)) {
+    anl <- isTRUE(dots[["allow_new_levels"]])
+    dots[["allow_new_levels"]] <- NULL
+  }
+  if ("allow.new.levels" %in% names(dots)) {
+    stop("`allow.new.levels` is lme4's spelling and this package no ",
+         "longer takes it: brms spells it `allow_new_levels`, and so ",
+         "does this. Pass allow_new_levels =", call. = FALSE)
   }
   if (length(dots)) {
-    warning("conditional_effects() is ignoring unknown argument(s): ",
-            paste(names(dots), collapse = ", "), call. = FALSE)
+    # a warning let a misspelled argument change nothing and say so
+    # only in passing; plan item 2.5e made every such dot an error
+    stop("conditional_effects() has no argument `",
+         names(dots)[1L], "`",
+         if (length(dots) > 1L) {
+           paste0(" (and ", length(dots) - 1L, " more: ",
+                  paste(names(dots)[-1L], collapse = ", "), ")")
+         } else "",
+         call. = FALSE)
   }
   anl
 }
@@ -640,29 +650,29 @@ ce_boot_one <- function(fit, nd, categorical, resp, dpar,
                         re_form = NA, allow_new_levels = FALSE) {
   p <- if (categorical) {
     predict(fit, newdata = nd, type = "response", resp = resp,
-            re.form = re_form, allow_new_levels = allow_new_levels)
+            re_formula = re_form,
+            allow_new_levels = allow_new_levels)
   } else {
     predict(fit, newdata = nd, type = "response", dpar = dpar,
-            resp = resp, re.form = re_form,
+            resp = resp, re_formula = re_form,
             allow_new_levels = allow_new_levels)
   }
   as.vector(p)
 }
 
-#' The population switch, in brms's spelling. conditional_effects() IS
-#' the brms function, so it takes brms's `re_formula`; frmtmb's fit
-#' surface spells the same setting `re.form` after lme4, and a user
-#' who reaches for that spelling here is told which one this function
-#' takes instead of hitting a matched-by-multiple-arguments error from
-#' the internal predict() calls.
+#' The population switch, in brms's spelling, which is now the only
+#' spelling the package has. `re.form` is named in the refusal rather
+#' than left to the generic unknown-argument message because it was a
+#' live spelling of this setting until the rename, and is the one lme4
+#' and glmmTMB users arrive with.
 #'
 #' @noRd
 ce_re_formula <- function(re_formula, dots) {
   if ("re.form" %in% names(dots)) {
-    stop("conditional_effects() spells this argument `re_formula` ",
-         "(brms's spelling; the fit surface's predict() and ",
-         "simulate() spell it `re.form` after lme4). Pass ",
-         "re_formula = ", call. = FALSE)
+    stop("`re.form` is lme4's spelling and this package no longer ",
+         "takes it anywhere: brms is the tiebreaker on a name, so the ",
+         "setting is `re_formula` in conditional_effects(), predict() ",
+         "and simulate() alike. Pass re_formula = ", call. = FALSE)
   }
   if (!is.null(re_formula) && !inherits(re_formula, "formula") &&
         !(length(re_formula) == 1L && is.na(re_formula))) {
@@ -1105,7 +1115,7 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #' For each requested effect, predicts over a grid of that predictor
 #' with every other predictor held at a reference value (numeric: mean;
 #' factor: first level; matrix covariate: column means) and random
-#' effects excluded (`re.form = NA`). Confidence bands are Wald
+#' effects excluded (`re_formula = NA`). Confidence bands are Wald
 #' intervals computed on the link scale and back-transformed. Smooth
 #' terms are included, so this also covers what brms calls
 #' `conditional_smooths()`.
@@ -1137,12 +1147,9 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
 #'   brms draws a new group's random effects afresh from the fitted
 #'   covariance in every posterior draw, so its curve is stochastic
 #'   around this one; a maximum-likelihood fit has the mode and the
-#'   variance instead of draws. The fit surface's
-#'   [predict.frmtmb_fit()] spells the same
-#'   setting `re.form` after lme4; `conditional_effects()` takes brms's
-#'   name because it is brms's function, and says so if handed the
-#'   other spelling. `band = "profile"` exists only for the
-#'   population-level curve.
+#'   variance instead of draws. [predict.frmtmb_fit()] spells the same
+#'   setting the same way; lme4's `re.form` is refused and says so.
+#'   `band = "profile"` exists only for the population-level curve.
 #' @param band How the confidence band is built: `"wald"` (default,
 #'   the delta method on the scale the band is symmetric on),
 #'   `"profile"` (likelihood-root
@@ -1886,7 +1893,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         # method does not apply; under band = "boot" (the only band
         # allowed here) the draws supply the se and the bounds
         P <- predict(x, newdata = nd, type = "response", resp = resp,
-                     re.form = re_formula, allow_new_levels = anl)
+                     re_formula = re_formula, allow_new_levels = anl)
         ps <- list(P = P, se = matrix(NA_real_, nrow(P), ncol(P)))
       }
       cats <- colnames(ps$P)
@@ -1929,7 +1936,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
                                            type = "response",
                                            dpar = pred_dpar,
                                            resp = resp,
-                                           re.form = re_formula,
+                                           re_formula = re_formula,
                                            allow_new_levels = anl))
         df$se__ <- NA_real_
         df$lower__ <- NA_real_
@@ -1948,7 +1955,8 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         # linear predictor jointly (predict_mean_se()), so the
         # cross-dpar covariances are in the band rather than dropped
         p <- predict(x, newdata = nd, type = "response", dpar = pred_dpar,
-                     resp = resp, re.form = re_formula, se.fit = TRUE,
+                     resp = resp, re_formula = re_formula,
+                     se.fit = TRUE,
                      allow_new_levels = anl)
         # a reported probability gets a logit band, which cannot leave
         # (0, 1); anything else keeps the predictor's own link
@@ -1971,7 +1979,8 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         blink <- blink %||% bl[["name"]]
       } else {
         p <- predict(x, newdata = nd, type = "link", dpar = dpar,
-                     resp = resp, re.form = re_formula, se.fit = TRUE,
+                     resp = resp, re_formula = re_formula,
+                     se.fit = TRUE,
                      allow_new_levels = anl)
         df$estimate__ <- lp[["link"]]$linkinv(p$fit)
         df$se__ <- p$se.fit
@@ -2067,6 +2076,7 @@ print.frmtmb_conditional_effects <- function(x, ...) {
 #' @export
 plot.frmtmb_conditional_effects <- function(x, ask = NULL, points = FALSE,
                                             ncol = NULL, ...) {
+  frm_check_dots(...)
   if (!is.null(ncol)) check_count(ncol, "ncol", min = 1L)
   # a condition set is a FACET, not a page: several conditions used to
   # draw several full pages that overwrote each other on a normal
@@ -2333,7 +2343,8 @@ ce_draw_panel <- function(df, xv, grp, grp_title, ylab, ylim,
 #' @param which Subset of `1:2`.
 #' @param ask Whether to prompt between plots; defaults to the usual
 #'   interactive-device rule.
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return `x`, invisibly. Called for the plots it draws.
 #'
 #' @srrstats {RE6.0} A `frmtmb_fit` has a default `plot()` method, so
@@ -2370,6 +2381,7 @@ ce_draw_panel <- function(df, xv, grp, grp_title, ylab, ylim,
 #' plot(fit, which = 2)
 #' @export
 plot.frmtmb_fit <- function(x, which = 1:2, ask = NULL, ...) {
+  frm_check_dots(...)
   r <- residuals(x, type = "pearson")
   ask <- ask %||% (length(which) > 1L && grDevices::dev.interactive())
   if (ask) {
@@ -2438,6 +2450,32 @@ pp_check <- function(object, ...) {
   UseMethod("pp_check")
 }
 
+#' The one retired spelling `pp_check()` has to refuse itself.
+#'
+#' Its dots go to bayesplot, which accepts any name, so without this the
+#' spelling that used to select the population check would go on
+#' selecting nothing.
+#'
+#' Measured rather than reasoned: brms's `pp_check()` puts its dots into
+#' `pred_args` and calls `do_call("posterior_predict", pred_args)`, and
+#' `posterior_predict.brmsfit` DECLARES `re.form`, so brms honors
+#' `re.form` on `pp_check()` while warning "unrecognized and ignored".
+#' That is a leak, not an intention, and warn-then-honor is the exact
+#' failure this item exists to stop, so it is refused rather than
+#' reproduced. Contrast `predictive_interval()`, where brms honors the
+#' alias silently and deliberately and this package follows it.
+#'
+#' @noRd
+pp_check_retired <- c(
+  re.form = paste("lme4's spelling, no longer accepted. brms LEAKS it:",
+                  "pp_check.brmsfit() forwards its dots to",
+                  "posterior_predict(), so brms honors `re.form` there",
+                  "while WARNING that it ignored it. Warn-then-honor is",
+                  "the failure this refusal exists to stop, so the",
+                  "spelling is refused here rather than copied. Pass",
+                  "re_formula =")
+)
+
 #' @rdname pp_check
 #' @param type The bayesplot check, i.e. the part after `ppc_`
 #'   (`"dens_overlay"`, `"hist"`, `"stat"`, `"scatter_avg"`, ...).
@@ -2446,28 +2484,32 @@ pp_check <- function(object, ...) {
 #'   (`pp_check()` is a brms function). On a fit it is passed to
 #'   [simulate()] and defaults to `NA`, which simulates new random
 #'   effects; on draws it is passed to `posterior_predict()` and
-#'   defaults to `NULL`, because a draw already carries its own.
-#' @param re.form lme4's spelling of `re_formula`, accepted as an alias.
-#'   Pass one or the other, not both; see the *Argument spellings*
-#'   section of `frmtmb.sample::posterior_epred()`.
+#'   defaults to `NULL`, because a draw already carries its own. lme4's
+#'   `re.form` is refused. brms honors it on `pp_check()` and warns that
+#'   it ignored it, which is a leak through its dots rather than a
+#'   decision to copy.
 #' @exportS3Method bayesplot::pp_check
 #' @export
 pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
                                 ndraws = 10,
-                                re_formula = arg_unset(),
-                                re.form = arg_unset(), ...) {
+                                re_formula = NA, ...) {
+  # bayesplot's ppc_* function takes dots of its own, so an unknown
+  # name there is its business. The retired lme4 spelling is not: it
+  # named a real setting until the rename, so it is refused here
+  # rather than passed on to be ignored.
+  frm_check_dots(..., .allow = TRUE, .unsupported = pp_check_retired)
   # NA, not NULL: a fit has ONE estimate of the random effects, so
   # conditioning on it would compare the data against draws that already
   # know each group's deviation. New levels per replicate are what makes
   # this the frequentist analog of the posterior predictive check.
-  re_form <- re_form_arg(re_formula, re.form, "pp_check()", default = NA)
+  re_form <- re_formula
   rspec <- single_response(object, "pp_check()")
   y <- object$frame[["y"]][[1L]]
   if (is.matrix(y)) {
     stop("pp_check() on a fit supports vector responses", call. = FALSE)
   }
   sims <- na_unpad(object, simulate(object, nsim = ndraws,
-                                    re.form = re_form))
+                                    re_formula = re_form))
   # ordinal draws come back as ordered factors carrying the response's
   # levels; bayesplot compares them with y, which is the 1..K codes
   yrep <- if (identical(rspec$family[["type"]], "ordinal")) {

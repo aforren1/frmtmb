@@ -71,7 +71,7 @@ cp_compat_rules <- function() {
   r("frm_coherence", "predict", "works",
     "It IS predict(type = \"link\", se.fit = TRUE) on the coh dpar, with the interval formed on the logit scale and pushed through plogis so that it cannot leave (0, 1). frm_phase() is the same call on phase, where no transform is needed and none is applied.")
   r("frm_coherence", "smooth", "works",
-    "re.form is passed through, so re.form = NULL gives the per-group coherence with its shrinkage and re.form = NA gives the population one. Measured coverage of the population interval over 150 replicates: 0.912 at 4 segments per subject.")
+    "re_formula is passed through, so re_formula = NULL gives the per-group coherence with its shrinkage and re_formula = NA gives the population one. Measured coverage of the population interval over 150 replicates: 0.912 at 4 segments per subject.")
   r("frm_coherence", "s()", "works",
     "A coherence spectrum is read by passing a frequency grid as newdata; the band comes from the same predict() call.")
   r("frm_coherence", "cross_wishart", "works",

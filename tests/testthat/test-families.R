@@ -192,7 +192,7 @@ test_that("simulate() round-trips through family simulators", {
   expect_true(all(s1$sim_1 >= 0))
 
   # marginal simulation redraws random effects
-  m1 <- simulate(fit, nsim = 1, seed = 2, re.form = NA)
+  m1 <- simulate(fit, nsim = 1, seed = 2, re_formula = NA)
   c1 <- simulate(fit, nsim = 1, seed = 2)
   expect_false(identical(m1, c1))
 })

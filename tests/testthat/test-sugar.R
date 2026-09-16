@@ -79,7 +79,7 @@ test_that("refit matches a fresh fit on the new response", {
   dd <- sim_pois_glmm(n_g = 20, n_per = 10)
   fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
   set.seed(99)
-  ysim <- simulate(fit, nsim = 1, re.form = NA)[[1L]]
+  ysim <- simulate(fit, nsim = 1, re_formula = NA)[[1L]]
 
   rf <- refit(fit, ysim)
   dd2 <- dd
@@ -115,7 +115,7 @@ test_that("refit powers a small parametric bootstrap", {
   dd$y <- rnorm(120, 1 + 0.5 * dd$x + rnorm(12, 0, 0.7)[dd$g], 1)
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 
-  sims <- simulate(fit, nsim = 5, re.form = NA, seed = 1)
+  sims <- simulate(fit, nsim = 5, re_formula = NA, seed = 1)
   boots <- vapply(sims, function(ys) fixef(refit(fit, ys))$mu["x"],
                   numeric(1))
   expect_length(boots, 5)

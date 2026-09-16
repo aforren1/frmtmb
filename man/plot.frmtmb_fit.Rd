@@ -14,7 +14,8 @@
 \item{ask}{Whether to prompt between plots; defaults to the usual
 interactive-device rule.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 }
 \value{
 \code{x}, invisibly. Called for the plots it draws.

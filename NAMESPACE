@@ -183,7 +183,7 @@ export(build_objective, row_lpdf, with_cs_offsets,
   ce_cats_display, ce_display_kind, ce_pred_dpar, ce_group_vars,
   ce_new_level_spec, ce_boot_grids, ce_draw_new_levels,
   ce_structure_check, ce_re_formula, ce_dots, find_linpred,
-  arg_unset, re_form_arg, frm_install_generics)
+  arg_unset, re_form_arg, frm_check_dots, frm_install_generics)
 export(categorical)
 export(check_custom_family)
 export(cluster_scores)

@@ -10,7 +10,7 @@
   type = c("link", "response", "conditional", "zprob", "zlink", "disp"),
   dpar = NULL,
   resp = NULL,
-  re.form = NULL,
+  re_formula = NULL,
   se.fit = FALSE,
   allow_new_levels = FALSE,
   ...
@@ -38,9 +38,9 @@ family's first location parameter (\code{"mu"} for most families).}
 \item{resp}{For multivariate fits: which response to predict (defaults
 to the first).}
 
-\item{re.form}{\code{NULL} (default) includes random effects; \code{NA} or \code{~0}
+\item{re_formula}{\code{NULL} (default) includes random effects; \code{NA} or \code{~0}
 gives population-level predictions. See
-\emph{What \code{re.form = NA} drops} for what that means when the model has
+\emph{What \code{re_formula = NA} drops} for what that means when the model has
 smooths.}
 
 \item{se.fit}{If \code{TRUE}, return a list with elements \code{fit} and \code{se.fit}
@@ -54,7 +54,10 @@ population level instead of erroring. A factor-smooth term
 (\code{bs = "fs"}) follows the same rule: a level it never saw
 contributes nothing, which leaves the population curve.}
 
-\item{...}{Unused.}
+\item{...}{Refused. An argument this method does not have is an
+error naming it, and the two lme4 spellings that were live in
+0.57.0 (\code{re.form}, \code{allow.new.levels}) are refused by name with
+the brms spelling that replaced them.}
 }
 \value{
 A numeric vector, or a list when \code{se.fit = TRUE}. For an
@@ -119,9 +122,9 @@ exists to remove. Ask for the predictor by name (\code{type = "link"}, or
 \code{dpar = "mu"}) when that is what you want.
 }
 
-\section{What \code{re.form = NA} drops}{
+\section{What \code{re_formula = NA} drops}{
 
-\code{re.form = NA} (equivalently \code{~0}) asks for the POPULATION-level
+\code{re_formula = NA} (equivalently \code{~0}) asks for the POPULATION-level
 prediction. Every \code{(x | g)} block is dropped, and so is any smooth
 whose basis gives each level of a grouping factor its own curve.
 Everything else stays.
@@ -170,7 +173,7 @@ quantity, and mgcv, the authority frmtmb's smooth estimation
 already follows, drops it too.
 
 A dropped factor-smooth term needs nothing from \code{newdata}, so the
-grouping column may be left out entirely when \code{re.form = NA}. It is
+grouping column may be left out entirely when \code{re_formula = NA}. It is
 required for a conditional prediction, and its absence is reported by
 name rather than by an mgcv internal message.
 
@@ -218,9 +221,9 @@ fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
 head(predict(fit))
 max(abs(predict(fit, type = "response") - fitted(fit)))
 
-# re.form = NA drops the random effects: the population prediction
+# re_formula = NA drops the random effects: the population prediction
 nd <- data.frame(x = c(-1, 0, 1), g = factor(1, levels = levels(dd$g)))
-predict(fit, newdata = nd, re.form = NA, type = "response")
+predict(fit, newdata = nd, re_formula = NA, type = "response")
 
 # delta-method standard errors, on whichever scale was asked for
 p <- predict(fit, newdata = nd, se.fit = TRUE)

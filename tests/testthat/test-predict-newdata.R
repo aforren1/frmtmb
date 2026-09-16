@@ -29,7 +29,7 @@ test_that("newdata = training data reproduces in-sample predictions", {
 
 test_that("population-level predictions drop the random effects", {
   fit <- fit_np$fit; dd <- fit_np$data
-  p0 <- predict(fit, newdata = dd, re.form = NA)
+  p0 <- predict(fit, newdata = dd, re_formula = NA)
   beta <- fixef(fit)$mu
   X <- model.matrix(~ x + f, dd)
   expect_equal(p0, unname(drop(X %*% beta)), tolerance = 1e-10,
@@ -50,7 +50,7 @@ test_that("new grouping levels error unless allowed", {
   nd$g <- factor("999")
   expect_error(predict(fit, newdata = nd), "New levels")
   p_new <- predict(fit, newdata = nd, allow_new_levels = TRUE)
-  p_pop <- predict(fit, newdata = nd, re.form = NA)
+  p_pop <- predict(fit, newdata = nd, re_formula = NA)
   expect_equal(p_new, p_pop, tolerance = 1e-10)
 })
 
@@ -66,7 +66,8 @@ test_that("se.fit matches glmmTMB delta-method standard errors", {
 
   nd <- data.frame(x = seq(-2, 2, length.out = 9),
                    g = factor(rep(1, 9), levels = levels(dd$g)))
-  pf <- predict(fit, newdata = nd, re.form = NA, se.fit = TRUE)
+  pf <- predict(fit, newdata = nd, re_formula = NA, se.fit = TRUE)
+  # glmmTMB's own spelling, untouched: the rename is frmtmb's surface
   pr <- predict(ref, newdata = nd, re.form = NA, se.fit = TRUE)
   expect_vector_equal(pf$fit, pr$fit, tol = 1e-4)
   expect_vector_equal(pf$se.fit, pr$se.fit, tol = 1e-3)

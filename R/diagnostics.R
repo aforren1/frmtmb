@@ -31,7 +31,7 @@
 #'
 #' @param fit A `frmtmb_fit` (univariate; the family needs a simulator).
 #' @param nsim Number of simulated response vectors.
-#' @param re.form Passed to [simulate.frmtmb_fit()]: `NULL` (default)
+#' @param re_formula Passed to [simulate.frmtmb_fit()]: `NULL` (default)
 #'   conditions on the estimated random effects; `NA` redraws them.
 #' @param seed Optional RNG seed for the simulations.
 #' @param ... Passed to [DHARMa::createDHARMa()].
@@ -51,7 +51,7 @@
 #'   DHARMa::testDispersion(res, plot = FALSE)
 #' }
 #' @export
-dharma_residuals <- function(fit, nsim = 250, re.form = NULL,
+dharma_residuals <- function(fit, nsim = 250, re_formula = NULL,
                              seed = NULL, ...) {
   if (!requireNamespace("DHARMa", quietly = TRUE)) {
     stop("dharma_residuals() needs the 'DHARMa' package", call. = FALSE)
@@ -74,7 +74,7 @@ dharma_residuals <- function(fit, nsim = 250, re.form = NULL,
   # DHARMa works in fitted-row space, so the na.exclude padding
   # simulate() adds has to come back off
   sims <- na_unpad(fit, simulate(fit, nsim = nsim, seed = seed,
-                                 re.form = re.form))
+                                 re_formula = re_formula))
   sims <- if (ordinal) {
     # simulate() hands ordinal draws back as ordered factors; the rank
     # transform needs the integer codes the response itself carries

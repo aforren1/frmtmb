@@ -1,0 +1,27 @@
+---- GENERATED: exemption evidence, re-measured ----
+A call site COUNTS when it passes a name the method has no formal for.
+
+get_parameters.frmtmb_fit    sites  29  reads_dots FALSE
+    e.g.  insight::.boot_em_df passes summary 
+get_varcov.frmtmb_fit        sites  17  reads_dots FALSE
+    e.g.  insight::.get_simulation_from_zi passes component 
+recover_data.frmtmb_fit      sites   8  reads_dots TRUE 
+    e.g.  emmeans::recover_data.aovlist passes na.action 
+get_vcov.frmtmb_fit          sites   4  reads_dots FALSE
+    e.g.  marginaleffects::comparisons passes vcov, type 
+emm_basis.frmtmb_fit         sites   1  reads_dots FALSE
+    e.g.  emmeans::emm_basis.glmgee passes vcov. 
+find_formula.frmtmb_fit      sites   1  reads_dots FALSE
+    e.g.  insight::.recover_data_from_environment passes skip_dot_formula 
+find_random.frmtmb_fit       sites   0  reads_dots FALSE
+find_statistic.frmtmb_fit    sites   0  reads_dots FALSE
+get_coef.frmtmb_fit          sites   0  reads_dots FALSE
+get_predict.frmtmb_fit       sites   0  reads_dots FALSE
+link_function.frmtmb_fit     sites   0  reads_dots FALSE
+link_inverse.frmtmb_fit      sites   0  reads_dots FALSE
+set_coef.frmtmb_fit          sites   0  reads_dots FALSE
+
+exemptions with measured need : 6
+exemptions inert (reads dots) : 1
+exemptions with NO evidence   : 7
+---- END GENERATED: exemption evidence ----

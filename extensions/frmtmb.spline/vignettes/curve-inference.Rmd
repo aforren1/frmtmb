@@ -80,12 +80,12 @@ VarCorr(fit)
 ## 1. The curve, with a band that covers all of it
 
 `frm_curve()` evaluates the fitted linear predictor on a grid.
-`re.form = NA` drops the per-subject curves, so what comes back is the
+`re_formula = NA` drops the per-subject curves, so what comes back is the
 POPULATION curve.
 
 ```{r curve}
 grid <- data.frame(t = seq(0, 1, length.out = 80))
-cv <- frm_curve(fit, newdata = grid, re.form = NA, nsim = 20000, seed = 1)
+cv <- frm_curve(fit, newdata = grid, re_formula = NA, nsim = 20000, seed = 1)
 cv
 ```
 
@@ -126,7 +126,7 @@ attr(cv, "check")$cov_rel_error
 
 If they ever did not, `frm_curve()` would refuse rather than report a
 band. The count of `predict()` calls the rebuild cost is there too, and
-it is small: at `re.form = NA` the per-subject coefficients contribute
+it is small: at `re_formula = NA` the per-subject coefficients contribute
 nothing and are skipped in blocks rather than one at a time.
 
 ```{r ncall}
@@ -183,7 +183,7 @@ intervals. Where its band excludes zero, the speed is changing.
 ```{r deriv}
 g2 <- data.frame(t = seq(0.05, 0.95, length.out = 40))
 d1 <- frm_curve_deriv(fit, var = "t", order = 1, newdata = g2,
-                      re.form = NA, nsim = 20000, seed = 2)
+                      re_formula = NA, nsim = 20000, seed = 2)
 rising <- d1$.lower_sim > 0
 falling <- d1$.upper_sim < 0
 c(rising_from = min(g2$t[rising]), rising_to = max(g2$t[rising]),
@@ -205,7 +205,7 @@ first difference notices. Pass `eps =` to override it.
 ```{r eps}
 c(order_1 = attr(d1, "eps"),
   order_2 = attr(frm_curve_deriv(fit, var = "t", order = 2, newdata = g2,
-                                 re.form = NA, simultaneous = FALSE),
+                                 re_formula = NA, simultaneous = FALSE),
                  "eps"))
 ```
 
@@ -236,7 +236,7 @@ variance of its location:
 
 ```{r peak}
 pk <- frm_curve_feature(fit, var = "t", type = "maximum", newdata = g2,
-                        re.form = NA)
+                        re_formula = NA)
 pk
 ```
 
@@ -253,12 +253,12 @@ threshold the profile passes twice gives two rows:
 
 ```{r onset}
 frm_curve_feature(fit, var = "t", type = "crossing", at = 0.2,
-                  newdata = g2, re.form = NA)
+                  newdata = g2, re_formula = NA)
 ```
 
 ## Per-subject curves
 
-Drop `re.form = NA` and supply the grouping column, and the same three
+Drop `re_formula = NA` and supply the grouping column, and the same three
 functions describe THAT subject's curve, with the subject's own
 deviation and its uncertainty included.
 
@@ -266,7 +266,7 @@ deviation and its uncertainty included.
 gs <- data.frame(t = seq(0.05, 0.95, length.out = 40),
                  subject = factor(3, levels = levels(d$subject)))
 pk3 <- frm_curve_feature(fit, var = "t", type = "maximum", newdata = gs,
-                         re.form = NULL)
+                         re_formula = NULL)
 pk3[, c(".estimate", ".se", ".value", ".value_se")]
 ```
 

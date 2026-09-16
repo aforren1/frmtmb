@@ -58,7 +58,8 @@ allfit_optimizers <- function() {
 #' @param fit A `frmtmb_fit`.
 #' @param optimizers Named list of optimizers (names or functions, as
 #'   in [frmtmb_control()]). Default: everything available.
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return A `frmtmb_allfit` object: `$fits` (the refits, `NULL` where
 #'   one errored) and a printed comparison of logLik, convergence, and
 #'   fixed-effect spread.
@@ -70,6 +71,7 @@ allfit_optimizers <- function() {
 #' frm_allfit(fit)
 #' @export
 frm_allfit <- function(fit, optimizers = NULL, ...) {
+  frm_check_dots(...)
   optimizers <- optimizers %||% allfit_optimizers()
   ctl0 <- fit$control %||% frmtmb_control()
   # print.frmtmb_allfit() already reports the per-optimizer timings, so
@@ -104,6 +106,7 @@ frm_allfit <- function(fit, optimizers = NULL, ...) {
 
 #' @export
 print.frmtmb_allfit <- function(x, ...) {
+  frm_check_dots(...)
   ok <- !vapply(x$fits, is.null, TRUE)
   tab <- data.frame(
     optimizer = names(x$fits),

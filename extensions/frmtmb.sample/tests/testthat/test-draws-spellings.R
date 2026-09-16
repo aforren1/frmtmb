@@ -1,10 +1,24 @@
-# The two-dialect argument seam on the DRAWS side: a brms-named method
-# takes re_formula and accepts lme4's re.form as an alias of it, and
-# giving both at once is refused rather than resolved.
+# The one place two spellings survive, and the boundary of it. brms is
+# the tiebreaker on every argument name, so lme4's re.form was dropped
+# from the fit surface. It stays on the FIVE draws methods where brms
+# ACCEPTS it, which is not the same as the four that DECLARE it:
+# predictive_interval.brmsfit() declares neither spelling and its whole
+# body is posterior_predict(object, ...), so the alias reaches a formal
+# one frame down. What brms accepts is the test; what it declares is
+# not. dev/argspell-brms-accepts.R measures both.
 #
-# frmtmb keeps the fit-side half of this suite (pp_check() on a fit,
-# and the rule that frmtmb's own fit surface speaks lme4's spelling
-# alone). The blocks here are the draws-side half.
+# pp_check() is the one method here that does NOT take the alias, and
+# that is now settled rather than open. brms HONORS re.form on
+# pp_check(), through the same dots forwarding, while warning
+# "unrecognized and ignored" as it does so. Warn-then-honor is the
+# failure this item exists to stop, so the spelling is refused here
+# rather than copied: matching brms means matching what brms decided,
+# not reproducing a leak. predictive_interval() is the contrast, where
+# brms honors the alias silently and deliberately and this package
+# follows it. dev/argspell-brms-accepts.R records the mechanism.
+#
+# frmtmb keeps the fit-side half of this suite (pp_check() on a fit, and
+# the rule that the fit surface speaks brms alone).
 
 # ---- from tests/testthat/test-api-spellings.R ----
 
@@ -93,41 +107,79 @@ test_that("the draws methods still default to NULL", {
   expect_equal(a, b)
 })
 
-test_that("every brms-named draws method carries both spellings", {
-  # a structural guard, so a method added later to this family cannot
-  # quietly ship one spelling: the list is the contract
+# Does brms ACCEPT the alias on this generic? Declared as a formal, or
+# reached one frame down by a body that forwards its dots to a brmsfit
+# method that declares it. Comparing DECLARED formals alone got
+# predictive_interval() wrong, because brms declares neither spelling
+# there and honors both.
+ar_brms_accepts <- function(gen) {
+  bm <- tryCatch(getFromNamespace(paste0(gen, ".brmsfit"), "brms"),
+                 error = function(e) NULL)
+  if (is.null(bm)) return(NA)
+  if ("re.form" %in% names(formals(bm))) return(TRUE)
+  b <- deparse(body(bm))
+  if (!any(grepl("...", b, fixed = TRUE))) return(FALSE)
+  targets <- c("posterior_predict", "posterior_epred",
+               "posterior_linpred")
+  hit <- targets[vapply(targets,
+                        function(t) any(grepl(t, b, fixed = TRUE)), TRUE)]
+  any(vapply(hit, function(t) {
+    m <- tryCatch(getFromNamespace(paste0(t, ".brmsfit"), "brms"),
+                  error = function(e) NULL)
+    !is.null(m) && "re.form" %in% names(formals(m))
+  }, TRUE))
+}
+
+test_that("the alias detector reads brms's behavior, not its formals", {
+  skip_if_not_installed("brms")
+  # constructed in both cases before it is used on anything: a method
+  # that declares it, one that only forwards to it, and one that does
+  # neither
+  expect_true(ar_brms_accepts("posterior_predict"))
+  expect_true(ar_brms_accepts("predictive_interval"))
+  expect_false("re.form" %in%
+                 names(formals(getFromNamespace("predictive_interval.brmsfit",
+                                                "brms"))))
+  expect_true(is.na(ar_brms_accepts("no_such_generic")))
+})
+
+test_that("the dual spelling covers the methods brms accepts it on", {
+  # the contract, in the form that can go wrong both ways: a method that
+  # loses an alias brms accepts, and a method that keeps one brms does
+  # not.
   dual <- c("posterior_epred.frmtmb_draws", "posterior_linpred.frmtmb_draws",
             "posterior_predict.frmtmb_draws",
-            "predictive_interval.frmtmb_draws",
             "predictive_error.frmtmb_draws",
-            "pp_check.frmtmb_draws")
+            "predictive_interval.frmtmb_draws")
+  ns <- asNamespace("frmtmb.sample")
   for (nm in dual) {
     fo <- formals(getFromNamespace(nm, "frmtmb.sample"))
     expect_true(all(c("re_formula", "re.form") %in% names(fo)),
                 label = paste0(nm, " has both spellings"))
     # both default to the "not supplied" marker, so either alone is a
     # setting and neither NULL nor NA is mistaken for one
-    ns <- asNamespace("frmtmb.sample")
     expect_true(frmtmb:::is_arg_unset(eval(fo[["re_formula"]], ns)))
     expect_true(frmtmb:::is_arg_unset(eval(fo[["re.form"]], ns)))
   }
+  # pp_check() does not take it, deliberately: brms honors it there and
+  # warns that it did not, and this package refuses rather than copy a
+  # warn-then-honor path. `ar_brms_accepts()` reports TRUE for pp_check,
+  # which is why this is asserted separately from the loop below rather
+  # than derived from it.
+  fo <- formals(getFromNamespace("pp_check.frmtmb_draws", "frmtmb.sample"))
+  expect_false("re.form" %in% names(fo))
+
+  skip_if_not_installed("brms")
+  for (nm in dual) {
+    gen <- sub("[.]frmtmb_draws$", "", nm)
+    expect_true(isTRUE(ar_brms_accepts(gen)),
+                label = paste("brms accepts re.form on", gen))
+  }
 })
 
-test_that("re_formula and re.form give identical pp_check() output", {
+test_that("the re_formula switch takes effect in sample", {
   skip_if_not_installed("bayesplot")
   cs <- sp_case()
-
-  set.seed(7)
-  p1 <- pp_check(cs$fit, ndraws = 5, re_formula = NA)
-  set.seed(7)
-  p2 <- pp_check(cs$fit, ndraws = 5, re.form = NA)
-  expect_equal(p1$data, p2$data)
-
-  set.seed(8)
-  d1 <- pp_check(cs$ds, ndraws = 5, re_formula = NA)
-  set.seed(8)
-  d2 <- pp_check(cs$ds, ndraws = 5, re.form = NA)
-  expect_equal(d1$data, d2$data)
 
   # non-vacuity: the switch takes effect IN-SAMPLE (review finding: it
   # used to be consulted only under newdata), so NA must differ from
@@ -163,14 +215,13 @@ test_that("giving both spellings is refused, not resolved", {
                "posterior_linpred\\(\\)")
   expect_error(posterior_predict(ds, re_formula = NA, re.form = NA),
                "posterior_predict\\(\\)")
-  expect_error(predictive_interval(ds, re_formula = NA, re.form = NA),
-               "predictive_interval\\(\\)")
   expect_error(predictive_error(ds, re_formula = NA, re.form = NA),
                "predictive_error\\(\\)")
-  expect_error(pp_check(ds, re_formula = NA, re.form = NA),
-               "pp_check\\(\\)")
-  expect_error(pp_check(cs$fit, re_formula = NA, re.form = NA),
-               "pp_check\\(\\)")
+  expect_error(predictive_interval(ds, re_formula = NA, re.form = NA),
+               "predictive_interval\\(\\)")
+  # pp_check() no longer takes the alias, and refuses it by name rather
+  # than reporting a clash of spellings
+  expect_error(pp_check(ds, re.form = NA), "re.form", fixed = TRUE)
 
   # the refusal names both spellings and says which one the function is
   # named after, so it can be acted on without reading the manual

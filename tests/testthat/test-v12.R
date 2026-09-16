@@ -140,7 +140,7 @@ test_that("new levels add the block variance to prediction SEs", {
   nd <- data.frame(x = 0, g = factor("NEW"))
   p_new <- predict(fit, newdata = nd, se.fit = TRUE,
                    allow_new_levels = TRUE)
-  p_pop <- predict(fit, newdata = data.frame(x = 0), re.form = NA,
+  p_pop <- predict(fit, newdata = data.frame(x = 0), re_formula = NA,
                    se.fit = TRUE)
   # same point prediction, inflated uncertainty
   expect_equal(p_new$fit, p_pop$fit, tolerance = 1e-8)

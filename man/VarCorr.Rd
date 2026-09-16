@@ -14,7 +14,8 @@
 frmtmb now shares rather than shadows, for the models that
 scale a covariance by a residual standard deviation.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 }
 \value{
 A named list of covariance matrices, one per random-effect

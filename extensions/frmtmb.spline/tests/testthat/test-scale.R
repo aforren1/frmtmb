@@ -77,16 +77,16 @@ test_that("the spline curves scale row fits and reports its cost", {
   # interleaved and replicated from here on, all arms warm
   pf <- scale_interleave(list(
     curve_sim = function() {
-      frm_curve(fit, newdata = g, re.form = NA, simultaneous = TRUE,
+      frm_curve(fit, newdata = g, re_formula = NA, simultaneous = TRUE,
                 nsim = 10000L, seed = 1)
     },
     curve_pw = function() {
-      frm_curve(fit, newdata = g, re.form = NA, simultaneous = FALSE)
+      frm_curve(fit, newdata = g, re_formula = NA, simultaneous = FALSE)
     },
     feature = function() {
       frm_curve_feature(fit, var = "t", type = "maximum", newdata = g)
     }))
-  cv <- frm_curve(fit, newdata = g, re.form = NA, simultaneous = TRUE,
+  cv <- frm_curve(fit, newdata = g, re_formula = NA, simultaneous = TRUE,
                   nsim = 10000L, seed = 1)
   ft <- frm_curve_feature(fit, var = "t", type = "maximum", newdata = g)
   mem <- scale_mem_peak_mb()

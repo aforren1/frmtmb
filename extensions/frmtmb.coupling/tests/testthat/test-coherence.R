@@ -110,7 +110,7 @@ test_that("a group at a coherence of 1 does not poison the fit", {
   fit <- suppressWarnings(
     frmtmb::frm(cp_bf("1 + (1 | id)"), family = cross_wishart(), data = d))
   expect_true(is.finite(as.numeric(stats::logLik(fit))))
-  co <- try(frm_coherence(fit, re.form = NA), silent = TRUE)
+  co <- try(frm_coherence(fit, re_formula = NA), silent = TRUE)
   if (!inherits(co, "try-error")) {
     expect_true(all(is.finite(co$.estimate)))
     expect_true(all(co$.upper - co$.lower > 0))
@@ -151,15 +151,15 @@ test_that("phase comes back in radians and is recovered", {
   }
 })
 
-test_that("re.form separates the group answer from the population one", {
+test_that("re_formula separates the group answer from the population one", {
   set.seed(205)
   N <- 30L
   eta <- stats::rnorm(N, 0.3, 0.6)
   d <- cp_units(eta, stats::rnorm(N, 0.5, 0.3), n = 12L)
   fit <- frmtmb::frm(cp_bf("1 + (1 | id)"), family = cross_wishart(),
                      data = d)
-  per <- frm_coherence(fit, re.form = NULL)
-  pop <- frm_coherence(fit, re.form = NA)
+  per <- frm_coherence(fit, re_formula = NULL)
+  pop <- frm_coherence(fit, re_formula = NA)
   expect_equal(nrow(per), N)
   expect_equal(length(unique(round(pop$.estimate, 10))), 1L)
   expect_gt(stats::sd(per$.estimate), 0)
@@ -210,7 +210,7 @@ test_that("the hierarchical fit beats averaging per-subject coherences", {
     fit <- try(frmtmb::frm(cp_bf("1 + (1 | id)"), family = cross_wishart(),
                            data = d), silent = TRUE)
     model[r] <- if (inherits(fit, "try-error")) NA_real_ else
-      frm_coherence(fit, newdata = d[1, ], re.form = NA)$.estimate
+      frm_coherence(fit, newdata = d[1, ], re_formula = NA)$.estimate
   }
   expect_gt(sum(!is.na(model)), 0.9 * R)
   b_naive <- mean(naive) - truth

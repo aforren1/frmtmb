@@ -1,0 +1,33 @@
+frmtmb from: C:/Users/adf44/source/r/argspell-lib 
+as.formula body:
+{
+    if (inherits(object, "formula")) 
+        object
+    else {
+        rval <- formula(object, env = baseenv())
+        if (identical(environment(rval), baseenv()) || !missing(env)) 
+            environment(rval) <- env
+        rval
+    }
+}
+
+---- the one-liner ----
+as.formula(fit)                              ok formula
+formula(fit, env = baseenv())                ok formula
+update.formula(fit, ~ . + w)                 ok formula
+stats::add.scope(fit, ~ x + z + w)           ok character
+
+---- BLOCKER 2's original fixture: ONE fixed term ----
+step(one)                                    ok character
+step(one, trace = 0)                         ok character
+nobs(one, use.fallback = TRUE)               ok integer
+
+---- two fixed terms ----
+step(two, trace = 0)                         ERROR: object 'change' not found
+step(two, scope = list(lower = ~1), trace = 0) ERROR: object 'change' not found
+90 rows removed because of missing values (na.action)
+add1(two, ~ . + w)                           ERROR: No complete observations after removing NAs
+Warning message:
+In Ops.factor(1, g) : '|' not meaningful for factors
+
+DONE

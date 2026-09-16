@@ -34,7 +34,7 @@ summary(fit)
 ```
 
 The usual methods work: `fixef()`, `ranef()`, `VarCorr()`, `predict()`
-(with `newdata`, `se.fit`, and `re.form`), `confint()` (Wald, profile,
+(with `newdata`, `se.fit`, and `re_formula`), `confint()` (Wald, profile,
 or likelihood-root), `simulate()`, `anova()` for likelihood-ratio
 tests, and `emmeans` for marginal means.
 

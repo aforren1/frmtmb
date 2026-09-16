@@ -27,7 +27,8 @@ draws into estimate, error and quantiles; if \code{FALSE}, return the
 
 \item{ndraws}{Number of draws to use (default: all).}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 }
 \value{
 A one-row summary matrix, or the matrix of draws when

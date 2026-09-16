@@ -5727,6 +5727,7 @@ family_link_str <- function(fam) {
 
 #' @export
 print.frmtmb_family <- function(x, ...) {
+  frm_check_dots(...)
   links <- vapply(x$links, function(l) l$name, "")
   cat("<frmtmb family> ", x$family, "\n", sep = "")
   cat("  dpars: ", paste0(x$dpars, " (", links[x$dpars], ")",

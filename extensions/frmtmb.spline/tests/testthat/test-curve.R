@@ -21,7 +21,7 @@ test_that("the assembled covariance reproduces predict(se.fit) exactly", {
   # machine precision, not a tolerance chosen to pass
   expect_lt(ck$cov_rel_error, 1e-10)
   p <- stats::predict(o$fit, newdata = g, type = "link", se.fit = TRUE,
-                      re.form = NA)
+                      re_formula = NA)
   expect_equal(cv$.estimate, as.numeric(p$fit), tolerance = 1e-12)
   expect_equal(cv$.se, as.numeric(p$se.fit), tolerance = 1e-10)
   # and the diagonal of the returned matrix is that same standard error
@@ -63,7 +63,7 @@ test_that("a grouping block costs nothing, because there is no probe", {
                      family = stats::gaussian(), data = d)
   g <- data.frame(x = seq(0, 1, length.out = 20),
                   g = factor(1, levels = levels(d$g)))
-  cv <- frm_curve(fit, newdata = g, re.form = NA, simultaneous = FALSE)
+  cv <- frm_curve(fit, newdata = g, re_formula = NA, simultaneous = FALSE)
   expect_equal(attr(cv, "check")$n_predict, 1L)
   expect_lt(attr(cv, "check")$cov_rel_error, 1e-10)
   # 40 levels in the fit and the same single call, which is the property
@@ -154,7 +154,7 @@ test_that("a fit with no random-effect block works, through cov.fixed", {
   cv <- frm_curve(fit, newdata = g, simultaneous = FALSE)
   expect_lt(attr(cv, "check")$cov_rel_error, 1e-10)
   p <- stats::predict(fit, newdata = g, type = "link", se.fit = TRUE,
-                      re.form = NA)
+                      re_formula = NA)
   expect_equal(cv$.se, as.numeric(p$se.fit), tolerance = 1e-14)
   expect_true(all(cv$.se > 0))
 })
@@ -210,18 +210,18 @@ test_that("a reduced-rank block is caught by the check, not by the probe", {
   g <- data.frame(x = seq(0, 1, length.out = 15),
                   sp = factor(1, levels = levels(d$sp)),
                   site = factor(1, levels = levels(d$site)))
-  cv <- frm_curve(fit, newdata = g, re.form = NA, simultaneous = FALSE)
+  cv <- frm_curve(fit, newdata = g, re_formula = NA, simultaneous = FALSE)
   expect_lt(attr(cv, "check")$cov_rel_error, 1e-8)
-  # re.form = NULL used to be REFUSED here, and not by the linearity
+  # re_formula = NULL used to be REFUSED here, and not by the linearity
   # probe: a reduced-rank block's loadings live in theta, so eta is
   # linear in b at fixed theta and the probe passed, while the design
   # the perturbation could build was missing the derivative with
   # respect to the loadings and the standard errors came out 27 percent
   # away from predict(se.fit = TRUE)'s. frm_lp_basis() carries the
   # loading columns through rr_jacobians(), so it now works.
-  cvn <- frm_curve(fit, newdata = g, re.form = NULL, simultaneous = FALSE)
+  cvn <- frm_curve(fit, newdata = g, re_formula = NULL, simultaneous = FALSE)
   expect_lt(attr(cvn, "check")$cov_rel_error, 1e-8)
-  pn <- stats::predict(fit, newdata = g, type = "link", re.form = NULL,
+  pn <- stats::predict(fit, newdata = g, type = "link", re_formula = NULL,
                        se.fit = TRUE)
   expect_equal(cvn$.se, as.numeric(pn$se.fit), tolerance = 1e-10)
 })
@@ -242,7 +242,7 @@ test_that("a curve on a dpar other than mu finds its coefficients", {
   expect_lt(attr(cv, "check")$cov_rel_error, 1e-10)
   expect_true(all(cv$.se > 0))
   p <- stats::predict(fit, newdata = g, type = "link", dpar = "sigma",
-                      se.fit = TRUE, re.form = NA)
+                      se.fit = TRUE, re_formula = NA)
   expect_equal(cv$.estimate, as.numeric(p$fit), tolerance = 1e-12)
   expect_equal(cv$.se, as.numeric(p$se.fit), tolerance = 1e-10)
   # and the derivative of that same dpar curve
@@ -268,7 +268,7 @@ test_that("a dpar held fixed does not become a design column", {
 test_that("a factor-smooth model costs the documented number of calls", {
   # The @section Cost: of frm_curve() quotes this model by name, and the
   # review could not reproduce the figure from a DIFFERENT fs model: one
-  # with no population smooth, where at re.form = NA the fs term
+  # with no population smooth, where at re_formula = NA the fs term
   # contributes nothing and the population curve is a constant. Both
   # facts are pinned here so the number in the documentation is attached
   # to the model it came from.
@@ -294,7 +294,7 @@ test_that("a factor-smooth model costs the documented number of calls", {
     family = stats::gaussian(), data = d))
   expect_equal(length(fit$estimates$b), 110L)
   g <- data.frame(t = seq(0, 1, length.out = 80))
-  cv <- frm_curve(fit, newdata = g, re.form = NA, simultaneous = FALSE)
+  cv <- frm_curve(fit, newdata = g, re_formula = NA, simultaneous = FALSE)
   # 32 predict() calls before the seam; one now, on a model with 110
   # random coefficients, which is the point of the seam
   expect_equal(attr(cv, "check")$n_predict, 1L)
@@ -308,7 +308,7 @@ test_that("a factor-smooth model costs the documented number of calls", {
   fit2 <- frmtmb::frm(
     frmtmb::bf(v ~ s(t, subject, bs = "fs", k = 5)),
     family = stats::gaussian(), data = d)
-  cv2 <- frm_curve(fit2, newdata = g, re.form = NA, simultaneous = FALSE)
+  cv2 <- frm_curve(fit2, newdata = g, re_formula = NA, simultaneous = FALSE)
   expect_equal(attr(cv2, "check")$n_predict, attr(cv, "check")$n_predict)
   expect_lt(stats::sd(cv2$.estimate), 1e-8)
 })
@@ -332,7 +332,7 @@ test_that("an autoscaled fit works, because the covariance is core's", {
   cv <- frm_curve(fit, newdata = g, simultaneous = FALSE)
   expect_lt(attr(cv, "check")$cov_rel_error, 1e-10)
   p <- stats::predict(fit, newdata = g, type = "link", se.fit = TRUE,
-                      re.form = NA)
+                      re_formula = NA)
   expect_equal(cv$.se, as.numeric(p$se.fit), tolerance = 1e-13)
 })
 
@@ -345,7 +345,7 @@ test_that("the covariance is core's, at the rows core says it is at", {
   # the rows the design's columns sit at.
   o <- sp_curve_fit()
   nd <- data.frame(x = c(0.2, 0.8))
-  lb <- frmtmb::frm_lp_basis(o$fit, newdata = nd, re.form = NA)
+  lb <- frmtmb::frm_lp_basis(o$fit, newdata = nd, re_formula = NA)
   jc <- frmtmb::frm_joint_cov(o$fit)
   expect_equal(lb$V, jc$V[lb$coef_pos, lb$coef_pos, drop = FALSE])
   expect_identical(lb$coef_names, jc$labels[lb$coef_pos])

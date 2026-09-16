@@ -160,7 +160,7 @@ test_that("a refusal is raised in the family's own words", {
   st <- frmtmb_structure(
     loglik = ll_ok,
     refusals = list(osa = "no one-step residual here",
-                    re_form = "no re.form here",
+                    re_form = "no re_formula here",
                     re_form.simulate = "not when simulating"))
   expect_error(structure_gate(st, "osa", "GENERIC"),
                "no one-step residual here", fixed = TRUE)
@@ -169,7 +169,7 @@ test_that("a refusal is raised in the family's own words", {
                               context = "simulate"),
                "not when simulating", fixed = TRUE)
   expect_error(structure_gate(st, "re_form", "GENERIC"),
-               "no re.form here", fixed = TRUE)
+               "no re_formula here", fixed = TRUE)
   # a flag refused without a sentence of its own gets the generic one
   expect_error(structure_gate(st, "deviance", "GENERIC"), "GENERIC",
                fixed = TRUE)

@@ -33,23 +33,23 @@ get_joint_cov <- function(fit) {
 
 #' The three argument checks `predict()` and `frm_lp_basis()` share.
 #'
-#' They take the same `newdata`, `re.form` and `resp`, and two functions
+#' They take the same `newdata`, `re_formula` and `resp`, and two functions
 #' describing one argument two ways is how a user learns that the second
 #' one is a different argument. One template each, which is also the
 #' property `test-message-uniqueness.R` asserts.
 #'
 #' @noRd
-check_re_form <- function(re.form) {
-  if (!is.null(re.form) && !inherits(re.form, "formula") &&
-        !(length(re.form) == 1L && is.na(re.form))) {
-    stop("`re.form` must be NULL to keep every random effect, NA to drop ",
+check_re_form <- function(re_formula) {
+  if (!is.null(re_formula) && !inherits(re_formula, "formula") &&
+        !(length(re_formula) == 1L && is.na(re_formula))) {
+    stop("`re_formula` must be NULL to keep every random effect, NA to drop ",
          "them all, or a one-sided formula naming the ones to keep, not ",
-         arg_desc(re.form), call. = FALSE)
+         arg_desc(re_formula), call. = FALSE)
   }
   invisible(NULL)
 }
 
-#' Whether `re.form` keeps the random effects.
+#' Whether `re_formula` keeps the random effects.
 #'
 #' `NULL` keeps them, `NA` drops them, and a one-sided formula keeps
 #' them unless it is `~0`. Factored out beside the message templates for
@@ -59,10 +59,10 @@ check_re_form <- function(re.form) {
 #' read the argument the same way.
 #'
 #' @noRd
-re_form_keeps <- function(re.form) {
-  if (is.null(re.form)) return(TRUE)
-  if (!inherits(re.form, "formula")) return(FALSE)
-  !identical(deparse1(re.form[[2]]), "0")
+re_form_keeps <- function(re_formula) {
+  if (is.null(re_formula)) return(TRUE)
+  if (!inherits(re_formula, "formula")) return(FALSE)
+  !identical(deparse1(re_formula[[2]]), "0")
 }
 
 #' @noRd
@@ -198,7 +198,7 @@ smooth_group_var <- function(sm, mf = NULL) {
 }
 
 #' The `re_blocks` indices of one linear predictor's GROUP-indexed
-#' smooths, which is what `re.form = NA` drops.
+#' smooths, which is what `re_formula = NA` drops.
 #'
 #' @noRd
 smooth_group_block_ids <- function(lp) {
@@ -229,7 +229,7 @@ smooth_pred_vars <- function(sm) {
 #'
 #' Two faults meet here and they have different fixes. A missing
 #' GROUPING column is only needed because the prediction is conditional
-#' on the group, so `re.form = NA` is a way out of it; any other missing
+#' on the group, so `re_formula = NA` is a way out of it; any other missing
 #' column is simply absent data. The unseen-level check restates for a
 #' factor-smooth term what the ordinary random-effect blocks already
 #' promise: a level the fit never saw errors unless it is allowed
@@ -248,7 +248,7 @@ smooth_newdata_check <- function(si, newdata, use_re, allow_new_levels) {
            "curve per level of `", gv, "`, so a prediction conditional ",
            "on it has to say which level each row belongs to. Add the ",
            "column to newdata, or ask for the population curve with ",
-           "re.form = NA, which drops the term and needs no level",
+           "re_formula = NA, which drops the term and needs no level",
            call. = FALSE)
     }
     stop("predict(newdata = ) for the smooth term ", si$label,
@@ -266,7 +266,7 @@ smooth_newdata_check <- function(si, newdata, use_re, allow_new_levels) {
       stop("New levels in the factor-smooth term ", si$label, ": ",
            paste(new, collapse = ", "), ". The term has no curve for ",
            "them. Use allow_new_levels = TRUE to predict them at the ",
-           "population level, or re.form = NA for the population curve ",
+           "population level, or re_formula = NA for the population curve ",
            "at every row", call. = FALSE)
     }
     if (length(new) && is.null(si$sm$flev)) {
@@ -276,7 +276,7 @@ smooth_newdata_check <- function(si, newdata, use_re, allow_new_levels) {
       stop("allow_new_levels = TRUE cannot predict the new level(s) ",
            paste(new, collapse = ", "), " of the bs = \"re\" smooth ",
            "term ", si$label, ": its design has one column per fitted ",
-           "level and no zero row for a new one. Use re.form = NA for ",
+           "level and no zero row for a new one. Use re_formula = NA for ",
            "the population curve, which is what a new level would ",
            "receive anyway", call. = FALSE)
     }
@@ -823,14 +823,14 @@ aterms_for_newdata <- function(rspec, newdata) {
 #' here; only the user-facing `predict()` surface reports.
 #'
 #' @noRd
-dpars_natural <- function(fit, rspec, newdata, re.form,
+dpars_natural <- function(fit, rspec, newdata, re_formula,
                           allow_new_levels = FALSE) {
   rn <- rspec$resp_name
   dp <- list()
   for (dnm in names(rspec$dpars)) {
     lp <- fit$frame[["linpreds"]][[linpred_key(rn, dnm)]]
     eta <- predict(fit, newdata = newdata, dpar = dnm, resp = rn,
-                   re.form = re.form, type = "link",
+                   re_formula = re_formula, type = "link",
                    allow_new_levels = allow_new_levels)
     dp[[dnm]] <- as.vector(lp[["link"]]$linkinv(eta))
   }
@@ -872,20 +872,20 @@ dpar_report_hook <- function(fam, dpar, rspec = NULL) {
 }
 
 #' Expected response over all dpars: the family mean at predicted dpar
-#' values (`fitted()`'s convention, extended to newdata and `re.form`).
+#' values (`fitted()`'s convention, extended to newdata and `re_formula`).
 #'
 #' @noRd
-predict_mean_response <- function(fit, rspec, newdata, re.form,
+predict_mean_response <- function(fit, rspec, newdata, re_formula,
                                   allow_new_levels) {
   fam <- rspec$family
   rn <- rspec$resp_name
-  if (is.null(newdata) && is.null(re.form)) {
+  if (is.null(newdata) && is.null(re_formula)) {
     # exactly fitted(): dpars at the estimates, conditional on the modes
     dp <- eval_dpars(fit)[[rn]]
     out <- response_mean(fam, dp, fit$frame[["aterm_values"]][[rn]])
     return(napred(fit, out))
   }
-  dp <- dpars_natural(fit, rspec, newdata, re.form, allow_new_levels)
+  dp <- dpars_natural(fit, rspec, newdata, re_formula, allow_new_levels)
   av <- if (is.null(newdata)) {
     # in-sample dpar predictions come back napredict-ed; pad the
     # per-observation aterm values the same way (a no-op under na.omit)
@@ -901,6 +901,41 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
   }
   response_mean(fam, dp, av)
 }
+
+#' Arguments `predict()` used to take, or that brms takes and a point
+#' estimate cannot answer.
+#'
+#' The two retired spellings are named here rather than left to the
+#' generic unknown-argument message because both were live in 0.57.0:
+#' one of them silently changed the answer, and the other silently did
+#' not.
+#'
+#' @noRd
+predict_retired <- c(
+  re.form = paste("lme4's spelling, no longer accepted. brms is the",
+                  "tiebreaker on a name, so this setting is",
+                  "`re_formula` here as it is in brms. Pass",
+                  "re_formula ="),
+  allow.new.levels = paste("lme4's spelling, no longer accepted. brms",
+                           "spells it `allow_new_levels`, and so does",
+                           "this. Pass allow_new_levels ="),
+  ndraws = paste("a maximum likelihood fit carries one estimate, not a",
+                 "posterior. frmtmb.sample's posterior_predict() takes",
+                 "ndraws"),
+  draw_ids = paste("a maximum likelihood fit has no draws to index.",
+                   "frmtmb.sample's posterior_predict() takes draw_ids"),
+  sort = "there is no draws dimension here to sort against",
+  summary = paste("the return value is already the point estimate.",
+                  "frmtmb.sample's posterior_predict() takes summary"),
+  robust = "a median over draws needs draws",
+  probs = paste("quantiles of a prediction need draws. For an interval",
+                "here, use se.fit = TRUE"),
+  nlpar = paste("a non-linear parameter is reached through `dpar` in",
+                "this package"),
+  transform = paste("the scale is chosen with `type` here:",
+                    "type = \"response\" is brms's default scale and",
+                    "type = \"link\" is this one's")
+)
 
 #' Predictions from a frmtmb fit
 #'
@@ -955,12 +990,12 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #' `dpar = "mu"`) when that is what you want.
 #' @param resp For multivariate fits: which response to predict (defaults
 #'   to the first).
-#' @param re.form `NULL` (default) includes random effects; `NA` or `~0`
+#' @param re_formula `NULL` (default) includes random effects; `NA` or `~0`
 #'   gives population-level predictions. See
-#'   *What `re.form = NA` drops* for what that means when the model has
+#'   *What `re_formula = NA` drops* for what that means when the model has
 #'   smooths.
-#' @section What `re.form = NA` drops:
-#' `re.form = NA` (equivalently `~0`) asks for the POPULATION-level
+#' @section What `re_formula = NA` drops:
+#' `re_formula = NA` (equivalently `~0`) asks for the POPULATION-level
 #' prediction. Every `(x | g)` block is dropped, and so is any smooth
 #' whose basis gives each level of a grouping factor its own curve.
 #' Everything else stays.
@@ -1007,7 +1042,7 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #' already follows, drops it too.
 #'
 #' A dropped factor-smooth term needs nothing from `newdata`, so the
-#' grouping column may be left out entirely when `re.form = NA`. It is
+#' grouping column may be left out entirely when `re_formula = NA`. It is
 #' required for a conditional prediction, and its absence is reported by
 #' name rather than by an mgcv internal message.
 #'
@@ -1049,7 +1084,10 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #'   population level instead of erroring. A factor-smooth term
 #'   (`bs = "fs"`) follows the same rule: a level it never saw
 #'   contributes nothing, which leaves the population curve.
-#' @param ... Unused.
+#' @param ... Refused. An argument this method does not have is an
+#'   error naming it, and the two lme4 spellings that were live in
+#'   0.57.0 (`re.form`, `allow.new.levels`) are refused by name with
+#'   the brms spelling that replaced them.
 #' @details
 #' When the fixed-effect design was rank deficient, the aliased columns
 #' were dropped at fit time and some coefficient combinations are not
@@ -1115,8 +1153,9 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #' @srrstats {RE4.16} New groups can be submitted to `predict()`. Levels
 #'   of a grouping factor that were not in the training data error by
 #'   default, naming the offending levels, and are predicted at the
-#'   population level under `allow_new_levels = TRUE` (the lme4 spelling
-#'   `allow.new.levels` is accepted as well).
+#'   population level under `allow_new_levels = TRUE`, which is brms's
+#'   spelling and the only one: lme4's `allow.new.levels` is refused
+#'   and the refusal names the replacement.
 #'
 #' @examples
 #' set.seed(1)
@@ -1128,9 +1167,9 @@ predict_mean_response <- function(fit, rspec, newdata, re.form,
 #' head(predict(fit))
 #' max(abs(predict(fit, type = "response") - fitted(fit)))
 #'
-#' # re.form = NA drops the random effects: the population prediction
+#' # re_formula = NA drops the random effects: the population prediction
 #' nd <- data.frame(x = c(-1, 0, 1), g = factor(1, levels = levels(dd$g)))
-#' predict(fit, newdata = nd, re.form = NA, type = "response")
+#' predict(fit, newdata = nd, re_formula = NA, type = "response")
 #'
 #' # delta-method standard errors, on whichever scale was asked for
 #' p <- predict(fit, newdata = nd, se.fit = TRUE)
@@ -1153,21 +1192,15 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
                                type = c("link", "response",
                                         "conditional", "zprob", "zlink",
                                         "disp"),
-                               dpar = NULL, resp = NULL, re.form = NULL,
+                               dpar = NULL, resp = NULL, re_formula = NULL,
                                se.fit = FALSE,
                                allow_new_levels = FALSE, ...) {
-  dots <- list(...)
-  # lme4/glmmTMB spell allow_new_levels with dots; accept it silently
-  if ("allow.new.levels" %in% names(dots)) {
-    allow_new_levels <- isTRUE(dots[["allow.new.levels"]])
-    dots[["allow.new.levels"]] <- NULL
-  }
-  if (length(dots)) {
-    warning("ignoring unknown arguments to predict(): ",
-            paste(names(dots), collapse = ", "), call. = FALSE)
-  }
+  # A warning here was not enough: `predict(fit, re_form = NA)` warned
+  # and then returned the CONDITIONAL prediction, and a warning in a
+  # loop or under suppressWarnings() is a wrong number with no record.
+  frm_check_dots(..., .unsupported = predict_retired)
   require_fitted(object, "predict()")
-  # re.form is read three lines down as "NULL, a formula, or anything
+  # re_formula is read three lines down as "NULL, a formula, or anything
   # else drops the random effects", so a typo used to return the
   # POPULATION prediction and say nothing. newdata that is not
   # rectangular reached the design builder and failed there on
@@ -1179,9 +1212,9 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     stop("`newdata` must be a data frame, or NULL to predict on the ",
          "training data, not ", arg_desc(newdata), call. = FALSE)
   }
-  check_re_form(re.form)
+  check_re_form(re_formula)
   type <- match.arg(type)
-  use_re <- re_form_keeps(re.form)
+  use_re <- re_form_keeps(re_formula)
 
   resp <- resp %||% names(object$spec$responses)[1]
   rspec <- object$spec$responses[[resp]]
@@ -1240,10 +1273,10 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
                      structure_generic(
                        fam_, "predict(newdata =, type = \"response\")"))
     }
-    if (!is.null(re.form)) {
+    if (!is.null(re_formula)) {
       structure_gate(st, "re_form",
                      structure_generic(
-                       fam_, "re.form = on the response scale"))
+                       fam_, "re_formula = on the response scale"))
     }
     fm <- st[["fitted_mean"]]
     if (!is.null(fm)) {
@@ -1285,7 +1318,7 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
       return(predict_mean_se(object, rspec, newdata, use_re,
                              allow_new_levels))
     }
-    return(predict_mean_response(object, rspec, newdata, re.form,
+    return(predict_mean_response(object, rspec, newdata, re_formula,
                                  allow_new_levels))
   }
   dpar <- dpar %||% if ("mu" %in% names(rspec$dpars)) "mu" else
@@ -1311,7 +1344,7 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     vals <- list()
     for (np in lp[["nl_pars"]]) {
       vals[[np]] <- predict(object, newdata = newdata, dpar = np,
-                            resp = resp, re.form = re.form,
+                            resp = resp, re_formula = re_formula,
                             allow_new_levels = allow_new_levels)
     }
     # a reference to another dpar reads its VALUE, so it comes back
@@ -1321,7 +1354,7 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
       lpr <- object$frame[["linpreds"]][[linpred_key(resp, dr)]]
       vals[[dr]] <- lpr[["link"]]$linkinv(
         predict(object, newdata = newdata, dpar = dr,
-                type = "link", resp = resp, re.form = re.form,
+                type = "link", resp = resp, re_formula = re_formula,
                 allow_new_levels = allow_new_levels))
     }
     dl <- if (is.null(newdata)) {
@@ -1363,7 +1396,7 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   # its standard error are on the kept rows. The padding comes off here
   # and goes back on once at the end, rather than twice.
   hook_val <- function(what) {
-    nat <- dpars_natural(object, rspec, newdata, re.form,
+    nat <- dpars_natural(object, rspec, newdata, re_formula,
                          allow_new_levels)
     v <- hook[[what]](nat, dpar)
     if (is.null(newdata) && length(v) != n) {
@@ -1816,6 +1849,7 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
 model.frame.frmtmb_fit <- function(formula, ...) {
   # the stored combined frame survives even when the caller's data
   # environment is gone (lme4 test-formulaEval.R bug class)
+  frm_check_dots(...)
   formula$frame[["data_frame"]]
 }
 
@@ -1834,10 +1868,32 @@ napred <- function(fit, x) {
 #' the training data, for every family.
 #'
 #' @param object A `frmtmb_fit`.
-#' @param ... Unused.
+#' @param newdata Optional data frame to evaluate on. Defaults to the
+#'   training data.
+#' @param re_formula `NULL` (default) keeps the random effects, so the
+#'   answer is conditional on the modes; `NA` or `~0` gives the
+#'   population-level answer. brms's spelling, and the only one:
+#'   lme4's `re.form` is not accepted here.
+#' @param scale `"response"` (default) for the modelled response, or
+#'   `"linear"` for the linear predictor. brms's spelling of what
+#'   [predict.frmtmb_fit()] calls `type`.
+#' @param resp For multivariate fits: which response (defaults to the
+#'   first).
+#' @param dpar Which distributional parameter to report instead of the
+#'   mean.
+#' @param ... Refused. An argument this method does not have is an
+#'   error naming it, because a swallowed `re_formula` returned the
+#'   conditional fit and said nothing.
 #' @return A numeric vector of expected responses; for an ordinal family
 #'   (`cumulative()`, `sratio()`, `cratio()`, `acat()`) an `n x K` matrix
 #'   of category probabilities.
+#' @section Arguments brms has and this does not:
+#' `fitted.brmsfit()` summarizes posterior draws, so it also takes
+#' `ndraws`, `draw_ids`, `sort`, `summary`, `robust` and `probs`. A
+#' maximum likelihood fit has no draws to thin or summarize, so each of
+#' those is refused by name and the message says where the argument does
+#' work: `frmtmb.sample`'s `posterior_epred()`. `nlpar` is refused too;
+#' a non-linear parameter is reached through `dpar`.
 #' @section Ordinal responses:
 #' An ordinal response has no mean, so `fitted()` returns the `n x K`
 #' matrix of category probabilities, with the response's own factor
@@ -1854,35 +1910,53 @@ napred <- function(fit, x) {
 #' fit <- frm(bf(y ~ x) + poisson(), data = dd)
 #' max(abs(fitted(fit) - predict(fit, type = "response")))
 #' @export
-fitted.frmtmb_fit <- function(object, ...) {
-  rspec <- single_response(object, "fitted()")
-  # a structured family whose row mean conditions on the whole observed
-  # response supplies it here; everything else is rowwise
-  fm <- fam_structure(rspec$family)[["fitted_mean"]]
-  if (!is.null(fm)) {
-    return(napred(object,
-                  fm(object, frame_block_of(object$frame,
-                                            rspec$resp_name))))
-  }
-  if (identical(rspec$family[["type"]], "ordinal")) {
-    # no mean exists; the modelled response IS the category
-    # distribution, and predict(type = "response") agrees by construction
-    return(predict_ordinal(object, rspec, NULL, TRUE, FALSE))
-  }
-  if (identical(rspec$family[["type"]], "categorical")) {
-    # same reasoning: the modelled response IS the category distribution
-    return(predict_categorical(object, rspec, NULL, TRUE, FALSE))
-  }
-  dp <- eval_dpars(object)[[rspec$resp_name]]
-  if (!"mu" %in% names(dp) && is.null(rspec$family[["post"]]$mean_fn)) {
-    stop("fitted() is not defined for family '", rspec$family[["family"]], "'",
-         call. = FALSE)
-  }
-  fam <- rspec$family
-  out <- response_mean(fam, dp,
-                       object$frame[["aterm_values"]][[rspec$resp_name]])
-  napred(object, out)
+fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
+                              scale = c("response", "linear"),
+                              resp = NULL, dpar = NULL, ...) {
+  frm_check_dots(..., .unsupported = fitted_no_draws)
+  scale <- match.arg(scale)
+  # predict() defaults an unnamed multivariate response to the first;
+  # fitted() refuses instead, as it always has, because the caller who
+  # did not name one is asking for all of them
+  if (is.null(resp)) single_response(object, "fitted()")
+  # One implementation, not two: every documented identity between
+  # fitted() and predict(type = "response") was previously a claim about
+  # two bodies that happened to agree, and the ordinal, categorical and
+  # structured branches were written out twice.
+  predict(object, newdata = newdata,
+          type = if (scale == "response") "response" else "link",
+          dpar = dpar, resp = resp, re_formula = re_formula)
 }
+
+#' Arguments `fitted.brmsfit()` has that a point estimate cannot answer.
+#'
+#' Named rather than reported as unknown: `ndraws` is a real brms
+#' argument, and "there is no such argument" would send the caller
+#' looking for a typo that is not there.
+#'
+#' @noRd
+fitted_no_draws <- c(
+  ndraws = paste("a maximum likelihood fit carries one estimate, not a",
+                 "posterior, so there is nothing to thin. Draw from the",
+                 "fit with frmtmb.sample::frm_sample() and use",
+                 "posterior_epred(ndraws = ) there"),
+  draw_ids = paste("a maximum likelihood fit has no draws to index.",
+                   "frmtmb.sample's posterior_epred() takes draw_ids"),
+  sort = paste("rows come back in the order of the data, always: there",
+               "is no draws dimension here to sort against.",
+               "frmtmb.sample's posterior_epred() takes sort"),
+  summary = paste("there is nothing to summarize: the return value is",
+                  "already the point estimate, one number per row.",
+                  "frmtmb.sample's posterior_epred() takes summary"),
+  robust = paste("a median over draws needs draws.",
+                 "frmtmb.sample's posterior_epred() takes robust"),
+  probs = paste("quantiles of the fitted value need draws.",
+                "frmtmb.sample's posterior_epred() takes probs.",
+                "For an interval around a linear predictor here, use",
+                "predict(se.fit = TRUE)"),
+  nlpar = paste("a non-linear parameter is reached through `dpar` in",
+                "this package; nlf() parameters appear there")
+)
 
 #' Number of ordinal categories, from the threshold vector rather than
 #' from the data: the top category may be unobserved.
@@ -2286,6 +2360,35 @@ osa_cens_domain <- function(av, y, discrete = FALSE) {
   list(lo = lo, hi = hi, subset = i_obs, conditional = c(i_l, i_r))
 }
 
+#' Arguments `residuals.brmsfit()` has that this one does not.
+#'
+#' `newdata` and `re_formula` are not refusals of principle: a residual
+#' needs an observed response, and evaluating one away from the fitted
+#' rows is a feature this package does not have yet. They are named so
+#' that a ported brms call is told which it is.
+#'
+#' @noRd
+residuals_unsupported <- c(
+  newdata = paste("a residual needs the observed response, and",
+                  "residuals() here reads the fitted rows only.",
+                  "Compute it yourself from predict(newdata = )"),
+  re_formula = paste("residuals() here is conditional on the",
+                     "random-effect modes, always. For the population",
+                     "residual take y - predict(re_formula = NA,",
+                     "type = \"response\")"),
+  method = paste("brms's `method` chooses the predictive distribution;",
+                 "this package has one. The one-step-ahead algorithm is",
+                 "chosen with `osa_method`"),
+  resp = paste("residuals() is not supported for multivariate fits at",
+               "all yet, so there is no response to choose"),
+  ndraws = "a maximum likelihood fit carries one estimate, not a posterior",
+  draw_ids = "a maximum likelihood fit has no draws to index",
+  sort = "there is no draws dimension here to sort against",
+  summary = "the return value is already one number per row",
+  robust = "a median over draws needs draws",
+  probs = "quantiles of a residual need draws"
+)
+
 #' Residuals from a frmtmb fit
 #'
 #' `"osa"` gives one-step-ahead (conditional quantile) residuals via
@@ -2393,7 +2496,13 @@ osa_cens_domain <- function(av, y, discrete = FALSE) {
 #'   integration domain and discrete support taken from the `trunc()`
 #'   bounds or the censoring window, which must then be the same for
 #'   every row.
-#' @param ... For `type = "osa"`: passed to [TMB::oneStepPredict()].
+#' @param ... For `type = "osa"`: passed to [TMB::oneStepPredict()],
+#'   and checked against that function's own formals. For every other
+#'   type: refused, naming the argument. The `residuals.brmsfit()`
+#'   arguments this one does not have (`newdata`, `re_formula`,
+#'   `method`, `resp`, `ndraws`, `draw_ids`, `sort`, `summary`,
+#'   `robust`, `probs`) are refused with the reason rather than
+#'   reported as unknown names.
 #' @return A numeric vector, `NA` on censored rows.
 #'
 #' @srrstats {G2.2} Parameters that expect a univariate response refuse a
@@ -2436,6 +2545,14 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
                                                   "deviance", "osa"),
                                  osa_method = NULL, ...) {
   type <- match.arg(type)
+  # The dots reach TMB::oneStepPredict() and ONLY on the osa branch, so
+  # before this every other type swallowed whatever it was handed:
+  # `residuals(fit, re_formula = NA)` returned the conditional residual
+  # and said nothing, the same defect fitted() had.
+  frm_check_dots(..., .unsupported = residuals_unsupported,
+                 .allow = if (identical(type, "osa")) {
+                   names(formals(TMB::oneStepPredict))
+                 })
   rspec <- single_response(object, "residuals()")
   fam <- rspec$family
   if (identical(fam[["type"]], "categorical")) {
@@ -2800,12 +2917,13 @@ apply_censoring <- function(y, win) {
 #' @param seed Optional RNG seed. Follows the [stats::simulate()]
 #'   contract: the global RNG state is restored afterwards, and the
 #'   seed used is attached as the `"seed"` attribute.
-#' @param re.form `NULL` (default) conditions on the estimated random
+#' @param re_formula `NULL` (default) conditions on the estimated random
 #'   effects; `NA` redraws them from their estimated distribution
 #'   (marginal simulation).
 #' @param censored Apply the fitted `cens()` mechanism to the draws
 #'   (see Censored responses). Ignored without `cens()`.
-#' @param ... Unused.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
 #' @return A data frame with `nsim` columns and a `"seed"` attribute.
 #' @examples
 #' set.seed(1)
@@ -2818,9 +2936,9 @@ apply_censoring <- function(y, win) {
 #' str(sims)
 #' attr(sims, "seed")
 #'
-#' # re.form = NA redraws the group effects, which is the right choice
+#' # re_formula = NA redraws the group effects, which is the right choice
 #' # for a parametric bootstrap over new groups
-#' sims_m <- simulate(fit, nsim = 5, re.form = NA, seed = 42)
+#' sims_m <- simulate(fit, nsim = 5, re_formula = NA, seed = 42)
 #' apply(sims_m, 2, var) > apply(sims, 2, var)
 #'
 #' # a posterior-predictive check by hand: does the fit reproduce the
@@ -2829,10 +2947,11 @@ apply_censoring <- function(y, win) {
 #' colMeans(simulate(fit, nsim = 20, seed = 1) == 0)
 #' @export
 simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
-                                re.form = NULL, censored = FALSE, ...) {
+                                re_formula = NULL, censored = FALSE, ...) {
   # nsim reaches vapply()/replicate() as a length, where a length-2 or
   # character value reports "invalid 'length' argument" and names
   # neither simulate() nor nsim
+  frm_check_dots(...)
   check_count(nsim, "nsim", min = 1L)
   check_flag(censored, "censored")
   # the stats::simulate seed contract (as in simulate.lm)
@@ -2854,9 +2973,9 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
   # is only what these two options would MEAN for a whole-block draw
   st <- fam_structure(fam)
   if (!is.null(st)) {
-    if (!is.null(re.form)) {
+    if (!is.null(re_formula)) {
       structure_gate(st, "re_form",
-                     structure_generic(fam, "simulate(re.form =)"),
+                     structure_generic(fam, "simulate(re_formula =)"),
                      context = "simulate")
     }
     if (isTRUE(censored)) {
@@ -2869,8 +2988,8 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
     stop("simulate(): family '", fam[["family"]], "' has no simulator yet",
          sim_note(fam), call. = FALSE)
   }
-  marginal <- !is.null(re.form) && !inherits(re.form, "formula") &&
-    is.na(re.form)
+  marginal <- !is.null(re_formula) && !inherits(re_formula, "formula") &&
+    is.na(re_formula)
   n <- stats::nobs(object)
   out <- vector("list", nsim)
   av <- object$frame[["aterm_values"]][[rspec$resp_name]]
@@ -3104,7 +3223,7 @@ b_coef_labels <- function(fit) {
 #' @param dpar,resp The distributional parameter and response to take
 #'   the linear predictor of. Both default the way [predict()] defaults
 #'   them.
-#' @param re.form `NULL` keeps every random effect, `NA` drops them all,
+#' @param re_formula `NULL` keeps every random effect, `NA` drops them all,
 #'   a one-sided formula keeps the ones it names.
 #' @param allow_new_levels Whether a grouping level the fit never saw is
 #'   allowed.
@@ -3153,7 +3272,7 @@ b_coef_labels <- function(fit) {
 #' dd$y <- rnorm(120, 1 + 2 * dd$x + rnorm(12, 0, 0.5)[dd$g], 0.4)
 #' fit <- frm(bf(y ~ x + (1 | g)), data = dd)
 #' nd <- data.frame(x = c(-1, 0, 1), g = factor(1, levels = levels(dd$g)))
-#' lb <- frm_lp_basis(fit, newdata = nd, re.form = NA)
+#' lb <- frm_lp_basis(fit, newdata = nd, re_formula = NA)
 #' str(lb$A)
 #' lb$coef_names
 #'
@@ -3161,10 +3280,10 @@ b_coef_labels <- function(fit) {
 #' # diagonal
 #' Sigma <- lb$A %*% lb$V %*% t(lb$A)
 #' all.equal(sqrt(diag(Sigma)),
-#'           predict(fit, newdata = nd, re.form = NA, se.fit = TRUE)$se.fit)
+#'           predict(fit, newdata = nd, re_formula = NA, se.fit = TRUE)$se.fit)
 #' @export
 frm_lp_basis <- function(object, newdata = NULL, dpar = NULL, resp = NULL,
-                         re.form = NULL, allow_new_levels = FALSE) {
+                         re_formula = NULL, allow_new_levels = FALSE) {
   require_frmtmb_fit(object, "frm_lp_basis()")
   require_fitted(object, "frm_lp_basis()")
   check_flag(allow_new_levels, "allow_new_levels")
@@ -3172,8 +3291,8 @@ frm_lp_basis <- function(object, newdata = NULL, dpar = NULL, resp = NULL,
     stop("`newdata` must be a data frame, or NULL to use the training ",
          "data, not ", arg_desc(newdata), call. = FALSE)
   }
-  check_re_form(re.form)
-  use_re <- re_form_keeps(re.form)
+  check_re_form(re_formula)
+  use_re <- re_form_keeps(re_formula)
   resp <- resp %||% names(object$spec$responses)[1]
   rspec <- object$spec$responses[[resp]]
   if (is.null(rspec)) {

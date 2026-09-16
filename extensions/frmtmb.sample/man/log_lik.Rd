@@ -12,7 +12,8 @@ log_lik(object, ...)
 \arguments{
 \item{object}{A \code{frmtmb_draws} from \code{\link[=frm_sample]{frm_sample()}}.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 
 \item{ndraws}{Number of draws to use, evenly spaced through the
 matrix (default: all of them).}

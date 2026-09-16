@@ -34,7 +34,8 @@ as.mcmc(x, ...)
 \arguments{
 \item{x}{A \code{frmtmb_draws} object.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 
 \item{combine_chains}{If \code{TRUE}, one \code{mcmc} object over the pooled
 draws; otherwise an \code{mcmc.list} with one component per chain, which

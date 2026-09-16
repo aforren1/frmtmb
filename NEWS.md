@@ -1,3 +1,86 @@
+# frmtmb (development version)
+
+* **BREAKING, and the rule behind it.** Where lme4 or glmmTMB and brms
+  disagree on an argument name, brms is now the tiebreaker: this
+  package takes brms's spelling and DROPS the other one. Two spellings
+  of one setting survive only where brms itself carries both.
+
+  `predict()`, `simulate()`, `frm_bootstrap()` and
+  `dharma_residuals()` now take **`re_formula`**. lme4's `re.form` is
+  gone from all four and is refused by name, with the replacement in
+  the message. `predict()` no longer accepts `allow.new.levels`
+  either; `allow_new_levels` is brms's spelling and the only one.
+  `pp_check()` on a fit drops `re.form` too, because brms's own
+  `pp_check()` forwards to `prepare_predictions()`, whose formals
+  carry `re_formula` alone.
+
+* **BREAKING, and the defect it fixes.** `fitted()` took only `...`, so
+  every brms argument handed to it was SWALLOWED.
+  `fitted(fit, re_formula = NA)` returned the conditional fit and said
+  nothing: 1.291651 at the first row of the fixture in
+  `tests/testthat/test-arg-refusal.R`, bit-identical to `fitted(fit)`,
+  where the population answer asked for is 1.954262 and the largest gap
+  over the 120 rows is 3.065438. A misspelled argument was swallowed
+  the same way.
+
+  `fitted()` now takes `newdata`, `re_formula`, `scale`, `resp` and
+  `dpar`, which is `fitted.brmsfit()`'s signature less the arguments
+  that need draws, and it is implemented as one call to `predict()`, so
+  the documented `fitted() == predict(type = "response")` identity is
+  structural rather than two bodies that agreed.
+
+* **BREAKING, and the reason it is worth the break.** An argument that
+  lands in a method's `...` is now an ERROR naming it. 145 registered
+  S3 methods across this package and `frmtmb.sample` took a `...` they
+  never read; twelve of them keep it, and the rest refuse. A method
+  that swallows its dots accepts every argument brms adds in future,
+  and every misspelling today, in the same silence. `predict()`,
+  `conditional_effects()` and `hypothesis()` warned rather than
+  erroring; a warning still returns a number, and under
+  `suppressWarnings()` or in a loop it leaves no record.
+
+  `tests/testthat/test-arg-refusal.R` asserts the invariant
+  structurally: no registered S3 method may have a `...` it never
+  touches. Two shapes are outside it. Twelve methods of generics that
+  emmeans, insight and marginaleffects own are called BY those packages
+  with arguments of their own choosing, so accepting an unknown name is
+  the contract there (`insight:::.n_parameters_component` calls
+  `get_parameters(x, component = )`, which our method has no formal
+  for). And a method whose whole body is an unconditional refusal
+  cannot swallow anything, so it keeps its own message; the test
+  recognises that shape rather than listing those methods by name.
+
+* An argument brms has that a maximum likelihood fit cannot answer is
+  refused BY NAME with the reason, instead of being reported as an
+  unknown name. `fitted(fit, ndraws = 10)` says that this fit carries
+  one estimate rather than a posterior and points at
+  `frmtmb.sample::posterior_epred()`. The same holds for `draw_ids`,
+  `sort`, `summary`, `robust`, `probs` and `nlpar` on `fitted()` and
+  `predict()`; for `newdata`, `re_formula`, `method` and `resp` on
+  `residuals()`, which reads the fitted rows only; for `digits` and
+  `short` on `print()`; for `priors`, `prob` and `mc_se` on
+  `summary()`; for `summary`, `robust`, `probs` and `pars` on `coef()`,
+  `fixef()`, `ranef()` and `VarCorr()`; for `resp` on `nobs()` and
+  `family()`; and for `correlation` and `pars` on `vcov()`.
+
+* Arguments that R passes through its OWN generics are accepted, not
+  refused, because R's S3 contract is that a method tolerates what its
+  generic carries. `as.formula(model)` is `formula(object, env = )`;
+  `model.matrix.default()` and `aov()` call `terms(object, data = )`;
+  `step()` calls `nobs(object, use.fallback = )` and then
+  `drop1(object, scale = , trace = )`. All of those worked before the
+  dots were refused and broke afterwards. One table,
+  `s3_contract_args`, now covers every generic at once, and a test
+  walks R's own packages for the same pattern so the next name of this
+  kind fails the suite rather than reaching a user. Everything outside
+  the table is still refused, so `nobs(fit, nosucharg = 1)` and
+  `terms(fit, re.form = NA)` error as before.
+
+* `residuals()` forwarded its `...` to `TMB::oneStepPredict()` on the
+  `type = "osa"` branch and swallowed them on every other one. The
+  dots are now checked against that function's own formals under
+  `"osa"` and refused otherwise.
+
 # frmtmb 0.57.0
 
 * `frm_install_generics(pkgname, owners)` joins the extension API on

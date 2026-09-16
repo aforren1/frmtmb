@@ -9,7 +9,7 @@ frm_bootstrap(
   FUN = function(f) fixef(f, flatten = TRUE),
   nsim = 500,
   seed = NULL,
-  re.form = NA
+  re_formula = NA
 )
 }
 \arguments{
@@ -24,7 +24,7 @@ with the Wald one by name.}
 
 \item{seed}{Optional seed.}
 
-\item{re.form}{Passed to \code{\link[=simulate]{simulate()}}; the default \code{NA} simulates
+\item{re_formula}{Passed to \code{\link[=simulate]{simulate()}}; the default \code{NA} simulates
 marginally (new random effects), which is the standard parametric
 bootstrap for mixed models.}
 }

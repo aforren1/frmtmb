@@ -1,0 +1,18 @@
+frmtmb 0.57.0 from C:/Users/adf44/source/r/rellib-r3 
+
+fitted(fit)[1]                   = 1.291651
+fitted(fit, re_formula = NA)[1]  = 1.291651
+predict(re.form = NA)[1]         = 1.954262
+identical(fitted, swallowed)     = TRUE
+max |fitted - population|        = 3.065438
+misspelling swallowed silently   = TRUE
+
+ranef structure:
+List of 1
+ $ g: num [1:8, 1] -0.663 0.614 1.447 0.135 -0.281 ...
+  ..- attr(*, "dimnames")=List of 2
+  ..- attr(*, "term")= chr "1 | g"
+ - attr(*, "class")= chr "ranef_frmtmb"
+
+response names: y 
+dpars: mu sigma 
