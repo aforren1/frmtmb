@@ -213,13 +213,17 @@ ar_refusers <- c("stop", "fit_no_draws", "multiple_no_draws")
 # the coverage job only. This removes exactly that wrapper, at the top
 # level, which is the only level the shape checks read; anything else
 # is returned untouched, so a real branch still fails them.
+# Built rather than written: a literal `covr:::` in a test file is an
+# undeclared dependency to R CMD check, and covr is not one.
+ar_covr_count <- call(":::", as.name("covr"), as.name("count"))
+
 ar_uncovr <- function(e) {
   if (is.call(e) && identical(e[[1L]], as.name("if")) &&
         length(e) == 3L && isTRUE(e[[2L]])) {
     i <- e[[3L]]
     if (is.call(i) && identical(i[[1L]], as.name("{")) &&
           length(i) == 3L && is.call(i[[2L]]) &&
-          identical(i[[2L]][[1L]], quote(covr:::count))) {
+          identical(i[[2L]][[1L]], ar_covr_count)) {
       return(i[[3L]])
     }
   }
@@ -398,16 +402,23 @@ test_that("frm_check_dots() is only ever called from a dots-taker", {
   # extension alone, found 28 call sites and no definition, and failed;
   # a source run scanned core alone, because the same path pointed above
   # the repository.
+  #
+  # A DESCRIPTION and an R/ directory are not proof either. covr runs
+  # the tests against an INSTALLED copy, whose R/ holds only the lazy-load
+  # database, so that run scanned zero files and counted zero call sites.
+  # The proof is core's R/ holding sources at all.
   pkg_root <- testthat::test_path("..", "..")
   desc <- file.path(pkg_root, "DESCRIPTION")
-  is_src <- file.exists(desc) && dir.exists(file.path(pkg_root, "R")) &&
+  core_files <- list.files(file.path(pkg_root, "R"), pattern = "[.]R$",
+                           full.names = TRUE)
+  is_src <- file.exists(desc) && length(core_files) > 0L &&
     identical(unname(read.dcf(desc, "Package")[1L, 1L]), "frmtmb")
   skip_if(!is_src, "frmtmb's own sources are not beside the tests")
-  roots <- c(file.path(pkg_root, "R"),
-             file.path(pkg_root, "extensions", "frmtmb.sample", "R"))
-  files <- unlist(lapply(roots, function(d) {
-    if (dir.exists(d)) list.files(d, pattern = "[.]R$", full.names = TRUE)
-  }))
+  ext_dir <- file.path(pkg_root, "extensions", "frmtmb.sample", "R")
+  files <- c(core_files,
+             if (dir.exists(ext_dir)) {
+               list.files(ext_dir, pattern = "[.]R$", full.names = TRUE)
+             })
 
   # Counted two ways rather than walked: `all.names()` finds EVERY
   # mention of the helper anywhere in a file, and the structured pass
@@ -485,24 +496,17 @@ test_that("the two refusal helpers really are unconditional", {
   }))
   # and covr's wrapper removal does not launder a branch: the same
   # body in the shape covr writes still fails, as does a lone branch
-  expect_true(branchy(function(x) {
-    if (TRUE) {
-      covr:::count("k")
-      stop("a")
-    }
-  }))
-  expect_false(branchy(function(x) {
-    if (TRUE) {
-      covr:::count("k")
-      if (x) stop("a")
-    }
-  }))
-  expect_false(ar_refuses_always(function(x, ...) {
-    if (TRUE) {
-      covr:::count("k")
-      if (x) fit_no_draws("f")
-    }
-  }))
+  covr_shaped <- function(stmt) {
+    f <- function(x, ...) NULL
+    body(f) <- call("{", call("if", TRUE,
+                              call("{", as.call(list(ar_covr_count, "k")),
+                                   stmt)))
+    f
+  }
+  expect_true(branchy(covr_shaped(quote(stop("a")))))
+  expect_false(branchy(covr_shaped(quote(if (x) stop("a")))))
+  expect_false(ar_refuses_always(
+    covr_shaped(quote(if (x) fit_no_draws("f")))))
 })
 
 test_that("no registered S3 method has a `...` it never touches", {
