@@ -171,6 +171,20 @@ it names the exact version rather than a date that has to be looked up.
   that depends on another extension must have that sibling installed
   from the checkout in its workflow and listed in `paths:`.
   `tests/testthat/test-ci-siblings.R` asserts both.
+- **You cannot `local_mocked_bindings()` a generic frmtmb or
+  frmtmb.sample binds to its owner.** 53 exported names, 25 in frmtmb
+  and 28 in frmtmb.sample, are ACTIVE bindings installed by
+  `frm_install_generics()`. Assigning to an active binding CALLS its
+  function with the value, and that function takes no argument, so the
+  mock dies with "unused argument" naming a quoted function. Mock the
+  METHOD instead, `log_lik.frmtmb_draws` rather than `log_lik`, and
+  know what that covers: the mock reaches the namespace binding and the
+  package's own method table, never the owner's, so with the owner
+  loaded only a caller inside the package's namespace dispatches to it.
+  This is a rule and not a guard on purpose: a guard would have to grep
+  test sources for 53 names and would fire on a correct test that mocks
+  a same-named local, while this failure is loud and one run away.
+
 - **The robust dpar accessors are public.** A density needing a
   probability near 0 or 1 uses `dpar_log()`, `dpar_log1m()`,
   `dpar_log_complement()` or `dpar_complement()`. Do not reimplement the

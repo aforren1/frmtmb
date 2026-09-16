@@ -1,0 +1,27 @@
+== positional-argument agreement with brms, all 28 ==
+position 1 is the object. A row is listed when the first disagreeing
+position is one a caller can actually pass positionally, that is, before
+brms's own `...`.
+
+generic              pos  brms's method      frmtmb.sample's   
+as.mcmc              2    pars               combine_chains    
+log_lik              2    newdata            ndraws            
+mcmc_plot            2    pars               type              
+posterior_epred      3    re_formula         resp              
+posterior_interval   2    pars               prob              
+posterior_linpred    4    re_formula         resp              
+posterior_predict    3    re_formula         resp              
+pp_mixture           2    newdata            summary           
+predictive_error     2    newdata            resp              
+psis                 2    newdata            ndraws            
+
+disagree at some positional slot:  10    agree as far as both go:  18    no brms method to compare:  0 
+
+== the one that is a silent wrong answer, not an error ==
+brms's idiom posterior_epred(fit, newdata, NA) means re_formula = NA,
+which drops the random effects. Here position 3 is `resp`.
+  posterior_epred(ds, nd, NA)  (positional)  ERROR: Unknown response: 'NA'. Available: y
+  posterior_epred(ds, nd, re_formula = NA)   [0.528078 0.509317 0.764274 0.712873 0.982558]
+  posterior_epred(ds, nd)  (with the REs)    [1.358931 0.707125 1.289877 1.519438 0.689470]
+  re_formula = NA differs from the default, as it should:  TRUE 
+DONE

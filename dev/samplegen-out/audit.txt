@@ -1,0 +1,172 @@
+<environment: namespace:frmtmb.sample>
+installed packages scanned        407
+candidate exporters                bayesplot, bbmle, bridgesampling, brms, coda, gratia, loo, posterior, rstan, rstantools 
+
+frmtmb.sample exports 54 S3 generics, defines 28 itself
+
+### per name: definers (generic formals), importers, brmsfit method
+
+as.mcmc   frmtmb.sample(x, ...)
+  defines:   coda(x, ...) 
+  imports:   brms<-coda 
+  brmsfit method in table of: coda 
+
+bayes_factor   frmtmb.sample(x, ...)
+  defines:   bridgesampling(x1, x2, log, ...) 
+  imports:   brms<-bridgesampling 
+  brmsfit method in table of: bridgesampling 
+
+bridge_sampler   frmtmb.sample(x, ...)
+  defines:   bridgesampling(samples, ...) 
+  imports:   brms<-bridgesampling 
+  brmsfit method in table of: bridgesampling 
+
+kfold   frmtmb.sample(x, ...)
+  defines:   loo(x, ...) 
+  imports:   brms<-loo 
+  brmsfit method in table of: loo 
+
+log_lik   frmtmb.sample(object, ...)
+  defines:   rstantools(object, ...) 
+  imports:   brms<-rstantools 
+  brmsfit method in table of: rstantools 
+
+log_posterior   frmtmb.sample(object, ...)
+  defines:   bayesplot(object, ...) 
+  imports:   brms<-bayesplot 
+  brmsfit method in table of: bayesplot 
+
+loo_moment_match   frmtmb.sample(x, ...)
+  defines:   loo(x, ...) 
+  imports:   brms<-loo  rstan<-loo 
+  brmsfit method in table of: loo 
+
+loo_subsample   frmtmb.sample(x, ...)
+  defines:   loo(x, ...) 
+  imports:   brms<-loo 
+  brmsfit method in table of: loo 
+
+mcmc_plot   frmtmb.sample(object, ...)
+  defines:   brms(object, ...) 
+  brmsfit method in table of: brms 
+
+neff_ratio   frmtmb.sample(object, ...)
+  defines:   bayesplot(object, ...) 
+  imports:   brms<-bayesplot 
+  brmsfit method in table of: bayesplot 
+
+nsamples   frmtmb.sample(object, ...)
+  defines:   rstantools(object, ...) 
+  imports:   brms<-rstantools 
+  brmsfit method in table of: rstantools 
+
+nuts_params   frmtmb.sample(object, ...)
+  defines:   bayesplot(object, ...) 
+  imports:   brms<-bayesplot 
+  brmsfit method in table of: bayesplot 
+
+parnames   frmtmb.sample(x, ...)
+  defines:   brms(x, ...) 
+  other:     bbmle(not a generic) 
+  brmsfit method in table of: brms 
+
+post_prob   frmtmb.sample(x, ...)
+  defines:   bridgesampling(x, ..., prior_prob, model_names) 
+  imports:   brms<-bridgesampling 
+  brmsfit method in table of: bridgesampling 
+
+posterior_epred   frmtmb.sample(object, ...)
+  defines:   rstantools(object, ...) 
+  imports:   brms<-rstantools 
+  brmsfit method in table of: rstantools 
+
+posterior_interval   frmtmb.sample(object, ...)
+  defines:   rstantools(object, ...) 
+  imports:   brms<-rstantools 
+  brmsfit method in table of: rstantools 
+
+posterior_linpred   frmtmb.sample(object, ...)
+  defines:   rstantools(object, transform, ...) 
+  imports:   brms<-rstantools 
+  brmsfit method in table of: rstantools 
+
+posterior_predict   frmtmb.sample(object, ...)
+  defines:   rstantools(object, ...) 
+  imports:   brms<-rstantools 
+  brmsfit method in table of: rstantools 
+
+posterior_samples   frmtmb.sample(x, ...)
+  defines:   brms(x, pars, ...)  gratia(model, ...) 
+  brmsfit method in table of: brms 
+
+pp_mixture   frmtmb.sample(x, ...)
+  defines:   brms(x, ...) 
+  brmsfit method in table of: brms 
+
+predictive_error   frmtmb.sample(object, ...)
+  defines:   rstantools(object, ...) 
+  imports:   brms<-rstantools 
+  brmsfit method in table of: rstantools 
+
+predictive_interval   frmtmb.sample(object, ...)
+  defines:   rstantools(object, ...) 
+  imports:   brms<-rstantools 
+  brmsfit method in table of: rstantools 
+
+psis   frmtmb.sample(log_ratios, ...)
+  defines:   loo(log_ratios, ...) 
+  imports:   brms<-loo 
+  brmsfit method in table of: loo 
+
+reloo   frmtmb.sample(x, ...)
+  defines:   brms(x, ...) 
+  brmsfit method in table of: brms 
+
+restructure   frmtmb.sample(x, ...)
+  defines:   brms(x, ...) 
+  brmsfit method in table of: brms 
+
+rhat   frmtmb.sample(object, ...)
+  defines:   bayesplot(object, ...)  posterior(x, ...) 
+  imports:   brms<-posterior 
+  brmsfit method in table of: posterior 
+
+stancode   frmtmb.sample(object, ...)
+  defines:   brms(object, ...) 
+  brmsfit method in table of: brms 
+
+standata   frmtmb.sample(object, ...)
+  defines:   brms(object, ...) 
+  brmsfit method in table of: brms 
+
+### frmtmb.sample's own S3method directives on these names
+  as.mcmc              (own) coda
+  bayes_factor         (own) bridgesampling
+  bridge_sampler       (own) bridgesampling
+  kfold                (own) loo
+  log_lik              (own) rstantools
+  log_posterior        bayesplot (own)
+  loo_moment_match     loo (own)
+  loo_subsample        loo (own)
+  mcmc_plot            brms (own)
+  neff_ratio           bayesplot (own)
+  nsamples             (own) rstantools
+  nuts_params          bayesplot (own)
+  parnames             brms (own)
+  post_prob            bridgesampling (own)
+  posterior_epred      (own) rstantools
+  posterior_interval   (own) rstantools
+  posterior_linpred    (own) rstantools
+  posterior_predict    (own) rstantools
+  posterior_samples    brms (own)
+  pp_mixture           brms (own)
+  predictive_error     (own) rstantools
+  predictive_interval  (own) rstantools
+  psis                 loo (own)
+  reloo                brms (own)
+  restructure          brms (own)
+  rhat                 bayesplot (own)
+  stancode             brms (own)
+  standata             brms (own)
+
+DONE

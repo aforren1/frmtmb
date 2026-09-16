@@ -1,0 +1,184 @@
+== gratia posterior_samples methods ==
+posterior_samples.default posterior_samples.gam posterior_samples.scam 
+gratia version:  0.11.2 
+gratia exports posterior_samples:  TRUE 
+
+== bbmle parnames ==
+is a function:  TRUE   body has UseMethod:  FALSE 
+bbmle parnames formals:  (obj) 
+bbmle also has parnames<- :  TRUE 
+
+== per name: brms's GENERIC (as brms sees it), brms's brmsfit METHOD, each definer's generic, frmtmb.sample's now ==
+name                 what                                                 formals
+-- as.mcmc 
+   brms's own as.mcmc() comes from coda               (x, ...)
+   brmsfit method in coda's table, from brms          (x, pars = NA, fixed = FALSE, combine_chains = FALSE,      inc_warmup = FALSE, ...)
+   DEFINED by coda (generic)                          (x, ...)
+   frmtmb.sample FIX generic                          (x, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (x, combine_chains = FALSE, ...)
+-- bayes_factor 
+   brms's own bayes_factor() comes from bridgesampling (x1, x2, log = FALSE, ...)
+   brmsfit method in bridgesampling's table, from brms (x1, x2, log = FALSE, ...)
+   DEFINED by bridgesampling (generic)                (x1, x2, log = FALSE, ...)
+   frmtmb.sample FIX generic                          (x1, x2, log = FALSE, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (x1, x2, log = FALSE, ...)
+-- bridge_sampler 
+   brms's own bridge_sampler() comes from bridgesampling (samples, ...)
+   brmsfit method in bridgesampling's table, from brms (samples, recompile = FALSE, ...)
+   DEFINED by bridgesampling (generic)                (samples, ...)
+   frmtmb.sample FIX generic                          (samples, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (samples, ...)
+-- kfold 
+   brms's own kfold() comes from loo                  (x, ...)
+   brmsfit method in loo's table, from brms           (x, ..., K = 10, Ksub = NULL, folds = NULL, group = NULL,      joint = FALSE, compare = TRUE, resp = NULL, model_names = NULL,      save_fits = FALSE, recompile = NULL, future_args = list())
+   DEFINED by loo (generic)                           (x, ...)
+   frmtmb.sample FIX generic                          (x, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (x, ...)
+-- log_lik 
+   brms's own log_lik() comes from rstantools         (object, ...)
+   brmsfit method in rstantools's table, from brms    (object, newdata = NULL, re_formula = NULL, resp = NULL,      ndraws = NULL, draw_ids = NULL, pointwise = FALSE, combine = TRUE,      add_point_estimate = FALSE, cores = NULL, ...)
+   DEFINED by rstantools (generic)                    (object, ...)
+   frmtmb.sample FIX generic                          (object, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (object, ndraws = NULL, resp = NULL, ...)
+-- log_posterior 
+   brms's own log_posterior() comes from bayesplot    (object, ...)
+   brmsfit method in bayesplot's table, from brms     (object, ...)
+   DEFINED by bayesplot (generic)                     (object, ...)
+   frmtmb.sample FIX generic                          (object, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (object, ...)
+-- loo_moment_match 
+   brms's own loo_moment_match() comes from loo       (x, ...)
+   brmsfit method in loo's table, from brms           (x, loo = NULL, k_threshold = 0.7, newdata = NULL, resp = NULL,      check = TRUE, recompile = FALSE, ...)
+   DEFINED by loo (generic)                           (x, ...)
+   frmtmb.sample FIX generic                          (x, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (x, ...)
+-- loo_subsample 
+   brms's own loo_subsample() comes from loo          (x, ...)
+   brmsfit method in loo's table, from brms           (x, ..., compare = TRUE, resp = NULL, model_names = NULL)
+   DEFINED by loo (generic)                           (x, ...)
+   frmtmb.sample FIX generic                          (x, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (x, ...)
+-- mcmc_plot 
+   brms's own mcmc_plot() comes from brms             (object, ...)
+   brmsfit method in brms's table, from brms          (object, pars = NA, type = "intervals", variable = NULL,      regex = FALSE, fixed = FALSE, ...)
+   DEFINED by brms (generic)                          (object, ...)
+   frmtmb.sample FIX generic                          (object, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (object, type = "intervals", variable = NULL, ...)
+-- neff_ratio 
+   brms's own neff_ratio() comes from bayesplot       (object, ...)
+   brmsfit method in bayesplot's table, from brms     (object, pars = NULL, ...)
+   DEFINED by bayesplot (generic)                     (object, ...)
+   frmtmb.sample FIX generic                          (object, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (object, ...)
+-- nsamples 
+   brms's own nsamples() comes from rstantools        (object, ...)
+   brmsfit method in rstantools's table, from brms    (object, subset = NULL, incl_warmup = FALSE, ...)
+   DEFINED by rstantools (generic)                    (object, ...)
+   frmtmb.sample FIX generic                          (object, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (object, ...)
+-- nuts_params 
+   brms's own nuts_params() comes from bayesplot      (object, ...)
+   brmsfit method in bayesplot's table, from brms     (object, pars = NULL, ...)
+   DEFINED by bayesplot (generic)                     (object, ...)
+   frmtmb.sample FIX generic                          (object, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (object, ...)
+-- parnames 
+   brms's own parnames() comes from brms              (x, ...)
+   brmsfit method in brms's table, from brms          (x, ...)
+   DEFINED by brms (generic)                          (x, ...)
+   DEFINED by bbmle (NOT a generic)                   (obj)
+   frmtmb.sample FIX generic                          (x, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (x, ...)
+-- post_prob 
+   brms's own post_prob() comes from bridgesampling   (x, ..., prior_prob = NULL, model_names = NULL)
+   brmsfit method in bridgesampling's table, from brms (x, ..., prior_prob = NULL, model_names = NULL)
+   DEFINED by bridgesampling (generic)                (x, ..., prior_prob = NULL, model_names = NULL)
+   frmtmb.sample FIX generic                          (x, ..., prior_prob = NULL, model_names = NULL)
+   frmtmb.sample frmtmb_draws METHOD                  (x, ..., prior_prob = NULL, model_names = NULL)
+-- posterior_epred 
+   brms's own posterior_epred() comes from rstantools (object, ...)
+   brmsfit method in rstantools's table, from brms    (object, newdata = NULL, re_formula = NULL, re.form = NULL,      resp = NULL, dpar = NULL, nlpar = NULL, ndraws = NULL, draw_ids = NULL,      sort = FALSE, ...)
+   DEFINED by rstantools (generic)                    (object, ...)
+   frmtmb.sample FIX generic                          (object, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (object, newdata = NULL, resp = NULL, re_formula = arg_unset(),      re.form = arg_unset(), ndraws = NULL, ...)
+-- posterior_interval 
+   brms's own posterior_interval() comes from rstantools (object, ...)
+   brmsfit method in rstantools's table, from brms    (object, pars = NA, variable = NULL, prob = 0.95, ...)
+   DEFINED by rstantools (generic)                    (object, ...)
+   frmtmb.sample FIX generic                          (object, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (object, prob = 0.95, variable = NULL, ...)
+-- posterior_linpred 
+   brms's own posterior_linpred() comes from rstantools (object, transform = FALSE, ...)
+   brmsfit method in rstantools's table, from brms    (object, transform = FALSE, newdata = NULL, re_formula = NULL,      re.form = NULL, resp = NULL, dpar = NULL, nlpar = NULL, incl_thres = NULL,      ndraws = NULL, draw_ids = NULL, sort = FALSE, ...)
+   DEFINED by rstantools (generic)                    (object, transform = FALSE, ...)
+   frmtmb.sample FIX generic                          (object, transform = FALSE, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (object, transform = FALSE, newdata = NULL, resp = NULL,      re_formula = arg_unset(), re.form = arg_unset(), dpar = NULL,      ndraws = NULL, ...)
+-- posterior_predict 
+   brms's own posterior_predict() comes from rstantools (object, ...)
+   brmsfit method in rstantools's table, from brms    (object, newdata = NULL, re_formula = NULL, re.form = NULL,      transform = NULL, resp = NULL, negative_rt = FALSE, ndraws = NULL,      draw_ids = NULL, sort = FALSE, ntrys = 5, cores = NULL, ...)
+   DEFINED by rstantools (generic)                    (object, ...)
+   frmtmb.sample FIX generic                          (object, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (object, newdata = NULL, resp = NULL, re_formula = arg_unset(),      re.form = arg_unset(), ndraws = NULL, ...)
+-- posterior_samples 
+   brms's own posterior_samples() comes from brms     (x, pars = NA, ...)
+   brmsfit method in brms's table, from brms          (x, pars = NA, fixed = FALSE, add_chain = FALSE, subset = NULL,      as.matrix = FALSE, as.array = FALSE, ...)
+   DEFINED by brms (generic)                          (x, pars = NA, ...)
+   DEFINED by gratia (generic)                        (model, ...)
+   frmtmb.sample FIX generic                          (x, pars = NA, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (x, pars = NA, ...)
+-- pp_mixture 
+   brms's own pp_mixture() comes from brms            (x, ...)
+   brmsfit method in brms's table, from brms          (x, newdata = NULL, re_formula = NULL, resp = NULL,      ndraws = NULL, draw_ids = NULL, log = FALSE, summary = TRUE,      robust = FALSE, probs = c(0.025, 0.975), ...)
+   DEFINED by brms (generic)                          (x, ...)
+   frmtmb.sample FIX generic                          (x, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (x, summary = TRUE, ndraws = NULL, ...)
+-- predictive_error 
+   brms's own predictive_error() comes from rstantools (object, ...)
+   brmsfit method in rstantools's table, from brms    (object, newdata = NULL, re_formula = NULL, re.form = NULL,      method = "posterior_predict", resp = NULL, ndraws = NULL,      draw_ids = NULL, sort = FALSE, ...)
+   DEFINED by rstantools (generic)                    (object, ...)
+   frmtmb.sample FIX generic                          (object, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (object, resp = NULL, re_formula = arg_unset(), re.form = arg_unset(),      ndraws = NULL, ...)
+-- predictive_interval 
+   brms's own predictive_interval() comes from rstantools (object, ...)
+   brmsfit method in rstantools's table, from brms    (object, prob = 0.9, ...)
+   DEFINED by rstantools (generic)                    (object, ...)
+   frmtmb.sample FIX generic                          (object, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (object, prob = 0.9, newdata = NULL, resp = NULL, re_formula = arg_unset(),      re.form = arg_unset(), ndraws = NULL, ...)
+-- psis 
+   brms's own psis() comes from loo                   (log_ratios, ...)
+   brmsfit method in loo's table, from brms           (log_ratios, newdata = NULL, resp = NULL, model_name = NULL,      ...)
+   DEFINED by loo (generic)                           (log_ratios, ...)
+   frmtmb.sample FIX generic                          (log_ratios, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (log_ratios, ndraws = NULL, resp = NULL, ...)
+-- reloo 
+   brms's own reloo() comes from brms                 (x, ...)
+   brmsfit method in brms's table, from brms          (x, loo = NULL, k_threshold = 0.7, newdata = NULL, resp = NULL,      check = TRUE, recompile = NULL, future_args = list(), ...)
+   DEFINED by brms (generic)                          (x, ...)
+   frmtmb.sample FIX generic                          (x, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (x, ...)
+-- restructure 
+   brms's own restructure() comes from brms           (x, ...)
+   brmsfit method in brms's table, from brms          (x, ...)
+   DEFINED by brms (generic)                          (x, ...)
+   frmtmb.sample FIX generic                          (x, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (x, ...)
+-- rhat 
+   brms's own rhat() comes from posterior             (x, ...)
+   brmsfit method in posterior's table, from brms     (x, pars = NULL, ...)
+   DEFINED by bayesplot (generic)                     (object, ...)
+   DEFINED by posterior (generic)                     (x, ...)
+   frmtmb.sample FIX generic                          (x, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (x, ...)
+-- stancode 
+   brms's own stancode() comes from brms              (object, ...)
+   brmsfit method in brms's table, from brms          (object, version = TRUE, regenerate = NULL, threads = NULL,      backend = NULL, ...)
+   DEFINED by brms (generic)                          (object, ...)
+   frmtmb.sample FIX generic                          (object, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (object, ...)
+-- standata 
+   brms's own standata() comes from brms              (object, ...)
+   brmsfit method in brms's table, from brms          (object, newdata = NULL, re_formula = NULL, newdata2 = NULL,      new_objects = NULL, incl_autocor = TRUE, ...)
+   DEFINED by brms (generic)                          (object, ...)
+   frmtmb.sample FIX generic                          (object, ...)
+   frmtmb.sample frmtmb_draws METHOD                  (object, ...)
+DONE

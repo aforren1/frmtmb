@@ -1,0 +1,26 @@
+== 1. the mechanism, on a throwaway environment ==
+get:      OWNER  binding calls so far 1
+assign:   unused argument (base::quote(function (a) 
+a))  binding calls now 1
+assign to a NO-ARG active binding: unused argument (base::quote(1))
+  (an assignment CALLS the binding function with the value; a  function of no arguments therefore errors)
+
+== 2. the size of the surface ==
+frmtmb: 25 active bindings
+    as_draws as_draws_array as_draws_df as_draws_list as_draws_matrix as_draws_rvars bayes_R2 conditional_effects expose_functions hypothesis loo LOO loo_compare nchains ndraws ngrps niterations nvariables posterior_summary pp_check prior_summary refit variables waic WAIC 
+frmtmb.sample: 28 active bindings
+    as.mcmc bayes_factor bridge_sampler kfold log_lik log_posterior loo_moment_match loo_subsample mcmc_plot neff_ratio nsamples nuts_params parnames post_prob posterior_epred posterior_interval posterior_linpred posterior_predict posterior_samples pp_mixture predictive_error predictive_interval psis reloo restructure rhat stancode standata 
+
+== 3. the old mock spelling, seen failing ==
+local_mocked_bindings(log_lik = ) on the FIX build:  unused argument (base::quote(function (x, ...) 
+1)) 
+
+== 4. the new spelling: is the mocked METHOD what runs? ==
+log_lik.frmtmb_draws exists in the namespace:  TRUE 
+log_lik.frmtmb_draws exists in this table:     TRUE 
+the namespace copy and the table copy are the same object:  TRUE 
+mocked method, called from inside the namespace:  MOCK RAN 
+mocked method, called from the GLOBAL environment:  MOCK RAN 
+  (the caller-environment leg is what makes the mock work, so a  mock of this shape only covers callers in the same namespace)
+DONE
+Ran 5/5 deferred expressions

@@ -1,0 +1,77 @@
+== a) the variable names ==
+variables(ds)        :  Intercept x sigma_Intercept b[1] b[2] b[3] b[4] b[5] b[6] theta_1 lp__ 
+names(rhat(ds))      :  beta[1] beta[2] betad b[1] b[2] b[3] b[4] b[5] b[6] theta lp__ 
+names(neff_ratio(ds)):  beta[1] beta[2] betad b[1] b[2] b[3] b[4] b[5] b[6] theta lp__ 
+colnames(as.matrix(ds)):  Intercept x sigma_Intercept b[1] b[2] b[3] b[4] b[5] b[6] theta_1 lp__ 
+in rhat() but not variables():  beta[1] beta[2] betad theta 
+in variables() but not rhat():  Intercept x sigma_Intercept theta_1 
+
+== b) every draws method whose body reaches bayesplot ==
+  log_posterior.frmtmb_draws: {     draws_bayesplot_ns("log_posterior()")$log_posterior(object$stanfit,          ...) }
+  mcmc_plot.frmtmb_draws: {     fun <- draws_bayesplot_fun(paste0("mcmc_", type), "mcmc_plot(type =)")     a <- as.array(object)     keep <- if (i
+  neff_ratio.frmtmb_draws: {     draws_bayesplot_ns("neff_ratio()")$neff_ratio(object$stanfit,          ...) }
+  nuts_params.frmtmb_draws: {     draws_bayesplot_ns("nuts_params()")$nuts_params(object$stanfit,          ...) }
+  rhat.frmtmb_draws: {     draws_bayesplot_ns("rhat()")$rhat(x$stanfit, ...) }
+
+== brms's own diagnostics, for the same names ==
+-- brms's neff_ratio.brmsfit:
+{
+    contains_draws(object)
+    draws <- as_draws_array(object, variable = pars, ...)
+    tmp <- posterior::summarise_draws(draws, ess_bulk = posterior::ess_bulk, 
+        ess_tail = posterior::ess_tail)
+    ess <- matrixStats::rowMins(cbind(tmp$ess_bulk, tmp$ess_tail))
+    names(ess) <- tmp$variable
+    ess/ndraws(draws)
+} 
+-- bayesplot's neff_ratio.stanfit:
+{
+    suggested_package("rstan")
+    s <- if (!is.null(pars)) {
+        rstan::summary(object, pars = pars, ...)
+    }
+    else {
+        rstan::summary(object, ...)
+    }
+    tss <- nrow(as.matrix(object, pars = "lp__"))
+    ratio <- s$summary[, "n_eff"]/tss
+    validate_neff_ratio(ratio)
+} 
+-- brms's nuts_params.brmsfit:
+{
+    contains_draws(object)
+    bayesplot::nuts_params(object$fit, pars = pars, ...)
+} 
+-- bayesplot's nuts_params.stanfit:
+{
+    suggested_package("rstan")
+    np <- rstan::get_sampler_params(object, inc_warmup = inc_warmup)
+    nuts_params.list(np, pars = pars, ...)
+} 
+-- brms's log_posterior.brmsfit:
+{
+    contains_draws(object)
+    bayesplot::log_posterior(object$fit, ...)
+} 
+-- bayesplot's log_posterior.stanfit:
+{
+    lp <- rstan::get_logposterior(object, inc_warmup = inc_warmup, 
+        ...)
+    lp <- lapply(lp, as.array)
+    lp <- set_names(reshape2::melt(lp), c("Iteration", "Value", 
+        "Chain"))
+    validate_df_classes(lp[, c("Chain", "Iteration", "Value")], 
+        c("integer", "integer", "numeric"))
+} 
+
+== neff_ratio numbers ==
+variable       neff_ratio(ds) posterior bulk   rel.diff
+b[1]               0.28588095     0.24788810  1.533e-01
+b[2]               0.41789470     0.29581769  4.127e-01
+b[3]               0.41717875     0.29958122  3.925e-01
+b[4]               0.33033134     0.27561938  1.985e-01
+b[5]               0.38534959     0.31367754  2.285e-01
+b[6]               0.33663946     0.26107820  2.894e-01
+lp__               0.22158448     0.22394504  1.054e-02
+max relative difference:  0.412677 
+DONE

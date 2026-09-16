@@ -1,0 +1,53 @@
+== draws-side output, BASE against FIX, dev/sgrev-drawsout.R ==
+46 calls on one cached frmtmb_draws (4 chains x 500), seed 20260915 before each
+reference arm: BASE, frmtmb.sample alone
+
+CONTROL, the reference arm run twice: 0 of 46 differ
+deterministic calls: 46 of 46
+
+BASE-S   differs on  0 of 46 calls
+BASE-T   differs on  3 of 46 calls
+    rhat(val,printed) 
+      err  base=[] arm=[unimplemented type 'list' in 'greater'
+]
+    parnames(warn) 
+      warn base=[] arm=['parnames' is deprecated. Please use 'variables' instead.]
+    posterior_samples(warn) 
+      warn base=[] arm=[Method 'posterior_samples' is deprecated. Please see ?as_draws for recommended alternatives.]
+BASE-P   differs on  0 of 46 calls
+BASE-Q   differs on  2 of 46 calls
+    rhat(val,printed) 
+      err  base=[] arm=[unimplemented type 'list' in 'greater'
+]
+    posterior_samples(val,printed) 
+      err  base=[posterior_samples() is the deprecated brms spelling. Use as_draws(x) for a posterior draws_matrix, a] arm=[Don't know how to sample from the posterior of <frmtmb_draws>FALSE]
+FIX-N    differs on  0 of 46 calls
+FIX-S    differs on  2 of 46 calls
+    parnames(warn) 
+      warn base=[] arm=['parnames' is deprecated. Please use 'variables' instead.]
+    posterior_samples(warn) 
+      warn base=[] arm=[Method 'posterior_samples' is deprecated. Please see ?as_draws for recommended alternatives.]
+FIX-T    differs on  2 of 46 calls
+    parnames(warn) 
+      warn base=[] arm=['parnames' is deprecated. Please use 'variables' instead.]
+    posterior_samples(warn) 
+      warn base=[] arm=[Method 'posterior_samples' is deprecated. Please see ?as_draws for recommended alternatives.]
+FIX-P    differs on  0 of 46 calls
+FIX-Q    differs on  0 of 46 calls
+
+-- the reference arm's own errors, for context --
+  bayes_factor           bayes_factor() is not available for frmtmb draws: it is a ratio of the marginal likelihoods bri
+  bridge_sampler         bridge_sampler() is not available for frmtmb draws. A marginal likelihood is an integral of the
+  post_prob              post_prob() is not available for frmtmb draws: a posterior model probability is normalized marg
+  kfold                  kfold() is not implemented for frmtmb draws: K refits of the sampler are exactly the refit mach
+  loo_moment_match       loo_moment_match() is not implemented for frmtmb draws: it moment-matches the posterior toward 
+  loo_subsample          loo_subsample() is not implemented for frmtmb draws: its point is a cheap approximation for mod
+  nsamples               nsamples() is the deprecated brms spelling. Use ndraws(x) for the pooled draw count, niteration
+  parnames               parnames() is the deprecated brms spelling. Use variables(x), which lists the same names in the
+  posterior_samples      posterior_samples() is the deprecated brms spelling. Use as_draws(x) for a posterior draws_matr
+  pp_mixture             mixture_probs() needs a mixture() family fit
+  reloo                  reloo() is not implemented for frmtmb draws: it re-runs the sampler once per observation with a
+  restructure            restructure() is brms's upgrade path for objects saved by an older brms; frmtmb has no such con
+  stancode               stancode() has no meaning for frmtmb: there is no Stan program. The model is an R closure built
+  standata               standata() has no meaning for frmtmb: nothing is exported to a Stan data list. The assembled fr
+DONE

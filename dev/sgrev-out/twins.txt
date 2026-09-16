@@ -1,0 +1,11 @@
+== rule 3: every frmtmb_draws method in EVERY owner's table ==
+  (name, owner) pairs checked:  30    missing twins:  0 
+  own table has all 28:  28  of 28
+
+== rule 2: formals equal the FIRST owner's, brms deciding ==
+  generics whose formals differ from their owner's:  0 
+  and the METHOD carries the generic's formals: 0  missing
+
+== rule 1: bare UseMethod on the FIX build with no owner ==
+  (checked on BASE in dev/sgrev-names.R: 0 of 28 carry work)
+DONE

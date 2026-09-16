@@ -1,0 +1,40 @@
+== 1. what is exported ==
+  frm_install_generics   exported: TRUE  exists in namespace: TRUE
+  frm_bind_generic       exported: FALSE exists in namespace: TRUE
+  frm_adopt_target       exported: FALSE exists in namespace: TRUE
+  frm_is_generic         exported: FALSE exists in namespace: TRUE
+  frm_generic_owners     exported: FALSE exists in namespace: TRUE
+  frmtmb.sample re-exports it:  FALSE 
+  reachable as frmtmb::frm_install_generics:  TRUE 
+  formals:  function (pkgname = "frmtmb", owners = frm_generic_owners)  NULL 
+
+== 2. the Rd page, RENDERED, not read from source ==
+  The borrowed-generic seam                      present: TRUE
+  frm_install_generics(pkgname, owners)          present: TRUE
+  S3method(pkg::generic, class)                  present: TRUE
+  bare `UseMethod()`                             present: FALSE
+  Call it FIRST in the extension's own           present: TRUE
+  frm_install_generics                           present: TRUE
+  the page lists frm_bind_generic (it should NOT):  FALSE 
+  stray percent signs in the section (Rd comment hazard):  0 
+  usage/alias block has frm_install_generics:  TRUE 
+
+--- the rendered section ---
+ 
+
+== 3. the new export called on a SEALED namespace ==
+  frm_install_generics("stats", list(sd = "stats")):  cannot remove bindings from a locked environment 
+  a package that is not loaded:  there is no package called 'nosuchpkg' 
+  a name frmtmb does not have, owner without it:   
+  after that call, is zzz_not_a_generic bound in frmtmb?  FALSE 
+
+== 4. bbmle's non-generic parnames ==
+  search:  .GlobalEnv package:bbmle package:stats4 package:frmtmb.sample 
+  parnames from globalenv resolves to:  bbmle 
+  bbmle::parnames still reachable with :::  TRUE  formals  function (obj)  NULL 
+  bbmle::parnames(o) works:  yes 
+NULL
+  plain parnames(o) (the masked call):  returned 
+  and bbmle's REPLACEMENT form, which :: cannot spell:  TRUE 
+  `parnames<-`(x, ...) from the global environment:  assigned 
+DONE

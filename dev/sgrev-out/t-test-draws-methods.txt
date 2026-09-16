@@ -1,0 +1,10 @@
+libs:  C:/Users/adf44/source/r/sgrev-lib 
+frmtmb.sample from: C:/Users/adf44/source/r/sgrev-lib
+frmtmb from:  C:/Users/adf44/source/r/sgrev-lib 
+FILE    extensions/frmtmb.sample/tests/testthat/test-draws-methods.R 
+BLOCKS  19 
+PASS    101 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+DONE

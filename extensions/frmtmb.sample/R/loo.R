@@ -253,9 +253,11 @@ draws_row_loglik <- function(fit, resp) {
 #' }
 #' @export
 log_lik <- function(object, ...) {
-  # own generic, for the reason pp_check() and as_draws() have one: the
-  # packages that define this name (rstantools, brms) stay out of the
-  # dependency list, and log_lik(ds) has to work without them
+  # A fallback, not the generic a user normally reaches. rstantools owns
+  # this name and stays out of Imports, so log_lik(ds) needs a generic
+  # when it is absent; while it is loaded, the binding .onLoad installs
+  # hands back rstantools' generic instead (R/generic-owners.R). Nothing
+  # else may go in this body: whenever rstantools is loaded it never runs.
   UseMethod("log_lik")
 }
 
@@ -626,7 +628,9 @@ bayes_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
 #'   the bridge-sampling estimator needs a normalized
 #'   log-posterior evaluator that the RTMB tape does not expose.
 #'
-#' @param x,... Ignored; these methods always stop.
+#' @param x,x1,x2,samples,log,prior_prob,model_names,... Ignored; these
+#'   methods always stop. The names are the formals of each generic's
+#'   owner, loo or bridgesampling, which a method must carry.
 #' @return These functions never return; they signal an error.
 #' @examples
 #' \donttest{
@@ -715,12 +719,12 @@ kfold.frmtmb_draws <- function(x, ...) {
 
 #' @rdname frmtmb-loo-refusals
 #' @export
-bridge_sampler <- function(x, ...) UseMethod("bridge_sampler")
+bridge_sampler <- function(samples, ...) UseMethod("bridge_sampler")
 
 #' @rdname frmtmb-loo-refusals
 #' @exportS3Method bridgesampling::bridge_sampler
 #' @export
-bridge_sampler.frmtmb_draws <- function(x, ...) {
+bridge_sampler.frmtmb_draws <- function(samples, ...) {
   stop("bridge_sampler() is not available for frmtmb draws. A marginal ",
        "likelihood is an integral of the likelihood against the PRIOR, ",
        "so it does not exist at all under prior = \"flat\"; and even ",
@@ -732,12 +736,14 @@ bridge_sampler.frmtmb_draws <- function(x, ...) {
 
 #' @rdname frmtmb-loo-refusals
 #' @export
-bayes_factor <- function(x, ...) UseMethod("bayes_factor")
+bayes_factor <- function(x1, x2, log = FALSE, ...) {
+  UseMethod("bayes_factor")
+}
 
 #' @rdname frmtmb-loo-refusals
 #' @exportS3Method bridgesampling::bayes_factor
 #' @export
-bayes_factor.frmtmb_draws <- function(x, ...) {
+bayes_factor.frmtmb_draws <- function(x1, x2, log = FALSE, ...) {
   stop("bayes_factor() is not available for frmtmb draws: it is a ",
        "ratio of the marginal likelihoods bridge_sampler() would have ",
        "to estimate, and those are undefined under prior = \"flat\" ",
@@ -748,12 +754,15 @@ bayes_factor.frmtmb_draws <- function(x, ...) {
 
 #' @rdname frmtmb-loo-refusals
 #' @export
-post_prob <- function(x, ...) UseMethod("post_prob")
+post_prob <- function(x, ..., prior_prob = NULL, model_names = NULL) {
+  UseMethod("post_prob")
+}
 
 #' @rdname frmtmb-loo-refusals
 #' @exportS3Method bridgesampling::post_prob
 #' @export
-post_prob.frmtmb_draws <- function(x, ...) {
+post_prob.frmtmb_draws <- function(x, ..., prior_prob = NULL,
+                                   model_names = NULL) {
   stop("post_prob() is not available for frmtmb draws: a posterior ",
        "model probability is normalized marginal likelihoods, which ",
        "bridge_sampler() would have to estimate and cannot here. ",

@@ -1,0 +1,15 @@
+MODE Q 
+SAMPLE_FROM C:/Users/adf44/source/r/rellib-r3/frmtmb.sample 
+CORE_FROM   C:/Users/adf44/source/r/rellib-r3/frmtmb 
+BRMSFIT_LOST 28 of 28
+BRMSFIT_LOST_LIST as.mcmc,bayes_factor,bridge_sampler,kfold,log_lik,log_posterior,loo_moment_match,loo_subsample,mcmc_plot,neff_ratio,nsamples,nuts_params,parnames,post_prob,posterior_epred,posterior_interval,posterior_linpred,posterior_predict,posterior_samples,pp_mixture,predictive_error,predictive_interval,psis,reloo,restructure,rhat,stancode,standata 
+BRMSFIT_SILENT_DEFAULT as.mcmc,bayes_factor,loo_moment_match,post_prob,posterior_interval,posterior_samples,predictive_error,predictive_interval,psis 
+DRAWS_NOT_OURS 1 of 28
+DRAWS_NOT_OURS_LIST posterior_samples 
+DRAWS_FOREIGN_DEFAULT posterior_samples<-gratia.default 
+OWNER_METHODS_LOST 0 of 41
+OWNER_METHODS_LOST_LIST  
+RESOLVES bayesplot=4 bridgesampling=3 coda=1 frmtmb.sample=7 gratia=1 loo=4 rstantools=8 
+ACTIVE_NS FALSE 
+ACTIVE_ATTACHED FALSE 
+CHILDOK

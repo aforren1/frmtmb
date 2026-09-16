@@ -1,0 +1,159 @@
+frmtmb.sample from: C:/Users/adf44/source/r/rellib-r3/frmtmb.sample  frmtmb from: C:/Users/adf44/source/r/rellib-r3/frmtmb
+
+FILE    extensions/frmtmb.sample/tests/testthat/test-generic-collision.R 
+BLOCKS  13 
+ASSERT  58 
+PASS    41 
+FAIL    17 
+ERROR   0 
+SKIP    0 
+WARN    0 
+BAD     the package installs the owner table this file tests 
+         Expected `get0(...)` to be identical to `owner_table`.
+         Differences:
+         `actual` is NULL
+         `expected` is a list
+          
+BAD     attaching frmtmb.sample after brms loses no brms method 
+         Expected `parse_field(out, "LOSTBRMS")` to equal `character()`.
+         Differences:
+              actual             | expected                
+          [1] "as.mcmc"          -                         
+          [2] "bayes_factor"     -                         
+          [3] "bridge_sampler"   -                         
+          [4] "kfold"            -                         
+          [5] "log_lik"          -                         
+          [6] "log_posterior"    -                         
+          [7] "loo_moment_match" -                         
+          [8] "loo_subsample"    -                         
+          [9] "mcmc_plot"        -                         
+         [10] "neff_ratio"       -                         
+          ... ...                  ...      and 18 more ...
+          
+BAD     attaching frmtmb.sample before brms loses no method either way 
+         Expected `parse_field(out, "LOSTDRAWS")` to equal `character()`.
+         Differences:
+         `actual`:   "rhat"
+         `expected`:       
+          
+BAD     brms loaded but never attached loses no brms method 
+         Expected `parse_field(out, "LOSTBRMS")` to equal `character()`.
+         Differences:
+              actual             | expected                
+          [1] "as.mcmc"          -                         
+          [2] "bayes_factor"     -                         
+          [3] "bridge_sampler"   -                         
+          [4] "kfold"            -                         
+          [5] "log_lik"          -                         
+          [6] "log_posterior"    -                         
+          [7] "loo_moment_match" -                         
+          [8] "loo_subsample"    -                         
+          [9] "mcmc_plot"        -                         
+         [10] "neff_ratio"       -                         
+          ... ...                  ...      and 18 more ...
+          
+BAD     a package importing frmtmb.sample does not lose brms methods 
+         Expected `parse_field(out, "IMPACTIVE")` to equal "TRUE".
+         Differences:
+         `actual`:   "FALSE"
+         `expected`: "TRUE" 
+          
+         Expected `parse_field(out, "LOSTBRMS")` to equal `character()`.
+         Differences:
+              actual             | expected                
+          [1] "as.mcmc"          -                         
+          [2] "bayes_factor"     -                         
+          [3] "bridge_sampler"   -                         
+          [4] "kfold"            -                         
+          [5] "log_lik"          -                         
+          [6] "log_posterior"    -                         
+          [7] "loo_moment_match" -                         
+          [8] "loo_subsample"    -                         
+          [9] "mcmc_plot"        -                         
+         [10] "neff_ratio"       -                         
+          ... ...                  ...      and 18 more ...
+          
+BAD     the repair survives detach and reattach in both packages 
+         Expected `parse_field(out, "LOSTDRAWS")` to equal `character()`.
+         Differences:
+         `actual`:   "rhat"
+         `expected`:       
+          
+BAD     an owner unloaded and reloaded does not leave a stale generic 
+         Expected `parse_field(out, "ENV")` to equal "loo".
+         Differences:
+         `actual`:   "frmtmb.sample"
+         `expected`: "loo"          
+          
+         Expected `parse_field(out, "STALE")` to equal "FALSE".
+         Differences:
+         `actual`:   "TRUE" 
+         `expected`: "FALSE"
+          
+BAD     every other owner's methods survive, in both orders 
+         Expected `parse_field(out, "OWNERLOST")` to equal `character()`.
+         Differences:
+              actual                         | expected                
+          [1] "as.mcmc.default"              -                         
+          [2] "as.mcmc.emmGrid"              -                         
+          [3] "as.mcmc.emm_list"             -                         
+          [4] "as.mcmc.mcmc.list"            -                         
+          [5] "bayes_factor.default"         -                         
+          [6] "bridge_sampler.CmdStanMCMC"   -                         
+          [7] "bridge_sampler.MCMC_refClass" -                         
+          [8] "bridge_sampler.matrix"        -                         
+          [9] "bridge_sampler.mcmc"          -                         
+         [10] "bridge_sampler.mcmc.list"     -                         
+          ... ...                              ...      and 31 more ...
+          
+         Expected `parse_field(out, "LOSTDRAWS")` to equal `character()`.
+         Differences:
+         `actual`:   "posterior_samples"
+         `expected`:                    
+          
+BAD     the bindings are ACTIVE, in this namespace and not frmtmb's 
+         Expected `parse_field(out, "NOTACTIVE")` to equal `character()`.
+         Differences:
+              actual             | expected                
+          [1] "as.mcmc"          -                         
+          [2] "bayes_factor"     -                         
+          [3] "bridge_sampler"   -                         
+          [4] "kfold"            -                         
+          [5] "log_lik"          -                         
+          [6] "log_posterior"    -                         
+          [7] "loo_moment_match" -                         
+          [8] "loo_subsample"    -                         
+          [9] "mcmc_plot"        -                         
+         [10] "neff_ratio"       -                         
+          ... ...                  ...      and 18 more ...
+          
+         Expected `parse_field(out, "ATT")` to equal "TRUE".
+         Differences:
+         `actual`:   "FALSE"
+         `expected`: "TRUE" 
+          
+BAD     each generic's formals are its first owner's 
+         Expected `differ` to equal `character()`.
+         Differences:
+             actual              | expected 
+         [1] "bayes_factor"      -          
+         [2] "bridge_sampler"    -          
+         [3] "post_prob"         -          
+         [4] "posterior_linpred" -          
+         [5] "posterior_samples" -          
+         [6] "rhat"              -          
+          
+BAD     every method on an owned name is in each owner's table 
+         Expected `missing_twins(m)` to equal `character()`.
+         Differences:
+             actual                                   | expected 
+         [1] "gratia::posterior_samples.frmtmb_draws" -          
+         [2] "posterior::rhat.frmtmb_draws"           -          
+          
+         Expected `drop` to have length 1.
+         Actual length: 0. 
+         Expected `missing_twins(m[-drop, , drop = FALSE])` to equal "posterior::rhat.frmtmb_draws".
+         Differences:
+         `actual`:                                 
+         `expected`: "posterior::rhat.frmtmb_draws"
+          

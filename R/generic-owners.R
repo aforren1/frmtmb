@@ -239,11 +239,32 @@ frm_bind_generic <- function(ns, gen, owners, fallback) {
 #' which is exactly where the fallback needs them, and there is still
 #' no lock to defeat.
 #'
+#' The table is an argument because an extension has the same defect
+#' for the generics IT defines, and must be repaired from its own
+#' `.onLoad`, the one moment ITS namespace is unsealed. One
+#' implementation with two callers rather than a copy per package, so
+#' that a repair to the binding reaches both. Exported on
+#' `?frmtmb-sampling-api`.
+#'
 #' @noRd
-frm_install_generics <- function(pkgname = "frmtmb") {
+frm_install_generics <- function(pkgname = "frmtmb",
+                                 owners = frm_generic_owners) {
+  # Refused rather than skipped: a malformed table would install
+  # nothing and say nothing, which is the defect back again.
+  ok <- is.list(owners) && length(owners) > 0L &&
+    !is.null(names(owners)) && all(nzchar(names(owners))) &&
+    all(vapply(owners, function(o) {
+      is.character(o) && length(o) >= 1L && !anyNA(o) && all(nzchar(o))
+    }, NA))
+  if (!ok) {
+    stop("frm_install_generics(owners =) must be a named list of ",
+         "non-empty character vectors: one entry per generic name, ",
+         "naming the packages that own it in the order to prefer",
+         call. = FALSE)
+  }
   ns <- asNamespace(pkgname)
   done <- character()
-  for (gen in names(frm_generic_owners)) {
+  for (gen in names(owners)) {
     # Idempotent. A second call must not capture the LIVE generic as
     # the fallback, which would pin whatever happened to be loaded.
     if (exists(gen, envir = ns, inherits = FALSE) &&
@@ -259,7 +280,7 @@ frm_install_generics <- function(pkgname = "frmtmb") {
     if (exists(gen, envir = ns, inherits = FALSE)) {
       rm(list = gen, envir = ns)
     }
-    frm_bind_generic(ns, gen, frm_generic_owners[[gen]], fb)
+    frm_bind_generic(ns, gen, owners[[gen]], fb)
     done <- c(done, gen)
   }
   invisible(done)

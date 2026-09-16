@@ -1,0 +1,13 @@
+frmtmb from: C:/Users/adf44/source/r/rellib-r3/frmtmb  version 0.56.0
+
+FILE    tests/testthat/test-generic-collision.R 
+BLOCKS  13 
+ASSERT  47 
+PASS    47 
+FAIL    0 
+ERROR   1 
+SKIP    0 
+WARN    0 
+SECS    19.8 
+BAD     frm_install_generics() takes a table and refuses a bad one 
+         Error in `frm_install_generics("frmtmb", owners = b)`: unused argument (owners = b) 

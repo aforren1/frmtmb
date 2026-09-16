@@ -1,0 +1,11 @@
+frmtmb from: C:/Users/adf44/source/r/samplegen-lib/frmtmb  version 0.55.2
+
+FILE    tests/testthat/test-bcm-binomial.R 
+BLOCKS  14 
+ASSERT  37 
+PASS    37 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
+SECS    6.3 

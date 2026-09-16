@@ -58,6 +58,7 @@
 \alias{find_linpred}
 \alias{arg_unset}
 \alias{re_form_arg}
+\alias{frm_install_generics}
 \title{Core internals for a sampling extension}
 \arguments{
 \item{frame}{An assembled model frame (\code{fit$frame}).}
@@ -263,6 +264,36 @@ the brms-named ones accept both. \code{arg_unset()} is the "not supplied"
 marker a formal defaults to when \code{NULL} and \code{NA} are both real
 settings and neither can double as unset; \code{re_form_arg()} resolves
 the pair, refusing rather than guessing when both are given.
+}
+
+\section{The borrowed-generic seam}{
+
+An extension that DEFINES a generic under a name another package
+owns breaks that package. \code{UseMethod()} reads the method table of
+the namespace where the generic it reached was defined, so the
+extension's generic, reached first on the search path, sends the
+owner's objects into a table with no method for them. Delayed
+registration with \code{S3method(pkg::generic, class)} does not prevent
+this: it puts the extension's method in the owner's table, and it
+does nothing about the extension's rival generic.
+
+\code{frm_install_generics(pkgname, owners)} is the repair frmtmb applies
+to itself. \code{owners} is a named list with one entry per generic name,
+each a character vector of the packages that own that name, in the
+order to prefer when more than one is loaded and none is attached.
+Each name becomes an active binding that returns the owner's generic
+while the owner is loaded, and the package's own generic while it is
+not. Call it FIRST in the extension's own \code{.onLoad()}, with the
+extension's \code{pkgname}: the binding can only be installed while the
+namespace is unsealed, which is during that call and at no later
+time.
+
+Three rules come with it. The extension's own generic must be a bare
+\code{UseMethod()}, because whenever the owner is loaded that generic is
+not the one that runs. Its formals must match the owner's. And every
+method must be registered twice, with \code{S3method(generic, class)} for
+the package's own table and \code{S3method(owner::generic, class)} for
+each owner's, or it is unreachable while that owner is loaded.
 }
 
 \examples{

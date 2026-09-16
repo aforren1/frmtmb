@@ -1,0 +1,8 @@
+rstantools loaded: TRUE   generic reached from globalenv is defined in: rstantools
+namespace binding changed by the mock:  TRUE 
+frmtmb.sample's method TABLE entry changed too:  TRUE 
+rstantools' table entry is the mock:  FALSE 
+called from globalenv:  attempt to set an attribute on NULL 
+called from inside the namespace:  MOCK RAN 
+DONE
+Ran 4/4 deferred expressions

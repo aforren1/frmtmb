@@ -37,9 +37,9 @@ restructure(x, ...)
 
 \method{restructure}{frmtmb_draws}(x, ...)
 
-posterior_samples(x, ...)
+posterior_samples(x, pars = NA, ...)
 
-\method{posterior_samples}{frmtmb_draws}(x, ...)
+\method{posterior_samples}{frmtmb_draws}(x, pars = NA, ...)
 
 nsamples(object, ...)
 
@@ -50,7 +50,7 @@ parnames(x, ...)
 \method{parnames}{frmtmb_draws}(x, ...)
 }
 \arguments{
-\item{object, x, ...}{Ignored; these functions always stop.}
+\item{object, x, pars, ...}{Ignored; these functions always stop.}
 }
 \value{
 These functions never return; they signal an error.

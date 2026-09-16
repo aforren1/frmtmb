@@ -1,0 +1,10 @@
+frmtmb.sample from: C:/Users/adf44/source/r/samplegen-lib/frmtmb.sample  frmtmb from: C:/Users/adf44/source/r/samplegen-lib/frmtmb
+
+FILE    extensions/frmtmb.sample/tests/testthat/test-scale.R 
+BLOCKS  1 
+ASSERT  1 
+PASS    1 
+FAIL    0 
+ERROR   0 
+SKIP    1 
+WARN    0 

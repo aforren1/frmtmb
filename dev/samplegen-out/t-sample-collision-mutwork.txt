@@ -1,0 +1,16 @@
+frmtmb.sample from: C:/Users/adf44/source/r/samplegen-mut-work-lib/frmtmb.sample  frmtmb from: C:/Users/adf44/source/r/samplegen-lib/frmtmb
+
+FILE    extensions/frmtmb.sample/tests/testthat/test-generic-collision.R 
+BLOCKS  13 
+ASSERT  58 
+PASS    57 
+FAIL    1 
+ERROR   0 
+SKIP    0 
+WARN    0 
+BAD     with no owner usable, it loads and its generics are bare 
+         Expected `parse_field(out, "WITHWORK")` to equal `character()`.
+         Differences:
+         `actual`:   "stancode"
+         `expected`:           
+          

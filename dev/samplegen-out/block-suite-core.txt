@@ -1,0 +1,151 @@
+```
+== suite: frmtmb core, FIX build, one process per file, NOT_CRAN and FRMTMB_BRMS_FIT_TESTS true ==
+test files with a result   136 of 136
+blocks                     1464
+assert                     10221
+pass                       10221
+fail                       0
+error                      0
+skip                       1
+warn                       2
+
+per file: blocks / assertions / fail / error / skip
+  test-aliased-grouping                       3    33   0   0   0
+  test-api-spellings                         11    36   0   0   0
+  test-autocor                               30   191   0   0   0
+  test-autoscale                              6    46   0   0   0
+  test-backlog                               11    35   0   0   0
+  test-bcm-bart                               3    12   0   0   0
+  test-bcm-binomial                          14    37   0   0   0
+  test-bcm-data-analysis                     15    46   0   0   0
+  test-bcm-esp                                4    17   0   0   0
+  test-bcm-gaussian                           7    23   0   0   0
+  test-bcm-gcm                                4    17   0   0   0
+  test-bcm-latent-mixtures                   13    52   0   0   0
+  test-bcm-model-selection                    9    29   0   0   0
+  test-bcm-mpt                                5    27   0   0   0
+  test-bcm-psychophysics                      4    28   0   0   0
+  test-bcm-retention                          6    32   0   0   0
+  test-bcm-signal-detection                   5    30   0   0   0
+  test-bcm-simple                             3    13   0   0   0
+  test-boot                                   7    44   0   0   0
+  test-bracket-access                         6    33   0   0   0
+  test-brms-agreement                        19   187   0   0   0
+  test-brms-likelihood                       36   405   0   0   0
+  test-brms-methods                          47   950   0   0   0
+  test-brms-port                              6    18   0   0   0
+  test-brms-priors                           12   103   0   0   0
+  test-car-spde                              23   135   0   0   0
+  test-case-studies                           9    30   0   0   0
+  test-ce-bands                              22   167   0   0   0
+  test-ce-facets                              6    92   0   0   0
+  test-cens-lccdf                             6    27   0   0   0
+  test-cens-trunc                            20    69   0   0   0
+  test-ci-siblings                            1    11   0   0   0
+  test-compat-register                       27   103   0   0   0
+  test-compat                                34   573   0   0   0
+  test-confint-anova                          9    35   0   0   0
+  test-core-boundary                          2     4   0   0   0
+  test-covstruct                              4     7   0   0   0
+  test-custom-family                         38   126   0   0   0
+  test-data2                                  8    30   0   0   0
+  test-dates                                  7    13   0   0   0
+  test-diagnostics-ux                        27   127   0   0   0
+  test-distributional                         6    28   0   0   0
+  test-dpar-eta-api                          14   123   0   0   0
+  test-dry-run                                2    23   0   0   0
+  test-edgecases                             17    60   0   0   0
+  test-effects                                9    54   0   0   0
+  test-famgaps                               21    99   0   0   0
+  test-families                              17   227   0   0   0
+  test-fit-end-hook                           4    18   0   0   0
+  test-frame                                  5    22   0   0   0
+  test-functional                             1     3   0   0   0
+  test-fuzz                                   1     1   0   0   1
+  test-generic-collision                     13    56   0   0   0
+  test-get-prior-route                        8    75   0   0   0
+  test-glmm-binomial                          2    10   0   0   0
+  test-glmm-gaussian                          4    17   0   0   0
+  test-glmm-poisson                           4    12   0   0   0
+  test-gp-multidim                            5    42   0   0   0
+  test-habit-prep                             3    16   0   0   0
+  test-id-kron                               11    58   0   0   0
+  test-importance                            38   226   0   0   0
+  test-influence-plot                         4    21   0   0   0
+  test-input-validation                       7    43   0   0   0
+  test-interop                                6    44   0   0   0
+  test-lkj                                   13   212   0   0   0
+  test-map                                    2     7   0   0   0
+  test-mean-fn                                1     4   0   0   0
+  test-message-uniqueness                     1     6   0   0   0
+  test-method-residue                        12    64   0   0   0
+  test-methods-audit                         10    57   0   0   0
+  test-methods                               11    59   0   0   0
+  test-mixture-start                          2     5   0   0   0
+  test-mm                                    27   116   0   0   0
+  test-mo-terms                               7    74   0   0   0
+  test-multinomial                            4    15   0   0   0
+  test-multiple-pooling                       3    33   0   0   0
+  test-multivariate                           6    23   0   0   0
+  test-mvn-mixture                            9   277   0   0   0
+  test-naming-collisions                      6    31   0   0   0
+  test-nl-body-vars                           6    23   0   0   0
+  test-nl-lexical                             7    31   0   0   0
+  test-nl-rtmb-scope                         15   103   0   0   0
+  test-nl                                    11    44   0   0   0
+  test-nlf                                   11    74   0   0   0
+  test-numerical-robustness                  37   679   0   0   0
+  test-open-issues                           13    43   0   0   0
+  test-ordinal-fitted                        13    87   0   0   0
+  test-ordinal                               11   109   0   0   0
+  test-osa-inference                          6    34   0   0   0
+  test-par-template                          11    51   0   0   0
+  test-parse                                 14    43   0   0   0
+  test-perf                                   2     3   0   0   0
+  test-pooled-anova                           6    64   0   0   0
+  test-portability                           13    91   0   0   0
+  test-predict-lp-basis                       5    30   0   0   0
+  test-predict-newdata                        6    12   0   0   0
+  test-prior-compat                          28   196   0   0   0
+  test-priors-autocor-classes                10    63   0   0   0
+  test-priors-bounds-grcov                   10    49   0   0   0
+  test-ps                                    12    71   0   0   0
+  test-quadrature-defects                     7    59   0   0   0
+  test-reml-nongaussian                       4     9   0   0   0
+  test-review-fixes                           6    17   0   0   0
+  test-review-v25                            13    60   0   0   0
+  test-review-v28                            13    73   0   0   0
+  test-review-v29                            18   136   0   0   0
+  test-rl-example                            14   102   0   0   0
+  test-sandwich                               9    57   0   0   0
+  test-scale-contract                        12    37   0   0   0
+  test-setprior                               5    27   0   0   0
+  test-simulate-density                      50   435   0   0   0
+  test-simulate-ergonomics                    9    50   0   0   0
+  test-smooth-population                      7    33   0   0   0
+  test-smooths                                8    27   0   0   0
+  test-sparsear1                              8    24   0   0   0
+  test-sparsex                                5    64   0   0   0
+  test-spectral                              21   113   0   0   0
+  test-structure                             28   135   0   0   0
+  test-sugar                                  8    38   0   0   0
+  test-tabular-inputs                         4     9   0   0   0
+  test-tmb-examples                          15    28   0   0   0
+  test-tre                                   18   101   0   0   0
+  test-trunc-postfit                          7    35   0   0   0
+  test-unpinned-seams                         4    28   0   0   0
+  test-v07                                    6    25   0   0   0
+  test-v11                                    7    22   0   0   0
+  test-v12                                    5    26   0   0   0
+  test-v14                                   14    81   0   0   0
+  test-v15                                    9    41   0   0   0
+  test-v16                                    3    24   0   0   0
+  test-v17                                    8    35   0   0   0
+  test-v18                                    4    27   0   0   0
+  test-v19                                    4    17   0   0   0
+  test-verbose                                9    40   0   0   0
+  test-vignette-wiener                        5    21   0   0   0
+  test-zi                                     5    11   0   0   0
+
+no file reported a failure or an error 
+```

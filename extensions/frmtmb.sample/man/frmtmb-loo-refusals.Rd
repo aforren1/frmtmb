@@ -34,20 +34,22 @@ kfold(x, ...)
 
 \method{kfold}{frmtmb_draws}(x, ...)
 
-bridge_sampler(x, ...)
+bridge_sampler(samples, ...)
 
-\method{bridge_sampler}{frmtmb_draws}(x, ...)
+\method{bridge_sampler}{frmtmb_draws}(samples, ...)
 
-bayes_factor(x, ...)
+bayes_factor(x1, x2, log = FALSE, ...)
 
-\method{bayes_factor}{frmtmb_draws}(x, ...)
+\method{bayes_factor}{frmtmb_draws}(x1, x2, log = FALSE, ...)
 
-post_prob(x, ...)
+post_prob(x, ..., prior_prob = NULL, model_names = NULL)
 
-\method{post_prob}{frmtmb_draws}(x, ...)
+\method{post_prob}{frmtmb_draws}(x, ..., prior_prob = NULL, model_names = NULL)
 }
 \arguments{
-\item{x, ...}{Ignored; these methods always stop.}
+\item{x, x1, x2, samples, log, prior_prob, model_names, ...}{Ignored; these
+methods always stop. The names are the formals of each generic's
+owner, loo or bridgesampling, which a method must carry.}
 }
 \value{
 These functions never return; they signal an error.

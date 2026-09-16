@@ -1,0 +1,24 @@
+```
+== the collision tests, seen failing, dev/samplegen-runtests*.R ==
+build                                        blocks assert  pass  fail error
+-- extensions/frmtmb.sample/tests/testthat/test-generic-collision.R
+BASE core + BASE sample (rellib-r3)              13     58    41    17     0
+    failing: the package installs the owner table this file tests 
+    failing: attaching frmtmb.sample after brms loses no brms method 
+    failing: attaching frmtmb.sample before brms loses no method either way 
+    failing: brms loaded but never attached loses no brms method 
+    failing: a package importing frmtmb.sample does not lose brms methods 
+    failing: the repair survives detach and reattach in both packages 
+    failing: an owner unloaded and reloaded does not leave a stale generic 
+    failing: every other owner's methods survive, in both orders 
+    failing: the bindings are ACTIVE, in this namespace and not frmtmb's 
+    failing: each generic's formals are its first owner's 
+    failing: every method on an owned name is in each owner's table 
+FIX, stancode() generic given work (mutant)      13     58    57     1     0
+    failing: with no owner usable, it loads and its generics are bare 
+FIX core + FIX sample                            13     58    58     0     0
+-- tests/testthat/test-generic-collision.R (core)
+BASE core (rellib-r3)                            13     47    47     0     1
+    failing: frm_install_generics() takes a table and refuses a bad one 
+FIX core                                         13     56    56     0     0
+```

@@ -1,0 +1,10 @@
+frmtmb.sample from: C:/Users/adf44/source/r/samplegen-lib/frmtmb.sample  frmtmb from: C:/Users/adf44/source/r/samplegen-lib/frmtmb
+
+FILE    extensions/frmtmb.sample/tests/testthat/test-compat-preflight.R 
+BLOCKS  16 
+ASSERT  81 
+PASS    81 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+WARN    0 
