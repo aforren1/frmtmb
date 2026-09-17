@@ -1,0 +1,9 @@
+arm Bbin libPaths:
+[1] "C:/Users/adf44/source/r/tmbstan121-lib/Bbin"   
+[2] "C:/Users/adf44/AppData/Local/R/win-library/4.6"
+[3] "C:/Program Files/R/R-4.6.1/library"            
+StanHeaders at install: 2.39.1 from C:/Users/adf44/AppData/Local/R/win-library/4.6/StanHeaders 
+package 'tmbstan' successfully unpacked and MD5 sums checked
+        Version Built                                                          
+tmbstan "1.2.1" "R 4.6.1; x86_64-w64-mingw32; 2026-09-15 21:09:47 UTC; windows"
+model.hpp lines: 568  log_prob_impl overloads: 2  patched custom_func(y): 2  UNPATCHED std_normal_lpdf<propto__>(y): 0 

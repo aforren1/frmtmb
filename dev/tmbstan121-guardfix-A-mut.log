@@ -1,0 +1,2 @@
+RESULT test-tmbstan-build-guard.R pass=22 fail=1 err=0 skip=0
+DETAIL test-tmbstan-build-guard.R [expectation_failure] a generated model.hpp with the unpatched overload is refused :: Expected `frmtmb.sample:::tmbstan_build_broken()` to be identical to `before`. Differences: `actual`:   TRUE  `expected`: FALSE 

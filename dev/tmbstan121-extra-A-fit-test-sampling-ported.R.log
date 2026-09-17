@@ -1,0 +1,2 @@
+No priors were used (flat improper priors on the outer parameters).
+RESULT test-sampling-ported.R pass=213 fail=0 err=0 skip=0

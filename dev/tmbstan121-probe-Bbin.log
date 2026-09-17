@@ -1,0 +1,31 @@
+ARM Bbin 
+VERSION tmbstan        1.2.1      C:/Users/adf44/source/r/tmbstan121-lib/Bbin
+VERSION rstan          2.32.7     C:/Users/adf44/AppData/Local/R/win-library/4.6
+VERSION StanHeaders    2.39.1     C:/Users/adf44/AppData/Local/R/win-library/4.6
+VERSION RcppParallel   6.2.1      C:/Users/adf44/AppData/Local/R/win-library/4.6
+VERSION BH             1.90.0.1   C:/Users/adf44/AppData/Local/R/win-library/4.6
+VERSION TMB            1.9.25     C:/Users/adf44/AppData/Local/R/win-library/4.6
+VERSION RTMB           1.9        C:/Users/adf44/AppData/Local/R/win-library/4.6
+VERSION RcppEigen      0.3.4.0.2  C:/Users/adf44/AppData/Local/R/win-library/4.6
+VERSION Rcpp           1.1.2      C:/Users/adf44/AppData/Local/R/win-library/4.6
+VERSION frmtmb         0.59.0     C:/Users/adf44/source/r/tmbstan121-lib/common
+VERSION frmtmb.sample  0.7.0      C:/Users/adf44/source/r/tmbstan121-lib/common
+DETECTOR tmbstan_build_broken() = FALSE 
+DETECTOR check_tmbstan_build(): no refusal 
+GRAD point=origin    rel_gap=0.000e+00 identical=TRUE defect_form_gap=1.000e+00 lp_stan=-5020.985670 lp_obj=-5020.985670
+GRAD point=mode      rel_gap=0.000e+00 identical=TRUE defect_form_gap=1.000e+01 lp_stan=-2.471781 lp_obj=-2.471781
+GRAD point=mode_plus rel_gap=0.000e+00 identical=TRUE defect_form_gap=6.567e-01 lp_stan=-7.168031 lp_obj=-7.168031
+GRAD point=random    rel_gap=0.000e+00 identical=TRUE defect_form_gap=9.979e-01 lp_stan=-8071.428338 lp_obj=-8071.428338
+NORMAL th[1] truth mean=  3.00 sd= 0.50 | draws mean=   2.9974 sd= 0.4944 | z=(mean-truth)/se_mean=  -0.49 sd/truth=0.9888 n_eff=8350
+NORMAL th[2] truth mean= -2.00 sd= 2.00 | draws mean=  -1.9892 sd= 1.9400 | z=(mean-truth)/se_mean=   0.55 sd/truth=0.9700 n_eff=9963
+NORMAL th[3] truth mean= 10.00 sd= 0.10 | draws mean=  10.0002 sd= 0.1001 | z=(mean-truth)/se_mean=   0.22 sd/truth=1.0012 n_eff=8509
+NORMAL th[4] truth mean=  0.50 sd= 3.00 | draws mean=   0.4841 sd= 3.0069 | z=(mean-truth)/se_mean=  -0.48 sd/truth=1.0023 n_eff=8323
+[1] TRUE TRUE
+g++ -std=gnu++20  -I"C:/PROGRA~1/R/R-46~1.1/include" -DNDEBUG -I"C:/Users/adf44/AppData/Local/R/WIN-LI~1/4.6/TMB/include" -I"C:/Users/adf44/AppData/Local/R/WIN-LI~1/4.6/RCPPEI~1/include"  -DTMB_SAFEBOUNDS -DTMB_EIGEN_DISABLE_WARNINGS -DLIB_UNLOAD=R_unload_simple  -DTMB_LIB_INIT=R_init_simple  -DCPPAD_FRAMEWORK    -I"C:/rtools45/x86_64-w64-mingw32.static.posix/include"      -O2 -Wall  -mfpmath=sse -msse2 -mstackrealign    -c simple.cpp -o simple.o
+g++ -std=gnu++20 -shared -s -static-libgcc -o simple.dll tmp.def simple.o -LC:/rtools45/x86_64-w64-mingw32.static.posix/lib/x64 -LC:/rtools45/x86_64-w64-mingw32.static.posix/lib -LC:/PROGRA~1/R/R-46~1.1/bin/x64 -lR
+[1] 0
+SIMPLE beta[1]  ML est=  52.0137 se= 0.2017 | draws mean=  52.0071 sd= 0.2041 n_eff=1900
+SIMPLE beta[2]  ML est=  30.2406 se= 0.2018 | draws mean=  30.2308 sd= 0.2050 n_eff=1987
+SIMPLE logsdu   ML est=  -0.1578 se= 0.1201 | draws mean=  -0.1589 sd= 0.1264 n_eff=962
+SIMPLE logsd0   ML est=   0.0333 se= 0.0667 | draws mean=   0.0397 sd= 0.0681 n_eff=1604
+DONE Bbin 

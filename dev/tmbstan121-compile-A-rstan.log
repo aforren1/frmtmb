@@ -1,0 +1,2 @@
+ARM A ROUTE rstan rstan 2.32.7 StanHeaders 2.32.10 from C:/Users/adf44/source/r/pinlib 
+RESULT A rstan 132s OK mean=1.4696 sd=0.2375 (truth 1.5, 0.25) 

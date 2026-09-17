@@ -1,0 +1,86 @@
+﻿arm common libPaths:
+[1] "C:/Users/adf44/source/r/tmbstan121-lib/common" 
+[2] "C:/Users/adf44/source/r/pinlib"                
+[3] "C:/Users/adf44/AppData/Local/R/win-library/4.6"
+[4] "C:/Program Files/R/R-4.6.1/library"            
+StanHeaders at install: 2.32.10 from C:/Users/adf44/source/r/pinlib/StanHeaders 
+Rscript.exe : * installing *source* package 'frmtmb' ...
+At line:3 char:1
++ & "C:/Program Files/R/R-4.6.1/bin/Rscript.exe" "$d/tmbstan121-02-inst ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (* installing *s...ge 'frmtmb' ...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+** this is package 'frmtmb' version '0.59.0'
+** using staged installation
+** R
+** data
+*** moving datasets to lazyload DB
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb)
+* installing *source* package 'frmtmb.eam' ...
+** this is package 'frmtmb.eam' version '0.8.2'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.eam)
+* installing *source* package 'frmtmb.latent' ...
+** this is package 'frmtmb.latent' version '0.3.1'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.latent)
+* installing *source* package 'frmtmb.ode' ...
+** this is package 'frmtmb.ode' version '0.4.1'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.ode)
+* installing *source* package 'frmtmb.sample' ...
+** this is package 'frmtmb.sample' version '0.7.0'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.sample)
+              Version  Built                                        
+frmtmb        "0.59.0" "R 4.6.1; ; 2026-09-17 09:57:11 UTC; windows"
+frmtmb.eam    "0.8.2"  "R 4.6.1; ; 2026-09-17 09:57:30 UTC; windows"
+frmtmb.latent "0.3.1"  "R 4.6.1; ; 2026-09-17 09:57:34 UTC; windows"
+frmtmb.ode    "0.4.1"  "R 4.6.1; ; 2026-09-17 09:57:39 UTC; windows"
+frmtmb.sample "0.7.0"  "R 4.6.1; ; 2026-09-17 09:57:44 UTC; windows"
