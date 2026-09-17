@@ -15,7 +15,15 @@ response prefixed ahead of that in a multivariate fit.
 
 ``` r
 # S3 method for class 'frmtmb_fit'
-fixef(object, flatten = FALSE, ...)
+fixef(
+  object,
+  summary = TRUE,
+  robust = FALSE,
+  probs = c(0.025, 0.975),
+  pars = NULL,
+  ...,
+  flatten = FALSE
+)
 ```
 
 ## Arguments
@@ -23,6 +31,19 @@ fixef(object, flatten = FALSE, ...)
 - object:
 
   A `frmtmb_fit`.
+
+- summary, robust, probs, pars:
+
+  brms's arguments, in brms's positions so that a positional brms call
+  asks the same question. brms answers `summary = FALSE` with the
+  posterior draws and `robust = TRUE` with their median and MAD, and a
+  maximum-likelihood fit has no draws, so both are refused by name with
+  the reason. The default of each is accepted and changes nothing.
+
+- ...:
+
+  Refused: an argument the method does not have is an error naming it,
+  rather than silently changing nothing.
 
 - flatten:
 
@@ -39,11 +60,6 @@ fixef(object, flatten = FALSE, ...)
   those entries, and `intersect(names(cf), rownames(vcov(fit)))` selects
   the ones a standard error exists for.
 
-- ...:
-
-  Refused: an argument the method does not have is an error naming it,
-  rather than silently changing nothing.
-
 ## Value
 
 A named list of coefficient vectors, one per dpar, or with
@@ -52,11 +68,14 @@ A named list of coefficient vectors, one per dpar, or with
 ## Details
 
 [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
-is a THIRD vocabulary and is not the same one. It strips parentheses, so
-it reads `sigma_(Intercept)` only backquoted, and its own spelling is
-the parenthesis-free `sigma_Intercept`. The comment above
-[`par_name_bare()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
-sets out all three.
+and
+[`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
+use a THIRD vocabulary, brms's parameter names: `b_Intercept`,
+`b_sigma_Intercept` for a `sigma` formula, and `sigma` on its natural
+scale when no formula was written for it.
+[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+puts `class = "b"`'s `b_` in front of a bare name, so its default
+spelling of those is `Intercept` and `sigma_Intercept`.
 
 `unlist(fixef(fit))` is none of them. It is base R's composite of a list
 KEY and an element name, `mu.x`, and it names no parameter of the model:

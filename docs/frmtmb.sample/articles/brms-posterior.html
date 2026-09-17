@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -202,16 +202,29 @@ detail on both routes, the default priors and the non-centered
 parameterization.</p>
 </div>
 <div class="section level2">
-<h2 id="the-names-change">The names change<a class="anchor" aria-label="anchor" href="#the-names-change"></a>
+<h2 id="the-names-are-brmss">The names are brms’s<a class="anchor" aria-label="anchor" href="#the-names-are-brmss"></a>
 </h2>
-<p>Parameter names drop parentheses on the draws side:
-<code>Intercept</code>, not <code>(Intercept)</code>. That is the
-vocabulary posterior, bayesplot and <code><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis()</a></code> already
-speak, so a ported <code><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis()</a></code> string usually needs no
-edit.</p>
+<p>The draws carry brms’s names: <code>b_Intercept</code> and
+<code>b_x</code> for the coefficients, <code>r_g[1,Intercept]</code> for
+a group-level coefficient. A ported <code><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis()</a></code> string
+needs no edit either: brms’s default <code>class = "b"</code> reads
+<code>x</code> as <code>b_x</code>, and a natural-scale name such as
+<code>sd_g__Intercept</code> takes <code>class = NULL</code>, as in
+brms.</p>
+<p>Two kinds of column differ from a brmsfit, and both are named for
+what they hold. The sampler samples the log standard deviation of a
+group-level effect, not the standard deviation, so the column is
+<code>theta_1</code>, the name <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> gives the same
+parameter on the fit; <code><a href="https://rdrr.io/pkg/nlme/man/VarCorr.html" class="external-link">VarCorr()</a></code> reports the standard
+deviation brms calls <code>sd_g__Intercept</code>. A residual standard
+deviation with no formula of its own is the column <code>sigma</code>,
+on its natural scale, as in brms; written out as <code>sigma ~ 1</code>
+it is the log-scale coefficient <code>b_sigma_Intercept</code>, as in
+brms too.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://mc-stan.org/posterior/reference/variables.html" class="external-link">variables</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0"</span>,</span>
+<span>           class <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
 <p><code><a href="../reference/draws-diagnostics.html">nuts_params()</a></code> is the exception. It reads the
 <code>stanfit</code> directly, as brms’s own <code><a href="../reference/draws-diagnostics.html">nuts_params()</a></code>
 does, and its rows are the sampler’s quantities rather than model
@@ -221,8 +234,11 @@ parameters.</p>
 <h2 id="the-method-surface-ports">The method surface ports<a class="anchor" aria-label="anchor" href="#the-method-surface-ports"></a>
 </h2>
 <p>The post-processing generics are brms’s own, on a
-<code>frmtmb_draws</code> object, so most ported code runs unchanged:
-<code><a href="https://rdrr.io/pkg/nlme/man/fixed.effects.html" class="external-link">fixef()</a></code>, <code><a href="https://rdrr.io/pkg/nlme/man/random.effects.html" class="external-link">ranef()</a></code>, <code><a href="https://rdrr.io/pkg/nlme/man/VarCorr.html" class="external-link">VarCorr()</a></code>,
+<code>frmtmb_draws</code> object, and they return brms’s objects: the
+summary matrices and arrays, the raw draws at
+<code>summary = FALSE</code>, and brms’s <code>brmshypothesis</code>
+list. So most ported code runs unchanged: <code><a href="https://rdrr.io/pkg/nlme/man/fixed.effects.html" class="external-link">fixef()</a></code>,
+<code><a href="https://rdrr.io/pkg/nlme/man/random.effects.html" class="external-link">ranef()</a></code>, <code><a href="https://rdrr.io/pkg/nlme/man/VarCorr.html" class="external-link">VarCorr()</a></code>,
 <code><a href="../reference/posterior_epred.html">posterior_epred()</a></code>, <code><a href="../reference/posterior_epred.html">posterior_predict()</a></code>,
 <code><a href="../reference/posterior_epred.html">posterior_linpred()</a></code>, <code><a href="../reference/log_lik.html">log_lik()</a></code>,
 <code><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo()</a></code>, <code><a href="https://mc-stan.org/loo/reference/waic.html" class="external-link">waic()</a></code>, <code><a href="https://mc-stan.org/rstantools/reference/bayes_R2.html" class="external-link">bayes_R2()</a></code>,

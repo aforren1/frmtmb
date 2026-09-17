@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -137,19 +137,12 @@ model is fitted.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">v</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">t</span>, k <span class="op">=</span> <span class="fl">12</span><span class="op">)</span> <span class="op">+</span> <span class="fu">s</span><span class="op">(</span><span class="va">t</span>, <span class="va">subject</span>, bs <span class="op">=</span> <span class="st">"fs"</span>, k <span class="op">=</span> <span class="fl">5</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>           family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
-<span><span class="fu">VarCorr</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   s(t) </span></span>
-<span><span class="co">#&gt;        Name Std.Dev.</span></span>
-<span><span class="co">#&gt;  sd(wiggle)   1.2222</span></span>
-<span><span class="co">#&gt;   s(t,subject) </span></span>
-<span><span class="co">#&gt;        Name Std.Dev.</span></span>
-<span><span class="co">#&gt;  sd(wiggle)  0.52076</span></span>
-<span><span class="co">#&gt;   s(t,subject) </span></span>
-<span><span class="co">#&gt;        Name Std.Dev.</span></span>
-<span><span class="co">#&gt;  sd(wiggle)  0.34486</span></span>
-<span><span class="co">#&gt;   s(t,subject) </span></span>
-<span><span class="co">#&gt;        Name Std.Dev.</span></span>
-<span><span class="co">#&gt;  sd(wiggle)  0.27058</span></span></code></pre></div>
+<span><span class="fu">confint_varcorr</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
+<span><span class="co">#&gt;          block       term type  estimate       lwr       upr</span></span>
+<span><span class="co">#&gt; 1         s(t) sd(wiggle)   sd 1.2222015 0.7852049 1.9024036</span></span>
+<span><span class="co">#&gt; 2 s(t,subject) sd(wiggle)   sd 0.5207605 0.4332084 0.6260070</span></span>
+<span><span class="co">#&gt; 3 s(t,subject) sd(wiggle)   sd 0.3448597 0.2509053 0.4739965</span></span>
+<span><span class="co">#&gt; 4 s(t,subject) sd(wiggle)   sd 0.2705775 0.1979567 0.3698395</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="the-curve-with-a-band-that-covers-all-of-it">1. The curve, with a band that covers all of it<a class="anchor" aria-label="anchor" href="#the-curve-with-a-band-that-covers-all-of-it"></a>

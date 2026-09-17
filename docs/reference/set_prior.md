@@ -120,12 +120,17 @@ Classes and their scales:
   says. Available where the parameter has no predictor of its own; see A
   distributional parameter's own class.
 
-When priors overlap, later specifications override earlier ones, so put
-class-wide priors first and coefficient-specific ones after. A class
-`"theta"` prior on a position an earlier `"cor"` prior covers replaces
-that whole LKJ term, and the other way round, so "later wins" holds
-between the two spellings as well. `lb`/`ub` become hard bounds. See
-Hard bounds.
+Two specifications for the same slot (the same class, coef, group, resp,
+dpar and nlpar) are refused wherever a prior is passed in, as brms
+refuses them; that includes a density followed by a bounds-only
+specification, so write the density and its bounds in one call. When
+specifications for DIFFERENT slots reach the same parameter, the more
+specific one applies whatever order they are written in, as in brms: a
+`coef` specification over its class, and a `group` specification over a
+class-wide `"sd"` or `"cor"` one. Between classes the later one applies:
+a class `"theta"` prior on a position a `"cor"` prior covers replaces
+that whole LKJ term if it comes later, and the other way round.
+`lb`/`ub` become hard bounds. See Hard bounds.
 
 ## Where an intercept prior lands
 
@@ -186,9 +191,11 @@ prior is about.
 ## Hard bounds
 
 `lb`/`ub` are how a box constraint is written. A specification may carry
-bounds alone (`prior = ""`), a distribution alone, or both, and a later
-bounds-only specification tightens an entry an earlier distribution
-created rather than replacing it.
+bounds alone (`prior = ""`), a distribution alone, or both. A
+bounds-only specification for a slot another specification already gives
+a density is refused as a duplicate, as in brms; a bound on a
+coefficient beside a class-wide density is a different slot and boxes
+that coefficient under the class density.
 
 A bound is addressed exactly like the distribution beside it, so
 `set_prior("", nlpar = "guess", lb = 0, ub = 1)` bounds the nonlinear
@@ -216,9 +223,9 @@ to a single internal covariance parameter.
 
 Where the two spellings differed, this one broadcasts: a bound carried
 by `nlpar =` covers every coefficient of that parameter, the way a prior
-does, and `coef` narrows it to one. When two specifications bound the
-same parameter the later one wins, so a bounds-only specification after
-a wide one tightens it.
+does, and `coef` narrows it to one. When a class-wide and a
+coefficient-specific specification both bound a parameter, the
+coefficient-specific one applies.
 
 ## Residual correlation
 
@@ -319,7 +326,7 @@ rule; an empty string is brms's flat default and applies nothing. The
 `source` column is not read. Earlier releases dropped rows marked
 `source == "default"` were dropped, which lost a prior the user had
 edited into a
-[`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+[`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
 table in place, because brms does not update `source` after that edit.
 
 **A specification means here what the same words mean in brms.** Every
@@ -394,7 +401,7 @@ Written without `resp` on a multivariate model it applies to every
 response, which is frmtmb's convention for a class-wide prior and one of
 the few rows brms refuses where frmtmb accepts (brms asks for `resp`).
 
-[`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+[`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
 lists whichever of the two spellings a model offers. Where a parameter
 has NEITHER, because frmtmb refuses its class by name, the table leaves
 it out rather than advertising a slot nothing can fill: a mixture
@@ -415,9 +422,10 @@ pr <- set_prior("normal(0, 1)", class = "b") +
   set_prior("normal(0, 0.2)", class = "b", coef = "z") +
   set_prior("exponential(1)", class = "sd", group = "g")
 pr
-#> normal(0, 1) class=b
-#> normal(0, 0.2) class=b coef=z
-#> exponential(1) class=sd group=g
+#>           prior class coef group resp dpar nlpar   lb   ub source
+#>    normal(0, 1)     b                            <NA> <NA>   user
+#>  normal(0, 0.2)     b    z                       <NA> <NA>   user
+#>  exponential(1)    sd          g                 <NA> <NA>   user
 
 # the priors penalize the likelihood: the fit is a MAP estimate
 fit <- frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd, prior = pr)
@@ -431,7 +439,7 @@ fixef(frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd))$mu
 
 # an empty distribution string sets a hard bound only
 set_prior("", class = "b", coef = "x", lb = 0)
-#> (bounds only) class=b coef=x lb=0
+#> <lower=0> b_x ~ (flat)
 
 # a distributional parameter's own class is a density on the
 # parameter itself, on its own scale, where the model gives that
@@ -446,21 +454,21 @@ sigma(fit_s)
 # that is the slot the prior addresses. brms draws the same line
 set_prior("student_t(3, 0, 2.5)", class = "Intercept",
           dpar = "sigma")
-#> student_t(3, 0, 2.5) class=Intercept dpar=sigma
+#> Intercept_sigma ~ student_t(3, 0, 2.5)
 
 # bounds address a nonlinear parameter the way a distribution does,
 # so a guessing rate is held in [0, 1]
 set_prior("", nlpar = "guess", lb = 0, ub = 1)
-#> (bounds only) class=b nlpar=guess lb=0 ub=1
+#> <lower=0,upper=1> b_guess ~ (flat)
 
 # the residual-correlation classes are brms's own names
 set_prior("normal(0, 0.5)", class = "ar")
-#> normal(0, 0.5) class=ar
+#> ar ~ normal(0, 0.5)
 set_prior("lkj(2)", class = "rescor")
-#> lkj(2) class=rescor
+#> rescor ~ lkj(2)
 # and one internal covariance parameter, by its name
 set_prior("", class = "theta", coef = "thetaac_1", lb = -2, ub = 2)
-#> (bounds only) class=theta coef=thetaac_1 lb=-2 ub=2
+#> <lower=-2,upper=2> theta_thetaac_1 ~ (flat)
 
 # class "cor" addresses a correlated block as a whole, brms's
 # spelling; eta > 1 pulls the correlation toward zero
@@ -469,27 +477,64 @@ dd$y2 <- dd$y + rnorm(10, 0, 0.6)[dd$g] * dd$z
 fitc <- frm(bf(y2 ~ x + z + (z | g)) + gaussian(), data = dd,
             prior = set_prior("lkj(4)", class = "cor"))
 VarCorr(fitc)
-#>   z | g 
-#>         Name Std.Dev. (Intercept)
-#>  (Intercept)  0.84786            
-#>            z  0.76010       0.334
+#> $g
+#> $g$sd
+#>            Estimate Est.Error      Q2.5    Q97.5
+#> Intercept 0.8478563 0.2064010 0.4433177 1.252395
+#> z         0.7601023 0.1980369 0.3719571 1.148247
+#> 
+#> $g$cor
+#> , , Intercept
+#> 
+#>            Estimate Est.Error       Q2.5     Q97.5
+#> Intercept 1.0000000 0.0000000  1.0000000 1.0000000
+#> z         0.3342718 0.2368195 -0.1298859 0.7984294
+#> 
+#> , , z
+#> 
+#>            Estimate Est.Error       Q2.5     Q97.5
+#> Intercept 0.3342718 0.2368195 -0.1298859 0.7984294
+#> z         1.0000000 0.0000000  1.0000000 1.0000000
+#> 
+#> 
+#> $g$cov
+#> , , Intercept
+#> 
+#>            Estimate Est.Error        Q2.5     Q97.5
+#> Intercept 0.7188603 0.3499968  0.03287919 1.4048413
+#> z         0.2154239 0.1706866 -0.11911567 0.5499635
+#> 
+#> , , z
+#> 
+#>            Estimate Est.Error        Q2.5     Q97.5
+#> Intercept 0.2154239 0.1706866 -0.11911567 0.5499635
+#> z         0.5777554 0.3010566 -0.01230463 1.1678155
+#> 
+#> 
+#> 
+#> $residual__
+#> $residual__$sd
+#>  Estimate  Est.Error      Q2.5    Q97.5
+#>  0.976346 0.07648265 0.8264427 1.126249
+#> 
+#> 
 
 # get_prior() shows which rows a design offers
 get_prior(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd)
 #> route = "fit": the prior defaults frm() applies
-#>    prior     class    coef group dpar nlpar resp lb ub
-#> 1 (flat) Intercept                               NA NA
-#> 2 (flat)         b                               NA NA
-#> 3 (flat)         b       x                       NA NA
-#> 4 (flat)         b       z                       NA NA
-#> 5 (flat)     sigma                               NA NA
-#> 6 (flat)        sd                               NA NA
-#> 7 (flat)        sd             g                 NA NA
-#> 8 (flat)     theta                               NA NA
-#> 9 (flat)     theta theta_1                       NA NA
+#>    prior     class    coef group resp dpar nlpar lb ub  source
+#> 1 (flat) Intercept                               NA NA default
+#> 2 (flat)         b                               NA NA default
+#> 3 (flat)         b       x                       NA NA default
+#> 4 (flat)         b       z                       NA NA default
+#> 5 (flat)     sigma                               NA NA default
+#> 6 (flat)        sd                               NA NA default
+#> 7 (flat)        sd             g                 NA NA default
+#> 8 (flat)     theta                               NA NA default
+#> 9 (flat)     theta theta_1                       NA NA default
 
 # prior() quotes its first argument, brms's spelling, and reaches
 # the same machinery
 prior(normal(0, 1), class = "b")
-#> normal(0, 1) class=b
+#> b ~ normal(0, 1)
 ```

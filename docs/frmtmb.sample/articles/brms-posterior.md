@@ -91,19 +91,31 @@ that out in a second is better than finding it out in an hour.
 has the detail on both routes, the default priors and the non-centered
 parameterization.
 
-## The names change
+## The names are brms’s
 
-Parameter names drop parentheses on the draws side: `Intercept`, not
-`(Intercept)`. That is the vocabulary posterior, bayesplot and
+The draws carry brms’s names: `b_Intercept` and `b_x` for the
+coefficients, `r_g[1,Intercept]` for a group-level coefficient. A ported
 [`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)
-already speak, so a ported
-[`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)
-string usually needs no edit.
+string needs no edit either: brms’s default `class = "b"` reads `x` as
+`b_x`, and a natural-scale name such as `sd_g__Intercept` takes
+`class = NULL`, as in brms.
+
+Two kinds of column differ from a brmsfit, and both are named for what
+they hold. The sampler samples the log standard deviation of a
+group-level effect, not the standard deviation, so the column is
+`theta_1`, the name [`confint()`](https://rdrr.io/r/stats/confint.html)
+gives the same parameter on the fit;
+[`VarCorr()`](https://rdrr.io/pkg/nlme/man/VarCorr.html) reports the
+standard deviation brms calls `sd_g__Intercept`. A residual standard
+deviation with no formula of its own is the column `sigma`, on its
+natural scale, as in brms; written out as `sigma ~ 1` it is the
+log-scale coefficient `b_sigma_Intercept`, as in brms too.
 
 ``` r
 
 variables(ds)
-hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)")
+hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0",
+           class = NULL)
 ```
 
 [`nuts_params()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
@@ -115,7 +127,9 @@ parameters.
 ## The method surface ports
 
 The post-processing generics are brms’s own, on a `frmtmb_draws` object,
-so most ported code runs unchanged:
+and they return brms’s objects: the summary matrices and arrays, the raw
+draws at `summary = FALSE`, and brms’s `brmshypothesis` list. So most
+ported code runs unchanged:
 [`fixef()`](https://rdrr.io/pkg/nlme/man/fixed.effects.html),
 [`ranef()`](https://rdrr.io/pkg/nlme/man/random.effects.html),
 [`VarCorr()`](https://rdrr.io/pkg/nlme/man/VarCorr.html),

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -612,15 +612,15 @@ changes every later trial’s value store.</p>
 <span></span>
 <span><span class="va">rl_family</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="fu">rw_delta</span><span class="op">(</span>subject <span class="op">=</span> <span class="va">id</span>, trial <span class="op">=</span> <span class="va">trial</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Parameter values in frm_simulate()'s natural spelling: the same names</span></span>
-<span><span class="co"># fixef() and VarCorr() report back.</span></span>
+<span><span class="co"># Parameter values in frm_simulate()'s spelling, brms's names: the same</span></span>
+<span><span class="co"># strings variables() returns for the fit.</span></span>
 <span><span class="va">rl_truth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>  alpha_Intercept <span class="op">=</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">qlogis</a></span><span class="op">(</span><span class="fl">0.35</span><span class="op">)</span>,</span>
-<span>  alpha_conditiontrt <span class="op">=</span> <span class="fl">0.8</span>,</span>
-<span>  beta_Intercept <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span>,</span>
-<span>  sd_id__choice.alphaIntercept <span class="op">=</span> <span class="fl">0.5</span>,</span>
-<span>  sd_id__choice.betaIntercept <span class="op">=</span> <span class="fl">0.4</span>,</span>
-<span>  cor_id__choice.alphaIntercept__choice.betaIntercept <span class="op">=</span> <span class="fl">0.3</span></span>
+<span>  b_alpha_Intercept <span class="op">=</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">qlogis</a></span><span class="op">(</span><span class="fl">0.35</span><span class="op">)</span>,</span>
+<span>  b_alpha_conditiontrt <span class="op">=</span> <span class="fl">0.8</span>,</span>
+<span>  b_beta_Intercept <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span>,</span>
+<span>  sd_id__alpha_Intercept <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>  sd_id__beta_Intercept <span class="op">=</span> <span class="fl">0.4</span>,</span>
+<span>  cor_id__alpha_Intercept__beta_Intercept <span class="op">=</span> <span class="fl">0.3</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Draws come from the family's own simulator: frm_simulate() draws a new</span></span>
@@ -672,19 +672,47 @@ with its own temperature, which is the usual hierarchical
 parameterization for these models.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   alpha: 1 | id + beta: 1 | id [ID] </span></span>
-<span><span class="co">#&gt;                      Name Std.Dev. choice.alpha:(Intercept)</span></span>
-<span><span class="co">#&gt;  choice.alpha:(Intercept)  0.46280                         </span></span>
-<span><span class="co">#&gt;   choice.beta:(Intercept)  0.37934                  -0.0422</span></span></code></pre></div>
+<span><span class="co">#&gt; $id</span></span>
+<span><span class="co">#&gt; $id$sd</span></span>
+<span><span class="co">#&gt;                  Estimate  Est.Error      Q2.5     Q97.5</span></span>
+<span><span class="co">#&gt; alpha_Intercept 0.4628031 0.16596184 0.1375239 0.7880824</span></span>
+<span><span class="co">#&gt; beta_Intercept  0.3793421 0.08175405 0.2191071 0.5395771</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $id$cor</span></span>
+<span><span class="co">#&gt; , , alpha_Intercept</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;                    Estimate Est.Error       Q2.5     Q97.5</span></span>
+<span><span class="co">#&gt; alpha_Intercept  1.00000000 0.0000000  1.0000000 1.0000000</span></span>
+<span><span class="co">#&gt; beta_Intercept  -0.04221552 0.4113754 -0.8484964 0.7640654</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; , , beta_Intercept</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;                    Estimate Est.Error       Q2.5     Q97.5</span></span>
+<span><span class="co">#&gt; alpha_Intercept -0.04221552 0.4113754 -0.8484964 0.7640654</span></span>
+<span><span class="co">#&gt; beta_Intercept   1.00000000 0.0000000  1.0000000 1.0000000</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $id$cov</span></span>
+<span><span class="co">#&gt; , , alpha_Intercept</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;                     Estimate  Est.Error        Q2.5     Q97.5</span></span>
+<span><span class="co">#&gt; alpha_Intercept  0.214186726 0.15361532 -0.08689376 0.5152672</span></span>
+<span><span class="co">#&gt; beta_Intercept  -0.007411386 0.07253944 -0.14958608 0.1347633</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; , , beta_Intercept</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;                     Estimate  Est.Error        Q2.5     Q97.5</span></span>
+<span><span class="co">#&gt; alpha_Intercept -0.007411386 0.07253944 -0.14958608 0.1347633</span></span>
+<span><span class="co">#&gt; beta_Intercept   0.143900424 0.06202550  0.02233267 0.2654682</span></span></code></pre></div>
 <p>Compare with the simulated values:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>estimate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="../reference/fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>                   sd_alpha <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="../reference/VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>                   sd_beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="../reference/VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="fl">2</span>, <span class="fl">2</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>      truth <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">rl_truth</span><span class="op">$</span><span class="va">alpha_Intercept</span>, <span class="va">rl_truth</span><span class="op">$</span><span class="va">alpha_conditiontrt</span>,</span>
-<span>                <span class="va">rl_truth</span><span class="op">$</span><span class="va">beta_Intercept</span>,</span>
-<span>                <span class="va">rl_truth</span><span class="op">$</span><span class="va">sd_id__choice.alphaIntercept</span>,</span>
-<span>                <span class="va">rl_truth</span><span class="op">$</span><span class="va">sd_id__choice.betaIntercept</span><span class="op">)</span><span class="op">)</span></span>
+<span>                   sd_alpha <span class="op">=</span> <span class="fu"><a href="../reference/VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">id</span><span class="op">$</span><span class="va">sd</span><span class="op">[</span><span class="fl">1</span>, <span class="st">"Estimate"</span><span class="op">]</span>,</span>
+<span>                   sd_beta <span class="op">=</span> <span class="fu"><a href="../reference/VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">id</span><span class="op">$</span><span class="va">sd</span><span class="op">[</span><span class="fl">2</span>, <span class="st">"Estimate"</span><span class="op">]</span><span class="op">)</span>,</span>
+<span>      truth <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">rl_truth</span><span class="op">$</span><span class="va">b_alpha_Intercept</span>, <span class="va">rl_truth</span><span class="op">$</span><span class="va">b_alpha_conditiontrt</span>,</span>
+<span>                <span class="va">rl_truth</span><span class="op">$</span><span class="va">b_beta_Intercept</span>,</span>
+<span>                <span class="va">rl_truth</span><span class="op">$</span><span class="va">sd_id__alpha_Intercept</span>,</span>
+<span>                <span class="va">rl_truth</span><span class="op">$</span><span class="va">sd_id__beta_Intercept</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;          alpha.(Intercept) alpha.conditiontrt beta.(Intercept)  sd_alpha</span></span>
 <span><span class="co">#&gt; estimate        -0.7919201           1.122059         1.058637 0.4628031</span></span>
 <span><span class="co">#&gt; truth           -0.6190392           0.800000         1.098612 0.5000000</span></span>
@@ -906,8 +934,8 @@ not the likelihood factorized.</p>
 <span>                <span class="va">beta</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">p</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>             family <span class="op">=</span> <span class="fu">rw_delta</span><span class="op">(</span>subject <span class="op">=</span> <span class="va">id</span>, trial <span class="op">=</span> <span class="va">trial</span><span class="op">)</span>,</span>
 <span>             data <span class="op">=</span> <span class="va">dd</span>, importance <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>laplace <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="../reference/VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>  corrected <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="../reference/VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit_i</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>laplace <span class="op">=</span> <span class="fu"><a href="../reference/VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">id</span><span class="op">$</span><span class="va">sd</span><span class="op">[</span><span class="fl">1</span>, <span class="st">"Estimate"</span><span class="op">]</span>,</span>
+<span>  corrected <span class="op">=</span> <span class="fu"><a href="../reference/VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit_i</span><span class="op">)</span><span class="op">$</span><span class="va">id</span><span class="op">$</span><span class="va">sd</span><span class="op">[</span><span class="fl">1</span>, <span class="st">"Estimate"</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   laplace corrected </span></span>
 <span><span class="co">#&gt; 0.4628031 0.5827301</span></span>
 <span><span class="va">fit_i</span><span class="op">$</span><span class="va">importance</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"draws"</span>, <span class="st">"mcse"</span><span class="op">)</span><span class="op">]</span></span>

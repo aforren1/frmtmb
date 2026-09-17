@@ -11,13 +11,13 @@ Source:
 [`DESCRIPTION`](https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.coupling/DESCRIPTION)
 
 Forrence A (2026). *frmtmb.coupling: Coherence and Phase Between Signals
-for 'frmtmb' Models*. R package version 0.3.1,
+for 'frmtmb' Models*. R package version 0.3.2,
 <https://aforren1.github.io/frmtmb/frmtmb.coupling>.
 
     @Manual{,
       title = {frmtmb.coupling: Coherence and Phase Between Signals for 'frmtmb' Models},
       author = {Alex Forrence},
       year = {2026},
-      note = {R package version 0.3.1},
+      note = {R package version 0.3.2},
       url = {https://aforren1.github.io/frmtmb/frmtmb.coupling},
     }

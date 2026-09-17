@@ -17,7 +17,7 @@ formula)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -129,7 +129,14 @@ paths the brms default priors apply to whatever this argument, and
 a MAP fit's own prior, leave alone (see Default priors), and
 <code>prior = "flat"</code> opts out of them entirely. A <code>brmsprior</code> object
 built by brms's own <code>prior()</code> is translated row by row. The
-argument takes brms's spelling, <code>prior</code>; the <code>priors</code> of releases
+argument takes brms's spelling, <code>prior</code>. On a fit that carries its
+own prior, a specification here for a slot the fit's prior also
+names (the same class, coef, group, resp, dpar and nlpar) REPLACES
+the stored one, as brms's <code>update(prior = )</code> replaces a row; it is
+not refused as a duplicate, and specifications for other slots
+stack with the stored ones, the more specific applying. Two
+specifications for one slot within this argument are refused. The
+<code>priors</code> of releases
 before 0.43 is gone rather than aliased, and because this
 function's <code>...</code> would otherwise swallow it, the old name is
 refused by name.</p></dd>
@@ -270,7 +277,8 @@ ends of it.</p>
 <p><code>reparameterize = TRUE</code> (the default) samples <code>z ~ N(0, I)</code> instead
 and computes <code>b = L(theta) z</code> on the tape, with <code>L</code> the block's own
 Cholesky factor, which is brms's construction. Each draw is mapped back
-through ITS OWN <code>theta</code>, so the <code>b[i]</code> columns of the draws matrix
+through ITS OWN <code>theta</code>, so the random-effect columns of the draws
+matrix
 hold the same quantity in the same order under the same names as
 <code>reparameterize = FALSE</code> gives, and every method downstream
 (<code><a href="posterior_epred.html">posterior_epred()</a></code>, <code><a href="https://rdrr.io/pkg/nlme/man/random.effects.html" class="external-link">frmtmb::ranef()</a></code>, <code><a href="log_lik.html">log_lik()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html" class="external-link">frmtmb::loo()</a></code>,
@@ -495,7 +503,8 @@ individually.</p>
 <span class="r-in"><span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu">frm_sample</span><span class="op">(</span><span class="va">fit</span>, chains <span class="op">=</span> <span class="fl">1</span>, iter <span class="op">=</span> <span class="fl">500</span>, refresh <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/pkg/nlme/man/fixed.effects.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/hypothesis.html" class="external-link">hypothesis</a></span><span class="op">(</span><span class="va">ds</span>, <span class="st">"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0"</span>,</span></span>
+<span class="r-in"><span>           class <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># the same model sampled straight from the formula, with no ML fit.</span></span></span>
 <span class="r-in"><span><span class="co"># It reports the brms default priors it chose, and prior_summary()</span></span></span>
@@ -523,6 +532,8 @@ individually.</p>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> Running the chains for more iterations may help. See</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#tail-ess</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>hypothesis(): no evidence ratio for 1 of 1 point hypothesis. A Savage-Dickey ratio divides the posterior density at the tested point by the PRIOR density there, and</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span>   sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0: it names sd_g__Intercept, sigma, which is not a population-level coefficient. A standard deviation, a correlation and a dispersion have their prior on the internal parameter with a change of variables in between, and a group-level coefficient has the group's distribution rather than a prior of its own, so neither density is the prior density of the tested quantity</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept          student_t(3, 1, 2.5)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   sigma              student_t(3, 0, 2.5)  [natural scale]</span>
@@ -547,9 +558,10 @@ individually.</p>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> Running the chains for more iterations may help. See</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#tail-ess</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> student_t(3, 1, 2.5) class=Intercept</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> student_t(3, 0, 2.5) class=sigma scale=natural</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> exponential(1) class=sd</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 prior     class coef group resp dpar nlpar   lb   ub source</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  student_t(3, 1, 2.5) Intercept                            &lt;NA&gt; &lt;NA&gt;   user</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  student_t(3, 0, 2.5)     sigma                            &lt;NA&gt; &lt;NA&gt;   user</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        exponential(1)        sd                            &lt;NA&gt; &lt;NA&gt;   user</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

@@ -15,7 +15,7 @@ correlation across responses uses the brms |ID| syntax, e.g.
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -181,10 +181,48 @@ room for one structure.</p>
 <span class="r-in"><span><span class="va">fit_id</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu">mvbf</span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y1</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">p</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span>, <span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y2</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">p</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>                <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit_id</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   y1 1 | g + y2 1 | g [ID] </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               Name Std.Dev. y1.mu:(Intercept)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  y1.mu:(Intercept)  0.86060                  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  y2.mu:(Intercept)  0.61112             0.599</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $g</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $g$sd</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               Estimate Est.Error      Q2.5    Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y1_Intercept 0.8606044 0.1732261 0.5210875 1.200121</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y2_Intercept 0.6111245 0.1438907 0.3291040 0.893145</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $g$cor</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> , , y1_Intercept</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               Estimate Est.Error      Q2.5    Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y1_Intercept 1.0000000 0.0000000 1.0000000 1.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y2_Intercept 0.5987236 0.2196369 0.1682431 1.029204</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> , , y2_Intercept</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               Estimate Est.Error      Q2.5    Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y1_Intercept 0.5987236 0.2196369 0.1682431 1.029204</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y2_Intercept 1.0000000 0.0000000 1.0000000 1.000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $g$cov</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> , , y1_Intercept</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               Estimate Est.Error        Q2.5     Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y1_Intercept 0.7406399 0.2981582  0.15626049 1.3250193</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y2_Intercept 0.3148905 0.1797248 -0.03736366 0.6671447</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> , , y2_Intercept</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               Estimate Est.Error        Q2.5     Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y1_Intercept 0.3148905 0.1797248 -0.03736366 0.6671447</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y2_Intercept 0.3734732 0.1758702  0.02877383 0.7181725</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $residual__</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $residual__$sd</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Estimate  Est.Error      Q2.5    Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y1 0.9987735 0.05886056 0.8834089 1.114138</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> y2 1.0927242 0.06440943 0.9664841 1.218964</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

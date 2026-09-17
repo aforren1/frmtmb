@@ -18,7 +18,10 @@
   [`niterations(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-dimensions.md)
   [`nvariables(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-dimensions.md)
   : Size of a draws object
-- [`nobs(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-structure.md)
+- [`fixef(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-structure.md)
+  [`VarCorr(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-structure.md)
+  [`ranef(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-structure.md)
+  [`nobs(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-structure.md)
   [`formula(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-structure.md)
   [`family(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-structure.md)
   [`getCall(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-structure.md)
@@ -53,6 +56,7 @@
 - [`pp_mixture()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/pp_mixture.md)
   : Posterior mixture-component probabilities
 - [`as_draws(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-as_draws.md)
+  [`as.data.frame(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-as_draws.md)
   [`as.array(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-as_draws.md)
   [`as_draws_matrix(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-as_draws.md)
   [`as_draws_array(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-as_draws.md)
@@ -60,6 +64,7 @@
   [`as_draws_list(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-as_draws.md)
   [`as_draws_rvars(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-as_draws.md)
   [`as.mcmc()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-as_draws.md)
+  [`as.matrix(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-as_draws.md)
   : Convert draws to a posterior draws object
 - [`bayes_R2(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-bayes_R2.md)
   : Bayesian R-squared

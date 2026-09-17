@@ -23,7 +23,7 @@ arguments the way the user-facing surface does."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -146,7 +146,7 @@ unstructured correlation matrix of a <code>thetar</code> segment, which a
 
 
 <p>The prior VOCABULARY - <code><a href="set_prior.html">set_prior()</a></code>, <code><a href="frmtmb-priors.html">prior_normal()</a></code> and its
-relatives, <code><a href="get_prior.html">get_prior()</a></code>, <code><a href="prior_summary.html">prior_summary()</a></code> - is ordinary exported
+relatives, <code><a href="default_prior.html">get_prior()</a></code>, <code><a href="prior_summary.html">prior_summary()</a></code> - is ordinary exported
 API and is not part of this page. What is here is the RESOLUTION
 machinery underneath it: <code>as_priorlist()</code> coerces the accepted
 spellings (including a brms <code>brmsprior</code>) to one,
@@ -160,8 +160,8 @@ class and dpar it was WRITTEN with, which for a density on a
 distributional parameter itself is that parameter's own class rather
 than the intercept slot the resolver assigns to.</p>
 <p><code>frmtmb_register_prior_defaults()</code> is the other direction: it lets a
-package tell <code><a href="get_prior.html">get_prior()</a></code> what defaults it would apply.
-<code><a href="get_prior.html">get_prior()</a></code> reads the registry under <code>route = "sample"</code> ONLY, and
+package tell <code><a href="default_prior.html">get_prior()</a></code> what defaults it would apply.
+<code><a href="default_prior.html">get_prior()</a></code> reads the registry under <code>route = "sample"</code> ONLY, and
 refuses that route when nothing is registered. Its default
 <code>route = "fit"</code> reports what <code><a href="frm.html">frm()</a></code> applies and reads nothing, so a
 registration cannot change the answer of a call that did not ask
@@ -201,6 +201,30 @@ correlated residual - which is what makes <code>newdata</code> and <code>re_form
 refusable rather than merely unimplemented on a predictive method.</p>
     </div>
     <div class="section level2">
+    <h2 id="brms-s-names-and-brms-s-varcorr">brms's names and brms's VarCorr<a class="anchor" aria-label="anchor" href="#brms-s-names-and-brms-s-varcorr"></a></h2>
+
+
+<p><code>brms_coef_names(fit)</code> gives brms's name for each estimated
+coefficient, in <code>estimated_coef_names()</code> order (<code>b_Intercept</code>,
+<code>b_sigma_Intercept</code>, or <code>sigma</code> for a sigma with no formula); <code>brms_re_rnames(fit, bk)</code> gives brms's
+coefficient names for one random-effect block (<code>Intercept</code>,
+<code>sigma_Intercept</code>), and <code>brms_block_has_r(bk)</code> says whether the
+block's sampled values are brms's <code>r_</code> coefficients.
+<code>brms_coef_table(fit)</code> adds, per coefficient, whether brms reports it
+as the distributional parameter itself on the natural scale (<code>sigma</code>)
+with its <code>linkinv</code> and <code>linkfun</code>; <code>brms_stan_name()</code> is brms's
+response spelling (<code>y_a</code> is <code>ya</code>), <code>brms_group_name(bk)</code> its group
+spelling, <code>brms_levels(bk, for_r)</code> its level spelling, and
+<code>brms_re_parts(fit, bk)</code> a block's prefixes and renamed coefficients;
+<code>brms_par_labels(fit, include_random)</code> labels a
+sampled parameter vector in template order, in brms's spelling where
+brms has a parameter with the same content. <code>varcorr_matrices(fit, theta)</code> is the covariance matrix of every block at <code>theta</code>,
+<code>varcorr_layout(fit)</code> is brms's <code><a href="VarCorr.html">VarCorr()</a></code> grouping for the fit,
+and <code>varcorr_values(fit, vals, comp, layout)</code> gives the standard
+deviations, correlations and covariances of that layout at one
+parameter vector in the <code>hyp_vals_only()</code> layout.</p>
+    </div>
+    <div class="section level2">
     <h2 id="parameter-labeling-and-fitted-quantities">Parameter labeling and fitted quantities<a class="anchor" aria-label="anchor" href="#parameter-labeling-and-fitted-quantities"></a></h2>
 
 
@@ -226,21 +250,19 @@ fit's current estimates into a flat named value vector plus a
 parallel component vector (which template component each value came
 from); <code>hyp_env_vals(fit, vals, comp)</code> takes exactly that pair and
 builds the evaluation environment, and <code>hyp_eval()</code> evaluates one
-expression in it - so a caller with many parameter vectors parses
+expression in it (<code>hyp_eval_in(ex, values)</code> over any named list keyed
+by parameter name, and <code>hyp_expr_vars(ex)</code> the names it reads) - so a
+caller with many parameter vectors parses
 once, then per vector swaps the estimates in and calls
 <code>hyp_vals_only()</code> and <code>hyp_env_vals()</code> again.
-<code>hyp_tail_p()</code> is the tail probability of a directional claim.</p>
-<p><code>hyp_shadow_arm()</code> and <code>hyp_shadow_disarm(old)</code> bracket ONE
-user-level <code><a href="hypothesis.html">hypothesis()</a></code> call. A covariate named like a reserved
-quantity, <code>sigma</code> or <code>sd_&lt;group&gt;__&lt;term&gt;</code>, shadows it, and the note
-saying which one was read is detected inside <code>hyp_env_vals()</code>, which
-runs many times per call; it is emitted only while armed, and once
-per name. Every <code><a href="hypothesis.html">hypothesis()</a></code> METHOD arms it on entry and restores
-the returned state on exit:
-<code>old &lt;- hyp_shadow_arm(); on.exit(hyp_shadow_disarm(old), add = TRUE)</code>.
-The generic cannot do it, because the exported <code>hypothesis</code> is
-brms's generic whenever brms is loaded, and a method that does not
-arm loses the note in every session.</p>
+<code>hyp_tail_p()</code> is the tail probability of a directional claim.
+<code>hyp_class_prefix(class, group)</code> is brms's name prefix for its
+<code>class</code> and <code>group</code> arguments. <code>hyp_labels()</code> writes brms's
+<code>Hypothesis</code> label for each string, <code>hyp_samples_frame(m, k)</code> lays a
+draws matrix out as brms's <code>samples</code> frame (<code>H1</code>, <code>H2</code>, ...), and
+<code>hyp_brms_result()</code> assembles the <code>brmshypothesis</code>-shaped list every
+<code><a href="hypothesis.html">hypothesis()</a></code> method returns, so no method builds that shape on its
+own.</p>
     </div>
     <div class="section level2">
     <h2 id="the-conditional-effects-engine">The conditional-effects engine<a class="anchor" aria-label="anchor" href="#the-conditional-effects-engine"></a></h2>

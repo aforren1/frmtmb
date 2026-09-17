@@ -68,7 +68,7 @@ The prior VOCABULARY -
 [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md),
 [`prior_normal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
 and its relatives,
-[`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md),
+[`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md),
 [`prior_summary()`](https://aforren1.github.io/frmtmb/reference/prior_summary.md) -
 is ordinary exported API and is not part of this page. What is here is
 the RESOLUTION machinery underneath it: `as_priorlist()` coerces the
@@ -85,9 +85,9 @@ slot the resolver assigns to.
 
 `frmtmb_register_prior_defaults()` is the other direction: it lets a
 package tell
-[`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+[`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
 what defaults it would apply.
-[`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+[`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
 reads the registry under `route = "sample"` ONLY, and refuses that route
 when nothing is registered. Its default `route = "fit"` reports what
 [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) applies
@@ -124,6 +124,29 @@ sequence, a group-level latent class, a correlated residual - which is
 what makes `newdata` and `re_formula` refusable rather than merely
 unimplemented on a predictive method.
 
+## brms's names and brms's VarCorr
+
+`brms_coef_names(fit)` gives brms's name for each estimated coefficient,
+in `estimated_coef_names()` order (`b_Intercept`, `b_sigma_Intercept`,
+or `sigma` for a sigma with no formula); `brms_re_rnames(fit, bk)` gives
+brms's coefficient names for one random-effect block (`Intercept`,
+`sigma_Intercept`), and `brms_block_has_r(bk)` says whether the block's
+sampled values are brms's `r_` coefficients. `brms_coef_table(fit)`
+adds, per coefficient, whether brms reports it as the distributional
+parameter itself on the natural scale (`sigma`) with its `linkinv` and
+`linkfun`; `brms_stan_name()` is brms's response spelling (`y_a` is
+`ya`), `brms_group_name(bk)` its group spelling,
+`brms_levels(bk, for_r)` its level spelling, and
+`brms_re_parts(fit, bk)` a block's prefixes and renamed coefficients;
+`brms_par_labels(fit, include_random)` labels a sampled parameter vector
+in template order, in brms's spelling where brms has a parameter with
+the same content. `varcorr_matrices(fit, theta)` is the covariance
+matrix of every block at `theta`, `varcorr_layout(fit)` is brms's
+[`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
+grouping for the fit, and `varcorr_values(fit, vals, comp, layout)`
+gives the standard deviations, correlations and covariances of that
+layout at one parameter vector in the `hyp_vals_only()` layout.
+
 ## Parameter labeling and fitted quantities
 
 `par_name_bare()` is the draws-side spelling of a parameter name, with
@@ -146,24 +169,19 @@ per-expression directions, once. `hyp_vals_only(fit)` reads the fit's
 current estimates into a flat named value vector plus a parallel
 component vector (which template component each value came from);
 `hyp_env_vals(fit, vals, comp)` takes exactly that pair and builds the
-evaluation environment, and `hyp_eval()` evaluates one expression in
-it - so a caller with many parameter vectors parses once, then per
-vector swaps the estimates in and calls `hyp_vals_only()` and
-`hyp_env_vals()` again. `hyp_tail_p()` is the tail probability of a
-directional claim.
-
-`hyp_shadow_arm()` and `hyp_shadow_disarm(old)` bracket ONE user-level
+evaluation environment, and `hyp_eval()` evaluates one expression in it
+(`hyp_eval_in(ex, values)` over any named list keyed by parameter name,
+and `hyp_expr_vars(ex)` the names it reads) - so a caller with many
+parameter vectors parses once, then per vector swaps the estimates in
+and calls `hyp_vals_only()` and `hyp_env_vals()` again. `hyp_tail_p()`
+is the tail probability of a directional claim.
+`hyp_class_prefix(class, group)` is brms's name prefix for its `class`
+and `group` arguments. `hyp_labels()` writes brms's `Hypothesis` label
+for each string, `hyp_samples_frame(m, k)` lays a draws matrix out as
+brms's `samples` frame (`H1`, `H2`, ...), and `hyp_brms_result()`
+assembles the `brmshypothesis`-shaped list every
 [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
-call. A covariate named like a reserved quantity, `sigma` or
-`sd_<group>__<term>`, shadows it, and the note saying which one was read
-is detected inside `hyp_env_vals()`, which runs many times per call; it
-is emitted only while armed, and once per name. Every
-[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
-METHOD arms it on entry and restores the returned state on exit:
-`old <- hyp_shadow_arm(); on.exit(hyp_shadow_disarm(old), add = TRUE)`.
-The generic cannot do it, because the exported `hypothesis` is brms's
-generic whenever brms is loaded, and a method that does not arm loses
-the note in every session.
+method returns, so no method builds that shape on its own.
 
 ## The conditional-effects engine
 

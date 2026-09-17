@@ -11,13 +11,13 @@ Source:
 [`DESCRIPTION`](https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.spline/DESCRIPTION)
 
 Forrence A (2026). *frmtmb.spline: Spline Curves and Curve Inference for
-'frmtmb' Models*. R package version 0.5.1,
+'frmtmb' Models*. R package version 0.5.2,
 <https://aforren1.github.io/frmtmb/frmtmb.spline>.
 
     @Manual{,
       title = {frmtmb.spline: Spline Curves and Curve Inference for 'frmtmb' Models},
       author = {Alex Forrence},
       year = {2026},
-      note = {R package version 0.5.1},
+      note = {R package version 0.5.2},
       url = {https://aforren1.github.io/frmtmb/frmtmb.spline},
     }

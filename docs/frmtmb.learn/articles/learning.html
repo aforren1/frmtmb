@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.learn</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -323,8 +323,8 @@ Laplace fits have already collapsed <code>sd(alpha)</code> to 1e-4, and
 the correction then walks at its own step cap for every round while
 warning that it did not converge. A shift reported alongside that
 warning is the step cap rather than an estimate, so check
-<code>sqrt(VarCorr(fit))</code> and read the warning before believing
-one. The warning advises raising
+<code>VarCorr(fit)</code> and read the warning before believing one. The
+warning advises raising
 <code>frmtmb_control(importance_rounds =)</code>, and on a collapsed
 component that makes the artifact bigger in exact proportion: five
 rounds of a 0.3645 cap give 1.822 and ten give 3.645.

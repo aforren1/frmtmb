@@ -244,8 +244,8 @@ At 20 trials the correction has nothing to work with. Five of six
 Laplace fits have already collapsed `sd(alpha)` to 1e-4, and the
 correction then walks at its own step cap for every round while warning
 that it did not converge. A shift reported alongside that warning is the
-step cap rather than an estimate, so check `sqrt(VarCorr(fit))` and read
-the warning before believing one. The warning advises raising
+step cap rather than an estimate, so check `VarCorr(fit)` and read the
+warning before believing one. The warning advises raising
 `frmtmb_control(importance_rounds =)`, and on a collapsed component that
 makes the artifact bigger in exact proportion: five rounds of a 0.3645
 cap give 1.822 and ten give 3.645.

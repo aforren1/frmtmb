@@ -310,17 +310,80 @@ unlist(fixef(fit_20))
 ``` r
 
 VarCorr(fit_20)
-#>   muA: 1 | participant + muB: 1 | participant + lsgA: 1 | participant + lsgB: 1 | participant [ID] 
-#>                       Name Std.Dev. Corr.response.muA:(Intercept)
-#>   response.muA:(Intercept)  0.11640                              
-#>   response.muB:(Intercept)  0.12021                         0.948
-#>  response.lsgA:(Intercept)  0.78253                         0.888
-#>  response.lsgB:(Intercept)  0.59146                         0.608
-#>  Corr.response.muB:(Intercept) Corr.response.lsgA:(Intercept)
-#>                                                              
-#>                                                              
-#>                          0.937                               
-#>                          0.677                          0.889
+#> $participant
+#> $participant$sd
+#>                 Estimate  Est.Error       Q2.5     Q97.5
+#> muA_Intercept  0.1163974 0.03249104 0.05271611 0.1800786
+#> muB_Intercept  0.1202055 0.02544310 0.07033789 0.1700730
+#> lsgA_Intercept 0.7825279 0.16367120 0.46173820 1.1033175
+#> lsgB_Intercept 0.5914644 0.14299035 0.31120842 0.8717203
+#> 
+#> $participant$cor
+#> , , muA_Intercept
+#> 
+#>                 Estimate  Est.Error      Q2.5     Q97.5
+#> muA_Intercept  1.0000000 0.00000000 1.0000000 1.0000000
+#> muB_Intercept  0.9484858 0.03994153 0.8702019 1.0267698
+#> lsgA_Intercept 0.8883476 0.08796651 0.7159364 1.0607588
+#> lsgB_Intercept 0.6075702 0.18164903 0.2515447 0.9635958
+#> 
+#> , , muB_Intercept
+#> 
+#>                 Estimate  Est.Error      Q2.5    Q97.5
+#> muA_Intercept  0.9484858 0.03994153 0.8702019 1.026770
+#> muB_Intercept  1.0000000 0.00000000 1.0000000 1.000000
+#> lsgA_Intercept 0.9368502 0.05757031 0.8240145 1.049686
+#> lsgB_Intercept 0.6769512 0.20973528 0.2658776 1.088025
+#> 
+#> , , lsgA_Intercept
+#> 
+#>                 Estimate  Est.Error      Q2.5    Q97.5
+#> muA_Intercept  0.8883476 0.08796651 0.7159364 1.060759
+#> muB_Intercept  0.9368502 0.05757031 0.8240145 1.049686
+#> lsgA_Intercept 1.0000000 0.00000000 1.0000000 1.000000
+#> lsgB_Intercept 0.8888607 0.07421522 0.7434015 1.034320
+#> 
+#> , , lsgB_Intercept
+#> 
+#>                 Estimate  Est.Error      Q2.5     Q97.5
+#> muA_Intercept  0.6075702 0.18164903 0.2515447 0.9635958
+#> muB_Intercept  0.6769512 0.20973528 0.2658776 1.0880248
+#> lsgA_Intercept 0.8888607 0.07421522 0.7434015 1.0343199
+#> lsgB_Intercept 1.0000000 0.00000000 1.0000000 1.0000000
+#> 
+#> 
+#> $participant$cov
+#> , , muA_Intercept
+#> 
+#>                  Estimate   Est.Error          Q2.5      Q97.5
+#> muA_Intercept  0.01354835 0.007563743 -0.0012763161 0.02837301
+#> muB_Intercept  0.01327083 0.006293471  0.0009358565 0.02560581
+#> lsgA_Intercept 0.08091442 0.037294829  0.0078178972 0.15401094
+#> lsgB_Intercept 0.04182811 0.023082381 -0.0034125253 0.08706875
+#> 
+#> , , muB_Intercept
+#> 
+#>                  Estimate   Est.Error          Q2.5      Q97.5
+#> muA_Intercept  0.01327083 0.006293471  0.0009358565 0.02560581
+#> muB_Intercept  0.01444935 0.006116799  0.0024606451 0.02643806
+#> lsgA_Intercept 0.08812399 0.038341529  0.0129759748 0.16327201
+#> lsgB_Intercept 0.04812936 0.025573845 -0.0019944517 0.09825318
+#> 
+#> , , lsgA_Intercept
+#> 
+#>                  Estimate  Est.Error        Q2.5     Q97.5
+#> muA_Intercept  0.08091442 0.03729483 0.007817897 0.1540109
+#> muB_Intercept  0.08812399 0.03834153 0.012975975 0.1632720
+#> lsgA_Intercept 0.61234985 0.25615455 0.110296165 1.1144035
+#> lsgB_Intercept 0.41139792 0.19033764 0.038343001 0.7844528
+#> 
+#> , , lsgB_Intercept
+#> 
+#>                  Estimate  Est.Error         Q2.5      Q97.5
+#> muA_Intercept  0.04182811 0.02308238 -0.003412525 0.08706875
+#> muB_Intercept  0.04812936 0.02557384 -0.001994452 0.09825318
+#> lsgA_Intercept 0.41139792 0.19033764  0.038343001 0.78445284
+#> lsgB_Intercept 0.34983009 0.16914740  0.018307292 0.68135290
 ```
 
 The correlations are the part the per-participant analysis could not

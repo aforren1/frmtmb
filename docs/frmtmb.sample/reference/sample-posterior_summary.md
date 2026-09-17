@@ -13,9 +13,10 @@ the central interval alone, in rstantools' layout. Both work on a
 # S3 method for class 'frmtmb_draws'
 posterior_summary(
   x,
+  pars = NA,
+  variable = NULL,
   probs = c(0.025, 0.975),
   robust = FALSE,
-  variable = NULL,
   ...
 )
 
@@ -70,6 +71,19 @@ predictive_error(
   [`posterior_summary()`](https://paulbuerkner.com/brms/reference/posterior_summary.html),
   whose generic is brms's and names its first argument `x`.
 
+- pars:
+
+  brms's alias of `variable`, in brms's own second position on
+  `posterior_interval()`: `NA` (the default) for every variable,
+  otherwise a character vector matched as a regular expression unless
+  `fixed = TRUE`. brms refuses a `pars` that is neither `NA` nor
+  character, and so does this, which is why `posterior_interval(x, 0.9)`
+  is a refusal and not an interval.
+
+- variable:
+
+  Optional subset of variables, by name.
+
 - probs:
 
   Quantiles for
@@ -79,10 +93,6 @@ predictive_error(
 
   If `TRUE`, median and MAD instead of mean and SD.
 
-- variable:
-
-  Optional subset of variables, by name.
-
 - ...:
 
   Refused: an argument the method does not have is an error naming it,
@@ -91,15 +101,6 @@ predictive_error(
 - object:
 
   A `frmtmb_draws`, or a matrix of draws (variables in columns).
-
-- pars:
-
-  brms's alias of `variable`, in brms's own second position on
-  `posterior_interval()`: `NA` (the default) for every variable,
-  otherwise a character vector matched as a regular expression unless
-  `fixed = TRUE`. brms refuses a `pars` that is neither `NA` nor
-  character, and so does this, which is why `posterior_interval(x, 0.9)`
-  is a refusal and not an interval.
 
 - prob:
 
@@ -160,8 +161,8 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
   ds <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
                    data = dd, chains = 1, iter = 500, refresh = 0)
-  posterior_summary(ds, variable = c("Intercept", "x"))
-  posterior_interval(ds, prob = 0.9, variable = "x")
+  posterior_summary(ds, variable = c("b_Intercept", "b_x"))
+  posterior_interval(ds, prob = 0.9, variable = "b_x")
   head(predictive_interval(ds))
 }
 #> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)

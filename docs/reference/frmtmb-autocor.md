@@ -155,7 +155,8 @@ reports one row per parameter under brms's names - `ar[1]`, `ma[1]`,
 for the bounded ones, the identity for the coefficients of a
 higher-order AR/MA process).
 [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
-sees them as `ar1`, `ma1`, `cosy` and `cortime__<t1>__<t2>`.
+sees them under the same names, `ar[1]` included, which brms's renaming
+lets an expression carry.
 [`autocor_matrix()`](https://aforren1.github.io/frmtmb/reference/autocor_matrix.md)
 returns the fitted `R`. They are NOT part of
 [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md),

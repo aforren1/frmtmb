@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -459,13 +459,13 @@ group level (latent classes, combinable with random effects):</p>
 <code class="sourceCode R"><span><span class="va">mix</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mixture.html">mixture</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, groups <span class="op">=</span> <span class="op">~</span><span class="va">g</span><span class="op">)</span></span>
 <span><span class="va">dmix</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>y <span class="op">=</span> <span class="fl">0</span>, g <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">40</span>, each <span class="op">=</span> <span class="fl">5</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co"># frm_simulate() draws one class per GROUP here, which is what</span></span>
-<span><span class="co"># groups = ~g means; theta1 is the mixing predictor for the first</span></span>
-<span><span class="co"># component against an implicit zero for the second</span></span>
+<span><span class="co"># groups = ~g means; theta1 and theta2 are the mixing probabilities,</span></span>
+<span><span class="co"># brms's simplex, set together</span></span>
 <span><span class="va">dmix</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_simulate.html">frm_simulate</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span> <span class="va">mix</span>, <span class="va">dmix</span>,</span>
-<span>                       newparams <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>mu1_Intercept <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>,</span>
-<span>                                        mu2_Intercept <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>                       newparams <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>b_mu1_Intercept <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>,</span>
+<span>                                        b_mu2_Intercept <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>                                        sigma1 <span class="op">=</span> <span class="fl">0.8</span>, sigma2 <span class="op">=</span> <span class="fl">0.8</span>,</span>
-<span>                                        theta1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">0.6</span> <span class="op">/</span> <span class="fl">0.4</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                                        theta1 <span class="op">=</span> <span class="fl">0.6</span>, theta2 <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span>,</span>
 <span>                       nsim <span class="op">=</span> <span class="fl">1</span>, seed <span class="op">=</span> <span class="fl">4</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="va">fmix</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span> <span class="va">mix</span>, data <span class="op">=</span> <span class="va">dmix</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="../reference/mixture_probs.html">mixture_probs</a></span><span class="op">(</span><span class="va">fmix</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
@@ -478,15 +478,39 @@ group level (latent classes, combinable with random effects):</p>
 <h2 id="inference-beyond-wald">Inference beyond Wald<a class="anchor" aria-label="anchor" href="#inference-beyond-wald"></a>
 </h2>
 <p><code><a href="../reference/hypothesis.html">hypothesis()</a></code> tests arbitrary parameter expressions
-(Wald, profile, or parametric bootstrap), with natural-scale
-random-effect names:</p>
+(Wald, profile, or parametric bootstrap) and returns brms’s object. It
+uses brms’s names: <code>b_Days</code> for a coefficient, which brms’s
+default <code>class = "b"</code> lets you write <code>Days</code>, and
+natural-scale names such as <code>sd_Subject__Days</code>, which need
+<code>class = NULL</code>:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/hypothesis.html">hypothesis</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Hypothesis tests (method = wald)</span></span>
-<span><span class="co">#&gt;                                           hypothesis estimate      se      lwr</span></span>
-<span><span class="co">#&gt;  sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)  0.04753 0.01989 0.008539</span></span>
-<span><span class="co">#&gt;      upr     z       p</span></span>
-<span><span class="co">#&gt;  0.08652 2.389 0.01688</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/hypothesis.html">hypothesis</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"Days &gt; 5"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Hypothesis Tests for class b:</span></span>
+<span><span class="co">#&gt;       Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob Star</span></span>
+<span><span class="co">#&gt; 1 (Days)-(5) &gt; 0     5.47       1.5        3     7.94         NA        NA    *</span></span>
+<span><span class="co">#&gt; ---</span></span>
+<span><span class="co">#&gt; 'CI': 90%-CI for one-sided and 95%-CI for two-sided hypotheses.</span></span>
+<span><span class="co">#&gt; Method: wald. Est.Error is the standard error; Evid.Ratio and</span></span>
+<span><span class="co">#&gt; Post.Prob are NA, because a maximum-likelihood fit has no posterior.</span></span>
+<span><span class="co">#&gt; '*': For one-sided hypotheses, the one-sided test rejects at level 0.05;</span></span>
+<span><span class="co">#&gt; for two-sided hypotheses, the value tested against lies outside the 95%-CI.</span></span>
+<span><span class="co">#&gt;      Hypothesis     z         p</span></span>
+<span><span class="co">#&gt;  (Days)-(5) &gt; 0 3.639 0.0001366</span></span>
+<span><span class="fu"><a href="../reference/hypothesis.html">hypothesis</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2) = 0"</span>,</span>
+<span>           class <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Hypothesis Tests for class :</span></span>
+<span><span class="co">#&gt;                                              Hypothesis Estimate Est.Error</span></span>
+<span><span class="co">#&gt; 1 (sd_Subject__Days^2/(sd_Subject__Days^2+sigma^2)) = 0     0.05      0.02</span></span>
+<span><span class="co">#&gt;   CI.Lower CI.Upper Evid.Ratio Post.Prob Star</span></span>
+<span><span class="co">#&gt; 1     0.01     0.09         NA        NA    *</span></span>
+<span><span class="co">#&gt; ---</span></span>
+<span><span class="co">#&gt; 'CI': 90%-CI for one-sided and 95%-CI for two-sided hypotheses.</span></span>
+<span><span class="co">#&gt; Method: wald. Est.Error is the standard error; Evid.Ratio and</span></span>
+<span><span class="co">#&gt; Post.Prob are NA, because a maximum-likelihood fit has no posterior.</span></span>
+<span><span class="co">#&gt; '*': For one-sided hypotheses, the one-sided test rejects at level 0.05;</span></span>
+<span><span class="co">#&gt; for two-sided hypotheses, the value tested against lies outside the 95%-CI.</span></span>
+<span><span class="co">#&gt;                                             Hypothesis     z       p</span></span>
+<span><span class="co">#&gt;  (sd_Subject__Days^2/(sd_Subject__Days^2+sigma^2)) = 0 2.389 0.01688</span></span></code></pre></div>
 <p><code><a href="../reference/frm_bootstrap.html">frm_bootstrap()</a></code> runs a warm-started parametric
 bootstrap, and <code>confint(fit, method = "profile")</code> profiles
 single parameters.</p>
@@ -496,12 +520,12 @@ single parameters.</p>
 </h2>
 <p><code><a href="../reference/frm_simulate.html">frm_simulate()</a></code> builds a design from a formula and data,
 sets the parameters, and simulates responses - no fit needed. This is
-the power analysis loop: simulate, refit, count. Parameters take the
-same names <code><a href="../reference/hypothesis.html">hypothesis()</a></code> and <code><a href="../reference/variables.html">variables()</a></code> use,
-on their natural scales (coefficients on the link scale,
-<code>sigma</code> as a residual SD,
-<code>sd_&lt;group&gt;__&lt;term&gt;</code> as a standard
-deviation):</p>
+the power analysis loop: simulate, refit, count. Parameters take brms’s
+names, the strings <code><a href="../reference/variables.html">variables()</a></code> returns: <code>b_x</code>
+for a coefficient, on the link scale; <code>sigma</code> as a residual
+SD; and <code>sd_&lt;group&gt;__&lt;term&gt;</code> as a standard
+deviation. A bare name such as <code>x</code> is refused with its brms
+spelling:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">120</span><span class="op">)</span>, g <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">12</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span>, y <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
@@ -510,7 +534,7 @@ deviation):</p>
 <span><span class="co"># set.seed(1) restarts the same random stream that made x, and the</span></span>
 <span><span class="co"># residuals come out equal to the covariate.</span></span>
 <span><span class="va">sims</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_simulate.html">frm_simulate</a></span><span class="op">(</span><span class="va">form</span>, <span class="va">dd</span>, nsim <span class="op">=</span> <span class="fl">3</span>, seed <span class="op">=</span> <span class="fl">1001</span>,</span>
-<span>                     newparams <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>Intercept <span class="op">=</span> <span class="fl">1</span>, x <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>                     newparams <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>b_Intercept <span class="op">=</span> <span class="fl">1</span>, b_x <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>                                      sigma <span class="op">=</span> <span class="fl">0.6</span>,</span>
 <span>                                      sd_g__Intercept <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">sims</span>, max.level <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span>
@@ -529,12 +553,12 @@ outcomes:</p>
 <span>                     <span class="fu"><a href="../reference/set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"exponential(1)"</span>, class <span class="op">=</span> <span class="st">"sigma"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">pars</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">pp</span>, <span class="st">"pars"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">pars</span>, <span class="fl">3</span><span class="op">)</span></span>
-<span><span class="co">#&gt;            x Intercept sd_g__Intercept sigma_Intercept</span></span>
-<span><span class="co">#&gt; 1 -0.8969145  3.274092       0.1466527       1.7307097</span></span>
-<span><span class="co">#&gt; 2  1.2004947 -1.598512       0.2034451       0.7437466</span></span>
-<span><span class="co">#&gt; 3 -2.0074329  1.767528       0.4951322       0.1981281</span></span>
+<span><span class="co">#&gt;          b_x b_Intercept sd_g__Intercept     sigma</span></span>
+<span><span class="co">#&gt; 1 -0.8969145    3.274092       0.1466527 1.7307097</span></span>
+<span><span class="co">#&gt; 2  1.2004947   -1.598512       0.2034451 0.7437466</span></span>
+<span><span class="co">#&gt; 3 -2.0074329    1.767528       0.4951322 0.1981281</span></span>
 <span><span class="co"># does the prior imply plausible data? slope against outcome spread</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pars</span><span class="op">$</span><span class="va">x</span>, <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">pp</span>, <span class="fl">2</span>, <span class="va">sd</span><span class="op">)</span>, xlab <span class="op">=</span> <span class="st">"slope"</span>, ylab <span class="op">=</span> <span class="st">"sd(y)"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pars</span><span class="op">$</span><span class="va">b_x</span>, <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">pp</span>, <span class="fl">2</span>, <span class="va">sd</span><span class="op">)</span>, xlab <span class="op">=</span> <span class="st">"slope"</span>, ylab <span class="op">=</span> <span class="st">"sd(y)"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="frmtmb_files/figure-html/prior-pred-1.png" class="r-plt" alt="Scatter plot of the standard deviation of each simulated response set against the slope that generated it. The points form a U shape, because a larger slope of either sign spreads the outcome more." width="576"></p>
 <p>Every coefficient and every random-effect SD needs a value from
 <code>newparams</code> or a prior; leaving one out is an error rather

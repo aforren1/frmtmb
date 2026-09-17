@@ -28,7 +28,7 @@ mcmc_plot(
 )
 
 # S3 method for class 'frmtmb_draws'
-pairs(x, variable = NULL, ...)
+pairs(x, pars = NA, variable = NULL, regex = FALSE, fixed = FALSE, ...)
 
 nuts_params(object, ...)
 
@@ -85,20 +85,25 @@ neff_ratio(object, pars = NULL, regex = FALSE, ...)
 
   For `mcmc_plot()` and
   [`pairs()`](https://rdrr.io/r/graphics/pairs.html), the variables to
-  use, by name; it defaults to everything except the group-level modes
-  and `lp__`. `rhat()` and `neff_ratio()` do not take it, because brms's
-  do not: their selector is `pars`. Naming it on either of those two is
-  silently ignored today; see `...`.
+  use, by name; it defaults to everything except the group-level
+  coefficients and `lp__` (and to four of those for
+  [`pairs()`](https://rdrr.io/r/graphics/pairs.html)). `rhat()` and
+  `neff_ratio()` do not take it, because brms's do not: their selector
+  is `pars`. Naming it on either of those two is silently ignored today;
+  see `...`.
 
 - regex:
 
   For `rhat()` and `neff_ratio()`, `TRUE` makes `pars` a regular
-  expression; for `mcmc_plot()`, it makes `variable` one.
+  expression; for `mcmc_plot()` and
+  [`pairs()`](https://rdrr.io/r/graphics/pairs.html), it makes
+  `variable` one.
 
 - fixed:
 
-  For `mcmc_plot()`, `TRUE` matches `pars` by exact name rather than as
-  a regular expression.
+  For `mcmc_plot()` and
+  [`pairs()`](https://rdrr.io/r/graphics/pairs.html), `TRUE` matches
+  `pars` by exact name rather than as a regular expression.
 
 ## Value
 
@@ -107,9 +112,9 @@ returns.
 
 ## Details
 
-All of these report the frmtmb draws-side parameter names (no
-parentheses), not Stan's `par[1]`, except `nuts_params()`, whose rows
-are the sampler's own quantities and not model parameters.
+All of these report brms's parameter names (`b_x`, `r_g[1,Intercept]`),
+not Stan's `par[1]`, except `nuts_params()`, whose rows are the
+sampler's own quantities and not model parameters.
 
 ## Which R-hat this is
 
@@ -162,7 +167,7 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
   ds <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
                    data = dd, chains = 1, iter = 500, refresh = 0)
   mcmc_plot(ds)
-  mcmc_plot(ds, type = "trace", variable = "x")
+  mcmc_plot(ds, type = "trace", variable = "b_x")
   head(rhat(ds))
 }
 #> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
@@ -176,9 +181,9 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
 #> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
-#>       Intercept               x sigma_Intercept            b[1]            b[2] 
-#>        1.014249        1.010188        1.003701        1.012647        1.006744 
-#>            b[3] 
-#>        1.004775 
+#>      b_Intercept              b_x            sigma r_g[1,Intercept] 
+#>         1.014249         1.010188         1.003701         1.012647 
+#> r_g[2,Intercept] r_g[3,Intercept] 
+#>         1.006744         1.004775 
 # }
 ```

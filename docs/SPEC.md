@@ -467,7 +467,7 @@ does, and a prior object brms itself built is translated row by row,
 whether brms built it with
 [`prior()`](https://aforren1.github.io/frmtmb/reference/prior.md) or
 with
-[`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md):
+[`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md):
 a row applies whatever its `prior` string says, which is brms’s own
 rule. A prior is a PENALTY here, so the fit is MAP, not a posterior.
 Each row lands where brms puts it: a distributional parameter’s own

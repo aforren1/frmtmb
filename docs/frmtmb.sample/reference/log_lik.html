@@ -13,7 +13,7 @@ matrix, and frmtmb::loo(), frmtmb::waic() and loo::psis() take it directly."></h
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -71,6 +71,10 @@ matrix, and <code><a href="https://aforren1.github.io/frmtmb/reference/loo.html"
 <span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  ndraws <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  draw_ids <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  pointwise <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  combine <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  add_point_estimate <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  cores <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -107,6 +111,15 @@ matrix (default: all of them).</p></dd>
 <dt id="arg-draw-ids">draw_ids<a class="anchor" aria-label="anchor" href="#arg-draw-ids"></a></dt>
 <dd><p>The draws to use, by row index, instead of the
 evenly spaced subsample <code>ndraws</code> takes. Give one or the other.</p></dd>
+
+
+<dt id="arg-pointwise-combine-add-point-estimate-cores">pointwise, combine, add_point_estimate, cores<a class="anchor" aria-label="anchor" href="#arg-pointwise-combine-add-point-estimate-cores"></a></dt>
+<dd><p>brms's slots, in
+brms's positions. <code>pointwise = TRUE</code> (brms's function of one
+observation) and <code>add_point_estimate = TRUE</code> are refused by name;
+<code>combine = FALSE</code> is accepted on a univariate model, where there is
+nothing to combine; <code>cores</code> is accepted and unused, because the
+matrix is built in this process.</p></dd>
 
 </dl></div>
     <div class="section level2">

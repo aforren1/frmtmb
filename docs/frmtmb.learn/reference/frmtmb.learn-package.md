@@ -125,8 +125,8 @@ family. Measured on
 
 A COLLAPSED DATASET IS NOT A SHORT-SESSION PROBLEM. One of the six at
 100 trials has it too, and reports the same spurious +1.822 as the five
-at 20 trials do. Check `sqrt(VarCorr(fit))` on the Laplace fit at every
-trial count, not only short ones.
+at 20 trials do. Check `VarCorr(fit)` on the Laplace fit at every trial
+count, not only short ones.
 
 - at 100 trials, on the three of six datasets whose variance component
   is identified, the correction moves it UP by 0.11 to 0.18 log units
@@ -153,7 +153,7 @@ number is not an estimate that more iterations would sharpen. Read
 `fit$importance$capped` and `$moves` first, and if the moves are all
 equal, treat the correction as declining rather than answering.
 
-So check `sqrt(VarCorr(fit))` on the Laplace fit before believing a
+So check `VarCorr(fit)` on the Laplace fit before believing a
 correction, and read the warning if there is one.
 
 The correction requires the model to be grouped on the family's own

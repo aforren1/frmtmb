@@ -59,14 +59,18 @@ Two cautions when porting a link:
   the Stan form, because that is the likelihood a brms fit was actually
   computed with.
 
-The ordinal families are the one place the roster is narrower:
-[`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+The ordinal families take brms’s sets:
+[`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+takes `logit`, `probit`, `probit_approx`, `cloglog`, `cauchit` and
+`softit`, and
 [`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
 and
 [`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
-take `logit` and `probit` only, and
+take the same without `softit`.
 [`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
-takes `logit` only.
+is the one place the roster is narrower. It takes `logit` only, because
+brms computes acat off the logit from a second density that frmtmb has
+not written.
 
 ## What changes
 
@@ -95,6 +99,26 @@ takes `logit` only.
   honored. Earlier releases keyed the decision on the table’s `source`
   column, which brms does not update after such an edit, so the edited
   row was dropped.
+
+  The prior surface has brms’s names.
+  [`default_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+  is the table of slots, and
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+  is its alias, as in brms.
+  [`validate_prior()`](https://aforren1.github.io/frmtmb/reference/validate_prior.md)
+  checks a prior against the model and returns that table with the prior
+  filled in; `frm(prior = )` takes the result, and so does a
+  [`default_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+  table edited in place.
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  takes vectors, `set_prior("normal(0, 2)", class = c("b", "sd"))`, and
+  a prior object prints as `b ~ normal(0, 2)`.
+  [`empty_prior()`](https://aforren1.github.io/frmtmb/reference/empty_prior.md)
+  and
+  [`as.brmsprior()`](https://aforren1.github.io/frmtmb/reference/as.brmsprior.md)
+  exist too. The prior object itself is not a brms `brmsprior`: it holds
+  parsed densities, and `pr$class` and the other brms columns are read
+  from it.
 
   What the fit MEANS changes. `frm(prior = )` is MAP: the density is a
   PENALTY on the likelihood and the answer is one mode, not a posterior,
@@ -177,7 +201,7 @@ takes `logit` only.
   every standard deviation of the block.
 
   Because rows now apply, such a row in a
-  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
   table stops the call where it used to be dropped in silence: on a
   model with `s()`, `gp()`, `mo()` or `car()`, blank that row or write
   the frmtmb class the message names. Every refused row of a table is
@@ -246,13 +270,16 @@ takes `logit` only.
   fits are ML: expect multimodality, compare starts
   ([`frm_allfit()`](https://aforren1.github.io/frmtmb/reference/frm_allfit.md)).
 
-- [`binomial()`](https://rdrr.io/r/stats/family.html) without `trials()`
-  is accepted and means Bernoulli, the
-  [`stats::glm()`](https://rdrr.io/r/stats/glm.html) convention; brms
-  rejects it and asks for `trials()` or
-  [`bernoulli()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md).
-  The divergence is permissive, so brms code ports unchanged, but frmtmb
-  code written this way does not port back.
+- [`binomial()`](https://rdrr.io/r/stats/family.html),
+  [`beta_binomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  and
+  [`zero_inflated_binomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  without `trials()` are refused, as in brms, with brms’s message. A 0/1
+  response takes
+  [`bernoulli()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  or `y | trials(1)`; the
+  [`stats::glm()`](https://rdrr.io/r/stats/glm.html) convention of one
+  implicit trial does not carry over.
 
 - [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`, `arma()`, `cosy()`
   and `unstr()` are supported in their covariance form only; see the
@@ -293,7 +320,7 @@ takes `logit` only.
   means. frmtmb says this ONCE per session, the first time a model it is
   given combines a discrete family with right or interval censoring. It
   comes from frame assembly, so
-  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
   on such a model spends the notice and the fit that follows is silent.
   [`suppressMessages()`](https://rdrr.io/r/base/message.html) silences
   that one call and `options(frmtmb.notices = FALSE)` silences the
@@ -592,7 +619,17 @@ what a standard generic returns:
   [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md),
   [`ngrps()`](https://aforren1.github.io/frmtmb/reference/ngrps.md),
   [`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
-  (the usable parameter names, e.g. `sd_Subject__Days`).
+  (brms’s parameter names, e.g. `b_Days` and `sd_Subject__Days`).
+  [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
+  and
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  return brms’s structures, with the estimate and its standard error in
+  the columns brms fills from draws;
+  [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md),
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md) and
+  [`coef()`](https://rdrr.io/r/stats/coef.html) take brms’s `summary`,
+  `robust` and `probs` in brms’s positions and refuse `summary = FALSE`
+  by name, because a fit has no draws to return.
 - stats-origin generics return stats-shaped values, not brms-shaped
   ones: [`predict()`](https://rdrr.io/r/stats/predict.html) returns a
   vector (with `se.fit = TRUE`, a list), not a draws matrix with

@@ -41,9 +41,9 @@ The three scales are:
 | [`simulate()`](https://rdrr.io/r/stats/simulate.html) | draws of the outcome | response |
 | [`coef()`](https://rdrr.io/r/stats/coef.html), [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md), [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md) | coefficients, modes | link, per dpar |
 | [`confint()`](https://rdrr.io/r/stats/confint.html), [`vcov()`](https://rdrr.io/r/stats/vcov.html), [`summary()`](https://rdrr.io/r/base/summary.html) | the same | link, per dpar |
-| [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md) | covariance of a predictor | link, per dpar |
+| [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md) | SDs and correlations of a predictor | link, per dpar |
 | [`sigma()`](https://rdrr.io/r/stats/sigma.html) | the residual SD, `NA` if it varies by row | response |
-| [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md) | `estimate` and its interval | link, per dpar |
+| [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md) | `Estimate` and its interval | link, per dpar |
 | [`posterior_summary()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.md) | a summary of a draws MATRIX | that matrix's own |
 | [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md) | the outcome against replicates | response |
 | [`bayes_R2()`](https://aforren1.github.io/frmtmb/reference/bayes_R2.md) | refuses on a `frmtmb_fit` | neither |

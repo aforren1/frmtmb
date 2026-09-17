@@ -109,7 +109,7 @@ cl[abs(cl$z_shift) > 0.3 | cl$sd_ratio > 1.3, ]
 #> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
-#> check_laplace(): the chain mixed too poorly to judge the approximation (bulk ESS under 100 for Intercept, theta_1). Rerun with more iterations before reading z_shift or sd_ratio
+#> check_laplace(): the chain mixed too poorly to judge the approximation (bulk ESS under 100 for b_Intercept, theta_1). Rerun with more iterations before reading z_shift or sd_ratio
 #> [1] parameter ml        post_mean wald_se   post_sd   z_shift   sd_ratio 
 #> [8] ess_bulk 
 #> <0 rows> (or 0-length row.names)

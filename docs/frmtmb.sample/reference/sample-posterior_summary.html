@@ -17,7 +17,7 @@ posterior_summary(bayes_R2(ds, summary = FALSE)) work."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -70,9 +70,10 @@ matrix of draws, which is what makes
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
 <span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/posterior_summary.html" class="external-link">posterior_summary</a></span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
+<span>  pars <span class="op">=</span> <span class="cn">NA</span>,</span>
+<span>  variable <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  probs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.025</span>, <span class="fl">0.975</span><span class="op">)</span>,</span>
 <span>  robust <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  variable <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -128,16 +129,25 @@ matrix of draws, which is what makes
 is brms's and names its first argument <code>x</code>.</p></dd>
 
 
+<dt id="arg-pars">pars<a class="anchor" aria-label="anchor" href="#arg-pars"></a></dt>
+<dd><p>brms's alias of <code>variable</code>, in brms's own second
+position on <code>posterior_interval()</code>: <code>NA</code> (the default) for every
+variable, otherwise a character vector matched as a regular
+expression unless <code>fixed = TRUE</code>. brms refuses a <code>pars</code> that is
+neither <code>NA</code> nor character, and so does this, which is why
+<code>posterior_interval(x, 0.9)</code> is a refusal and not an interval.</p></dd>
+
+
+<dt id="arg-variable">variable<a class="anchor" aria-label="anchor" href="#arg-variable"></a></dt>
+<dd><p>Optional subset of variables, by name.</p></dd>
+
+
 <dt id="arg-probs">probs<a class="anchor" aria-label="anchor" href="#arg-probs"></a></dt>
 <dd><p>Quantiles for <code><a href="https://paulbuerkner.com/brms/reference/posterior_summary.html" class="external-link">posterior_summary()</a></code>.</p></dd>
 
 
 <dt id="arg-robust">robust<a class="anchor" aria-label="anchor" href="#arg-robust"></a></dt>
 <dd><p>If <code>TRUE</code>, median and MAD instead of mean and SD.</p></dd>
-
-
-<dt id="arg-variable">variable<a class="anchor" aria-label="anchor" href="#arg-variable"></a></dt>
-<dd><p>Optional subset of variables, by name.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -148,15 +158,6 @@ error naming it, rather than silently changing nothing.</p></dd>
 <dt id="arg-object">object<a class="anchor" aria-label="anchor" href="#arg-object"></a></dt>
 <dd><p>A <code>frmtmb_draws</code>, or a matrix of draws
 (variables in columns).</p></dd>
-
-
-<dt id="arg-pars">pars<a class="anchor" aria-label="anchor" href="#arg-pars"></a></dt>
-<dd><p>brms's alias of <code>variable</code>, in brms's own second
-position on <code>posterior_interval()</code>: <code>NA</code> (the default) for every
-variable, otherwise a character vector matched as a regular
-expression unless <code>fixed = TRUE</code>. brms refuses a <code>pars</code> that is
-neither <code>NA</code> nor character, and so does this, which is why
-<code>posterior_interval(x, 0.9)</code> is a refusal and not an interval.</p></dd>
 
 
 <dt id="arg-prob">prob<a class="anchor" aria-label="anchor" href="#arg-prob"></a></dt>
@@ -216,8 +217,8 @@ of predictive residuals <code>y - yrep</code>, one row per draw.</p>
 <span class="r-in"><span>  <span class="va">dd</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">60</span>, <span class="fl">1</span> <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">6</span>, <span class="fl">0</span>, <span class="fl">0.5</span><span class="op">)</span><span class="op">[</span><span class="va">dd</span><span class="op">$</span><span class="va">g</span><span class="op">]</span>, <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                   data <span class="op">=</span> <span class="va">dd</span>, chains <span class="op">=</span> <span class="fl">1</span>, iter <span class="op">=</span> <span class="fl">500</span>, refresh <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://paulbuerkner.com/brms/reference/posterior_summary.html" class="external-link">posterior_summary</a></span><span class="op">(</span><span class="va">ds</span>, variable <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Intercept"</span>, <span class="st">"x"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="fu">posterior_interval</span><span class="op">(</span><span class="va">ds</span>, prob <span class="op">=</span> <span class="fl">0.9</span>, variable <span class="op">=</span> <span class="st">"x"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://paulbuerkner.com/brms/reference/posterior_summary.html" class="external-link">posterior_summary</a></span><span class="op">(</span><span class="va">ds</span>, variable <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"b_Intercept"</span>, <span class="st">"b_x"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="fu">posterior_interval</span><span class="op">(</span><span class="va">ds</span>, prob <span class="op">=</span> <span class="fl">0.9</span>, variable <span class="op">=</span> <span class="st">"b_x"</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">predictive_interval</span><span class="op">(</span><span class="va">ds</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)</span>

@@ -59,17 +59,18 @@ accept a `brmsprior` object and translate its rows, so
 ``` r
 # the brms nonlinear vignette's spelling
 prior(normal(5000, 1000), nlpar = "ult")
-#> normal(5000, 1000) class=b nlpar=ult
+#> b_ult ~ normal(5000, 1000)
 
 # combine with c() or `+`, as with set_prior()
 c(prior(normal(1, 2), nlpar = "omega"),
   prior(normal(45, 10), nlpar = "theta"))
-#> normal(1, 2) class=b nlpar=omega
-#> normal(45, 10) class=b nlpar=theta
+#>           prior class coef group resp dpar nlpar   lb   ub source
+#>    normal(1, 2)     b                      omega <NA> <NA>   user
+#>  normal(45, 10)     b                      theta <NA> <NA>   user
 
 # the programmatic spellings
 prior_(~normal(0, 10), class = ~b)
-#> normal(0, 10) class=b
+#> b ~ normal(0, 10)
 prior_string(paste0("normal(0, ", 2 * 5, ")"), class = "b")
-#> normal(0, 10) class=b
+#> b ~ normal(0, 10)
 ```

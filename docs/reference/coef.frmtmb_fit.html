@@ -13,7 +13,7 @@ matching columns. Use fixef() for the fixed effects alone."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -78,7 +78,7 @@ matching columns. Use <code><a href="fixef.html">fixef()</a></code> for the fixe
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># S3 method for class 'frmtmb_fit'</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">object</span>, summary <span class="op">=</span> <span class="cn">TRUE</span>, robust <span class="op">=</span> <span class="cn">FALSE</span>, probs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.025</span>, <span class="fl">0.975</span><span class="op">)</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -87,6 +87,15 @@ matching columns. Use <code><a href="fixef.html">fixef()</a></code> for the fixe
 
 <dl><dt id="arg-object">object<a class="anchor" aria-label="anchor" href="#arg-object"></a></dt>
 <dd><p>A <code>frmtmb_fit</code>.</p></dd>
+
+
+<dt id="arg-summary-robust-probs">summary, robust, probs<a class="anchor" aria-label="anchor" href="#arg-summary-robust-probs"></a></dt>
+<dd><p>brms's arguments, in brms's
+positions so that a positional brms call asks the same question.
+brms answers <code>summary = FALSE</code> with the posterior draws and
+<code>robust = TRUE</code> with their median and MAD, and a maximum-likelihood
+fit has no draws, so both are refused by name with the reason. The
+default of each is accepted and changes nothing.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>

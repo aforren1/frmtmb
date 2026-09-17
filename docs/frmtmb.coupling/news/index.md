@@ -1,5 +1,11 @@
 # Changelog
 
+## frmtmb.coupling 0.3.2
+
+- Requires frmtmb 0.59.0.
+- Tests follow frmtmb 0.59.0’s `VarCorr()` structure, through
+  `varcorr_matrices()`.
+
 ## frmtmb.coupling 0.3.1
 
 - **A within-subject contrast needs `(1 | id:cond)`, and without it the

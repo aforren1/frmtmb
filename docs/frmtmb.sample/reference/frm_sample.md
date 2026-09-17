@@ -77,9 +77,15 @@ frm_sample(
   this argument, and a MAP fit's own prior, leave alone (see Default
   priors), and `prior = "flat"` opts out of them entirely. A `brmsprior`
   object built by brms's own `prior()` is translated row by row. The
-  argument takes brms's spelling, `prior`; the `priors` of releases
-  before 0.43 is gone rather than aliased, and because this function's
-  `...` would otherwise swallow it, the old name is refused by name.
+  argument takes brms's spelling, `prior`. On a fit that carries its own
+  prior, a specification here for a slot the fit's prior also names (the
+  same class, coef, group, resp, dpar and nlpar) REPLACES the stored
+  one, as brms's `update(prior = )` replaces a row; it is not refused as
+  a duplicate, and specifications for other slots stack with the stored
+  ones, the more specific applying. Two specifications for one slot
+  within this argument are refused. The `priors` of releases before 0.43
+  is gone rather than aliased, and because this function's `...` would
+  otherwise swallow it, the old name is refused by name.
 
 - init:
 
@@ -237,8 +243,8 @@ it.
 `reparameterize = TRUE` (the default) samples `z ~ N(0, I)` instead and
 computes `b = L(theta) z` on the tape, with `L` the block's own Cholesky
 factor, which is brms's construction. Each draw is mapped back through
-ITS OWN `theta`, so the `b[i]` columns of the draws matrix hold the same
-quantity in the same order under the same names as
+ITS OWN `theta`, so the random-effect columns of the draws matrix hold
+the same quantity in the same order under the same names as
 `reparameterize = FALSE` gives, and every method downstream
 ([`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
 [`frmtmb::ranef()`](https://rdrr.io/pkg/nlme/man/random.effects.html),
@@ -506,7 +512,8 @@ fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0)
 summary(ds)
 fixef(ds)
-hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)")
+hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0",
+           class = NULL)
 
 # the same model sampled straight from the formula, with no ML fit.
 # It reports the brms default priors it chose, and prior_summary()
@@ -534,6 +541,8 @@ prior_summary(ds3)
 #> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
+#> Warning: hypothesis(): no evidence ratio for 1 of 1 point hypothesis. A Savage-Dickey ratio divides the posterior density at the tested point by the PRIOR density there, and
+#>   sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0: it names sd_g__Intercept, sigma, which is not a population-level coefficient. A standard deviation, a correlation and a dispersion have their prior on the internal parameter with a change of variables in between, and a group-level coefficient has the group's distribution rather than a prior of its own, so neither density is the prior density of the tested quantity
 #> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
 #>   Intercept          student_t(3, 1, 2.5)
 #>   sigma              student_t(3, 0, 2.5)  [natural scale]
@@ -558,8 +567,9 @@ prior_summary(ds3)
 #> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
-#> student_t(3, 1, 2.5) class=Intercept
-#> student_t(3, 0, 2.5) class=sigma scale=natural
-#> exponential(1) class=sd
+#>                 prior     class coef group resp dpar nlpar   lb   ub source
+#>  student_t(3, 1, 2.5) Intercept                            <NA> <NA>   user
+#>  student_t(3, 0, 2.5)     sigma                            <NA> <NA>   user
+#>        exponential(1)        sd                            <NA> <NA>   user
 # }
 ```

@@ -110,8 +110,46 @@ bf(y1 ~ x) + bf(y2 ~ x)
 fit_id <- frm(mvbf(bf(y1 ~ x + (1 | p | g)), bf(y2 ~ x + (1 | p | g))) +
                 gaussian(), data = dd)
 VarCorr(fit_id)
-#>   y1 1 | g + y2 1 | g [ID] 
-#>               Name Std.Dev. y1.mu:(Intercept)
-#>  y1.mu:(Intercept)  0.86060                  
-#>  y2.mu:(Intercept)  0.61112             0.599
+#> $g
+#> $g$sd
+#>               Estimate Est.Error      Q2.5    Q97.5
+#> y1_Intercept 0.8606044 0.1732261 0.5210875 1.200121
+#> y2_Intercept 0.6111245 0.1438907 0.3291040 0.893145
+#> 
+#> $g$cor
+#> , , y1_Intercept
+#> 
+#>               Estimate Est.Error      Q2.5    Q97.5
+#> y1_Intercept 1.0000000 0.0000000 1.0000000 1.000000
+#> y2_Intercept 0.5987236 0.2196369 0.1682431 1.029204
+#> 
+#> , , y2_Intercept
+#> 
+#>               Estimate Est.Error      Q2.5    Q97.5
+#> y1_Intercept 0.5987236 0.2196369 0.1682431 1.029204
+#> y2_Intercept 1.0000000 0.0000000 1.0000000 1.000000
+#> 
+#> 
+#> $g$cov
+#> , , y1_Intercept
+#> 
+#>               Estimate Est.Error        Q2.5     Q97.5
+#> y1_Intercept 0.7406399 0.2981582  0.15626049 1.3250193
+#> y2_Intercept 0.3148905 0.1797248 -0.03736366 0.6671447
+#> 
+#> , , y2_Intercept
+#> 
+#>               Estimate Est.Error        Q2.5     Q97.5
+#> y1_Intercept 0.3148905 0.1797248 -0.03736366 0.6671447
+#> y2_Intercept 0.3734732 0.1758702  0.02877383 0.7181725
+#> 
+#> 
+#> 
+#> $residual__
+#> $residual__$sd
+#>     Estimate  Est.Error      Q2.5    Q97.5
+#> y1 0.9987735 0.05886056 0.8834089 1.114138
+#> y2 1.0927242 0.06440943 0.9664841 1.218964
+#> 
+#> 
 ```

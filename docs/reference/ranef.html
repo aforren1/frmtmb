@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -69,7 +69,16 @@
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># S3 method for class 'frmtmb_fit'</span></span>
-<span><span class="fu">ranef</span><span class="op">(</span><span class="va">object</span>, condVar <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">ranef</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  summary <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  robust <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  probs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.025</span>, <span class="fl">0.975</span><span class="op">)</span>,</span>
+<span>  pars <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  groups <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  <span class="va">...</span>,</span>
+<span>  condVar <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -80,15 +89,24 @@
 <dd><p>A <code>frmtmb_fit</code>.</p></dd>
 
 
-<dt id="arg-condvar">condVar<a class="anchor" aria-label="anchor" href="#arg-condvar"></a></dt>
-<dd><p>If <code>TRUE</code>, attach the conditional SDs of the modes
-(from the Laplace posterior) as a <code>"condSD"</code> attribute on each
-matrix, in matching layout.</p></dd>
+<dt id="arg-summary-robust-probs-pars-groups">summary, robust, probs, pars, groups<a class="anchor" aria-label="anchor" href="#arg-summary-robust-probs-pars-groups"></a></dt>
+<dd><p>brms's arguments, in brms's
+positions so that a positional brms call asks the same question.
+brms answers <code>summary = FALSE</code> with the posterior draws and
+<code>robust = TRUE</code> with their median and MAD, and a maximum-likelihood
+fit has no draws, so both are refused by name with the reason. The
+default of each is accepted and changes nothing.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Refused: an argument the method does not have is an
 error naming it, rather than silently changing nothing.</p></dd>
+
+
+<dt id="arg-condvar">condVar<a class="anchor" aria-label="anchor" href="#arg-condvar"></a></dt>
+<dd><p>If <code>TRUE</code>, attach the conditional SDs of the modes
+(from the Laplace posterior) as a <code>"condSD"</code> attribute on each
+matrix, in matching layout.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -97,8 +115,8 @@ error naming it, rather than silently changing nothing.</p></dd>
 random-effect term, KEYED BY THE GROUPING FACTOR as brms and lme4
 key it (so <code>ranef(fit)$g</code> and <code>coef(fit)$g</code> name the same group).
 Each matrix carries its block label in a <code>"term"</code> attribute, which
-is also the key <code><a href="VarCorr.html">VarCorr()</a></code> uses and the <code>grp</code> column of
-<code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code>. That long form (with a <code>condsd</code> column when
+is also the <code>grp</code> column of <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code>. That long form
+(with a <code>condsd</code> column when
 <code>condVar = TRUE</code> was used) is what broom.mixed-style code reads.</p>
 <p>Several terms on ONE grouping factor give several entries under one
 name, and <code>$</code> and <code>[[</code> then take the block label instead:

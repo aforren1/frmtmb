@@ -66,7 +66,7 @@ where they take over exactly the parameters they name and leave the rest
 of the prior stack in place.
 [`par_template()`](https://aforren1.github.io/frmtmb/reference/par_template.md)
 and
-[`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+[`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
 name the addressable slots.
 
 ## See also

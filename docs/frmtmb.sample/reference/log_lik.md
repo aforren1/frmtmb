@@ -22,6 +22,10 @@ log_lik(
   resp = NULL,
   ndraws = NULL,
   draw_ids = NULL,
+  pointwise = FALSE,
+  combine = TRUE,
+  add_point_estimate = FALSE,
+  cores = NULL,
   ...
 )
 ```
@@ -58,6 +62,14 @@ log_lik(
 
   The draws to use, by row index, instead of the evenly spaced subsample
   `ndraws` takes. Give one or the other.
+
+- pointwise, combine, add_point_estimate, cores:
+
+  brms's slots, in brms's positions. `pointwise = TRUE` (brms's function
+  of one observation) and `add_point_estimate = TRUE` are refused by
+  name; `combine = FALSE` is accepted on a univariate model, where there
+  is nothing to combine; `cores` is accepted and unused, because the
+  matrix is built in this process.
 
 ## Value
 

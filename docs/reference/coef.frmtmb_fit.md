@@ -11,7 +11,7 @@ the fixed effects alone.
 
 ``` r
 # S3 method for class 'frmtmb_fit'
-coef(object, ...)
+coef(object, summary = TRUE, robust = FALSE, probs = c(0.025, 0.975), ...)
 ```
 
 ## Arguments
@@ -19,6 +19,14 @@ coef(object, ...)
 - object:
 
   A `frmtmb_fit`.
+
+- summary, robust, probs:
+
+  brms's arguments, in brms's positions so that a positional brms call
+  asks the same question. brms answers `summary = FALSE` with the
+  posterior draws and `robust = TRUE` with their median and MAD, and a
+  maximum-likelihood fit has no draws, so both are refused by name with
+  the reason. The default of each is accepted and changes nothing.
 
 - ...:
 

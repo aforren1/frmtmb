@@ -16,7 +16,7 @@ samples the wrong density in silence (the last section says how).
 Numbers that depend on which Stan the page was built against are worse
 than no numbers. The two chunks that need no sampler do run: the setup
 below, and the
-[`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.html)
+[`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.html)
 calls under **The default priors**.
 
 ``` r
@@ -63,7 +63,7 @@ on matched models. The call reports what it chose, one line per class,
 and one line per slot it deliberately left flat, so a model that gets
 few defaults says so rather than looking flat by accident.
 
-[`frmtmb::get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.html)
+[`frmtmb::get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.html)
 reports them too, when you ask for this route. It has two routes,
 because frmtmb has two: `route = "fit"` is the default and reports what
 [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html) applies,
@@ -76,15 +76,15 @@ applies, and this package is what lets it answer.
 # what frm() applies. Loading this package does not change it
 get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 #> route = "fit": the prior defaults frm() applies
-#>    prior     class    coef group dpar nlpar resp lb ub
-#> 1 (flat) Intercept                               NA NA
-#> 2 (flat)         b                               NA NA
-#> 3 (flat)         b       x                       NA NA
-#> 4 (flat)     sigma                               NA NA
-#> 5 (flat)        sd                               NA NA
-#> 6 (flat)        sd             g                 NA NA
-#> 7 (flat)     theta                               NA NA
-#> 8 (flat)     theta theta_1                       NA NA
+#>    prior     class    coef group resp dpar nlpar lb ub  source
+#> 1 (flat) Intercept                               NA NA default
+#> 2 (flat)         b                               NA NA default
+#> 3 (flat)         b       x                       NA NA default
+#> 4 (flat)     sigma                               NA NA default
+#> 5 (flat)        sd                               NA NA default
+#> 6 (flat)        sd             g                 NA NA default
+#> 7 (flat)     theta                               NA NA default
+#> 8 (flat)     theta theta_1                       NA NA default
 
 # what frm_sample() applies, which is the brms reading of get_prior().
 # Without this package loaded, the call is refused rather than
@@ -92,15 +92,15 @@ get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
           route = "sample")
 #> route = "sample": the prior defaults frm_sample() applies
-#>                  prior     class    coef group dpar nlpar resp lb ub
-#> 1 student_t(3, 1, 2.5) Intercept                               NA NA
-#> 2               (flat)         b                               NA NA
-#> 3               (flat)         b       x                       NA NA
-#> 4 student_t(3, 0, 2.5)     sigma                               NA NA
-#> 5 student_t(3, 0, 2.5)        sd                               NA NA
-#> 6 student_t(3, 0, 2.5)        sd             g                 NA NA
-#> 7               (flat)     theta                               NA NA
-#> 8               (flat)     theta theta_1                       NA NA
+#>                  prior     class    coef group resp dpar nlpar lb ub  source
+#> 1 student_t(3, 1, 2.5) Intercept                               NA NA default
+#> 2               (flat)         b                               NA NA default
+#> 3               (flat)         b       x                       NA NA default
+#> 4 student_t(3, 0, 2.5)     sigma                               NA NA default
+#> 5 student_t(3, 0, 2.5)        sd                               NA NA default
+#> 6 student_t(3, 0, 2.5)        sd             g                 NA NA default
+#> 7               (flat)     theta                               NA NA default
+#> 8               (flat)     theta theta_1                       NA NA default
 ```
 
 The printed table names its route on the first line, so a table copied
@@ -177,7 +177,8 @@ the same generics:
 
 fixef(ds); ranef(ds); VarCorr(ds)
 posterior_epred(ds); posterior_predict(ds); posterior_linpred(ds)
-hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)")
+hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0",
+           class = NULL)
 conditional_effects(ds)
 pp_check(ds)
 log_lik(ds); loo(ds); waic(ds); bayes_R2(ds)
@@ -185,10 +186,10 @@ as_draws(ds); as.array(ds); as.mcmc(ds)
 mcmc_plot(ds, type = "trace")
 ```
 
-Parameter names drop parentheses on the draws side – `Intercept`, not
-`(Intercept)` – because that is the vocabulary posterior, bayesplot and
-[`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)
-already speak. `variables(ds)` lists them.
+Parameter names are brms’s: `b_Intercept`, `b_x`, `r_g[1,Intercept]`. A
+log standard deviation brms does not sample keeps the name
+[`confint()`](https://rdrr.io/r/stats/confint.html) gives it on the fit,
+`theta_1`. `variables(ds)` lists them all.
 
 ## Conditional effects draw the frame the fit draws
 
@@ -197,9 +198,9 @@ returns: the same columns in the same order, the same grid, the same
 keys, and the same attributes brms’s
 [`plot()`](https://rdrr.io/r/graphics/plot.default.html) reads. What
 differs is where the band comes from. The curves are posterior
-expected-response draws, so `estimate__` is their mean and `lower__` and
-`upper__` are their percentiles, and `attr(df, "band")` reads
-`"posterior"`.
+expected-response draws, so `estimate__` is their median (their mean
+with `robust = FALSE`, brms’s switch) and `lower__` and `upper__` are
+their percentiles, and `attr(df, "band")` reads `"posterior"`.
 
 The default display is the EXPECTED RESPONSE, not the `mu` predictor. On
 a zero-inflated or hurdle family, a mixture, or a
@@ -233,9 +234,9 @@ over a grid you build yourself.
 ## Evidence ratios and Bayes factors
 
 [`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)
-reports `evid_ratio` and `post_prob` beside the interval. They are
-brms’s `Evid.Ratio` and `Post.Prob`, and they answer two different
-questions depending on how the hypothesis is written.
+returns brms’s object, and its `hypothesis` frame reports brms’s
+`Evid.Ratio` and `Post.Prob` beside the interval. They answer two
+different questions depending on how the hypothesis is written.
 
 A DIRECTIONAL hypothesis is the simple one. Its evidence ratio is the
 posterior odds of the claim, counted from the draws. No prior enters it,
@@ -244,8 +245,8 @@ so it is always available.
 ``` r
 
 h <- hypothesis(ds, "x > 0")
-h$evid_ratio   # P(x > 0) / P(x < 0)
-h$post_prob    # P(x > 0)
+h$hypothesis$Evid.Ratio   # P(x > 0) / P(x < 0)
+h$hypothesis$Post.Prob    # P(x > 0)
 ```
 
 A POINT hypothesis is the Savage-Dickey density ratio: the posterior
@@ -258,7 +259,7 @@ leaves class `"b"` flat by default because brms does, so write one:
 ``` r
 
 ds <- frm_sample(fit, prior = set_prior("normal(0, 1)", class = "b"))
-hypothesis(ds, "x = 0")$evid_ratio
+hypothesis(ds, "x = 0")$hypothesis$Evid.Ratio
 ```
 
 Without a proper prior the ratio is `NA` and a warning names the
@@ -286,7 +287,7 @@ attr(h, "evid_ratio_mcse")
 ### What a point ratio refuses
 
 Each refusal names the parameter and its own reason, and leaves that
-row’s `evid_ratio` at `NA`:
+row’s `Evid.Ratio` at `NA`:
 
 - the parameter has no proper prior. Write one and resample.
 - the hypothesis names a variance component or a correlation. Their

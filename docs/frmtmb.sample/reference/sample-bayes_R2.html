@@ -23,7 +23,7 @@ Monte Carlo error on the same model."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -81,9 +81,10 @@ Monte Carlo error on the same model.</p>
 <span>  <span class="va">object</span>,</span>
 <span>  resp <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  summary <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  robust <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  probs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.025</span>, <span class="fl">0.975</span><span class="op">)</span>,</span>
-<span>  ndraws <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  <span class="va">...</span></span>
+<span>  <span class="va">...</span>,</span>
+<span>  ndraws <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -96,26 +97,34 @@ Monte Carlo error on the same model.</p>
 
 
 <dt id="arg-resp">resp<a class="anchor" aria-label="anchor" href="#arg-resp"></a></dt>
-<dd><p>For a multivariate model, which response.</p></dd>
+<dd><p>For a multivariate model, which responses, in brms's
+spelling (<code>ya</code> for a column <code>y_a</code>). <code>NULL</code>, the default, is every
+response, one <code>R2&lt;resp&gt;</code> column each, as in brms.</p></dd>
 
 
 <dt id="arg-summary">summary<a class="anchor" aria-label="anchor" href="#arg-summary"></a></dt>
 <dd><p>If <code>TRUE</code> (the default, as in brms), summarize the
 draws into estimate, error and quantiles; if <code>FALSE</code>, return the
-<code>ndraws x 1</code> matrix of R-squared draws.</p></dd>
+<code>ndraws x responses</code> matrix of R-squared draws.</p></dd>
+
+
+<dt id="arg-robust">robust<a class="anchor" aria-label="anchor" href="#arg-robust"></a></dt>
+<dd><p>If <code>TRUE</code>, the summary is the median and MAD instead
+of the mean and SD, as in brms.</p></dd>
 
 
 <dt id="arg-probs">probs<a class="anchor" aria-label="anchor" href="#arg-probs"></a></dt>
 <dd><p>Quantiles for the summary.</p></dd>
 
 
-<dt id="arg-ndraws">ndraws<a class="anchor" aria-label="anchor" href="#arg-ndraws"></a></dt>
-<dd><p>Number of draws to use (default: all).</p></dd>
-
-
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Refused: an argument the method does not have is an
 error naming it, rather than silently changing nothing.</p></dd>
+
+
+<dt id="arg-ndraws">ndraws<a class="anchor" aria-label="anchor" href="#arg-ndraws"></a></dt>
+<dd><p>Number of draws to use (default: all). It follows
+<code>...</code> so that brms's positional slots keep brms's meaning.</p></dd>
 
 </dl></div>
     <div class="section level2">

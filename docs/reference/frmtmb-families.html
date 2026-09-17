@@ -11,7 +11,7 @@ from 'stats' are accepted directly by frm() and +."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -219,9 +219,16 @@ non-zero at the lower boundary knot.</p></dd>
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>An ordinal family (<code>cumulative()</code>, <code>sratio()</code>, <code>cratio()</code>, <code>acat()</code>)
 takes the response's level order as the category order. Supply an
-ordered factor, or integer codes <code>1..K</code>: an unordered factor is
-accepted, as brms accepts it, but warns and names the order it is
-about to use, which is alphabetical unless the levels were set.</p>
+ordered factor, or integer codes <code>1..K</code>. An unordered factor is
+refused, as brms refuses it, because its level order is alphabetical
+unless someone set it, and that order is the model.</p>
+<p>A response with only two outcomes gets brms's message suggesting
+<code>bernoulli()</code>: an ordinal or categorical response with two
+categories, and a <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">binomial()</a></code>, <code>beta_binomial()</code> or
+<code>zero_inflated_binomial()</code> response whose trials are all one.</p>
+<p>Every constructor has brms's fields: <code>$link</code> is the name of the link
+for the mean, and <code>$link_&lt;dpar&gt;</code> the link of each other parameter,
+as in <code>beta_binomial()$link_phi</code>. See <code><a href="frmtmb_family.html">frmtmb_family()</a></code>.</p>
     </div>
     <div class="section level2">
     <h2 id="categorical-nominal-responses">Categorical (nominal) responses<a class="anchor" aria-label="anchor" href="#categorical-nominal-responses"></a></h2>
@@ -407,8 +414,11 @@ maps, which families take it for the mean, and which set each
 parameter admits.</p>
 <p>The four families 'stats' owns, <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian()</a></code>, <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">poisson()</a></code>,
 <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">binomial()</a></code> and <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">Gamma()</a></code>, have no frmtmb constructor to carry
-these. Reach their links through <code><a href="frm_family.html">frm_family()</a></code>:
-<code>frm_family("gaussian", link_sigma = "softplus")</code>.</p>
+these. Reach their links through <code><a href="brmsfamily.html">brmsfamily()</a></code>:
+<code>brmsfamily("gaussian", link_sigma = "softplus")</code>.</p>
+<p>The link for the mean may be unquoted, <code>student(identity)</code>, and is
+refused by name when brms does not allow it for the family:
+<code>bernoulli("sqrt")</code> is an error.</p>
 <p>An ordinal family's <code>link</code> is not a link on a mean. It names the
 distribution function the thresholds are read through, so
 <code>cumulative()</code>, <code>sratio()</code> and <code>cratio()</code> take <code>logit</code>, <code>probit</code>,

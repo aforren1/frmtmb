@@ -94,24 +94,29 @@ correlation parameter has no natural-scale name here.
 
 ## Two spellings for `newparams`
 
-*Natural scale* (recommended): the names
+*Natural scale* (recommended): brms's parameter names, the strings
 [`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
-and
-[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
-use, one number each.
+returns, one number each.
 
-- fixed coefficients under their
-  [`vcov()`](https://rdrr.io/r/stats/vcov.html) names with parentheses
-  stripped (`Intercept`, `x`, `sigma_Intercept`, ...), on the LINK
+- coefficients as `b_Intercept`, `b_x`, `b_sigma_Intercept`, on the LINK
   scale;
 
-- `sigma` (and any other intercept-only dispersion dpar: `shape`, `phi`,
-  `zi`, ...) on the RESPONSE scale, so `sigma = 0.7` is a residual SD of
-  0.7;
+- `sigma` (and any other distributional parameter nobody wrote a formula
+  for: `shape`, `phi`, `zi`, ...) on the RESPONSE scale, so
+  `sigma = 0.7` is a residual SD of 0.7;
 
-- `sd_<group>__<term>` for random-effect standard deviations,
-  `cor_<group>__<t1>__<t2>` for their correlations, and `sds_<label>`
-  for a smooth's smoothing SD. Unset correlations are 0.
+- a mixture's weights with no theta formula as brms's simplex, all of
+  `theta1 ... thetaK` together, each in (0, 1) and summing to one:
+  `theta1 = 0.9, theta2 = 0.1`;
+
+- `sd_<group>__<coef>` for group-level standard deviations,
+  `cor_<group>__<c1>__<c2>` for their correlations, and `sds_<label>_1`
+  for a smooth's smoothing SD (`sds_sx_1` for `s(x)`). Unset
+  correlations are 0.
+
+A bare name (`x`, `Intercept`, `sigma_Intercept`) is refused with its
+brms spelling. Priors are different: `set_prior(coef = "x")` takes the
+bare coefficient, as in brms.
 
 *Internal scale*: named after the parameter components - `beta`,
 `betad`, `theta`, and optionally `b` - each a full-length vector, on the
@@ -145,9 +150,9 @@ row per simulation, so a prior-predictive check can relate parameters to
 outcomes.
 
 That table reports each parameter on the scale `newparams` names it on,
-which for `Intercept` is the intercept at ZERO. A `class = "Intercept"`
-prior is a density on the intercept at the MEAN of the predictors (see
-the Where an intercept prior lands section of
+which for `b_Intercept` is the intercept at ZERO. A
+`class = "Intercept"` prior is a density on the intercept at the MEAN of
+the predictors (see the Where an intercept prior lands section of
 [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)),
 so on a design with uncentered predictors the number drawn and the
 number reported differ by `colMeans(X)` times the slopes. Reporting the
@@ -156,13 +161,11 @@ written value is what lets a `pars` row be handed straight back as
 likewise drawn on that parameter and reported there, not on its link
 scale.
 
-A dpar's column is therefore on the scale its PRIOR was written on, and
-the column name does not say which: `sigma_Intercept` holds sigma under
-`set_prior(class = "sigma")`, on a model that gives sigma no predictor,
-and log sigma under `set_prior(class = "Intercept", dpar = "sigma")`, on
-a model that does. Only one of the two spellings is accepted on any one
-model, so a table cannot mix them, and the draw is used on the scale it
-was taken on either way.
+The column name says which scale a dpar's draw is on, as brms's names
+do: `sigma` holds sigma, drawn under `set_prior(class = "sigma")` on a
+model that gives sigma no formula, and `b_sigma_Intercept` holds log
+sigma, drawn under `set_prior(class = "Intercept", dpar = "sigma")` on a
+model that does.
 
 Parameters without a prior keep their `newparams` value. Whenever
 `prior` are used, or `newparams` uses the natural spelling, every fixed
@@ -176,7 +179,7 @@ effect or unit SD.
 # power analysis: simulate from a design with chosen parameters
 dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)), y = 0)
 sims <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
-                     newparams = list(Intercept = 1, x = 0.5,
+                     newparams = list(b_Intercept = 1, b_x = 0.5,
                                       sigma = 0.7,
                                       sd_g__Intercept = 0.5),
                      nsim = 3, seed = 1)
@@ -217,9 +220,9 @@ pp <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
                      set_prior("exponential(1)", class = "sigma"),
                    nsim = 4, seed = 1)
 head(attr(pp, "pars"))
-#>            x  Intercept sd_g__Intercept sigma_Intercept
-#> 1 -0.6264538  3.1939242       0.1457067       0.1397953
-#> 2  0.4755095 -2.5098192       1.5652413       0.8145358
-#> 3  1.1765833 -0.9333763       3.3072809       1.4953203
-#> 4 -0.1643758 -0.7996112       0.3260219       1.5316271
+#>          b_x b_Intercept sd_g__Intercept     sigma
+#> 1 -0.6264538   3.1939242       0.1457067 0.1397953
+#> 2  0.4755095  -2.5098192       1.5652413 0.8145358
+#> 3  1.1765833  -0.9333763       3.3072809 1.4953203
+#> 4 -0.1643758  -0.7996112       0.3260219 1.5316271
 ```

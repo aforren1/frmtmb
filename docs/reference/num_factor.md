@@ -53,10 +53,10 @@ dd <- data.frame(
   tim = num_factor(rep(tim, n_g))
 )
 fit <- frm(bf(y ~ 1 + ou(tim + 0 | g)) + gaussian(), data = dd)
-round(VarCorr(fit)[[1]], 3)
-#>          tim(0) tim(1) tim(1.5) tim(3)
-#> tim(0)    0.823  0.193    0.094  0.011
-#> tim(1)    0.193  0.823    0.399  0.045
-#> tim(1.5)  0.094  0.399    0.823  0.094
-#> tim(3)    0.011  0.045    0.094  0.823
+round(VarCorr(fit)$g$cor[, "Estimate", ], 3)
+#>         tim0  tim1 tim1.5  tim3
+#> tim0   1.000 0.235  0.114 0.013
+#> tim1   0.235 1.000  0.485 0.055
+#> tim1.5 0.114 0.485  1.000 0.114
+#> tim3   0.013 0.055  0.114 1.000
 ```

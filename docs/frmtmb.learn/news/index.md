@@ -1,5 +1,19 @@
 # Changelog
 
+## frmtmb.learn 0.4.2
+
+- Requires frmtmb 0.59.0.
+
+- The `reward()` refusal on a duplicated payoff column no longer says
+  that `newdata` “cannot supply” the missing columns, which implied
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) reads `newdata`.
+  Since frmtmb 0.58.0
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) refuses
+  `newdata` by name. The message now says that
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) takes no
+  `newdata` and that no other data set drawn through the same formula
+  can supply the columns either.
+
 ## frmtmb.learn 0.4.1
 
 - **A correlated block over every parameter is validated at the

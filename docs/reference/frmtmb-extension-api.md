@@ -299,6 +299,9 @@ head(dpar_linpred(fit$frame, fit$estimates, rspec$resp_name, "mu"))
 #>          1          2          3          4          5          6 
 #> -0.1776896  1.4240554 -0.5912754  4.2151815  1.7124624 -0.5613002 
 as_frmtmb_family(gaussian)
-#> <frmtmb family> gaussian
-#>   dpars: mu (identity), sigma (log)
+#> 
+#> Family: gaussian 
+#> Link function: identity 
+#> Parameters: mu (identity), sigma (log)
+#> 
 ```

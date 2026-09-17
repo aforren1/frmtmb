@@ -391,13 +391,13 @@ mixing weights; `groups = ~g` moves the class draw to the group level
 mix <- mixture(gaussian(), gaussian(), groups = ~g)
 dmix <- data.frame(y = 0, g = factor(rep(1:40, each = 5)))
 # frm_simulate() draws one class per GROUP here, which is what
-# groups = ~g means; theta1 is the mixing predictor for the first
-# component against an implicit zero for the second
+# groups = ~g means; theta1 and theta2 are the mixing probabilities,
+# brms's simplex, set together
 dmix$y <- frm_simulate(bf(y ~ 1) + mix, dmix,
-                       newparams = list(mu1_Intercept = -1,
-                                        mu2_Intercept = 2,
+                       newparams = list(b_mu1_Intercept = -1,
+                                        b_mu2_Intercept = 2,
                                         sigma1 = 0.8, sigma2 = 0.8,
-                                        theta1 = log(0.6 / 0.4)),
+                                        theta1 = 0.6, theta2 = 0.4),
                        nsim = 1, seed = 4)[[1]]
 fmix <- frm(bf(y ~ 1) + mix, data = dmix)
 head(mixture_probs(fmix), 3)
@@ -411,16 +411,40 @@ head(mixture_probs(fmix), 3)
 
 [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
 tests arbitrary parameter expressions (Wald, profile, or parametric
-bootstrap), with natural-scale random-effect names:
+bootstrap) and returns brms’s object. It uses brms’s names: `b_Days` for
+a coefficient, which brms’s default `class = "b"` lets you write `Days`,
+and natural-scale names such as `sd_Subject__Days`, which need
+`class = NULL`:
 
 ``` r
 
-hypothesis(fit, "sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)")
-#> Hypothesis tests (method = wald)
-#>                                           hypothesis estimate      se      lwr
-#>  sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)  0.04753 0.01989 0.008539
-#>      upr     z       p
-#>  0.08652 2.389 0.01688
+hypothesis(fit, "Days > 5")
+#> Hypothesis Tests for class b:
+#>       Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob Star
+#> 1 (Days)-(5) > 0     5.47       1.5        3     7.94         NA        NA    *
+#> ---
+#> 'CI': 90%-CI for one-sided and 95%-CI for two-sided hypotheses.
+#> Method: wald. Est.Error is the standard error; Evid.Ratio and
+#> Post.Prob are NA, because a maximum-likelihood fit has no posterior.
+#> '*': For one-sided hypotheses, the one-sided test rejects at level 0.05;
+#> for two-sided hypotheses, the value tested against lies outside the 95%-CI.
+#>      Hypothesis     z         p
+#>  (Days)-(5) > 0 3.639 0.0001366
+hypothesis(fit, "sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2) = 0",
+           class = NULL)
+#> Hypothesis Tests for class :
+#>                                              Hypothesis Estimate Est.Error
+#> 1 (sd_Subject__Days^2/(sd_Subject__Days^2+sigma^2)) = 0     0.05      0.02
+#>   CI.Lower CI.Upper Evid.Ratio Post.Prob Star
+#> 1     0.01     0.09         NA        NA    *
+#> ---
+#> 'CI': 90%-CI for one-sided and 95%-CI for two-sided hypotheses.
+#> Method: wald. Est.Error is the standard error; Evid.Ratio and
+#> Post.Prob are NA, because a maximum-likelihood fit has no posterior.
+#> '*': For one-sided hypotheses, the one-sided test rejects at level 0.05;
+#> for two-sided hypotheses, the value tested against lies outside the 95%-CI.
+#>                                             Hypothesis     z       p
+#>  (sd_Subject__Days^2/(sd_Subject__Days^2+sigma^2)) = 0 2.389 0.01688
 ```
 
 [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
@@ -432,12 +456,11 @@ runs a warm-started parametric bootstrap, and
 [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
 builds a design from a formula and data, sets the parameters, and
 simulates responses - no fit needed. This is the power analysis loop:
-simulate, refit, count. Parameters take the same names
-[`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
-and
+simulate, refit, count. Parameters take brms’s names, the strings
 [`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
-use, on their natural scales (coefficients on the link scale, `sigma` as
-a residual SD, `sd_<group>__<term>` as a standard deviation):
+returns: `b_x` for a coefficient, on the link scale; `sigma` as a
+residual SD; and `sd_<group>__<term>` as a standard deviation. A bare
+name such as `x` is refused with its brms spelling:
 
 ``` r
 
@@ -448,7 +471,7 @@ form <- bf(y ~ x + (1 | g)) + gaussian()
 # set.seed(1) restarts the same random stream that made x, and the
 # residuals come out equal to the covariate.
 sims <- frm_simulate(form, dd, nsim = 3, seed = 1001,
-                     newparams = list(Intercept = 1, x = 0.5,
+                     newparams = list(b_Intercept = 1, b_x = 0.5,
                                       sigma = 0.6,
                                       sd_g__Intercept = 0.7))
 str(sims, max.level = 0)
@@ -469,12 +492,12 @@ pp <- frm_simulate(form, dd, nsim = 50, seed = 2,
                      set_prior("exponential(1)", class = "sigma"))
 pars <- attr(pp, "pars")
 head(pars, 3)
-#>            x Intercept sd_g__Intercept sigma_Intercept
-#> 1 -0.8969145  3.274092       0.1466527       1.7307097
-#> 2  1.2004947 -1.598512       0.2034451       0.7437466
-#> 3 -2.0074329  1.767528       0.4951322       0.1981281
+#>          b_x b_Intercept sd_g__Intercept     sigma
+#> 1 -0.8969145    3.274092       0.1466527 1.7307097
+#> 2  1.2004947   -1.598512       0.2034451 0.7437466
+#> 3 -2.0074329    1.767528       0.4951322 0.1981281
 # does the prior imply plausible data? slope against outcome spread
-plot(pars$x, apply(pp, 2, sd), xlab = "slope", ylab = "sd(y)")
+plot(pars$b_x, apply(pp, 2, sd), xlab = "slope", ylab = "sd(y)")
 ```
 
 ![Scatter plot of the standard deviation of each simulated response set

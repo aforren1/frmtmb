@@ -11,20 +11,23 @@ same grammar.
 ## Usage
 
 ``` r
-bf(formula, ..., family = NULL, nl = FALSE)
+bf(formula, ..., family = NULL, nl = NULL)
 ```
 
 ## Arguments
 
 - formula:
 
-  The model formula for `mu`.
+  The model formula for `mu`, or a formula `bf()` already built. Given
+  one of those and nothing else, `bf()` returns it unchanged, as brms's
+  `bf()` does; further arguments add to it.
 
 - ...:
 
   Two-sided formulas for other dpars (the left-hand side names the dpar,
   e.g. `sigma ~ z`, or several sharing one right-hand side, e.g.
-  `b1 + b2 ~ 1`), or named scalars fixing a dpar to a constant on the
+  `b1 + b2 ~ 1`), one-sided formulas named by their dpar (`sigma = ~ z`,
+  the same formula), or named scalars fixing a dpar to a constant on the
   response scale (e.g. `sigma = 1`).
 
 - family:
@@ -38,7 +41,9 @@ bf(formula, ..., family = NULL, nl = FALSE)
 
   Nonlinear-formula flag: the main formula becomes a nonlinear
   expression of named parameters, each given its own `...` formula with
-  the full predictor grammar.
+  the full predictor grammar. `NULL`, the default as in brms, means
+  `FALSE` for a new formula and keeps the setting of a formula `bf()`
+  already built.
 
 ## Value
 

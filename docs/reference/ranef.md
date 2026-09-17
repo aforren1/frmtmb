@@ -6,7 +6,16 @@ Extract random-effect modes
 
 ``` r
 # S3 method for class 'frmtmb_fit'
-ranef(object, condVar = FALSE, ...)
+ranef(
+  object,
+  summary = TRUE,
+  robust = FALSE,
+  probs = c(0.025, 0.975),
+  pars = NULL,
+  groups = NULL,
+  ...,
+  condVar = FALSE
+)
 ```
 
 ## Arguments
@@ -15,25 +24,32 @@ ranef(object, condVar = FALSE, ...)
 
   A `frmtmb_fit`.
 
-- condVar:
+- summary, robust, probs, pars, groups:
 
-  If `TRUE`, attach the conditional SDs of the modes (from the Laplace
-  posterior) as a `"condSD"` attribute on each matrix, in matching
-  layout.
+  brms's arguments, in brms's positions so that a positional brms call
+  asks the same question. brms answers `summary = FALSE` with the
+  posterior draws and `robust = TRUE` with their median and MAD, and a
+  maximum-likelihood fit has no draws, so both are refused by name with
+  the reason. The default of each is accepted and changes nothing.
 
 - ...:
 
   Refused: an argument the method does not have is an error naming it,
   rather than silently changing nothing.
 
+- condVar:
+
+  If `TRUE`, attach the conditional SDs of the modes (from the Laplace
+  posterior) as a `"condSD"` attribute on each matrix, in matching
+  layout.
+
 ## Value
 
 A named list of levels-by-coefficients matrices, one per random-effect
 term, KEYED BY THE GROUPING FACTOR as brms and lme4 key it (so
 `ranef(fit)$g` and `coef(fit)$g` name the same group). Each matrix
-carries its block label in a `"term"` attribute, which is also the key
-[`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
-uses and the `grp` column of
+carries its block label in a `"term"` attribute, which is also the `grp`
+column of
 [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html). That
 long form (with a `condsd` column when `condVar = TRUE` was used) is
 what broom.mixed-style code reads.

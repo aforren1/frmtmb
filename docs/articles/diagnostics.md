@@ -297,8 +297,8 @@ turns it off:
 
 ``` r
 
-lap <- frm(bf(y ~ x + (x | g)) + binomial(), data = bd)
-imp <- frm(bf(y ~ x + (x | g)) + binomial(), data = bd,
+lap <- frm(bf(y ~ x + (x | g)) + bernoulli(), data = bd)
+imp <- frm(bf(y ~ x + (x | g)) + bernoulli(), data = bd,
            importance = 500)
 c(laplace = as.numeric(logLik(lap)),
   importance = as.numeric(logLik(imp)))
@@ -314,7 +314,7 @@ it can be trusted:
 
 imp
 #> frmtmb fit: y ~ x + (x | g) 
-#> Family: binomial   Method: ML 
+#> Family: bernoulli   Method: ML 
 #>  Links: mu = logit
 #> 
 #> logLik: -118.439  AIC: 246.878  nobs: 200 

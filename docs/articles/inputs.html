@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -242,7 +242,7 @@ parameters.</p>
 <span><span class="co"># set.seed(1) restarts the same random stream that made x, and the</span></span>
 <span><span class="co"># residuals come out equal to the covariate.</span></span>
 <span><span class="va">d</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm_simulate.html">frm_simulate</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">d</span>,</span>
-<span>                    newparams <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>Intercept <span class="op">=</span> <span class="fl">0</span>, x <span class="op">=</span> <span class="fl">0.4</span>, sigma <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>                    newparams <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>b_Intercept <span class="op">=</span> <span class="fl">0</span>, b_x <span class="op">=</span> <span class="fl">0.4</span>, sigma <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>                                     sd_g__Intercept <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
 <span>                    nsim <span class="op">=</span> <span class="fl">1</span>, seed <span class="op">=</span> <span class="fl">1001</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
 <span></span>
@@ -352,7 +352,7 @@ and <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">
 <td><code>prior</code></td>
 <td>A <code><a href="../reference/set_prior.html">set_prior()</a></code> specification, or a
 <code>brmsprior</code> object brms built with <code><a href="../reference/prior.html">prior()</a></code> or
-<code><a href="../reference/get_prior.html">get_prior()</a></code>, which is translated row by row: a row applies
+<code><a href="../reference/default_prior.html">get_prior()</a></code>, which is translated row by row: a row applies
 whatever its <code>prior</code> string says, and lands where brms puts
 it (a distributional parameter’s own class on that parameter, a
 <code>class = "Intercept"</code> density at the intercept at the
@@ -805,25 +805,31 @@ linear predictor beside its parameter under a reserved
 scale. Those live in an internal list rather than in the model frame, so
 a column named <code>.eta_mu</code> is an ordinary covariate and gets an
 ordinary coefficient.</p>
-<p><strong>In <code><a href="../reference/hypothesis.html">hypothesis()</a></code>, a coefficient shadows a
-natural-scale name.</strong> <code><a href="../reference/hypothesis.html">hypothesis()</a></code> evaluates
-expressions in one flat namespace that holds the coefficients and the
-natural-scale summaries together, and the coefficient wins:</p>
+<p><strong>In <code><a href="../reference/hypothesis.html">hypothesis()</a></code>, a coefficient and a
+natural-scale name do not meet.</strong> <code><a href="../reference/hypothesis.html">hypothesis()</a></code> and
+<code><a href="../reference/variables.html">variables()</a></code> use brms’s names, and brms puts <code>b_</code>
+in front of every coefficient. A covariate literally named
+<code>sigma</code> is the coefficient <code>b_sigma</code>, and
+<code>sigma</code> is the residual standard deviation:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># a covariate literally named sigma</span></span>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">sigma</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/hypothesis.html">hypothesis</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"sigma = 0"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; hypothesis() reads 'sigma' as the coefficient of the model term of</span></span>
-<span><span class="co">#&gt; that name, not the residual standard deviation; that quantity is</span></span>
-<span><span class="co">#&gt; available as '.sigma'.</span></span></code></pre></div>
-<p>The message names both meanings and fires once per call. The shadowed
-quantity keeps a name of its own: prefix it with a dot. The same holds
-for a coefficient that spells out
-<code>sd_&lt;group&gt;__&lt;term&gt;</code>, <code>cor_...</code>, or an
-autocorrelation name such as <code>ar1</code>;
-<code>.sd_g__Intercept</code> and <code>.ar1</code> then reach the
-natural-scale value. The dot spelling exists only where a collision
-does, and <code><a href="../reference/variables.html">variables()</a></code> lists both names in that case.</p>
+<span><span class="fu"><a href="../reference/hypothesis.html">hypothesis</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"sigma = 0"</span><span class="op">)</span>                 <span class="co"># b_sigma, brms's class = "b"</span></span>
+<span><span class="fu"><a href="../reference/hypothesis.html">hypothesis</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"sigma = 1"</span>, class <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>   <span class="co"># the residual SD</span></span></code></pre></div>
+<p>The same holds for a coefficient that spells out
+<code>sd_&lt;group&gt;__&lt;coef&gt;</code>, <code>cor_...</code> or an
+autocorrelation name such as <code>ar[1]</code>. As in brms, a
+natural-scale name needs <code>class = NULL</code>, because the default
+<code>class = "b"</code> reads every bare name as a coefficient.</p>
+<p>Two coefficients can still meet, and each case is handled as brms
+handles it. <code>y ~ Intercept + x</code> is refused when the model is
+built, because <code>(Intercept)</code> and <code>Intercept</code> are
+both <code>Intercept</code> after brms’s renaming.
+<code>bf(y ~ sigma_z, sigma ~ z)</code> gives the mean’s
+<code>b_sigma_z</code> and sigma’s <code>b_sigma_z__1</code>. The same
+group-level coefficient on one group in two terms,
+<code>(1 | g) + (x | g)</code>, is refused; give the second term a copy
+of the grouping column.</p>
 </div>
 <div class="section level2">
 <h2 id="what-reaches-the-output">What reaches the output<a class="anchor" aria-label="anchor" href="#what-reaches-the-output"></a>

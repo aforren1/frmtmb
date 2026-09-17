@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.learn</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +43,11 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.learn/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.4.2" id="frmtmblearn-042">frmtmb.learn 0.4.2<a class="anchor" aria-label="anchor" href="#frmtmblearn-042"></a></h2>
+<ul><li><p>Requires frmtmb 0.59.0.</p></li>
+<li><p>The <code>reward()</code> refusal on a duplicated payoff column no longer says that <code>newdata</code> “cannot supply” the missing columns, which implied <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> reads <code>newdata</code>. Since frmtmb 0.58.0 <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> refuses <code>newdata</code> by name. The message now says that <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> takes no <code>newdata</code> and that no other data set drawn through the same formula can supply the columns either.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.1" id="frmtmblearn-041">frmtmb.learn 0.4.1<a class="anchor" aria-label="anchor" href="#frmtmblearn-041"></a></h2>
 <ul><li>

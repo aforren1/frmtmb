@@ -48,8 +48,8 @@ neff_ratio(ds)
 ```
 
 These are brms’s diagnostics throughout, computed by the posterior
-package on these draws and reported under the frmtmb draws-side names
-that `variables(ds)` lists.
+package on these draws and reported under brms’s names, which
+`variables(ds)` lists.
 [`rhat()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
 is the rank-normalized split-R-hat,
 [`neff_ratio()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
@@ -78,12 +78,12 @@ sum(np$Value[np$Parameter == "divergent__"])   # zero is the target
 
 mcmc_plot(ds, type = "trace")
 mcmc_plot(ds, type = "rank_overlay")
-pairs(ds, variable = c("sd_g__Intercept", "sigma"))
+pairs(ds, variable = c("theta_1", "r_g[1,Intercept]"))
 ```
 
 Divergences concentrate in the funnel of a random-effect block, so the
 [`pairs()`](https://rdrr.io/r/graphics/pairs.html) display to draw is a
-group standard deviation against something it multiplies.
+group’s log standard deviation against something it multiplies.
 
 Three moves, in the order worth trying:
 

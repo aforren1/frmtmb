@@ -23,7 +23,7 @@ draws&quot;; pairs() is bayesplot::mcmc_pairs()."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -90,7 +90,7 @@ draws"; <code><a href="https://rdrr.io/r/graphics/pairs.html" class="external-li
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/pairs.html" class="external-link">pairs</a></span><span class="op">(</span><span class="va">x</span>, variable <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/pairs.html" class="external-link">pairs</a></span><span class="op">(</span><span class="va">x</span>, pars <span class="op">=</span> <span class="cn">NA</span>, variable <span class="op">=</span> <span class="cn">NULL</span>, regex <span class="op">=</span> <span class="cn">FALSE</span>, fixed <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">nuts_params</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
@@ -147,19 +147,21 @@ prefix (default <code>"intervals"</code>).</p></dd>
 <dt id="arg-variable">variable<a class="anchor" aria-label="anchor" href="#arg-variable"></a></dt>
 <dd><p>For <code>mcmc_plot()</code> and <code><a href="https://rdrr.io/r/graphics/pairs.html" class="external-link">pairs()</a></code>, the variables to
 use, by name; it defaults to everything except the group-level
-modes and <code>lp__</code>. <code>rhat()</code> and <code>neff_ratio()</code> do not take it,
+coefficients and <code>lp__</code> (and to four of those for <code><a href="https://rdrr.io/r/graphics/pairs.html" class="external-link">pairs()</a></code>).
+<code>rhat()</code> and <code>neff_ratio()</code> do not take it,
 because brms's do not: their selector is <code>pars</code>. Naming it on
 either of those two is silently ignored today; see <code>...</code>.</p></dd>
 
 
 <dt id="arg-regex">regex<a class="anchor" aria-label="anchor" href="#arg-regex"></a></dt>
 <dd><p>For <code>rhat()</code> and <code>neff_ratio()</code>, <code>TRUE</code> makes <code>pars</code> a
-regular expression; for <code>mcmc_plot()</code>, it makes <code>variable</code> one.</p></dd>
+regular expression; for <code>mcmc_plot()</code> and <code><a href="https://rdrr.io/r/graphics/pairs.html" class="external-link">pairs()</a></code>, it makes
+<code>variable</code> one.</p></dd>
 
 
 <dt id="arg-fixed">fixed<a class="anchor" aria-label="anchor" href="#arg-fixed"></a></dt>
-<dd><p>For <code>mcmc_plot()</code>, <code>TRUE</code> matches <code>pars</code> by exact name
-rather than as a regular expression.</p></dd>
+<dd><p>For <code>mcmc_plot()</code> and <code><a href="https://rdrr.io/r/graphics/pairs.html" class="external-link">pairs()</a></code>, <code>TRUE</code> matches <code>pars</code> by
+exact name rather than as a regular expression.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -169,9 +171,10 @@ bayesplot returns.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>All of these report the frmtmb draws-side parameter names (no
-parentheses), not Stan's <code>par[1]</code>, except <code>nuts_params()</code>, whose
-rows are the sampler's own quantities and not model parameters.</p>
+    <p>All of these report brms's parameter names (<code>b_x</code>,
+<code>r_g[1,Intercept]</code>), not Stan's <code>par[1]</code>, except <code>nuts_params()</code>,
+whose rows are the sampler's own quantities and not model
+parameters.</p>
     </div>
     <div class="section level2">
     <h2 id="which-r-hat-this-is">Which R-hat this is<a class="anchor" aria-label="anchor" href="#which-r-hat-this-is"></a></h2>
@@ -221,7 +224,7 @@ not <code>NA</code>.</p>
 <span class="r-in"><span>  <span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                   data <span class="op">=</span> <span class="va">dd</span>, chains <span class="op">=</span> <span class="fl">1</span>, iter <span class="op">=</span> <span class="fl">500</span>, refresh <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="fu">mcmc_plot</span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="fu">mcmc_plot</span><span class="op">(</span><span class="va">ds</span>, type <span class="op">=</span> <span class="st">"trace"</span>, variable <span class="op">=</span> <span class="st">"x"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="fu">mcmc_plot</span><span class="op">(</span><span class="va">ds</span>, type <span class="op">=</span> <span class="st">"trace"</span>, variable <span class="op">=</span> <span class="st">"b_x"</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu">rhat</span><span class="op">(</span><span class="va">ds</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)</span>
@@ -235,10 +238,10 @@ not <code>NA</code>.</p>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> Running the chains for more iterations may help. See</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#tail-ess</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       Intercept               x sigma_Intercept            b[1]            b[2] </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        1.014249        1.010188        1.003701        1.012647        1.006744 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>            b[3] </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        1.004775 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      b_Intercept              b_x            sigma r_g[1,Intercept] </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         1.014249         1.010188         1.003701         1.012647 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> r_g[2,Intercept] r_g[3,Intercept] </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         1.006744         1.004775 </span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

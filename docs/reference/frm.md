@@ -358,7 +358,7 @@ enumerates its special terms, which is
 lists every main effect before any interaction. The j-th monotonic term
 of a linear predictor is therefore the one brms calls `simo_<j>` and
 names `<label><1>` in the `simo` rows of its
-[`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md).
+[`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md).
 
 The `zeta<j>` NUMBER is not that j in general. Simplexes continue the
 numbering of whatever parameters the family contributed first, so
@@ -449,9 +449,18 @@ fixef(fit)
 #> -0.03474316 
 #> 
 VarCorr(fit)
-#>   1 | g 
-#>         Name Std.Dev.
-#>  (Intercept)  0.55725
+#> $g
+#> $g$sd
+#>            Estimate Est.Error      Q2.5     Q97.5
+#> Intercept 0.5572534 0.1627123 0.2383431 0.8761636
+#> 
+#> 
+#> $residual__
+#> $residual__$sd
+#>   Estimate  Est.Error      Q2.5   Q97.5
+#>  0.9658535 0.07199957 0.8247369 1.10697
+#> 
+#> 
 
 # distributional regression: model sigma too
 fit2 <- frm(bf(y ~ x + (1 | g), sigma ~ x) + gaussian(), data = dd)

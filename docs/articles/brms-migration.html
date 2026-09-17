@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -258,10 +258,14 @@ logistic of <code>0.07056 x^3 + 1.5976 x</code>, while its R-side
 the Stan form, because that is the likelihood a brms fit was actually
 computed with.</li>
 </ul>
-<p>The ordinal families are the one place the roster is narrower:
-<code><a href="../reference/frmtmb-families.html">cumulative()</a></code>, <code><a href="../reference/frmtmb-families.html">sratio()</a></code> and
-<code><a href="../reference/frmtmb-families.html">cratio()</a></code> take <code>logit</code> and <code>probit</code>
-only, and <code><a href="../reference/frmtmb-families.html">acat()</a></code> takes <code>logit</code> only.</p>
+<p>The ordinal families take brms’s sets: <code><a href="../reference/frmtmb-families.html">cumulative()</a></code>
+takes <code>logit</code>, <code>probit</code>,
+<code>probit_approx</code>, <code>cloglog</code>, <code>cauchit</code>
+and <code>softit</code>, and <code><a href="../reference/frmtmb-families.html">sratio()</a></code> and
+<code><a href="../reference/frmtmb-families.html">cratio()</a></code> take the same without <code>softit</code>.
+<code><a href="../reference/frmtmb-families.html">acat()</a></code> is the one place the roster is narrower. It takes
+<code>logit</code> only, because brms computes acat off the logit from a
+second density that frmtmb has not written.</p>
 </div>
 </div>
 <div class="section level2">
@@ -287,6 +291,18 @@ brms’s own rule, and it means a table edited in place, the ordinary
 workflow, is honored. Earlier releases keyed the decision on the table’s
 <code>source</code> column, which brms does not update after such an
 edit, so the edited row was dropped.</p>
+<p>The prior surface has brms’s names. <code><a href="../reference/default_prior.html">default_prior()</a></code> is
+the table of slots, and <code><a href="../reference/default_prior.html">get_prior()</a></code> is its alias, as in
+brms. <code><a href="../reference/validate_prior.html">validate_prior()</a></code> checks a prior against the model and
+returns that table with the prior filled in; <code>frm(prior = )</code>
+takes the result, and so does a <code><a href="../reference/default_prior.html">default_prior()</a></code> table
+edited in place. <code><a href="../reference/set_prior.html">set_prior()</a></code> takes vectors,
+<code>set_prior("normal(0, 2)", class = c("b", "sd"))</code>, and a
+prior object prints as <code>b ~ normal(0, 2)</code>.
+<code><a href="../reference/empty_prior.html">empty_prior()</a></code> and <code><a href="../reference/as.brmsprior.html">as.brmsprior()</a></code> exist too.
+The prior object itself is not a brms <code>brmsprior</code>: it holds
+parsed densities, and <code>pr$class</code> and the other brms columns
+are read from it.</p>
 <p>What the fit MEANS changes. <code>frm(prior = )</code> is MAP: the
 density is a PENALTY on the likelihood and the answer is one mode, not a
 posterior, so the reported log likelihood, AIC and <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code>
@@ -386,7 +402,7 @@ else. So is a <code>coef</code> on a <code>sd</code> or <code>cor</code>
 row: frmtmb addresses a whole random-effect block there, and applying a
 narrowed row without its <code>coef</code> would put the density on
 every standard deviation of the block.</p>
-<p>Because rows now apply, such a row in a <code><a href="../reference/get_prior.html">get_prior()</a></code>
+<p>Because rows now apply, such a row in a <code><a href="../reference/default_prior.html">get_prior()</a></code>
 table stops the call where it used to be dropped in silence: on a model
 with <code>s()</code>, <code>gp()</code>, <code>mo()</code> or
 <code>car()</code>, blank that row or write the frmtmb class the message
@@ -448,12 +464,12 @@ needs pooled tests, which brms gets for free from the posterior:
 <code><a href="../reference/frm_multiple.html">frm_multiple()</a></code> fits with the D1, D2 and D3 rules of
 <code>mice</code> (D3 by default). Mixture fits are ML: expect
 multimodality, compare starts (<code><a href="../reference/frm_allfit.html">frm_allfit()</a></code>).</p></li>
-<li><p><code><a href="https://rdrr.io/r/stats/family.html" class="external-link">binomial()</a></code> without <code>trials()</code> is accepted
-and means Bernoulli, the <code><a href="https://rdrr.io/r/stats/glm.html" class="external-link">stats::glm()</a></code> convention; brms
-rejects it and asks for <code>trials()</code> or
-<code><a href="../reference/frmtmb-families.html">bernoulli()</a></code>. The divergence is permissive, so brms code
-ports unchanged, but frmtmb code written this way does not port
-back.</p></li>
+<li><p><code><a href="https://rdrr.io/r/stats/family.html" class="external-link">binomial()</a></code>, <code><a href="../reference/frmtmb-families.html">beta_binomial()</a></code> and
+<code><a href="../reference/frmtmb-families.html">zero_inflated_binomial()</a></code> without <code>trials()</code> are
+refused, as in brms, with brms’s message. A 0/1 response takes
+<code><a href="../reference/frmtmb-families.html">bernoulli()</a></code> or <code>y | trials(1)</code>; the
+<code><a href="https://rdrr.io/r/stats/glm.html" class="external-link">stats::glm()</a></code> convention of one implicit trial does not
+carry over.</p></li>
 <li><p><code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>, <code>ma()</code>, <code>arma()</code>,
 <code>cosy()</code> and <code>unstr()</code> are supported in their
 covariance form only; see the next section.</p></li>
@@ -493,7 +509,7 @@ bound to reproduce a brms fit, or keep the numbers and read them as “6
 or more”, which is what a recorded count usually means. frmtmb says this
 ONCE per session, the first time a model it is given combines a discrete
 family with right or interval censoring. It comes from frame assembly,
-so <code><a href="../reference/get_prior.html">get_prior()</a></code> on such a model spends the notice and the
+so <code><a href="../reference/default_prior.html">get_prior()</a></code> on such a model spends the notice and the
 fit that follows is silent. <code><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages()</a></code> silences
 that one call and <code>options(frmtmb.notices = FALSE)</code> silences
 the session.</p>
@@ -812,8 +828,15 @@ delta-method Wald test here), <code><a href="../reference/pp_check.html">pp_chec
 through bayesplot’s <code>ppc_*</code> functions),
 <code><a href="../reference/prior_summary.html">prior_summary()</a></code>, <code><a href="../reference/fixef.html">fixef()</a></code>,
 <code><a href="../reference/ranef.html">ranef()</a></code>, <code><a href="../reference/VarCorr.html">VarCorr()</a></code>, <code><a href="../reference/ngrps.html">ngrps()</a></code>,
-<code><a href="../reference/variables.html">variables()</a></code> (the usable parameter names, e.g.
-<code>sd_Subject__Days</code>).</li>
+<code><a href="../reference/variables.html">variables()</a></code> (brms’s parameter names,
+e.g. <code>b_Days</code> and <code>sd_Subject__Days</code>).
+<code><a href="../reference/VarCorr.html">VarCorr()</a></code> and <code><a href="../reference/hypothesis.html">hypothesis()</a></code> return brms’s
+structures, with the estimate and its standard error in the columns brms
+fills from draws; <code><a href="../reference/fixef.html">fixef()</a></code>, <code><a href="../reference/ranef.html">ranef()</a></code> and
+<code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> take brms’s <code>summary</code>,
+<code>robust</code> and <code>probs</code> in brms’s positions and
+refuse <code>summary = FALSE</code> by name, because a fit has no draws
+to return.</li>
 <li>stats-origin generics return stats-shaped values, not brms-shaped
 ones: <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> returns a vector (with
 <code>se.fit = TRUE</code>, a list), not a draws matrix with

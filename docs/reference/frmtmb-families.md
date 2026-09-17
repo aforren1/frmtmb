@@ -157,9 +157,20 @@ A `frmtmb_family` object.
 
 An ordinal family (`cumulative()`, `sratio()`, `cratio()`, `acat()`)
 takes the response's level order as the category order. Supply an
-ordered factor, or integer codes `1..K`: an unordered factor is
-accepted, as brms accepts it, but warns and names the order it is about
-to use, which is alphabetical unless the levels were set.
+ordered factor, or integer codes `1..K`. An unordered factor is refused,
+as brms refuses it, because its level order is alphabetical unless
+someone set it, and that order is the model.
+
+A response with only two outcomes gets brms's message suggesting
+`bernoulli()`: an ordinal or categorical response with two categories,
+and a [`binomial()`](https://rdrr.io/r/stats/family.html),
+`beta_binomial()` or `zero_inflated_binomial()` response whose trials
+are all one.
+
+Every constructor has brms's fields: `$link` is the name of the link for
+the mean, and `$link_<dpar>` the link of each other parameter, as in
+`beta_binomial()$link_phi`. See
+[`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md).
 
 ## Categorical (nominal) responses
 
@@ -370,8 +381,12 @@ The four families 'stats' owns,
 [`binomial()`](https://rdrr.io/r/stats/family.html) and
 [`Gamma()`](https://rdrr.io/r/stats/family.html), have no frmtmb
 constructor to carry these. Reach their links through
-[`frm_family()`](https://aforren1.github.io/frmtmb/reference/frm_family.md):
-`frm_family("gaussian", link_sigma = "softplus")`.
+[`brmsfamily()`](https://aforren1.github.io/frmtmb/reference/brmsfamily.md):
+`brmsfamily("gaussian", link_sigma = "softplus")`.
+
+The link for the mean may be unquoted, `student(identity)`, and is
+refused by name when brms does not allow it for the family:
+`bernoulli("sqrt")` is an error.
 
 An ordinal family's `link` is not a link on a mean. It names the
 distribution function the thresholds are read through, so

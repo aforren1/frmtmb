@@ -13,7 +13,7 @@ independent ones:"></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -215,8 +215,9 @@ correlation" and <code><a href="confint_varcorr.html">confint_varcorr()</a></cod
 under brms's names - <code>ar[1]</code>, <code>ma[1]</code>, <code>cosy</code>,
 <code>cortime__&lt;t1&gt;__&lt;t2&gt;</code> - with a delta-method interval (Fisher-z for
 the bounded ones, the identity for the coefficients of a
-higher-order AR/MA process). <code><a href="hypothesis.html">hypothesis()</a></code> sees them as <code>ar1</code>,
-<code>ma1</code>, <code>cosy</code> and <code>cortime__&lt;t1&gt;__&lt;t2&gt;</code>. <code><a href="autocor_matrix.html">autocor_matrix()</a></code> returns
+higher-order AR/MA process). <code><a href="hypothesis.html">hypothesis()</a></code> sees them under the
+same names, <code>ar[1]</code> included, which brms's renaming lets an
+expression carry. <code><a href="autocor_matrix.html">autocor_matrix()</a></code> returns
 the fitted <code>R</code>. They are NOT part of <code><a href="VarCorr.html">VarCorr()</a></code>, which reports
 random-effect blocks. <code><a href="set_prior.html">set_prior()</a></code> cannot target them yet.</p>
     </div>

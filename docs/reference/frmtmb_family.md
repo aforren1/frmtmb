@@ -312,7 +312,22 @@ custom_family(
 
 ## Value
 
-An object of class `frmtmb_family`.
+An object of class `frmtmb_family`. `$` on it also answers brms's link
+fields, computed from `links` when read: `link`, the name of the link
+for the mean (for an ordinal family, the distribution function its
+thresholds are read through; `"logit"` for a categorical or multinomial
+family, whose categories share one joint link; `"identity"` for a family
+with no `mu`, such as a
+[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)),
+`linkfun` and `linkinv` for that link, and `link_<dpar>`, the link name
+of every other distributional parameter, as in
+`beta_binomial()$link_phi`. Because they are read from `links` each
+time, a `family_finalize()` that replaces a link, or any other edit,
+cannot leave them stale.
+
+`$` does not partial-match on a family object. `fam$lpd` is an error
+naming the field it would have matched, rather than silently returning
+it. Use the full name.
 
 ## Structured simulators
 

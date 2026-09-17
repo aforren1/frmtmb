@@ -236,7 +236,7 @@ log-likelihood units and cuts the per-subject error from 11.90 ms to
 to read that off. Compare the per-subject non-decision times from
 [`ndt_time()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.md)
 against what you believe, and compare log-likelihoods, rather than
-reading `VarCorr()`'s `ndt` row as evidence that the component was
+reading `VarCorr()`'s `ndt` entry as evidence that the component was
 estimated.
 
 The bound's own quality is a function of the group's trial count. The

@@ -19,7 +19,7 @@ off the estimates rather than the Hessian)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -107,7 +107,13 @@ off the estimates rather than the Hessian).</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>A DISTRIBUTIONAL PARAMETER AT THE END OF ITS LINK is one whose
+    <p>NON-FINITE TRIALS are points where the optimizer found the objective
+undefined and stepped back, for example a line search that crosses
+below zero on the <code>1/mu^2</code> link. They do not make a fit wrong, so they
+are reported as a count and do not count against "No convergence
+problems detected". A large count on a model with no restricted link
+can point to a density that is undefined where it should not be.</p>
+<p>A DISTRIBUTIONAL PARAMETER AT THE END OF ITS LINK is one whose
 estimate is far out on the link scale AND whose standard error is
 larger than the estimate itself. The likelihood was still rising
 where the optimizer stopped, so the number reported is the stopping

@@ -1,5 +1,552 @@
 # Changelog
 
+## frmtmb 0.59.0
+
+- **BREAKING, and the silent wrong answer it removes.** The link for the
+  mean is now checked against the set brms 2.23.0 allows for the family,
+  and a link outside it is refused with brms’s sentence and the set:
+  `'sqrt' is not a supported link for family 'bernoulli'`. Before, only
+  `link_<dpar>` was checked, so `bernoulli("sqrt")` FITTED, returning
+  coefficients for a probability on `eta^2`, which is not bounded by
+  one. What stops working: every (family, link) pair brms refuses, 417
+  pairs over 37 families, of which 371 used to construct. Among them are
+  `exponential("cloglog")`, `Beta("1/mu^2")`,
+  `zero_inflated_negbinomial("logit")`, `beta_binomial("log")`, a
+  `stats` family carrying such a link
+  (`frm(..., family = poisson("inverse"))`), and any link but `"logit"`
+  on
+  [`categorical()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  reached by name. Every pair brms accepts still constructs and fits:
+  207 fits give the same log-likelihood as before to ten decimals. The
+  sets are read out of brms by `dev/famlink-gen-links.R`, not typed.
+  [`nbinom1()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`tweedie()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  and
+  [`huber()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  have no brms family and take the set of `negbinomial`, `Gamma` and
+  `gaussian`. A custom link object is not held to a set.
+
+- A family object carries brms’s fields. `$link` is the name of the link
+  for the mean, `$linkfun` and `$linkinv` are its functions, and
+  `$link_<dpar>` names the link of every other parameter:
+  `beta_binomial()$link_phi` is `"log"`. `$link` used to partial-match
+  the `links` list and return it. The fields are not stored: `$`
+  computes them from `links` when they are read, so they describe the
+  links a fit uses however the object was edited, and a fit saved by an
+  earlier version answers them too.
+  [`names()`](https://rdrr.io/r/base/names.html) and `[[` do not show
+  them. **BREAKING:** `$` on a family object no longer partial-matches.
+  A name that is only a prefix of one field (`fam$lpd`) is an error
+  naming the field. An element stored on the list under one of those
+  names is an error when `$` reads it.
+
+- **BREAKING:** [`print()`](https://rdrr.io/r/base/print.html) on a
+  family object prints brms’s first two lines, `Family:` and
+  `Link function:`, and then the parameters with their links. The
+  `<frmtmb family>` header is gone.
+
+- The link for the mean may be unquoted, as
+  [`stats::family()`](https://rdrr.io/r/stats/family.html) and brms
+  allow: `student(identity)`, `negbinomial(sqrt)`,
+  `zero_inflated_poisson(log)`. A bare link name is read as the name
+  without being evaluated, and a variable holding a link name is read
+  for its value, which is the order brms uses. `link = NULL` and
+  `link = NA` give the default. A bare link name the family does not
+  take and that is bound to nothing, as in `negbinomial(inverse)`, is
+  refused as that link, where brms reports “object ‘inverse’ not found”.
+
+- New
+  [`brmsfamily()`](https://aforren1.github.io/frmtmb/reference/brmsfamily.md),
+  brms’s generic constructor: `brmsfamily("gaussian", inverse)`,
+  `brmsfamily("zi_poisson")`. A family name now follows brms’s spelling
+  rules wherever a name is accepted: case does not matter, `"normal"` is
+  `"gaussian"`, `"com_poisson"` is `"compois"`, and `"zi_"` and `"hu_"`
+  stand for `"zero_inflated_"` and `"hurdle_"`. An unknown name is
+  refused with brms’s sentence, `x is not a supported family`.
+
+- **BREAKING:** `frm_family()` is removed.
+  [`brmsfamily()`](https://aforren1.github.io/frmtmb/reference/brmsfamily.md)
+  is the one spelling, and takes the same arguments with the link
+  second. `frm(family =)` takes the family and its link as one vector,
+  `c("weibull", "log")`, which brms accepts for `family =`; a vector of
+  three or more is refused.
+
+- **Changes fits, and the silent wrong answer it removes.** A brms
+  family object passed to
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) now
+  keeps its `link_<dpar>` links. They used to be dropped without a word,
+  so `family = brms::student(link_sigma = "identity")` fitted sigma on
+  the log link the user had not asked for. Such a model now fits the
+  link it names, and its estimates move.
+
+- A correct fit no longer warns “NA/NaN function evaluation” when
+  nlminb’s line search steps past the domain of a link, such as below
+  zero on `inverse.gaussian`’s `1/mu^2` or `Gamma`’s `inverse`, or
+  outside the unit interval on `bernoulli("identity")`. Such a trial
+  value is handed to nlminb as `+Inf` rather than `NaN`; nlminb
+  backtracks from both identically, so every optimum is unchanged (212
+  brms link pairs and five inverse gaussian designs give
+  [`identical()`](https://rdrr.io/r/base/identical.html) estimates). A
+  model whose objective is `NaN` at its starting values still warns. The
+  number of mapped trials, summed over every optimizer run of the fit
+  including restarts, is `fit$opt$nonfinite_trials`. When it is not
+  zero,
+  [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)
+  prints it and returns it as `nonfinite_trials`, and `verbose = TRUE`
+  adds it to the optimizer stage lines and to the final `done` line.
+
+- **BREAKING, changes fits:** `inverse.gaussian` takes brms’s default
+  link, `1/mu^2`, where frmtmb’s was `log`. It reaches every fit that
+  names the family as a string or through
+  [`brmsfamily()`](https://aforren1.github.io/frmtmb/reference/brmsfamily.md)
+  without a link, and those estimates move.
+  [`stats::inverse.gaussian()`](https://rdrr.io/r/stats/family.html)
+  already carried `1/mu^2` and is unaffected. Write
+  `brmsfamily("inverse.gaussian", "log")` for the old model. Fits move,
+  and some designs converge poorly on this link: over 12 designs of 20
+  data sets each, 135 of 240 default-link fits ended with code 0 and no
+  warning, against 234 of 240 on `log`. The failures are warnings such
+  as a large gradient or a Hessian that is not positive definite, never
+  a silent wrong answer. If a fit warns, pass `link = "log"`.
+
+- **BREAKING:** [`binomial()`](https://rdrr.io/r/stats/family.html),
+  [`beta_binomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`zero_inflated_binomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  and
+  [`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  without a `trials()` term are refused with brms’s message,
+  `Specifying 'trials' is required for this model.`, and so is a
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+  with such a component.
+  [`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  used to take its trials from the row sums of the response; its
+  `trials()` must now equal them, as in brms. The others used to be
+  fitted as one trial per row. Write `y | trials(n) ~ ...`, or
+  [`bernoulli()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  for a 0/1 response. `cbind(successes, failures)` supplies the trials
+  and is unaffected.
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+  does not refuse these responses, because brms’s
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+  does not and no prior depends on the trials.
+
+- **BREAKING:**
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+  refuses what brms refuses. Components with real and integer support
+  (`mixture(lognormal, exgaussian, poisson())`) are refused, because a
+  weighted sum of a density and a probability mass is not a likelihood.
+  [`categorical()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`hurdle_gamma()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`hurdle_lognormal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  and
+  [`zero_inflated_beta()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  the families brms’s `no_mixture()` bars, are refused as components,
+  and a mix of ordinal and non-ordinal components is refused with brms’s
+  sentence. A named argument in the dots, such as brms’s `nmix` or
+  `order`, is refused by name; it used to be read as a component and
+  reported as an unsupported family.
+
+- **BREAKING:** an unordered factor response to
+  [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  or
+  [`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  is an error, as in brms. It used to warn and fit with the alphabetical
+  level order as the category order. Use an ordered factor or integer
+  codes. The ordinal response refusals open with brms’s sentence,
+  `Family 'cratio' requires either positive integers or ordered factors as responses`.
+
+- [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) messages
+  brms’s suggestion,
+  `Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.`,
+  for a [`binomial()`](https://rdrr.io/r/stats/family.html),
+  [`beta_binomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  or
+  [`zero_inflated_binomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  response whose trials are all one, including a
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+  of those, and for an ordinal or categorical response with two
+  categories.
+
+- The `link_<dpar>` refusal now opens with brms’s sentence,
+  `'logit' is not a supported link for parameter 'shape'`.
+
+- **BREAKING.** A group-level coefficient that two terms of one
+  predictor both give to the same grouping factor is refused, as brms
+  refuses it. `y ~ x + (1 | g) + (x | g)` used to fit two independent
+  intercept blocks on `g`, and only the sum of their variances is
+  identified: on a 240-row construction the two intercept standard
+  deviations came out 0.56151 and 0.56093, the log likelihood equal to
+  that of `(x | g)` alone (`dev/priorform-base-behaviour.R`). What stops
+  working: every such repeat, including `(1 | g) + (x || g)`,
+  `(1 | g:h) + (1 | g/h)` and `(1 | mm(g, h)) + (x | mm(g, h))`. Write
+  the coefficient in one term. This includes the animal model’s
+  `(1 | gr(id, cov = A)) + (1 | id)`, which IS identified through the
+  matrix but which brms also refuses; write the permanent-environment
+  term on a copy of the column, `(1 | id2)`, as brms does, and the
+  message says so. The glmmTMB structures brms does not have follow the
+  same rule: `rr(...) + diag(...)`, `equalto(...) + us(...)` and
+  `ar1(...) + diag(...)` repeating a coefficient on one factor are
+  refused.
+
+- A bar term written twice, `(1 | g) + (1 | g)`, is one block, as brms
+  reads it; it used to fit two blocks splitting one variance at will.
+  Grouping factors are compared as brms writes them, so
+  `(1 | g:h) + (1 | h:g)` is two blocks, as in brms, while
+  `(1 | g:h) + (1 | g/h)` repeats one and is refused. A multi-membership
+  group is named by its members, as brms names it, so
+  `(1 | mm(g1, g2)) + (1 | mm(g1, g2, weights = cbind(w1, w2)))` repeats
+  the intercept and is refused; it used to fit two blocks. A whole-term
+  special written twice, `s(z) + s(z)`, is one term, as in brms; it used
+  to build two smooths with one column name. A split that repeats no
+  coefficient, such as `(1 | g) + (0 + x | g)`, and the same term in two
+  predictors, such as `bf(y ~ (1 | g), sigma ~ (1 | g))`, are still
+  accepted. On 489 generated designs and 158 formulas harvested from
+  brms’s own tests, vignettes and examples, the refusal fired on none
+  that brms accepts and missed none that brms refuses
+  (`dev/priorform-falsealarm.R`).
+
+- **BREAKING, and the defect it fixes.** `cs()`, a smooth (`s()`,
+  `t2()`, `te()`, `ti()`), `gp()`, an autocorrelation term and `mmc()`
+  inside an interaction or another call are refused by name, which is
+  brms’s list of whole-term specials. `y ~ x * cs(g)` used to fit
+  `y ~ x`, and so did `y ~ x:s(z)` and `y ~ x * s(z)`; `y ~ I(s(z))`
+  fitted an intercept alone. The dropped terms went without a message.
+  The message names the term as brms does,
+  `The term 'x:s(z)' is invalid`, and points a smooth at `by =`.
+  `s(z) * s(z)`, which [`terms()`](https://rdrr.io/r/stats/terms.html)
+  collapses to `s(z)`, is read as that one term, as brms reads it.
+
+- **BREAKING.** A formula whose right-hand side is itself a formula,
+  `y ~ ~ x`, is refused by name in
+  [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md),
+  [`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md),
+  [`nlf()`](https://aforren1.github.io/frmtmb/reference/nlf.md) and in
+  the parameter formulas of
+  [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md), as brms
+  refuses it (brms issue
+  [\#749](https://github.com/aforren1/frmtmb/issues/749)). Before,
+  `frm(y ~ ~ x)` fitted `y ~ x`.
+
+- [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) returns a
+  formula it already built unchanged, so `identical(form, bf(form))`
+  holds as it does in brms. It used to stop with “`formula` must be a
+  formula”. Further arguments add to that formula; a parameter it
+  already sets is refused, as `+ lf()` refuses it. `nl` now defaults to
+  `NULL`, as in brms: `FALSE` for a new formula, and the existing
+  setting for a built one. `bf(mvbind(y1, y2) ~ ..., nl = TRUE)` now
+  passes `nl` to each response, where it used to drop it.
+
+- [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) and
+  [`lf()`](https://aforren1.github.io/frmtmb/reference/lf.md) take a
+  one-sided parameter formula named by its parameter,
+  `bf(y ~ x, sigma = ~ z)`, which is brms’s second spelling of
+  `sigma ~ z`. A one-sided formula with no name is refused with brms’s
+  wording, “Additional formulas must be named”, and an invalid parameter
+  name now says it “must not contain dots or underscores”.
+
+- **BREAKING.** Two prior specifications for the same slot (class, coef,
+  group, resp, dpar and nlpar) are refused by
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md),
+  `frm_sample()`,
+  [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md),
+  [`par_template()`](https://aforren1.github.io/frmtmb/reference/par_template.md)
+  and
+  [`validate_prior()`](https://aforren1.github.io/frmtmb/reference/validate_prior.md),
+  as brms refuses them. What stops working: a repeated specification,
+  two densities for one slot, and a density followed by a bounds-only
+  specification, which used to tighten it. Write the density and both
+  bounds in one call. Slots are compared field by field, so
+  `class = "b", dpar = "sigma"` and `class = "b", coef = "sigma"` are
+  two slots although brms prints both as `b_sigma`. On `frm_sample()` of
+  a fit that carries its own prior, a specification on the call for a
+  slot the stored prior names replaces the stored one, as brms’s
+  `update(prior = )` replaces a row, and is not refused.
+
+- **BREAKING.** When specifications for different slots reach one
+  parameter, the more specific one applies whatever the order, as in
+  brms: a `coef` over its class, and a `group` over a class-wide `sd` or
+  `cor`. The later one used to win, so a coefficient prior written
+  BEFORE its class prior was silently replaced by it. Fits change only
+  for that order: on the construction in `dev/priorform-punch-order.R`
+  (seed 20260916), `coef = "x"` then class `b` moved from a log
+  likelihood of -261.34 to -409.94, the value the other order always
+  gave, and a group `sd` prior then a class `sd` prior on a beta model
+  from 211.86 to 215.28. The same-order fits are bitwise unchanged.
+  Between different classes, `cor` and the `theta` hatch, the later one
+  still applies.
+
+- [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  takes vectors in every argument and returns one specification per
+  element, recycled as a data frame column is:
+  `set_prior("normal(0, 2)", class = c("b", "sd"))` is two
+  specifications, as in brms. A length that does not divide the longest
+  is refused.
+
+- **BREAKING.** A prior object prints in brms’s layout. One
+  specification prints as `b_x ~ normal(0, 1)`, with bounds in front as
+  `<lower=0>`; several print as a table with brms’s columns, and
+  `print(x, show_df = FALSE)` gives one line each; a row with no density
+  of its own shows its class row’s as `(vectorized)`, and an empty prior
+  prints nothing, as in brms. What stops working: code that reads the
+  old `normal(0, 1) class=b coef=x` line. The density prints as it was
+  written, so `set_prior("cauchy(0,1)")` prints `cauchy(0,1)` rather
+  than the `student_t(1, 0, 1)` it parses into.
+
+- A prior object answers brms’s column reads: `pr$prior`, `pr$class`,
+  `pr$coef` and the rest return one element per specification, from the
+  table [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html)
+  now builds. Assigning a column, `pr$prior[2] <- "exponential(1)"`,
+  rebuilds the specifications with
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md).
+
+- [`default_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+  is new and is the canonical name, as it has been in brms since
+  2.20.14. **BREAKING:**
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+  is now its alias, `get_prior(formula, ...)`, which is brms’s
+  signature. Calls that pass `data`, `family`, `data2` or `route` by
+  position or by name are unchanged.
+
+- **BREAKING.** The
+  [`default_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+  table has brms’s columns in brms’s order,
+  `prior, class, coef, group, resp, dpar, nlpar, lb, ub, source`; `resp`
+  used to come after `nlpar`, and `source` is new. A class `"sd"` or
+  `"cor"` row for a block of a distributional parameter’s predictor now
+  names that parameter in `dpar`. Before,
+  `bf(y ~ (1 | g), phi ~ (1 | g))` listed one `sd` row for `g` where the
+  model has two blocks.
+
+- [`validate_prior()`](https://aforren1.github.io/frmtmb/reference/validate_prior.md)
+  is new. It resolves a prior against a model with the resolution
+  [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) uses,
+  refuses it with the same message when any part of it addresses
+  nothing, and returns the whole
+  [`default_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+  table with the prior filled in and `source` marking the rows set and
+  the rows that inherit a class row’s density. `frm(prior = )` accepts
+  that table, and a
+  [`default_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+  table edited in place, and fits the same model as the prior that built
+  it.
+
+- [`empty_prior()`](https://aforren1.github.io/frmtmb/reference/empty_prior.md)
+  and
+  [`as.brmsprior()`](https://aforren1.github.io/frmtmb/reference/as.brmsprior.md)
+  are new.
+  [`as.brmsprior()`](https://aforren1.github.io/frmtmb/reference/as.brmsprior.md)
+  turns a data frame with a `prior` column into a prior object, filling
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)’s
+  defaults and dropping other columns, as brms’s does; here the result
+  is the `frmtmb_priorlist` that
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  returns.
+
+- **BREAKING:
+  [`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
+  and
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  use brms’s names.** Every coefficient carries brms’s `b_` prefix, and
+  a coefficient of a distributional, nonlinear or multivariate predictor
+  is spelled the way brms spells it: `b_Intercept`, `b_x`,
+  `b_sigma_Intercept`, `b_sigma_y1_x`, `b_a_Intercept`. `variables(fit)`
+  used to return `Intercept, zBase, ..., sd_patient__Intercept`, half of
+  brms’s convention. A group-level standard deviation of a
+  distributional parameter is `sd_g__sigma_Intercept`; it used to be a
+  second `sd_g__Intercept`, which the mean’s block claimed, so it could
+  not be reached at all. An `|ID|` block’s names are
+  `sd_id__y1_Intercept`, not `sd_id__y1.muIntercept`.
+
+  Every piece of a name goes through one renamer ported from brms’s
+  `rename()` and its helpers: `I(x^2)` is `b_IxE2`, a factor level `c-d`
+  is `b_fcMd`, a response `y_a` is `ya` (`b_ya_x`, `sigma_ya`), an
+  interaction group keeps its `:` (`sd_g:h__Intercept`) and joins its
+  levels with `_` (`r_g:h[1_p,Intercept]`), whitespace in a level is a
+  dot in an `r_` name, and a smooth’s unpenalized column is `bs_sx_1`
+  with smoothing SD `sds_sx_1`. A distributional parameter nobody wrote
+  a formula for is the parameter itself on its natural scale, `sigma`,
+  `shape` or `sigma_ya`, and has no `b_sigma_Intercept`; written as
+  `sigma ~ 1` it is `b_sigma_Intercept` and there is no `sigma`, as in
+  brms. The autocorrelation parameters are `ar[1]`, `ma[1]`, `cosy`, and
+  a multivariate model’s residual correlations `rescor__ya__yb`. Checked
+  against the names brms derives for thirteen models, including those
+  hostile names and the unmodeled shape, nu, phi, zi and hu: 210 of 210
+  present and none extra, 12 of 210 before
+  (`dev/brmsnames-findings.md`).
+
+  What stops working: a bare coefficient name in
+  [`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)’s
+  output (`"x" %in% variables(fit)`), a
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  string that names a natural-scale quantity without `class = NULL`,
+  `b_sigma_Intercept` on a model whose sigma has no formula (use
+  `sigma`), and `ar1` (use `ar[1]`).
+
+- **BREAKING:
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  takes brms’s `class = "b"` default and brms’s argument order**,
+  `(x, hypothesis, class, group, scope, alpha, robust, seed, ...)`, with
+  `method`, `nsim` and `vcov` after them. A bare name is read as the
+  coefficient, `x` as `b_x`, as in brms, so
+  `hypothesis(fit, "x1 - x2 = 0")` still works. A natural-scale name
+  needs `class = NULL`, as in brms:
+  `hypothesis(fit, "sd_g__Intercept / sigma = 0", class = NULL)`. The
+  string is read as `brms:::eval_hypothesis()` reads it: every variable
+  gets the `class` and `group` prefix, a prefixed name the model does
+  not have is refused with brms’s “Some parameters cannot be found in
+  the model”, and brms’s renaming (`:` to `___`, `[` and `]` to `.`, `,`
+  to `..`) is applied before parsing. `x:fe` is therefore the
+  interaction coefficient. It used to parse as R’s `:` operator, which
+  returned `b_x` whenever `b_x` and `b_x:fe` were less than 1 apart:
+  `hypothesis(fit, "x:fe > 0")` gave 0.2415 for a coefficient of 1.0794,
+  with no error. A name written in full under the default class
+  (`"b_x = 0"`) is refused, as brms refuses it, and the backquoted
+  internal spelling `` `(Intercept)` `` is no longer an alias. `alpha`
+  used to be the third positional argument, so `hypothesis(fit, h, 0.1)`
+  now names a class. `robust = TRUE` and `scope = "ranef"` or `"coef"`
+  are refused by name: both need draws.
+
+- **BREAKING:
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  returns brms’s object.** A list of class
+  `c("frmtmb_hypothesis", "brmshypothesis")` with brms’s elements
+  `hypothesis`, `samples`, `prior_samples`, `class` and `alpha`, whose
+  `$hypothesis` frame has brms’s eight columns: `Hypothesis`,
+  `Estimate`, `Est.Error`, `CI.Lower`, `CI.Upper`, `Evid.Ratio`,
+  `Post.Prob`, `Star`. On a fit, `Est.Error` is the delta-method (or
+  bootstrap, or pooled) standard error, the interval follows brms’s rule
+  (central `1 - alpha` for `=`, central `1 - 2 * alpha` for a
+  directional row, so its relevant end is the one-sided bound; it used
+  to be infinite on the other side), `Evid.Ratio` and `Post.Prob` are
+  `NA`, and the test statistic and p-value are `attr(h, "test")`. What
+  stops working: `h$estimate`, `h$se`, `h$lwr`, `h$upr`, `h$z`, `h$p`,
+  `nrow(h)`, and `as.data.frame(h)`.
+
+- **BREAKING: the reserved-name note and the dot spellings are gone.** A
+  covariate named `sigma` used to shadow the residual SD in
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md),
+  with a message and a `.sigma` escape. With brms’s `b_` prefix the
+  coefficient is `b_sigma` and `sigma` is the residual SD, so that pair
+  no longer meets. `hyp_shadow_arm()` and `hyp_shadow_disarm()` are no
+  longer exported.
+
+- **BREAKING: names that brms’s renaming would give twice are handled as
+  brms handles each case.** Measured on brms 2.23.0
+  (`dev/brmsnames-rev-collide-brms.R`):
+
+  - two design columns of one predictor that rename alike,
+    `y ~ Intercept + x`, are refused when the model is built, with
+    brms’s “Internal renaming led to duplicated names”;
+  - a name given by two predictors takes brms’s `__1` suffix on the
+    later one: `bf(y ~ sigma_z, sigma ~ z)` has `b_sigma_z` and
+    `b_sigma_z__1`, where the second used to be a duplicate that
+    [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+    could not reach;
+  - the same group-level coefficient on one group twice is refused with
+    brms’s “Duplicated group-level effects are not allowed”. The animal
+    model `(1 | gr(id, cov = A)) + (1 | id)` is refused this way; give
+    the second term a copy of the column, `(1 | id_pe)`;
+  - two responses brms spells alike, `y_a` and `ya`, are refused with
+    brms’s “Cannot use the same response variable twice”;
+  - a group-level label given twice, the `r_gd[lvl.1,Intercept]` of the
+    levels `lvl 1` and `lvl.1`, takes brms’s `__1` on the later level;
+  - an interaction group two of whose levels brms joins to one string,
+    `1_2:3` and `1:2_3` in `(1 | gi:hi)`, is refused. brms fits them as
+    one level and pools their effects; recode the factors.
+
+  No name reaches
+  [`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md),
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  or the draws labels twice. What stops working: the models above that
+  are refused.
+
+- **BREAKING: a mixture’s weights are brms’s `theta1 ... thetaK`.** With
+  no theta formula written,
+  [`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
+  and
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  name the mixing PROBABILITIES, which sum to one, as brms does. They
+  used to name the estimated log ratio `theta1` (1.966 where the share
+  was 0.876), so `hypothesis(fit, "theta1 = 0.5", class = NULL)` gave
+  1.466 where brms gives 0.376. `frm_simulate(newparams =)` takes the
+  whole simplex, `theta1 = 0.9, theta2 = 0.1`, and refuses a part of it;
+  it used to read `theta1 = 0.7` as a log ratio, a share of 0.665. A
+  mixture with a theta formula keeps the log ratios as coefficients,
+  `b_theta1_Intercept`. An `hmm()` transition logit is likewise the
+  coefficient `b_tr12_Intercept`, not `tr12`.
+
+- **BREAKING: two more names are brms’s.** A monotonic term’s scale is
+  `bsp_moxo`, as brms names the same quantity (it was `b_moxo`), and a
+  by-smooth’s smoothing SD is `sds_sxf2u_1` (it was `sds_sx:f2u_1`).
+
+- **BREAKING:
+  [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
+  returns brms’s structure.** A list keyed by GROUPING FACTOR
+  (`"patient"`, as brms and lme4 key it, not `"1 | patient"`), each
+  entry with `sd` (coefficients x statistics) and, for a group with
+  correlations, `cor` and `cov` (coefficient x statistic x coefficient
+  arrays), then `residual__` where brms has it: a `sigma` with no
+  formula, one row per response on a multivariate model (named `ya`,
+  `y2`) with the residual correlations under `rescor = TRUE`, and no
+  `residual__` once any response predicts sigma. The statistics are
+  `Estimate`, its delta-method standard error as `Est.Error`, and Wald
+  quantiles at `probs`. Several blocks on one factor merge under it, as
+  in brms. Smooth, GP, CAR and SPDE blocks are not in it, as in brms;
+  [`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
+  reports them. A model with no group and no scalar residual SD is
+  refused with brms’s message. What stops working: `VarCorr(fit)[[1]]`
+  as a covariance matrix, `names(VarCorr(fit))` as term labels,
+  `as.data.frame(VarCorr(fit))`, and
+  [`print()`](https://rdrr.io/r/base/print.html)’s lme4 table from
+  [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
+  (the fit’s own [`print()`](https://rdrr.io/r/base/print.html) and
+  [`summary()`](https://rdrr.io/r/base/summary.html) keep it). The
+  per-block matrices are `varcorr_matrices(fit)` on
+  `?frmtmb-sampling-api`.
+
+- **BREAKING:
+  [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md),
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md),
+  [`coef()`](https://rdrr.io/r/stats/coef.html) and
+  [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
+  take brms’s leading arguments in brms’s positions** (`summary`,
+  `robust`, `probs`, and `pars` and `groups` where brms has them).
+  `fixef(fit, FALSE)` and `ranef(fit, FALSE)` used to set `flatten` and
+  `condVar` and return the default shape,
+  [`identical()`](https://rdrr.io/r/base/identical.html) to the call
+  without the argument. A fit has no draws, so `summary = FALSE` and
+  `robust = TRUE` are refused by name with the reason; brms’s defaults
+  spelled out are accepted. `flatten` and `condVar` move after `...` and
+  must be named.
+
+- [`posterior_summary()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.md)
+  on a fit, or on a
+  [`frm_multiple()`](https://aforren1.github.io/frmtmb/reference/frm_multiple.md)
+  result, refuses and says to sample first. It used to die inside
+  [`posterior_summary.default()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.md)
+  with “is.atomic(x) is not TRUE”.
+  [`posterior_summary.default()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.md)
+  is brms’s, statistic for statistic, and now summarizes a
+  three-dimensional draws array too.
+
+- `confint(parm =)` and `profile(parm =)` take brms’s `b_` spelling of a
+  coefficient as well.
+
+- **BREAKING: `frm_simulate(newparams =)` takes brms’s names only,** the
+  strings
+  [`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
+  returns: `b_Intercept`, `b_x`, `b_sigma_Intercept`, `sigma`,
+  `sd_g__Intercept`, `sds_sx_1`. A bare name (`Intercept`, `x`,
+  `sigma_Intercept`) is refused, and the message gives the brms spelling
+  of each. The prior-draw table `attr(sims, "pars")` uses the same
+  names. Priors do not change: `set_prior(coef = "x")` takes the bare
+  coefficient, as in brms. What stops working: every natural-scale
+  `newparams` list written with bare names; the internal spelling
+  (`beta`, `betad`, `theta`) is unchanged.
+
 ## frmtmb 0.58.0
 
 - **BREAKING, and the rule behind it.** Where lme4 or glmmTMB and brms
@@ -189,10 +736,8 @@
   applicable method” before and would have become posterior’s “All list
   elements must be lists themselves” after, since a fit is a bare list.
 
-- [`hyp_shadow_arm()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
-  and
-  [`hyp_shadow_disarm()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
-  join the extension API on `?frmtmb-sampling-api`. A
+- `hyp_shadow_arm()` and `hyp_shadow_disarm()` join the extension API on
+  `?frmtmb-sampling-api`. A
   [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
   method in another package must arm the reserved-name shadowing note
   itself, because the generic that dispatched to it may be brms’s;
@@ -730,13 +1275,13 @@ Modeling port, which had to work around them; the workarounds are gone.
   feeding each allowed link’s own `linkfun` of it, 34 agree to a spread
   of exactly zero and the rest to 1.8e-15.
 
-- New
-  [`frm_family()`](https://aforren1.github.io/frmtmb/reference/frm_family.md)
-  names a family and its links for the four families ‘stats’ owns, which
-  have no frmtmb constructor to carry the new arguments:
-  `frm_family("gaussian", link_sigma = "softplus")`,
+- New `frm_family()` names a family and its links for the four families
+  ‘stats’ owns, which have no frmtmb constructor to carry the new
+  arguments: `frm_family("gaussian", link_sigma = "softplus")`,
   `frm_family("poisson", link = "softplus")`. It is the analogue of
-  brms’s `brmsfamily()`. frmtmb still does not shadow
+  brms’s
+  [`brmsfamily()`](https://aforren1.github.io/frmtmb/reference/brmsfamily.md).
+  frmtmb still does not shadow
   [`gaussian()`](https://rdrr.io/r/stats/family.html),
   [`poisson()`](https://rdrr.io/r/stats/family.html),
   [`binomial()`](https://rdrr.io/r/stats/family.html) or
@@ -1111,10 +1656,11 @@ extension, brings reinforcement-learning families.
   families that do.
 
 - `car(type = "esicar")` standard errors no longer carry `con_sd`.
-  `expand_b()` centers the field each connected component contributes,
-  so the linear predictor sees `P b` with `P` the centering projection,
-  but the delta method paired the design columns with `b` through
-  `dc/db = I`. Every `predict(se.fit = TRUE)` standard error and every
+  [`expand_b()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  centers the field each connected component contributes, so the linear
+  predictor sees `P b` with `P` the centering projection, but the delta
+  method paired the design columns with `b` through `dc/db = I`. Every
+  `predict(se.fit = TRUE)` standard error and every
   `ranef(condVar = TRUE)` conditional SD therefore carried the inert
   component means, exactly `con_sd^2` in the variance: measured 1.348e-5
   relative in a standard error at the 1e-3 default, 1.347e-3 at
@@ -1237,7 +1783,7 @@ extension, brings reinforcement-learning families.
   `class = "b"` prior on a dpar’s slopes is unaffected: it was
   link-scale before and is link-scale in brms.
 
-- [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+- [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
   lists a distributional parameter under whichever of the two spellings
   its model offers, which is the row brms lists: class `"sigma"` where
   sigma has no predictor, `class = "Intercept"` with `dpar = "sigma"`
@@ -1701,12 +2247,12 @@ per lower-bounded parameter, which is a constant and moves no mode.
   column. `frm(prior = brms::get_prior(...))` used to apply NOTHING and
   say so in a message; it now fits a penalized model. The sharpest form
   of the old behavior was that a row the USER had edited into a
-  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
   table in place, the ordinary `gp$prior[i] <- "normal(0, 20)"`
   workflow, was dropped too, because brms does not update `source` after
   such an edit, and the message said brms had filled the row in. **What
   to change:** a script that passed a
-  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
   table for its slot listing and expected an unpenalized fit must now
   blank the `prior` column, or not pass the table. A table containing a
   class frmtmb keeps elsewhere (`sds`, `sdgp`, `lscale`, `simo`, brms’s
@@ -1749,7 +2295,7 @@ per lower-bounded parameter, which is a constant and moves no mode.
   threshold vector at the predictor means, with the log-Jacobian of the
   map from frmtmb’s internal `tau_raw`, and it reproduces brms’s density
   exactly.
-  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
   lists the slot. **What to change:** a script relying on that error
   will now fit; `prior = list(tau_raw = )` still reaches the same
   parameters on the internal scale.
@@ -1978,7 +2524,7 @@ differs.
   wrote. The frame re-sorts into that order before it numbers the
   simplexes, so the j-th monotonic term of a predictor is the one brms
   calls `simo_<j>` and names in the `simo` rows of its
-  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md).
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md).
   The monotonic design columns follow the same order, so `y ~ mo(x) * z`
   now reports `mox` ahead of `mox:z`. What lines up with brms is the
   ORDER, not the `zeta<j>` number: simplexes continue the numbering of
@@ -2321,7 +2867,7 @@ get_prior() answers for one route, whatever is attached.
   the correction costs, and how to read the effective sample size.
 
 - **Behavior change.**
-  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
   gains `route`, and its `prior` column no longer depends on which
   packages are attached. Until now the column was filled from the
   prior-defaults registry on every call, so the same call on the same
@@ -2334,10 +2880,10 @@ get_prior() answers for one route, whatever is attached.
   applies, and refuses, naming `frmtmb.sample`, when no loaded package
   states them. Readers who want the sampling defaults, which is what
   brms’s
-  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
   describes, must now ask for that route. `frm_sample()`’s own
   precedence of call over fit over defaults is unchanged; only where
-  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
   reads from has moved. The returned table gains class
   `frmtmb_prior_rows` and a `route` attribute, and
   [`print()`](https://rdrr.io/r/base/print.html) names the route on its
@@ -2433,7 +2979,7 @@ the package split, and a shipping case study.
   class. A stale call fails as an unused argument, and `frm_sample()`
   refuses the names explicitly because its `...` would otherwise have
   passed them to the sampler and sampled unbounded in silence.
-- [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+- [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
   no longer offers a random-effect `theta` row for a model with a
   residual autocorrelation structure and no random effects (a `$`
   partial match of exactly the kind the codebase polices, now bracketed
@@ -2590,11 +3136,11 @@ companion packages in this repository.
   (a frame check an extension registers at load),
   [`frmtmb_register_compat()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_compat.md)
   (compatibility-matrix rows), a prior-defaults registry behind
-  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md),
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md),
   and
   [`frmtmb_ad_overload()`](https://aforren1.github.io/frmtmb/reference/frmtmb_ad_overload.md)
   (the tape-safe wrapper for user functions, previously internal).
-- [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+- [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
   reports the default a slot actually has: `(flat)` with frmtmb alone,
   which is what
   [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) does,
@@ -2824,7 +3370,7 @@ Windows.
   that is what makes the brms nonlinear vignette’s insurance-loss priors
   land. `nlpar` also narrows classes `"sd"` and `"cor"`, separating two
   blocks on one grouping factor that `group` alone cannot tell apart.
-  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
   gains an `nlpar` column.
 - The formula route of `frm_sample()` no longer invents a location
   default for a nonlinear parameter’s intercept. brms leaves those flat,
@@ -5041,7 +5587,7 @@ code review.
   [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
   expressions (coefficients, `sd_`/`cor_` summaries, `sigma`); on
   `frm_sample()` output it lists the draw columns.
-- [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+- [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
   (brms spelling): enumerates every slot
   [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
   can target (class/coef/dpar/group rows), from a formula plus data or

@@ -17,7 +17,7 @@ ported from brms is fitted through the same inverse link.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -88,7 +88,7 @@ ported from brms is fitted through the same inverse link.</p>
 family constructor, which resolves it against the registry and
 carries it on the fitted model, so the value a link contributes is
 the scale each distributional parameter is estimated on. Read it
-back with <code><a href="frm_family.html">frm_family()</a></code>, and read a custom link's own fields with
+back with <code>$link</code> and <code>$link_&lt;dpar&gt;</code> on the family, and read a custom link's own fields with
 the list that was supplied. This page documents the roster.</p>
     </div>
     <div class="section level2">
@@ -118,14 +118,24 @@ count mean anyway, and so does frmtmb.</p>
 
 
 
-<p>Any link in the roster is accepted for <code>mu</code>. The table below is what
-brms 2.23.0 accepts, so it says which pairings PORT. frmtmb does not
-refuse the others, because an extension family is free to mean
-something else by its own <code>mu</code>. The first link listed is the
-default.</p><table class="table table"><tr><td>Family</td><td>Links for <code>mu</code></td></tr><tr><td><code>gaussian</code>, <code>student</code>, <code>skew_normal</code></td><td><code>identity</code>, <code>log</code>, <code>inverse</code>, <code>softplus</code>, <code>squareplus</code>, and every unit-interval link</td></tr><tr><td><code>lognormal</code>, <code>shifted_lognormal</code>, <code>hurdle_lognormal</code></td><td><code>identity</code>, <code>inverse</code></td></tr><tr><td><code>Gamma</code>, <code>weibull</code>, <code>exponential</code>, <code>hurdle_gamma</code></td><td><code>log</code>, <code>identity</code>, <code>inverse</code>, <code>softplus</code>, <code>squareplus</code></td></tr><tr><td><code>asym_laplace</code>, <code>exgaussian</code>, <code>zero_inflated_asym_laplace</code></td><td><code>identity</code>, <code>log</code>, <code>inverse</code>, <code>softplus</code>, <code>squareplus</code></td></tr><tr><td><code>poisson</code>, <code>negbinomial</code>, <code>geometric</code>, <code>compois</code>, and the zero-inflated and hurdle counts</td><td><code>log</code>, <code>identity</code>, <code>sqrt</code>, <code>softplus</code>, <code>squareplus</code></td></tr><tr><td><code>binomial</code>, <code>bernoulli</code>, <code>Beta</code>, <code>zero_inflated_binomial</code>, <code>zero_inflated_beta</code></td><td><code>logit</code>, <code>probit</code>, <code>probit_approx</code>, <code>cloglog</code>, <code>cauchit</code>, <code>softit</code>, <code>identity</code>, <code>log</code></td></tr><tr><td><code>beta_binomial</code></td><td>the same list WITHOUT <code>log</code>: brms's own table for this one family stops at <code>identity</code></td></tr><tr><td><code>inverse.gaussian</code></td><td><code>1/mu^2</code>, <code>inverse</code>, <code>identity</code>, <code>log</code>, <code>softplus</code>, <code>squareplus</code></td></tr><tr><td><code>cox</code></td><td><code>log</code>, <code>identity</code>, <code>softplus</code>, <code>squareplus</code></td></tr><tr><td><code>von_mises</code></td><td><code>tan_half</code>, <code>identity</code></td></tr><tr><td><code>cumulative</code></td><td><code>logit</code>, <code>probit</code>, <code>probit_approx</code>, <code>cloglog</code>, <code>cauchit</code>, <code>softit</code></td></tr><tr><td><code>sratio</code>, <code>cratio</code></td><td><code>logit</code>, <code>probit</code>, <code>probit_approx</code>, <code>cloglog</code>, <code>cauchit</code></td></tr><tr><td><code>acat</code></td><td><code>logit</code> ONLY. brms takes the same six as <code>cumulative</code>; this is the one place frmtmb departs, and the reason is below</td></tr><tr><td><code>categorical</code>, <code>multinomial</code></td><td><code>logit</code></td></tr></table><p>An ordinal family is the exception that IS enforced. Its <code>link</code>
-names the cumulative distribution function the thresholds are read
-through, not a link on a mean, so only a link whose inverse maps
-onto the unit interval can serve. The rest are refused by name.</p>
+<p>Each family constructor takes, for <code>mu</code>, the links brms 2.23.0 takes
+for that family, and refuses the rest by name with the set it
+allows: <code>bernoulli("sqrt")</code> is an error, as in brms, because a
+probability on <code>eta^2</code> is not bounded by one. The sets are read out
+of brms by a script rather than copied by hand. The first link
+listed is the default.</p>
+<p>The link may be written unquoted, as in <code>student(identity)</code> or
+<code>negbinomial(sqrt)</code>, as <code><a href="https://rdrr.io/r/stats/family.html" class="external-link">stats::family()</a></code> and brms allow. Only the
+link for the mean can be; a <code>link_&lt;dpar&gt;</code> argument is a string.</p>
+<p>A custom link object (see Custom links) is not held to the table:
+brms has no such object, and a user who writes one has said what
+range the mean has. <code><a href="frmtmb_family.html">frmtmb_family()</a></code> checks no set at all, because
+an extension family is free to mean something else by its own <code>mu</code>.</p>
+<p><code>nbinom1</code>, <code>tweedie</code> and <code>huber</code> have no brms family. They take the
+set of the nearest brms family: <code>negbinomial</code>, <code>Gamma</code> and
+<code>gaussian</code>, in that order.</p><table class="table table"><tr><td>Family</td><td>Links for <code>mu</code></td></tr><tr><td><code>gaussian</code>, <code>student</code>, <code>skew_normal</code></td><td><code>identity</code>, <code>log</code>, <code>inverse</code>, <code>softplus</code>, <code>squareplus</code>, and every unit-interval link</td></tr><tr><td><code>lognormal</code>, <code>shifted_lognormal</code>, <code>hurdle_lognormal</code></td><td><code>identity</code>, <code>inverse</code></td></tr><tr><td><code>Gamma</code>, <code>weibull</code>, <code>exponential</code>, <code>hurdle_gamma</code></td><td><code>log</code>, <code>identity</code>, <code>inverse</code>, <code>softplus</code>, <code>squareplus</code></td></tr><tr><td><code>asym_laplace</code>, <code>exgaussian</code>, <code>zero_inflated_asym_laplace</code></td><td><code>identity</code>, <code>log</code>, <code>inverse</code>, <code>softplus</code>, <code>squareplus</code></td></tr><tr><td><code>poisson</code>, <code>negbinomial</code>, <code>geometric</code>, <code>compois</code>, and the zero-inflated and hurdle counts</td><td><code>log</code>, <code>identity</code>, <code>sqrt</code>, <code>softplus</code>, <code>squareplus</code></td></tr><tr><td><code>binomial</code>, <code>bernoulli</code>, <code>Beta</code>, <code>zero_inflated_binomial</code>, <code>zero_inflated_beta</code></td><td><code>logit</code>, <code>probit</code>, <code>probit_approx</code>, <code>cloglog</code>, <code>cauchit</code>, <code>softit</code>, <code>identity</code>, <code>log</code></td></tr><tr><td><code>beta_binomial</code></td><td>the same list WITHOUT <code>log</code>: brms's own table for this one family stops at <code>identity</code></td></tr><tr><td><code>inverse.gaussian</code></td><td><code>1/mu^2</code>, <code>inverse</code>, <code>identity</code>, <code>log</code>, <code>softplus</code>, <code>squareplus</code></td></tr><tr><td><code>cox</code></td><td><code>log</code>, <code>identity</code>, <code>softplus</code>, <code>squareplus</code></td></tr><tr><td><code>von_mises</code></td><td><code>tan_half</code>, <code>identity</code></td></tr><tr><td><code>cumulative</code></td><td><code>logit</code>, <code>probit</code>, <code>probit_approx</code>, <code>cloglog</code>, <code>cauchit</code>, <code>softit</code></td></tr><tr><td><code>sratio</code>, <code>cratio</code></td><td><code>logit</code>, <code>probit</code>, <code>probit_approx</code>, <code>cloglog</code>, <code>cauchit</code></td></tr><tr><td><code>acat</code></td><td><code>logit</code> ONLY. brms takes the same six as <code>cumulative</code>; this is the one place frmtmb departs, and the reason is below</td></tr><tr><td><code>categorical</code>, <code>multinomial</code></td><td><code>logit</code></td></tr></table><p>An ordinal family's <code>link</code> names the cumulative distribution
+function the thresholds are read through, not a link on a mean, so
+only a link whose inverse maps onto the unit interval can serve.</p>
 <p><code><a href="frmtmb-families.html">acat()</a></code> is refused for a different reason, and it is the one place
 in this table where frmtmb takes less than brms. Probit, cloglog,
 cauchit and softit all map onto the unit interval and brms accepts

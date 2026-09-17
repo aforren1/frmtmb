@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -116,8 +116,8 @@ than a mean.</p>
 <span><span class="fu"><a href="../reference/draws-diagnostics.html">rhat</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/draws-diagnostics.html">neff_ratio</a></span><span class="op">(</span><span class="va">ds</span><span class="op">)</span></span></code></pre></div>
 <p>These are brms’s diagnostics throughout, computed by the posterior
-package on these draws and reported under the frmtmb draws-side names
-that <code>variables(ds)</code> lists. <code><a href="../reference/draws-diagnostics.html">rhat()</a></code> is the
+package on these draws and reported under brms’s names, which
+<code>variables(ds)</code> lists. <code><a href="../reference/draws-diagnostics.html">rhat()</a></code> is the
 rank-normalized split-R-hat, <code><a href="../reference/draws-diagnostics.html">neff_ratio()</a></code> is
 <code>min(ess_bulk, ess_tail) / ndraws</code>, and
 <code>summary(ds)</code> reports the same <code>Rhat</code> with the two
@@ -140,10 +140,10 @@ bayesplot’s <code>mcmc_nuts_*()</code> displays.</p>
 <span></span>
 <span><span class="fu"><a href="../reference/draws-diagnostics.html">mcmc_plot</a></span><span class="op">(</span><span class="va">ds</span>, type <span class="op">=</span> <span class="st">"trace"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/draws-diagnostics.html">mcmc_plot</a></span><span class="op">(</span><span class="va">ds</span>, type <span class="op">=</span> <span class="st">"rank_overlay"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/pairs.html" class="external-link">pairs</a></span><span class="op">(</span><span class="va">ds</span>, variable <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sd_g__Intercept"</span>, <span class="st">"sigma"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/pairs.html" class="external-link">pairs</a></span><span class="op">(</span><span class="va">ds</span>, variable <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"theta_1"</span>, <span class="st">"r_g[1,Intercept]"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Divergences concentrate in the funnel of a random-effect block, so
-the <code><a href="https://rdrr.io/r/graphics/pairs.html" class="external-link">pairs()</a></code> display to draw is a group standard deviation
-against something it multiplies.</p>
+the <code><a href="https://rdrr.io/r/graphics/pairs.html" class="external-link">pairs()</a></code> display to draw is a group’s log standard
+deviation against something it multiplies.</p>
 <p>Three moves, in the order worth trying:</p>
 <ol style="list-style-type: decimal">
 <li>

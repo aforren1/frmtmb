@@ -15,7 +15,7 @@ it, exponentiate it, or pass it on."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -135,7 +135,8 @@ distributional parameter), and the range space becomes one
 random-effect block with a single variance in <code>theta</code>. The smoothing
 parameter is that variance's inverse, so smoothness is estimated
 jointly with every other variance component rather than chosen.</p>
-<p><code><a href="VarCorr.html">VarCorr()</a></code> and <code><a href="ranef.html">ranef()</a></code> report the block under the term's own label.
+<p><code><a href="confint_varcorr.html">confint_varcorr()</a></code> and <code><a href="ranef.html">ranef()</a></code> report the block under the term's own
+label; brms's <code><a href="VarCorr.html">VarCorr()</a></code> leaves smooth blocks out, as brms does.
 Its standard deviation is a smoothing parameter, not a subject
 effect.</p>
     </div>

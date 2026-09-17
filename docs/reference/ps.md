@@ -65,9 +65,11 @@ smoothing parameter is that variance's inverse, so smoothness is
 estimated jointly with every other variance component rather than
 chosen.
 
-[`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
+[`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md)
 and [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md)
-report the block under the term's own label. Its standard deviation is a
+report the block under the term's own label; brms's
+[`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
+leaves smooth blocks out, as brms does. Its standard deviation is a
 smoothing parameter, not a subject effect.
 
 ## The knots are frozen

@@ -1,5 +1,157 @@
 # Changelog
 
+## frmtmb.sample 0.7.0
+
+- Requires frmtmb 0.59.0, for
+  [`brms_par_labels()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html),
+  [`brms_coef_table()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html),
+  [`brms_stan_name()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html),
+  [`expand_b()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html),
+  [`varcorr_layout()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html),
+  the
+  [`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)
+  helpers
+  ([`hyp_eval_in()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html),
+  [`hyp_expr_vars()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html))
+  and
+  [`check_prior_slots()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html)
+  on `?frmtmb::frmtmb-sampling-api`.
+
+- **BREAKING: the draws carry brms’s names.** `b_Intercept`, `b_x`,
+  `b_sigma_Intercept` for the coefficients and `r_g[1,Intercept]` for a
+  group-level coefficient (`r_gs[lev.1,Intercept]` for a level with a
+  space, `r_g:h[1_p,Intercept]` for an interaction group), in
+  `ds$draws`,
+  [`variables()`](https://mc-stan.org/posterior/reference/variables.html),
+  every `as_draws_*()`,
+  [`as.matrix()`](https://rdrr.io/r/base/matrix.html),
+  [`as.array()`](https://rdrr.io/r/base/array.html),
+  [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html),
+  [`rhat()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md),
+  [`neff_ratio()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md),
+  [`summary()`](https://rdrr.io/r/base/summary.html) and
+  [`posterior_summary()`](https://paulbuerkner.com/brms/reference/posterior_summary.html).
+  They were `Intercept`, `x`, `sigma_Intercept` and `b[1]`. A covariance
+  parameter brms does not sample keeps the name
+  [`confint()`](https://rdrr.io/r/stats/confint.html) gives it on the
+  fit, `theta_1`; a block with no brms counterpart (reduced rank,
+  smooth, GP, CAR, SPDE) keeps `b[i]`. What stops working:
+  `ds$draws[, "x"]`, and anything that selected `b[` columns.
+
+- **BREAKING: a distributional parameter nobody wrote a formula for is
+  stored on its natural scale, under brms’s name.** The column is
+  `sigma` (or `shape`, `nu`, and `sigma_ya` for response `y_a` of a
+  multivariate model) and holds sigma, as brms’s does. It used to be
+  `b_sigma_Intercept` holding log sigma, which brms reports only when
+  `sigma ~ 1` is written out, so `fixef(ds)` had a row, `coef(ds)$g` a
+  slice, and `posterior_summary(ds)` and `as_draws_df(ds)` a column that
+  brms does not have. They are gone. What stops working:
+  `ds$draws[, "b_sigma_Intercept"]` on such a model; use `sigma`, or
+  `log(ds$draws[, "sigma"])` for the old values.
+
+  A mixture’s weights are stored as brms’s simplex:
+  `theta1 ... theta<K-1>` hold the mixing probabilities, and brms’s
+  `thetaK` is a derived column before `lp__`. They used to be the log
+  ratio under the name `theta1_Intercept`. Every reader that hands a
+  draw to the model maps all `K` back to the log ratios together.
+
+- **Draws labels a level repeats are suffixed as brms suffixes them.**
+  Levels `lvl 1` and `lvl.1` are both `r_gd[lvl.1,Intercept]` in brms,
+  which names the later one `r_gd[lvl.1,Intercept]__1`. Without the
+  suffix every accessor failed on “Duplicate variable names”.
+  [`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)
+  on draws refuses a name that matches two columns instead of reading
+  the first.
+
+- **BREAKING: the accessors return brms’s objects.**
+  [`as.matrix()`](https://rdrr.io/r/base/matrix.html),
+  [`as.array()`](https://rdrr.io/r/base/array.html) and
+  [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) return
+  brms’s unclassed draws objects and take brms’s `pars`, `variable`,
+  `draw` and `subset`, with brms’s deprecation warnings; `as_draws_*()`
+  take `variable`, `regex` and `inc_warmup`;
+  [`as_draws()`](https://mc-stan.org/posterior/reference/draws.html) is
+  brms’s
+  [`as_draws_list()`](https://mc-stan.org/posterior/reference/draws_list.html).
+  `posterior_summary(x, pars, variable, probs, robust)` and
+  [`posterior_interval()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-posterior_summary.md)
+  cover every variable by default, as brms’s do. Compared against brms’s
+  own installed methods on the same draws: 88 of 90 calls
+  [`identical()`](https://rdrr.io/r/base/identical.html), the other 2
+  `rvars` objects that differ only by a cache environment
+  (`dev/brmsnames-findings.md`).
+
+- **BREAKING:
+  [`fixef()`](https://rdrr.io/pkg/nlme/man/fixed.effects.html),
+  [`ranef()`](https://rdrr.io/pkg/nlme/man/random.effects.html),
+  [`coef()`](https://rdrr.io/r/stats/coef.html) and
+  [`VarCorr()`](https://rdrr.io/pkg/nlme/man/VarCorr.html) are brms’s.**
+  `summary = FALSE` returns the raw draws, as in brms, where it used to
+  return a summary; `robust`, `probs`, `pars` and `groups` are brms’s.
+  [`coef()`](https://rdrr.io/r/stats/coef.html) broadcasts every
+  population-level coefficient, as brms’s does, and
+  [`VarCorr()`](https://rdrr.io/pkg/nlme/man/VarCorr.html) has brms’s
+  `sd`/`cor`/`cov`/`residual__` structure, with one `residual__` row per
+  response on a multivariate model.
+  [`ranef()`](https://rdrr.io/pkg/nlme/man/random.effects.html) on a
+  model with no group-level effects is refused with brms’s message.
+  [`ranef()`](https://rdrr.io/pkg/nlme/man/random.effects.html) and
+  [`coef()`](https://rdrr.io/r/stats/coef.html) on a reduced-rank block,
+  whose draws are factor scores rather than coefficients, compute the
+  coefficients per draw; on `frm_sample(laplace = TRUE)` draws, which
+  carry no group-level draws, they are refused by name rather than
+  returned as `NA`.
+
+- **BREAKING:
+  [`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)
+  returns brms’s `brmshypothesis` object**, takes `class = "b"` by
+  default and brms’s argument order, supports `robust`, `seed` and
+  `scope = "ranef"` or `"coef"`, and reports `Evid.Ratio` and
+  `Post.Prob` in brms’s columns. `evid_ratio`, `post_prob`, `z`, `p` and
+  `attr(h, "draws")` are gone; the draws are `h$samples`. The string is
+  read with brms’s renaming, so `x:fe` is the interaction coefficient
+  and not R’s `:` operator, and a stored column such as
+  `r_g[1,Intercept]` can be named with `class = NULL`, as in brms.
+
+- **BREAKING:
+  [`bayes_R2()`](https://mc-stan.org/rstantools/reference/bayes_R2.html)
+  on a multivariate model returns one row per response, `R2ya` and
+  `R2y2`, as brms does.** It returned the first response alone, named
+  `R2y_a`. `resp` takes brms’s spelling of a response (`ya`).
+
+- **BREAKING: brms’s positional slots on six more methods.**
+  `bayes_R2(ds, NULL, TRUE, TRUE)` now asks for brms’s `robust` summary;
+  the fourth slot used to be `probs` and returned a `Q100` column.
+  [`posterior_summary()`](https://paulbuerkner.com/brms/reference/posterior_summary.html)’s
+  second slot is `pars`,
+  [`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)’s
+  third is `class`, [`pairs()`](https://rdrr.io/r/graphics/pairs.html)’s
+  second is `pars`,
+  [`conditional_effects()`](https://paulbuerkner.com/brms/reference/conditional_effects.brmsfit.html)’s
+  third is `conditions` and
+  [`pp_check()`](https://mc-stan.org/bayesplot/reference/pp_check.html)’s
+  fourth is `prefix`. The formals audit of `dev/brmsmatch-beyond.R` now
+  finds 0 of 68 methods diverging, from 6.
+
+- **BREAKING: [`summary()`](https://rdrr.io/r/base/summary.html) has
+  brms’s columns and slots**: `Estimate`, `Est.Error`, `l-95% CI`,
+  `u-95% CI`, `Rhat`, `Bulk_ESS`, `Tail_ESS`, with `prob`, `robust` and
+  `mc_se`.
+
+- **BREAKING:
+  [`conditional_effects()`](https://paulbuerkner.com/brms/reference/conditional_effects.brmsfit.html)
+  defaults to brms’s `robust = TRUE`**: `estimate__` is the median of
+  the drawn curves and `se__` their MAD. `robust = FALSE` gives the mean
+  and SD it used to.
+
+- [`pp_check()`](https://mc-stan.org/bayesplot/reference/pp_check.html)
+  takes brms’s `prefix`, `group`, `x`, `newdata`, `resp` and `draw_ids`,
+  and brms’s default draw count with brms’s message.
+  [`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md)
+  takes brms’s `pointwise`, `combine`, `add_point_estimate` and `cores`,
+  and refuses an argument it does not have, which it used to accept and
+  ignore.
+
 ## frmtmb.sample 0.6.0
 
 - **BREAKING, and a published number moves.
@@ -240,13 +392,11 @@
   [`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)
   on a `frmtmb_draws` object now arms the note about a covariate that
   shadows a distributional parameter itself, through
-  [`frmtmb::hyp_shadow_arm()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html)
-  and
-  [`hyp_shadow_disarm()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html),
-  which no earlier frmtmb exports. Before this release the draws method
-  relied on core’s generic to arm that note; once frmtmb 0.56.0 stopped
-  owning the `hypothesis` generic, the note fired on a fitted model and
-  never on draws, in every session and whether or not brms was loaded.
+  `frmtmb::hyp_shadow_arm()` and `hyp_shadow_disarm()`, which no earlier
+  frmtmb exports. Before this release the draws method relied on core’s
+  generic to arm that note; once frmtmb 0.56.0 stopped owning the
+  `hypothesis` generic, the note fired on a fitted model and never on
+  draws, in every session and whether or not brms was loaded.
 
 - The generics this package re-exports from frmtmb no longer break
   brms’s methods when brms is loaded. With brms loaded but not attached,
@@ -612,10 +762,10 @@ leaves out. Requires frmtmb 0.53.0 for the seam exports.
   reported only that the chains returned no draws.
 
 - The defaults this package registers with
-  [`frmtmb::get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.html)
+  [`frmtmb::get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.html)
   now answer `route = "sample"` only. Loading this package used to
   change the table
-  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.html)
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.html)
   returned for every caller, an author asking about
   [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html)
   included; it no longer does. Ask for
@@ -672,7 +822,7 @@ First release, extracted from frmtmb 0.46.0.
   measures the Laplace and Wald approximations against NUTS on the same
   objective, centered and with no added priors.
 - At load, the package registers its sampling default priors with core’s
-  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.html)
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.html)
   and its feature rows with the compatibility matrix, so both stay
   truthful whether or not this package is installed.
 - Refuses a tmbstan built against StanHeaders 2.39 or later, whose code

@@ -21,7 +21,7 @@ in a multivariate fit."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -90,7 +90,15 @@ in a multivariate fit.</p>
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># S3 method for class 'frmtmb_fit'</span></span>
-<span><span class="fu">fixef</span><span class="op">(</span><span class="va">object</span>, flatten <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">fixef</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  summary <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  robust <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  probs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.025</span>, <span class="fl">0.975</span><span class="op">)</span>,</span>
+<span>  pars <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  <span class="va">...</span>,</span>
+<span>  flatten <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -99,6 +107,20 @@ in a multivariate fit.</p>
 
 <dl><dt id="arg-object">object<a class="anchor" aria-label="anchor" href="#arg-object"></a></dt>
 <dd><p>A <code>frmtmb_fit</code>.</p></dd>
+
+
+<dt id="arg-summary-robust-probs-pars">summary, robust, probs, pars<a class="anchor" aria-label="anchor" href="#arg-summary-robust-probs-pars"></a></dt>
+<dd><p>brms's arguments, in brms's
+positions so that a positional brms call asks the same question.
+brms answers <code>summary = FALSE</code> with the posterior draws and
+<code>robust = TRUE</code> with their median and MAD, and a maximum-likelihood
+fit has no draws, so both are refused by name with the reason. The
+default of each is accepted and changes nothing.</p></dd>
+
+
+<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
+<dd><p>Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.</p></dd>
 
 
 <dt id="arg-flatten">flatten<a class="anchor" aria-label="anchor" href="#arg-flatten"></a></dt>
@@ -112,11 +134,6 @@ ESTIMATED coefficients only - so dividing by a <code><a href="https://rdrr.io/r/
 <code>intersect(names(cf), rownames(vcov(fit)))</code> selects the ones a
 standard error exists for.</p></dd>
 
-
-<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Refused: an argument the method does not have is an
-error naming it, rather than silently changing nothing.</p></dd>
-
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -125,10 +142,12 @@ error naming it, rather than silently changing nothing.</p></dd>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p><code><a href="hypothesis.html">hypothesis()</a></code> is a THIRD vocabulary and is not the same one. It
-strips parentheses, so it reads <code>sigma_(Intercept)</code> only backquoted,
-and its own spelling is the parenthesis-free <code>sigma_Intercept</code>. The
-comment above <code><a href="frmtmb-sampling-api.html">par_name_bare()</a></code> sets out all three.</p>
+    <p><code><a href="hypothesis.html">hypothesis()</a></code> and <code><a href="variables.html">variables()</a></code> use a THIRD vocabulary, brms's
+parameter names: <code>b_Intercept</code>, <code>b_sigma_Intercept</code> for a <code>sigma</code>
+formula, and <code>sigma</code> on its natural scale when no formula was written
+for it. <code><a href="hypothesis.html">hypothesis()</a></code> puts <code>class = "b"</code>'s <code>b_</code> in front of a bare
+name, so its default spelling of those is <code>Intercept</code> and
+<code>sigma_Intercept</code>.</p>
 <p><code>unlist(fixef(fit))</code> is none of them. It is base R's composite of a
 list KEY and an element name, <code>mu.x</code>, and it names no parameter of
 the model: the separator differs and the location parameter is named

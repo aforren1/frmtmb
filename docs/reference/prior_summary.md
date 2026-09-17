@@ -45,8 +45,9 @@ fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
            prior = set_prior("normal(0, 1)", class = "b") +
                     set_prior("exponential(1)", class = "sd"))
 prior_summary(fit)
-#> normal(0, 1) class=b
-#> exponential(1) class=sd
+#>           prior class coef group resp dpar nlpar   lb   ub source
+#>    normal(0, 1)     b                            <NA> <NA>   user
+#>  exponential(1)    sd                            <NA> <NA>   user
 
 # a plain maximum-likelihood fit reports that it had none
 prior_summary(frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd))

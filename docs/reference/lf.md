@@ -21,7 +21,8 @@ lf(...)
   Two-sided formulas naming the parameter on the left, e.g. `sigma ~ x`
   or (with `nl = TRUE` on the
   [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md)) a
-  nonlinear parameter's formula `a ~ 1 + (1 | g)`.
+  nonlinear parameter's formula `a ~ 1 + (1 | g)`, or one-sided formulas
+  named by their parameter, `sigma = ~ x`.
 
 ## Value
 

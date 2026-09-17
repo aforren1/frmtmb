@@ -156,7 +156,7 @@ rownames(d) <- paste0("obs", seq_len(30))
 # set.seed(1) restarts the same random stream that made x, and the
 # residuals come out equal to the covariate.
 d$y <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), d,
-                    newparams = list(Intercept = 0, x = 0.4, sigma = 1,
+                    newparams = list(b_Intercept = 0, b_x = 0.4, sigma = 1,
                                      sd_g__Intercept = 0.5),
                     nsim = 1, seed = 1001)[[1]]
 
@@ -199,7 +199,7 @@ a formula and a data frame.
 | `control` | The list from [`frmtmb_control()`](https://aforren1.github.io/frmtmb/reference/frmtmb_control.md). | See below. |
 | `se` | Length-one logical, default `FALSE`. Defers `sdreport()`, which is roughly a quarter of the fit time. |  |
 | `na.action` | A function, as in [`stats::lm()`](https://rdrr.io/r/stats/lm.html). Default [`stats::na.omit`](https://rdrr.io/r/stats/na.fail.html). | `na.fail` errors on any `NA`. `na.exclude` drops rows for the fit and pads [`fitted()`](https://rdrr.io/r/stats/fitted.values.html), [`residuals()`](https://rdrr.io/r/stats/residuals.html), [`predict()`](https://rdrr.io/r/stats/predict.html) and [`simulate()`](https://rdrr.io/r/stats/simulate.html) back to the input length with `NA` in the original positions. |
-| `prior` | A [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md) specification, or a `brmsprior` object brms built with [`prior()`](https://aforren1.github.io/frmtmb/reference/prior.md) or [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md), which is translated row by row: a row applies whatever its `prior` string says, and lands where brms puts it (a distributional parameter’s own class on that parameter, a `class = "Intercept"` density at the intercept at the predictor means). [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md) takes the same class names with the same meanings, so both routes are one code path. Makes the fit penalized (MAP), so the reported log likelihood is penalized too. Spelled as brms spells it; the `priors` of releases before 0.43 is gone, and a call still using it fails as an unused argument. | [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md) checks the argument count of each distribution. A brms prior class with no faithful frmtmb spelling, and a `coef` on a class frmtmb resolves per block, are refused by name rather than translated into a different density or applied wider than asked; every refused row of a table is named in one message. A distributional parameter’s own class is refused on a model that gives that parameter a predictor, and `class = "Intercept", dpar =` on one that does not, each naming the spelling that applies, as brms refuses them. |
+| `prior` | A [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md) specification, or a `brmsprior` object brms built with [`prior()`](https://aforren1.github.io/frmtmb/reference/prior.md) or [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md), which is translated row by row: a row applies whatever its `prior` string says, and lands where brms puts it (a distributional parameter’s own class on that parameter, a `class = "Intercept"` density at the intercept at the predictor means). [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md) takes the same class names with the same meanings, so both routes are one code path. Makes the fit penalized (MAP), so the reported log likelihood is penalized too. Spelled as brms spells it; the `priors` of releases before 0.43 is gone, and a call still using it fails as an unused argument. | [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md) checks the argument count of each distribution. A brms prior class with no faithful frmtmb spelling, and a `coef` on a class frmtmb resolves per block, are refused by name rather than translated into a different density or applied wider than asked; every refused row of a table is named in one message. A distributional parameter’s own class is refused on a model that gives that parameter a predictor, and `class = "Intercept", dpar =` on one that does not, each naming the spelling that applies, as brms refuses them. |
 | `quadrature` | Length-one logical. Scalar random-intercept models only. | Any other structure, and `mi()`, [`trunc()`](https://rdrr.io/r/base/Round.html), `REML = TRUE` or `profile = TRUE`, is an error naming the conflict. |
 | `data2` | Named list of objects that the formula names and `data` cannot hold: the adjacency matrix of `car()`, the mesh triple of `spde()`, and the matrices of `gr(prec = )`, `gr(cov = )` and `equalto()`. | Anything that is not a named list is an error. A name a formula asks for and does not find is an error naming it. |
 | `dry_run` | `NULL`, `"spec"`, `"frame"` or `"objective"`. | Any other value is ignored and the model fits normally. |
@@ -404,29 +404,34 @@ coefficient.
 
 **In
 [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md),
-a coefficient shadows a natural-scale name.**
+a coefficient and a natural-scale name do not meet.**
 [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
-evaluates expressions in one flat namespace that holds the coefficients
-and the natural-scale summaries together, and the coefficient wins:
+and
+[`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
+use brms’s names, and brms puts `b_` in front of every coefficient. A
+covariate literally named `sigma` is the coefficient `b_sigma`, and
+`sigma` is the residual standard deviation:
 
 ``` r
 
 # a covariate literally named sigma
 fit <- frm(bf(y ~ sigma + (1 | g)), family = gaussian(), data = dd)
-hypothesis(fit, "sigma = 0")
-#> hypothesis() reads 'sigma' as the coefficient of the model term of
-#> that name, not the residual standard deviation; that quantity is
-#> available as '.sigma'.
+hypothesis(fit, "sigma = 0")                 # b_sigma, brms's class = "b"
+hypothesis(fit, "sigma = 1", class = NULL)   # the residual SD
 ```
 
-The message names both meanings and fires once per call. The shadowed
-quantity keeps a name of its own: prefix it with a dot. The same holds
-for a coefficient that spells out `sd_<group>__<term>`, `cor_...`, or an
-autocorrelation name such as `ar1`; `.sd_g__Intercept` and `.ar1` then
-reach the natural-scale value. The dot spelling exists only where a
-collision does, and
-[`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
-lists both names in that case.
+The same holds for a coefficient that spells out `sd_<group>__<coef>`,
+`cor_...` or an autocorrelation name such as `ar[1]`. As in brms, a
+natural-scale name needs `class = NULL`, because the default
+`class = "b"` reads every bare name as a coefficient.
+
+Two coefficients can still meet, and each case is handled as brms
+handles it. `y ~ Intercept + x` is refused when the model is built,
+because `(Intercept)` and `Intercept` are both `Intercept` after brms’s
+renaming. `bf(y ~ sigma_z, sigma ~ z)` gives the mean’s `b_sigma_z` and
+sigma’s `b_sigma_z__1`. The same group-level coefficient on one group in
+two terms, `(1 | g) + (x | g)`, is refused; give the second term a copy
+of the grouping column.
 
 ## What reaches the output
 

@@ -104,14 +104,14 @@ supply names BACK, the parentheses may be dropped: `"Intercept"` and
 ## Two vocabularies, one model
 
 This is the flat internal parameterization.
-[`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+[`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
 describes the same model in the structured
 `class`/`coef`/`group`/`dpar`/`nlpar` vocabulary that
 [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
 addresses, and
 [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
 also accepts a natural-scale spelling (`sigma`, `sd_g__Intercept`). Use
-[`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+[`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
 to write priors and `par_template()` to write starting values and box
 constraints.
 
@@ -128,7 +128,7 @@ values; this is the discovery step that makes that survivable.
 
 [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md) for
 `start =`,
-[`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
+[`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
 for the prior addressing vocabulary,
 [`frm_simulate()`](https://aforren1.github.io/frmtmb/reference/frm_simulate.md)
 for `newparams =`.

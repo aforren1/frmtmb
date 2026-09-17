@@ -15,7 +15,7 @@ not branch on parameter values."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -374,7 +374,20 @@ that refuses.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>frmtmb_family</code>.</p>
+    <p>An object of class <code>frmtmb_family</code>. <code>$</code> on it also answers
+brms's link fields, computed from <code>links</code> when read: <code>link</code>, the
+name of the link for the mean (for an ordinal family, the
+distribution function its thresholds are read through;
+<code>"logit"</code> for a categorical or multinomial family, whose categories
+share one joint link; <code>"identity"</code> for a family with no <code>mu</code>, such
+as a <code><a href="mixture.html">mixture()</a></code>), <code>linkfun</code> and <code>linkinv</code> for that link, and
+<code>link_&lt;dpar&gt;</code>, the link name of every other distributional
+parameter, as in <code>beta_binomial()$link_phi</code>. Because they are
+read from <code>links</code> each time, a <code>family_finalize()</code> that replaces a
+link, or any other edit, cannot leave them stale.</p>
+<p><code>$</code> does not partial-match on a family object. <code>fam$lpd</code> is an
+error naming the field it would have matched, rather than
+silently returning it. Use the full name.</p>
     </div>
     <div class="section level2">
     <h2 id="structured-simulators">Structured simulators<a class="anchor" aria-label="anchor" href="#structured-simulators"></a></h2>

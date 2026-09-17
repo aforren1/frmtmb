@@ -19,9 +19,10 @@ bayes_R2(
   object,
   resp = NULL,
   summary = TRUE,
+  robust = FALSE,
   probs = c(0.025, 0.975),
-  ndraws = NULL,
-  ...
+  ...,
+  ndraws = NULL
 )
 ```
 
@@ -34,26 +35,34 @@ bayes_R2(
 
 - resp:
 
-  For a multivariate model, which response.
+  For a multivariate model, which responses, in brms's spelling (`ya`
+  for a column `y_a`). `NULL`, the default, is every response, one
+  `R2<resp>` column each, as in brms.
 
 - summary:
 
   If `TRUE` (the default, as in brms), summarize the draws into
-  estimate, error and quantiles; if `FALSE`, return the `ndraws x 1`
-  matrix of R-squared draws.
+  estimate, error and quantiles; if `FALSE`, return the
+  `ndraws x responses` matrix of R-squared draws.
+
+- robust:
+
+  If `TRUE`, the summary is the median and MAD instead of the mean and
+  SD, as in brms.
 
 - probs:
 
   Quantiles for the summary.
 
-- ndraws:
-
-  Number of draws to use (default: all).
-
 - ...:
 
   Refused: an argument the method does not have is an error naming it,
   rather than silently changing nothing.
+
+- ndraws:
+
+  Number of draws to use (default: all). It follows `...` so that brms's
+  positional slots keep brms's meaning.
 
 ## Value
 

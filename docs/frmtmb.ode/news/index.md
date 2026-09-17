@@ -1,5 +1,11 @@
 # Changelog
 
+## frmtmb.ode 0.4.1
+
+- Requires frmtmb 0.59.0.
+- Tests follow frmtmb 0.59.0’s `VarCorr()` structure, through
+  `varcorr_matrices()`.
+
 ## frmtmb.ode 0.4.0
 
 - **[`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)’s

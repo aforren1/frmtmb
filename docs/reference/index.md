@@ -119,7 +119,7 @@
 - [`frmtmb-links`](https://aforren1.github.io/frmtmb/reference/frmtmb-links.md)
   : Link functions
 
-- [`frm_family()`](https://aforren1.github.io/frmtmb/reference/frm_family.md)
+- [`brmsfamily()`](https://aforren1.github.io/frmtmb/reference/brmsfamily.md)
   : Build a family by name, with a link for any of its parameters
 
 - [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
@@ -211,9 +211,11 @@
   [`row_lpdf`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`with_cs_offsets`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`us_chol_cor`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`expand_b`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`aterms_for_newdata`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`has_trunc`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`as_priorlist`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`check_prior_slots`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`resolve_prior_input`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`neg_log_prior_fn`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`resolve_bounds`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
@@ -244,8 +246,24 @@
   [`hyp_env_vals`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`hyp_eval`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`hyp_tail_p`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
-  [`hyp_shadow_arm`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
-  [`hyp_shadow_disarm`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`hyp_class_prefix`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`hyp_labels`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`hyp_samples_frame`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`hyp_brms_result`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`brms_coef_names`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`brms_re_rnames`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`brms_block_has_r`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`brms_coef_table`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`brms_stan_name`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`brms_group_name`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`brms_levels`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`brms_re_parts`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`hyp_eval_in`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`hyp_expr_vars`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`brms_par_labels`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`varcorr_matrices`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`varcorr_layout`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`varcorr_values`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`ce_grids_build`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`ce_boot_one`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`ce_frame`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
@@ -279,8 +297,20 @@
   [`prior_()`](https://aforren1.github.io/frmtmb/reference/prior.md)
   [`prior_string()`](https://aforren1.github.io/frmtmb/reference/prior.md)
   : Set up priors with brms's quoting spelling
-- [`get_prior()`](https://aforren1.github.io/frmtmb/reference/get_prior.md)
-  : Enumerate the targetable prior slots
+- [`print(`*`<frmtmb_priorlist>`*`)`](https://aforren1.github.io/frmtmb/reference/print.frmtmb_priorlist.md)
+  : Print a prior specification
+- [`` `$`( ``*`<frmtmb_priorlist>`*`)`](https://aforren1.github.io/frmtmb/reference/frmtmb_priorlist-columns.md)
+  [`` `$<-`( ``*`<frmtmb_priorlist>`*`)`](https://aforren1.github.io/frmtmb/reference/frmtmb_priorlist-columns.md)
+  : Column access on a prior specification
+- [`empty_prior()`](https://aforren1.github.io/frmtmb/reference/empty_prior.md)
+  : An empty prior specification
+- [`as.brmsprior()`](https://aforren1.github.io/frmtmb/reference/as.brmsprior.md)
+  : Transform an object into a prior specification
+- [`default_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+  [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+  : Default priors: the slots a prior can target
+- [`validate_prior()`](https://aforren1.github.io/frmtmb/reference/validate_prior.md)
+  : Check a prior against a model
 - [`prior_normal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
   [`prior_t()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
   [`prior_logistic()`](https://aforren1.github.io/frmtmb/reference/frmtmb-priors.md)
@@ -315,7 +345,7 @@
 - [`ngrps()`](https://aforren1.github.io/frmtmb/reference/ngrps.md) :
   Number of levels per random-effect grouping factor
 - [`VarCorr(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
-  : Extract random-effect covariance matrices
+  : Extract random-effect standard deviations and correlations
 - [`rescor_matrix()`](https://aforren1.github.io/frmtmb/reference/rescor_matrix.md)
   : Estimated residual correlation matrix (rescor fits), else NULL
 - [`vcov(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/vcov.frmtmb_fit.md)

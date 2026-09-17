@@ -63,10 +63,11 @@ all, so [`simulate()`](https://rdrr.io/r/stats/simulate.html),
 `frm_simulate()` and
 [`frm_task_simulate()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_task_simulate.md)
 refuse that data by name rather than returning a draw from a task nobody
-ran. Some rows equal is not the signature; every row is. `newdata` is
-not a way round it, because the formula names one column twice and
-`newdata` is read through that same formula; refit with a column per
-arm.
+ran. Some rows equal is not the signature; every row is. There is no way
+round it through the data:
+[`simulate()`](https://rdrr.io/r/stats/simulate.html) takes no
+`newdata`, and any other data set drawn through this model is read by a
+formula that names one column twice. Refit with a column per arm.
 
 This is true of every family in the package, not only this one. All
 eight read the CHOSEN option's entry alone, which is measured rather

@@ -13,6 +13,37 @@ from the formula route, which has no maximum-likelihood estimate.
 
 ``` r
 # S3 method for class 'frmtmb_draws'
+fixef(
+  object,
+  summary = TRUE,
+  robust = FALSE,
+  probs = c(0.025, 0.975),
+  pars = NULL,
+  ...
+)
+
+# S3 method for class 'frmtmb_draws'
+VarCorr(
+  x,
+  sigma = 1,
+  summary = TRUE,
+  robust = FALSE,
+  probs = c(0.025, 0.975),
+  ...
+)
+
+# S3 method for class 'frmtmb_draws'
+ranef(
+  object,
+  summary = TRUE,
+  robust = FALSE,
+  probs = c(0.025, 0.975),
+  pars = NULL,
+  groups = NULL,
+  ...
+)
+
+# S3 method for class 'frmtmb_draws'
 nobs(object, ...)
 
 # S3 method for class 'frmtmb_draws'
@@ -25,7 +56,7 @@ family(object, ...)
 getCall(x, ...)
 
 # S3 method for class 'frmtmb_draws'
-coef(object, ...)
+coef(object, summary = TRUE, robust = FALSE, probs = c(0.025, 0.975), ...)
 ```
 
 ## Arguments
@@ -35,10 +66,37 @@ coef(object, ...)
   A `frmtmb_draws` from
   [`frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.md).
 
+- summary:
+
+  If `TRUE` (brms's default), summaries; otherwise the draws, as above.
+
+- robust:
+
+  If `TRUE`, median and MAD instead of mean and SD.
+
+- probs:
+
+  The quantiles to report.
+
+- pars:
+
+  For [`fixef()`](https://rdrr.io/pkg/nlme/man/fixed.effects.html) and
+  [`ranef()`](https://rdrr.io/pkg/nlme/man/random.effects.html), the
+  coefficients to keep, by name without the `b_` prefix, as in brms.
+
 - ...:
 
   Refused: an argument the method does not have is an error naming it,
   rather than silently changing nothing.
+
+- sigma:
+
+  Ignored, as in brms.
+
+- groups:
+
+  For [`ranef()`](https://rdrr.io/pkg/nlme/man/random.effects.html), the
+  grouping factors to keep.
 
 ## Value
 
@@ -46,13 +104,31 @@ As for the corresponding `frmtmb_fit` method.
 
 ## Details
 
-[`coef()`](https://rdrr.io/r/stats/coef.html) is a posterior quantity,
-not a structural one: it summarizes the per-group coefficients (fixed
-effects plus that group's own random effects) over the draws, in the
-same nested shape
-[`frmtmb::coef.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/coef.frmtmb_fit.html)
-returns, with a `levels x statistics x coefficients` array in place of
-each data frame. That is brms's `coef.brmsfit` layout.
+[`coef()`](https://rdrr.io/r/stats/coef.html),
+[`fixef()`](https://rdrr.io/pkg/nlme/man/fixed.effects.html),
+[`ranef()`](https://rdrr.io/pkg/nlme/man/random.effects.html) and
+[`VarCorr()`](https://rdrr.io/pkg/nlme/man/VarCorr.html) are posterior
+quantities, not structural ones, and they are brms's methods on these
+draws, compared [`identical()`](https://rdrr.io/r/base/identical.html)
+against brms's own installed methods in `dev/brmsnames-findings.md`.
+[`fixef()`](https://rdrr.io/pkg/nlme/man/fixed.effects.html) is a
+coefficients x statistics matrix;
+[`ranef()`](https://rdrr.io/pkg/nlme/man/random.effects.html) and
+[`coef()`](https://rdrr.io/r/stats/coef.html) are a list keyed by
+grouping factor of `levels x statistics x coefficients` arrays, and
+[`coef()`](https://rdrr.io/r/stats/coef.html) broadcasts every
+population-level coefficient over the levels, as brms's does;
+[`VarCorr()`](https://rdrr.io/pkg/nlme/man/VarCorr.html) is a list keyed
+by grouping factor with `sd`, and `cor` and `cov` when the group has
+correlations, then `residual__`. With `summary = FALSE` each returns
+brms's raw draws instead: a draws x coefficients matrix, a
+`draws x levels x coefficients` array, or a
+`draws x coefficients x coefficients` array.
+
+[`VarCorr()`](https://rdrr.io/pkg/nlme/man/VarCorr.html)'s standard
+deviations and correlations are computed per draw from the sampled
+covariance parameters, because the sampler stores `theta` and not brms's
+`sd_` and `cor_` draws.
 
 ## Examples
 
@@ -68,7 +144,9 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
                    data = dd, chains = 1, iter = 500, refresh = 0)
   nobs(ds)
   ngrps(ds)
-  coef(ds)$g[1:3, , "(Intercept)"]
+  coef(ds)$g[1:3, , "Intercept"]
+  dim(ranef(ds, summary = FALSE)$g)
+  VarCorr(ds)$g$sd
 }
 #> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
 #>   Intercept          student_t(3, 0.8, 2.5)
@@ -81,9 +159,7 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
 #> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
-#>    Estimate Est.Error        Q2.5     Q97.5
-#> 1 0.8583955 0.2323509  0.45341821 1.3930465
-#> 2 0.5032729 0.2806606 -0.09471659 0.9853131
-#> 3 0.9747994 0.2673924  0.51807145 1.5560093
+#>            Estimate Est.Error       Q2.5    Q97.5
+#> Intercept 0.3677589 0.2792422 0.02512589 1.068053
 # }
 ```

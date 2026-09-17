@@ -31,7 +31,7 @@ builds it the same way.
 `Sigma * nu / (nu - 2)`, so a standard deviation is
 `scale * sqrt(nu / (nu - 2))`.
 [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
-stores the scale matrix, tags it with `nu`, and prints both columns;
+reports the scale in its `sd` rows, as brms's `sd_` is;
 [`confint()`](https://rdrr.io/r/stats/confint.html),
 [`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
 and `frm_simulate(newparams = )` speak of it as `sd_<group>__<term>`,
@@ -161,14 +161,31 @@ fit_n <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = d)
 
 # the gaussian latent has to widen to cover the outlying group
 VarCorr(fit_t)
-#>   1 | g 
-#>         Name   Scale Std.Dev.
-#>  (Intercept) 0.84321   1.0886
-#>    Student-t latent, nu = 5 (fixed); the stored matrix is the scale
+#> $g
+#> $g$sd
+#>            Estimate Est.Error     Q2.5    Q97.5
+#> Intercept 0.8432083 0.2066928 0.438098 1.248319
+#> 
+#> 
+#> $residual__
+#> $residual__$sd
+#>  Estimate  Est.Error      Q2.5    Q97.5
+#>  1.074199 0.05103885 0.9741644 1.174233
+#> 
+#> 
 VarCorr(fit_n)
-#>   1 | g 
-#>         Name Std.Dev.
-#>  (Intercept)   1.5007
+#> $g
+#> $g$sd
+#>           Estimate Est.Error     Q2.5    Q97.5
+#> Intercept 1.500652 0.2475547 1.015454 1.985851
+#> 
+#> 
+#> $residual__
+#> $residual__$sd
+#>  Estimate  Est.Error      Q2.5    Q97.5
+#>  1.075971 0.05129669 0.9754312 1.176511
+#> 
+#> 
 
 # heavier tails, at the cost of a fixed nu
 frm(bf(y ~ x + (1 | gr(g, dist = "student", dist_nu = 3))),

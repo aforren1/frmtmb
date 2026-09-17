@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.latent</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +43,13 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.latent/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.1" id="frmtmblatent-031">frmtmb.latent 0.3.1<a class="anchor" aria-label="anchor" href="#frmtmblatent-031"></a></h2>
+<ul><li>Requires frmtmb 0.59.0.</li>
+<li>
+<code><a href="../reference/hmm.html">hmm()</a></code> marks its transition parameters <code>tr&lt;i&gt;&lt;j&gt;</code> as read on the link scale (a new family field, <code>link_scale_dpars</code>), so frmtmb 0.59.0 reports them as coefficients <code>b_tr12_Intercept</code> rather than under a probability-like name holding a logit.</li>
+<li>Tests follow frmtmb 0.59.0’s brms names and <code>varcorr_matrices()</code>.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.0" id="frmtmblatent-030">frmtmb.latent 0.3.0<a class="anchor" aria-label="anchor" href="#frmtmblatent-030"></a></h2>
 <ul><li><p><strong><code><a href="../reference/hmm_starts.html">hmm_starts()</a></code> refits from jittered starting values and reports the spread of the optima.</strong> The default cold start has been measured converging <strong>8.099 log-likelihood units below the optimum</strong> with <code>convergence</code> 0, a positive definite Hessian, and <code>diagnose()</code> printing “No convergence problems detected”; <code>frm_allfit()</code> reaches that same wrong optimum on all four optimizers with a spread of 7.8e-07, so agreement between optimizers is not evidence here. <code><a href="../reference/hmm_starts.html">hmm_starts()</a></code> recovers from it on 5 of 5 seeds at jitter 1 and above. It costs about 176 seconds per refit at 50 sequences by 500 steps, so <code><a href="../reference/hmm.html">?hmm</a></code> deliberately recommends no default <code>n</code>.</p></li>

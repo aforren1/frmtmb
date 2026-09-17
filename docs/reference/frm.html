@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -373,7 +373,7 @@ are numbered in the order <code><a href="https://paulbuerkner.com/brms/reference
 which is <code><a href="https://rdrr.io/r/stats/terms.html" class="external-link">stats::terms()</a></code> order and so lists every main effect before
 any interaction. The j-th monotonic term of a linear predictor is
 therefore the one brms calls <code>simo_&lt;j&gt;</code> and names <code>&lt;label&gt;&lt;1&gt;</code> in the
-<code>simo</code> rows of its <code><a href="get_prior.html">get_prior()</a></code>.</p>
+<code>simo</code> rows of its <code><a href="default_prior.html">get_prior()</a></code>.</p>
 <p>The <code>zeta&lt;j&gt;</code> NUMBER is not that j in general. Simplexes continue the
 numbering of whatever parameters the family contributed first, so
 <code>zeta&lt;j&gt;</code> is brms's <code>simo_&lt;j&gt;</code> only for a family that declares none:
@@ -458,9 +458,18 @@ Wald standard error. <code><a href="../articles/diagnostics.html">vignette("diag
 <span class="r-out co"><span class="r-pr">#&gt;</span> -0.03474316 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="fu"><a href="VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1 | g </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         Name Std.Dev.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  (Intercept)  0.55725</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $g</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $g$sd</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            Estimate Est.Error      Q2.5     Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept 0.5572534 0.1627123 0.2383431 0.8761636</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $residual__</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $residual__$sd</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Estimate  Est.Error      Q2.5   Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  0.9658535 0.07199957 0.8247369 1.10697</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># distributional regression: model sigma too</span></span></span>
 <span class="r-in"><span><span class="va">fit2</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span>, <span class="va">sigma</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>

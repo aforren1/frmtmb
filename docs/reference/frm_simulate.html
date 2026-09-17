@@ -15,7 +15,7 @@ them."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -162,18 +162,23 @@ correlation parameter has no natural-scale name here.</p>
     <h2 id="two-spellings-for-newparams">Two spellings for <code>newparams</code><a class="anchor" aria-label="anchor" href="#two-spellings-for-newparams"></a></h2>
 
 
-<p><em>Natural scale</em> (recommended): the names <code><a href="variables.html">variables()</a></code> and
-<code><a href="hypothesis.html">hypothesis()</a></code> use, one number each.</p><ul><li><p>fixed coefficients under their <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code> names with parentheses
-stripped (<code>Intercept</code>, <code>x</code>, <code>sigma_Intercept</code>, ...), on the LINK
-scale;</p></li>
-<li><p><code>sigma</code> (and any other intercept-only dispersion dpar: <code>shape</code>,
-<code>phi</code>, <code>zi</code>, ...) on the RESPONSE scale, so <code>sigma = 0.7</code> is a
-residual SD of 0.7;</p></li>
-<li><p><code>sd_&lt;group&gt;__&lt;term&gt;</code> for random-effect standard deviations,
-<code>cor_&lt;group&gt;__&lt;t1&gt;__&lt;t2&gt;</code> for their correlations, and
-<code>sds_&lt;label&gt;</code> for a smooth's smoothing SD. Unset correlations are
-0.</p></li>
-</ul><p><em>Internal scale</em>: named after the parameter components - <code>beta</code>,
+<p><em>Natural scale</em> (recommended): brms's parameter names, the strings
+<code><a href="variables.html">variables()</a></code> returns, one number each.</p><ul><li><p>coefficients as <code>b_Intercept</code>, <code>b_x</code>, <code>b_sigma_Intercept</code>, on the
+LINK scale;</p></li>
+<li><p><code>sigma</code> (and any other distributional parameter nobody wrote a
+formula for: <code>shape</code>, <code>phi</code>, <code>zi</code>, ...) on the RESPONSE scale, so
+<code>sigma = 0.7</code> is a residual SD of 0.7;</p></li>
+<li><p>a mixture's weights with no theta formula as brms's simplex, all of
+<code>theta1 ... thetaK</code> together, each in (0, 1) and summing to one:
+<code>theta1 = 0.9, theta2 = 0.1</code>;</p></li>
+<li><p><code>sd_&lt;group&gt;__&lt;coef&gt;</code> for group-level standard deviations,
+<code>cor_&lt;group&gt;__&lt;c1&gt;__&lt;c2&gt;</code> for their correlations, and
+<code>sds_&lt;label&gt;_1</code> for a smooth's smoothing SD (<code>sds_sx_1</code> for
+<code>s(x)</code>). Unset correlations are 0.</p></li>
+</ul><p>A bare name (<code>x</code>, <code>Intercept</code>, <code>sigma_Intercept</code>) is refused with
+its brms spelling. Priors are different: <code>set_prior(coef = "x")</code>
+takes the bare coefficient, as in brms.</p>
+<p><em>Internal scale</em>: named after the parameter components - <code>beta</code>,
 <code>betad</code>, <code>theta</code>, and optionally <code>b</code> - each a full-length vector, on
 the internal parameterization (<code>theta</code> holds log SDs and Cholesky
 correlation parameters, <code>betad</code> holds dispersion dpars on their link
@@ -203,7 +208,7 @@ The drawn values come back as <code>attr(result, "pars")</code>, one row per
 simulation, so a prior-predictive check can relate parameters to
 outcomes.</p>
 <p>That table reports each parameter on the scale <code>newparams</code> names it
-on, which for <code>Intercept</code> is the intercept at ZERO. A
+on, which for <code>b_Intercept</code> is the intercept at ZERO. A
 <code>class = "Intercept"</code> prior is a density on the intercept at the MEAN
 of the predictors (see the Where an intercept prior lands section of
 <code><a href="set_prior.html">set_prior()</a></code>), so on a design with uncentered predictors the number
@@ -212,14 +217,9 @@ slopes. Reporting the written value is what lets a <code>pars</code> row be
 handed straight back as <code>newparams</code>. A prior on a distributional
 parameter's own brms class is likewise drawn on that parameter and
 reported there, not on its link scale.</p>
-<p>A dpar's column is therefore on the scale its PRIOR was written on,
-and the column name does not say which: <code>sigma_Intercept</code> holds
-sigma under <code>set_prior(class = "sigma")</code>, on a model that gives
-sigma no predictor, and log sigma under
-<code>set_prior(class = "Intercept", dpar = "sigma")</code>, on a model that
-does. Only one of the two spellings is accepted on any one model, so
-a table cannot mix them, and the draw is used on the scale it was
-taken on either way.</p>
+<p>The column name says which scale a dpar's draw is on, as brms's
+names do: <code>sigma</code> holds sigma, drawn under <code>set_prior(class = "sigma")</code> on a model that gives sigma no formula, and
+<code>b_sigma_Intercept</code> holds log sigma, drawn under <code>set_prior(class = "Intercept", dpar = "sigma")</code> on a model that does.</p>
 <p>Parameters without a prior keep their <code>newparams</code> value. Whenever
 <code>prior</code> are used, or <code>newparams</code> uses the natural spelling, every
 fixed coefficient and every random-effect SD must be pinned by one
@@ -232,7 +232,7 @@ zero effect or unit SD.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># power analysis: simulate from a design with chosen parameters</span></span></span>
 <span class="r-in"><span><span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">60</span><span class="op">)</span>, g <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">6</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span>, y <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">sims</span> <span class="op">&lt;-</span> <span class="fu">frm_simulate</span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">dd</span>,</span></span>
-<span class="r-in"><span>                     newparams <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>Intercept <span class="op">=</span> <span class="fl">1</span>, x <span class="op">=</span> <span class="fl">0.5</span>,</span></span>
+<span class="r-in"><span>                     newparams <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>b_Intercept <span class="op">=</span> <span class="fl">1</span>, b_x <span class="op">=</span> <span class="fl">0.5</span>,</span></span>
 <span class="r-in"><span>                                      sigma <span class="op">=</span> <span class="fl">0.7</span>,</span></span>
 <span class="r-in"><span>                                      sd_g__Intercept <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                     nsim <span class="op">=</span> <span class="fl">3</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
@@ -273,11 +273,11 @@ zero effect or unit SD.</p>
 <span class="r-in"><span>                     <span class="fu"><a href="set_prior.html">set_prior</a></span><span class="op">(</span><span class="st">"exponential(1)"</span>, class <span class="op">=</span> <span class="st">"sigma"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                   nsim <span class="op">=</span> <span class="fl">4</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">pp</span>, <span class="st">"pars"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>            x  Intercept sd_g__Intercept sigma_Intercept</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 -0.6264538  3.1939242       0.1457067       0.1397953</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2  0.4755095 -2.5098192       1.5652413       0.8145358</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3  1.1765833 -0.9333763       3.3072809       1.4953203</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 -0.1643758 -0.7996112       0.3260219       1.5316271</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          b_x b_Intercept sd_g__Intercept     sigma</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 -0.6264538   3.1939242       0.1457067 0.1397953</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2  0.4755095  -2.5098192       1.5652413 0.8145358</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3  1.1765833  -0.9333763       3.3072809 1.4953203</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 -0.1643758  -0.7996112       0.3260219 1.5316271</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

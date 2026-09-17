@@ -69,19 +69,12 @@ changes how a model is fitted.
 
 fit <- frm(bf(v ~ s(t, k = 12) + s(t, subject, bs = "fs", k = 5)),
            family = gaussian(), data = d)
-VarCorr(fit)
-#>   s(t) 
-#>        Name Std.Dev.
-#>  sd(wiggle)   1.2222
-#>   s(t,subject) 
-#>        Name Std.Dev.
-#>  sd(wiggle)  0.52076
-#>   s(t,subject) 
-#>        Name Std.Dev.
-#>  sd(wiggle)  0.34486
-#>   s(t,subject) 
-#>        Name Std.Dev.
-#>  sd(wiggle)  0.27058
+confint_varcorr(fit)
+#>          block       term type  estimate       lwr       upr
+#> 1         s(t) sd(wiggle)   sd 1.2222015 0.7852049 1.9024036
+#> 2 s(t,subject) sd(wiggle)   sd 0.5207605 0.4332084 0.6260070
+#> 3 s(t,subject) sd(wiggle)   sd 0.3448597 0.2509053 0.4739965
+#> 4 s(t,subject) sd(wiggle)   sd 0.2705775 0.1979567 0.3698395
 ```
 
 ## 1. The curve, with a band that covers all of it

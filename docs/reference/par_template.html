@@ -21,7 +21,7 @@ set_prior()'s coef takes for a raw covariance parameter
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.58.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -176,11 +176,11 @@ reports. When you supply names BACK, the parentheses may be dropped:
     <h2 id="two-vocabularies-one-model">Two vocabularies, one model<a class="anchor" aria-label="anchor" href="#two-vocabularies-one-model"></a></h2>
 
 
-<p>This is the flat internal parameterization. <code><a href="get_prior.html">get_prior()</a></code> describes
+<p>This is the flat internal parameterization. <code><a href="default_prior.html">get_prior()</a></code> describes
 the same model in the structured <code>class</code>/<code>coef</code>/<code>group</code>/<code>dpar</code>/<code>nlpar</code>
 vocabulary that <code><a href="set_prior.html">set_prior()</a></code> addresses, and <code><a href="frm_simulate.html">frm_simulate()</a></code> also
 accepts a natural-scale spelling (<code>sigma</code>, <code>sd_g__Intercept</code>). Use
-<code><a href="get_prior.html">get_prior()</a></code> to write priors and <code>par_template()</code> to write starting
+<code><a href="default_prior.html">get_prior()</a></code> to write priors and <code>par_template()</code> to write starting
 values and box constraints.</p>
 <p>brms has no counterpart for starting values: <code>brm(init =)</code> takes a
 list of Stan program names and its own documentation calls it mainly
@@ -192,7 +192,7 @@ step that makes that survivable.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="frm.html">frm()</a></code> for <code>start =</code>, <code><a href="get_prior.html">get_prior()</a></code> for the prior
+    <div class="dont-index"><p><code><a href="frm.html">frm()</a></code> for <code>start =</code>, <code><a href="default_prior.html">get_prior()</a></code> for the prior
 addressing vocabulary, <code><a href="frm_simulate.html">frm_simulate()</a></code> for <code>newparams =</code>.</p></div>
     </div>
 

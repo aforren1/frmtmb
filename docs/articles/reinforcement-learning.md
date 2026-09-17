@@ -548,15 +548,15 @@ rl_bform <- bf(choice | reward(pay1, pay2) ~ condition + (1 | p | id),
 
 rl_family <- function() rw_delta(subject = id, trial = trial)
 
-# Parameter values in frm_simulate()'s natural spelling: the same names
-# fixef() and VarCorr() report back.
+# Parameter values in frm_simulate()'s spelling, brms's names: the same
+# strings variables() returns for the fit.
 rl_truth <- list(
-  alpha_Intercept = stats::qlogis(0.35),
-  alpha_conditiontrt = 0.8,
-  beta_Intercept = log(3),
-  sd_id__choice.alphaIntercept = 0.5,
-  sd_id__choice.betaIntercept = 0.4,
-  cor_id__choice.alphaIntercept__choice.betaIntercept = 0.3
+  b_alpha_Intercept = stats::qlogis(0.35),
+  b_alpha_conditiontrt = 0.8,
+  b_beta_Intercept = log(3),
+  sd_id__alpha_Intercept = 0.5,
+  sd_id__beta_Intercept = 0.4,
+  cor_id__alpha_Intercept__beta_Intercept = 0.3
 )
 
 # Draws come from the family's own simulator: frm_simulate() draws a new
@@ -620,10 +620,38 @@ is the usual hierarchical parameterization for these models.
 ``` r
 
 VarCorr(fit)
-#>   alpha: 1 | id + beta: 1 | id [ID] 
-#>                      Name Std.Dev. choice.alpha:(Intercept)
-#>  choice.alpha:(Intercept)  0.46280                         
-#>   choice.beta:(Intercept)  0.37934                  -0.0422
+#> $id
+#> $id$sd
+#>                  Estimate  Est.Error      Q2.5     Q97.5
+#> alpha_Intercept 0.4628031 0.16596184 0.1375239 0.7880824
+#> beta_Intercept  0.3793421 0.08175405 0.2191071 0.5395771
+#> 
+#> $id$cor
+#> , , alpha_Intercept
+#> 
+#>                    Estimate Est.Error       Q2.5     Q97.5
+#> alpha_Intercept  1.00000000 0.0000000  1.0000000 1.0000000
+#> beta_Intercept  -0.04221552 0.4113754 -0.8484964 0.7640654
+#> 
+#> , , beta_Intercept
+#> 
+#>                    Estimate Est.Error       Q2.5     Q97.5
+#> alpha_Intercept -0.04221552 0.4113754 -0.8484964 0.7640654
+#> beta_Intercept   1.00000000 0.0000000  1.0000000 1.0000000
+#> 
+#> 
+#> $id$cov
+#> , , alpha_Intercept
+#> 
+#>                     Estimate  Est.Error        Q2.5     Q97.5
+#> alpha_Intercept  0.214186726 0.15361532 -0.08689376 0.5152672
+#> beta_Intercept  -0.007411386 0.07253944 -0.14958608 0.1347633
+#> 
+#> , , beta_Intercept
+#> 
+#>                     Estimate  Est.Error        Q2.5     Q97.5
+#> alpha_Intercept -0.007411386 0.07253944 -0.14958608 0.1347633
+#> beta_Intercept   0.143900424 0.06202550  0.02233267 0.2654682
 ```
 
 Compare with the simulated values:
@@ -631,12 +659,12 @@ Compare with the simulated values:
 ``` r
 
 rbind(estimate = c(unlist(fixef(fit)),
-                   sd_alpha = sqrt(VarCorr(fit)[[1]][1, 1]),
-                   sd_beta = sqrt(VarCorr(fit)[[1]][2, 2])),
-      truth = c(rl_truth$alpha_Intercept, rl_truth$alpha_conditiontrt,
-                rl_truth$beta_Intercept,
-                rl_truth$sd_id__choice.alphaIntercept,
-                rl_truth$sd_id__choice.betaIntercept))
+                   sd_alpha = VarCorr(fit)$id$sd[1, "Estimate"],
+                   sd_beta = VarCorr(fit)$id$sd[2, "Estimate"]),
+      truth = c(rl_truth$b_alpha_Intercept, rl_truth$b_alpha_conditiontrt,
+                rl_truth$b_beta_Intercept,
+                rl_truth$sd_id__alpha_Intercept,
+                rl_truth$sd_id__beta_Intercept))
 #>          alpha.(Intercept) alpha.conditiontrt beta.(Intercept)  sd_alpha
 #> estimate        -0.7919201           1.122059         1.058637 0.4628031
 #> truth           -0.6190392           0.800000         1.098612 0.5000000
@@ -790,8 +818,8 @@ fit_i <- frm(bf(choice | reward(pay1, pay2) ~ condition + (1 | p | id),
                 beta ~ 1 + (1 | p | id)),
              family = rw_delta(subject = id, trial = trial),
              data = dd, importance = 200)
-c(laplace = sqrt(VarCorr(fit)[[1]][1, 1]),
-  corrected = sqrt(VarCorr(fit_i)[[1]][1, 1]))
+c(laplace = VarCorr(fit)$id$sd[1, "Estimate"],
+  corrected = VarCorr(fit_i)$id$sd[1, "Estimate"])
 #>   laplace corrected 
 #> 0.4628031 0.5827301
 fit_i$importance[c("draws", "mcse")]

@@ -74,7 +74,7 @@ are the estimands and the pedigree is small.
 fit <- frm(bf(phen ~ sex + (1 | gr(id, cov = A))) + gaussian(),
            data = dat, data2 = list(A = A), REML = TRUE,
            control = frmtmb_control(check_olre = "ignore"))
-sd_a <- sqrt(VarCorr(fit)[[1]][1, 1])
+sd_a <- VarCorr(fit)$id$sd["Intercept", "Estimate"]
 c(sd_additive = sd_a, sigma = sigma(fit),
   heritability = sd_a^2 / (sd_a^2 + sigma(fit)^2))
 #>  sd_additive        sigma heritability 
@@ -128,11 +128,13 @@ Heritability is a ratio of variance components, so an interval for it
 needs more than the table of standard errors. There are two routes.
 [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
 gives the Wald delta-method version, and it reads the random-effect
-standard deviation under its natural-scale name `sd_<group>__<term>`:
+standard deviation under its natural-scale name `sd_<group>__<term>`. As
+in brms, a name that is not a coefficient needs `class = NULL`:
 
 ``` r
 
-hypothesis(fit, "sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2)")
+hypothesis(fit, "sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2) = 0",
+           class = NULL)
 ```
 
 A variance ratio is bounded on `[0, 1]` and skewed, so a symmetric
@@ -144,7 +146,7 @@ takes any function of a refit.
 ``` r
 
 bs <- frm_bootstrap(fit, nsim = 30, seed = 1, FUN = function(f) {
-  v <- VarCorr(f)[[1]][1, 1]
+  v <- VarCorr(f)$id$sd["Intercept", "Estimate"]^2
   c(h2 = v / (v + sigma(f)^2))
 })
 confint(bs)
@@ -189,7 +191,7 @@ long <- data.frame(
 fmv <- frm(bf(value ~ 0 + trait + (0 + trait | gr(id, cov = A)),
               sigma ~ 0 + trait) + gaussian(),
            data = long, data2 = list(A = A))
-Gh <- VarCorr(fmv)[[1]]
+Gh <- VarCorr(fmv)$id$cov[, "Estimate", ]
 out <- rbind(
   estimated = c(sqrt(diag(Gh)), cov2cor(Gh)[1, 2], exp(fixef(fmv)$sigma)),
   simulated = c(sqrt(diag(G)), 0.6 / sqrt(1.0 * 0.8), 0.7, 0.9))
@@ -263,7 +265,7 @@ d$y <- 0.5 + 0.8 * d$x +
 fphy <- frm(bf(y ~ x + (1 | gr(sp, cov = A_phy))) + gaussian(),
             data = d, data2 = list(A_phy = A_phy),
             control = frmtmb_control(check_olre = "ignore"))
-sd_p <- sqrt(VarCorr(fphy)[[1]][1, 1])
+sd_p <- VarCorr(fphy)$sp$sd["Intercept", "Estimate"]
 c(fixef(fphy)$mu, sd_phylo = sd_p, sigma = sigma(fphy),
   phylogenetic_h2 = sd_p^2 / (sd_p^2 + sigma(fphy)^2))
 #>     (Intercept)               x        sd_phylo           sigma phylogenetic_h2 
@@ -350,7 +352,7 @@ bcg$study <- factor(seq_len(nrow(bcg)))
 fmeta <- frm(bf(yi | se(sei) ~ 1 + (1 | study)) + gaussian(),
              data = bcg, REML = TRUE)
 c(pooled_logRR = unname(fixef(fmeta)$mu), se = sqrt(vcov(fmeta)[1, 1]),
-  tau = sqrt(VarCorr(fmeta)[[1]][1, 1]))
+  tau = VarCorr(fmeta)$study$sd["Intercept", "Estimate"])
 #> pooled_logRR           se          tau 
 #>   -0.7145323    0.1804360    0.5596814
 ```
@@ -410,7 +412,7 @@ default.
 
 rr <- metafor::rma(yi, vi, data = bcg, method = "REML")
 out <- rbind(frmtmb = c(unname(fixef(fmeta)$mu), sqrt(vcov(fmeta)[1, 1]),
-                        sqrt(VarCorr(fmeta)[[1]][1, 1])),
+                        VarCorr(fmeta)$study$sd["Intercept", "Estimate"]),
              metafor = c(as.numeric(rr$beta), rr$se, sqrt(rr$tau2)))
 colnames(out) <- c("pooled_logRR", "se", "tau")
 out
@@ -423,7 +425,8 @@ out
 
 stopifnot(
   abs(fixef(fmeta)$mu - as.numeric(rr$beta)) < 1e-5,
-  abs(sqrt(VarCorr(fmeta)[[1]][1, 1]) - sqrt(rr$tau2)) < 1e-5,
+  abs(VarCorr(fmeta)$study$sd["Intercept", "Estimate"] -
+        sqrt(rr$tau2)) < 1e-5,
   # the standard errors come from different expressions: metafor uses
   # (X'WX)^-1 at the REML tau, frmtmb reads the joint Hessian
   abs(sqrt(vcov(fmeta)[1, 1]) / rr$se - 1) < 0.01
@@ -444,7 +447,7 @@ the equator.
 
 freg <- frm(bf(yi | se(sei) ~ ablat + (1 | study)) + gaussian(),
             data = bcg, REML = TRUE)
-c(fixef(freg)$mu, tau = sqrt(VarCorr(freg)[[1]][1, 1]))
+c(fixef(freg)$mu, tau = VarCorr(freg)$study$sd["Intercept", "Estimate"])
 #> (Intercept)       ablat         tau 
 #>  0.25146821 -0.02910173  0.27631135
 ```
@@ -452,7 +455,8 @@ c(fixef(freg)$mu, tau = sqrt(VarCorr(freg)[[1]][1, 1]))
 ``` r
 
 rr2 <- metafor::rma(yi, vi, mods = ~ablat, data = bcg, method = "REML")
-out <- rbind(frmtmb = c(fixef(freg)$mu, sqrt(VarCorr(freg)[[1]][1, 1])),
+out <- rbind(frmtmb = c(fixef(freg)$mu,
+                        VarCorr(freg)$study$sd["Intercept", "Estimate"]),
              metafor = c(coef(rr2), sqrt(rr2$tau2)))
 colnames(out) <- c("intercept", "ablat", "tau")
 out
@@ -606,13 +610,10 @@ dls$y <- rnorm(400, sin(2 * pi * dls$x),
 
 fls <- frm(bf(y ~ s(x, k = 10), sigma ~ s(x, k = 10)) + gaussian(),
            data = dls)
-VarCorr(fls)
-#>   s(x) 
-#>        Name Std.Dev.
-#>  sd(wiggle)   2.3021
-#>   sigma: s(x) 
-#>        Name Std.Dev.
-#>  sd(wiggle)   2.4656
+confint_varcorr(fls)
+#>         block       term type estimate      lwr      upr
+#> 1        s(x) sd(wiggle)   sd 2.302051 1.313378 4.034968
+#> 2 sigma: s(x) sd(wiggle)   sd 2.465577 1.319760 4.606194
 ```
 
 The two standard deviations are the smooths’ wiggliness parameters. A
@@ -1055,7 +1056,7 @@ describes a different level.
 
 ``` r
 
-Gh <- VarCorr(fbt)[[1]]
+Gh <- VarCorr(fbt)$nest$cov[, "Estimate", ]
 out <- rbind(
   estimated = c(sqrt(diag(Gh)), cov2cor(Gh)[1, 2], sigma(fbt),
                 rescor_matrix(fbt)[1, 2]),
@@ -1314,13 +1315,10 @@ str(fos, give.attr = FALSE)
 
 ffix <- frm(bf(y ~ s(t, k = 10) + s(t, by = x, k = 10)),
             family = gaussian(), data = fos)
-VarCorr(ffix)
-#>   s(t) 
-#>        Name Std.Dev.
-#>  sd(wiggle)   4.6871
-#>   s(t):x 
-#>        Name Std.Dev.
-#>  sd(wiggle)   2.1311
+confint_varcorr(ffix)
+#>    block       term type estimate      lwr      upr
+#> 1   s(t) sd(wiggle)   sd 4.687070 2.828627 7.766533
+#> 2 s(t):x sd(wiggle)   sd 2.131124 1.169335 3.883995
 ```
 
 Each smooth contributes one variance component, and its smoothing
@@ -1354,7 +1352,7 @@ c(max_abs_difference = max(abs(b1_frm - b1_gam)),
   frmtmb_logLik = as.numeric(logLik(ffix)),
   mgcv_ML_score = unname(-gfix$gcv.ubre),
   smoothing_par_ratio = max(abs(
-    sigma(ffix)^2 / vapply(VarCorr(ffix), function(v) v[1, 1], 0) /
+    sigma(ffix)^2 / suppressWarnings(confint_varcorr(ffix))$estimate^2 /
       gfix$sp - 1)))
 #>  max_abs_difference       frmtmb_logLik       mgcv_ML_score smoothing_par_ratio 
 #>        1.725568e-06       -9.809097e+02       -9.809097e+02        8.639424e-05
@@ -1389,22 +1387,13 @@ so the honest FoSR spelling has it:
 ffs <- frm(bf(y ~ s(t, k = 10) + s(t, by = x, k = 10) +
                 s(t, subject, bs = "fs", k = 5)),
            family = gaussian(), data = fos)
-VarCorr(ffs)
-#>   s(t) 
-#>        Name Std.Dev.
-#>  sd(wiggle)   4.5736
-#>   s(t):x 
-#>        Name Std.Dev.
-#>  sd(wiggle)   2.2367
-#>   s(t,subject) 
-#>        Name Std.Dev.
-#>  sd(wiggle)  0.18987
-#>   s(t,subject) 
-#>        Name Std.Dev.
-#>  sd(wiggle)   2.4227
-#>   s(t,subject) 
-#>        Name Std.Dev.
-#>  sd(wiggle)   4.0774
+confint_varcorr(ffs)
+#>          block       term type estimate        lwr      upr
+#> 1         s(t) sd(wiggle)   sd 4.573562 2.78944032 7.498807
+#> 2       s(t):x sd(wiggle)   sd 2.236733 1.24051965 4.032968
+#> 3 s(t,subject) sd(wiggle)   sd 0.189870 0.08457782 0.426242
+#> 4 s(t,subject) sd(wiggle)   sd 2.422720 1.91869887 3.059142
+#> 5 s(t,subject) sd(wiggle)   sd 4.077381 3.25651856 5.105156
 ```
 
 The `fs` term expands into three variance components, which is how
@@ -2043,15 +2032,17 @@ fixef(fit_smocc)[c("int", "amp", "shift")]
 #>       ga 
 #> 1.050019
 VarCorr(fit_smocc)
-#>   int: 1 | id 
-#>         Name Std.Dev.
-#>  (Intercept)   2.8685
-#>   shift: 1 | id 
-#>         Name Std.Dev.
-#>  (Intercept)   3.3241
-#>   ps(age + shift, k = 15, pad = 0.25) 
-#>        Name Std.Dev.
-#>  sd(wiggle)   2.7546
+#> $id
+#> $id$sd
+#>                 Estimate Est.Error     Q2.5    Q97.5
+#> int_Intercept   2.868475 0.1560077 2.562706 3.174245
+#> shift_Intercept 3.324130 0.2122613 2.908105 3.740154
+#> 
+#> 
+#> $residual__
+#> $residual__$sd
+#>  Estimate  Est.Error     Q2.5    Q97.5
+#>  1.056744 0.01987038 1.017798 1.095689
 ```
 
 `k = 15` is the paper’s cubic basis with 11 interior knots. `pad = 0.25`
@@ -2083,8 +2074,8 @@ fx <- fixef(fit_smocc)
 vc <- VarCorr(fit_smocc)
 got <- c(beta0 = fx$int[["(Intercept)"]], beta1 = fx$int[["sex"]],
          beta2 = fx$amp[["sex"]],         beta3 = fx$shift[["ga"]],
-         sd_b1 = sqrt(as.numeric(vc[["int: 1 | id"]])[1]),
-         sd_b2 = sqrt(as.numeric(vc[["shift: 1 | id"]])[1]),
+         sd_b1 = vc$id$sd["int_Intercept", "Estimate"],
+         sd_b2 = vc$id$sd["shift_Intercept", "Estimate"],
          sigma = exp(fx$sigma[["(Intercept)"]]))
 paper <- c(beta0 = 68.2, beta1 = 1.80, beta2 = 0.00, beta3 = 1.00,
            sd_b1 = 2.86, sd_b2 = 3.28, sigma = 1.05)
