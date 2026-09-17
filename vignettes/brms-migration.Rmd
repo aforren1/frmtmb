@@ -90,6 +90,17 @@ has not written.
   `source` column, which brms does not update after such an edit, so
   the edited row was dropped.
 
+  The prior surface has brms's names. `default_prior()` is the table of
+  slots, and `get_prior()` is its alias, as in brms. `validate_prior()`
+  checks a prior against the model and returns that table with the
+  prior filled in; `frm(prior = )` takes the result, and so does a
+  `default_prior()` table edited in place. `set_prior()` takes vectors,
+  `set_prior("normal(0, 2)", class = c("b", "sd"))`, and a prior object
+  prints as `b ~ normal(0, 2)`. `empty_prior()` and `as.brmsprior()`
+  exist too. The prior object itself is not a brms `brmsprior`: it
+  holds parsed densities, and `pr$class` and the other brms columns
+  are read from it.
+
   What the fit MEANS changes. `frm(prior = )` is MAP: the density is a
   PENALTY on the likelihood and the answer is one mode, not a
   posterior, so the reported log likelihood, AIC and `anova()` are

@@ -9,7 +9,8 @@ lf(...)
 \arguments{
 \item{...}{Two-sided formulas naming the parameter on the left, e.g.
 \code{sigma ~ x} or (with \code{nl = TRUE} on the \code{bf()}) a nonlinear
-parameter's formula \code{a ~ 1 + (1 | g)}.}
+parameter's formula \code{a ~ 1 + (1 | g)}, or one-sided formulas named
+by their parameter, \code{sigma = ~ x}.}
 }
 \value{
 An object of class \code{frmtmb_lf}, to be added to a \code{\link[=bf]{bf()}}.

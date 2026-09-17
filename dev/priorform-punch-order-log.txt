@@ -1,0 +1,8 @@
+<!-- priorform-punch-order:begin -->
+| case | base logLik | lane logLik | fit identical |
+|---|---|---|---|
+| b_class_then_coef | -409.935633 | -409.935633 | TRUE |
+| b_coef_then_class | -261.336784 | -409.935633 | FALSE |
+| sd_class_then_group | 215.282086 | 215.282086 | TRUE |
+| sd_group_then_class | 211.855093 | 215.282086 | FALSE |
+<!-- priorform-punch-order:end -->

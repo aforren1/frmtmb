@@ -98,11 +98,17 @@ means what it says. Available where the parameter has no predictor
 of its own; see A distributional parameter's own class.
 }
 
-When priors overlap, later specifications override earlier ones, so
-put class-wide priors first and coefficient-specific ones after. A
-class \code{"theta"} prior on a position an earlier \code{"cor"} prior covers
-replaces that whole LKJ term, and the other way round, so "later
-wins" holds between the two spellings as well.
+Two specifications for the same slot (the same class, coef, group,
+resp, dpar and nlpar) are refused wherever a prior is passed in, as
+brms refuses them; that includes a density followed by a bounds-only
+specification, so write the density and its bounds in one call.
+When specifications for DIFFERENT slots reach the same parameter,
+the more specific one applies whatever order they are written in, as
+in brms: a \code{coef} specification over its class, and a \code{group}
+specification over a class-wide \code{"sd"} or \code{"cor"} one. Between
+classes the later one applies: a class \code{"theta"} prior on a position
+a \code{"cor"} prior covers replaces that whole LKJ term if it comes later,
+and the other way round.
 \code{lb}/\code{ub} become hard bounds. See Hard bounds.
 }
 \section{Where an intercept prior lands}{
@@ -155,9 +161,11 @@ thresholds are what a prior is about.
 \section{Hard bounds}{
 
 \code{lb}/\code{ub} are how a box constraint is written. A specification may
-carry bounds alone (\code{prior = ""}), a distribution alone, or both, and
-a later bounds-only specification tightens an entry an earlier
-distribution created rather than replacing it.
+carry bounds alone (\code{prior = ""}), a distribution alone, or both. A
+bounds-only specification for a slot another specification already
+gives a density is refused as a duplicate, as in brms; a bound on a
+coefficient beside a class-wide density is a different slot and
+boxes that coefficient under the class density.
 
 A bound is addressed exactly like the distribution beside it, so
 \code{set_prior("", nlpar = "guess", lb = 0, ub = 1)} bounds the nonlinear
@@ -185,9 +193,9 @@ internal covariance parameter.
 
 Where the two spellings differed, this one broadcasts: a bound
 carried by \verb{nlpar =} covers every coefficient of that parameter, the
-way a prior does, and \code{coef} narrows it to one. When two
-specifications bound the same parameter the later one wins, so a
-bounds-only specification after a wide one tightens it.
+way a prior does, and \code{coef} narrows it to one. When a class-wide
+and a coefficient-specific specification both bound a parameter, the
+coefficient-specific one applies.
 }
 
 \section{Residual correlation}{

@@ -1,0 +1,47 @@
+frmtmb from C:/Users/adf44/source/r/priorform-lib/frmtmb 
+
+--- y ~ ~x: fixed effects of the fit ---
+[1] "ERROR: Nested formulas are not allowed: the right-hand side of 'y ~ ~x' is itself a formula. Did you use '~~' somewhere?"
+
+--- y ~ x, for comparison ---
+$fixef
+$fixef$mu
+(Intercept)           x 
+  0.9497471   0.4817102 
+
+$fixef$sigma
+(Intercept) 
+  0.2258203 
+
+
+$logLik
+[1] -394.7416
+
+
+--- (1 | g) + (x | g): VarCorr and logLik ---
+[1] "ERROR: Duplicated group-level effects are not allowed: the coefficient '(Intercept)' of group 'g' appears in both (1 | g) and (x | g). Only the sum of the two variances is identified; write the coefficient in one term"
+
+--- (x | g), for comparison ---
+$VarCorr
+  x | g 
+        Name Std.Dev. (Intercept)
+ (Intercept)  0.79368            
+           x  0.23898    -0.00887
+
+$logLik
+[1] -348.814
+
+
+--- yo ~ x * cs(c3), sratio: design columns ---
+[1] "ERROR: The term 'x:cs(c3)' is invalid: cs() makes a whole term category-specific, so it cannot sit inside an interaction or another call. Write it as its own term, e.g. y ~ x + cs(z)"
+
+--- yo ~ x + cs(c3), for comparison ---
+$yo.mu
+$yo.mu$X
+[1] "x"
+
+$yo.mu$cs
+[1] "csc3"
+
+
+

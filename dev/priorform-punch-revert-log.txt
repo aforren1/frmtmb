@@ -1,0 +1,16 @@
+REVERT bfnl brms-formula-priors pass 169 fail 2 error 0
+    test-brms-formula-priors.R : bf() on a built formula adds to it and refuses a repeat 
+PUNCH-REVERT none brms-formula-priors pass 171 fail 0 error 0
+PUNCH-REVERT order brms-formula-priors pass 167 fail 4 error 0
+    a validate_prior() table fits the model its prior fits
+    a group-specific cor prior wins over the class-wide one
+PUNCH-REVERT slots brms-formula-priors pass 163 fail 4 error 1
+    two specifications for one slot are refused (brms)
+PUNCH-REVERT twins brms-formula-priors pass 159 fail 0 error 1
+    exact twin terms are one block, as brms reads them
+PUNCH-REVERT slash brms-formula-priors pass 167 fail 2 error 1
+    exact twin terms are one block, as brms reads them
+    duplicated group-level effects are refused (brms)
+PUNCH-REVERT specials brms-formula-priors pass 163 fail 4 error 1
+    a smooth or gp() inside an interaction is refused (brms)
+    the whole-term specials are brms's own list

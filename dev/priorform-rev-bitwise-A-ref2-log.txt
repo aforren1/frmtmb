@@ -1,0 +1,30 @@
+frmtmb from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+lmm ok 
+lmm_family_arg ok 
+dist_sigma ok 
+dist_lf ok 
+dist_const ok 
+nl_explicit_false ok 
+nl ok 
+nl_shared ok 
+nlf ok 
+mvbf ok 
+mvbind ok 
+sratio_cs ok 
+acat_cs_two ok 
+cumul_re ok 
+beta_phi_re ok 
+beta_phi_re_prior ok 
+beta_phi_re_prior_group ok 
+zip ok 
+smooth ok 
+gp ok 
+cs_cov ok 
+ar1_cov ok 
+int_0slope ok 
+dblbar ok 
+grcov_copy ok 
+mm ok 
+theta_prior ok 
+sigma_natural_prior ok 
+DONE

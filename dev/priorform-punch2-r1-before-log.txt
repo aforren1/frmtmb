@@ -1,0 +1,18 @@
+frmtmb from: C:/Users/adf44/source/r/priorform-lib 
+version    : 0.58.0 
+brms-formula-priors: ........................................................................................................................................................................1..
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-brms-formula-priors.R:561:3'): two specifications for one slo
+Error: Duplicated prior specifications are not allowed: 'b_sigma' is given 2 times. Write one specification per slot, with its density and both bounds in the same call, e.g. set_prior("normal(0, 1)", class = "b", lb = 0)
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_s3_class(...) at test-brms-formula-priors.R:561:3
+ 2. │ └─testthat::quasi_label(enquo(object))
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─frmtmb::frm(...)
+ 5.   └─frmtmb::check_prior_slots(prior)
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+PRIORFORM brms-formula-priors pass 170 fail 0 error 1 skip 0 in 16 s

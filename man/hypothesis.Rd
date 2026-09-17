@@ -139,12 +139,11 @@ gives \code{sd_id__y1.muIntercept}, \code{sd_id__y2.muIntercept} and
 \code{cor_id__y1.muIntercept__y2.muIntercept} - the last being the
 genetic correlation between the traits. \code{\link[=variables]{variables()}} prints them.
 
-Two blocks on the same grouping factor with the same term name - an
-animal model's \code{(1 | gr(id, cov = A)) + (1 | id)}, where the genetic
-and permanent-environment terms both name the group \code{id} - collide
-on one \code{sd_id__Intercept}, and the first block in formula order
-claims it. Give the second term its own grouping column (a copy of
-the factor under another name) when both are wanted by name.
+An animal model's genetic and permanent-environment terms cannot both
+name the column \code{id}: \code{(1 | gr(id, cov = A)) + (1 | id)} repeats the
+coefficient \code{Intercept} of group \code{id} and is refused, as brms refuses
+it. Write the second term on a copy of the column, \code{(1 | id2)}, and
+each block gets its own name.
 
 Excluded: \code{s()}/\code{t2()} smooths, \code{gp()}/\code{hsgp()}, \code{car()} and \code{spde()}.
 Their theta segments are not standard deviations - an inverse

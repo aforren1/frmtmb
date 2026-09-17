@@ -4,22 +4,28 @@
 \alias{bf}
 \title{Set up a model formula}
 \usage{
-bf(formula, ..., family = NULL, nl = FALSE)
+bf(formula, ..., family = NULL, nl = NULL)
 }
 \arguments{
-\item{formula}{The model formula for \code{mu}.}
+\item{formula}{The model formula for \code{mu}, or a formula \code{bf()}
+already built. Given one of those and nothing else, \code{bf()} returns
+it unchanged, as brms's \code{bf()} does; further arguments add to it.}
 
 \item{...}{Two-sided formulas for other dpars (the left-hand side
 names the dpar, e.g. \code{sigma ~ z}, or several sharing one
-right-hand side, e.g. \code{b1 + b2 ~ 1}), or named scalars fixing a
-dpar to a constant on the response scale (e.g. \code{sigma = 1}).}
+right-hand side, e.g. \code{b1 + b2 ~ 1}), one-sided formulas named by
+their dpar (\code{sigma = ~ z}, the same formula), or named scalars
+fixing a dpar to a constant on the response scale (e.g.
+\code{sigma = 1}).}
 
 \item{family}{Optional family; can also be attached with \code{+} or
 passed to \code{\link[=frm]{frm()}}, which uses \code{gaussian()} when nothing names one.}
 
 \item{nl}{Nonlinear-formula flag: the main formula becomes a
 nonlinear expression of named parameters, each given its own
-\code{...} formula with the full predictor grammar.}
+\code{...} formula with the full predictor grammar. \code{NULL}, the default
+as in brms, means \code{FALSE} for a new formula and keeps the setting
+of a formula \code{bf()} already built.}
 }
 \value{
 An object of class \code{frmtmb_formula}.

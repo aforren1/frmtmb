@@ -1,0 +1,25 @@
+frmtmb from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+ar1_diag 1 conv=0 pdHess=FALSE ll=-987.9409 theta=[0.12 0.52 -0.52 -0.75 -0.22 -0.52] max_theta_se=NaN | warned: NaNs produced 
+ar1_diag 2 conv=0 pdHess=TRUE ll=-1010.0287 theta=[-0.03 2.09 -0.22 -0.28 -0.22 -0.04] max_theta_se=34.6 
+ar1_diag 3 conv=0 pdHess=TRUE ll=-991.1714 theta=[0.08 1.03 -0.56 -0.55 -0.16 -0.17] max_theta_se=21.7 
+ar1_diag 4 conv=0 pdHess=FALSE ll=-974.2721 theta=[0.05 0.75 -0.53 -0.56 -0.09 -0.30] max_theta_se=NaN | warned: NaNs produced 
+rr_diag 1 conv=0 pdHess=TRUE ll=-808.6086 theta=[1.63 0.43 0.27 0.38 -18.48 -0.20 -0.29 -0.28] max_theta_se=5.54e+04 
+rr_diag 2 conv=0 pdHess=FALSE ll=-830.9199 theta=[1.87 0.60 0.40 0.59 -0.95 -0.24 -0.49 -0.33] max_theta_se=NaN | warned: NaNs produced 
+rr_diag 3 conv=0 pdHess=TRUE ll=-811.0249 theta=[1.79 0.67 0.28 0.54 -15.47 -0.27 -0.29 -0.30] max_theta_se=9.39e+04 
+rr_diag 4 conv=0 pdHess=TRUE ll=-796.1683 theta=[1.62 0.53 0.30 0.40 -11.29 -0.27 -0.33 -0.25] max_theta_se=2.05e+04 
+equalto_us 1 conv=0 pdHess=TRUE ll=-900.2523 theta=[0.05 -0.11 -0.23 -0.80 0.38 0.31 0.13 0.14 -0.56 -0.12] max_theta_se=27.2 
+equalto_us 2 conv=0 pdHess=TRUE ll=-925.2774 theta=[0.20 0.05 -0.28 -0.42 0.53 0.75 0.51 0.22 0.28 -0.27] max_theta_se=29.5 
+equalto_us 3 conv=0 pdHess=TRUE ll=-904.3861 theta=[0.08 0.03 -0.27 -0.54 0.79 0.33 0.44 0.29 0.14 -0.21] max_theta_se=161 
+equalto_us 4 conv=0 pdHess=TRUE ll=-886.6090 theta=[0.02 -0.14 -0.29 -0.68 0.65 0.43 0.09 -0.20 -0.18 -0.06] max_theta_se=42.7 
+exp_diag 1 conv=0 pdHess=FALSE ll=-925.9842 theta=[0.03 0.11 -0.26 -0.47 -0.48 -9.00] max_theta_se=17 | warned: NaNs produced 
+exp_diag 2 conv=0 pdHess=FALSE ll=-951.0192 theta=[-0.09 1.37 -0.12 -0.19 -0.42 -0.55] max_theta_se=NaN | warned: NaNs produced 
+exp_diag 3 conv=0 pdHess=TRUE ll=-931.7129 theta=[0.05 0.57 -0.45 -0.50 -0.53 -1.35] max_theta_se=214 
+exp_diag 4 conv=0 pdHess=FALSE ll=-912.5689 theta=[0.04 0.27 -0.45 -0.58 -0.42 -13.43] max_theta_se=NaN | warned: NaNs produced 
+us_diag 1 conv=0 pdHess=FALSE ll=-876.0756 theta=[-0.21 -0.29 -0.33 -0.51 0.49 0.51 0.37 0.40 -0.23 0.26 -0.30 -0.24 -0.27 -0.53] max_theta_se=NaN | warned: NaNs produced 
+us_diag 2 conv=0 pdHess=FALSE ll=-900.9587 theta=[-0.01 -0.07 -0.25 -0.31 0.49 0.86 0.66 0.43 0.53 -0.12 -0.38 -0.29 -0.41 -0.42] max_theta_se=256 
+us_diag 3 conv=0 pdHess=TRUE ll=-881.3892 theta=[-0.13 -0.08 -0.29 -0.40 0.84 0.43 0.58 0.52 0.33 0.01 -0.41 -0.32 -0.35 -0.44] max_theta_se=34.2 
+us_diag 4 conv=0 pdHess=FALSE ll=-862.8546 theta=[-0.16 -0.26 -0.33 -0.49 0.82 0.61 0.28 -0.10 0.05 0.31 -0.46 -0.28 -0.33 -0.47] max_theta_se=NaN | warned: NaNs produced 
+gr_plain 1 conv=0 pdHess=TRUE ll=-667.0159 theta=[-0.48 -0.34] max_theta_se=0.296 
+gr_plain 2 conv=0 pdHess=TRUE ll=-660.2554 theta=[-0.10 -0.37] max_theta_se=0.286 
+gr_plain 3 conv=0 pdHess=TRUE ll=-643.9319 theta=[-0.52 -0.29] max_theta_se=0.322 
+gr_plain 4 conv=0 pdHess=TRUE ll=-634.1728 theta=[-0.17 -0.53] max_theta_se=0.32 

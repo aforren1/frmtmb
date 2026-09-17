@@ -1,0 +1,55 @@
+id	verdict	message
+gr_cov+plain	refuse-dup	Duplicated group-level effects are not allowed. Occured for effect 'Intercept' of group 'id'.
+gr_cov+copy	accept	
+gr_cov_slope+plain_slope	refuse-dup	Duplicated group-level effects are not allowed. Occured for effect 'x' of group 'id'.
+gr_cov+gr_cov	accept	
+gr_by+plain	refuse-dup	Duplicated group-level effects are not allowed. Occured for effect 'Intercept' of group 'g'.
+gr_student+plain	refuse-dup	Duplicated group-level effects are not allowed. Occured for effect 'Intercept' of group 'g'.
+g+g:h	accept	
+g+g/h	refuse-dup	Duplicated group-level effects are not allowed. Occured for effect 'Intercept' of group 'g'.
+g:h+h:g	accept	
+int+0slope	accept	
+dblbar	accept	
+dblbar+int	refuse-dup	Duplicated group-level effects are not allowed. Occured for effect 'Intercept' of group 'g'.
+dblbar_f	accept	
+factor_slope+int	accept	
+factor+int	refuse-dup	Duplicated group-level effects are not allowed. Occured for effect 'Intercept' of group 'g'.
+mm+member	accept	
+mm+mm	accept	
+mm+mm_swapped	accept	
+ID_int+ID_slope0	accept	
+ID_int+ID_int	refuse-dup	Duplicated group-level effects are not allowed. Occured for effect 'Intercept' of group 'g'.
+ID_int+q_int	refuse-dup	Duplicated group-level effects are not allowed. Occured for effect 'Intercept' of group 'g'.
+mu_sigma_same	accept	
+mu_sigma_ID	accept	
+sigma_dup	refuse-dup	Duplicated group-level effects are not allowed. Occured for effect 'Intercept' of group 'g'.
+mv_same	accept	
+mv_ID	accept	
+mvbind	accept	
+mv_dup_one	accept	
+nl_same_g	accept	
+nl_dup_in_a	accept	
+nl_gr_cov_a_plain_b	accept	
+car+int	accept	
+smooth_re+int	accept	
+ordinal_cs+re	accept	
+gp+int	accept	
+ar1+int	n/a	
+ar1+diag	n/a	
+us+diag	n/a	
+rr+diag	n/a	
+cs_cov+int	n/a	
+cs_cov+diag	n/a	
+homcs+diag	n/a	
+equalto+us	n/a	
+equalto+diag	n/a	
+exp+diag	n/a	
+ou+int	n/a	
+gr_prec+plain	n/a	
+propto+us	n/a	
+cs_cov_ordinal	n/a	
+cs_cov_dblbar	n/a	
+cs_cov_twice	n/a	
+cs_catspec_and_cov	n/a	
+cs_catspec_selfint	accept	
+cs_catspec_cov_cross	n/a	

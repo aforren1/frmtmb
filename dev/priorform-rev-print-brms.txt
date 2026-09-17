@@ -1,0 +1,105 @@
+### set_prior("normal(0,1)")
+b ~ normal(0,1)
+### set_prior("normal(0,1)", coef = "x")
+b_x ~ normal(0,1)
+### set_prior("cauchy(0,1)", class = "sd", group = "x")
+sd_x ~ cauchy(0,1)
+### set_prior("cauchy(0, 1)", class = "sd", group = "g", coef = "Intercept")
+sd_g__Intercept ~ cauchy(0, 1)
+### set_prior("normal(0, 1)", class = "b", dpar = "sigma")
+b_sigma ~ normal(0, 1)
+### set_prior("normal(0, 1)", class = "b", nlpar = "a", coef = "x")
+b_a_x ~ normal(0, 1)
+### set_prior("normal(0, 1)", class = "b", resp = "y1", coef = "x")
+b_y1_x ~ normal(0, 1)
+### set_prior("normal(0, 1)", class = "sd", group = "g", dpar = "phi")
+sd_g__phi ~ normal(0, 1)
+### set_prior("normal(0, 1)", class = "sd", group = "g", resp = "y1", dpar = "sigma", nlpar = "a")
+sd_g__y1_sigma_a ~ normal(0, 1)
+### set_prior("normal(0, 1)", lb = 0)
+<lower=0> b ~ normal(0, 1)
+### set_prior("normal(0, 1)", ub = 1)
+<upper=1> b ~ normal(0, 1)
+### set_prior("normal(0, 1)", lb = 0, ub = 1)
+<lower=0,upper=1> b ~ normal(0, 1)
+### set_prior("", class = "b", coef = "x", lb = 0)
+<lower=0> b_x ~ (flat)
+### set_prior("student_t(3, 0, 2.5)", class = "sigma")
+sigma ~ student_t(3, 0, 2.5)
+### set_prior("student_t(3, 0, 2.5)", class = "Intercept")
+Intercept ~ student_t(3, 0, 2.5)
+### set_prior("lkj(2)", class = "cor")
+cor ~ lkj(2)
+### set_prior("normal(0, 2)", class = c("b", "sd"))
+        prior class coef group resp dpar nlpar   lb   ub tag source
+ normal(0, 2)     b                            <NA> <NA>       user
+ normal(0, 2)    sd                            <NA> <NA>       user
+### set_prior(c("normal(0, 1)", "cauchy(0, 2)"), class = c("b", "sd"))
+        prior class coef group resp dpar nlpar   lb   ub tag source
+ normal(0, 1)     b                            <NA> <NA>       user
+ cauchy(0, 2)    sd                            <NA> <NA>       user
+### set_prior("normal(0, 1)", coef = c("x", "z", "w", "v"), class = c("b", "b"))
+        prior class coef group resp dpar nlpar   lb   ub tag source
+ normal(0, 1)     b    x                       <NA> <NA>       user
+ normal(0, 1)     b    z                       <NA> <NA>       user
+ normal(0, 1)     b    w                       <NA> <NA>       user
+ normal(0, 1)     b    v                       <NA> <NA>       user
+### set_prior("normal(0, 1)", coef = c("x", "z", "w"), class = c("b", "b"))
+ERROR: Processing arguments of 'set_prior' has failed:
+Error in (function (..., row.names = NULL, check.rows = FALSE, check.names = TRUE,  : 
+  arguments imply differing number of rows: 1, 2, 3
+### set_prior("normal(0, 1)", coef = character(0))
+ERROR: Processing arguments of 'set_prior' has failed:
+Error in (function (..., row.names = NULL, check.rows = FALSE, check.names = TRUE,  : 
+  arguments imply differing number of rows: 1, 0
+### set_prior(character(0))
+ERROR: Processing arguments of 'set_prior' has failed:
+Error in (function (..., row.names = NULL, check.rows = FALSE, check.names = TRUE,  : 
+  arguments imply differing number of rows: 0, 1
+### set_prior("normal(0, 1)", coef = NA)
+ERROR: Cannot coerce 'coef' to a single character value.
+### set_prior("normal(0, 1)", lb = c(0, 1), coef = c("x", "z"))
+        prior class coef group resp dpar nlpar lb   ub tag source
+ normal(0, 1)     b    x                        0 <NA>       user
+ normal(0, 1)     b    z                        1 <NA>       user
+### set_prior("normal(0, 1)", lb = c(0, NA), coef = c("x", "z"))
+        prior class coef group resp dpar nlpar   lb   ub tag source
+ normal(0, 1)     b    x                          0 <NA>       user
+ normal(0, 1)     b    z                       <NA> <NA>       user
+### prior(normal(0, 1), class = sd) + prior(cauchy(0, 2), class = b)
+        prior class coef group resp dpar nlpar   lb   ub tag source
+ normal(0, 1)    sd                            <NA> <NA>       user
+ cauchy(0, 2)     b                            <NA> <NA>       user
+### c(set_prior("normal(0, 1)"), set_prior("normal(0, 2)", coef = "x"))
+        prior class coef group resp dpar nlpar   lb   ub tag source
+ normal(0, 1)     b                            <NA> <NA>       user
+ normal(0, 2)     b    x                       <NA> <NA>       user
+### set_prior("normal(0,1)")$prior
+[1] "normal(0,1)"
+### set_prior("normal(0, 2)", class = c("b", "sd"))$class
+[1] "b"  "sd"
+### set_prior("normal(0, 1)", lb = 0)$lb
+[1] "0"
+### set_prior("normal(0, 1)")$ub
+[1] NA
+### set_prior("normal(0, 1)")$source
+[1] "user"
+### set_prior("normal(0, 1)")$coef
+[1] ""
+### empty_prior()
+
+### nrow(as.data.frame(empty_prior()))
+[1] 0
+### empty_prior() + set_prior("normal(0, 1)")
+b ~ normal(0, 1)
+### as.brmsprior(data.frame(prior = "normal(0,1)", x = "test", coef = c("a", "b")))
+       prior class coef group resp dpar nlpar   lb   ub tag source
+ normal(0,1)     b    a                       <NA> <NA>       user
+ normal(0,1)     b    b                       <NA> <NA>       user
+### as.brmsprior(data.frame(prior = c("normal(0,1)", ""), lb = c(NA, "0")))
+       prior class coef group resp dpar nlpar   lb   ub tag       source
+ normal(0,1)     b                            <NA> <NA>             user
+ normal(0,1)     b                               0 <NA>     (vectorized)
+### names(as.data.frame(set_prior("normal(0, 1)")))
+ [1] "prior"  "class"  "coef"   "group"  "resp"   "dpar"   "nlpar"  "lb"    
+ [9] "ub"     "tag"    "source"

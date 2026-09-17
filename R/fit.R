@@ -485,6 +485,7 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   # a brms prior object is translated at the boundary, so nothing
   # downstream sees anything but a frmtmb_priorlist
   prior <- as_priorlist(prior)
+  check_prior_slots(prior)
   # Every one of these used to be read through isTRUE() or an empty
   # names() loop, so a flag set by mistake either fitted a DIFFERENT
   # model in silence or died with an obscure downstream error (REML

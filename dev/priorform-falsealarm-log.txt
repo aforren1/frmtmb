@@ -1,0 +1,21 @@
+frmtmb from C:/Users/adf44/source/r/priorform-lib/frmtmb 
+brms 2.23.0 
+source files parsed: 149  (Rd: 118 )
+distinct formula literals harvested: 626 
+
+<!-- priorform-falsealarm:begin -->
+seed 20260916; brms 2.23.0; 149 source files (118 Rd); 626 distinct harvested formula literals
+
+| check | set | formulas | brms accepts | false alarms | brms refuses (same reason) | misses | other error, excluded |
+|---|---|---|---|---|---|---|---|
+| nested | H | 626 | 624 | 0 | 1 | 0 | 1 |
+| special | H | 129 | 107 | 0 | 3 | 1 | 19 |
+| special | G | 715 | 192 | 0 | 495 | 0 | 28 |
+| dup | H | 158 | 86 | 0 | 1 | 0 | 71 |
+| dup | G | 489 | 235 | 0 | 254 | 0 | 0 |
+| dup | T | 30 | 26 | 0 | 4 | 0 | 0 |
+<!-- priorform-falsealarm:end -->
+
+MISSES:
+   check set                            formula frmtmb frmtmb_msg
+ special   H y ~ (mmc(w1, w2) * y | mm(g1, g2)) accept           

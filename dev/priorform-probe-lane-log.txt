@@ -1,0 +1,41 @@
+frmtmb 0.58.0 from C:/Users/adf44/source/r/priorform-lib/frmtmb 
+
+### item 4: bf() idempotence
+--- identical(form, bf(form)), dpar ---
+[1] TRUE
+
+--- identical(form, bf(form)), nl ---
+[1] TRUE
+
+### item 6: set_prior() vector arguments
+--- set_prior('normal(0, 2)', class = c('b', 'sd')) ---
+$n
+[1] 2
+
+$prior
+[1] "normal(0, 2)" "normal(0, 2)"
+
+$class
+[1] "b"  "sd"
+
+
+### item 7: the rest of the prior surface
+  default_prior    exported: TRUE
+  validate_prior   exported: TRUE
+  empty_prior      exported: TRUE
+  as.brmsprior     exported: TRUE
+--- print(set_prior('normal(0,1)')) ---
+[1] "b ~ normal(0,1)"
+
+### item 12: duplicated group-level effects
+--- (1 | g) + (x | g) ---
+[1] "ERROR: Duplicated group-level effects are not allowed: the coefficient '(Intercept)' of group 'g' appears in both (1 | g) and (x | g). Only the sum of the two variances is identified; write the coefficient in one term"
+
+### item 13: x * cs(g)
+--- y ~ x * cs(g), cumulative ---
+[1] "ERROR: The term 'x:cs(g)' is invalid: cs() makes a whole term category-specific, so it cannot sit inside an interaction or another call. Write it as its own term, e.g. y ~ x + cs(z)"
+
+### item 14: bf(y ~ ~ x)
+--- bf(y ~ ~ x) ---
+[1] "ERROR: Nested formulas are not allowed: the right-hand side of 'y ~ ~x' is itself a formula. Did you use '~~' somewhere?"
+

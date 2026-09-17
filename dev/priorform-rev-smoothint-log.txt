@@ -1,0 +1,27 @@
+== brms
+y ~ x:s(z)         refuse: The term 'x:s(z)' is invalid in brms syntax.
+y ~ x * s(z)       refuse: The term 'x:s(z)' is invalid in brms syntax.
+y ~ x:gp(z)        refuse: The term 'x:gp(z)' is invalid in brms syntax.
+y ~ x * gp(z)      refuse: The term 'x:gp(z)' is invalid in brms syntax.
+y ~ s(z, by = x)   accept
+y ~ x + s(z)       accept
+y ~ x:mo(z)        accept
+y ~ I(s(z))        refuse: The term 'I(s(z))' is invalid in brms syntax.
+== ref
+y ~ x:s(z)         accept: X cols [(Intercept), x]; smooths 0; gp 0; logLik -94.309
+y ~ x * s(z)       accept: X cols [(Intercept), x]; smooths 0; gp 0; logLik -94.309
+y ~ x:gp(z)        refuse: could not find function "gp"
+y ~ x * gp(z)      refuse: could not find function "gp"
+y ~ s(z, by = x)   accept: X cols [(Intercept), s(z):x.fx1, s(z):x.fx2]; smooths 1; gp 0; logLik -37.577
+y ~ x + s(z)       accept: X cols [(Intercept), x, s(z).fx1]; smooths 1; gp 0; logLik -92.452
+y ~ x:mo(z)        refuse: mo(): variable must be an ordered factor or non-negative integers
+y ~ I(s(z))        accept: X cols [(Intercept)]; smooths 0; gp 0; logLik -212.868
+== lane
+y ~ x:s(z)         accept: X cols [(Intercept), x]; smooths 0; gp 0; logLik -94.309
+y ~ x * s(z)       accept: X cols [(Intercept), x]; smooths 0; gp 0; logLik -94.309
+y ~ x:gp(z)        refuse: could not find function "gp"
+y ~ x * gp(z)      refuse: could not find function "gp"
+y ~ s(z, by = x)   accept: X cols [(Intercept), s(z):x.fx1, s(z):x.fx2]; smooths 1; gp 0; logLik -37.577
+y ~ x + s(z)       accept: X cols [(Intercept), x, s(z).fx1]; smooths 1; gp 0; logLik -92.452
+y ~ x:mo(z)        refuse: mo(): variable must be an ordered factor or non-negative integers
+y ~ I(s(z))        accept: X cols [(Intercept)]; smooths 0; gp 0; logLik -212.868

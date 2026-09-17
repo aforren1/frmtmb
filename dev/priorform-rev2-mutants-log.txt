@@ -1,0 +1,24 @@
+MUTANT none pass 730 fail 0 error 0
+MUTANT order_identity pass 726 fail 4 error 0
+    test-brms-formula-priors.R : a validate_prior() table fits the model its prior fits 
+    test-brms-formula-priors.R : a group-specific cor prior wins over the class-wide one 
+MUTANT order_reversed pass 726 fail 4 error 0
+    test-brms-formula-priors.R : a validate_prior() table fits the model its prior fits 
+    test-brms-formula-priors.R : a group-specific cor prior wins over the class-wide one 
+    test-setprior.R : class targeting resolves correctly 
+MUTANT order_nogroup pass 726 fail 4 error 0
+    test-brms-formula-priors.R : a validate_prior() table fits the model its prior fits 
+    test-brms-formula-priors.R : a group-specific cor prior wins over the class-wide one 
+MUTANT order_nocoef pass 727 fail 3 error 0
+    test-brms-formula-priors.R : a validate_prior() table fits the model its prior fits 
+MUTANT slots_noop pass 721 fail 5 error 1
+    test-brms-formula-priors.R : two specifications for one slot are refused (brms) 
+    test-priors-bounds-grcov.R : both bounds of a slot are written in one specification 
+Error in edit_fn("prior_slot_label", "coef = par_name_bare(s$coef %||% \"\")",  : 
+  mutant anchor matched 0 lines in prior_slot_label
+Execution halted
+MUTANT slots_density_only pass 728 fail 2 error 0
+    test-brms-formula-priors.R : two specifications for one slot are refused (brms) 
+    test-priors-bounds-grcov.R : both bounds of a slot are written in one specification 
+MUTANT slots_parens pass 729 fail 1 error 0
+    test-brms-formula-priors.R : two specifications for one slot are refused (brms) 

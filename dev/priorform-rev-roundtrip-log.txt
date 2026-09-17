@@ -1,0 +1,40 @@
+beta_sd_classwide : fit identical=TRUE  entries identical=TRUE  dll=0 
+beta_sd_group_then_class : fit identical=FALSE  entries identical=FALSE  dll=1.88
+    direct : lb:= theta1=normal/0/0.05 theta2=normal/0/0.05 ub:=
+    roundtr: lb:= theta1=normal/0/5 theta2=normal/0/5 ub:= 
+beta_sd_class_then_group : fit identical=TRUE  entries identical=TRUE  dll=0 
+beta_sd_phi_only : fit identical=TRUE  entries identical=TRUE  dll=0 
+b_coef_then_class : fit identical=FALSE  entries identical=FALSE  dll=123
+    direct : beta2=normal/0/0.01 beta3=normal/0/0.01 lb:= ub:=
+    roundtr: beta2=normal/3/0.01 beta3=normal/0/0.01 lb:= ub:= 
+b_class_then_coef : fit identical=TRUE  entries identical=TRUE  dll=0 
+bounds_then_density : fit identical=TRUE  entries identical=TRUE  dll=0 
+density_then_bounds : fit identical=TRUE  entries identical=TRUE  dll=0 
+class_bound_then_coef_density : fit identical=TRUE  entries identical=TRUE  dll=0 
+mv : fit identical=FALSE  entries identical=TRUE  dll=-2.27e-13 
+nl : fit identical=TRUE  entries identical=TRUE  dll=0 
+smooth : fit identical=TRUE  entries identical=TRUE  dll=0 
+gp_theta : fit identical=TRUE  entries identical=TRUE  dll=0 
+ordinal : fit identical=TRUE  entries identical=TRUE  dll=0 
+sratio_cs : fit identical=TRUE  entries identical=TRUE  dll=0 
+cor_slope : fit identical=TRUE  entries identical=TRUE  dll=0 
+sigma_natural : fit identical=TRUE  entries identical=TRUE  dll=0 
+route = "fit": the prior defaults frm() applies
+            prior     class coef group resp dpar nlpar lb ub       source
+1          (flat) Intercept                            NA NA      default
+2 normal(0, 0.01)         b                            NA NA         user
+3 normal(3, 0.01)         b    x                       NA NA         user
+4 normal(0, 0.01)         b    z                       NA NA (vectorized)
+5          (flat)     sigma                            NA NA      default
+route = "fit": the prior defaults frm() applies
+             prior     class    coef group resp dpar nlpar lb ub  source
+1           (flat) Intercept                               NA NA default
+2           (flat)         b                               NA NA default
+3           (flat)         b       x                       NA NA default
+4           (flat) Intercept                     phi       NA NA default
+5  normal(0, 0.05)        sd                               NA NA    user
+6     normal(0, 5)        sd             g                 NA NA    user
+7     normal(0, 5)        sd             g       phi       NA NA    user
+8           (flat)     theta                               NA NA default
+9           (flat)     theta theta_1                       NA NA default
+10          (flat)     theta theta_2                       NA NA default

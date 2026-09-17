@@ -1,0 +1,69 @@
+frmtmb from: C:/Users/adf44/source/r/rellib-r3 
+version    : 0.58.0 
+brms-formula-priors: 1234567WW8.9abcdefghijklmno.p.....q.rstu.vwxy.zABCDEFGHI....JKLMNOPQRSTU.VWXYZEE
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+1. a doubled tilde is refused by name (brms #749) ('test-brms-formula-priors.R:60:3') - Optimizer did not report convergence: false convergence (8)
+
+2. a doubled tilde is refused by name (brms #749) ('test-brms-formula-priors.R:60:3') - Large maximum absolute gradient at the optimum (1.18e+12); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-brms-formula-priors.R:22:3'): bf() returns a formula it alrea
+Error: `formula` must be a formula
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_identical(form, bf(form)) at test-brms-formula-priors.R:22:3
+ 2. │ └─testthat::quasi_label(enquo(expected), expected.label)
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─frmtmb::bf(form)
+
+── 2. Error ('test-brms-formula-priors.R:34:3'): bf() on a built formula adds to
+Error: `formula` must be a formula
+Backtrace:
+    ▆
+ 1. └─frmtmb::bf(form, sigma ~ z) at test-brms-formula-priors.R:34:3
+
+── 3. Failure ('test-brms-formula-priors.R:53:3'): a doubled tilde is refused by
+Expected `bf(y ~ ~x)` to throw a error.
+
+── 4. Failure ('test-brms-formula-priors.R:54:3'): a doubled tilde is refused by
+Expected `bf(~~x)` to throw a error.
+
+── 5. Failure ('test-brms-formula-priors.R:55:3'): a doubled tilde is refused by
+Expected `bf(y ~ x, sigma ~ ~z)` to throw a error.
+
+── 6. Failure ('test-brms-formula-priors.R:56:3'): a doubled tilde is refused by
+Expected `bf(y ~ x) + lf(sigma ~ ~z)` to throw a error.
+
+── 7. Failure ('test-brms-formula-priors.R:57:3'): a doubled tilde is refused by
+Expected `nlf(sigma ~ ~z)` to throw a error.
+
+── 8. Failure ('test-brms-formula-priors.R:60:3'): a doubled tilde is refused by
+Expected `frm(y ~ ~x, data.frame(y = 1:5, x = 1:5))` to throw a error.
+
+── 9. Error ('test-brms-formula-priors.R:68:3'): parameter formulas name their p
+Error: dpar formulas must be two-sided, naming the dpar on the left: e.g. sigma ~ x
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(bf(y ~ a, ~1, a ~ 1), "Additional formulas must be named") at test-brms-formula-priors.R:68:3
+ 2. │ └─testthat:::expect_condition_matching_(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─frmtmb::bf(y ~ a, ~1, a ~ 1)
+
+── 10. Failure ('test-brms-formula-priors.R:90:3'): exact twin terms are one blo
+Expected `blocks(y ~ x + (1 | g) + (1 | g))` to be identical to 1L.
+Differences:
+  `actual`: 2
+`expected`: 1
+
+  ... and 53 more
+
+
+Maximum number of 10 failures reached, some test results may be missing.
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+PRIORFORM brms-formula-priors pass 15 fail 41 error 22 skip 0 in 12 s

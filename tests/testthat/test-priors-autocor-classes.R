@@ -205,6 +205,5 @@ test_that("prior_summary reports the new classes on a fit", {
              prior = set_prior("normal(0, 0.5)", class = "ar"))
   txt <- paste(utils::capture.output(print(prior_summary(fit))),
                collapse = "\n")
-  expect_match(txt, "class=ar")
-  expect_match(txt, "normal(0, 0.5)", fixed = TRUE)
+  expect_match(txt, "ar ~ normal(0, 0.5)", fixed = TRUE)
 })

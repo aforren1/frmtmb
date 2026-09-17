@@ -1,0 +1,4 @@
+LIBMATCH frmtmb from C:/Users/adf44/source/r/priorform-lib/frmtmb: identical 979 differ 0 not-a-function 0
+LIBMATCH frmtmb.sample from C:/Users/adf44/source/r/priorform-lib/frmtmb.sample: identical 182 differ 0 not-a-function 0
+control, base library rellib-r3: LIBMATCH frmtmb from C:/Users/adf44/source/r/rellib-r3/frmtmb: identical 937 differ 14 not-a-function 28
+control, base library rellib-r3: LIBMATCH frmtmb.sample from C:/Users/adf44/source/r/rellib-r3/frmtmb.sample: identical 180 differ 2 not-a-function 0

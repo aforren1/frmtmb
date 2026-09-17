@@ -17,6 +17,88 @@
 # placement. Constant dpars keep their intercept column in betad but are
 # excluded from estimation through the MakeADFun `map`.
 
+#' Refuse a group-level coefficient that two terms of one linear
+#' predictor both carry for the same grouping factor.
+#'
+#' `(1 | g) + (x | g)` gives g two independent intercept blocks, and
+#' the likelihood sees only the sum of their variances, so the split
+#' between them is not identified. lme4 and glmmTMB fit it anyway; brms
+#' refuses it, and brms is the tiebreaker. The comparison is on the
+#' coefficient names the design actually has, as brms's is, so
+#' `(1 | g) + (0 + x | g)`, which splits one block into two without
+#' repeating a coefficient, is still accepted. An exact twin term is
+#' collapsed to one before this, as brms collapses it
+#' (`drop_twin_bar_terms()`), and grouping factors are compared as
+#' brms writes them (`slash_nested_bars()`).
+#'
+#' The glmmTMB covariance structures brms does not have are held to the
+#' same rule: `rr(0 + x | g) + diag(0 + x | g)`, `equalto(...) + us(...)`
+#' and `ar1(...) + diag(...)` on one factor and coefficient are refused.
+#' brms has no verdict on them, and on the base commit they were not
+#' identified at 150 groups either, apart from the known-matrix design
+#' brms's own rule already covers (dev/reviews/20260916-priorform.md,
+#' F3).
+#'
+#' @noRd
+refuse_duplicated_re <- function(cps) {
+  seen_key <- character(0)
+  seen_label <- character(0)
+  seen_known <- logical(0)
+  for (cp in cps) {
+    known <- isTRUE(cp[["covstruct"]] %in% c("gr_cov", "gr_prec"))
+    # the term as written, gr() and a covariance wrapper included, so
+    # the two terms the message names can be told apart
+    wr <- cp[["written"]] %||% cp[["bar"]]
+    lab <- if (is.null(wr)) cp[["label"]] else {
+      cs <- cp[["covstruct"]] %||% "us"
+      if (cs %in% c("us", "gr_cov", "gr_prec", "us_t")) {
+        paste0("(", deparse1(wr), ")")
+      } else {
+        paste0(cs, "(", deparse1(wr), ")")
+      }
+    }
+    # brms compares grouping factors as the strings it writes, and it
+    # writes g/h as g:h where reformulas writes h:g, so only a term that
+    # came from a slash is read back in brms's order
+    grp <- cp[["group_name"]]
+    # brms names a multi-membership group by its members alone
+    # (mmg1g2), so weights or scale do not make it a second factor
+    if (!is.null(cp[["mm"]])) {
+      grp <- paste0("mm", paste(cp[["mm"]][["gvars"]], collapse = ""))
+    }
+    if (isTRUE(cp[["from_slash"]])) {
+      grp <- paste(rev(strsplit(grp, ":", fixed = TRUE)[[1L]]),
+                   collapse = ":")
+    }
+    keys <- paste0(grp, "\r", cp[["cnms"]])
+    hit <- match(keys, seen_key)
+    if (any(!is.na(hit))) {
+      j <- which(!is.na(hit))[1L]
+      stop("Duplicated group-level effects are not allowed: the ",
+           "coefficient '", cp[["cnms"]][j], "' of group '",
+           grp, "' appears in both ",
+           seen_label[hit[j]], " and ", lab, ". Only the sum ",
+           "of the two variances is identified; write the coefficient ",
+           "in one term",
+           # an animal model's genetic and permanent-environment terms
+           # ARE identified, through the matrix, and brms writes the
+           # second on a copy of the column; so does this package
+           if (known || seen_known[hit[j]]) {
+             paste0(". A term with a known covariance, gr(cov = ) or ",
+                    "gr(prec = ), beside an ordinary one on the same ",
+                    "factor is written on a copy of the column, as brms ",
+                    "writes it: d$", cp[["group_name"]], "2 <- d$",
+                    cp[["group_name"]], " and (1 | ",
+                    cp[["group_name"]], "2)")
+           }, call. = FALSE)
+    }
+    seen_key <- c(seen_key, keys)
+    seen_label <- c(seen_label, rep(lab, length(keys)))
+    seen_known <- c(seen_known, rep(known, length(keys)))
+  }
+  invisible(NULL)
+}
+
 #' Sum of offset() terms of one linear predictor, evaluated against the
 #' combined model frame (whose columns are named by deparsed expressions).
 #'
@@ -1868,6 +1950,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
               levels = levs, cnms = md$cnms,
               bar = bars[[k]], Zlocal = methods::as(Zk, "CsparseMatrix"),
               mm = mms,
+              written = dp[["re"]][[k]]$written,
               group_name = mms$label,
               label = paste0(dp_prefix, deparse1(bars[[k]]))
             )
@@ -1959,6 +2042,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             # gr(dist = "student"): the FIXED degrees of freedom of the
             # t latent, NULL on every gaussian block
             dist_nu = dp[["re"]][[k]]$dist_nu,
+            written = dp[["re"]][[k]]$written,
+            from_slash = dp[["re"]][[k]]$from_slash,
             dim = d_k, n_levels = len_k %/% d_k,
             levels = levels(fac), cnms = rt$cnms[[kk]],
             bar = bars[[k]], Zlocal = Zk, aux_A = aux_A,
@@ -1969,6 +2054,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           )
           comp_ids <- c(comp_ids, length(components))
         }
+        refuse_duplicated_re(components[comp_ids])
       }
 
       # Smooths: fixed (null-space) part into X, wiggly part as an

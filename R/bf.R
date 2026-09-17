@@ -16,16 +16,22 @@
 #' Attach a family with `+`, for example `bf(y ~ x) + gaussian()`, or
 #' pass one to [frm()]. A model that names no family is gaussian.
 #'
-#' @param formula The model formula for `mu`.
+#' @param formula The model formula for `mu`, or a formula `bf()`
+#'   already built. Given one of those and nothing else, `bf()` returns
+#'   it unchanged, as brms's `bf()` does; further arguments add to it.
 #' @param ... Two-sided formulas for other dpars (the left-hand side
 #'   names the dpar, e.g. `sigma ~ z`, or several sharing one
-#'   right-hand side, e.g. `b1 + b2 ~ 1`), or named scalars fixing a
-#'   dpar to a constant on the response scale (e.g. `sigma = 1`).
+#'   right-hand side, e.g. `b1 + b2 ~ 1`), one-sided formulas named by
+#'   their dpar (`sigma = ~ z`, the same formula), or named scalars
+#'   fixing a dpar to a constant on the response scale (e.g.
+#'   `sigma = 1`).
 #' @param family Optional family; can also be attached with `+` or
 #'   passed to [frm()], which uses `gaussian()` when nothing names one.
 #' @param nl Nonlinear-formula flag: the main formula becomes a
 #'   nonlinear expression of named parameters, each given its own
-#'   `...` formula with the full predictor grammar.
+#'   `...` formula with the full predictor grammar. `NULL`, the default
+#'   as in brms, means `FALSE` for a new formula and keeps the setting
+#'   of a formula `bf()` already built.
 #' @return An object of class `frmtmb_formula`.
 #' @examples
 #' # brms-style model formulas: attach a family with `+`
@@ -66,20 +72,28 @@
 #'   and drops rows only on the non-`mi()` columns.
 #'
 #' @export
-bf <- function(formula, ..., family = NULL, nl = FALSE) {
+bf <- function(formula, ..., family = NULL, nl = NULL) {
   if (inherits(formula, c("brmsformula", "bform"))) {
     stop("this formula was built by brms::bf(): attaching brms after ",
          "frmtmb masks frmtmb's bf(), so a bare bf() call now reaches ",
          "brms. Call frmtmb::bf() explicitly, or attach brms before ",
          "frmtmb", call. = FALSE)
   }
-  if (!inherits(formula, "formula")) {
+  # brms's bf() takes its own output and returns it unchanged when
+  # nothing else is given, so code that normalizes a formula by calling
+  # bf() on it must not change a model already built
+  existing <- inherits(formula, "frmtmb_formula")
+  if (!existing && !inherits(formula, "formula")) {
     stop("`formula` must be a formula", call. = FALSE)
   }
   # nl reaches isTRUE() at the end of this function, which reads "yes",
   # NA and c(TRUE, FALSE) as FALSE: bf(..., nl = "yes") used to build a
-  # LINEAR model and say nothing
-  check_flag(nl, "nl")
+  # LINEAR model and say nothing. NULL keeps what an existing bf() says
+  if (!is.null(nl)) check_flag(nl, "nl")
+  if (existing) {
+    return(bf_update(formula, ..., family = family, nl = nl))
+  }
+  refuse_nested_formula(formula)
   # mvbind(y1, y2) ~ rhs: shared predictors, one bf per response
   if (length(formula) == 3L && is.call(formula[[2]]) &&
       identical(formula[[2]][[1]], as.name("mvbind"))) {
@@ -87,45 +101,13 @@ bf <- function(formula, ..., family = NULL, nl = FALSE) {
     forms <- lapply(resps, function(r) {
       f1 <- formula
       f1[[2]] <- r
-      bf(f1, ..., family = family)
+      bf(f1, ..., family = family, nl = nl)
     })
     return(do.call(mvbf, forms))
   }
-  dots <- list(...)
-  pforms <- list()
-  pfix <- list()
-  for (i in seq_along(dots)) {
-    d <- dots[[i]]
-    nm <- names(dots)[i] %||% ""
-    if (inherits(d, "formula")) {
-      if (length(d) != 3L) {
-        stop("dpar formulas must be two-sided, naming the dpar on the ",
-             "left: e.g. sigma ~ x", call. = FALSE)
-      }
-      for (dpar in lhs_dpar_names(d[[2]])) {
-        if (dpar %in% c(names(pforms), names(pfix))) {
-          stop("Duplicated dpar formula: '", dpar, "'", call. = FALSE)
-        }
-        di <- d
-        di[[2]] <- as.name(dpar)
-        pforms[[dpar]] <- di
-      }
-    } else if (is.numeric(d) && length(d) == 1L) {
-      if (nm == "") {
-        stop("Constant dpar values must be named, e.g. bf(y ~ x, sigma = 1)",
-             call. = FALSE)
-      }
-      if (nm %in% c(names(pforms), names(pfix))) {
-        stop("Duplicated dpar constant: '", nm, "'", call. = FALSE)
-      }
-      pfix[[nm]] <- d
-    } else {
-      stop("Cannot interpret bf() argument ",
-           if (nm != "") paste0("'", nm, "'") else i,
-           ": expected a dpar formula or a named numeric constant",
-           call. = FALSE)
-    }
-  }
+  parsed <- bf_dots(list(...))
+  pforms <- parsed[["pforms"]]
+  pfix <- parsed[["pfix"]]
   # A body that is one bare name (`bf(y ~ a, nl = TRUE)`) is the brms
   # nlf() spelling, where the parameter formulas arrive afterwards with
   # `+ nlf(a ~ ...)`; anything else with no formula here is the usual
@@ -145,6 +127,103 @@ bf <- function(formula, ..., family = NULL, nl = FALSE) {
   )
 }
 
+#' Read `bf()`'s dots into dpar formulas and constants, onto whatever an
+#' existing formula already sets. `taken` names the parameters a
+#' nonlinear body already defines, which a new entry may not reuse.
+#'
+#' @noRd
+bf_dots <- function(dots, pforms = list(), pfix = list(),
+                    taken = character(0)) {
+  for (i in seq_along(dots)) {
+    d <- dots[[i]]
+    nm <- names(dots)[i] %||% ""
+    if (inherits(d, "formula")) {
+      d <- named_par_formula(d, nm)
+      refuse_nested_formula(d)
+      for (dpar in lhs_dpar_names(d[[2]])) {
+        if (dpar %in% c(names(pforms), names(pfix), taken)) {
+          stop("Duplicated dpar formula: '", dpar, "'", call. = FALSE)
+        }
+        di <- d
+        di[[2]] <- as.name(dpar)
+        pforms[[dpar]] <- di
+      }
+    } else if (is.numeric(d) && length(d) == 1L) {
+      if (nm == "") {
+        stop("Constant dpar values must be named, e.g. bf(y ~ x, sigma = 1)",
+             call. = FALSE)
+      }
+      if (nm %in% c(names(pforms), names(pfix), taken)) {
+        stop("Duplicated dpar constant: '", nm, "'", call. = FALSE)
+      }
+      pfix[[nm]] <- d
+    } else {
+      stop("Cannot interpret bf() argument ",
+           if (nm != "") paste0("'", nm, "'") else i,
+           ": expected a dpar formula or a named numeric constant",
+           call. = FALSE)
+    }
+  }
+  list(pforms = pforms, pfix = pfix)
+}
+
+#' `bf()` on a formula `bf()` already built. With nothing else given the
+#' object comes back untouched, which is brms's contract
+#' (`identical(form, bf(form))`). Further dpar formulas and constants are
+#' added; one naming a parameter the formula already sets is refused, as
+#' `+ lf()` refuses it, rather than replacing it in silence.
+#'
+#' @noRd
+bf_update <- function(formula, ..., family = NULL, nl = NULL) {
+  dots <- list(...)
+  if (!length(dots) && is.null(family) && is.null(nl)) return(formula)
+  if (length(dots)) {
+    parsed <- bf_dots(dots, formula[["pforms"]], formula[["pfix"]],
+                      taken = names(formula[["nlforms"]]))
+    formula[["pforms"]] <- parsed[["pforms"]]
+    formula[["pfix"]] <- parsed[["pfix"]]
+  }
+  if (!is.null(nl)) formula[["nl"]] <- isTRUE(nl)
+  if (!is.null(family)) formula[["family"]] <- as_frmtmb_family(family)
+  formula
+}
+
+#' A parameter formula in its two-sided form. brms takes the parameter
+#' either on the left, `sigma ~ x`, or as the argument name of a
+#' one-sided formula, `sigma = ~ x`; both are the same formula. A
+#' one-sided formula with no name belongs to no parameter.
+#'
+#' @noRd
+named_par_formula <- function(d, nm) {
+  if (length(d) == 3L) return(d)
+  if (!nzchar(nm)) {
+    stop("Additional formulas must be named: '", deparse1(d), "' does ",
+         "not say which parameter it belongs to. Write it two-sided, ",
+         "as sigma ~ x, or name it, as sigma = ~ x", call. = FALSE)
+  }
+  structure(call("~", as.name(nm), d[[2L]]), class = "formula",
+            .Environment = environment(d))
+}
+
+#' Refuse a formula whose right-hand side is itself a formula.
+#'
+#' `y ~ ~ x` parses, and until this refusal it fitted `y ~ x` without a
+#' word, so a doubled tilde that lost a term in editing went unnoticed.
+#' brms refuses the same shape by name (its issue #749) and checks the
+#' top level only, which is what is checked here: a `~` nested inside
+#' another call is left to whatever reads that call.
+#'
+#' @noRd
+refuse_nested_formula <- function(f) {
+  rhs <- f[[length(f)]]
+  if (is.call(rhs) && identical(rhs[[1L]], as.name("~"))) {
+    stop("Nested formulas are not allowed: the right-hand side of '",
+         deparse1(f), "' is itself a formula. Did you use '~~' ",
+         "somewhere?", call. = FALSE)
+  }
+  invisible(f)
+}
+
 #' The left-hand side of a dpar or nonlinear-parameter formula, checked
 #' once for `bf()` and `lf()`: it becomes part of a coefficient name, so
 #' dots and underscores are refused rather than allowed to collide with
@@ -154,8 +233,8 @@ bf <- function(formula, ..., family = NULL, nl = FALSE) {
 check_dpar_name <- function(dpar) {
   if (!grepl("^[a-zA-Z][a-zA-Z0-9]*$", dpar)) {
     stop("Invalid parameter name '", dpar, "': names must be ",
-         "alphanumeric without dots or underscores (they collide ",
-         "with coefficient naming)", call. = FALSE)
+         "alphanumeric and must not contain dots or underscores (they ",
+         "collide with coefficient naming)", call. = FALSE)
   }
   dpar
 }
@@ -188,7 +267,8 @@ lhs_dpar_names <- function(lhs) {
 #'
 #' @param ... Two-sided formulas naming the parameter on the left, e.g.
 #'   `sigma ~ x` or (with `nl = TRUE` on the `bf()`) a nonlinear
-#'   parameter's formula `a ~ 1 + (1 | g)`.
+#'   parameter's formula `a ~ 1 + (1 | g)`, or one-sided formulas named
+#'   by their parameter, `sigma = ~ x`.
 #' @return An object of class `frmtmb_lf`, to be added to a [bf()].
 #' @examples
 #' # the two spellings are the same model
@@ -201,11 +281,14 @@ lhs_dpar_names <- function(lhs) {
 lf <- function(...) {
   dots <- list(...)
   pforms <- list()
-  for (d in dots) {
-    if (!inherits(d, "formula") || length(d) != 3L) {
+  for (i in seq_along(dots)) {
+    d <- dots[[i]]
+    if (!inherits(d, "formula")) {
       stop("lf() takes two-sided formulas naming the parameter on the ",
            "left: e.g. lf(sigma ~ x)", call. = FALSE)
     }
+    d <- named_par_formula(d, names(dots)[i] %||% "")
+    refuse_nested_formula(d)
     for (dpar in lhs_dpar_names(d[[2]])) {
       if (dpar %in% names(pforms)) {
         stop("Duplicated parameter formula in lf(): '", dpar, "'",
@@ -299,6 +382,7 @@ nlf <- function(formula, ..., loop = NULL) {
     stop("nlf() takes a two-sided formula naming the parameter on the ",
          "left: e.g. nlf(sigma ~ a * exp(b * x))", call. = FALSE)
   }
+  refuse_nested_formula(formula)
   lhs <- formula[[2L]]
   if (is.call(lhs) && identical(lhs[[1L]], as.name("+"))) {
     stop("nlf() declares one parameter at a time, and '", deparse1(lhs),

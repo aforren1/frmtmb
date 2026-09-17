@@ -393,26 +393,28 @@ test_that("an ordinary correlation still gets a two-sided interval", {
   expect_gt(cr$upr, cr$estimate)
 })
 
-test_that("blocks sharing a term label are all reported, not the first twice", {
-  # an animal model: an additive genetic term and a permanent
-  # environment term on the same individual, both deparsing to "1 | id"
+test_that("blocks sharing a grouping factor are all reported, not the first twice", {
+  # (1 | g) in mu and in sigma: two blocks on one factor. Both key the
+  # factor "g" in ranef(), and their term labels differ only by the
+  # sigma prefix, which is the repeated-key path the methods carry. The
+  # guard used to be built on an animal model's (1 | gr(id, cov = A)) +
+  # (1 | id), which is now refused as brms refuses it (its test is in
+  # test-brms-formula-priors.R)
   set.seed(63)
   ng <- 26
-  A <- v29_relmat(ng, pairs = 13L, rho = 0.7)
-  u <- drop(crossprod(chol(A), stats::rnorm(ng))) * 0.8
-  pe <- stats::rnorm(ng, 0, 0.35)
-  per <- 6
-  dd <- data.frame(id = factor(rep(rownames(A), each = per),
-                               levels = rownames(A)),
+  per <- 8
+  dd <- data.frame(g = factor(rep(seq_len(ng), each = per)),
                    x = stats::rnorm(ng * per))
-  dd$y <- 1 + 0.5 * dd$x + u[as.integer(dd$id)] + pe[as.integer(dd$id)] +
-    stats::rnorm(nrow(dd), 0, 0.5)
-  fit <- frm(bf(y ~ x + (1 | gr(id, cov = A)) + (1 | id)) + gaussian(),
-             data = dd, data2 = list(A = A))
+  u <- stats::rnorm(ng, 0, 0.8)
+  v <- stats::rnorm(ng, 0, 0.4)
+  dd$y <- 1 + 0.5 * dd$x + u[dd$g] +
+    stats::rnorm(nrow(dd), 0, exp(-0.5 + v[dd$g]))
+  fit <- frm(bf(y ~ x + (1 | g), sigma ~ 1 + (1 | g)) + gaussian(),
+             data = dd)
 
   vc <- VarCorr(fit)
   expect_length(vc, 2L)
-  expect_identical(names(vc), c("1 | id", "1 | id"))
+  expect_identical(names(vc), c("1 | g", "sigma: 1 | g"))
   # the two blocks are different objects, not the first one twice
   expect_false(isTRUE(all.equal(vc[[1]], vc[[2]])))
 
@@ -422,21 +424,21 @@ test_that("blocks sharing a term label are all reported, not the first twice", {
   rows <- grep("Intercept", out, value = TRUE)
   expect_length(rows, 2L)
   expect_false(identical(rows[1], rows[2]))
-  expect_equal(sum(grepl("1 | id", out, fixed = TRUE)), 2L)
+  expect_equal(sum(grepl("1 | g", out, fixed = TRUE)), 2L)
 
   vdf <- as.data.frame(vc)
   expect_equal(nrow(vdf), 2L)
   expect_equal(length(unique(vdf$sdcor)), 2L)
 
-  # ranef() used to lose a block outright: out[[label]] <- M overwrites
+  # ranef() keys both blocks by the factor, so the name repeats; it used
+  # to lose a block outright, because out[[label]] <- M overwrites
   re <- ranef(fit)
   expect_length(re, 2L)
+  expect_identical(names(re), c("g", "g"))
   expect_false(isTRUE(all.equal(unname(re[[1]]), unname(re[[2]]))))
   expect_equal(nrow(as.data.frame(re)), 2L * ng)
 
-  # confint_varcorr() reports both blocks as well (the permanent
-  # environment component is weakly identified against the genetic one
-  # on data this small, which is what the wide-interval warning says)
+  # confint_varcorr() reports both blocks as well
   expect_equal(nrow(suppressWarnings(confint_varcorr(fit))), 2L)
 })
 

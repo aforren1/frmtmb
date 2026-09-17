@@ -135,9 +135,12 @@ test_that("the row table is still an ordinary data frame to work with", {
   dd <- route_test_data()
   gp <- get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
   expect_true(is.data.frame(gp))
+  # brms's columns in brms's order, with `source` last as brms has it;
+  # brms's `tag` is absent because a tag is refused here
   expect_identical(names(gp),
-                   c("prior", "class", "coef", "group", "dpar", "nlpar",
-                     "resp", "lb", "ub"))
+                   c("prior", "class", "coef", "group", "resp", "dpar",
+                     "nlpar", "lb", "ub", "source"))
+  expect_true(all(gp$source == "default"))
   sub <- gp[gp$class == "sd", ]
   expect_gt(nrow(sub), 0L)
   # fewer ROWS of a fit-route table are still a fit-route table, so the

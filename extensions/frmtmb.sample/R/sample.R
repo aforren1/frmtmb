@@ -1160,21 +1160,18 @@ prior_class_key <- function(s) {
          if (nzchar(s$resp %||% "")) paste0("@", s$resp))
 }
 
-#' Drop the specifications a later, equally explicit one supersedes:
-#' same class, coef, group, response, dpar and nlpar, so the same slot.
-#' `resolve_priorlist()` would have applied only the later one anyway;
-#' this is what keeps `prior_summary()` from listing both, which is how
-#' a MAP fit's own prior and a `prior =` on the sampling call would
-#' otherwise read.
+#' Drop the specifications a later one for the same slot replaces:
+#' same class, coef, group, response, dpar and nlpar. This is brms's
+#' `update(prior = )`, which puts a new row in place of the stored row
+#' for its slot, and it is what keeps `prior_summary()` from listing
+#' both a MAP fit's own prior and a `prior =` on the sampling call.
 #'
-#' A BOUNDS-ONLY specification supersedes nothing: it is written to
-#' tighten an entry an earlier distribution created, and dropping that
-#' entry would discard the density it was meant to bound.
+#' A bounds-only specification replaces the stored one too, density and
+#' all, as the brms row it mirrors does; the call writes the whole slot.
 #'
 #' @noRd
 drop_superseded <- function(base, over) {
-  tg <- vapply(Filter(function(s) !is.null(s$dist), unclass(over)),
-               spec_target, "")
+  tg <- vapply(unclass(over), spec_target, "")
   keep <- Filter(function(s) !(spec_target(s) %in% tg), unclass(base))
   if (!length(keep)) NULL else structure(keep,
                                          class = "frmtmb_priorlist")
@@ -1660,7 +1657,14 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   a MAP fit's own prior, leave alone (see Default priors), and
 #'   `prior = "flat"` opts out of them entirely. A `brmsprior` object
 #'   built by brms's own `prior()` is translated row by row. The
-#'   argument takes brms's spelling, `prior`; the `priors` of releases
+#'   argument takes brms's spelling, `prior`. On a fit that carries its
+#'   own prior, a specification here for a slot the fit's prior also
+#'   names (the same class, coef, group, resp, dpar and nlpar) REPLACES
+#'   the stored one, as brms's `update(prior = )` replaces a row; it is
+#'   not refused as a duplicate, and specifications for other slots
+#'   stack with the stored ones, the more specific applying. Two
+#'   specifications for one slot within this argument are refused. The
+#'   `priors` of releases
 #'   before 0.43 is gone rather than aliased, and because this
 #'   function's `...` would otherwise swallow it, the old name is
 #'   refused by name.
@@ -1844,6 +1848,9 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   # useful thing to be told than which package is missing.
   sample_preflight(fit, family)
   prior <- as_priorlist(prior)
+  # the user's own specification, before it is stacked on the fit's
+  # prior and the defaults, which may legitimately share a slot
+  check_prior_slots(prior)
   if (!requireNamespace("tmbstan", quietly = TRUE) ||
       !requireNamespace("rstan", quietly = TRUE)) {
     stop("frm_sample() needs the 'tmbstan' and 'rstan' packages",

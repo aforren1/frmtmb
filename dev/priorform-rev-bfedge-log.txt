@@ -1,0 +1,37 @@
+== brms
+bf(y ~ x, phi = sigma ~ z)                              pforms: sigma sigma ~ z | nl: FALSE
+bf(y ~ x, sigma = ~ z)                                  pforms: sigma sigma ~ z | nl: FALSE
+bf(y ~ x, sigma = y ~ z)                                pforms: y y ~ z | nl: FALSE
+Replacing initial definitions of parameters 'sigma'
+bf(bf(y ~ x, sigma ~ z), sigma ~ w)                     pforms: sigma sigma ~ w | nl: FALSE
+bf(bf(y ~ x), nl = TRUE)                                pforms:  | nl: TRUE
+bf(bf(y ~ a, a ~ 1, nl = TRUE), nl = FALSE)             pforms: a a ~ 1 | nl: FALSE
+bf(y ~ x + ~z)                                          pforms:  | nl: FALSE
+bf(y ~ (~x))                                            pforms:  | nl: FALSE
+bf(~ ~x)                                                ERROR: Nested formulas are not allowed. Did you use '~~' somewhere?
+bf(y ~ x, sigma ~ (~z))                                 pforms: sigma sigma ~ (~z) | nl: FALSE
+bf(mvbind(y1, y2) ~ a, a ~ 1, nl = TRUE)                y1 ~ a  a ~ 1 y2 ~ a  a ~ 1
+== ref
+bf(y ~ x, phi = sigma ~ z)                              pforms: sigma sigma ~ z | nl: FALSE
+bf(y ~ x, sigma = ~ z)                                  ERROR: dpar formulas must be two-sided, naming the dpar on the left: e.g. sigma ~ x
+bf(y ~ x, sigma = y ~ z)                                pforms: y y ~ z | nl: FALSE
+bf(bf(y ~ x, sigma ~ z), sigma ~ w)                     ERROR: `formula` must be a formula
+bf(bf(y ~ x), nl = TRUE)                                ERROR: `formula` must be a formula
+bf(bf(y ~ a, a ~ 1, nl = TRUE), nl = FALSE)             ERROR: `formula` must be a formula
+bf(y ~ x + ~z)                                          pforms:  | nl: FALSE
+bf(y ~ (~x))                                            pforms:  | nl: FALSE
+bf(~ ~x)                                                pforms:  | nl: FALSE
+bf(y ~ x, sigma ~ (~z))                                 pforms: sigma sigma ~ (~z) | nl: FALSE
+bf(mvbind(y1, y2) ~ a, a ~ 1, nl = TRUE)                y1 ~ a a ~ 1  y2 ~ a a ~ 1  rescor: FALSE 
+== lane
+bf(y ~ x, phi = sigma ~ z)                              pforms: sigma sigma ~ z | nl: FALSE
+bf(y ~ x, sigma = ~ z)                                  pforms: sigma sigma ~ z | nl: FALSE
+bf(y ~ x, sigma = y ~ z)                                pforms: y y ~ z | nl: FALSE
+bf(bf(y ~ x, sigma ~ z), sigma ~ w)                     ERROR: Duplicated dpar formula: 'sigma'
+bf(bf(y ~ x), nl = TRUE)                                pforms:  | nl: TRUE
+bf(bf(y ~ a, a ~ 1, nl = TRUE), nl = FALSE)             pforms: a a ~ 1 | nl: FALSE
+bf(y ~ x + ~z)                                          pforms:  | nl: FALSE
+bf(y ~ (~x))                                            pforms:  | nl: FALSE
+bf(~ ~x)                                                ERROR: Nested formulas are not allowed: the right-hand side of '~~x' is itself a formula. Did you use '~~' somewhere?
+bf(y ~ x, sigma ~ (~z))                                 pforms: sigma sigma ~ (~z) | nl: FALSE
+bf(mvbind(y1, y2) ~ a, a ~ 1, nl = TRUE)                y1 ~ a (nonlinear) a ~ 1  y2 ~ a (nonlinear) a ~ 1  rescor: FALSE 

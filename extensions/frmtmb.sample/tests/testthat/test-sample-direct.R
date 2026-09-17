@@ -276,11 +276,14 @@ test_that("the formula route discloses its defaults and reproduces them", {
   # prior_summary() gives back exactly what was announced
   pl <- prior_summary(ds)
   expect_s3_class(pl, "frmtmb_priorlist")
-  txt <- utils::capture.output(print(pl))
+  # one line per specification, in brms's layout; the density on sigma
+  # itself reads as its own class, which is what `scale=natural` said
+  # in the layout before
+  txt <- utils::capture.output(print(pl, show_df = FALSE))
   expect_length(txt, 3L)
-  expect_true(any(grepl("class=Intercept", txt, fixed = TRUE)))
-  expect_true(any(grepl("class=sd", txt, fixed = TRUE)))
-  expect_true(any(grepl("scale=natural", txt, fixed = TRUE)))
+  expect_true(any(grepl("^Intercept ~ student_t", txt)))
+  expect_true(any(grepl("^sd ~ student_t", txt)))
+  expect_true(any(grepl("^sigma ~ student_t", txt)))
   for (s in unclass(pl)) {
     expect_equal(s$dist$kind, "t")
     expect_equal(s$dist$df, 3)
@@ -527,8 +530,8 @@ test_that("user priors override the defaults per class", {
                chains = 1, iter = 400, refresh = 0, seed = 2)))
   pl2 <- prior_summary(ds2)
   expect_equal(names(attr(pl2, "overrides")), "theta")
-  expect_true(any(grepl("class=Intercept",
-                        utils::capture.output(print(pl2)))))
+  expect_true(any(grepl("^Intercept ~ ",
+                        utils::capture.output(print(pl2, show_df = FALSE)))))
 })
 
 test_that("defaults tame a variance component flat priors cannot", {

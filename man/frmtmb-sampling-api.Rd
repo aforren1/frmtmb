@@ -9,6 +9,7 @@
 \alias{aterms_for_newdata}
 \alias{has_trunc}
 \alias{as_priorlist}
+\alias{check_prior_slots}
 \alias{resolve_prior_input}
 \alias{neg_log_prior_fn}
 \alias{resolve_bounds}

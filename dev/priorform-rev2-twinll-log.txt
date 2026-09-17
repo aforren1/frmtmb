@@ -1,0 +1,6 @@
+y ~ (1 | g/h) + (1 | g/h)        vs y ~ (1 | g/h)          identical opt: TRUE  logLik -288.8565995565 -288.8565995565
+y ~ (x || g) + (x || g)          vs y ~ (x || g)           identical opt: TRUE  logLik -240.4635063804 -240.4635063804
+y ~ (1 | p | g) + (1 | p | g)    vs y ~ (1 | p | g)        identical opt: TRUE  logLik -289.3436221766 -289.3436221766
+y ~ x + (1+x|g) + (1 + x | g)    vs y ~ x + (1 + x | g)    identical opt: TRUE  logLik -221.8227860236 -221.8227860236
+y ~ x + s(z) * s(z)              vs y ~ x + s(z)           identical opt: TRUE  logLik -252.0751169328 -252.0751169328
+y ~ (x + s(z))                   vs y ~ x + s(z)           identical opt: TRUE  logLik -252.0751169328 -252.0751169328

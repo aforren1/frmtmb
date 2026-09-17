@@ -838,8 +838,7 @@ ranef.frmtmb_fit <- function(object, condVar = FALSE, ...) {
     # by and the only thing that tells two blocks on one factor apart
     attr(M, "term") <- bk[["term_label"]]
     # appended, then named: `out[[label]] <- M` would DROP a block whose
-    # label repeats (an animal model's (1 | gr(id, cov = A)) and its
-    # permanent-environment (1 | id) both deparse to "1 | id")
+    # key repeats ((1 | g) in mu and in sigma both key the factor g)
     out[[length(out) + 1L]] <- M
   }
   # keyed by the GROUPING FACTOR, as brms and lme4 key it, and as this
@@ -993,10 +992,7 @@ as.data.frame.VarCorr_frmtmb <- function(x, ...) {
 #' @param ... Refused: an argument the method does not have is an
 #'   error naming it, rather than silently changing nothing.
 #' @return A named list of covariance matrices, one per random-effect
-#'   term. The names are the term labels, which can repeat when two
-#'   blocks deparse the same way (`(1 | gr(id, cov = A)) + (1 | id)`, the
-#'   animal model's genetic and permanent-environment terms). Index by
-#'   position, not by name, when that is possible in your model.
+#'   term, named by the term label.
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(200), g = factor(rep(1:20, 10)))

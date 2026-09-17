@@ -583,6 +583,75 @@ calls_function <- function(e, nm) {
   FALSE
 }
 
+#' The specials brms requires to be a whole term, read off brms 2.23.0's
+#' `regex_sp()` for the types its `find_terms()` checks with
+#' `complete = TRUE`: `cs` (`terms_cs`), `sm` (`terms_sm`), `gp`
+#' (`terms_gp`), `ac` (`terms_ac`) and `mmc`. `mo()`, `me()` and `mi()`
+#' are checked with `complete = FALSE` there and may sit in an
+#' interaction, as they may here. `test-brms-formula-priors.R` compares
+#' this list with brms's own regular expression when brms is installed.
+#'
+#' @noRd
+brms_whole_term_specials <- c(
+  "cs", "cse", "s", "t2", "te", "ti", "gp", "mmc",
+  "arma", "ar", "ma", "cosy", "unstr", "sar", "car", "fcor"
+)
+
+#' Why one top-level formula term misuses a whole-term special, or
+#' `NULL`.
+#'
+#' `cs()`, a smooth, `gp()` and brms's other whole-term specials are read
+#' only as terms of their own. Inside an interaction or another call
+#' they reach the model matrix instead, and before this refusal
+#' `y ~ x * cs(g)` fitted `y ~ x` and `y ~ x:s(z)` fitted `y ~ x`, both
+#' without a word. brms refuses such a term by name. The judgement is
+#' made on the labels `terms()` expands, as brms makes it, so
+#' `s(z) * s(z)`, which collapses to `s(z)`, is not refused. A bar term
+#' (`cs(x | g)`, a compound-symmetry covariance) is not this.
+#'
+#' @noRd
+special_term_refusal <- function(tm) {
+  if ("|" %in% all.names(tm)) return(NULL)
+  used <- Filter(function(f) calls_function(tm, f), brms_whole_term_specials)
+  if (!length(used)) return(NULL)
+  bare <- function(e) {
+    is.call(e) && is.name(e[[1L]]) &&
+      as.character(e[[1L]]) %in% brms_whole_term_specials
+  }
+  if (bare(tm)) return(NULL)
+  labs <- cs_term_labels(tm)
+  bad <- if (is.null(labs)) deparse1(tm) else {
+    Find(function(lab) {
+      e <- str2lang(lab)
+      any(vapply(used, function(f) calls_function(e, f), TRUE)) && !bare(e)
+    }, labs)
+  }
+  if (is.null(bad)) return(NULL)
+  fn <- used[[1L]]
+  paste0("The term '", bad, "' is invalid: ", fn, "() makes a whole ",
+         "term of its own, so it cannot sit inside an interaction or ",
+         "another call. Write it as its own term, e.g. y ~ x + ", fn,
+         "(z)", if (fn %in% c("s", "t2")) {
+           paste0(", or give a smooth its varying coefficient with ",
+                  "by =, e.g. s(z, by = x)")
+         })
+}
+
+#' A term's labels as `terms()` expands them, or `NULL` when it cannot.
+#' brms judges `cs()` placement on these labels, so `x * cs(g)` is
+#' reported as `x:cs(g)`, and `cs(x) * cs(x)`, which `terms()` collapses
+#' to `cs(x)`, is the one term it reads as.
+#'
+#' @noRd
+cs_term_labels <- function(tm) {
+  tryCatch({
+    labs <- attr(stats::terms(stats::as.formula(call("~", tm))),
+                 "term.labels")
+    lapply(labs, str2lang)
+    labs
+  }, error = function(e) NULL)
+}
+
 # brms mm() arguments that describe something other than the membership
 # design itself. Each has a spelling here that is already supported, so
 # the refusal can name it rather than just say no.
@@ -797,6 +866,73 @@ strip_parens <- function(e) {
   e
 }
 
+#' Drop a bar term written twice in one formula.
+#'
+#' brms reads a formula's terms through `terms()`, which keeps one copy
+#' of a repeated label, so `(1 | g) + (1 | g)` is one block there. This
+#' package built two, whose split of the one variance the data can see
+#' is not identified. The comparison is on the terms as written, before
+#' `||` or `/` expand, which is also brms's: `(x || g) + (1 | g)` is two
+#' different terms that repeat the intercept, and is refused later as a
+#' duplicated group-level effect.
+#'
+#' @noRd
+drop_twin_bar_terms <- function(form) {
+  raw <- split_plus(reformulas::RHSForm(form))
+  key <- vapply(raw, function(tm) {
+    if ("|" %in% all.names(tm) || "||" %in% all.names(tm)) {
+      deparse1(strip_parens(tm))
+    } else {
+      NA_character_
+    }
+  }, "")
+  twin <- !is.na(key) & duplicated(key)
+  if (!any(twin)) return(form)
+  reformulas::RHSForm(form) <- Reduce(function(a, b) call("+", a, b),
+                                      raw[!twin])
+  form
+}
+
+#' Which of `splitForm()`'s bar terms came from a nested grouping
+#' `a/b`, one flag per term.
+#'
+#' reformulas expands `(1 | g/h)` into `(1 | h:g) + (1 | g)`, and brms
+#' into `(1 | g) + (1 | g:h)`. brms compares grouping factors as the
+#' strings it writes, so `(1 | g:h) + (1 | h:g)` is two blocks there
+#' while `(1 | g:h) + (1 | g/h)` repeats one. The duplicate check reads
+#' a flagged term's factors in brms's order. Each written term is split
+#' on its own; if the pieces do not line up with the whole split, no
+#' term is flagged, which leaves every name as reformulas wrote it.
+#'
+#' @noRd
+slash_nested_bars <- function(rest, sf, specials, env) {
+  n <- length(sf$reTrmFormulas)
+  none <- rep(FALSE, n)
+  flags <- logical(0)
+  pieces <- list()
+  for (tm in rest) {
+    if (!("|" %in% all.names(tm))) next
+    one <- tryCatch(
+      reformulas::splitForm(stats::as.formula(call("~", tm), env = env),
+                            defaultTerm = "us", specials = specials),
+      error = function(e) NULL)
+    if (is.null(one)) return(none)
+    grp <- vapply(one$reTrmFormulas, function(b) deparse1(b[[3L]]), "")
+    inner <- strip_parens(tm)
+    if (is.call(inner) && !identical(inner[[1L]], as.name("|"))) {
+      inner <- strip_parens(inner[[2L]])
+    }
+    nested <- is.call(inner) && length(inner) == 3L &&
+      "/" %in% all.names(inner[[3L]])
+    flags <- c(flags, rep(nested, length(grp)))
+    pieces <- c(pieces, one$reTrmFormulas)
+  }
+  same <- length(pieces) == n &&
+    identical(vapply(pieces, deparse1, ""),
+              vapply(sf$reTrmFormulas, deparse1, ""))
+  if (same) flags else none
+}
+
 #' `(x || g)` promises uncorrelated effects, but lme4's expansion is
 #' purely syntactic: a FACTOR contributes a single term carrying all of
 #' its contrast columns, which then lands in one default (`us`) block and
@@ -846,6 +982,7 @@ expand_double_verts <- function(form) {
 #' @noRd
 parse_linpred <- function(rhs_form, env, shared = NULL) {
   environment(rhs_form) <- env
+  rhs_form <- drop_twin_bar_terms(rhs_form)
   rhs_form <- expand_double_verts(rhs_form)
 
   # Pull smooth terms out at the top level before splitForm sees them
@@ -853,6 +990,40 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   # Evaluating the calls with mgcv's own constructors parses k=, by=,
   # bs=, and multi-variable smooths for free.
   terms_list <- split_plus(reformulas::RHSForm(rhs_form))
+  # a whole-term special inside a larger term is refused here, and a term
+  # that terms() collapses to bare specials (s(z) * s(z)) becomes them,
+  # so every branch below sees a special only as a term of its own
+  terms_list <- unlist(lapply(terms_list, function(tm) {
+    # an autocorrelation term crossed with another keeps its own, more
+    # specific refusal in the loop below
+    crossed_ac <- is.call(tm) &&
+      as.character(tm[[1]])[1] %in% c(":", "*", "/") &&
+      any(autocor_structs %in% all.names(tm))
+    bad <- if (!crossed_ac) special_term_refusal(tm)
+    if (!is.null(bad)) stop(bad, call. = FALSE)
+    if ("|" %in% all.names(tm) ||
+        (is.call(tm) && is.name(tm[[1L]]) &&
+           as.character(tm[[1L]]) %in% brms_whole_term_specials) ||
+        !any(vapply(brms_whole_term_specials,
+                    function(f) calls_function(tm, f), TRUE))) {
+      return(list(tm))
+    }
+    lapply(cs_term_labels(tm) %||% deparse1(tm), function(l) {
+      if (is.character(l)) str2lang(l) else l
+    })
+  }), recursive = FALSE)
+  # a whole-term special written twice is one term, as brms's terms()
+  # keeps one copy of a repeated label: s(z) + s(z) built two smooths
+  # with one column name
+  sp_key <- vapply(terms_list, function(tm) {
+    if (is.call(tm) && is.name(tm[[1L]]) &&
+        as.character(tm[[1L]]) %in% brms_whole_term_specials) {
+      deparse1(tm)
+    } else {
+      NA_character_
+    }
+  }, "")
+  terms_list <- terms_list[!(!is.na(sp_key) & duplicated(sp_key))]
   is_smooth_call <- function(tm) {
     is.call(tm) && as.character(tm[[1]])[1] %in% c("s", "t2", "te", "ti")
   }
@@ -1066,6 +1237,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   # reaches the informative not-supported error below)
   sf <- reformulas::splitForm(bare_form, defaultTerm = "us",
                               specials = cs_specials)
+  slash <- slash_nested_bars(rest, sf, cs_specials, env_lp)
   bad <- setdiff(sf$reTrmClasses, supported_cs)
   if (length(bad)) {
     stop("Covariance structure(s) not supported yet: ",
@@ -1073,7 +1245,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
          " (currently supported: ",
          paste(supported_cs, collapse = ", "), ")", call. = FALSE)
   }
-  re <- Map(function(bar, cls, addargs) {
+  re <- Map(function(bar, cls, addargs, from_slash) {
+    written <- bar
     # brms |ID| syntax: (x | p | g) parses as ((x | p) | g); the middle
     # element keys random-effect correlation across formulas
     id <- NULL
@@ -1204,8 +1377,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     list(bar = bar, group = bar[[3]], covstruct = cls, id = id,
          id_label = id_label, id_group = id_group,
          cov_expr = cov_expr, rank = rank, mm = mm,
-         dist_nu = dist_nu)
-  }, sf$reTrmFormulas, sf$reTrmClasses, sf$reTrmAddArgs)
+         dist_nu = dist_nu, written = written, from_slash = from_slash)
+  }, sf$reTrmFormulas, sf$reTrmClasses, sf$reTrmAddArgs, slash)
   names(re) <- vapply(re, function(z) deparse1(z$bar), "")
 
   fixed <- sf$fixedFormula
