@@ -1,0 +1,9 @@
+H1 regex expect_error met by an argument-name refusal              failures 0
+H2 bare expect_error met by a 'cannot honor' argument refusal      failures 0
+H3 expect_equal on two NULLs read through fit$data                 failures 0
+H4 regex met by R's missing-argument error (brmsfit-methods:698)   failures 0
+H5 stale object through a complex assignment x$a <-                failures 0
+H6 missing function spelled 'of mode function was not found'       failures 0
+H7 is.numeric() on an NA column (brmsfit-methods:394)              failures 0
+control: bare expect_error met by 'has no argument' (want 1)       failures 1
+control: simple stale object (want 1)                              failures 1

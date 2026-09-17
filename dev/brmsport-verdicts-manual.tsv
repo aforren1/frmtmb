@@ -1,0 +1,128 @@
+id	pkg	verdict	class	reason
+families:19	*	cannot transfer	absent	frmtmb has no hurdle_negbinomial() (famlink ledger row 16)
+families:20	*	cannot transfer	absent	frmtmb has no hurdle_negbinomial(); the expect_error passes only on could not find function (famlink ledger row 17)
+families:37	*	divergence	policy	acat() takes the logit link only: off the logit acat is a second density frmtmb has not written (?frmtmb-links; famlink ledger row 32)
+families:52	*	cannot transfer	absent	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 43)
+families:53	*	cannot transfer	absent	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 44)
+families:54	*	cannot transfer	absent	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 45)
+families:55	*	cannot transfer	absent	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 46)
+families:56	*	cannot transfer	absent	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 47)
+families:57	*	cannot transfer	absent	frmtmb has no zero_inflated_beta_binomial(); the expect_error passes only on could not find function (famlink ledger row 48)
+families:58	*	cannot transfer	absent	frmtmb has no zero_inflated_beta_binomial(); the expect_error passes only on could not find function (famlink ledger row 49)
+families:59	*	cannot transfer	absent	frmtmb has no zero_inflated_beta_binomial(); the expect_error passes only on could not find function (famlink ledger row 50)
+families:60	*	cannot transfer	absent	frmtmb has no hurdle_cumulative() (famlink ledger row 51)
+families:61	*	cannot transfer	absent	frmtmb has no hurdle_cumulative() (famlink ledger row 52)
+families:62	*	cannot transfer	absent	frmtmb has no hurdle_cumulative() (famlink ledger row 53)
+families:63	*	cannot transfer	absent	frmtmb has no hurdle_cumulative() (famlink ledger row 54)
+families:64	*	cannot transfer	absent	frmtmb has no hurdle_cumulative() (famlink ledger row 55)
+families:65	*	cannot transfer	absent	frmtmb has no hurdle_cumulative(); the expect_error passes only on could not find function (famlink ledger row 56)
+families:66	*	cannot transfer	absent	frmtmb has no hurdle_cumulative(); the expect_error passes only on could not find function (famlink ledger row 57)
+families:67	*	cannot transfer	absent	frmtmb has no hurdle_cumulative(); the expect_error passes only on could not find function (famlink ledger row 58)
+families:68	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 59)
+families:69	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 60)
+families:70	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 61)
+families:71	*	cannot transfer	absent	frmtmb has no xbeta(); the expect_error passes only on could not find function (famlink ledger row 62)
+families:72	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 63)
+families:73	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 64)
+families:74	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 65)
+families:75	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 66)
+families:76	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 67)
+families:81	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 69)
+families:86	*	cannot transfer	brms-internal	reads brms:::family_names(), and the mixture it reads is built with nmix, which mixture() does not take (famlink ledger row 70)
+families:88	*	cannot transfer	brms-internal	reads brms:::family_names(), and the mixture it reads is built with nmix, which mixture() does not take (famlink ledger row 71)
+families:102	*	defect	argument	mixture() refuses the argument NAME order, where brms refuses its value 'x' (famlink ledger row 77, not fixed)
+families:107	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 78)
+families:108	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 79)
+families:109	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 80)
+families:113	*	cannot transfer	absent	frmtmb has no xbeta() (famlink ledger row 81)
+families:117	*	cannot transfer	absent	frmtmb has no xbeta(); it also reads a Stan prior string (famlink ledger row 82)
+families:118	*	cannot transfer	absent	frmtmb has no xbeta(); it also reads a Stan prior string (famlink ledger row 83)
+families:122	*	cannot transfer	stan	frmtmb has no xbeta(), and the assertion reads the Stan include file (famlink ledger row 84)
+brm:81	frmtmb	defect	different-error	not the same refusal: frmtmb evaluates the data first and stops on object 'sei' not found, where brms refuses se() for weibull from the formula alone; with sei present frmtmb refuses se() for weibull (dev/brmsport-probe3.R)
+brm:100	frmtmb	cannot transfer	absent	frmtmb has no me() noise-free term (dev/brms-suite-audit.md section 5)
+brm:102	frmtmb	defect	internal-error	set_rescor() on the right-hand side reaches model.frame and dies with R's 'invalid type (list) for variable', not a designed refusal (dev/brmsport-probe3.R)
+brm:106	frmtmb	defect	silent	refused only because cov = TRUE is missing; with cov = TRUE an expression time term FITS with no refusal: ar(x + t, g) logLik -30.33421 and ar(t - 10 * x, g) -31.00618 against -30.88513 for ar(t, g), and ma(x + t, g) -29.84347 against -30.49819; brms refuses all three (dev/brmsport-defects.R S2)
+brm:108	frmtmb	defect	silent	refused only because cov = TRUE is missing; with cov = TRUE, ar(t, gr = g1/g2) on numeric codes FITS, grouping by the quotient g1/g2 and so merging series (1, 1) and (2, 2), logLik -30.87554 against -30.88513, where brms refuses the term (dev/brmsport-defects.R S3)
+brm:112	frmtmb	cannot transfer	absent	frmtmb has no arma() function object to add to a formula; the term exists only inside a formula
+brm:116	frmtmb	defect	refuses-accepted	categorical() refuses the integer response inhaler$rating (4 categories) with the FALSE claim 'fewer than two categories', before reaching the cs() check brms asserts; a factor response is accepted (dev/brmsport-probe3.R; priorform ledger P20 deferred it to famlink)
+standata:75	frmtmb	defect	refuses-accepted	bernoulli refuses a response with two distinct values -1 and -2 ('response must be 0/1'); brms codes them 1 and 0 (dev/brmsport-probe3.R)
+standata:83	frmtmb	defect	refuses-accepted	categorical() refuses integer codes 1..10 with the false claim 'fewer than two categories'; brms accepts positive integers (dev/brmsport-probe3.R)
+standata:85	frmtmb	defect	refuses-accepted	categorical() refuses integer codes 11..20 with the false claim 'fewer than two categories'; brms accepts them and recodes to 1..10
+standata:142	frmtmb	defect	refuses-accepted	categorical() refuses the two-category integer response rep(0:1, 5) with the false claim 'fewer than two categories', so brms's bernoulli suggestion is never reached
+standata:171	frmtmb	cannot transfer	absent	frmtmb has no cat() addition term (brms's deprecated spelling of thres())
+standata:266	frmtmb	cannot transfer	absent	frmtmb has no subset() addition term
+standata:267	frmtmb	cannot transfer	absent	frmtmb has no subset() addition term
+standata:268	frmtmb	cannot transfer	absent	frmtmb has no subset() addition term
+standata:269	frmtmb	cannot transfer	absent	frmtmb has no subset() addition term
+standata:310	frmtmb	cannot transfer	stan	reads brms's internal old_order attribute of Stan data, which exists because brms sorts rows for its autocorrelation code; the setup ar(time, id) is also refused without cov = TRUE (?frmtmb-autocor)
+standata:315	frmtmb	cannot transfer	stan	reads brms's internal old_order attribute of Stan data; the setup ma(time, id) is also refused without cov = TRUE (?frmtmb-autocor)
+standata:316	frmtmb	cannot transfer	stan	reads brms's internal old_order attribute of Stan data; the setup ma(time, id) is also refused without cov = TRUE (?frmtmb-autocor)
+standata:620	frmtmb	cannot transfer	absent	frmtmb has no mi(x, idx = ) and no subset() or index() addition terms
+standata:634	frmtmb	cannot transfer	absent	frmtmb has no mi(x, idx = ); the call is refused on that, before the index() check brms asserts
+standata:641	frmtmb	cannot transfer	absent	frmtmb has no subset() addition term
+standata:649	frmtmb	cannot transfer	absent	frmtmb has no mi(x, idx = ) and no subset() addition term
+standata:705	frmtmb	cannot transfer	absent	frmtmb's gr() takes cov and prec only, not by (dev/brms-suite-audit.md section 5); Nby_1 is also Stan data
+standata:706	frmtmb	cannot transfer	absent	frmtmb's gr() takes cov and prec only, not by; Jby_1 is also Stan data
+standata:709	frmtmb	cannot transfer	absent	frmtmb's mm() refuses by = by name
+standata:710	frmtmb	cannot transfer	absent	frmtmb's mm() refuses by = by name
+standata:712	frmtmb	cannot transfer	absent	frmtmb's gr() takes no by, so the level check brms asserts is never reached
+standata:718	frmtmb	cannot transfer	stan	Stan data column names: brms renames poly(x, 3)1 to polyx31 to make a Stan identifier; frmtmb's brms-facing names already agree, variables() reads b_polyx31 (dev/brmsport-probe3.R)
+standata:724	frmtmb	cannot transfer	stan	reads the Stan data slot nu; frmtmb accepts bf(y ~ 1, nu = 3) and keeps the constant in its parameter map, not in a data slot
+standata:725	frmtmb	cannot transfer	stan	reads the Stan data slot disc, which brms passes as the constant 1; frmtmb's acat() has no disc data
+standata:738	frmtmb	cannot transfer	absent	lf() takes no cmc argument; frmtmb refuses it with the misleading 'lf() takes two-sided formulas', and X_disc and Z_1_disc_1 are Stan data
+standata:739	frmtmb	cannot transfer	absent	lf() takes no cmc argument, and Z_1_disc_1 is Stan data
+standata:740	frmtmb	cannot transfer	absent	lf() takes no cmc argument
+standata:744	frmtmb	cannot transfer	absent	bf() takes no cmc argument
+standata:745	frmtmb	cannot transfer	absent	bf() takes no cmc argument, and Z_1_1 is Stan data
+standata:928	frmtmb	defect	internal-error	y ~ . is not expanded: frm() dies with R's ''.' in formula and no data argument' on the fit route and the frame route alike, where brms expands the dot against the data (dev/brmsport-probe3.R)
+standata:970	frmtmb	cannot transfer	absent	frmtmb has no reserved Intercept variable, so 0 + intercept dies with R's object 'intercept' not found
+standata:974	frmtmb	cannot transfer	absent	frmtmb has no reserved intercept variable
+standata:976	frmtmb	cannot transfer	absent	frmtmb has no reserved Intercept variable: y ~ 0 + Intercept dies with R's object 'Intercept' not found
+standata:1047	frmtmb	cannot transfer	absent	frmtmb has no rate() addition term
+standata:1063	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term (dev/brms-suite-audit.md section 5)
+standata:1065	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term
+standata:1072	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term
+standata:1073	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term; ngrthres is also Stan data
+standata:1074	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term; Jthres is also Stan data
+standata:1075	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term; Jthres is also Stan data
+standata:1078	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term
+standata:1079	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term; ngrthres is also Stan data
+standata:1082	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term
+standata:1083	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term; ngrthres is also Stan data
+standata:1133	frmtmb	cannot transfer	absent	frm() takes no drop_unused_levels argument; the unused level is always dropped
+priors:5	frmtmb	divergence	policy	frmtmb lists 5 class theta rows (its covariance parameters) and no per-coefficient sd rows, since its class sd addresses a block and refuses coef (priorform ledger P1)
+priors:14	frmtmb	cannot transfer	absent	sratio() takes no threshold = 'equidistant' and there is no cse() alias (priorform ledger P2)
+priors:27	frmtmb	divergence	class	expect_is(bprior, 'brmsprior'): the object is a frmtmb_priorlist; brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
+priors:39	frmtmb	cannot transfer	stan	set_prior(check = FALSE) passes Stan code through, and frmtmb builds no Stan program (priorform ledger P9)
+priors:55	frmtmb	defect	naming	the prior table names a smooth's unpenalized column s(x).fx1 where brms writes sx_1, and variables() already writes bs_sx_1; priorform P11/P12 deferred to brmsnames and brmsnames deferred back, so no document decides it
+priors:59	frmtmb	defect	naming	the prior table names a smooth's unpenalized column s(x).fx1 where brms writes sx_1, and variables() already writes bs_sx_1; priorform P11/P12 deferred to brmsnames and brmsnames deferred back, so no document decides it
+priors:74	frmtmb	defect	refuses-accepted	default_prior() and get_prior() validate the response against the family and refuse brms's rnorm response under Beta(); brms returns 7 rows. PRE-EXISTING: refused at every commit back to base 0.58.0 (dev/brmsport-rev-regress.R). priorform's P13 showed a table only because dev/priorform-ledger.R replaced brms's y with runif(10)
+priors:85	frmtmb	divergence	policy	default_prior() describes frm(), which is flat in every slot; the sampling route's flat rescor is a filed frmtmb.sample defect (priorform ledger P15, dev/priorform-findings.md section 6)
+priors:91	frmtmb	cannot transfer	absent	frmtmb takes no list of families as family (priorform ledger P16); the object read is the previous model's table
+priors:92	frmtmb	cannot transfer	absent	frmtmb takes no list of families as family (priorform ledger P17)
+priors:93	frmtmb	cannot transfer	absent	frmtmb takes no list of families as family (priorform ledger P18)
+priors:94	frmtmb	cannot transfer	absent	frmtmb takes no list of families as family (priorform ledger P19); the object read is the previous model's table
+priors:101	frmtmb	defect	refuses-accepted	categorical() refuses the integer response c(1, rep(1:3, 3)) with the false claim 'fewer than two categories'; priorform ledger P20 deferred it to famlink as cannot transfer, and it is the defect of standata:83
+priors:123	frmtmb	divergence	policy	10 rows against brms's 9: two class theta rows added, one per-coefficient sd row absent (priorform ledger P26)
+priors:156	frmtmb	cannot transfer	stan	set_prior() takes no tag: a tag names a prior inside a Stan program (priorform ledger P33)
+priors:157	frmtmb	cannot transfer	stan	set_prior() takes no tag (priorform ledger P34)
+priors:158	frmtmb	cannot transfer	stan	set_prior() takes no tag (priorform ledger P35)
+priors:159	frmtmb	cannot transfer	stan	set_prior() takes no tag (priorform ledger P36)
+priors:160	frmtmb	cannot transfer	stan	set_prior() takes no tag (priorform ledger P37)
+brmsformula:30	*	cannot transfer	absent	frmtmb has no equating of one dpar to another, bf(y ~ x, sigma1 = 'sigma2') (priorform ledger F8)
+brmsformula:32	*	cannot transfer	absent	frmtmb has no dpar equating (priorform ledger F9)
+brmsformula:34	*	cannot transfer	absent	frmtmb has no dpar equating (priorform ledger F10)
+brmsformula:36	*	cannot transfer	absent	frmtmb has no dpar equating (priorform ledger F11)
+brmsformula:38	*	cannot transfer	absent	frmtmb has no dpar equating (priorform ledger F12)
+brmsformula:44	*	cannot transfer	absent	frmtmb exports no update_adterms() (priorform ledger F13)
+brmsformula:48	*	cannot transfer	absent	frmtmb exports no update_adterms() (priorform ledger F14)
+brmsformula:52	*	cannot transfer	absent	frmtmb exports no update_adterms() (priorform ledger F15)
+brmsformula:56	*	cannot transfer	absent	frmtmb exports no update_adterms() (priorform ledger F16)
+brmsterms:40	*	cannot transfer	brms-internal	is.brmsterms() and brmsterms() are brms internals; frm() accepts bf(y ~ 1, sigma = 4) (dev/brmsport-probe3.R)
+brmsterms:42	*	cannot transfer	brms-internal	is.brmsterms() and brmsterms() are brms internals; frm() accepts bf(y ~ 1, zi = 0.5) under zero_inflated_beta() (dev/brmsport-probe3.R)
+brmsterms:44	*	cannot transfer	brms-internal	brmsterms() is a brms internal; frm() refuses shape = -2 in its own words, 'not in the range of the log link' (dev/brmsport-probe3.R)
+brmsterms:46	*	cannot transfer	brms-internal	brmsterms() is a brms internal; frm() refuses quantile = 1.5 in its own words, 'not in the range of the logit link' (dev/brmsport-probe3.R)
+brmsterms:89	frmtmb	cannot transfer	absent	brmsterms() is a brms internal, and frm() has no unused = ~ x: it is refused as an unavailable dpar (dev/brmsport-probe3.R)
+brmsfit-helpers:17	frmtmb	cannot transfer	brms-internal	compares brms:::inv_link() with itself on two link names; frmtmb has no inv_link()
+brmsfit-helpers:94	frmtmb	cannot transfer	absent	frmtmb exports no make_conditions()
+brmsfit-helpers:95	frmtmb	cannot transfer	absent	frmtmb exports no make_conditions()

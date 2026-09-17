@@ -1,0 +1,30 @@
+df541e7 version 0.58.0 default_prior exists: FALSE 
+df541e7    get_prior Beta, y = rnorm (brms: 7 rows)     ERROR: beta: response must lie strictly in (0, 1)
+df541e7    table Beta, y = rnorm, family in bf()        ERROR: beta: response must lie strictly in (0, 1)
+df541e7    table Beta, y in (0, 1) control              8
+df541e7    get_prior binomial, no trials()              ERROR: binomial: response must be integer counts in [0, trials]
+df541e7    get_prior poisson, y = rnorm                 ERROR: poisson: response must be non-negative integers
+d04b115 version 0.58.0 default_prior exists: FALSE 
+d04b115    get_prior Beta, y = rnorm (brms: 7 rows)     ERROR: beta: response must lie strictly in (0, 1)
+d04b115    table Beta, y = rnorm, family in bf()        ERROR: beta: response must lie strictly in (0, 1)
+d04b115    table Beta, y in (0, 1) control              8
+d04b115    get_prior binomial, no trials()              3
+d04b115    get_prior poisson, y = rnorm                 ERROR: poisson: response must be non-negative integers
+4ef482f version 0.58.0 default_prior exists: TRUE 
+4ef482f    get_prior Beta, y = rnorm (brms: 7 rows)     ERROR: beta: response must lie strictly in (0, 1)
+4ef482f    table Beta, y = rnorm, family in bf()        ERROR: beta: response must lie strictly in (0, 1)
+4ef482f    table Beta, y in (0, 1) control              8
+4ef482f    get_prior binomial, no trials()              ERROR: binomial: response must be integer counts in [0, trials]
+4ef482f    get_prior poisson, y = rnorm                 ERROR: poisson: response must be non-negative integers
+2bf3074 version 0.58.0 default_prior exists: TRUE 
+2bf3074    get_prior Beta, y = rnorm (brms: 7 rows)     ERROR: beta: response must lie strictly in (0, 1)
+2bf3074    table Beta, y = rnorm, family in bf()        ERROR: beta: response must lie strictly in (0, 1)
+2bf3074    table Beta, y in (0, 1) control              8
+2bf3074    get_prior binomial, no trials()              3
+2bf3074    get_prior poisson, y = rnorm                 ERROR: poisson: response must be non-negative integers
+e031e8c version 0.59.0 default_prior exists: TRUE 
+e031e8c    get_prior Beta, y = rnorm (brms: 7 rows)     ERROR: beta: response must lie strictly in (0, 1)
+e031e8c    table Beta, y = rnorm, family in bf()        ERROR: beta: response must lie strictly in (0, 1)
+e031e8c    table Beta, y in (0, 1) control              8
+e031e8c    get_prior binomial, no trials()              3
+e031e8c    get_prior poisson, y = rnorm                 ERROR: poisson: response must be non-negative integers

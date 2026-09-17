@@ -1,0 +1,22 @@
+setup	frmtmb	emmeans:14		TRUE	FALSE			TRUE
+assert	frmtmb	emmeans:15	pass	TRUE	FALSE			TRUE
+setup	frmtmb	emmeans:17		TRUE	FALSE			TRUE
+assert	frmtmb	emmeans:18	pass	TRUE	FALSE			TRUE
+setup	frmtmb	emmeans:20		FALSE	FALSE	No variable named Exp in the reference grid		FALSE
+assert	frmtmb	emmeans:21	defect	FALSE	TRUE	STALE: reads 'em', whose last assignment failed: No variable named Exp in the reference grid		FALSE
+setup	frmtmb	emmeans:23		FALSE	FALSE	No variable named Exp in the reference grid		FALSE
+assert	frmtmb	emmeans:24	defect	FALSE	TRUE	STALE: reads 'em', whose last assignment failed: No variable named Exp in the reference grid		FALSE
+setup	frmtmb	emmeans:26		FALSE	FALSE	Perhaps a 'data' or 'params' argument is needed		FALSE
+assert	frmtmb	emmeans:27	cannot transfer	FALSE	TRUE	STALE: reads 'em', whose last assignment failed: Perhaps a 'data' or 'params' argument is needed		FALSE
+setup	frmtmb	emmeans:29		TRUE	FALSE			TRUE
+assert	frmtmb	emmeans:30	pass	TRUE	FALSE			TRUE
+setup	frmtmb	emmeans:34		FALSE	FALSE	Perhaps a 'data' or 'params' argument is needed		FALSE
+assert	frmtmb	emmeans:35	cannot transfer	FALSE	TRUE	STALE: reads 'em', whose last assignment failed: Perhaps a 'data' or 'params' argument is needed		FALSE
+setup	frmtmb	emmeans:37		FALSE	FALSE	Perhaps a 'data' or 'params' argument is needed		FALSE
+assert	frmtmb	emmeans:38	cannot transfer	FALSE	TRUE	STALE: reads 'em', whose last assignment failed: Perhaps a 'data' or 'params' argument is needed		FALSE
+setup	frmtmb	emmeans:41		FALSE	FALSE	Perhaps a 'data' or 'params' argument is needed		FALSE
+assert	frmtmb	emmeans:42	cannot transfer	FALSE	TRUE	STALE: reads 'em', whose last assignment failed: Perhaps a 'data' or 'params' argument is needed		FALSE
+setup	frmtmb	emmeans:46		TRUE	FALSE			TRUE
+assert	frmtmb	emmeans:47	pass	TRUE	FALSE			TRUE
+setup	frmtmb	emmeans:49		FALSE	FALSE	Perhaps a 'data' or 'params' argument is needed		FALSE
+assert	frmtmb	emmeans:50	cannot transfer	FALSE	TRUE	STALE: reads 'em', whose last assignment failed: Perhaps a 'data' or 'params' argument is needed		FALSE

@@ -1,0 +1,8 @@
+setup	frmtmb.sample	brmsterms:39		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsterms:40	cannot transfer	FALSE	TRUE	ERROR: could not find function "is.brmsterms"		FALSE
+setup	frmtmb.sample	brmsterms:41		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsterms:42	cannot transfer	FALSE	TRUE	ERROR: could not find function "is.brmsterms"		FALSE
+setup	frmtmb.sample	brmsterms:43		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsterms:44	cannot transfer	FALSE	TRUE	ERROR: could not find function "brmsterms"		FALSE
+setup	frmtmb.sample	brmsterms:45		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsterms:46	cannot transfer	FALSE	TRUE	ERROR: could not find function "brmsterms"		FALSE

@@ -1,0 +1,1 @@
+RESULT frmtmb.sample test-brms-suite-brmsterms.R pass=4 fail=0 err=0 skip=0 blocks=1

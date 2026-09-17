@@ -1,0 +1,4 @@
+fixture 1: frmtmb_draws, ndraws 25, nchains 1, 13.0 s
+fixture 2: frmtmb_draws, ndraws 25, nchains 1, 1.1 s
+fixture 3: frmtmb_draws, ndraws 25, nchains 1, 0.7 s
+fixture 5: frmtmb_draws, ndraws 25, nchains 1, 1.1 s

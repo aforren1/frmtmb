@@ -1,0 +1,73 @@
+frmtmb 0.59.0 brms 2.23.0 
+
+-- brm:81 se() with weibull, sei present
+frm weibull se(sei)                                        ERROR: se() carries a known standard deviation into the density, so only a family that reads it can be given one, and 'weibull' does not declare that it does. A family declares it with frmtmb_family(accepts_aterms = c(..., "se"
+brms weibull se(sei)                                       ERROR: Argument 'se' is not supported for family 'weibull(log)'.
+
+-- brm:106/108 ar() with cov = TRUE
+frm ar(x + y, g, cov = TRUE)                               OK: List of 21 |  $ spec           :List of 2
+frm ar(gr = g1/g2, cov = TRUE)                             OK: List of 21 |  $ spec           :List of 2
+frm ar(time = x, gr = g, cov = TRUE) control               OK: List of 21 |  $ spec           :List of 2
+
+-- brm:102 set_rescor() on the right-hand side
+frm y ~ 1 + set_rescor(TRUE)                               ERROR: invalid type (list) for variable 'set_rescor(TRUE)'
+
+-- brm:116 and standata:83 categorical on integer codes
+frm categorical rating ~ treat                             ERROR: categorical(): the response 'rating' has fewer than two categories
+frm categorical factor(rating) ~ treat                     OK: List of 21 |  $ spec           :List of 2
+brms categorical rating ~ treat                            OK: List of 13 |  $ N         : int 572
+frm categorical y = rep(1:10, 5)                           ERROR: categorical(): the response 'y' has fewer than two categories
+
+-- standata:75 bernoulli on two negative codes
+frm bernoulli y in {-1,-2}                                 ERROR: bernoulli: response must be 0/1
+brms bernoulli y in {-1,-2}                                OK:  num [1:10(1d)] 1 0 1 0 1 0 1 0 1 0 | NA
+
+-- standata:927 dot expansion
+frm y ~ . (fit)                                            ERROR: '.' in formula and no 'data' argument
+frm y ~ . (frame)                                          ERROR: '.' in formula and no 'data' argument
+brms y ~ .                                                 OK:  chr [1:3] "Intercept" "x1" "x2" | NA
+
+-- standata:718 poly() column names
+frm variables(fit)                                         OK:  chr [1:5] "b_Intercept" "b_polyx31" "b_polyx32" "b_polyx33" "sigma" | NA
+frm fixef names                                            OK:  NULL | NA
+
+-- standata:724 fixed nu: where the frame keeps it
+spec fixed                                                 OK:  NULL | NA
+List of 11
+ $ resp_name    : chr "y"
+ $ resp_expr    : symbol y
+ $ family       :List of 22
+  ..- attr(*, "class")= chr "frmtmb_family"
+ $ aterms       : list()
+ $ dpars        :List of 3
+ $ autocor      : NULL
+ $ primary_dpars: chr "mu"
+ $ nlpars       : chr(0) 
+ $ nl_dpars     : NULL
+ $ cbind_resp   : logi FALSE
+ $ formula_env  :<environment: 0x00000277b7f82d90> 
+
+-- brmsterms:44/46 fixed dpar range, through frm()
+  [warning] NaNs produced 
+frm Gamma shape = -2                                       ERROR: Constant shape = -2 is not in the range of the log link
+brms Gamma shape = -2                                      ERROR: Parameter 'shape' must be positive.
+  [warning] NaNs produced 
+frm asym_laplace quantile = 1.5                            ERROR: Constant quantile = 1.5 is not in the range of the logit link
+frm asym_laplace quantile = 0.5 control                    OK: List of 18 |  $ spec      :List of 2
+frm gaussian sigma = 4                                     OK: List of 18 |  $ spec      :List of 2
+frm zero_inflated_beta zi = 0.5                            OK: List of 21 |  $ spec           :List of 2
+
+-- brmsterms:89 unused = ~ x
+frm bf(y ~ 1, unused = ~ x)                                ERROR: dpar(s) not available for family 'gaussian': unused (available: sigma)
+
+-- priors:67 default_prior on a Beta dpar model with rnorm y
+frm default_prior Beta                                     ERROR: beta: response must lie strictly in (0, 1)
+brms default_prior Beta                                    OK: Classes 'brmsprior' and 'data.frame':	7 obs. of  11 variables: |  $ prior : chr  "student_t(3, 0, 2.5)" "" "" "student_t(3, 0, 2.5)" ...
+frm get_prior Beta                                         ERROR: beta: response must lie strictly in (0, 1)
+
+-- standata:179 se() of zero
+frm se(s) with a zero                                      ERROR: se() values must be positive
+brms se(s) with a zero                                     OK:  num [1:3(1d)] 0 1 2 | NA
+
+-- standata:970 reserved Intercept
+frm y ~ 0 + Intercept                                      ERROR: object 'Intercept' not found

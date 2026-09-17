@@ -1,0 +1,9 @@
+Welcome to emmeans.
+Caution: You lose important information if you filter this package's results.
+See '? untidy'
+Error : emmeans support needs a linear mu predictor
+Error : emmeans support needs a linear mu predictor
+Error : emmeans support needs a linear mu predictor
+Error : emmeans support is univariate-only for now
+Error : emmeans support needs a linear mu predictor
+RESULT frmtmb test-brms-suite-emmeans.R pass=11 fail=0 err=0 skip=0 blocks=3

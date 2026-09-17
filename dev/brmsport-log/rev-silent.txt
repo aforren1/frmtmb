@@ -1,0 +1,93 @@
+
+== R1 dots on draws methods: does brms swallow too?
+  frmtmb.sample posterior_epred (ndraw = 5) typo     [1] 5 40
+  brms posterior_epred (ndraw = 5) typo              [1] 5 40
+  brms posterior_epred (not_an_argument = 2)         [1] 25 40
+  frmtmb.sample posterior_linpred (ndraw = 5) typo   [1] 5 40
+  brms posterior_linpred (ndraw = 5) typo            [1] 5 40
+  brms posterior_linpred (not_an_argument = 2)       [1] 25 40
+  frmtmb.sample posterior_predict (ndraw = 5) typo   [1] 5 40
+  brms posterior_predict (ndraw = 5) typo            [1] 5 40
+  brms posterior_predict (not_an_argument = 2)       [1] 25 40
+  frmtmb.sample predictive_error (ndraw = 5) typo    [1] 5 40
+  brms predictive_error (ndraw = 5) typo             [1] 5 40
+  brms predictive_error (not_an_argument = 2)        [1] 25 40
+  frmtmb.sample log_lik (ndraw = 5) typo             ERROR: log_lik() needs a likelihood that factors into one term per observation, and the response 'count' does not: its smallest independent unit is an R-side residual correlation (ar/ma/arma/cosy/unstr) block, so a column of the matrix would be a GROUP and leaving one out would drop a whole sequence
+  brms log_lik (ndraw = 5) typo                      [1] 5 40
+  brms log_lik (not_an_argument = 2)                 [1] 25 40
+  frmtmb.sample posterior_epred(ds, ndraws = 5)      [1] 5 40
+  brms nrow epred(point_estimate='median', 2)        [1] 2 40
+
+== R2/R3 ar() term arguments
+  frmtmb ar(t, g) control logLik                     'log Lik.' -52.40404 (df=4)
+  frmtmb ar(t, g2) control (merged groups) logLik    ERROR: ar(): time points within groups must be unique; group '1' has 2 rows at time '1'. Aggregate the repeated rows, or add the replicate to the grouping variable.
+  frmtmb ar(2 * t, g) logLik                         'log Lik.' -52.40404 (df=4)
+                                                     [warning] ar(): the time levels present are whole numbers but not consecutive ('2' is followed by '4'), and the lag is counted in LEVELS, so that gap counts as a single s
+  frmtmb ar(t - 10 * x, g) logLik                    'log Lik.' -56.58647 (df=4)
+  frmtmb ma(x + t, g) logLik                         'log Lik.' -56.35949 (df=4)
+  frmtmb ar(t, gr = g1 * g2) logLik                  ERROR: ar(): time points within groups must be unique; group '2' has 2 rows at time '1'. Aggregate the repeated rows, or add the replicate to the grouping variable.
+  frmtmb ar(t, gr = g1 + g2) logLik                  ERROR: ar(): time points within groups must be unique; group '3' has 2 rows at time '1'. Aggregate the repeated rows, or add the replicate to the grouping variable.
+  frmtmb ar(t, gr = g1/g2) logLik                    'log Lik.' -52.15196 (df=4)
+  brms ar(t - 10 * x, g)                             ERROR: Cannot coerce 't - 10 * x' to a single variable name.
+  brms ar(t, gr = g1 + g2)                           ERROR: Illegal grouping term 'g1 + g2'. It may contain only variable names combined by the symbol ':'
+  brms ar(t, gr = g1 * g2)                           ERROR: Illegal grouping term 'g1 * g2'. It may contain only variable names combined by the symbol ':'
+  brms ma(x + t, g)                                  ERROR: Cannot coerce 'x + t' to a single variable name.
+
+== R4 fitted()/residuals() on draws
+  frmtmb.sample fitted(ds1)                          NULL
+  frmtmb.sample residuals(ds1)                       NULL
+  frmtmb.sample class(ds1)                           [1] "frmtmb_draws"
+  brms dim(residuals(ex1))                           [1] 40 4
+
+== R5 hypothesis() with no relation
+  frmtmb hypothesis(fit3, 'Trt1 + Age')               Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob Star | 1 (Trt1+Age) -2.224308 2.336819 -6.804389 2.355773 NA NA 
+  frmtmb hypothesis(fit3, 'Trt1 + Age = 0')           Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob | 1 (Trt1+Age) = 0 -2.224308 2.336819 -6.804389 2.355773 NA NA | Star | 1 
+  frmtmb hypothesis(fit3, 'Age x 0')                 ERROR: Some parameters cannot be found in the model: 
+'b_Agex0'
+variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL
+  frmtmb hypothesis(fit3, 'Age 0')                   ERROR: Some parameters cannot be found in the model: 
+'b_Age0'
+variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL
+  brms hypothesis(ex3, 'Trt1 + Age')                 ERROR: could not find function "me"
+
+== R6 variables() completeness
+  frmtmb variables(fit1)                              [1] "b_Intercept" "b_Trt1" | [3] "b_Age" "b_volume" | [5] "b_Trt1:Age" "bs_sAge_1" | [7] "bsp_moExp" "b_sigma_Intercept" | [9] "b_sigma_Trt1" "sd_visit__Intercept" | [11] "sd_visit__Trt1" "cor_visit__Intercept__Trt1" | [13] "sds_sAge_1" "nu" | [15] "ar[1]" "ma[1]" 
+  brms fit-side names of 978 absent from variables(fit1) character(0)
+  frmtmb variables(fit2)                             [1] "b_a_Intercept" | [2] "b_a_Age" | [3] "b_b_Intercept" | [4] "b_b_Age" | [5] "sd_patient__a_Intercept" | [6] "sd_patient__b_Intercept" | [7] "cor_patient__a_Intercept__b_Intercept" | [8] "shape" 
+  fit-side names of 984 absent from variables(fit2)  character(0)
+  frmtmb variables(fit5)                             [1] "b_mu1_Intercept" "b_mu1_Age" | [3] "b_mu2_Intercept" "b_mu2_Age" | [5] "sd_patient__mu1_Intercept" "sigma1" | [7] "theta1" "theta2" 
+  frmtmb length(fit5$opt$par)                        [1] 7
+  frmtmb variables(fit4)                             [1] "b_x1" "sd_subject__Intercept" "sd_subject__x2" 
+  frmtmb variables(cumulative fit)                   [1] "b_x"
+  frmtmb names(opt$par) cumulative                   [1] "beta" "tau_raw" "tau_raw"
+  frmtmb variables(categorical fit)                  [1] "b_mub_Intercept" "b_mub_x" "b_muc_Intercept" "b_muc_x" 
+  frmtmb names(opt$par) categorical                  [1] "beta" "beta" "beta" "beta"
+  brms variables(ex4)                                 [1] "b_Intercept[1]" "b_Intercept[2]" | [3] "b_Intercept[3]" "b_disc_Intercept" | [5] "b_x1" "bcs_x2[1]" | [7] "bcs_x2[2]" "bcs_x2[3]" | [9] "sd_subject__Intercept[1]" "sd_subject__Intercept[2]" | [11] "sd_subject__Intercept[3]" "sd_subject__x2[1]" | [13] "sd_subject__x2[2]" "sd_subject__x2[3]" | [
+
+== R7 residuals() on an ordinal fit: what is the number
+  frmtmb head residuals(fit4)                        [1] 1.35048990 0.74610156 1.49055282 0.03287024 1.04571332 1.65656901
+  frmtmb head y codes                                [1] 4 3 4 3 4 4
+  frmtmb head fitted(fit4)                            1 2 3 4 | 1 0.18892486 0.2118530 0.3600092 0.2392129 | 2 0.36623250 0.1815880 0.2842280 0.1679515 | 3 0.25110930 0.2017723 0.3336802 0.2134381 | 4 0.08861177 0.1916447 0.3837456 0.3359980 | 5 0.08692704 0.1982232 0.3884857 0.3263640 | 6 0.31762823 0.1984038 0.3068767 0.1770912
+  y - sum(k * P(k))                                  [1] 1.35048990 0.74610156 1.49055282 0.03287024 1.04571332 1.65656901
+
+== R8 fit$data mechanism
+  names(fit1)                                         [1] "spec" "frame" "obj" "opt" "sdr" | [6] "REML" "estimates" "prior" "bform" "call" | [11] "data2" "control" "quadrature" "importance" "lower" | [16] "upper" "par_units" "cache" 
+  exists $.frmtmb_fit                                [1] FALSE
+  fit1[['data', exact = TRUE]]                       NULL
+List of 1
+ $ A: num [1:6, 1:6] 1 0.3 0.3 0.3 0.3 0.3 0.3 1 0.3 0.3 ...
+  ..- attr(*, "dimnames")=List of 2
+  .. ..$ : chr [1:6] "1" "2" "3" "4" ...
+  .. ..$ : chr [1:6] "1" "2" "3" "4" ...
+  fit with data2: fit$data                           NULL
+  fit with data2: nrow(fit$data)                     NULL
+  fit with data2: names(fit$data)                    [1] "A"
+
+== R9 hollow-pass candidates
+  brmsfit-methods:394 Evid.Ratio[1]                  [1] NA
+    is.numeric                                       [1] TRUE
+  brms Evid.Ratio[1] on ex1                          [1] 0.1169631
+  brmsfit-methods:698 pp_check(fit2, 'violin_grouped') ERROR: argument "group" is missing, with no default
+  brms pp_check(ex2, 'violin_grouped')               ERROR: Argument 'group' is required for ppc type 'violin_grouped'.
+  fitted(fit1, newdata = mf[1:5,]) vs fitted(fit1)[1:5] max_abs_diff rel | 0 0 
+                                                     [warning] contrasts dropped from factor Trt

@@ -1,0 +1,1 @@
+RESULT frmtmb.sample test-brms-suite-helper-copy.R pass=33 fail=0 err=0 skip=0 blocks=1
