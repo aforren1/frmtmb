@@ -1,0 +1,77 @@
+frmtmb from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+
+--- y ~ ~x: fixed effects of the fit ---
+$fixef
+$fixef$mu
+(Intercept)           x 
+  0.9497471   0.4817102 
+
+$fixef$sigma
+(Intercept) 
+  0.2258203 
+
+
+$logLik
+[1] -394.7416
+
+
+--- y ~ x, for comparison ---
+$fixef
+$fixef$mu
+(Intercept)           x 
+  0.9497471   0.4817102 
+
+$fixef$sigma
+(Intercept) 
+  0.2258203 
+
+
+$logLik
+[1] -394.7416
+
+
+--- (1 | g) + (x | g): VarCorr and logLik ---
+$VarCorr
+  1 | g 
+        Name Std.Dev.
+ (Intercept)  0.56151
+  x | g 
+        Name Std.Dev. (Intercept)
+ (Intercept)  0.56093            
+           x  0.23897     -0.0125
+
+$logLik
+[1] -348.814
+
+
+--- (x | g), for comparison ---
+$VarCorr
+  x | g 
+        Name Std.Dev. (Intercept)
+ (Intercept)  0.79368            
+           x  0.23898    -0.00887
+
+$logLik
+[1] -348.814
+
+
+--- yo ~ x * cs(c3), sratio: design columns ---
+$yo.mu
+$yo.mu$X
+[1] "x"
+
+$yo.mu$cs
+character(0)
+
+
+
+--- yo ~ x + cs(c3), for comparison ---
+$yo.mu
+$yo.mu$X
+[1] "x"
+
+$yo.mu$cs
+[1] "csc3"
+
+
+

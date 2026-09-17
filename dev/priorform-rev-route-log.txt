@@ -1,0 +1,2 @@
+P15 rescor prior on route sample: (flat)  (brms: lkj(1))
+P27 Intercept prior on route sample: student_t(3, 2, 2.5)  (brms: student_t(3, -8, 2.5))

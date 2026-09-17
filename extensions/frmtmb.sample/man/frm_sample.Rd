@@ -53,7 +53,14 @@ paths the brms default priors apply to whatever this argument, and
 a MAP fit's own prior, leave alone (see Default priors), and
 \code{prior = "flat"} opts out of them entirely. A \code{brmsprior} object
 built by brms's own \code{prior()} is translated row by row. The
-argument takes brms's spelling, \code{prior}; the \code{priors} of releases
+argument takes brms's spelling, \code{prior}. On a fit that carries its
+own prior, a specification here for a slot the fit's prior also
+names (the same class, coef, group, resp, dpar and nlpar) REPLACES
+the stored one, as brms's \code{update(prior = )} replaces a row; it is
+not refused as a duplicate, and specifications for other slots
+stack with the stored ones, the more specific applying. Two
+specifications for one slot within this argument are refused. The
+\code{priors} of releases
 before 0.43 is gone rather than aliased, and because this
 function's \code{...} would otherwise swallow it, the old name is
 refused by name.}

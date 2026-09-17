@@ -1,0 +1,29 @@
+lmm                        identical
+lmm_family_arg             identical
+dist_sigma                 identical
+dist_lf                    identical
+dist_const                 identical
+nl_explicit_false          identical
+nl                         identical
+nl_shared                  identical
+nlf                        identical
+mvbf                       identical
+mvbind                     identical
+sratio_cs                  identical
+acat_cs_two                identical
+cumul_re                   identical
+beta_phi_re                identical
+beta_phi_re_prior          identical
+beta_phi_re_prior_group    identical
+zip                        identical
+smooth                     identical
+gp                         DIFFER in ll,par,obj,cov,est
+cs_cov                     identical
+ar1_cov                    identical
+int_0slope                 identical
+dblbar                     identical
+grcov_copy                 identical
+mm                         identical
+theta_prior                identical
+sigma_natural_prior        identical
+part A: 28 fits, 27 identical in ll, par, objective, cov.fixed and estimates

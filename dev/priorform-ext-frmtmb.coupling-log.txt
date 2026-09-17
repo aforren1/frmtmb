@@ -1,0 +1,17 @@
+files: 7 
+test-bracket-access.R                          pass     1 fail   0 error   0 skip   0
+test-coherence.R                               pass    61 fail   0 error   0 skip   0
+test-cross-spectrum.R                          pass    96 fail   0 error   0 skip   0
+test-cross-wishart.R                           pass   211 fail   0 error   0 skip   0
+test-message-uniqueness.R                      pass     4 fail   0 error   0 skip   0
+test-scale.R                                   pass     0 fail   0 error   0 skip   5
+test-surface.R                                 pass    58 fail   0 error   0 skip   0
+
+---- GENERATED COUNTS (paste verbatim) ----
+package        : frmtmb.coupling
+files run      : 7
+crashed        : 0
+pass 431  fail 0  error 0  skip 5  in 114 s
+files below their 0.57.0 baseline count: 0
+baseline files with no run: 0 
+---- END GENERATED COUNTS ----

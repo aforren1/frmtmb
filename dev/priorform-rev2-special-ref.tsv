@@ -1,0 +1,39 @@
+id	verdict	logLik	detail
+s_by	accept	-259.3290276623	(Intercept),s(z):x.fx1,s(z):x.fx2
+s_by_factor	accept	-299.2958024553	(Intercept),fgb,s(z):fga.fx1,s(z):fgb.fx1
+t2_xz	accept	-251.6283529934	(Intercept),t2(x,z).fx1,t2(x,z).fx2,t2(x,z).fx3
+gp_by	error-other		gp() takes 1-3 variables plus optional k = (basis size per dimension), c = (boundary factor), and is
+me_int	error-other		could not find function "me"
+mo_int	accept	-313.0544610598	(Intercept),w,momz,momz:w
+mo_colon	accept	-313.8915162143	(Intercept),momz:w
+mi_int	skip		
+offset_plus_s	accept	-303.5257930540	(Intercept),s(z).fx1
+s_in_nlpar	accept	-17.6160935458	(Intercept),s(z).fx1
+s_twice_star	accept	-272.2358123072	(Intercept),x
+s_twice_plus	accept	-252.0751169332	(Intercept),x,s(z).fx1,s(z).fx1
+s_paren	accept	-272.2358123072	(Intercept),x
+s_paren_sum	accept	-272.2358123072	(Intercept),x
+poly	accept	-251.3516812610	(Intercept),poly(x, 2)1,poly(x, 2)2,s(z).fx1
+s_in_sigma	accept	-272.4239790149	(Intercept),x
+s_sigma_int	accept	-271.9257640039	(Intercept),x
+s_fs	accept	-272.0148527574	(Intercept)
+mmc_bar	accept	-314.3333544652	(Intercept)
+s_power	accept	-272.2358123072	(Intercept),x
+te_alone	error-other		te() and ti() smooths are not supported (no random-effect representation); use t2() instead
+s_and_re	accept	-266.4605443227	(Intercept),s(z).fx1
+tw_gh_hg	accept	-299.0885750603	(Intercept)
+tw_gh_slash	accept	-288.8565995613	(Intercept)
+tw_slash_slash	accept	-288.8565995526	(Intercept)
+tw_slash_rev	accept	-288.8565995800	(Intercept)
+tw_dblbar	accept	-240.4635063804	(Intercept)
+tw_dblbar_bar	accept	-240.3919401683	(Intercept)
+tw_single	accept	-221.8227860236	(Intercept),x
+tw_twin	accept	-221.8227862334	(Intercept),x
+tw_space	accept	-221.8227862334	(Intercept),x
+tw_order	accept	-221.8227862334	(Intercept),x
+tw_mm_args	accept	-314.7612266405	(Intercept)
+tw_gr_plain	error-other		gr() supports (x | gr(g, cov = A)) or (1 | gr(g, prec = Q))
+tw_gr_args	error-other		gr(cov = ) / gr(prec = ) with dist = "student" is not supported: a relationship matrix correlates th
+tw_ID	accept	-289.3436221767	(Intercept)
+tw_ID_q	accept	-289.3436221767	(Intercept)
+tw_nlpar	accept	14.9592773592	(Intercept)

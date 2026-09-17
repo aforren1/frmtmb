@@ -1,0 +1,11 @@
+defaults only:
+                   prior     class coef group resp dpar
+1 student_t(3, 1.2, 2.5) Intercept                     
+2   student_t(3, 0, 2.5)     sigma                     
+3   student_t(3, 0, 2.5)        sd                     
+MAP fit prior passed again on the call:
+                   prior     class coef group resp dpar
+1 student_t(3, 1.2, 2.5) Intercept                     
+2   student_t(3, 0, 2.5)     sigma                     
+3   student_t(3, 0, 2.5)        sd                     
+4           normal(0, 5)         b                     

@@ -1,0 +1,29 @@
+REVERT none ^(brms-formula-priors|review-v29|prior-compat|lkj|get-prior-route|priors-autocor-classes)$ pass 795 fail 0 error 0
+REVERT dup ^(brms-formula-priors|review-v29|prior-compat|lkj|get-prior-route|priors-autocor-classes)$ pass 788 fail 7 error 0
+    test-brms-formula-priors.R : duplicated group-level effects are refused (brms) 
+    test-brms-formula-priors.R : a split that repeats no coefficient fits; a repeat is refused 
+    test-review-v29.R : blocks sharing a term label are all reported, not the first twice 
+REVERT cs ^(brms-formula-priors|review-v29|prior-compat|lkj|get-prior-route|priors-autocor-classes)$ pass 791 fail 4 error 0
+    test-brms-formula-priors.R : cs() inside an interaction is refused by name (brms) 
+REVERT nested ^(brms-formula-priors|review-v29|prior-compat|lkj|get-prior-route|priors-autocor-classes)$ pass 789 fail 6 error 0
+    test-brms-formula-priors.R : a doubled tilde is refused by name (brms #749) 
+REVERT bf ^(brms-formula-priors|review-v29|prior-compat|lkj|get-prior-route|priors-autocor-classes)$ pass 773 fail 4 error 3
+    test-brms-formula-priors.R : bf() returns a formula it already built unchanged (brms) 
+    test-brms-formula-priors.R : bf() on a built formula adds to it and refuses a repeat 
+    test-brms-formula-priors.R : a doubled tilde is refused by name (brms #749) 
+    test-brms-formula-priors.R : parameter formulas name their parameter (brms) 
+REVERT bfnl ^(brms-formula-priors|review-v29|prior-compat|lkj|get-prior-route|priors-autocor-classes)$ pass 795 fail 0 error 0
+REVERT lf ^(brms-formula-priors|review-v29|prior-compat|lkj|get-prior-route|priors-autocor-classes)$ pass 792 fail 1 error 1
+    test-brms-formula-priors.R : a doubled tilde is refused by name (brms #749) 
+    test-brms-formula-priors.R : parameter formulas name their parameter (brms) 
+REVERT asprior ^(brms-formula-priors|review-v29|prior-compat|lkj|get-prior-route|priors-autocor-classes)$ pass 789 fail 0 error 1
+    test-brms-formula-priors.R : a validate_prior() table fits the model its prior fits 
+REVERT setprior ^(brms-formula-priors|review-v29|prior-compat|lkj|get-prior-route|priors-autocor-classes)$ pass 770 fail 5 error 3
+    test-brms-formula-priors.R : set_prior allows arguments to be vectors (brms) 
+    test-brms-formula-priors.R : print for a prior object prints brms's layout (brms) 
+    test-brms-formula-priors.R : a column of a prior object can be edited in place 
+    test-brms-formula-priors.R : as.brmsprior works correctly (brms) 
+    test-brms-formula-priors.R : external interface of validate_prior works correctly (brms) 
+REVERT print ^(brms-formula-priors|review-v29|prior-compat|lkj|get-prior-route|priors-autocor-classes)$ pass 795 fail 0 error 0
+REVERT blockdpar ^(brms-formula-priors|review-v29|prior-compat|lkj|get-prior-route|priors-autocor-classes)$ pass 794 fail 1 error 0
+    test-brms-formula-priors.R : a block of a distributional parameter lists its dpar 

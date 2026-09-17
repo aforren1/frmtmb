@@ -199,8 +199,7 @@ test_that("lkj() parses and belongs to class cor, both ways", {
   expect_error(set_prior("lkj(2)", class = "cor", ub = 0.5),
                "takes no lb/ub")
   pl <- set_prior("lkj(2)", class = "cor")
-  expect_match(utils::capture.output(print(pl)), "lkj(2) class=cor",
-               fixed = TRUE)
+  expect_identical(utils::capture.output(print(pl)), "cor ~ lkj(2)")
   # the objects are interchangeable with the string spelling
   expect_equal(unclass(set_prior(prior_lkj(2), class = "cor")),
                unclass(pl))

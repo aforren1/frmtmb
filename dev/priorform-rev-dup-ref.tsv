@@ -1,0 +1,55 @@
+id	verdict	message
+gr_cov+plain	accept	
+gr_cov+copy	accept	
+gr_cov_slope+plain_slope	accept	
+gr_cov+gr_cov	accept	
+gr_by+plain	error-other	gr() supports (x | gr(g, cov = A)) or (1 | gr(g, prec = Q))
+gr_student+plain	accept	
+g+g:h	accept	
+g+g/h	accept	
+g:h+h:g	accept	
+int+0slope	accept	
+dblbar	accept	
+dblbar+int	accept	
+dblbar_f	accept	
+factor_slope+int	accept	
+factor+int	accept	
+mm+member	accept	
+mm+mm	accept	
+mm+mm_swapped	accept	
+ID_int+ID_slope0	accept	
+ID_int+ID_int	accept	
+ID_int+q_int	accept	
+mu_sigma_same	accept	
+mu_sigma_ID	accept	
+sigma_dup	accept	
+mv_same	accept	
+mv_ID	accept	
+mvbind	accept	
+mv_dup_one	accept	
+nl_same_g	accept	
+nl_dup_in_a	accept	
+nl_gr_cov_a_plain_b	accept	
+car+int	accept	
+smooth_re+int	accept	
+ordinal_cs+re	accept	
+gp+int	accept	
+ar1+int	accept	
+ar1+diag	accept	
+us+diag	accept	
+rr+diag	accept	
+cs_cov+int	accept	
+cs_cov+diag	accept	
+homcs+diag	accept	
+equalto+us	accept	
+equalto+diag	accept	
+exp+diag	accept	
+ou+int	accept	
+gr_prec+plain	accept	
+propto+us	error-other	Covariance structure(s) not supported yet: propto (currently supported: us, diag, homdiag, ar1, cs, ou, toep, hetar1, homcs, homtoep, exp, gau, mat, gr_cov, gr_
+cs_cov_ordinal	accept	
+cs_cov_dblbar	error-other	cs() needs an sratio, cratio, or acat family
+cs_cov_twice	accept	
+cs_catspec_and_cov	accept	
+cs_catspec_selfint	accept	
+cs_catspec_cov_cross	error-other	A random-effect term cannot be crossed with '*': cs(x) * cs(0 + time | g). Did you mean '+'?

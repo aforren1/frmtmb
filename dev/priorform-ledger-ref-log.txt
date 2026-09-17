@@ -1,0 +1,6 @@
+frmtmb from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+
+<!-- priorform-ledger-ref:begin -->
+55 brms assertions run against frmtmb (ref): 4 pass, 51 fail
+ids passing on this build: P21 P22 P23 P24 
+<!-- priorform-ledger-ref:end -->

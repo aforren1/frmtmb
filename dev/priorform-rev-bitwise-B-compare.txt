@@ -1,0 +1,7 @@
+frmtmb::as.brmsprior.Rd                            ERR ref='could not find function "as.brmsprior"' lane=''
+frmtmb::default_prior.Rd                           ERR ref='could not find function "default_prior"' lane=''
+frmtmb::empty_prior.Rd                             ERR ref='could not find function "empty_prior"' lane=''
+frmtmb::frmtmb_priorlist-columns.Rd                ERR ref='`class` must be a single non-empty string' lane=''
+frmtmb::print.frmtmb_priorlist.Rd                  ERR ref='`class` must be a single non-empty string' lane=''
+frmtmb::validate_prior.Rd                          ERR ref='could not find function "validate_prior"' lane=''
+part B: 114 fits, 114 identical in ll, par, objective, cov.fixed and estimates

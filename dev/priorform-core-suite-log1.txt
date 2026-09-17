@@ -1,0 +1,154 @@
+files: 138 
+test-aliased-grouping.R                        pass    33 fail   0 error   0 skip   0
+test-api-spellings.R                           pass    33 fail   0 error   0 skip   0
+test-arg-refusal.R                             pass   121 fail   0 error   0 skip   0
+test-autocor.R                                 pass   191 fail   0 error   0 skip   0
+test-autoscale.R                               pass    46 fail   0 error   0 skip   0
+test-backlog.R                                 pass    35 fail   0 error   0 skip   0
+test-bcm-bart.R                                pass     8 fail   0 error   0 skip   1
+test-bcm-binomial.R                            pass    17 fail   0 error   0 skip   6
+test-bcm-data-analysis.R                       pass    20 fail   0 error   0 skip   6
+test-bcm-esp.R                                 pass     5 fail   0 error   0 skip   2
+test-bcm-gaussian.R                            pass    11 fail   0 error   0 skip   3
+test-bcm-gcm.R                                 pass     9 fail   0 error   0 skip   2
+test-bcm-latent-mixtures.R                     pass    30 fail   0 error   0 skip   5
+test-bcm-model-selection.R                     pass    13 fail   0 error   0 skip   3
+test-bcm-mpt.R                                 pass    15 fail   0 error   0 skip   2
+test-bcm-psychophysics.R                       pass     7 fail   0 error   0 skip   2
+test-bcm-retention.R                           pass    15 fail   0 error   0 skip   3
+test-bcm-signal-detection.R                    pass     6 fail   0 error   0 skip   3
+test-bcm-simple.R                              pass     8 fail   0 error   0 skip   1
+test-boot.R                                    pass    44 fail   0 error   0 skip   0
+test-bracket-access.R                          pass    33 fail   0 error   0 skip   0
+test-brms-agreement.R                          pass   168 fail   0 error   0 skip   2
+test-brms-formula-priors.R                     pass   114 fail   0 error   0 skip   0
+test-brms-likelihood.R                         pass    20 fail   0 error   0 skip  32
+test-brms-methods.R                            pass    16 fail   0 error   0 skip  45
+test-brms-port.R                               pass    18 fail   0 error   0 skip   0
+test-brms-priors.R                             pass     0 fail   0 error   0 skip  12
+test-car-spde.R                                pass   135 fail   0 error   0 skip   0
+test-case-studies.R                            pass    30 fail   0 error   0 skip   0
+test-ce-bands.R                                pass   167 fail   0 error   0 skip   0
+test-ce-facets.R                               pass    92 fail   0 error   0 skip   0
+test-cens-lccdf.R                              pass    27 fail   0 error   0 skip   0
+test-cens-trunc.R                              pass    69 fail   0 error   0 skip   0
+test-ci-siblings.R                             pass    11 fail   0 error   0 skip   0
+test-compat-register.R                         pass   103 fail   0 error   0 skip   0
+test-compat.R                                  pass   573 fail   0 error   0 skip   0
+test-confint-anova.R                           pass    35 fail   0 error   0 skip   0
+test-core-boundary.R                           pass     4 fail   0 error   0 skip   0
+test-covstruct.R                               pass     7 fail   0 error   0 skip   0
+test-custom-family.R                           pass   126 fail   0 error   0 skip   0
+test-data2.R                                   pass    30 fail   0 error   0 skip   0
+test-dates.R                                   pass    13 fail   0 error   0 skip   0
+test-diagnostics-ux.R                          pass   127 fail   0 error   0 skip   0
+test-distributional.R                          pass    28 fail   0 error   0 skip   0
+test-dpar-eta-api.R                            pass   123 fail   0 error   0 skip   0
+test-dry-run.R                                 pass    23 fail   0 error   0 skip   0
+test-edgecases.R                               pass    60 fail   0 error   0 skip   0
+test-effects.R                                 pass    54 fail   0 error   0 skip   0
+test-famgaps.R                                 pass    99 fail   0 error   0 skip   0
+test-families.R                                pass   227 fail   0 error   0 skip   0
+test-fit-end-hook.R                            pass    18 fail   0 error   0 skip   0
+test-frame.R                                   pass    22 fail   0 error   0 skip   0
+test-functional.R                              pass     3 fail   0 error   0 skip   0
+test-fuzz.R                                    pass     0 fail   0 error   0 skip   1
+test-generic-collision.R                       pass    56 fail   0 error   0 skip   0
+test-get-prior-route.R                         pass    76 fail   0 error   0 skip   0
+test-glmm-binomial.R                           pass    10 fail   0 error   0 skip   0
+test-glmm-gaussian.R                           pass    17 fail   0 error   0 skip   0
+test-glmm-poisson.R                            pass    12 fail   0 error   0 skip   0
+test-gp-multidim.R                             pass    42 fail   0 error   0 skip   0
+test-habit-prep.R                              pass    16 fail   0 error   0 skip   0
+test-id-kron.R                                 pass    58 fail   0 error   0 skip   0
+test-importance.R                              pass   226 fail   0 error   0 skip   0
+test-influence-plot.R                          pass    21 fail   0 error   0 skip   0
+test-input-validation.R                        pass    43 fail   0 error   0 skip   0
+test-interop.R                                 pass    44 fail   0 error   0 skip   0
+test-lkj.R                                     pass   212 fail   0 error   0 skip   0
+test-map.R                                     pass     7 fail   0 error   0 skip   0
+test-mean-fn.R                                 pass     4 fail   0 error   0 skip   0
+test-message-uniqueness.R                      pass     6 fail   0 error   0 skip   0
+test-method-residue.R                          pass    64 fail   0 error   0 skip   0
+test-methods-audit.R                           pass    57 fail   0 error   0 skip   0
+test-methods.R                                 pass    59 fail   0 error   0 skip   0
+test-mixture-start.R                           pass     5 fail   0 error   0 skip   0
+test-mm.R                                      pass   116 fail   0 error   0 skip   0
+test-mo-terms.R                                pass    74 fail   0 error   0 skip   0
+test-multinomial.R                             pass    15 fail   0 error   0 skip   0
+test-multiple-pooling.R                        pass    33 fail   0 error   0 skip   0
+test-multivariate.R                            pass    23 fail   0 error   0 skip   0
+test-mvn-mixture.R                             pass   277 fail   0 error   0 skip   0
+test-naming-collisions.R                       pass    31 fail   0 error   0 skip   0
+test-nl-body-vars.R                            pass    23 fail   0 error   0 skip   0
+test-nl-lexical.R                              pass    31 fail   0 error   0 skip   0
+test-nl-rtmb-scope.R                           pass   103 fail   0 error   0 skip   0
+test-nl.R                                      pass    44 fail   0 error   0 skip   0
+test-nlf.R                                     pass    74 fail   0 error   0 skip   0
+test-numerical-robustness.R                    pass   679 fail   0 error   0 skip   0
+test-open-issues.R                             pass    43 fail   0 error   0 skip   0
+test-ordinal-fitted.R                          pass    87 fail   0 error   0 skip   0
+test-ordinal.R                                 pass   109 fail   0 error   0 skip   0
+test-osa-inference.R                           pass    34 fail   0 error   0 skip   0
+test-par-template.R                            pass    51 fail   0 error   0 skip   0
+test-parse.R                                   pass    43 fail   0 error   0 skip   0
+test-perf.R                                    pass     3 fail   0 error   0 skip   0
+test-pooled-anova.R                            pass    64 fail   0 error   0 skip   0
+test-portability.R                             pass    91 fail   0 error   0 skip   0
+test-predict-lp-basis.R                        pass    30 fail   0 error   0 skip   0
+test-predict-newdata.R                         pass    12 fail   0 error   0 skip   0
+test-prior-compat.R                            pass   194 fail   0 error   0 skip   0
+test-priors-autocor-classes.R                  pass    62 fail   0 error   0 skip   0
+test-priors-bounds-grcov.R                     pass    49 fail   0 error   0 skip   0
+test-ps.R                                      pass    71 fail   0 error   0 skip   0
+test-quadrature-defects.R                      pass    59 fail   0 error   0 skip   0
+test-reml-nongaussian.R                        pass     9 fail   0 error   0 skip   0
+test-review-fixes.R                            pass    17 fail   0 error   0 skip   0
+test-review-v25.R                              pass    60 fail   0 error   0 skip   0
+test-review-v28.R                              pass    73 fail   0 error   0 skip   0
+test-review-v29.R                              pass   124 fail   0 error   1 skip   0
+── 1. Error ('test-review-v29.R:410:3'): blocks sharing a term label are all rep
+Error: Duplicated group-level effects are not allowed: the coefficient '(Intercept)' of group 'id' appears in both (1 | id) and (1 | id). Only the sum of the two variances is identified; write the coefficient in one term
+test-rl-example.R                              pass    96 fail   0 error   0 skip   2
+test-sandwich.R                                pass    57 fail   0 error   0 skip   0
+test-scale-contract.R                          pass    37 fail   0 error   0 skip   0
+test-setprior.R                                pass    27 fail   0 error   0 skip   0
+test-simulate-density.R                        pass   435 fail   0 error   0 skip   0
+test-simulate-ergonomics.R                     pass    50 fail   0 error   0 skip   0
+test-smooth-population.R                       pass    33 fail   0 error   0 skip   0
+test-smooths.R                                 pass    27 fail   0 error   0 skip   0
+test-sparsear1.R                               pass    24 fail   0 error   0 skip   0
+test-sparsex.R                                 pass    64 fail   0 error   0 skip   0
+test-spectral.R                                pass   113 fail   0 error   0 skip   0
+test-structure.R                               pass   135 fail   0 error   0 skip   0
+test-sugar.R                                   pass    38 fail   0 error   0 skip   0
+test-tabular-inputs.R                          pass     9 fail   0 error   0 skip   0
+test-tmb-examples.R                            pass    28 fail   0 error   0 skip   0
+test-tre.R                                     pass   101 fail   0 error   0 skip   0
+test-trunc-postfit.R                           pass    35 fail   0 error   0 skip   0
+test-unpinned-seams.R                          pass    28 fail   0 error   0 skip   0
+test-v07.R                                     pass    25 fail   0 error   0 skip   0
+test-v11.R                                     pass    22 fail   0 error   0 skip   0
+test-v12.R                                     pass    26 fail   0 error   0 skip   0
+test-v14.R                                     pass    81 fail   0 error   0 skip   0
+test-v15.R                                     pass    41 fail   0 error   0 skip   0
+test-v16.R                                     pass    24 fail   0 error   0 skip   0
+test-v17.R                                     pass    35 fail   0 error   0 skip   0
+test-v18.R                                     pass    27 fail   0 error   0 skip   0
+test-v19.R                                     pass    17 fail   0 error   0 skip   0
+test-verbose.R                                 pass    40 fail   0 error   0 skip   0
+test-vignette-wiener.R                         pass    21 fail   0 error   0 skip   0
+test-zi.R                                      pass    11 fail   0 error   0 skip   0
+
+---- GENERATED COUNTS (paste verbatim) ----
+package        : frmtmb
+files run      : 138
+crashed        : 0
+pass 8792  fail 0  error 1  skip 133  in 1423 s
+files below their 0.57.0 baseline count: 3
+                          file pass pass_base skip skip_base
+           test-prior-compat.R  194       195    0         0
+ test-priors-autocor-classes.R   62        63    0         0
+             test-review-v29.R  124       136    0         0
+baseline files with no run: 0 
+---- END GENERATED COUNTS ----

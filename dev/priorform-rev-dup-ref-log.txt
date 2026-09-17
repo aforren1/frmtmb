@@ -1,0 +1,4 @@
+frmtmb from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+
+     accept error-other 
+         50           4 

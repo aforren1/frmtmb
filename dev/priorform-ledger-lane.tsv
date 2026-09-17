@@ -1,0 +1,56 @@
+id	file	block	run	verdict	reason
+F1	tests.brmsformula.R	validates formulas of non-linear parameters	pass	pass	
+F2	tests.brmsformula.R	validates formulas of non-linear parameters	pass	pass	
+F3	tests.brmsformula.R	validates formulas of non-linear parameters	pass	pass	
+F4	tests.brmsformula.R	validates formulas of auxiliary parameters	pass	pass	
+F5	tests.brmsformula.R	detects use if '~~'	pass	pass	
+F6	tests.brmsformula.R	does not change a 'brmsformula' object	pass	pass	
+F7	tests.brmsformula.R	does not change a 'brmsformula' object	pass	pass	
+F8	tests.brmsformula.R	detects auxiliary parameter equations	fail	cannot transfer	frmtmb has no equating of one dpar to another (bf(y ~ x, sigma1 = "sigma2")); the call is refused as an uninterpretable argument, a feature outside this lane
+F9	tests.brmsformula.R	detects auxiliary parameter equations	fail	cannot transfer	frmtmb has no equating of one dpar to another (bf(y ~ x, sigma1 = "sigma2")); the call is refused as an uninterpretable argument, a feature outside this lane
+F10	tests.brmsformula.R	detects auxiliary parameter equations	fail	cannot transfer	frmtmb has no equating of one dpar to another (bf(y ~ x, sigma1 = "sigma2")); the call is refused as an uninterpretable argument, a feature outside this lane
+F11	tests.brmsformula.R	detects auxiliary parameter equations	fail	cannot transfer	frmtmb has no equating of one dpar to another (bf(y ~ x, sigma1 = "sigma2")); the call is refused as an uninterpretable argument, a feature outside this lane
+F12	tests.brmsformula.R	detects auxiliary parameter equations	fail	cannot transfer	frmtmb has no equating of one dpar to another (bf(y ~ x, sigma1 = "sigma2")); the call is refused as an uninterpretable argument, a feature outside this lane
+F13	tests.brmsformula.R	update_adterms works correctly	fail	cannot transfer	frmtmb exports no update_adterms(), a formula-editing helper outside this lane
+F14	tests.brmsformula.R	update_adterms works correctly	fail	cannot transfer	frmtmb exports no update_adterms(), a formula-editing helper outside this lane
+F15	tests.brmsformula.R	update_adterms works correctly	fail	cannot transfer	frmtmb exports no update_adterms(), a formula-editing helper outside this lane
+F16	tests.brmsformula.R	update_adterms works correctly	fail	cannot transfer	frmtmb exports no update_adterms(), a formula-editing helper outside this lane
+P1	tests.priors.R	default_prior finds all classes for which priors can be specified	fail	divergence	frmtmb lists 5 class theta rows (its internal covariance parameters, a real class) and no per-coefficient sd rows (its class sd addresses a block and refuses coef)
+P2	tests.priors.R	default_prior finds all classes for which priors can be specified	fail	cannot transfer	frmtmb's sratio() takes no threshold = "equidistant" and has no cse() alias (family surface, lane wt-famlink)
+P3	tests.priors.R	set_prior allows arguments to be vectors	fail	divergence	the object is a frmtmb_priorlist, which holds parsed densities; $ reads brms's columns from it
+P4	tests.priors.R	set_prior allows arguments to be vectors	pass	pass	
+P5	tests.priors.R	set_prior allows arguments to be vectors	pass	pass	
+P6	tests.priors.R	print for class brmsprior works correctly	pass	pass	
+P7	tests.priors.R	print for class brmsprior works correctly	pass	pass	
+P8	tests.priors.R	print for class brmsprior works correctly	pass	pass	
+P9	tests.priors.R	print for class brmsprior works correctly	fail	cannot transfer	set_prior(check = FALSE) passes Stan code through, and frmtmb builds no Stan program
+P10	tests.priors.R	default_prior returns correct nlpar names for random effects pars	pass	pass	
+P11	tests.priors.R	default_prior returns correct fixed effect names for GAMMs	fail	divergence	a smooth's unpenalized column is named s(x).fx1 where brms names it sx_1 (coefficient naming, lane wt-brmsnames)
+P12	tests.priors.R	default_prior returns correct fixed effect names for GAMMs	fail	divergence	as P11, and the nonlinear intercept is listed as (Intercept) where brms writes Intercept; set_prior() takes both
+P13	tests.priors.R	default_prior returns correct prior names for auxiliary parameters	fail	divergence	frmtmb lists the class-wide sd row once with no dpar and no per-coefficient sd row, so the phi rows are b, b z, Intercept and sd g
+P14	tests.priors.R	default_prior returns correct priors for multivariate models	pass	pass	
+P15	tests.priors.R	default_prior returns correct priors for multivariate models	fail	divergence	default_prior() describes frm() unless route = "sample", and frm() is flat in every slot. With frmtmb.sample attached, route = "sample" ALSO gives (flat) here where brms gives lkj(1): a filed frmtmb.sample defect, not fixed in this lane (dev/priorform-findings.md section 6)
+P16	tests.priors.R	default_prior returns correct priors for multivariate models	fail	cannot transfer	frmtmb takes no list of families as `family` (a multivariate model attaches one family per bf()), family surface outside this lane
+P17	tests.priors.R	default_prior returns correct priors for multivariate models	fail	cannot transfer	frmtmb takes no list of families as `family` (a multivariate model attaches one family per bf()), family surface outside this lane
+P18	tests.priors.R	default_prior returns correct priors for multivariate models	fail	cannot transfer	frmtmb takes no list of families as `family` (a multivariate model attaches one family per bf()), family surface outside this lane
+P19	tests.priors.R	default_prior returns correct priors for multivariate models	fail	cannot transfer	frmtmb takes no list of families as `family` (a multivariate model attaches one family per bf()), family surface outside this lane
+P20	tests.priors.R	default_prior returns correct priors for categorical models	fail	cannot transfer	categorical() refuses this numeric response ('fewer than two categories'), response-type validation owned by lane wt-famlink
+P21	tests.priors.R	set_prior alias functions produce equivalent results	pass	pass	
+P22	tests.priors.R	set_prior alias functions produce equivalent results	pass	pass	
+P23	tests.priors.R	set_prior alias functions produce equivalent results	pass	pass	
+P24	tests.priors.R	set_prior alias functions produce equivalent results	pass	pass	
+P25	tests.priors.R	external interface of validate_prior works correctly	pass	pass	
+P26	tests.priors.R	external interface of validate_prior works correctly	fail	divergence	10 rows against brms's 9, for the reasons in P1: two class theta rows added, one per-coefficient sd row absent
+P27	tests.priors.R	overall intercept priors are adjusted for the intercept	fail	divergence	the fit route is flat. With frmtmb.sample attached, route = "sample" gives student_t(3, 2, 2.5) where brms gives student_t(3, -8, 2.5): the sampling default does not subtract the offset, a filed frmtmb.sample defect not fixed in this lane (dev/priorform-findings.md section 6)
+P28	tests.priors.R	as.brmsprior works correctly	pass	pass	
+P29	tests.priors.R	as.brmsprior works correctly	pass	pass	
+P30	tests.priors.R	as.brmsprior works correctly	pass	pass	
+P31	tests.priors.R	as.brmsprior works correctly	pass	pass	
+P32	tests.priors.R	as.brmsprior works correctly	pass	pass	
+P33	tests.priors.R	prior tags are correctly applied	fail	cannot transfer	set_prior() takes no tag, and a brms table carrying one is refused by name, because a tag names a prior inside a Stan program
+P34	tests.priors.R	prior tags are correctly applied	fail	cannot transfer	set_prior() takes no tag, and a brms table carrying one is refused by name, because a tag names a prior inside a Stan program
+P35	tests.priors.R	prior tags are correctly applied	fail	cannot transfer	set_prior() takes no tag, and a brms table carrying one is refused by name, because a tag names a prior inside a Stan program
+P36	tests.priors.R	prior tags are correctly applied	fail	cannot transfer	set_prior() takes no tag, and a brms table carrying one is refused by name, because a tag names a prior inside a Stan program
+P37	tests.priors.R	prior tags are correctly applied	fail	cannot transfer	set_prior() takes no tag, and a brms table carrying one is refused by name, because a tag names a prior inside a Stan program
+B1	tests.brm.R	brm produces expected errors	pass	pass	
+B2	tests.brm.R	brm produces expected errors	pass	pass	

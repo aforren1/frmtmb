@@ -1,0 +1,101 @@
+## the test's own data, seed 77
+seed 77, as in the test      warnings=1  Optimizer did not report convergence: singular convergence (7)
+   sd: x | g.(Intercept)=0.707 x | g.x=0.0938 z | h.(Intercept)=0.0441 z | h.z=0.111 
+   cor: x | g=0.999998 z | h=0.999993 
+   lme4 isSingular: TRUE  cor: 1.000000 NaN  logLik frmtmb - lme4: 0.0952 
+[1] 1
+
+## seed 77 under the generator the test now uses
+seed 77, new generator       warnings=0  
+   sd: x | g.(Intercept)=0.637 x | g.x=0.337 z | h.(Intercept)=0.661 z | h.z=0.166 
+   cor: x | g=-0.058885 z | h=-0.447242 
+   lme4 isSingular: FALSE  cor: -0.058909 -0.447262  logLik frmtmb - lme4: 1.15e-08 
+[1] 0
+
+## same generator, 10 seeds: how often does it warn?
+old seed 1                   warnings=1  Optimizer did not report convergence: singular convergence (7)
+   sd: x | g.(Intercept)=0.863 x | g.x=0.0636 z | h.(Intercept)=0.171 z | h.z=0.131 
+   cor: x | g=0.999993 z | h=-0.064990 
+   lme4 isSingular: TRUE  cor: 1.000000 -0.064908  logLik frmtmb - lme4: -2.13e-06 
+old seed 2                   warnings=1  Optimizer did not report convergence: singular convergence (7)
+   sd: x | g.(Intercept)=0.565 x | g.x=0.0417 z | h.(Intercept)=6.56e-85 z | h.z=1.7e-96 
+   cor: x | g=0.999986 z | h=-0.999625 
+   lme4 isSingular: TRUE  cor: 1.000000 NaN  logLik frmtmb - lme4: -2.47e-06 
+old seed 3                   warnings=65  Optimizer did not report convergence: singular convergence (7)
+   sd: x | g.(Intercept)=0.669 x | g.x=9.46e-60 z | h.(Intercept)=0.233 z | h.z=0.0894 
+   cor: x | g=-0.998340 z | h=0.999991 
+   lme4 isSingular: TRUE  cor: -0.999988 1.000000  logLik frmtmb - lme4: -0.00238 
+old seed 4                   warnings=1  Optimizer did not report convergence: singular convergence (7)
+   sd: x | g.(Intercept)=0.76 x | g.x=0.0608 z | h.(Intercept)=0.0882 z | h.z=0.104 
+   cor: x | g=-0.999997 z | h=0.999996 
+   lme4 isSingular: TRUE  cor: -1.000000 NaN  logLik frmtmb - lme4: 0.265 
+old seed 5                   warnings=1  Optimizer did not report convergence: singular convergence (7)
+   sd: x | g.(Intercept)=0.763 x | g.x=0.0795 z | h.(Intercept)=0.0288 z | h.z=0.0641 
+   cor: x | g=0.999987 z | h=0.999956 
+   lme4 isSingular: TRUE  cor: 1.000000 NaN  logLik frmtmb - lme4: 0.0194 
+old seed 6                   warnings=0  
+   sd: x | g.(Intercept)=0.707 x | g.x=0.153 z | h.(Intercept)=0.0753 z | h.z=0.000919 
+   cor: x | g=-0.259634 z | h=-0.452989 
+   lme4 isSingular: TRUE  cor: -0.259535 -1.000000  logLik frmtmb - lme4: -0.000219 
+old seed 7                   warnings=1  Optimizer did not report convergence: singular convergence (7)
+   sd: x | g.(Intercept)=0.482 x | g.x=0.0591 z | h.(Intercept)=0.0739 z | h.z=0.213 
+   cor: x | g=0.999996 z | h=0.999997 
+   lme4 isSingular: TRUE  cor: 1.000000 1.000000  logLik frmtmb - lme4: -3.48e-06 
+old seed 8                   warnings=0  
+   sd: x | g.(Intercept)=0.704 x | g.x=0.065 z | h.(Intercept)=2.64e-05 z | h.z=3.6e-05 
+   cor: x | g=0.106745 z | h=0.981481 
+   lme4 isSingular: TRUE  cor: 0.106785 NaN  logLik frmtmb - lme4: -4.25e-08 
+old seed 9                   warnings=1  Optimizer did not report convergence: singular convergence (7)
+   sd: x | g.(Intercept)=0.585 x | g.x=0.0354 z | h.(Intercept)=0.15 z | h.z=0.138 
+   cor: x | g=-0.999972 z | h=0.006534 
+   lme4 isSingular: TRUE  cor: -0.999999 1.000000  logLik frmtmb - lme4: 0.38 
+old seed 10                  warnings=1  Optimizer did not report convergence: singular convergence (7)
+   sd: x | g.(Intercept)=0.804 x | g.x=0.112 z | h.(Intercept)=0.11 z | h.z=0.0835 
+   cor: x | g=0.541216 z | h=0.999997 
+   lme4 isSingular: TRUE  cor: 0.541210 1.000000  logLik frmtmb - lme4: -1.74e-06 
+
+## generator with the effects the model asks for, same 10 seeds
+new seed 1                   warnings=0  
+   sd: x | g.(Intercept)=0.615 x | g.x=0.221 z | h.(Intercept)=0.7 z | h.z=0.592 
+   cor: x | g=-0.691041 z | h=0.718703 
+   lme4 isSingular: FALSE  cor: -0.691057 0.718703  logLik frmtmb - lme4: 2.31e-08 
+new seed 2                   warnings=0  
+   sd: x | g.(Intercept)=0.543 x | g.x=0.308 z | h.(Intercept)=0.613 z | h.z=0.379 
+   cor: x | g=0.494294 z | h=0.474537 
+   lme4 isSingular: FALSE  cor: 0.494224 0.474566  logLik frmtmb - lme4: 7.83e-08 
+new seed 3                   warnings=0  
+   sd: x | g.(Intercept)=0.615 x | g.x=0.314 z | h.(Intercept)=0.574 z | h.z=0.464 
+   cor: x | g=-0.319248 z | h=-0.361743 
+   lme4 isSingular: FALSE  cor: -0.319270 -0.361671  logLik frmtmb - lme4: 2.39e-08 
+new seed 4                   warnings=0  
+   sd: x | g.(Intercept)=0.588 x | g.x=0.413 z | h.(Intercept)=0.538 z | h.z=0.436 
+   cor: x | g=-0.095207 z | h=0.186000 
+   lme4 isSingular: FALSE  cor: -0.095197 0.185969  logLik frmtmb - lme4: -1.85e-08 
+new seed 5                   warnings=0  
+   sd: x | g.(Intercept)=0.674 x | g.x=0.288 z | h.(Intercept)=0.737 z | h.z=0.487 
+   cor: x | g=0.091763 z | h=-0.471713 
+   lme4 isSingular: FALSE  cor: 0.091780 -0.471720  logLik frmtmb - lme4: 2.74e-09 
+new seed 6                   warnings=0  
+   sd: x | g.(Intercept)=0.76 x | g.x=0.446 z | h.(Intercept)=0.945 z | h.z=0.58 
+   cor: x | g=0.061887 z | h=-0.388627 
+   lme4 isSingular: FALSE  cor: 0.061928 -0.388552  logLik frmtmb - lme4: 5.19e-08 
+new seed 7                   warnings=0  
+   sd: x | g.(Intercept)=0.509 x | g.x=0.326 z | h.(Intercept)=0.587 z | h.z=0.493 
+   cor: x | g=-0.134888 z | h=-0.323281 
+   lme4 isSingular: FALSE  cor: -0.134902 -0.323336  logLik frmtmb - lme4: 3.05e-08 
+new seed 8                   warnings=1  Optimizer did not report convergence: singular convergence (7)
+   sd: x | g.(Intercept)=0.814 x | g.x=0.568 z | h.(Intercept)=0.476 z | h.z=0.192 
+   cor: x | g=-0.311792 z | h=-0.999997 
+   lme4 isSingular: TRUE  cor: -0.311786 -1.000000  logLik frmtmb - lme4: -2.75e-06 
+new seed 9                   warnings=0  
+   sd: x | g.(Intercept)=0.525 x | g.x=0.4 z | h.(Intercept)=0.763 z | h.z=0.558 
+   cor: x | g=0.148786 z | h=-0.124984 
+   lme4 isSingular: FALSE  cor: 0.148790 -0.124978  logLik frmtmb - lme4: 9.4e-10 
+new seed 10                  warnings=0  
+   sd: x | g.(Intercept)=0.67 x | g.x=0.354 z | h.(Intercept)=0.778 z | h.z=0.285 
+   cor: x | g=0.130337 z | h=-0.916197 
+   lme4 isSingular: FALSE  cor: 0.130316 -0.916196  logLik frmtmb - lme4: 2.44e-08 
+
+<!-- priorform-singular:begin -->
+old generator: 8 of 10 seeds warn; new generator: 1 of 10
+<!-- priorform-singular:end -->

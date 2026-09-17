@@ -1,0 +1,36 @@
+lmm                        identical
+lmm_family_arg             identical
+dist_sigma                 identical
+dist_lf                    identical
+dist_const                 identical
+nl_explicit_false          identical
+nl                         identical
+nl_shared                  identical
+nlf                        identical
+mvbf                       identical
+mvbind                     identical
+sratio_cs                  identical
+acat_cs_two                identical
+cumul_re                   identical
+beta_phi_re                identical
+beta_phi_re_prior          identical
+beta_phi_re_prior_group    identical
+zip                        identical
+smooth                     identical
+gp                         identical
+cs_cov                     identical
+ar1_cov                    identical
+int_0slope                 identical
+dblbar                     identical
+grcov_copy                 identical
+mm                         identical
+theta_prior                identical
+sigma_natural_prior        identical
+part A: 28 fits, 28 identical in ll, par, objective, cov.fixed and estimates
+frmtmb::as.brmsprior.Rd                            ERR ref='could not find function "as.brmsprior"' lane=''
+frmtmb::default_prior.Rd                           ERR ref='could not find function "default_prior"' lane=''
+frmtmb::empty_prior.Rd                             ERR ref='could not find function "empty_prior"' lane=''
+frmtmb::frmtmb_priorlist-columns.Rd                ERR ref='`class` must be a single non-empty string' lane=''
+frmtmb::print.frmtmb_priorlist.Rd                  ERR ref='`class` must be a single non-empty string' lane=''
+frmtmb::validate_prior.Rd                          ERR ref='could not find function "validate_prior"' lane=''
+part B: 114 fits, 114 identical in ll, par, objective, cov.fixed and estimates

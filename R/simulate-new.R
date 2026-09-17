@@ -557,6 +557,7 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
                          prior = NULL, nsim = 1, seed = NULL,
                          data2 = list()) {
   prior <- as_priorlist(prior)
+  check_prior_slots(prior)
   # nsim reaches replicate() as a length; "invalid 'length' argument"
   # names neither this function nor the argument
   check_count(nsim, "nsim", min = 1L)

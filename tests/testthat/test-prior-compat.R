@@ -325,11 +325,11 @@ test_that("the loss model takes the vignette's priors and they bind", {
   expect_lt(abs((-as.numeric(logLik(map))) - (raw + nlp)), 1e-6)
 
   # prior_summary() names the parameter each density landed on
-  out <- utils::capture.output(prior_summary(map))
-  expect_match(out[1L], "normal(5000, 1000) class=b nlpar=ult",
-               fixed = TRUE)
-  expect_match(out[2L], "nlpar=omega", fixed = TRUE)
-  expect_match(out[3L], "nlpar=theta", fixed = TRUE)
+  # in brms's layout: several specifications print as a table
+  out <- utils::capture.output(print(prior_summary(map), show_df = FALSE))
+  expect_identical(out, c("b_ult ~ normal(5000, 1000)",
+                          "b_omega ~ normal(1, 2)",
+                          "b_theta ~ normal(45, 10)"))
 
   # set_prior()'s string spelling is the same call
   strs <- set_prior("normal(5000, 1000)", nlpar = "ult") +
@@ -500,9 +500,18 @@ test_that("coef and group narrow the classes that read them", {
   n <- 300
   d <- data.frame(x = stats::rnorm(n), z = stats::rnorm(n),
                   g = factor(rep(1:20, 15)), h = factor(rep(1:15, 20)))
-  d$y <- stats::rnorm(n, 1 + 0.5 * d$x - 0.3 * d$z +
-                        stats::rnorm(20, 0, 0.7)[d$g], 1)
-  fit <- frm(bf(y ~ x + z + (x | g) + (z | h)) + gaussian(), data = d)
+  # the data carry every variance component the model asks for. A
+  # generator with only a g intercept left the x slope and the whole h
+  # block at a true value of zero, so the fit sat on the boundary (a
+  # correlation at -1 or 1, lme4::isSingular() TRUE) and nlminb warned
+  # "singular convergence (7)" on every run. dev/priorform-singular.R
+  # measures both generators
+  mu <- 1 + 0.5 * d$x - 0.3 * d$z + stats::rnorm(20, 0, 0.7)[d$g]
+  mu <- mu + stats::rnorm(20, 0, 0.4)[d$g] * d$x +
+    stats::rnorm(15, 0, 0.6)[d$h] + stats::rnorm(15, 0, 0.4)[d$h] * d$z
+  d$y <- stats::rnorm(n, mu, 1)
+  fit <- expect_no_warning(
+    frm(bf(y ~ x + z + (x | g) + (z | h)) + gaussian(), data = d))
   idx <- function(pl) {
     e <- frmtmb:::resolve_prior_input(fit, pl)$entries
     sort(unlist(lapply(e, function(z) paste0(z$comp, z$idx))))
@@ -630,9 +639,9 @@ test_that("a distributional class means the same in both spellings", {
   expect_true(isTRUE(own$natural))
   # and printed as the word it was WRITTEN with, so what comes out can
   # be pasted back in
-  expect_match(paste(utils::capture.output(print(set_prior(
-    "student_t(3, 0, 10)", class = "sigma"))), collapse = ""),
-    "class=sigma scale=natural", fixed = TRUE)
+  expect_identical(utils::capture.output(print(set_prior(
+    "student_t(3, 0, 10)", class = "sigma"))),
+    "sigma ~ student_t(3, 0, 10)")
 
   # the LINK-scale spelling is still available and still means the log
   # scale; it carries no `natural` field at all, because a field

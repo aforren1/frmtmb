@@ -1,0 +1,33 @@
+frmtmb 0.58.0 from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+
+### item 4: bf() idempotence
+--- identical(form, bf(form)), dpar ---
+[1] "ERROR: `formula` must be a formula"
+
+--- identical(form, bf(form)), nl ---
+[1] "ERROR: `formula` must be a formula"
+
+### item 6: set_prior() vector arguments
+--- set_prior('normal(0, 2)', class = c('b', 'sd')) ---
+[1] "ERROR: `class` must be a single non-empty string"
+
+### item 7: the rest of the prior surface
+  default_prior    exported: FALSE
+  validate_prior   exported: FALSE
+  empty_prior      exported: FALSE
+  as.brmsprior     exported: FALSE
+--- print(set_prior('normal(0,1)')) ---
+[1] "normal(0, 1) class=b"
+
+### item 12: duplicated group-level effects
+--- (1 | g) + (x | g) ---
+[1] "accepted"
+
+### item 13: x * cs(g)
+--- y ~ x * cs(g), cumulative ---
+[1] "accepted"
+
+### item 14: bf(y ~ ~ x)
+--- bf(y ~ ~ x) ---
+[1] "accepted"
+

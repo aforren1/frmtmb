@@ -1,0 +1,8 @@
+file	pass	fail	error	skip	crashed
+test-bracket-access.R	1	0	0	0	FALSE
+test-hmm-starts.R	84	0	0	0	FALSE
+test-hmm.R	115	0	0	0	FALSE
+test-lca.R	105	0	0	0	FALSE
+test-message-uniqueness.R	4	0	0	0	FALSE
+test-scale.R	0	0	0	2	FALSE
+test-structure-latent.R	20	0	0	0	FALSE

@@ -101,7 +101,12 @@ reference:
   - plot.frmtmb_influence
   - set_prior
   - prior
-  - get_prior
+  - print.frmtmb_priorlist
+  - frmtmb_priorlist-columns
+  - empty_prior
+  - as.brmsprior
+  - default_prior
+  - validate_prior
   - frmtmb-priors
   - prior_summary
 - title: Extractors and prediction

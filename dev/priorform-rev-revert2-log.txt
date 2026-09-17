@@ -1,0 +1,6 @@
+REVERT print ^(brms-formula-priors|prior-compat|lkj|priors-autocor-classes)$ pass 568 fail 11 error 2
+    test-brms-formula-priors.R : print for a prior object prints brms's layout (brms) 
+    test-lkj.R : lkj() parses and belongs to class cor, both ways 
+    test-prior-compat.R : the loss model takes the vignette's priors and they bind 
+    test-prior-compat.R : a distributional class means the same in both spellings 
+    test-priors-autocor-classes.R : prior_summary reports the new classes on a fit 

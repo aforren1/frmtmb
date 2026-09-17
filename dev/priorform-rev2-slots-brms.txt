@@ -1,0 +1,25 @@
+== slot keys
+b dpar=sigma + b coef=sigma        accept
+b coef=a_x + b nlpar... n/a        accept
+mv b resp=y1 + b coef=y1 resp=y2   accept
+mv b resp=y2 + b coef=y1 resp=y2   accept
+sd + sd group=g                    accept
+sd + sd (same) refused?            REFUSE: Duplicated prior specifications are not allowed.
+b coef='' + b (same)               REFUSE: Duplicated prior specifications are not allowed.
+Intercept + Intercept dpar=sigma   accept
+nl b nlpar=a + b nlpar=a coef=x    accept
+nl b nlpar=a coef=Intercept x2     REFUSE: Duplicated prior specifications are not allowed.
+density then bounds same slot      REFUSE: Duplicated prior specifications are not allowed.
+== precedence (table rows after validate)
+b coef x THEN class b              accept | b=normal(0,1); b/x=normal(3,1); b/z=normal(0,1)
+b class THEN coef x                accept | b=normal(0,1); b/x=normal(3,1); b/z=normal(0,1)
+sd group g THEN sd                 accept | sd=normal(0,1); sd/phi=student_t(3, 0, 2.5); sd/g=normal(0,5); sd/g/phi=student_t(3, 0, 2.5); sd/Intercept/g=normal(0,5); sd/Intercept/g/phi=student_t(3, 0, 2.5)
+sd dpar phi THEN sd                accept | sd=normal(0,1); sd/phi=normal(0,5); sd/g=normal(0,1); sd/g/phi=normal(0,5); sd/Intercept/g=normal(0,1); sd/Intercept/g/phi=normal(0,5)
+sd group g dpar phi THEN sd group g accept | sd=student_t(3, 0, 2.5); sd/phi=student_t(3, 0, 2.5); sd/g=normal(0,1); sd/g/phi=normal(0,5); sd/Intercept/g=normal(0,1); sd/Intercept/g/phi=normal(0,5)
+cor group g THEN cor               accept | L=lkj_corr_cholesky(2); L/g=lkj_corr_cholesky(4)
+b dpar sigma THEN b                accept | b=normal(0,1); b/sigma=normal(0,5); b/x=normal(0,1); b/z/sigma=normal(0,5)
+nl coef x THEN nlpar a             accept | b/a=normal(2,1); b/b=(flat); b/Intercept/a=normal(2,1); b/Intercept/b=(flat); b/x/a=normal(0,5)
+mv sd group g THEN sd resp y1      REFUSE: The following priors do not correspond to any model parameter:  sd_g ~ normal(0,5) Function 'default_prior' mi
+mv sd resp y1 THEN sd group g      REFUSE: The following priors do not correspond to any model parameter:  sd_g ~ normal(0,5) Function 'default_prior' mi
+mv b coef y1 THEN b resp y2        REFUSE: The following priors do not correspond to any model parameter:  b_y1 ~ normal(0,5) Function 'default_prior' mi
+Intercept dpar sigma THEN Intercept accept | Intercept=normal(0,1); Intercept/sigma=normal(0,5)

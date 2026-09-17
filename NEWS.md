@@ -1,3 +1,147 @@
+# frmtmb (development version)
+
+* **BREAKING.** A group-level coefficient that two terms of one
+  predictor both give to the same grouping factor is refused, as brms
+  refuses it. `y ~ x + (1 | g) + (x | g)` used to fit two independent
+  intercept blocks on `g`, and only the sum of their variances is
+  identified: on a 240-row construction the two intercept standard
+  deviations came out 0.56151 and 0.56093, the log likelihood equal to
+  that of `(x | g)` alone (`dev/priorform-base-behaviour.R`). What stops
+  working: every such repeat, including `(1 | g) + (x || g)`,
+  `(1 | g:h) + (1 | g/h)` and `(1 | mm(g, h)) + (x | mm(g, h))`. Write
+  the coefficient in one term. This includes the animal model's
+  `(1 | gr(id, cov = A)) + (1 | id)`, which IS identified through the
+  matrix but which brms also refuses; write the permanent-environment
+  term on a copy of the column, `(1 | id2)`, as brms does, and the
+  message says so. The glmmTMB structures brms does not have follow the
+  same rule: `rr(...) + diag(...)`, `equalto(...) + us(...)` and
+  `ar1(...) + diag(...)` repeating a coefficient on one factor are
+  refused.
+
+* A bar term written twice, `(1 | g) + (1 | g)`, is one block, as brms
+  reads it; it used to fit two blocks splitting one variance at will.
+  Grouping factors are compared as brms writes them, so
+  `(1 | g:h) + (1 | h:g)` is two blocks, as in brms, while
+  `(1 | g:h) + (1 | g/h)` repeats one and is refused. A
+  multi-membership group is named by its members, as brms names it, so
+  `(1 | mm(g1, g2)) + (1 | mm(g1, g2, weights = cbind(w1, w2)))` repeats
+  the intercept and is refused; it used to fit two blocks. A
+  whole-term special written twice, `s(z) + s(z)`, is one term, as in
+  brms; it used to build two smooths with one column name. A split that repeats no coefficient,
+  such as `(1 | g) + (0 + x | g)`, and the same term in two predictors,
+  such as `bf(y ~ (1 | g), sigma ~ (1 | g))`, are still accepted. On
+  489 generated designs and 158 formulas harvested from brms's own
+  tests, vignettes and examples, the refusal fired on none that brms
+  accepts and missed none that brms refuses
+  (`dev/priorform-falsealarm.R`).
+
+* **BREAKING, and the defect it fixes.** `cs()`, a smooth (`s()`,
+  `t2()`, `te()`, `ti()`), `gp()`, an autocorrelation term and `mmc()`
+  inside an interaction or another call are refused by name, which is
+  brms's list of whole-term specials. `y ~ x * cs(g)` used to fit
+  `y ~ x`, and so did `y ~ x:s(z)` and `y ~ x * s(z)`; `y ~ I(s(z))`
+  fitted an intercept alone. The dropped terms went without a message.
+  The message names the term as brms does,
+  `The term 'x:s(z)' is invalid`, and points a smooth at `by =`.
+  `s(z) * s(z)`, which `terms()` collapses to `s(z)`, is read as that
+  one term, as brms reads it.
+
+* **BREAKING.** A formula whose right-hand side is itself a formula,
+  `y ~ ~ x`, is refused by name in `bf()`, `lf()`, `nlf()` and in the
+  parameter formulas of `bf()`, as brms refuses it (brms issue #749).
+  Before, `frm(y ~ ~ x)` fitted `y ~ x`.
+
+* `bf()` returns a formula it already built unchanged, so
+  `identical(form, bf(form))` holds as it does in brms. It used to stop
+  with "`formula` must be a formula". Further arguments add to that
+  formula; a parameter it already sets is refused, as `+ lf()` refuses
+  it. `nl` now defaults to `NULL`, as in brms: `FALSE` for a new formula,
+  and the existing setting for a built one. `bf(mvbind(y1, y2) ~ ...,
+  nl = TRUE)` now passes `nl` to each response, where it used to drop
+  it.
+
+* `bf()` and `lf()` take a one-sided parameter formula named by its
+  parameter, `bf(y ~ x, sigma = ~ z)`, which is brms's second spelling
+  of `sigma ~ z`. A one-sided formula with no name is refused with
+  brms's wording, "Additional formulas must be named", and an invalid
+  parameter name now says it "must not contain dots or underscores".
+
+* **BREAKING.** Two prior specifications for the same slot (class,
+  coef, group, resp, dpar and nlpar) are refused by `frm()`,
+  `frm_sample()`, `frm_simulate()`, `par_template()` and
+  `validate_prior()`, as brms refuses them. What stops working: a
+  repeated specification, two densities for one slot, and a density
+  followed by a bounds-only specification, which used to tighten it.
+  Write the density and both bounds in one call. Slots are compared
+  field by field, so `class = "b", dpar = "sigma"` and
+  `class = "b", coef = "sigma"` are two slots although brms prints both
+  as `b_sigma`. On `frm_sample()` of a fit that carries its own prior, a
+  specification on the call for a slot the stored prior names replaces
+  the stored one, as brms's `update(prior = )` replaces a row, and is
+  not refused.
+
+* **BREAKING.** When specifications for different slots reach one
+  parameter, the more specific one applies whatever the order, as in
+  brms: a `coef` over its class, and a `group` over a class-wide `sd`
+  or `cor`. The later one used to win, so a coefficient prior written
+  BEFORE its class prior was silently replaced by it. Fits change only
+  for that order: on the construction in
+  `dev/priorform-punch-order.R` (seed 20260916),
+  `coef = "x"` then class `b` moved from a log likelihood of -261.34 to
+  -409.94, the value the other order always gave, and a group `sd`
+  prior then a class `sd` prior on a beta model from 211.86 to 215.28.
+  The same-order fits are bitwise unchanged. Between different classes,
+  `cor` and the `theta` hatch, the later one still applies.
+
+* `set_prior()` takes vectors in every argument and returns one
+  specification per element, recycled as a data frame column is:
+  `set_prior("normal(0, 2)", class = c("b", "sd"))` is two
+  specifications, as in brms. A length that does not divide the longest
+  is refused.
+
+* **BREAKING.** A prior object prints in brms's layout. One
+  specification prints as `b_x ~ normal(0, 1)`, with bounds in front as
+  `<lower=0>`; several print as a table with brms's columns, and
+  `print(x, show_df = FALSE)` gives one line each; a row with no density
+  of its own shows its class row's as `(vectorized)`, and an empty prior
+  prints nothing, as in brms. What stops working:
+  code that reads the old `normal(0, 1) class=b coef=x` line. The
+  density prints as it was written, so `set_prior("cauchy(0,1)")` prints
+  `cauchy(0,1)` rather than the `student_t(1, 0, 1)` it parses into.
+
+* A prior object answers brms's column reads: `pr$prior`, `pr$class`,
+  `pr$coef` and the rest return one element per specification, from the
+  table `as.data.frame()` now builds. Assigning a column,
+  `pr$prior[2] <- "exponential(1)"`, rebuilds the specifications with
+  `set_prior()`.
+
+* `default_prior()` is new and is the canonical name, as it has been in
+  brms since 2.20.14. **BREAKING:** `get_prior()` is now its alias,
+  `get_prior(formula, ...)`, which is brms's signature. Calls that pass
+  `data`, `family`, `data2` or `route` by position or by name are
+  unchanged.
+
+* **BREAKING.** The `default_prior()` table has brms's columns in brms's
+  order, `prior, class, coef, group, resp, dpar, nlpar, lb, ub,
+  source`; `resp` used to come after `nlpar`, and `source` is new. A
+  class `"sd"` or `"cor"` row for a block of a distributional
+  parameter's predictor now names that parameter in `dpar`. Before,
+  `bf(y ~ (1 | g), phi ~ (1 | g))` listed one `sd` row for `g` where the
+  model has two blocks.
+
+* `validate_prior()` is new. It resolves a prior against a model with
+  the resolution `frm()` uses, refuses it with the same message when any
+  part of it addresses nothing, and returns the whole `default_prior()`
+  table with the prior filled in and `source` marking the rows set and
+  the rows that inherit a class row's density. `frm(prior = )` accepts
+  that table, and a `default_prior()` table edited in place, and fits
+  the same model as the prior that built it.
+
+* `empty_prior()` and `as.brmsprior()` are new. `as.brmsprior()` turns
+  a data frame with a `prior` column into a prior object, filling
+  `set_prior()`'s defaults and dropping other columns, as brms's does;
+  here the result is the `frmtmb_priorlist` that `set_prior()` returns.
+
 # frmtmb 0.58.0
 
 * **BREAKING, and the rule behind it.** Where lme4 or glmmTMB and brms

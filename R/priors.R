@@ -56,11 +56,17 @@
 #'   means what it says. Available where the parameter has no predictor
 #'   of its own; see A distributional parameter's own class.
 #'
-#' When priors overlap, later specifications override earlier ones, so
-#' put class-wide priors first and coefficient-specific ones after. A
-#' class `"theta"` prior on a position an earlier `"cor"` prior covers
-#' replaces that whole LKJ term, and the other way round, so "later
-#' wins" holds between the two spellings as well.
+#' Two specifications for the same slot (the same class, coef, group,
+#' resp, dpar and nlpar) are refused wherever a prior is passed in, as
+#' brms refuses them; that includes a density followed by a bounds-only
+#' specification, so write the density and its bounds in one call.
+#' When specifications for DIFFERENT slots reach the same parameter,
+#' the more specific one applies whatever order they are written in, as
+#' in brms: a `coef` specification over its class, and a `group`
+#' specification over a class-wide `"sd"` or `"cor"` one. Between
+#' classes the later one applies: a class `"theta"` prior on a position
+#' a `"cor"` prior covers replaces that whole LKJ term if it comes later,
+#' and the other way round.
 #' `lb`/`ub` become hard bounds. See Hard bounds.
 #'
 #' @section Where an intercept prior lands:
@@ -108,9 +114,11 @@
 #'
 #' @section Hard bounds:
 #' `lb`/`ub` are how a box constraint is written. A specification may
-#' carry bounds alone (`prior = ""`), a distribution alone, or both, and
-#' a later bounds-only specification tightens an entry an earlier
-#' distribution created rather than replacing it.
+#' carry bounds alone (`prior = ""`), a distribution alone, or both. A
+#' bounds-only specification for a slot another specification already
+#' gives a density is refused as a duplicate, as in brms; a bound on a
+#' coefficient beside a class-wide density is a different slot and
+#' boxes that coefficient under the class density.
 #'
 #' A bound is addressed exactly like the distribution beside it, so
 #' `set_prior("", nlpar = "guess", lb = 0, ub = 1)` bounds the nonlinear
@@ -138,9 +146,9 @@
 #'
 #' Where the two spellings differed, this one broadcasts: a bound
 #' carried by `nlpar =` covers every coefficient of that parameter, the
-#' way a prior does, and `coef` narrows it to one. When two
-#' specifications bound the same parameter the later one wins, so a
-#' bounds-only specification after a wide one tightens it.
+#' way a prior does, and `coef` narrows it to one. When a class-wide
+#' and a coefficient-specific specification both bound a parameter, the
+#' coefficient-specific one applies.
 #'
 #' @section Residual correlation:
 #' frmtmb holds an `ar()`, `ma()`, `arma()`, `cosy()` or `unstr()`
@@ -402,6 +410,40 @@
 set_prior <- function(prior = "", class = "b", coef = "", group = "",
                       resp = "", dpar = "", nlpar = "", lb = NA,
                       ub = NA) {
+  # brms reads every argument as a column and builds one row per
+  # element, recycled the way data.frame() recycles, so
+  # class = c("b", "sd") is two specifications. A prior object is one
+  # value even though it is a list
+  args <- list(prior = if (inherits(prior, "frmtmb_prior")) list(prior)
+                       else prior,
+               class = class, coef = coef, group = group, resp = resp,
+               dpar = dpar, nlpar = nlpar, lb = lb, ub = ub)
+  n <- lengths(args)
+  if (any(n == 0L) || any(max(n) %% n != 0L)) {
+    stop("set_prior() recycles its arguments into rows, so every ",
+         "argument needs a length that divides the longest; got ",
+         paste0(names(n), " = ", n, collapse = ", "), call. = FALSE)
+  }
+  rows <- lapply(seq_len(max(n)), function(i) {
+    a <- lapply(args, function(v) v[[(i - 1L) %% length(v) + 1L]])
+    unclass(set_prior_one(a$prior, a$class, a$coef, a$group, a$resp,
+                          a$dpar, a$nlpar, a$lb, a$ub))[[1L]]
+  })
+  structure(rows, class = "frmtmb_priorlist")
+}
+
+#' One row of [set_prior()]: every argument is a scalar here.
+#'
+#' @noRd
+set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
+                          lb, ub) {
+  for (nm in c("coef", "group", "resp", "dpar", "nlpar")) {
+    v <- get(nm)
+    if (!is.character(v) || length(v) != 1L || is.na(v)) {
+      stop("`", nm, "` must be a string, not ", arg_desc(v),
+           call. = FALSE)
+    }
+  }
   dist <- parse_prior_dist(prior)
   # brms carries lb/ub as STRINGS (its prior frame is all character),
   # and prior() deparses everything it is given, so a bound arrives
@@ -414,8 +456,9 @@ set_prior <- function(prior = "", class = "b", coef = "", group = "",
     stop("set_prior() needs a distribution, bounds, or both",
          call. = FALSE)
   }
-  if (!is.character(class) || length(class) != 1L || !nzchar(class)) {
-    stop("`class` must be a single non-empty string", call. = FALSE)
+  if (!is.character(class) || length(class) != 1L || is.na(class) ||
+      !nzchar(class)) {
+    stop("`class` must be non-empty strings", call. = FALSE)
   }
   natural <- !class %in% frmtmb_prior_classes
   if (natural) check_dpar_prior_class(class)
@@ -477,9 +520,15 @@ set_prior <- function(prior = "", class = "b", coef = "", group = "",
     dpar <- class
     class <- "Intercept"
   }
+  # the string as written is kept beside the parsed density, because
+  # brms prints and returns it verbatim: "normal(0,1)" stays
+  # "normal(0,1)", and "cauchy(0, 1)" does not come back as the
+  # student_t it parses into
   spec <- list(dist = dist, class = class, coef = coef, dpar = dpar,
                group = group, resp = resp, nlpar = nlpar, lb = lb,
-               ub = ub)
+               ub = ub,
+               prior = if (is.character(prior)) prior else
+                 prior_dist_string(dist))
   # written only when TRUE. The link-scale spelling carries no such
   # field at all, and frmtmb.sample's test-sample-direct.R reads its
   # absence, so a default of FALSE would itself be a visible change
@@ -652,6 +701,12 @@ deparse_prior_value <- function(x) {
 #'
 #' @noRd
 as_priorlist <- function(x) {
+  # a default_prior() or validate_prior() table is already in this
+  # package's vocabulary, so it is read as written rather than
+  # translated; brms passes its own table back to brm() the same way
+  if (inherits(x, "frmtmb_prior_rows")) {
+    return(priorlist_from_rows(as.data.frame(x), what = "the prior table"))
+  }
   if (!inherits(x, "brmsprior")) return(x)
   rows <- as.data.frame(x, stringsAsFactors = FALSE)
   chr <- function(nm, i) {
@@ -994,26 +1049,53 @@ c.frmtmb_priorlist <- function(...) {
             class = "frmtmb_priorlist")
 }
 
+#' Print a prior specification
+#'
+#' brms's layout: one specification prints as the parameter it
+#' addresses followed by its density, `b_x ~ normal(0, 1)`, with any
+#' bounds in front as `<lower=0>`; several print as a table with one row
+#' each, the table `as.data.frame()` returns, where a row with no density
+#' of its own shows its class row's density as `"(vectorized)"`. An
+#' empty prior prints nothing, as in brms.
+#'
+#' @param x A `frmtmb_priorlist`.
+#' @param show_df Print as a table (`TRUE`) or as one line per
+#'   specification (`FALSE`). `NULL`, the default, prints a table when
+#'   there is more than one specification, as brms does.
+#' @param ... Must be empty.
+#' @return `x`, invisibly.
+#' @examples
+#' set_prior("normal(0,1)", coef = "x")
+#' set_prior("cauchy(0,1)", class = "sd", group = "g")
+#' set_prior("normal(0, 2)", class = c("b", "sd"))
 #' @export
-print.frmtmb_priorlist <- function(x, ...) {
+print.frmtmb_priorlist <- function(x, show_df = NULL, ...) {
   frm_check_dots(...)
-  for (s in unclass(x)) {
-    d <- if (is.null(s$dist)) "(bounds only)" else {
-      # brms spelling on the way out as well as on the way in, so a
-      # printed prior can be pasted back into set_prior()
-      kind <- if (identical(s$dist$kind, "t")) "student_t" else s$dist$kind
-      paste0(kind, "(", paste(unlist(s$dist[-1]), collapse = ", "), ")")
+  n <- length(unclass(x))
+  if (is.null(show_df)) show_df <- n != 1L
+  check_flag(show_df, "show_df")
+  df <- as.data.frame(x)
+  if (!n) {
+    # brms prints nothing for an empty prior, not an empty table
+  } else if (show_df) {
+    shown <- df
+    # a row with no density of its own shows the density of the class
+    # row it sits under, marked "(vectorized)", as brms prints it
+    for (i in which(!nzchar(shown$prior))) {
+      up <- setdiff(which(df$class == df$class[i] &
+                            df$resp == df$resp[i] & df$dpar == df$dpar[i] &
+                            df$nlpar == df$nlpar[i] & !nzchar(df$coef) &
+                            !nzchar(df$group)), i)
+      if (length(up)) shown$source[i] <- "(vectorized)"
+      shown$prior[i] <- if (length(up) && nzchar(df$prior[up[1L]])) {
+        df$prior[up[1L]]
+      } else {
+        "(flat)"
+      }
     }
-    sp <- spec_spelling(s)
-    cat(d, " class=", sp$class,
-        if (nzchar(s$coef)) paste0(" coef=", s$coef),
-        if (nzchar(sp$dpar)) paste0(" dpar=", sp$dpar),
-        if (nzchar(s$nlpar %||% "")) paste0(" nlpar=", s$nlpar),
-        if (nzchar(s$resp %||% "")) paste0(" resp=", s$resp),
-        if (nzchar(s$group)) paste0(" group=", s$group),
-        if (isTRUE(s$natural)) " scale=natural",
-        if (!is.na(s$lb)) paste0(" lb=", s$lb),
-        if (!is.na(s$ub)) paste0(" ub=", s$ub), "\n", sep = "")
+    print.data.frame(shown, row.names = FALSE)
+  } else {
+    cat(prior_row_lines(df), sep = "\n")
   }
   ov <- attr(x, "overrides")
   if (length(ov)) {
@@ -1023,16 +1105,239 @@ print.frmtmb_priorlist <- function(x, ...) {
   invisible(x)
 }
 
-#' Enumerate the targetable prior slots
+#' One line per row in brms's `.print_prior()` layout: bounds, then
+#' the parameter name built from class, group, resp, dpar, nlpar and
+#' coef, then the density.
 #'
-#' The [set_prior()] counterpart of brms's `get_prior()`: one row per
-#' slot a prior can target, with the class/coef/dpar/group values to
-#' pass to `set_prior()`. Classes `"sd"` and `"cor"` are targeted
-#' by `group` and `nlpar`; the residual-correlation classes (`"ar"`,
-#' `"ma"`, `"cosy"`, `"cortime"`, `"rescor"`) by `resp`; and class
-#' `"theta"` rows name the raw internal covariance parameters (escape
-#' hatch, including correlations one at a time, across all three
-#' covariance components).
+#' @noRd
+prior_row_lines <- function(df) {
+  usc <- function(v) ifelse(nzchar(v), paste0("_", v), "")
+  group <- usc(df$group)
+  deeper <- nzchar(df$resp) | nzchar(df$dpar) | nzchar(df$nlpar) |
+    nzchar(df$coef)
+  group <- ifelse(deeper & nzchar(group), paste0(group, "_"), group)
+  lb <- ifelse(is.na(df$lb), "", paste0("lower=", df$lb))
+  ub <- ifelse(is.na(df$ub), "", paste0("upper=", df$ub))
+  bound <- ifelse(nzchar(lb) & nzchar(ub), paste0("<", lb, ",", ub, "> "),
+                  ifelse(nzchar(lb), paste0("<", lb, "> "),
+                         ifelse(nzchar(ub), paste0("<", ub, "> "), "")))
+  prior <- ifelse(nzchar(df$prior), df$prior, "(flat)")
+  paste0(bound, df$class, group, usc(df$resp), usc(df$dpar),
+         usc(df$nlpar), usc(df$coef), " ~ ", prior)
+}
+
+#' The string a parsed density is written as, for a specification built
+#' from a prior object rather than a string. It parses back to the same
+#' object.
+#'
+#' @noRd
+prior_dist_string <- function(dist) {
+  if (is.null(dist)) return("")
+  kind <- if (identical(dist$kind, "t")) "student_t" else dist$kind
+  paste0(kind, "(", paste(unlist(dist[-1L]), collapse = ", "), ")")
+}
+
+#' @export
+as.data.frame.frmtmb_priorlist <- function(x, row.names = NULL,
+                                           optional = FALSE, ...) {
+  frm_check_dots(...)
+  specs <- unclass(x)
+  chr <- function(f) {
+    vapply(specs, function(s) {
+      v <- s[[f]]
+      if (is.null(v) || is.na(v)) "" else as.character(v)
+    }, "")
+  }
+  bnd <- function(f) {
+    vapply(specs, function(s) {
+      v <- s[[f]]
+      if (is.null(v) || is.na(v)) NA_character_ else as.character(v)
+    }, "")
+  }
+  # the spelling a specification is WRITTEN with, so a density on a
+  # distributional parameter itself reads as that parameter's class
+  sp <- lapply(specs, spec_spelling)
+  data.frame(
+    prior = vapply(specs, function(s) {
+      s[["prior"]] %||% prior_dist_string(s[["dist"]])
+    }, ""),
+    class = vapply(sp, `[[`, "", "class"),
+    coef = chr("coef"), group = chr("group"), resp = chr("resp"),
+    dpar = vapply(sp, `[[`, "", "dpar"),
+    nlpar = chr("nlpar"), lb = bnd("lb"), ub = bnd("ub"),
+    source = rep("user", length(specs)),
+    row.names = row.names, stringsAsFactors = FALSE
+  )
+}
+
+#' Column access on a prior specification
+#'
+#' A `frmtmb_priorlist` holds parsed specifications, and brms's prior
+#' object is a data frame of strings. `$` reads the columns brms's
+#' object has, from the table `as.data.frame()` builds, so
+#' `set_prior("normal(0, 2)", class = c("b", "sd"))$class` is
+#' `c("b", "sd")` in both packages. The name must match a column
+#' exactly; anything else is `NULL`, as it is on a data frame.
+#' Assigning a column rebuilds every specification from the edited
+#' table with [set_prior()], so an edit is checked as a new call would
+#' be.
+#'
+#' @param x A `frmtmb_priorlist`.
+#' @param name A column: `prior`, `class`, `coef`, `group`, `resp`,
+#'   `dpar`, `nlpar`, `lb`, `ub` or `source`.
+#' @param value The new column, recycled as a data frame column is.
+#' @return For `$`, a character vector with one element per
+#'   specification. For `$<-`, the rebuilt `frmtmb_priorlist`.
+#' @examples
+#' pr <- set_prior("normal(0, 2)", class = c("b", "sd"))
+#' pr$class
+#' pr$prior[2] <- "exponential(1)"
+#' pr
+#' @name frmtmb_priorlist-columns
+#' @export
+`$.frmtmb_priorlist` <- function(x, name) {
+  as.data.frame(x)[[name, exact = TRUE]]
+}
+
+#' @rdname frmtmb_priorlist-columns
+#' @export
+`$<-.frmtmb_priorlist` <- function(x, name, value) {
+  df <- as.data.frame(x)
+  cols <- setdiff(names(df), "source")
+  if (!name %in% cols) {
+    stop("A prior specification has no column '", name, "' to assign. ",
+         "The columns are ", paste(cols, collapse = ", "), call. = FALSE)
+  }
+  df[[name]] <- value
+  out <- priorlist_from_rows(df, what = "the edited prior specification") %||%
+    empty_prior()
+  attr(out, "overrides") <- attr(x, "overrides")
+  out
+}
+
+#' An empty prior specification
+#'
+#' brms's `empty_prior()`: a prior object with no specifications, to add
+#' specifications to with `+` or `c()`. [frm()] given it applies no
+#' prior.
+#'
+#' @return A `frmtmb_priorlist` of length zero.
+#' @examples
+#' pr <- empty_prior()
+#' pr <- pr + set_prior("normal(0, 1)", class = "b")
+#' pr
+#' @export
+empty_prior <- function() {
+  structure(list(), class = "frmtmb_priorlist")
+}
+
+#' Transform an object into a prior specification
+#'
+#' brms's `as.brmsprior()`. A data frame (or anything
+#' `as.data.frame()` accepts) with a `prior` column becomes the object
+#' [set_prior()] returns, one specification per row. Missing columns
+#' take `set_prior()`'s defaults (`class = "b"`, empty `coef`, `group`,
+#' `resp`, `dpar` and `nlpar`, no bounds) and columns `set_prior()` does
+#' not take are dropped.
+#'
+#' The name is brms's, and so is the job: turn a table into the prior
+#' object this package fits with. That object is a `frmtmb_priorlist`
+#' rather than a `brmsprior`, because this package parses a density
+#' when it is written rather than when the model is compiled. A
+#' `brmsprior` built by brms is translated row by row, as [frm()]
+#' translates one, and a table from [default_prior()] or
+#' [validate_prior()] is read as written.
+#'
+#' A row whose `prior` is empty or `"(flat)"` and that carries no bound
+#' applies nothing, and is left out: it is the flat default a
+#' [default_prior()] table lists for a slot nobody has set. So is a row
+#' whose `source` is `"(vectorized)"`, which repeats the density of the
+#' class row above it.
+#'
+#' @param x A data frame with a `prior` column, a `brmsprior`, a
+#'   [default_prior()] table or a `frmtmb_priorlist`.
+#' @return A `frmtmb_priorlist`.
+#' @examples
+#' as.brmsprior(data.frame(prior = "normal(0,1)", coef = c("a", "b")))
+#' @export
+as.brmsprior <- function(x) {
+  if (inherits(x, "frmtmb_priorlist")) return(x)
+  if (inherits(x, "brmsprior")) {
+    return(as_priorlist(x) %||% empty_prior())
+  }
+  x <- as.data.frame(x, stringsAsFactors = FALSE)
+  if (!"prior" %in% names(x)) {
+    stop("as.brmsprior() needs a `prior` column", call. = FALSE)
+  }
+  priorlist_from_rows(x, what = "the table") %||% empty_prior()
+}
+
+#' Build a `frmtmb_priorlist` from a table in `set_prior()`'s own
+#' vocabulary, one call per row. Every refused row is named in one
+#' message, as `as_priorlist()` does for a brms table, because a table is
+#' edited as a whole.
+#'
+#' @noRd
+priorlist_from_rows <- function(x, what) {
+  defaults <- list(class = "b", coef = "", group = "", resp = "",
+                   dpar = "", nlpar = "", lb = NA, ub = NA)
+  cell <- function(nm, i) {
+    if (!nm %in% names(x)) return(defaults[[nm]])
+    v <- x[[nm]][[i]]
+    if (nm %in% c("lb", "ub")) return(v)
+    if (is.na(v)) "" else as.character(v)
+  }
+  unset <- function(v) {
+    is.null(v) || is.na(v) || (is.character(v) && !nzchar(v))
+  }
+  if ("tag" %in% names(x) && any(nzchar(x[["tag"]][!is.na(x[["tag"]])]))) {
+    stop("A tag names a prior for reuse inside a Stan program, which ",
+         "frmtmb does not build. Drop the `tag` column", call. = FALSE)
+  }
+  out <- list()
+  bad <- character(0)
+  for (i in seq_len(nrow(x))) {
+    if ("source" %in% names(x) &&
+          identical(as.character(x[["source"]][[i]]), "(vectorized)")) {
+      next
+    }
+    pr <- cell("prior", i)
+    if (identical(pr, "(flat)")) pr <- ""
+    lb <- cell("lb", i)
+    ub <- cell("ub", i)
+    if (!nzchar(pr) && unset(lb) && unset(ub)) next
+    one <- tryCatch(
+      set_prior(pr, class = cell("class", i), coef = cell("coef", i),
+                group = cell("group", i), resp = cell("resp", i),
+                dpar = cell("dpar", i), nlpar = cell("nlpar", i),
+                lb = if (unset(lb)) NA else lb,
+                ub = if (unset(ub)) NA else ub),
+      error = function(e) {
+        bad[[length(bad) + 1L]] <<- paste0("row ", i, ": ",
+                                            conditionMessage(e))
+        NULL
+      })
+    if (!is.null(one)) out <- c(out, unclass(one))
+  }
+  if (length(bad)) {
+    stop("Cannot read ", length(bad),
+         if (length(bad) == 1L) " row" else " rows", " of ", what, ":\n",
+         paste0("  ", bad, collapse = "\n"), call. = FALSE)
+  }
+  if (!length(out)) return(NULL)
+  structure(out, class = "frmtmb_priorlist")
+}
+
+#' Default priors: the slots a prior can target
+#'
+#' brms's `default_prior()`, and `get_prior()`, which brms has kept as
+#' its alias since 2.20.14: one row per slot a prior can target, with
+#' the class/coef/dpar/group values to pass to [set_prior()]. Classes
+#' `"sd"` and `"cor"` are targeted by `group` and `nlpar`; the
+#' residual-correlation classes (`"ar"`, `"ma"`, `"cosy"`, `"cortime"`,
+#' `"rescor"`) by `resp`; and class `"theta"` rows name the raw internal
+#' covariance parameters (escape hatch, including correlations one at a
+#' time, across all three covariance components).
 #'
 #' A nonlinear parameter's coefficients are listed under class `"b"`
 #' with its name in the `nlpar` column, the intercept among them, which
@@ -1049,6 +1354,22 @@ print.frmtmb_priorlist <- function(x, ...) {
 #' An ordinal family has no intercept column, so its class `"Intercept"`
 #' row names the THRESHOLD vector, which is what the same row means in
 #' brms. See the Ordinal thresholds section of [set_prior()].
+#'
+#' @section Where the table differs from brms's:
+#' The class `"theta"` rows are frmtmb's own. They name the internal
+#' covariance parameters, which are real parameters of the fit, and for
+#' a `gp()` length-scale, a `car()` dependence parameter or one entry of
+#' a structured covariance they are the only spelling that reaches one
+#' parameter. brms has no such class, so a brms table for the same model
+#' has fewer rows.
+#'
+#' brms lists a class `"sd"` row per coefficient of each block
+#' (`sd_patient__Intercept`). frmtmb's class `"sd"` addresses a whole
+#' block and refuses a `coef`, so those rows are not listed; class
+#' `"theta"` reaches one standard deviation on its own.
+#'
+#' A flat slot reads `"(flat)"` in the `prior` column, where brms stores
+#' an empty string and prints `(flat)`.
 #'
 #' @section Which route the defaults describe:
 #' Every column but `prior` is a property of the design, and the design
@@ -1069,25 +1390,26 @@ print.frmtmb_priorlist <- function(x, ...) {
 #' would be a wrong answer about the sampling route and not a missing
 #' one.
 #'
-#' brms's `get_prior()` describes what `brm()` would use, so the brms
-#' reading of this function is `route = "sample"`. `route = "fit"` has
-#' no brms counterpart: it describes `frm()`.
+#' brms's `default_prior()` describes what `brm()` would use, so the
+#' brms reading of this function is `route = "sample"`. `route = "fit"`
+#' has no brms counterpart: it describes `frm()`.
 #'
-#' With frmtmb.sample attached,
-#' `get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd, route = "sample")`
-#' returns the same rows as the example below with brms's densities in
+#' With frmtmb.sample attached, the example below with
+#' `route = "sample"` added returns the same rows as the example below with brms's densities in
 #' the `prior` column instead of `(flat)`: a Student-t on the intercept
 #' centered on the response, a half-Student-t on `sigma` and on each
 #' standard deviation, and `lkj(1)` on each correlation. Population-level
 #' slopes stay `(flat)`, as they are in brms.
 #'
-#' @param formula A `bf()` formula (with family), a plain formula, or
+#' @param object A `bf()` formula (with family), a plain formula, or
 #'   an already fitted `frmtmb_fit`.
-#' @param data A data frame of model data (ignored when `formula` is a
+#' @param formula The same as `object`, under the name brms's
+#'   `get_prior()` gives it.
+#' @param data A data frame of model data (ignored when `object` is a
 #'   fit).
-#' @param family Family, when `formula` does not carry one.
+#' @param family Family, when `object` does not carry one.
 #' @param data2 Structural objects, as in [frm()] (ignored when
-#'   `formula` is a fit, which carries its own).
+#'   `object` is a fit, which carries its own).
 #' @param route Which route's defaults the `prior` column reports.
 #'   `"fit"` (the default) reports the defaults [frm()] applies, which
 #'   are flat in every slot; it consults no registry, so its answer
@@ -1095,37 +1417,212 @@ print.frmtmb_priorlist <- function(x, ...) {
 #'   the defaults `frmtmb.sample::frm_sample()` applies, and refuses
 #'   when no package has registered any. The returned object records
 #'   the route and `print()` names it on its first line.
-#' @return A data frame of class `frmtmb_prior_rows` with columns
-#'   `prior`, `class`, `coef`, `group`, `dpar`, `nlpar`, `resp`, `lb`,
-#'   `ub`, and a `route` attribute.
+#' @param ... For `get_prior()`, the arguments of `default_prior()`.
+#' @return A data frame of class `frmtmb_prior_rows` with brms's columns
+#'   `prior`, `class`, `coef`, `group`, `resp`, `dpar`, `nlpar`, `lb`,
+#'   `ub` and `source`, and a `route` attribute. `source` is
+#'   `"default"` on every row; [validate_prior()] marks the rows a user
+#'   set.
+#' @seealso [validate_prior()] for the table with a prior filled in.
 #' @examples
 #' dd <- data.frame(y = rnorm(60), x = rnorm(60),
 #'                  g = factor(rep(1:6, 10)))
 #' # what frm() applies: flat, whatever else is loaded. For what
 #' # frm_sample() applies, see "Which route the defaults describe"
+#' default_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+#' # the same table under brms's older name
 #' get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 #' @export
-get_prior <- function(formula, data = NULL, family = NULL,
-                      data2 = list(), route = c("fit", "sample")) {
+default_prior <- function(object, data = NULL, family = NULL,
+                          data2 = list(), route = c("fit", "sample")) {
   route <- match.arg(route)
   # refused before the frame is assembled: a route nothing can answer is
   # unanswerable for every model, so the work would be thrown away
   if (identical(route, "sample")) require_prior_defaults()
-  if (inherits(formula, "frmtmb_fit")) {
-    spec <- formula$spec
-    frame <- formula$frame
-  } else {
-    bform <- resolve_deferred_families(as_bform(formula, family), data)
-    spec <- parse_spec(bform)
-    frame <- assemble_frame(spec, data, data2 = data2)
-    # the table is built from the spec's primary_dpars and nlpars, so
-    # it needs the finalized families: a family that derived its dpars
-    # from the response would otherwise be tabled under the vocabulary
-    # it was written with, and the fit route would disagree with the
-    # formula route. No in-repo family does that today.
-    spec <- carry_finalized_responses(spec, frame)
-  }
+  design <- prior_design(object, data, family, data2)
+  prior_table(design$spec, design$frame, route)
+}
 
+#' @rdname default_prior
+#' @export
+get_prior <- function(formula, ...) {
+  default_prior(formula, ...)
+}
+
+#' The spec and frame a prior table and a prior check are read from.
+#'
+#' @noRd
+prior_design <- function(object, data, family, data2) {
+  if (inherits(object, "frmtmb_fit")) {
+    return(list(spec = object$spec, frame = object$frame))
+  }
+  bform <- resolve_deferred_families(as_bform(object, family), data)
+  spec <- parse_spec(bform)
+  frame <- assemble_frame(spec, data, data2 = data2)
+  # the table is built from the spec's primary_dpars and nlpars, so
+  # it needs the finalized families: a family that derived its dpars
+  # from the response would otherwise be tabled under the vocabulary
+  # it was written with, and the fit route would disagree with the
+  # formula route. No in-repo family does that today.
+  spec <- carry_finalized_responses(spec, frame)
+  list(spec = spec, frame = frame)
+}
+
+#' Check a prior against a model
+#'
+#' brms's `validate_prior()`: resolve a prior specification against the
+#' model it is meant for, refuse it if any part of it addresses nothing
+#' the model has, and return the whole [default_prior()] table with the
+#' prior filled in. Fitting runs the same check, so a prior this
+#' function accepts is one [frm()] accepts, and a prior it refuses is
+#' refused here with the message the fit would give, before any fitting
+#' work.
+#'
+#' A row the prior sets reads `source = "user"`. A row that takes its
+#' density from a class row above it, the coefficients under a class
+#' `"b"` prior or the blocks under a class `"sd"` prior, reads
+#' `source = "(vectorized)"` and repeats that density, as brms prints
+#' it. Every other row keeps its default.
+#'
+#' Two specifications for the same slot are refused, as [frm()] and
+#' brms refuse them. Where specifications for different slots reach one
+#' parameter, the table shows the more specific one, which is the one
+#' [frm()] applies; see [set_prior()].
+#'
+#' The table can be passed back as `prior =`: [frm()] reads a
+#' `frmtmb_prior_rows` table the way [as.brmsprior()] does, applying the
+#' rows with a density or a bound and skipping the flat and
+#' vectorized ones.
+#'
+#' @inheritParams default_prior
+#' @param prior A `frmtmb_priorlist` from [set_prior()], a `brmsprior`,
+#'   or `NULL` for none.
+#' @param formula A `bf()` formula (with family) or a plain formula.
+#' @return A `frmtmb_prior_rows` table, as [default_prior()] returns.
+#' @examples
+#' dd <- data.frame(y = rnorm(60), x = rnorm(60), z = rnorm(60),
+#'                  g = factor(rep(1:6, 10)))
+#' validate_prior(prior(normal(0, 10), class = b) +
+#'                  prior(cauchy(0, 2), class = sd),
+#'                y ~ x + z + (1 | g), data = dd)
+#' # a prior on a coefficient the model does not have is refused
+#' try(validate_prior(prior(normal(0, 1), coef = w), y ~ x, data = dd))
+#' @export
+validate_prior <- function(prior, formula, data, family = NULL,
+                           data2 = list(), route = c("fit", "sample")) {
+  route <- match.arg(route)
+  if (identical(route, "sample")) require_prior_defaults()
+  pl <- as_priorlist(prior) %||% empty_prior()
+  if (!inherits(pl, "frmtmb_priorlist")) {
+    stop("validate_prior() takes a prior built by set_prior() or ",
+         "prior(), or a brms prior table; got ", arg_desc(prior),
+         call. = FALSE)
+  }
+  check_prior_slots(pl)
+  design <- prior_design(formula, data, family, data2)
+  # the fit's own resolution, so every refusal is the one frm() gives
+  resolve_priorlist(design, pl)
+  tab <- prior_table(design$spec, design$frame, route)
+  fill_prior_table(tab, pl)
+}
+
+#' Write a prior specification into a [default_prior()] table: the
+#' rows it addresses by name first, in the order the resolver applies
+#' them so the more specific one wins, and then the rows below a class
+#' row it set. Reading the table must never show a density the fit does
+#' not apply.
+#'
+#' @noRd
+fill_prior_table <- function(tab, pl) {
+  cols <- c("class", "coef", "group", "resp", "dpar", "nlpar")
+  bare <- function(v) par_name_bare(v)
+  # which rows a specification's resp, dpar and nlpar reach, read the
+  # way the resolver reads them: no resp means every response, and a
+  # class sd or cor specification with no dpar or nlpar reaches the
+  # blocks of every predictor
+  covers <- function(resp, dpar, nlpar, class, rows) {
+    wide <- class %in% c("sd", "cor")
+    (rows$resp == resp | !nzchar(resp)) &
+      (rows$dpar == dpar | (wide & !nzchar(dpar))) &
+      (rows$nlpar == nlpar | (wide & !nzchar(nlpar)))
+  }
+  user <- as.data.frame(structure(prior_specificity_order(pl),
+                                  class = "frmtmb_priorlist"))
+  for (i in seq_len(nrow(user))) {
+    u <- user[i, ]
+    hit <- tab$class == u$class & tab$group == u$group &
+      covers(u$resp, u$dpar, u$nlpar, u$class, tab) &
+      (tab$coef == u$coef | bare(tab$coef) == bare(u$coef))
+    if (!any(hit)) {
+      # the resolver accepted it, so it addresses something: a slot the
+      # table lists under a wider row, such as a response of a
+      # multivariate model. It is appended rather than lost
+      extra <- tab[rep(1L, 1L), , drop = FALSE]
+      extra[1L, cols] <- u[cols]
+      extra$prior <- "(flat)"
+      extra$lb <- NA_real_
+      extra$ub <- NA_real_
+      tab <- rbind(tab, extra)
+      hit <- c(logical(nrow(tab) - 1L), TRUE)
+    }
+    if (nzchar(u$prior)) {
+      tab$prior[hit] <- u$prior
+      tab$source[hit] <- "user"
+    }
+    if (!is.na(u$lb)) {
+      tab$lb[hit] <- as.numeric(u$lb)
+      tab$source[hit] <- "user"
+    }
+    if (!is.na(u$ub)) {
+      tab$ub[hit] <- as.numeric(u$ub)
+      tab$source[hit] <- "user"
+    }
+  }
+  # a row the prior did not name takes its density from the user row
+  # the resolver applies over it: of the class rows that reach it, the
+  # most specific, as prior_specificity_order() ranks them. Parents are
+  # looked for anywhere in the table, because a dpar- or resp-specific
+  # class row the prior names may have been appended at its end
+  nz <- function(v) as.integer(nzchar(v))
+  rank <- 10L * nz(tab$group) + nz(tab$resp) + nz(tab$dpar) + nz(tab$nlpar)
+  is_user <- tab$source == "user" & tab$prior != "(flat)"
+  for (i in seq_len(nrow(tab))) {
+    if (!identical(tab$source[i], "default") ||
+        !identical(tab$prior[i], "(flat)")) {
+      next
+    }
+    if (!nzchar(tab$coef[i]) && !nzchar(tab$group[i]) &&
+        !nzchar(tab$dpar[i]) && !nzchar(tab$resp[i]) &&
+        !nzchar(tab$nlpar[i])) {
+      next
+    }
+    parent <- vapply(seq_len(nrow(tab)), function(j) {
+      covers(tab$resp[j], tab$dpar[j], tab$nlpar[j], tab$class[j],
+             tab[i, ])
+    }, TRUE)
+    up <- which(tab$class == tab$class[i] & parent & is_user &
+                  !nzchar(tab$coef) &
+                  (if (nzchar(tab$coef[i])) {
+                    tab$group == tab$group[i] | !nzchar(tab$group)
+                  } else if (nzchar(tab$group[i])) {
+                    !nzchar(tab$group)
+                  } else {
+                    !nzchar(tab$group)
+                  }) &
+                  seq_len(nrow(tab)) != i)
+    if (!length(up)) next
+    best <- up[rank[up] == max(rank[up])]
+    tab$prior[i] <- tab$prior[best[length(best)]]
+    tab$source[i] <- "(vectorized)"
+  }
+  rownames(tab) <- NULL
+  tab
+}
+
+#' The [default_prior()] table for an assembled model.
+#'
+#' @noRd
+prior_table <- function(spec, frame, route) {
   multi <- length(spec$responses) > 1L
   rows <- list()
   # The fit route reads no registry, deliberately. It once did, and a
@@ -1143,12 +1640,18 @@ get_prior <- function(formula, data = NULL, family = NULL,
     # a default speaks for a CLASS, not for one coefficient of it: brms
     # reports the class row and leaves the per-coefficient rows flat, and
     # a per-coefficient row here would claim a default nothing applies
+    # and a default on sd or cor is written class-wide, so a block of a
+    # distributional parameter's predictor reads the same one
     d <- if (nzchar(coef)) NULL else
-      defs[[prior_slot_key(class, dpar, nlpar, resp)]]
+      defs[[prior_slot_key(class,
+                           if (class %in% c("sd", "cor")) "" else dpar,
+                           nlpar, resp)]]
+    # brms's column order, so a table read by position lines up with
+    # the one brms returns
     rows[[length(rows) + 1L]] <<- data.frame(
       prior = d %||% "(flat)", class = class, coef = coef, group = group,
-      dpar = dpar, nlpar = nlpar, resp = resp, lb = NA_real_,
-      ub = NA_real_
+      resp = resp, dpar = dpar, nlpar = nlpar, lb = NA_real_,
+      ub = NA_real_, source = "default"
     )
   }
 
@@ -1217,6 +1720,7 @@ get_prior <- function(formula, data = NULL, family = NULL,
   for (bk in frame[["re_blocks"]]) {
     key <- list(group = bk[["group_name"]], nlpar = block_nlpar(spec, frame,
                                                                 bk),
+                dpar = block_dpar(spec, frame, bk),
                 resp = if (multi) block_resp(frame, bk) else "")
     if (length(block_sd_idx(bk))) sd_rows[[length(sd_rows) + 1L]] <- key
     if (identical(block_cor_prior(bk), "lkj")) {
@@ -1228,7 +1732,8 @@ get_prior <- function(formula, data = NULL, family = NULL,
     if (!length(ks)) next
     add(cl)
     for (k in ks) {
-      add(cl, group = k$group, nlpar = k$nlpar, resp = k$resp)
+      add(cl, group = k$group, dpar = k$dpar, nlpar = k$nlpar,
+          resp = k$resp)
     }
   }
   # the R-side residual structures, under the class names brms shows for
@@ -1324,6 +1829,22 @@ block_nlpar <- function(spec, frame, bk) {
   if (length(np) == 1L) np else ""
 }
 
+#' The distributional parameter a block belongs to, or `""` for the
+#' location parameters, a nonlinear parameter, and a block that
+#' straddles several. brms lists a block of `phi ~ (1 | g)` as class
+#' `"sd"` with `dpar = "phi"`, and without the column two blocks on the
+#' same factor in different predictors printed as one row.
+#'
+#' @noRd
+block_dpar <- function(spec, frame, bk) {
+  dp <- unique(vapply(block_linpreds(frame, bk), function(lp) {
+    rspec <- spec$responses[[lp[["resp"]]]]
+    nl <- rspec$nlpars %||% character(0)
+    if (lp[["dpar"]] %in% c(rspec$primary_dpars, nl)) "" else lp[["dpar"]]
+  }, ""))
+  if (length(dp) == 1L) dp else ""
+}
+
 #' The response a block belongs to, or `""` when it straddles several.
 #'
 #' @noRd
@@ -1402,14 +1923,107 @@ model_nlpars <- function(spec) {
 }
 
 #' Copy the bounds of a prior specification onto an existing entry. This
-#' is how a later bounds-only specification tightens an entry that an
-#' earlier distribution created, instead of being lost.
+#' is how a coefficient's bounds-only specification boxes the entry a
+#' class-wide distribution created, instead of being lost.
 #'
 #' @noRd
 entry_bounds <- function(entry, s) {
   if (!is.na(s$lb)) entry$lb <- s$lb
   if (!is.na(s$ub)) entry$ub <- s$ub
   entry
+}
+
+#' The specifications of a priorlist in the order they are applied: the
+#' positions each class holds are kept, and within a class the less
+#' specific specifications move before the more specific ones.
+#'
+#' brms applies a coefficient's prior over its class's and a group's
+#' over the class-wide one whatever the order written, and so does this.
+#' Before, the later specification won, so `coef = "x"` written before a
+#' class `"b"` prior was silently overridden by it. Keeping each class
+#' in its own positions leaves the order between classes alone, which
+#' is the only precedence `"cor"` and the `"theta"` hatch have; a stable
+#' sort keeps equally specific specifications in written order, which
+#' is the order frmtmb.sample stacks its defaults in.
+#'
+#' @noRd
+prior_specificity_order <- function(pl) {
+  specs <- unclass(pl)
+  if (length(specs) < 2L) return(specs)
+  nz <- function(s, f) as.integer(nzchar(s[[f]] %||% ""))
+  cls <- vapply(specs, function(s) spec_spelling(s)$class, "")
+  rank <- vapply(specs, function(s) {
+    100L * nz(s, "coef") + 10L * nz(s, "group") + nz(s, "resp") +
+      nz(s, "dpar") + nz(s, "nlpar")
+  }, 0L)
+  out <- specs
+  for (k in unique(cls)) {
+    at <- which(cls == k)
+    out[at] <- specs[at[order(rank[at])]]
+  }
+  out
+}
+
+#' The slot one specification addresses, brms's key: class as written,
+#' coef, group, resp, dpar and nlpar.
+#'
+#' @noRd
+prior_slot_label <- function(s) {
+  sp <- spec_spelling(s)
+  df <- data.frame(prior = "", class = sp$class,
+                   coef = par_name_bare(s$coef %||% ""),
+                   group = s$group %||% "", resp = s$resp %||% "",
+                   dpar = sp$dpar, nlpar = s$nlpar %||% "",
+                   lb = NA_character_, ub = NA_character_,
+                   stringsAsFactors = FALSE)
+  sub(" ~ .*$", "", prior_row_lines(df))
+}
+
+#' The slot one specification addresses as a comparable key: class as
+#' written, coef without the parentheses of `(Intercept)`, group, resp,
+#' dpar and nlpar, each kept apart.
+#'
+#' @noRd
+prior_spec_slot <- function(s) {
+  sp <- spec_spelling(s)
+  paste(sp$class, par_name_bare(s$coef %||% ""), s$group %||% "",
+        s$resp %||% "", sp$dpar, s$nlpar %||% "", sep = "\r")
+}
+
+#' Refuse two specifications for the same slot
+#'
+#' brms refuses them, whether the two are identical, carry different
+#' densities, or are a density and a bounds-only specification. Earlier
+#' releases applied the later one, and a later bounds-only specification
+#' tightened an earlier density. Called where a user passes a prior:
+#' [frm()], [validate_prior()], [frm_simulate()], [par_template()] and
+#' `frmtmb.sample::frm_sample()`. Not inside the resolver, because
+#' frmtmb.sample stacks its own specifications there.
+#'
+#' @param prior A `frmtmb_priorlist`; anything else is returned
+#'   unchecked.
+#' @return `prior`, invisibly.
+#' @noRd
+check_prior_slots <- function(prior) {
+  if (!inherits(prior, "frmtmb_priorlist")) return(invisible(prior))
+  specs <- unclass(prior)
+  # the fields themselves, not the name brms prints: b with dpar = "sigma"
+  # and b with coef = "sigma" both print b_sigma and are two slots
+  keys <- vapply(specs, prior_spec_slot, "")
+  dup_at <- which(duplicated(keys))
+  if (length(dup_at)) {
+    first <- dup_at[!duplicated(keys[dup_at])]
+    labels <- vapply(specs[first], prior_slot_label, "")
+    counts <- vapply(keys[first], function(k) sum(keys == k), 0L)
+    stop("Duplicated prior specifications are not allowed: ",
+         paste0("'", labels, "' is given ", counts, " times",
+                collapse = "; "),
+         ". Write one specification per slot, with its density and ",
+         "both bounds in the same call, e.g. ",
+         "set_prior(\"normal(0, 1)\", class = \"b\", lb = 0)",
+         call. = FALSE)
+  }
+  invisible(prior)
 }
 
 #' The covariance components class `"theta"` addresses, in the order it
@@ -1459,8 +2073,12 @@ theta_coef_target <- function(frame, coef) {
        call. = FALSE)
 }
 
-#' Resolve a priorlist against a fit: per-parameter prior entries (later
-#' specifications override earlier ones) plus named bound vectors. An
+#' Resolve a priorlist against a fit: per-parameter prior entries (the
+#' more specific specification of a class applies whatever the order,
+#' and between classes the later one) plus named bound vectors. Same-slot
+#' duplicates are refused where users pass priors, not here, because
+#' frmtmb.sample stacks its own defaults under a fit's prior and a
+#' call's prior before resolving them. An
 #' entry holds `comp`, a scalar `idx`, `dist`, `scale` ("internal" or
 #' "sd"), and `lb`/`ub` on the entry's own scale. `frm_simulate()`
 #' rejects draws outside those bounds; `frm_sample()` uses the named
@@ -1480,7 +2098,8 @@ resolve_priorlist <- function(fit, pl) {
   # covers has to RETIRE that entry, and so does a joint entry covering
   # positions that per-parameter entries claimed. Otherwise both
   # densities would be added. With that, "later wins" reads the same
-  # across the two spellings.
+  # across the two spellings, which are different classes and so keep
+  # their written order.
   claim <- function(comp, idx) {
     drop <- vapply(assigned, function(e) {
       identical(e$comp, comp) && length(intersect(e$idx, idx)) > 0L
@@ -1689,7 +2308,7 @@ resolve_priorlist <- function(fit, pl) {
          lb = s$lb, ub = s$ub)
   }
 
-  for (s in unclass(pl)) {
+  for (s in prior_specificity_order(pl)) {
     bad_shape <- dpar_shape_refusal(fit, s)
     if (!is.null(bad_shape)) stop(bad_shape, call. = FALSE)
     ord_th <- if (s$class == "Intercept") ordinal_threshold_entry(s)

@@ -2406,12 +2406,11 @@ hyp_fd_grad <- function(f, v) {
 #' `cor_id__y1.muIntercept__y2.muIntercept` - the last being the
 #' genetic correlation between the traits. [variables()] prints them.
 #'
-#' Two blocks on the same grouping factor with the same term name - an
-#' animal model's `(1 | gr(id, cov = A)) + (1 | id)`, where the genetic
-#' and permanent-environment terms both name the group `id` - collide
-#' on one `sd_id__Intercept`, and the first block in formula order
-#' claims it. Give the second term its own grouping column (a copy of
-#' the factor under another name) when both are wanted by name.
+#' An animal model's genetic and permanent-environment terms cannot both
+#' name the column `id`: `(1 | gr(id, cov = A)) + (1 | id)` repeats the
+#' coefficient `Intercept` of group `id` and is refused, as brms refuses
+#' it. Write the second term on a copy of the column, `(1 | id2)`, and
+#' each block gets its own name.
 #'
 #' Excluded: `s()`/`t2()` smooths, `gp()`/`hsgp()`, `car()` and `spde()`.
 #' Their theta segments are not standard deviations - an inverse

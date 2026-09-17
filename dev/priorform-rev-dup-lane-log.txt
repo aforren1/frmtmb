@@ -1,0 +1,4 @@
+frmtmb from C:/Users/adf44/source/r/priorform-lib/frmtmb 
+
+     accept error-other  refuse-dup 
+         27           4          23 

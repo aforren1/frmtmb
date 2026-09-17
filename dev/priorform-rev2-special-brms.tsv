@@ -1,0 +1,39 @@
+id	verdict	logLik	detail
+s_by	accept		
+s_by_factor	accept		
+t2_xz	accept		
+gp_by	accept		
+me_int	accept		
+mo_int	accept		
+mo_colon	accept		
+mi_int	accept		
+offset_plus_s	accept		
+s_in_nlpar	accept		
+s_twice_star	accept		
+s_twice_plus	accept		
+s_paren	accept		
+s_paren_sum	accept		
+poly	accept		
+s_in_sigma	accept		
+s_sigma_int	refuse-term		The term 'w:s(z)' is invalid in brms syntax.
+s_fs	accept		
+mmc_bar	accept		
+s_power	refuse-term		The term 'x:s(z)' is invalid in brms syntax.
+te_alone	error-other		Tensor product smooths 'te' and 'ti' are not yet implemented in brms. Consider using 't2' instead.
+s_and_re	accept		
+tw_gh_hg	accept		
+tw_gh_slash	refuse-dup		Duplicated group-level effects are not allowed. Occured for effect 'Intercept' of group 'g:h'.
+tw_slash_slash	accept		
+tw_slash_rev	accept		
+tw_dblbar	accept		
+tw_dblbar_bar	refuse-dup		Duplicated group-level effects are not allowed. Occured for effect 'Intercept' of group 'g'.
+tw_single	accept		
+tw_twin	accept		
+tw_space	accept		
+tw_order	refuse-dup		Duplicated group-level effects are not allowed. Occured for effect 'Intercept' of group 'g'.
+tw_mm_args	refuse-dup		Duplicated group-level effects are not allowed. Occured for effect 'Intercept' of group 'mmg1g2'.
+tw_gr_plain	refuse-dup		Duplicated group-level effects are not allowed. Occured for effect 'Intercept' of group 'g'.
+tw_gr_args	refuse-dup		Duplicated group-level effects are not allowed. Occured for effect 'Intercept' of group 'g'.
+tw_ID	accept		
+tw_ID_q	refuse-dup		Duplicated group-level effects are not allowed. Occured for effect 'Intercept' of group 'g'.
+tw_nlpar	accept		

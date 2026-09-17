@@ -1,0 +1,7 @@
+lane theta per block (mu, phi): 1 2 
+sd THEN sd dpar phi          theta1=normal(0,1)  theta2=normal(0,5)
+   table: normal(0, 1)///user | normal(0, 1)/g//(vectorized) | normal(0, 1)/g/phi/(vectorized) | normal(0, 5)//phi/user 
+sd dpar phi THEN sd          theta1=normal(0,1)  theta2=normal(0,5)
+   table: normal(0, 1)///user | normal(0, 1)/g//(vectorized) | normal(0, 1)/g/phi/(vectorized) | normal(0, 5)//phi/user 
+sd group g only              theta1=normal(0,5)  theta2=normal(0,5)
+   table: (flat)///default | normal(0, 5)/g//user | normal(0, 5)/g/phi/user 

@@ -1,0 +1,11 @@
+frm                        refused: Duplicated prior specifications are not allowed: 'b_x' is gi
+update(prior =)            refused: Duplicated prior specifications are not allowed: 'b_x' is gi
+validate_prior             refused: Duplicated prior specifications are not allowed: 'b_x' is gi
+frm_simulate               refused: Duplicated prior specifications are not allowed: 'b' is give
+par_template               refused: Duplicated prior specifications are not allowed: 'b_x' is gi
+hypothesis/prior_summary   ACCEPTED
+update(fitp, prior=dup)    refused: Duplicated prior specifications are not allowed: 'b_x' is gi
+frm_bootstrap(update fn)   refused: unused argument (nboot = 2)
+frm_sample(fit, prior=dup) pre refused: Duplicated prior specifications are not allowed: 'b_x' is gi
+MAP normal(0,1) coef x + call bounds-only coef x -> beta1=t betad1=t theta1=t beta2=normal | lower: x 0.9 
+MAP coef x normal(0,1) + call class b normal(0,5) -> beta1=t/3/1.1/2.5 betad1=t/3/0/2.5 theta1=t/3/0/2.5 beta2=normal/0/1 

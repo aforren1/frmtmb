@@ -224,26 +224,30 @@ test_that("class theta bounds one element or all of them", {
   expect_identical(unname(one$upper), 1)
 })
 
-test_that("a later bounds-only prior tightens an earlier one", {
+test_that("both bounds of a slot are written in one specification", {
   dd <- sim_nl_psy()
   form <- psy_form()
   st <- list(beta = c(0.5, 4))
 
-  # "later wins" is the whole precedence rule now that frm() has no
-  # lower/upper of its own. 0.4 is above the truth of 0.25, so the
-  # tightened bound has to bite for the estimate to sit on it
-  pr <- set_prior("", nlpar = "guess", lb = 0, ub = 1) +
-    set_prior("", nlpar = "guess", lb = 0.4)
+  # a second specification for the same slot is refused, as brms refuses
+  # it, so the tightened box is written once. 0.4 is above the truth of
+  # 0.25, so the bound has to bite for the estimate to sit on it
+  pr <- set_prior("", nlpar = "guess", lb = 0.4, ub = 1)
   fit <- suppressWarnings(
     frm(form, family = bernoulli(link = "identity"), data = dd,
         start = st, prior = pr))
   expect_equal(unname(fixef(fit)$guess), 0.4, tolerance = 1e-5)
-
-  # the endpoint the later specification did not name is the earlier
-  # one's, so tightening one side keeps the other
   ri <- frmtmb:::resolve_prior_input(fit, pr)
   expect_identical(unname(ri$lower["guess_(Intercept)"]), 0.4)
   expect_identical(unname(ri$upper["guess_(Intercept)"]), 1)
+
+  # the two-specification spelling that used to tighten is refused
+  expect_error(
+    frm(form, family = bernoulli(link = "identity"), data = dd,
+        start = st,
+        prior = set_prior("", nlpar = "guess", lb = 0, ub = 1) +
+          set_prior("", nlpar = "guess", lb = 0.4)),
+    "Duplicated prior specifications")
 })
 
 test_that("the retired lower=/upper= arguments are gone, not aliased", {

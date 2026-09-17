@@ -261,6 +261,7 @@
 #' @aliases aterms_for_newdata
 #' @aliases has_trunc
 #' @aliases as_priorlist
+#' @aliases check_prior_slots
 #' @aliases resolve_prior_input
 #' @aliases neg_log_prior_fn
 #' @aliases resolve_bounds
@@ -314,7 +315,8 @@
 #' @aliases frm_check_dots
 #' @rawNamespace export(build_objective, row_lpdf, with_cs_offsets,
 #'   us_chol_cor, aterms_for_newdata, has_trunc, as_priorlist,
-#'   resolve_prior_input, neg_log_prior_fn, resolve_bounds, spec_target,
+#'   check_prior_slots, resolve_prior_input, neg_log_prior_fn,
+#'   resolve_bounds, spec_target,
 #'   spec_spelling,
 #'   frmtmb_register_prior_defaults, ncp_eligible, ncp_scale_b,
 #'   ncp_unscale_b, covstruct_has_chol, block_sd_idx, block_cor_prior,

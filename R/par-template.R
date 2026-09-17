@@ -147,6 +147,7 @@ par_template.default <- function(object, data, family = NULL,
     check_named_list(start, "start", "start = list(beta = c(0, 1))")
   }
   prior <- as_priorlist(prior)
+  check_prior_slots(prior)
   bform <- resolve_deferred_families(as_bform(object, family), data)
   spec <- parse_spec(bform)
   frame <- assemble_frame(spec, data, na.action = na.action,
