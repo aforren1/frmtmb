@@ -1,4 +1,4 @@
-# frmtmb (development version)
+# frmtmb 0.59.0
 
 * **BREAKING, and the silent wrong answer it removes.** The link for the
   mean is now checked against the set brms 2.23.0 allows for the family,

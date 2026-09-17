@@ -1,3 +1,10 @@
+# frmtmb.eam 0.8.2
+
+* Requires frmtmb 0.59.0.
+* Documentation and tests follow frmtmb 0.59.0: brms's parameter names,
+  `VarCorr()`'s brms structure, and `frm_simulate(newparams =)` taking
+  brms names only.
+
 # frmtmb.eam 0.8.1
 
 Documentation and tests only. No density, estimate, fitted value or

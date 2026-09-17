@@ -2630,6 +2630,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       gp_dmax = cps[[1]]$gp_dmax,
       cnms = cnms,
       group_name = cps[[1]]$group_name,
+      # reformulas writes g/h's nested factor as h:g and brms as g:h; the
+      # frame keeps reformulas's factor, and brms's names read this flag
+      from_slash = isTRUE(cps[[1]]$from_slash),
       term_label = label,
       dpar = cps[[1]]$dpar,
       components = lapply(seq_along(gd), function(k) {

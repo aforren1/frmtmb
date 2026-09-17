@@ -699,6 +699,6 @@ test_that("class theta rows name real parameters of the fit", {
   free <- frm(f, d)
   pinned <- frm(f, d, prior = set_prior("normal(-3, 0.05)",
                                         class = "theta", coef = "theta_1"))
-  sd_of <- function(fit) sqrt(unclass(VarCorr(fit))[[1L]][1L, 1L])
+  sd_of <- function(fit) sqrt(varcorr_matrices(fit)[[1L]][1L, 1L])
   expect_lt(sd_of(pinned), sd_of(free) / 2)
 })

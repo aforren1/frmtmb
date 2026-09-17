@@ -1,9 +1,9 @@
-# frmtmb.sample (development version)
+# frmtmb.sample 0.7.0
 
-This release needs the development frmtmb for `brms_par_labels()`,
-`brms_coef_table()`, `brms_stan_name()`, `expand_b()`,
-`varcorr_layout()` and the `hypothesis()` helpers (`hyp_eval_in()`,
-`hyp_expr_vars()`) on `?frmtmb::frmtmb-sampling-api`.
+* Requires frmtmb 0.59.0, for `brms_par_labels()`, `brms_coef_table()`,
+  `brms_stan_name()`, `expand_b()`, `varcorr_layout()`, the
+  `hypothesis()` helpers (`hyp_eval_in()`, `hyp_expr_vars()`) and
+  `check_prior_slots()` on `?frmtmb::frmtmb-sampling-api`.
 
 * **BREAKING: the draws carry brms's names.** `b_Intercept`, `b_x`,
   `b_sigma_Intercept` for the coefficients and `r_g[1,Intercept]` for a

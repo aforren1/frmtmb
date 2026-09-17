@@ -1,3 +1,9 @@
+# frmtmb.ode 0.4.1
+
+* Requires frmtmb 0.59.0.
+* Tests follow frmtmb 0.59.0's `VarCorr()` structure, through
+  `varcorr_matrices()`.
+
 # frmtmb.ode 0.4.0
 
 * **`frm_ode()`'s steady-state run-in sums the tail it used to drop.**

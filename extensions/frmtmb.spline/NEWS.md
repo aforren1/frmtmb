@@ -1,3 +1,9 @@
+# frmtmb.spline 0.5.2
+
+* Requires frmtmb 0.59.0.
+* The vignette and tests follow frmtmb 0.59.0's brms names and
+  `varcorr_matrices()`.
+
 # frmtmb.spline 0.5.1
 
 The Royston-Parmar frailty is a MEASUREMENT rather than a smoke test.

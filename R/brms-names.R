@@ -273,7 +273,19 @@ brms_coef_names <- function(fit) brms_coef_table(fit)$brms
 #'
 #' @noRd
 brms_group_name <- function(bk) {
-  brms_rename(bk[["group_name"]] %||% bk[["term_label"]])
+  g <- bk[["group_name"]] %||% bk[["term_label"]]
+  # reformulas expands g/h into h:g and brms into g:h, so without this
+  # (1 | h:g) + (1 | g/h), two blocks in brms, would share one name
+  if (isTRUE(bk[["from_slash"]])) g <- slash_brms_order(g)
+  brms_rename(g)
+}
+
+#' A `:` grouping factor or level from a slash, in brms's order.
+#'
+#' @noRd
+slash_brms_order <- function(x) {
+  vapply(strsplit(x, ":", fixed = TRUE),
+         function(p) paste(rev(p), collapse = ":"), "")
 }
 
 #' brms's levels of a block's grouping factor. `combine_groups()` joins
@@ -283,6 +295,7 @@ brms_group_name <- function(bk) {
 #' @noRd
 brms_levels <- function(bk, for_r = FALSE) {
   lev <- bk[["levels"]]
+  if (isTRUE(bk[["from_slash"]])) lev <- slash_brms_order(lev)
   if (grepl(":", bk[["group_name"]] %||% "", fixed = TRUE)) {
     lev <- gsub(":", "_", lev, fixed = TRUE)
   }

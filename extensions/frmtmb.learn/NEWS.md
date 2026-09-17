@@ -1,4 +1,6 @@
-# frmtmb.learn (development version)
+# frmtmb.learn 0.4.2
+
+* Requires frmtmb 0.59.0.
 
 * The `reward()` refusal on a duplicated payoff column no longer says
   that `newdata` "cannot supply" the missing columns, which implied

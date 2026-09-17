@@ -1,3 +1,12 @@
+# frmtmb.latent 0.3.1
+
+* Requires frmtmb 0.59.0.
+* `hmm()` marks its transition parameters `tr<i><j>` as read on the link scale
+  (a new family field, `link_scale_dpars`), so frmtmb 0.59.0 reports them
+  as coefficients `b_tr12_Intercept` rather than under a probability-like
+  name holding a logit.
+* Tests follow frmtmb 0.59.0's brms names and `varcorr_matrices()`.
+
 # frmtmb.latent 0.3.0
 
 * **`hmm_starts()` refits from jittered starting values and reports the

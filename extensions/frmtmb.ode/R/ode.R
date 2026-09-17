@@ -1295,7 +1295,7 @@ ode_solve_events <- function(run, y0, pv, tvals, ev, tstart, n_state,
 #' nothing as it reaches 1. The gate is the degree-7 smootherstep, whose
 #' first three derivatives vanish at both ends; the stand-down is that
 #' same shape divided by its argument, degree 6, whose slope at 1 is -1,
-#' which is exactly the slope that joins `r / (1 - r)` below the cap.
+#' which is exactly the slope that joins `r/(1 - r)` below the cap.
 #' Measured rather than asserted, **the objective has no corner in the
 #' parameters** at any of the four junctions: a one-sided first
 #' difference there reads the curvature `2 / (1 - r)^3` to five figures,
