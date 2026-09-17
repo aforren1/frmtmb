@@ -26,6 +26,8 @@ Reading man/anova.frmtmb_fit.Rd
 Writing `reference/anova.frmtmb_fit.html`
 Reading man/anova.frmtmb_multiple.Rd
 Writing `reference/anova.frmtmb_multiple.html`
+Reading man/as.brmsprior.Rd
+Writing `reference/as.brmsprior.html`
 Reading man/as_draws.Rd
 Writing `reference/as_draws.html`
 Reading man/autocor_matrix.Rd
@@ -34,6 +36,8 @@ Reading man/bayes_R2.Rd
 Writing `reference/bayes_R2.html`
 Reading man/bf.Rd
 Writing `reference/bf.html`
+Reading man/brmsfamily.Rd
+Writing `reference/brmsfamily.html`
 Reading man/check_custom_family.Rd
 Writing `reference/check_custom_family.html`
 Reading man/cluster_scores.Rd
@@ -48,6 +52,8 @@ Reading man/confint_varcorr.Rd
 Writing `reference/confint_varcorr.html`
 Reading man/cox_baseline.Rd
 Writing `reference/cox_baseline.html`
+Reading man/default_prior.Rd
+Writing `reference/default_prior.html`
 Reading man/dharma_residuals.Rd
 Writing `reference/dharma_residuals.html`
 Reading man/diagnose.Rd
@@ -56,6 +62,8 @@ Reading man/draws-dimensions.Rd
 Writing `reference/draws-dimensions.html`
 Reading man/drop1.frmtmb_fit.Rd
 Writing `reference/drop1.frmtmb_fit.html`
+Reading man/empty_prior.Rd
+Writing `reference/empty_prior.html`
 Reading man/expose_functions.Rd
 Writing `reference/expose_functions.html`
 Reading man/fitted.frmtmb_fit.Rd
@@ -92,8 +100,12 @@ Reading man/frmtmb_ad_overload.Rd
 Writing `reference/frmtmb_ad_overload.html`
 Reading man/frmtmb_control.Rd
 Writing `reference/frmtmb_control.html`
+Reading man/frmtmb_family-access.Rd
+Writing `reference/frmtmb_family-access.html`
 Reading man/frmtmb_family.Rd
 Writing `reference/frmtmb_family.html`
+Reading man/frmtmb_priorlist-columns.Rd
+Writing `reference/frmtmb_priorlist-columns.html`
 Reading man/frmtmb_register_aterm.Rd
 Writing `reference/frmtmb_register_aterm.html`
 Reading man/frmtmb_register_compat.Rd
@@ -112,8 +124,6 @@ Reading man/frm_compat_features.Rd
 Writing `reference/frm_compat_features.html`
 Reading man/frm_compat_rules.Rd
 Writing `reference/frm_compat_rules.html`
-Reading man/frm_family.Rd
-Writing `reference/frm_family.html`
 Reading man/frm_hazard_reads.Rd
 Writing `reference/frm_hazard_reads.html`
 Reading man/frm_joint_cov.Rd
@@ -130,8 +140,6 @@ Reading man/frm_simulate.Rd
 Writing `reference/frm_simulate.html`
 Reading man/getME.frmtmb_fit.Rd
 Writing `reference/getME.frmtmb_fit.html`
-Reading man/get_prior.Rd
-Writing `reference/get_prior.html`
 Reading man/habit_prep.Rd
 Writing `reference/habit_prep.html`
 Reading man/hypothesis.Rd
@@ -170,6 +178,8 @@ Reading man/pp_check.Rd
 Writing `reference/pp_check.html`
 Reading man/predict.frmtmb_fit.Rd
 Writing `reference/predict.frmtmb_fit.html`
+Reading man/print.frmtmb_priorlist.Rd
+Writing `reference/print.frmtmb_priorlist.html`
 Reading man/prior.Rd
 Writing `reference/prior.html`
 Reading man/prior_summary.Rd
@@ -194,6 +204,8 @@ Reading man/simulate.frmtmb_fit.Rd
 Writing `reference/simulate.frmtmb_fit.html`
 Reading man/update.frmtmb_fit.Rd
 Writing `reference/update.frmtmb_fit.html`
+Reading man/validate_prior.Rd
+Writing `reference/validate_prior.html`
 Reading man/VarCorr.Rd
 Writing `reference/VarCorr.html`
 Reading man/variables.Rd
@@ -232,9 +244,56 @@ Writing `articles/spectral.html`
 -- Building news ---------------------------------------------------------------
 Writing `news/index.html`
 -- Building sitemap ------------------------------------------------------------
+Writing `sitemap.xml`
 -- Building docs for llms ------------------------------------------------------
 -- Building redirects ----------------------------------------------------------
-Adding redirect from reference/frm_check_dots.html to
+Adding redirect from reference/$.frmtmb_family.html to
+reference/frmtmb_family-access.html.
+Adding redirect from reference/$.frmtmb_priorlist.html to
+reference/frmtmb_priorlist-columns.html.
+Adding redirect from reference/brms_block_has_r.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_coef_names.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_coef_table.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_group_name.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_levels.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_par_labels.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_re_parts.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_re_rnames.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/brms_stan_name.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/check_prior_slots.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/expand_b.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_brms_result.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_class_prefix.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_eval_in.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_expr_vars.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_labels.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/hyp_samples_frame.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/posterior_summary.frmtmb_fit.html to
+reference/posterior_summary.html.
+Adding redirect from reference/posterior_summary.frmtmb_multiple.html to
+reference/posterior_summary.html.
+Adding redirect from reference/varcorr_layout.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/varcorr_matrices.html to
+reference/frmtmb-sampling-api.html.
+Adding redirect from reference/varcorr_values.html to
 reference/frmtmb-sampling-api.html.
 -- Building search index -------------------------------------------------------
 -- Checking for problems -------------------------------------------------------
@@ -252,43 +311,77 @@ Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.eam
 ? Reference metadata ok.
 -- Initialising site -----------------------------------------------------------
 -- Building home ---------------------------------------------------------------
+Writing `authors.html`
 Reading 'DESCRIPTION'
+Writing `index.html`
 Writing `404.html`
 -- Building function reference -------------------------------------------------
+Writing `reference/index.html`
 Loading required package: frmtmb
 Reading man/ddm_simulate.Rd
+Writing `reference/ddm_simulate.html`
 Reading man/frmtmb.eam-package.Rd
+Writing `reference/frmtmb.eam-package.html`
 Reading man/gddm-bound.Rd
+Writing `reference/gddm-bound.html`
 Reading man/gddm-drift.Rd
+Writing `reference/gddm-drift.html`
 Reading man/gddm-start.Rd
+Writing `reference/gddm-start.html`
 Reading man/gddm.Rd
+Writing `reference/gddm.html`
 Reading man/gddm_bound_term.Rd
+Writing `reference/gddm_bound_term.html`
 Reading man/gddm_conditions.Rd
+Writing `reference/gddm_conditions.html`
 Reading man/gddm_control.Rd
+Writing `reference/gddm_control.html`
 Reading man/gddm_drift_term.Rd
+Writing `reference/gddm_drift_term.html`
 Reading man/gddm_floored.Rd
+Writing `reference/gddm_floored.html`
 Reading man/gddm_simulate.Rd
+Writing `reference/gddm_simulate.html`
 Reading man/gddm_start_term.Rd
+Writing `reference/gddm_start_term.html`
 Reading man/lba.Rd
+Writing `reference/lba.html`
 Reading man/lba_simulate.Rd
+Writing `reference/lba_simulate.html`
 Reading man/ndt_apply.Rd
+Writing `reference/ndt_apply.html`
 Reading man/ndt_bound.Rd
+Writing `reference/ndt_bound.html`
 Reading man/ndt_bound_attach.Rd
+Writing `reference/ndt_bound_attach.html`
 Reading man/ndt_bound_key.Rd
+Writing `reference/ndt_bound_key.html`
 Reading man/ndt_bound_of.Rd
+Writing `reference/ndt_bound_of.html`
 Reading man/ndt_bound_pending.Rd
+Writing `reference/ndt_bound_pending.html`
 Reading man/ndt_time.Rd
 Writing `reference/ndt_time.html`
 Reading man/rdm.Rd
+Writing `reference/rdm.html`
 Reading man/rdm_simulate.Rd
+Writing `reference/rdm_simulate.html`
 Reading man/wiener.Rd
+Writing `reference/wiener.html`
 Reading man/wiener_gng.Rd
+Writing `reference/wiener_gng.html`
 Reading man/wiener_gng_simulate.Rd
+Writing `reference/wiener_gng_simulate.html`
 Reading man/wiener_lpdf.Rd
+Writing `reference/wiener_lpdf.html`
 -- Building articles -----------------------------------------------------------
+Writing `articles/index.html`
 Reading vignettes/ddm.Rmd
+Writing `articles/ddm.html`
 Reading vignettes/gddm.Rmd
+Writing `articles/gddm.html`
 -- Building news ---------------------------------------------------------------
+Writing `news/index.html`
 -- Building sitemap ------------------------------------------------------------
 -- Building docs for llms ------------------------------------------------------
 -- Building redirects ----------------------------------------------------------
@@ -308,22 +401,35 @@ Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.latent
 ? Reference metadata ok.
 -- Initialising site -----------------------------------------------------------
 -- Building home ---------------------------------------------------------------
+Writing `authors.html`
 Reading 'DESCRIPTION'
+Writing `index.html`
 Writing `404.html`
 -- Building function reference -------------------------------------------------
+Writing `reference/index.html`
 Loading required package: frmtmb
 Reading man/frmtmb.latent-package.Rd
+Writing `reference/frmtmb.latent-package.html`
 Reading man/hmm.Rd
+Writing `reference/hmm.html`
 Reading man/hmm_probs.Rd
+Writing `reference/hmm_probs.html`
 Reading man/hmm_starts.Rd
 Writing `reference/hmm_starts.html`
 Reading man/hmm_viterbi.Rd
+Writing `reference/hmm_viterbi.html`
 Reading man/lca.Rd
+Writing `reference/lca.html`
 Reading man/lca_probs.Rd
+Writing `reference/lca_probs.html`
 Reading man/lca_profiles.Rd
+Writing `reference/lca_profiles.html`
 -- Building articles -----------------------------------------------------------
+Writing `articles/index.html`
 Reading vignettes/latent.Rmd
+Writing `articles/latent.html`
 -- Building news ---------------------------------------------------------------
+Writing `news/index.html`
 -- Building sitemap ------------------------------------------------------------
 -- Building docs for llms ------------------------------------------------------
 -- Building redirects ----------------------------------------------------------
@@ -343,17 +449,27 @@ Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.ode
 ? Reference metadata ok.
 -- Initialising site -----------------------------------------------------------
 -- Building home ---------------------------------------------------------------
+Writing `authors.html`
 Reading 'DESCRIPTION'
+Writing `index.html`
 Writing `404.html`
 -- Building function reference -------------------------------------------------
+Writing `reference/index.html`
 Loading required package: frmtmb
 Reading man/frmtmb.ode-package.Rd
+Writing `reference/frmtmb.ode-package.html`
 Reading man/frm_lincmt.Rd
+Writing `reference/frm_lincmt.html`
 Reading man/frm_ode.Rd
+Writing `reference/frm_ode.html`
 Reading man/frm_ode_failures.Rd
+Writing `reference/frm_ode_failures.html`
 -- Building articles -----------------------------------------------------------
+Writing `articles/index.html`
 Reading vignettes/ode.Rmd
+Writing `articles/ode.html`
 -- Building news ---------------------------------------------------------------
+Writing `news/index.html`
 -- Building sitemap ------------------------------------------------------------
 -- Building docs for llms ------------------------------------------------------
 -- Building redirects ----------------------------------------------------------
@@ -373,11 +489,15 @@ Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.spline
 ? Reference metadata ok.
 -- Initialising site -----------------------------------------------------------
 -- Building home ---------------------------------------------------------------
+Writing `authors.html`
 Reading 'DESCRIPTION'
+Writing `index.html`
 Writing `404.html`
 -- Building function reference -------------------------------------------------
+Writing `reference/index.html`
 Loading required package: frmtmb
 Reading man/frmtmb.spline-package.Rd
+Writing `reference/frmtmb.spline-package.html`
 Reading man/frm_curve.Rd
 Writing `reference/frm_curve.html`
 Reading man/frm_curve_deriv.Rd
@@ -385,12 +505,17 @@ Writing `reference/frm_curve_deriv.html`
 Reading man/frm_curve_feature.Rd
 Writing `reference/frm_curve_feature.html`
 Reading man/royston_parmar.Rd
+Writing `reference/royston_parmar.html`
 Reading man/rp_floored.Rd
+Writing `reference/rp_floored.html`
 -- Building articles -----------------------------------------------------------
+Writing `articles/index.html`
 Reading vignettes/curve-inference.Rmd
 Writing `articles/curve-inference.html`
 Reading vignettes/royston-parmar.Rmd
+Writing `articles/royston-parmar.html`
 -- Building news ---------------------------------------------------------------
+Writing `news/index.html`
 -- Building sitemap ------------------------------------------------------------
 -- Building docs for llms ------------------------------------------------------
 -- Building redirects ----------------------------------------------------------
@@ -410,21 +535,29 @@ Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.coupling
 ? Reference metadata ok.
 -- Initialising site -----------------------------------------------------------
 -- Building home ---------------------------------------------------------------
+Writing `authors.html`
 Reading 'DESCRIPTION'
+Writing `index.html`
 Writing `404.html`
 -- Building function reference -------------------------------------------------
+Writing `reference/index.html`
 Loading required package: frmtmb
 Reading man/cross_wishart.Rd
+Writing `reference/cross_wishart.html`
 Reading man/frmtmb.coupling-package.Rd
+Writing `reference/frmtmb.coupling-package.html`
 Reading man/frm_coherence.Rd
 Writing `reference/frm_coherence.html`
 Reading man/frm_cross_simulate.Rd
 Writing `reference/frm_cross_simulate.html`
 Reading man/frm_cross_spectrum.Rd
+Writing `reference/frm_cross_spectrum.html`
 -- Building articles -----------------------------------------------------------
+Writing `articles/index.html`
 Reading vignettes/coherence.Rmd
 Writing `articles/coherence.html`
 -- Building news ---------------------------------------------------------------
+Writing `news/index.html`
 -- Building sitemap ------------------------------------------------------------
 -- Building docs for llms ------------------------------------------------------
 -- Building redirects ----------------------------------------------------------
@@ -497,6 +630,14 @@ Writing `news/index.html`
 -- Building sitemap ------------------------------------------------------------
 -- Building docs for llms ------------------------------------------------------
 -- Building redirects ----------------------------------------------------------
+Adding redirect from reference/as.data.frame.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/as.matrix.frmtmb_draws.html to
+reference/sample-as_draws.html.
+Adding redirect from reference/ranef.frmtmb_draws.html to
+reference/draws-structure.html.
+Adding redirect from reference/VarCorr.frmtmb_draws.html to
+reference/draws-structure.html.
 -- Building search index -------------------------------------------------------
 -- Checking for problems -------------------------------------------------------
 -- Finished building pkgdown site for package frmtmb.sample --------------------
@@ -513,27 +654,45 @@ Writing to: C:/Users/adf44/source/r/frmtmb/docs/frmtmb.learn
 ? Reference metadata ok.
 -- Initialising site -----------------------------------------------------------
 -- Building home ---------------------------------------------------------------
+Writing `authors.html`
 Reading 'DESCRIPTION'
+Writing `index.html`
 Writing `404.html`
 -- Building function reference -------------------------------------------------
+Writing `reference/index.html`
 Loading required package: frmtmb
 Reading man/bandit2arm_delta.Rd
+Writing `reference/bandit2arm_delta.html`
 Reading man/bandit2arm_dual.Rd
+Writing `reference/bandit2arm_dual.html`
 Reading man/bandit4arm2_kalman_filter.Rd
+Writing `reference/bandit4arm2_kalman_filter.html`
 Reading man/frmtmb.learn-package.Rd
+Writing `reference/frmtmb.learn-package.html`
 Reading man/frm_learn_families.Rd
+Writing `reference/frm_learn_families.html`
 Reading man/frm_task_design.Rd
+Writing `reference/frm_task_design.html`
 Reading man/frm_task_simulate.Rd
+Writing `reference/frm_task_simulate.html`
 Reading man/frm_value_trace.Rd
+Writing `reference/frm_value_trace.html`
 Reading man/igt_orl.Rd
+Writing `reference/igt_orl.html`
 Reading man/igt_pvl_delta.Rd
+Writing `reference/igt_pvl_delta.html`
 Reading man/prl_fictitious.Rd
+Writing `reference/prl_fictitious.html`
 Reading man/rlddm.Rd
+Writing `reference/rlddm.html`
 Reading man/ts_par7.Rd
+Writing `reference/ts_par7.html`
 -- Building articles -----------------------------------------------------------
+Writing `articles/index.html`
 Reading vignettes/learning.Rmd
 Writing `articles/learning.html`
 -- Building news ---------------------------------------------------------------
+Writing `news/index.html`
 -- Building sitemap ------------------------------------------------------------
 -- Building docs for llms ------------------------------------------------------
 -- Building redirects ----------------------------------------------------------

@@ -1,7 +1,7 @@
 # The per-file suite baseline, and what it is for
 
 `dev/suite-baseline.tsv` records one row per test file as of the round 3
-release, at frmtmb 0.58.0 and frmtmb.sample 0.6.0: package, file, passing
+release, at frmtmb 0.59.0 and frmtmb.sample 0.7.0: package, file, passing
 assertions, skips. It is a floor, not a target.
 
 ## Why it exists
@@ -152,3 +152,21 @@ had been considered. The new dots refusal named it, the test was
 correcting the bug, and it now stands at 68. The lane that caused it
 had declared plainly that it did not run the five other extensions'
 suites, and that is exactly where the release suite found it.
+
+## What the 2.6c release changed
+
+Regenerated at 231 rows and 15278 assertions, from 225 and 13485. Six
+files are new: `frmtmb/test-brms-families.R`,
+`frmtmb/test-brms-formula-priors.R`, `frmtmb/test-brms-names.R`,
+`frmtmb.sample/test-brms-output.R`, `frmtmb.sample/test-brms-pins.R`
+and `frmtmb.sample/test-prior-update.R`.
+
+Three counts fell, and each equals the count the lane that changed the
+file recorded in its own full run before the merge:
+
+- `frmtmb/test-naming-collisions.R`, 31 to 29. wt-brmsnames removed the
+  reserved-name shadow machinery and rewrote the file for its absence.
+- `frmtmb/test-prior-compat.R`, 195 to 194, and
+  `frmtmb/test-priors-autocor-classes.R`, 63 to 62. wt-priorform merged
+  several print assertions into one `expect_identical()` each.
+

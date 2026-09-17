@@ -1,6 +1,6 @@
 # Handing a round to a new session
 
-Written 2026-09-16, at the brms-matching release. Read this, then
+Written 2026-09-17, at the 2.6c release. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
 `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
 anything: this machine has lost its R library five times, and the cause
@@ -8,64 +8,74 @@ is OPEN rather than settled.
 
 ## Where the tree stands
 
-Main carries items 2.5e and 2.5f. Two lanes merged: `wt-argspell` for
-core, and `wt-brmsmatch` for frmtmb.sample. The two conflicted in 12
-places, and both suites verified the merge. The release commit and the
-docs rebuild are separate commits, in that order. **The user pushes; no
-session pushes for them.**
+Main carries item 2.6c, the defects brms's own test suite found. Three
+lanes merged: `wt-famlink` (family objects and links), `wt-priorform`
+(`bf()`, formula grammar, priors) and `wt-brmsnames` (brms's names,
+`VarCorr()`, `hypothesis()`, frmtmb.sample output). A fourth worktree,
+`wt-vectorize`, is NOT merged and waits on the user (see below). The
+release commit and the docs rebuild are separate commits, in that order.
+**The user pushes; no session pushes for them.**
 
-Versions: frmtmb **0.58.0**, frmtmb.sample **0.6.0**, frmtmb.eam 0.8.1,
-frmtmb.learn 0.4.1, frmtmb.spline 0.5.1, frmtmb.coupling 0.3.1, frmtmb.ode
-0.4.0, frmtmb.latent 0.3.0. frmtmb.sample floors on core 0.58.0.
-
-**Core is not a lane by default.** The user does brms compatibility
-there separately. Phase 2.5 was the exception, and they asked for it
-directly.
+Versions: frmtmb **0.59.0**, frmtmb.sample **0.7.0**, frmtmb.learn 0.4.2,
+frmtmb.latent 0.3.1, frmtmb.eam 0.8.2, frmtmb.spline 0.5.2,
+frmtmb.coupling 0.3.2, frmtmb.ode 0.4.1. Every extension floors on core
+0.59.0, because its tests read brms's names or `varcorr_matrices()`.
 
 ### Verified at the release commit
 
-- Suite: 225 files, 13485 assertions, no failures and no errors. Two
-  counts fell, and review reconciled both before the release. The
-  release suite found one REGRESSION in frmtmb.learn, and it was fixed
-  first. `dev/suite-baseline.md` has the details.
-- Gated, no skips: 23 of 23 files, 2490 assertions. The only change is
-  `test-brms-methods.R`, 950 to 949: seven warning expectations became
-  six error expectations.
-- Scale: 7 of 7. `R CMD check --as-cran`: 8 of 8, with no warnings or
-  errors. Five packages carry the environmental "V8 unavailable" NOTE.
-- CI at 0.57.0 failed two jobs, and this release fixes both. pkgcheck
-  wanted a value section on the `frmtmb-scales` topic page. The coverage
-  job failed because covr instruments function bodies, and the "bare
-  UseMethod()" guard in `test-generic-collision.R` read covr's counter
-  as work. The coverage job also reported one WARN that the log did not
-  locate. The workflow now prints the full testthat output, so the next
-  run names it.
+- Suite: 231 files, 15278 assertions, no failures and no errors. Three
+  counts fell, and each lane recorded the same count before merging;
+  `dev/suite-baseline.md` has the details.
+- The merge broke one design that each lane passed alone:
+  `(1 | h:g) + (1 | g/h)`. reformulas expands `g/h` into `h:g` where
+  brms writes `g:h`, so brmsnames gave two different blocks one name.
+  A block from a slash now carries the flag, and brms's names read it.
+  Fixed in commit 4e179c0, before the release suite.
+- Gated, no skips: 23 of 23 files, 2496 assertions, and three files
+  gained assertions. Scale: 7 of 7, with every logLik identical to
+  0.58.0. `R CMD check --as-cran`: 8 of 8, with no warnings or errors.
+  Five packages carry the environmental "V8 unavailable" NOTE.
 
 **Read the comment at the top of each `dev/release/` script before you
 change it.** Two flags are forbidden there.
 
 ## What is next, in order
 
-**Phase 2.5 is done.** No method swallows an argument any more. Every S3
-method taking `...` refuses a name its generic does not document. brms
-is the tiebreaker on spelling, and frmtmb.sample's `rhat()` and
-`neff_ratio()` are `identical()` to brms's.
+**Waiting on the user:** whether `frmtmb_control(vectorize = FALSE)`
+merges. `wt-vectorize` measured `TapeConfig(vectorize = "enable")` on
+17 models and found it SLOWER on every random-effects model, from 1.36x
+(`s(x)`) to 1,116x (`ar1()`), and faster on none. It breaks the
+sparsity of the Laplace sparse Hessian tape, which grows as rows times
+groups. The option is built, off by default, with tests seen failing,
+in that worktree, uncommitted. Merging it needs a core bump, because
+frmtmb.sample calls the new `make_adfun()` export. The record is
+`dev/vectorize-findings.md` there.
 
-- **2.6c**, the defects brms's own suite found. Two of them are silent:
-  `family$link` partial-matches to a list, and an invalid `mu` link fits.
-  The row also holds the items carried over from 2.5f.
-- Then **2.6b**, the port of bin 1; tmbstan 1.2.1's verification in a
-  private library; and `frmtmb_control(vectorize = FALSE)`.
+- **2.6d**, `predict()` becomes brms's predictive summary (user
+  decision, 2026-09-16).
+- **2.6e**, classed conditions, now that the three lanes are merged.
+- Filed during 2.6c and not fixed. The details are in each lane's
+  findings file.
+  - Two prior-scope differences from brms: a `sd` prior with a group
+    and no dpar reaches `phi`; mv `sd group = g` without `resp` is
+    accepted.
+  - Two frmtmb.sample default priors: rescor is flat where brms uses
+    `lkj(1)`; the offset intercept location.
+  - `mi()` is still `b_` where brms uses `bsp_`.
+  - A written `theta` formula's reference component.
+- Then **2.6b**, the port of bin 1, and tmbstan 1.2.1's verification in
+  a private library.
 
-**Open question for the user:** should `predict()` default to the
-response scale, as brms's does? The recommendation on record is to
-keep the link scale and add a sentence to the migration vignette. The
-user has not answered.
-
-**Settled, do not reopen:** the non-generic name collisions with brms
-stay, because `::` is sufficient in both load orders. A gratia older
-than 0.9.0, loaded before frmtmb.sample, stops frmtmb.sample loading.
-The user accepted that, and the declared floor, as sufficient.
+**Settled, do not reopen:**
+- The non-generic name collisions with brms stay, because `::` is
+  sufficient in both load orders.
+- A gratia older than 0.9.0, loaded before frmtmb.sample, stops it
+  loading; the user accepted that.
+- `inverse.gaussian` defaults to brms's `1/mu^2`, knowing 135 of 240
+  designs fit cleanly on it against 234 on `log`.
+- Duplicate priors on one slot, and duplicate group-level effects
+  including the animal model, are refused as brms refuses them.
+- `frm_simulate(newparams =)` takes brms names only.
 
 ## How a round runs here
 
