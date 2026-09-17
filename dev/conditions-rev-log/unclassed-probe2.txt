@@ -1,0 +1,25 @@
+   probe                    class                                       message                                                                                   
+1  check_custom_family      simpleError/error/condition                 inherits(family, "frmtmb_family") is not TRUE                                             
+2  cluster_scores_nonfit    simpleError/error/condition                 inherits(object, "frmtmb_fit") is not TRUE                                                
+3  register_prior_defaults  simpleError/error/condition                 is.function(provider) is not TRUE                                                         
+4  periodogram_detrend      simpleError/error/condition                 'arg' should be one of "mean", "none", "linear"                                           
+5  anova_multiple_method    simpleError/error/condition                 'arg' should be one of "D3", "D1", "D2"                                                   
+6  gddm_control_tridiagonal simpleError/error/condition                 'arg' should be one of "recorded", "atomic"                                               
+7  gddm_lapse               simpleError/error/condition                 'arg' should be one of "none", "uniform"                                                  
+8  gddm_simulate_lapse      simpleError/error/condition                 'arg' should be one of "none", "uniform"                                                  
+9  bandit2arm_dual_split    simpleError/error/condition                 'arg' should be one of "pe", "outcome"                                                    
+10 task_design_task         simpleError/error/condition                 'arg' should be one of "bandit2arm", "reversal", "bandit4arm_restless", "igt", "twostep"  
+11 lincmt_output            simpleError/error/condition                 'arg' should be one of "conc", "central", "depot"                                         
+12 ode_on_error             simpleError/error/condition                 'arg' should be one of "penalize", "error"                                                
+13 loo_compare_criterion    simpleError/error/condition                 'arg' should be one of "loo", "waic"                                                      
+14 hypothesis_draws_scope   simpleError/error/condition                 'arg' should be one of "standard", "ranef", "coef"                                        
+15 pp_check_prefix          simpleError/error/condition                 'arg' should be one of "ppc", "ppd"                                                       
+16 predictive_error_method  simpleError/error/condition                 'arg' should be one of "posterior_predict", "posterior_epred"                             
+17 curve_feature_type       simpleError/error/condition                 'arg' should be one of "maximum", "minimum", "extremum", "crossing"                       
+18 royston_parmar_scale     simpleError/error/condition                 'arg' should be one of "hazard", "odds", "normal"                                         
+19 rp_floored_action        simpleError/error/condition                 'arg' should be one of "error", "report"                                                  
+20 hmm_starts_nonfit        simpleError/error/condition                 $ operator is invalid for atomic vectors                                                  
+21 frm_no_formula           getvarError/missingArgError/error/condition argument "formula" is missing, with no default                                            
+22 getME_mv                 simpleError/error/condition                 error in evaluating the argument 'x' in selecting a method for function 't': Multiple resp
+
+probes 22  not frmtmb_error 22 

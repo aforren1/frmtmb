@@ -1,0 +1,10 @@
+R/windows or R/unix dirs in the lane trees: 0 
+R/ files not ending in .R in the lane trees: 0 
+frmtmb           pass 2 fail 2 error 0 skip 0
+frmtmb.coupling  pass 3 fail 1 error 0 skip 0
+frmtmb.eam       pass 3 fail 1 error 0 skip 0
+frmtmb.latent    pass 3 fail 1 error 0 skip 0
+frmtmb.learn     pass 3 fail 1 error 0 skip 0
+frmtmb.ode       pass 3 fail 1 error 0 skip 0
+frmtmb.sample    pass 3 fail 1 error 0 skip 0
+frmtmb.spline    pass 3 fail 1 error 0 skip 0

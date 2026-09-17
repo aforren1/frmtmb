@@ -1,0 +1,7 @@
+"file"	"class"	"message"
+"extensions/frmtmb.sample/tests/testthat/test-conditional-effects-draws.R"	"frmtmb_error/error/condition"	"conditional_effects(categorical = TRUE) needs an ordinal or categorical family and no dpar = : it draws one curve per response category, and dpar = \"mu\" asks for that linear predictor instead"
+"extensions/frmtmb.sample/tests/testthat/test-conditional-effects-draws.R"	"frmtmb_sample_error/frmtmb_error/error/condition"	"conditional_effects() on draws cannot honor `spaghetti`: this method does not implement it, so leave it at its default"
+"extensions/frmtmb.sample/tests/testthat/test-conditional-effects-draws.R"	"frmtmb_error/error/condition"	"conditional_effects() has no argument `nonesuch`"
+"extensions/frmtmb.sample/tests/testthat/test-conditional-effects-draws.R"	"frmtmb_error/error/condition"	"`re.form` is lme4's spelling and this package no longer takes it anywhere: brms is the tiebreaker on a name, so the setting is `re_formula` in conditional_effects(), predict() and simulate() alike. Pass re_formula = "
+"extensions/frmtmb.sample/tests/testthat/test-conditional-effects-draws.R"	"frmtmb_error/error/condition"	"`allow.new.levels` is lme4's spelling and this package no longer takes it: brms spells it `allow_new_levels`, and so does this. Pass allow_new_levels ="
+"extensions/frmtmb.sample/tests/testthat/test-conditional-effects-draws.R"	"frmtmb_error/error/condition"	"conditional_effects() has no argument `nonesuch`"

@@ -1,0 +1,7 @@
+"file"	"class"	"message"
+"tests/testthat/test-generic-collision.R"	"frmtmb_error/error/condition"	"frm_install_generics(owners =) must be a named list of non-empty character vectors: one entry per generic name, naming the packages that own it in the order to prefer"
+"tests/testthat/test-generic-collision.R"	"frmtmb_error/error/condition"	"frm_install_generics(owners =) must be a named list of non-empty character vectors: one entry per generic name, naming the packages that own it in the order to prefer"
+"tests/testthat/test-generic-collision.R"	"frmtmb_error/error/condition"	"frm_install_generics(owners =) must be a named list of non-empty character vectors: one entry per generic name, naming the packages that own it in the order to prefer"
+"tests/testthat/test-generic-collision.R"	"frmtmb_error/error/condition"	"frm_install_generics(owners =) must be a named list of non-empty character vectors: one entry per generic name, naming the packages that own it in the order to prefer"
+"tests/testthat/test-generic-collision.R"	"frmtmb_error/error/condition"	"frm_install_generics(owners =) must be a named list of non-empty character vectors: one entry per generic name, naming the packages that own it in the order to prefer"
+"tests/testthat/test-generic-collision.R"	"frmtmb_error/error/condition"	"frm_install_generics(owners =) must be a named list of non-empty character vectors: one entry per generic name, naming the packages that own it in the order to prefer"

@@ -1,0 +1,41 @@
+R/conditional-effects.R 537 | rspec$family | frm_stop("conditional_effects(categorical = FALSE) has nothing to draw ", "for family '",  
+R/conditional-effects.R 1000 | rspec$family | frm_stop("band = \"profile\" cannot cover the expected response of ", "family '", rspec$fa 
+R/conditional-effects.R 1749 | rspec$family | frm_stop("conditional_effects() has no analytic standard error for the ", "category probab 
+R/conditional-effects.R 1768 | rspec$family | frm_stop("method = 'predict' needs a family with a simulator", sim_note(rspec$family), cal 
+R/conditional-effects.R 1776 | rspec$family | frm_stop("method = 'predict' needs a family that draws row by row; '", rspec$family[["fami 
+R/families.R 1054 | fam | frm_stop("family '", fam[["family"]], "' declares no mean: it has no dpar ", "named mu and 
+R/families.R 1063 | fam | frm_stop("Family '", fam[["family"]], "' has no truncated mean; fitted(), ", "residuals()  
+R/families.R 1130 | fam | frm_stop("residuals(type = \"deviance\") is not available for family '", fam[["family"]],  
+R/families.R 1304 | ctx[["family"]] | frm_stop("trunc() cannot be combined with a structured draw (here: '", ctx[["family"]][["f 
+R/families.R 6316 | fam | frm_stop(fam[["family"]], ": the addition term", if (length(bad) > 1L) "s " else " ", past 
+R/families.R 6515 | resp$family | frm_stop(resp$family[["family"]], ": ", comma_and(paste0("`", hit, "`")), " are spellings  
+R/frame.R 301 | resp$family | frm_stop("Family '", resp$family[["family"]], "' requires either ", "positive integers or  
+R/frame.R 1470 | resp$family | frm_stop(resp$family[["family"]], ": the density needs ", paste(needs, collapse = ", "), " 
+R/frame.R 1579 | resp$family | frm_stop("cens()/trunc() need a family with a CDF (currently: ", "gaussian, lognormal, poi 
+R/frame.R 1704 | resp$family | frm_stop( "se() carries a known standard deviation into the density, ", "so only a family  
+R/frame.R 1741 | resp$family | frm_stop(resp$family[["family"]], ": a proportion response times ", "trials() must give in 
+R/frame.R 1822 | resp$family | frm_stop("Families with extra parameters ('", resp$family[["family"]], "') are not support 
+R/importance.R 133 | spec$responses[[rn]]$family | frm_stop("`importance` cannot correct the '", spec$responses[[rn]]$family[["family"]], "'  
+R/importance.R 277 | fam | frm_stop("`importance` cannot correct the '", fam[["family"]], "' family here: it declares 
+R/importance.R 290 | fam | frm_stop("`importance` needs the '", fam[["family"]], "' family's own ", "units and the gr 
+R/objective.R 51 | fam | frm_stop("The '", fam[["family"]], "' density returned no values for ", length(yobs), " ob 
+R/parse.R 1780 | fam | frm_stop("se() without sigma = TRUE replaces the residual scale, ", "which for '", fam[["f 
+R/parse.R 1813 | fam | frm_stop("se() without sigma = TRUE replaces the residual scale, ", "and the core maps out 
+R/parse.R 1842 | fam | frm_stop("dpar(s) not available for family '", fam[["family"]], "': ", paste(unknown, coll 
+R/predict.R 1817 | fam | frm_stop("se.fit is not available for the expected response of family '", fam[["family"]], 
+R/predict.R 2625 | fam | frm_stop("residuals(type = \"deviance\") needs the sign of each row's ", "departure from i 
+R/predict.R 2639 | fam | frm_stop("residuals(type = \"pearson\") needs the conditional ", "variance of each row giv 
+R/predict.R 2782 | fam | frm_stop("Family '", fam[["family"]], "' has no variance function; ", "pearson residuals a 
+R/predict.R 3024 | fam | frm_stop("simulate(): family '", fam[["family"]], "' has no simulator yet", sim_note(fam), 
+R/simulate-new.R 685 | rspec$family | frm_stop("frm_simulate(): family '", rspec$family[["family"]], "' has no simulator yet", s 
+R/structure.R 573 | rspec$family | frm_stop("latent_probs() needs a family that declares latent states, ", "through frmtmb_st 
+R/structure.R 801 | fam | frm_stop("The '", fam[["family"]], "' family declares ", "frmtmb_structure(loglik_group =  
+R/structure.R 811 | fam | frm_stop("The '", fam[["family"]], "' family's frame block for '", resp_name, "' gives `gr 
+R/structure.R 817 | fam | frm_stop("The '", fam[["family"]], "' family's frame block for '", resp_name, "' gives `gr 
+R/structure.R 823 | fam | frm_stop("The '", fam[["family"]], "' family's frame block for '", resp_name, "' leaves `g 
+R/structure.R 836 | fam | frm_stop("The '", fam[["family"]], "' family's frame block for '", resp_name, "' gives `gr 
+R/structure.R 865 | fam | frm_stop("residuals(type = \"deviance\") needs each row's own ", "log-density, and the '", 
+R/structure.R 878 | fam | frm_stop("residuals(type = \"deviance\") compares each row's ", "log-density with its SATU 
+R/structure.R 886 | fam | frm_stop("The '", fam[["family"]], "' family's loglik_row() attaches ", length(sat), " sat 
+R/structure.R 897 | fam | frm_stop("The '", fam[["family"]], "' family reports a saturated ", "log-density BELOW the 
+sites 40 

@@ -53,7 +53,7 @@ posterior_summary.default <- function(x, probs = c(0.025, 0.975),
                                       robust = FALSE, ...) {
   frm_check_dots(...)
   if (!length(x)) {
-    stop("No posterior draws supplied.", call. = FALSE)
+    frm_stop("No posterior draws supplied.", call. = FALSE)
   }
   coefs <- if (robust) c("median", "mad", "quantile") else
     c("mean", "sd", "quantile")
@@ -74,7 +74,7 @@ posterior_summary.default <- function(x, probs = c(0.025, 0.975),
                  dim = c(nrow(per[[1L]]), ncol(per[[1L]]), length(per)))
     dimnames(out) <- list(dnx[[2L]], NULL, dnx[[3L]])
   } else {
-    stop("'x' must be of dimension 2 or 3.", call. = FALSE)
+    frm_stop("'x' must be of dimension 2 or 3.", call. = FALSE)
   }
   colnames(out) <- c("Estimate", "Est.Error", paste0("Q", probs * 100))
   out
@@ -185,12 +185,12 @@ as_draws_rvars <- function(x, ...) UseMethod("as_draws_rvars")
 #'
 #' @noRd
 fit_no_draws <- function(fn) {
-  stop(fn, "() needs posterior draws and a frmtmb_fit has none: ",
-       "frm() is maximum likelihood, so it carries one parameter ",
-       "vector rather than chains. Install frmtmb.sample and sample ",
-       "first, with ", fn, "(frmtmb.sample::frm_sample(fit)); for the ",
-       "point estimates and their covariance use fixef(), vcov() or ",
-       "confint() on the fit itself", call. = FALSE)
+  frm_stop(fn, "() needs posterior draws and a frmtmb_fit has none: ",
+           "frm() is maximum likelihood, so it carries one parameter ",
+           "vector rather than chains. Install frmtmb.sample and sample ",
+           "first, with ", fn, "(frmtmb.sample::frm_sample(fit)); for the ",
+           "point estimates and their covariance use fixef(), vcov() or ",
+           "confint() on the fit itself", call. = FALSE)
 }
 
 #' @rdname as_draws

@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 9 PASS 65 FAIL 0 ERROR 1 SKIP 0  extensions/frmtmb.spline/tests/testthat/test-royston-parmar.R
+  failing: the family refuses what it cannot do, by name
+       Error in `match.arg(scale)`: 'arg' should be one of "hazard", "odds", "normal" 

@@ -58,10 +58,10 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   check_named_list(int_conditions, "int_conditions",
                    "int_conditions = list(z = c(-1, 0, 1))")
   if (!identical(method, "posterior_epred")) {
-    stop("conditional_effects() on draws has no method = \"", method,
-         "\": the curves ARE posterior expected-response draws. For ",
-         "predictive bands, quantile posterior_predict() over your own ",
-         "grid", call. = FALSE)
+    frm_stop("conditional_effects() on draws has no method = \"", method,
+             "\": the curves ARE posterior expected-response draws. For ",
+             "predictive bands, quantile posterior_predict() over your own ",
+             "grid", call. = FALSE)
   }
   unsupported <- c(spaghetti = !isFALSE(spaghetti),
                    surface = !isFALSE(surface),
@@ -76,24 +76,24 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
       transform = paste("brms applies it only with method =",
                         "\"posterior_predict\", which this does not have"),
       "this method does not implement it, so leave it at its default")
-    stop("conditional_effects() on draws cannot honor `", nm, "`: ", why,
-         call. = FALSE)
+    frm_stop("conditional_effects() on draws cannot honor `", nm, "`: ", why,
+             call. = FALSE)
   }
   band_p <- c((1 - prob) / 2, 1 - (1 - prob) / 2)
   if (!is.null(probs)) {
-    warning("Argument 'probs' is deprecated. Please use 'prob' instead.",
-            call. = FALSE)
+    frm_warning("Argument 'probs' is deprecated. Please use 'prob' instead.",
+                call. = FALSE)
     if (length(probs) != 2L) {
-      stop("Arguments 'probs' must be of length 2.", call. = FALSE)
+      frm_stop("Arguments 'probs' must be of length 2.", call. = FALSE)
     }
     band_p <- as.numeric(probs)
   }
   dots <- list(...)
   re_formula <- ce_re_formula(re_formula, dots)
   if (!is.null(dots$band)) {
-    stop("conditional_effects() on draws has no band =: the band IS ",
-         "the posterior quantile band of the drawn curves, so there is ",
-         "no wald/profile/boot choice to make", call. = FALSE)
+    frm_stop("conditional_effects() on draws has no band =: the band IS ",
+             "the posterior quantile band of the drawn curves, so there is ",
+             "no wald/profile/boot choice to make", call. = FALSE)
   }
   # core's own dots reader, not a second one: it accepts the two
   # allow_new_levels spellings the fit method accepts and reports the
@@ -107,12 +107,12 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   ce_structure_check(rspec)
   if (length(fit$frame[["re_blocks"]]) &&
       draws_is_laplace(x)) {
-    stop("conditional_effects() on draws from frm_sample(laplace = ",
-         "TRUE) cannot rebuild the per-draw parameter vectors: the ",
-         "inner parameters were integrated out, so the draws columns ",
-         "do not align with the model's parameter template. Resample ",
-         "without laplace = TRUE, or call conditional_effects() on the ",
-         "fit itself", call. = FALSE)
+    frm_stop("conditional_effects() on draws from frm_sample(laplace = ",
+             "TRUE) cannot rebuild the per-draw parameter vectors: the ",
+             "inner parameters were integrated out, so the draws columns ",
+             "do not align with the model's parameter template. Resample ",
+             "without laplace = TRUE, or call conditional_effects() on the ",
+             "fit itself", call. = FALSE)
   }
   # the three displays, resolved core's way: `categorical =` used to be
   # neither honored nor a formal here, so the expected category number

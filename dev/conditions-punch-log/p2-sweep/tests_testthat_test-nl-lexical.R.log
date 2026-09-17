@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 7 PASS 31 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-nl-lexical.R
+CAUGHT 3 
+DONE

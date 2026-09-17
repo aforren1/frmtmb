@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 13 PASS 123 FAIL 0 ERROR 1 SKIP 0  tests/testthat/test-arg-refusal.R
+  failing: fitted() reaches newdata, scale, dpar and resp
+       Error in `match.arg(scale)`: 'arg' should be one of "response", "linear" 

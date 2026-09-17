@@ -161,24 +161,24 @@ sp_rp_fitted <- function(object, fam) {
 #' @export
 rp_floored <- function(object, action = c("error", "report"),
                        max_nlogS = 19.2) {
-  action <- match.arg(action)
+  action <- frm_match_arg(action)
   if (!is.numeric(max_nlogS) || length(max_nlogS) != 1L ||
       !is.finite(max_nlogS) || max_nlogS <= 0) {
-    stop("`max_nlogS` must be one positive finite number: it is the ",
-         "largest -log S on a censored row that this family still scores ",
-         "accurately", call. = FALSE)
+    frm_stop("`max_nlogS` must be one positive finite number: it is the ",
+             "largest -log S on a censored row that this family still scores ",
+             "accurately", call. = FALSE)
   }
   fam <- sp_rp_family_of(object)
   if (is.null(fam)) {
-    stop("rp_floored() reads the floors of a royston_parmar() fit, and ",
-         "this object's family is '",
-         if (inherits(object, "frmtmb_fit")) {
-           stats::family(object)[["family"]]
-         } else {
-           paste0("not a fit at all (", class(object)[1L], ")")
-         },
-         "'. Nothing else in this package floors anything",
-         call. = FALSE)
+    frm_stop("rp_floored() reads the floors of a royston_parmar() fit, and ",
+             "this object's family is '",
+             if (inherits(object, "frmtmb_fit")) {
+               stats::family(object)[["family"]]
+             } else {
+               paste0("not a fit at all (", class(object)[1L], ")")
+             },
+             "'. Nothing else in this package floors anything",
+             call. = FALSE)
   }
   f <- sp_rp_fitted(object, fam)
   cens_rows <- which(f$cens != 0 & f$nlogS > max_nlogS)
@@ -200,7 +200,7 @@ rp_floored <- function(object, action = c("error", "report"),
   # Only the monotonicity floor refuses now. The censored rows are
   # scored exactly through the family's lccdf slot, so their count is a
   # diagnostic and stopping on it would refuse a correct fit.
-  if (length(mono_rows)) stop(sp_rp_refusal(out, f), call. = FALSE)
+  if (length(mono_rows)) frm_stop(sp_rp_refusal(out, f), call. = FALSE)
   invisible(out)
 }
 

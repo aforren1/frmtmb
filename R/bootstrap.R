@@ -43,7 +43,7 @@ frm_bootstrap <- function(fit, FUN = function(f) fixef(f, flatten = TRUE),
   if (!is.null(seed)) set.seed(seed)
   t0 <- FUN(fit)
   if (!is.numeric(t0)) {
-    stop("FUN must return a numeric vector", call. = FALSE)
+    frm_stop("FUN must return a numeric vector", call. = FALSE)
   }
   # refit() replaces the response of the FITTED rows, so the na.exclude
   # padding simulate() adds has to come back off

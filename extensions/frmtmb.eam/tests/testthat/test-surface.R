@@ -89,8 +89,12 @@ test_that("residuals: response works, pearson and deviance refuse", {
   expect_length(r, nrow(o$dat))
   expect_equal(r, o$dat$rt - fitted(o$fit), tolerance = 1e-8)
   # declared omissions, and the refusals name the reason
-  expect_error(residuals(o$fit, type = "pearson"), "no variance function")
-  expect_error(residuals(o$fit, type = "deviance"), "unit deviance")
+  # frmtmb raises both about this package's family, so they carry its
+  # subclass
+  expect_error(residuals(o$fit, type = "pearson"), "no variance function",
+               class = "frmtmb_eam_error")
+  expect_error(residuals(o$fit, type = "deviance"), "unit deviance",
+               class = "frmtmb_eam_error")
 })
 
 test_that("simulate draws response times at each row's own boundary", {

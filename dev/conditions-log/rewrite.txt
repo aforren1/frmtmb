@@ -1,0 +1,48 @@
+EXEMPT rethrow R/fit.R:950 stop(e)
+EXEMPT rethrow R/fit.R:1801 stop(e)
+EXEMPT rethrow R/fit.R:1922 stop(e)
+
+== counts by package ==
+frmtmb exempt stop(<condition>) rethrow                          3
+frmtmb message                                                  15
+frmtmb stop                                                    770
+frmtmb stop(structure(frmtmb_fit_error)) special                 1
+frmtmb warning                                                  27
+frmtmb warning(warningCondition()) special                       1
+frmtmb.coupling stop                                            26
+frmtmb.coupling warning                                          1
+frmtmb.eam stop                                                111
+frmtmb.eam warning(warningCondition()) special                   1
+frmtmb.latent stop                                              46
+frmtmb.latent warning                                            1
+frmtmb.learn stop                                               22
+frmtmb.ode stop                                                 92
+frmtmb.ode warning                                               3
+frmtmb.sample message                                            9
+frmtmb.sample stop                                             105
+frmtmb.sample warning                                           11
+frmtmb.spline stop                                              38
+frmtmb.spline warning                                            1
+frmtmb.spline warning(warningCondition()) special                2
+OVER80 R/autocor.R: "Aggregate the repeated rows, or add the replicate to the gr
+OVER80 R/autocor.R: deparse1(ac[["time_expr"]]), "' gives ", ac[["d"]], call. = 
+OVER80 R/autocor.R: if (!is.null(time_expr)) paste0(deparse1(time_expr), ", ") e
+OVER80 R/autocor.R: if (!is.null(ac[["time_expr"]])) paste0(deparse1(ac[["time_e
+OVER80 R/autocor.R: if (is.null(ac[["gr_expr"]])) "group" else deparse1(ac[["gr_
+OVER80 R/autocor.R: frm_stop(ac[["fn"]], "(): residual correlation within a resp
+OVER80 R/autocor.R: frm_stop(fn, "(): ", ac[["d"]], " time points would build a 
+OVER80 R/autocor.R: frm_warning(ac[["fn"]], "(): the time levels present are who
+OVER80 R/bf.R: frm_stop("Constant dpar values must be named, e.g. bf(y ~ x,
+OVER80 R/brms-names.R: brms_stan_name(rs)[duplicated(brms_stan_name(rs))]],
+OVER80 R/families.R: "many arguments it takes: write \"", sub("\\(.*$", "", x[par
+OVER80 R/frame.R: "honors se(x, sigma = TRUE) by reading aterms[[\"se_sigma\"]
+OVER80 R/frame.R: resp$family[["family"]], "') are not supported in multivaria
+OVER80 R/parse.R: frm_stop("A cbind() ", fam[["family"]], " response takes exa
+OVER80 R/parse.R: frm_stop("The model formula needs a response (left-hand side
+OVER80 R/predict.R: "'", fam[["family"]], "' family declares no fitted_var(). Us
+OVER80 R/predict.R: frm_stop("`re_formula` must be NULL to keep every random eff
+OVER80 R/sandwich.R: "term ", frame[["autocor"]][[1L]]$label, ": its density is a
+OVER80 R/spectral.R: frm_stop("frm_periodogram(p =) must be one number in (0, 0.5
+OVER80 R/structure.R: rspec$family[["family"]], "' family declares none: only a mi
+OVER80 extensions/frmtmb.coupling/R/cross-spectrum.R: frm_stop("`", nm, "` must be one whole number of at least 1.
+files compared 108, mismatched 0, lines over 80 columns 21

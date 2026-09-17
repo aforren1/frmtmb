@@ -230,7 +230,9 @@ as_frmtmb_family(gaussian)
 \code{\link[=frmtmb_structure]{frmtmb_structure()}} for the protocol these serve,
 \code{\link[=frmtmb_family]{frmtmb_family()}} for the family object they read,
 \link{frmtmb-robust-dpars} for the accessors a DENSITY uses while the
-objective is taped, and the
+objective is taped, \link{frmtmb-conditions} for \code{frm_stop()},
+\code{frm_warning()} and \code{frm_message()}, which an extension raises its
+conditions with, and the
 registries an extension fills from its own \code{.onLoad()}:
 \code{\link[=frmtmb_register_frame_check]{frmtmb_register_frame_check()}}, \code{\link[=frmtmb_register_aterm]{frmtmb_register_aterm()}} and
 \code{\link[=frmtmb_register_compat]{frmtmb_register_compat()}}

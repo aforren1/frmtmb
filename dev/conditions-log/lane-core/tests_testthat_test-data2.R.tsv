@@ -1,0 +1,6 @@
+"file"	"class"	"message"
+"tests/testthat/test-data2.R"	"frmtmb_error/error/condition"	"gr(prec = ): cannot find 'Qnope'. Pass structural objects in data2, e.g. frm(..., data2 = list(Qnope = Qnope)); a fit whose matrices come from data2 also survives saveRDS() and refits in a new session. data2 holds: Q."
+"tests/testthat/test-data2.R"	"frmtmb_error/error/condition"	"gr(prec = ): cannot find 'Qnope'. Pass structural objects in data2, e.g. frm(..., data2 = list(Qnope = Qnope)); a fit whose matrices come from data2 also survives saveRDS() and refits in a new session. data2 holds: Q."
+"tests/testthat/test-data2.R"	"frmtmb_error/error/condition"	"data2 must be a named list, e.g. data2 = list(W = W)"
+"tests/testthat/test-data2.R"	"frmtmb_error/error/condition"	"data2 must be a named list, e.g. data2 = list(W = W)"
+"tests/testthat/test-data2.R"	"frmtmb_error/error/condition"	"gr(cov = ): cannot find 'A'. Pass structural objects in data2, e.g. frm(..., data2 = list(A = A)); a fit whose matrices come from data2 also survives saveRDS() and refits in a new session. data2 is empty."

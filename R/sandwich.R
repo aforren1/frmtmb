@@ -34,7 +34,7 @@ cr_adjust <- function(type, G, N, p) {
          CR1 = G / (G - 1),
          CR1p = G / (G - p),
          CR1S = G * (N - 1) / ((G - 1) * (N - p)),
-         stop("unreachable"))
+         frm_stop("unreachable", call. = FALSE))
 }
 
 #' Turns the user's `cluster` into a factor of length `n_obs`, in the
@@ -45,14 +45,14 @@ resolve_cluster <- function(fit, cluster) {
   n <- fit$frame[["n_obs"]]
   if (inherits(cluster, "formula")) {
     if (length(cluster) != 2L) {
-      stop("`cluster` must be a one-sided formula such as ~ g",
-           call. = FALSE)
+      frm_stop("`cluster` must be a one-sided formula such as ~ g",
+               call. = FALSE)
     }
     if (length(all.vars(cluster)) > 1L) {
-      stop("`cluster` names more than one variable. Multiway ",
-           "clustering is not implemented; pass one factor, e.g. ",
-           "cluster = ~ interaction(firm, year), for a single crossed ",
-           "clustering factor", call. = FALSE)
+      frm_stop("`cluster` names more than one variable. Multiway ",
+               "clustering is not implemented; pass one factor, e.g. ",
+               "cluster = ~ interaction(firm, year), for a single crossed ",
+               "clustering factor", call. = FALSE)
     }
     ex <- cluster[[2L]]
     env <- environment(cluster) %||% parent.frame()
@@ -72,9 +72,9 @@ resolve_cluster <- function(fit, cluster) {
       v <- v2 %||% v
     }
     if (is.null(v)) {
-      stop("could not find `", deparse1(ex), "` in the model frame or ",
-           "in the data the model was fitted to; pass the clustering ",
-           "factor itself as `cluster`", call. = FALSE)
+      frm_stop("could not find `", deparse1(ex), "` in the model frame or ",
+               "in the data the model was fitted to; pass the clustering ",
+               "factor itself as `cluster`", call. = FALSE)
     }
   } else if (is.character(cluster) && length(cluster) == 1L &&
              cluster %in% names(fit$frame[["data_frame"]])) {
@@ -83,11 +83,11 @@ resolve_cluster <- function(fit, cluster) {
     v <- cluster
   }
   if (length(v) != n) {
-    stop("`cluster` has length ", length(v), " but the model was ",
-         "fitted to ", n, " rows", call. = FALSE)
+    frm_stop("`cluster` has length ", length(v), " but the model was ",
+             "fitted to ", n, " rows", call. = FALSE)
   }
   if (anyNA(v)) {
-    stop("`cluster` cannot contain missing values", call. = FALSE)
+    frm_stop("`cluster` cannot contain missing values", call. = FALSE)
   }
   droplevels(as.factor(v))
 }
@@ -150,46 +150,47 @@ cluster_guard <- function(fit, cl) {
   frame <- fit$frame
 
   if (isTRUE(fit$REML)) {
-    stop("vcov_cluster() needs a maximum-likelihood fit. The ",
-         "restricted likelihood integrates the fixed effects out ",
-         "jointly, so it does not factor over clusters and a ",
-         "per-cluster score is not defined. Refit with REML = FALSE",
-         call. = FALSE)
+    frm_stop("vcov_cluster() needs a maximum-likelihood fit. The ",
+             "restricted likelihood integrates the fixed effects out ",
+             "jointly, so it does not factor over clusters and a ",
+             "per-cluster score is not defined. Refit with REML = FALSE",
+             call. = FALSE)
   }
   if (isTRUE(fit$control$profile)) {
-    stop("vcov_cluster() cannot use a fit made with ",
-         "frmtmb_control(profile = TRUE): the profiled fixed effects ",
-         "are integrated jointly, so the objective does not factor ",
-         "over clusters. Refit with profile = FALSE", call. = FALSE)
+    frm_stop("vcov_cluster() cannot use a fit made with ",
+             "frmtmb_control(profile = TRUE): the profiled fixed effects ",
+             "are integrated jointly, so the objective does not factor ",
+             "over clusters. Refit with profile = FALSE", call. = FALSE)
   }
   if (isTRUE(fit$quadrature)) {
-    stop("vcov_cluster() cannot use a fit made with quadrature = ",
-         "TRUE: the Gauss-Kronrod rule integrates a cluster with no ",
-         "data only to quadrature accuracy, so the per-cluster scores ",
-         "would not be exact. Refit with quadrature = FALSE (Laplace)",
-         call. = FALSE)
+    frm_stop("vcov_cluster() cannot use a fit made with quadrature = ",
+             "TRUE: the Gauss-Kronrod rule integrates a cluster with no ",
+             "data only to quadrature accuracy, so the per-cluster scores ",
+             "would not be exact. Refit with quadrature = FALSE (Laplace)",
+             call. = FALSE)
   }
   if (!is.null(fit$importance)) {
-    stop("vcov_cluster() cannot use a fit made with an importance ",
-         "correction: that objective is a sum over GROUPS of ",
-         "reweighted integrals, not the per-row sum the cluster ",
-         "scores are read off, so a cluster carrying no rows of its ",
-         "own still moves it. Refit with importance = 0 (Laplace)",
-         call. = FALSE)
+    frm_stop("vcov_cluster() cannot use a fit made with an importance ",
+             "correction: that objective is a sum over GROUPS of ",
+             "reweighted integrals, not the per-row sum the cluster ",
+             "scores are read off, so a cluster carrying no rows of its ",
+             "own still moves it. Refit with importance = 0 (Laplace)",
+             call. = FALSE)
   }
   if (!is.null(fit$prior)) {
-    stop("vcov_cluster() cannot use a fit made with priors: the ",
-         "optimized objective is penalized, the penalty belongs to no ",
-         "cluster, and the sandwich is not a covariance for a ",
-         "penalized estimator. Refit without priors, or use ",
-         "frm_bootstrap()", call. = FALSE)
+    frm_stop("vcov_cluster() cannot use a fit made with priors: the ",
+             "optimized objective is penalized, the penalty belongs to no ",
+             "cluster, and the sandwich is not a covariance for a ",
+             "penalized estimator. Refit without priors, or use ",
+             "frm_bootstrap()", call. = FALSE)
   }
   if (length(frame[["autocor"]] %||% list())) {
-    stop("vcov_cluster() does not support the residual correlation ",
-         "term ", frame[["autocor"]][[1L]]$label, ": its density is a joint ",
-         "one over each group rather than a product over rows, so the ",
-         "cluster weights do not reach it. Use frm_bootstrap()",
-         call. = FALSE)
+    frm_stop("vcov_cluster() does not support the residual correlation ",
+             "term ", frame[["autocor"]][[1L]]$label,
+             ": its density is a joint ",
+             "one over each group rather than a product over rows, so the ",
+             "cluster weights do not reach it. Use frm_bootstrap()",
+             call. = FALSE)
   }
   # A structured family says for itself whether a per-cluster score
   # exists. A group-level mixture's does, once every group sits inside
@@ -200,20 +201,20 @@ cluster_guard <- function(fit, cl) {
                    structure_generic(resp_$family, "vcov_cluster()"))
   }
   if (isTRUE(fit$spec$rescor)) {
-    stop("vcov_cluster() does not support rescor = TRUE: the ",
-         "responses enter one joint density per row, which the ",
-         "cluster weights do not reach. Use frm_bootstrap()",
-         call. = FALSE)
+    frm_stop("vcov_cluster() does not support rescor = TRUE: the ",
+             "responses enter one joint density per row, which the ",
+             "cluster weights do not reach. Use frm_bootstrap()",
+             call. = FALSE)
   }
   if (length(frame[["mi_map"]] %||% list())) {
-    stop("vcov_cluster() does not support mi() / me() fits: the latent ",
-         "values are parameters of the outer problem and their ",
-         "contribution belongs to no cluster. Use frm_bootstrap()",
-         call. = FALSE)
+    frm_stop("vcov_cluster() does not support mi() / me() fits: the latent ",
+             "values are parameters of the outer problem and their ",
+             "contribution belongs to no cluster. Use frm_bootstrap()",
+             call. = FALSE)
   }
   if (nlevels(cl) < 2L) {
-    stop("`cluster` has ", nlevels(cl), " level(s); a cluster-robust ",
-         "covariance needs at least 2", call. = FALSE)
+    frm_stop("`cluster` has ", nlevels(cl), " level(s); a cluster-robust ",
+             "covariance needs at least 2", call. = FALSE)
   }
 
   ci <- as.integer(cl)
@@ -230,12 +231,12 @@ cluster_guard <- function(fit, cl) {
         blk <- frame[["re_blocks"]][[which(vapply(
           frame[["re_blocks"]],
           function(bk) any(u[bk[["c_idx"]]] %in% bad), TRUE))[1L]]]
-        stop("the random effect ", blk[["term_label"]], " crosses ",
-             "`cluster`: one of its levels loads on rows in more than ",
-             "one cluster, so the marginal likelihood does not factor ",
-             "over clusters and a per-cluster score is not defined. ",
-             "Cluster at a factor that every random effect is nested ",
-             "in, or use frm_bootstrap()", call. = FALSE)
+        frm_stop("the random effect ", blk[["term_label"]], " crosses ",
+                 "`cluster`: one of its levels loads on rows in more than ",
+                 "one cluster, so the marginal likelihood does not factor ",
+                 "over clusters and a per-cluster score is not defined. ",
+                 "Cluster at a factor that every random effect is nested ",
+                 "in, or use frm_bootstrap()", call. = FALSE)
       }
     }
   }
@@ -248,10 +249,10 @@ cluster_guard <- function(fit, cl) {
     tg <- methods::as(methods::as(mg$Gt, "generalMatrix"), "TsparseMatrix")
     pairs <- unique(cbind(tg@i + 1L, ci[tg@j + 1L]))
     if (anyDuplicated(pairs[, 1L]) > 0L) {
-      stop("the group-level mixture grouping for response ", r,
-           " crosses `cluster`: one mixture group spans more than one ",
-           "cluster, so the likelihood does not factor. Cluster at ",
-           "that grouping factor or coarser", call. = FALSE)
+      frm_stop("the group-level mixture grouping for response ", r,
+               " crosses `cluster`: one mixture group spans more than one ",
+               "cluster, so the likelihood does not factor. Cluster at ",
+               "that grouping factor or coarser", call. = FALSE)
     }
   }
   invisible(TRUE)
@@ -292,7 +293,10 @@ cluster_guard <- function(fit, cl) {
 #' max(abs(colSums(S)))
 #' @export
 cluster_scores <- function(object, cluster) {
-  stopifnot(inherits(object, "frmtmb_fit"))
+  if (!inherits(object, "frmtmb_fit")) {
+    frm_stop("cluster_scores() needs a model fitted by frm(), not ",
+             arg_desc(object), call. = FALSE)
+  }
   cl <- resolve_cluster(object, cluster)
   cluster_guard(object, cl)
   cluster_scores_at(object, cl)
@@ -318,9 +322,9 @@ cluster_scores_at <- function(fit, cl) {
                          map = frame[["map"]], silent = TRUE)
   keep <- names(obj$par) != "clw"
   if (!identical(names(obj$par)[keep], names(fit$opt$par))) {
-    stop("the cluster-weighted objective did not reproduce the ",
-         "fitted parameter vector; this is a bug in frmtmb",
-         call. = FALSE)
+    frm_stop("the cluster-weighted objective did not reproduce the ",
+             "fitted parameter vector; this is a bug in frmtmb",
+             call. = FALSE)
   }
   p <- obj$par
   p[keep] <- fit$opt$par
@@ -447,19 +451,22 @@ cluster_scores_at <- function(fit, cl) {
 vcov_cluster <- function(object, cluster, type = c("CR0", "CR1",
                                                    "CR1p", "CR1S"),
                          full = FALSE) {
-  stopifnot(inherits(object, "frmtmb_fit"))
+  if (!inherits(object, "frmtmb_fit")) {
+    frm_stop("vcov_cluster() needs a model fitted by frm(), not ",
+             arg_desc(object), call. = FALSE)
+  }
   check_flag(full, "full")
   if (is.character(type) && length(type) == 1L &&
       type %in% c("CR2", "CR3", "CR4")) {
-    stop("type = '", type, "' is not defined for a marginal-likelihood ",
-         "fit. The Bell-McCaffrey family is built from the hat matrix ",
-         "of a linear (or GLS) model, which a Laplace-marginal ",
-         "likelihood with a nonlinear link does not have, and frmtmb ",
-         "will not ship an adjustment with no derivation behind it. ",
-         "Use type = 'CR1', or clubSandwich::vcovCR() on a matched ",
-         "linear model", call. = FALSE)
+    frm_stop("type = '", type, "' is not defined for a marginal-likelihood ",
+             "fit. The Bell-McCaffrey family is built from the hat matrix ",
+             "of a linear (or GLS) model, which a Laplace-marginal ",
+             "likelihood with a nonlinear link does not have, and frmtmb ",
+             "will not ship an adjustment with no derivation behind it. ",
+             "Use type = 'CR1', or clubSandwich::vcovCR() on a matched ",
+             "linear model", call. = FALSE)
   }
-  type <- match.arg(type)
+  type <- frm_match_arg(type)
   cl <- resolve_cluster(object, cluster)
   cluster_guard(object, cl)
 
@@ -467,16 +474,16 @@ vcov_cluster <- function(object, cluster, type = c("CR0", "CR1",
   B <- vcov(object, full = TRUE)
   nm <- outer_par_names(object)
   if (!identical(dim(B), c(length(nm), length(nm)))) {
-    stop("the model-based covariance and the score matrix do not ",
-         "line up; this is a bug in frmtmb", call. = FALSE)
+    frm_stop("the model-based covariance and the score matrix do not ",
+             "line up; this is a bug in frmtmb", call. = FALSE)
   }
   G <- nrow(S)
   N <- object$frame[["n_obs"]]
   p <- length(object$opt$par)
   if (type %in% c("CR1p", "CR1S") && G <= p) {
-    warning("type = '", type, "' needs more clusters (", G,
-            ") than estimated parameters (", p,
-            "); the small-sample factor is not positive", call. = FALSE)
+    frm_warning("type = '", type, "' needs more clusters (", G,
+                ") than estimated parameters (", p,
+                "); the small-sample factor is not positive", call. = FALSE)
   }
   V <- B %*% crossprod(S) %*% B
   V <- cr_adjust(type, G, N, p) * V
@@ -506,18 +513,18 @@ resolve_vcov_arg <- function(fit, V, what) {
   if (is.function(V)) V <- V(fit)
   nm <- outer_par_names(fit)
   if (!is.matrix(V) || nrow(V) != ncol(V)) {
-    stop(what, "(vcov = ) needs a square matrix (or a function ",
-         "returning one)", call. = FALSE)
+    frm_stop(what, "(vcov = ) needs a square matrix (or a function ",
+             "returning one)", call. = FALSE)
   }
   if (nrow(V) != length(nm)) {
     hint <- if (nrow(V) == length(estimated_coef_names(fit))) {
       " That is the fixed-effect block; pass full = TRUE."
     } else ""
-    stop(what, "(vcov = ) needs a ", length(nm), " x ", length(nm),
-         " matrix over the whole outer parameter vector, as ",
-         "vcov(object, full = TRUE) and vcov_cluster(full = TRUE) ",
-         "return; got ", nrow(V), " x ", ncol(V), ".", hint,
-         call. = FALSE)
+    frm_stop(what, "(vcov = ) needs a ", length(nm), " x ", length(nm),
+             " matrix over the whole outer parameter vector, as ",
+             "vcov(object, full = TRUE) and vcov_cluster(full = TRUE) ",
+             "return; got ", nrow(V), " x ", ncol(V), ".", hint,
+             call. = FALSE)
   }
   list(V = V, df = attr(V, "df"))
 }

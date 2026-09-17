@@ -48,13 +48,14 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
   # check, not a value check, so it resolves while the tape is being
   # built and leaves no branch on it.
   if (length(ll) == 0L && length(yobs) > 0L) {
-    stop("The '", fam[["family"]], "' density returned no values for ",
-         length(yobs), " observations. The usual cause is an addition ",
-         "term the density reads that the model does not supply: an ",
-         "absent one is NULL, and NULL in arithmetic is a zero-length ",
-         "result, not an error. Declare it with ",
-         "frmtmb_family(required_aterms =) to get this refusal by name",
-         call. = FALSE)
+    frm_stop("The '", fam[["family"]], "' density returned no values for ",
+             length(yobs), " observations. The usual cause is an addition ",
+             "term the density reads that the model does not supply: an ",
+             "absent one is NULL, and NULL in arithmetic is a zero-length ",
+             "result, not an error. Declare it with ",
+             "frmtmb_family(required_aterms =) to get this refusal by name",
+             call. = FALSE,
+             package = frm_family_package(fam))
   }
   # Truncation bounds are resolved BEFORE the censoring block: a
   # censored row under trunc() observes its event INSIDE the window, so
@@ -71,8 +72,8 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
       # inclusive lower bound: P(lb <= Y <= ub) needs F(lb - 1)
       # (brms#1903 off-by-one)
       if (any(lb < 1)) {
-        stop("Discrete truncation needs lb >= 1 (lb = 0 is no ",
-             "truncation)", call. = FALSE)
+        frm_stop("Discrete truncation needs lb >= 1 (lb = 0 is no ",
+                 "truncation)", call. = FALSE)
       }
       lb <- lb - 1
     }

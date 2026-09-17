@@ -1,0 +1,4 @@
+"file"	"class"	"message"
+"tests/testthat/test-unpinned-seams.R"	"frmtmb_error/error/condition"	"method = 'predict' needs a family that draws row by row; 'mixture_mvn(K = 2, D = 2, model = \"VVV\")' draws the response whole"
+"tests/testthat/test-unpinned-seams.R"	"frmtmb_error/error/condition"	"method = 'predict' needs a family that draws row by row; 'mixture_mvn(K = 2, D = 2, model = \"VVV\")' draws the response whole"
+"tests/testthat/test-unpinned-seams.R"	"frmtmb_error/error/condition"	"se.fit is not available for the expected response of family 'mixture_mvn(K = 2, D = 2, model = \"VVV\")': its mean is not one number per observation"

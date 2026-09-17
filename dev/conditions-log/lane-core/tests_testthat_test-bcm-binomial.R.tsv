@@ -1,0 +1,2 @@
+"file"	"class"	"message"
+"tests/testthat/test-bcm-binomial.R"	"frmtmb_error/error/condition"	"residuals(type = 'osa') is not available for a bcm_survey() fit: the tape holds one number for the whole response with no registered observation vector"

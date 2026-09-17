@@ -1,0 +1,41 @@
+cases 32  OK both 21  error both 10  REGRESSION (base OK, lane error) 1  lane OK, base error 0 
+
+== REGRESSIONS 
+data_env_parent_var
+   base: OK
+   lane: ERROR [frmtmb_error] The model uses `xq`, which is not a column of `data` and not an object that R finds from the formula. Add the column to `data` or correct the name
+
+== lane OK, base error 
+
+== error on both 
+cens_env_scalar
+   base: ERROR [simpleError] variable lengths differ (found for 'c0')
+   lane: ERROR [frmtmb_error] `c0` is not a column of `data`; the object R finds from the formula has 1 rows and `data` has 60. Add the column to `data` or correct the name
+fcor_data2
+   base: ERROR [simpleError] could not find function "fcor"
+   lane: ERROR [frmtmb_error] The model uses `Vm`, which is not a column of `data` and not an object that R finds from the formula. Add the column to `data` or correct the name
+matrix_data
+   base: ERROR [simpleError] 'data' must be a data.frame, not a matrix or an array
+   lane: ERROR [frmtmb_error] `data` must be a data frame holding the model variables, not a matrix of length 120
+offset_arg
+   base: ERROR [simpleError] object 'expo' not found
+   lane: ERROR [simpleError] object 'expo' not found
+sar_data2
+   base: ERROR [simpleError] could not find function "sar"
+   lane: ERROR [frmtmb_error] The model uses `Wm`, which is not a column of `data` and not an object that R finds from the formula. Add the column to `data` or correct the name
+se_env_scalar
+   base: ERROR [simpleError] variable lengths differ (found for 's0')
+   lane: ERROR [frmtmb_error] `s0` is not a column of `data`; the object R finds from the formula has 1 rows and `data` has 60. Add the column to `data` or correct the name
+te_smooth
+   base: ERROR [simpleError] te() and ti() smooths are not supported (no random-effect representation); use t2() instead
+   lane: ERROR [frmtmb_error] te() and ti() smooths are not supported (no random-effect representation); use t2() instead
+trials_env_scalar
+   base: ERROR [simpleError] variable lengths differ (found for 'nt')
+   lane: ERROR [frmtmb_error] `nt` is not a column of `data`; the object R finds from the formula has 1 rows and `data` has 60. Add the column to `data` or correct the name
+unnamed_list_data
+   base: ERROR [simpleError] object 'y' not found
+   lane: ERROR [frmtmb_error] `data` must be a data frame holding the model variables, not a list of length 2
+weights_env_scalar
+   base: ERROR [simpleError] variable lengths differ (found for 'ws')
+   lane: ERROR [frmtmb_error] `ws` is not a column of `data`; the object R finds from the formula has 1 rows and `data` has 60. Add the column to `data` or correct the name
+

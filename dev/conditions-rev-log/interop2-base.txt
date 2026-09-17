@@ -1,0 +1,47 @@
+
+## model.matrix(mv) 
+ERROR [ simpleError/error/condition ] Multiple responses have dpar 'mu'; disambiguate with resp =  
+
+## insight::get_modelmatrix(mv, data = d) 
+ERROR [ simpleError/error/condition ] Multiple responses have dpar 'mu'; disambiguate with resp =  
+
+## .get_predicted_ci_modelmatrix(mv, data = d) 
+WARNING: Something went wrong with computing standard errors and confidence
+  intervals for predictions. 
+
+## insight::get_predicted(mv, data = d, ci = 0.95) 
+ERROR [ simpleError/error/condition ] non-character object(s) 
+
+## insight::get_predicted_ci(mv, predictions = p, data = d) 
+WARNING: Something went wrong with computing standard errors and confidence
+  intervals for predictions. 
+'data.frame':	60 obs. of  3 variables:
+ $ SE     : logi  NA NA NA NA NA NA ...
+ $ CI_low : logi  NA NA NA NA NA NA ...
+ $ CI_high: logi  NA NA NA NA NA NA ...
+
+## insight::get_predicted_ci(gaussian, data = d, dpar = 'nosuch') 
+WARNING: Could not compute standard errors or confidence intervals because the
+  model and variance-covariance matrices are non-conformable. This can
+  sometimes happen when the `data` used to make predictions fails to
+  include all the levels of a factor variable or all the interaction
+  components. 
+'data.frame':	60 obs. of  3 variables:
+ $ SE     : logi  NA NA NA NA NA NA ...
+ $ CI_low : logi  NA NA NA NA NA NA ...
+ $ CI_high: logi  NA NA NA NA NA NA ...
+
+## model.matrix(nl) 
+
+## insight::get_predicted_ci(nl, predictions = p, data = d) 
+WARNING: Something went wrong with computing standard errors and confidence
+  intervals for predictions. 
+'data.frame':	60 obs. of  3 variables:
+ $ SE     : logi  NA NA NA NA NA NA ...
+ $ CI_low : logi  NA NA NA NA NA NA ...
+ $ CI_high: logi  NA NA NA NA NA NA ...
+
+## insight::get_predicted(nl, ci = 0.95) 
+WARNING: Could not compute predictions for model of class `frmtmb_fit`. 
+WARNING: Something went wrong with computing standard errors and confidence
+  intervals for predictions. 

@@ -1,0 +1,2 @@
+"file"	"class"	"message"
+"tests/testthat/test-brms-priors.R"	"frmtmb_error/error/condition"	"A brms prior with class = \"sds\" (student_t(3, 0, 1)) has no faithful frmtmb spelling. brms's \"sds\" is the wiggliness standard deviation of a smooth. frmtmb holds a smooth as a random-effect block, so its frmtmb spelling is class = \"sd\" with group = the smooth's label, e.g. group = \"s(x)\"; get_prior("

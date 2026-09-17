@@ -99,7 +99,7 @@ ddm_check_units <- function(y, what) {
   if (!length(y)) return(invisible(NULL))
   lo <- min(y)
   if (!is.finite(lo) || lo <= ddm_seconds_ceiling) return(invisible(NULL))
-  warning(warningCondition(paste0(
+  frm_warning(paste0(
     what, ": the fastest response in these data is ",
     format(lo, digits = 4), ", and every default in this package reads ",
     "the response as a time in SECONDS. Milliseconds is the usual ",
@@ -112,7 +112,7 @@ ddm_check_units <- function(y, what) {
     "this slow then the fit is correct and this warning is its only ",
     "cost; it carries the class frmtmb_eam_units_warning so that it can ",
     "be silenced on its own"),
-    class = "frmtmb_eam_units_warning"))
+    class = "frmtmb_eam_units_warning", call. = FALSE)
   invisible(NULL)
 }
 
@@ -160,19 +160,20 @@ ddm_check_units <- function(y, what) {
 #' its components at all.
 #'
 #' @noRd
-ddm_scaled_logit <- function(ub, dpar, what = "wiener") {
+ddm_scaled_logit <- function(ub, dpar, what = "wiener", package = NULL) {
   force(ub)
   force(dpar)
   force(what)
+  force(package)
   bound <- function() {
     if (is.na(ub)) {
-      stop(what, "(): the ", dpar, " bound is not set yet. This ",
-           "happens when a ", what, "() family object is used outside ",
-           "frm(), for example to inspect its links before a fit, to ",
-           "pin the parameter with bf(", dpar, " = ), or inside ",
-           "mixture(), which does not finalize its components. Pass ",
-           "`max_ndt` to ", what, "() to set the bound up front.",
-           call. = FALSE)
+      frm_stop(what, "(): the ", dpar, " bound is not set yet. This ",
+               "happens when a ", what, "() family object is used outside ",
+               "frm(), for example to inspect its links before a fit, to ",
+               "pin the parameter with bf(", dpar, " = ), or inside ",
+               "mixture(), which does not finalize its components. Pass ",
+               "`max_ndt` to ", what, "() to set the bound up front.",
+               call. = FALSE, package = package)
     }
     ub
   }
@@ -238,20 +239,20 @@ ddm_label_code <- function(lab) {
 ddm_coerce_ndt_group <- function(x) {
   lab <- if (is.factor(x)) as.character(x) else as.character(x)
   if (anyNA(lab)) {
-    stop("ndt_group(): the grouping says which trials share a ",
-         "non-decision-time bound, so every row needs one, and this ",
-         "column has a missing value. frm()'s own na.action drops such ",
-         "a row before this is reached; predicting on newdata does ",
-         "not, which is where this fires.", call. = FALSE)
+    frm_stop("ndt_group(): the grouping says which trials share a ",
+             "non-decision-time bound, so every row needs one, and this ",
+             "column has a missing value. frm()'s own na.action drops such ",
+             "a row before this is reached; predicting on newdata does ",
+             "not, which is where this fires.", call. = FALSE)
   }
   u <- unique(lab)
   co <- ddm_label_code(u)
   if (anyDuplicated(co)) {
     j <- which(duplicated(co) | duplicated(co, fromLast = TRUE))
-    stop("ndt_group(): the group labels ",
-         paste(sort(u[j])[seq_len(min(4L, length(j)))], collapse = ", "),
-         " collide under the code this term is keyed on, so they cannot ",
-         "be told apart. Rename one of them.", call. = FALSE)
+    frm_stop("ndt_group(): the group labels ",
+             paste(sort(u[j])[seq_len(min(4L, length(j)))], collapse = ", "),
+             " collide under the code this term is keyed on, so they cannot ",
+             "be told apart. Rename one of them.", call. = FALSE)
   }
   co[match(lab, u)]
 }
@@ -266,23 +267,23 @@ ddm_coerce_ndt_group <- function(x) {
 #' a model cannot want both.
 #'
 #' @noRd
-ddm_ndt_spec <- function(y, aterms, max_ndt, what) {
+ddm_ndt_spec <- function(y, aterms, max_ndt, what, package = NULL) {
   g <- aterms[["ndt_group"]]
   if (!is.null(g) && !is.null(max_ndt)) {
-    stop(what, ": max_ndt and ndt_group() both set the non-decision ",
-         "time's upper bound and they set it to different things. ",
-         "max_ndt fixes one bound for every row; ndt_group() takes ",
-         "each group's own fastest response. Drop one of them.",
-         call. = FALSE)
+    frm_stop(what, ": max_ndt and ndt_group() both set the non-decision ",
+             "time's upper bound and they set it to different things. ",
+             "max_ndt fixes one bound for every row; ndt_group() takes ",
+             "each group's own fastest response. Drop one of them.",
+             call. = FALSE, package = package)
   }
   if (is.null(g)) return(list(ub = max_ndt %||% min(y), floors = NULL))
   # One value is allowed and means one group, which is the same model as
   # no ndt_group() at all. Anything else that is not one per trial is a
   # recycling accident rather than a design.
   if (!length(g) %in% c(1L, length(y))) {
-    stop(what, ": ndt_group() has ", length(g), " values for ",
-         length(y), " responses. It names the group of every trial.",
-         call. = FALSE)
+    frm_stop(what, ": ndt_group() has ", length(g), " values for ",
+             length(y), " responses. It names the group of every trial.",
+             call. = FALSE, package = package)
   }
   k <- as.character(g)
   list(ub = min(y),
@@ -300,27 +301,29 @@ ddm_ndt_spec <- function(y, aterms, max_ndt, what) {
 #' rather than given the global one.
 #'
 #' @noRd
-ddm_ndt_scaler <- function(floors, what) {
+ddm_ndt_scaler <- function(floors, what, package = NULL) {
   force(floors)
   force(what)
+  force(package)
   function(aterms) {
     fl <- aterms[["ndt_floor"]]
     if (!is.null(fl)) return(fl)
     g <- aterms[["ndt_group"]]
     if (is.null(g)) {
-      stop(what, ": this model bounds the non-decision time by each ",
-           "ndt_group()'s own fastest response, so a prediction needs ",
-           "every row's group. Supply the ndt_group() column on ",
-           "newdata.", call. = FALSE)
+      frm_stop(what, ": this model bounds the non-decision time by each ",
+               "ndt_group()'s own fastest response, so a prediction needs ",
+               "every row's group. Supply the ndt_group() column on ",
+               "newdata.", call. = FALSE, package = package)
     }
     v <- floors[as.character(g)]
     if (anyNA(v)) {
-      stop(what, ": ", sum(is.na(v)), " row(s) name an ndt_group() the ",
-           "model was not fitted to, so there is no fastest response to ",
-           "bound their non-decision time by. A per-group bound is a ",
-           "property of the fitted data. For wiener_gng() a group whose ",
-           "trials are all no-go rows lands here too, because the bound ",
-           "is taken over the go rows alone.", call. = FALSE)
+      frm_stop(what, ": ", sum(is.na(v)), " row(s) name an ndt_group() the ",
+               "model was not fitted to, so there is no fastest response to ",
+               "bound their non-decision time by. A per-group bound is a ",
+               "property of the fitted data. For wiener_gng() a group whose ",
+               "trials are all no-go rows lands here too, because the bound ",
+               "is taken over the go rows alone.", call. = FALSE,
+               package = package)
     }
     unname(v)
   }
@@ -501,10 +504,13 @@ ddm_ndt_install <- function(fam, ub, floors, what, pending = FALSE,
 #' this one.
 #'
 #' @noRd
-ddm_ndt_bound_new <- function(ub, floors, pending, sizes, what) {
+ddm_ndt_bound_new <- function(ub, floors, pending, sizes, what,
+                              package = NULL) {
+  # the package rides as an attribute rather than a sixth name, so the
+  # record's documented names, and their partial matches, do not move
   structure(list(ub = ub, floors = floors, pending = pending,
                  sizes = sizes, what = what),
-            class = "frmtmb_eam_ndt_bound")
+            class = "frmtmb_eam_ndt_bound", package = package)
 }
 
 #' Half the fastest response, in the response's own units.
@@ -584,11 +590,11 @@ ddm_ndt_finalize <- function(fam, y, aterms, max_ndt, what,
                              y_of = ddm_all_rows) {
   sp <- ddm_ndt_spec(y, aterms, max_ndt, what)
   if (!is.null(max_ndt) && sp$ub > min(y)) {
-    stop(what, ": max_ndt = ", format(sp$ub), " is above the fastest ",
-         "response (", format(min(y)), "). Nothing can be observed ",
-         "before the non-decision time, so a bound above the fastest ",
-         "response admits values at which that trial has no ",
-         "likelihood.", call. = FALSE)
+    frm_stop(what, ": max_ndt = ", format(sp$ub), " is above the fastest ",
+             "response (", format(min(y)), "). Nothing can be observed ",
+             "before the non-decision time, so a bound above the fastest ",
+             "response admits values at which that trial has no ",
+             "likelihood.", call. = FALSE)
   }
   keep <- ddm_ndt_keep(fam)
   if (!is.null(keep)) return(fam)
@@ -641,11 +647,11 @@ ndt_time <- function(object, newdata = NULL, ...) {
   fam <- rsp[["family"]]
   bd <- fam[["ndt_bound"]]
   if (is.null(bd)) {
-    stop("ndt_time(): a ", fam[["family"]], " model does not estimate ",
-         "the non-decision time against a bound this can rescale. ",
-         "ndt_time() reports for wiener(), lba(), rdm() and ",
-         "wiener_gng(); on a gddm() fit predict(dpar = \"ndt\", type = ",
-         "\"response\") already gives the time.", call. = FALSE)
+    frm_stop("ndt_time(): a ", fam[["family"]], " model does not estimate ",
+             "the non-decision time against a bound this can rescale. ",
+             "ndt_time() reports for wiener(), lba(), rdm() and ",
+             "wiener_gng(); on a gddm() fit predict(dpar = \"ndt\", type = ",
+             "\"response\") already gives the time.", call. = FALSE)
   }
   out <- stats::predict(object, newdata = newdata, dpar = "ndt",
                         type = "response", ...)
@@ -658,10 +664,10 @@ ndt_time <- function(object, newdata = NULL, ...) {
     g <- tryCatch(eval(ex, newdata, rsp[["formula_env"]]),
                   error = function(e) NULL)
     if (is.null(g)) {
-      stop("ndt_time(): this model bounds the non-decision time by each ",
-           "ndt_group()'s own fastest response, and ",
-           deparse1(ex), " could not be evaluated on newdata. Supply ",
-           "that column.", call. = FALSE)
+      frm_stop("ndt_time(): this model bounds the non-decision time by each ",
+               "ndt_group()'s own fastest response, and ",
+               deparse1(ex), " could not be evaluated on newdata. Supply ",
+               "that column.", call. = FALSE)
     }
     scale(list(ndt_group = ddm_coerce_ndt_group(g)))
   }
@@ -671,8 +677,8 @@ ndt_time <- function(object, newdata = NULL, ...) {
   if (length(fl) > 1L && length(fl) != length(out)) {
     keep <- !is.na(out)
     if (sum(keep) != length(fl)) {
-      stop("ndt_time(): ", length(fl), " bounds for ", sum(keep),
-           " predicted rows. Supply newdata explicitly.", call. = FALSE)
+      frm_stop("ndt_time(): ", length(fl), " bounds for ", sum(keep),
+               " predicted rows. Supply newdata explicitly.", call. = FALSE)
     }
     pad <- rep(NA_real_, length(out))
     pad[keep] <- fl

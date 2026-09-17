@@ -61,31 +61,35 @@
 #' @export
 check_custom_family <- function(family, y, dpars, aterms = list(),
                                 tol = 1e-4) {
-  stopifnot(inherits(family, "frmtmb_family"))
+  if (!inherits(family, "frmtmb_family")) {
+    frm_stop("check_custom_family() needs a family made by ",
+             "custom_family() or frmtmb_family(), not ", arg_desc(family),
+             call. = FALSE)
+  }
   check_positive(tol, "tol")
   if (!setequal(names(dpars), family[["dpars"]])) {
-    stop("`dpars` must supply test values for exactly: ",
-         paste(family[["dpars"]], collapse = ", "), call. = FALSE)
+    frm_stop("`dpars` must supply test values for exactly: ",
+             paste(family[["dpars"]], collapse = ", "), call. = FALSE)
   }
   f <- function(p) -sum(family[["lpdf"]](y, p, aterms))
   v0 <- f(lapply(dpars, as.numeric))
   if (!is.finite(v0)) {
-    stop("lpdf is not finite at the test values", call. = FALSE)
+    frm_stop("lpdf is not finite at the test values", call. = FALSE)
   }
   obj <- tryCatch(
     RTMB::MakeADFun(f, dpars, silent = TRUE),
     error = function(e) {
-      stop("Failed to tape the lpdf: ", conditionMessage(e),
-           ". Typical cause: base matrix()/c() stripping the advector ",
-           "class, or branching on parameter values", call. = FALSE)
+      frm_stop("Failed to tape the lpdf: ", conditionMessage(e),
+               ". Typical cause: base matrix()/c() stripping the advector ",
+               "class, or branching on parameter values", call. = FALSE)
     }
   )
   if (abs(obj$fn(obj$par) - v0) > 1e-8 * max(1, abs(v0))) {
-    stop("Taped lpdf disagrees with its plain-numeric value (",
-         format(obj$fn(obj$par)), " vs ", format(v0), "): the lpdf uses ",
-         "operations that behave differently on the AD tape (base ",
-         "matrix()/c() on advectors are the usual culprits)",
-         call. = FALSE)
+    frm_stop("Taped lpdf disagrees with its plain-numeric value (",
+             format(obj$fn(obj$par)), " vs ", format(v0), "): the lpdf uses ",
+             "operations that behave differently on the AD tape (base ",
+             "matrix()/c() on advectors are the usual culprits)",
+             call. = FALSE)
   }
   g <- as.vector(obj$gr(obj$par))
   p0 <- obj$par
@@ -97,8 +101,8 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
   }, numeric(1))
   rel <- abs(g - fd) / pmax(abs(fd), 1)
   if (any(rel > tol)) {
-    stop("AD gradient disagrees with finite differences (max relative ",
-         "error ", format(max(rel), digits = 3), ")", call. = FALSE)
+    frm_stop("AD gradient disagrees with finite differences (max relative ",
+             "error ", format(max(rel), digits = 3), ")", call. = FALSE)
   }
   invisible(TRUE)
 }
@@ -117,12 +121,12 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
 #' @noRd
 emm_mu_linpred <- function(object) {
   if (length(object$spec$responses) > 1) {
-    stop("emmeans support is univariate-only for now", call. = FALSE)
+    frm_stop("emmeans support is univariate-only for now", call. = FALSE)
   }
   rspec <- object$spec$responses[[1]]
   lp <- object$frame[["linpreds"]][[linpred_key(rspec$resp_name, "mu")]]
   if (is.null(lp) || !is.null(lp[["nl_body"]])) {
-    stop("emmeans support needs a linear mu predictor", call. = FALSE)
+    frm_stop("emmeans support needs a linear mu predictor", call. = FALSE)
   }
   lp
 }
@@ -217,9 +221,9 @@ emm_basis.frmtmb_fit <- function(object, trms, xlev, grid, ...) {
   if (!identical(colnames(X), pn)) {
     keep <- match(pn, colnames(X))
     if (anyNA(keep)) {
-      stop("emmeans support cannot rebuild the fitted design: column(s) ",
-           paste(pn[is.na(keep)], collapse = ", "),
-           " are missing from the reference grid", call. = FALSE)
+      frm_stop("emmeans support cannot rebuild the fitted design: column(s) ",
+               paste(pn[is.na(keep)], collapse = ", "),
+               " are missing from the reference grid", call. = FALSE)
     }
     X <- X[, keep, drop = FALSE]
   }
@@ -285,8 +289,8 @@ getME_flist <- function(object) {
       error = function(e) NULL
     )
     if (length(gv) != object$frame[["n_obs"]]) {
-      stop("getME(\"flist\"): cannot rebuild the grouping factor for `",
-           bk[["term_label"]], "`", call. = FALSE)
+      frm_stop("getME(\"flist\"): cannot rebuild the grouping factor for `",
+               bk[["term_label"]], "`", call. = FALSE)
     }
     nm <- bk[["group_name"]]
     if (is.null(out[[nm]])) out[[nm]] <- factor(gv, levels = bk[["levels"]])
@@ -382,14 +386,14 @@ getME_flist <- function(object) {
 getME.frmtmb_fit <- function(object, name, resp = NULL, ...) {
   frm_check_dots(...)
   if (missing(name) || !is.character(name) || !length(name)) {
-    stop("getME() needs one or more names: ",
-         paste(frmtmb_getME_vocab, collapse = ", "), call. = FALSE)
+    frm_stop("getME() needs one or more names: ",
+             paste(frmtmb_getME_vocab, collapse = ", "), call. = FALSE)
   }
   bad <- setdiff(name, frmtmb_getME_vocab)
   if (length(bad)) {
-    stop("getME(): unknown name(s) ", paste(bad, collapse = ", "),
-         ". Supported: ", paste(frmtmb_getME_vocab, collapse = ", "),
-         call. = FALSE)
+    frm_stop("getME(): unknown name(s) ", paste(bad, collapse = ", "),
+             ". Supported: ", paste(frmtmb_getME_vocab, collapse = ", "),
+             call. = FALSE)
   }
   if (length(name) > 1L) {
     out <- lapply(name, function(nm) getME.frmtmb_fit(object, nm, resp))
@@ -418,7 +422,9 @@ getME.frmtmb_fit <- function(object, name, resp = NULL, ...) {
     name,
     X = mu_lp()$X,
     Z = mu_Z(),
-    Zt = Matrix::t(mu_Z()),
+    # forced before t(): an error while S4 dispatch evaluates the
+    # argument is raised again as a plain simpleError, losing its class
+    Zt = { z <- mu_Z(); Matrix::t(z) },
     beta = ,
     fixef = object$estimates[["beta"]],
     b = {

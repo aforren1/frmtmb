@@ -1,0 +1,2 @@
+"file"	"class"	"message"
+"tests/testthat/test-mo-terms.R"	"simpleError/error/condition"	"Stan parameter simo_sigma_1 is a monotonic simplex outside mu, which has no translation rule"

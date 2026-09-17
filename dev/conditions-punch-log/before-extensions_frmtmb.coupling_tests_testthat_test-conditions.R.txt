@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 2 PASS 4 FAIL 1 ERROR 0 SKIP 0  extensions/frmtmb.coupling/tests/testthat/test-conditions.R
+  failing: the refusals classed in punch round 1 carry the subclass
+       Expected window to be identical to `c("frmtmb_coupling_error", "frmtmb_error", "error")`. Differences: `actual`:   "simpleError"           "error"        "condition" `expected`: "frmtmb_coupling_error" "frmtmb_error" "error"      

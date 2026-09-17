@@ -1,0 +1,21 @@
+BLOCKS 1 PASS 3 FAIL 0 ERROR 0 SKIP 0  extensions/frmtmb.coupling/tests/testthat/test-conditions.R
+BLOCKS 1 PASS 3 FAIL 0 ERROR 0 SKIP 0  extensions/frmtmb.eam/tests/testthat/test-conditions.R
+BLOCKS 1 PASS 3 FAIL 0 ERROR 0 SKIP 0  extensions/frmtmb.latent/tests/testthat/test-conditions.R
+BLOCKS 1 PASS 3 FAIL 0 ERROR 0 SKIP 0  extensions/frmtmb.learn/tests/testthat/test-conditions.R
+BLOCKS 1 PASS 3 FAIL 0 ERROR 0 SKIP 0  extensions/frmtmb.ode/tests/testthat/test-conditions.R
+BLOCKS 1 PASS 3 FAIL 0 ERROR 0 SKIP 0  extensions/frmtmb.sample/tests/testthat/test-conditions.R
+BLOCKS 1 PASS 3 FAIL 0 ERROR 0 SKIP 0  extensions/frmtmb.spline/tests/testthat/test-conditions.R
+BLOCKS 1 PASS 0 FAIL 0 ERROR 1 SKIP 0  extensions/frmtmb.coupling/tests/testthat/test-conditions.R
+       Error: `x` and `y` must have the same length; they are 20 and 10. 
+BLOCKS 1 PASS 0 FAIL 0 ERROR 1 SKIP 0  extensions/frmtmb.eam/tests/testthat/test-conditions.R
+       Error: wiener(): the non-decision time bound is not set yet. This happens when a wiener() family object is used outside frm(), for example to inspect its
+BLOCKS 1 PASS 0 FAIL 0 ERROR 1 SKIP 0  extensions/frmtmb.latent/tests/testthat/test-conditions.R
+       Error: hmm() needs the number of hidden states as a whole number of at least 2: hmm(2, gaussian()) 
+BLOCKS 1 PASS 0 FAIL 0 ERROR 1 SKIP 0  extensions/frmtmb.learn/tests/testthat/test-conditions.R
+       Error: bandit4arm2_kalman_filter(sigma_o =) is the observation noise standard deviation and must be one positive number; it is held fixed rather than est
+BLOCKS 1 PASS 0 FAIL 0 ERROR 1 SKIP 0  extensions/frmtmb.ode/tests/testthat/test-conditions.R
+       Error: `events` has replace rows, which frm_lincmt() does not fit. The closed form is a superposition of the doses that came before an observation, and "
+BLOCKS 1 PASS 0 FAIL 0 ERROR 1 SKIP 0  extensions/frmtmb.sample/tests/testthat/test-conditions.R
+       Error: frm_sample() takes `prior`, not `priors`: the argument follows brms's spelling, and this function's `...` would otherwise pass the old name throug
+BLOCKS 1 PASS 0 FAIL 0 ERROR 1 SKIP 0  extensions/frmtmb.spline/tests/testthat/test-conditions.R
+       Error: frm_curve(): `object` must be a frmtmb fit, the model a curve is read off, not an object of class data.frame 

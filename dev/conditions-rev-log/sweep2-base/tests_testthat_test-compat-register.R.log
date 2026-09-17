@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/rellib-r3 
+BLOCKS 27 PASS 97 FAIL 0 ERROR 1 SKIP 0  tests/testthat/test-compat-register.R
+CAUGHT 26 
+DONE

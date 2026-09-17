@@ -48,8 +48,8 @@ bcm_mbcast <- function(v, n) if (length(v) == 1L) v * rep(1, n) else v
 # instead of being added as -Infinity.
 bcm_survey <- function(nmax, link = "logit") {
   if (length(nmax) != 1L || nmax < 1 || nmax != round(nmax)) {
-    stop("bcm_survey(nmax =) is the largest number of surveys that ",
-         "could have been sent, one whole number", call. = FALSE)
+    frm_stop("bcm_survey(nmax =) is the largest number of surveys that ",
+             "could have been sent, one whole number", call. = FALSE)
   }
   fam <- frmtmb_family(
     "bcm_survey",
@@ -57,17 +57,17 @@ bcm_survey <- function(nmax, link = "logit") {
     links = list(mu = link),
     type = "discrete",
     lpdf = function(y, dpars, aterms, extra = NULL) {
-      stop("A bcm_survey() return count has no row-wise log density: ",
-           "every count is binomial in the SAME unknown number of ",
-           "surveys, and that number is summed out of the whole ",
-           "response at once. Use logLik() for the total, or ",
-           "latent_probs() for the posterior over the number sent",
-           call. = FALSE)
+      frm_stop("A bcm_survey() return count has no row-wise log density: ",
+               "every count is binomial in the SAME unknown number of ",
+               "surveys, and that number is summed out of the whole ",
+               "response at once. Use logLik() for the total, or ",
+               "latent_probs() for the posterior over the number sent",
+               call. = FALSE)
     },
     valid_y = function(y, aterms) {
       if (any(y < 0) || any(y != round(y))) {
-        stop("bcm_survey(): the response is a count of returns",
-             call. = FALSE)
+        frm_stop("bcm_survey(): the response is a count of returns",
+                 call. = FALSE)
       }
     },
     init_dpars = list(mu = function(y, aterms) 0.5),
@@ -91,15 +91,15 @@ bcm_survey_structure <- function() {
   frmtmb_structure(
     check_spec = function(resp, spec, av) {
       if (length(spec$responses) > 1L || isTRUE(spec$rescor)) {
-        stop("bcm_survey() supports univariate models only",
-             call. = FALSE)
+        frm_stop("bcm_survey() supports univariate models only",
+                 call. = FALSE)
       }
     },
     frame_block = function(resp, spec, av, mf, y, n) {
       nmax <- resp$family[["survey"]][["nmax"]]
       if (max(y) > nmax) {
-        stop("bcm_survey(nmax = ", nmax, "): ", max(y), " surveys came ",
-             "back, so at least that many were sent", call. = FALSE)
+        frm_stop("bcm_survey(nmax = ", nmax, "): ", max(y), " surveys came ",
+                 "back, so at least that many were sent", call. = FALSE)
       }
       list(n = n, nmax = nmax, nmin = as.integer(max(y)))
     },
@@ -163,12 +163,12 @@ bcm_changepoint <- function(time) {
     primary_dpars = "mu1",
     type = "continuous",
     lpdf = function(y, dpars, aterms, extra = NULL) {
-      stop("A bcm_changepoint() measurement has no row-wise log ",
-           "density: which mean it came from depends on where the ",
-           "change is, and the change is summed out of the whole ",
-           "sequence at once. Use logLik() for the total, or ",
-           "latent_probs() for the posterior over the changepoint",
-           call. = FALSE)
+      frm_stop("A bcm_changepoint() measurement has no row-wise log ",
+               "density: which mean it came from depends on where the ",
+               "change is, and the change is summed out of the whole ",
+               "sequence at once. Use logLik() for the total, or ",
+               "latent_probs() for the posterior over the changepoint",
+               call. = FALSE)
     },
     init_dpars = list(
       mu1 = function(y, aterms) mean(y[seq_len(max(1, length(y) %/% 4))]),
@@ -206,21 +206,21 @@ bcm_changepoint_structure <- function() {
     frame_vars = function(fam) list(fam[["cp"]][["time_expr"]]),
     check_spec = function(resp, spec, av) {
       if (length(spec$responses) > 1L || isTRUE(spec$rescor)) {
-        stop("bcm_changepoint() supports univariate models only",
-             call. = FALSE)
+        frm_stop("bcm_changepoint() supports univariate models only",
+                 call. = FALSE)
       }
     },
     frame_block = function(resp, spec, av, mf, y, n) {
       tv <- as.numeric(eval(resp$family[["cp"]][["time_expr"]], mf,
                             resp$formula_env))
       if (anyNA(tv)) {
-        stop("bcm_changepoint(): the time variable has missing values, ",
-             "so the order the change could fall in is undefined",
-             call. = FALSE)
+        frm_stop("bcm_changepoint(): the time variable has missing values, ",
+                 "so the order the change could fall in is undefined",
+                 call. = FALSE)
       }
       if (n < 3L) {
-        stop("bcm_changepoint(): a change needs at least one ",
-             "measurement on each side", call. = FALSE)
+        frm_stop("bcm_changepoint(): a change needs at least one ",
+                 "measurement on each side", call. = FALSE)
       }
       list(n = n, ord = order(tv), time = tv)
     },
@@ -297,16 +297,16 @@ bcm_two_country <- function(person, question, max_patterns = 4096L) {
     primary_dpars = "alpha",
     type = "discrete",
     lpdf = function(y, dpars, aterms, extra = NULL) {
-      stop("A bcm_two_country() answer has no row-wise log density: ",
-           "whether it was an own-country question depends on the ",
-           "person's country AND the question's, and neither was ",
-           "recorded. Use logLik() for the total, or latent_probs() ",
-           "for the posterior over each person's country", call. = FALSE)
+      frm_stop("A bcm_two_country() answer has no row-wise log density: ",
+               "whether it was an own-country question depends on the ",
+               "person's country AND the question's, and neither was ",
+               "recorded. Use logLik() for the total, or latent_probs() ",
+               "for the posterior over each person's country", call. = FALSE)
     },
     valid_y = function(y, aterms) {
       if (!all(y %in% c(0, 1))) {
-        stop("bcm_two_country(): the response is whether the answer was ",
-             "correct, coded 0 or 1", call. = FALSE)
+        frm_stop("bcm_two_country(): the response is whether the answer was ",
+                 "correct, coded 0 or 1", call. = FALSE)
       }
     },
     init_dpars = list(alpha = function(y, aterms) 0.8,
@@ -408,8 +408,8 @@ bcm_two_country_structure <- function(max_patterns) {
     },
     check_spec = function(resp, spec, av) {
       if (length(spec$responses) > 1L || isTRUE(spec$rescor)) {
-        stop("bcm_two_country() supports univariate models only",
-             call. = FALSE)
+        frm_stop("bcm_two_country() supports univariate models only",
+                 call. = FALSE)
       }
     },
     frame_block = function(resp, spec, av, mf, y, n) {
@@ -419,12 +419,12 @@ bcm_two_country_structure <- function(max_patterns) {
       np <- nlevels(pv)
       nq <- nlevels(qv)
       if (2^nq > max_patterns) {
-        stop("bcm_two_country(): the sum runs over 2^", nq, " patterns ",
-             "of question countries, which is more than the ",
-             max_patterns, " this family will enumerate. The ",
-             "marginalization is exact but exponential in the number of ",
-             "QUESTIONS, so raise max_patterns deliberately or use a ",
-             "sampler", call. = FALSE)
+        frm_stop("bcm_two_country(): the sum runs over 2^", nq, " patterns ",
+                 "of question countries, which is more than the ",
+                 max_patterns, " this family will enumerate. The ",
+                 "marginalization is exact but exponential in the number of ",
+                 "QUESTIONS, so raise max_patterns deliberately or use a ",
+                 "sampler", call. = FALSE)
       }
       patterns <- as.matrix(expand.grid(
         rep(list(1:2), nq), KEEP.OUT.ATTRS = FALSE))
@@ -484,9 +484,9 @@ bcm_two_country_structure <- function(max_patterns) {
 bcm_planes_posterior <- function(x, n, k, tmax) {
   tmin <- x + n - k
   if (tmin > tmax) {
-    stop("bcm_planes_posterior(): at least ", tmin, " planes are needed ",
-         "to have marked ", x, " and then seen ", n, " with ", k,
-         " marked, which is more than tmax = ", tmax, call. = FALSE)
+    frm_stop("bcm_planes_posterior(): at least ", tmin, " planes are needed ",
+             "to have marked ", x, " and then seen ", n, " with ", k,
+             " marked, which is more than tmax = ", tmax, call. = FALSE)
   }
   tt <- tmin:tmax
   # k of the n sampled were among the x marked, out of a fleet of t

@@ -1,0 +1,40 @@
+lane rows 2032  review expect_error rows 2054 
+                               file lane review
+ tests/testthat/test-prior-compat.R   23     45
+files that differ 1  review minus lane 22 
+
+== tests/testthat/test-prior-compat.R 
+                                                      message review_minus_lane
+ A brms prior table has 1 row with no faithful frmtmb spellin                 8
+                                                         <NA>                NA
+                                                         <NA>                NA
+                                                         <NA>                NA
+                                                         <NA>                NA
+                                                         <NA>                NA
+                                                         <NA>                NA
+                                                         <NA>                NA
+                                                         <NA>                NA
+                                                         <NA>                NA
+                                                         <NA>                NA
+ class = "9x" is neither one of frmtmb's classes (b, Intercep                 1
+ class = "b", dpar = "sigma" addresses sigma's slopes, and th                 1
+ class = "b", dpar = "sigma" addresses the population-level s                 2
+ class = "car" has no faithful frmtmb spelling. brms's "car"                  1
+ class = "cor" addresses a whole correlation matrix, so coef                  1
+ class = "Intercept", dpar = "sigma" is a density on the log-                 1
+ class = "sds" has no faithful frmtmb spelling. brms's "sds"                  1
+ class = "shape" is a density on shape itself, which is one p                 1
+ class = "shape" names no distributional parameter of this mo                 1
+ class = "sigma" already names the distributional parameter t                 1
+ class = "sigma" is a density on sigma itself, which brms acc                 2
+ class = "sigma" is a density on sigma itself, which is one p                 2
+ class = "sigma" names a distributional parameter and nlpar =                 1
+ class = "simo" has no faithful frmtmb spelling. brms's "simo                 1
+ class = "theta2" has no faithful frmtmb spelling. brms's "th                 1
+ frmtmb's class = "sd" addresses a whole random-effect BLOCK,                 1
+ nlpar = "a" names no nonlinear parameter of this model. It h                 1
+ nlpar = "sigma" names no nonlinear parameter of this model.                  1
+ nlpar = "ULT" names no nonlinear parameter of this model. It                 1
+ Unsupported prior distribution 'horseshoe' (supported: norma                 1
+ Unsupported prior distribution 'lasso' (supported: normal, s                 1
+ Unsupported prior distribution 'R2D2' (supported: normal, st                 1

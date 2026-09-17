@@ -32,12 +32,12 @@ draws_require_b <- function(x, what) {
   fit <- x$fit
   if (!length(fit$frame[["re_blocks"]])) return(invisible(NULL))
   if (!draws_is_laplace(x)) return(invisible(NULL))
-  stop(what, " needs draws of the random effects, and these draws come ",
-       "from frm_sample(laplace = TRUE), which integrates them out ",
-       "instead of sampling them. The pointwise log-density is the one ",
-       "CONDITIONAL on each draw's own group-level values, so there is ",
-       "nothing left to condition on. Resample without laplace = TRUE",
-       call. = FALSE)
+  frm_stop(what, " needs draws of the random effects, and these draws come ",
+           "from frm_sample(laplace = TRUE), which integrates them out ",
+           "instead of sampling them. The pointwise log-density is the one ",
+           "CONDITIONAL on each draw's own group-level values, so there is ",
+           "nothing left to condition on. Resample without laplace = TRUE",
+           call. = FALSE)
 }
 
 #' Refuse the likelihoods that do not factor into one term per row.
@@ -74,12 +74,12 @@ draws_loglik_factors <- function(fit, what) {
           (!is.null(st[["loglik_row"]]) ||
              !is.null(st[["loglik_group"]]))) {
       if (length(fit$spec$responses) > 1L) {
-        stop(what, " cannot put the '",
-             fit$spec$responses[[r]]$family[["family"]],
-             "' family's own pieces in the same column as another ",
-             "response's rows: they are not quantities of the same ",
-             "thing, so they do not add up. Fit the responses one at a ",
-             "time", call. = FALSE)
+        frm_stop(what, " cannot put the '",
+                 fit$spec$responses[[r]]$family[["family"]],
+                 "' family's own pieces in the same column as another ",
+                 "response's rows: they are not quantities of the same ",
+                 "thing, so they do not add up. Fit the responses one at a ",
+                 "time", call. = FALSE)
       }
       next
     }
@@ -90,23 +90,23 @@ draws_loglik_factors <- function(fit, what) {
     } else {
       next
     }
-    stop(what, " needs a likelihood that factors into one term per ",
-         "observation, and the response '", r, "' does not: its ",
-         "smallest independent unit is ", unit, ", so a column of the ",
-         "matrix would be a GROUP and leaving one out would drop a ",
-         "whole sequence. brms has no family in this position, so ",
-         "there is no leave-one-out convention to follow. Compare ",
-         "these models with AIC() on the ML fits, or with ",
-         "frm_bootstrap()", call. = FALSE)
+    frm_stop(what, " needs a likelihood that factors into one term per ",
+             "observation, and the response '", r, "' does not: its ",
+             "smallest independent unit is ", unit, ", so a column of the ",
+             "matrix would be a GROUP and leaving one out would drop a ",
+             "whole sequence. brms has no family in this position, so ",
+             "there is no leave-one-out convention to follow. Compare ",
+             "these models with AIC() on the ML fits, or with ",
+             "frm_bootstrap()", call. = FALSE)
   }
   if (length(frame[["mi_map"]] %||% list())) {
-    stop(what, " is not defined for a model with in-model imputation ",
-         "(mi() / me()): a row whose response or predictor is latent ",
-         "contributes the density of a PARAMETER as well as of an ",
-         "observation, so its column would not be the observation's ",
-         "own likelihood and leaving it out would not leave out the ",
-         "latent value. Fit the completed data with frm_multiple() and ",
-         "compare with AIC(), or use frm_bootstrap()", call. = FALSE)
+    frm_stop(what, " is not defined for a model with in-model imputation ",
+             "(mi() / me()): a row whose response or predictor is latent ",
+             "contributes the density of a PARAMETER as well as of an ",
+             "observation, so its column would not be the observation's ",
+             "own likelihood and leaving it out would not leave out the ",
+             "latent value. Fit the completed data with frm_multiple() and ",
+             "compare with AIC(), or use frm_bootstrap()", call. = FALSE)
   }
   invisible(NULL)
 }
@@ -291,15 +291,15 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
   check_flag(combine, "combine")
   check_flag(add_point_estimate, "add_point_estimate")
   if (pointwise) {
-    stop("log_lik(pointwise = TRUE) is not supported: brms returns a ",
-         "function of one observation for loo's memory-saving path, and ",
-         "this method builds the whole matrix. Drop the argument",
-         call. = FALSE)
+    frm_stop("log_lik(pointwise = TRUE) is not supported: brms returns a ",
+             "function of one observation for loo's memory-saving path, and ",
+             "this method builds the whole matrix. Drop the argument",
+             call. = FALSE)
   }
   if (add_point_estimate) {
-    stop("log_lik(add_point_estimate = TRUE) is not supported: brms ",
-         "attaches a point estimate for loo_subsample(), which this ",
-         "package does not provide", call. = FALSE)
+    frm_stop("log_lik(add_point_estimate = TRUE) is not supported: brms ",
+             "attaches a point estimate for loo_subsample(), which this ",
+             "package does not provide", call. = FALSE)
   }
   draws_refuse_newdata(
     newdata, re_formula, arg_unset(), "log_lik()",
@@ -315,16 +315,16 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
   draws_require_b(object, "log_lik()")
   draws_loglik_factors(fit, "log_lik()")
   if (!combine && length(fit$spec$responses) > 1L && is.null(resp)) {
-    stop("log_lik(combine = FALSE) is not supported on a multivariate ",
-         "model: brms returns one matrix per response, and this method ",
-         "returns their sum. Ask for one response with resp =",
-         call. = FALSE)
+    frm_stop("log_lik(combine = FALSE) is not supported on a multivariate ",
+             "model: brms returns one matrix per response, and this method ",
+             "returns their sum. Ask for one response with resp =",
+             call. = FALSE)
   }
   if (!is.null(resp) && !resp %in% names(fit$spec$responses)) {
-    stop("log_lik(resp = \"", resp, "\") names no response of this ",
-         "model; it has ",
-         paste(names(fit$spec$responses), collapse = ", "),
-         call. = FALSE)
+    frm_stop("log_lik(resp = \"", resp, "\") names no response of this ",
+             "model; it has ",
+             paste(names(fit$spec$responses), collapse = ", "),
+             call. = FALSE)
   }
   idx <- draws_par_index(fit)
   rows <- draws_subsample(object, ndraws, draw_ids)
@@ -446,10 +446,10 @@ loo_one_model <- function(dots, what) {
   extra <- vapply(dots, inherits, logical(1L),
                   what = c("frmtmb_draws", "frmtmb_fit"))
   if (any(extra)) {
-    stop(what, "() takes one model here, not the several brms ",
-         "compares in a single call. Pass them all to loo_compare(), ",
-         "which computes one elpd per model and tables the differences",
-         call. = FALSE)
+    frm_stop(what, "() takes one model here, not the several brms ",
+             "compares in a single call. Pass them all to loo_compare(), ",
+             "which computes one elpd per model and tables the differences",
+             call. = FALSE)
   }
 }
 
@@ -458,9 +458,9 @@ loo_one_model <- function(dots, what) {
 #' @noRd
 loo_matrix <- function(x, ndraws, resp, what) {
   if (!requireNamespace("loo", quietly = TRUE)) {
-    stop(what, " needs the 'loo' package; install it, or call ",
-         "log_lik() and pass the matrix to your own estimator",
-         call. = FALSE)
+    frm_stop(what, " needs the 'loo' package; install it, or call ",
+             "log_lik() and pass the matrix to your own estimator",
+             call. = FALSE)
   }
   ll <- log_lik(x, ndraws = ndraws, resp = resp)
   # loo::loo.matrix() prints "Computed from N by K log-likelihood
@@ -470,10 +470,10 @@ loo_matrix <- function(x, ndraws, resp, what) {
   # caller can still see which quantity they asked for.
   unit <- attr(ll, "unit")
   if (!is.null(unit)) {
-    message(what, " is leave-one-out over the ", ncol(ll),
-            " units this family factorizes into (", unit,
-            "), not over observations: the family declares that its ",
-            "rows are not independently droppable.")
+    frm_message(what, " is leave-one-out over the ", ncol(ll),
+                " units this family factorizes into (", unit,
+                "), not over observations: the family declares that its ",
+                "rows are not independently droppable.")
   }
   ll
 }
@@ -498,16 +498,16 @@ loo_r_eff <- function(ll) {
 #' @export
 loo_compare.frmtmb_draws <- function(x, ..., criterion = c("loo", "waic"),
                                      model_names = NULL) {
-  criterion <- match.arg(criterion)
+  criterion <- frm_match_arg(criterion)
   models <- c(list(x), list(...))
   bad <- which(!vapply(models, inherits, TRUE, "frmtmb_draws"))
   if (length(bad)) {
-    stop("loo_compare() on draws computes the criterion for every ",
-         "model, so every argument has to be a frmtmb_draws object; ",
-         "argument ", bad[1L], " is a ",
-         paste(class(models[[bad[1L]]]), collapse = "/"),
-         ". Compute loo() on each model first and compare those",
-         call. = FALSE)
+    frm_stop("loo_compare() on draws computes the criterion for every ",
+             "model, so every argument has to be a frmtmb_draws object; ",
+             "argument ", bad[1L], " is a ",
+             paste(class(models[[bad[1L]]]), collapse = "/"),
+             ". Compute loo() on each model first and compare those",
+             call. = FALSE)
   }
   crit <- lapply(models, function(m) {
     if (identical(criterion, "loo")) loo(m) else waic(m)
@@ -566,10 +566,10 @@ psis.frmtmb_draws <- function(log_ratios, newdata = NULL, resp = NULL,
 #' @exportS3Method brms::LOO
 #' @export
 LOO.frmtmb_draws <- function(x, ...) {
-  stop("LOO() is the deprecated brms spelling and frmtmb never had it. ",
-       "Use loo(x), whose result is a loo-package object that ",
-       "loo::loo_compare() and loo::pareto_k_table() read directly",
-       call. = FALSE)
+  frm_stop("LOO() is the deprecated brms spelling and frmtmb never had it. ",
+           "Use loo(x), whose result is a loo-package object that ",
+           "loo::loo_compare() and loo::pareto_k_table() read directly",
+           call. = FALSE)
 }
 
 
@@ -577,9 +577,9 @@ LOO.frmtmb_draws <- function(x, ...) {
 #' @exportS3Method brms::WAIC
 #' @export
 WAIC.frmtmb_draws <- function(x, ...) {
-  stop("WAIC() is the deprecated brms spelling and frmtmb never had ",
-       "it. Use waic(x); note that loo(x) is the better-behaved ",
-       "estimator of the same predictive quantity", call. = FALSE)
+  frm_stop("WAIC() is the deprecated brms spelling and frmtmb never had ",
+           "it. Use waic(x); note that loo(x) is the better-behaved ",
+           "estimator of the same predictive quantity", call. = FALSE)
 }
 
 
@@ -657,28 +657,28 @@ bayes_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
   sel <- if (is.null(resp)) seq_along(resps) else {
     s <- match(as.character(resp), stan)
     if (anyNA(s)) {
-      stop("Invalid argument 'resp'. Valid response variables are: ",
-           paste(stan, collapse = ", "), call. = FALSE)
+      frm_stop("Invalid argument 'resp'. Valid response variables are: ",
+               paste(stan, collapse = ", "), call. = FALSE)
     }
     s
   }
   R2 <- lapply(sel, function(r) {
     y <- fit$frame[["y"]][[resps[r]]]
     if (is.null(y) || is.matrix(y)) {
-      stop("bayes_R2() needs a single numeric response column, and '",
-           resps[r], "' is not one. A categorical, multinomial or ",
-           "multivariate-item outcome has no residual variance to ",
-           "decompose; brms refuses it for the same reason",
-           call. = FALSE)
+      frm_stop("bayes_R2() needs a single numeric response column, and '",
+               resps[r], "' is not one. A categorical, multinomial or ",
+               "multivariate-item outcome has no residual variance to ",
+               "decompose; brms refuses it for the same reason",
+               call. = FALSE)
     }
     ep <- posterior_epred(object, resp = resps[r], ndraws = ndraws)
     if (length(dim(ep)) > 2L) {
-      stop("bayes_R2() is not defined for an ordinal or categorical ",
-           "family: posterior_epred() gives a category DISTRIBUTION per ",
-           "observation, and treating those probabilities as a ",
-           "continuous prediction (which is what brms does, with a ",
-           "warning) makes the ratio uninterpretable. Use log_lik() and ",
-           "loo() to compare such models", call. = FALSE)
+      frm_stop("bayes_R2() is not defined for an ordinal or categorical ",
+               "family: posterior_epred() gives a category DISTRIBUTION per ",
+               "observation, and treating those probabilities as a ",
+               "continuous prediction (which is what brms does, with a ",
+               "warning) makes the ratio uninterpretable. Use log_lik() and ",
+               "loo() to compare such models", call. = FALSE)
     }
     # in-sample predictions are padded back to the original rows for an
     # na.exclude fit; the response is not
@@ -751,13 +751,13 @@ loo_moment_match <- function(x, ...) UseMethod("loo_moment_match")
 #' @exportS3Method loo::loo_moment_match
 #' @export
 loo_moment_match.frmtmb_draws <- function(x, ...) {
-  stop("loo_moment_match() is not implemented for frmtmb draws: it ",
-       "moment-matches the posterior toward each problem fold and then ",
-       "falls back to refitting the ones that stay bad, and ",
-       "frm_sample() has no stored program to refit. Read loo()'s ",
-       "Pareto k table instead; if the flagged points are few, ",
-       "frm_bootstrap() answers the influence question directly",
-       call. = FALSE)
+  frm_stop("loo_moment_match() is not implemented for frmtmb draws: it ",
+           "moment-matches the posterior toward each problem fold and then ",
+           "falls back to refitting the ones that stay bad, and ",
+           "frm_sample() has no stored program to refit. Read loo()'s ",
+           "Pareto k table instead; if the flagged points are few, ",
+           "frm_bootstrap() answers the influence question directly",
+           call. = FALSE)
 }
 
 #' @rdname frmtmb-loo-refusals
@@ -768,13 +768,13 @@ loo_subsample <- function(x, ...) UseMethod("loo_subsample")
 #' @exportS3Method loo::loo_subsample
 #' @export
 loo_subsample.frmtmb_draws <- function(x, ...) {
-  stop("loo_subsample() is not implemented for frmtmb draws: its ",
-       "point is a cheap approximation for models too large to hold a ",
-       "full log_lik() matrix, and it needs a per-observation ",
-       "likelihood callback plus the refit machinery to correct the ",
-       "subsample. log_lik() builds the whole matrix here, so compute ",
-       "loo() on it; thin the draws with loo(ndraws =) if memory is ",
-       "the problem", call. = FALSE)
+  frm_stop("loo_subsample() is not implemented for frmtmb draws: its ",
+           "point is a cheap approximation for models too large to hold a ",
+           "full log_lik() matrix, and it needs a per-observation ",
+           "likelihood callback plus the refit machinery to correct the ",
+           "subsample. log_lik() builds the whole matrix here, so compute ",
+           "loo() on it; thin the draws with loo(ndraws =) if memory is ",
+           "the problem", call. = FALSE)
 }
 
 #' @rdname frmtmb-loo-refusals
@@ -785,13 +785,13 @@ reloo <- function(x, ...) UseMethod("reloo")
 #' @exportS3Method brms::reloo
 #' @export
 reloo.frmtmb_draws <- function(x, ...) {
-  stop("reloo() is not implemented for frmtmb draws: it re-runs the ",
-       "sampler once per observation with a high Pareto k, and ",
-       "frm_sample() has no stored program to re-run on modified ",
-       "data. Read loo()'s Pareto k table and treat a bad k as the ",
-       "diagnostic it is (usually many group-level parameters left to ",
-       "the data alone; see the prior section of ?loo), or compare the ",
-       "maximum-likelihood fits with AIC()", call. = FALSE)
+  frm_stop("reloo() is not implemented for frmtmb draws: it re-runs the ",
+           "sampler once per observation with a high Pareto k, and ",
+           "frm_sample() has no stored program to re-run on modified ",
+           "data. Read loo()'s Pareto k table and treat a bad k as the ",
+           "diagnostic it is (usually many group-level parameters left to ",
+           "the data alone; see the prior section of ?loo), or compare the ",
+           "maximum-likelihood fits with AIC()", call. = FALSE)
 }
 
 #' @rdname frmtmb-loo-refusals
@@ -802,12 +802,12 @@ kfold <- function(x, ...) UseMethod("kfold")
 #' @exportS3Method loo::kfold
 #' @export
 kfold.frmtmb_draws <- function(x, ...) {
-  stop("kfold() is not implemented for frmtmb draws: K refits of the ",
-       "sampler are exactly the refit machinery that is out of scope ",
-       "here, and a partial version that silently used the ML fits ",
-       "instead would not be the cross-validation the name promises. ",
-       "Use loo() for the importance-sampling approximation, or ",
-       "frm_bootstrap() for a resampling answer", call. = FALSE)
+  frm_stop("kfold() is not implemented for frmtmb draws: K refits of the ",
+           "sampler are exactly the refit machinery that is out of scope ",
+           "here, and a partial version that silently used the ML fits ",
+           "instead would not be the cross-validation the name promises. ",
+           "Use loo() for the importance-sampling approximation, or ",
+           "frm_bootstrap() for a resampling answer", call. = FALSE)
 }
 
 #' @rdname frmtmb-loo-refusals
@@ -818,13 +818,13 @@ bridge_sampler <- function(samples, ...) UseMethod("bridge_sampler")
 #' @exportS3Method bridgesampling::bridge_sampler
 #' @export
 bridge_sampler.frmtmb_draws <- function(samples, ...) {
-  stop("bridge_sampler() is not available for frmtmb draws. A marginal ",
-       "likelihood is an integral of the likelihood against the PRIOR, ",
-       "so it does not exist at all under prior = \"flat\"; and even ",
-       "under the default priors ",
-       "the estimator needs to evaluate the normalized log posterior ",
-       "at arbitrary points, which the RTMB tape does not expose. Use ",
-       "loo() for predictive comparison", call. = FALSE)
+  frm_stop("bridge_sampler() is not available for frmtmb draws. A marginal ",
+           "likelihood is an integral of the likelihood against the PRIOR, ",
+           "so it does not exist at all under prior = \"flat\"; and even ",
+           "under the default priors ",
+           "the estimator needs to evaluate the normalized log posterior ",
+           "at arbitrary points, which the RTMB tape does not expose. Use ",
+           "loo() for predictive comparison", call. = FALSE)
 }
 
 #' @rdname frmtmb-loo-refusals
@@ -837,12 +837,12 @@ bayes_factor <- function(x1, x2, log = FALSE, ...) {
 #' @exportS3Method bridgesampling::bayes_factor
 #' @export
 bayes_factor.frmtmb_draws <- function(x1, x2, log = FALSE, ...) {
-  stop("bayes_factor() is not available for frmtmb draws: it is a ",
-       "ratio of the marginal likelihoods bridge_sampler() would have ",
-       "to estimate, and those are undefined under prior = \"flat\" ",
-       "and unavailable from the tape. hypothesis() gives the posterior ",
-       "probability of a directional claim, and loo() the predictive ",
-       "comparison", call. = FALSE)
+  frm_stop("bayes_factor() is not available for frmtmb draws: it is a ",
+           "ratio of the marginal likelihoods bridge_sampler() would have ",
+           "to estimate, and those are undefined under prior = \"flat\" ",
+           "and unavailable from the tape. hypothesis() gives the posterior ",
+           "probability of a directional claim, and loo() the predictive ",
+           "comparison", call. = FALSE)
 }
 
 #' @rdname frmtmb-loo-refusals
@@ -856,9 +856,9 @@ post_prob <- function(x, ..., prior_prob = NULL, model_names = NULL) {
 #' @export
 post_prob.frmtmb_draws <- function(x, ..., prior_prob = NULL,
                                    model_names = NULL) {
-  stop("post_prob() is not available for frmtmb draws: a posterior ",
-       "model probability is normalized marginal likelihoods, which ",
-       "bridge_sampler() would have to estimate and cannot here. ",
-       "Compare models with loo() and loo::loo_compare()",
-       call. = FALSE)
+  frm_stop("post_prob() is not available for frmtmb draws: a posterior ",
+           "model probability is normalized marginal likelihoods, which ",
+           "bridge_sampler() would have to estimate and cannot here. ",
+           "Compare models with loo() and loo::loo_compare()",
+           call. = FALSE)
 }

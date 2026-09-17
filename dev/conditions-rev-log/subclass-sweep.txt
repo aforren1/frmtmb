@@ -1,0 +1,107 @@
+
+frmtmb.coupling  caught  32  with frmtmb_coupling_error  28  without   4  distinct without 4
+   - cross_wishart: the density needs `vreal1`, `vreal2`, `vreal3`, which nothing on this response suppli
+   - cross_wishart: the density needs `vint1`, which nothing on this response supplies. Write the additio
+   - cens()/trunc() need a family with a CDF (currently: gaussian, lognormal, poisson, exponential, weibu
+   - simulate(): family 'cross_wishart' has no simulator yet. a draw is a whole Hermitian matrix and the 
+
+frmtmb.eam       caught 192  with frmtmb_eam_error 162  without  30  distinct without 20
+   - wiener: the density needs one of `dec` or `vint1`, which nothing on this response supplies. Write th
+   - gddm: the density needs one of `dec` or `vint1`, which nothing on this response supplies. Write the 
+   - gddm: the density needs `vreal1`, which nothing on this response supplies. Write the addition term: 
+   - vint1 values must be integers (use vreal() for reals)
+   - lba: the density needs `vint1`, which nothing on this response supplies. Write the addition term: rt
+   - Constant k = 0 is not in the range of the log link
+   - Constant k = -0.2 is not in the range of the log link
+   - gddm: the addition term `ndt_group()` is not one this family reads, so writing it would change nothi
+   - rdm: the density needs `vint1`, which nothing on this response supplies. Write the addition term: rt
+   - rdm: the addition term `dec()` is not one this family reads, so writing it would change nothing abou
+   - lba: the addition term `dec()` is not one this family reads, so writing it would change nothing abou
+   - wiener_gng: the density needs `dec`, which nothing on this response supplies. Write the addition ter
+   - wiener_gng: the density needs `vreal1`, which nothing on this response supplies. Write the addition 
+   - residuals(type = "deviance") is not available for family 'rdm': it has no standard unit deviance. Fa
+   - residuals(type = "deviance") is not available for family 'wiener_gng': it has no standard unit devia
+   - cens()/trunc() need a family with a CDF (currently: gaussian, lognormal, poisson, exponential, weibu
+   - Addition term vint(upper) could not be evaluated on newdata: newdata has no column upper; supply the
+   - Family 'wiener' has no variance function; pearson residuals are unavailable
+   - residuals(type = "deviance") is not available for family 'wiener': it has no standard unit deviance.
+   - class = "Intercept", dpar = "bs" is a density on the log-scale intercept of bs's linear predictor, w
+
+frmtmb.latent    caught  55  with frmtmb_latent_error  42  without  13  distinct without 13
+   - REML = TRUE cannot be combined with hmm(): REML integrates out the location coefficients, which here
+   - quadrature = TRUE cannot be combined with hmm(): the rule integrates a random effect against a PRODU
+   - frmtmb_control(profile = TRUE) cannot be combined with hmm(): profiling moves the state means into a
+   - se.fit is not supported on the response scale for an hmm() family: the expected response weights the
+   - predict(type = "response") on an hmm() fit is not available for newdata: the state occupancy at a ro
+   - residuals(type = "osa") is not available for an hmm() fit: one-step prediction needs the taped densi
+   - residuals(type = "deviance") is not available for an hmm() fit: the unit deviance compares a row's l
+   - conditional_effects() is not available for an hmm() fit: the expected response weights the state mea
+   - REML = TRUE cannot be combined with an lca() family: the mixture likelihood is multimodal in the fix
+   - frmtmb_control(profile = TRUE) cannot be combined with an lca() family: profiling moves the fixed ef
+   - quadrature = TRUE currently supports scalar random intercepts only (every block must be a dim-1 us/d
+   - Families with extra parameters ('lca(K = 2)') are not supported in multivariate fits yet
+   - residuals(type = "osa") is not available for an lca() fit: one observation is a subject's whole item
+
+frmtmb.learn     caught  56  with frmtmb_learn_error  34  without  22  distinct without 17
+   - simulate() has no argument `newdata`. It takes: object, nsim, seed, re_formula, censored
+   - family 'bandit2arm_delta' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted()
+   - `importance` needs the 'bandit2arm_delta' family's own units and the grouping of `alpha: 1 | block` 
+   - residuals(type = 'deviance') is not available for a bandit2arm_delta() fit, and what is missing is t
+   - rlddm: max_ndt = 3.397696 is above the fastest response (0.2671379), so the bound admits non-decisio
+   - simulate(): family 'rlddm' has no simulator yet. One rlddm() trial's draw is two numbers, the bounda
+   - rlddm(): this model bounds the non-decision time by each ndt_group()'s own fastest response, so `ndt
+   - ndt_time(): 1 row(s) name an ndt_group() the model was not fitted to, so there is no fastest respons
+   - ndt_time(): this model bounds the non-decision time by each ndt_group()'s own fastest response, and 
+   - ndt_group(): the grouping says which trials share a non-decision-time bound, so every row needs one,
+   - rlddm: max_ndt and ndt_group() both set the non-decision time's upper bound and they set it to diffe
+   - ndt_group() was supplied for `pick` and no family read it, so the term would travel into the fit unr
+   - rlddm(): the non-decision time bound is not set yet. This happens when a rlddm() family object is us
+   - Constant ndt = 0.444744951486884 is not in the range of the scaled_logit link
+   - residuals(type = 'osa') is not available for a bandit2arm_delta() fit: the tape holds the recursion 
+   - conditional_effects() is not available for a bandit2arm_delta() fit: the expected response is a choi
+   - simulate(): family 'ts_par7' has no simulator yet. One two-step trial's draw is three numbers, the s
+
+frmtmb.ode       caught  78  with frmtmb_ode_error  76  without   2  distinct without 1
+   - The nonlinear formula body could not be evaluated: Not compatible with requested type: [type=closure
+
+frmtmb.sample    caught 138  with frmtmb_sample_error 108  without  30  distinct without 28
+   - frmtmb_register_compat() features = registers 's()' as a 'grammar' feature, and the registry already
+   - conditional_effects(categorical = TRUE) needs an ordinal or categorical family and no dpar = : it dr
+   - conditional_effects() has no argument `nonesuch`
+   - `re.form` is lme4's spelling and this package no longer takes it anywhere: brms is the tiebreaker on
+   - `allow.new.levels` is lme4's spelling and this package no longer takes it: brms spells it `allow_new
+   - predict() needs a fitted model. This object was assembled by frm_sample() from a formula, for sampli
+   - Some parameters cannot be found in the model: 'sd_sigma' variables() lists every name; brms's defaul
+   - posterior_epred() was given both `re_formula` and `re.form`, which are two spellings of ONE setting,
+   - posterior_linpred() was given both `re_formula` and `re.form`, which are two spellings of ONE settin
+   - posterior_predict() was given both `re_formula` and `re.form`, which are two spellings of ONE settin
+   - predictive_error() was given both `re_formula` and `re.form`, which are two spellings of ONE setting
+   - predictive_interval() was given both `re_formula` and `re.form`, which are two spellings of ONE sett
+   - pp_check() cannot honor `re.form`: lme4's spelling, no longer accepted. brms LEAKS it: pp_check.brms
+   - loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the likelihood 
+   - waic() averages the likelihood over posterior draws and a maximum-likelihood fit has none. Sample fi
+   - bayes_R2() is computed per posterior draw and this is a maximum-likelihood fit. Install frmtmb.sampl
+   - LOO() is the deprecated brms spelling, and on a maximum-likelihood fit there are no draws to average
+   - WAIC() is the deprecated brms spelling, and it averages over posterior draws a maximum-likelihood fi
+   - expose_functions() has no Stan program to read on a frmtmb fit: a custom family's lpdf is the plain 
+   - rescor_matrix() reads the fitted point estimate, so it takes the frmtmb_fit, not draws: rescor_matri
+   - check_laplace() needs a fitted model. This object was assembled by frm_sample() from a formula, for 
+   - fixef() needs a fitted model. This object was assembled by frm_sample() from a formula, for sampling
+   - logLik() (and AIC(), BIC(), anova()) needs a fitted model. This object was assembled by frm_sample()
+   - cens()/trunc() need a family with a CDF (currently: gaussian, lognormal, poisson, exponential, weibu
+   - ar(): trunc() cannot be combined with a residual correlation term. The likelihood is a joint density
+   - simulate(re_formula =) is not supported for an hmm() fit: the state path is drawn at the random-effe
+   - simulate(censored = TRUE) is not supported for an hmm() fit, because cens() is refused on an hmm() r
+   - Grouping factor 'one' in `1 | one` has a single level, so its variance is not identified and collaps
+
+frmtmb.spline    caught  55  with frmtmb_spline_error  54  without   1  distinct without 1
+   - residuals(type = "deviance") is not available for family 'royston_parmar': it has no standard unit d
+
+== messages without the subclass whose opening text is in the extension's sources
+frmtmb.coupling  distinct  4  opening text in extension sources  0  in core sources  1  neither  3
+frmtmb.eam       distinct 20  opening text in extension sources  1  in core sources  0  neither 19
+frmtmb.latent    distinct 13  opening text in extension sources  7  in core sources  2  neither  4
+frmtmb.learn     distinct 17  opening text in extension sources  3  in core sources  0  neither 14
+frmtmb.ode       distinct  1  opening text in extension sources  0  in core sources  1  neither  0
+frmtmb.sample    distinct 28  opening text in extension sources  2  in core sources 12  neither 14
+frmtmb.spline    distinct  1  opening text in extension sources  0  in core sources  0  neither  1

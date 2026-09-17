@@ -364,6 +364,7 @@
 # well, because a namespace that is loaded and not attached reaches
 # nothing through the search path.
 #' @importFrom frmtmb frmtmb_family frmtmb_structure frmtmb_register_compat
+#' @importFrom frmtmb frm_match_arg frm_message frm_stop frm_warning
 #'   compat_rule_builder single_response eval_dpars frame_block_of
 #' @importFrom stats setNames
 NULL

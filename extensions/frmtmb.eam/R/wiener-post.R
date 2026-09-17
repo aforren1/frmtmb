@@ -85,8 +85,8 @@ ddm_cond_mean_dt <- function(v, a, w, up) {
 ddm_indicator_mean <- function(aterms) {
   up <- ddm_indicator(aterms)
   if (is.null(up)) {
-    stop("wiener: the mean response time is conditional on the boundary ",
-         "a trial ended at, which is missing. See ?wiener.", call. = FALSE)
+    frm_stop("wiener: the mean response time is conditional on the boundary ",
+             "a trial ended at, which is missing. See ?wiener.", call. = FALSE)
   }
   up
 }
@@ -97,8 +97,8 @@ ddm_indicator_mean <- function(aterms) {
 ddm_indicator_sim <- function(aterms) {
   up <- ddm_indicator(aterms)
   if (is.null(up)) {
-    stop("wiener: simulating a response time needs the boundary each ",
-         "row ended at, which is missing. See ?wiener.", call. = FALSE)
+    frm_stop("wiener: simulating a response time needs the boundary each ",
+             "row ended at, which is missing. See ?wiener.", call. = FALSE)
   }
   up
 }
@@ -175,10 +175,10 @@ ddm_sim_euler <- function(v, a, w, t0, up, n, dt = 1e-4, tmax = 10,
   while (length(todo)) {
     pass <- pass + 1L
     if (pass > max_pass) {
-      stop("wiener: the fallback simulator could not produce a draw at ",
-           "the requested boundary for ", length(todo), " of ", n,
-           " rows in ", max_pass, " passes. Install RWiener for exact ",
-           "conditional draws.", call. = FALSE)
+      frm_stop("wiener: the fallback simulator could not produce a draw at ",
+               "the requested boundary for ", length(todo), " of ", n,
+               " rows in ", max_pass, " passes. Install RWiener for exact ",
+               "conditional draws.", call. = FALSE)
     }
     k <- length(todo)
     x <- a[todo] * w[todo]
@@ -250,26 +250,26 @@ ddm_simulate <- function(n, mu, bs, ndt, bias = 0.5,
   v <- rep_len(mu, n); a <- rep_len(bs, n)
   t0 <- rep_len(ndt, n); w <- rep_len(bias, n)
   if (any(a <= 0) || any(t0 < 0) || any(w <= 0) || any(w >= 1)) {
-    stop("ddm_simulate(): need bs > 0, ndt >= 0 and bias strictly ",
-         "inside (0, 1).", call. = FALSE)
+    frm_stop("ddm_simulate(): need bs > 0, ndt >= 0 and bias strictly ",
+             "inside (0, 1).", call. = FALSE)
   }
   sv <- rep_len(sv, n); sz <- rep_len(sz, n); st <- rep_len(st, n)
   if (any(sv < 0) || any(sz < 0) || any(st < 0)) {
-    stop("ddm_simulate(): the across-trial variability widths sv, sz ",
-         "and st are not negative.", call. = FALSE)
+    frm_stop("ddm_simulate(): the across-trial variability widths sv, sz ",
+             "and st are not negative.", call. = FALSE)
   }
   if (any(sv > 0)) v <- stats::rnorm(n, v, sv)
   if (any(sz > 0)) w <- stats::runif(n, w - sz / 2, w + sz / 2)
   if (any(st > 0)) t0 <- stats::runif(n, t0 - st / 2, t0 + st / 2)
   if (any(w <= 0) || any(w >= 1)) {
-    stop("ddm_simulate(): sz pushed the relative start point outside ",
-         "(0, 1); the uniform range must fit between the boundaries.",
-         call. = FALSE)
+    frm_stop("ddm_simulate(): sz pushed the relative start point outside ",
+             "(0, 1); the uniform range must fit between the boundaries.",
+             call. = FALSE)
   }
   if (any(t0 < 0)) {
-    stop("ddm_simulate(): st pushed the non-decision time below zero; ",
-         "the uniform range needs st / 2 no larger than ndt.",
-         call. = FALSE)
+    frm_stop("ddm_simulate(): st pushed the non-decision time below zero; ",
+             "the uniform range needs st / 2 no larger than ndt.",
+             call. = FALSE)
   }
   if (requireNamespace("RWiener", quietly = TRUE)) {
     q <- numeric(n); r <- integer(n)
@@ -369,10 +369,10 @@ ddm_sim_rt_var <- function(dpars, aterms, n, nd) {
   while (length(todo)) {
     pass <- pass + 1L
     if (pass > 1000L) {
-      stop("wiener: rejection sampling for the across-trial parameters ",
-           "did not converge for ", length(todo), " of ", n, " rows. ",
-           "The fitted boundary probability there is essentially zero.",
-           call. = FALSE)
+      frm_stop("wiener: rejection sampling for the across-trial parameters ",
+               "did not converge for ", length(todo), " of ", n, " rows. ",
+               "The fitted boundary probability there is essentially zero.",
+               call. = FALSE)
     }
     k <- length(todo)
     nk <- stats::rnorm(k, v[todo], sv[todo])

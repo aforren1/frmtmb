@@ -1,0 +1,4 @@
+Error : REML likelihoods are comparable only between fits whose fixed-effect designs span the same column space; these do not. Pass refit = TRUE (or refit with REML = FALSE) to compare fixed effects, or hold the fixed effects fixed to compare random-effect structures
+anova(): refitting 2 REML models with ML: y ~ x + (1 | g); y ~ x + z + (1 | g)
+
+RDEX-RESULT OK 

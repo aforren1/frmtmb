@@ -74,17 +74,17 @@
 #' @export
 bf <- function(formula, ..., family = NULL, nl = NULL) {
   if (inherits(formula, c("brmsformula", "bform"))) {
-    stop("this formula was built by brms::bf(): attaching brms after ",
-         "frmtmb masks frmtmb's bf(), so a bare bf() call now reaches ",
-         "brms. Call frmtmb::bf() explicitly, or attach brms before ",
-         "frmtmb", call. = FALSE)
+    frm_stop("this formula was built by brms::bf(): attaching brms after ",
+             "frmtmb masks frmtmb's bf(), so a bare bf() call now reaches ",
+             "brms. Call frmtmb::bf() explicitly, or attach brms before ",
+             "frmtmb", call. = FALSE)
   }
   # brms's bf() takes its own output and returns it unchanged when
   # nothing else is given, so code that normalizes a formula by calling
   # bf() on it must not change a model already built
   existing <- inherits(formula, "frmtmb_formula")
   if (!existing && !inherits(formula, "formula")) {
-    stop("`formula` must be a formula", call. = FALSE)
+    frm_stop("`formula` must be a formula", call. = FALSE)
   }
   # nl reaches isTRUE() at the end of this function, which reads "yes",
   # NA and c(TRUE, FALSE) as FALSE: bf(..., nl = "yes") used to build a
@@ -114,10 +114,10 @@ bf <- function(formula, ..., family = NULL, nl = NULL) {
   # slip of forgetting them, and is worth catching at the call.
   if (isTRUE(nl) && !length(pforms) &&
       !is.name(reformulas::RHSForm(formula))) {
-    stop("nl = TRUE needs at least one parameter formula, e.g. ",
-         "bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE). Formulas ",
-         "added afterwards with lf() or nlf() are not visible here, so ",
-         "give bf() at least one of them", call. = FALSE)
+    frm_stop("nl = TRUE needs at least one parameter formula, e.g. ",
+             "bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE). Formulas ",
+             "added afterwards with lf() or nlf() are not visible here, so ",
+             "give bf() at least one of them", call. = FALSE)
   }
   structure(
     list(formula = formula, pforms = pforms, pfix = pfix, nl = isTRUE(nl),
@@ -142,7 +142,7 @@ bf_dots <- function(dots, pforms = list(), pfix = list(),
       refuse_nested_formula(d)
       for (dpar in lhs_dpar_names(d[[2]])) {
         if (dpar %in% c(names(pforms), names(pfix), taken)) {
-          stop("Duplicated dpar formula: '", dpar, "'", call. = FALSE)
+          frm_stop("Duplicated dpar formula: '", dpar, "'", call. = FALSE)
         }
         di <- d
         di[[2]] <- as.name(dpar)
@@ -150,18 +150,19 @@ bf_dots <- function(dots, pforms = list(), pfix = list(),
       }
     } else if (is.numeric(d) && length(d) == 1L) {
       if (nm == "") {
-        stop("Constant dpar values must be named, e.g. bf(y ~ x, sigma = 1)",
-             call. = FALSE)
+        frm_stop(
+          "Constant dpar values must be named, e.g. bf(y ~ x, sigma = 1)",
+          call. = FALSE)
       }
       if (nm %in% c(names(pforms), names(pfix), taken)) {
-        stop("Duplicated dpar constant: '", nm, "'", call. = FALSE)
+        frm_stop("Duplicated dpar constant: '", nm, "'", call. = FALSE)
       }
       pfix[[nm]] <- d
     } else {
-      stop("Cannot interpret bf() argument ",
-           if (nm != "") paste0("'", nm, "'") else i,
-           ": expected a dpar formula or a named numeric constant",
-           call. = FALSE)
+      frm_stop("Cannot interpret bf() argument ",
+               if (nm != "") paste0("'", nm, "'") else i,
+               ": expected a dpar formula or a named numeric constant",
+               call. = FALSE)
     }
   }
   list(pforms = pforms, pfix = pfix)
@@ -197,9 +198,9 @@ bf_update <- function(formula, ..., family = NULL, nl = NULL) {
 named_par_formula <- function(d, nm) {
   if (length(d) == 3L) return(d)
   if (!nzchar(nm)) {
-    stop("Additional formulas must be named: '", deparse1(d), "' does ",
-         "not say which parameter it belongs to. Write it two-sided, ",
-         "as sigma ~ x, or name it, as sigma = ~ x", call. = FALSE)
+    frm_stop("Additional formulas must be named: '", deparse1(d), "' does ",
+             "not say which parameter it belongs to. Write it two-sided, ",
+             "as sigma ~ x, or name it, as sigma = ~ x", call. = FALSE)
   }
   structure(call("~", as.name(nm), d[[2L]]), class = "formula",
             .Environment = environment(d))
@@ -217,9 +218,9 @@ named_par_formula <- function(d, nm) {
 refuse_nested_formula <- function(f) {
   rhs <- f[[length(f)]]
   if (is.call(rhs) && identical(rhs[[1L]], as.name("~"))) {
-    stop("Nested formulas are not allowed: the right-hand side of '",
-         deparse1(f), "' is itself a formula. Did you use '~~' ",
-         "somewhere?", call. = FALSE)
+    frm_stop("Nested formulas are not allowed: the right-hand side of '",
+             deparse1(f), "' is itself a formula. Did you use '~~' ",
+             "somewhere?", call. = FALSE)
   }
   invisible(f)
 }
@@ -232,9 +233,9 @@ refuse_nested_formula <- function(f) {
 #' @noRd
 check_dpar_name <- function(dpar) {
   if (!grepl("^[a-zA-Z][a-zA-Z0-9]*$", dpar)) {
-    stop("Invalid parameter name '", dpar, "': names must be ",
-         "alphanumeric and must not contain dots or underscores (they ",
-         "collide with coefficient naming)", call. = FALSE)
+    frm_stop("Invalid parameter name '", dpar, "': names must be ",
+             "alphanumeric and must not contain dots or underscores (they ",
+             "collide with coefficient naming)", call. = FALSE)
   }
   dpar
 }
@@ -284,15 +285,15 @@ lf <- function(...) {
   for (i in seq_along(dots)) {
     d <- dots[[i]]
     if (!inherits(d, "formula")) {
-      stop("lf() takes two-sided formulas naming the parameter on the ",
-           "left: e.g. lf(sigma ~ x)", call. = FALSE)
+      frm_stop("lf() takes two-sided formulas naming the parameter on the ",
+               "left: e.g. lf(sigma ~ x)", call. = FALSE)
     }
     d <- named_par_formula(d, names(dots)[i] %||% "")
     refuse_nested_formula(d)
     for (dpar in lhs_dpar_names(d[[2]])) {
       if (dpar %in% names(pforms)) {
-        stop("Duplicated parameter formula in lf(): '", dpar, "'",
-             call. = FALSE)
+        frm_stop("Duplicated parameter formula in lf(): '", dpar, "'",
+                 call. = FALSE)
       }
       di <- d
       di[[2]] <- as.name(dpar)
@@ -300,8 +301,8 @@ lf <- function(...) {
     }
   }
   if (!length(pforms)) {
-    stop("lf() needs at least one parameter formula, e.g. lf(sigma ~ x)",
-         call. = FALSE)
+    frm_stop("lf() needs at least one parameter formula, e.g. lf(sigma ~ x)",
+             call. = FALSE)
   }
   structure(list(pforms = pforms), class = "frmtmb_lf")
 }
@@ -379,24 +380,24 @@ print.frmtmb_lf <- function(x, ...) {
 #' @export
 nlf <- function(formula, ..., loop = NULL) {
   if (!inherits(formula, "formula") || length(formula) != 3L) {
-    stop("nlf() takes a two-sided formula naming the parameter on the ",
-         "left: e.g. nlf(sigma ~ a * exp(b * x))", call. = FALSE)
+    frm_stop("nlf() takes a two-sided formula naming the parameter on the ",
+             "left: e.g. nlf(sigma ~ a * exp(b * x))", call. = FALSE)
   }
   refuse_nested_formula(formula)
   lhs <- formula[[2L]]
   if (is.call(lhs) && identical(lhs[[1L]], as.name("+"))) {
-    stop("nlf() declares one parameter at a time, and '", deparse1(lhs),
-         "' names several. Sharing one nonlinear body would make them ",
-         "the same function of the data, which leaves the model ",
-         "aliased; write one nlf() per parameter", call. = FALSE)
+    frm_stop("nlf() declares one parameter at a time, and '", deparse1(lhs),
+             "' names several. Sharing one nonlinear body would make them ",
+             "the same function of the data, which leaves the model ",
+             "aliased; write one nlf() per parameter", call. = FALSE)
   }
   dpar <- check_dpar_name(deparse1(lhs))
   nlforms <- list()
   nlforms[[dpar]] <- formula
   pforms <- if (length(list(...))) lf(...)$pforms else list()
   if (dpar %in% names(pforms)) {
-    stop("nlf() gives '", dpar, "' both a nonlinear body and a linear ",
-         "formula; it can have one or the other", call. = FALSE)
+    frm_stop("nlf() gives '", dpar, "' both a nonlinear body and a linear ",
+             "formula; it can have one or the other", call. = FALSE)
   }
   structure(list(nlforms = nlforms, pforms = pforms),
             class = "frmtmb_nlf")
@@ -420,8 +421,8 @@ print.frmtmb_nlf <- function(x, ...) {
     for (nm in names(e2$pforms)) {
       if (nm %in% c(names(e1$pforms), names(e1$pfix),
                     names(e1$nlforms))) {
-        stop("lf() sets '", nm, "', which the bf() it is added to ",
-             "already sets", call. = FALSE)
+        frm_stop("lf() sets '", nm, "', which the bf() it is added to ",
+                 "already sets", call. = FALSE)
       }
       e1$pforms[[nm]] <- e2$pforms[[nm]]
     }
@@ -433,32 +434,32 @@ print.frmtmb_nlf <- function(x, ...) {
     }
     for (nm in names(e2$nlforms)) {
       if (set(nm)) {
-        stop("nlf() sets '", nm, "', which the bf() it is added to ",
-             "already sets", call. = FALSE)
+        frm_stop("nlf() sets '", nm, "', which the bf() it is added to ",
+                 "already sets", call. = FALSE)
       }
       e1$nlforms[[nm]] <- e2$nlforms[[nm]]
     }
     for (nm in names(e2$pforms)) {
       if (set(nm)) {
-        stop("The linear parameter formulas passed to nlf() set '", nm,
-             "', which the bf() it is added to already sets",
-             call. = FALSE)
+        frm_stop("The linear parameter formulas passed to nlf() set '", nm,
+                 "', which the bf() it is added to already sets",
+                 call. = FALSE)
       }
       e1$pforms[[nm]] <- e2$pforms[[nm]]
     }
     return(e1)
   }
   if (inherits(e2, "frmtmb_rescor")) {
-    stop("set_rescor() applies to multivariate formulas; combine ",
-         "responses with mvbf() or `bf() + bf()` first", call. = FALSE)
+    frm_stop("set_rescor() applies to multivariate formulas; combine ",
+             "responses with mvbf() or `bf() + bf()` first", call. = FALSE)
   }
   if (inherits(e2, "frmtmb_family") || inherits(e2, "family") ||
       is.function(e2)) {
     e1$family <- as_frmtmb_family(e2)
     return(e1)
   }
-  stop("Cannot add an object of class ", paste(class(e2), collapse = "/"),
-       " to a 'frmtmb_formula'", call. = FALSE)
+  frm_stop("Cannot add an object of class ", paste(class(e2), collapse = "/"),
+           " to a 'frmtmb_formula'", call. = FALSE)
 }
 
 #' Combine formulas into a multivariate model
@@ -527,11 +528,11 @@ mvbf <- function(..., rescor = FALSE) {
     } else if (inherits(f, "frmtmb_formula")) {
       flat <- c(flat, list(f))
     } else {
-      stop("mvbf() takes bf() formulas", call. = FALSE)
+      frm_stop("mvbf() takes bf() formulas", call. = FALSE)
     }
   }
   if (length(flat) < 2) {
-    stop("mvbf() needs at least two responses", call. = FALSE)
+    frm_stop("mvbf() needs at least two responses", call. = FALSE)
   }
   structure(list(forms = flat, rescor = isTRUE(rescor)),
             class = "frmtmb_mvformula")
@@ -560,14 +561,14 @@ set_rescor <- function(rescor = arg_unset(),
 "+.frmtmb_mvformula" <- function(e1, e2) {
   if (missing(e2)) return(e1)
   if (inherits(e2, "frmtmb_lf")) {
-    stop("lf() does not say which response it belongs to. Put it ",
-         "directly after the bf() it modifies, e.g. ",
-         "bf(y1 ~ x) + lf(sigma ~ z) + bf(y2 ~ x)", call. = FALSE)
+    frm_stop("lf() does not say which response it belongs to. Put it ",
+             "directly after the bf() it modifies, e.g. ",
+             "bf(y1 ~ x) + lf(sigma ~ z) + bf(y2 ~ x)", call. = FALSE)
   }
   if (inherits(e2, "frmtmb_nlf")) {
-    stop("nlf() does not say which response it belongs to. Put it ",
-         "directly after the bf() it modifies, e.g. ",
-         "bf(y1 ~ x) + nlf(sigma ~ a * z) + bf(y2 ~ x)", call. = FALSE)
+    frm_stop("nlf() does not say which response it belongs to. Put it ",
+             "directly after the bf() it modifies, e.g. ",
+             "bf(y1 ~ x) + nlf(sigma ~ a * z) + bf(y2 ~ x)", call. = FALSE)
   }
   if (inherits(e2, "frmtmb_rescor")) {
     e1$rescor <- e2$rescor
@@ -588,8 +589,8 @@ set_rescor <- function(rescor = arg_unset(),
     })
     return(e1)
   }
-  stop("Cannot add an object of class ", paste(class(e2), collapse = "/"),
-       " to a 'frmtmb_mvformula'", call. = FALSE)
+  frm_stop("Cannot add an object of class ", paste(class(e2), collapse = "/"),
+           " to a 'frmtmb_mvformula'", call. = FALSE)
 }
 
 #' @export

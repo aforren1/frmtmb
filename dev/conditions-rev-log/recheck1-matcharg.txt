@@ -1,0 +1,48 @@
+== 1. direct: one formal with a default vector
+  compared 60 differ 0 
+
+== 2. frames: S3 method, nested function, do.call, argument reassigned
+  S3 default           bb 
+  NextMethod from foo  aa  (match.arg: aa )
+  nested               inner1 outer1 
+  do.call              response 
+  reassigned          base x2  lane x2 
+  inside lapply FUN    frmtmb_error  (match.arg: simpleError )
+  explicit choices in helper, full vector passed: w1 
+
+== 3. the real sites, valid values through each
+  predict_default          OK
+  predict_resp_partial     OK
+  fitted_linear            OK
+  residuals_pearson        OK
+  confint_Wald             OK
+  confint_profile          OK
+  hypothesis_scope_ranef   ERROR hypothesis() cannot honor scope = "ranef": brms evaluates the hypothesis on each group level's draws from ranef(summary = FALSE), and a maximum-likelihood fit has no draws of a group level. Sample with frmtmb.sample::frm_sample() for that, or write the level's own parameter out
+  ce_method_predict        OK
+  control_ignore           OK
+  get_prior_default        OK
+  vcov_cluster_CR1         OK
+  periodogram              OK
+  royston                  OK
+  hmm_init                 OK
+  gddm_control             OK
+
+== 4. frmtmb_package tag
+  wiener()                                 frmtmb.eam
+  hmm()                                    frmtmb.latent
+  gaussian()                               frmtmb
+  wiener() after saveRDS/readRDS           frmtmb.eam
+  wiener() after $<-                       frmtmb.eam
+  wiener() after modifyList                frmtmb.eam
+  wiener() after [ subset                  frmtmb
+  mixture(wiener(), wiener())              frmtmb
+  fit$family of a wiener fit               frmtmb
+  spec family of a wiener fit              frmtmb.eam
+  spec family after saveRDS of fit         frmtmb.eam
+  spec family after update()               frmtmb.eam
+  refusal after fit:  frmtmb_eam_error/frmtmb_error/error/condition 
+  same after readRDS: frmtmb_eam_error/frmtmb_error/error/condition 
+  identical(wiener(), wiener()): FALSE  all.equal: TRUE 
+  identical(gaussian(), gaussian()): FALSE 
+  user family at top level                 frmtmb
+  user family attribute present: FALSE 

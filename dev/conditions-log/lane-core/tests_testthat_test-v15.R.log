@@ -1,0 +1,8 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+StanHeaders: 2.32.10 
+Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+BLOCKS 9 PASS 41 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-v15.R 
+CAUGHT 1 
+DONE

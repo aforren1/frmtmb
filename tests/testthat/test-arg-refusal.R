@@ -74,8 +74,10 @@ test_that("fitted() reaches newdata, scale, dpar and resp", {
   expect_equal(unname(fitted(fit, dpar = "sigma")),
                unname(predict(fit, dpar = "sigma", type = "response")))
   expect_equal(unname(fitted(fit, resp = "y")), unname(fitted(fit)))
-  # match.arg() names the permitted values rather than the argument
-  expect_error(fitted(fit, scale = "latent"), "should be one of")
+  # the refusal names the argument, the value and the permitted values
+  expect_error(fitted(fit, scale = "latent"),
+               "`scale` must be one of .*not character \"latent\"",
+               class = "frmtmb_error")
 })
 
 # ---- the refusal -----------------------------------------------------
@@ -206,7 +208,7 @@ ar_is_dots_name <- function(x) {
 # worse, and on one it made it wrong:
 # `conditional_effects(frm_multiple_result, "x")` reported "1 argument
 # with no name" where "no pooled version" is the answer.
-ar_refusers <- c("stop", "fit_no_draws", "multiple_no_draws")
+ar_refusers <- c("stop", "frm_stop", "fit_no_draws", "multiple_no_draws")
 
 # Under covr every statement arrives as
 # `if (TRUE) { covr:::count(key); <statement> }`, so a one-call body no
@@ -482,17 +484,17 @@ test_that("the two refusal helpers really are unconditional", {
     expect_true(is.call(b) && identical(as.character(b[[1L]]), "{"),
                 label = paste(nm, "has a braced body"))
     expect_identical(length(b), 2L, label = paste(nm, "has one statement"))
-    expect_identical(as.character(b[[2L]][[1L]]), "stop",
-                     label = paste(nm, "statement is stop()"))
+    expect_identical(as.character(b[[2L]][[1L]]), "frm_stop",
+                     label = paste(nm, "statement is frm_stop()"))
   }
   # the absent case: a helper with a branch must NOT satisfy this
   branchy <- function(fn) {
     b <- ar_body(fn)
     is.call(b) && identical(as.character(b[[1L]]), "{") &&
-      length(b) == 2L && identical(as.character(b[[2L]][[1L]]), "stop")
+      length(b) == 2L && identical(as.character(b[[2L]][[1L]]), "frm_stop")
   }
   expect_false(branchy(function(x) {
-    if (x) stop("a")
+    if (x) frm_stop("a")
     invisible(NULL)
   }))
   # and covr's wrapper removal does not launder a branch: the same
@@ -504,8 +506,8 @@ test_that("the two refusal helpers really are unconditional", {
                                    stmt)))
     f
   }
-  expect_true(branchy(covr_shaped(quote(stop("a")))))
-  expect_false(branchy(covr_shaped(quote(if (x) stop("a")))))
+  expect_true(branchy(covr_shaped(quote(frm_stop("a")))))
+  expect_false(branchy(covr_shaped(quote(if (x) frm_stop("a")))))
   expect_false(ar_refuses_always(
     covr_shaped(quote(if (x) fit_no_draws("f")))))
 })

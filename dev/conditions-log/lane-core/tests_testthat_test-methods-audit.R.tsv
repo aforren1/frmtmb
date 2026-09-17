@@ -1,0 +1,6 @@
+"file"	"class"	"message"
+"tests/testthat/test-methods-audit.R"	"frmtmb_error/error/condition"	"drop1() compares fixed effects; refit with REML = FALSE"
+"tests/testthat/test-methods-audit.R"	"frmtmb_error/error/condition"	"type = 'disp' needs a family with a dispersion parameter; family 'zero_inflated_poisson' has none"
+"tests/testthat/test-methods-audit.R"	"frmtmb_error/error/condition"	"predict() cannot honor `allow.new.levels`: lme4's spelling, no longer accepted. brms spells it `allow_new_levels`, and so does this. Pass allow_new_levels ="
+"tests/testthat/test-methods-audit.R"	"frmtmb_error/error/condition"	"predict() has no argument `bogus_arg`. It takes: object, newdata, type, dpar, resp, re_formula, se.fit, allow_new_levels"
+"tests/testthat/test-methods-audit.R"	"frmtmb_error/error/condition"	"Addition term trials(size) could not be evaluated on newdata: newdata has no column size; supply the variable or use type = \"conditional\""

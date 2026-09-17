@@ -1,0 +1,4 @@
+"file"	"class"	"message"
+"tests/testthat/test-review-v25.R"	"frmtmb_error/error/condition"	"Addition term vreal(expo) could not be evaluated on newdata: newdata has no column expo; supply the variable or use type = \"conditional\""
+"tests/testthat/test-review-v25.R"	"frmtmb_error/error/condition"	"Addition term vreal(expo) could not be evaluated on newdata: newdata has no column expo; supply the variable or use type = \"conditional\""
+"tests/testthat/test-review-v25.R"	"frmtmb_error/error/condition"	"cens() cannot decode: \"zzz\"; use \"none\", \"left\", \"right\", or \"interval\" (any unambiguous prefix), or the codes 0, -1, 1, 2"

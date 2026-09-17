@@ -68,11 +68,11 @@ ln_at <- function(cd, i) {
 #' @noRd
 ln_blend <- function(old, new, m) {
   if (!setequal(names(old), names(new))) {
-    stop("a learning rule returned the value stores ",
-         paste(sort(names(new)), collapse = ", "), " where init() ",
-         "declared ", paste(sort(names(old)), collapse = ", "),
-         ". Every slot must come back under the name it went in with",
-         call. = FALSE)
+    frm_stop("a learning rule returned the value stores ",
+             paste(sort(names(new)), collapse = ", "), " where init() ",
+             "declared ", paste(sort(names(old)), collapse = ", "),
+             ". Every slot must come back under the name it went in with",
+             call. = FALSE)
   }
   for (k in names(old)) old[[k]] <- old[[k]] + m * (new[[k]] - old[[k]])
   old

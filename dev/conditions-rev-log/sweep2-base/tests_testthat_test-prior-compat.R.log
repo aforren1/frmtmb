@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/rellib-r3 
+BLOCKS 28 PASS 194 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-prior-compat.R
+CAUGHT 45 
+DONE

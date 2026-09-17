@@ -59,6 +59,7 @@
 # name as well, because a namespace that is loaded and not attached
 # reaches nothing through the search path.
 #' @importFrom frmtmb custom_family frmtmb_register_compat
+#' @importFrom frmtmb frm_match_arg frm_message frm_stop frm_warning
 #'   compat_rule_builder
 #' @importFrom stats predict qnorm quantile rnorm setNames
 NULL

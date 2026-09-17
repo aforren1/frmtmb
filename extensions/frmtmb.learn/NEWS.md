@@ -1,3 +1,28 @@
+# frmtmb.learn (development version)
+
+* Requires the frmtmb release that exports `frm_stop()`; the
+  `frmtmb (>= 0.59.0)` floor must move to it.
+* **BREAKING:** every error, warning and message that frmtmb.learn
+  raises is classed. An error has the class
+  `c("frmtmb_learn_error", "frmtmb_error", "error", "condition")`,
+  and warnings and messages follow the same pattern, so
+  `tryCatch(frmtmb_error = )` catches any refusal. The class vector no
+  longer contains `simpleError`, `simpleWarning` or `simpleMessage`.
+  See `?frmtmb::frmtmb-conditions`.
+* **BREAKING:** a value that matches none of the choices of
+  `bandit2arm_dual(split =)` and `frm_task_design(task =)` is refused
+  with a `frmtmb_learn_error` that names the argument, the
+  value and the choices. The old text was `'arg' should be one of ...`.
+  A partial value still matches.
+* `frm_task_simulate()` refuses a `family` that is not a family
+  object by name. `frm_task_simulate(1, d)` used to fail with
+  `subscript out of bounds`.
+* The refusals about `rlddm()`'s non-decision-time bound, which
+  frmtmb.eam raises, and the refusals frmtmb raises about this
+  package's families, such as `declares no mean`, are a
+  `frmtmb_learn_error`.
+
+
 # frmtmb.learn 0.4.2
 
 * Requires frmtmb 0.59.0.

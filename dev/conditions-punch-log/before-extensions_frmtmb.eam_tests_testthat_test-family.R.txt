@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 13 PASS 48 FAIL 0 ERROR 1 SKIP 0  extensions/frmtmb.eam/tests/testthat/test-family.R
+  failing: the missing decision indicator is refused, not ignored
+       <frmtmb_error/error/condition> Error: wiener: the density needs one of `dec` or `vint1`, which nothing on this response supplies. Write the addition term: rt | dec(<column>) ~ ... 

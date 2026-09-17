@@ -1,0 +1,9 @@
+RESULT frmtmb           pass 3 fail 1 error 0 skip 0
+    Expected `stale` to be identical to `character(0)`. / Differences: / `actual`:   "R/fit.R | fit_error_context | stop(e)" / `expected`:                                         /  / R/fit.R | fit_error_context | stop(e) 
+RESULT frmtmb.coupling  pass 4 fail 0 error 0 skip 0
+RESULT frmtmb.eam       pass 4 fail 0 error 0 skip 0
+RESULT frmtmb.latent    pass 4 fail 0 error 0 skip 0
+RESULT frmtmb.learn     pass 4 fail 0 error 0 skip 0
+RESULT frmtmb.ode       pass 4 fail 0 error 0 skip 0
+RESULT frmtmb.sample    pass 4 fail 0 error 0 skip 0
+RESULT frmtmb.spline    pass 4 fail 0 error 0 skip 0

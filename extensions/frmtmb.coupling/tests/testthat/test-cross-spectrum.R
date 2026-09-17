@@ -169,7 +169,7 @@ test_that("bad arguments are refused by name", {
                                   window = "hann", tapers = 2L),
                "two tapers of the same segment")
   expect_error(frm_cross_spectrum(p$x, p$y, window = "hamming"),
-               "should be one of")
+               "`window` must be one of", class = "frmtmb_coupling_error")
   expect_error(frm_cross_spectrum(matrix(p$x, ncol = 2), p$y),
                "both be matrices")
 })

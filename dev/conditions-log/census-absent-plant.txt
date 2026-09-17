@@ -1,0 +1,10 @@
+RESULT frmtmb           pass 3 fail 1 error 0 skip 0
+    Expected `bare` to be identical to `character(0)`. / Differences: /     actual                                                        | expected  / [1] "R/utils.R | conditions_planted | stop(\"planted\")"          -           / [2] "inst/rl/rw-delta.R | rw_planted | stop(\"planted in inst\")" -           /  / Raise through frm_stop(), frm_warning() or frm_message(); see ?frmtmb::frm_stop. / R/util 
+RESULT frmtmb.coupling  pass 4 fail 0 error 0 skip 0
+RESULT frmtmb.eam       pass 3 fail 1 error 0 skip 0
+    Expected `bare` to be identical to `character(0)`. / Differences: / `actual`:   "R/ddm-shared.R | eam_planted | <value> stop" / `expected`:                                               /  / Raise through frm_stop(), frm_warning() or frm_message(); see ?frmtmb::frm_stop. / R/ddm-shared.R | eam_planted | <value> stop 
+RESULT frmtmb.latent    pass 4 fail 0 error 0 skip 0
+RESULT frmtmb.learn     pass 4 fail 0 error 0 skip 0
+RESULT frmtmb.ode       pass 4 fail 0 error 0 skip 0
+RESULT frmtmb.sample    pass 4 fail 0 error 0 skip 0
+RESULT frmtmb.spline    pass 4 fail 0 error 0 skip 0

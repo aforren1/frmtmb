@@ -139,9 +139,9 @@ par_template.default <- function(object, data, family = NULL,
                                  data2 = list(), ...) {
   frm_check_dots(...)
   if (missing(data)) {
-    stop("par_template() needs `data` to assemble the design: the ",
-         "parameter vector's length and names are properties of the ",
-         "model matrices, not of the formula alone", call. = FALSE)
+    frm_stop("par_template() needs `data` to assemble the design: the ",
+             "parameter vector's length and names are properties of the ",
+             "model matrices, not of the formula alone", call. = FALSE)
   }
   if (!is.null(start)) {
     check_named_list(start, "start", "start = list(beta = c(0, 1))")
@@ -205,21 +205,21 @@ print.frmtmb_par_template <- function(x, n = 10L, ...) {
 #' @noRd
 resolve_start_component <- function(cur, val, comp) {
   if (!is.numeric(val)) {
-    stop("start$", comp, " must be a numeric vector, not ", arg_desc(val),
-         call. = FALSE)
+    frm_stop("start$", comp, " must be a numeric vector, not ", arg_desc(val),
+             call. = FALSE)
   }
   nms <- names(val)
   if (is.null(nms)) {
     if (length(val) != length(cur)) {
-      stop("start$", comp, " must have length ", length(cur),
-           call. = FALSE)
+      frm_stop("start$", comp, " must have length ", length(cur),
+               call. = FALSE)
     }
     cur[] <- val
     return(cur)
   }
   if (!all(nzchar(nms))) {
-    stop("start$", comp, " mixes named and unnamed entries; name every ",
-         "entry or none. par_template() lists the names", call. = FALSE)
+    frm_stop("start$", comp, " mixes named and unnamed entries; name every ",
+             "entry or none. par_template() lists the names", call. = FALSE)
   }
   target <- par_template_names(cur, comp)
   # match_par_name() raises the ambiguity error itself, in the one
@@ -230,18 +230,18 @@ resolve_start_component <- function(cur, val, comp) {
     # positional start carrying names from somewhere else (coef() of a
     # different model, a covariance matrix's dimnames), which the
     # positional-only contract of earlier releases ignored
-    stop("start$", comp, " names no parameter of this model: ",
-         paste(nms[is.na(idx)], collapse = ", "),
-         ". It has ", paste(target, collapse = ", "),
-         " (see par_template())",
-         if (all(is.na(idx)) && length(val) == length(cur)) {
-           ". To set it positionally instead, unname() the vector"
-         }, call. = FALSE)
+    frm_stop("start$", comp, " names no parameter of this model: ",
+             paste(nms[is.na(idx)], collapse = ", "),
+             ". It has ", paste(target, collapse = ", "),
+             " (see par_template())",
+             if (all(is.na(idx)) && length(val) == length(cur)) {
+               ". To set it positionally instead, unname() the vector"
+             }, call. = FALSE)
   }
   if (anyDuplicated(idx)) {
-    stop("start$", comp, " addresses one parameter more than once: ",
-         paste(unique(target[idx[duplicated(idx)]]), collapse = ", "),
-         call. = FALSE)
+    frm_stop("start$", comp, " addresses one parameter more than once: ",
+             paste(unique(target[idx[duplicated(idx)]]), collapse = ", "),
+             call. = FALSE)
   }
   cur[idx] <- as.numeric(val)
   cur

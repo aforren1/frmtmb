@@ -88,7 +88,7 @@ test_that("a list column named in a body still fails at the frame", {
   form <- bf(y ~ b0 * tab, b0 ~ 1, nl = TRUE)
   expect_error(frm(form + gaussian(), data = d, dry_run = "frame",
                    start = list(beta = 1)),
-               "invalid type \\(list\\).*tab")
+               "`tab` is a list, a column of `data`", class = "frmtmb_error")
 
   # and the unused list column is still ignored
   form2 <- bf(y ~ b0 * x, b0 ~ 1, nl = TRUE)
@@ -119,16 +119,17 @@ test_that("an env vector or matrix still reaches the model frame", {
   expect_true(is.matrix(fr_m$linpreds[["y.mu"]]$data_list$m))
 })
 
-test_that("a bad env vector and a missing name fail as they always did", {
+test_that("a bad env vector and a missing name are refused by name", {
   d <- lex_dd()
   short <- stats::rnorm(3)
   expect_error(frm(bf(y ~ b0 * short, b0 ~ 1, nl = TRUE) + gaussian(),
                    data = d, dry_run = "frame", start = list(beta = 1)),
-               "variable lengths differ")
+               "`short` is not a column of `data`.* has 3 rows",
+               class = "frmtmb_error")
   expect_error(frm(bf(y ~ b0 * no_such_thing, b0 ~ 1, nl = TRUE) +
                      gaussian(),
                    data = d, dry_run = "frame", start = list(beta = 1)),
-               "object 'no_such_thing' not found")
+               "The model uses `no_such_thing`", class = "frmtmb_error")
 })
 
 test_that("nl_lexical_only draws the line at model.frame's types", {

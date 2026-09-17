@@ -122,6 +122,9 @@ test_that("getME needs resp= for the designs of a multivariate fit", {
               bf(y2 ~ x) + gaussian(), data = dd)
   expect_error(frmtmb:::getME.frmtmb_fit(mv, "X"), "resp")
   expect_error(frmtmb:::getME.frmtmb_fit(mv, "Zt"), "resp")
+  # the class survives S4 dispatch in Matrix::t()
+  expect_error(frmtmb:::getME.frmtmb_fit(mv, "Zt"), "resp",
+               class = "frmtmb_error")
   expect_identical(dim(frmtmb:::getME.frmtmb_fit(mv, "X", resp = "y1")),
                    c(60L, 2L))
   # the scalar names answer without one

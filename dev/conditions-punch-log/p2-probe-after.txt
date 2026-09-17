@@ -1,0 +1,4 @@
+env_parent  fits
+sar_data2   frmtmb_error/error/condition | sar() is a brms autocorrelation term that frmtmb does not support: sar(Wm). The supported residual c
+fcor_data2  frmtmb_error/error/condition | fcor() is a brms autocorrelation term that frmtmb does not support: fcor(Vm). The supported residual
+dot         frmtmb_error/error/condition | A formula with `.` is not supported: frmtmb does not expand `.` into the columns of `data`. Write th

@@ -398,14 +398,14 @@ wiener <- function(max_ndt = NULL, variability = character(0),
   if (!is.null(max_ndt)) {
     if (!is.numeric(max_ndt) || length(max_ndt) != 1L ||
         !is.finite(max_ndt) || max_ndt <= 0) {
-      stop("wiener(): `max_ndt` must be one positive finite number, ",
-           "or NULL to take it from the data.", call. = FALSE)
+      frm_stop("wiener(): `max_ndt` must be one positive finite number, ",
+               "or NULL to take it from the data.", call. = FALSE)
     }
   }
   if (!is.logical(allow_unreachable) || length(allow_unreachable) != 1L ||
       is.na(allow_unreachable)) {
-    stop("wiener(): `allow_unreachable` must be TRUE or FALSE.",
-         call. = FALSE)
+    frm_stop("wiener(): `allow_unreachable` must be TRUE or FALSE.",
+             call. = FALSE)
   }
   cfg <- list(max_ndt = max_ndt, link = link,
               allow_unreachable = isTRUE(allow_unreachable),
@@ -432,10 +432,10 @@ ddm_check_variability <- function(variability, what = "wiener") {
   if (is.null(variability)) variability <- character(0)
   if (!is.character(variability) || anyNA(variability) ||
       !all(variability %in% known) || anyDuplicated(variability)) {
-    stop(what, "(): `variability` names the across-trial variability ",
-         "parameters to estimate, as a character vector with no ",
-         "repeats, drawn from \"sv\" (drift rate), \"sz\" (start ",
-         "point) and \"st\" (non-decision time).", call. = FALSE)
+    frm_stop(what, "(): `variability` names the across-trial variability ",
+             "parameters to estimate, as a character vector with no ",
+             "repeats, drawn from \"sv\" (drift rate), \"sz\" (start ",
+             "point) and \"st\" (non-decision time).", call. = FALSE)
   }
   known[known %in% variability]
 }
@@ -450,9 +450,9 @@ ddm_check_nodes <- function(nodes) {
       !all(names(nodes) %in% names(out)) || anyDuplicated(names(nodes)) ||
       any(!is.finite(nodes)) || any(nodes < 1) ||
       any(nodes != round(nodes))) {
-    stop("wiener(): `nodes` gives the Gauss-Legendre node counts as a ",
-         "named vector of whole numbers at least 1, with names drawn ",
-         "from \"sz\" and \"st\".", call. = FALSE)
+    frm_stop("wiener(): `nodes` gives the Gauss-Legendre node counts as a ",
+             "named vector of whole numbers at least 1, with names drawn ",
+             "from \"sz\" and \"st\".", call. = FALSE)
   }
   out[names(nodes)] <- as.integer(nodes)
   out
@@ -602,12 +602,12 @@ ddm_finalize <- function(fam, cfg, y, aterms) {
     # reaches 1 at a finite linear predictor, so ndt < the bound stays
     # strict. Anything above min(y) does admit parameter values with no
     # likelihood.
-    stop("wiener: max_ndt = ", format(sp$ub), " is above the smallest ",
-         "response time (", format(lo), "). The density is zero at ",
-         "and below the non-decision time, so a bound above min(rt) ",
-         "admits parameter values with no likelihood. In a mixture ",
-         "the other component covers those trials, and ",
-         "allow_unreachable = TRUE says so.", call. = FALSE)
+    frm_stop("wiener: max_ndt = ", format(sp$ub), " is above the smallest ",
+             "response time (", format(lo), "). The density is zero at ",
+             "and below the non-decision time, so a bound above min(rt) ",
+             "admits parameter values with no likelihood. In a mixture ",
+             "the other component covers those trials, and ",
+             "allow_unreachable = TRUE says so.", call. = FALSE)
   }
   # A settled bound is KEPT rather than re-derived. The family is
   # rebuilt from `cfg` here, so the install's own guard cannot see the
@@ -649,17 +649,17 @@ ddm_indicator <- function(aterms) {
 #' @noRd
 ddm_check_response <- function(y, aterms) {
   if (any(!is.finite(y)) || any(y <= 0)) {
-    stop("wiener: the response must be a strictly positive, finite ",
-         "response time.", call. = FALSE)
+    frm_stop("wiener: the response must be a strictly positive, finite ",
+             "response time.", call. = FALSE)
   }
   ddm_check_units(y, "wiener")
   up <- ddm_indicator(aterms)
   if (any(!is.finite(up)) || any(up != 0 & up != 1)) {
-    stop("wiener: the decision indicator must be 0 (lower boundary) ",
-         "or 1 (upper boundary). dec() coerces a factor or a character ",
-         "vector for you, taking its second level as the upper ",
-         "boundary; vint() does not, so recode it with ",
-         "as.integer(decision == \"upper\").", call. = FALSE)
+    frm_stop("wiener: the decision indicator must be 0 (lower boundary) ",
+             "or 1 (upper boundary). dec() coerces a factor or a character ",
+             "vector for you, taking its second level as the upper ",
+             "boundary; vint() does not, so recode it with ",
+             "as.integer(decision == \"upper\").", call. = FALSE)
   }
   invisible(NULL)
 }

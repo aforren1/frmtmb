@@ -52,6 +52,6 @@ notify_once <- function(tag, ...) {
     return(invisible(FALSE))
   }
   assign(tag, TRUE, envir = frmtmb_notice_state)
-  message(...)
+  frm_message(...)
   invisible(TRUE)
 }

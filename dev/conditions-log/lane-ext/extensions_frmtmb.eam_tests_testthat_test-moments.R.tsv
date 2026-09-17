@@ -1,0 +1,3 @@
+"file"	"class"	"message"
+"extensions/frmtmb.eam/tests/testthat/test-moments.R"	"frmtmb_eam_error/frmtmb_error/error/condition"	"wiener: the mean response time is conditional on the boundary a trial ended at, which is missing. See ?wiener."
+"extensions/frmtmb.eam/tests/testthat/test-moments.R"	"frmtmb_eam_error/frmtmb_error/error/condition"	"wiener: simulating a response time needs the boundary each row ended at, which is missing. See ?wiener."

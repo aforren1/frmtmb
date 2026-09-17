@@ -9,6 +9,10 @@ importFrom(frmtmb,
   compat_rule_builder,
   custom_family,
   dpar_log1m,
+  frm_match_arg,
+  frm_message,
+  frm_stop,
+  frm_warning,
   frmtmb_register_compat
 )
 importFrom(stats,

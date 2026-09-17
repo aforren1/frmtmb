@@ -1,0 +1,14 @@
+local_var_message      clean
+list_field_message     clean
+local_get_fn           clean
+get_column_env         FLAGGED: <get> warning
+identical_as_name      clean
+call_inspection        clean
+switch_labels          clean
+local_fn_named_call    clean
+parse_formula_text     clean
+mget_names             clean
+getOption_warn         clean
+formals_default_msg    clean
+R6_like                clean
+dollar_call            clean

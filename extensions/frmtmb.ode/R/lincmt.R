@@ -214,9 +214,9 @@ lincmt_needed <- function(ncmt, depot, kind, want_v) {
 lincmt_col <- function(x, n_obs, arg, nm) {
   cols <- ode_columns(x, n_obs, arg)
   if (length(cols) != 1L) {
-    stop("`", arg, "$", nm, "` has ", length(cols), " columns; each ",
-         "element is ONE value per observation, constant within group, ",
-         "or one value shared by every group", call. = FALSE)
+    frm_stop("`", arg, "$", nm, "` has ", length(cols), " columns; each ",
+             "element is ONE value per observation, constant within group, ",
+             "or one value shared by every group", call. = FALSE)
   }
   cols[[1L]]
 }
@@ -226,55 +226,55 @@ lincmt_col <- function(x, n_obs, arg, nm) {
 #' @noRd
 lincmt_rates <- function(pl, ncmt, depot, want_v) {
   if (!is.list(pl) || inherits(pl, "advector") || !length(pl)) {
-    stop("`parms` must be a named list, for example ",
-         "parms = list(ka = exp(lka), ke = exp(lke), V = exp(lV))",
-         call. = FALSE)
+    frm_stop("`parms` must be a named list, for example ",
+             "parms = list(ka = exp(lka), ke = exp(lke), V = exp(lV))",
+             call. = FALSE)
   }
   nm <- names(pl)
   if (is.null(nm) || any(!nzchar(nm))) {
-    stop("every element of `parms` must be named. frm_lincmt() reads ",
-         "its parameters by name, not by position, because which ones ",
-         "a model needs depends on `ncmt` and `depot`. The names are: ",
-         paste(lincmt_k_names, collapse = ", "), " (rate constants), ",
-         "or ", paste(lincmt_cl_names, collapse = ", "),
-         " (clearances)", call. = FALSE)
+    frm_stop("every element of `parms` must be named. frm_lincmt() reads ",
+             "its parameters by name, not by position, because which ones ",
+             "a model needs depends on `ncmt` and `depot`. The names are: ",
+             paste(lincmt_k_names, collapse = ", "), " (rate constants), ",
+             "or ", paste(lincmt_cl_names, collapse = ", "),
+             " (clearances)", call. = FALSE)
   }
   if (anyDuplicated(nm)) {
-    stop("`parms` names ", nm[anyDuplicated(nm)], " more than once",
-         call. = FALSE)
+    frm_stop("`parms` names ", nm[anyDuplicated(nm)], " more than once",
+             call. = FALSE)
   }
   has_k <- any(nm %in% setdiff(lincmt_k_names, lincmt_shared_names))
   has_cl <- any(nm %in% setdiff(lincmt_cl_names, lincmt_shared_names))
   if (has_k && has_cl) {
-    stop("`parms` mixes the two parameterizations: ",
-         paste(setdiff(intersect(nm, lincmt_k_names),
-                       lincmt_shared_names), collapse = ", "),
-         " are rate constants and ",
-         paste(setdiff(intersect(nm, lincmt_cl_names),
-                       lincmt_shared_names), collapse = ", "),
-         " are clearances and volumes. Write one or the other; a mixed ",
-         "table has no reading that is not a guess", call. = FALSE)
+    frm_stop("`parms` mixes the two parameterizations: ",
+             paste(setdiff(intersect(nm, lincmt_k_names),
+                           lincmt_shared_names), collapse = ", "),
+             " are rate constants and ",
+             paste(setdiff(intersect(nm, lincmt_cl_names),
+                           lincmt_shared_names), collapse = ", "),
+             " are clearances and volumes. Write one or the other; a mixed ",
+             "table has no reading that is not a guess", call. = FALSE)
   }
   kind <- if (has_cl) "cl" else "k"
   want <- lincmt_needed(ncmt, depot, kind, want_v || kind == "cl")
   miss <- setdiff(want, nm)
   if (length(miss)) {
-    stop("`parms` is missing ", paste(miss, collapse = ", "),
-         ". A ", ncmt, "-compartment model ",
-         if (depot) "with" else "without", " a depot needs ",
-         paste(want, collapse = ", "), call. = FALSE)
+    frm_stop("`parms` is missing ", paste(miss, collapse = ", "),
+             ". A ", ncmt, "-compartment model ",
+             if (depot) "with" else "without", " a depot needs ",
+             paste(want, collapse = ", "), call. = FALSE)
   }
   # `V` is always allowed, so that changing `output` does not change
   # what `parms` must hold; it is only REQUIRED where it is read
   extra <- setdiff(nm, c(want, "V"))
   if (length(extra)) {
-    stop("`parms` has ", paste(extra, collapse = ", "),
-         ", which a ", ncmt, "-compartment model ",
-         if (depot) "with" else "without",
-         " a depot does not use. It needs exactly ",
-         paste(want, collapse = ", "),
-         ". Raise `ncmt`, or set depot = TRUE, or drop the parameter",
-         call. = FALSE)
+    frm_stop("`parms` has ", paste(extra, collapse = ", "),
+             ", which a ", ncmt, "-compartment model ",
+             if (depot) "with" else "without",
+             " a depot does not use. It needs exactly ",
+             paste(want, collapse = ", "),
+             ". Raise `ncmt`, or set depot = TRUE, or drop the parameter",
+             call. = FALSE)
   }
   pl
 }
@@ -375,41 +375,41 @@ lincmt_resp <- function(u, dur, ii, kind, cmt, lam, coef, ka, out) {
 lincmt_check_events <- function(ev, label, n_dep, n_state) {
   bad <- setdiff(unique(ev[["method"]]), c("add", "reset"))
   if (length(bad)) {
-    stop("`events` has ", paste(bad, collapse = " and "),
-         " rows, which frm_lincmt() does not fit. The closed form is a ",
-         "superposition of the doses that came before an observation, ",
-         "and \"replace\" and \"multiply\" are not doses: they need the ",
-         "state of every compartment at the instant they act, including ",
-         "the peripheral compartments, which superposition never forms. ",
-         "Use frm_ode()", call. = FALSE)
+    frm_stop("`events` has ", paste(bad, collapse = " and "),
+             " rows, which frm_lincmt() does not fit. The closed form is a ",
+             "superposition of the doses that came before an observation, ",
+             "and \"replace\" and \"multiply\" are not doses: they need the ",
+             "state of every compartment at the instant they act, including ",
+             "the peripheral compartments, which superposition never forms. ",
+             "Use frm_ode()", call. = FALSE)
   }
   rst <- ev[["method"]] == "reset"
   if (any(rst & ev[["value"]] != 0)) {
-    stop("`events` has a \"reset\" row with a value of ",
-         format(ev[["value"]][rst & ev[["value"]] != 0][[1L]]),
-         ". frm_lincmt() reads a reset to ZERO, which is NONMEM's and ",
-         "rxode2's EVID = 3, as \"forget every dose before this time\", ",
-         "and that needs no state. A reset to a non-zero level sets the ",
-         "peripheral compartments as well. Use frm_ode()", call. = FALSE)
+    frm_stop("`events` has a \"reset\" row with a value of ",
+             format(ev[["value"]][rst & ev[["value"]] != 0][[1L]]),
+             ". frm_lincmt() reads a reset to ZERO, which is NONMEM's and ",
+             "rxode2's EVID = 3, as \"forget every dose before this time\", ",
+             "and that needs no state. A reset to a non-zero level sets the ",
+             "peripheral compartments as well. Use frm_ode()", call. = FALSE)
   }
   cm <- ev[["state"]][!rst]
   if (length(cm) && any(cm > n_dep + 1L)) {
-    stop("`events` doses compartment ", max(cm), " of group '", label,
-         "', which is a peripheral compartment. frm_lincmt() doses the ",
-         if (n_dep) "depot or the central compartment" else
-           "central compartment",
-         " only: a peripheral compartment has no route of ",
-         "administration, and its impulse response is the one piece of ",
-         "the closed form that has no cancellation-free spelling. Use ",
-         "frm_ode()", call. = FALSE)
+    frm_stop("`events` doses compartment ", max(cm), " of group '", label,
+             "', which is a peripheral compartment. frm_lincmt() doses the ",
+             if (n_dep) "depot or the central compartment" else
+               "central compartment",
+             " only: a peripheral compartment has no route of ",
+             "administration, and its impulse response is the one piece of ",
+             "the closed form that has no cancellation-free spelling. Use ",
+             "frm_ode()", call. = FALSE)
   }
   if (n_dep && any(ev[["duration"]] > 0 & ev[["state"]] == 1L)) {
-    stop("`events` infuses into the depot of group '", label,
-         "'. That is zero-order absorption, and frm_lincmt() does not ",
-         "fit it: the three-node convolution it needs cannot be written ",
-         "without dividing by a difference of rate constants. An ",
-         "infusion into the CENTRAL compartment is supported. Use ",
-         "frm_ode()", call. = FALSE)
+    frm_stop("`events` infuses into the depot of group '", label,
+             "'. That is zero-order absorption, and frm_lincmt() does not ",
+             "fit it: the three-node convolution it needs cannot be written ",
+             "without dividing by a difference of rate constants. An ",
+             "infusion into the CENTRAL compartment is supported. Use ",
+             "frm_ode()", call. = FALSE)
   }
   invisible(TRUE)
 }
@@ -730,62 +730,62 @@ frm_lincmt <- function(parms, times, group = NULL, ncmt = 1L,
   "c" <- RTMB::ADoverload("c")
 
   if (!is.null(tv) || !is.null(tv_break)) {
-    stop("`tv` is not available in frm_lincmt(). A dynamics input that ",
-         "changes with time makes the system time-varying, and the ",
-         "closed form is a superposition over the WHOLE history of the ",
-         "group, so a rate constant that changed part way through it ",
-         "would be applied to doses given before the change. Use ",
-         "frm_ode(), which splits the solve at each change point",
-         call. = FALSE)
+    frm_stop("`tv` is not available in frm_lincmt(). A dynamics input that ",
+             "changes with time makes the system time-varying, and the ",
+             "closed form is a superposition over the WHOLE history of the ",
+             "group, so a rate constant that changed part way through it ",
+             "would be applied to doses given before the change. Use ",
+             "frm_ode(), which splits the solve at each change point",
+             call. = FALSE)
   }
   if (length(ncmt) != 1L || !is.numeric(ncmt) || is.na(ncmt) ||
         !ncmt %in% 1:3) {
-    stop("`ncmt` must be 1, 2 or 3: it is how many compartments the ",
-         "disposition model has, not counting the depot", call. = FALSE)
+    frm_stop("`ncmt` must be 1, 2 or 3: it is how many compartments the ",
+             "disposition model has, not counting the depot", call. = FALSE)
   }
   ncmt <- as.integer(ncmt)
   if (length(depot) != 1L || !is.logical(depot) || is.na(depot)) {
-    stop("`depot` must be TRUE or FALSE", call. = FALSE)
+    frm_stop("`depot` must be TRUE or FALSE", call. = FALSE)
   }
   if (length(output) > 1L && !identical(output, eval(formals()$output))) {
-    stop("`output` names ", length(output), " things. frm_lincmt() ",
-         "returns ONE column: \"conc\", \"central\" or \"depot\". ",
-         "frm_ode()'s per-row `output`, which reads a different state ",
-         "on each row over one shared solve, is not available here; ",
-         "call frm_lincmt() once per compartment and combine the ",
-         "results in the nonlinear body", call. = FALSE)
+    frm_stop("`output` names ", length(output), " things. frm_lincmt() ",
+             "returns ONE column: \"conc\", \"central\" or \"depot\". ",
+             "frm_ode()'s per-row `output`, which reads a different state ",
+             "on each row over one shared solve, is not available here; ",
+             "call frm_lincmt() once per compartment and combine the ",
+             "results in the nonlinear body", call. = FALSE)
   }
-  output <- match.arg(output)
+  output <- frm_match_arg(output)
   if (identical(output, "depot") && !depot) {
-    stop("`output` is \"depot\" but `depot` is FALSE, so there is no ",
-         "depot compartment to read", call. = FALSE)
+    frm_stop("`output` is \"depot\" but `depot` is FALSE, so there is no ",
+             "depot compartment to read", call. = FALSE)
   }
   if (length(n_ss) != 1L || !is.numeric(n_ss) || is.na(n_ss) ||
         n_ss < 1 || (is.finite(n_ss) && n_ss != trunc(n_ss))) {
-    stop("`n_ss` must be Inf, or one whole number at least 1: it is ",
-         "how many dosing cycles a steady-state record carries",
-         call. = FALSE)
+    frm_stop("`n_ss` must be Inf, or one whole number at least 1: it is ",
+             "how many dosing cycles a steady-state record carries",
+             call. = FALSE)
   }
   for (nm in c("times", "group", "t0")) {
     if (inherits(get(nm), "advector")) {
-      stop("`", nm, "` is an estimated quantity. frm_lincmt() needs it ",
-           "as data: it fixes which doses precede which observation, ",
-           "which is settled before the tape is built", call. = FALSE)
+      frm_stop("`", nm, "` is an estimated quantity. frm_lincmt() needs it ",
+               "as data: it fixes which doses precede which observation, ",
+               "which is settled before the tape is built", call. = FALSE)
     }
   }
 
   times <- as.numeric(times)
   n_obs <- length(times)
-  if (!n_obs) stop("`times` is empty", call. = FALSE)
-  if (anyNA(times)) stop("`times` contains NA", call. = FALSE)
+  if (!n_obs) frm_stop("`times` is empty", call. = FALSE)
+  if (anyNA(times)) frm_stop("`times` contains NA", call. = FALSE)
 
   if (is.null(group)) {
     gi <- rep(1L, n_obs)
     glab <- "1"
   } else {
     if (length(group) != n_obs) {
-      stop("`group` has length ", length(group), " but `times` has ",
-           n_obs, call. = FALSE)
+      frm_stop("`group` has length ", length(group), " but `times` has ",
+               n_obs, call. = FALSE)
     }
     gf <- if (is.factor(group)) droplevels(group) else factor(group)
     gi <- as.integer(gf)
@@ -813,7 +813,7 @@ frm_lincmt <- function(parms, times, group = NULL, ncmt = 1L,
   ode_check_constant(pcols, groups, "parms", labels, "frm_lincmt()")
   t0_cols <- ode_columns(t0, n_obs, "t0")
   if (length(t0_cols) != 1L) {
-    stop("`t0` must be a single column", call. = FALSE)
+    frm_stop("`t0` must be a single column", call. = FALSE)
   }
   ode_check_constant(t0_cols, groups, "t0", labels, "frm_lincmt()")
 
@@ -849,24 +849,24 @@ frm_lincmt <- function(parms, times, group = NULL, ncmt = 1L,
   if (!is.null(init)) {
     if (!is.list(init) || inherits(init, "advector") ||
           is.null(names(init)) || any(!nzchar(names(init)))) {
-      stop("`init` must be a named list, for example ",
-           "init = list(depot = dose). The names are ",
-           paste(c(if (depot) "depot", "central"), collapse = " and "),
-           call. = FALSE)
+      frm_stop("`init` must be a named list, for example ",
+               "init = list(depot = dose). The names are ",
+               paste(c(if (depot) "depot", "central"), collapse = " and "),
+               call. = FALSE)
     }
     bad <- setdiff(names(init), c(if (depot) "depot", "central"))
     if (length(bad)) {
-      stop("`init` names ", paste(bad, collapse = ", "),
-           ", and this model's are ",
-           paste(c(if (depot) "depot", "central"), collapse = " and "),
-           ". frm_lincmt() starts from the ",
-           if (depot) "depot or the central compartment" else
-             "central compartment",
-           " only: an amount in a PERIPHERAL compartment at t0 needs ",
-           "that compartment's impulse response, which is the one piece ",
-           "of the closed form that has no cancellation-free spelling, ",
-           "and a depot needs depot = TRUE. Use frm_ode()",
-           call. = FALSE)
+      frm_stop("`init` names ", paste(bad, collapse = ", "),
+               ", and this model's are ",
+               paste(c(if (depot) "depot", "central"), collapse = " and "),
+               ". frm_lincmt() starts from the ",
+               if (depot) "depot or the central compartment" else
+                 "central compartment",
+               " only: an amount in a PERIPHERAL compartment at t0 needs ",
+               "that compartment's impulse response, which is the one piece ",
+               "of the closed form that has no cancellation-free spelling, ",
+               "and a depot needs depot = TRUE. Use frm_ode()",
+               call. = FALSE)
     }
     icols <- lapply(names(init), function(nm)
       lincmt_col(init[[nm]], n_obs, "init", nm))
@@ -878,12 +878,12 @@ frm_lincmt <- function(parms, times, group = NULL, ncmt = 1L,
   scale_g <- NULL
   if (!identical(event_scale, 1)) {
     if (is.null(events)) {
-      stop("`event_scale` was given but `events` was not; there is ",
-           "nothing to scale", call. = FALSE)
+      frm_stop("`event_scale` was given but `events` was not; there is ",
+               "nothing to scale", call. = FALSE)
     }
     sc <- ode_columns(event_scale, n_obs, "event_scale")
     if (length(sc) != 1L) {
-      stop("`event_scale` must be a single column", call. = FALSE)
+      frm_stop("`event_scale` must be a single column", call. = FALSE)
     }
     ode_check_constant(sc, groups, "event_scale", labels,
                        "frm_lincmt()")
@@ -902,17 +902,17 @@ frm_lincmt <- function(parms, times, group = NULL, ncmt = 1L,
     tstart <- as.numeric(if (length(t0_cols[[1L]]) == 1L) t0_cols[[1L]]
                          else t0_cols[[1L]][first[[g]]])
     if (min(times[idx]) < tstart) {
-      stop("group '", labels[[g]], "' has an observation time (",
-           format(min(times[idx])), ") before t0 (", format(tstart),
-           "); frm_lincmt() runs forward from t0", call. = FALSE)
+      frm_stop("group '", labels[[g]], "' has an observation time (",
+               format(min(times[idx])), ") before t0 (", format(tstart),
+               "); frm_lincmt() runs forward from t0", call. = FALSE)
     }
     ev <- if (is.null(ev_by_group)) NULL else ev_by_group[[labels[[g]]]]
     if (!is.null(ev) && !nrow(ev)) ev <- NULL
     if (!is.null(ev)) {
       if (any(ev[["time"]] < tstart)) {
-        stop("group '", labels[[g]], "' has an event at time ",
-             format(min(ev[["time"]])), ", before t0 (", format(tstart),
-             "); frm_lincmt() runs forward from t0", call. = FALSE)
+        frm_stop("group '", labels[[g]], "' has an event at time ",
+                 format(min(ev[["time"]])), ", before t0 (", format(tstart),
+                 "); frm_lincmt() runs forward from t0", call. = FALSE)
       }
       lincmt_check_events(ev, labels[[g]], n_dep, n_state)
     }
@@ -927,13 +927,13 @@ frm_lincmt <- function(parms, times, group = NULL, ncmt = 1L,
       if (!is.null(dose) && any(dose[["duration"]] > 0 &
                                 dose[["time"]] < b &
                                 dose[["time"]] + dose[["duration"]] > b)) {
-        stop("group '", labels[[g]], "' has an infusion running at ",
-             "time ", format(b), ", where the schedule restarts (a ",
-             "\"reset\" row, or a steady-state row). frm_lincmt() drops ",
-             "every dose before a restart, so an infusion that spans ",
-             "one would lose the part still to be delivered. Split the ",
-             "infusion at the restart, or use frm_ode()",
-             call. = FALSE)
+        frm_stop("group '", labels[[g]], "' has an infusion running at ",
+                 "time ", format(b), ", where the schedule restarts (a ",
+                 "\"reset\" row, or a steady-state row). frm_lincmt() drops ",
+                 "every dose before a restart, so an infusion that spans ",
+                 "one would lose the part still to be delivered. Split the ",
+                 "infusion at the restart, or use frm_ode()",
+                 call. = FALSE)
       }
     }
     # 1 is the depot and 2 the central compartment, whatever position

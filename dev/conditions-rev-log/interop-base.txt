@@ -1,0 +1,514 @@
+
+========== gaussian 
+
+## emmeans f 
+ f    emmean       SE  df asymp.LCL asymp.UCL
+ 1 -0.476502 0.200621 Inf -0.869712 -0.083291
+ 2  0.111564 0.200608 Inf -0.281621  0.504749
+ 3 -0.522476 0.200702 Inf -0.915844 -0.129107
+ 4 -0.453491 0.200665 Inf -0.846787 -0.060195
+
+Confidence level used: 0.95 
+
+## emmeans contrast 
+ contrast  estimate       SE  df z.ratio p.value
+ f1 - f2  -0.588066 0.283725 Inf  -2.073  0.1621
+ f1 - f3   0.045974 0.283837 Inf   0.162  0.9985
+ f1 - f4  -0.023010 0.283706 Inf  -0.081  0.9998
+ f2 - f3   0.634040 0.283739 Inf   2.235  0.1140
+ f2 - f4   0.565055 0.283766 Inf   1.991  0.1912
+ f3 - f4  -0.068984 0.283919 Inf  -0.243  0.9950
+
+P value adjustment: tukey method for comparing a family of 4 estimates 
+
+## emmeans bad spec 
+ERROR [ simpleError/error/condition ] No variable named nosuch in the reference grid 
+
+## mfx avg_predictions 
+
+ Estimate Std. Error     z Pr(>|z|)    S  2.5 % 97.5 %
+   -0.335        0.1 -3.34   <0.001 10.2 -0.532 -0.139
+
+Type: response
+
+
+## mfx avg_slopes 
+
+ Estimate Std. Error     z Pr(>|z|)   S 2.5 % 97.5 %
+   -0.117      0.103 -1.14    0.256 2.0 -0.32 0.0852
+
+Term: x
+Type: response
+Comparison: dY/dX
+
+
+## mfx predictions bad newdata 
+ERROR [ simpleError/error/condition ] Unable to compute predicted values with this model. This error can arise when `get_modeldata()` is unable to extract the dataset from the model object, or when the original data frame (usually in the global environment) was modified since fitting the model. Make sure the original data object is unchanged and/or try to supply a different dataset to the `newdata` argument.
+
+In addition, this error message was raised:
+factor f has new level zz
+
+Bug Tracker: https://github.com/vincentarelbundock/marginaleffects/issues 
+
+## mfx predictions bad type 
+
+ Estimate Std. Error     z Pr(>|z|)   S  2.5 %  97.5 %
+   -0.459      0.201 -2.28   0.0226 5.5 -0.854 -0.0645
+   -0.371      0.222 -1.67   0.0954 3.4 -0.806  0.0650
+   -0.669      0.261 -2.56   0.0104 6.6 -1.181 -0.1575
+   -0.436      0.204 -2.13   0.0330 4.9 -0.836 -0.0351
+   -0.697      0.277 -2.51   0.0120 6.4 -1.240 -0.1534
+--- 70 rows omitted. See ?print.marginaleffects ---
+   -0.494      0.203 -2.44   0.0149 6.1 -0.892 -0.0964
+   -0.490      0.202 -2.42   0.0155 6.0 -0.887 -0.0931
+   -0.472      0.201 -2.35   0.0187 5.7 -0.866 -0.0785
+   -0.582      0.228 -2.55   0.0107 6.5 -1.029 -0.1353
+
+## insight get_predicted 
+CONDITIONS:
+  Could not compute standard errors or confidence intervals because the model and variance-covariance matrices
+  are non-conformable. This can sometimes happen when the `data` used to make predictions fails to include all
+  the levels of a factor variable or all the interaction components.
+  Predicted SE CI_low CI_high
+1 -0.459238 NA     NA      NA
+2 -0.370723 NA     NA      NA
+3 -0.669441 NA     NA      NA
+4 -0.435560 NA     NA      NA
+5 -0.696768 NA     NA      NA
+6 -0.561624 NA     NA      NA
+
+## insight get_predicted single-level factor data 
+CONDITIONS:
+  invalid factor level, NA generated
+  Could not compute standard errors or confidence intervals because the model and variance-covariance matrices
+  are non-conformable. This can sometimes happen when the `data` used to make predictions fails to include all
+  the levels of a factor variable or all the interaction components.
+Predicted values:
+
+[1] -0.459464 -0.576671
+
+NOTE: Confidence intervals, if available, are stored as attributes and can be accessed using `as.data.frame()` on this output.
+
+## insight get_predicted bad level data 
+CONDITIONS:
+  Could not compute predictions for model of class `frmtmb_fit`.
+  invalid factor level, NA generated
+  Could not compute standard errors or confidence intervals because the model and variance-covariance matrices
+  are non-conformable. This can sometimes happen when the `data` used to make predictions fails to include all
+  the levels of a factor variable or all the interaction components.
+
+## insight .get_predicted_ci_modelmatrix bad data 
+CONDITIONS:
+  invalid factor level, NA generated
+   (Intercept)           x f2 f3 f4
+5            1  2.02465492  0  0  0
+6            1  0.87162101  0  0  0
+7            1  1.27163637  0  0  0
+8            1 -0.07005278  0  0  0
+9            1  0.53805152  0  0  0
+10           1  0.29607042  0  0  0
+11           1 -2.34600544  0  0  0
+12           1  0.49282293  0  0  0
+13           1  0.16026198  0  0  0
+14           1 -0.83575009  0  0  0
+15           1 -0.04402214  0  0  0
+
+## insight get_modelmatrix bad data 
+CONDITIONS:
+  invalid factor level, NA generated
+   (Intercept)           x f2 f3 f4
+5            1  2.02465492  0  0  0
+6            1  0.87162101  0  0  0
+7            1  1.27163637  0  0  0
+8            1 -0.07005278  0  0  0
+9            1  0.53805152  0  0  0
+10           1  0.29607042  0  0  0
+11           1 -2.34600544  0  0  0
+12           1  0.49282293  0  0  0
+13           1  0.16026198  0  0  0
+14           1 -0.83575009  0  0  0
+15           1 -0.04402214  0  0  0
+
+## insight find_formula 
+$conditional
+y ~ x + f
+<environment: 0x0000020ea81692a8>
+
+attr(,"class")
+[1] "insight_formula" "list"           
+
+## insight get_varcov 
+                   (Intercept)            x           f2           f3           f4 sigma_(Intercept)
+(Intercept)        4.05541e-02 -1.82467e-03 -4.03126e-02 -4.03997e-02 -4.02014e-02       1.02773e-09
+x                 -1.82467e-03  1.06620e-02  4.13353e-04  9.22438e-04 -2.36534e-04      -2.46134e-10
+f2                -4.03126e-02  4.13353e-04  8.04998e-02  4.02776e-02  4.02327e-02       6.34017e-10
+f3                -4.03997e-02  9.22438e-04  4.02776e-02  8.05636e-02  4.02214e-02      -1.34131e-09
+f4                -4.02014e-02 -2.36534e-04  4.02327e-02  4.02214e-02  8.04890e-02      -1.63079e-09
+sigma_(Intercept)  1.02773e-09 -2.46134e-10  6.34017e-10 -1.34131e-09 -1.63079e-09       6.25000e-03
+
+## insight get_parameters 
+          Parameter   Estimate   Component
+1       (Intercept) -0.4594642 conditional
+2                 x -0.1172070 conditional
+3                f2  0.5880657 conditional
+4                f3 -0.0459741 conditional
+5                f4  0.0230103 conditional
+6 sigma_(Intercept) -0.1085574  dispersion
+
+## model.matrix bad data 
+   (Intercept)           x f2 f3 f4
+1            1 -0.00193388  0  0  0
+2            1 -0.75713146  0  0  0
+3            1  1.79150696  0  0  0
+4            1 -0.20395128  0  0  0
+5            1  2.02465492  0  0  0
+6            1  0.87162101  0  0  0
+7            1  1.27163637  0  0  0
+8            1 -0.07005278  0  0  0
+9            1  0.53805152  0  0  0
+10           1  0.29607042  0  0  0
+11           1 -2.34600544  0  0  0
+
+## broom tidy 
+ERROR [ rlang_error/error/condition ] No `tidy()` method for objects of class <frmtmb_fit>. 
+
+========== binomial 
+
+## emmeans f 
+ f    emmean       SE  df asymp.LCL asymp.UCL
+ 1 0.1537519 0.144600 Inf -0.129660  0.437163
+ 2 0.1540116 0.145487 Inf -0.131137  0.439160
+ 3 0.1418345 0.145161 Inf -0.142676  0.426345
+ 4 0.0205641 0.142947 Inf -0.259606  0.300734
+
+Results are given on the |.trials (not the response) scale. 
+Confidence level used: 0.95 
+
+## emmeans contrast 
+ contrast   estimate       SE  df z.ratio p.value
+ f1 - f2  -0.0002597 0.205139 Inf  -0.001  1.0000
+ f1 - f3   0.0119173 0.204899 Inf   0.058  0.9999
+ f1 - f4   0.1331878 0.203317 Inf   0.655  0.9138
+ f2 - f3   0.0121770 0.205488 Inf   0.059  0.9999
+ f2 - f4   0.1334475 0.204028 Inf   0.654  0.9142
+ f3 - f4   0.1212704 0.203755 Inf   0.595  0.9336
+
+Note: contrasts are still on the |.trials scale. Consider using
+      regrid() if you want contrasts of back-transformed estimates. 
+P value adjustment: tukey method for comparing a family of 4 estimates 
+
+## emmeans bad spec 
+ERROR [ simpleError/error/condition ] No variable named nosuch in the reference grid 
+
+## mfx avg_predictions 
+
+ Estimate Std. Error    z Pr(>|z|)     S 2.5 % 97.5 %
+     5.29      0.173 30.6   <0.001 679.1  4.95   5.63
+
+Type: response
+
+
+## mfx avg_slopes 
+
+ Estimate Std. Error    z Pr(>|z|)    S 2.5 % 97.5 %
+     1.02      0.176 5.82   <0.001 27.4 0.678   1.37
+
+Term: x
+Type: response
+Comparison: dY/dX
+
+
+## mfx predictions bad newdata 
+ERROR [ simpleError/error/condition ] Unable to compute predicted values with this model. This error can arise when `get_modeldata()` is unable to extract the dataset from the model object, or when the original data frame (usually in the global environment) was modified since fitting the model. Make sure the original data object is unchanged and/or try to supply a different dataset to the `newdata` argument.
+
+In addition, this error message was raised:
+factor f has new level zz
+
+Bug Tracker: https://github.com/vincentarelbundock/marginaleffects/issues 
+
+## mfx predictions bad type 
+
+ Estimate Std. Error     z Pr(>|z|)     S 2.5 % 97.5 %
+     5.23      0.362 14.44   <0.001 154.5  4.52   5.94
+     4.42      0.399 11.10   <0.001  92.7  3.64   5.21
+     7.02      0.406 17.29   <0.001 220.2  6.22   7.81
+     5.01      0.368 13.60   <0.001 137.6  4.29   5.73
+     7.22      0.415 17.42   <0.001 223.4  6.41   8.04
+--- 70 rows omitted. See ?print.marginaleffects ---
+     5.42      0.360 15.07   <0.001 168.1  4.72   6.13
+     5.38      0.359 14.99   <0.001 166.3  4.68   6.08
+     5.22      0.357 14.62   <0.001 158.3  4.52   5.92
+     6.20      0.390 15.90   <0.001 186.8  5.44   6.96
+
+## insight get_predicted 
+  Predicted
+1  0.522707
+2  0.442405
+3  0.701883
+4  0.501169
+5  0.722277
+6  0.613891
+
+## insight get_predicted single-level factor data 
+CONDITIONS:
+  invalid factor level, NA generated
+Predicted values:
+
+[1] 0.522913 0.626794
+
+NOTE: Confidence intervals, if available, are stored as attributes and can be accessed using `as.data.frame()` on this output.
+
+## insight get_predicted bad level data 
+CONDITIONS:
+  Could not compute predictions for model of class `frmtmb_fit`.
+  invalid factor level, NA generated
+
+## insight .get_predicted_ci_modelmatrix bad data 
+CONDITIONS:
+  invalid factor level, NA generated
+   (Intercept)           x f2 f3 f4
+5            1  2.02465492  0  0  0
+6            1  0.87162101  0  0  0
+7            1  1.27163637  0  0  0
+8            1 -0.07005278  0  0  0
+9            1  0.53805152  0  0  0
+10           1  0.29607042  0  0  0
+11           1 -2.34600544  0  0  0
+12           1  0.49282293  0  0  0
+13           1  0.16026198  0  0  0
+14           1 -0.83575009  0  0  0
+15           1 -0.04402214  0  0  0
+
+## insight get_modelmatrix bad data 
+CONDITIONS:
+  invalid factor level, NA generated
+   (Intercept)           x f2 f3 f4
+5            1  2.02465492  0  0  0
+6            1  0.87162101  0  0  0
+7            1  1.27163637  0  0  0
+8            1 -0.07005278  0  0  0
+9            1  0.53805152  0  0  0
+10           1  0.29607042  0  0  0
+11           1 -2.34600544  0  0  0
+12           1  0.49282293  0  0  0
+13           1  0.16026198  0  0  0
+14           1 -0.83575009  0  0  0
+15           1 -0.04402214  0  0  0
+
+## insight find_formula 
+$conditional
+k ~ x + f
+<environment: 0x0000020eb076dcb8>
+
+attr(,"class")
+[1] "insight_formula" "list"           
+
+## insight get_varcov 
+             (Intercept)            x           f2           f3           f4
+(Intercept)  0.021058811 -0.000968051 -0.020967629 -0.020937545 -0.020876622
+x           -0.000968051  0.006241078  0.000380193  0.000186238 -0.000206533
+f2          -0.020967629  0.000380193  0.042081836  0.020920003  0.020896076
+f3          -0.020937545  0.000186238  0.020920003  0.041983425  0.020902494
+f4          -0.020876622 -0.000206533  0.020896076  0.020902494  0.041337733
+
+## insight get_parameters 
+    Parameter     Estimate   Component
+1 (Intercept)  0.091715422 conditional
+2           x  0.426772512 conditional
+3          f2  0.000259715 conditional
+4          f3 -0.011917323 conditional
+5          f4 -0.133187762 conditional
+
+## model.matrix bad data 
+   (Intercept)           x f2 f3 f4
+1            1 -0.00193388  0  0  0
+2            1 -0.75713146  0  0  0
+3            1  1.79150696  0  0  0
+4            1 -0.20395128  0  0  0
+5            1  2.02465492  0  0  0
+6            1  0.87162101  0  0  0
+7            1  1.27163637  0  0  0
+8            1 -0.07005278  0  0  0
+9            1  0.53805152  0  0  0
+10           1  0.29607042  0  0  0
+11           1 -2.34600544  0  0  0
+
+## broom tidy 
+ERROR [ rlang_error/error/condition ] No `tidy()` method for objects of class <frmtmb_fit>. 
+
+========== mixed 
+
+## emmeans f 
+ f    emmean       SE  df asymp.LCL asymp.UCL
+ 1 -0.476502 0.200621 Inf -0.869712 -0.083291
+ 2  0.111564 0.200608 Inf -0.281621  0.504749
+ 3 -0.522476 0.200702 Inf -0.915844 -0.129107
+ 4 -0.453491 0.200665 Inf -0.846787 -0.060195
+
+Confidence level used: 0.95 
+
+## emmeans contrast 
+ contrast  estimate       SE  df z.ratio p.value
+ f1 - f2  -0.588066 0.283725 Inf  -2.073  0.1621
+ f1 - f3   0.045974 0.283837 Inf   0.162  0.9985
+ f1 - f4  -0.023010 0.283706 Inf  -0.081  0.9998
+ f2 - f3   0.634040 0.283739 Inf   2.235  0.1140
+ f2 - f4   0.565055 0.283766 Inf   1.991  0.1912
+ f3 - f4  -0.068984 0.283919 Inf  -0.243  0.9950
+
+P value adjustment: tukey method for comparing a family of 4 estimates 
+
+## emmeans bad spec 
+ERROR [ simpleError/error/condition ] No variable named nosuch in the reference grid 
+
+## mfx avg_predictions 
+
+ Estimate Std. Error     z Pr(>|z|)    S  2.5 % 97.5 %
+   -0.335        0.1 -3.34   <0.001 10.2 -0.532 -0.139
+
+Type: response
+
+
+## mfx avg_slopes 
+
+ Estimate Std. Error     z Pr(>|z|)   S 2.5 % 97.5 %
+   -0.117      0.103 -1.14    0.256 2.0 -0.32 0.0852
+
+Term: x
+Type: response
+Comparison: dY/dX
+
+
+## mfx predictions bad newdata 
+ERROR [ simpleError/error/condition ] Unable to compute predicted values with this model. This error can arise when `get_modeldata()` is unable to extract the dataset from the model object, or when the original data frame (usually in the global environment) was modified since fitting the model. Make sure the original data object is unchanged and/or try to supply a different dataset to the `newdata` argument.
+
+In addition, this error message was raised:
+factor f has new level zz
+
+Bug Tracker: https://github.com/vincentarelbundock/marginaleffects/issues 
+
+## mfx predictions bad type 
+
+ Estimate Std. Error     z Pr(>|z|)   S  2.5 %  97.5 %
+   -0.459      0.201 -2.28   0.0226 5.5 -0.854 -0.0645
+   -0.371      0.222 -1.67   0.0954 3.4 -0.806  0.0650
+   -0.669      0.261 -2.56   0.0104 6.6 -1.181 -0.1575
+   -0.436      0.204 -2.13   0.0330 4.9 -0.836 -0.0351
+   -0.697      0.277 -2.51   0.0120 6.4 -1.240 -0.1534
+--- 70 rows omitted. See ?print.marginaleffects ---
+   -0.494      0.203 -2.44   0.0149 6.1 -0.892 -0.0964
+   -0.490      0.202 -2.42   0.0155 6.0 -0.887 -0.0931
+   -0.472      0.201 -2.35   0.0187 5.7 -0.866 -0.0785
+   -0.582      0.228 -2.55   0.0107 6.5 -1.029 -0.1353
+
+## insight get_predicted 
+CONDITIONS:
+  Could not compute standard errors or confidence intervals because the model and variance-covariance matrices
+  are non-conformable. This can sometimes happen when the `data` used to make predictions fails to include all
+  the levels of a factor variable or all the interaction components.
+  Predicted SE CI_low CI_high
+1 -0.459238 NA     NA      NA
+2 -0.370723 NA     NA      NA
+3 -0.669441 NA     NA      NA
+4 -0.435560 NA     NA      NA
+5 -0.696768 NA     NA      NA
+6 -0.561624 NA     NA      NA
+
+## insight get_predicted single-level factor data 
+CONDITIONS:
+  invalid factor level, NA generated
+  Could not compute standard errors or confidence intervals because the model and variance-covariance matrices
+  are non-conformable. This can sometimes happen when the `data` used to make predictions fails to include all
+  the levels of a factor variable or all the interaction components.
+Predicted values:
+
+[1] -0.459464 -0.576671
+
+NOTE: Confidence intervals, if available, are stored as attributes and can be accessed using `as.data.frame()` on this output.
+
+## insight get_predicted bad level data 
+CONDITIONS:
+  Could not compute predictions for model of class `frmtmb_fit`.
+  invalid factor level, NA generated
+  Could not compute standard errors or confidence intervals because the model and variance-covariance matrices
+  are non-conformable. This can sometimes happen when the `data` used to make predictions fails to include all
+  the levels of a factor variable or all the interaction components.
+
+## insight .get_predicted_ci_modelmatrix bad data 
+CONDITIONS:
+  invalid factor level, NA generated
+   (Intercept)           x f2 f3 f4
+11           1 -2.34600544  0  0  0
+12           1  0.49282293  0  0  0
+13           1  0.16026198  0  0  0
+14           1 -0.83575009  0  0  0
+15           1 -0.04402214  0  0  0
+16           1  0.58408752  0  0  0
+17           1  0.33718324  0  0  0
+18           1 -0.36412195  0  0  0
+19           1 -0.79879967  0  0  0
+20           1  0.47660889  0  0  0
+21           1 -0.79494155  1  0  0
+
+## insight get_modelmatrix bad data 
+CONDITIONS:
+  invalid factor level, NA generated
+   (Intercept)           x f2 f3 f4
+11           1 -2.34600544  0  0  0
+12           1  0.49282293  0  0  0
+13           1  0.16026198  0  0  0
+14           1 -0.83575009  0  0  0
+15           1 -0.04402214  0  0  0
+16           1  0.58408752  0  0  0
+17           1  0.33718324  0  0  0
+18           1 -0.36412195  0  0  0
+19           1 -0.79879967  0  0  0
+20           1  0.47660889  0  0  0
+21           1 -0.79494155  1  0  0
+
+## insight find_formula 
+$conditional
+y ~ x + f
+<environment: 0x0000020eb1382850>
+
+$random
+~1 | g
+<environment: 0x0000020eb1382850>
+
+attr(,"class")
+[1] "insight_formula" "list"           
+
+## insight get_varcov 
+                   (Intercept)            x           f2           f3           f4 sigma_(Intercept)
+(Intercept)        4.05541e-02 -1.82467e-03 -4.03126e-02 -4.03997e-02 -4.02014e-02       1.92765e-12
+x                 -1.82467e-03  1.06620e-02  4.13353e-04  9.22438e-04 -2.36533e-04       4.43549e-12
+f2                -4.03126e-02  4.13353e-04  8.04998e-02  4.02776e-02  4.02327e-02      -2.03194e-12
+f3                -4.03997e-02  9.22438e-04  4.02776e-02  8.05636e-02  4.02214e-02       3.65358e-12
+f4                -4.02014e-02 -2.36533e-04  4.02327e-02  4.02214e-02  8.04890e-02       9.07314e-13
+sigma_(Intercept)  1.92765e-12  4.43549e-12 -2.03194e-12  3.65358e-12  9.07314e-13       6.25000e-03
+
+## insight get_parameters 
+          Parameter   Estimate   Component
+1       (Intercept) -0.4594643 conditional
+2                 x -0.1172070 conditional
+3                f2  0.5880657 conditional
+4                f3 -0.0459740 conditional
+5                f4  0.0230105 conditional
+6 sigma_(Intercept) -0.1085574  dispersion
+
+## model.matrix bad data 
+   (Intercept)           x f2 f3 f4
+1            1 -0.00193388  0  0  0
+2            1 -0.75713146  0  0  0
+3            1  1.79150696  0  0  0
+4            1 -0.20395128  0  0  0
+5            1  2.02465492  0  0  0
+6            1  0.87162101  0  0  0
+7            1  1.27163637  0  0  0
+8            1 -0.07005278  0  0  0
+9            1  0.53805152  0  0  0
+10           1  0.29607042  0  0  0
+11           1 -2.34600544  0  0  0
+
+## broom tidy 
+ERROR [ rlang_error/error/condition ] No `tidy()` method for objects of class <frmtmb_fit>. 

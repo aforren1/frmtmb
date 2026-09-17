@@ -1,0 +1,110 @@
+_C_l_a_s_s_e_d _c_o_n_d_i_t_i_o_n_s
+
+_D_e_s_c_r_i_p_t_i_o_n:
+
+     Every error, warning and message that frmtmb raises itself carries
+     a class that names frmtmb, so a caller can catch all of them
+     without matching message text:
+
+       raised as  class vector                                  
+       error      'c("frmtmb_error", "error", "condition")'     
+       warning    'c("frmtmb_warning", "warning", "condition")' 
+       message    'c("frmtmb_message", "message", "condition")' 
+      
+     A condition that an extension package raises has one more class in
+     front, made from the package name with each dot changed to an
+     underscore. For example, an error from frmtmb.eam has the class
+     'c("frmtmb_eam_error", "frmtmb_error", "error", "condition")'.
+     Thus 'tryCatch(frmtmb_error = )' catches a refusal from frmtmb and
+     from every extension, and 'tryCatch(frmtmb_eam_error = )' catches
+     only the refusals of frmtmb.eam. The package is the one whose
+     function raised the condition, which is not always the package the
+     user called.
+
+     This is the contract that brms keeps with its class 'brms_error'.
+     frmtmb builds the conditions with base R, so the class vector does
+     not include 'rlang_error'.
+
+     Some conditions do not have these classes:
+
+        * An error from another package, such as RTMB, TMB, Matrix or
+          base R, keeps its own class. The exception is an error that
+          occurs while 'frm()' optimizes a model: frmtmb catches it and
+          raises it again as a 'frmtmb_fit_error', which is also a
+          'frmtmb_error'.
+
+        * A failed 'stopifnot()' assertion is a 'simpleError'. brms
+          also uses 'stopifnot()' for its internal assertions.
+
+_U_s_a_g_e:
+
+     frm_stop(..., call. = TRUE, domain = NULL, class = NULL)
+     
+     frm_warning(
+       ...,
+       call. = TRUE,
+       immediate. = FALSE,
+       noBreaks. = FALSE,
+       domain = NULL,
+       class = NULL
+     )
+     
+     frm_message(..., domain = NULL, appendLF = TRUE, class = NULL)
+     
+_A_r_g_u_m_e_n_t_s:
+
+     ...: Zero or more objects that are pasted together, as in
+          'stop()'.
+
+   call.: Logical. If 'TRUE', the call of the function that raises the
+          condition is part of the condition, as in 'stop()'.
+
+  domain: Passed to '.makeMessage()', for translation.
+
+   class: A character vector of more classes, put in front of the
+          classes that frmtmb adds.
+
+immediate., noBreaks.: Ignored. They are accepted so that a call to
+          'warning()' can use the same arguments; R ignores them for a
+          warning condition object.
+
+appendLF: Logical. If 'TRUE', a newline is added to the message, as in
+          'message()'.
+
+_V_a_l_u_e:
+
+     'frm_stop()' does not return. 'frm_warning()' returns its message
+     invisibly. 'frm_message()' returns 'NULL' invisibly.
+
+_F_o_r _e_x_t_e_n_s_i_o_n _a_u_t_h_o_r_s:
+
+     'frm_stop()', 'frm_warning()' and 'frm_message()' are the
+     functions that frmtmb uses to raise its conditions. Use them in an
+     extension in place of 'stop()', 'warning()' and 'message()'. They
+     take the same arguments as the base functions and give the same
+     message text and the same call, and they add the classes in the
+     table above. The class of the extension is found from the
+     namespace of the function that calls them, so an extension does
+     not supply it.
+
+     'class' adds classes in front of the others, for a condition that
+     a caller must be able to catch by itself.
+
+_S_e_e _A_l_s_o:
+
+     frmtmb-extension-api for the rest of the interface an extension
+     uses.
+
+_E_x_a_m_p_l_e_s:
+
+     d <- data.frame(y = c(1, 2, 3))
+     e <- tryCatch(frm(y ~ 1, data = d, family = "not_a_family"),
+                   frmtmb_error = function(e) e)
+     class(e)
+     conditionMessage(e)
+     
+     f <- function() frm_warning("a warning from f()")
+     w <- tryCatch(f(), frmtmb_warning = function(w) w)
+     class(w)
+     conditionCall(w)
+     

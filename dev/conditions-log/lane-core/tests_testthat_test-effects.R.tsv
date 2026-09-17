@@ -1,0 +1,5 @@
+"file"	"class"	"message"
+"tests/testthat/test-effects.R"	"frmtmb_error/error/condition"	"A hypothesis has at most one '=': 'x1=0=1'"
+"tests/testthat/test-effects.R"	"frmtmb_error/error/condition"	"`re.form` is lme4's spelling and this package no longer takes it anywhere: brms is the tiebreaker on a name, so the setting is `re_formula` in conditional_effects(), predict() and simulate() alike. Pass re_formula = "
+"tests/testthat/test-effects.R"	"frmtmb_error/error/condition"	"`re_formula` must be NA to draw the population-level curve (the default), NULL to condition on the grid reference group levels, or a one-sided formula naming the terms to keep, not character \"pop\""
+"tests/testthat/test-effects.R"	"frmtmb_error/error/condition"	"band = \"profile\" draws its band over the OUTER parameters, so it exists only for the population-level curve (re_formula = NA). Use band = \"wald\" or \"boot\" to condition on random effects"

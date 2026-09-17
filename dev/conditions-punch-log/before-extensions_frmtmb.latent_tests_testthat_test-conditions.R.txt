@@ -1,0 +1,5 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 2 PASS 4 FAIL 2 ERROR 0 SKIP 0  extensions/frmtmb.latent/tests/testthat/test-conditions.R
+  failing: the refusals classed in punch round 1 carry the subclass
+       Expected init to be identical to `c("frmtmb_latent_error", "frmtmb_error", "error")`. Differences: `actual`:   "simpleError"         "error"        "condition" `expected`: "frmtmb_latent_error" "frmtmb_error" "error"      
+       Expected starts_nonfit to be identical to `c("frmtmb_latent_error", "frmtmb_error", "error")`. Differences: `actual`:   "simpleError"         "error"        "condition" `expected`: "frmtmb_latent_error" "frmtmb_error" "error"      

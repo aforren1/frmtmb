@@ -407,7 +407,11 @@ frmtmb_prior_defaults$providers <- list()
 #'
 #' @noRd
 frmtmb_register_prior_defaults <- function(provider) {
-  stopifnot(is.function(provider))
+  if (!is.function(provider)) {
+    frm_stop("frmtmb_register_prior_defaults() needs a function ",
+             "provider(spec, frame), not ", arg_desc(provider),
+             call. = FALSE)
+  }
   frmtmb_prior_defaults$providers <-
     c(frmtmb_prior_defaults$providers, list(provider))
   invisible(NULL)
@@ -421,12 +425,12 @@ frmtmb_register_prior_defaults <- function(provider) {
 #' @noRd
 require_prior_defaults <- function() {
   if (length(frmtmb_prior_defaults$providers)) return(invisible(TRUE))
-  stop("route = \"sample\" reports the prior defaults frm_sample() ",
-       "applies, and no loaded package states them. They live in ",
-       "frmtmb.sample: run library(frmtmb.sample) and call again ",
-       "(install it from extensions/frmtmb.sample in the frmtmb ",
-       "repository). For the defaults frm() applies, use ",
-       "route = \"fit\".", call. = FALSE)
+  frm_stop("route = \"sample\" reports the prior defaults frm_sample() ",
+           "applies, and no loaded package states them. They live in ",
+           "frmtmb.sample: run library(frmtmb.sample) and call again ",
+           "(install it from extensions/frmtmb.sample in the frmtmb ",
+           "repository). For the defaults frm() applies, use ",
+           "route = \"fit\".", call. = FALSE)
 }
 
 #' Replace the registered providers, returning the previous list.

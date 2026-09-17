@@ -71,56 +71,56 @@ imp_crosslevel <- c("gr_cov", "gr_prec", "equalto", "car", "spde")
 check_importance_scope <- function(spec, frame, template, REML, quadrature,
                                    control) {
   if (isTRUE(quadrature)) {
-    stop("`importance` and `quadrature = TRUE` are two different ",
-         "corrections of the same approximation and cannot both be ",
-         "asked for. Adaptive Gauss-Kronrod marginalizes one scalar ",
-         "random intercept at a time; the importance correction ",
-         "reweights the Laplace Gaussian and takes any block ",
-         "dimension. Keep one", call. = FALSE)
+    frm_stop("`importance` and `quadrature = TRUE` are two different ",
+             "corrections of the same approximation and cannot both be ",
+             "asked for. Adaptive Gauss-Kronrod marginalizes one scalar ",
+             "random intercept at a time; the importance correction ",
+             "reweights the Laplace Gaussian and takes any block ",
+             "dimension. Keep one", call. = FALSE)
   }
   if (REML) {
-    stop("`importance` cannot be combined with REML = TRUE. The ",
-         "correction reweights the integral over the random effects ",
-         "only, and REML puts the fixed effects into that same ",
-         "integral, where the reweighting has no proposal for them. ",
-         "Use REML = FALSE", call. = FALSE)
+    frm_stop("`importance` cannot be combined with REML = TRUE. The ",
+             "correction reweights the integral over the random effects ",
+             "only, and REML puts the fixed effects into that same ",
+             "integral, where the reweighting has no proposal for them. ",
+             "Use REML = FALSE", call. = FALSE)
   }
   if (isTRUE(control$profile)) {
-    stop("`importance` cannot be combined with ",
-         "frmtmb_control(profile = TRUE). Profiling moves the fixed ",
-         "effects into the inner Laplace problem, and the corrected ",
-         "objective has no inner problem left to move them into. Drop ",
-         "profile = TRUE", call. = FALSE)
+    frm_stop("`importance` cannot be combined with ",
+             "frmtmb_control(profile = TRUE). Profiling moves the fixed ",
+             "effects into the inner Laplace problem, and the corrected ",
+             "objective has no inner problem left to move them into. Drop ",
+             "profile = TRUE", call. = FALSE)
   }
   if (!is.null(template[["miss"]])) {
-    stop("`importance` cannot be combined with mi(). The imputed ",
-         "values are latent variables of their own, with no grouping ",
-         "factor to give them a per-group proposal. Fit with ",
-         "importance = 0", call. = FALSE)
+    frm_stop("`importance` cannot be combined with mi(). The imputed ",
+             "values are latent variables of their own, with no grouping ",
+             "factor to give them a per-group proposal. Fit with ",
+             "importance = 0", call. = FALSE)
   }
   if (length(frame[["autocor"]] %||% list())) {
-    stop("`importance` cannot be combined with the residual ",
-         "correlation term ", frame[["autocor"]][[1L]]$label,
-         ": the correction resamples a random effect against a ",
-         "PRODUCT of per-row densities, and this residual is one joint ",
-         "density over each group, so no per-row integrand exists. Use ",
-         "importance = 0, or REML = TRUE", call. = FALSE)
+    frm_stop("`importance` cannot be combined with the residual ",
+             "correlation term ", frame[["autocor"]][[1L]]$label,
+             ": the correction resamples a random effect against a ",
+             "PRODUCT of per-row densities, and this residual is one joint ",
+             "density over each group, so no per-row integrand exists. Use ",
+             "importance = 0, or REML = TRUE", call. = FALSE)
   }
   if (isTRUE(spec$rescor)) {
-    stop("`importance` cannot be combined with rescor: the responses ",
-         "share one multivariate normal density per row, which is not ",
-         "the rowwise density the correction resamples. Fit the ",
-         "responses without rescor, or use importance = 0",
-         call. = FALSE)
+    frm_stop("`importance` cannot be combined with rescor: the responses ",
+             "share one multivariate normal density per row, which is not ",
+             "the rowwise density the correction resamples. Fit the ",
+             "responses without rescor, or use importance = 0",
+             call. = FALSE)
   }
   if (length(spec$responses) != 1L) {
-    stop("`importance` supports one response, and this model has ",
-         length(spec$responses), " (",
-         paste(names(spec$responses), collapse = ", "), "). A ",
-         "multivariate model spreads its groups over several ",
-         "likelihood terms, which the first version does not gather. ",
-         "Fit the responses one at a time, or use importance = 0",
-         call. = FALSE)
+    frm_stop("`importance` supports one response, and this model has ",
+             length(spec$responses), " (",
+             paste(names(spec$responses), collapse = ", "), "). A ",
+             "multivariate model spreads its groups over several ",
+             "likelihood terms, which the first version does not gather. ",
+             "Fit the responses one at a time, or use importance = 0",
+             call. = FALSE)
   }
   for (rn in names(spec$responses)) {
     st <- fam_structure(spec$responses[[rn]]$family)
@@ -130,56 +130,57 @@ check_importance_scope <- function(spec, frame, template, REML, quadrature,
     # pieces thrown away. A family that HAS them declares one of the
     # factorization slots, and this refusal is for one that does not.
     if (is.null(st[["loglik_row"]]) && is.null(st[["loglik_group"]])) {
-      stop("`importance` cannot correct the '",
-           spec$responses[[rn]]$family[["family"]], "' family: it ",
-           "supplies its own log-likelihood, which returns one number ",
-           "for the whole response, so a group's rows have no ",
-           "separable integrand to resample. A family whose likelihood ",
-           "does factorize over its groups says so with ",
-           "frmtmb_structure(loglik_group = ) or (loglik_row = ), and ",
-           "this one declares neither. Use importance = 0",
-           call. = FALSE)
+      frm_stop("`importance` cannot correct the '",
+               spec$responses[[rn]]$family[["family"]], "' family: it ",
+               "supplies its own log-likelihood, which returns one number ",
+               "for the whole response, so a group's rows have no ",
+               "separable integrand to resample. A family whose likelihood ",
+               "does factorize over its groups says so with ",
+               "frmtmb_structure(loglik_group = ) or (loglik_row = ), and ",
+               "this one declares neither. Use importance = 0",
+               call. = FALSE,
+               package = frm_family_package(spec$responses[[rn]]$family))
     }
   }
   for (lp in frame[["linpreds"]]) {
     if (!is.null(lp[["nl_body"]])) {
-      stop("`importance` cannot correct a nonlinear predictor (",
-           lp[["resp"]], ".", lp[["dpar"]], "). A nonlinear body mixes ",
-           "parameter values with raw data columns, and the corrected ",
-           "objective evaluates the predictor once per draw, where a ",
-           "column would recycle silently against a longer vector. Use ",
-           "importance = 0", call. = FALSE)
+      frm_stop("`importance` cannot correct a nonlinear predictor (",
+               lp[["resp"]], ".", lp[["dpar"]], "). A nonlinear body mixes ",
+               "parameter values with raw data columns, and the corrected ",
+               "objective evaluates the predictor once per draw, where a ",
+               "column would recycle silently against a longer vector. Use ",
+               "importance = 0", call. = FALSE)
     }
     if (length(lp[["cs"]] %||% list())) {
-      stop("`importance` cannot correct a cs() term (", lp[["resp"]],
-           ".", lp[["dpar"]], "): its threshold-specific offsets are a ",
-           "matrix per observation, which the first version does not ",
-           "stack over draws. Use importance = 0", call. = FALSE)
+      frm_stop("`importance` cannot correct a cs() term (", lp[["resp"]],
+               ".", lp[["dpar"]], "): its threshold-specific offsets are a ",
+               "matrix per observation, which the first version does not ",
+               "stack over draws. Use importance = 0", call. = FALSE)
     }
   }
   if (!is.null(frame[["map"]][["b"]])) {
-    stop("`importance` cannot correct a model whose random-effect ",
-         "coefficients are mapped: the proposal is built per grouping ",
-         "level from the conditional Hessian, and a map merges or ",
-         "fixes coefficients across levels. Use importance = 0",
-         call. = FALSE)
+    frm_stop("`importance` cannot correct a model whose random-effect ",
+             "coefficients are mapped: the proposal is built per grouping ",
+             "level from the conditional Hessian, and a map merges or ",
+             "fixes coefficients across levels. Use importance = 0",
+             call. = FALSE)
   }
   blocks <- frame[["re_blocks"]] %||% list()
   if (!length(blocks)) {
-    stop("`importance` needs a random-effect block to correct, and this ",
-         "model has none. The correction reweights an integral over ",
-         "random effects, and a model without any has no such integral ",
-         "and no approximation to improve on. Use importance = 0",
-         call. = FALSE)
+    frm_stop("`importance` needs a random-effect block to correct, and this ",
+             "model has none. The correction reweights an integral over ",
+             "random effects, and a model without any has no such integral ",
+             "and no approximation to improve on. Use importance = 0",
+             call. = FALSE)
   }
   labs <- vapply(blocks, function(bk) bk[["term_label"]], "")
   for (bk in blocks) {
     if (is.null(bk[["levels"]])) {
-      stop("`importance` needs a grouping factor, and `",
-           bk[["term_label"]], "` has none: a smooth, a Gaussian ",
-           "process or an HSGP basis is one field over all ",
-           "observations, so there are no independent groups to give ",
-           "separate proposals to. Use importance = 0", call. = FALSE)
+      frm_stop("`importance` needs a grouping factor, and `",
+               bk[["term_label"]], "` has none: a smooth, a Gaussian ",
+               "process or an HSGP basis is one field over all ",
+               "observations, so there are no independent groups to give ",
+               "separate proposals to. Use importance = 0", call. = FALSE)
     }
   }
   # SEVERAL BLOCKS, ONE FACTOR. Distributional regression writes them
@@ -192,49 +193,49 @@ check_importance_scope <- function(spec, frame, template, REML, quadrature,
   # exists for it.
   grps <- vapply(blocks, function(bk) bk[["group_name"]] %||% NA_character_, "")
   if (length(unique(grps)) != 1L) {
-    stop("`importance` takes several random-effect blocks only when ",
-         "they share ONE grouping factor, and this model spreads ",
-         length(blocks), " blocks over ", length(unique(grps)),
-         " factors (",
-         paste0("`", labs, "` over ", grps, collapse = ", "),
-         "). Crossed or nested factors make the marginal likelihood ",
-         "one integral over every factor at once, which does not ",
-         "split into the per-group integrals the correction resamples. ",
-         "Fit with importance = 0", call. = FALSE)
+    frm_stop("`importance` takes several random-effect blocks only when ",
+             "they share ONE grouping factor, and this model spreads ",
+             length(blocks), " blocks over ", length(unique(grps)),
+             " factors (",
+             paste0("`", labs, "` over ", grps, collapse = ", "),
+             "). Crossed or nested factors make the marginal likelihood ",
+             "one integral over every factor at once, which does not ",
+             "split into the per-group integrals the correction resamples. ",
+             "Fit with importance = 0", call. = FALSE)
   }
   lv <- blocks[[1L]][["levels"]]
   for (i in seq_along(blocks)[-1L]) {
     if (identical(blocks[[i]][["levels"]], lv)) next
     odd <- setdiff(union(lv, blocks[[i]][["levels"]]),
                    intersect(lv, blocks[[i]][["levels"]]))
-    stop("`importance` needs every block over `", grps[[1L]],
-         "` to carry the same grouping levels, and `", labs[[1L]],
-         "` has ", length(lv), " where `", labs[[i]], "` has ",
-         length(blocks[[i]][["levels"]]),
-         if (length(odd)) paste0(" (first difference: '", odd[[1L]], "')"),
-         ". The proposal draws one level's coefficients from every ",
-         "block at once, so a level carried by only some of them has ",
-         "no joint Gaussian to be drawn from. Fit with importance = 0",
-         call. = FALSE)
+    frm_stop("`importance` needs every block over `", grps[[1L]],
+             "` to carry the same grouping levels, and `", labs[[1L]],
+             "` has ", length(lv), " where `", labs[[i]], "` has ",
+             length(blocks[[i]][["levels"]]),
+             if (length(odd)) paste0(" (first difference: '", odd[[1L]], "')"),
+             ". The proposal draws one level's coefficients from every ",
+             "block at once, so a level carried by only some of them has ",
+             "no joint Gaussian to be drawn from. Fit with importance = 0",
+             call. = FALSE)
   }
   for (bk in blocks) {
     if (bk[["covstruct"]] %in% imp_crosslevel) {
-      stop("`importance` cannot correct the '", bk[["covstruct"]],
-           "' structure in `", bk[["term_label"]], "`: it correlates the ",
-           "grouping LEVELS with each other through a supplied ",
-           "relationship or neighbor matrix, so the marginal likelihood ",
-           "is one integral over every level at once and does not split ",
-           "into per-group ones. Use importance = 0", call. = FALSE)
+      frm_stop("`importance` cannot correct the '", bk[["covstruct"]],
+               "' structure in `", bk[["term_label"]], "`: it correlates the ",
+               "grouping LEVELS with each other through a supplied ",
+               "relationship or neighbor matrix, so the marginal likelihood ",
+               "is one integral over every level at once and does not split ",
+               "into per-group ones. Use importance = 0", call. = FALSE)
     }
     if (!bk[["covstruct"]] %in% imp_covstructs) {
-      stop("`importance` cannot correct the '", bk[["covstruct"]],
-           "' structure in `", bk[["term_label"]], "`. The correction ",
-           "recovers each level's prior density from the block density, ",
-           "which needs that density to be Gaussian in the level's ",
-           "coefficients and independent between levels; the supported ",
-           "structures are ",
-           paste(imp_covstructs, collapse = ", "),
-           ". Use importance = 0", call. = FALSE)
+      frm_stop("`importance` cannot correct the '", bk[["covstruct"]],
+               "' structure in `", bk[["term_label"]], "`. The correction ",
+               "recovers each level's prior density from the block density, ",
+               "which needs that density to be Gaussian in the level's ",
+               "coefficients and independent between levels; the supported ",
+               "structures are ",
+               paste(imp_covstructs, collapse = ", "),
+               ". Use importance = 0", call. = FALSE)
     }
   }
   # LAST, because it is the only check that needs the group map, and
@@ -274,29 +275,31 @@ imp_check_family_grouping <- function(frame, fam, rn) {
   lay <- imp_layout(frame[["re_blocks"]])
   labs <- vapply(lay[["blocks"]], function(bk) bk[["term_label"]], "")
   if (is.null(codes)) {
-    stop("`importance` cannot correct the '", fam[["family"]],
-         "' family here: it declares a factorization of its likelihood ",
-         "but its frame block carries no `group`, so there is nothing ",
-         "to check the grouping of `", labs[[1L]], "` against. The ",
-         "correction would be summing the family's pieces into groups ",
-         "it has no reason to belong to. Use importance = 0",
-         call. = FALSE)
+    frm_stop("`importance` cannot correct the '", fam[["family"]],
+             "' family here: it declares a factorization of its likelihood ",
+             "but its frame block carries no `group`, so there is nothing ",
+             "to check the grouping of `", labs[[1L]], "` against. The ",
+             "correction would be summing the family's pieces into groups ",
+             "it has no reason to belong to. Use importance = 0",
+             call. = FALSE,
+             package = frm_family_package(fam))
   }
   rl <- imp_group_map(frame, lay)[["row_level"]]
   pairs <- length(unique(paste(codes, rl, sep = ":")))
   if (pairs == length(unique(codes)) && pairs == length(unique(rl))) {
     return(invisible(NULL))
   }
-  stop("`importance` needs the '", fam[["family"]], "' family's own ",
-       "units and the grouping of `", labs[[1L]],
-       "` to be the same partition of the rows, and they are not: the ",
-       "family has ", length(unique(codes)), " unit(s) against ",
-       length(unique(rl)), " grouping level(s), covering ", pairs,
-       " combination(s). The correction resamples one grouping level ",
-       "at a time and adds up the family's pieces inside it, which ",
-       "means something only when a piece belongs to exactly one ",
-       "level. Group the model on what the family groups on, or use ",
-       "importance = 0", call. = FALSE)
+  frm_stop("`importance` needs the '", fam[["family"]], "' family's own ",
+           "units and the grouping of `", labs[[1L]],
+           "` to be the same partition of the rows, and they are not: the ",
+           "family has ", length(unique(codes)), " unit(s) against ",
+           length(unique(rl)), " grouping level(s), covering ", pairs,
+           " combination(s). The correction resamples one grouping level ",
+           "at a time and adds up the family's pieces inside it, which ",
+           "means something only when a piece belongs to exactly one ",
+           "level. Group the model on what the family groups on, or use ",
+           "importance = 0", call. = FALSE,
+           package = frm_family_package(fam))
 }
 
 #' WHERE A GROUP'S COEFFICIENTS LIVE. The one object the whole
@@ -400,14 +403,14 @@ imp_group_map <- function(frame, lay) {
   tl <- tl[keep]
   clash <- unique(rr[duplicated(rr)])
   if (length(clash)) {
-    stop("`importance` needs every observation to belong to one ",
-         "grouping level, and ", length(clash), " of them reach ",
-         "several through `",
-         paste(unique(tl[rr %in% clash]), collapse = "`, `"),
-         "` (first at row ", min(clash), "). A multi-membership term ",
-         "shares a row between groups, so the marginal likelihood does ",
-         "not split into per-group integrals. Use importance = 0",
-         call. = FALSE)
+    frm_stop("`importance` needs every observation to belong to one ",
+             "grouping level, and ", length(clash), " of them reach ",
+             "several through `",
+             paste(unique(tl[rr %in% clash]), collapse = "`, `"),
+             "` (first at row ", min(clash), "). A multi-membership term ",
+             "shares a row between groups, so the marginal likelihood does ",
+             "not split into per-group integrals. Use importance = 0",
+             call. = FALSE)
   }
   row_level <- integer(n)
   row_level[rr] <- ll
@@ -478,10 +481,10 @@ imp_plan <- function(lap_obj, frame, lay, par, n_draw, seed) {
   nb <- lay[["nb"]]
   idx <- lay[["idx"]]
   if (length(uhat) != nb) {
-    stop("`importance` expected ", nb, " conditional modes for `",
-         lay[["label"]], "` and the Laplace fit reports ",
-         length(uhat), ". The proposal is built per grouping level, so ",
-         "the two counts have to agree", call. = FALSE)
+    frm_stop("`importance` expected ", nb, " conditional modes for `",
+             lay[["label"]], "` and the Laplace fit reports ",
+             length(uhat), ". The proposal is built per grouping level, so ",
+             "the two counts have to agree", call. = FALSE)
   }
   th <- methods::as(hess, "TsparseMatrix")
   lev <- lay[["pos_group"]]
@@ -490,14 +493,14 @@ imp_plan <- function(lap_obj, frame, lay, par, n_draw, seed) {
     worst <- max(abs(th@x[cross]))
     scale <- max(abs(Matrix::diag(hess)))
     if (worst > 1e-8 * scale) {
-      stop("`importance` needs the conditional Hessian of `",
-           lay[["label"]], "` to be block diagonal by grouping ",
-           "level, and it is not: the largest entry linking two levels ",
-           "is ", format(worst, digits = 3), " against a diagonal of ",
-           format(scale, digits = 3), ". The groups are then not ",
-           "independent and the marginal likelihood does not split ",
-           "into per-group integrals. Use importance = 0",
-           call. = FALSE)
+      frm_stop("`importance` needs the conditional Hessian of `",
+               lay[["label"]], "` to be block diagonal by grouping ",
+               "level, and it is not: the largest entry linking two levels ",
+               "is ", format(worst, digits = 3), " against a diagonal of ",
+               format(scale, digits = 3), ". The groups are then not ",
+               "independent and the marginal likelihood does not split ",
+               "into per-group integrals. Use importance = 0",
+               call. = FALSE)
     }
   }
   z <- imp_draws(nb, n_draw, seed)
@@ -512,11 +515,11 @@ imp_plan <- function(lap_obj, frame, lay, par, n_draw, seed) {
     p1 <- idx[1L, ]
     hd <- Matrix::diag(hess)[p1]
     if (any(!is.finite(hd)) || any(hd <= 0)) {
-      stop("`importance` found a non-positive conditional variance for ",
-           sum(!is.finite(hd) | hd <= 0), " level(s) of `",
-           lay[["label"]], "`, so no Gaussian proposal exists ",
-           "there. The Laplace fit is at a singular variance ",
-           "component; refit it first", call. = FALSE)
+      frm_stop("`importance` found a non-positive conditional variance for ",
+               sum(!is.finite(hd) | hd <= 0), " level(s) of `",
+               lay[["label"]], "`, so no Gaussian proposal exists ",
+               "there. The Laplace fit is at a singular variance ",
+               "component; refit it first", call. = FALSE)
     }
     sdv <- 1 / sqrt(hd)
     u[p1, ] <- uhat[p1] + sdv * z[p1, , drop = FALSE]
@@ -527,11 +530,11 @@ imp_plan <- function(lap_obj, frame, lay, par, n_draw, seed) {
       hk <- as.matrix(hess[ii, ii, drop = FALSE])
       pk <- tryCatch(chol(hk), error = function(e) NULL)
       if (is.null(pk)) {
-        stop("`importance` could not factor the conditional Hessian of ",
-             "level '", lay[["levels"]][k], "' in `", lay[["label"]],
-             "`: it is not positive definite, so that group has no ",
-             "Gaussian proposal. The Laplace fit sits on a singular ",
-             "variance component; refit it first", call. = FALSE)
+        frm_stop("`importance` could not factor the conditional Hessian of ",
+                 "level '", lay[["levels"]][k], "' in `", lay[["label"]],
+                 "`: it is not positive definite, so that group has no ",
+                 "Gaussian proposal. The Laplace fit sits on a singular ",
+                 "variance component; refit it first", call. = FALSE)
       }
       # L = P^-1 with P'P = H gives L L' = H^-1, upper triangular and
       # backsolved rather than inverted
@@ -838,13 +841,13 @@ imp_verify <- function(io, nll, plan, template, par) {
   nd <- plan[["n_draw"]]
   ng <- plan[["n_group"]]
   refuse <- function(what, ours, theirs) {
-    stop("`importance` could not reproduce this model's joint ",
-         "log-density from its per-group pieces (", what, ": ",
-         format(ours, digits = 10), " against ",
-         format(theirs, digits = 10), "). The correction integrates a ",
-         "group at a time, so the two have to agree exactly. Report ",
-         "this model, and fit it with importance = 0 meanwhile",
-         call. = FALSE)
+    frm_stop("`importance` could not reproduce this model's joint ",
+             "log-density from its per-group pieces (", what, ": ",
+             format(ours, digits = 10), " against ",
+             format(theirs, digits = 10), "). The correction integrates a ",
+             "group at a time, so the two have to agree exactly. Report ",
+             "this model, and fit it with importance = 0 meanwhile",
+             call. = FALSE)
   }
   agrees <- function(ours, theirs) {
     is.finite(ours) && is.finite(theirs) &&
@@ -1038,16 +1041,16 @@ importance_fit <- function(nll, template, random, map, lap_obj, control,
   # is worse than the Laplace fit it corrected.
   worse <- opt$objective - start_value
   if (is.finite(worse) && worse > imp_worse_tol(ess$mcse, start_ess$mcse)) {
-    stop("`importance` did not converge on this model: the corrected ",
-         "negative log-likelihood ROSE from ",
-         format(start_value, digits = 8), " at the Laplace estimates ",
-         "to ", format(opt$objective, digits = 8), " after ",
-         length(moves), " rounds, so the iteration moved away from the ",
-         "answer instead of toward it. That is what an unidentified ",
-         "covariance does to it: check whether the Laplace fit itself ",
-         "converged and whether `", lay[["label"]], "` has enough ",
-         "rows per group to identify every variance component",
-         call. = FALSE)
+    frm_stop("`importance` did not converge on this model: the corrected ",
+             "negative log-likelihood ROSE from ",
+             format(start_value, digits = 8), " at the Laplace estimates ",
+             "to ", format(opt$objective, digits = 8), " after ",
+             length(moves), " rounds, so the iteration moved away from the ",
+             "answer instead of toward it. That is what an unidentified ",
+             "covariance does to it: check whether the Laplace fit itself ",
+             "converged and whether `", lay[["label"]], "` has enough ",
+             "rows per group to identify every variance component",
+             call. = FALSE)
   }
   if (vb) {
     vb_stage("importance report", vb_now(),
@@ -1184,17 +1187,17 @@ imp_ess_warning <- function(ess, lay, n_draw, floor_at) {
   bad <- which(ess < floor_at)
   if (!length(bad)) return(invisible(NULL))
   shown <- utils::head(bad, 5L)
-  warning("The importance proposal covers ", length(bad), " of ",
-          length(ess), " groups of `", lay[["group_name"]],
-          "` poorly: ", paste0("'", lay[["levels"]][shown], "' (",
-                               format(ess[shown], digits = 2), ")",
-                               collapse = ", "),
-          if (length(bad) > length(shown)) ", ...",
-          ". These are effective sample sizes as a fraction of the ",
-          n_draw, " draws, and below ", floor_at,
-          " the group's estimate rests on a handful of them. Raise ",
-          "`importance`, or fit the Laplace model first and check that ",
-          "it converged", call. = FALSE)
+  frm_warning("The importance proposal covers ", length(bad), " of ",
+              length(ess), " groups of `", lay[["group_name"]],
+              "` poorly: ", paste0("'", lay[["levels"]][shown], "' (",
+                                   format(ess[shown], digits = 2), ")",
+                                   collapse = ", "),
+              if (length(bad) > length(shown)) ", ...",
+              ". These are effective sample sizes as a fraction of the ",
+              n_draw, " draws, and below ", floor_at,
+              " the group's estimate rests on a handful of them. Raise ",
+              "`importance`, or fit the Laplace model first and check that ",
+              "it converged", call. = FALSE)
   invisible(NULL)
 }
 
@@ -1305,14 +1308,14 @@ imp_profile_ess_warn <- function(fit, prop, parname, i, bounds) {
     }
   }
   if (!is.finite(worst) || worst >= floor_at) return(invisible(NULL))
-  warning("The profile bound ", format(where, digits = 6), " for '",
-          parname, "' lies where this fit's importance proposal has ",
-          "stopped covering the integrand: the worst group holds ",
-          format(worst, digits = 2), " of its draws there, against a ",
-          "threshold of ", floor_at, ". The proposal is frozen at the ",
-          "estimate, so a profile that walks far from it is reweighting ",
-          "with the wrong Gaussian and this bound is not reliable. Use ",
-          "confint(method = \"wald\"), or refit with more draws",
-          call. = FALSE)
+  frm_warning("The profile bound ", format(where, digits = 6), " for '",
+              parname, "' lies where this fit's importance proposal has ",
+              "stopped covering the integrand: the worst group holds ",
+              format(worst, digits = 2), " of its draws there, against a ",
+              "threshold of ", floor_at, ". The proposal is frozen at the ",
+              "estimate, so a profile that walks far from it is reweighting ",
+              "with the wrong Gaussian and this bound is not reliable. Use ",
+              "confint(method = \"wald\"), or refit with more draws",
+              call. = FALSE)
   invisible(NULL)
 }

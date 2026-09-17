@@ -1,0 +1,5 @@
+rewriting 5 files not yet snapshotted
+
+== counts by package ==
+frmtmb-inst stop                                                42
+files compared 113, mismatched 0, lines over 80 columns 0

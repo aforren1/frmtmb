@@ -1,0 +1,14 @@
+local_var_message      FLAGGED: <value> message; <value> message
+list_field_message     FLAGGED: <value> message
+local_get_fn           FLAGGED: <get> message
+get_column_env         FLAGGED: <get> warning
+identical_as_name      FLAGGED: <as.name> stop
+call_inspection        clean
+switch_labels          clean
+local_fn_named_call    FLAGGED: <call> stop
+parse_formula_text     FLAGGED: <str2lang> y ~ message(x)
+mget_names             clean
+getOption_warn         clean
+formals_default_msg    clean
+R6_like                clean
+dollar_call            clean

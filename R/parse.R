@@ -86,22 +86,22 @@ core_aterms <- c("weights", "trials", "cens", "trunc", "se",
 frmtmb_register_aterm <- function(name, arity = 1L, coerce = as.numeric) {
   if (!is.character(name) || length(name) != 1L || is.na(name) ||
       !nzchar(name) || !identical(name, make.names(name))) {
-    stop("frmtmb_register_aterm(name =) must be one syntactic name, ",
-         "written as it appears in a formula and without parentheses",
-         call. = FALSE)
+    frm_stop("frmtmb_register_aterm(name =) must be one syntactic name, ",
+             "written as it appears in a formula and without parentheses",
+             call. = FALSE)
   }
   if (name %in% core_aterms) {
-    stop("`", name, "()` is one of frmtmb's own addition terms and ",
-         "cannot be re-registered", call. = FALSE)
+    frm_stop("`", name, "()` is one of frmtmb's own addition terms and ",
+             "cannot be re-registered", call. = FALSE)
   }
   if (!is.numeric(arity) || length(arity) != 1L || is.na(arity) ||
       arity < 1 || arity != round(arity)) {
-    stop("frmtmb_register_aterm(arity =) must be a whole number of ",
-         "arguments, at least one", call. = FALSE)
+    frm_stop("frmtmb_register_aterm(arity =) must be a whole number of ",
+             "arguments, at least one", call. = FALSE)
   }
   if (!is.function(coerce)) {
-    stop("frmtmb_register_aterm(coerce =) must be a function of one ",
-         "vector returning a numeric vector", call. = FALSE)
+    frm_stop("frmtmb_register_aterm(coerce =) must be a function of one ",
+             "vector returning a numeric vector", call. = FALSE)
   }
   # A registered term the compatibility table cannot describe is a gap
   # by construction: frm() would accept a term frm_compat() refuses to
@@ -194,19 +194,19 @@ parse_response <- function(formula) {
     resp <- lhs[[2]]
     for (tm in split_plus(lhs[[3]])) {
       if (!is.call(tm)) {
-        stop("Malformed addition term: ", deparse1(tm), call. = FALSE)
+        frm_stop("Malformed addition term: ", deparse1(tm), call. = FALSE)
       }
       nm <- as.character(tm[[1]])
       registered <- names(frmtmb_aterm_registry$reg)
       supported <- c(core_aterms, registered)
       if (!nm %in% supported) {
-        stop("Addition term `", nm, "()` is not supported ",
-             "(supported: ", paste0(supported, "()", collapse = ", "),
-             "). A custom family carries its own per-row data through ",
-             "vint() for integers and vreal() for reals, which reach ",
-             "the density as aterms$vint1, aterms$vreal1, ...; a ",
-             "package that supplies the family can give the term its ",
-             "own name with frmtmb_register_aterm()", call. = FALSE)
+        frm_stop("Addition term `", nm, "()` is not supported ",
+                 "(supported: ", paste0(supported, "()", collapse = ", "),
+                 "). A custom family carries its own per-row data through ",
+                 "vint() for integers and vreal() for reals, which reach ",
+                 "the density as aterms$vint1, aterms$vreal1, ...; a ",
+                 "package that supplies the family can give the term its ",
+                 "own name with frmtmb_register_aterm()", call. = FALSE)
       }
       multi <- nm %in% c("vint", "vreal") ||
         isTRUE((frmtmb_aterm_registry$reg[[nm]] %||% list())$arity > 1L)
@@ -214,22 +214,22 @@ parse_response <- function(formula) {
           (nm == "trunc" && any(c("trunc_lb", "trunc_ub") %in%
                                   names(aterms))) ||
           (multi && paste0(nm, "1") %in% names(aterms))) {
-        stop("Duplicated addition term `", nm, "()`", call. = FALSE)
+        frm_stop("Duplicated addition term `", nm, "()`", call. = FALSE)
       }
       if (nm == "trunc") {
         args <- as.list(tm)[-1]
         if (!length(args) || is.null(names(args)) ||
             !all(names(args) %in% c("lb", "ub"))) {
-          stop("trunc() takes named bounds: trunc(lb = ...), ",
-               "trunc(ub = ...), or both", call. = FALSE)
+          frm_stop("trunc() takes named bounds: trunc(lb = ...), ",
+                   "trunc(ub = ...), or both", call. = FALSE)
         }
         if (!is.null(args$lb)) aterms[["trunc_lb"]] <- args$lb
         if (!is.null(args$ub)) aterms[["trunc_ub"]] <- args$ub
       } else if (nm == "cens") {
         args <- as.list(tm)[-1]
         if (length(args) < 1 || length(args) > 2) {
-          stop("cens() takes the censoring code and optionally interval ",
-               "upper bounds: cens(c) or cens(c, y2)", call. = FALSE)
+          frm_stop("cens() takes the censoring code and optionally interval ",
+                   "upper bounds: cens(c) or cens(c, y2)", call. = FALSE)
         }
         aterms[["cens"]] <- args[[1]]
         if (length(args) == 2) aterms[["cens_y2"]] <- args[[2]]
@@ -239,8 +239,8 @@ parse_response <- function(formula) {
         # measurement SDs - x | mi(sdx) - every value is latent and the
         # observed ones get a measurement model (brms me()).
         if (length(tm) > 2L) {
-          stop("mi() on the response side takes at most one argument ",
-               "(known measurement SDs)", call. = FALSE)
+          frm_stop("mi() on the response side takes at most one argument ",
+                   "(known measurement SDs)", call. = FALSE)
         }
         aterms[["mi"]] <- TRUE
         if (length(tm) == 2L) aterms[["mi_sd"]] <- tm[[2]]
@@ -249,7 +249,7 @@ parse_response <- function(formula) {
         # argument becomes aterms$vint1, vint2, ... for the lpdf
         args <- as.list(tm)[-1]
         if (!length(args)) {
-          stop(nm, "() needs at least one variable", call. = FALSE)
+          frm_stop(nm, "() needs at least one variable", call. = FALSE)
         }
         for (i in seq_along(args)) {
           aterms[[paste0(nm, i)]] <- args[[i]]
@@ -258,8 +258,8 @@ parse_response <- function(formula) {
         args <- as.list(tm)[-1]
         nms <- names(args) %||% rep("", length(args))
         if (sum(nms == "") != 1L || !all(nms %in% c("", "sigma"))) {
-          stop("se() takes the known SDs and optionally sigma = TRUE: ",
-               "se(x) or se(x, sigma = TRUE)", call. = FALSE)
+          frm_stop("se() takes the known SDs and optionally sigma = TRUE: ",
+                   "se(x) or se(x, sigma = TRUE)", call. = FALSE)
         }
         aterms[["se"]] <- args[[which(nms == "")]]
         if ("sigma" %in% nms) {
@@ -274,9 +274,9 @@ parse_response <- function(formula) {
         reg_at <- frmtmb_aterm_registry$reg[[nm]]
         args <- as.list(tm)[-1]
         if (length(args) != reg_at$arity) {
-          stop("`", nm, "()` takes ", reg_at$arity,
-               if (reg_at$arity == 1L) " argument" else " arguments",
-               ", not ", length(args), call. = FALSE)
+          frm_stop("`", nm, "()` takes ", reg_at$arity,
+                   if (reg_at$arity == 1L) " argument" else " arguments",
+                   ", not ", length(args), call. = FALSE)
         }
         if (reg_at$arity == 1L) {
           aterms[[nm]] <- args[[1L]]
@@ -287,7 +287,7 @@ parse_response <- function(formula) {
         }
       } else {
         if (length(tm) != 2) {
-          stop("`", nm, "()` takes exactly one argument", call. = FALSE)
+          frm_stop("`", nm, "()` takes exactly one argument", call. = FALSE)
         }
         aterms[[nm]] <- tm[[2]]
       }
@@ -315,13 +315,14 @@ rewrite_cbind_response <- function(ri, fam) {
   args <- as.list(resp)[-1L]
   nms <- names(args) %||% rep("", length(args))
   if (length(args) != 2L || any(nzchar(nms))) {
-    stop("A cbind() ", fam[["family"]], " response takes exactly two unnamed ",
-         "columns: cbind(successes, failures)", call. = FALSE)
+    frm_stop("A cbind() ", fam[["family"]],
+             " response takes exactly two unnamed ",
+             "columns: cbind(successes, failures)", call. = FALSE)
   }
   if (!is.null(ri$aterms[["trials"]])) {
-    stop("cbind(successes, failures) already carries the number of ",
-         "trials; drop the trials() addition term (write either ",
-         "cbind(s, f) ~ ... or s | trials(n) ~ ...)", call. = FALSE)
+    frm_stop("cbind(successes, failures) already carries the number of ",
+             "trials; drop the trials() addition term (write either ",
+             "cbind(s, f) ~ ... or s | trials(n) ~ ...)", call. = FALSE)
   }
   ri$resp <- args[[1L]]
   ri$aterms[["trials"]] <- call("+", args[[1L]], args[[2L]])
@@ -340,35 +341,35 @@ rewrite_cbind_response <- function(ri, fam) {
 #' @noRd
 eval_spec_arg <- function(expr, nm, env, fn = "gp") {
   val <- tryCatch(eval(expr, env), error = function(e) {
-    stop(fn, "(): cannot evaluate ", nm, " = ", deparse1(expr), ": ",
-         conditionMessage(e), call. = FALSE)
+    frm_stop(fn, "(): cannot evaluate ", nm, " = ", deparse1(expr), ": ",
+             conditionMessage(e), call. = FALSE)
   })
   if (length(val) != 1L && nm != "c") {
-    stop(fn, "(): ", nm, " = ", deparse1(expr),
-         " must be a single value (got length ", length(val), ")",
-         call. = FALSE)
+    frm_stop(fn, "(): ", nm, " = ", deparse1(expr),
+             " must be a single value (got length ", length(val), ")",
+             call. = FALSE)
   }
   if (nm %in% c("iso", "sigma", "scale")) {
     if (!is.logical(val) || is.na(val)) {
-      stop(fn, "(): ", nm, " = ", deparse1(expr),
-           " must be TRUE or FALSE", call. = FALSE)
+      frm_stop(fn, "(): ", nm, " = ", deparse1(expr),
+               " must be TRUE or FALSE", call. = FALSE)
     }
     return(isTRUE(val))
   }
   if (!is.numeric(val) || !length(val) || !all(is.finite(val))) {
-    stop(fn, "(): ", nm, " = ", deparse1(expr),
-         " must be finite and numeric", call. = FALSE)
+    frm_stop(fn, "(): ", nm, " = ", deparse1(expr),
+             " must be finite and numeric", call. = FALSE)
   }
   if (nm %in% c("k", "d")) {
     if (val < 1 || val != trunc(val)) {
-      stop(fn, "(): ", nm, " = ", deparse1(expr),
-           " must be a positive whole number", call. = FALSE)
+      frm_stop(fn, "(): ", nm, " = ", deparse1(expr),
+               " must be a positive whole number", call. = FALSE)
     }
     return(as.integer(val))
   }
   if (any(val <= 0)) {
-    stop(fn, "(): ", nm, " = ", deparse1(expr), " must be positive",
-         call. = FALSE)
+    frm_stop(fn, "(): ", nm, " = ", deparse1(expr), " must be positive",
+             call. = FALSE)
   }
   as.numeric(val)
 }
@@ -384,16 +385,16 @@ match_special_args <- function(call_expr, argn, fn) {
   nms <- names(aa) %||% rep("", length(aa))
   bad <- setdiff(nms[nzchar(nms)], argn)
   if (length(bad)) {
-    stop(fn, "(): unknown argument(s) ", paste(bad, collapse = ", "),
-         " (takes ", paste(argn, collapse = ", "), ")", call. = FALSE)
+    frm_stop(fn, "(): unknown argument(s) ", paste(bad, collapse = ", "),
+             " (takes ", paste(argn, collapse = ", "), ")", call. = FALSE)
   }
   out <- stats::setNames(vector("list", length(argn)), argn)
   for (i in which(nzchar(nms))) out[[nms[i]]] <- aa[[i]]
   free <- argn[vapply(out, is.null, TRUE)]
   pos <- which(!nzchar(nms))
   if (length(pos) > length(free)) {
-    stop(fn, "(): too many arguments (takes ",
-         paste(argn, collapse = ", "), ")", call. = FALSE)
+    frm_stop(fn, "(): too many arguments (takes ",
+             paste(argn, collapse = ", "), ")", call. = FALSE)
   }
   for (i in seq_along(pos)) out[[free[i]]] <- aa[[pos[i]]]
   out
@@ -407,22 +408,22 @@ match_special_args <- function(call_expr, argn, fn) {
 parse_car_call <- function(tm, env) {
   a <- match_special_args(tm, c("M", "gr", "type", "con_sd"), "car")
   if (is.null(a$M) || is.null(a$gr)) {
-    stop("car() needs an adjacency matrix and a grouping variable: ",
-         "car(M, gr = g, type = \"icar\")", call. = FALSE)
+    frm_stop("car() needs an adjacency matrix and a grouping variable: ",
+             "car(M, gr = g, type = \"icar\")", call. = FALSE)
   }
   # brms's gr = NA default (one location per observation) is deprecated
   # there and never supported here: the field's levels come from the
   # factor, so the call has to name one
   if (identical(a$gr, NA) || identical(a$gr, quote(NA))) {
-    stop("car(): gr must name a grouping variable. brms's gr = NA ",
-         "(one location per observation) is deprecated; build the ",
-         "location factor and pass it", call. = FALSE)
+    frm_stop("car(): gr must name a grouping variable. brms's gr = NA ",
+             "(one location per observation) is deprecated; build the ",
+             "location factor and pass it", call. = FALSE)
   }
   type <- if (is.null(a$type)) "escar" else {
     tp <- eval(a$type, env)
     if (!is.character(tp) || length(tp) != 1L || !(tp %in% car_types)) {
-      stop("car(): type must be one of ",
-           paste0("\"", car_types, "\"", collapse = ", "), call. = FALSE)
+      frm_stop("car(): type must be one of ",
+               paste0("\"", car_types, "\"", collapse = ", "), call. = FALSE)
     }
     tp
   }
@@ -440,8 +441,8 @@ parse_car_call <- function(tm, env) {
 parse_spde_call <- function(tm, env) {
   a <- match_special_args(tm, c("fem", "gr"), "spde")
   if (is.null(a$fem) || is.null(a$gr)) {
-    stop("spde() needs the mesh matrices and a grouping variable: ",
-         "spde(fm_fem(mesh), gr = node)", call. = FALSE)
+    frm_stop("spde() needs the mesh matrices and a grouping variable: ",
+             "spde(fm_fem(mesh), gr = node)", call. = FALSE)
   }
   list(fem_expr = a$fem, gr_expr = a$gr, label = deparse1(tm))
 }
@@ -677,31 +678,31 @@ parse_mm_call <- function(tm, env) {
   nms <- names(aa) %||% rep("", length(aa))
   bad <- setdiff(nms[nzchar(nms)], c("weights", "scale", mm_brms_only_args))
   if (length(bad)) {
-    stop("mm(): unknown argument(s) ", paste(bad, collapse = ", "),
-         " (takes the membership variables plus weights = and scale = )",
-         call. = FALSE)
+    frm_stop("mm(): unknown argument(s) ", paste(bad, collapse = ", "),
+             " (takes the membership variables plus weights = and scale = )",
+             call. = FALSE)
   }
   used <- intersect(nms, mm_brms_only_args)
   if (length(used)) {
-    stop("mm(", used[1L], " = ) is not supported. brms's other mm() ",
-         "arguments have spellings here that apply to any grouping ",
-         "term: cor = FALSE is diag(x | mm(g1, g2)), id = is the ",
-         "|ID| key (x | q | g), cov = is gr(g, cov = A), and dist = is ",
-         "gr(g, dist = \"student\"). The last two take a ",
-         "single-membership factor only. by = / pw = have no ",
-         "equivalent yet", call. = FALSE)
+    frm_stop("mm(", used[1L], " = ) is not supported. brms's other mm() ",
+             "arguments have spellings here that apply to any grouping ",
+             "term: cor = FALSE is diag(x | mm(g1, g2)), id = is the ",
+             "|ID| key (x | q | g), cov = is gr(g, cov = A), and dist = is ",
+             "gr(g, dist = \"student\"). The last two take a ",
+             "single-membership factor only. by = / pw = have no ",
+             "equivalent yet", call. = FALSE)
   }
   groups <- aa[!nzchar(nms)]
   if (length(groups) < 2L) {
-    stop("mm() needs at least two membership variables: ",
-         "(1 | mm(g1, g2)). One membership variable is an ordinary ",
-         "grouping factor, (1 | g1)", call. = FALSE)
+    frm_stop("mm() needs at least two membership variables: ",
+             "(1 | mm(g1, g2)). One membership variable is an ordinary ",
+             "grouping factor, (1 | g1)", call. = FALSE)
   }
   if (!all(vapply(groups, is.name, TRUE))) {
     nonnm <- vapply(groups[!vapply(groups, is.name, TRUE)], deparse1, "")
-    stop("mm(): each membership variable must be a bare column name; ",
-         "got ", paste0("`", nonnm[1L], "`"),
-         ". Build the column first, then name it", call. = FALSE)
+    frm_stop("mm(): each membership variable must be a bare column name; ",
+             "got ", paste0("`", nonnm[1L], "`"),
+             ". Build the column first, then name it", call. = FALSE)
   }
   gvars <- vapply(groups, as.character, "")
   if (anyDuplicated(gvars) && is.null(aa$weights)) {
@@ -744,24 +745,24 @@ parse_gr_dist <- function(ga, gvar, cls, bar, id_label, env) {
   has_nu <- any(nms == "dist_nu")
   if (!has_dist && !has_nu) return(NULL)
   if (!has_dist) {
-    stop("gr(dist_nu = ) sets the degrees of freedom of a Student-t ",
-         "latent, so it only means something next to ",
-         "dist = \"student\": ", deparse1(bar[[3]]), call. = FALSE)
+    frm_stop("gr(dist_nu = ) sets the degrees of freedom of a Student-t ",
+             "latent, so it only means something next to ",
+             "dist = \"student\": ", deparse1(bar[[3]]), call. = FALSE)
   }
   dist <- tryCatch(eval(ga$dist, env), error = function(e) {
-    stop("gr(): cannot evaluate dist = ", deparse1(ga$dist), ": ",
-         conditionMessage(e), call. = FALSE)
+    frm_stop("gr(): cannot evaluate dist = ", deparse1(ga$dist), ": ",
+             conditionMessage(e), call. = FALSE)
   })
   if (!is.character(dist) || length(dist) != 1L ||
       !dist %in% c("gaussian", "student")) {
-    stop("gr(dist = ) takes \"gaussian\" or \"student\" (brms's two), ",
-         "got ", deparse1(ga$dist), call. = FALSE)
+    frm_stop("gr(dist = ) takes \"gaussian\" or \"student\" (brms's two), ",
+             "got ", deparse1(ga$dist), call. = FALSE)
   }
   if (identical(dist, "gaussian")) {
     if (has_nu) {
-      stop("gr(dist = \"gaussian\", dist_nu = ) asks for degrees of ",
-           "freedom on a gaussian latent, which has none. Write ",
-           "dist = \"student\"", call. = FALSE)
+      frm_stop("gr(dist = \"gaussian\", dist_nu = ) asks for degrees of ",
+               "freedom on a gaussian latent, which has none. Write ",
+               "dist = \"student\"", call. = FALSE)
     }
     return(list(student = FALSE, covstruct = cls, dist_nu = NULL))
   }
@@ -770,35 +771,35 @@ parse_gr_dist <- function(ga, gvar, cls, bar, id_label, env) {
     # scalar rescaling of a CORRELATED gaussian field. That is not a
     # multivariate t over the levels and has no closed-form marginal
     # density to hand the Laplace machinery.
-    stop("gr(cov = ) / gr(prec = ) with dist = \"student\" is not ",
-         "supported: a relationship matrix correlates the LEVELS, and ",
-         "the t's mixing variable is per level, so the joint density ",
-         "over the field is not a multivariate t and has no closed ",
-         "form here. Use dist = \"gaussian\" with the relationship ",
-         "matrix, or the t latent without one", call. = FALSE)
+    frm_stop("gr(cov = ) / gr(prec = ) with dist = \"student\" is not ",
+             "supported: a relationship matrix correlates the LEVELS, and ",
+             "the t's mixing variable is per level, so the joint density ",
+             "over the field is not a multivariate t and has no closed ",
+             "form here. Use dist = \"gaussian\" with the relationship ",
+             "matrix, or the t latent without one", call. = FALSE)
   }
   if (calls_function(gvar[[1L]], "mm")) {
-    stop("gr(mm(...), dist = \"student\") is not supported: a ",
-         "multi-membership row loads several levels at once, so the ",
-         "per-level mixing variable of a t latent has no single value ",
-         "on that row. Write (x | mm(g1, g2)) for the membership ",
-         "design", call. = FALSE)
+    frm_stop("gr(mm(...), dist = \"student\") is not supported: a ",
+             "multi-membership row loads several levels at once, so the ",
+             "per-level mixing variable of a t latent has no single value ",
+             "on that row. Write (x | mm(g1, g2)) for the membership ",
+             "design", call. = FALSE)
   }
   if (!is.null(id_label)) {
-    stop("An |ID|-keyed term cannot take dist = \"student\" yet: ",
-         deparse1(bar), " is keyed |", id_label,
-         "|, and merged blocks are assembled as gaussian ones. Write ",
-         "the merged coefficients as one term, ",
-         "(x1 + x2 | gr(g, dist = \"student\")), which is the same ",
-         "multivariate-t block", call. = FALSE)
+    frm_stop("An |ID|-keyed term cannot take dist = \"student\" yet: ",
+             deparse1(bar), " is keyed |", id_label,
+             "|, and merged blocks are assembled as gaussian ones. Write ",
+             "the merged coefficients as one term, ",
+             "(x1 + x2 | gr(g, dist = \"student\")), which is the same ",
+             "multivariate-t block", call. = FALSE)
   }
   cs <- switch(cls, us = "us_t", diag = "diag_t", NULL)
   if (is.null(cs)) {
-    stop("dist = \"student\" is supported for the default (us) and ",
-         "diag structures only; ", cls, "(", deparse1(bar),
-         ") asks for a t-tailed ", cls,
-         " block, whose density is not the multivariate t brms builds",
-         call. = FALSE)
+    frm_stop("dist = \"student\" is supported for the default (us) and ",
+             "diag structures only; ", cls, "(", deparse1(bar),
+             ") asks for a t-tailed ", cls,
+             " block, whose density is not the multivariate t brms builds",
+             call. = FALSE)
   }
   nu <- if (has_nu) {
     eval_spec_arg(ga$dist_nu, "dist_nu", env, fn = "gr")
@@ -806,9 +807,9 @@ parse_gr_dist <- function(ga, gvar, cls, bar, id_label, env) {
     student_nu_default
   }
   if (nu <= student_nu_floor) {
-    stop("gr(dist_nu = ) must exceed ", student_nu_floor,
-         " so the latent has a finite variance to report and to ",
-         "predict with; got ", nu, call. = FALSE)
+    frm_stop("gr(dist_nu = ) must exceed ", student_nu_floor,
+             " so the latent has a finite variance to report and to ",
+             "predict with; got ", nu, call. = FALSE)
   }
   list(student = TRUE, covstruct = cs, dist_nu = nu)
 }
@@ -830,20 +831,20 @@ split_mmc_lhs <- function(lhs, n_members, label) {
     if (is.call(tm) && identical(tm[[1L]], as.name("mmc"))) {
       args <- as.list(tm)[-1L]
       if (any(nzchar(names(args) %||% rep("", length(args))))) {
-        stop("mmc() takes unnamed variables, one per membership ",
-             "variable: mmc(x1, x2)", call. = FALSE)
+        frm_stop("mmc() takes unnamed variables, one per membership ",
+                 "variable: mmc(x1, x2)", call. = FALSE)
       }
       if (length(args) != n_members) {
-        stop("mmc() needs one variable per membership variable: ",
-             deparse1(tm), " has ", length(args), " but ", label,
-             " has ", n_members, call. = FALSE)
+        frm_stop("mmc() needs one variable per membership variable: ",
+                 deparse1(tm), " has ", length(args), " but ", label,
+                 " has ", n_members, call. = FALSE)
       }
       mmc[[length(mmc) + 1L]] <- list(exprs = args, label = deparse1(tm))
     } else {
       if ("mmc" %in% all.names(tm)) {
-        stop("mmc() must be a term of its own on the left of the bar, ",
-             "not part of ", deparse1(tm),
-             "; write (mmc(x1, x2) | mm(g1, g2))", call. = FALSE)
+        frm_stop("mmc() must be a term of its own on the left of the bar, ",
+                 "not part of ", deparse1(tm),
+                 "; write (mmc(x1, x2) | mm(g1, g2))", call. = FALSE)
       }
       plain[[length(plain) + 1L]] <- tm
     }
@@ -1000,7 +1001,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       as.character(tm[[1]])[1] %in% c(":", "*", "/") &&
       any(autocor_structs %in% all.names(tm))
     bad <- if (!crossed_ac) special_term_refusal(tm)
-    if (!is.null(bad)) stop(bad, call. = FALSE)
+    if (!is.null(bad)) frm_stop(bad, call. = FALSE)
     if ("|" %in% all.names(tm) ||
         (is.call(tm) && is.name(tm[[1L]]) &&
            as.character(tm[[1L]]) %in% brms_whole_term_specials) ||
@@ -1050,9 +1051,9 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     if (is.call(tm) &&
         as.character(tm[[1]])[1] %in% c(":", "*", "/") &&
         any(c("|", "||") %in% all.names(tm))) {
-      stop("A random-effect term cannot be crossed with '",
-           as.character(tm[[1]])[1], "': ", deparse1(tm),
-           ". Did you mean '+'?", call. = FALSE)
+      frm_stop("A random-effect term cannot be crossed with '",
+               as.character(tm[[1]])[1], "': ", deparse1(tm),
+               ". Did you mean '+'?", call. = FALSE)
     }
     # same trap for the autocor terms: without this, ar(...) inside an
     # interaction reaches the model matrix and dies inside stats::ar
@@ -1060,29 +1061,29 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     if (is.call(tm) &&
         as.character(tm[[1]])[1] %in% c(":", "*", "/") &&
         any(autocor_structs %in% all.names(tm))) {
-      stop("An autocorrelation term cannot be crossed with '",
-           as.character(tm[[1]])[1], "': ", deparse1(tm),
-           ". Write it as a separate term: y ~ ... + ",
-           intersect(autocor_structs, all.names(tm))[1L], "(...)",
-           call. = FALSE)
+      frm_stop("An autocorrelation term cannot be crossed with '",
+               as.character(tm[[1]])[1], "': ", deparse1(tm),
+               ". Write it as a separate term: y ~ ... + ",
+               intersect(autocor_structs, all.names(tm))[1L], "(...)",
+               call. = FALSE)
     }
     if (is_smooth_call(tm)) {
       fn <- as.character(tm[[1]])[1]
       if (fn %in% c("te", "ti")) {
-        stop("te() and ti() smooths are not supported (no random-effect ",
-             "representation); use t2() instead", call. = FALSE)
+        frm_stop("te() and ti() smooths are not supported (no random-effect ",
+                 "representation); use t2() instead", call. = FALSE)
       }
       smooth[[length(smooth) + 1L]] <-
         eval(tm, list(s = mgcv::s, t2 = mgcv::t2), enclos = env)
     } else if (is.call(tm) && identical(tm[[1]], as.name("mo"))) {
       if (length(tm) != 2L) {
-        stop("mo() takes exactly one variable", call. = FALSE)
+        frm_stop("mo() takes exactly one variable", call. = FALSE)
       }
       mo[[length(mo) + 1L]] <- list(expr = tm[[2]], mult = NULL)
     } else if (is.call(tm) && identical(tm[[1]], as.name("mi"))) {
       if (length(tm) != 2L || !is.name(tm[[2]])) {
-        stop("mi() in a predictor takes one variable name: mi(x)",
-             call. = FALSE)
+        frm_stop("mi() in a predictor takes one variable name: mi(x)",
+                 call. = FALSE)
       }
       # the interaction branch below repeats this check with its own
       # message, because there the offending mi() sits inside a `:`
@@ -1103,14 +1104,14 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
         is.call(s) && as.character(s[[1]])[1] %in% c("mo", "mi")
       }, TRUE)
       if (sum(is_sp) != 1L) {
-        stop("mo()/mi() interactions need the special on exactly one ",
-             "side of ':' or '*': ", deparse1(tm), call. = FALSE)
+        frm_stop("mo()/mi() interactions need the special on exactly one ",
+                 "side of ':' or '*': ", deparse1(tm), call. = FALSE)
       }
       sp <- sides[[which(is_sp)]]
       other <- sides[[which(!is_sp)]]
       if (any(c("mo", "mi") %in% all.names(other))) {
-        stop("mo()/mi() cannot interact with another mo()/mi() term: ",
-             deparse1(tm), call. = FALSE)
+        frm_stop("mo()/mi() cannot interact with another mo()/mi() term: ",
+                 deparse1(tm), call. = FALSE)
       }
       spn <- as.character(sp[[1]])[1]
       entry <- list(expr = sp[[2]], mult = other)
@@ -1120,8 +1121,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
                                                    mult = NULL)
       } else {
         if (!is.name(sp[[2]])) {
-          stop("mi() in an interaction takes one variable name: ",
-               "mi(x):z", call. = FALSE)
+          frm_stop("mi() in an interaction takes one variable name: ",
+                   "mi(x):z", call. = FALSE)
         }
         miterms[[length(miterms) + 1L]] <- entry
         if (op_star) miterms[[length(miterms) + 1L]] <-
@@ -1133,14 +1134,14 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       nms <- names(aa) %||% rep("", length(aa))
       vars <- aa[nms == ""]
       if (length(vars) < 1L || !all(nms %in% c("", "k", "c", "iso"))) {
-        stop("gp() takes 1-3 variables plus optional k = (basis size ",
-             "per dimension), c = (boundary factor), and iso = ",
-             "(shared lengthscale): gp(x), gp(x, k = 30), gp(x1, x2)",
-             call. = FALSE)
+        frm_stop("gp() takes 1-3 variables plus optional k = (basis size ",
+                 "per dimension), c = (boundary factor), and iso = ",
+                 "(shared lengthscale): gp(x), gp(x, k = 30), gp(x1, x2)",
+                 call. = FALSE)
       }
       if (length(vars) > 3L) {
-        stop("gp() supports at most 3 dimensions (got ", length(vars),
-             ")", call. = FALSE)
+        frm_stop("gp() supports at most 3 dimensions (got ", length(vars),
+                 ")", call. = FALSE)
       }
       gpterms[[length(gpterms) + 1L]] <- list(
         exprs = vars,
@@ -1163,15 +1164,25 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       # barless cs(x): category-specific ordinal effect (the bar form
       # cs(x | g) stays a compound-symmetry covariance structure)
       if (length(tm) != 2L) {
-        stop("cs() takes one variable: cs(x)", call. = FALSE)
+        frm_stop("cs() takes one variable: cs(x)", call. = FALSE)
       }
       csterms[[length(csterms) + 1L]] <- tm[[2]]
     } else {
+      # brms autocorrelation terms frmtmb does not implement. Left here
+      # they reach the frame as ordinary calls, whose matrix argument
+      # lives in data2 and was reported as an unknown variable
+      for (sp_nm in Filter(function(f) calls_function(tm, f),
+                           c("sar", "fcor"))) {
+        frm_stop(sp_nm, "() is a brms autocorrelation term that frmtmb ",
+                 "does not support: ", deparse1(tm), ". The supported ",
+                 "residual correlation terms are ar(), ma(), arma(), ",
+                 "cosy(), unstr() and car()", call. = FALSE)
+      }
       for (sp_nm in c("mo", "mi")) {
         if (sp_nm %in% all.names(tm)) {
-          stop(sp_nm, "() is only supported as a standalone additive ",
-               "term or a two-way ':'/'*' interaction: ",
-               deparse1(tm), call. = FALSE)
+          frm_stop(sp_nm, "() is only supported as a standalone additive ",
+                   "term or a two-way ':'/'*' interaction: ",
+                   deparse1(tm), call. = FALSE)
         }
       }
       # mm()/mmc() outside a bar term would reach model.matrix() and
@@ -1180,11 +1191,11 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       if (!("|" %in% all.names(tm))) {
         for (sp_nm in Filter(function(f) calls_function(tm, f),
                              c("mm", "mmc"))) {
-          stop(sp_nm, "() is part of a random-effect term, not a ",
-               "population-level predictor: ", deparse1(tm),
-               ". Multi-membership is written (1 | mm(g1, g2)), and ",
-               "mmc() supplies its member-specific slopes, ",
-               "(mmc(x1, x2) | mm(g1, g2))", call. = FALSE)
+          frm_stop(sp_nm, "() is part of a random-effect term, not a ",
+                   "population-level predictor: ", deparse1(tm),
+                   ". Multi-membership is written (1 | mm(g1, g2)), and ",
+                   "mmc() supplies its member-specific slopes, ",
+                   "(mmc(x1, x2) | mm(g1, g2))", call. = FALSE)
         }
       }
       rest[[length(rest) + 1L]] <- tm
@@ -1240,10 +1251,10 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   slash <- slash_nested_bars(rest, sf, cs_specials, env_lp)
   bad <- setdiff(sf$reTrmClasses, supported_cs)
   if (length(bad)) {
-    stop("Covariance structure(s) not supported yet: ",
-         paste(unique(bad), collapse = ", "),
-         " (currently supported: ",
-         paste(supported_cs, collapse = ", "), ")", call. = FALSE)
+    frm_stop("Covariance structure(s) not supported yet: ",
+             paste(unique(bad), collapse = ", "),
+             " (currently supported: ",
+             paste(supported_cs, collapse = ", "), ")", call. = FALSE)
   }
   re <- Map(function(bar, cls, addargs, from_slash) {
     written <- bar
@@ -1254,13 +1265,13 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     id_group <- NULL
     cov_expr <- NULL
     if (cls %in% c("gp", "hsgp")) {
-      stop("gp() is not a bar term; write gp(x) or gp(x, k = 30)",
-           call. = FALSE)
+      frm_stop("gp() is not a bar term; write gp(x) or gp(x, k = 30)",
+               call. = FALSE)
     }
     if (cls %in% c("car", "spde")) {
-      stop(cls, "() is not a bar term; write ",
-           if (cls == "car") "car(M, gr = g)" else "spde(fem, gr = g)",
-           " as a predictor term, not on the left of ( | )", call. = FALSE)
+      frm_stop(cls, "() is not a bar term; write ",
+               if (cls == "car") "car(M, gr = g)" else "spde(fem, gr = g)",
+               " as a predictor term, not on the left of ( | )", call. = FALSE)
     }
     rank <- NULL
     if (cls == "rr") {
@@ -1273,15 +1284,15 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       aa <- as.list(addargs)[-1]
       aa <- aa[!nzchar(names(aa) %||% rep("", length(aa)))]
       if (length(aa) != 1L) {
-        stop("equalto() needs the fixed covariance matrix: ",
-             "equalto(x + 0 | g, V)", call. = FALSE)
+        frm_stop("equalto() needs the fixed covariance matrix: ",
+                 "equalto(x + 0 | g, V)", call. = FALSE)
       }
       cov_expr <- aa[[1L]]
     }
     if (is.call(bar[[2]]) && identical(bar[[2]][[1]], as.name("|"))) {
       if (cls != "us") {
-        stop("|ID| correlation is only supported for default (us) ",
-             "random-effect terms", call. = FALSE)
+        frm_stop("|ID| correlation is only supported for default (us) ",
+                 "random-effect terms", call. = FALSE)
       }
       id_label <- deparse1(bar[[2]][[3]])
       # the merge key carries the grouping expression as well, so two
@@ -1300,28 +1311,28 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     if (is.call(bar[[3]]) && identical(bar[[3]][[1]], as.name("mm"))) {
       mm <- parse_mm_call(bar[[3]], env)
       if (!cls %in% c("us", "diag")) {
-        stop("mm() supports the default (us) and diag structures only; ",
-             cls, "(", deparse1(bar),
-             ") asks for a covariance over the pooled membership ",
-             "levels, which the weighted design does not define",
-             call. = FALSE)
+        frm_stop("mm() supports the default (us) and diag structures only; ",
+                 cls, "(", deparse1(bar),
+                 ") asks for a covariance over the pooled membership ",
+                 "levels, which the weighted design does not define",
+                 call. = FALSE)
       }
       if (!is.null(id)) {
-        stop("A multi-membership term cannot share an |ID| key: ",
-             deparse1(bar), " is keyed |", id_label,
-             "|. Merged blocks index one level set per observation ",
-             "row, and an mm() row loads several levels at once",
-             call. = FALSE)
+        frm_stop("A multi-membership term cannot share an |ID| key: ",
+                 deparse1(bar), " is keyed |", id_label,
+                 "|. Merged blocks index one level set per observation ",
+                 "row, and an mm() row loads several levels at once",
+                 call. = FALSE)
       }
       sp <- split_mmc_lhs(bar[[2]], length(mm$groups), mm$label)
       mm$lhs <- sp$lhs
       mm$mmc <- sp$mmc
     } else if (calls_function(bar[[2]], "mmc")) {
-      stop("mmc() supplies one covariate value per MEMBER, so it only ",
-           "means something over a multi-membership grouping factor: ",
-           deparse1(bar), " groups by ", deparse1(bar[[3]]),
-           ". Write (mmc(x1, x2) | mm(g1, g2)), or use the plain ",
-           "covariate for a single-membership slope", call. = FALSE)
+      frm_stop("mmc() supplies one covariate value per MEMBER, so it only ",
+               "means something over a multi-membership grouping factor: ",
+               deparse1(bar), " groups by ", deparse1(bar[[3]]),
+               ". Write (mmc(x1, x2) | mm(g1, g2)), or use the plain ",
+               "covariate for a single-membership slope", call. = FALSE)
     }
     # brms (x | gr(g, cov = A)): known covariance over the levels;
     # gr(g, prec = Q) takes a (sparse) precision matrix instead;
@@ -1349,17 +1360,17 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       if (length(gvar) != 1 || (has_cov + has_prec) > 1 ||
           (is.null(st) && (has_cov + has_prec) != 1) ||
           !all(nms %in% c("", "cov", "prec"))) {
-        stop("gr() supports (x | gr(g, cov = A)) or ",
-             "(1 | gr(g, prec = Q))", call. = FALSE)
+        frm_stop("gr() supports (x | gr(g, cov = A)) or ",
+                 "(1 | gr(g, prec = Q))", call. = FALSE)
       }
       if (has_cov || has_prec) {
         if (calls_function(gvar[[1L]], "mm")) {
-          stop("gr(mm(...), cov = ) / gr(mm(...), prec = ) is not ",
-               "supported: a known relationship matrix indexes one level ",
-               "per observation, and a multi-membership row loads several ",
-               "levels at once. Write (x | mm(g1, g2)) for the membership ",
-               "design, or (x | gr(g, cov = A)) for the relationship ",
-               "matrix", call. = FALSE)
+          frm_stop("gr(mm(...), cov = ) / gr(mm(...), prec = ) is not ",
+                   "supported: a known relationship matrix indexes one level ",
+                   "per observation, and a multi-membership row loads several ",
+                   "levels at once. Write (x | mm(g1, g2)) for the membership ",
+                   "design, or (x | gr(g, cov = A)) for the relationship ",
+                   "matrix", call. = FALSE)
         }
         cov_expr <- ga$cov %||% ga$prec
         cls <- if (has_cov) "gr_cov" else "gr_prec"
@@ -1369,10 +1380,10 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     if (is.call(bar[[3]]) &&
         as.character(bar[[3]][[1]])[1] %in% c("car", "spde")) {
       nm <- as.character(bar[[3]][[1]])[1]
-      stop(nm, "() is not a bar term; write ",
-           if (nm == "car") "car(M, gr = g)" else "spde(fem, gr = g)",
-           " as a predictor term, not as the grouping factor of ( | )",
-           call. = FALSE)
+      frm_stop(nm, "() is not a bar term; write ",
+               if (nm == "car") "car(M, gr = g)" else "spde(fem, gr = g)",
+               " as a predictor term, not as the grouping factor of ( | )",
+               call. = FALSE)
     }
     list(bar = bar, group = bar[[3]], covstruct = cls, id = id,
          id_label = id_label, id_group = id_group,
@@ -1406,27 +1417,27 @@ pull_autocor <- function(dpars, resp_name) {
     ats <- dpars[[nm]]$acterms %||% list()
     if (!length(ats)) next
     if (!identical(nm, "mu")) {
-      stop("Residual correlation terms can only be written on 'mu'; ",
-           ats[[1L]]$label, " appears in the formula for '", nm,
-           "'. The term changes the residual density of the response, ",
-           "not a linear predictor",
-           if (grepl("^mu[0-9]", nm)) {
-             paste0(". '", nm, "' is a mixture component, and a mixture ",
-                    "likelihood has no single residual to correlate; ",
-                    "an ar1()/toep() random effect over the time factor ",
-                    "is the available alternative there")
-           } else "", call. = FALSE)
+      frm_stop("Residual correlation terms can only be written on 'mu'; ",
+               ats[[1L]]$label, " appears in the formula for '", nm,
+               "'. The term changes the residual density of the response, ",
+               "not a linear predictor",
+               if (grepl("^mu[0-9]", nm)) {
+                 paste0(". '", nm, "' is a mixture component, and a mixture ",
+                        "likelihood has no single residual to correlate; ",
+                        "an ar1()/toep() random effect over the time factor ",
+                        "is the available alternative there")
+               } else "", call. = FALSE)
     }
     found <- c(found, ats)
     dpars[[nm]]$acterms <- list()
   }
   if (length(found) > 1L) {
-    stop("Response '", resp_name, "' carries ", length(found),
-         " residual correlation terms (",
-         paste(vapply(found, `[[`, "", "label"), collapse = ", "),
-         "); a response has one residual covariance, so keep one. ",
-         "Structures can be nested through random effects instead, ",
-         "e.g. ar(week, subj, cov = TRUE) + (1 | site)", call. = FALSE)
+    frm_stop("Response '", resp_name, "' carries ", length(found),
+             " residual correlation terms (",
+             paste(vapply(found, `[[`, "", "label"), collapse = ", "),
+             "); a response has one residual covariance, so keep one. ",
+             "Structures can be nested through random effects instead, ",
+             "e.g. ar(week, subj, cov = TRUE) + (1 | site)", call. = FALSE)
   }
   list(dpars = dpars, autocor = if (length(found)) found[[1L]])
 }
@@ -1438,8 +1449,8 @@ plain_dpar <- function(dp, fam, constant = NULL) {
   if (!is.null(constant)) {
     lv <- fam[["links"]][[dp]]$linkfun(constant)
     if (!is.finite(lv)) {
-      stop("Constant ", dp, " = ", constant, " is not in the range of ",
-           "the ", fam[["links"]][[dp]]$name, " link", call. = FALSE)
+      frm_stop("Constant ", dp, " = ", constant, " is not in the range of ",
+               "the ", fam[["links"]][[dp]]$name, " link", call. = FALSE)
     }
   }
   list(name = dp, link = fam[["links"]][[dp]], fixed = ~1, re = list(),
@@ -1556,11 +1567,11 @@ order_dpars_by_dependency <- function(dpars, resp_name) {
     ready <- left[vapply(left, function(nm) all(deps[[nm]] %in% done),
                          TRUE)]
     if (!length(ready)) {
-      stop("The nonlinear formulas of response '", resp_name,
-           "' depend on each other in a cycle, so no order computes ",
-           "them: ", paste(left, collapse = ", "),
-           ". A parameter's body cannot name a parameter whose own ",
-           "body names it back (nor itself)", call. = FALSE)
+      frm_stop("The nonlinear formulas of response '", resp_name,
+               "' depend on each other in a cycle, so no order computes ",
+               "them: ", paste(left, collapse = ", "),
+               ". A parameter's body cannot name a parameter whose own ",
+               "body names it back (nor itself)", call. = FALSE)
     }
     done <- c(done, ready[1L])
     left <- setdiff(left, ready[1L])
@@ -1610,13 +1621,14 @@ parse_one_response <- function(bform) {
     # Not reachable through frm(), get_prior() or frm_simulate(): all
     # three normalize with as_bform(), which defaults an unnamed family
     # to gaussian. It guards direct internal use of parse_spec().
-    stop("No family specified. Pass one as the `family` argument of ",
-         "frm(), or attach it with `bf(...) + gaussian()`",
-         call. = FALSE)
+    frm_stop("No family specified. Pass one as the `family` argument of ",
+             "frm(), or attach it with `bf(...) + gaussian()`",
+             call. = FALSE)
   }
   f <- bform$formula
   if (length(f) != 3L) {
-    stop("The model formula needs a response (left-hand side)", call. = FALSE)
+    frm_stop("The model formula needs a response (left-hand side)",
+             call. = FALSE)
   }
   env <- environment(f) %||% globalenv()
   # response-level alias environment: parse_linpred registers protected
@@ -1649,18 +1661,18 @@ parse_one_response <- function(bform) {
     # silently discarded (brms discards it). Say so instead. `nl = TRUE`
     # alongside such an nlf() is then redundant, not contradictory.
     if (!identical(deparse1(main_rhs), "1")) {
-      stop("nlf(", primaries[1L], " ~ ...) gives '", primaries[1L],
-           "' a nonlinear body of its own, which would leave the ",
-           "right-hand side of the bf() it is added to ('",
-           deparse1(main_rhs), "') with nothing to do. Write ",
-           "bf(", deparse1(ri$resp), " ~ 1) and let nlf() define ",
-           primaries[1L], ", or move those terms into the nlf() body",
-           call. = FALSE)
+      frm_stop("nlf(", primaries[1L], " ~ ...) gives '", primaries[1L],
+               "' a nonlinear body of its own, which would leave the ",
+               "right-hand side of the bf() it is added to ('",
+               deparse1(main_rhs), "') with nothing to do. Write ",
+               "bf(", deparse1(ri$resp), " ~ 1) and let nlf() define ",
+               primaries[1L], ", or move those terms into the nlf() body",
+               call. = FALSE)
     }
   } else if (mu_by_flag) {
     if (!identical(primaries, "mu")) {
-      stop("nl = TRUE requires a family with a single 'mu' location ",
-           "parameter", call. = FALSE)
+      frm_stop("nl = TRUE requires a family with a single 'mu' location ",
+               "parameter", call. = FALSE)
     }
     nl_bodies[["mu"]] <- main_rhs
     nl_envs[["mu"]] <- env
@@ -1686,12 +1698,12 @@ parse_one_response <- function(bform) {
       # with a message about the body. Say what is wrong instead.
       ac_in_body <- intersect(autocor_structs, all.names(b))
       if (length(ac_in_body)) {
-        stop("Residual correlation terms are not supported in a ",
-             "nonlinear (nl = TRUE) formula; '", ac_in_body[1L],
-             "()' appears in the model body, where it would be evaluated ",
-             "as ordinary R code rather than read as a term. brms reaches ",
-             "the same model through acformula(), which has no analog ",
-             "here", call. = FALSE)
+        frm_stop("Residual correlation terms are not supported in a ",
+                 "nonlinear (nl = TRUE) formula; '", ac_in_body[1L],
+                 "()' appears in the model body, where it would be evaluated ",
+                 "as ordinary R code rather than read as a term. brms reaches ",
+                 "the same model through acformula(), which has no analog ",
+                 "here", call. = FALSE)
       }
     }
     # A parameter cannot carry a design matrix AND a nonlinear body:
@@ -1709,13 +1721,13 @@ parse_one_response <- function(bform) {
     if (length(both)) {
       bad <- both[1L]
       if (bad %in% fam[["dpars"]]) {
-        stop("'", bad, "' is a distributional parameter of family '",
-             fam[["family"]], "', so it cannot also be a nonlinear ",
-             "parameter: '", bad, " ~ ...' gives the family's own '",
-             bad, "' a linear predictor, while the nonlinear body needs ",
-             "'", bad, "' to be a parameter it can refer to. Rename the ",
-             "nonlinear parameter. This family reserves: ",
-             paste(fam[["dpars"]], collapse = ", "), call. = FALSE)
+        frm_stop("'", bad, "' is a distributional parameter of family '",
+                 fam[["family"]], "', so it cannot also be a nonlinear ",
+                 "parameter: '", bad, " ~ ...' gives the family's own '",
+                 bad, "' a linear predictor, while the nonlinear body needs ",
+                 "'", bad, "' to be a parameter it can refer to. Rename the ",
+                 "nonlinear parameter. This family reserves: ",
+                 paste(fam[["dpars"]], collapse = ", "), call. = FALSE)
       }
       # UNREACHABLE while `+.frmtmb_formula` stands: a name needs a
       # formula AND a body to get here, and R/bf.R:338, :351 and :358
@@ -1727,28 +1739,28 @@ parse_one_response <- function(bform) {
       # as a guard rather than deleted, because the branch above would
       # otherwise tell a non-dpar name it is a distributional parameter
       # if that upstream refusal ever moves.
-      stop("Nonlinear parameter '", bad, "' has both a formula ('", bad,
-           " ~ ...') and a body ('nlf(", bad, " ~ ...)'). A parameter is ",
-           "one or the other: a body computes it from other parameters, ",
-           "a formula estimates coefficients of its own. Drop whichever ",
-           "is not meant", call. = FALSE)
+      frm_stop("Nonlinear parameter '", bad, "' has both a formula ('", bad,
+               " ~ ...') and a body ('nlf(", bad, " ~ ...)'). A parameter is ",
+               "one or the other: a body computes it from other parameters, ",
+               "a formula estimates coefficients of its own. Drop whichever ",
+               "is not meant", call. = FALSE)
     }
     if (!length(nlpars)) {
-      stop("A nonlinear formula needs at least one nonlinear-parameter ",
-           "formula whose name appears in the model formula. No name in ",
-           "the body of ", paste0("'", nl_dpars, "'", collapse = ", "),
-           " has one, so every name there is read as a data column and ",
-           "nothing is left to estimate; declare the parameters with ",
-           "bf(..., a ~ 1, nl = TRUE), lf(a ~ 1) or nlf()", call. = FALSE)
+      frm_stop("A nonlinear formula needs at least one nonlinear-parameter ",
+               "formula whose name appears in the model formula. No name in ",
+               "the body of ", paste0("'", nl_dpars, "'", collapse = ", "),
+               " has one, so every name there is read as a data column and ",
+               "nothing is left to estimate; declare the parameters with ",
+               "bf(..., a ~ 1, nl = TRUE), lf(a ~ 1) or nlf()", call. = FALSE)
     }
     used <- unique(unlist(lapply(nl_bodies, function(b) {
       intersect(nl_body_vars(b), nlpars)
     })))
     miss <- setdiff(nlpars, used %||% character(0))
     if (length(miss)) {
-      stop("Nonlinear parameter(s) not used in the model formula or in ",
-           "any nlf() body: ", paste(miss, collapse = ", "),
-           call. = FALSE)
+      frm_stop("Nonlinear parameter(s) not used in the model formula or in ",
+               "any nlf() body: ", paste(miss, collapse = ", "),
+               call. = FALSE)
     }
   }
 
@@ -1775,17 +1787,18 @@ parse_one_response <- function(bform) {
     repl <- family_se_dpar(fam)
     if (!is.null(repl) && !is.na(repl)) {
       if (repl %in% modeled && family_declares_aterm(fam, "se")) {
-        stop("se() without sigma = TRUE replaces the residual scale, ",
-             "which for '", fam[["family"]], "' is `", repl,
-             "`, so the core maps that dpar out and the density never ",
-             "reads it. The formula `", repl, " ~ ...` estimates it ",
-             "instead, which leaves a flat direction and a NaN ",
-             "standard error. Three ways out: drop the formula and ",
-             "let the core map `", repl, "` out; pin it with a ",
-             "constant (", deparse1(ri$resp), " | se(...) ~ ..., ",
-             repl, " = 1); or write se(x, sigma = TRUE) if it stays ",
-             "estimated alongside the known standard deviation",
-             call. = FALSE)
+        frm_stop("se() without sigma = TRUE replaces the residual scale, ",
+                 "which for '", fam[["family"]], "' is `", repl,
+                 "`, so the core maps that dpar out and the density never ",
+                 "reads it. The formula `", repl, " ~ ...` estimates it ",
+                 "instead, which leaves a flat direction and a NaN ",
+                 "standard error. Three ways out: drop the formula and ",
+                 "let the core map `", repl, "` out; pin it with a ",
+                 "constant (", deparse1(ri$resp), " | se(...) ~ ..., ",
+                 repl, " = 1); or write se(x, sigma = TRUE) if it stays ",
+                 "estimated alongside the known standard deviation",
+                 call. = FALSE,
+                 package = frm_family_package(fam))
       }
       if (!repl %in% c(modeled, names(pfix))) {
         # the residual SD is the known se alone, so the dpar it
@@ -1808,27 +1821,28 @@ parse_one_response <- function(bform) {
       # known se, and always was).
       loose <- setdiff(fam[["dpars"]], c(primaries, names(pfix)))
       if (length(loose)) {
-        stop("se() without sigma = TRUE replaces the residual scale, ",
-             "and the core maps out the dpar named `sigma` to do it. ",
-             "'", fam[["family"]], "' declares that it reads se() but ",
-             "has no `sigma`, so the core cannot tell whether ",
-             paste0("`", loose, "`", collapse = ", "),
-             if (length(loose) > 1L) " are" else " is",
-             " a second SCALE, which se() would leave free and unread ",
-             "(a flat direction and a NaN standard error), or a SHAPE ",
-             "the density reads alongside the known standard error. ",
-             "Four ways out: say which dpar the ",
-             "known standard error replaces, with frmtmb_family(",
-             "se_dpar = \"", loose[[1L]], "\"), or with se_dpar = NA ",
-             "if it replaces none because ",
-             paste0("`", loose, "`", collapse = ", "),
-             if (length(loose) > 1L) " are shapes" else " is a shape",
-             " the density reads; name the scale ",
-             "`sigma` so the core maps it out; pin it in the formula (",
-             deparse1(ri$resp), " | se(...) ~ ..., ", loose[[1L]],
-             " = 1); or write se(x, sigma = TRUE) if it stays ",
-             "estimated alongside the known standard deviation",
-             call. = FALSE)
+        frm_stop("se() without sigma = TRUE replaces the residual scale, ",
+                 "and the core maps out the dpar named `sigma` to do it. ",
+                 "'", fam[["family"]], "' declares that it reads se() but ",
+                 "has no `sigma`, so the core cannot tell whether ",
+                 paste0("`", loose, "`", collapse = ", "),
+                 if (length(loose) > 1L) " are" else " is",
+                 " a second SCALE, which se() would leave free and unread ",
+                 "(a flat direction and a NaN standard error), or a SHAPE ",
+                 "the density reads alongside the known standard error. ",
+                 "Four ways out: say which dpar the ",
+                 "known standard error replaces, with frmtmb_family(",
+                 "se_dpar = \"", loose[[1L]], "\"), or with se_dpar = NA ",
+                 "if it replaces none because ",
+                 paste0("`", loose, "`", collapse = ", "),
+                 if (length(loose) > 1L) " are shapes" else " is a shape",
+                 " the density reads; name the scale ",
+                 "`sigma` so the core maps it out; pin it in the formula (",
+                 deparse1(ri$resp), " | se(...) ~ ..., ", loose[[1L]],
+                 " = 1); or write se(x, sigma = TRUE) if it stays ",
+                 "estimated alongside the known standard deviation",
+                 call. = FALSE,
+                 package = frm_family_package(fam))
       }
     }
   }
@@ -1837,10 +1851,11 @@ parse_one_response <- function(bform) {
                intersect(nl_dpars, primaries))
   unknown <- setdiff(extra, allowed)
   if (length(unknown)) {
-    stop("dpar(s) not available for family '", fam[["family"]], "': ",
-         paste(unknown, collapse = ", "),
-         " (available: ", paste(allowed, collapse = ", "), ")",
-         call. = FALSE)
+    frm_stop("dpar(s) not available for family '", fam[["family"]], "': ",
+             paste(unknown, collapse = ", "),
+             " (available: ", paste(allowed, collapse = ", "), ")",
+             call. = FALSE,
+             package = frm_family_package(fam))
   }
 
   # mu keeps a design of its own unless a body took its place
@@ -2000,20 +2015,20 @@ check_id_covstructs <- function(spec) {
     at <- which(id_labels == lb)
     gs <- unique(groups[at])
     if (length(gs) > 1L) {
-      stop("The |", lb, "| key is used over more than one grouping ",
-           "specification (", paste(gs, collapse = ", "), "): ",
-           paste(labs[at], collapse = "; "),
-           ". Terms keyed by the same |ID| merge into one covariance ",
-           "block, which needs a single grouping factor and, for ",
-           "gr(cov = ) / gr(prec = ), a single relationship matrix. ",
-           "Use one spelling for all of them, or give the terms ",
-           "different |ID| labels. Both spellings of a multi-trait ",
-           "model over ONE relationship matrix are supported and give ",
-           "the same fit:\n",
-           "  mvbf(bf(y1 ~ (1 | q | gr(id, cov = A))), ",
-           "bf(y2 ~ (1 | q | gr(id, cov = A))))\n",
-           "  bf(value ~ 0 + trait + (0 + trait | gr(id, cov = A)), ",
-           "sigma ~ 0 + trait)", call. = FALSE)
+      frm_stop("The |", lb, "| key is used over more than one grouping ",
+               "specification (", paste(gs, collapse = ", "), "): ",
+               paste(labs[at], collapse = "; "),
+               ". Terms keyed by the same |ID| merge into one covariance ",
+               "block, which needs a single grouping factor and, for ",
+               "gr(cov = ) / gr(prec = ), a single relationship matrix. ",
+               "Use one spelling for all of them, or give the terms ",
+               "different |ID| labels. Both spellings of a multi-trait ",
+               "model over ONE relationship matrix are supported and give ",
+               "the same fit:\n",
+               "  mvbf(bf(y1 ~ (1 | q | gr(id, cov = A))), ",
+               "bf(y2 ~ (1 | q | gr(id, cov = A))))\n",
+               "  bf(value ~ 0 + trait + (0 + trait | gr(id, cov = A)), ",
+               "sigma ~ 0 + trait)", call. = FALSE)
     }
   }
   shared <- ids %in% ids[duplicated(ids)]
@@ -2021,16 +2036,16 @@ check_id_covstructs <- function(spec) {
     at <- which(ids == k)
     cs <- unique(cls[at])
     if (length(cs) == 1L) next
-    stop("Terms sharing the |ID| key '", k, "' mix covariance ",
-         "structures (", paste(cs, collapse = ", "), "): ",
-         paste(labs[at], collapse = "; "),
-         ". A merged block has one structure. Either give them all the ",
-         "same structure, or split the |ID| label. A key whose terms ",
-         "are all gr(cov = ) (or all gr(prec = )) over the same factor ",
-         "and the same matrix is supported and fits the same model as ",
-         "the long-format spelling, ",
-         "bf(value ~ 0 + trait + (0 + trait | gr(id, cov = A)), ",
-         "sigma ~ 0 + trait).", call. = FALSE)
+    frm_stop("Terms sharing the |ID| key '", k, "' mix covariance ",
+             "structures (", paste(cs, collapse = ", "), "): ",
+             paste(labs[at], collapse = "; "),
+             ". A merged block has one structure. Either give them all the ",
+             "same structure, or split the |ID| label. A key whose terms ",
+             "are all gr(cov = ) (or all gr(prec = )) over the same factor ",
+             "and the same matrix is supported and fits the same model as ",
+             "the long-format spelling, ",
+             "bf(value ~ 0 + trait + (0 + trait | gr(id, cov = A)), ",
+             "sigma ~ 0 + trait).", call. = FALSE)
   }
   invisible(NULL)
 }
@@ -2041,16 +2056,16 @@ parse_spec <- function(bform) {
     resps <- lapply(bform$forms, parse_one_response)
     names(resps) <- vapply(resps, `[[`, "", "resp_name")
     if (anyDuplicated(names(resps))) {
-      stop("Duplicated response in mvbf(): ",
-           names(resps)[duplicated(names(resps))][1], call. = FALSE)
+      frm_stop("Duplicated response in mvbf(): ",
+               names(resps)[duplicated(names(resps))][1], call. = FALSE)
     }
     rescor <- isTRUE(bform$rescor)
     if (rescor) {
       fams <- vapply(resps, function(r) r$family[["family"]], "")
       if (!all(fams == "gaussian")) {
-        stop("rescor = TRUE requires all responses to be gaussian ",
-             "(got: ", paste(unique(fams), collapse = ", "), ")",
-             call. = FALSE)
+        frm_stop("rescor = TRUE requires all responses to be gaussian ",
+                 "(got: ", paste(unique(fams), collapse = ", "), ")",
+                 call. = FALSE)
       }
     }
     out <- structure(

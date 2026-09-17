@@ -1,0 +1,2 @@
+"file"	"class"	"message"
+"tests/testthat/test-bcm-data-analysis.R"	"frmtmb_error/error/condition"	"cens()/trunc() need a family with a CDF (currently: gaussian, lognormal, poisson, exponential, weibull, inverse.gaussian, cox). The list is not closed: a family supplies one through the lcdf argument of frmtmb_family(), and a family that only ever sees RIGHT censoring may supply the log survivor fun"

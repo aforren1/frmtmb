@@ -1,3 +1,110 @@
+# frmtmb (development version)
+
+* **BREAKING: every condition frmtmb raises is classed**, the contract
+  brms keeps with `brms_error`. An error has the class
+  `c("frmtmb_error", "error", "condition")`, a warning
+  `c("frmtmb_warning", "warning", "condition")` and a message
+  `c("frmtmb_message", "message", "condition")`, so
+  `tryCatch(frmtmb_error = )` catches any refusal. A condition that an
+  extension raises also has a subclass named for the package, such as
+  `frmtmb_eam_error`. See `?frmtmb-conditions`.
+
+  What changes for a caller: the class vector no longer contains
+  `simpleError`, `simpleWarning` or `simpleMessage`, so a handler or
+  test that catches those classes by name stops matching. A handler for
+  `error`, `warning` or `message` is not affected. A
+  `frmtmb_fit_error`, raised when the optimizer fails, is now a
+  `frmtmb_error` and is no longer a `simpleError`. The one exception is
+  the refusal of `model.matrix()` on a multivariate fit, which is
+  `c("frmtmb_error", "simpleError", "error", "condition")`: insight
+  1.5.4 tests for `simpleError` to give `NA` standard errors in
+  `get_predicted_ci()`, and without it that call stopped with
+  "argument is of length zero".
+
+  Unlike brms's class vector, frmtmb's does not contain `rlang_error`:
+  frmtmb builds the conditions with base R and does not import rlang.
+  Errors from other packages, such as RTMB, TMB and Matrix, keep their
+  own class, and so does R's "unused argument" for an argument that a
+  function does not have.
+
+* **BREAKING: refusals that base R used to raise now have frmtmb's
+  class and new text.** Each is a `frmtmb_error` whose message names
+  the argument or variable, the value given and what is allowed. Code
+  that matches the old text stops matching:
+
+  - A value that matches none of the choices of `predict(type =)`,
+    `fitted(scale =)`, `residuals(type =)`, `confint(method =)`,
+    `drop1(test =)`, `hypothesis(method =, scope =)`,
+    `conditional_effects(band =, method =)`,
+    `frmtmb_control(check_nlev_1 =, check_olre =)`,
+    `default_prior(route =)`, `get_prior(route =)`,
+    `validate_prior(route =)`, `vcov_cluster(type =)`,
+    `frm_periodogram(taper =, detrend =)` and `anova()` on a
+    `frmtmb_multiple` (`method =`, `use =`). The old text was
+    `'arg' should be one of "response", "linear"`. The new text is
+    `` `scale` must be one of "response", "linear", not character
+    "latent" ``. A partial value such as `"resp"` still matches.
+  - A prior string with the wrong number of arguments, for each density
+    that `set_prior()` reads. The old text was
+    `length(pars) == 2 is not TRUE`. The new text is
+    `Prior 'normal(0)' gives 1 argument; normal() takes 2: normal(mu,
+    sigma)`. An `exponential()` rate that is not positive, and a prior
+    that is not one string, have messages of their own.
+  - An argument of the wrong type that a `stopifnot()` refused with the
+    text of the assertion: `set_prior(...) + "x"`,
+    `frm(prior = list(1))`, `diagnose()`, `cluster_scores()` and
+    `vcov_cluster()` on an object that is not a frmtmb fit,
+    `check_custom_family()` on an object that is not a family, and
+    `frmtmb_family()` with a `family`, `dpars` or `lpdf` of the wrong
+    type.
+  - `predict()` and the other methods that take `newdata` refuse a
+    `newdata` that lacks a variable of the model (was
+    `object 'z' not found`, now `Variable 'z' missing from newdata`) or
+    that has a level of a population-level factor that the fit did not
+    see (was `factor f has new levels zz`). brms refuses both.
+  - `frm()` refuses a variable that is neither a column of `data` nor
+    an object found from the formula (was `object 'nope' not found`), a
+    `data` that is not a data frame, a list column used as a variable
+    (was `invalid type (list) for variable 'lc'`), and an object from
+    the formula environment whose length is not the number of rows (was
+    `variable lengths differ`).
+  - `hypothesis()` refuses a name in backticks, such as
+    `` `(Intercept)` ``, as it refuses other unknown parameters (was
+    `object '(Intercept)' not found`).
+  - `lme4::getME(<multivariate fit>, "Zt")` keeps its class. The text
+    loses the prefix `error in evaluating the argument 'x' in selecting
+    a method for function 't': ` that R's S4 dispatch added.
+
+* `frm_stop()`, `frm_warning()` and `frm_message()` are exported for
+  extension authors. They take the arguments of `stop()`, `warning()`
+  and `message()` and add the classes. Given one condition object, they
+  signal that object with the classes added, as the base functions do.
+  `frm_warning(immediate. = TRUE)` prints at once when
+  `getOption("warn")` is 0. A helper given as a value, as in
+  `lapply(x, frm_stop)`, gets the subclass of the function that gave it.
+  `package =` names the package whose subclass the condition gets.
+  `frm_match_arg()` is `match.arg()` with a classed refusal, and
+  `frm_family_package()` gives the package that built a family.
+
+* A refusal that frmtmb raises from text an extension wrote as data,
+  such as `frmtmb_structure(refusals =)`, or about a declaration of a
+  family that an extension built, such as an addition term the family
+  needs, has the subclass of that extension. For example,
+  `frm(..., family = hmm(...), REML = TRUE)` is a
+  `frmtmb_latent_error`. `?frmtmb-conditions` says which refusals have
+  the subclass and which do not.
+
+* Every extension in this repository now requires these functions, so
+  the `frmtmb (>= 0.59.0)` floor of
+  frmtmb.coupling, frmtmb.eam, frmtmb.latent, frmtmb.learn, frmtmb.ode,
+  frmtmb.sample and frmtmb.spline must move to the release that
+  includes this change.
+
+* The worked-example families in `inst/bcm/` and `inst/rl/`, which
+  `vignette("bayesian-cognitive-modeling")` and
+  `vignette("reinforcement-learning")` load with `source()`, raise their
+  refusals with `frm_stop()` too, so a copy of them keeps the classes.
+
 # frmtmb 0.59.0
 
 * **BREAKING, and the silent wrong answer it removes.** The link for the

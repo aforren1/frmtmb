@@ -1,0 +1,7 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 2 PASS 4 FAIL 4 ERROR 0 SKIP 0  extensions/frmtmb.learn/tests/testthat/test-conditions.R
+  failing: the refusals classed in punch round 1 carry the subclass
+       Expected task to be identical to `c("frmtmb_learn_error", "frmtmb_error", "error")`. Differences: `actual`:   "simpleError"        "error"        "condition" `expected`: "frmtmb_learn_error" "frmtmb_error" "error"      
+       Expected split to be identical to `c("frmtmb_learn_error", "frmtmb_error", "error")`. Differences: `actual`:   "simpleError"        "error"        "condition" `expected`: "frmtmb_learn_error" "frmtmb_error" "error"      
+       Expected task_simulate_nonfamily to be identical to `c("frmtmb_learn_error", "frmtmb_error", "error")`. Differences: `actual`:   "subscriptOutOfBoundsError" "error"        "condition" `expected`: "frmtmb_learn_error"        "frmtmb_error" "error"      
+       Expected rlddm_pending_bound to be identical to `c("frmtmb_learn_error", "frmtmb_error", "error")`. Differences: `actual`:   "frmtmb_eam_error"   "frmtmb_error" "error" `expected`: "frmtmb_learn_error" "frmtmb_error" "error"  

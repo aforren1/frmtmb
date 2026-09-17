@@ -1,0 +1,7 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+StanHeaders: 2.32.10 
+5 rows removed because of missing values (na.action)
+5 rows removed because of missing values (na.action)
+BLOCKS 3 PASS 24 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-v16.R 
+CAUGHT 4 
+DONE

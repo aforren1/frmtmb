@@ -1,0 +1,2 @@
+"file"	"class"	"message"
+"extensions/frmtmb.sample/tests/testthat/test-parallel-chains.R"	"frmtmb_sample_error/frmtmb_error/error/condition"	"frm_sample(): cores = 2 starts one R process per chain on Windows, and each rebuilds the model from the packages in the library. This model's family comes from frmtmb.eam as loaded by pkgload::load_all(), which exists only in this session: a worker replaces it with the global environment and fails a"

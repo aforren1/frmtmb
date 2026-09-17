@@ -1,0 +1,122 @@
+   pkg             file                  line fn        owner                          exported
+1  frmtmb          autoscale.R             69 match.arg autoscale_map                  FALSE   
+2  frmtmb          autoscale.R            175 stopifnot autoscale_units                FALSE   
+3  frmtmb          brms-names.R            45 stopifnot brms_rename                    FALSE   
+4  frmtmb          conditional-effects.R  458 match.arg ce_method                      FALSE   
+5  frmtmb          conditional-effects.R 1701 match.arg conditional_effects.frmtmb_fit  TRUE   
+6  frmtmb          confint.R              377 match.arg confint.frmtmb_fit             FALSE   
+7  frmtmb          confint.R             1187 stopifnot diagnose                        TRUE   
+8  frmtmb          confint.R             1730 match.arg drop1.frmtmb_fit               FALSE   
+9  frmtmb          confint.R             2693 match.arg hyp_refuse_draws_args          FALSE   
+10 frmtmb          confint.R             2720 match.arg hypothesis.frmtmb_fit           TRUE   
+11 frmtmb          families.R             463 stopifnot frmtmb_family                   TRUE   
+12 frmtmb          fit.R                 1533 match.arg frmtmb_control                  TRUE   
+13 frmtmb          fit.R                 1534 match.arg frmtmb_control                  TRUE   
+14 frmtmb          interop.R               64 stopifnot check_custom_family             TRUE   
+15 frmtmb          multiple.R             243 match.arg anova.frmtmb_multiple          FALSE   
+16 frmtmb          multiple.R             244 match.arg anova.frmtmb_multiple          FALSE   
+17 frmtmb          parse.R               2065 stopifnot parse_spec                     FALSE   
+18 frmtmb          predict.R             1217 match.arg predict.frmtmb_fit             FALSE   
+19 frmtmb          predict.R             1918 match.arg fitted.frmtmb_fit              FALSE   
+20 frmtmb          predict.R             2239 stopifnot ord_prob_se                    FALSE   
+21 frmtmb          predict.R             2548 match.arg residuals.frmtmb_fit           FALSE   
+22 frmtmb          priors.R               961 stopifnot parse_prior_dist               FALSE   
+23 frmtmb          priors.R               982 stopifnot parse_prior_dist               FALSE   
+24 frmtmb          priors.R               986 stopifnot parse_prior_dist               FALSE   
+25 frmtmb          priors.R               990 stopifnot parse_prior_dist               FALSE   
+26 frmtmb          priors.R               994 stopifnot parse_prior_dist               FALSE   
+27 frmtmb          priors.R               999 stopifnot parse_prior_dist               FALSE   
+28 frmtmb          priors.R              1003 stopifnot parse_prior_dist               FALSE   
+29 frmtmb          priors.R              1007 stopifnot parse_prior_dist               FALSE   
+30 frmtmb          priors.R              1011 stopifnot parse_prior_dist               FALSE   
+31 frmtmb          priors.R              1015 stopifnot parse_prior_dist               FALSE   
+32 frmtmb          priors.R              1041 stopifnot ?                              FALSE   
+33 frmtmb          priors.R              1438 match.arg default_prior                   TRUE   
+34 frmtmb          priors.R              1517 match.arg validate_prior                  TRUE   
+35 frmtmb          priors.R              3220 stopifnot resolve_priors                 FALSE   
+36 frmtmb          sampling-api.R         410 stopifnot frmtmb_register_prior_defaults  TRUE   
+37 frmtmb          sandwich.R             296 stopifnot cluster_scores                  TRUE   
+38 frmtmb          sandwich.R             451 stopifnot vcov_cluster                    TRUE   
+39 frmtmb          sandwich.R             463 match.arg vcov_cluster                    TRUE   
+40 frmtmb          spectral.R             161 match.arg frm_periodogram                 TRUE   
+41 frmtmb          spectral.R             162 match.arg frm_periodogram                 TRUE   
+42 frmtmb.coupling cross-spectrum.R       229 match.arg frm_cross_spectrum              TRUE   
+43 frmtmb.eam      gddm.R                 761 match.arg gddm_control                    TRUE   
+44 frmtmb.eam      gddm.R                 988 match.arg gddm                            TRUE   
+45 frmtmb.eam      gddm.R                1813 match.arg gddm_simulate                   TRUE   
+46 frmtmb.latent   hmm.R                  408 match.arg hmm                             TRUE   
+47 frmtmb.learn    bandit2arm-dual.R       75 match.arg bandit2arm_dual                 TRUE   
+48 frmtmb.learn    engine.R               176 match.arg ln_recurse                     FALSE   
+49 frmtmb.learn    task.R                  42 match.arg frm_task_design                 TRUE   
+50 frmtmb.ode      lincmt.R               758 match.arg frm_lincmt                      TRUE   
+51 frmtmb.ode      ode.R                 1652 match.arg frm_ode                         TRUE   
+52 frmtmb.sample   loo.R                  501 match.arg loo_compare.frmtmb_draws       FALSE   
+53 frmtmb.sample   methods-draws.R        283 match.arg hypothesis.frmtmb_draws        FALSE   
+54 frmtmb.sample   methods-draws.R        777 match.arg pp_check.frmtmb_draws          FALSE   
+55 frmtmb.sample   methods-draws.R       1315 match.arg predictive_error.frmtmb_draws   TRUE   
+56 frmtmb.sample   sample.R              2153 stopifnot check_laplace                   TRUE   
+57 frmtmb.spline   curve-feature.R        125 match.arg frm_curve_feature               TRUE   
+58 frmtmb.spline   royston-parmar.R       290 match.arg royston_parmar                  TRUE   
+59 frmtmb.spline   rp-check.R             164 match.arg rp_floored                      TRUE   
+   call                                                                                                            
+1  match.arg(to)                                                                                                   
+2  stopifnot(length(out) == length(par_names))                                                                     
+3  stopifnot(length(pattern) == length(replacement))                                                               
+4  match.arg(method, c("epred", "predict"))                                                                        
+5  match.arg(band)                                                                                                 
+6  match.arg(method)                                                                                               
+7  stopifnot(inherits(fit, "frmtmb_fit"))                                                                          
+8  match.arg(test)                                                                                                 
+9  match.arg(scope, c("standard", "ranef", "coef"))                                                                
+10 match.arg(method)                                                                                               
+11 stopifnot(is.character(family), length(family) == 1, is.character(dpars), length(dpars) >= 1, is.function(lpdf))
+12 match.arg(check_nlev_1)                                                                                         
+13 match.arg(check_olre)                                                                                           
+14 stopifnot(inherits(family, "frmtmb_family"))                                                                    
+15 match.arg(method)                                                                                               
+16 match.arg(use)                                                                                                  
+17 stopifnot(inherits(bform, "frmtmb_formula"))                                                                    
+18 match.arg(type)                                                                                                 
+19 match.arg(scale)                                                                                                
+20 stopifnot(length(weights) == K)                                                                                 
+21 match.arg(type)                                                                                                 
+22 stopifnot(is.character(prior), length(prior) == 1)                                                              
+23 stopifnot(length(pars) == 2)                                                                                    
+24 stopifnot(length(pars) == 3)                                                                                    
+25 stopifnot(length(pars) == 2)                                                                                    
+26 stopifnot(length(pars) == 1, pars[1] > 0)                                                                       
+27 stopifnot(length(pars) == 1)                                                                                    
+28 stopifnot(length(pars) == 2)                                                                                    
+29 stopifnot(length(pars) == 2)                                                                                    
+30 stopifnot(length(pars) == 2)                                                                                    
+31 stopifnot(length(pars) == 2)                                                                                    
+32 stopifnot(inherits(e1, "frmtmb_priorlist"), inherits(e2, "frmtmb_priorlist"))                                   
+33 match.arg(route)                                                                                                
+34 match.arg(route)                                                                                                
+35 stopifnot(is.list(prior), !is.null(names(prior)))                                                               
+36 stopifnot(is.function(provider))                                                                                
+37 stopifnot(inherits(object, "frmtmb_fit"))                                                                       
+38 stopifnot(inherits(object, "frmtmb_fit"))                                                                       
+39 match.arg(type)                                                                                                 
+40 match.arg(taper)                                                                                                
+41 match.arg(detrend)                                                                                              
+42 match.arg(window)                                                                                               
+43 match.arg(tridiagonal)                                                                                          
+44 match.arg(lapse)                                                                                                
+45 match.arg(lapse)                                                                                                
+46 match.arg(init)                                                                                                 
+47 match.arg(split)                                                                                                
+48 match.arg(mode)                                                                                                 
+49 match.arg(task)                                                                                                 
+50 match.arg(output)                                                                                               
+51 match.arg(on_error)                                                                                             
+52 match.arg(criterion)                                                                                            
+53 match.arg(scope)                                                                                                
+54 match.arg(prefix)                                                                                               
+55 match.arg(method, c("posterior_predict", "posterior_epred"))                                                    
+56 stopifnot(length(ml) == length(keep))                                                                           
+57 match.arg(type)                                                                                                 
+58 match.arg(scale)                                                                                                
+59 match.arg(action)                                                                                               
+
+total 59  stopifnot 23  match.arg 36  in an exported function or registered method 29 

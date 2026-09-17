@@ -1,0 +1,6 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+StanHeaders: 2.32.10 
+Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+BLOCKS 9 PASS 54 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-effects.R 
+CAUGHT 4 
+DONE

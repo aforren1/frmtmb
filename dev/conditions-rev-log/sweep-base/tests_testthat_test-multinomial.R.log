@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/rellib-r3 
+BLOCKS 4 PASS 17 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-multinomial.R
+CAUGHT 5 
+DONE

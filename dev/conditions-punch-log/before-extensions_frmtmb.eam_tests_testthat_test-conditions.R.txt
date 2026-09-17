@@ -1,0 +1,7 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 2 PASS 4 FAIL 4 ERROR 0 SKIP 0  extensions/frmtmb.eam/tests/testthat/test-conditions.R
+  failing: the refusals classed in punch round 1 carry the subclass
+       Expected tridiagonal to be identical to `c("frmtmb_eam_error", "frmtmb_error", "error")`. Differences: `actual`:   "simpleError"      "error"        "condition" `expected`: "frmtmb_eam_error" "frmtmb_error" "error"      
+       Expected lapse to be identical to `c("frmtmb_eam_error", "frmtmb_error", "error")`. Differences: `actual`:   "simpleError"      "error"        "condition" `expected`: "frmtmb_eam_error" "frmtmb_error" "error"      
+       Expected lapse_simulate to be identical to `c("frmtmb_eam_error", "frmtmb_error", "error")`. Differences: `actual`:   "simpleError"      "error"        "condition" `expected`: "frmtmb_eam_error" "frmtmb_error" "error"      
+       Expected dec_needed to be identical to `c("frmtmb_eam_error", "frmtmb_error", "error")`. Differences: `actual`:   "frmtmb_error"     "error"        "condition" `expected`: "frmtmb_eam_error" "frmtmb_error" "error"      

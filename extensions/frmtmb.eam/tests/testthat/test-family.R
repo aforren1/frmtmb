@@ -112,7 +112,8 @@ test_that("the missing decision indicator is refused, not ignored", {
   # frame is built rather than after. Without it the density reads a
   # NULL and the log likelihood collapses to a sum over no rows.
   expect_error(frm(bf(rt ~ 1, bias = 0.5), family = wiener(), data = dat),
-               "the density needs one of `dec` or `vint1`")
+               "the density needs one of `dec` or `vint1`",
+               class = "frmtmb_eam_error")
   # The message still points at a spelling the user can write, and it
   # is the brms one. What it no longer does is name the vint() form in
   # the example: a formula has to pick one spelling to be a formula,

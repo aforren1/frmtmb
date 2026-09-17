@@ -409,19 +409,19 @@ wiener_gng <- function(deadline = NULL, max_ndt = NULL,
   if (!is.null(deadline)) {
     if (!is.numeric(deadline) || length(deadline) != 1L ||
         !is.finite(deadline) || deadline <= 0) {
-      stop("wiener_gng(): `deadline` is the time at which a trial stops ",
-           "waiting for a response and must be one positive finite ",
-           "number, or NULL to take it per row from vreal().",
-           call. = FALSE)
+      frm_stop("wiener_gng(): `deadline` is the time at which a trial stops ",
+               "waiting for a response and must be one positive finite ",
+               "number, or NULL to take it per row from vreal().",
+               call. = FALSE)
     }
     deadline <- as.numeric(deadline)
   }
   if (!is.null(max_ndt)) {
     if (!is.numeric(max_ndt) || length(max_ndt) != 1L ||
         !is.finite(max_ndt) || max_ndt <= 0) {
-      stop("wiener_gng(): `max_ndt` bounds the non-decision time and ",
-           "must be one positive finite number, or NULL to read it off ",
-           "the go responses.", call. = FALSE)
+      frm_stop("wiener_gng(): `max_ndt` bounds the non-decision time and ",
+               "must be one positive finite number, or NULL to read it off ",
+               "the go responses.", call. = FALSE)
     }
   }
   cfg <- list(deadline = deadline, max_ndt = max_ndt,
@@ -472,10 +472,10 @@ gng_check_nodes <- function(nodes) {
       !all(names(nodes) %in% names(out)) || anyDuplicated(names(nodes)) ||
       any(!is.finite(nodes)) || any(nodes < 1) ||
       any(nodes != round(nodes))) {
-    stop("wiener_gng(): `nogo_nodes` gives the no-go probability's ",
-         "quadrature node counts as a named vector of whole numbers at ",
-         "least 1, with names drawn from \"sv\", \"sz\" and \"st\".",
-         call. = FALSE)
+    frm_stop("wiener_gng(): `nogo_nodes` gives the no-go probability's ",
+             "quadrature node counts as a named vector of whole numbers at ",
+             "least 1, with names drawn from \"sv\", \"sz\" and \"st\".",
+             call. = FALSE)
   }
   out[names(nodes)] <- as.integer(nodes)
   out
@@ -602,15 +602,15 @@ gng_family <- function(cfg, delta) {
     # refusal is also the honest answer, not merely a safer one; see
     # below.
     post = list(mean_fn = function(dpars, aterms) {
-      stop("wiener_gng: this family has no mean response to report. A ",
-           "go/no-go trial produces a PAIR, whether a response ",
-           "happened and when, and no single number summarizes it: the ",
-           "no-go trials have no response time to average at all. ",
-           "fitted(), predict(type = \"response\") and residuals(type ",
-           "= \"response\") are unavailable for that reason rather ",
-           "than for want of an integral. predict(type = \"link\") ",
-           "gives the drift, boundary separation, non-decision time ",
-           "and bias the fit estimated.", call. = FALSE)
+      frm_stop("wiener_gng: this family has no mean response to report. A ",
+               "go/no-go trial produces a PAIR, whether a response ",
+               "happened and when, and no single number summarizes it: the ",
+               "no-go trials have no response time to average at all. ",
+               "fitted(), predict(type = \"response\") and residuals(type ",
+               "= \"response\") are unavailable for that reason rather ",
+               "than for want of an integral. predict(type = \"link\") ",
+               "gives the drift, boundary separation, non-decision time ",
+               "and bias the fit estimated.", call. = FALSE)
     }),
     sim = function(dpars, aterms, n) {
       gng_sim_rt(dpars, aterms, n, deadline)
@@ -727,30 +727,30 @@ gng_go_which <- function(aterms) {
 #' @noRd
 gng_check_response <- function(y, aterms, deadline) {
   if (any(!is.finite(y)) || any(y <= 0)) {
-    stop("wiener_gng: the response must be strictly positive and ",
-         "finite on every row. A no-go trial has no response time, but ",
-         "the column still needs a number the likelihood will ignore; ",
-         "the deadline is the natural one to put there.", call. = FALSE)
+    frm_stop("wiener_gng: the response must be strictly positive and ",
+             "finite on every row. A no-go trial has no response time, but ",
+             "the column still needs a number the likelihood will ignore; ",
+             "the deadline is the natural one to put there.", call. = FALSE)
   }
   if (!is.null(aterms[["vint1"]])) {
-    stop("wiener_gng: the response indicator travels through dec(), ",
-         "not vint(). dec() says whether a trial produced a response, ",
-         "coded 1, or did not, coded 0, and it reads a factor or a ",
-         "logical column the way brms does. vint() is free for ",
-         "anything else the model needs.", call. = FALSE)
+    frm_stop("wiener_gng: the response indicator travels through dec(), ",
+             "not vint(). dec() says whether a trial produced a response, ",
+             "coded 1, or did not, coded 0, and it reads a factor or a ",
+             "logical column the way brms does. vint() is free for ",
+             "anything else the model needs.", call. = FALSE)
   }
   go <- aterms[["dec"]]
   if (is.null(go) || any(!is.finite(go)) || any(!go %in% c(0, 1))) {
-    stop("wiener_gng: dec() must be 0 or 1 on every row, 1 for a trial ",
-         "that produced a response. A factor, a character vector or a ",
-         "logical is coerced on its levels with the second one read as ",
-         "a response.", call. = FALSE)
+    frm_stop("wiener_gng: dec() must be 0 or 1 on every row, 1 for a trial ",
+             "that produced a response. A factor, a character vector or a ",
+             "logical is coerced on its levels with the second one read as ",
+             "a response.", call. = FALSE)
   }
   if (!any(go == 1)) {
-    stop("wiener_gng: no trial in these data produced a response, so ",
-         "nothing identifies the non-decision time or the shape of the ",
-         "response time distribution. A go/no-go model needs go ",
-         "trials.", call. = FALSE)
+    frm_stop("wiener_gng: no trial in these data produced a response, so ",
+             "nothing identifies the non-decision time or the shape of the ",
+             "response time distribution. A go/no-go model needs go ",
+             "trials.", call. = FALSE)
   }
   # The GO responses alone, for the reason gng_finalize() reads them: a
   # no-go row's entry is a placeholder rather than a response time, and
@@ -759,21 +759,21 @@ gng_check_response <- function(y, aterms, deadline) {
   ddm_check_units(gng_go_rt(y, aterms), "wiener_gng")
   td <- if (is.null(deadline)) aterms[["vreal1"]] else deadline
   if (any(!is.finite(td)) || any(td <= 0)) {
-    stop("wiener_gng: the deadline must be positive and finite on ",
-         "every row. It is the time at which a trial stops waiting, so ",
-         "a deadline of zero or less leaves no window in which a ",
-         "response could have happened.", call. = FALSE)
+    frm_stop("wiener_gng: the deadline must be positive and finite on ",
+             "every row. It is the time at which a trial stops waiting, so ",
+             "a deadline of zero or less leaves no window in which a ",
+             "response could have happened.", call. = FALSE)
   }
   late <- go == 1 & y > rep_len(as.numeric(td), length(y)) *
     (1 + 1e-9)
   if (any(late)) {
-    stop("wiener_gng: ", sum(late), " trial(s) recorded a response ",
-         "after their own deadline, the fastest at ",
-         format(min(y[late])), " against a deadline of ",
-         format(min(rep_len(as.numeric(td), length(y))[late])),
-         ". The deadline is what stops the accumulator, so the model ",
-         "gives those trials no probability at all. Check that the ",
-         "deadline is in the units of the response.", call. = FALSE)
+    frm_stop("wiener_gng: ", sum(late), " trial(s) recorded a response ",
+             "after their own deadline, the fastest at ",
+             format(min(y[late])), " against a deadline of ",
+             format(min(rep_len(as.numeric(td), length(y))[late])),
+             ". The deadline is what stops the accumulator, so the model ",
+             "gives those trials no probability at all. Check that the ",
+             "deadline is in the units of the response.", call. = FALSE)
   }
   invisible(NULL)
 }
@@ -807,11 +807,11 @@ gng_finalize <- function(fam0, cfg, y, aterms) {
   }
   sp <- ddm_ndt_spec(go, at, cfg$max_ndt, "wiener_gng")
   if (!is.null(cfg$max_ndt) && sp$ub > lo) {
-    stop("wiener_gng: max_ndt = ", format(sp$ub), " is above the ",
-         "fastest response (", format(lo), "). Nothing can be observed ",
-         "before the non-decision time, so a bound above the fastest ",
-         "response admits values at which that trial has no ",
-         "likelihood.", call. = FALSE)
+    frm_stop("wiener_gng: max_ndt = ", format(sp$ub), " is above the ",
+             "fastest response (", format(lo), "). Nothing can be observed ",
+             "before the non-decision time, so a bound above the fastest ",
+             "response admits values at which that trial has no ",
+             "likelihood.", call. = FALSE)
   }
   # a settled bound is KEPT, for the reason ddm_finalize() gives
   keep <- ddm_ndt_keep(fam0)
@@ -864,12 +864,12 @@ gng_sim_rt <- function(dpars, aterms, n, deadline) {
     todo <- todo[!hit]
   }
   if (length(todo)) {
-    stop("wiener_gng: could not draw a response time for ",
-         length(todo), " go trial(s). The fitted parameters make a ",
-         "response before the deadline so unlikely that 200 rounds of ",
-         "rejection produced none. Use wiener_gng_simulate() for an ",
-         "unconditional draw, which does not have to hit a given ",
-         "outcome.", call. = FALSE)
+    frm_stop("wiener_gng: could not draw a response time for ",
+             length(todo), " go trial(s). The fitted parameters make a ",
+             "response before the deadline so unlikely that 200 rounds of ",
+             "rejection produced none. Use wiener_gng_simulate() for an ",
+             "unconditional draw, which does not have to hit a given ",
+             "outcome.", call. = FALSE)
   }
   out
 }
@@ -909,14 +909,14 @@ wiener_gng_simulate <- function(n, mu = 1, bs = 1.4, ndt = 0.25,
                                 bias = 0.5, deadline = 1.5,
                                 sv = 0, sz = 0, st = 0) {
   if (!is.numeric(n) || length(n) != 1L || is.na(n) || n < 1) {
-    stop("wiener_gng_simulate(): `n` is the number of trials to draw, ",
-         "one whole number of 1 or more.", call. = FALSE)
+    frm_stop("wiener_gng_simulate(): `n` is the number of trials to draw, ",
+             "one whole number of 1 or more.", call. = FALSE)
   }
   n <- as.integer(n)
   td <- rep_len(as.numeric(deadline), n)
   if (any(!is.finite(td)) || any(td <= 0)) {
-    stop("wiener_gng_simulate(): `deadline` must be positive and ",
-         "finite, as one number or one per trial.", call. = FALSE)
+    frm_stop("wiener_gng_simulate(): `deadline` must be positive and ",
+             "finite, as one number or one per trial.", call. = FALSE)
   }
   d <- ddm_simulate(n, mu = mu, bs = bs, ndt = ndt, bias = bias,
                     sv = sv, sz = sz, st = st)

@@ -42,9 +42,10 @@ get_joint_cov <- function(fit) {
 check_re_form <- function(re_formula) {
   if (!is.null(re_formula) && !inherits(re_formula, "formula") &&
         !(length(re_formula) == 1L && is.na(re_formula))) {
-    stop("`re_formula` must be NULL to keep every random effect, NA to drop ",
-         "them all, or a one-sided formula naming the ones to keep, not ",
-         arg_desc(re_formula), call. = FALSE)
+    frm_stop(
+      "`re_formula` must be NULL to keep every random effect, NA to drop ",
+      "them all, or a one-sided formula naming the ones to keep, not ",
+      arg_desc(re_formula), call. = FALSE)
   }
   invisible(NULL)
 }
@@ -67,13 +68,45 @@ re_form_keeps <- function(re_formula) {
 
 #' @noRd
 stop_unknown_response <- function(object, resp) {
-  stop("Unknown response: '", resp, "'. Available: ",
-       paste(names(object$spec$responses), collapse = ", "), call. = FALSE)
+  frm_stop("Unknown response: '", resp, "'. Available: ",
+           paste(names(object$spec$responses), collapse = ", "), call. = FALSE)
 }
 
 #' @noRd
 stop_newdata_missing <- function(v) {
-  stop("Variable '", v, "' missing from newdata", call. = FALSE)
+  frm_stop("Variable '", v, "' missing from newdata", call. = FALSE)
+}
+
+#' Refuse, by name, the two newdata faults model.frame() would otherwise
+#' report in its own words: a variable the design needs that neither
+#' `newdata` nor the formula environment holds, and a factor level the
+#' fit never saw. brms refuses both as a brms_error.
+#'
+#' The lookup is model.frame()'s own, `newdata` first and then the
+#' environment of `tt`, so a variable it would find is never refused.
+#'
+#' @noRd
+check_newdata_frame <- function(tt, newdata, xlev) {
+  env <- environment(tt) %||% globalenv()
+  nms <- names(newdata)
+  for (v in setdiff(all.vars(tt), nms)) {
+    if (!exists(v, envir = env)) stop_newdata_missing(v)
+  }
+  for (v in intersect(names(xlev), nms)) {
+    x <- newdata[[v]]
+    if (!is.factor(x) && !is.character(x)) next
+    lev <- unique(as.character(x[!is.na(x)]))
+    new <- lev[!lev %in% xlev[[v]]]
+    if (length(new)) {
+      frm_stop("newdata has ", if (length(new) == 1L) "a level" else
+                 "levels", " of `", v, "` that the fit did not see: ",
+               paste0("'", new, "'", collapse = ", "), ". The fitted ",
+               "levels are ", paste0("'", xlev[[v]], "'", collapse = ", "),
+               ". A population-level factor cannot take a new level",
+               call. = FALSE)
+    }
+  }
+  invisible(NULL)
 }
 
 #' Numeric coefficient-space vector for a fitted model (rr factors
@@ -106,14 +139,14 @@ mo_codes <- function(fit, lp, mi, newdata) {
   if (!is.null(mi$levels)) {
     v <- factor(v, levels = mi$levels, ordered = TRUE)
     if (anyNA(v)) {
-      stop("mo(): new data contain unknown categories", call. = FALSE)
+      frm_stop("mo(): new data contain unknown categories", call. = FALSE)
     }
     return(as.integer(v) - 1L)
   }
   codes <- as.integer(round(v))   # grids may land between categories
   if (any(codes < 0 | codes > mi$D)) {
-    stop("mo(): new data outside the fitted range 0..", mi$D,
-         call. = FALSE)
+    frm_stop("mo(): new data outside the fitted range 0..", mi$D,
+             call. = FALSE)
   }
   codes
 }
@@ -243,17 +276,17 @@ smooth_newdata_check <- function(si, newdata, use_re, allow_new_levels) {
   miss <- setdiff(smooth_pred_vars(si$sm), names(newdata))
   if (length(miss)) {
     if (!is.null(gv) && gv %in% miss) {
-      stop("predict(newdata = ) for the factor-smooth term ", si$label,
-           " needs the grouping column `", gv, "`: the term holds one ",
-           "curve per level of `", gv, "`, so a prediction conditional ",
-           "on it has to say which level each row belongs to. Add the ",
-           "column to newdata, or ask for the population curve with ",
-           "re_formula = NA, which drops the term and needs no level",
-           call. = FALSE)
+      frm_stop("predict(newdata = ) for the factor-smooth term ", si$label,
+               " needs the grouping column `", gv, "`: the term holds one ",
+               "curve per level of `", gv, "`, so a prediction conditional ",
+               "on it has to say which level each row belongs to. Add the ",
+               "column to newdata, or ask for the population curve with ",
+               "re_formula = NA, which drops the term and needs no level",
+               call. = FALSE)
     }
-    stop("predict(newdata = ) for the smooth term ", si$label,
-         " needs the column(s) ", paste0("`", miss, "`", collapse = ", "),
-         ", which newdata does not have", call. = FALSE)
+    frm_stop("predict(newdata = ) for the smooth term ", si$label,
+             " needs the column(s) ", paste0("`", miss, "`", collapse = ", "),
+             ", which newdata does not have", call. = FALSE)
   }
   # fitted levels: fs smooths carry sm$flev; factor bs = "re" smooths
   # do not, so the frame records group_levels for both (older fits
@@ -263,22 +296,22 @@ smooth_newdata_check <- function(si, newdata, use_re, allow_new_levels) {
     new <- setdiff(unique(as.character(newdata[[gv]])),
                    as.character(lev))
     if (length(new) && !allow_new_levels) {
-      stop("New levels in the factor-smooth term ", si$label, ": ",
-           paste(new, collapse = ", "), ". The term has no curve for ",
-           "them. Use allow_new_levels = TRUE to predict them at the ",
-           "population level, or re_formula = NA for the population curve ",
-           "at every row", call. = FALSE)
+      frm_stop("New levels in the factor-smooth term ", si$label, ": ",
+               paste(new, collapse = ", "), ". The term has no curve for ",
+               "them. Use allow_new_levels = TRUE to predict them at the ",
+               "population level, or re_formula = NA for the population curve ",
+               "at every row", call. = FALSE)
     }
     if (length(new) && is.null(si$sm$flev)) {
       # an fs basis zero-rows an unknown level; a factor bs = "re"
       # basis has one design column per fitted level and nothing else,
       # so there is no population row to hand back
-      stop("allow_new_levels = TRUE cannot predict the new level(s) ",
-           paste(new, collapse = ", "), " of the bs = \"re\" smooth ",
-           "term ", si$label, ": its design has one column per fitted ",
-           "level and no zero row for a new one. Use re_formula = NA for ",
-           "the population curve, which is what a new level would ",
-           "receive anyway", call. = FALSE)
+      frm_stop("allow_new_levels = TRUE cannot predict the new level(s) ",
+               paste(new, collapse = ", "), " of the bs = \"re\" smooth ",
+               "term ", si$label, ": its design has one column per fitted ",
+               "level and no zero row for a new one. Use re_formula = NA for ",
+               "the population curve, which is what a new level would ",
+               "receive anyway", call. = FALSE)
     }
   }
   invisible(NULL)
@@ -293,6 +326,7 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
                         use_re = TRUE) {
   env <- fit$spec$responses[[lp[["resp"]]]]$formula_env
   tt <- patch_predvars(lp[["terms"]], fit$frame[["predvar_map"]])
+  check_newdata_frame(tt, newdata, xlev_for(lp[["xlevels"]], tt))
   mfp <- stats::model.frame(tt, newdata, na.action = stats::na.pass,
                             xlev = xlev_for(lp[["xlevels"]], tt))
   # sparse_x fits keep newdata designs sparse too; NA rows must stay NA
@@ -343,10 +377,10 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       # (see smooth_pen_order()). NULL `ord` means that identity did not
       # hold at fit time; refusing beats returning wrong numbers.
       if (is.null(si$ord)) {
-        stop("predict(newdata = ) is not supported for the smooth ",
-             si$label, ": mgcv reported a random-effect split this ",
-             "version cannot invert. In-sample fitted()/predict() work; ",
-             "predict at the observed rows instead", call. = FALSE)
+        frm_stop("predict(newdata = ) is not supported for the smooth ",
+                 si$label, ": mgcv reported a random-effect split this ",
+                 "version cannot invert. In-sample fitted()/predict() work; ",
+                 "predict at the observed rows instead", call. = FALSE)
       }
       M <- sweep(M, 2, si$D, `*`)[, si$ord, drop = FALSE]
     } else {
@@ -419,8 +453,8 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     # reports the type rather than a downstream all-NA column [brms#1828]
     m <- check_special_mult(eval(mult_expr, newdata, env), mult_expr, "mo/mi")
     if (anyNA(m)) {
-      stop("Interaction multiplier '", deparse1(mult_expr),
-           "' has missing values in newdata", call. = FALSE)
+      frm_stop("Interaction multiplier '", deparse1(mult_expr),
+               "' has missing values in newdata", call. = FALSE)
     }
     m
   }
@@ -432,8 +466,8 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   for (mt in lp[["mi"]] %||% list()) {
     v <- newdata[[mt$var]]
     if (is.null(v) || anyNA(v)) {
-      stop("mi(", mt$var, "): newdata must supply complete values",
-           call. = FALSE)
+      frm_stop("mi(", mt$var, "): newdata must supply complete values",
+               call. = FALSE)
     }
     X <- cbind(X, matrix(as.numeric(v) * nd_mult(mt$mult_expr),
                          ncol = 1, dimnames = list(NULL, mt$label)))
@@ -469,14 +503,15 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       tt2 <- stats::terms(stats::as.formula(call("~", comp$bar[[2]]),
                                             env = env))
       tt2 <- patch_predvars(tt2, fit$frame[["predvar_map"]])
+      check_newdata_frame(tt2, newdata, xlev_for(lp[["xlevels"]], tt2))
       mf2 <- stats::model.frame(tt2, newdata, na.action = stats::na.pass,
                                 xlev = xlev_for(lp[["xlevels"]], tt2))
       mm <- stats::model.matrix(tt2, mf2)
       if (!identical(colnames(mm), comp$cnms)) {
-        stop("Random-effect design for `", comp$label, "` does not match ",
-             "the fitted model (columns: ",
-             paste(colnames(mm), collapse = ", "), " vs ",
-             paste(comp$cnms, collapse = ", "), ")", call. = FALSE)
+        frm_stop("Random-effect design for `", comp$label, "` does not match ",
+                 "the fitted model (columns: ",
+                 paste(colnames(mm), collapse = ", "), " vs ",
+                 paste(comp$cnms, collapse = ", "), ")", call. = FALSE)
       }
       gvr <- eval(comp$bar[[3]], newdata, env)
       # an spde block's levels are mesh ROW NUMBERS, so the node has to
@@ -487,10 +522,10 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       }
       j <- match(gv, bk[["levels"]])
       if (anyNA(j) && !allow_new_levels) {
-        stop("New levels in grouping factor `", deparse1(comp$bar[[3]]),
-             "`: ", paste(unique(gv[is.na(j)]), collapse = ", "),
-             ". Use allow_new_levels = TRUE to predict them at the ",
-             "population level", call. = FALSE)
+        frm_stop("New levels in grouping factor `", deparse1(comp$bar[[3]]),
+                 "`: ", paste(unique(gv[is.na(j)]), collapse = ", "),
+                 ". Use allow_new_levels = TRUE to predict them at the ",
+                 "population level", call. = FALSE)
       }
       re_parts[[length(re_parts) + 1L]] <- list(bk = bk, comp = comp,
                                                 mm = mm, j = j)
@@ -514,21 +549,21 @@ mm_newdata_parts <- function(comp, bk, newdata, env, xlevels,
                           xlev = xlev_for(xlevels, tt2),
                           use_model_frame = TRUE)
   if (!identical(md$cnms, comp$cnms)) {
-    stop("Multi-membership design for `", comp$label, "` does not match ",
-         "the fitted model (columns: ",
-         paste(md$cnms, collapse = ", "), " vs ",
-         paste(comp$cnms, collapse = ", "), ")", call. = FALSE)
+    frm_stop("Multi-membership design for `", comp$label, "` does not match ",
+             "the fitted model (columns: ",
+             paste(md$cnms, collapse = ", "), " vs ",
+             paste(comp$cnms, collapse = ", "), ")", call. = FALSE)
   }
   gv <- mm_member_values(mms, newdata, env)
   if (anyNA(iw$J) && !allow_new_levels) {
     new <- unique(unlist(lapply(gv, function(v) {
       setdiff(as.character(v), bk[["levels"]])
     }), use.names = FALSE))
-    stop("New levels in multi-membership factor `", mms$label, "`: ",
-         paste(new, collapse = ", "),
-         ". Use allow_new_levels = TRUE to predict those memberships ",
-         "at the population level; the row's remaining members still ",
-         "contribute their fitted effects", call. = FALSE)
+    frm_stop("New levels in multi-membership factor `", mms$label, "`: ",
+             paste(new, collapse = ", "),
+             ". Use allow_new_levels = TRUE to predict those memberships ",
+             "at the population level; the row's remaining members still ",
+             "contribute their fitted effects", call. = FALSE)
   }
   lapply(seq_len(iw$n_members), function(k) {
     # new_key names WHICH unseen level this member landed on, because a
@@ -693,8 +728,8 @@ rr_jacobians <- function(fit) {
 #' @export
 single_response <- function(fit, what) {
   if (length(fit$spec$responses) > 1) {
-    stop(what, " is not supported yet for multivariate fits",
-         call. = FALSE)
+    frm_stop(what, " is not supported yet for multivariate fits",
+             call. = FALSE)
   }
   fit$spec$responses[[1]]
 }
@@ -784,24 +819,24 @@ aterms_for_newdata <- function(rspec, newdata) {
       label <- aterm_label(nm, ex)
       missed <- setdiff(all.vars(ex), names(newdata))
       if (nm %in% need || is_custom_data_aterm(nm)) {
-        stop("Addition term ", label, " could not be evaluated on ",
-             "newdata",
-             if (length(missed)) {
-               paste0(": newdata has no column ",
-                      paste(missed, collapse = ", "))
-             } else "",
-             "; supply the variable or use type = \"conditional\"",
-             call. = FALSE)
+        frm_stop("Addition term ", label, " could not be evaluated on ",
+                 "newdata",
+                 if (length(missed)) {
+                   paste0(": newdata has no column ",
+                          paste(missed, collapse = ", "))
+                 } else "",
+                 "; supply the variable or use type = \"conditional\"",
+                 call. = FALSE)
       }
       # anything else is dropped, but never silently: an aterm the
       # family reads and this function omits is a wrong prediction
-      warning("Addition term ", label, " could not be evaluated on ",
-              "newdata and is omitted from the prediction",
-              if (length(missed)) {
-                paste0(" (newdata has no column ",
-                       paste(missed, collapse = ", "), ")")
-              } else "",
-              call. = FALSE)
+      frm_warning("Addition term ", label, " could not be evaluated on ",
+                  "newdata and is omitted from the prediction",
+                  if (length(missed)) {
+                    paste0(" (newdata has no column ",
+                           paste(missed, collapse = ", "), ")")
+                  } else "",
+                  call. = FALSE)
     }
     if (!is.null(v)) av[[nm]] <- v
   }
@@ -1209,11 +1244,11 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   check_flag(se.fit, "se.fit")
   check_flag(allow_new_levels, "allow_new_levels")
   if (!is.null(newdata) && !is.data.frame(newdata)) {
-    stop("`newdata` must be a data frame, or NULL to predict on the ",
-         "training data, not ", arg_desc(newdata), call. = FALSE)
+    frm_stop("`newdata` must be a data frame, or NULL to predict on the ",
+             "training data, not ", arg_desc(newdata), call. = FALSE)
   }
   check_re_form(re_formula)
-  type <- match.arg(type)
+  type <- frm_match_arg(type)
   use_re <- re_form_keeps(re_formula)
 
   resp <- resp %||% names(object$spec$responses)[1]
@@ -1228,11 +1263,11 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   if (identical(rspec$family[["type"]], "ordinal") && is.null(dpar) &&
       type %in% c("response", "conditional")) {
     if (se.fit) {
-      stop("se.fit is not supported on the response scale for an ",
-           "ordinal family: the prediction is a K-vector of category ",
-           "probabilities per row, not one number, and the thresholds ",
-           "enter every one of them. Use type = \"link\" for the ",
-           "standard error of the latent predictor", call. = FALSE)
+      frm_stop("se.fit is not supported on the response scale for an ",
+               "ordinal family: the prediction is a K-vector of category ",
+               "probabilities per row, not one number, and the thresholds ",
+               "enter every one of them. Use type = \"link\" for the ",
+               "standard error of the latent predictor", call. = FALSE)
     }
     return(predict_ordinal(object, rspec, newdata, use_re,
                            allow_new_levels))
@@ -1243,11 +1278,11 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   if (identical(rspec$family[["type"]], "categorical") && is.null(dpar) &&
       type %in% c("response", "conditional")) {
     if (se.fit) {
-      stop("se.fit is not supported on the response scale for a ",
-           "categorical family: the prediction is a K-vector of category ",
-           "probabilities per row, not one number. Use type = \"link\" ",
-           "with dpar = for the standard error of one category's latent ",
-           "predictor", call. = FALSE)
+      frm_stop("se.fit is not supported on the response scale for a ",
+               "categorical family: the prediction is a K-vector of category ",
+               "probabilities per row, not one number. Use type = \"link\" ",
+               "with dpar = for the standard error of one category's latent ",
+               "predictor", call. = FALSE)
     }
     return(predict_categorical(object, rspec, newdata, use_re,
                                allow_new_levels))
@@ -1288,8 +1323,8 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   # glmmTMB type aliases resolve to a dpar plus scale
   if (type %in% c("zprob", "zlink", "disp")) {
     if (!is.null(dpar)) {
-      stop("type = '", type, "' selects its own dpar; drop dpar =",
-           call. = FALSE)
+      frm_stop("type = '", type, "' selects its own dpar; drop dpar =",
+               call. = FALSE)
     }
     dpar <- switch(type,
       zprob = ,
@@ -1298,10 +1333,10 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
                        names(rspec$dpars))[1]
     )
     if (is.na(dpar)) {
-      stop("type = '", type, "' needs a family with a ",
-           if (type == "disp") "dispersion" else "zero-inflation/hurdle",
-           " parameter; family '", rspec$family[["family"]], "' has none",
-           call. = FALSE)
+      frm_stop("type = '", type, "' needs a family with a ",
+               if (type == "disp") "dispersion" else "zero-inflation/hurdle",
+               " parameter; family '", rspec$family[["family"]], "' has none",
+               call. = FALSE)
     }
     type <- if (type == "zlink") "link" else "response"
   } else if (type == "conditional") {
@@ -1326,16 +1361,16 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
   key <- linpred_key(resp, dpar)
   lp <- object$frame[["linpreds"]][[key]]
   if (is.null(lp)) {
-    stop("Unknown dpar: '", dpar, "' for response '", resp,
-         "'. Available: ", paste(names(rspec$dpars), collapse = ", "),
-         call. = FALSE)
+    frm_stop("Unknown dpar: '", dpar, "' for response '", resp,
+             "'. Available: ", paste(names(rspec$dpars), collapse = ", "),
+             call. = FALSE)
   }
 
   if (!is.null(lp[["nl_body"]])) {
     if (se.fit) {
-      stop("se.fit is not supported for the nonlinear predictor yet; ",
-           "request the nonlinear parameters (dpar = '",
-           rspec$nlpars[1], "', ...) instead", call. = FALSE)
+      frm_stop("se.fit is not supported for the nonlinear predictor yet; ",
+               "request the nonlinear parameters (dpar = '",
+               rspec$nlpars[1], "', ...) instead", call. = FALSE)
     }
     # only the parameters this body names, each on its own linear-
     # predictor scale. A parameter that carries a body of its own comes
@@ -1511,10 +1546,10 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
   # the remaining (random-effect, smooth) contributions alone would look
   # like a valid prediction. One warning per call names the culprits.
   if (any(nonest)) {
-    warning("Rank-deficient fit: ", sum(nonest), " row(s) of newdata are ",
-            "not estimable because they load on the dropped column(s) ",
-            paste(lp[["dropped_colnames"]], collapse = ", "),
-            "; predicting NA there", call. = FALSE)
+    frm_warning("Rank-deficient fit: ", sum(nonest), " row(s) of newdata are ",
+                "not estimable because they load on the dropped column(s) ",
+                paste(lp[["dropped_colnames"]], collapse = ", "),
+                "; predicting NA there", call. = FALSE)
     eta[nonest] <- NA_real_
   }
   list(eta = eta, X = X, off = off, re_parts = re_parts,
@@ -1526,12 +1561,12 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
 #'
 #' @noRd
 warn_modes_conditional_se <- function() {
-  warning("The fitted objective marginalizes the random effects ",
-          "(quadrature = TRUE), so its covariance carries no ",
-          "random-effect block: se.fit is conditional on the ",
-          "conditional modes and omits random-effect uncertainty. ",
-          "Refit with quadrature = FALSE for the full delta method",
-          call. = FALSE)
+  frm_warning("The fitted objective marginalizes the random effects ",
+              "(quadrature = TRUE), so its covariance carries no ",
+              "random-effect block: se.fit is conditional on the ",
+              "conditional modes and omits random-effect uncertainty. ",
+              "Refit with quadrature = FALSE for the full delta method",
+              call. = FALSE)
   invisible(NULL)
 }
 
@@ -1760,9 +1795,9 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
   for (dnm in dnames) {
     lp <- object$frame[["linpreds"]][[linpred_key(rnm, dnm)]]
     if (!is.null(lp[["nl_body"]])) {
-      stop("se.fit is not supported on the response scale for a ",
-           "nonlinear predictor yet; request the nonlinear parameters ",
-           "(dpar = '", rspec$nlpars[1], "', ...) instead", call. = FALSE)
+      frm_stop("se.fit is not supported on the response scale for a ",
+               "nonlinear predictor yet; request the nonlinear parameters ",
+               "(dpar = '", rspec$nlpars[1], "', ...) instead", call. = FALSE)
     }
     ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
     eds[[dnm]] <- ed
@@ -1779,9 +1814,10 @@ predict_mean_se <- function(object, rspec, newdata, use_re,
   }
   m <- response_mean(fam, dp, av)
   if (is.null(m) || !is.numeric(m) || !is.null(dim(m)) || length(m) != n) {
-    stop("se.fit is not available for the expected response of family '",
-         fam[["family"]], "': its mean is not one number per observation",
-         call. = FALSE)
+    frm_stop("se.fit is not available for the expected response of family '",
+             fam[["family"]], "': its mean is not one number per observation",
+             call. = FALSE,
+             package = frm_family_package(fam))
   }
 
   grad <- list()
@@ -1914,7 +1950,7 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
                               scale = c("response", "linear"),
                               resp = NULL, dpar = NULL, ...) {
   frm_check_dots(..., .unsupported = fitted_no_draws)
-  scale <- match.arg(scale)
+  scale <- frm_match_arg(scale)
   # predict() defaults an unnamed multivariate response to the first;
   # fitted() refuses instead, as it always has, because the caller who
   # did not name one is asking for all of them
@@ -1991,8 +2027,8 @@ ord_cs_values <- function(object, lp, newdata, n) {
     }
     if (length(v) == 1L) v <- rep(v, n)
     if (length(v) != n) {
-      stop("cs() term '", ct$label, "' evaluated to ", length(v),
-           " value(s) on ", n, " rows of newdata", call. = FALSE)
+      frm_stop("cs() term '", ct$label, "' evaluated to ", length(v),
+               " value(s) on ", n, " rows of newdata", call. = FALSE)
     }
     list(par = ct$par, vals = v, label = ct$label)
   })
@@ -2056,8 +2092,8 @@ ord_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
   fam <- rspec$family
   lp <- object$frame[["linpreds"]][[linpred_key(rspec$resp_name, "mu")]]
   if (!is.null(lp[["nl_body"]])) {
-    stop("type = \"response\" is not supported for an ordinal family ",
-         "with a nonlinear predictor", call. = FALSE)
+    frm_stop("type = \"response\" is not supported for an ordinal family ",
+             "with a nonlinear predictor", call. = FALSE)
   }
   ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
   eta <- unname(ed[["eta"]])
@@ -2116,8 +2152,8 @@ cat_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
   for (j in seq_along(dpn)) {
     lp <- object$frame[["linpreds"]][[linpred_key(rspec$resp_name, dpn[j])]]
     if (!is.null(lp[["nl_body"]])) {
-      stop("type = \"response\" is not supported for a categorical ",
-           "family with a nonlinear predictor", call. = FALSE)
+      frm_stop("type = \"response\" is not supported for a categorical ",
+               "family with a nonlinear predictor", call. = FALSE)
     }
     ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
     if (is.null(E)) {
@@ -2310,40 +2346,40 @@ osa_cens_domain <- function(av, y, discrete = FALSE) {
   cen <- av[["cens"]]
   if (is.null(cen) || !any(cen != 0)) return(NULL)
   if (discrete) {
-    stop("residuals(type = \"osa\") is not supported on a cens() fit ",
-         "with a discrete family. A discrete censoring bound is ",
-         "INCLUSIVE (right censoring at k is Y >= k), so an uncensored ",
-         "row's support is [lo + 1, hi - 1] rather than the [lo, hi] ",
-         "the one-step window is built on, and no reference has ",
-         "measured the shifted window. Every other residual type ",
-         "works, and dharma_residuals() covers the same ground through ",
-         "simulate(censored = TRUE)", call. = FALSE)
+    frm_stop("residuals(type = \"osa\") is not supported on a cens() fit ",
+             "with a discrete family. A discrete censoring bound is ",
+             "INCLUSIVE (right censoring at k is Y >= k), so an uncensored ",
+             "row's support is [lo + 1, hi - 1] rather than the [lo, hi] ",
+             "the one-step window is built on, and no reference has ",
+             "measured the shifted window. Every other residual type ",
+             "works, and dharma_residuals() covers the same ground through ",
+             "simulate(censored = TRUE)", call. = FALSE)
   }
   if (any(cen == 2)) {
-    stop("residuals(type = \"osa\") does not support interval censoring ",
-         "(cens code 2): an interval-censored row observes an event, not ",
-         "a value, and the uncensored rows' observation window is then ",
-         "not a single interval", call. = FALSE)
+    frm_stop("residuals(type = \"osa\") does not support interval censoring ",
+             "(cens code 2): an interval-censored row observes an event, not ",
+             "a value, and the uncensored rows' observation window is then ",
+             "not a single interval", call. = FALSE)
   }
   i_obs <- which(cen == 0)
   if (!length(i_obs)) {
-    stop("residuals(type = \"osa\") needs at least one uncensored ",
-         "observation", call. = FALSE)
+    frm_stop("residuals(type = \"osa\") needs at least one uncensored ",
+             "observation", call. = FALSE)
   }
   point <- function(idx, side) {
     p <- unique(y[idx])
     if (length(p) > 1L) {
-      stop("residuals(type = \"osa\") on a cens() fit needs one ",
-           side, "-censoring point shared by every censored row ",
-           "(type-I censoring); got ", length(p), " distinct points. ",
-           "With row-varying censoring times the distribution of an ",
-           "uncensored response is not identified without a model for ",
-           "the censoring process. dharma_residuals() is not an ",
-           "alternative: simulate() draws the LATENT uncensored ",
-           "response, so its draws are not comparable with the ",
-           "observed censored values, and simulate(censored = TRUE) ",
-           "needs the same single censoring point this message is ",
-           "about", call. = FALSE)
+      frm_stop("residuals(type = \"osa\") on a cens() fit needs one ",
+               side, "-censoring point shared by every censored row ",
+               "(type-I censoring); got ", length(p), " distinct points. ",
+               "With row-varying censoring times the distribution of an ",
+               "uncensored response is not identified without a model for ",
+               "the censoring process. dharma_residuals() is not an ",
+               "alternative: simulate() draws the LATENT uncensored ",
+               "response, so its draws are not comparable with the ",
+               "observed censored values, and simulate(censored = TRUE) ",
+               "needs the same single censoring point this message is ",
+               "about", call. = FALSE)
     }
     p
   }
@@ -2352,10 +2388,10 @@ osa_cens_domain <- function(av, y, discrete = FALSE) {
   hi <- if (length(i_r)) point(i_r, "right") else Inf
   lo <- if (length(i_l)) point(i_l, "left") else -Inf
   if (any(y[i_obs] < lo) || any(y[i_obs] > hi)) {
-    stop("residuals(type = \"osa\") on a cens() fit found uncensored ",
-         "responses outside the censoring window [", lo, ", ", hi,
-         "]; the censoring is not type-I and the one-step CDF has no ",
-         "well-defined domain", call. = FALSE)
+    frm_stop("residuals(type = \"osa\") on a cens() fit found uncensored ",
+             "responses outside the censoring window [", lo, ", ", hi,
+             "]; the censoring is not type-I and the one-step CDF has no ",
+             "well-defined domain", call. = FALSE)
   }
   list(lo = lo, hi = hi, subset = i_obs, conditional = c(i_l, i_r))
 }
@@ -2544,7 +2580,7 @@ residuals_unsupported <- c(
 residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
                                                   "deviance", "osa"),
                                  osa_method = NULL, ...) {
-  type <- match.arg(type)
+  type <- frm_match_arg(type)
   # The dots reach TMB::oneStepPredict() and ONLY on the osa branch, so
   # before this every other type swallowed whatever it was handed:
   # `residuals(fit, re_formula = NA)` returned the conditional residual
@@ -2558,10 +2594,10 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
   if (identical(fam[["type"]], "categorical")) {
     # nothing here is defined on a nominal scale: the categories carry
     # no order, so there is no y - E[Y] to form and no CDF to invert
-    stop("residuals() is not defined for a categorical family: the ",
-         "categories carry no order, so a residual has no scale to live ",
-         "on. Compare fitted(fit) (the n x K category probabilities) ",
-         "against the observed categories instead", call. = FALSE)
+    frm_stop("residuals() is not defined for a categorical family: the ",
+             "categories carry no order, so a residual has no scale to live ",
+             "on. Compare fitted(fit) (the n x K category probabilities) ",
+             "against the observed categories instead", call. = FALSE)
   }
   st <- fam_structure(fam)
   if (!is.null(st)) {
@@ -2587,12 +2623,13 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
       # below, so without one the family fell through to the rowwise
       # path and was told it had no unit deviance, which is false: the
       # magnitude is in loglik_row(); only the sign is missing
-      stop("residuals(type = \"deviance\") needs the sign of each row's ",
-           "departure from its conditional mean, and the '",
-           fam[["family"]], "' family declares no fitted_mean(). The ",
-           "magnitude is available from loglik_row(); the sign is not. ",
-           "Declare fitted_mean() in frmtmb_structure() to enable it.",
-           call. = FALSE)
+      frm_stop("residuals(type = \"deviance\") needs the sign of each row's ",
+               "departure from its conditional mean, and the '",
+               fam[["family"]], "' family declares no fitted_mean(). The ",
+               "magnitude is available from loglik_row(); the sign is not. ",
+               "Declare fitted_mean() in frmtmb_structure() to enable it.",
+               call. = FALSE,
+               package = frm_family_package(fam))
     }
     fm <- st[["fitted_mean"]]
     if (!is.null(fm)) {
@@ -2601,10 +2638,12 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
       if (type == "pearson") {
         fv <- st[["fitted_var"]]
         if (is.null(fv)) {
-          stop("residuals(type = \"pearson\") needs the conditional ",
-               "variance of each row given the whole response, and the ",
-               "'", fam[["family"]], "' family declares no fitted_var(). Use ",
-               "type = \"response\"", call. = FALSE)
+          frm_stop("residuals(type = \"pearson\") needs the conditional ",
+                   "variance of each row given the whole response, and the ",
+                   "'", fam[["family"]],
+                   "' family declares no fitted_var(). Use ",
+                   "type = \"response\"", call. = FALSE,
+                   package = frm_family_package(fam))
         }
         r <- r / sqrt(fv(object, blk))
       }
@@ -2634,14 +2673,14 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
       # the previous ones; under an R-side residual the tape holds a
       # joint density per group and never registers an observation
       # vector (no OBS() call), so there is nothing to step through
-      stop("residuals(type = \"osa\") is not available for a fit with a ",
-           "residual correlation term (",
-           object$frame[["autocor"]][[rspec$resp_name]]$label,
-           "): the likelihood is a joint density per group, not a ",
-           "product of per-observation terms. Use type = \"pearson\", ",
-           "which divides by the marginal residual SD, or ",
-           "dharma_residuals(), which uses simulate() and does draw ",
-           "correlated residuals", call. = FALSE)
+      frm_stop("residuals(type = \"osa\") is not available for a fit with a ",
+               "residual correlation term (",
+               object$frame[["autocor"]][[rspec$resp_name]]$label,
+               "): the likelihood is a joint density per group, not a ",
+               "product of per-observation terms. Use type = \"pearson\", ",
+               "which divides by the marginal residual SD, or ",
+               "dharma_residuals(), which uses simulate() and does draw ",
+               "correlated residuals", call. = FALSE)
     }
     av0 <- object$frame[["aterm_values"]][[rspec$resp_name]]
     tb <- trunc_bounds(av0, object$frame[["n_obs"]])
@@ -2656,8 +2695,8 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
       # a censored row's contribution is a probability MASS, so its
       # observation drops out of the tape; every method that
       # differentiates the observation hits a singular system there
-      stop("residuals(type = \"osa\") on a cens() fit needs ",
-           "osa_method = \"oneStepGeneric\"", call. = FALSE)
+      frm_stop("residuals(type = \"osa\") on a cens() fit needs ",
+               "osa_method = \"oneStepGeneric\"", call. = FALSE)
     }
     args <- list(obj = object$obj, observation.name = ".frm_obs",
                  method = method, trace = FALSE, ...)
@@ -2680,9 +2719,9 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
         lo <- unique(tb$lb)
         hi <- unique(tb$ub)
         if (length(lo) > 1L || length(hi) > 1L) {
-          stop("residuals(type = \"osa\") needs trunc() bounds that are ",
-               "the same for every observation; got row-varying bounds",
-               call. = FALSE)
+          frm_stop("residuals(type = \"osa\") needs trunc() bounds that are ",
+                   "the same for every observation; got row-varying bounds",
+                   call. = FALSE)
         }
       }
       if (!is.null(cb)) {
@@ -2743,8 +2782,9 @@ residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
   r <- yv - mu
   if (type == "pearson") {
     if (is.null(fam[["post"]]$var_fn)) {
-      stop("Family '", fam[["family"]], "' has no variance function; ",
-           "pearson residuals are unavailable", call. = FALSE)
+      frm_stop("Family '", fam[["family"]], "' has no variance function; ",
+               "pearson residuals are unavailable", call. = FALSE,
+               package = frm_family_package(fam))
     }
     # the scale stays the untruncated family variance; only the centering
     # is truncation-aware, so pearson residuals on a truncated model are
@@ -2831,19 +2871,19 @@ draw_b <- function(fit) {
 cens_window <- function(av, yobs) {
   cen <- av[["cens"]]
   if (any(cen == 2)) {
-    stop("simulate(censored = TRUE) is defined for left- and ",
-         "right-censored rows; an interval-censored observation is an ",
-         "interval, not a value", call. = FALSE)
+    frm_stop("simulate(censored = TRUE) is defined for left- and ",
+             "right-censored rows; an interval-censored observation is an ",
+             "interval, not a value", call. = FALSE)
   }
   point <- function(idx, side) {
     p <- unique(yobs[idx])
     if (length(p) > 1L) {
-      stop("simulate(censored = TRUE) needs one ", side,
-           "-censoring point shared by every censored row (type-I ",
-           "censoring); got ", length(p), " distinct points. With ",
-           "row-varying censoring times an uncensored row's censoring ",
-           "point is unknown, so the mechanism cannot be applied to ",
-           "its draws", call. = FALSE)
+      frm_stop("simulate(censored = TRUE) needs one ", side,
+               "-censoring point shared by every censored row (type-I ",
+               "censoring); got ", length(p), " distinct points. With ",
+               "row-varying censoring times an uncensored row's censoring ",
+               "point is unknown, so the mechanism cannot be applied to ",
+               "its draws", call. = FALSE)
     }
     p
   }
@@ -2985,8 +3025,9 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
     }
   }
   if (!sim_can(fam)) {
-    stop("simulate(): family '", fam[["family"]], "' has no simulator yet",
-         sim_note(fam), call. = FALSE)
+    frm_stop("simulate(): family '", fam[["family"]], "' has no simulator yet",
+             sim_note(fam), call. = FALSE,
+             package = frm_family_package(fam))
   }
   marginal <- !is.null(re_formula) && !inherits(re_formula, "formula") &&
     is.na(re_formula)
@@ -2996,8 +3037,8 @@ simulate.frmtmb_fit <- function(object, nsim = 1, seed = NULL,
   cwin <- NULL
   if (isTRUE(censored)) {
     if (is.null(av[["cens"]])) {
-      stop("simulate(censored = TRUE) needs a cens() response",
-           call. = FALSE)
+      frm_stop("simulate(censored = TRUE) needs a cens() response",
+               call. = FALSE)
     }
     cwin <- cens_window(av, object$frame[["y"]][[rspec$resp_name]])
   }
@@ -3288,8 +3329,8 @@ frm_lp_basis <- function(object, newdata = NULL, dpar = NULL, resp = NULL,
   require_fitted(object, "frm_lp_basis()")
   check_flag(allow_new_levels, "allow_new_levels")
   if (!is.null(newdata) && !is.data.frame(newdata)) {
-    stop("`newdata` must be a data frame, or NULL to use the training ",
-         "data, not ", arg_desc(newdata), call. = FALSE)
+    frm_stop("`newdata` must be a data frame, or NULL to use the training ",
+             "data, not ", arg_desc(newdata), call. = FALSE)
   }
   check_re_form(re_formula)
   use_re <- re_form_keeps(re_formula)
@@ -3302,9 +3343,9 @@ frm_lp_basis <- function(object, newdata = NULL, dpar = NULL, resp = NULL,
     rspec$primary_dpars[1]
   lp <- object$frame[["linpreds"]][[linpred_key(resp, dpar)]]
   if (is.null(lp)) {
-    stop("frm_lp_basis(): unknown dpar '", dpar, "' for response '",
-         resp, "'. Available: ",
-         paste(names(rspec$dpars), collapse = ", "), call. = FALSE)
+    frm_stop("frm_lp_basis(): unknown dpar '", dpar, "' for response '",
+             resp, "'. Available: ",
+             paste(names(rspec$dpars), collapse = ", "), call. = FALSE)
   }
   jc <- get_joint_cov(object)
   if (!is.null(lp[["nl_body"]])) {
@@ -3381,10 +3422,10 @@ joint_pos_map <- function(jc) {
 lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
                         allow_new_levels, jc) {
   if (isTRUE(allow_new_levels)) {
-    stop("frm_lp_basis(): allow_new_levels = TRUE is refused for a ",
-         "nonlinear predictor. A new level contributes its block's ",
-         "marginal variance, and how that variance passes through a ",
-         "nonlinear body has not been measured", call. = FALSE)
+    frm_stop("frm_lp_basis(): allow_new_levels = TRUE is refused for a ",
+             "nonlinear predictor. A new level contributes its block's ",
+             "marginal variance, and how that variance passes through a ",
+             "nonlinear body has not been measured", call. = FALSE)
   }
   pm <- joint_pos_map(jc)
   est <- object$estimates
@@ -3393,9 +3434,9 @@ lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
     if (!is.null(parts[[nm]])) return(invisible(NULL))
     lpk <- object$frame[["linpreds"]][[linpred_key(rspec$resp_name, nm)]]
     if (is.null(lpk)) {
-      stop("frm_lp_basis(): the nonlinear body names '", nm,
-           "', which is not a parameter of response '",
-           rspec$resp_name, "'", call. = FALSE)
+      frm_stop("frm_lp_basis(): the nonlinear body names '", nm,
+               "', which is not a parameter of response '",
+               rspec$resp_name, "'", call. = FALSE)
     }
     if (!is.null(lpk[["nl_body"]])) {
       for (sub in c(lpk[["nl_pars"]], lpk[["nl_dpar_refs"]])) build(sub)
@@ -3405,11 +3446,11 @@ lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
     edk <- lp_eta_design(object, lpk, newdata, use_re, FALSE)
     ex <- lp_extra_var_vec(object, edk, use_re)
     if (any(ex != 0)) {
-      stop("frm_lp_basis(): the nonlinear body reaches '", nm,
-           "', which contributes variance that is not coefficient ",
-           "uncertainty (an exact gp() kriging variance). Its chain ",
-           "rule through a nonlinear body has not been measured",
-           call. = FALSE)
+      frm_stop("frm_lp_basis(): the nonlinear body reaches '", nm,
+               "', which contributes variance that is not coefficient ",
+               "uncertainty (an exact gp() kriging variance). Its chain ",
+               "rule through a nonlinear body has not been measured",
+               call. = FALSE)
     }
     has_rr <- isTRUE(object$frame[["has_rr"]])
     dak <- lp_delta_A(object, lpk, edk, newdata, use_re, jc, has_rr,
@@ -3433,9 +3474,9 @@ lp_basis_nl <- function(object, lp, rspec, newdata, use_re,
   }
   pos <- sort(unique(pos))
   if (!length(pos)) {
-    stop("frm_lp_basis(): the nonlinear predictor '", lp[["dpar"]],
-         "' reaches no estimated coefficient, so it has no design",
-         call. = FALSE)
+    frm_stop("frm_lp_basis(): the nonlinear predictor '", lp[["dpar"]],
+             "' reaches no estimated coefficient, so it has no design",
+             call. = FALSE)
   }
   chat <- vapply(pos, function(k) est[[pm$comp[k]]][pm$idx[k]], 0)
 

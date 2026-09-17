@@ -1,0 +1,95 @@
+cases 152  OK both 123  error both 29  REGRESSION (base OK, lane error) 0  lane OK, base error 0 
+
+== REGRESSIONS 
+
+== lane OK, base error 
+
+== error on both 
+ar
+   base: ERROR [simpleError] ar(): only the residual-covariance formulation is implemented, so the call needs cov = TRUE: ar(t, g, cov = TRUE). brms's default cov = FALSE is the residual-regression form, a dif
+   lane: ERROR [frmtmb_error] ar(): only the residual-covariance formulation is implemented, so the call needs cov = TRUE: ar(t, g, cov = TRUE). brms's default cov = FALSE is the residual-regression form, a di
+arma
+   base: ERROR [simpleError] arma(): only the residual-covariance formulation is implemented, so the call needs cov = TRUE: arma(t, g, cov = TRUE). brms's default cov = FALSE is the residual-regression form, a
+   lane: ERROR [frmtmb_error] arma(): only the residual-covariance formulation is implemented, so the call needs cov = TRUE: arma(t, g, cov = TRUE). brms's default cov = FALSE is the residual-regression form, 
+dot_formula
+   base: ERROR [simpleError] '.' in formula and no 'data' argument
+   lane: ERROR [frmtmb_error] The model uses `.`, which is not a column of `data` and not an object that R finds from the formula. Add the column to `data` or correct the name
+gp_by
+   base: ERROR [simpleError] gp() takes 1-3 variables plus optional k = (basis size per dimension), c = (boundary factor), and iso = (shared lengthscale): gp(x), gp(x, k = 30), gp(x1, x2)
+   lane: ERROR [frmtmb_error] gp() takes 1-3 variables plus optional k = (basis size per dimension), c = (boundary factor), and iso = (shared lengthscale): gp(x), gp(x, k = 30), gp(x1, x2)
+me
+   base: ERROR [simpleError] could not find function "me"
+   lane: ERROR [simpleError] could not find function "me"
+nd_en_base
+   base: ERROR [simpleError] variable lengths differ (found for 'xe')
+   lane: ERROR [simpleError] variable lengths differ (found for 'xe')
+nd_gm_newf
+   base: ERROR [simpleError] factor f has new levels zz
+   lane: ERROR [frmtmb_error] newdata has a level of `f` that the fit did not see: 'zz'. The fitted levels are 'a', 'b', 'c'. A population-level factor cannot take a new level
+nd_gm_newf_allow
+   base: ERROR [simpleError] factor f has new levels zz
+   lane: ERROR [frmtmb_error] newdata has a level of `f` that the fit did not see: 'zz'. The fitted levels are 'a', 'b', 'c'. A population-level factor cannot take a new level
+nd_gm_newg_noallow
+   base: ERROR [simpleError] New levels in grouping factor `g`: 99, 98. Use allow_new_levels = TRUE to predict them at the population level
+   lane: ERROR [frmtmb_error] New levels in grouping factor `g`: 99, 98. Use allow_new_levels = TRUE to predict them at the population level
+nd_gm_nog_keep
+   base: ERROR [simpleError] object 'g' not found
+   lane: ERROR [simpleError] object 'g' not found
+nd_gm_simulate_nd
+   base: ERROR [simpleError] simulate() has no argument `newdata`. It takes: object, nsim, seed, re_formula, censored
+   lane: ERROR [frmtmb_error] simulate() has no argument `newdata`. It takes: object, nsim, seed, re_formula, censored
+nd_gs_newf
+   base: ERROR [simpleError] factor f has new levels zz
+   lane: ERROR [frmtmb_error] newdata has a level of `f` that the fit did not see: 'zz'. The fitted levels are 'a', 'b', 'c'. A population-level factor cannot take a new level
+nd_nl_ce
+   base: ERROR [simpleError] conditional_effects() cannot put a wald band on a nonlinear predictor: predict() has no standard error for it. Use band = "boot", which refits instead of differentiating, method = 
+   lane: ERROR [frmtmb_error] conditional_effects() cannot put a wald band on a nonlinear predictor: predict() has no standard error for it. Use band = "boot", which refits instead of differentiating, method =
+nd_pl_ce
+   base: ERROR [simpleError] object 'x' not found
+   lane: ERROR [frmtmb_error] Variable 'x' missing from newdata
+nd_po_ce
+   base: ERROR [simpleError] object 'expo' not found
+   lane: ERROR [frmtmb_error] Variable 'expo' missing from newdata
+nd_po_noexpo
+   base: ERROR [simpleError] object 'expo' not found
+   lane: ERROR [frmtmb_error] Variable 'expo' missing from newdata
+nl_env_scalar
+   base: ERROR [simpleError] variable lengths differ (found for 'kpow')
+   lane: ERROR [frmtmb_error] `kpow` is not a column of `data`; the object R finds from the formula has 1 rows and `data` has 60. Add the column to `data` or correct the name
+nlf_lf
+   base: ERROR [simpleError] nl = TRUE needs at least one parameter formula, e.g. bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE). Formulas added afterwards with lf() or nlf() are not visible here, so give bf
+   lane: ERROR [frmtmb_error] nl = TRUE needs at least one parameter formula, e.g. bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE). Formulas added afterwards with lf() or nlf() are not visible here, so give b
+prior_
+   base: ERROR [simpleError] set_prior() needs a distribution, bounds, or both
+   lane: ERROR [frmtmb_error] set_prior() needs a distribution, bounds, or both
+prior_constant(1)
+   base: ERROR [simpleError] Unsupported prior distribution 'constant' (supported: normal, student_t, cauchy, exponential, logistic, gamma, inv_gamma, beta, lkj)
+   lane: ERROR [frmtmb_error] Unsupported prior distribution 'constant' (supported: normal, student_t, cauchy, exponential, logistic, gamma, inv_gamma, beta, lkj)
+prior_flat
+   base: ERROR [simpleError] Cannot parse prior 'flat'; expected e.g. "normal(0, 5)"
+   lane: ERROR [frmtmb_error] Cannot parse prior 'flat'; expected e.g. "normal(0, 5)"
+prior_horseshoe(1)
+   base: ERROR [simpleError] Unsupported prior distribution 'horseshoe' (supported: normal, student_t, cauchy, exponential, logistic, gamma, inv_gamma, beta, lkj)
+   lane: ERROR [frmtmb_error] Unsupported prior distribution 'horseshoe' (supported: normal, student_t, cauchy, exponential, logistic, gamma, inv_gamma, beta, lkj)
+prior_lkj(1)
+   base: ERROR [simpleError] lkj() is a density over a whole correlation matrix; it belongs to class = "cor", "cortime", "rescor" (got class = "b")
+   lane: ERROR [frmtmb_error] lkj() is a density over a whole correlation matrix; it belongs to class = "cor", "cortime", "rescor" (got class = "b")
+prior_lkj(2)
+   base: ERROR [simpleError] lkj() is a density over a whole correlation matrix; it belongs to class = "cor", "cortime", "rescor" (got class = "b")
+   lane: ERROR [frmtmb_error] lkj() is a density over a whole correlation matrix; it belongs to class = "cor", "cortime", "rescor" (got class = "b")
+prior_lkj_corr_cholesky(2)
+   base: ERROR [simpleError] Unsupported prior distribution 'lkj_corr_cholesky' (supported: normal, student_t, cauchy, exponential, logistic, gamma, inv_gamma, beta, lkj)
+   lane: ERROR [frmtmb_error] Unsupported prior distribution 'lkj_corr_cholesky' (supported: normal, student_t, cauchy, exponential, logistic, gamma, inv_gamma, beta, lkj)
+prior_normal(mu = 0, sigma = 1)
+   base: ERROR [simpleError] Non-numeric arguments in prior 'normal(mu = 0, sigma = 1)'
+   lane: ERROR [frmtmb_error] Non-numeric arguments in prior 'normal(mu = 0, sigma = 1)'
+prior_R2D2(0.5, 2)
+   base: ERROR [simpleError] Unsupported prior distribution 'R2D2' (supported: normal, student_t, cauchy, exponential, logistic, gamma, inv_gamma, beta, lkj)
+   lane: ERROR [frmtmb_error] Unsupported prior distribution 'R2D2' (supported: normal, student_t, cauchy, exponential, logistic, gamma, inv_gamma, beta, lkj)
+prior_uniform(0, 1)
+   base: ERROR [simpleError] Unsupported prior distribution 'uniform' (supported: normal, student_t, cauchy, exponential, logistic, gamma, inv_gamma, beta, lkj)
+   lane: ERROR [frmtmb_error] Unsupported prior distribution 'uniform' (supported: normal, student_t, cauchy, exponential, logistic, gamma, inv_gamma, beta, lkj)
+rate
+   base: ERROR [simpleError] Addition term `rate()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi()). A custom family carries its own per-row data through vint() 
+   lane: ERROR [frmtmb_error] Addition term `rate()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi()). A custom family carries its own per-row data through vint()
+

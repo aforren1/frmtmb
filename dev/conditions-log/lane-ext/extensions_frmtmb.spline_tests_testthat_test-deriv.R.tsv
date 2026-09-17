@@ -1,0 +1,8 @@
+"file"	"class"	"message"
+"extensions/frmtmb.spline/tests/testthat/test-deriv.R"	"frmtmb_spline_error/frmtmb_error/error/condition"	"`order` must be 1 (the slope) or 2 (the curvature). Higher orders are not offered: a third central difference divides by eps^3 and there is no step size at which it is accurate"
+"extensions/frmtmb.spline/tests/testthat/test-deriv.R"	"frmtmb_spline_error/frmtmb_error/error/condition"	"`var` names 'nope', which is not a column of the grid. The grid has: t"
+"extensions/frmtmb.spline/tests/testthat/test-deriv.R"	"frmtmb_spline_error/frmtmb_error/error/condition"	"`newdata` is required when the first argument is a fit: it is the grid the curve is evaluated on. Pass a frmtmb_curve from frm_curve() to reuse a grid instead"
+"extensions/frmtmb.spline/tests/testthat/test-deriv.R"	"frmtmb_spline_error/frmtmb_error/error/condition"	"`eps` must be one positive finite number, or NULL for the measured default"
+"extensions/frmtmb.spline/tests/testthat/test-deriv.R"	"frmtmb_spline_error/frmtmb_error/error/condition"	"A curve is differentiated with respect to a NUMERIC covariate and 'f' is factor. A factor has no derivative; take a contrast instead"
+"extensions/frmtmb.spline/tests/testthat/test-deriv.R"	"frmtmb_spline_error/frmtmb_error/error/condition"	"A feature search needs a grid of at least three points along 't': it scans for a sign change before it refines one"
+"extensions/frmtmb.spline/tests/testthat/test-deriv.R"	"frmtmb_spline_error/frmtmb_error/error/condition"	"`at` must be one finite number: the level the crossing is of"

@@ -38,8 +38,8 @@ frmtmb_structure_flags <- c(
 #' @noRd
 check_structure_fn <- function(f, arg) {
   if (!is.null(f) && !is.function(f)) {
-    stop("frmtmb_structure(", arg, " =) must be a function or NULL, not ",
-         arg_desc(f), call. = FALSE)
+    frm_stop("frmtmb_structure(", arg, " =) must be a function or NULL, not ",
+             arg_desc(f), call. = FALSE)
   }
   invisible(f)
 }
@@ -353,11 +353,11 @@ frmtmb_structure <- function(frame_vars = NULL, keep_na = FALSE,
     if (is.null(f)) next
     fm <- names(formals(f))
     if (!"..." %in% fm && !"weights" %in% fm) {
-      warning("frmtmb_structure(", nm, " =) has no `weights` argument, so ",
-              "the row weights the core passes are dropped: a weights() ",
-              "term on this family would be accepted and then ignored. ",
-              "Take `weights` and use it, or refuse weights() in ",
-              "check_spec", call. = FALSE)
+      frm_warning("frmtmb_structure(", nm, " =) has no `weights` argument, so ",
+                  "the row weights the core passes are dropped: a weights() ",
+                  "term on this family would be accepted and then ignored. ",
+                  "Take `weights` and use it, or refuse weights() in ",
+                  "check_spec", call. = FALSE)
     }
   }
   # A factorization slot is the answer to "your likelihood is one
@@ -367,19 +367,19 @@ frmtmb_structure <- function(frame_vars = NULL, keep_na = FALSE,
   # would be a second definition of the same quantity with nothing
   # keeping the two equal.
   if (is.null(loglik) && (!is.null(loglik_row) || !is.null(loglik_group))) {
-    stop("frmtmb_structure(",
-         if (!is.null(loglik_row)) "loglik_row" else "loglik_group",
-         " =) factorizes a likelihood this structure does not supply: ",
-         "with loglik = NULL the family keeps its own rowwise lpdf, ",
-         "which the core already evaluates one row at a time. Give ",
-         "loglik = too, or drop the slot", call. = FALSE)
+    frm_stop("frmtmb_structure(",
+             if (!is.null(loglik_row)) "loglik_row" else "loglik_group",
+             " =) factorizes a likelihood this structure does not supply: ",
+             "with loglik = NULL the family keeps its own rowwise lpdf, ",
+             "which the core already evaluates one row at a time. Give ",
+             "loglik = too, or drop the slot", call. = FALSE)
   }
   if (!is.null(unit) &&
         (!is.character(unit) || length(unit) != 1L || is.na(unit) ||
            !nzchar(unit))) {
-    stop("frmtmb_structure(unit =) must be one non-empty noun phrase ",
-         "naming the smallest independent unit of loglik, or NULL",
-         call. = FALSE)
+    frm_stop("frmtmb_structure(unit =) must be one non-empty noun phrase ",
+             "naming the smallest independent unit of loglik, or NULL",
+             call. = FALSE)
   }
   # The conservative all-FALSE default is right for a non-rowwise
   # likelihood, where nothing downstream is known to work. It is exactly
@@ -408,7 +408,9 @@ frmtmb_structure <- function(frame_vars = NULL, keep_na = FALSE,
          fitted_mean = fitted_mean, fitted_var = fitted_var,
          latent_probs = latent_probs, sim_ctx = sim_ctx,
          supports = supports, refusals = refusals),
-    class = "frmtmb_structure"
+    class = "frmtmb_structure",
+    # whose refusal text this is, for structure_gate()
+    frmtmb_package = frm_env_package(parent.frame())
   )
 }
 
@@ -435,30 +437,30 @@ validate_supports <- function(supports, base = frmtmb_structure_flags) {
   out <- base
   if (is.null(supports) || !length(supports)) return(out)
   if (!is.list(supports) && !is.logical(supports)) {
-    stop("frmtmb_structure(supports =) must be a named list or logical ",
-         "vector of capability flags", call. = FALSE)
+    frm_stop("frmtmb_structure(supports =) must be a named list or logical ",
+             "vector of capability flags", call. = FALSE)
   }
   nms <- names(supports)
   if (is.null(nms) || any(!nzchar(nms))) {
-    stop("frmtmb_structure(supports =) must name every flag; the known ",
-         "flags are ", paste(names(out), collapse = ", "), call. = FALSE)
+    frm_stop("frmtmb_structure(supports =) must name every flag; the known ",
+             "flags are ", paste(names(out), collapse = ", "), call. = FALSE)
   }
   if (anyDuplicated(nms)) {
-    stop("frmtmb_structure(supports =) names a flag twice: ",
-         paste(unique(nms[duplicated(nms)]), collapse = ", "),
-         call. = FALSE)
+    frm_stop("frmtmb_structure(supports =) names a flag twice: ",
+             paste(unique(nms[duplicated(nms)]), collapse = ", "),
+             call. = FALSE)
   }
   unknown <- setdiff(nms, names(out))
   if (length(unknown)) {
-    stop("frmtmb_structure(supports =): unknown capability flag(s) ",
-         paste0("'", unknown, "'", collapse = ", "), ". The flags are ",
-         paste(names(out), collapse = ", "), call. = FALSE)
+    frm_stop("frmtmb_structure(supports =): unknown capability flag(s) ",
+             paste0("'", unknown, "'", collapse = ", "), ". The flags are ",
+             paste(names(out), collapse = ", "), call. = FALSE)
   }
   for (nm in nms) {
     v <- supports[[nm]]
     if (!is.logical(v) || length(v) != 1L || is.na(v)) {
-      stop("frmtmb_structure(supports =): flag '", nm, "' must be TRUE or ",
-           "FALSE, not ", arg_desc(v), call. = FALSE)
+      frm_stop("frmtmb_structure(supports =): flag '", nm, "' must be TRUE or ",
+               "FALSE, not ", arg_desc(v), call. = FALSE)
     }
     out[[nm]] <- v
   }
@@ -472,36 +474,36 @@ validate_supports <- function(supports, base = frmtmb_structure_flags) {
 validate_refusals <- function(refusals, supports) {
   if (is.null(refusals) || !length(refusals)) return(list())
   if (!is.list(refusals) && !is.character(refusals)) {
-    stop("frmtmb_structure(refusals =) must be a named list of one ",
-         "message per refused capability", call. = FALSE)
+    frm_stop("frmtmb_structure(refusals =) must be a named list of one ",
+             "message per refused capability", call. = FALSE)
   }
   refusals <- as.list(refusals)
   nms <- names(refusals)
   if (is.null(nms) || any(!nzchar(nms))) {
-    stop("frmtmb_structure(refusals =) must name the flag each message ",
-         "explains", call. = FALSE)
+    frm_stop("frmtmb_structure(refusals =) must name the flag each message ",
+             "explains", call. = FALSE)
   }
   if (anyDuplicated(nms)) {
-    stop("frmtmb_structure(refusals =) gives two messages for ",
-         paste(unique(nms[duplicated(nms)]), collapse = ", "),
-         call. = FALSE)
+    frm_stop("frmtmb_structure(refusals =) gives two messages for ",
+             paste(unique(nms[duplicated(nms)]), collapse = ", "),
+             call. = FALSE)
   }
   for (nm in nms) {
     flag <- refusal_flag(nm)
     if (!flag %in% names(supports)) {
-      stop("frmtmb_structure(refusals =): '", nm, "' explains no known ",
-           "capability flag. The flags are ",
-           paste(names(supports), collapse = ", "), call. = FALSE)
+      frm_stop("frmtmb_structure(refusals =): '", nm, "' explains no known ",
+               "capability flag. The flags are ",
+               paste(names(supports), collapse = ", "), call. = FALSE)
     }
     if (isTRUE(supports[[flag]])) {
-      stop("frmtmb_structure(refusals =): '", nm, "' explains a refusal ",
-           "of '", flag, "', which supports = declares SUPPORTED, so the ",
-           "message could never be shown", call. = FALSE)
+      frm_stop("frmtmb_structure(refusals =): '", nm, "' explains a refusal ",
+               "of '", flag, "', which supports = declares SUPPORTED, so the ",
+               "message could never be shown", call. = FALSE)
     }
     v <- refusals[[nm]]
     if (!is.character(v) || length(v) != 1L || is.na(v) || !nzchar(v)) {
-      stop("frmtmb_structure(refusals =): the message for '", nm,
-           "' must be one non-empty string", call. = FALSE)
+      frm_stop("frmtmb_structure(refusals =): the message for '", nm,
+               "' must be one non-empty string", call. = FALSE)
     }
   }
   refusals
@@ -559,7 +561,7 @@ latent_probs <- function(fit, ...) UseMethod("latent_probs")
 
 #' @export
 latent_probs.default <- function(fit, ...) {
-  stop("latent_probs() takes a fitted model from frm()", call. = FALSE)
+  frm_stop("latent_probs() takes a fitted model from frm()", call. = FALSE)
 }
 
 #' @export
@@ -568,11 +570,13 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
   rspec <- single_response(fit, "latent_probs()")
   lp <- fam_structure(rspec$family)[["latent_probs"]]
   if (is.null(lp)) {
-    stop("latent_probs() needs a family that declares latent states, ",
-         "through frmtmb_structure(latent_probs = ). The '",
-         rspec$family[["family"]], "' family declares none: only a mixture, ",
-         "a hidden Markov chain or a latent class measurement model has ",
-         "states to report", call. = FALSE)
+    frm_stop("latent_probs() needs a family that declares latent states, ",
+             "through frmtmb_structure(latent_probs = ). The '",
+             rspec$family[["family"]],
+             "' family declares none: only a mixture, ",
+             "a hidden Markov chain or a latent class measurement model has ",
+             "states to report", call. = FALSE,
+             package = frm_family_package(rspec$family))
   }
   lp(fit, frame_block_of(fit$frame, rspec$resp_name))
 }
@@ -720,7 +724,9 @@ latent_probs.frmtmb_fit <- function(fit, ...) {
 #' @seealso [frmtmb_structure()] for the protocol these serve,
 #'   [frmtmb_family()] for the family object they read,
 #'   [frmtmb-robust-dpars] for the accessors a DENSITY uses while the
-#'   objective is taped, and the
+#'   objective is taped, [frmtmb-conditions] for `frm_stop()`,
+#'   `frm_warning()` and `frm_message()`, which an extension raises its
+#'   conditions with, and the
 #'   registries an extension fills from its own `.onLoad()`:
 #'   [frmtmb_register_frame_check()], [frmtmb_register_aterm()] and
 #'   [frmtmb_register_compat()]
@@ -793,32 +799,36 @@ check_structure_block <- function(st, blk, fam, resp_name, n) {
   g <- (blk %||% list())[["group"]]
   if (is.null(g)) {
     if (needs_group) {
-      stop("The '", fam[["family"]], "' family declares ",
-           "frmtmb_structure(loglik_group = ), which returns one value ",
-           "per grouping level, and its frame block for '", resp_name,
-           "' carries no `group`. The block's reserved `group` entry is ",
-           "what says which rows each of those values covers",
-           call. = FALSE)
+      frm_stop("The '", fam[["family"]], "' family declares ",
+               "frmtmb_structure(loglik_group = ), which returns one value ",
+               "per grouping level, and its frame block for '", resp_name,
+               "' carries no `group`. The block's reserved `group` entry is ",
+               "what says which rows each of those values covers",
+               call. = FALSE,
+               package = frm_family_package(fam))
     }
     return(invisible(NULL))
   }
   if (!(is.factor(g) || (is.atomic(g) && !is.object(g))) || is.matrix(g)) {
-    stop("The '", fam[["family"]], "' family's frame block for '",
-         resp_name, "' gives `group` as ", arg_desc(g),
-         ". It must be a factor or an atomic vector, one entry per row",
-         call. = FALSE)
+    frm_stop("The '", fam[["family"]], "' family's frame block for '",
+             resp_name, "' gives `group` as ", arg_desc(g),
+             ". It must be a factor or an atomic vector, one entry per row",
+             call. = FALSE,
+             package = frm_family_package(fam))
   }
   if (length(g) != n) {
-    stop("The '", fam[["family"]], "' family's frame block for '",
-         resp_name, "' gives `group` for ", length(g), " rows, and the ",
-         "frame has ", n, ". Every row belongs to exactly one of the ",
-         "family's independent units", call. = FALSE)
+    frm_stop("The '", fam[["family"]], "' family's frame block for '",
+             resp_name, "' gives `group` for ", length(g), " rows, and the ",
+             "frame has ", n, ". Every row belongs to exactly one of the ",
+             "family's independent units", call. = FALSE,
+             package = frm_family_package(fam))
   }
   if (anyNA(g)) {
-    stop("The '", fam[["family"]], "' family's frame block for '",
-         resp_name, "' leaves `group` missing on ", sum(is.na(g)),
-         " row(s). A row whose independent unit is unknown cannot be ",
-         "put in any of them", call. = FALSE)
+    frm_stop("The '", fam[["family"]], "' family's frame block for '",
+             resp_name, "' leaves `group` missing on ", sum(is.na(g)),
+             " row(s). A row whose independent unit is unknown cannot be ",
+             "put in any of them", call. = FALSE,
+             package = frm_family_package(fam))
   }
   # An unused level is a gap in the codes. droplevels() in
   # structure_group_codes() keeps the core's own arithmetic sound
@@ -828,14 +838,15 @@ check_structure_block <- function(st, blk, fam, resp_name, n) {
   # family, rather than left to a length check further down.
   if (is.factor(g) && nlevels(g) != nlevels(droplevels(g))) {
     unused <- setdiff(levels(g), levels(droplevels(g)))
-    stop("The '", fam[["family"]], "' family's frame block for '",
-         resp_name, "' gives `group` as a factor with ", length(unused),
-         " unused level(s) (", paste0("'", utils::head(unused, 3L), "'",
-                                    collapse = ", "),
-         "). A level with no rows is not one of the family's units, and ",
-         "a per-group log-likelihood has nothing to report for it: pass ",
-         "the grouping through factor() or droplevels() first",
-         call. = FALSE)
+    frm_stop("The '", fam[["family"]], "' family's frame block for '",
+             resp_name, "' gives `group` as a factor with ", length(unused),
+             " unused level(s) (", paste0("'", utils::head(unused, 3L), "'",
+                                        collapse = ", "),
+             "). A level with no rows is not one of the family's units, and ",
+             "a per-group log-likelihood has nothing to report for it: pass ",
+             "the grouping through factor() or droplevels() first",
+             call. = FALSE,
+             package = frm_family_package(fam))
   }
   invisible(NULL)
 }
@@ -857,12 +868,13 @@ structure_unit_deviance <- function(fit, rspec, st, blk) {
   lr <- st[["loglik_row"]]
   fam <- rspec$family
   if (is.null(lr)) {
-    stop("residuals(type = \"deviance\") needs each row's own ",
-         "log-density, and the '", fam[["family"]], "' family supplies ",
-         "its likelihood one response at a time. A family that has the ",
-         "per-row factors declares them with ",
-         "frmtmb_structure(loglik_row = ). Use type = \"pearson\"",
-         call. = FALSE)
+    frm_stop("residuals(type = \"deviance\") needs each row's own ",
+             "log-density, and the '", fam[["family"]], "' family supplies ",
+             "its likelihood one response at a time. A family that has the ",
+             "per-row factors declares them with ",
+             "frmtmb_structure(loglik_row = ). Use type = \"pearson\"",
+             call. = FALSE,
+             package = frm_family_package(fam))
   }
   rn <- rspec$resp_name
   av <- fit$frame[["aterm_values"]][[rn]]
@@ -870,17 +882,19 @@ structure_unit_deviance <- function(fit, rspec, st, blk) {
            av[["weights"]] %||% 1, blk, fit_extras(fit))
   sat <- attr(ll, "saturated")
   if (is.null(sat)) {
-    stop("residuals(type = \"deviance\") compares each row's ",
-         "log-density with its SATURATED value, and the '",
-         fam[["family"]], "' family's loglik_row() returns the first ",
-         "without the second. A family that knows its saturated ",
-         "log-density attaches it as attr(x, \"saturated\"). Use ",
-         "type = \"pearson\"", call. = FALSE)
+    frm_stop("residuals(type = \"deviance\") compares each row's ",
+             "log-density with its SATURATED value, and the '",
+             fam[["family"]], "' family's loglik_row() returns the first ",
+             "without the second. A family that knows its saturated ",
+             "log-density attaches it as attr(x, \"saturated\"). Use ",
+             "type = \"pearson\"", call. = FALSE,
+             package = frm_family_package(fam))
   }
   if (length(sat) != length(ll)) {
-    stop("The '", fam[["family"]], "' family's loglik_row() attaches ",
-         length(sat), " saturated value(s) to ", length(ll),
-         " log-densities. There is one of each per row", call. = FALSE)
+    frm_stop("The '", fam[["family"]], "' family's loglik_row() attaches ",
+             length(sat), " saturated value(s) to ", length(ll),
+             " log-densities. There is one of each per row", call. = FALSE,
+             package = frm_family_package(fam))
   }
   d <- 2 * (as.numeric(sat) - as.numeric(ll))
   # A saturated log-density BELOW the fitted one is not rounding, it is
@@ -889,14 +903,15 @@ structure_unit_deviance <- function(fit, rspec, st, blk) {
   # fit at exactly the rows where the family is wrong.
   bad <- which(d < -1e-8 * pmax(1, abs(as.numeric(ll))))
   if (length(bad)) {
-    stop("The '", fam[["family"]], "' family reports a saturated ",
-         "log-density BELOW the fitted one at ", length(bad),
-         " row(s) (first at row ", bad[[1L]], ": ",
-         format(as.numeric(sat)[bad[[1L]]], digits = 8), " against ",
-         format(as.numeric(ll)[bad[[1L]]], digits = 8),
-         "). The saturated value is the largest the row's density can ",
-         "reach, so no fit can beat it and a unit deviance cannot be ",
-         "negative", call. = FALSE)
+    frm_stop("The '", fam[["family"]], "' family reports a saturated ",
+             "log-density BELOW the fitted one at ", length(bad),
+             " row(s) (first at row ", bad[[1L]], ": ",
+             format(as.numeric(sat)[bad[[1L]]], digits = 8), " against ",
+             format(as.numeric(ll)[bad[[1L]]], digits = 8),
+             "). The saturated value is the largest the row's density can ",
+             "reach, so no fit can beat it and a unit deviance cannot be ",
+             "negative", call. = FALSE,
+             package = frm_family_package(fam))
   }
   pmax(d, 0)
 }
@@ -1004,7 +1019,7 @@ structure_gate <- function(st, flag, generic, context = NULL) {
   msg <- NULL
   if (!is.null(context)) msg <- ref[[paste0(flag, ".", context)]]
   msg <- msg %||% ref[[flag]] %||% generic
-  stop(msg, call. = FALSE)
+  frm_stop(msg, call. = FALSE, package = frm_family_package(st))
 }
 
 # ------------------------------------------ frame-check contributor seam
@@ -1084,12 +1099,12 @@ frmtmb_frame_checks$fns <- list()
 #' @export
 frmtmb_register_frame_check <- function(fn) {
   if (!is.function(fn)) {
-    stop("frmtmb_register_frame_check(fn =) must be a function, not ",
-         class(fn)[1L], ".", call. = FALSE)
+    frm_stop("frmtmb_register_frame_check(fn =) must be a function, not ",
+             class(fn)[1L], ".", call. = FALSE)
   }
   if (length(formals(fn)) < 2L) {
-    stop("frmtmb_register_frame_check(fn =) must take two arguments, ",
-         "the model specification and the assembled frame.", call. = FALSE)
+    frm_stop("frmtmb_register_frame_check(fn =) must take two arguments, ",
+             "the model specification and the assembled frame.", call. = FALSE)
   }
   frmtmb_frame_checks$fns <- c(frmtmb_frame_checks$fns, fn)
   invisible(NULL)

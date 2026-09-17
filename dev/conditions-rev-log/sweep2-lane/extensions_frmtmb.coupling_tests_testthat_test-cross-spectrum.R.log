@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 18 PASS 96 FAIL 0 ERROR 0 SKIP 0  extensions/frmtmb.coupling/tests/testthat/test-cross-spectrum.R
+CAUGHT 20 
+DONE

@@ -1,0 +1,4 @@
+"file"	"class"	"message"
+"tests/testthat/test-v11.R"	"frmtmb_fit_error/frmtmb_error/error/condition"	"Unknown optimizer 'bogus' (use \"nlminb\", \"optim\", or a function) (raised while fitting: gaussian, ML, bogus)"
+"tests/testthat/test-v11.R"	"frmtmb_error/error/condition"	"Levels must encode numeric positions on one axis; build the factor with num_factor(x)"
+"tests/testthat/test-v11.R"	"frmtmb_error/error/condition"	"quadrature = TRUE currently supports scalar random intercepts only (every block must be a dim-1 us/diag term)"

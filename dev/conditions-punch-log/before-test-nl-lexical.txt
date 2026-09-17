@@ -1,0 +1,6 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 7 PASS 27 FAIL 0 ERROR 2 SKIP 0  tests/testthat/test-nl-lexical.R
+  failing: a list column named in a body still fails at the frame
+       Error in `model.frame.default(fr_formula, data = data, drop.unused.levels = TRUE, na.action = na.action)`: invalid type (list) for variable 'tab' 
+  failing: a bad env vector and a missing name are refused by name
+       Error in `model.frame.default(fr_formula, data = data, drop.unused.levels = TRUE, na.action = na.action)`: variable lengths differ (found for 'short') 

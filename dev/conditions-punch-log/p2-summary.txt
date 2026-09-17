@@ -1,0 +1,129 @@
+== suites, one file per R process ==
+test files on disk 247  result lines 247 
+frmtmb           files 142 of 142 (no result line 0) blocks 1561 PASS 11865 FAIL 0 ERROR 0 SKIP 1
+frmtmb.coupling  files   9 of   9 (no result line 0) blocks   66 PASS   447 FAIL 0 ERROR 0 SKIP 5
+frmtmb.eam       files  26 of  26 (no result line 0) blocks  276 PASS  1652 FAIL 0 ERROR 0 SKIP 3
+frmtmb.latent    files   9 of   9 (no result line 0) blocks   70 PASS   349 FAIL 0 ERROR 0 SKIP 2
+frmtmb.learn     files  14 of  14 (no result line 0) blocks   99 PASS   479 FAIL 0 ERROR 0 SKIP 2
+frmtmb.ode       files  10 of  10 (no result line 0) blocks  118 PASS   343 FAIL 0 ERROR 0 SKIP 1
+frmtmb.sample    files  23 of  23 (no result line 0) blocks  232 PASS  1712 FAIL 0 ERROR 0 SKIP 1
+frmtmb.spline    files  14 of  14 (no result line 0) blocks   93 PASS   450 FAIL 0 ERROR 0 SKIP 1
+start 12:21:05  end 12:35:09 
+frmtmb.sample logs 23  lines naming compileCode 0 
+
+== expect_error() conditions ==
+                caught frmtmb_error other
+frmtmb            1447         1435    12
+frmtmb.coupling     33           33     0
+frmtmb.eam         193          193     0
+frmtmb.latent       55           55     0
+frmtmb.learn        56           56     0
+frmtmb.ode          78           78     0
+frmtmb.sample      142          142     0
+frmtmb.spline       56           56     0
+ALL               2060         2048    12
+
+== extension subclass, in each extension's own suite ==
+(the construction of dev/conditions-rev-subclass-sweep.R)
+                caught with_own without pct_with
+frmtmb.coupling     33       33       0    100.0
+frmtmb.eam         193      188       5     97.4
+frmtmb.latent       55       54       1     98.2
+frmtmb.learn        56       50       6     89.3
+frmtmb.ode          78       76       2     97.4
+frmtmb.sample      142      111      31     78.2
+frmtmb.spline       56       56       0    100.0
+ALL                613      568      45     92.7
+
+frmtmb.eam: 5 without frmtmb_eam_error
+  [frmtmb_error] vint1 values must be integers (use vreal() for reals)
+  [frmtmb_error] Constant k = 0 is not in the range of the log link
+  [frmtmb_error] Constant k = -0.2 is not in the range of the log link
+  [frmtmb_error] Addition term vint(upper) could not be evaluated on newdata: newdata has no column upper
+  [frmtmb_error] class = "Intercept", dpar = "bs" is a density on the log-scale intercept of bs's linear 
+
+frmtmb.latent: 1 without frmtmb_latent_error
+  [frmtmb_error] quadrature = TRUE currently supports scalar random intercepts only (every block must be 
+
+frmtmb.learn: 6 without frmtmb_learn_error
+  [frmtmb_error] simulate() has no argument `newdata`. It takes: object, nsim, seed, re_formula, censored
+  [frmtmb_eam_error] ndt_time(): 1 row(s) name an ndt_group() the model was not fitted to, so there is no fas
+  [frmtmb_eam_error] ndt_time(): this model bounds the non-decision time by each ndt_group()'s own fastest re
+  [frmtmb_eam_error] ndt_group(): the grouping says which trials share a non-decision-time bound, so every ro
+  [frmtmb_eam_error] ndt_group() was supplied for `pick` and no family read it, so the term would travel into
+  [frmtmb_error] Constant ndt = 0.444744951486884 is not in the range of the scaled_logit link
+
+frmtmb.ode: 2 without frmtmb_ode_error
+  [frmtmb_error] The nonlinear formula body could not be evaluated: Not compatible with requested type: [
+
+frmtmb.sample: 31 without frmtmb_sample_error
+  [frmtmb_error] frmtmb_register_compat() features = registers 's()' as a 'grammar' feature, and the regi
+  [frmtmb_error] conditional_effects(categorical = TRUE) needs an ordinal or categorical family and no dp
+  [frmtmb_error] conditional_effects() has no argument `nonesuch`
+  [frmtmb_error] `re.form` is lme4's spelling and this package no longer takes it anywhere: brms is the t
+  [frmtmb_error] `allow.new.levels` is lme4's spelling and this package no longer takes it: brms spells i
+  [frmtmb_error] predict() needs a fitted model. This object was assembled by frm_sample() from a formula
+  [frmtmb_error] Some parameters cannot be found in the model: 'sd_sigma' variables() lists every name; b
+  [frmtmb_error] posterior_epred() was given both `re_formula` and `re.form`, which are two spellings of 
+  [frmtmb_error] posterior_linpred() was given both `re_formula` and `re.form`, which are two spellings o
+  [frmtmb_error] posterior_predict() was given both `re_formula` and `re.form`, which are two spellings o
+  [frmtmb_error] predictive_error() was given both `re_formula` and `re.form`, which are two spellings of
+  [frmtmb_error] predictive_interval() was given both `re_formula` and `re.form`, which are two spellings
+  [frmtmb_error] pp_check() cannot honor `re.form`: lme4's spelling, no longer accepted. brms LEAKS it: p
+  [frmtmb_error] loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the
+  [frmtmb_error] waic() averages the likelihood over posterior draws and a maximum-likelihood fit has non
+  [frmtmb_error] bayes_R2() is computed per posterior draw and this is a maximum-likelihood fit. Install 
+  [frmtmb_error] LOO() is the deprecated brms spelling, and on a maximum-likelihood fit there are no draw
+  [frmtmb_error] WAIC() is the deprecated brms spelling, and it averages over posterior draws a maximum-l
+  [frmtmb_error] expose_functions() has no Stan program to read on a frmtmb fit: a custom family's lpdf i
+  [frmtmb_error] rescor_matrix() reads the fitted point estimate, so it takes the frmtmb_fit, not draws: 
+  [frmtmb_error] check_laplace() needs a fitted model. This object was assembled by frm_sample() from a f
+  [frmtmb_error] fixef() needs a fitted model. This object was assembled by frm_sample() from a formula, 
+  [frmtmb_error] logLik() (and AIC(), BIC(), anova()) needs a fitted model. This object was assembled by 
+  [frmtmb_error] Some parameters cannot be found in the model: '(Intercept)' variables() lists every name
+  [frmtmb_error] cens()/trunc() need a family with a CDF (currently: gaussian, lognormal, poisson, expone
+  [frmtmb_error] ar(): trunc() cannot be combined with a residual correlation term. The likelihood is a j
+  [frmtmb_latent_error] simulate(re_formula =) is not supported for an hmm() fit: the state path is drawn at the
+  [frmtmb_latent_error] simulate(censored = TRUE) is not supported for an hmm() fit, because cens() is refused o
+  [frmtmb_error] Grouping factor 'one' in `1 | one` has a single level, so its variance is not identified
+
+== expect_error() conditions that are not a frmtmb_error ==
+[1] test-brms-agreement.R
+    suppressMessages(brms::make_stancode(brms::bf(y | weights(x) ~ 1 + ar(week, subj, cov = TRUE)), data = transfo
+    brms_error/rlang_error | Invalid addition arguments for this model.
+[2] test-brms-likelihood.R
+    stan_pars_from_fit(fit, brms_standata(bform, data = d19, family = gaussian(), prior = prior, data2 = list(W = 
+    simpleError | brms parameterizes a bym2 field on a different set of latent variables than frmtmb; see de
+[3] test-brms-methods.R
+    brms::ranef(brms_shape("rfac")$brmsfit) #1
+    brms_error/rlang_error | The model does not contain group-level effects.
+[4] test-brms-methods.R
+    brms::posterior_epred(s$brmsfit, newdata = drop) #1
+    brms_error/rlang_error | The following variables can neither be found in 'data' nor in 'data2':
+'z'
+[5] test-brms-methods.R
+    brms::posterior_epred(s$brmsfit, newdata = ndn) #1
+    brms_error/rlang_error | New factor levels are not allowed.
+Levels allowed: 'a', 'b', 'c'
+Levels found: 'a', 'zz'
+[6] test-conditions.R
+    tryCatch(site_a(3), frmtmb_error = function(e) NULL) #1
+    simpleError | bad x: 3
+[7] test-mo-terms.R
+    stan_pars_from_fit(fit, sdat, code) #1
+    simpleError | Stan parameter simo_sigma_1 is a monotonic simplex outside mu, which has no translation ru
+[8] test-numerical-robustness.R
+    stats::binomial(link = "softit") #1
+    simpleError | 'softit' link not recognised
+[9] test-prior-compat.R
+    frm(loss_form(), data = dd, priors = pl) #1
+    simpleError | unused argument (priors = pl)
+[10] test-prior-compat.R
+    frm_simulate(bf(y ~ x) + gaussian(), data.frame(x = 1:5, y = 0), priors = pl) #1
+    simpleError | unused argument (priors = pl)
+[11] test-priors-bounds-grcov.R
+    frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd, lower = c(x = 1)) #1
+    simpleError | unused argument (lower = c(x = 1))
+[12] test-priors-bounds-grcov.R
+    frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd, upper = c(x = 1)) #1
+    simpleError | unused argument (upper = c(x = 1))

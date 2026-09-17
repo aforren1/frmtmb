@@ -61,9 +61,9 @@ frm_value_trace <- function(fit) {
   fam <- rspec[["family"]]
   lrn <- fam[["learn"]]
   if (is.null(lrn)) {
-    stop("frm_value_trace() reads a fit whose family came from ",
-         "frmtmb.learn, and this one is a '", fam[["family"]],
-         "' fit. There is no value recursion to replay", call. = FALSE)
+    frm_stop("frm_value_trace() reads a fit whose family came from ",
+             "frmtmb.learn, and this one is a '", fam[["family"]],
+             "' fit. There is no value recursion to replay", call. = FALSE)
   }
   blk <- frame_block_of(fit[["frame"]], rspec[["resp_name"]])
   tr <- ln_trace_at(fit, blk, lrn[["spec"]], fam[["family"]])

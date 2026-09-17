@@ -1,0 +1,8 @@
+"file"	"class"	"message"
+"tests/testthat/test-edgecases.R"	"frmtmb_error/error/condition"	"Duplicated response in mvbf(): y"
+"tests/testthat/test-edgecases.R"	"frmtmb_error/error/condition"	"binomial: response must be integer counts in [0, trials]"
+"tests/testthat/test-edgecases.R"	"frmtmb_error/error/condition"	"binomial: a proportion response times trials() must give integer counts"
+"tests/testthat/test-edgecases.R"	"frmtmb_error/error/condition"	"`data` has no rows; nothing to fit"
+"tests/testthat/test-edgecases.R"	"frmtmb_error/error/condition"	"`data` has no rows; nothing to fit"
+"tests/testthat/test-edgecases.R"	"frmtmb_error/error/condition"	"No complete observations after removing NAs"
+"tests/testthat/test-edgecases.R"	"frmtmb_error/error/condition"	"No complete observations after removing NAs"

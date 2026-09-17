@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 20 PASS 74 FAIL 0 ERROR 1 SKIP 0  extensions/frmtmb.eam/tests/testthat/test-gddm-family.R
+  failing: gddm_control validates its own arguments
+       Error in `match.arg(tridiagonal)`: 'arg' should be one of "recorded", "atomic" 

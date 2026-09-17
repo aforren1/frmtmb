@@ -1,0 +1,5 @@
+"file"	"class"	"message"
+"tests/testthat/test-review-fixes.R"	"frmtmb_error/error/condition"	"cens()/trunc()/se() cannot be combined with rescor = TRUE"
+"tests/testthat/test-review-fixes.R"	"frmtmb_error/error/condition"	"cens()/trunc()/se() cannot be combined with rescor = TRUE"
+"tests/testthat/test-review-fixes.R"	"frmtmb_error/error/condition"	"cens()/trunc()/se() cannot be combined with rescor = TRUE"
+"tests/testthat/test-review-fixes.R"	"frmtmb_error/error/condition"	"Unknown parameter(s) in bounds: x. Available: sigma_(Intercept), theta_1 (parentheses may be dropped, and intercept-only nonlinear parameters may be named bare)"

@@ -76,14 +76,14 @@ frm_multiple <- function(formula, data, level = 0.95, ...) {
   check_probability(level, "level")
   if (inherits(data, "mids")) {
     if (!requireNamespace("mice", quietly = TRUE)) {
-      stop("A mids object needs the 'mice' package", call. = FALSE)
+      frm_stop("A mids object needs the 'mice' package", call. = FALSE)
     }
     data <- mice::complete(data, action = "all")
   }
   if (!is.list(data) || length(data) < 2L ||
       !all(vapply(data, is.data.frame, TRUE))) {
-    stop("data must be a list of at least two data frames (or a ",
-         "mice::mids object)", call. = FALSE)
+    frm_stop("data must be a list of at least two data frames (or a ",
+             "mice::mids object)", call. = FALSE)
   }
   fits <- lapply(data, function(d) frm(formula, data = d, ...))
   m <- length(fits)
@@ -240,32 +240,32 @@ anova.frmtmb_multiple <- function(object, ...,
                                   method = c("D3", "D1", "D2"),
                                   use = c("likelihood", "wald"),
                                   constraint = NULL, dfcom = NULL) {
-  method <- match.arg(method)
-  use <- match.arg(use)
+  method <- frm_match_arg(method)
+  use <- frm_match_arg(use)
   others <- Filter(function(x) inherits(x, "frmtmb_multiple"), list(...))
   if (length(others) > 1L) {
-    stop("anova() compares two frmtmb_multiple fits at a time",
-         call. = FALSE)
+    frm_stop("anova() compares two frmtmb_multiple fits at a time",
+             call. = FALSE)
   }
   # Same refusal as anova.frmtmb_fit: the restricted likelihood depends
   # on the fixed-effect design, so neither its value nor the Wald
   # covariance built from it compares across models.
   for (mf in c(list(object), others)) {
     if (any(vapply(mf$fits, `[[`, TRUE, "REML"))) {
-      stop("Pooled model comparison requires ML fits (REML = FALSE)",
-           call. = FALSE)
+      frm_stop("Pooled model comparison requires ML fits (REML = FALSE)",
+               call. = FALSE)
     }
   }
   wald <- method == "D1" || (method == "D2" && use == "wald")
   if (!length(others)) {
     if (is.null(constraint)) {
-      stop("anova() needs a second frmtmb_multiple fit, or a ",
-           "`constraint` naming the coefficients to test", call. = FALSE)
+      frm_stop("anova() needs a second frmtmb_multiple fit, or a ",
+               "`constraint` naming the coefficients to test", call. = FALSE)
     }
     if (!wald) {
-      stop("`constraint` needs a Wald rule: method = \"D1\", or ",
-           "method = \"D2\" with use = \"wald\". Likelihood rules ",
-           "need a fitted null model", call. = FALSE)
+      frm_stop("`constraint` needs a Wald rule: method = \"D1\", or ",
+               "method = \"D2\" with use = \"wald\". Likelihood rules ",
+               "need a fitted null model", call. = FALSE)
     }
     parts <- pooled_wald_parts(object, NULL, constraint)
   } else {
@@ -320,24 +320,24 @@ print.frmtmb_pooled_anova <- function(x, digits = 4, ...) {
 #' @noRd
 pooled_order <- function(a, b) {
   if (a$m != b$m) {
-    stop("anova() needs both fits pooled over the same imputations ",
-         "(got m = ", a$m, " and ", b$m, ")", call. = FALSE)
+    frm_stop("anova() needs both fits pooled over the same imputations ",
+             "(got m = ", a$m, " and ", b$m, ")", call. = FALSE)
   }
   # Same guard as anova.frmtmb_fit, applied imputation by imputation:
   # likelihoods computed on different data are not on a common scale.
   na <- vapply(a$fits, function(f) as.integer(f$frame[["n_obs"]]), 0L)
   nb <- vapply(b$fits, function(f) as.integer(f$frame[["n_obs"]]), 0L)
   if (!identical(na, nb)) {
-    stop("anova() needs both fits fit to the same imputed datasets; ",
-         "imputation ", which(na != nb)[1], " has ", na[which(na != nb)[1]],
-         " observations in one fit and ", nb[which(na != nb)[1]],
-         " in the other", call. = FALSE)
+    frm_stop("anova() needs both fits fit to the same imputed datasets; ",
+             "imputation ", which(na != nb)[1], " has ", na[which(na != nb)[1]],
+             " observations in one fit and ", nb[which(na != nb)[1]],
+             " in the other", call. = FALSE)
   }
   dfa <- attr(logLik(a$fits[[1]]), "df")
   dfb <- attr(logLik(b$fits[[1]]), "df")
   if (dfa == dfb) {
-    stop("anova() needs nested fits of different size (both have ",
-         dfa, " parameters)", call. = FALSE)
+    frm_stop("anova() needs nested fits of different size (both have ",
+             dfa, " parameters)", call. = FALSE)
   }
   if (dfa > dfb) list(big = a, small = b) else list(big = b, small = a)
 }
@@ -351,8 +351,8 @@ pooled_wald_parts <- function(big, small, constraint) {
   if (is.null(small)) {
     bad <- setdiff(constraint, nm1)
     if (length(bad)) {
-      stop("constraint names no coefficient of the fit: ",
-           paste(bad, collapse = ", "), call. = FALSE)
+      frm_stop("constraint names no coefficient of the fit: ",
+               paste(bad, collapse = ", "), call. = FALSE)
     }
     tested <- nm1[nm1 %in% constraint]
     labels <- c(model_label(big$fits[[1]]),
@@ -361,9 +361,9 @@ pooled_wald_parts <- function(big, small, constraint) {
   } else {
     nm0 <- estimated_coef_names(small$fits[[1]])
     if (length(setdiff(nm0, nm1))) {
-      stop("the smaller fit is not nested in the larger one: ",
-           paste(setdiff(nm0, nm1), collapse = ", "),
-           " has no counterpart", call. = FALSE)
+      frm_stop("the smaller fit is not nested in the larger one: ",
+               paste(setdiff(nm0, nm1), collapse = ", "),
+               " has no counterpart", call. = FALSE)
     }
     # A Wald test on the coefficients cannot express a difference in
     # the covariance parameters, so refuse rather than test the wrong
@@ -374,14 +374,14 @@ pooled_wald_parts <- function(big, small, constraint) {
       length(pn[!pn %in% c("beta", "betad")])
     }
     if (nth(big) != nth(small)) {
-      stop("the fits differ in their covariance parameters, which a ",
-           "Wald rule cannot test. Use method = \"D3\" or ",
-           "method = \"D2\" with use = \"likelihood\"", call. = FALSE)
+      frm_stop("the fits differ in their covariance parameters, which a ",
+               "Wald rule cannot test. Use method = \"D3\" or ",
+               "method = \"D2\" with use = \"likelihood\"", call. = FALSE)
     }
     tested <- setdiff(nm1, nm0)
     if (!length(tested)) {
-      stop("the two fits have the same coefficients; a Wald rule has ",
-           "nothing to test. Use method = \"D3\"", call. = FALSE)
+      frm_stop("the two fits have the same coefficients; a Wald rule has ",
+               "nothing to test. Use method = \"D3\"", call. = FALSE)
     }
     labels <- c(model_label(big$fits[[1]]), model_label(small$fits[[1]]))
   }
@@ -444,9 +444,9 @@ dev_at_pooled <- function(fits) {
   P <- vapply(fits, function(f) {
     p <- f$opt$par
     if (!identical(names(p), names(p1))) {
-      stop("the imputations produced different parameter vectors; ",
-           "method = \"D3\" needs one common parameterization",
-           call. = FALSE)
+      frm_stop("the imputations produced different parameter vectors; ",
+               "method = \"D3\" needs one common parameterization",
+               call. = FALSE)
     }
     p
   }, numeric(length(p1)))
@@ -577,8 +577,8 @@ hypothesis.frmtmb_multiple <- function(x, hypothesis, class = "b",
       ex <- exs[[i]]
       val <- hyp_eval(fit, ex, pc$vals, pc$comp)
       if (!is.numeric(val) || length(val) != 1L) {
-        stop("Hypothesis '", hypothesis[i], "' must evaluate to a ",
-             "single number in imputation ", j, " of ", m, call. = FALSE)
+        frm_stop("Hypothesis '", hypothesis[i], "' must evaluate to a ",
+                 "single number in imputation ", j, " of ", m, call. = FALSE)
       }
       g <- hyp_fd_grad(function(v) hyp_eval(fit, ex, v, pc$comp),
                        pc$vals)
@@ -629,12 +629,12 @@ hypothesis.frmtmb_multiple <- function(x, hypothesis, class = "b",
 #'
 #' @noRd
 multiple_no_draws <- function(fn) {
-  stop(fn, "() needs draws, and a frm_multiple() result has none: it ",
-       "is m maximum-likelihood fits pooled by Rubin's rules, with no ",
-       "chains. Read the pooled tables from `x$pooled` and ",
-       "`x$pooled_varcorr` or test with hypothesis(), and use ",
-       "frm_sample() on one imputation's fit (`x$fits[[1]]`) for draws",
-       call. = FALSE)
+  frm_stop(fn, "() needs draws, and a frm_multiple() result has none: it ",
+           "is m maximum-likelihood fits pooled by Rubin's rules, with no ",
+           "chains. Read the pooled tables from `x$pooled` and ",
+           "`x$pooled_varcorr` or test with hypothesis(), and use ",
+           "frm_sample() on one imputation's fit (`x$fits[[1]]`) for draws",
+           call. = FALSE)
 }
 
 #' @rdname as_draws
@@ -669,18 +669,18 @@ ndraws.frmtmb_multiple <- function(x) multiple_no_draws("ndraws")
 
 #' @export
 plot.frmtmb_multiple <- function(x, ...) {
-  stop("plot() has no pooled display for a frm_multiple() result. ",
-       "Plot one imputation's fit, `plot(x$fits[[1]])`, or print the ",
-       "object for the pooled coefficients and variance components",
-       call. = FALSE)
+  frm_stop("plot() has no pooled display for a frm_multiple() result. ",
+           "Plot one imputation's fit, `plot(x$fits[[1]])`, or print the ",
+           "object for the pooled coefficients and variance components",
+           call. = FALSE)
 }
 
 #' @exportS3Method brms::conditional_effects
 #' @export
 conditional_effects.frmtmb_multiple <- function(x, ...) {
-  stop("conditional_effects() has no pooled version for a ",
-       "frm_multiple() result: an effect curve would have to be ",
-       "pooled across imputations, which is not implemented. Compute ",
-       "it on one imputation's fit, `conditional_effects(x$fits[[1]])`",
-       call. = FALSE)
+  frm_stop("conditional_effects() has no pooled version for a ",
+           "frm_multiple() result: an effect curve would have to be ",
+           "pooled across imputations, which is not implemented. Compute ",
+           "it on one imputation's fit, `conditional_effects(x$fits[[1]])`",
+           call. = FALSE)
 }

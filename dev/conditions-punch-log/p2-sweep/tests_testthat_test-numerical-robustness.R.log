@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 37 PASS 679 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-numerical-robustness.R
+CAUGHT 4 
+DONE

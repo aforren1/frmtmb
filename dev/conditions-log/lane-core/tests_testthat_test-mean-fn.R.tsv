@@ -1,0 +1,3 @@
+"file"	"class"	"message"
+"tests/testthat/test-mean-fn.R"	"frmtmb_error/error/condition"	"family 'nomean' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted() and predict(type = \"response\") have nothing to return. Ask for type = \"link\" or a dpar by name."
+"tests/testthat/test-mean-fn.R"	"frmtmb_error/error/condition"	"family 'nomean' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted() and predict(type = \"response\") have nothing to return. Ask for type = \"link\" or a dpar by name."

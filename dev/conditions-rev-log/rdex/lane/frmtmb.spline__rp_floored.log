@@ -1,0 +1,12 @@
+List of 6
+ $ n_censored_deep: int 0
+ $ max_nlogS      : num 2.56
+ $ threshold      : num 19.2
+ $ n_nonmonotone  : int 0
+ $ scale          : chr "hazard"
+ $ n_obs          : int 300
+ - attr(*, "rows")=List of 2
+  ..$ censored   : int(0) 
+  ..$ nonmonotone: int(0) 
+
+RDEX-RESULT OK 

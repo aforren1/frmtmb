@@ -638,7 +638,9 @@ test_that("every draws accessor speaks brms's names", {
   expect_equal(hypothesis(ds, "Intercept > 0")$hypothesis$Estimate,
                hypothesis(ds, "b_Intercept > 0",
                           class = NULL)$hypothesis$Estimate)
-  expect_error(hypothesis(ds, "`(Intercept)` > 0"), "not found")
+  expect_error(hypothesis(ds, "`(Intercept)` > 0"),
+               "cannot be found in the model: \n'[(]Intercept[)]'",
+               class = "frmtmb_error")
   p1 <- frmtmb:::resolve_priors(fit, list(Intercept = prior_normal(0, 1)))
   p2 <- frmtmb:::resolve_priors(fit,
                                 list(`(Intercept)` = prior_normal(0, 1)))

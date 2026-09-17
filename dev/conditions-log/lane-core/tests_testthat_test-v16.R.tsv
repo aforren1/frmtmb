@@ -1,0 +1,5 @@
+"file"	"class"	"message"
+"tests/testthat/test-v16.R"	"frmtmb_error/error/condition"	"rr(): the rank d must not exceed the term dimension (6)"
+"tests/testthat/test-v16.R"	"frmtmb_error/error/condition"	"mi(x): newdata must supply complete values"
+"tests/testthat/test-v16.R"	"frmtmb_error/error/condition"	"mi(x) needs a matching imputation model: add bf(x | mi() ~ ...)"
+"tests/testthat/test-v16.R"	"frmtmb_error/error/condition"	"mi() responses need a gaussian or student model"

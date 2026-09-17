@@ -1,3 +1,26 @@
+# frmtmb.spline (development version)
+
+* Requires the frmtmb release that exports `frm_stop()`; the
+  `frmtmb (>= 0.59.0)` floor must move to it.
+* **BREAKING:** every error, warning and message that frmtmb.spline
+  raises is classed. An error has the class
+  `c("frmtmb_spline_error", "frmtmb_error", "error", "condition")`,
+  and warnings and messages follow the same pattern, so
+  `tryCatch(frmtmb_error = )` catches any refusal. The class vector no
+  longer contains `simpleError`, `simpleWarning` or `simpleMessage`.
+  See `?frmtmb::frmtmb-conditions`.
+* **BREAKING:** a value that matches none of the choices of
+  `frm_curve_feature(type =)`, `royston_parmar(scale =)` and
+  `rp_floored(action =)` is refused
+  with a `frmtmb_spline_error` that names the argument, the
+  value and the choices. The old text was `'arg' should be one of ...`.
+  A partial value still matches.
+* A refusal that frmtmb raises about `royston_parmar()`, such as
+  `residuals(type = "deviance")`, is a `frmtmb_spline_error`.
+* The `frmtmb_ps_span_warning` that `frm_curve()` and
+  `frm_curve_deriv()` raise now also has the classes
+  `frmtmb_spline_warning` and `frmtmb_warning`.
+
 # frmtmb.spline 0.5.2
 
 * Requires frmtmb 0.59.0.

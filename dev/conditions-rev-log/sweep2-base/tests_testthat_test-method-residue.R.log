@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/rellib-r3 
+BLOCKS 12 PASS 64 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-method-residue.R
+CAUGHT 8 
+DONE

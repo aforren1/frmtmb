@@ -9,13 +9,13 @@ find_linpred <- function(object, resp = NULL, dpar = "mu") {
     lp[["dpar"]] == dpar && (is.null(resp) || lp[["resp"]] == resp)
   }, object$frame[["linpreds"]])
   if (!length(hits)) {
-    stop("No linear predictor for dpar '", dpar, "'",
-         if (!is.null(resp)) paste0(" of response '", resp, "'") else "",
-         call. = FALSE)
+    frm_stop("No linear predictor for dpar '", dpar, "'",
+             if (!is.null(resp)) paste0(" of response '", resp, "'") else "",
+             call. = FALSE)
   }
   if (length(hits) > 1L) {
-    stop("Multiple responses have dpar '", dpar,
-         "'; disambiguate with resp = ", call. = FALSE)
+    frm_stop("Multiple responses have dpar '", dpar,
+             "'; disambiguate with resp = ", call. = FALSE)
   }
   hits[[1L]]
 }
@@ -68,8 +68,8 @@ sigma.frmtmb_fit <- function(object, ...) {
         is.null(lp[["Z"]])) {
       return(lp[["link"]]$linkinv(object$estimates[[lp[["par"]]]][lp[["idx"]]]))
     }
-    warning("sigma varies by observation; returning NA ",
-            "(use predict(dpar = \"sigma\"))", call. = FALSE)
+    frm_warning("sigma varies by observation; returning NA ",
+                "(use predict(dpar = \"sigma\"))", call. = FALSE)
     NA_real_
   }, numeric(1))
   if (length(out) == 1L) unname(out) else out
@@ -85,7 +85,16 @@ terms.frmtmb_fit <- function(x, resp = NULL, dpar = "mu", ...) {
 model.matrix.frmtmb_fit <- function(object, resp = NULL, dpar = "mu",
                                     ...) {
   frm_check_dots(...)
-  find_linpred(object, resp, dpar)$X
+  # insight 1.5.4 (.get_predicted_ci_modelmatrix()) turns a model.matrix()
+  # refusal into NA standard errors with a warning only when the error
+  # inherits from "simpleError"; any other class escapes as "argument is
+  # of length zero". The class goes after frmtmb_error, so the frmtmb
+  # contract is unchanged.
+  tryCatch(find_linpred(object, resp, dpar)$X, frmtmb_error = function(e) {
+    at <- match("frmtmb_error", class(e))
+    class(e) <- append(class(e), "simpleError", after = at)
+    frm_stop(e)
+  })
 }
 
 #' @export
@@ -230,20 +239,20 @@ refit.frmtmb_fit <- function(object, newresp, start = NULL, ...) {
   frm_check_dots(...)
   frame <- object$frame
   if (length(frame[["y"]]) != 1L) {
-    stop("refit() supports univariate models", call. = FALSE)
+    frm_stop("refit() supports univariate models", call. = FALSE)
   }
   y0 <- frame[["y"]][[1L]]
   if (is.matrix(y0)) {
     newresp <- as.matrix(newresp)
     if (!identical(dim(newresp), dim(y0))) {
-      stop("newresp must be a ", nrow(y0), " x ", ncol(y0), " matrix",
-           call. = FALSE)
+      frm_stop("newresp must be a ", nrow(y0), " x ", ncol(y0), " matrix",
+               call. = FALSE)
     }
   } else {
     if (is.data.frame(newresp)) newresp <- newresp[[1L]]
     newresp <- as.vector(newresp)
     if (length(newresp) != length(y0)) {
-      stop("newresp must have length ", length(y0), call. = FALSE)
+      frm_stop("newresp must have length ", length(y0), call. = FALSE)
     }
   }
   frame[["y"]][[1L]] <- newresp

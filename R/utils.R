@@ -201,17 +201,17 @@ frm_check_dots <- function(..., .unsupported = NULL, .allow = NULL) {
   # by a method that forwards its dots, or it goes on meaning nothing
   hit <- intersect(bad, names(.unsupported))
   if (length(hit)) {
-    stop(what, " cannot honor `", hit[1L], "`: ", .unsupported[[hit[1L]]],
-         call. = FALSE)
+    frm_stop(what, " cannot honor `", hit[1L], "`: ", .unsupported[[hit[1L]]],
+             call. = FALSE)
   }
   if (isTRUE(.allow)) return(invisible(NULL))
   bad <- setdiff(bad, contract)
   unnamed <- sum(!nzchar(nms))
   if (unnamed > 0L) {
-    stop(what, " was given ", unnamed, " argument",
-         if (unnamed > 1L) "s" else "", " with no name, which it has ",
-         "nowhere to put. It takes: ",
-         paste(setdiff(known, "..."), collapse = ", "), call. = FALSE)
+    frm_stop(what, " was given ", unnamed, " argument",
+             if (unnamed > 1L) "s" else "", " with no name, which it has ",
+             "nowhere to put. It takes: ",
+             paste(setdiff(known, "..."), collapse = ", "), call. = FALSE)
   }
   bad <- setdiff(bad, .allow)
   if (!length(bad)) return(invisible(NULL))
@@ -220,15 +220,15 @@ frm_check_dots <- function(..., .unsupported = NULL, .allow = NULL) {
   # `plot()` the contract is 95 graphical parameters and printing them
   # would bury the answer
   guess <- nearest_formal(bad[1L], c(known, .allow, contract))
-  stop(what, " has no argument `", bad[1L], "`",
-       if (length(bad) > 1L) {
-         paste0(" (and ", length(bad) - 1L, " more: ",
-                paste(bad[-1L], collapse = ", "), ")")
-       } else "",
-       if (is.null(guess)) "" else paste0(". Did you mean `", guess, "`?"),
-       ". It takes: ",
-       paste(setdiff(c(known, .allow), "..."), collapse = ", "),
-       call. = FALSE)
+  frm_stop(what, " has no argument `", bad[1L], "`",
+           if (length(bad) > 1L) {
+             paste0(" (and ", length(bad) - 1L, " more: ",
+                    paste(bad[-1L], collapse = ", "), ")")
+           } else "",
+           if (is.null(guess)) "" else paste0(". Did you mean `", guess, "`?"),
+           ". It takes: ",
+           paste(setdiff(c(known, .allow), "..."), collapse = ", "),
+           call. = FALSE)
 }
 
 # --- one setting under two spellings ----------------------------------
@@ -275,12 +275,12 @@ dual_arg <- function(primary, alias, primary_name, alias_name, what,
   set_primary <- !is_arg_unset(primary)
   set_alias <- !is_arg_unset(alias)
   if (set_primary && set_alias) {
-    stop(what, " was given both `", primary_name, "` and `", alias_name,
-         "`, which are two spellings of ONE setting, so it cannot tell ",
-         "which was meant. `", primary_name, "` is the spelling this ",
-         "function takes (it is brms's, and this is a brms function); `",
-         alias_name, "` is accepted as an alias. Pass one of them",
-         call. = FALSE)
+    frm_stop(what, " was given both `", primary_name, "` and `", alias_name,
+             "`, which are two spellings of ONE setting, so it cannot tell ",
+             "which was meant. `", primary_name, "` is the spelling this ",
+             "function takes (it is brms's, and this is a brms function); `",
+             alias_name, "` is accepted as an alias. Pass one of them",
+             call. = FALSE)
   }
   if (set_primary) return(primary)
   if (set_alias) return(alias)
@@ -302,8 +302,8 @@ re_form_arg <- function(re_formula, re.form, what, default = NULL) {
 #' @noRd
 check_flag <- function(x, arg, what = NULL) {
   if (!is.logical(x) || length(x) != 1L || is.na(x)) {
-    stop("`", arg, "` must be TRUE or FALSE, not ", arg_desc(x),
-         if (is.null(what)) "" else paste0(". ", what), call. = FALSE)
+    frm_stop("`", arg, "` must be TRUE or FALSE, not ", arg_desc(x),
+             if (is.null(what)) "" else paste0(". ", what), call. = FALSE)
   }
   invisible(x)
 }
@@ -318,8 +318,8 @@ check_count <- function(x, arg, min = 0L) {
   ok <- is.numeric(x) && length(x) == 1L && is.finite(x) &&
     x == round(x) && x >= min
   if (!ok) {
-    stop("`", arg, "` must be a single whole number of at least ", min,
-         ", not ", arg_desc(x), call. = FALSE)
+    frm_stop("`", arg, "` must be a single whole number of at least ", min,
+             ", not ", arg_desc(x), call. = FALSE)
   }
   invisible(as.integer(x))
 }
@@ -331,8 +331,8 @@ check_count <- function(x, arg, min = 0L) {
 check_probability <- function(x, arg) {
   if (!is.numeric(x) || length(x) != 1L || !is.finite(x) ||
         x <= 0 || x >= 1) {
-    stop("`", arg, "` must be a single number strictly between 0 and 1, ",
-         "not ", arg_desc(x), call. = FALSE)
+    frm_stop("`", arg, "` must be a single number strictly between 0 and 1, ",
+             "not ", arg_desc(x), call. = FALSE)
   }
   invisible(as.numeric(x))
 }
@@ -342,8 +342,8 @@ check_probability <- function(x, arg) {
 #' @noRd
 check_positive <- function(x, arg) {
   if (!is.numeric(x) || length(x) != 1L || !is.finite(x) || x <= 0) {
-    stop("`", arg, "` must be a single finite positive number, not ",
-         arg_desc(x), call. = FALSE)
+    frm_stop("`", arg, "` must be a single finite positive number, not ",
+             arg_desc(x), call. = FALSE)
   }
   invisible(as.numeric(x))
 }
@@ -354,8 +354,8 @@ check_positive <- function(x, arg) {
 #' @noRd
 check_number <- function(x, arg) {
   if (!is.numeric(x) || length(x) != 1L || !is.finite(x)) {
-    stop("`", arg, "` must be a single finite number, not ", arg_desc(x),
-         call. = FALSE)
+    frm_stop("`", arg, "` must be a single finite number, not ", arg_desc(x),
+             call. = FALSE)
   }
   invisible(as.numeric(x))
 }
@@ -371,8 +371,8 @@ check_named_list <- function(x, arg, example) {
   # its unnamed elements silently dropped by the by-name consumers
   if (!is.list(x) ||
         (length(x) && (is.null(names(x)) || !all(nzchar(names(x)))))) {
-    stop("`", arg, "` must be a named list, e.g. ", example, ", not ",
-         arg_desc(x), call. = FALSE)
+    frm_stop("`", arg, "` must be a named list, e.g. ", example, ", not ",
+             arg_desc(x), call. = FALSE)
   }
   invisible(x)
 }
@@ -386,9 +386,9 @@ check_named_list <- function(x, arg, example) {
 check_string_choice <- function(x, arg, choices) {
   if (!is.character(x) || length(x) != 1L || is.na(x) ||
         !x %in% choices) {
-    stop("`", arg, "` must be one of ",
-         paste0("\"", choices, "\"", collapse = ", "), ", not ",
-         arg_desc(x), call. = FALSE)
+    frm_stop("`", arg, "` must be one of ",
+             paste0("\"", choices, "\"", collapse = ", "), ", not ",
+             arg_desc(x), call. = FALSE)
   }
   invisible(x)
 }
@@ -467,15 +467,15 @@ parse_num_levels <- function(lv) {
     out <- t(vapply(parts, function(p) suppressWarnings(as.numeric(p)),
                     numeric(length(parts[[1]]))))
     if (anyNA(out)) {
-      stop("Levels must encode numeric coordinates like '(1,2)'; build ",
-           "the factor with num_factor(x, y)", call. = FALSE)
+      frm_stop("Levels must encode numeric coordinates like '(1,2)'; build ",
+               "the factor with num_factor(x, y)", call. = FALSE)
     }
     return(out)
   }
   out <- suppressWarnings(as.numeric(s))
   if (anyNA(out)) {
-    stop("Levels must encode numeric positions on one axis; build the ",
-         "factor with num_factor(x)", call. = FALSE)
+    frm_stop("Levels must encode numeric positions on one axis; build the ",
+             "factor with num_factor(x)", call. = FALSE)
   }
   out
 }
@@ -505,15 +505,15 @@ warn_nonfinite_cov <- function(cache = NULL, fit = NULL) {
   # "probably overparameterized" is a guess, and the wrong one when the
   # likelihood is flat in a direction. Given the fit, measure instead.
   note <- if (is.null(fit)) "" else flat_par_note(fit)
-  warning("Some standard errors are not finite, so vcov() and ",
-          "summary() report NaN: the covariance could not be recovered ",
-          "from the Hessian",
-          if (nzchar(note)) note else {
-            " and the model is probably overparameterized"
-          },
-          ". diagnose() names the offending ",
-          "parameters; see the 'Convergence problems' section of ",
-          "vignette('diagnostics')", call. = FALSE)
+  frm_warning("Some standard errors are not finite, so vcov() and ",
+              "summary() report NaN: the covariance could not be recovered ",
+              "from the Hessian",
+              if (nzchar(note)) note else {
+                " and the model is probably overparameterized"
+              },
+              ". diagnose() names the offending ",
+              "parameters; see the 'Convergence problems' section of ",
+              "vignette('diagnostics')", call. = FALSE)
 }
 
 #' Invert the joint precision of a REML / profile fit.
@@ -554,14 +554,14 @@ solve_joint_precision <- function(Q, cache = NULL, fit = NULL) {
     cache$warned_singular_precision <- TRUE
   }
   note <- if (is.null(fit)) "" else flat_par_note(fit)
-  warning("The joint precision matrix is singular, so standard errors ",
-          "are NaN",
-          if (nzchar(note)) note else {
-            "; the model is probably overparameterized"
-          },
-          ". diagnose() names the offending parameter; see the ",
-          "'Convergence problems' section of vignette('diagnostics')",
-          call. = FALSE)
+  frm_warning("The joint precision matrix is singular, so standard errors ",
+              "are NaN",
+              if (nzchar(note)) note else {
+                "; the model is probably overparameterized"
+              },
+              ". diagnose() names the offending parameter; see the ",
+              "'Convergence problems' section of vignette('diagnostics')",
+              call. = FALSE)
   matrix(NaN, nrow(Q), ncol(Q), dimnames = dimnames(Q))
 }
 

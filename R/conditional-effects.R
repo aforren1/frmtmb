@@ -19,19 +19,19 @@ ce_aterms <- function(rspec, nd, cset, n) {
     vars <- all.vars(ex)
     pinned <- !length(vars) || all(vars %in% names(cset))
     if (nm %in% strict && !pinned) {
-      stop("conditional_effects() cannot evaluate ",
-           aterm_label(nm, ex), " on the effect grid: its value would ",
-           "be a reference value, not a real one. Pin ",
-           paste(setdiff(vars, names(cset)), collapse = ", "),
-           " in conditions = list(...).", call. = FALSE)
+      frm_stop("conditional_effects() cannot evaluate ",
+               aterm_label(nm, ex), " on the effect grid: its value would ",
+               "be a reference value, not a real one. Pin ",
+               paste(setdiff(vars, names(cset)), collapse = ", "),
+               " in conditions = list(...).", call. = FALSE)
     }
     v <- tryCatch(as.numeric(eval(ex, nd, rspec$formula_env)),
                   error = function(e) NULL)
     if (!is.null(v) && !length(v) %in% c(1L, n)) v <- NULL
     if (is.null(v) && nm %in% strict) {
-      stop("conditional_effects() could not evaluate ",
-           aterm_label(nm, ex), " on the effect grid",
-           call. = FALSE)
+      frm_stop("conditional_effects() could not evaluate ",
+               aterm_label(nm, ex), " on the effect grid",
+               call. = FALSE)
     }
     if (!is.null(v)) av[[nm]] <- v
   }
@@ -91,8 +91,8 @@ ce_grid_values <- function(col, resolution, nm = "the predictor",
     factor(levels(col), levels = levels(col))
   } else if (is.numeric(col)) {
     if (!any(is.finite(col))) {
-      stop("Variable '", nm, "' has no finite values to build an effect ",
-           "grid from", call. = FALSE)
+      frm_stop("Variable '", nm, "' has no finite values to build an effect ",
+               "grid from", call. = FALSE)
     }
     lo <- min(col, na.rm = TRUE)
     hi <- max(col, na.rm = TRUE)
@@ -133,8 +133,8 @@ ce_second_values <- function(col, int_cond = NULL) {
 ce_int_cond <- function(int_cond, col) {
   v <- if (is.function(int_cond)) int_cond(col) else int_cond
   if (!length(v)) {
-    stop("int_conditions must give at least one value per variable",
-         call. = FALSE)
+    frm_stop("int_conditions must give at least one value per variable",
+             call. = FALSE)
   }
   if (is.numeric(v) && !is.matrix(v)) {
     v <- sort(v)
@@ -449,13 +449,13 @@ ce_method <- function(method) {
     method <- switch(method,
       posterior_epred = "epred",
       posterior_predict = "predict",
-      posterior_linpred = stop(
+      posterior_linpred = frm_stop(
         "conditional_effects(method = \"posterior_linpred\") has no ",
         "frmtmb spelling: ask for the linear predictor's own display ",
         "with dpar = instead", call. = FALSE),
       method)
   }
-  match.arg(method, c("epred", "predict"))
+  frm_match_arg(method, c("epred", "predict"))
 }
 
 #' The dots this function itself accepts, with the rest reported against
@@ -471,20 +471,20 @@ ce_dots <- function(dots) {
     dots[["allow_new_levels"]] <- NULL
   }
   if ("allow.new.levels" %in% names(dots)) {
-    stop("`allow.new.levels` is lme4's spelling and this package no ",
-         "longer takes it: brms spells it `allow_new_levels`, and so ",
-         "does this. Pass allow_new_levels =", call. = FALSE)
+    frm_stop("`allow.new.levels` is lme4's spelling and this package no ",
+             "longer takes it: brms spells it `allow_new_levels`, and so ",
+             "does this. Pass allow_new_levels =", call. = FALSE)
   }
   if (length(dots)) {
     # a warning let a misspelled argument change nothing and say so
     # only in passing; plan item 2.5e made every such dot an error
-    stop("conditional_effects() has no argument `",
-         names(dots)[1L], "`",
-         if (length(dots) > 1L) {
-           paste0(" (and ", length(dots) - 1L, " more: ",
-                  paste(names(dots)[-1L], collapse = ", "), ")")
-         } else "",
-         call. = FALSE)
+    frm_stop("conditional_effects() has no argument `",
+             names(dots)[1L], "`",
+             if (length(dots) > 1L) {
+               paste0(" (and ", length(dots) - 1L, " more: ",
+                      paste(names(dots)[-1L], collapse = ", "), ")")
+             } else "",
+             call. = FALSE)
   }
   anl
 }
@@ -519,27 +519,28 @@ ce_display_kind <- function(rspec, dpar, categorical) {
   if (!is.null(categorical)) check_flag(categorical, "categorical")
   if (!is.null(dpar) || !poly) {
     if (isTRUE(categorical)) {
-      stop("conditional_effects(categorical = TRUE) needs an ordinal or ",
-           "categorical family and no dpar = : it draws one curve per ",
-           "response category, and ",
-           if (!is.null(dpar)) {
-             paste0("dpar = \"", dpar, "\" asks for that linear ",
-                    "predictor instead")
-           } else {
-             paste0("family '", rspec$family[["family"]],
-                    "' has no response categories")
-           }, call. = FALSE)
+      frm_stop("conditional_effects(categorical = TRUE) needs an ordinal or ",
+               "categorical family and no dpar = : it draws one curve per ",
+               "response category, and ",
+               if (!is.null(dpar)) {
+                 paste0("dpar = \"", dpar, "\" asks for that linear ",
+                        "predictor instead")
+               } else {
+                 paste0("family '", rspec$family[["family"]],
+                        "' has no response categories")
+               }, call. = FALSE)
     }
     return("linpred")
   }
   if (is.null(categorical) || isTRUE(categorical)) return("cats")
   if (!identical(rspec$family[["type"]], "ordinal")) {
-    stop("conditional_effects(categorical = FALSE) has nothing to draw ",
-         "for family '", rspec$family[["family"]], "': the expected ",
-         "category number needs ORDERED categories, and a nominal ",
-         "family's are not ordered. Use categorical = TRUE (the ",
-         "default here), or dpar = for one category's predictor",
-         call. = FALSE)
+    frm_stop("conditional_effects(categorical = FALSE) has nothing to draw ",
+             "for family '", rspec$family[["family"]], "': the expected ",
+             "category number needs ORDERED categories, and a nominal ",
+             "family's are not ordered. Use categorical = TRUE (the ",
+             "default here), or dpar = for one category's predictor",
+             call. = FALSE,
+             package = frm_family_package(rspec$family))
   }
   "cats_mean"
 }
@@ -669,17 +670,17 @@ ce_boot_one <- function(fit, nd, categorical, resp, dpar,
 #' @noRd
 ce_re_formula <- function(re_formula, dots) {
   if ("re.form" %in% names(dots)) {
-    stop("`re.form` is lme4's spelling and this package no longer ",
-         "takes it anywhere: brms is the tiebreaker on a name, so the ",
-         "setting is `re_formula` in conditional_effects(), predict() ",
-         "and simulate() alike. Pass re_formula = ", call. = FALSE)
+    frm_stop("`re.form` is lme4's spelling and this package no longer ",
+             "takes it anywhere: brms is the tiebreaker on a name, so the ",
+             "setting is `re_formula` in conditional_effects(), predict() ",
+             "and simulate() alike. Pass re_formula = ", call. = FALSE)
   }
   if (!is.null(re_formula) && !inherits(re_formula, "formula") &&
         !(length(re_formula) == 1L && is.na(re_formula))) {
-    stop("`re_formula` must be NA to draw the population-level curve ",
-         "(the default), NULL to condition on the grid reference ",
-         "group levels, or a one-sided formula naming the terms to ",
-         "keep, not ", arg_desc(re_formula), call. = FALSE)
+    frm_stop("`re_formula` must be NA to draw the population-level curve ",
+             "(the default), NULL to condition on the grid reference ",
+             "group levels, or a one-sided formula naming the terms to ",
+             "keep, not ", arg_desc(re_formula), call. = FALSE)
   }
   re_formula
 }
@@ -871,35 +872,35 @@ ce_boot_draws <- function(x, grids, categorical, resp, dpar, boot,
   key <- ce_boot_key(grids, categorical, resp, dpar, lens, nspec)
   if (inherits(boot, "frmtmb_boot")) {
     if (!identical(boot$ce_key, key)) {
-      stop("boot = was not produced by a conditional_effects(band = ",
-           "\"boot\") call on this grid: its draws are ",
-           if (is.null(boot$ce_key)) {
-             "coefficients or another quantity"
-           } else if (!identical(boot$ce_new %||% list(), nkey)) {
-             # the grids can be byte identical here, so this reason has
-             # to be checked before the grid one or it would never be
-             # the one reported
-             if (length(nkey)) {
-               paste0("predictions for a different group: this call ",
-                      "conditions on a NEW group (re_formula = NULL), ",
-                      "and those draws do not carry that group's ",
-                      "effects, so their percentiles are the ",
-                      "population band")
-             } else {
-               paste0("predictions for a different group: those draws ",
-                      "carry a NEW group's effects (they came from a ",
-                      "re_formula = NULL call) and this call is the ",
-                      "population curve, so their percentiles are too ",
-                      "wide for it")
-             }
-           } else {
-             paste0("predictions over a different grid (the effects, ",
-                    "the resolution, the conditions or the data are ",
-                    "not the same)")
-           },
-           ", so its percentiles would not be a band for this curve. ",
-           "Pass a number of draws instead, or reuse attr(ce, \"boot\") ",
-           "from an otherwise identical call", call. = FALSE)
+      frm_stop("boot = was not produced by a conditional_effects(band = ",
+               "\"boot\") call on this grid: its draws are ",
+               if (is.null(boot$ce_key)) {
+                 "coefficients or another quantity"
+               } else if (!identical(boot$ce_new %||% list(), nkey)) {
+                 # the grids can be byte identical here, so this reason has
+                 # to be checked before the grid one or it would never be
+                 # the one reported
+                 if (length(nkey)) {
+                   paste0("predictions for a different group: this call ",
+                          "conditions on a NEW group (re_formula = NULL), ",
+                          "and those draws do not carry that group's ",
+                          "effects, so their percentiles are the ",
+                          "population band")
+                 } else {
+                   paste0("predictions for a different group: those draws ",
+                          "carry a NEW group's effects (they came from a ",
+                          "re_formula = NULL call) and this call is the ",
+                          "population curve, so their percentiles are too ",
+                          "wide for it")
+                 }
+               } else {
+                 paste0("predictions over a different grid (the effects, ",
+                        "the resolution, the conditions or the data are ",
+                        "not the same)")
+               },
+               ", so its percentiles would not be a band for this curve. ",
+               "Pass a number of draws instead, or reuse attr(ce, \"boot\") ",
+               "from an otherwise identical call", call. = FALSE)
     }
     return(list(bs = boot, lens = lens,
                 offsets = cumsum(c(0L, lens))))
@@ -907,8 +908,8 @@ ce_boot_draws <- function(x, grids, categorical, resp, dpar, boot,
   if (!is.null(boot) &&
       !(is.numeric(boot) && length(boot) == 1L && is.finite(boot) &&
         boot >= 2)) {
-    stop("boot = takes a single number of bootstrap draws (>= 2) or a ",
-         "frmtmb_boot object; got ", class(boot)[1L], call. = FALSE)
+    frm_stop("boot = takes a single number of bootstrap draws (>= 2) or a ",
+             "frmtmb_boot object; got ", class(boot)[1L], call. = FALSE)
   }
   nsim <- if (is.null(boot)) 200L else as.integer(boot)
   FUN <- function(f) {
@@ -924,10 +925,10 @@ ce_boot_draws <- function(x, grids, categorical, resp, dpar, boot,
     if (!is.numeric(v) || length(v) != tot) rep(NA_real_, tot) else v
   }
   if (is.null(boot)) {
-    message("conditional_effects(band = \"boot\"): refitting the model ",
-            nsim, " times (one bootstrap shared by all ",
-            length(grids), " grid(s)). Pass boot = <draws> for a ",
-            "cheaper run, or boot = attr(ce, \"boot\") to reuse this one.")
+    frm_message("conditional_effects(band = \"boot\"): refitting the model ",
+                nsim, " times (one bootstrap shared by all ",
+                length(grids), " grid(s)). Pass boot = <draws> for a ",
+                "cheaper run, or boot = attr(ce, \"boot\") to reuse this one.")
   }
   bs <- frm_bootstrap(x, FUN = FUN, nsim = nsim, seed = seed)
   bs$ce_key <- key
@@ -971,39 +972,40 @@ ce_outer_comp <- function(fit) {
 #' @noRd
 ce_profile_check <- function(x, rspec, lp, dpar_given, categorical) {
   if (categorical) {
-    stop("band = \"profile\" cannot cover an ordinal category ",
-         "probability: it is not a linear combination of the ",
-         "parameters (the thresholds and any cs() coefficients enter ",
-         "every category), so there is no single likelihood root to ",
-         "invert. Use band = \"boot\", or dpar = \"mu\" for the latent ",
-         "predictor", call. = FALSE)
+    frm_stop("band = \"profile\" cannot cover an ordinal category ",
+             "probability: it is not a linear combination of the ",
+             "parameters (the thresholds and any cs() coefficients enter ",
+             "every category), so there is no single likelihood root to ",
+             "invert. Use band = \"boot\", or dpar = \"mu\" for the latent ",
+             "predictor", call. = FALSE)
   }
   if (x$REML) {
-    stop("band = \"profile\" requires an ML fit: REML integrates the ",
-         "fixed effects out of the outer problem, so the effect grid is ",
-         "not a function of the parameters the likelihood is profiled ",
-         "over. Use band = \"boot\", or refit with REML = FALSE",
-         call. = FALSE)
+    frm_stop("band = \"profile\" requires an ML fit: REML integrates the ",
+             "fixed effects out of the outer problem, so the effect grid is ",
+             "not a function of the parameters the likelihood is profiled ",
+             "over. Use band = \"boot\", or refit with REML = FALSE",
+             call. = FALSE)
   }
   if (isTRUE(x$control$profile)) {
-    stop("band = \"profile\" needs a fit without ",
-         "frmtmb_control(profile = TRUE): the profiled coefficients are ",
-         "not outer parameters there. Use band = \"boot\"",
-         call. = FALSE)
+    frm_stop("band = \"profile\" needs a fit without ",
+             "frmtmb_control(profile = TRUE): the profiled coefficients are ",
+             "not outer parameters there. Use band = \"boot\"",
+             call. = FALSE)
   }
   if (!is.null(lp[["nl_body"]])) {
-    stop("band = \"profile\" is not available for a nonlinear ",
-         "predictor: a grid value is not a linear combination of the ",
-         "nonlinear parameters. Use band = \"boot\"", call. = FALSE)
+    frm_stop("band = \"profile\" is not available for a nonlinear ",
+             "predictor: a grid value is not a linear combination of the ",
+             "nonlinear parameters. Use band = \"boot\"", call. = FALSE)
   }
   if (!dpar_given && (!mean_is_mu(rspec$family) || has_trunc(rspec))) {
-    stop("band = \"profile\" cannot cover the expected response of ",
-         "family '", rspec$family[["family"]], "': it runs through more ",
-         "than one distributional parameter (zero inflation, a hurdle, ",
-         "a dispersion) or through truncation bounds, so it is not a ",
-         "single linear combination of the parameters. Use ",
-         "band = \"boot\", or name one predictor with dpar =",
-         call. = FALSE)
+    frm_stop("band = \"profile\" cannot cover the expected response of ",
+             "family '", rspec$family[["family"]], "': it runs through more ",
+             "than one distributional parameter (zero inflation, a hurdle, ",
+             "a dispersion) or through truncation bounds, so it is not a ",
+             "single linear combination of the parameters. Use ",
+             "band = \"boot\", or name one predictor with dpar =",
+             call. = FALSE,
+             package = frm_family_package(rspec$family))
   }
   key <- linpred_key(lp[["resp"]], lp[["dpar"]])
   sm <- Filter(function(bk) {
@@ -1011,11 +1013,11 @@ ce_profile_check <- function(x, rspec, lp, dpar_given, categorical) {
       any(vapply(bk[["components"]], function(cp) cp$lp_key == key, TRUE))
   }, x$frame[["re_blocks"]])
   if (length(sm)) {
-    stop("band = \"profile\" cannot cover a predictor carrying a ",
-         "smooth, gp() or hsgp() term: the basis coefficients are ",
-         "inner (random) parameters, which a likelihood-root search ",
-         "over the outer parameter vector does not move. Use ",
-         "band = \"boot\"", call. = FALSE)
+    frm_stop("band = \"profile\" cannot cover a predictor carrying a ",
+             "smooth, gp() or hsgp() term: the basis coefficients are ",
+             "inner (random) parameters, which a likelihood-root search ",
+             "over the outer parameter vector does not move. Use ",
+             "band = \"boot\"", call. = FALSE)
   }
   invisible(NULL)
 }
@@ -1053,9 +1055,9 @@ ce_profile_eta_ci <- function(x, lp, nd, v1, n1, n2, prob,
   }
   X <- X[, keep, drop = FALSE]
   if (length(comp) != length(par) || anyNA(pos) || length(pos) != ncol(X)) {
-    stop("band = \"profile\" cannot line this fit's coefficients up ",
-         "with its outer parameter vector (a mapped, fixed or profiled ",
-         "coefficient block). Use band = \"boot\"", call. = FALSE)
+    frm_stop("band = \"profile\" cannot line this fit's coefficients up ",
+             "with its outer parameter vector (a mapped, fixed or profiled ",
+             "coefficient block). Use band = \"boot\"", call. = FALSE)
   }
   eta <- ed[["eta"]]
   n <- length(eta)
@@ -1478,24 +1480,24 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
         if (any(smooth_pred_vars(si$sm) %in% mat_vars)) si$label else ""
       }, "")
       terms_on <- terms_on[nzchar(terms_on)]
-      stop("conditional_effects() has nothing to draw for dpar '", dpar,
-           "': the only predictor(s) of that parameter are the matrix ",
-           "column(s) ", paste0("`", mat_vars, "`", collapse = ", "),
-           if (length(terms_on)) {
-             paste0(" (carried by ", paste(terms_on, collapse = ", "), ")")
-           },
-           ", which the display excludes. A matrix column is a whole ",
-           "function per row, so it has neither a one-dimensional axis ",
-           "to vary along nor a single value to hold the other ",
-           "predictors at. Draw the coefficient function with ",
-           "predict(newdata = ) over a grid you build yourself: one row ",
-           "per grid point, the matrix column holding the grid, and the ",
-           "weight column an indicator of the point",
-           call. = FALSE)
+      frm_stop("conditional_effects() has nothing to draw for dpar '", dpar,
+               "': the only predictor(s) of that parameter are the matrix ",
+               "column(s) ", paste0("`", mat_vars, "`", collapse = ", "),
+               if (length(terms_on)) {
+                 paste0(" (carried by ", paste(terms_on, collapse = ", "), ")")
+               },
+               ", which the display excludes. A matrix column is a whole ",
+               "function per row, so it has neither a one-dimensional axis ",
+               "to vary along nor a single value to hold the other ",
+               "predictors at. Draw the coefficient function with ",
+               "predict(newdata = ) over a grid you build yourself: one row ",
+               "per grid point, the matrix column holding the grid, and the ",
+               "weight column an indicator of the point",
+               call. = FALSE)
     }
     if (!length(effects)) {
-      stop("No plottable predictors found for dpar '", dpar, "'",
-           call. = FALSE)
+      frm_stop("No plottable predictors found for dpar '", dpar, "'",
+               call. = FALSE)
     }
   }
   # one grid per effect: a repeated name would otherwise stack the same
@@ -1504,8 +1506,8 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
   # a misspelled int_conditions name silently conditioned on nothing
   unknown <- setdiff(names(int_conditions), names(base))
   if (length(unknown)) {
-    warning("int_conditions names no variable of the model data: ",
-            paste(unknown, collapse = ", "), call. = FALSE)
+    frm_warning("int_conditions names no variable of the model data: ",
+                paste(unknown, collapse = ", "), call. = FALSE)
   }
 
   # a data-frame `conditions` defines one condition set per row (brms
@@ -1527,23 +1529,23 @@ ce_grids_build <- function(x, rspec, lp, effects, resp, dpar, resolution,
       for (v in miss) cond_sets[[i]][[v]] <- 1
     }
     if (length(unpinned)) {
-      message("conditional_effects(): holding the trials variable(s) ",
-              paste(unpinned, collapse = ", "), " at 1, so the display ",
-              "is a probability per trial (brms's default too). Pin ",
-              "them in conditions = list(...) for a count.")
+      frm_message("conditional_effects(): holding the trials variable(s) ",
+                  paste(unpinned, collapse = ", "), " at 1, so the display ",
+                  "is a probability per trial (brms's default too). Pin ",
+                  "them in conditions = list(...) for a count.")
     }
   }
   grids <- list()
   for (eff in effects) {
     ev <- strsplit(eff, ":", fixed = TRUE)[[1L]]
     if (length(ev) > 2L) {
-      stop("Effects support at most two variables: '", eff, "'",
-           call. = FALSE)
+      frm_stop("Effects support at most two variables: '", eff, "'",
+               call. = FALSE)
     }
     missing_ev <- setdiff(ev, names(base))
     if (length(missing_ev)) {
-      stop("Variable '", missing_ev[1L], "' is not stored in the model ",
-           "frame; pass the original data via data =", call. = FALSE)
+      frm_stop("Variable '", missing_ev[1L], "' is not stored in the model ",
+               "frame; pass the original data via data =", call. = FALSE)
     }
     v1 <- ce_grid_values(base[[ev[1L]]], resolution, ev[1L],
                          int_conditions[[ev[1L]]],
@@ -1698,7 +1700,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
                                            int_conditions = list(),
                                            categorical = NULL, ...) {
   method <- ce_method(method)
-  band <- match.arg(band)
+  band <- frm_match_arg(band)
   # prob becomes a normal quantile that RECYCLES along the grid, so a
   # length-2 prob drew a band whose coverage alternated point by point.
   # A length-2 resolution silently used only its first element.
@@ -1723,11 +1725,11 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   rspec <- x$spec$responses[[resp]]
   ce_structure_check(rspec)
   if (isTRUE(surface)) {
-    stop("conditional_effects(surface = TRUE) is not implemented: the ",
-         "display draws curves with bands, not a fitted surface. Ask ",
-         "for the two-variable effect instead, e.g. ",
-         "effects = \"x1:x2\", which varies x1 over its range at three ",
-         "values of x2 (or at its levels)", call. = FALSE)
+    frm_stop("conditional_effects(surface = TRUE) is not implemented: the ",
+             "display draws curves with bands, not a fitted surface. Ask ",
+             "for the two-variable effect instead, e.g. ",
+             "effects = \"x1:x2\", which varies x1 over its range at three ",
+             "values of x2 (or at its levels)", call. = FALSE)
   }
   # a per-category effect display is on the CATEGORIES, not the latent
   # scale; naming a dpar explicitly is the way back to the predictor
@@ -1735,28 +1737,29 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   categorical <- identical(kind, "cats")
   cats_mean <- identical(kind, "cats_mean")
   if ((categorical || cats_mean) && method == "predict") {
-    stop("method = \"predict\" has no meaning on an ordinal family: the ",
-         "category probabilities conditional_effects() draws ARE the ",
-         "predictive distribution, so there is no further observation ",
-         "noise to add. Use method = \"epred\" (the default), or ask ",
-         "for the latent predictor with dpar = \"mu\"", call. = FALSE)
+    frm_stop("method = \"predict\" has no meaning on an ordinal family: the ",
+             "category probabilities conditional_effects() draws ARE the ",
+             "predictive distribution, so there is no further observation ",
+             "noise to add. Use method = \"epred\" (the default), or ask ",
+             "for the latent predictor with dpar = \"mu\"", call. = FALSE)
   }
   # the delta method for a category probability runs through the ordinal
   # THRESHOLDS (ord_prob_se); a nominal family has none, so its bands
   # come from refits until someone writes that Jacobian
   if (categorical && band != "boot" &&
       !identical(rspec$family[["type"]], "ordinal")) {
-    stop("conditional_effects() has no analytic standard error for the ",
-         "category probabilities of family '", rspec$family[["family"]],
-         "': the delta method it uses is written for ordinal thresholds. ",
-         "Use band = \"boot\"", call. = FALSE)
+    frm_stop("conditional_effects() has no analytic standard error for the ",
+             "category probabilities of family '", rspec$family[["family"]],
+             "': the delta method it uses is written for ordinal thresholds. ",
+             "Use band = \"boot\"", call. = FALSE,
+             package = frm_family_package(rspec$family))
   }
   if (band != "wald" && method == "predict") {
-    stop("band = \"", band, "\" does not apply to method = \"predict\": ",
-         "a prediction interval is already a quantile of simulated ",
-         "responses, not a Wald band, and adding parameter uncertainty ",
-         "to it twice is not an interval for anything. Use ",
-         "method = \"epred\"", call. = FALSE)
+    frm_stop("band = \"", band, "\" does not apply to method = \"predict\": ",
+             "a prediction interval is already a quantile of simulated ",
+             "responses, not a Wald band, and adding parameter uncertainty ",
+             "to it twice is not an interval for anything. Use ",
+             "method = \"epred\"", call. = FALSE)
   }
   # properties of the FAMILY, so they are settled before any grid is
   # built: raised from inside the loop they arrived after the point
@@ -1765,17 +1768,19 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   # length instead
   if (method == "predict") {
     if (!sim_can(rspec$family)) {
-      stop("method = 'predict' needs a family with a simulator",
-           sim_note(rspec$family), call. = FALSE)
+      frm_stop("method = 'predict' needs a family with a simulator",
+               sim_note(rspec$family), call. = FALSE,
+               package = frm_family_package(rspec$family))
     }
     # the band is built from ROWWISE draws, so a family that only draws
     # whole is refused even though simulate() accepts it:
     # mixture_mvn()'s sim_ctx returns an n by D matrix, which the
     # per-row quantiles cannot consume
     if (is.null(rspec$family[["sim"]])) {
-      stop("method = 'predict' needs a family that draws row by row; '",
-           rspec$family[["family"]], "' draws the response whole",
-           call. = FALSE)
+      frm_stop("method = 'predict' needs a family that draws row by row; '",
+               rspec$family[["family"]], "' draws the response whole",
+               call. = FALSE,
+               package = frm_family_package(rspec$family))
     }
   }
   dpar_given <- !is.null(dpar)
@@ -1803,27 +1808,27 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   if (band == "profile") {
     ce_profile_check(x, rspec, lp, dpar_given, categorical || cats_mean)
     if (!pop_level) {
-      stop("band = \"profile\" draws its band over the OUTER ",
-           "parameters, so it exists only for the population-level ",
-           "curve (re_formula = NA). Use band = \"wald\" or ",
-           "\"boot\" to condition on random effects", call. = FALSE)
+      frm_stop("band = \"profile\" draws its band over the OUTER ",
+               "parameters, so it exists only for the population-level ",
+               "curve (re_formula = NA). Use band = \"wald\" or ",
+               "\"boot\" to condition on random effects", call. = FALSE)
     }
   }
   if ((categorical || cats_mean) && !pop_level &&
       identical(rspec$family[["type"]], "ordinal") && band != "boot") {
-    stop("the ordinal per-category delta method is written for the ",
-         "population-level curve; with re_formula use band = ",
-         "\"boot\", or ask for dpar = \"mu\"", call. = FALSE)
+    frm_stop("the ordinal per-category delta method is written for the ",
+             "population-level curve; with re_formula use band = ",
+             "\"boot\", or ask for dpar = \"mu\"", call. = FALSE)
   }
   # a nonlinear predictor has no delta-method standard error, so it
   # needs a band that never asks for one: boot refits, predict simulates
   if (!is.null(lp[["nl_body"]]) && band != "boot" && method != "predict") {
-    stop("conditional_effects() cannot put a ", band, " band on a ",
-         "nonlinear predictor: predict() has no standard error for it. ",
-         "Use band = \"boot\", which refits instead of differentiating, ",
-         "method = \"predict\", whose band is a quantile of simulated ",
-         "responses, or display one nonlinear parameter with dpar = \"",
-         rspec$nlpars[1L], "\"", call. = FALSE)
+    frm_stop("conditional_effects() cannot put a ", band, " band on a ",
+             "nonlinear predictor: predict() has no standard error for it. ",
+             "Use band = \"boot\", which refits instead of differentiating, ",
+             "method = \"predict\", whose band is a quantile of simulated ",
+             "responses, or display one nonlinear parameter with dpar = \"",
+             rspec$nlpars[1L], "\"", call. = FALSE)
   }
   # every grid of the call is built before any band is: one bootstrap
   # covers all of them, which is the whole point of doing it here rather
@@ -2036,16 +2041,16 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
     dfs_by_eff[[g$eff]] <- c(dfs_by_eff[[g$eff]], list(df))
   }
   if (pfail[1L] > 0L) {
-    warning("band = \"profile\": the likelihood-root search did not ",
-            "converge at ", pfail[1L], " of ", pfail[2L],
-            " profiled grid point(s); their bounds are NA",
-            call. = FALSE)
+    frm_warning("band = \"profile\": the likelihood-root search did not ",
+                "converge at ", pfail[1L], " of ", pfail[2L],
+                " profiled grid point(s); their bounds are NA",
+                call. = FALSE)
   }
   if (bfail[1L] > 0L) {
-    warning("The '", blink %||% "?", "' link does not reach the band at ",
-            bfail[1L], " of ", bfail[2L], " grid point(s): the interval ",
-            "runs past the link's domain, so that bound is NA rather ",
-            "than a number", call. = FALSE)
+    frm_warning("The '", blink %||% "?", "' link does not reach the band at ",
+                bfail[1L], " of ", bfail[2L], " grid point(s): the interval ",
+                "runs past the link's domain, so that bound is NA rather ",
+                "than a number", call. = FALSE)
   }
 
   out <- ce_finalize(dfs_by_eff, effects, rspec, resp, dpar, band, base,
@@ -2089,10 +2094,10 @@ plot.frmtmb_conditional_effects <- function(x, ask = NULL, points = FALSE,
   for (nm in names(x)) {
     df <- x[[nm]]
     if (points && is.null(attr(df, "points_df"))) {
-      message("points = TRUE: no observations to draw for effect '", nm,
-              "' (the display is per-category, on a non-mean ",
-              "distributional parameter, or the response is not a ",
-              "plain numeric column)")
+      frm_message("points = TRUE: no observations to draw for effect '", nm,
+                  "' (the display is per-category, on a non-mean ",
+                  "distributional parameter, or the response is not a ",
+                  "plain numeric column)")
     }
     if (!is.null(df$cond__) && length(unique(df$cond__)) > 1L) {
       ce_plot_facets(df, points = points, ncol = ncol)
@@ -2506,7 +2511,7 @@ pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
   rspec <- single_response(object, "pp_check()")
   y <- object$frame[["y"]][[1L]]
   if (is.matrix(y)) {
-    stop("pp_check() on a fit supports vector responses", call. = FALSE)
+    frm_stop("pp_check() on a fit supports vector responses", call. = FALSE)
   }
   sims <- na_unpad(object, simulate(object, nsim = ndraws,
                                     re_formula = re_form))

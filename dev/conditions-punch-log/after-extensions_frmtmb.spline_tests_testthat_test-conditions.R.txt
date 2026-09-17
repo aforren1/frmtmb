@@ -1,0 +1,2 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 2 PASS 5 FAIL 0 ERROR 0 SKIP 0  extensions/frmtmb.spline/tests/testthat/test-conditions.R

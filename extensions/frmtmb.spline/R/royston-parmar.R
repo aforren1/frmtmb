@@ -287,36 +287,36 @@
 #' @export
 royston_parmar <- function(df = 3, knots = NULL, bknots = NULL,
                            scale = c("hazard", "odds", "normal")) {
-  scale <- match.arg(scale)
+  scale <- frm_match_arg(scale)
   if (!is.null(knots)) {
     if (!is.numeric(knots) || anyNA(knots)) {
-      stop("royston_parmar(knots = ) takes the interior knots as a ",
-           "numeric vector on the LOG time scale (numeric(0) for none, ",
-           "NULL to place them at quantiles), not ", class(knots)[1L],
-           call. = FALSE)
+      frm_stop("royston_parmar(knots = ) takes the interior knots as a ",
+               "numeric vector on the LOG time scale (numeric(0) for none, ",
+               "NULL to place them at quantiles), not ", class(knots)[1L],
+               call. = FALSE)
     }
     knots <- sort(as.numeric(knots))
     if (!missing(df) && df != length(knots) + 1L) {
-      stop("royston_parmar(): df = ", df, " and ", length(knots),
-           " interior knots disagree. df is the number of interior ",
-           "knots plus one, so drop df and let the knots decide",
-           call. = FALSE)
+      frm_stop("royston_parmar(): df = ", df, " and ", length(knots),
+               " interior knots disagree. df is the number of interior ",
+               "knots plus one, so drop df and let the knots decide",
+               call. = FALSE)
     }
     df <- length(knots) + 1L
   }
   if (!is.numeric(df) || length(df) != 1L || !is.finite(df) || df < 1 ||
       df != round(df)) {
-    stop("royston_parmar(df = ) must be one whole number of at least 1. ",
-         "df = 1 is the spline with no interior knot, which is the ",
-         "Weibull, log-logistic or lognormal model that scale names",
-         call. = FALSE)
+    frm_stop("royston_parmar(df = ) must be one whole number of at least 1. ",
+             "df = 1 is the spline with no interior knot, which is the ",
+             "Weibull, log-logistic or lognormal model that scale names",
+             call. = FALSE)
   }
   df <- as.integer(df)
   if (!is.null(bknots)) {
     if (!is.numeric(bknots) || length(bknots) != 2L || anyNA(bknots) ||
         bknots[1L] >= bknots[2L]) {
-      stop("royston_parmar(bknots = ) takes the two boundary knots on ",
-           "the log time scale, smallest first", call. = FALSE)
+      frm_stop("royston_parmar(bknots = ) takes the two boundary knots on ",
+               "the log time scale, smallest first", call. = FALSE)
     }
     bknots <- as.numeric(bknots)
   }
@@ -415,14 +415,14 @@ sp_rp_family <- function(cfg, allknots) {
       # not identify its upper tail. core's cox() refuses the same
       # question for the same reason.
       mean_fn = function(dpars, aterms) {
-        stop("royston_parmar: a survival time has no mean on the ",
-             "response scale here. mu is gamma0, the intercept of a ",
-             "spline in log time, not a fitted value, and the mean ",
-             "survival time is an integral over a tail the censored ",
-             "rows do not identify. predict(type = \"link\", dpar = ) ",
-             "gives any spline coefficient, and frm_curve() reads the ",
-             "fitted log cumulative hazard off with a band",
-             call. = FALSE)
+        frm_stop("royston_parmar: a survival time has no mean on the ",
+                 "response scale here. mu is gamma0, the intercept of a ",
+                 "spline in log time, not a fitted value, and the mean ",
+                 "survival time is an integral over a tail the censored ",
+                 "rows do not identify. predict(type = \"link\", dpar = ) ",
+                 "gives any spline coefficient, and frm_curve() reads the ",
+                 "fitted log cumulative hazard off with a band",
+                 call. = FALSE)
       },
       # frmtmb >= 0.52.0 runs this when a fit finishes. It is the only
       # place a family can say anything about where the optimizer
@@ -435,12 +435,12 @@ sp_rp_family <- function(cfg, allknots) {
         r <- try(rp_floored(fit, action = "report"), silent = TRUE)
         if (inherits(r, "try-error")) return(invisible(NULL))
         if (r$n_nonmonotone) {
-          warning(r$n_nonmonotone, " of ", r$n_obs, " observed rows have ",
-                  "a non-positive d(eta)/d(log t) at the fitted ",
-                  "parameters, so no hazard exists there and this fit's ",
-                  "logLik() and AIC() are of a floored pseudo-likelihood ",
-                  "rather than of a density. rp_floored() names the rows; ",
-                  "fewer knots is the remedy", call. = FALSE)
+          frm_warning(r$n_nonmonotone, " of ", r$n_obs, " observed rows have ",
+                      "a non-positive d(eta)/d(log t) at the fitted ",
+                      "parameters, so no hazard exists there and this fit's ",
+                      "logLik() and AIC() are of a floored pseudo-likelihood ",
+                      "rather than of a density. rp_floored() names the rows; ",
+                      "fewer knots is the remedy", call. = FALSE)
         }
         invisible(NULL)
       }
@@ -456,11 +456,11 @@ sp_rp_family <- function(cfg, allknots) {
 #' @noRd
 sp_rp_need_knots <- function(allknots) {
   if (is.null(allknots)) {
-    stop("royston_parmar(): this family object has no knots yet. They ",
-         "are quantiles of the log uncensored times, so they are found ",
-         "when frm() assembles the model frame; a density cannot be ",
-         "evaluated before that. Give knots = and bknots = to pin them ",
-         "at construction instead", call. = FALSE)
+    frm_stop("royston_parmar(): this family object has no knots yet. They ",
+             "are quantiles of the log uncensored times, so they are found ",
+             "when frm() assembles the model frame; a density cannot be ",
+             "evaluated before that. Give knots = and bknots = to pin them ",
+             "at construction instead", call. = FALSE)
   }
   invisible(NULL)
 }
@@ -468,10 +468,10 @@ sp_rp_need_knots <- function(allknots) {
 #' @noRd
 sp_rp_valid_y <- function(y) {
   if (any(!is.finite(y)) || any(y <= 0)) {
-    stop("royston_parmar(): the response is a survival TIME, so it must ",
-         "be finite and strictly positive; the spline is a function of ",
-         "log(t) and log of a non-positive time is not a number",
-         call. = FALSE)
+    frm_stop("royston_parmar(): the response is a survival TIME, so it must ",
+             "be finite and strictly positive; the spline is a function of ",
+             "log(t) and log of a non-positive time is not a number",
+             call. = FALSE)
   }
   invisible(TRUE)
 }
@@ -495,10 +495,10 @@ sp_rp_knots <- function(cfg, y, aterms) {
     if (length(ev) >= cfg$df + 1L) x <- x[ev]
   }
   if (length(unique(x)) < cfg$df + 1L) {
-    stop("royston_parmar(): the spline needs df + 1 = ", cfg$df + 1L,
-         " knots and the data offer only ", length(unique(x)),
-         " distinct uncensored log times to place them at. Lower df",
-         call. = FALSE)
+    frm_stop("royston_parmar(): the spline needs df + 1 = ", cfg$df + 1L,
+             " knots and the data offer only ", length(unique(x)),
+             " distinct uncensored log times to place them at. Lower df",
+             call. = FALSE)
   }
   bk <- cfg$bknots %||% range(x)
   ik <- cfg$knots
@@ -512,10 +512,10 @@ sp_rp_knots <- function(cfg, y, aterms) {
   }
   kn <- c(bk[1L], ik, bk[2L])
   if (any(diff(kn) <= 0)) {
-    stop("royston_parmar(): the knots are not strictly increasing (",
-         paste(format(kn, digits = 4), collapse = ", "),
-         "). Tied log event times put two quantiles at one place; lower ",
-         "df, or give knots explicitly", call. = FALSE)
+    frm_stop("royston_parmar(): the knots are not strictly increasing (",
+             paste(format(kn, digits = 4), collapse = ", "),
+             "). Tied log event times put two quantiles at one place; lower ",
+             "df, or give knots explicitly", call. = FALSE)
   }
   kn
 }

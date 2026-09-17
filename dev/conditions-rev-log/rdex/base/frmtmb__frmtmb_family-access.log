@@ -1,0 +1,3 @@
+Error : A family object has no field `link_p`. `$` would have partial-matched `link_phi`, and it does not do that on a family: write `$link_phi` if that is the field you mean
+
+RDEX-RESULT OK 

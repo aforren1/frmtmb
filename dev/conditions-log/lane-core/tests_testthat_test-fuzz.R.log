@@ -1,0 +1,5 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+StanHeaders: 2.32.10 
+BLOCKS 1 PASS 0 FAIL 0 ERROR 0 SKIP 1  tests/testthat/test-fuzz.R 
+CAUGHT 0 
+DONE

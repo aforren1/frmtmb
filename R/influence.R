@@ -40,15 +40,15 @@ influence.frmtmb_fit <- function(model, groups = NULL, data = NULL,
   if (!is.null(groups)) {
     gv <- data[[groups]]
     if (is.null(gv)) {
-      stop("Grouping variable '", groups, "' not found in the data",
-           call. = FALSE)
+      frm_stop("Grouping variable '", groups, "' not found in the data",
+               call. = FALSE)
     }
     units <- as.character(unique(gv))
     unit_rows <- lapply(units, function(u) which(as.character(gv) != u))
   } else {
     if (nrow(data) > 500 && !force) {
-      stop("Observation-wise influence for n > 500 is expensive; pass ",
-           "groups = or force = TRUE", call. = FALSE)
+      frm_stop("Observation-wise influence for n > 500 is expensive; pass ",
+               "groups = or force = TRUE", call. = FALSE)
     }
     units <- as.character(seq_len(nrow(data)))
     unit_rows <- lapply(seq_len(nrow(data)), function(i) {
@@ -210,8 +210,8 @@ infl_index_panel <- function(v, units, xlab, ylab, main, labels,
   i <- seq_along(v)
   ok <- is.finite(v)
   if (!any(ok)) {
-    stop("Every deletion refit failed, so there is nothing to plot: ",
-         "the influence table is all NA", call. = FALSE)
+    frm_stop("Every deletion refit failed, so there is nothing to plot: ",
+             "the influence table is all NA", call. = FALSE)
   }
   ylim <- range(c(v[ok], if (from_zero) 0, if (!is.null(band)) c(-band, band)))
   graphics::plot(i, v, xlab = xlab, ylab = ylab, main = main,

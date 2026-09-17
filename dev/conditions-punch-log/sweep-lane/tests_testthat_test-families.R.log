@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 17 PASS 228 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-families.R
+CAUGHT 34 
+DONE

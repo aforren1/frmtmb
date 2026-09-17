@@ -1,0 +1,4 @@
+"file"	"class"	"message"
+"extensions/frmtmb.learn/tests/testthat/test-engine.R"	"frmtmb_error/error/condition"	"family 'bandit2arm_delta' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted() and predict(type = \"response\") have nothing to return. Ask for type = \"link\" or a dpar by name."
+"extensions/frmtmb.learn/tests/testthat/test-engine.R"	"frmtmb_learn_error/frmtmb_error/error/condition"	"bandit2arm_delta(): trial numbers must be unique within a subject; 2 rows share one. A learning rule updates once per trial, so two rows at one trial have no order to learn in"
+"extensions/frmtmb.learn/tests/testthat/test-engine.R"	"frmtmb_learn_error/frmtmb_error/error/condition"	"bandit2arm_delta(): the response is the option chosen on each trial, coded 1 to 2. Two-level codings that start at 0 are the usual mistake; add one"

@@ -1,0 +1,3 @@
+Error : Failed to tape the lpdf: Invalid argument to 'advector' (lost class attribute?). Typical cause: base matrix()/c() stripping the advector class, or branching on parameter values
+
+RDEX-RESULT OK 

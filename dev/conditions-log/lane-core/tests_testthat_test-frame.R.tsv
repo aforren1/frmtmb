@@ -1,0 +1,2 @@
+"file"	"class"	"message"
+"tests/testthat/test-frame.R"	"frmtmb_error/error/condition"	"poisson: response must be non-negative integers"

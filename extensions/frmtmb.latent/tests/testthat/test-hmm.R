@@ -769,8 +769,10 @@ test_that("hmm() refuses the modes and terms it cannot express", {
                "cannot be combined with trunc\\(\\)")
   expect_error(frm(bf(y | se(sdv) ~ 1), family = fam(), data = dd),
                "cannot be combined with se\\(\\)")
+  # the text is this package's refusals = data, raised by frmtmb
   expect_error(frm(bf(y ~ 1), family = fam(), data = dd, REML = TRUE),
-               "REML = TRUE cannot be combined with hmm")
+               "REML = TRUE cannot be combined with hmm",
+               class = "frmtmb_latent_error")
   expect_error(frm(bf(y ~ 1 + (1 | gf)), family = fam(), data = dd,
                    quadrature = TRUE),
                "quadrature = TRUE cannot be combined with hmm")

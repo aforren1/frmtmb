@@ -78,12 +78,12 @@ sp_catch_span <- function(expr) {
 #' @noRd
 sp_span_stop <- function(span) {
   if (!length(span)) return(invisible(NULL))
-  stop("frm_curve_feature(): the search bracket leaves a ps() term's ",
-       "knot span, so a root located in it would be a root of the ",
-       "decaying partial sum rather than of the fitted curve, and the ",
-       "implicit-function standard error beside it would describe ",
-       "neither. Narrow newdata to the span. ",
-       paste(span, collapse = " "), call. = FALSE)
+  frm_stop("frm_curve_feature(): the search bracket leaves a ps() term's ",
+           "knot span, so a root located in it would be a root of the ",
+           "decaying partial sum rather than of the fitted curve, and the ",
+           "implicit-function standard error beside it would describe ",
+           "neither. Narrow newdata to the span. ",
+           paste(span, collapse = " "), call. = FALSE)
 }
 
 #' The `ps()` span messages for the grid the USER passed, rather than
@@ -294,13 +294,13 @@ sp_cov_check <- function(fit, nd, se, dpar, resp, re_formula, tol, side) {
   se_ref <- as.numeric(ref$se.fit)
   rel <- max(abs(se / pmax(se_ref, .Machine$double.eps) - 1))
   if (!is.finite(rel) || rel > tol) {
-    stop("frm_curve(): the assembled covariance of ", side,
-         " disagrees with predict(se.fit = TRUE) by ",
-         format(rel, digits = 3),
-         " relative, which is above the tolerance ", format(tol),
-         ". Both come from frm_lp_basis(); a disagreement means this ",
-         "package is reading the seam wrongly, and a fit where the two ",
-         "disagree is one it must not report a band for", call. = FALSE)
+    frm_stop("frm_curve(): the assembled covariance of ", side,
+             " disagrees with predict(se.fit = TRUE) by ",
+             format(rel, digits = 3),
+             " relative, which is above the tolerance ", format(tol),
+             ". Both come from frm_lp_basis(); a disagreement means this ",
+             "package is reading the seam wrongly, and a fit where the two ",
+             "disagree is one it must not report a band for", call. = FALSE)
   }
   rel
 }
@@ -336,13 +336,13 @@ sp_cov_check <- function(fit, nd, se, dpar, resp, re_formula, tol, side) {
 sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula, tol,
                            contrast = NULL) {
   if (!inherits(fit, "frmtmb_fit")) {
-    stop("frm_curve(): `object` must be a frmtmb fit, the model a curve ",
-         "is read off, not an object of class ", class(fit)[1L],
-         call. = FALSE)
+    frm_stop("frm_curve(): `object` must be a frmtmb fit, the model a curve ",
+             "is read off, not an object of class ", class(fit)[1L],
+             call. = FALSE)
   }
   if (!is.data.frame(newdata) || !nrow(newdata)) {
-    stop("`newdata` must be a data frame with at least one row: it is ",
-         "the grid the curve is evaluated on", call. = FALSE)
+    frm_stop("`newdata` must be a data frame with at least one row: it is ",
+             "the grid the curve is evaluated on", call. = FALSE)
   }
   a <- sp_one_basis(fit, newdata, dpar, resp, re_formula)
   nl <- sp_is_nl(fit, dpar, resp)
@@ -362,12 +362,12 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula, tol,
   }
   b <- sp_one_basis(fit, contrast, dpar, resp, re_formula)
   if (!identical(a$lb$coef_pos, b$lb$coef_pos)) {
-    stop("frm_curve(contrast = ): the two grids load on different ",
-         "coefficients (", length(a$lb$coef_pos), " and ",
-         length(b$lb$coef_pos), " of them), so subtracting their ",
-         "designs would pair columns that belong to different ",
-         "parameters. Both grids must reach the same linear predictor ",
-         "under the same re_formula", call. = FALSE)
+    frm_stop("frm_curve(contrast = ): the two grids load on different ",
+             "coefficients (", length(a$lb$coef_pos), " and ",
+             length(b$lb$coef_pos), " of them), so subtracting their ",
+             "designs would pair columns that belong to different ",
+             "parameters. Both grids must reach the same linear predictor ",
+             "under the same re_formula", call. = FALSE)
   }
   # Variance that is not coefficient uncertainty arrives per row with no
   # covariance between the grids, so a difference can only report it
@@ -376,19 +376,19 @@ sp_curve_parts <- function(fit, newdata, dpar, resp, re_formula, tol,
   # position, and refusing it would refuse an answer that is right.
   if ((any(a$lb$extra_var != 0) || any(b$lb$extra_var != 0)) &&
       !sp_same_latent(fit, a, b)) {
-    stop("frm_curve(contrast = ): this prediction carries variance that ",
-         "is not coefficient uncertainty, which for a curve is an exact ",
-         "gp() kriging residual. A difference can only report it when ",
-         "both grids load the same one, and that is decided on the ",
-         "whole latent design: EVERY column of it outside the fixed ",
-         "effects has to match, not only the gp() block's. Here they do ",
-         "not, so the gp() positions may well be identical and some ",
-         "other random-effect or smooth term is what differs. ",
-         "frm_lp_basis() returns that variance per row and no covariance ",
-         "between the grids, so there is no cross term to fall back on. ",
-         "Hold every latent term equal between the grids and contrast a ",
-         "fixed effect, or read the two curves separately",
-         call. = FALSE)
+    frm_stop("frm_curve(contrast = ): this prediction carries variance that ",
+             "is not coefficient uncertainty, which for a curve is an exact ",
+             "gp() kriging residual. A difference can only report it when ",
+             "both grids load the same one, and that is decided on the ",
+             "whole latent design: EVERY column of it outside the fixed ",
+             "effects has to match, not only the gp() block's. Here they do ",
+             "not, so the gp() positions may well be identical and some ",
+             "other random-effect or smooth term is what differs. ",
+             "frm_lp_basis() returns that variance per row and no covariance ",
+             "between the grids, so there is no cross term to fall back on. ",
+             "Hold every latent term equal between the grids and contrast a ",
+             "fixed effect, or read the two curves separately",
+             call. = FALSE)
   }
   out$C <- a$C - b$C
   out$Sigma <- unname(out$C %*% out$V %*% t(out$C))
@@ -456,13 +456,13 @@ sp_sim_crit <- function(S, div, nsim, level, seed = NULL) {
   m <- nrow(S)
   keep <- is.finite(div) & div > 0
   if (!any(keep)) {
-    stop("simultaneous = TRUE: every point on this grid has a standard ",
-         "error of exactly zero, so the deviation process is degenerate ",
-         "and there is no maximum to take a quantile of. Past a ps() ",
-         "term's knot span the basis is exactly zero and so is the ",
-         "derivative design, which is the usual way to arrive here. Use ",
-         "simultaneous = FALSE, or move the grid inside the span",
-         call. = FALSE)
+    frm_stop("simultaneous = TRUE: every point on this grid has a standard ",
+             "error of exactly zero, so the deviation process is degenerate ",
+             "and there is no maximum to take a quantile of. Past a ps() ",
+             "term's knot span the basis is exactly zero and so is the ",
+             "derivative design, which is the usual way to arrive here. Use ",
+             "simultaneous = FALSE, or move the grid inside the span",
+             call. = FALSE)
   }
   ev <- eigen((S + t(S)) / 2, symmetric = TRUE)
   L <- ev$vectors %*% diag(sqrt(pmax(ev$values, 0)), nrow = m)

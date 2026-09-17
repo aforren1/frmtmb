@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 13 PASS 56 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-generic-collision.R
+CAUGHT 6 
+DONE

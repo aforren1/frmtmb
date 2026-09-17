@@ -382,11 +382,11 @@ er_evidence <- function(x, exs, dirs, draws, labels, point) {
   }
   if (length(reasons)) {
     np <- sum(point, na.rm = TRUE)
-    warning("hypothesis(): no evidence ratio for ", length(reasons),
-            " of ", np, " point hypothes", if (np == 1L) "is" else "es",
-            ". A Savage-Dickey ratio divides the posterior density at ",
-            "the tested point by the PRIOR density there, and\n  ",
-            paste(reasons, collapse = "\n  "), call. = FALSE)
+    frm_warning("hypothesis(): no evidence ratio for ", length(reasons),
+                " of ", np, " point hypothes", if (np == 1L) "is" else "es",
+                ". A Savage-Dickey ratio divides the posterior density at ",
+                "the tested point by the PRIOR density there, and\n  ",
+                paste(reasons, collapse = "\n  "), call. = FALSE)
   }
   pp <- ifelse(is.infinite(er), 1, er / (1 + er))
   list(evid_ratio = er, post_prob = pp, mcse = mcse)

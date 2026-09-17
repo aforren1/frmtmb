@@ -11,24 +11,24 @@
 #' @noRd
 refuse_retired_priors <- function(dots, what) {
   if ("priors" %in% names(dots)) {
-    stop(what, " takes `prior`, not `priors`: the argument follows ",
-         "brms's spelling, and this function's `...` would otherwise ",
-         "pass the old name through and fit with no priors at all. ",
-         "Rename it to `prior`", call. = FALSE)
+    frm_stop(what, " takes `prior`, not `priors`: the argument follows ",
+             "brms's spelling, and this function's `...` would otherwise ",
+             "pass the old name through and fit with no priors at all. ",
+             "Rename it to `prior`", call. = FALSE)
   }
   # `lower`/`upper` retired in 0.49. Here they would reach tmbstan as
   # unknown sampler options rather than failing as unused arguments, so
   # the model would sample UNBOUNDED in silence
   bad <- intersect(c("lower", "upper"), names(dots))
   if (length(bad)) {
-    stop(what, " has no `", paste(bad, collapse = "`/`"),
-         "`: a hard bound is written as a prior, ",
-         "set_prior(\"\", nlpar = \"la\", lb = 0), which reaches the ",
-         "same constrained transform. Every outer parameter has a ",
-         "class, down to one internal covariance parameter ",
-         "(class = \"theta\", coef = \"thetaac_1\"). Left in `...` ",
-         "these would have gone to the sampler as unknown options and ",
-         "the model would have sampled unbounded", call. = FALSE)
+    frm_stop(what, " has no `", paste(bad, collapse = "`/`"),
+             "`: a hard bound is written as a prior, ",
+             "set_prior(\"\", nlpar = \"la\", lb = 0), which reaches the ",
+             "same constrained transform. Every outer parameter has a ",
+             "class, down to one internal covariance parameter ",
+             "(class = \"theta\", coef = \"thetaac_1\"). Left in `...` ",
+             "these would have gone to the sampler as unknown options and ",
+             "the model would have sampled unbounded", call. = FALSE)
   }
   invisible(NULL)
 }
@@ -78,40 +78,40 @@ check_stan_control <- function(control, what) {
     return(invisible(NULL))
   }
   if (!is.list(control)) {
-    stop(what, " takes `control` as a NAMED list of rstan sampler ",
-         "options, control = list(adapt_delta = 0.99), which is the ",
-         "spelling brms uses; got an object of class ",
-         paste(class(control), collapse = "/"),
-         ". The fit-time options of frmtmb_control() are ",
-         "`fit_control` now", call. = FALSE)
+    frm_stop(what, " takes `control` as a NAMED list of rstan sampler ",
+             "options, control = list(adapt_delta = 0.99), which is the ",
+             "spelling brms uses; got an object of class ",
+             paste(class(control), collapse = "/"),
+             ". The fit-time options of frmtmb_control() are ",
+             "`fit_control` now", call. = FALSE)
   }
   nms <- names(control) %||% rep("", length(control))
   if (!all(nzchar(nms))) {
-    stop(what, ": every element of `control` names a sampler option, ",
-         "and ", sum(!nzchar(nms)), " of ", length(control),
-         " have no name. Write control = list(adapt_delta = 0.99); an ",
-         "unnamed element cannot reach rstan as anything",
-         call. = FALSE)
+    frm_stop(what, ": every element of `control` names a sampler option, ",
+             "and ", sum(!nzchar(nms)), " of ", length(control),
+             " have no name. Write control = list(adapt_delta = 0.99); an ",
+             "unnamed element cannot reach rstan as anything",
+             call. = FALSE)
   }
   fitside <- intersect(nms, names(frmtmb_control()))
   if (length(fitside)) {
-    stop(what, ": `control` is the SAMPLER's control list here, as in ",
-         "brms (control = list(adapt_delta = 0.99)), and this one ",
-         "carries the frmtmb_control() field(s) ",
-         paste(fitside, collapse = ", "),
-         ". Those are fit-time options and go to `fit_control` now: ",
-         "fit_control = frmtmb_control(...). They are not passed on to ",
-         "rstan, which would otherwise be asked to adapt on them",
-         call. = FALSE)
+    frm_stop(what, ": `control` is the SAMPLER's control list here, as in ",
+             "brms (control = list(adapt_delta = 0.99)), and this one ",
+             "carries the frmtmb_control() field(s) ",
+             paste(fitside, collapse = ", "),
+             ". Those are fit-time options and go to `fit_control` now: ",
+             "fit_control = frmtmb_control(...). They are not passed on to ",
+             "rstan, which would otherwise be asked to adapt on them",
+             call. = FALSE)
   }
   bad <- setdiff(nms, stan_control_names)
   if (length(bad)) {
-    stop(what, ": rstan has no sampler option named ",
-         paste(bad, collapse = ", "), ". The options are ",
-         paste(stan_control_names, collapse = ", "),
-         ". rstan does not raise on an unknown one; it declines to ",
-         "sample and returns an empty fit, so this is refused here ",
-         "instead", call. = FALSE)
+    frm_stop(what, ": rstan has no sampler option named ",
+             paste(bad, collapse = ", "), ". The options are ",
+             paste(stan_control_names, collapse = ", "),
+             ". rstan does not raise on an unknown one; it declines to ",
+             "sample and returns an empty fit, so this is refused here ",
+             "instead", call. = FALSE)
   }
   invisible(NULL)
 }
@@ -144,14 +144,14 @@ refuse_partial_control <- function(dots, what) {
   hit <- !is.na(pmatch(nms, "control", duplicates.ok = TRUE))
   bad <- nms[nzchar(nms) & hit & nms != "control"]
   if (length(bad)) {
-    stop(what, ": `", paste(bad, collapse = "`, `"),
-         "` is an abbreviation of `control`, and an abbreviation is ",
-         "not harmless here. It lands in `...`, and `...` reaches ",
-         "rstan::sampling(), where `control` comes before that ",
-         "function's own `...` and partial matching binds it, so the ",
-         "list would reach the sampler without being checked. Spell ",
-         "it `control`; the fit-time options are `fit_control`",
-         call. = FALSE)
+    frm_stop(what, ": `", paste(bad, collapse = "`, `"),
+             "` is an abbreviation of `control`, and an abbreviation is ",
+             "not harmless here. It lands in `...`, and `...` reaches ",
+             "rstan::sampling(), where `control` comes before that ",
+             "function's own `...` and partial matching binds it, so the ",
+             "list would reach the sampler without being checked. Spell ",
+             "it `control`; the fit-time options are `fit_control`",
+             call. = FALSE)
   }
   invisible(NULL)
 }
@@ -495,19 +495,19 @@ sample_preflight <- function(x, family = NULL, rows = NULL,
                     # make a registered refusal look like a passed
                     # check; refusing anyway would fire on models that
                     # do not use the feature at all.
-                    warning(what, ": the registry refuses this sampler ",
-                            "with '", feat, "', and the pre-flight ",
-                            "cannot tell whether this model uses it: ",
-                            route, ". Sampling anyway. See ",
-                            "frm_compat(\"frm_sample\", \"", feat,
-                            "\")", call. = FALSE)
+                    frm_warning(what, ": the registry refuses this sampler ",
+                                "with '", feat, "', and the pre-flight ",
+                                "cannot tell whether this model uses it: ",
+                                route, ". Sampling anyway. See ",
+                                "frm_compat(\"frm_sample\", \"", feat,
+                                "\")", call. = FALSE)
                     FALSE
                   })
     if (isTRUE(hit)) {
-      stop(what, " is refused on a model using ", feat, ": ",
-           rows$note[[i]], " (registry row: ",
-           "frm_compat(\"frm_sample\", \"", feat, "\"))",
-           call. = FALSE)
+      frm_stop(what, " is refused on a model using ", feat, ": ",
+               rows$note[[i]], " (registry row: ",
+               "frm_compat(\"frm_sample\", \"", feat, "\"))",
+               call. = FALSE)
     }
   }
   invisible(NULL)
@@ -755,7 +755,7 @@ announce_ncp <- function(plan) {
     paste("frm_sample(): non-centered where possible; these blocks",
           "stay centered:")
   }
-  message(paste(c(hdr, paste0("  ", plan$centered)), collapse = "\n"))
+  frm_message(paste(c(hdr, paste0("  ", plan$centered)), collapse = "\n"))
   invisible(NULL)
 }
 
@@ -904,14 +904,14 @@ sample_assemble <- function(formula, data, family, data2, start,
                             fit_control, na.action, REML) {
   if (!inherits(formula, c("formula", "frmtmb_formula",
                            "frmtmb_mvformula"))) {
-    stop("frm_sample() takes a frmtmb fit or a formula; got an object ",
-         "of class ", paste(class(formula), collapse = "/"),
-         ". Fit with frm() first, or pass bf(y ~ x) with data =",
-         call. = FALSE)
+    frm_stop("frm_sample() takes a frmtmb fit or a formula; got an object ",
+             "of class ", paste(class(formula), collapse = "/"),
+             ". Fit with frm() first, or pass bf(y ~ x) with data =",
+             call. = FALSE)
   }
   if (is.null(data)) {
-    stop("frm_sample() from a formula needs data =: there is no fitted ",
-         "model to take the design from", call. = FALSE)
+    frm_stop("frm_sample() from a formula needs data =: there is no fitted ",
+             "model to take the design from", call. = FALSE)
   }
   # no bounds here: the unfitted object is never optimized, and the box
   # Stan is given is resolved from the prior further down
@@ -1220,7 +1220,7 @@ announce_default_priors <- function(pl, notes) {
   for (nt in notes) {
     msg <- c(msg, paste0("  ", nt, " - see ?frm_sample"))
   }
-  message(paste(msg, collapse = "\n"))
+  frm_message(paste(msg, collapse = "\n"))
   invisible(NULL)
 }
 
@@ -1318,18 +1318,18 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
                                   defaults = TRUE) {
   if (is.character(prior)) {
     if (!identical(prior, "flat")) {
-      stop("prior = must be a set_prior() specification, a named list ",
-           "of prior objects, or the string \"flat\" to sample the ",
-           "likelihood with improper flat priors; got \"",
-           paste(prior, collapse = "\", \""), "\"", call. = FALSE)
+      frm_stop("prior = must be a set_prior() specification, a named list ",
+               "of prior objects, or the string \"flat\" to sample the ",
+               "likelihood with improper flat priors; got \"",
+               paste(prior, collapse = "\", \""), "\"", call. = FALSE)
     }
     if (defaults && length(fit$frame[["re_blocks"]])) {
-      warning("prior = \"flat\": every variance component has a flat ",
-              "prior on its log standard deviation, under which the ",
-              "posterior need not be proper (it usually is not with ",
-              "few groups). The chains still run and Rhat cannot see ",
-              "it. Drop prior = to get the brms default priors ",
-              "instead", call. = FALSE)
+      frm_warning("prior = \"flat\": every variance component has a flat ",
+                  "prior on its log standard deviation, under which the ",
+                  "posterior need not be proper (it usually is not with ",
+                  "few groups). The chains still run and Rhat cannot see ",
+                  "it. Drop prior = to get the brms default priors ",
+                  "instead", call. = FALSE)
     }
     # a MAP fit's penalty is taped INTO fit$obj, so "flat" is a claim
     # about that tape too: the sampled density is the bare likelihood,
@@ -1337,10 +1337,10 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
     # because the alternative reading (drop the defaults, keep the
     # fit's penalty) is equally plausible from the argument name
     if (defaults && !is.null(base)) {
-      message("prior = \"flat\" drops the prior this fit was made ",
-              "with (", prior_target_list(base), ") as well as the ",
-              "defaults: the sampled density is the bare likelihood, ",
-              "not the penalized objective frm() maximized")
+      frm_message("prior = \"flat\" drops the prior this fit was made ",
+                  "with (", prior_target_list(base), ") as well as the ",
+                  "defaults: the sampled density is the bare likelihood, ",
+                  "not the penalized objective frm() maximized")
     }
     return(list(effective = NULL, ri = NULL, flat = TRUE))
   }
@@ -1814,10 +1814,10 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   from_formula <- !inherits(fit, "frmtmb_fit")
   if (!from_formula) {
     if (!is.null(data) || !is.null(family)) {
-      stop("frm_sample(data =, family =) belongs to the formula ",
-           "interface; the model of a fitted object is already fixed. ",
-           "Drop them, or pass the formula instead of the fit",
-           call. = FALSE)
+      frm_stop("frm_sample(data =, family =) belongs to the formula ",
+               "interface; the model of a fitted object is already fixed. ",
+               "Drop them, or pass the formula instead of the fit",
+               call. = FALSE)
     }
     # The same rule, applied to the rest of the assembly arguments,
     # which used to be accepted and discarded. `fit_control` is the one
@@ -1833,13 +1833,13 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
                if (!missing(na.action)) "na.action",
                if (!missing(REML)) "REML")
     if (length(inert)) {
-      stop("frm_sample(", paste0(inert, " =", collapse = ", "),
-           ") belongs to the formula interface: those arguments ",
-           "assemble a model, and a fitted object is already ",
-           "assembled, so they were read by nothing. Pass the formula ",
-           "instead of the fit, or refit with frm(). The SAMPLER's ",
-           "options are `control`, control = list(adapt_delta = 0.99)",
-           call. = FALSE)
+      frm_stop("frm_sample(", paste0(inert, " =", collapse = ", "),
+               ") belongs to the formula interface: those arguments ",
+               "assemble a model, and a fitted object is already ",
+               "assembled, so they were read by nothing. Pass the formula ",
+               "instead of the fit, or refit with frm(). The SAMPLER's ",
+               "options are `control`, control = list(adapt_delta = 0.99)",
+               call. = FALSE)
     }
   }
   # Before the namespace loads, before frm() on the formula route and
@@ -1854,14 +1854,14 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   check_prior_slots(prior)
   if (!requireNamespace("tmbstan", quietly = TRUE) ||
       !requireNamespace("rstan", quietly = TRUE)) {
-    stop("frm_sample() needs the 'tmbstan' and 'rstan' packages",
-         call. = FALSE)
+    frm_stop("frm_sample() needs the 'tmbstan' and 'rstan' packages",
+             call. = FALSE)
   }
   if (!is.logical(reparameterize) || length(reparameterize) != 1L ||
       is.na(reparameterize)) {
-    stop("reparameterize = must be TRUE or FALSE: it selects the ",
-         "non-centered sampling parameterization of the random-effect ",
-         "blocks that have one", call. = FALSE)
+    frm_stop("reparameterize = must be TRUE or FALSE: it selects the ",
+             "non-centered sampling parameterization of the random-effect ",
+             "blocks that have one", call. = FALSE)
   }
   if (from_formula) {
     fit <- sample_assemble(fit, data, family, data2 = data2,
@@ -1934,13 +1934,13 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
     sd_i <- log_sd_theta_index(fit)
     ext <- sd_i[abs(th_all[sd_i]) > 8]
     if (length(ext)) {
-      warning("The ML mode has an extreme covariance parameter (",
-              paste(names(ext), collapse = ", "),
-              "; likely a boundary/singular fit); mode initialization ",
-              "starts the chains there. The default priors usually ",
-              "pull a chain off that boundary; if this one stays ",
-              "pinned, use init = \"random\" or a tighter prior =",
-              call. = FALSE)
+      frm_warning("The ML mode has an extreme covariance parameter (",
+                  paste(names(ext), collapse = ", "),
+                  "; likely a boundary/singular fit); mode initialization ",
+                  "starts the chains there. The default priors usually ",
+                  "pull a chain off that boundary; if this one stays ",
+                  "pinned, use init = \"random\" or a tighter prior =",
+                  call. = FALSE)
     }
     lpb <- obj$env$last.par.best
     rnd <- obj$env$random
@@ -1956,11 +1956,11 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
       viol <- which(as.numeric(om) < bounds$lower |
                       as.numeric(om) > bounds$upper)
       if (length(viol)) {
-        warning("The ML mode violates the requested bound(s) on ",
-                paste(outer_par_names(fit)[viol], collapse = ", "),
-                "; every chain starts at the clamped value instead of ",
-                "the mode. The bounded posterior is not centered on the ",
-                "unconstrained ML estimate", call. = FALSE)
+        frm_warning("The ML mode violates the requested bound(s) on ",
+                    paste(outer_par_names(fit)[viol], collapse = ", "),
+                    "; every chain starts at the clamped value instead of ",
+                    "the mode. The bounded posterior is not centered on the ",
+                    "unconstrained ML estimate", call. = FALSE)
       }
     }
     mb <- mode_aligned_bounds(obj, bounds, laplace, length(mode))
@@ -1975,14 +1975,14 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   dev <- if (.Platform$OS.type == "windows" && stan_cores(args) > 1 &&
                (args$chains %||% 4) > 1) dev_namespaces_of(fit) else character(0)
   if (length(dev)) {
-    stop("frm_sample(): cores = ", stan_cores(args), " starts one R ",
-         "process per chain on Windows, and each rebuilds the model from ",
-         "the packages in the library. This model's family comes from ",
-         paste(dev, collapse = " and "), " as loaded by ",
-         "pkgload::load_all(), which exists only in this session: a ",
-         "worker replaces it with the global environment and fails at the ",
-         "family's first internal call. Install the package, or run with ",
-         "cores = 1", call. = FALSE)
+    frm_stop("frm_sample(): cores = ", stan_cores(args), " starts one R ",
+             "process per chain on Windows, and each rebuilds the model from ",
+             "the packages in the library. This model's family comes from ",
+             paste(dev, collapse = " and "), " as loaded by ",
+             "pkgload::load_all(), which exists only in this session: a ",
+             "worker replaces it with the global environment and fails at the ",
+             "family's first internal call. Install the package, or run with ",
+             "cores = 1", call. = FALSE)
   }
   # rstan runs parallel chains on PSOCK workers on Windows. The tape's
   # external pointer dies in serialization, but tmbstan ships the cure:
@@ -1994,10 +1994,10 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   # cost is startup, hence the note rather than a fallback.
   if (.Platform$OS.type == "windows" && stan_cores(args) > 1 &&
       (args$chains %||% 4) > 1) {
-    message("parallel chains on Windows start one R process per core ",
-            "and rebuild the tape in each: expect several seconds of ",
-            "startup before sampling. Short chains may run faster ",
-            "with cores = 1")
+    frm_message("parallel chains on Windows start one R process per core ",
+                "and rebuild the tape in each: expect several seconds of ",
+                "startup before sampling. Short chains may run faster ",
+                "with cores = 1")
   }
   if (!is.null(bounds)) {
     args$lower <- bounds$lower
@@ -2174,18 +2174,18 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
     row.names = NULL
   )
   if (any(is.finite(out$ess_bulk) & out$ess_bulk < 100)) {
-    message("check_laplace(): the chain mixed too poorly to judge the ",
-            "approximation (bulk ESS under 100 for ",
-            paste(out$parameter[is.finite(out$ess_bulk) &
-                                  out$ess_bulk < 100], collapse = ", "),
-            "). Rerun with more iterations before reading z_shift or ",
-            "sd_ratio")
+    frm_message("check_laplace(): the chain mixed too poorly to judge the ",
+                "approximation (bulk ESS under 100 for ",
+                paste(out$parameter[is.finite(out$ess_bulk) &
+                                      out$ess_bulk < 100], collapse = ", "),
+                "). Rerun with more iterations before reading z_shift or ",
+                "sd_ratio")
   }
   flagged <- abs(out$z_shift) > 0.5 | out$sd_ratio > 1.5 |
     out$sd_ratio < 2 / 3
   if (any(flagged)) {
-    message("Laplace/Wald approximation questionable for: ",
-            paste(out$parameter[flagged], collapse = ", "))
+    frm_message("Laplace/Wald approximation questionable for: ",
+                paste(out$parameter[flagged], collapse = ", "))
   }
   out
 }
@@ -2264,7 +2264,7 @@ as_tmbstan <- function(fit, ...) {
   # that session fails too. Verified end to end on an frm_ode() fit.
   sample_preflight(fit, what = "as_tmbstan()")
   if (!requireNamespace("tmbstan", quietly = TRUE)) {
-    stop("as_tmbstan() needs the 'tmbstan' package", call. = FALSE)
+    frm_stop("as_tmbstan() needs the 'tmbstan' package", call. = FALSE)
   }
   check_tmbstan_build("as_tmbstan()")
   sf <- tmbstan::tmbstan(fit$obj, ...)
@@ -2306,15 +2306,15 @@ check_stan_draws <- function(sf, what) {
   if (length(sf@sim) && length(sf@sim[["samples"]])) {
     return(invisible(NULL))
   }
-  stop(what, ": the sampler returned no draws (rstan printed the cause ",
-       "above). This is a failure of THIS RUN, not a model that cannot ",
-       "be sampled at all: those are refused before any chain starts, ",
-       "and frm_compat(\"frm_sample\") lists them. A known case here: ",
-       "a tape that calls an external solver can fail inside tmbstan ",
-       "even at the fitted optimum, where the same tape optimizes ",
-       "without complaint; the package supplying such a tape documents ",
-       "that. A solver failure mid-run also corrupts rstan's sampler ",
-       "state, so retry in a fresh R session", call. = FALSE)
+  frm_stop(what, ": the sampler returned no draws (rstan printed the cause ",
+           "above). This is a failure of THIS RUN, not a model that cannot ",
+           "be sampled at all: those are refused before any chain starts, ",
+           "and frm_compat(\"frm_sample\") lists them. A known case here: ",
+           "a tape that calls an external solver can fail inside tmbstan ",
+           "even at the fitted optimum, where the same tape optimizes ",
+           "without complaint; the package supplying such a tape documents ",
+           "that. A solver failure mid-run also corrupts rstan's sampler ",
+           "state, so retry in a fresh R session", call. = FALSE)
 }
 
 #' Refuse a tmbstan build that silently samples the wrong density.
@@ -2379,15 +2379,15 @@ tmbstan_build_broken <- local({
 
 check_tmbstan_build <- function(caller) {
   if (tmbstan_build_broken()) {
-    stop(caller, ": this tmbstan installation was built against ",
-         "StanHeaders >= 2.39, whose code generator leaves one of the ",
-         "two generated log-density overloads unpatched, so EVERY ",
-         "chain silently samples a standard normal instead of the ",
-         "model (tmbstan tools/autogen.R replaces only the first ",
-         "match). Until an upstream fix, install a binary tmbstan ",
-         "build, or reinstall tmbstan with StanHeaders 2.32.10, and ",
-         "distrust any draws already produced by this installation",
-         call. = FALSE)
+    frm_stop(caller, ": this tmbstan installation was built against ",
+             "StanHeaders >= 2.39, whose code generator leaves one of the ",
+             "two generated log-density overloads unpatched, so EVERY ",
+             "chain silently samples a standard normal instead of the ",
+             "model (tmbstan tools/autogen.R replaces only the first ",
+             "match). Until an upstream fix, install a binary tmbstan ",
+             "build, or reinstall tmbstan with StanHeaders 2.32.10, and ",
+             "distrust any draws already produced by this installation",
+             call. = FALSE)
   }
   invisible(NULL)
 }

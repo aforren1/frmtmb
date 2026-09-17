@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 10 PASS 48 FAIL 0 ERROR 1 SKIP 0  extensions/frmtmb.eam/tests/testthat/test-surface.R
+  failing: residuals: response works, pearson and deviance refuse
+       <frmtmb_error/error/condition> Error: Family 'wiener' has no variance function; pearson residuals are unavailable 

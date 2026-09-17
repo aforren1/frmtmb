@@ -460,17 +460,28 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                           family_finalize = NULL,
                           extra_pars = NULL, drop_intercept = FALSE,
                           structure = NULL) {
-  stopifnot(is.character(family), length(family) == 1,
-            is.character(dpars), length(dpars) >= 1,
-            is.function(lpdf))
+  if (!is.character(family) || length(family) != 1L || is.na(family)) {
+    frm_stop("frmtmb_family(family =) must be one string, the name of ",
+             "the family, not ", arg_desc(family), call. = FALSE)
+  }
+  if (!is.character(dpars) || !length(dpars) || anyNA(dpars)) {
+    frm_stop("frmtmb_family(dpars =) must name at least one distributional ",
+             "parameter as a character vector, not ", arg_desc(dpars),
+             call. = FALSE)
+  }
+  if (!is.function(lpdf)) {
+    frm_stop("frmtmb_family(lpdf =) must be a function (y, dpars, aterms) ",
+             "returning the log density of each row, not ", arg_desc(lpdf),
+             call. = FALSE)
+  }
   check_required_aterms(required_aterms)
   accepts_aterms <- check_accepts_aterms(accepts_aterms)
   se_dpar <- check_se_dpar(se_dpar, dpars, primary_dpars, family)
   exclusive_aterms <- check_exclusive_aterms(exclusive_aterms,
                                              required_aterms)
   if (!is.null(family_finalize) && !is.function(family_finalize)) {
-    stop("frmtmb_family(family_finalize =) must be a function ",
-         "(fam, y, aterms) returning the family", call. = FALSE)
+    frm_stop("frmtmb_family(family_finalize =) must be a function ",
+             "(fam, y, aterms) returning the family", call. = FALSE)
   }
   # `type` selects the response check, the residual scale and what
   # "response" means to predict(), so an unrecognized string used to
@@ -479,10 +490,10 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
                       c("continuous", "discrete", "ordinal", "categorical"))
   check_flag(drop_intercept, "drop_intercept")
   if (!all(primary_dpars %in% dpars)) {
-    stop("`primary_dpars` must be a subset of `dpars`", call. = FALSE)
+    frm_stop("`primary_dpars` must be a subset of `dpars`", call. = FALSE)
   }
   if (!setequal(names(links), dpars)) {
-    stop("`links` must name every dpar exactly once", call. = FALSE)
+    frm_stop("`links` must name every dpar exactly once", call. = FALSE)
   }
   links <- Map(function(lk, dp) get_link(lk, dpar = dp), links, names(links))
   # user-written densities run with the AD overloads in scope; a
@@ -491,15 +502,15 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
   if (!is.null(lcdf)) lcdf <- frmtmb_ad_overload(lcdf)
   if (!is.null(lccdf)) {
     if (!is.function(lccdf)) {
-      stop("frmtmb_family(lccdf =) must be a function (q, dpars, ",
-           "aterms) returning log S(q), or NULL", call. = FALSE)
+      frm_stop("frmtmb_family(lccdf =) must be a function (q, dpars, ",
+               "aterms) returning log S(q), or NULL", call. = FALSE)
     }
     lccdf <- frmtmb_ad_overload(lccdf)
   }
   if (!is.null(structure) && !inherits(structure, "frmtmb_structure")) {
-    stop("frmtmb_family(structure =) must come from frmtmb_structure(), ",
-         "which is what declares a likelihood that does not factorize ",
-         "over rows", call. = FALSE)
+    frm_stop("frmtmb_family(structure =) must come from frmtmb_structure(), ",
+             "which is what declares a likelihood that does not factorize ",
+             "over rows", call. = FALSE)
   }
   # base::structure(), spelled out: the `structure` ARGUMENT above masks
   # the base function inside this body
@@ -514,7 +525,12 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
          family_finalize = family_finalize, extra_pars = extra_pars,
          drop_intercept = isTRUE(drop_intercept),
          structure = structure),
-    class = "frmtmb_family"
+    class = "frmtmb_family",
+    # the package whose code built the family: a refusal core raises
+    # about this family's declarations is that package's
+    # (?frmtmb-conditions). An attribute, so the list's names and the
+    # partial matches of `$` on them do not move.
+    frmtmb_package = frm_env_package(parent.frame())
   )
 }
 
@@ -643,20 +659,20 @@ NULL
   view <- family_link_view_names(x)
   if (name %in% view) {
     if (name %in% nms) {
-      stop("This family object stores an element named `", name, "`, ",
-           "which is one of the link fields `$` derives from `links`. ",
-           "Remove the element and set the link in `links` instead",
-           call. = FALSE)
+      frm_stop("This family object stores an element named `", name, "`, ",
+               "which is one of the link fields `$` derives from `links`. ",
+               "Remove the element and set the link in `links` instead",
+               call. = FALSE)
     }
     return(family_link_view(x, name))
   }
   if (name %in% nms) return(.subset2(x, name))
   hit <- c(nms, view)[startsWith(c(nms, view), name)]
   if (length(hit) == 1L) {
-    stop("A family object has no field `", name, "`. `$` would have ",
-         "partial-matched `", hit, "`, and it does not do that on a ",
-         "family: write `$", hit, "` if that is the field you mean",
-         call. = FALSE)
+    frm_stop("A family object has no field `", name, "`. `$` would have ",
+             "partial-matched `", hit, "`, and it does not do that on a ",
+             "family: write `$", hit, "` if that is the field you mean",
+             call. = FALSE)
   }
   NULL
 }
@@ -670,7 +686,7 @@ positive_y <- function(name) {
   force(name)
   function(y, aterms) {
     if (any(y <= 0)) {
-      stop(name, ": response must be strictly positive", call. = FALSE)
+      frm_stop(name, ": response must be strictly positive", call. = FALSE)
     }
   }
 }
@@ -683,7 +699,7 @@ count_y <- function(name) {
   force(name)
   function(y, aterms) {
     if (any(y < 0) || any(y != round(y))) {
-      stop(name, ": response must be non-negative integers", call. = FALSE)
+      frm_stop(name, ": response must be non-negative integers", call. = FALSE)
     }
   }
 }
@@ -736,8 +752,8 @@ robust_dpar_value <- function(dpars, dpar, what) {
   if (is.null(v)) {
     have <- setdiff(names(dpars), grep("^\\.eta_", names(dpars),
                                        value = TRUE))
-    stop(what, "(): `dpars` has no distributional parameter '", dpar,
-         "'. It carries: ", paste(have, collapse = ", "), call. = FALSE)
+    frm_stop(what, "(): `dpars` has no distributional parameter '", dpar,
+             "'. It carries: ", paste(have, collapse = ", "), call. = FALSE)
   }
   v
 }
@@ -1035,18 +1051,20 @@ response_mean <- function(fam, dpars, aterms) {
   } else {
     # a family with neither has no mean, and reporting its first
     # parameter as one reported a race model's drift rate
-    stop("family '", fam[["family"]], "' declares no mean: it has no dpar ",
-         "named mu and no post$mean_fn, so fitted() and ",
-         "predict(type = \"response\") have nothing to return. ",
-         "Ask for type = \"link\" or a dpar by name.", call. = FALSE)
+    frm_stop("family '", fam[["family"]], "' declares no mean: it has no dpar ",
+             "named mu and no post$mean_fn, so fitted() and ",
+             "predict(type = \"response\") have nothing to return. ",
+             "Ask for type = \"link\" or a dpar by name.", call. = FALSE,
+             package = frm_family_package(fam))
   }
   tb <- trunc_bounds(aterms, length(mu))
   if (is.null(tb)) return(mu)
   tmf <- fam[["post"]]$trunc_mean_fn
   if (is.null(tmf)) {
-    stop("Family '", fam[["family"]], "' has no truncated mean; fitted(), ",
-         "residuals() and predict(type = \"response\") would report the ",
-         "untruncated mean", call. = FALSE)
+    frm_stop("Family '", fam[["family"]], "' has no truncated mean; fitted(), ",
+             "residuals() and predict(type = \"response\") would report the ",
+             "untruncated mean", call. = FALSE,
+             package = frm_family_package(fam))
   }
   tmf(dpars, aterms, tb$lb, tb$ub)
 }
@@ -1111,22 +1129,23 @@ deviance_family_names <- function() {
 deviance_residuals <- function(fam, y, dpars, aterms, n) {
   dev <- fam[["post"]]$dev_fn
   if (is.null(dev)) {
-    stop("residuals(type = \"deviance\") is not available for family '",
-         fam[["family"]], "': it has no standard unit deviance. Families ",
-         "with one: ", paste(deviance_family_names(), collapse = ", "),
-         ". Use type = \"osa\" or dharma_residuals() instead.",
-         call. = FALSE)
+    frm_stop("residuals(type = \"deviance\") is not available for family '",
+             fam[["family"]], "': it has no standard unit deviance. Families ",
+             "with one: ", paste(deviance_family_names(), collapse = ", "),
+             ". Use type = \"osa\" or dharma_residuals() instead.",
+             call. = FALSE,
+             package = frm_family_package(fam))
   }
   if (!is.null(trunc_bounds(aterms, n))) {
-    stop("residuals(type = \"deviance\") is not defined for a trunc()ed ",
-         "response: the unit deviance compares against the untruncated ",
-         "family, not the likelihood the model was fitted with. Use ",
-         "type = \"osa\", which builds its CDF on [lb, ub]", call. = FALSE)
+    frm_stop("residuals(type = \"deviance\") is not defined for a trunc()ed ",
+             "response: the unit deviance compares against the untruncated ",
+             "family, not the likelihood the model was fitted with. Use ",
+             "type = \"osa\", which builds its CDF on [lb, ub]", call. = FALSE)
   }
   if (!is.null(aterms[["cens"]]) && any(aterms[["cens"]] != 0)) {
-    stop("residuals(type = \"deviance\") is not defined on a cens()ed ",
-         "response: a censored row observes an event, not a value, so it ",
-         "has no unit deviance. Use type = \"osa\"", call. = FALSE)
+    frm_stop("residuals(type = \"deviance\") is not defined on a cens()ed ",
+             "response: a censored row observes an event, not a value, so it ",
+             "has no unit deviance. Use type = \"osa\"", call. = FALSE)
   }
   d <- dev(y, dpars, aterms)
   w <- aterms[["weights"]] %||% 1
@@ -1174,11 +1193,11 @@ sim_response <- function(fam, dpars, aterms, n, max_iter = 100L,
   while (length(bad)) {
     it <- it + 1L
     if (it > max_iter) {
-      stop("trunc(): rejection sampling did not fill ", length(bad),
-           " of ", n, " rows in ", max_iter, " passes (acceptance rate ",
-           format((n - length(bad)) / drawn, digits = 2),
-           "). The bounds exclude nearly all of the fitted ",
-           "distribution's mass.", call. = FALSE)
+      frm_stop("trunc(): rejection sampling did not fill ", length(bad),
+               " of ", n, " rows in ", max_iter, " passes (acceptance rate ",
+               format((n - length(bad)) / drawn, digits = 2),
+               "). The bounds exclude nearly all of the fitted ",
+               "distribution's mass.", call. = FALSE)
     }
     drawn <- drawn + length(bad)
     yb <- fam_sim(subset_obs(dpars, bad, n), subset_obs(aterms, bad, n),
@@ -1285,12 +1304,13 @@ sim_draw <- function(ctx) {
                         ctx[["n"]], extra = ctx[["extra"]]))
   }
   if (!is.null(trunc_bounds(ctx[["aterms"]], ctx[["n"]]))) {
-    stop("trunc() cannot be combined with a structured draw (here: '",
-         ctx[["family"]][["family"]], "'): a hidden state sequence, a ",
-         "group-level latent class and a correlated residual are each ",
-         "drawn whole, so a row outside its bounds cannot be redrawn ",
-         "on its own and the rejection step has nothing to resample",
-         call. = FALSE)
+    frm_stop("trunc() cannot be combined with a structured draw (here: '",
+             ctx[["family"]][["family"]], "'): a hidden state sequence, a ",
+             "group-level latent class and a correlated residual are each ",
+             "drawn whole, so a row outside its bounds cannot be redrawn ",
+             "on its own and the rejection step has nothing to resample",
+             call. = FALSE,
+             package = frm_family_package(ctx[["family"]]))
   }
   if (!is.null(ac)) return(sim_autocor_rows(ctx, ac))
   sf(ctx)
@@ -1434,8 +1454,8 @@ fam_binomial <- function(link = "logit") {
     valid_y = function(y, aterms) {
       size <- aterms[["trials"]] %||% 1
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
-        stop("binomial: response must be integer counts in [0, trials]",
-             call. = FALSE)
+        frm_stop("binomial: response must be integer counts in [0, trials]",
+                 call. = FALSE)
       }
     },
     init_dpars = list(
@@ -1826,7 +1846,7 @@ fam_beta <- function(link = "logit", link_phi = "log") {
     },
     valid_y = function(y, aterms) {
       if (any(y <= 0) || any(y >= 1)) {
-        stop("beta: response must lie strictly in (0, 1)", call. = FALSE)
+        frm_stop("beta: response must lie strictly in (0, 1)", call. = FALSE)
       }
     },
     init_dpars = list(
@@ -1879,7 +1899,7 @@ fam_tweedie <- function(link = "log", link_phi = "log") {
     },
     valid_y = function(y, aterms) {
       if (any(y < 0)) {
-        stop("tweedie: response must be non-negative", call. = FALSE)
+        frm_stop("tweedie: response must be non-negative", call. = FALSE)
       }
     },
     init_dpars = list(
@@ -2211,7 +2231,7 @@ fam_bernoulli <- function(link = "logit") {
     },
     valid_y = function(y, aterms) {
       if (!all(y %in% c(0, 1))) {
-        stop("bernoulli: response must be 0/1", call. = FALSE)
+        frm_stop("bernoulli: response must be 0/1", call. = FALSE)
       }
     },
     init_dpars = list(
@@ -2437,7 +2457,7 @@ fam_hurdle_gamma <- function(link = "log", link_shape = "log",
     },
     valid_y = function(y, aterms) {
       if (any(y < 0)) {
-        stop("hurdle_gamma: response must be non-negative", call. = FALSE)
+        frm_stop("hurdle_gamma: response must be non-negative", call. = FALSE)
       }
     },
     init_dpars = list(
@@ -2483,8 +2503,8 @@ fam_hurdle_lognormal <- function(link = "identity", link_sigma = "log",
     },
     valid_y = function(y, aterms) {
       if (any(y < 0)) {
-        stop("hurdle_lognormal: response must be non-negative",
-             call. = FALSE)
+        frm_stop("hurdle_lognormal: response must be non-negative",
+                 call. = FALSE)
       }
     },
     init_dpars = list(
@@ -2540,8 +2560,8 @@ fam_zi_binomial <- function(link = "logit", link_zi = "logit") {
     valid_y = function(y, aterms) {
       size <- aterms[["trials"]] %||% 1
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
-        stop("zero_inflated_binomial: response must be integer counts ",
-             "in [0, trials]", call. = FALSE)
+        frm_stop("zero_inflated_binomial: response must be integer counts ",
+                 "in [0, trials]", call. = FALSE)
       }
     },
     init_dpars = list(
@@ -2590,8 +2610,8 @@ fam_zi_beta <- function(link = "logit", link_phi = "log", link_zi = "logit") {
     },
     valid_y = function(y, aterms) {
       if (any(y < 0) || any(y >= 1)) {
-        stop("zero_inflated_beta: response must be in [0, 1)",
-             call. = FALSE)
+        frm_stop("zero_inflated_beta: response must be in [0, 1)",
+                 call. = FALSE)
       }
     },
     init_dpars = list(
@@ -2787,9 +2807,9 @@ rhuber_u <- function(n, k) {
 fam_huber <- function(link = "identity", k = 1.345, link_sigma = "log") {
   lk_sigma <- dpar_link(link_sigma, "sigma", "huber", dpar_links_positive)
   if (!is.numeric(k) || length(k) != 1L || !is.finite(k) || k <= 0) {
-    stop("huber(k =): the tuning constant must be one finite positive ",
-         "number; 1.345 (the default, and MASS::rlm()'s) gives 95% ",
-         "efficiency against a gaussian", call. = FALSE)
+    frm_stop("huber(k =): the tuning constant must be one finite positive ",
+             "number; 1.345 (the default, and MASS::rlm()'s) gives 95% ",
+             "efficiency against a gaussian", call. = FALSE)
   }
   lognorm <- log(huber_norm(k))
   varu <- huber_var_u(k)
@@ -2855,8 +2875,8 @@ fam_beta_binomial <- function(link = "logit", link_phi = "log") {
     valid_y = function(y, aterms) {
       size <- aterms[["trials"]] %||% 1
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
-        stop("beta_binomial: response must be integer counts in ",
-             "[0, trials]", call. = FALSE)
+        frm_stop("beta_binomial: response must be integer counts in ",
+                 "[0, trials]", call. = FALSE)
       }
     },
     init_dpars = list(
@@ -3037,8 +3057,8 @@ osa_unwrap <- function(y) {
   if (!methods::is(y, "osa")) return(NULL)
   keep <- y@keep
   if (ncol(keep) != 1L) {
-    stop("osa_method = \"cdf\" is not supported for this family",
-         call. = FALSE)
+    frm_stop("osa_method = \"cdf\" is not supported for this family",
+             call. = FALSE)
   }
   list(y = y@x, keep = keep[, 1])
 }
@@ -3206,13 +3226,13 @@ ord_valid_y <- function(name) {
   # ported script reads the same
   function(y, aterms) {
     if (any(y < 1) || any(y != round(y))) {
-      stop("Family '", name, "' requires either positive integers or ",
-           "ordered factors as responses: integer codes 1..K",
-           call. = FALSE)
+      frm_stop("Family '", name, "' requires either positive integers or ",
+               "ordered factors as responses: integer codes 1..K",
+               call. = FALSE)
     }
     if (length(unique(y)) < 2) {
-      stop("Family '", name, "' needs at least 2 observed response ",
-           "categories", call. = FALSE)
+      frm_stop("Family '", name, "' needs at least 2 observed response ",
+               "categories", call. = FALSE)
     }
   }
 }
@@ -3274,10 +3294,10 @@ ord_link <- function(link, family, choices = brms_mu_links[[family]]) {
       paste0(family, "(link =) takes a single link name, not ",
              arg_desc(link), ". ")
     }
-    stop(head, "Supported links are: ", link_set_text(choices),
-         ". An ordinal link names the distribution function the ",
-         "thresholds are read through, so it has to map onto (0, 1). ",
-         "See ?`frmtmb-links`", call. = FALSE)
+    frm_stop(head, "Supported links are: ", link_set_text(choices),
+             ". An ordinal link names the distribution function the ",
+             "thresholds are read through, so it has to map onto (0, 1). ",
+             "See ?`frmtmb-links`", call. = FALSE)
   }
   get_link(link)
 }
@@ -3317,19 +3337,19 @@ acat_link <- function(link) {
   # a link brms refuses too is refused for that reason first
   lk <- ord_link(link, "acat")
   if (identical(link, "logit")) return(lk)
-  stop("acat() takes the 'logit' link only, and not because ",
-       arg_desc(link), " is a bad link: brms accepts \"probit\", ",
-       "\"probit_approx\", \"cloglog\", \"cauchit\" and \"softit\" ",
-       "here, and they all map onto (0, 1). frmtmb refuses them ",
-       "because off the logit brms computes a category probability ",
-       "from a SECOND expression, a product of distribution functions ",
-       "times a reversed product of survivals. It agrees with acat's ",
-       "log-linear form when the distribution function is logistic, ",
-       "so it is the same model generalized, but it is a density ",
-       "frmtmb has not written, and substituting a distribution ",
-       "function into the log-linear form does not reach it. ",
-       "cumulative(), sratio() and cratio() do take these links. ",
-       "See ?`frmtmb-links`", call. = FALSE)
+  frm_stop("acat() takes the 'logit' link only, and not because ",
+           arg_desc(link), " is a bad link: brms accepts \"probit\", ",
+           "\"probit_approx\", \"cloglog\", \"cauchit\" and \"softit\" ",
+           "here, and they all map onto (0, 1). frmtmb refuses them ",
+           "because off the logit brms computes a category probability ",
+           "from a SECOND expression, a product of distribution functions ",
+           "times a reversed product of survivals. It agrees with acat's ",
+           "log-linear form when the distribution function is logistic, ",
+           "so it is the same model generalized, but it is a density ",
+           "frmtmb has not written, and substituting a distribution ",
+           "function into the log-linear form does not reach it. ",
+           "cumulative(), sratio() and cratio() do take these links. ",
+           "See ?`frmtmb-links`", call. = FALSE)
 }
 
 #' Record the distribution function an ordinal family reads its
@@ -3663,23 +3683,23 @@ mixture_check_components <- function(comps) {
   fams <- vapply(comps, function(cp) cp[["family"]], "")
   listed <- paste0(fams, " (", types, ")", collapse = ", ")
   if (any(types == "continuous") && any(types != "continuous")) {
-    stop("Cannot mix families with real and integer support. The ",
-         "components are ", listed, ", and a weighted sum of a density ",
-         "and a probability mass is not a likelihood", call. = FALSE)
+    frm_stop("Cannot mix families with real and integer support. The ",
+             "components are ", listed, ", and a weighted sum of a density ",
+             "and a probability mass is not a likelihood", call. = FALSE)
   }
   ord <- types == "ordinal"
   if (any(ord) && !all(ord)) {
-    stop("Cannot mix ordinal and non-ordinal families. The components ",
-         "are ", listed, call. = FALSE)
+    frm_stop("Cannot mix ordinal and non-ordinal families. The components ",
+             "are ", listed, call. = FALSE)
   }
   barred <- types == "categorical" | fams %in% brms_no_mixture
   if (any(barred)) {
-    stop("Some of the families are not allowed in mixture models: ",
-         paste(unique(fams[barred]), collapse = ", "), ". A categorical ",
-         "or multinomial response is not a value the other components ",
-         "can share, and a continuous hurdle or a zero-inflated beta ",
-         "puts a probability mass at zero beside a density",
-         call. = FALSE)
+    frm_stop("Some of the families are not allowed in mixture models: ",
+             paste(unique(fams[barred]), collapse = ", "), ". A categorical ",
+             "or multinomial response is not a value the other components ",
+             "can share, and a continuous hurdle or a zero-inflated beta ",
+             "puts a probability mass at zero beside a density",
+             call. = FALSE)
   }
   invisible(NULL)
 }
@@ -3778,26 +3798,26 @@ mixture <- function(..., groups = NULL) {
   if (length(named)) {
     # a name in the dots is an argument meant for mixture() itself, and
     # read as a component it came back as "not a supported family"
-    stop("mixture() has no argument ", paste0("`", named, "`",
-                                                collapse = ", "),
-         ". It takes the component families, unnamed, and `groups`. ",
-         "brms's `nmix` and `order` are not supported: repeat a ",
-         "component to use it twice", call. = FALSE)
+    frm_stop("mixture() has no argument ", paste0("`", named, "`",
+                                                    collapse = ", "),
+             ". It takes the component families, unnamed, and `groups`. ",
+             "brms's `nmix` and `order` are not supported: repeat a ",
+             "component to use it twice", call. = FALSE)
   }
   comps <- lapply(list(...), as_frmtmb_family)
   K <- length(comps)
   if (K < 2L) {
-    stop("Expecting at least 2 mixture components. mixture() needs two ",
-         "or more component families", call. = FALSE)
+    frm_stop("Expecting at least 2 mixture components. mixture() needs two ",
+             "or more component families", call. = FALSE)
   }
   mixture_check_components(comps)
   for (cp in comps) {
     if (!is.null(cp$extra_pars) || isTRUE(cp$drop_intercept)) {
-      stop("mixture() does not support component family '", cp$family,
-           "'", call. = FALSE)
+      frm_stop("mixture() does not support component family '", cp$family,
+               "'", call. = FALSE)
     }
     if (!"mu" %in% cp$dpars) {
-      stop("mixture() components need a 'mu' parameter", call. = FALSE)
+      frm_stop("mixture() components need a 'mu' parameter", call. = FALSE)
     }
   }
 
@@ -3936,9 +3956,9 @@ mixture <- function(..., groups = NULL) {
       out <- numeric(n)
       for (k in seq_len(K)) {
         sk <- comps[[k]]$sim
-        if (is.null(sk)) stop("Mixture component ", k, " ('",
-                              comps[[k]]$family,
-                              "') has no simulator", call. = FALSE)
+        if (is.null(sk)) frm_stop("Mixture component ", k, " ('",
+                                  comps[[k]]$family,
+                                  "') has no simulator", call. = FALSE)
         idx <- which(ks == k)
         if (length(idx)) {
           dk <- lapply(comp_dpars(dpars, k), function(v) {
@@ -3965,8 +3985,8 @@ mixture <- function(..., groups = NULL) {
     comp_sim = function(dpars_k, aterms, n, k) {
       sk <- comps[[k]]$sim
       if (is.null(sk)) {
-        stop("Mixture component ", k, " ('", comps[[k]]$family,
-             "') has no simulator for class-wise draws", call. = FALSE)
+        frm_stop("Mixture component ", k, " ('", comps[[k]]$family,
+                 "') has no simulator for class-wise draws", call. = FALSE)
       }
       sk(dpars_k, aterms, n)
     },
@@ -3984,8 +4004,8 @@ mixture <- function(..., groups = NULL) {
     )
   } else {
     if (!inherits(groups, "formula") || length(groups) != 2L) {
-      stop("groups must be a one-sided formula: groups = ~g",
-           call. = FALSE)
+      frm_stop("groups must be a one-sided formula: groups = ~g",
+               call. = FALSE)
     }
     fam[["mix_groups"]] <- groups
     # A class belongs to the GROUP, so neither the likelihood nor the
@@ -4099,8 +4119,8 @@ mixture_structure <- function(mx) {
 #' @noRd
 mixture_check_spec <- function(resp, spec, av) {
   if (length(spec$responses) > 1L || spec$rescor) {
-    stop("Group-level mixtures support univariate models",
-         call. = FALSE)
+    frm_stop("Group-level mixtures support univariate models",
+             call. = FALSE)
   }
   invisible(NULL)
 }
@@ -4130,10 +4150,10 @@ mixture_sim_groups <- function(ctx) {
   fam <- ctx[["family"]]
   mx <- fam[["mix"]]
   if (is.null(mg)) {
-    stop("mixture(groups =) simulated without the group structure: the ",
-         "frame carries no latent-class grouping for response '",
-         ctx[["resp"]], "'. Rebuild the model frame from the same ",
-         "formula and data", call. = FALSE)
+    frm_stop("mixture(groups =) simulated without the group structure: the ",
+             "frame carries no latent-class grouping for response '",
+             ctx[["resp"]], "'. Rebuild the model frame from the same ",
+             "formula and data", call. = FALSE)
   }
   n <- ctx[["n"]]
   dp <- ctx[["dpars"]]
@@ -4183,7 +4203,7 @@ mixture_sim_groups <- function(ctx) {
 mixture_probs <- function(fit) {
   rspec <- single_response(fit, "mixture_probs()")
   if (is.null(rspec$family[["mix"]])) {
-    stop("mixture_probs() needs a mixture() family fit", call. = FALSE)
+    frm_stop("mixture_probs() needs a mixture() family fit", call. = FALSE)
   }
   latent_probs(fit)
 }
@@ -4252,9 +4272,9 @@ mvn_cov_models <- c("EII", "VII", "EEI", "VEI", "EVI", "VVI",
 mvn_cov_spec <- function(model, K, D) {
   if (!is.character(model) || length(model) != 1L ||
         !model %in% mvn_cov_models) {
-    stop("mixture_mvn(): unknown covariance model '",
-         paste(model, collapse = ", "), "'. Supported models: ",
-         paste(mvn_cov_models, collapse = ", "), call. = FALSE)
+    frm_stop("mixture_mvn(): unknown covariance model '",
+             paste(model, collapse = ", "), "'. Supported models: ",
+             paste(mvn_cov_models, collapse = ", "), call. = FALSE)
   }
   us_len <- as.integer(D + D * (D - 1L) / 2L)
   # per-column response SDs; the spherical and volume-shape models
@@ -4415,9 +4435,9 @@ mvn_cov_spec <- function(model, K, D) {
 #' @export
 mixture_mvn <- function(K, D, model = "VVV") {
   if (missing(K) || missing(D) || K < 2 || D < 2) {
-    stop("mixture_mvn() needs K >= 2 classes and D >= 2 response ",
-         "columns (for D = 1 use mixture(gaussian(), ...))",
-         call. = FALSE)
+    frm_stop("mixture_mvn() needs K >= 2 classes and D >= 2 response ",
+             "columns (for D = 1 use mixture(gaussian(), ...))",
+             call. = FALSE)
   }
   K <- as.integer(K)
   D <- as.integer(D)
@@ -4484,8 +4504,8 @@ mixture_mvn <- function(K, D, model = "VVV") {
     },
     valid_y = function(y, aterms) {
       if (!is.matrix(y) || ncol(y) != D) {
-        stop("mixture_mvn(K = ", K, ", D = ", D, "): response must be ",
-             "an n x ", D, " numeric matrix", call. = FALSE)
+        frm_stop("mixture_mvn(K = ", K, ", D = ", D, "): response must be ",
+                 "an n x ", D, " numeric matrix", call. = FALSE)
       }
     },
     init_dpars = init,
@@ -4617,9 +4637,9 @@ fam_von_mises <- function(link = "tan_half", link_kappa = "log") {
     },
     valid_y = function(y, aterms) {
       if (any(y < -pi) || any(y > pi)) {
-        stop("von_mises: response must be angles in radians on ",
-             "(-pi, pi]; wrap the response first, for example ",
-             "atan2(sin(y), cos(y))", call. = FALSE)
+        frm_stop("von_mises: response must be angles in radians on ",
+                 "(-pi, pi]; wrap the response first, for example ",
+                 "atan2(sin(y), cos(y))", call. = FALSE)
       }
     },
     init_dpars = list(
@@ -4686,8 +4706,8 @@ rvon_mises <- function(n, mu, kappa) {
   while (length(left)) {
     it <- it + 1L
     if (it > 1000L) {
-      stop("von Mises simulation did not converge for ", length(left),
-           " of ", n, " rows", call. = FALSE)
+      frm_stop("von Mises simulation did not converge for ", length(left),
+               " of ", n, " rows", call. = FALSE)
     }
     m <- length(left)
     z <- cos(pi * stats::runif(m))
@@ -4760,12 +4780,12 @@ fam_categorical_impl <- function(dpar_names, levels = NULL,
     },
     valid_y = function(y, aterms) {
       if (any(y < 1) || any(y > K) || any(y != round(y))) {
-        stop("categorical: response must be a factor with ", K,
-             " levels, or integer category codes 1..", K, call. = FALSE)
+        frm_stop("categorical: response must be a factor with ", K,
+                 " levels, or integer category codes 1..", K, call. = FALSE)
       }
       if (length(unique(y)) < 2) {
-        stop("categorical: the response takes only one value; there is ",
-             "nothing to model", call. = FALSE)
+        frm_stop("categorical: the response takes only one value; there is ",
+                 "nothing to model", call. = FALSE)
       }
     },
     type = "categorical",
@@ -4795,10 +4815,10 @@ categorical_link_check <- function(link) {
   shown <- if (is.character(link) && length(link) == 1L) link else {
     arg_desc(link)
   }
-  stop("'", shown, "' is not a supported link for family ",
-       "'categorical'. Supported links are: 'logit'. categorical() ",
-       "takes the 'logit' link only, the multinomial logit its ",
-       "category probabilities are defined by", call. = FALSE)
+  frm_stop("'", shown, "' is not a supported link for family ",
+           "'categorical'. Supported links are: 'logit'. categorical() ",
+           "takes the 'logit' link only, the multinomial logit its ",
+           "category probabilities are defined by", call. = FALSE)
 }
 
 #' Placeholder returned by a bare `categorical()`: the category count is
@@ -4819,10 +4839,10 @@ fam_categorical_deferred <- function(link = "logit") {
     dpars = "mu",
     links = list(mu = "identity"),
     lpdf = function(y, dpars, aterms) {
-      stop("categorical(): the response categories were never resolved. ",
-           "They are read from the data by frm(); on another entry point ",
-           "name them, categorical(levels = c(\"a\", \"b\", \"c\")) or ",
-           "categorical(K = 3)", call. = FALSE)
+      frm_stop("categorical(): the response categories were never resolved. ",
+               "They are read from the data by frm(); on another entry point ",
+               "name them, categorical(levels = c(\"a\", \"b\", \"c\")) or ",
+               "categorical(K = 3)", call. = FALSE)
     },
     type = "categorical"
   )
@@ -4844,15 +4864,15 @@ categorical_levels <- function(formula, data) {
   y <- tryCatch(eval(ri$resp, data, environment(formula) %||% globalenv()),
                 error = function(e) NULL)
   if (is.null(y)) {
-    stop("categorical(): the response '", deparse1(ri$resp),
-         "' could not be evaluated on the data to find its categories. ",
-         "Name them instead: categorical(levels = c(\"a\", \"b\"))",
-         call. = FALSE)
+    frm_stop("categorical(): the response '", deparse1(ri$resp),
+             "' could not be evaluated on the data to find its categories. ",
+             "Name them instead: categorical(levels = c(\"a\", \"b\"))",
+             call. = FALSE)
   }
   lv <- categorical_y_levels(y, deparse1(ri$resp))
   if (length(lv) < 2L) {
-    stop("categorical(): the response '", deparse1(ri$resp),
-         "' has fewer than two categories", call. = FALSE)
+    frm_stop("categorical(): the response '", deparse1(ri$resp),
+             "' has fewer than two categories", call. = FALSE)
   }
   lv
 }
@@ -4866,12 +4886,12 @@ categorical_levels <- function(formula, data) {
 categorical_y_levels <- function(y, label) {
   if (is.character(y) || is.logical(y)) {
     lv <- levels(factor(y))
-    message("Categorical response '", label, "' is a ",
-            if (is.logical(y)) "logical" else "character",
-            " vector; it is read as a factor with levels ",
-            paste(lv, collapse = ", "), " and '", lv[1L],
-            "' as the reference category. Set the order with factor() ",
-            "if that is not what you want.")
+    frm_message("Categorical response '", label, "' is a ",
+                if (is.logical(y)) "logical" else "character",
+                " vector; it is read as a factor with levels ",
+                paste(lv, collapse = ", "), " and '", lv[1L],
+                "' as the reference category. Set the order with factor() ",
+                "if that is not what you want.")
     return(lv)
   }
   if (is.factor(y)) return(levels(y))
@@ -4967,8 +4987,8 @@ bspline_basis <- function(x, knots, order) {
 bhaz_spec <- function(y, df, degree, intercept) {
   n_int <- df - degree - as.integer(intercept)
   if (n_int < 0L) {
-    stop("cox(): df must be at least degree + 1 (", degree + 1L,
-         ") with an intercept in the baseline basis", call. = FALSE)
+    frm_stop("cox(): df must be at least degree + 1 (", degree + 1L,
+             ") with an intercept in the baseline basis", call. = FALSE)
   }
   rng <- range(y)
   d <- rng[2L] - rng[1L]
@@ -5072,13 +5092,13 @@ fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
     },
     valid_y = function(y, aterms) {
       if (any(y <= 0)) {
-        stop("cox: the response is a survival time and must be ",
-             "strictly positive", call. = FALSE)
+        frm_stop("cox: the response is a survival time and must be ",
+                 "strictly positive", call. = FALSE)
       }
       if (length(unique(y)) < df) {
-        stop("cox: fewer distinct event times (", length(unique(y)),
-             ") than baseline basis functions (", df,
-             "); lower df in cox(df = )", call. = FALSE)
+        frm_stop("cox: fewer distinct event times (", length(unique(y)),
+                 ") than baseline basis functions (", df,
+                 "); lower df in cox(df = )", call. = FALSE)
       }
     },
     init_dpars = list(
@@ -5095,12 +5115,12 @@ fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
       # exactly the mistake this family invites. brms refuses the same
       # question (posterior_epred has no cox method).
       mean_fn = function(dpars, aterms) {
-        stop("cox: a survival time has no mean on the response scale ",
-             "here - the model fits a hazard, and the mean survival ",
-             "time would be an integral over the baseline that the ",
-             "censored rows do not identify. predict(type = \"link\") ",
-             "gives the log hazard ratio and cox_baseline() the fitted ",
-             "baseline weights", call. = FALSE)
+        frm_stop("cox: a survival time has no mean on the response scale ",
+                 "here - the model fits a hazard, and the mean survival ",
+                 "time would be an integral over the baseline that the ",
+                 "censored rows do not identify. predict(type = \"link\") ",
+                 "gives the log hazard ratio and cox_baseline() the fitted ",
+                 "baseline weights", call. = FALSE)
       }
     ),
     extra_pars = function(y, aterms) {
@@ -5207,7 +5227,7 @@ cox_baseline <- function(fit) {
   rspec <- single_response(fit, "cox_baseline()")
   fam <- rspec$family
   if (is.null(fam[["cox_sbhaz"]])) {
-    stop("cox_baseline() needs a cox() family fit", call. = FALSE)
+    frm_stop("cox_baseline() needs a cox() family fit", call. = FALSE)
   }
   s <- fam[["cox_sbhaz"]](fit$estimates[["sbhaz_raw"]])
   stats::setNames(s, paste0("s", seq_along(s)))
@@ -5221,8 +5241,8 @@ cox_baseline <- function(fit) {
 #' @noRd
 fam_multinomial <- function(K) {
   if (missing(K) || K < 2) {
-    stop("multinomial() needs the number of categories, e.g. ",
-         "multinomial(K = 3)", call. = FALSE)
+    frm_stop("multinomial() needs the number of categories, e.g. ",
+             "multinomial(K = 3)", call. = FALSE)
   }
   dpn <- paste0("mu", seq_len(K)[-1])
   frmtmb_family(
@@ -5245,26 +5265,26 @@ fam_multinomial <- function(K) {
     },
     valid_y = function(y, aterms) {
       if (!is.matrix(y) || ncol(y) != K) {
-        stop("multinomial(K = ", K, "): response must be an n x ", K,
-             " count matrix", call. = FALSE)
+        frm_stop("multinomial(K = ", K, "): response must be an n x ", K,
+                 " count matrix", call. = FALSE)
       }
       if (any(y < 0) || any(y != round(y))) {
-        stop("multinomial: response must be non-negative integer counts",
-             call. = FALSE)
+        frm_stop("multinomial: response must be non-negative integer counts",
+                 call. = FALSE)
       }
       tr <- aterms[["trials"]]
       if (!is.null(tr) && any(rowSums(y) != tr)) {
-        stop("Number of trials does not match the number of events. ",
-             "multinomial: rowSums(response) must equal trials()",
-             call. = FALSE)
+        frm_stop("Number of trials does not match the number of events. ",
+                 "multinomial: rowSums(response) must equal trials()",
+                 call. = FALSE)
       }
     },
     type = "discrete",
     sim = function(dpars, aterms, n) {
       size <- aterms[["trials"]]
       if (is.null(size)) {
-        stop("simulate(): a multinomial fit needs trials() to know how ",
-             "many draws each row gets", call. = FALSE)
+        frm_stop("simulate(): a multinomial fit needs trials() to know how ",
+                 "many draws each row gets", call. = FALSE)
       }
       denom <- 1
       for (k in dpn) denom <- denom + exp(dpars[[k]])
@@ -5349,9 +5369,9 @@ family_ctor <- function(name) {
   keys <- names(family_registry)
   hit <- keys[tolower(keys) == low]
   if (length(hit)) return(family_registry[[hit[1L]]])
-  stop(name, " is not a supported family. Supported families are: ",
-       paste(unique(names(family_registry)), collapse = ", "),
-       call. = FALSE)
+  frm_stop(name, " is not a supported family. Supported families are: ",
+           paste(unique(names(family_registry)), collapse = ", "),
+           call. = FALSE)
 }
 
 #' Build a family from its name and links, the shared body of
@@ -5366,15 +5386,15 @@ family_from_name <- function(family, link = NULL, args = list(),
   ctor <- family_ctor(family)
   if (length(args) &&
       (is.null(names(args)) || !all(nzchar(names(args))))) {
-    stop(caller, "(): every argument after `family` and `link` has to ",
-         "be named, as in link_sigma = \"softplus\"", call. = FALSE)
+    frm_stop(caller, "(): every argument after `family` and `link` has to ",
+             "be named, as in link_sigma = \"softplus\"", call. = FALSE)
   }
   unknown <- setdiff(names(args), setdiff(names(formals(ctor)), "link"))
   if (length(unknown)) {
-    stop(caller, "(\"", family, "\") has no argument ",
-         paste0("`", unknown, "`", collapse = ", "), ". It takes ",
-         paste0("`", setdiff(names(formals(ctor)), "..."), "`",
-                collapse = ", "), ". See ?`frmtmb-links`", call. = FALSE)
+    frm_stop(caller, "(\"", family, "\") has no argument ",
+             paste0("`", unknown, "`", collapse = ", "), ". It takes ",
+             paste0("`", setdiff(names(formals(ctor)), "..."), "`",
+                    collapse = ", "), ". See ?`frmtmb-links`", call. = FALSE)
   }
   if (!is.null(link)) args <- c(list(link = link), args)
   do.call(ctor, args)
@@ -5436,10 +5456,10 @@ family_from_name <- function(family, link = NULL, args = list(),
 #' @export
 brmsfamily <- function(family, link = NULL, ...) {
   if (!is.character(family) || length(family) != 1L || is.na(family)) {
-    stop("brmsfamily(): `family` names a family with a single string, ",
-         "as in brmsfamily(\"gaussian\", link_sigma = \"softplus\"); not ",
-         arg_desc(family), ". frm(family =) also takes ",
-         "c(family, link)", call. = FALSE)
+    frm_stop("brmsfamily(): `family` names a family with a single string, ",
+             "as in brmsfamily(\"gaussian\", link_sigma = \"softplus\"); not ",
+             arg_desc(family), ". frm(family =) also takes ",
+             "c(family, link)", call. = FALSE)
   }
   link <- link_arg_value(substitute(link), link, names(frmtmb_links), NULL)
   family_from_name(family, link, list(...), caller = "brmsfamily")
@@ -5456,9 +5476,9 @@ brmsfamily <- function(family, link = NULL, ...) {
 family_link_pair <- function(family, caller) {
   if (!is.character(family) || !length(family) %in% 1:2 ||
       anyNA(family)) {
-    stop(caller, "(): `family` names a family, as \"weibull\" or as ",
-         "c(\"weibull\", \"log\") with its link; not ", arg_desc(family),
-         call. = FALSE)
+    frm_stop(caller, "(): `family` names a family, as \"weibull\" or as ",
+             "c(\"weibull\", \"log\") with its link; not ", arg_desc(family),
+             call. = FALSE)
   }
   list(family = family[1L],
        link = if (length(family) == 2L) family[2L])
@@ -5489,11 +5509,11 @@ as_frmtmb_family <- function(x) {
     fl <- family_link_pair(x, "frm")
     return(family_from_name(fl$family, fl$link, caller = "frm"))
   }
-  stop("Cannot interpret `family` of class ",
-       paste(class(x), collapse = "/"),
-       ": pass a family constructor or its name as the `family` ",
-       "argument of frm(), or attach it with `bf(...) + gaussian()`",
-       call. = FALSE)
+  frm_stop("Cannot interpret `family` of class ",
+           paste(class(x), collapse = "/"),
+           ": pass a family constructor or its name as the `family` ",
+           "argument of frm(), or attach it with `bf(...) + gaussian()`",
+           call. = FALSE)
 }
 
 #' Additional response families
@@ -6056,15 +6076,15 @@ categorical <- function(link = "logit", levels = NULL, K = NULL) {
   if (!is.null(levels)) {
     levels <- as.character(levels)
     if (length(levels) < 2L || anyDuplicated(levels)) {
-      stop("categorical(levels =): needs at least two distinct category ",
-           "labels", call. = FALSE)
+      frm_stop("categorical(levels =): needs at least two distinct category ",
+               "labels", call. = FALSE)
     }
     return(fam_categorical_impl(paste0("mu", levels[-1L]), levels, link))
   }
   if (!is.null(K)) {
     if (length(K) != 1L || is.na(K) || K < 2) {
-      stop("categorical(K =): needs at least two categories",
-           call. = FALSE)
+      frm_stop("categorical(K =): needs at least two categories",
+               call. = FALSE)
     }
     K <- as.integer(K)
     return(fam_categorical_impl(paste0("mu", seq_len(K)[-1L]),
@@ -6154,9 +6174,9 @@ check_required_aterms <- function(x) {
   }
   if (is.character(x)) {
     if (length(x) && !ok(x)) {
-      stop("frmtmb_family(required_aterms =) names addition-term ",
-           "values, and one of the names it was given is missing or ",
-           "empty.", call. = FALSE)
+      frm_stop("frmtmb_family(required_aterms =) names addition-term ",
+               "values, and one of the names it was given is missing or ",
+               "empty.", call. = FALSE)
     }
     return(invisible(NULL))
   }
@@ -6165,11 +6185,11 @@ check_required_aterms <- function(x) {
   if (is.list(x) && !is.object(x) && all(vapply(x, ok, NA))) {
     return(invisible(NULL))
   }
-  stop("frmtmb_family(required_aterms =) names the addition terms the ",
-       "density cannot do without: a character vector for the values it ",
-       "needs ALL of, or a list whose length-one elements are required ",
-       "and whose longer elements are alternatives, one of which must ",
-       "be supplied. Got ", arg_desc(x), call. = FALSE)
+  frm_stop("frmtmb_family(required_aterms =) names the addition terms the ",
+           "density cannot do without: a character vector for the values it ",
+           "needs ALL of, or a list whose length-one elements are required ",
+           "and whose longer elements are alternatives, one of which must ",
+           "be supplied. Got ", arg_desc(x), call. = FALSE)
 }
 
 #' Validate `frmtmb_family(accepts_aterms =)`.
@@ -6184,18 +6204,19 @@ check_required_aterms <- function(x) {
 check_accepts_aterms <- function(x) {
   if (is.null(x)) return(NULL)
   if (!is.character(x) || anyNA(x) || (length(x) && !all(nzchar(x)))) {
-    stop("frmtmb_family(accepts_aterms =) names the addition terms the ",
-         "family takes, as a formula writes them and without ",
-         "parentheses: c(\"weights\", \"trials\"). character(0) declares ",
-         "a family that takes none, and NULL accepts every registered ",
-         "term. Got ", arg_desc(x), call. = FALSE)
+    frm_stop("frmtmb_family(accepts_aterms =) names the addition terms the ",
+             "family takes, as a formula writes them and without ",
+             "parentheses: c(\"weights\", \"trials\"). character(0) declares ",
+             "a family that takes none, and NULL accepts every registered ",
+             "term. Got ", arg_desc(x), call. = FALSE)
   }
   paren <- grepl("\\(", x, fixed = FALSE)
   if (any(paren)) {
-    stop("frmtmb_family(accepts_aterms =) names a term WITHOUT its ",
-         "parentheses, because the name has to match the term however ",
-         "many arguments it takes: write \"", sub("\\(.*$", "", x[paren][[1L]]),
-         "\", not \"", x[paren][[1L]], "\"", call. = FALSE)
+    frm_stop("frmtmb_family(accepts_aterms =) names a term WITHOUT its ",
+             "parentheses, because the name has to match the term however ",
+             "many arguments it takes: write \"",
+             sub("\\(.*$", "", x[paren][[1L]]),
+             "\", not \"", x[paren][[1L]], "\"", call. = FALSE)
   }
   unique(x)
 }
@@ -6227,24 +6248,24 @@ check_se_dpar <- function(se_dpar, dpars, primary_dpars, family) {
   if (is.null(se_dpar)) return(NULL)
   if (length(se_dpar) != 1L ||
       !(is.character(se_dpar) || (is.logical(se_dpar) && is.na(se_dpar)))) {
-    stop("frmtmb_family(se_dpar =) names the ONE dpar that a known ",
-         "standard error replaces, or is NA where it replaces none ",
-         "because the whole scale is the known one; got ",
-         arg_desc(se_dpar), call. = FALSE)
+    frm_stop("frmtmb_family(se_dpar =) names the ONE dpar that a known ",
+             "standard error replaces, or is NA where it replaces none ",
+             "because the whole scale is the known one; got ",
+             arg_desc(se_dpar), call. = FALSE)
   }
   if (is.na(se_dpar)) return(NA_character_)
   if (!se_dpar %in% dpars) {
-    stop("frmtmb_family(se_dpar = \"", se_dpar, "\") names a dpar '",
-         family, "' does not have (it has: ",
-         paste(dpars, collapse = ", "),
-         "). Name the scale se() replaces, or NA if it replaces none",
-         call. = FALSE)
+    frm_stop("frmtmb_family(se_dpar = \"", se_dpar, "\") names a dpar '",
+             family, "' does not have (it has: ",
+             paste(dpars, collapse = ", "),
+             "). Name the scale se() replaces, or NA if it replaces none",
+             call. = FALSE)
   }
   if (se_dpar %in% primary_dpars) {
-    stop("frmtmb_family(se_dpar = \"", se_dpar, "\") names a LOCATION ",
-         "parameter of '", family, "'. se() carries a known standard ",
-         "deviation, so it replaces a scale; mapping out the location ",
-         "would leave the model with nothing to estimate", call. = FALSE)
+    frm_stop("frmtmb_family(se_dpar = \"", se_dpar, "\") names a LOCATION ",
+             "parameter of '", family, "'. se() carries a known standard ",
+             "deviation, so it replaces a scale; mapping out the location ",
+             "would leave the model with nothing to estimate", call. = FALSE)
   }
   se_dpar
 }
@@ -6296,20 +6317,21 @@ check_accepted_aterms <- function(resp, av) {
   have <- unique(c(names(resp$aterms), names(av)))
   bad <- setdiff(unique(vapply(have, aterm_base, "")), ok)
   if (!length(bad)) return(invisible(NULL))
-  stop(fam[["family"]], ": the addition term",
-       if (length(bad) > 1L) "s " else " ",
-       paste0("`", bad, "()`", collapse = ", "),
-       if (length(bad) > 1L) " are not ones" else " is not one",
-       " this family reads, so writing ",
-       if (length(bad) > 1L) "them" else "it",
-       " would change nothing about the fit. ",
-       if (length(ok)) {
-         paste0("This family takes ",
-                paste0("`", ok, "()`", collapse = ", "), ".")
-       } else {
-         "This family takes no addition terms."
-       },
-       call. = FALSE)
+  frm_stop(fam[["family"]], ": the addition term",
+           if (length(bad) > 1L) "s " else " ",
+           paste0("`", bad, "()`", collapse = ", "),
+           if (length(bad) > 1L) " are not ones" else " is not one",
+           " this family reads, so writing ",
+           if (length(bad) > 1L) "them" else "it",
+           " would change nothing about the fit. ",
+           if (length(ok)) {
+             paste0("This family takes ",
+                    paste0("`", ok, "()`", collapse = ", "), ".")
+           } else {
+             "This family takes no addition terms."
+           },
+           call. = FALSE,
+           package = frm_family_package(fam))
 }
 
 #' `required_aterms` as the groups frame assembly checks: each element
@@ -6364,15 +6386,15 @@ exclusive_aterm_groups <- function(x) {
 #' @noRd
 check_exclusive_aterms <- function(x, required = character(0)) {
   bad <- function(why = NULL, set = NULL) {
-    stop("frmtmb_family(exclusive_aterms =) names sets of addition-term ",
-         "VALUES that say the same thing to the density, so that at ",
-         "most one of each set may be supplied: a character vector for ",
-         "one set, or a list of them. Each set needs at least two ",
-         "distinct values. ",
-         if (is.null(why)) paste0("Got ", arg_desc(x)) else {
-           paste0("Set ", set, " ", why)
-         },
-         call. = FALSE)
+    frm_stop("frmtmb_family(exclusive_aterms =) names sets of addition-term ",
+             "VALUES that say the same thing to the density, so that at ",
+             "most one of each set may be supplied: a character vector for ",
+             "one set, or a list of them. Each set needs at least two ",
+             "distinct values. ",
+             if (is.null(why)) paste0("Got ", arg_desc(x)) else {
+               paste0("Set ", set, " ", why)
+             },
+             call. = FALSE)
   }
   if (is.null(x) || (is.list(x) && !length(x)) ||
         (is.character(x) && !length(x))) {
@@ -6408,13 +6430,13 @@ check_exclusive_aterms <- function(x, required = character(0)) {
   for (g in grps) {
     clash <- intersect(g, must)
     if (length(clash) > 1L) {
-      stop("frmtmb_family(exclusive_aterms =) makes ",
-           paste0("`", clash, "`", collapse = " and "),
-           " mutually exclusive, and required_aterms demands both of ",
-           "them, so no model could satisfy the family. Make them ",
-           "alternatives instead: required_aterms = list(c(",
-           paste0("\"", clash, "\"", collapse = ", "), ")).",
-           call. = FALSE)
+      frm_stop("frmtmb_family(exclusive_aterms =) makes ",
+               paste0("`", clash, "`", collapse = " and "),
+               " mutually exclusive, and required_aterms demands both of ",
+               "them, so no model could satisfy the family. Make them ",
+               "alternatives instead: required_aterms = list(c(",
+               paste0("\"", clash, "\"", collapse = ", "), ")).",
+               call. = FALSE)
     }
   }
   grps
@@ -6495,17 +6517,18 @@ check_exclusive_aterms_supplied <- function(resp, av) {
     # is the one the density actually reads.
     keep <- hit[[1L]]
     drop <- hit[-1L]
-    stop(resp$family[["family"]], ": ",
-         comma_and(paste0("`", hit, "`")),
-         " are spellings of the same datum for this family, and this ",
-         "response supplies ",
-         if (length(hit) > 2L) "all of them" else "both",
-         ". The density reads `", keep, "` and would ignore ",
-         comma_and(paste0("`", drop, "`")),
-         ", so they could disagree with nothing to say so. Keep ",
-         aterm_spelling(keep), " and drop ",
-         comma_and(vapply(drop, aterm_spelling, "")),
-         ".", call. = FALSE)
+    frm_stop(resp$family[["family"]], ": ",
+             comma_and(paste0("`", hit, "`")),
+             " are spellings of the same datum for this family, and this ",
+             "response supplies ",
+             if (length(hit) > 2L) "all of them" else "both",
+             ". The density reads `", keep, "` and would ignore ",
+             comma_and(paste0("`", drop, "`")),
+             ", so they could disagree with nothing to say so. Keep ",
+             aterm_spelling(keep), " and drop ",
+             comma_and(vapply(drop, aterm_spelling, "")),
+             ".", call. = FALSE,
+             package = frm_family_package(resp$family))
   }
   invisible(NULL)
 }

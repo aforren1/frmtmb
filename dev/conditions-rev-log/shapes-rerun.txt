@@ -1,0 +1,291 @@
+e_direct           both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in f(3) : bad x: 3
+  | Execution halted
+  --- lane (2>&1)
+  | Error in f(3) : bad x: 3
+  | Calls: f -> frm_stop
+  | Execution halted
+e_nocall           both TRUE  stdout TRUE  after-name-normalizing TRUE
+e_toplevel         both TRUE  stdout TRUE  after-name-normalizing TRUE
+e_try_print        both TRUE  stdout TRUE  after-name-normalizing TRUE
+e_try_long         both TRUE  stdout TRUE  after-name-normalizing TRUE
+e_promise          both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in g(stop("p")) : p
+  | Calls: f -> g
+  | Execution halted
+  --- lane (2>&1)
+  | Error in g(frm_stop("p")) : p
+  | Calls: f -> g -> frm_stop
+  | Execution halted
+e_lapply           both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in FUN(X[[i]], ...) : l 1
+  | Calls: f -> lapply -> FUN
+  | Execution halted
+  --- lane (2>&1)
+  | Error in FUN(X[[i]], ...) : l 1
+  | Calls: f -> lapply -> FUN -> frm_stop
+  | Execution halted
+e_map              both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in (function (a)  : m 1
+  | Calls: f -> Map -> mapply -> <Anonymous>
+  | Execution halted
+  --- lane (2>&1)
+  | Error in (function (a)  : m 1
+  | Calls: f -> Map -> mapply -> <Anonymous> -> frm_stop
+  | Execution halted
+e_vapply           both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in FUN(X[[i]], ...) : v
+  | Calls: f -> vapply -> FUN
+  | Execution halted
+  --- lane (2>&1)
+  | Error in FUN(X[[i]], ...) : v
+  | Calls: f -> vapply -> FUN -> frm_stop
+  | Execution halted
+e_handler          both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in value[[3L]](cond) : 
+  |   h: non-numeric argument to mathematical function
+  | Calls: f ... tryCatch -> tryCatchList -> tryCatchOne -> <Anonymous>
+  | Execution halted
+  --- lane (2>&1)
+  | Error in value[[3L]](cond) : 
+  |   h: non-numeric argument to mathematical function
+  | Calls: f ... tryCatchList -> tryCatchOne -> <Anonymous> -> frm_stop
+  | Execution halted
+e_wch              both TRUE  stdout TRUE  after-name-normalizing TRUE
+e_onexit           both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in f() : oe
+  | Execution halted
+  --- lane (2>&1)
+  | Error in f() : oe
+  | Calls: f -> frm_stop
+  | Execution halted
+e_eval             both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in eval(quote(stop("ev"))) : ev
+  | Calls: f -> eval -> eval
+  | Execution halted
+  --- lane (2>&1)
+  | Error in eval(quote(frm_stop("ev"))) : ev
+  | Calls: f -> eval -> eval -> frm_stop
+  | Execution halted
+e_evalq_env        both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in evalq(stop("evq"), e) : evq
+  | Calls: f -> evalq -> evalq
+  | Execution halted
+  --- lane (2>&1)
+  | Error in evalq(frm_stop("evq"), e) : evq
+  | Calls: f -> evalq -> evalq -> frm_stop
+  | Execution halted
+e_docall           both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in (function (x)  : dc
+  | Calls: do.call -> <Anonymous>
+  | Execution halted
+  --- lane (2>&1)
+  | Error in (function (x)  : dc
+  | Calls: do.call -> <Anonymous> -> frm_stop
+  | Execution halted
+e_docall_big       both TRUE  stdout TRUE  after-name-normalizing TRUE
+e_s3               both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in gen.default(1) : s3
+  | Calls: gen -> gen.default
+  | Execution halted
+  --- lane (2>&1)
+  | Error in gen.default(1) : s3
+  | Calls: gen -> gen.default -> frm_stop
+  | Execution halted
+e_nextmethod       both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in gen.default(structure(1, class = "a")) : s3n
+  | Calls: gen -> gen.a -> NextMethod -> gen.default
+  | Execution halted
+  --- lane (2>&1)
+  | Error in gen.default(structure(1, class = "a")) : s3n
+  | Calls: gen -> gen.a -> NextMethod -> gen.default -> frm_stop
+  | Execution halted
+e_s4               both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | [1] "gen4"
+  | Error in gen4(1) : s4
+  | Calls: gen4 -> gen4
+  | Execution halted
+  --- lane (2>&1)
+  | [1] "gen4"
+  | Error in gen4(1) : s4
+  | Calls: gen4 -> gen4 -> frm_stop
+  | Execution halted
+e_s4_arg           both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | [1] "gen4"
+  | Error in h(simpleError(msg, call)) : 
+  |   error in evaluating the argument 'x' in selecting a method for function 'gen4': in arg
+  | Calls: gen4 -> h
+  | Execution halted
+  --- lane (2>&1)
+  | [1] "gen4"
+  | Error in (function (cond)  : 
+  |   error in evaluating the argument 'x' in selecting a method for function 'gen4': in arg
+  | Calls: gen4 -> h -> frm_stop
+  | Execution halted
+e_recall           both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in f(2) : rec
+  | Calls: f -> Recall -> f -> Recall -> f
+  | Execution halted
+  --- lane (2>&1)
+  | Error in f(2) : rec
+  | Calls: f -> Recall -> f -> Recall -> f -> frm_stop
+  | Execution halted
+e_multiline        both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in f() : line one 1
+  | line two x
+  |   tail
+  | Execution halted
+  --- lane (2>&1)
+  | Error in f() : line one 1
+  | line two x
+  |   tail
+  | Calls: f -> frm_stop
+  | Execution halted
+e_gettextf         both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in f(2) : got 2 items
+  | Execution halted
+  --- lane (2>&1)
+  | Error in f(2) : got 2 items
+  | Calls: f -> frm_stop
+  | Execution halted
+e_empty            both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in f() : 
+  | Execution halted
+  --- lane (2>&1)
+  | Error in f() : 
+  | Calls: f -> frm_stop
+  | Execution halted
+e_vector           both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in f() : ab12
+  | Execution halted
+  --- lane (2>&1)
+  | Error in f() : ab12
+  | Calls: f -> frm_stop
+  | Execution halted
+e_utf8             both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in f() : sigma σ ≥ 0
+  | Execution halted
+  --- lane (2>&1)
+  | Error in f() : sigma σ ≥ 0
+  | Calls: f -> frm_stop
+  | Execution halted
+e_nested_calls     both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in h() : deep
+  | Calls: f -> g -> h
+  | Execution halted
+  --- lane (2>&1)
+  | Error in h() : deep
+  | Calls: f -> g -> h -> frm_stop
+  | Execution halted
+e_showcalls_off    both TRUE  stdout TRUE  after-name-normalizing TRUE
+e_warnlen          both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in f() : 
+  |   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  | Execution halted
+  --- lane (2>&1)
+  | Error in f() : 
+  |   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  | Calls: f -> frm_stop
+  | Execution halted
+e_error_opt        both FALSE stdout FALSE after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in f() : hooked
+  | HOOK Error in f() : hooked
+  --- lane (2>&1)
+  | Error in f() : hooked
+  | Calls: f -> frm_stop
+  | HOOK Error in f() : hooked
+  | Calls: f -> frm_stop
+  --- base stdout
+  | HOOK Error in f() : hooked
+  --- lane stdout
+  | HOOK Error in f() : hooked
+  | Calls: f -> frm_stop
+e_catch_error      both FALSE stdout FALSE after-name-normalizing FALSE
+  --- base (2>&1)
+  | [1] "caught"
+  | [1] TRUE
+  --- lane (2>&1)
+  | [1] "caught"
+  | [1] FALSE
+  --- base stdout
+  | [1] "caught"
+  | [1] TRUE
+  --- lane stdout
+  | [1] "caught"
+  | [1] FALSE
+w_deferred         both TRUE  stdout TRUE  after-name-normalizing TRUE
+w_nocall           both TRUE  stdout TRUE  after-name-normalizing TRUE
+w_toplevel         both TRUE  stdout TRUE  after-name-normalizing TRUE
+w_warn1            both TRUE  stdout TRUE  after-name-normalizing TRUE
+w_warn2            both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Error in f(1) : (converted from warning) careful 1
+  | Execution halted
+  --- lane (2>&1)
+  | Error in f(1) : (converted from warning) careful 1
+  | Calls: f -> frm_warning
+  | Execution halted
+w_warn_neg         both TRUE  stdout TRUE  after-name-normalizing TRUE
+w_many             both TRUE  stdout TRUE  after-name-normalizing TRUE
+w_two              both TRUE  stdout TRUE  after-name-normalizing TRUE
+w_long             both TRUE  stdout TRUE  after-name-normalizing TRUE
+w_suppress         both TRUE  stdout TRUE  after-name-normalizing TRUE
+w_wch_muffle       both TRUE  stdout TRUE  after-name-normalizing TRUE
+w_trycatch         both TRUE  stdout TRUE  after-name-normalizing TRUE
+w_value            both TRUE  stdout TRUE  after-name-normalizing TRUE
+w_immediate        both FALSE stdout TRUE  after-name-normalizing FALSE
+  --- base (2>&1)
+  | Warning in f() : imm
+  | between
+  --- lane (2>&1)
+  | between
+  | Warning message:
+  | In f() : imm
+w_promise          both FALSE stdout TRUE  after-name-normalizing TRUE
+  --- base (2>&1)
+  | Warning message:
+  | In g(warning("pw")) : pw
+  --- lane (2>&1)
+  | Warning message:
+  | In g(frm_warning("pw")) : pw
+w_lapply           both TRUE  stdout TRUE  after-name-normalizing TRUE
+w_in_handler_last  both TRUE  stdout TRUE  after-name-normalizing TRUE
+m_basic            both TRUE  stdout TRUE  after-name-normalizing TRUE
+m_nolf             both TRUE  stdout TRUE  after-name-normalizing TRUE
+m_suppress         both TRUE  stdout TRUE  after-name-normalizing TRUE
+m_sink             both TRUE  stdout TRUE  after-name-normalizing TRUE
+m_call             both FALSE stdout FALSE after-name-normalizing TRUE
+  --- base (2>&1)
+  | message("note")
+  --- lane (2>&1)
+  | frm_message("note")
+  --- base stdout
+  | message("note")
+  --- lane stdout
+  | frm_message("note")
+m_wch              both TRUE  stdout TRUE  after-name-normalizing TRUE
+
+cases 54 identical 2>&1 26 identical stdout 51 identical after name normalizing 28 

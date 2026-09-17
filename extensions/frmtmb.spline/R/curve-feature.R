@@ -122,12 +122,12 @@ frm_curve_feature <- function(object, var,
                               dpar = NULL, resp = NULL, re_formula = NA,
                               level = 0.95, eps = NULL, maxit = 50L,
                               tol = 1e-6) {
-  type <- match.arg(type)
+  type <- frm_match_arg(type)
   sp_check_level(level)
   sp_check_count(maxit, "maxit")
   if (!is.numeric(at) || length(at) != 1L || !is.finite(at)) {
-    stop("`at` must be one finite number: the level the crossing is of",
-         call. = FALSE)
+    frm_stop("`at` must be one finite number: the level the crossing is of",
+             call. = FALSE)
   }
   sp <- sp_spec(object, newdata, contrast, dpar, resp, re_formula)
   # before the root scan, not after: a search that finds no root returns
@@ -140,9 +140,9 @@ frm_curve_feature <- function(object, var,
   sp_check_contrast_var(nd, ct, var)
   x <- as.numeric(nd[[var]])
   if (length(x) < 3L) {
-    stop("A feature search needs a grid of at least three points along '",
-         var, "': it scans for a sign change before it refines one",
-         call. = FALSE)
+    frm_stop("A feature search needs a grid of at least three points along '",
+             var, "': it scans for a sign change before it refines one",
+             call. = FALSE)
   }
   ord <- order(x)
   nd <- nd[ord, , drop = FALSE]

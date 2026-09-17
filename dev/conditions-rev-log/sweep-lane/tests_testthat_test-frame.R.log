@@ -1,0 +1,5 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+2 rows removed because of missing values (na.action)
+BLOCKS 5 PASS 22 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-frame.R
+CAUGHT 1 
+DONE

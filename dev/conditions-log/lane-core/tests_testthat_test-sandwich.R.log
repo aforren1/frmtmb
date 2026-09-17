@@ -1,0 +1,8 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+StanHeaders: 2.32.10 
+Registered S3 method overwritten by 'clubSandwich':
+  method    from    
+  bread.mlm sandwich
+BLOCKS 9 PASS 57 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-sandwich.R 
+CAUGHT 15 
+DONE

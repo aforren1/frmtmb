@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 14 PASS 145 FAIL 1 ERROR 0 SKIP 0  tests/testthat/test-conditions.R
+  failing: user-reachable refusals once left to base R are frmtmb_error
+       Expected diagnose_nonfit to match regexp "fitted by frm[(][)], not an lm". Actual text: x | diagnose() needs a model fitted by frm(), not a lm of length 12 

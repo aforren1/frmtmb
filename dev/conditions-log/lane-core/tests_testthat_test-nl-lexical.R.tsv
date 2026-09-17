@@ -1,0 +1,4 @@
+"file"	"class"	"message"
+"tests/testthat/test-nl-lexical.R"	"simpleError/error/condition"	"invalid type (list) for variable 'tab'"
+"tests/testthat/test-nl-lexical.R"	"simpleError/error/condition"	"variable lengths differ (found for 'short')"
+"tests/testthat/test-nl-lexical.R"	"simpleError/error/condition"	"object 'no_such_thing' not found"

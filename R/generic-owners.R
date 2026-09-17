@@ -257,10 +257,10 @@ frm_install_generics <- function(pkgname = "frmtmb",
       is.character(o) && length(o) >= 1L && !anyNA(o) && all(nzchar(o))
     }, NA))
   if (!ok) {
-    stop("frm_install_generics(owners =) must be a named list of ",
-         "non-empty character vectors: one entry per generic name, ",
-         "naming the packages that own it in the order to prefer",
-         call. = FALSE)
+    frm_stop("frm_install_generics(owners =) must be a named list of ",
+             "non-empty character vectors: one entry per generic name, ",
+             "naming the packages that own it in the order to prefer",
+             call. = FALSE)
   }
   ns <- asNamespace(pkgname)
   done <- character()

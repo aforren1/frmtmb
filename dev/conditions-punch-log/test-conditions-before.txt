@@ -1,0 +1,28 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 13 PASS 32 FAIL 18 ERROR 2 SKIP 0  tests/testthat/test-conditions.R
+  failing: a condition object is signalled as the base functions do
+       Expected `conditionMessage(eb)` to be identical to `conditionMessage(ea)`. Differences: `lines(actual)`:   "Error in f(1): boom" "" `lines(expected)`: "boom"                    
+       Expected `conditionCall(eb)` to be identical to `conditionCall(ea)`. Differences: `actual`:   `sb()` `expected`: `f(1)`  
+       Expected `class(eb)` to be identical to `c("frmtmb_error", class(e0))`. Differences: `actual`:   "frmtmb_error"               "error" "condition" `expected`: "frmtmb_error" "simpleError" "error" "condition"  
+       Expected `as.character(try(sb(), silent = TRUE))` to be identical to `as.character(try(sa(), silent = TRUE))`. Differences: `lines(actual)`:   "Error in sb() : Error in f(1): boom" "" "" `lines(expected)`: "Error in f(1) : boom"                   ""  
+       Expected `conditionMessage(wb)` to be identical to `conditionMessage(wa)`. Differences: `lines(actual)`:   "simpleWarning: careful" "" `lines(expected)`: "careful"                    
+       Expected `conditionCall(wb)` to be NULL. Differences: `actual` is a call `expected` is NULL  
+       Expected `class(wb)` to be identical to `c("frmtmb_warning", class(w0))`. Differences: `actual`:   "frmtmb_warning"                 "warning" "condition" `expected`: "frmtmb_warning" "simpleWarning" "warning" "condition"  
+       Expected `conditionMessage(mb)` to be identical to "note\n". Differences: `lines(actual)`:   "simpleMessage: note" "" "" "" `lines(expected)`: "note"                      ""  
+       Expected `class(mb)` to be identical to `c("frmtmb_message", class(m0))`. Differences: `actual`:   "frmtmb_message"                 "message" "condition" `expected`: "frmtmb_message" "simpleMessage" "message" "condition"  
+  failing: a helper passed as a value gets its caller's subclass
+       Expected `class(tryCatch(f(), error = identity))` to be identical to `c("stats_error", "frmtmb_error", "error", "condition")`. Differences: `actual`:   "base_error"  "frmtmb_error" "error" "condition" `expected`: "stats_error" "frmtmb_error" "error" "condition"  
+       Expected `class(tryCatch(g(), warning = identity))` to be identical to `c("stats_warning", "frmtmb_warning", "warning", "condition")`. Differences: `actual`:   "base_warning"  "frmtmb_warning" "warning" "condition" `expected`: "stats_warning" "frmtmb_warning" "warning" "condition"  
+       Expected `class(tryCatch(h(), error = identity))` to be identical to `c("frmtmb_error", "error", "condition")`. Differences: `actual`:   "base_error" "frmtmb_error" "error" "condition" `expected`:              "frmtmb_error" "error" "condition"  
+  failing: package = names the subclass in place of the caller's
+       Expected `class(tryCatch(f(), error = identity))` to be identical to `c("frmtmb_eam_error", "frmtmb_error", "error", "condition")`. Differences: `actual`:   "frmtmb_error"     "error"        "condition"             `expected`: "frmtmb_eam_error" "frmtmb_error" "error"     "condition"  
+       Expected `class(tryCatch(g(), warning = identity))` to be identical to `c("frmtmb_warning", "warning", "condition")`. Differences: `actual`:   "stats_warning" "frmtmb_warning" "warning" "condition" `expected`:                 "frmtmb_warning" "warning" "condition"  
+  failing: immediate. = TRUE prints the warning at once
+       Expected `out` to be identical to `c(...)`. Differences:     actual                 | expected                   [1] "Warning in g() : imm" | "Warning in g() : imm" [1] [2] "after base"           | "after base"           [2] [3] "Warning message:"     - "Warning in f() : imm" [3] [4] "In f() : imm"         -                            [5] "after frm"            | "after frm"            [4]  
+  failing: frm_match_arg() matches as match.arg() does
+       Error in `frm_match_arg(type)`: could not find function "frm_match_arg" 
+  failing: frm_match_arg() refuses by name, with the value and choices
+       Expected `class(e)` to be identical to `c("frmtmb_error", "error", "condition")`. Differences: `actual`:   "simpleError"  "error" "condition" `expected`: "frmtmb_error" "error" "condition"  
+       Expected `conditionMessage(e)` to be identical to `paste0("`type` must be one of \"response\", \"link\", ", "not character \"bogus\"")`. Differences: actual vs expected - "could not find function \"frm_match_arg\"" + "`type` must be one of \"response\", \"link\", not character \"bogus\""  
+       Expected `conditionCall(e)` to be identical to `quote(f("bogus"))`. Differences: `actual`:   `frm_match_arg(type)` `expected`: `f("bogus")`           
+       Error in `frm_match_arg(type)`: could not find function "frm_match_arg" 

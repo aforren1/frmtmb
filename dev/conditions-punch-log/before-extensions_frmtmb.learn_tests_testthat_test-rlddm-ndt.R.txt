@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 12 PASS 52 FAIL 0 ERROR 1 SKIP 0  extensions/frmtmb.learn/tests/testthat/test-rlddm-ndt.R
+  failing: max_ndt and ndt_group together are refused
+       <frmtmb_eam_error/frmtmb_error/error/condition> Error: rlddm: max_ndt and ndt_group() both set the non-decision time's upper bound and they set it to different things. max_ndt fixes one bound for every row; ndt_group() takes each group's own fastest response. Drop one of them. 

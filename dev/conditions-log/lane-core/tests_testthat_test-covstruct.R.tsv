@@ -1,0 +1,3 @@
+"file"	"class"	"message"
+"tests/testthat/test-covstruct.R"	"frmtmb_error/error/condition"	"ar1() requires a factor without intercept on the left of the bar, e.g. ar1(times + 0 | g)"
+"tests/testthat/test-covstruct.R"	"frmtmb_error/error/condition"	"ar1() needs at least 2 terms per level"

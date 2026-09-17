@@ -39,14 +39,14 @@ frm_task_design <- function(task = c("bandit2arm", "reversal",
                                      "twostep"),
                             n_subject = 30L, n_trial = 100L,
                             p = c(0.7, 0.3), seed = NULL, ...) {
-  task <- match.arg(task)
+  task <- frm_match_arg(task)
   if (!is.null(seed)) set.seed(seed)
   dots <- list(...)
   n_subject <- as.integer(n_subject)
   n_trial <- as.integer(n_trial)
   if (n_subject < 1L || n_trial < 1L) {
-    stop("frm_task_design(): n_subject and n_trial must both be at ",
-         "least 1", call. = FALSE)
+    frm_stop("frm_task_design(): n_subject and n_trial must both be at ",
+             "least 1", call. = FALSE)
   }
   d <- expand.grid(trial = seq_len(n_trial), id = seq_len(n_subject))
   # expand.grid() leaves an out.attrs attribute that str() prints at
@@ -176,10 +176,15 @@ frm_task_design <- function(task = c("bandit2arm", "reversal",
 #' @export
 frm_task_simulate <- function(family, data, pars, nsim = 1L,
                               response = NULL, seed = NULL) {
+  if (!is.list(family)) {
+    frm_stop("frm_task_simulate(): `family` must be a family object from ",
+             "frmtmb.learn, such as bandit2arm_delta(subject = id), not a ",
+             class(family)[1L], call. = FALSE)
+  }
   lrn <- family[["learn"]]
   if (is.null(lrn)) {
-    stop("frm_task_simulate() takes a family from frmtmb.learn, and ",
-         "this one carries no learning recursion", call. = FALSE)
+    frm_stop("frm_task_simulate() takes a family from frmtmb.learn, and ",
+             "this one carries no learning recursion", call. = FALSE)
   }
   nm <- family[["family"]]
   n <- nrow(data)
@@ -194,9 +199,9 @@ frm_task_simulate <- function(family, data, pars, nsim = 1L,
   block <- ln_pack(gv, tv, n, nm)
   miss <- setdiff(lrn[["dpars"]], names(pars))
   if (length(miss)) {
-    stop("frm_task_simulate(): ", nm, "() has no value for ",
-         paste(miss, collapse = ", "), ". Every parameter of the family ",
-         "needs one, on its natural scale", call. = FALSE)
+    frm_stop("frm_task_simulate(): ", nm, "() has no value for ",
+             paste(miss, collapse = ", "), ". Every parameter of the family ",
+             "needs one, on its natural scale", call. = FALSE)
   }
   si <- as.integer(gv)
   cd <- list()
@@ -214,18 +219,18 @@ frm_task_simulate <- function(family, data, pars, nsim = 1L,
     } else if (length(v) == n) {
       cd[[dp]] <- v
     } else {
-      stop("frm_task_simulate(): '", dp, "' has ", length(v), " values ",
-           "for ", block[["n_subj"]], " subjects and ", n, " rows. Give ",
-           "one value, one per subject in the order levels(factor(id)) ",
-           "gives, or one per row", call. = FALSE)
+      frm_stop("frm_task_simulate(): '", dp, "' has ", length(v), " values ",
+               "for ", block[["n_subj"]], " subjects and ", n, " rows. Give ",
+               "one value, one per subject in the order levels(factor(id)) ",
+               "gives, or one per row", call. = FALSE)
     }
   }
   dm <- lrn[["data_map"]]
   need <- setdiff(unname(dm), names(data))
   if (length(need)) {
-    stop("frm_task_simulate(): the design has no column '", need[1L],
-         "'. frm_task_design() names the payoff columns pay1, pay2 and ",
-         "so on, and this route reads them by those names", call. = FALSE)
+    frm_stop("frm_task_simulate(): the design has no column '", need[1L],
+             "'. frm_task_design() names the payoff columns pay1, pay2 and ",
+             "so on, and this route reads them by those names", call. = FALSE)
   }
   for (k in names(dm)) cd[[k]] <- as.numeric(data[[dm[[k]]]])
   # The same check the fitted route makes, on the same fact, because
@@ -244,12 +249,12 @@ frm_task_simulate <- function(family, data, pars, nsim = 1L,
   # which is a draw that succeeds on most rows and errors on the rest.
   need <- lrn[["sim_needs"]]
   if (!is.null(need) && !requireNamespace(need, quietly = TRUE)) {
-    stop("frm_task_simulate(): drawing from ", nm, "() needs the '",
-         need, "' package, which is not installed. It draws a boundary ",
-         "and a response time jointly from the diffusion, and the ",
-         "route that does so exactly is the one '", need, "' supplies. ",
-         "Fitting needs nothing extra: the likelihood is exact without ",
-         "it", call. = FALSE)
+    frm_stop("frm_task_simulate(): drawing from ", nm, "() needs the '",
+             need, "' package, which is not installed. It draws a boundary ",
+             "and a response time jointly from the diffusion, and the ",
+             "route that does so exactly is the one '", need, "' supplies. ",
+             "Fitting needs nothing extra: the likelihood is exact without ",
+             "it", call. = FALSE)
   }
   code_resp <- is.null(lrn[["spec"]][["logp"]])
   if (is.null(response)) {

@@ -283,9 +283,9 @@ frmtmb_register_compat <- function(features = NULL, rules = NULL,
   known <- frmtmb_compat_features_tbl()
   add <- compat_new_features(features, paste0(arg, " features ="), known)
   if (!is.character(expects) || anyNA(expects)) {
-    stop("frmtmb_register_compat(expects =) names the features a rule ",
-         "refers to but this package does not supply, as a character ",
-         "vector, and got ", arg_desc(expects), call. = FALSE)
+    frm_stop("frmtmb_register_compat(expects =) names the features a rule ",
+             "refers to but this package does not supply, as a character ",
+             "vector, and got ", arg_desc(expects), call. = FALSE)
   }
   # expects = exempts a name from the resolvability check. A name this
   # same call supplies is a contradiction and is refused. A name the
@@ -293,32 +293,32 @@ frmtmb_register_compat <- function(features = NULL, rules = NULL,
   # was met before this package spoke, which is exactly what happens
   here <- intersect(expects, names(features))
   if (length(here)) {
-    stop("frmtmb_register_compat(expects =) names '", here[[1L]],
-         "', and this very call supplies that feature, so the ",
-         "declaration exempts nothing. expects = is for a feature ",
-         "another package supplies, whether or not this session has it. ",
-         "Drop it, or give it a kind in features = if this package ",
-         "supplies it.", call. = FALSE)
+    frm_stop("frmtmb_register_compat(expects =) names '", here[[1L]],
+             "', and this very call supplies that feature, so the ",
+             "declaration exempts nothing. expects = is for a feature ",
+             "another package supplies, whether or not this session has it. ",
+             "Drop it, or give it a kind in features = if this package ",
+             "supplies it.", call. = FALSE)
   }
   if (!is.null(rules)) {
     if (!is.function(rules)) {
-      stop("frmtmb_register_compat(rules =) takes a FUNCTION of no ",
-           "arguments returning a rule data frame, not the frame ",
-           "itself, so that a contributed rule is built on demand ",
-           "exactly as a core one is. Got ", arg_desc(rules),
-           call. = FALSE)
+      frm_stop("frmtmb_register_compat(rules =) takes a FUNCTION of no ",
+               "arguments returning a rule data frame, not the frame ",
+               "itself, so that a contributed rule is built on demand ",
+               "exactly as a core one is. Got ", arg_desc(rules),
+               call. = FALSE)
     }
     # rules() is called HERE now, at registration, so a builder that
     # throws takes down the registrant's .onLoad(). It used to run
     # lazily inside frm_compat(). Raw, the error arrives out of
     # loadNamespace() with nothing naming the argument that called it.
     df <- tryCatch(rules(), error = function(e) {
-      stop(arg, " called the rules = builder", who,
-           " and it failed, which stops the whole registration: the ",
-           "builder runs once at registration so that a rule naming ",
-           "nothing is refused here rather than dropped later, so it ",
-           "must read nothing but its own arguments. It said: ",
-           conditionMessage(e), call. = FALSE)
+      frm_stop(arg, " called the rules = builder", who,
+               " and it failed, which stops the whole registration: the ",
+               "builder runs once at registration so that a rule naming ",
+               "nothing is refused here rather than dropped later, so it ",
+               "must read nothing but its own arguments. It said: ",
+               conditionMessage(e), call. = FALSE)
     })
     compat_check_rules(df, unique(c(known$name, names(features))),
                        expects, arg)
@@ -394,18 +394,18 @@ compat_new_features <- function(features, arg,
   if (!is.character(features) || anyNA(features) ||
       is.null(names(features)) || anyNA(names(features)) ||
       !all(nzchar(names(features))) || !all(nzchar(features))) {
-    stop(arg, " maps each feature's DISPLAY name to its kind, as a ",
-         "named character vector with no empty entry on either side: ",
-         "c(\"wiener\" = \"family\", \"dec()\" = \"aterm\"). Got ",
-         arg_desc(features), call. = FALSE)
+    frm_stop(arg, " maps each feature's DISPLAY name to its kind, as a ",
+             "named character vector with no empty entry on either side: ",
+             "c(\"wiener\" = \"family\", \"dec()\" = \"aterm\"). Got ",
+             arg_desc(features), call. = FALSE)
   }
   bad <- setdiff(unname(features), frmtmb_compat_kinds)
   if (length(bad)) {
-    stop(arg, " gives a feature the kind '", bad[[1L]],
-         "', and the registry has no such kind. A kind is one of: ",
-         paste(frmtmb_compat_kinds, collapse = ", "),
-         ". It is what decides which pairs the feature is asked about.",
-         call. = FALSE)
+    frm_stop(arg, " gives a feature the kind '", bad[[1L]],
+             "', and the registry has no such kind. A kind is one of: ",
+             paste(frmtmb_compat_kinds, collapse = ", "),
+             ". It is what decides which pairs the feature is asked about.",
+             call. = FALSE)
   }
   # A name repeated inside ONE call is the cross-call clash below, one
   # scope inward: dropping the second entry accepts a declaration that
@@ -419,11 +419,11 @@ compat_new_features <- function(features, arg,
     bad <- which(dup & unname(features) != unname(features)[first])
     if (length(bad)) {
       i <- bad[[1L]]
-      stop(arg, " registers '", names(features)[[i]], "' as ",
-           compat_kind_article(unname(features)[[i]]), " feature, and ",
-           "the same call already gives that name the kind '",
-           unname(features)[[first[[i]]]],
-           "'. One display name carries one kind.", call. = FALSE)
+      frm_stop(arg, " registers '", names(features)[[i]], "' as ",
+               compat_kind_article(unname(features)[[i]]), " feature, and ",
+               "the same call already gives that name the kind '",
+               unname(features)[[first[[i]]]],
+               "'. One display name carries one kind.", call. = FALSE)
     }
     features <- features[!dup]
   }
@@ -431,11 +431,11 @@ compat_new_features <- function(features, arg,
   clash <- which(!is.na(hit) & known$kind[hit] != unname(features))
   if (length(clash)) {
     i <- clash[[1L]]
-    stop(arg, " registers '", names(features)[[i]], "' as ",
-         compat_kind_article(unname(features)[[i]]), " feature, and ",
-         "the registry already holds that name under the kind '",
-         known$kind[[hit[[i]]]],
-         "'. One display name carries one kind.", call. = FALSE)
+    frm_stop(arg, " registers '", names(features)[[i]], "' as ",
+             compat_kind_article(unname(features)[[i]]), " feature, and ",
+             "the registry already holds that name under the kind '",
+             known$kind[[hit[[i]]]],
+             "'. One display name carries one kind.", call. = FALSE)
   }
   out <- features[is.na(hit)]
   if (length(out)) out else NULL
@@ -461,13 +461,13 @@ compat_new_aterm_feature <- function(name) {
     # nothing to a term author. The collision is a grammar fact: s() is
     # a smooth, so `y | s(col) ~ x` would give one spelling two
     # meanings in one formula.
-    stop("frmtmb_register_aterm() cannot register '", name,
-         "', because '", display, "' already means something else in a ",
-         "formula: the compatibility vocabulary holds it as ",
-         compat_kind_article(known$kind[[hit]]), " feature. A formula ",
-         "writing ", display, " could not say which was meant, so ",
-         "nothing has been registered. Choose another name.",
-         call. = FALSE)
+    frm_stop("frmtmb_register_aterm() cannot register '", name,
+             "', because '", display, "' already means something else in a ",
+             "formula: the compatibility vocabulary holds it as ",
+             compat_kind_article(known$kind[[hit]]), " feature. A formula ",
+             "writing ", display, " could not say which was meant, so ",
+             "nothing has been registered. Choose another name.",
+             call. = FALSE)
   }
   add <- compat_new_features(stats::setNames("aterm", display),
                              "frmtmb_register_aterm()", known)
@@ -503,10 +503,10 @@ compat_check_rules <- function(df, vocab, expects, arg) {
   chr <- function(z) is.character(z) && !anyNA(z)
   if (!is.data.frame(df) || !all(cols %in% names(df)) ||
       !chr(df$feature_a) || !chr(df$feature_b) || !chr(df$status)) {
-    stop(arg, " must return a data frame carrying feature_a, ",
-         "feature_b, status and note. Build it with ",
-         "compat_rule_builder(): its r() records one rule and its ",
-         "rules() returns the frame. Got ", arg_desc(df), call. = FALSE)
+    frm_stop(arg, " must return a data frame carrying feature_a, ",
+             "feature_b, status and note. Build it with ",
+             "compat_rule_builder(): its r() records one rule and its ",
+             "rules() returns the frame. Got ", arg_desc(df), call. = FALSE)
   }
   if (!nrow(df)) return(invisible(NULL))
   known <- c(vocab, expects)
@@ -516,45 +516,45 @@ compat_check_rules <- function(df, vocab, expects, arg) {
       if (identical(pat, "*")) next
       if (startsWith(pat, "kind:")) {
         if (!substring(pat, 6L) %in% frmtmb_compat_kinds) {
-          stop(arg, ": the rule ", lbl, " matches on '", pat,
-               "', and there is no such kind of feature. The kinds ",
-               "are: ", paste(frmtmb_compat_kinds, collapse = ", "),
-               ".", call. = FALSE)
+          frm_stop(arg, ": the rule ", lbl, " matches on '", pat,
+                   "', and there is no such kind of feature. The kinds ",
+                   "are: ", paste(frmtmb_compat_kinds, collapse = ", "),
+                   ".", call. = FALSE)
         }
       } else if (startsWith(pat, "group:")) {
         if (!substring(pat, 7L) %in% names(frmtmb_compat_groups_lst)) {
-          stop(arg, ": the rule ", lbl, " matches on '", pat,
-               "', and the registry has no such feature group. The ",
-               "groups are: ",
-               paste(names(frmtmb_compat_groups_lst), collapse = ", "),
-               ".", call. = FALSE)
+          frm_stop(arg, ": the rule ", lbl, " matches on '", pat,
+                   "', and the registry has no such feature group. The ",
+                   "groups are: ",
+                   paste(names(frmtmb_compat_groups_lst), collapse = ", "),
+                   ".", call. = FALSE)
         }
       } else if (!pat %in% known) {
-        stop(arg, ": the rule ", lbl, " names '", pat, "', and the ",
-             "registry has no such feature, so the rule would match no ",
-             "pair and be dropped without a word.",
-             compat_near_feature(pat, vocab),
-             " Give the feature a kind in features = if this package ",
-             "supplies it, or name it in expects = if another package ",
-             "does. frm_compat_features() lists the vocabulary.",
-             call. = FALSE)
+        frm_stop(arg, ": the rule ", lbl, " names '", pat, "', and the ",
+                 "registry has no such feature, so the rule would match no ",
+                 "pair and be dropped without a word.",
+                 compat_near_feature(pat, vocab),
+                 " Give the feature a kind in features = if this package ",
+                 "supplies it, or name it in expects = if another package ",
+                 "does. frm_compat_features() lists the vocabulary.",
+                 call. = FALSE)
       }
     }
     if (df$feature_a[[k]] == df$feature_b[[k]] &&
           compat_spec(df$feature_a[[k]]) == 3L) {
-      stop(arg, ": the rule ", lbl, " names one feature on both sides. ",
-           "The resolved table holds unordered pairs of DISTINCT ",
-           "features, so this matches no pair either. State it in the ",
-           "note of a rule against something the feature really meets.",
-           call. = FALSE)
+      frm_stop(arg, ": the rule ", lbl, " names one feature on both sides. ",
+               "The resolved table holds unordered pairs of DISTINCT ",
+               "features, so this matches no pair either. State it in the ",
+               "note of a rule against something the feature really meets.",
+               call. = FALSE)
     }
     if (!df$status[[k]] %in% frmtmb_compat_statuses) {
-      stop(arg, ": the rule ", lbl, " declares the status '",
-           df$status[[k]], "', which is not one of: ",
-           paste(frmtmb_compat_statuses, collapse = ", "),
-           ". The last of them is the point of the registry: an absent ",
-           "guard and a passing guard look the same from outside.",
-           call. = FALSE)
+      frm_stop(arg, ": the rule ", lbl, " declares the status '",
+               df$status[[k]], "', which is not one of: ",
+               paste(frmtmb_compat_statuses, collapse = ", "),
+               ". The last of them is the point of the registry: an absent ",
+               "guard and a passing guard look the same from outside.",
+               call. = FALSE)
     }
   }
   invisible(NULL)
@@ -617,11 +617,11 @@ compat_aterm_rules <- function(accepts, existing = NULL) {
   if (!is.list(accepts) || is.object(accepts) || !length(accepts) ||
         is.null(names(accepts)) || anyNA(names(accepts)) ||
         !all(nzchar(names(accepts)))) {
-    stop(arg, " maps a family's DISPLAY name to what it accepts: a ",
-         "named list whose elements are family objects, character ",
-         "vectors of addition-term names without parentheses, or NULL ",
-         "for a family that declares no allow-list. Got ",
-         arg_desc(accepts), call. = FALSE)
+    frm_stop(arg, " maps a family's DISPLAY name to what it accepts: a ",
+             "named list whose elements are family objects, character ",
+             "vectors of addition-term names without parentheses, or NULL ",
+             "for a family that declares no allow-list. Got ",
+             arg_desc(accepts), call. = FALSE)
   }
   ft <- frmtmb_compat_features_tbl()
   terms <- ft$name[ft$kind == "aterm"]
@@ -635,9 +635,9 @@ compat_aterm_rules <- function(accepts, existing = NULL) {
     # declared nothing to derive from and keeps whatever rows it has.
     if (is.null(ok)) next
     if (!is.character(ok) || anyNA(ok)) {
-      stop(arg, " gave '", fm, "' ", arg_desc(accepts[[i]]),
-           ", and an entry is a family object, a character vector of ",
-           "term names, or NULL", call. = FALSE)
+      frm_stop(arg, " gave '", fm, "' ", arg_desc(accepts[[i]]),
+               ", and an entry is a family object, a character vector of ",
+               "term names, or NULL", call. = FALSE)
     }
     bad <- terms[!(base %in% ok)]
     if (length(bad)) {
@@ -688,10 +688,10 @@ compat_already_refused <- function(cand, existing = NULL) {
   rules <- compat_hand_rules_tbl()[need]
   if (!is.null(existing) && nrow(existing)) {
     if (!all(need %in% names(existing))) {
-      stop("compat_aterm_rules(existing =) takes a rule data frame, the ",
-           "kind compat_rule_builder()'s rules() returns, and this one ",
-           "has no column called ",
-           setdiff(need, names(existing))[[1L]], call. = FALSE)
+      frm_stop("compat_aterm_rules(existing =) takes a rule data frame, the ",
+               "kind compat_rule_builder()'s rules() returns, and this one ",
+               "has no column called ",
+               setdiff(need, names(existing))[[1L]], call. = FALSE)
     }
     rules <- rbind(rules, existing[need])
   }
@@ -2102,17 +2102,17 @@ frm_compat <- function(feature_a = NULL, feature_b = NULL,
   check_features <- function(x, arg) {
     if (is.null(x)) return(NULL)
     if (!is.character(x)) {
-      stop(arg, " must be a character vector of feature names.",
-           call. = FALSE)
+      frm_stop(arg, " must be a character vector of feature names.",
+               call. = FALSE)
     }
     if (!length(x)) {
-      stop(arg, " is empty. Supply at least one feature name, or NULL ",
-           "for every feature.", call. = FALSE)
+      frm_stop(arg, " is empty. Supply at least one feature name, or NULL ",
+               "for every feature.", call. = FALSE)
     }
     bad <- setdiff(x, ft$name)
     if (length(bad)) {
-      stop("Unknown feature: '", bad[1], "'. See frm_compat_features().",
-           call. = FALSE)
+      frm_stop("Unknown feature: '", bad[1], "'. See frm_compat_features().",
+               call. = FALSE)
     }
     x
   }
@@ -2121,10 +2121,10 @@ frm_compat <- function(feature_a = NULL, feature_b = NULL,
   if (!is.null(status)) {
     bad <- setdiff(status, frmtmb_compat_statuses)
     if (length(bad)) {
-      stop("Unknown status: ", paste(bad, collapse = ", "),
-           ". Statuses are: ",
-           paste(frmtmb_compat_statuses, collapse = ", "),
-           call. = FALSE)
+      frm_stop("Unknown status: ", paste(bad, collapse = ", "),
+               ". Statuses are: ",
+               paste(frmtmb_compat_statuses, collapse = ", "),
+               call. = FALSE)
     }
   }
 

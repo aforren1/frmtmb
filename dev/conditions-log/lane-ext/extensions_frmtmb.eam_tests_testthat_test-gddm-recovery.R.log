@@ -1,0 +1,5 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+StanHeaders: 2.32.10 
+BLOCKS 5 PASS 28 FAIL 0 ERROR 0 SKIP 0  extensions/frmtmb.eam/tests/testthat/test-gddm-recovery.R 
+CAUGHT 1 
+DONE
