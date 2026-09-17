@@ -22,6 +22,10 @@ test_that("this installation's tmbstan is a healthy build", {
 })
 
 test_that("a generated model.hpp with the unpatched overload is refused", {
+  # Read before borrowing, not assumed FALSE: on a genuinely broken
+  # installation the state handed back is TRUE, and asserting FALSE
+  # there made this block a second failure beside the canary above.
+  before <- frmtmb.sample:::tmbstan_build_broken()
   with_tmbstan_hpp(broken = TRUE, {
     expect_true(frmtmb.sample:::tmbstan_build_broken())
     expect_error(
@@ -32,7 +36,7 @@ test_that("a generated model.hpp with the unpatched overload is refused", {
       "as_tmbstan()", fixed = TRUE)
   })
   # the state the fixture borrowed is handed back
-  expect_false(frmtmb.sample:::tmbstan_build_broken())
+  expect_identical(frmtmb.sample:::tmbstan_build_broken(), before)
 })
 
 test_that("a patched model.hpp is not refused", {

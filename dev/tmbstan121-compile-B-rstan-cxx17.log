@@ -1,0 +1,2 @@
+ARM B ROUTE rstan rstan 2.32.7 StanHeaders 2.39.1 from C:/Users/adf44/AppData/Local/R/win-library/4.6 
+RESULT B rstan 190s OK mean=1.4696 sd=0.2375 (truth 1.5, 0.25) 

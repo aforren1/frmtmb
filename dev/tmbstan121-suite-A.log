@@ -1,0 +1,27 @@
+== frmtmb.sample 21 files arm A ==
+RESULT test-bracket-access.R pass=1 fail=0 err=0 skip=0 secs=4
+RESULT test-brms-output.R pass=21 fail=0 err=0 skip=0 secs=15
+RESULT test-brms-pins.R pass=334 fail=0 err=0 skip=0 secs=19
+RESULT test-compat-preflight.R pass=81 fail=0 err=0 skip=0 secs=13
+RESULT test-conditional-effects-draws.R pass=61 fail=0 err=0 skip=0 secs=84
+RESULT test-draws-methods.R pass=146 fail=0 err=0 skip=0 secs=20
+RESULT test-draws-spellings.R pass=87 fail=0 err=0 skip=0 secs=39
+RESULT test-evidence-ratio.R pass=33 fail=0 err=0 skip=0 secs=69
+RESULT test-generic-collision.R pass=58 fail=0 err=0 skip=0 secs=50
+RESULT test-loo.R pass=74 fail=0 err=0 skip=1 secs=22
+DETAIL test-loo.R [expectation_skip] loo() and log_lik() agree with brms on the same model :: Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+RESULT test-message-uniqueness.R pass=6 fail=0 err=0 skip=0 secs=4
+RESULT test-parallel-chains.R pass=4 fail=0 err=0 skip=0 secs=25
+RESULT test-prior-route.R pass=9 fail=0 err=0 skip=0 secs=4
+RESULT test-prior-update.R pass=7 fail=0 err=0 skip=0 secs=3
+RESULT test-reparam.R pass=290 fail=0 err=0 skip=0 secs=33
+RESULT test-sample-direct.R pass=138 fail=0 err=0 skip=0 secs=29
+RESULT test-sampling-ported.R pass=206 fail=0 err=0 skip=1 secs=33
+DETAIL test-sampling-ported.R [expectation_skip] ordinal posterior_epred has brms's draws x obs x category shape :: Reason: set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests
+RESULT test-scale.R pass=0 fail=0 err=0 skip=1 secs=3
+DETAIL test-scale.R [expectation_skip] the sample scale row samples and reports its cost :: Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
+RESULT test-simulators.R pass=50 fail=0 err=0 skip=0 secs=5
+RESULT test-stan-control.R pass=54 fail=0 err=0 skip=0 secs=33
+RESULT test-tmbstan-build-guard.R pass=23 fail=0 err=0 skip=0 secs=6
+== frmtmb.sample END ==
+SUITE ran 21 of 21
