@@ -39,6 +39,40 @@ frmtmb.coupling 0.3.2, frmtmb.ode 0.4.1. Every extension floors on core
 **Read the comment at the top of each `dev/release/` script before you
 change it.** Two flags are forbidden there.
 
+## PAUSED 2026-09-17 mid-round (read this first)
+
+The user shut the machine down with agents running. They were stopped
+cleanly; nothing is half-merged. Worktrees and their state:
+
+- `wt-conditions` (2.6e, classed conditions): worker DONE, all suites
+  green, uncommitted. Its reviewer was STOPPED before reporting; rerun
+  the review from scratch (brief: message fidelity on 60+ sites, the
+  runtime subclass rule, census gaps, the 29 unclassed sweep cases,
+  interop code checking `simpleError`). The punch round must also carry
+  the user's decisions: keep warnings/messages classed; turn the
+  user-reachable `stopifnot()`/`match.arg()` refusals into named
+  classed refusals (`set_prior("normal(0)")`, `student_t(3, 0)`,
+  `exponential(-1)`, `gamma(1)`, `lkj()`, six match.arg sites); apply
+  the one-line `getME` S4 fix at `R/interop.R:421`.
+- `wt-brmsport` (2.6b, bin-1 port): reviewer said MERGEABLE. The worker
+  was STOPPED partway through a small last round (R5 emmeans rows back
+  to cannot transfer, target totals 192/112/34/12/144; R1 caveats and a
+  pattern specificity guard; R2 stale check in `brms_port_own()`; R6
+  helper-drift test into the gated tier; cheap R3 hollow forms; the
+  run-gated.ps1 header NIT). Check the worktree state, finish or redo
+  that round, then merge. It adds tests only.
+- `wt-tmbstan121`: findings DONE (`dev/tmbstan121-findings.md`), one test
+  fix, uncommitted. Its DESCRIPTION floor, CI and advice-text changes
+  wait for 2.6e. The user must add `CXX17FLAGS += -std=gnu++17` to their
+  Makevars and reinstall tmbstan from CRAN before the pin can drop.
+- `wt-vectorize`, `wt-vecshape`: deferred by the user, committed on
+  their branches, worktrees removed.
+
+Queue after 2.6e merges: 2.6d and 2.6f together (predict and return
+shapes), the port's defects (eight silent ones ranked in
+`dev/brmsport-findings.md`), `hmm_starts(1)`, `brmshypothesis` class,
+the tmbstan floor and CI.
+
 ## What is next, in order
 
 **Waiting on the user:** whether `frmtmb_control(vectorize = FALSE)`
