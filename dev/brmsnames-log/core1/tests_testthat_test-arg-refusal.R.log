@@ -1,0 +1,13 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-arg-refusal.R 
+BLOCKS  13 
+PASS    107 
+FAIL    1 
+ERROR   1 
+SKIP    0 
+  failing: a brms argument is refused with its reason, not as unknown
+       Expected `is.character(msg)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  VarCorr(fit, probs = 0.5) 
+       Error in `expect_match(msg, cs[[2L]], fixed = TRUE, info = deparse(cs[[1L]]))`: `object` must be a character vector, not a list. 
+DONE

@@ -1,0 +1,209 @@
+== formals ==
+fixef      base: object,flatten,...
+           lane: object,summary,robust,probs,pars,...,flatten
+ranef      base: object,condVar,...
+           lane: object,summary,robust,probs,pars,groups,...,condVar
+coef       base: object,...
+           lane: object,summary,robust,probs,...
+VarCorr    base: x,sigma,...
+           lane: x,sigma,summary,robust,probs,...
+hypothesis base: x,hypothesis,alpha,method,nsim,seed,class,group,vcov,...
+           lane: x,hypothesis,class,group,scope,alpha,robust,seed,method,nsim,vcov,...
+
+== model dist ==
+  draws columns identical: 39 of 39 
+  fixef        identical: TRUE
+  fixef_flat   identical: TRUE
+  ranef        identical: TRUE
+  coef         identical: TRUE
+  vcm          identical: TRUE
+  confint      identical: TRUE
+  draws        identical: TRUE
+  positional fixef(fit, TRUE): base class numeric lane class list  identical: FALSE 
+  positional ranef(fit, TRUE): base condSD attr present: TRUE  lane: FALSE 
+  env: base 9 names, lane 8 names
+     lane b_Intercept                              = base Intercept.(Intercept) | (Intercept).(Intercept)
+     lane b_x                                      = base x.x
+     lane b_sigma_Intercept                        = base sigma_Intercept.sigma_(Intercept) | sigma_(Intercept).sigma_(Intercept)
+     lane b_sigma_z                                = base sigma_z.sigma_z
+     lane sd_g__Intercept                          = base sd_g__Intercept.(Intercept)
+     lane sd_g__x                                  = base sd_g__x.x
+     lane cor_g__Intercept__x                      = base cor_g__Intercept__x
+     lane sd_g__sigma_Intercept                    = base <NO BASE VALUE>
+  draws names by position (base -> lane), first differing 12:
+      Intercept -> b_Intercept 
+      x -> b_x 
+      sigma_Intercept -> b_sigma_Intercept 
+      sigma_z -> b_sigma_z 
+      b[1] -> r_g[1,Intercept] 
+      b[2] -> r_g[1,x] 
+      b[3] -> r_g[2,Intercept] 
+      b[4] -> r_g[2,x] 
+      b[5] -> r_g[3,Intercept] 
+      b[6] -> r_g[3,x] 
+      b[7] -> r_g[4,Intercept] 
+      b[8] -> r_g[4,x] 
+  r_ columns checked against ranef() at draws 1,30,60: 90  mismatched: 0 
+
+== model mv ==
+  draws columns identical: 28 of 30 
+    y1_sigma_Intercept -> sigma_y1: max rel |lane - exp(base)| 0
+    y2_sigma_Intercept -> sigma_y2: max rel |lane - exp(base)| 0
+  fixef        identical: TRUE
+  fixef_flat   identical: TRUE
+  ranef        identical: TRUE
+  coef         identical: TRUE
+  vcm          identical: TRUE
+  confint      identical: TRUE
+  draws        identical: FALSE
+     all.equal:
+     Mean relative difference: 4.577488
+  positional fixef(fit, TRUE): base class numeric lane class list  identical: FALSE 
+  positional ranef(fit, TRUE): base condSD attr present: TRUE  lane: FALSE 
+  env: base 13 names, lane 9 names
+     lane b_y1_Intercept                           = base y1_Intercept.y1_(Intercept) | y1_(Intercept).y1_(Intercept)
+     lane b_y1_x                                   = base y1_x.y1_x
+     lane b_y2_Intercept                           = base y2_Intercept.y2_(Intercept) | y2_(Intercept).y2_(Intercept)
+     lane b_y2_x                                   = base y2_x.y2_x
+     lane sd_g__y1_Intercept                       = base sd_g__y1.muIntercept.y1.mu:(Intercept)
+     lane sd_g__y2_Intercept                       = base sd_g__y2.muIntercept.y2.mu:(Intercept)
+     lane cor_g__y1_Intercept__y2_Intercept        = base cor_g__y1.muIntercept__y2.muIntercept
+     lane sigma_y1                                 = base <NO BASE VALUE>
+     lane sigma_y2                                 = base <NO BASE VALUE>
+     base names whose value no lane name carries: y1_sigma_Intercept.y1_sigma_(Intercept) y2_sigma_Intercept.y2_sigma_(Intercept) y1_sigma_(Intercept).y1_sigma_(Intercept) y2_sigma_(Intercept).y2_sigma_(Intercept) 
+  draws names by position (base -> lane), first differing 12:
+      y1_Intercept -> b_y1_Intercept 
+      y1_x -> b_y1_x 
+      y2_Intercept -> b_y2_Intercept 
+      y2_x -> b_y2_x 
+      y1_sigma_Intercept -> sigma_y1 
+      y2_sigma_Intercept -> sigma_y2 
+      b[1] -> r_g__y1[1,Intercept] 
+      b[2] -> r_g__y2[1,Intercept] 
+      b[3] -> r_g__y1[2,Intercept] 
+      b[4] -> r_g__y2[2,Intercept] 
+      b[5] -> r_g__y1[3,Intercept] 
+      b[6] -> r_g__y2[3,Intercept] 
+  r_ columns checked against ranef() at draws 1,30,60: 0  mismatched: 0 
+
+== model nl ==
+  draws columns identical: 14 of 15 
+    sigma_Intercept -> sigma: max rel |lane - exp(base)| 0
+  fixef        identical: TRUE
+  fixef_flat   identical: TRUE
+  ranef        identical: TRUE
+  coef         identical: TRUE
+  vcm          identical: TRUE
+  confint      identical: TRUE
+  draws        identical: FALSE
+     all.equal:
+     Mean relative difference: 1.047075
+  positional fixef(fit, TRUE): base class numeric lane class list  identical: FALSE 
+  positional ranef(fit, TRUE): base condSD attr present: TRUE  lane: FALSE 
+  env: base 8 names, lane 4 names
+     lane b_a_Intercept                            = base a_Intercept.a_(Intercept) | a_(Intercept).a_(Intercept)
+     lane b_b_Intercept                            = base b_Intercept.b_(Intercept) | b_(Intercept).b_(Intercept)
+     lane sd_g__a_Intercept                        = base sd_g__Intercept.(Intercept)
+     lane sigma                                    = base sigma.sigma_(Intercept)
+     base names whose value no lane name carries: sigma_Intercept.sigma_(Intercept) sigma_(Intercept).sigma_(Intercept) 
+  draws names by position (base -> lane), first differing 12:
+      a_Intercept -> b_a_Intercept 
+      b_Intercept -> b_b_Intercept 
+      sigma_Intercept -> sigma 
+      b[1] -> r_g__a[1,Intercept] 
+      b[2] -> r_g__a[2,Intercept] 
+      b[3] -> r_g__a[3,Intercept] 
+      b[4] -> r_g__a[4,Intercept] 
+      b[5] -> r_g__a[5,Intercept] 
+      b[6] -> r_g__a[6,Intercept] 
+      b[7] -> r_g__a[7,Intercept] 
+      b[8] -> r_g__a[8,Intercept] 
+      b[9] -> r_g__a[9,Intercept] 
+  r_ columns checked against ranef() at draws 1,30,60: 30  mismatched: 0 
+
+== model ord ==
+  draws columns identical: 16 of 16 
+  fixef        identical: TRUE
+  fixef_flat   identical: TRUE
+  ranef        identical: TRUE
+  coef         identical: TRUE
+  vcm          identical: TRUE
+  confint      identical: TRUE
+  draws        identical: TRUE
+  positional fixef(fit, TRUE): base class numeric lane class list  identical: FALSE 
+  positional ranef(fit, TRUE): base condSD attr present: TRUE  lane: FALSE 
+  env: base 2 names, lane 2 names
+     lane b_x                                      = base x.x
+     lane sd_g__Intercept                          = base sd_g__Intercept.(Intercept)
+  draws names by position (base -> lane), first differing 12:
+      x -> b_x 
+      b[1] -> r_g[1,Intercept] 
+      b[2] -> r_g[2,Intercept] 
+      b[3] -> r_g[3,Intercept] 
+      b[4] -> r_g[4,Intercept] 
+      b[5] -> r_g[5,Intercept] 
+      b[6] -> r_g[6,Intercept] 
+      b[7] -> r_g[7,Intercept] 
+      b[8] -> r_g[8,Intercept] 
+      b[9] -> r_g[9,Intercept] 
+      b[10] -> r_g[10,Intercept] 
+  r_ columns checked against ranef() at draws 1,30,60: 30  mismatched: 0 
+
+== model smooth ==
+  draws columns identical: 23 of 24 
+    sigma_Intercept -> sigma: max rel |lane - exp(base)| 0
+  fixef        identical: TRUE
+  fixef_flat   identical: TRUE
+  ranef        identical: TRUE
+  coef         identical: TRUE
+  vcm          identical: TRUE
+  confint      identical: TRUE
+  draws        identical: FALSE
+     all.equal:
+     Mean relative difference: 2.624487
+  positional fixef(fit, TRUE): base class numeric lane class list  identical: FALSE 
+  positional ranef(fit, TRUE): base condSD attr present: TRUE  lane: FALSE 
+  env: base 8 names, lane 5 names
+     lane b_Intercept                              = base Intercept.(Intercept) | (Intercept).(Intercept)
+     lane bs_sx_1                                  = base sx.fx1.s(x).fx1 | s(x).fx1.s(x).fx1
+     lane sd_g__Intercept                          = base sd_g__Intercept.(Intercept)
+     lane sds_sx_1                                 = base <NO BASE VALUE>
+     lane sigma                                    = base sigma.sigma_(Intercept)
+     base names whose value no lane name carries: sigma_Intercept.sigma_(Intercept) sigma_(Intercept).sigma_(Intercept) 
+  draws names by position (base -> lane), first differing 12:
+      Intercept -> b_Intercept 
+      sx.fx1 -> bs_sx_1 
+      sigma_Intercept -> sigma 
+      b[1] -> r_g[1,Intercept] 
+      b[2] -> r_g[2,Intercept] 
+      b[3] -> r_g[3,Intercept] 
+      b[4] -> r_g[4,Intercept] 
+      b[5] -> r_g[5,Intercept] 
+      b[6] -> r_g[6,Intercept] 
+      b[7] -> r_g[7,Intercept] 
+      b[8] -> r_g[8,Intercept] 
+      b[9] -> r_g[9,Intercept] 
+  r_ columns checked against ranef() at draws 1,30,60: 30  mismatched: 0 
+
+== model gp ==
+  draws columns identical: 204 of 205 
+    sigma_Intercept -> sigma: max rel |lane - exp(base)| 0
+  fixef        identical: TRUE
+  fixef_flat   identical: TRUE
+  ranef        identical: TRUE
+  coef         identical: TRUE
+  vcm          identical: TRUE
+  confint      identical: TRUE
+  draws        identical: FALSE
+     all.equal:
+     Mean relative difference: 1
+  positional fixef(fit, TRUE): base class numeric lane class list  identical: FALSE 
+  positional ranef(fit, TRUE): base condSD attr present: TRUE  lane: FALSE 
+  env: base 5 names, lane 2 names
+     lane b_Intercept                              = base Intercept.(Intercept) | (Intercept).(Intercept)
+     lane sigma                                    = base sigma.sigma_(Intercept)
+     base names whose value no lane name carries: sigma_Intercept.sigma_(Intercept) sigma_(Intercept).sigma_(Intercept) 
+  draws names by position (base -> lane), first differing 12:
+      Intercept -> b_Intercept 
+      sigma_Intercept -> sigma 
+  r_ columns checked against ranef() at draws 1,30,60: 0  mismatched: 0 

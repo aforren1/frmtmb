@@ -260,7 +260,7 @@ test_that("ranef condVar and the tidy data-frame forms", {
   expect_named(df, c("grp", "term", "level", "condval", "condsd"))
   expect_equal(nrow(df), 36L)
 
-  vc <- as.data.frame(VarCorr(fit))
+  vc <- as.data.frame(varcorr_matrices(fit))
   expect_named(vc, c("grp", "var1", "var2", "vcov", "sdcor"))
   expect_equal(nrow(vc), 3L)   # two SDs and one correlation
   expect_equal(vc$sdcor[1]^2, vc$vcov[1], tolerance = 1e-10)
@@ -289,7 +289,7 @@ test_that("control profile = TRUE reproduces the plain fit", {
   expect_vector_equal(sqrt(diag(vcov(fp))), sqrt(diag(vcov(f0))),
                       tol = 0.02)
   h <- hypothesis(fp, "x - x2")
-  expect_equal(h$estimate,
+  expect_equal(h$hypothesis$Estimate,
                unname(fixef(fp)$mu["x"] - fixef(fp)$mu["x2"]),
                tolerance = 1e-10)
 
@@ -346,7 +346,7 @@ test_that("frm_simulate simulates de novo and recovers parameters", {
   d2$y <- s[[1L]]
   f <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = d2)
   expect_lt(abs(fixef(f)$mu[["x"]] - 0.5), 0.15)
-  expect_lt(abs(sqrt(VarCorr(f)[[1]][1, 1]) - 0.8), 0.5)
+  expect_lt(abs(sqrt(varcorr_matrices(f)[[1]][1, 1]) - 0.8), 0.5)
 
   # fixed b: identical group structure across draws
   s2 <- frm_simulate(form, dd, nsim = 2, seed = 2,

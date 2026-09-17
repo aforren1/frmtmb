@@ -390,15 +390,15 @@ rl_bform <- bf(choice | reward(pay1, pay2) ~ condition + (1 | p | id),
 
 rl_family <- function() rw_delta(subject = id, trial = trial)
 
-# Parameter values in frm_simulate()'s natural spelling: the same names
-# fixef() and VarCorr() report back.
+# Parameter values in frm_simulate()'s spelling, brms's names: the same
+# strings variables() returns for the fit.
 rl_truth <- list(
-  alpha_Intercept = stats::qlogis(0.35),
-  alpha_conditiontrt = 0.8,
-  beta_Intercept = log(3),
-  sd_id__choice.alphaIntercept = 0.5,
-  sd_id__choice.betaIntercept = 0.4,
-  cor_id__choice.alphaIntercept__choice.betaIntercept = 0.3
+  b_alpha_Intercept = stats::qlogis(0.35),
+  b_alpha_conditiontrt = 0.8,
+  b_beta_Intercept = log(3),
+  sd_id__alpha_Intercept = 0.5,
+  sd_id__beta_Intercept = 0.4,
+  cor_id__alpha_Intercept__beta_Intercept = 0.3
 )
 
 # Draws come from the family's own simulator: frm_simulate() draws a new

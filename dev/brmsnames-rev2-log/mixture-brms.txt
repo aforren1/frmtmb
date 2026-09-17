@@ -1,0 +1,26 @@
+empirical share of component 1 (mean -2): 0.8775 
+Setting order = 'mu' for mixtures of the same family.
+Compiling Stan program...
+Start sampling
+ [1] "b_mu1_Intercept" "b_mu2_Intercept" "b_mu1_x"         "b_mu2_x"        
+ [5] "sigma1"          "sigma2"          "theta1"          "theta2"         
+ [9] "Intercept_mu1"   "Intercept_mu2"   "lprior"          "lp__"           
+        Estimate  Est.Error       Q2.5     Q97.5
+theta1 0.8759405 0.01778465 0.84039305 0.9081826
+theta2 0.1240595 0.01778465 0.09181736 0.1596070
+sigma1 0.8281110 0.03401569 0.76435918 0.9033485
+sigma2 1.1654424 0.14555906 0.91423948 1.4657725
+          Hypothesis  Estimate  Est.Error CI.Lower  CI.Upper Evid.Ratio
+1 (theta1)-(0.5) = 0 0.3759405 0.01778465 0.340393 0.4081826         NA
+  Post.Prob Star
+1        NA    *
+Warning messages:
+1: The largest R-hat is 1.05, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+2: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+3: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 

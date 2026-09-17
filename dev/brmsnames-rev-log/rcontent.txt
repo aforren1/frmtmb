@@ -1,0 +1,18 @@
+﻿== C1 == blocks: 1 + x + z | g 1 | h 
+  block 1 + x + z | g cnms: (Intercept) x z  components: y.mu[(Intercept),x,z] 
+  block 1 | h cnms: (Intercept)  components: y.mu[(Intercept)] 
+  r_ cells checked 117  wrong 0  names not found 0 
+== C3 == blocks: 1 | g + sigma: 1 | g [ID] 
+  block 1 | g + sigma: 1 | g [ID] cnms: y.mu:(Intercept) y.sigma:(Intercept)  components: y.mu[(Intercept)] y.sigma[(Intercept)] 
+  r_ cells checked 72  wrong 0  names not found 0 
+== C4 == blocks: y_a 1 | g + y2 1 | g [ID] 
+  block y_a 1 | g + y2 1 | g [ID] cnms: y_a.mu:(Intercept) y2.mu:(Intercept)  components: y_a.mu[(Intercept)] y2.mu[(Intercept)] 
+  r_ cells checked 72  wrong 0  names not found 0 
+== C5 == blocks: a: 1 | g 
+  block a: 1 | g cnms: (Intercept)  components: yn.a[(Intercept)] 
+  r_ cells checked 36  wrong 0  names not found 0 
+== C7 == blocks: 1 | g 0 + x | g 1 | g:h2 
+  block 1 | g cnms: (Intercept)  components: y.mu[(Intercept)] 
+  block 0 + x | g cnms: x  components: y.mu[x] 
+  block 1 | g:h2 cnms: (Intercept)  components: y.mu[(Intercept)] 
+  r_ cells checked 252  wrong 0  names not found 0 

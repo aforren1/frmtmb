@@ -1,0 +1,4 @@
+﻿mutation refuse : residual Est.Error 0.05243828  delta method 0.05243828 
+test-brms-names.R: blocks 6 PASS 50 FAIL 6 ERROR 0
+  failing: VarCorr() is brms's structure, keyed by the grouping factor 
+  failing: brms's summary slot is refused by name, positionally too 

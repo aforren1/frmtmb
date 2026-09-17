@@ -101,8 +101,15 @@ test_that("simulate() refuses the duplicated column and names it", {
                "bandit2arm_delta", fixed = TRUE)
   # the sentence has to say which column is absent, not only that
   # something is, and it has to say that newdata is not a way round it
+  # WITHOUT implying simulate() reads newdata: it takes none since
+  # frmtmb 0.58.0, and the old wording ("newdata cannot supply them,
+  # because ... newdata is read through that same formula") said it did
   expect_error(simulate(one, nsim = 1L, seed = 3L), "second")
-  expect_error(simulate(one, nsim = 1L, seed = 3L), "newdata")
+  msg <- tryCatch(simulate(one, nsim = 1L, seed = 3L),
+                  error = conditionMessage)
+  expect_match(msg, "simulate() takes no newdata", fixed = TRUE)
+  expect_no_match(msg, "newdata is read through", fixed = TRUE)
+  expect_no_match(msg, "newdata cannot supply", fixed = TRUE)
   # and newdata is not a way round it, for a blunter reason than this
   # test used to assert: simulate() has NO newdata argument and never
   # read one. Until frmtmb 0.58.0 the name was swallowed by `...`, so
@@ -116,8 +123,8 @@ test_that("simulate() refuses the duplicated column and names it", {
   expect_error(
     frm_simulate(bf(choice | reward(rec, rec) ~ 1, tau ~ 1), d,
                  family = bandit2arm_delta(subject = id, trial = trial),
-                 newparams = list(alpha_Intercept = 0,
-                                  tau_Intercept = 0), nsim = 1L,
+                 newparams = list(b_alpha_Intercept = 0,
+                                  b_tau_Intercept = 0), nsim = 1L,
                  seed = 3L),
     "reward\\(\\)")
 })

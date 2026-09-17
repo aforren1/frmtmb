@@ -57,9 +57,10 @@ two columns identical on every trial the drawn choices carry no
 learning signal at all, so \code{simulate()}, \code{frm_simulate()} and
 \code{\link[=frm_task_simulate]{frm_task_simulate()}} refuse that data by name rather than returning
 a draw from a task nobody ran. Some rows equal is not the signature;
-every row is. \code{newdata} is not a way round it, because the formula
-names one column twice and \code{newdata} is read through that same
-formula; refit with a column per arm.
+every row is. There is no way round it through the data:
+\code{simulate()} takes no \code{newdata}, and any other data set drawn through
+this model is read by a formula that names one column twice. Refit
+with a column per arm.
 
 This is true of every family in the package, not only this one. All
 eight read the CHOSEN option's entry alone, which is measured rather

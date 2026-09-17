@@ -73,7 +73,7 @@ test_that("icar matches a hand-rolled constrained-ICAR ML", {
   # the conditional mode lands far inside that
   expect_lt(abs(sum(ranef(fit)[[1]])), 1e-3)
   # and the fitted sdcar is the field scale, not a variance
-  expect_equal(unname(VarCorr(fit)[[1]][1, 1]),
+  expect_equal(unname(varcorr_matrices(fit)[[1]][1, 1]),
                exp(2 * fit$estimates$theta[1]))
 })
 
@@ -130,7 +130,7 @@ test_that("esicar matches a hand-rolled HARD-constrained ICAR ML", {
                       hard$par, tol = 1e-5)
   # EXACTLY zero, not merely small: icar's residual on this fit is 1e-9
   expect_lt(abs(sum(ranef(fit)[[1]])), 1e-12)
-  expect_equal(unname(VarCorr(fit)[[1]][1, 1]),
+  expect_equal(unname(varcorr_matrices(fit)[[1]][1, 1]),
                exp(2 * fit$estimates$theta[1]))
 })
 
@@ -319,7 +319,7 @@ test_that("the car post-fit surface answers", {
   re <- ranef(fit)[[1]]
   expect_equal(dim(re), c(s$n, 1L))
   expect_equal(rownames(re), rownames(s$W))
-  expect_equal(colnames(VarCorr(fit)[[1]]), "sd(car)")
+  expect_equal(colnames(varcorr_matrices(fit)[[1]]), "sd(car)")
   cv <- confint_varcorr(fit)
   expect_true(all(cv$lwr < cv$estimate & cv$estimate < cv$upr))
   # in-sample and newdata prediction see the same design
@@ -354,7 +354,7 @@ test_that("the esicar post-fit surface reads the FULL field", {
   expect_equal(dim(re), c(s$n, 1L))
   expect_equal(rownames(re), rownames(s$W))
   expect_lt(abs(sum(re)), 1e-12)
-  expect_equal(colnames(VarCorr(fit)[[1]]), "sd(car)")
+  expect_equal(colnames(varcorr_matrices(fit)[[1]]), "sd(car)")
   # in-sample and newdata prediction see the same design, standard
   # errors included
   rows <- c(1L, 10L, nrow(s$d))
@@ -546,7 +546,7 @@ test_that("con_sd leaves the esicar fit AND its standard errors alone", {
   # what con_sd does not touch, and never did
   expect_lt(abs(as.numeric(logLik(f3)) - as.numeric(logLik(f4))), 1e-8)
   expect_vector_equal(f3$estimates$theta, f4$estimates$theta, tol = 1e-8)
-  expect_equal(unname(VarCorr(f3)[[1]][1, 1]),
+  expect_equal(unname(varcorr_matrices(f3)[[1]][1, 1]),
                exp(2 * f3$estimates$theta[1]))
   # what it no longer touches
   se2 <- predict(f2, se.fit = TRUE)$se.fit
@@ -769,7 +769,7 @@ test_that("spde matches a dense direct ML on a 1-D chain", {
   expect_equal(dim(ranef(fit)[[1]]), c(nn, 1L))
   expect_equal(sort(confint_varcorr(fit)$term),
                c("range(spde)", "sd(spde)"))
-  expect_equal(colnames(VarCorr(fit)[[1]]), "sd(spde)")
+  expect_equal(colnames(varcorr_matrices(fit)[[1]]), "sd(spde)")
   rows <- c(2L, 40L, 100L)
   expect_vector_equal(predict(fit, newdata = d[rows, ], se.fit = TRUE)$fit,
                       predict(fit, se.fit = TRUE)$fit[rows], tol = 1e-10)

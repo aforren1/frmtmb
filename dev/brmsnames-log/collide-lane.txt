@@ -1,0 +1,35 @@
+arm lane 
+
+== K1_cov_sigma_Intercept ==
+fixef: list(mu = c("(Intercept)" = 1.3168, sigma_Intercept = -1.4435 ), sigma = c("(Intercept)" = 1.0733)) 
+variables: b_Intercept b_sigma_Intercept sd_g__Intercept sigma 
+draws labels duplicated:  
+brms_coef_names duplicated:  
+hypothesis('sigma_Intercept = 0') estimate:-1.44351
+
+== K2_mu_sigma_z_and_sigma_z ==
+fixef: list(mu = c("(Intercept)" = 1.2079, sigma_z = 2.1032), sigma = c("(Intercept)" = 0.9626,  z = 0.0668)) 
+variables: b_Intercept b_sigma_z b_sigma_Intercept b_sigma_z__1 sd_g__Intercept 
+draws labels duplicated:  
+brms_coef_names duplicated:  
+hypothesis('sigma_z = 0') estimate:2.10324
+
+== K3_group_g_h2_vs_gh2 ==
+fixef: list(mu = c("(Intercept)" = 1.2438), sigma = c("(Intercept)" = 1.036)) 
+variables: b_Intercept sd_g:h2__Intercept sd_gh2__Intercept sigma 
+draws labels duplicated:  
+brms_coef_names duplicated:  
+sqrt block variances: 1 | g:h2 2.26022 1 | gh2 0.000319615 
+env sd_gh2__Intercept = 0.000319615 
+
+== K4_mv_resp_underscore ==
+fixef: list(y_mu = c("(Intercept)" = 1.2467, x_z = 0.7899), y_sigma = c("(Intercept)" = 1.2602),      y_x_mu = c("(Intercept)" = -0.0679, z = 0.4634), y_x_sigma = c("(Intercept)" = -0.0174)) 
+variables: b_y_Intercept b_y_x_z b_yx_Intercept b_yx_z sigma_y sigma_yx 
+draws labels duplicated:  
+brms_coef_names duplicated:  
+hypothesis('y_x_z = 0') estimate:0.789905
+
+== K5_cov_Intercept ==
+frm ERROR: Internal renaming led to duplicated names. Consider renaming your variables to have different suffixes.
+Occured for: '(Intercept)', 'Intercept' 
+DONE

@@ -345,7 +345,7 @@ brms_group_pars <- function(fit, sdat, rtab, i) {
     stop("group ", i, " declares ", n_lev, " levels in standata but ",
          length(info$labels), " in the brms ranef table")
   }
-  blocks <- unclass(VarCorr(fit))
+  blocks <- unclass(varcorr_matrices(fit))
   keep <- vapply(names(blocks), function(nm) {
     identical(brms_block_group(nm), info$group)
   }, logical(1))

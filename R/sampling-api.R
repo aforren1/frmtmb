@@ -101,6 +101,28 @@
 #' correlated residual - which is what makes `newdata` and `re_formula`
 #' refusable rather than merely unimplemented on a predictive method.
 #'
+#' @section brms's names and brms's VarCorr:
+#' `brms_coef_names(fit)` gives brms's name for each estimated
+#' coefficient, in `estimated_coef_names()` order (`b_Intercept`,
+#' `b_sigma_Intercept`, or `sigma` for a sigma with no formula); `brms_re_rnames(fit, bk)` gives brms's
+#' coefficient names for one random-effect block (`Intercept`,
+#' `sigma_Intercept`), and `brms_block_has_r(bk)` says whether the
+#' block's sampled values are brms's `r_` coefficients.
+#' `brms_coef_table(fit)` adds, per coefficient, whether brms reports it
+#' as the distributional parameter itself on the natural scale (`sigma`)
+#' with its `linkinv` and `linkfun`; `brms_stan_name()` is brms's
+#' response spelling (`y_a` is `ya`), `brms_group_name(bk)` its group
+#' spelling, `brms_levels(bk, for_r)` its level spelling, and
+#' `brms_re_parts(fit, bk)` a block's prefixes and renamed coefficients;
+#' `brms_par_labels(fit, include_random)` labels a
+#' sampled parameter vector in template order, in brms's spelling where
+#' brms has a parameter with the same content. `varcorr_matrices(fit,
+#' theta)` is the covariance matrix of every block at `theta`,
+#' `varcorr_layout(fit)` is brms's `VarCorr()` grouping for the fit,
+#' and `varcorr_values(fit, vals, comp, layout)` gives the standard
+#' deviations, correlations and covariances of that layout at one
+#' parameter vector in the `hyp_vals_only()` layout.
+#'
 #' @section Parameter labeling and fitted quantities:
 #' `par_name_bare()` is the draws-side spelling of a parameter name,
 #' with parentheses dropped (`Intercept`, not `(Intercept)`);
@@ -121,22 +143,19 @@
 #' parallel component vector (which template component each value came
 #' from); `hyp_env_vals(fit, vals, comp)` takes exactly that pair and
 #' builds the evaluation environment, and `hyp_eval()` evaluates one
-#' expression in it - so a caller with many parameter vectors parses
+#' expression in it (`hyp_eval_in(ex, values)` over any named list keyed
+#' by parameter name, and `hyp_expr_vars(ex)` the names it reads) - so a
+#' caller with many parameter vectors parses
 #' once, then per vector swaps the estimates in and calls
 #' `hyp_vals_only()` and `hyp_env_vals()` again.
 #' `hyp_tail_p()` is the tail probability of a directional claim.
-#'
-#' `hyp_shadow_arm()` and `hyp_shadow_disarm(old)` bracket ONE
-#' user-level `hypothesis()` call. A covariate named like a reserved
-#' quantity, `sigma` or `sd_<group>__<term>`, shadows it, and the note
-#' saying which one was read is detected inside `hyp_env_vals()`, which
-#' runs many times per call; it is emitted only while armed, and once
-#' per name. Every `hypothesis()` METHOD arms it on entry and restores
-#' the returned state on exit:
-#' `old <- hyp_shadow_arm(); on.exit(hyp_shadow_disarm(old), add = TRUE)`.
-#' The generic cannot do it, because the exported `hypothesis` is
-#' brms's generic whenever brms is loaded, and a method that does not
-#' arm loses the note in every session.
+#' `hyp_class_prefix(class, group)` is brms's name prefix for its
+#' `class` and `group` arguments. `hyp_labels()` writes brms's
+#' `Hypothesis` label for each string, `hyp_samples_frame(m, k)` lays a
+#' draws matrix out as brms's `samples` frame (`H1`, `H2`, ...), and
+#' `hyp_brms_result()` assembles the `brmshypothesis`-shaped list every
+#' `hypothesis()` method returns, so no method builds that shape on its
+#' own.
 #'
 #' @section The conditional-effects engine:
 #' `ce_grids_build()` builds the prediction grids, effect list,
@@ -258,6 +277,7 @@
 #' @aliases row_lpdf
 #' @aliases with_cs_offsets
 #' @aliases us_chol_cor
+#' @aliases expand_b
 #' @aliases aterms_for_newdata
 #' @aliases has_trunc
 #' @aliases as_priorlist
@@ -292,8 +312,24 @@
 #' @aliases hyp_env_vals
 #' @aliases hyp_eval
 #' @aliases hyp_tail_p
-#' @aliases hyp_shadow_arm
-#' @aliases hyp_shadow_disarm
+#' @aliases hyp_class_prefix
+#' @aliases hyp_labels
+#' @aliases hyp_samples_frame
+#' @aliases hyp_brms_result
+#' @aliases brms_coef_names
+#' @aliases brms_re_rnames
+#' @aliases brms_block_has_r
+#' @aliases brms_coef_table
+#' @aliases brms_stan_name
+#' @aliases brms_group_name
+#' @aliases brms_levels
+#' @aliases brms_re_parts
+#' @aliases hyp_eval_in
+#' @aliases hyp_expr_vars
+#' @aliases brms_par_labels
+#' @aliases varcorr_matrices
+#' @aliases varcorr_layout
+#' @aliases varcorr_values
 #' @aliases ce_grids_build
 #' @aliases ce_boot_one
 #' @aliases ce_frame
@@ -314,7 +350,7 @@
 #' @aliases frm_install_generics
 #' @aliases frm_check_dots
 #' @rawNamespace export(build_objective, row_lpdf, with_cs_offsets,
-#'   us_chol_cor, aterms_for_newdata, has_trunc, as_priorlist,
+#'   us_chol_cor, expand_b, aterms_for_newdata, has_trunc, as_priorlist,
 #'   check_prior_slots, resolve_prior_input, neg_log_prior_fn,
 #'   resolve_bounds, spec_target,
 #'   spec_spelling,
@@ -324,7 +360,12 @@
 #'   sim_draw, sim_is_structured, par_name_bare, outer_par_names,
 #'   estimated_coef_names, log_sd_theta_index, sdr_of, require_fitted,
 #'   hyp_parse_all, hyp_vals_only, hyp_env_vals, hyp_eval, hyp_tail_p,
-#'   hyp_shadow_arm, hyp_shadow_disarm, ce_grids_build, ce_boot_one,
+#'   hyp_class_prefix, hyp_labels,
+#'   hyp_samples_frame, hyp_brms_result, brms_coef_names, brms_re_rnames,
+#'   brms_block_has_r, brms_coef_table, brms_stan_name, brms_group_name,
+#'   brms_levels, brms_re_parts, hyp_eval_in, hyp_expr_vars,
+#'   brms_par_labels, varcorr_matrices, varcorr_layout, varcorr_values,
+#'   ce_grids_build, ce_boot_one,
 #'   ce_frame, ce_finalize,
 #'   ce_cats_display, ce_display_kind, ce_pred_dpar, ce_group_vars,
 #'   ce_new_level_spec, ce_boot_grids, ce_draw_new_levels,

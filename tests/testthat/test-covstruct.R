@@ -5,7 +5,7 @@ test_that("ar1 matches glmmTMB", {
   ref <- glmmTMB::glmmTMB(y ~ 1 + ar1(tim + 0 | g), data = dd,
                           REML = FALSE)
   expect_loglik_equal(fit, ref, tol = 1e-6)
-  V <- VarCorr(fit)[[1]]
+  V <- varcorr_matrices(fit)[[1]]
   Vg <- glmmTMB::VarCorr(ref)$cond$g
   expect_lt(abs(sqrt(V[1, 1]) - attr(Vg, "stddev")[1]), 1e-3)
   # estimated autocorrelation

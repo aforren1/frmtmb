@@ -1,0 +1,40 @@
+mutant: stanname 
+test-brms-pins.R       PASS  330 FAIL   4 ERROR  0
+    failing: multivariate VarCorr() and bayes_R2() have a row per response 
+      msg: Expected `rownames(vc$residual__$sd)` to be identical to `c("ya", "y2")`. Differences: `actual`:   "y_a" "y2" `expected`: "ya"  "y2"  
+      msg: Expected `all(c("sigma_ya", "sigma_y2") %in% variables(ds))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+      msg: Expected `rownames(r2)` to be identical to `c("R2ya", "R2y2")`. Differences: `actual`:   "R2y_a" "R2y2" `expected`: "R2ya"  "R2y2"  
+      msg: Expected `bayes_R2(ds, resp = "y_a")` to throw a error. 
+test-brms-output.R     PASS   21 FAIL   0 ERROR  0
+test-brms-names.R      PASS  130 FAIL   4 ERROR  1
+    failing: names pass through brms's renaming 
+      msg: Expected `variables(fm)` to be identical to `c(...)`. Differences:     actual             | expected             [1] "b_y_a_Intercept"  - "b_ya_Intercept" [1] [2] "b_y_a_x"          - "b_ya_x"         
+      msg: Expected `rownames(vc$residual__$sd)` to be identical to `c("ya", "yb")`. Differences: `actual`:   "y_a" "y.b" `expected`: "ya"  "yb"   
+      msg: Expected `dimnames(vc$residual__$cor)[[1L]]` to be identical to `c("ya", "yb")`. Differences: `actual`:   "y_a" "y.b" `expected`: "ya"  "yb"   
+      msg: <subscriptOutOfBoundsError/error/condition> Error in `vc$residual__$cor["yb", "Estimate", "ya"]`: subscript out of bounds 
+    failing: brms's names: r_ repeats are suffixed, merged levels refused 
+      msg: Expected `frm(...)` to throw a error. 
+converged at iteration 19 with logLik: -746.6946 
+converged at iteration 25 with logLik: -746.6946 
+converged at iteration 21 with logLik: -746.6946 
+converged at iteration 29 with logLik: -746.6946 
+converged at iteration 28 with logLik: -701.2889 
+converged at iteration 32 with logLik: -701.2889 
+converged at iteration 25 with logLik: -701.2889 
+converged at iteration 29 with logLik: -701.2889 
+converged at iteration 27 with logLik: -701.2889 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 13 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 453 with logLik: -685.3785 
+converged at iteration 408 with logLik: -685.3785 
+converged at iteration 404 with logLik: -685.3785 
+converged at iteration 430 with logLik: -685.3785 
+converged at iteration 400 with logLik: -685.3785 
+converged at iteration 54 with logLik: -3093.27 
+converged at iteration 2054 with logLik: -3433.42 
+converged at iteration 67 with logLik: -3093.27 
+converged at iteration 1803 with logLik: -3433.42 
+test-hmm.R             PASS  118 FAIL   0 ERROR  0
+DONE

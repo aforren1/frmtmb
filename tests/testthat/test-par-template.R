@@ -14,7 +14,7 @@ pt_data <- function() {
   # the fixture seed restarts the same random stream that made the
   # covariates, and the residuals come out equal to x.
   dd$y <- frm_simulate(bf(y ~ x) + gaussian(), dd,
-                       newparams = list(Intercept = 1, x = 2, sigma = 1),
+                       newparams = list(b_Intercept = 1, b_x = 2, sigma = 1),
                        nsim = 1, seed = 1011)[[1]]
   dd
 }

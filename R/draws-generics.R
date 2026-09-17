@@ -14,24 +14,36 @@
 
 #' Summaries and intervals of draws
 #'
-#' `posterior_summary()` reduces a matrix of draws to estimate, error
-#' and quantiles in brms's column layout (`Estimate`, `Est.Error`,
-#' `Q2.5`, `Q97.5`). Variables are columns and draws are rows, which is
-#' the layout every draws object in this ecosystem converts to.
+#' `posterior_summary()` reduces draws to estimate, error and quantiles
+#' in brms's column layout (`Estimate`, `Est.Error`, `Q2.5`, `Q97.5`).
+#' A matrix has variables in columns and draws in rows and gives one row
+#' per variable. A three-dimensional array has draws in its first
+#' margin, as `ranef(summary = FALSE)` returns them, and gives a
+#' `variables x statistics x third-margin` array, as in brms.
+#'
+#' The computation is brms's `posterior_summary.default()`, statistic
+#' for statistic: `mean` and `sd`, or `median` and `mad` when `robust`,
+#' then `quantile`, each with `na.rm = TRUE`.
 #'
 #' The method for posterior draws of a fitted model is in the
 #' `frmtmb.sample` package, along with the sampler that produces them.
+#' A maximum-likelihood fit has no draws, and its method says so.
 #'
-#' @param x A matrix of draws, variables in columns.
+#' @param x A matrix or three-dimensional array of draws.
 #' @param probs Quantiles to report.
 #' @param robust If `TRUE`, median and MAD instead of mean and SD.
-#' @param ... Passed to methods.
-#' @return A matrix with one row per variable.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
+#' @return A matrix with one row per variable, or an array, as above.
 #' @examples
 #' # any matrix of draws: rows are draws, columns are variables
 #' m <- cbind(a = rnorm(500), b = rnorm(500, 2))
 #' posterior_summary(m)
 #' posterior_summary(m, robust = TRUE)
+#'
+#' # a maximum-likelihood fit has no draws to summarize
+#' dd <- data.frame(y = rnorm(40), x = rnorm(40))
+#' try(posterior_summary(frm(bf(y ~ x) + gaussian(), data = dd)))
 #' @export
 posterior_summary <- function(x, ...) UseMethod("posterior_summary")
 
@@ -40,14 +52,72 @@ posterior_summary <- function(x, ...) UseMethod("posterior_summary")
 posterior_summary.default <- function(x, probs = c(0.025, 0.975),
                                       robust = FALSE, ...) {
   frm_check_dots(...)
-  m <- as.matrix(x)
-  ctr <- if (robust) stats::median else mean
-  spr <- if (robust) stats::mad else stats::sd
-  out <- cbind(apply(m, 2L, ctr), apply(m, 2L, spr),
-               t(apply(m, 2L, stats::quantile, probs = probs)))
+  if (!length(x)) {
+    stop("No posterior draws supplied.", call. = FALSE)
+  }
+  coefs <- if (robust) c("median", "mad", "quantile") else
+    c("mean", "sd", "quantile")
+  one <- function(d) {
+    do.call(cbind, lapply(coefs, draws_estimate, draws = d,
+                          probs = probs, na.rm = TRUE))
+  }
+  x <- if (length(dim(x)) <= 2L) as.matrix(x) else as.array(x)
+  if (length(dim(x)) == 2L) {
+    out <- one(x)
+    rownames(out) <- colnames(x)
+  } else if (length(dim(x)) == 3L) {
+    dnx <- dimnames(x)
+    per <- lapply(seq_len(dim(x)[3L]), function(k) {
+      one(array(x[, , k], dim = dim(x)[-3L]))
+    })
+    out <- array(unlist(per),
+                 dim = c(nrow(per[[1L]]), ncol(per[[1L]]), length(per)))
+    dimnames(out) <- list(dnx[[2L]], NULL, dnx[[3L]])
+  } else {
+    stop("'x' must be of dimension 2 or 3.", call. = FALSE)
+  }
   colnames(out) <- c("Estimate", "Est.Error", paste0("Q", probs * 100))
-  rownames(out) <- colnames(m)
   out
+}
+
+#' One statistic over the columns of a draws matrix, the way
+#' `brms:::get_estimate()` applies it: extra arguments reach the
+#' statistic only if it can take them, and a statistic returning more
+#' than one number per column (a quantile) is laid out one row per
+#' column.
+#'
+#' @noRd
+draws_estimate <- function(coef, draws, ...) {
+  dots <- list(...)
+  fun <- match.fun(coef)
+  if (!"..." %in% names(formals(fun))) {
+    dots <- dots[names(dots) %in% names(formals(fun))]
+  }
+  x <- do.call(apply, c(list(X = draws, MARGIN = 2L, FUN = fun), dots))
+  if (is.null(dim(x))) {
+    x <- matrix(x, dimnames = list(NULL, coef))
+  } else if (coef == "quantile") {
+    x <- aperm(x, length(dim(x)):1)
+  }
+  x
+}
+
+# Without these two methods a fit reached posterior_summary.default,
+# which died inside as.matrix() with "is.atomic(x) is not TRUE". The
+# brms registration matters as much as the local one: with brms loaded,
+# the exported generic is brms's (R/generic-owners.R).
+#' @rdname posterior_summary
+#' @exportS3Method brms::posterior_summary
+#' @export
+posterior_summary.frmtmb_fit <- function(x, ...) {
+  fit_no_draws("posterior_summary")
+}
+
+#' @rdname posterior_summary
+#' @exportS3Method brms::posterior_summary
+#' @export
+posterior_summary.frmtmb_multiple <- function(x, ...) {
+  multiple_no_draws("posterior_summary")
 }
 
 #' Convert to a posterior draws object

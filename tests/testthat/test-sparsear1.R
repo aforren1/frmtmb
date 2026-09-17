@@ -192,7 +192,7 @@ test_that("a long ar1 series now tapes and fits", {
   expect_true(is.finite(logLik(fit)))
   # a generous ceiling: the point is that it is seconds, not minutes
   expect_lt(el, 120)
-  V <- VarCorr(fit)[[1]]
+  V <- varcorr_matrices(fit)[[1]]
   expect_lt(abs(V[1, 2] / V[1, 1] - rho), 0.15)
   expect_lt(abs(sqrt(V[1, 1]) - sd_u), 0.4)
 })

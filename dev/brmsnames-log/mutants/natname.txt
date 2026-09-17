@@ -1,0 +1,64 @@
+mutant: natname 
+test-brms-pins.R       PASS  151 FAIL   4 ERROR  2
+    failing: r_, b_ and sigma columns hold what the model reads there 
+      msg: <subscriptOutOfBoundsError/error/condition> Error in `ds$draws[i, "sigma"]`: subscript out of bounds 
+    failing: multivariate VarCorr() and bayes_R2() have a row per response 
+      msg: Expected `vc` to have names `c("g", "residual__")`. Differences: `actual`:   "g"              `expected`: "g" "residual__"  
+      msg: Expected `rownames(vc$residual__$sd)` to be identical to `c("ya", "y2")`. Differences: `actual` is NULL `expected` is a character vector ('ya', 'y2')  
+      msg: Expected `all(c("sigma_ya", "sigma_y2") %in% variables(ds))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+    failing: a mixture's weights are brms's theta1 and theta2 on draws 
+      msg: Expected `all(c("theta1", "theta2") %in% cn)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+      msg: <subscriptOutOfBoundsError/error/condition> Error in `ds$draws[, "theta1"]`: subscript out of bounds 
+test-brms-output.R     PASS   17 FAIL   2 ERROR  1
+    failing: the accessors and summaries are brms's, identical() 
+      msg: Expected `all(...)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+      msg: Expected `"b_sigma_Intercept" %in% variables(ds)` to be FALSE. Differences: `actual`:   TRUE  `expected`: FALSE  
+    failing: ranef(), coef() and VarCorr() are brms's, draws and summaries 
+      msg: Error: The following variables are missing in the draws object: {'sigma'} 
+test-brms-names.R      PASS  102 FAIL   8 ERROR  5
+    failing: variables() uses brms's names, b_ on every coefficient 
+      msg: Expected `variables(fit)` to be identical to `c(...)`. Differences:     actual                | expected                  [1] "b_Intercept"         | "b_Intercept"         [1] [2] "b_x"                
+      msg: Error: Some parameters cannot be found in the model:  'sigma' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs cla 
+    failing: VarCorr() is brms's structure, keyed by the grouping factor 
+      msg: Expected `vc` to have names `c("g", "residual__")`. Differences: `actual`:   "g"              `expected`: "g" "residual__"  
+      msg: Expected `length(got)` to equal `length(ref)`. Differences:   `actual`: 0 `expected`: 1  
+    failing: VarCorr() Est.Error is the delta method, checked independently 
+      msg: Expected `length(got)` to equal `length(ref)`. Differences:   `actual`: 0 `expected`: 1  
+    failing: names pass through brms's renaming 
+      msg: Expected `VarCorr(fit)` to have names `c("gs", "g:h", "residual__")`. Differences: `actual`:   "gs" "g:h"              `expected`: "gs" "g:h" "residual__"  
+      msg: Expected `variables(fm)` to be identical to `c(...)`. Differences:     actual                 | expected             [1] "b_ya_Intercept"       | "b_ya_Intercept" [1] [2] "b_ya_x"               | "b_y 
+      msg: Error: The model does not contain covariance matrices. 
+    failing: frm_simulate(newparams =) takes brms's names only 
+      msg: Error: Unknown newparams name(s): sigma. Available: b_Intercept, b_x, b_sigma_Intercept, sd_g__Intercept 
+    failing: a mixture's theta1, theta2 are brms's simplex, not log ratios 
+      msg: Expected `all(c("theta1", "theta2") %in% v)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+      msg: Expected `any(c("b_theta1_Intercept", "theta1_Intercept") %in% v)` to be FALSE. Differences: `actual`:   TRUE  `expected`: FALSE  
+      msg: Error: Some parameters cannot be found in the model:  'theta1' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs cl 
+    failing: frm_simulate(newparams =) takes brms's mixture simplex 
+      msg: Error: Unknown newparams name(s): sigma1, sigma2, theta1, theta2. Available: b_mu1_Intercept, b_mu1_x, b_mu2_Intercept, b_mu2_x, b_sigma1_Intercept, b_sigma2_Intercept, b_theta1_Intercept 
+converged at iteration 19 with logLik: -746.6946 
+converged at iteration 25 with logLik: -746.6946 
+converged at iteration 21 with logLik: -746.6946 
+converged at iteration 29 with logLik: -746.6946 
+converged at iteration 28 with logLik: -701.2889 
+converged at iteration 32 with logLik: -701.2889 
+converged at iteration 25 with logLik: -701.2889 
+converged at iteration 29 with logLik: -701.2889 
+converged at iteration 27 with logLik: -701.2889 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 13 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 453 with logLik: -685.3785 
+converged at iteration 408 with logLik: -685.3785 
+converged at iteration 404 with logLik: -685.3785 
+converged at iteration 430 with logLik: -685.3785 
+converged at iteration 400 with logLik: -685.3785 
+converged at iteration 54 with logLik: -3093.27 
+converged at iteration 2054 with logLik: -3433.42 
+converged at iteration 67 with logLik: -3093.27 
+converged at iteration 1803 with logLik: -3433.42 
+test-hmm.R             PASS  117 FAIL   1 ERROR  0
+    failing: brms's names keep a transition logit a coefficient 
+      msg: Expected `all(...)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+DONE

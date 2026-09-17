@@ -162,8 +162,8 @@ test_that("confint, hypothesis and summary accept the robust matrix", {
 
   hy_m <- hypothesis(fit, "x = 0")
   hy_r <- hypothesis(fit, "x = 0", vcov = V)
-  expect_equal(hy_m$estimate, hy_r$estimate)
-  expect_gt(hy_r$se, hy_m$se)
+  expect_equal(hy_m$hypothesis$Estimate, hy_r$hypothesis$Estimate)
+  expect_gt(hy_r$hypothesis$Est.Error, hy_m$hypothesis$Est.Error)
 
   sm <- summary(fit, vcov = V)
   expect_true("t value" %in% colnames(sm$coefficients$mu))

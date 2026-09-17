@@ -374,7 +374,7 @@ test_that("with no owner usable, it loads and its generics are bare", {
     "dd$y <- rnorm(40)",
     "uf <- frm(bf(y ~ x), family = gaussian(), data = dd,",
     "          dry_run = 'objective')",
-    "lab <- c(frmtmb.sample:::all_par_labels(uf), 'lp__')",
+    "lab <- c(frmtmb::brms_par_labels(uf), 'lp__')",
     "fd <- structure(list(stanfit = NULL, fit = uf,",
     "  draws = matrix(0, 4, length(lab), dimnames = list(NULL, lab))),",
     "  class = 'frmtmb_draws')",

@@ -224,7 +224,7 @@ log-likelihood units and cuts the per-subject error from 11.90 ms to
 7.67 ms. But a between-subject standard deviation is the wrong
 statistic to read that off. Compare the per-subject non-decision
 times from \code{\link[=ndt_time]{ndt_time()}} against what you believe, and compare
-log-likelihoods, rather than reading \code{VarCorr()}'s \code{ndt} row as
+log-likelihoods, rather than reading \code{VarCorr()}'s \code{ndt} entry as
 evidence that the component was estimated.
 
 The bound's own quality is a function of the group's trial count.

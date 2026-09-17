@@ -5,25 +5,41 @@
 \alias{ranef}
 \title{Extract random-effect modes}
 \usage{
-\method{ranef}{frmtmb_fit}(object, condVar = FALSE, ...)
+\method{ranef}{frmtmb_fit}(
+  object,
+  summary = TRUE,
+  robust = FALSE,
+  probs = c(0.025, 0.975),
+  pars = NULL,
+  groups = NULL,
+  ...,
+  condVar = FALSE
+)
 }
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
 
-\item{condVar}{If \code{TRUE}, attach the conditional SDs of the modes
-(from the Laplace posterior) as a \code{"condSD"} attribute on each
-matrix, in matching layout.}
+\item{summary, robust, probs, pars, groups}{brms's arguments, in brms's
+positions so that a positional brms call asks the same question.
+brms answers \code{summary = FALSE} with the posterior draws and
+\code{robust = TRUE} with their median and MAD, and a maximum-likelihood
+fit has no draws, so both are refused by name with the reason. The
+default of each is accepted and changes nothing.}
 
 \item{...}{Refused: an argument the method does not have is an
 error naming it, rather than silently changing nothing.}
+
+\item{condVar}{If \code{TRUE}, attach the conditional SDs of the modes
+(from the Laplace posterior) as a \code{"condSD"} attribute on each
+matrix, in matching layout.}
 }
 \value{
 A named list of levels-by-coefficients matrices, one per
 random-effect term, KEYED BY THE GROUPING FACTOR as brms and lme4
 key it (so \code{ranef(fit)$g} and \code{coef(fit)$g} name the same group).
 Each matrix carries its block label in a \code{"term"} attribute, which
-is also the key \code{\link[=VarCorr]{VarCorr()}} uses and the \code{grp} column of
-\code{as.data.frame()}. That long form (with a \code{condsd} column when
+is also the \code{grp} column of \code{as.data.frame()}. That long form
+(with a \code{condsd} column when
 \code{condVar = TRUE} was used) is what broom.mixed-style code reads.
 
 Several terms on ONE grouping factor give several entries under one

@@ -35,7 +35,7 @@ test_that("s(x) + (1|g) matches gam with a re smooth", {
   ref <- mgcv::gam(y ~ s(x) + s(g, bs = "re"), data = dd, method = "ML")
   expect_lt(abs(as.numeric(logLik(fit)) - gam_ml_loglik(ref)), 1e-4)
   # group effect present and fitted values agree with gam
-  vc <- VarCorr(fit)
+  vc <- varcorr_matrices(fit)
   sd_frm <- sqrt(vc[["1 | g"]][1, 1])
   expect_gt(sd_frm, 0.2)
   expect_lt(max(abs(fitted(fit) - fitted(ref))), 1e-2)

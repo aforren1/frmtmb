@@ -1,0 +1,36 @@
+mutant: lvldot 
+test-brms-pins.R       PASS  330 FAIL   1 ERROR  1
+    failing: r_ labels a level repeats are suffixed as brms suffixes them 
+      msg: Expected `all(abs(got - ref) <= 64 * .Machine$double.eps * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 140.854752085083 
+      msg: <subscriptOutOfBoundsError/error/condition> Error in `ds$draws[, "r_gd[lvl.1,Intercept]__1"]`: subscript out of bounds 
+test-brms-output.R     PASS   21 FAIL   0 ERROR  0
+test-brms-names.R      PASS  134 FAIL   3 ERROR  0
+    failing: names pass through brms's renaming 
+      msg: Expected `"r_gs[lev.1,Intercept]" %in% lab` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+    failing: brms's names: r_ repeats are suffixed, merged levels refused 
+      msg: Expected `r[length(r)]` to be identical to "r_gd[lvl.1,Intercept]__1". Differences: `actual`:   "r_gd[lvl.1,Intercept]"    `expected`: "r_gd[lvl.1,Intercept]__1"  
+      msg: Expected `r[1L]` to be identical to "r_gd[lvl.1,Intercept]". Differences: `actual`:   "r_gd[lvl 1,Intercept]" `expected`: "r_gd[lvl.1,Intercept]"  
+converged at iteration 19 with logLik: -746.6946 
+converged at iteration 25 with logLik: -746.6946 
+converged at iteration 21 with logLik: -746.6946 
+converged at iteration 29 with logLik: -746.6946 
+converged at iteration 28 with logLik: -701.2889 
+converged at iteration 32 with logLik: -701.2889 
+converged at iteration 25 with logLik: -701.2889 
+converged at iteration 29 with logLik: -701.2889 
+converged at iteration 27 with logLik: -701.2889 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 13 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 453 with logLik: -685.3785 
+converged at iteration 408 with logLik: -685.3785 
+converged at iteration 404 with logLik: -685.3785 
+converged at iteration 430 with logLik: -685.3785 
+converged at iteration 400 with logLik: -685.3785 
+converged at iteration 54 with logLik: -3093.27 
+converged at iteration 2054 with logLik: -3433.42 
+converged at iteration 67 with logLik: -3093.27 
+converged at iteration 1803 with logLik: -3433.42 
+test-hmm.R             PASS  118 FAIL   0 ERROR  0
+DONE

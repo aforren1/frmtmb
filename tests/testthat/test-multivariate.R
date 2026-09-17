@@ -79,7 +79,7 @@ test_that("|ID| correlates random effects across responses", {
   expect_length(fit$frame$re_blocks, 1)
   bk <- fit$frame$re_blocks[[1]]
   expect_identical(bk$dim, 2L)
-  V <- VarCorr(fit)[[1]]
+  V <- varcorr_matrices(fit)[[1]]
   rho <- stats::cov2cor(V)[1, 2]
   expect_lt(abs(rho - 0.7), 0.25)
 

@@ -51,7 +51,8 @@
 #' parameter is that variance's inverse, so smoothness is estimated
 #' jointly with every other variance component rather than chosen.
 #'
-#' [VarCorr()] and [ranef()] report the block under the term's own label.
+#' [confint_varcorr()] and [ranef()] report the block under the term's own
+#' label; brms's [VarCorr()] leaves smooth blocks out, as brms does.
 #' Its standard deviation is a smoothing parameter, not a subject
 #' effect.
 #'

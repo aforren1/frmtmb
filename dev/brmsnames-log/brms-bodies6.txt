@@ -1,0 +1,182 @@
+===== rename 
+function (x, pattern = NULL, replacement = NULL, fixed = TRUE, 
+    check_dup = FALSE, ...) 
+{
+    pattern <- as.character(pattern)
+    replacement <- as.character(replacement)
+    if (!length(pattern) && !length(replacement)) {
+        pattern <- c(" ", "(", ")", "[", "]", ",", "\"", "'", 
+            "?", "+", "-", "*", "/", "^", "=", "$")
+        replacement <- c(rep("", 9), "P", "M", "MU", "D", "E", 
+            "EQ", "USD")
+    }
+    if (length(replacement) == 1L) {
+        replacement <- rep(replacement, length(pattern))
+    }
+    stopifnot(length(pattern) == length(replacement))
+    has_chars <- nzchar(pattern)
+    pattern <- pattern[has_chars]
+    replacement <- replacement[has_chars]
+    out <- x
+    for (i in seq_along(pattern)) {
+        out <- gsub(pattern[i], replacement[i], out, fixed = fixed, 
+            ...)
+    }
+    dup <- duplicated(out)
+    if (check_dup && any(dup)) {
+        dup <- x[out %in% out[dup]]
+        stop2("Internal renaming led to duplicated names. ", 
+            "Consider renaming your variables to have different suffixes.\n", 
+            "Occured for: ", collapse_comma(dup))
+    }
+    out
+}
+<bytecode: 0x000001eab9127ce8>
+<environment: namespace:brms>
+===== rename_pars 
+function (x) 
+{
+    if (!length(x$fit@sim)) {
+        return(x)
+    }
+    bframe <- brmsframe(x$formula, x$data)
+    pars <- variables(x)
+    to_rename <- c(rename_predictor(bframe, pars = pars, prior = x$prior), 
+        rename_re(bframe, pars = pars), rename_Xme(bframe, pars = pars))
+    x <- save_old_par_order(x)
+    x <- do_renaming(x, to_rename)
+    x$fit <- repair_stanfit(x$fit)
+    x <- compute_quantities(x)
+    x <- reorder_pars(x)
+    x
+}
+<bytecode: 0x000001eab91790e8>
+<environment: namespace:brms>
+---- missing change_effects 
+---- missing change_fe 
+---- missing change_re 
+---- missing change_re_levels 
+===== get_levels 
+function (x, ...) 
+{
+    UseMethod("get_levels")
+}
+<bytecode: 0x000001eabd089700>
+<environment: namespace:brms>
+===== get_group_vars 
+function (x, ...) 
+{
+    UseMethod("get_group_vars")
+}
+<bytecode: 0x000001eabd09a580>
+<environment: namespace:brms>
+===== make_stan_names 
+function (x) 
+{
+    gsub("\\.|_", "", make.names(x, unique = TRUE))
+}
+<bytecode: 0x000001eab915fc48>
+<environment: namespace:brms>
+===== combine_prefix 
+function (prefix, keep_mu = FALSE, nlp = FALSE) 
+{
+    prefix <- check_prefix(prefix, keep_mu = keep_mu)
+    if (is_nlpar(prefix) && nlp) {
+        prefix$dpar <- "nlp"
+    }
+    prefix <- lapply(prefix, usc)
+    sub("^_", "", do_call(paste0, prefix))
+}
+<bytecode: 0x000001eab9168a48>
+<environment: namespace:brms>
+===== check_prefix 
+function (x, keep_mu = FALSE) 
+{
+    vpx <- vars_prefix()
+    if (is.data.frame(x) && nrow(x) == 0) {
+        x <- list()
+    }
+    x[setdiff(vpx, names(x))] <- ""
+    x <- x[vpx]
+    for (i in seq_along(x)) {
+        x[[i]] <- as.character(x[[i]])
+        if (!length(x[[i]])) {
+            x[[i]] <- ""
+        }
+        x[[i]] <- ifelse(!keep_mu & names(x)[i] == "dpar" & x[[i]] %in% 
+            "mu", yes = "", no = x[[i]])
+        x[[i]] <- ifelse(keep_mu & names(x)[i] == "dpar" & x[[i]] %in% 
+            "", yes = "mu", no = x[[i]])
+    }
+    x
+}
+<bytecode: 0x000001eab9180e00>
+<environment: namespace:brms>
+===== usc 
+function (x, pos = c("prefix", "suffix")) 
+{
+    pos <- match.arg(pos)
+    x <- as.character(x)
+    if (!length(x)) 
+        x <- ""
+    if (pos == "prefix") {
+        x <- ifelse(nzchar(x), paste0("_", x), "")
+    }
+    else {
+        x <- ifelse(nzchar(x), paste0(x, "_"), "")
+    }
+    x
+}
+<bytecode: 0x000001eab91baa88>
+<environment: namespace:brms>
+===== terms_resp 
+function (formula, check_names = TRUE) 
+{
+    formula <- lhs(as.formula(formula))
+    if (is.null(formula)) {
+        return(NULL)
+    }
+    expr <- validate_resp_formula(formula)[[2]]
+    if (length(expr) <= 1L) {
+        out <- deparse_no_string(expr)
+    }
+    else {
+        str_fun <- deparse_no_string(expr[[1]])
+        used_mvbind <- grepl("^(brms:::?)?mvbind$", str_fun)
+        if (used_mvbind) {
+            out <- ulapply(expr[-1], deparse_no_string)
+        }
+        else {
+            out <- deparse_no_string(expr)
+        }
+    }
+    if (check_names) {
+        out <- make_stan_names(out)
+    }
+    out
+}
+<bytecode: 0x000001eab91aebd8>
+<environment: namespace:brms>
+---- missing parse_resp 
+---- missing do_rename_pars 
+---- missing rm_int_fe 
+---- missing colnames_X 
+---- missing change_Xme 
+---- missing change_sm 
+---- missing check_dup 
+===== make_index_names 
+function (rownames, colnames = NULL, dim = 1) 
+{
+    if (!dim %in% c(1, 2)) 
+        stop("dim must be 1 or 2")
+    if (dim == 1) {
+        index_names <- paste0("[", rownames, "]")
+    }
+    else {
+        tmp <- outer(rownames, colnames, FUN = paste, sep = ",")
+        index_names <- paste0("[", tmp, "]")
+    }
+    index_names
+}
+<bytecode: 0x000001eab91b2270>
+<environment: namespace:brms>

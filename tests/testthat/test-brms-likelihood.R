@@ -129,7 +129,7 @@ test_that("the simplex and group-level rules round-trip", {
   # whose order follows frmtmb's Zt and is not brms's
   sigma_hat <- diag(pars2[["sd_1"]]) %*% tcrossprod(pars2[["L_1"]]) %*%
     diag(pars2[["sd_1"]])
-  expect_lt(max(abs(sigma_hat - unclass(VarCorr(fit2))[[1]])), 1e-8)
+  expect_lt(max(abs(sigma_hat - unclass(varcorr_matrices(fit2))[[1]])), 1e-8)
   r <- t(diag(pars2[["sd_1"]]) %*% pars2[["L_1"]] %*% pars2[["z_1"]])
   info <- brms_group_info(rtab2, 1)
   expect_lt(max(abs(r - ranef(fit2)[[1]][info$labels, ])), 1e-8)
@@ -557,7 +557,7 @@ test_that("check C: row 9, multivariate with (1 | p | g) in both", {
   expect_identical(as.integer(sdat$M_1), 2L)
   sigma_hat <- diag(pars[["sd_1"]]) %*% tcrossprod(pars[["L_1"]]) %*%
     diag(pars[["sd_1"]])
-  expect_lt(max(abs(sigma_hat - unclass(VarCorr(fit))[[1]])), 1e-8)
+  expect_lt(max(abs(sigma_hat - unclass(varcorr_matrices(fit))[[1]])), 1e-8)
 
   brms_lp_check(bform, gaussian(), dd, fit, joint = TRUE)
 })
@@ -707,7 +707,7 @@ test_that("check C: row 11, s(x) is a random effect with one basis", {
   expect_lt(max(abs(pars[["sds_1"]][[1]] * pars[["zs_1_1"]] -
                       as.numeric(amat %*% brms_block_b(fit, bk)))), 1e-10)
   expect_lt(abs(pars[["sds_1"]][[1]]^2 -
-                  unclass(VarCorr(fit))[["s(x)"]][1, 1]), 1e-10)
+                  unclass(varcorr_matrices(fit))[["s(x)"]][1, 1]), 1e-10)
 
   # the unpenalized column is one column on both sides, in the same
   # direction on a different scale, so `bs` is frmtmb's coefficient

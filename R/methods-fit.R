@@ -169,7 +169,7 @@ print.frmtmb_fit <- function(x, ...) {
   }
   if (length(x$frame[["re_blocks"]])) {
     cat("\nRandom effects:\n")
-    print(VarCorr(x))
+    print(varcorr_matrices(x))
   }
   invisible(x)
 }
@@ -233,7 +233,7 @@ summary.frmtmb_fit <- function(object, vcov = NULL, ...) {
          loglik = logLik(object), AIC = stats::AIC(object),
          BIC = stats::BIC(object), REML = object$REML,
          importance = object$importance,
-         coefficients = coefs, varcor = VarCorr(object),
+         coefficients = coefs, varcor = varcorr_matrices(object),
          rescor = rescor_matrix(object),
          # R-side residual correlation, on the natural scale with the
          # same delta-method interval confint_varcorr() reports
@@ -574,6 +574,12 @@ vcov.frmtmb_fit <- function(object, full = FALSE, cluster = NULL,
 #' vector when there is one linear predictor).
 #'
 #' @param object A `frmtmb_fit`.
+#' @param summary,robust,probs brms's arguments, in brms's
+#'   positions so that a positional brms call asks the same question.
+#'   brms answers `summary = FALSE` with the posterior draws and
+#'   `robust = TRUE` with their median and MAD, and a maximum-likelihood
+#'   fit has no draws, so both are refused by name with the reason. The
+#'   default of each is accepted and changes nothing.
 #' @param ... Refused: an argument the method does not have is an
 #'   error naming it, rather than silently changing nothing.
 #' @return A named list of data frames, one per grouping factor, each
@@ -604,8 +610,13 @@ vcov.frmtmb_fit <- function(object, full = FALSE, cluster = NULL,
 #' # without random effects there are no groups, so coef() is fixef()
 #' coef(frm(bf(y ~ x) + gaussian(), data = dd))
 #' @export
-coef.frmtmb_fit <- function(object, ...) {
-  frm_check_dots(..., .unsupported = brms_draws_summary_args)
+coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
+                            probs = c(0.025, 0.975), ...) {
+  frm_check_dots(..., .unsupported = brms_draws_summary_args["pars"])
+  # brms's positions, so coef(fit, FALSE) asks brms's question and gets
+  # a refusal rather than an argument landing nowhere
+  fit_refuse_draws_args("coef()", summary = summary, robust = robust,
+                        probs = probs)
   fe <- fixef(object)
   cvec <- coef_b(object)
   out <- list()
@@ -672,10 +683,12 @@ coef.frmtmb_fit <- function(object, ...) {
 #' unprefixed (`x`, not `mu_x`), and the response prefixed ahead of that
 #' in a multivariate fit.
 #'
-#' `hypothesis()` is a THIRD vocabulary and is not the same one. It
-#' strips parentheses, so it reads `sigma_(Intercept)` only backquoted,
-#' and its own spelling is the parenthesis-free `sigma_Intercept`. The
-#' comment above `par_name_bare()` sets out all three.
+#' `hypothesis()` and `variables()` use a THIRD vocabulary, brms's
+#' parameter names: `b_Intercept`, `b_sigma_Intercept` for a `sigma`
+#' formula, and `sigma` on its natural scale when no formula was written
+#' for it. `hypothesis()` puts `class = "b"`'s `b_` in front of a bare
+#' name, so its default spelling of those is `Intercept` and
+#' `sigma_Intercept`.
 #'
 #' `unlist(fixef(fit))` is none of them. It is base R's composite of a
 #' list KEY and an element name, `mu.x`, and it names no parameter of
@@ -684,6 +697,12 @@ coef.frmtmb_fit <- function(object, ...) {
 #' coefficients up with a covariance matrix or a prior.
 #'
 #' @param object A `frmtmb_fit`.
+#' @param summary,robust,probs,pars brms's arguments, in brms's
+#'   positions so that a positional brms call asks the same question.
+#'   brms answers `summary = FALSE` with the posterior draws and
+#'   `robust = TRUE` with their median and MAD, and a maximum-likelihood
+#'   fit has no draws, so both are refused by name with the reason. The
+#'   default of each is accepted and changes nothing.
 #' @param flatten If `TRUE`, one named vector in the `vcov()` /
 #'   `confint()` spelling instead of the per-dpar list. Coefficients
 #'   come in linear-predictor order, which need not be `vcov()`'s row
@@ -719,8 +738,14 @@ coef.frmtmb_fit <- function(object, ...) {
 #' @rdname fixef
 #' @aliases fixef
 #' @export
-fixef.frmtmb_fit <- function(object, flatten = FALSE, ...) {
-  frm_check_dots(..., .unsupported = brms_draws_summary_args)
+fixef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
+                             probs = c(0.025, 0.975), pars = NULL, ...,
+                             flatten = FALSE) {
+  frm_check_dots(...)
+  # brms's positions ahead of `...`: fixef(fit, FALSE) used to set
+  # `flatten` and return the default shape, identical() to fixef(fit)
+  fit_refuse_draws_args("fixef()", summary = summary, robust = robust,
+                        probs = probs, pars = pars)
   require_fitted(object, "fixef()")
   check_flag(flatten, "flatten")
   est <- object$estimates
@@ -745,6 +770,12 @@ fixef.frmtmb_fit <- function(object, flatten = FALSE, ...) {
 
 #' Extract random-effect modes
 #' @param object A `frmtmb_fit`.
+#' @param summary,robust,probs,pars,groups brms's arguments, in brms's
+#'   positions so that a positional brms call asks the same question.
+#'   brms answers `summary = FALSE` with the posterior draws and
+#'   `robust = TRUE` with their median and MAD, and a maximum-likelihood
+#'   fit has no draws, so both are refused by name with the reason. The
+#'   default of each is accepted and changes nothing.
 #' @param condVar If `TRUE`, attach the conditional SDs of the modes
 #'   (from the Laplace posterior) as a `"condSD"` attribute on each
 #'   matrix, in matching layout.
@@ -754,8 +785,8 @@ fixef.frmtmb_fit <- function(object, flatten = FALSE, ...) {
 #'   random-effect term, KEYED BY THE GROUPING FACTOR as brms and lme4
 #'   key it (so `ranef(fit)$g` and `coef(fit)$g` name the same group).
 #'   Each matrix carries its block label in a `"term"` attribute, which
-#'   is also the key [VarCorr()] uses and the `grp` column of
-#'   `as.data.frame()`. That long form (with a `condsd` column when
+#'   is also the `grp` column of `as.data.frame()`. That long form
+#'   (with a `condsd` column when
 #'   `condVar = TRUE` was used) is what broom.mixed-style code reads.
 #'
 #'   Several terms on ONE grouping factor give several entries under one
@@ -795,10 +826,14 @@ fixef.frmtmb_fit <- function(object, flatten = FALSE, ...) {
 #' @rdname ranef
 #' @aliases ranef
 #' @export
-ranef.frmtmb_fit <- function(object, condVar = FALSE, ...) {
-  frm_check_dots(..., .unsupported = c(brms_draws_summary_args,
-    groups = paste("brms's `groups` selects grouping factors; the",
-                   "return value here is a named list, so index it")))
+ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
+                             probs = c(0.025, 0.975), pars = NULL,
+                             groups = NULL, ..., condVar = FALSE) {
+  frm_check_dots(...)
+  # brms's positions ahead of `...`: ranef(fit, FALSE) used to set
+  # `condVar` and return the default shape, identical() to ranef(fit)
+  fit_refuse_draws_args("ranef()", summary = summary, robust = robust,
+                        probs = probs, pars = pars, groups = groups)
   require_fitted(object, "ranef()")
   check_flag(condVar, "condVar")
   cvec <- coef_b(object)
@@ -862,7 +897,7 @@ ranef.frmtmb_fit <- function(object, condVar = FALSE, ...) {
 #'
 #' So the KEY grows a second accepted form rather than the list changing
 #' shape: the block label, which is what `attr(blk, "term")` carries,
-#' what `VarCorr()` keys by and what `as.data.frame()` puts in `grp`.
+#' and what `as.data.frame()` puts in `grp`.
 #' A grouping factor with one block is addressed as before; a factor
 #' with several is either addressed by its block label or refused by
 #' name. Positional indexing is untouched, so `print()`,
@@ -883,8 +918,8 @@ ranef_pick <- function(x, i) {
          "them. Address a block by its term label - ",
          paste0("[[\"", tl[hit], "\"]]", collapse = ", "),
          " - or by position. The label is also each block's \"term\" ",
-         "attribute, VarCorr()'s key and the `grp` column of ",
-         "as.data.frame()", call. = FALSE)
+         "attribute and the `grp` column of as.data.frame()",
+         call. = FALSE)
   }
   list(found = FALSE, value = NULL)
 }
@@ -984,36 +1019,19 @@ as.data.frame.VarCorr_frmtmb <- function(x, ...) {
   out
 }
 
-#' Extract random-effect covariance matrices
-#' @param x A `frmtmb_fit`.
-#' @param sigma Ignored. It is carried by nlme's generic, which
-#'   frmtmb now shares rather than shadows, for the models that
-#'   scale a covariance by a residual standard deviation.
-#' @param ... Refused: an argument the method does not have is an
-#'   error naming it, rather than silently changing nothing.
-#' @return A named list of covariance matrices, one per random-effect
-#'   term, named by the term label.
-#' @examples
-#' set.seed(1)
-#' dd <- data.frame(x = rnorm(200), g = factor(rep(1:20, 10)))
-#' u <- cbind(rnorm(20, 0, 0.8), rnorm(20, 0, 0.4))
-#' dd$y <- rnorm(200, 1 + 0.5 * dd$x + u[dd$g, 1] + u[dd$g, 2] * dd$x, 1)
-#' fit <- frm(bf(y ~ x + (x | g)) + gaussian(), data = dd)
+#' The covariance matrix of every random-effect block, one per block in
+#' block order and named by term label, at a given `theta`.
 #'
-#' # the printed form shows SDs and correlations, as lme4 does
-#' VarCorr(fit)
-#' # the stored value is the covariance matrix itself
-#' VarCorr(fit)[["x | g"]]
-#' # tidy shape for broom.mixed-style code
-#' as.data.frame(VarCorr(fit))
-#' @rdname VarCorr
-#' @aliases VarCorr
-#' @export
-VarCorr.frmtmb_fit <- function(x, sigma = 1, ...) {
-  frm_check_dots(..., .unsupported = brms_draws_summary_args)
-  require_fitted(x, "VarCorr()")
-  th <- x$estimates[["theta"]]
-  out <- lapply(x$frame[["re_blocks"]], function(bk) {
+#' This is what `VarCorr()` returned before it took brms's shape, and it
+#' is still what the printed fit, `summary()` and the singularity check
+#' read: a covariance matrix per BLOCK is the natural unit for those,
+#' while brms's `VarCorr()` is keyed by GROUP. A smooth, GP, CAR or SPDE
+#' block contributes its one variance under its own label, as before.
+#'
+#' @noRd
+varcorr_matrices <- function(fit, theta = fit$estimates[["theta"]]) {
+  th <- theta
+  out <- lapply(fit$frame[["re_blocks"]], function(bk) {
     if (bk[["covstruct"]] == "smooth") {
       # one smoothing variance; the k x k identity blowup is noise
       matrix(exp(th[bk[["theta_idx"]]])^2, 1, 1,
@@ -1035,8 +1053,316 @@ VarCorr.frmtmb_fit <- function(x, sigma = 1, ...) {
       V
     }
   })
-  names(out) <- vapply(x$frame[["re_blocks"]], `[[`, "", "term_label")
+  names(out) <- vapply(fit$frame[["re_blocks"]], `[[`, "", "term_label")
   structure(out, class = "VarCorr_frmtmb")
+}
+
+#' The layout of brms's `VarCorr()` for a fit: one entry per grouping
+#' factor, in first-appearance order, then `residual__`.
+#'
+#' Each group entry is keyed by brms's group name (`brms_group_name()`,
+#' `g:h2` for an interaction) and lists its coefficient names (brms's
+#' `rnames`, `brms_re_rnames()`), which block each came from and at which
+#' position, and whether any block in it carries correlations. Blocks on
+#' one factor merge, as brms merges every term on a group; a coefficient
+#' given twice on one group is refused when the model is assembled, as
+#' brms refuses it. Smooth, GP, CAR and SPDE blocks are not in brms's
+#' `VarCorr()` and are not here; [confint_varcorr()] reports them.
+#'
+#' `residual__` follows `brms:::VarCorr.brmsfit()`. On a univariate
+#' model it is there when `sigma` is a parameter nobody wrote a formula
+#' for, one row named by brms's `bterms$resp`, which is `""`. On a
+#' multivariate model it is there when at least one response has such a
+#' `sigma` and no response predicts it: one row per such response, named
+#' by the response, with the residual correlations when `rescor = TRUE`.
+#'
+#' @noRd
+varcorr_layout <- function(fit) {
+  groups <- list()
+  for (bi in seq_along(fit$frame[["re_blocks"]])) {
+    bk <- fit$frame[["re_blocks"]][[bi]]
+    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "car", "spde")) {
+      next
+    }
+    rn <- brms_re_rnames(fit, bk)
+    key <- brms_group_name(bk)
+    g <- groups[[key]] %||% list(rnames = character(0), block = integer(0),
+                                 pos = integer(0), cor = FALSE)
+    g$rnames <- c(g$rnames, rn)
+    g$block <- c(g$block, rep(bi, length(rn)))
+    g$pos <- c(g$pos, seq_along(rn))
+    g$cor <- g$cor || (bk[["dim"]] > 1L &&
+                         !bk[["covstruct"]] %in% c("diag", "homdiag"))
+    groups[[key]] <- g
+  }
+  list(groups = groups, residual = varcorr_residual_layout(fit))
+}
+
+#' brms's `residual__` entry of `VarCorr()`, see `varcorr_layout()`:
+#' the coefficient positions of the natural-scale `sigma` rows, their
+#' inverse links, the row names, and whether residual correlations
+#' follow. `NULL` when brms has no such entry.
+#'
+#' @noRd
+varcorr_residual_layout <- function(fit) {
+  tab <- brms_coef_table(fit)
+  is_sigma <- tab$dpar %in% "sigma"
+  simple <- which(is_sigma & tab$natural)
+  if (!length(simple)) return(NULL)
+  mv <- length(fit$spec$responses) > 1L
+  if (!mv) {
+    return(list(rnames = "", pos = simple[1L],
+                linkinv = attr(tab, "linkinv")[simple[1L]], rescor = FALSE))
+  }
+  # brms: any simple sigma and no predicted one
+  if (any(is_sigma & !tab$natural)) return(NULL)
+  list(rnames = brms_stan_name(tab$resp[simple]), pos = simple,
+       linkinv = attr(tab, "linkinv")[simple],
+       rescor = isTRUE(fit$spec$rescor) &&
+         length(simple) == length(fit$spec$responses))
+}
+
+#' The numbers behind brms's `VarCorr()` at one parameter vector, in
+#' the `hyp_vals_only()` layout: per entry of `varcorr_layout()`, the
+#' standard deviations and, when the group has correlations, the full
+#' correlation and covariance matrices. A pair of coefficients from two
+#' different blocks is uncorrelated by construction, which is the 0
+#' brms fills in for a correlation it does not find.
+#'
+#' @noRd
+varcorr_values <- function(fit, vals, comp, layout = varcorr_layout(fit)) {
+  th <- vals[comp == "theta"]
+  mats <- if (length(layout$groups)) varcorr_matrices(fit, th) else list()
+  out <- list()
+  for (key in names(layout$groups)) {
+    g <- layout$groups[[key]]
+    K <- length(g$rnames)
+    S <- matrix(0, K, K)
+    for (i in seq_len(K)) {
+      for (j in seq_len(K)) {
+        if (g$block[i] == g$block[j]) {
+          S[i, j] <- mats[[g$block[i]]][g$pos[i], g$pos[j]]
+        }
+      }
+    }
+    sd <- sqrt(diag(S))
+    e <- list(sd = sd)
+    if (g$cor) {
+      C <- S / tcrossprod(sd)
+      diag(C) <- 1
+      e$cor <- C
+      e$cov <- S
+    }
+    out[[key]] <- e
+  }
+  if (!is.null(r <- layout$residual)) {
+    cf <- c(vals[comp == "beta"], vals[comp == "betad"])
+    sd <- vapply(seq_along(r$pos), function(i) {
+      r$linkinv[[i]](cf[r$pos[i]])
+    }, 1)
+    e <- list(sd = sd)
+    if (r$rescor) {
+      C <- us_chol_cor(vals[comp == "thetar"], length(sd))
+      # exactly 1, so the diagonal's error is exactly 0 as in a group
+      diag(C) <- 1
+      e$cor <- C
+      e$cov <- C * tcrossprod(sd)
+    }
+    out[["residual__"]] <- e
+  }
+  out
+}
+
+#' Extract random-effect standard deviations and correlations
+#'
+#' brms's `VarCorr()`, with frequentist content. The return value is a
+#' list with one entry per GROUPING FACTOR, named by the factor as brms
+#' and lme4 name it (`"patient"`, not the term label `"1 | patient"`),
+#' followed by `residual__` when `sigma` is a parameter nobody wrote a
+#' formula for (one row per response on a multivariate model, with the
+#' residual correlations under `rescor = TRUE`). Each entry has:
+#'
+#' - `sd`: a matrix with one row per coefficient and the columns
+#'   `Estimate`, `Est.Error` and one quantile column per `probs`
+#'   (`Q2.5`, `Q97.5`);
+#' - `cor` and `cov`, when the group has correlations: arrays of
+#'   `coefficient x statistic x coefficient`, the same statistics.
+#'
+#' The names are brms's: the entry is the group as brms spells it
+#' (`g:h` for an interaction), and the coefficients are `Intercept`, `x`,
+#' and for a distributional or nonlinear parameter `sigma_Intercept`, as
+#' in `sd_<group>__sigma_Intercept`.
+#'
+#' @section What the columns mean on a maximum-likelihood fit:
+#' brms summarizes posterior draws. A fit has one estimate and its
+#' sampling distribution, so the same columns carry:
+#'
+#' - `Estimate`: the maximum-likelihood (or REML) estimate.
+#' - `Est.Error`: its delta-method standard error, from the joint
+#'   covariance of the covariance parameters ([vcov()] with
+#'   `full = TRUE`).
+#' - `Q<p>`: the Wald quantile `Estimate + qnorm(p) * Est.Error`, on the
+#'   natural scale. That is the interval [hypothesis()] reports for the
+#'   same quantity. It can cross zero for a standard deviation near its
+#'   boundary; [confint_varcorr()] with `method = "profile"` gives an
+#'   interval that respects the boundary.
+#'
+#' A diagonal entry of `cor` is 1 with error 0.
+#'
+#' `summary = FALSE` and `robust = TRUE` are refused by name: brms
+#' returns the draws, or their median and MAD, and a fit has no draws.
+#' `frmtmb.sample::frm_sample()` gives an object whose `VarCorr()` does
+#' both.
+#'
+#' Several random-effect blocks on one grouping factor merge into its
+#' entry, as brms merges every term on a group, and a pair across two
+#' blocks has correlation 0. Two terms that give one group the same
+#' coefficient, as in `(1 | gr(id, cov = A)) + (1 | id)`, are refused
+#' when the model is built, as brms refuses them: give the second term a
+#' copy of the grouping column under another name.
+#' Smooth, Gaussian-process, CAR and SPDE blocks are not in brms's
+#' `VarCorr()` and are not here: [confint_varcorr()] reports them. On a
+#' `gr(dist = "student")` block the `sd` row is the SCALE, as brms's
+#' `sd_` is.
+#'
+#' @param x A `frmtmb_fit`.
+#' @param sigma Ignored, as in brms. It is carried by nlme's generic,
+#'   which frmtmb shares.
+#' @param summary Must be `TRUE`; see above.
+#' @param robust Must be `FALSE`; see above.
+#' @param probs The quantiles to report.
+#' @param ... Refused: an argument the method does not have is an
+#'   error naming it, rather than silently changing nothing.
+#' @return A named list, as above.
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(200), g = factor(rep(1:20, 10)))
+#' u <- cbind(rnorm(20, 0, 0.8), rnorm(20, 0, 0.4))
+#' dd$y <- rnorm(200, 1 + 0.5 * dd$x + u[dd$g, 1] + u[dd$g, 2] * dd$x, 1)
+#' fit <- frm(bf(y ~ x + (x | g)) + gaussian(), data = dd)
+#'
+#' vc <- VarCorr(fit)
+#' names(vc)                       # "g" and "residual__", as in brms
+#' vc$g$sd                         # standard deviations
+#' vc$g$cor["Intercept", "Estimate", "x"]
+#' vc$residual__$sd
+#' @rdname VarCorr
+#' @aliases VarCorr
+#' @export
+VarCorr.frmtmb_fit <- function(x, sigma = 1, summary = TRUE,
+                               robust = FALSE,
+                               probs = c(0.025, 0.975), ...) {
+  frm_check_dots(...)
+  require_fitted(x, "VarCorr()")
+  fit_refuse_draws_args("VarCorr()", summary = summary, robust = robust)
+  if (!is.numeric(probs) || !length(probs) || anyNA(probs) ||
+        any(probs < 0) || any(probs > 1)) {
+    stop("VarCorr(): `probs` must be numbers between 0 and 1",
+         call. = FALSE)
+  }
+  lay <- varcorr_layout(x)
+  if (!length(lay$groups) && is.null(lay$residual)) {
+    stop("The model does not contain covariance matrices.", call. = FALSE)
+  }
+  pc <- hyp_par_cov(x)
+  flat <- function(v) {
+    unlist(lapply(varcorr_values(x, v, pc$comp, lay), function(e) {
+      c(e$sd, e$cor, e$cov)
+    }), use.names = FALSE)
+  }
+  q0 <- flat(pc$vals)
+  rel <- which(pc$comp %in% c("theta", "betad", "thetar"))
+  J <- matrix(0, length(q0), length(rel))
+  for (k in seq_along(rel)) {
+    i <- rel[k]
+    step <- max(1e-5, 1e-5 * abs(pc$vals[i]))
+    vp <- pc$vals; vp[i] <- vp[i] + step
+    vm <- pc$vals; vm[i] <- vm[i] - step
+    J[, k] <- (flat(vp) - flat(vm)) / (2 * step)
+  }
+  Vr <- pc$V[rel, rel, drop = FALSE]
+  se <- sqrt(pmax(0, rowSums((J %*% Vr) * J)))
+  stats_nm <- c("Estimate", "Est.Error", paste0("Q", probs * 100))
+  tab <- cbind(q0, se, outer(se, stats::qnorm(probs)) + q0)
+  colnames(tab) <- stats_nm
+  vals <- varcorr_values(x, pc$vals, pc$comp, lay)
+  pos <- 0L
+  take <- function(n) {
+    r <- tab[pos + seq_len(n), , drop = FALSE]
+    pos <<- pos + n
+    r
+  }
+  rn_of <- function(key) {
+    if (identical(key, "residual__")) lay$residual$rnames else
+      lay$groups[[key]]$rnames
+  }
+  out <- list()
+  for (key in names(vals)) {
+    rn <- rn_of(key)
+    K <- length(rn)
+    sdm <- take(K)
+    rownames(sdm) <- rn
+    e <- list(sd = sdm)
+    if (!is.null(vals[[key]]$cor)) {
+      for (el in c("cor", "cov")) {
+        blk <- take(K * K)
+        # the flattened matrix is column-major, so row i of `blk` is
+        # entry (row = (i - 1) %% K + 1, column = (i - 1) %/% K + 1)
+        arr <- array(NA_real_, c(K, ncol(tab), K),
+                     dimnames = list(rn, stats_nm, rn))
+        for (s in seq_len(ncol(tab))) {
+          arr[, s, ] <- matrix(blk[, s], K, K)
+        }
+        e[[el]] <- arr
+      }
+    }
+    out[[key]] <- e
+  }
+  out
+}
+
+#' The refusal a maximum-likelihood method owes brms's draws arguments,
+#' by name and with the reason. brms answers `summary = FALSE` with the
+#' posterior draws and `robust = TRUE` with their median and MAD; a fit
+#' has one estimate and no chains, so returning the summary anyway
+#' would answer a different question under the same call.
+#'
+#' @noRd
+fit_refuse_draws_args <- function(what, summary = TRUE, robust = FALSE,
+                                  probs = NULL, pars = NULL,
+                                  groups = NULL) {
+  check_flag(summary, "summary")
+  check_flag(robust, "robust")
+  tail <- paste0(" Sample with frmtmb.sample::frm_sample() and call ",
+                 what, " on the draws for that")
+  if (!summary) {
+    stop(what, " cannot honor summary = FALSE: brms returns the ",
+         "posterior draws there, and a maximum-likelihood fit has none. ",
+         "It carries one estimate and no chains, so the only answer it ",
+         "has is the summary, which is a different return shape.", tail,
+         call. = FALSE)
+  }
+  if (robust) {
+    stop(what, " cannot honor robust = TRUE: brms's robust summary is ",
+         "the median and MAD of the draws, and a maximum-likelihood fit ",
+         "has no draws.", tail, call. = FALSE)
+  }
+  if (!is.null(probs) && !isTRUE(all.equal(probs, c(0.025, 0.975)))) {
+    stop(what, " cannot honor `probs`: brms reports quantiles of the ",
+         "draws, and this method returns point estimates with no ",
+         "quantile columns. For an interval here use confint().", tail,
+         call. = FALSE)
+  }
+  if (!is.null(pars)) {
+    stop(what, " cannot honor `pars`: ",
+         brms_draws_summary_args[["pars"]], call. = FALSE)
+  }
+  if (!is.null(groups)) {
+    stop(what, " cannot honor `groups`: brms's `groups` selects ",
+         "grouping factors; the return value here is a named list, so ",
+         "index it", call. = FALSE)
+  }
+  invisible(NULL)
 }
 
 #' @export

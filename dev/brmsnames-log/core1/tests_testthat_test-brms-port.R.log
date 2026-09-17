@@ -1,0 +1,12 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-brms-port.R 
+BLOCKS  6 
+PASS    16 
+FAIL    0 
+ERROR   1 
+SKIP    0 
+  failing: brms_distreg: a sigma submodel and its hypothesis port verbatim
+       Error in `as.data.frame.default(hyp)`: cannot coerce class 'c("frmtmb_hypothesis", "brmshypothesis")' to a data.frame 
+DONE

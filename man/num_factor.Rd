@@ -41,5 +41,5 @@ dd <- data.frame(
   tim = num_factor(rep(tim, n_g))
 )
 fit <- frm(bf(y ~ 1 + ou(tim + 0 | g)) + gaussian(), data = dd)
-round(VarCorr(fit)[[1]], 3)
+round(VarCorr(fit)$g$cor[, "Estimate", ], 3)
 }

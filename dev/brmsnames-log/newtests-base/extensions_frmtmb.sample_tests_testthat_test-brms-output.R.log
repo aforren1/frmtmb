@@ -1,0 +1,17 @@
+libs:  C:/Users/adf44/source/r/rellib-r3 | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/rellib-r3
+frmtmb from:  C:/Users/adf44/source/r/rellib-r3 
+FILE    extensions/frmtmb.sample/tests/testthat/test-brms-output.R 
+BLOCKS  2 
+PASS    2 
+FAIL    3 
+ERROR   2 
+SKIP    0 
+  failing: the accessors and summaries are brms's, identical()
+       Expected `all(...)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       Expected `as.matrix(ds)` to be identical to `brms:::as.matrix.brmsfit(sh)`. Differences: `names(dimnames(actual))` is absent `names(dimnames(expected))` is a character vector ('draw', 'variable') `dimnames(actual)[[1]]` is NULL `dimnames(expected)[[1]]` is a character vector ('1', '2', '3', '4', '5', ...) `attr(actual, 'nchains')` is absent `attr(expected, 'nchains')` is an integer vector (2)  
+       Error: as.array() has no argument `variable`. It takes: x 
+  failing: ranef(), coef() and VarCorr() are brms's, draws and summaries
+       Expected `ranef(ds)` to be identical to `brms:::ranef.brmsfit(shb)`. Differences: `dimnames(actual$g)[[3]]`:   "(Intercept)" "x" `dimnames(expected$g)[[3]]`: "Intercept"   "x" `attr(actual$g, 'term')` is a character vector ('1 + x | g') `attr(expected$g, 'term')` is absent   `actual$g`: 0.7 -0.8 0.2 0.6 -0.6 0.5 -0.0 -0.1 0.4 0.4 and 54 more... `expected$g`: NaN  NaN NaN NaN  NaN NaN  NaN  NaN  NA  NA            ...  
+       Error: ranef() was given 1 argument with no name, which it has nowhere to put. It takes: object 
+DONE

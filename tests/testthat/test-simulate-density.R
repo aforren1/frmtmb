@@ -419,7 +419,7 @@ for (sp in sim_specs) {
       dd <- sim_data(if (is.null(sp[["ydummy"]])) 1 else sp[["ydummy"]],
                      if (is.null(sp[["cols"]])) list() else sp[["cols"]])
       form <- sim_formula(sp[["aterm"]])
-      np <- c(list(ga = sp[["eta"]][1L], gb = sp[["eta"]][2L]), sp[["dp"]])
+      np <- c(list(b_ga = sp[["eta"]][1L], b_gb = sp[["eta"]][2L]), sp[["dp"]])
       draws <- sim_cells(form, dd, fam, np)
       at <- if (is.null(sp[["at"]])) list() else sp[["at"]]
       linv <- ffam[["links"]][["mu"]][["linkinv"]]
@@ -621,7 +621,7 @@ test_that("trunc(): draws stay inside the bounds and follow the truncated densit
   eta <- c(-0.2, 1.0)
   sg <- 0.9
   draws <- sim_cells(form, dd, fam,
-                     list(ga = eta[1L], gb = eta[2L], sigma = sg))
+                     list(b_ga = eta[1L], b_gb = eta[2L], sigma = sg))
   for (cell in c("a", "b")) {
     d <- draws[[cell]]
     lab <- paste0("gaussian/trunc[", cell, "]")
@@ -645,7 +645,7 @@ test_that("se(): the known standard error enters the draw's spread", {
   # at all: the frame offers only the two cell means, and the drawn
   # spread has to be se
   draws <- sim_cells(y | se(s) ~ 0 + g, dd, fam,
-                     list(ga = eta[1L], gb = eta[2L]))
+                     list(b_ga = eta[1L], b_gb = eta[2L]))
   for (cell in c("a", "b")) {
     lab <- paste0("gaussian/se[", cell, "]")
     # the sigma passed here is the one resid_sd() must ignore
@@ -668,7 +668,7 @@ test_that("se(sigma = TRUE): the two spreads add in quadrature", {
   dd <- sim_data(0.5, list(s = se_val))
   eta <- c(-0.3, 1.1)
   draws <- sim_cells(y | se(s, sigma = TRUE) ~ 0 + g, dd, fam,
-                     list(ga = eta[1L], gb = eta[2L], sigma = sg))
+                     list(b_ga = eta[1L], b_gb = eta[2L], sigma = sg))
   tot <- sqrt(sg^2 + se_val^2)
   for (cell in c("a", "b")) {
     lab <- paste0("gaussian/se+sigma[", cell, "]")
@@ -687,7 +687,7 @@ test_that("weights() and cens() do not change what is drawn", {
   # was generated. Either changing the draws would mean simulate() was
   # sampling from something other than the family.
   fam <- stats::gaussian()
-  np <- list(ga = -0.2, gb = 0.9, sigma = 0.7)
+  np <- list(b_ga = -0.2, b_gb = 0.9, sigma = 0.7)
   base <- sim_cells(y ~ 0 + g, sim_data(0.5), fam, np)
   dw <- sim_data(0.5, list(w = c(1, 3, 7)))
   wt <- sim_cells(y | weights(w) ~ 0 + g, dw, fam, np)
@@ -802,7 +802,7 @@ test_that("a family that installs its simulator in family_finalize can be simula
   sg <- 0.7
   dd <- sim_data(0.5)
   draws <- sim_cells(y ~ 0 + g, dd, fam,
-                     list(ga = eta[1L], gb = eta[2L], sigma = sg))
+                     list(b_ga = eta[1L], b_gb = eta[2L], sigma = sg))
   # the density to test against is the finalized one, reached the same
   # way assembly reaches it
   fin <- fam[["family_finalize"]](fam, dd[["y"]], list())
@@ -848,7 +848,7 @@ test_that("a family with no simulator is refused by name at both entry points", 
     fam <- frmtmb:::family_registry[[nm]]()
     expect_error(
       frmtmb::frm_simulate(y ~ x, dd, family = fam,
-                           newparams = list(Intercept = 0, x = 0.5),
+                           newparams = list(b_Intercept = 0, b_x = 0.5),
                            nsim = 1L),
       paste0("family '", nm, "' has no simulator"), fixed = TRUE)
     fit <- frmtmb::frm(y ~ x, family = fam, data = dd)
@@ -865,7 +865,7 @@ test_that("cox() states why it has no simulator rather than only that it has non
   dd$y <- stats::rexp(40L, rate = exp(-0.2 + 0.5 * dd$x))
   expect_error(
     frmtmb::frm_simulate(y ~ x, dd, family = cox(),
-                         newparams = list(Intercept = 0, x = 0.5),
+                         newparams = list(b_Intercept = 0, b_x = 0.5),
                          nsim = 1L),
     "cumulative baseline hazard")
 })
@@ -876,8 +876,8 @@ test_that("the deferred categorical() resolves to a family that simulates", {
   lv <- c("a", "b", "c")
   dd <- sim_data(factor(lv, levels = lv))
   s <- frmtmb::frm_simulate(y ~ 0 + g, dd, family = categorical(),
-                            newparams = list(mub_ga = 0.3, mub_gb = -0.4,
-                                             muc_ga = -0.2, muc_gb = 0.6),
+                            newparams = list(b_mub_ga = 0.3, b_mub_gb = -0.4,
+                                             b_muc_ga = -0.2, b_muc_gb = 0.6),
                             nsim = 1L, seed = SIM_SEED)
   expect_true(is.factor(s[["sim_1"]]))
   expect_identical(levels(s[["sim_1"]]), lv)

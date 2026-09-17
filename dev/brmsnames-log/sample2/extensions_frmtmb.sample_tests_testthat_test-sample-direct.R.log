@@ -1,0 +1,24 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+No priors were used (flat improper priors on the outer parameters).
+No priors were used (flat improper priors on the outer parameters).
+No priors were used (flat improper priors on the outer parameters).
+No priors were used (flat improper priors on the outer parameters).
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:
+  1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which frm_sample() supplies by default unless prior = "flat" turned it off
+check_laplace(): the chain mixed too poorly to judge the approximation (bulk ESS under 100 for theta_1). Rerun with more iterations before reading z_shift or sd_ratio
+FILE    extensions/frmtmb.sample/tests/testthat/test-sample-direct.R 
+BLOCKS  17 
+PASS    136 
+FAIL    1 
+ERROR   0 
+SKIP    0 
+  failing: the formula route samples the same posterior as the fit route
+       Expected `attr(ranef(ds_form)[[1]], "term")` to be identical to "1 | g". Differences: `actual` is NULL `expected` is a character vector ('1 | g')  
+DONE

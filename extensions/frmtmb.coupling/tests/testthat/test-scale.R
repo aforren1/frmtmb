@@ -143,7 +143,7 @@ coupling_one <- function(row, rhs, d) {
   # have to be readable. They are recorded by name rather than by
   # position because an mgcv smooth is a random-effect block too, so
   # position 1 is not the same block from one rung to the next.
-  vc <- frmtmb::VarCorr(fit)
+  vc <- frmtmb::varcorr_matrices(fit)
   sd_all <- if (length(vc)) {
     paste(names(vc), formatC(vapply(vc, function(m) sqrt(m[1L, 1L]),
                                     numeric(1)),

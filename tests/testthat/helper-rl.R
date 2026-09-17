@@ -92,7 +92,7 @@ rl_stan_code <- function() {
 # mismatch instead of cancelling on both sides.
 rl_stan_data <- function(fit, data) {
   blk <- frame_block_of(fit$frame, "choice")
-  vc <- unname(VarCorr(fit)[[1L]])
+  vc <- unname(varcorr_matrices(fit)[[1L]])
   list(N = nrow(data), S = blk[["n_subj"]], T = blk[["n_trial"]],
        K = 2L, idx = blk[["idx"]], mask = blk[["mask"]],
        subj = as.integer(factor(data$id)),

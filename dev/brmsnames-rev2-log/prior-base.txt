@@ -1,0 +1,41 @@
+== default priors ==
+student_t(3, 0.4, 4.6) class=Intercept
+student_t(3, 0, 4.6) class=sigma scale=natural
+student_t(3, 0, 4.6) class=sd
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  b                  (flat), as brms leaves slopes
+== resolved entries ==
+List of 2
+ $ effective:List of 3
+  ..$ : NULL
+  ..$ : NULL
+  ..$ : NULL
+ $ ri       :List of 3
+  ..$ NA: NULL
+  ..$ NA: NULL
+  ..$ NA: NULL
+== messages ==
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.4, 4.6)
+  sigma              student_t(3, 0, 4.6)  [natural scale]
+  sd                 student_t(3, 0, 4.6)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+== prior_summary(ds) ==
+student_t(3, 0.4, 4.6) class=Intercept
+student_t(3, 0, 4.6) class=sigma scale=natural
+student_t(3, 0, 4.6) class=sd
+normal(0, 1) class=b
+npar stanfit 12  full par 12 
+== log_prob at the ML mode and at shifted points ==
+shift  0.0: -486.9661599116
+shift  0.3: -499.6185021932
+shift -0.5: -550.7654016975
+par 1 + 0.5: -488.0283900882
+par 2 + 0.5: -488.3283860382
+par 3 + 0.5: -516.5664850185
+par 4 + 0.5: -487.0911878171
+== first 3 draws ==
+     Intercept          x sigma_Intercept        b[1]
+[1,] 0.2738063  0.4013988        1.575349  0.03407204
+[2,] 0.9366278  0.3798227        1.379947 -0.18222133
+[3,] 0.2307557 -0.1355575        1.631403  0.62690125

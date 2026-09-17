@@ -30,7 +30,7 @@ test_that("non-gaussian REML agrees with glmmTMB's", {
   gp <- glmmTMB::glmmTMB(yp ~ x + (1 | g), family = poisson,
                          data = dd, REML = TRUE)
   expect_lt(abs(as.numeric(logLik(fp)) - as.numeric(logLik(gp))), 1e-5)
-  expect_lt(abs(sqrt(VarCorr(fp)[[1]][1, 1]) -
+  expect_lt(abs(sqrt(varcorr_matrices(fp)[[1]][1, 1]) -
                   attr(glmmTMB::VarCorr(gp)$cond$g, "stddev")[[1]]),
             1e-4)
 

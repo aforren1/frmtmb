@@ -1,0 +1,40 @@
+﻿Rscript.exe : Compiling Stan program...
+At line:1 char:420
++ ... | Out-Null; & "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" dev/brmsna ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Compiling Stan program...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Start sampling
+C1 fitted in 3.349156 mins 
+  variables: b_Intercept b_x b_IxE2 b_fcMd b_fe b_x:fcMd b_x:fe sd_g__Intercept sd_g__x sd_g__z sd_h__Intercept cor_g__Intercept__x cor_g__Intercept__z cor_g__x__z sigma Intercept r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] r_g[4,Intercept] r_g[5,Intercept] r_g[6,Intercept] r_g[7,Intercept] r_g[8,Intercept] r_g[9,Intercept] r_g[10,Intercept] r_g[11,Intercept] r_g[12,Intercept] r_g[1,x] r_g[2,x] r_g[3,x] r_g[4,x] r_g[5,x] r_g[6,x] r_g[7,x] r_g[8,x] r_g[9,x] r_g[10,x] r_g[11,x] r_g[12,x] r_g[1,z] r_g[2,z] r_g[3,z] r_g[4,z] r_g[5,z] r_g[6,z] r_g[7,z] r_g[8,z] r_g[9,z] r_g[10,z] r_g[11,z] r_g[12,z] r_h[lvl-2,Intercept] r_h[lvl.1,Intercept] r_h[lvl3,Intercept] lprior lp__ 
+Compiling Stan program...
+Start sampling
+C2 fitted in 3.568224 mins 
+  variables: b_Intercept b_x sd_g__Intercept sd_g__x sd_g__z sd_g__w cor_g__Intercept__x cor_g__Intercept__z cor_g__x__z cor_g__Intercept__w cor_g__x__w cor_g__z__w sigma Intercept r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] r_g[4,Intercept] r_g[5,Intercept] r_g[6,Intercept] r_g[7,Intercept] r_g[8,Intercept] r_g[9,Intercept] r_g[10,Intercept] r_g[11,Intercept] r_g[12,Intercept] r_g[1,x] r_g[2,x] r_g[3,x] r_g[4,x] r_g[5,x] r_g[6,x] r_g[7,x] r_g[8,x] r_g[9,x] r_g[10,x] r_g[11,x] r_g[12,x] r_g[1,z] r_g[2,z] r_g[3,z] r_g[4,z] r_g[5,z] r_g[6,z] r_g[7,z] r_g[8,z] r_g[9,z] r_g[10,z] r_g[11,z] r_g[12,z] r_g[1,w] r_g[2,w] r_g[3,w] r_g[4,w] r_g[5,w] r_g[6,w] r_g[7,w] r_g[8,w] r_g[9,w] r_g[10,w] 
+Compiling Stan program...
+Start sampling
+C3 fitted in 4.104796 mins 
+  variables: b_Intercept b_sigma_Intercept b_x b_sigma_z sd_g__Intercept sd_g__sigma_Intercept cor_g__Intercept__sigma_Intercept Intercept Intercept_sigma r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] r_g[4,Intercept] r_g[5,Intercept] r_g[6,Intercept] r_g[7,Intercept] r_g[8,Intercept] r_g[9,Intercept] r_g[10,Intercept] r_g[11,Intercept] r_g[12,Intercept] r_g__sigma[1,Intercept] r_g__sigma[2,Intercept] r_g__sigma[3,Intercept] r_g__sigma[4,Intercept] r_g__sigma[5,Intercept] r_g__sigma[6,Intercept] r_g__sigma[7,Intercept] r_g__sigma[8,Intercept] r_g__sigma[9,Intercept] r_g__sigma[10,Intercept] r_g__sigma[11,Intercept] r_g__sigma[12,Intercept] lprior lp__ 
+Compiling Stan program...
+Start sampling
+C4 fitted in 3.343063 mins 
+  variables: b_ya_Intercept b_y2_Intercept b_ya_x b_y2_x sd_g__ya_Intercept sd_g__y2_Intercept cor_g__ya_Intercept__y2_Intercept sigma_ya sigma_y2 Intercept_ya Intercept_y2 r_g__ya[1,Intercept] r_g__ya[2,Intercept] r_g__ya[3,Intercept] r_g__ya[4,Intercept] r_g__ya[5,Intercept] r_g__ya[6,Intercept] r_g__ya[7,Intercept] r_g__ya[8,Intercept] r_g__ya[9,Intercept] r_g__ya[10,Intercept] r_g__ya[11,Intercept] r_g__ya[12,Intercept] r_g__y2[1,Intercept] r_g__y2[2,Intercept] r_g__y2[3,Intercept] r_g__y2[4,Intercept] r_g__y2[5,Intercept] r_g__y2[6,Intercept] r_g__y2[7,Intercept] r_g__y2[8,Intercept] r_g__y2[9,Intercept] r_g__y2[10,Intercept] r_g__y2[11,Intercept] r_g__y2[12,Intercept] lprior lp__ 
+Compiling Stan program...
+Start sampling
+C5 fitted in 2.96244 mins 
+  variables: b_a_Intercept b_b_Intercept sd_g__a_Intercept sigma r_g__a[1,Intercept] r_g__a[2,Intercept] r_g__a[3,Intercept] r_g__a[4,Intercept] r_g__a[5,Intercept] r_g__a[6,Intercept] r_g__a[7,Intercept] r_g__a[8,Intercept] r_g__a[9,Intercept] r_g__a[10,Intercept] r_g__a[11,Intercept] r_g__a[12,Intercept] lprior lp__ 
+Compiling Stan program...
+Start sampling
+C6 fitted in 3.100003 mins 
+  variables: b_Intercept b_sigma_Intercept b_sigma_z b_sigma_z__1 sd_g__Intercept Intercept Intercept_sigma r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] r_g[4,Intercept] r_g[5,Intercept] r_g[6,Intercept] r_g[7,Intercept] r_g[8,Intercept] r_g[9,Intercept] r_g[10,Intercept] r_g[11,Intercept] r_g[12,Intercept] lprior lp__ 
+Compiling Stan program...
+Start sampling
+C7 fitted in 2.896685 mins 
+  variables: b_Intercept b_x sd_g__Intercept sd_g__x sd_g:h2__Intercept sigma Intercept r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] r_g[4,Intercept] r_g[5,Intercept] r_g[6,Intercept] r_g[7,Intercept] r_g[8,Intercept] r_g[9,Intercept] r_g[10,Intercept] r_g[11,Intercept] r_g[12,Intercept] r_g[1,x] r_g[2,x] r_g[3,x] r_g[4,x] r_g[5,x] r_g[6,x] r_g[7,x] r_g[8,x] r_g[9,x] r_g[10,x] r_g[11,x] r_g[12,x] r_g:h2[1_p,Intercept] r_g:h2[1_q,Intercept] r_g:h2[1_r,Intercept] r_g:h2[1_s,Intercept] r_g:h2[1_t,Intercept] r_g:h2[10_p,Intercept] r_g:h2[10_q,Intercept] r_g:h2[10_r,Intercept] r_g:h2[10_s,Intercept] r_g:h2[10_t,Intercept] r_g:h2[11_p,Intercept] r_g:h2[11_q,Intercept] r_g:h2[11_r,Intercept] r_g:h2[11_s,Intercept] r_g:h2[11_t,Intercept] r_g:h2[12_p,Intercept] r_g:h2[12_q,Intercept] r_g:h2[12_r,Intercept] r_g:h2[12_s,Intercept] r_g:h2[12_t,Intercept] r_g:h2[2_p,Intercept] r_g:h2[2_q,Intercept] r_g:h2[2_r,Intercept] r_g:h2[2_s,Intercept] r_g:h2[2_t,Intercept] r_g:h2[3_p,Intercept] r_g:h2[3_q,Intercept] r_g:h2[3_r,Intercept] r_g:h2[3_s,Intercept] 
+Compiling Stan program...
+Start sampling
+C8 fitted in 3.886167 mins 
+  variables: b_Intercept b_x sd_g__Intercept sigma Intercept r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] r_g[4,Intercept] r_g[5,Intercept] r_g[6,Intercept] r_g[7,Intercept] r_g[8,Intercept] r_g[9,Intercept] r_g[10,Intercept] r_g[11,Intercept] r_g[12,Intercept] lprior lp__ 
+There were 26 warnings (use warnings() to see them)
+DONE

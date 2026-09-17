@@ -1,0 +1,290 @@
+
+== model beta ==
+  column renames (base -> lane): Intercept->b_Intercept x->b_x phi_Intercept->phi 
+  draws columns identical: 3 of 4 ; differing: phi 
+    phi: base mean 2.473, lane mean 11.92, lane vs exp(base) 0, vs plogis(base) 0.938
+  epred         identical TRUE  max rel diff 0
+  linpred       identical TRUE  max rel diff 0
+  linpred_dpar  identical TRUE  max rel diff 0
+  epred_dpar    identical TRUE  max rel diff 0
+  predict       identical TRUE  max rel diff 0
+  loglik        identical TRUE  max rel diff 0
+  loo           identical TRUE  max rel diff 0
+  waic          identical TRUE  max rel diff 0
+  r2            identical TRUE  max rel diff 0
+  perr          identical TRUE  max rel diff 0
+  pint          identical TRUE  max rel diff 0
+  ce            identical FALSE max rel diff 0.172
+  ce_pred       base: ERROR: conditional_effects() on draws has no method =: the curves ARE posterior expected-r | lane: ERROR: conditional_effects() on draws has no method = "posterior_predict": the curves ARE 
+  ce_dpar       identical FALSE max rel diff 0.0153
+  ppc           identical TRUE  max rel diff 0
+  ppc_stat      identical TRUE  max rel diff 0
+  vc            base:  | lane: ERROR: The model does not contain covariance matrices.
+  hyp_x         identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_x_point   identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_nat       base: ERROR: object 'phi' not found
+Available names: Intercept, x, phi_Intercept
+(the internal s | lane: 3.91837992013651.169378316982612.068619510097396.09343782539133Inf1
+  summary       identical FALSE max rel diff 0.916
+  print         identical TRUE  max rel diff no finite
+
+== model gauss ==
+  column renames (base -> lane): Intercept->b_Intercept x->b_x sigma_Intercept->sigma 
+  draws columns identical: 12 of 13 ; differing: sigma 
+    sigma: base mean 1.485, lane mean 4.423, lane vs exp(base) 0, vs plogis(base) 0.844
+  epred         identical TRUE  max rel diff 0
+  linpred       identical TRUE  max rel diff 0
+  linpred_dpar  identical TRUE  max rel diff 0
+  epred_dpar    identical TRUE  max rel diff 0
+  predict       identical TRUE  max rel diff 0
+  loglik        identical TRUE  max rel diff 0
+  loo           identical TRUE  max rel diff 0
+  waic          identical TRUE  max rel diff 0
+  r2            identical TRUE  max rel diff 0
+  perr          identical TRUE  max rel diff 0
+  pint          identical TRUE  max rel diff 0
+  ce            identical FALSE max rel diff 0.862
+  ce_pred       base: ERROR: conditional_effects() on draws has no method =: the curves ARE posterior expected-r | lane: ERROR: conditional_effects() on draws has no method = "posterior_predict": the curves ARE 
+  ce_dpar       identical FALSE max rel diff 0.0386
+  ppc           identical TRUE  max rel diff 0
+  ppc_stat      identical TRUE  max rel diff 0
+  vc            identical FALSE max rel diff LENGTH 3 vs 8
+  hyp_x         identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_x_point   identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_nat       identical FALSE max rel diff LENGTH 8 vs 6
+  summary       identical FALSE max rel diff 0.776
+  print         identical TRUE  max rel diff no finite
+  hyp_mix       identical FALSE max rel diff LENGTH 8 vs 6
+  ranef         base: ERROR: ranef() has no argument `summary`. It takes: object | lane: -0.00163607119001830.4188996826556140.26419940918164-0.9533614507694190.2559576366548610.0
+  cl            identical TRUE  max rel diff 0
+
+== model gauss_laplace ==
+  column renames (base -> lane): Intercept->b_Intercept x->b_x sigma_Intercept->sigma 
+  draws columns identical: 4 of 5 ; differing: sigma 
+    sigma: base mean 1.485, lane mean 4.42, lane vs exp(base) 0, vs plogis(base) 0.836
+  epred         identical TRUE  max rel diff 0
+  linpred       identical TRUE  max rel diff 0
+  linpred_dpar  identical TRUE  max rel diff 0
+  epred_dpar    identical TRUE  max rel diff 0
+  predict       identical TRUE  max rel diff 0
+  loglik        base: ERROR: log_lik() needs draws of the random effects, and these draws come from frm_sample(l | lane: ERROR: log_lik() needs draws of the random effects, and these draws come from frm_sample(l
+  loo           base: ERROR: log_lik() needs draws of the random effects, and these draws come from frm_sample(l | lane: ERROR: log_lik() needs draws of the random effects, and these draws come from frm_sample(l
+  waic          base: ERROR: log_lik() needs draws of the random effects, and these draws come from frm_sample(l | lane: ERROR: log_lik() needs draws of the random effects, and these draws come from frm_sample(l
+  r2            identical TRUE  max rel diff 0
+  perr          identical TRUE  max rel diff 0
+  pint          base: ERROR: missing values and NaN's not allowed if 'na.rm' is FALSE | lane: ERROR: missing values and NaN's not allowed if 'na.rm' is FALSE
+  ce            base: ERROR: conditional_effects() on draws from frm_sample(laplace = TRUE) cannot rebuild the p | lane: ERROR: conditional_effects() on draws from frm_sample(laplace = TRUE) cannot rebuild the p
+  ce_pred       base: ERROR: conditional_effects() on draws has no method =: the curves ARE posterior expected-r | lane: ERROR: conditional_effects() on draws has no method = "posterior_predict": the curves ARE 
+  ce_dpar       base: ERROR: conditional_effects() on draws from frm_sample(laplace = TRUE) cannot rebuild the p | lane: ERROR: conditional_effects() on draws from frm_sample(laplace = TRUE) cannot rebuild the p
+  ppc           base: ERROR: NAs not allowed in predictions. | lane: ERROR: NAs not allowed in predictions.
+  ppc_stat      base: ERROR: NAs not allowed in predictions. | lane: ERROR: NAs not allowed in predictions.
+  vc            base: ERROR: subscript out of bounds | lane: 0.5301696287234240.4009169063795580.05264406970616481.43453693214634.4199618842220.2425972
+  hyp_x         identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_x_point   identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_nat       identical FALSE max rel diff LENGTH 8 vs 6
+  summary       identical FALSE max rel diff 0.775
+  print         identical TRUE  max rel diff no finite
+
+== model gauss_ncp ==
+  column renames (base -> lane): Intercept->b_Intercept x->b_x sigma_Intercept->sigma 
+  draws columns identical: 12 of 13 ; differing: sigma 
+    sigma: base mean 1.482, lane mean 4.409, lane vs exp(base) 0, vs plogis(base) 0.834
+  epred         identical TRUE  max rel diff 0
+  linpred       identical TRUE  max rel diff 0
+  linpred_dpar  identical TRUE  max rel diff 0
+  epred_dpar    identical TRUE  max rel diff 0
+  predict       identical TRUE  max rel diff 0
+  loglik        identical TRUE  max rel diff 0
+  loo           identical TRUE  max rel diff 0
+  waic          identical TRUE  max rel diff 0
+  r2            identical TRUE  max rel diff 0
+  perr          identical TRUE  max rel diff 0
+  pint          identical TRUE  max rel diff 0
+  ce            identical FALSE max rel diff 1.31
+  ce_pred       base: ERROR: conditional_effects() on draws has no method =: the curves ARE posterior expected-r | lane: ERROR: conditional_effects() on draws has no method = "posterior_predict": the curves ARE 
+  ce_dpar       identical FALSE max rel diff 0.0338
+  ppc           identical TRUE  max rel diff 0
+  ppc_stat      identical TRUE  max rel diff 0
+  vc            identical FALSE max rel diff LENGTH 3 vs 8
+  hyp_x         identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_x_point   identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_nat       identical FALSE max rel diff LENGTH 8 vs 6
+  summary       identical FALSE max rel diff 0.775
+  print         identical TRUE  max rel diff no finite
+
+== model gauss_prior ==
+  column renames (base -> lane): Intercept->b_Intercept x->b_x sigma_Intercept->sigma 
+  draws columns identical: 12 of 13 ; differing: sigma 
+    sigma: base mean 1.484, lane mean 4.415, lane vs exp(base) 0, vs plogis(base) 0.837
+  epred         identical TRUE  max rel diff 0
+  linpred       identical TRUE  max rel diff 0
+  linpred_dpar  identical TRUE  max rel diff 0
+  epred_dpar    identical TRUE  max rel diff 0
+  predict       identical TRUE  max rel diff 0
+  loglik        identical TRUE  max rel diff 0
+  loo           identical TRUE  max rel diff 0
+  waic          identical TRUE  max rel diff 0
+  r2            identical TRUE  max rel diff 0
+  perr          identical TRUE  max rel diff 0
+  pint          identical TRUE  max rel diff 0
+  ce            identical FALSE max rel diff 1.76
+  ce_pred       base: ERROR: conditional_effects() on draws has no method =: the curves ARE posterior expected-r | lane: ERROR: conditional_effects() on draws has no method = "posterior_predict": the curves ARE 
+  ce_dpar       identical FALSE max rel diff 0.00406
+  ppc           identical TRUE  max rel diff 0
+  ppc_stat      identical TRUE  max rel diff 0
+  vc            identical FALSE max rel diff LENGTH 3 vs 8
+  hyp_x         identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_x_point   identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_nat       identical FALSE max rel diff LENGTH 8 vs 6
+  summary       identical FALSE max rel diff 0.773
+  print         identical TRUE  max rel diff no finite
+  hyp_mix       identical FALSE max rel diff LENGTH 8 vs 6
+  ranef         base: ERROR: ranef() has no argument `summary`. It takes: object | lane: 0.9659745643123280.411019927985219-0.107972289879272-0.240451479745665-0.245694003044986-0
+  cl            identical TRUE  max rel diff 0
+
+== model hurdle ==
+  column renames (base -> lane): Intercept->b_Intercept x->b_x shape_Intercept->shape hu_Intercept->hu 
+  draws columns identical: 3 of 5 ; differing: shape hu 
+    shape: base mean 1.193, lane mean 3.326, lane vs exp(base) 0, vs plogis(base) 0.829
+    hu: base mean -0.5888, lane mean 0.3577, lane vs exp(base) 0.474, vs plogis(base) 0
+  epred         identical FALSE max rel diff 3.44e-16
+  linpred       identical TRUE  max rel diff 0
+  linpred_dpar  identical FALSE max rel diff 1.62e-15
+  epred_dpar    identical FALSE max rel diff 3.18e-16
+  predict       identical TRUE  max rel diff 0
+  loglik        identical FALSE max rel diff 4.31e-16
+  loo           identical FALSE max rel diff 8.27e-16
+  waic          identical FALSE max rel diff 2.39e-16
+  r2            identical TRUE  max rel diff 0
+  perr          identical TRUE  max rel diff 0
+  pint          identical TRUE  max rel diff 0
+  ce            identical FALSE max rel diff 0.151
+  ce_pred       base: ERROR: conditional_effects() on draws has no method =: the curves ARE posterior expected-r | lane: ERROR: conditional_effects() on draws has no method = "posterior_predict": the curves ARE 
+  ce_dpar       identical FALSE max rel diff 0.101
+  ppc           identical TRUE  max rel diff 0
+  ppc_stat      identical TRUE  max rel diff 0
+  vc            base:  | lane: ERROR: The model does not contain covariance matrices.
+  hyp_x         identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_x_point   identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_nat       base: ERROR: object 'hu' not found
+Available names: Intercept, x, shape_Intercept, hu_Intercept
+ | lane: 0.05773877005686010.0373938257583025-0.0009621099579542310.12112857702908815.6666666666667
+  summary       identical FALSE max rel diff 1.61
+  print         identical TRUE  max rel diff no finite
+
+== model mv ==
+  column renames (base -> lane): ya_Intercept->b_ya_Intercept ya_x->b_ya_x y2_Intercept->b_y2_Intercept y2_x->b_y2_x ya_sigma_Intercept->sigma_ya y2_sigma_Intercept->sigma_y2 
+  draws columns identical: 5 of 7 ; differing: sigma_ya sigma_y2 
+    sigma_ya: base mean 1.126, lane mean 3.087, lane vs exp(base) 0, vs plogis(base) 0.784
+    sigma_y2: base mean -1.148, lane mean 0.3177, lane vs exp(base) 0, vs plogis(base) 0.268
+  epred         identical TRUE  max rel diff 0
+  linpred       identical TRUE  max rel diff 0
+  linpred_dpar  identical FALSE max rel diff 1.13e-16
+  epred_dpar    identical TRUE  max rel diff 0
+  predict       identical TRUE  max rel diff 0
+  loglik        identical TRUE  max rel diff 0
+  loo           identical TRUE  max rel diff 0
+  waic          identical TRUE  max rel diff 0
+  r2            identical TRUE  max rel diff 0
+  perr          identical TRUE  max rel diff 0
+  pint          identical TRUE  max rel diff 0
+  ce            identical FALSE max rel diff 0.124
+  ce_pred       base: ERROR: conditional_effects() on draws has no method =: the curves ARE posterior expected-r | lane: ERROR: conditional_effects() on draws has no method = "posterior_predict": the curves ARE 
+  ce_dpar       identical FALSE max rel diff 0.0516
+  ppc           base: ERROR: pp_check() is not supported yet for multivariate fits | lane: 111112222233333444445555566666777778888899999101010101011111111111212121212131313131314141
+  ppc_stat      base: ERROR: pp_check() is not supported yet for multivariate fits | lane: 2.116481391704272.267656287071811.974337004898451.999301081115771.690234020806122.25632481
+  vc            identical FALSE max rel diff LENGTH 0 vs 8
+  hyp_x         identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_x_point   identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_nat       base: ERROR: object 'sigma_ya' not found
+Available names: ya_Intercept, ya_x, y2_Intercept, y2_x | lane: 1.087365180530210.1835345207087050.7981895053066821.39061914329509Inf1
+  summary       identical FALSE max rel diff 1.34
+  print         identical TRUE  max rel diff no finite
+
+== model negbin ==
+  column renames (base -> lane): Intercept->b_Intercept x->b_x shape_Intercept->shape 
+  draws columns identical: 3 of 4 ; differing: shape 
+    shape: base mean 0.8542, lane mean 2.403, lane vs exp(base) 0, vs plogis(base) 0.791
+  epred         identical TRUE  max rel diff 0
+  linpred       identical TRUE  max rel diff 0
+  linpred_dpar  identical FALSE max rel diff 1.9e-16
+  epred_dpar    identical TRUE  max rel diff 0
+  predict       identical TRUE  max rel diff 0
+  loglik        identical TRUE  max rel diff 0
+  loo           identical TRUE  max rel diff 0
+  waic          identical TRUE  max rel diff 0
+  r2            identical TRUE  max rel diff 0
+  perr          identical TRUE  max rel diff 0
+  pint          identical TRUE  max rel diff 0
+  ce            identical FALSE max rel diff 0.187
+  ce_pred       base: ERROR: conditional_effects() on draws has no method =: the curves ARE posterior expected-r | lane: ERROR: conditional_effects() on draws has no method = "posterior_predict": the curves ARE 
+  ce_dpar       identical FALSE max rel diff 0.0281
+  ppc           identical TRUE  max rel diff 0
+  ppc_stat      identical TRUE  max rel diff 0
+  vc            base:  | lane: ERROR: The model does not contain covariance matrices.
+  hyp_x         identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_x_point   identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_nat       base: ERROR: object 'shape' not found
+Available names: Intercept, x, shape_Intercept
+(the intern | lane: 0.4034241826881880.51540141598454-0.2892950246718941.365891268789193.255319148936170.765
+  summary       identical FALSE max rel diff 0.709
+  print         identical TRUE  max rel diff no finite
+
+== model student ==
+  column renames (base -> lane): Intercept->b_Intercept x->b_x sigma_Intercept->sigma nu_Intercept->nu 
+  draws columns identical: 3 of 5 ; differing: sigma nu 
+    sigma: base mean 0.6255, lane mean 1.879, lane vs exp(base) 0, vs plogis(base) 0.712
+    nu: base mean 0.3861, lane mean 2.571, lane vs exp(base) 0.668, vs plogis(base) 0.818
+  epred         identical TRUE  max rel diff 0
+  linpred       identical TRUE  max rel diff 0
+  linpred_dpar  identical FALSE max rel diff 1.41e-14
+  epred_dpar    identical TRUE  max rel diff 0
+  predict       identical TRUE  max rel diff 0
+  loglik        identical TRUE  max rel diff 0
+  loo           identical TRUE  max rel diff 0
+  waic          identical TRUE  max rel diff 0
+  r2            identical TRUE  max rel diff 0
+  perr          identical TRUE  max rel diff 0
+  pint          identical TRUE  max rel diff 0
+  ce            identical FALSE max rel diff 1.33
+  ce_pred       base: ERROR: conditional_effects() on draws has no method =: the curves ARE posterior expected-r | lane: ERROR: conditional_effects() on draws has no method = "posterior_predict": the curves ARE 
+  ce_dpar       identical FALSE max rel diff 0.116
+  ppc           identical TRUE  max rel diff 0
+  ppc_stat      identical TRUE  max rel diff 0
+  vc            identical FALSE max rel diff LENGTH 0 vs 4
+  hyp_x         identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_x_point   identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_nat       base: ERROR: object 'nu' not found
+Available names: Intercept, x, sigma_Intercept, nu_Intercept, | lane: -0.4286954621533620.574454779177082-1.193550881886940.655095275605420.250.2
+  summary       identical FALSE max rel diff 1.19
+  print         identical TRUE  max rel diff no finite
+
+== model zip ==
+  column renames (base -> lane): Intercept->b_Intercept x->b_x zi_Intercept->zi 
+  draws columns identical: 3 of 4 ; differing: zi 
+    zi: base mean -0.7321, lane mean 0.3262, lane vs exp(base) 0.463, vs plogis(base) 0
+  epred         identical FALSE max rel diff 3.23e-16
+  linpred       identical TRUE  max rel diff 0
+  linpred_dpar  identical FALSE max rel diff 1.49e-15
+  epred_dpar    identical FALSE max rel diff 2.14e-16
+  predict       identical TRUE  max rel diff 0
+  loglik        identical FALSE max rel diff 4.4e-16
+  loo           identical FALSE max rel diff 2.05e-15
+  waic          identical FALSE max rel diff 1.59e-16
+  r2            identical TRUE  max rel diff 0
+  perr          identical TRUE  max rel diff 0
+  pint          identical TRUE  max rel diff 0
+  ce            identical FALSE max rel diff 0.115
+  ce_pred       base: ERROR: conditional_effects() on draws has no method =: the curves ARE posterior expected-r | lane: ERROR: conditional_effects() on draws has no method = "posterior_predict": the curves ARE 
+  ce_dpar       identical FALSE max rel diff 0.0167
+  ppc           identical TRUE  max rel diff 0
+  ppc_stat      identical TRUE  max rel diff 0
+  vc            base:  | lane: ERROR: The model does not contain covariance matrices.
+  hyp_x         identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_x_point   identical FALSE max rel diff LENGTH 1 vs 6
+  hyp_nat       base: ERROR: object 'zi' not found
+Available names: Intercept, x, zi_Intercept
+(the internal spe | lane: 0.1262264956523870.0444170734309610.06417331626095050.205083873673843Inf1
+  summary       identical FALSE max rel diff 1.76
+  print         identical TRUE  max rel diff no finite
+There were 40 warnings (use warnings() to see them)

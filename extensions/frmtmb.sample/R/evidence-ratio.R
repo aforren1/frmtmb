@@ -132,10 +132,10 @@ er_entries <- function(fit) {
 #'
 #' @noRd
 er_coef_pos <- function(fit, nms) {
-  raw <- estimated_coef_names(fit)
-  bare <- gsub("[()]", "", raw)
-  pos <- match(nms, bare)
-  ifelse(is.na(pos), match(nms, raw), pos)
+  # the expression's names are brms's; a natural-scale name such as
+  # sigma is the parameter itself, whose prior is not the coefficient's
+  tab <- brms_coef_table(fit)
+  match(nms, ifelse(tab$natural, NA_character_, tab$brms))
 }
 
 #' The template slot one coefficient position occupies.
@@ -208,30 +208,28 @@ er_affine <- function(fit, ex, vo, pos) {
 #'
 #' @noRd
 er_prior_at_zero <- function(fit, ex, vo, entries) {
-  nms <- all.vars(ex)
+  nms <- hyp_expr_vars(ex)
   if (!length(nms)) {
     return(list(why = paste("it names no parameter, so there is no",
                             "prior density to read")))
   }
   pos <- er_coef_pos(fit, nms)
   if (anyNA(pos)) {
-    # every name that reaches here resolved in the hypothesis
-    # environment, so a name that is not a coefficient is one of the
-    # NATURAL-SCALE summaries that environment also carries. Saying
-    # "not a population-level coefficient" about `sigma` was true of
-    # the name and false of the model - sigma IS a coefficient here,
-    # reported on a different scale - and a user who reads that stops
-    # believing the package.
+    # every name that reaches here resolved in the hypothesis, so a name
+    # that is not a coefficient is a quantity whose prior is not written
+    # on it: a natural-scale sigma, an sd_ or cor_ summary, or a
+    # group-level r_ coefficient, whose prior is the group's distribution
     return(list(why = paste0("it names ",
                              paste(nms[is.na(pos)], collapse = ", "),
-                             ", a natural-scale summary rather than a ",
-                             "population-level coefficient. A standard ",
-                             "deviation, a correlation and a dispersion ",
-                             "are each reported on a scale their prior ",
-                             "is not written on: the prior sits on the ",
-                             "internal parameter with a change of ",
-                             "variables in between, so its density is ",
-                             "not the density of the tested quantity")))
+                             ", which is not a population-level ",
+                             "coefficient. A standard deviation, a ",
+                             "correlation and a dispersion have their ",
+                             "prior on the internal parameter with a ",
+                             "change of variables in between, and a ",
+                             "group-level coefficient has the group's ",
+                             "distribution rather than a prior of its ",
+                             "own, so neither density is the prior ",
+                             "density of the tested quantity")))
   }
   slots <- lapply(pos, function(i) er_coef_slot(fit, i))
   ent <- lapply(slots, function(s) er_entry_for(entries, s))

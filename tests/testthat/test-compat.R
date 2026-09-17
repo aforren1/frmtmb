@@ -523,5 +523,5 @@ test_that("the multivariate declarations match a multivariate fit", {
                tolerance = 1e-6)
   expect_lt(ci[, "lwr"], ci[, "upr"])
   hp <- hypothesis(fit, "y_x = 0", method = "profile")
-  expect_equal(nrow(hp), 1L)
+  expect_equal(nrow(hp$hypothesis), 1L)
 })

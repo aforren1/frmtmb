@@ -549,19 +549,24 @@ d3_stat <- function(dbar, dtilde, k, m) {
 #' @rdname hypothesis
 #' @exportS3Method brms::hypothesis
 #' @export
-hypothesis.frmtmb_multiple <- function(x, hypothesis, alpha = 0.05,
-                                       class = NULL, group = NULL, ...) {
-  # armed in the method, not the generic: see hypothesis.frmtmb_fit
-  old <- hyp_shadow_arm()
-  on.exit(hyp_shadow_disarm(old), add = TRUE)
+hypothesis.frmtmb_multiple <- function(x, hypothesis, class = "b",
+                                       group = "",
+                                       scope = c("standard", "ranef",
+                                                 "coef"),
+                                       alpha = 0.05, robust = FALSE,
+                                       seed = NULL, ...) {
   # refused, not warned about: a pooled table built as if the argument
   # had not been given is a wrong answer with a note beside it
   frm_check_dots(...)
+  hyp_refuse_draws_args(scope, robust, "hypothesis()")
+  check_probability(alpha, "alpha")
   vo <- hyp_vals_only(x$fits[[1]])
+  prefix <- hyp_class_prefix(class, group)
   hp <- hyp_parse_all(hypothesis,
                       names(hyp_env_vals(x$fits[[1]], vo$vals, vo$comp)),
                       class, group)
   exs <- hp$exprs
+  labels <- hyp_labels(hypothesis)
   m <- x$m
   Q <- matrix(NA_real_, length(exs), m)
   U <- matrix(NA_real_, length(exs), m)
@@ -582,24 +587,32 @@ hypothesis.frmtmb_multiple <- function(x, hypothesis, alpha = 0.05,
     }
   }
   pl <- rubin_pool(Q, U, df.residual(x$fits[[1]]))
-  rows <- lapply(seq_along(exs), function(i) {
+  k_n <- length(exs)
+  lwr <- upr <- stat <- p <- numeric(k_n)
+  for (i in seq_len(k_n)) {
     # the reference is the Barnard-Rubin t of this row, so the
     # quantile and tail functions go in per row
     df_i <- pl$df[i]
     wr <- hyp_wald_row(pl$estimate[i], pl$se[i], hp$dir[i], alpha,
                        function(p) stats::qt(p, df_i),
                        function(q) stats::pt(q, df_i))
-    data.frame(hypothesis = hypothesis[i], estimate = pl$estimate[i],
-               se = pl$se[i], lwr = wr$lwr, upr = wr$upr,
-               t = wr$stat, df = df_i, p = wr$p)
-  })
-  out <- do.call(rbind, rows)
-  rownames(out) <- NULL
-  attr(out, "method") <- "wald"
-  attr(out, "alpha") <- alpha
-  attr(out, "direction") <- hp$dir
-  class(out) <- c("frmtmb_hypothesis", "data.frame")
-  out
+    stat[i] <- wr$stat
+    p[i] <- wr$p
+    # brms's interval: central 1 - 2 alpha for a directional row
+    lo <- if (hp$dir[i] == "two.sided") alpha / 2 else alpha
+    q <- stats::qt(1 - lo, df_i)
+    lwr[i] <- pl$estimate[i] - q * pl$se[i]
+    upr[i] <- pl$estimate[i] + q * pl$se[i]
+  }
+  na_col <- rep(NA_real_, k_n)
+  hyp_brms_result(
+    labels, pl$estimate, pl$se, lwr, upr, na_col, na_col, hp$dir,
+    ifelse(hp$dir == "greater", lwr > 0, upr < 0),
+    hyp_samples_frame(NULL, k_n),
+    hyp_samples_frame(matrix(NA_real_, 0L, k_n), k_n), prefix, alpha,
+    list(method = "wald",
+         test = data.frame(Hypothesis = labels, t = stat, df = pl$df,
+                           p = p)))
 }
 
 ## Post-processing entry points that a pooled fit cannot serve.

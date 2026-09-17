@@ -1,0 +1,12 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-data2.R 
+BLOCKS  8 
+PASS    29 
+FAIL    0 
+ERROR   1 
+SKIP    0 
+  failing: get_prior() and frm_simulate() take data2
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+DONE

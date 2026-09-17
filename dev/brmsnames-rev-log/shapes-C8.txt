@@ -1,0 +1,26 @@
+﻿
+== C8 ==
+  variables              brms-only: sd_g__Intercept sigma
+                         frmtmb-only: b_sigma_Intercept
+  fixef/dimnames[1]: brms-only [] frmtmb-only [sigma_Intercept] 
+  fixef_nosum/dimnames/draw: brms-only [] frmtmb-only [61 62 63 64 65 66]
+  fixef_nosum/dimnames/variable: brms-only [] frmtmb-only [sigma_Intercept]
+  fixef_nosum/dim_tail: brms-only [2] frmtmb-only [3] 
+  coef/el/g/dimnames[3]: brms-only [] frmtmb-only [sigma_Intercept]
+  coef/el/g/dim_tail: brms-only [2] frmtmb-only [3] 
+  coef_nosum/el/g/dimnames[3]: brms-only [] frmtmb-only [sigma_Intercept]
+  coef_nosum/el/g/dim_tail: brms-only [2] frmtmb-only [3] 
+  VarCorr_nosum/el/g/el/sd/dimnames/draw: brms-only [] frmtmb-only [61 62 63 64 65 66]
+  VarCorr_nosum/el/residual__/el/sd/dimnames/draw: brms-only [] frmtmb-only [61 62 63 64 65 66] 
+  posterior_summary_b/dimnames[1]: brms-only [] frmtmb-only [b_sigma_Intercept] 
+  as_draws_df_cols       brms-only: 
+                         frmtmb-only: b_sigma_Intercept
+  as_array/dimnames/iteration: brms-only [] frmtmb-only [31 32 33 34 35 36] 
+  as_matrix/dimnames/draw: brms-only [] frmtmb-only [61 62 63 64 65 66] 
+  hyp/el/samples/dimnames[1]: brms-only [] frmtmb-only [61 62 63 64 65 66]
+  hyp/el/prior_samples/dimnames[1]: brms-only [] frmtmb-only [61 62 63 64 65 66] 
+  hyp_ranef/el/samples/dimnames[1]: brms-only [] frmtmb-only [61 62 63 64 65 66]
+  hyp_ranef/el/prior_samples/dimnames[1]: brms-only [] frmtmb-only [61 62 63 64 65 66] 
+  hyp_coef/el/samples/dimnames[1]: brms-only [] frmtmb-only [61 62 63 64 65 66]
+  hyp_coef/el/prior_samples/dimnames[1]: brms-only [] frmtmb-only [61 62 63 64 65 66] 
+DONE

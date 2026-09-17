@@ -40,9 +40,9 @@ quantile residual, which has no units by construction.
    \code{simulate()} \tab draws of the outcome \tab response \cr
    \code{coef()}, \code{fixef()}, \code{ranef()} \tab coefficients, modes \tab link, per dpar \cr
    \code{confint()}, \code{vcov()}, \code{summary()} \tab the same \tab link, per dpar \cr
-   \code{VarCorr()} \tab covariance of a predictor \tab link, per dpar \cr
+   \code{VarCorr()} \tab SDs and correlations of a predictor \tab link, per dpar \cr
    \code{sigma()} \tab the residual SD, \code{NA} if it varies by row \tab response \cr
-   \code{hypothesis()} \tab \code{estimate} and its interval \tab link, per dpar \cr
+   \code{hypothesis()} \tab \code{Estimate} and its interval \tab link, per dpar \cr
    \code{posterior_summary()} \tab a summary of a draws MATRIX \tab that matrix's own \cr
    \code{pp_check()} \tab the outcome against replicates \tab response \cr
    \code{bayes_R2()} \tab refuses on a \code{frmtmb_fit} \tab neither \cr

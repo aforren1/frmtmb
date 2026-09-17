@@ -165,7 +165,7 @@ frm_u <- function(fit, group = 1) {
 # "0 + bias | id"), and its list runs in the same order as ranef()'s, so
 # one index serves both.
 frm_block_index <- function(fit, term) {
-  nm <- names(VarCorr(fit))
+  nm <- names(varcorr_matrices(fit))
   i <- match(term, nm)
   if (is.na(i)) {
     stop("frm_block_index(): no random-effect term '", term,
@@ -181,7 +181,7 @@ frm_u_term <- function(fit, term, col = 1L) {
 
 # That column's standard deviation.
 frm_sd_term <- function(fit, term, col = 1L) {
-  v <- unname(VarCorr(fit)[[frm_block_index(fit, term)]])
+  v <- unname(varcorr_matrices(fit)[[frm_block_index(fit, term)]])
   sqrt(v[col, col])
 }
 
@@ -192,7 +192,7 @@ frm_sd_term <- function(fit, term, col = 1L) {
 # traits, and the outer gradient of the joint is not zero at a Laplace
 # optimum anyway.
 frm_chol <- function(fit, group = 1) {
-  t(chol(unname(VarCorr(fit)[[group]])))
+  t(chol(unname(varcorr_matrices(fit)[[group]])))
 }
 
 # The identity, at one point.

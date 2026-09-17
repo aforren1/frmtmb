@@ -1,0 +1,43 @@
+﻿
+== rr ==
+variables(fit): b_Intercept b_x1 b_sigma_Intercept sd_g__Intercept sd_g__x1 sd_g__x2 cor_g__Intercept__x1 cor_g__Intercept__x2 cor_g__x1__x2 sigma 
+VarCorr(fit) names: g residual__ 
+   g sd rows: Intercept x1 x2 Estimate: 0.2278 1.318 0.2489 
+   residual__ sd rows:  Estimate: 1.087 
+varcorr_matrices sqrt diag: x1 + x2 | g 0.2278,1.318,0.2489 
+draws labels:  0 r_, 12 b[i]; dups:  
+  ranef(ds)$g dim 12x4x3 NA estimates: 36
+  ranef(fit) blocks: g 
+  VarCorr(ds) names: g residual__ 
+  coef(ds): g 
+   coef(ds)$g NA: 144
+
+== smooth_re ==
+variables(fit): b_Intercept b_sx1.fx1 b_sigma_Intercept sd_g__Intercept sd_g__x2 cor_g__Intercept__x2 sigma 
+VarCorr(fit) names: g residual__ 
+   g sd rows: Intercept x2 Estimate: 0.08926 0.6871 
+   residual__ sd rows:  Estimate: 1.389 
+varcorr_matrices sqrt diag: 1 + x2 | g 0.08926,0.6871 s(x1) 5.251 
+draws labels:  24 r_, 8 b[i]; dups:  
+  ranef(ds)$g dim 12x4x2 NA estimates: 0
+  ranef(fit) blocks: g s(x1) 
+  VarCorr(ds) names: g residual__ 
+  coef(ds): g 
+   coef(ds)$g NA: 0
+
+== animal ==
+variables(fit): b_Intercept b_sigma_Intercept sd_id__Intercept sigma 
+VarCorr(fit) names: id 1 | id residual__ 
+   id sd rows: Intercept Estimate: 6.325e-05 
+   1 | id sd rows: Intercept Estimate: 5.421e-05 
+   residual__ sd rows:  Estimate: 1.88 
+varcorr_matrices sqrt diag: 1 | id 6.325e-05 1 | id 5.421e-05 
+draws labels:  12 r_, 12 b[i]; dups:  
+  ranef(ds)$id dim 12x4x1 NA estimates: 0
+  ranef(ds)$1 | id dim 12x4x1 NA estimates: 12
+  ranef(fit) blocks: id id 
+  VarCorr(ds) names: id 1 | id residual__ 
+  coef(ds): id 1 | id 
+   coef(ds)$id NA: 0
+   coef(ds)$1 | id NA: 48
+DONE

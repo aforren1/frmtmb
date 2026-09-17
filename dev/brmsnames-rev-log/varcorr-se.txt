@@ -1,0 +1,16 @@
+﻿Rscript.exe : Loading required namespace: numDeriv
+At line:1 char:350
++ ... -brmsnames; & "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" dev/brmsna ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Loading required namespace: numDeriv:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+us4_ml    REML=FALSE rows 12  cross-block zeros  0  unmatched 0  worst rel SE diff 1.08e-10
+us4_reml  REML=TRUE  rows 12  cross-block zeros  0  unmatched 0  worst rel SE diff 4.34e-11
+near      REML=FALSE rows  7  cross-block zeros  0  unmatched 0  worst rel SE diff 4.52e-09
+diag      REML=FALSE rows  4  cross-block zeros  0  unmatched 0  worst rel SE diff 2.94e-11
+cs        REML=FALSE rows 11  cross-block zeros  0  unmatched 0  worst rel SE diff 7.2e-11
+ar1       REML=FALSE rows 11  cross-block zeros  0  unmatched 0  worst rel SE diff 3.97e-10
+mv_id     REML=FALSE rows  3  cross-block zeros  0  unmatched 0  worst rel SE diff 5.31e-11
+sigma_id  REML=FALSE rows  3  cross-block zeros  0  unmatched 0  worst rel SE diff 3.41e-11
+DONE

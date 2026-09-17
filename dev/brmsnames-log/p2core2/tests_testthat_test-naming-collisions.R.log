@@ -1,0 +1,12 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-naming-collisions.R 
+BLOCKS  6 
+PASS    28 
+FAIL    0 
+ERROR   1 
+SKIP    0 
+  failing: a covariate named sigma is b_sigma, and sigma is the SD
+       Error: Some parameters cannot be found in the model:  '.sigma' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL 
+DONE

@@ -28,7 +28,7 @@ test_that("rr() matches glmmTMB and nests us() at full rank", {
     }
   }
   # rank-2 covariance really is rank 2
-  V <- VarCorr(fit)[[1]]
+  V <- varcorr_matrices(fit)[[1]]
   expect_equal(sum(eigen(V, only.values = TRUE)$values > 1e-8), 2L)
 
   # full-rank rr must equal us exactly
@@ -49,7 +49,7 @@ test_that("rr() matches glmmTMB and nests us() at full rank", {
                unname(fitted(fit)[1:6]), tolerance = 1e-10)
   r <- ranef(fit)
   expect_equal(dim(r[[1]]), c(60L, 6L))
-  expect_equal(nrow(as.data.frame(VarCorr(fit))), 6L + 15L)
+  expect_equal(nrow(as.data.frame(varcorr_matrices(fit))), 6L + 15L)
   s <- simulate(fit, nsim = 2, re_formula = NA)
   expect_equal(nrow(s), nrow(dd))
   # se.fit works since v0.17 (loadings Jacobian)

@@ -1,3 +1,109 @@
+# frmtmb.sample (development version)
+
+This release needs the development frmtmb for `brms_par_labels()`,
+`brms_coef_table()`, `brms_stan_name()`, `expand_b()`,
+`varcorr_layout()` and the `hypothesis()` helpers (`hyp_eval_in()`,
+`hyp_expr_vars()`) on `?frmtmb::frmtmb-sampling-api`.
+
+* **BREAKING: the draws carry brms's names.** `b_Intercept`, `b_x`,
+  `b_sigma_Intercept` for the coefficients and `r_g[1,Intercept]` for a
+  group-level coefficient (`r_gs[lev.1,Intercept]` for a level with a
+  space, `r_g:h[1_p,Intercept]` for an interaction group), in
+  `ds$draws`, `variables()`, every
+  `as_draws_*()`, `as.matrix()`, `as.array()`, `as.data.frame()`,
+  `rhat()`, `neff_ratio()`, `summary()` and `posterior_summary()`. They
+  were `Intercept`, `x`, `sigma_Intercept` and `b[1]`. A covariance
+  parameter brms does not sample keeps the name `confint()` gives it on
+  the fit, `theta_1`; a block with no brms counterpart (reduced rank,
+  smooth, GP, CAR, SPDE) keeps `b[i]`. What stops working:
+  `ds$draws[, "x"]`, and anything that selected `b[` columns.
+
+* **BREAKING: a distributional parameter nobody wrote a formula for is
+  stored on its natural scale, under brms's name.** The column is
+  `sigma` (or `shape`, `nu`, and `sigma_ya` for response `y_a` of a
+  multivariate model) and holds sigma, as brms's does. It used to be
+  `b_sigma_Intercept` holding log sigma, which brms reports only when
+  `sigma ~ 1` is written out, so `fixef(ds)` had a row, `coef(ds)$g` a
+  slice, and `posterior_summary(ds)` and `as_draws_df(ds)` a column that
+  brms does not have. They are gone. What stops working:
+  `ds$draws[, "b_sigma_Intercept"]` on such a model; use `sigma`, or
+  `log(ds$draws[, "sigma"])` for the old values.
+
+  A mixture's weights are stored as brms's simplex: `theta1 ...
+  theta<K-1>` hold the mixing probabilities, and brms's `thetaK` is a
+  derived column before `lp__`. They used to be the log ratio under the
+  name `theta1_Intercept`. Every reader that hands a draw to the model
+  maps all `K` back to the log ratios together.
+
+* **Draws labels a level repeats are suffixed as brms suffixes them.**
+  Levels `lvl 1` and `lvl.1` are both `r_gd[lvl.1,Intercept]` in brms,
+  which names the later one `r_gd[lvl.1,Intercept]__1`. Without the
+  suffix every accessor failed on "Duplicate variable names".
+  `hypothesis()` on draws refuses a name that matches two columns
+  instead of reading the first.
+
+* **BREAKING: the accessors return brms's objects.** `as.matrix()`,
+  `as.array()` and `as.data.frame()` return brms's unclassed draws
+  objects and take brms's `pars`, `variable`, `draw` and `subset`, with
+  brms's deprecation warnings; `as_draws_*()` take `variable`, `regex`
+  and `inc_warmup`; `as_draws()` is brms's `as_draws_list()`.
+  `posterior_summary(x, pars, variable, probs, robust)` and
+  `posterior_interval()` cover every variable by default, as brms's do.
+  Compared against brms's own installed methods on the same draws: 88 of
+  90 calls `identical()`, the other 2 `rvars` objects that differ only by
+  a cache environment (`dev/brmsnames-findings.md`).
+
+* **BREAKING: `fixef()`, `ranef()`, `coef()` and `VarCorr()` are brms's.**
+  `summary = FALSE` returns the raw draws, as in brms, where it used to
+  return a summary; `robust`, `probs`, `pars` and `groups` are brms's.
+  `coef()` broadcasts every population-level coefficient, as brms's
+  does, and `VarCorr()` has brms's `sd`/`cor`/`cov`/`residual__`
+  structure, with one `residual__` row per response on a multivariate
+  model. `ranef()` on a model with no group-level effects is refused
+  with brms's message. `ranef()` and `coef()` on a reduced-rank block,
+  whose draws are factor scores rather than coefficients, compute the
+  coefficients per draw; on `frm_sample(laplace = TRUE)` draws, which
+  carry no group-level draws, they are refused by name rather than
+  returned as `NA`.
+
+* **BREAKING: `hypothesis()` returns brms's `brmshypothesis` object**,
+  takes `class = "b"` by default and brms's argument order, supports
+  `robust`, `seed` and `scope = "ranef"` or `"coef"`, and reports
+  `Evid.Ratio` and `Post.Prob` in brms's columns. `evid_ratio`,
+  `post_prob`, `z`, `p` and `attr(h, "draws")` are gone; the draws are
+  `h$samples`. The string is read with brms's renaming, so `x:fe` is the
+  interaction coefficient and not R's `:` operator, and a stored column
+  such as `r_g[1,Intercept]` can be named with `class = NULL`, as in
+  brms.
+
+* **BREAKING: `bayes_R2()` on a multivariate model returns one row per
+  response, `R2ya` and `R2y2`, as brms does.** It returned the first
+  response alone, named `R2y_a`. `resp` takes brms's spelling of a
+  response (`ya`).
+
+* **BREAKING: brms's positional slots on six more methods.**
+  `bayes_R2(ds, NULL, TRUE, TRUE)` now asks for brms's `robust` summary;
+  the fourth slot used to be `probs` and returned a `Q100` column.
+  `posterior_summary()`'s second slot is `pars`, `hypothesis()`'s third
+  is `class`, `pairs()`'s second is `pars`, `conditional_effects()`'s
+  third is `conditions` and `pp_check()`'s fourth is `prefix`. The
+  formals audit of `dev/brmsmatch-beyond.R` now finds 0 of 68 methods
+  diverging, from 6.
+
+* **BREAKING: `summary()` has brms's columns and slots**: `Estimate`,
+  `Est.Error`, `l-95% CI`, `u-95% CI`, `Rhat`, `Bulk_ESS`, `Tail_ESS`,
+  with `prob`, `robust` and `mc_se`.
+
+* **BREAKING: `conditional_effects()` defaults to brms's
+  `robust = TRUE`**: `estimate__` is the median of the drawn curves and
+  `se__` their MAD. `robust = FALSE` gives the mean and SD it used to.
+
+* `pp_check()` takes brms's `prefix`, `group`, `x`, `newdata`, `resp`
+  and `draw_ids`, and brms's default draw count with brms's message.
+  `log_lik()` takes brms's `pointwise`, `combine`, `add_point_estimate`
+  and `cores`, and refuses an argument it does not have, which it used
+  to accept and ignore.
+
 # frmtmb.sample 0.6.0
 
 * **BREAKING, and a published number moves. `rhat()` and

@@ -89,16 +89,27 @@ and finding that out in a second is better than finding it out in an
 hour. `vignette("sampling")` has the detail on both routes, the default
 priors and the non-centered parameterization.
 
-## The names change
+## The names are brms's
 
-Parameter names drop parentheses on the draws side: `Intercept`, not
-`(Intercept)`. That is the vocabulary posterior, bayesplot and
-`hypothesis()` already speak, so a ported `hypothesis()` string usually
-needs no edit.
+The draws carry brms's names: `b_Intercept` and `b_x` for the
+coefficients, `r_g[1,Intercept]` for a group-level coefficient. A ported
+`hypothesis()` string needs no edit either: brms's default
+`class = "b"` reads `x` as `b_x`, and a natural-scale name such as
+`sd_g__Intercept` takes `class = NULL`, as in brms.
+
+Two kinds of column differ from a brmsfit, and both are named for what
+they hold. The sampler samples the log standard deviation of a
+group-level effect, not the standard deviation, so the column is
+`theta_1`, the name `confint()` gives the same parameter on the fit;
+`VarCorr()` reports the standard deviation brms calls `sd_g__Intercept`.
+A residual standard deviation with no formula of its own is the column
+`sigma`, on its natural scale, as in brms; written out as `sigma ~ 1` it
+is the log-scale coefficient `b_sigma_Intercept`, as in brms too.
 
 ```{r}
 variables(ds)
-hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)")
+hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0",
+           class = NULL)
 ```
 
 `nuts_params()` is the exception. It reads the `stanfit` directly, as
@@ -108,7 +119,10 @@ quantities rather than model parameters.
 ## The method surface ports
 
 The post-processing generics are brms's own, on a `frmtmb_draws`
-object, so most ported code runs unchanged: `fixef()`, `ranef()`,
+object, and they return brms's objects: the summary matrices and
+arrays, the raw draws at `summary = FALSE`, and brms's
+`brmshypothesis` list. So most ported code runs unchanged: `fixef()`,
+`ranef()`,
 `VarCorr()`, `posterior_epred()`, `posterior_predict()`,
 `posterior_linpred()`, `log_lik()`, `loo()`, `waic()`, `bayes_R2()`,
 `hypothesis()`, `conditional_effects()`, `pp_check()`, `mcmc_plot()`,

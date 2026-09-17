@@ -14,6 +14,10 @@ log_lik(object, ...)
   resp = NULL,
   ndraws = NULL,
   draw_ids = NULL,
+  pointwise = FALSE,
+  combine = TRUE,
+  add_point_estimate = FALSE,
+  cores = NULL,
   ...
 )
 }
@@ -35,6 +39,13 @@ matrix (default: all of them).}
 
 \item{draw_ids}{The draws to use, by row index, instead of the
 evenly spaced subsample \code{ndraws} takes. Give one or the other.}
+
+\item{pointwise, combine, add_point_estimate, cores}{brms's slots, in
+brms's positions. \code{pointwise = TRUE} (brms's function of one
+observation) and \code{add_point_estimate = TRUE} are refused by name;
+\code{combine = FALSE} is accepted on a univariate model, where there is
+nothing to combine; \code{cores} is accepted and unused, because the
+matrix is built in this process.}
 }
 \value{
 A numeric matrix with one row per draw and one column per

@@ -9,43 +9,70 @@
 # Natural-scale vocabulary
 # ---------------------------------------------------------------------
 
-#' One slot per natural-scale name the model accepts:
-#'   kind `"coef"`  fixed coefficient on the LINK scale (comp, idx)
-#'   kind `"dpar"`  intercept-only dispersion dpar on the RESPONSE scale
-#'   kind `"sd"`    random-effect SD (block, positions within the block)
-#'   kind `"cor"`   random-effect correlation (block, `j < k`)
-#' Names that two different parameters would share are recorded as
-#' ambiguous rather than silently resolved to the first one.
+#' One slot per natural-scale name the model accepts, under brms's
+#' names, the ones [variables()] returns:
+#'   kind `"coef"`  coefficient on the LINK scale, `b_x` (comp, idx)
+#'   kind `"dpar"`  a distributional parameter nobody wrote a formula
+#'                  for, on its natural scale, `sigma` (comp, idx, link)
+#'   kind `"sd"`    group-level SD, `sd_g__Intercept` (block, positions)
+#'   kind `"cor"`   group-level correlation (block, `j < k`)
+#'   kind `"simplex"` one of a mixture's weights `theta1 ... thetaK`
+#'                  (group, `k`, `K`, the `idx` of the log ratio it
+#'                  writes, `NA` for the last, and `to_logits`); the
+#'                  whole simplex is set together, see `apply_natural()`
+#'
+#' `fitlike` carries `spec`, `frame` and `bform`, which is what brms's
+#' names are built from. The `legacy` attribute maps the bare names
+#' frmtmb used before it took brms's (`x`, `sigma_Intercept`,
+#' `sd_g__Intercept` with the old sanitizing) to the brms name, so a
+#' bare name is refused with its brms spelling. Names two parameters
+#' would share are recorded as ambiguous rather than resolved to one.
 #'
 #' @noRd
-nat_slots <- function(frame) {
+nat_slots <- function(frame, fitlike) {
   tpl <- frame[["par_template"]]
   slots <- list()
   dup <- character(0)
-  put <- function(nm, s) {
+  legacy <- character(0)
+  put <- function(nm, s, old = character(0)) {
     if (nm %in% names(slots)) dup <<- c(dup, nm) else slots[[nm]] <<- s
+    old <- setdiff(old, nm)
+    legacy[old] <<- nm
   }
 
-  for (comp in intersect(c("beta", "betad"), names(tpl))) {
-    nms <- names(tpl[[comp]])
-    for (i in seq_along(nms)) {
-      # dpars fixed to a constant are not parameters
-      if (comp == "betad" && i %in% frame[["betad_fixed_idx"]]) next
-      put(gsub("[()]", "", nms[i]),
-          list(kind = "coef", comp = comp, idx = i))
+  tab <- brms_coef_table(fitlike)
+  n_beta <- length(tpl[["beta"]])
+  keep_d <- setdiff(seq_along(tpl[["betad"]]), frame[["betad_fixed_idx"]])
+  inv <- attr(tab, "linkinv")
+  fun <- attr(tab, "linkfun")
+  smp <- attr(tab, "simplex")
+  for (gi in seq_along(smp)) {
+    sg <- smp[[gi]]
+    K <- length(sg$names)
+    for (k in seq_len(K)) {
+      put(sg$names[k],
+          list(kind = "simplex", group = gi, k = k, K = K, comp = "betad",
+               idx = if (k < K) keep_d[sg$pos[k] - n_beta] else NA_integer_,
+               to_logits = sg$to_logits))
+    }
+  }
+  in_smp <- unlist(lapply(smp, `[[`, "pos"))
+  for (i in setdiff(seq_len(nrow(tab)), in_smp)) {
+    comp <- if (i <= n_beta) "beta" else "betad"
+    idx <- if (i <= n_beta) i else keep_d[i - n_beta]
+    old <- gsub("[()]", "", tab$internal[i])
+    if (tab$natural[i]) {
+      put(tab$brms[i],
+          list(kind = "dpar", comp = comp, idx = idx,
+               link = list(linkinv = inv[[i]], linkfun = fun[[i]])),
+          old)
+    } else {
+      put(tab$brms[i], list(kind = "coef", comp = comp, idx = idx), old)
     }
   }
 
-  # response-scale alias for an intercept-only dispersion dpar, so
-  # `sigma = 0.7` means an SD of 0.7 rather than log(0.7)
-  for (lp in frame[["linpreds"]]) {
-    if (!identical(lp[["par"]], "betad") || !is.null(lp[["constant"]]) ||
-        !is.null(lp[["nl_body"]]) || !is.null(lp[["Z"]])) next
-    if (!identical(colnames(lp[["X"]]), "(Intercept)")) next
-    put(lp[["dpar"]], list(kind = "dpar", comp = "betad", idx = lp[["idx"]][1L],
-                      link = lp[["link"]]))
-  }
-
+  san <- function(s) gsub("[^[:alnum:]_.]", "", gsub("[()]", "", s))
+  sds_nm <- brms_sds_names(fitlike)
   for (bi in seq_along(frame[["re_blocks"]])) {
     bk <- frame[["re_blocks"]][[bi]]
     reg <- covstruct_registry[[bk[["covstruct"]]]]
@@ -53,28 +80,47 @@ nat_slots <- function(frame) {
     d <- bk[["dim"]]
     if (identical(bk[["covstruct"]], "smooth")) {
       # a smooth basis has one smoothing SD, not one per basis column
-      put(paste0("sds_", hyp_san(bk[["group_name"]])),
-          list(kind = "sd", blk = bi, pos = seq_len(d)))
+      put(sds_nm[bi], list(kind = "sd", blk = bi, pos = seq_len(d)),
+          paste0("sds_", san(bk[["group_name"]])))
       next
     }
-    g <- hyp_san(bk[["group_name"]])
-    tn <- hyp_san(bk[["cnms"]])
+    g <- brms_group_name(bk)
+    tn <- brms_re_rnames(fitlike, bk)
+    g0 <- san(bk[["group_name"]])
+    tn0 <- san(bk[["cnms"]])
     shared <- length(reg$sd_idx(d)) == 1L && d > 1L
     for (j in seq_len(d)) {
       put(paste0("sd_", g, "__", tn[j]),
-          list(kind = "sd", blk = bi,
-               pos = if (shared) seq_len(d) else j))
+          list(kind = "sd", blk = bi, pos = if (shared) seq_len(d) else j),
+          paste0("sd_", g0, "__", tn0[j]))
     }
     if (reg$npar(d) > length(reg$sd_idx(d)) && d > 1L) {
       for (j in seq_len(d - 1L)) {
         for (k in seq(j + 1L, d)) {
           put(paste0("cor_", g, "__", tn[j], "__", tn[k]),
-              list(kind = "cor", blk = bi, j = j, k = k))
+              list(kind = "cor", blk = bi, j = j, k = k),
+              paste0("cor_", g0, "__", tn0[j], "__", tn0[k]))
         }
       }
     }
   }
-  structure(slots, ambiguous = unique(dup))
+  # a legacy spelling that is also somebody's brms name is not legacy
+  legacy <- legacy[!names(legacy) %in% names(slots)]
+  structure(slots, ambiguous = unique(dup), legacy = legacy)
+}
+
+#' The brms name of the coefficient slot at (`comp`, `idx`), or `NULL`.
+#'
+#' @noRd
+nat_coef_name <- function(slots, comp, idx) {
+  for (nm in names(slots)) {
+    s <- slots[[nm]]
+    if (s$kind %in% c("coef", "dpar") && identical(s$comp, comp) &&
+        as.integer(s$idx) == as.integer(idx)) {
+      return(nm)
+    }
+  }
+  NULL
 }
 
 #' `theta` indices a natural sd slot writes to.
@@ -129,6 +175,16 @@ check_natural_supported <- function(frame) {
 #' @noRd
 apply_natural <- function(est, frame, slots, np) {
   bad <- setdiff(names(np), names(slots))
+  old <- intersect(bad, names(attr(slots, "legacy")))
+  if (length(old)) {
+    # brms's names only, the strings variables() returns: accepting the
+    # bare spelling too would give one parameter two names here and one
+    # everywhere else
+    stop("newparams takes brms's parameter names, the ones variables() ",
+         "returns. Rename: ",
+         paste0(old, " -> ", attr(slots, "legacy")[old], collapse = ", "),
+         call. = FALSE)
+  }
   if (length(bad)) {
     stop("Unknown newparams name(s): ", paste(bad, collapse = ", "),
          ". Available: ", paste(names(slots), collapse = ", "),
@@ -165,9 +221,15 @@ apply_natural <- function(est, frame, slots, np) {
     }
   }
 
+  smp_given <- list()
   for (nm in names(np)) {
     s <- slots[[nm]]
     v <- as.numeric(np[[nm]])
+    if (s$kind == "simplex") {
+      key <- as.character(s$group)
+      smp_given[[key]][[nm]] <- v
+      next
+    }
     if (s$kind == "coef") {
       est[[s$comp]][s$idx] <- v
     } else if (s$kind == "dpar") {
@@ -195,6 +257,40 @@ apply_natural <- function(est, frame, slots, np) {
     est[["theta"]][bk[["theta_idx"]]] <-
       covstruct_registry[[bk[["covstruct"]]]]$from_natural(sds[[key]],
                                                       cors[[key]], bk)
+  }
+
+  # brms's mixing weights are one simplex: every theta<k> of it, each
+  # in (0, 1), summing to one. Any subset would leave the rest to a
+  # guess, so a partial simplex is refused
+  for (key in names(smp_given)) {
+    given <- smp_given[[key]]
+    s1 <- slots[[names(given)[1L]]]
+    all_nm <- names(slots)[vapply(slots, function(x) {
+      identical(x$kind, "simplex") && identical(x$group, s1$group)
+    }, TRUE)]
+    all_nm <- all_nm[order(vapply(slots[all_nm], `[[`, 1L, "k"))]
+    if (!setequal(names(given), all_nm)) {
+      stop("newparams sets a mixture's weights together: give ",
+           paste(all_nm, collapse = ", "), ", which sum to one (",
+           "missing: ", paste(setdiff(all_nm, names(given)),
+                              collapse = ", "), ")", call. = FALSE)
+    }
+    p <- unlist(given[all_nm])
+    if (any(p <= 0 | p >= 1)) {
+      stop("newparams: the mixture weights ",
+           paste(all_nm, collapse = ", "), " must each lie strictly ",
+           "between 0 and 1", call. = FALSE)
+    }
+    if (abs(sum(p) - 1) > sqrt(.Machine$double.eps)) {
+      stop("newparams: the mixture weights ",
+           paste(all_nm, collapse = ", "), " must sum to one, not ",
+           format(sum(p), digits = 15), call. = FALSE)
+    }
+    lg <- s1$to_logits(p)
+    for (nm in all_nm) {
+      sl <- slots[[nm]]
+      if (!is.na(sl$idx)) est[["betad"]][sl$idx] <- lg[1L, sl$k]
+    }
   }
   est
 }
@@ -297,6 +393,8 @@ prior_draw_report <- function(e, v, x) {
 #' @noRd
 prior_entry_label <- function(frame, slots, e) {
   if (e$comp %in% c("beta", "betad")) {
+    nm <- nat_coef_name(slots, e$comp, e$idx)
+    if (!is.null(nm)) return(nm)
     nms <- names(frame[["par_template"]][[e$comp]])
     return(gsub("[()]", "", nms[e$idx]))
   }
@@ -352,22 +450,28 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
       if (comp == "betad" && i %in% frame[["betad_fixed_idx"]]) next
       set_nat <- any(vapply(names(np_natural), function(nm) {
         s <- slots[[nm]]
-        !is.null(s) && s$kind %in% c("coef", "dpar") &&
-          identical(s$comp, comp) && as.integer(s$idx) == i
+        !is.null(s) && s$kind %in% c("coef", "dpar", "simplex") &&
+          identical(s$comp, comp) && !is.na(s$idx) &&
+          as.integer(s$idx) == i
       }, TRUE))
       set_pr <- any(vapply(entries, function(e) {
         identical(e$comp, comp) && as.integer(e$idx) == i
       }, TRUE))
       if (!set_nat && !set_pr) {
-        # name it the way the user would set it: the response-scale
-        # alias when there is one (`sigma`, not `sigma_Intercept`)
-        alias <- Filter(function(nm) {
-          s <- slots[[nm]]
-          identical(s$kind, "dpar") && identical(s$comp, comp) &&
-            as.integer(s$idx) == i
-        }, names(slots))
+        # name it the way the user would set it, brms's name
+        smp_nm <- names(slots)[vapply(slots, function(x) {
+          identical(x$kind, "simplex") && identical(x$comp, comp) &&
+            identical(as.integer(x$idx), as.integer(i))
+        }, TRUE)]
+        if (length(smp_nm)) {
+          g <- slots[[smp_nm]]$group
+          smp_nm <- paste(names(slots)[vapply(slots, function(x) {
+            identical(x$kind, "simplex") && identical(x$group, g)
+          }, TRUE)], collapse = ", ")
+        }
         missing_nm <- c(missing_nm,
-                        if (length(alias)) alias[1L] else
+                        if (length(smp_nm)) smp_nm else
+                          nat_coef_name(slots, comp, i) %||%
                           gsub("[()]", "", nms[i]))
       }
     }
@@ -443,18 +547,24 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #' correlation parameter has no natural-scale name here.
 #'
 #' @section Two spellings for `newparams`:
-#' *Natural scale* (recommended): the names [variables()] and
-#' [hypothesis()] use, one number each.
-#' - fixed coefficients under their `vcov()` names with parentheses
-#'   stripped (`Intercept`, `x`, `sigma_Intercept`, ...), on the LINK
-#'   scale;
-#' - `sigma` (and any other intercept-only dispersion dpar: `shape`,
-#'   `phi`, `zi`, ...) on the RESPONSE scale, so `sigma = 0.7` is a
-#'   residual SD of 0.7;
-#' - `sd_<group>__<term>` for random-effect standard deviations,
-#'   `cor_<group>__<t1>__<t2>` for their correlations, and
-#'   `sds_<label>` for a smooth's smoothing SD. Unset correlations are
-#'   0.
+#' *Natural scale* (recommended): brms's parameter names, the strings
+#' [variables()] returns, one number each.
+#' - coefficients as `b_Intercept`, `b_x`, `b_sigma_Intercept`, on the
+#'   LINK scale;
+#' - `sigma` (and any other distributional parameter nobody wrote a
+#'   formula for: `shape`, `phi`, `zi`, ...) on the RESPONSE scale, so
+#'   `sigma = 0.7` is a residual SD of 0.7;
+#' - a mixture's weights with no theta formula as brms's simplex, all of
+#'   `theta1 ... thetaK` together, each in (0, 1) and summing to one:
+#'   `theta1 = 0.9, theta2 = 0.1`;
+#' - `sd_<group>__<coef>` for group-level standard deviations,
+#'   `cor_<group>__<c1>__<c2>` for their correlations, and
+#'   `sds_<label>_1` for a smooth's smoothing SD (`sds_sx_1` for
+#'   `s(x)`). Unset correlations are 0.
+#'
+#' A bare name (`x`, `Intercept`, `sigma_Intercept`) is refused with
+#' its brms spelling. Priors are different: `set_prior(coef = "x")`
+#' takes the bare coefficient, as in brms.
 #'
 #' *Internal scale*: named after the parameter components - `beta`,
 #' `betad`, `theta`, and optionally `b` - each a full-length vector, on
@@ -485,7 +595,7 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #' outcomes.
 #'
 #' That table reports each parameter on the scale `newparams` names it
-#' on, which for `Intercept` is the intercept at ZERO. A
+#' on, which for `b_Intercept` is the intercept at ZERO. A
 #' `class = "Intercept"` prior is a density on the intercept at the MEAN
 #' of the predictors (see the Where an intercept prior lands section of
 #' [set_prior()]), so on a design with uncentered predictors the number
@@ -495,14 +605,11 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #' parameter's own brms class is likewise drawn on that parameter and
 #' reported there, not on its link scale.
 #'
-#' A dpar's column is therefore on the scale its PRIOR was written on,
-#' and the column name does not say which: `sigma_Intercept` holds
-#' sigma under `set_prior(class = "sigma")`, on a model that gives
-#' sigma no predictor, and log sigma under
-#' `set_prior(class = "Intercept", dpar = "sigma")`, on a model that
-#' does. Only one of the two spellings is accepted on any one model, so
-#' a table cannot mix them, and the draw is used on the scale it was
-#' taken on either way.
+#' The column name says which scale a dpar's draw is on, as brms's
+#' names do: `sigma` holds sigma, drawn under `set_prior(class =
+#' "sigma")` on a model that gives sigma no formula, and
+#' `b_sigma_Intercept` holds log sigma, drawn under `set_prior(class =
+#' "Intercept", dpar = "sigma")` on a model that does.
 #'
 #' Parameters without a prior keep their `newparams` value. Whenever
 #' `prior` are used, or `newparams` uses the natural spelling, every
@@ -532,7 +639,7 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
 #' # power analysis: simulate from a design with chosen parameters
 #' dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)), y = 0)
 #' sims <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
-#'                      newparams = list(Intercept = 1, x = 0.5,
+#'                      newparams = list(b_Intercept = 1, b_x = 0.5,
 #'                                       sigma = 0.7,
 #'                                       sd_g__Intercept = 0.5),
 #'                      nsim = 3, seed = 1)
@@ -590,7 +697,8 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
   internal <- is_internal_newparams(newparams, est)
   np_internal <- if (internal) newparams else list()
   np_natural <- if (internal) list() else newparams
-  slots <- nat_slots(frame)
+  slots <- nat_slots(frame, list(spec = spec, frame = frame,
+                                 bform = bform))
 
   if (internal) {
     # a nonlinear parameter may be named after a template component and

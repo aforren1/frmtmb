@@ -1,0 +1,59 @@
+mutant: bcoef 
+test-brms-pins.R       PASS  328 FAIL   6 ERROR  0
+    failing: r_, b_ and sigma columns hold what the model reads there 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(fe[[nm]])`. Differences:   `actual`: 0.776 `expected`: 0.811 b_Intercept 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(fe[[nm]])`. Differences:   `actual`: 0.811 `expected`: 0.776 b_x 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(fe[[nm]])`. Differences:   `actual`: 0.60 `expected`: 0.70 b_Intercept 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(fe[[nm]])`. Differences:   `actual`: 0.70 `expected`: 0.60 b_x 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(fe[[nm]])`. Differences:   `actual`: 0.90 `expected`: 1.25 b_Intercept 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(fe[[nm]])`. Differences:   `actual`: 1.25 `expected`: 0.90 b_x 
+test-brms-output.R     PASS   21 FAIL   0 ERROR  0
+test-brms-names.R      PASS  121 FAIL  15 ERROR  1
+    failing: variables() uses brms's names, b_ on every coefficient 
+      msg: Expected `variables(fit)` to be identical to `c(...)`. Differences:     actual                | expected                  [1] "b_x"                 - "b_Intercept"         [1] [2] "b_Intercept"        
+    failing: hypothesis() returns brms's object, with frequentist content 
+      msg: Expected `all(abs(got - ref) <= tol * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 6.923096223853 
+      msg: Expected `all(abs(got - ref) <= tol * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 1.15506716637855 
+      msg: Expected `all(abs(got - ref) <= tol * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 19.163552926688 
+      msg: Expected `all(abs(got - ref) <= tol * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 1.6791999217597 
+      msg: Expected `all(abs(got - ref) <= tol * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 0.999947860605996 
+    failing: hypothesis() reads x:fe as brms does, not as R's `:` 
+      msg: Expected `all(abs(got - ref) <= tol * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 0.436060967199261 
+      msg: Expected `all(abs(got - ref) <= tol * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 0.0222365287997958 
+      msg: Expected `all(abs(got - ref) <= tol * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 0.0222365287997958 
+    failing: names pass through brms's renaming 
+      msg: Expected `all(abs(got - ref) <= tol * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 3.17975950400975 
+      msg: Expected `variables(fm)` to be identical to `c(...)`. Differences:     actual           | expected             [1] "b_ya_x"         - "b_ya_Intercept" [1] [2] "b_ya_Intercept" - "b_ya_x"         [2] [ 
+    failing: name collisions: refused or suffixed, as brms does each 
+      msg: Expected `all(abs(got - ref) <= tol * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 0.487785642773881 
+      msg: Expected `all(abs(got - ref) <= tol * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 0.812890978341564 
+    failing: frm_simulate(newparams =) takes brms's names only 
+      msg: Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_x, x -> b_Intercept 
+    failing: frm_simulate(newparams =) takes brms's mixture simplex 
+      msg: Expected `abs(share - 0.9)` < `abs(share - stats::plogis(0.9))`. Actual comparison: 0.43 >= 0.24 Difference: 0.19 >= 0 
+    failing: brms's names: r_ repeats are suffixed, merged levels refused 
+      msg: Expected `any(c("sds_sz:f2u_1", "b_moxo") %in% vs)` to be FALSE. Differences: `actual`:   TRUE  `expected`: FALSE  
+converged at iteration 19 with logLik: -746.6946 
+converged at iteration 25 with logLik: -746.6946 
+converged at iteration 21 with logLik: -746.6946 
+converged at iteration 29 with logLik: -746.6946 
+converged at iteration 28 with logLik: -701.2889 
+converged at iteration 32 with logLik: -701.2889 
+converged at iteration 25 with logLik: -701.2889 
+converged at iteration 29 with logLik: -701.2889 
+converged at iteration 27 with logLik: -701.2889 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 13 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 453 with logLik: -685.3785 
+converged at iteration 408 with logLik: -685.3785 
+converged at iteration 404 with logLik: -685.3785 
+converged at iteration 430 with logLik: -685.3785 
+converged at iteration 400 with logLik: -685.3785 
+converged at iteration 54 with logLik: -3093.27 
+converged at iteration 2054 with logLik: -3433.42 
+converged at iteration 67 with logLik: -3093.27 
+converged at iteration 1803 with logLik: -3433.42 
+test-hmm.R             PASS  118 FAIL   0 ERROR  0
+DONE

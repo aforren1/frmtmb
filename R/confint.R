@@ -125,8 +125,8 @@ par_alias_index <- function(fit) {
     si <- tryCatch(as.integer(reg$sd_idx(bk[["dim"]])),
                    error = function(e) integer(0))
     if (!length(si)) next
-    g <- hyp_san(bk[["group_name"]])
-    tn <- hyp_san(bk[["cnms"]])
+    g <- brms_group_name(bk)
+    tn <- brms_re_rnames(fit, bk)
     at <- function(i) {
       ti <- bk[["theta_idx"]][i]
       if (is.na(ti) || ti < 1L || ti > length(th_pos)) NA_integer_ else
@@ -151,7 +151,7 @@ par_alias_index <- function(fit) {
     nat <- autocor_natural(fit$estimates[["thetaac"]][ac[["theta_idx"]]], ac)
     if (length(nat) != 1L) next
     p <- ac[["theta_idx"]][1L]
-    add(hyp_san(names(nat)[1L]),
+    add(names(nat)[1L],
         if (p >= 1L && p <= length(ac_pos)) ac_pos[p] else NA_integer_)
   }
   stats::setNames(pos, nms)
@@ -160,7 +160,7 @@ par_alias_index <- function(fit) {
 #' Bare nonlinear-parameter names, as positions in `outer_par_map()`.
 #' An `nl` parameter declared `la ~ 1` has exactly one coefficient,
 #' `la_(Intercept)`, so the bare `la` names it without ambiguity. That
-#' is the one-to-one rule the `sd_`/`ar1` aliases already follow. A
+#' is the one-to-one rule the `sd_`/`ar[1]` aliases already follow. A
 #' parameter
 #' with a design matrix wider than one column names several, and is
 #' reported in `ambiguous` for the caller to refuse by name.
@@ -243,6 +243,18 @@ resolve_par_index <- function(fit, parm, what) {
   # the parentheses, so it resolves silently; the natural-scale aliases
   # below name a different scale and say so
   idx <- apply_nlpar_alias(fit, parm, idx)
+  if (anyNA(idx)) {
+    # brms's `b_` spelling, which variables() and hypothesis() now use,
+    # is a spelling of one coefficient too, so it resolves silently
+    # a natural-scale name such as sigma is a transform of its
+    # coefficient, not a spelling of it, so it does not resolve here
+    tab <- brms_coef_table(fit)
+    bn <- match(parm, ifelse(tab$natural, NA_character_, tab$brms))
+    took <- which(is.na(idx) & !is.na(bn))
+    if (length(took)) {
+      idx[took] <- match_par_name(estimated_coef_names(fit)[bn[took]], nm)
+    }
+  }
   if (anyNA(idx)) {
     alias <- par_alias_index(fit)
     hit <- match(parm, names(alias))
@@ -1015,7 +1027,8 @@ flat_par_note <- function(fit) {
 #' @noRd
 diagnose_singular <- function(fit, tol = 1e-4) {
   if (!length(fit$frame[["re_blocks"]])) return(NULL)
-  vc <- tryCatch(as.data.frame(VarCorr(fit)), error = function(e) NULL)
+  vc <- tryCatch(as.data.frame(varcorr_matrices(fit)),
+                 error = function(e) NULL)
   if (is.null(vc) || !nrow(vc)) return(NULL)
   is_cor <- !is.na(vc$var2)
   bad <- ifelse(is_cor, abs(vc$sdcor) > 1 - tol, vc$sdcor < tol)
@@ -1943,13 +1956,6 @@ profile.frmtmb_fit <- function(fitted, parm, ...) {
 
 ## hypothesis(): the expression environment and its parameter mapping.
 
-#' Make a term or group name usable as a variable name in a hypothesis
-#' expression: drop parentheses and every other character an R name
-#' cannot carry.
-#'
-#' @noRd
-hyp_san <- function(s) gsub("[^[:alnum:]_.]", "", gsub("[()]", "", s))
-
 #' Parameter values without any covariance machinery (usable on refits
 #' inside a bootstrap without triggering sdreport).
 #'
@@ -2006,112 +2012,51 @@ hyp_par_cov <- function(fit) {
   }
 }
 
-# Shadowing note bookkeeping. hyp_env_vals() is rebuilt for every
-# hypothesis, and once per finite-difference step inside the delta
-# method, so the note has to be armed and deduplicated by the call that
-# a user actually typed rather than emitted where it is detected.
-hyp_shadow_state <- new.env(parent = emptyenv())
-
-#' Arm the shadowing note for one user-level call and return the state
-#' to restore afterwards (nested calls therefore stay one-shot too).
+#' Named list of every variable a hypothesis can name, under brms's
+#' names, at one parameter vector:
 #'
-#' Exported for the methods that live in other packages, and documented
-#' on `?frmtmb-sampling-api`: every `hypothesis()` method has to arm the
-#' note itself, because the generic that dispatched to it may be
-#' brms's. `frmtmb.sample`'s draws method lost the note when this
-#' arming left core's generic and before this pair was exported.
+#' - the coefficients, `b_Intercept`, `b_sigma_Intercept`, `bs_sx_1`;
+#' - a distributional parameter nobody wrote a formula for, on its
+#'   natural scale, `sigma`, `shape`, `sigma_ya` (`brms_coef_table()`);
+#' - the group-level standard deviations and correlations,
+#'   `sd_<group>__<coef>` and `cor_<group>__<c1>__<c2>`;
+#' - the residual autocorrelation parameters, `ar[1]`, `cosy`;
+#' - the residual correlations of a multivariate model,
+#'   `rescor__<resp1>__<resp2>`.
 #'
-#' @noRd
-hyp_shadow_arm <- function() {
-  old <- list(armed = hyp_shadow_state$armed, seen = hyp_shadow_state$seen)
-  hyp_shadow_state$armed <- TRUE
-  hyp_shadow_state$seen <- character(0)
-  old
-}
-
-#' @noRd
-hyp_shadow_disarm <- function(old) {
-  hyp_shadow_state$armed <- old$armed
-  hyp_shadow_state$seen <- old$seen
-  invisible(NULL)
-}
-
-#' Report the natural-scale names a fixed-effect coefficient has taken
-#' over, once per armed call and once per name.
-#'
-#' @noRd
-hyp_shadow_note <- function(shadow) {
-  if (!length(shadow) || !isTRUE(hyp_shadow_state$armed)) {
-    return(invisible(NULL))
-  }
-  new <- setdiff(names(shadow), hyp_shadow_state$seen)
-  if (!length(new)) return(invisible(NULL))
-  hyp_shadow_state$seen <- c(hyp_shadow_state$seen, new)
-  parts <- vapply(new, function(nm) {
-    sh <- shadow[[nm]]
-    tail <- if (isTRUE(sh$dot)) {
-      paste0("; that quantity is available as '.", nm, "'")
-    } else {
-      paste0("; '.", nm, "' is a coefficient too, so read the shadowed ",
-             "quantity from summary() or VarCorr() instead")
-    }
-    paste0("'", nm, "' as the coefficient of the model term of that ",
-           "name, not ", sh$meaning, tail)
-  }, character(1))
-  message("hypothesis() reads ", paste0(parts, collapse = ", and "), ".")
-}
-
-#' Named list the hypothesis expressions are evaluated in: fixed
-#' coefficients under their vcov() names (parentheses stripped),
-#' natural-scale random-effect summaries (`sd_<group>__<term>`,
-#' `cor_<group>__<t1>__<t2>`), and `sigma` when it is a scalar.
-#'
-#' A coefficient name wins any collision with a natural-scale name (the
-#' v0.21 guard: a covariate literally named `sigma` must stay
-#' addressable). The shadowed quantity is then registered under a
-#' leading dot (`.sigma`, `.sd_g__Intercept`) and named in a one-time
-#' message, so the other meaning is reachable rather than merely
-#' documented.
+#' Every name is brms's. brms refuses a model whose renaming gives two
+#' coefficients one name, suffixes a clash across predictors with
+#' `__1`, and refuses a duplicated group-level effect; the model frame
+#' applies the same rules, so a name reaching here twice is a defect and
+#' stops rather than keeping one of the two values.
 #'
 #' @noRd
 hyp_env_vals <- function(fit, vals, comp) {
   env <- list()
-  cf <- c(vals[comp == "beta"], vals[comp == "betad"])
-  raw <- estimated_coef_names(fit)
-  cn <- gsub("[()]", "", raw)
-  for (i in seq_along(cn)) env[[cn[i]]] <- cf[i]
-  # the internal spelling as an alias, so a name copied from confint()
-  # or vcov() also resolves when it is backquoted in the expression.
-  # variables() keeps listing the parenthesis-free names, which are the
-  # ones an expression can carry unquoted
-  for (i in seq_along(raw)) {
-    if (raw[i] != cn[i] && is.null(env[[raw[i]]])) env[[raw[i]]] <- cf[i]
-  }
-
-  # every name in the environment at this point came from a coefficient,
-  # so a later collision is a shadow rather than two natural-scale
-  # summaries competing (the latter keeps the first writer, as before)
-  coef_names <- names(env)
-  shadow <- list()
-  put <- function(nm, val, meaning) {
-    if (is.null(env[[nm]])) {
-      env[[nm]] <<- val
-      return(invisible(NULL))
+  put <- function(nm, val) {
+    if (!is.null(env[[nm]])) {
+      stop("Internal error: two parameters of this model share the ",
+           "name '", nm, "'. Please report it with the model formula",
+           call. = FALSE)
     }
-    if (!nm %in% coef_names) return(invisible(NULL))
-    dn <- paste0(".", nm)
-    # the dot slot itself can be taken by a coefficient literally named
-    # `.sigma`; the note must then not claim the quantity is reachable
-    filed <- !dn %in% coef_names
-    if (filed && is.null(env[[dn]])) env[[dn]] <<- val
-    if (is.null(shadow[[nm]])) {
-      shadow[[nm]] <<- list(meaning = meaning, dot = filed)
-    }
+    env[[nm]] <<- unname(val)
     invisible(NULL)
   }
 
+  cf <- c(vals[comp == "beta"], vals[comp == "betad"])
+  tab <- brms_coef_table(fit)
+  inv <- attr(tab, "linkinv")
+  for (i in which(!tab$natural)) put(tab$brms[i], cf[i])
+
   th <- vals[comp == "theta"]
-  for (bk in fit$frame[["re_blocks"]]) {
+  sds_nm <- brms_sds_names(fit)
+  for (bi in seq_along(fit$frame[["re_blocks"]])) {
+    bk <- fit$frame[["re_blocks"]][[bi]]
+    # a smooth's one parameter is brms's smoothing sd, sds_sx_1
+    if (!is.na(sds_nm[bi])) {
+      put(sds_nm[bi], exp(th[bk[["theta_idx"]][1L]]))
+      next
+    }
     # Excluded: the structures whose theta segment is not a set of
     # standard deviations and correlations at all. `smooth` carries one
     # inverse smoothing parameter, `gp`/`hsgp` a marginal sd plus
@@ -2119,76 +2064,66 @@ hyp_env_vals <- function(fit, vals, comp) {
     # precision and an inverse range. Their summaries live in
     # confint_varcorr() under their own names.
     #
-    # Included (since v0.29): gr_cov, gr_prec and equalto. Their
-    # registry vcov() is the WITHIN-level covariance - a plain sd for a
-    # scalar block, sds plus correlations for the correlated-slopes
-    # Kronecker path - which is exactly the quantity brms names
-    # sd_<group>__<term>. equalto contributes fixed constants (it
-    # estimates nothing), so its names read as knowns.
+    # Included: gr_cov, gr_prec and equalto, whose registry vcov() is the
+    # WITHIN-level covariance brms names sd_<group>__<term>.
     if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "car", "spde")) next
     V <- covstruct_registry[[bk[["covstruct"]]]]$vcov(th[bk[["theta_idx"]]], bk)
-    tn <- hyp_san(bk[["cnms"]])
-    g <- hyp_san(bk[["group_name"]])
+    tn <- brms_re_rnames(fit, bk)
+    g <- brms_group_name(bk)
     sds <- sqrt(diag(V))
-    for (j in seq_along(sds)) {
-      nm <- paste0("sd_", g, "__", tn[j])
-      put(nm, sds[j], "the random-effect standard deviation")
-    }
+    for (j in seq_along(sds)) put(paste0("sd_", g, "__", tn[j]), sds[j])
     if (nrow(V) > 1L) {
       C <- stats::cov2cor(V)
       for (j in seq_len(nrow(V) - 1L)) {
         for (k in seq(j + 1L, nrow(V))) {
-          nm <- paste0("cor_", g, "__", tn[j], "__", tn[k])
-          put(nm, C[j, k], "the random-effect correlation")
+          put(paste0("cor_", g, "__", tn[j], "__", tn[k]), C[j, k])
         }
       }
     }
   }
 
-  # R-side residual correlation: brms's own names, sanitized the way
-  # every other name here is (ar[1] -> ar1, cortime__1__2 unchanged)
+  # distributional parameters on their natural scale, after the group
+  # summaries, where brms lists them
+  smp <- attr(tab, "simplex")
+  in_smp <- unlist(lapply(smp, `[[`, "pos"))
+  for (i in setdiff(which(tab$natural), in_smp)) {
+    put(tab$brms[i], inv[[i]](cf[i]))
+  }
+  # a mixture's weights, brms's theta1 ... thetaK, from all K - 1 log
+  # ratios at once
+  for (s in smp) {
+    p <- s$to_simplex(cf[s$pos])
+    for (k in seq_along(s$names)) put(s$names[k], p[1L, k])
+  }
+
   thac <- vals[comp == "thetaac"]
   for (ac in fit$frame[["autocor"]] %||% list()) {
     nat <- autocor_natural(thac[ac[["theta_idx"]]], ac)
-    for (j in seq_along(nat)) {
-      nm <- hyp_san(names(nat)[j])
-      put(nm, unname(nat[j]), "the residual autocorrelation")
-    }
+    for (j in seq_along(nat)) put(names(nat)[j], nat[j])
   }
 
-  if (length(fit$spec$responses) == 1L) {
-    # put() keeps a covariate literally named `sigma` visible under that
-    # name (the v0.21 guard) and files the residual SD under `.sigma`
-    for (lp in fit$frame[["linpreds"]]) {
-      if (lp[["dpar"]] != "sigma") next
-      if (!is.null(lp[["constant"]])) {
-        put("sigma", lp[["constant"]], "the residual standard deviation")
-      } else if (ncol(lp[["X"]]) == 1L &&
-                 identical(colnames(lp[["X"]]), "(Intercept)") &&
-                 is.null(lp[["Z"]]) && lp[["par"]] == "betad") {
-        tpl_len <- length(fit$frame[["par_template"]][["betad"]])
-        rk <- match(lp[["idx"]], setdiff(seq_len(tpl_len),
-                                    fit$frame[["betad_fixed_idx"]]))
-        bd <- vals[comp == "betad"]
-        if (!is.na(rk)) {
-          put("sigma", lp[["link"]]$linkinv(bd[rk]),
-              "the residual standard deviation")
-        }
+  thr <- vals[comp == "thetar"]
+  if (isTRUE(fit$spec$rescor) && length(thr)) {
+    rs <- brms_stan_name(names(fit$spec$responses))
+    C <- us_chol_cor(thr, length(rs))
+    for (i in seq_along(rs)[-1L]) {
+      for (j in seq_len(i - 1L)) {
+        put(paste0("rescor__", rs[j], "__", rs[i]), C[i, j])
       }
     }
   }
-  hyp_shadow_note(shadow)
   env
 }
 
-#' Turn one hypothesis string into the language object to evaluate plus
-#' the alternative it asks for. An `"lhs = rhs"` hypothesis becomes the
-#' difference of the two sides, so every hypothesis is then tested
-#' against zero; brms's directional `"lhs > rhs"` and `"lhs < rhs"`
-#' become the same difference with a one-sided alternative.
+#' Split one hypothesis string the way `brms:::eval_hypothesis()` does:
+#' whitespace removed, the two sides around the one sign, and the text
+#' `(lhs)-(rhs)` with the right side dropped when it is `0`. Returns
+#' that text and the alternative. The bare-quantity spelling, one side
+#' with no sign, is kept as `(expr)`.
 #'
 #' @noRd
 hyp_parse <- function(h) {
+  h <- gsub("[ \t\r\n]", "", h)
   ops <- unlist(gregexpr("[<>]", h))
   ops <- ops[ops > 0L]
   if (length(ops)) {
@@ -2200,87 +2135,158 @@ hyp_parse <- function(h) {
     lhs <- substr(h, 1L, ops - 1L)
     # ">=" and "<=" read as ">" and "<": the boundary has probability
     # zero under every sampling distribution used here
-    rhs <- sub("^[[:space:]]*=", "", substring(h, ops + 1L))
+    rhs <- sub("^=", "", substring(h, ops + 1L))
     if (grepl("=", lhs, fixed = TRUE) || grepl("=", rhs, fixed = TRUE)) {
       stop("A hypothesis is directional ('<', '>') or an equality ",
            "('='), not both: '", h, "'", call. = FALSE)
     }
-    return(list(expr = str2lang(paste0("(", lhs, ") - (", rhs, ")")),
+    return(list(text = hyp_two_sides(lhs, rhs, h),
                 dir = if (op == ">") "greater" else "less"))
   }
   eq <- strsplit(h, "=", fixed = TRUE)[[1L]]
-  txt <- if (length(eq) == 2L) {
-    paste0("(", eq[1L], ") - (", eq[2L], ")")
-  } else if (length(eq) == 1L) {
-    h
-  } else {
+  if (length(eq) > 2L) {
     stop("A hypothesis has at most one '=': '", h, "'", call. = FALSE)
   }
-  list(expr = str2lang(txt), dir = "two.sided")
+  txt <- if (length(eq) == 2L) hyp_two_sides(eq[1L], eq[2L], h) else
+    paste0("(", h, ")")
+  list(text = txt, dir = "two.sided")
 }
 
-#' The name prefix implied by brms's `class` and `group` shorthand.
-#' Class `"b"` (brms's default) and no class both mean the plain
-#' coefficient names; a class with a group is the `sd_<group>__` /
-#' `cor_<group>__` naming of the natural-scale random-effect
-#' summaries; a class without a group is a dpar prefix such as
-#' `sigma_`.
+#' brms's `(lhs)-(rhs)` text of a two-sided hypothesis.
 #'
 #' @noRd
-hyp_class_prefix <- function(class = NULL, group = NULL) {
-  if (is.null(class) || !nzchar(class) || identical(class, "b")) return("")
-  if (!is.null(group) && nzchar(group)) {
-    return(paste0(class, "_", group, "__"))
+hyp_two_sides <- function(lhs, rhs, h) {
+  if (!nzchar(lhs) || !nzchar(rhs)) {
+    stop("Every hypothesis must be of the form 'left (= OR < OR >) ",
+         "right': '", h, "'", call. = FALSE)
   }
-  paste0(class, "_")
+  paste0("(", lhs, ")", if (rhs != "0") paste0("-(", rhs, ")"))
 }
 
-#' Rewrite the bare names of a hypothesis expression under a `class` /
-#' `group` prefix. A name already written in full keeps its spelling,
-#' and a name that is neither is left for the evaluator to report; but
-#' a name that exists WITHOUT the prefix and not with it is refused
-#' rather than silently tested under the wrong class, which is the one
-#' way this shorthand can quietly answer a different question.
+#' brms's `find_vars()`: the variable names of a hypothesis text. A name
+#' may carry `:`, `.`, `_` and one bracketed index, `b_x:fe` and
+#' `ar[1]`; a function name before `(` and the digits of a decimal
+#' number are not variables.
 #'
 #' @noRd
-hyp_prefix_names <- function(ex, prefix, known) {
-  if (!nzchar(prefix)) return(ex)
-  rec <- function(e) {
-    if (is.name(e)) {
-      s <- as.character(e)
-      cand <- paste0(prefix, s)
-      if (cand %in% known) return(as.name(cand))
-      if (s %in% known && !startsWith(s, prefix)) {
-        stop("'", cand, "' is not a parameter of this model, while '",
-             s, "' is: the `class`/`group` shorthand would be ignored ",
-             "for it. Drop them, or correct them; variables() lists ",
-             "every usable name", call. = FALSE)
-      }
-      return(e)
-    }
-    if (is.call(e)) {
-      for (i in seq_along(e)[-1L]) {
-        if (!identical(e[[i]], quote(expr = ))) e[[i]] <- rec(e[[i]])
-      }
-    }
-    e
-  }
-  rec(ex)
+hyp_find_vars <- function(x) {
+  x <- gsub("[[:space:]]", "", x)
+  lead <- "([^([:digit:]|[:punct:])]|\\.)"
+  pos_all <- gregexpr(paste0(lead, "[[:alnum:]_\\:\\.]*",
+                             "(\\[[^],]+(,[^],]+)*\\])?"), x)[[1L]]
+  pos_fun <- gregexpr(paste0(lead, "[[:alnum:]_\\.]*\\("), x)[[1L]]
+  pos_dec <- gregexpr("\\.[[:digit:]]+", x)[[1L]]
+  keep <- !pos_all %in% c(pos_fun, pos_dec)
+  pos <- pos_all[keep]
+  attr(pos, "match.length") <- attr(pos_all, "match.length")[keep]
+  if (!length(pos)) return(character(0))
+  unique(unlist(regmatches(x, list(pos))))
+}
+
+#' brms's hypothesis renaming, which makes a parameter name a legal R
+#' name inside the expression: `:` to `___`, `[` and `]` to `.`, `,` to
+#' `..`. Without it `b_x:fe` parses as R's sequence operator.
+#'
+#' @noRd
+hyp_rename <- function(x) {
+  brms_rename(x, c(":", "[", "]", ","), c("___", ".", ".", ".."))
 }
 
 #' Parse every hypothesis string of one call: the shared front end of
-#' the `frmtmb_fit`, `frmtmb_draws` and `frmtmb_multiple` methods.
-#' Returns the expressions and their alternatives.
+#' the `frmtmb_fit`, `frmtmb_draws` and `frmtmb_multiple` methods, and
+#' of `hypothesis(scope = )` on draws.
+#'
+#' As `brms:::eval_hypothesis()`: the variables of the text are found,
+#' each is prefixed with `class` and `group`, a prefixed name that is
+#' not in `known` is refused with brms's message, and the text is
+#' renamed before it is parsed. Each expression carries a `"vars"`
+#' attribute mapping the renamed name it contains to the full parameter
+#' name, which is what `hyp_eval()` binds.
 #'
 #' @noRd
-hyp_parse_all <- function(hypothesis, known, class = NULL, group = NULL) {
+hyp_parse_all <- function(hypothesis, known, class = "b", group = "") {
+  if (!is.character(hypothesis) || !length(hypothesis) ||
+        anyNA(hypothesis)) {
+    stop("Argument 'hypothesis' must be a character vector.", call. = FALSE)
+  }
   prefix <- hyp_class_prefix(class, group)
   ps <- lapply(hypothesis, hyp_parse)
-  list(exprs = lapply(ps, function(p) {
-         hyp_prefix_names(p$expr, prefix, known)
-       }),
-       dir = vapply(ps, function(p) p$dir, ""))
+  exprs <- lapply(ps, function(p) {
+    vars <- hyp_find_vars(p$text)
+    full <- paste0(prefix, vars)
+    miss <- setdiff(full, known)
+    if (length(miss)) {
+      stop("Some parameters cannot be found in the model: \n",
+           paste0("'", miss, "'", collapse = ", "),
+           "\nvariables() lists every name; brms's default class = \"b\" ",
+           "puts b_ before each name, so a name such as sigma or ",
+           "sd_<group>__<coef> needs class = NULL", call. = FALSE)
+    }
+    ex <- str2lang(hyp_rename(p$text))
+    attr(ex, "vars") <- stats::setNames(full, hyp_rename(vars))
+    ex
+  })
+  list(exprs = exprs, dir = vapply(ps, function(p) p$dir, ""))
 }
+
+#' The full parameter names one parsed hypothesis reads.
+#'
+#' @noRd
+hyp_expr_vars <- function(ex) unname(attr(ex, "vars") %||% character(0))
+
+#' Evaluate one parsed hypothesis over a named list of values keyed by
+#' full parameter name: a number at a parameter vector, or a vector of
+#' draws.
+#'
+#' @noRd
+hyp_eval_in <- function(ex, values) {
+  map <- attr(ex, "vars") %||% character(0)
+  env <- lapply(unname(map), function(f) values[[f]])
+  names(env) <- names(map)
+  miss <- map[vapply(env, is.null, TRUE)]
+  if (length(miss)) {
+    stop("Some parameters cannot be found in the model: \n",
+         paste0("'", miss, "'", collapse = ", "), call. = FALSE)
+  }
+  attr(ex, "vars") <- NULL
+  eval(ex, env, parent.frame())
+}
+
+#' Evaluate a parsed hypothesis at one parameter vector.
+#'
+#' @noRd
+hyp_eval <- function(fit, ex, vals, comp) {
+  hyp_eval_in(ex, hyp_env_vals(fit, vals, comp))
+}
+
+#' The name prefix implied by brms's `class` and `group` shorthand,
+#' computed as `brms:::hypothesis.brmsfit()` computes it: `NULL` and
+#' `""` are no prefix, a group makes `<class>_<group>__`, and a class
+#' alone makes `<class>_`. So brms's default `class = "b"` reads a bare
+#' `x` as the coefficient `b_x`, and a natural-scale name such as
+#' `sd_g__Intercept` needs `class = NULL`, exactly as in brms.
+#'
+#' @noRd
+hyp_class_prefix <- function(class = "b", group = "") {
+  if (!length(class)) class <- ""
+  if (!is.character(class) || length(class) != 1L || is.na(class)) {
+    stop("`class` must be a single string, or NULL for no prefix",
+         call. = FALSE)
+  }
+  if (!length(group)) group <- ""
+  if (!is.character(group) || length(group) != 1L || is.na(group)) {
+    stop("`group` must be a single string", call. = FALSE)
+  }
+  if (nzchar(group)) return(paste0(class, "_", group, "__"))
+  if (nzchar(class)) return(paste0(class, "_"))
+  ""
+}
+
+#' The `class` element brms stores on a hypothesis result: the prefix
+#' with its trailing underscores dropped (`"b"`, `"sd_g"`, `""`).
+#'
+#' @noRd
+hyp_class_label <- function(prefix) sub("_+$", "", prefix)
 
 #' One-sided quantile bookkeeping: the interval bound and the p-value a
 #' given alternative asks for, from an estimate, a standard error and a
@@ -2315,31 +2321,6 @@ hyp_tail_p <- function(t, dir) {
          less = (1 + sum(t >= 0)) / (1 + n))
 }
 
-#' The names of a hypothesis environment that are worth listing: the
-#' parenthesis-free spelling of every parameter. The internal spellings
-#' are in the environment as aliases (they need backquotes in an
-#' expression), and listing both would double the vocabulary a reader
-#' has to scan.
-#'
-#' @noRd
-hyp_public_names <- function(ev) grep("[()]", names(ev), invert = TRUE,
-                                      value = TRUE)
-
-#' Evaluate a parsed hypothesis at one parameter vector. A failure lists
-#' the available names, because an unknown name is the usual cause.
-#'
-#' @noRd
-hyp_eval <- function(fit, ex, vals, comp) {
-  ev <- hyp_env_vals(fit, vals, comp)
-  tryCatch(eval(ex, ev), error = function(e) {
-    stop(conditionMessage(e), "\nAvailable names: ",
-         paste(hyp_public_names(ev), collapse = ", "),
-         "\n(the internal spellings of confint() work too, backquoted; ",
-         "a natural-scale name a coefficient has taken over carries a ",
-         "leading dot)", call. = FALSE)
-  })
-}
-
 #' Central-difference gradient of a scalar function of the parameter
 #' vector. The delta method needs a gradient, and a hypothesis is an
 #' arbitrary R expression with no derivative available.
@@ -2358,51 +2339,92 @@ hyp_fd_grad <- function(f, v) {
 #'
 #' The frequentist analog of brms's `hypothesis()`: evaluates
 #' expressions of the model parameters at the estimates and tests them
-#' against zero. A hypothesis is `"expr"` (tested against 0),
-#' `"expr = rhs"`, e.g. `"x1 - x2 = 0"` or `"exp(Intercept) = 1"`, or
-#' brms's directional `"lhs > rhs"` / `"lhs < rhs"`.
+#' against zero. A hypothesis is `"lhs = rhs"`, e.g. `"x1 - x2 = 0"` or
+#' `"exp(Intercept) = 1"`, brms's directional `"lhs > rhs"` /
+#' `"lhs < rhs"`, or a bare `"expr"`, which brms does not accept and
+#' which is tested against 0 here.
+#'
+#' @section The returned object:
+#' brms's shape: a list of class `c("frmtmb_hypothesis",
+#' "brmshypothesis")` with the elements brms has, in brms's order.
+#'
+#' - `hypothesis`: a data frame with brms's eight columns, one row per
+#'   hypothesis. On a maximum-likelihood fit they mean:
+#'   - `Hypothesis`: brms's label, `(lhs)-(rhs) > 0`, or the name given
+#'     on the hypothesis vector.
+#'   - `Estimate`: the expression at the estimates.
+#'   - `Est.Error`: its delta-method standard error (`"wald"`,
+#'     `"profile"`), the bootstrap standard deviation (`"boot"`), or the
+#'     Rubin pooled standard error (a [frm_multiple()] result).
+#'   - `CI.Lower`, `CI.Upper`: brms's interval, which is central at
+#'     `1 - alpha` for `"="` and central at `1 - 2 * alpha` for a
+#'     directional row, so that its relevant end is the one-sided bound.
+#'     Wald, profile-likelihood or bootstrap percentile, per `method`.
+#'   - `Evid.Ratio`, `Post.Prob`: `NA`. They are posterior quantities,
+#'     and a fit has no posterior.
+#'   - `Star`: `"*"` when a two-sided row's interval excludes 0, or when
+#'     a directional row's one-sided test rejects at level `alpha`
+#'     (brms stars a posterior probability above `1 - alpha` there).
+#' - `samples`: brms's frame of draws, columns `H1`, `H2`, ...: the
+#'   bootstrap replicates for `"boot"`, and no rows otherwise.
+#' - `prior_samples`: the same columns, all `NA`.
+#' - `class`: the name prefix `class` and `group` produced, without its
+#'   trailing underscores, as brms stores it.
+#' - `alpha`.
+#'
+#' What brms's frame has no column for rides on attributes, so the
+#' frame keeps brms's shape: `attr(h, "test")` is the test statistic
+#' and its p-value per row (`z`, or `t` with `df` for a pooled or
+#' degrees-of-freedom-carrying covariance), `attr(h, "method")`, and the
+#' method payload, `attr(h, "draws")` for the bootstrap matrix and
+#' `attr(h, "profiles")` for the profile curves.
 #'
 #' @section Directional hypotheses:
 #' `"lhs > rhs"` and `"lhs < rhs"` test the same difference
 #' `(lhs) - (rhs)` against zero with a one-sided alternative, so the
-#' reported `p` is the one-sided tail probability and the interval is
-#' one-sided at level `1 - alpha`: the unbounded end prints as `Inf`
-#' or `-Inf`. `p` is `pnorm()` of the signed z statistic for `"wald"`
-#' and, as in the two-sided case where `se`, `z` and `p` stay
-#' Wald-based, for `"profile"` too - the profile changes the BOUND,
-#' which is the matching endpoint of the two-sided `1 - 2 * alpha`
-#' profile interval, and nothing else. For `"boot"` and the draws
-#' method `p` is the tail proportion of the draws with the
+#' reported `p` is the one-sided tail probability. `p` is `pnorm()` of
+#' the signed z statistic for `"wald"` and, as in the two-sided case
+#' where the standard error and the statistic stay Wald-based, for
+#' `"profile"` too: the profile changes the INTERVAL and nothing else.
+#' For `"boot"` `p` is the tail proportion of the replicates with the
 #' `(1 + k) / (1 + n)` correction. Where brms reports the posterior
 #' probability of the direction, this reports its frequentist
 #' complement: small `p` is evidence for the stated direction.
 #' `">="` and `"<="` read as `">"` and `"<"`.
 #'
 #' @section brms class and group shorthand:
-#' `class` and `group` prefix the bare names in the hypothesis, so
-#' `hypothesis(fit, "Intercept - age > 0", class = "sd",
-#' group = "patient")` tests
-#' `sd_patient__Intercept - sd_patient__age`. `class = "b"` (brms's
-#' default) and `class = NULL` leave the names alone; a `class`
-#' without a `group` prefixes `<class>_`, which is how a
-#' distributional coefficient such as `sigma_Intercept` is named. A
-#' name already written in full keeps its spelling, so the two can be
-#' mixed; but a name that exists only WITHOUT the prefix is an error
-#' rather than a test of the unprefixed parameter, so a wrong `class`
-#' or `group` cannot quietly answer a different question.
+#' The hypothesis is read as `brms:::eval_hypothesis()` reads it. Every
+#' variable in the text gets the prefix `class` and `group` make, and a
+#' prefixed name the model does not have is refused with brms's message,
+#' "Some parameters cannot be found in the model". brms's default
+#' `class = "b"` reads `"x1 - x2 = 0"` as `b_x1 - b_x2`, so it refuses
+#' `"b_x1 = 0"`, which it reads as `b_b_x1`. `class = "sd", group =
+#' "patient"` reads `"Intercept - age > 0"` as `sd_patient__Intercept -
+#' sd_patient__age`. `class = NULL` (or `""`) takes every name as
+#' written, which is what `sigma` or `sd_g__Intercept` needs, as in
+#' brms.
 #'
-#' Available names: the fixed-effect coefficients under their `vcov()`
-#' row names with parentheses stripped (`Intercept`, `x`,
-#' `sigma_Intercept`, ...), natural-scale random-effect summaries
-#' `sd_<group>__<term>` and `cor_<group>__<t1>__<t2>` (brms naming),
-#' and `sigma` when the residual SD is a scalar. So an ICC is
-#' `"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"`.
-#' [variables()] lists every usable name for a fit. The internal
-#' spelling that [confint()] and [vcov()] print is accepted as well,
-#' backquoted because it carries parentheses:
-#' `` "`(Intercept)` - x" ``. The traffic runs the other way too:
-#' `confint(parm = )` and `profile(parm = )` take these names,
-#' whenever one of them stands for a single internal parameter.
+#' A name may carry what brms's names carry: `x:fe` is the interaction
+#' coefficient `b_x:fe`, not R's `:` operator, and `ar[1]` is the
+#' autocorrelation. brms's renaming (`:` to `___`, `[` and `]` to `.`,
+#' `,` to `..`) is applied to the text before it is parsed, as in brms.
+#'
+#' Available names, which [variables()] lists, are brms's: the
+#' coefficients (`b_Intercept`, `b_x`, `b_IxE2` for `I(x^2)`,
+#' `b_sigma_Intercept` for a `sigma` formula, `bs_sx_1` for the
+#' unpenalized part of `s(x)`); a distributional parameter nobody wrote
+#' a formula for, on its natural scale (`sigma`, `shape`, `nu`, and
+#' `sigma_ya` for response `y_a` of a multivariate model); the
+#' group-level summaries `sd_<group>__<coef>` and
+#' `cor_<group>__<coef1>__<coef2>`, where the coefficient of a
+#' distributional or nonlinear parameter carries that parameter's name
+#' (`sd_g__sigma_Intercept`); the autocorrelation parameters (`ar[1]`,
+#' `cosy`); and the residual correlations `rescor__<resp1>__<resp2>`.
+#' So an ICC is
+#' `hypothesis(fit, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0",
+#' class = NULL)`. The traffic runs the other way too: `confint(parm = )`
+#' and `profile(parm = )` take these names, whenever one of them stands
+#' for a single internal parameter.
 #'
 #' @section Which random-effect blocks contribute names:
 #' Every block whose covariance parameters ARE standard deviations and
@@ -2412,45 +2434,64 @@ hyp_fd_grad <- function(f, v) {
 #' whose `sd_`/`cor_` names describe the WITHIN-level covariance that
 #' multiplies the fixed relationship matrix. That is what makes
 #' heritability-as-ICC writable directly:
-#' `"sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2)"` on an animal
-#' model fitted with `(1 | gr(id, cov = A))`. An `equalto()` block
-#' estimates nothing, so its names are constants with zero variance.
+#' `"sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2) = 0"` with
+#' `class = NULL` on an animal model fitted with
+#' `(1 | gr(id, cov = A))`. An `equalto()` block estimates nothing, so
+#' its names are constants with zero variance.
 #'
 #' An `|ID|`-merged block is ONE block, so it contributes one name per
-#' merged coefficient, and the names carry the linear predictor they
-#' came from just as correlated slopes do. A two-trait animal model
-#' written `(1 | q | gr(id, cov = A))` in both formulas of an [mvbf()]
-#' gives `sd_id__y1.muIntercept`, `sd_id__y2.muIntercept` and
-#' `cor_id__y1.muIntercept__y2.muIntercept` - the last being the
-#' genetic correlation between the traits. [variables()] prints them.
+#' merged coefficient, and the names carry the predictor they came from
+#' in brms's spelling. A two-trait animal model written
+#' `(1 | q | gr(id, cov = A))` in both formulas of an [mvbf()] gives
+#' `sd_id__y1_Intercept`, `sd_id__y2_Intercept` and
+#' `cor_id__y1_Intercept__y2_Intercept`, the last being the genetic
+#' correlation between the traits. [variables()] prints them.
 #'
-#' An animal model's genetic and permanent-environment terms cannot both
-#' name the column `id`: `(1 | gr(id, cov = A)) + (1 | id)` repeats the
-#' coefficient `Intercept` of group `id` and is refused, as brms refuses
-#' it. Write the second term on a copy of the column, `(1 | id2)`, and
-#' each block gets its own name.
+#' Two terms that give one grouping factor the same coefficient, an
+#' animal model's `(1 | gr(id, cov = A)) + (1 | id)`, are refused when
+#' the model is built, with brms's message "Duplicated group-level
+#' effects are not allowed". Give the second term a copy of the factor
+#' under another name, `(1 | gr(id, cov = A)) + (1 | id_pe)`, and the
+#' two are `sd_id__Intercept` and `sd_id_pe__Intercept`.
 #'
 #' Excluded: `s()`/`t2()` smooths, `gp()`/`hsgp()`, `car()` and `spde()`.
-#' Their theta segments are not standard deviations - an inverse
+#' Their theta segments are not standard deviations: an inverse
 #' smoothing parameter, lengthscales, a mixing proportion, a precision
-#' and an inverse range - so there is no `sd_<group>__<term>` to name.
-#' Read those off [confint_varcorr()], which reports each under its own
+#' and an inverse range. There is no `sd_<group>__<coef>` to name. Read
+#' those off [confint_varcorr()], which reports each under its own
 #' label (`sd(gp)`, `range(gp)`, `sd(car)`, ...).
 #'
-#' @section When a coefficient shadows a natural-scale name:
-#' Model terms and natural-scale summaries share one namespace here, and
-#' the coefficient wins: a covariate literally named `sigma` makes
-#' `"sigma = 0"` a test on ITS coefficient, not on the residual standard
-#' deviation. The same holds for a coefficient that spells out
-#' `sd_<group>__<term>`, `cor_...` or an autocorrelation name such as
-#' `ar1`. The shadowed quantity keeps a name: prefix it with a dot,
-#' `.sigma`, `.sd_g__Intercept`, `.ar1`. The dot spelling exists only
-#' where a collision does, and `hypothesis()` says so once per call when
-#' one is in play. `variables()` lists both names in that case.
+#' @section Names that would collide:
+#' brms's renaming can give two parameters one name, and frmtmb does
+#' what brms does with each case:
 #'
-#' @seealso [vcov.frmtmb_fit()] with `full = TRUE` for the same joint covariance
-#'   (fixed effects plus covariance parameters, on their internal
-#'   scale) as a matrix, which is what the `"wald"` method uses here.
+#' - Within one predictor, a covariate whose renamed column repeats
+#'   another's, `y ~ Intercept + x` (`(Intercept)` and `Intercept` are
+#'   both `Intercept`), is refused with brms's "Internal renaming led to
+#'   duplicated names".
+#' - Across predictors, the later name takes brms's `__1` suffix:
+#'   in `bf(y ~ sigma_z, sigma ~ z)` the covariate `sigma_z` of `mu` and
+#'   the coefficient `z` of `sigma` are `b_sigma_z` and `b_sigma_z__1`.
+#' - A group-level coefficient given twice on one group is refused, see
+#'   above.
+#' - Two responses brms spells alike, `y_a` and `ya`, are refused with
+#'   brms's "Cannot use the same response variable twice".
+#' - A group-level label given twice on draws, from levels `lvl 1` and
+#'   `lvl.1`, takes brms's `__1` on the later level.
+#' - An interaction group two of whose levels brms joins to one string
+#'   (`1_2:3` and `1:2_3`) is refused: brms pools the two levels.
+#'
+#' A coefficient and a natural-scale name cannot meet: every coefficient
+#' starts `b_`, `bs_` or `bsp_`, and `sigma` does not.
+#'
+#' A mixture's weights with no theta formula are brms's simplex,
+#' `theta1 ... thetaK`, the mixing probabilities, computed together from
+#' the `K - 1` estimated log ratios against the last component.
+#'
+#' @seealso [vcov.frmtmb_fit()] with `full = TRUE` for the same joint
+#'   covariance (fixed effects plus covariance parameters, on their
+#'   internal scale) as a matrix, which is what the `"wald"` method uses
+#'   here.
 #'
 #' Methods:
 #' - `"wald"` (default): delta-method z-test, finite-difference
@@ -2458,32 +2499,37 @@ hyp_fd_grad <- function(f, v) {
 #'   the joint precision).
 #' - `"profile"`: profile-likelihood interval via [TMB::tmbroot()] with
 #'   a `lincomb` direction. Only for hypotheses that are linear in the
-#'   parameters, and only for ML fits; `se`, `z`, and `p` stay
-#'   Wald-based - the method changes the interval.
+#'   parameters, and only for ML fits; the standard error and the test
+#'   stay Wald-based, because the method changes the interval.
 #' - `"boot"`: parametric bootstrap through [frm_bootstrap()]
 #'   (percentile interval; `p` is the two-sided percentile p-value,
-#'   whose resolution is limited by `nsim`; `se` is the bootstrap SD).
-#'   Handles any expression, including the variance-component names,
-#'   whose sampling distributions Wald approximates poorly.
+#'   whose resolution is limited by `nsim`; `Est.Error` is the bootstrap
+#'   SD). Handles any expression, including the variance-component
+#'   names, whose sampling distributions Wald approximates poorly.
 #'
 #' For a [frm_multiple()] result the Wald estimate and delta-method
 #' variance are computed per imputation and pooled by Rubin's rules
-#' with Barnard-Rubin degrees of freedom; the returned table carries
-#' `t` and `df` columns in place of `z` (reference t distribution, not
-#' normal), and only Wald inference is available.
+#' with Barnard-Rubin degrees of freedom; the test attribute carries
+#' `t` and `df` in place of `z`, and only Wald inference is available.
 #'
 #' @param x A `frmtmb_fit`, or a `frmtmb_multiple` for pooled tests.
-#' @param hypothesis Character vector of hypotheses.
+#' @param hypothesis Character vector of hypotheses. Names on it become
+#'   the `Hypothesis` labels, as in brms.
+#' @param class,group brms's name prefix; see *brms class and group
+#'   shorthand*. The default `class = "b"` is brms's.
+#' @param scope brms's `"standard"` is the only scope a fit supports:
+#'   `"ranef"` and `"coef"` evaluate the hypothesis on each group
+#'   level's draws, which a maximum-likelihood fit does not have, and
+#'   are refused by name.
 #' @param alpha Test level; the reported interval covers `1 - alpha`
-#'   (brms spelling).
+#'   for a two-sided row and `1 - 2 * alpha` for a directional one, as
+#'   in brms.
+#' @param robust brms's median-and-MAD switch. It summarizes draws and
+#'   a fit has none, so `TRUE` is refused by name.
+#' @param seed Optional seed for `method = "boot"`.
 #' @param method `"wald"`, `"profile"`, or `"boot"`.
 #' @param nsim Bootstrap draws for `method = "boot"`; all hypotheses
 #'   share one bootstrap run.
-#' @param seed Optional seed for `method = "boot"`.
-#' @param class,group brms shorthand for the parameter names: the
-#'   hypothesis is written with bare names and `class` (and `group`,
-#'   for the `sd_`/`cor_` summaries) supplies the prefix. The default
-#'   `NULL` (like brms's `class = "b"`) takes the names as written.
 #' @param vcov `method = "wald"` only: a covariance matrix over the
 #'   whole outer parameter vector to use in place of the model-based
 #'   one - [vcov_cluster()] with `full = TRUE`, or a function of the
@@ -2493,16 +2539,11 @@ hyp_fd_grad <- function(f, v) {
 #' @param ... Backend controls: passed to [TMB::tmbprofile()] for
 #'   `method = "profile"` (e.g. `ytol`, `ystep`, `maxit`,
 #'   `parm.range`) and to [frm_bootstrap()] for `method = "boot"`
-#'   (e.g. `re_formula = NULL` for a conditional bootstrap). Unused for
-#'   `"wald"` (a warning).
-#' @return A `frmtmb_hypothesis` object: a data frame with one row per
-#'   hypothesis (`estimate`, `se`, `lwr`, `upr`, `z`, `p`) carrying the
-#'   method payload in attributes - the bootstrap draws matrix
-#'   (`attr(., "draws")`) or the profile curves (`attr(., "profiles")`).
+#'   (e.g. `re_formula = NULL` for a conditional bootstrap). Refused for
+#'   `"wald"`.
+#' @return A `brmshypothesis`-shaped list; see *The returned object*.
 #'   `plot()` shows the bootstrap distribution, the profile curve, or
 #'   the implied Wald normal density, one panel per hypothesis.
-#'   Subsetting with `[` drops the attributes; keep the full object for
-#'   plotting.
 #' @examples
 #' set.seed(4)
 #' dd <- data.frame(x1 = rnorm(120), x2 = rnorm(120),
@@ -2510,30 +2551,44 @@ hyp_fd_grad <- function(f, v) {
 #' dd$y <- rnorm(120, 1 + 0.6 * dd$x1 + 0.4 * dd$x2 +
 #'                 rnorm(10, 0, 0.5)[dd$g], 1)
 #' fit <- frm(bf(y ~ x1 + x2 + (1 | g)) + gaussian(), data = dd)
-#' hypothesis(fit, c("x1 - x2 = 0", "exp(Intercept)"))
-#' # brms's directional form: one-sided p, one-sided interval
+#' h <- hypothesis(fit, c("x1 - x2 = 0", "exp(Intercept) = 1"))
+#' h
+#' h$hypothesis$Est.Error
+#' attr(h, "test")$p
+#' # brms's directional form: one-sided p, and a 90% interval
 #' hypothesis(fit, "x1 > x2")
 #' # class/group name the natural-scale random-effect summaries
 #' hypothesis(fit, "Intercept > 0", class = "sd", group = "g")
-#' # variance-component expressions: an ICC with bootstrap intervals
-#' hypothesis(fit, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)",
-#'            method = "boot", nsim = 20, seed = 1)
+#' # variance-component expressions need class = NULL, as in brms: an
+#' # ICC with bootstrap intervals
+#' hypothesis(fit, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0",
+#'            class = NULL, method = "boot", nsim = 20, seed = 1)
 #' @export
 hypothesis <- function(x, ...) UseMethod("hypothesis")
 
 #' Usable parameter names
 #'
-#' The names that [hypothesis()] expressions (and `set_prior()`
-#' targeting) accept: fixed-effect coefficients under their `vcov()`
-#' names with parentheses stripped, natural-scale random-effect
-#' summaries (`sd_<group>__<term>`, `cor_<group>__<t1>__<t2>`), and
-#' `sigma` when the residual SD is a scalar. The brms spelling; for
-#' sampled fits, `variables()` on the `frmtmb.sample::frm_sample()`
-#' result lists the draw columns instead.
+#' brms's names for the parameters of a fit, which are the names
+#' [hypothesis()] expressions accept: fixed-effect coefficients with
+#' brms's `b_` prefix (`b_Intercept`, `b_x`, and `b_sigma_Intercept`
+#' for a coefficient of a `sigma` formula), natural-scale random-effect
+#' summaries (`sd_<group>__<coef>`, `cor_<group>__<coef1>__<coef2>`,
+#' with a distributional or nonlinear parameter's name in the
+#' coefficient part, `sd_g__sigma_Intercept`), and a distributional
+#' parameter nobody wrote a formula for, on its natural scale (`sigma`,
+#' `shape`, `sigma_ya`). Every name is spelled through brms's renaming:
+#' `b_IxE2` for `I(x^2)`, `sd_g:h__Intercept` for `(1 | g:h)`. For sampled fits,
+#' `variables()` on the `frmtmb.sample::frm_sample()` result lists the
+#' draw columns, which follow the same convention.
+#'
+#' brms's `variables()` also lists what a fit has no counterpart of:
+#' group-level coefficients `r_<group>[<level>,<coef>]`, the centered
+#' `Intercept`, `lprior` and `lp__`. A maximum-likelihood fit has no
+#' draws of those, and [ranef()] reports the conditional modes.
 #'
 #' A residual correlation term ([frmtmb-autocor]) contributes its
-#' natural-scale parameters under brms's names, sanitized the same way:
-#' `ar1`, `ar2`, `ma1`, `cosy`, `cortime__<t1>__<t2>`.
+#' natural-scale parameters under brms's names: `ar[1]`, `ar[2]`,
+#' `ma[1]`, `cosy`, `cortime__<t1>__<t2>`.
 #'
 #' `gr(cov = )`, `gr(prec = )` and `equalto()` blocks contribute
 #' `sd_`/`cor_` names for their within-level covariance. Smooths,
@@ -2559,35 +2614,112 @@ variables <- function(x, ...) UseMethod("variables")
 variables.frmtmb_fit <- function(x, ...) {
   frm_check_dots(...)
   vo <- hyp_vals_only(x)
-  hyp_public_names(hyp_env_vals(x, vo$vals, vo$comp))
+  names(hyp_env_vals(x, vo$vals, vo$comp))
+}
+
+#' The `Hypothesis` label brms writes for one hypothesis string:
+#' whitespace removed, the two sides written `(lhs)-(rhs)`, the right
+#' side dropped when it is `0`, then the sign and `0`
+#' (`brms:::eval_hypothesis()`). A name given on the hypothesis vector
+#' replaces it, as in brms. The bare-quantity spelling brms does not
+#' have is labeled `(expr)`.
+#'
+#' @noRd
+hyp_labels <- function(hypothesis) {
+  nms <- names(hypothesis)
+  vapply(seq_along(hypothesis), function(i) {
+    if (length(nms) && !is.na(nms[i]) && nzchar(nms[i])) return(nms[i])
+    h <- gsub("[ \t\r\n]", "", hypothesis[i])
+    sign <- regmatches(h, regexpr("[<>]=?|=", h))
+    if (!length(sign)) return(paste0("(", h, ")"))
+    lr <- strsplit(h, "[<>]=?|=")[[1L]]
+    lhs <- paste0("(", lr[1L], ")")
+    if (length(lr) > 1L && lr[2L] != "0") {
+      lhs <- paste0(lhs, "-(", lr[2L], ")")
+    }
+    paste(lhs, substr(sign, 1L, 1L), "0")
+  }, "")
+}
+
+#' brms's hypothesis result, `brmshypothesis`-shaped: a list with the
+#' eight-column `hypothesis` frame, `samples`, `prior_samples`, `class`
+#' and `alpha`, in brms's order (`brms:::combine_hlist()`). Anything a
+#' method knows beyond brms's columns rides on attributes, so the list
+#' and the frame stay exactly the shape a ported script indexes.
+#'
+#' `star` follows brms: for a two-sided row the interval excludes 0,
+#' for a one-sided row `onesided_ok` says whether the claim passes at
+#' `1 - alpha`.
+#'
+#' @noRd
+hyp_brms_result <- function(labels, estimate, error, lower, upper,
+                            evid_ratio, post_prob, dir, onesided_ok,
+                            samples, prior_samples, prefix, alpha,
+                            attrs = list()) {
+  star <- ifelse(dir == "two.sided", !(lower <= 0 & 0 <= upper),
+                 onesided_ok)
+  star <- ifelse(!is.na(star) & star, "*", "")
+  hs <- data.frame(Hypothesis = labels, Estimate = unname(estimate),
+                   Est.Error = unname(error), CI.Lower = unname(lower),
+                   CI.Upper = unname(upper),
+                   Evid.Ratio = unname(evid_ratio),
+                   Post.Prob = unname(post_prob), Star = star,
+                   stringsAsFactors = FALSE)
+  out <- list(hypothesis = hs, samples = samples,
+              prior_samples = prior_samples,
+              class = hyp_class_label(prefix), alpha = alpha)
+  for (nm in names(attrs)) attr(out, nm) <- attrs[[nm]]
+  attr(out, "direction") <- dir
+  class(out) <- c("frmtmb_hypothesis", "brmshypothesis")
+  out
+}
+
+#' A draws frame in brms's `samples` layout: one column per hypothesis,
+#' named `H1`, `H2`, ...
+#'
+#' @noRd
+hyp_samples_frame <- function(m, k) {
+  if (is.null(m)) m <- matrix(numeric(0), 0L, k)
+  m <- as.data.frame(unname(as.matrix(m)))
+  names(m) <- paste0("H", seq_len(k))
+  m
+}
+
+#' The brms arguments a method without posterior draws cannot honor,
+#' refused by name rather than ignored.
+#'
+#' @noRd
+hyp_refuse_draws_args <- function(scope, robust, what) {
+  scope <- match.arg(scope, c("standard", "ranef", "coef"))
+  if (!identical(scope, "standard")) {
+    stop(what, " cannot honor scope = \"", scope, "\": brms evaluates ",
+         "the hypothesis on each group level's draws from ", scope,
+         "(summary = FALSE), and a maximum-likelihood fit has no draws ",
+         "of a group level. Sample with frmtmb.sample::frm_sample() for ",
+         "that, or write the level's own parameter out", call. = FALSE)
+  }
+  check_flag(robust, "robust")
+  if (robust) {
+    stop(what, " cannot honor robust = TRUE: brms's robust summary is ",
+         "the median and MAD of the draws, and a maximum-likelihood ",
+         "fit reports one estimate and its standard error. Sample with ",
+         "frmtmb.sample::frm_sample() for that", call. = FALSE)
+  }
+  invisible(scope)
 }
 
 #' @rdname hypothesis
 #' @exportS3Method brms::hypothesis
 #' @export
-hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
+hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
+                                  scope = c("standard", "ranef", "coef"),
+                                  alpha = 0.05, robust = FALSE,
+                                  seed = NULL,
                                   method = c("wald", "profile", "boot"),
-                                  nsim = 500, seed = NULL, class = NULL,
-                                  group = NULL, vcov = NULL, ...) {
-  # The shadowing note belongs to the call the user typed, not to
-  # any of the many environment rebuilds it triggers, so it is
-  # armed once here and restored when this method returns.
-  #
-  # It is armed in the METHOD and not in the generic on purpose.
-  # frmtmb's exported `hypothesis` is an active binding that
-  # resolves to brms's generic whenever brms is loaded
-  # (R/generic-owners.R), and brms's generic is a bare
-  # UseMethod(): anything this package puts in its own generic is
-  # simply not run then. Every hypothesis() method arms it the same
-  # way, including frmtmb.sample's draws method, which is why the pair
-  # is on the ?frmtmb-sampling-api export list. Measured, when it was
-  # in the generic:
-  # test-naming-collisions.R lost 8 assertions under R CMD check,
-  # which runs the suite in one process where an earlier file had
-  # already loaded brms.
-  old <- hyp_shadow_arm()
-  on.exit(hyp_shadow_disarm(old), add = TRUE)
+                                  nsim = 500, vcov = NULL, ...) {
   method <- match.arg(method)
+  hyp_refuse_draws_args(scope, robust, "hypothesis()")
+  check_probability(alpha, "alpha")
   if (!is.null(vcov) && method != "wald") {
     stop("hypothesis(vcov = ) applies to method = 'wald' only: ",
          "method = '", method, "' does not go through a covariance ",
@@ -2602,8 +2734,11 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
     NULL))
   vo <- hyp_vals_only(x)
   known <- names(hyp_env_vals(x, vo$vals, vo$comp))
+  prefix <- hyp_class_prefix(class, group)
   hp <- hyp_parse_all(hypothesis, known, class, group)
   exs <- hp$exprs
+  labels <- hyp_labels(hypothesis)
+  k_n <- length(exs)
   vals0 <- vapply(seq_along(exs), function(i) {
     val <- hyp_eval(x, exs[[i]], vo$vals, vo$comp)
     if (!is.numeric(val) || length(val) != 1L) {
@@ -2612,16 +2747,11 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
     }
     val
   }, numeric(1))
-
-  hyp_result <- function(out, extra = list()) {
-    rownames(out) <- NULL
-    attr(out, "method") <- method
-    attr(out, "alpha") <- alpha
-    attr(out, "direction") <- hp$dir
-    for (nm in names(extra)) attr(out, nm) <- extra[[nm]]
-    class(out) <- c("frmtmb_hypothesis", "data.frame")
-    out
-  }
+  # brms's interval: central 1 - alpha for "=", central 1 - 2 alpha for a
+  # directional row, whose relevant end is then the one-sided bound
+  lo_p <- ifelse(hp$dir == "two.sided", alpha / 2, alpha)
+  na_col <- rep(NA_real_, k_n)
+  no_prior <- hyp_samples_frame(matrix(NA_real_, 0L, k_n), k_n)
 
   if (method == "boot") {
     FUN <- function(ft) {
@@ -2631,28 +2761,33 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
     }
     bs <- frm_bootstrap(x, FUN, nsim = nsim, seed = seed, ...)
     colnames(bs$t) <- hypothesis
-    rows <- lapply(seq_along(exs), function(i) {
+    fin <- lapply(seq_len(k_n), function(i) {
       t_i <- bs$t[, i]
-      t_i <- t_i[is.finite(t_i)]
-      se <- stats::sd(t_i)
-      dir <- hp$dir[i]
-      lo <- if (dir == "two.sided") alpha / 2 else alpha
-      data.frame(hypothesis = hypothesis[i], estimate = vals0[i],
-                 se = se,
-                 lwr = if (dir == "less") -Inf else
-                   unname(stats::quantile(t_i, lo)),
-                 upr = if (dir == "greater") Inf else
-                   unname(stats::quantile(t_i, 1 - lo)),
-                 z = vals0[i] / se, p = hyp_tail_p(t_i, dir))
+      t_i[is.finite(t_i)]
     })
-    return(hyp_result(do.call(rbind, rows),
-                      list(draws = bs$t, nsim = nsim,
-                           converged = bs$converged)))
+    se <- vapply(fin, stats::sd, 1)
+    lwr <- vapply(seq_len(k_n), function(i) {
+      unname(stats::quantile(fin[[i]], lo_p[i]))
+    }, 1)
+    upr <- vapply(seq_len(k_n), function(i) {
+      unname(stats::quantile(fin[[i]], 1 - lo_p[i]))
+    }, 1)
+    p <- vapply(seq_len(k_n), function(i) hyp_tail_p(fin[[i]], hp$dir[i]),
+                1)
+    samp <- hyp_samples_frame(bs$t, k_n)
+    return(hyp_brms_result(
+      labels, vals0, se, lwr, upr, na_col, na_col, hp$dir, p < alpha,
+      samp, hyp_samples_frame(matrix(NA_real_, nrow(samp), k_n), k_n),
+      prefix, alpha,
+      list(method = method,
+           test = data.frame(Hypothesis = labels, z = vals0 / se, p = p),
+           draws = bs$t, nsim = nsim, converged = bs$converged)))
   }
 
   pc <- hyp_par_cov(x)
   qfun <- stats::qnorm
   pfun <- stats::pnorm
+  stat_name <- "z"
   if (!is.null(vcov)) {
     rv <- resolve_vcov_arg(x, vcov, "hypothesis")
     if (is.null(pc$outer_pos)) {
@@ -2665,20 +2800,23 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
     if (!is.null(rv$df)) {
       qfun <- function(p) stats::qt(p, rv$df)
       pfun <- function(q) stats::pt(q, rv$df)
+      stat_name <- "t"
     }
   }
-  profiles <- vector("list", length(exs))
-  rows <- vector("list", length(exs))
-  for (i in seq_along(exs)) {
+  profiles <- vector("list", k_n)
+  se <- lwr <- upr <- stat <- p <- numeric(k_n)
+  for (i in seq_len(k_n)) {
     ex <- exs[[i]]
     fn <- function(v) hyp_eval(x, ex, v, pc$comp)
     g <- hyp_fd_grad(fn, pc$vals)
-    se <- sqrt(max(0, drop(t(g) %*% pc$V %*% g)))
+    se[i] <- sqrt(max(0, drop(t(g) %*% pc$V %*% g)))
     dir <- hp$dir[i]
-    wr <- hyp_wald_row(vals0[i], se, dir, alpha, qfun, pfun)
-    zv <- wr$stat
-    lwr <- wr$lwr
-    upr <- wr$upr
+    wr <- hyp_wald_row(vals0[i], se[i], dir, alpha, qfun, pfun)
+    stat[i] <- wr$stat
+    p[i] <- wr$p
+    q <- qfun(1 - lo_p[i])
+    lwr[i] <- vals0[i] - q * se[i]
+    upr[i] <- vals0[i] + q * se[i]
     if (method == "profile") {
       if (x$REML) {
         stop("method = 'profile' requires an ML fit (REML integrates ",
@@ -2697,9 +2835,7 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
       v <- numeric(pc$n_outer)
       v[pc$outer_pos] <- g
       const <- vals0[i] - sum(g * pc$vals)
-      # a one-sided bound at level 1 - alpha is the matching endpoint of
-      # the two-sided 1 - 2 * alpha profile interval
-      lev <- if (dir == "two.sided") 1 - alpha else 1 - 2 * alpha
+      lev <- 1 - 2 * lo_p[i]
       if (lev <= 0) {
         stop("A one-sided profile bound needs alpha below 0.5",
              call. = FALSE)
@@ -2713,41 +2849,59 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, alpha = 0.05,
       ci <- stats::confint(pr, level = lev)
       pr[[1L]] <- pr[[1L]] + const
       profiles[[i]] <- pr
-      lwr <- if (dir == "less") -Inf else unname(ci[1]) + const
-      upr <- if (dir == "greater") Inf else unname(ci[2]) + const
+      lwr[i] <- unname(ci[1]) + const
+      upr[i] <- unname(ci[2]) + const
     }
-    rows[[i]] <- data.frame(hypothesis = hypothesis[i],
-                            estimate = vals0[i], se = se,
-                            lwr = lwr, upr = upr, z = zv,
-                            p = wr$p)
   }
-  hyp_result(do.call(rbind, rows),
-             if (method == "profile") {
-               list(profiles = stats::setNames(profiles, hypothesis))
-             } else {
-               list()
-             })
+  test <- data.frame(Hypothesis = labels, stat = stat, p = p)
+  names(test)[2L] <- stat_name
+  # a directional claim passes when its one-sided bound excludes 0,
+  # which for a Wald interval is the same event as p < alpha
+  ok <- ifelse(hp$dir == "greater", lwr > 0, upr < 0)
+  extra <- list(method = method, test = test)
+  if (method == "profile") {
+    extra$profiles <- stats::setNames(profiles, labels)
+  }
+  hyp_brms_result(labels, vals0, se, lwr, upr, na_col, na_col, hp$dir, ok,
+                  hyp_samples_frame(NULL, k_n), no_prior, prefix, alpha,
+                  extra)
 }
 
 #' @export
-print.frmtmb_hypothesis <- function(x, digits = 4, ...) {
+print.frmtmb_hypothesis <- function(x, digits = 2, ...) {
   frm_check_dots(...)
-  method <- attr(x, "method")
-  cat("Hypothesis tests (method = ", method, ")\n", sep = "")
-  if (identical(method, "boot")) {
-    cat("  bootstrap draws: ", attr(x, "nsim"), " (",
-        sum(!attr(x, "converged")), " failed or not converged)\n",
-        sep = "")
+  method <- attr(x, "method") %||% "posterior"
+  cat("Hypothesis Tests for class ", x$class, ":\n", sep = "")
+  hs <- x$hypothesis
+  num <- vapply(hs, is.numeric, TRUE)
+  hs[num] <- lapply(hs[num], round, digits)
+  print(hs, quote = FALSE)
+  pone <- (1 - x$alpha * 2) * 100
+  ptwo <- (1 - x$alpha) * 100
+  cat("---\n'CI': ", pone, "%-CI for one-sided and ", ptwo,
+      "%-CI for two-sided hypotheses.\n", sep = "")
+  if (identical(method, "posterior")) {
+    cat("'*': For one-sided hypotheses, the posterior probability ",
+        "exceeds ", ptwo, "%;\nfor two-sided hypotheses, the value ",
+        "tested against lies outside the ", ptwo, "%-CI.\n", sep = "")
+    cat("Posterior probabilities of point hypotheses assume equal ",
+        "prior probabilities.\n", sep = "")
+    return(invisible(x))
   }
-  df <- x
-  class(df) <- "data.frame"
-  df[-1] <- lapply(df[-1], signif, digits)
-  print(df, row.names = FALSE)
-  dir <- attr(x, "direction") %||% rep("two.sided", nrow(x))
-  if (any(dir != "two.sided")) {
-    cat("  rows written with '<' or '>' are one-sided: p and the ",
-        "finite interval\n  bound hold at level ",
-        signif(1 - (attr(x, "alpha") %||% 0.05), 3), "\n", sep = "")
+  cat("Method: ", method, if (identical(method, "boot"))
+        paste0(" (", attr(x, "nsim"), " bootstrap draws, ",
+               sum(!attr(x, "converged")), " failed or not converged)"),
+      ". Est.Error is the ", if (identical(method, "boot"))
+        "bootstrap SD" else "standard error",
+      "; Evid.Ratio and\nPost.Prob are NA, because a maximum-likelihood ",
+      "fit has no posterior.\n", sep = "")
+  cat("'*': For one-sided hypotheses, the one-sided test rejects at ",
+      "level ", x$alpha, ";\nfor two-sided hypotheses, the value tested ",
+      "against lies outside the ", ptwo, "%-CI.\n", sep = "")
+  tst <- attr(x, "test")
+  if (!is.null(tst)) {
+    tst[-1L] <- lapply(tst[-1L], signif, 4)
+    print(tst, row.names = FALSE)
   }
   invisible(x)
 }
@@ -2755,23 +2909,24 @@ print.frmtmb_hypothesis <- function(x, digits = 4, ...) {
 #' @export
 plot.frmtmb_hypothesis <- function(x, ask = NULL, ...) {
   frm_check_dots(...)
-  method <- attr(x, "method") %||% "wald"
-  alpha <- attr(x, "alpha") %||% 0.05
-  n <- nrow(x)
+  method <- attr(x, "method") %||% "posterior"
+  alpha <- x$alpha %||% 0.05
+  hs <- x$hypothesis
+  n <- nrow(hs)
   ask <- ask %||% (n > 1L && grDevices::dev.interactive())
   if (ask) {
     oask <- grDevices::devAskNewPage(TRUE)
     on.exit(grDevices::devAskNewPage(oask), add = TRUE)
   }
   mark <- function(i) {
-    graphics::abline(v = x$estimate[i], lwd = 2)
-    graphics::abline(v = c(x$lwr[i], x$upr[i]), lty = 2)
+    graphics::abline(v = hs$Estimate[i], lwd = 2)
+    graphics::abline(v = c(hs$CI.Lower[i], hs$CI.Upper[i]), lty = 2)
     graphics::abline(v = 0, col = 2)
   }
   for (i in seq_len(n)) {
-    h <- x$hypothesis[i]
+    h <- hs$Hypothesis[i]
     if (method %in% c("boot", "posterior")) {
-      d <- attr(x, "draws")[, i]
+      d <- x$samples[[i]]
       d <- d[is.finite(d)]
       graphics::hist(d, freq = FALSE, breaks = "FD", main = h,
                      xlab = if (method == "boot") "bootstrap value" else
@@ -2787,12 +2942,13 @@ plot.frmtmb_hypothesis <- function(x, ask = NULL, ...) {
       graphics::plot(pr[[1L]], dnll, type = "l", lwd = 2, main = h,
                      xlab = "value",
                      ylab = "profile neg. log-likelihood change")
-      graphics::abline(h = 0.5 * stats::qchisq(1 - alpha, 1), lty = 3)
+      graphics::abline(h = 0.5 * stats::qchisq(1 - 2 * alpha, 1), lty = 3)
       mark(i)
     } else {
-      xs <- seq(x$estimate[i] - 4 * x$se[i], x$estimate[i] + 4 * x$se[i],
-                length.out = 200)
-      graphics::plot(xs, stats::dnorm(xs, x$estimate[i], x$se[i]),
+      est <- hs$Estimate[i]
+      se <- hs$Est.Error[i]
+      xs <- seq(est - 4 * se, est + 4 * se, length.out = 200)
+      graphics::plot(xs, stats::dnorm(xs, est, se),
                      type = "l", lwd = 2, main = h, xlab = "value",
                      ylab = "Wald (normal) density")
       mark(i)

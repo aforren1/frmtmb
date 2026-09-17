@@ -3,37 +3,55 @@
 \name{posterior_summary}
 \alias{posterior_summary}
 \alias{posterior_summary.default}
+\alias{posterior_summary.frmtmb_fit}
+\alias{posterior_summary.frmtmb_multiple}
 \title{Summaries and intervals of draws}
 \usage{
 posterior_summary(x, ...)
 
 \method{posterior_summary}{default}(x, probs = c(0.025, 0.975), robust = FALSE, ...)
+
+\method{posterior_summary}{frmtmb_fit}(x, ...)
+
+\method{posterior_summary}{frmtmb_multiple}(x, ...)
 }
 \arguments{
-\item{x}{A matrix of draws, variables in columns.}
+\item{x}{A matrix or three-dimensional array of draws.}
 
-\item{...}{Passed to methods.}
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 
 \item{probs}{Quantiles to report.}
 
 \item{robust}{If \code{TRUE}, median and MAD instead of mean and SD.}
 }
 \value{
-A matrix with one row per variable.
+A matrix with one row per variable, or an array, as above.
 }
 \description{
-\code{posterior_summary()} reduces a matrix of draws to estimate, error
-and quantiles in brms's column layout (\code{Estimate}, \code{Est.Error},
-\code{Q2.5}, \code{Q97.5}). Variables are columns and draws are rows, which is
-the layout every draws object in this ecosystem converts to.
+\code{posterior_summary()} reduces draws to estimate, error and quantiles
+in brms's column layout (\code{Estimate}, \code{Est.Error}, \code{Q2.5}, \code{Q97.5}).
+A matrix has variables in columns and draws in rows and gives one row
+per variable. A three-dimensional array has draws in its first
+margin, as \code{ranef(summary = FALSE)} returns them, and gives a
+\verb{variables x statistics x third-margin} array, as in brms.
 }
 \details{
+The computation is brms's \code{posterior_summary.default()}, statistic
+for statistic: \code{mean} and \code{sd}, or \code{median} and \code{mad} when \code{robust},
+then \code{quantile}, each with \code{na.rm = TRUE}.
+
 The method for posterior draws of a fitted model is in the
 \code{frmtmb.sample} package, along with the sampler that produces them.
+A maximum-likelihood fit has no draws, and its method says so.
 }
 \examples{
 # any matrix of draws: rows are draws, columns are variables
 m <- cbind(a = rnorm(500), b = rnorm(500, 2))
 posterior_summary(m)
 posterior_summary(m, robust = TRUE)
+
+# a maximum-likelihood fit has no draws to summarize
+dd <- data.frame(y = rnorm(40), x = rnorm(40))
+try(posterior_summary(frm(bf(y ~ x) + gaussian(), data = dd)))
 }

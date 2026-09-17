@@ -27,7 +27,7 @@ mcmc_plot(object, ...)
   ...
 )
 
-\method{pairs}{frmtmb_draws}(x, variable = NULL, ...)
+\method{pairs}{frmtmb_draws}(x, pars = NA, variable = NULL, regex = FALSE, fixed = FALSE, ...)
 
 nuts_params(object, ...)
 
@@ -67,15 +67,17 @@ prefix (default \code{"intervals"}).}
 
 \item{variable}{For \code{mcmc_plot()} and \code{pairs()}, the variables to
 use, by name; it defaults to everything except the group-level
-modes and \code{lp__}. \code{rhat()} and \code{neff_ratio()} do not take it,
+coefficients and \code{lp__} (and to four of those for \code{pairs()}).
+\code{rhat()} and \code{neff_ratio()} do not take it,
 because brms's do not: their selector is \code{pars}. Naming it on
 either of those two is silently ignored today; see \code{...}.}
 
 \item{regex}{For \code{rhat()} and \code{neff_ratio()}, \code{TRUE} makes \code{pars} a
-regular expression; for \code{mcmc_plot()}, it makes \code{variable} one.}
+regular expression; for \code{mcmc_plot()} and \code{pairs()}, it makes
+\code{variable} one.}
 
-\item{fixed}{For \code{mcmc_plot()}, \code{TRUE} matches \code{pars} by exact name
-rather than as a regular expression.}
+\item{fixed}{For \code{mcmc_plot()} and \code{pairs()}, \code{TRUE} matches \code{pars} by
+exact name rather than as a regular expression.}
 }
 \value{
 A ggplot object, or the diagnostic data frame / vector
@@ -93,9 +95,10 @@ brms's spelling for "call a bayesplot \verb{mcmc_*} function on these
 draws"; \code{pairs()} is \code{bayesplot::mcmc_pairs()}.
 }
 \details{
-All of these report the frmtmb draws-side parameter names (no
-parentheses), not Stan's \code{par[1]}, except \code{nuts_params()}, whose
-rows are the sampler's own quantities and not model parameters.
+All of these report brms's parameter names (\code{b_x},
+\code{r_g[1,Intercept]}), not Stan's \code{par[1]}, except \code{nuts_params()},
+whose rows are the sampler's own quantities and not model
+parameters.
 }
 \section{Which R-hat this is}{
 
@@ -144,7 +147,7 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
   ds <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
                    data = dd, chains = 1, iter = 500, refresh = 0)
   mcmc_plot(ds)
-  mcmc_plot(ds, type = "trace", variable = "x")
+  mcmc_plot(ds, type = "trace", variable = "b_x")
   head(rhat(ds))
 }
 }

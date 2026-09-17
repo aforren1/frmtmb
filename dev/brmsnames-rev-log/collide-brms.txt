@@ -1,0 +1,43 @@
+﻿== K1 ==
+rows (class coef group resp dpar):
+     class            coef group resp dpar
+         b sigma_Intercept                
+ Intercept                                
+        sd       Intercept     g          
+     sigma                                
+== K2 ==
+rows (class coef group resp dpar):
+     class      coef group resp  dpar
+         b   sigma_z                 
+ Intercept                           
+        sd Intercept     g           
+         b         z            sigma
+ Intercept                      sigma
+== K3 ==
+rows (class coef group resp dpar):
+     class      coef group resp dpar
+ Intercept                          
+        sd Intercept  g:h2          
+        sd Intercept   gh2          
+     sigma                          
+== K4 ==
+rows (class coef group resp dpar):
+     class coef group resp dpar
+         b  x_z          y     
+ Intercept               y     
+     sigma               y     
+         b    z         yx     
+ Intercept              yx     
+     sigma              yx     
+== K4b ==
+rows (class coef group resp dpar):
+     class coef group resp dpar
+         b    x         ya     
+ Intercept              ya     
+     sigma              ya     
+         b    z         yx     
+ Intercept              yx     
+     sigma              yx     
+== K5 ==
+brms ERROR: Internal renaming led to duplicated names. Consider renaming your variables to have different suffixes.
+Occured for: '(Intercept)', 'Intercept' 

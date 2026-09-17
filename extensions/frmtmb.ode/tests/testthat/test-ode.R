@@ -277,7 +277,7 @@ test_that("the population PK fit matches the probe reference", {
   expect_equal(sigma(fit), 0.3040, tolerance = 1e-3)
   expect_equal(AIC(fit), 132.926, tolerance = 1e-5)
 
-  sds <- vapply(VarCorr(fit), function(v) sqrt(v[1L, 1L]), 0)
+  sds <- vapply(varcorr_matrices(fit), function(v) sqrt(v[1L, 1L]), 0)
   expect_equal(unname(sds), c(0.2533, 0.2624), tolerance = 1e-3)
 
   # standard errors exist and are finite: the Hessian is positive

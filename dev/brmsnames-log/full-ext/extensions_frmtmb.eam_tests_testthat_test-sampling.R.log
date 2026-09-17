@@ -1,0 +1,14 @@
+Loading required package: frmtmb
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.eam from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.6, 2.5)
+  b                  (flat), as brms leaves slopes
+FILE    extensions/frmtmb.eam/tests/testthat/test-sampling.R 
+BLOCKS  3 
+PASS    97 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+DONE

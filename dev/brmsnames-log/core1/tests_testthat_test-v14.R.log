@@ -1,0 +1,12 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-v14.R 
+BLOCKS  14 
+PASS    80 
+FAIL    1 
+ERROR   0 
+SKIP    0 
+  failing: control profile = TRUE reproduces the plain fit
+       Expected `h$estimate` to equal `unname(fixef(fp)$mu["x"] - fixef(fp)$mu["x2"])`. Differences: `actual` is NULL `expected` is a double vector (0.291217190476681) 
+DONE

@@ -88,9 +88,11 @@ test_that("a covariate literally named sigma stays visible", {
   d <- data.frame(sigma = rnorm(50))
   d$y <- 2 + 0.8 * d$sigma + rnorm(50)
   fit <- frm(bf(y ~ sigma) + gaussian(), data = d)
+  # it is b_sigma, and the default class = "b" reads the bare name as it
   h <- hypothesis(fit, "sigma = 0")
-  expect_equal(h$estimate[1], unname(fit$estimates$beta[["sigma"]]),
-               tolerance = 1e-8)
+  expect_equal(h$hypothesis$Estimate[1],
+               unname(fit$estimates$beta[["sigma"]]), tolerance = 1e-8)
+  expect_true(all(c("b_sigma", "sigma") %in% variables(fit)))
 })
 
 test_that("NA in an RE-only design variable propagates to predictions", {

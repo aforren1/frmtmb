@@ -74,7 +74,7 @@ changes how a model is fitted.
 ```{r fit}
 fit <- frm(bf(v ~ s(t, k = 12) + s(t, subject, bs = "fs", k = 5)),
            family = gaussian(), data = d)
-VarCorr(fit)
+confint_varcorr(fit)
 ```
 
 ## 1. The curve, with a band that covers all of it

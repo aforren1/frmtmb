@@ -1,0 +1,26 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-simulate-ergonomics.R 
+BLOCKS  9 
+PASS    27 
+FAIL    3 
+ERROR   6 
+SKIP    0 
+  failing: natural and internal newparams spell the same simulation
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: natural newparams round-trip through an us block
+       <getvarError/missingArgError/error/condition> Error in `nat_slots(fr)`: argument "fitlike" is missing, with no default 
+  failing: a refit recovers natural-scale simulation parameters
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: natural newparams reject what they cannot express
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept 
+  failing: prior draws simulate a prior-predictive sample
+       Expected `all(...)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       Expected `stats::sd(pars$x)` > 0.5. Actual comparison: NA <= 0.5 
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: prior draws respect bounds and newparams fill the rest
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: a prior draw undoes the placement it was written on
+       Expected `abs(mean(pars$Intercept) - 1)` > 1. Actual comparison: NA <= 1.0 
+DONE

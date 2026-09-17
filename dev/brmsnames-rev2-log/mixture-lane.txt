@@ -1,0 +1,30 @@
+empirical share of component 1 (mean -2): 0.8775 
+== estimates ==
+sigma1_(Intercept) sigma2_(Intercept) theta1_(Intercept) 
+       -0.19462952         0.07514849         1.96616509 
+variables(fit): b_mu1_Intercept b_mu1_x b_mu2_Intercept b_mu2_x sigma1 sigma2 theta1 
+== hypothesis(fit, theta1 = 0.5) ==
+          Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob
+1 (theta1)-(0.5) = 0 1.466165 0.1543543 1.163636 1.768694         NA        NA
+  Star
+1    *
+== draws column means ==
+b_mu1_Intercept         b_mu1_x b_mu2_Intercept         b_mu2_x          sigma1 
+     -2.0578291       0.2560888       2.5349107       0.4717354       0.8283027 
+         sigma2          theta1            lp__ 
+      1.1209282       1.9649852    -657.2099179 
+== posterior mixing probability of component 1, pp_mixture ==
+   class1    class2 
+0.8766734 0.1233266 
+== hypothesis(ds, theta1 = 0.5, class = NULL) ==
+          Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob
+1 (theta1)-(0.5) = 0 1.464985  0.143906 1.227497 1.737642         NA        NA
+  Star
+1    *
+== posterior_summary(ds, variable = theta1) ==
+       Estimate Est.Error     Q2.5    Q97.5
+theta1 1.964985  0.143906 1.727497 2.237642
+== frm_simulate(newparams = list(theta1 = 0.7)) share below 0 ==
+[1] 0.665
+== the same with theta1 = qlogis(0.7), read as a log ratio ==
+[1] 0.7

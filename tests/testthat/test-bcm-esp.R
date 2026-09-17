@@ -130,7 +130,7 @@ test_that("Extraversion is a correlated latent pair across responses", {
   skip_unless_bcm("binomial-extras.R")
   d <- bcm_extraversion_data()
   fit <- frm(bcm_extraversion_formula(), data = d)
-  vc <- unname(VarCorr(fit)[[1L]])
+  vc <- unname(varcorr_matrices(fit)[[1L]])
   r <- stats::cov2cor(vc)[1, 2]
   expect_equal(dim(vc), c(2L, 2L))
   # the chapter's conclusion is that psychic performance and
@@ -151,7 +151,7 @@ test_that("Extraversion matches its Stan program", {
                 xs = d$xs, sx = 0.03),
     fit = fit,
     pars = function(f) {
-      vc <- unname(VarCorr(f)[[1L]])
+      vc <- unname(varcorr_matrices(f)[[1L]])
       mu <- c(unname(fixef(f)$k_mu), unname(fixef(f)$xs_mu))
       u <- frm_u(f)
       list(mu = mu, sigma = sqrt(diag(vc)),

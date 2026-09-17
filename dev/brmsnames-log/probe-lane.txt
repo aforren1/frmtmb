@@ -1,0 +1,78 @@
+arm lane  frmtmb 0.58.0 from C:/Users/adf44/source/r/brmsnames-lib 
+frmtmb.sample 0.6.0 from C:/Users/adf44/source/r/brmsnames-lib 
+
+== A8 posterior_summary on a fit ==
+posterior_summary(fit)                       ERROR: posterior_summary() needs posterior draws and a frmtmb_fit has none: frm() is maximum likelihood, so it carries one parameter vector rather than chain
+
+== A9 VarCorr on a fit ==
+VarCorr(fit)                                 list len=1 names=patient
+names(VarCorr(fit)): patient 
+class: list 
+element 1 names: sd 
+List of 1
+ $ sd: num [1, 1:4] 0.5433 0.0611 0.4235 0.6631
+  ..- attr(*, "dimnames")=List of 2
+  .. ..$ : chr "Intercept"
+  .. ..$ : chr [1:4] "Estimate" "Est.Error" "Q2.5" "Q97.5"
+
+== A10 variables(fit) ==
+[1] "b_Intercept"           "b_zBase"               "b_Trt1"               
+[4] "b_zBase:Trt1"          "sd_patient__Intercept"
+
+== A hypothesis(fit) object ==
+hypothesis(fit, 'zBase > Trt1')              frmtmb_hypothesis len=5 names=hypothesis,samples,prior_samples,class,alpha
+class: frmtmb_hypothesis brmshypothesis 
+names: hypothesis samples prior_samples class alpha 
+'data.frame':	1 obs. of  8 variables:
+ $ Hypothesis: chr "(zBase)-(Trt1) > 0"
+ $ Estimate  : num 0.987
+ $ Est.Error : num 0.189
+ $ CI.Lower  : num 0.676
+ $ CI.Upper  : num 1.3
+ $ Evid.Ratio: num NA
+ $ Post.Prob : num NA
+ $ Star      : chr "*"
+hypothesis(fit, 'b_zBase > b_Trt1', NULL)    frmtmb_hypothesis len=5 names=hypothesis,samples,prior_samples,class,alpha
+
+== B positional and summary = FALSE on a fit ==
+fixef(fit)                                   list len=1 names=mu
+fixef(fit, FALSE)                            ERROR: fixef() cannot honor summary = FALSE: brms returns the posterior draws there, and a maximum-likelihood fit has none. It carries one estimate and no ch
+  identical to fixef(fit): FALSE 
+fixef(fit, summary = FALSE)                  ERROR: fixef() cannot honor summary = FALSE: brms returns the posterior draws there, and a maximum-likelihood fit has none. It carries one estimate and no ch
+ranef(fit, FALSE)                            ERROR: ranef() cannot honor summary = FALSE: brms returns the posterior draws there, and a maximum-likelihood fit has none. It carries one estimate and no ch
+  identical to ranef(fit): FALSE 
+ranef(fit, summary = FALSE)                  ERROR: ranef() cannot honor summary = FALSE: brms returns the posterior draws there, and a maximum-likelihood fit has none. It carries one estimate and no ch
+coef(fit, FALSE)                             ERROR: coef() cannot honor summary = FALSE: brms returns the posterior draws there, and a maximum-likelihood fit has none. It carries one estimate and no cha
+coef(fit, summary = FALSE)                   ERROR: coef() cannot honor summary = FALSE: brms returns the posterior draws there, and a maximum-likelihood fit has none. It carries one estimate and no cha
+VarCorr(fit, NULL, FALSE)                    ERROR: VarCorr() cannot honor summary = FALSE: brms returns the posterior draws there, and a maximum-likelihood fit has none. It carries one estimate and no 
+VarCorr(fit, summary = FALSE)                ERROR: VarCorr() cannot honor summary = FALSE: brms returns the posterior draws there, and a maximum-likelihood fit has none. It carries one estimate and no 
+
+== draws ==
+draws 2000 x 11 
+variables(ds): b_Intercept b_x sigma r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] r_g[4,Intercept] r_g[5,Intercept] r_g[6,Intercept] theta_1 lp__ 
+names(rhat(ds)): b_Intercept b_x sigma r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] r_g[4,Intercept] r_g[5,Intercept] r_g[6,Intercept] theta_1 lp__ 
+rownames(summary(ds)): b_Intercept b_x sigma theta_1 
+rownames(posterior_summary(ds)): b_Intercept b_x sigma r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] r_g[4,Intercept] r_g[5,Intercept] r_g[6,Intercept] theta_1 lp__ 
+colnames(as.data.frame(ds)): b_Intercept b_x sigma r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] r_g[4,Intercept] r_g[5,Intercept] r_g[6,Intercept] theta_1 lp__ 
+variables(as_draws_df(ds)): b_Intercept b_x sigma r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] r_g[4,Intercept] r_g[5,Intercept] r_g[6,Intercept] theta_1 lp__ 
+
+== B draws positional (the eleven and the six) ==
+as.matrix(ds, "b_x")                     matrix 2000x1                                    
+as.array(ds, "b_x")                      array 500x4x1                                    
+as.data.frame(ds, NULL, TRUE, "b_x")     data.frame 2000x1 names=b_x                      
+as_draws_array(ds, "b_x")                draws_array 500x4x1                              
+as_draws_df(ds, "b_x")                   draws_df 2000x4 names=b_x,.chain,.iteration,.dra 
+as_draws_matrix(ds, "b_x")               draws_matrix 2000x1                              
+as_draws_list(ds, "b_x")                 draws_list len=4 names=1,2,3,4                   
+as_draws_rvars(ds, "b_x")                draws_rvars len=1 names=b_x                      
+as_draws(ds, "b_x")                      draws_list len=4 names=1,2,3,4                   
+fixef(ds, FALSE)                         matrix 2000x2                                    
+ranef(ds, FALSE)                         list len=1 names=g                               
+coef(ds, FALSE)                          list len=1 names=g                               
+VarCorr(ds, NULL, FALSE)                 list len=2 names=g,residual__                    
+summary(ds, FALSE, 0.5)                  matrix 4x7                                       
+bayes_R2(ds, NULL, TRUE, TRUE)           matrix 1x4                                       
+posterior_summary(ds, "^b_")             matrix 2x4                                       
+hypothesis(ds, "x > 0", "b")             frmtmb_hypothesis len=5 names=hypothesis,samples IDENTICAL to no-arg
+pairs(ds, "^b_")                         bayesplot_grid 2x2 names=grobs,layout,widths,hei 
+DONE

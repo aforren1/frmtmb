@@ -1,0 +1,29 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1.7, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, -0.4, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+FILE    extensions/frmtmb.sample/tests/testthat/test-reparam.R 
+BLOCKS  28 
+PASS    279 
+FAIL    3 
+ERROR   2 
+SKIP    0 
+  failing: the draws matrix has the same columns in the same order
+       Expected `any(startsWith(colnames(cs$ncp$draws), "b["))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+  failing: posterior_epred() on non-centered draws is X beta + Z b per draw
+       <subscriptOutOfBoundsError/error/condition> Error in `dr[["Intercept"]]`: subscript out of bounds 
+  failing: the whole draws method surface runs on non-centered draws
+       Expected `VarCorr(ds)` to be an S3 object. Actual OO type: none. 
+       Error: 'b_sd_g__Intercept' is not a parameter of this model, while 'sd_g__Intercept' is: the `class`/`group` shorthand would be ignored for it. brms's default c 
+  failing: a correlated non-centered run keeps the draws surface exactly
+       Expected `VarCorr(cs$ncp)` to be an S3 object. Actual OO type: none. 
+DONE

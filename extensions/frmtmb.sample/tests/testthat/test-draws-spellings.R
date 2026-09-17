@@ -323,11 +323,27 @@ test_that("brms's positional calls mean here what they mean in brms", {
   expect_error(posterior_interval(ds, 0.9),
                "must be NA or a character vector")
   # and the call brms does answer in that slot works
-  expect_equal(rownames(posterior_interval(ds, "^x$")), "x")
-  expect_equal(colnames(as.mcmc(ds, "^x$")[[1L]]), "x")
+  # posterior_interval() reaches brms's as.matrix(pars =), which warns
+  # that `pars` is deprecated, as brms's does
+  expect_warning(pi <- posterior_interval(ds, "^b_x$"), "deprecated")
+  expect_equal(rownames(pi), "b_x")
+  expect_equal(colnames(as.mcmc(ds, "^b_x$")[[1L]]), "b_x")
+  # the six whose slots used to diverge: bayes_R2's fourth is robust,
+  # posterior_summary's second is pars, hypothesis's third is class
+  expect_equal(bayes_R2(ds, NULL, TRUE, TRUE),
+               bayes_R2(ds, robust = TRUE))
+  expect_equal(colnames(bayes_R2(ds, NULL, TRUE, TRUE)),
+               c("Estimate", "Est.Error", "Q2.5", "Q97.5"))
+  expect_equal(rownames(suppressWarnings(posterior_summary(ds, "^b_x$"))),
+               "b_x")
+  expect_equal(hypothesis(ds, "Intercept > 0", "sd", "g")$class, "sd_g")
+  # and the summary = FALSE family returns the draws, as in brms
+  expect_equal(dim(fixef(ds, FALSE)), c(ndraws(ds), 2L))
+  expect_equal(length(dim(ranef(ds, FALSE)$g)), 3L)
+  expect_true(is.matrix(VarCorr(ds, NULL, FALSE)$g$sd))
   skip_if_not_installed("ggplot2")
   skip_if_not_installed("bayesplot")
-  expect_s3_class(mcmc_plot(ds, "^x$"), "ggplot")
+  expect_s3_class(mcmc_plot(ds, "^b_x$"), "ggplot")
 })
 
 test_that("the slots this package cannot answer refuse by name", {

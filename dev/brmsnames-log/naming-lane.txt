@@ -1,0 +1,103 @@
+arm lane  frmtmb 0.58.0 from C:/Users/adf44/source/r/brmsnames-lib 
+
+== y ~ x + (1 + x | g) ==
+brms names:           b_x b_Intercept sd_g__Intercept sd_g__x sigma 
+variables(fit):       b_Intercept b_x sd_g__Intercept sd_g__x cor_g__Intercept__x sigma 
+brms names missing:    
+names brms lacks:      
+found 5 of 5
+r_ names found in the draws labels: 24 of 24
+
+== bf(y ~ x + (1 | g), sigma ~ z + (1 | g)) ==
+brms names:           b_x b_Intercept sd_g__Intercept b_sigma_z b_sigma_Intercept sd_g__sigma_Intercept 
+variables(fit):       b_Intercept b_x b_sigma_Intercept b_sigma_z sd_g__Intercept sd_g__sigma_Intercept 
+brms names missing:    
+names brms lacks:      
+found 6 of 6
+r_ names found in the draws labels: 24 of 24
+
+== mvbf(y1 ~ x + (1 | g), y2 ~ x + (1 | g), sigma ~ z), no rescor ==
+brms names:           b_y1_x b_y1_Intercept sd_g__y1_Intercept b_sigma_y1_z b_sigma_y1_Intercept b_y2_x b_y2_Intercept sd_g__y2_Intercept b_sigma_y2_z b_sigma_y2_Intercept 
+variables(fit):       b_y1_Intercept b_y1_x b_y2_Intercept b_y2_x b_sigma_y1_Intercept b_sigma_y1_z b_sigma_y2_Intercept b_sigma_y2_z sd_g__y1_Intercept sd_g__y2_Intercept 
+brms names missing:    
+names brms lacks:      
+found 10 of 10
+r_ names found in the draws labels: 24 of 24
+
+== yn ~ a * exp(-b * z), a ~ 1 + (1 | g), b ~ 1, nl ==
+brms names:           sigma b_a_Intercept sd_g__a_Intercept b_b_Intercept 
+variables(fit):       b_a_Intercept b_b_Intercept sd_g__a_Intercept sigma 
+brms names missing:    
+names brms lacks:      
+found 4 of 4
+r_ names found in the draws labels: 12 of 12
+
+== y ~ x + I(x^2) + poly(z, 2) + f + (1 | gs) + (1 | g:h), hostile ==
+brms names:           b_fcMd b_fe b_IxE2 b_polyz21 b_polyz22 b_x b_Intercept sd_g:h__Intercept sd_gs__Intercept sigma 
+variables(fit):       b_Intercept b_x b_IxE2 b_polyz21 b_polyz22 b_fcMd b_fe sd_gs__Intercept sd_g:h__Intercept sigma 
+brms names missing:    
+names brms lacks:      
+found 10 of 10
+r_ names found in the draws labels: 20 of 20
+
+== mvbf(y_a ~ x + (1 | g), y.b ~ f), responses with _ and . ==
+brms names:           b_ya_x b_ya_Intercept sd_g__ya_Intercept sigma_ya b_yb_fcMd b_yb_fe b_yb_Intercept sigma_yb 
+variables(fit):       b_ya_Intercept b_ya_x b_yb_Intercept b_yb_fcMd b_yb_fe sd_g__ya_Intercept sigma_ya sigma_yb 
+brms names missing:    
+names brms lacks:      
+found 8 of 8
+r_ names found in the draws labels: 12 of 12
+
+== y ~ s(x) + (1 | g), smooth ==
+brms names:           bs_sx_1 b_Intercept sd_g__Intercept sds_sx_1 sigma 
+variables(fit):       b_Intercept bs_sx_1 sd_g__Intercept sds_sx_1 sigma 
+brms names missing:    
+names brms lacks:      
+found 5 of 5
+r_ names found in the draws labels: 12 of 12
+
+== negbinomial yc ~ x, shape unmodeled ==
+brms names:           b_x b_Intercept shape 
+variables(fit):       b_Intercept b_x shape 
+brms names missing:    
+names brms lacks:      
+found 3 of 3
+
+== student y ~ x + (1 | g), sigma and nu unmodeled ==
+brms names:           b_x b_Intercept nu sd_g__Intercept sigma 
+variables(fit):       b_Intercept b_x sd_g__Intercept sigma nu 
+brms names missing:    
+names brms lacks:      
+found 5 of 5
+r_ names found in the draws labels: 12 of 12
+
+== Beta yb ~ x, phi unmodeled ==
+brms names:           b_x b_Intercept phi 
+variables(fit):       b_Intercept b_x phi 
+brms names missing:    
+names brms lacks:      
+found 3 of 3
+
+== zero_inflated_poisson yc ~ x, zi unmodeled ==
+brms names:           b_x b_Intercept zi 
+variables(fit):       b_Intercept b_x zi 
+brms names missing:    
+names brms lacks:      
+found 3 of 3
+
+== hurdle_gamma yh ~ x, shape and hu unmodeled ==
+brms names:           b_x hu b_Intercept shape 
+variables(fit):       b_Intercept b_x shape hu 
+brms names missing:    
+names brms lacks:      
+found 4 of 4
+
+== student bf(y ~ x, nu ~ 1), nu written out ==
+brms names:           b_x b_Intercept sigma b_nu_Intercept 
+variables(fit):       b_Intercept b_x b_nu_Intercept sigma 
+brms names missing:    
+names brms lacks:      
+found 4 of 4
+
+== total, arm lane: brms names present 210 of 210 ==
+DONE

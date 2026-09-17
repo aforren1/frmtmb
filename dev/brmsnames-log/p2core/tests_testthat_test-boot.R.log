@@ -1,0 +1,12 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-boot.R 
+BLOCKS  7 
+PASS    48 
+FAIL    0 
+ERROR   1 
+SKIP    0 
+  failing: hypothesis exposes natural-scale RE names
+       Error: Some parameters cannot be found in the model:  'sd_h__Intercept' variables() lists every name; brms's default class = "b" puts b_ before each name, so a  
+DONE

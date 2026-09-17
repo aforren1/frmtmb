@@ -1,0 +1,13 @@
+ℹ Loading frmtmb.learn
+Loading required package: frmtmb
+* installing *source* package 'frmtmb.learn' ...
+** this is package 'frmtmb.learn' version '0.4.1'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+* DONE (frmtmb.learn)
+R CMD INSTALL exit 0 

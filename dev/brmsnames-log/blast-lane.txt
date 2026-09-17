@@ -1,0 +1,280 @@
+files scanned: 384 
+
+== lines per surface, by kind ==
+                                surface      kind lines
+ bare coefficient names in a draws read         R     1
+                     draws column names         R     5
+                     draws column names     tests    24
+                   draws matrix by name     tests    13
+   fixef/ranef/coef/VarCorr summary arg         R     7
+   fixef/ranef/coef/VarCorr summary arg     tests     8
+                      hypothesis() call         R    59
+                      hypothesis() call     tests   146
+                      hypothesis() call vignettes    27
+             hypothesis() result column         R    44
+             hypothesis() result column     tests   159
+             hypothesis() result column vignettes     3
+                    old draws name b[i]     tests     2
+                 old draws name theta_k         R     8
+                 old draws name theta_k     tests    24
+                 old draws name theta_k vignettes     2
+               posterior_summary() call         R    22
+               posterior_summary() call     tests    15
+                   VarCorr element read         R     2
+                   VarCorr element read     tests    16
+                   VarCorr element read vignettes    14
+                VarCorr names or length     tests     7
+                       variables() call         R    38
+                       variables() call     tests    38
+                       variables() call vignettes     7
+
+== lines per surface, by package ==
+                                surface         package lines
+ bare coefficient names in a draws read   frmtmb.sample     1
+                     draws column names   frmtmb.sample    29
+                   draws matrix by name   frmtmb.sample    13
+   fixef/ranef/coef/VarCorr summary arg          frmtmb     7
+   fixef/ranef/coef/VarCorr summary arg   frmtmb.sample     8
+                      hypothesis() call          frmtmb   180
+                      hypothesis() call   frmtmb.latent     6
+                      hypothesis() call   frmtmb.sample    46
+             hypothesis() result column          frmtmb   175
+             hypothesis() result column frmtmb.coupling    12
+             hypothesis() result column      frmtmb.eam     3
+             hypothesis() result column    frmtmb.learn     1
+             hypothesis() result column   frmtmb.spline    15
+                    old draws name b[i]          frmtmb     2
+                 old draws name theta_k          frmtmb    22
+                 old draws name theta_k   frmtmb.sample    12
+               posterior_summary() call          frmtmb    13
+               posterior_summary() call   frmtmb.sample    24
+                   VarCorr element read          frmtmb    24
+                   VarCorr element read      frmtmb.eam     1
+                   VarCorr element read   frmtmb.sample     7
+                VarCorr names or length          frmtmb     4
+                VarCorr names or length   frmtmb.sample     3
+                       variables() call          frmtmb    51
+                       variables() call   frmtmb.sample    32
+
+== files per surface ==
+-- VarCorr element read : 16 files, 32 lines
+   R/utils.R (1)
+   tests/testthat/test-boot.R (2)
+   tests/testthat/test-covstruct.R (1)
+   tests/testthat/test-glmm-gaussian.R (1)
+   tests/testthat/test-id-kron.R (1)
+   tests/testthat/test-importance.R (1)
+   tests/testthat/test-reml-nongaussian.R (1)
+   tests/testthat/test-tre.R (1)
+   tests/testthat/test-v11.R (1)
+   vignettes/case-studies.Rmd (10)
+   vignettes/reinforcement-learning.Rmd (4)
+   extensions/frmtmb.eam/tests/testthat/test-surface.R (1)
+   extensions/frmtmb.sample/R/methods-draws.R (1)
+   extensions/frmtmb.sample/tests/testthat/test-brms-output.R (3)
+   extensions/frmtmb.sample/tests/testthat/test-draws-spellings.R (1)
+   extensions/frmtmb.sample/tests/testthat/test-reparam.R (2)
+-- VarCorr names or length : 6 files, 7 lines
+   tests/testthat/test-brms-methods.R (2)
+   tests/testthat/test-brms-names.R (1)
+   tests/testthat/test-generic-collision.R (1)
+   extensions/frmtmb.sample/tests/testthat/test-brms-output.R (1)
+   extensions/frmtmb.sample/tests/testthat/test-reparam.R (1)
+   extensions/frmtmb.sample/tests/testthat/test-sample-direct.R (1)
+-- variables() call : 27 files, 83 lines
+   R/brms-names.R (1)
+   R/confint.R (13)
+   R/covstruct.R (1)
+   R/draws-generics.R (3)
+   R/methods-fit.R (1)
+   R/priors.R (1)
+   R/simulate-new.R (2)
+   tests/testthat/helper-brms-methods.R (2)
+   tests/testthat/test-autocor.R (2)
+   tests/testthat/test-brms-names.R (3)
+   tests/testthat/test-id-kron.R (1)
+   tests/testthat/test-naming-collisions.R (2)
+   tests/testthat/test-nlf.R (1)
+   tests/testthat/test-portability.R (4)
+   tests/testthat/test-review-fixes.R (1)
+   tests/testthat/test-review-v29.R (7)
+   tests/testthat/test-tre.R (1)
+   tests/testthat/test-v19.R (2)
+   vignettes/brms-migration.Rmd (1)
+   vignettes/inputs.Rmd (2)
+   extensions/frmtmb.sample/R/methods-draws.R (16)
+   extensions/frmtmb.sample/tests/testthat/test-brms-output.R (2)
+   extensions/frmtmb.sample/tests/testthat/test-draws-methods.R (9)
+   extensions/frmtmb.sample/tests/testthat/test-sample-direct.R (1)
+   extensions/frmtmb.sample/vignettes/brms-posterior.Rmd (2)
+   extensions/frmtmb.sample/vignettes/posterior-diagnostics.Rmd (1)
+   extensions/frmtmb.sample/vignettes/sampling.Rmd (1)
+-- draws matrix by name : 4 files, 13 lines
+   extensions/frmtmb.sample/tests/testthat/test-brms-output.R (1)
+   extensions/frmtmb.sample/tests/testthat/test-draws-methods.R (4)
+   extensions/frmtmb.sample/tests/testthat/test-sample-direct.R (5)
+   extensions/frmtmb.sample/tests/testthat/test-sampling-ported.R (3)
+-- draws column names : 6 files, 29 lines
+   extensions/frmtmb.sample/R/draws-brms.R (2)
+   extensions/frmtmb.sample/R/methods-draws.R (2)
+   extensions/frmtmb.sample/R/sample.R (1)
+   extensions/frmtmb.sample/tests/testthat/test-draws-methods.R (3)
+   extensions/frmtmb.sample/tests/testthat/test-reparam.R (13)
+   extensions/frmtmb.sample/tests/testthat/test-sample-direct.R (8)
+-- old draws name b[i] : 1 files, 2 lines
+   tests/testthat/test-brms-agreement.R (2)
+-- old draws name theta_k : 16 files, 34 lines
+   R/confint.R (3)
+   R/priors.R (5)
+   tests/testthat/test-importance.R (2)
+   tests/testthat/test-interop.R (1)
+   tests/testthat/test-lkj.R (2)
+   tests/testthat/test-par-template.R (1)
+   tests/testthat/test-priors-bounds-grcov.R (2)
+   tests/testthat/test-reml-nongaussian.R (1)
+   tests/testthat/test-review-fixes.R (1)
+   tests/testthat/test-review-v29.R (1)
+   tests/testthat/test-tmb-examples.R (2)
+   vignettes/diagnostics.Rmd (1)
+   extensions/frmtmb.sample/tests/testthat/test-brms-output.R (1)
+   extensions/frmtmb.sample/tests/testthat/test-sample-direct.R (5)
+   extensions/frmtmb.sample/tests/testthat/test-sampling-ported.R (5)
+   extensions/frmtmb.sample/vignettes/posterior-diagnostics.Rmd (1)
+-- bare coefficient names in a draws read : 1 files, 1 lines
+   extensions/frmtmb.sample/R/methods-draws.R (1)
+-- hypothesis() result column : 59 files, 206 lines
+   R/conditional-effects.R (6)
+   R/confint.R (4)
+   R/methods-fit.R (2)
+   R/multiple.R (9)
+   R/objective.R (2)
+   R/predict.R (4)
+   tests/testthat/helper-fuzz.R (2)
+   tests/testthat/test-aliased-grouping.R (2)
+   tests/testthat/test-autocor.R (4)
+   tests/testthat/test-autoscale.R (2)
+   tests/testthat/test-backlog.R (1)
+   tests/testthat/test-boot.R (1)
+   tests/testthat/test-brms-agreement.R (1)
+   tests/testthat/test-car-spde.R (10)
+   tests/testthat/test-case-studies.R (1)
+   tests/testthat/test-data2.R (1)
+   tests/testthat/test-diagnostics-ux.R (5)
+   tests/testthat/test-effects.R (1)
+   tests/testthat/test-famgaps.R (1)
+   tests/testthat/test-families.R (3)
+   tests/testthat/test-gp-multidim.R (7)
+   tests/testthat/test-id-kron.R (1)
+   tests/testthat/test-input-validation.R (1)
+   tests/testthat/test-interop.R (1)
+   tests/testthat/test-method-residue.R (8)
+   tests/testthat/test-methods-audit.R (1)
+   tests/testthat/test-mm.R (3)
+   tests/testthat/test-multiple-pooling.R (10)
+   tests/testthat/test-naming-collisions.R (1)
+   tests/testthat/test-nlf.R (1)
+   tests/testthat/test-numerical-robustness.R (3)
+   tests/testthat/test-ordinal-fitted.R (3)
+   tests/testthat/test-predict-lp-basis.R (3)
+   tests/testthat/test-predict-newdata.R (2)
+   tests/testthat/test-priors-bounds-grcov.R (1)
+   tests/testthat/test-review-v25.R (7)
+   tests/testthat/test-review-v29.R (11)
+   tests/testthat/test-scale-contract.R (1)
+   tests/testthat/test-smooth-population.R (2)
+   tests/testthat/test-smooths.R (8)
+   tests/testthat/test-sparsex.R (6)
+   tests/testthat/test-tre.R (2)
+   tests/testthat/test-unpinned-seams.R (5)
+   tests/testthat/test-v07.R (6)
+   tests/testthat/test-v12.R (5)
+   tests/testthat/test-v15.R (2)
+   tests/testthat/test-v16.R (1)
+   tests/testthat/test-v17.R (2)
+   tests/testthat/test-v18.R (6)
+   vignettes/case-studies.Rmd (3)
+   extensions/frmtmb.coupling/R/coupling.R (10)
+   extensions/frmtmb.coupling/tests/testthat/test-surface.R (2)
+   extensions/frmtmb.eam/tests/testthat/test-scale.R (3)
+   extensions/frmtmb.learn/tests/testthat/test-scale.R (1)
+   extensions/frmtmb.spline/R/curve-cov.R (6)
+   extensions/frmtmb.spline/R/curve.R (1)
+   extensions/frmtmb.spline/tests/testthat/test-curve.R (5)
+   extensions/frmtmb.spline/tests/testthat/test-difference.R (2)
+   extensions/frmtmb.spline/tests/testthat/test-surface.R (1)
+-- hypothesis() call : 55 files, 232 lines
+   R/autocor.R (1)
+   R/brms-names.R (1)
+   R/compat.R (1)
+   R/confint.R (26)
+   R/fit.R (2)
+   R/methods-fit.R (5)
+   R/multiple.R (4)
+   R/priors.R (2)
+   R/sampling-api.R (1)
+   R/sandwich.R (1)
+   R/scales.R (1)
+   R/simulate-new.R (2)
+   R/structure.R (1)
+   tests/testthat/test-api-spellings.R (1)
+   tests/testthat/test-autocor.R (2)
+   tests/testthat/test-boot.R (22)
+   tests/testthat/test-brms-methods.R (11)
+   tests/testthat/test-brms-names.R (9)
+   tests/testthat/test-brms-port.R (1)
+   tests/testthat/test-compat.R (1)
+   tests/testthat/test-effects.R (5)
+   tests/testthat/test-generic-collision.R (1)
+   tests/testthat/test-id-kron.R (2)
+   tests/testthat/test-multiple-pooling.R (4)
+   tests/testthat/test-naming-collisions.R (9)
+   tests/testthat/test-nlf.R (1)
+   tests/testthat/test-portability.R (27)
+   tests/testthat/test-review-fixes.R (1)
+   tests/testthat/test-review-v29.R (10)
+   tests/testthat/test-sandwich.R (3)
+   tests/testthat/test-tre.R (1)
+   tests/testthat/test-v14.R (2)
+   tests/testthat/test-v19.R (2)
+   vignettes/brms-migration.Rmd (4)
+   vignettes/case-studies.Rmd (2)
+   vignettes/compatibility.Rmd (1)
+   vignettes/frmtmb.Rmd (4)
+   vignettes/inputs.Rmd (6)
+   extensions/frmtmb.latent/R/lca.R (3)
+   extensions/frmtmb.latent/tests/testthat/test-lca.R (1)
+   extensions/frmtmb.latent/vignettes/latent.Rmd (2)
+   extensions/frmtmb.sample/R/draws-brms.R (3)
+   extensions/frmtmb.sample/R/evidence-ratio.R (1)
+   extensions/frmtmb.sample/R/loo.R (1)
+   extensions/frmtmb.sample/R/sample.R (3)
+   extensions/frmtmb.sample/tests/testthat/test-brms-output.R (2)
+   extensions/frmtmb.sample/tests/testthat/test-draws-methods.R (5)
+   extensions/frmtmb.sample/tests/testthat/test-draws-spellings.R (1)
+   extensions/frmtmb.sample/tests/testthat/test-evidence-ratio.R (16)
+   extensions/frmtmb.sample/tests/testthat/test-generic-collision.R (1)
+   extensions/frmtmb.sample/tests/testthat/test-reparam.R (1)
+   extensions/frmtmb.sample/tests/testthat/test-sample-direct.R (3)
+   extensions/frmtmb.sample/tests/testthat/test-sampling-ported.R (1)
+   extensions/frmtmb.sample/vignettes/brms-posterior.Rmd (3)
+   extensions/frmtmb.sample/vignettes/sampling.Rmd (5)
+-- posterior_summary() call : 10 files, 37 lines
+   R/draws-generics.R (5)
+   R/methods-fit.R (1)
+   R/scales.R (1)
+   tests/testthat/test-brms-names.R (6)
+   extensions/frmtmb.sample/R/loo.R (1)
+   extensions/frmtmb.sample/R/methods-draws.R (14)
+   extensions/frmtmb.sample/tests/testthat/test-brms-output.R (1)
+   extensions/frmtmb.sample/tests/testthat/test-draws-methods.R (6)
+   extensions/frmtmb.sample/tests/testthat/test-draws-spellings.R (1)
+   extensions/frmtmb.sample/tests/testthat/test-scale.R (1)
+-- fixef/ranef/coef/VarCorr summary arg : 7 files, 15 lines
+   R/draws-generics.R (1)
+   tests/testthat/test-arg-refusal.R (3)
+   tests/testthat/test-brms-names.R (3)
+   extensions/frmtmb.sample/R/draws-brms.R (3)
+   extensions/frmtmb.sample/R/methods-draws.R (3)
+   extensions/frmtmb.sample/tests/testthat/test-brms-output.R (1)
+   extensions/frmtmb.sample/tests/testthat/test-draws-methods.R (1)
+DONE

@@ -37,7 +37,7 @@ ll_case <- local({
 # decided by the model's STRUCTURE alone: assembling the objective is
 # cheap and neither fitting nor sampling adds anything to the test
 fake_draws <- function(fit, n = 4L) {
-  lab <- c(frmtmb.sample:::all_par_labels(fit), "lp__")
+  lab <- c(frmtmb::brms_par_labels(fit), "lp__")
   structure(list(stanfit = NULL,
                  draws = matrix(0, n, length(lab),
                                 dimnames = list(NULL, lab)),
@@ -380,7 +380,7 @@ test_that("log_lik() refuses laplace-marginalized draws", {
   dd <- ll_data()
   uf <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd,
             dry_run = "objective")
-  lab <- c(frmtmb.sample:::all_par_labels(uf, include_random = FALSE), "lp__")
+  lab <- c(frmtmb::brms_par_labels(uf, include_random = FALSE), "lp__")
   ds <- structure(list(stanfit = NULL,
                        draws = matrix(0, 4L, length(lab),
                                       dimnames = list(NULL, lab)),

@@ -1,0 +1,42 @@
+mutant: natsig 
+test-brms-pins.R       PASS  320 FAIL   8 ERROR  1
+    failing: r_, b_ and sigma columns hold what the model reads there 
+      msg: Expected `all(abs(got - ref) <= 64 * .Machine$double.eps * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 0.976729430478672 
+      msg: Expected `all(abs(got - ref) <= 64 * .Machine$double.eps * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 0.976729430478672 
+      msg: Expected `all(abs(got - ref) <= 64 * .Machine$double.eps * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 1.06613381079265 
+      msg: Expected `all(abs(got - ref) <= 64 * .Machine$double.eps * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 1.06613381079265 
+      msg: Expected `all(abs(got - ref) <= 64 * .Machine$double.eps * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 1.0505006442653 
+      msg: Expected `all(abs(got - ref) <= 64 * .Machine$double.eps * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 1.0505006442653 
+    failing: a mixture's weights are brms's theta1 and theta2 on draws 
+      msg: Expected `all(c("theta1", "theta2") %in% cn)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+      msg: Expected `all(abs(got - ref) <= 64 * .Machine$double.eps * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 1.48333242904839 
+      msg: <subscriptOutOfBoundsError/error/condition> Error in `ds$draws[, "theta2"]`: subscript out of bounds 
+test-brms-output.R     PASS   19 FAIL   2 ERROR  0
+    failing: ranef(), coef() and VarCorr() are brms's, draws and summaries 
+      msg: Expected `VarCorr(ds)` to be identical to `brms:::VarCorr.brmsfit(sv)`. Differences: actual$residual__$sd vs expected$residual__$sd                                      [,1]       [,2]       [,3]      
+      msg: Expected `VarCorr(ds, NULL, FALSE)` to be identical to `brms:::VarCorr.brmsfit(sv, NULL, FALSE)`. Differences: actual$residual__$sd vs expected$residual__$sd                                          [ 
+test-brms-names.R      PASS  137 FAIL   0 ERROR  0
+converged at iteration 19 with logLik: -746.6946 
+converged at iteration 25 with logLik: -746.6946 
+converged at iteration 21 with logLik: -746.6946 
+converged at iteration 29 with logLik: -746.6946 
+converged at iteration 28 with logLik: -701.2889 
+converged at iteration 32 with logLik: -701.2889 
+converged at iteration 25 with logLik: -701.2889 
+converged at iteration 29 with logLik: -701.2889 
+converged at iteration 27 with logLik: -701.2889 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 13 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 453 with logLik: -685.3785 
+converged at iteration 408 with logLik: -685.3785 
+converged at iteration 404 with logLik: -685.3785 
+converged at iteration 430 with logLik: -685.3785 
+converged at iteration 400 with logLik: -685.3785 
+converged at iteration 54 with logLik: -3093.27 
+converged at iteration 2054 with logLik: -3433.42 
+converged at iteration 67 with logLik: -3093.27 
+converged at iteration 1803 with logLik: -3433.42 
+test-hmm.R             PASS  118 FAIL   0 ERROR  0
+DONE

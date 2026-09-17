@@ -142,7 +142,7 @@ test_that("the hmm scale row fits and reports its cost", {
          tr12 = unname(b["tr12.(Intercept)"]),
          tr12_true = latent_truth$eta[1L, 1L],
          tr12_lo = i12[1L], tr12_hi = i12[2L],
-         sd_tr12 = sqrt(VarCorr(fit)[[1L]][1L, 1L]),
+         sd_tr12 = sqrt(varcorr_matrices(fit)[[1L]][1L, 1L]),
          sd_tr12_true = latent_truth$sd_tr12)
   }
   fit <- latent_scale_run("hmm", form, fam, d, post)

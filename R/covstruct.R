@@ -122,8 +122,8 @@ homogeneous_sd <- function(sds, what) {
 #'
 #' **`Sigma` is the SCALE, not the covariance.** The variance is
 #' `Sigma * nu / (nu - 2)`, so a standard deviation is
-#' `scale * sqrt(nu / (nu - 2))`. `VarCorr()` stores the scale matrix,
-#' tags it with `nu`, and prints both columns; `confint()`, `variables()`
+#' `scale * sqrt(nu / (nu - 2))`. `VarCorr()` reports the scale in its
+#' `sd` rows, as brms's `sd_` is; `confint()`, `variables()`
 #' and `frm_simulate(newparams = )` speak of it as `sd_<group>__<term>`,
 #' which is the name brms gives the same quantity. The correlations are
 #' the same either way.

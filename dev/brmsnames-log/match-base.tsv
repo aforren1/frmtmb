@@ -1,0 +1,97 @@
+model	call	result	note
+intercept	CONTROL brms as_draws_rvars twice	all.equal	
+intercept	CONTROL brms fixef(summary = FALSE), perturbed 1e-9	all.equal	
+intercept	CONTROL brms fixef(summary = FALSE), perturbed 1e-3	DIFFERS	Mean relative difference: 0.002647204
+intercept	variables()	DIFFERS	9 string mismatches
+intercept	as.matrix(x)	DIFFERS	Attributes: < Length mismatch: comparison on first 2 components > | Attributes: < Componen
+intercept	as.matrix(x, variable = 'b_x')	ERROR	as.matrix() has no argument `variable`. It takes: x
+intercept	as.matrix(x, 'b_x') [pars]	ERROR	as.matrix() was given 1 argument with no name, which it has nowhere to put. It takes: x
+intercept	as.matrix(x, draw = 1:5)	ERROR	as.matrix() has no argument `draw`. It takes: x
+intercept	as.array(x)	DIFFERS	Attributes: < Component "dimnames": names for current but not for target > | Attributes: <
+intercept	as.array(x, variable = '^b_', regex)	ERROR	as.array() has no argument `variable` (and 1 more: regex). It takes: x
+intercept	as.data.frame(x)	DIFFERS	Names: 9 string mismatches
+intercept	as_draws_array(x)	DIFFERS	Attributes: < Component "dimnames": Component "variable": 9 string mismatches >
+intercept	as_draws_df(x, 'b_x')	ERROR	as_draws_df() was given 1 argument with no name, which it has nowhere to put. It takes: x
+intercept	as_draws_matrix(x)	DIFFERS	Attributes: < Component "dimnames": Component "variable": 9 string mismatches > | Attribut
+intercept	as_draws_list(x)	DIFFERS	Component "1": Names: 9 string mismatches | Component "2": Names: 9 string mismatches
+intercept	as_draws_rvars(x)	DIFFERS	Names: 4 string mismatches | Component 4: Attributes: < Component "draws": Attributes: < C
+intercept	as_draws(x)	DIFFERS	Modes: numeric, list | Lengths: 22000, 4
+intercept	posterior_summary(x)	DIFFERS	Attributes: < Component "dim": Mean relative difference: 1.75 > | Attributes: < Component 
+intercept	posterior_summary(x, '^b_')	ERROR	non-numeric argument to binary operator
+intercept	posterior_summary(x, robust, probs)	DIFFERS	Attributes: < Component "dim": Mean relative difference: 1.75 > | Attributes: < Component 
+intercept	posterior_interval(x)	DIFFERS	Attributes: < Component "dim": Mean relative difference: 1.75 > | Attributes: < Component 
+intercept	rhat(x)	DIFFERS	Names: 9 string mismatches
+intercept	neff_ratio(x)	DIFFERS	Names: 9 string mismatches
+intercept	bayes_R2(x, summary = FALSE) columns	identical	
+intercept	bayes_R2(x, NULL, TRUE, TRUE) on its draws	DIFFERS	Attributes: < Component "dim": Mean relative difference: 0.3333333 > | Attributes: < Compo
+intercept	fixef(x)	DIFFERS	Attributes: < Component "dim": Mean relative difference: 0.3333333 > | Numeric: lengths (1
+intercept	fixef(x, FALSE)	ERROR	fixef() was given 1 argument with no name, which it has nowhere to put. It takes: object
+intercept	fixef(x, robust, probs)	ERROR	fixef() has no argument `robust` (and 1 more: probs). It takes: object
+intercept	fixef(x, pars = 'x')	ERROR	fixef() has no argument `pars`. It takes: object
+intercept	ranef(x)	DIFFERS	Component "g": Attributes: < Length mismatch: comparison on first 2 components > | Compone
+intercept	ranef(x, FALSE)	ERROR	ranef() was given 1 argument with no name, which it has nowhere to put. It takes: object
+intercept	ranef(x, groups = 'g', pars = 'Intercept')	ERROR	ranef() has no argument `groups` (and 1 more: pars). It takes: object
+intercept	coef(x)	DIFFERS	Component "g": Attributes: < Component "dimnames": Component 3: 1 string mismatch >
+intercept	coef(x, FALSE)	ERROR	coef() was given 1 argument with no name, which it has nowhere to put. It takes: object
+intercept	coef(x, robust = TRUE)	ERROR	coef() has no argument `robust`. It takes: object
+intercept	VarCorr(x)$g	DIFFERS	target is NULL, current is list
+intercept	VarCorr(x, NULL, FALSE)$g	ERROR	VarCorr() was given 1 argument with no name, which it has nowhere to put. It takes: x, sig
+intercept	VarCorr(x, robust, probs)$g	ERROR	VarCorr() has no argument `robust` (and 1 more: probs). It takes: x, sigma
+intercept	names(VarCorr(x))	DIFFERS	Lengths (6, 2) differ (string compare on first 2) | 2 string mismatches
+intercept	VarCorr(x)$residual__	DIFFERS	target is NULL, current is list
+intercept	hypothesis(x, 'x > 0')$hypothesis	DIFFERS	Modes: character, list | Lengths: 1, 8
+intercept	hypothesis(x, 'x = 0.5')$hypothesis[1:5]	DIFFERS	Modes: character, list | names for current but not for target
+intercept	hypothesis(x, 'x < Intercept', robust)$hypothesis	ERROR	hypothesis() has no argument `robust`. It takes: x, hypothesis, alpha, class, group
+intercept	names(hypothesis(x, 'x > 0'))	DIFFERS	Lengths (9, 5) differ (string compare on first 5) | 4 string mismatches
+intercept	hypothesis(x, 'x > 0')$samples	DIFFERS	target is NULL, current is data.frame
+intercept	hypothesis(x, 'x > 0')$class	DIFFERS	target is NULL, current is character
+intercept	hypothesis(x, ..., scope = 'coef')$hypothesis	ERROR	hypothesis() has no argument `scope`. It takes: x, hypothesis, alpha, class, group
+intercept	hypothesis(x, ..., scope = 'ranef')$hypothesis	ERROR	hypothesis() has no argument `scope`. It takes: x, hypothesis, alpha, class, group
+slope	CONTROL brms as_draws_rvars twice	all.equal	
+slope	CONTROL brms fixef(summary = FALSE), perturbed 1e-9	all.equal	
+slope	CONTROL brms fixef(summary = FALSE), perturbed 1e-3	DIFFERS	Mean relative difference: 0.002214149
+slope	variables()	DIFFERS	23 string mismatches
+slope	as.matrix(x)	DIFFERS	Attributes: < Length mismatch: comparison on first 2 components > | Attributes: < Componen
+slope	as.matrix(x, variable = 'b_x')	ERROR	as.matrix() has no argument `variable`. It takes: x
+slope	as.matrix(x, 'b_x') [pars]	ERROR	as.matrix() was given 1 argument with no name, which it has nowhere to put. It takes: x
+slope	as.matrix(x, draw = 1:5)	ERROR	as.matrix() has no argument `draw`. It takes: x
+slope	as.array(x)	DIFFERS	Attributes: < Component "dimnames": names for current but not for target > | Attributes: <
+slope	as.array(x, variable = '^b_', regex)	ERROR	as.array() has no argument `variable` (and 1 more: regex). It takes: x
+slope	as.data.frame(x)	DIFFERS	Names: 23 string mismatches
+slope	as_draws_array(x)	DIFFERS	Attributes: < Component "dimnames": Component "variable": 23 string mismatches >
+slope	as_draws_df(x, 'b_x')	ERROR	as_draws_df() was given 1 argument with no name, which it has nowhere to put. It takes: x
+slope	as_draws_matrix(x)	DIFFERS	Attributes: < Component "dimnames": Component "variable": 23 string mismatches > | Attribu
+slope	as_draws_list(x)	DIFFERS	Component "1": Names: 23 string mismatches | Component "2": Names: 23 string mismatches
+slope	as_draws_rvars(x)	DIFFERS	Names: 4 string mismatches | Component 4: Attributes: < Component "draws": Attributes: < C
+slope	as_draws(x)	DIFFERS	Modes: numeric, list | Lengths: 16200, 2
+slope	posterior_summary(x)	DIFFERS	Attributes: < Component "dim": Mean relative difference: 3.5 > | Attributes: < Component "
+slope	posterior_summary(x, '^b_')	ERROR	non-numeric argument to binary operator
+slope	posterior_summary(x, robust, probs)	DIFFERS	Attributes: < Component "dim": Mean relative difference: 3.5 > | Attributes: < Component "
+slope	posterior_interval(x)	DIFFERS	Attributes: < Component "dim": Mean relative difference: 3.5 > | Attributes: < Component "
+slope	rhat(x)	DIFFERS	Names: 23 string mismatches
+slope	neff_ratio(x)	DIFFERS	Names: 23 string mismatches
+slope	bayes_R2(x, summary = FALSE) columns	identical	
+slope	bayes_R2(x, NULL, TRUE, TRUE) on its draws	DIFFERS	Attributes: < Component "dim": Mean relative difference: 0.3333333 > | Attributes: < Compo
+slope	fixef(x)	DIFFERS	Attributes: < Component "dim": Mean relative difference: 0.3333333 > | Numeric: lengths (1
+slope	fixef(x, FALSE)	ERROR	fixef() was given 1 argument with no name, which it has nowhere to put. It takes: object
+slope	fixef(x, robust, probs)	ERROR	fixef() has no argument `robust` (and 1 more: probs). It takes: object
+slope	fixef(x, pars = 'x')	ERROR	fixef() has no argument `pars`. It takes: object
+slope	ranef(x)	DIFFERS	Component "g": Attributes: < Length mismatch: comparison on first 2 components > | Compone
+slope	ranef(x, FALSE)	ERROR	ranef() was given 1 argument with no name, which it has nowhere to put. It takes: object
+slope	ranef(x, groups = 'g', pars = 'Intercept')	ERROR	ranef() has no argument `groups` (and 1 more: pars). It takes: object
+slope	coef(x)	DIFFERS	Component "g": Attributes: < Component "dimnames": Component 3: 1 string mismatch >
+slope	coef(x, FALSE)	ERROR	coef() was given 1 argument with no name, which it has nowhere to put. It takes: object
+slope	coef(x, robust = TRUE)	ERROR	coef() has no argument `robust`. It takes: object
+slope	VarCorr(x)$g	DIFFERS	target is NULL, current is list
+slope	VarCorr(x, NULL, FALSE)$g	ERROR	VarCorr() was given 1 argument with no name, which it has nowhere to put. It takes: x, sig
+slope	VarCorr(x, robust, probs)$g	ERROR	VarCorr() has no argument `robust` (and 1 more: probs). It takes: x, sigma
+slope	names(VarCorr(x))	DIFFERS	Lengths (6, 2) differ (string compare on first 2) | 2 string mismatches
+slope	VarCorr(x)$residual__	DIFFERS	target is NULL, current is list
+slope	hypothesis(x, 'x > 0')$hypothesis	DIFFERS	Modes: character, list | Lengths: 1, 8
+slope	hypothesis(x, 'x = 0.5')$hypothesis[1:5]	DIFFERS	Modes: character, list | names for current but not for target
+slope	hypothesis(x, 'x < Intercept', robust)$hypothesis	ERROR	hypothesis() has no argument `robust`. It takes: x, hypothesis, alpha, class, group
+slope	names(hypothesis(x, 'x > 0'))	DIFFERS	Lengths (9, 5) differ (string compare on first 5) | 4 string mismatches
+slope	hypothesis(x, 'x > 0')$samples	DIFFERS	target is NULL, current is data.frame
+slope	hypothesis(x, 'x > 0')$class	DIFFERS	target is NULL, current is character
+slope	hypothesis(x, ..., scope = 'coef')$hypothesis	ERROR	hypothesis() has no argument `scope`. It takes: x, hypothesis, alpha, class, group
+slope	hypothesis(x, ..., scope = 'ranef')$hypothesis	ERROR	hypothesis() has no argument `scope`. It takes: x, hypothesis, alpha, class, group

@@ -50,7 +50,8 @@ random-effect block with a single variance in \code{theta}. The smoothing
 parameter is that variance's inverse, so smoothness is estimated
 jointly with every other variance component rather than chosen.
 
-\code{\link[=VarCorr]{VarCorr()}} and \code{\link[=ranef]{ranef()}} report the block under the term's own label.
+\code{\link[=confint_varcorr]{confint_varcorr()}} and \code{\link[=ranef]{ranef()}} report the block under the term's own
+label; brms's \code{\link[=VarCorr]{VarCorr()}} leaves smooth blocks out, as brms does.
 Its standard deviation is a smoothing parameter, not a subject
 effect.
 }

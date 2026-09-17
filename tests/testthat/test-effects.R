@@ -126,24 +126,25 @@ test_that("hypothesis reproduces Wald results and the delta method", {
   fit <- frm(bf(y ~ x1 + x2) + gaussian(), data = dd)
 
   # single coefficient: matches summary's z-test
-  h1 <- hypothesis(fit, "x1")
+  h1 <- hypothesis(fit, "x1")$hypothesis
   sm <- summary(fit)$coefficients$mu
-  expect_equal(h1$estimate, sm["x1", "Estimate"], tolerance = 1e-10)
-  expect_equal(h1$se, sm["x1", "Std. Error"], tolerance = 1e-8)
+  expect_equal(h1$Estimate, sm["x1", "Estimate"], tolerance = 1e-10)
+  expect_equal(h1$Est.Error, sm["x1", "Std. Error"], tolerance = 1e-8)
 
   # linear contrast: matches direct computation from vcov
   h2 <- hypothesis(fit, "x1 - x2 = 0")
   V <- vcov(fit)
   se_ref <- sqrt(V["x1", "x1"] + V["x2", "x2"] - 2 * V["x1", "x2"])
-  expect_equal(h2$se, se_ref, tolerance = 1e-6)
+  expect_equal(h2$hypothesis$Est.Error, se_ref, tolerance = 1e-6)
 
-  # nonlinear expression with a dpar coefficient: exp(log sigma) = sigma
-  h3 <- hypothesis(fit, "exp(sigma_Intercept)")
-  expect_equal(h3$estimate, sigma(fit), tolerance = 1e-8)
+  # a nonlinear expression of a natural-scale dpar, which brms names
+  # `sigma` when sigma has no formula
+  h3 <- hypothesis(fit, "exp(log(sigma))", class = NULL)
+  expect_equal(h3$hypothesis$Estimate, sigma(fit), tolerance = 1e-8)
 
   # multiple hypotheses come back as rows
   hh <- hypothesis(fit, c("x1", "x2", "x1 + x2 = 1"))
-  expect_equal(nrow(hh), 3L)
+  expect_equal(nrow(hh$hypothesis), 3L)
   expect_error(hypothesis(fit, "x1 = 0 = 1"), "at most one")
 })
 

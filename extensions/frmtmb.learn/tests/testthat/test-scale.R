@@ -157,7 +157,7 @@ learn_scale_run <- function(row, form, fam, d, truth_key, truth_value,
 
   ci <- suppressWarnings(stats::confint(fit))
   b <- unlist(fixef(fit))
-  vc <- VarCorr(fit)
+  vc <- varcorr_matrices(fit)
   sds <- sqrt(diag(vc[[1L]]))
   # the whole correlated block, by name, because the question this row
   # asks is whether a correlated block on EVERY parameter survives the
@@ -201,7 +201,7 @@ learn_rlddm_extra <- function(fit, d) {
   fl <- mean(bd[["floors"]])
   # which pair carries cor_max_abs, by name, so that a reader does not
   # have to reconstruct it from sd_all
-  cr <- stats::cov2cor(VarCorr(fit)[[1L]])
+  cr <- stats::cov2cor(varcorr_matrices(fit)[[1L]])
   lo <- which(abs(cr) == max(abs(cr[lower.tri(cr)])), arr.ind = TRUE)
   cor_pair <- paste(rownames(cr)[lo[1L, 1L]], "vs",
                     colnames(cr)[lo[1L, 2L]])

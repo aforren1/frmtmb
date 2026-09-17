@@ -43,35 +43,47 @@ test_that("hypothesis exposes natural-scale RE names", {
   dd <- sim_lmm_boot()
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 
-  h <- hypothesis(fit, "sd_g__Intercept")
-  expect_equal(h$estimate, sqrt(VarCorr(fit)[[1]][1, 1]),
+  # natural-scale names need class = NULL, as in brms
+  h <- hypothesis(fit, "sd_g__Intercept", class = NULL)$hypothesis
+  expect_equal(h$Estimate, sqrt(varcorr_matrices(fit)[[1]][1, 1]),
                tolerance = 1e-8)
   # Wald se agrees with confint_varcorr's delta method (log-scale
   # transform makes the intervals differ; the raw SEs should be close)
   cv <- confint_varcorr(fit)
   se_log <- (log(cv$upr[1]) - log(cv$lwr[1])) / (2 * stats::qnorm(0.975))
-  expect_equal(h$se / h$estimate, se_log, tolerance = 0.05)
+  expect_equal(h$Est.Error / h$Estimate, se_log, tolerance = 0.05)
+  # and VarCorr() reports the same estimate and standard error
+  vcr <- VarCorr(fit)$g$sd
+  expect_equal(unname(vcr[1, "Estimate"]), h$Estimate, tolerance = 1e-10)
+  expect_equal(unname(vcr[1, "Est.Error"]), h$Est.Error,
+               tolerance = 1e-4)
 
   icc <- "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"
-  hw <- hypothesis(fit, icc)
-  vc <- VarCorr(fit)[[1]][1, 1]
-  expect_equal(hw$estimate, vc / (vc + sigma(fit)^2), tolerance = 1e-8)
+  hw <- hypothesis(fit, icc, class = NULL)$hypothesis
+  vc <- varcorr_matrices(fit)[[1]][1, 1]
+  expect_equal(hw$Estimate, vc / (vc + sigma(fit)^2), tolerance = 1e-8)
 
-  hb <- hypothesis(fit, icc, method = "boot", nsim = 40, seed = 2)
-  expect_true(hb$lwr > 0 && hb$upr < 1)
-  expect_true(hb$lwr < hw$estimate && hw$estimate < hb$upr)
+  hb <- hypothesis(fit, icc, class = NULL, method = "boot", nsim = 40,
+                   seed = 2)$hypothesis
+  expect_true(hb$CI.Lower > 0 && hb$CI.Upper < 1)
+  expect_true(hb$CI.Lower < hw$Estimate && hw$Estimate < hb$CI.Upper)
 
   # correlation name on a correlated-slopes fit
   skip_if_not_installed("lme4")
   data(sleepstudy, package = "lme4")
   fs <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
             data = sleepstudy)
-  hc <- hypothesis(fs, "cor_Subject__Intercept__Days")
-  C <- stats::cov2cor(VarCorr(fs)[[1]])
-  expect_equal(hc$estimate, C[1, 2], tolerance = 1e-8)
+  hc <- hypothesis(fs, "cor_Subject__Intercept__Days", class = NULL)
+  C <- stats::cov2cor(varcorr_matrices(fs)[[1]])
+  expect_equal(hc$hypothesis$Estimate, C[1, 2], tolerance = 1e-8)
+  expect_equal(VarCorr(fs)$Subject$cor["Intercept", "Estimate", "Days"],
+               C[1, 2], tolerance = 1e-8)
 
   # unknown names error with the available list
-  expect_error(hypothesis(fit, "sd_h__Intercept"), "Available names")
+  expect_error(hypothesis(fit, "sd_h__Intercept", class = NULL),
+               "cannot be found in the model: 
+'sd_h__Intercept'",
+               fixed = TRUE)
 })
 
 test_that("hypothesis method = 'profile' handles linear contrasts", {
@@ -82,22 +94,23 @@ test_that("hypothesis method = 'profile' handles linear contrasts", {
 
   # single coefficient: profile lincomb matches confint's uniroot
   # (interpolated from the tmbprofile curve, hence the tolerance)
-  hp <- hypothesis(fit, "x1", method = "profile")
+  hpo <- hypothesis(fit, "x1", method = "profile")
+  hp <- hpo$hypothesis
   cu <- confint(fit, parm = "x1", method = "uniroot")
-  expect_equal(unname(c(hp$lwr, hp$upr)), unname(cu[1, 1:2]),
+  expect_equal(unname(c(hp$CI.Lower, hp$CI.Upper)), unname(cu[1, 1:2]),
                tolerance = 1e-2)
   # the profile curve is stored and centered on the estimate
-  pr <- attr(hp, "profiles")[[1]]
+  pr <- attr(hpo, "profiles")[[1]]
   expect_s3_class(pr, "data.frame")
-  expect_true(min(pr[[1]]) < hp$estimate && hp$estimate < max(pr[[1]]))
+  expect_true(min(pr[[1]]) < hp$Estimate && hp$Estimate < max(pr[[1]]))
 
   # contrast: profile interval close to Wald here (near-quadratic
   # likelihood), and the constant offset is handled
-  hw <- hypothesis(fit, "x1 - x2 = 0.1")
-  hp2 <- hypothesis(fit, "x1 - x2 = 0.1", method = "profile")
-  expect_equal(hp2$estimate, hw$estimate, tolerance = 1e-10)
-  expect_equal(unname(c(hp2$lwr, hp2$upr)), unname(c(hw$lwr, hw$upr)),
-               tolerance = 0.02)
+  hw <- hypothesis(fit, "x1 - x2 = 0.1")$hypothesis
+  hp2 <- hypothesis(fit, "x1 - x2 = 0.1", method = "profile")$hypothesis
+  expect_equal(hp2$Estimate, hw$Estimate, tolerance = 1e-10)
+  expect_equal(unname(c(hp2$CI.Lower, hp2$CI.Upper)),
+               unname(c(hw$CI.Lower, hw$CI.Upper)), tolerance = 0.02)
 
   # nonlinear expressions and REML fits are rejected
   expect_error(hypothesis(fit, "exp(x1)", method = "profile"),
@@ -105,7 +118,8 @@ test_that("hypothesis method = 'profile' handles linear contrasts", {
   fr <- frm(bf(y ~ x1 + x2) + gaussian(), data = dd, REML = TRUE)
   expect_error(hypothesis(fr, "x1", method = "profile"), "ML fit")
   # wald on an REML fit still works, including RE-free sd-less names
-  expect_equal(hypothesis(fr, "x1")$estimate, fixef(fr)$mu[["x1"]],
+  expect_equal(hypothesis(fr, "x1")$hypothesis$Estimate,
+               fixef(fr)$mu[["x1"]],
                tolerance = 1e-10)
 })
 
@@ -115,23 +129,26 @@ test_that("hypothesis method = 'boot' handles nonlinear expressions", {
   dd$y <- rnorm(120, 1 + 0.5 * dd$x, 1)
   fit <- frm(bf(y ~ x) + gaussian(), data = dd)
 
-  hb <- hypothesis(fit, c("exp(x)", "x"), method = "boot", nsim = 60,
-                   seed = 3)
-  expect_s3_class(hb, "frmtmb_hypothesis")
+  hbo <- hypothesis(fit, c("exp(x)", "x"), method = "boot", nsim = 60,
+                    seed = 3)
+  expect_s3_class(hbo, "frmtmb_hypothesis")
+  expect_s3_class(hbo, "brmshypothesis")
+  hb <- hbo$hypothesis
   expect_equal(nrow(hb), 2L)
   # the draws ride along for interrogation and are coupled across rows
-  d <- attr(hb, "draws")
+  d <- attr(hbo, "draws")
   expect_equal(dim(d), c(60L, 2L))
   expect_equal(colnames(d), c("exp(x)", "x"))
   expect_equal(d[, 1], exp(d[, 2]), tolerance = 1e-10)
-  expect_equal(hb$estimate[1], exp(fixef(fit)$mu[["x"]]),
+  expect_equal(unname(as.matrix(hbo$samples)), unname(d))
+  expect_equal(hb$Estimate[1], exp(fixef(fit)$mu[["x"]]),
                tolerance = 1e-10)
   # one shared bootstrap run: the draws are coupled, exp(x) row must be
   # consistent with the x row
-  expect_true(hb$lwr[1] > 0)
-  expect_true(hb$p[2] < 0.1)
-  hw <- hypothesis(fit, "exp(x)")
-  expect_lt(abs(hb$se[1] - hw$se[1]) / hw$se[1], 0.6)
+  expect_true(hb$CI.Lower[1] > 0)
+  expect_true(attr(hbo, "test")$p[2] < 0.1)
+  hw <- hypothesis(fit, "exp(x)")$hypothesis
+  expect_lt(abs(hb$Est.Error[1] - hw$Est.Error[1]) / hw$Est.Error[1], 0.6)
 })
 
 test_that("backend controls pass through hypothesis's dots", {
@@ -166,8 +183,8 @@ test_that("hypothesis objects print and plot for every method", {
   hw <- hypothesis(fit, c("x", "exp(x)"))
   hp <- hypothesis(fit, "x", method = "profile")
   hb <- hypothesis(fit, "x", method = "boot", nsim = 20, seed = 4)
-  expect_output(print(hw), "method = wald")
-  expect_output(print(hb), "bootstrap draws: 20")
+  expect_output(print(hw), "Method: wald")
+  expect_output(print(hb), "20 bootstrap draws")
 
   tmp <- file.path(tempdir(), "frmtmb-hyp-plots.pdf")
   grDevices::pdf(tmp)
@@ -183,8 +200,8 @@ test_that("hypothesis objects print and plot for every method", {
 test_that("hypothesis wald with RE names works under REML", {
   dd <- sim_lmm_boot(seed = 71)
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd, REML = TRUE)
-  h <- hypothesis(fit, "sd_g__Intercept")
-  expect_equal(h$estimate, sqrt(VarCorr(fit)[[1]][1, 1]),
+  h <- hypothesis(fit, "sd_g__Intercept", class = NULL)$hypothesis
+  expect_equal(h$Estimate, sqrt(varcorr_matrices(fit)[[1]][1, 1]),
                tolerance = 1e-8)
-  expect_true(is.finite(h$se) && h$se > 0)
+  expect_true(is.finite(h$Est.Error) && h$Est.Error > 0)
 })

@@ -9,26 +9,33 @@
   object,
   resp = NULL,
   summary = TRUE,
+  robust = FALSE,
   probs = c(0.025, 0.975),
-  ndraws = NULL,
-  ...
+  ...,
+  ndraws = NULL
 )
 }
 \arguments{
 \item{object}{A \code{frmtmb_draws} from \code{\link[=frm_sample]{frm_sample()}}.}
 
-\item{resp}{For a multivariate model, which response.}
+\item{resp}{For a multivariate model, which responses, in brms's
+spelling (\code{ya} for a column \code{y_a}). \code{NULL}, the default, is every
+response, one \verb{R2<resp>} column each, as in brms.}
 
 \item{summary}{If \code{TRUE} (the default, as in brms), summarize the
 draws into estimate, error and quantiles; if \code{FALSE}, return the
-\verb{ndraws x 1} matrix of R-squared draws.}
+\verb{ndraws x responses} matrix of R-squared draws.}
+
+\item{robust}{If \code{TRUE}, the summary is the median and MAD instead
+of the mean and SD, as in brms.}
 
 \item{probs}{Quantiles for the summary.}
 
-\item{ndraws}{Number of draws to use (default: all).}
-
 \item{...}{Refused: an argument the method does not have is an
 error naming it, rather than silently changing nothing.}
+
+\item{ndraws}{Number of draws to use (default: all). It follows
+\code{...} so that brms's positional slots keep brms's meaning.}
 }
 \value{
 A one-row summary matrix, or the matrix of draws when

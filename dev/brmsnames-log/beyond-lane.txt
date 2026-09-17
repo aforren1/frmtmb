@@ -1,0 +1,34 @@
+arm lane 
+frmtmb_draws generics this package registers a method on:  68 
+
+method                 pos  brms's             this package's    
+
+diverge:  0    agree as far as both go:  68    no brmsfit method to compare:  0 
+diverging:   
+not comparable:   
+
+== the blind spot: our arguments run out before brms's ==
+method                 ours  brms's brms slots past our end
+bridge_sampler         1     2      recompile
+expose_functions       1     3      vectorize env
+family                 1     2      resp
+loo_moment_match       1     7      loo k_threshold newdata resp check
+nobs                   1     2      resp
+nsamples               1     3      subset incl_warmup
+nuts_params            1     2      pars
+plot                   1     13     pars combo nvariables N variable
+posterior_epred        9     10     sort
+posterior_linpred      11    12     sort
+posterior_predict      9     12     sort ntrys cores
+posterior_samples      2     7      fixed add_chain subset as.matrix as.array
+predictive_error       8     9      sort
+print                  1     3      digits short
+prior_summary          1     2      all
+reloo                  1     8      loo k_threshold newdata resp check
+stancode               1     5      version regenerate threads backend
+standata               1     6      newdata re_formula newdata2 new_objects incl_autocor
+update                 1     4      formula. newdata recompile
+
+scored 'agree' but shorter than brms's:  19 
+names:  bridge_sampler expose_functions family loo_moment_match nobs nsamples nuts_params plot posterior_epred posterior_linpred posterior_predict posterior_samples predictive_error print prior_summary reloo stancode standata update 
+DONE

@@ -120,7 +120,8 @@ test_that("gr(prec=) takes correlated slopes", {
   expect_lt(abs(as.numeric(logLik(fp)) - as.numeric(logLik(fc))), 1e-8)
   expect_vector_equal(fp$estimates$theta, fc$estimates$theta, tol = 1e-8)
   expect_vector_equal(fixef(fp)$mu, fixef(fc)$mu, tol = 1e-8)
-  expect_vector_equal(VarCorr(fp)[[1]], VarCorr(fc)[[1]], tol = 1e-8)
+  expect_vector_equal(varcorr_matrices(fp)[[1]], varcorr_matrices(fc)[[1]],
+                      tol = 1e-8)
   expect_vector_equal(ranef(fp)[[1]], ranef(fc)[[1]], tol = 1e-8)
   nd <- dd[c(1L, 30L, 90L), ]
   expect_vector_equal(predict(fp, newdata = nd, se.fit = TRUE)$se.fit,
@@ -144,7 +145,7 @@ test_that("new levels add the block variance to prediction SEs", {
                    se.fit = TRUE)
   # same point prediction, inflated uncertainty
   expect_equal(p_new$fit, p_pop$fit, tolerance = 1e-8)
-  sd_g2 <- VarCorr(fit)[[1]][1, 1]
+  sd_g2 <- varcorr_matrices(fit)[[1]][1, 1]
   expect_equal(p_new$se.fit^2, p_pop$se.fit^2 + sd_g2, tolerance = 1e-6)
 
   # known levels are unaffected

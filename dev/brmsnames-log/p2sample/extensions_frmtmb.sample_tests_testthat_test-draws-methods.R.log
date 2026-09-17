@@ -1,0 +1,19 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    extensions/frmtmb.sample/tests/testthat/test-draws-methods.R 
+BLOCKS  21 
+PASS    139 
+FAIL    5 
+ERROR   1 
+SKIP    0 
+  failing: posterior_summary() and posterior_interval() summarize draws
+       Expected `rownames(sb)` to equal `c("b_Intercept", "b_x", "b_sigma_Intercept")`. Differences: `actual`:   "b_Intercept" "b_x"                     `expected`: "b_Intercept" "b_x" "b_sigma_Intercept"  
+  failing: coef() is fixef broadcast plus each group's own draws
+       Expected `dim(cf$g)` to equal `c(6L, 4L, 3L)`. Differences:   `actual`: 6 4 2 `expected`: 6 4 3  
+       Expected `dimnames(cf$g)[[3L]]` to equal `c("Intercept", "x", "sigma_Intercept")`. Differences: `actual`:   "Intercept" "x"                   `expected`: "Intercept" "x" "sigma_Intercept"  
+       Expected `dim(raw$g)` to equal `c(ndraws(cs$ds), 6L, 3L)`. Differences:   `actual`: 400 6 2 `expected`: 400 6 3  
+  failing: hypothesis() on draws names a covariate sigma b_sigma
+       Expected `all(c("b_sigma", "b_sigma_Intercept") %in% variables(ds))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       Error: Some parameters cannot be found in the model:  'sd_sigma' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL 
+DONE

@@ -45,7 +45,7 @@ test_that("nonlinear mixed model matches a hand-rolled reference", {
   expect_lt(abs(as.numeric(logLik(fit)) - (-opt$objective)), 1e-6)
 
   # nlpar random effects show up in ranef and VarCorr
-  expect_length(VarCorr(fit), 1)
+  expect_length(varcorr_matrices(fit), 1)
   expect_identical(dim(ranef(fit)[[1]]), c(as.integer(n_g), 1L))
 })
 

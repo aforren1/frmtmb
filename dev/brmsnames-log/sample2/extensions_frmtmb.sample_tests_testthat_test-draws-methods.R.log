@@ -1,0 +1,12 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    extensions/frmtmb.sample/tests/testthat/test-draws-methods.R 
+BLOCKS  21 
+PASS    143 
+FAIL    1 
+ERROR   0 
+SKIP    0 
+  failing: the posterior converters all round-trip the same draws
+       Expected `unname(as.matrix(cs$ds))` to equal `unname(cs$ds$draws)`. Differences: `attr(actual, 'nchains')` is an integer vector (2) `attr(expected, 'nchains')`  
+DONE

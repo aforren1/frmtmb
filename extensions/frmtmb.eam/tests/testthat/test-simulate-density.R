@@ -115,7 +115,7 @@ test_that("wiener: frm_simulate() reaches the family seam", {
   dd <- data.frame(rt = d0$rt, up = as.integer(d0$upper))
   dp <- list(mu = 1.1, bs = 1.5, ndt = 0.2, bias = 0.45)
   s <- frmtmb::frm_simulate(rt | dec(up) ~ 1, dd, family = wiener(),
-                            newparams = list(Intercept = dp[["mu"]],
+                            newparams = list(b_Intercept = dp[["mu"]],
                                              bs = dp[["bs"]],
                                              ndt = dp[["ndt"]],
                                              bias = dp[["bias"]]),
@@ -200,7 +200,7 @@ test_that("gddm: frm_simulate() reaches the family seam", {
   if (!is.null(g$coh)) gd$coh <- g$coh
   s <- frmtmb::frm_simulate(rt | dec(up) + vint(cond) ~ 1, gd,
                             family = gddm(),
-                            newparams = list(Intercept = 1.0, bs = 1.0,
+                            newparams = list(b_Intercept = 1.0, bs = 1.0,
                                              bias = 0.5, ndt = 0.2),
                             nsim = 1L, seed = DDM_SEED)
   expect_equal(nrow(s), nrow(gd))
@@ -297,8 +297,8 @@ test_that("rdm: frm_simulate() reaches the family seam", {
                             # no bare `Intercept`: each one is named, and
                             # named on its LINK scale, while A, k and ndt
                             # take their natural-scale shorthands
-                            newparams = list(v1_Intercept = log(dp[["v1"]]),
-                                             v2_Intercept = log(dp[["v2"]]),
+                            newparams = list(b_v1_Intercept = log(dp[["v1"]]),
+                                             b_v2_Intercept = log(dp[["v2"]]),
                                              A = dp[["A"]],
                                              k = dp[["k"]],
                                              ndt = dp[["ndt"]]),
@@ -355,7 +355,7 @@ test_that("wiener_gng: frm_simulate() reaches the family seam", {
   dp <- list(mu = 1.0, bs = 1.4, ndt = 0.25, bias = 0.45)
   s <- frmtmb::frm_simulate(rt | dec(responded) ~ 1, d0,
                             family = wiener_gng(deadline = td),
-                            newparams = list(Intercept = dp[["mu"]],
+                            newparams = list(b_Intercept = dp[["mu"]],
                                              bs = dp[["bs"]],
                                              ndt = dp[["ndt"]],
                                              bias = dp[["bias"]]),

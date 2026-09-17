@@ -1,0 +1,14 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    extensions/frmtmb.sample/tests/testthat/test-conditional-effects-draws.R 
+BLOCKS  12 
+PASS    55 
+FAIL    2 
+ERROR   0 
+SKIP    0 
+  failing: an ordinal draws display is keyed and laid out like core's
+       Expected `all(abs(s - 1) < 1e-08)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+  failing: categorical = FALSE draws the expected category number
+       Expected `cd$x$estimate__` to equal `by_hand`. Differences:   `actual`: 1.2783 1.5387 1.9029 2.2852 2.6032 `expected`: 1.2720 1.5325 1.8920 2.2831 2.5999  
+DONE

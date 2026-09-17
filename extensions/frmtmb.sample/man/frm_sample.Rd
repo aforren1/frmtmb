@@ -195,7 +195,8 @@ ends of it.
 \code{reparameterize = TRUE} (the default) samples \code{z ~ N(0, I)} instead
 and computes \verb{b = L(theta) z} on the tape, with \code{L} the block's own
 Cholesky factor, which is brms's construction. Each draw is mapped back
-through ITS OWN \code{theta}, so the \code{b[i]} columns of the draws matrix
+through ITS OWN \code{theta}, so the random-effect columns of the draws
+matrix
 hold the same quantity in the same order under the same names as
 \code{reparameterize = FALSE} gives, and every method downstream
 (\code{\link[=posterior_epred]{posterior_epred()}}, \code{\link[frmtmb:ranef]{frmtmb::ranef()}}, \code{\link[=log_lik]{log_lik()}}, \code{\link[frmtmb:loo]{frmtmb::loo()}},
@@ -450,7 +451,8 @@ fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0)
 summary(ds)
 fixef(ds)
-hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)")
+hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0",
+           class = NULL)
 
 # the same model sampled straight from the formula, with no ML fit.
 # It reports the brms default priors it chose, and prior_summary()

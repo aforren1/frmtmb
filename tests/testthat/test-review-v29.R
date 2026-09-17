@@ -59,21 +59,22 @@ test_that("gr(cov =) blocks expose sd_/cor_ names to hypothesis()", {
 
   # the name is the block's own within-level sd, which is what VarCorr
   # reports for the block
-  vc <- as.data.frame(VarCorr(fit))
-  h_sd <- hypothesis(fit, "sd_id__Intercept")
-  expect_equal(h_sd$estimate, vc$sdcor[1], tolerance = 1e-10)
+  vc <- as.data.frame(varcorr_matrices(fit))
+  h_sd <- hypothesis(fit, "sd_id__Intercept", class = NULL)$hypothesis
+  expect_equal(h_sd$Estimate, vc$sdcor[1], tolerance = 1e-10)
 
   # the headline idiom: heritability as an ICC
   h <- hypothesis(fit,
-                  "sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2)")
+                  "sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2)",
+                  class = NULL)$hypothesis
   expect_equal(nrow(h), 1L)
-  expect_true(is.finite(h$estimate) && h$estimate > 0 && h$estimate < 1)
-  expect_gt(h$se, 0)
-  expect_lt(h$lwr, h$estimate)
-  expect_gt(h$upr, h$estimate)
+  expect_true(is.finite(h$Estimate) && h$Estimate > 0 && h$Estimate < 1)
+  expect_gt(h$Est.Error, 0)
+  expect_lt(h$CI.Lower, h$Estimate)
+  expect_gt(h$CI.Upper, h$Estimate)
 
   # hand-computed from the same two quantities
-  expect_equal(h$estimate,
+  expect_equal(h$Estimate,
                vc$sdcor[1]^2 / (vc$sdcor[1]^2 + sigma(fit)^2),
                tolerance = 1e-10)
 
@@ -81,11 +82,12 @@ test_that("gr(cov =) blocks expose sd_/cor_ names to hypothesis()", {
   # methods agree on the point estimate and overlap substantially
   hb <- hypothesis(fit,
                    "sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2)",
-                   method = "boot", nsim = 40, seed = 7)
-  expect_equal(hb$estimate, h$estimate, tolerance = 1e-10)
-  expect_lt(abs(hb$se - h$se), 0.5 * h$se + 0.05)
-  expect_lt(hb$lwr, h$upr)
-  expect_gt(hb$upr, h$lwr)
+                   class = NULL, method = "boot", nsim = 40,
+                   seed = 7)$hypothesis
+  expect_equal(hb$Estimate, h$Estimate, tolerance = 1e-10)
+  expect_lt(abs(hb$Est.Error - h$Est.Error), 0.5 * h$Est.Error + 0.05)
+  expect_lt(hb$CI.Lower, h$CI.Upper)
+  expect_gt(hb$CI.Upper, h$CI.Lower)
 })
 
 test_that("gr(prec =) and equalto() blocks contribute names too", {
@@ -106,8 +108,9 @@ test_that("gr(prec =) and equalto() blocks contribute names too", {
   fp <- frm(bf(y ~ x + (1 | gr(g, prec = Q))) + gaussian(), data = dd,
             data2 = list(Q = Q))
   expect_true("sd_g__Intercept" %in% variables(fp))
-  expect_equal(hypothesis(fp, "sd_g__Intercept")$estimate,
-               as.data.frame(VarCorr(fp))$sdcor[1], tolerance = 1e-10)
+  expect_equal(hypothesis(fp, "sd_g__Intercept",
+                          class = NULL)$hypothesis$Estimate,
+               as.data.frame(varcorr_matrices(fp))$sdcor[1], tolerance = 1e-10)
 
   # equalto() estimates nothing: its sds are known constants, so the
   # names are there and their delta-method standard errors are zero
@@ -122,13 +125,13 @@ test_that("gr(prec =) and equalto() blocks contribute names too", {
   vv <- variables(fe)
   sd_nms <- grep("^sd_g__", vv, value = TRUE)
   expect_length(sd_nms, 2L)
-  he <- hypothesis(fe, sd_nms)
-  expect_equal(he$se, c(0, 0), tolerance = 1e-10)
-  expect_vector_equal(he$estimate, sqrt(diag(V)), tol = 1e-10)
+  he <- hypothesis(fe, sd_nms, class = NULL)$hypothesis
+  expect_equal(he$Est.Error, c(0, 0), tolerance = 1e-10)
+  expect_vector_equal(he$Estimate, sqrt(diag(V)), tol = 1e-10)
   # the correlation of a fixed covariance is a constant too
   cor_nms <- grep("^cor_g__", vv, value = TRUE)
   expect_length(cor_nms, 1L)
-  expect_equal(hypothesis(fe, cor_nms)$estimate,
+  expect_equal(hypothesis(fe, cor_nms, class = NULL)$hypothesis$Estimate,
                V[1, 2] / sqrt(V[1, 1] * V[2, 2]), tolerance = 1e-10)
 })
 
@@ -169,8 +172,9 @@ test_that("vcov(full = TRUE) carries theta under REML", {
 
   # so the ICC is available under REML as well
   h <- hypothesis(fr,
-                  "sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2)")
-  expect_gt(h$se, 0)
+                  "sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2)",
+                  class = NULL)
+  expect_gt(h$hypothesis$Est.Error, 0)
 })
 
 
@@ -412,7 +416,7 @@ test_that("blocks sharing a grouping factor are all reported, not the first twic
   fit <- frm(bf(y ~ x + (1 | g), sigma ~ 1 + (1 | g)) + gaussian(),
              data = dd)
 
-  vc <- VarCorr(fit)
+  vc <- varcorr_matrices(fit)
   expect_length(vc, 2L)
   expect_identical(names(vc), c("1 | g", "sigma: 1 | g"))
   # the two blocks are different objects, not the first one twice
@@ -589,7 +593,7 @@ test_that("the long-format spelling fits through the same path", {
   expect_equal(bk$covstruct, "gr_cov")
   expect_equal(bk$dim, 2L)
   expect_false(is.null(bk$aux_kron))
-  V <- VarCorr(f_long)[[1]]
+  V <- varcorr_matrices(f_long)[[1]]
   expect_equal(dim(V), c(2L, 2L))
   expect_true(all(diag(V) > 0))
 })

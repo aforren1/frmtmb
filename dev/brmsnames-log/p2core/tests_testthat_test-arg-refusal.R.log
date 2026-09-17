@@ -1,0 +1,26 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-arg-refusal.R 
+BLOCKS  13 
+PASS    35 
+FAIL    0 
+ERROR   8 
+SKIP    0 
+  failing: fitted() honors re_formula instead of swallowing it
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: fitted() reaches newdata, scale, dpar and resp
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: a misspelled argument is refused and named
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: an argument brms has and a point fit cannot honor says why
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: a base-R path that forwards its own argument still works
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: a brms argument is refused with its reason, not as unknown
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: predict() and simulate() take brms's re_formula, not lme4's
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: the contract tolerates R's names and refuses everything else
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+DONE

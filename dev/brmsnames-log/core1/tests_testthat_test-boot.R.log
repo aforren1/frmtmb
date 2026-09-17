@@ -1,0 +1,28 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-boot.R 
+BLOCKS  7 
+PASS    24 
+FAIL    10 
+ERROR   3 
+SKIP    0 
+  failing: hypothesis exposes natural-scale RE names
+       Error: 'b_sd_g__Intercept' is not a parameter of this model, while 'sd_g__Intercept' is: the `class`/`group` shorthand would be ignored for it. brms's default c 
+  failing: hypothesis method = 'profile' handles linear contrasts
+       Expected `unname(c(hp$lwr, hp$upr))` to equal `unname(cu[1, 1:2])`. Differences: `actual` is NULL `expected` is a double vector (0.593831036236764, 0.9103066166 
+       Expected `min(pr[[1]]) < hp$estimate && hp$estimate < max(pr[[1]])` to be TRUE. Differences: `actual`:   <NA> `expected`: TRUE  
+       Expected `hypothesis(fr, "x1")$estimate` to equal `fixef(fr)$mu[["x1"]]`. Differences: `actual` is NULL `expected` is a double vector (0.752068826390419)  
+  failing: hypothesis method = 'boot' handles nonlinear expressions
+       Expected `nrow(hb)` to equal 2L. Differences: `actual` is NULL `expected` is an integer vector (2)  
+       Expected `colnames(d)` to equal `c("exp(x)", "x")`. Differences: `actual`:   "(exp(x))" "(x)" `expected`: "exp(x)"   "x"    
+       Expected `hb$estimate[1]` to equal `exp(fixef(fit)$mu[["x"]])`. Differences: `actual` is NULL `expected` is a double vector (1.54838832885337)  
+       Expected `hb$lwr[1] > 0` to be TRUE. Differences: `actual`:        `expected`: TRUE  
+       Expected `hb$p[2] < 0.1` to be TRUE. Differences: `actual`:   <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> <NA> and 50 more... `expected`: TRUE                  
+       Error in `expect_lt(abs(hb$se[1] - hw$se[1])/hw$se[1], 0.6)`: Result of comparison must be `TRUE`, `FALSE`, or `NA` 
+  failing: hypothesis objects print and plot for every method
+       Expected output from `print(hw)` to match regexp "method = wald". Actual output: x | Hypothesis Tests for class b:   |   Hypothesis Estimate Est.Error CI.Lower  
+       Expected output from `print(hb)` to match regexp "bootstrap draws: 20". Actual output: x | Hypothesis Tests for class b:   |   Hypothesis Estimate Est.Error CI. 
+  failing: hypothesis wald with RE names works under REML
+       Error: 'b_sd_g__Intercept' is not a parameter of this model, while 'sd_g__Intercept' is: the `class`/`group` shorthand would be ignored for it. brms's default c 
+DONE

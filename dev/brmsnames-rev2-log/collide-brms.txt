@@ -1,0 +1,30 @@
+== C2 ==
+[1] "ERROR: Internal renaming led to duplicated names. Consider renaming your variables to have different suffixes.\nOccured for: 'fab3a b', 'fab3ab'"
+[1] "ERROR: Internal renaming led to duplicated names. Consider renaming your variables to have different suffixes.\nOccured for: 'fab3a b', 'fab3ab'"
+== C3 ==
+[1] "ERROR: Internal renaming led to duplicated names. Consider renaming your variables to have different suffixes.\nOccured for: 'I(x^2)', 'IxE2'"
+== C5 ==
+[1] "ERROR: Cannot use the same response variable twice in the same model."
+== C4 ==
+Compiling Stan program...
+Start sampling
+Warning messages:
+1: The largest R-hat is 1.63, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+2: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+3: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+ [1] "r_gd[lvl.1,Intercept]"    "r_gd[lvl.10,Intercept]"  
+ [3] "r_gd[lvl.11,Intercept]"   "r_gd[lvl.12,Intercept]"  
+ [5] "r_gd[lvl.2,Intercept]"    "r_gd[lvl.3,Intercept]"   
+ [7] "r_gd[lvl.4,Intercept]"    "r_gd[lvl.5,Intercept]"   
+ [9] "r_gd[lvl.6,Intercept]"    "r_gd[lvl.7,Intercept]"   
+[11] "r_gd[lvl.8,Intercept]"    "r_gd[lvl.9,Intercept]"   
+[13] "r_gd[lvl.1,Intercept]__1"
+ [1] "lvl 1"  "lvl 10" "lvl 11" "lvl 12" "lvl 2"  "lvl 3"  "lvl 4"  "lvl 5" 
+ [9] "lvl 6"  "lvl 7"  "lvl 8"  "lvl 9"  "lvl.1" 
+[1] 30 23

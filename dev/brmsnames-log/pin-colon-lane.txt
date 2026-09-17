@@ -1,0 +1,5 @@
+arm lane frmtmb from C:/Users/adf44/source/r/brmsnames-lib 
+|b_x - b_x:fe| = 0.8378 (< 1, so R's `:` gives one number)
+b_x = 0.2415214  b_x:fe = 1.079358 
+hypothesis(fit, "x:fe > 0") estimate: 1.079358 
+pin: PASS 

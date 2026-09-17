@@ -1,0 +1,35 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-portability.R 
+BLOCKS  13 
+PASS    10 
+FAIL    1 
+ERROR   12 
+SKIP    0 
+  failing: FN-1: an unnamed family is gaussian, as in brms
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: FN-1: an attached family still wins over the default
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: FN-6: a family given as a bare constructor is accepted
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: FN-5: hypothesis() takes brms's directional form
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: FN-5: class/group name the natural-scale summaries
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: FN-5: the bootstrap and profile bounds are one-sided too
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: FN-9: update() takes the brms argument spellings
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: FN-10: lf() adds parameter formulas to a bf()
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: FN-8: one formula can name several parameters
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: parameter names: one vocabulary across the methods
+       Error: Some parameters cannot be found in the model:  'b_Intercept' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name 
+  failing: an autocorrelation parameter is addressable by its name
+       Expected `"ar1" %in% names(al)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       <subscriptOutOfBoundsError/error/condition> Error in `al[["ar1"]]`: subscript out of bounds 
+  failing: FN-11: frm_multiple refuses what it cannot pool
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+DONE

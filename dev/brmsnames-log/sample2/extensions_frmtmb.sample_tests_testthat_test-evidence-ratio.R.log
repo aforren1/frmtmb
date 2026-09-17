@@ -1,0 +1,26 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    extensions/frmtmb.sample/tests/testthat/test-evidence-ratio.R 
+BLOCKS  10 
+PASS    23 
+FAIL    10 
+ERROR   0 
+SKIP    0 
+  failing: the frame carries brms's Evid.Ratio and Post.Prob
+       Expected `all(is.finite(h$Evid.Ratio))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+  failing: a point ratio is the density at zero over the prior there
+       Expected `h$hypothesis$Evid.Ratio[1]` to equal `frmtmb.sample:::er_kde_at(dr)/stats::dnorm(0, 0, 1)`. Differences:   `actual`:  NA `expected`: 4.1  
+       Expected `attr(h, "evid_ratio_mcse")[[1]]` to equal `stats::sd(per)/sqrt(4)`. Differences:   `actual`:  NA `expected`: 0.2  
+  failing: an affine contrast convolves its normal priors
+       Expected `h$hypothesis$Evid.Ratio[1]` to equal `frmtmb.sample:::er_kde_at(h$samples$H1)/stats::dnorm(0, 0, sqrt(2))`. Differences:   `actual`:  NA `expected`: 0 
+       Expected `h2$hypothesis$Evid.Ratio[1]` to equal `frmtmb.sample:::er_kde_at(h2$samples$H1)/(stats::dnorm(0, 0, 1)/2)`. Differences:   `actual`:  NA `expected`: 4 
+  failing: a point hypothesis with no proper prior refuses by name
+       Expected `h <- hypothesis(cs$flat, "x = 0")` to throw a warning. 
+  failing: what a Savage-Dickey denominator cannot be is named
+       Expected `hypothesis(cs$pr, "x^2 = 0")` to throw a warning. 
+       Expected `hypothesis(cs$pr, "Intercept = 0")` to throw a warning. 
+  failing: a hypothesis that is not affine in BOTH directions refuses
+       Expected `h <- hypothesis(cs$pr, "abs(x) = 0")` to throw a warning. 
+       Expected `hypothesis(cs$pr, c("x = 0", "2 * x = 0", "x - w = 0", "-x = 0"))` not to throw any warnings. Actually got a <simpleWarning> with message:   hypothesi 
+DONE

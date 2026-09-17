@@ -5,10 +5,28 @@
 \alias{fixef}
 \title{Extract fixed effects}
 \usage{
-\method{fixef}{frmtmb_fit}(object, flatten = FALSE, ...)
+\method{fixef}{frmtmb_fit}(
+  object,
+  summary = TRUE,
+  robust = FALSE,
+  probs = c(0.025, 0.975),
+  pars = NULL,
+  ...,
+  flatten = FALSE
+)
 }
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
+
+\item{summary, robust, probs, pars}{brms's arguments, in brms's
+positions so that a positional brms call asks the same question.
+brms answers \code{summary = FALSE} with the posterior draws and
+\code{robust = TRUE} with their median and MAD, and a maximum-likelihood
+fit has no draws, so both are refused by name with the reason. The
+default of each is accepted and changes nothing.}
+
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
 
 \item{flatten}{If \code{TRUE}, one named vector in the \code{vcov()} /
 \code{confint()} spelling instead of the per-dpar list. Coefficients
@@ -19,9 +37,6 @@ ESTIMATED coefficients only - so dividing by a \code{vcov()} diagonal is
 \code{NA} for those entries, and
 \code{intersect(names(cf), rownames(vcov(fit)))} selects the ones a
 standard error exists for.}
-
-\item{...}{Refused: an argument the method does not have is an
-error naming it, rather than silently changing nothing.}
 }
 \value{
 A named list of coefficient vectors, one per dpar, or with
@@ -38,10 +53,12 @@ unprefixed (\code{x}, not \code{mu_x}), and the response prefixed ahead of that
 in a multivariate fit.
 }
 \details{
-\code{hypothesis()} is a THIRD vocabulary and is not the same one. It
-strips parentheses, so it reads \code{sigma_(Intercept)} only backquoted,
-and its own spelling is the parenthesis-free \code{sigma_Intercept}. The
-comment above \code{par_name_bare()} sets out all three.
+\code{hypothesis()} and \code{variables()} use a THIRD vocabulary, brms's
+parameter names: \code{b_Intercept}, \code{b_sigma_Intercept} for a \code{sigma}
+formula, and \code{sigma} on its natural scale when no formula was written
+for it. \code{hypothesis()} puts \code{class = "b"}'s \code{b_} in front of a bare
+name, so its default spelling of those is \code{Intercept} and
+\code{sigma_Intercept}.
 
 \code{unlist(fixef(fit))} is none of them. It is base R's composite of a
 list KEY and an element name, \code{mu.x}, and it names no parameter of

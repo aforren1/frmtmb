@@ -6,6 +6,7 @@
 \alias{row_lpdf}
 \alias{with_cs_offsets}
 \alias{us_chol_cor}
+\alias{expand_b}
 \alias{aterms_for_newdata}
 \alias{has_trunc}
 \alias{as_priorlist}
@@ -40,8 +41,24 @@
 \alias{hyp_env_vals}
 \alias{hyp_eval}
 \alias{hyp_tail_p}
-\alias{hyp_shadow_arm}
-\alias{hyp_shadow_disarm}
+\alias{hyp_class_prefix}
+\alias{hyp_labels}
+\alias{hyp_samples_frame}
+\alias{hyp_brms_result}
+\alias{brms_coef_names}
+\alias{brms_re_rnames}
+\alias{brms_block_has_r}
+\alias{brms_coef_table}
+\alias{brms_stan_name}
+\alias{brms_group_name}
+\alias{brms_levels}
+\alias{brms_re_parts}
+\alias{hyp_eval_in}
+\alias{hyp_expr_vars}
+\alias{brms_par_labels}
+\alias{varcorr_matrices}
+\alias{varcorr_layout}
+\alias{varcorr_values}
 \alias{ce_grids_build}
 \alias{ce_boot_one}
 \alias{ce_frame}
@@ -170,6 +187,29 @@ correlated residual - which is what makes \code{newdata} and \code{re_formula}
 refusable rather than merely unimplemented on a predictive method.
 }
 
+\section{brms's names and brms's VarCorr}{
+
+\code{brms_coef_names(fit)} gives brms's name for each estimated
+coefficient, in \code{estimated_coef_names()} order (\code{b_Intercept},
+\code{b_sigma_Intercept}, or \code{sigma} for a sigma with no formula); \code{brms_re_rnames(fit, bk)} gives brms's
+coefficient names for one random-effect block (\code{Intercept},
+\code{sigma_Intercept}), and \code{brms_block_has_r(bk)} says whether the
+block's sampled values are brms's \code{r_} coefficients.
+\code{brms_coef_table(fit)} adds, per coefficient, whether brms reports it
+as the distributional parameter itself on the natural scale (\code{sigma})
+with its \code{linkinv} and \code{linkfun}; \code{brms_stan_name()} is brms's
+response spelling (\code{y_a} is \code{ya}), \code{brms_group_name(bk)} its group
+spelling, \code{brms_levels(bk, for_r)} its level spelling, and
+\code{brms_re_parts(fit, bk)} a block's prefixes and renamed coefficients;
+\code{brms_par_labels(fit, include_random)} labels a
+sampled parameter vector in template order, in brms's spelling where
+brms has a parameter with the same content. \code{varcorr_matrices(fit, theta)} is the covariance matrix of every block at \code{theta},
+\code{varcorr_layout(fit)} is brms's \code{VarCorr()} grouping for the fit,
+and \code{varcorr_values(fit, vals, comp, layout)} gives the standard
+deviations, correlations and covariances of that layout at one
+parameter vector in the \code{hyp_vals_only()} layout.
+}
+
 \section{Parameter labeling and fitted quantities}{
 
 \code{par_name_bare()} is the draws-side spelling of a parameter name,
@@ -193,22 +233,19 @@ fit's current estimates into a flat named value vector plus a
 parallel component vector (which template component each value came
 from); \code{hyp_env_vals(fit, vals, comp)} takes exactly that pair and
 builds the evaluation environment, and \code{hyp_eval()} evaluates one
-expression in it - so a caller with many parameter vectors parses
+expression in it (\code{hyp_eval_in(ex, values)} over any named list keyed
+by parameter name, and \code{hyp_expr_vars(ex)} the names it reads) - so a
+caller with many parameter vectors parses
 once, then per vector swaps the estimates in and calls
 \code{hyp_vals_only()} and \code{hyp_env_vals()} again.
 \code{hyp_tail_p()} is the tail probability of a directional claim.
-
-\code{hyp_shadow_arm()} and \code{hyp_shadow_disarm(old)} bracket ONE
-user-level \code{hypothesis()} call. A covariate named like a reserved
-quantity, \code{sigma} or \verb{sd_<group>__<term>}, shadows it, and the note
-saying which one was read is detected inside \code{hyp_env_vals()}, which
-runs many times per call; it is emitted only while armed, and once
-per name. Every \code{hypothesis()} METHOD arms it on entry and restores
-the returned state on exit:
-\verb{old <- hyp_shadow_arm(); on.exit(hyp_shadow_disarm(old), add = TRUE)}.
-The generic cannot do it, because the exported \code{hypothesis} is
-brms's generic whenever brms is loaded, and a method that does not
-arm loses the note in every session.
+\code{hyp_class_prefix(class, group)} is brms's name prefix for its
+\code{class} and \code{group} arguments. \code{hyp_labels()} writes brms's
+\code{Hypothesis} label for each string, \code{hyp_samples_frame(m, k)} lays a
+draws matrix out as brms's \code{samples} frame (\code{H1}, \code{H2}, ...), and
+\code{hyp_brms_result()} assembles the \code{brmshypothesis}-shaped list every
+\code{hypothesis()} method returns, so no method builds that shape on its
+own.
 }
 
 \section{The conditional-effects engine}{

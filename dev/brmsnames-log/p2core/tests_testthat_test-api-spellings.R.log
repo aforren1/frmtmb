@@ -1,0 +1,22 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-api-spellings.R 
+BLOCKS  10 
+PASS    19 
+FAIL    0 
+ERROR   6 
+SKIP    0 
+  failing: the retired lme4 spelling is refused by pp_check(), not passed on
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: pp_check() on a fit still defaults to NA
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: fixef(flatten = TRUE) names coefficients as vcov() names its rows
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: unlist(fixef()) stays base R's composite, deliberately
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: the bootstrap statistic is named like the covariance it is compared with
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: flatten is a flag
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+DONE

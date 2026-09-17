@@ -1,0 +1,12 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-review-v29.R 
+BLOCKS  18 
+PASS    124 
+FAIL    0 
+ERROR   1 
+SKIP    0 
+  failing: blocks sharing a term label are all reported, not the first twice
+       Error: Duplicated group-level effects are not allowed. Occured for effect 'Intercept' of group 'id'. Give one of the two terms its own grouping column, a copy of the factor under another name 
+DONE

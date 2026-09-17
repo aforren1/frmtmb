@@ -1,0 +1,360 @@
+-- check_dup = TRUE
+get_model_matrix 
+-- rename(
+.brmsfamily 
+.validate_prior 
+constant 
+data_bhaz 
+data_response.brmsframe 
+data_sm 
+eval_hypothesis 
+extract_bhaz 
+extract_thres_names 
+frame_gp 
+frame_me 
+frame_re 
+frame_sm 
+frame_sp 
+get_model_matrix 
+predictor.bprepnl 
+prepare_predictions_sp 
+rename_old_categorical 
+rename_old_sm 
+sp_model_matrix 
+stan_log_lik_cens 
+stan_nl 
+stan_rngprior 
+stan_sp 
+stan_Xme 
+update_re_terms.formula 
+===== rename_predictor 
+function (x, ...) 
+{
+    UseMethod("rename_predictor")
+}
+<bytecode: 0x000001750e361e40>
+<environment: namespace:brms>
+===== rename_re 
+function (bframe, pars, ...) 
+{
+    out <- list()
+    reframe <- bframe$frame$re
+    if (!has_rows(reframe)) {
+        return(out)
+    }
+    stopifnot(is.reframe(reframe))
+    for (id in unique(reframe$id)) {
+        r <- subset2(reframe, id = id)
+        g <- r$group[1]
+        rnames <- get_rnames(r)
+        sd_names <- paste0("sd_", g, "__", as.vector(rnames))
+        sd_pos <- grepl(paste0("^sd_", id, "(\\[|$)"), pars)
+        lc(out) <- rlist(sd_pos, sd_names)
+        c(out) <- rename_prior(paste0("sd_", id), pars, new_class = paste0("sd_", 
+            g), names = paste0("_", as.vector(rnames)))
+        if (nrow(r) > 1L && isTRUE(r$cor[1])) {
+            type <- paste0("cor_", g)
+            if (isTRUE(nzchar(r$by[1]))) {
+                cor_names <- named_list(r$bylevels[[1]])
+                for (j in seq_along(cor_names)) {
+                  cor_names[[j]] <- get_cornames(rnames[, j], 
+                    type, brackets = FALSE)
+                }
+                cor_names <- unlist(cor_names)
+            }
+            else {
+                cor_names <- get_cornames(rnames, type, brackets = FALSE)
+            }
+            cor_regex <- paste0("^cor_", id, "(_[[:digit:]]+)?(\\[|$)")
+            cor_pos <- grepl(cor_regex, pars)
+            lc(out) <- rlist(cor_pos, cor_names)
+            c(out) <- rename_prior(paste0("cor_", id), pars, 
+                new_class = paste0("cor_", g))
+        }
+    }
+    if (any(grepl("^r_", pars))) {
+        c(out) <- rename_re_levels(bframe, pars = pars)
+    }
+    reframe_t <- subset_reframe_dist(reframe, "student")
+    for (i in seq_rows(reframe_t)) {
+        df_pos <- grepl(paste0("^df_", reframe_t$ggn[i], "$"), 
+            pars)
+        df_name <- paste0("df_", reframe_t$group[i])
+        lc(out) <- rlist(df_pos, df_name)
+    }
+    out
+}
+<bytecode: 0x000001751afa94d0>
+<environment: namespace:brms>
+===== repair_stanfit 
+function (x) 
+{
+    stopifnot(is.stanfit(x))
+    if (!length(x@sim$fnames_oi)) {
+        return(x)
+    }
+    x@sim$fnames_oi <- make.unique(as.character(x@sim$fnames_oi), 
+        "__")
+    for (i in seq_along(x@sim$samples)) {
+        if (length(x@sim$samples[[i]]) == length(x@sim$fnames_oi)) {
+            names(x@sim$samples[[i]]) <- x@sim$fnames_oi
+        }
+    }
+    x
+}
+<bytecode: 0x000001751b01bb60>
+<environment: namespace:brms>
+===== rename_Xme 
+function (bframe, pars, ...) 
+{
+    meframe <- bframe$frame$me
+    stopifnot(is.meframe(meframe))
+    out <- list()
+    levels <- attr(meframe, "levels")
+    groups <- unique(meframe$grname)
+    for (i in seq_along(groups)) {
+        g <- groups[i]
+        K <- which(meframe$grname %in% g)
+        for (par in c("meanme", "sdme")) {
+            hpar <- paste0(par, "_", i)
+            pos <- grepl(paste0("^", hpar, "\\["), pars)
+            hpar_new <- paste0(par, "_", meframe$coef[K])
+            lc(out) <- rlist(pos, hpar_new)
+            c(out) <- rename_prior(hpar, pars, names = hpar_new)
+        }
+        for (k in K) {
+            if (any(grepl("^Xme_", pars))) {
+                Xme <- paste0("Xme_", k)
+                pos <- grepl(paste0("^", Xme, "\\["), pars)
+                Xme_new <- paste0("Xme_", meframe$coef[k])
+                if (nzchar(g)) {
+                  indices <- gsub("[ \t\r\n]", ".", levels[[g]])
+                }
+                else {
+                  indices <- seq_len(sum(pos))
+                }
+                fnames <- paste0(Xme_new, "[", indices, "]")
+                lc(out) <- rlist(pos, fnames)
+            }
+        }
+        if (meframe$cor[K[1]] && length(K) > 1L) {
+            cor_type <- paste0("corme", usc(g))
+            cor_names <- get_cornames(meframe$coef[K], cor_type, 
+                brackets = FALSE)
+            cor_regex <- paste0("^corme_", i, "(\\[|$)")
+            cor_pos <- grepl(cor_regex, pars)
+            lc(out) <- rlist(cor_pos, cor_names)
+            c(out) <- rename_prior(paste0("corme_", i), pars, 
+                new_class = paste0("corme", usc(g)))
+        }
+    }
+    out
+}
+<bytecode: 0x000001751b023380>
+<environment: namespace:brms>
+===== rename_predictor.brmsterms 
+function (x, ...) 
+{
+    out <- list()
+    for (dp in names(x$dpars)) {
+        c(out) <- rename_predictor(x$dpars[[dp]], ...)
+    }
+    for (nlp in names(x$nlpars)) {
+        c(out) <- rename_predictor(x$nlpars[[nlp]], ...)
+    }
+    if (is.formula(x$adforms$mi)) {
+        c(out) <- rename_Ymi(x, ...)
+    }
+    c(out) <- rename_thres(x, ...)
+    c(out) <- rename_bhaz(x, ...)
+    c(out) <- rename_family_cor_pars(x, ...)
+    out
+}
+<bytecode: 0x000001751afa6820>
+<environment: namespace:brms>
+===== rename_re_levels 
+function (bframe, pars, ...) 
+{
+    out <- list()
+    reframe <- bframe$frame$re
+    stopifnot(is.reframe(reframe))
+    for (i in seq_rows(reframe)) {
+        r <- reframe[i, ]
+        p <- usc(combine_prefix(r))
+        r_parnames <- paste0("r_", r$id, p, "_", r$cn)
+        r_regex <- paste0("^", r_parnames, "(\\[|$)")
+        r_new_parname <- paste0("r_", r$group, usc(p))
+        levels <- gsub("[ \t\r\n]", ".", attr(reframe, "levels")[[r$group]])
+        index_names <- make_index_names(levels, r$coef, dim = 2)
+        fnames <- paste0(r_new_parname, index_names)
+        lc(out) <- rlist(grepl(r_regex, pars), fnames)
+    }
+    out
+}
+<bytecode: 0x000001751af9d9d8>
+<environment: namespace:brms>
+===== frame_re 
+function (bterms, data, old_levels = NULL) 
+{
+    data <- combine_groups(data, get_group_vars(bterms))
+    re <- get_re(bterms)
+    out <- vector("list", nrow(re))
+    used_ids <- new_ids <- NULL
+    id_groups <- list()
+    j <- 1
+    for (i in seq_rows(re)) {
+        if (!nzchar(re$type[i])) {
+            coef <- colnames(get_model_matrix(re$form[[i]], data))
+        }
+        else if (re$type[i] == "sp") {
+            coef <- frame_sp(re$form[[i]], data)$coef
+        }
+        else if (re$type[i] == "mmc") {
+            coef <- rename(all_terms(re$form[[i]]))
+        }
+        else if (re$type[i] == "cs") {
+            resp <- re$resp[i]
+            if (nzchar(resp)) {
+                stopifnot(is.mvbrmsterms(bterms))
+                nthres <- max(get_thres(bterms$terms[[resp]]))
+            }
+            else {
+                stopifnot(is.brmsterms(bterms))
+                nthres <- max(get_thres(bterms))
+            }
+            indices <- paste0("[", seq_len(nthres), "]")
+            coef <- colnames(get_model_matrix(re$form[[i]], data = data))
+            coef <- as.vector(t(outer(coef, indices, paste0)))
+        }
+        avoid_dpars(coef, bterms)
+        rdat <- data.frame(id = re$id[[i]], group = re$group[[i]], 
+            gn = re$gn[[i]], gtype = re$gtype[[i]], coef = coef, 
+            cn = NA, resp = re$resp[[i]], dpar = re$dpar[[i]], 
+            nlpar = re$nlpar[[i]], ggn = NA, cor = re$cor[[i]], 
+            type = re$type[[i]], by = re$gcall[[i]]$by, cov = re$gcall[[i]]$cov, 
+            dist = re$gcall[[i]]$dist, stringsAsFactors = FALSE)
+        bylevels <- NULL
+        if (nzchar(rdat$by[1])) {
+            bylevels <- eval2(rdat$by[1], data)
+            bylevels <- rm_wsp(extract_levels(bylevels))
+        }
+        rdat$bylevels <- repl(bylevels, nrow(rdat))
+        rdat$form <- repl(re$form[[i]], nrow(rdat))
+        rdat$gcall <- repl(re$gcall[[i]], nrow(rdat))
+        id <- re$id[[i]]
+        if (is.na(id)) {
+            rdat$id <- j
+            j <- j + 1
+        }
+        else {
+            if (id %in% used_ids) {
+                k <- match(id, used_ids)
+                rdat$id <- new_ids[k]
+                new_id_groups <- c(re$group[[i]], re$gcall[[i]]$groups)
+                if (!identical(new_id_groups, id_groups[[k]])) {
+                  stop2("Can only combine group-level terms of the ", 
+                    "same grouping factors.")
+                }
+            }
+            else {
+                used_ids <- c(used_ids, id)
+                k <- length(used_ids)
+                rdat$id <- new_ids[k] <- j
+                id_groups[[k]] <- c(re$group[[i]], re$gcall[[i]]$groups)
+                j <- j + 1
+            }
+        }
+        out[[i]] <- rdat
+    }
+    out <- do_call(rbind, c(list(empty_reframe()), out))
+    rsv_groups <- out[nzchar(out$gtype), "group"]
+    other_groups <- out[!nzchar(out$gtype), "group"]
+    inv_groups <- intersect(rsv_groups, other_groups)
+    if (length(inv_groups)) {
+        inv_groups <- paste0("'", inv_groups, "'", collapse = ", ")
+        stop2("Grouping factor names ", inv_groups, " are resevered.")
+    }
+    dup <- duplicated(out[, c("group", "coef", vars_prefix())])
+    if (any(dup)) {
+        dr <- out[which(dup)[1], ]
+        stop2("Duplicated group-level effects are not allowed.\n", 
+            "Occured for effect '", dr$coef, "' of group '", 
+            dr$group, "'.")
+    }
+    if (has_rows(out)) {
+        for (id in unique(out$id)) {
+            out$cn[out$id == id] <- seq_len(sum(out$id == id))
+        }
+        out$ggn <- match(out$group, unique(out$group))
+        rsub <- out[!duplicated(out$group), ]
+        levels <- named_list(rsub$group)
+        for (i in seq_along(levels)) {
+            levels[[i]] <- unique(ulapply(rsub$gcall[[i]]$groups, 
+                function(g) extract_levels(get(g, data))))
+            bysel <- out$group == names(levels)[i] & nzchar(out$by) & 
+                !duplicated(out$by)
+            bysel <- which(bysel)
+            if (length(bysel) > 1L) {
+                stop2("Each grouping factor can only be associated with one 'by' variable.")
+            }
+            if (length(bysel) == 1L) {
+                rsub[i, ] <- out[bysel, ]
+            }
+            if (nzchar(rsub$by[i])) {
+                stopifnot(rsub$type[i] %in% c("", "mmc"))
+                by <- rsub$by[i]
+                bylevels <- rsub$bylevels[[i]]
+                byvar <- rm_wsp(eval2(by, data))
+                groups <- rsub$gcall[[i]]$groups
+                if (rsub$gtype[i] == "mm") {
+                  byvar <- as.matrix(byvar)
+                  if (!identical(dim(byvar), c(nrow(data), length(groups)))) {
+                    stop2("Grouping structure 'mm' expects 'by' to be ", 
+                      "a matrix with as many columns as grouping factors.")
+                  }
+                  df <- J <- named_list(groups)
+                  for (k in seq_along(groups)) {
+                    J[[k]] <- match(get(groups[k], data), levels[[i]])
+                    df[[k]] <- data.frame(J = J[[k]], by = byvar[, 
+                      k])
+                  }
+                  J <- unlist(J)
+                  df <- do_call(rbind, df)
+                }
+                else {
+                  J <- match(get(groups, data), levels[[i]])
+                  df <- data.frame(J = J, by = byvar)
+                }
+                df <- unique(df)
+                if (nrow(df) > length(unique(J))) {
+                  stop2("Some levels of ", collapse_comma(groups), 
+                    " correspond to multiple levels of '", by, 
+                    "'.")
+                }
+                df <- df[order(df$J), ]
+                by_per_level <- bylevels[match(df$by, bylevels)]
+                attr(levels[[i]], "by") <- by_per_level
+            }
+        }
+        if (!is.null(old_levels)) {
+            set_levels(out) <- old_levels
+            set_levels(out, "used") <- levels
+        }
+        else {
+            set_levels(out) <- levels
+        }
+        out <- update_ranef_cov(out, bterms)
+    }
+    out <- out[order(out$id), , drop = FALSE]
+    class(out) <- reframe_class()
+    out
+}
+<bytecode: 0x000001750de09cb0>
+<environment: namespace:brms>
+===== make_stan_names 
+function (x) 
+{
+    gsub("\\.|_", "", make.names(x, unique = TRUE))
+}
+<bytecode: 0x000001750a6396c8>
+<environment: namespace:brms>

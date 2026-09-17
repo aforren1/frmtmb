@@ -1,0 +1,30 @@
+empirical share of component 1 (mean -2): 0.8775 
+== estimates ==
+sigma1_(Intercept) sigma2_(Intercept) theta1_(Intercept) 
+       -0.19462952         0.07514849         1.96616509 
+variables(fit): b_mu1_Intercept b_mu1_x b_mu2_Intercept b_mu2_x sigma1 sigma2 theta1 theta2 
+== hypothesis(fit, theta1 = 0.5) ==
+          Hypothesis  Estimate  Est.Error  CI.Lower  CI.Upper Evid.Ratio
+1 (theta1)-(0.5) = 0 0.3771986 0.01662724 0.3446098 0.4097874         NA
+  Post.Prob Star
+1        NA    *
+== draws column means ==
+b_mu1_Intercept         b_mu1_x b_mu2_Intercept         b_mu2_x          sigma1 
+     -2.0578291       0.2560888       2.5349107       0.4717354       0.8283027 
+         sigma2          theta1          theta2            lp__ 
+      1.1209282       0.8762356       0.1237644    -657.2099179 
+== posterior mixing probability of component 1, pp_mixture ==
+   class1    class2 
+0.8766734 0.1233266 
+== hypothesis(ds, theta1 = 0.5, class = NULL) ==
+          Hypothesis  Estimate  Est.Error  CI.Lower  CI.Upper Evid.Ratio
+1 (theta1)-(0.5) = 0 0.3762356 0.01555057 0.3490918 0.4035792         NA
+  Post.Prob Star
+1        NA    *
+== posterior_summary(ds, variable = theta1) ==
+        Estimate  Est.Error      Q2.5     Q97.5
+theta1 0.8762356 0.01555057 0.8490918 0.9035792
+== frm_simulate(newparams = list(theta1 = 0.7)) share below 0 ==
+[1] "ERROR: newparams sets a mixture's weights together: give theta1, theta2, which sum to one (missing: theta2)"
+== the same with theta1 = qlogis(0.7), read as a log ratio ==
+[1] "ERROR: newparams sets a mixture's weights together: give theta1, theta2, which sum to one (missing: theta2)"

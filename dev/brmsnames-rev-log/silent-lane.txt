@@ -1,0 +1,17 @@
+﻿arm lane frmtmb from C:/Users/adf44/source/r/brmsnames-lib 
+dist done
+mv done
+nl done
+ord done
+smooth done
+gp done
+saved
+Rscript.exe : Warning messages:
+At line:1 char:619
++ ... false))) }; & "C:\Program Files\R\R-4.6.1\bin\Rscript.exe" dev/brmsna ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning messages::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+1: In sqrt(diag(sdr$cov.fixed)) : NaNs produced
+2: In sqrt(diag(sdr$cov.fixed)) : NaNs produced

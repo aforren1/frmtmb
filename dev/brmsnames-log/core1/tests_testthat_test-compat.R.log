@@ -1,0 +1,12 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-compat.R 
+BLOCKS  34 
+PASS    572 
+FAIL    1 
+ERROR   0 
+SKIP    0 
+  failing: the multivariate declarations match a multivariate fit
+       Expected `nrow(hp)` to equal 1L. Differences: `actual` is NULL `expected` is an integer vector (1)  
+DONE

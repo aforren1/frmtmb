@@ -1,0 +1,15 @@
+empirical share of component 1 (mean -2): 0.8775 
+== estimates ==
+sigma1_(Intercept) sigma2_(Intercept) theta1_(Intercept) 
+       -0.19462952         0.07514849         1.96616509 
+variables(fit): mu1_Intercept mu1_x mu2_Intercept mu2_x sigma1_Intercept sigma2_Intercept theta1_Intercept 
+== hypothesis(fit, theta1 = 0.5) ==
+[1] "ERROR: object 'theta1' not found\nAvailable names: mu1_Intercept, mu1_x, mu2_Intercept, mu2_x, sigma1_Intercept, sigma2_Intercept, theta1_Intercept\n(the internal spellings of confint() work too, backquoted; a natural-scale name a coefficient has taken over carries a leading dot)"
+== draws column means ==
+   mu1_Intercept            mu1_x    mu2_Intercept            mu2_x 
+      -2.0578291        0.2560888        2.5349107        0.4717354 
+sigma1_Intercept sigma2_Intercept theta1_Intercept             lp__ 
+      -0.1891641        0.1071819        1.9649852     -657.2099179 
+== posterior mixing probability of component 1, pp_mixture ==
+   class1    class2 
+0.8766734 0.1233266 

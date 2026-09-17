@@ -72,7 +72,7 @@ test_that("the animal model matches the closed-form REML likelihood", {
   op <- stats::optim(c(0, 0), nll, method = "BFGS",
                      control = list(reltol = 1e-13))
 
-  sd_a <- sqrt(VarCorr(fit)[[1]][1, 1])
+  sd_a <- sqrt(varcorr_matrices(fit)[[1]][1, 1])
   expect_equal(sd_a, sqrt(exp(op$par[1])), tolerance = 1e-5)
   expect_equal(sigma(fit), sqrt(exp(op$par[2])), tolerance = 1e-5)
   expect_lt(abs(as.numeric(logLik(fit)) + op$value), 1e-5)
@@ -100,7 +100,7 @@ test_that("the multi-trait animal model reads the pedigree", {
   fmv <- frm(bf(value ~ 0 + trait + (0 + trait | gr(id, cov = A)),
                 sigma ~ 0 + trait) + gaussian(),
              data = long, data2 = list(A = A))
-  Gh <- VarCorr(fmv)[[1]]
+  Gh <- varcorr_matrices(fmv)[[1]]
   expect_equal(cov2cor(Gh)[1, 2], 0.6 / sqrt(1.0 * 0.8), tolerance = 0.05)
   expect_equal(unname(sqrt(diag(Gh))), c(1, sqrt(0.8)), tolerance = 0.2)
   expect_equal(unname(exp(fixef(fmv)$sigma)), c(0.7, 0.9), tolerance = 0.15)
@@ -137,7 +137,7 @@ test_that("the phylogenetic mixed model matches PGLS with Pagel's lambda", {
   g <- nlme::gls(y ~ x, data = d, method = "ML",
                  correlation = ape::corPagel(0.5, phy = tree, form = ~sp))
 
-  sd_p <- sqrt(VarCorr(fphy)[[1]][1, 1])
+  sd_p <- sqrt(varcorr_matrices(fphy)[[1]][1, 1])
   lam <- sd_p^2 / (sd_p^2 + sigma(fphy)^2)
   lam_gls <- as.numeric(coef(g$modelStruct$corStruct,
                              unconstrained = FALSE))
@@ -171,7 +171,7 @@ test_that("se() meta-analysis matches metafor::rma", {
   rr <- metafor::rma(bcg$yi, bcg$vi, method = "REML")
   expect_equal(unname(fixef(fmeta)$mu), as.numeric(rr$beta),
                tolerance = 1e-5)
-  expect_equal(sqrt(VarCorr(fmeta)[[1]][1, 1]), sqrt(rr$tau2),
+  expect_equal(sqrt(varcorr_matrices(fmeta)[[1]][1, 1]), sqrt(rr$tau2),
                tolerance = 1e-5)
   # metafor forms the standard error as (X'WX)^-1 at the REML tau;
   # frmtmb reads it off the joint Hessian, so they are close, not equal
@@ -181,7 +181,7 @@ test_that("se() meta-analysis matches metafor::rma", {
               data = bcg, REML = TRUE)
   rr2 <- metafor::rma(bcg$yi, bcg$vi, mods = ~ bcg$ablat, method = "REML")
   expect_equal(unname(fixef(freg)$mu), unname(coef(rr2)), tolerance = 1e-4)
-  expect_equal(sqrt(VarCorr(freg)[[1]][1, 1]), sqrt(rr2$tau2),
+  expect_equal(sqrt(varcorr_matrices(freg)[[1]][1, 1]), sqrt(rr2$tau2),
                tolerance = 1e-3)
 })
 

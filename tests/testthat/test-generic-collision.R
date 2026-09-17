@@ -209,7 +209,8 @@ test_that("frmtmb loads and works with every optional owner unloadable", {
   expect_match(out, "SHADOWED: yes", fixed = TRUE)
   expect_match(out, "CHILDOK", fixed = TRUE)
   expect_equal(parse_field(out, "FIXEF"), c("mu", "sigma"))
-  expect_equal(parse_field(out, "VARCORR"), "1")
+  # brms's VarCorr(): the group, then the residual SD
+  expect_equal(parse_field(out, "VARCORR"), "2")
   expect_equal(parse_field(out, "NGRPS"), "6")
   expect_equal(parse_field(out, "REFIT"), "frmtmb_fit")
 })
@@ -344,7 +345,7 @@ test_that("no shared generic carries work in its own body", {
   # it resolves to the owner's generic whenever the owner is loaded,
   # and the owner's generic is a bare UseMethod(). So anything frmtmb
   # puts in its own generic runs only when no owner is there.
-  # `hypothesis()` used to arm the reserved-name shadowing note in
+  # `hypothesis()` used to arm a reserved-name note (since removed) in
   # the generic, and under R CMD check, which runs the whole suite in
   # ONE process where an earlier file had loaded brms, the note
   # stopped firing and test-naming-collisions.R lost 8 assertions.

@@ -128,7 +128,7 @@ test_that("categorical() takes random effects and marginaleffects", {
     sample.int(3L, 1L, prob = P[i, ])
   }, 1L)])
   fit <- frm(bf(y ~ x + (1 | g)), family = categorical(), data = dd)
-  vc <- VarCorr(fit)
+  vc <- varcorr_matrices(fit)
   expect_true(length(vc) >= 1L)
   expect_equal(dim(fitted(fit)), c(nrow(dd), 3L))
 
@@ -385,7 +385,7 @@ test_that("cox() frailty models come out of the Laplace approximation", {
                    ev = as.numeric(tt <= ct), x = x, g = g)
   fit <- frm(bf(time | cens(cens) ~ x + (1 | g)), family = cox(),
              data = dd)
-  sd_hat <- sqrt(as.numeric(VarCorr(fit)[[1L]]))
+  sd_hat <- sqrt(as.numeric(varcorr_matrices(fit)[[1L]]))
   expect_equal(sd_hat, 0.8, tolerance = 0.3)
   expect_equal(unname(fixef(fit)$mu["x"]), 0.7, tolerance = 0.2)
   # the frailty buys likelihood over the same model without it. ML puts

@@ -121,7 +121,7 @@ eam_scale_run <- function(row, fam, sv, group = TRUE) {
   to_time <- if (is.null(bnd[["floors"]])) 1 else mean(bnd[["floors"]])
   ndt_hat <- ndt_frac * to_time
   ndt_se <- ndt_frac_se * to_time
-  vc <- VarCorr(fit)
+  vc <- varcorr_matrices(fit)
   sds <- vapply(vc, function(m) sqrt(m[1L, 1L]), numeric(1))
   # by name as well as by position, so that a reader can check the
   # position the three named fields below assume

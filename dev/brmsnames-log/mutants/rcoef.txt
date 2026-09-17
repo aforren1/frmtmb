@@ -1,0 +1,149 @@
+mutant: rcoef 
+test-brms-pins.R       PASS  214 FAIL 120 ERROR  0
+    failing: r_, b_ and sigma columns hold what the model reads there 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.01 `expected`: 0.92 r_g[1,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.39 `expected`:  0.15 r_g[1,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`:  0.15 `expected`: -0.39 r_g[1,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.92 `expected`: 0.01 r_g[1,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.754 `expected`: 0.835 r_g[2,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.81 `expected`: 0.03 r_g[2,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.03 `expected`: 0.81 r_g[2,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.835 `expected`: 0.754 r_g[2,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -1.1 `expected`:  0.7 r_g[3,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.0 `expected`: 1.4 r_g[3,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 1.4 `expected`: 0.0 r_g[3,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`:  0.7 `expected`: -1.1 r_g[3,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.92 `expected`: 1.65 r_g[4,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.473 `expected`: -0.529 r_g[4,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.529 `expected`: -0.473 r_g[4,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 1.65 `expected`: 0.92 r_g[4,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.06 `expected`: -0.75 r_g[5,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.74 `expected`: 0.17 r_g[5,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.17 `expected`: 0.74 r_g[5,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.75 `expected`: -0.06 r_g[5,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.178 `expected`: -0.137 r_g[6,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.16 `expected`:  0.03 r_g[6,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`:  0.03 `expected`: -0.16 r_g[6,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.137 `expected`: -0.178 r_g[6,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.33 `expected`: 0.07 r_g[7,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.763 `expected`: -0.729 r_g[7,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.729 `expected`: -0.763 r_g[7,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.07 `expected`: 0.33 r_g[7,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.30 `expected`: -0.98 r_g[8,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`:  0.03 `expected`: -0.08 r_g[8,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.08 `expected`:  0.03 r_g[8,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.98 `expected`: -0.30 r_g[8,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.60 `expected`: -0.38 r_g[9,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -1.19 `expected`: -0.21 r_g[9,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.21 `expected`: -1.19 r_g[9,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.38 `expected`: -0.60 r_g[9,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.43 `expected`: -0.58 r_g[10,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.55 `expected`: -0.10 r_g[10,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.10 `expected`: -0.55 r_g[10,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.58 `expected`: -0.43 r_g[10,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.1 `expected`:  1.2 r_g[1,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.33 `expected`:  0.54 r_g[1,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`:  0.54 `expected`: -0.33 r_g[1,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`:  1.2 `expected`: -0.1 r_g[1,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.616 `expected`: 0.701 r_g[2,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.69 `expected`: 0.07 r_g[2,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.07 `expected`: 0.69 r_g[2,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.701 `expected`: 0.616 r_g[2,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -1.1 `expected`:  0.6 r_g[3,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.0 `expected`:  1.4 r_g[3,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`:  1.4 `expected`: -0.0 r_g[3,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`:  0.6 `expected`: -1.1 r_g[3,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 1.02 `expected`: 1.72 r_g[4,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.85 `expected`: -0.57 r_g[4,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.57 `expected`: -0.85 r_g[4,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 1.72 `expected`: 1.02 r_g[4,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`:  0.00 `expected`: -0.56 r_g[5,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.95 `expected`: 0.19 r_g[5,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.19 `expected`: 0.95 r_g[5,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.56 `expected`:  0.00 r_g[5,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.15 `expected`:  0.17 r_g[6,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.07 `expected`:  0.20 r_g[6,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`:  0.20 `expected`: -0.07 r_g[6,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`:  0.17 `expected`: -0.15 r_g[6,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.23 `expected`: 0.93 r_g[7,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -1.00 `expected`: -0.26 r_g[7,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.26 `expected`: -1.00 r_g[7,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.93 `expected`: 0.23 r_g[7,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.20 `expected`: -0.84 r_g[8,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`:  0.01 `expected`: -0.20 r_g[8,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.20 `expected`:  0.01 r_g[8,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.84 `expected`: -0.20 r_g[8,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.44 `expected`: -0.29 r_g[9,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -1.17 `expected`: -0.27 r_g[9,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.27 `expected`: -1.17 r_g[9,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.29 `expected`: -0.44 r_g[9,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.478 `expected`: -0.521 r_g[10,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.34 `expected`:  0.05 r_g[10,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`:  0.05 `expected`: -0.34 r_g[10,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.521 `expected`: -0.478 r_g[10,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.180 `expected`: 0.230 r_g[1,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.31 `expected`: -0.18 r_g[1,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.18 `expected`: -0.31 r_g[1,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.230 `expected`: 0.180 r_g[1,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.64 `expected`: 0.48 r_g[2,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`:  0.44 `expected`: -0.25 r_g[2,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.25 `expected`:  0.44 r_g[2,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.48 `expected`: 0.64 r_g[2,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.9 `expected`:  0.4 r_g[3,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.0 `expected`: 1.1 r_g[3,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 1.1 `expected`: 0.0 r_g[3,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`:  0.4 `expected`: -0.9 r_g[3,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.910 `expected`: 0.868 r_g[4,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.7865 `expected`: -0.7770 r_g[4,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.7770 `expected`: -0.7865 r_g[4,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.868 `expected`: 0.910 r_g[4,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.00 `expected`: -0.93 r_g[5,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`:  0.9 `expected`: -0.2 r_g[5,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.2 `expected`:  0.9 r_g[5,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.93 `expected`: -0.00 r_g[5,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.30 `expected`: -0.64 r_g[6,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.17 `expected`: 0.05 r_g[6,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.05 `expected`: 0.17 r_g[6,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.64 `expected`: -0.30 r_g[6,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.38 `expected`: 0.21 r_g[7,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.89 `expected`: -0.61 r_g[7,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.61 `expected`: -0.89 r_g[7,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: 0.21 `expected`: 0.38 r_g[7,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.1 `expected`: -1.5 r_g[8,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.39 `expected`: -0.77 r_g[8,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.77 `expected`: -0.39 r_g[8,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -1.5 `expected`: -0.1 r_g[8,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.706 `expected`: -0.772 r_g[9,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -1.1 `expected`: -0.1 r_g[9,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.1 `expected`: -1.1 r_g[9,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.772 `expected`: -0.706 r_g[9,w] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.40 `expected`: -0.94 r_g[10,Intercept] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.32 `expected`: -0.18 r_g[10,x] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.18 `expected`: -0.32 r_g[10,z] 
+      msg: Expected `unname(ds$draws[i, col])` to be identical to `unname(M[lv, k])`. Differences:   `actual`: -0.94 `expected`: -0.40 r_g[10,w] 
+test-brms-output.R     PASS   21 FAIL   0 ERROR  0
+test-brms-names.R      PASS  137 FAIL   0 ERROR  0
+converged at iteration 19 with logLik: -746.6946 
+converged at iteration 25 with logLik: -746.6946 
+converged at iteration 21 with logLik: -746.6946 
+converged at iteration 29 with logLik: -746.6946 
+converged at iteration 28 with logLik: -701.2889 
+converged at iteration 32 with logLik: -701.2889 
+converged at iteration 25 with logLik: -701.2889 
+converged at iteration 29 with logLik: -701.2889 
+converged at iteration 27 with logLik: -701.2889 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 13 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 453 with logLik: -685.3785 
+converged at iteration 408 with logLik: -685.3785 
+converged at iteration 404 with logLik: -685.3785 
+converged at iteration 430 with logLik: -685.3785 
+converged at iteration 400 with logLik: -685.3785 
+converged at iteration 54 with logLik: -3093.27 
+converged at iteration 2054 with logLik: -3433.42 
+converged at iteration 67 with logLik: -3093.27 
+converged at iteration 1803 with logLik: -3433.42 
+test-hmm.R             PASS  118 FAIL   0 ERROR  0
+DONE

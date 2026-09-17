@@ -1,0 +1,20 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-simulate-ergonomics.R 
+BLOCKS  9 
+PASS    40 
+FAIL    5 
+ERROR   1 
+SKIP    0 
+  failing: natural newparams round-trip through an us block
+       <getvarError/missingArgError/error/condition> Error in `nat_slots(fr)`: argument "fitlike" is missing, with no default 
+  failing: prior draws simulate a prior-predictive sample
+       Expected `all(...)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       Expected `stats::sd(pars$x)` > 0.5. Actual comparison: NA <= 0.5 
+       Expected `attr(a, "pars")$sigma_Intercept` to equal `rep(0.6, 8)`. Differences: `actual` is NULL `expected` is a double vector (0.6, 0.6, 0.6, 0.6, 0.6, ...)  
+  failing: prior draws respect bounds and newparams fill the rest
+       Expected `drawn` to have length 15. Actual length: 0. 
+  failing: a prior draw undoes the placement it was written on
+       Expected `abs(mean(pars$Intercept) - 1)` > 1. Actual comparison: NA <= 1.0 
+DONE

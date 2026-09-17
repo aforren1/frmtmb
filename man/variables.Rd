@@ -19,18 +19,28 @@ error naming it, rather than silently changing nothing.}
 A character vector.
 }
 \description{
-The names that \code{\link[=hypothesis]{hypothesis()}} expressions (and \code{set_prior()}
-targeting) accept: fixed-effect coefficients under their \code{vcov()}
-names with parentheses stripped, natural-scale random-effect
-summaries (\verb{sd_<group>__<term>}, \verb{cor_<group>__<t1>__<t2>}), and
-\code{sigma} when the residual SD is a scalar. The brms spelling; for
-sampled fits, \code{variables()} on the \code{frmtmb.sample::frm_sample()}
-result lists the draw columns instead.
+brms's names for the parameters of a fit, which are the names
+\code{\link[=hypothesis]{hypothesis()}} expressions accept: fixed-effect coefficients with
+brms's \code{b_} prefix (\code{b_Intercept}, \code{b_x}, and \code{b_sigma_Intercept}
+for a coefficient of a \code{sigma} formula), natural-scale random-effect
+summaries (\verb{sd_<group>__<coef>}, \verb{cor_<group>__<coef1>__<coef2>},
+with a distributional or nonlinear parameter's name in the
+coefficient part, \code{sd_g__sigma_Intercept}), and a distributional
+parameter nobody wrote a formula for, on its natural scale (\code{sigma},
+\code{shape}, \code{sigma_ya}). Every name is spelled through brms's renaming:
+\code{b_IxE2} for \code{I(x^2)}, \code{sd_g:h__Intercept} for \code{(1 | g:h)}. For sampled fits,
+\code{variables()} on the \code{frmtmb.sample::frm_sample()} result lists the
+draw columns, which follow the same convention.
 }
 \details{
+brms's \code{variables()} also lists what a fit has no counterpart of:
+group-level coefficients \verb{r_<group>[<level>,<coef>]}, the centered
+\code{Intercept}, \code{lprior} and \code{lp__}. A maximum-likelihood fit has no
+draws of those, and \code{\link[=ranef]{ranef()}} reports the conditional modes.
+
 A residual correlation term (\link{frmtmb-autocor}) contributes its
-natural-scale parameters under brms's names, sanitized the same way:
-\code{ar1}, \code{ar2}, \code{ma1}, \code{cosy}, \verb{cortime__<t1>__<t2>}.
+natural-scale parameters under brms's names: \code{ar[1]}, \code{ar[2]},
+\code{ma[1]}, \code{cosy}, \verb{cortime__<t1>__<t2>}.
 
 \code{gr(cov = )}, \code{gr(prec = )} and \code{equalto()} blocks contribute
 \code{sd_}/\code{cor_} names for their within-level covariance. Smooths,

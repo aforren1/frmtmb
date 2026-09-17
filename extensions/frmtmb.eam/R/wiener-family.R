@@ -173,7 +173,7 @@
 #' 7.67 ms. But a between-subject standard deviation is the wrong
 #' statistic to read that off. Compare the per-subject non-decision
 #' times from [ndt_time()] against what you believe, and compare
-#' log-likelihoods, rather than reading `VarCorr()`'s `ndt` row as
+#' log-likelihoods, rather than reading `VarCorr()`'s `ndt` entry as
 #' evidence that the component was estimated.
 #'
 #' The bound's own quality is a function of the group's trial count.

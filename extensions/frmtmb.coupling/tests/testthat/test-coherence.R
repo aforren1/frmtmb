@@ -242,7 +242,8 @@ test_that("a random effect on every dpar keeps the variance component alive", {
     if (inherits(fit, "try-error")) next
     # VarCorr returns one variance MATRIX per block, so the standard
     # deviation is the square root of its diagonal
-    sds <- unlist(lapply(frmtmb::VarCorr(fit), function(m) sqrt(diag(m))))
+    sds <- unlist(lapply(frmtmb::varcorr_matrices(fit),
+                         function(m) sqrt(diag(m))))
     if (!length(sds) || all(is.na(sds)) ||
           max(sds, na.rm = TRUE) < 1e-3) collapsed <- collapsed + 1L
   }
