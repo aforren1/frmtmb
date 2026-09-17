@@ -1,0 +1,89 @@
+setup	frmtmb.sample	brmsfit-methods:31		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:32	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:33	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:34	pass	TRUE	FALSE			TRUE
+setup	frmtmb.sample	brmsfit-methods:36		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:37	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:38	pass	TRUE	FALSE			TRUE
+setup	frmtmb.sample	brmsfit-methods:40		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:41	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:42	pass	TRUE	FALSE			TRUE
+setup	frmtmb.sample	brmsfit-methods:44		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:45	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:46	pass	TRUE	FALSE			TRUE
+setup	frmtmb.sample	brmsfit-methods:48		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:49	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:50	pass	TRUE	FALSE			TRUE
+setup	frmtmb.sample	brmsfit-methods:52		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:53	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:54	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:55	pass	TRUE	FALSE			TRUE
+setup	frmtmb.sample	brmsfit-methods:59		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:60	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:61	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:64	pass	TRUE	FALSE		Argument 'pars' is deprecated. Please use 'variable' instead.	TRUE
+assert	frmtmb.sample	brmsfit-methods:68	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:69	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:72	pass	TRUE	FALSE		Argument 'subset' is deprecated. Please use argument 'draw' instead.	TRUE
+assert	frmtmb.sample	brmsfit-methods:76	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:77	pass	TRUE	FALSE			TRUE
+setup	frmtmb.sample	brmsfit-methods:81		FALSE	FALSE	draws_accessor_args() has no argument `iteration`. It takes: x, pars, variable, draw, subset, what, format, regex, fixed, inc_warmup		FALSE
+assert	frmtmb.sample	brmsfit-methods:82	defect	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: draws_accessor_args() has no argument `iteration`. It takes: x, pars, variable, draw, subset, what, format, regex, fixed, inc_warmup		FALSE
+assert	frmtmb.sample	brmsfit-methods:83	defect	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: draws_accessor_args() has no argument `iteration`. It takes: x, pars, variable, draw, subset, what, format, regex, fixed, inc_warmup		FALSE
+setup	frmtmb.sample	brmsfit-methods:87		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:88	pass	TRUE	FALSE			TRUE
+setup	frmtmb.sample	brmsfit-methods:89		FALSE	FALSE	no applicable method for `@` applied to an object of class "frmtmb_fit"		FALSE
+setup	frmtmb.sample	brmsfit-methods:90		FALSE	FALSE	object 'chains' not found		FALSE
+assert	frmtmb.sample	brmsfit-methods:91	cannot transfer	FALSE	TRUE	STALE: reads 'ps_dim', whose last assignment failed: object 'chains' not found		FALSE
+setup	frmtmb.sample	brmsfit-methods:93		FALSE	FALSE	draws_accessor_args() has no argument `chain`. It takes: x, pars, variable, draw, subset, what, format, regex, fixed, inc_warmup		FALSE
+assert	frmtmb.sample	brmsfit-methods:94	defect	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: draws_accessor_args() has no argument `chain`. It takes: x, pars, variable, draw, subset, what, format, regex, fixed, inc_warmup		TRUE
+setup	frmtmb.sample	brmsfit-methods:95		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:96	defect	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: draws_accessor_args() has no argument `chain`. It takes: x, pars, variable, draw, subset, what, format, regex, fixed, inc_warmup		TRUE
+setup	frmtmb.sample	brmsfit-methods:100		FALSE	FALSE	no applicable method for `@` applied to an object of class "frmtmb_fit"		FALSE
+setup	frmtmb.sample	brmsfit-methods:101		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:102	cannot transfer	FALSE	TRUE	STALE: reads 'chains', whose last assignment failed: no applicable method for `@` applied to an object of class "frmtmb_fit"		FALSE
+assert	frmtmb.sample	brmsfit-methods:103	cannot transfer	FALSE	TRUE	STALE: reads 'chains', whose last assignment failed: no applicable method for `@` applied to an object of class "frmtmb_fit"		FALSE
+setup	frmtmb.sample	brmsfit-methods:104		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:105	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:107	cannot transfer	FALSE	FALSE	ERROR: as.mcmc(inc_warmup = TRUE) has nothing to include: the draws matrix holds the post-warmup draws only, which is what frm_sample() keeps. The warmup, if the sampler saved it, is in `x$stanfit`		FALSE
+assert	frmtmb.sample	brmsfit-methods:578	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:579	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:580	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:593	defect	FALSE	FALSE	ERROR: nsamples() is the deprecated brms spelling. Use ndraws(x) for the pooled draw count, niterations(x) for the per-chain count		FALSE
+assert	frmtmb.sample	brmsfit-methods:594	defect	FALSE	FALSE	ERROR: nsamples() is the deprecated brms spelling. Use ndraws(x) for the pooled draw count, niterations(x) for the per-chain count		FALSE
+assert	frmtmb.sample	brmsfit-methods:595	defect	FALSE	FALSE	ERROR: nsamples() is the deprecated brms spelling. Use ndraws(x) for the pooled draw count, niterations(x) for the per-chain count		FALSE
+assert	frmtmb.sample	brmsfit-methods:599	pass	TRUE	FALSE			TRUE
+setup	frmtmb.sample	brmsfit-methods:617		TRUE	FALSE			TRUE
+setup	frmtmb.sample	brmsfit-methods:618		FALSE	FALSE	could not find function "posterior_average"		FALSE
+assert	frmtmb.sample	brmsfit-methods:619	cannot transfer	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: could not find function "posterior_average"		FALSE
+assert	frmtmb.sample	brmsfit-methods:620	cannot transfer	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: could not find function "posterior_average"		FALSE
+setup	frmtmb.sample	brmsfit-methods:622		TRUE	FALSE			TRUE
+setup	frmtmb.sample	brmsfit-methods:623		FALSE	FALSE	NOT RUN: the setup line reaches brms's own namespace		FALSE
+assert	frmtmb.sample	brmsfit-methods:627	cannot transfer	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: NOT RUN: the setup line reaches brms's own namespace		FALSE
+assert	frmtmb.sample	brmsfit-methods:628	cannot transfer	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: NOT RUN: the setup line reaches brms's own namespace		FALSE
+setup	frmtmb.sample	brmsfit-methods:632		FALSE	FALSE	posterior_samples() is the deprecated brms spelling. Use as_draws(x) for a posterior draws_matrix, as.matrix(x) for a plain matrix, or as.data.frame(x)		FALSE
+assert	frmtmb.sample	brmsfit-methods:633	defect	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: posterior_samples() is the deprecated brms spelling. Use as_draws(x) for a posterior draws_matrix, as.matrix(x) for a plain matrix, or as.data.frame(x)		FALSE
+assert	frmtmb.sample	brmsfit-methods:634	defect	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: posterior_samples() is the deprecated brms spelling. Use as_draws(x) for a posterior draws_matrix, as.matrix(x) for a plain matrix, or as.data.frame(x)		FALSE
+assert	frmtmb.sample	brmsfit-methods:635	defect	FALSE	FALSE	ERROR: posterior_samples() is the deprecated brms spelling. Use as_draws(x) for a posterior draws_matrix, as.matrix(x) for a plain matrix, or as.data.frame(x)		FALSE
+setup	frmtmb.sample	brmsfit-methods:640		FALSE	FALSE	cannot coerce class '"frmtmb_fit"' to a data.frame		FALSE
+assert	frmtmb.sample	brmsfit-methods:641	cannot transfer	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: cannot coerce class '"frmtmb_fit"' to a data.frame		FALSE
+setup	frmtmb.sample	brmsfit-methods:645		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:646	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:650	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:655	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:660	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:708	pass	TRUE	FALSE			TRUE
+setup	frmtmb.sample	brmsfit-methods:711		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:713	defect	FALSE	FALSE	Expected `nrow(pe)` to equal 2. Differences:   `actual`: 25.0 `expected`:  2.0 		FALSE
+assert	frmtmb.sample	brmsfit-methods:714	defect	FALSE	FALSE	Expected `all(pe[1, ] == pe[2, ])` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
+assert	frmtmb.sample	brmsfit-methods:718	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:719	own	TRUE	FALSE		mixture_probs() needs a mixture() family fit	FALSE
+assert	frmtmb.sample	brmsfit-methods:779	pass	TRUE	FALSE			TRUE
+setup	frmtmb.sample	brmsfit-methods:788		FALSE	FALSE	could not find function "prior_draws"		FALSE
+setup	frmtmb.sample	brmsfit-methods:789		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:794	cannot transfer	FALSE	TRUE	STALE: reads 'prs1', whose last assignment failed: could not find function "prior_draws"		FALSE
+setup	frmtmb.sample	brmsfit-methods:796		FALSE	FALSE	could not find function "prior_draws"		FALSE
+assert	frmtmb.sample	brmsfit-methods:797	cannot transfer	FALSE	TRUE	STALE: reads 'prs2', whose last assignment failed: could not find function "prior_draws"		FALSE
+assert	frmtmb.sample	brmsfit-methods:798	cannot transfer	FALSE	TRUE	STALE: reads 'prs1', whose last assignment failed: could not find function "prior_draws"		FALSE
+setup	frmtmb.sample	brmsfit-methods:801		FALSE	FALSE	could not find function "prior_draws"		FALSE
+assert	frmtmb.sample	brmsfit-methods:802	cannot transfer	FALSE	TRUE	STALE: reads 'prs', whose last assignment failed: could not find function "prior_draws"		FALSE

@@ -1,0 +1,19 @@
+== own words
+O1 cov refusal on GAUSSIAN ma(x), a model brms fits                  failures 0 ACCEPTED
+O2 own words reading a stale object                                  failures 0 ACCEPTED
+O2 control: the same row as a plain pass verdict (want rejected)     failures 1 rejected
+O3 pattern '.' matches a designed refusal of another case            failures 0 ACCEPTED
+O4 own words met by an argument refusal (want rejected)              failures 1 rejected
+== under-reach: hollow passes still accepted
+U1 expect_null on a slot frmtmb lacks                                failures 0 ACCEPTED
+U2 expect_true(is.null()) on a slot frmtmb lacks                     failures 0 ACCEPTED
+U3 expect_type() on NA                                               failures 0 ACCEPTED
+U4 is.numeric(v) && length(v) == 1 on NA                             failures 0 ACCEPTED
+U5 expect_length(<absent slot>, 0)                                   failures 0 ACCEPTED
+U6 argument refusal in other words ('Cannot interpret bf() argument') failures 0 ACCEPTED
+U7 stale through assign()                                            failures 0 ACCEPTED
+U8 expect_equal(NULL, <variable holding NULL>)                       failures 1 rejected
+== over-reach: genuine passes now rejected
+V1 two genuinely NULL names (unnamed vectors)                        failures 1 rejected
+V2 an assertion ABOUT an argument refusal                            failures 1 rejected
+V3 is.numeric() on a genuinely NA estimate brms also reports as NA   failures 1 rejected

@@ -1,0 +1,42 @@
+before:
+
+           pass          defect      divergence    pending 2.6d cannot transfer 
+            167             119              43              12             153 
+after:
+
+           pass          defect      divergence    pending 2.6d cannot transfer 
+            192             112              34              12             144 
+
+after, outcome by class:
+         outcome            class Freq
+ cannot transfer           absent  106
+ cannot transfer    brms-internal   10
+ cannot transfer          fixture    1
+ cannot transfer             mcmc    4
+ cannot transfer         no-draws    1
+ cannot transfer             stan   22
+          defect  accepts-refused    3
+          defect         argument   23
+          defect  different-error    1
+          defect            filed    1
+          defect         fit-data   12
+          defect           hollow    1
+          defect   internal-error    5
+          defect         misparse    1
+          defect           naming    2
+          defect           output    5
+          defect refuses-accepted   28
+          defect            shape   22
+          defect           silent    4
+          defect         spelling    4
+      divergence            class   18
+      divergence         no-draws    9
+      divergence           policy    7
+            pass                   192
+    pending 2.6d            shape   12
+
+frmtmb.sample half (sample and both tiers):
+
+           pass          defect      divergence    pending 2.6d cannot transfer 
+             88              13               1               0              63 
+sample-half rows: 165 

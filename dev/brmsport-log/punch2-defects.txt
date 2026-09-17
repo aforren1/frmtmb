@@ -1,0 +1,22 @@
+frmtmb 0.59.0 brms 2.23.0 emmeans 2.0.4 
+
+== P1 ma(x) with brms's default cov = FALSE
+  brm:110 is the poisson case; the gaussian and student cases are not in bin 1
+  frmtmb frm(y ~ ma(x), gaussian)              ERROR: ma(): only the residual-covariance formulation is implemented, so the call needs cov = TRUE: ma(x, cov = TRUE). brms's default cov = FALSE is the residual-regression form, a different likelihood (it conditions on the first 
+  brms make_stancode, gaussian                 [1] "Stan code, 1525 characters"
+  frmtmb frm(y ~ ma(x), student)               ERROR: ma(): only the residual-covariance formulation is implemented, so the call needs cov = TRUE: ma(x, cov = TRUE). brms's default cov = FALSE is the residual-regression form, a different likelihood (it conditions on the first 
+  brms make_stancode, student                  [1] "Stan code, 2411 characters"
+  frmtmb frm(yc ~ ma(x), poisson)              ERROR: ma(): only the residual-covariance formulation is implemented, so the call needs cov = TRUE: ma(x, cov = TRUE). brms's default cov = FALSE is the residual-regression form, a different likelihood (it conditions on the first 
+  brms make_stancode, poisson                  ERROR: Please set cov = TRUE when modeling MA structures for this family.
+  control: frmtmb with cov = TRUE on gaussian fits
+  frmtmb frm(y ~ ma(x, cov = TRUE), gaussian)  'log Lik.' -10.10153 (df=3)
+
+== P2 emmeans hides frmtmb's refusal reason
+Error : emmeans support needs a linear mu predictor
+  emmeans::emmeans, fit2 (nonlinear)           ERROR: Perhaps a 'data' or 'params' argument is needed
+  frmtmb's own reason, fit2 (nonlinear)        ERROR: emmeans support needs a linear mu predictor
+Error : emmeans support is univariate-only for now
+  emmeans::emmeans, fit6 (multivariate)        ERROR: Perhaps a 'data' or 'params' argument is needed
+  frmtmb's own reason, fit6 (multivariate)     ERROR: emmeans support is univariate-only for now
+  control: a linear univariate fit reaches a grid
+  emmeans::emmeans, y ~ x                      [1] 1

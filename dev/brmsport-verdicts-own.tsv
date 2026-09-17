@@ -1,0 +1,28 @@
+id	pkg	pattern	note
+brm:75	frmtmb	needs a response [(]left-hand side[)]	brms: Response variable is missing
+brm:77	frmtmb	nonlinear formula needs at least one nonlinear-parameter formula	brms: No non-linear parameters specified
+brm:79	frmtmb	se[(][)] without sigma = TRUE replaces the residual scale	brms: Cannot predict or fix 'sigma' in this model
+brm:83	frmtmb	Duplicated addition term `se[(][)]`	brms: Each addition argument may only be defined once
+brm:85	frmtmb	Addition term `abc[(][)]` is not supported	brms: The following addition terms are invalid
+brm:88	frmtmb	Addition term `disp[(][)]` is not supported	brms: The following addition terms are invalid
+brm:90	frmtmb	not available for family 'gaussian': shape	brms: The parameter 'shape' is not a valid distributional
+brm:92	frmtmb	The [|]abc[|] key is used over more than one grouping specification	brms: Can only combine group-level terms
+brm:110	frmtmb	ma[(][)]: only the residual-covariance formulation is implemented, so the call needs cov = TRUE	brms: Please set cov = TRUE. CAVEAT: frmtmb gives this message for ma(x) on every family, including gaussian, which brms fits (defect filed)
+brmsfit-methods:203	frmtmb	Variable 'Trtc' is not stored in the model frame	brms: All specified effects are invalid for this model. CAVEAT: frmtmb gives this message for brmsfit-methods:205, where brms warns and keeps the valid effects
+brmsfit-methods:207	frmtmb	Effects support at most two variables: 'Trtc:a:b'	brms: please use the 'conditions' argument
+brmsfit-methods:330	frmtmb	Unknown dpar: 'inv'	brms: Invalid argument 'dpar'
+brmsfit-methods:414	frmtmb	`alpha` must be a single number strictly between 0 and 1	brms: Argument 'alpha' must be a single value in [0,1]
+brmsfit-methods:719	frmtmb.sample	needs a mixture[(][)] family fit	brms: Method 'pp_mixture' can only be applied to mixture models
+standata:106	frmtmb	Factor responses are only supported for binomial families	brms: Family 'student' requires numeric responses
+standata:109	frmtmb	geometric: response must be non-negative integers	brms: Family 'geometric' requires response greater than or equal to 0
+standata:112	frmtmb	bernoulli: response must be 0/1	brms: contain only two different values. CAVEAT: frmtmb gives this message for standata:75's two-valued -1/-2 response, which brms accepts
+standata:121	frmtmb	Gamma: response must be strictly positive	brms: Family 'gamma' requires response greater than 0
+standata:124	frmtmb	beta: response must lie strictly in [(]0, 1[)]	brms: Family 'beta' requires response smaller than 1
+standata:127	frmtmb	von_mises: response must be angles in radians	brms: Family 'von_mises' requires response smaller than or equal to 3.14
+standata:130	frmtmb	hurdle_gamma: response must be non-negative	brms: Family 'hurdle_gamma' requires response greater than or equal to 0
+standata:179	frmtmb	se[(][)] values must be positive	brms: Standard errors must be non-negative. CAVEAT: frmtmb gives this message for se = 0, which brms accepts
+standata:181	frmtmb	weights[(][)] must be non-negative	brms: Weights must be non-negative
+standata:184	frmtmb	binomial: response must be integer counts in [[]0, trials[]]	brms: Number of trials is smaller than the number of events
+standata:726	frmtmb	not available for family 'gaussian': bias	brms: Invalid fixed parameters: 'bias'
+standata:1118	frmtmb	cens[(][)] upper bounds must not be NA on interval-censored rows	brms: 'y2' should not be NA for interval censored observations
+families:44	*	takes a single link name, not a character of length 2	brms: Cannot coerce 'alink' to a single character value

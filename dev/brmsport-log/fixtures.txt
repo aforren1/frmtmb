@@ -1,0 +1,52 @@
+
+== fixture 1 
+count ~ Trt * Age + mo(Exp) + s(Age) + volume + offset(Age) + (1 + Trt | visit) + arma(visit, patient, cov = TRUE)
+sigma ~ Trt 
+brms formula: count ~ Trt * Age + mo(Exp) + s(Age) + volume + offset(Age) + (1 + Trt | visit) + arma(visit, patient), sigma ~ Trt; student 
+changed: arma() gains cov = TRUE: frmtmb has only the residual-covariance ARMA (?frmtmb-autocor) 
+fitted in 8.5 s; nobs 40; convergence 1; logLik -110.264095
+warnings:
+  Optimizer did not report convergence: false convergence (8)
+variables: b_Intercept b_Trt1 b_Age b_volume b_Trt1:Age bs_sAge_1 bsp_moExp b_sigma_Intercept b_sigma_Trt1 sd_visit__Intercept sd_visit__Trt1 cor_visit__Intercept__Trt1 sds_sAge_1 nu ar[1] ma[1] 
+
+== fixture 2 
+count | weights(AgeSD) ~ 1/(1 + exp(-a)) * exp(b * Trt) (nonlinear)
+a ~ Age + (1 | ID1 | patient) 
+b ~ Age + (1 | ID1 | patient) 
+brms formula: count | weights(AgeSD) ~ 1/(1 + exp(-a)) * exp(b * Trt), a ~ Age + (1 | ID1 | patient), b ~ Age + (1 | ID1 | patient); gamma(identity) 
+changed: Trt enters the nonlinear body as its numeric codes 0 and 1, the covariate brms's own Stan data C_1 carries; frm() dies on the factor with an RTMB advector error (dev/brmsport-probe-nl.R) 
+fitted in 0.2 s; nobs 40; convergence 0; logLik -309.272279
+variables: b_a_Intercept b_a_Age b_b_Intercept b_b_Age sd_patient__a_Intercept sd_patient__b_Intercept cor_patient__a_Intercept__b_Intercept shape 
+
+== fixture 3 
+count ~ Trt * Age + (1 + mmc(Age, volume) | mm(patient, visit))
+brms formula: count ~ Trt * me(Age, AgeSD) + (1 + mmc(Age, volume) | mm(patient, visit)); gaussian 
+changed: me(Age, AgeSD) becomes Age: frmtmb has no noise-free me() term (dev/brms-suite-audit.md section 5) 
+fitted in 0.1 s; nobs 30; convergence 0; logLik -87.209581
+variables: b_Intercept b_Trt1 b_Age b_Trt1:Age sd_mmpatientvisit__Intercept sd_mmpatientvisit__mmcAgevolume cor_mmpatientvisit__Intercept__mmcAgevolume sigma 
+
+== fixture 4 
+rating ~ x1 + cs(x2) + (1 + x2 || subject)
+brms formula: rating ~ x1 + cs(x2) + (cs(x2) || subject), disc ~ 1; sratio 
+changed: disc ~ 1 is dropped, since frmtmb's ordinal families have no disc parameter; (cs(x2) || subject) becomes (1 + x2 || subject), since cs() is not available inside a group-level term 
+fitted in 0.2 s; nobs 40; convergence 0; logLik -53.615109
+variables: b_x1 sd_subject__Intercept sd_subject__x2 
+
+== fixture 5 
+count ~ Age + (1 | patient)
+mu2 ~ Age 
+brms formula: count ~ Age + (1 | gr(patient, by = gender)), mu2 ~ Age; mixture(gaussian, exponential) 
+changed: gr(patient, by = gender) becomes patient: frmtmb's gr() takes no by (dev/brms-suite-audit.md section 5) 
+fitted in 0.1 s; nobs 40; convergence 0; logLik -118.309340
+variables: b_mu1_Intercept b_mu1_Age b_mu2_Intercept b_mu2_Age sd_patient__mu1_Intercept sigma1 theta1 theta2 
+
+== fixture 6 
+volume ~ Trt + gp(Age)
+Family: gaussian 
+count ~ Trt + Age
+Family: poisson 
+rescor: FALSE 
+brms formula: volume ~ Trt + gp(Age, by = Trt, gr = TRUE); gaussian and count ~ Trt + Age; poisson; no rescor 
+changed: gp(Age, by = Trt, gr = TRUE) becomes gp(Age): frmtmb's gp() takes no by or gr 
+fitted in 0.2 s; nobs 40; convergence 0; logLik -177.247371
+variables: b_volume_Intercept b_volume_Trt1 b_count_Intercept b_count_Trt1 b_count_Age sigma_volume 

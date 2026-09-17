@@ -1,0 +1,2 @@
+No priors were set (plain maximum likelihood).
+RESULT frmtmb test-brms-suite-methods.R pass=162 fail=0 err=0 skip=0 blocks=23

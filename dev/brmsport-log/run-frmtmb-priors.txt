@@ -1,0 +1,1 @@
+RESULT frmtmb test-brms-suite-priors.R pass=36 fail=0 err=0 skip=0 blocks=12

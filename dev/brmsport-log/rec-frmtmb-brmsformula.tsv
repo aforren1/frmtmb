@@ -1,0 +1,19 @@
+assert	frmtmb	brmsformula:4	pass	TRUE	FALSE		Additional formulas must be named: '~1' does not say which parameter it belongs to. Write it two-sided, as sigma ~ x, or name it, as sigma = ~ x	TRUE
+assert	frmtmb	brmsformula:6	pass	TRUE	FALSE		Invalid parameter name 'a.b': names must be alphanumeric and must not contain dots or underscores (they collide with coefficient naming)	TRUE
+assert	frmtmb	brmsformula:8	pass	TRUE	FALSE		Invalid parameter name 'a_b': names must be alphanumeric and must not contain dots or underscores (they collide with coefficient naming)	TRUE
+assert	frmtmb	brmsformula:13	pass	TRUE	FALSE		Additional formulas must be named: '~1' does not say which parameter it belongs to. Write it two-sided, as sigma ~ x, or name it, as sigma = ~ x	TRUE
+assert	frmtmb	brmsformula:19	pass	TRUE	FALSE		Nested formulas are not allowed: the right-hand side of 'y ~ ~x' is itself a formula. Did you use '~~' somewhere?	TRUE
+setup	frmtmb	brmsformula:23		TRUE	FALSE			TRUE
+assert	frmtmb	brmsformula:24	pass	TRUE	FALSE			TRUE
+setup	frmtmb	brmsformula:25		TRUE	FALSE			TRUE
+assert	frmtmb	brmsformula:26	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsformula:30	cannot transfer	FALSE	FALSE	ERROR: Cannot interpret bf() argument 'sigma1': expected a dpar formula or a named numeric constant		FALSE
+assert	frmtmb	brmsformula:32	cannot transfer	FALSE	FALSE	ERROR: Cannot interpret bf() argument 'mu3': expected a dpar formula or a named numeric constant		FALSE
+assert	frmtmb	brmsformula:34	cannot transfer	FALSE	FALSE	ERROR: Cannot interpret bf() argument 'sigma1': expected a dpar formula or a named numeric constant		FALSE
+assert	frmtmb	brmsformula:36	cannot transfer	FALSE	FALSE	ERROR: Cannot interpret bf() argument 'shape2': expected a dpar formula or a named numeric constant		FALSE
+assert	frmtmb	brmsformula:38	cannot transfer	FALSE	FALSE	ERROR: Cannot interpret bf() argument 'shape1': expected a dpar formula or a named numeric constant		FALSE
+setup	frmtmb	brmsformula:43		TRUE	FALSE			TRUE
+assert	frmtmb	brmsformula:44	cannot transfer	FALSE	TRUE	ERROR: could not find function "update_adterms"		FALSE
+assert	frmtmb	brmsformula:48	cannot transfer	FALSE	TRUE	ERROR: could not find function "update_adterms"		FALSE
+assert	frmtmb	brmsformula:52	cannot transfer	FALSE	TRUE	ERROR: could not find function "update_adterms"		FALSE
+assert	frmtmb	brmsformula:56	cannot transfer	FALSE	TRUE	ERROR: could not find function "update_adterms"		FALSE

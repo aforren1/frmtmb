@@ -1,0 +1,16 @@
+== families:4/5 student(identity)$link: a constructor that ignores its link
+real   student(identity)$link == 'identity'                            TRUE
+MUTANT student(identity)$link == 'identity' (want FALSE if genuine)    TRUE
+real frmtmb honours a non-default: student(log)$link                   log
+real frmtmb honours a non-default: bernoulli(probit)$link              probit
+real frmtmb honours a non-default: exponential(identity)$link          identity
+== standata:163 rcens: the shim writes the zeros
+real   rcens == c(rep(0, 5), y[6:9] + 2)                               TRUE
+MUTANT y2 = 999 on non-interval rows: still holds?                     TRUE
+MUTANT y2 shifted on interval rows (want FALSE)                        FALSE
+== standata:77 bernoulli TRUE/FALSE codes
+real   Y == rep(1:0, 5)                                                TRUE
+MUTANT codes flipped (want FALSE)                                      FALSE
+== priors:139 as.brmsprior drops an unknown column
+real   bprior$x is NULL                                                TRUE
+MUTANT column kept (want FALSE)                                        FALSE
