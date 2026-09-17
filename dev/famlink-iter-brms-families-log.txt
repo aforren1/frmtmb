@@ -1,0 +1,32 @@
+frmtmb from: C:/Users/adf44/source/r/famlink-lib 
+version    : 0.58.0 
+brms-families: ................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................WWWWWWWWWW..WW.
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+1. a trial step past a link's domain does not warn; a NaN start does ('test-brms-families.R:407:5') - NA/NaN function evaluation
+
+2. a trial step past a link's domain does not warn; a NaN start does ('test-brms-families.R:407:5') - NA/NaN function evaluation
+
+3. a trial step past a link's domain does not warn; a NaN start does ('test-brms-families.R:407:5') - NA/NaN function evaluation
+
+4. a trial step past a link's domain does not warn; a NaN start does ('test-brms-families.R:407:5') - NA/NaN function evaluation
+
+5. a trial step past a link's domain does not warn; a NaN start does ('test-brms-families.R:407:5') - NA/NaN function evaluation
+
+6. a trial step past a link's domain does not warn; a NaN start does ('test-brms-families.R:407:5') - NA/NaN function evaluation
+
+7. a trial step past a link's domain does not warn; a NaN start does ('test-brms-families.R:407:5') - NA/NaN function evaluation
+
+8. a trial step past a link's domain does not warn; a NaN start does ('test-brms-families.R:407:5') - NA/NaN function evaluation
+
+9. a trial step past a link's domain does not warn; a NaN start does ('test-brms-families.R:407:5') - NA/NaN function evaluation
+
+10. a trial step past a link's domain does not warn; a NaN start does ('test-brms-families.R:407:5') - NA/NaN function evaluation
+
+11. a trial step past a link's domain does not warn; a NaN start does ('test-brms-families.R:421:3') - NA/NaN function evaluation
+
+12. a trial step past a link's domain does not warn; a NaN start does ('test-brms-families.R:421:3') - Large maximum absolute gradient at the optimum (400); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FAMLINK brms-families pass 963 fail 0 error 0 skip 0 in 15 s

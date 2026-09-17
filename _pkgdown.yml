@@ -63,7 +63,7 @@ reference:
   - latent_probs
   - frmtmb-families
   - frmtmb-links
-  - frm_family
+  - brmsfamily
   - mixture
   - mixture_mvn
   - mixture_probs

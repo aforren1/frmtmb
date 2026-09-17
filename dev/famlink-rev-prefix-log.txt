@@ -1,0 +1,40 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+families built: 54 
+gaussian poisson binomial Gamma lognormal student negbinomial nbinom2 nbinom1 beta Beta tweedie compois zero_inflated_poisson zero_inflated_negbinomial hurdle_poisson cumulative beta_binomial skew_normal inverse.gaussian exgaussian bernoulli geometric exponential weibull shifted_lognormal hurdle_gamma hurdle_lognormal zero_inflated_binomial zero_inflated_beta asym_laplace zero_inflated_asym_laplace huber sratio cratio acat von_mises cox categorical mixture cumulative_probit gddm wiener wiener_gng bandit2arm_delta bandit2arm_dual bandit4arm2_kalman_filter igt_orl igt_pvl_delta prl_fictitious rlddm ts_par7 royston_parmar cross_wishart 
+distinct (name, would-hit) pairs: 35 
+   name             hit
+      g            gddm
+     re required_aterms
+      t            type
+      r required_aterms
+    acc  accepts_aterms
+     se         se_dpar
+    pos            post
+ link_p        link_phi
+ link_p       link_pers
+   init      init_dpars
+  link_      link_sigma
+  link_      link_shape
+  link_        link_phi
+  link_         link_nu
+  link_         link_zi
+  link_         link_hu
+  link_      link_kappa
+      v         valid_y
+      c       cox_sbhaz
+   dpar           dpars
+      m             mix
+    ord        ord_link
+      i      init_dpars
+     lp            lpdf
+      a  accepts_aterms
+     st       structure
+     dp           dpars
+  aterm      aterm_data
+    lpd            lpdf
+ struct       structure
+      o        ord_link
+     lc           lccdf
+     at      aterm_data
+  extra      extra_pars
+     pr   primary_dpars

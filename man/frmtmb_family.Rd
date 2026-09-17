@@ -257,7 +257,21 @@ required even then, for the rowwise contract, and may be a stub
 that refuses.}
 }
 \value{
-An object of class \code{frmtmb_family}.
+An object of class \code{frmtmb_family}. \code{$} on it also answers
+brms's link fields, computed from \code{links} when read: \code{link}, the
+name of the link for the mean (for an ordinal family, the
+distribution function its thresholds are read through;
+\code{"logit"} for a categorical or multinomial family, whose categories
+share one joint link; \code{"identity"} for a family with no \code{mu}, such
+as a \code{\link[=mixture]{mixture()}}), \code{linkfun} and \code{linkinv} for that link, and
+\verb{link_<dpar>}, the link name of every other distributional
+parameter, as in \code{beta_binomial()$link_phi}. Because they are
+read from \code{links} each time, a \code{family_finalize()} that replaces a
+link, or any other edit, cannot leave them stale.
+
+\code{$} does not partial-match on a family object. \code{fam$lpd} is an
+error naming the field it would have matched, rather than
+silently returning it. Use the full name.
 }
 \description{
 Constructs a family object for use with \code{\link[=frm]{frm()}}. The log-density

@@ -1,0 +1,5 @@
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 8.0 s
+
+[ FAIL 0 | WARN 12 | SKIP 0 | PASS 973 ]
+FAMLINK test-brms-families.R tests 22 fail 0 error 0 skip 0

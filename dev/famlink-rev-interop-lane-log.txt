@@ -1,0 +1,7 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+done lane 
+gaussian : errors in  
+binomial : errors in  
+bernoulli : errors in  
+negbin_re : errors in  
+zip : errors in  

@@ -1,0 +1,4 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+problems: 400  with NaN trials on the raw path: 173 
+bitwise identical (par, objective, convergence, message, iterations, evaluations, error): 400 of 400 
+warnings raw: 4981  warnings wrapped: 0 

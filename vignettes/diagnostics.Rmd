@@ -251,8 +251,8 @@ Fit it both ways. The correction takes a draw count, and 0 (the
 default) turns it off:
 
 ```{r imp-fit}
-lap <- frm(bf(y ~ x + (x | g)) + binomial(), data = bd)
-imp <- frm(bf(y ~ x + (x | g)) + binomial(), data = bd,
+lap <- frm(bf(y ~ x + (x | g)) + bernoulli(), data = bd)
+imp <- frm(bf(y ~ x + (x | g)) + bernoulli(), data = bd,
            importance = 500)
 c(laplace = as.numeric(logLik(lap)),
   importance = as.numeric(logLik(imp)))

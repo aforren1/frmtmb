@@ -212,19 +212,16 @@ extract_y <- function(resp, mf) {
     }
     if (!is.null(lv)) y <- as.numeric(factor(y, levels = lv))
   } else if (is.factor(y) && identical(resp$family[["type"]], "ordinal")) {
-    # brms accepts an unordered factor here and silently reads level
-    # order as category order, which is alphabetical unless the user set
-    # it. Match that behavior (refusing would break working brms code)
-    # but say so, because the ordering is the whole model. mo() takes the
-    # stricter route because there the variable is a predictor and the
-    # user can always relabel it.
+    # An unordered factor's level order is alphabetical unless someone
+    # set it, and that order IS the model here. brms 2.23.0 refuses it
+    # (dev/famlink-brms-behavior-log.txt); this used to warn and fit.
     if (!is.ordered(y)) {
-      warning("Ordinal response '", deparse1(resp$resp_expr),
-              "' is an unordered factor; its level order (",
-              paste(levels(y), collapse = " < "),
-              ") is taken as the category order. Use ",
-              "factor(..., ordered = TRUE) to state it explicitly",
-              call. = FALSE)
+      stop("Family '", resp$family[["family"]], "' requires either ",
+           "positive integers or ordered factors as responses. '",
+           deparse1(resp$resp_expr), "' is an unordered factor, whose ",
+           "level order (", paste(levels(y), collapse = " < "),
+           ") is not a category order anyone stated. Use ",
+           "factor(..., levels = ..., ordered = TRUE)", call. = FALSE)
     }
     # the codes carry no meaning without the labels, and simulate() has
     # to hand draws back in the response's own type
@@ -253,6 +250,79 @@ extract_y <- function(resp, mf) {
   # attached last: the numeric coercions above drop attributes
   if (!is.null(lv)) attr(y, "y_levels") <- lv
   y
+}
+
+#' The families that need a number of trials, as brms's `has_trials()`
+#' lists them among the families frmtmb has. `multinomial` could read
+#' its trials from the row sums, and did; brms requires the term and
+#' checks it against the row sums, and so does frmtmb now.
+#'
+#' @noRd
+trials_families <- c("binomial", "beta_binomial", "zero_inflated_binomial",
+                     "multinomial")
+
+#' Refuse a binomial-type response with no `trials()` term, as brms does.
+#'
+#' The densities read `trials %||% 1`, so a response without the term
+#' used to be fitted as one trial per row. brms refuses it, and a
+#' count response of 0 to 10 written without its trials was fitted as a
+#' binomial that could not produce most of its own data. A mixture is
+#' checked through its components, as brms checks them.
+#'
+#' @noRd
+check_trials_given <- function(resp, av) {
+  fam <- resp$family
+  fams <- c(fam[["family"]], fam[["component_families"]])
+  if (!any(fams %in% trials_families) || !is.null(av[["trials"]])) {
+    return(invisible(NULL))
+  }
+  stop("Specifying 'trials' is required for this model. ",
+       paste(intersect(fams, trials_families), collapse = ", "),
+       " reads the number of trials from the formula: write ",
+       resp$resp_name, " | trials(n) ~ ...",
+       if (!identical(fams, "multinomial")) {
+         ", or use bernoulli() for a response of zeros and ones"
+       }, call. = FALSE)
+}
+
+#' Say when a response has only two outcomes and `bernoulli()` would do.
+#'
+#' brms MESSAGES this, with this sentence, for a binomial-type family
+#' whose trials are all one and for an ordinal or categorical response
+#' with two categories (dev/famlink-brms-behavior-log.txt). It is a
+#' message and not a warning because the model is still correct; it is
+#' only doing more work than it has to, and on an ordinal family it
+#' estimates one threshold where bernoulli estimates an intercept.
+#'
+#' Called from `frm()` alone, which is brms's `brm()` and `standata()`:
+#' the internal re-assemblies (influence(), the prior table, the
+#' simulator) would otherwise say it once per call. A mixture is read
+#' through its components, as brms's `has_trials()` reads it.
+#'
+#' @noRd
+suggest_bernoulli <- function(spec, frame) {
+  for (resp in spec$responses) {
+    fam <- resp$family
+    nm <- resp$resp_name
+    fams <- c(fam[["family"]], fam[["component_families"]])
+    two <- if (any(fams %in% trials_families)) {
+      tr <- frame[["aterm_values"]][[nm]][["trials"]]
+      length(tr) > 0L && max(tr) == 1
+    } else if (isTRUE(fam[["type"]] %in% c("ordinal", "categorical"))) {
+      lv <- frame[["y_levels"]][[nm]]
+      K <- fam[["cat_K"]] %||% if (length(lv)) length(lv) else {
+        max(frame[["y"]][[nm]], na.rm = TRUE)
+      }
+      identical(as.numeric(K), 2)
+    } else {
+      FALSE
+    }
+    if (isTRUE(two)) {
+      message("Only 2 levels detected so that family 'bernoulli' might ",
+              "be a more efficient choice.")
+    }
+  }
+  invisible(NULL)
 }
 
 #' Data-dependent bases (poly, ns, scale) must be frozen at fit time: the
@@ -1041,9 +1111,16 @@ smooth_pen_order <- function(sm, re2) {
 #' resolve through `lookup_structural()`: data2 first, then data, then
 #' the formula environment.
 #'
+#' `check_trials = FALSE` is for the prior table alone. brms's
+#' `get_prior()` answers for a binomial-type response whatever its
+#' trials say, because no prior slot depends on them, so the table skips
+#' the trials refusal and the response check of every family that reads
+#' trials. A fit never passes it.
+#'
 #' @noRd
 assemble_frame <- function(spec, data, na.action = stats::na.omit,
-                           sparse_x = FALSE, data2 = list()) {
+                           sparse_x = FALSE, data2 = list(),
+                           check_trials = TRUE) {
   # `data = NULL` is not "no data": model.frame() falls back to the
   # formula environment and reports the first variable it cannot find
   # there ("object 'y' not found"), which sends the reader looking for a
@@ -1221,6 +1298,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     if (!is.null(resp$aterms[["se_sigma"]])) {
       av[["se_sigma"]] <- resp$aterms[["se_sigma"]]   # logical flag, not data
     }
+    if (check_trials) check_trials_given(resp, av)
     # Before EVERY other guard, including the structured one, because
     # each of them is handed `av`: a declared term that is absent leaves
     # a hole in it, and a hole reads as NULL rather than as an error.
@@ -1551,7 +1629,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       n_thetaac <- n_thetaac + ac[["npar"]]
       autocor[[resp$resp_name]] <- ac
     }
-    if (!is.null(resp$family[["valid_y"]])) {
+    reads_trials <- any(c(resp$family[["family"]],
+                          resp$family[["component_families"]]) %in%
+                          trials_families)
+    if (!is.null(resp$family[["valid_y"]]) &&
+        (check_trials || !reads_trials)) {
       resp$family[["valid_y"]](y[[resp$resp_name]], av)
     }
     # The allow-list, LAST of the addition-term guards and after

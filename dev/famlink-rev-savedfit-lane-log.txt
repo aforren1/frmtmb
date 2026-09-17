@@ -1,0 +1,96 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+gaussian 
+  family(fit)$link       ERROR: A family object has no field `link`. `$` would have partial-matched `links`, and it does not do that on a family: write `$links` if that is the
+  family(fit)$links      ok
+  print(family)          ok
+  print(fit)             ok
+  summary(fit)           ok
+  predict(fit)           ok
+  predict(newdata)       ERROR: incorrect number of dimensions
+  fitted(fit)            ok
+  residuals(fit)         ok
+  simulate(fit)          ok
+  confint(fit)           ok
+  update(fit)            ERROR: object 'd' not found
+  model_info             ERROR: A family object has no field `link`. `$` would have partial-matched `links`, and it does not do that on a family: write `$links` if that is the
+  emmeans                ok
+  avg_slopes             ok
+  conditional_effects    ok
+  loo                    ERROR: loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the likelihood over draws. Sample first, with frmtmb.sampl
+  get_prior              ok
+binomial 
+  family(fit)$link       ERROR: A family object has no field `link`. `$` would have partial-matched `links`, and it does not do that on a family: write `$links` if that is the
+  family(fit)$links      ok
+  print(family)          ok
+  print(fit)             ok
+  summary(fit)           ok
+  predict(fit)           ok
+  predict(newdata)       ERROR: incorrect number of dimensions
+  fitted(fit)            ok
+  residuals(fit)         ok
+  simulate(fit)          ok
+  confint(fit)           ok
+  update(fit)            ERROR: object 'd' not found
+  model_info             ERROR: A family object has no field `link`. `$` would have partial-matched `links`, and it does not do that on a family: write `$links` if that is the
+  emmeans                ok
+  avg_slopes             ok
+  conditional_effects    ok
+  loo                    ERROR: loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the likelihood over draws. Sample first, with frmtmb.sampl
+  get_prior              ok
+bernoulli 
+  family(fit)$link       ERROR: A family object has no field `link`. `$` would have partial-matched `links`, and it does not do that on a family: write `$links` if that is the
+  family(fit)$links      ok
+  print(family)          ok
+  print(fit)             ok
+  summary(fit)           ok
+  predict(fit)           ok
+  predict(newdata)       ERROR: incorrect number of dimensions
+  fitted(fit)            ok
+  residuals(fit)         ok
+  simulate(fit)          ok
+  confint(fit)           ok
+  update(fit)            ERROR: object 'd' not found
+  model_info             ERROR: A family object has no field `link`. `$` would have partial-matched `links`, and it does not do that on a family: write `$links` if that is the
+  emmeans                ok
+  avg_slopes             ok
+  conditional_effects    ok
+  loo                    ERROR: loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the likelihood over draws. Sample first, with frmtmb.sampl
+  get_prior              ok
+negbin_re 
+  family(fit)$link       ERROR: A family object has no field `link`. `$` would have partial-matched `links`, and it does not do that on a family: write `$links` if that is the
+  family(fit)$links      ok
+  print(family)          ok
+  print(fit)             ok
+  summary(fit)           ok
+  predict(fit)           ok
+  predict(newdata)       ERROR: incorrect number of dimensions
+  fitted(fit)            ok
+  residuals(fit)         ok
+  simulate(fit)          ok
+  confint(fit)           ok
+  update(fit)            ERROR: object 'd' not found
+  model_info             ERROR: A family object has no field `link`. `$` would have partial-matched `links`, and it does not do that on a family: write `$links` if that is the
+  emmeans                ok
+  avg_slopes             ok
+  conditional_effects    ok
+  loo                    ERROR: loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the likelihood over draws. Sample first, with frmtmb.sampl
+  get_prior              ok
+zip 
+  family(fit)$link       ERROR: A family object has no field `link`. `$` would have partial-matched `links`, and it does not do that on a family: write `$links` if that is the
+  family(fit)$links      ok
+  print(family)          ok
+  print(fit)             ok
+  summary(fit)           ok
+  predict(fit)           ok
+  predict(newdata)       ERROR: incorrect number of dimensions
+  fitted(fit)            ok
+  residuals(fit)         ok
+  simulate(fit)          ok
+  confint(fit)           ok
+  update(fit)            ERROR: object 'd' not found
+  model_info             ERROR: A family object has no field `link`. `$` would have partial-matched `links`, and it does not do that on a family: write `$links` if that is the
+  emmeans                ok
+  avg_slopes             ok
+  conditional_effects    ok
+  loo                    ERROR: loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the likelihood over draws. Sample first, with frmtmb.sampl
+  get_prior              ok

@@ -1,0 +1,7 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+control: 3 direct f$lpdf reads           $ calls       3  elapsed 0.01 s
+frm negbinomial + (1|g)                  $ calls       0  elapsed 1.51 s
+predict(newdata)                         $ calls       0  elapsed 0.00 s
+simulate(nsim = 50)                      $ calls       0  elapsed 0.02 s
+frm_bootstrap(nsim = 20)                 $ calls       0  elapsed 3.61 s
+per call: $ 4.00 us, [[ 0.75 us; ratio $/[[ 5.33; control [[/[[ 1.00

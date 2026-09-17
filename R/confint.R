@@ -1091,6 +1091,13 @@ log_sd_theta_index <- function(fit) {
 #' the boundary of their parameter space (lme4's `isSingular()`, read
 #' off the estimates rather than the Hessian).
 #'
+#' NON-FINITE TRIALS are points where the optimizer found the objective
+#' undefined and stepped back, for example a line search that crosses
+#' below zero on the `1/mu^2` link. They do not make a fit wrong, so they
+#' are reported as a count and do not count against "No convergence
+#' problems detected". A large count on a model with no restricted link
+#' can point to a density that is undefined where it should not be.
+#'
 #' A DISTRIBUTIONAL PARAMETER AT THE END OF ITS LINK is one whose
 #' estimate is far out on the link scale AND whose standard error is
 #' larger than the estimate itself. The likelihood was still rising
@@ -1190,7 +1197,9 @@ diagnose <- function(fit, quiet = FALSE) {
   out <- list(
     convergence = fit$opt$convergence,
     message = fit$opt$message,
-    max_grad = if (length(gr)) max(abs(gr)) else NA_real_,
+    # NULL for an optimizer that does not count them (optim, a custom one)
+    nonfinite_trials = fit$opt$nonfinite_trials,
+    max_grad =if (length(gr)) max(abs(gr)) else NA_real_,
     worst_grad = if (length(gr)) nm[which.max(abs(gr))] else NA_character_,
     pdHess = isTRUE(sdr_of(fit)$pdHess),
     bad_se = nm[!is.finite(se)],
@@ -1219,6 +1228,15 @@ diagnose <- function(fit, quiet = FALSE) {
           "at", out$worst_grad, "\n")
     }
     cat("Hessian positive definite:", out$pdHess, "\n")
+    # the optimizer no longer warns for these (see nlminb_trial_fn()),
+    # so this line is where a user reading diagnostics sees them
+    if (isTRUE(out$nonfinite_trials > 0L)) {
+      one <- out$nonfinite_trials == 1L
+      cat("Non-finite objective at ", out$nonfinite_trials, " trial ",
+          if (one) "point" else "points",
+          "; the optimizer stepped back from ", if (one) "it" else "them",
+          "\n", sep = "")
+    }
     if (length(out$bad_se)) {
       cat("Non-finite standard errors:",
           paste(out$bad_se, collapse = ", "), "\n")

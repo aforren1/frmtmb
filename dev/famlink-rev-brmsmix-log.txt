@@ -1,0 +1,62 @@
+    dots <- dots[rep(seq_along(dots), nmix)]
+    family <- list(family = "mixture", link = "identity", mix = lapply(dots, 
+        validate_family))
+    class(family) <- c("mixfamily", "brmsfamily", "family")
+    if (length(family$mix) < 2L) {
+        stop2("Expecting at least 2 mixture components.")
+    }
+    if (use_real(family) && use_int(family)) {
+        stop2("Cannot mix families with real and integer support.")
+    }
+    is_ordinal <- ulapply(family$mix, is_ordinal)
+    if (any(is_ordinal) && any(!is_ordinal)) {
+        stop2("Cannot mix ordinal and non-ordinal families.")
+    }
+    no_mixture <- ulapply(family$mix, no_mixture)
+    if (any(no_mixture)) {
+        stop2("Some of the families are not allowed in mixture models.")
+    }
+    for (fam in family$mix) {
+        if (is.customfamily(fam) && "theta" %in% fam$dpars) {
+            stop2("Parameter name 'theta' is reserved in mixture models.")
+        }
+    }
+    if (is.null(order)) {
+        if (any(is_ordinal)) {
+            family$order <- "none"
+            message("Setting order = 'none' for mixtures of ordinal families.")
+        }
+
+---- brms families whose info lacks 'mix' in specials ----
+acat asym_laplace bernoulli beta beta_binomial binomial categorical com_poisson cox cratio cumulative custom dirichlet dirichlet_multinomial dirichlet2 discrete_weibull exgaussian exponential frechet gamma gaussian gen_extreme_value geometric hurdle_cumulative hurdle_gamma hurdle_lognormal hurdle_negbinomial hurdle_poisson inverse.gaussian logistic_normal lognormal multinomial negbinomial negbinomial2 poisson shifted_lognormal skew_normal sratio student von_mises weibull wiener xbeta zero_inflated_asym_laplace zero_inflated_beta zero_inflated_beta_binomial zero_inflated_binomial zero_inflated_negbinomial zero_inflated_poisson zero_one_inflated_beta 
+
+---- brms default link_<dpar> vs frmtmb constructor default ----
+compois                    link_shape   brms log        frmtmb <absent>
+compois                    as_frmtmb_family(brms object) ERROR com_poisson is not a supported family. Supported families are: gaussian, poisson, binomial, Gamma, lognormal, student, n
+cumulative                 link_disc    brms log        frmtmb <absent>
+sratio                     link_disc    brms log        frmtmb <absent>
+cratio                     link_disc    brms log        frmtmb <absent>
+acat                       link_disc    brms log        frmtmb <absent>
+link_<dpar> compared: 38  differing: 5 
+cratio                     link_disc    brms log        frmtmb <absent>
+acat                       link_disc    brms log        frmtmb <absent>
+link_<dpar> compared: 38  differing: 5 
+
+---- brms:::no_mixture per brms family ----
+function (family) 
+{
+    is_categorical(family) || is_multinomial(family) || is_simplex(family) || 
+        is_cont_hurdle(family)
+}
+<bytecode: 0x000002177a906698>
+<environment: namespace:brms>
+no_mixture: categorical 
+no_mixture: dirichlet 
+no_mixture: dirichlet_multinomial 
+no_mixture: dirichlet2 
+no_mixture: hurdle_gamma 
+no_mixture: hurdle_lognormal 
+no_mixture: logistic_normal 
+no_mixture: multinomial 
+no_mixture: zero_inflated_beta 
+no_mixture: zero_one_inflated_beta 

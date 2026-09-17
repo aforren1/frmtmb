@@ -599,13 +599,28 @@ fuzz_data <- function(sp) {
 # 4. spec -> source text
 # ---------------------------------------------------------------------
 
-fuzz_mu_formula <- function(sp) {
+#' The addition terms of a spec's response, shared by the frmtmb and the
+#' brms formula so the two cannot drift.
+#'
+#' A binomial spec whose drawn aterm is not trials() still gets
+#' `trials(nt)`, with `nt` = 1 from fuzz_data(): both packages refuse
+#' binomial() without it, and writing it keeps the plan, and the
+#' Bernoulli model each such row fits, what they were.
+fuzz_aterm_text <- function(sp) {
   fm <- fuzz_families[[sp$family]]
   at <- if (identical(sp$aterm, "trunc")) {
     paste0("trunc(lb = ", format(fm$trunc_lb), ")")
   } else {
     fuzz_aterm[[sp$aterm]]$term
   }
+  if (identical(sp$family, "binomial") && !identical(sp$aterm, "trials")) {
+    at <- paste(c("trials(nt)", at), collapse = " + ")
+  }
+  at
+}
+
+fuzz_mu_formula <- function(sp) {
+  at <- fuzz_aterm_text(sp)
   lhs <- if (is.null(at)) "y" else paste("y |", at)
   rhs <- c("1", "x", fuzz_special[[sp$special]]$term)
   if (identical(sp$re, "crossed_bar")) {
@@ -1225,11 +1240,7 @@ fuzz_brms_translatable <- function(sp) {
 
 fuzz_brms_bf_text <- function(sp) {
   fm <- fuzz_families[[sp$family]]
-  at <- if (identical(sp$aterm, "trunc")) {
-    paste0("trunc(lb = ", format(fm$trunc_lb), ")")
-  } else {
-    fuzz_aterm[[sp$aterm]]$term
-  }
+  at <- fuzz_aterm_text(sp)
   lhs <- if (is.null(at)) "y" else paste("y |", at)
   rhs <- c("1", "x", fuzz_special[[sp$special]]$brms,
            if (sp$re != "none") fuzz_re[[sp$re]]$brms)
@@ -1712,18 +1723,10 @@ FUZZ_KNOWN_REFUSAL <- list(
 # Divergences from brms's reading of the same formula. Each one is a
 # decision about the grammar, so it must be written down before the
 # tier will pass it; an unlisted divergence is a finding like any
-# other. (The list is empty of guesses on purpose: the only entry is
-# one the migration vignette documents.)
-FUZZ_KNOWN_DIVERGENCE <- list(
-  list(id = "binomial-without-trials",
-       why = paste("frmtmb follows stats::glm, where a 0/1 response",
-                   "under binomial() is Bernoulli; brms requires",
-                   "trials() or bernoulli(). Documented in",
-                   "vignettes/brms-migration.Rmd."),
-       match = function(f) identical(f$invariant, "brms_translation") &&
-         grepl("family=binomial", f$spec) &&
-         grepl("'trials' is required", f$detail))
-)
+# other. It is empty. Its one entry was binomial() without trials(),
+# which frmtmb read as Bernoulli; frmtmb now refuses that as brms does,
+# and the generator writes trials(nt) instead (fuzz_aterm_text()).
+FUZZ_KNOWN_DIVERGENCE <- list()
 
 # Invariants that only mean anything about a fit that actually reached
 # an optimum. A boundary or non-converged fit can violate them without

@@ -1,0 +1,217 @@
+gaussian   family_link          DIFFERS
+  base: List of 2
+   $ mu   :List of 4
+   $ sigma:List of 5
+  NA
+  NA
+  NA 
+  lane:  chr "identity"
+  NA
+  NA
+  NA
+  NA
+  NA 
+gaussian   model_info           DIFFERS
+  base:  chr "ERROR: 'length = 2' in coercion to 'logical(1)'"
+  NA
+  NA
+  NA
+  NA
+  NA 
+  lane: List of 52
+   $ is_binomial     : logi FALSE
+   $ is_bernoulli    : logi FALSE
+   $ is_count        : logi FALSE
+   $ is_poisson      : logi FALSE
+   $ is_negbin       : logi FALSE 
+gaussian   link_inverse         identical
+gaussian   find_statistic       identical
+gaussian   get_predicted        DIFFERS
+[1] "Modes: character, numeric"              
+[2] "Lengths: 1, 200"                        
+[3] "target is character, current is numeric"
+gaussian   get_predicted_resp   DIFFERS
+[1] "Modes: character, numeric"              
+[2] "Lengths: 1, 200"                        
+[3] "target is character, current is numeric"
+gaussian   emmeans              identical
+gaussian   emmeans_resp         identical
+gaussian   ref_grid             identical
+gaussian   predictions          identical
+gaussian   avg_slopes           identical
+gaussian   comparisons          identical
+gaussian   logLik               identical
+gaussian   coef                 identical
+gaussian   se                   identical
+gaussian   fitted               identical
+binomial   family_link          DIFFERS
+  base: List of 1
+   $ mu:List of 5
+  NA
+  NA
+  NA
+  NA 
+  lane:  chr "logit"
+  NA
+  NA
+  NA
+  NA
+  NA 
+binomial   model_info           DIFFERS
+  base: List of 52
+   $ is_binomial     : logi TRUE
+   $ is_bernoulli    : logi FALSE
+   $ is_count        : logi FALSE
+   $ is_poisson      : logi FALSE
+   $ is_negbin       : logi FALSE 
+  lane: List of 52
+   $ is_binomial     : logi TRUE
+   $ is_bernoulli    : logi FALSE
+   $ is_count        : logi FALSE
+   $ is_poisson      : logi FALSE
+   $ is_negbin       : logi FALSE 
+binomial   link_inverse         identical
+binomial   find_statistic       identical
+binomial   get_predicted        identical
+binomial   get_predicted_resp   identical
+binomial   emmeans              identical
+binomial   emmeans_resp         identical
+binomial   ref_grid             identical
+binomial   predictions          identical
+binomial   avg_slopes           identical
+binomial   comparisons          identical
+binomial   logLik               identical
+binomial   coef                 identical
+binomial   se                   identical
+binomial   fitted               identical
+bernoulli  family_link          DIFFERS
+  base: List of 1
+   $ mu:List of 5
+  NA
+  NA
+  NA
+  NA 
+  lane:  chr "logit"
+  NA
+  NA
+  NA
+  NA
+  NA 
+bernoulli  model_info           DIFFERS
+  base: List of 52
+   $ is_binomial     : logi TRUE
+   $ is_bernoulli    : logi TRUE
+   $ is_count        : logi FALSE
+   $ is_poisson      : logi FALSE
+   $ is_negbin       : logi FALSE 
+  lane: List of 52
+   $ is_binomial     : logi TRUE
+   $ is_bernoulli    : logi TRUE
+   $ is_count        : logi FALSE
+   $ is_poisson      : logi FALSE
+   $ is_negbin       : logi FALSE 
+bernoulli  link_inverse         identical
+bernoulli  find_statistic       identical
+bernoulli  get_predicted        identical
+bernoulli  get_predicted_resp   identical
+bernoulli  emmeans              identical
+bernoulli  emmeans_resp         identical
+bernoulli  ref_grid             identical
+bernoulli  predictions          identical
+bernoulli  avg_slopes           identical
+bernoulli  comparisons          identical
+bernoulli  logLik               identical
+bernoulli  coef                 identical
+bernoulli  se                   identical
+bernoulli  fitted               identical
+negbin_re  family_link          DIFFERS
+  base: List of 2
+   $ mu   :List of 5
+   $ shape:List of 5
+  NA
+  NA
+  NA 
+  lane:  chr "log"
+  NA
+  NA
+  NA
+  NA
+  NA 
+negbin_re  model_info           DIFFERS
+  base: List of 52
+   $ is_binomial     : logi FALSE
+   $ is_bernoulli    : logi FALSE
+   $ is_count        : logi TRUE
+   $ is_poisson      : logi FALSE
+   $ is_negbin       : logi TRUE 
+  lane: List of 52
+   $ is_binomial     : logi FALSE
+   $ is_bernoulli    : logi FALSE
+   $ is_count        : logi TRUE
+   $ is_poisson      : logi FALSE
+   $ is_negbin       : logi TRUE 
+negbin_re  link_inverse         identical
+negbin_re  find_statistic       identical
+negbin_re  get_predicted        identical
+negbin_re  get_predicted_resp   identical
+negbin_re  emmeans              identical
+negbin_re  emmeans_resp         identical
+negbin_re  ref_grid             identical
+negbin_re  predictions          identical
+negbin_re  avg_slopes           identical
+negbin_re  comparisons          identical
+negbin_re  logLik               identical
+negbin_re  coef                 identical
+negbin_re  se                   identical
+negbin_re  fitted               identical
+zip        family_link          DIFFERS
+  base: List of 2
+   $ mu:List of 5
+   $ zi:List of 5
+  NA
+  NA
+  NA 
+  lane:  chr "log"
+  NA
+  NA
+  NA
+  NA
+  NA 
+zip        model_info           DIFFERS
+  base: List of 52
+   $ is_binomial     : logi FALSE
+   $ is_bernoulli    : logi FALSE
+   $ is_count        : logi TRUE
+   $ is_poisson      : logi TRUE
+   $ is_negbin       : logi FALSE 
+  lane: List of 52
+   $ is_binomial     : logi FALSE
+   $ is_bernoulli    : logi FALSE
+   $ is_count        : logi TRUE
+   $ is_poisson      : logi TRUE
+   $ is_negbin       : logi FALSE 
+zip        link_inverse         identical
+zip        find_statistic       identical
+zip        get_predicted        identical
+zip        get_predicted_resp   identical
+zip        emmeans              identical
+zip        emmeans_resp         identical
+zip        ref_grid             identical
+zip        predictions          identical
+zip        avg_slopes           identical
+zip        comparisons          identical
+zip        logLik               identical
+zip        coef                 identical
+zip        se                   identical
+zip        fitted               identical
+gaussian base errored; lane link_function identity family gaussian is_linear TRUE 
+binomial is_logit base: FALSE  lane: TRUE 
+binomial link_function base: logit, function (mu) , log(mu/(1 - mu)), function (eta) , 1/(1 + exp(-eta)), function (eta) , {,     p <- 1/(1 + exp(-eta)),     p * (1 - p), }, function (eta) , eta  lane: logit 
+bernoulli is_logit base: FALSE  lane: TRUE 
+bernoulli link_function base: logit, function (mu) , log(mu/(1 - mu)), function (eta) , 1/(1 + exp(-eta)), function (eta) , {,     p <- 1/(1 + exp(-eta)),     p * (1 - p), }, function (eta) , eta  lane: logit 
+negbin_re is_logit base: FALSE  lane: FALSE 
+negbin_re is_tweedie base: FALSE  lane: FALSE 
+negbin_re link_function base: log, function (mu) , log(mu), function (eta) , exp(eta), function (eta) , exp(eta), function (eta) , eta  lane: log 
+zip is_logit base: FALSE  lane: FALSE 
+zip is_tweedie base: FALSE  lane: FALSE 
+zip link_function base: log, function (mu) , log(mu), function (eta) , exp(eta), function (eta) , exp(eta), function (eta) , eta  lane: log 

@@ -1,0 +1,9 @@
+Warning message:
+`expect_equivalent()` was deprecated in the 3rd edition.
+ℹ Use expect_equal(ignore_attr = TRUE) 
+arm lane : 50 of 90 brms assertions pass genuinely; 8 more pass only on a missing function or object
+                  genuine
+file               FALSE TRUE
+  tests.brm.R          0    4
+  tests.families.R    40   44
+  tests.standata.R     0    2

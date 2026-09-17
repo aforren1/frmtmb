@@ -8,14 +8,14 @@ sim_multinom_data <- function(seed = 81, n = 300, size = 10) {
   Y <- t(vapply(seq_len(n),
                 function(i) stats::rmultinom(1, size, P[i, ])[, 1],
                 numeric(3)))
-  dd <- data.frame(x = x)
+  dd <- data.frame(x = x, n = size)
   dd$Y <- Y
   dd
 }
 
 test_that("multinomial matrix response matches a hand-rolled reference", {
   dd <- sim_multinom_data()
-  fit <- frm(bf(Y ~ x) + multinomial(K = 3), data = dd)
+  fit <- frm(bf(Y | trials(n) ~ x) + multinomial(K = 3), data = dd)
 
   Y <- dd$Y; x <- dd$x
   nll_ref <- function(p) {
@@ -37,7 +37,7 @@ test_that("multinomial matrix response matches a hand-rolled reference", {
 test_that("multinomial matches nnet::multinom", {
   skip_if_not_installed("nnet")
   dd <- sim_multinom_data(seed = 82)
-  fit <- frm(bf(Y ~ x) + multinomial(K = 3), data = dd)
+  fit <- frm(bf(Y | trials(n) ~ x) + multinomial(K = 3), data = dd)
   ref <- nnet::multinom(Y ~ x, data = dd, trace = FALSE,
                         reltol = 1e-14, maxit = 500)
   # multinom's loglik omits the multinomial coefficient
@@ -52,18 +52,28 @@ test_that("multinomial matches nnet::multinom", {
 test_that("per-category dpar formulas can be overridden", {
   dd <- sim_multinom_data(seed = 83)
   dd$z <- rnorm(nrow(dd))
-  fit <- frm(bf(Y ~ x, mu3 ~ z) + multinomial(K = 3), data = dd)
+  fit <- frm(bf(Y | trials(n) ~ x, mu3 ~ z) + multinomial(K = 3), data = dd)
   expect_named(fixef(fit)$mu2, c("(Intercept)", "x"))
   expect_named(fixef(fit)$mu3, c("(Intercept)", "z"))
 })
 
 test_that("multinomial validation", {
   dd <- sim_multinom_data()
-  expect_error(frm(bf(Y ~ x) + multinomial(K = 4), data = dd),
+  expect_error(frm(bf(Y | trials(n) ~ x) + multinomial(K = 4), data = dd),
                "n x 4")
+  # brms requires trials() and checks it against the row sums
+  expect_error(frm(bf(Y ~ x) + multinomial(K = 3), data = dd),
+               "Specifying 'trials' is required for this model.",
+               fixed = TRUE)
+  dd$wrong <- dd$n + 1
+  expect_error(frm(bf(Y | trials(wrong) ~ x) + multinomial(K = 3),
+                   data = dd),
+               "Number of trials does not match the number of events.",
+               fixed = TRUE)
   expect_error(multinomial(), "number of categories")
   # fitted() delegates to predict(type = "response") now, so the refusal
   # is the FAMILY's own and says why rather than only that it refused
-  expect_error(fitted(frm(bf(Y ~ x) + multinomial(K = 3), data = dd)),
+  expect_error(fitted(frm(bf(Y | trials(n) ~ x) + multinomial(K = 3),
+                          data = dd)),
                "declares no mean")
 })

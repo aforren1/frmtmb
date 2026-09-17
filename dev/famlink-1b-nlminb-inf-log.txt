@@ -1,0 +1,8 @@
+class of dry_run objective: frmtmb_unfitted frmtmb_fit 
+start par: 0.4045017 0.0000000 2.0364087 
+fn at eta intercept -0.9045017 : NaN 
+gr there: NaN NaN NaN 
+as taped (NaN)         objective 157.610850908223 conv 0 evals 47 non-finite 11 warnings 11 NA/NaN function evaluation
+NaN mapped to +Inf     objective 157.610850908223 conv 0 evals 47 non-finite 11 warnings 0 
+max |par difference| between the two optima: 0 
+identical par: TRUE  identical objective: TRUE 

@@ -1,0 +1,9 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+plan rows: 300 ; binomial without a trials aterm: 7 ; aterms: none 4, weights 3 
+example call: frm(bf(y | trials(nt) + weights(w) ~ 1 + x + mo(xo) + (fac || g)) + binomial(),     data = d, REML = FALSE, quadrature = FALSE,     control = frmtmb_control(profile = TRUE)) 
+fixed    findings 2; by class: known_pending 2
+example call: frm(bf(y | weights(w) ~ 1 + x + mo(xo) + (fac || g)) + binomial(),     data = d, REML = FALSE, quadrature = FALSE,     control = frmtmb_control(profile = TRUE)) 
+prefix   findings 7; by class: real_new 7
+    fit_error : frm() failed: Specifying 'trials' is required for this model. binomial reads the number of trials fr 
+    fit_error : frm() failed: Specifying 'trials' is required for this model. binomial reads the number of trials fr 
+    fit_error : frm() failed: Specifying 'trials' is required for this model. binomial reads the number of trials fr 

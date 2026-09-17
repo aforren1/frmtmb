@@ -1,0 +1,4 @@
+(a) scale-tier binomial: fit, logLik -112.7997206422 
+(b) hmm(K = 2, binomial()) no trials: fit, logLik -190.0894558594 
+(a) scale-tier binomial: ERROR: Specifying 'trials' is required for this model. binomial reads the number of trials from the formula: write y | trials(n) ~ ..., or use bernoulli() for a response of zeros and ones 
+(b) hmm(K = 2, binomial()) no trials: fit, logLik -190.0894558594 

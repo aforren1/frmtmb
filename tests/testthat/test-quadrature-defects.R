@@ -75,9 +75,9 @@ test_that("quadrature modes match glmer(nAGQ = 25) where Laplace does not", {
   dd <- data.frame(y = rbinom(ng * per, 1, plogis(-0.5 + 0.7 * x + u[g])),
                    x = x, g = g)
 
-  fq <- frm(bf(y ~ x + (1 | g)) + binomial(), data = dd,
+  fq <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd,
             quadrature = TRUE)
-  fl <- frm(bf(y ~ x + (1 | g)) + binomial(), data = dd)
+  fl <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd)
   ref <- lme4::glmer(y ~ x + (1 | g), dd, family = binomial, nAGQ = 25)
 
   expect_false(anyNA(fq$estimates$b))

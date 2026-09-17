@@ -34,9 +34,10 @@ test_that("categorical() equals multinomial() on the one-hot response", {
   fit <- frm(bf(y ~ x), family = categorical(), data = dd)
   Y <- stats::model.matrix(~ y - 1, dd)
   colnames(Y) <- levels(dd$y)
-  d2 <- data.frame(x = dd$x)
+  d2 <- data.frame(x = dd$x, one = 1)
   d2$Y <- Y
-  fm <- frm(bf(Y ~ x), family = multinomial(K = 3), data = d2)
+  fm <- frm(bf(Y | trials(one) ~ x), family = multinomial(K = 3),
+            data = d2)
   # one trial per row, so the multinomial coefficient is log(1) = 0 and
   # the two log-likelihoods are the same number, not merely proportional
   expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(logLik(fm))), 1e-8)

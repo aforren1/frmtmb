@@ -185,7 +185,21 @@
 #'   that say which post-fit methods the family can answer. `lpdf` stays
 #'   required even then, for the rowwise contract, and may be a stub
 #'   that refuses.
-#' @return An object of class `frmtmb_family`.
+#' @return An object of class `frmtmb_family`. `$` on it also answers
+#'   brms's link fields, computed from `links` when read: `link`, the
+#'   name of the link for the mean (for an ordinal family, the
+#'   distribution function its thresholds are read through;
+#'   `"logit"` for a categorical or multinomial family, whose categories
+#'   share one joint link; `"identity"` for a family with no `mu`, such
+#'   as a [mixture()]), `linkfun` and `linkinv` for that link, and
+#'   `link_<dpar>`, the link name of every other distributional
+#'   parameter, as in `beta_binomial()$link_phi`. Because they are
+#'   read from `links` each time, a `family_finalize()` that replaces a
+#'   link, or any other edit, cannot leave them stale.
+#'
+#'   `$` does not partial-match on a family object. `fam$lpd` is an
+#'   error naming the field it would have matched, rather than
+#'   silently returning it. Use the full name.
 #' @seealso [frmtmb-robust-dpars] for the accessors a density uses to
 #'   stay exact where an inverse link saturates,
 #'   [frmtmb_structure()] for a likelihood that does not
@@ -507,6 +521,145 @@ frmtmb_family <- function(family, dpars, links, lpdf, valid_y = NULL,
 #' @rdname frmtmb_family
 #' @export
 custom_family <- frmtmb_family
+
+#' The names brms reads off a family object for its links. They are not
+#' stored on a `frmtmb_family`: `$` computes them from `links` at the
+#' moment they are read.
+#'
+#' Storing them was tried first and went stale through every write path
+#' that does not dispatch to a replacement method with a character name
+#' (`[<-`, a numeric `[[<-`, an unclass-and-rebuild), and a fit saved
+#' before they existed errored on `$link`
+#' (dev/reviews/20260916-famlink.md, findings 1 and 2). A value computed
+#' at read time has no copy to go stale and needs nothing saved.
+#'
+#' @noRd
+family_link_view_names <- function(x) {
+  c("link", "linkfun", "linkinv",
+    paste0("link_", family_link_secondary(x)))
+}
+
+#' The parameters that get a `link_<dpar>`: every one but the mean, and
+#' for a family whose categories share one joint link (categorical,
+#' multinomial) not the per-category predictors either, whose `identity`
+#' in `links` is where the softmax starts rather than their scale.
+#'
+#' @noRd
+family_link_secondary <- function(x) {
+  dpars <- .subset2(x, "dpars")
+  out <- setdiff(dpars, "mu")
+  if (family_joint_link(x)) out <- setdiff(out, .subset2(x, "primary_dpars"))
+  out
+}
+
+#' @noRd
+family_joint_link <- function(x) {
+  identical(.subset2(x, "type"), "categorical") ||
+    identical(.subset2(x, "family"), "multinomial")
+}
+
+#' The value of one of brms's link fields, read from `links`.
+#'
+#' `link` is the mean's link name; an ordinal family reports the
+#' distribution function its thresholds are read through, a joint-link
+#' family "logit", and a family with no `mu` (a mixture) "identity", which
+#' are brms's values. A link still spelled as a string, as an extension
+#' writes one inside `family_finalize()`, is resolved for its functions;
+#' an unknown name gives `NULL` functions and is left to frame assembly,
+#' which refuses it with the dpar named.
+#'
+#' @noRd
+family_link_view <- function(x, name) {
+  links <- .subset2(x, "links")
+  lk_name <- function(lk) {
+    nm <- if (is.list(lk)) lk[["name"]] else lk
+    if (is.character(nm) && length(nm) == 1L) nm else NA_character_
+  }
+  if (startsWith(name, "link_")) {
+    return(lk_name(links[[substring(name, 6L)]]))
+  }
+  ol <- .subset2(x, "ord_link")
+  main <- if (!is.null(ol)) {
+    ol
+  } else if (family_joint_link(x)) {
+    "logit"
+  } else if ("mu" %in% .subset2(x, "dpars")) {
+    # NULL when the object has lost its links: reported as NA, not as a
+    # link the family does not carry
+    links[["mu"]]
+  } else {
+    "identity"
+  }
+  if (identical(name, "link")) return(lk_name(main))
+  obj <- if (is.list(main)) main else {
+    tryCatch(get_link(main), error = function(e) NULL)
+  }
+  obj[[name]]
+}
+
+#' Family object field access
+#'
+#' A family object is a list, and `$` on a list PARTIAL-matches: before
+#' frmtmb answered brms's field names, `student()$link` returned the
+#' `links` list rather than the link name brms code expects.
+#'
+#' `$` on a `frmtmb_family` answers brms's link fields, `link`, `linkfun`,
+#' `linkinv` and `link_<dpar>` for every parameter but the mean, by
+#' reading `links` at the moment of the call, so they always describe the
+#' links the fit uses, however the object was edited and whenever it was
+#' saved. Every other name matches exactly. A name that is only the
+#' prefix of one field is an error naming that field, and a name that
+#' matches nothing is `NULL`, as on any list.
+#'
+#' The link fields are not elements of the list, so `names()`, `[[` and
+#' `str()` do not show them. An element stored under one of those names
+#' is refused when it is read, because `$` would otherwise have to choose
+#' between it and the links the fit actually applies.
+#'
+#' @param x A `frmtmb_family`.
+#' @param name The field name.
+#' @return The field.
+#' @examples
+#' fam <- beta_binomial()
+#' fam$link
+#' fam$link_phi
+#' try(fam$link_p)   # a prefix of link_phi, refused
+#' @name frmtmb_family-access
+#' @keywords internal
+NULL
+
+#' @rdname frmtmb_family-access
+#' @export
+`$.frmtmb_family` <- function(x, name) {
+  nms <- names(x)
+  # Every derived field is spelled `link`, `linkfun`, `linkinv` or
+  # `link_*`, so any other exact name is a stored element whatever the
+  # dpars are. Returning it before the view names are built from the
+  # dpars removes most of the cost of a read.
+  if (!(name %in% c("link", "linkfun", "linkinv") ||
+        startsWith(name, "link_")) && name %in% nms) {
+    return(.subset2(x, name))
+  }
+  view <- family_link_view_names(x)
+  if (name %in% view) {
+    if (name %in% nms) {
+      stop("This family object stores an element named `", name, "`, ",
+           "which is one of the link fields `$` derives from `links`. ",
+           "Remove the element and set the link in `links` instead",
+           call. = FALSE)
+    }
+    return(family_link_view(x, name))
+  }
+  if (name %in% nms) return(.subset2(x, name))
+  hit <- c(nms, view)[startsWith(c(nms, view), name)]
+  if (length(hit) == 1L) {
+    stop("A family object has no field `", name, "`. `$` would have ",
+         "partial-matched `", hit, "`, and it does not do that on a ",
+         "family: write `$", hit, "` if that is the field you mean",
+         call. = FALSE)
+  }
+  NULL
+}
 
 #' Make a response validator that rejects any value less than or equal
 #' to zero. The families with support on `(0, Inf)` use it so a bad
@@ -1169,7 +1322,7 @@ fam_gaussian <- function(link = "identity", link_sigma = "log") {
     accepts_aterms = c("weights", "cens", "trunc", "se", "mi"),
     se_dpar = "sigma",
     dpars = c("mu", "sigma"),
-    links = list(mu = link, sigma = lk_sigma),
+    links = list(mu = mu_link(link, "gaussian"), sigma = lk_sigma),
     lpdf = function(y, dpars, aterms) {
       RTMB::dnorm(y, dpars[["mu"]], resid_sd(dpars[["sigma"]], aterms),
                 log = TRUE)
@@ -1223,7 +1376,7 @@ fam_poisson <- function(link = "log") {
     "poisson",
     accepts_aterms = c("weights", "cens", "trunc"),
     dpars = "mu",
-    links = list(mu = link),
+    links = list(mu = mu_link(link, "poisson")),
     lpdf = function(y, dpars, aterms) {
       RTMB::dpois(y, dpars[["mu"]], log = TRUE)
     },
@@ -1264,7 +1417,7 @@ fam_poisson <- function(link = "log") {
 #'
 #' @noRd
 fam_binomial <- function(link = "logit") {
-  lk <- get_link(link)
+  lk <- mu_link(link, "binomial")
   frmtmb_family(
     "binomial",
     accepts_aterms = c("weights", "trials"),
@@ -1319,7 +1472,7 @@ fam_Gamma <- function(link = "log", link_shape = "log") {
     "Gamma",
     accepts_aterms = "weights",
     dpars = c("mu", "shape"),
-    links = list(mu = link, shape = lk_shape),
+    links = list(mu = mu_link(link, "Gamma"), shape = lk_shape),
     lpdf = function(y, dpars, aterms) {
       RTMB::dgamma(y, shape = dpars[["shape"]],
                                        scale = dpars[["mu"]] / dpars[["shape"]],
@@ -1357,7 +1510,7 @@ fam_lognormal <- function(link = "identity", link_sigma = "log") {
     "lognormal",
     accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "sigma"),
-    links = list(mu = link, sigma = lk_sigma),
+    links = list(mu = mu_link(link, "lognormal"), sigma = lk_sigma),
     lpdf = function(y, dpars, aterms) {
       RTMB::dnorm(log(y), dpars[["mu"]], dpars[["sigma"]], log = TRUE) - log(y)
     },
@@ -1521,7 +1674,7 @@ fam_student <- function(link = "identity", link_sigma = "log",
     accepts_aterms = c("weights", "se", "mi"),
     se_dpar = "sigma",
     dpars = c("mu", "sigma", "nu"),
-    links = list(mu = link, sigma = lk_sigma, nu = lk_nu),
+    links = list(mu = mu_link(link, "student"), sigma = lk_sigma, nu = lk_nu),
     lpdf = function(y, dpars, aterms) {
       sd_t <- resid_sd(dpars[["sigma"]], aterms)
       dt_stable((y - dpars[["mu"]]) / sd_t, dpars[["nu"]]) - log(sd_t)
@@ -1554,7 +1707,7 @@ fam_student <- function(link = "identity", link_sigma = "log",
 #' @noRd
 fam_negbinomial <- function(link = "log", link_shape = "log") {
   lk_shape <- dpar_link(link_shape, "shape", "negbinomial", dpar_links_positive)
-  lk <- get_link(link)
+  lk <- mu_link(link, "negbinomial")
   frmtmb_family(
     "negbinomial",
     accepts_aterms = "weights",
@@ -1605,7 +1758,7 @@ fam_negbinomial <- function(link = "log", link_shape = "log") {
 #' @noRd
 fam_nbinom1 <- function(link = "log", link_phi = "log") {
   lk_phi <- dpar_link(link_phi, "phi", "nbinom1", dpar_links_positive)
-  lk <- get_link(link)
+  lk <- mu_link(link, "nbinom1")
   frmtmb_family(
     "nbinom1",
     accepts_aterms = "weights",
@@ -1658,7 +1811,7 @@ fam_nbinom1 <- function(link = "log", link_phi = "log") {
 #' @noRd
 fam_beta <- function(link = "logit", link_phi = "log") {
   lk_phi <- dpar_link(link_phi, "phi", "Beta", dpar_links_positive)
-  lk <- get_link(link)
+  lk <- mu_link(link, "beta")
   frmtmb_family(
     "beta",
     accepts_aterms = "weights",
@@ -1718,7 +1871,8 @@ fam_tweedie <- function(link = "log", link_phi = "log") {
     "tweedie",
     accepts_aterms = "weights",
     dpars = c("mu", "phi", "power"),
-    links = list(mu = link, phi = lk_phi, power = "power12"),
+    links = list(mu = mu_link(link, "tweedie"),
+                 phi = lk_phi, power = "power12"),
     lpdf = function(y, dpars, aterms) {
       RTMB::dtweedie(y, dpars[["mu"]], dpars[["phi"]], dpars[["power"]],
                                        log = TRUE)
@@ -1835,7 +1989,7 @@ fam_compois <- function(link = "log", link_nu = "log") {
     "compois",
     accepts_aterms = "weights",
     dpars = c("mu", "nu"),
-    links = list(mu = link, nu = lk_nu),
+    links = list(mu = mu_link(link, "compois"), nu = lk_nu),
     lpdf = function(y, dpars, aterms) {
       RTMB::dcompois2(y, dpars[["mu"]], dpars[["nu"]], log = TRUE)
     },
@@ -1890,7 +2044,7 @@ fam_zi_poisson <- function(link = "log", link_zi = "logit") {
     "zero_inflated_poisson",
     accepts_aterms = "weights",
     dpars = c("mu", "zi"),
-    links = list(mu = link, zi = lk_zi),
+    links = list(mu = mu_link(link, "zero_inflated_poisson"), zi = lk_zi),
     lpdf = function(y, dpars, aterms) {
       # y == 0 is data, so the mixture stays branch-free in parameters.
       # The whole mixture runs in log space: log(1 - zi) is -Inf once
@@ -1930,7 +2084,7 @@ fam_zi_negbinomial <- function(link = "log", link_shape = "log",
     link_shape, "shape", "zero_inflated_negbinomial", dpar_links_positive)
   lk_zi <- dpar_link(
     link_zi, "zi", "zero_inflated_negbinomial", dpar_links_unit)
-  lk <- get_link(link)
+  lk <- mu_link(link, "zero_inflated_negbinomial")
   frmtmb_family(
     "zero_inflated_negbinomial",
     accepts_aterms = "weights",
@@ -1985,7 +2139,7 @@ fam_hurdle_poisson <- function(link = "log", link_hu = "logit") {
     "hurdle_poisson",
     accepts_aterms = "weights",
     dpars = c("mu", "hu"),
-    links = list(mu = link, hu = lk_hu),
+    links = list(mu = mu_link(link, "hurdle_poisson"), hu = lk_hu),
     lpdf = function(y, dpars, aterms) {
       i0 <- as.numeric(y == 0)
       g <- dpar_log_complement(dpars, "hu", lk_hu)
@@ -2044,7 +2198,7 @@ fam_hurdle_poisson <- function(link = "log", link_hu = "logit") {
 #'
 #' @noRd
 fam_bernoulli <- function(link = "logit") {
-  lk <- get_link(link)
+  lk <- mu_link(link, "bernoulli")
   frmtmb_family(
     "bernoulli",
     accepts_aterms = "weights",
@@ -2080,7 +2234,7 @@ fam_bernoulli <- function(link = "logit") {
 #'
 #' @noRd
 fam_geometric <- function(link = "log") {
-  lk <- get_link(link)
+  lk <- mu_link(link, "geometric")
   frmtmb_family(
     "geometric",
     accepts_aterms = "weights",
@@ -2123,7 +2277,7 @@ fam_exponential <- function(link = "log") {
     "exponential",
     accepts_aterms = c("weights", "cens", "trunc"),
     dpars = "mu",
-    links = list(mu = link),
+    links = list(mu = mu_link(link, "exponential")),
     lpdf = function(y, dpars, aterms) {
       -log(dpars[["mu"]]) - y / dpars[["mu"]]
     },
@@ -2168,7 +2322,7 @@ fam_weibull <- function(link = "log", link_shape = "log") {
     "weibull",
     accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "shape"),
-    links = list(mu = link, shape = lk_shape),
+    links = list(mu = mu_link(link, "weibull"), shape = lk_shape),
     lpdf = function(y, dpars, aterms) {
       # brms parameterization: mu is the mean, scale = mu/gamma(1+1/k)
       sc <- dpars[["mu"]] / exp(lgamma(1 + 1 / dpars[["shape"]]))
@@ -2228,7 +2382,8 @@ fam_shifted_lognormal <- function(link = "identity", link_sigma = "log",
     "shifted_lognormal",
     accepts_aterms = "weights",
     dpars = c("mu", "sigma", "ndt"),
-    links = list(mu = link, sigma = lk_sigma, ndt = lk_ndt),
+    links = list(mu = mu_link(link, "shifted_lognormal"),
+                 sigma = lk_sigma, ndt = lk_ndt),
     lpdf = function(y, dpars, aterms) {
       # y <= ndt gives NaN, which the optimizer treats as a rejected
       # step; the ndt init keeps the start feasible
@@ -2268,7 +2423,8 @@ fam_hurdle_gamma <- function(link = "log", link_shape = "log",
     "hurdle_gamma",
     accepts_aterms = "weights",
     dpars = c("mu", "shape", "hu"),
-    links = list(mu = link, shape = lk_shape, hu = lk_hu),
+    links = list(mu = mu_link(link, "hurdle_gamma"),
+                 shape = lk_shape, hu = lk_hu),
     lpdf = function(y, dpars, aterms) {
       i0 <- as.numeric(y == 0)
       yp <- y + i0   # dodge dgamma(0) = -Inf; the term carries weight 0
@@ -2314,7 +2470,8 @@ fam_hurdle_lognormal <- function(link = "identity", link_sigma = "log",
     "hurdle_lognormal",
     accepts_aterms = "weights",
     dpars = c("mu", "sigma", "hu"),
-    links = list(mu = link, sigma = lk_sigma, hu = lk_hu),
+    links = list(mu = mu_link(link, "hurdle_lognormal"),
+                 sigma = lk_sigma, hu = lk_hu),
     lpdf = function(y, dpars, aterms) {
       i0 <- as.numeric(y == 0)
       yp <- y + i0
@@ -2359,7 +2516,7 @@ fam_hurdle_lognormal <- function(link = "identity", link_sigma = "log",
 #' @noRd
 fam_zi_binomial <- function(link = "logit", link_zi = "logit") {
   lk_zi <- dpar_link(link_zi, "zi", "zero_inflated_binomial", dpar_links_unit)
-  lk <- get_link(link)
+  lk <- mu_link(link, "zero_inflated_binomial")
   frmtmb_family(
     "zero_inflated_binomial",
     accepts_aterms = c("weights", "trials"),
@@ -2415,7 +2572,7 @@ fam_zi_beta <- function(link = "logit", link_phi = "log", link_zi = "logit") {
   lk_phi <- dpar_link(
     link_phi, "phi", "zero_inflated_beta", dpar_links_positive)
   lk_zi <- dpar_link(link_zi, "zi", "zero_inflated_beta", dpar_links_unit)
-  lk <- get_link(link)
+  lk <- mu_link(link, "zero_inflated_beta")
   frmtmb_family(
     "zero_inflated_beta",
     accepts_aterms = "weights",
@@ -2471,7 +2628,8 @@ fam_asym_laplace <- function(link = "identity", link_sigma = "log",
     "asym_laplace",
     accepts_aterms = "weights",
     dpars = c("mu", "sigma", "quantile"),
-    links = list(mu = link, sigma = lk_sigma, quantile = lk_quantile),
+    links = list(mu = mu_link(link, "asym_laplace"),
+                 sigma = lk_sigma, quantile = lk_quantile),
     lpdf = function(y, dpars, aterms) {
       # rho_p(u) = 0.5 * (|u| + (2p - 1) u); ML at fixed quantile p
       # reproduces quantile-regression point estimates
@@ -2520,7 +2678,8 @@ fam_zi_asym_laplace <- function(link = "identity", link_sigma = "log",
     "zero_inflated_asym_laplace",
     accepts_aterms = "weights",
     dpars = c("mu", "sigma", "quantile", "zi"),
-    links = list(mu = link, sigma = lk_sigma, quantile = lk_quantile,
+    links = list(mu = mu_link(link, "zero_inflated_asym_laplace"),
+                 sigma = lk_sigma, quantile = lk_quantile,
                  zi = lk_zi),
     lpdf = function(y, dpars, aterms) {
       i0 <- as.numeric(y == 0)
@@ -2638,7 +2797,7 @@ fam_huber <- function(link = "identity", k = 1.345, link_sigma = "log") {
     "huber",
     accepts_aterms = "weights",
     dpars = c("mu", "sigma"),
-    links = list(mu = link, sigma = lk_sigma),
+    links = list(mu = mu_link(link, "huber"), sigma = lk_sigma),
     lpdf = function(y, dpars, aterms) {
       s <- resid_sd(dpars[["sigma"]], aterms)
       -log(s) - lognorm - huber_rho((y - dpars[["mu"]]) / s, k)
@@ -2678,7 +2837,7 @@ fam_huber <- function(link = "identity", k = 1.345, link_sigma = "log") {
 #' @noRd
 fam_beta_binomial <- function(link = "logit", link_phi = "log") {
   lk_phi <- dpar_link(link_phi, "phi", "beta_binomial", dpar_links_positive)
-  lk <- get_link(link)
+  lk <- mu_link(link, "beta_binomial")
   frmtmb_family(
     "beta_binomial",
     accepts_aterms = c("weights", "trials"),
@@ -2733,7 +2892,8 @@ fam_skew_normal <- function(link = "identity", link_sigma = "log",
     "skew_normal",
     accepts_aterms = "weights",
     dpars = c("mu", "sigma", "alpha"),
-    links = list(mu = link, sigma = lk_sigma, alpha = lk_alpha),
+    links = list(mu = mu_link(link, "skew_normal"),
+                 sigma = lk_sigma, alpha = lk_alpha),
     lpdf = function(y, dpars, aterms) {
       RTMBdist::dskewnorm2(y, dpars[["mu"]], dpars[["sigma"]], dpars[["alpha"]],
                            log = TRUE)
@@ -2760,14 +2920,14 @@ fam_skew_normal <- function(link = "identity", link_sigma = "log",
 #' supplies a CDF and a truncated mean.
 #'
 #' @noRd
-fam_inverse_gaussian <- function(link = "log", link_shape = "log") {
+fam_inverse_gaussian <- function(link = "1/mu^2", link_shape = "log") {
   lk_shape <- dpar_link(
     link_shape, "shape", "inverse.gaussian", dpar_links_positive)
   frmtmb_family(
     "inverse.gaussian",
     accepts_aterms = c("weights", "cens", "trunc"),
     dpars = c("mu", "shape"),
-    links = list(mu = link, shape = lk_shape),
+    links = list(mu = mu_link(link, "inverse.gaussian"), shape = lk_shape),
     lpdf = function(y, dpars, aterms) {
       RTMBdist::dinvgauss(y, mean = dpars[["mu"]], shape = dpars[["shape"]],
                           log = TRUE)
@@ -2835,7 +2995,8 @@ fam_exgaussian <- function(link = "identity", link_sigma = "log",
     "exgaussian",
     accepts_aterms = "weights",
     dpars = c("mu", "sigma", "beta"),
-    links = list(mu = link, sigma = lk_sigma, beta = lk_beta),
+    links = list(mu = mu_link(link, "exgaussian"),
+                 sigma = lk_sigma, beta = lk_beta),
     lpdf = function(y, dpars, aterms) {
       RTMBdist::dexgauss(y, dpars[["mu"]] - dpars[["beta"]], dpars[["sigma"]],
                          1 / dpars[["beta"]], log = TRUE)
@@ -2915,7 +3076,7 @@ ord_cat_below <- function(sel, K) {
 #' @noRd
 fam_cumulative <- function(link = "logit") {
   # brms allows softit here and not for the sequential pair
-  lk <- ord_link(link, "cumulative", c(ord_cdf_links, "softit"))
+  lk <- ord_link(link, "cumulative")
   Fcdf <- lk$linkinv
   # Any link carrying `logit_eta` has an exact log-space difference
   # (see below), because that field turns its CDF into a logistic one.
@@ -2978,12 +3139,7 @@ fam_cumulative <- function(link = "logit") {
       }
       out
     },
-    valid_y = function(y, aterms) {
-      if (any(y < 1) || any(y != round(y)) || length(unique(y)) < 2) {
-        stop("cumulative: response must be an ordered factor or integers ",
-             "1..K with at least 2 observed categories", call. = FALSE)
-      }
-    },
+    valid_y = ord_valid_y("cumulative"),
     type = "ordinal",
     extra_pars = function(y, aterms) {
       ord_tau_init(y, ordered = TRUE, link = lk)
@@ -3045,10 +3201,18 @@ ord_seq_lpdf_ad <- function(y, eta, tau, K1, cs, Fcdf, stopping) {
 #'
 #' @noRd
 ord_valid_y <- function(name) {
+  force(name)
+  # brms's sentence opens each refusal, so a message matched on in a
+  # ported script reads the same
   function(y, aterms) {
-    if (any(y < 1) || any(y != round(y)) || length(unique(y)) < 2) {
-      stop(name, ": response must be an ordered factor or integers ",
-           "1..K with at least 2 observed categories", call. = FALSE)
+    if (any(y < 1) || any(y != round(y))) {
+      stop("Family '", name, "' requires either positive integers or ",
+           "ordered factors as responses: integer codes 1..K",
+           call. = FALSE)
+    }
+    if (length(unique(y)) < 2) {
+      stop("Family '", name, "' needs at least 2 observed response ",
+           "categories", call. = FALSE)
     }
   }
 }
@@ -3088,32 +3252,32 @@ ord_tau_from_raw <- function(raw, ordered) {
   c(raw[1L], raw[1L] + cumsum(exp(raw[-1L])))
 }
 
-# The links an ordinal family can read its thresholds through. An
-# ordinal `link` is not a link on a mean: it names the cumulative
-# distribution function applied to `tau_j - eta`, so the only links
-# that can serve are the ones whose INVERSE maps onto the unit
-# interval. brms allows softit for cumulative and refuses it for the
-# sequential pair, and that difference is kept rather than tidied away,
-# because the point of the roster is that a brms model ports.
-ord_cdf_links <- c("logit", "probit", "probit_approx", "cloglog", "cauchit")
-
 #' Resolve an ordinal family's `link` against the distribution
 #' functions its thresholds can be read through.
 #'
-#' This used to be a hand-written `switch` per family offering logit
-#' and probit, which is why cloglog and cauchit were unreachable
-#' although the registry has held them all along.
+#' An ordinal `link` is not a link on a mean: it names the cumulative
+#' distribution function applied to `tau_j - eta`, so only a link whose
+#' INVERSE maps onto the unit interval can serve. The set is brms's own,
+#' from `brms_mu_links`: brms allows softit for cumulative and refuses it
+#' for the sequential pair, and that difference is kept rather than
+#' tidied away, because the point of the roster is that a brms model
+#' ports.
 #'
 #' @noRd
-ord_link <- function(link, family, choices = ord_cdf_links) {
+ord_link <- function(link, family, choices = brms_mu_links[[family]]) {
   if (!is.character(link) || length(link) != 1L || is.na(link) ||
       !link %in% choices) {
-    stop(family, "(): link must be one of ",
-         paste0("\"", choices, "\"", collapse = ", "),
+    head <- if (is.character(link) && length(link) == 1L && !is.na(link)) {
+      paste0("'", link, "' is not a supported link for family '", family,
+             "'. ")
+    } else {
+      paste0(family, "(link =) takes a single link name, not ",
+             arg_desc(link), ". ")
+    }
+    stop(head, "Supported links are: ", link_set_text(choices),
          ". An ordinal link names the distribution function the ",
-         "thresholds are read through, so it has to map onto (0, 1); ",
-         "you gave ", arg_desc(link), ". See ?`frmtmb-links`",
-         call. = FALSE)
+         "thresholds are read through, so it has to map onto (0, 1). ",
+         "See ?`frmtmb-links`", call. = FALSE)
   }
   get_link(link)
 }
@@ -3150,7 +3314,9 @@ ord_cdf <- function(link) get_link(link)$linkinv
 #'
 #' @noRd
 acat_link <- function(link) {
-  if (identical(link, "logit")) return(get_link("logit"))
+  # a link brms refuses too is refused for that reason first
+  lk <- ord_link(link, "acat")
+  if (identical(link, "logit")) return(lk)
   stop("acat() takes the 'logit' link only, and not because ",
        arg_desc(link), " is a bad link: brms accepts \"probit\", ",
        "\"probit_approx\", \"cloglog\", \"cauchit\" and \"softit\" ",
@@ -3474,6 +3640,50 @@ mixture_mu_bounded <- function(comp) {
                    "cloglog", "softit"))
 }
 
+#' Refuse the component sets brms refuses, in brms's order and words.
+#'
+#' A mixture density is a weighted sum of component densities, and that
+#' sum is a density only when every component is one with respect to the
+#' same measure. A real-support density and an integer-support mass
+#' function are not, so `mixture(lognormal, exgaussian, poisson())`
+#' returned a family whose likelihood added a probability to a density
+#' (dev/famlink-findings.md, item 5). A continuous hurdle and a
+#' zero-inflated beta each put an atom at zero beside a density, which is
+#' the same defect inside one component, and a categorical or
+#' multinomial response is not a number the other components could
+#' share. The barred families are `brms_no_mixture`, generated from
+#' `brms:::no_mixture()` rather than listed here by hand.
+#'
+#' The type of a frmtmb family is its support: `continuous` is brms's
+#' `real`, and `discrete`, `ordinal` and `categorical` are all `int`.
+#'
+#' @noRd
+mixture_check_components <- function(comps) {
+  types <- vapply(comps, function(cp) cp[["type"]] %||% "continuous", "")
+  fams <- vapply(comps, function(cp) cp[["family"]], "")
+  listed <- paste0(fams, " (", types, ")", collapse = ", ")
+  if (any(types == "continuous") && any(types != "continuous")) {
+    stop("Cannot mix families with real and integer support. The ",
+         "components are ", listed, ", and a weighted sum of a density ",
+         "and a probability mass is not a likelihood", call. = FALSE)
+  }
+  ord <- types == "ordinal"
+  if (any(ord) && !all(ord)) {
+    stop("Cannot mix ordinal and non-ordinal families. The components ",
+         "are ", listed, call. = FALSE)
+  }
+  barred <- types == "categorical" | fams %in% brms_no_mixture
+  if (any(barred)) {
+    stop("Some of the families are not allowed in mixture models: ",
+         paste(unique(fams[barred]), collapse = ", "), ". A categorical ",
+         "or multinomial response is not a value the other components ",
+         "can share, and a continuous hurdle or a zero-inflated beta ",
+         "puts a probability mass at zero beside a density",
+         call. = FALSE)
+  }
+  invisible(NULL)
+}
+
 mixture_mu_start <- function(y, aterms, p, bounded) {
   if (!bounded) return(stats::quantile(y, p, names = FALSE))
   size <- aterms[["trials"]] %||% 1
@@ -3563,11 +3773,24 @@ mixture_mu_start <- function(y, aterms, p, bounded) {
 #' }
 #' @export
 mixture <- function(..., groups = NULL) {
+  named <- ...names()
+  named <- named[!is.na(named) & nzchar(named)]
+  if (length(named)) {
+    # a name in the dots is an argument meant for mixture() itself, and
+    # read as a component it came back as "not a supported family"
+    stop("mixture() has no argument ", paste0("`", named, "`",
+                                                collapse = ", "),
+         ". It takes the component families, unnamed, and `groups`. ",
+         "brms's `nmix` and `order` are not supported: repeat a ",
+         "component to use it twice", call. = FALSE)
+  }
   comps <- lapply(list(...), as_frmtmb_family)
   K <- length(comps)
   if (K < 2L) {
-    stop("mixture() needs at least two component families", call. = FALSE)
+    stop("Expecting at least 2 mixture components. mixture() needs two ",
+         "or more component families", call. = FALSE)
   }
+  mixture_check_components(comps)
   for (cp in comps) {
     if (!is.null(cp$extra_pars) || isTRUE(cp$drop_intercept)) {
       stop("mixture() does not support component family '", cp$family,
@@ -3728,6 +3951,9 @@ mixture <- function(..., groups = NULL) {
     },
     primary_dpars = paste0("mu", seq_len(K))
   )
+  # read by the frame checks brms applies through a mixture's components
+  # (trials(), the bernoulli message)
+  fam[["component_families"]] <- vapply(comps, `[[`, "", "family")
   # internals for the objective's group-level branch and for
   # mixture_probs(): per-component log-densities and log mixing weights
   fam[["mix"]] <- list(
@@ -4385,7 +4611,7 @@ fam_von_mises <- function(link = "tan_half", link_kappa = "log") {
     "von_mises",
     accepts_aterms = "weights",
     dpars = c("mu", "kappa"),
-    links = list(mu = link, kappa = lk_kappa),
+    links = list(mu = mu_link(link, "von_mises"), kappa = lk_kappa),
     lpdf = function(y, dpars, aterms) {
       RTMBdist::dvm(y, dpars[["mu"]], dpars[["kappa"]], log = TRUE)
     },
@@ -4515,11 +4741,7 @@ cat_logit_lpdf <- function(y, eta, K, sel = NULL) {
 #' @noRd
 fam_categorical_impl <- function(dpar_names, levels = NULL,
                                  link = "logit") {
-  if (!identical(link, "logit")) {
-    stop("categorical: the multinomial logit is the only link, so a ",
-         "family object carrying link '", link, "' cannot be used here",
-         call. = FALSE)
-  }
+  categorical_link_check(link)
   K <- length(dpar_names) + 1L
   fam <- frmtmb_family(
     "categorical",
@@ -4565,6 +4787,20 @@ fam_categorical_impl <- function(dpar_names, levels = NULL,
   fam
 }
 
+#' Refuse any categorical link but the logit, in brms's words.
+#'
+#' @noRd
+categorical_link_check <- function(link) {
+  if (identical(link, "logit")) return(invisible(NULL))
+  shown <- if (is.character(link) && length(link) == 1L) link else {
+    arg_desc(link)
+  }
+  stop("'", shown, "' is not a supported link for family ",
+       "'categorical'. Supported links are: 'logit'. categorical() ",
+       "takes the 'logit' link only, the multinomial logit its ",
+       "category probabilities are defined by", call. = FALSE)
+}
+
 #' Placeholder returned by a bare `categorical()`: the category count is
 #' a property of the data, and the formula grammar is resolved before any
 #' data arrives, so `frm()` swaps this for the real family through
@@ -4574,6 +4810,9 @@ fam_categorical_impl <- function(dpar_names, levels = NULL,
 #'
 #' @noRd
 fam_categorical_deferred <- function(link = "logit") {
+  # checked here and not only once the levels are known: the levels come
+  # from the data, and a data problem would otherwise mask the bad link
+  categorical_link_check(link)
   fam <- frmtmb_family(
     "categorical",
     accepts_aterms = "weights",
@@ -4809,7 +5048,7 @@ fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
     "cox",
     accepts_aterms = c("weights", "cens", "trunc"),
     dpars = "mu",
-    links = list(mu = link),
+    links = list(mu = mu_link(link, "cox")),
     lpdf = function(y, dpars, aterms, extra) {
       s <- sbhaz(extra$sbhaz_raw)
       bhaz <- as.vector(aterms[["Zbhaz"]] %*% s)
@@ -5015,7 +5254,8 @@ fam_multinomial <- function(K) {
       }
       tr <- aterms[["trials"]]
       if (!is.null(tr) && any(rowSums(y) != tr)) {
-        stop("multinomial: rowSums(response) must equal trials()",
+        stop("Number of trials does not match the number of events. ",
+             "multinomial: rowSums(response) must equal trials()",
              call. = FALSE)
       }
     },
@@ -5089,67 +5329,139 @@ family_registry <- list(
 
 # An unknown value errors and names the supported families.
 
+#' Find a family constructor by name, under brms's spelling rules.
+#'
+#' brms lower-cases the name and reads `normal` as `gaussian`, `zi_` as
+#' `zero_inflated_` and `hu_` as `hurdle_`, so `brmsfamily("zi_poisson")`
+#' and `family = "Gamma"` both work there. The exact registry name is
+#' tried first, so frmtmb's own spellings keep resolving as they did.
+#'
+#' @noRd
+family_ctor <- function(name) {
+  ctor <- family_registry[[name]]
+  if (!is.null(ctor)) return(ctor)
+  low <- tolower(name)
+  low <- sub("^normal$", "gaussian", low)
+  low <- sub("^zi_", "zero_inflated_", low)
+  low <- sub("^hu_", "hurdle_", low)
+  # brms's name for the family frmtmb calls compois
+  low <- sub("^com_poisson$", "compois", low)
+  keys <- names(family_registry)
+  hit <- keys[tolower(keys) == low]
+  if (length(hit)) return(family_registry[[hit[1L]]])
+  stop(name, " is not a supported family. Supported families are: ",
+       paste(unique(names(family_registry)), collapse = ", "),
+       call. = FALSE)
+}
+
+#' Build a family from its name and links, the shared body of
+#' [brmsfamily()] and a character `family =`.
+#'
+#' `link` is already a value here: the callers that take an unquoted link
+#' have resolved it. `NULL` leaves the constructor's default.
+#'
+#' @noRd
+family_from_name <- function(family, link = NULL, args = list(),
+                             caller = "brmsfamily") {
+  ctor <- family_ctor(family)
+  if (length(args) &&
+      (is.null(names(args)) || !all(nzchar(names(args))))) {
+    stop(caller, "(): every argument after `family` and `link` has to ",
+         "be named, as in link_sigma = \"softplus\"", call. = FALSE)
+  }
+  unknown <- setdiff(names(args), setdiff(names(formals(ctor)), "link"))
+  if (length(unknown)) {
+    stop(caller, "(\"", family, "\") has no argument ",
+         paste0("`", unknown, "`", collapse = ", "), ". It takes ",
+         paste0("`", setdiff(names(formals(ctor)), "..."), "`",
+                collapse = ", "), ". See ?`frmtmb-links`", call. = FALSE)
+  }
+  if (!is.null(link)) args <- c(list(link = link), args)
+  do.call(ctor, args)
+}
+
 #' Build a family by name, with a link for any of its parameters
 #'
-#' The frmtmb family constructors take `link` and a `link_<dpar>` for
-#' each of their other distributional parameters, so
-#' `student(link_sigma = "softplus")` needs nothing else and this is
-#' not the usual way to reach a link.
+#' `brmsfamily()` is brms's generic family constructor. It names the
+#' family with a string, takes the link for the mean as the second
+#' argument, and takes a `link_<dpar>` argument for each of the
+#' family's other distributional parameters.
 #'
-#' It exists for the families frmtmb has no constructor of its own for.
+#' The family constructors take the same arguments, so
+#' `student(link_sigma = "softplus")` does not need it. They exist
+#' for the families frmtmb has no constructor of its own for.
 #' `gaussian()`, `poisson()`, `binomial()` and `Gamma()` come from
 #' 'stats', which knows nothing of a `link_sigma` and refuses several
 #' links brms allows for the mean. frmtmb does NOT shadow them: a
 #' `gaussian()` that answered a `frmtmb_family` would break every
-#' `glm()` call in an attached session. Naming the family instead
-#' reaches every argument, which is what brms does with `brmsfamily()`.
+#' `glm()` call in an attached session.
+#'
+#' The name follows brms's spelling rules: case does not matter,
+#' `"normal"` is `"gaussian"`, `"com_poisson"` is `"compois"`, and the
+#' prefixes `"zi_"` and `"hu_"` stand for `"zero_inflated_"` and
+#' `"hurdle_"`. The link may be unquoted, as in
+#' `brmsfamily("gaussian", inverse)`.
+#'
+#' The family and its link as one character vector,
+#' `c("weibull", "log")`, is the form brms accepts for `family =` in a
+#' model call, and [frm()] accepts it there. `brmsfamily()` refuses it,
+#' as brms does.
+#'
+#' @section Differences from brms:
+#' An argument the family does not have is refused by name. brms
+#' ignores it, so `brmsfamily("poisson", link_sigma = "log")` builds a
+#' poisson family there. `threshold` and `refcat` are not arguments.
 #'
 #' @param family Family name, as a single string.
-#' @param ... `link`, and any `link_<dpar>` argument the named family
-#'   takes. Every one has to be named.
+#' @param link The link for the mean, quoted or not. `NULL` gives the
+#'   family's default. See [frmtmb-links] for the set each family takes.
+#' @param ... Any `link_<dpar>` argument the named family takes, and its
+#'   other constructor arguments. Every one has to be named.
 #' @return A `frmtmb_family` object, ready for [frm()].
 #' @seealso [frmtmb-links] for the links and which parameter takes
 #'   which, [frmtmb-families] for the constructors.
 #' @examples
 #' # sigma on a softplus: gaussian() from 'stats' has no link_sigma
-#' frm_family("gaussian", link_sigma = "softplus")
+#' brmsfamily("gaussian", link_sigma = "softplus")
 #'
-#' # a mean link stats::poisson() refuses
-#' frm_family("poisson", link = "softplus")
+#' # a mean link stats::poisson() refuses, and brms's short names
+#' brmsfamily("poisson", softplus)$link
+#' brmsfamily("zi_poisson")$link_zi
 #'
 #' set.seed(2)
 #' d <- data.frame(x = rnorm(60))
 #' d$y <- rnorm(60, 1 + d$x, exp(0.3 * d$x))
 #' frm(bf(y ~ x, sigma ~ x),
-#'     family = frm_family("gaussian", link_sigma = "softplus"), data = d)
+#'     family = brmsfamily("gaussian", link_sigma = "softplus"), data = d)
 #' @export
-frm_family <- function(family, ...) {
+brmsfamily <- function(family, link = NULL, ...) {
   if (!is.character(family) || length(family) != 1L || is.na(family)) {
-    stop("frm_family(): `family` names a family, as in ",
-         "frm_family(\"gaussian\", link_sigma = \"softplus\"); not ",
-         arg_desc(family), call. = FALSE)
+    stop("brmsfamily(): `family` names a family with a single string, ",
+         "as in brmsfamily(\"gaussian\", link_sigma = \"softplus\"); not ",
+         arg_desc(family), ". frm(family =) also takes ",
+         "c(family, link)", call. = FALSE)
   }
-  ctor <- family_registry[[family]]
-  if (is.null(ctor)) {
-    stop("frm_family(): no family called '", family, "'. Currently ",
-         "supported: ",
-         paste(unique(names(family_registry)), collapse = ", "),
+  link <- link_arg_value(substitute(link), link, names(frmtmb_links), NULL)
+  family_from_name(family, link, list(...), caller = "brmsfamily")
+}
+
+#' Split `family = c(name, link)`, brms's one-vector spelling, and
+#' refuse every other shape of a family name.
+#'
+#' brms reads the second element as the link and ignores any third; a
+#' third element is refused here, because it means the call says
+#' something that would be dropped.
+#'
+#' @noRd
+family_link_pair <- function(family, caller) {
+  if (!is.character(family) || !length(family) %in% 1:2 ||
+      anyNA(family)) {
+    stop(caller, "(): `family` names a family, as \"weibull\" or as ",
+         "c(\"weibull\", \"log\") with its link; not ", arg_desc(family),
          call. = FALSE)
   }
-  args <- list(...)
-  if (length(args) &&
-      (is.null(names(args)) || !all(nzchar(names(args))))) {
-    stop("frm_family(): every argument after `family` has to be named, ",
-         "as in link_sigma = \"softplus\"", call. = FALSE)
-  }
-  unknown <- setdiff(names(args), names(formals(ctor)))
-  if (length(unknown)) {
-    stop("frm_family(\"", family, "\") has no argument ",
-         paste0("`", unknown, "`", collapse = ", "), ". It takes ",
-         paste0("`", setdiff(names(formals(ctor)), "..."), "`",
-                collapse = ", "), ". See ?`frmtmb-links`", call. = FALSE)
-  }
-  do.call(ctor, args)
+  list(family = family[1L],
+       link = if (length(family) == 2L) family[2L])
 }
 
 #' @rdname frmtmb-extension-api
@@ -5165,23 +5477,17 @@ as_frmtmb_family <- function(x) {
     if (inherits(x, "frmtmb_family")) return(x)
   }
   if (inherits(x, "family")) {
-    ctor <- family_registry[[x$family]]
-    if (is.null(ctor)) {
-      stop("Unsupported family object: '", x$family,
-           "'. Currently supported: ",
-           paste(unique(names(family_registry)), collapse = ", "),
-           call. = FALSE)
-    }
-    return(ctor(link = x$link))
+    # [[ ]]: a stats family is a plain list, and `$` on it partial-matches
+    ctor <- family_ctor(x[["family"]])
+    # a brms family object also carries link_<dpar>; carry the ones the
+    # constructor takes rather than silently dropping them
+    extra <- intersect(grep("^link_", names(x), value = TRUE),
+                       names(formals(ctor)))
+    return(do.call(ctor, c(list(link = x[["link"]]), unclass(x)[extra])))
   }
-  if (is.character(x) && length(x) == 1) {
-    ctor <- family_registry[[x]]
-    if (is.null(ctor)) {
-      stop("Unsupported family name: '", x, "'. Currently supported: ",
-           paste(unique(names(family_registry)), collapse = ", "),
-           call. = FALSE)
-    }
-    return(ctor())
+  if (is.character(x)) {
+    fl <- family_link_pair(x, "frm")
+    return(family_from_name(fl$family, fl$link, caller = "frm"))
   }
   stop("Cannot interpret `family` of class ",
        paste(class(x), collapse = "/"),
@@ -5198,9 +5504,18 @@ as_frmtmb_family <- function(x) {
 #'
 #' An ordinal family (`cumulative()`, `sratio()`, `cratio()`, `acat()`)
 #' takes the response's level order as the category order. Supply an
-#' ordered factor, or integer codes `1..K`: an unordered factor is
-#' accepted, as brms accepts it, but warns and names the order it is
-#' about to use, which is alphabetical unless the levels were set.
+#' ordered factor, or integer codes `1..K`. An unordered factor is
+#' refused, as brms refuses it, because its level order is alphabetical
+#' unless someone set it, and that order is the model.
+#'
+#' A response with only two outcomes gets brms's message suggesting
+#' `bernoulli()`: an ordinal or categorical response with two
+#' categories, and a `binomial()`, `beta_binomial()` or
+#' `zero_inflated_binomial()` response whose trials are all one.
+#'
+#' Every constructor has brms's fields: `$link` is the name of the link
+#' for the mean, and `$link_<dpar>` the link of each other parameter,
+#' as in `beta_binomial()$link_phi`. See [frmtmb_family()].
 #'
 #' @section Categorical (nominal) responses:
 #' `categorical()` fits a multinomial logit to an unordered factor. The
@@ -5380,8 +5695,12 @@ as_frmtmb_family <- function(x) {
 #'
 #' The four families 'stats' owns, `gaussian()`, `poisson()`,
 #' `binomial()` and `Gamma()`, have no frmtmb constructor to carry
-#' these. Reach their links through [frm_family()]:
-#' `frm_family("gaussian", link_sigma = "softplus")`.
+#' these. Reach their links through [brmsfamily()]:
+#' `brmsfamily("gaussian", link_sigma = "softplus")`.
+#'
+#' The link for the mean may be unquoted, `student(identity)`, and is
+#' refused by name when brms does not allow it for the family:
+#' `bernoulli("sqrt")` is an error.
 #'
 #' An ordinal family's `link` is not a link on a mean. It names the
 #' distribution function the thresholds are read through, so
@@ -5467,48 +5786,64 @@ NULL
 #' @rdname frmtmb-families
 #' @export
 student <- function(link = "identity", link_sigma = "log", link_nu = "logm1") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["student"]], "identity")
   fam_student(link, link_sigma, link_nu)
 }
 
 #' @rdname frmtmb-families
 #' @export
 lognormal <- function(link = "identity", link_sigma = "log") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["lognormal"]], "identity")
   fam_lognormal(link, link_sigma)
 }
 
 #' @rdname frmtmb-families
 #' @export
 negbinomial <- function(link = "log", link_shape = "log") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["negbinomial"]], "log")
   fam_negbinomial(link, link_shape)
 }
 
 #' @rdname frmtmb-families
 #' @export
 nbinom1 <- function(link = "log", link_phi = "log") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["nbinom1"]], "log")
   fam_nbinom1(link, link_phi)
 }
 
 #' @rdname frmtmb-families
 #' @export
 Beta <- function(link = "logit", link_phi = "log") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["beta"]], "logit")
   fam_beta(link, link_phi)
 }
 
 #' @rdname frmtmb-families
 #' @export
 tweedie <- function(link = "log", link_phi = "log") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["tweedie"]], "log")
   fam_tweedie(link, link_phi)
 }
 
 #' @rdname frmtmb-families
 #' @export
 compois <- function(link = "log", link_nu = "log") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["compois"]], "log")
   fam_compois(link, link_nu)
 }
 
 #' @rdname frmtmb-families
 #' @export
 zero_inflated_poisson <- function(link = "log", link_zi = "logit") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["zero_inflated_poisson"]], "log")
   fam_zi_poisson(link, link_zi)
 }
 
@@ -5516,12 +5851,16 @@ zero_inflated_poisson <- function(link = "log", link_zi = "logit") {
 #' @export
 zero_inflated_negbinomial <- function(link = "log", link_shape = "log",
                                       link_zi = "logit") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["zero_inflated_negbinomial"]], "log")
   fam_zi_negbinomial(link, link_shape, link_zi)
 }
 
 #' @rdname frmtmb-families
 #' @export
 hurdle_poisson <- function(link = "log", link_hu = "logit") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["hurdle_poisson"]], "log")
   fam_hurdle_poisson(link, link_hu)
 }
 
@@ -5533,11 +5872,17 @@ multinomial <- function(K) fam_multinomial(K)
 
 #' @rdname frmtmb-families
 #' @export
-cumulative <- function(link = "logit") fam_cumulative(link)
+cumulative <- function(link = "logit") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["cumulative"]], "logit")
+  fam_cumulative(link)
+}
 
 #' @rdname frmtmb-families
 #' @export
 beta_binomial <- function(link = "logit", link_phi = "log") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["beta_binomial"]], "logit")
   fam_beta_binomial(link, link_phi)
 }
 
@@ -5545,6 +5890,8 @@ beta_binomial <- function(link = "logit", link_phi = "log") {
 #' @export
 skew_normal <- function(link = "identity", link_sigma = "log",
                         link_alpha = "identity") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["skew_normal"]], "identity")
   fam_skew_normal(link, link_sigma, link_alpha)
 }
 
@@ -5552,24 +5899,40 @@ skew_normal <- function(link = "identity", link_sigma = "log",
 #' @export
 exgaussian <- function(link = "identity", link_sigma = "log",
                        link_beta = "log") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["exgaussian"]], "identity")
   fam_exgaussian(link, link_sigma, link_beta)
 }
 
 #' @rdname frmtmb-families
 #' @export
-bernoulli <- function(link = "logit") fam_bernoulli(link)
+bernoulli <- function(link = "logit") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["bernoulli"]], "logit")
+  fam_bernoulli(link)
+}
 
 #' @rdname frmtmb-families
 #' @export
-geometric <- function(link = "log") fam_geometric(link)
+geometric <- function(link = "log") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["geometric"]], "log")
+  fam_geometric(link)
+}
 
 #' @rdname frmtmb-families
 #' @export
-exponential <- function(link = "log") fam_exponential(link)
+exponential <- function(link = "log") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["exponential"]], "log")
+  fam_exponential(link)
+}
 
 #' @rdname frmtmb-families
 #' @export
 weibull <- function(link = "log", link_shape = "log") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["weibull"]], "log")
   fam_weibull(link, link_shape)
 }
 
@@ -5577,12 +5940,16 @@ weibull <- function(link = "log", link_shape = "log") {
 #' @export
 shifted_lognormal <- function(link = "identity", link_sigma = "log",
                               link_ndt = "log") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["shifted_lognormal"]], "identity")
   fam_shifted_lognormal(link, link_sigma, link_ndt)
 }
 
 #' @rdname frmtmb-families
 #' @export
 hurdle_gamma <- function(link = "log", link_shape = "log", link_hu = "logit") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["hurdle_gamma"]], "log")
   fam_hurdle_gamma(link, link_shape, link_hu)
 }
 
@@ -5590,12 +5957,16 @@ hurdle_gamma <- function(link = "log", link_shape = "log", link_hu = "logit") {
 #' @export
 hurdle_lognormal <- function(link = "identity", link_sigma = "log",
                              link_hu = "logit") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["hurdle_lognormal"]], "identity")
   fam_hurdle_lognormal(link, link_sigma, link_hu)
 }
 
 #' @rdname frmtmb-families
 #' @export
 zero_inflated_binomial <- function(link = "logit", link_zi = "logit") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["zero_inflated_binomial"]], "logit")
   fam_zi_binomial(link, link_zi)
 }
 
@@ -5603,6 +5974,8 @@ zero_inflated_binomial <- function(link = "logit", link_zi = "logit") {
 #' @export
 zero_inflated_beta <- function(link = "logit", link_phi = "log",
                                link_zi = "logit") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["zero_inflated_beta"]], "logit")
   fam_zi_beta(link, link_phi, link_zi)
 }
 
@@ -5610,6 +5983,8 @@ zero_inflated_beta <- function(link = "logit", link_phi = "log",
 #' @export
 asym_laplace <- function(link = "identity", link_sigma = "log",
                          link_quantile = "logit") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["asym_laplace"]], "identity")
   fam_asym_laplace(link, link_sigma, link_quantile)
 }
 
@@ -5618,6 +5993,9 @@ asym_laplace <- function(link = "identity", link_sigma = "log",
 zero_inflated_asym_laplace <- function(link = "identity", link_sigma = "log",
                                        link_quantile = "logit",
                                        link_zi = "logit") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["zero_inflated_asym_laplace"]],
+                         "identity")
   fam_zi_asym_laplace(link, link_sigma, link_quantile, link_zi)
 }
 
@@ -5628,24 +6006,40 @@ zero_inflated_asym_laplace <- function(link = "identity", link_sigma = "log",
 #'   `MASS::rlm()`'s, which gives 95% efficiency against a gaussian.
 #' @export
 huber <- function(link = "identity", k = 1.345, link_sigma = "log") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["huber"]], "identity")
   fam_huber(link, k, link_sigma)
 }
 
 #' @rdname frmtmb-families
 #' @export
-sratio <- function(link = "logit") fam_sratio(link)
+sratio <- function(link = "logit") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["sratio"]], "logit")
+  fam_sratio(link)
+}
 
 #' @rdname frmtmb-families
 #' @export
-cratio <- function(link = "logit") fam_cratio(link)
+cratio <- function(link = "logit") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["cratio"]], "logit")
+  fam_cratio(link)
+}
 
 #' @rdname frmtmb-families
 #' @export
-acat <- function(link = "logit") fam_acat(link)
+acat <- function(link = "logit") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["acat"]], "logit")
+  fam_acat(link)
+}
 
 #' @rdname frmtmb-families
 #' @export
 von_mises <- function(link = "tan_half", link_kappa = "log") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["von_mises"]], "tan_half")
   fam_von_mises(link, link_kappa)
 }
 
@@ -5656,9 +6050,9 @@ von_mises <- function(link = "tan_half", link_kappa = "log") {
 #'   data; [frm()] reads them off the response.
 #' @export
 categorical <- function(link = "logit", levels = NULL, K = NULL) {
-  if (!identical(link, "logit")) {
-    stop("categorical() supports the 'logit' link only", call. = FALSE)
-  }
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["categorical"]], "logit")
+  categorical_link_check(link)
   if (!is.null(levels)) {
     levels <- as.character(levels)
     if (length(levels) < 2L || anyDuplicated(levels)) {
@@ -5688,6 +6082,8 @@ categorical <- function(link = "logit", levels = NULL, K = NULL) {
 #'   non-zero at the lower boundary knot.
 #' @export
 cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["cox"]], "log")
   # df and degree size the I-spline baseline basis, so a length-2 value
   # used to build a basis of one shape and record another
   check_count(df, "df", min = 1L)
@@ -5728,13 +6124,15 @@ family_link_str <- function(fam) {
 #' @export
 print.frmtmb_family <- function(x, ...) {
   frm_check_dots(...)
-  links <- vapply(x$links, function(l) l$name, "")
-  cat("<frmtmb family> ", x$family, "\n", sep = "")
-  cat("  dpars: ", paste0(x$dpars, " (", links[x$dpars], ")",
-                          collapse = ", "), "\n", sep = "")
-  if (!is.null(x[["ord_link"]])) {
-    cat("  cdf: ", x[["ord_link"]][["name"]], "\n", sep = "")
-  }
+  # brms's first two lines, spacing included, so output a ported script
+  # matches on reads the same
+  cat("\nFamily:", x[["family"]], "\n")
+  cat("Link function:", x$link, "\n")
+  links <- vapply(x[["links"]], function(l) {
+    if (is.list(l)) l[["name"]] %||% "?" else as.character(l)
+  }, "")
+  cat("Parameters: ", paste0(x[["dpars"]], " (", links[x[["dpars"]]], ")",
+                             collapse = ", "), "\n\n", sep = "")
   invisible(x)
 }
 

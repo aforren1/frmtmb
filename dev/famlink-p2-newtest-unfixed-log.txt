@@ -1,0 +1,40 @@
+Expected `grep("done", msgs, value = TRUE)` to match regexp "non-finite trial".
+Actual text:
+x | frmtmb: done [0.02s]: objective 56.447481, max|grad| 0.000273, 0 warnings
+  | 
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 9.3 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-brms-families.R:469:5'): nonfinite_trials counts every optimizer run, restarts included
+Expected `fit$opt$nonfinite_trials` to be identical to `counted`.
+Differences:
+  `actual`: 0
+`expected`: 7
+
+
+Failure ('test-brms-families.R:469:5'): nonfinite_trials counts every optimizer run, restarts included
+Expected `fit$opt$nonfinite_trials` to be identical to `counted`.
+Differences:
+  `actual`: 12
+`expected`: 13
+
+
+Failure ('test-brms-families.R:472:3'): nonfinite_trials counts every optimizer run, restarts included
+Expected output from `diagnose(fit)` to match string "Non-finite objective at 13 trial points".
+Actual output:
+x | Optimizer convergence code: 1 (false convergence (8)) 
+  | Max |gradient|: 7.272e+11 at x 
+  | Hessian positive definite: FALSE 
+  | Non-finite standard errors: (Intercept), x, shape_(Intercept), theta_1 
+
+Failure ('test-brms-families.R:483:3'): nonfinite_trials counts every optimizer run, restarts included
+Expected `grep("done", msgs, value = TRUE)` to match regexp "non-finite trial".
+Actual text:
+x | frmtmb: done [0.02s]: objective 56.447481, max|grad| 0.000273, 0 warnings
+  | 
+
+[ FAIL 4 | WARN 12 | SKIP 0 | PASS 969 ]
+FAMLINK test-brms-families.R tests 22 fail 4 error 0 skip 0

@@ -24,6 +24,13 @@ the boundary of their parameter space (lme4's \code{isSingular()}, read
 off the estimates rather than the Hessian).
 }
 \details{
+NON-FINITE TRIALS are points where the optimizer found the objective
+undefined and stepped back, for example a line search that crosses
+below zero on the \code{1/mu^2} link. They do not make a fit wrong, so they
+are reported as a count and do not count against "No convergence
+problems detected". A large count on a model with no restricted link
+can point to a density that is undefined where it should not be.
+
 A DISTRIBUTIONAL PARAMETER AT THE END OF ITS LINK is one whose
 estimate is far out on the link scale AND whose standard error is
 larger than the estimate itself. The likelihood was still rising

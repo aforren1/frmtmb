@@ -63,9 +63,12 @@ Two cautions when porting a link:
   `pnorm()`. frmtmb reproduces the Stan form, because that is the
   likelihood a brms fit was actually computed with.
 
-The ordinal families are the one place the roster is narrower:
-`cumulative()`, `sratio()` and `cratio()` take `logit` and `probit`
-only, and `acat()` takes `logit` only.
+The ordinal families take brms's sets: `cumulative()` takes `logit`,
+`probit`, `probit_approx`, `cloglog`, `cauchit` and `softit`, and
+`sratio()` and `cratio()` take the same without `softit`. `acat()` is
+the one place the roster is narrower. It takes `logit` only, because
+brms computes acat off the logit from a second density that frmtmb
+has not written.
 
 ## What changes
 
@@ -212,10 +215,10 @@ only, and `acat()` takes `logit` only.
   nested `frm_multiple()` fits with the D1, D2 and D3 rules of `mice`
   (D3 by default). Mixture fits are ML: expect multimodality, compare
   starts (`frm_allfit()`).
-- `binomial()` without `trials()` is accepted and means Bernoulli, the
-  `stats::glm()` convention; brms rejects it and asks for `trials()` or
-  `bernoulli()`. The divergence is permissive, so brms code ports
-  unchanged, but frmtmb code written this way does not port back.
+- `binomial()`, `beta_binomial()` and `zero_inflated_binomial()`
+  without `trials()` are refused, as in brms, with brms's message. A 0/1
+  response takes `bernoulli()` or `y | trials(1)`; the `stats::glm()`
+  convention of one implicit trial does not carry over.
 - `ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` are supported in
   their covariance form only; see the next section.
 - glmer's proportion-response idiom (`weights = size`) becomes

@@ -1,0 +1,94 @@
+arm: base  frmtmb 0.58.0 from C:/Users/adf44/source/r/rellib-r3 
+
+[FAIL] item 1: student()$link is "identity"
+    got: value of class list
+[FAIL] item 1: beta_binomial()$link_phi is "log"
+    got: value of class NULL
+[FAIL] item 1: zero_inflated_binomial()$link_zi is "logit"
+    got: value of class NULL
+[FAIL] item 1: student()$link_nu is "logm1"
+    got: value of class NULL
+[FAIL] item 1: cumulative('probit')$link is "probit"
+    got: value of class list
+[FAIL] item 1: is.function(student()$linkinv) is TRUE
+    got: value of class logical
+[FAIL] item 1: is.function(stats::gaussian()-converted $linkinv) is TRUE
+    got: value of class logical
+[FAIL] item 1: student()$lin (a partial name) does not silently return a field
+    got: value of class list
+[FAIL] item 2: student(identity)$link is "identity"
+    got: ERROR: A link must be named by a single string, e.g. link = "logit", not a function of length 1. Available links: identity, log, logit, cloglog, probit, probit_approx, cauchit, softit, inverse, logm1, log1p, tan_half, power12, softplus, squareplus, sqrt, 1/mu^2
+[FAIL] item 2: negbinomial(sqrt)$link is "sqrt"
+    got: ERROR: A link must be named by a single string, e.g. link = "logit", not a function of length 1. Available links: identity, log, logit, cloglog, probit, probit_approx, cauchit, softit, inverse, logm1, log1p, tan_half, power12, softplus, squareplus, sqrt, 1/mu^2
+[FAIL] item 2: exponential(log)$link is "log"
+    got: ERROR: A link must be named by a single string, e.g. link = "logit", not a function of length 1. Available links: identity, log, logit, cloglog, probit, probit_approx, cauchit, softit, inverse, logm1, log1p, tan_half, power12, softplus, squareplus, sqrt, 1/mu^2
+[FAIL] item 2: geometric(identity)$link is "identity"
+    got: ERROR: A link must be named by a single string, e.g. link = "logit", not a function of length 1. Available links: identity, log, logit, cloglog, probit, probit_approx, cauchit, softit, inverse, logm1, log1p, tan_half, power12, softplus, squareplus, sqrt, 1/mu^2
+[FAIL] item 2: zero_inflated_poisson(log)$link is "log"
+    got: ERROR: A link must be named by a single string, e.g. link = "logit", not a function of length 1. Available links: identity, log, logit, cloglog, probit, probit_approx, cauchit, softit, inverse, logm1, log1p, tan_half, power12, softplus, squareplus, sqrt, 1/mu^2
+[FAIL] item 2: bernoulli(lk) with lk <- 'probit' is "probit"
+    got: value of class list
+[FAIL] item 3: bernoulli('sqrt') is refused matching "'sqrt' is not a supported link for family 'bernoulli'"
+    got: value of class frmtmb_family
+[FAIL] item 3: exponential('cloglog') is refused matching "'cloglog' is not a supported link for family 'exponential'"
+    got: value of class frmtmb_family
+[FAIL] item 3: Beta('1/mu^2') is refused matching "'1/mu^2' is not a supported link for family 'beta'"
+    got: value of class frmtmb_family
+[FAIL] item 3: zero_inflated_negbinomial('logit') is refused matching "is not a supported link for family 'zero_inflated_negbinomial'"
+    got: value of class frmtmb_family
+[FAIL] item 3: beta_binomial('log') is refused matching "'log' is not a supported link for family 'beta_binomial'"
+    got: value of class frmtmb_family
+[FAIL] item 3: brmsfamily('poisson', link = 'inverse') is refused matching "'inverse' is not a supported link for family 'poisson'"
+    got: ERROR: could not find function "brmsfamily"
+[FAIL] item 3: stats::poisson('inverse') through frm() is refused matching "'inverse' is not a supported link for family 'poisson'"
+    got: value of class frmtmb_fit
+[FAIL] item 3: frm(y ~ x, bernoulli('sqrt')) is refused, seed 1, n = 60
+    got: FITTED: mu coef  0.64759734 -0.02160626 ; warnings: NA/NaN function evaluation
+[FAIL] item 5: mixture(poisson(), categorical()) is refused matching "Some of the families are not allowed in mixture models"
+    got: value of class frmtmb_family
+[FAIL] item 5: mixture(lognormal, exgaussian, poisson()) is refused matching "Cannot mix families with real and integer support"
+    got: value of class frmtmb_family
+[FAIL] item 5: mixture(poisson, 'cumulative') is refused matching "Cannot mix ordinal and non-ordinal families"
+    got: ERROR: mixture() does not support component family 'cumulative'
+[FAIL] item 11: frm(unordered factor ~ x, cumulative()), seed 11 is refused matching "Family 'cumulative' requires either positive integers or ordered factors"
+    got: value of class frmtmb_fit ; WARNING: Ordinal response 'y' is an unordered factor; its level order (high < low < mid) is taken as the category order. Use factor(..., ordered = TRUE) to state it explicitly
+[FAIL] item 11: frm(unordered factor ~ x, sratio()), seed 11 is refused matching "Family 'sratio' requires either positive integers or ordered factors"
+    got: value of class frmtmb_fit ; WARNING: Ordinal response 'y' is an unordered factor; its level order (high < low < mid) is taken as the category order. Use factor(..., ordered = TRUE) to state it explicitly
+[FAIL] item 11: frm(unordered factor ~ x, cratio()), seed 11 is refused matching "Family 'cratio' requires either positive integers or ordered factors"
+    got: value of class frmtmb_fit ; WARNING: Ordinal response 'y' is an unordered factor; its level order (high < low < mid) is taken as the category order. Use factor(..., ordered = TRUE) to state it explicitly
+[FAIL] item 11: frm(unordered factor ~ x, acat()), seed 11 is refused matching "Family 'acat' requires either positive integers or ordered factors"
+    got: value of class frmtmb_fit ; WARNING: Ordinal response 'y' is an unordered factor; its level order (high < low < mid) is taken as the category order. Use factor(..., ordered = TRUE) to state it explicitly
+[FAIL] item 15: binomial y | trials(1), seed 15 messages the bernoulli suggestion
+    got: value of class frmtmb_fit
+[FAIL] item 15: beta_binomial y | trials(1), seed 15 messages the bernoulli suggestion
+    got: value of class frmtmb_fit
+[FAIL] item 15: cumulative on 2 categories, seed 15 messages the bernoulli suggestion
+    got: value of class frmtmb_fit
+[FAIL] item 15: categorical on 2 levels, seed 15 messages the bernoulli suggestion
+    got: value of class frmtmb_fit
+[PASS] item 15: cumulative on 3 categories, seed 15 does not message the bernoulli suggestion
+    got: value of class frmtmb_fit
+[FAIL] item 16: brmsfamily('gaussian', inverse)$link is "inverse"
+    got: ERROR: could not find function "brmsfamily"
+[FAIL] item 16: brmsfamily('geometric', 'identity')$family is "geometric"
+    got: ERROR: could not find function "brmsfamily"
+[FAIL] item 16: brmsfamily('zi_poisson')$link_zi is "logit"
+    got: ERROR: could not find function "brmsfamily"
+[FAIL] item 16: frmtmb:::as_frmtmb_family(c('weibull', 'log'))$link is "log"
+    got: ERROR: Cannot interpret `family` of class character: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`
+[FAIL] item 16: frmtmb:::as_frmtmb_family(c('weibull', 'sqrt')) is refused matching "'sqrt' is not a supported link for family 'weibull'"
+    got: ERROR: Cannot interpret `family` of class character: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`
+[FAIL] item 16: frm(family = c('weibull', 'log')) fits, seed 16
+    got: ERROR: Cannot interpret `family` of class character: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`
+[FAIL] item 16: frm(family = c('categorical', 'probit')) is refused matching "'probit' is not a supported link for family 'categorical'"
+    got: ERROR: Cannot interpret `family` of class character: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`
+
+==== summary (base) ====
+item 1   pass 0 of 8
+item 2   pass 0 of 6
+item 3   pass 0 of 8
+item 5   pass 0 of 3
+item 11  pass 0 of 4
+item 15  pass 1 of 5
+item 16  pass 0 of 7
+TOTAL PASS 1 of 41 

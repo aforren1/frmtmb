@@ -1,0 +1,42 @@
+item	check	pass	got
+1	student()$link is "identity"	FALSE	value of class list
+1	beta_binomial()$link_phi is "log"	FALSE	value of class NULL
+1	zero_inflated_binomial()$link_zi is "logit"	FALSE	value of class NULL
+1	student()$link_nu is "logm1"	FALSE	value of class NULL
+1	cumulative('probit')$link is "probit"	FALSE	value of class list
+1	is.function(student()$linkinv) is TRUE	FALSE	value of class logical
+1	is.function(stats::gaussian()-converted $linkinv) is TRUE	FALSE	value of class logical
+1	student()$lin (a partial name) does not silently return a field	FALSE	value of class list
+2	student(identity)$link is "identity"	FALSE	ERROR: A link must be named by a single string, e.g. link = "logit", not a function of length 1. Available links: identity, log, logit, cloglog, probit, probit_
+2	negbinomial(sqrt)$link is "sqrt"	FALSE	ERROR: A link must be named by a single string, e.g. link = "logit", not a function of length 1. Available links: identity, log, logit, cloglog, probit, probit_
+2	exponential(log)$link is "log"	FALSE	ERROR: A link must be named by a single string, e.g. link = "logit", not a function of length 1. Available links: identity, log, logit, cloglog, probit, probit_
+2	geometric(identity)$link is "identity"	FALSE	ERROR: A link must be named by a single string, e.g. link = "logit", not a function of length 1. Available links: identity, log, logit, cloglog, probit, probit_
+2	zero_inflated_poisson(log)$link is "log"	FALSE	ERROR: A link must be named by a single string, e.g. link = "logit", not a function of length 1. Available links: identity, log, logit, cloglog, probit, probit_
+2	bernoulli(lk) with lk <- 'probit' is "probit"	FALSE	value of class list
+3	bernoulli('sqrt') is refused matching "'sqrt' is not a supported link for family 'bernoulli'"	FALSE	value of class frmtmb_family
+3	exponential('cloglog') is refused matching "'cloglog' is not a supported link for family 'exponential'"	FALSE	value of class frmtmb_family
+3	Beta('1/mu^2') is refused matching "'1/mu^2' is not a supported link for family 'beta'"	FALSE	value of class frmtmb_family
+3	zero_inflated_negbinomial('logit') is refused matching "is not a supported link for family 'zero_inflated_negbinomial'"	FALSE	value of class frmtmb_family
+3	beta_binomial('log') is refused matching "'log' is not a supported link for family 'beta_binomial'"	FALSE	value of class frmtmb_family
+3	brmsfamily('poisson', link = 'inverse') is refused matching "'inverse' is not a supported link for family 'poisson'"	FALSE	ERROR: could not find function "brmsfamily"
+3	stats::poisson('inverse') through frm() is refused matching "'inverse' is not a supported link for family 'poisson'"	FALSE	value of class frmtmb_fit
+3	frm(y ~ x, bernoulli('sqrt')) is refused, seed 1, n = 60	FALSE	FITTED: mu coef  0.64759734 -0.02160626 ; warnings: NA/NaN function evaluation
+5	mixture(poisson(), categorical()) is refused matching "Some of the families are not allowed in mixture models"	FALSE	value of class frmtmb_family
+5	mixture(lognormal, exgaussian, poisson()) is refused matching "Cannot mix families with real and integer support"	FALSE	value of class frmtmb_family
+5	mixture(poisson, 'cumulative') is refused matching "Cannot mix ordinal and non-ordinal families"	FALSE	ERROR: mixture() does not support component family 'cumulative'
+11	frm(unordered factor ~ x, cumulative()), seed 11 is refused matching "Family 'cumulative' requires either positive integers or ordered factors"	FALSE	value of class frmtmb_fit ; WARNING: Ordinal response 'y' is an unordered factor; its level order (high < low < mid) is taken as the category order. Use factor(
+11	frm(unordered factor ~ x, sratio()), seed 11 is refused matching "Family 'sratio' requires either positive integers or ordered factors"	FALSE	value of class frmtmb_fit ; WARNING: Ordinal response 'y' is an unordered factor; its level order (high < low < mid) is taken as the category order. Use factor(
+11	frm(unordered factor ~ x, cratio()), seed 11 is refused matching "Family 'cratio' requires either positive integers or ordered factors"	FALSE	value of class frmtmb_fit ; WARNING: Ordinal response 'y' is an unordered factor; its level order (high < low < mid) is taken as the category order. Use factor(
+11	frm(unordered factor ~ x, acat()), seed 11 is refused matching "Family 'acat' requires either positive integers or ordered factors"	FALSE	value of class frmtmb_fit ; WARNING: Ordinal response 'y' is an unordered factor; its level order (high < low < mid) is taken as the category order. Use factor(
+15	binomial y | trials(1), seed 15 messages the bernoulli suggestion	FALSE	value of class frmtmb_fit
+15	beta_binomial y | trials(1), seed 15 messages the bernoulli suggestion	FALSE	value of class frmtmb_fit
+15	cumulative on 2 categories, seed 15 messages the bernoulli suggestion	FALSE	value of class frmtmb_fit
+15	categorical on 2 levels, seed 15 messages the bernoulli suggestion	FALSE	value of class frmtmb_fit
+15	cumulative on 3 categories, seed 15 does not message the bernoulli suggestion	TRUE	value of class frmtmb_fit
+16	brmsfamily('gaussian', inverse)$link is "inverse"	FALSE	ERROR: could not find function "brmsfamily"
+16	brmsfamily('geometric', 'identity')$family is "geometric"	FALSE	ERROR: could not find function "brmsfamily"
+16	brmsfamily('zi_poisson')$link_zi is "logit"	FALSE	ERROR: could not find function "brmsfamily"
+16	frmtmb:::as_frmtmb_family(c('weibull', 'log'))$link is "log"	FALSE	ERROR: Cannot interpret `family` of class character: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gauss
+16	frmtmb:::as_frmtmb_family(c('weibull', 'sqrt')) is refused matching "'sqrt' is not a supported link for family 'weibull'"	FALSE	ERROR: Cannot interpret `family` of class character: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gauss
+16	frm(family = c('weibull', 'log')) fits, seed 16	FALSE	ERROR: Cannot interpret `family` of class character: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gauss
+16	frm(family = c('categorical', 'probit')) is refused matching "'probit' is not a supported link for family 'categorical'"	FALSE	ERROR: Cannot interpret `family` of class character: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gauss

@@ -1,0 +1,28 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+fam$links$mu <- probit obj                 agrees (4 fields)  link=probit
+fam[['links']][['sigma']] <- 'softplus'    agrees (4 fields)  link=identity
+fam['links'] <- list(...)                  agrees (4 fields)  link=log
+fam[c('links','dpars')] <- ...             agrees (4 fields)  link=log
+fam[[idx of links]] <- ...                 agrees (4 fields)  link=log
+utils::modifyList(fam, list(links=))       agrees (4 fields)  link=log
+unclass, edit, class<-                     agrees (4 fields)  link=log
+structure(modified, class=)                agrees (4 fields)  link=log
+fam$dpars <- c(dpars, 'extra')             agrees (5 fields)  link=identity
+fam$links <- NULL                          agrees (4 fields)  link=NA
+fam$ord_link on cumulative <- probit       agrees (3 fields)  link=probit
+sratio('cloglog')                          agrees (3 fields)  link=cloglog
+mixture(gaussian, student)                 agrees (9 fields)  link=identity
+mixture, component link edited             agrees (8 fields)  link=identity
+categorical(levels = a, b, c)              agrees (3 fields)  link=logit
+multinomial(3)                             agrees (3 fields)  link=logit
+custom family, string links                agrees (4 fields)  link=log
+custom family, unknown link string         ERROR building: Unknown link: 'nosuch'. Available links: identity, log, logit, cloglog
+fam['link'] <- 'log' (store)               ERROR on read: This family object stores an element named `link`, which is   link=<error>
+fam$link_sigma <- 'identity' (store)       ERROR on read: This family object stores an element named `link_sigma`, whi  link=identity
+
+-- reads that do not go through `$` --
+f[['link']]: NULL | unclass(f)$link: identity, function (mu) , mu, function (eta) , eta, function (eta) , rep(1, length(eta)) log, function (mu) , log(mu), function (eta) , exp(eta), function (eta) , exp(eta), function (eta) , eta | getElement(f, 'link'): NULL | 'link' %in% names(f): FALSE 
+links removed: $link NA  $linkinv is NULL: TRUE  $link_sigma NA 
+
+-- through a fit --
+family(fit)$link: log  link applied by the fit: log 

@@ -1,0 +1,42 @@
+item	check	pass	got
+1	student()$link is "identity"	TRUE	"identity"
+1	beta_binomial()$link_phi is "log"	TRUE	"log"
+1	zero_inflated_binomial()$link_zi is "logit"	TRUE	"logit"
+1	student()$link_nu is "logm1"	TRUE	"logm1"
+1	cumulative('probit')$link is "probit"	TRUE	"probit"
+1	is.function(student()$linkinv) is TRUE	TRUE	value of class logical
+1	is.function(stats::gaussian()-converted $linkinv) is TRUE	TRUE	value of class logical
+1	student()$lin (a partial name) does not silently return a field	TRUE	value of class NULL
+2	student(identity)$link is "identity"	TRUE	"identity"
+2	negbinomial(sqrt)$link is "sqrt"	TRUE	"sqrt"
+2	exponential(log)$link is "log"	TRUE	"log"
+2	geometric(identity)$link is "identity"	TRUE	"identity"
+2	zero_inflated_poisson(log)$link is "log"	TRUE	"log"
+2	bernoulli(lk) with lk <- 'probit' is "probit"	TRUE	"probit"
+3	bernoulli('sqrt') is refused matching "'sqrt' is not a supported link for family 'bernoulli'"	TRUE	ERROR: 'sqrt' is not a supported link for family 'bernoulli'. Supported links are: 'logit', 'probit', 'probit_approx', 'cloglog', 'cauchit', 'softit', 'identity
+3	exponential('cloglog') is refused matching "'cloglog' is not a supported link for family 'exponential'"	TRUE	ERROR: 'cloglog' is not a supported link for family 'exponential'. Supported links are: 'log', 'identity', 'inverse', 'softplus', 'squareplus'. See ?`frmtmb-lin
+3	Beta('1/mu^2') is refused matching "'1/mu^2' is not a supported link for family 'beta'"	TRUE	ERROR: '1/mu^2' is not a supported link for family 'beta'. Supported links are: 'logit', 'probit', 'probit_approx', 'cloglog', 'cauchit', 'softit', 'identity', 
+3	zero_inflated_negbinomial('logit') is refused matching "is not a supported link for family 'zero_inflated_negbinomial'"	TRUE	ERROR: 'logit' is not a supported link for family 'zero_inflated_negbinomial'. Supported links are: 'log', 'identity', 'sqrt', 'softplus', 'squareplus'. See ?`f
+3	beta_binomial('log') is refused matching "'log' is not a supported link for family 'beta_binomial'"	TRUE	ERROR: 'log' is not a supported link for family 'beta_binomial'. Supported links are: 'logit', 'probit', 'probit_approx', 'cloglog', 'cauchit', 'softit', 'ident
+3	brmsfamily('poisson', link = 'inverse') is refused matching "'inverse' is not a supported link for family 'poisson'"	TRUE	ERROR: 'inverse' is not a supported link for family 'poisson'. Supported links are: 'log', 'identity', 'sqrt', 'softplus', 'squareplus'. See ?`frmtmb-links`
+3	stats::poisson('inverse') through frm() is refused matching "'inverse' is not a supported link for family 'poisson'"	TRUE	ERROR: 'inverse' is not a supported link for family 'poisson'. Supported links are: 'log', 'identity', 'sqrt', 'softplus', 'squareplus'. See ?`frmtmb-links`
+3	frm(y ~ x, bernoulli('sqrt')) is refused, seed 1, n = 60	TRUE	ERROR: 'sqrt' is not a supported link for family 'bernoulli'. Supported links are: 'logit', 'probit', 'probit_approx', 'cloglog', 'cauchit', 'softit', 'identity
+5	mixture(poisson(), categorical()) is refused matching "Some of the families are not allowed in mixture models"	TRUE	ERROR: Some of the families are not allowed in mixture models: categorical. A categorical or multinomial response is not a value the other components can share,
+5	mixture(lognormal, exgaussian, poisson()) is refused matching "Cannot mix families with real and integer support"	TRUE	ERROR: Cannot mix families with real and integer support. The components are lognormal (continuous), exgaussian (continuous), poisson (discrete), and a weighted
+5	mixture(poisson, 'cumulative') is refused matching "Cannot mix ordinal and non-ordinal families"	TRUE	ERROR: Cannot mix ordinal and non-ordinal families. The components are poisson (discrete), cumulative (ordinal)
+11	frm(unordered factor ~ x, cumulative()), seed 11 is refused matching "Family 'cumulative' requires either positive integers or ordered factors"	TRUE	ERROR: Family 'cumulative' requires either positive integers or ordered factors as responses. 'y' is an unordered factor, whose level order (high < low < mid) i
+11	frm(unordered factor ~ x, sratio()), seed 11 is refused matching "Family 'sratio' requires either positive integers or ordered factors"	TRUE	ERROR: Family 'sratio' requires either positive integers or ordered factors as responses. 'y' is an unordered factor, whose level order (high < low < mid) is no
+11	frm(unordered factor ~ x, cratio()), seed 11 is refused matching "Family 'cratio' requires either positive integers or ordered factors"	TRUE	ERROR: Family 'cratio' requires either positive integers or ordered factors as responses. 'y' is an unordered factor, whose level order (high < low < mid) is no
+11	frm(unordered factor ~ x, acat()), seed 11 is refused matching "Family 'acat' requires either positive integers or ordered factors"	TRUE	ERROR: Family 'acat' requires either positive integers or ordered factors as responses. 'y' is an unordered factor, whose level order (high < low < mid) is not 
+15	binomial y | trials(1), seed 15 messages the bernoulli suggestion	TRUE	value of class frmtmb_fit ; MESSAGE: Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 
+15	beta_binomial y | trials(1), seed 15 messages the bernoulli suggestion	TRUE	value of class frmtmb_fit ; MESSAGE: Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 
+15	cumulative on 2 categories, seed 15 messages the bernoulli suggestion	TRUE	value of class frmtmb_fit ; MESSAGE: Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 
+15	categorical on 2 levels, seed 15 messages the bernoulli suggestion	TRUE	value of class frmtmb_fit ; MESSAGE: Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 
+15	cumulative on 3 categories, seed 15 does not message the bernoulli suggestion	TRUE	value of class frmtmb_fit
+16	brmsfamily('gaussian', inverse)$link is "inverse"	TRUE	"inverse"
+16	brmsfamily('geometric', 'identity')$family is "geometric"	TRUE	"geometric"
+16	brmsfamily('zi_poisson')$link_zi is "logit"	TRUE	"logit"
+16	frmtmb:::as_frmtmb_family(c('weibull', 'log'))$link is "log"	TRUE	"log"
+16	frmtmb:::as_frmtmb_family(c('weibull', 'sqrt')) is refused matching "'sqrt' is not a supported link for family 'weibull'"	TRUE	ERROR: 'sqrt' is not a supported link for family 'weibull'. Supported links are: 'log', 'identity', 'inverse', 'softplus', 'squareplus'. See ?`frmtmb-links`
+16	frm(family = c('weibull', 'log')) fits, seed 16	TRUE	value of class frmtmb_fit
+16	frm(family = c('categorical', 'probit')) is refused matching "'probit' is not a supported link for family 'categorical'"	TRUE	ERROR: 'probit' is not a supported link for family 'categorical'. Supported links are: 'logit'. categorical() takes the 'logit' link only, the multinomial logit

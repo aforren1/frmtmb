@@ -1,0 +1,28 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+trials_col                   ok    gp ok     
+trials_const1_y01            ok    gp ok     
+no_trials_y01                error gp ok     Specifying 'trials' is required for this model. binomial reads the number of trials from t
+no_trials_counts             error gp ok     Specifying 'trials' is required for this model. binomial reads the number of trials from t
+cbind_sf                     ok    gp ok     
+cbind_sf_re                  ok    gp ok     
+cbind_betabin                ok    gp ok     
+weights_y01_no_trials        error gp ok     Specifying 'trials' is required for this model. binomial reads the number of trials from t
+prop_weights_no_trials       error gp ok     Specifying 'trials' is required for this model. binomial reads the number of trials from t
+trials_and_weights           ok    gp ok     
+betabin_no_trials            error gp ok     Specifying 'trials' is required for this model. beta_binomial reads the number of trials f
+zib_no_trials                error gp ok     Specifying 'trials' is required for this model. zero_inflated_binomial reads the number of
+zib_trials                   ok    gp ok     
+family_string_no_trials      error gp ok     Specifying 'trials' is required for this model. binomial reads the number of trials from t
+family_string_trials         ok    gp ok     
+mv_both_trials               ok    gp ok     
+mv_one_missing               error gp ok     Specifying 'trials' is required for this model. binomial reads the number of trials from t
+mv_mixed_families            ok    gp ok     
+mix_binom_trials             ok    gp ok     
+mix_binom_no_trials          error gp ok     Specifying 'trials' is required for this model. binomial reads the number of trials from t
+mix_binom_poisson_trials     ok    gp ok     
+mix_bern_bern                ok    gp ok     
+multinom_trials              ok    gp ok     
+multinom_no_trials           error gp ok     Specifying 'trials' is required for this model. multinomial reads the number of trials fro
+multinom_trials_wrong        error gp ok     Number of trials does not match the number of events. multinomial: rowSums(response) must 
+multinom_onehot_trials1      ok    gp ok     
+multinom_onehot_no_trials    error gp ok     Specifying 'trials' is required for this model. multinomial reads the number of trials fro

@@ -12,7 +12,7 @@
 ## large intercept is a different item from one that is linear with a
 ## large slope, and only the second is what 4.6 removes.
 ##
-## "A 2000-row GLMM" does not name a family; binomial with a logit link
+## "A 2000-row GLMM" does not name a family; bernoulli with a logit link
 ## is chosen here, because that is the model a sampler is reached for
 ## when the Laplace approximation is the thing in doubt, and because a
 ## gaussian response would make the posterior nearly normal and the
@@ -51,7 +51,7 @@ test_that("the sample scale row samples and reports its cost", {
   scale_mem_reset()
 
   fit <- NULL
-  t_ml <- scale_elapsed(fit <- frm(form, family = stats::binomial(),
+  t_ml <- scale_elapsed(fit <- frm(form, family = bernoulli(),
                                    data = d, se = TRUE))
   # The four chains run SERIALLY. frm_sample() passes tmbstan's `cores`
   # through and rstan defaults it to getOption("mc.cores", 1), which is

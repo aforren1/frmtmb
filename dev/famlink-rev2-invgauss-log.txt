@@ -1,0 +1,277 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+               design    link  n fitted conv0 pdHess grad_max with_warnings
+             censored default 20     20    13     10 4.56e+07            10
+             censored     log 20     20    20     20 7.36e-04             0
+ distributional_shape default 20     20    20     16 1.36e-03             5
+ distributional_shape     log 20     20    20     20 9.63e-04             0
+          factor_pred default 20     20    20     15 6.96e-04             5
+          factor_pred     log 20     20    20     20 8.89e-04             0
+     fixed_large_mean default 20     20    15      0 7.71e-02            20
+     fixed_large_mean     log 20     20    20     20 8.12e-04             0
+     fixed_small_mean default 20     20    20     20 1.56e-04             0
+     fixed_small_mean     log 20     20    20     20 4.62e-04             0
+          fixed_steep default 20     20    19      0 5.03e-03            20
+          fixed_steep     log 20     20    20     20 4.50e-04             0
+       intercept_only default 20     20    20     20 4.58e-04             0
+       intercept_only     log 20     20    20     20 9.47e-06             0
+     random_intercept default 20     20    13     10 2.02e+02            11
+     random_intercept     log 20     20    20     20 9.22e-04             0
+         random_slope default 20     20     4      3 1.95e+02            17
+         random_slope     log 20     20    15     15 8.73e-04             5
+              small_n default 20     20    20     19 1.20e-04             1
+              small_n     log 20     20    20     20 1.49e-04             0
+            truncated default 20     20    20     14 7.78e-04             6
+            truncated     log 20     19    19     19 9.94e-04             0
+              weights default 20     20    20     10 6.04e-04            10
+              weights     log 20     20    20     20 7.80e-04             0
+ nonfinite_med glm_reldiff_max
+           8.0            -Inf
+           0.0            -Inf
+           6.5            -Inf
+           0.0            -Inf
+          17.0        1.88e-06
+           0.0            -Inf
+           3.0        7.43e-08
+           0.0            -Inf
+           4.5        1.18e-06
+           0.0            -Inf
+           4.0            -Inf
+           0.0            -Inf
+           0.0        3.46e-06
+           0.0            -Inf
+         227.0            -Inf
+           0.0            -Inf
+          85.5            -Inf
+           0.0            -Inf
+           4.0        2.90e-07
+           0.0            -Inf
+           3.5            -Inf
+           0.0            -Inf
+           9.5            -Inf
+           0.0            -Inf
+
+non-clean replicates:
+               design rep    link status conv         grad pdHess
+     fixed_large_mean   1 default    fit    0 2.221037e-03  FALSE
+     fixed_large_mean   2 default    fit    0 1.723536e-03  FALSE
+     fixed_large_mean   3 default    fit    0 1.682343e-02  FALSE
+     fixed_large_mean   4 default    fit    0 8.208081e-03  FALSE
+     fixed_large_mean   5 default    fit    0 3.218046e-03  FALSE
+     fixed_large_mean   6 default    fit    0 1.373008e-02  FALSE
+     fixed_large_mean   7 default    fit    0 4.899867e-03  FALSE
+     fixed_large_mean   8 default    fit    0 6.786297e-04  FALSE
+     fixed_large_mean   9 default    fit    0 6.613507e-03  FALSE
+     fixed_large_mean  10 default    fit    1 1.180389e-03  FALSE
+     fixed_large_mean  11 default    fit    1 2.754078e-03  FALSE
+     fixed_large_mean  12 default    fit    1 1.290561e-02  FALSE
+     fixed_large_mean  13 default    fit    0 4.465841e-02  FALSE
+     fixed_large_mean  14 default    fit    0 1.435860e-02  FALSE
+     fixed_large_mean  15 default    fit    0 4.130229e-03  FALSE
+     fixed_large_mean  16 default    fit    1 3.289258e-03  FALSE
+     fixed_large_mean  17 default    fit    0 2.446498e-03  FALSE
+     fixed_large_mean  18 default    fit    0 5.859526e-02  FALSE
+     fixed_large_mean  19 default    fit    1 2.952035e-02  FALSE
+     fixed_large_mean  20 default    fit    0 7.712386e-02  FALSE
+          fixed_steep   1 default    fit    0 1.649824e-04  FALSE
+          fixed_steep   2 default    fit    1 1.833841e-03  FALSE
+          fixed_steep   3 default    fit    0 2.869924e-03  FALSE
+          fixed_steep   4 default    fit    0 5.725459e-04  FALSE
+          fixed_steep   5 default    fit    0 6.454599e-05  FALSE
+          fixed_steep   6 default    fit    0 3.254107e-06  FALSE
+          fixed_steep   7 default    fit    0 9.690031e-04  FALSE
+          fixed_steep   8 default    fit    0 7.324140e-05  FALSE
+          fixed_steep   9 default    fit    0 1.845712e-04  FALSE
+          fixed_steep  10 default    fit    0 5.025760e-03  FALSE
+          fixed_steep  11 default    fit    0 1.139000e-04  FALSE
+          fixed_steep  12 default    fit    0 3.307308e-03  FALSE
+          fixed_steep  13 default    fit    0 3.150868e-05  FALSE
+          fixed_steep  14 default    fit    0 3.501774e-04  FALSE
+          fixed_steep  15 default    fit    0 9.786247e-07  FALSE
+          fixed_steep  16 default    fit    0 3.301110e-05  FALSE
+          fixed_steep  17 default    fit    0 1.551139e-04  FALSE
+          fixed_steep  18 default    fit    0 6.913355e-05  FALSE
+          fixed_steep  19 default    fit    0 3.551760e-04  FALSE
+          fixed_steep  20 default    fit    0 1.913272e-05  FALSE
+          factor_pred   1 default    fit    0 3.185201e-04  FALSE
+          factor_pred   5 default    fit    0 9.391623e-05  FALSE
+          factor_pred   7 default    fit    0 5.007097e-05  FALSE
+          factor_pred  10 default    fit    0 4.226108e-04  FALSE
+          factor_pred  13 default    fit    0 6.964122e-04  FALSE
+     random_intercept   4 default    fit    0 9.341196e-05  FALSE
+     random_intercept   5 default    fit    1 1.897330e+01  FALSE
+     random_intercept   6 default    fit    1 7.148845e+01  FALSE
+     random_intercept   7 default    fit    1 1.949887e+00  FALSE
+     random_intercept   8 default    fit    1 8.753142e+00  FALSE
+     random_intercept   9 default    fit    1 1.702034e-01  FALSE
+     random_intercept  10 default    fit    1 2.024606e+02  FALSE
+     random_intercept  11 default    fit    0 6.998571e-04  FALSE
+     random_intercept  12 default    fit    1 2.547019e+00  FALSE
+     random_intercept  18 default    fit    0 2.222767e-03   TRUE
+     random_intercept  20 default    fit    0 8.555388e-04  FALSE
+         random_slope   1 default    fit    1 1.553644e-01  FALSE
+         random_slope   2 default    fit    1 9.034573e-03  FALSE
+         random_slope   3 default    fit    1 1.825674e-02  FALSE
+         random_slope   3     log    fit    1 2.160399e-05  FALSE
+         random_slope   4 default    fit    1 5.926348e-04  FALSE
+         random_slope   4     log    fit    1 1.870373e-05  FALSE
+         random_slope   5 default    fit    1 2.410987e+01  FALSE
+         random_slope   5     log    fit    1 1.127038e-05  FALSE
+         random_slope   6 default    fit    1 7.151301e-03  FALSE
+         random_slope   7 default    fit    1 1.951532e+02  FALSE
+         random_slope   8 default    fit    0 8.277444e-04  FALSE
+         random_slope   9 default    fit    1 3.705266e-03  FALSE
+         random_slope  10 default    fit    1 3.084666e-02  FALSE
+         random_slope  12 default    fit    1 3.685604e-02  FALSE
+         random_slope  12     log    fit    1 6.877690e-05  FALSE
+         random_slope  13 default    fit    1 3.172234e+01  FALSE
+         random_slope  16 default    fit    1 2.374393e-03  FALSE
+         random_slope  17 default    fit    1 1.422768e-03  FALSE
+         random_slope  18 default    fit    1 6.157564e-02  FALSE
+         random_slope  18     log    fit    1 7.007278e-05  FALSE
+         random_slope  19 default    fit    1 1.680481e-03  FALSE
+         random_slope  20 default    fit    1 2.172851e-03  FALSE
+ distributional_shape   2 default    fit    0 8.314821e-05  FALSE
+ distributional_shape   9 default    fit    0 3.796463e-04  FALSE
+ distributional_shape  12 default    fit    0 1.006009e-03   TRUE
+ distributional_shape  17 default    fit    0 9.358416e-05  FALSE
+ distributional_shape  19 default    fit    0 1.359928e-03  FALSE
+              weights   1 default    fit    0 1.044346e-05  FALSE
+              weights   4 default    fit    0 2.824586e-04  FALSE
+              weights   7 default    fit    0 1.766900e-04  FALSE
+              weights   8 default    fit    0 6.721656e-05  FALSE
+              weights  10 default    fit    0 6.043438e-04  FALSE
+              weights  12 default    fit    0 4.692424e-05  FALSE
+              weights  14 default    fit    0 5.171807e-05  FALSE
+              weights  16 default    fit    0 3.331258e-04  FALSE
+              weights  17 default    fit    0 3.384685e-04  FALSE
+              weights  19 default    fit    0 2.522695e-04  FALSE
+             censored   3 default    fit    1 2.325854e+07  FALSE
+             censored   6 default    fit    0 3.207226e-04  FALSE
+             censored  10 default    fit    1 2.066265e+07  FALSE
+             censored  12 default    fit    1 1.733307e+07  FALSE
+             censored  14 default    fit    1 4.558248e+07  FALSE
+             censored  15 default    fit    0 2.895432e-04  FALSE
+             censored  17 default    fit    1 3.181791e+07  FALSE
+             censored  18 default    fit    1 2.030888e+07  FALSE
+             censored  19 default    fit    0 4.042364e-05  FALSE
+             censored  20 default    fit    1 1.908608e+07  FALSE
+            truncated   1 default    fit    0 6.025075e-05  FALSE
+            truncated   3 default    fit    0 7.261371e-05  FALSE
+            truncated   7 default    fit    0 9.063898e-05  FALSE
+            truncated  13     log  error   NA           NA     NA
+            truncated  14 default    fit    0 1.458247e-04  FALSE
+            truncated  17 default    fit    0 2.362518e-04  FALSE
+            truncated  18 default    fit    0 1.626542e-04  FALSE
+              small_n  15 default    fit    0 3.372755e-05  FALSE
+                                                                              msg
+ Large maximum absolute gradient at the optimum (0.00222); the fit may not have c
+ Large maximum absolute gradient at the optimum (0.00172); the fit may not have c
+ Large maximum absolute gradient at the optimum (0.0168); the fit may not have co
+ Large maximum absolute gradient at the optimum (0.00821); the fit may not have c
+ Large maximum absolute gradient at the optimum (0.00322); the fit may not have c
+ Large maximum absolute gradient at the optimum (0.0137); the fit may not have co
+ Large maximum absolute gradient at the optimum (0.0049); the fit may not have co
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Large maximum absolute gradient at the optimum (0.00661); the fit may not have c
+ Optimizer did not report convergence: false convergence (8) | Large maximum abso
+ Optimizer did not report convergence: false convergence (8) | Large maximum abso
+ Optimizer did not report convergence: false convergence (8) | Large maximum abso
+ Large maximum absolute gradient at the optimum (0.0447); the fit may not have co
+ Large maximum absolute gradient at the optimum (0.0144); the fit may not have co
+ Large maximum absolute gradient at the optimum (0.00413); the fit may not have c
+ Optimizer did not report convergence: false convergence (8) | Large maximum abso
+ Large maximum absolute gradient at the optimum (0.00245); the fit may not have c
+ Large maximum absolute gradient at the optimum (0.0586); the fit may not have co
+ Optimizer did not report convergence: false convergence (8) | Large maximum abso
+ Large maximum absolute gradient at the optimum (0.0771); the fit may not have co
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Optimizer did not report convergence: false convergence (8) | Large maximum abso
+ Large maximum absolute gradient at the optimum (0.00287); the fit may not have c
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Large maximum absolute gradient at the optimum (0.00503); the fit may not have c
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Large maximum absolute gradient at the optimum (0.00331); the fit may not have c
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Optimizer did not report convergence: function evaluation limit reached without 
+ Optimizer did not report convergence: function evaluation limit reached without 
+ Optimizer did not report convergence: function evaluation limit reached without 
+ Optimizer did not report convergence: function evaluation limit reached without 
+ Optimizer did not report convergence: function evaluation limit reached without 
+ Optimizer did not report convergence: function evaluation limit reached without 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Optimizer did not report convergence: function evaluation limit reached without 
+ Large maximum absolute gradient at the optimum (0.00222); the fit may not have c
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Optimizer did not report convergence: singular convergence (7) | Large maximum a
+ Optimizer did not report convergence: singular convergence (7) | Large maximum a
+ Optimizer did not report convergence: false convergence (8) | Large maximum abso
+ Optimizer did not report convergence: singular convergence (7) | Hessian is not 
+ Optimizer did not report convergence: singular convergence (7) | Hessian is not 
+ Optimizer did not report convergence: singular convergence (7) | Hessian is not 
+ Optimizer did not report convergence: function evaluation limit reached without 
+ Optimizer did not report convergence: singular convergence (7) | Hessian is not 
+ Optimizer did not report convergence: singular convergence (7) | Large maximum a
+ Optimizer did not report convergence: function evaluation limit reached without 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Optimizer did not report convergence: false convergence (8) | Large maximum abso
+ Optimizer did not report convergence: singular convergence (7) | Large maximum a
+ Optimizer did not report convergence: false convergence (8) | Large maximum abso
+ Optimizer did not report convergence: singular convergence (7) | Hessian is not 
+ Optimizer did not report convergence: function evaluation limit reached without 
+ Optimizer did not report convergence: singular convergence (7) | Large maximum a
+ Optimizer did not report convergence: singular convergence (7) | Large maximum a
+ Optimizer did not report convergence: false convergence (8) | Large maximum abso
+ Optimizer did not report convergence: singular convergence (7) | Hessian is not 
+ Optimizer did not report convergence: singular convergence (7) | Large maximum a
+ Optimizer did not report convergence: false convergence (8) | Large maximum abso
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Large maximum absolute gradient at the optimum (0.00101); the fit may not have c
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Large maximum absolute gradient at the optimum (0.00136); the fit may not have c
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Optimizer did not report convergence: false convergence (8) | Large maximum abso
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Optimizer did not report convergence: false convergence (8) | Large maximum abso
+ Optimizer did not report convergence: false convergence (8) | Large maximum abso
+ Optimizer did not report convergence: false convergence (8) | Large maximum abso
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Optimizer did not report convergence: false convergence (8) | Large maximum abso
+ Optimizer did not report convergence: false convergence (8) | Large maximum abso
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Optimizer did not report convergence: false convergence (8) | Large maximum abso
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ The optimizer failed on this model (inverse.gaussian, ML, nlminb): NA/NaN gradie
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 
+ Hessian is not positive definite; standard errors are unreliable. The model may 

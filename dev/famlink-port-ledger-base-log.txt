@@ -1,0 +1,11 @@
+Warning messages:
+1: `expect_equivalent()` was deprecated in the 3rd edition.
+ℹ Use expect_equal(ignore_attr = TRUE) 
+2: Ordinal response 'y' is an unordered factor; its level order (-1 < 0 < 1) is taken as the category order. Use factor(..., ordered = TRUE) to state it explicitly 
+3: Ordinal response 'y' is an unordered factor; its level order (-1 < 0 < 1) is taken as the category order. Use factor(..., ordered = TRUE) to state it explicitly 
+arm base : 4 of 90 brms assertions pass genuinely; 10 more pass only on a missing function or object
+                  genuine
+file               FALSE TRUE
+  tests.brm.R          4    0
+  tests.families.R    80    4
+  tests.standata.R     2    0

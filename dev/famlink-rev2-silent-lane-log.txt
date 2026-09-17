@@ -1,0 +1,21 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+pois_identity_wall       fit conv 0 nonfinite 8 NaN-warnings 0 other-warnings 0
+bern_log_wall            fit conv 0 nonfinite 3 NaN-warnings 0 other-warnings 0
+bern_identity_wall       fit conv 0 nonfinite 0 NaN-warnings 0 other-warnings 0
+binom_identity_trials    fit conv 0 nonfinite 12 NaN-warnings 0 other-warnings 0
+gamma_inverse_cross      fit conv 0 nonfinite 0 NaN-warnings 0 other-warnings 0
+invgauss_default         fit conv 0 nonfinite 18 NaN-warnings 0 other-warnings 0
+invgauss_default_re      fit conv 0 nonfinite 266 NaN-warnings 0 other-warnings 0
+pois_identity_re         fit conv 0 nonfinite 26 NaN-warnings 0 other-warnings 0
+pois_sqrt                fit conv 0 nonfinite 0 NaN-warnings 0 other-warnings 0
+cox_identity             fit conv 0 nonfinite 1 NaN-warnings 0 other-warnings 0
+zib_identity             fit conv 0 nonfinite 8 NaN-warnings 0 other-warnings 0
+gauss_reml_re            fit conv 0 nonfinite 0 NaN-warnings 0 other-warnings 0
+gauss_sigma_bound        fit conv 0 nonfinite 0 NaN-warnings 0 other-warnings 1
+exgauss_bound            fit conv 0 nonfinite 0 NaN-warnings 0 other-warnings 0
+pois_identity_optim      ERROR L-BFGS-B needs finite values of 'fn' (raised while fitting:  conv NULL nonfinite NULL NaN-warnings 0 other-warnings 0
+pois_identity_restarts   fit conv 0 nonfinite 8 NaN-warnings 0 other-warnings 0
+negbin_identity_re       fit conv 1 nonfinite 12 NaN-warnings 0 other-warnings 2
+Warning messages:
+1: In sqrt(diag(object$cov.fixed)) : NaNs produced
+2: In sqrt(diag(object$cov.fixed)) : NaNs produced

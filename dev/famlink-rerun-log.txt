@@ -1,0 +1,6 @@
+FAMLINK input-validation pass 43 fail 0 error 0 skip 0 in 5 s
+FAMLINK numerical-robustness pass 679 fail 0 error 0 skip 0 in 17 s
+FAMLINK brms-families pass 939 fail 0 error 0 skip 0 in 11 s
+FAMLINK families pass 1167 fail 0 error 0 skip 0 in 15 s
+FAMLINK ordinal pass 196 fail 0 error 0 skip 0 in 9 s
+FAMLINK mixture-start pass 5 fail 0 error 0 skip 0 in 2 s

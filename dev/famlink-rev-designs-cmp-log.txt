@@ -1,0 +1,34 @@
+constructions: 102 
+false alarms (brms ok, base ok, lane error): 0 
+lane refuses where brms accepts (any base): 3 
+lane accepts where brms refuses: 3 
+                   case  brms  base  lane msg_brms msg_lane msg_lane_update
+             str_normal    ok error    ok        0        0               0
+        str_gamma_lower    ok error    ok        0        0               0
+         str_zi_poisson    ok error    ok        0        0               0
+         str_hu_poisson    ok error    ok        0        0               0
+     str_Bernoulli_case    ok error    ok        0        0               0
+      pair_poisson_sqrt    ok error    ok        0        0               0
+  pair_bernoulli_probit    ok error    ok        0        0               0
+     pair_gamma_inverse    ok error    ok        0        0               0
+ pair_cumulative_probit    ok error    ok        0        0               0
+  brms_brmsfamily_gamma    ok error    ok        0        0               0
+  dist_student_identity    ok error    ok        0        0               0
+       dist_negbin_sqrt    ok error    ok        0        0               0
+   msg_binomial_trials1    ok    ok    ok        1        1               1
+  msg_binomial_notrials error    ok    ok        0        1               1
+    msg_betabin_trials1    ok    ok    ok        1        1               1
+    msg_cumulative_2cat    ok    ok    ok        1        1               1
+  msg_cumulative_2cat_f    ok    ok    ok        1        1               1
+      msg_categorical_2    ok error error        1        0              NA
+   ord_unordered_factor error    ok error        0        0              NA
+            mix_cum_cum    ok error error        0        0              NA
+        mix_zibeta_beta error    ok    ok        0        0               0
+    mix_gauss_hurdle_ln error    ok error        0        0              NA
+      mv_student_negbin    ok error    ok        0        0               0
+     brms_mixture_gauss    ok error error        0        0              NA
+       mix_gauss_ziasym error    ok    ok        0        0               0
+
+fitted in both frmtmb arms: 82 
+  brms_student_sigma_ident     not identical in: logLik,est,se,fitted (max abs diff est 1.1)
+fitted in both and bitwise identical in logLik, estimates, SEs, fitted: 81 of 82 

@@ -1,0 +1,6 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+Tracing function "nlminb_trial_fn" in package "namespace:frmtmb"
+[1] "nlminb_trial_fn"
+bern_identity_wall   nlminb calls 2; mapped per call 7 0; sum 7; fit$opt$nonfinite_trials 7; NaN warnings 0
+gamma_inverse_cross  nlminb calls 2; mapped per call 4 0; sum 4; fit$opt$nonfinite_trials 4; NaN warnings 0
+negbin_identity_re   nlminb calls 2; mapped per call 12 1; sum 13; fit$opt$nonfinite_trials 13; NaN warnings 0

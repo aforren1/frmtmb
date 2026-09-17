@@ -103,8 +103,10 @@ test_that("the bespoke refusals name their argument and contract", {
                "`na.action`")
   expect_error(frm(bf(y ~ x), data = cs$dd, prior = 5), "`prior`")
   expect_error(bernoulli(link = c("logit", "probit")),
-               "single string")
-  expect_error(bernoulli(link = 1L), "single string")
+               "single link name")
+  # a non-link value is refused quoting what was written, as brms does
+  expect_error(bernoulli(link = 1L),
+               "'1L' is not a supported link for family 'bernoulli'")
   expect_error(predict(cs$fit, newdata = "nope"), "`newdata`")
   expect_error(predict(cs$fit, re_formula = "oops"), "`re_formula`")
   expect_error(confint(cs$fit, parm = 1i), "`parm`")

@@ -1,0 +1,10 @@
+ARM base frmtmb from C:/Users/adf44/source/r/rellib-r3 
+done base 
+gaussian : errors in model_info, get_predicted, get_predicted_resp 
+    model_info ERROR: 'length = 2' in coercion to 'logical(1)' 
+    get_predicted ERROR: 'length = 2' in coercion to 'logical(1)' 
+    get_predicted_resp ERROR: 'length = 2' in coercion to 'logical(1)' 
+binomial : errors in  
+bernoulli : errors in  
+negbin_re : errors in  
+zip : errors in  

@@ -49,11 +49,25 @@
 #'
 #' @section Links for the mean:
 #'
-#' Any link in the roster is accepted for `mu`. The table below is what
-#' brms 2.23.0 accepts, so it says which pairings PORT. frmtmb does not
-#' refuse the others, because an extension family is free to mean
-#' something else by its own `mu`. The first link listed is the
-#' default.
+#' Each family constructor takes, for `mu`, the links brms 2.23.0 takes
+#' for that family, and refuses the rest by name with the set it
+#' allows: `bernoulli("sqrt")` is an error, as in brms, because a
+#' probability on `eta^2` is not bounded by one. The sets are read out
+#' of brms by a script rather than copied by hand. The first link
+#' listed is the default.
+#'
+#' The link may be written unquoted, as in `student(identity)` or
+#' `negbinomial(sqrt)`, as `stats::family()` and brms allow. Only the
+#' link for the mean can be; a `link_<dpar>` argument is a string.
+#'
+#' A custom link object (see Custom links) is not held to the table:
+#' brms has no such object, and a user who writes one has said what
+#' range the mean has. [frmtmb_family()] checks no set at all, because
+#' an extension family is free to mean something else by its own `mu`.
+#'
+#' `nbinom1`, `tweedie` and `huber` have no brms family. They take the
+#' set of the nearest brms family: `negbinomial`, `Gamma` and
+#' `gaussian`, in that order.
 #'
 #' | Family | Links for `mu` |
 #' |---|---|
@@ -72,10 +86,9 @@
 #' | `acat` | `logit` ONLY. brms takes the same six as `cumulative`; this is the one place frmtmb departs, and the reason is below |
 #' | `categorical`, `multinomial` | `logit` |
 #'
-#' An ordinal family is the exception that IS enforced. Its `link`
-#' names the cumulative distribution function the thresholds are read
-#' through, not a link on a mean, so only a link whose inverse maps
-#' onto the unit interval can serve. The rest are refused by name.
+#' An ordinal family's `link` names the cumulative distribution
+#' function the thresholds are read through, not a link on a mean, so
+#' only a link whose inverse maps onto the unit interval can serve.
 #'
 #' `acat()` is refused for a different reason, and it is the one place
 #' in this table where frmtmb takes less than brms. Probit, cloglog,
@@ -156,7 +169,7 @@
 #'   family constructor, which resolves it against the registry and
 #'   carries it on the fitted model, so the value a link contributes is
 #'   the scale each distributional parameter is estimated on. Read it
-#'   back with `frm_family()`, and read a custom link's own fields with
+#'   back with `$link` and `$link_<dpar>` on the family, and read a custom link's own fields with
 #'   the list that was supplied. This page documents the roster.
 #' @seealso [frmtmb-families] for the constructors that take these,
 #'   [set_prior()] for what a link does to a prior.
@@ -438,9 +451,10 @@ link_required_fields <- c("name", "linkfun", "linkinv", "mu_eta")
 #' one. An unknown name errors and lists the available links.
 #'
 #' @noRd
-get_link <- function(name, dpar = NULL) {
+get_link <- function(name, dpar = NULL, family = NULL) {
   if (is.list(name)) {
     where <- if (is.null(dpar)) "" else paste0(" of dpar '", dpar, "'")
+    if (!is.null(family)) where <- paste0(where, " given to ", family, "()")
     absent <- setdiff(link_required_fields, names(name))
     if (length(absent)) {
       stop("The custom link", where, " has no ",
@@ -512,20 +526,102 @@ dpar_links_signed   <- c("identity", "log", "softplus", "squareplus")
 #' A list still passes through to [get_link()], so an extension family
 #' can supply a custom link for a dpar exactly as it can for the mean.
 #'
+#' The refusal opens with brms's own sentence, so a message a ported
+#' script or test matches on reads the same in both packages.
+#'
 #' @noRd
 dpar_link <- function(value, dpar, family, choices) {
-  if (is.list(value)) return(get_link(value, dpar = dpar))
-  allowed <- paste0("\"", choices, "\"", collapse = ", ")
+  if (is.list(value)) return(get_link(value, dpar = dpar, family = family))
+  allowed <- link_set_text(choices)
   if (!is.character(value) || length(value) != 1L || is.na(value)) {
     stop(family, "(link_", dpar, " =) takes a single link name, not ",
-         arg_desc(value), ". Allowed: ", allowed,
+         arg_desc(value), ". Supported links are: ", allowed,
          ". See ?`frmtmb-links`", call. = FALSE)
   }
   if (!value %in% choices) {
-    stop(family, "(link_", dpar, " =): '", value, "' is not a link `",
-         dpar, "` can take. Allowed: ", allowed,
+    stop(family, "(link_", dpar, " =): '", value, "' is not a supported ",
+         "link for parameter '", dpar, "'. Supported links are: ", allowed,
          ", the set brms allows, fixed by the range `", dpar,
          "` has to stay inside. See ?`frmtmb-links`", call. = FALSE)
   }
   get_link(value, dpar = dpar)
+}
+
+#' brms's way of listing a link set: each name single-quoted.
+#'
+#' @noRd
+link_set_text <- function(choices) {
+  paste0("'", choices, "'", collapse = ", ")
+}
+
+#' Resolve a family constructor's `link`, the link for the mean, against
+#' the set brms allows for that family.
+#'
+#' Before this, `mu` was the one parameter nothing checked, so
+#' `bernoulli("sqrt")` FITTED: a probability on `eta^2` is unbounded above
+#' one, and `nlminb` returned coefficients after an "NA/NaN function
+#' evaluation" warning (dev/famlink-findings.md, item 3). `choices` comes
+#' from `brms_mu_links`, which dev/famlink-gen-links.R reads out of brms
+#' rather than anyone typing it.
+#'
+#' A custom link object still passes, checked for its fields only. brms
+#' has no such object, so there is no brms set to hold it to, and a user
+#' who writes one has said what the mean's range is.
+#'
+#' @noRd
+mu_link <- function(value, family, choices = brms_mu_links[[family]]) {
+  if (is.list(value)) return(get_link(value, dpar = "mu", family = family))
+  if (is.null(choices)) {
+    stop("mu_link(): no brms link set is recorded for family '", family,
+         "'. Add it to dev/famlink-gen-links.R and regenerate ",
+         "R/links-brms.R", call. = FALSE)
+  }
+  allowed <- link_set_text(choices)
+  if (!is.character(value) || length(value) != 1L || is.na(value)) {
+    stop(family, "(link =) takes a single link name, not ",
+         arg_desc(value), ". Supported links are: ", allowed,
+         ". See ?`frmtmb-links`", call. = FALSE)
+  }
+  if (!value %in% choices) {
+    stop("'", value, "' is not a supported link for family '", family,
+         "'. Supported links are: ", allowed, ". See ?`frmtmb-links`",
+         call. = FALSE)
+  }
+  get_link(value, dpar = "mu")
+}
+
+#' The link a constructor was handed, as brms and `stats::family()` read
+#' it: an UNQUOTED link name is taken as its name.
+#'
+#' `slink` is `substitute(link)` taken in the constructor. A bare name
+#' that is a link the family allows is used without being evaluated,
+#' because `student(identity)` would otherwise evaluate `identity`, which
+#' is base R's identity FUNCTION, and `bernoulli(logit)` would evaluate a
+#' symbol that exists nowhere. Anything else is evaluated: a string, a
+#' variable holding one (`lk <- "probit"; bernoulli(lk)`) and a custom
+#' link list all arrive by value. A value that is none of those comes
+#' back as its deparsed text, so the refusal quotes what the user wrote.
+#' `NULL` and `NA` mean the family's default, as they do in brms.
+#'
+#' This is brms's `.brmsfamily()` order of tests, kept so the two
+#' packages resolve the same call to the same link, with one exception.
+#' A bare name that is a link in frmtmb's roster but not in this
+#' family's set, such as `negbinomial(inverse)`, is evaluated only if it
+#' is bound; unbound, it comes back as its name and is refused as a link
+#' the family does not take. brms evaluates it and fails with "object
+#' 'inverse' not found", which says nothing about the link.
+#'
+#' @noRd
+link_arg_value <- function(slink, link, choices, default) {
+  if (is.character(slink) && length(slink) == 1L && !is.na(slink)) {
+    return(slink)
+  }
+  text <- if (is.name(slink)) as.character(slink) else deparse1(slink)
+  if (text %in% choices) return(text)
+  if (is.name(slink) && text %in% names(frmtmb_links)) {
+    link <- tryCatch(link, error = function(e) text)
+  }
+  if (is.null(link) || identical(link, NA)) return(default)
+  if (is.character(link) || is.list(link)) return(link)
+  text
 }

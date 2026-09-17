@@ -1,0 +1,49 @@
+constructions: 27 
+lane refuses, brms accepts (frm): 0 
+lane accepts, brms refuses (frm): 3  ( cbind_sf, cbind_sf_re, cbind_betabin )
+get_prior: lane refuses, brms accepts: 12 
+                      case  brms  base  lane gp_brms gp_lane
+                trials_col    ok    ok    ok      ok      ok
+         trials_const1_y01    ok    ok    ok      ok      ok
+             no_trials_y01 error    ok error      ok   error
+          no_trials_counts error error error      ok   error
+                  cbind_sf error    ok    ok      ok      ok
+               cbind_sf_re error    ok    ok      ok      ok
+             cbind_betabin error    ok    ok      ok      ok
+     weights_y01_no_trials error    ok error      ok   error
+    prop_weights_no_trials error error error      ok   error
+        trials_and_weights    ok    ok    ok      ok      ok
+         betabin_no_trials error    ok error      ok   error
+             zib_no_trials error    ok error      ok   error
+                zib_trials    ok    ok    ok      ok      ok
+   family_string_no_trials error    ok error      ok   error
+      family_string_trials    ok    ok    ok      ok      ok
+            mv_both_trials    ok    ok    ok      ok      ok
+            mv_one_missing error    ok error      ok   error
+         mv_mixed_families    ok    ok    ok      ok      ok
+          mix_binom_trials    ok    ok    ok      ok      ok
+       mix_binom_no_trials error    ok error      ok   error
+  mix_binom_poisson_trials    ok    ok    ok      ok      ok
+             mix_bern_bern    ok    ok    ok      ok      ok
+           multinom_trials    ok    ok    ok      ok      ok
+        multinom_no_trials error    ok error      ok   error
+     multinom_trials_wrong error error error      ok   error
+   multinom_onehot_trials1    ok    ok    ok      ok      ok
+ multinom_onehot_no_trials error    ok error      ok   error
+
+fitted in both frmtmb arms, logLik and estimates identical; post-fit paths:
+trials_col                 identical TRUE  | predict(nd, no trials col) base ok         lane ok         | simulate lane ok   | frm_simulate base ok     lane ok
+trials_const1_y01          identical TRUE  | predict(nd, no trials col) base ok         lane ok         | simulate lane ok   | frm_simulate base ok     lane ok
+cbind_sf                   identical TRUE  | predict(nd, no trials col) base ok         lane ok         | simulate lane ok   | frm_simulate base ok     lane ok
+cbind_sf_re                identical TRUE  | predict(nd, no trials col) base ok         lane ok         | simulate lane ok   | frm_simulate base ok     lane ok
+cbind_betabin              identical TRUE  | predict(nd, no trials col) base ok         lane ok         | simulate lane ok   | frm_simulate base ok     lane ok
+trials_and_weights         identical TRUE  | predict(nd, no trials col) base ok         lane ok         | simulate lane ok   | frm_simulate base ok     lane ok
+zib_trials                 identical TRUE  | predict(nd, no trials col) base ok         lane ok         | simulate lane ok   | frm_simulate base ok     lane ok
+family_string_trials       identical TRUE  | predict(nd, no trials col) base ok         lane ok         | simulate lane ok   | frm_simulate base ok     lane ok
+mv_both_trials             identical TRUE  | predict(nd, no trials col) base ok         lane ok         | simulate lane erro | frm_simulate base -      lane -
+mv_mixed_families          identical TRUE  | predict(nd, no trials col) base ok         lane ok         | simulate lane erro | frm_simulate base -      lane -
+mix_binom_trials           identical TRUE  | predict(nd, no trials col) base ok         lane ok         | simulate lane ok   | frm_simulate base ok     lane ok
+mix_binom_poisson_trials   identical TRUE  | predict(nd, no trials col) base ok         lane ok         | simulate lane ok   | frm_simulate base ok     lane ok
+mix_bern_bern              identical TRUE  | predict(nd, no trials col) base ok         lane ok         | simulate lane ok   | frm_simulate base ok     lane ok
+multinom_trials            identical TRUE  | predict(nd, no trials col) base ok         lane ok         | simulate lane ok   | frm_simulate base ok     lane ok
+multinom_onehot_trials1    identical TRUE  | predict(nd, no trials col) base ok         lane ok         | simulate lane ok   | frm_simulate base ok     lane ok

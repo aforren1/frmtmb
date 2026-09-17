@@ -1,0 +1,33 @@
+REVERT none                 blocks 19 failing 0 | pass 939 fail 0 error 0
+REVERT no_rederive          blocks 19 failing 5 | pass 909 fail 30 error 0
+   FAILS: brms tests.families.R: family functions (ported verbatim) 
+   FAILS: every (family, link) pair brms accepts constructs 
+   FAILS: link and link_<dpar> agree with links on every registry family 
+   FAILS: assigning a link rewrites the derived fields, never the reverse 
+   FAILS: a link replaced in family_finalize() reaches family(fit) 
+REVERT partial_dollar       blocks 19 failing 0 | pass 939 fail 0 error 0
+REVERT no_mu_set            blocks 19 failing 5 | pass 543 fail 358 error 3
+   FAILS: brms tests.families.R: family functions (ported verbatim) 
+   FAILS: brms tests.brm.R and tests.standata.R: families, links, responses 
+   FAILS: every roster link brms refuses for a family is refused by name 
+   FAILS: the refusal fires on the silent wrong answer it was built for 
+   FAILS: an unquoted link resolves as brms resolves it 
+REVERT no_mix_check         blocks 19 failing 2 | pass 928 fail 2 error 2
+   FAILS: brms tests.families.R: print and mixture (ported verbatim) 
+   FAILS: mixture() refuses what brms refuses, and keeps what brms keeps 
+REVERT no_bern_msg          blocks 19 failing 1 | pass 933 fail 6 error 0
+   FAILS: a two-outcome response gets brms's bernoulli message 
+REVERT ord_warn             blocks 19 failing 2 | pass 934 fail 5 error 0
+   FAILS: brms tests.brm.R and tests.standata.R: families, links, responses 
+   FAILS: an unordered factor response to an ordinal family is refused 
+REVERT no_unquoted          blocks 19 failing 3 | pass 894 fail 1 error 3
+   FAILS: brms tests.families.R: family functions (ported verbatim) 
+   FAILS: an unquoted link resolves as brms resolves it 
+   FAILS: brmsfamily() follows brms's spelling rules and refuses the rest 
+REVERT no_brms_dpar_links   blocks 19 failing 1 | pass 938 fail 1 error 0
+   FAILS: a brms family object keeps its secondary links in frm() 
+REVERT exact_names_only     blocks 19 failing 2 | pass 925 fail 0 error 2
+   FAILS: brms tests.families.R: family functions (ported verbatim) 
+   FAILS: brmsfamily() follows brms's spelling rules and refuses the rest 
+REVERT partial_dollar       blocks 19 failing 1 | pass 937 fail 2 error 0
+   FAILS: $ does not partial-match on a family object 

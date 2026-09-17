@@ -189,7 +189,7 @@ test_that("quadrature = TRUE matches glmer(nAGQ = 25)", {
   dd <- data.frame(y = rbinom(ng * per, 1, plogis(-0.5 + 0.7 * x + u[g])),
                    x = x, g = g)
 
-  fit_gk <- frm(bf(y ~ x + (1 | g)) + binomial(), data = dd,
+  fit_gk <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd,
                 quadrature = TRUE)
   ref <- lme4::glmer(y ~ x + (1 | g), dd, family = binomial, nAGQ = 25)
   expect_lt(abs(as.numeric(logLik(fit_gk)) - as.numeric(logLik(ref))),
@@ -200,7 +200,7 @@ test_that("quadrature = TRUE matches glmer(nAGQ = 25)", {
   expect_lt(abs(vc - sd_ref), 1e-3)
 
   # Laplace and quadrature genuinely differ here
-  fit_lap <- frm(bf(y ~ x + (1 | g)) + binomial(), data = dd)
+  fit_lap <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd)
   expect_gt(abs(as.numeric(logLik(fit_gk)) -
                   as.numeric(logLik(fit_lap))), 0.5)
 
@@ -215,6 +215,6 @@ test_that("quadrature = TRUE matches glmer(nAGQ = 25)", {
   }
 
   # guardrails
-  expect_error(frm(bf(y ~ x + (x | g)) + binomial(), data = dd,
+  expect_error(frm(bf(y ~ x + (x | g)) + bernoulli(), data = dd,
                    quadrature = TRUE), "scalar random")
 })
