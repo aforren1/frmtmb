@@ -151,7 +151,7 @@ fr_exact_ll <- function(time, event, xb, cluster, knots, gam, sd_b) {
   out
 }
 
-fr_sd <- function(fit) sqrt(frmtmb::VarCorr(fit)[[1L]][1L, 1L])
+fr_sd <- function(fit) sqrt(frmtmb::varcorr_matrices(fit)[[1L]][1L, 1L])
 
 fr_gam <- function(fit, df) {
   fx <- frmtmb::fixef(fit)

@@ -14,63 +14,69 @@ sim_shadow <- function(seed = 3, nm = "sigma") {
   # the fixture seed restarts the same random stream that made the
   # covariates, and the residuals come out equal to x.
   dd$y <- frm_simulate(bf(y ~ v + (1 | g)) + gaussian(), dd,
-                       newparams = list(Intercept = 1, v = 0.7, sigma = 1,
+                       newparams = list(b_Intercept = 1, b_v = 0.7, sigma = 1,
                                         sd_g__Intercept = 0.5),
                        nsim = 1, seed = seed + 1000L)[[1]]
   names(dd)[1L] <- nm
   dd
 }
 
-test_that("a covariate named sigma shadows the residual SD, once, by name", {
+# These used to be SHADOWING tests: a coefficient named `sigma` took the
+# name from the residual standard deviation, a message said so, and a
+# dot spelling reached the one it hid. brms's `b_` prefix on every
+# coefficient makes the collision impossible, so the tests now assert
+# that the two meanings have two names and that nothing is announced.
+
+test_that("a covariate named sigma is b_sigma, and sigma is the SD", {
   dd <- sim_shadow()
   fit <- frm(bf(y ~ sigma + (1 | g)) + gaussian(), data = dd)
 
-  # one message per call, naming both meanings and the winner
+  # brms's default class = "b" reads the bare name as the coefficient
   msgs <- capture_messages(h <- hypothesis(fit, c("sigma = 0", "sigma > 0")))
-  expect_length(msgs, 1L)
-  expect_match(msgs, "'sigma'", fixed = TRUE)
-  expect_match(msgs, "residual standard deviation")
-  expect_match(msgs, "'.sigma'", fixed = TRUE)
+  expect_length(msgs, 0L)
+  expect_equal(h$hypothesis$Estimate,
+               rep(unname(fixef(fit)$mu[["sigma"]]), 2L), tolerance = 1e-10)
 
-  # the coefficient is what was tested, both rows of it
-  expect_equal(h$estimate, rep(unname(fixef(fit)$mu[["sigma"]]), 2L),
-               tolerance = 1e-10)
-
-  # ... and the shadowed quantity is reachable under the dot spelling
-  expect_equal(suppressMessages(hypothesis(fit, ".sigma"))$estimate,
+  # class = NULL reads it as written, which is the residual SD
+  expect_equal(hypothesis(fit, "sigma", class = NULL)$hypothesis$Estimate,
                unname(sigma(fit)), tolerance = 1e-8)
+  expect_equal(hypothesis(fit, "b_sigma", class = NULL)$hypothesis$Estimate,
+               unname(fixef(fit)$mu[["sigma"]]), tolerance = 1e-10)
 
-  # both names are listed, so the escape hatch is discoverable
+  # both names are listed, and no dot spelling exists any more
   vv <- variables(fit)
-  expect_true(all(c("sigma", ".sigma") %in% vv))
-
-  # the note is per call, not per session
-  expect_length(capture_messages(hypothesis(fit, "sigma = 0")), 1L)
+  expect_true(all(c("b_sigma", "sigma") %in% vv))
+  expect_false(any(startsWith(vv, ".")))
+  expect_error(hypothesis(fit, ".sigma", class = NULL),
+               "cannot be found in the model")
 })
 
-test_that("a coefficient shadowing an sd_ name gets the same treatment", {
+test_that("a coefficient named like an sd_ summary is b_ prefixed", {
   dd <- sim_shadow(nm = "sd_g__Intercept")
   fit <- frm(bf(y ~ sd_g__Intercept + (1 | g)) + gaussian(), data = dd)
 
-  msgs <- capture_messages(hypothesis(fit, "sd_g__Intercept = 0"))
-  expect_length(msgs, 1L)
-  expect_match(msgs, "random-effect standard deviation")
-  expect_match(msgs, "'.sd_g__Intercept'", fixed = TRUE)
-
-  # the dot name is the natural-scale standard deviation itself
+  msgs <- capture_messages(
+    h <- hypothesis(fit, "sd_g__Intercept = 0", class = NULL)
+  )
+  expect_length(msgs, 0L)
+  # as written, the name is the natural-scale standard deviation
   vc <- confint_varcorr(fit)
-  expect_equal(suppressMessages(hypothesis(fit, ".sd_g__Intercept"))$estimate,
-               vc$estimate[vc$type == "sd"][1L], tolerance = 1e-8)
+  expect_equal(h$hypothesis$Estimate, vc$estimate[vc$type == "sd"][1L],
+               tolerance = 1e-8)
+  # and the coefficient is b_sd_g__Intercept
+  expect_equal(hypothesis(fit, "sd_g__Intercept = 0")$hypothesis$Estimate,
+               unname(fixef(fit)$mu[["sd_g__Intercept"]]),
+               tolerance = 1e-10)
 })
 
 test_that("a clean model says nothing and grows no dot names", {
   dd <- sim_shadow(nm = "v")
   fit <- frm(bf(y ~ v + (1 | g)) + gaussian(), data = dd)
-  expect_no_message(hypothesis(fit, c("v = 0", "sigma > 0")))
+  expect_no_message(hypothesis(fit, c("b_v = 0", "sigma > 0"),
+                               class = NULL))
   expect_false(any(startsWith(variables(fit), ".")))
-  # sigma still means the residual SD when nothing has taken the name
-  expect_equal(hypothesis(fit, "sigma")$estimate, unname(sigma(fit)),
-               tolerance = 1e-8)
+  expect_equal(hypothesis(fit, "sigma", class = NULL)$hypothesis$Estimate,
+               unname(sigma(fit)), tolerance = 1e-8)
 })
 
 # --- bare nonlinear-parameter names in bounds and confint(parm =) -----

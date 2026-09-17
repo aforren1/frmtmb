@@ -27,30 +27,69 @@ ce_cat_mean <- function(seg, n, K) {
 #' @exportS3Method brms::conditional_effects
 #' @export
 conditional_effects.frmtmb_draws <- function(x, effects = NULL,
-                                             resp = NULL, dpar = NULL,
-                                             resolution = 100,
-                                             prob = 0.95, ndraws = NULL,
-                                             re_formula = NA,
                                              conditions = list(),
-                                             data = NULL,
                                              int_conditions = list(),
+                                             re_formula = NA,
+                                             prob = 0.95, robust = TRUE,
+                                             method = "posterior_epred",
+                                             spaghetti = FALSE,
+                                             surface = FALSE,
                                              categorical = NULL,
-                                             seed = NULL, ...) {
+                                             ordinal = FALSE,
+                                             transform = NULL,
+                                             resolution = 100,
+                                             select_points = 0,
+                                             too_far = 0, probs = NULL,
+                                             ...,
+                                             resp = NULL, dpar = NULL,
+                                             ndraws = NULL, data = NULL,
+                                             seed = NULL) {
+  # brms:::conditional_effects.brmsfit's slots in its order, so a
+  # positional brms call lands where brms puts it: `conditions` is third
+  # there and used to be `resp` here. The frmtmb-only arguments follow
+  # `...` and are reached by name.
   # same recycling trap as the fit method: prob and resolution index a
   # grid, and a length-2 value silently alternated or truncated it
   check_probability(prob, "prob")
+  check_flag(robust, "robust")
   check_count(resolution, "resolution", min = 1L)
   if (!is.null(ndraws)) check_count(ndraws, "ndraws", min = 1L)
   check_named_list(conditions, "conditions", "conditions = list(z = 0)")
   check_named_list(int_conditions, "int_conditions",
                    "int_conditions = list(z = c(-1, 0, 1))")
+  if (!identical(method, "posterior_epred")) {
+    stop("conditional_effects() on draws has no method = \"", method,
+         "\": the curves ARE posterior expected-response draws. For ",
+         "predictive bands, quantile posterior_predict() over your own ",
+         "grid", call. = FALSE)
+  }
+  unsupported <- c(spaghetti = !isFALSE(spaghetti),
+                   surface = !isFALSE(surface),
+                   ordinal = !isFALSE(ordinal),
+                   transform = !is.null(transform),
+                   select_points = !identical(select_points, 0),
+                   too_far = !identical(too_far, 0))
+  if (any(unsupported)) {
+    nm <- names(unsupported)[unsupported][1L]
+    why <- switch(nm,
+      ordinal = "brms deprecated it for `categorical`, which this takes",
+      transform = paste("brms applies it only with method =",
+                        "\"posterior_predict\", which this does not have"),
+      "this method does not implement it, so leave it at its default")
+    stop("conditional_effects() on draws cannot honor `", nm, "`: ", why,
+         call. = FALSE)
+  }
+  band_p <- c((1 - prob) / 2, 1 - (1 - prob) / 2)
+  if (!is.null(probs)) {
+    warning("Argument 'probs' is deprecated. Please use 'prob' instead.",
+            call. = FALSE)
+    if (length(probs) != 2L) {
+      stop("Arguments 'probs' must be of length 2.", call. = FALSE)
+    }
+    band_p <- as.numeric(probs)
+  }
   dots <- list(...)
   re_formula <- ce_re_formula(re_formula, dots)
-  if (!is.null(dots$method)) {
-    stop("conditional_effects() on draws has no method =: the curves ",
-         "ARE posterior expected-response draws. For predictive bands, ",
-         "quantile posterior_predict() over your own grid", call. = FALSE)
-  }
   if (!is.null(dots$band)) {
     stop("conditional_effects() on draws has no band =: the band IS ",
          "the posterior quantile band of the drawn curves, so there is ",
@@ -67,7 +106,7 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
   rspec <- fit$spec$responses[[resp]]
   ce_structure_check(rspec)
   if (length(fit$frame[["re_blocks"]]) &&
-      !any(startsWith(colnames(x$draws), "b["))) {
+      draws_is_laplace(x)) {
     stop("conditional_effects() on draws from frm_sample(laplace = ",
          "TRUE) cannot rebuild the per-draw parameter vectors: the ",
          "inner parameters were integrated out, so the draws columns ",
@@ -163,10 +202,12 @@ conditional_effects.frmtmb_draws <- function(x, effects = NULL,
     g <- gb$grids[[gi]]
     seg <- M[, offsets[gi] + seq_len(lens[gi]), drop = FALSE]
     if (cats_mean) seg <- ce_cat_mean(seg, g$n, length(cats))
-    est <- colMeans(seg)
-    lo <- ce_pctl(seg, (1 - prob) / 2)
-    up <- ce_pctl(seg, 1 - (1 - prob) / 2)
-    se <- apply(seg, 2, stats::sd)
+    # brms's estimate__ and se__: the median and MAD under its default
+    # robust = TRUE, the mean and SD otherwise
+    est <- if (robust) apply(seg, 2, stats::median) else colMeans(seg)
+    lo <- ce_pctl(seg, band_p[1L])
+    up <- ce_pctl(seg, band_p[2L])
+    se <- apply(seg, 2, if (robust) stats::mad else stats::sd)
     cond <- factor(clev[g$ci], levels = clev)
     if (categorical) {
       df <- do.call(rbind, lapply(seq_along(cats), function(k) {

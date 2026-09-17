@@ -3,30 +3,92 @@
 \name{VarCorr.frmtmb_fit}
 \alias{VarCorr.frmtmb_fit}
 \alias{VarCorr}
-\title{Extract random-effect covariance matrices}
+\title{Extract random-effect standard deviations and correlations}
 \usage{
-\method{VarCorr}{frmtmb_fit}(x, sigma = 1, ...)
+\method{VarCorr}{frmtmb_fit}(
+  x,
+  sigma = 1,
+  summary = TRUE,
+  robust = FALSE,
+  probs = c(0.025, 0.975),
+  ...
+)
 }
 \arguments{
 \item{x}{A \code{frmtmb_fit}.}
 
-\item{sigma}{Ignored. It is carried by nlme's generic, which
-frmtmb now shares rather than shadows, for the models that
-scale a covariance by a residual standard deviation.}
+\item{sigma}{Ignored, as in brms. It is carried by nlme's generic,
+which frmtmb shares.}
+
+\item{summary}{Must be \code{TRUE}; see above.}
+
+\item{robust}{Must be \code{FALSE}; see above.}
+
+\item{probs}{The quantiles to report.}
 
 \item{...}{Refused: an argument the method does not have is an
 error naming it, rather than silently changing nothing.}
 }
 \value{
-A named list of covariance matrices, one per random-effect
-term. The names are the term labels, which can repeat when two
-blocks deparse the same way (\code{(1 | gr(id, cov = A)) + (1 | id)}, the
-animal model's genetic and permanent-environment terms). Index by
-position, not by name, when that is possible in your model.
+A named list, as above.
 }
 \description{
-Extract random-effect covariance matrices
+brms's \code{VarCorr()}, with frequentist content. The return value is a
+list with one entry per GROUPING FACTOR, named by the factor as brms
+and lme4 name it (\code{"patient"}, not the term label \code{"1 | patient"}),
+followed by \code{residual__} when \code{sigma} is a parameter nobody wrote a
+formula for (one row per response on a multivariate model, with the
+residual correlations under \code{rescor = TRUE}). Each entry has:
 }
+\details{
+\itemize{
+\item \code{sd}: a matrix with one row per coefficient and the columns
+\code{Estimate}, \code{Est.Error} and one quantile column per \code{probs}
+(\code{Q2.5}, \code{Q97.5});
+\item \code{cor} and \code{cov}, when the group has correlations: arrays of
+\verb{coefficient x statistic x coefficient}, the same statistics.
+}
+
+The names are brms's: the entry is the group as brms spells it
+(\code{g:h} for an interaction), and the coefficients are \code{Intercept}, \code{x},
+and for a distributional or nonlinear parameter \code{sigma_Intercept}, as
+in \verb{sd_<group>__sigma_Intercept}.
+}
+\section{What the columns mean on a maximum-likelihood fit}{
+
+brms summarizes posterior draws. A fit has one estimate and its
+sampling distribution, so the same columns carry:
+\itemize{
+\item \code{Estimate}: the maximum-likelihood (or REML) estimate.
+\item \code{Est.Error}: its delta-method standard error, from the joint
+covariance of the covariance parameters (\code{\link[=vcov]{vcov()}} with
+\code{full = TRUE}).
+\item \verb{Q<p>}: the Wald quantile \code{Estimate + qnorm(p) * Est.Error}, on the
+natural scale. That is the interval \code{\link[=hypothesis]{hypothesis()}} reports for the
+same quantity. It can cross zero for a standard deviation near its
+boundary; \code{\link[=confint_varcorr]{confint_varcorr()}} with \code{method = "profile"} gives an
+interval that respects the boundary.
+}
+
+A diagonal entry of \code{cor} is 1 with error 0.
+
+\code{summary = FALSE} and \code{robust = TRUE} are refused by name: brms
+returns the draws, or their median and MAD, and a fit has no draws.
+\code{frmtmb.sample::frm_sample()} gives an object whose \code{VarCorr()} does
+both.
+
+Several random-effect blocks on one grouping factor merge into its
+entry, as brms merges every term on a group, and a pair across two
+blocks has correlation 0. Two terms that give one group the same
+coefficient, as in \code{(1 | gr(id, cov = A)) + (1 | id)}, are refused
+when the model is built, as brms refuses them: give the second term a
+copy of the grouping column under another name.
+Smooth, Gaussian-process, CAR and SPDE blocks are not in brms's
+\code{VarCorr()} and are not here: \code{\link[=confint_varcorr]{confint_varcorr()}} reports them. On a
+\code{gr(dist = "student")} block the \code{sd} row is the SCALE, as brms's
+\code{sd_} is.
+}
+
 \examples{
 set.seed(1)
 dd <- data.frame(x = rnorm(200), g = factor(rep(1:20, 10)))
@@ -34,10 +96,9 @@ u <- cbind(rnorm(20, 0, 0.8), rnorm(20, 0, 0.4))
 dd$y <- rnorm(200, 1 + 0.5 * dd$x + u[dd$g, 1] + u[dd$g, 2] * dd$x, 1)
 fit <- frm(bf(y ~ x + (x | g)) + gaussian(), data = dd)
 
-# the printed form shows SDs and correlations, as lme4 does
-VarCorr(fit)
-# the stored value is the covariance matrix itself
-VarCorr(fit)[["x | g"]]
-# tidy shape for broom.mixed-style code
-as.data.frame(VarCorr(fit))
+vc <- VarCorr(fit)
+names(vc)                       # "g" and "residual__", as in brms
+vc$g$sd                         # standard deviations
+vc$g$cor["Intercept", "Estimate", "x"]
+vc$residual__$sd
 }

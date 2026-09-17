@@ -142,8 +142,8 @@ test_that("the LINK scale is the log scale, proved by the twin fit", {
   expect_lt(max(abs(a - b)) / stats::median(s), 0.01)
   # and the random-effect covariance, which VarCorr() reports on that
   # same link scale
-  va <- VarCorr(ln)[[1]][1, 1]
-  vb <- VarCorr(gs)[[1]][1, 1]
+  va <- varcorr_matrices(ln)[[1]][1, 1]
+  vb <- varcorr_matrices(gs)[[1]][1, 1]
   expect_lt(abs(va - vb) / vb, 0.01)
   # the inverse: VarCorr() is not on the response scale, where the
   # spread of the outcome is orders of magnitude larger

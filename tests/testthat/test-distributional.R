@@ -75,7 +75,7 @@ test_that("random effects in sigma match a hand-rolled RTMB objective", {
   expect_vector_equal(fixef(fit)$sigma, est[names(est) == "bs"],
                       tol = 1e-4)
   # dispersion RE standard deviation
-  vc <- VarCorr(fit)
+  vc <- varcorr_matrices(fit)
   expect_lt(abs(sqrt(vc[["sigma: 1 | g"]][1, 1]) -
                   exp(est[names(est) == "log_sd_u"])), 1e-4)
 })

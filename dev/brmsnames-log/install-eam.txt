@@ -1,0 +1,20 @@
+ℹ Loading frmtmb.eam
+Loading required package: frmtmb
+✖ gddm.R:169: @details Could not resolve link to topic "gd_tri_df" in the
+  dependencies or base packages..
+ℹ If you haven't documented "gd_tri_df" yet, or just changed its name, this is
+  normal. Once "gd_tri_df" is documented, this warning goes away.
+ℹ Make sure that the name of the topic is spelled correctly.
+ℹ Always list the linked package as a dependency.
+ℹ Alternatively, you can fully qualify the link with a package name.
+* installing *source* package 'frmtmb.eam' ...
+** this is package 'frmtmb.eam' version '0.8.1'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+* DONE (frmtmb.eam)
+R CMD INSTALL exit 0 

@@ -1,0 +1,15 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    extensions/frmtmb.sample/tests/testthat/test-generic-collision.R 
+BLOCKS  13 
+PASS    54 
+FAIL    4 
+ERROR   0 
+SKIP    0 
+  failing: with no owner usable, it loads and its generics are bare
+       Expected `out` to match string "CHILDOK". Actual text: x | Error in eval(exprs[i], envir) : posterior is deliberately unusable   | In addition: Warning message: 
+       Expected `parse_field(out, "STANCODE")` to equal "TRUE". Differences: `actual`:   NA     `expected`: "TRUE"  
+       Expected `parse_field(out, "PSAMPLES")` to equal "TRUE". Differences: `actual`:   NA     `expected`: "TRUE"  
+       Expected `parse_field(out, "BRIDGE")` to equal "TRUE". Differences: `actual`:   NA     `expected`: "TRUE"  
+DONE

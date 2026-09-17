@@ -1,0 +1,15 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+Registered S3 method overwritten by 'clubSandwich':
+  method    from    
+  bread.mlm sandwich
+FILE    tests/testthat/test-sandwich.R 
+BLOCKS  9 
+PASS    52 
+FAIL    0 
+ERROR   1 
+SKIP    0 
+  failing: confint, hypothesis and summary accept the robust matrix
+       Error in `expect_gt(hy_r$se, hy_m$se)`: Result of comparison must be `TRUE`, `FALSE`, or `NA` 
+DONE

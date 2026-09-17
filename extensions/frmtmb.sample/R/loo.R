@@ -31,7 +31,7 @@ draws_chain_id <- function(x) {
 draws_require_b <- function(x, what) {
   fit <- x$fit
   if (!length(fit$frame[["re_blocks"]])) return(invisible(NULL))
-  if (any(startsWith(colnames(x$draws), "b["))) return(invisible(NULL))
+  if (!draws_is_laplace(x)) return(invisible(NULL))
   stop(what, " needs draws of the random effects, and these draws come ",
        "from frm_sample(laplace = TRUE), which integrates them out ",
        "instead of sampling them. The pointwise log-density is the one ",
@@ -235,6 +235,12 @@ draws_row_loglik <- function(fit, resp) {
 #'   evenly spaced subsample `ndraws` takes. Give one or the other.
 #' @param resp For a multivariate model without `rescor`, the response
 #'   whose contribution to report; the default sums over responses.
+#' @param pointwise,combine,add_point_estimate,cores brms's slots, in
+#'   brms's positions. `pointwise = TRUE` (brms's function of one
+#'   observation) and `add_point_estimate = TRUE` are refused by name;
+#'   `combine = FALSE` is accepted on a univariate model, where there is
+#'   nothing to combine; `cores` is accepted and unused, because the
+#'   matrix is built in this process.
 #' @param ... Refused: an argument the method does not have is an
 #'   error naming it, rather than silently changing nothing.
 #' @return A numeric matrix with one row per draw and one column per
@@ -273,7 +279,28 @@ log_lik <- function(object, ...) {
 log_lik.frmtmb_draws <- function(object, newdata = NULL,
                                  re_formula = arg_unset(),
                                  resp = NULL, ndraws = NULL,
-                                 draw_ids = NULL, ...) {
+                                 draw_ids = NULL, pointwise = FALSE,
+                                 combine = TRUE,
+                                 add_point_estimate = FALSE,
+                                 cores = NULL, ...) {
+  # brms's remaining slots, so a positional brms call is answered or
+  # refused rather than landing in `...`, where log_lik(ds, NULL, NULL,
+  # NULL, NULL, NULL, TRUE) used to return the matrix brms would not
+  frm_check_dots(...)
+  check_flag(pointwise, "pointwise")
+  check_flag(combine, "combine")
+  check_flag(add_point_estimate, "add_point_estimate")
+  if (pointwise) {
+    stop("log_lik(pointwise = TRUE) is not supported: brms returns a ",
+         "function of one observation for loo's memory-saving path, and ",
+         "this method builds the whole matrix. Drop the argument",
+         call. = FALSE)
+  }
+  if (add_point_estimate) {
+    stop("log_lik(add_point_estimate = TRUE) is not supported: brms ",
+         "attaches a point estimate for loo_subsample(), which this ",
+         "package does not provide", call. = FALSE)
+  }
   draws_refuse_newdata(
     newdata, re_formula, arg_unset(), "log_lik()",
     "the pointwise log-density runs the fitted objective's own ",
@@ -287,6 +314,12 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
   fit <- draws_base_fit(object)
   draws_require_b(object, "log_lik()")
   draws_loglik_factors(fit, "log_lik()")
+  if (!combine && length(fit$spec$responses) > 1L && is.null(resp)) {
+    stop("log_lik(combine = FALSE) is not supported on a multivariate ",
+         "model: brms returns one matrix per response, and this method ",
+         "returns their sum. Ask for one response with resp =",
+         call. = FALSE)
+  }
   if (!is.null(resp) && !resp %in% names(fit$spec$responses)) {
     stop("log_lik(resp = \"", resp, "\") names no response of this ",
          "model; it has ",
@@ -568,12 +601,17 @@ WAIC.frmtmb_draws <- function(x, ...) {
 #' exceeding 1 on posterior draws.
 #'
 #' @param object A `frmtmb_draws` from [frm_sample()].
-#' @param resp For a multivariate model, which response.
+#' @param resp For a multivariate model, which responses, in brms's
+#'   spelling (`ya` for a column `y_a`). `NULL`, the default, is every
+#'   response, one `R2<resp>` column each, as in brms.
 #' @param summary If `TRUE` (the default, as in brms), summarize the
 #'   draws into estimate, error and quantiles; if `FALSE`, return the
-#'   `ndraws x 1` matrix of R-squared draws.
+#'   `ndraws x responses` matrix of R-squared draws.
+#' @param robust If `TRUE`, the summary is the median and MAD instead
+#'   of the mean and SD, as in brms.
 #' @param probs Quantiles for the summary.
-#' @param ndraws Number of draws to use (default: all).
+#' @param ndraws Number of draws to use (default: all). It follows
+#'   `...` so that brms's positional slots keep brms's meaning.
 #' @param ... Refused: an argument the method does not have is an
 #'   error naming it, rather than silently changing nothing.
 #' @return A one-row summary matrix, or the matrix of draws when
@@ -601,38 +639,61 @@ NULL
 #' @exportS3Method rstantools::bayes_R2
 #' @export
 bayes_R2.frmtmb_draws <- function(object, resp = NULL, summary = TRUE,
-                                  probs = c(0.025, 0.975),
-                                  ndraws = NULL, ...) {
+                                  robust = FALSE,
+                                  probs = c(0.025, 0.975), ...,
+                                  ndraws = NULL) {
+  # brms's slots in brms's order: `robust` is fourth, so
+  # bayes_R2(ds, NULL, TRUE, TRUE) asks for a median and MAD, as in
+  # brms, where it used to land in `probs` and return a Q100 column
   frm_check_dots(...)
+  check_flag(summary, "summary")
+  check_flag(robust, "robust")
   fit <- draws_base_fit(object)
-  resp <- resp %||% names(fit$spec$responses)[1L]
-  y <- fit$frame[["y"]][[resp]]
-  if (is.null(y) || is.matrix(y)) {
-    stop("bayes_R2() needs a single numeric response column, and '",
-         resp %||% "?", "' is not one. A categorical, multinomial or ",
-         "multivariate-item outcome has no residual variance to ",
-         "decompose; brms refuses it for the same reason", call. = FALSE)
+  resps <- names(fit$spec$responses)
+  stan <- brms_stan_name(resps)
+  mv <- length(resps) > 1L
+  # brms's validate_resp(): NULL is every response, and a response is
+  # named as brms spells it, y_a as ya
+  sel <- if (is.null(resp)) seq_along(resps) else {
+    s <- match(as.character(resp), stan)
+    if (anyNA(s)) {
+      stop("Invalid argument 'resp'. Valid response variables are: ",
+           paste(stan, collapse = ", "), call. = FALSE)
+    }
+    s
   }
-  ep <- posterior_epred(object, resp = resp, ndraws = ndraws)
-  if (length(dim(ep)) > 2L) {
-    stop("bayes_R2() is not defined for an ordinal or categorical ",
-         "family: posterior_epred() gives a category DISTRIBUTION per ",
-         "observation, and treating those probabilities as a ",
-         "continuous prediction (which is what brms does, with a ",
-         "warning) makes the ratio uninterpretable. Use log_lik() and ",
-         "loo() to compare such models", call. = FALSE)
-  }
-  # in-sample predictions are padded back to the original rows for an
-  # na.exclude fit; the response is not
-  ep <- ep[, !is.na(ep[1L, ]), drop = FALSE]
-  y <- as.numeric(y)
-  vp <- apply(ep, 1L, stats::var)
-  ve <- apply(sweep(ep, 2L, y), 1L, stats::var)
+  R2 <- lapply(sel, function(r) {
+    y <- fit$frame[["y"]][[resps[r]]]
+    if (is.null(y) || is.matrix(y)) {
+      stop("bayes_R2() needs a single numeric response column, and '",
+           resps[r], "' is not one. A categorical, multinomial or ",
+           "multivariate-item outcome has no residual variance to ",
+           "decompose; brms refuses it for the same reason",
+           call. = FALSE)
+    }
+    ep <- posterior_epred(object, resp = resps[r], ndraws = ndraws)
+    if (length(dim(ep)) > 2L) {
+      stop("bayes_R2() is not defined for an ordinal or categorical ",
+           "family: posterior_epred() gives a category DISTRIBUTION per ",
+           "observation, and treating those probabilities as a ",
+           "continuous prediction (which is what brms does, with a ",
+           "warning) makes the ratio uninterpretable. Use log_lik() and ",
+           "loo() to compare such models", call. = FALSE)
+    }
+    # in-sample predictions are padded back to the original rows for an
+    # na.exclude fit; the response is not
+    ep <- ep[, !is.na(ep[1L, ]), drop = FALSE]
+    y <- as.numeric(y)
+    vp <- apply(ep, 1L, stats::var)
+    ve <- apply(sweep(ep, 2L, y), 1L, stats::var)
+    vp / (vp + ve)
+  })
   # brms names the column "R2" on a univariate model and "R2<resp>" on a
-  # multivariate one, because its resp argument is NULL in the first case
-  lab <- if (length(fit$spec$responses) > 1L) paste0("R2", resp) else "R2"
-  R2 <- matrix(vp / (vp + ve), ncol = 1L, dimnames = list(NULL, lab))
-  if (summary) posterior_summary(R2, probs = probs) else R2
+  # multivariate one, one column per response
+  lab <- if (mv) paste0("R2", stan[sel]) else "R2"
+  R2 <- matrix(unlist(R2), ncol = length(sel),
+               dimnames = list(NULL, lab))
+  if (summary) posterior_summary(R2, probs = probs, robust = robust) else R2
 }
 
 # ---- refusals -------------------------------------------------------

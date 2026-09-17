@@ -1,0 +1,14 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-multiple-pooling.R 
+BLOCKS  3 
+PASS    19 
+FAIL    0 
+ERROR   2 
+SKIP    0 
+  failing: identical imputations reduce pooling to the single fit
+       Error: 'b_sd_g__Intercept' is not a parameter of this model, while 'sd_g__Intercept' is: the `class`/`group` shorthand would be ignored for it. brms's default c 
+  failing: pooling across distinct imputations is Rubin-consistent
+       Error: 'b_sd_g__Intercept' is not a parameter of this model, while 'sd_g__Intercept' is: the `class`/`group` shorthand would be ignored for it. brms's default c 
+DONE

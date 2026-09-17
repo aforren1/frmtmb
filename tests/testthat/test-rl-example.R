@@ -50,7 +50,7 @@ rl_reference <- function(fit, data) {
   }
   # the subject effects' own density, so the total is the JOINT one the
   # objective holds at the modes
-  sig <- unname(VarCorr(fit)[[1L]])
+  sig <- unname(varcorr_matrices(fit)[[1L]])
   si <- solve(sig)
   ldet <- as.numeric(determinant(sig, logarithm = TRUE)$modulus)
   re <- sum(vapply(seq_len(nrow(u)), function(k) {
@@ -205,9 +205,9 @@ test_that("the fixed effects recover their simulated values", {
   dd <- rl_simulate(rl_bandit_design(60, 150), nsim = 1, seed = 19)[[1L]]
   fit <- suppressWarnings(frm(rl_bform, family = rl_family(), data = dd))
   ci <- confint(fit)
-  truth <- c(`alpha_(Intercept)` = rl_truth$alpha_Intercept,
-             alpha_conditiontrt = rl_truth$alpha_conditiontrt,
-             `beta_(Intercept)` = rl_truth$beta_Intercept)
+  truth <- c(`alpha_(Intercept)` = rl_truth$b_alpha_Intercept,
+             alpha_conditiontrt = rl_truth$b_alpha_conditiontrt,
+             `beta_(Intercept)` = rl_truth$b_beta_Intercept)
   for (nm in names(truth)) {
     expect_gte(truth[[nm]], ci[nm, "lwr"])
     expect_lte(truth[[nm]], ci[nm, "upr"])

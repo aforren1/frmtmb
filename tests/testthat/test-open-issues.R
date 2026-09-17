@@ -113,7 +113,8 @@ test_that("zero prior weights equal subsetting (lme4#880)", {
                tolerance = 1e-6)
   expect_equal(unname(fixef(wt)$mu), unname(fixef(sub)$mu),
                tolerance = 1e-6)
-  expect_equal(VarCorr(wt)[[1]][1, 1], VarCorr(sub)[[1]][1, 1],
+  expect_equal(varcorr_matrices(wt)[[1]][1, 1],
+               varcorr_matrices(sub)[[1]][1, 1],
                tolerance = 1e-6)
 })
 
@@ -221,7 +222,7 @@ test_that("ar1() warns on gapped integer levels (glmmTMB#1278)", {
   ref <- glmmTMB::glmmTMB(y ~ 1 + ar1(tim + 0 | sub), data = gd,
                           REML = FALSE)
   expect_loglik_equal(fit, ref, tol = 1e-5)
-  V <- VarCorr(fit)[[1]]
+  V <- varcorr_matrices(fit)[[1]]
   expect_equal(V[6, 7] / V[1, 1], V[1, 2] / V[1, 1], tolerance = 1e-8)
 
   # consecutive integer levels: nothing to say
@@ -259,7 +260,7 @@ test_that("|| over a factor gives independent effects (lme4#818)", {
                tolerance = 1e-12)
   expect_equal(dbar$estimates$theta, ref$estimates$theta,
                tolerance = 1e-12)
-  V <- VarCorr(dbar)[[1]]
+  V <- varcorr_matrices(dbar)[[1]]
   expect_equal(V[upper.tri(V)], rep(0, 3))
 
   # the intercept form expands to (1 | g) + diag(0 + f | g)
@@ -268,18 +269,18 @@ test_that("|| over a factor gives independent effects (lme4#818)", {
                data = dd)
   expect_equal(as.numeric(logLik(dbar_i)), as.numeric(logLik(ref_i)),
                tolerance = 1e-12)
-  expect_length(VarCorr(dbar_i), 2L)
+  expect_length(varcorr_matrices(dbar_i), 2L)
 
   # numeric double bars keep lme4's block split and their old values
   num <- frm(bf(y ~ x + (x || g)) + gaussian(), data = dd)
   num_ref <- frm(bf(y ~ x + (1 | g) + (0 + x | g)) + gaussian(), data = dd)
   expect_equal(num$estimates$theta, num_ref$estimates$theta,
                tolerance = 1e-12)
-  expect_equal(names(VarCorr(num)), names(VarCorr(num_ref)))
+  expect_equal(names(varcorr_matrices(num)), names(varcorr_matrices(num_ref)))
   mix <- frm(bf(y ~ x + (1 + x || g)) + gaussian(), data = dd)
   expect_equal(mix$estimates$theta, num_ref$estimates$theta,
                tolerance = 1e-12)
-  expect_length(VarCorr(mix), 2L)
+  expect_length(varcorr_matrices(mix), 2L)
 })
 
 test_that("tensor-product smooths are supported or refused clearly (glmmTMB#1082)", {

@@ -2248,6 +2248,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # exactly that direction: `vcov()` and every standard error came
       # back NaN with "the model is probably overparameterized".
       cn <- colnames(X)
+      # brms's get_model_matrix() renames the columns with check_dup, so
+      # `y ~ Intercept + x` is refused there: `(Intercept)` and the
+      # covariate `Intercept` would share the parameter name b_Intercept
+      if (length(cn)) brms_rename(cn, check_dup = TRUE)
       if (length(cn)) {
         if (!identical(dp[["name"]], "mu")) {
           cn <- paste(dp[["name"]], cn, sep = "_")
@@ -2608,7 +2612,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     if (!is.null(cf_)) cf_(spec, frame_so_far)
   }
 
-  structure(
+  out <- structure(
     list(spec = spec, n_obs = n, y = y, y_levels = y_levels,
          aterm_values = aterm_values,
          linpreds = linpreds, re_blocks = re_blocks,
@@ -2624,6 +2628,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
          na_action = attr(mf, "na.action")),
     class = "frmtmb_frame"
   )
+  # brms refuses a group-level effect given twice (frame_re()), and the
+  # two copies would share every name this package reports
+  brms_check_re_dups(list(frame = out, spec = spec))
+  out
 }
 
 #' @export

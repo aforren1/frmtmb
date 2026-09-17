@@ -334,13 +334,13 @@ mixing weights; `groups = ~g` moves the class draw to the group level
 mix <- mixture(gaussian(), gaussian(), groups = ~g)
 dmix <- data.frame(y = 0, g = factor(rep(1:40, each = 5)))
 # frm_simulate() draws one class per GROUP here, which is what
-# groups = ~g means; theta1 is the mixing predictor for the first
-# component against an implicit zero for the second
+# groups = ~g means; theta1 and theta2 are the mixing probabilities,
+# brms's simplex, set together
 dmix$y <- frm_simulate(bf(y ~ 1) + mix, dmix,
-                       newparams = list(mu1_Intercept = -1,
-                                        mu2_Intercept = 2,
+                       newparams = list(b_mu1_Intercept = -1,
+                                        b_mu2_Intercept = 2,
                                         sigma1 = 0.8, sigma2 = 0.8,
-                                        theta1 = log(0.6 / 0.4)),
+                                        theta1 = 0.6, theta2 = 0.4),
                        nsim = 1, seed = 4)[[1]]
 fmix <- frm(bf(y ~ 1) + mix, data = dmix)
 head(mixture_probs(fmix), 3)
@@ -349,10 +349,15 @@ head(mixture_probs(fmix), 3)
 ## Inference beyond Wald
 
 `hypothesis()` tests arbitrary parameter expressions (Wald, profile,
-or parametric bootstrap), with natural-scale random-effect names:
+or parametric bootstrap) and returns brms's object. It uses brms's
+names: `b_Days` for a coefficient, which brms's default `class = "b"`
+lets you write `Days`, and natural-scale names such as
+`sd_Subject__Days`, which need `class = NULL`:
 
 ```{r, eval = has_lme4}
-hypothesis(fit, "sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)")
+hypothesis(fit, "Days > 5")
+hypothesis(fit, "sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2) = 0",
+           class = NULL)
 ```
 
 `frm_bootstrap()` runs a warm-started parametric bootstrap, and
@@ -362,10 +367,10 @@ hypothesis(fit, "sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2)")
 
 `frm_simulate()` builds a design from a formula and data, sets the
 parameters, and simulates responses - no fit needed. This is the power
-analysis loop: simulate, refit, count. Parameters take the same names
-`hypothesis()` and `variables()` use, on their natural scales
-(coefficients on the link scale, `sigma` as a residual SD,
-`sd_<group>__<term>` as a standard deviation):
+analysis loop: simulate, refit, count. Parameters take brms's names,
+the strings `variables()` returns: `b_x` for a coefficient, on the link
+scale; `sigma` as a residual SD; and `sd_<group>__<term>` as a standard
+deviation. A bare name such as `x` is refused with its brms spelling:
 
 ```{r}
 set.seed(1)
@@ -375,7 +380,7 @@ form <- bf(y ~ x + (1 | g)) + gaussian()
 # set.seed(1) restarts the same random stream that made x, and the
 # residuals come out equal to the covariate.
 sims <- frm_simulate(form, dd, nsim = 3, seed = 1001,
-                     newparams = list(Intercept = 1, x = 0.5,
+                     newparams = list(b_Intercept = 1, b_x = 0.5,
                                       sigma = 0.6,
                                       sd_g__Intercept = 0.7))
 str(sims, max.level = 0)
@@ -395,7 +400,7 @@ pp <- frm_simulate(form, dd, nsim = 50, seed = 2,
 pars <- attr(pp, "pars")
 head(pars, 3)
 # does the prior imply plausible data? slope against outcome spread
-plot(pars$x, apply(pp, 2, sd), xlab = "slope", ylab = "sd(y)")
+plot(pars$b_x, apply(pp, 2, sd), xlab = "slope", ylab = "sd(y)")
 ```
 
 Every coefficient and every random-effect SD needs a value from

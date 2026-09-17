@@ -28,7 +28,7 @@ test_that("summary, fixef, ranef and logLik work", {
   expect_true(is.finite(stats::AIC(f)))
   expect_equal(stats::nobs(f), nrow(o$d))
   expect_gte(length(frmtmb::ranef(f)), 1L)
-  expect_true(is.finite(frmtmb::VarCorr(f)[[1L]][1L, 1L]))
+  expect_true(is.finite(frmtmb::varcorr_matrices(f)[[1L]][1L, 1L]))
 })
 
 test_that("predict gives the learning parameters, and a mean on the data", {

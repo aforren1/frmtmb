@@ -1,0 +1,11 @@
+Loading required package: frmtmb
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.learn from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    extensions/frmtmb.learn/tests/testthat/test-message-uniqueness.R 
+BLOCKS  1 
+PASS    4 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+DONE

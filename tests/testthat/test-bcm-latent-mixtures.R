@@ -127,7 +127,7 @@ test_that("Exams_2 gives the second group individual rates", {
   # a random effect with ONE observation per level is an overdispersion
   # term, so the group standard deviation is the whole of what
   # individual differences buy here
-  expect_gt(sqrt(unname(VarCorr(fit)[[1L]])[1, 1]), 0)
+  expect_gt(sqrt(unname(varcorr_matrices(fit)[[1L]])[1, 1]), 0)
 })
 
 test_that("Exams_2 matches its Stan program", {
@@ -142,7 +142,7 @@ test_that("Exams_2 matches its Stan program", {
     fit = fit,
     pars = function(f) {
       b <- unname(fixef(f)$mu1)
-      list(mu = b, sigma = sqrt(unname(VarCorr(f)[[1L]])[1, 1]),
+      list(mu = b, sigma = sqrt(unname(varcorr_matrices(f)[[1L]])[1, 1]),
            philogit = b + ranef(f)[[1L]][, 1L])
     },
     # The identity compares the JOINT density at the conditional modes,

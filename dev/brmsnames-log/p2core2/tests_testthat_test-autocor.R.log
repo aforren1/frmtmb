@@ -1,0 +1,13 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-autocor.R 
+BLOCKS  30 
+PASS    188 
+FAIL    1 
+ERROR   1 
+SKIP    0 
+  failing: the parameters reach summary, confint and hypothesis
+       Expected `"ar1" %in% variables(f)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       Error: Some parameters cannot be found in the model:  'ar1' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL 
+DONE

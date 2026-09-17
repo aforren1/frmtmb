@@ -1,0 +1,68 @@
+arm base  frmtmb 0.58.0 from C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample 0.6.0 from C:/Users/adf44/source/r/rellib-r3 
+
+== A8 posterior_summary on a fit ==
+posterior_summary(fit)                       ERROR: is.atomic(x) is not TRUE
+
+== A9 VarCorr on a fit ==
+VarCorr(fit)                                 VarCorr_frmtmb len=1 names=1 | patient
+names(VarCorr(fit)): 1 | patient 
+class: VarCorr_frmtmb 
+element 1 names: 
+ num [1, 1] 0.295
+ - attr(*, "dimnames")=List of 2
+  ..$ : chr "(Intercept)"
+  ..$ : chr "(Intercept)"
+
+== A10 variables(fit) ==
+[1] "Intercept"             "zBase"                 "Trt1"                 
+[4] "zBase:Trt1"            "sd_patient__Intercept"
+
+== A hypothesis(fit) object ==
+hypothesis(fit, 'zBase > Trt1')              frmtmb_hypothesis 1x7 names=hypothesis,estimate,se,lwr,upr,z,p
+class: frmtmb_hypothesis data.frame 
+names: hypothesis estimate se lwr upr z p 
+hypothesis(fit, 'b_zBase > b_Trt1', NULL)    ERROR: object 'b_zBase' not found Available names: Intercept, zBase, Trt1, zBase:Trt1, sd_patient__Intercept (the internal spellings of confint() work too, b
+
+== B positional and summary = FALSE on a fit ==
+fixef(fit)                                   list len=1 names=mu
+fixef(fit, FALSE)                            list len=1 names=mu
+  identical to fixef(fit): TRUE 
+fixef(fit, summary = FALSE)                  ERROR: fixef() cannot honor `summary`: brms summarizes posterior draws; this is one estimate, so the return value is already what `summary = TRUE` would prod
+ranef(fit, FALSE)                            ranef_frmtmb len=1 names=patient
+  identical to ranef(fit): TRUE 
+ranef(fit, summary = FALSE)                  ERROR: ranef() cannot honor `summary`: brms summarizes posterior draws; this is one estimate, so the return value is already what `summary = TRUE` would prod
+coef(fit, FALSE)                             ERROR: coef() was given 1 argument with no name, which it has nowhere to put. It takes: object
+coef(fit, summary = FALSE)                   ERROR: coef() cannot honor `summary`: brms summarizes posterior draws; this is one estimate, so the return value is already what `summary = TRUE` would produ
+VarCorr(fit, NULL, FALSE)                    ERROR: VarCorr() was given 1 argument with no name, which it has nowhere to put. It takes: x, sigma
+VarCorr(fit, summary = FALSE)                ERROR: VarCorr() cannot honor `summary`: brms summarizes posterior draws; this is one estimate, so the return value is already what `summary = TRUE` would pr
+
+== draws ==
+draws 2000 x 11 
+variables(ds): Intercept x sigma_Intercept b[1] b[2] b[3] b[4] b[5] b[6] theta_1 lp__ 
+names(rhat(ds)): Intercept x sigma_Intercept b[1] b[2] b[3] b[4] b[5] b[6] theta_1 lp__ 
+rownames(summary(ds)): Intercept x sigma_Intercept theta_1 
+rownames(posterior_summary(ds)): Intercept x sigma_Intercept theta_1 
+colnames(as.data.frame(ds)): Intercept x sigma_Intercept b[1] b[2] b[3] b[4] b[5] b[6] theta_1 lp__ 
+variables(as_draws_df(ds)): Intercept x sigma_Intercept b[1] b[2] b[3] b[4] b[5] b[6] theta_1 lp__ 
+
+== B draws positional (the eleven and the six) ==
+as.matrix(ds, "b_x")                     ERROR: as.matrix() was given 1 argument with no  
+as.array(ds, "b_x")                      ERROR: as.array() was given 1 argument with no n 
+as.data.frame(ds, NULL, TRUE, "b_x")     ERROR: as.data.frame() was given 3 arguments wit 
+as_draws_array(ds, "b_x")                ERROR: as_draws_array() was given 1 argument wit 
+as_draws_df(ds, "b_x")                   ERROR: as_draws_df() was given 1 argument with n 
+as_draws_matrix(ds, "b_x")               ERROR: as_draws_matrix() was given 1 argument wi 
+as_draws_list(ds, "b_x")                 ERROR: as_draws_list() was given 1 argument with 
+as_draws_rvars(ds, "b_x")                ERROR: as_draws_rvars() was given 1 argument wit 
+as_draws(ds, "b_x")                      ERROR: as_draws() was given 1 argument with no n 
+fixef(ds, FALSE)                         ERROR: fixef() was given 1 argument with no name 
+ranef(ds, FALSE)                         ERROR: ranef() was given 1 argument with no name 
+coef(ds, FALSE)                          ERROR: coef() was given 1 argument with no name, 
+VarCorr(ds, NULL, FALSE)                 ERROR: VarCorr() was given 1 argument with no na 
+summary(ds, FALSE, 0.5)                  ERROR: summary() was given 2 arguments with no n 
+bayes_R2(ds, NULL, TRUE, TRUE)           matrix 1x3                                       
+posterior_summary(ds, "^b_")             ERROR: non-numeric argument to binary operator   
+hypothesis(ds, "x > 0", "b")             ERROR: 'probs' outside [0,1]                     
+pairs(ds, "^b_")                         ERROR: pairs(): variable = names ^b_, which the  
+DONE

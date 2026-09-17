@@ -1,0 +1,14 @@
+covariate b_x only, b_x = 3                  ERROR: newparams takes brms's parameter names, the ones variables() returns. Rename: b_x -> b_b_x
+covariate b_x only, b_b_x = 3                ran; sd(y) 3.134, cor(y, x) -0.012, cor(y, b_x) 0.951
+x and b_x, b_x = 3 b_b_x = 0                 ran; sd(y) 3.030, cor(y, x) 0.947, cor(y, b_x) -0.020
+old name sigma_Intercept = 0                 ERROR: newparams takes brms's parameter names, the ones variables() returns. Rename: sigma_Intercept -> sigma
+sigma = 2 (natural)                          ran; sd(y) 1.939, cor(y, x) 0.017, cor(y, b_x) -0.009
+sigma ~ 1 written, b_sigma_Intercept = log 2 ran; sd(y) 1.939, cor(y, x) 0.017, cor(y, b_x) -0.009
+sigma ~ 1 written, sigma = 2                 ERROR: Unknown newparams name(s): sigma. Available: b_Intercept, b_x, b_sigma_Intercept
+bare x = 1                                   ERROR: newparams takes brms's parameter names, the ones variables() returns. Rename: x -> b_x
+sd_g__(Intercept) old                        ERROR: Unknown newparams name(s): sd_g__(Intercept). Available: b_Intercept, b_x, sigma, sd_g__Intercept
+sd_g__Intercept = 2                          ran; sd(y) 1.626, cor(y, x) -0.081, cor(y, b_x) -0.076
+negbinomial shape_Intercept old              ERROR: newparams takes brms's parameter names, the ones variables() returns. Rename: shape_Intercept -> shape
+negbinomial shape = 1                        ran; sd(y) 2.948, cor(y, x) 0.018, cor(y, b_x) 0.067
+nonlinear a_Intercept old                    ERROR: newparams takes brms's parameter names, the ones variables() returns. Rename: a_Intercept -> b_a_Intercept
+nonlinear b_a_Intercept                      ran; sd(y) 2.150, cor(y, x) 0.893, cor(y, b_x) -0.020

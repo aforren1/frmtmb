@@ -1,0 +1,20 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+Setting order = 'mu' for mixtures of the same family.
+FILE    tests/testthat/test-brms-methods.R 
+BLOCKS  47 
+PASS    911 
+FAIL    1 
+ERROR   4 
+SKIP    0 
+  failing: hypothesis point estimates agree on every expression
+       Error in `as.data.frame.default(hypothesis(s$fit, h))`: cannot coerce class 'c("frmtmb_hypothesis", "brmshypothesis")' to a data.frame 
+  failing: hypothesis reaches sd and cor by brms's names
+       Error in `as.data.frame.default(hypothesis(s$fit, paste0(co, " = 0"), class = cls, group = grp))`: cannot coerce class 'c("frmtmb_hypothesis", "brmshypothesis") 
+  failing: hypothesis returns a different object in each package
+       Expected `hf` to inherit from "data.frame". Actual class: "frmtmb_hypothesis"/"brmshypothesis". 
+       Error in `as.data.frame.default(hf)`: cannot coerce class 'c("frmtmb_hypothesis", "brmshypothesis")' to a data.frame 
+  failing: the interval columns are a documented difference in kind
+       Error in `as.data.frame.default(hypothesis(s$fit, "x = 0"))`: cannot coerce class 'c("frmtmb_hypothesis", "brmshypothesis")' to a data.frame 
+DONE

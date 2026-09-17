@@ -303,7 +303,7 @@ test_that("rlddm reproduces a Stan program of the same model", {
 ## A collapsed component takes this to zero, so it is the one number
 ## that says the fixture is exercising the block it claims to.
 ln_block_spread <- function(fit) {
-  sds <- sqrt(diag(frmtmb::VarCorr(fit)[[1L]]))
+  sds <- sqrt(diag(frmtmb::varcorr_matrices(fit)[[1L]]))
   min(sds) / max(sds)
 }
 

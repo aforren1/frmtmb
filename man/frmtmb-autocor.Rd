@@ -126,8 +126,9 @@ correlation" and \code{\link[=confint_varcorr]{confint_varcorr()}} reports one r
 under brms's names - \code{ar[1]}, \code{ma[1]}, \code{cosy},
 \verb{cortime__<t1>__<t2>} - with a delta-method interval (Fisher-z for
 the bounded ones, the identity for the coefficients of a
-higher-order AR/MA process). \code{\link[=hypothesis]{hypothesis()}} sees them as \code{ar1},
-\code{ma1}, \code{cosy} and \verb{cortime__<t1>__<t2>}. \code{\link[=autocor_matrix]{autocor_matrix()}} returns
+higher-order AR/MA process). \code{\link[=hypothesis]{hypothesis()}} sees them under the
+same names, \code{ar[1]} included, which brms's renaming lets an
+expression carry. \code{\link[=autocor_matrix]{autocor_matrix()}} returns
 the fitted \code{R}. They are NOT part of \code{\link[=VarCorr]{VarCorr()}}, which reports
 random-effect blocks. \code{set_prior()} cannot target them yet.
 }

@@ -33,7 +33,9 @@ raw_stan_matrix <- function(ds) {
   a <- rstan::extract(ds$stanfit, permuted = FALSE)
   m <- do.call(rbind, lapply(seq_len(dim(a)[2]), function(ch) a[, ch, ]))
   colnames(m) <- colnames(ds$draws)
-  m
+  # the stored draws hold an unmodeled sigma on its natural scale, as
+  # brms does; the sampler's own values are its log
+  frmtmb.sample:::draws_to_natural(m, ds$fit)
 }
 
 ## ---- the factor accessors --------------------------------------------
@@ -495,7 +497,7 @@ test_that("the draws matrix has the same columns in the same order", {
   cs <- rp_case()
   expect_identical(colnames(cs$ncp$draws), colnames(cs$cen$draws))
   expect_identical(dim(cs$ncp$draws), dim(cs$cen$draws))
-  expect_true(any(startsWith(colnames(cs$ncp$draws), "b[")))
+  expect_true(any(startsWith(colnames(cs$ncp$draws), "r_g[")))
   # no z is exposed anywhere on the object's own surface
   expect_false(any(grepl("^z", colnames(cs$ncp$draws))))
   expect_null(cs$cen$reparam)
@@ -525,8 +527,8 @@ test_that("posterior_epred() on non-centered draws is X beta + Z b per draw", {
   expect_equal(nrow(ep), nrow(cs$ncp$draws))
   for (k in c(1L, nrow(cs$ncp$draws) %/% 2L, nrow(cs$ncp$draws))) {
     dr <- cs$ncp$draws[k, ]
-    mu_k <- dr[["Intercept"]] + dr[["x"]] * cs$dd$x +
-      dr[paste0("b[", as.integer(cs$dd$g), "]")]
+    mu_k <- dr[["b_Intercept"]] + dr[["b_x"]] * cs$dd$x +
+      dr[paste0("r_g[", levels(cs$dd$g)[as.integer(cs$dd$g)], ",Intercept]")]
     expect_equal(unname(ep[k, ]), unname(mu_k), tolerance = 1e-8)
   }
 })
@@ -536,9 +538,10 @@ test_that("the whole draws method surface runs on non-centered draws", {
   ds <- cs$ncp
   expect_true(is.matrix(summary(ds)))
   expect_true(is.matrix(fixef(ds)))
-  expect_s3_class(VarCorr(ds), "data.frame")
+  expect_named(VarCorr(ds)$g, "sd")
   expect_true(is.list(ranef(ds)))
-  expect_s3_class(hypothesis(ds, "sd_g__Intercept > 0"), "data.frame")
+  expect_s3_class(hypothesis(ds, "sd_g__Intercept > 0", class = NULL),
+                  "brmshypothesis")
   ce <- conditional_effects(ds, effects = "x", resolution = 10)
   expect_equal(nrow(ce[[1L]]), 10L)
   pp <- posterior_predict(ds, ndraws = 10)
@@ -615,7 +618,7 @@ test_that("a correlated non-centered run keeps the draws surface exactly", {
   expect_gt(max(abs(unname(cs$ncp$draws) -
                       unname(raw_stan_matrix(cs$ncp)))), 1e-6)
   expect_true(is.matrix(summary(cs$ncp)))
-  expect_s3_class(VarCorr(cs$ncp), "data.frame")
+  expect_true(is.matrix(VarCorr(cs$ncp)[[1L]]$sd))
 })
 
 test_that("log_lik() row sums hold on a correlated non-centered run", {

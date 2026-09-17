@@ -26,7 +26,7 @@ dm_case <- local({
 })
 
 fake_draws <- function(fit, n = 4L) {
-  lab <- c(frmtmb.sample:::all_par_labels(fit), "lp__")
+  lab <- c(frmtmb::brms_par_labels(fit), "lp__")
   structure(list(stanfit = NULL,
                  draws = matrix(0, n, length(lab),
                                 dimnames = list(NULL, lab)),
@@ -54,15 +54,19 @@ test_that("as.array() keeps the chains apart, in draws order", {
   # half of the matrix; a wrong reshape here would silently make every
   # convergence diagnostic meaningless
   k <- niterations(cs$ds)
-  expect_equal(as.numeric(a[, 1L, "x"]), unname(cs$ds$draws[seq_len(k), "x"]))
-  expect_equal(as.numeric(a[, 2L, "x"]),
-               unname(cs$ds$draws[k + seq_len(k), "x"]))
+  expect_equal(as.numeric(a[, 1L, "b_x"]),
+               unname(cs$ds$draws[seq_len(k), "b_x"]))
+  expect_equal(as.numeric(a[, 2L, "b_x"]),
+               unname(cs$ds$draws[k + seq_len(k), "b_x"]))
+  # brms's as.array(): an unclassed draws_array, margins named
+  expect_named(dimnames(a), c("iteration", "chain", "variable"))
 })
 
 test_that("the posterior converters all round-trip the same draws", {
   cs <- dm_case()
   skip_if_not_installed("posterior")
-  expect_s3_class(as_draws(cs$ds), "draws_matrix")
+  # brms's as_draws() is its as_draws_list()
+  expect_s3_class(as_draws(cs$ds), "draws_list")
   expect_s3_class(as_draws_matrix(cs$ds), "draws_matrix")
 
   arr <- as_draws_array(cs$ds)
@@ -73,15 +77,25 @@ test_that("the posterior converters all round-trip the same draws", {
   df <- as_draws_df(cs$ds)
   expect_s3_class(df, "draws_df")
   expect_equal(nrow(df), ndraws(cs$ds))
-  expect_equal(df$x, unname(as.numeric(as_draws_matrix(cs$ds)[, "x"])))
+  expect_equal(df$b_x, unname(as.numeric(as_draws_matrix(cs$ds)[, "b_x"])))
 
   expect_s3_class(as_draws_list(cs$ds), "draws_list")
   rv <- as_draws_rvars(cs$ds)
   expect_s3_class(rv, "draws_rvars")
-  expect_true("x" %in% names(rv))
+  expect_true("b_x" %in% names(rv))
 
-  expect_equal(as.matrix(cs$ds), cs$ds$draws)
-  expect_equal(as.data.frame(cs$ds)$x, unname(cs$ds$draws[, "x"]))
+  # brms's as.matrix(): the same numbers with draw/variable margins
+  expect_equal(unname(unclass(as.matrix(cs$ds))), unname(cs$ds$draws),
+               ignore_attr = "nchains")
+  expect_identical(attr(as.matrix(cs$ds), "nchains"), 2L)
+  expect_named(dimnames(as.matrix(cs$ds)), c("draw", "variable"))
+  expect_equal(as.data.frame(cs$ds)$b_x, unname(cs$ds$draws[, "b_x"]))
+  # brms's selectors, in brms's positions
+  expect_equal(colnames(as.matrix(cs$ds, variable = "b_x")), "b_x")
+  expect_warning(one <- as.matrix(cs$ds, "^b_x$"), "'pars' is deprecated")
+  expect_equal(colnames(one), "b_x")
+  expect_equal(dim(as.matrix(cs$ds, draw = 1:3)), c(3L, nvariables(cs$ds)))
+  expect_error(as_draws_array(cs$ds, inc_warmup = TRUE), "post-warmup")
 })
 
 test_that("as.mcmc() gives coda one component per chain", {
@@ -92,7 +106,7 @@ test_that("as.mcmc() gives coda one component per chain", {
   expect_length(m, 2L)
   expect_equal(colnames(m[[1L]]), colnames(cs$ds$draws))
   expect_equal(nrow(m[[1L]]), niterations(cs$ds))
-  expect_true(is.finite(coda::gelman.diag(m[, "x"])$psrf[1L, 1L]))
+  expect_true(is.finite(coda::gelman.diag(m[, "b_x"])$psrf[1L, 1L]))
 
   one <- as.mcmc(cs$ds, combine_chains = TRUE)
   expect_s3_class(one, "mcmc")
@@ -105,28 +119,33 @@ test_that("posterior_summary() and posterior_interval() summarize draws", {
   cs <- dm_case()
   s <- posterior_summary(cs$ds)
   expect_equal(colnames(s), c("Estimate", "Est.Error", "Q2.5", "Q97.5"))
-  # the group-level modes are not what posterior_summary(ds) is asking
-  # for, the same columns summary() and print() leave out
-  expect_false(any(grepl("^b\\[", rownames(s))))
-  expect_false("lp__" %in% rownames(s))
-  expect_equal(unname(s["x", "Estimate"]), mean(cs$ds$draws[, "x"]))
-  expect_equal(unname(s["x", "Q2.5"]),
-               unname(stats::quantile(cs$ds$draws[, "x"], 0.025)))
+  # brms's default is every variable, the group-level coefficients and
+  # lp__ included; it used to leave both out
+  expect_equal(rownames(s), variables(cs$ds))
+  expect_true(any(grepl("^r_g[[]", rownames(s))))
+  expect_true("lp__" %in% rownames(s))
+  expect_equal(unname(s["b_x", "Estimate"]), mean(cs$ds$draws[, "b_x"]))
+  expect_equal(unname(s["b_x", "Q2.5"]),
+               unname(stats::quantile(cs$ds$draws[, "b_x"], 0.025)))
+  # brms's second slot is pars, a regular expression
+  expect_warning(sb <- posterior_summary(cs$ds, "^b_"), "deprecated")
+  # sigma has no formula, so it is brms's `sigma`, not a b_ coefficient
+  expect_equal(rownames(sb), c("b_Intercept", "b_x"))
 
   # it works on any matrix of draws, which is what makes the brms idiom
   # posterior_summary(bayes_R2(ds, summary = FALSE)) work
   R2 <- bayes_R2(cs$ds, summary = FALSE)
   expect_equal(posterior_summary(R2)[1, "Estimate"], mean(R2))
 
-  rb <- posterior_summary(cs$ds, robust = TRUE, variable = "x")
+  rb <- posterior_summary(cs$ds, robust = TRUE, variable = "b_x")
   expect_equal(unname(rb[1, "Estimate"]),
-               unname(stats::median(cs$ds$draws[, "x"])))
+               unname(stats::median(cs$ds$draws[, "b_x"])))
 
   pi <- posterior_interval(cs$ds, prob = 0.9)
   expect_equal(colnames(pi), c("5%", "95%"))
   expect_true(all(pi[, 1] < pi[, 2]))
   expect_error(posterior_interval(cs$ds, variable = "nope"),
-               "which the draws do not contain")
+               "missing in the draws")
 })
 
 test_that("predictive_interval() and predictive_error() use the predictive draws", {
@@ -175,10 +194,12 @@ test_that("coef() is fixef broadcast plus each group's own draws", {
   cs <- dm_case()
   cf <- coef(cs$ds)
   expect_named(cf, "g")
+  # brms's coef() broadcasts every population-level coefficient over the
+  # group's levels; sigma with no formula is not one, as in brms
   expect_equal(dim(cf$g), c(6L, 4L, 2L))
   expect_equal(dimnames(cf$g)[[2L]],
                c("Estimate", "Est.Error", "Q2.5", "Q97.5"))
-  expect_equal(dimnames(cf$g)[[3L]], c("(Intercept)", "x"))
+  expect_equal(dimnames(cf$g)[[3L]], c("Intercept", "x"))
 
   # the estimate is the posterior mean of (fixed + that group's random
   # intercept), which is the fit-side coef() computed per draw
@@ -186,11 +207,19 @@ test_that("coef() is fixef broadcast plus each group's own draws", {
   per <- vapply(seq_len(ndraws(cs$ds)), function(i) {
     coef(frmtmb.sample:::draws_fit_at(cs$ds, i, idx))$g[["(Intercept)"]]
   }, numeric(6L))
-  expect_equal(unname(cf$g[, "Estimate", "(Intercept)"]),
+  expect_equal(unname(cf$g[, "Estimate", "Intercept"]),
                unname(rowMeans(per)), tolerance = 1e-12)
 
   # a slope with no group-level term is the same in every group
   expect_equal(length(unique(round(cf$g[, "Estimate", "x"], 12))), 1L)
+
+  # summary = FALSE is brms's raw draws, draws x levels x coefficients,
+  # and summarizing them by hand gives the summary
+  raw <- coef(cs$ds, summary = FALSE)
+  expect_equal(dim(raw$g), c(ndraws(cs$ds), 6L, 2L))
+  expect_equal(unname(cf$g[, "Estimate", "x"]),
+               unname(colMeans(raw$g[, , "x"])))
+  expect_identical(coef(cs$ds, FALSE), raw)
 })
 
 ## ---- sampler diagnostics and plots ----------------------------------
@@ -218,8 +247,8 @@ test_that("rhat() and neff_ratio() are brms's, on this package's names", {
   # relabeled draws, so these two line up with every other accessor
   expect_equal(names(rhat(cs$ds)), variables(cs$ds))
   expect_equal(names(neff_ratio(cs$ds)), variables(cs$ds))
-  expect_false(is.na(rhat(cs$ds)["x"]))
-  expect_false(is.na(neff_ratio(cs$ds)["x"]))
+  expect_false(is.na(rhat(cs$ds)["b_x"]))
+  expect_false(is.na(neff_ratio(cs$ds)["b_x"]))
 
   # both move away from the sampler's own numbers, and summary() moves
   # with them rather than being left behind
@@ -241,8 +270,18 @@ test_that("summary() reports brms's three diagnostics, agreeing with rhat()", {
   cs <- dm_case()
   skip_if_not_installed("posterior")
   s <- summary(cs$ds)
-  expect_equal(colnames(s), c("mean", "sd", "2.5%", "97.5%",
-                              "Rhat", "Bulk_ESS", "Tail_ESS"))
+  # brms's column names and order (brms:::summary.brmsfit's .summary())
+  expect_equal(colnames(s), c("Estimate", "Est.Error", "l-95% CI",
+                              "u-95% CI", "Rhat", "Bulk_ESS", "Tail_ESS"))
+  # brms's slots: prob sets the interval, robust the location, mc_se adds
+  # the Monte Carlo error beside the estimate
+  expect_equal(colnames(summary(cs$ds, FALSE, 0.5))[3:4],
+               c("l-50% CI", "u-50% CI"))
+  expect_equal(colnames(summary(cs$ds, mc_se = TRUE))[1:3],
+               c("Estimate", "MCSE", "Est.Error"))
+  expect_equal(unname(summary(cs$ds, robust = TRUE)[, "Estimate"]),
+               unname(apply(cs$ds$draws[, rownames(s)], 2, stats::median)))
+  expect_error(summary(cs$ds, priors = TRUE), "prior_summary")
   expect_false("n_eff" %in% colnames(s))
   # the agreement itself, which is the point
   expect_equal(s[, "Rhat"], rhat(cs$ds)[rownames(s)])
@@ -273,22 +312,23 @@ test_that("rhat() and neff_ratio() take brms's OTHER `pars` rule", {
   # and posterior_interval() follow on this same argument name.
   cs <- dm_case()
   skip_if_not_installed("posterior")
-  expect_equal(names(rhat(cs$ds, "x")), "x")
-  expect_equal(names(rhat(cs$ds, c("x", "Intercept"))),
-               c("x", "Intercept"))
-  expect_equal(names(neff_ratio(cs$ds, "^b\\[", regex = TRUE)),
-               grep("^b\\[", variables(cs$ds), value = TRUE))
+  expect_equal(names(rhat(cs$ds, "b_x")), "b_x")
+  expect_equal(names(rhat(cs$ds, c("b_x", "b_Intercept"))),
+               c("b_x", "b_Intercept"))
+  expect_equal(names(neff_ratio(cs$ds, "^r_", regex = TRUE)),
+               grep("^r_", variables(cs$ds), value = TRUE))
   # NULL is brms's own default for this slot and means every variable
   expect_equal(rhat(cs$ds, NULL), rhat(cs$ds))
   expect_equal(neff_ratio(cs$ds, NULL), neff_ratio(cs$ds))
   # an exact name that is not there is an error, as in brms; a regular
   # expression without regex = TRUE is such a name
-  expect_error(rhat(cs$ds, "^x$"))
+  expect_error(rhat(cs$ds, "^b_x$"))
   expect_error(neff_ratio(cs$ds, "nosuchvariable"))
   # the extract_pars rule is the OTHER methods', and they still have it
   expect_error(posterior_interval(cs$ds, 0.9),
                "must be NA or a character vector")
-  expect_equal(rownames(posterior_interval(cs$ds, "^x$")), "x")
+  expect_equal(rownames(suppressWarnings(posterior_interval(cs$ds, "^b_x$"))),
+               "b_x")
 })
 
 test_that("the bayesplot accessors read the stanfit", {
@@ -307,12 +347,15 @@ test_that("mcmc_plot() and pairs() call bayesplot on the draws array", {
   skip_if_not_installed("bayesplot")
   skip_if_not_installed("ggplot2")
   expect_s3_class(mcmc_plot(cs$ds), "ggplot")
-  expect_s3_class(mcmc_plot(cs$ds, type = "trace", variable = "x"),
+  expect_s3_class(mcmc_plot(cs$ds, type = "trace", variable = "b_x"),
                   "ggplot")
   expect_s3_class(mcmc_plot(cs$ds, type = "hist"), "ggplot")
   expect_error(mcmc_plot(cs$ds, type = "not_a_plot"),
                "which does not exist")
-  expect_s3_class(pairs(cs$ds, variable = c("Intercept", "x")), "bayesplot_grid")
+  expect_s3_class(pairs(cs$ds, variable = c("b_Intercept", "b_x")),
+                  "bayesplot_grid")
+  # brms's second slot is pars, a regular expression
+  expect_s3_class(pairs(cs$ds, "^b_"), "bayesplot_grid")
 })
 
 ## ---- mixture membership ---------------------------------------------
@@ -448,31 +491,25 @@ test_that("conditional_effects() on draws refuses what it cannot mean", {
                "no method =")
   expect_error(conditional_effects(cs$ds, band = "boot"),
                "no band =")
-  # laplace-shaped draws: random effects in the model, no b[ columns
+  # laplace-shaped draws: random effects in the model, no r_ columns
   ld <- cs$ds
-  ld$draws <- ld$draws[, !startsWith(colnames(ld$draws), "b["),
+  ld$draws <- ld$draws[, !startsWith(colnames(ld$draws), "r_"),
                        drop = FALSE]
   expect_error(conditional_effects(ld), "laplace = TRUE")
 })
 
 ## ---- hypothesis() naming notes --------------------------------------
 
-test_that("hypothesis() on draws gives the reserved-name note, once", {
-  # A covariate named `sigma` shadows the residual SD, and hypothesis()
-  # says which one it read. The note is ARMED per user-level call and
-  # emitted deep inside hyp_env_vals(), so the method the user reached
-  # has to arm it.
+test_that("hypothesis() on draws names a covariate sigma b_sigma", {
+  # This was the reserved-name note: a covariate named `sigma` took the
+  # name from the residual SD, and each hypothesis() method had to arm a
+  # message saying so. brms's b_ prefix leaves nothing to shadow, so the
+  # note and its arming are gone; what remains to pin is that the two
+  # meanings have two names on draws exactly as on the fit.
   #
-  # Core used to arm it in its GENERIC. Core's exported `hypothesis`
-  # now resolves to brms's generic whenever brms is loaded, so the
-  # arming moved into core's own methods, and this method, which had
-  # relied on the generic, lost the note in EVERY session, brms or not.
-  # Measured before the fix: 1 note on the frmtmb_fit, 0 on its draws.
-  #
-  # fake_draws() rather than the sampler: the note is emitted while the
-  # hypothesis is parsed against the fit, before any draw is read, so
-  # zero draws exercise exactly the path in question and this test
-  # needs no Stan build to run.
+  # fake_draws() rather than the sampler: the names are resolved while
+  # the hypothesis is parsed against the fit, so zero draws exercise the
+  # path in question and this test needs no Stan build to run.
   set.seed(3)
   n <- 200
   dd <- data.frame(sigma = stats::rnorm(n),
@@ -480,47 +517,12 @@ test_that("hypothesis() on draws gives the reserved-name note, once", {
   dd$y <- stats::rnorm(n, 1 + 0.7 * dd$sigma +
                          stats::rnorm(10, 0, 0.5)[dd$g], 1)
   fit <- frm(bf(y ~ sigma + (1 | g)), family = gaussian(), data = dd)
-  pat <- "reads 'sigma' as the coefficient"
-
-  # the control, on the fit, so a missing note on draws cannot be a
-  # construction that never shadows anything
-  on_fit <- capture_messages(hypothesis(fit, "sigma = 0"))
-  expect_equal(sum(grepl(pat, on_fit, fixed = TRUE)), 1L)
-
   ds <- fake_draws(fit)
-  on_draws <- capture_messages(
-    suppressWarnings(hypothesis(ds, "sigma = 0")))
-  expect_equal(sum(grepl(pat, on_draws, fixed = TRUE)), 1L)
-})
-
-test_that("every hypothesis() method arms the note itself", {
-  # The structural half of the test above, and the reason it exists.
-  #
-  # Core guards that no borrowed generic carries work in its body
-  # (tests/testthat/test-generic-collision.R), because the exported
-  # generic may be brms's and then that work does not run. That guard
-  # stops work coming BACK into a generic. It cannot see work that LEFT
-  # the generic and did not reach every method, which is exactly what
-  # happened here: the arming moved into core's two methods and this
-  # package's draws method was not one of them. So this asserts where
-  # the work WENT, over every hypothesis() method both packages define.
-  meths <- c(
-    ls(asNamespace("frmtmb"), all.names = TRUE, pattern = "^hypothesis[.]"),
-    ls(asNamespace("frmtmb.sample"), all.names = TRUE,
-       pattern = "^hypothesis[.]"))
-  # the guard is only a guard if it found the methods it is about
-  expect_true(all(c("hypothesis.frmtmb_fit", "hypothesis.frmtmb_multiple",
-                    "hypothesis.frmtmb_draws") %in% meths))
-  arms <- vapply(meths, function(m) {
-    ns <- if (exists(m, envir = asNamespace("frmtmb.sample"),
-                     inherits = FALSE)) "frmtmb.sample" else "frmtmb"
-    f <- get(m, envir = asNamespace(ns), inherits = FALSE)
-    b <- paste(deparse(body(f)), collapse = " ")
-    # The disarm must sit in on.exit(): a disarm called straight after the
-    # arm leaves the note switched off for the parse it was meant to cover,
-    # and a bare call would satisfy a check that only asks it to appear.
-    grepl("hyp_shadow_arm()", b, fixed = TRUE) &&
-      grepl("on.exit(hyp_shadow_disarm(", b, fixed = TRUE)
-  }, NA)
-  expect_equal(names(arms)[!arms], character())
+  expect_true(all(c("b_sigma", "sigma") %in% variables(ds)))
+  expect_false("b_sigma_Intercept" %in% variables(ds))
+  expect_length(capture_messages(
+    suppressWarnings(hypothesis(ds, "sigma = 0"))), 0L)
+  expect_error(suppressWarnings(hypothesis(ds, "sigma = 0",
+                                           class = "sd")),
+               "cannot be found in the model: \n'sd_sigma'", fixed = TRUE)
 })

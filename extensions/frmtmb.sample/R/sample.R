@@ -804,7 +804,8 @@ ncp_start_pars <- function(fit, idx) {
 }
 
 #' Put the draws matrix back on the centered scale, draw by draw: each
-#' `z` maps through the `L(theta)` of ITS OWN draw. The `b[i]` columns
+#' `z` maps through the `L(theta)` of ITS OWN draw. The random-effect
+#' columns
 #' that come out are the same quantity, in the same order and under the
 #' same names, as the centered route's, which is what lets every draws
 #' method downstream stay ignorant of the difference.
@@ -827,38 +828,36 @@ ncp_backtransform <- function(m, fit, idx) {
   m
 }
 
-#' Labels for the full sampled parameter vector, in template order,
-#' skipping mapped entries; b kept as `b[i]`. `include_random = FALSE`
-#' drops the inner components (b, miss) for laplace-marginalized draws.
+#' The columns of a draws matrix that are the model's outer parameters:
+#' everything except the sampled random effects, the missing values and
+#' `lp__`. `summary()`, `print()` and `check_laplace()` report these
+#' alone, as brms's `summary()` leaves out `r_` and `lp__`.
 #'
-#' Parentheses are dropped: `Intercept`, not `(Intercept)`. A draws
-#' object is the brms-facing surface, and brms names draws
-#' `b_Intercept` / `sd_g__Intercept` with no parentheses anywhere. These
-#' names go straight into posterior and bayesplot, where a
-#' parenthesized column has to be backquoted in every expression that
-#' touches it, and they are already the vocabulary `variables()` and
-#' `hypothesis()` speak. The FIT side keeps its own canonical spelling
-#' (`confint()` and `vcov()` still show `(Intercept)`), and every
-#' draws-side lookup accepts both (`match_par_name()`).
+#' Decided by the fit's own labels rather than by a name pattern, so it
+#' does not depend on which spelling a block's columns carry: the
+#' `r_<group>[...]` of an ordinary block and the `b[<i>]` of a smooth or
+#' reduced-rank one are both random.
 #'
 #' @noRd
-all_par_labels <- function(fit, include_b = TRUE, include_random = TRUE) {
-  tpl <- fit$frame[["par_template"]]
-  out <- character(0)
-  for (cp in names(tpl)) {
-    v <- names(tpl[[cp]])
-    if (is.null(v)) v <- paste0(cp, "_", seq_along(tpl[[cp]]))
-    if (cp == "betad" && length(fit$frame[["betad_fixed_idx"]])) {
-      v <- v[-fit$frame[["betad_fixed_idx"]]]
-    }
-    if (cp == "miss" && !include_random) next
-    if (cp == "b") {
-      if (!include_b || !include_random) next
-      v <- paste0("b[", seq_along(tpl[[cp]]), "]")
-    }
-    out <- c(out, v)
-  }
-  par_name_bare(out)
+draws_outer_cols <- function(x) {
+  # a mixture's last weight is a derived column, and an outer parameter
+  intersect(colnames(x$draws),
+            c(brms_par_labels(x$fit, include_random = FALSE),
+              draws_natural_cols(x$fit)$extra))
+}
+
+#' Whether a draws object came from `frm_sample(laplace = TRUE)`, which
+#' samples the outer parameters alone. Counted rather than read off a
+#' column name, because the random-effect columns carry brms's names
+#' now and those depend on the model.
+#'
+#' @noRd
+draws_is_laplace <- function(x) {
+  fit <- x$fit
+  n_full <- length(brms_par_labels(fit, include_random = TRUE))
+  n_outer <- length(brms_par_labels(fit, include_random = FALSE))
+  n_extra <- length(draws_natural_cols(fit)$extra)
+  n_full > n_outer && ncol(x$draws) <= n_outer + 1L + n_extra
 }
 
 #' The core count tmbstan would actually use. rstan defaults its `cores`
@@ -1437,7 +1436,8 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' `reparameterize = TRUE` (the default) samples `z ~ N(0, I)` instead
 #' and computes `b = L(theta) z` on the tape, with `L` the block's own
 #' Cholesky factor, which is brms's construction. Each draw is mapped back
-#' through ITS OWN `theta`, so the `b[i]` columns of the draws matrix
+#' through ITS OWN `theta`, so the random-effect columns of the draws
+#' matrix
 #' hold the same quantity in the same order under the same names as
 #' `reparameterize = FALSE` gives, and every method downstream
 #' ([posterior_epred()], [frmtmb::ranef()], [log_lik()], [frmtmb::loo()],
@@ -1771,7 +1771,8 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0)
 #' summary(ds)
 #' fixef(ds)
-#' hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)")
+#' hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0",
+#'            class = NULL)
 #'
 #' # the same model sampled straight from the formula, with no ML fit.
 #' # It reports the brms default priors it chose, and prior_summary()
@@ -2001,13 +2002,18 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
   a <- rstan::extract(sf, permuted = FALSE)   # iter x chain x par
   stan_names <- dimnames(a)[[3]]
   # laplace draws skip the inner components entirely; labeling them
-  # with the full template order would misattribute theta as b[i]
-  labels <- all_par_labels(fit, include_random = !laplace)
+  # with the full template order would misattribute theta as a random
+  # effect. brms's names where brms has the parameter (b_, r_), the
+  # internal ones where it does not (theta_1): see brms_par_labels()
+  labels <- brms_par_labels(fit, include_random = !laplace)
   n_lab <- min(length(labels), length(stan_names))
   stan_names[seq_len(n_lab)] <- labels[seq_len(n_lab)]
   m <- do.call(rbind, lapply(seq_len(dim(a)[2]), function(ch) a[, ch, ]))
   colnames(m) <- stan_names
   if (length(ncp$idx)) m <- ncp_backtransform(m, fit, ncp$idx)
+  # brms reports an unmodeled distributional parameter as the parameter
+  # itself: the `sigma` column holds sigma, not log sigma
+  m <- draws_to_natural(m, fit)
   structure(list(stanfit = sf, draws = m, fit = fit,
                  reparam = if (length(ncp$idx)) {
                    list(blocks = ncp$idx, labels = ncp$labels,
@@ -2016,18 +2022,23 @@ frm_sample <- function(fit, data = NULL, family = NULL, ...,
             class = "frmtmb_draws")
 }
 
+#' @rdname sample-as_draws
 #' @export
-as.matrix.frmtmb_draws <- function(x, ...) {
-  frm_check_dots(...)
-  x$draws
+as.matrix.frmtmb_draws <- function(x, pars = NA, variable = NULL,
+                                   draw = NULL, subset = NULL, ...) {
+  # brms:::as.matrix.brmsfit: an unclassed draws_matrix, so the margins
+  # are named `draw` and `variable` and the chain count rides along.
+  # `x$draws` is the plain matrix, for anyone who wants that
+  unclass(draws_accessor_args(x, pars, variable, draw, subset,
+                              "as.matrix()",
+                              format = posterior::as_draws_matrix, ...))
 }
 
 #' @export
 print.frmtmb_draws <- function(x, ...) {
   frm_check_dots(...)
   m <- x$draws
-  keep <- setdiff(colnames(m),
-                  c("lp__", grep("^b\\[", colnames(m), value = TRUE)))
+  keep <- draws_outer_cols(x)
   cat("<frmtmb_draws> ", nrow(m), " draws x ", ncol(m),
       " parameters\n\n", sep = "")
   tab <- t(vapply(keep, function(nm) {
@@ -2127,9 +2138,9 @@ check_laplace <- function(fit, chains = 2, iter = 1000, ...) {
   # penalized one for a MAP fit, which is what the flag leaves standing
   ds <- frm_sample(fit, chains = chains, iter = iter, ...,
                    .diagnostic = TRUE)
-  m <- ds$draws
-  keep <- setdiff(colnames(m),
-                  c("lp__", grep("^b\\[", colnames(m), value = TRUE)))
+  # the ML mode and its standard errors are on the link scale
+  m <- draws_internal_matrix(ds)
+  keep <- draws_outer_cols(ds)
   ml <- fit$opt$par
   se <- sqrt(diag(sdr_of(fit)$cov.fixed))
   stopifnot(length(ml) == length(keep))

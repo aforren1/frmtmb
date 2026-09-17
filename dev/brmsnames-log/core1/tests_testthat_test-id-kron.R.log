@@ -1,0 +1,13 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-id-kron.R 
+BLOCKS  11 
+PASS    55 
+FAIL    1 
+ERROR   1 
+SKIP    0 
+  failing: the merged block reports sane named summaries
+       Expected `all(...)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       Error: object 'cor_id__y1.muIntercept__y2.muIntercept' not found Available names: b_y1_Intercept, b_y2_Intercept, b_sigma_y1_Intercept, b_sigma_y2_Intercept, sd 
+DONE

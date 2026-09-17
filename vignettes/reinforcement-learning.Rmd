@@ -225,12 +225,12 @@ Compare with the simulated values:
 
 ```{r truth}
 rbind(estimate = c(unlist(fixef(fit)),
-                   sd_alpha = sqrt(VarCorr(fit)[[1]][1, 1]),
-                   sd_beta = sqrt(VarCorr(fit)[[1]][2, 2])),
-      truth = c(rl_truth$alpha_Intercept, rl_truth$alpha_conditiontrt,
-                rl_truth$beta_Intercept,
-                rl_truth$sd_id__choice.alphaIntercept,
-                rl_truth$sd_id__choice.betaIntercept))
+                   sd_alpha = VarCorr(fit)$id$sd[1, "Estimate"],
+                   sd_beta = VarCorr(fit)$id$sd[2, "Estimate"]),
+      truth = c(rl_truth$b_alpha_Intercept, rl_truth$b_alpha_conditiontrt,
+                rl_truth$b_beta_Intercept,
+                rl_truth$sd_id__alpha_Intercept,
+                rl_truth$sd_id__beta_Intercept))
 ```
 
 This is one dataset, so read the differences as sampling error and not
@@ -369,8 +369,8 @@ fit_i <- frm(bf(choice | reward(pay1, pay2) ~ condition + (1 | p | id),
                 beta ~ 1 + (1 | p | id)),
              family = rw_delta(subject = id, trial = trial),
              data = dd, importance = 200)
-c(laplace = sqrt(VarCorr(fit)[[1]][1, 1]),
-  corrected = sqrt(VarCorr(fit_i)[[1]][1, 1]))
+c(laplace = VarCorr(fit)$id$sd[1, "Estimate"],
+  corrected = VarCorr(fit_i)$id$sd[1, "Estimate"])
 fit_i$importance[c("draws", "mcse")]
 ```
 

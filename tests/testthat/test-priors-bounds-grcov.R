@@ -75,7 +75,7 @@ test_that("gr(cov=) matches a hand-rolled correlated-intercepts reference", {
   expect_lt(abs(as.numeric(logLik(fit)) - (-opt$objective)), 1e-6)
 
   # sd recovered, methods work
-  sd_hat <- sqrt(VarCorr(fit)[[1]][1, 1])
+  sd_hat <- sqrt(varcorr_matrices(fit)[[1]][1, 1])
   expect_lt(abs(sd_hat - 0.8), 0.4)
   expect_identical(dim(ranef(fit)[[1]]), c(30L, 1L))
   cv <- confint_varcorr(fit)

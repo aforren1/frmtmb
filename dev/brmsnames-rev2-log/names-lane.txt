@@ -1,0 +1,65 @@
+
+== B1 ==
+variables(fit): b_Intercept b_x b_z b_fcMd b_fe:f b_IxE2 b_polyz2rawEQTRUE2 b_x:z b_x:fcMd b_x:fe:f b_z:fcMd b_z:fe:f b_x:z:fcMd b_x:z:fe:f sd_g__Intercept sd_g__x cor_g__Intercept__x sigma 
+draws labels duplicated: none 
+lane labels not in brms (internal names dropped):  
+brms names not in lane labels: b_polyz2rawEQTRUE1 sd_g__Intercept sd_g__x cor_g__Intercept__x 
+
+== B2 ==
+frm: ERROR: gr() supports (x | gr(g, cov = A)) or (1 | gr(g, prec = Q)) 
+
+== B3 ==
+variables(fit): sd_g__Intercept 
+draws labels duplicated: none 
+lane labels not in brms (internal names dropped): tau_raw_1 tau_raw_2 bcs2_1 bcs2_2 
+brms names not in lane labels: b_Intercept[1] b_Intercept[2] bcs_x[1] bcs_x[2] sd_g__Intercept disc 
+
+== B4 ==
+variables(fit): b_Intercept b_x sd_mmg1g2__Intercept sigma 
+draws labels duplicated: none 
+lane labels not in brms (internal names dropped):  
+brms names not in lane labels: sd_mmg1g2__Intercept 
+
+== B5 ==
+variables(fit): b_a1_Intercept b_b2_Intercept sd_g__a1_Intercept sigma 
+draws labels duplicated: none 
+lane labels not in brms (internal names dropped):  
+brms names not in lane labels: sd_g__a1_Intercept 
+
+== B6 ==
+variables(fit): b_yab_Intercept b_yab_x b_y2_Intercept b_y2_x b_sigma_yab_Intercept b_sigma_yab_z sd_g__yab_Intercept sd_g__y2_Intercept cor_g__yab_Intercept__y2_Intercept sigma_y2 
+draws labels duplicated: none 
+lane labels not in brms (internal names dropped):  
+brms names not in lane labels: sd_g__yab_Intercept sd_g__y2_Intercept cor_g__yab_Intercept__y2_Intercept 
+
+== B7 ==
+variables(fit): b_Intercept bs_sx:f2u_1 bs_sx:f2v_1 bs_t2xz_1 bs_t2xz_2 bs_t2xz_3 sds_sx:f2u_1 sds_sx:f2v_1 sds_t2xz_1 sds_t2xz_2 sds_t2xz_3 sigma 
+draws labels duplicated: none 
+lane labels not in brms (internal names dropped):  
+brms names not in lane labels: sds_sxf2u_1 sds_sxf2v_1 sds_t2xz_1 sds_t2xz_2 sds_t2xz_3 sdgp_gpz lscale_gpz 
+
+== B8 ==
+variables(fit): b_Intercept b_x sd_gi:hi__Intercept sigma 
+draws labels duplicated: r_gi:hi[1_2_3,Intercept] 
+lane labels not in brms (internal names dropped):  
+brms names not in lane labels: sd_gi:hi__Intercept 
+lane levels of gi:hi: 1:2_3 1_2:2_3 1_2:3 
+
+== B10 ==
+frm: ERROR: Duplicated group-level effects are not allowed.
+Occured for effect 'Intercept' of group 'g'. Give one of the two terms its own grouping column, a copy of the factor under another name 
+
+== hypothesis attacks, B1 ==
+fit  x:z:fe:f > 0             hand -0.078059  hypothesis -0.0780586128124127
+fit  x:fcMd - IxE2 = 0        hand 0.141394  hypothesis 0.141394391859146
+fit  polyz2rawEQTRUE2 = 0     hand 0.001516  hypothesis 0.00151579428613545
+fit  fe:f + x:fe:f = 0        hand 0.931797  hypothesis 0.931796797806174
+fit  b_x:z - sd_g__x > 0      hand 0.021741  hypothesis 0.0217409797398537
+fit  four at once: -0.078059 0.141394 0.001516 0.931797  hand: -0.078059 0.141394 0.001516 0.931797 
+draws x:z:fe:f > 0             hand -0.084547  hypothesis -0.0845473155718413
+draws x:fcMd - IxE2 = 0        hand 0.145006  hypothesis 0.145006372129847
+draws polyz2rawEQTRUE2 = 0     hand -0.001672  hypothesis -0.00167232529535605
+draws fe:f + x:fe:f = 0        hand 0.895331  hypothesis 0.895331165871098
+draws b_x:z - sd_g__x > 0      hand -0.023352  hypothesis -0.0233520527983155
+draws scope coef group g, Intercept + x:fe:f > 0: max |hand - est| 0  levels 12  groups in result 12 
+draws r_g[lvl.1,x] - r_g[lvl.2,x]: hand 0.0658831  hypothesis 0.0658831 

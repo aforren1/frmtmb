@@ -1,0 +1,11 @@
+arm lane frmtmb from C:/Users/adf44/source/r/brmsnames-lib  sample from C:/Users/adf44/source/r/brmsnames-lib 
+gauss done; natural-looking columns: sigma 
+negbin done; natural-looking columns: shape 
+zip done; natural-looking columns: zi 
+student done; natural-looking columns: sigma nu 
+beta done; natural-looking columns: phi 
+hurdle done; natural-looking columns: shape hu 
+mv done; natural-looking columns: sigma_ya sigma_y2 
+gauss_prior done; natural-looking columns: sigma 
+gauss_laplace done; natural-looking columns: sigma 
+gauss_ncp done; natural-looking columns: sigma 

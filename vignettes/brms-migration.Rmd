@@ -506,8 +506,12 @@ the SHAPE of what a standard generic returns:
   covers), `hypothesis()` (a delta-method Wald test here),
   `pp_check()` (simulate-based, through bayesplot's `ppc_*`
   functions), `prior_summary()`, `fixef()`, `ranef()`, `VarCorr()`,
-  `ngrps()`, `variables()` (the usable parameter names, e.g.
-  `sd_Subject__Days`).
+  `ngrps()`, `variables()` (brms's parameter names, e.g. `b_Days` and
+  `sd_Subject__Days`). `VarCorr()` and `hypothesis()` return brms's
+  structures, with the estimate and its standard error in the columns
+  brms fills from draws; `fixef()`, `ranef()` and `coef()` take brms's
+  `summary`, `robust` and `probs` in brms's positions and refuse
+  `summary = FALSE` by name, because a fit has no draws to return.
 - stats-origin generics return stats-shaped values, not brms-shaped
   ones: `predict()` returns a vector (with `se.fit = TRUE`, a list),
   not a draws matrix with `Estimate`/`Q2.5` columns; `fitted()` and

@@ -154,8 +154,8 @@ test_that("the two simulation routes agree", {
   b <- frmtmb::frm_simulate(
     frmtmb::bf(choice | reward(pay1, pay2) ~ 1, tau ~ 1), data = d,
     family = fam,
-    newparams = list(alpha_Intercept = stats::qlogis(0.4),
-                     tau_Intercept = log(2)), nsim = 1, seed = 7)[[1L]]
+    newparams = list(b_alpha_Intercept = stats::qlogis(0.4),
+                     b_tau_Intercept = log(2)), nsim = 1, seed = 7)[[1L]]
   expect_identical(as.integer(a), as.integer(b))
 })
 

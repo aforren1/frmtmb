@@ -44,16 +44,18 @@ test_that("identical imputations reduce pooling to the single fit", {
   # hence the pooled (t) interval contains the single-fit (z) interval
   expect_true(all(pvc$lwr <= cv$lwr & pvc$upr >= cv$upr))
 
-  hyps <- c("x = 0", "sd_g__Intercept - 0.5", "cor_g__Intercept__x")
-  hp <- hypothesis(mfit, hyps)
-  h0 <- hypothesis(f0, hyps)
-  expect_s3_class(hp, "frmtmb_hypothesis")
-  expect_vector_equal(hp$estimate, h0$estimate, tol = 1e-8)
-  expect_vector_equal(hp$se, h0$se, tol = 1e-8)
-  expect_vector_equal(hp$t, h0$z, tol = 1e-6)
+  hyps <- c("b_x = 0", "sd_g__Intercept - 0.5", "cor_g__Intercept__x")
+  hpo <- hypothesis(mfit, hyps, class = NULL)
+  h0o <- hypothesis(f0, hyps, class = NULL)
+  expect_s3_class(hpo, "frmtmb_hypothesis")
+  hp <- hpo$hypothesis
+  h0 <- h0o$hypothesis
+  expect_vector_equal(hp$Estimate, h0$Estimate, tol = 1e-8)
+  expect_vector_equal(hp$Est.Error, h0$Est.Error, tol = 1e-8)
+  expect_vector_equal(attr(hpo, "test")$t, attr(h0o, "test")$z, tol = 1e-6)
   # t reference is heavier-tailed than the single fit's normal
-  expect_true(all(hp$p >= h0$p - 1e-12))
-  expect_true(all(hp$lwr <= h0$lwr & hp$upr >= h0$upr))
+  expect_true(all(attr(hpo, "test")$p >= attr(h0o, "test")$p - 1e-12))
+  expect_true(all(hp$CI.Lower <= h0$CI.Lower & hp$CI.Upper >= h0$CI.Upper))
 
   expect_output(print(mfit), "variance components")
 })
@@ -88,16 +90,20 @@ test_that("pooling across distinct imputations is Rubin-consistent", {
   expect_true(pvc$lwr < pvc$estimate && pvc$estimate < pvc$upr)
 
   h <- "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"
-  hp <- hypothesis(mfit, h)
-  per <- lapply(mfit$fits, function(f) hypothesis(f, h))
+  hpo <- hypothesis(mfit, h, class = NULL)
+  hp <- hpo$hypothesis
+  per <- lapply(mfit$fits, function(f) {
+    hypothesis(f, h, class = NULL)$hypothesis
+  })
   # qbar is the plain mean; the total variance adds a nonnegative
   # between component to the mean within variance
-  expect_vector_equal(hp$estimate,
-                      mean(vapply(per, `[[`, numeric(1), "estimate")),
+  expect_vector_equal(hp$Estimate,
+                      mean(vapply(per, `[[`, numeric(1), "Estimate")),
                       tol = 1e-8)
-  ubar <- mean(vapply(per, `[[`, numeric(1), "se")^2)
-  expect_gte(hp$se^2, ubar - 1e-12)
-  expect_true(hp$df > 0 && hp$p >= 0 && hp$p <= 1)
+  ubar <- mean(vapply(per, `[[`, numeric(1), "Est.Error")^2)
+  expect_gte(hp$Est.Error^2, ubar - 1e-12)
+  tst <- attr(hpo, "test")
+  expect_true(tst$df > 0 && tst$p >= 0 && tst$p <= 1)
 })
 
 test_that("mids input matches mice::pool over equivalent lm fits", {

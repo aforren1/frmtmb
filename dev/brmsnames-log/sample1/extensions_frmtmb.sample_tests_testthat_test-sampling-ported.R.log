@@ -1,0 +1,107 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.7, 2.5)
+  b                  (flat), as brms leaves slopes
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.6, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.6, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.6, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+No priors were used (flat improper priors on the outer parameters).
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  b                  (flat), as brms leaves slopes
+  no defaults for this family's thresholds (brms priors them as its Intercept class) - see ?frm_sample
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.3, 2.5)
+  b                  (flat), as brms leaves slopes
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.7, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1.2, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0, 2.5)
+  b                  (flat), as brms leaves slopes
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.9, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1.2, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  b                  (flat), as brms leaves slopes
+  no defaults for this family's thresholds (brms priors them as its Intercept class) - see ?frm_sample
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.7, 2.5)
+  b                  (flat), as brms leaves slopes
+Compiling Stan program...
+Start sampling
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  b                  (flat), as brms leaves slopes
+  no defaults for this family's thresholds (brms priors them as its Intercept class) - see ?frm_sample
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:
+  1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which frm_sample() supplies by default unless prior = "flat" turned it off
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  b                  (flat), as brms leaves slopes
+  nonlinear parameters stay flat: guess, thr (brms leaves them flat too, as class b; set_prior(nlpar = ) writes them) - see ?frm_sample
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.1, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+FILE    extensions/frmtmb.sample/tests/testthat/test-sampling-ported.R 
+BLOCKS  34 
+PASS    169 
+FAIL    6 
+ERROR   8 
+SKIP    0 
+  failing: frm_sample(prior=) works on a fixed-effects-only GLM
+       Expected `"x" %in% colnames(m)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       <subscriptOutOfBoundsError/error/condition> Error in `m[, "x"]`: subscript out of bounds 
+  failing: frm_sample(laplace = TRUE) runs and labels outer draws
+       Expected `"x" %in% colnames(m)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       <subscriptOutOfBoundsError/error/condition> Error in `m[, "x"]`: subscript out of bounds 
+  failing: the loss model samples with the vignette's priors
+       Expected `all(...)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       <subscriptOutOfBoundsError/error/condition> Error in `m[, "ult_Intercept"]`: subscript out of bounds 
+  failing: a MAP fit's priors carry into frm_sample by default
+       <subscriptOutOfBoundsError/error/condition> Error in `as.matrix(ds)[, "x"]`: subscript out of bounds 
+  failing: a tight prior pulls the posterior toward it
+       <subscriptOutOfBoundsError/error/condition> Error in `m[, "x"]`: subscript out of bounds 
+  failing: frm_sample returns named draws and check_laplace agrees on a clean model
+       Expected `all(c("Intercept", "x", "sigma_Intercept", "theta_1") %in% colnames(m))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       <subscriptOutOfBoundsError/error/condition> Error in `m[, "x"]`: subscript out of bounds 
+  failing: the draws surface runs the model machinery per draw
+       Expected `all(c("mean", "sd", "Rhat") %in% colnames(s))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       Expected `all(c("estimate", "lwr", "upr") %in% names(vc))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       <subscriptOutOfBoundsError/error/condition> Error in `dr[["Intercept"]]`: subscript out of bounds 
+  failing: frm_sample samples inside an nlpar prior bound
+       <subscriptOutOfBoundsError/error/condition> Error in `as.matrix(ds)[, "guess_Intercept"]`: subscript out of bounds 
+DONE

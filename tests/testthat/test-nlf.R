@@ -141,7 +141,7 @@ test_that("random effects live in the nonlinear parameters either way", {
     stats::rnorm(n, 0, exp(-0.5 + 0.6 * d2$z + u[d2$g]))
   fit <- frm(bf(y ~ x) + nlf(sigma ~ a + b * z) +
                lf(a ~ 1 + (1 | g), b ~ 1) + gaussian(), data = d2)
-  expect_named(VarCorr(fit), "a: 1 | g")
+  expect_named(varcorr_matrices(fit), "a: 1 | g")
   expect_identical(dim(ranef(fit)[[1]]), c(20L, 1L))
   expect_true(is.finite(as.numeric(logLik(fit))))
 })
@@ -169,7 +169,7 @@ test_that("post-processing follows the nonlinear parameter a body names", {
                "cannot put a wald band on a nonlinear predictor")
   # ... while mu keeps its own analytic band
   expect_named(conditional_effects(fit), "x")
-  expect_true(all(c("a_Intercept", "b_Intercept") %in% variables(fit)))
+  expect_true(all(c("b_a_Intercept", "b_b_Intercept") %in% variables(fit)))
   expect_s3_class(hypothesis(fit, "b_Intercept = 0"), "frmtmb_hypothesis")
 
   pr <- get_prior(bf(y ~ x) + nlf(sigma ~ a + b * z) + lf(a ~ 1, b ~ 1) +

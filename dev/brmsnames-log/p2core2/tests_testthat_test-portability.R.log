@@ -1,0 +1,17 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-portability.R 
+BLOCKS  13 
+PASS    78 
+FAIL    1 
+ERROR   3 
+SKIP    0 
+  failing: FN-5: class/group name the natural-scale summaries
+       Error: Some parameters cannot be found in the model:  'sd_g__x' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL 
+  failing: parameter names: one vocabulary across the methods
+       Error: Some parameters cannot be found in the model:  'b_Intercept' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL 
+  failing: an autocorrelation parameter is addressable by its name
+       Expected `"ar1" %in% names(al)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       <subscriptOutOfBoundsError/error/condition> Error in `al[["ar1"]]`: subscript out of bounds 
+DONE

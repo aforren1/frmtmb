@@ -1,0 +1,13 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    extensions/frmtmb.sample/tests/testthat/test-evidence-ratio.R 
+BLOCKS  10 
+PASS    31 
+FAIL    2 
+ERROR   0 
+SKIP    0 
+  failing: what a Savage-Dickey denominator cannot be is named
+       Expected `hypothesis(cs$pr, "sd_g__Intercept = 0", class = NULL)` to throw a warning. 
+       Expected `hypothesis(cs$pr, "sigma = 0.9", class = NULL)` to throw a warning. 
+DONE

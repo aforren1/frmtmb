@@ -101,7 +101,7 @@ test_that("a one-level grouping factor is reported (lme4 lmerControl)", {
              control = frmtmb_control(check_nlev_1 = "ignore"))
   )
   # ignoring it still fits: the variance simply collapses to zero
-  expect_lt(as.data.frame(VarCorr(f))$sdcor[1], 1e-3)
+  expect_lt(as.data.frame(varcorr_matrices(f))$sdcor[1], 1e-3)
 })
 
 test_that("gaussian OLRE warns about confounding with sigma (lme4)", {

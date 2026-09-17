@@ -442,7 +442,7 @@ linpred_key <- function(resp, dpar) paste(resp, dpar, sep = ".")
 #'   tim = num_factor(rep(tim, n_g))
 #' )
 #' fit <- frm(bf(y ~ 1 + ou(tim + 0 | g)) + gaussian(), data = dd)
-#' round(VarCorr(fit)[[1]], 3)
+#' round(VarCorr(fit)$g$cor[, "Estimate", ], 3)
 #' @export
 num_factor <- function(x, y = NULL) {
   if (is.null(y)) {

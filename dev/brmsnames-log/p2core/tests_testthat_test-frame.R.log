@@ -1,0 +1,11 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+2 rows removed because of missing values (na.action)
+FILE    tests/testthat/test-frame.R 
+BLOCKS  5 
+PASS    22 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+DONE

@@ -22,12 +22,12 @@ test_that("frm_sample(prior=) works on a fixed-effects-only GLM", {
     frm_sample(fit, chains = 1, iter = 800, refresh = 0,
                prior = list(beta = prior_normal(0, 5))))
   m <- as.matrix(ds)
-  expect_true("x" %in% colnames(m))
+  expect_true("b_x" %in% colnames(m))
   # judged against the chain's own spread: a seeded chain is not
   # platform-deterministic, and this asserts wiring, not mixing
   if (sampler_gates_on()) {
-    expect_lt(abs(mean(m[, "x"]) - unname(fit$estimates$beta[["x"]])),
-              5 * stats::sd(m[, "x"]) + 1e-8)
+    expect_lt(abs(mean(m[, "b_x"]) - unname(fit$estimates$beta[["x"]])),
+              5 * stats::sd(m[, "b_x"]) + 1e-8)
   }
 })
 
@@ -42,18 +42,18 @@ test_that("frm_sample(laplace = TRUE) runs and labels outer draws", {
     frm_sample(fit, chains = 1, iter = 400, refresh = 0,
                laplace = TRUE))
   m <- as.matrix(ds)
-  # no b columns are sampled, and theta keeps its own label instead of
-  # being misattributed as b[1]
-  expect_false(any(grepl("^b\\[", colnames(m))))
+  # no random-effect columns are sampled, and theta keeps its own label
+  # instead of being misattributed as a group-level coefficient
+  expect_false(any(grepl("^r_|^b[[]", colnames(m))))
   expect_true(any(grepl("theta", colnames(m))))
-  expect_true("x" %in% colnames(m))
+  expect_true("b_x" %in% colnames(m))
   # a laplace chain mixes poorly by construction (each leapfrog runs
   # the inner solve), so a stuck chain UNDERSTATES its own spread; the
   # wiring sanity is judged against the wider of the chain's spread and
   # the Wald standard error
   if (sampler_gates_on()) {
-    expect_lt(abs(mean(m[, "x"]) - unname(fit$estimates$beta[["x"]])),
-              5 * max(stats::sd(m[, "x"]),
+    expect_lt(abs(mean(m[, "b_x"]) - unname(fit$estimates$beta[["x"]])),
+              5 * max(stats::sd(m[, "b_x"]),
                       sqrt(diag(stats::vcov(fit)))[["x"]]) + 1e-8)
   }
 })
@@ -295,16 +295,16 @@ test_that("the loss model samples with the vignette's priors", {
   expect_match(paste(msg, collapse = " "), "nonlinear parameters stay flat")
 
   m <- as.matrix(ds)
-  expect_true(all(c("ult_Intercept", "omega_Intercept",
-                    "theta_Intercept") %in% colnames(m)))
+  expect_true(all(c("b_ult_Intercept", "b_omega_Intercept",
+                    "b_theta_Intercept") %in% colnames(m)))
   if (sampler_gates_on()) {
     # the vignette's own structure, recovered: an ultimate loss near
     # 5000 with omega and theta near the values the data was built
     # from. Judged loosely, because this asserts that the priors are
     # wired into the sampled density, not the mixing
-    expect_lt(abs(mean(m[, "ult_Intercept"]) - 5000), 1000)
-    expect_lt(abs(mean(m[, "omega_Intercept"]) - 1.3), 0.5)
-    expect_lt(abs(mean(m[, "theta_Intercept"]) - 45), 10)
+    expect_lt(abs(mean(m[, "b_ult_Intercept"]) - 5000), 1000)
+    expect_lt(abs(mean(m[, "b_omega_Intercept"]) - 1.3), 0.5)
+    expect_lt(abs(mean(m[, "b_theta_Intercept"]) - 45), 10)
   }
 })
 
@@ -322,7 +322,7 @@ test_that("a MAP fit's priors carry into frm_sample by default", {
                                     refresh = 0, seed = 1))
   # judged against the chain's own spread: a seeded chain is not
   # platform-deterministic, and this asserts wiring, not mixing
-  mx <- as.matrix(ds)[, "x"]
+  mx <- as.matrix(ds)[, "b_x"]
   if (sampler_gates_on()) {
     expect_lt(abs(mean(mx)), 5 * stats::sd(mx) + 1e-8)
   }
@@ -362,8 +362,8 @@ test_that("a tight prior pulls the posterior toward it", {
   # shrunk to ~0: the posterior sd itself proves the prior bit, and the
   # mean is judged against that sd rather than a platform-fragile number
   if (sampler_gates_on()) {
-    expect_lt(stats::sd(m[, "x"]), 0.05)
-    expect_lt(abs(mean(m[, "x"])), 5 * stats::sd(m[, "x"]) + 1e-8)
+    expect_lt(stats::sd(m[, "b_x"]), 0.05)
+    expect_lt(abs(mean(m[, "b_x"])), 5 * stats::sd(m[, "b_x"]) + 1e-8)
   }
   expect_gt(fixef(fit)$mu[["x"]], 0.3)          # ML untouched
 })
@@ -428,14 +428,14 @@ test_that("frm_sample returns named draws and check_laplace agrees on a clean mo
   ds <- suppressWarnings(frm_sample(fit, chains = 1, iter = 600,
                                     refresh = 0, seed = 1))
   m <- as.matrix(ds)
-  # draws names are parenthesis-free (the brms convention; v0.36)
-  expect_true(all(c("Intercept", "x", "sigma_Intercept",
+  # draws names are brms's (b_ on every coefficient)
+  expect_true(all(c("b_Intercept", "b_x", "sigma",
                     "theta_1") %in% colnames(m)))
   # judged against the chain's own spread: a seeded chain is not
   # platform-deterministic, and this asserts wiring, not mixing
   if (sampler_gates_on()) {
-    expect_lt(abs(mean(m[, "x"]) - fixef(fit)$mu[["x"]]),
-              5 * stats::sd(m[, "x"]) + 1e-8)
+    expect_lt(abs(mean(m[, "b_x"]) - fixef(fit)$mu[["x"]]),
+              5 * stats::sd(m[, "b_x"]) + 1e-8)
   }
 
   cl <- suppressWarnings(suppressMessages(
@@ -445,7 +445,7 @@ test_that("frm_sample returns named draws and check_laplace agrees on a clean mo
   # Wald and posterior agree on a well-behaved gaussian LMM, but only a
   # HEALTHY chain can testify: on a platform whose chain wandered
   # (measured, not assumed), the agreement claim is untestable
-  row_x <- cl[cl$parameter == "x", ]
+  row_x <- cl[cl$parameter == "b_x", ]
   # bulk ESS is necessary, not sufficient: a chain can mix on x while
   # its flat-prior theta excursion fattens the marginal anyway, so the
   # agreement claim is additionally gated per platform
@@ -470,10 +470,10 @@ test_that("the draws surface runs the model machinery per draw", {
                                     refresh = 0, seed = 1))
 
   s <- summary(ds)
-  expect_true(all(c("mean", "sd", "Rhat") %in% colnames(s)))
+  expect_true(all(c("Estimate", "Est.Error", "Rhat") %in% colnames(s)))
   fe <- fixef(ds)
-  # draws-side names are parenthesis-free throughout (v0.36)
-  expect_equal(rownames(fe), c("Intercept", "x", "sigma_Intercept"))
+  # brms's fixef() rows: the b_ dropped
+  expect_equal(rownames(fe), c("Intercept", "x"))
   # a seeded Stan chain is not platform-deterministic (pkgcheck's
   # container drew a chain far from this machine's), so agreement with
   # the ML fit is judged against the chain's OWN Monte Carlo spread: a
@@ -485,7 +485,8 @@ test_that("the draws surface runs the model machinery per draw", {
   }
 
   vc <- VarCorr(ds)
-  expect_true(all(c("estimate", "lwr", "upr") %in% names(vc)))
+  expect_named(vc, c("g", "residual__"))
+  expect_equal(colnames(vc$g$sd), c("Estimate", "Est.Error", "Q2.5", "Q97.5"))
 
   # the sharp per-draw claim, exact and chain-free: an epred row IS
   # X beta + Z b at that draw's own parameters
@@ -493,8 +494,8 @@ test_that("the draws surface runs the model machinery per draw", {
   expect_equal(nrow(ep_all), nrow(ds$draws))
   for (k in c(1L, nrow(ds$draws) %/% 2L, nrow(ds$draws))) {
     dr <- ds$draws[k, ]
-    mu_k <- dr[["Intercept"]] + dr[["x"]] * dd$x +
-      dr[paste0("b[", as.integer(dd$g), "]")]
+    mu_k <- dr[["b_Intercept"]] + dr[["b_x"]] * dd$x +
+      dr[paste0("r_g[", levels(dd$g)[as.integer(dd$g)], ",Intercept]")]
     expect_equal(unname(ep_all[k, ]), unname(mu_k), tolerance = 1e-8)
   }
 
@@ -524,10 +525,10 @@ test_that("the draws surface runs the model machinery per draw", {
   # ranef over draws: brms-shaped arrays whose Estimate tracks the
   # fitted conditional modes
   re_d <- ranef(ds)
-  # keyed by the GROUPING FACTOR since frmtmb 0.52.0 (brms's and lme4's
-  # key), with the block label on the "term" attribute
+  # keyed by the GROUPING FACTOR (brms's and lme4's key), with brms's
+  # coefficient name on the third margin
   expect_named(re_d, "g")
-  expect_identical(attr(re_d[["g"]], "term"), "1 | g")
+  expect_identical(dimnames(re_d[["g"]])[[3L]], "Intercept")
   expect_identical(dim(re_d[["g"]]), c(8L, 4L, 1L))
   expect_identical(colnames(re_d[["g"]]),
                    c("Estimate", "Est.Error", "Q2.5", "Q97.5"))
@@ -540,10 +541,11 @@ test_that("the draws surface runs the model machinery per draw", {
   expect_true(all(re_d[["g"]][, "Q2.5", 1] <
                     re_d[["g"]][, "Q97.5", 1]))
 
-  h <- hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)")
+  h <- hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)",
+                  class = NULL)
   expect_s3_class(h, "frmtmb_hypothesis")
-  expect_true(h$lwr > 0 && h$upr < 1)
-  expect_equal(dim(attr(h, "draws")), c(nrow(ds$draws), 1L))
+  expect_true(h$hypothesis$CI.Lower > 0 && h$hypothesis$CI.Upper < 1)
+  expect_equal(dim(h$samples), c(nrow(ds$draws), 1L))
 
   if (requireNamespace("posterior", quietly = TRUE)) {
     dm <- posterior::as_draws(ds)
@@ -862,7 +864,7 @@ test_that("frm_sample samples inside an nlpar prior bound", {
                prior = set_prior("", nlpar = "guess", lb = 0.05,
                                  ub = 0.6)))
   # the draws carry the parenthesis-free spelling of the same parameter
-  gs <- as.matrix(ds)[, "guess_Intercept"]
+  gs <- as.matrix(ds)[, "b_guess_Intercept"]
   expect_true(all(gs >= 0.05 & gs <= 0.6))
 })
 

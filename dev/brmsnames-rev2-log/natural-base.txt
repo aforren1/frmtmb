@@ -1,0 +1,11 @@
+arm base frmtmb from C:/Users/adf44/source/r/rellib-r3  sample from C:/Users/adf44/source/r/rellib-r3 
+gauss done; natural-looking columns: sigma_Intercept 
+negbin done; natural-looking columns: shape_Intercept 
+zip done; natural-looking columns: zi_Intercept 
+student done; natural-looking columns: sigma_Intercept nu_Intercept 
+beta done; natural-looking columns: phi_Intercept 
+hurdle done; natural-looking columns: shape_Intercept hu_Intercept 
+mv done; natural-looking columns: ya_sigma_Intercept y2_sigma_Intercept 
+gauss_prior done; natural-looking columns: sigma_Intercept 
+gauss_laplace done; natural-looking columns: sigma_Intercept 
+gauss_ncp done; natural-looking columns: sigma_Intercept 

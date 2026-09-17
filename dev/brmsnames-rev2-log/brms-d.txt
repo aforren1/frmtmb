@@ -1,0 +1,24 @@
+Compiling Stan program...
+Start sampling
+
+== B2 == elapsed 58 s
+ [1] "b_Intercept"           "b_nsxdfEQ31"           "b_nsxdfEQ32"          
+ [4] "b_nsxdfEQ33"           "b_bszdfEQ41"           "b_bszdfEQ42"          
+ [7] "b_bszdfEQ43"           "b_bszdfEQ44"           "bsp_moxo"             
+[10] "sd_g__Intercept:hgp"   "sd_g__Intercept:hgq"   "sigma"                
+[13] "Intercept"             "simo_moxo1[1]"         "simo_moxo1[2]"        
+[16] "simo_moxo1[3]"         "r_g[lvl.1,Intercept]"  "r_g[lvl.10,Intercept]"
+[19] "r_g[lvl.11,Intercept]" "r_g[lvl.12,Intercept]" "r_g[lvl.2,Intercept]" 
+[22] "r_g[lvl.3,Intercept]"  "r_g[lvl.4,Intercept]"  "r_g[lvl.5,Intercept]" 
+[25] "r_g[lvl.6,Intercept]"  "r_g[lvl.7,Intercept]"  "r_g[lvl.8,Intercept]" 
+[28] "r_g[lvl.9,Intercept]"  "lprior"                "lp__"                 
+Warning messages:
+1: The largest R-hat is 1.67, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+2: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+3: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 

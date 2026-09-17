@@ -1,0 +1,24 @@
+## base
+column means:
+       Intercept     bs_Intercept    ndt_Intercept   bias_Intercept 
+   0.83982530188    0.28518513058    2.21327101163    0.04349007869 
+            lp__ 
+-129.17894791817 
+sum(log_lik(ds)) -12725.392684142722
+sum(posterior_epred(ds)) 16726.196398903634
+sum(posterior_predict(ds, ndraws = 20)) 3323.612426107458
+                 Estimate             SE
+elpd_loo -129.52893023061 18.02089141804
+p_loo       4.12195899658  1.26221714298
+looic     259.05786046121 36.04178283608
+## lane
+column means:
+    b_Intercept              bs             ndt            bias            lp__ 
+   0.8398253019    1.3306159152    0.2714643482    0.5108509648 -129.1789479182 
+sum(log_lik(ds)) -12725.392684142722
+sum(posterior_epred(ds)) 16726.196398903634
+sum(posterior_predict(ds, ndraws = 20)) 3323.612426107458
+                 Estimate             SE
+elpd_loo -129.52893023061 18.02089141804
+p_loo       4.12195899658  1.26221714298
+looic     259.05786046121 36.04178283608

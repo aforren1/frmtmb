@@ -1,0 +1,12 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-autocor.R 
+BLOCKS  30 
+PASS    189 
+FAIL    0 
+ERROR   1 
+SKIP    0 
+  failing: the parameters reach summary, confint and hypothesis
+       Error: 'b_ar1' is not a parameter of this model, while 'ar1' is: the `class`/`group` shorthand would be ignored for it. brms's default class = "b" prefixes ever 
+DONE

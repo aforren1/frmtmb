@@ -1,0 +1,11 @@
+Loading required package: frmtmb
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.coupling from: C:/Users/adf44/source/r/rellib-r3
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    extensions/frmtmb.coupling/tests/testthat/test-bracket-access.R 
+BLOCKS  1 
+PASS    1 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+DONE

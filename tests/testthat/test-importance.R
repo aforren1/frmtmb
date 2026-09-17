@@ -150,7 +150,7 @@ test_that("scalar intercept agrees with quadrature and glmer(nAGQ = 25)", {
   expect_lt(abs(as.numeric(logLik(fi)) - as.numeric(logLik(fq))),
             3 * mcse)
   expect_lt(max(abs(fixef(fi)$mu - lme4::fixef(ref))), 0.05)
-  sd_i <- sqrt(VarCorr(fi)[[1L]][1, 1])
+  sd_i <- sqrt(varcorr_matrices(fi)[[1L]][1, 1])
   sd_r <- as.numeric(attr(lme4::VarCorr(ref)$g, "stddev"))[1L]
   expect_lt(abs(sd_i - sd_r), 0.05)
   # the conditional modes survive: the corrected tape carries none, so
@@ -178,8 +178,8 @@ test_that("the correction recovers a variance component Laplace shrinks", {
   fl <- frm(bf(y ~ x + (1 | g)) + binomial(), data = dd)
   fi <- frm(bf(y ~ x + (1 | g)) + binomial(), data = dd,
             importance = 2000L)
-  sd_lap <- sqrt(VarCorr(fl)[[1L]][1, 1])
-  sd_imp <- sqrt(VarCorr(fi)[[1L]][1, 1])
+  sd_lap <- sqrt(varcorr_matrices(fl)[[1L]][1, 1])
+  sd_imp <- sqrt(varcorr_matrices(fi)[[1L]][1, 1])
   # Laplace is biased DOWN here, and the correction moves up toward the
   # generating value
   expect_lt(sd_lap, sd_true)
@@ -1219,7 +1219,7 @@ test_that("a stalled correction is not told to raise the round count", {
   expect_true(frmtmb:::imp_stalled(im$moves))
   # the collapsed component is the cause, and it is what the message
   # sends the reader to look at
-  expect_lt(sqrt(VarCorr(r$value)[[1L]][1L, 1L]), 1e-4)
+  expect_lt(sqrt(varcorr_matrices(r$value)[[1L]][1L, 1L]), 1e-4)
 
   hit <- grep("importance correction", r$warnings, value = TRUE)
   expect_length(hit, 1L)

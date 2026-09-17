@@ -1,0 +1,24 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-naming-collisions.R 
+BLOCKS  6 
+PASS    16 
+FAIL    8 
+ERROR   3 
+SKIP    0 
+  failing: a covariate named sigma shadows the residual SD, once, by name
+       Expected `msgs` to have length 1. Actual length: 0. 
+       Expected `msgs` to have at least one element. 
+       Expected `msgs` to have at least one element. 
+       Expected `msgs` to have at least one element. 
+       Expected `h$estimate` to equal `rep(unname(fixef(fit)$mu[["sigma"]]), 2L)`. Differences: `actual` is NULL `expected` is a double vector (0.716694658909367, 0.71 
+       Error: object '.sigma' not found Available names: b_Intercept, b_sigma, b_sigma_Intercept, sd_g__Intercept, sigma (the internal spellings of confint() work too, 
+  failing: a coefficient shadowing an sd_ name gets the same treatment
+       Expected `msgs` to have length 1. Actual length: 0. 
+       Expected `msgs` to have at least one element. 
+       Expected `msgs` to have at least one element. 
+       Error: object '.sd_g__Intercept' not found Available names: b_Intercept, b_sd_g__Intercept, b_sigma_Intercept, sd_g__Intercept, sigma (the internal spellings of 
+  failing: a clean model says nothing and grows no dot names
+       Error: 'b_sigma' is not a parameter of this model, while 'sigma' is: the `class`/`group` shorthand would be ignored for it. brms's default class = "b" prefixes  
+DONE

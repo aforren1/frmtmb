@@ -126,7 +126,7 @@ test_that("Correlation_2 attenuates less than Correlation_1", {
   se <- c(0.03, 1)
   d <- bcm_corr_data(se)
   fit <- frm(bcm_corr2_formula(), data = d)
-  r <- stats::cov2cor(unname(VarCorr(fit)[[1L]]))[1, 2]
+  r <- stats::cov2cor(unname(varcorr_matrices(fit)[[1L]]))[1, 2]
   raw <- stats::cor(d$x1, d$x2)
   # removing measurement noise from the observed variances can only make
   # the estimated latent correlation more extreme
@@ -144,7 +144,7 @@ test_that("Correlation_2 matches its Stan program", {
     data = list(n = nrow(d), x = bcm_corr_matrix(), sigmaerror = se),
     fit = fit,
     pars = function(f) {
-      vc <- unname(VarCorr(f)[[1L]])
+      vc <- unname(varcorr_matrices(f)[[1L]])
       mu <- c(unname(fixef(f)$x1_mu), unname(fixef(f)$x2_mu))
       u <- frm_u(f)
       list(mu = mu, sigma = sqrt(diag(vc)),

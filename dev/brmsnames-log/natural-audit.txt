@@ -1,0 +1,107 @@
+core family multinomial needs arguments; built below if listed
+           pkg                                family     dpar                       link             read      unmodeled_is                 brms
+        frmtmb                              gaussian    sigma                        log      elementwise  natural, linkinv           same class
+        frmtmb                                 Gamma    shape                        log      elementwise  natural, linkinv           same class
+        frmtmb                             lognormal    sigma                        log      elementwise  natural, linkinv           same class
+        frmtmb                               student    sigma                        log      elementwise  natural, linkinv           same class
+        frmtmb                               student       nu                      logm1      elementwise  natural, linkinv           same class
+        frmtmb                           negbinomial    shape                        log      elementwise  natural, linkinv           same class
+        frmtmb                               nbinom2    shape                        log      elementwise  natural, linkinv       no brms family
+        frmtmb                               nbinom1      phi                        log      elementwise  natural, linkinv       no brms family
+        frmtmb                                  beta      phi                        log      elementwise  natural, linkinv           same class
+        frmtmb                                  Beta      phi                        log      elementwise  natural, linkinv           same class
+        frmtmb                               tweedie      phi                        log      elementwise  natural, linkinv       no brms family
+        frmtmb                               tweedie    power                    power12      elementwise  natural, linkinv       no brms family
+        frmtmb                               compois       nu                        log      elementwise  natural, linkinv       no brms family
+        frmtmb                 zero_inflated_poisson       zi                      logit      elementwise  natural, linkinv           same class
+        frmtmb             zero_inflated_negbinomial    shape                        log      elementwise  natural, linkinv           same class
+        frmtmb             zero_inflated_negbinomial       zi                      logit      elementwise  natural, linkinv           same class
+        frmtmb                        hurdle_poisson       hu                      logit      elementwise  natural, linkinv           same class
+        frmtmb                         beta_binomial      phi                        log      elementwise  natural, linkinv           same class
+        frmtmb                           skew_normal    sigma                        log      elementwise  natural, linkinv           same class
+        frmtmb                           skew_normal    alpha                   identity      elementwise  natural, linkinv           same class
+        frmtmb                      inverse.gaussian    shape                        log      elementwise  natural, linkinv           same class
+        frmtmb                            exgaussian    sigma                        log      elementwise  natural, linkinv           same class
+        frmtmb                            exgaussian     beta                        log      elementwise  natural, linkinv           same class
+        frmtmb                               weibull    shape                        log      elementwise  natural, linkinv           same class
+        frmtmb                     shifted_lognormal    sigma                        log      elementwise  natural, linkinv           same class
+        frmtmb                     shifted_lognormal      ndt                        log      elementwise  natural, linkinv           same class
+        frmtmb                          hurdle_gamma    shape                        log      elementwise  natural, linkinv           same class
+        frmtmb                          hurdle_gamma       hu                      logit      elementwise  natural, linkinv           same class
+        frmtmb                      hurdle_lognormal    sigma                        log      elementwise  natural, linkinv           same class
+        frmtmb                      hurdle_lognormal       hu                      logit      elementwise  natural, linkinv           same class
+        frmtmb                zero_inflated_binomial       zi                      logit      elementwise  natural, linkinv           same class
+        frmtmb                    zero_inflated_beta      phi                        log      elementwise  natural, linkinv           same class
+        frmtmb                    zero_inflated_beta       zi                      logit      elementwise  natural, linkinv           same class
+        frmtmb                          asym_laplace    sigma                        log      elementwise  natural, linkinv           same class
+        frmtmb                          asym_laplace quantile                      logit      elementwise  natural, linkinv           same class
+        frmtmb            zero_inflated_asym_laplace    sigma                        log      elementwise  natural, linkinv           same class
+        frmtmb            zero_inflated_asym_laplace quantile                      logit      elementwise  natural, linkinv           same class
+        frmtmb            zero_inflated_asym_laplace       zi                      logit      elementwise  natural, linkinv           same class
+        frmtmb                                 huber    sigma                        log      elementwise  natural, linkinv       no brms family
+        frmtmb                             von_mises    kappa                        log      elementwise  natural, linkinv           same class
+        frmtmb           mixture(gaussian, gaussian)   sigma1                        log      elementwise  natural, linkinv           same class
+        frmtmb           mixture(gaussian, gaussian)   sigma2                        log      elementwise  natural, linkinv           same class
+        frmtmb           mixture(gaussian, gaussian)   theta1                   identity   softmax, all K simplex theta1..K same class (simplex)
+        frmtmb mixture(gaussian, gaussian, gaussian)   sigma1                        log      elementwise  natural, linkinv           same class
+        frmtmb mixture(gaussian, gaussian, gaussian)   sigma2                        log      elementwise  natural, linkinv           same class
+        frmtmb mixture(gaussian, gaussian, gaussian)   sigma3                        log      elementwise  natural, linkinv           same class
+        frmtmb mixture(gaussian, gaussian, gaussian)   theta1                   identity   softmax, all K simplex theta1..K same class (simplex)
+        frmtmb mixture(gaussian, gaussian, gaussian)   theta2                   identity   softmax, all K simplex theta1..K same class (simplex)
+        frmtmb                     mixture_mvn(2, 2)   theta1                   identity   softmax, all K simplex theta1..K       no brms family
+    frmtmb.eam                                wiener       bs                        log      elementwise  natural, linkinv           same class
+    frmtmb.eam                                wiener      ndt               scaled_logit      elementwise  natural, linkinv           same class
+    frmtmb.eam                                wiener     bias                      logit      elementwise  natural, linkinv           same class
+    frmtmb.eam                                   lba        A                        log      elementwise  natural, linkinv       no brms family
+    frmtmb.eam                                   lba        k                        log      elementwise  natural, linkinv       no brms family
+    frmtmb.eam                                   lba      ndt               scaled_logit      elementwise  natural, linkinv       no brms family
+    frmtmb.eam                                   rdm        A                        log      elementwise  natural, linkinv       no brms family
+    frmtmb.eam                                   rdm        k                        log      elementwise  natural, linkinv       no brms family
+    frmtmb.eam                                   rdm      ndt               scaled_logit      elementwise  natural, linkinv       no brms family
+    frmtmb.eam                                  gddm       bs                        log      elementwise  natural, linkinv       no brms family
+    frmtmb.eam                                  gddm     bias                      logit      elementwise  natural, linkinv       no brms family
+    frmtmb.eam                                  gddm      ndt scaled_logit(0, from data)      elementwise  natural, linkinv       no brms family
+    frmtmb.eam                            wiener_gng       bs                        log      elementwise  natural, linkinv       no brms family
+    frmtmb.eam                            wiener_gng      ndt               scaled_logit      elementwise  natural, linkinv       no brms family
+    frmtmb.eam                            wiener_gng     bias                      logit      elementwise  natural, linkinv       no brms family
+ frmtmb.latent                                hmm(2)   sigma1                        log      elementwise  natural, linkinv       no brms family
+ frmtmb.latent                                hmm(2)   sigma2                        log      elementwise  natural, linkinv       no brms family
+ frmtmb.latent                                hmm(2)     tr12                   identity softmax, one row    coefficient b_       no brms family
+ frmtmb.latent                                hmm(2)     tr22                   identity softmax, one row    coefficient b_       no brms family
+  frmtmb.learn                      bandit2arm_delta      tau                        log      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                       bandit2arm_dual     Apun                      logit      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                       bandit2arm_dual      tau                        log      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                        prl_fictitious     bias                   identity      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                        prl_fictitious      tau                        log      elementwise  natural, linkinv       no brms family
+  frmtmb.learn             bandit4arm2_kalman_filter   lambda                      logit      elementwise  natural, linkinv       no brms family
+  frmtmb.learn             bandit4arm2_kalman_filter   center                   identity      elementwise  natural, linkinv       no brms family
+  frmtmb.learn             bandit4arm2_kalman_filter      mu0                   identity      elementwise  natural, linkinv       no brms family
+  frmtmb.learn             bandit4arm2_kalman_filter   sigma0                        log      elementwise  natural, linkinv       no brms family
+  frmtmb.learn             bandit4arm2_kalman_filter   sigmaD                        log      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                               ts_par7   alpha1                      logit      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                               ts_par7     tau1                        log      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                               ts_par7   alpha2                      logit      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                               ts_par7     tau2                        log      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                               ts_par7   lambda                      logit      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                               ts_par7     pers                   identity      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                         igt_pvl_delta    shape                      logit      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                         igt_pvl_delta   lambda                        log      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                         igt_pvl_delta      tau                        log      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                               igt_orl     Apun                      logit      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                               igt_orl        k                        log      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                               igt_orl    betaF                   identity      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                               igt_orl    betaP                   identity      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                                 rlddm    drift                   identity      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                                 rlddm       bs                        log      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                                 rlddm      ndt               scaled_logit      elementwise  natural, linkinv       no brms family
+  frmtmb.learn                                 rlddm     bias                      logit      elementwise  natural, linkinv       no brms family
+
+joint rows:
+           pkg                                family   dpar     link             read      unmodeled_is                 brms
+        frmtmb           mixture(gaussian, gaussian) theta1 identity   softmax, all K simplex theta1..K same class (simplex)
+        frmtmb mixture(gaussian, gaussian, gaussian) theta1 identity   softmax, all K simplex theta1..K same class (simplex)
+        frmtmb mixture(gaussian, gaussian, gaussian) theta2 identity   softmax, all K simplex theta1..K same class (simplex)
+        frmtmb                     mixture_mvn(2, 2) theta1 identity   softmax, all K simplex theta1..K       no brms family
+ frmtmb.latent                                hmm(2)   tr12 identity softmax, one row    coefficient b_       no brms family
+ frmtmb.latent                                hmm(2)   tr22 identity softmax, one row    coefficient b_       no brms family
+DONE

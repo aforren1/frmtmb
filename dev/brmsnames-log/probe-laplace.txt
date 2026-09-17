@@ -1,0 +1,13 @@
+-- as built --
+laplace real: TRUE  column cut: TRUE 
+ranef(real laplace)                ERROR: ranef() and coef() have no draws of the group-level coefficients of 'g': these draws come from frm_sample(laplace = TRUE), which integrates the random ef
+coef(real laplace)                 ERROR: ranef() and coef() have no draws of the group-level coefficients of 'g': these draws come from frm_sample(laplace = TRUE), which integrates the random ef
+ranef(column cut)                  ERROR: ranef() and coef() have no draws of the group-level coefficients of 'g': these draws come from frm_sample(laplace = TRUE), which integrates the random ef
+coef(column cut)                   ERROR: ranef() and coef() have no draws of the group-level coefficients of 'g': these draws come from frm_sample(laplace = TRUE), which integrates the random ef
+-- refusal removed --
+laplace real: TRUE  column cut: TRUE 
+ranef(real laplace)                ERROR: subscript out of bounds
+coef(real laplace)                 ERROR: subscript out of bounds
+ranef(column cut)                  ERROR: subscript out of bounds
+coef(column cut)                   ERROR: subscript out of bounds
+DONE

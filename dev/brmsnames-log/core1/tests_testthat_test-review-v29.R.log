@@ -1,0 +1,16 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-review-v29.R 
+BLOCKS  18 
+PASS    117 
+FAIL    0 
+ERROR   3 
+SKIP    0 
+  failing: gr(cov =) blocks expose sd_/cor_ names to hypothesis()
+       Error: 'b_sd_id__Intercept' is not a parameter of this model, while 'sd_id__Intercept' is: the `class`/`group` shorthand would be ignored for it. brms's default 
+  failing: gr(prec =) and equalto() blocks contribute names too
+       Error: 'b_sd_g__Intercept' is not a parameter of this model, while 'sd_g__Intercept' is: the `class`/`group` shorthand would be ignored for it. brms's default c 
+  failing: vcov(full = TRUE) carries theta under REML
+       Error: 'b_sd_id__Intercept' is not a parameter of this model, while 'sd_id__Intercept' is: the `class`/`group` shorthand would be ignored for it. brms's default 
+DONE

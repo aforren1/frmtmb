@@ -1,0 +1,100 @@
+brms 2.23.0 
+
+count ~ Trt * Age + mo(Exp) + s(Age) + volume + offset(Age) + (1 + Trt | visit) + arma(visit, patient) 
+sigma ~ Trt
+
+== variables ==
+ [1] "b[1]"                  "b[2]"                  "b[3]"                 
+ [4] "b[4]"                  "Intercept"             "simo_1[1]"            
+ [7] "simo_1[2]"             "simo_1[3]"             "simo_1[4]"            
+[10] "bsp[1]"                "bs[1]"                 "sds_1[1]"             
+[13] "ar[1]"                 "ma[1]"                 "b_sigma[1]"           
+[16] "Intercept_sigma"       "nu"                    "sd_1[1]"              
+[19] "sd_1[2]"               "s_1_1[1]"              "s_1_1[2]"             
+[22] "s_1_1[3]"              "s_1_1[4]"              "s_1_1[5]"             
+[25] "s_1_1[6]"              "s_1_1[7]"              "s_1_1[8]"             
+[28] "r_1_1[1]"              "r_1_1[2]"              "r_1_1[3]"             
+[31] "r_1_1[4]"              "r_1_2[1]"              "r_1_2[2]"             
+[34] "r_1_2[3]"              "r_1_2[4]"              "lprior"               
+[37] "b_Intercept"           "b_sigma_Intercept"     "cor_1[1]"             
+[40] "prior_b"               "prior_Intercept"       "prior_simo_1[1]"      
+[43] "prior_simo_1[2]"       "prior_simo_1[3]"       "prior_simo_1[4]"      
+[46] "prior_bsp"             "prior_bs"              "prior_sds_1"          
+[49] "prior_b_sigma"         "prior_Intercept_sigma" "prior_nu"             
+[52] "prior_sd_1"            "prior_cor_1"           "lp__"                 
+
+== formals ==
+fixef                (object, summary, robust, probs, pars, ...)
+ranef                (object, summary, robust, probs, pars, groups, ...)
+coef                 (object, summary, robust, probs, ...)
+VarCorr              (x, sigma, summary, robust, probs, ...)
+posterior_summary    (x, pars, variable, probs, robust, ...)
+bayes_R2             (object, resp, summary, robust, probs, ...)
+hypothesis           (x, hypothesis, class, group, scope, alpha, robust, seed, ...)
+summary              (object, priors, prob, robust, mc_se, ...)
+as.matrix            (x, pars, variable, draw, subset, ...)
+as.array             (x, pars, variable, draw, subset, ...)
+as.data.frame        (x, row.names, optional, pars, variable, draw, subset, ...)
+as_draws_array       (x, variable, regex, inc_warmup, ...)
+as_draws_df          (x, variable, regex, inc_warmup, ...)
+as_draws_matrix      (x, variable, regex, inc_warmup, ...)
+as_draws_list        (x, variable, regex, inc_warmup, ...)
+as_draws_rvars       (x, variable, regex, inc_warmup, ...)
+as_draws             (x, variable, regex, inc_warmup, ...)
+variables            (x, ...)
+loo_R2               (object, resp, summary, robust, probs, seed, args_epred, args_loglik, ...)
+conditional_effects  (x, effects, conditions, int_conditions, re_formula, prob, robust, method, spaghetti, surface, categorical, ordinal, transform, resolution, select_points, too_far, probs, ...)
+pairs                (x, pars, variable, regex, fixed, ...)
+pp_check             (object, type, ndraws, prefix, group, x, newdata, resp, draw_ids, nsamples, subset, ...)
+
+== fixef ==
+                   Estimate Est.Error       Q2.5     Q97.5
+sigma[1]         0.06259574 0.3081535 -0.5549819  0.653693
+Intercept       19.40079236 1.3612311 17.6613385 21.774630
+sigma_Intercept  1.29845903 0.2124268  0.8748036  1.641227
+ num [1:25, 1:3] 0.0523 0.0939 -0.5268 0.6515 -0.0814 ...
+ - attr(*, "dimnames")=List of 2
+  ..$ draw    : chr [1:25] "1" "2" "3" "4" ...
+  ..$ variable: chr [1:3] "sigma[1]" "Intercept" "sigma_Intercept"
+ - attr(*, "nchains")= int 1
+[1] "sigma[1]"        "Intercept"       "sigma_Intercept"
+                   Estimate Est.Error        Q10        Q90
+sigma[1]         0.06259574 0.3081535 -0.2815674  0.4376633
+Intercept       19.40079236 1.3612311 17.7682068 21.2370555
+sigma_Intercept  1.29845903 0.2124268  0.9990066  1.5453126
+   Estimate   Est.Error        Q2.5       Q97.5 
+ 0.05227159  0.21292910 -0.55498185  0.65369301 
+
+== ranef ==
+list(visit) 
+List of 1
+ $ visit: num [1:4, 1:4, 1:2] NaN NaN NaN NaN NA NA NA NA NA NA ...
+  ..- attr(*, "dimnames")=List of 3
+  .. ..$ : chr [1:4] "1" "2" "3" "4"
+  .. ..$ : chr [1:4] "Estimate" "Est.Error" "Q2.5" "Q97.5"
+  .. ..$ : chr [1:2] "Intercept" "Trt1"
+list(visit) 
+List of 1
+ $ visit: logi [1:25, 1:4, 1:2] NA NA NA NA NA NA ...
+  ..- attr(*, "dimnames")=List of 3
+  .. ..$ : NULL
+  .. ..$ : chr [1:4] "1" "2" "3" "4"
+  .. ..$ : chr [1:2] "Intercept" "Trt1"
+
+== coef ==
+List of 1
+ $ visit: num [1:4, 1:4, 1:4] NaN NaN NaN NaN NA NA NA NA NA NA ...
+  ..- attr(*, "dimnames")=List of 3
+  .. ..$ : chr [1:4] "1" "2" "3" "4"
+  .. ..$ : chr [1:4] "Estimate" "Est.Error" "Q2.5" "Q97.5"
+  .. ..$ : chr [1:4] "Intercept" "Trt1" "sigma[1]" "sigma_Intercept"
+List of 1
+ $ visit: num [1:25, 1:4, 1:4] NA NA NA NA NA NA NA NA NA NA ...
+  ..- attr(*, "dimnames")=List of 3
+  .. ..$ : NULL
+  .. ..$ : chr [1:4] "1" "2" "3" "4"
+  .. ..$ : chr [1:4] "Intercept" "Trt1" "sigma[1]" "sigma_Intercept"
+
+== VarCorr ==
+Error: The following variables are missing in the draws object: {'sd_visit__Intercept', 'sd_visit__Trt1'}
+Execution halted

@@ -41,7 +41,7 @@ draws_base_fit <- function(x) {
 draws_fit_at <- function(x, i, idx = draws_par_index(x$fit)) {
   fit <- draws_base_fit(x)
   est <- fit$frame[["par_template"]]   # mapped betad entries keep link(const)
-  row <- x$draws[i, ]
+  row <- draws_internal_matrix(x, i)[1L, ]
   for (cp in names(idx)) {
     if (cp == "betad" && length(fx <- fit$frame[["betad_fixed_idx"]])) {
       pos <- setdiff(seq_along(est[[cp]]), fx)
@@ -87,79 +87,135 @@ draws_subsample <- function(x, ndraws, draw_ids = NULL) {
 }
 
 #' @export
-summary.frmtmb_draws <- function(object, ...) {
+summary.frmtmb_draws <- function(object, priors = FALSE, prob = 0.95,
+                                 robust = FALSE, mc_se = FALSE, ...) {
   frm_check_dots(...)
-  m <- object$draws
-  keep <- setdiff(colnames(m),
-                  c("lp__", grep("^b\\[", colnames(m), value = TRUE)))
-  tab <- t(vapply(keep, function(nm) {
-    c(mean = mean(m[, nm]), sd = stats::sd(m[, nm]),
-      `2.5%` = unname(stats::quantile(m[, nm], 0.025)),
-      `97.5%` = unname(stats::quantile(m[, nm], 0.975)))
-  }, numeric(4)))
-  # The SAME three quantities `brms:::summary.brmsfit` reports, from the
-  # same posterior functions: `Rhat = posterior::rhat`, `Bulk_ESS =
-  # posterior::ess_bulk`, `Tail_ESS = posterior::ess_tail`. They used to
-  # be rstan's `n_eff` and classic split-Rhat, which put a column headed
-  # `Rhat` beside `rhat(object)` carrying a different definition, below
-  # 1 in one and above it in the other on a measured fit.
-  if (requireNamespace("posterior", quietly = TRUE)) {
-    a <- posterior::subset_draws(as_draws_array(object), variable = keep)
-    d <- posterior::summarise_draws(a, Rhat = posterior::rhat,
-                                    Bulk_ESS = posterior::ess_bulk,
-                                    Tail_ESS = posterior::ess_tail)
-    i <- match(keep, d$variable)
-    tab <- cbind(tab, Rhat = d$Rhat[i], Bulk_ESS = d$Bulk_ESS[i],
-                 Tail_ESS = d$Tail_ESS[i])
+  check_flag(priors, "priors")
+  check_flag(robust, "robust")
+  check_flag(mc_se, "mc_se")
+  check_probability(prob, "prob")
+  if (priors) {
+    stop("summary(priors = TRUE) has no table to add the priors to: ",
+         "this summary is a matrix of the parameters, not brms's ",
+         "summary object. prior_summary(object) reports the priors ",
+         "the draws were taken under", call. = FALSE)
   }
+  if (!requireNamespace("posterior", quietly = TRUE)) {
+    stop("summary() on draws needs the 'posterior' package: its ",
+         "columns are brms's, which posterior computes", call. = FALSE)
+  }
+  keep <- draws_outer_cols(object)
+  probs <- c((1 - prob) / 2, 1 - (1 - prob) / 2)
+  # brms:::summary.brmsfit's own `.summary()`, measure for measure and
+  # in its column order, so a column carries brms's definition under
+  # brms's header: Estimate, MCSE, Est.Error, the two interval ends,
+  # Rhat, Bulk_ESS, Tail_ESS
+  qfun <- function(x, ...) {
+    qs <- posterior::quantile2(x, probs = probs, ...)
+    names(qs) <- paste0(c("l-", "u-"), (probs[2] - probs[1]) * 100,
+                        "% CI")
+    qs
+  }
+  measures <- list()
+  if (robust) {
+    measures$Estimate <- stats::median
+    if (mc_se) measures$MCSE <- posterior::mcse_median
+    measures$Est.Error <- stats::mad
+  } else {
+    measures$Estimate <- mean
+    if (mc_se) measures$MCSE <- posterior::mcse_mean
+    measures$Est.Error <- stats::sd
+  }
+  measures$quantiles <- qfun
+  measures$Rhat <- posterior::rhat
+  measures$Bulk_ESS <- posterior::ess_bulk
+  measures$Tail_ESS <- posterior::ess_tail
+  a <- posterior::subset_draws(draws_as_array(object), variable = keep)
+  out <- do.call(posterior::summarize_draws, c(list(a), measures))
+  out <- as.data.frame(out)
+  tab <- as.matrix(out[, -1L, drop = FALSE])
+  rownames(tab) <- out$variable
   tab
 }
 
+#' @rdname draws-structure
 #' @exportS3Method nlme::fixef
 #' @export
-fixef.frmtmb_draws <- function(object, ...) {
-  # the draws-side spelling: parenthesis-free, matching the draws
-  # matrix, summary(), variables() and hypothesis()
+fixef.frmtmb_draws <- function(object, summary = TRUE, robust = FALSE,
+                               probs = c(0.025, 0.975), pars = NULL, ...) {
+  # brms:::fixef.brmsfit, on this package's brms-named draws
   frm_check_dots(...)
-  nm <- par_name_bare(estimated_coef_names(object$fit))
-  idx <- draws_par_index(object$fit)
-  cols <- c(idx$beta, idx$betad)
-  m <- object$draws[, cols, drop = FALSE]
-  out <- cbind(
-    Estimate = colMeans(m),
-    Est.Error = apply(m, 2, stats::sd),
-    Q2.5 = apply(m, 2, stats::quantile, 0.025),
-    Q97.5 = apply(m, 2, stats::quantile, 0.975)
-  )
-  rownames(out) <- nm
+  check_flag(summary, "summary")
+  all_pars <- variables(object)
+  fpars <- all_pars[grepl(draws_fixef_regex, all_pars)]
+  if (!is.null(pars)) {
+    pars <- as.character(pars)
+    fpars <- fpars[sub("^[^_]+_", "", fpars) %in% pars]
+  }
+  if (!length(fpars)) return(NULL)
+  out <- as.matrix(object, variable = fpars)
+  colnames(out) <- gsub(draws_fixef_regex, "", fpars)
+  if (summary) out <- posterior_summary(out, probs, robust)
   out
 }
 
+#' @rdname draws-structure
 #' @exportS3Method nlme::VarCorr
 #' @export
-VarCorr.frmtmb_draws <- function(x, sigma = 1, ...) {
-  # a structural template only: every number in `base` is replaced by a
-  # posterior summary below, so the starting values of a formula-sampled
-  # object never reach the result
+VarCorr.frmtmb_draws <- function(x, sigma = 1, summary = TRUE,
+                                 robust = FALSE,
+                                 probs = c(0.025, 0.975), ...) {
+  # brms:::VarCorr.brmsfit's layout and summary path. brms reads sd_ and
+  # cor_ draws the sampler stored; these draws store the covariance
+  # parameters on their unconstrained scale, so the standard deviations
+  # and correlations are computed per draw from them first
   frm_check_dots(...)
+  check_flag(summary, "summary")
   fit <- draws_base_fit(x)
-  idx <- draws_par_index(fit)
-  if (is.null(idx$theta)) return(NULL)
-  th_draws <- x$draws[, idx$theta, drop = FALSE]
-  per_draw <- lapply(seq_len(nrow(th_draws)), function(i) {
-    fit$estimates[["theta"]] <- th_draws[i, ]
-    # the exported generic, not core's method by name: the method is
-    # core's to move or rename and this only ever wanted the dispatch
-    as.data.frame(VarCorr(fit))$sdcor
-  })
-  base <- as.data.frame(VarCorr(fit))
-  M <- do.call(rbind, per_draw)
-  base$estimate <- colMeans(M)
-  base$lwr <- apply(M, 2, stats::quantile, 0.025)
-  base$upr <- apply(M, 2, stats::quantile, 0.975)
-  base$vcov <- NULL
-  base$sdcor <- NULL
-  base
+  lay <- varcorr_layout(fit)
+  if (!length(lay$groups) && is.null(lay$residual)) {
+    stop("The model does not contain covariance matrices.", call. = FALSE)
+  }
+  if (length(lay$groups) && draws_is_laplace(x) &&
+        is.null(draws_par_index(fit)$theta)) {
+    stop("VarCorr() found no covariance parameters in these draws",
+         call. = FALSE)
+  }
+  per <- draws_varcorr_values(x, lay)
+  keys <- names(per[[1L]])
+  out <- list()
+  for (key in keys) {
+    rn <- if (identical(key, "residual__")) lay$residual$rnames else
+      lay$groups[[key]]$rnames
+    K <- length(rn)
+    sdm <- draws_derived_matrix(x, matrix(vapply(per, function(v) {
+      v[[key]]$sd
+    }, numeric(K)), ncol = K, byrow = TRUE), rn)
+    e <- list(sd = sdm)
+    if (!is.null(per[[1L]][[key]]$cor)) {
+      # brms's get_cor_matrix() and get_cov_matrix(), from the sd draws
+      # and the lower-triangle correlation draws, so the arithmetic is
+      # brms's and not a covariance matrix read back
+      lt <- draws_cor_index(K)
+      cor_draws <- matrix(vapply(per, function(v) v[[key]]$cor[lt],
+                                 numeric(length(lt))),
+                          ncol = length(lt), byrow = TRUE)
+      e$cor <- draws_cor_array(cor_draws, K)
+      e$cov <- draws_cov_array(unname(e$sd), cor_draws)
+      dimnames(e$cor)[2:3] <- list(rn, rn)
+      dimnames(e$cov)[2:3] <- list(rn, rn)
+    }
+    if (summary) {
+      e$sd <- posterior_summary(e$sd, probs, robust)
+      if (!is.null(e$cor)) {
+        e$cor <- posterior_summary(e$cor, probs, robust)
+        e$cov <- posterior_summary(e$cov, probs, robust)
+      }
+    }
+    # brms's element order: sd, then cor and cov
+    out[[key]] <- e[intersect(c("sd", "cor", "cov"), names(e))]
+  }
+  out
 }
 
 #' @exportS3Method rstantools::prior_summary
@@ -176,116 +232,130 @@ prior_summary.frmtmb_draws <- function(object, ...) {
   pl
 }
 
+#' @rdname draws-structure
 #' @exportS3Method nlme::ranef
 #' @export
-ranef.frmtmb_draws <- function(object, ...) {
+ranef.frmtmb_draws <- function(object, summary = TRUE, robust = FALSE,
+                               probs = c(0.025, 0.975), pars = NULL,
+                               groups = NULL, ...) {
+  # brms:::ranef.brmsfit's shape: per grouping factor, draws x levels x
+  # coefficients, summarized to levels x statistics x coefficients
   frm_check_dots(...)
-  fit <- object$fit
-  if (!length(fit$frame[["re_blocks"]])) return(list())
-  idx <- draws_par_index(fit)
-  n <- nrow(object$draws)
-  per <- vector("list", n)
-  for (i in seq_len(n)) {
-    per[[i]] <- ranef(draws_fit_at(object, i, idx))
+  check_flag(summary, "summary")
+  fit <- draws_base_fit(object)
+  lay <- draws_ranef_layout(object)
+  if (!length(lay)) {
+    stop("The model does not contain group-level effects.", call. = FALSE)
   }
-  # brms shape: per term, a levels x statistics x coefficients array.
-  # BY POSITION, not by name: core's ranef() keys its list by the
-  # GROUPING FACTOR now (brms's and lme4's key), so two blocks on one
-  # factor share a name and assigning by name wrote one entry twice,
-  # silently dropping the second block. core's own print() and
-  # as.data.frame() index by position for the same reason.
-  out <- vector("list", length(per[[1]]))
-  names(out) <- names(per[[1]])
-  for (bi in seq_along(per[[1]])) {
-    M0 <- per[[1]][[bi]]
-    A <- vapply(per, function(r) r[[bi]], M0)
-    st <- array(NA_real_, c(nrow(M0), 4L, ncol(M0)),
-                dimnames = list(rownames(M0),
-                                c("Estimate", "Est.Error",
-                                  "Q2.5", "Q97.5"),
-                                colnames(M0)))
-    st[, "Estimate", ] <- apply(A, c(1, 2), mean)
-    st[, "Est.Error", ] <- apply(A, c(1, 2), stats::sd)
-    st[, "Q2.5", ] <- apply(A, c(1, 2), stats::quantile, 0.025)
-    st[, "Q97.5", ] <- apply(A, c(1, 2), stats::quantile, 0.975)
-    # the block label rides along exactly as core's ranef() carries it
-    attr(st, "term") <- attr(M0, "term")
-    out[[bi]] <- st
+  if (!is.null(pars)) pars <- as.character(pars)
+  keep <- names(lay)
+  if (!is.null(groups)) keep <- intersect(keep, as.character(groups))
+  m <- object$draws
+  out <- list()
+  for (g in keep) {
+    L <- lay[[g]]
+    sel <- seq_along(L$coefs)
+    if (!is.null(pars)) sel <- sel[L$coef[sel] %in% pars]
+    if (!length(sel)) next
+    A <- array(NA_real_, c(nrow(m), length(L$levels), length(sel)))
+    for (j in seq_along(sel)) {
+      cols <- L$cols[, sel[j]]
+      ok <- !is.na(cols)
+      if (any(ok)) A[, ok, j] <- m[, cols[ok], drop = FALSE]
+    }
+    A <- draws_ranef_fill(object, L, sel, A, g)
+    dimnames(A) <- list(NULL, L$levels, L$coefs[sel])
+    # brms's draws array keeps the chain count its as.matrix() carried
+    attr(A, "nchains") <- nchains(object)
+    if (summary) A <- posterior_summary(A, probs, robust)
+    out[[g]] <- A
   }
   out
 }
 
 #' @exportS3Method brms::hypothesis
 #' @export
-hypothesis.frmtmb_draws <- function(x, hypothesis, alpha = 0.05,
-                                    class = NULL, group = NULL, ...) {
-  # Arm core's reserved-name shadowing note for this call. It used to
-  # be armed by core's GENERIC, and this method relied on that. The
-  # exported `hypothesis` now resolves to brms's generic whenever brms
-  # is loaded, so core moved the arming into its methods, and this one
-  # lost the note in every session until it armed it too. Measured on
-  # a covariate named `sigma`: 1 note on the fit, 0 on its draws.
+hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
+                                    scope = c("standard", "ranef", "coef"),
+                                    alpha = 0.05, robust = FALSE,
+                                    seed = NULL, ...) {
   frm_check_dots(...)
-  old <- hyp_shadow_arm()
-  on.exit(hyp_shadow_disarm(old), add = TRUE)
+  scope <- match.arg(scope)
+  check_flag(robust, "robust")
+  check_probability(alpha, "alpha")
+  if (!is.null(seed)) set.seed(seed)
+  if (!is.character(hypothesis) || !length(hypothesis)) {
+    stop("Argument 'hypothesis' must be a character vector.", call. = FALSE)
+  }
+  if (scope != "standard") {
+    return(draws_hypothesis_coef(x, hypothesis, group, scope, alpha,
+                                 robust))
+  }
   fit <- x$fit
   vo <- hyp_vals_only(fit)
-  hp <- hyp_parse_all(hypothesis,
-                      names(hyp_env_vals(fit, vo$vals, vo$comp)),
+  prefix <- hyp_class_prefix(class, group)
+  env_names <- names(hyp_env_vals(fit, vo$vals, vo$comp))
+  # brms evaluates over variables(x), which on draws includes the stored
+  # columns (r_g[1,Intercept], lp__) as well as the derived sd_ and cor_
+  hp <- hyp_parse_all(hypothesis, union(env_names, colnames(x$draws)),
                       class, group)
   exs <- hp$exprs
+  labels <- hyp_labels(hypothesis)
+  used <- unique(unlist(lapply(exs, hyp_expr_vars)))
+  from_cols <- setdiff(used, env_names)
+  # `x$draws[i, name]` reads the FIRST column of a name given twice, so
+  # a name that matches two columns is refused rather than half-read.
+  # frm_sample() suffixes repeats as brms does, so this guards draws
+  # built any other way
+  cn <- colnames(x$draws)
+  twice <- intersect(from_cols, cn[duplicated(cn)])
+  if (length(twice)) {
+    stop("hypothesis() cannot read ", paste0("'", twice, "'",
+                                             collapse = ", "),
+         ": the draws carry that name on more than one column",
+         call. = FALSE)
+  }
+  need_env <- length(intersect(used, env_names)) > 0L
   idx <- draws_par_index(fit)
   n <- nrow(x$draws)
   draws <- matrix(NA_real_, n, length(exs),
-                  dimnames = list(NULL, hypothesis))
+                  dimnames = list(NULL, labels))
   for (i in seq_len(n)) {
-    sh <- draws_fit_at(x, i, idx)
-    w <- hyp_vals_only(sh)
-    draws[i, ] <- vapply(exs, function(ex) {
-      hyp_eval(sh, ex, w$vals, w$comp)
-    }, numeric(1))
+    vals <- as.list(x$draws[i, from_cols])
+    names(vals) <- from_cols
+    if (need_env) {
+      sh <- draws_fit_at(x, i, idx)
+      w <- hyp_vals_only(sh)
+      vals <- c(hyp_env_vals(sh, w$vals, w$comp), vals)
+    }
+    draws[i, ] <- vapply(exs, function(ex) hyp_eval_in(ex, vals),
+                         numeric(1))
   }
-  # brms's Evid.Ratio and Post.Prob, in this frame's own lower-case
-  # spelling. Only the draws surface carries them: they are posterior
-  # quantities, and a Wald or profile hypothesis has no posterior
-  # density to put over a prior one.
-  #
   # A POINT null is the spelling that carries "=". The bare-quantity
   # spelling this package also accepts parses `two.sided` as well, and
-  # it is a summary request rather than a test, so it must not be
-  # weighed or complained about.
+  # it is a summary request rather than a test, so it is not weighed.
   is_point <- hp$dir == "two.sided" &
     grepl("=", hypothesis, fixed = TRUE)
   ev <- er_evidence(x, exs, hp$dir, draws, hypothesis, is_point)
-  rows <- lapply(seq_along(exs), function(k) {
-    t_k <- draws[, k]
-    dir <- hp$dir[k]
-    lo <- if (dir == "two.sided") alpha / 2 else alpha
-    data.frame(hypothesis = hypothesis[k], estimate = mean(t_k),
-               se = stats::sd(t_k),
-               lwr = if (dir == "less") -Inf else
-                 unname(stats::quantile(t_k, lo)),
-               upr = if (dir == "greater") Inf else
-                 unname(stats::quantile(t_k, 1 - lo)),
-               z = mean(t_k) / stats::sd(t_k),
-               p = hyp_tail_p(t_k, dir),
-               evid_ratio = ev$evid_ratio[k],
-               post_prob = ev$post_prob[k])
-  })
-  out <- do.call(rbind, rows)
-  rownames(out) <- NULL
-  attr(out, "method") <- "posterior"
-  attr(out, "alpha") <- alpha
-  attr(out, "direction") <- hp$dir
-  attr(out, "draws") <- draws
-  attr(out, "nsim") <- n
-  attr(out, "converged") <- rep(TRUE, n)
-  # an attribute rather than a column: the frame stays the shape a
-  # ported brms script indexes, and the Monte Carlo error of a kernel
-  # density ratio is exactly what a reader needs before believing one
-  attr(out, "evid_ratio_mcse") <- ev$mcse
-  class(out) <- c("frmtmb_hypothesis", "data.frame")
-  out
+  k_n <- length(exs)
+  ctr <- if (robust) stats::median else mean
+  spr <- if (robust) stats::mad else stats::sd
+  lo_p <- ifelse(hp$dir == "two.sided", alpha / 2, alpha)
+  est <- apply(draws, 2L, ctr)
+  err <- apply(draws, 2L, spr)
+  lwr <- vapply(seq_len(k_n), function(k) {
+    unname(stats::quantile(draws[, k], lo_p[k]))
+  }, 1)
+  upr <- vapply(seq_len(k_n), function(k) {
+    unname(stats::quantile(draws[, k], 1 - lo_p[k]))
+  }, 1)
+  er <- ev$evid_ratio
+  pp <- ifelse(is.infinite(er), 1, er / (1 + er))
+  hyp_brms_result(
+    labels, est, err, lwr, upr, er, pp, hp$dir, pp > 1 - alpha,
+    hyp_samples_frame(draws, k_n),
+    hyp_samples_frame(matrix(NA, n, k_n), k_n), prefix, alpha,
+    list(method = "posterior", evid_ratio_mcse = ev$mcse))
 }
 
 #' Expected-value and predictive draws from sampled parameters
@@ -686,38 +756,136 @@ pp_check_retired_draws <- c(
 
 #' @exportS3Method bayesplot::pp_check
 #' @export
-pp_check.frmtmb_draws <- function(object, type = "dens_overlay",
-                                  ndraws = 50,
-                                  re_formula = NULL, ...) {
-  # bayesplot's ppc_* function takes dots of its own, so an unknown
-  # name there is its business. The retired lme4 spelling is not: it
-  # named a real setting until the rename, so it is refused here
-  # rather than passed on to be ignored.
+pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
+                                  prefix = c("ppc", "ppd"), group = NULL,
+                                  x = NULL, newdata = NULL, resp = NULL,
+                                  draw_ids = NULL, nsamples = NULL,
+                                  subset = NULL, ..., re_formula = NULL) {
+  # brms:::pp_check.brmsfit's slots in its order, so pp_check(ds,
+  # "dens_overlay", 20, "ppd") asks for a predictive-distribution plot
+  # as in brms; `re_formula` used to sit where brms has `prefix`.
+  #
+  # bayesplot's function takes dots of its own, so an unknown name there
+  # is its business. The retired lme4 spelling is not: it named a real
+  # setting until the rename, so it is refused here rather than passed on
+  # to be ignored.
   frm_check_dots(..., .allow = TRUE, .unsupported = pp_check_retired_draws)
-  # the draws method's default is NULL, not the fit method's NA: a draw
-  # already CARRIES its random effects, so conditioning on them is the
-  # posterior predictive check, while the fit method has one point
-  # estimate and has to simulate new levels to get a spread at all
-  # `re.form` is NOT accepted here. brms honors it on pp_check() while
-  # warning that it ignored it, which is a leak through its dots into
-  # posterior_predict() rather than an intention to copy.
-  re_form <- re_formula
-  fit <- object$fit
-  rspec <- single_response(fit, "pp_check()")
-  y <- fit$frame[["y"]][[1L]]
-  if (is.matrix(y)) {
+  if (missing(type)) type <- "dens_overlay"
+  if (!is.character(type) || length(type) != 1L || is.na(type)) {
+    stop("pp_check(): `type` must be a single string", call. = FALSE)
+  }
+  prefix <- match.arg(prefix)
+  ndraws_given <- !missing(ndraws) || !missing(nsamples)
+  if (!is.null(nsamples)) {
+    warning("Argument 'nsamples' is deprecated. Please use argument ",
+            "'ndraws' instead.", call. = FALSE)
+    ndraws <- nsamples
+  }
+  if (!is.null(subset)) {
+    warning("Argument 'subset' is deprecated. Please use argument ",
+            "'draw_ids' instead.", call. = FALSE)
+    draw_ids <- subset
+  }
+  fun <- draws_bayesplot_fun(paste0(prefix, "_", type), "pp_check(type =)")
+  fit <- draws_base_fit(object)
+  rspec <- if (is.null(resp)) single_response(fit, "pp_check()") else
+    fit$spec$responses[[resp]]
+  if (is.null(rspec)) {
+    stop("pp_check(resp = \"", resp, "\") names no response of this ",
+         "model; it has ", paste(names(fit$spec$responses),
+                                  collapse = ", "), call. = FALSE)
+  }
+  resp <- rspec$resp_name
+  data <- newdata %||% fit$frame[["data_frame"]]
+  fargs <- names(formals(fun))
+  if ("group" %in% fargs) {
+    if (is.null(group)) {
+      stop("Argument 'group' is required for ppc type '", type, "'.",
+           call. = FALSE)
+    }
+  }
+  for (v in c(group, x)) {
+    if (!is.character(v) || length(v) != 1L || !v %in% names(data)) {
+      stop("Variable '", v, "' could not be found in the data.",
+           call. = FALSE)
+    }
+  }
+  if (!ndraws_given) {
+    # brms's own defaults, with its own messages: every draw for the
+    # types that average over draws, ten otherwise
+    aps_types <- c("error_scatter_avg", "error_scatter_avg_vs_x",
+                   "intervals", "intervals_grouped", "loo_intervals",
+                   "loo_pit", "loo_pit_overlay", "loo_pit_qq",
+                   "loo_ribbon", "loo_pit_ecdf", "pit_ecdf",
+                   "pit_ecdf_grouped", "ribbon", "ribbon_grouped",
+                   "rootogram", "scatter_avg", "scatter_avg_grouped",
+                   "stat", "stat_2d", "stat_freqpoly_grouped",
+                   "stat_grouped", "violin_grouped")
+    if (!is.null(draw_ids)) {
+      ndraws <- NULL
+    } else if (type %in% aps_types) {
+      ndraws <- NULL
+      message("Using all posterior draws for ppc type '", type,
+              "' by default.")
+    } else {
+      ndraws <- 10
+      message("Using 10 posterior draws for ppc type '", type,
+              "' by default.")
+    }
+  }
+  pred <- if (identical(type, "error_binned")) posterior_epred else
+    posterior_predict
+  yrep <- pred(object, newdata = newdata, resp = resp, ndraws = ndraws,
+               draw_ids = draw_ids, re_formula = re_formula)
+  if (length(dim(yrep)) > 2L) {
     stop("pp_check() on draws supports vector responses", call. = FALSE)
   }
-  yrep <- posterior_predict(object, ndraws = ndraws, re_formula = re_form)
-  fun <- get(paste0("ppc_", type), envir = asNamespace("bayesplot"))
-  fun(as.numeric(y), yrep, ...)
+  args <- list()
+  take <- rep(TRUE, ncol(yrep))
+  if (prefix == "ppc") {
+    y <- as.numeric(draws_response_values(fit, resp, newdata,
+                                          "pp_check()"))
+    if (anyNA(y)) {
+      warning("NA responses are not shown in 'pp_check'.", call. = FALSE)
+      take <- !is.na(y)
+    }
+    args$y <- y[take]
+    args$yrep <- yrep[, take, drop = FALSE]
+  } else {
+    args$ypred <- yrep
+  }
+  if (!is.null(group)) args$group <- data[[group]][take]
+  if (!is.null(x)) {
+    xv <- data[[x]][take]
+    args$x <- if (is.factor(xv) || is.character(xv) || is.logical(xv)) xv else
+      as.numeric(xv)
+  }
+  do.call(fun, c(args, list(...)))
 }
 
 #' Convert draws to a posterior draws object
 #'
+#' brms's converters, with brms's arguments and brms's output. The
+#' `as_draws_*()` family takes `variable` (exact names unless `regex`)
+#' and returns a posterior draws object; `as_draws()` is brms's
+#' `as_draws_list()`. `as.matrix()`, `as.array()` and `as.data.frame()`
+#' return brms's unclassed objects, with brms's deprecated `pars` and
+#' `subset` accepted under brms's own warning.
+#'
 #' @param x A `frmtmb_draws` object.
-#' @param ... Refused: an argument the method does not have is an
-#'   error naming it, rather than silently changing nothing.
+#' @param variable Variables to keep, by exact name unless `regex`.
+#' @param regex If `TRUE`, `variable` is a regular expression.
+#' @param inc_warmup Only `FALSE`: the draws matrix keeps the post-warmup
+#'   draws alone.
+#' @param pars brms's deprecated alias of `variable`, a regular
+#'   expression; it warns, as brms's does.
+#' @param draw Draws to keep, by index.
+#' @param subset brms's deprecated alias of `draw`; it warns.
+#' @param row.names,optional Accepted for the generic and unused, as in
+#'   brms.
+#' @param ... For `as.matrix()`, `as.array()` and `as.data.frame()`, the
+#'   `regex`, `fixed` and `inc_warmup` brms passes on; anything else is
+#'   refused by name, rather than silently changing nothing.
 #' @return A `posterior::draws_matrix`: one column per sampled variable
 #'   and one row per draw.
 #' @examples
@@ -746,9 +914,12 @@ NULL
 #' @rdname sample-as_draws
 #' @exportS3Method posterior::as_draws
 #' @export
-as_draws.frmtmb_draws <- function(x, ...) {
+as_draws.frmtmb_draws <- function(x, variable = NULL, regex = FALSE,
+                                  inc_warmup = FALSE, ...) {
+  # brms's as_draws() is its as_draws_list()
   frm_check_dots(...)
-  posterior::as_draws_matrix(x$draws)
+  posterior::as_draws_list(draws_as_array(x, variable, regex, inc_warmup,
+                                          "as_draws()"))
 }
 
 #' @exportS3Method posterior::variables
@@ -758,71 +929,77 @@ variables.frmtmb_draws <- function(x, ...) {
   colnames(x$draws)
 }
 
+#' @rdname sample-as_draws
 #' @export
-as.data.frame.frmtmb_draws <- function(x, ...) {
-  frm_check_dots(...)
-  as.data.frame(x$draws)
+as.data.frame.frmtmb_draws <- function(x, row.names = NULL, optional = TRUE,
+                                       pars = NA, variable = NULL,
+                                       draw = NULL, subset = NULL, ...) {
+  a <- draws_accessor_args(x, pars, variable, draw, subset,
+                           "as.data.frame()",
+                           format = posterior::as_draws_df, ...)
+  out <- posterior::as_draws_df(a)
+  out <- as.data.frame(out)
+  out$.chain <- out$.iteration <- out$.draw <- NULL
+  out
 }
 
 # ---- the draws matrix in other shapes --------------------------------
 
 #' @rdname sample-as_draws
 #' @export
-as.array.frmtmb_draws <- function(x, ...) {
-  # iterations x chains x parameters, the layout bayesplot's mcmc_*
-  # functions and posterior's draws_array both read. frm_sample()
-  # rbinds the chains in order, so the draws matrix is already
-  # chain-major and reshapes without a permutation.
-  frm_check_dots(...)
-  m <- x$draws
-  nc <- x$stanfit@sim$chains %||% 1L
-  if (nc <= 1L || nrow(m) %% nc != 0L) nc <- 1L
-  array(as.vector(m), c(nrow(m) %/% nc, nc, ncol(m)),
-        dimnames = list(NULL, paste0("chain:", seq_len(nc)),
-                        colnames(m)))
+as.array.frmtmb_draws <- function(x, pars = NA, variable = NULL,
+                                  draw = NULL, subset = NULL, ...) {
+  unclass(draws_accessor_args(x, pars, variable, draw, subset,
+                              "as.array()", ...))
 }
 
 #' @rdname sample-as_draws
 #' @exportS3Method posterior::as_draws_matrix
 #' @export
-as_draws_matrix.frmtmb_draws <- function(x, ...) {
+as_draws_matrix.frmtmb_draws <- function(x, variable = NULL, regex = FALSE,
+                                         inc_warmup = FALSE, ...) {
   frm_check_dots(...)
-  posterior::as_draws_matrix(x$draws)
+  posterior::as_draws_matrix(draws_as_array(x, variable, regex, inc_warmup,
+                                            "as_draws_matrix()"))
 }
 
 #' @rdname sample-as_draws
 #' @exportS3Method posterior::as_draws_array
 #' @export
-as_draws_array.frmtmb_draws <- function(x, ...) {
-  # through as.array(), so the chains stay separate: a draws_array
-  # built from the flattened matrix would claim one chain and every
-  # convergence diagnostic computed on it would be wrong
+as_draws_array.frmtmb_draws <- function(x, variable = NULL, regex = FALSE,
+                                        inc_warmup = FALSE, ...) {
   frm_check_dots(...)
-  posterior::as_draws_array(as.array(x))
+  draws_as_array(x, variable, regex, inc_warmup, "as_draws_array()")
 }
 
 #' @rdname sample-as_draws
 #' @exportS3Method posterior::as_draws_df
 #' @export
-as_draws_df.frmtmb_draws <- function(x, ...) {
+as_draws_df.frmtmb_draws <- function(x, variable = NULL, regex = FALSE,
+                                     inc_warmup = FALSE, ...) {
   frm_check_dots(...)
-  posterior::as_draws_df(as_draws_array(x))
+  posterior::as_draws_df(draws_as_array(x, variable, regex, inc_warmup,
+                                        "as_draws_df()"))
 }
 
 #' @rdname sample-as_draws
 #' @exportS3Method posterior::as_draws_list
 #' @export
-as_draws_list.frmtmb_draws <- function(x, ...) {
+as_draws_list.frmtmb_draws <- function(x, variable = NULL, regex = FALSE,
+                                       inc_warmup = FALSE, ...) {
   frm_check_dots(...)
-  posterior::as_draws_list(as_draws_array(x))
+  posterior::as_draws_list(draws_as_array(x, variable, regex, inc_warmup,
+                                          "as_draws_list()"))
 }
 
 #' @rdname sample-as_draws
 #' @exportS3Method posterior::as_draws_rvars
 #' @export
-as_draws_rvars.frmtmb_draws <- function(x, ...) {
+as_draws_rvars.frmtmb_draws <- function(x, variable = NULL, regex = FALSE,
+                                        inc_warmup = FALSE, ...) {
   frm_check_dots(...)
-  posterior::as_draws_rvars(as_draws_array(x))
+  posterior::as_draws_rvars(draws_as_array(x, variable, regex, inc_warmup,
+                                           "as_draws_rvars()"))
 }
 
 #' @rdname sample-as_draws
@@ -864,7 +1041,7 @@ as.mcmc.frmtmb_draws <- function(x, pars = NA, fixed = FALSE,
     if (!is.null(sel)) m <- m[, sel, drop = FALSE]
     return(coda::as.mcmc(m))
   }
-  a <- as.array(x)
+  a <- draws_raw_array(x)
   if (!is.null(sel)) a <- a[, , sel, drop = FALSE]
   dn <- list(NULL, dimnames(a)[[3L]])
   coda::as.mcmc.list(lapply(seq_len(dim(a)[2L]), function(ch) {
@@ -991,8 +1168,8 @@ nvariables.frmtmb_draws <- function(x, ...) {
 #'   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
 #'   ds <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
 #'                    data = dd, chains = 1, iter = 500, refresh = 0)
-#'   posterior_summary(ds, variable = c("Intercept", "x"))
-#'   posterior_interval(ds, prob = 0.9, variable = "x")
+#'   posterior_summary(ds, variable = c("b_Intercept", "b_x"))
+#'   posterior_interval(ds, prob = 0.9, variable = "b_x")
 #'   head(predictive_interval(ds))
 #' }
 #' }
@@ -1003,37 +1180,15 @@ NULL
 #' @rdname sample-posterior_summary
 #' @exportS3Method brms::posterior_summary
 #' @export
-posterior_summary.frmtmb_draws <- function(x, probs = c(0.025, 0.975),
-                                           robust = FALSE,
-                                           variable = NULL, ...) {
-  # the generic dispatches to core's default method on a matrix
-  frm_check_dots(...)
-  posterior_summary(draws_columns(x, variable),
-                    probs = probs, robust = robust)
+posterior_summary.frmtmb_draws <- function(x, pars = NA, variable = NULL,
+                                           probs = c(0.025, 0.975),
+                                           robust = FALSE, ...) {
+  # brms:::posterior_summary.brmsfit: every variable unless told
+  # otherwise, including the group-level coefficients and lp__
+  out <- as.matrix(x, pars = pars, variable = variable, ...)
+  posterior_summary(out, probs = probs, robust = robust)
 }
 
-#' The requested columns of the draws matrix, defaulting to the ones
-#' `summary()` and `print()` show: the group-level modes are thousands
-#' of columns on a large fit and nobody asked for them by writing
-#' `posterior_summary(ds)`.
-#'
-#' @noRd
-draws_columns <- function(x, variable = NULL) {
-  m <- x$draws
-  if (is.null(variable)) {
-    keep <- setdiff(colnames(m),
-                    c("lp__", grep("^b\\[", colnames(m), value = TRUE)))
-    return(m[, keep, drop = FALSE])
-  }
-  miss <- setdiff(variable, colnames(m))
-  if (length(miss)) {
-    stop("variable = names ", paste(miss, collapse = ", "),
-         ", which the draws do not contain. variables() lists what is ",
-         "there; note the draws-side spelling drops parentheses ",
-         "(Intercept, not (Intercept))", call. = FALSE)
-  }
-  m[, variable, drop = FALSE]
-}
 
 #' brms's `pars` argument, resolved to variable names.
 #'
@@ -1082,8 +1237,8 @@ draws_select_variables <- function(x, pars = NA, variable = NULL,
   if (length(miss)) {
     stop(what, ": variable = names ", paste(miss, collapse = ", "),
          ", which the draws do not contain. variables() lists what is ",
-         "there; note the draws-side spelling drops parentheses ",
-         "(Intercept, not (Intercept))", call. = FALSE)
+         "there; the draws use brms's names (b_Intercept, not ",
+         "(Intercept))", call. = FALSE)
   }
   variable
 }
@@ -1099,12 +1254,16 @@ posterior_interval.frmtmb_draws <- function(object, pars = NA,
                                             variable = NULL,
                                             prob = 0.95, regex = FALSE,
                                             fixed = FALSE, ...) {
-  sel <- draws_select_variables(object, pars, variable, regex, fixed,
-                                "posterior_interval()")
+  frm_check_dots(...)
   check_probability(prob, "prob")
-  m <- draws_columns(object, sel)
+  ps <- as.matrix(object, pars = pars, variable = variable, regex = regex,
+                  fixed = fixed)
+  # rstantools' .central_intervals(), which brms reaches: every
+  # variable by default, and plain dimnames
   a <- (1 - prob) / 2
-  t(apply(m, 2L, stats::quantile, probs = c(a, 1 - a)))
+  probs <- c(a, 1 - a)
+  out <- t(apply(ps, 2L, stats::quantile, probs = probs))
+  structure(out, dimnames = list(colnames(ps), paste0(100 * probs, "%")))
 }
 
 #' @rdname sample-posterior_summary
@@ -1214,14 +1373,32 @@ draws_response_values <- function(fit, resp, newdata, what) {
 #' fit stored inside it. They read structure only, so they work on draws
 #' from the formula route, which has no maximum-likelihood estimate.
 #'
-#' `coef()` is a posterior quantity, not a structural one: it summarizes
-#' the per-group coefficients (fixed effects plus that group's own
-#' random effects) over the draws, in the same nested shape
-#' [frmtmb::coef.frmtmb_fit()] returns, with a `levels x statistics x
-#' coefficients` array in place of each data frame. That is brms's
-#' `coef.brmsfit` layout.
+#' `coef()`, `fixef()`, `ranef()` and `VarCorr()` are posterior
+#' quantities, not structural ones, and they are brms's methods on these
+#' draws, compared `identical()` against brms's own installed methods in
+#' `dev/brmsnames-findings.md`. `fixef()` is a coefficients x statistics
+#' matrix; `ranef()` and `coef()` are a list keyed by grouping factor of
+#' `levels x statistics x coefficients` arrays, and `coef()` broadcasts
+#' every population-level coefficient over the levels, as brms's does;
+#' `VarCorr()` is a list keyed by grouping factor with `sd`, and `cor` and
+#' `cov` when the group has correlations, then `residual__`. With
+#' `summary = FALSE` each returns brms's raw draws instead: a draws x
+#' coefficients matrix, a `draws x levels x coefficients` array, or a
+#' `draws x coefficients x coefficients` array.
+#'
+#' `VarCorr()`'s standard deviations and correlations are computed per
+#' draw from the sampled covariance parameters, because the sampler
+#' stores `theta` and not brms's `sd_` and `cor_` draws.
 #'
 #' @param object,x A `frmtmb_draws` from [frm_sample()].
+#' @param summary If `TRUE` (brms's default), summaries; otherwise the
+#'   draws, as above.
+#' @param robust If `TRUE`, median and MAD instead of mean and SD.
+#' @param probs The quantiles to report.
+#' @param pars For `fixef()` and `ranef()`, the coefficients to keep, by
+#'   name without the `b_` prefix, as in brms.
+#' @param groups For `ranef()`, the grouping factors to keep.
+#' @param sigma Ignored, as in brms.
 #' @param ... Refused: an argument the method does not have is an
 #'   error naming it, rather than silently changing nothing.
 #' @return As for the corresponding `frmtmb_fit` method.
@@ -1237,7 +1414,9 @@ draws_response_values <- function(fit, resp, newdata, what) {
 #'                    data = dd, chains = 1, iter = 500, refresh = 0)
 #'   nobs(ds)
 #'   ngrps(ds)
-#'   coef(ds)$g[1:3, , "(Intercept)"]
+#'   coef(ds)$g[1:3, , "Intercept"]
+#'   dim(ranef(ds, summary = FALSE)$g)
+#'   VarCorr(ds)$g$sd
 #' }
 #' }
 #' @name draws-structure
@@ -1281,49 +1460,72 @@ ngrps.frmtmb_draws <- function(object, ...) {
 
 #' @rdname draws-structure
 #' @export
-coef.frmtmb_draws <- function(object, ...) {
+coef.frmtmb_draws <- function(object, summary = TRUE, robust = FALSE,
+                              probs = c(0.025, 0.975), ...) {
+  # brms:::coef.brmsfit: fixef draws broadcast over each group's levels
+  # with the group's own coefficient draws added, a coefficient the group
+  # does not vary added as 0
   frm_check_dots(...)
-  idx <- draws_par_index(object$fit)
-  n <- nrow(object$draws)
-  per <- lapply(seq_len(n), function(i) coef(draws_fit_at(object, i, idx)))
-  draws_summarize_coef(per)
+  check_flag(summary, "summary")
+  if (!length(draws_ranef_layout(object))) {
+    stop("No group-level effects detected. Call method 'fixef' to ",
+         "access population-level effects.", call. = FALSE)
+  }
+  fe <- fixef(object, summary = FALSE)
+  co <- ranef(object, summary = FALSE)
+  all_ranef_names <- unique(unlist(lapply(co, function(a) dimnames(a)[[3L]])))
+  fixef_names <- colnames(fe)
+  no_digits <- function(v) regmatches(v, regexpr("^[^\\[]+", v))
+  fixef_no_digits <- no_digits(fixef_names)
+  miss_fixef <- setdiff(all_ranef_names, fixef_names)
+  miss_fixef_no_digits <- no_digits(miss_fixef)
+  new_fixef <- stats::setNames(vector("list", length(miss_fixef)),
+                               miss_fixef)
+  for (k in seq_along(miss_fixef)) {
+    mk <- match(miss_fixef_no_digits[k], fixef_names)
+    if (!is.na(mk)) {
+      new_fixef[[k]] <- fe[, mk]
+    } else if (!miss_fixef[k] %in% fixef_no_digits) {
+      new_fixef[[k]] <- 0
+    }
+  }
+  rm_fixef <- fixef_names %in% miss_fixef_no_digits
+  fe <- fe[, !rm_fixef, drop = FALSE]
+  fe <- do.call(cbind, c(list(fe), Filter(Negate(is.null), new_fixef)))
+  for (g in names(co)) {
+    ranef_names <- dimnames(co[[g]])[[3L]]
+    ranef_no_digits <- no_digits(ranef_names)
+    miss_ranef <- setdiff(fixef_names, ranef_names)
+    miss_ranef_no_digits <- no_digits(miss_ranef)
+    new_ranef <- stats::setNames(vector("list", length(miss_ranef)),
+                                 miss_ranef)
+    for (k in seq_along(miss_ranef)) {
+      mr <- match(miss_ranef_no_digits[k], ranef_names)
+      if (!is.na(mr)) {
+        new_ranef[[k]] <- co[[g]][, , mr]
+      } else if (!miss_ranef[k] %in% ranef_no_digits) {
+        new_ranef[[k]] <- array(0, dim = dim(co[[g]])[1:2])
+      }
+    }
+    rm_ranef <- ranef_names %in% miss_ranef_no_digits
+    A <- co[[g]][, , !rm_ranef, drop = FALSE]
+    add <- Filter(Negate(is.null), new_ranef)
+    if (length(add)) {
+      dn <- dimnames(A)
+      A <- array(c(A, unlist(add)),
+                 dim = c(dim(A)[1:2], dim(A)[3L] + length(add)),
+                 dimnames = list(dn[[1L]], dn[[2L]],
+                                 c(dn[[3L]], names(add))))
+    }
+    for (nm in dimnames(A)[[3L]]) {
+      A[, , nm] <- fe[, nm] + A[, , nm]
+    }
+    if (summary) A <- posterior_summary(A, probs, robust)
+    co[[g]] <- A
+  }
+  co
 }
 
-#' Turn a list of per-draw `coef()` results into brms's array shape.
-#' `coef.frmtmb_fit()` returns either a nested list of data frames (per
-#' dpar, per grouping factor) or, for a fit with no group-level terms, a
-#' plain named vector; both are summarized here so the draws method
-#' mirrors the fit method exactly.
-#'
-#' @noRd
-draws_summarize_coef <- function(per) {
-  first <- per[[1L]]
-  if (!is.list(first)) {
-    M <- do.call(rbind, per)
-    return(cbind(Estimate = colMeans(M),
-                 Est.Error = apply(M, 2L, stats::sd),
-                 Q2.5 = apply(M, 2L, stats::quantile, 0.025),
-                 Q97.5 = apply(M, 2L, stats::quantile, 0.975)))
-  }
-  if (is.data.frame(first)) {
-    A <- vapply(per, function(d) as.matrix(d), as.matrix(first))
-    st <- array(NA_real_, c(nrow(first), 4L, ncol(first)),
-                dimnames = list(rownames(first),
-                                c("Estimate", "Est.Error",
-                                  "Q2.5", "Q97.5"),
-                                colnames(first)))
-    st[, "Estimate", ] <- apply(A, c(1, 2), mean)
-    st[, "Est.Error", ] <- apply(A, c(1, 2), stats::sd)
-    st[, "Q2.5", ] <- apply(A, c(1, 2), stats::quantile, 0.025)
-    st[, "Q97.5", ] <- apply(A, c(1, 2), stats::quantile, 0.975)
-    return(st)
-  }
-  out <- list()
-  for (nm in names(first)) {
-    out[[nm]] <- draws_summarize_coef(lapply(per, `[[`, nm))
-  }
-  out
-}
 
 # ---- sampler diagnostics and plots -----------------------------------
 
@@ -1339,9 +1541,10 @@ draws_summarize_coef <- function(per) {
 #' brms's spelling for "call a bayesplot `mcmc_*` function on these
 #' draws"; `pairs()` is `bayesplot::mcmc_pairs()`.
 #'
-#' All of these report the frmtmb draws-side parameter names (no
-#' parentheses), not Stan's `par[1]`, except `nuts_params()`, whose
-#' rows are the sampler's own quantities and not model parameters.
+#' All of these report brms's parameter names (`b_x`,
+#' `r_g[1,Intercept]`), not Stan's `par[1]`, except `nuts_params()`,
+#' whose rows are the sampler's own quantities and not model
+#' parameters.
 #'
 #' @section Which R-hat this is:
 #' `rhat()` follows brms, whose `rhat.brmsfit()` is
@@ -1379,15 +1582,17 @@ draws_summarize_coef <- function(per) {
 #'   prefix (default `"intervals"`).
 #' @param variable For `mcmc_plot()` and `pairs()`, the variables to
 #'   use, by name; it defaults to everything except the group-level
-#'   modes and `lp__`. `rhat()` and `neff_ratio()` do not take it,
+#'   coefficients and `lp__` (and to four of those for `pairs()`).
+#'   `rhat()` and `neff_ratio()` do not take it,
 #'   because brms's do not: their selector is `pars`. Naming it on
 #'   either of those two is silently ignored today; see `...`.
 #' @param pars Which variables to report, in brms's spelling. The rule
 #'   differs by method; see *Two different `pars` rules, both brms's*.
 #' @param regex For `rhat()` and `neff_ratio()`, `TRUE` makes `pars` a
-#'   regular expression; for `mcmc_plot()`, it makes `variable` one.
-#' @param fixed For `mcmc_plot()`, `TRUE` matches `pars` by exact name
-#'   rather than as a regular expression.
+#'   regular expression; for `mcmc_plot()` and `pairs()`, it makes
+#'   `variable` one.
+#' @param fixed For `mcmc_plot()` and `pairs()`, `TRUE` matches `pars` by
+#'   exact name rather than as a regular expression.
 #' @param ... For `mcmc_plot()` and `pairs()`, passed to the bayesplot
 #'   function; for `nuts_params()` and `log_posterior()`, passed to
 #'   bayesplot's own `stanfit` method, so `nuts_params(x, "stepsize__")`
@@ -1412,7 +1617,7 @@ draws_summarize_coef <- function(per) {
 #'   ds <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
 #'                    data = dd, chains = 1, iter = 500, refresh = 0)
 #'   mcmc_plot(ds)
-#'   mcmc_plot(ds, type = "trace", variable = "x")
+#'   mcmc_plot(ds, type = "trace", variable = "b_x")
 #'   head(rhat(ds))
 #' }
 #' }
@@ -1432,10 +1637,8 @@ mcmc_plot.frmtmb_draws <- function(object, pars = NA,
   sel <- draws_select_variables(object, pars, variable, regex, fixed,
                                 "mcmc_plot()")
   fun <- draws_bayesplot_fun(paste0("mcmc_", type), "mcmc_plot(type =)")
-  a <- as.array(object)
-  keep <- sel %||%
-    setdiff(dimnames(a)[[3L]],
-            c("lp__", grep("^b\\[", dimnames(a)[[3L]], value = TRUE)))
+  a <- draws_raw_array(object)
+  keep <- sel %||% draws_outer_cols(object)
   if (!length(keep)) {
     stop("mcmc_plot(): no variable was selected. variables(x) lists ",
          "what is there", call. = FALSE)
@@ -1445,17 +1648,19 @@ mcmc_plot.frmtmb_draws <- function(object, pars = NA,
 
 #' @rdname draws-diagnostics
 #' @export
-pairs.frmtmb_draws <- function(x, variable = NULL, ...) {
-  # the same validation mcmc_plot() does, so a name that is not there
-  # gets the message that lists variables() rather than base R's
-  # "subscript out of bounds" out of the array index below
-  sel <- draws_select_variables(x, NA, variable, FALSE, FALSE, "pairs()")
-  a <- as.array(x)
-  keep <- sel %||%
-    utils::head(setdiff(dimnames(a)[[3L]],
-                        c("lp__",
-                          grep("^b\\[", dimnames(a)[[3L]],
-                               value = TRUE))), 4L)
+pairs.frmtmb_draws <- function(x, pars = NA, variable = NULL,
+                               regex = FALSE, fixed = FALSE, ...) {
+  # brms's slots: pars, variable, regex, fixed. With none given, brms
+  # plots its default plot variables; here, the model's outer
+  # parameters, at most four of them, because a pairs grid over every
+  # parameter of a model is unreadable
+  sel <- draws_select_variables(x, pars, variable, regex, fixed, "pairs()")
+  a <- draws_raw_array(x)
+  keep <- sel %||% utils::head(draws_outer_cols(x), 4L)
+  if (!length(keep)) {
+    stop("pairs(): no variable was selected. variables(x) lists what ",
+         "is there", call. = FALSE)
+  }
   draws_bayesplot_fun("mcmc_pairs", "pairs()")(a[, , keep, drop = FALSE],
                                                ...)
 }
@@ -1561,7 +1766,7 @@ draws_diag_array <- function(x, pars, regex, what) {
          "own classic split-R-hat and n_eff are in `x$stanfit` without ",
          "it", call. = FALSE)
   }
-  a <- as_draws_array(x)
+  a <- draws_as_array(x)
   if (is.null(pars)) return(a)
   check_flag(regex, "regex")
   posterior::subset_draws(a, variable = pars, regex = regex)
@@ -1868,6 +2073,6 @@ parnames <- function(x, ...) UseMethod("parnames")
 #' @export
 parnames.frmtmb_draws <- function(x, ...) {
   stop("parnames() is the deprecated brms spelling. Use variables(x), ",
-       "which lists the same names in the same draws-side spelling ",
-       "(no parentheses)", call. = FALSE)
+       "which lists the same names in brms's spelling (b_Intercept)",
+       call. = FALSE)
 }

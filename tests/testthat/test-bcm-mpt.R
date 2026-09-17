@@ -154,7 +154,7 @@ test_that("MPT_2 to MPT_5 are one hierarchical fit", {
   # the estimates.
   fit <- suppressWarnings(
     frm(bcm_mpt_hier_formula(), family = bcm_mpt_pairs(), data = d))
-  vc <- unname(VarCorr(fit)[[1L]])
+  vc <- unname(varcorr_matrices(fit)[[1L]])
   expect_equal(dim(vc), c(3L, 3L))
   rho <- stats::cov2cor(vc)
   # three latent traits, so three correlations, and every one of them is

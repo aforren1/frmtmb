@@ -1,0 +1,17 @@
+us          groups g              ranef NA   0  coef NA   0  worst rel diff ranef 0 coef 0  shape mismatches 0
+us_ncp      groups g              ranef NA   0  coef NA   0  worst rel diff ranef 0 coef 0  shape mismatches 0
+diag        groups g              ranef NA   0  coef NA   0  worst rel diff ranef 0 coef 0  shape mismatches 0
+rr          groups g              ranef NA   0  coef NA   0  worst rel diff ranef 0 coef 0  shape mismatches 0
+ar1         groups g              ranef NA   0  coef NA   0  worst rel diff ranef 0 coef 0  shape mismatches 0
+ou          groups g              ranef NA   0  coef NA   0  worst rel diff ranef 0 coef 0  shape mismatches 0
+cs          groups g              ranef NA   0  coef NA   0  worst rel diff ranef 0 coef 0  shape mismatches 0
+homcs       groups g              ranef NA   0  coef NA   0  worst rel diff ranef 0 coef 0  shape mismatches 0
+hetar1      groups g              ranef NA   0  coef NA   0  worst rel diff ranef 0 coef 0  shape mismatches 0
+homdiag     groups g              ranef NA   0  coef NA   0  worst rel diff ranef 0 coef 0  shape mismatches 0
+toep        groups g              ranef NA   0  coef NA   0  worst rel diff ranef 0 coef 0  shape mismatches 0
+exp         groups one            ranef NA   0  coef NA   0  worst rel diff ranef 0 coef 0  shape mismatches 0
+gr_cov      groups g              ranef NA   0  coef NA   0  worst rel diff ranef 0 coef 0  shape mismatches 0
+gr_prec     groups g              ranef NA   0  coef NA   0  worst rel diff ranef 0 coef 0  shape mismatches 0
+equalto     groups g              ranef NA   0  coef NA   0  worst rel diff ranef 0 coef 0  shape mismatches 0
+two_blocks  groups g,h            ranef NA   0  coef NA   0  worst rel diff ranef 0 coef 0  shape mismatches 0
+smooth_re   groups g              ranef NA   0  coef NA   0  worst rel diff ranef 0 coef 0  shape mismatches 3

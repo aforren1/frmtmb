@@ -64,12 +64,16 @@ test_that("variables() lists the usable parameter names", {
   fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
              data = sleepstudy)
   v <- variables(fit)
-  expect_true(all(c("Intercept", "Days", "sigma_Intercept",
+  # brms's spellings: b_ on every coefficient
+  expect_false("b_sigma_Intercept" %in% v)
+  expect_true(all(c("b_Intercept", "b_Days",
                     "sd_Subject__Intercept", "sd_Subject__Days",
                     "cor_Subject__Intercept__Days", "sigma") %in% v))
-  # every listed name is accepted by hypothesis()
-  h <- hypothesis(fit, v[1])
-  expect_true(is.finite(h$estimate))
+  # every listed name is accepted by hypothesis() as written
+  for (nm in v) {
+    h <- hypothesis(fit, nm, class = NULL)
+    expect_true(is.finite(h$hypothesis$Estimate), label = nm)
+  }
 })
 
 test_that("get_prior enumerates slots set_prior accepts", {

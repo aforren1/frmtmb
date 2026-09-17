@@ -1,0 +1,11 @@
+* installing *source* package 'frmtmb.sample' ...
+** this is package 'frmtmb.sample' version '0.6.0'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+* DONE (frmtmb.sample)
+R CMD INSTALL exit 0 

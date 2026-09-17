@@ -1,0 +1,7 @@
+brms means:
+        b_sigma_z      b_sigma_z__1 b_sigma_Intercept 
+          -0.0994            0.0006            0.0873 
+data: b$data, the brmsfit's own
+frmtmb ML: mu sigma_z -0.1033  sigma z -0.0047 
+frmtmb hypothesis: sigma_z -0.1033  sigma_z__1 -0.0047 
+suffix on the same coefficient as brms: TRUE 

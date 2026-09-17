@@ -1,0 +1,38 @@
+mutant: mixnat 
+test-brms-pins.R       PASS  326 FAIL   2 ERROR  1
+    failing: a mixture's weights are brms's theta1 and theta2 on draws 
+      msg: Expected `all(c("theta1", "theta2") %in% cn)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+      msg: Expected `all(abs(got - ref) <= 64 * .Machine$double.eps * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 1.48333242904839 
+      msg: <subscriptOutOfBoundsError/error/condition> Error in `ds$draws[, "theta2"]`: subscript out of bounds 
+test-brms-output.R     PASS   21 FAIL   0 ERROR  0
+test-brms-names.R      PASS  126 FAIL   2 ERROR  2
+    failing: a mixture's theta1, theta2 are brms's simplex, not log ratios 
+      msg: Expected `all(c("theta1", "theta2") %in% v)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+      msg: Expected `all(abs(got - ref) <= tol * abs(ref))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  worst relative difference 2.88698435007863 
+      msg: Error: Some parameters cannot be found in the model:  'theta2' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs cl 
+    failing: frm_simulate(newparams =) takes brms's mixture simplex 
+      msg: Error: Unknown newparams name(s): theta2. Available: b_mu1_Intercept, b_mu1_x, b_mu2_Intercept, b_mu2_x, sigma1, sigma2, theta1 
+converged at iteration 19 with logLik: -746.6946 
+converged at iteration 25 with logLik: -746.6946 
+converged at iteration 21 with logLik: -746.6946 
+converged at iteration 29 with logLik: -746.6946 
+converged at iteration 28 with logLik: -701.2889 
+converged at iteration 32 with logLik: -701.2889 
+converged at iteration 25 with logLik: -701.2889 
+converged at iteration 29 with logLik: -701.2889 
+converged at iteration 27 with logLik: -701.2889 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 13 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 453 with logLik: -685.3785 
+converged at iteration 408 with logLik: -685.3785 
+converged at iteration 404 with logLik: -685.3785 
+converged at iteration 430 with logLik: -685.3785 
+converged at iteration 400 with logLik: -685.3785 
+converged at iteration 54 with logLik: -3093.27 
+converged at iteration 2054 with logLik: -3433.42 
+converged at iteration 67 with logLik: -3093.27 
+converged at iteration 1803 with logLik: -3433.42 
+test-hmm.R             PASS  118 FAIL   0 ERROR  0
+DONE

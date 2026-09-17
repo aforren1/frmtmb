@@ -1,0 +1,11 @@
+Loading required package: frmtmb
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.eam from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    extensions/frmtmb.eam/tests/testthat/test-gddm-conditions.R 
+BLOCKS  15 
+PASS    58 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+DONE

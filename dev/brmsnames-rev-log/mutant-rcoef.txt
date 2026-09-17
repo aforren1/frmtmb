@@ -1,0 +1,6 @@
+﻿mutation: rcoef 
+semantic: r_ columns 120 checked, 120 wrong; ranef(ds) cells 0 wrong; cor cells 36 checked, 0 wrong
+test-brms-output.R: blocks 2 PASS 22 FAIL 0 ERROR 0 SKIP 0
+test-draws-methods.R: blocks 21 PASS 145 FAIL 0 ERROR 0 SKIP 0
+test-brms-names.R: blocks 6 PASS 56 FAIL 0 ERROR 0 SKIP 0
+DONE

@@ -1,0 +1,51 @@
+libs:  C:/Users/adf44/source/r/rellib-r3 | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/rellib-r3
+frmtmb from:  C:/Users/adf44/source/r/rellib-r3 
+FILE    tests/testthat/test-brms-names.R 
+BLOCKS  11 
+PASS    4 
+FAIL    20 
+ERROR   10 
+SKIP    0 
+  failing: posterior_summary() on a fit refuses and says to sample
+       Error in `var(if (is.vector(x) || is.factor(x)) x else as.double(x), na.rm = na.rm)`: is.atomic(x) is not TRUE 
+  failing: variables() uses brms's names, b_ on every coefficient
+       Expected `variables(fit)` to be identical to `c(...)`. Differences:     actual                | expected                  [1] "Intercept"           - "b_Interce 
+       Error in `hypothesis(fit, "sigma", class = NULL)$hypothesis$Estimate`: $ operator is invalid for atomic vectors 
+  failing: VarCorr() is brms's structure, keyed by the grouping factor
+       Expected `vc` to have names `c("g", "residual__")`. Differences: `actual`:   "1 + x | g"              `expected`: "g"         "residual__"  
+       Expected `vc$g` to have names `c("sd", "cor", "cov")`. Differences: `actual` is NULL `expected` is a character vector ('sd', 'cor', 'cov')  
+       Expected `dimnames(vc$g$sd)` to be identical to `list(...)`. Differences: `actual` is NULL `expected` is a list  
+       Expected `dim(vc$g$cor)` to be identical to `c(2L, 4L, 2L)`. Differences: `actual` is NULL `expected` is an integer vector (2, 4, 2)  
+       Error in `varcorr_matrices(fit)`: could not find function "varcorr_matrices" 
+  failing: brms's summary slot is refused by name, positionally too
+       Expected `eval(call)` to throw a error. fixef(fit, FALSE) 
+       Expected `eval(call)` to throw a error. ranef(fit, FALSE) 
+       Error: coef() was given 1 argument with no name, which it has nowhere to put. It takes: object 
+  failing: the fit methods' leading slots are brms's
+       Expected `first_div(ours, theirs)` to be identical to 0L. Differences:   `actual`: 2 `expected`: 0 fixef 
+       Expected `first_div(ours, theirs)` to be identical to 0L. Differences:   `actual`: 2 `expected`: 0 ranef 
+       Expected `first_div(ours, theirs)` to be identical to 0L. Differences:   `actual`: 2 `expected`: 0 coef 
+       Expected `first_div(ours, theirs)` to be identical to 0L. Differences:   `actual`: 3 `expected`: 0 VarCorr 
+       Expected `first_div(ours, theirs)` to be identical to 0L. Differences:   `actual`: 3 `expected`: 0 hypothesis 
+  failing: hypothesis() returns brms's object, with frequentist content
+       Expected `h` to inherit from "brmshypothesis". Actual class: "frmtmb_hypothesis"/"data.frame". 
+       Expected `h` to have names `c("hypothesis", "samples", "prior_samples", "class", "alpha")`. Differences: `actual`:   "hypothesis" "estimate" "se"            "lw 
+       Expected `hs` to have names `c(...)`. Differences: `actual` is NULL `expected` is a character vector ('Hypothesis', 'Estimate', 'Est.Error', 'CI.Lower', 'CI.Upp 
+       Error in `hs$Hypothesis`: $ operator is invalid for atomic vectors 
+  failing: VarCorr() Est.Error is the delta method, checked independently
+       Error in `varcorr_matrices(fit, t)`: could not find function "varcorr_matrices" 
+  failing: hypothesis() reads x:fe as brms does, not as R's `:`
+       Expected `"b_x:fe" %in% variables(fit)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       Error in `h$Estimate`: $ operator is invalid for atomic vectors 
+  failing: names pass through brms's renaming
+       Expected `all(...)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       Expected `VarCorr(fit)` to have names `c("gs", "g:h", "residual__")`. Differences: `actual`:   "1 | gs" "1 | g:h"              `expected`: "gs"     "g:h"     "r 
+       Error in `brms_par_labels(fit)`: could not find function "brms_par_labels" 
+  failing: name collisions: refused or suffixed, as brms does each
+       Expected `frm(bf(y ~ Intercept + x) + gaussian(), data = d)` to throw a error. 
+       Expected `all(c("b_sigma_z", "b_sigma_z__1") %in% v)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       Error in `brms_par_labels(fit)`: could not find function "brms_par_labels" 
+  failing: frm_simulate(newparams =) takes brms's names only
+       Error: Unknown newparams name(s): b_Intercept, b_x. Available: Intercept, x, sigma_Intercept, sigma, sd_g__Intercept 
+DONE

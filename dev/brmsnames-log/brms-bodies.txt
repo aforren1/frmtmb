@@ -1,0 +1,606 @@
+function (x, hypothesis, class = "b", group = "", scope = c("standard", 
+    "ranef", "coef"), alpha = 0.05, robust = FALSE, seed = NULL, 
+    ...) 
+{
+    if (!is.null(seed)) {
+        set.seed(seed)
+    }
+    contains_draws(x)
+    x <- restructure(x)
+    group <- as_one_character(group)
+    scope <- match.arg(scope)
+    if (scope == "standard") {
+        if (!length(class)) {
+            class <- ""
+        }
+        class <- as_one_character(class)
+        if (nzchar(group)) {
+            class <- paste0(class, "_", group, "__")
+        }
+        else if (nzchar(class)) {
+            class <- paste0(class, "_")
+        }
+        out <- .hypothesis(x, hypothesis, class = class, alpha = alpha, 
+            robust = robust, ...)
+    }
+    else {
+        co <- do_call(scope, list(x, summary = FALSE))
+        if (!group %in% names(co)) {
+            stop2("'group' should be one of ", collapse_comma(names(co)))
+        }
+        out <- hypothesis_coef(co[[group]], hypothesis, alpha = alpha, 
+            robust = robust, ...)
+    }
+    out
+}
+<bytecode: 0x00000255f2591658>
+<environment: namespace:brms>
+function (x, sigma = 1, summary = TRUE, robust = FALSE, probs = c(0.025, 
+    0.975), ...) 
+{
+    contains_draws(x)
+    x <- restructure(x)
+    reframe <- x$ranef
+    if (!(has_rows(reframe) || any(grepl("^sigma($|_)", variables(x))))) {
+        stop2("The model does not contain covariance matrices.")
+    }
+    .VarCorr <- function(y) {
+        out <- list(sd = as.matrix(x, variable = y$sd_pars))
+        colnames(out$sd) <- y$rnames
+        found_cor_pars <- intersect(y$cor_pars, variables(x))
+        if (length(found_cor_pars)) {
+            cor <- as.matrix(x, variable = found_cor_pars)
+            if (length(found_cor_pars) < length(y$cor_pars)) {
+                cor_all <- matrix(0, nrow = nrow(cor), ncol = length(y$cor_pars))
+                names(cor_all) <- y$cor_pars
+                for (i in seq_len(ncol(cor_all))) {
+                  found <- match(names(cor_all)[i], colnames(cor))
+                  if (!is.na(found)) {
+                    cor_all[, i] <- cor[, found]
+                  }
+                }
+                cor <- cor_all
+            }
+            out$cor <- get_cor_matrix(cor = cor)
+            out$cov <- get_cov_matrix(sd = out$sd, cor = cor)
+            dimnames(out$cor)[2:3] <- list(y$rnames, y$rnames)
+            dimnames(out$cov)[2:3] <- list(y$rnames, y$rnames)
+            if (summary) {
+                out$cor <- posterior_summary(out$cor, probs, 
+                  robust)
+                out$cov <- posterior_summary(out$cov, probs, 
+                  robust)
+            }
+        }
+        if (summary) {
+            out$sd <- posterior_summary(out$sd, probs, robust)
+        }
+        return(out)
+    }
+    tmp <- list()
+    if (has_rows(reframe)) {
+        get_names <- function(group) {
+            r <- subset2(reframe, group = group)
+            rnames <- as.vector(get_rnames(r))
+            cor_type <- paste0("cor_", group)
+            sd_pars <- paste0("sd_", group, "__", rnames)
+            cor_pars <- get_cornames(rnames, cor_type, brackets = FALSE)
+            nlist(rnames, sd_pars, cor_pars)
+        }
+        group <- unique(reframe$group)
+        tmp <- lapply(group, get_names)
+        names(tmp) <- group
+    }
+    bterms <- brmsterms(x$formula)
+    if (is.brmsterms(bterms)) {
+        if (simple_sigma(bterms) && !is.mixfamily(x$family)) {
+            tmp_resid <- list(rnames = bterms$resp, sd_pars = "sigma")
+            tmp <- c(tmp, residual__ = list(tmp_resid))
+        }
+    }
+    else if (is.mvbrmsterms(bterms)) {
+        simple_sigma <- ulapply(bterms$terms, simple_sigma)
+        pred_sigma <- ulapply(bterms$terms, pred_sigma)
+        is_mix <- ulapply(x$family, is.mixfamily)
+        if (any(simple_sigma) && !any(pred_sigma) && !any(is_mix)) {
+            resps <- bterms$responses[simple_sigma]
+            sd_pars <- paste0("sigma_", resps)
+            if (bterms$rescor) {
+                cor_pars <- get_cornames(resps, type = "rescor", 
+                  brackets = FALSE)
+            }
+            else {
+                cor_pars <- character(0)
+            }
+            tmp_resid <- nlist(rnames = resps, sd_pars, cor_pars)
+            tmp <- c(tmp, residual__ = list(tmp_resid))
+        }
+    }
+    lapply(tmp, .VarCorr)
+}
+<bytecode: 0x00000255f25bbea8>
+<environment: namespace:brms>
+function (object, summary = TRUE, robust = FALSE, probs = c(0.025, 
+    0.975), pars = NULL, ...) 
+{
+    contains_draws(object)
+    all_pars <- variables(object)
+    fpars <- all_pars[grepl(fixef_pars(), all_pars)]
+    if (!is.null(pars)) {
+        pars <- as.character(pars)
+        fpars <- fpars[sub("^[^_]+_", "", fpars) %in% pars]
+    }
+    if (!length(fpars)) {
+        return(NULL)
+    }
+    out <- as.matrix(object, variable = fpars)
+    colnames(out) <- gsub(fixef_pars(), "", fpars)
+    if (summary) {
+        out <- posterior_summary(out, probs, robust)
+    }
+    out
+}
+<bytecode: 0x00000255f254d9e0>
+<environment: namespace:brms>
+function (object, summary = TRUE, robust = FALSE, probs = c(0.025, 
+    0.975), pars = NULL, groups = NULL, ...) 
+{
+    contains_draws(object)
+    object <- restructure(object)
+    reframe <- object$ranef
+    if (!has_rows(reframe)) {
+        stop2("The model does not contain group-level effects.")
+    }
+    all_pars <- variables(object)
+    if (!is.null(pars)) {
+        pars <- as.character(pars)
+    }
+    all_groups <- unique(reframe$group)
+    if (!is.null(groups)) {
+        groups <- as.character(groups)
+        all_groups <- intersect(all_groups, groups)
+    }
+    group_levels <- get_levels(reframe)
+    out <- named_list(all_groups)
+    for (g in all_groups) {
+        r <- subset2(reframe, group = g)
+        coefs <- paste0(usc(combine_prefix(r), "suffix"), r$coef)
+        rpars <- all_pars[grepl(paste0("^r_", g, "(__.+\\[|\\[)"), 
+            all_pars)]
+        if (!is.null(pars)) {
+            coefs <- coefs[r$coef %in% pars]
+            if (!length(coefs)) {
+                next
+            }
+            regex <- paste0("(", escape_all(coefs), ")", collapse = "|")
+            regex <- paste0(",", regex, "\\]$")
+            rpars <- rpars[grepl(regex, rpars)]
+        }
+        levels <- group_levels[[g]]
+        if (length(rpars)) {
+            out[[g]] <- as.matrix(object, variable = rpars)
+            dim(out[[g]]) <- c(nrow(out[[g]]), length(levels), 
+                length(coefs))
+        }
+        else {
+            out[[g]] <- array(dim = c(ndraws(object), length(levels), 
+                length(coefs)))
+        }
+        dimnames(out[[g]])[2:3] <- list(levels, coefs)
+        if (summary) {
+            out[[g]] <- posterior_summary(out[[g]], probs, robust)
+        }
+    }
+    rmNULL(out, recursive = FALSE)
+}
+<bytecode: 0x00000255f2571c48>
+<environment: namespace:brms>
+function (object, summary = TRUE, robust = FALSE, probs = c(0.025, 
+    0.975), ...) 
+{
+    contains_draws(object)
+    object <- restructure(object)
+    if (!has_rows(object$ranef)) {
+        stop2("No group-level effects detected. Call method ", 
+            "'fixef' to access population-level effects.")
+    }
+    fixef <- fixef(object, summary = FALSE, ...)
+    coef <- ranef(object, summary = FALSE, ...)
+    all_ranef_names <- unique(ulapply(coef, function(x) dimnames(x)[[3]]))
+    fixef_names <- colnames(fixef)
+    fixef_no_digits <- get_matches("^[^\\[]+", fixef_names)
+    miss_fixef <- setdiff(all_ranef_names, fixef_names)
+    miss_fixef_no_digits <- get_matches("^[^\\[]+", miss_fixef)
+    new_fixef <- named_list(miss_fixef)
+    for (k in seq_along(miss_fixef)) {
+        match_fixef <- match(miss_fixef_no_digits[k], fixef_names)
+        if (!is.na(match_fixef)) {
+            new_fixef[[k]] <- fixef[, match_fixef]
+        }
+        else if (!miss_fixef[k] %in% fixef_no_digits) {
+            new_fixef[[k]] <- 0
+        }
+    }
+    rm_fixef <- fixef_names %in% miss_fixef_no_digits
+    fixef <- fixef[, !rm_fixef, drop = FALSE]
+    fixef <- do_call(cbind, c(list(fixef), rmNULL(new_fixef)))
+    for (g in names(coef)) {
+        ranef_names <- dimnames(coef[[g]])[[3]]
+        ranef_no_digits <- get_matches("^[^\\[]+", ranef_names)
+        miss_ranef <- setdiff(fixef_names, ranef_names)
+        miss_ranef_no_digits <- get_matches("^[^\\[]+", miss_ranef)
+        new_ranef <- named_list(miss_ranef)
+        for (k in seq_along(miss_ranef)) {
+            match_ranef <- match(miss_ranef_no_digits[k], ranef_names)
+            if (!is.na(match_ranef)) {
+                new_ranef[[k]] <- coef[[g]][, , match_ranef]
+            }
+            else if (!miss_ranef[k] %in% ranef_no_digits) {
+                new_ranef[[k]] <- array(0, dim = dim(coef[[g]])[1:2])
+            }
+        }
+        rm_ranef <- ranef_names %in% miss_ranef_no_digits
+        coef[[g]] <- coef[[g]][, , !rm_ranef, drop = FALSE]
+        coef[[g]] <- abind(c(list(coef[[g]]), rmNULL(new_ranef)))
+        for (nm in dimnames(coef[[g]])[[3]]) {
+            is_ord_intercept <- grepl("(^|_)Intercept\\[[[:digit:]]+\\]$", 
+                nm)
+            if (is_ord_intercept) {
+                resp <- if (is_mv(object)) 
+                  get_matches("^[^_]+", nm)
+                family <- family(object, resp = resp)$family
+                if (has_thres_minus_eta(family)) {
+                  coef[[g]][, , nm] <- fixef[, nm] - coef[[g]][, 
+                    , nm]
+                }
+                else if (has_eta_minus_thres(family)) {
+                  coef[[g]][, , nm] <- coef[[g]][, , nm] - fixef[, 
+                    nm]
+                }
+                else {
+                  coef[[g]][, , nm] <- fixef[, nm] + coef[[g]][, 
+                    , nm]
+                }
+            }
+            else {
+                coef[[g]][, , nm] <- fixef[, nm] + coef[[g]][, 
+                  , nm]
+            }
+        }
+        if (summary) {
+            coef[[g]] <- posterior_summary(coef[[g]], probs, 
+                robust)
+        }
+    }
+    coef
+}
+<bytecode: 0x00000255f24b6628>
+<environment: namespace:brms>
+function (x, pars = NA, variable = NULL, probs = c(0.025, 0.975), 
+    robust = FALSE, ...) 
+{
+    out <- as.matrix(x, pars = pars, variable = variable, ...)
+    posterior_summary(out, probs = probs, robust = robust, ...)
+}
+<bytecode: 0x00000255f1d3c900>
+<environment: namespace:brms>
+function (x, probs = c(0.025, 0.975), robust = FALSE, ...) 
+{
+    if (!length(x)) {
+        stop2("No posterior draws supplied.")
+    }
+    if (robust) {
+        coefs <- c("median", "mad", "quantile")
+    }
+    else {
+        coefs <- c("mean", "sd", "quantile")
+    }
+    .posterior_summary <- function(x) {
+        do_call(cbind, lapply(coefs, get_estimate, draws = x, 
+            probs = probs, na.rm = TRUE))
+    }
+    if (length(dim(x)) <= 2L) {
+        x <- as.matrix(x)
+    }
+    else {
+        x <- as.array(x)
+    }
+    if (length(dim(x)) == 2L) {
+        out <- .posterior_summary(x)
+        rownames(out) <- colnames(x)
+    }
+    else if (length(dim(x)) == 3L) {
+        out <- lapply(array2list(x), .posterior_summary)
+        out <- abind(out, along = 3)
+        dnx <- dimnames(x)
+        dimnames(out) <- list(dnx[[2]], dimnames(out)[[2]], dnx[[3]])
+    }
+    else {
+        stop("'x' must be of dimension 2 or 3.")
+    }
+    colnames(out) <- c("Estimate", "Est.Error", paste0("Q", probs * 
+        100))
+    out
+}
+<bytecode: 0x00000255f761e7e8>
+<environment: namespace:brms>
+function (object, resp = NULL, summary = TRUE, robust = FALSE, 
+    probs = c(0.025, 0.975), ...) 
+{
+    contains_draws(object)
+    object <- restructure(object)
+    resp <- validate_resp(resp, object)
+    summary <- as_one_logical(summary)
+    R2 <- get_criterion(object, "bayes_R2")
+    has_stored <- is.matrix(R2)
+    further_arg_names <- c("resp")
+    use_stored <- !length(list(...)) && !any(further_arg_names %in% 
+        names(match.call()))
+    if (has_stored && !use_stored) {
+        message("Recomputing 'bayes_R2'")
+    }
+    if (has_stored && use_stored) {
+        take <- colnames(R2) %in% paste0("R2", resp)
+        R2 <- R2[, take, drop = FALSE]
+        if (summary) {
+            R2 <- posterior_summary(R2, probs = probs, robust = robust)
+        }
+        return(R2)
+    }
+    family <- family(object, resp = resp)
+    if (conv_cats_dpars(family)) {
+        stop2("'bayes_R2' is not defined for unordered categorical models.")
+    }
+    if (is_ordinal(family)) {
+        warning2("Predictions are treated as continuous variables in ", 
+            "'bayes_R2' which is likely invalid for ordinal families.")
+    }
+    args_y <- list(object, warn = TRUE, ...)
+    args_ypred <- list(object, sort = TRUE, ...)
+    R2 <- named_list(paste0("R2", resp))
+    for (i in seq_along(R2)) {
+        args_ypred$resp <- args_y$resp <- resp[i]
+        y <- do_call(get_y, args_y)
+        ypred <- do_call(posterior_epred, args_ypred)
+        if (is_ordinal(family(object, resp = resp[i]))) {
+            ypred <- ordinal_probs_continuous(ypred)
+        }
+        R2[[i]] <- .bayes_R2(y, ypred)
+    }
+    R2 <- do_call(cbind, R2)
+    colnames(R2) <- paste0("R2", resp)
+    if (summary) {
+        R2 <- posterior_summary(R2, probs = probs, robust = robust)
+    }
+    R2
+}
+<bytecode: 0x00000255f764ec08>
+<environment: namespace:brms>
+function (x, ...) 
+{
+    out <- dimnames(x$fit)
+    if (is.list(out)) {
+        out <- out$parameters
+    }
+    out
+}
+<bytecode: 0x00000255f796e540>
+<environment: namespace:brms>
+function (x, pars = NA, variable = NULL, draw = NULL, subset = NULL, 
+    ...) 
+{
+    variable <- use_variable_alias(variable, x, pars = pars, 
+        ...)
+    draw <- use_alias(draw, subset)
+    out <- as_draws_matrix(x, variable = variable, ...)
+    out <- suppressMessages(subset_draws(out, draw = draw, ...))
+    unclass_draws(out)
+}
+<bytecode: 0x00000255f797b0e8>
+<environment: namespace:brms>
+function (x, row.names = NULL, optional = TRUE, pars = NA, variable = NULL, 
+    draw = NULL, subset = NULL, ...) 
+{
+    variable <- use_variable_alias(variable, x, pars = pars, 
+        ...)
+    draw <- use_alias(draw, subset)
+    out <- as_draws_df(x, variable = variable, ...)
+    out <- suppressMessages(subset_draws(out, draw = draw, ...))
+    unclass_draws(out)
+}
+<bytecode: 0x00000255f7980000>
+<environment: namespace:brms>
+function (x, pars = NA, variable = NULL, draw = NULL, subset = NULL, 
+    ...) 
+{
+    variable <- use_variable_alias(variable, x, pars = pars, 
+        ...)
+    draw <- use_alias(draw, subset)
+    out <- as_draws_array(x, variable = variable, ...)
+    out <- suppressMessages(subset_draws(out, draw = draw, ...))
+    unclass_draws(out)
+}
+<bytecode: 0x00000255f798dbd0>
+<environment: namespace:brms>
+function (x, variable = NULL, regex = FALSE, inc_warmup = FALSE, 
+    ...) 
+{
+    as_draws_array(as_draws_list(x, variable = variable, regex = regex, 
+        inc_warmup = inc_warmup, ...))
+}
+<bytecode: 0x00000255f7a20778>
+<environment: namespace:brms>
+function (object, priors = FALSE, prob = 0.95, robust = FALSE, 
+    mc_se = FALSE, ...) 
+{
+    priors <- as_one_logical(priors)
+    probs <- validate_ci_bounds(prob)
+    robust <- as_one_logical(robust)
+    mc_se <- as_one_logical(mc_se)
+    object <- restructure(object)
+    bterms <- brmsterms(object$formula)
+    out <- list(formula = object$formula, data_name = get_data_name(object$data), 
+        group = unique(object$ranef$group), nobs = nobs(object), 
+        ngrps = ngrps(object), autocor = object$autocor, prior = empty_prior(), 
+        algorithm = algorithm(object))
+    class(out) <- "brmssummary"
+    model_is_empty <- is.null(object$fit) || !length(object$fit@sim) || 
+        isTRUE(object$fit@sim$iter <= object$fit@sim$warmup)
+    if (model_is_empty) {
+        return(out)
+    }
+    stan_args <- object$fit@stan_args[[1]]
+    out$sampler <- paste0(stan_args$method, "(", stan_args$algorithm, 
+        ")")
+    if (priors) {
+        out$prior <- prior_summary(object, all = FALSE)
+    }
+    variables <- variables(object)
+    incl_classes <- c("b", "bs", "bcs", "bsp", "bmo", "bme", 
+        "bmi", "bm", valid_dpars(object), "delta", "lncor", "rescor", 
+        "ar", "ma", "sderr", "cosy", "cortime", "lagsar", "errorsar", 
+        "car", "sdcar", "rhocar", "sd", "cor", "df", "sds", "sdgp", 
+        "lscale", "simo")
+    incl_regex <- paste0("^", regex_or(incl_classes), "(_|$|\\[)")
+    variables <- variables[grepl(incl_regex, variables)]
+    draws <- as_draws_array(object, variable = variables)
+    out$total_ndraws <- ndraws(draws)
+    out$chains <- nchains(object)
+    if (length(object$fit@sim$iter)) {
+        out$iter <- object$fit@sim$iter
+        out$warmup <- object$fit@sim$warmup
+    }
+    else {
+        out$iter <- out$total_ndraws
+        out$warmup <- 0
+    }
+    out$thin <- nthin(object)
+    .summary <- function(draws, variables, probs, robust) {
+        .quantile <- function(x, ...) {
+            qs <- posterior::quantile2(x, probs = probs, ...)
+            prob <- probs[2] - probs[1]
+            names(qs) <- paste0(c("l-", "u-"), prob * 100, "% CI")
+            return(qs)
+        }
+        draws <- subset_draws(draws, variable = variables)
+        measures <- list()
+        if (robust) {
+            measures$Estimate <- median
+            if (mc_se) {
+                measures$MCSE <- posterior::mcse_median
+            }
+            measures$Est.Error <- mad
+        }
+        else {
+            measures$Estimate <- mean
+            if (mc_se) {
+                measures$MCSE <- posterior::mcse_mean
+            }
+            measures$Est.Error <- sd
+        }
+        c(measures) <- list(quantiles = .quantile)
+        if (!is.brmsfit_multiple(object)) {
+            c(measures) <- list(Rhat = posterior::rhat, Bulk_ESS = posterior::ess_bulk, 
+                Tail_ESS = posterior::ess_tail)
+        }
+        out <- do.call(summarize_draws, c(list(draws), measures))
+        out <- as.data.frame(out)
+        rownames(out) <- out$variable
+        out$variable <- NULL
+        return(out)
+    }
+    full_summary <- .summary(draws, variables, probs, robust)
+    out$has_rhat <- "Rhat" %in% colnames(full_summary)
+    if (algorithm(object) == "sampling") {
+        if (out$has_rhat) {
+            Rhats <- full_summary[, "Rhat"]
+            if (any(Rhats > 1.05, na.rm = TRUE)) {
+                warning2("Parts of the model have not converged (some Rhats are > 1.05). ", 
+                  "Be careful when analysing the results! We recommend running ", 
+                  "more iterations and/or setting stronger priors.")
+            }
+        }
+        div_trans <- sum(nuts_params(object, pars = "divergent__")$Value)
+        adapt_delta <- control_params(object)$adapt_delta
+        if (div_trans > 0) {
+            warning2("There were ", div_trans, " divergent transitions after warmup. ", 
+                "Increasing adapt_delta above ", adapt_delta, 
+                " may help. See ", "http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup")
+        }
+    }
+    fe_pars <- variables[grepl(fixef_pars(), variables)]
+    out$fixed <- full_summary[fe_pars, , drop = FALSE]
+    rownames(out$fixed) <- gsub(fixef_pars(), "", fe_pars)
+    spec_pars <- c(valid_dpars(object), "delta")
+    spec_pars <- paste0(spec_pars, collapse = "|")
+    spec_pars <- paste0("^(", spec_pars, ")($|_)")
+    spec_pars <- variables[grepl(spec_pars, variables)]
+    out$spec_pars <- full_summary[spec_pars, , drop = FALSE]
+    lncor_pars <- variables[grepl("^lncor_", variables)]
+    if (length(lncor_pars)) {
+        lncor_summary <- full_summary[lncor_pars, , drop = FALSE]
+        lncor_pars <- sub("__", ",", sub("__", "(", lncor_pars))
+        rownames(lncor_summary) <- paste0(lncor_pars, ")")
+        out$spec_pars <- rbind(out$spec_pars, lncor_summary)
+    }
+    rescor_pars <- variables[grepl("^rescor_", variables)]
+    if (length(rescor_pars)) {
+        out$rescor_pars <- full_summary[rescor_pars, , drop = FALSE]
+        rescor_pars <- sub("__", ",", sub("__", "(", rescor_pars))
+        rownames(out$rescor_pars) <- paste0(rescor_pars, ")")
+    }
+    cor_pars <- variables[grepl(regex_autocor_pars(), variables)]
+    out$cor_pars <- full_summary[cor_pars, , drop = FALSE]
+    rownames(out$cor_pars) <- cor_pars
+    cortime_pars <- variables[grepl("^cortime_", variables)]
+    if (length(cortime_pars)) {
+        tmp <- full_summary[cortime_pars, , drop = FALSE]
+        cortime_pars <- sub("__", ",", sub("__", "(", cortime_pars))
+        rownames(tmp) <- paste0(cortime_pars, ")")
+        out$cor_pars <- rbind(out$cor_pars, tmp)
+    }
+    for (g in out$group) {
+        gregex <- escape_dot(g)
+        sd_prefix <- paste0("^sd_", gregex, "__")
+        sd_pars <- variables[grepl(sd_prefix, variables)]
+        cor_prefix <- paste0("^cor_", gregex, "__")
+        cor_pars <- variables[grepl(cor_prefix, variables)]
+        df_prefix <- paste0("^df_", gregex, "$")
+        df_pars <- variables[grepl(df_prefix, variables)]
+        gpars <- c(df_pars, sd_pars, cor_pars)
+        out$random[[g]] <- full_summary[gpars, , drop = FALSE]
+        if (has_rows(out$random[[g]])) {
+            sd_names <- sub(sd_prefix, "sd(", sd_pars)
+            cor_names <- sub(cor_prefix, "cor(", cor_pars)
+            cor_names <- sub("__", ",", cor_names)
+            df_names <- sub(df_prefix, "df", df_pars)
+            gnames <- c(df_names, paste0(c(sd_names, cor_names), 
+                ")"))
+            rownames(out$random[[g]]) <- gnames
+        }
+    }
+    sm_pars <- variables[grepl("^sds_", variables)]
+    if (length(sm_pars)) {
+        out$splines <- full_summary[sm_pars, , drop = FALSE]
+        rownames(out$splines) <- paste0(gsub("^sds_", "sds(", 
+            sm_pars), ")")
+    }
+    mo_pars <- variables[grepl("^simo_", variables)]
+    if (length(mo_pars)) {
+        out$mo <- full_summary[mo_pars, , drop = FALSE]
+        rownames(out$mo) <- gsub("^simo_", "", mo_pars)
+    }
+    gp_pars <- variables[grepl("^(sdgp|lscale)_", variables)]
+    if (length(gp_pars)) {
+        out$gp <- full_summary[gp_pars, , drop = FALSE]
+        rownames(out$gp) <- gsub("^sdgp_", "sdgp(", rownames(out$gp))
+        rownames(out$gp) <- gsub("^lscale_", "lscale(", rownames(out$gp))
+        rownames(out$gp) <- paste0(rownames(out$gp), ")")
+    }
+    out
+}
+<bytecode: 0x00000255f7a33c78>
+<environment: namespace:brms>
+Error in print(brms:::hypothesis_internal) : 
+  object 'hypothesis_internal' not found
+Execution halted

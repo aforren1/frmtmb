@@ -73,20 +73,26 @@ correlation parameter has no natural-scale name here.
 }
 \section{Two spellings for \code{newparams}}{
 
-\emph{Natural scale} (recommended): the names \code{\link[=variables]{variables()}} and
-\code{\link[=hypothesis]{hypothesis()}} use, one number each.
+\emph{Natural scale} (recommended): brms's parameter names, the strings
+\code{\link[=variables]{variables()}} returns, one number each.
 \itemize{
-\item fixed coefficients under their \code{vcov()} names with parentheses
-stripped (\code{Intercept}, \code{x}, \code{sigma_Intercept}, ...), on the LINK
-scale;
-\item \code{sigma} (and any other intercept-only dispersion dpar: \code{shape},
-\code{phi}, \code{zi}, ...) on the RESPONSE scale, so \code{sigma = 0.7} is a
-residual SD of 0.7;
-\item \verb{sd_<group>__<term>} for random-effect standard deviations,
-\verb{cor_<group>__<t1>__<t2>} for their correlations, and
-\verb{sds_<label>} for a smooth's smoothing SD. Unset correlations are
-0.
+\item coefficients as \code{b_Intercept}, \code{b_x}, \code{b_sigma_Intercept}, on the
+LINK scale;
+\item \code{sigma} (and any other distributional parameter nobody wrote a
+formula for: \code{shape}, \code{phi}, \code{zi}, ...) on the RESPONSE scale, so
+\code{sigma = 0.7} is a residual SD of 0.7;
+\item a mixture's weights with no theta formula as brms's simplex, all of
+\verb{theta1 ... thetaK} together, each in (0, 1) and summing to one:
+\verb{theta1 = 0.9, theta2 = 0.1};
+\item \verb{sd_<group>__<coef>} for group-level standard deviations,
+\verb{cor_<group>__<c1>__<c2>} for their correlations, and
+\verb{sds_<label>_1} for a smooth's smoothing SD (\code{sds_sx_1} for
+\code{s(x)}). Unset correlations are 0.
 }
+
+A bare name (\code{x}, \code{Intercept}, \code{sigma_Intercept}) is refused with
+its brms spelling. Priors are different: \code{set_prior(coef = "x")}
+takes the bare coefficient, as in brms.
 
 \emph{Internal scale}: named after the parameter components - \code{beta},
 \code{betad}, \code{theta}, and optionally \code{b} - each a full-length vector, on
@@ -119,7 +125,7 @@ simulation, so a prior-predictive check can relate parameters to
 outcomes.
 
 That table reports each parameter on the scale \code{newparams} names it
-on, which for \code{Intercept} is the intercept at ZERO. A
+on, which for \code{b_Intercept} is the intercept at ZERO. A
 \code{class = "Intercept"} prior is a density on the intercept at the MEAN
 of the predictors (see the Where an intercept prior lands section of
 \code{\link[=set_prior]{set_prior()}}), so on a design with uncentered predictors the number
@@ -129,14 +135,9 @@ handed straight back as \code{newparams}. A prior on a distributional
 parameter's own brms class is likewise drawn on that parameter and
 reported there, not on its link scale.
 
-A dpar's column is therefore on the scale its PRIOR was written on,
-and the column name does not say which: \code{sigma_Intercept} holds
-sigma under \code{set_prior(class = "sigma")}, on a model that gives
-sigma no predictor, and log sigma under
-\code{set_prior(class = "Intercept", dpar = "sigma")}, on a model that
-does. Only one of the two spellings is accepted on any one model, so
-a table cannot mix them, and the draw is used on the scale it was
-taken on either way.
+The column name says which scale a dpar's draw is on, as brms's
+names do: \code{sigma} holds sigma, drawn under \code{set_prior(class = "sigma")} on a model that gives sigma no formula, and
+\code{b_sigma_Intercept} holds log sigma, drawn under \code{set_prior(class = "Intercept", dpar = "sigma")} on a model that does.
 
 Parameters without a prior keep their \code{newparams} value. Whenever
 \code{prior} are used, or \code{newparams} uses the natural spelling, every
@@ -149,7 +150,7 @@ zero effect or unit SD.
 # power analysis: simulate from a design with chosen parameters
 dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)), y = 0)
 sims <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
-                     newparams = list(Intercept = 1, x = 0.5,
+                     newparams = list(b_Intercept = 1, b_x = 0.5,
                                       sigma = 0.7,
                                       sd_g__Intercept = 0.5),
                      nsim = 3, seed = 1)

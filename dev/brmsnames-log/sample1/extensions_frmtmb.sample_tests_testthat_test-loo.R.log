@@ -1,0 +1,20 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    extensions/frmtmb.sample/tests/testthat/test-loo.R 
+BLOCKS  20 
+PASS    61 
+FAIL    0 
+ERROR   5 
+SKIP    0 
+  failing: log_lik() refuses likelihoods with no per-observation column
+       Error in `fake_draws(ua)`: object 'all_par_labels' not found 
+  failing: log_lik() refuses in-model imputation and unknown responses
+       Error in `fake_draws(um)`: object 'all_par_labels' not found 
+  failing: log_lik() refuses laplace-marginalized draws
+       Error in `eval(code, test_env)`: object 'all_par_labels' not found 
+  failing: the refit and marginal-likelihood methods refuse with a reason
+       Error in `fake_draws(uf)`: object 'all_par_labels' not found 
+  failing: multi-model loo() and the draws-surface odd ends refuse
+       Error in `fake_draws(uf)`: object 'all_par_labels' not found 
+DONE

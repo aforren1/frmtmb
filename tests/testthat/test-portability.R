@@ -10,7 +10,7 @@ port_data <- function(seed = 1, n = 60) {
   # the fixture seed restarts the same random stream that made the
   # covariates, and the residuals come out equal to x.
   d$y <- frm_simulate(bf(y ~ x) + gaussian(), d,
-                      newparams = list(Intercept = 1, x = 2, sigma = 1),
+                      newparams = list(b_Intercept = 1, b_x = 2, sigma = 1),
                       nsim = 1, seed = seed + 1000L)[[1]]
   d$k <- as.integer(cut(d$y, 3))
   d
@@ -60,21 +60,27 @@ test_that("FN-5: hypothesis() takes brms's directional form", {
   two <- hypothesis(fit, "x")
   gt <- hypothesis(fit, "x > 0")
   lt <- hypothesis(fit, "x < 0")
-  expect_identical(gt$estimate, two$estimate)
+  hs <- function(h) h$hypothesis
+  p <- function(h) attr(h, "test")$p
+  expect_identical(hs(gt)$Estimate, hs(two)$Estimate)
   # one-sided p is exactly half the two-sided one, on the right side
-  expect_equal(gt$p, two$p / 2, tolerance = 1e-10)
-  expect_equal(lt$p, 1 - two$p / 2, tolerance = 1e-10)
-  # one-sided interval: unbounded on the side the alternative points at
-  expect_identical(gt$upr, Inf)
-  expect_identical(lt$lwr, -Inf)
-  expect_equal(gt$lwr, two$estimate - qnorm(0.95) * two$se,
+  expect_equal(p(gt), p(two) / 2, tolerance = 1e-10)
+  expect_equal(p(lt), 1 - p(two) / 2, tolerance = 1e-10)
+  # brms's interval for a directional row: central at 1 - 2 alpha, so
+  # its relevant end IS the one-sided bound and both ends are finite
+  z <- qnorm(0.95)
+  expect_equal(hs(gt)$CI.Lower, hs(two)$Estimate - z * hs(two)$Est.Error,
                tolerance = 1e-10)
-  expect_equal(lt$upr, two$estimate + qnorm(0.95) * two$se,
+  expect_equal(hs(gt)$CI.Upper, hs(two)$Estimate + z * hs(two)$Est.Error,
                tolerance = 1e-10)
+  expect_identical(hs(lt)$CI.Lower, hs(gt)$CI.Lower)
   expect_identical(attr(gt, "direction"), "greater")
+  # brms's labels, and brms's star: the one-sided test at alpha
+  expect_identical(hs(gt)$Hypothesis, "(x) > 0")
+  expect_identical(hs(gt)$Star, if (p(gt) < 0.05) "*" else "")
   # "lhs > rhs" is the difference of the two sides
-  expect_equal(hypothesis(fit, "x > Intercept")$estimate,
-               hypothesis(fit, "x - Intercept")$estimate,
+  expect_equal(hs(hypothesis(fit, "x > Intercept"))$Estimate,
+               hs(hypothesis(fit, "x - Intercept"))$Estimate,
                tolerance = 1e-10)
   expect_output(print(gt), "one-sided")
   expect_error(hypothesis(fit, "x > 0 > 1"), "at most one")
@@ -88,28 +94,34 @@ test_that("FN-5: class/group name the natural-scale summaries", {
   fit <- suppressWarnings(
     frm(bf(y ~ x + (1 + x | g)), family = gaussian(), data = d)
   )
+  est <- function(h) h$hypothesis$Estimate
   a <- hypothesis(fit, "Intercept - x > 0", class = "sd", group = "g")
-  b <- hypothesis(fit, "sd_g__Intercept - sd_g__x > 0")
-  expect_equal(a$estimate, b$estimate, tolerance = 1e-10)
-  expect_equal(a$p, b$p, tolerance = 1e-10)
-  # class "b" and no class are the plain coefficient names
-  expect_equal(hypothesis(fit, "x", class = "b")$estimate,
-               hypothesis(fit, "x")$estimate, tolerance = 1e-10)
-  # a class without a group is a dpar prefix
+  b <- hypothesis(fit, "sd_g__Intercept - sd_g__x > 0", class = NULL)
+  expect_equal(est(a), est(b), tolerance = 1e-10)
+  expect_equal(attr(a, "test")$p, attr(b, "test")$p, tolerance = 1e-10)
+  expect_identical(a$class, "sd_g")
+  # brms's default class "b" prefixes b_; NULL takes names as written
+  expect_equal(est(hypothesis(fit, "x", class = "b")),
+               est(hypothesis(fit, "b_x", class = NULL)), tolerance = 1e-10)
+  # a natural-scale name under the default class is refused, as in brms
+  expect_error(hypothesis(fit, "sd_g__x > 0"), "class = NULL")
+  # a class without a group is brms's `b_sigma` prefix spelled out
   fd <- frm(bf(y ~ x, sigma ~ x), family = gaussian(), data = d)
-  expect_equal(hypothesis(fd, "Intercept", class = "sigma")$estimate,
-               hypothesis(fd, "sigma_Intercept")$estimate,
+  expect_equal(est(hypothesis(fd, "Intercept", class = "b_sigma")),
+               est(hypothesis(fd, "sigma_Intercept")),
                tolerance = 1e-10)
   # a class/group that names nothing is refused, not silently dropped
   flin <- frm(bf(y ~ x), family = gaussian(), data = d)
   expect_error(hypothesis(flin, "x > 0", class = "sd", group = "g"),
-               "not a parameter of this model")
+               "cannot be found in the model: 
+'sd_g__x'", fixed = TRUE)
   expect_error(hypothesis(fit, "x > 0", class = "sd", group = "typo"),
-               "not a parameter of this model")
-  # a name already written in full keeps its spelling
-  expect_equal(
-    hypothesis(fit, "sd_g__Intercept > 0", class = "sd", group = "g")$estimate,
-    hypothesis(fit, "sd_g__Intercept")$estimate, tolerance = 1e-10)
+               "cannot be found in the model: 
+'sd_typo__x'", fixed = TRUE)
+  # brms prefixes a name already written in full too, and refuses it
+  expect_error(
+    hypothesis(fit, "sd_g__Intercept > 0", class = "sd", group = "g"),
+    "'sd_g__sd_g__Intercept'", fixed = TRUE)
 })
 
 test_that("FN-5: the bootstrap and profile bounds are one-sided too", {
@@ -117,15 +129,19 @@ test_that("FN-5: the bootstrap and profile bounds are one-sided too", {
   fit <- frm(bf(y ~ x), family = gaussian(), data = d)
   bo <- hypothesis(fit, c("x > 0", "x"), method = "boot", nsim = 40,
                    seed = 3)
-  expect_identical(bo$upr[1], Inf)
-  expect_true(bo$lwr[1] > bo$lwr[2])
+  hb <- bo$hypothesis
+  # the directional row's interval is central at 1 - 2 alpha, so its
+  # lower end sits above the two-sided row's
+  expect_true(hb$CI.Lower[1] > hb$CI.Lower[2])
+  expect_true(hb$CI.Upper[1] < hb$CI.Upper[2])
   # tail proportion with the (1 + k) / (1 + n) correction
   dr <- attr(bo, "draws")[, 1]
-  expect_equal(bo$p[1], (1 + sum(dr <= 0)) / (1 + length(dr)),
+  expect_equal(attr(bo, "test")$p[1], (1 + sum(dr <= 0)) / (1 + length(dr)),
                tolerance = 1e-10)
+  # brms's samples frame carries the same replicates
+  expect_identical(bo$samples$H1, unname(dr))
   pr <- hypothesis(fit, c("x > 0", "x"), method = "profile")
-  expect_identical(pr$upr[1], Inf)
-  expect_true(pr$lwr[1] > pr$lwr[2])
+  expect_true(pr$hypothesis$CI.Lower[1] > pr$hypothesis$CI.Lower[2])
 })
 
 test_that("FN-9: update() takes the brms argument spellings", {
@@ -213,20 +229,24 @@ test_that("parameter names: one vocabulary across the methods", {
   fit <- frm(bf(mvbind(tarsus, back) ~ x + (1 | p | fosternest)),
              family = gaussian(), data = d)
   expect_true("tarsus_(Intercept)" %in% rownames(confint(fit)))
-  expect_true("tarsus_Intercept" %in% variables(fit))
-  # each entry point now takes the other's spelling
+  # variables() is brms's spelling: b_, then the response
+  expect_true("b_tarsus_Intercept" %in% variables(fit))
+  # each entry point takes the other spellings too
   expect_identical(profile(fit, "tarsus_Intercept"),
                    profile(fit, "tarsus_(Intercept)"))
   expect_identical(confint(fit, "tarsus_Intercept"),
                    confint(fit, "tarsus_(Intercept)"))
-  expect_equal(hypothesis(fit, "`tarsus_(Intercept)`")$estimate,
-               hypothesis(fit, "tarsus_Intercept")$estimate,
-               tolerance = 1e-12)
+  expect_identical(confint(fit, "b_tarsus_Intercept"),
+                   confint(fit, "tarsus_(Intercept)"))
+  # hypothesis() reads brms's names only, as brms does: the internal
+  # spelling is refused, not aliased
+  expect_error(hypothesis(fit, "`tarsus_(Intercept)`"),
+               "cannot be found in the model")
   # variables() still lists one spelling only
   expect_false(any(grepl("[()]", variables(fit))))
   # an sd_ alias resolves to the theta it names, and says so
   al <- frmtmb:::par_alias_index(fit)
-  sd_nm <- "sd_fosternest__tarsus.muIntercept"
+  sd_nm <- "sd_fosternest__tarsus_Intercept"
   expect_true(sd_nm %in% names(al))
   th <- outer_par_names(fit)[al[[sd_nm]]]
   expect_message(a <- confint(fit, sd_nm), "internal")
@@ -234,8 +254,8 @@ test_that("parameter names: one vocabulary across the methods", {
   expect_identical(rownames(a), th)
   # a 2x2 us block carries one internal correlation parameter, so its
   # cor name is one-to-one
-  expect_true(paste0("cor_fosternest__tarsus.muIntercept__",
-                     "back.muIntercept") %in% names(al))
+  expect_true(paste0("cor_fosternest__tarsus_Intercept__",
+                     "back_Intercept") %in% names(al))
   # unknown names advertise both vocabularies
   expect_error(confint(fit, "nope"), "Parentheses may be dropped")
   expect_error(profile(fit, "nope"), "natural-scale")
@@ -259,11 +279,11 @@ test_that("an autocorrelation parameter is addressable by its name", {
   fit <- frm(bf(y ~ x + ar(t, subj, cov = TRUE)), family = gaussian(),
              data = d)
   al <- frmtmb:::par_alias_index(fit)
-  # one thetaac entry, so the natural name addresses it
-  expect_true("ar1" %in% names(al))
-  th <- outer_par_names(fit)[al[["ar1"]]]
+  # one thetaac entry, so brms's name for it addresses it
+  expect_true("ar[1]" %in% names(al))
+  th <- outer_par_names(fit)[al[["ar[1]"]]]
   expect_identical(th, "thetaac_1")
-  expect_message(a <- confint(fit, "ar1"), "internal")
+  expect_message(a <- confint(fit, "ar[1]"), "internal")
   expect_identical(a, suppressMessages(confint(fit, th)))
 })
 
@@ -287,7 +307,8 @@ test_that("a name that is not one internal parameter is refused", {
   expect_error(confint(fit, "cor_g__Intercept__x", method = "profile"),
                "method = 'profile'")
   # hypothesis() is the route named, and it handles the combination
-  expect_true(is.finite(hypothesis(fit, "cor_g__Intercept__x")$estimate))
+  expect_true(is.finite(hypothesis(fit, "cor_g__Intercept__x",
+                                   class = NULL)$hypothesis$Estimate))
 })
 
 test_that("FN-11: frm_multiple refuses what it cannot pool", {
@@ -305,6 +326,9 @@ test_that("FN-11: frm_multiple refuses what it cannot pool", {
   expect_error(posterior::nchains(fm), "needs draws")
   # pooled hypothesis tests keep working, directionally too
   h <- hypothesis(fm, "x > 0")
-  expect_identical(h$upr, Inf)
-  expect_equal(h$p, hypothesis(fm, "x")$p / 2, tolerance = 1e-10)
+  expect_named(h$hypothesis, c("Hypothesis", "Estimate", "Est.Error",
+                               "CI.Lower", "CI.Upper", "Evid.Ratio",
+                               "Post.Prob", "Star"))
+  expect_equal(attr(h, "test")$p, attr(hypothesis(fm, "x"), "test")$p / 2,
+               tolerance = 1e-10)
 })

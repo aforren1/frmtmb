@@ -31,9 +31,9 @@
 #' | `simulate()` | draws of the outcome | response |
 #' | `coef()`, `fixef()`, `ranef()` | coefficients, modes | link, per dpar |
 #' | `confint()`, `vcov()`, `summary()` | the same | link, per dpar |
-#' | `VarCorr()` | covariance of a predictor | link, per dpar |
+#' | `VarCorr()` | SDs and correlations of a predictor | link, per dpar |
 #' | `sigma()` | the residual SD, `NA` if it varies by row | response |
-#' | `hypothesis()` | `estimate` and its interval | link, per dpar |
+#' | `hypothesis()` | `Estimate` and its interval | link, per dpar |
 #' | `posterior_summary()` | a summary of a draws MATRIX | that matrix's own |
 #' | `pp_check()` | the outcome against replicates | response |
 #' | `bayes_R2()` | refuses on a `frmtmb_fit` | neither |

@@ -1,0 +1,13 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+FILE    tests/testthat/test-effects.R 
+BLOCKS  9 
+PASS    51 
+FAIL    0 
+ERROR   1 
+SKIP    0 
+  failing: hypothesis reproduces Wald results and the delta method
+       Error: Some parameters cannot be found in the model:  'b_sigma_Intercept' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL 
+DONE

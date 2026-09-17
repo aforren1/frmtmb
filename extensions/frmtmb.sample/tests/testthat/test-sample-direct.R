@@ -39,8 +39,8 @@ test_that("the formula route samples the same posterior as the fit route", {
   }
   expect_equal(key(prior_summary(ds_fit)), key(prior_summary(ds_form)))
 
-  a <- summary(ds_fit)[, "mean"]
-  b <- summary(ds_form)[, "mean"]
+  a <- summary(ds_fit)[, "Estimate"]
+  b <- summary(ds_form)[, "Estimate"]
   expect_setequal(names(a), names(b))
   # the sharp gate: both routes taped the same density, so the two
   # objectives agree pointwise; the draws comparison below then only
@@ -55,18 +55,20 @@ test_that("the formula route samples the same posterior as the fit route", {
   # Carlo band is wide by design
   if (sampler_gates_on()) {
     expect_lt(max(abs(a - b[names(a)]) /
-                    pmax(summary(ds_fit)[, "sd"], 1e-8)), 2)
+                    pmax(summary(ds_fit)[, "Est.Error"], 1e-8)), 2)
   }
 
   # the whole draws surface runs off the formula-route object
   expect_s3_class(ds_form, "frmtmb_draws")
-  expect_true(all(c("mean", "sd", "Rhat") %in% colnames(summary(ds_form))))
-  expect_equal(nrow(fixef(ds_form)), 3L)
-  expect_true(all(c("estimate", "lwr", "upr") %in% names(VarCorr(ds_form))))
-  # keyed by the GROUPING FACTOR since frmtmb 0.52.0, as brms and lme4
-  # key it; the block label rides along in the "term" attribute
+  expect_true(all(c("Estimate", "Est.Error", "Rhat") %in%
+                    colnames(summary(ds_form))))
+  expect_equal(nrow(fixef(ds_form)), 2L)
+  # brms's VarCorr(): the group, then the residual SD
+  expect_named(VarCorr(ds_form), c("g", "residual__"))
+  # keyed by the GROUPING FACTOR, as brms and lme4 key it, with brms's
+  # coefficient name on the third margin
   expect_named(ranef(ds_form), "g")
-  expect_identical(attr(ranef(ds_form)[[1]], "term"), "1 | g")
+  expect_identical(dimnames(ranef(ds_form)[[1]])[[3L]], "Intercept")
   h <- hypothesis(ds_form, "x > 0")
   expect_s3_class(h, "frmtmb_hypothesis")
   expect_equal(dim(posterior_epred(ds_form, ndraws = 5)),
@@ -306,7 +308,7 @@ test_that("an ordinal formula-route call announces its threshold gap", {
   expect_null(prior_summary(ds))
   # the model still sampled, thresholds included
   expect_s3_class(ds, "frmtmb_draws")
-  expect_true("x" %in% colnames(ds$draws))
+  expect_true("b_x" %in% colnames(ds$draws))
   expect_gt(sum(grepl("^tau_raw", colnames(ds$draws))), 0L)
 })
 
@@ -451,7 +453,7 @@ test_that("a MAP fit's prior stacks under a call prior and the defaults", {
   expect_true(any(grepl("^sd=t", s2)))
   # the tighter prior is the one the chain felt
   if (sampler_gates_on()) {
-    expect_lt(stats::sd(ds2$draws[, "x"]), stats::sd(ds$draws[, "x"]))
+    expect_lt(stats::sd(ds2$draws[, "b_x"]), stats::sd(ds$draws[, "b_x"]))
   }
 
   # and the opt-out drops the MAP prior too, out loud: that prior is
@@ -599,7 +601,7 @@ test_that("a mixture sampled from a formula uses random inits", {
 
 ## ---- the draws-side name convention ----------------------------------
 
-test_that("every draws accessor speaks the same parenthesis-free names", {
+test_that("every draws accessor speaks brms's names", {
   skip_sampler()
   skip_if_not_installed("posterior")
   withr::local_options(mc.cores = 1)
@@ -609,11 +611,17 @@ test_that("every draws accessor speaks the same parenthesis-free names", {
                                     refresh = 0, seed = 5))
 
   nm <- setdiff(colnames(ds$draws),
-                c("lp__", grep("^b\\[", colnames(ds$draws), value = TRUE)))
-  expect_equal(nm, c("Intercept", "x", "sigma_Intercept", "theta_1"))
+                c("lp__", grep("^r_", colnames(ds$draws), value = TRUE)))
+  # brms's b_ and r_ names; theta_1 is the log standard deviation, which
+  # brms does not sample and which keeps confint()'s internal name
+  # sigma with no formula is brms's natural-scale `sigma`
+  expect_equal(nm, c("b_Intercept", "b_x", "sigma", "theta_1"))
+  expect_true(all(sprintf("r_g[%s,Intercept]", levels(dd$g)) %in%
+                    colnames(ds$draws)))
   expect_false(any(grepl("[()]", colnames(ds$draws))))
   expect_equal(rownames(summary(ds)), nm)
-  expect_equal(rownames(fixef(ds)), nm[1:3])
+  # brms's fixef() drops the b_
+  expect_equal(rownames(fixef(ds)), c("Intercept", "x"))
   expect_equal(setdiff(variables(ds), c("lp__")),
                setdiff(colnames(ds$draws), "lp__"))
   expect_equal(colnames(posterior::as_draws_matrix(as_draws(ds))),
@@ -622,9 +630,12 @@ test_that("every draws accessor speaks the same parenthesis-free names", {
   # the FIT side keeps its own canonical spelling
   expect_true("(Intercept)" %in% rownames(stats::vcov(fit)))
 
-  # both spellings resolve in every draws-side lookup
-  expect_equal(hypothesis(ds, "Intercept > 0")$estimate,
-               hypothesis(ds, "`(Intercept)` > 0")$estimate)
+  # hypothesis() takes brms's names alone, as brms does; the priors keep
+  # both spellings of a coefficient
+  expect_equal(hypothesis(ds, "Intercept > 0")$hypothesis$Estimate,
+               hypothesis(ds, "b_Intercept > 0",
+                          class = NULL)$hypothesis$Estimate)
+  expect_error(hypothesis(ds, "`(Intercept)` > 0"), "not found")
   p1 <- frmtmb:::resolve_priors(fit, list(Intercept = prior_normal(0, 1)))
   p2 <- frmtmb:::resolve_priors(fit,
                                 list(`(Intercept)` = prior_normal(0, 1)))

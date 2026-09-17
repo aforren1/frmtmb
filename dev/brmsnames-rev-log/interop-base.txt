@@ -1,0 +1,9 @@
+﻿find_parameters : g 
+get_parameters : c("(Intercept)", "x", "fb", "fc", "sigma_(Intercept)") c(" 1.03505228", " 1.03423702", " 0.11880548", " 0.06134339", "-0.02284754") c("conditional", "conditional", "conditional", "conditional", "dispe 
+get_variance : NULL 
+get_statistic : ERROR: argument is of length zero 
+find_random : g 
+emmeans : c("a", "b", "c") c("1.050551", "1.169356", "1.111894") c("0.2439459", "0.2392797", "0.2485158") c("Inf", "Inf", "Inf") c("0.5724256", "0.7003766", "0.6248121") c("1.528676", "1.638336", "1.598976") 
+avg_slopes : x dY/dX 1.034237 0.07741883 13.35899 1.049849e-40 132.8069 0.8824989 1.185975 
+summary_print : Family: gaussian                                   Links: mu = identity; sigma = log                                                                  Formula: y ~ x + f + (1 + x | g)                   
+print : frmtmb fit: y ~ x + f + (1 + x | g)              Family: gaussian   Method: ML                     Links: mu = identity; sigma = log                                                                logL 

@@ -29,13 +29,13 @@ test_that("an sd prior regularizes a singular variance component", {
   dd <- data.frame(x = rnorm(80), g = factor(rep(1:4, 20)))
   dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(4, 0, 0.05)[dd$g], 1)
   ml <- suppressWarnings(frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd))
-  sd_ml <- sqrt(VarCorr(ml)[[1]][1, 1])
+  sd_ml <- sqrt(varcorr_matrices(ml)[[1]][1, 1])
 
   map <- suppressWarnings(
     frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
         prior = set_prior("exponential(2)", class = "sd"))
   )
-  sd_map <- sqrt(VarCorr(map)[[1]][1, 1])
+  sd_map <- sqrt(varcorr_matrices(map)[[1]][1, 1])
   # regularized away from the boundary, and finite standard errors
   expect_gt(sd_map, sd_ml - 1e-8)
   d <- diagnose(map, quiet = TRUE)

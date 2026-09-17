@@ -156,7 +156,7 @@ rownames(d) <- paste0("obs", seq_len(30))
 # set.seed(1) restarts the same random stream that made x, and the
 # residuals come out equal to the covariate.
 d$y <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), d,
-                    newparams = list(Intercept = 0, x = 0.4, sigma = 1,
+                    newparams = list(b_Intercept = 0, b_x = 0.4, sigma = 1,
                                      sd_g__Intercept = 0.5),
                     nsim = 1, seed = 1001)[[1]]
 
@@ -377,26 +377,31 @@ scale. Those live in an internal list rather than in the model frame,
 so a column named `.eta_mu` is an ordinary covariate and gets an
 ordinary coefficient.
 
-**In `hypothesis()`, a coefficient shadows a natural-scale name.**
-`hypothesis()` evaluates expressions in one flat namespace that holds
-the coefficients and the natural-scale summaries together, and the
-coefficient wins:
+**In `hypothesis()`, a coefficient and a natural-scale name do not
+meet.** `hypothesis()` and `variables()` use brms's names, and brms
+puts `b_` in front of every coefficient. A covariate literally named
+`sigma` is the coefficient `b_sigma`, and `sigma` is the residual
+standard deviation:
 
 ```{r, eval = FALSE}
 # a covariate literally named sigma
 fit <- frm(bf(y ~ sigma + (1 | g)), family = gaussian(), data = dd)
-hypothesis(fit, "sigma = 0")
-#> hypothesis() reads 'sigma' as the coefficient of the model term of
-#> that name, not the residual standard deviation; that quantity is
-#> available as '.sigma'.
+hypothesis(fit, "sigma = 0")                 # b_sigma, brms's class = "b"
+hypothesis(fit, "sigma = 1", class = NULL)   # the residual SD
 ```
 
-The message names both meanings and fires once per call. The shadowed
-quantity keeps a name of its own: prefix it with a dot. The same holds
-for a coefficient that spells out `sd_<group>__<term>`, `cor_...`, or
-an autocorrelation name such as `ar1`; `.sd_g__Intercept` and `.ar1`
-then reach the natural-scale value. The dot spelling exists only where
-a collision does, and `variables()` lists both names in that case.
+The same holds for a coefficient that spells out
+`sd_<group>__<coef>`, `cor_...` or an autocorrelation name such as
+`ar[1]`. As in brms, a natural-scale name needs `class = NULL`, because
+the default `class = "b"` reads every bare name as a coefficient.
+
+Two coefficients can still meet, and each case is handled as brms
+handles it. `y ~ Intercept + x` is refused when the model is built,
+because `(Intercept)` and `Intercept` are both `Intercept` after brms's
+renaming. `bf(y ~ sigma_z, sigma ~ z)` gives the mean's `b_sigma_z` and
+sigma's `b_sigma_z__1`. The same group-level coefficient on one group
+in two terms, `(1 | g) + (x | g)`, is refused; give the second term a
+copy of the grouping column.
 
 ## What reaches the output
 

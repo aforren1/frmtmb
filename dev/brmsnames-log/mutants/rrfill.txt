@@ -1,0 +1,36 @@
+mutant: rrfill 
+test-brms-pins.R       PASS  328 FAIL   6 ERROR  0
+    failing: ranef() and coef() compute a reduced-rank block per draw 
+      msg: Expected `anyNA(re)` to be FALSE. Differences: `actual`:   TRUE  `expected`: FALSE  
+      msg: Expected `anyNA(coef(ds)$g)` to be FALSE. Differences: `actual`:   TRUE  `expected`: FALSE  
+      msg: Expected `all(abs(got - ref) <= 64 * .Machine$double.eps * abs(ref))` to be TRUE. Differences: `actual`:   <NA> `expected`: TRUE worst relative difference NA 
+      msg: Expected `all(abs(got - ref) <= 64 * .Machine$double.eps * abs(ref))` to be TRUE. Differences: `actual`:   <NA> `expected`: TRUE worst relative difference NA 
+    failing: ranef() and coef() refuse draws with no group-level draws 
+      msg: Expected `ranef(ld)` to throw a error. 
+      msg: Expected `coef(ld)` to throw a error. 
+test-brms-output.R     PASS   21 FAIL   0 ERROR  0
+test-brms-names.R      PASS  137 FAIL   0 ERROR  0
+converged at iteration 19 with logLik: -746.6946 
+converged at iteration 25 with logLik: -746.6946 
+converged at iteration 21 with logLik: -746.6946 
+converged at iteration 29 with logLik: -746.6946 
+converged at iteration 28 with logLik: -701.2889 
+converged at iteration 32 with logLik: -701.2889 
+converged at iteration 25 with logLik: -701.2889 
+converged at iteration 29 with logLik: -701.2889 
+converged at iteration 27 with logLik: -701.2889 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 13 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 453 with logLik: -685.3785 
+converged at iteration 408 with logLik: -685.3785 
+converged at iteration 404 with logLik: -685.3785 
+converged at iteration 430 with logLik: -685.3785 
+converged at iteration 400 with logLik: -685.3785 
+converged at iteration 54 with logLik: -3093.27 
+converged at iteration 2054 with logLik: -3433.42 
+converged at iteration 67 with logLik: -3093.27 
+converged at iteration 1803 with logLik: -3433.42 
+test-hmm.R             PASS  118 FAIL   0 ERROR  0
+DONE

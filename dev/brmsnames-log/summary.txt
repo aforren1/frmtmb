@@ -1,0 +1,291 @@
+== block 1: the defects, BEFORE (rellib-r3) and AFTER (lane) ==
+script dev/brmsnames-probe.R; fit: brms::epilepsy,
+count ~ zBase * Trt + (1 | patient), poisson; draws:
+dev/brmsnames-draws.R (data seed 9, sampler seed 20260915)
+
+-- base --
+posterior_summary(fit) ERROR: is.atomic(x) is not TRUE 
+names(VarCorr(fit)): 1 | patient  
+class: VarCorr_frmtmb  
+class: frmtmb_hypothesis data.frame  
+[1] "Intercept" "zBase" "Trt1"  
+[4] "zBase:Trt1" "sd_patient__Intercept" 
+hypothesis(fit, 'zBase > Trt1') frmtmb_hypothesis 1x7 names=hypothesis,estimat 
+names: hypothesis estimate se lwr upr z p  
+fixef(fit, FALSE) list len=1 names=mu 
+ranef(fit, FALSE) ranef_frmtmb len=1 names=patient 
+variables(ds): Intercept x sigma_Intercept b[1] b[2] b[3] b[4] b[5] b[6] theta 
+bayes_R2(ds, NULL, TRUE, TRUE) matrix 1x3  
+posterior_summary(ds, "^b_") ERROR: non-numeric argument to binary operator  
+fixef(ds, FALSE) ERROR: fixef() was given 1 argument with no name  
+ranef(ds, FALSE) ERROR: ranef() was given 1 argument with no name  
+VarCorr(ds, NULL, FALSE) ERROR: VarCorr() was given 1 argument with no na  
+
+-- lane --
+posterior_summary(fit) ERROR: posterior_summary() needs posterior draws and a  
+names(VarCorr(fit)): patient  
+class: list  
+class: frmtmb_hypothesis brmshypothesis  
+[1] "b_Intercept" "b_zBase" "b_Trt1"  
+[4] "b_zBase:Trt1" "sd_patient__Intercept" 
+hypothesis(fit, 'zBase > Trt1') frmtmb_hypothesis len=5 names=hypothesis,sampl 
+names: hypothesis samples prior_samples class alpha  
+fixef(fit, FALSE) ERROR: fixef() cannot honor summary = FALSE: brms returns th 
+ranef(fit, FALSE) ERROR: ranef() cannot honor summary = FALSE: brms returns th 
+variables(ds): b_Intercept b_x sigma r_g[1,Intercept] r_g[2,Intercept] r_g[3,I 
+bayes_R2(ds, NULL, TRUE, TRUE) matrix 1x4  
+posterior_summary(ds, "^b_") matrix 2x4  
+fixef(ds, FALSE) matrix 2000x2  
+ranef(ds, FALSE) list len=1 names=g  
+VarCorr(ds, NULL, FALSE) list len=2 names=g,residual__  
+
+== block 2: names against brms's own parse ==
+script dev/brmsnames-naming.R, data seed 41, thirteen models
+== total, arm base: brms names present 12 of 210 == 
+  base: models with a name brms lacks: 13 of 13
+== total, arm lane: brms names present 210 of 210 == 
+  lane: models with a name brms lacks: 0 of 13
+models:
+  y ~ x + (1 + x | g)
+  bf(y ~ x + (1 | g), sigma ~ z + (1 | g))
+  mvbf(y1 ~ x + (1 | g), y2 ~ x + (1 | g), sigma ~ z), no rescor
+  yn ~ a * exp(-b * z), a ~ 1 + (1 | g), b ~ 1, nl
+  y ~ x + I(x^2) + poly(z, 2) + f + (1 | gs) + (1 | g:h), hostile
+  mvbf(y_a ~ x + (1 | g), y.b ~ f), responses with _ and .
+  y ~ s(x) + (1 | g), smooth
+  negbinomial yc ~ x, shape unmodeled
+  student y ~ x + (1 | g), sigma and nu unmodeled
+  Beta yb ~ x, phi unmodeled
+  zero_inflated_poisson yc ~ x, zi unmodeled
+  hurdle_gamma yh ~ x, shape and hu unmodeled
+  student bf(y ~ x, nu ~ 1), nu written out
+
+== block 3: output match against brms's installed methods ==
+script dev/brmsnames-match.R; 45 calls on each of two draws sets
+base  comparisons 90: DIFFERS 52  ERROR 36  identical 2 
+      control brms as_draws_rvars twice                          all.equal
+      control brms fixef(summary = FALSE), perturbed 1e-9        all.equal
+      control brms fixef(summary = FALSE), perturbed 1e-3        DIFFERS
+      control brms as_draws_rvars twice                          all.equal
+      control brms fixef(summary = FALSE), perturbed 1e-9        all.equal
+      control brms fixef(summary = FALSE), perturbed 1e-3        DIFFERS
+lane  comparisons 90: all.equal 2  identical 88 
+      control brms as_draws_rvars twice                          all.equal
+      control brms fixef(summary = FALSE), perturbed 1e-9        all.equal
+      control brms fixef(summary = FALSE), perturbed 1e-3        DIFFERS
+      control brms as_draws_rvars twice                          all.equal
+      control brms fixef(summary = FALSE), perturbed 1e-9        all.equal
+      control brms fixef(summary = FALSE), perturbed 1e-3        DIFFERS
+      not identical():
+        intercept as_draws_rvars(x) all.equal
+        slope as_draws_rvars(x) all.equal
+
+
+== block 4: positional formals audit of 68 draws methods ==
+script dev/brmsnames-beyond.R (dev/brmsmatch-beyond.R's criterion)
+base: diverge: 6 agree as far as both go: 62 no brmsfit method to compare: 0 
+base: scored 'agree' but shorter than brms's: 39 
+lane: diverge: 0 agree as far as both go: 68 no brmsfit method to compare: 0 
+lane: scored 'agree' but shorter than brms's: 19 
+lane, extra positional argument on the methods still shorter
+than brms's (dev/brmsnames-dotcheck.R):
+  refused: 16  answered: 1 
+  nuts_params(ds, 'stepsize__')                      ANSWERED
+
+== block 5: blast radius, lines reading a changed surface ==
+script dev/brmsnames-blast.R, run on the unchanged tree
+                                surface      kind lines
+               as.data.frame(VarCorr())         R     4
+               as.data.frame(VarCorr())     tests     6
+ bare coefficient names in a draws read         R     1
+ bare coefficient names in a draws read     tests     3
+                     draws column names         R     4
+                     draws column names     tests    23
+                   draws matrix by name         R     1
+                   draws matrix by name     tests    12
+   fixef/ranef/coef/VarCorr summary arg     tests     2
+                      hypothesis() call         R    57
+                      hypothesis() call     tests   133
+                      hypothesis() call vignettes    27
+             hypothesis() result column         R    52
+             hypothesis() result column     tests   252
+             hypothesis() result column vignettes     4
+                    old draws name b[i]     tests     2
+                 old draws name theta_k         R     8
+                 old draws name theta_k     tests    23
+                 old draws name theta_k vignettes     1
+               posterior_summary() call         R    16
+               posterior_summary() call     tests     7
+                   VarCorr element read         R     2
+                   VarCorr element read     tests    86
+                   VarCorr element read vignettes    14
+                VarCorr names or length     tests    14
+                       variables() call         R    38
+                       variables() call     tests    28
+                       variables() call vignettes     8
+
+
+== block 6: test files, one per R process ==
+runner dev/brmsnames-runtest.R, sums failures AND errors
+core, full suite:     138 files 1490 blocks PASS 10501 FAIL 0 ERROR 0 SKIP 1 
+coupling, full suite:    7 files   62 blocks PASS   431 FAIL 0 ERROR 0 SKIP 5 
+eam, full suite:       24 files  272 blocks PASS  1633 FAIL 0 ERROR 0 SKIP 3 
+latent, full suite:     7 files   66 blocks PASS   332 FAIL 0 ERROR 0 SKIP 2 
+learn, full suite:     12 files   95 blocks PASS   460 FAIL 0 ERROR 0 SKIP 2 
+ode, full suite:        8 files  114 blocks PASS   326 FAIL 0 ERROR 0 SKIP 1 
+sample, full suite:    20 files  227 blocks PASS  1688 FAIL 0 ERROR 0 SKIP 1 
+spline, full suite:    12 files   89 blocks PASS   434 FAIL 0 ERROR 0 SKIP 1 
+
+the new and changed pinning tests, base build then lane build
+(the lane column reads the full-suite logs above):
+  test-brms-names.R
+    base: PASS 4 FAIL 20 ERROR 10
+    lane: PASS 137 FAIL 0 ERROR 0
+  test-brms-output.R
+    base: PASS 2 FAIL 3 ERROR 2
+    lane: PASS 21 FAIL 0 ERROR 0
+  test-brms-pins.R
+    base: PASS 1 FAIL 6 ERROR 4
+    lane: PASS 334 FAIL 0 ERROR 0
+  test-counterfactual.R
+    base: PASS 66 FAIL 3 ERROR 1
+    lane: PASS 70 FAIL 0 ERROR 0
+
+with an EMPTY Stan cache (dev/brmsnames-runtest-nocache.R):
+  nocache-brms-output.log      PASS 21 FAIL 0 ERROR 0
+  nocache-brms-pins.log        PASS 334 FAIL 0 ERROR 0
+  nocache-brms-methods.log     PASS 953 FAIL 0 ERROR 0
+
+== block 7: punch rounds 1 and 2, the pins under mutation ==
+script dev/brmsnames-mutants.R <mutant> on test-brms-pins.R,
+test-brms-output.R, test-brms-names.R and frmtmb.latent's
+test-hmm.R (lane build, in memory); from mixnat on, round 2
+  none      pins.R PASS 334 FAIL 0 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 137 FAIL 0 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  rlev      pins.R PASS 214 FAIL 120 ERROR 0 | output.R PASS 17 FAIL 4 ERROR 0 | names.R PASS 137 FAIL 0 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  rcoef     pins.R PASS 214 FAIL 120 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 137 FAIL 0 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  bcoef     pins.R PASS 328 FAIL 6 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 121 FAIL 15 ERROR 1 | hmm.R PASS 118 FAIL 0 ERROR 0
+  corord    pins.R PASS 322 FAIL 12 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 137 FAIL 0 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  natsig    pins.R PASS 320 FAIL 8 ERROR 1 | output.R PASS 19 FAIL 2 ERROR 0 | names.R PASS 137 FAIL 0 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  residse   pins.R PASS 334 FAIL 0 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 136 FAIL 1 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  llpw      pins.R PASS 333 FAIL 1 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 137 FAIL 0 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  norename  pins.R PASS 332 FAIL 0 ERROR 1 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 128 FAIL 0 ERROR 1 | hmm.R PASS 118 FAIL 0 ERROR 0
+  charmap   pins.R PASS 334 FAIL 0 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 127 FAIL 1 ERROR 1 | hmm.R PASS 118 FAIL 0 ERROR 0
+  stanname  pins.R PASS 330 FAIL 4 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 130 FAIL 4 ERROR 1 | hmm.R PASS 118 FAIL 0 ERROR 0
+  lvldot    pins.R PASS 330 FAIL 1 ERROR 1 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 134 FAIL 3 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  lvljoin   pins.R PASS 334 FAIL 0 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 135 FAIL 2 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  nodupref  pins.R PASS 334 FAIL 0 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 136 FAIL 1 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  nosuffix  pins.R PASS 334 FAIL 0 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 128 FAIL 0 ERROR 1 | hmm.R PASS 118 FAIL 0 ERROR 0
+  noredup   pins.R PASS 334 FAIL 0 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 135 FAIL 2 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  natname   pins.R PASS 151 FAIL 4 ERROR 2 | output.R PASS 17 FAIL 2 ERROR 1 | names.R PASS 102 FAIL 8 ERROR 5 | hmm.R PASS 117 FAIL 1 ERROR 0
+  rrfill    pins.R PASS 328 FAIL 6 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 137 FAIL 0 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  lapref    pins.R PASS 332 FAIL 0 ERROR 1 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 137 FAIL 0 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  mvresid   pins.R PASS 332 FAIL 2 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 131 FAIL 0 ERROR 1 | hmm.R PASS 118 FAIL 0 ERROR 0
+  mvr2      pins.R PASS 330 FAIL 1 ERROR 1 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 137 FAIL 0 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  barenp    pins.R PASS 334 FAIL 0 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 136 FAIL 1 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  mixnat    pins.R PASS 326 FAIL 2 ERROR 1 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 126 FAIL 2 ERROR 2 | hmm.R PASS 118 FAIL 0 ERROR 0
+  hmmnat    pins.R PASS 334 FAIL 0 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 137 FAIL 0 ERROR 0 | hmm.R PASS 115 FAIL 2 ERROR 1
+  rdup      pins.R PASS 328 FAIL 1 ERROR 1 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 135 FAIL 2 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  lvlmerge  pins.R PASS 334 FAIL 0 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 136 FAIL 1 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  respdup   pins.R PASS 334 FAIL 0 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 136 FAIL 1 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  hypdup    pins.R PASS 333 FAIL 1 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 137 FAIL 0 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  sdscolon  pins.R PASS 334 FAIL 0 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 135 FAIL 2 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+  bspname   pins.R PASS 334 FAIL 0 ERROR 0 | output.R PASS 21 FAIL 0 ERROR 0 | names.R PASS 135 FAIL 2 ERROR 0 | hmm.R PASS 118 FAIL 0 ERROR 0
+
+== block 8: punch round 1, BLOCKER, the colon pin as a script ==
+script dev/brmsnames-pin-colon.R, data seed 8
+  base: b_x = 0.2415214  b_x:fe = 1.079358 
+  base: hypothesis(fit, "x:fe > 0") estimate: 0.2415214 
+  base: pin: FAIL 
+  lane: b_x = 0.2415214  b_x:fe = 1.079358 
+  lane: hypothesis(fit, "x:fe > 0") estimate: 1.079358 
+  lane: pin: PASS 
+
+== block 9: punch round 1, collisions measured on brms ==
+brms: dev/brmsnames-rev-log/collide-brms.txt (reviewer's script);
+lane: dev/brmsnames-rev-collide.R lane, data seed 12
+  == K1_cov_sigma_Intercept ==
+  variables: b_Intercept b_sigma_Intercept sd_g__Intercept sigma 
+  draws labels duplicated:  
+  hypothesis('sigma_Intercept = 0') estimate:-1.44351
+  == K2_mu_sigma_z_and_sigma_z ==
+  variables: b_Intercept b_sigma_z b_sigma_Intercept b_sigma_z__1 sd_g__Intercept 
+  draws labels duplicated:  
+  hypothesis('sigma_z = 0') estimate:2.10324
+  == K3_group_g_h2_vs_gh2 ==
+  variables: b_Intercept sd_g:h2__Intercept sd_gh2__Intercept sigma 
+  draws labels duplicated:  
+  == K4_mv_resp_underscore ==
+  variables: b_y_Intercept b_y_x_z b_yx_Intercept b_yx_z sigma_y sigma_yx 
+  draws labels duplicated:  
+  hypothesis('y_x_z = 0') estimate:0.789905
+  == K5_cov_Intercept ==
+  frm ERROR: Internal renaming led to duplicated names. Consider renaming your variables to have different suffixes.
+
+== block 10: round 1 verified on the current build ==
+MAJOR 2, which coefficient takes __1, against the reviewer's C6
+brmsfit (dev/brmsnames-verify-suffix.R):
+  brms means:
+          b_sigma_z      b_sigma_z__1 b_sigma_Intercept 
+            -0.0994            0.0006            0.0873 
+  data: b$data, the brmsfit's own
+  frmtmb ML: mu sigma_z -0.1033  sigma z -0.0047 
+  frmtmb hypothesis: sigma_z -0.1033  sigma_z__1 -0.0047 
+  suffix on the same coefficient as brms: TRUE 
+MAJOR 4, laplace draws (dev/brmsnames-probe-laplace.R, data seed 5,
+sampler seed 8):
+  -- as built --
+  laplace real: TRUE  column cut: TRUE 
+  ranef(real laplace)                ERROR: ranef() and coef() have no draws o
+  coef(real laplace)                 ERROR: ranef() and coef() have no draws o
+  ranef(column cut)                  ERROR: ranef() and coef() have no draws o
+  coef(column cut)                   ERROR: ranef() and coef() have no draws o
+  -- refusal removed --
+  laplace real: TRUE  column cut: TRUE 
+  ranef(real laplace)                ERROR: subscript out of bounds
+  coef(real laplace)                 ERROR: subscript out of bounds
+  ranef(column cut)                  ERROR: subscript out of bounds
+  coef(column cut)                   ERROR: subscript out of bounds
+  DONE
+
+== block 11: punch round 2 ==
+BLOCKER, mixture weights: dev/brmsnames-rev2-mixture.R lane
+(reviewer's script, data seed 64). brms: theta1 0.8759, theta2
+0.1241, hypothesis(theta1 = 0.5) 0.3759
+  variables(fit): b_mu1_Intercept b_mu1_x b_mu2_Intercept b_mu2_x sigma1 sigma
+  1 (theta1)-(0.5) = 0 0.3771986 0.01662724 0.3446098 0.4097874         NA
+  1        NA    *
+  1 (theta1)-(0.5) = 0 0.3762356 0.01555057 0.3490918 0.4035792         NA
+  1        NA    *
+  theta1 0.8762356 0.01555057 0.8490918 0.9035792
+  [1] "ERROR: newparams sets a mixture's weights together: give theta1, theta2
+  [1] "ERROR: newparams sets a mixture's weights together: give theta1, theta2
+  b_mu1_Intercept         b_mu1_x b_mu2_Intercept         b_mu2_x          sigma1 
+       -2.0578291       0.2560888       2.5349107       0.4717354       0.8283027 
+           sigma2          theta1          theta2            lp__ 
+        1.1209282       0.8762356       0.1237644    -657.2099179 
+MAJOR and MINORs, collisions: dev/brmsnames-rev2-collide.R lane
+(data seed 52); C1 is refused, so its section prints nothing
+  == C1 (1 | gi:hi), levels 1_2:3 and 1:2_3 ==
+  == C2 factor levels 'a b' and 'ab' (both fab in brms) ==
+    frm                                ERROR: Internal renaming led to duplica
+  == C3 I(x^2) beside a column named IxE2 ==
+    frm                                ERROR: Internal renaming led to duplica
+  == C4 group levels 'lvl 1' and 'lvl.1' in one factor ==
+    draws labels duplicated            character(0)
+    as_draws_df                        [1] 50 21
+  == C5 mv responses y_a and ya (both ya in brms) ==
+    frm                                ERROR: Cannot use the same response var
+  == C6 smooth by-factor levels 'u' in s(x, by = f2) beside s(x) ==
+    frm                                [1] "b_Intercept" "bs_sx_1"     "bs_sz:
+  [6] "sds_szf2u_1" "sds_szf2v_1" "sigma"      
+natural-flag audit (dev/brmsnames-natural-audit.R): every non-primary
+dpar of every family in core, eam, latent and learn can take the
+flag; the rows not read elementwise, and the count of the rest:
+          frmtmb           mixture(gaussian, gaussian)   theta1                   identity   softmax, all K simplex theta1..K same class (simplex)
+          frmtmb mixture(gaussian, gaussian, gaussian)   theta1                   identity   softmax, all K simplex theta1..K same class (simplex)
+          frmtmb mixture(gaussian, gaussian, gaussian)   theta2                   identity   softmax, all K simplex theta1..K same class (simplex)
+          frmtmb                     mixture_mvn(2, 2)   theta1                   identity   softmax, all K simplex theta1..K       no brms family
+   frmtmb.latent                                hmm(2)     tr12                   identity softmax, one row    coefficient b_       no brms family
+   frmtmb.latent                                hmm(2)     tr22                   identity softmax, one row    coefficient b_       no brms family
+  elementwise rows, natural through linkinv: 89
+DONE

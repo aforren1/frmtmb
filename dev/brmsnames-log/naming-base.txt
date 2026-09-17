@@ -1,0 +1,111 @@
+arm base  frmtmb 0.58.0 from C:/Users/adf44/source/r/rellib-r3 
+
+== y ~ x + (1 + x | g) ==
+brms names:           b_x b_Intercept sd_g__Intercept sd_g__x sigma 
+variables(fit):       Intercept x sigma_Intercept sd_g__Intercept sd_g__x cor_g__Intercept__x sigma 
+brms names missing:   b_x b_Intercept 
+names brms lacks:     Intercept x sigma_Intercept 
+found 3 of 5
+r_ names found in the draws labels: 0 of 24
+  missing, first 3:  r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] 
+
+== bf(y ~ x + (1 | g), sigma ~ z + (1 | g)) ==
+brms names:           b_x b_Intercept sd_g__Intercept b_sigma_z b_sigma_Intercept sd_g__sigma_Intercept 
+variables(fit):       Intercept x sigma_Intercept sigma_z sd_g__Intercept 
+brms names missing:   b_x b_Intercept b_sigma_z b_sigma_Intercept sd_g__sigma_Intercept 
+names brms lacks:     Intercept x sigma_Intercept sigma_z 
+found 1 of 6
+r_ names found in the draws labels: 0 of 24
+  missing, first 3:  r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] 
+
+== mvbf(y1 ~ x + (1 | g), y2 ~ x + (1 | g), sigma ~ z), no rescor ==
+brms names:           b_y1_x b_y1_Intercept sd_g__y1_Intercept b_sigma_y1_z b_sigma_y1_Intercept b_y2_x b_y2_Intercept sd_g__y2_Intercept b_sigma_y2_z b_sigma_y2_Intercept 
+variables(fit):       y1_Intercept y1_x y2_Intercept y2_x y1_sigma_Intercept y1_sigma_z y2_sigma_Intercept y2_sigma_z sd_g__Intercept 
+brms names missing:   b_y1_x b_y1_Intercept sd_g__y1_Intercept b_sigma_y1_z b_sigma_y1_Intercept b_y2_x b_y2_Intercept sd_g__y2_Intercept b_sigma_y2_z b_sigma_y2_Intercept 
+names brms lacks:     y1_Intercept y1_x y2_Intercept y2_x y1_sigma_Intercept y1_sigma_z y2_sigma_Intercept y2_sigma_z sd_g__Intercept 
+found 0 of 10
+r_ names found in the draws labels: 0 of 24
+  missing, first 3:  r_g__y1[1,Intercept] r_g__y1[2,Intercept] r_g__y1[3,Intercept] 
+
+== yn ~ a * exp(-b * z), a ~ 1 + (1 | g), b ~ 1, nl ==
+brms names:           sigma b_a_Intercept sd_g__a_Intercept b_b_Intercept 
+variables(fit):       a_Intercept b_Intercept sigma_Intercept sd_g__Intercept sigma 
+brms names missing:   b_a_Intercept sd_g__a_Intercept b_b_Intercept 
+names brms lacks:     a_Intercept b_Intercept sigma_Intercept sd_g__Intercept 
+found 1 of 4
+r_ names found in the draws labels: 0 of 12
+  missing, first 3:  r_g__a[1,Intercept] r_g__a[2,Intercept] r_g__a[3,Intercept] 
+
+== y ~ x + I(x^2) + poly(z, 2) + f + (1 | gs) + (1 | g:h), hostile ==
+brms names:           b_fcMd b_fe b_IxE2 b_polyz21 b_polyz22 b_x b_Intercept sd_g:h__Intercept sd_gs__Intercept sigma 
+variables(fit):       Intercept x Ix^2 polyz, 21 polyz, 22 fc-d fe sigma_Intercept sd_gs__Intercept sd_gh__Intercept sigma 
+brms names missing:   b_fcMd b_fe b_IxE2 b_polyz21 b_polyz22 b_x b_Intercept sd_g:h__Intercept 
+names brms lacks:     Intercept x Ix^2 polyz, 21 polyz, 22 fc-d fe sigma_Intercept sd_gh__Intercept 
+found 2 of 10
+r_ names found in the draws labels: 0 of 20
+  missing, first 3:  r_g:h[1_p,Intercept] r_g:h[10_p,Intercept] r_g:h[11_q,Intercept] 
+
+== mvbf(y_a ~ x + (1 | g), y.b ~ f), responses with _ and . ==
+brms names:           b_ya_x b_ya_Intercept sd_g__ya_Intercept sigma_ya b_yb_fcMd b_yb_fe b_yb_Intercept sigma_yb 
+variables(fit):       y_a_Intercept y_a_x y.b_Intercept y.b_fc-d y.b_fe y_a_sigma_Intercept y.b_sigma_Intercept sd_g__Intercept 
+brms names missing:   b_ya_x b_ya_Intercept sd_g__ya_Intercept sigma_ya b_yb_fcMd b_yb_fe b_yb_Intercept sigma_yb 
+names brms lacks:     y_a_Intercept y_a_x y.b_Intercept y.b_fc-d y.b_fe y_a_sigma_Intercept y.b_sigma_Intercept sd_g__Intercept 
+found 0 of 8
+r_ names found in the draws labels: 0 of 12
+  missing, first 3:  r_g__ya[1,Intercept] r_g__ya[2,Intercept] r_g__ya[3,Intercept] 
+
+== y ~ s(x) + (1 | g), smooth ==
+brms names:           bs_sx_1 b_Intercept sd_g__Intercept sds_sx_1 sigma 
+variables(fit):       Intercept sx.fx1 sigma_Intercept sd_g__Intercept sigma 
+brms names missing:   bs_sx_1 b_Intercept sds_sx_1 
+names brms lacks:     Intercept sx.fx1 sigma_Intercept 
+found 2 of 5
+r_ names found in the draws labels: 0 of 12
+  missing, first 3:  r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] 
+
+== negbinomial yc ~ x, shape unmodeled ==
+brms names:           b_x b_Intercept shape 
+variables(fit):       Intercept x shape_Intercept 
+brms names missing:   b_x b_Intercept shape 
+names brms lacks:     Intercept x shape_Intercept 
+found 0 of 3
+
+== student y ~ x + (1 | g), sigma and nu unmodeled ==
+brms names:           b_x b_Intercept nu sd_g__Intercept sigma 
+variables(fit):       Intercept x sigma_Intercept nu_Intercept sd_g__Intercept sigma 
+brms names missing:   b_x b_Intercept nu 
+names brms lacks:     Intercept x sigma_Intercept nu_Intercept 
+found 2 of 5
+r_ names found in the draws labels: 0 of 12
+  missing, first 3:  r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] 
+
+== Beta yb ~ x, phi unmodeled ==
+brms names:           b_x b_Intercept phi 
+variables(fit):       Intercept x phi_Intercept 
+brms names missing:   b_x b_Intercept phi 
+names brms lacks:     Intercept x phi_Intercept 
+found 0 of 3
+
+== zero_inflated_poisson yc ~ x, zi unmodeled ==
+brms names:           b_x b_Intercept zi 
+variables(fit):       Intercept x zi_Intercept 
+brms names missing:   b_x b_Intercept zi 
+names brms lacks:     Intercept x zi_Intercept 
+found 0 of 3
+
+== hurdle_gamma yh ~ x, shape and hu unmodeled ==
+brms names:           b_x hu b_Intercept shape 
+variables(fit):       Intercept x shape_Intercept hu_Intercept 
+brms names missing:   b_x hu b_Intercept shape 
+names brms lacks:     Intercept x shape_Intercept hu_Intercept 
+found 0 of 4
+
+== student bf(y ~ x, nu ~ 1), nu written out ==
+brms names:           b_x b_Intercept sigma b_nu_Intercept 
+variables(fit):       Intercept x sigma_Intercept nu_Intercept sigma 
+brms names missing:   b_x b_Intercept b_nu_Intercept 
+names brms lacks:     Intercept x sigma_Intercept nu_Intercept 
+found 1 of 4
+
+== total, arm base: brms names present 12 of 210 ==
+DONE

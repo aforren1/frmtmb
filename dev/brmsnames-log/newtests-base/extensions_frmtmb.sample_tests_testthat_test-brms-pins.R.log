@@ -1,0 +1,25 @@
+libs:  C:/Users/adf44/source/r/rellib-r3 | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/rellib-r3
+frmtmb from:  C:/Users/adf44/source/r/rellib-r3 
+FILE    extensions/frmtmb.sample/tests/testthat/test-brms-pins.R 
+BLOCKS  5 
+PASS    1 
+FAIL    6 
+ERROR   4 
+SKIP    0 
+  failing: r_, b_ and sigma columns hold what the model reads there
+       Error: ranef() has no argument `summary`. It takes: object 
+  failing: VarCorr() correlations are in brms's order at K = 4
+       Error: VarCorr() has no argument `summary`. It takes: x, sigma 
+  failing: log_lik() refuses brms's pointwise and point-estimate forms
+       Expected `log_lik(cs$ds, pointwise = TRUE)` to throw a error. 
+       Expected `log_lik(cs$ds, add_point_estimate = TRUE)` to throw a error. 
+  failing: ranef() and coef() compute a reduced-rank block per draw
+       Error: ranef() has no argument `summary`. It takes: object 
+  failing: multivariate VarCorr() and bayes_R2() have a row per response
+       Expected `vc` to have names `c("g", "residual__")`. Differences: `actual`:   "grp" "var1"       "var2" "estimate" "lwr" "upr" `expected`: "g"   "residual__"                                
+       Expected `rownames(vc$residual__$sd)` to be identical to `c("ya", "y2")`. Differences: `actual` is NULL `expected` is a character vector ('ya', 'y2')  
+       Expected `all(c("sigma_ya", "sigma_y2") %in% variables(ds))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       Expected `rownames(r2)` to be identical to `c("R2ya", "R2y2")`. Differences: `actual`:   "R2y_a"        `expected`: "R2ya"  "R2y2"  
+       <subscriptOutOfBoundsError/error/condition> Error in `r2[2L, "Estimate"]`: subscript out of bounds 
+DONE

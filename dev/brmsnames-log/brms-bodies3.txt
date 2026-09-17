@@ -1,0 +1,253 @@
+function (coef, draws, margin = 2, ...) 
+{
+    dots <- list(...)
+    args <- list(X = draws, MARGIN = margin, FUN = coef)
+    fun_args <- names(formals(coef))
+    if (!"..." %in% fun_args) {
+        dots <- dots[names(dots) %in% fun_args]
+    }
+    x <- do_call(apply, c(args, dots))
+    if (is.null(dim(x))) {
+        x <- matrix(x, dimnames = list(NULL, coef))
+    }
+    else if (coef == "quantile") {
+        x <- aperm(x, length(dim(x)):1)
+    }
+    x
+}
+<bytecode: 0x0000022bff5767a8>
+<environment: namespace:brms>
+function (hlist, class, alpha) 
+{
+    stopifnot(is.list(hlist))
+    hs <- do_call(rbind, lapply(hlist, function(h) h$summary))
+    rownames(hs) <- NULL
+    samples <- lapply(hlist, function(h) h$samples)
+    samples <- as.data.frame(do_call(cbind, samples))
+    prior_samples <- lapply(hlist, function(h) h$prior_samples)
+    prior_samples <- as.data.frame(do_call(cbind, prior_samples))
+    names(samples) <- names(prior_samples) <- paste0("H", seq_along(hlist))
+    class <- sub("_+$", "", class)
+    out <- nlist(hypothesis = hs, samples, prior_samples, class, 
+        alpha)
+    structure(out, class = "brmshypothesis")
+}
+<bytecode: 0x0000022bff548968>
+<environment: namespace:brms>
+function (x) 
+{
+    if (is.null(dim(x))) {
+        return(as.list(x))
+    }
+    ndim <- length(dim(x))
+    out <- list(length = dim(x)[ndim])
+    ind <- collapse(rep(",", ndim - 1))
+    for (i in seq_len(dim(x)[ndim])) {
+        out[[i]] <- eval2(paste0("x[", ind, i, "]"))
+        if (length(dim(x)) > 2) {
+            dim(out[[i]]) <- dim(x)[-ndim]
+        }
+    }
+    names(out) <- dimnames(x)[[ndim]]
+    out
+}
+<bytecode: 0x0000022bff55a508>
+<environment: namespace:brms>
+function (cor, size = NULL, ndraws = NULL) 
+{
+    if (length(cor)) {
+        cor <- as.matrix(cor)
+        size <- -1/2 + sqrt(1/4 + 2 * ncol(cor)) + 1
+        ndraws <- nrow(cor)
+    }
+    size <- as_one_numeric(size)
+    ndraws <- as_one_numeric(ndraws)
+    stopifnot(is_wholenumber(size) && size > 0)
+    stopifnot(is_wholenumber(ndraws) && ndraws > 0)
+    out <- array(diag(1, size), dim = c(size, size, ndraws))
+    out <- aperm(out, perm = c(3, 1, 2))
+    if (length(cor)) {
+        k <- 0
+        for (i in seq_len(size)[-1]) {
+            for (j in seq_len(i - 1)) {
+                k = k + 1
+                out[, j, i] <- out[, i, j] <- cor[, k]
+            }
+        }
+    }
+    out
+}
+<bytecode: 0x0000022bff56dac0>
+<environment: namespace:brms>
+function (sd, cor = NULL) 
+{
+    sd <- as.matrix(sd)
+    stopifnot(all(sd >= 0))
+    ndraws <- nrow(sd)
+    size <- ncol(sd)
+    out <- array(diag(1, size), dim = c(size, size, ndraws))
+    out <- aperm(out, perm = c(3, 1, 2))
+    for (i in seq_len(size)) {
+        out[, i, i] <- sd[, i]^2
+    }
+    if (length(cor)) {
+        cor <- as.matrix(cor)
+        stopifnot(nrow(sd) == nrow(cor))
+        stopifnot(min(cor) >= -1, max(cor) <= 1)
+        stopifnot(ncol(cor) == size * (size - 1)/2)
+        k <- 0
+        for (i in seq_len(size)[-1]) {
+            for (j in seq_len(i - 1)) {
+                k = k + 1
+                out[, j, i] <- out[, i, j] <- cor[, k] * sd[, 
+                  i] * sd[, j]
+            }
+        }
+    }
+    out
+}
+<bytecode: 0x0000022bff524120>
+<environment: namespace:brms>
+function (x, nvariables = 5, N = NULL, ignore_prior = FALSE, 
+    chars = 40, colors = NULL, theme = NULL, ask = TRUE, plot = TRUE, 
+    ...) 
+{
+    dots <- list(...)
+    nvariables <- use_alias(nvariables, N)
+    if (!is.data.frame(x$samples)) {
+        stop2("No posterior draws found.")
+    }
+    plot <- use_alias(plot, dots$do_plot)
+    if (is.null(colors)) {
+        colors <- bayesplot::color_scheme_get()[c(4, 2)]
+        colors <- unname(unlist(colors))
+    }
+    if (length(colors) != 2L) {
+        stop2("Argument 'colors' must be of length 2.")
+    }
+    .plot_fun <- function(samples) {
+        samples <- na.omit(samples)
+        ignore_prior <- ignore_prior || length(unique(samples$Type)) == 
+            1L
+        gg <- ggplot(samples, aes(x = .data[["values"]])) + facet_wrap("ind", 
+            ncol = 1, scales = "free") + xlab("") + ylab("") + 
+            theme + theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+        if (ignore_prior) {
+            gg <- gg + geom_density(alpha = 0.7, fill = colors[1], 
+                na.rm = TRUE)
+        }
+        else {
+            gg <- gg + geom_density(aes(fill = .data[["Type"]]), 
+                alpha = 0.7, na.rm = TRUE) + scale_fill_manual(values = colors)
+        }
+        return(gg)
+    }
+    samples <- cbind(x$samples, Type = "Posterior")
+    if (!ignore_prior) {
+        prior_samples <- cbind(x$prior_samples, Type = "Prior")
+        samples <- rbind(samples, prior_samples)
+    }
+    if (plot) {
+        default_ask <- devAskNewPage()
+        on.exit(devAskNewPage(default_ask))
+        devAskNewPage(ask = FALSE)
+    }
+    hyps <- limit_chars(x$hypothesis$Hypothesis, chars = chars)
+    if (!is.null(x$hypothesis$Group)) {
+        hyps <- paste0(x$hypothesis$Group, ":  ", hyps)
+    }
+    names(samples)[seq_along(hyps)] <- hyps
+    nplots <- ceiling(length(hyps)/nvariables)
+    plots <- vector(mode = "list", length = nplots)
+    for (i in seq_len(nplots)) {
+        sub <- ((i - 1) * nvariables + 1):min(i * nvariables, 
+            length(hyps))
+        sub_hyps <- hyps[sub]
+        sub_samples <- cbind(utils::stack(samples[, sub_hyps, 
+            drop = FALSE]), samples[, "Type", drop = FALSE])
+        sub_samples$ind <- with(sub_samples, factor(ind, levels = unique(ind)))
+        plots[[i]] <- .plot_fun(sub_samples)
+        if (plot) {
+            plot(plots[[i]])
+            if (i == 1) 
+                devAskNewPage(ask = ask)
+        }
+    }
+    invisible(plots)
+}
+<bytecode: 0x0000022bff533a80>
+<environment: namespace:brms>
+function (x, cut = 0, wsign = c("equal", "less", "greater"), 
+    prior_samples = NULL, ...) 
+{
+    wsign <- match.arg(wsign)
+    if (wsign == "equal") {
+        if (is.null(prior_samples)) {
+            out <- NA
+        }
+        else {
+            out <- density_ratio(x, prior_samples, point = cut, 
+                ...)
+        }
+    }
+    else if (wsign == "less") {
+        out <- length(which(x < cut))
+        out <- out/(length(x) - out)
+    }
+    else if (wsign == "greater") {
+        out <- length(which(x > cut))
+        out <- out/(length(x) - out)
+    }
+    out
+}
+<bytecode: 0x0000022bff42cc80>
+<environment: namespace:brms>
+function (x, pars = NA, variable = NULL, regex = FALSE, fixed = FALSE, 
+    ...) 
+{
+    variable <- use_variable_alias(variable, x, pars, fixed = fixed)
+    if (is.null(variable)) {
+        variable <- default_plot_variables(x)
+        regex <- TRUE
+    }
+    draws <- as.array(x, variable = variable, regex = regex)
+    bayesplot::mcmc_pairs(draws, ...)
+}
+<bytecode: 0x0000022bff4155b0>
+<environment: namespace:brms>
+function (object, pars = NA, variable = NULL, prob = 0.95, ...) 
+{
+    ps <- as.matrix(object, pars = pars, variable = variable, 
+        ...)
+    rstantools::posterior_interval(ps, prob = prob)
+}
+<bytecode: 0x0000022bff395ab8>
+<environment: namespace:brms>
+function (pars, all_pars, fixed = FALSE, exact_match = FALSE, 
+    na_value = all_pars, ...) 
+{
+    if (!(anyNA(pars) || is.character(pars))) {
+        stop2("Argument 'pars' must be NA or a character vector.")
+    }
+    fixed <- check_deprecated_fixed(fixed, exact_match)
+    if (!anyNA(pars)) {
+        fixed <- as_one_logical(fixed)
+        if (fixed) {
+            out <- intersect(pars, all_pars)
+        }
+        else {
+            out <- vector("list", length(pars))
+            for (i in seq_along(pars)) {
+                out[[i]] <- all_pars[grepl(pars[i], all_pars, 
+                  ...)]
+            }
+            out <- unique(unlist(out))
+        }
+    }
+    else {
+        out <- na_value
+    }
+    out
+}
+<bytecode: 0x0000022bfeda8120>
+<environment: namespace:brms>

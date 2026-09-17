@@ -30,6 +30,8 @@ S3method(brms::expose_functions,frmtmb_fit)
 S3method(brms::hypothesis,frmtmb_fit)
 S3method(brms::hypothesis,frmtmb_multiple)
 S3method(brms::ngrps,frmtmb_fit)
+S3method(brms::posterior_summary,frmtmb_fit)
+S3method(brms::posterior_summary,frmtmb_multiple)
 S3method(c,frmtmb_priorlist)
 S3method(coef,frmtmb_fit)
 S3method(conditional_effects,frmtmb_fit)
@@ -109,6 +111,8 @@ S3method(posterior::niterations,frmtmb_fit)
 S3method(posterior::nvariables,frmtmb_fit)
 S3method(posterior::variables,frmtmb_fit)
 S3method(posterior_summary,default)
+S3method(posterior_summary,frmtmb_fit)
+S3method(posterior_summary,frmtmb_multiple)
 S3method(pp_check,frmtmb_fit)
 S3method(predict,frmtmb_fit)
 S3method(print,VarCorr_frmtmb)
@@ -169,7 +173,7 @@ export(bernoulli)
 export(beta_binomial)
 export(bf)
 export(build_objective, row_lpdf, with_cs_offsets,
-  us_chol_cor, aterms_for_newdata, has_trunc, as_priorlist,
+  us_chol_cor, expand_b, aterms_for_newdata, has_trunc, as_priorlist,
   resolve_prior_input, neg_log_prior_fn, resolve_bounds, spec_target,
   spec_spelling,
   frmtmb_register_prior_defaults, ncp_eligible, ncp_scale_b,
@@ -178,7 +182,12 @@ export(build_objective, row_lpdf, with_cs_offsets,
   sim_draw, sim_is_structured, par_name_bare, outer_par_names,
   estimated_coef_names, log_sd_theta_index, sdr_of, require_fitted,
   hyp_parse_all, hyp_vals_only, hyp_env_vals, hyp_eval, hyp_tail_p,
-  hyp_shadow_arm, hyp_shadow_disarm, ce_grids_build, ce_boot_one,
+  hyp_class_prefix, hyp_labels,
+  hyp_samples_frame, hyp_brms_result, brms_coef_names, brms_re_rnames,
+  brms_block_has_r, brms_coef_table, brms_stan_name, brms_group_name,
+  brms_levels, brms_re_parts, hyp_eval_in, hyp_expr_vars,
+  brms_par_labels, varcorr_matrices, varcorr_layout, varcorr_values,
+  ce_grids_build, ce_boot_one,
   ce_frame, ce_finalize,
   ce_cats_display, ce_display_kind, ce_pred_dpar, ce_group_vars,
   ce_new_level_spec, ce_boot_grids, ce_draw_new_levels,

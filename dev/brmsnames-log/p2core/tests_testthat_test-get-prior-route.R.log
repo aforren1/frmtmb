@@ -1,0 +1,24 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-get-prior-route.R 
+BLOCKS  8 
+PASS    38 
+FAIL    0 
+ERROR   7 
+SKIP    0 
+  failing: route = 'fit' answers the same with and without a provider
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: route = 'sample' refuses when no package states the defaults
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: route = 'sample' reports the registered defaults
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: an unknown route is refused rather than guessed
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: the printed table names its route
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: the row table is still an ordinary data frame to work with
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+  failing: coercion drops the class and the label together
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+DONE

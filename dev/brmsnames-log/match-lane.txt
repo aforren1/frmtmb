@@ -1,0 +1,152 @@
+arm lane  frmtmb 0.58.0  frmtmb.sample 0.6.0  from C:/Users/adf44/source/r/brmsnames-lib 
+brms 2.23.0  posterior 1.7.0 
+
+draw values identical() to the base arm's, sigma on one scale: TRUE
+== intercept: 2000 x 11 draws ==
+columns of this arm's draws:  b_Intercept b_x sigma r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] 
+exp(theta_1) vs derived sd, max |diff|: 0
+
+-- controls: the instrument must be able to say no --
+intercept CONTROL brms as_draws_rvars twice              all.equal  
+intercept CONTROL brms fixef(summary = FALSE), perturbed 1e-9 all.equal  
+intercept CONTROL brms fixef(summary = FALSE), perturbed 1e-3 DIFFERS    Mean relative difference: 0.002647204
+
+-- names --
+intercept variables()                                    identical  
+
+-- accessors --
+intercept as.matrix(x)                                   identical  
+intercept as.matrix(x, variable = 'b_x')                 identical  
+intercept as.matrix(x, 'b_x') [pars]                     identical  
+intercept as.matrix(x, draw = 1:5)                       identical  
+intercept as.array(x)                                    identical  
+intercept as.array(x, variable = '^b_', regex)           identical  
+intercept as.data.frame(x)                               identical  
+intercept as_draws_array(x)                              identical  
+intercept as_draws_df(x, 'b_x')                          identical  
+intercept as_draws_matrix(x)                             identical  
+intercept as_draws_list(x)                               identical  
+intercept as_draws_rvars(x)                              all.equal  
+intercept as_draws(x)                                    identical  
+
+-- summaries --
+intercept posterior_summary(x)                           identical  
+intercept posterior_summary(x, '^b_')                    identical  
+intercept posterior_summary(x, robust, probs)            identical  
+intercept posterior_interval(x)                          identical  
+intercept rhat(x)                                        identical  
+intercept neff_ratio(x)                                  identical  
+intercept bayes_R2(x, summary = FALSE) columns           identical  
+intercept bayes_R2(x, NULL, TRUE, TRUE) on its draws     identical  
+
+-- fixef / ranef / coef --
+intercept fixef(x)                                       identical  
+intercept fixef(x, FALSE)                                identical  
+intercept fixef(x, robust, probs)                        identical  
+intercept fixef(x, pars = 'x')                           identical  
+intercept ranef(x)                                       identical  
+intercept ranef(x, FALSE)                                identical  
+intercept ranef(x, groups = 'g', pars = 'Intercept')     identical  
+intercept coef(x)                                        identical  
+intercept coef(x, FALSE)                                 identical  
+intercept coef(x, robust = TRUE)                         identical  
+
+-- VarCorr --
+intercept VarCorr(x)$g                                   identical  
+intercept VarCorr(x, NULL, FALSE)$g                      identical  
+intercept VarCorr(x, robust, probs)$g                    identical  
+intercept names(VarCorr(x))                              identical  
+intercept VarCorr(x)$residual__                          identical  
+
+-- hypothesis --
+intercept hypothesis(x, 'x > 0')$hypothesis              identical  
+intercept hypothesis(x, 'x = 0.5')$hypothesis[1:5]       identical  
+intercept hypothesis(x, 'x < Intercept', robust)$hypothesis identical  
+intercept names(hypothesis(x, 'x > 0'))                  identical  
+intercept hypothesis(x, 'x > 0')$samples                 identical  
+intercept hypothesis(x, 'x > 0')$class                   identical  
+intercept hypothesis(x, ..., scope = 'coef')$hypothesis  identical  
+intercept hypothesis(x, ..., scope = 'ranef')$hypothesis identical  
+
+draw values identical() to the base arm's, sigma on one scale: TRUE
+== slope: 600 x 27 draws ==
+columns of this arm's draws:  b_Intercept b_x sigma r_g[1,Intercept] r_g[1,x] r_g[2,Intercept] 
+exp(theta_1) vs derived sd, max |diff|: 0
+
+-- controls: the instrument must be able to say no --
+slope     CONTROL brms as_draws_rvars twice              all.equal  
+slope     CONTROL brms fixef(summary = FALSE), perturbed 1e-9 all.equal  
+slope     CONTROL brms fixef(summary = FALSE), perturbed 1e-3 DIFFERS    Mean relative difference: 0.002214149
+
+-- names --
+slope     variables()                                    identical  
+
+-- accessors --
+slope     as.matrix(x)                                   identical  
+slope     as.matrix(x, variable = 'b_x')                 identical  
+slope     as.matrix(x, 'b_x') [pars]                     identical  
+slope     as.matrix(x, draw = 1:5)                       identical  
+slope     as.array(x)                                    identical  
+slope     as.array(x, variable = '^b_', regex)           identical  
+slope     as.data.frame(x)                               identical  
+slope     as_draws_array(x)                              identical  
+slope     as_draws_df(x, 'b_x')                          identical  
+slope     as_draws_matrix(x)                             identical  
+slope     as_draws_list(x)                               identical  
+slope     as_draws_rvars(x)                              all.equal  
+slope     as_draws(x)                                    identical  
+
+-- summaries --
+slope     posterior_summary(x)                           identical  
+slope     posterior_summary(x, '^b_')                    identical  
+slope     posterior_summary(x, robust, probs)            identical  
+slope     posterior_interval(x)                          identical  
+slope     rhat(x)                                        identical  
+slope     neff_ratio(x)                                  identical  
+slope     bayes_R2(x, summary = FALSE) columns           identical  
+slope     bayes_R2(x, NULL, TRUE, TRUE) on its draws     identical  
+
+-- fixef / ranef / coef --
+slope     fixef(x)                                       identical  
+slope     fixef(x, FALSE)                                identical  
+slope     fixef(x, robust, probs)                        identical  
+slope     fixef(x, pars = 'x')                           identical  
+slope     ranef(x)                                       identical  
+slope     ranef(x, FALSE)                                identical  
+slope     ranef(x, groups = 'g', pars = 'Intercept')     identical  
+slope     coef(x)                                        identical  
+slope     coef(x, FALSE)                                 identical  
+slope     coef(x, robust = TRUE)                         identical  
+
+-- VarCorr --
+slope     VarCorr(x)$g                                   identical  
+slope     VarCorr(x, NULL, FALSE)$g                      identical  
+slope     VarCorr(x, robust, probs)$g                    identical  
+slope     names(VarCorr(x))                              identical  
+slope     VarCorr(x)$residual__                          identical  
+
+-- hypothesis --
+slope     hypothesis(x, 'x > 0')$hypothesis              identical  
+slope     hypothesis(x, 'x = 0.5')$hypothesis[1:5]       identical  
+slope     hypothesis(x, 'x < Intercept', robust)$hypothesis identical  
+slope     names(hypothesis(x, 'x > 0'))                  identical  
+slope     hypothesis(x, 'x > 0')$samples                 identical  
+slope     hypothesis(x, 'x > 0')$class                   identical  
+slope     hypothesis(x, ..., scope = 'coef')$hypothesis  identical  
+slope     hypothesis(x, ..., scope = 'ranef')$hypothesis identical  
+
+== controls, arm lane ==
+     model                                                call    result
+ intercept                   CONTROL brms as_draws_rvars twice all.equal
+ intercept CONTROL brms fixef(summary = FALSE), perturbed 1e-9 all.equal
+ intercept CONTROL brms fixef(summary = FALSE), perturbed 1e-3   DIFFERS
+     slope                   CONTROL brms as_draws_rvars twice all.equal
+     slope CONTROL brms fixef(summary = FALSE), perturbed 1e-9 all.equal
+     slope CONTROL brms fixef(summary = FALSE), perturbed 1e-3   DIFFERS
+
+== counts, arm lane (controls excluded) ==
+
+all.equal identical 
+        2        88 
+comparisons: 90 
+DONE

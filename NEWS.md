@@ -1,3 +1,173 @@
+# frmtmb (development version)
+
+* **BREAKING: `variables()` and `hypothesis()` use brms's names.** Every
+  coefficient carries brms's `b_` prefix, and a coefficient of a
+  distributional, nonlinear or multivariate predictor is spelled the way
+  brms spells it: `b_Intercept`, `b_x`, `b_sigma_Intercept`,
+  `b_sigma_y1_x`, `b_a_Intercept`. `variables(fit)` used to return
+  `Intercept, zBase, ..., sd_patient__Intercept`, half of brms's
+  convention. A group-level standard deviation of a distributional
+  parameter is `sd_g__sigma_Intercept`; it used to be a second
+  `sd_g__Intercept`, which the mean's block claimed, so it could not be
+  reached at all. An `|ID|` block's names are `sd_id__y1_Intercept`, not
+  `sd_id__y1.muIntercept`.
+
+  Every piece of a name goes through one renamer ported from brms's
+  `rename()` and its helpers: `I(x^2)` is `b_IxE2`, a factor level
+  `c-d` is `b_fcMd`, a response `y_a` is `ya` (`b_ya_x`, `sigma_ya`), an
+  interaction group keeps its `:` (`sd_g:h__Intercept`) and joins its
+  levels with `_` (`r_g:h[1_p,Intercept]`), whitespace in a level is a
+  dot in an `r_` name, and a smooth's unpenalized column is `bs_sx_1`
+  with smoothing SD `sds_sx_1`. A distributional parameter nobody wrote
+  a formula for is the parameter itself on its natural scale, `sigma`,
+  `shape` or `sigma_ya`, and has no `b_sigma_Intercept`; written as
+  `sigma ~ 1` it is `b_sigma_Intercept` and there is no `sigma`, as in
+  brms. The autocorrelation parameters are `ar[1]`, `ma[1]`, `cosy`, and
+  a multivariate model's residual correlations `rescor__ya__yb`. Checked
+  against the names brms derives for thirteen models, including those
+  hostile names and the unmodeled shape, nu, phi, zi and hu: 210 of 210
+  present and none extra, 12 of 210 before
+  (`dev/brmsnames-findings.md`).
+
+  What stops working: a bare coefficient name in `variables()`'s output
+  (`"x" %in% variables(fit)`), a `hypothesis()` string that names a
+  natural-scale quantity without `class = NULL`, `b_sigma_Intercept` on
+  a model whose sigma has no formula (use `sigma`), and `ar1` (use
+  `ar[1]`).
+
+* **BREAKING: `hypothesis()` takes brms's `class = "b"` default and
+  brms's argument order**, `(x, hypothesis, class, group, scope, alpha,
+  robust, seed, ...)`, with `method`, `nsim` and `vcov` after them. A
+  bare name is read as the coefficient, `x` as `b_x`, as in brms, so
+  `hypothesis(fit, "x1 - x2 = 0")` still works. A natural-scale name
+  needs `class = NULL`, as in brms:
+  `hypothesis(fit, "sd_g__Intercept / sigma = 0", class = NULL)`.
+  The string is read as `brms:::eval_hypothesis()` reads it: every
+  variable gets the `class` and `group` prefix, a prefixed name the
+  model does not have is refused with brms's "Some parameters cannot be
+  found in the model", and brms's renaming (`:` to `___`, `[` and `]` to
+  `.`, `,` to `..`) is applied before parsing. `x:fe` is therefore the
+  interaction coefficient. It used to parse as R's `:` operator, which
+  returned `b_x` whenever `b_x` and `b_x:fe` were less than 1 apart:
+  `hypothesis(fit, "x:fe > 0")` gave 0.2415 for a coefficient of 1.0794,
+  with no error. A name written in full under the default class
+  (`"b_x = 0"`) is refused, as brms refuses it, and the backquoted
+  internal spelling `` `(Intercept)` `` is no longer an alias.
+  `alpha` used to be the third positional argument, so
+  `hypothesis(fit, h, 0.1)` now names a class. `robust = TRUE` and
+  `scope = "ranef"` or `"coef"` are refused by name: both need draws.
+
+* **BREAKING: `hypothesis()` returns brms's object.** A list of class
+  `c("frmtmb_hypothesis", "brmshypothesis")` with brms's elements
+  `hypothesis`, `samples`, `prior_samples`, `class` and `alpha`, whose
+  `$hypothesis` frame has brms's eight columns: `Hypothesis`,
+  `Estimate`, `Est.Error`, `CI.Lower`, `CI.Upper`, `Evid.Ratio`,
+  `Post.Prob`, `Star`. On a fit, `Est.Error` is the delta-method (or
+  bootstrap, or pooled) standard error, the interval follows brms's
+  rule (central `1 - alpha` for `=`, central `1 - 2 * alpha` for a
+  directional row, so its relevant end is the one-sided bound; it used
+  to be infinite on the other side), `Evid.Ratio` and `Post.Prob` are
+  `NA`, and the test statistic and p-value are `attr(h, "test")`. What
+  stops working: `h$estimate`, `h$se`, `h$lwr`, `h$upr`, `h$z`, `h$p`,
+  `nrow(h)`, and `as.data.frame(h)`.
+
+* **BREAKING: the reserved-name note and the dot spellings are gone.**
+  A covariate named `sigma` used to shadow the residual SD in
+  `hypothesis()`, with a message and a `.sigma` escape. With brms's `b_`
+  prefix the coefficient is `b_sigma` and `sigma` is the residual SD, so
+  that pair no longer meets. `hyp_shadow_arm()` and
+  `hyp_shadow_disarm()` are no longer exported.
+
+* **BREAKING: names that brms's renaming would give twice are handled as
+  brms handles each case.** Measured on brms 2.23.0
+  (`dev/brmsnames-rev-collide-brms.R`):
+  - two design columns of one predictor that rename alike,
+    `y ~ Intercept + x`, are refused when the model is built, with
+    brms's "Internal renaming led to duplicated names";
+  - a name given by two predictors takes brms's `__1` suffix on the
+    later one: `bf(y ~ sigma_z, sigma ~ z)` has `b_sigma_z` and
+    `b_sigma_z__1`, where the second used to be a duplicate that
+    `hypothesis()` could not reach;
+  - the same group-level coefficient on one group twice is refused with
+    brms's "Duplicated group-level effects are not allowed". The animal
+    model `(1 | gr(id, cov = A)) + (1 | id)` is refused this way; give
+    the second term a copy of the column, `(1 | id_pe)`;
+  - two responses brms spells alike, `y_a` and `ya`, are refused with
+    brms's "Cannot use the same response variable twice";
+  - a group-level label given twice, the `r_gd[lvl.1,Intercept]` of the
+    levels `lvl 1` and `lvl.1`, takes brms's `__1` on the later level;
+  - an interaction group two of whose levels brms joins to one string,
+    `1_2:3` and `1:2_3` in `(1 | gi:hi)`, is refused. brms fits them as
+    one level and pools their effects; recode the factors.
+
+  No name reaches `variables()`, `hypothesis()` or the draws labels
+  twice. What stops working: the models above that are refused.
+
+* **BREAKING: a mixture's weights are brms's `theta1 ... thetaK`.**
+  With no theta formula written, `variables()` and `hypothesis()` name
+  the mixing PROBABILITIES, which sum to one, as brms does. They used to
+  name the estimated log ratio `theta1` (1.966 where the share was
+  0.876), so `hypothesis(fit, "theta1 = 0.5", class = NULL)` gave 1.466
+  where brms gives 0.376. `frm_simulate(newparams =)` takes the whole
+  simplex, `theta1 = 0.9, theta2 = 0.1`, and refuses a part of it; it
+  used to read `theta1 = 0.7` as a log ratio, a share of 0.665. A
+  mixture with a theta formula keeps the log ratios as coefficients,
+  `b_theta1_Intercept`. An `hmm()` transition logit is likewise the
+  coefficient `b_tr12_Intercept`, not `tr12`.
+
+* **BREAKING: two more names are brms's.** A monotonic term's scale is
+  `bsp_moxo`, as brms names the same quantity (it was `b_moxo`), and a
+  by-smooth's smoothing SD is `sds_sxf2u_1` (it was `sds_sx:f2u_1`).
+
+* **BREAKING: `VarCorr()` returns brms's structure.** A list keyed by
+  GROUPING FACTOR (`"patient"`, as brms and lme4 key it, not
+  `"1 | patient"`), each entry with `sd` (coefficients x statistics) and,
+  for a group with correlations, `cor` and `cov` (coefficient x
+  statistic x coefficient arrays), then `residual__` where brms has it:
+  a `sigma` with no formula, one row per response on a multivariate
+  model (named `ya`, `y2`) with the residual correlations under
+  `rescor = TRUE`, and no `residual__` once any response predicts
+  sigma. The statistics are `Estimate`, its
+  delta-method standard error as `Est.Error`, and Wald quantiles at
+  `probs`. Several blocks on one factor merge under it, as in brms.
+  Smooth, GP, CAR and SPDE blocks are not in it, as in brms;
+  `confint_varcorr()` reports them. A model with no group and no scalar
+  residual SD is refused with brms's message. What stops working:
+  `VarCorr(fit)[[1]]` as a covariance matrix, `names(VarCorr(fit))` as
+  term labels, `as.data.frame(VarCorr(fit))`, and `print()`'s lme4
+  table from `VarCorr()` (the fit's own `print()` and `summary()` keep
+  it). The per-block matrices are `varcorr_matrices(fit)` on
+  `?frmtmb-sampling-api`.
+
+* **BREAKING: `fixef()`, `ranef()`, `coef()` and `VarCorr()` take brms's
+  leading arguments in brms's positions** (`summary`, `robust`, `probs`,
+  and `pars` and `groups` where brms has them). `fixef(fit, FALSE)` and
+  `ranef(fit, FALSE)` used to set `flatten` and `condVar` and return the
+  default shape, `identical()` to the call without the argument. A fit
+  has no draws, so `summary = FALSE` and `robust = TRUE` are refused by
+  name with the reason; brms's defaults spelled out are accepted.
+  `flatten` and `condVar` move after `...` and must be named.
+
+* `posterior_summary()` on a fit, or on a `frm_multiple()` result,
+  refuses and says to sample first. It used to die inside
+  `posterior_summary.default()` with "is.atomic(x) is not TRUE".
+  `posterior_summary.default()` is brms's, statistic for statistic, and
+  now summarizes a three-dimensional draws array too.
+
+* `confint(parm =)` and `profile(parm =)` take brms's `b_` spelling of
+  a coefficient as well.
+
+* **BREAKING: `frm_simulate(newparams =)` takes brms's names only,** the
+  strings `variables()` returns: `b_Intercept`, `b_x`,
+  `b_sigma_Intercept`, `sigma`, `sd_g__Intercept`, `sds_sx_1`. A bare
+  name (`Intercept`, `x`, `sigma_Intercept`) is refused, and the message
+  gives the brms spelling of each. The prior-draw table
+  `attr(sims, "pars")` uses the same names. Priors do not change:
+  `set_prior(coef = "x")` takes the bare coefficient, as in brms. What
+  stops working: every natural-scale `newparams` list written with bare
+  names; the internal spelling (`beta`, `betad`, `theta`) is
+  unchanged.
+
 # frmtmb 0.58.0
 
 * **BREAKING, and the rule behind it.** Where lme4 or glmmTMB and brms

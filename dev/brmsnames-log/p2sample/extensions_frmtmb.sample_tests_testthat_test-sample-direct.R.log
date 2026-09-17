@@ -1,0 +1,25 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+No priors were used (flat improper priors on the outer parameters).
+No priors were used (flat improper priors on the outer parameters).
+No priors were used (flat improper priors on the outer parameters).
+No priors were used (flat improper priors on the outer parameters).
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+FILE    extensions/frmtmb.sample/tests/testthat/test-sample-direct.R 
+BLOCKS  17 
+PASS    130 
+FAIL    3 
+ERROR   1 
+SKIP    0 
+  failing: the formula route samples the same posterior as the fit route
+       Expected `nrow(fixef(ds_form))` to equal 3L. Differences:   `actual`: 2 `expected`: 3  
+  failing: every draws accessor speaks brms's names
+       Expected `nm` to equal `c("b_Intercept", "b_x", "b_sigma_Intercept", "theta_1")`. Differences: `actual`:   "b_Intercept" "b_x" "sigma"             "theta_1" `expected`: "b_Intercept" "b_x" "b_sigma_Intercept" "theta_1"  
+       Expected `rownames(fixef(ds))` to equal `c("Intercept", "x", "sigma_Intercept")`. Differences: `actual`:   "Intercept" "x"                   `expected`: "Intercept" "x" "sigma_Intercept"  
+       Error in `eval(ex, env, parent.frame())`: object '(Intercept)' not found 
+DONE

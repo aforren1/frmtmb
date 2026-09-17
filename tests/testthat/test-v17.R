@@ -99,7 +99,7 @@ test_that("equalto() fixes the covariance exactly", {
 
   fit <- frm(bf(y ~ 1 + equalto(f + 0 | g, V)) + gaussian(), data = dd)
   expect_length(fit$estimates$theta, 0L)
-  expect_equal(unname(VarCorr(fit)[[1]]), unname(V))
+  expect_equal(unname(varcorr_matrices(fit)[[1]]), unname(V))
 
   # direct marginal-gaussian reference over (mu, log sigma)
   Z <- stats::model.matrix(~ 0 + g:f)

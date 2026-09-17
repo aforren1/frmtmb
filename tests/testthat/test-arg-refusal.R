@@ -29,7 +29,7 @@ ar_case <- local({
       dd <- data.frame(x = stats::rnorm(120),
                        g = factor(rep(1:8, each = 15)), y = 0)
       dd$y <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
-                           newparams = list(Intercept = 1, x = 0.5,
+                           newparams = list(b_Intercept = 1, b_x = 0.5,
                                             sigma = 0.4,
                                             sd_g__Intercept = 1.2),
                            nsim = 1, seed = 25051)[[1]]
@@ -140,7 +140,8 @@ test_that("a brms argument is refused with its reason, not as unknown", {
     list(quote(fixef(fit, pars = "x")), "pars", "regular expression"),
     list(quote(coef(fit, robust = TRUE)), "robust", "draws"),
     list(quote(ranef(fit, groups = "g")), "groups", "named list"),
-    list(quote(VarCorr(fit, probs = 0.5)), "probs", "quantiles"),
+    list(quote(VarCorr(fit, robust = TRUE)), "robust", "draws"),
+    list(quote(fixef(fit, summary = FALSE)), "summary = FALSE", "draws"),
     list(quote(nobs(fit, resp = "y")), "resp", "same nobs"),
     list(quote(family(fit, resp = "y")), "resp", "NAMED LIST"),
     list(quote(vcov(fit, correlation = TRUE)), "correlation", "cov2cor")

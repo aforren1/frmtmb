@@ -493,9 +493,11 @@ test_that("ranef and coef key their lists the same way, as brms does", {
   expect_false(is.null(ranef(s$fit)$Subject))
   expect_false(is.null(coef(s$fit)$Subject))
   expect_identical(attr(ranef(s$fit)$Subject, "term"), "Days | Subject")
-  # VarCorr() still keys by the block, which is what tells two terms on
-  # one factor apart
-  expect_identical(names(VarCorr(s$fit)), "Days | Subject")
+  # VarCorr() keys by the grouping factor too now, brms's structure: it
+  # used to key by the block label, "Days | Subject", which neither brms
+  # nor lme4 does
+  expect_identical(names(VarCorr(s$fit)), names(brms::VarCorr(s$brmsfit)))
+  expect_identical(names(VarCorr(s$fit)), "Subject")
 
   # and brms broadcasts EVERY dpar's fixed effects over every grouping
   # factor, so its coef() carries two columns that do not vary across
@@ -555,7 +557,7 @@ test_that("VarCorr standard deviations agree", {
   for (nm in c("r7", "rC0", "rC16")) {
     s <- brms_shape(nm)
     bv <- brms::VarCorr(s$brmsfit)
-    fv <- unclass(VarCorr(s$fit))
+    fv <- unclass(varcorr_matrices(s$fit))
     for (g in names(bv)) {
       # rownames, not names(): a one-coefficient group drops to an
       # unnamed vector under [, "Estimate"] and takes its labels with it
@@ -1226,7 +1228,7 @@ test_that("hypothesis point estimates agree on every expression", {
   for (h in c("x = 0", "z = 0", "Intercept = 0", "x - z = 0",
               "sigma_x = 0", "sigma_Intercept = 0", "2 * x + z = 1")) {
     hb <- brms::hypothesis(s$brmsfit, h)$hypothesis$Estimate
-    hf <- as.data.frame(hypothesis(s$fit, h))$estimate
+    hf <- hypothesis(s$fit, h)$hypothesis$Estimate
     expect_exact_num(hb, hf, label = paste("hypothesis", h))
   }
 })
@@ -1248,16 +1250,16 @@ test_that("hypothesis reaches sd and cor by brms's names", {
     co <- sub("^[a-z]+_[^_]+__", "", v)
     hb <- brms::hypothesis(s$brmsfit, paste0(co, " = 0"),
                            class = cls, group = grp)$hypothesis$Estimate
-    hf <- as.data.frame(hypothesis(s$fit, paste0(co, " = 0"),
-                                   class = cls, group = grp))$estimate
+    hf <- hypothesis(s$fit, paste0(co, " = 0"),
+                     class = cls, group = grp)$hypothesis$Estimate
     expect_exact_num(hb, hf, label = paste("hypothesis", cls, co))
     # and the same number through the fully qualified name
     # class = NULL, or brms prefixes the name with "b_" and cannot
     # find it
     hb2 <- brms::hypothesis(s$brmsfit, paste0(v, " = 0"),
                             class = NULL)$hypothesis$Estimate
-    hf2 <- as.data.frame(hypothesis(s$fit,
-                                    paste0(v, " = 0")))$estimate
+    hf2 <- hypothesis(s$fit, paste0(v, " = 0"),
+                      class = NULL)$hypothesis$Estimate
     expect_exact_num(hb2, hf2, label = paste("hypothesis full name", v))
     expect_exact_num(hb2, hb, label = paste("both spellings", v))
   }
@@ -1355,32 +1357,31 @@ test_that("an unknown argument is reported against the function called", {
                "conditional_effects\\(\\) has no argument")
 })
 
-test_that("hypothesis returns a different object in each package", {
+test_that("hypothesis returns brms's object", {
   skip_unless_brms_fit()
 
-  # DIVERGENCE, structural. brms returns a brmshypothesis LIST whose
-  # $hypothesis is the table; frmtmb returns the table itself, with
-  # lower-case columns. The documented brms idiom,
-  # hypothesis(fit)$hypothesis$Estimate, therefore reaches a character
-  # vector on a frmtmb fit and errors on the second $.
+  # WAS a structural divergence: frmtmb returned the table itself, with
+  # lower-case columns, so brms's idiom hypothesis(fit)$hypothesis$Estimate
+  # reached a character vector and errored on the second $. It returns
+  # brms's list now, with brms's eight columns and brms's labels; the
+  # frequentist test statistic rides on an attribute.
   s <- brms_shape("r1")
-  hb <- brms::hypothesis(s$brmsfit, "x = 0")
-  hf <- hypothesis(s$fit, "x = 0")
+  hb <- brms::hypothesis(s$brmsfit, c("x = 0", "x > z"))
+  hf <- hypothesis(s$fit, c("x = 0", "x > z"))
 
   expect_s3_class(hb, "brmshypothesis")
-  expect_s3_class(hf, "frmtmb_hypothesis")
-  expect_s3_class(hf, "data.frame")
-  expect_identical(names(hb$hypothesis),
-                   c("Hypothesis", "Estimate", "Est.Error", "CI.Lower",
-                     "CI.Upper", "Evid.Ratio", "Post.Prob", "Star"))
-  expect_identical(names(as.data.frame(hf)),
-                   c("hypothesis", "estimate", "se", "lwr", "upr",
-                     "z", "p"))
-  expect_type(hf$hypothesis, "character")
-  expect_error(hf$hypothesis$Estimate, "atomic")
-  # brms rewrites the expression, frmtmb keeps it verbatim
-  expect_identical(hb$hypothesis$Hypothesis, "(x) = 0")
-  expect_identical(as.data.frame(hf)$hypothesis, "x = 0")
+  expect_s3_class(hf, "brmshypothesis")
+  expect_identical(names(hf), names(hb))
+  expect_identical(names(hf$hypothesis), names(hb$hypothesis))
+  expect_identical(names(hf$samples), names(hb$samples))
+  expect_identical(hf$hypothesis$Hypothesis, hb$hypothesis$Hypothesis)
+  expect_identical(hf$class, hb$class)
+  expect_identical(hf$alpha, hb$alpha)
+  expect_exact_num(hb$hypothesis$Estimate, hf$hypothesis$Estimate,
+                   label = "hypothesis Estimate")
+  # a maximum-likelihood fit has no posterior to take a ratio of
+  expect_true(all(is.na(hf$hypothesis$Evid.Ratio)))
+  expect_named(attr(hf, "test"), c("Hypothesis", "z", "p"))
 })
 
 # ---------------------------------------------------------------------
@@ -1410,7 +1411,7 @@ test_that("the interval columns are a documented difference in kind", {
 
   # the same in the coefficient table
   expect_lt(max(abs(brms::fixef(s$brmsfit)[, "Est.Error"])), 1e-12)
-  expect_true(all(as.data.frame(hypothesis(s$fit, "x = 0"))$se > 0))
+  expect_true(all(hypothesis(s$fit, "x = 0")$hypothesis$Est.Error > 0))
 })
 
 test_that("loo and bayes_R2 refuse on a maximum-likelihood fit", {

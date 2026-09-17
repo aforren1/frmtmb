@@ -1,0 +1,18 @@
+bridge_sampler(ds, TRUE)                           refused: bridge_sampler() is not available for frmtmb draws. A margin
+expose_functions(ds, TRUE)                         refused: expose_functions() has nothing to expose: brms compiles Stan
+family(ds, 'y')                                    refused: family() was given 1 argument with no name, which it has now
+log_lik(ds, NULL, NULL, NULL, NULL, NULL, TRUE)    refused: log_lik(pointwise = TRUE) is not supported: brms returns a f
+loo_moment_match(ds, NULL)                         refused: loo_moment_match() is not implemented for frmtmb draws: it m
+nobs(ds, 'y')                                      refused: nobs() was given 1 argument with no name, which it has nowhe
+nsamples(ds, 1:5)                                  refused: nsamples() is the deprecated brms spelling. Use ndraws(x) fo
+nuts_params(ds, 'stepsize__')                      ANSWERED
+plot(ds, '^b_')                                    refused: plot() has no display for frmtmb draws: brms's default panel
+posterior_epred(ds, ..., sort = TRUE) positional   refused: posterior_epred() was given both `re_formula` and `re.form`,
+posterior_samples(ds, NA, FALSE)                   refused: posterior_samples() is the deprecated brms spelling. Use as_
+print(ds, 3)                                       refused: print() was given 1 argument with no name, which it has nowh
+prior_summary(ds, FALSE)                           refused: prior_summary() was given 1 argument with no name, which it 
+reloo(ds, NULL)                                    refused: reloo() is not implemented for frmtmb draws: it re-runs the 
+stancode(ds, TRUE)                                 refused: stancode() has no meaning for frmtmb: there is no Stan progr
+standata(ds, NULL)                                 refused: standata() has no meaning for frmtmb: nothing is exported to
+update(ds, y ~ 1)                                  refused: update() has no method for draws: the sampled object carries
+DONE

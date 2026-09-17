@@ -30,8 +30,8 @@ independent univariate ones. brms builds it the same way.
 
 \strong{\code{Sigma} is the SCALE, not the covariance.} The variance is
 \code{Sigma * nu / (nu - 2)}, so a standard deviation is
-\code{scale * sqrt(nu / (nu - 2))}. \code{VarCorr()} stores the scale matrix,
-tags it with \code{nu}, and prints both columns; \code{confint()}, \code{variables()}
+\code{scale * sqrt(nu / (nu - 2))}. \code{VarCorr()} reports the scale in its
+\code{sd} rows, as brms's \code{sd_} is; \code{confint()}, \code{variables()}
 and \code{frm_simulate(newparams = )} speak of it as \verb{sd_<group>__<term>},
 which is the name brms gives the same quantity. The correlations are
 the same either way.

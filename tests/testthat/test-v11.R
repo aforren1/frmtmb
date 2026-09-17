@@ -48,7 +48,7 @@ test_that("ou matches glmmTMB on irregular times", {
                           REML = FALSE)
   expect_loglik_equal(fit, ref, tol = 1e-5)
   # marginal sd recovered
-  V <- VarCorr(fit)[[1]]
+  V <- varcorr_matrices(fit)[[1]]
   expect_lt(abs(sqrt(V[1, 1]) - sd_u), 0.25)
   # decay with distance
   expect_gt(V[1, 2] / V[1, 1], V[1, 6] / V[1, 1])
@@ -158,7 +158,7 @@ test_that("gr(cov=) with correlated slopes matches a Kronecker reference", {
   opt <- nlminb(obj$par, obj$fn, obj$gr,
                 control = list(iter.max = 1000, eval.max = 1000))
   expect_lt(abs(as.numeric(logLik(fit)) - (-opt$objective)), 1e-5)
-  expect_identical(dim(VarCorr(fit)[[1]]), c(2L, 2L))
+  expect_identical(dim(varcorr_matrices(fit)[[1]]), c(2L, 2L))
 })
 
 test_that("scalar-on-function regression matches mgcv exactly", {
@@ -195,7 +195,7 @@ test_that("quadrature = TRUE matches glmer(nAGQ = 25)", {
   expect_lt(abs(as.numeric(logLik(fit_gk)) - as.numeric(logLik(ref))),
             1e-4)
   expect_vector_equal(fixef(fit_gk)$mu, lme4::fixef(ref), tol = 1e-3)
-  vc <- sqrt(VarCorr(fit_gk)[[1]][1, 1])
+  vc <- sqrt(varcorr_matrices(fit_gk)[[1]][1, 1])
   sd_ref <- as.numeric(attr(lme4::VarCorr(ref)$g, "stddev"))[1]
   expect_lt(abs(vc - sd_ref), 1e-3)
 

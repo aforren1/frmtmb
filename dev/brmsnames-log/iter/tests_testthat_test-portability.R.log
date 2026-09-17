@@ -1,0 +1,12 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-portability.R 
+BLOCKS  13 
+PASS    92 
+FAIL    0 
+ERROR   1 
+SKIP    0 
+  failing: FN-5: class/group name the natural-scale summaries
+       Error: object 'x' not found Available names: b_Intercept, b_x, b_sigma_Intercept, sigma (the internal spellings of confint() work too, backquoted; a natural-sca 
+DONE

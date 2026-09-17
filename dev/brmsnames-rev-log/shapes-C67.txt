@@ -1,0 +1,68 @@
+﻿
+== C6 ==
+  variables              brms-only: b_sigma_z__1 sd_g__Intercept
+                         frmtmb-only: 
+  variables_dups         brms-only: 
+                         frmtmb-only: b_sigma_z
+  fixef                  brms: ok | frmtmb: Duplicate variable names are not allowed in draws objects.
+The following variable names ar
+  fixef_nosum            brms: ok | frmtmb: Duplicate variable names are not allowed in draws objects.
+The following variable names ar
+  coef                   brms: ok | frmtmb: Duplicate variable names are not allowed in draws objects.
+The following variable names ar
+  coef_nosum             brms: ok | frmtmb: Duplicate variable names are not allowed in draws objects.
+The following variable names ar
+  VarCorr_nosum/el/g/el/sd/dimnames/draw: brms-only [] frmtmb-only [61 62 63 64 65 66] 
+  posterior_summary_cols brms: ok | frmtmb: Duplicate variable names are not allowed in draws objects.
+The following variable names ar
+  posterior_summary_b    brms: ok | frmtmb: Duplicate variable names are not allowed in draws objects.
+The following variable names ar
+  summary_cols           brms: ok | frmtmb: Duplicate variable names are not allowed in draws objects.
+The following variable names ar
+  as_draws_df_cols       brms: ok | frmtmb: Duplicate variable names are not allowed in draws objects.
+The following variable names ar
+  as_array               brms: ok | frmtmb: Duplicate variable names are not allowed in draws objects.
+The following variable names ar
+  as_matrix              brms: ok | frmtmb: Duplicate variable names are not allowed in draws objects.
+The following variable names ar
+  hyp/el/samples/dimnames[1]: brms-only [] frmtmb-only [61 62 63 64 65 66]
+  hyp/el/prior_samples/dimnames[1]: brms-only [] frmtmb-only [61 62 63 64 65 66] 
+  hyp_ranef/el/samples/dimnames[1]: brms-only [] frmtmb-only [61 62 63 64 65 66]
+  hyp_ranef/el/prior_samples/dimnames[1]: brms-only [] frmtmb-only [61 62 63 64 65 66] 
+  hyp_coef               brms: ok | frmtmb: Duplicate variable names are not allowed in draws objects.
+The following variable names ar
+
+== C7 ==
+  variables              brms-only: r_g:h2[1_p,Intercept] r_g:h2[1_q,Intercept] r_g:h2[1_r,Intercept] r_g:h2[1_s,Intercept] r_g:h2[1_t,Intercept] r_g:h2[10_p,Intercept] r_g:h2[10_q,Intercept] r_g:h2[10_r,Intercept] r_g:h2[10_s,Intercept] r_g:h2[10_t,Intercept] r_g:h2[11_p,Intercept] r_g:h2[11_q,Intercept]
+                         frmtmb-only: b_sigma_Intercept r_g:h2[1:p,Intercept] r_g:h2[1:q,Intercept] r_g:h2[1:r,Intercept] r_g:h2[1:s,Intercept] r_g:h2[1:t,Intercept] r_g:h2[10:p,Intercept] r_g:h2[10:q,Intercept] r_g:h2[10:r,Intercept] r_g:h2[10:s,Intercept] r_g:h2[10:t,Intercept] r_g:h2[11:p,Intercept]
+  fixef/dimnames[1]: brms-only [] frmtmb-only [sigma_Intercept] 
+  fixef_nosum/dimnames/draw: brms-only [] frmtmb-only [61 62 63 64 65 66]
+  fixef_nosum/dimnames/variable: brms-only [] frmtmb-only [sigma_Intercept]
+  fixef_nosum/dim_tail: brms-only [2] frmtmb-only [3] 
+  ranef/el/g:h2/dimnames[1]: brms-only [1_p 1_q 1_r 1_s 1_t 10_p] frmtmb-only [1:p 1:q 1:r 1:s 1:t 2:p] 
+  ranef_nosum/el/g:h2/dimnames[2]: brms-only [1_p 1_q 1_r 1_s 1_t 10_p] frmtmb-only [1:p 1:q 1:r 1:s 1:t 2:p] 
+  coef/el/g/dimnames[3]: brms-only [] frmtmb-only [sigma_Intercept]
+  coef/el/g/dim_tail: brms-only [2] frmtmb-only [3]
+  coef/el/g:h2/dimnames[1]: brms-only [1_p 1_q 1_r 1_s 1_t 10_p] frmtmb-only [1:p 1:q 1:r 1:s 1:t 2:p]
+  coef/el/g:h2/dimnames[3]: brms-only [] frmtmb-only [sigma_Intercept]
+  coef/el/g:h2/dim_tail: brms-only [2] frmtmb-only [3] 
+  coef_nosum/el/g/dimnames[3]: brms-only [] frmtmb-only [sigma_Intercept]
+  coef_nosum/el/g/dim_tail: brms-only [2] frmtmb-only [3]
+  coef_nosum/el/g:h2/dimnames[2]: brms-only [1_p 1_q 1_r 1_s 1_t 10_p] frmtmb-only [1:p 1:q 1:r 1:s 1:t 2:p]
+  coef_nosum/el/g:h2/dimnames[3]: brms-only [] frmtmb-only [sigma_Intercept]
+  coef_nosum/el/g:h2/dim_tail: brms-only [2] frmtmb-only [3] 
+  VarCorr_nosum/el/g/el/sd/dimnames/draw: brms-only [] frmtmb-only [61 62 63 64 65 66]
+  VarCorr_nosum/el/g:h2/el/sd/dimnames/draw: brms-only [] frmtmb-only [61 62 63 64 65 66]
+  VarCorr_nosum/el/residual__/el/sd/dimnames/draw: brms-only [] frmtmb-only [61 62 63 64 65 66] 
+  posterior_summary_b/dimnames[1]: brms-only [] frmtmb-only [b_sigma_Intercept] 
+  as_draws_df_cols       brms-only: r_g:h2[1_p,Intercept] r_g:h2[1_q,Intercept] r_g:h2[1_r,Intercept] r_g:h2[1_s,Intercept] r_g:h2[1_t,Intercept] r_g:h2[10_p,Intercept] r_g:h2[10_q,Intercept] r_g:h2[10_r,Intercept] r_g:h2[10_s,Intercept] r_g:h2[10_t,Intercept] r_g:h2[11_p,Intercept] r_g:h2[11_q,Intercept]
+                         frmtmb-only: b_sigma_Intercept r_g:h2[1:p,Intercept] r_g:h2[1:q,Intercept] r_g:h2[1:r,Intercept] r_g:h2[1:s,Intercept] r_g:h2[1:t,Intercept] r_g:h2[10:p,Intercept] r_g:h2[10:q,Intercept] r_g:h2[10:r,Intercept] r_g:h2[10:s,Intercept] r_g:h2[10:t,Intercept] r_g:h2[11:p,Intercept]
+  as_array/dimnames/iteration: brms-only [] frmtmb-only [31 32 33 34 35 36] 
+  as_matrix/dimnames/draw: brms-only [] frmtmb-only [61 62 63 64 65 66] 
+  hyp/el/samples/dimnames[1]: brms-only [] frmtmb-only [61 62 63 64 65 66]
+  hyp/el/prior_samples/dimnames[1]: brms-only [] frmtmb-only [61 62 63 64 65 66] 
+  hyp_ranef/el/samples/dimnames[1]: brms-only [] frmtmb-only [61 62 63 64 65 66]
+  hyp_ranef/el/prior_samples/dimnames[1]: brms-only [] frmtmb-only [61 62 63 64 65 66] 
+  hyp_coef/el/samples/dimnames[1]: brms-only [] frmtmb-only [61 62 63 64 65 66]
+  hyp_coef/el/prior_samples/dimnames[1]: brms-only [] frmtmb-only [61 62 63 64 65 66] 
+DONE

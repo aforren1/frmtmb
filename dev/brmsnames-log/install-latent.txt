@@ -1,0 +1,13 @@
+ℹ Loading frmtmb.latent
+Loading required package: frmtmb
+* installing *source* package 'frmtmb.latent' ...
+** this is package 'frmtmb.latent' version '0.3.0'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+* DONE (frmtmb.latent)
+R CMD INSTALL exit 0 

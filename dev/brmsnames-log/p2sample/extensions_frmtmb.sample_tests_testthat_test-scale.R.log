@@ -1,0 +1,10 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    extensions/frmtmb.sample/tests/testthat/test-scale.R 
+BLOCKS  1 
+PASS    0 
+FAIL    0 
+ERROR   0 
+SKIP    1 
+DONE

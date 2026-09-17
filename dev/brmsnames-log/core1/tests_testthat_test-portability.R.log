@@ -1,0 +1,31 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-portability.R 
+BLOCKS  13 
+PASS    64 
+FAIL    12 
+ERROR   3 
+SKIP    0 
+  failing: FN-5: hypothesis() takes brms's directional form
+       Expected `gt$upr` to be identical to Inf. Differences: `actual` is NULL `expected` is a double vector (Inf)  
+       Expected `lt$lwr` to be identical to `-Inf`. Differences: `actual` is NULL `expected` is a double vector (-Inf)  
+       Expected `gt$lwr` to equal `two$estimate - qnorm(0.95) * two$se`. Differences: `actual` is NULL `expected` is a double vector ()  
+       Expected `lt$upr` to equal `two$estimate + qnorm(0.95) * two$se`. Differences: `actual` is NULL `expected` is a double vector ()  
+  failing: FN-5: class/group name the natural-scale summaries
+       Error: 'b_sd_g__Intercept' is not a parameter of this model, while 'sd_g__Intercept' is: the `class`/`group` shorthand would be ignored for it. brms's default c 
+  failing: FN-5: the bootstrap and profile bounds are one-sided too
+       Expected `bo$upr[1]` to be identical to Inf. Differences: `actual` is NULL `expected` is a double vector (Inf)  
+       Expected `bo$lwr[1] > bo$lwr[2]` to be TRUE. Differences: `actual`:        `expected`: TRUE  
+       Expected `bo$p[1]` to equal `(1 + sum(dr <= 0))/(1 + length(dr))`. Differences: `actual` is an S3 object of class <data.frame>, a list `expected` is a double ve 
+       Expected `pr$upr[1]` to be identical to Inf. Differences: `actual` is NULL `expected` is a double vector (Inf)  
+       Expected `pr$lwr[1] > pr$lwr[2]` to be TRUE. Differences: `actual`:        `expected`: TRUE  
+  failing: parameter names: one vocabulary across the methods
+       Expected `"tarsus_Intercept" %in% variables(fit)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       Expected `sd_nm %in% names(al)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       <subscriptOutOfBoundsError/error/condition> Error in `al[[sd_nm]]`: subscript out of bounds 
+  failing: a name that is not one internal parameter is refused
+       Error: 'b_cor_g__Intercept__x' is not a parameter of this model, while 'cor_g__Intercept__x' is: the `class`/`group` shorthand would be ignored for it. brms's d 
+  failing: FN-11: frm_multiple refuses what it cannot pool
+       Expected `h$upr` to be identical to Inf. Differences: `actual` is NULL `expected` is a double vector (Inf)  
+DONE

@@ -141,7 +141,7 @@ test_that("Geurts is a hierarchical probit rate comparison", {
   fit <- frm(k | trials(n) ~ group + (1 | id),
              family = binomial(link = "probit"), data = d)
   b <- fixef(fit)$mu
-  sd_id <- sqrt(unname(VarCorr(fit)[[1L]])[1, 1])
+  sd_id <- sqrt(unname(varcorr_matrices(fit)[[1L]])[1, 1])
   delta <- unname(b["groupadhd"]) / sd_id
   # the chapter's conclusion is that the two groups barely differ, and
   # the standardized effect is what its Bayes factor is taken over

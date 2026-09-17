@@ -1,0 +1,302 @@
+===== combine_groups 
+function (data, ...) 
+{
+    group <- c(...)
+    for (i in seq_along(group)) {
+        sgroup <- unlist(strsplit(group[[i]], ":"))
+        if (length(sgroup) > 1L && !group[[i]] %in% names(data)) {
+            new_var <- get(sgroup[1], data)
+            for (j in 2:length(sgroup)) {
+                new_var <- paste0(new_var, "_", get(sgroup[j], 
+                  data))
+            }
+            data[[group[[i]]]] <- new_var
+        }
+    }
+    data
+}
+<bytecode: 0x000001d7ba28c270>
+<environment: namespace:brms>
+===== rename_predictor.bframel 
+function (x, ...) 
+{
+    c(rename_fe(x, ...), rename_sm(x, ...), rename_cs(x, ...), 
+        rename_sp(x, ...), rename_gp(x, ...), rename_ac(x, ...))
+}
+<bytecode: 0x000001d7ba2b7540>
+<environment: namespace:brms>
+===== extract_levels 
+function (x) 
+{
+    if (!is.factor(x)) {
+        x <- factor(x)
+    }
+    levels(x)
+}
+<bytecode: 0x000001d7ba29bea8>
+<environment: namespace:brms>
+===== rm_wsp 
+function (x) 
+{
+    out <- gsub("[ \t\r\n]+", "", x, perl = TRUE)
+    dim(out) <- dim(x)
+    out
+}
+<bytecode: 0x000001d7ba2a0008>
+<environment: namespace:brms>
+===== eval_hypothesis 
+function (h, x, class, alpha, robust, name = NULL) 
+{
+    stopifnot(length(h) == 1L && is.character(h))
+    pars <- variables(x)[grepl(paste0("^", class), variables(x))]
+    h <- gsub("[ \t\r\n]", "", h)
+    sign <- get_matches("=|<|>", h)
+    lr <- get_matches("[^=<>]+", h)
+    if (length(sign) != 1L || length(lr) != 2L) {
+        stop2("Every hypothesis must be of the form 'left (= OR < OR >) right'.")
+    }
+    h <- paste0("(", lr[1], ")")
+    h <- paste0(h, ifelse(lr[2] != "0", paste0("-(", lr[2], ")"), 
+        ""))
+    varsH <- find_vars(h)
+    parsH <- paste0(class, varsH)
+    miss_pars <- setdiff(parsH, pars)
+    if (length(miss_pars)) {
+        miss_pars <- collapse_comma(miss_pars)
+        stop2("Some parameters cannot be found in the model: \n", 
+            miss_pars)
+    }
+    h_renamed <- rename(h, c(":", "[", "]", ","), c("___", ".", 
+        ".", ".."))
+    pattern <- c(paste0("^", class), ":", "\\[", "\\]", ",")
+    repl <- c("", "___", ".", ".", "..")
+    samples <- as.data.frame(x, variable = parsH)
+    names(samples) <- rename(names(samples), pattern, repl, fixed = FALSE)
+    samples <- as.matrix(eval2(h_renamed, samples))
+    prior_samples <- prior_draws(x, variable = parsH)
+    if (!is.null(prior_samples) && ncol(prior_samples) == length(varsH)) {
+        names(prior_samples) <- rename(names(prior_samples), 
+            pattern, repl, fixed = FALSE)
+        prior_samples <- as.matrix(eval2(h_renamed, prior_samples))
+    }
+    else {
+        prior_samples <- NULL
+    }
+    wsign <- switch(sign, `=` = "equal", `<` = "less", `>` = "greater")
+    probs <- switch(sign, `=` = c(alpha/2, 1 - alpha/2), `<` = c(alpha, 
+        1 - alpha), `>` = c(alpha, 1 - alpha))
+    if (robust) {
+        measures <- c("median", "mad")
+    }
+    else {
+        measures <- c("mean", "sd")
+    }
+    measures <- c(measures, "quantile", "evidence_ratio")
+    sm <- lapply(measures, get_estimate, draws = samples, probs = probs, 
+        wsign = wsign, prior_samples = prior_samples)
+    sm <- as.data.frame(matrix(unlist(sm), nrow = 1))
+    names(sm) <- c("Estimate", "Est.Error", "CI.Lower", "CI.Upper", 
+        "Evid.Ratio")
+    sm$Post.Prob <- sm$Evid.Ratio/(1 + sm$Evid.Ratio)
+    if (is.infinite(sm$Evid.Ratio)) {
+        sm$Post.Prob <- 1
+    }
+    if (sign == "=") {
+        sm$Star <- str_if(!(sm$CI.Lower <= 0 && 0 <= sm$CI.Upper), 
+            "*")
+    }
+    else {
+        sm$Star <- str_if(sm$Post.Prob > 1 - alpha, "*")
+    }
+    if (!length(name) || !nzchar(name)) {
+        name <- paste(h, sign, "0")
+    }
+    sm$Hypothesis <- as_one_character(name)
+    sm <- move2start(sm, "Hypothesis")
+    if (is.null(prior_samples)) {
+        prior_samples <- as.matrix(rep(NA, nrow(samples)))
+    }
+    nlist(summary = sm, samples, prior_samples)
+}
+<bytecode: 0x000001d7ba2a6a18>
+<environment: namespace:brms>
+===== find_vars 
+function (x, dot = TRUE, brackets = TRUE) 
+{
+    x <- gsub("[[:space:]]", "", as_one_character(x))
+    dot <- as_one_logical(dot)
+    brackets <- as_one_logical(brackets)
+    regex_all <- paste0("([^([:digit:]|[:punct:])]", if (dot) 
+        "|\\.", ")", "[[:alnum:]_\\:", if (dot) 
+        "\\.", "]*", if (brackets) 
+        "(\\[[^],]+(,[^],]+)*\\])?")
+    pos_all <- gregexpr(regex_all, x)[[1]]
+    regex_fun <- paste0("([^([:digit:]|[:punct:])]", if (dot) 
+        "|\\.", ")", "[[:alnum:]_", if (dot) 
+        "\\.", "]*\\(")
+    pos_fun <- gregexpr(regex_fun, x)[[1]]
+    pos_decnum <- gregexpr("\\.[[:digit:]]+", x)[[1]]
+    keep <- !pos_all %in% c(pos_fun, pos_decnum)
+    pos_var <- pos_all[keep]
+    attr(pos_var, "match.length") <- attributes(pos_all)$match.length[keep]
+    if (length(pos_var)) {
+        out <- unique(unlist(regmatches(x, list(pos_var))))
+    }
+    else {
+        out <- character(0)
+    }
+    out
+}
+<bytecode: 0x000001d7ba2accf0>
+<environment: namespace:brms>
+===== rename_prior 
+function (class, pars, names = NULL, new_class = class, is_vector = FALSE) 
+{
+    out <- list()
+    regex <- paste0("^prior_", class, "(__[[:digit:]]+|$|\\[)")
+    pos_priors <- which(grepl(regex, pars))
+    if (length(pos_priors)) {
+        priors <- gsub(paste0("^prior_", class), paste0("prior_", 
+            new_class), pars[pos_priors])
+        if (is_vector) {
+            if (!is.null(names)) {
+                .names <- paste0("_", names)
+                for (i in seq_along(priors)) {
+                  priors[i] <- gsub("\\[[[:digit:]]+\\]$", .names[i], 
+                    priors[i])
+                }
+            }
+            lc(out) <- rlist(pos_priors, priors)
+        }
+        else {
+            digits <- sapply(priors, function(prior) {
+                d <- regmatches(prior, gregexpr("__[[:digit:]]+$", 
+                  prior))[[1]]
+                if (length(d)) 
+                  as.numeric(substr(d, 3, nchar(d)))
+                else 0
+            })
+            for (i in seq_along(priors)) {
+                if (digits[i] && !is.null(names)) {
+                  priors[i] <- gsub("_[[:digit:]]+$", names[digits[i]], 
+                    priors[i])
+                }
+                if (pars[pos_priors[i]] != priors[i]) {
+                  lc(out) <- rlist(pos_priors[i], priors[i])
+                }
+            }
+        }
+    }
+    out
+}
+<bytecode: 0x000001d7ba340dd0>
+<environment: namespace:brms>
+===== rename_thres 
+function (bframe, pars, ...) 
+{
+    out <- list()
+    if (!has_thres_groups(bframe)) {
+        return(out)
+    }
+    px <- check_prefix(bframe)
+    p <- usc(combine_prefix(px))
+    int <- paste0("b", p, "_Intercept")
+    groups <- get_thres_groups(bframe)
+    for (i in seq_along(groups)) {
+        thres <- get_thres(bframe, groups[i])
+        pos <- grepl(glue("^{int}_{i}\\["), pars)
+        int_names <- glue("{int}[{groups[i]},{thres}]")
+        lc(out) <- rlist(pos, int_names)
+    }
+    out
+}
+<bytecode: 0x000001d7ba3184d8>
+<environment: namespace:brms>
+===== rename_family_cor_pars 
+function (x, pars, ...) 
+{
+    stopifnot(is.brmsterms(x))
+    out <- list()
+    if (is_logistic_normal(x$family)) {
+        predcats <- get_predcats(x$family)
+        lncor_names <- get_cornames(predcats, type = "lncor", 
+            brackets = FALSE)
+        lc(out) <- rlist(grepl("^lncor\\[", pars), lncor_names)
+    }
+    out
+}
+<bytecode: 0x000001d7ba337a10>
+<environment: namespace:brms>
+===== get_group_vars.brmsterms 
+function (x, ...) 
+{
+    .get_group_vars(x, ...)
+}
+<bytecode: 0x000001d7ba327b60>
+<environment: namespace:brms>
+===== terms_re 
+function (formula) 
+{
+    re_terms <- get_re_terms(formula, brackets = FALSE)
+    if (!length(re_terms)) {
+        return(NULL)
+    }
+    re_terms <- split_re_terms(re_terms)
+    re_parts <- re_parts(re_terms)
+    out <- allvars <- vector("list", length(re_terms))
+    type <- attr(re_terms, "type")
+    for (i in seq_along(re_terms)) {
+        gcall <- eval2(re_parts$rhs[i])
+        form <- str2formula(re_parts$lhs[i])
+        group <- paste0(gcall$type, collapse(gcall$groups))
+        out[[i]] <- data.frame(group = group, gtype = gcall$type, 
+            gn = i, id = gcall$id, type = type[i], cor = gcall$cor, 
+            stringsAsFactors = FALSE)
+        out[[i]]$gcall <- list(gcall)
+        out[[i]]$form <- list(form)
+        ftype <- str_if(type[i] %in% "cs", "", type[i])
+        re_allvars <- get_allvars(form, type = ftype)
+        allvars[[i]] <- allvars_formula(re_allvars, gcall$allvars)
+    }
+    out <- do_call(rbind, out)
+    out <- out[order(out$group), ]
+    attr(out, "allvars") <- allvars_formula(allvars)
+    if (no_cmc(formula)) {
+        for (i in seq_rows(out)) {
+            attr(out$form[[i]], "cmc") <- FALSE
+        }
+    }
+    out
+}
+<bytecode: 0x000001d7ba308c80>
+<environment: namespace:brms>
+===== re_lhs 
+function (re_terms) 
+{
+    get_matches("^[^\\|]*", re_terms)
+}
+<bytecode: 0x000001d7ba359cb8>
+<environment: namespace:brms>
+===== get_re 
+function (x, ...) 
+{
+    UseMethod("get_re")
+}
+<bytecode: 0x000001d7be09b348>
+<environment: namespace:brms>
+===== avoid_dpars 
+function (names, bterms) 
+{
+    dpars <- c(names(bterms$dpars), "sp", "cs")
+    if (length(dpars)) {
+        dpars_prefix <- paste0("^", dpars, "_")
+        invalid <- any(ulapply(dpars_prefix, grepl, names))
+        if (invalid) {
+            dpars <- paste0("'", dpars, "_'", collapse = ", ")
+            stop2("Variable names starting with ", dpars, " are not allowed for this model.")
+        }
+    }
+    invisible(NULL)
+}
+<bytecode: 0x000001d7ba3705b0>
+<environment: namespace:brms>

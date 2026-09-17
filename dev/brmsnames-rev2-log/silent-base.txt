@@ -1,0 +1,11 @@
+arm base frmtmb from C:/Users/adf44/source/r/rellib-r3 
+dist done
+mv done
+nl done
+ord done
+smooth done
+gp done
+saved
+Warning messages:
+1: In sqrt(diag(sdr$cov.fixed)) : NaNs produced
+2: In sqrt(diag(sdr$cov.fixed)) : NaNs produced

@@ -315,7 +315,7 @@ test_that("ranef, VarCorr, ngrps and simulate see an ordinary block", {
                    unique(c(levels(dd$g1), levels(dd$g2))))
   expect_identical(colnames(re[[1L]]),
                    c("(Intercept)", "mmc(c1, c2)"))
-  vc <- VarCorr(fit)
+  vc <- varcorr_matrices(fit)
   expect_identical(dim(vc[[1L]]), c(2L, 2L))
   expect_identical(dimnames(vc[[1L]])[[1L]],
                    c("(Intercept)", "mmc(c1, c2)"))
@@ -333,7 +333,7 @@ test_that("REML runs over a multi-membership block", {
   expect_true(is.finite(as.numeric(logLik(fit))))
   # REML integrates the fixed effects only, so the block is untouched
   expect_identical(fit$frame$re_blocks[[1L]]$covstruct, "us")
-  expect_gt(as.numeric(VarCorr(fit)[[1L]]), 0)
+  expect_gt(as.numeric(varcorr_matrices(fit)[[1L]]), 0)
 })
 
 test_that("diag() and || give uncorrelated multi-membership effects", {
@@ -395,7 +395,7 @@ test_that("one new level reached through both members is ONE draw", {
   # population-level prediction is exactly the new-level term.
   dd <- mm_data(n = 120)
   fit <- frm(bf(y ~ x + (1 | mm(g1, g2))) + gaussian(), data = dd)
-  S <- as.numeric(VarCorr(fit)[[1L]])
+  S <- as.numeric(varcorr_matrices(fit)[[1L]])
 
   nd <- dd[rep(1L, 4L), ]          # one row four times: eta is common
   nd$g1 <- factor(rep("zz", 4L), levels = c("zz", levels(dd$g1)))

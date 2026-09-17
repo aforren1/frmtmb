@@ -331,7 +331,7 @@ test_that("an LKJ MAP penalty pulls the correlation toward zero", {
   ff <- bf(Reaction ~ Days + (Days | Subject)) + gaussian()
   f0 <- frm(ff, data = sleepstudy)
   cor_of <- function(f) {
-    V <- VarCorr(f)[[1L]]
+    V <- varcorr_matrices(f)[[1L]]
     V[1L, 2L] / sqrt(V[1L, 1L] * V[2L, 2L])
   }
   # eta > 1 concentrates toward the identity, so the MAP correlation

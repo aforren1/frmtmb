@@ -133,16 +133,21 @@ test_that("an ordinal draws display is keyed and laid out like core's", {
   expect_equal(grid_of(cd[["x:cats__"]]), grid_of(cf[["x:cats__"]]),
                ignore_attr = TRUE)
   expect_identical(attr(cd[["x:cats__"]], "effects"), c("x", "cats__"))
-  # the probabilities of one grid row sum to one
-  d <- cd[["x:cats__"]]
+  # the posterior MEAN probabilities of one grid row sum to one. brms's
+  # default robust = TRUE reports medians, which need not, so the
+  # identity is asserted on robust = FALSE
+  mean_cd <- conditional_effects(cs$ds, effects = "x", resolution = 5,
+                                 robust = FALSE)
+  d <- mean_cd[["x:cats__"]]
   s <- tapply(d$estimate__, d$x, sum)
   expect_true(all(abs(s - 1) < 1e-8))
 })
 
 test_that("categorical = FALSE draws the expected category number", {
   cs <- ce_ord_case()
+  # robust = FALSE: the identity below is about posterior means
   cd <- conditional_effects(cs$ds, effects = "x", resolution = 5,
-                            categorical = FALSE)
+                            categorical = FALSE, robust = FALSE)
   cf <- conditional_effects(cs$fit, effects = "x", resolution = 5,
                             categorical = FALSE)
   expect_identical(names(cd), "x")
@@ -153,7 +158,8 @@ test_that("categorical = FALSE draws the expected category number", {
   # probability vector and so could not fail. The map is linear, so the
   # posterior mean of the weighted sum IS the weighted sum of the
   # posterior means, exactly.
-  per_cat <- conditional_effects(cs$ds, effects = "x", resolution = 5)
+  per_cat <- conditional_effects(cs$ds, effects = "x", resolution = 5,
+                                 robust = FALSE)
   pc <- per_cat[["x:cats__"]]
   ncat <- nlevels(pc$cats__)
   ngrid <- nrow(pc) / ncat
@@ -167,6 +173,26 @@ test_that("categorical = FALSE draws the expected category number", {
   # categorical = TRUE is the default here, and refuses a dpar
   expect_error(conditional_effects(cs$ds, dpar = "mu", categorical = TRUE),
                "needs an ordinal or")
+})
+
+test_that("brms's slots are brms's positions and brms's defaults", {
+  cs <- ce_case()
+  # conditions is brms's third slot; it used to be resp here
+  cnd <- data.frame(z = c(-1, 1))
+  expect_identical(conditional_effects(cs$ds, "x", cnd, resolution = 4),
+                   conditional_effects(cs$ds, effects = "x",
+                                       conditions = cnd, resolution = 4))
+  # brms's robust = TRUE default: estimate__ is the median of the drawn
+  # curves and se__ their MAD; robust = FALSE is the mean and SD
+  med <- conditional_effects(cs$ds, effects = "x", resolution = 4)
+  avg <- conditional_effects(cs$ds, effects = "x", resolution = 4,
+                             robust = FALSE)
+  expect_false(isTRUE(all.equal(med$x$estimate__, avg$x$estimate__)))
+  expect_error(conditional_effects(cs$ds, effects = "x", spaghetti = TRUE),
+               "cannot honor `spaghetti`")
+  expect_warning(conditional_effects(cs$ds, effects = "x", resolution = 4,
+                                     probs = c(0.1, 0.9)),
+                 "'probs' is deprecated")
 })
 
 test_that("the draws method refuses the arguments it cannot use", {

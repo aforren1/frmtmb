@@ -1,0 +1,75 @@
+Compiling Stan program...
+Start sampling
+
+== B4 == elapsed 63 s
+ [1] "b_Intercept"            "b_x"                    "sd_mmg1g2__Intercept"  
+ [4] "sigma"                  "Intercept"              "r_mmg1g2[1,Intercept]" 
+ [7] "r_mmg1g2[2,Intercept]"  "r_mmg1g2[3,Intercept]"  "r_mmg1g2[4,Intercept]" 
+[10] "r_mmg1g2[5,Intercept]"  "r_mmg1g2[6,Intercept]"  "r_mmg1g2[7,Intercept]" 
+[13] "r_mmg1g2[8,Intercept]"  "r_mmg1g2[9,Intercept]"  "r_mmg1g2[10,Intercept]"
+[16] "lprior"                 "lp__"                  
+Compiling Stan program...
+Start sampling
+
+== B5 == elapsed 72 s
+ [1] "b_a1_Intercept"            "b_b2_Intercept"           
+ [3] "sd_g__a1_Intercept"        "sigma"                    
+ [5] "r_g__a1[lvl.1,Intercept]"  "r_g__a1[lvl.10,Intercept]"
+ [7] "r_g__a1[lvl.11,Intercept]" "r_g__a1[lvl.12,Intercept]"
+ [9] "r_g__a1[lvl.2,Intercept]"  "r_g__a1[lvl.3,Intercept]" 
+[11] "r_g__a1[lvl.4,Intercept]"  "r_g__a1[lvl.5,Intercept]" 
+[13] "r_g__a1[lvl.6,Intercept]"  "r_g__a1[lvl.7,Intercept]" 
+[15] "r_g__a1[lvl.8,Intercept]"  "r_g__a1[lvl.9,Intercept]" 
+[17] "lprior"                    "lp__"                     
+Compiling Stan program...
+Start sampling
+
+== B6 == elapsed 72 s
+ [1] "b_yab_Intercept"                    "b_sigma_yab_Intercept"             
+ [3] "b_y2_Intercept"                     "b_yab_x"                           
+ [5] "b_sigma_yab_z"                      "b_y2_x"                            
+ [7] "sd_g__yab_Intercept"                "sd_g__y2_Intercept"                
+ [9] "cor_g__yab_Intercept__y2_Intercept" "sigma_y2"                          
+[11] "Intercept_yab"                      "Intercept_sigma_yab"               
+[13] "Intercept_y2"                       "r_g__yab[lvl.1,Intercept]"         
+[15] "r_g__yab[lvl.10,Intercept]"         "r_g__yab[lvl.11,Intercept]"        
+[17] "r_g__yab[lvl.12,Intercept]"         "r_g__yab[lvl.2,Intercept]"         
+[19] "r_g__yab[lvl.3,Intercept]"          "r_g__yab[lvl.4,Intercept]"         
+[21] "r_g__yab[lvl.5,Intercept]"          "r_g__yab[lvl.6,Intercept]"         
+[23] "r_g__yab[lvl.7,Intercept]"          "r_g__yab[lvl.8,Intercept]"         
+[25] "r_g__yab[lvl.9,Intercept]"          "r_g__y2[lvl.1,Intercept]"          
+[27] "r_g__y2[lvl.10,Intercept]"          "r_g__y2[lvl.11,Intercept]"         
+[29] "r_g__y2[lvl.12,Intercept]"          "r_g__y2[lvl.2,Intercept]"          
+[31] "r_g__y2[lvl.3,Intercept]"           "r_g__y2[lvl.4,Intercept]"          
+[33] "r_g__y2[lvl.5,Intercept]"           "r_g__y2[lvl.6,Intercept]"          
+[35] "r_g__y2[lvl.7,Intercept]"           "r_g__y2[lvl.8,Intercept]"          
+[37] "r_g__y2[lvl.9,Intercept]"           "lprior"                            
+[39] "lp__"                              
+Warning messages:
+1: The largest R-hat is 1.25, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+2: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+3: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+4: The largest R-hat is 1.17, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+5: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+6: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+7: The largest R-hat is 1.23, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+8: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+9: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 

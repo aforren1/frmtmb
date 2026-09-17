@@ -29,9 +29,13 @@ test_that("accessor methods are consistent", {
   expect_length(re, 1)
   expect_identical(dim(re[[1]]), c(18L, 2L))
 
+  # brms's structure: keyed by grouping factor, then the residual SD
   vc <- VarCorr(fit)
-  expect_length(vc, 1)
-  expect_identical(dim(vc[[1]]), c(2L, 2L))
+  expect_named(vc, c("Subject", "residual__"))
+  expect_named(vc$Subject, c("sd", "cor", "cov"))
+  expect_identical(dim(vc$Subject$sd), c(2L, 4L))
+  expect_identical(dim(vc$Subject$cor), c(2L, 4L, 2L))
+  expect_identical(dim(varcorr_matrices(fit)[[1]]), c(2L, 2L))
 
   expect_identical(family(fit)$family, "gaussian")
   expect_s3_class(formula(fit), "formula")

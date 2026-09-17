@@ -19,7 +19,7 @@ test_that("sleepstudy LMM matches lmer and glmmTMB (ML)", {
   se_g <- summary(ref_tmb)$coefficients$cond[, "Std. Error"]
   expect_vector_equal(se_f, se_g, tol = 1e-4)
 
-  vc_f <- VarCorr(fit)[[1]]
+  vc_f <- varcorr_matrices(fit)[[1]]
   vc_g <- glmmTMB::VarCorr(ref_tmb)$cond$Subject
   expect_vector_equal(sqrt(diag(vc_f)), attr(vc_g, "stddev"), tol = 1e-3)
 })

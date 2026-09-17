@@ -1,0 +1,157 @@
+
+R version 4.6.1 (2026-06-24 ucrt) -- "Happy Hop"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-w64-mingw32/x64
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(testthat)
+> library(frmtmb)
+> 
+> test_check("frmtmb")
+2 rows removed because of missing values (na.action)
+2 rows removed because of missing values (na.action)
+2 rows removed because of missing values (na.action)
+2 rows removed because of missing values (na.action)
+2 rows removed because of missing values (na.action)
+4 rows removed because of missing values (na.action)
+Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+2 rows removed because of missing values (na.action)
+1 row removed because of missing values (na.action)
+2 rows removed because of missing values (na.action)
+Saving _problems/test-perf-66.R
+5 rows removed because of missing values (na.action)
+5 rows removed because of missing values (na.action)
+5 rows removed because of missing values (na.action)
+[ FAIL 1 | WARN 4 | SKIP 143 | PASS 8754 ]
+
+══ Skipped tests (143) ═════════════════════════════════════════════════════════
+• dev/ not reachable from the test dir (1): 'test-arg-refusal.R:334:3'
+• frmtmb's own sources are not beside the tests (1): 'test-arg-refusal.R:406:3'
+• not a monorepo checkout (1): 'test-ci-siblings.R:64:3'
+• package sources are not available (installed-package run) (7):
+  'test-bracket-access.R:82:3', 'test-bracket-access.R:109:3',
+  'test-bracket-access.R:203:3', 'test-bracket-access.R:238:3',
+  'test-core-boundary.R:66:3', 'test-core-boundary.R:99:3',
+  'test-message-uniqueness.R:29:3'
+• set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests (91):
+  'test-brms-agreement.R:503:3', 'test-brms-agreement.R:540:3',
+  'test-brms-likelihood.R:50:3', 'test-brms-likelihood.R:86:3',
+  'test-brms-likelihood.R:147:3', 'test-brms-likelihood.R:159:3',
+  'test-brms-likelihood.R:172:3', 'test-brms-likelihood.R:183:3',
+  'test-brms-likelihood.R:211:3', 'test-brms-likelihood.R:226:3',
+  'test-brms-likelihood.R:278:3', 'test-brms-likelihood.R:291:3',
+  'test-brms-likelihood.R:309:3', 'test-brms-likelihood.R:320:3',
+  'test-brms-likelihood.R:333:3', 'test-brms-likelihood.R:349:3',
+  'test-brms-likelihood.R:376:3', 'test-brms-likelihood.R:391:3',
+  'test-brms-likelihood.R:412:3', 'test-brms-likelihood.R:435:3',
+  'test-brms-likelihood.R:450:3', 'test-brms-likelihood.R:488:3',
+  'test-brms-likelihood.R:526:3', 'test-brms-likelihood.R:566:3',
+  'test-brms-likelihood.R:614:3', 'test-brms-likelihood.R:674:3',
+  'test-brms-likelihood.R:726:3', 'test-brms-likelihood.R:770:3',
+  'test-brms-likelihood.R:891:3', 'test-brms-likelihood.R:1011:3',
+  'test-brms-likelihood.R:1075:3', 'test-brms-likelihood.R:1174:3',
+  'test-brms-likelihood.R:1189:3', 'test-brms-likelihood.R:1225:3',
+  'test-brms-methods.R:37:3', 'test-brms-methods.R:60:3',
+  'test-brms-methods.R:81:3', 'test-brms-methods.R:119:3',
+  'test-brms-methods.R:178:3', 'test-brms-methods.R:202:3',
+  'test-brms-methods.R:216:3', 'test-brms-methods.R:243:3',
+  'test-brms-methods.R:270:3', 'test-brms-methods.R:287:3',
+  'test-brms-methods.R:305:3', 'test-brms-methods.R:330:3',
+  'test-brms-methods.R:370:3', 'test-brms-methods.R:396:3',
+  'test-brms-methods.R:430:3', 'test-brms-methods.R:449:3',
+  'test-brms-methods.R:480:3', 'test-brms-methods.R:515:3',
+  'test-brms-methods.R:553:3', 'test-brms-methods.R:585:3',
+  'test-brms-methods.R:603:3', 'test-brms-methods.R:640:3',
+  'test-brms-methods.R:681:3', 'test-brms-methods.R:709:3',
+  'test-brms-methods.R:768:3', 'test-brms-methods.R:796:3',
+  'test-brms-methods.R:909:3', 'test-brms-methods.R:940:3',
+  'test-brms-methods.R:990:3', 'test-brms-methods.R:1015:3',
+  'test-brms-methods.R:1056:3', 'test-brms-methods.R:1079:3',
+  'test-brms-methods.R:1104:3', 'test-brms-methods.R:1160:3',
+  'test-brms-methods.R:1190:3', 'test-brms-methods.R:1225:3',
+  'test-brms-methods.R:1237:3', 'test-brms-methods.R:1269:3',
+  'test-brms-methods.R:1337:3', 'test-brms-methods.R:1361:3',
+  'test-brms-methods.R:1392:3', 'test-brms-methods.R:1418:3',
+  'test-brms-methods.R:1436:3', 'test-brms-methods.R:1451:3',
+  'test-brms-methods.R:1472:3', 'test-brms-priors.R:57:3',
+  'test-brms-priors.R:81:3', 'test-brms-priors.R:127:3',
+  'test-brms-priors.R:197:3', 'test-brms-priors.R:270:3',
+  'test-brms-priors.R:333:3', 'test-brms-priors.R:380:3',
+  'test-brms-priors.R:440:3', 'test-brms-priors.R:496:3',
+  'test-brms-priors.R:542:3', 'test-brms-priors.R:598:3',
+  'test-brms-priors.R:651:3'
+• set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier (41):
+  'test-bcm-bart.R:131:3', 'test-bcm-binomial.R:70:3',
+  'test-bcm-binomial.R:99:3', 'test-bcm-binomial.R:125:3',
+  'test-bcm-binomial.R:163:3', 'test-bcm-binomial.R:193:3',
+  'test-bcm-binomial.R:265:3', 'test-bcm-data-analysis.R:86:3',
+  'test-bcm-data-analysis.R:138:3', 'test-bcm-data-analysis.R:217:3',
+  'test-bcm-data-analysis.R:293:3', 'test-bcm-data-analysis.R:358:3',
+  'test-bcm-data-analysis.R:464:3', 'test-bcm-esp.R:42:3',
+  'test-bcm-esp.R:144:3', 'test-bcm-gaussian.R:90:3',
+  'test-bcm-gaussian.R:159:3', 'test-bcm-gaussian.R:200:3',
+  'test-bcm-gcm.R:121:3', 'test-bcm-gcm.R:179:3',
+  'test-bcm-latent-mixtures.R:108:3', 'test-bcm-latent-mixtures.R:134:3',
+  'test-bcm-latent-mixtures.R:217:3', 'test-bcm-latent-mixtures.R:313:3',
+  'test-bcm-latent-mixtures.R:429:3', 'test-bcm-model-selection.R:63:3',
+  'test-bcm-model-selection.R:159:3', 'test-bcm-model-selection.R:294:3',
+  'test-bcm-mpt.R:127:3', 'test-bcm-mpt.R:226:3',
+  'test-bcm-psychophysics.R:100:3', 'test-bcm-psychophysics.R:147:3',
+  'test-bcm-retention.R:134:3', 'test-bcm-retention.R:176:3',
+  'test-bcm-retention.R:223:3', 'test-bcm-signal-detection.R:179:3',
+  'test-bcm-signal-detection.R:244:3', 'test-bcm-signal-detection.R:269:3',
+  'test-bcm-simple.R:188:3', 'test-rl-example.R:220:3',
+  'test-rl-example.R:233:3'
+• set FRMTMB_FUZZ=true to run the grammar fuzz tier (1): 'test-fuzz.R:43:3'
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+── Warning ('test-brms-names.R:54:3'): variables() uses brms's names, b_ on every coefficient ──
+Optimizer did not report convergence: singular convergence (7)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(bf(y ~ x + (1 + x | g)) + gaussian(), data = dd) at test-brms-names.R:54:3
+ 2.   └─frmtmb:::fit_assembled(...)
+ 3.     └─frmtmb:::check_convergence(fit, control)
+── Warning ('test-brms-names.R:64:3'): variables() uses brms's names, b_ on every coefficient ──
+Optimizer did not report convergence: singular convergence (7)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-brms-names.R:64:3
+ 2.   └─frmtmb:::fit_assembled(...)
+ 3.     └─frmtmb:::check_convergence(fit, control)
+── Warning ('test-brms-names.R:83:3'): VarCorr() is brms's structure, keyed by the grouping factor ──
+Optimizer did not report convergence: singular convergence (7)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(bf(y ~ x + (1 + x | g)) + gaussian(), data = dd) at test-brms-names.R:83:3
+ 2.   └─frmtmb:::fit_assembled(...)
+ 3.     └─frmtmb:::check_convergence(fit, control)
+── Warning ('test-prior-compat.R:505:3'): coef and group narrow the classes that read them ──
+Optimizer did not report convergence: singular convergence (7)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(bf(y ~ x + z + (x | g) + (z | h)) + gaussian(), data = d) at test-prior-compat.R:505:3
+ 2.   └─frmtmb:::fit_assembled(...)
+ 3.     └─frmtmb:::check_convergence(fit, control)
+
+══ Failed tests ════════════════════════════════════════════════════════════════
+── Failure ('test-perf.R:66:3'): fit time grows with n and stays within a linear envelope ──
+Expected `t_large` < `100 * max(t_small, 0.01)`.
+Actual comparison: 1.030 >= 1.000
+Difference: 0.030 >= 0
+
+[ FAIL 1 | WARN 4 | SKIP 143 | PASS 8754 ]
+Error:
+! Test failures.
+Execution halted

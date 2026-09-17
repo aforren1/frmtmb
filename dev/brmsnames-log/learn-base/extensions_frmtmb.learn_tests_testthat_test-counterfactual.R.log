@@ -1,0 +1,16 @@
+Loading required package: frmtmb
+libs:  C:/Users/adf44/source/r/rellib-r3 | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.learn from: C:/Users/adf44/source/r/rellib-r3
+frmtmb from:  C:/Users/adf44/source/r/rellib-r3 
+FILE    extensions/frmtmb.learn/tests/testthat/test-counterfactual.R 
+BLOCKS  15 
+PASS    66 
+FAIL    3 
+ERROR   1 
+SKIP    0 
+  failing: simulate() refuses the duplicated column and names it
+       Expected `msg` to match string "simulate() takes no newdata". Actual text: x | bandit2arm_delta(): every column of reward() holds the same value on every trial, so these data do not say what the options the subject did not take would have paid, and a draw needs that. The FIT does not: the likelihood reads only the chosen option's entry, so a record of the received outcome alone is correct passed 2 times over. A simulated subject chooses for itself, and paying it needs the schedule of every option, so the second and later columns of reward() are the ones missing here. newdata cannot supply them 
+       Expected `msg` not to match string "newdata is read through". Actual text: x | bandit2arm_delta(): every column of reward() holds the same value on every trial, so these data do not say what the options the subject did not take would have paid, and a draw needs that. The FIT does not: the likelihood reads only the chosen option's entry, so a record of the received outcome alone is correct passed 2 times over. A simulated subject chooses for itself, and paying it needs the schedule of every option, so the second and later columns of reward() are the ones missing here. newdata cannot supply them 
+       Expected `msg` not to match string "newdata cannot supply". Actual text: x | bandit2arm_delta(): every column of reward() holds the same value on every trial, so these data do not say what the options the subject did not take would have paid, and a draw needs that. The FIT does not: the likelihood reads only the chosen option's entry, so a record of the received outcome alone is correct passed 2 times over. A simulated subject chooses for itself, and paying it needs the schedule of every option, so the second and later columns of reward() are the ones missing here. newdata cannot supply them,  
+       Error: Unknown newparams name(s): b_alpha_Intercept, b_tau_Intercept. Available: alpha_Intercept, tau_Intercept, tau 
+DONE

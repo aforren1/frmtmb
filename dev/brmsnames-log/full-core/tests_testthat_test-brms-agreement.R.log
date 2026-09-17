@@ -1,0 +1,11 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+the number of chains is less than 1; sampling not done
+FILE    tests/testthat/test-brms-agreement.R 
+BLOCKS  19 
+PASS    187 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+DONE

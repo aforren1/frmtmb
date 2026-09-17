@@ -315,11 +315,11 @@ test_that("VarCorr reports the SCALE and says so", {
   d <- tre_data(G = 20, n = 8, nu = 5)
   f <- frm(bf(y ~ x + (1 | gr(g, dist = "student", dist_nu = 6))),
            family = gaussian(), data = d)
-  V <- VarCorr(f)[[1L]]
+  V <- varcorr_matrices(f)[[1L]]
   expect_identical(attr(V, "dist_nu"), 6)
   expect_equal(sqrt(V[1, 1]), exp(unname(f$estimates$theta)),
                tolerance = 1e-10)
-  out <- capture.output(print(VarCorr(f)))
+  out <- capture.output(print(varcorr_matrices(f)))
   expect_true(any(grepl("Scale", out)))
   expect_true(any(grepl("Student-t latent, nu = 6", out)))
   # the documented conversion, spelled out in the printed table
@@ -328,9 +328,9 @@ test_that("VarCorr reports the SCALE and says so", {
 
   # a gaussian block keeps the old two-column form exactly
   fg <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = d)
-  og <- capture.output(print(VarCorr(fg)))
+  og <- capture.output(print(varcorr_matrices(fg)))
   expect_false(any(grepl("Scale", og)))
-  expect_null(attr(VarCorr(fg)[[1L]], "dist_nu"))
+  expect_null(attr(varcorr_matrices(fg)[[1L]], "dist_nu"))
 })
 
 test_that("the sd_ alias names the scale, as brms's sd_ does", {
@@ -338,9 +338,12 @@ test_that("the sd_ alias names the scale, as brms's sd_ does", {
   f <- frm(bf(y ~ x + (1 | gr(g, dist = "student"))),
            family = gaussian(), data = d)
   expect_true("sd_g__Intercept" %in% variables(f))
-  h <- hypothesis(f, "sd_g__Intercept > 0")
-  expect_equal(unname(h$estimate), exp(unname(f$estimates$theta)),
-               tolerance = 1e-8)
+  h <- hypothesis(f, "sd_g__Intercept > 0", class = NULL)
+  expect_equal(unname(h$hypothesis$Estimate),
+               exp(unname(f$estimates$theta)), tolerance = 1e-8)
+  # VarCorr()'s sd row is the same scale, as brms's sd_ is
+  expect_equal(unname(VarCorr(f)$g$sd[1, "Estimate"]),
+               exp(unname(f$estimates$theta)), tolerance = 1e-8)
   # confint_varcorr reports the same quantity, still the scale
   cv <- confint_varcorr(f)
   expect_equal(cv$estimate[cv$type == "sd"][1L],
@@ -353,7 +356,7 @@ test_that("simulate() draws a multivariate t, not a gaussian", {
   d <- tre_data(G = 25, n = 6, nu = 4)
   f <- frm(bf(y ~ x + (1 | gr(g, dist = "student", dist_nu = 4))),
            family = gaussian(), data = d)
-  s2 <- unname(VarCorr(f)[[1L]])[1, 1]
+  s2 <- unname(varcorr_matrices(f)[[1L]])[1, 1]
   set.seed(1)
   B <- as.vector(replicate(4000, draw_b(f)))
   # a scalar t: b^2 / scale^2 is F(1, nu)
@@ -370,7 +373,7 @@ test_that("a correlated draw shares one mixing variable per level", {
   d <- tre_data(G = 25, n = 8, nu = 5)
   f <- frm(bf(y ~ x + (x | gr(g, dist = "student", dist_nu = 5))),
            family = gaussian(), data = f_data <- d)
-  S <- unname(VarCorr(f)[[1L]])
+  S <- unname(varcorr_matrices(f)[[1L]])
   set.seed(2)
   B <- t(replicate(4000, matrix(draw_b(f), nrow = 2)[, 1]))
   q <- rowSums((B %*% solve(S)) * B)
@@ -386,7 +389,7 @@ test_that("a new level carries the t's variance, not its scale", {
            family = gaussian(), data = d)
   nd <- data.frame(x = 0, g = factor("new", levels = "new"))
   p <- predict(f, newdata = nd, allow_new_levels = TRUE, se.fit = TRUE)
-  s2 <- unname(VarCorr(f)[[1L]])[1, 1]
+  s2 <- unname(varcorr_matrices(f)[[1L]])[1, 1]
   fx <- vcov(f)[1, 1]
   expect_equal(unname(p$se.fit)^2, s2 * 5 / 3 + fx, tolerance = 1e-6)
 })
@@ -396,7 +399,7 @@ test_that("frm_simulate sets the scale through the natural names", {
   form <- bf(y ~ x + (1 | gr(g, dist = "student", dist_nu = 5)))
   sim <- frm_simulate(form, data = d, family = gaussian(), nsim = 1,
                       seed = 7,
-                      newparams = list(Intercept = 0, x = 0, sigma = 1,
+                      newparams = list(b_Intercept = 0, b_x = 0, sigma = 1,
                                        sd_g__Intercept = 1))
   expect_length(sim[[1L]], nrow(d))
   expect_false(anyNA(sim[[1L]]))
@@ -409,7 +412,7 @@ test_that("frm_simulate sets the scale through the natural names", {
   # a much larger scale really does spread the simulated response
   wide <- frm_simulate(form, data = d, family = gaussian(), nsim = 1,
                        seed = 7,
-                       newparams = list(Intercept = 0, x = 0, sigma = 1,
+                       newparams = list(b_Intercept = 0, b_x = 0, sigma = 1,
                                         sd_g__Intercept = 8))
   expect_gt(stats::sd(wide[[1L]]), 2 * stats::sd(sim[[1L]]))
 })
@@ -424,8 +427,8 @@ test_that("a t latent holds the variance component against an outlier", {
   fn <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = d)
   ft <- frm(bf(y ~ x + (1 | gr(g, dist = "student", dist_nu = 5))),
             family = gaussian(), data = d)
-  sd_n <- sqrt(unname(VarCorr(fn)[[1L]])[1, 1])
-  sd_t <- sqrt(unname(VarCorr(ft)[[1L]])[1, 1]) * sqrt(5 / 3)
+  sd_n <- sqrt(unname(varcorr_matrices(fn)[[1L]])[1, 1])
+  sd_t <- sqrt(unname(varcorr_matrices(ft)[[1L]])[1, 1]) * sqrt(5 / 3)
   expect_gt(sd_n, 1.4)          # the gaussian latent has to widen
   expect_lt(sd_t, sd_n)         # the t does not, as much
   expect_lt(sd_t, 1.5)
@@ -460,7 +463,7 @@ test_that("the post-fit surface is NA-free over a t block", {
   expect_false(anyNA(predict(f)))
   expect_false(anyNA(ranef(f)[[1L]]))
   expect_false(anyNA(confint(f)))
-  expect_false(anyNA(as.data.frame(VarCorr(f))$sdcor))
+  expect_false(anyNA(as.data.frame(varcorr_matrices(f))$sdcor))
   expect_equal(unname(ngrps(f)), 20L)
   expect_false(anyNA(simulate(f, nsim = 2)))
   expect_s3_class(summary(f), "summary.frmtmb_fit")

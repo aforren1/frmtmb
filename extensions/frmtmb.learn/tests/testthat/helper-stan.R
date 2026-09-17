@@ -102,7 +102,7 @@ ln_stan_block <- function(data, id = "id", trial = "trial") {
 ln_stan_data <- function(fit, data, form, extra = list()) {
   blk <- ln_stan_block(data)
   X <- unname(stats::model.matrix(form, data))
-  sd_u <- sqrt(unname(frmtmb::VarCorr(fit)[[1L]])[1L, 1L])
+  sd_u <- sqrt(unname(frmtmb::varcorr_matrices(fit)[[1L]])[1L, 1L])
   c(list(N = nrow(data), S = blk$S, T = blk$T, K = ncol(X),
          idx = blk$idx, mask = blk$mask, subj = blk$subj,
          choice = as.integer(data$choice), X = X, sd_u = sd_u),
@@ -153,7 +153,7 @@ ln_stan_pars_cor <- function(par, p) {
 ln_stan_data_cor <- function(fit, data, form, extra = list()) {
   blk <- ln_stan_block(data)
   X <- unname(stats::model.matrix(form, data))
-  Sigma <- unname(as.matrix(frmtmb::VarCorr(fit)[[1L]]))
+  Sigma <- unname(as.matrix(frmtmb::varcorr_matrices(fit)[[1L]]))
   c(list(N = nrow(data), S = blk$S, T = blk$T, K = ncol(X),
          idx = blk$idx, mask = blk$mask, subj = blk$subj,
          choice = as.integer(data$choice), X = X, Sigma = Sigma),

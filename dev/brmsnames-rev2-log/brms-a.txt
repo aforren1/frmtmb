@@ -1,0 +1,54 @@
+Compiling Stan program...
+Start sampling
+
+== B1 == elapsed 73 s
+ [1] "b_Intercept"           "b_x"                   "b_z"                  
+ [4] "b_fcMd"                "b_fe:f"                "b_IxE2"               
+ [7] "b_polyz2rawEQTRUE1"    "b_polyz2rawEQTRUE2"    "b_x:z"                
+[10] "b_x:fcMd"              "b_x:fe:f"              "b_z:fcMd"             
+[13] "b_z:fe:f"              "b_x:z:fcMd"            "b_x:z:fe:f"           
+[16] "sd_g__Intercept"       "sd_g__x"               "cor_g__Intercept__x"  
+[19] "sigma"                 "Intercept"             "r_g[lvl.1,Intercept]" 
+[22] "r_g[lvl.10,Intercept]" "r_g[lvl.11,Intercept]" "r_g[lvl.12,Intercept]"
+[25] "r_g[lvl.2,Intercept]"  "r_g[lvl.3,Intercept]"  "r_g[lvl.4,Intercept]" 
+[28] "r_g[lvl.5,Intercept]"  "r_g[lvl.6,Intercept]"  "r_g[lvl.7,Intercept]" 
+[31] "r_g[lvl.8,Intercept]"  "r_g[lvl.9,Intercept]"  "r_g[lvl.1,x]"         
+[34] "r_g[lvl.10,x]"         "r_g[lvl.11,x]"         "r_g[lvl.12,x]"        
+[37] "r_g[lvl.2,x]"          "r_g[lvl.3,x]"          "r_g[lvl.4,x]"         
+[40] "r_g[lvl.5,x]"          "r_g[lvl.6,x]"          "r_g[lvl.7,x]"         
+[43] "r_g[lvl.8,x]"          "r_g[lvl.9,x]"          "lprior"               
+[46] "lp__"                 
+
+== B2 == elapsed 0 s
+ERROR: Some levels of 'g' correspond to multiple levels of 'h'. 
+Compiling Stan program...
+Start sampling
+
+== B3 == elapsed 86 s
+ [1] "b_Intercept[1]"        "b_Intercept[2]"        "bcs_x[1]"             
+ [4] "bcs_x[2]"              "sd_g__Intercept"       "disc"                 
+ [7] "Intercept[1]"          "Intercept[2]"          "r_g[lvl.1,Intercept]" 
+[10] "r_g[lvl.10,Intercept]" "r_g[lvl.11,Intercept]" "r_g[lvl.12,Intercept]"
+[13] "r_g[lvl.2,Intercept]"  "r_g[lvl.3,Intercept]"  "r_g[lvl.4,Intercept]" 
+[16] "r_g[lvl.5,Intercept]"  "r_g[lvl.6,Intercept]"  "r_g[lvl.7,Intercept]" 
+[19] "r_g[lvl.8,Intercept]"  "r_g[lvl.9,Intercept]"  "lprior"               
+[22] "lp__"                 
+Warning messages:
+1: The largest R-hat is 1.52, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+2: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+3: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+4: The largest R-hat is NA, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+5: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+6: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 

@@ -11,17 +11,29 @@ hypothesis(x, ...)
 \method{hypothesis}{frmtmb_fit}(
   x,
   hypothesis,
+  class = "b",
+  group = "",
+  scope = c("standard", "ranef", "coef"),
   alpha = 0.05,
+  robust = FALSE,
+  seed = NULL,
   method = c("wald", "profile", "boot"),
   nsim = 500,
-  seed = NULL,
-  class = NULL,
-  group = NULL,
   vcov = NULL,
   ...
 )
 
-\method{hypothesis}{frmtmb_multiple}(x, hypothesis, alpha = 0.05, class = NULL, group = NULL, ...)
+\method{hypothesis}{frmtmb_multiple}(
+  x,
+  hypothesis,
+  class = "b",
+  group = "",
+  scope = c("standard", "ranef", "coef"),
+  alpha = 0.05,
+  robust = FALSE,
+  seed = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{A \code{frmtmb_fit}, or a \code{frmtmb_multiple} for pooled tests.}
@@ -29,25 +41,33 @@ hypothesis(x, ...)
 \item{...}{Backend controls: passed to \code{\link[TMB:tmbprofile]{TMB::tmbprofile()}} for
 \code{method = "profile"} (e.g. \code{ytol}, \code{ystep}, \code{maxit},
 \code{parm.range}) and to \code{\link[=frm_bootstrap]{frm_bootstrap()}} for \code{method = "boot"}
-(e.g. \code{re_formula = NULL} for a conditional bootstrap). Unused for
-\code{"wald"} (a warning).}
+(e.g. \code{re_formula = NULL} for a conditional bootstrap). Refused for
+\code{"wald"}.}
 
-\item{hypothesis}{Character vector of hypotheses.}
+\item{hypothesis}{Character vector of hypotheses. Names on it become
+the \code{Hypothesis} labels, as in brms.}
+
+\item{class, group}{brms's name prefix; see \emph{brms class and group
+shorthand}. The default \code{class = "b"} is brms's.}
+
+\item{scope}{brms's \code{"standard"} is the only scope a fit supports:
+\code{"ranef"} and \code{"coef"} evaluate the hypothesis on each group
+level's draws, which a maximum-likelihood fit does not have, and
+are refused by name.}
 
 \item{alpha}{Test level; the reported interval covers \code{1 - alpha}
-(brms spelling).}
+for a two-sided row and \code{1 - 2 * alpha} for a directional one, as
+in brms.}
+
+\item{robust}{brms's median-and-MAD switch. It summarizes draws and
+a fit has none, so \code{TRUE} is refused by name.}
+
+\item{seed}{Optional seed for \code{method = "boot"}.}
 
 \item{method}{\code{"wald"}, \code{"profile"}, or \code{"boot"}.}
 
 \item{nsim}{Bootstrap draws for \code{method = "boot"}; all hypotheses
 share one bootstrap run.}
-
-\item{seed}{Optional seed for \code{method = "boot"}.}
-
-\item{class, group}{brms shorthand for the parameter names: the
-hypothesis is written with bare names and \code{class} (and \code{group},
-for the \code{sd_}/\code{cor_} summaries) supplies the prefix. The default
-\code{NULL} (like brms's \code{class = "b"}) takes the names as written.}
 
 \item{vcov}{\code{method = "wald"} only: a covariance matrix over the
 whole outer parameter vector to use in place of the model-based
@@ -57,34 +77,66 @@ then the cluster-robust one, and a matrix carrying reference
 degrees of freedom switches the test to a \code{t} reference.}
 }
 \value{
-A \code{frmtmb_hypothesis} object: a data frame with one row per
-hypothesis (\code{estimate}, \code{se}, \code{lwr}, \code{upr}, \code{z}, \code{p}) carrying the
-method payload in attributes - the bootstrap draws matrix
-(\code{attr(., "draws")}) or the profile curves (\code{attr(., "profiles")}).
+A \code{brmshypothesis}-shaped list; see \emph{The returned object}.
 \code{plot()} shows the bootstrap distribution, the profile curve, or
 the implied Wald normal density, one panel per hypothesis.
-Subsetting with \code{[} drops the attributes; keep the full object for
-plotting.
 }
 \description{
 The frequentist analog of brms's \code{hypothesis()}: evaluates
 expressions of the model parameters at the estimates and tests them
-against zero. A hypothesis is \code{"expr"} (tested against 0),
-\code{"expr = rhs"}, e.g. \code{"x1 - x2 = 0"} or \code{"exp(Intercept) = 1"}, or
-brms's directional \code{"lhs > rhs"} / \code{"lhs < rhs"}.
+against zero. A hypothesis is \code{"lhs = rhs"}, e.g. \code{"x1 - x2 = 0"} or
+\code{"exp(Intercept) = 1"}, brms's directional \code{"lhs > rhs"} /
+\code{"lhs < rhs"}, or a bare \code{"expr"}, which brms does not accept and
+which is tested against 0 here.
 }
+\section{The returned object}{
+
+brms's shape: a list of class \code{c("frmtmb_hypothesis", "brmshypothesis")} with the elements brms has, in brms's order.
+\itemize{
+\item \code{hypothesis}: a data frame with brms's eight columns, one row per
+hypothesis. On a maximum-likelihood fit they mean:
+\itemize{
+\item \code{Hypothesis}: brms's label, \code{(lhs)-(rhs) > 0}, or the name given
+on the hypothesis vector.
+\item \code{Estimate}: the expression at the estimates.
+\item \code{Est.Error}: its delta-method standard error (\code{"wald"},
+\code{"profile"}), the bootstrap standard deviation (\code{"boot"}), or the
+Rubin pooled standard error (a \code{\link[=frm_multiple]{frm_multiple()}} result).
+\item \code{CI.Lower}, \code{CI.Upper}: brms's interval, which is central at
+\code{1 - alpha} for \code{"="} and central at \code{1 - 2 * alpha} for a
+directional row, so that its relevant end is the one-sided bound.
+Wald, profile-likelihood or bootstrap percentile, per \code{method}.
+\item \code{Evid.Ratio}, \code{Post.Prob}: \code{NA}. They are posterior quantities,
+and a fit has no posterior.
+\item \code{Star}: \code{"*"} when a two-sided row's interval excludes 0, or when
+a directional row's one-sided test rejects at level \code{alpha}
+(brms stars a posterior probability above \code{1 - alpha} there).
+}
+\item \code{samples}: brms's frame of draws, columns \code{H1}, \code{H2}, ...: the
+bootstrap replicates for \code{"boot"}, and no rows otherwise.
+\item \code{prior_samples}: the same columns, all \code{NA}.
+\item \code{class}: the name prefix \code{class} and \code{group} produced, without its
+trailing underscores, as brms stores it.
+\item \code{alpha}.
+}
+
+What brms's frame has no column for rides on attributes, so the
+frame keeps brms's shape: \code{attr(h, "test")} is the test statistic
+and its p-value per row (\code{z}, or \code{t} with \code{df} for a pooled or
+degrees-of-freedom-carrying covariance), \code{attr(h, "method")}, and the
+method payload, \code{attr(h, "draws")} for the bootstrap matrix and
+\code{attr(h, "profiles")} for the profile curves.
+}
+
 \section{Directional hypotheses}{
 
 \code{"lhs > rhs"} and \code{"lhs < rhs"} test the same difference
 \code{(lhs) - (rhs)} against zero with a one-sided alternative, so the
-reported \code{p} is the one-sided tail probability and the interval is
-one-sided at level \code{1 - alpha}: the unbounded end prints as \code{Inf}
-or \code{-Inf}. \code{p} is \code{pnorm()} of the signed z statistic for \code{"wald"}
-and, as in the two-sided case where \code{se}, \code{z} and \code{p} stay
-Wald-based, for \code{"profile"} too - the profile changes the BOUND,
-which is the matching endpoint of the two-sided \code{1 - 2 * alpha}
-profile interval, and nothing else. For \code{"boot"} and the draws
-method \code{p} is the tail proportion of the draws with the
+reported \code{p} is the one-sided tail probability. \code{p} is \code{pnorm()} of
+the signed z statistic for \code{"wald"} and, as in the two-sided case
+where the standard error and the statistic stay Wald-based, for
+\code{"profile"} too: the profile changes the INTERVAL and nothing else.
+For \code{"boot"} \code{p} is the tail proportion of the replicates with the
 \code{(1 + k) / (1 + n)} correction. Where brms reports the posterior
 probability of the direction, this reports its frequentist
 complement: small \code{p} is evidence for the stated direction.
@@ -93,29 +145,35 @@ complement: small \code{p} is evidence for the stated direction.
 
 \section{brms class and group shorthand}{
 
-\code{class} and \code{group} prefix the bare names in the hypothesis, so
-\code{hypothesis(fit, "Intercept - age > 0", class = "sd", group = "patient")} tests
-\code{sd_patient__Intercept - sd_patient__age}. \code{class = "b"} (brms's
-default) and \code{class = NULL} leave the names alone; a \code{class}
-without a \code{group} prefixes \verb{<class>_}, which is how a
-distributional coefficient such as \code{sigma_Intercept} is named. A
-name already written in full keeps its spelling, so the two can be
-mixed; but a name that exists only WITHOUT the prefix is an error
-rather than a test of the unprefixed parameter, so a wrong \code{class}
-or \code{group} cannot quietly answer a different question.
+The hypothesis is read as \code{brms:::eval_hypothesis()} reads it. Every
+variable in the text gets the prefix \code{class} and \code{group} make, and a
+prefixed name the model does not have is refused with brms's message,
+"Some parameters cannot be found in the model". brms's default
+\code{class = "b"} reads \code{"x1 - x2 = 0"} as \code{b_x1 - b_x2}, so it refuses
+\code{"b_x1 = 0"}, which it reads as \code{b_b_x1}. \verb{class = "sd", group = "patient"} reads \code{"Intercept - age > 0"} as \code{sd_patient__Intercept - sd_patient__age}. \code{class = NULL} (or \code{""}) takes every name as
+written, which is what \code{sigma} or \code{sd_g__Intercept} needs, as in
+brms.
 
-Available names: the fixed-effect coefficients under their \code{vcov()}
-row names with parentheses stripped (\code{Intercept}, \code{x},
-\code{sigma_Intercept}, ...), natural-scale random-effect summaries
-\verb{sd_<group>__<term>} and \verb{cor_<group>__<t1>__<t2>} (brms naming),
-and \code{sigma} when the residual SD is a scalar. So an ICC is
-\code{"sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"}.
-\code{\link[=variables]{variables()}} lists every usable name for a fit. The internal
-spelling that \code{\link[=confint]{confint()}} and \code{\link[=vcov]{vcov()}} print is accepted as well,
-backquoted because it carries parentheses:
-\code{"`(Intercept)` - x"}. The traffic runs the other way too:
-\code{confint(parm = )} and \code{profile(parm = )} take these names,
-whenever one of them stands for a single internal parameter.
+A name may carry what brms's names carry: \code{x:fe} is the interaction
+coefficient \code{b_x:fe}, not R's \code{:} operator, and \code{ar[1]} is the
+autocorrelation. brms's renaming (\code{:} to \verb{___}, \code{[} and \verb{]} to \code{.},
+\verb{,} to \code{..}) is applied to the text before it is parsed, as in brms.
+
+Available names, which \code{\link[=variables]{variables()}} lists, are brms's: the
+coefficients (\code{b_Intercept}, \code{b_x}, \code{b_IxE2} for \code{I(x^2)},
+\code{b_sigma_Intercept} for a \code{sigma} formula, \code{bs_sx_1} for the
+unpenalized part of \code{s(x)}); a distributional parameter nobody wrote
+a formula for, on its natural scale (\code{sigma}, \code{shape}, \code{nu}, and
+\code{sigma_ya} for response \code{y_a} of a multivariate model); the
+group-level summaries \verb{sd_<group>__<coef>} and
+\verb{cor_<group>__<coef1>__<coef2>}, where the coefficient of a
+distributional or nonlinear parameter carries that parameter's name
+(\code{sd_g__sigma_Intercept}); the autocorrelation parameters (\code{ar[1]},
+\code{cosy}); and the residual correlations \verb{rescor__<resp1>__<resp2>}.
+So an ICC is
+\code{hypothesis(fit, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0", class = NULL)}. The traffic runs the other way too: \code{confint(parm = )}
+and \code{profile(parm = )} take these names, whenever one of them stands
+for a single internal parameter.
 }
 
 \section{Which random-effect blocks contribute names}{
@@ -127,44 +185,62 @@ known-structure blocks \code{gr(cov = )}, \code{gr(prec = )} and \code{equalto()
 whose \code{sd_}/\code{cor_} names describe the WITHIN-level covariance that
 multiplies the fixed relationship matrix. That is what makes
 heritability-as-ICC writable directly:
-\code{"sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2)"} on an animal
-model fitted with \code{(1 | gr(id, cov = A))}. An \code{equalto()} block
-estimates nothing, so its names are constants with zero variance.
+\code{"sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2) = 0"} with
+\code{class = NULL} on an animal model fitted with
+\code{(1 | gr(id, cov = A))}. An \code{equalto()} block estimates nothing, so
+its names are constants with zero variance.
 
 An \verb{|ID|}-merged block is ONE block, so it contributes one name per
-merged coefficient, and the names carry the linear predictor they
-came from just as correlated slopes do. A two-trait animal model
-written \code{(1 | q | gr(id, cov = A))} in both formulas of an \code{\link[=mvbf]{mvbf()}}
-gives \code{sd_id__y1.muIntercept}, \code{sd_id__y2.muIntercept} and
-\code{cor_id__y1.muIntercept__y2.muIntercept} - the last being the
-genetic correlation between the traits. \code{\link[=variables]{variables()}} prints them.
+merged coefficient, and the names carry the predictor they came from
+in brms's spelling. A two-trait animal model written
+\code{(1 | q | gr(id, cov = A))} in both formulas of an \code{\link[=mvbf]{mvbf()}} gives
+\code{sd_id__y1_Intercept}, \code{sd_id__y2_Intercept} and
+\code{cor_id__y1_Intercept__y2_Intercept}, the last being the genetic
+correlation between the traits. \code{\link[=variables]{variables()}} prints them.
 
-Two blocks on the same grouping factor with the same term name - an
-animal model's \code{(1 | gr(id, cov = A)) + (1 | id)}, where the genetic
-and permanent-environment terms both name the group \code{id} - collide
-on one \code{sd_id__Intercept}, and the first block in formula order
-claims it. Give the second term its own grouping column (a copy of
-the factor under another name) when both are wanted by name.
+Two terms that give one grouping factor the same coefficient, an
+animal model's \code{(1 | gr(id, cov = A)) + (1 | id)}, are refused when
+the model is built, with brms's message "Duplicated group-level
+effects are not allowed". Give the second term a copy of the factor
+under another name, \code{(1 | gr(id, cov = A)) + (1 | id_pe)}, and the
+two are \code{sd_id__Intercept} and \code{sd_id_pe__Intercept}.
 
 Excluded: \code{s()}/\code{t2()} smooths, \code{gp()}/\code{hsgp()}, \code{car()} and \code{spde()}.
-Their theta segments are not standard deviations - an inverse
+Their theta segments are not standard deviations: an inverse
 smoothing parameter, lengthscales, a mixing proportion, a precision
-and an inverse range - so there is no \verb{sd_<group>__<term>} to name.
-Read those off \code{\link[=confint_varcorr]{confint_varcorr()}}, which reports each under its own
+and an inverse range. There is no \verb{sd_<group>__<coef>} to name. Read
+those off \code{\link[=confint_varcorr]{confint_varcorr()}}, which reports each under its own
 label (\code{sd(gp)}, \code{range(gp)}, \code{sd(car)}, ...).
 }
 
-\section{When a coefficient shadows a natural-scale name}{
+\section{Names that would collide}{
 
-Model terms and natural-scale summaries share one namespace here, and
-the coefficient wins: a covariate literally named \code{sigma} makes
-\code{"sigma = 0"} a test on ITS coefficient, not on the residual standard
-deviation. The same holds for a coefficient that spells out
-\verb{sd_<group>__<term>}, \code{cor_...} or an autocorrelation name such as
-\code{ar1}. The shadowed quantity keeps a name: prefix it with a dot,
-\code{.sigma}, \code{.sd_g__Intercept}, \code{.ar1}. The dot spelling exists only
-where a collision does, and \code{hypothesis()} says so once per call when
-one is in play. \code{variables()} lists both names in that case.
+brms's renaming can give two parameters one name, and frmtmb does
+what brms does with each case:
+\itemize{
+\item Within one predictor, a covariate whose renamed column repeats
+another's, \code{y ~ Intercept + x} (\code{(Intercept)} and \code{Intercept} are
+both \code{Intercept}), is refused with brms's "Internal renaming led to
+duplicated names".
+\item Across predictors, the later name takes brms's \verb{__1} suffix:
+in \code{bf(y ~ sigma_z, sigma ~ z)} the covariate \code{sigma_z} of \code{mu} and
+the coefficient \code{z} of \code{sigma} are \code{b_sigma_z} and \code{b_sigma_z__1}.
+\item A group-level coefficient given twice on one group is refused, see
+above.
+\item Two responses brms spells alike, \code{y_a} and \code{ya}, are refused with
+brms's "Cannot use the same response variable twice".
+\item A group-level label given twice on draws, from levels \verb{lvl 1} and
+\code{lvl.1}, takes brms's \verb{__1} on the later level.
+\item An interaction group two of whose levels brms joins to one string
+(\verb{1_2:3} and \verb{1:2_3}) is refused: brms pools the two levels.
+}
+
+A coefficient and a natural-scale name cannot meet: every coefficient
+starts \code{b_}, \code{bs_} or \code{bsp_}, and \code{sigma} does not.
+
+A mixture's weights with no theta formula are brms's simplex,
+\verb{theta1 ... thetaK}, the mixing probabilities, computed together from
+the \code{K - 1} estimated log ratios against the last component.
 }
 
 \examples{
@@ -174,19 +250,24 @@ dd <- data.frame(x1 = rnorm(120), x2 = rnorm(120),
 dd$y <- rnorm(120, 1 + 0.6 * dd$x1 + 0.4 * dd$x2 +
                 rnorm(10, 0, 0.5)[dd$g], 1)
 fit <- frm(bf(y ~ x1 + x2 + (1 | g)) + gaussian(), data = dd)
-hypothesis(fit, c("x1 - x2 = 0", "exp(Intercept)"))
-# brms's directional form: one-sided p, one-sided interval
+h <- hypothesis(fit, c("x1 - x2 = 0", "exp(Intercept) = 1"))
+h
+h$hypothesis$Est.Error
+attr(h, "test")$p
+# brms's directional form: one-sided p, and a 90\% interval
 hypothesis(fit, "x1 > x2")
 # class/group name the natural-scale random-effect summaries
 hypothesis(fit, "Intercept > 0", class = "sd", group = "g")
-# variance-component expressions: an ICC with bootstrap intervals
-hypothesis(fit, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)",
-           method = "boot", nsim = 20, seed = 1)
+# variance-component expressions need class = NULL, as in brms: an
+# ICC with bootstrap intervals
+hypothesis(fit, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0",
+           class = NULL, method = "boot", nsim = 20, seed = 1)
 }
 \seealso{
-\code{\link[=vcov.frmtmb_fit]{vcov.frmtmb_fit()}} with \code{full = TRUE} for the same joint covariance
-(fixed effects plus covariance parameters, on their internal
-scale) as a matrix, which is what the \code{"wald"} method uses here.
+\code{\link[=vcov.frmtmb_fit]{vcov.frmtmb_fit()}} with \code{full = TRUE} for the same joint
+covariance (fixed effects plus covariance parameters, on their
+internal scale) as a matrix, which is what the \code{"wald"} method uses
+here.
 
 Methods:
 \itemize{
@@ -195,18 +276,17 @@ gradient against the joint parameter covariance (under REML, from
 the joint precision).
 \item \code{"profile"}: profile-likelihood interval via \code{\link[TMB:tmbroot]{TMB::tmbroot()}} with
 a \code{lincomb} direction. Only for hypotheses that are linear in the
-parameters, and only for ML fits; \code{se}, \code{z}, and \code{p} stay
-Wald-based - the method changes the interval.
+parameters, and only for ML fits; the standard error and the test
+stay Wald-based, because the method changes the interval.
 \item \code{"boot"}: parametric bootstrap through \code{\link[=frm_bootstrap]{frm_bootstrap()}}
 (percentile interval; \code{p} is the two-sided percentile p-value,
-whose resolution is limited by \code{nsim}; \code{se} is the bootstrap SD).
-Handles any expression, including the variance-component names,
-whose sampling distributions Wald approximates poorly.
+whose resolution is limited by \code{nsim}; \code{Est.Error} is the bootstrap
+SD). Handles any expression, including the variance-component
+names, whose sampling distributions Wald approximates poorly.
 }
 
 For a \code{\link[=frm_multiple]{frm_multiple()}} result the Wald estimate and delta-method
 variance are computed per imputation and pooled by Rubin's rules
-with Barnard-Rubin degrees of freedom; the returned table carries
-\code{t} and \code{df} columns in place of \code{z} (reference t distribution, not
-normal), and only Wald inference is available.
+with Barnard-Rubin degrees of freedom; the test attribute carries
+\code{t} and \code{df} in place of \code{z}, and only Wald inference is available.
 }

@@ -1,0 +1,40 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    extensions/frmtmb.sample/tests/testthat/test-draws-methods.R 
+BLOCKS  22 
+PASS    77 
+FAIL    9 
+ERROR   9 
+SKIP    0 
+  failing: as.array() keeps the chains apart, in draws order
+       <subscriptOutOfBoundsError/error/condition> Error in `a[, 1L, "x"]`: subscript out of bounds 
+  failing: the posterior converters all round-trip the same draws
+       Expected `as_draws(cs$ds)` to inherit from "draws_matrix". Actual class: "draws_list"/"draws"/"list". 
+       <subscriptOutOfBoundsError/error/condition> Error in ``[.default`(as_draws_matrix(cs$ds), , "x", drop = FALSE)`: subscript out of bounds 
+  failing: as.mcmc() gives coda one component per chain
+       <subscriptOutOfBoundsError/error/condition> Error in ``[.default`(x[[k]], , j, drop = drop)`: subscript out of bounds 
+  failing: posterior_summary() and posterior_interval() summarize draws
+       Expected `"lp__" %in% rownames(s)` to be FALSE. Differences: `actual`:   TRUE  `expected`: FALSE  
+       <subscriptOutOfBoundsError/error/condition> Error in `s["x", "Estimate"]`: subscript out of bounds 
+  failing: coef() is fixef broadcast plus each group's own draws
+       Expected `dim(cf$g)` to equal `c(6L, 4L, 2L)`. Differences:   `actual`: 6 4 3 `expected`: 6 4 2  
+       Expected `dimnames(cf$g)[[3L]]` to equal `c("(Intercept)", "x")`. Differences: `actual`:        "Intercept" "x" "sigma_Intercept" `expected[2:2]`:               
+       <subscriptOutOfBoundsError/error/condition> Error in `cf$g[, "Estimate", "(Intercept)"]`: subscript out of bounds 
+  failing: rhat() and neff_ratio() are brms's, on this package's names
+       Expected `is.na(rhat(cs$ds)["x"])` to be FALSE. Differences: `actual`:   TRUE  `expected`: FALSE  
+       Expected `is.na(neff_ratio(cs$ds)["x"])` to be FALSE. Differences: `actual`:   TRUE  `expected`: FALSE  
+  failing: summary() reports brms's three diagnostics, agreeing with rhat()
+       Expected `colnames(s)` to equal `c("mean", "sd", "2.5%", "97.5%", "Rhat", "Bulk_ESS", "Tail_ESS")`. Differences:     actual      | expected       [1] "Estimate" 
+  failing: rhat() and neff_ratio() take brms's OTHER `pars` rule
+       Error: The following variables are missing in the draws object: {'x'} 
+  failing: mcmc_plot() and pairs() call bayesplot on the draws array
+       Error: mcmc_plot(): variable = names x, which the draws do not contain. variables() lists what is there; note the draws-side spelling drops parentheses (Interce 
+  failing: the brms-only methods refuse with a reason and a replacement
+       Error in `fake_draws(uf)`: object 'all_par_labels' not found 
+  failing: conditional_effects() on draws refuses what it cannot mean
+       Expected `conditional_effects(ld)` to throw a error. 
+  failing: hypothesis() on draws gives the reserved-name note, once
+       Expected `sum(grepl(pat, on_fit, fixed = TRUE))` to equal 1L. Differences:   `actual`: 0 `expected`: 1  
+       Error in `fake_draws(fit)`: object 'all_par_labels' not found 
+DONE

@@ -1,0 +1,82 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-simulate-density.R 
+BLOCKS  50 
+PASS    83 
+FAIL    0 
+ERROR   36 
+SKIP    0 
+  failing: gaussian: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: student: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: huber: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: skew_normal: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: exgaussian: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: asym_laplace: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: lognormal: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: Gamma: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: exponential: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: weibull: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: inverse.gaussian: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: shifted_lognormal: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: von_mises: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: Beta: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: poisson: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: negbinomial: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: nbinom1: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: geometric: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: bernoulli: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: binomial: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: beta_binomial: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: zero_inflated_poisson: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: zero_inflated_negbinomial: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: zero_inflated_binomial: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: hurdle_poisson: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: compois: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: zero_inflated_beta: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: zero_inflated_asym_laplace: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: hurdle_gamma: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: hurdle_lognormal: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: tweedie: draws agree with the family's own density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: trunc(): draws stay inside the bounds and follow the truncated density
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: se(): the known standard error enters the draw's spread
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: se(sigma = TRUE): the two spreads add in quadrature
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: weights() and cens() do not change what is drawn
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+  failing: a family that installs its simulator in family_finalize can be simulated
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: ga -> b_ga, gb -> b_gb 
+DONE

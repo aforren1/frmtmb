@@ -1,0 +1,17 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+FILE    tests/testthat/test-effects.R 
+BLOCKS  9 
+PASS    49 
+FAIL    5 
+ERROR   0 
+SKIP    0 
+  failing: hypothesis reproduces Wald results and the delta method
+       Expected `h1$estimate` to equal `sm["x1", "Estimate"]`. Differences: `actual` is NULL `expected` is a double vector (0.517481064524945)  
+       Expected `h1$se` to equal `sm["x1", "Std. Error"]`. Differences: `actual` is NULL `expected` is a double vector (0.0860337910092934)  
+       Expected `h2$se` to equal `se_ref`. Differences: `actual` is NULL `expected` is a double vector (0.12355071561213)  
+       Expected `h3$estimate` to equal `sigma(fit)`. Differences: `actual` is NULL `expected` is a double vector (1.04917982111336)  
+       Expected `nrow(hh)` to equal 3L. Differences: `actual` is NULL `expected` is an integer vector (3)  
+DONE

@@ -1,0 +1,12 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-tre.R 
+BLOCKS  18 
+PASS    98 
+FAIL    0 
+ERROR   1 
+SKIP    0 
+  failing: frm_simulate sets the scale through the natural names
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: Intercept -> b_Intercept, x -> b_x 
+DONE

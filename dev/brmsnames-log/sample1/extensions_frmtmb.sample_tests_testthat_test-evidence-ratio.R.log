@@ -1,0 +1,33 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    extensions/frmtmb.sample/tests/testthat/test-evidence-ratio.R 
+BLOCKS  10 
+PASS    12 
+FAIL    15 
+ERROR   1 
+SKIP    0 
+  failing: the frame carries evid_ratio and post_prob
+       Expected `all(c("evid_ratio", "post_prob") %in% names(h))` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE   
+       Expected `h$post_prob` to equal `h$evid_ratio/(1 + h$evid_ratio)`. Differences: `actual` is NULL `expected` is a double vector ()  
+       Expected output from `print(h)` to match regexp "evid_ratio". Actual output: x | Hypothesis Tests for class b:   |   Hypothesis Estimate Est.Error CI.Lower CI.U 
+  failing: a directional ratio is the posterior odds of the claim
+       Expected `h$evid_ratio[1]` to equal `gt/(n - gt)`. Differences: `actual` is NULL `expected` is a double vector ()  
+       Expected `h$evid_ratio[2]` to equal `lt/(n - lt)`. Differences: `actual` is NULL `expected` is a double vector ()  
+       Expected `is.finite(hf$evid_ratio[1])` to be TRUE. Differences: `actual`:        `expected`: TRUE  
+  failing: a point ratio is the density at zero over the prior there
+       Expected `h$evid_ratio[1]` to equal `frmtmb.sample:::er_kde_at(dr)/stats::dnorm(0, 0, 1)`. Differences: `actual` is NULL `expected` is a double vector (NA)  
+  failing: an affine contrast convolves its normal priors
+       Expected `h$evid_ratio[1]` to equal `.../stats::dnorm(0, 0, sqrt(2))`. Differences: `actual` is NULL `expected` is a double vector (NA)  
+       Expected `h2$evid_ratio[1]` to equal `.../(stats::dnorm(0, 0, 1)/2)`. Differences: `actual` is NULL `expected` is a double vector (NA)  
+  failing: a point hypothesis with no proper prior refuses by name
+       Expected `h <- hypothesis(cs$flat, "x = 0")` to throw a warning. 
+       Expected `is.na(h$evid_ratio[1])` to be TRUE. Differences: `actual`:        `expected`: TRUE  
+       Expected `is.na(h$post_prob[1])` to be TRUE. Differences: `actual`:        `expected`: TRUE  
+  failing: what a Savage-Dickey denominator cannot be is named
+       Error: 'b_sd_g__Intercept' is not a parameter of this model, while 'sd_g__Intercept' is: the `class`/`group` shorthand would be ignored for it. brms's default c 
+  failing: a hypothesis that is not affine in BOTH directions refuses
+       Expected `h <- hypothesis(cs$pr, "abs(x) = 0")` to throw a warning. 
+       Expected `is.na(h$evid_ratio[1])` to be TRUE. Differences: `actual`:        `expected`: TRUE  
+       Expected `hypothesis(cs$pr, c("x = 0", "2 * x = 0", "x - w = 0", "-x = 0"))` not to throw any warnings. Actually got a <simpleWarning> with message:   hypothesi 
+DONE

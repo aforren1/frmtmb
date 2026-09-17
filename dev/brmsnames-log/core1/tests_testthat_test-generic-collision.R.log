@@ -1,0 +1,12 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-generic-collision.R 
+BLOCKS  13 
+PASS    55 
+FAIL    1 
+ERROR   0 
+SKIP    0 
+  failing: frmtmb loads and works with every optional owner unloadable
+       Expected `parse_field(out, "VARCORR")` to equal "1". Differences: `actual`:   "2" `expected`: "1"  
+DONE

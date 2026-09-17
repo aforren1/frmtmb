@@ -1,0 +1,214 @@
+===== VarCorr.brmsfit 
+function (x, sigma = 1, summary = TRUE, robust = FALSE, probs = c(0.025, 
+    0.975), ...) 
+{
+    contains_draws(x)
+    x <- restructure(x)
+    reframe <- x$ranef
+    if (!(has_rows(reframe) || any(grepl("^sigma($|_)", variables(x))))) {
+        stop2("The model does not contain covariance matrices.")
+    }
+    .VarCorr <- function(y) {
+        out <- list(sd = as.matrix(x, variable = y$sd_pars))
+        colnames(out$sd) <- y$rnames
+        found_cor_pars <- intersect(y$cor_pars, variables(x))
+        if (length(found_cor_pars)) {
+            cor <- as.matrix(x, variable = found_cor_pars)
+            if (length(found_cor_pars) < length(y$cor_pars)) {
+                cor_all <- matrix(0, nrow = nrow(cor), ncol = length(y$cor_pars))
+                names(cor_all) <- y$cor_pars
+                for (i in seq_len(ncol(cor_all))) {
+                  found <- match(names(cor_all)[i], colnames(cor))
+                  if (!is.na(found)) {
+                    cor_all[, i] <- cor[, found]
+                  }
+                }
+                cor <- cor_all
+            }
+            out$cor <- get_cor_matrix(cor = cor)
+            out$cov <- get_cov_matrix(sd = out$sd, cor = cor)
+            dimnames(out$cor)[2:3] <- list(y$rnames, y$rnames)
+            dimnames(out$cov)[2:3] <- list(y$rnames, y$rnames)
+            if (summary) {
+                out$cor <- posterior_summary(out$cor, probs, 
+                  robust)
+                out$cov <- posterior_summary(out$cov, probs, 
+                  robust)
+            }
+        }
+        if (summary) {
+            out$sd <- posterior_summary(out$sd, probs, robust)
+        }
+        return(out)
+    }
+    tmp <- list()
+    if (has_rows(reframe)) {
+        get_names <- function(group) {
+            r <- subset2(reframe, group = group)
+            rnames <- as.vector(get_rnames(r))
+            cor_type <- paste0("cor_", group)
+            sd_pars <- paste0("sd_", group, "__", rnames)
+            cor_pars <- get_cornames(rnames, cor_type, brackets = FALSE)
+            nlist(rnames, sd_pars, cor_pars)
+        }
+        group <- unique(reframe$group)
+        tmp <- lapply(group, get_names)
+        names(tmp) <- group
+    }
+    bterms <- brmsterms(x$formula)
+    if (is.brmsterms(bterms)) {
+        if (simple_sigma(bterms) && !is.mixfamily(x$family)) {
+            tmp_resid <- list(rnames = bterms$resp, sd_pars = "sigma")
+            tmp <- c(tmp, residual__ = list(tmp_resid))
+        }
+    }
+    else if (is.mvbrmsterms(bterms)) {
+        simple_sigma <- ulapply(bterms$terms, simple_sigma)
+        pred_sigma <- ulapply(bterms$terms, pred_sigma)
+        is_mix <- ulapply(x$family, is.mixfamily)
+        if (any(simple_sigma) && !any(pred_sigma) && !any(is_mix)) {
+            resps <- bterms$responses[simple_sigma]
+            sd_pars <- paste0("sigma_", resps)
+            if (bterms$rescor) {
+                cor_pars <- get_cornames(resps, type = "rescor", 
+                  brackets = FALSE)
+            }
+            else {
+                cor_pars <- character(0)
+            }
+            tmp_resid <- nlist(rnames = resps, sd_pars, cor_pars)
+            tmp <- c(tmp, residual__ = list(tmp_resid))
+        }
+    }
+    lapply(tmp, .VarCorr)
+}
+<bytecode: 0x000002dbdd251190>
+<environment: namespace:brms>
+===== simple_sigma 
+function (bterms) 
+{
+    stopifnot(is.brmsterms(bterms))
+    has_sigma(bterms) && !no_sigma(bterms) && !pred_sigma(bterms)
+}
+<bytecode: 0x000002dbdd2b13f0>
+<environment: namespace:brms>
+===== pred_sigma 
+function (bterms) 
+{
+    stopifnot(is.brmsterms(bterms))
+    "sigma" %in% dpar_class(names(bterms$dpars))
+}
+<bytecode: 0x000002dbdd28cc48>
+<environment: namespace:brms>
+===== bayes_R2.brmsfit 
+function (object, resp = NULL, summary = TRUE, robust = FALSE, 
+    probs = c(0.025, 0.975), ...) 
+{
+    contains_draws(object)
+    object <- restructure(object)
+    resp <- validate_resp(resp, object)
+    summary <- as_one_logical(summary)
+    R2 <- get_criterion(object, "bayes_R2")
+    has_stored <- is.matrix(R2)
+    further_arg_names <- c("resp")
+    use_stored <- !length(list(...)) && !any(further_arg_names %in% 
+        names(match.call()))
+    if (has_stored && !use_stored) {
+        message("Recomputing 'bayes_R2'")
+    }
+    if (has_stored && use_stored) {
+        take <- colnames(R2) %in% paste0("R2", resp)
+        R2 <- R2[, take, drop = FALSE]
+        if (summary) {
+            R2 <- posterior_summary(R2, probs = probs, robust = robust)
+        }
+        return(R2)
+    }
+    family <- family(object, resp = resp)
+    if (conv_cats_dpars(family)) {
+        stop2("'bayes_R2' is not defined for unordered categorical models.")
+    }
+    if (is_ordinal(family)) {
+        warning2("Predictions are treated as continuous variables in ", 
+            "'bayes_R2' which is likely invalid for ordinal families.")
+    }
+    args_y <- list(object, warn = TRUE, ...)
+    args_ypred <- list(object, sort = TRUE, ...)
+    R2 <- named_list(paste0("R2", resp))
+    for (i in seq_along(R2)) {
+        args_ypred$resp <- args_y$resp <- resp[i]
+        y <- do_call(get_y, args_y)
+        ypred <- do_call(posterior_epred, args_ypred)
+        if (is_ordinal(family(object, resp = resp[i]))) {
+            ypred <- ordinal_probs_continuous(ypred)
+        }
+        R2[[i]] <- .bayes_R2(y, ypred)
+    }
+    R2 <- do_call(cbind, R2)
+    colnames(R2) <- paste0("R2", resp)
+    if (summary) {
+        R2 <- posterior_summary(R2, probs = probs, robust = robust)
+    }
+    R2
+}
+<bytecode: 0x000002dbdd2ba4a0>
+<environment: namespace:brms>
+===== .bayes_R2 
+function (y, ypred, ...) 
+{
+    e <- -1 * sweep(ypred, 2, y)
+    var_ypred <- matrixStats::rowVars(ypred)
+    var_e <- matrixStats::rowVars(e)
+    as.matrix(var_ypred/(var_ypred + var_e))
+}
+<bytecode: 0x000002dbdd2acc48>
+<environment: namespace:brms>
+===== hypothesis_coef 
+function (x, hypothesis, alpha, ...) 
+{
+    stopifnot(is.array(x), length(dim(x)) == 3L)
+    levels <- dimnames(x)[[2]]
+    coefs <- dimnames(x)[[3]]
+    x <- lapply(seq_along(levels), function(l) structure(as.data.frame(x[, 
+        l, ]), names = coefs))
+    out <- vector("list", length(levels))
+    for (l in seq_along(levels)) {
+        out[[l]] <- .hypothesis(x[[l]], hypothesis, class = "", 
+            alpha = alpha, combine = FALSE, ...)
+        for (i in seq_along(out[[l]])) {
+            out[[l]][[i]]$summary$Group <- levels[l]
+        }
+    }
+    out <- unlist(out, recursive = FALSE)
+    out <- as.list(matrix(out, ncol = length(hypothesis), byrow = TRUE))
+    out <- combine_hlist(out, class = "", alpha = alpha)
+    out$hypothesis$Group <- factor(out$hypothesis$Group, levels)
+    out$hypothesis <- move2start(out$hypothesis, "Group")
+    out
+}
+<bytecode: 0x000002dbdd313ee0>
+<environment: namespace:brms>
+===== get_rnames 
+function (reframe, group = NULL, bylevels = NULL) 
+{
+    stopifnot(is.data.frame(reframe))
+    if (!is.null(group)) {
+        group <- as_one_character(group)
+        reframe <- subset2(reframe, group = group)
+    }
+    stopifnot(length(unique(reframe$group)) == 1L)
+    out <- paste0(usc(combine_prefix(reframe), "suffix"), reframe$coef)
+    if (isTRUE(nzchar(reframe$by[1]))) {
+        if (!is.null(bylevels)) {
+            stopifnot(all(bylevels %in% reframe$bylevels[[1]]))
+        }
+        else {
+            bylevels <- reframe$bylevels[[1]]
+        }
+        bylabels <- paste0(reframe$by[1], bylevels)
+        out <- outer(out, bylabels, paste, sep = ":")
+    }
+    out
+}
+<bytecode: 0x000002dbdd31e270>
+<environment: namespace:brms>

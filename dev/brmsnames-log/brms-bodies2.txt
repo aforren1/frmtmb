@@ -1,0 +1,166 @@
+function (x, hypothesis, class, alpha, robust, combine = TRUE, 
+    ...) 
+{
+    if (!is.character(hypothesis) || !length(hypothesis)) {
+        stop2("Argument 'hypothesis' must be a character vector.")
+    }
+    if (length(alpha) != 1L || alpha < 0 || alpha > 1) {
+        stop2("Argument 'alpha' must be a single value in [0,1].")
+    }
+    class <- as_one_character(class)
+    robust <- as_one_logical(robust)
+    out <- vector("list", length(hypothesis))
+    for (i in seq_along(out)) {
+        out[[i]] <- eval_hypothesis(hypothesis[i], x = x, class = class, 
+            alpha = alpha, robust = robust, name = names(hypothesis)[i])
+    }
+    if (combine) {
+        out <- combine_hlist(out, class = class, alpha = alpha)
+    }
+    out
+}
+<bytecode: 0x0000024952548930>
+<environment: namespace:brms>
+function (h, x, class, alpha, robust, name = NULL) 
+{
+    stopifnot(length(h) == 1L && is.character(h))
+    pars <- variables(x)[grepl(paste0("^", class), variables(x))]
+    h <- gsub("[ \t\r\n]", "", h)
+    sign <- get_matches("=|<|>", h)
+    lr <- get_matches("[^=<>]+", h)
+    if (length(sign) != 1L || length(lr) != 2L) {
+        stop2("Every hypothesis must be of the form 'left (= OR < OR >) right'.")
+    }
+    h <- paste0("(", lr[1], ")")
+    h <- paste0(h, ifelse(lr[2] != "0", paste0("-(", lr[2], ")"), 
+        ""))
+    varsH <- find_vars(h)
+    parsH <- paste0(class, varsH)
+    miss_pars <- setdiff(parsH, pars)
+    if (length(miss_pars)) {
+        miss_pars <- collapse_comma(miss_pars)
+        stop2("Some parameters cannot be found in the model: \n", 
+            miss_pars)
+    }
+    h_renamed <- rename(h, c(":", "[", "]", ","), c("___", ".", 
+        ".", ".."))
+    pattern <- c(paste0("^", class), ":", "\\[", "\\]", ",")
+    repl <- c("", "___", ".", ".", "..")
+    samples <- as.data.frame(x, variable = parsH)
+    names(samples) <- rename(names(samples), pattern, repl, fixed = FALSE)
+    samples <- as.matrix(eval2(h_renamed, samples))
+    prior_samples <- prior_draws(x, variable = parsH)
+    if (!is.null(prior_samples) && ncol(prior_samples) == length(varsH)) {
+        names(prior_samples) <- rename(names(prior_samples), 
+            pattern, repl, fixed = FALSE)
+        prior_samples <- as.matrix(eval2(h_renamed, prior_samples))
+    }
+    else {
+        prior_samples <- NULL
+    }
+    wsign <- switch(sign, `=` = "equal", `<` = "less", `>` = "greater")
+    probs <- switch(sign, `=` = c(alpha/2, 1 - alpha/2), `<` = c(alpha, 
+        1 - alpha), `>` = c(alpha, 1 - alpha))
+    if (robust) {
+        measures <- c("median", "mad")
+    }
+    else {
+        measures <- c("mean", "sd")
+    }
+    measures <- c(measures, "quantile", "evidence_ratio")
+    sm <- lapply(measures, get_estimate, draws = samples, probs = probs, 
+        wsign = wsign, prior_samples = prior_samples)
+    sm <- as.data.frame(matrix(unlist(sm), nrow = 1))
+    names(sm) <- c("Estimate", "Est.Error", "CI.Lower", "CI.Upper", 
+        "Evid.Ratio")
+    sm$Post.Prob <- sm$Evid.Ratio/(1 + sm$Evid.Ratio)
+    if (is.infinite(sm$Evid.Ratio)) {
+        sm$Post.Prob <- 1
+    }
+    if (sign == "=") {
+        sm$Star <- str_if(!(sm$CI.Lower <= 0 && 0 <= sm$CI.Upper), 
+            "*")
+    }
+    else {
+        sm$Star <- str_if(sm$Post.Prob > 1 - alpha, "*")
+    }
+    if (!length(name) || !nzchar(name)) {
+        name <- paste(h, sign, "0")
+    }
+    sm$Hypothesis <- as_one_character(name)
+    sm <- move2start(sm, "Hypothesis")
+    if (is.null(prior_samples)) {
+        prior_samples <- as.matrix(rep(NA, nrow(samples)))
+    }
+    nlist(summary = sm, samples, prior_samples)
+}
+<bytecode: 0x000002495254f858>
+<environment: namespace:brms>
+function (x, digits = 2, chars = 20, short = getOption("brms.short_summary", 
+    FALSE), ...) 
+{
+    short <- as_one_logical(short)
+    x$hypothesis$Hypothesis <- limit_chars(x$hypothesis$Hypothesis, 
+        chars = chars)
+    cat(paste0("Hypothesis Tests for class ", x$class, ":\n"))
+    x$hypothesis <- round_numeric(x$hypothesis, digits = digits)
+    print(x$hypothesis, quote = FALSE)
+    pone <- (1 - x$alpha * 2) * 100
+    ptwo <- (1 - x$alpha) * 100
+    if (!short) {
+        cat(glue("---\n'CI': {pone}%-CI for one-sided and {ptwo}%-CI for two-sided hypotheses.\n", 
+            "'*': For one-sided hypotheses, the posterior probability exceeds {ptwo}%;\n", 
+            "for two-sided hypotheses, the value tested against lies outside the {ptwo}%-CI.\n", 
+            "Posterior probabilities of point hypotheses assume equal prior probabilities.\n"))
+    }
+    invisible(x)
+}
+<bytecode: 0x00000249525710b0>
+<environment: namespace:brms>
+function () 
+{
+    types <- c("", "s", "cs", "sp", "mo", "me", "mi", "m")
+    types <- paste0("(", types, ")", collapse = "|")
+    paste0("^b(", types, ")_")
+}
+<bytecode: 0x0000024952517508>
+<environment: namespace:brms>
+function (variable, object, pars = NA, ...) 
+{
+    if (!anyNA(pars)) {
+        warning2("Argument 'pars' is deprecated. Please use 'variable' instead.")
+        variable <- extract_pars(pars, variables(object), ...)
+    }
+    variable
+}
+<bytecode: 0x00000249525368c8>
+<environment: namespace:brms>
+function (x, variable = NULL, regex = FALSE, inc_warmup = FALSE, 
+    ...) 
+{
+    .as_draws_list(x$fit, variable = variable, regex = regex, 
+        inc_warmup = inc_warmup, ...)
+}
+<bytecode: 0x00000249525100b0>
+<environment: namespace:brms>
+function (names, type = "cor", brackets = TRUE, sep = "__") 
+{
+    cornames <- NULL
+    if (length(names) > 1) {
+        for (i in seq_along(names)[-1]) {
+            for (j in seq_len(i - 1)) {
+                if (brackets) {
+                  c(cornames) <- paste0(type, "(", names[j], 
+                    ",", names[i], ")")
+                }
+                else {
+                  c(cornames) <- paste0(type, sep, names[j], 
+                    sep, names[i])
+                }
+            }
+        }
+    }
+    cornames
+}
+<bytecode: 0x000002495251a8c8>
+<environment: namespace:brms>

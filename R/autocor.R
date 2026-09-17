@@ -153,8 +153,9 @@
 #' under brms's names - `ar[1]`, `ma[1]`, `cosy`,
 #' `cortime__<t1>__<t2>` - with a delta-method interval (Fisher-z for
 #' the bounded ones, the identity for the coefficients of a
-#' higher-order AR/MA process). [hypothesis()] sees them as `ar1`,
-#' `ma1`, `cosy` and `cortime__<t1>__<t2>`. [autocor_matrix()] returns
+#' higher-order AR/MA process). [hypothesis()] sees them under the
+#' same names, `ar[1]` included, which brms's renaming lets an
+#' expression carry. [autocor_matrix()] returns
 #' the fitted `R`. They are NOT part of [VarCorr()], which reports
 #' random-effect blocks. `set_prior()` cannot target them yet.
 #'

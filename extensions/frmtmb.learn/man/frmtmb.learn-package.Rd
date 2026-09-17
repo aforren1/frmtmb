@@ -110,7 +110,7 @@ random intercept, six datasets per cell, truth \code{sd(alpha) = 0.5}
 
 A COLLAPSED DATASET IS NOT A SHORT-SESSION PROBLEM. One of the six
 at 100 trials has it too, and reports the same spurious +1.822 as
-the five at 20 trials do. Check \code{sqrt(VarCorr(fit))} on the Laplace
+the five at 20 trials do. Check \code{VarCorr(fit)} on the Laplace
 fit at every trial count, not only short ones.
 \itemize{
 \item at 100 trials, on the three of six datasets whose variance
@@ -140,7 +140,7 @@ sharpen. Read \code{fit$importance$capped} and \verb{$moves} first, and if the
 moves are all equal, treat the correction as declining rather than
 answering.
 
-So check \code{sqrt(VarCorr(fit))} on the Laplace fit before believing a
+So check \code{VarCorr(fit)} on the Laplace fit before believing a
 correction, and read the warning if there is one.
 
 The correction requires the model to be grouped on the family's own

@@ -59,8 +59,8 @@ neff_ratio(ds)
 ```
 
 These are brms's diagnostics throughout, computed by the posterior
-package on these draws and reported under the frmtmb draws-side names
-that `variables(ds)` lists. `rhat()` is the rank-normalized
+package on these draws and reported under brms's names, which
+`variables(ds)` lists. `rhat()` is the rank-normalized
 split-R-hat, `neff_ratio()` is `min(ess_bulk, ess_tail) / ndraws`, and
 `summary(ds)` reports the same `Rhat` with the two effective sizes it
 takes the minimum of. The three columns and the two accessors are one
@@ -83,11 +83,11 @@ sum(np$Value[np$Parameter == "divergent__"])   # zero is the target
 
 mcmc_plot(ds, type = "trace")
 mcmc_plot(ds, type = "rank_overlay")
-pairs(ds, variable = c("sd_g__Intercept", "sigma"))
+pairs(ds, variable = c("theta_1", "r_g[1,Intercept]"))
 ```
 
 Divergences concentrate in the funnel of a random-effect block, so the
-`pairs()` display to draw is a group standard deviation against
+`pairs()` display to draw is a group's log standard deviation against
 something it multiplies.
 
 Three moves, in the order worth trying:

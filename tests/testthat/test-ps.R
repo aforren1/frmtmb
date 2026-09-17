@@ -80,7 +80,7 @@ test_that("the penalty eigensplit is Wood (2004)'s, and centred", {
   expect_identical(pt$n_fixed + pt$n_pen, m - 1L)
 
   # the block is one variance in theta, reported under the term's label
-  vc <- VarCorr(fit)
+  vc <- varcorr_matrices(fit)
   expect_true(pt$label %in% names(vc))
   expect_identical(length(fit$frame$re_blocks[[pt$block_id]]$theta_idx), 1L)
 })
@@ -98,7 +98,8 @@ test_that("a ps() curve recovers a known shape and predicts on newdata", {
 
   expect_equal(fixef(fit)$lev[[1]], 3, tolerance = 0.15)
   expect_equal(exp(fixef(fit)$sigma[[1]]), 0.15, tolerance = 0.05)
-  expect_equal(sqrt(as.numeric(VarCorr(fit)[["shift: 1 | id"]])[1]), 0.06,
+  expect_equal(
+    sqrt(as.numeric(varcorr_matrices(fit)[["shift: 1 | id"]])[1]), 0.06,
                tolerance = 0.04)
 
   grid <- seq(0.05, 0.95, length.out = 15)

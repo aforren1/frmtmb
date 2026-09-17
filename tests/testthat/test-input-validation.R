@@ -16,7 +16,7 @@ iv_fit <- local({
       # the fixture seed restarts the same random stream that made the
       # covariates, and the residuals come out equal to x.
       dd$y <- frm_simulate(bf(y ~ x) + gaussian(), dd,
-                           newparams = list(Intercept = 1, x = 0.5,
+                           newparams = list(b_Intercept = 1, b_x = 0.5,
                                             sigma = 1),
                            nsim = 1, seed = 1003)[[1]]
       cache <<- list(dd = dd,

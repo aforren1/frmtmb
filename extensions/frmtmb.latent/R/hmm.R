@@ -511,6 +511,11 @@ hmm <- function(K, family = stats::gaussian(), time = NULL, group = NULL,
     primary_dpars = as.vector(t(outer(primaries, seq_len(K), paste0))),
     extra_pars = extra_pars
   )
+  # A transition logit is one free cell of a row's softmax, so no
+  # elementwise inverse turns it into a probability. frmtmb's brms names
+  # keep it a coefficient, b_tr12_Intercept, rather than name a logit
+  # `tr12` as if it were the probability.
+  fam[["link_scale_dpars"]] <- hmm_tr_names(K)
   fam[["hmm"]] <- list(
     K = K,
     init = init,

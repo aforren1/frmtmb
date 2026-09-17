@@ -34,37 +34,38 @@ er_case <- local({
   }
 })
 
-test_that("the frame carries evid_ratio and post_prob", {
+test_that("the frame carries brms's Evid.Ratio and Post.Prob", {
   cs <- er_case()
-  h <- hypothesis(cs$pr, c("x = 0", "x > 0"))
-  expect_true(all(c("evid_ratio", "post_prob") %in% names(h)))
-  expect_true(all(is.finite(h$evid_ratio)))
-  expect_equal(h$post_prob, h$evid_ratio / (1 + h$evid_ratio))
-  # printing must survive the new columns: print() rounds every column
-  # after the first, so a non-numeric one would abort there
-  expect_output(print(h), "evid_ratio")
+  h <- hypothesis(cs$pr, c("x = 0", "x > 0"))$hypothesis
+  expect_true(all(c("Evid.Ratio", "Post.Prob") %in% names(h)))
+  expect_true(all(is.finite(h$Evid.Ratio)))
+  expect_equal(h$Post.Prob, h$Evid.Ratio / (1 + h$Evid.Ratio))
+  # printing must survive the character columns: print() rounds the
+  # numeric ones only, so a non-numeric one must not abort it
+  expect_output(print(hypothesis(cs$pr, c("x = 0", "x > 0"))), "Evid.Ratio")
 })
 
 test_that("a directional ratio is the posterior odds of the claim", {
   cs <- er_case()
-  h <- hypothesis(cs$pr, c("x > 0", "x < 0"))
-  dr <- attr(h, "draws")
+  ho <- hypothesis(cs$pr, c("x > 0", "x < 0"))
+  h <- ho$hypothesis
+  dr <- as.matrix(ho$samples)
   gt <- sum(dr[, 1] > 0)
   lt <- sum(dr[, 2] < 0)
   n <- nrow(dr)
-  expect_equal(h$evid_ratio[1], gt / (n - gt))
-  expect_equal(h$evid_ratio[2], lt / (n - lt))
+  expect_equal(h$Evid.Ratio[1], gt / (n - gt))
+  expect_equal(h$Evid.Ratio[2], lt / (n - lt))
   # a directional ratio needs no prior, so it is reported on a model
   # whose slopes are flat
-  hf <- hypothesis(cs$flat, "x > 0")
-  expect_true(is.finite(hf$evid_ratio[1]))
+  hf <- hypothesis(cs$flat, "x > 0")$hypothesis
+  expect_true(is.finite(hf$Evid.Ratio[1]))
 })
 
 test_that("a point ratio is the density at zero over the prior there", {
   cs <- er_case()
   h <- hypothesis(cs$pr, "x = 0")
-  dr <- attr(h, "draws")[, 1]
-  expect_equal(h$evid_ratio[1],
+  dr <- h$samples$H1
+  expect_equal(h$hypothesis$Evid.Ratio[1],
                frmtmb.sample:::er_kde_at(dr) / stats::dnorm(0, 0, 1))
   # the Monte Carlo error rides along as an attribute, so the frame
   # keeps the shape a ported brms script indexes. Pinned to its
@@ -85,13 +86,13 @@ test_that("an affine contrast convolves its normal priors", {
   cs <- er_case()
   h <- hypothesis(cs$pr, "x - w = 0")
   # x - w under two independent normal(0, 1) priors is normal(0, sqrt2)
-  expect_equal(h$evid_ratio[1],
-               frmtmb.sample:::er_kde_at(attr(h, "draws")[, 1]) /
+  expect_equal(h$hypothesis$Evid.Ratio[1],
+               frmtmb.sample:::er_kde_at(h$samples$H1) /
                  stats::dnorm(0, 0, sqrt(2)))
   # and a scaled single coefficient transforms by the slope
   h2 <- hypothesis(cs$pr, "2 * x = 0")
-  expect_equal(h2$evid_ratio[1],
-               frmtmb.sample:::er_kde_at(attr(h2, "draws")[, 1]) /
+  expect_equal(h2$hypothesis$Evid.Ratio[1],
+               frmtmb.sample:::er_kde_at(h2$samples$H1) /
                  (stats::dnorm(0, 0, 1) / 2))
 })
 
@@ -99,22 +100,21 @@ test_that("a point hypothesis with no proper prior refuses by name", {
   cs <- er_case()
   # frm_sample() leaves class "b" flat by default, exactly as brms does
   expect_warning(h <- hypothesis(cs$flat, "x = 0"),
-                 "x has no proper prior")
-  expect_true(is.na(h$evid_ratio[1]))
-  expect_true(is.na(h$post_prob[1]))
+                 "b_x has no proper prior")
+  expect_true(is.na(h$hypothesis$Evid.Ratio[1]))
+  expect_true(is.na(h$hypothesis$Post.Prob[1]))
 })
 
 test_that("what a Savage-Dickey denominator cannot be is named", {
   cs <- er_case()
   # a variance component: its prior sits on the log standard deviation,
   # and a point null at zero is on the boundary anyway
-  expect_warning(hypothesis(cs$pr, "sd_g__Intercept = 0"),
-                 "natural-scale summary")
-  # sigma IS a coefficient in this model, reported on another scale;
-  # telling the user it is "not a population-level coefficient" was
-  # true of the name and false of the model
-  expect_warning(hypothesis(cs$pr, "sigma = 0.9"),
-                 "natural-scale summary")
+  expect_warning(hypothesis(cs$pr, "sd_g__Intercept = 0", class = NULL),
+                 "not a population-level coefficient")
+  # sigma with no formula is brms's natural-scale parameter, whose prior
+  # sits on log sigma, so the message says why the density is not its
+  expect_warning(hypothesis(cs$pr, "sigma = 0.9", class = NULL),
+                 "change of variables")
   # a nonlinear function of the coefficients has no closed-form prior
   expect_warning(hypothesis(cs$pr, "x^2 = 0"), "not an affine function")
   # the Intercept prior is about the intercept at the predictor means,
@@ -123,8 +123,8 @@ test_that("what a Savage-Dickey denominator cannot be is named", {
                  "not written about that coefficient itself")
   # every refusal still returns the rest of the row
   h <- suppressWarnings(hypothesis(cs$pr, c("x^2 = 0", "x > 0")))
-  expect_true(is.na(h$evid_ratio[1]))
-  expect_true(is.finite(h$evid_ratio[2]))
+  expect_true(is.na(h$hypothesis$Evid.Ratio[1]))
+  expect_true(is.finite(h$hypothesis$Evid.Ratio[2]))
 })
 
 test_that("the kernel density estimate reaches a point outside the draws", {
@@ -152,7 +152,7 @@ test_that("a hypothesis that is not affine in BOTH directions refuses", {
   # exactly 2x too large with no warning.
   expect_warning(h <- hypothesis(cs$pr, "abs(x) = 0"),
                  "not an affine function")
-  expect_true(is.na(h$evid_ratio[1]))
+  expect_true(is.na(h$hypothesis$Evid.Ratio[1]))
   # the negative probe must not cost a legitimate affine hypothesis
   expect_no_warning(hypothesis(cs$pr, c("x = 0", "2 * x = 0",
                                         "x - w = 0", "-x = 0")))

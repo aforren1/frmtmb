@@ -1,0 +1,64 @@
+﻿
+== C4 ==
+  variables              brms-only: b_ya_Intercept b_ya_x cor_g__ya_Intercept__y2_Intercept r_g__ya[1,Intercept] r_g__ya[10,Intercept] r_g__ya[11,Intercept] r_g__ya[12,Intercept] r_g__ya[2,Intercept] r_g__ya[3,Intercept] r_g__ya[4,Intercept] r_g__ya[5,Intercept] r_g__ya[6,Intercept]
+                         frmtmb-only: b_sigma_y_a_Intercept b_sigma_y2_Intercept b_y_a_Intercept b_y_a_x r_g__y_a[1,Intercept] r_g__y_a[10,Intercept] r_g__y_a[11,Intercept] r_g__y_a[12,Intercept] r_g__y_a[2,Intercept] r_g__y_a[3,Intercept] r_g__y_a[4,Intercept] r_g__y_a[5,Intercept]
+  fixef/dimnames[1]: brms-only [ya_Intercept ya_x] frmtmb-only [y_a_Intercept y_a_x sigma_y_a_Intercept sigma_y2_Intercept] 
+  fixef_nosum/dimnames/draw: brms-only [] frmtmb-only [61 62 63 64 65 66]
+  fixef_nosum/dimnames/variable: brms-only [ya_Intercept ya_x] frmtmb-only [y_a_Intercept y_a_x sigma_y_a_Intercept sigma_y2_Intercept]
+  fixef_nosum/dim_tail: brms-only [4] frmtmb-only [6] 
+  ranef/el/g/dimnames[3]: brms-only [ya_Intercept] frmtmb-only [y_a_Intercept] 
+  ranef_nosum/el/g/dimnames[3]: brms-only [ya_Intercept] frmtmb-only [y_a_Intercept] 
+  coef/el/g/dimnames[3]: brms-only [ya_Intercept ya_x] frmtmb-only [y_a_Intercept y_a_x sigma_y_a_Intercept sigma_y2_Intercept]
+  coef/el/g/dim_tail: brms-only [] frmtmb-only [6] 
+  coef_nosum/el/g/dimnames[3]: brms-only [ya_Intercept ya_x] frmtmb-only [y_a_Intercept y_a_x sigma_y_a_Intercept sigma_y2_Intercept]
+  coef_nosum/el/g/dim_tail: brms-only [4] frmtmb-only [6] 
+  VarCorr/names: brms-only [residual__] frmtmb-only []
+  VarCorr/el/g/el/sd/dimnames[1]: brms-only [ya_Intercept] frmtmb-only [y_a_Intercept]
+  VarCorr/el/g/el/cor/dimnames[1]: brms-only [ya_Intercept] frmtmb-only [y_a_Intercept]
+  VarCorr/el/g/el/cor/dimnames[3]: brms-only [ya_Intercept] frmtmb-only [y_a_Intercept]
+  VarCorr/el/g/el/cov/dimnames[1]: brms-only [ya_Intercept] frmtmb-only [y_a_Intercept]
+  VarCorr/el/g/el/cov/dimnames[3]: brms-only [ya_Intercept] frmtmb-only [y_a_Intercept]
+  VarCorr/el/residual__: brms-only [list sd list(sd = list(class = c("matrix", "array"), dim_len = 2, dimnames = list(c(ya = "ya", y2 = "y2"), c("Estimate", "Est.Error", "Q2.5", "Q97.5")), dim_tail = 4))] frmtmb-only [] 
+  VarCorr_nosum/names: brms-only [residual__] frmtmb-only []
+  VarCorr_nosum/el/g/el/sd/dimnames/draw: brms-only [] frmtmb-only [61 62 63 64 65 66]
+  VarCorr_nosum/el/g/el/sd/dimnames/variable: brms-only [ya_Intercept] frmtmb-only [y_a_Intercept]
+  VarCorr_nosum/el/g/el/cor/dimnames[2]: brms-only [ya_Intercept] frmtmb-only [y_a_Intercept]
+  VarCorr_nosum/el/g/el/cor/dimnames[3]: brms-only [ya_Intercept] frmtmb-only [y_a_Intercept]
+  VarCorr_nosum/el/g/el/cov/dimnames[2]: brms-only [ya_Intercept] frmtmb-only [y_a_Intercept]
+  VarCorr_nosum/el/g/el/cov/dimnames[3]: brms-only [ya_Intercept] frmtmb-only [y_a_Intercept]
+  VarCorr_nosum/el/residual__: brms-only [list sd list(sd = list(class = c("matrix", "array"), dim_len = 2, dimnames = list(draw = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "60"), variable = c(ya = "ya", y2 = "y2")), dimnames_names = c("draw", "variable"
+), dim_tail = 2))] frmtmb-only [] 
+  posterior_summary_b/dimnames[1]: brms-only [b_ya_Intercept b_ya_x] frmtmb-only [b_y_a_Intercept b_y_a_x b_sigma_y_a_Intercept b_sigma_y2_Intercept] 
+  as_draws_df_cols       brms-only: b_ya_Intercept b_ya_x r_g__ya[1,Intercept] r_g__ya[10,Intercept] r_g__ya[11,Intercept] r_g__ya[12,Intercept] r_g__ya[2,Intercept] r_g__ya[3,Intercept] r_g__ya[4,Intercept] r_g__ya[5,Intercept] r_g__ya[6,Intercept] r_g__ya[7,Intercept]
+                         frmtmb-only: b_sigma_y_a_Intercept b_sigma_y2_Intercept b_y_a_Intercept b_y_a_x r_g__y_a[1,Intercept] r_g__y_a[10,Intercept] r_g__y_a[11,Intercept] r_g__y_a[12,Intercept] r_g__y_a[2,Intercept] r_g__y_a[3,Intercept] r_g__y_a[4,Intercept] r_g__y_a[5,Intercept]
+  hyp                    brms: Some parameters cannot be found in the model: 
+'b_Intercept' | frmtmb: 'b_Intercept' is not a parameter of this model: `class` and `group` turn the bare name 'In
+  hyp_ranef              brms: Some parameters cannot be found in the model: 
+'Intercept' | frmtmb: Some parameters cannot be found in the model: object 'Intercept' not found
+  hyp_coef               brms: Some parameters cannot be found in the model: 
+'Intercept' | frmtmb: Some parameters cannot be found in the model: object 'Intercept' not found
+  bayes_R2/dimnames[1]: brms-only [R2ya R2y2] frmtmb-only [R2y_a] 
+
+== C5 ==
+  variables              brms-only: sd_g__a_Intercept sigma
+                         frmtmb-only: b_sigma_Intercept
+  fixef/dimnames[1]: brms-only [] frmtmb-only [sigma_Intercept] 
+  fixef_nosum/dimnames/draw: brms-only [] frmtmb-only [61 62 63 64 65 66]
+  fixef_nosum/dimnames/variable: brms-only [] frmtmb-only [sigma_Intercept]
+  fixef_nosum/dim_tail: brms-only [2] frmtmb-only [3] 
+  coef/el/g/dimnames[3]: brms-only [] frmtmb-only [sigma_Intercept]
+  coef/el/g/dim_tail: brms-only [2] frmtmb-only [3] 
+  coef_nosum/el/g/dimnames[3]: brms-only [] frmtmb-only [sigma_Intercept]
+  coef_nosum/el/g/dim_tail: brms-only [2] frmtmb-only [3] 
+  VarCorr_nosum/el/g/el/sd/dimnames/draw: brms-only [] frmtmb-only [61 62 63 64 65 66]
+  VarCorr_nosum/el/residual__/el/sd/dimnames/draw: brms-only [] frmtmb-only [61 62 63 64 65 66] 
+  posterior_summary_b/dimnames[1]: brms-only [] frmtmb-only [b_sigma_Intercept] 
+  as_draws_df_cols       brms-only: 
+                         frmtmb-only: b_sigma_Intercept
+  hyp                    brms: Some parameters cannot be found in the model: 
+'b_Intercept' | frmtmb: 'b_Intercept' is not a parameter of this model: `class` and `group` turn the bare name 'In
+  hyp_ranef              brms: Some parameters cannot be found in the model: 
+'Intercept' | frmtmb: Some parameters cannot be found in the model: object 'Intercept' not found
+  hyp_coef               brms: Some parameters cannot be found in the model: 
+'Intercept' | frmtmb: Some parameters cannot be found in the model: object 'Intercept' not found
+DONE

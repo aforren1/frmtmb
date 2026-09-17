@@ -4,10 +4,17 @@
 \alias{coef.frmtmb_fit}
 \title{Per-group coefficients (fixed effects plus conditional modes)}
 \usage{
-\method{coef}{frmtmb_fit}(object, ...)
+\method{coef}{frmtmb_fit}(object, summary = TRUE, robust = FALSE, probs = c(0.025, 0.975), ...)
 }
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
+
+\item{summary, robust, probs}{brms's arguments, in brms's
+positions so that a positional brms call asks the same question.
+brms answers \code{summary = FALSE} with the posterior draws and
+\code{robust = TRUE} with their median and MAD, and a maximum-likelihood
+fit has no draws, so both are refused by name with the reason. The
+default of each is accepted and changes nothing.}
 
 \item{...}{Refused: an argument the method does not have is an
 error naming it, rather than silently changing nothing.}

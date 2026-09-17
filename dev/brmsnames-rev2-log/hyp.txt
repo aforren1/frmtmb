@@ -1,0 +1,17 @@
+variables(fm): ERROR: no applicable method for 'variables' applied to an object of class "frmtmb_multiple" 
+frm_multiple, pooled point estimate against the mean of the two fits:
+                        h label         est        hand         diff
+a              x:fe:f > 0     a  0.77089061  0.77089061 0.000000e+00
+b           x.1 - 0.5 = 0     b -0.29223367 -0.29223367 5.551115e-17
+c         exp(x:fcMd) > 1     c  0.08905529  0.08894014 1.151531e-04
+d              fe:f^2 = 0     d  0.09250790  0.09241424 9.366438e-05
+e 2 * x + .5 * x:fcMd = 0     e  0.10887303  0.10887303 1.387779e-17
+
+== the fit, sd_ of an interaction group ==
+hand 0.588595  hypothesis 0.588595 
+class = sd, group = g:h: 0.588595 
+
+== draws, r_ names with renamed levels ==
+first r_ names: r_g:h[lvl.1_p,Intercept] r_g:h[lvl.1_q,Intercept] r_g:h[lvl.10_p,Intercept] 
+r_g:h[lvl.1_p,Intercept] - r_g:h[lvl.1_q,Intercept] = 0 : hand -0.3869729  hypothesis -0.3869729 
+scope ranef group g:h: rows 24  first group lvl 1_p  est -0.07781325  hand -0.07781325 

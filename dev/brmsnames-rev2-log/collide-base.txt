@@ -1,0 +1,41 @@
+arm base 
+
+== C1 (1 | gi:hi), levels 1_2:3 and 1:2_3 ==
+  ranef(fit) rownames                [1] "1:2_3"   "1_2:2_3" "1_2:3"  
+  coef(fit) rownames                 [1] "1:2_3"   "1_2:2_3" "1_2:3"  
+  draws colnames                     [1] "Intercept"       "x"               "sigma_Intercept" "b[1]"           
+[5] "b[2]"            "b[3]"            "theta_1"         "lp__"           
+  as_draws_df                        [1] 50 11
+  summary                            [1] 4 7
+  posterior_summary                  [1] 4 4
+  fixef(ds)                          [1] 3 4
+  ranef(ds) level names              [1] "1:2_3"   "1_2:2_3" "1_2:3"  
+  coef(ds)                           [1] "1:2_3"   "1_2:2_3" "1_2:3"  
+  VarCorr(ds)                        [1] "grp"      "var1"     "var2"     "estimate" "lwr"      "upr"     
+  hypothesis on r_ name              ERROR: <text>:1:11: unexpected input 1: (r_gi:hi[1_               ^
+  column means of the two            numeric(0)
+  log_lik dim                        [1]  50 240
+Warning message:
+The ESS has been capped to avoid unstable estimates. 
+
+== C2 factor levels 'a b' and 'ab' (both fab in brms) ==
+  frm                                [1] "Intercept"       "fab3a b"         "fab3ab"          "sigma_Intercept"
+[5] "sigma"          
+
+== C3 I(x^2) beside a column named IxE2 ==
+  frm                                [1] "Intercept"       "Ix^2"            "IxE2"            "sigma_Intercept"
+[5] "sigma"          
+
+== C4 group levels 'lvl 1' and 'lvl.1' in one factor ==
+  draws labels duplicated            character(0)
+  as_draws_df                        [1] 50 21
+  ranef(ds) level names               [1] "lvl 1"  "lvl 10" "lvl 11" "lvl 12" "lvl 2"  "lvl 3"  "lvl 4"  "lvl 5" 
+ [9] "lvl 6"  "lvl 7"  "lvl 8"  "lvl 9"  "lvl.1" 
+
+== C5 mv responses y_a and ya (both ya in brms) ==
+  frm                                [1] "y_a_Intercept"       "y_a_x"               "ya_Intercept"       
+[4] "ya_x"                "y_a_sigma_Intercept" "ya_sigma_Intercept" 
+
+== C6 smooth by-factor levels 'u' in s(x, by = f2) beside s(x) ==
+  frm                                [1] "Intercept"       "sx.fx1"          "sz:f2u.fx1"      "sz:f2v.fx1"     
+[5] "sigma_Intercept" "sigma"          

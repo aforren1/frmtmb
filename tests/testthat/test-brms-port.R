@@ -88,7 +88,8 @@ test_that("brms_distreg: a sigma submodel and its hypothesis port verbatim", {
   # the vignette's own two-sided hypotheses, unchanged
   hyp <- hypothesis(fit1, c("exp(sigma_Intercept) = 0",
                             "exp(sigma_Intercept + sigma_grouptreat) = 0"))
-  expect_equal(nrow(as.data.frame(hyp)), 2L)
+  expect_equal(nrow(hyp$hypothesis), 2L)
+  expect_s3_class(hyp, "brmshypothesis")
   # the treated group is the more variable one, as simulated
   expect_gt(unname(fixef(fit1)$sigma[["grouptreat"]]), 0)
 })

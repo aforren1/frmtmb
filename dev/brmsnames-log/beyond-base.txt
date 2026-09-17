@@ -1,0 +1,60 @@
+arm base 
+frmtmb_draws generics this package registers a method on:  68 
+
+method                 pos  brms's             this package's    
+bayes_R2               4    robust             probs             
+conditional_effects    3    conditions         resp              
+hypothesis             3    class              alpha             
+pairs                  2    pars               variable          
+posterior_summary      2    pars               probs             
+pp_check               4    prefix             re_formula        
+
+diverge:  6    agree as far as both go:  62    no brmsfit method to compare:  0 
+diverging:  bayes_R2 conditional_effects hypothesis pairs posterior_summary pp_check 
+not comparable:   
+
+== the blind spot: our arguments run out before brms's ==
+method                 ours  brms's brms slots past our end
+as.array               1     5      pars variable draw subset
+as.data.frame          1     7      row.names optional pars variable draw
+as.matrix              1     5      pars variable draw subset
+as_draws               1     4      variable regex inc_warmup
+as_draws_array         1     4      variable regex inc_warmup
+as_draws_df            1     4      variable regex inc_warmup
+as_draws_list          1     4      variable regex inc_warmup
+as_draws_matrix        1     4      variable regex inc_warmup
+as_draws_rvars         1     4      variable regex inc_warmup
+bridge_sampler         1     2      recompile
+coef                   1     4      summary robust probs
+conditional_effects    13    17     resolution select_points too_far probs
+expose_functions       1     3      vectorize env
+family                 1     2      resp
+fixef                  1     5      summary robust probs pars
+hypothesis             5     8      alpha robust seed
+log_lik                6     10     pointwise combine add_point_estimate cores
+loo_moment_match       1     7      loo k_threshold newdata resp check
+nobs                   1     2      resp
+nsamples               1     3      subset incl_warmup
+nuts_params            1     2      pars
+pairs                  2     5      variable regex fixed
+plot                   1     13     pars combo nvariables N variable
+posterior_epred        9     10     sort
+posterior_linpred      11    12     sort
+posterior_predict      9     12     sort ntrys cores
+posterior_samples      2     7      fixed add_chain subset as.matrix as.array
+posterior_summary      4     5      robust
+pp_check               4     11     group x newdata resp draw_ids
+predictive_error       8     9      sort
+print                  1     3      digits short
+prior_summary          1     2      all
+ranef                  1     6      summary robust probs pars groups
+reloo                  1     8      loo k_threshold newdata resp check
+stancode               1     5      version regenerate threads backend
+standata               1     6      newdata re_formula newdata2 new_objects incl_autocor
+summary                1     5      priors prob robust mc_se
+update                 1     4      formula. newdata recompile
+VarCorr                2     5      summary robust probs
+
+scored 'agree' but shorter than brms's:  39 
+names:  as.array as.data.frame as.matrix as_draws as_draws_array as_draws_df as_draws_list as_draws_matrix as_draws_rvars bridge_sampler coef conditional_effects expose_functions family fixef hypothesis log_lik loo_moment_match nobs nsamples nuts_params pairs plot posterior_epred posterior_linpred posterior_predict posterior_samples posterior_summary pp_check predictive_error print prior_summary ranef reloo stancode standata summary update VarCorr 
+DONE

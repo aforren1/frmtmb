@@ -1,0 +1,12 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-tre.R 
+BLOCKS  18 
+PASS    99 
+FAIL    0 
+ERROR   1 
+SKIP    0 
+  failing: the sd_ alias names the scale, as brms's sd_ does
+       Error: 'b_sd_g__Intercept' is not a parameter of this model, while 'sd_g__Intercept' is: the `class`/`group` shorthand would be ignored for it. brms's default c 
+DONE

@@ -1,0 +1,22 @@
+arm lane 
+
+== C1 (1 | gi:hi), levels 1_2:3 and 1:2_3 ==
+
+== C2 factor levels 'a b' and 'ab' (both fab in brms) ==
+  frm                                ERROR: Internal renaming led to duplicated names. Consider renaming your variables to have different suffixes. Occured for: 'fab3a b', 'fab3ab'
+
+== C3 I(x^2) beside a column named IxE2 ==
+  frm                                ERROR: Internal renaming led to duplicated names. Consider renaming your variables to have different suffixes. Occured for: 'I(x^2)', 'IxE2'
+
+== C4 group levels 'lvl 1' and 'lvl.1' in one factor ==
+  draws labels duplicated            character(0)
+  as_draws_df                        [1] 50 21
+  ranef(ds) level names               [1] "lvl 1"  "lvl 10" "lvl 11" "lvl 12" "lvl 2"  "lvl 3"  "lvl 4"  "lvl 5" 
+ [9] "lvl 6"  "lvl 7"  "lvl 8"  "lvl 9"  "lvl.1" 
+
+== C5 mv responses y_a and ya (both ya in brms) ==
+  frm                                ERROR: Cannot use the same response variable twice in the same model. brms spells a response without '_' and '.', so 'y_a' and 'ya' are one name; rename one of 
+
+== C6 smooth by-factor levels 'u' in s(x, by = f2) beside s(x) ==
+  frm                                [1] "b_Intercept" "bs_sx_1"     "bs_sz:f2u_1" "bs_sz:f2v_1" "sds_sx_1"   
+[6] "sds_szf2u_1" "sds_szf2v_1" "sigma"      

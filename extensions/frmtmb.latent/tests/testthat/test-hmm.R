@@ -109,6 +109,23 @@ test_that("a gaussian HMM matches an independent numeric forward", {
   expect_equal(attr(logLik(fit), "df"), 7L)
 })
 
+test_that("brms's names keep a transition logit a coefficient", {
+  # a transition logit is one cell of a row's softmax, so it has no
+  # elementwise natural scale; named `tr12` it would read as the
+  # probability. It stays b_tr12_Intercept and holds the logit
+  dd <- sim_hmm(25, 24, G2, c(0, 3), c(0.6, 0.6), 4001)
+  fit <- frm(bf(y ~ 1), family = hmm(K = 2, gaussian(), time = t,
+                                     group = id), data = dd)
+  v <- variables(fit)
+  expect_true(all(c("b_tr12_Intercept", "b_tr22_Intercept", "sigma1",
+                    "sigma2") %in% v))
+  expect_false(any(c("tr12", "tr22") %in% v))
+  e <- icpt(fit)
+  expect_identical(
+    hypothesis(fit, "tr12_Intercept = 0")$hypothesis$Estimate,
+    e[["tr12"]])
+})
+
 test_that("the family= and + spellings give the same fit", {
   dd <- sim_hmm(12, 15, G2, c(0, 3), c(0.6, 0.6), 4002)
   fa <- frm(bf(y ~ 1),
@@ -431,15 +448,15 @@ test_that("random effects in a state mean compose with the forward pass", {
   # the MAIN formula reaches every state's mean, so `(1 | gf)` there is
   # one random-effect block per state - two variance components, not one
   expect_equal(attr(logLik(f1), "df"), attr(logLik(f0), "df") + 2L)
-  vc <- VarCorr(f1)
+  vc <- varcorr_matrices(f1)
   expect_equal(length(vc), 2L)
   expect_true(grepl("^mu1", names(vc)[1L]))
   # one state at a time is spelled the ordinary way
   f2 <- frm(bf(y ~ 1, mu2 ~ 1 + (1 | gf)),
             family = hmm(K = 2, gaussian(), time = t, group = id,
                          init = "stationary"), data = dd)
-  expect_equal(length(VarCorr(f2)), 1L)
-  expect_true(grepl("^mu2", names(VarCorr(f2))[1L]))
+  expect_equal(length(varcorr_matrices(f2)), 1L)
+  expect_true(grepl("^mu2", names(varcorr_matrices(f2))[1L]))
   # decoding still runs, conditional on the random-effect modes
   expect_equal(nrow(hmm_probs(f1)), nrow(dd))
   expect_equal(unname(rowSums(hmm_probs(f1))), rep(1, nrow(dd)),
@@ -616,7 +633,7 @@ test_that("a random effect on a transition agrees with hmmTMB", {
   se_mu <- max(sqrt(diag(vcov(fit)))[1:3])
   expect_lt(max(abs(mu - mr[p])) / se_mu, 1e-2)
   # and the variance component itself, against hmmTMB's own
-  sd_f <- sqrt(VarCorr(fit)[[1L]][1L, 1L])
+  sd_f <- sqrt(varcorr_matrices(fit)[[1L]][1L, 1L])
   sd_h <- as.numeric(hid$sd_re()[1L, 1L])
   expect_lt(abs(sd_f - sd_h) / sd_f, 1e-3)
 })

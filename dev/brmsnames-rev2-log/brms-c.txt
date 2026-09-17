@@ -1,0 +1,47 @@
+Compiling Stan program...
+Start sampling
+
+== B7 == elapsed 71 s
+ [1] "b_Intercept"  "bs_sx:f2u_1"  "bs_sx:f2v_1"  "bs_t2xz_1"    "bs_t2xz_2"   
+ [6] "bs_t2xz_3"    "sds_sxf2u_1"  "sds_sxf2v_1"  "sds_t2xz_1"   "sds_t2xz_2"  
+[11] "sds_t2xz_3"   "sdgp_gpz"     "lscale_gpz"   "sigma"        "Intercept"   
+[16] "s_sxf2u_1[1]" "s_sxf2u_1[2]" "s_sxf2u_1[3]" "s_sxf2u_1[4]" "s_sxf2u_1[5]"
+[21] "s_sxf2u_1[6]" "s_sxf2u_1[7]" "s_sxf2u_1[8]" "s_sxf2v_1[1]" "s_sxf2v_1[2]"
+[26] "s_sxf2v_1[3]" "s_sxf2v_1[4]" "s_sxf2v_1[5]" "s_sxf2v_1[6]" "s_sxf2v_1[7]"
+[31] "s_sxf2v_1[8]" "s_t2xz_1[1]"  "s_t2xz_1[2]"  "s_t2xz_1[3]"  "s_t2xz_1[4]" 
+[36] "s_t2xz_1[5]"  "s_t2xz_1[6]"  "s_t2xz_1[7]"  "s_t2xz_1[8]"  "s_t2xz_1[9]" 
+[41] "s_t2xz_2[1]"  "s_t2xz_2[2]"  "s_t2xz_2[3]"  "s_t2xz_2[4]"  "s_t2xz_2[5]" 
+[46] "s_t2xz_2[6]"  "s_t2xz_3[1]"  "s_t2xz_3[2]"  "s_t2xz_3[3]"  "s_t2xz_3[4]" 
+[51] "s_t2xz_3[5]"  "s_t2xz_3[6]"  "zgp_gpz[1]"   "zgp_gpz[2]"   "zgp_gpz[3]"  
+[56] "zgp_gpz[4]"   "zgp_gpz[5]"   "lprior"       "lp__"        
+Compiling Stan program...
+Start sampling
+
+== B8 == elapsed 78 s
+[1] "b_Intercept"                "b_x"                       
+[3] "sd_gi:hi__Intercept"        "sigma"                     
+[5] "Intercept"                  "r_gi:hi[1_2_2_3,Intercept]"
+[7] "r_gi:hi[1_2_3,Intercept]"   "lprior"                    
+[9] "lp__"                      
+
+== B10 == elapsed 0 s
+ERROR: Variable names starting with 'mu_', 'sigma_', 'sp_', 'cs_' are not allowed for this model. 
+Warning messages:
+1: The largest R-hat is 1.69, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+2: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+3: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+4: The largest R-hat is 1.91, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+5: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+6: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 

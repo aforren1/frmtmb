@@ -146,7 +146,8 @@ on the same generics:
 ```{r, eval = FALSE}
 fixef(ds); ranef(ds); VarCorr(ds)
 posterior_epred(ds); posterior_predict(ds); posterior_linpred(ds)
-hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)")
+hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0",
+           class = NULL)
 conditional_effects(ds)
 pp_check(ds)
 log_lik(ds); loo(ds); waic(ds); bayes_R2(ds)
@@ -154,9 +155,9 @@ as_draws(ds); as.array(ds); as.mcmc(ds)
 mcmc_plot(ds, type = "trace")
 ```
 
-Parameter names drop parentheses on the draws side -- `Intercept`, not
-`(Intercept)` -- because that is the vocabulary posterior, bayesplot
-and `hypothesis()` already speak. `variables(ds)` lists them.
+Parameter names are brms's: `b_Intercept`, `b_x`, `r_g[1,Intercept]`.
+A log standard deviation brms does not sample keeps the name `confint()`
+gives it on the fit, `theta_1`. `variables(ds)` lists them all.
 
 ## Conditional effects draw the frame the fit draws
 
@@ -164,8 +165,9 @@ and `hypothesis()` already speak. `variables(ds)` lists them.
 returns: the same columns in the same order, the same grid, the same
 keys, and the same attributes brms's `plot()` reads. What differs is
 where the band comes from. The curves are posterior expected-response
-draws, so `estimate__` is their mean and `lower__` and `upper__` are
-their percentiles, and `attr(df, "band")` reads `"posterior"`.
+draws, so `estimate__` is their median (their mean with
+`robust = FALSE`, brms's switch) and `lower__` and `upper__` are their
+percentiles, and `attr(df, "band")` reads `"posterior"`.
 
 The default display is the EXPECTED RESPONSE, not the `mu` predictor.
 On a zero-inflated or hurdle family, a mixture, or a `trunc()` response
@@ -195,9 +197,10 @@ quantile `posterior_predict()` over a grid you build yourself.
 
 ## Evidence ratios and Bayes factors
 
-`hypothesis()` reports `evid_ratio` and `post_prob` beside the
-interval. They are brms's `Evid.Ratio` and `Post.Prob`, and they answer
-two different questions depending on how the hypothesis is written.
+`hypothesis()` returns brms's object, and its `hypothesis` frame
+reports brms's `Evid.Ratio` and `Post.Prob` beside the interval. They
+answer two different questions depending on how the hypothesis is
+written.
 
 A DIRECTIONAL hypothesis is the simple one. Its evidence ratio is the
 posterior odds of the claim, counted from the draws. No prior enters
@@ -205,8 +208,8 @@ it, so it is always available.
 
 ```{r, eval = FALSE}
 h <- hypothesis(ds, "x > 0")
-h$evid_ratio   # P(x > 0) / P(x < 0)
-h$post_prob    # P(x > 0)
+h$hypothesis$Evid.Ratio   # P(x > 0) / P(x < 0)
+h$hypothesis$Post.Prob    # P(x > 0)
 ```
 
 A POINT hypothesis is the Savage-Dickey density ratio: the posterior
@@ -218,7 +221,7 @@ write one:
 
 ```{r, eval = FALSE}
 ds <- frm_sample(fit, prior = set_prior("normal(0, 1)", class = "b"))
-hypothesis(ds, "x = 0")$evid_ratio
+hypothesis(ds, "x = 0")$hypothesis$Evid.Ratio
 ```
 
 Without a proper prior the ratio is `NA` and a warning names the
@@ -244,7 +247,7 @@ attr(h, "evid_ratio_mcse")
 ### What a point ratio refuses
 
 Each refusal names the parameter and its own reason, and leaves that
-row's `evid_ratio` at `NA`:
+row's `Evid.Ratio` at `NA`:
 
 - the parameter has no proper prior. Write one and resample.
 - the hypothesis names a variance component or a correlation. Their

@@ -122,7 +122,7 @@ test_that("the ode scale row fits and reports its cost", {
   ci <- suppressWarnings(stats::confint(fit))
   j <- grep("lke", rownames(ci), fixed = TRUE)
   i_ke <- if (length(j)) as.numeric(ci[j[1L], 1:2]) else c(NA, NA)
-  vc <- VarCorr(fit)
+  vc <- varcorr_matrices(fit)
   tr <- ode_truth
   scale_record(
     "ode", rows = nrow(d), subjects = ns,

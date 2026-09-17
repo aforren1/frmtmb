@@ -261,11 +261,11 @@ ln_check_counterfactual <- function(nm, cd, groups) {
          "correct passed ", length(cols), " times over. A simulated ",
          "subject chooses for itself, and paying it needs the schedule ",
          "of every option, so the second and later columns of ", term,
-         " are the ones missing here. newdata cannot supply them, ",
-         "because the formula names one column ", length(cols),
-         " times and newdata is read through that same formula: refit ",
-         "with a column per option, or build a schedule with ",
-         "frm_task_design() and draw from that.", call. = FALSE)
+         " are the ones missing here. No other data set drawn through ",
+         "this model can supply them either, because its formula names ",
+         "one column ", length(cols), " times; and simulate() takes no ",
+         "newdata. Refit with a column per option, or build a schedule ",
+         "with frm_task_design() and draw from that.", call. = FALSE)
   }
   invisible(NULL)
 }

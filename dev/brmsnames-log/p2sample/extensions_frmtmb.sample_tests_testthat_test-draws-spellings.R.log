@@ -1,0 +1,12 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    extensions/frmtmb.sample/tests/testthat/test-draws-spellings.R 
+BLOCKS  11 
+PASS    86 
+FAIL    1 
+ERROR   0 
+SKIP    0 
+  failing: brms's positional calls mean here what they mean in brms
+       Expected `dim(fixef(ds, FALSE))` to equal `c(ndraws(ds), 3L)`. Differences:   `actual`: 200 2 `expected`: 200 3  
+DONE

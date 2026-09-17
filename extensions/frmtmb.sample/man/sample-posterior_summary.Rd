@@ -13,9 +13,10 @@
 \usage{
 \method{posterior_summary}{frmtmb_draws}(
   x,
+  pars = NA,
+  variable = NULL,
   probs = c(0.025, 0.975),
   robust = FALSE,
-  variable = NULL,
   ...
 )
 
@@ -62,24 +63,24 @@ predictive_error(object, ...)
 \item{x}{The same, for \code{posterior_summary()}, whose generic
 is brms's and names its first argument \code{x}.}
 
-\item{probs}{Quantiles for \code{posterior_summary()}.}
-
-\item{robust}{If \code{TRUE}, median and MAD instead of mean and SD.}
-
-\item{variable}{Optional subset of variables, by name.}
-
-\item{...}{Refused: an argument the method does not have is an
-error naming it, rather than silently changing nothing.}
-
-\item{object}{A \code{frmtmb_draws}, or a matrix of draws
-(variables in columns).}
-
 \item{pars}{brms's alias of \code{variable}, in brms's own second
 position on \code{posterior_interval()}: \code{NA} (the default) for every
 variable, otherwise a character vector matched as a regular
 expression unless \code{fixed = TRUE}. brms refuses a \code{pars} that is
 neither \code{NA} nor character, and so does this, which is why
 \code{posterior_interval(x, 0.9)} is a refusal and not an interval.}
+
+\item{variable}{Optional subset of variables, by name.}
+
+\item{probs}{Quantiles for \code{posterior_summary()}.}
+
+\item{robust}{If \code{TRUE}, median and MAD instead of mean and SD.}
+
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
+
+\item{object}{A \code{frmtmb_draws}, or a matrix of draws
+(variables in columns).}
 
 \item{prob}{Central interval width for \code{posterior_interval()} and
 \code{predictive_interval()}.}
@@ -130,8 +131,8 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
   ds <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
                    data = dd, chains = 1, iter = 500, refresh = 0)
-  posterior_summary(ds, variable = c("Intercept", "x"))
-  posterior_interval(ds, prob = 0.9, variable = "x")
+  posterior_summary(ds, variable = c("b_Intercept", "b_x"))
+  posterior_interval(ds, prob = 0.9, variable = "b_x")
   head(predictive_interval(ds))
 }
 }

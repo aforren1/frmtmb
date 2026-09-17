@@ -1,0 +1,12 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb.sample from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    extensions/frmtmb.sample/tests/testthat/test-draws-methods.R 
+BLOCKS  21 
+PASS    145 
+FAIL    1 
+ERROR   0 
+SKIP    0 
+  failing: coef() is fixef broadcast plus each group's own draws
+       Expected `dim(raw$g)` to equal `c(ndraws(cs$ds), 6L, 3L)`. Differences:   `actual`: 400 6 2 `expected`: 400 6 3  
+DONE

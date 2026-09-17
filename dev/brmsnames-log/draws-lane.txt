@@ -1,0 +1,6 @@
+frmtmb 0.58.0 from C:/Users/adf44/source/r/brmsnames-lib 
+frmtmb.sample 0.6.0 from C:/Users/adf44/source/r/brmsnames-lib 
+StanHeaders 2.32.10 
+draws 2000 x 11 
+names b_Intercept b_x sigma r_g[1,Intercept] r_g[2,Intercept] r_g[3,Intercept] r_g[4,Intercept] r_g[5,Intercept] r_g[6,Intercept] theta_1 lp__ 
+saved dev/stan-cache/brmsnames-draws-lane.rds 

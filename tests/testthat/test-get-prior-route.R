@@ -35,7 +35,7 @@ route_test_data <- function() {
   # the fixture seed restarts the same random stream that made the
   # covariates, and the residuals come out equal to x.
   dd$y <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
-                       newparams = list(Intercept = 0, x = 0.5, sigma = 1,
+                       newparams = list(b_Intercept = 0, b_x = 0.5, sigma = 1,
                                         sd_g__Intercept = 0.5),
                        nsim = 1, seed = 1011)[[1]]
   dd

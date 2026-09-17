@@ -367,12 +367,13 @@ test_that("the parameters reach summary, confint and hypothesis", {
   expect_true(all(vc$lwr[vc$term == "ar[1]"] < vc$estimate[vc$term == "ar[1]"]))
   s <- summary(f)
   expect_true("ar[1]" %in% rownames(s$autocor))
-  expect_true("ar1" %in% variables(f))
-  h <- hypothesis(f, "ar1 - 0.5 = 0")
-  expect_true(is.finite(h$se))
+  # brms's name, ar[1], which the hypothesis renaming reads as one name
+  expect_true("ar[1]" %in% variables(f))
+  h <- hypothesis(f, "ar[1] - 0.5 = 0", class = NULL)
+  expect_true(is.finite(h$hypothesis$Est.Error))
   # the fitted R is what the natural-scale name reports
-  expect_equal(hypothesis(f, "ar1")$estimate, autocor_matrix(f)[1, 2],
-               tolerance = 1e-8)
+  expect_equal(hypothesis(f, "ar[1]", class = NULL)$hypothesis$Estimate,
+               autocor_matrix(f)[1, 2], tolerance = 1e-8)
 })
 
 test_that("cosy and unstr name their parameters as brms does", {
@@ -620,7 +621,7 @@ test_that("VarCorr() on an autocorrelation-only model reads no theta", {
   # the exact read VarCorr() makes: NULL, not the autocorrelation block
   expect_null(fit$estimates[["theta"]])
 
-  vc <- VarCorr(fit)
+  vc <- varcorr_matrices(fit)
   expect_length(vc, 0L)
   expect_identical(names(vc), character(0))
 

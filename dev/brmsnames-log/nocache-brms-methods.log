@@ -1,0 +1,11 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+Setting order = 'mu' for mixtures of the same family.
+FILE    tests/testthat/test-brms-methods.R 
+BLOCKS  47 
+PASS    953 
+FAIL    0 
+ERROR   0 
+SKIP    0 
+DONE

@@ -109,8 +109,8 @@ test_that("|ID|-merged gr(cov =) is the long-format model", {
   expect_equal(attr(logLik(fw), "df"), attr(logLik(fl), "df"))
 
   # the same genetic covariance, up to optimizer tolerance
-  Vw <- unname(VarCorr(fw)[[1]])
-  Vl <- unname(VarCorr(fl)[[1]])
+  Vw <- unname(varcorr_matrices(fw)[[1]])
+  Vl <- unname(varcorr_matrices(fl)[[1]])
   expect_equal(Vw, Vl, tolerance = 1e-4)
 
   # the same fixed effects: two trait means and two residual sds. The
@@ -151,7 +151,8 @@ test_that("the merged Kronecker equivalence holds under REML", {
   fl <- kron_fit_long(d, REML = TRUE)
   expect_equal(as.numeric(logLik(fw)), as.numeric(logLik(fl)),
                tolerance = 1e-6)
-  expect_equal(unname(VarCorr(fw)[[1]]), unname(VarCorr(fl)[[1]]),
+  expect_equal(unname(varcorr_matrices(fw)[[1]]),
+               unname(varcorr_matrices(fl)[[1]]),
                tolerance = 1e-4)
 })
 
@@ -173,7 +174,8 @@ test_that("|ID|-merged gr(prec =) matches the cov = spelling", {
   fw <- kron_fit_wide(d)
   expect_equal(as.numeric(logLik(fq)), as.numeric(logLik(fw)),
                tolerance = 1e-6)
-  expect_equal(unname(VarCorr(fq)[[1]]), unname(VarCorr(fw)[[1]]),
+  expect_equal(unname(varcorr_matrices(fq)[[1]]),
+               unname(varcorr_matrices(fw)[[1]]),
                tolerance = 1e-4)
 })
 
@@ -216,7 +218,8 @@ test_that("the merged matrix rides data2 through saveRDS and refit", {
     readRDS(f)
   })
   expect_equal(as.numeric(logLik(reloaded)), as.numeric(logLik(fw)))
-  expect_equal(unname(VarCorr(reloaded)[[1]]), unname(VarCorr(fw)[[1]]))
+  expect_equal(unname(varcorr_matrices(reloaded)[[1]]),
+               unname(varcorr_matrices(fw)[[1]]))
   again <- update(reloaded, data = d$wide)
   expect_equal(as.numeric(logLik(again)), as.numeric(logLik(fw)),
                tolerance = 1e-6)
@@ -303,11 +306,11 @@ test_that("the merged block reports sane named summaries", {
   fw <- kron_fit_wide(d)
   nm <- c("y1.mu:(Intercept)", "y2.mu:(Intercept)")
 
-  V <- VarCorr(fw)[[1]]
+  V <- varcorr_matrices(fw)[[1]]
   expect_equal(dimnames(V), list(nm, nm))
   expect_true(all(diag(V) > 0))
   expect_lt(abs(stats::cov2cor(V)[1, 2]), 1)
-  expect_output(print(VarCorr(fw)), "y1.mu")
+  expect_output(print(varcorr_matrices(fw)), "y1.mu")
 
   re <- ranef(fw, condVar = TRUE)[[1]]
   expect_equal(dim(re), c(nrow(d$A), 2L))
@@ -325,11 +328,18 @@ test_that("the merged block reports sane named summaries", {
   # hypothesis() sees the merged coefficients under the
   # correlated-slopes naming; the correlation is the genetic one
   vn <- variables(fw)
-  expect_true(all(c("sd_id__y1.muIntercept", "sd_id__y2.muIntercept",
-                    "cor_id__y1.muIntercept__y2.muIntercept") %in% vn))
-  h <- hypothesis(fw, "cor_id__y1.muIntercept__y2.muIntercept = 0")
-  expect_equal(h$estimate, stats::cov2cor(V)[1, 2], tolerance = 1e-6)
-  expect_true(is.finite(h$se))
+  # brms's spelling of a coefficient of one response, <resp>_<coef>
+  expect_true(all(c("sd_id__y1_Intercept", "sd_id__y2_Intercept",
+                    "cor_id__y1_Intercept__y2_Intercept") %in% vn))
+  h <- hypothesis(fw, "cor_id__y1_Intercept__y2_Intercept = 0",
+                  class = NULL)$hypothesis
+  expect_equal(h$Estimate, stats::cov2cor(V)[1, 2], tolerance = 1e-6)
+  expect_true(is.finite(h$Est.Error))
+  # VarCorr() merges the block under its group, with the same names
+  vcw <- VarCorr(fw)$id
+  expect_identical(rownames(vcw$sd), c("y1_Intercept", "y2_Intercept"))
+  expect_equal(vcw$cor["y1_Intercept", "Estimate", "y2_Intercept"],
+               h$Estimate, tolerance = 1e-10)
 })
 
 test_that("predict() on the merged block behaves as for a single gr()", {

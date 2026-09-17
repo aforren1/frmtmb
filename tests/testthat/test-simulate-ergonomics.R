@@ -13,7 +13,7 @@ test_that("natural and internal newparams spell the same simulation", {
                                          betad = log(0.5),
                                          theta = log(0.8)))
   s_nat <- frm_simulate(form, dd, nsim = 3, seed = 1,
-                        newparams = list(Intercept = 1, x = 0.5,
+                        newparams = list(b_Intercept = 1, b_x = 0.5,
                                          sigma = 0.5,
                                          sd_g__Intercept = 0.8))
   expect_equal(s_nat, s_int)
@@ -24,11 +24,12 @@ test_that("natural newparams round-trip through an us block", {
   dd <- data.frame(x = rnorm(200), g = factor(rep(1:20, 10)), y = 0)
   form <- bf(y ~ x + (1 + x | g)) + gaussian()
   fr <- frm(form, dd, dry_run = "frame")
-  slots <- nat_slots(fr)
-  expect_true(all(c("Intercept", "x", "sigma", "sd_g__Intercept",
+  slots <- nat_slots(fr, list(spec = fr$spec, frame = fr,
+                              bform = bf(y ~ x + (1 + x | g))))
+  expect_true(all(c("b_Intercept", "b_x", "sigma", "sd_g__Intercept",
                     "sd_g__x", "cor_g__Intercept__x") %in% names(slots)))
 
-  np <- list(Intercept = 1, x = 0.5, sigma = 0.6,
+  np <- list(b_Intercept = 1, b_x = 0.5, sigma = 0.6,
              sd_g__Intercept = 0.8, sd_g__x = 0.4,
              cor_g__Intercept__x = -0.3)
   est <- apply_natural(fr$par_template, fr, slots, np)
@@ -52,13 +53,13 @@ test_that("a refit recovers natural-scale simulation parameters", {
   dd <- data.frame(x = rnorm(600), g = factor(rep(1:40, 15)), y = 0)
   form <- bf(y ~ x + (1 | g)) + gaussian()
   s <- frm_simulate(form, dd, nsim = 1, seed = 4,
-                    newparams = list(Intercept = 1, x = 0.5,
+                    newparams = list(b_Intercept = 1, b_x = 0.5,
                                      sigma = 0.5,
                                      sd_g__Intercept = 0.7))
   d2 <- dd
   d2$y <- s[[1L]]
   f <- frm(form, data = d2)
-  expect_lt(abs(sqrt(VarCorr(f)[[1]][1, 1]) - 0.7), 0.25)
+  expect_lt(abs(sqrt(varcorr_matrices(f)[[1]][1, 1]) - 0.7), 0.25)
   expect_lt(abs(sigma(f) - 0.5), 0.1)
   expect_lt(abs(fixef(f)$mu[["x"]] - 0.5), 0.1)
 })
@@ -72,10 +73,10 @@ test_that("natural newparams reject what they cannot express", {
   # the message lists the vocabulary
   expect_error(frm_simulate(form, dd, newparams = list(zeta = 1)),
                "sd_g__Intercept")
-  expect_error(frm_simulate(form, dd, newparams = list(Intercept = 1)),
+  expect_error(frm_simulate(form, dd, newparams = list(b_Intercept = 1)),
                "No value for")
   expect_error(frm_simulate(form, dd,
-                            newparams = list(Intercept = 1, x = 0.5,
+                            newparams = list(b_Intercept = 1, b_x = 0.5,
                                              sigma = 1,
                                              sd_g__Intercept = -1)),
                "must be positive")
@@ -85,7 +86,7 @@ test_that("natural newparams reject what they cannot express", {
                     g = factor(rep(1:20, each = 10)), y = 0)
   expect_error(
     frm_simulate(bf(y ~ x + ar1(t + 0 | g)) + gaussian(), dd2,
-                 newparams = list(Intercept = 1)),
+                 newparams = list(b_Intercept = 1)),
     "cannot set the 'ar1' block"
   )
 })
@@ -109,15 +110,15 @@ test_that("prior draws simulate a prior-predictive sample", {
   pars <- attr(pp, "pars")
   expect_s3_class(pars, "data.frame")
   expect_equal(nrow(pars), 20L)
-  expect_true(all(c("Intercept", "x", "sd_g__Intercept",
-                    "sigma_Intercept") %in% names(pars)))
+  expect_true(all(c("b_Intercept", "b_x", "sd_g__Intercept",
+                    "sigma") %in% names(pars)))
   # wide priors: the drawn parameters actually vary
-  expect_gt(stats::sd(pars$x), 0.5)
+  expect_gt(stats::sd(pars$b_x), 0.5)
   expect_gt(stats::sd(pars$sd_g__Intercept), 0.2)
   # class "sd" draws live on the natural sd scale
   expect_true(all(pars$sd_g__Intercept > 0))
   # and so do the draws for a dpar priored on its own scale
-  expect_true(all(pars$sigma_Intercept > 0))
+  expect_true(all(pars$sigma > 0))
 
   # tight priors reproduce the fixed-parameter simulation statistically
   tight <- set_prior("normal(1, 1e-6)", class = "Intercept") +
@@ -129,11 +130,11 @@ test_that("prior draws simulate a prior-predictive sample", {
     set_prior("normal(0.6, 1e-9)", class = "sigma")
   a <- frm_simulate(form, dd, prior = tight, nsim = 8, seed = 42)
   b <- frm_simulate(form, dd, nsim = 8, seed = 42,
-                    newparams = list(Intercept = 1, x = 0.5, sigma = 0.6,
+                    newparams = list(b_Intercept = 1, b_x = 0.5, sigma = 0.6,
                                      sd_g__Intercept = 0.7))
   expect_equal(attr(a, "pars")$sd_g__Intercept, rep(0.7, 8),
                tolerance = 1e-6)
-  expect_equal(attr(a, "pars")$sigma_Intercept, rep(0.6, 8),
+  expect_equal(attr(a, "pars")$sigma, rep(0.6, 8),
                tolerance = 1e-6)
   expect_lt(abs(mean(as.matrix(a)) - mean(as.matrix(b))), 0.25)
   expect_lt(abs(stats::sd(as.matrix(a)) - stats::sd(as.matrix(b))), 0.15)
@@ -144,9 +145,9 @@ test_that("prior draws respect bounds and newparams fill the rest", {
   form <- bf(y ~ x + (1 | g)) + gaussian()
   pl <- set_prior("normal(0, 3)", class = "b", lb = 1, ub = 2)
   pp <- frm_simulate(form, dd, prior = pl, nsim = 15, seed = 2,
-                     newparams = list(Intercept = 0, x = 0, sigma = 1,
+                     newparams = list(b_Intercept = 0, b_x = 0, sigma = 1,
                                       sd_g__Intercept = 0.5))
-  drawn <- attr(pp, "pars")$x
+  drawn <- attr(pp, "pars")$b_x
   expect_length(drawn, 15L)
   expect_true(all(drawn >= 1 & drawn <= 2))
 
@@ -155,7 +156,7 @@ test_that("prior draws respect bounds and newparams fill the rest", {
     frm_simulate(form, dd, nsim = 1, seed = 1,
                  prior = set_prior("normal(0, 0.01)", class = "b",
                                     lb = 100),
-                 newparams = list(Intercept = 0, x = 0, sigma = 1,
+                 newparams = list(b_Intercept = 0, b_x = 0, sigma = 1,
                                   sd_g__Intercept = 0.5)),
     "did not produce a draw"
   )
@@ -268,15 +269,15 @@ test_that("a prior draw undoes the placement it was written on", {
     frmtmb:::as_priorlist(brms::prior(normal(0.6, 1e-9), class = "sigma"))
   a <- frm_simulate(form, dd, prior = pl, nsim = 6, seed = 3)
   pars <- attr(a, "pars")
-  expect_true(all(abs(pars$sigma_Intercept - 0.6) < 1e-5))
+  expect_true(all(abs(pars$sigma - 0.6) < 1e-5))
 
   # the class "Intercept" draw is the intercept at the MEAN of x, and
   # the table reports what was WRITTEN, because `newparams` spells
   # `Intercept` as the intercept at zero and the two tables have to
   # round-trip. mean(x) is near 4 here, so the two are far apart.
-  expect_true(all(abs(pars$Intercept +
-                        mean(dd$x) * pars$x - 1) < 1e-4))
-  expect_gt(abs(mean(pars$Intercept) - 1), 1)
+  expect_true(all(abs(pars$b_Intercept +
+                        mean(dd$x) * pars$b_x - 1) < 1e-4))
+  expect_gt(abs(mean(pars$b_Intercept) - 1), 1)
 
   # an ordinal threshold prior is a density on a whole ordered vector,
   # and one draw per threshold would not be ordered, so it is refused

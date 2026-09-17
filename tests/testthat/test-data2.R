@@ -260,7 +260,7 @@ test_that("get_prior() and frm_simulate() take data2", {
                   data2 = list(A = s$A))
   expect_true("sd" %in% gp$class)
   sims <- frm_simulate(bf(form) + gaussian(), s$dd,
-                       newparams = list(Intercept = 1, x = 0.5,
+                       newparams = list(b_Intercept = 1, b_x = 0.5,
                                         sigma = 0.7,
                                         sd_g__Intercept = 0.5),
                        nsim = 2, seed = 1, data2 = list(A = s$A))

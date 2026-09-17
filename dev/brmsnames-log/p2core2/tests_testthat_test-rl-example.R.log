@@ -1,0 +1,38 @@
+libs:  C:/Users/adf44/source/r/brmsnames-lib | C:/Users/adf44/source/r/rellib-r3 
+frmtmb from: C:/Users/adf44/source/r/brmsnames-lib
+frmtmb from:  C:/Users/adf44/source/r/brmsnames-lib 
+FILE    tests/testthat/test-rl-example.R 
+BLOCKS  14 
+PASS    0 
+FAIL    0 
+ERROR   14 
+SKIP    0 
+  failing: the block turns a long data frame into subject by trial
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: alpha_Intercept -> b_alpha_Intercept, alpha_conditiontrt -> b_alpha_conditiontrt, beta_Intercept -> b_beta_Intercept, sd_id__choice.alphaIntercept -> sd_id__alpha_Intercept, sd_id__choice.betaIntercept -> sd_id__beta_Intercept, cor_id__choice.alphaIntercept__choice.betaIntercept -> cor_id__alpha_Intercept__beta_Intercept 
+  failing: one trial per subject keeps the subjects apart
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: alpha_Intercept -> b_alpha_Intercept, alpha_conditiontrt -> b_alpha_conditiontrt, beta_Intercept -> b_beta_Intercept, sd_id__choice.alphaIntercept -> sd_id__alpha_Intercept, sd_id__choice.betaIntercept -> sd_id__beta_Intercept, cor_id__choice.alphaIntercept__choice.betaIntercept -> cor_id__alpha_Intercept__beta_Intercept 
+  failing: the taped recursion equals an independent scalar reference
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: alpha_Intercept -> b_alpha_Intercept, alpha_conditiontrt -> b_alpha_conditiontrt, beta_Intercept -> b_beta_Intercept, sd_id__choice.alphaIntercept -> sd_id__alpha_Intercept, sd_id__choice.betaIntercept -> sd_id__beta_Intercept, cor_id__choice.alphaIntercept__choice.betaIntercept -> cor_id__alpha_Intercept__beta_Intercept 
+  failing: fitted() is the per-trial choice probability
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: alpha_Intercept -> b_alpha_Intercept, alpha_conditiontrt -> b_alpha_conditiontrt, beta_Intercept -> b_beta_Intercept, sd_id__choice.alphaIntercept -> sd_id__alpha_Intercept, sd_id__choice.betaIntercept -> sd_id__beta_Intercept, cor_id__choice.alphaIntercept__choice.betaIntercept -> cor_id__alpha_Intercept__beta_Intercept 
+  failing: the structured simulator draws whole sequences
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: alpha_Intercept -> b_alpha_Intercept, alpha_conditiontrt -> b_alpha_conditiontrt, beta_Intercept -> b_beta_Intercept, sd_id__choice.alphaIntercept -> sd_id__alpha_Intercept, sd_id__choice.betaIntercept -> sd_id__beta_Intercept, cor_id__choice.alphaIntercept__choice.betaIntercept -> cor_id__alpha_Intercept__beta_Intercept 
+  failing: a rw_delta() fit refuses what its structure declares
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: alpha_Intercept -> b_alpha_Intercept, alpha_conditiontrt -> b_alpha_conditiontrt, beta_Intercept -> b_beta_Intercept, sd_id__choice.alphaIntercept -> sd_id__alpha_Intercept, sd_id__choice.betaIntercept -> sd_id__beta_Intercept, cor_id__choice.alphaIntercept__choice.betaIntercept -> cor_id__alpha_Intercept__beta_Intercept 
+  failing: the response and its data are checked before the tape
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: alpha_Intercept -> b_alpha_Intercept, alpha_conditiontrt -> b_alpha_conditiontrt, beta_Intercept -> b_beta_Intercept, sd_id__choice.alphaIntercept -> sd_id__alpha_Intercept, sd_id__choice.betaIntercept -> sd_id__beta_Intercept, cor_id__choice.alphaIntercept__choice.betaIntercept -> cor_id__alpha_Intercept__beta_Intercept 
+  failing: the fixed effects recover their simulated values
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: alpha_Intercept -> b_alpha_Intercept, alpha_conditiontrt -> b_alpha_conditiontrt, beta_Intercept -> b_beta_Intercept, sd_id__choice.alphaIntercept -> sd_id__alpha_Intercept, sd_id__choice.betaIntercept -> sd_id__beta_Intercept, cor_id__choice.alphaIntercept__choice.betaIntercept -> cor_id__alpha_Intercept__beta_Intercept 
+  failing: the taped joint density equals a Stan program's log_prob
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: alpha_Intercept -> b_alpha_Intercept, alpha_conditiontrt -> b_alpha_conditiontrt, beta_Intercept -> b_beta_Intercept, sd_id__choice.alphaIntercept -> sd_id__alpha_Intercept, sd_id__choice.betaIntercept -> sd_id__beta_Intercept, cor_id__choice.alphaIntercept__choice.betaIntercept -> cor_id__alpha_Intercept__beta_Intercept 
+  failing: the Stan identity holds away from the optimum too
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: alpha_Intercept -> b_alpha_Intercept, alpha_conditiontrt -> b_alpha_conditiontrt, beta_Intercept -> b_beta_Intercept, sd_id__choice.alphaIntercept -> sd_id__alpha_Intercept, sd_id__choice.betaIntercept -> sd_id__beta_Intercept, cor_id__choice.alphaIntercept__choice.betaIntercept -> cor_id__alpha_Intercept__beta_Intercept 
+  failing: the pieces add up to the total, at three granularities
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: alpha_Intercept -> b_alpha_Intercept, alpha_conditiontrt -> b_alpha_conditiontrt, beta_Intercept -> b_beta_Intercept, sd_id__choice.alphaIntercept -> sd_id__alpha_Intercept, sd_id__choice.betaIntercept -> sd_id__beta_Intercept, cor_id__choice.alphaIntercept__choice.betaIntercept -> cor_id__alpha_Intercept__beta_Intercept 
+  failing: the slots honor the stacking the correction imposes
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: alpha_Intercept -> b_alpha_Intercept, alpha_conditiontrt -> b_alpha_conditiontrt, beta_Intercept -> b_beta_Intercept, sd_id__choice.alphaIntercept -> sd_id__alpha_Intercept, sd_id__choice.betaIntercept -> sd_id__beta_Intercept, cor_id__choice.alphaIntercept__choice.betaIntercept -> cor_id__alpha_Intercept__beta_Intercept 
+  failing: deviance residuals are the per-trial factors
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: alpha_Intercept -> b_alpha_Intercept, alpha_conditiontrt -> b_alpha_conditiontrt, beta_Intercept -> b_beta_Intercept, sd_id__choice.alphaIntercept -> sd_id__alpha_Intercept, sd_id__choice.betaIntercept -> sd_id__beta_Intercept, cor_id__choice.alphaIntercept__choice.betaIntercept -> cor_id__alpha_Intercept__beta_Intercept 
+  failing: frm(importance =) corrects this family now
+       Error: newparams takes brms's parameter names, the ones variables() returns. Rename: alpha_Intercept -> b_alpha_Intercept, alpha_conditiontrt -> b_alpha_conditiontrt, beta_Intercept -> b_beta_Intercept, sd_id__choice.alphaIntercept -> sd_id__alpha_Intercept, sd_id__choice.betaIntercept -> sd_id__beta_Intercept, cor_id__choice.alphaIntercept__choice.betaIntercept -> cor_id__alpha_Intercept__beta_Intercept 
+DONE
