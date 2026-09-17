@@ -20,7 +20,7 @@ taper_weights <- function(m, taper, p) {
     # tapered fit throws away a little of each end of the series
     hann = 0.5 - 0.5 * cos(2 * pi * seq.int(0L, m - 1L) / m),
     split_cosine = stats::spec.taper(rep(1, m), p = p),
-    stop("Unknown taper: ", taper, call. = FALSE)
+    frm_stop("Unknown taper: ", taper, call. = FALSE)
   )
 }
 
@@ -40,7 +40,7 @@ detrend_series <- function(y, detrend) {
       tt <- seq_len(m) - (m + 1) / 2
       y - mean(y) - tt * (sum(tt * y) / sum(tt * tt))
     },
-    stop("Unknown detrend: ", detrend, call. = FALSE)
+    frm_stop("Unknown detrend: ", detrend, call. = FALSE)
   )
 }
 
@@ -52,18 +52,18 @@ detrend_series <- function(y, detrend) {
 pgram_one <- function(y, fs, taper, p, detrend, segments, label) {
   n <- length(y)
   if (!is.numeric(y) || anyNA(y)) {
-    stop("frm_periodogram(): series ", label,
-         " must be numeric with no NA", call. = FALSE)
+    frm_stop("frm_periodogram(): series ", label,
+             " must be numeric with no NA", call. = FALSE)
   }
   m <- n %/% segments
   # floor((m - 1) / 2) ordinates survive: index 0 always goes, and index
   # m / 2 goes as well when m is even
   nf <- (m - 1L) %/% 2L
   if (nf < 1L) {
-    stop("frm_periodogram(): series ", label, " has length ", n,
-         " and segments = ", segments, ", which leaves ", nf,
-         " usable ordinate(s). A segment needs at least 3 points, and ",
-         "far more than that to say anything", call. = FALSE)
+    frm_stop("frm_periodogram(): series ", label, " has length ", n,
+             " and segments = ", segments, ", which leaves ", nf,
+             " usable ordinate(s). A segment needs at least 3 points, and ",
+             "far more than that to say anything", call. = FALSE)
   }
   h <- taper_weights(m, taper, p)
   # sum(h^2) rather than m: the taper's own power is divided out, so
@@ -158,27 +158,28 @@ frm_periodogram <- function(x, fs = NULL,
                             taper = c("none", "hann", "split_cosine"),
                             p = 0.1, detrend = c("mean", "none", "linear"),
                             segments = 1L, group = NULL) {
-  taper <- match.arg(taper)
-  detrend <- match.arg(detrend)
+  taper <- frm_match_arg(taper)
+  detrend <- frm_match_arg(detrend)
   if (is.null(fs)) fs <- if (stats::is.ts(x)) stats::frequency(x) else 1
   if (!is.numeric(fs) || length(fs) != 1L || !is.finite(fs) || fs <= 0) {
-    stop("frm_periodogram(fs =) must be one positive number", call. = FALSE)
+    frm_stop("frm_periodogram(fs =) must be one positive number", call. = FALSE)
   }
   if (!is.numeric(p) || length(p) != 1L || is.na(p) || p <= 0 || p >= 0.5) {
-    stop("frm_periodogram(p =) must be one number in (0, 0.5)", call. = FALSE)
+    frm_stop("frm_periodogram(p =) must be one number in (0, 0.5)",
+             call. = FALSE)
   }
   segments <- as.integer(segments)
   if (length(segments) != 1L || is.na(segments) || segments < 1L) {
-    stop("frm_periodogram(segments =) must be one positive integer",
-         call. = FALSE)
+    frm_stop("frm_periodogram(segments =) must be one positive integer",
+             call. = FALSE)
   }
 
   # three input shapes, one internal shape: a named list of series
   multi <- TRUE
   if (is.matrix(x) || is.data.frame(x)) {
     if (!is.null(group)) {
-      stop("frm_periodogram(): give `group` with a vector `x`, not with a ",
-           "matrix, whose columns are already the series", call. = FALSE)
+      frm_stop("frm_periodogram(): give `group` with a vector `x`, not with a ",
+               "matrix, whose columns are already the series", call. = FALSE)
     }
     nms <- colnames(x) %||% paste0("V", seq_len(ncol(x)))
     series <- stats::setNames(
@@ -187,21 +188,21 @@ frm_periodogram <- function(x, fs = NULL,
         # as.numeric() on a factor returns level CODES, which would
         # transform quietly and mean nothing
         if (!is.numeric(col)) {
-          stop("frm_periodogram(): column ", nms[j], " is ", class(col)[1L],
-               ", not numeric", call. = FALSE)
+          frm_stop("frm_periodogram(): column ", nms[j], " is ", class(col)[1L],
+                   ", not numeric", call. = FALSE)
         }
         as.numeric(col)
       }), nms)
   } else if (!is.null(group)) {
     x <- as.numeric(x)
     if (length(group) != length(x)) {
-      stop("frm_periodogram(): `group` has length ", length(group),
-           " and `x` has length ", length(x), call. = FALSE)
+      frm_stop("frm_periodogram(): `group` has length ", length(group),
+               " and `x` has length ", length(x), call. = FALSE)
     }
     if (anyNA(group)) {
-      stop("frm_periodogram(): `group` has NA, and the rows it labels ",
-           "would be dropped from every series without saying so",
-           call. = FALSE)
+      frm_stop("frm_periodogram(): `group` has NA, and the rows it labels ",
+               "would be dropped from every series without saying so",
+               call. = FALSE)
     }
     g <- factor(group, levels = unique(as.character(group)))
     series <- split(x, g)
@@ -336,16 +337,16 @@ whittle_valid_y <- function(tapers) {
   force(tapers)
   function(y, aterms) {
     if (!is.numeric(y) || any(!is.finite(y))) {
-      stop("whittle: the response must be finite periodogram ordinates",
-           call. = FALSE)
+      frm_stop("whittle: the response must be finite periodogram ordinates",
+               call. = FALSE)
     }
     if (any(y <= 0)) {
-      stop("whittle: the response must be strictly positive. A ",
-           "periodogram ordinate is a squared modulus; a response that ",
-           "goes negative is log power or power in dB, which is not what ",
-           "this likelihood is about. Model log power by fitting the ",
-           "ordinates themselves - the log link already puts the linear ",
-           "predictor on the log-spectrum scale", call. = FALSE)
+      frm_stop("whittle: the response must be strictly positive. A ",
+               "periodogram ordinate is a squared modulus; a response that ",
+               "goes negative is log power or power in dB, which is not what ",
+               "this likelihood is about. Model log power by fitting the ",
+               "ordinates themselves - the log link already puts the linear ",
+               "predictor on the log-spectrum scale", call. = FALSE)
     }
     # below this the null is too wide for any threshold to separate a
     # smoothed periodogram from a rough one, and a series that short
@@ -354,26 +355,26 @@ whittle_valid_y <- function(tapers) {
     v <- stats::var(diff(log(y), lag = whittle_diff_lag))
     thr <- whittle_smooth_frac(length(y)) * 2 * trigamma(tapers)
     if (v < thr) {
-      stop("whittle(tapers = ", tapers, "): the response is far too ",
-           "smooth to be that. var(diff(log(y), lag = ",
-           whittle_diff_lag, ")) is ",
-           format(signif(v, 3)), ", the refusal triggers below ",
-           format(signif(thr, 3)), ", and ordinates of shape ", tapers,
-           " have an expected ", format(signif(2 * trigamma(tapers), 3)),
-           " whatever the spectrum is, since only the spectrum's own ",
-           "step-to-step variation adds to it. Two things look like ",
-           "this. (1) The ordinates were already averaged - Welch, ",
-           "Bartlett, multitaper - and this family says they are raw: ",
-           "pass tapers = the number of periodograms that were ",
-           "averaged. (2) They are spectral leakage rather than signal, ",
-           "which is what an untapered periodogram returns for a ",
-           "spectrum falling faster than f^-2, and the estimate from it ",
-           "would be the leakage floor rather than the spectrum: pass ",
-           "taper = \"hann\" to frm_periodogram(). If you already ",
-           "tapered, that is not the cause: the statistic compares ",
-           "ordinates ", whittle_diff_lag, " apart, which the tapers ",
-           "frm_periodogram() applies leave uncorrelated",
-           call. = FALSE)
+      frm_stop("whittle(tapers = ", tapers, "): the response is far too ",
+               "smooth to be that. var(diff(log(y), lag = ",
+               whittle_diff_lag, ")) is ",
+               format(signif(v, 3)), ", the refusal triggers below ",
+               format(signif(thr, 3)), ", and ordinates of shape ", tapers,
+               " have an expected ", format(signif(2 * trigamma(tapers), 3)),
+               " whatever the spectrum is, since only the spectrum's own ",
+               "step-to-step variation adds to it. Two things look like ",
+               "this. (1) The ordinates were already averaged - Welch, ",
+               "Bartlett, multitaper - and this family says they are raw: ",
+               "pass tapers = the number of periodograms that were ",
+               "averaged. (2) They are spectral leakage rather than signal, ",
+               "which is what an untapered periodogram returns for a ",
+               "spectrum falling faster than f^-2, and the estimate from it ",
+               "would be the leakage floor rather than the spectrum: pass ",
+               "taper = \"hann\" to frm_periodogram(). If you already ",
+               "tapered, that is not the cause: the statistic compares ",
+               "ordinates ", whittle_diff_lag, " apart, which the tapers ",
+               "frm_periodogram() applies leave uncorrelated",
+               call. = FALSE)
     }
     invisible(NULL)
   }
@@ -500,9 +501,9 @@ whittle_valid_y <- function(tapers) {
 whittle <- function(tapers = 1, link = "log") {
   if (!is.numeric(tapers) || length(tapers) != 1L || is.na(tapers) ||
         tapers < 1 || tapers != round(tapers)) {
-    stop("whittle(tapers =) must be one positive whole number: the count ",
-         "of independent periodograms averaged into each ordinate",
-         call. = FALSE)
+    frm_stop("whittle(tapers =) must be one positive whole number: the count ",
+             "of independent periodograms averaged into each ordinate",
+             call. = FALSE)
   }
   tapers <- as.integer(tapers)
   fam <- if (tapers == 1L) fam_exponential(link) else fam_Gamma(link)
@@ -540,15 +541,15 @@ whittle <- function(tapers = 1, link = "log") {
 pgram_grid <- function(f) {
   nf <- length(f)
   if (nf < 2L || is.unsorted(f) || any(!is.finite(f)) || f[1L] <= 0) {
-    stop("frm_series_draw(): the frequencies must be an increasing ",
-         "Fourier grid with no zero ordinate", call. = FALSE)
+    frm_stop("frm_series_draw(): the frequencies must be an increasing ",
+             "Fourier grid with no zero ordinate", call. = FALSE)
   }
   delta <- f[1L]
   if (max(abs(f - delta * seq_len(nf))) > 1e-8 * delta * nf) {
-    stop("frm_series_draw(): the frequencies are not one evenly spaced ",
-         "grid starting at the spacing. Several series stacked in one ",
-         "data frame look like this; draw from one of them by passing ",
-         "its rows as `newdata`", call. = FALSE)
+    frm_stop("frm_series_draw(): the frequencies are not one evenly spaced ",
+             "grid starting at the spacing. Several series stacked in one ",
+             "data frame look like this; draw from one of them by passing ",
+             "its rows as `newdata`", call. = FALSE)
   }
   delta
 }
@@ -600,13 +601,13 @@ pgram_grid <- function(f) {
 frm_series_draw <- function(object, nsim = 1, seed = NULL, newdata = NULL,
                             freq = "freq", ...) {
   if (!inherits(object, "frmtmb_fit")) {
-    stop("frm_series_draw(object =) must be a frmtmb_fit", call. = FALSE)
+    frm_stop("frm_series_draw(object =) must be a frmtmb_fit", call. = FALSE)
   }
   rspec <- single_response(object, "frm_series_draw()")
   if (!identical(rspec$family[["family"]], "whittle")) {
-    stop("frm_series_draw() needs a whittle() fit: it reads the fitted ",
-         "values as a spectral density, and for family '",
-         rspec$family[["family"]], "' they are not one", call. = FALSE)
+    frm_stop("frm_series_draw() needs a whittle() fit: it reads the fitted ",
+             "values as a spectral density, and for family '",
+             rspec$family[["family"]], "' they are not one", call. = FALSE)
   }
   check_count(nsim, "nsim", min = 1L)
   dat <- newdata %||% object$frame[["data_frame"]]
@@ -614,22 +615,22 @@ frm_series_draw <- function(object, nsim = 1, seed = NULL, newdata = NULL,
     f <- as.numeric(freq)
   } else if (is.character(freq) && length(freq) == 1L) {
     if (!freq %in% names(dat)) {
-      stop("frm_series_draw(): no column '", freq, "' in the data the ",
-           "spectrum comes from. A model written in terms of a ",
-           "transformed frequency (angular frequency, log frequency) ",
-           "keeps no frequency column, so pass the frequencies ",
-           "themselves: freq = pg$freq", call. = FALSE)
+      frm_stop("frm_series_draw(): no column '", freq, "' in the data the ",
+               "spectrum comes from. A model written in terms of a ",
+               "transformed frequency (angular frequency, log frequency) ",
+               "keeps no frequency column, so pass the frequencies ",
+               "themselves: freq = pg$freq", call. = FALSE)
     }
     f <- as.numeric(dat[[freq]])
   } else {
-    stop("frm_series_draw(freq =) must be one column name or the ",
-         "frequencies themselves", call. = FALSE)
+    frm_stop("frm_series_draw(freq =) must be one column name or the ",
+             "frequencies themselves", call. = FALSE)
   }
   s <- as.numeric(stats::predict(object, newdata = newdata,
                                  type = "response", ...))
   if (length(s) != length(f)) {
-    stop("frm_series_draw(): ", length(s), " fitted values for ",
-         length(f), " frequencies", call. = FALSE)
+    frm_stop("frm_series_draw(): ", length(s), " fitted values for ",
+             length(f), " frequencies", call. = FALSE)
   }
   ord <- order(f)
   f <- f[ord]

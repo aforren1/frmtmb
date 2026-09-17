@@ -181,7 +181,8 @@ test_that("the family refuses what it cannot do, by name", {
   expect_error(royston_parmar(knots = "a"), "numeric vector on the LOG")
   expect_error(royston_parmar(df = 4, knots = c(0, 1)), "disagree")
   expect_error(royston_parmar(bknots = 1), "two boundary knots")
-  expect_error(royston_parmar(scale = "hazards"), "should be one of")
+  expect_error(royston_parmar(scale = "hazards"), "`scale` must be one of",
+               class = "frmtmb_spline_error")
   # a density with no knots yet cannot be evaluated
   fam <- royston_parmar(df = 2)
   expect_error(fam[["lpdf"]](1, list(mu = 0, gamma1 = 1, gamma2 = 0), list()),

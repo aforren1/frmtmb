@@ -1,0 +1,92 @@
+rows 29 
+
+[1] test-cross-spectrum.R
+    frm_cross_spectrum(p$x, p$y, window = "hamming") #1
+    simpleError/error/condition | 'arg' should be one of "none", "hann"
+[2] test-gddm-family.R
+    gddm_control(tridiagonal = "magic") #1
+    simpleError/error/condition | 'arg' should be one of "recorded", "atomic"
+[3] test-draws-methods.R
+    posterior_interval(cs$ds, variable = "nope") #1
+    simpleError/error/condition | The following variables are missing in the draws object: {'nope'}
+[4] test-draws-methods.R
+    rhat(cs$ds, "^b_x$") #1
+    simpleError/error/condition | The following variables are missing in the draws object: {'^b_x$'}
+[5] test-draws-methods.R
+    neff_ratio(cs$ds, "nosuchvariable") #1
+    simpleError/error/condition | The following variables are missing in the draws object: {'nosuchvariable'}
+[6] test-sample-direct.R
+    hypothesis(ds, "`(Intercept)` > 0") #1
+    simpleError/error/condition | object '(Intercept)' not found
+[7] test-royston-parmar.R
+    royston_parmar(scale = "hazards") #1
+    simpleError/error/condition | 'arg' should be one of "hazard", "odds", "normal"
+[8] tests/testthat/test-arg-refusal.R
+    fitted(fit, scale = "latent") #1
+    simpleError/error/condition | 'arg' should be one of "response", "linear"
+[9] tests/testthat/test-brms-agreement.R
+    suppressMessages(brms::make_stancode(brms::bf(y | weights(x) ~ 1 + ar(week, subj, cov = TRUE)), data = transform(d, x = abs(d$x) + 1), family = gaussi
+    brms_error/rlang_error/error/condition | Invalid addition arguments for this model.
+[10] tests/testthat/test-brms-likelihood.R
+    stan_pars_from_fit(fit, brms_standata(bform, data = d19, family = gaussian(), prior = prior, data2 = list(W = wmat)), code) #1
+    simpleError/error/condition | brms parameterizes a bym2 field on a different set of latent variables than frmtmb; see dev/brms-likelihood-te
+[11] tests/testthat/test-brms-methods.R
+    brms::ranef(brms_shape("rfac")$brmsfit) #1
+    brms_error/rlang_error/error/condition | The model does not contain group-level effects.
+[12] tests/testthat/test-brms-methods.R
+    conditional_effects(s$fit, effects = "x", method = "nope") #1
+    simpleError/error/condition | 'arg' should be one of "epred", "predict"
+[13] tests/testthat/test-brms-methods.R
+    brms::posterior_epred(s$brmsfit, newdata = drop) #1
+    brms_error/rlang_error/error/condition | The following variables can neither be found in 'data' nor in 'data2':
+'z'
+[14] tests/testthat/test-brms-methods.R
+    predict(s$fit, newdata = drop, type = "response") #1
+    simpleError/error/condition | object 'z' not found
+[15] tests/testthat/test-brms-methods.R
+    brms::posterior_epred(s$brmsfit, newdata = ndn) #1
+    brms_error/rlang_error/error/condition | New factor levels are not allowed.
+Levels allowed: 'a', 'b', 'c'
+Levels found: 'a', 'zz'
+[16] tests/testthat/test-brms-methods.R
+    predict(s$fit, newdata = ndn, type = "response") #1
+    simpleError/error/condition | factor f has new levels zz
+[17] tests/testthat/test-conditions.R
+    tryCatch(site_a(3), frmtmb_error = function(e) NULL) #1
+    simpleError/error/condition | bad x: 3
+[18] tests/testthat/test-get-prior-route.R
+    get_prior(bf(y ~ x) + gaussian(), data = dd, route = "sampling") #1
+    simpleError/error/condition | 'arg' should be one of "fit", "sample"
+[19] tests/testthat/test-interop.R
+    frmtmb:::getME.frmtmb_fit(mv, "Zt") #1
+    simpleError/error/condition | error in evaluating the argument 'x' in selecting a method for function 't': Multiple responses have dpar 'mu'
+[20] tests/testthat/test-mo-terms.R
+    stan_pars_from_fit(fit, sdat, code) #1
+    simpleError/error/condition | Stan parameter simo_sigma_1 is a monotonic simplex outside mu, which has no translation rule
+[21] tests/testthat/test-nl-lexical.R
+    frm(form + gaussian(), data = d, dry_run = "frame", start = list(beta = 1)) #1
+    simpleError/error/condition | invalid type (list) for variable 'tab'
+[22] tests/testthat/test-nl-lexical.R
+    frm(bf(y ~ b0 * short, b0 ~ 1, nl = TRUE) + gaussian(), data = d, dry_run = "frame", start = list(beta = 1)) #1
+    simpleError/error/condition | variable lengths differ (found for 'short')
+[23] tests/testthat/test-nl-lexical.R
+    frm(bf(y ~ b0 * no_such_thing, b0 ~ 1, nl = TRUE) + gaussian(), data = d, dry_run = "frame", start = list(beta = 1)) #1
+    simpleError/error/condition | object 'no_such_thing' not found
+[24] tests/testthat/test-numerical-robustness.R
+    stats::binomial(link = "softit") #1
+    simpleError/error/condition | 'softit' link not recognised
+[25] tests/testthat/test-prior-compat.R
+    frm(loss_form(), data = dd, priors = pl) #1
+    simpleError/error/condition | unused argument (priors = pl)
+[26] tests/testthat/test-prior-compat.R
+    frm_simulate(bf(y ~ x) + gaussian(), data.frame(x = 1:5, y = 0), priors = pl) #1
+    simpleError/error/condition | unused argument (priors = pl)
+[27] tests/testthat/test-priors-bounds-grcov.R
+    frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd, lower = c(x = 1)) #1
+    simpleError/error/condition | unused argument (lower = c(x = 1))
+[28] tests/testthat/test-priors-bounds-grcov.R
+    frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd, upper = c(x = 1)) #1
+    simpleError/error/condition | unused argument (upper = c(x = 1))
+[29] tests/testthat/test-tabular-inputs.R
+    frm(bf(y ~ lc + (1 | g)) + gaussian(), data = d) #1
+    simpleError/error/condition | invalid type (list) for variable 'lc'

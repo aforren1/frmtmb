@@ -1,0 +1,6 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 16 PASS 146 FAIL 0 ERROR 2 SKIP 0  tests/testthat/test-conditions.R
+  failing: the frame check searches an environment data as model.frame()
+       <frmtmb_error/error/condition> Error: The model uses `xq`, which is not a column of `data` and not an object that R finds from the formula. Add the column to `data` or correct the name 
+  failing: an unsupported term and `.` are refused as what they are
+       Error in `sar(Wm)`: could not find function "sar" 

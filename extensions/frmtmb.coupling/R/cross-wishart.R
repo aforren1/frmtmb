@@ -369,43 +369,43 @@ cw_init_coh <- function(y, aterms) {
 #' @noRd
 cw_valid_y <- function(y, aterms) {
   if (any(!is.finite(y)) || any(y <= 0)) {
-    stop("the response of cross_wishart() is an auto-spectrum and must ",
-         "be positive and finite in every row.", call. = FALSE)
+    frm_stop("the response of cross_wishart() is an auto-spectrum and must ",
+             "be positive and finite in every row.", call. = FALSE)
   }
   n <- aterms[["vint1"]]
   w22 <- aterms[["vreal1"]]
   w12r <- aterms[["vreal2"]]; w12i <- aterms[["vreal3"]]
   if (any(!is.finite(w22)) || any(w22 <= 0)) {
-    stop("the second auto-spectrum, vreal1, must be positive and finite ",
-         "in every row.", call. = FALSE)
+    frm_stop("the second auto-spectrum, vreal1, must be positive and finite ",
+             "in every row.", call. = FALSE)
   }
   if (any(!is.finite(w12r)) || any(!is.finite(w12i))) {
-    stop("the cross-spectrum, vreal2 and vreal3, holds a missing or ",
-         "non-finite value.", call. = FALSE)
+    frm_stop("the cross-spectrum, vreal2 and vreal3, holds a missing or ",
+             "non-finite value.", call. = FALSE)
   }
   bad <- which(n < 2)
   if (length(bad)) {
-    stop("cross_wishart() needs at least 2 degrees of freedom per row ",
-         "and row ", bad[1L], " has ", n[bad[1L]],
-         ". One complex draw gives a rank-one matrix whose coherence is ",
-         "exactly 1 whatever the signals did; use more segments, more ",
-         "tapers, or a wider smooth.", call. = FALSE)
+    frm_stop("cross_wishart() needs at least 2 degrees of freedom per row ",
+             "and row ", bad[1L], " has ", n[bad[1L]],
+             ". One complex draw gives a rank-one matrix whose coherence is ",
+             "exactly 1 whatever the signals did; use more segments, more ",
+             "tapers, or a wider smooth.", call. = FALSE)
   }
   det <- y * w22 - w12r^2 - w12i^2
   bad <- which(!(det > 0))
   if (length(bad)) {
-    stop("the cross-spectral matrix in row ", bad[1L],
-         " is not positive definite: its determinant is ",
-         signif(det[bad[1L]], 4),
-         ". A coherence of 1 to machine precision does this, and so does ",
-         "assembling the four columns in the wrong order.", call. = FALSE)
+    frm_stop("the cross-spectral matrix in row ", bad[1L],
+             " is not positive definite: its determinant is ",
+             signif(det[bad[1L]], 4),
+             ". A coherence of 1 to machine precision does this, and so does ",
+             "assembling the four columns in the wrong order.", call. = FALSE)
   }
   if (any(n < 4)) {
-    warning("cross_wishart() has fewer than 4 degrees of freedom in ",
-            sum(n < 4), " of ", length(n),
-            " rows. The density exists at 2, but a coherence from that ",
-            "few draws carries a standard deviation near 0.29 and its ",
-            "variance component will not identify.", call. = FALSE)
+    frm_warning("cross_wishart() has fewer than 4 degrees of freedom in ",
+                sum(n < 4), " of ", length(n),
+                " rows. The density exists at 2, but a coherence from that ",
+                "few draws carries a standard deviation near 0.29 and its ",
+                "variance component will not identify.", call. = FALSE)
   }
   invisible(TRUE)
 }

@@ -1,0 +1,4 @@
+"file"	"class"	"message"
+"tests/testthat/test-numerical-robustness.R"	"frmtmb_error/error/condition"	"huber(k =): the tuning constant must be one finite positive number; 1.345 (the default, and MASS::rlm()'s) gives 95% efficiency against a gaussian"
+"tests/testthat/test-numerical-robustness.R"	"frmtmb_error/error/condition"	"huber(k =): the tuning constant must be one finite positive number; 1.345 (the default, and MASS::rlm()'s) gives 95% efficiency against a gaussian"
+"tests/testthat/test-numerical-robustness.R"	"simpleError/error/condition"	"'softit' link not recognised"

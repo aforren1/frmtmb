@@ -1,0 +1,3 @@
+"file"	"class"	"message"
+"tests/testthat/test-brms-likelihood.R"	"frmtmb_error/error/condition"	"ar(): only the residual-covariance formulation is implemented, so the call needs cov = TRUE: ar(time, g, cov = TRUE). brms's default cov = FALSE is the residual-regression form, a different likelihood (it conditions on the first observations of each group rather than giving them their stationary dis"
+"tests/testthat/test-brms-likelihood.R"	"simpleError/error/condition"	"brms parameterizes a bym2 field on a different set of latent variables than frmtmb; see dev/brms-likelihood-tests.md"

@@ -1,0 +1,6 @@
+normal(0)          simpleError/error/condition | length(pars) == 2 is not TRUE
+student_t(3, 0)    simpleError/error/condition | length(pars) == 3 is not TRUE
+exponential(-1)    simpleError/error/condition | pars[1] > 0 is not TRUE
+gamma(1)           simpleError/error/condition | length(pars) == 2 is not TRUE
+lkj()              simpleError/error/condition | length(pars) == 1 is not TRUE
+hmm_starts(1): simpleError error condition | $ operator is invalid for atomic vectors 

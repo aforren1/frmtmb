@@ -68,17 +68,17 @@ draws_subsample <- function(x, ndraws, draw_ids = NULL) {
   n <- nrow(x$draws)
   if (!is.null(draw_ids)) {
     if (!is.null(ndraws)) {
-      stop("`ndraws` and `draw_ids` both choose which draws to use, so ",
-           "only one of them can be given: `ndraws` takes an evenly ",
-           "spaced subsample of that size, `draw_ids` takes the rows ",
-           "you name", call. = FALSE)
+      frm_stop("`ndraws` and `draw_ids` both choose which draws to use, so ",
+               "only one of them can be given: `ndraws` takes an evenly ",
+               "spaced subsample of that size, `draw_ids` takes the rows ",
+               "you name", call. = FALSE)
     }
     ok <- is.numeric(draw_ids) && length(draw_ids) &&
       !anyNA(draw_ids) && all(draw_ids == round(draw_ids)) &&
       all(draw_ids >= 1L) && all(draw_ids <= n)
     if (!ok) {
-      stop("`draw_ids` must be whole numbers between 1 and ", n,
-           ", the number of draws", call. = FALSE)
+      frm_stop("`draw_ids` must be whole numbers between 1 and ", n,
+               ", the number of draws", call. = FALSE)
     }
     return(as.integer(draw_ids))
   }
@@ -95,14 +95,14 @@ summary.frmtmb_draws <- function(object, priors = FALSE, prob = 0.95,
   check_flag(mc_se, "mc_se")
   check_probability(prob, "prob")
   if (priors) {
-    stop("summary(priors = TRUE) has no table to add the priors to: ",
-         "this summary is a matrix of the parameters, not brms's ",
-         "summary object. prior_summary(object) reports the priors ",
-         "the draws were taken under", call. = FALSE)
+    frm_stop("summary(priors = TRUE) has no table to add the priors to: ",
+             "this summary is a matrix of the parameters, not brms's ",
+             "summary object. prior_summary(object) reports the priors ",
+             "the draws were taken under", call. = FALSE)
   }
   if (!requireNamespace("posterior", quietly = TRUE)) {
-    stop("summary() on draws needs the 'posterior' package: its ",
-         "columns are brms's, which posterior computes", call. = FALSE)
+    frm_stop("summary() on draws needs the 'posterior' package: its ",
+             "columns are brms's, which posterior computes", call. = FALSE)
   }
   keep <- draws_outer_cols(object)
   probs <- c((1 - prob) / 2, 1 - (1 - prob) / 2)
@@ -174,12 +174,12 @@ VarCorr.frmtmb_draws <- function(x, sigma = 1, summary = TRUE,
   fit <- draws_base_fit(x)
   lay <- varcorr_layout(fit)
   if (!length(lay$groups) && is.null(lay$residual)) {
-    stop("The model does not contain covariance matrices.", call. = FALSE)
+    frm_stop("The model does not contain covariance matrices.", call. = FALSE)
   }
   if (length(lay$groups) && draws_is_laplace(x) &&
         is.null(draws_par_index(fit)$theta)) {
-    stop("VarCorr() found no covariance parameters in these draws",
-         call. = FALSE)
+    frm_stop("VarCorr() found no covariance parameters in these draws",
+             call. = FALSE)
   }
   per <- draws_varcorr_values(x, lay)
   keys <- names(per[[1L]])
@@ -245,7 +245,7 @@ ranef.frmtmb_draws <- function(object, summary = TRUE, robust = FALSE,
   fit <- draws_base_fit(object)
   lay <- draws_ranef_layout(object)
   if (!length(lay)) {
-    stop("The model does not contain group-level effects.", call. = FALSE)
+    frm_stop("The model does not contain group-level effects.", call. = FALSE)
   }
   if (!is.null(pars)) pars <- as.character(pars)
   keep <- names(lay)
@@ -280,12 +280,12 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
                                     alpha = 0.05, robust = FALSE,
                                     seed = NULL, ...) {
   frm_check_dots(...)
-  scope <- match.arg(scope)
+  scope <- frm_match_arg(scope)
   check_flag(robust, "robust")
   check_probability(alpha, "alpha")
   if (!is.null(seed)) set.seed(seed)
   if (!is.character(hypothesis) || !length(hypothesis)) {
-    stop("Argument 'hypothesis' must be a character vector.", call. = FALSE)
+    frm_stop("Argument 'hypothesis' must be a character vector.", call. = FALSE)
   }
   if (scope != "standard") {
     return(draws_hypothesis_coef(x, hypothesis, group, scope, alpha,
@@ -310,10 +310,10 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
   cn <- colnames(x$draws)
   twice <- intersect(from_cols, cn[duplicated(cn)])
   if (length(twice)) {
-    stop("hypothesis() cannot read ", paste0("'", twice, "'",
-                                             collapse = ", "),
-         ": the draws carry that name on more than one column",
-         call. = FALSE)
+    frm_stop("hypothesis() cannot read ", paste0("'", twice, "'",
+                                                 collapse = ", "),
+             ": the draws carry that name on more than one column",
+             call. = FALSE)
   }
   need_env <- length(intersect(used, env_names)) > 0L
   idx <- draws_par_index(fit)
@@ -567,13 +567,13 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
   re_form <- re_form_arg(re_formula, re.form, "posterior_linpred()")
   dpar <- draws_dpar_arg(dpar, nlpar, "posterior_linpred()")
   if (!is.null(incl_thres) && !identical(incl_thres, FALSE)) {
-    stop("posterior_linpred(incl_thres = TRUE) subtracts an ordinal ",
-         "family's thresholds from the linear predictor, which brms ",
-         "supports for cumulative families alone. frmtmb keeps the ",
-         "thresholds out of the predictor: predict(type = \"link\") ",
-         "and this function return the latent predictor itself, and ",
-         "the thresholds are coefficients you can read off ",
-         "posterior_summary()", call. = FALSE)
+    frm_stop("posterior_linpred(incl_thres = TRUE) subtracts an ordinal ",
+             "family's thresholds from the linear predictor, which brms ",
+             "supports for cumulative families alone. frmtmb keeps the ",
+             "thresholds out of the predictor: predict(type = \"link\") ",
+             "and this function return the latent predictor itself, and ",
+             "the thresholds are coefficients you can read off ",
+             "posterior_summary()", call. = FALSE)
   }
   idx <- draws_par_index(object$fit)
   rows <- draws_subsample(object, ndraws, draw_ids)
@@ -608,10 +608,10 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
 draws_dpar_arg <- function(dpar, nlpar, what) {
   if (is.null(nlpar)) return(dpar)
   if (!is.null(dpar)) {
-    stop(what, " was given both `dpar` and `nlpar`. frmtmb asks for a ",
-         "non-linear parameter by the same `dpar` name a family's own ",
-         "parameters use, so the two are one setting here. Pass one of ",
-         "them", call. = FALSE)
+    frm_stop(what, " was given both `dpar` and `nlpar`. frmtmb asks for a ",
+             "non-linear parameter by the same `dpar` name a family's own ",
+             "parameters use, so the two are one setting here. Pass one of ",
+             "them", call. = FALSE)
   }
   nlpar
 }
@@ -645,19 +645,19 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   re_form <- re_form_arg(re_formula, re.form, "posterior_predict()")
   check_flag(negative_rt, "negative_rt")
   if (negative_rt) {
-    stop("posterior_predict(negative_rt = TRUE) is brms's sign ",
-         "convention for its wiener family, which codes the lower ",
-         "boundary as a negative reaction time. frmtmb's ",
-         "evidence-accumulation families return the response and the ",
-         "time as they declare them; see the family's own ",
-         "documentation in frmtmb.eam", call. = FALSE)
+    frm_stop("posterior_predict(negative_rt = TRUE) is brms's sign ",
+             "convention for its wiener family, which codes the lower ",
+             "boundary as a negative reaction time. frmtmb's ",
+             "evidence-accumulation families return the response and the ",
+             "time as they declare them; see the family's own ",
+             "documentation in frmtmb.eam", call. = FALSE)
   }
   fit <- object$fit
   resp <- resp %||% names(fit$spec$responses)[1L]
   rspec <- fit$spec$responses[[resp]]
   if (!sim_can(rspec$family)) {
-    stop("posterior_predict(): family '", rspec$family[["family"]],
-         "' has no simulator yet", sim_note(rspec$family), call. = FALSE)
+    frm_stop("posterior_predict(): family '", rspec$family[["family"]],
+             "' has no simulator yet", sim_note(rspec$family), call. = FALSE)
   }
   idx <- draws_par_index(object$fit)
   rows <- draws_subsample(object, ndraws, draw_ids)
@@ -675,21 +675,21 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
     # the sequence, group and residual-correlation structures a
     # structured draw walks were built from the TRAINING rows and index
     # them; newdata rows appear in none of them
-    stop("posterior_predict(newdata =) is not supported for this ",
-         "model: its draws are structured (a hidden state sequence, a ",
-         "group-level latent class, or a correlated residual) and that ",
-         "structure indexes the rows the model was fitted on. Drop ",
-         "newdata to predict those rows", call. = FALSE)
+    frm_stop("posterior_predict(newdata =) is not supported for this ",
+             "model: its draws are structured (a hidden state sequence, a ",
+             "group-level latent class, or a correlated residual) and that ",
+             "structure indexes the rows the model was fitted on. Drop ",
+             "newdata to predict those rows", call. = FALSE)
   }
   if (!is.null(re_form) &&
       sim_is_structured(sim_context(fit, rspec, list(), aterms = av))) {
     # same reason from the other side: the structured draw IS a walk
     # over the fitted structure, so there is no "with the group effects
     # removed" version of it to hand back
-    stop("posterior_predict(re_formula =) is not supported for this ",
-         "model: its draws are structured, and the structure IS the ",
-         "group-level content a re_formula would remove. Drop the ",
-         "argument to draw from the fitted structure", call. = FALSE)
+    frm_stop("posterior_predict(re_formula =) is not supported for this ",
+             "model: its draws are structured, and the structure IS the ",
+             "group-level content a re_formula would remove. Drop the ",
+             "argument to draw from the fitted structure", call. = FALSE)
   }
   out <- NULL
   arr <- FALSE
@@ -772,18 +772,18 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
   frm_check_dots(..., .allow = TRUE, .unsupported = pp_check_retired_draws)
   if (missing(type)) type <- "dens_overlay"
   if (!is.character(type) || length(type) != 1L || is.na(type)) {
-    stop("pp_check(): `type` must be a single string", call. = FALSE)
+    frm_stop("pp_check(): `type` must be a single string", call. = FALSE)
   }
-  prefix <- match.arg(prefix)
+  prefix <- frm_match_arg(prefix)
   ndraws_given <- !missing(ndraws) || !missing(nsamples)
   if (!is.null(nsamples)) {
-    warning("Argument 'nsamples' is deprecated. Please use argument ",
-            "'ndraws' instead.", call. = FALSE)
+    frm_warning("Argument 'nsamples' is deprecated. Please use argument ",
+                "'ndraws' instead.", call. = FALSE)
     ndraws <- nsamples
   }
   if (!is.null(subset)) {
-    warning("Argument 'subset' is deprecated. Please use argument ",
-            "'draw_ids' instead.", call. = FALSE)
+    frm_warning("Argument 'subset' is deprecated. Please use argument ",
+                "'draw_ids' instead.", call. = FALSE)
     draw_ids <- subset
   }
   fun <- draws_bayesplot_fun(paste0(prefix, "_", type), "pp_check(type =)")
@@ -791,23 +791,23 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
   rspec <- if (is.null(resp)) single_response(fit, "pp_check()") else
     fit$spec$responses[[resp]]
   if (is.null(rspec)) {
-    stop("pp_check(resp = \"", resp, "\") names no response of this ",
-         "model; it has ", paste(names(fit$spec$responses),
-                                  collapse = ", "), call. = FALSE)
+    frm_stop("pp_check(resp = \"", resp, "\") names no response of this ",
+             "model; it has ", paste(names(fit$spec$responses),
+                                      collapse = ", "), call. = FALSE)
   }
   resp <- rspec$resp_name
   data <- newdata %||% fit$frame[["data_frame"]]
   fargs <- names(formals(fun))
   if ("group" %in% fargs) {
     if (is.null(group)) {
-      stop("Argument 'group' is required for ppc type '", type, "'.",
-           call. = FALSE)
+      frm_stop("Argument 'group' is required for ppc type '", type, "'.",
+               call. = FALSE)
     }
   }
   for (v in c(group, x)) {
     if (!is.character(v) || length(v) != 1L || !v %in% names(data)) {
-      stop("Variable '", v, "' could not be found in the data.",
-           call. = FALSE)
+      frm_stop("Variable '", v, "' could not be found in the data.",
+               call. = FALSE)
     }
   }
   if (!ndraws_given) {
@@ -825,12 +825,12 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
       ndraws <- NULL
     } else if (type %in% aps_types) {
       ndraws <- NULL
-      message("Using all posterior draws for ppc type '", type,
-              "' by default.")
+      frm_message("Using all posterior draws for ppc type '", type,
+                  "' by default.")
     } else {
       ndraws <- 10
-      message("Using 10 posterior draws for ppc type '", type,
-              "' by default.")
+      frm_message("Using 10 posterior draws for ppc type '", type,
+                  "' by default.")
     }
   }
   pred <- if (identical(type, "error_binned")) posterior_epred else
@@ -838,7 +838,7 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
   yrep <- pred(object, newdata = newdata, resp = resp, ndraws = ndraws,
                draw_ids = draw_ids, re_formula = re_formula)
   if (length(dim(yrep)) > 2L) {
-    stop("pp_check() on draws supports vector responses", call. = FALSE)
+    frm_stop("pp_check() on draws supports vector responses", call. = FALSE)
   }
   args <- list()
   take <- rep(TRUE, ncol(yrep))
@@ -846,7 +846,7 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
     y <- as.numeric(draws_response_values(fit, resp, newdata,
                                           "pp_check()"))
     if (anyNA(y)) {
-      warning("NA responses are not shown in 'pp_check'.", call. = FALSE)
+      frm_warning("NA responses are not shown in 'pp_check'.", call. = FALSE)
       take <- !is.na(y)
     }
     args$y <- y[take]
@@ -1024,16 +1024,16 @@ as.mcmc.frmtmb_draws <- function(x, pars = NA, fixed = FALSE,
                                  combine_chains = FALSE,
                                  inc_warmup = FALSE, ...) {
   if (!requireNamespace("coda", quietly = TRUE)) {
-    stop("as.mcmc() needs the 'coda' package; as_draws() and ",
-         "as.array() give the same draws without it", call. = FALSE)
+    frm_stop("as.mcmc() needs the 'coda' package; as_draws() and ",
+             "as.array() give the same draws without it", call. = FALSE)
   }
   check_flag(combine_chains, "combine_chains")
   check_flag(inc_warmup, "inc_warmup")
   if (inc_warmup) {
-    stop("as.mcmc(inc_warmup = TRUE) has nothing to include: the draws ",
-         "matrix holds the post-warmup draws only, which is what ",
-         "frm_sample() keeps. The warmup, if the sampler saved it, is ",
-         "in `x$stanfit`", call. = FALSE)
+    frm_stop("as.mcmc(inc_warmup = TRUE) has nothing to include: the draws ",
+             "matrix holds the post-warmup draws only, which is what ",
+             "frm_sample() keeps. The warmup, if the sampler saved it, is ",
+             "in `x$stanfit`", call. = FALSE)
   }
   sel <- draws_select_variables(x, pars, NULL, FALSE, fixed, "as.mcmc()")
   if (combine_chains) {
@@ -1202,8 +1202,8 @@ posterior_summary.frmtmb_draws <- function(x, pars = NA, variable = NULL,
 #' @noRd
 draws_extract_pars <- function(pars, all_pars, fixed = FALSE) {
   if (!(anyNA(pars) || is.character(pars))) {
-    stop("Argument 'pars' must be NA or a character vector.",
-         call. = FALSE)
+    frm_stop("Argument 'pars' must be NA or a character vector.",
+             call. = FALSE)
   }
   if (anyNA(pars)) return(all_pars)
   check_flag(fixed, "fixed")
@@ -1228,17 +1228,17 @@ draws_select_variables <- function(x, pars = NA, variable = NULL,
   }
   if (is.null(variable)) return(NULL)
   if (!is.character(variable)) {
-    stop(what, ": `variable` names variables and must be a character ",
-         "vector; variables(x) lists what is there", call. = FALSE)
+    frm_stop(what, ": `variable` names variables and must be a character ",
+             "vector; variables(x) lists what is there", call. = FALSE)
   }
   check_flag(regex, "regex")
   if (regex) return(draws_extract_pars(variable, all_pars))
   miss <- setdiff(variable, all_pars)
   if (length(miss)) {
-    stop(what, ": variable = names ", paste(miss, collapse = ", "),
-         ", which the draws do not contain. variables() lists what is ",
-         "there; the draws use brms's names (b_Intercept, not ",
-         "(Intercept))", call. = FALSE)
+    frm_stop(what, ": variable = names ", paste(miss, collapse = ", "),
+             ", which the draws do not contain. variables() lists what is ",
+             "there; the draws use brms's names (b_Intercept, not ",
+             "(Intercept))", call. = FALSE)
   }
   variable
 }
@@ -1288,11 +1288,11 @@ predictive_interval.frmtmb_draws <- function(object, prob = 0.9,
   yrep <- posterior_predict(object, newdata = newdata, resp = resp,
                             re_formula = re_form, ndraws = ndraws)
   if (length(dim(yrep)) > 2L) {
-    stop("predictive_interval() needs one predicted number per ",
-         "observation, and this model's draws are a matrix per ",
-         "observation (multinomial counts, mixture_mvn draws or lca ",
-         "item codes). Take the interval of the column you want from ",
-         "posterior_predict() yourself", call. = FALSE)
+    frm_stop("predictive_interval() needs one predicted number per ",
+             "observation, and this model's draws are a matrix per ",
+             "observation (multinomial counts, mixture_mvn draws or lca ",
+             "item codes). Take the interval of the column you want from ",
+             "posterior_predict() yourself", call. = FALSE)
   }
   a <- (1 - prob) / 2
   t(apply(yrep, 2L, stats::quantile, probs = c(a, 1 - a)))
@@ -1312,16 +1312,17 @@ predictive_error.frmtmb_draws <- function(object, newdata = NULL,
                                           resp = NULL, ndraws = NULL,
                                           draw_ids = NULL, ...) {
   re_form <- re_form_arg(re_formula, re.form, "predictive_error()")
-  method <- match.arg(method, c("posterior_predict", "posterior_epred"))
+  method <- frm_match_arg(method,
+                          c("posterior_predict", "posterior_epred"))
   fit <- draws_base_fit(object)
   resp <- resp %||% names(fit$spec$responses)[1L]
   y <- draws_response_values(fit, resp, newdata, "predictive_error()")
   if (is.matrix(y)) {
-    stop("predictive_error() needs a vector response; this one is a ",
-         "matrix (multinomial counts, mixture_mvn columns or lca ",
-         "items), and 'the' error of a row of counts is not defined. ",
-         "Subtract the column you want from posterior_predict() ",
-         "yourself", call. = FALSE)
+    frm_stop("predictive_error() needs a vector response; this one is a ",
+             "matrix (multinomial counts, mixture_mvn columns or lca ",
+             "items), and 'the' error of a row of counts is not defined. ",
+             "Subtract the column you want from posterior_predict() ",
+             "yourself", call. = FALSE)
   }
   # brms's `method`: the predictive draws the error is taken against,
   # either the predictive distribution or the expectation
@@ -1351,11 +1352,11 @@ draws_response_values <- function(fit, resp, newdata, what) {
   y <- tryCatch(eval(rspec$resp_expr, newdata, rspec$formula_env),
                 error = function(e) NULL)
   if (is.null(y) || length(y) != nrow(newdata)) {
-    stop(what, " needs the observed response to subtract from, and ",
-         "newdata does not supply '", deparse1(rspec$resp_expr),
-         "' for its ", nrow(newdata), " rows. Add the response column ",
-         "to newdata, or call posterior_predict(newdata =) and ",
-         "subtract your own", call. = FALSE)
+    frm_stop(what, " needs the observed response to subtract from, and ",
+             "newdata does not supply '", deparse1(rspec$resp_expr),
+             "' for its ", nrow(newdata), " rows. Add the response column ",
+             "to newdata, or call posterior_predict(newdata =) and ",
+             "subtract your own", call. = FALSE)
   }
   y
 }
@@ -1468,8 +1469,8 @@ coef.frmtmb_draws <- function(object, summary = TRUE, robust = FALSE,
   frm_check_dots(...)
   check_flag(summary, "summary")
   if (!length(draws_ranef_layout(object))) {
-    stop("No group-level effects detected. Call method 'fixef' to ",
-         "access population-level effects.", call. = FALSE)
+    frm_stop("No group-level effects detected. Call method 'fixef' to ",
+             "access population-level effects.", call. = FALSE)
   }
   fe <- fixef(object, summary = FALSE)
   co <- ranef(object, summary = FALSE)
@@ -1640,8 +1641,8 @@ mcmc_plot.frmtmb_draws <- function(object, pars = NA,
   a <- draws_raw_array(object)
   keep <- sel %||% draws_outer_cols(object)
   if (!length(keep)) {
-    stop("mcmc_plot(): no variable was selected. variables(x) lists ",
-         "what is there", call. = FALSE)
+    frm_stop("mcmc_plot(): no variable was selected. variables(x) lists ",
+             "what is there", call. = FALSE)
   }
   fun(a[, , keep, drop = FALSE], ...)
 }
@@ -1658,8 +1659,8 @@ pairs.frmtmb_draws <- function(x, pars = NA, variable = NULL,
   a <- draws_raw_array(x)
   keep <- sel %||% utils::head(draws_outer_cols(x), 4L)
   if (!length(keep)) {
-    stop("pairs(): no variable was selected. variables(x) lists what ",
-         "is there", call. = FALSE)
+    frm_stop("pairs(): no variable was selected. variables(x) lists what ",
+             "is there", call. = FALSE)
   }
   draws_bayesplot_fun("mcmc_pairs", "pairs()")(a[, , keep, drop = FALSE],
                                                ...)
@@ -1672,16 +1673,16 @@ pairs.frmtmb_draws <- function(x, pars = NA, variable = NULL,
 #' @noRd
 draws_bayesplot_fun <- function(nm, what) {
   if (!requireNamespace("bayesplot", quietly = TRUE)) {
-    stop(what, " needs the 'bayesplot' package; as.array() gives the ",
-         "draws in the layout bayesplot expects if you would rather ",
-         "call it yourself", call. = FALSE)
+    frm_stop(what, " needs the 'bayesplot' package; as.array() gives the ",
+             "draws in the layout bayesplot expects if you would rather ",
+             "call it yourself", call. = FALSE)
   }
   ns <- asNamespace("bayesplot")
   if (!exists(nm, envir = ns, inherits = FALSE)) {
-    stop(what, " asks for bayesplot::", nm, "(), which does not exist. ",
-         "The argument is the function name without its 'mcmc_' ",
-         "prefix, for example \"intervals\", \"trace\", \"areas\" or ",
-         "\"hist\"", call. = FALSE)
+    frm_stop(what, " asks for bayesplot::", nm, "(), which does not exist. ",
+             "The argument is the function name without its 'mcmc_' ",
+             "prefix, for example \"intervals\", \"trace\", \"areas\" or ",
+             "\"hist\"", call. = FALSE)
   }
   get(nm, envir = ns)
 }
@@ -1761,15 +1762,15 @@ neff_ratio.frmtmb_draws <- function(object, pars = NULL, regex = FALSE,
 #' @noRd
 draws_diag_array <- function(x, pars, regex, what) {
   if (!requireNamespace("posterior", quietly = TRUE)) {
-    stop(what, " needs the 'posterior' package: it computes the ",
-         "diagnostic brms reports, which is posterior's. The sampler's ",
-         "own classic split-R-hat and n_eff are in `x$stanfit` without ",
-         "it", call. = FALSE)
+    frm_stop(what, " needs the 'posterior' package: it computes the ",
+             "diagnostic brms reports, which is posterior's. The sampler's ",
+             "own classic split-R-hat and n_eff are in `x$stanfit` without ",
+             "it", call. = FALSE)
   }
   a <- draws_as_array(x)
   if (is.null(pars)) return(a)
   check_flag(regex, "regex")
-  posterior::subset_draws(a, variable = pars, regex = regex)
+  draws_subset_variable(a, pars, regex, what)
 }
 
 #' bayesplot's namespace, or an error naming the accessor that wanted it.
@@ -1777,9 +1778,9 @@ draws_diag_array <- function(x, pars, regex, what) {
 #' @noRd
 draws_bayesplot_ns <- function(what) {
   if (!requireNamespace("bayesplot", quietly = TRUE)) {
-    stop(what, " needs the 'bayesplot' package: it reads the sampler ",
-         "diagnostics off the stanfit, which is `ds$stanfit` if you ",
-         "would rather use rstan directly", call. = FALSE)
+    frm_stop(what, " needs the 'bayesplot' package: it reads the sampler ",
+             "diagnostics off the stanfit, which is `ds$stanfit` if you ",
+             "would rather use rstan directly", call. = FALSE)
   }
   asNamespace("bayesplot")
 }
@@ -1849,10 +1850,10 @@ pp_mixture.frmtmb_draws <- function(x, newdata = NULL,
                        "response, and newdata carries no response to ",
                        "classify")
   if (!is.null(resp) && !resp %in% names(x$fit$spec$responses)) {
-    stop("pp_mixture(resp = \"", resp, "\") names no response of this ",
-         "model; it has ",
-         paste(names(x$fit$spec$responses), collapse = ", "),
-         call. = FALSE)
+    frm_stop("pp_mixture(resp = \"", resp, "\") names no response of this ",
+             "model; it has ",
+             paste(names(x$fit$spec$responses), collapse = ", "),
+             call. = FALSE)
   }
   check_flag(log, "log")
   check_flag(summary, "summary")
@@ -1882,8 +1883,8 @@ draws_summarize_margin <- function(out, probs = c(0.025, 0.975),
                                    robust = FALSE) {
   if (!is.numeric(probs) || length(probs) != 2L || anyNA(probs) ||
         any(probs <= 0) || any(probs >= 1)) {
-    stop("probs must be two numbers strictly between 0 and 1",
-         call. = FALSE)
+    frm_stop("probs must be two numbers strictly between 0 and 1",
+             call. = FALSE)
   }
   qn <- paste0("Q", probs * 100)
   st <- array(NA_real_, c(dim(out)[2L], 4L, dim(out)[3L]),
@@ -1910,7 +1911,7 @@ draws_summarize_margin <- function(out, probs = c(0.025, 0.975),
 draws_refuse_newdata <- function(newdata, re_formula, re.form, what,
                                  ...) {
   if (!is.null(newdata)) {
-    stop(what, " does not take newdata. ", ..., call. = FALSE)
+    frm_stop(what, " does not take newdata. ", ..., call. = FALSE)
   }
   # core's marker class, read directly: `is_arg_unset()` is internal to
   # frmtmb while `arg_unset()` is the exported half of the pair.
@@ -1924,7 +1925,7 @@ draws_refuse_newdata <- function(newdata, re_formula, re.form, what,
     !inherits(v, "frmtmb_arg_unset") && !is.null(v)
   }
   if (asks(re_formula) || asks(re.form)) {
-    stop(what, " does not take re_formula. ", ..., call. = FALSE)
+    frm_stop(what, " does not take re_formula. ", ..., call. = FALSE)
   }
   invisible(NULL)
 }
@@ -1968,12 +1969,12 @@ stancode <- function(object, ...) UseMethod("stancode")
 #' @exportS3Method brms::stancode
 #' @export
 stancode.frmtmb_draws <- function(object, ...) {
-  stop("stancode() has no meaning for frmtmb: there is no Stan ",
-       "program. The model is an R closure built by build_objective() ",
-       "from the assembled frame and differentiated by RTMB, and the ",
-       "closure IS the source: print `ds$fit$obj$fn` for the ",
-       "evaluator and `ds$fit$frame` for everything baked into it",
-       call. = FALSE)
+  frm_stop("stancode() has no meaning for frmtmb: there is no Stan ",
+           "program. The model is an R closure built by build_objective() ",
+           "from the assembled frame and differentiated by RTMB, and the ",
+           "closure IS the source: print `ds$fit$obj$fn` for the ",
+           "evaluator and `ds$fit$frame` for everything baked into it",
+           call. = FALSE)
 }
 
 #' @rdname frmtmb-draws-refusals
@@ -1984,41 +1985,41 @@ standata <- function(object, ...) UseMethod("standata")
 #' @exportS3Method brms::standata
 #' @export
 standata.frmtmb_draws <- function(object, ...) {
-  stop("standata() has no meaning for frmtmb: nothing is exported to a ",
-       "Stan data list. The assembled frame `ds$fit$frame` holds the ",
-       "same content (the response, the design matrices, the sparse Z, ",
-       "the addition terms), and model.matrix(), getME() and ",
-       "model.frame() read the pieces of it individually",
-       call. = FALSE)
+  frm_stop("standata() has no meaning for frmtmb: nothing is exported to a ",
+           "Stan data list. The assembled frame `ds$fit$frame` holds the ",
+           "same content (the response, the design matrices, the sparse Z, ",
+           "the addition terms), and model.matrix(), getME() and ",
+           "model.frame() read the pieces of it individually",
+           call. = FALSE)
 }
 
 #' @rdname frmtmb-draws-refusals
 #' @exportS3Method brms::expose_functions
 #' @export
 expose_functions.frmtmb_draws <- function(x, ...) {
-  stop("expose_functions() has nothing to expose: brms compiles Stan ",
-       "functions and this makes them callable from R, while a frmtmb ",
-       "custom family is already plain R: the lpdf you passed to ",
-       "custom_family() is an R function you can call directly",
-       call. = FALSE)
+  frm_stop("expose_functions() has nothing to expose: brms compiles Stan ",
+           "functions and this makes them callable from R, while a frmtmb ",
+           "custom family is already plain R: the lpdf you passed to ",
+           "custom_family() is an R function you can call directly",
+           call. = FALSE)
 }
 
 
 #' @rdname frmtmb-draws-refusals
 #' @export
 plot.frmtmb_draws <- function(x, ...) {
-  stop("plot() has no display for frmtmb draws: brms's default panel ",
-       "is the trace-and-density view, which mcmc_plot(x) renders ",
-       "here (mcmc_plot(x, type = \"trace\") for the traces alone)",
-       call. = FALSE)
+  frm_stop("plot() has no display for frmtmb draws: brms's default panel ",
+           "is the trace-and-density view, which mcmc_plot(x) renders ",
+           "here (mcmc_plot(x, type = \"trace\") for the traces alone)",
+           call. = FALSE)
 }
 
 #' @rdname frmtmb-draws-refusals
 #' @export
 update.frmtmb_draws <- function(object, ...) {
-  stop("update() has no method for draws: the sampled object carries ",
-       "no formula to revise. update() the underlying frmtmb fit and ",
-       "frm_sample() the result", call. = FALSE)
+  frm_stop("update() has no method for draws: the sampled object carries ",
+           "no formula to revise. update() the underlying frmtmb fit and ",
+           "frm_sample() the result", call. = FALSE)
 }
 
 #' @rdname frmtmb-draws-refusals
@@ -2029,10 +2030,10 @@ restructure <- function(x, ...) UseMethod("restructure")
 #' @exportS3Method brms::restructure
 #' @export
 restructure.frmtmb_draws <- function(x, ...) {
-  stop("restructure() is brms's upgrade path for objects saved by an ",
-       "older brms; frmtmb has no such conversion. A draws object from ",
-       "an older frmtmb is re-created by re-running frm_sample()",
-       call. = FALSE)
+  frm_stop("restructure() is brms's upgrade path for objects saved by an ",
+           "older brms; frmtmb has no such conversion. A draws object from ",
+           "an older frmtmb is re-created by re-running frm_sample()",
+           call. = FALSE)
 }
 
 #' @rdname frmtmb-draws-refusals
@@ -2046,9 +2047,9 @@ posterior_samples <- function(x, pars = NA, ...) {
 #' @rawNamespace S3method(gratia::posterior_samples,frmtmb_draws)
 #' @export
 posterior_samples.frmtmb_draws <- function(x, pars = NA, ...) {
-  stop("posterior_samples() is the deprecated brms spelling. Use ",
-       "as_draws(x) for a posterior draws_matrix, as.matrix(x) for a ",
-       "plain matrix, or as.data.frame(x)", call. = FALSE)
+  frm_stop("posterior_samples() is the deprecated brms spelling. Use ",
+           "as_draws(x) for a posterior draws_matrix, as.matrix(x) for a ",
+           "plain matrix, or as.data.frame(x)", call. = FALSE)
 }
 
 #' @rdname frmtmb-draws-refusals
@@ -2059,9 +2060,9 @@ nsamples <- function(object, ...) UseMethod("nsamples")
 #' @exportS3Method rstantools::nsamples
 #' @export
 nsamples.frmtmb_draws <- function(object, ...) {
-  stop("nsamples() is the deprecated brms spelling. Use ndraws(x) for ",
-       "the pooled draw count, niterations(x) for the per-chain count",
-       call. = FALSE)
+  frm_stop("nsamples() is the deprecated brms spelling. Use ndraws(x) for ",
+           "the pooled draw count, niterations(x) for the per-chain count",
+           call. = FALSE)
 }
 
 #' @rdname frmtmb-draws-refusals
@@ -2072,7 +2073,7 @@ parnames <- function(x, ...) UseMethod("parnames")
 #' @exportS3Method brms::parnames
 #' @export
 parnames.frmtmb_draws <- function(x, ...) {
-  stop("parnames() is the deprecated brms spelling. Use variables(x), ",
-       "which lists the same names in brms's spelling (b_Intercept)",
-       call. = FALSE)
+  frm_stop("parnames() is the deprecated brms spelling. Use variables(x), ",
+           "which lists the same names in brms's spelling (b_Intercept)",
+           call. = FALSE)
 }

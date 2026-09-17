@@ -68,13 +68,13 @@ ddm_check_ndt_group_read <- function(spec, frame) {
     if (is.null(av[[rn]][["ndt_group"]])) next
     bd <- sp$responses[[rn]]$family[["ndt_bound"]]
     if (!is.null(bd) && !is.null(bd[["floors"]])) next
-    stop("ndt_group() was supplied for `", rn, "` and no family read ",
-         "it, so the term would travel into the fit unread and every ",
-         "row would be scored against one bound. Inside mixture() that ",
-         "is what happens: a mixture never finalizes its components, ",
-         "so their bound has to be max_ndt and the grouping cannot be ",
-         "used. Drop ndt_group(), or fit the component family on its ",
-         "own.", call. = FALSE)
+    frm_stop("ndt_group() was supplied for `", rn, "` and no family read ",
+             "it, so the term would travel into the fit unread and every ",
+             "row would be scored against one bound. Inside mixture() that ",
+             "is what happens: a mixture never finalizes its components, ",
+             "so their bound has to be max_ndt and the grouping cannot be ",
+             "used. Drop ndt_group(), or fit the component family on its ",
+             "own.", call. = FALSE)
   }
   invisible(NULL)
 }
@@ -92,11 +92,11 @@ ddm_coerce_dec <- function(x) {
   if (is.factor(x) || is.character(x) || is.logical(x)) {
     f <- if (is.factor(x)) x else factor(x)
     if (nlevels(f) != 2L) {
-      stop("dec(): a decision indicator has two levels, one per ",
-           "boundary, and this one has ", nlevels(f), ": ",
-           paste(levels(f), collapse = ", "),
-           ". Give it as a factor carrying both levels, or as a 0/1 ",
-           "column.", call. = FALSE)
+      frm_stop("dec(): a decision indicator has two levels, one per ",
+               "boundary, and this one has ", nlevels(f), ": ",
+               paste(levels(f), collapse = ", "),
+               ". Give it as a factor carrying both levels, or as a 0/1 ",
+               "column.", call. = FALSE)
     }
     return(as.numeric(as.integer(f) - 1L))
   }

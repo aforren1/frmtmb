@@ -1,0 +1,3 @@
+Error : bayes_R2() is computed per posterior draw and this is a maximum-likelihood fit. Install frmtmb.sample and sample first: bayes_R2(frm_sample(fit))
+
+RDEX-RESULT OK 

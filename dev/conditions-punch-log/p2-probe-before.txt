@@ -1,0 +1,4 @@
+env_parent  frmtmb_error/error/condition | The model uses `xq`, which is not a column of `data` and not an object that R finds from the formula
+sar_data2   frmtmb_error/error/condition | The model uses `Wm`, which is not a column of `data` and not an object that R finds from the formula
+fcor_data2  frmtmb_error/error/condition | The model uses `Vm`, which is not a column of `data` and not an object that R finds from the formula
+dot         frmtmb_error/error/condition | The model uses `.`, which is not a column of `data` and not an object that R finds from the formula.

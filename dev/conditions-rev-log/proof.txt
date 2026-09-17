@@ -1,0 +1,14 @@
+== unmutated
+files compared 113, mismatched 0, lines over 80 columns 0
+R/families.R
+== mutated_message
+MISMATCH R/families.R
+files compared 113, mismatched 1, lines over 80 columns 0
+      frm_stop(fn, "(): cov must be TRUE or FALSE")
+== mutated_callarg
+MISMATCH R/autocor.R
+files compared 113, mismatched 1, lines over 80 columns 0
+extensions/frmtmb.eam/R/ddm-shared.R
+== mutated_extension
+MISMATCH extensions/frmtmb.eam/R/ddm-shared.R
+files compared 113, mismatched 1, lines over 80 columns 0

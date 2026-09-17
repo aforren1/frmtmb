@@ -420,9 +420,9 @@ set_prior <- function(prior = "", class = "b", coef = "", group = "",
                dpar = dpar, nlpar = nlpar, lb = lb, ub = ub)
   n <- lengths(args)
   if (any(n == 0L) || any(max(n) %% n != 0L)) {
-    stop("set_prior() recycles its arguments into rows, so every ",
-         "argument needs a length that divides the longest; got ",
-         paste0(names(n), " = ", n, collapse = ", "), call. = FALSE)
+    frm_stop("set_prior() recycles its arguments into rows, so every ",
+             "argument needs a length that divides the longest; got ",
+             paste0(names(n), " = ", n, collapse = ", "), call. = FALSE)
   }
   rows <- lapply(seq_len(max(n)), function(i) {
     a <- lapply(args, function(v) v[[(i - 1L) %% length(v) + 1L]])
@@ -440,8 +440,8 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
   for (nm in c("coef", "group", "resp", "dpar", "nlpar")) {
     v <- get(nm)
     if (!is.character(v) || length(v) != 1L || is.na(v)) {
-      stop("`", nm, "` must be a string, not ", arg_desc(v),
-           call. = FALSE)
+      frm_stop("`", nm, "` must be a string, not ", arg_desc(v),
+               call. = FALSE)
     }
   }
   dist <- parse_prior_dist(prior)
@@ -453,12 +453,12 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
   lb <- parse_prior_bound(lb, "lb")
   ub <- parse_prior_bound(ub, "ub")
   if (is.null(dist) && is.na(lb) && is.na(ub)) {
-    stop("set_prior() needs a distribution, bounds, or both",
-         call. = FALSE)
+    frm_stop("set_prior() needs a distribution, bounds, or both",
+             call. = FALSE)
   }
   if (!is.character(class) || length(class) != 1L || is.na(class) ||
       !nzchar(class)) {
-    stop("`class` must be non-empty strings", call. = FALSE)
+    frm_stop("`class` must be non-empty strings", call. = FALSE)
   }
   natural <- !class %in% frmtmb_prior_classes
   if (natural) check_dpar_prior_class(class)
@@ -469,26 +469,26 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
   lkj_classes <- c("cor", "cortime", "rescor")
   is_lkj <- identical(dist$kind, "lkj")
   if (is_lkj && !class %in% lkj_classes) {
-    stop("lkj() is a density over a whole correlation matrix; it ",
-         "belongs to class = ",
-         paste(paste0("\"", lkj_classes, "\""), collapse = ", "),
-         " (got class = \"", class, "\")", call. = FALSE)
+    frm_stop("lkj() is a density over a whole correlation matrix; it ",
+             "belongs to class = ",
+             paste(paste0("\"", lkj_classes, "\""), collapse = ", "),
+             " (got class = \"", class, "\")", call. = FALSE)
   }
   if (class %in% lkj_classes && !is_lkj) {
-    stop("class = \"", class, "\" takes an lkj() prior, e.g. ",
-         "set_prior(\"lkj(2)\", class = \"", class, "\"): it addresses ",
-         "a whole correlation matrix, which no per-parameter ",
-         "distribution describes", call. = FALSE)
+    frm_stop("class = \"", class, "\" takes an lkj() prior, e.g. ",
+             "set_prior(\"lkj(2)\", class = \"", class, "\"): it addresses ",
+             "a whole correlation matrix, which no per-parameter ",
+             "distribution describes", call. = FALSE)
   }
   if (class %in% lkj_classes && (!is.na(lb) || !is.na(ub))) {
     # a bound belongs to ONE parameter, and these classes each name a
     # whole correlation matrix whose entries are not free of one
     # another; accepting it here would silently drop it
-    stop("class = \"", class, "\" takes no lb/ub: the bound would apply ",
-         "to a whole correlation matrix. Bound one parameter at a time ",
-         "with class = \"theta\", whose coef names an internal ",
-         "parameter (\"theta_1\", \"thetaac_1\", \"thetar_1\")",
-         call. = FALSE)
+    frm_stop("class = \"", class, "\" takes no lb/ub: the bound would apply ",
+             "to a whole correlation matrix. Bound one parameter at a time ",
+             "with class = \"theta\", whose coef names an internal ",
+             "parameter (\"theta_1\", \"thetaac_1\", \"thetar_1\")",
+             call. = FALSE)
   }
   # a nonlinear parameter is addressed by nlpar and a distributional
   # one by dpar; frmtmb's frame gives each its own linear predictor, so
@@ -496,26 +496,26 @@ set_prior_one <- function(prior, class, coef, group, resp, dpar, nlpar,
   # different things, which is a question about intent rather than a
   # setting to resolve
   if (nzchar(nlpar) && nzchar(dpar)) {
-    stop("set_prior() takes `dpar` or `nlpar`, not both: each ",
-         "nonlinear parameter has its own linear predictor here, so ",
-         "nlpar = \"", nlpar, "\" already names one slot", call. = FALSE)
+    frm_stop("set_prior() takes `dpar` or `nlpar`, not both: each ",
+             "nonlinear parameter has its own linear predictor here, so ",
+             "nlpar = \"", nlpar, "\" already names one slot", call. = FALSE)
   }
   ch <- unhonored_coef_refusal(class, coef, group)
-  if (!is.null(ch)) stop(ch, call. = FALSE)
+  if (!is.null(ch)) frm_stop(ch, call. = FALSE)
   if (natural) {
     # the class IS the parameter, so `dpar` would name it twice and
     # `nlpar` would name something else entirely
     if (nzchar(dpar) && !identical(dpar, class)) {
-      stop("class = \"", class, "\" already names the distributional ",
-           "parameter this prior is about, so dpar = \"", dpar,
-           "\" names a second one. Write one or the other",
-           call. = FALSE)
+      frm_stop("class = \"", class, "\" already names the distributional ",
+               "parameter this prior is about, so dpar = \"", dpar,
+               "\" names a second one. Write one or the other",
+               call. = FALSE)
     }
     if (nzchar(nlpar)) {
-      stop("class = \"", class, "\" names a distributional parameter ",
-           "and nlpar = \"", nlpar, "\" names a nonlinear one. A ",
-           "nonlinear parameter's coefficients are class = \"b\" with ",
-           "nlpar =, as they are in brms", call. = FALSE)
+      frm_stop("class = \"", class, "\" names a distributional parameter ",
+               "and nlpar = \"", nlpar, "\" names a nonlinear one. A ",
+               "nonlinear parameter's coefficients are class = \"b\" with ",
+               "nlpar =, as they are in brms", call. = FALSE)
     }
     dpar <- class
     class <- "Intercept"
@@ -558,13 +558,13 @@ frmtmb_prior_classes <- c("b", "Intercept", "sd", "cor", "theta",
 check_dpar_prior_class <- function(cls) {
   hint <- brms_prior_class_refusal(cls)
   if (!is.null(hint)) {
-    stop("class = \"", cls, "\" has no faithful frmtmb spelling. ",
-         hint, call. = FALSE)
+    frm_stop("class = \"", cls, "\" has no faithful frmtmb spelling. ",
+             hint, call. = FALSE)
   }
   if (!grepl("^[A-Za-z][A-Za-z0-9_.]*$", cls)) {
-    stop("class = \"", cls, "\" is neither one of frmtmb's classes (",
-         paste(frmtmb_prior_classes, collapse = ", "),
-         ") nor the name of a distributional parameter", call. = FALSE)
+    frm_stop("class = \"", cls, "\" is neither one of frmtmb's classes (",
+             paste(frmtmb_prior_classes, collapse = ", "),
+             ") nor the name of a distributional parameter", call. = FALSE)
   }
   invisible(cls)
 }
@@ -579,19 +579,19 @@ parse_prior_bound <- function(x, arg) {
   ok <- length(x) == 1L && (is.character(x) || is.numeric(x) ||
                               is.logical(x))
   if (!ok) {
-    stop("`", arg, "` must be a single number or NA, not ", arg_desc(x),
-         ": a bound here is a hard box constraint on one parameter, ",
-         "not a Stan expression", call. = FALSE)
+    frm_stop("`", arg, "` must be a single number or NA, not ", arg_desc(x),
+             ": a bound here is a hard box constraint on one parameter, ",
+             "not a Stan expression", call. = FALSE)
   }
   if (is.na(x)) return(NA_real_)
   if (is.character(x)) {
     if (!nzchar(x)) return(NA_real_)
     v <- suppressWarnings(as.numeric(x))
     if (is.na(v)) {
-      stop("`", arg, "` = ", encodeString(x, quote = "\""),
-           " is not a number: a bound here is a hard box constraint ",
-           "on one parameter, and only a constant can be one",
-           call. = FALSE)
+      frm_stop("`", arg, "` = ", encodeString(x, quote = "\""),
+               " is not a number: a bound here is a hard box constraint ",
+               "on one parameter, and only a constant can be one",
+               call. = FALSE)
     }
     return(v)
   }
@@ -675,9 +675,9 @@ deparse_prior_value <- function(x) {
   if (is.call(x) || is.name(x) || is.atomic(x)) {
     return(paste(deparse(x), collapse = ""))
   }
-  stop("prior_() takes one-sided formulas, calls, names or constants; ",
-       "got ", arg_desc(x), ". prior_string() takes plain strings",
-       call. = FALSE)
+  frm_stop("prior_() takes one-sided formulas, calls, names or constants; ",
+           "got ", arg_desc(x), ". prior_string() takes plain strings",
+           call. = FALSE)
 }
 
 #' Whatever a `prior =` argument turned out to be, as
@@ -784,12 +784,12 @@ as_priorlist <- function(x) {
     out[[length(out) + 1L]] <- unclass(one)[[1L]]
   }
   if (length(bad)) {
-    stop("A brms prior table has ", length(bad),
-         if (length(bad) == 1L) " row" else " rows",
-         " with no faithful frmtmb spelling:\n",
-         paste0("  ", bad, collapse = "\n"),
-         "\nWrite the prior you mean with set_prior() directly",
-         call. = FALSE)
+    frm_stop("A brms prior table has ", length(bad),
+             if (length(bad) == 1L) " row" else " rows",
+             " with no faithful frmtmb spelling:\n",
+             paste0("  ", bad, collapse = "\n"),
+             "\nWrite the prior you mean with set_prior() directly",
+             call. = FALSE)
   }
   if (!length(out)) return(NULL)
   structure(out, class = "frmtmb_priorlist")
@@ -937,10 +937,10 @@ brms_prior_route <- function(cls, dist) {
   if (is.null(hint)) {
     return(list(class = cls, dpar = NULL, natural = TRUE))
   }
-  stop("A brms prior with class = \"", cls, "\" (", dist, ") has no ",
-       "faithful frmtmb spelling. ", hint,
-       "Write the prior you mean with set_prior() directly",
-       call. = FALSE)
+  frm_stop("A brms prior with class = \"", cls, "\" (", dist, ") has no ",
+           "faithful frmtmb spelling. ", hint,
+           "Write the prior you mean with set_prior() directly",
+           call. = FALSE)
 }
 
 #' The gate on its own, for callers that only want the verdict.
@@ -958,7 +958,10 @@ check_brms_prior_class <- function(cls, dist) {
 #' @noRd
 parse_prior_dist <- function(prior) {
   if (inherits(prior, "frmtmb_prior")) return(prior)
-  stopifnot(is.character(prior), length(prior) == 1)
+  if (!is.character(prior) || length(prior) != 1L || is.na(prior)) {
+    frm_stop("A prior must be one string such as \"normal(0, 5)\" or a ",
+             "prior object, not ", arg_desc(prior), call. = FALSE)
+  }
   if (prior == "") return(NULL)
   # the NAME is matched case-insensitively and may carry digits, so that
   # brms's shrinkage priors reach the unsupported-density message below
@@ -969,57 +972,55 @@ parse_prior_dist <- function(prior) {
     regexec("^\\s*([A-Za-z_][A-Za-z_0-9]*)\\s*\\(([^)]*)\\)\\s*$",
             prior))[[1]]
   if (length(m) != 3) {
-    stop("Cannot parse prior '", prior,
-         "'; expected e.g. \"normal(0, 5)\"", call. = FALSE)
+    frm_stop("Cannot parse prior '", prior,
+             "'; expected e.g. \"normal(0, 5)\"", call. = FALSE)
   }
   kind <- m[2]
   pars <- as.numeric(strsplit(m[3], ",", fixed = TRUE)[[1]])
   if (anyNA(pars)) {
-    stop("Non-numeric arguments in prior '", prior, "'", call. = FALSE)
+    frm_stop("Non-numeric arguments in prior '", prior, "'", call. = FALSE)
+  }
+  # one arity per density, checked before the switch so that every
+  # density refuses the same way and names its own parameters
+  takes <- prior_dist_params[[kind]]
+  if (!is.null(takes) && length(pars) != length(takes)) {
+    frm_stop("Prior '", prior, "' gives ", length(pars), " argument",
+             if (length(pars) != 1L) "s", "; ", kind, "() takes ",
+             length(takes), ": ", kind, "(", paste(takes, collapse = ", "),
+             ")", call. = FALSE)
   }
   switch(kind,
-    normal = {
-      stopifnot(length(pars) == 2)
-      prior_normal(pars[1], pars[2])
-    },
-    student_t = {
-      stopifnot(length(pars) == 3)
-      prior_t(pars[1], pars[2], pars[3])
-    },
-    cauchy = {
-      stopifnot(length(pars) == 2)
-      prior_t(1, pars[1], pars[2])
-    },
+    normal = prior_normal(pars[1], pars[2]),
+    student_t = prior_t(pars[1], pars[2], pars[3]),
+    cauchy = prior_t(1, pars[1], pars[2]),
     exponential = {
-      stopifnot(length(pars) == 1, pars[1] > 0)
+      if (!(pars[1] > 0)) {
+        frm_stop("Prior '", prior, "': the rate of exponential() must ",
+                 "be positive, not ", pars[1], call. = FALSE)
+      }
       structure(list(kind = "exponential", rate = pars[1]),
                 class = "frmtmb_prior")
     },
-    lkj = {
-      stopifnot(length(pars) == 1)
-      prior_lkj(pars[1])
-    },
-    logistic = {
-      stopifnot(length(pars) == 2)
-      prior_logistic(pars[1], pars[2])
-    },
-    gamma = {
-      stopifnot(length(pars) == 2)
-      prior_gamma(pars[1], pars[2])
-    },
-    inv_gamma = {
-      stopifnot(length(pars) == 2)
-      prior_inv_gamma(pars[1], pars[2])
-    },
-    beta = {
-      stopifnot(length(pars) == 2)
-      prior_beta(pars[1], pars[2])
-    },
-    stop("Unsupported prior distribution '", kind,
-         "' (supported: normal, student_t, cauchy, exponential, ",
-         "logistic, gamma, inv_gamma, beta, lkj)", call. = FALSE)
+    lkj = prior_lkj(pars[1]),
+    logistic = prior_logistic(pars[1], pars[2]),
+    gamma = prior_gamma(pars[1], pars[2]),
+    inv_gamma = prior_inv_gamma(pars[1], pars[2]),
+    beta = prior_beta(pars[1], pars[2]),
+    frm_stop("Unsupported prior distribution '", kind,
+             "' (supported: normal, student_t, cauchy, exponential, ",
+             "logistic, gamma, inv_gamma, beta, lkj)", call. = FALSE)
   )
 }
+
+#' The parameters each prior density string takes, in order, for the
+#' arity refusal of parse_prior_dist(). The names are brms's.
+#'
+#' @noRd
+prior_dist_params <- list(
+  normal = c("mu", "sigma"), student_t = c("nu", "mu", "sigma"),
+  cauchy = c("mu", "sigma"), exponential = "beta", lkj = "eta",
+  logistic = c("mu", "sigma"), gamma = c("alpha", "beta"),
+  inv_gamma = c("alpha", "beta"), beta = c("alpha", "beta"))
 
 #' The location of a prior distribution, or `NA` where it has none.
 #' `normal` and `student_t` (which `cauchy` parses into) carry one;
@@ -1038,8 +1039,14 @@ prior_dist_location <- function(dist) {
 
 #' @export
 "+.frmtmb_priorlist" <- function(e1, e2) {
-  stopifnot(inherits(e1, "frmtmb_priorlist"),
-            inherits(e2, "frmtmb_priorlist"))
+  for (e in list(e1, e2)) {
+    if (!inherits(e, "frmtmb_priorlist")) {
+      frm_stop("`+` combines prior specifications made by set_prior(), ",
+               "as in set_prior(\"normal(0, 1)\") + set_prior(\"normal(0, ",
+               "2)\", class = \"sd\"); one side is ", arg_desc(e),
+               call. = FALSE)
+    }
+  }
   structure(c(unclass(e1), unclass(e2)), class = "frmtmb_priorlist")
 }
 
@@ -1205,8 +1212,8 @@ as.data.frame.frmtmb_priorlist <- function(x, row.names = NULL,
   df <- as.data.frame(x)
   cols <- setdiff(names(df), "source")
   if (!name %in% cols) {
-    stop("A prior specification has no column '", name, "' to assign. ",
-         "The columns are ", paste(cols, collapse = ", "), call. = FALSE)
+    frm_stop("A prior specification has no column '", name, "' to assign. ",
+             "The columns are ", paste(cols, collapse = ", "), call. = FALSE)
   }
   df[[name]] <- value
   out <- priorlist_from_rows(df, what = "the edited prior specification") %||%
@@ -1267,7 +1274,7 @@ as.brmsprior <- function(x) {
   }
   x <- as.data.frame(x, stringsAsFactors = FALSE)
   if (!"prior" %in% names(x)) {
-    stop("as.brmsprior() needs a `prior` column", call. = FALSE)
+    frm_stop("as.brmsprior() needs a `prior` column", call. = FALSE)
   }
   priorlist_from_rows(x, what = "the table") %||% empty_prior()
 }
@@ -1291,8 +1298,8 @@ priorlist_from_rows <- function(x, what) {
     is.null(v) || is.na(v) || (is.character(v) && !nzchar(v))
   }
   if ("tag" %in% names(x) && any(nzchar(x[["tag"]][!is.na(x[["tag"]])]))) {
-    stop("A tag names a prior for reuse inside a Stan program, which ",
-         "frmtmb does not build. Drop the `tag` column", call. = FALSE)
+    frm_stop("A tag names a prior for reuse inside a Stan program, which ",
+             "frmtmb does not build. Drop the `tag` column", call. = FALSE)
   }
   out <- list()
   bad <- character(0)
@@ -1320,9 +1327,9 @@ priorlist_from_rows <- function(x, what) {
     if (!is.null(one)) out <- c(out, unclass(one))
   }
   if (length(bad)) {
-    stop("Cannot read ", length(bad),
-         if (length(bad) == 1L) " row" else " rows", " of ", what, ":\n",
-         paste0("  ", bad, collapse = "\n"), call. = FALSE)
+    frm_stop("Cannot read ", length(bad),
+             if (length(bad) == 1L) " row" else " rows", " of ", what, ":\n",
+             paste0("  ", bad, collapse = "\n"), call. = FALSE)
   }
   if (!length(out)) return(NULL)
   structure(out, class = "frmtmb_priorlist")
@@ -1435,7 +1442,7 @@ priorlist_from_rows <- function(x, what) {
 #' @export
 default_prior <- function(object, data = NULL, family = NULL,
                           data2 = list(), route = c("fit", "sample")) {
-  route <- match.arg(route)
+  route <- frm_match_arg(route)
   # refused before the frame is assembled: a route nothing can answer is
   # unanswerable for every model, so the work would be thrown away
   if (identical(route, "sample")) require_prior_defaults()
@@ -1514,13 +1521,13 @@ prior_design <- function(object, data, family, data2,
 #' @export
 validate_prior <- function(prior, formula, data, family = NULL,
                            data2 = list(), route = c("fit", "sample")) {
-  route <- match.arg(route)
+  route <- frm_match_arg(route)
   if (identical(route, "sample")) require_prior_defaults()
   pl <- as_priorlist(prior) %||% empty_prior()
   if (!inherits(pl, "frmtmb_priorlist")) {
-    stop("validate_prior() takes a prior built by set_prior() or ",
-         "prior(), or a brms prior table; got ", arg_desc(prior),
-         call. = FALSE)
+    frm_stop("validate_prior() takes a prior built by set_prior() or ",
+             "prior(), or a brms prior table; got ", arg_desc(prior),
+             call. = FALSE)
   }
   check_prior_slots(pl)
   design <- prior_design(formula, data, family, data2)
@@ -2019,13 +2026,13 @@ check_prior_slots <- function(prior) {
     first <- dup_at[!duplicated(keys[dup_at])]
     labels <- vapply(specs[first], prior_slot_label, "")
     counts <- vapply(keys[first], function(k) sum(keys == k), 0L)
-    stop("Duplicated prior specifications are not allowed: ",
-         paste0("'", labels, "' is given ", counts, " times",
-                collapse = "; "),
-         ". Write one specification per slot, with its density and ",
-         "both bounds in the same call, e.g. ",
-         "set_prior(\"normal(0, 1)\", class = \"b\", lb = 0)",
-         call. = FALSE)
+    frm_stop("Duplicated prior specifications are not allowed: ",
+             paste0("'", labels, "' is given ", counts, " times",
+                    collapse = "; "),
+             ". Write one specification per slot, with its density and ",
+             "both bounds in the same call, e.g. ",
+             "set_prior(\"normal(0, 1)\", class = \"b\", lb = 0)",
+             call. = FALSE)
   }
   invisible(prior)
 }
@@ -2052,10 +2059,10 @@ theta_coef_target <- function(frame, coef) {
   if (!nzchar(coef %||% "")) {
     n <- length(nms_of("theta"))
     if (!n) {
-      stop("class = \"theta\" names no parameter: this model has no ",
-           "random-effect covariance parameters. The residual-",
-           "correlation ones are addressed by name, e.g. ",
-           "coef = \"thetaac_1\"", call. = FALSE)
+      frm_stop("class = \"theta\" names no parameter: this model has no ",
+               "random-effect covariance parameters. The residual-",
+               "correlation ones are addressed by name, e.g. ",
+               "coef = \"thetaac_1\"", call. = FALSE)
     }
     return(list(comp = "theta", idx = seq_len(n)))
   }
@@ -2071,10 +2078,10 @@ theta_coef_target <- function(frame, coef) {
     }
   }
   have <- unlist(lapply(theta_components, nms_of), use.names = FALSE)
-  stop("class = \"theta\" coef = ", encodeString(coef, quote = "\""),
-       " names no covariance parameter of this model. It has ",
-       if (length(have)) paste(have, collapse = ", ") else "none",
-       call. = FALSE)
+  frm_stop("class = \"theta\" coef = ", encodeString(coef, quote = "\""),
+           " names no covariance parameter of this model. It has ",
+           if (length(have)) paste(have, collapse = ", ") else "none",
+           call. = FALSE)
 }
 
 #' Resolve a priorlist against a fit: per-parameter prior entries (the
@@ -2118,12 +2125,12 @@ resolve_priorlist <- function(fit, pl) {
     out <- list()
     want_np <- nzchar(s$nlpar %||% "")
     if (want_np && !s$nlpar %in% nlpars) {
-      stop("nlpar = \"", s$nlpar, "\" names no nonlinear parameter of ",
-           "this model. It has ",
-           if (length(nlpars)) paste(nlpars, collapse = ", ") else
-             "none (write nl = TRUE in bf() to declare them)",
-           ". A distributional parameter is addressed with dpar =",
-           call. = FALSE)
+      frm_stop("nlpar = \"", s$nlpar, "\" names no nonlinear parameter of ",
+               "this model. It has ",
+               if (length(nlpars)) paste(nlpars, collapse = ", ") else
+                 "none (write nl = TRUE in bf() to declare them)",
+               ". A distributional parameter is addressed with dpar =",
+               call. = FALSE)
     }
     for (lp in frame[["linpreds"]]) {
       if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]])) next
@@ -2191,8 +2198,8 @@ resolve_priorlist <- function(fit, pl) {
       } else {
         ""
       }
-      stop("Prior target not found (", spec_target(s), ")", hint,
-           call. = FALSE)
+      frm_stop("Prior target not found (", spec_target(s), ")", hint,
+               call. = FALSE)
     }
     out
   }
@@ -2228,16 +2235,16 @@ resolve_priorlist <- function(fit, pl) {
       # classes, so only the transformed scalar maps reach this
       if (!is.na(s$lb) || !is.na(s$ub)) {
         if (length(idx) > 1L) {
-          stop("class = \"", s$class, "\" takes no lb/ub at order ",
-               length(idx), ": coefficient ", s$class,
-               "[1] is a function of every one of this block's ",
-               length(idx), " internal parameters, so a bound on it is ",
-               "not a bound on any of them. The parameterization already ",
-               "keeps the process ",
-               if (identical(s$class, "ar")) "stationary" else "invertible",
-               "; bound an internal parameter with class = \"theta\", ",
-               "coef = \"", nms[idx[1L]], "\" if a box is really wanted",
-               call. = FALSE)
+          frm_stop("class = \"", s$class, "\" takes no lb/ub at order ",
+                   length(idx), ": coefficient ", s$class,
+                   "[1] is a function of every one of this block's ",
+                   length(idx), " internal parameters, so a bound on it is ",
+                   "not a bound on any of them. The parameterization already ",
+                   "keeps the process ",
+                   if (identical(s$class, "ar")) "stationary" else "invertible",
+                   "; bound an internal parameter with class = \"theta\", ",
+                   "coef = \"", nms[idx[1L]], "\" if a box is really wanted",
+                   call. = FALSE)
         }
         if (!is.na(s$lb)) {
           lower[nms[idx]] <<- ac_bound_theta(s$lb, tr, ac, s$class, "lb")
@@ -2251,16 +2258,16 @@ resolve_priorlist <- function(fit, pl) {
       have <- vapply(names(acs), function(rs) {
         paste0(acs[[rs]]$label, " [", rs, "]")
       }, "")
-      stop("No residual autocorrelation matches ", spec_target(s), ". ",
-           if (length(have)) {
-             paste0("This model's residual structure is ",
-                    paste(have, collapse = ", "),
-                    ", which carries no \"", s$class, "\" parameter")
-           } else {
-             paste0("This model has no residual autocorrelation term ",
-                    "(write one with ar(), ma(), arma(), cosy() or ",
-                    "unstr() in the formula)")
-           }, call. = FALSE)
+      frm_stop("No residual autocorrelation matches ", spec_target(s), ". ",
+               if (length(have)) {
+                 paste0("This model's residual structure is ",
+                        paste(have, collapse = ", "),
+                        ", which carries no \"", s$class, "\" parameter")
+               } else {
+                 paste0("This model has no residual autocorrelation term ",
+                        "(write one with ar(), ma(), arma(), cosy() or ",
+                        "unstr() in the formula)")
+               }, call. = FALSE)
     }
   }
 
@@ -2270,9 +2277,9 @@ resolve_priorlist <- function(fit, pl) {
   resolve_rescor <- function(s) {
     n_r <- length(frame[["par_template"]][["thetar"]] %||% numeric(0))
     if (!n_r) {
-      stop("No residual correlation matches ", spec_target(s),
-           ". This model has none: it needs two or more responses and ",
-           "set_rescor(TRUE)", call. = FALSE)
+      frm_stop("No residual correlation matches ", spec_target(s),
+               ". This model has none: it needs two or more responses and ",
+               "set_rescor(TRUE)", call. = FALSE)
     }
     idx <- seq_len(n_r)
     claim("thetar", idx)
@@ -2314,7 +2321,7 @@ resolve_priorlist <- function(fit, pl) {
 
   for (s in prior_specificity_order(pl)) {
     bad_shape <- dpar_shape_refusal(fit, s)
-    if (!is.null(bad_shape)) stop(bad_shape, call. = FALSE)
+    if (!is.null(bad_shape)) frm_stop(bad_shape, call. = FALSE)
     ord_th <- if (s$class == "Intercept") ordinal_threshold_entry(s)
     if (!is.null(ord_th)) {
       if (!is.null(s$dist)) {
@@ -2322,12 +2329,12 @@ resolve_priorlist <- function(fit, pl) {
         assigned[[nm_of("tau_raw", ord_th$idx)]] <- ord_th
       }
       if (!is.na(s$lb) || !is.na(s$ub)) {
-        stop("class = \"Intercept\" on an ordinal family addresses the ",
-             "whole threshold vector, so lb/ub would box every ",
-             "threshold with one number. Bound one at a time with ",
-             "class = \"theta\", or write the prior through ",
-             "prior = list(tau_raw = ) on the internal scale",
-             call. = FALSE)
+        frm_stop("class = \"Intercept\" on an ordinal family addresses the ",
+                 "whole threshold vector, so lb/ub would box every ",
+                 "threshold with one number. Bound one at a time with ",
+                 "class = \"theta\", or write the prior through ",
+                 "prior = list(tau_raw = ) on the internal scale",
+                 call. = FALSE)
       }
     } else if (s$class %in% c("b", "Intercept")) {
       for (tg in target_coefs(s)) {
@@ -2373,8 +2380,8 @@ resolve_priorlist <- function(fit, pl) {
         }
       }
       if (!hit) {
-        stop("No random-effect SDs match ", spec_target(s),
-             call. = FALSE)
+        frm_stop("No random-effect SDs match ", spec_target(s),
+                 call. = FALSE)
       }
     } else if (s$class == "cor") {
       hit <- FALSE
@@ -2404,17 +2411,17 @@ resolve_priorlist <- function(fit, pl) {
         have <- unique(vapply(frame[["re_blocks"]], function(bk) {
           paste0(bk[["term_label"]], " [", bk[["covstruct"]], "]")
         }, ""))
-        stop("No random-effect correlations match ", spec_target(s),
-             ". ",
-             if (length(refused)) {
-               paste0("No LKJ density fits ",
-                      paste(refused, collapse = "; "))
-             } else if (length(have)) {
-               paste0("These blocks have no correlation parameter: ",
-                      paste(have, collapse = ", "))
-             } else {
-               "This model has no random-effect blocks"
-             }, call. = FALSE)
+        frm_stop("No random-effect correlations match ", spec_target(s),
+                 ". ",
+                 if (length(refused)) {
+                   paste0("No LKJ density fits ",
+                          paste(refused, collapse = "; "))
+                 } else if (length(have)) {
+                   paste0("These blocks have no correlation parameter: ",
+                          paste(have, collapse = ", "))
+                 } else {
+                   "This model has no random-effect blocks"
+                 }, call. = FALSE)
       }
     } else if (s$class == "theta") {
       # The raw internal escape hatch. All three covariance components
@@ -2703,8 +2710,8 @@ internal_bound <- function(v, pm, which) {
   # `NaN == Inf` is NA, which would make the `if` itself the error
   # instead of the sentence below
   if (identical(which, "ub") && isTRUE(b == Inf)) return(Inf)
-  stop(which, " = ", v, " is outside the support of the parameter this ",
-       "prior is about, so it describes an empty box", call. = FALSE)
+  frm_stop(which, " = ", v, " is outside the support of the parameter this ",
+           "prior is about, so it describes an empty box", call. = FALSE)
 }
 
 #' Log density of one prior entry value (AD-safe), with the change of
@@ -2914,8 +2921,8 @@ prior_beta <- function(shape1 = 1, shape2 = 1) {
 prior_lkj <- function(eta = 1) {
   if (!is.numeric(eta) || length(eta) != 1L || !is.finite(eta) ||
       eta <= 0) {
-    stop("prior_lkj(eta =) takes one finite positive number; eta = 1 ",
-         "is uniform over correlation matrices", call. = FALSE)
+    frm_stop("prior_lkj(eta =) takes one finite positive number; eta = 1 ",
+             "is uniform over correlation matrices", call. = FALSE)
   }
   structure(list(kind = "lkj", eta = eta), class = "frmtmb_prior")
 }
@@ -3168,17 +3175,17 @@ ac_bound_theta <- function(v, tr, ac, cls, what) {
   if (identical(tr$map, "cosy")) {
     a <- tr$a
     if (v <= -a || v >= 1) {
-      stop("class = \"cosy\" ", what, " = ", v, " is outside the window ",
-           "a compound-symmetric correlation of ", ac[["d"]],
-           " time points can occupy, (", format(-a), ", 1)",
-           call. = FALSE)
+      frm_stop("class = \"cosy\" ", what, " = ", v, " is outside the window ",
+               "a compound-symmetric correlation of ", ac[["d"]],
+               " time points can occupy, (", format(-a), ", 1)",
+               call. = FALSE)
     }
     return(stats::qlogis((v + a) / (1 + a)))
   }
   if (abs(v) >= 1) {
-    stop("class = \"", cls, "\" ", what, " = ", v,
-         " is outside (-1, 1), which is the whole range a first-order ",
-         cls, " coefficient can take", call. = FALSE)
+    frm_stop("class = \"", cls, "\" ", what, " = ", v,
+             " is outside (-1, 1), which is the whole range a first-order ",
+             cls, " coefficient can take", call. = FALSE)
   }
   v / sqrt(1 - v * v)
 }
@@ -3217,7 +3224,14 @@ resolve_prior_input <- function(fit, prior) {
 #'
 #' @noRd
 resolve_priors <- function(fit, prior) {
-  stopifnot(is.list(prior), !is.null(names(prior)))
+  if (!is.list(prior) || is.null(names(prior)) ||
+        !all(nzchar(names(prior)))) {
+    frm_stop("`prior` must be made by set_prior() or be a list with a ",
+             "name for each element, the parameter it applies to, as in ",
+             "list(x = prior_normal(0, 1)); got ", arg_desc(prior),
+             if (is.list(prior)) " without names for all elements",
+             call. = FALSE)
+  }
   tpl <- fit$frame[["par_template"]]
   comp_names <- list()
   for (cp in setdiff(names(tpl), c("b", "miss"))) {
@@ -3236,17 +3250,17 @@ resolve_priors <- function(fit, prior) {
   for (nm in names(prior)) {
     pr <- prior[[nm]]
     if (!inherits(pr, "frmtmb_prior")) {
-      stop("prior[['", nm, "']] must be a prior object ",
-           "(prior_normal(), prior_t())", call. = FALSE)
+      frm_stop("prior[['", nm, "']] must be a prior object ",
+               "(prior_normal(), prior_t())", call. = FALSE)
     }
     if (identical(pr$kind, "lkj")) {
       # this spelling addresses parameters one at a time; the LKJ
       # density is over a block's whole correlation and needs the
       # structure's map, which only the class spelling carries
-      stop("prior_lkj() addresses a block's whole correlation, so it ",
-           "cannot be given by parameter name; write ",
-           "set_prior(\"lkj(", format(pr$eta), ")\", class = \"cor\")",
-           call. = FALSE)
+      frm_stop("prior_lkj() addresses a block's whole correlation, so it ",
+               "cannot be given by parameter name; write ",
+               "set_prior(\"lkj(", format(pr$eta), ")\", class = \"cor\")",
+               call. = FALSE)
     }
     if (nm %in% names(comp_names)) {
       idx <- which(!is.na(comp_names[[nm]]))
@@ -3268,11 +3282,11 @@ resolve_priors <- function(fit, prior) {
       }
     }
     if (!hit) {
-      stop("Unknown parameter in prior: '", nm, "'. Available: ",
-           paste(par_name_bare(unlist(comp_names))[
-             !is.na(unlist(comp_names))], collapse = ", "),
-           " or component names ",
-           paste(names(comp_names), collapse = ", "), call. = FALSE)
+      frm_stop("Unknown parameter in prior: '", nm, "'. Available: ",
+               paste(par_name_bare(unlist(comp_names))[
+                 !is.na(unlist(comp_names))], collapse = ", "),
+               " or component names ",
+               paste(names(comp_names), collapse = ", "), call. = FALSE)
     }
   }
   entries
@@ -3314,8 +3328,8 @@ resolve_bounds <- function(fit, lower, upper) {
     out <- rep(fill, length(nm))
     if (is.null(x)) return(out)
     if (is.null(names(x)) || any(names(x) == "")) {
-      stop("Bounds must be named numeric vectors over parameter ",
-           "names, e.g. c(x = 0)", call. = FALSE)
+      frm_stop("Bounds must be named numeric vectors over parameter ",
+               "names, e.g. c(x = 0)", call. = FALSE)
     }
     # the paren-tolerant addressing of confint(parm =), so a name copied
     # out of a hypothesis() expression works here too, plus the bare
@@ -3324,11 +3338,11 @@ resolve_bounds <- function(fit, lower, upper) {
     # not against their design-matrix spelling (la_(Intercept))
     pos <- apply_nlpar_alias(fit, names(x), match_par_name(names(x), nm))
     if (anyNA(pos)) {
-      stop("Unknown parameter(s) in bounds: ",
-           paste(names(x)[is.na(pos)], collapse = ", "), ". Available: ",
-           paste(nm, collapse = ", "),
-           " (parentheses may be dropped, and intercept-only nonlinear ",
-           "parameters may be named bare)", call. = FALSE)
+      frm_stop("Unknown parameter(s) in bounds: ",
+               paste(names(x)[is.na(pos)], collapse = ", "), ". Available: ",
+               paste(nm, collapse = ", "),
+               " (parentheses may be dropped, and intercept-only nonlinear ",
+               "parameters may be named bare)", call. = FALSE)
     }
     out[pos] <- as.numeric(x)
     out

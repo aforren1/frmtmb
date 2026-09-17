@@ -105,14 +105,14 @@ bandit4arm2_kalman_filter <- function(subject, trial = NULL, sigma_o = 4,
                                       bonus = FALSE) {
   if (!is.numeric(sigma_o) || length(sigma_o) != 1L || is.na(sigma_o) ||
         sigma_o <= 0) {
-    stop("bandit4arm2_kalman_filter(sigma_o =) is the observation noise ",
-         "standard deviation and must be one positive number; it is held ",
-         "fixed rather than estimated", call. = FALSE)
+    frm_stop("bandit4arm2_kalman_filter(sigma_o =) is the observation noise ",
+             "standard deviation and must be one positive number; it is held ",
+             "fixed rather than estimated", call. = FALSE)
   }
   if (!is.logical(bonus) || length(bonus) != 1L || is.na(bonus)) {
-    stop("bandit4arm2_kalman_filter(bonus =) is TRUE or FALSE: whether ",
-         "the choice rule adds phi times an arm's posterior standard ",
-         "deviation to its value", call. = FALSE)
+    frm_stop("bandit4arm2_kalman_filter(bonus =) is TRUE or FALSE: whether ",
+             "the choice rule adds phi times an arm's posterior standard ",
+             "deviation to its value", call. = FALSE)
   }
   vo <- sigma_o^2
   spec <- ln_spec(

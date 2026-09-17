@@ -1,0 +1,4 @@
+"file"	"class"	"message"
+"tests/testthat/test-backlog.R"	"frmtmb_error/error/condition"	"Non-finite (Inf/NaN) values in the response are not allowed"
+"tests/testthat/test-backlog.R"	"frmtmb_error/error/condition"	"Invalid parameter name 'my_par': names must be alphanumeric and must not contain dots or underscores (they collide with coefficient naming)"
+"tests/testthat/test-backlog.R"	"frmtmb_error/error/condition"	"predict() has no argument `bogus`. It takes: object, newdata, type, dpar, resp, re_formula, se.fit, allow_new_levels"

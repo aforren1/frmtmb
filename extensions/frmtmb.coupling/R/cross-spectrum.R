@@ -226,12 +226,12 @@ frm_cross_spectrum <- function(x, y, sfreq = 1, segments = 8L, tapers = 1L,
   segments <- cp_count(segments, "segments")
   tapers <- cp_count(tapers, "tapers")
   smooth <- cp_count(smooth, "smooth")
-  window <- match.arg(window)
+  window <- frm_match_arg(window)
   if (is.matrix(x) || is.matrix(y)) {
     if (!is.matrix(x) || !is.matrix(y) || !identical(dim(x), dim(y))) {
-      stop("`x` and `y` must both be matrices of the same dimensions ",
-           "when either is a matrix; their columns are the units.",
-           call. = FALSE)
+      frm_stop("`x` and `y` must both be matrices of the same dimensions ",
+               "when either is a matrix; their columns are the units.",
+               call. = FALSE)
     }
     ids <- colnames(x)
     if (is.null(ids)) ids <- as.character(seq_len(ncol(x)))
@@ -247,39 +247,39 @@ frm_cross_spectrum <- function(x, y, sfreq = 1, segments = 8L, tapers = 1L,
   x <- cp_series(x, "x")
   y <- cp_series(y, "y")
   if (length(x) != length(y)) {
-    stop("`x` and `y` must have the same length; they are ", length(x),
-         " and ", length(y), ".", call. = FALSE)
+    frm_stop("`x` and `y` must have the same length; they are ", length(x),
+             " and ", length(y), ".", call. = FALSE)
   }
   if (!is.numeric(sfreq) || length(sfreq) != 1L || !is.finite(sfreq) ||
         sfreq <= 0) {
-    stop("`sfreq` must be one positive finite number.", call. = FALSE)
+    frm_stop("`sfreq` must be one positive finite number.", call. = FALSE)
   }
   if (window != "none" && tapers > 1L) {
-    stop("`window` = \"", window, "\" and `tapers` = ", tapers,
-         " are two tapers of the same segment, and one applied over the ",
-         "other is neither. Sine tapers buy degrees of freedom and a ",
-         "window does not; pick the one the record needs.",
-         call. = FALSE)
+    frm_stop("`window` = \"", window, "\" and `tapers` = ", tapers,
+             " are two tapers of the same segment, and one applied over the ",
+             "other is neither. Sine tapers buy degrees of freedom and a ",
+             "window does not; pick the one the record needs.",
+             call. = FALSE)
   }
   if (window != "none" && smooth > 1L) {
-    stop("`window` = \"", window, "\" and `smooth` = ", smooth,
-         " cannot be combined. A window makes each ordinate a weighted ",
-         "sum of itself and its neighbors, so adjacent bins are ",
-         "correlated and averaging them buys less than `smooth` claims: ",
-         "measured at a true coherence of zero over 3000 replicates, a ",
-         "Hann window smoothed over 4 bins from 2 segments buys 4.98 ",
-         "independent draws rather than 8. Raise `segments` instead.",
-         call. = FALSE)
+    frm_stop("`window` = \"", window, "\" and `smooth` = ", smooth,
+             " cannot be combined. A window makes each ordinate a weighted ",
+             "sum of itself and its neighbors, so adjacent bins are ",
+             "correlated and averaging them buys less than `smooth` claims: ",
+             "measured at a true coherence of zero over 3000 replicates, a ",
+             "Hann window smoothed over 4 bins from 2 segments buys 4.98 ",
+             "independent draws rather than 8. Raise `segments` instead.",
+             call. = FALSE)
   }
   ## Gaps first, because the segment length is a property of the samples
   ## that survive rather than of the record's nominal length.
   sp <- cp_spans(!is.na(x) & !is.na(y))
   usable <- sum(sp[["len"]])
   if (usable < 4L) {
-    stop("`x` and `y` have ", usable, " samples that are recorded in ",
-         "both, out of ", length(x), ". At least 4 are needed for one ",
-         "usable Fourier frequency, so there is nothing here to ",
-         "transform.", call. = FALSE)
+    frm_stop("`x` and `y` have ", usable, " samples that are recorded in ",
+             "both, out of ", length(x), ". At least 4 are needed for one ",
+             "usable Fourier frequency, so there is nothing here to ",
+             "transform.", call. = FALSE)
   }
   seglen <- usable %/% segments
   gap_note <- if (usable < length(x)) {
@@ -287,33 +287,33 @@ frm_cross_spectrum <- function(x, y, sfreq = 1, segments = 8L, tapers = 1L,
            " samples that are recorded in both signals")
   } else ""
   if (seglen < 4L) {
-    stop("`segments` = ", segments, " leaves ", seglen,
-         " samples per segment", gap_note,
-         "; at least 4 are needed for one usable Fourier frequency.",
-         call. = FALSE)
+    frm_stop("`segments` = ", segments, " leaves ", seglen,
+             " samples per segment", gap_note,
+             "; at least 4 are needed for one usable Fourier frequency.",
+             call. = FALSE)
   }
   if (tapers >= seglen) {
-    stop("`tapers` = ", tapers, " is not fewer than the ", seglen,
-         " samples in a segment; sine tapers past that are zero.",
-         call. = FALSE)
+    frm_stop("`tapers` = ", tapers, " is not fewer than the ", seglen,
+             " samples in a segment; sine tapers past that are zero.",
+             call. = FALSE)
   }
   starts <- cp_blocks(sp, seglen, segments)
   nseg <- length(starts)
   if (nseg * tapers * smooth < 2L) {
-    stop("this record supplies ", nseg, " segment(s) of ", seglen,
-         " samples", gap_note, ", and `segments`, `tapers` and `smooth` ",
-         "then multiply to 1 degree of freedom. A cross-periodogram ",
-         "from one complex draw is rank one: its coherence is exactly 1 ",
-         "by arithmetic and its determinant is zero, so no model can ",
-         "read it. Raise one of the three.", call. = FALSE)
+    frm_stop("this record supplies ", nseg, " segment(s) of ", seglen,
+             " samples", gap_note, ", and `segments`, `tapers` and `smooth` ",
+             "then multiply to 1 degree of freedom. A cross-periodogram ",
+             "from one complex draw is rank one: its coherence is exactly 1 ",
+             "by arithmetic and its determinant is zero, so no model can ",
+             "read it. Raise one of the three.", call. = FALSE)
   }
   if (tapers > 1L && smooth > 1L) {
-    stop("`tapers` and `smooth` cannot both be above 1. Both widen the ",
-         "same spectral window, so the degrees of freedom would not be ",
-         "their product: measured at a true coherence of zero over 4000 ",
-         "replicates, 4 tapers smoothed over 4 bins buys 5.8 independent ",
-         "draws rather than 16. Pick one, and raise `segments` for the ",
-         "rest.", call. = FALSE)
+    frm_stop("`tapers` and `smooth` cannot both be above 1. Both widen the ",
+             "same spectral window, so the degrees of freedom would not be ",
+             "their product: measured at a true coherence of zero over 4000 ",
+             "replicates, 4 tapers smoothed over 4 bins buys 5.8 independent ",
+             "draws rather than 16. Pick one, and raise `segments` for the ",
+             "rest.", call. = FALSE)
   }
   ## Retained bins: 1 .. floor((seglen - 1) / 2), which drops bin 0 and,
   ## for even seglen, the Nyquist bin.
@@ -341,8 +341,8 @@ frm_cross_spectrum <- function(x, y, sfreq = 1, segments = 8L, tapers = 1L,
   if (smooth > 1L) {
     g <- length(keep) %/% smooth
     if (g < 1L) {
-      stop("`smooth` = ", smooth, " is wider than the ", length(keep),
-           " retained frequencies.", call. = FALSE)
+      frm_stop("`smooth` = ", smooth, " is wider than the ", length(keep),
+               " retained frequencies.", call. = FALSE)
     }
     grp <- rep(seq_len(g), each = smooth)
     take <- seq_len(g * smooth)
@@ -357,15 +357,15 @@ frm_cross_spectrum <- function(x, y, sfreq = 1, segments = 8L, tapers = 1L,
   if (!is.null(frange)) {
     if (!is.numeric(frange) || length(frange) != 2L || anyNA(frange) ||
           frange[1L] >= frange[2L]) {
-      stop("`frange` must be `c(low, high)` with low below high.",
-           call. = FALSE)
+      frm_stop("`frange` must be `c(low, high)` with low below high.",
+               call. = FALSE)
     }
     out <- out[out$freq >= frange[1L] & out$freq <= frange[2L], ,
                drop = FALSE]
     if (!nrow(out)) {
-      stop("`frange` keeps no frequency; the retained band runs from ",
-           signif(freq[1L], 4), " to ", signif(freq[length(freq)], 4), ".",
-           call. = FALSE)
+      frm_stop("`frange` keeps no frequency; the retained band runs from ",
+               signif(freq[1L], 4), " to ", signif(freq[length(freq)], 4), ".",
+               call. = FALSE)
     }
   }
   rownames(out) <- NULL
@@ -450,7 +450,8 @@ cp_taper_basis <- function(N, tapers, window = "none") {
 cp_count <- function(v, nm) {
   if (!is.numeric(v) || length(v) != 1L || !is.finite(v) || v < 1 ||
         v != round(v)) {
-    stop("`", nm, "` must be one whole number of at least 1.", call. = FALSE)
+    frm_stop("`", nm, "` must be one whole number of at least 1.",
+             call. = FALSE)
   }
   as.integer(v)
 }
@@ -458,13 +459,13 @@ cp_count <- function(v, nm) {
 #' @noRd
 cp_series <- function(v, nm) {
   if (!is.numeric(v) || !length(v)) {
-    stop("`", nm, "` must be a non-empty numeric vector.", call. = FALSE)
+    frm_stop("`", nm, "` must be a non-empty numeric vector.", call. = FALSE)
   }
   if (any(is.infinite(v))) {
-    stop("`", nm, "` holds an infinite value. NA marks a sample the ",
-         "record does not have, and the transform is cut at it; an ",
-         "infinity is a value the arithmetic cannot use and says ",
-         "nothing about which samples are trustworthy.", call. = FALSE)
+    frm_stop("`", nm, "` holds an infinite value. NA marks a sample the ",
+             "record does not have, and the transform is cut at it; an ",
+             "infinity is a value the arithmetic cannot use and says ",
+             "nothing about which samples are trustworthy.", call. = FALSE)
   }
   as.numeric(v)
 }

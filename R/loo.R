@@ -61,11 +61,11 @@ loo <- function(x, ...) UseMethod("loo")
 #' @exportS3Method loo::loo
 #' @export
 loo.frmtmb_fit <- function(x, ...) {
-  stop("loo() is a posterior quantity and this is a maximum-likelihood ",
-       "fit: an elpd averages the likelihood over draws. Sample first, ",
-       "with frmtmb.sample::loo(frmtmb.sample::frm_sample(fit)) once ",
-       "that package is installed, or compare maximum-likelihood fits ",
-       "with AIC() or BIC()", call. = FALSE)
+  frm_stop("loo() is a posterior quantity and this is a maximum-likelihood ",
+           "fit: an elpd averages the likelihood over draws. Sample first, ",
+           "with frmtmb.sample::loo(frmtmb.sample::frm_sample(fit)) once ",
+           "that package is installed, or compare maximum-likelihood fits ",
+           "with AIC() or BIC()", call. = FALSE)
 }
 
 #' @rdname loo
@@ -76,11 +76,11 @@ waic <- function(x, ...) UseMethod("waic")
 #' @exportS3Method loo::waic
 #' @export
 waic.frmtmb_fit <- function(x, ...) {
-  stop("waic() averages the likelihood over posterior draws and a ",
-       "maximum-likelihood fit has none. Sample first, with ",
-       "frmtmb.sample::waic(frmtmb.sample::frm_sample(fit)) once that ",
-       "package is installed; AIC() is the maximum-likelihood analogue ",
-       "already on the fit", call. = FALSE)
+  frm_stop("waic() averages the likelihood over posterior draws and a ",
+           "maximum-likelihood fit has none. Sample first, with ",
+           "frmtmb.sample::waic(frmtmb.sample::frm_sample(fit)) once that ",
+           "package is installed; AIC() is the maximum-likelihood analogue ",
+           "already on the fit", call. = FALSE)
 }
 
 #' @rdname loo
@@ -101,9 +101,9 @@ loo_compare.default <- function(x, ...) {
   # calling loo::loo_compare() is still deliberate: dispatch from
   # inside this namespace would find this function again and recurse.
   if (!requireNamespace("loo", quietly = TRUE)) {
-    stop("loo_compare() on already-computed criteria is the loo ",
-         "package's own function, and the package is not installed",
-         call. = FALSE)
+    frm_stop("loo_compare() on already-computed criteria is the loo ",
+             "package's own function, and the package is not installed",
+             call. = FALSE)
   }
   fn <- utils::getS3method("loo_compare", "default",
                            envir = asNamespace("loo"))
@@ -118,11 +118,11 @@ LOO <- function(x, ...) UseMethod("LOO")
 #' @exportS3Method brms::LOO
 #' @export
 LOO.frmtmb_fit <- function(x, ...) {
-  stop("LOO() is the deprecated brms spelling, and on a ",
-       "maximum-likelihood fit there are no draws to average anyway. ",
-       "Compare fits with AIC(), or install frmtmb.sample and call ",
-       "loo(frm_sample(fit)) - the lowercase spelling is the current ",
-       "one there too", call. = FALSE)
+  frm_stop("LOO() is the deprecated brms spelling, and on a ",
+           "maximum-likelihood fit there are no draws to average anyway. ",
+           "Compare fits with AIC(), or install frmtmb.sample and call ",
+           "loo(frm_sample(fit)) - the lowercase spelling is the current ",
+           "one there too", call. = FALSE)
 }
 
 #' @rdname loo
@@ -133,10 +133,10 @@ WAIC <- function(x, ...) UseMethod("WAIC")
 #' @exportS3Method brms::WAIC
 #' @export
 WAIC.frmtmb_fit <- function(x, ...) {
-  stop("WAIC() is the deprecated brms spelling, and it averages over ",
-       "posterior draws a maximum-likelihood fit does not have. AIC() ",
-       "is already on the fit; install frmtmb.sample for the sampled ",
-       "version, waic(frm_sample(fit))", call. = FALSE)
+  frm_stop("WAIC() is the deprecated brms spelling, and it averages over ",
+           "posterior draws a maximum-likelihood fit does not have. AIC() ",
+           "is already on the fit; install frmtmb.sample for the sampled ",
+           "version, waic(frm_sample(fit))", call. = FALSE)
 }
 
 #' Bayesian R-squared
@@ -164,7 +164,7 @@ bayes_R2 <- function(object, ...) UseMethod("bayes_R2")
 #' @exportS3Method rstantools::bayes_R2
 #' @export
 bayes_R2.frmtmb_fit <- function(object, ...) {
-  stop("bayes_R2() is computed per posterior draw and this is a ",
-       "maximum-likelihood fit. Install frmtmb.sample and sample ",
-       "first: bayes_R2(frm_sample(fit))", call. = FALSE)
+  frm_stop("bayes_R2() is computed per posterior draw and this is a ",
+           "maximum-likelihood fit. Install frmtmb.sample and sample ",
+           "first: bayes_R2(frm_sample(fit))", call. = FALSE)
 }

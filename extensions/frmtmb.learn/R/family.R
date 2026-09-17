@@ -21,9 +21,9 @@ ln_block <- function(resp, spec, av, mf, y, n) {
   lrn <- fam[["learn"]]
   gv <- eval(lrn[["subject_expr"]], mf, resp[["formula_env"]])
   if (anyNA(gv)) {
-    stop(nm, "(): every row needs a subject, and ",
-         deparse1(lrn[["subject_expr"]]), " has ", sum(is.na(gv)),
-         " missing value(s)", call. = FALSE)
+    frm_stop(nm, "(): every row needs a subject, and ",
+             deparse1(lrn[["subject_expr"]]), " has ", sum(is.na(gv)),
+             " missing value(s)", call. = FALSE)
   }
   gv <- factor(gv)
   tv <- if (is.null(lrn[["trial_expr"]])) {
@@ -34,9 +34,9 @@ ln_block <- function(resp, spec, av, mf, y, n) {
   } else {
     v <- eval(lrn[["trial_expr"]], mf, resp[["formula_env"]])
     if (anyNA(v)) {
-      stop(nm, "(): the trial variable '", deparse1(lrn[["trial_expr"]]),
-           "' has missing values, so the order of the recursion is ",
-           "undefined at those rows", call. = FALSE)
+      frm_stop(nm, "(): the trial variable '", deparse1(lrn[["trial_expr"]]),
+               "' has missing values, so the order of the recursion is ",
+               "undefined at those rows", call. = FALSE)
     }
     as.numeric(v)
   }
@@ -57,10 +57,10 @@ ln_pack <- function(gv, tv, n, nm) {
   key <- paste(as.integer(gv), tv, sep = "|")
   if (anyDuplicated(key)) {
     dup <- key[duplicated(key)][1L]
-    stop(nm, "(): trial numbers must be unique within a subject; ",
-         sum(key == dup), " rows share one. A learning rule updates ",
-         "once per trial, so two rows at one trial have no order to ",
-         "learn in", call. = FALSE)
+    frm_stop(nm, "(): trial numbers must be unique within a subject; ",
+             sum(key == dup), " rows share one. A learning rule updates ",
+             "once per trial, so two rows at one trial have no order to ",
+             "learn in", call. = FALSE)
   }
   len <- lengths(rows)
   nt <- max(len)
@@ -92,10 +92,10 @@ ln_pack <- function(gv, tv, n, nm) {
 #'
 #' @noRd
 ln_no_rowwise <- function(nm) {
-  stop("A ", nm, "() trial's probability depends on every earlier trial ",
-       "of the same subject, so the family has no row-wise log-density. ",
-       "Use logLik() for the total, or fitted() for the per-trial ",
-       "probability of the choice that was made", call. = FALSE)
+  frm_stop("A ", nm, "() trial's probability depends on every earlier trial ",
+           "of the same subject, so the family has no row-wise log-density. ",
+           "Use logLik() for the total, or fitted() for the per-trial ",
+           "probability of the choice that was made", call. = FALSE)
 }
 
 #' The response coding every family in this package uses.
@@ -103,9 +103,9 @@ ln_no_rowwise <- function(nm) {
 #' @noRd
 ln_valid_y <- function(y, k, nm) {
   if (!all(y %in% seq_len(k))) {
-    stop(nm, "(): the response is the option chosen on each trial, ",
-         "coded 1 to ", k, ". Two-level codings that start at 0 are the ",
-         "usual mistake; add one", call. = FALSE)
+    frm_stop(nm, "(): the response is the option chosen on each trial, ",
+             "coded 1 to ", k, ". Two-level codings that start at 0 are the ",
+             "usual mistake; add one", call. = FALSE)
   }
 }
 
@@ -198,16 +198,16 @@ ln_read_counterfactual <- function(x, nm, aterms) {
       is.character(z) && length(z) >= 2L && !anyNA(z)
     }, TRUE))
   if (ok) return(unname(x))
-  stop(nm, "(): ln_family(counterfactual =) takes NULL to derive the ",
-       "guarded columns from `aterms`, identical(FALSE) to opt this ",
-       "family out of the duplicated-schedule refusal, or the columns ",
-       "themselves as a character vector of two or more names or a ",
-       "list of such vectors. It does NOT take TRUE: there is nothing ",
-       "for TRUE to mean, because deriving is already the default, and ",
-       "reading it as an opt-in would make the one spelling that says ",
-       "'yes' the one that turns the guard off. Saw ",
-       paste(class(x), collapse = "/"), " of length ", length(x), ".",
-       call. = FALSE)
+  frm_stop(nm, "(): ln_family(counterfactual =) takes NULL to derive the ",
+           "guarded columns from `aterms`, identical(FALSE) to opt this ",
+           "family out of the duplicated-schedule refusal, or the columns ",
+           "themselves as a character vector of two or more names or a ",
+           "list of such vectors. It does NOT take TRUE: there is nothing ",
+           "for TRUE to mean, because deriving is already the default, and ",
+           "reading it as an opt-in would make the one spelling that says ",
+           "'yes' the one that turns the guard off. Saw ",
+           paste(class(x), collapse = "/"), " of length ", length(x), ".",
+           call. = FALSE)
 }
 
 #' The column a DRAW needs and a fit does not.
@@ -253,19 +253,19 @@ ln_check_counterfactual <- function(nm, cd, groups) {
     }, TRUE))
     if (!same) next
     term <- paste0(sub("[0-9]+$", "", cols[[1L]]), "()")
-    stop(nm, "(): every column of ", term, " holds the same value on ",
-         "every trial, so these data do not say what the options the ",
-         "subject did not take would have paid, and a draw needs that. ",
-         "The FIT does not: the likelihood reads only the chosen ",
-         "option's entry, so a record of the received outcome alone is ",
-         "correct passed ", length(cols), " times over. A simulated ",
-         "subject chooses for itself, and paying it needs the schedule ",
-         "of every option, so the second and later columns of ", term,
-         " are the ones missing here. No other data set drawn through ",
-         "this model can supply them either, because its formula names ",
-         "one column ", length(cols), " times; and simulate() takes no ",
-         "newdata. Refit with a column per option, or build a schedule ",
-         "with frm_task_design() and draw from that.", call. = FALSE)
+    frm_stop(nm, "(): every column of ", term, " holds the same value on ",
+             "every trial, so these data do not say what the options the ",
+             "subject did not take would have paid, and a draw needs that. ",
+             "The FIT does not: the likelihood reads only the chosen ",
+             "option's entry, so a record of the received outcome alone is ",
+             "correct passed ", length(cols), " times over. A simulated ",
+             "subject chooses for itself, and paying it needs the schedule ",
+             "of every option, so the second and later columns of ", term,
+             " are the ones missing here. No other data set drawn through ",
+             "this model can supply them either, because its formula names ",
+             "one column ", length(cols), " times; and simulate() takes no ",
+             "newdata. Refit with a column per option, or build a schedule ",
+             "with frm_task_design() and draw from that.", call. = FALSE)
   }
   invisible(NULL)
 }
@@ -275,16 +275,16 @@ ln_check_counterfactual <- function(nm, cd, groups) {
 #' @noRd
 ln_check_spec <- function(nm, resp, spec, av) {
   if (length(spec[["responses"]]) > 1L || isTRUE(spec[["rescor"]])) {
-    stop(nm, "() supports univariate models only: the recursion is a ",
-         "likelihood over one response's trial sequences", call. = FALSE)
+    frm_stop(nm, "() supports univariate models only: the recursion is a ",
+             "likelihood over one response's trial sequences", call. = FALSE)
   }
   bad <- intersect(c("weights", "cens", "trunc_lb", "trunc_ub", "se"),
                    names(av))
   if (length(bad)) {
-    stop(nm, "() cannot be combined with ", bad[1L], "(): that term ",
-         "reshapes a per-row likelihood contribution, and a trial's ",
-         "contribution here is conditional on every earlier trial of ",
-         "the same subject", call. = FALSE)
+    frm_stop(nm, "() cannot be combined with ", bad[1L], "(): that term ",
+             "reshapes a per-row likelihood contribution, and a trial's ",
+             "contribution here is conditional on every earlier trial of ",
+             "the same subject", call. = FALSE)
   }
   invisible(NULL)
 }
@@ -487,8 +487,8 @@ ln_family <- function(nm, subject_expr, trial_expr, dpars, links, primary,
   # ln_read_counterfactual().
   counterfactual <- ln_read_counterfactual(counterfactual, nm, aterms)
   if (is.null(subject_expr)) {
-    stop(nm, "(subject =) names the column that separates one learner's ",
-         "trial sequence from the next", call. = FALSE)
+    frm_stop(nm, "(subject =) names the column that separates one learner's ",
+             "trial sequence from the next", call. = FALSE)
   }
   k <- spec[["n_option"]][[1L]]
   fam <- frmtmb_family(

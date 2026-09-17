@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 18 PASS 94 FAIL 0 ERROR 1 SKIP 0  extensions/frmtmb.coupling/tests/testthat/test-cross-spectrum.R
+  failing: bad arguments are refused by name
+       Error in `match.arg(window)`: 'arg' should be one of "none", "hann" 

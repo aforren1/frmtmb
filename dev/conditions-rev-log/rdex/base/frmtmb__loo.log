@@ -1,0 +1,3 @@
+Error : loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the likelihood over draws. Sample first, with frmtmb.sample::loo(frmtmb.sample::frm_sample(fit)) once that package is installed, or compare maximum-likelihood fits with AIC() or BIC()
+
+RDEX-RESULT OK 

@@ -1,0 +1,4 @@
+Error : as_draws_df() needs posterior draws and a frmtmb_fit has none: frm() is maximum likelihood, so it carries one parameter vector rather than chains. Install frmtmb.sample and sample first, with as_draws_df(frmtmb.sample::frm_sample(fit)); for the point estimates and their covariance use fixef(), vcov() or confint() on the fit itself
+Error : as_draws() needs draws, and a frm_multiple() result has none: it is m maximum-likelihood fits pooled by Rubin's rules, with no chains. Read the pooled tables from `x$pooled` and `x$pooled_varcorr` or test with hypothesis(), and use frm_sample() on one imputation's fit (`x$fits[[1]]`) for draws
+
+RDEX-RESULT OK 

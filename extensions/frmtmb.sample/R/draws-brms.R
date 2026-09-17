@@ -35,21 +35,40 @@ draws_raw_array <- function(x) {
 draws_as_array <- function(x, variable = NULL, regex = FALSE,
                            inc_warmup = FALSE, what = "this function") {
   if (!requireNamespace("posterior", quietly = TRUE)) {
-    stop(what, " needs the 'posterior' package", call. = FALSE)
+    frm_stop(what, " needs the 'posterior' package", call. = FALSE)
   }
   check_flag(regex, "regex")
   check_flag(inc_warmup, "inc_warmup")
   if (inc_warmup) {
-    stop(what, " cannot honor inc_warmup = TRUE: the draws matrix holds ",
-         "the post-warmup draws only, which is what frm_sample() keeps. ",
-         "The warmup, if the sampler saved it, is in `x$stanfit`",
-         call. = FALSE)
+    frm_stop(what, " cannot honor inc_warmup = TRUE: the draws matrix holds ",
+             "the post-warmup draws only, which is what frm_sample() keeps. ",
+             "The warmup, if the sampler saved it, is in `x$stanfit`",
+             call. = FALSE)
   }
   a <- posterior::as_draws_array(draws_raw_array(x))
   if (!is.null(variable)) {
-    a <- posterior::subset_draws(a, variable = variable, regex = regex)
+    a <- draws_subset_variable(a, variable, regex, what)
   }
   a
+}
+
+#' `posterior::subset_draws()` by variable, with an exact name the draws
+#' do not carry refused here, as a classed refusal, rather than by
+#' posterior in its own unclassed error. A regular expression that
+#' matches nothing selects nothing in posterior, and still does.
+#'
+#' @noRd
+draws_subset_variable <- function(a, variable, regex, what) {
+  if (!isTRUE(regex)) {
+    miss <- setdiff(variable, posterior::variables(a))
+    if (length(miss)) {
+      frm_stop(what, ": the following variables are missing in the draws ",
+               "object: ", paste0("'", miss, "'", collapse = ", "),
+               ". variables() lists every name; a regular expression ",
+               "needs regex = TRUE", call. = FALSE)
+    }
+  }
+  posterior::subset_draws(a, variable = variable, regex = regex)
 }
 
 #' The draws columns brms reports on the natural scale: a distributional
@@ -99,9 +118,9 @@ draws_to_natural <- function(m, fit, inverse = FALSE) {
     if (inverse) {
       jk <- match(s$names[K], colnames(m))
       if (is.na(jk)) {
-        stop("Internal error: the draws lack the mixture weight '",
-             s$names[K], "'. Please report it with the model formula",
-             call. = FALSE)
+        frm_stop("Internal error: the draws lack the mixture weight '",
+                 s$names[K], "'. Please report it with the model formula",
+                 call. = FALSE)
       }
       m[, j] <- s$to_logits(m[, c(j, jk), drop = FALSE])
       m <- m[, -jk, drop = FALSE]
@@ -120,9 +139,9 @@ draws_to_natural <- function(m, fit, inverse = FALSE) {
     j <- which(colnames(m) == nc$names[k])
     if (!length(j)) next
     if (length(j) > 1L) {
-      stop("Internal error: the draws carry the column '", nc$names[k],
-           "' twice. Please report it with the model formula",
-           call. = FALSE)
+      frm_stop("Internal error: the draws carry the column '", nc$names[k],
+               "' twice. Please report it with the model formula",
+               call. = FALSE)
     }
     f <- if (inverse) nc$linkfun[[k]] else nc$linkinv[[k]]
     m[, j] <- f(m[, j])
@@ -154,14 +173,14 @@ draws_accessor_args <- function(x, pars, variable, draw, subset, what,
   frm_check_dots(..., .allow = c("regex", "fixed", "inc_warmup"))
   dots <- list(...)
   if (!anyNA(pars)) {
-    warning("Argument 'pars' is deprecated. Please use 'variable' ",
-            "instead.", call. = FALSE)
+    frm_warning("Argument 'pars' is deprecated. Please use 'variable' ",
+                "instead.", call. = FALSE)
     variable <- draws_extract_pars(pars, colnames(x$draws),
                                    fixed = dots$fixed %||% FALSE)
   }
   if (!is.null(subset)) {
-    warning("Argument 'subset' is deprecated. Please use argument ",
-            "'draw' instead.", call. = FALSE)
+    frm_warning("Argument 'subset' is deprecated. Please use argument ",
+                "'draw' instead.", call. = FALSE)
     draw <- subset
   }
   a <- format(draws_as_array(x, variable, dots$regex %||% FALSE,
@@ -340,11 +359,11 @@ draws_ranef_fill <- function(x, L, sel, A, g) {
   miss <- sel[colSums(is.na(L$cols[, sel, drop = FALSE])) > 0L]
   if (!length(miss)) return(A)
   if (draws_is_laplace(x)) {
-    stop("ranef() and coef() have no draws of the group-level ",
-         "coefficients of '", g, "': these draws come from ",
-         "frm_sample(laplace = TRUE), which integrates the random ",
-         "effects out. Sample with laplace = FALSE for them",
-         call. = FALSE)
+    frm_stop("ranef() and coef() have no draws of the group-level ",
+             "coefficients of '", g, "': these draws come from ",
+             "frm_sample(laplace = TRUE), which integrates the random ",
+             "effects out. Sample with laplace = FALSE for them",
+             call. = FALSE)
   }
   fit <- draws_base_fit(x)
   frame <- fit$frame
@@ -395,8 +414,8 @@ draws_hypothesis_coef <- function(x, hypothesis, group, scope, alpha,
   co <- if (scope == "ranef") ranef(x, summary = FALSE) else
     coef(x, summary = FALSE)
   if (!length(group) || !group %in% names(co)) {
-    stop("'group' should be one of ", paste(names(co), collapse = ", "),
-         call. = FALSE)
+    frm_stop("'group' should be one of ", paste(names(co), collapse = ", "),
+             call. = FALSE)
   }
   A <- co[[group]]
   levels <- dimnames(A)[[2L]]

@@ -71,5 +71,5 @@ test_that("list columns: unused ignored, used errors by name (G2.12)", {
   f_df <- frm(tab_form, data = tab_dd)
   expect_identical(as.numeric(logLik(f_lc)), as.numeric(logLik(f_df)))
   expect_error(frm(bf(y ~ lc + (1 | g)) + gaussian(), data = d),
-               "invalid type \\(list\\).*lc")
+               "`lc` is a list, a column of `data`", class = "frmtmb_error")
 })

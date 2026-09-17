@@ -1,0 +1,6 @@
+"file"	"class"	"message"
+"tests/testthat/test-multivariate.R"	"frmtmb_error/error/condition"	"Unknown response: 'zzz'. Available: y1, y2"
+"tests/testthat/test-multivariate.R"	"frmtmb_error/error/condition"	"fitted() is not supported yet for multivariate fits"
+"tests/testthat/test-multivariate.R"	"frmtmb_error/error/condition"	"simulate() is not supported yet for multivariate fits"
+"tests/testthat/test-multivariate.R"	"frmtmb_error/error/condition"	"rescor = TRUE requires all responses to be gaussian (got: gaussian, poisson)"
+"tests/testthat/test-multivariate.R"	"frmtmb_error/error/condition"	"weights() cannot be combined with rescor = TRUE"

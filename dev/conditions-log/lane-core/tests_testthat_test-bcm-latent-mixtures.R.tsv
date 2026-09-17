@@ -1,0 +1,2 @@
+"file"	"class"	"message"
+"tests/testthat/test-bcm-latent-mixtures.R"	"frmtmb_error/error/condition"	"bcm_two_country(): the sum runs over 2^20 patterns of question countries, which is more than the 4096 this family will enumerate. The marginalization is exact but exponential in the number of QUESTIONS, so raise max_patterns deliberately or use a sampler"

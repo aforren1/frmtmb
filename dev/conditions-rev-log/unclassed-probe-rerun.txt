@@ -1,0 +1,29 @@
+   probe                 class        frmtmb_error message                                                               
+1  predict_type          simpleError  NOT caught   'arg' should be one of "link", "response", "conditional", "zprob", "zl
+2  fitted_scale          simpleError  NOT caught   'arg' should be one of "response", "linear"                           
+3  residuals_type        simpleError  NOT caught   'arg' should be one of "response", "pearson", "deviance", "osa"       
+4  confint_method        simpleError  NOT caught   'arg' should be one of "wald", "Wald", "profile", "uniroot", "boot"   
+5  drop1_test            simpleError  NOT caught   'arg' should be one of "none", "Chisq"                                
+6  ce_band               simpleError  NOT caught   'arg' should be one of "wald", "profile", "boot"                      
+7  ce_method             simpleError  NOT caught   'arg' should be one of "epred", "predict"                             
+8  hypothesis_method     simpleError  NOT caught   'arg' should be one of "wald", "profile", "boot"                      
+9  hypothesis_scope      simpleError  NOT caught   'arg' should be one of "standard", "ranef", "coef"                    
+10 control_nlev          simpleError  NOT caught   'arg' should be one of "warning", "ignore", "stop"                    
+11 default_prior_route   simpleError  NOT caught   'arg' should be one of "fit", "sample"                                
+12 vcov_cluster_type     simpleError  NOT caught   'arg' should be one of "CR0", "CR1", "CR1p", "CR1S"                   
+13 periodogram_taper     simpleError  NOT caught   'arg' should be one of "none", "hann", "split_cosine"                 
+14 cross_spectrum_window simpleError  NOT caught   'arg' should be one of "none", "hann"                                 
+15 hmm_init              simpleError  NOT caught   'arg' should be one of "stationary", "estimated", "uniform"           
+16 set_prior_normal0     simpleError  NOT caught   length(pars) == 2 is not TRUE                                         
+17 set_prior_student3    simpleError  NOT caught   length(pars) == 3 is not TRUE                                         
+18 set_prior_exponential simpleError  NOT caught   pars[1] > 0 is not TRUE                                               
+19 set_prior_gamma1      simpleError  NOT caught   length(pars) == 2 is not TRUE                                         
+20 set_prior_numeric     simpleError  NOT caught   is.character(prior) is not TRUE                                       
+21 prior_plus_string     simpleError  NOT caught   inherits(e2, "frmtmb_priorlist") is not TRUE                          
+22 diagnose_nonfit       simpleError  NOT caught   inherits(fit, "frmtmb_fit") is not TRUE                               
+23 vcov_cluster_nonfit   simpleError  NOT caught   inherits(object, "frmtmb_fit") is not TRUE                            
+24 frm_prior_list        simpleError  NOT caught   !is.null(names(prior)) is not TRUE                                    
+25 frmtmb_family_bad     simpleError  NOT caught   is.character(family) is not TRUE                                      
+26 control_converted     frmtmb_error caught       not_a_family is not a supported family. Supported families are: gaussi
+
+probes 26  NOT caught by frmtmb_error 25 

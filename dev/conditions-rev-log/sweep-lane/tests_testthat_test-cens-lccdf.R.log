@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 6 PASS 27 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-cens-lccdf.R
+CAUGHT 2 
+DONE

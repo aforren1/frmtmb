@@ -1,0 +1,134 @@
+   probe                       frmtmb_error own_class class                                             
+1  predict_type                TRUE         TRUE      frmtmb_error/error/condition                      
+2  fitted_scale                TRUE         TRUE      frmtmb_error/error/condition                      
+3  residuals_type              TRUE         TRUE      frmtmb_error/error/condition                      
+4  confint_method              TRUE         TRUE      frmtmb_error/error/condition                      
+5  drop1_test                  TRUE         TRUE      frmtmb_error/error/condition                      
+6  hypothesis_method           TRUE         TRUE      frmtmb_error/error/condition                      
+7  hypothesis_scope            TRUE         TRUE      frmtmb_error/error/condition                      
+8  ce_band                     TRUE         TRUE      frmtmb_error/error/condition                      
+9  ce_method                   TRUE         TRUE      frmtmb_error/error/condition                      
+10 control_nlev                TRUE         TRUE      frmtmb_error/error/condition                      
+11 control_olre                TRUE         TRUE      frmtmb_error/error/condition                      
+12 default_prior_route         TRUE         TRUE      frmtmb_error/error/condition                      
+13 get_prior_route             TRUE         TRUE      frmtmb_error/error/condition                      
+14 validate_prior_route        TRUE         TRUE      frmtmb_error/error/condition                      
+15 vcov_cluster_type           TRUE         TRUE      frmtmb_error/error/condition                      
+16 periodogram_taper           TRUE         TRUE      frmtmb_error/error/condition                      
+17 periodogram_detrend         TRUE         TRUE      frmtmb_error/error/condition                      
+18 anova_multiple_method       TRUE         TRUE      frmtmb_error/error/condition                      
+19 anova_multiple_use          TRUE         TRUE      frmtmb_error/error/condition                      
+20 cross_spectrum_window       TRUE         TRUE      frmtmb_coupling_error/frmtmb_error/error/condition
+21 gddm_control_tridiagonal    TRUE         TRUE      frmtmb_eam_error/frmtmb_error/error/condition     
+22 gddm_lapse                  TRUE         TRUE      frmtmb_eam_error/frmtmb_error/error/condition     
+23 gddm_simulate_lapse         TRUE         TRUE      frmtmb_eam_error/frmtmb_error/error/condition     
+24 hmm_init                    TRUE         TRUE      frmtmb_latent_error/frmtmb_error/error/condition  
+25 bandit2arm_dual_split       TRUE         TRUE      frmtmb_learn_error/frmtmb_error/error/condition   
+26 task_design_task            TRUE         TRUE      frmtmb_learn_error/frmtmb_error/error/condition   
+27 lincmt_output               TRUE         TRUE      frmtmb_ode_error/frmtmb_error/error/condition     
+28 ode_on_error                TRUE         TRUE      frmtmb_ode_error/frmtmb_error/error/condition     
+29 loo_compare_criterion       TRUE         TRUE      frmtmb_sample_error/frmtmb_error/error/condition  
+30 hypothesis_draws_scope      TRUE         TRUE      frmtmb_sample_error/frmtmb_error/error/condition  
+31 pp_check_prefix             TRUE         TRUE      frmtmb_sample_error/frmtmb_error/error/condition  
+32 predictive_error_method     TRUE         TRUE      frmtmb_sample_error/frmtmb_error/error/condition  
+33 curve_feature_type          TRUE         TRUE      frmtmb_spline_error/frmtmb_error/error/condition  
+34 royston_parmar_scale        TRUE         TRUE      frmtmb_spline_error/frmtmb_error/error/condition  
+35 rp_floored_action           TRUE         TRUE      frmtmb_spline_error/frmtmb_error/error/condition  
+36 set_prior_numeric           TRUE         TRUE      frmtmb_error/error/condition                      
+37 set_prior_normal            TRUE         TRUE      frmtmb_error/error/condition                      
+38 set_prior_student_t         TRUE         TRUE      frmtmb_error/error/condition                      
+39 set_prior_cauchy            TRUE         TRUE      frmtmb_error/error/condition                      
+40 set_prior_exponential_arity TRUE         TRUE      frmtmb_error/error/condition                      
+41 set_prior_exponential_rate  TRUE         TRUE      frmtmb_error/error/condition                      
+42 set_prior_lkj               TRUE         TRUE      frmtmb_error/error/condition                      
+43 set_prior_logistic          TRUE         TRUE      frmtmb_error/error/condition                      
+44 set_prior_gamma             TRUE         TRUE      frmtmb_error/error/condition                      
+45 set_prior_inv_gamma         TRUE         TRUE      frmtmb_error/error/condition                      
+46 set_prior_beta              TRUE         TRUE      frmtmb_error/error/condition                      
+47 prior_plus_string           TRUE         TRUE      frmtmb_error/error/condition                      
+48 frm_prior_list              TRUE         TRUE      frmtmb_error/error/condition                      
+49 diagnose_nonfit             TRUE         TRUE      frmtmb_error/error/condition                      
+50 frmtmb_family_bad           TRUE         TRUE      frmtmb_error/error/condition                      
+51 check_custom_family         TRUE         TRUE      frmtmb_error/error/condition                      
+52 cluster_scores_nonfit       TRUE         TRUE      frmtmb_error/error/condition                      
+53 vcov_cluster_nonfit         TRUE         TRUE      frmtmb_error/error/condition                      
+54 register_prior_defaults     TRUE         TRUE      frmtmb_error/error/condition                      
+55 getME_mv                    TRUE         TRUE      frmtmb_error/error/condition                      
+56 hmm_starts_nonfit           TRUE         TRUE      frmtmb_latent_error/frmtmb_error/error/condition  
+57 task_simulate_nonfamily     TRUE         TRUE      frmtmb_learn_error/frmtmb_error/error/condition   
+58 predict_missing_column      TRUE         TRUE      frmtmb_error/error/condition                      
+59 predict_new_level           TRUE         TRUE      frmtmb_error/error/condition                      
+60 frm_unknown_variable        TRUE         TRUE      frmtmb_error/error/condition                      
+61 frm_data_not_df             TRUE         TRUE      frmtmb_error/error/condition                      
+62 frm_nl_unknown              TRUE         TRUE      frmtmb_error/error/condition                      
+63 frm_nl_short                TRUE         TRUE      frmtmb_error/error/condition                      
+64 frm_list_column             TRUE         TRUE      frmtmb_error/error/condition                      
+65 control_converted           TRUE         TRUE      frmtmb_error/error/condition                      
+
+predict_type                 `type` must be one of "link", "response", "conditional", "zprob", "zlink", "disp", not character "bogus"
+fitted_scale                 `scale` must be one of "response", "linear", not character "bogus"
+residuals_type               `type` must be one of "response", "pearson", "deviance", "osa", not character "bogus"
+confint_method               `method` must be one of "wald", "Wald", "profile", "uniroot", "boot", not character "bogus"
+drop1_test                   `test` must be one of "none", "Chisq", not character "bogus"
+hypothesis_method            `method` must be one of "wald", "profile", "boot", not character "bogus"
+hypothesis_scope             `scope` must be one of "standard", "ranef", "coef", not character "bogus"
+ce_band                      `band` must be one of "wald", "profile", "boot", not character "bogus"
+ce_method                    `method` must be one of "epred", "predict", not character "bogus"
+control_nlev                 `check_nlev_1` must be one of "warning", "ignore", "stop", not character "bogus"
+control_olre                 `check_olre` must be one of "warning", "ignore", "stop", not character "bogus"
+default_prior_route          `route` must be one of "fit", "sample", not character "bogus"
+get_prior_route              `route` must be one of "fit", "sample", not character "bogus"
+validate_prior_route         `route` must be one of "fit", "sample", not character "bogus"
+vcov_cluster_type            `type` must be one of "CR0", "CR1", "CR1p", "CR1S", not character "bogus"
+periodogram_taper            `taper` must be one of "none", "hann", "split_cosine", not character "bogus"
+periodogram_detrend          `detrend` must be one of "mean", "none", "linear", not character "bogus"
+anova_multiple_method        `method` must be one of "D3", "D1", "D2", not character "bogus"
+anova_multiple_use           `use` must be one of "likelihood", "wald", not character "bogus"
+cross_spectrum_window        `window` must be one of "none", "hann", not character "bogus"
+gddm_control_tridiagonal     `tridiagonal` must be one of "recorded", "atomic", not character "bogus"
+gddm_lapse                   `lapse` must be one of "none", "uniform", not character "bogus"
+gddm_simulate_lapse          `lapse` must be one of "none", "uniform", not character "bogus"
+hmm_init                     `init` must be one of "stationary", "estimated", "uniform", not character "bogus"
+bandit2arm_dual_split        `split` must be one of "pe", "outcome", not character "bogus"
+task_design_task             `task` must be one of "bandit2arm", "reversal", "bandit4arm_restless", "igt", "twostep", not character "bogus"
+lincmt_output                `output` must be one of "conc", "central", "depot", not character "bogus"
+ode_on_error                 `on_error` must be one of "penalize", "error", not character "bogus"
+loo_compare_criterion        `criterion` must be one of "loo", "waic", not character "bogus"
+hypothesis_draws_scope       `scope` must be one of "standard", "ranef", "coef", not character "bogus"
+pp_check_prefix              `prefix` must be one of "ppc", "ppd", not character "bogus"
+predictive_error_method      `method` must be one of "posterior_predict", "posterior_epred", not character "bogus"
+curve_feature_type           `type` must be one of "maximum", "minimum", "extremum", "crossing", not character "bogus"
+royston_parmar_scale         `scale` must be one of "hazard", "odds", "normal", not character "bogus"
+rp_floored_action            `action` must be one of "error", "report", not character "bogus"
+set_prior_numeric            A prior must be one string such as "normal(0, 5)" or a prior object, not numeric "1"
+set_prior_normal             Prior 'normal(0)' gives 1 argument; normal() takes 2: normal(mu, sigma)
+set_prior_student_t          Prior 'student_t(3, 0)' gives 2 arguments; student_t() takes 3: student_t(nu, mu, sigma)
+set_prior_cauchy             Prior 'cauchy(0)' gives 1 argument; cauchy() takes 2: cauchy(mu, sigma)
+set_prior_exponential_arity  Prior 'exponential(1, 2)' gives 2 arguments; exponential() takes 1: exponential(beta)
+set_prior_exponential_rate   Prior 'exponential(-1)': the rate of exponential() must be positive, not -1
+set_prior_lkj                Prior 'lkj()' gives 0 arguments; lkj() takes 1: lkj(eta)
+set_prior_logistic           Prior 'logistic(0)' gives 1 argument; logistic() takes 2: logistic(mu, sigma)
+set_prior_gamma              Prior 'gamma(1)' gives 1 argument; gamma() takes 2: gamma(alpha, beta)
+set_prior_inv_gamma          Prior 'inv_gamma(1)' gives 1 argument; inv_gamma() takes 2: inv_gamma(alpha, beta)
+set_prior_beta               Prior 'beta(1)' gives 1 argument; beta() takes 2: beta(alpha, beta)
+prior_plus_string            `+` combines prior specifications made by set_prior(), as in set_prior("normal(0, 1)") + set_prior("normal(0, 
+frm_prior_list               `prior` must be made by set_prior() or be a list with a name for each element, the parameter it applies to, as
+diagnose_nonfit              diagnose() needs a model fitted by frm(), not a lm of length 12
+frmtmb_family_bad            frmtmb_family(family =) must be one string, the name of the family, not numeric "1"
+check_custom_family          check_custom_family() needs a family made by custom_family() or frmtmb_family(), not numeric "1"
+cluster_scores_nonfit        cluster_scores() needs a model fitted by frm(), not a lm of length 12
+vcov_cluster_nonfit          vcov_cluster() needs a model fitted by frm(), not a lm of length 12
+register_prior_defaults      frmtmb_register_prior_defaults() needs a function provider(spec, frame), not numeric "1"
+getME_mv                     Multiple responses have dpar 'mu'; disambiguate with resp = 
+hmm_starts_nonfit            hmm_starts(): `fit` must be a model fitted by frm() with an hmm() family, not numeric "1"
+task_simulate_nonfamily      frm_task_simulate(): `family` must be a family object from frmtmb.learn, such as bandit2arm_delta(subject = id
+predict_missing_column       Variable 'x' missing from newdata
+predict_new_level            newdata has a level of `f` that the fit did not see: 'zz'. The fitted levels are 'a', 'b'. A population-level 
+frm_unknown_variable         The model uses `nope`, which is not a column of `data` and not an object that R finds from the formula. Add th
+frm_data_not_df              `data` must be a data frame holding the model variables, not character "notdf"
+frm_nl_unknown               The model uses `no_such_thing`, which is not a column of `data` and not an object that R finds from the formul
+frm_nl_short                 `short` is not a column of `data`; the object R finds from the formula has 3 rows and `data` has 40. Add the c
+frm_list_column              `lc` is a list, a column of `data`, and a model variable must be a vector, a factor or a matrix
+control_converted            not_a_family is not a supported family. Supported families are: gaussian, poisson, binomial, Gamma, lognormal,
+
+probes 65  frmtmb_error 65  not frmtmb_error 0  expected subclass 65 

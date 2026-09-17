@@ -1,0 +1,25 @@
+[1] "frm_condition_class"
+gaussian_fit         raises    0  ok
+binomial_fit         raises    0  ok
+mixed_fit            raises    0  ok
+predict_se           raises    0  ok
+confint_wald         raises    0  ok
+confint_profile      raises    1  ERROR `parm` is required for method = 'profile'
+
+eval.parent(exprObj) 
+                   1 
+conditional_effects  raises    1  ok
+
+eval.parent(exprObj) 
+                   1 
+simulate             raises    0  ok
+hypothesis           raises    0  ok
+bootstrap            raises    0  ok
+anova_refit          raises    0  ok
+Untracing function "frm_condition_class" in package
+"namespace:frmtmb"
+
+microseconds per call, n = 160000 
+   base control    core     ext 
+   0.12    0.12    6.00    9.62 
+control/base 1.000; lookup cost core 5.88 us, extension 9.50 us

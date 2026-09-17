@@ -1,0 +1,5 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+BLOCKS 9 PASS 54 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-effects.R
+CAUGHT 5 
+DONE

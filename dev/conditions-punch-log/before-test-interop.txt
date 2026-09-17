@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 6 PASS 40 FAIL 0 ERROR 1 SKIP 0  tests/testthat/test-interop.R
+  failing: getME needs resp= for the designs of a multivariate fit
+       Error in `(function (cond)  .Internal(C_tryCatchHelper(addr, 1L, cond)))(structure(list(message = "Multiple responses have dpar 'mu'; disambiguate with resp = ", call = NULL), class = c("frmtmb_error", "error", "condition")))`: error in evaluating the argument 'x' in selecting a method for function 't': Multiple responses have dpar 'mu'; disambiguate with resp =  

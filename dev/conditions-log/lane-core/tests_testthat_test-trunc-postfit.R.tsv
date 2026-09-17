@@ -1,0 +1,3 @@
+"file"	"class"	"message"
+"tests/testthat/test-trunc-postfit.R"	"frmtmb_error/error/condition"	"trunc(): rejection sampling did not fill 20 of 20 rows in 3 passes (acceptance rate 0). The bounds exclude nearly all of the fitted distribution's mass."
+"tests/testthat/test-trunc-postfit.R"	"frmtmb_error/error/condition"	"Addition term trunc(lb = lo) could not be evaluated on newdata: newdata has no column lo; supply the variable or use type = \"conditional\""

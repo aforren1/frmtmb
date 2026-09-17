@@ -26,15 +26,15 @@
 bcm_set_block <- function(group, order_by, n, what) {
   gv <- factor(group)
   if (anyNA(gv)) {
-    stop(what, ": every row needs a set, and ", sum(is.na(gv)),
-         " row(s) have none", call. = FALSE)
+    frm_stop(what, ": every row needs a set, and ", sum(is.na(gv)),
+             " row(s) have none", call. = FALSE)
   }
   rows <- lapply(split(seq_len(n), gv), function(r) r[order(order_by[r])])
   key <- paste(as.integer(gv), order_by, sep = "|")
   if (anyDuplicated(key)) {
-    stop(what, ": item positions must be unique within a set; two rows ",
-         "share one, and a normalized similarity has no way to tell ",
-         "them apart", call. = FALSE)
+    frm_stop(what, ": item positions must be unique within a set; two rows ",
+             "share one, and a normalized similarity has no way to tell ",
+             "them apart", call. = FALSE)
   }
   len <- lengths(rows)
   ni <- max(len)
@@ -74,12 +74,12 @@ bcm_gcm <- function(stimulus, d1, d2, a, b = 0.5) {
   d1 <- as.matrix(d1)
   d2 <- as.matrix(d2)
   if (!identical(dim(d1), dim(d2)) || nrow(d1) != ncol(d1)) {
-    stop("bcm_gcm(): d1 and d2 must be the same square matrix of ",
-         "pairwise distances", call. = FALSE)
+    frm_stop("bcm_gcm(): d1 and d2 must be the same square matrix of ",
+             "pairwise distances", call. = FALSE)
   }
   if (length(a) != nrow(d1) || !all(a %in% c(1, 2))) {
-    stop("bcm_gcm(): a gives each stimulus's category as 1 or 2, one ",
-         "per row of d1", call. = FALSE)
+    frm_stop("bcm_gcm(): a gives each stimulus's category as 1 or 2, one ",
+             "per row of d1", call. = FALSE)
   }
   fam <- frmtmb_family(
     "bcm_gcm",
@@ -88,18 +88,18 @@ bcm_gcm <- function(stimulus, d1, d2, a, b = 0.5) {
     primary_dpars = "c",
     type = "discrete",
     lpdf = function(y, dpars, aterms, extra = NULL) {
-      stop("A bcm_gcm() stimulus's decision probability is a similarity ",
-           "normalized over the whole stimulus set, so the family has no ",
-           "row-wise log density. Use logLik() for the total, or ",
-           "fitted() for the per-stimulus category probabilities",
-           call. = FALSE)
+      frm_stop("A bcm_gcm() stimulus's decision probability is a similarity ",
+               "normalized over the whole stimulus set, so the family has no ",
+               "row-wise log density. Use logLik() for the total, or ",
+               "fitted() for the per-stimulus category probabilities",
+               call. = FALSE)
     },
     valid_y = function(y, aterms) {
       size <- aterms[["trials"]]
       if (is.null(size)) size <- 1
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
-        stop("bcm_gcm(): the response is the number of category A ",
-             "decisions, an integer count in [0, trials]", call. = FALSE)
+        frm_stop("bcm_gcm(): the response is the number of category A ",
+                 "decisions, an integer count in [0, trials]", call. = FALSE)
       }
     },
     init_dpars = list(c = function(y, aterms) 1,
@@ -137,12 +137,12 @@ bcm_gcm_structure <- function() {
     frame_vars = function(fam) list(fam[["gcm"]][["stim_expr"]]),
     check_spec = function(resp, spec, av) {
       if (length(spec$responses) > 1L || isTRUE(spec$rescor)) {
-        stop("bcm_gcm() supports univariate models only", call. = FALSE)
+        frm_stop("bcm_gcm() supports univariate models only", call. = FALSE)
       }
       if (is.null(av[["trials"]])) {
-        stop("bcm_gcm() needs trials(): the response counts category A ",
-             "decisions out of a known number of presentations",
-             call. = FALSE)
+        frm_stop("bcm_gcm() needs trials(): the response counts category A ",
+                 "decisions out of a known number of presentations",
+                 call. = FALSE)
       }
     },
     frame_block = function(resp, spec, av, mf, y, n) {
@@ -150,8 +150,8 @@ bcm_gcm_structure <- function() {
       sv <- eval(g[["stim_expr"]], mf, resp$formula_env)
       stim <- if (is.factor(sv)) as.integer(sv) else as.integer(sv)
       if (anyNA(stim) || any(stim < 1) || any(stim > nrow(g[["d1"]]))) {
-        stop("bcm_gcm(): every row's stimulus must index a row of d1, ",
-             "so 1 to ", nrow(g[["d1"]]), call. = FALSE)
+        frm_stop("bcm_gcm(): every row's stimulus must index a row of d1, ",
+                 "so 1 to ", nrow(g[["d1"]]), call. = FALSE)
       }
       # the design of the experiment travels in the block, because the
       # loglik slot sees the block and not the family
@@ -223,18 +223,18 @@ bcm_simple <- function(list_id, position, m, link_t = "logit") {
     primary_dpars = "c",
     type = "discrete",
     lpdf = function(y, dpars, aterms, extra = NULL) {
-      stop("A bcm_simple() item's recall probability is a similarity ",
-           "normalized over the whole list, so the family has no ",
-           "row-wise log density. Use logLik() for the total, or ",
-           "fitted() for the per-item recall probabilities",
-           call. = FALSE)
+      frm_stop("A bcm_simple() item's recall probability is a similarity ",
+               "normalized over the whole list, so the family has no ",
+               "row-wise log density. Use logLik() for the total, or ",
+               "fitted() for the per-item recall probabilities",
+               call. = FALSE)
     },
     valid_y = function(y, aterms) {
       size <- aterms[["trials"]]
       if (is.null(size)) size <- 1
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
-        stop("bcm_simple(): the response is the number of correct ",
-             "recalls, an integer count in [0, trials]", call. = FALSE)
+        frm_stop("bcm_simple(): the response is the number of correct ",
+                 "recalls, an integer count in [0, trials]", call. = FALSE)
       }
     },
     # The cap makes an infeasible START fatal rather than merely slow:
@@ -293,11 +293,11 @@ bcm_simple_structure <- function() {
     },
     check_spec = function(resp, spec, av) {
       if (length(spec$responses) > 1L || isTRUE(spec$rescor)) {
-        stop("bcm_simple() supports univariate models only", call. = FALSE)
+        frm_stop("bcm_simple() supports univariate models only", call. = FALSE)
       }
       if (is.null(av[["trials"]])) {
-        stop("bcm_simple() needs trials(): the response counts correct ",
-             "recalls out of a known number of attempts", call. = FALSE)
+        frm_stop("bcm_simple() needs trials(): the response counts correct ",
+                 "recalls out of a known number of attempts", call. = FALSE)
       }
     },
     frame_block = function(resp, spec, av, mf, y, n) {
@@ -306,9 +306,9 @@ bcm_simple_structure <- function() {
       pv <- as.numeric(eval(sp[["pos_expr"]], mf, resp$formula_env))
       mv <- as.numeric(eval(sp[["m_expr"]], mf, resp$formula_env))
       if (any(mv <= 0)) {
-        stop("bcm_simple(): m is a time since presentation and enters ",
-             "through its logarithm, so it must be positive",
-             call. = FALSE)
+        frm_stop("bcm_simple(): m is a time since presentation and enters ",
+                 "through its logarithm, so it must be positive",
+                 call. = FALSE)
       }
       blk <- bcm_set_block(gv, pv, n, "bcm_simple()")
       blk[["logm"]] <- log(mv)

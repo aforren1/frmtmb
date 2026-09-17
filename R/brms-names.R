@@ -53,9 +53,9 @@ brms_rename <- function(x, pattern = NULL, replacement = NULL,
   dup <- duplicated(out)
   if (check_dup && any(dup)) {
     dup <- x[out %in% out[dup]]
-    stop("Internal renaming led to duplicated names. Consider renaming ",
-         "your variables to have different suffixes.\nOccured for: ",
-         paste0("'", dup, "'", collapse = ", "), call. = FALSE)
+    frm_stop("Internal renaming led to duplicated names. Consider renaming ",
+             "your variables to have different suffixes.\nOccured for: ",
+             paste0("'", dup, "'", collapse = ", "), call. = FALSE)
   }
   out
 }
@@ -360,12 +360,13 @@ brms_block_has_r <- function(bk) {
 brms_check_re_dups <- function(fit) {
   rs <- names(fit$spec$responses)
   if (length(rs) > 1L && anyDuplicated(brms_stan_name(rs))) {
-    stop("Cannot use the same response variable twice in the same model. ",
-         "brms spells a response without '_' and '.', so ",
-         paste0("'", rs[brms_stan_name(rs) %in%
-                          brms_stan_name(rs)[duplicated(brms_stan_name(rs))]],
-                "'", collapse = " and "),
-         " are one name; rename one of the columns", call. = FALSE)
+    frm_stop("Cannot use the same response variable twice in the same model. ",
+             "brms spells a response without '_' and '.', so ",
+             paste0("'", rs[brms_stan_name(rs) %in%
+                              brms_stan_name(rs)[
+                                duplicated(brms_stan_name(rs))]],
+                    "'", collapse = " and "),
+             " are one name; rename one of the columns", call. = FALSE)
   }
   seen <- character(0)
   for (bk in fit$frame[["re_blocks"]]) {
@@ -377,12 +378,12 @@ brms_check_re_dups <- function(fit) {
       lev <- brms_levels(bk)
       if (anyDuplicated(lev)) {
         same <- bk[["levels"]][lev %in% lev[duplicated(lev)]]
-        stop("The levels ", paste0("'", same, "'", collapse = " and "),
-             " of group '", g, "' are one level in brms, which joins the ",
-             "parts of an interaction group with '_', and brms would ",
-             "pool their group-level effects. Recode the factors so that ",
-             "the joined levels differ, for example without '_' in them",
-             call. = FALSE)
+        frm_stop("The levels ", paste0("'", same, "'", collapse = " and "),
+                 " of group '", g, "' are one level in brms, which joins the ",
+                 "parts of an interaction group with '_', and brms would ",
+                 "pool their group-level effects. Recode the factors so that ",
+                 "the joined levels differ, for example without '_' in them",
+                 call. = FALSE)
       }
     }
     parts <- brms_re_parts(fit, bk)
@@ -390,10 +391,10 @@ brms_check_re_dups <- function(fit) {
     hit <- key %in% seen | duplicated(key)
     if (any(hit)) {
       i <- which(hit)[1L]
-      stop("Duplicated group-level effects are not allowed.\nOccured ",
-           "for effect '", parts$coef[i], "' of group '", g, "'. Give ",
-           "one of the two terms its own grouping column, a copy of the ",
-           "factor under another name", call. = FALSE)
+      frm_stop("Duplicated group-level effects are not allowed.\nOccured ",
+               "for effect '", parts$coef[i], "' of group '", g, "'. Give ",
+               "one of the two terms its own grouping column, a copy of the ",
+               "factor under another name", call. = FALSE)
     }
     seen <- c(seen, key)
   }

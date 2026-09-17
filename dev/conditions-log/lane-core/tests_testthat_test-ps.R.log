@@ -1,0 +1,5 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+StanHeaders: 2.32.10 
+BLOCKS 12 PASS 71 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-ps.R 
+CAUGHT 15 
+DONE

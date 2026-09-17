@@ -1,0 +1,8 @@
+"file"	"class"	"message"
+"extensions/frmtmb.spline/tests/testthat/test-curve.R"	"frmtmb_spline_error/frmtmb_error/error/condition"	"frm_curve(): `object` must be a frmtmb fit, the model a curve is read off, not an object of class data.frame"
+"extensions/frmtmb.spline/tests/testthat/test-curve.R"	"frmtmb_spline_error/frmtmb_error/error/condition"	"`newdata` must be a data frame with at least one row: it is the grid the curve is evaluated on"
+"extensions/frmtmb.spline/tests/testthat/test-curve.R"	"frmtmb_spline_error/frmtmb_error/error/condition"	"`level` must be one number strictly between 0 and 1"
+"extensions/frmtmb.spline/tests/testthat/test-curve.R"	"frmtmb_spline_error/frmtmb_error/error/condition"	"`simultaneous` must be TRUE or FALSE"
+"extensions/frmtmb.spline/tests/testthat/test-curve.R"	"frmtmb_spline_error/frmtmb_error/error/condition"	"frm_curve(simultaneous = TRUE) needs a grid of at least two points: a band over one point is the pointwise interval"
+"extensions/frmtmb.spline/tests/testthat/test-curve.R"	"frmtmb_spline_error/frmtmb_error/error/condition"	"`nsim` must be a single whole number of at least 1"
+"extensions/frmtmb.spline/tests/testthat/test-curve.R"	"frmtmb_spline_error/frmtmb_error/error/condition"	"frm_curve(): the assembled covariance of this grid disagrees with predict(se.fit = TRUE) by 2.22e-16 relative, which is above the tolerance 0. Both come from frm_lp_basis(); a disagreement means this package is reading the seam wrongly, and a fit where the two disagree is one it must not report a ba"

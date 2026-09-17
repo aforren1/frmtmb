@@ -1,0 +1,3 @@
+"file"	"class"	"message"
+"tests/testthat/test-brms-agreement.R"	"brms_error/rlang_error/error/condition"	"Invalid addition arguments for this model."
+"tests/testthat/test-brms-agreement.R"	"frmtmb_error/error/condition"	"ar(): weights() cannot be combined with a residual correlation term. The likelihood is a joint density over each group, so it no longer factorizes into per-row contributions that a frequency weight could repeat, a censoring indicator could replace with a tail probability, a truncation bound could re"

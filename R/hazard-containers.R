@@ -98,8 +98,8 @@ hazard_containers <- c(
 frm_hazard_reads <- function(package) {
   ns <- if (is.environment(package)) package else {
     if (!is.character(package) || length(package) != 1L || is.na(package)) {
-      stop("`package` must be one package name, or an environment of ",
-           "functions to scan", call. = FALSE)
+      frm_stop("`package` must be one package name, or an environment of ",
+               "functions to scan", call. = FALSE)
     }
     getNamespace(package)
   }

@@ -86,9 +86,9 @@ match_par_name <- function(x, nm) {
   for (k in which(is.na(idx))) {
     hit <- which(bare == par_name_bare(x[k]))
     if (length(hit) > 1L) {
-      stop("Parameter name '", x[k], "' is ambiguous once parentheses ",
-           "are dropped: it matches ", paste(nm[hit], collapse = ", "),
-           ". Write the full internal name", call. = FALSE)
+      frm_stop("Parameter name '", x[k], "' is ambiguous once parentheses ",
+               "are dropped: it matches ", paste(nm[hit], collapse = ", "),
+               ". Write the full internal name", call. = FALSE)
     }
     if (length(hit) == 1L) idx[k] <- hit
   }
@@ -219,10 +219,10 @@ apply_nlpar_alias <- function(fit, x, idx) {
   idx[took] <- al$pos[hit[took]]
   bad <- intersect(x[is.na(idx)], names(al$ambiguous))
   if (length(bad)) {
-    stop("Nonlinear parameter '", bad[1L], "' has more than one ",
-         "coefficient, so the bare name does not identify one of them. ",
-         "Name the coefficient in full: ",
-         paste(al$ambiguous[[bad[1L]]], collapse = ", "), call. = FALSE)
+    frm_stop("Nonlinear parameter '", bad[1L], "' has more than one ",
+             "coefficient, so the bare name does not identify one of them. ",
+             "Name the coefficient in full: ",
+             paste(al$ambiguous[[bad[1L]]], collapse = ", "), call. = FALSE)
   }
   idx
 }
@@ -261,13 +261,13 @@ resolve_par_index <- function(fit, parm, what) {
     took <- which(is.na(idx) & !is.na(hit))
     idx[took] <- alias[hit[took]]
     if (length(took)) {
-      message(what, "(): ",
-              paste0("'", parm[took], "' is ", nm[idx[took]],
-                     collapse = ", "),
-              ". The result is on that parameter's internal ",
-              "(unconstrained) scale, not the natural one; ",
-              "confint_varcorr() and hypothesis() report the natural ",
-              "scale.")
+      frm_message(what, "(): ",
+                  paste0("'", parm[took], "' is ", nm[idx[took]],
+                         collapse = ", "),
+                  ". The result is on that parameter's internal ",
+                  "(unconstrained) scale, not the natural one; ",
+                  "confint_varcorr() and hypothesis() report the natural ",
+                  "scale.")
     }
   }
   if (anyNA(idx)) {
@@ -275,24 +275,24 @@ resolve_par_index <- function(fit, parm, what) {
     known <- variables(fit)
     if (any(bad %in% known)) {
       b <- bad[bad %in% known][1L]
-      stop("'", b, "' is a natural-scale summary rather than a fitted ",
-           "parameter, and it does not stand for a single internal one ",
-           "here (a correlation of a wider us() block mixes several, ",
-           "and a response-scale summary such as sigma is a transform ",
-           "of one). Use hypothesis(fit, \"", b, "\", method = ",
-           "'profile'), which profiles the combination itself, read ",
-           "confint_varcorr() for natural-scale variance components, ",
-           "or name the internal parameter: confint(fit) lists them",
-           call. = FALSE)
+      frm_stop("'", b, "' is a natural-scale summary rather than a fitted ",
+               "parameter, and it does not stand for a single internal one ",
+               "here (a correlation of a wider us() block mixes several, ",
+               "and a response-scale summary such as sigma is a transform ",
+               "of one). Use hypothesis(fit, \"", b, "\", method = ",
+               "'profile'), which profiles the combination itself, read ",
+               "confint_varcorr() for natural-scale variance components, ",
+               "or name the internal parameter: confint(fit) lists them",
+               call. = FALSE)
     }
-    stop("Unknown parameter(s) in ", what, "(parm =): ",
-         paste(bad, collapse = ", "), ". Available: ",
-         paste(nm, collapse = ", "),
-         ". Parentheses may be dropped, intercept-only nonlinear ",
-         "parameters may be named bare, and the one-to-one natural-scale ",
-         "names of variables() (sd_<group>__<term>, and a correlation ",
-         "with a single internal parameter) are accepted as aliases",
-         call. = FALSE)
+    frm_stop("Unknown parameter(s) in ", what, "(parm =): ",
+             paste(bad, collapse = ", "), ". Available: ",
+             paste(nm, collapse = ", "),
+             ". Parentheses may be dropped, intercept-only nonlinear ",
+             "parameters may be named bare, and the one-to-one natural-scale ",
+             "names of variables() (sd_<group>__<term>, and a correlation ",
+             "with a single internal parameter) are accepted as aliases",
+             call. = FALSE)
   }
   idx
 }
@@ -374,7 +374,7 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
                                           "uniroot", "boot"),
                                nsim = 500, seed = NULL, vcov = NULL,
                                ...) {
-  method <- match.arg(method)
+  method <- frm_match_arg(method)
   if (method == "Wald") method <- "wald"
   # The dots are forwarded on three of the four methods and swallowed on
   # the fourth, so they are checked against whatever THIS method really
@@ -392,13 +392,13 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
   check_probability(level, "level")
   check_count(nsim, "nsim", min = 1L)
   if (!is.null(parm) && !is.character(parm)) {
-    stop("`parm` must be a character vector of parameter names, or NULL ",
-         "for all of them, not ", arg_desc(parm), call. = FALSE)
+    frm_stop("`parm` must be a character vector of parameter names, or NULL ",
+             "for all of them, not ", arg_desc(parm), call. = FALSE)
   }
   if (!is.null(vcov) && method != "wald") {
-    stop("confint(vcov = ) applies to method = 'wald' only: ",
-         "method = '", method, "' does not go through a covariance ",
-         "matrix", call. = FALSE)
+    frm_stop("confint(vcov = ) applies to method = 'wald' only: ",
+             "method = '", method, "' does not go through a covariance ",
+             "matrix", call. = FALSE)
   }
   nm <- outer_par_names(object)
   est <- object$opt$par
@@ -444,11 +444,11 @@ confint.frmtmb_fit <- function(object, parm = NULL, level = 0.95,
   }
 
   if (isTRUE(object$control$profile)) {
-    stop("confint(method = '", method, "') needs a fit without ",
-         "frmtmb_control(profile = TRUE)", call. = FALSE)
+    frm_stop("confint(method = '", method, "') needs a fit without ",
+             "frmtmb_control(profile = TRUE)", call. = FALSE)
   }
   if (is.null(parm)) {
-    stop("`parm` is required for method = '", method, "'", call. = FALSE)
+    frm_stop("`parm` is required for method = '", method, "'", call. = FALSE)
   }
   ci <- matrix(NA_real_, length(idx), 3,
                dimnames = list(nm[idx], c("lwr", "upr", "est")))
@@ -695,17 +695,17 @@ confint_varcorr <- function(fit, level = 0.95) {
   label <- function(i) paste0(tr$block[i], " ", tr$term[i])
   bad <- which(is.na(tr$se_t))
   if (length(bad)) {
-    warning("No interval for ", length(bad), " component",
-            if (length(bad) > 1L) "s" else "",
-            " on the boundary of the parameter space (a standard ",
-            "deviation at zero, or a correlation at +/-1). The interval ",
-            "is a Wald interval on the log / Fisher-z scale, which is ",
-            "infinite there, so it is reported as NA rather than as a ",
-            "zero-width interval at an arbitrary clamp. The estimates ",
-            "stand; for an interval use hypothesis(method = \"boot\") ",
-            "or confint(method = \"profile\") on the theta parameter. ",
-            "Affected: ",
-            paste(vapply(bad, label, ""), collapse = "; "), call. = FALSE)
+    frm_warning("No interval for ", length(bad), " component",
+                if (length(bad) > 1L) "s" else "",
+                " on the boundary of the parameter space (a standard ",
+                "deviation at zero, or a correlation at +/-1). The interval ",
+                "is a Wald interval on the log / Fisher-z scale, which is ",
+                "infinite there, so it is reported as NA rather than as a ",
+                "zero-width interval at an arbitrary clamp. The estimates ",
+                "stand; for an interval use hypothesis(method = \"boot\") ",
+                "or confint(method = \"profile\") on the theta parameter. ",
+                "Affected: ",
+                paste(vapply(bad, label, ""), collapse = "; "), call. = FALSE)
   }
   # An se above 10 on the LOG scale spans more than 17 orders of
   # magnitude each way: the component is not identified by the data, and
@@ -719,14 +719,14 @@ confint_varcorr <- function(fit, level = 0.95) {
   wide <- which(!is.na(tr$se_t) & tr$type %in% c("sd", "range") &
                   tr$se_t > 10)
   if (length(wide)) {
-    warning("Uninformative interval for ", length(wide), " component",
-            if (length(wide) > 1L) "s" else "",
-            ": the standard error on the log scale exceeds 10, so the ",
-            "reported bounds span many orders of magnitude and the ",
-            "data do not identify the component. diagnose() reports ",
-            "the boundary and curvature checks. Affected: ",
-            paste(vapply(wide, label, ""), collapse = "; "),
-            call. = FALSE)
+    frm_warning("Uninformative interval for ", length(wide), " component",
+                if (length(wide) > 1L) "s" else "",
+                ": the standard error on the log scale exceeds 10, so the ",
+                "reported bounds span many orders of magnitude and the ",
+                "data do not identify the component. diagnose() reports ",
+                "the boundary and curvature checks. Affected: ",
+                paste(vapply(wide, label, ""), collapse = "; "),
+                call. = FALSE)
   }
   out
 }
@@ -1184,7 +1184,10 @@ log_sd_theta_index <- function(fit) {
 #' diagnose(frm(bf(xbig ~ 1) + gaussian(), data = dd), quiet = TRUE)$scale
 #' @export
 diagnose <- function(fit, quiet = FALSE) {
-  stopifnot(inherits(fit, "frmtmb_fit"))
+  if (!inherits(fit, "frmtmb_fit")) {
+    frm_stop("diagnose() needs a model fitted by frm(), not ",
+             arg_desc(fit), call. = FALSE)
+  }
   check_flag(quiet, "quiet")
   nm <- outer_par_names(fit)
   # a degenerate fit (no free outer parameters) has no gradient, no
@@ -1480,14 +1483,14 @@ warn_non_nested <- function(fits) {
                    TRUE))) {
       next
     }
-    warning("anova(): the fixed effects of ", model_label(fits[[i]]),
-            " and ", model_label(fits[[i + 1L]]),
-            " are not nested - neither model's coefficients are a ",
-            "subset of the other's, and neither design sits inside the ",
-            "other's column space. A likelihood-ratio test between ",
-            "models that are not nested has no chi-square null ",
-            "distribution; compare them by AIC instead",
-            call. = FALSE)
+    frm_warning("anova(): the fixed effects of ", model_label(fits[[i]]),
+                " and ", model_label(fits[[i + 1L]]),
+                " are not nested - neither model's coefficients are a ",
+                "subset of the other's, and neither design sits inside the ",
+                "other's column space. A likelihood-ratio test between ",
+                "models that are not nested has no chi-square null ",
+                "distribution; compare them by AIC instead",
+                call. = FALSE)
   }
   invisible(NULL)
 }
@@ -1629,30 +1632,30 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
   fits <- c(list(object), Filter(function(x) inherits(x, "frmtmb_fit"),
                                  list(...)))
   if (length(fits) < 2) {
-    stop("anova() needs at least two frmtmb fits to compare", call. = FALSE)
+    frm_stop("anova() needs at least two frmtmb fits to compare", call. = FALSE)
   }
   reml <- vapply(fits, `[[`, TRUE, "REML")
   if (any(reml) && isTRUE(refit)) {
     labs <- vapply(fits[reml], model_label, "")
-    message("anova(): refitting ", length(labs), " REML model",
-            if (length(labs) != 1L) "s" else "", " with ML: ",
-            paste(labs, collapse = "; "))
+    frm_message("anova(): refitting ", length(labs), " REML model",
+                if (length(labs) != 1L) "s" else "", " with ML: ",
+                paste(labs, collapse = "; "))
     fits[reml] <- lapply(fits[reml], anova_refit_ml)
     reml[] <- FALSE
   }
   if (any(reml)) {
     if (!all(reml)) {
-      stop("anova() cannot mix REML and ML fits: their likelihoods are ",
-           "for different quantities. Refit them all with the same ",
-           "REML setting, or pass refit = TRUE to compare them as ML ",
-           "fits", call. = FALSE)
+      frm_stop("anova() cannot mix REML and ML fits: their likelihoods are ",
+               "for different quantities. Refit them all with the same ",
+               "REML setting, or pass refit = TRUE to compare them as ML ",
+               "fits", call. = FALSE)
     }
     if (!reml_comparable(fits)) {
-      stop("REML likelihoods are comparable only between fits whose ",
-           "fixed-effect designs span the same column space; these do ",
-           "not. Pass refit = TRUE (or refit with REML = FALSE) to ",
-           "compare fixed effects, or hold the fixed effects fixed to ",
-           "compare random-effect structures", call. = FALSE)
+      frm_stop("REML likelihoods are comparable only between fits whose ",
+               "fixed-effect designs span the same column space; these do ",
+               "not. Pass refit = TRUE (or refit with REML = FALSE) to ",
+               "compare fixed effects, or hold the fixed effects fixed to ",
+               "compare random-effect structures", call. = FALSE)
     }
   }
   # Likelihoods computed on different data are not on a common scale, so
@@ -1663,10 +1666,10 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
   # [lme4#622]
   nobs_all <- vapply(fits, function(f) as.integer(f$frame[["n_obs"]]), 0L)
   if (length(unique(nobs_all)) > 1L) {
-    stop("anova() needs fits with the same number of observations (got ",
-         paste(unique(nobs_all), collapse = ", "),
-         "); models fit to different data or with different NA rows ",
-         "dropped are not comparable", call. = FALSE)
+    frm_stop("anova() needs fits with the same number of observations (got ",
+             paste(unique(nobs_all), collapse = ", "),
+             "); models fit to different data or with different NA rows ",
+             "dropped are not comparable", call. = FALSE)
   }
   ll <- vapply(fits, function(f) as.numeric(logLik(f)), 0)
   df <- vapply(fits, function(f) attr(logLik(f), "df"), 0L)
@@ -1727,13 +1730,13 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
   # `s3_contract_args`, with every other name R's own machinery passes
   # through a generic. step() reaches this one after nobs().
   frm_check_dots(...)
-  test <- match.arg(test)
+  test <- frm_match_arg(test)
   if (object$REML) {
-    stop("drop1() compares fixed effects; refit with REML = FALSE",
-         call. = FALSE)
+    frm_stop("drop1() compares fixed effects; refit with REML = FALSE",
+             call. = FALSE)
   }
   if (length(object$spec$responses) > 1) {
-    stop("drop1() is not supported for multivariate fits", call. = FALSE)
+    frm_stop("drop1() is not supported for multivariate fits", call. = FALSE)
   }
   tt <- terms(object)
   labs <- attr(tt, "term.labels")
@@ -1745,8 +1748,8 @@ drop1.frmtmb_fit <- function(object, scope, test = c("none", "Chisq"),
   }
   bad <- setdiff(scope, labs)
   if (length(bad)) {
-    stop("scope is not a subset of the term labels: ",
-         paste(bad, collapse = ", "), call. = FALSE)
+    frm_stop("scope is not a subset of the term labels: ",
+             paste(bad, collapse = ", "), call. = FALSE)
   }
 
   ll0 <- logLik(object)
@@ -1816,9 +1819,9 @@ formula_has_dot <- function(f) {
 update_delta_formula <- function(object, f) {
   bform <- object$bform
   if (inherits(bform, "frmtmb_mvformula")) {
-    stop("An update formula written as a delta does not say which ",
-         "response it changes. Pass the complete mvbf() as `formula`",
-         call. = FALSE)
+    frm_stop("An update formula written as a delta does not say which ",
+             "response it changes. Pass the complete mvbf() as `formula`",
+             call. = FALSE)
   }
   # nlf() on mu makes the response formula's right-hand side a body too,
   # whether or not nl = TRUE was written
@@ -1826,10 +1829,10 @@ update_delta_formula <- function(object, f) {
     length(intersect(all.vars(reformulas::RHSForm(bform$formula)),
                      names(bform$nlforms %||% list()))) > 0L
   if (nl_mu) {
-    stop("An update formula written as a delta cannot be applied to a ",
-         "nonlinear formula, whose right-hand side is an expression ",
-         "and not a sum of terms. Pass the complete ",
-         "bf(..., nl = TRUE) as `formula`", call. = FALSE)
+    frm_stop("An update formula written as a delta cannot be applied to a ",
+             "nonlinear formula, whose right-hand side is an expression ",
+             "and not a sum of terms. Pass the complete ",
+             "bf(..., nl = TRUE) as `formula`", call. = FALSE)
   }
   new <- stats::update.formula(bform$formula, f)
   environment(new) <- environment(bform$formula)
@@ -1879,8 +1882,8 @@ update.frmtmb_fit <- function(object, formula., ..., evaluate = TRUE) {
   # brms spells the data argument of update() `newdata`
   if ("newdata" %in% names(extras)) {
     if ("data" %in% names(extras)) {
-      stop("Give the updated data once: as `data`, or as brms's ",
-           "`newdata`, but not both", call. = FALSE)
+      frm_stop("Give the updated data once: as `data`, or as brms's ",
+               "`newdata`, but not both", call. = FALSE)
     }
     names(extras)[names(extras) == "newdata"] <- "data"
   }
@@ -2035,9 +2038,9 @@ hyp_env_vals <- function(fit, vals, comp) {
   env <- list()
   put <- function(nm, val) {
     if (!is.null(env[[nm]])) {
-      stop("Internal error: two parameters of this model share the ",
-           "name '", nm, "'. Please report it with the model formula",
-           call. = FALSE)
+      frm_stop("Internal error: two parameters of this model share the ",
+               "name '", nm, "'. Please report it with the model formula",
+               call. = FALSE)
     }
     env[[nm]] <<- unname(val)
     invisible(NULL)
@@ -2128,8 +2131,8 @@ hyp_parse <- function(h) {
   ops <- ops[ops > 0L]
   if (length(ops)) {
     if (length(ops) > 1L) {
-      stop("A hypothesis has at most one '<' or '>': '", h, "'",
-           call. = FALSE)
+      frm_stop("A hypothesis has at most one '<' or '>': '", h, "'",
+               call. = FALSE)
     }
     op <- substr(h, ops, ops)
     lhs <- substr(h, 1L, ops - 1L)
@@ -2137,15 +2140,15 @@ hyp_parse <- function(h) {
     # zero under every sampling distribution used here
     rhs <- sub("^=", "", substring(h, ops + 1L))
     if (grepl("=", lhs, fixed = TRUE) || grepl("=", rhs, fixed = TRUE)) {
-      stop("A hypothesis is directional ('<', '>') or an equality ",
-           "('='), not both: '", h, "'", call. = FALSE)
+      frm_stop("A hypothesis is directional ('<', '>') or an equality ",
+               "('='), not both: '", h, "'", call. = FALSE)
     }
     return(list(text = hyp_two_sides(lhs, rhs, h),
                 dir = if (op == ">") "greater" else "less"))
   }
   eq <- strsplit(h, "=", fixed = TRUE)[[1L]]
   if (length(eq) > 2L) {
-    stop("A hypothesis has at most one '=': '", h, "'", call. = FALSE)
+    frm_stop("A hypothesis has at most one '=': '", h, "'", call. = FALSE)
   }
   txt <- if (length(eq) == 2L) hyp_two_sides(eq[1L], eq[2L], h) else
     paste0("(", h, ")")
@@ -2157,8 +2160,8 @@ hyp_parse <- function(h) {
 #' @noRd
 hyp_two_sides <- function(lhs, rhs, h) {
   if (!nzchar(lhs) || !nzchar(rhs)) {
-    stop("Every hypothesis must be of the form 'left (= OR < OR >) ",
-         "right': '", h, "'", call. = FALSE)
+    frm_stop("Every hypothesis must be of the form 'left (= OR < OR >) ",
+             "right': '", h, "'", call. = FALSE)
   }
   paste0("(", lhs, ")", if (rhs != "0") paste0("-(", rhs, ")"))
 }
@@ -2207,7 +2210,7 @@ hyp_rename <- function(x) {
 hyp_parse_all <- function(hypothesis, known, class = "b", group = "") {
   if (!is.character(hypothesis) || !length(hypothesis) ||
         anyNA(hypothesis)) {
-    stop("Argument 'hypothesis' must be a character vector.", call. = FALSE)
+    frm_stop("Argument 'hypothesis' must be a character vector.", call. = FALSE)
   }
   prefix <- hyp_class_prefix(class, group)
   ps <- lapply(hypothesis, hyp_parse)
@@ -2216,13 +2219,24 @@ hyp_parse_all <- function(hypothesis, known, class = "b", group = "") {
     full <- paste0(prefix, vars)
     miss <- setdiff(full, known)
     if (length(miss)) {
-      stop("Some parameters cannot be found in the model: \n",
-           paste0("'", miss, "'", collapse = ", "),
-           "\nvariables() lists every name; brms's default class = \"b\" ",
-           "puts b_ before each name, so a name such as sigma or ",
-           "sd_<group>__<coef> needs class = NULL", call. = FALSE)
+      frm_stop("Some parameters cannot be found in the model: \n",
+               paste0("'", miss, "'", collapse = ", "),
+               "\nvariables() lists every name; brms's default class = \"b\" ",
+               "puts b_ before each name, so a name such as sigma or ",
+               "sd_<group>__<coef> needs class = NULL", call. = FALSE)
     }
     ex <- str2lang(hyp_rename(p$text))
+    # a backticked name such as `(Intercept)` is one symbol to R but not
+    # a variable to hyp_find_vars(), so it would reach eval() unbound
+    # and fail there with base R's "object not found"
+    extra <- setdiff(all.vars(ex), hyp_rename(vars))
+    extra <- extra[!vapply(extra, exists, NA, envir = environment())]
+    if (length(extra)) {
+      frm_stop("Some parameters cannot be found in the model: \n",
+               paste0("'", extra, "'", collapse = ", "),
+               "\nvariables() lists every name; write a name without ",
+               "backticks, as brms does", call. = FALSE)
+    }
     attr(ex, "vars") <- stats::setNames(full, hyp_rename(vars))
     ex
   })
@@ -2245,8 +2259,8 @@ hyp_eval_in <- function(ex, values) {
   names(env) <- names(map)
   miss <- map[vapply(env, is.null, TRUE)]
   if (length(miss)) {
-    stop("Some parameters cannot be found in the model: \n",
-         paste0("'", miss, "'", collapse = ", "), call. = FALSE)
+    frm_stop("Some parameters cannot be found in the model: \n",
+             paste0("'", miss, "'", collapse = ", "), call. = FALSE)
   }
   attr(ex, "vars") <- NULL
   eval(ex, env, parent.frame())
@@ -2270,12 +2284,12 @@ hyp_eval <- function(fit, ex, vals, comp) {
 hyp_class_prefix <- function(class = "b", group = "") {
   if (!length(class)) class <- ""
   if (!is.character(class) || length(class) != 1L || is.na(class)) {
-    stop("`class` must be a single string, or NULL for no prefix",
-         call. = FALSE)
+    frm_stop("`class` must be a single string, or NULL for no prefix",
+             call. = FALSE)
   }
   if (!length(group)) group <- ""
   if (!is.character(group) || length(group) != 1L || is.na(group)) {
-    stop("`group` must be a single string", call. = FALSE)
+    frm_stop("`group` must be a single string", call. = FALSE)
   }
   if (nzchar(group)) return(paste0(class, "_", group, "__"))
   if (nzchar(class)) return(paste0(class, "_"))
@@ -2690,20 +2704,20 @@ hyp_samples_frame <- function(m, k) {
 #'
 #' @noRd
 hyp_refuse_draws_args <- function(scope, robust, what) {
-  scope <- match.arg(scope, c("standard", "ranef", "coef"))
+  scope <- frm_match_arg(scope, c("standard", "ranef", "coef"))
   if (!identical(scope, "standard")) {
-    stop(what, " cannot honor scope = \"", scope, "\": brms evaluates ",
-         "the hypothesis on each group level's draws from ", scope,
-         "(summary = FALSE), and a maximum-likelihood fit has no draws ",
-         "of a group level. Sample with frmtmb.sample::frm_sample() for ",
-         "that, or write the level's own parameter out", call. = FALSE)
+    frm_stop(what, " cannot honor scope = \"", scope, "\": brms evaluates ",
+             "the hypothesis on each group level's draws from ", scope,
+             "(summary = FALSE), and a maximum-likelihood fit has no draws ",
+             "of a group level. Sample with frmtmb.sample::frm_sample() for ",
+             "that, or write the level's own parameter out", call. = FALSE)
   }
   check_flag(robust, "robust")
   if (robust) {
-    stop(what, " cannot honor robust = TRUE: brms's robust summary is ",
-         "the median and MAD of the draws, and a maximum-likelihood ",
-         "fit reports one estimate and its standard error. Sample with ",
-         "frmtmb.sample::frm_sample() for that", call. = FALSE)
+    frm_stop(what, " cannot honor robust = TRUE: brms's robust summary is ",
+             "the median and MAD of the draws, and a maximum-likelihood ",
+             "fit reports one estimate and its standard error. Sample with ",
+             "frmtmb.sample::frm_sample() for that", call. = FALSE)
   }
   invisible(scope)
 }
@@ -2717,13 +2731,13 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
                                   seed = NULL,
                                   method = c("wald", "profile", "boot"),
                                   nsim = 500, vcov = NULL, ...) {
-  method <- match.arg(method)
+  method <- frm_match_arg(method)
   hyp_refuse_draws_args(scope, robust, "hypothesis()")
   check_probability(alpha, "alpha")
   if (!is.null(vcov) && method != "wald") {
-    stop("hypothesis(vcov = ) applies to method = 'wald' only: ",
-         "method = '", method, "' does not go through a covariance ",
-         "matrix", call. = FALSE)
+    frm_stop("hypothesis(vcov = ) applies to method = 'wald' only: ",
+             "method = '", method, "' does not go through a covariance ",
+             "matrix", call. = FALSE)
   }
   # Same rule as confint(): checked against what THIS method forwards
   # them to, and refused rather than warned about, because a warning
@@ -2742,8 +2756,8 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
   vals0 <- vapply(seq_along(exs), function(i) {
     val <- hyp_eval(x, exs[[i]], vo$vals, vo$comp)
     if (!is.numeric(val) || length(val) != 1L) {
-      stop("Hypothesis '", hypothesis[i], "' must evaluate to a single ",
-           "number at the fitted estimates", call. = FALSE)
+      frm_stop("Hypothesis '", hypothesis[i], "' must evaluate to a single ",
+               "number at the fitted estimates", call. = FALSE)
     }
     val
   }, numeric(1))
@@ -2791,10 +2805,10 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
   if (!is.null(vcov)) {
     rv <- resolve_vcov_arg(x, vcov, "hypothesis")
     if (is.null(pc$outer_pos)) {
-      stop("hypothesis(vcov = ) needs a plain maximum-likelihood fit ",
-           "(the REML / profile branch reads the joint precision, ",
-           "which a supplied covariance does not replace)",
-           call. = FALSE)
+      frm_stop("hypothesis(vcov = ) needs a plain maximum-likelihood fit ",
+               "(the REML / profile branch reads the joint precision, ",
+               "which a supplied covariance does not replace)",
+               call. = FALSE)
     }
     pc$V <- rv$V[pc$outer_pos, pc$outer_pos, drop = FALSE]
     if (!is.null(rv$df)) {
@@ -2819,26 +2833,26 @@ hypothesis.frmtmb_fit <- function(x, hypothesis, class = "b", group = "",
     upr[i] <- vals0[i] + q * se[i]
     if (method == "profile") {
       if (x$REML) {
-        stop("method = 'profile' requires an ML fit (REML integrates ",
-             "the fixed effects out of the outer problem)",
-             call. = FALSE)
+        frm_stop("method = 'profile' requires an ML fit (REML integrates ",
+                 "the fixed effects out of the outer problem)",
+                 call. = FALSE)
       }
       if (isTRUE(x$control$profile)) {
-        stop("hypothesis(method = 'profile') needs a fit without ",
-             "frmtmb_control(profile = TRUE)", call. = FALSE)
+        frm_stop("hypothesis(method = 'profile') needs a fit without ",
+                 "frmtmb_control(profile = TRUE)", call. = FALSE)
       }
       g2 <- hyp_fd_grad(fn, pc$vals + 0.1 * (1 + abs(pc$vals)))
       if (max(abs(g - g2)) > 1e-4 * max(1, max(abs(g)))) {
-        stop("Hypothesis '", hypothesis[i], "' is not linear in the ",
-             "parameters; use method = 'boot'", call. = FALSE)
+        frm_stop("Hypothesis '", hypothesis[i], "' is not linear in the ",
+                 "parameters; use method = 'boot'", call. = FALSE)
       }
       v <- numeric(pc$n_outer)
       v[pc$outer_pos] <- g
       const <- vals0[i] - sum(g * pc$vals)
       lev <- 1 - 2 * lo_p[i]
       if (lev <= 0) {
-        stop("A one-sided profile bound needs alpha below 0.5",
-             call. = FALSE)
+        frm_stop("A one-sided profile bound needs alpha below 0.5",
+                 call. = FALSE)
       }
       pargs <- utils::modifyList(
         list(obj = x$obj, lincomb = v, trace = FALSE,

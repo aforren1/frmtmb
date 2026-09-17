@@ -1,0 +1,5 @@
+cases 152  OK 123 
+      gm       gs       bi       po       wt       sb      mmf       pl 
+"fitted" "fitted" "fitted" "fitted" "fitted" "fitted" "fitted" "fitted" 
+      en       nl       mv       ce 
+"fitted" "fitted" "fitted" "fitted" 

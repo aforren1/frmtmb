@@ -507,22 +507,22 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   # reaches seq_len(NULL) inside the optimizer loop, where the message
   # is "argument must be coercible to non-negative integer"
   if (!is.list(control)) {
-    stop("`control` must be a list from frmtmb_control(), not ",
-         arg_desc(control), call. = FALSE)
+    frm_stop("`control` must be a list from frmtmb_control(), not ",
+             arg_desc(control), call. = FALSE)
   }
   ctl_need <- c("optimizer", "optCtrl", "restarts", "grad_tol")
   if (!all(ctl_need %in% names(control))) {
-    stop("`control` must come from frmtmb_control(); this list is missing ",
-         paste(setdiff(ctl_need, names(control)), collapse = ", "),
-         call. = FALSE)
+    frm_stop("`control` must come from frmtmb_control(); this list is missing ",
+             paste(setdiff(ctl_need, names(control)), collapse = ", "),
+             call. = FALSE)
   }
   if (!is.null(prior) && !is.list(prior)) {
-    stop("`prior` must be a set_prior() specification or a named list ",
-         "of prior objects, not ", arg_desc(prior), call. = FALSE)
+    frm_stop("`prior` must be a set_prior() specification or a named list ",
+             "of prior objects, not ", arg_desc(prior), call. = FALSE)
   }
   if (!is.function(na.action) && !is.character(na.action)) {
-    stop("`na.action` must be a function such as stats::na.omit, or its ",
-         "name as a string, not ", arg_desc(na.action), call. = FALSE)
+    frm_stop("`na.action` must be a function such as stats::na.omit, or its ",
+             "name as a string, not ", arg_desc(na.action), call. = FALSE)
   }
   data2 <- validate_data2(data2)
   # frmtmb_control() leaves verbose unset (NULL), so an explicit control
@@ -591,14 +591,14 @@ vb_now <- function() proc.time()[["elapsed"]]
 #' One progress line with the package prefix, through `message()`.
 #'
 #' @noRd
-vb_say <- function(...) message("frmtmb: ", ...)
+vb_say <- function(...) frm_message("frmtmb: ", ...)
 
 #' One timed stage line, shaped `"frmtmb: <stage> [1.23s]: <detail>"`.
 #'
 #' @noRd
 vb_stage <- function(stage, t0, detail = NULL) {
-  message("frmtmb: ", stage, " [", sprintf("%.2f", vb_now() - t0), "s]",
-          if (is.null(detail)) "" else paste0(": ", detail))
+  frm_message("frmtmb: ", stage, " [", sprintf("%.2f", vb_now() - t0), "s]",
+              if (is.null(detail)) "" else paste0(": ", detail))
 }
 
 #' A count and its noun, with the plural `s` only when the count needs
@@ -787,8 +787,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   integrate <- NULL
   if (isTRUE(quadrature)) {
     if (!is.null(template[["miss"]])) {
-      stop("quadrature = TRUE cannot be combined with mi()",
-           call. = FALSE)
+      frm_stop("quadrature = TRUE cannot be combined with mi()",
+               call. = FALSE)
     }
     # The Gauss-Kronrod rule integrates whatever density the tape
     # produces, so a scalar Student-t latent is in scope. There the
@@ -800,24 +800,24 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
         bk[["covstruct"]] %in% c("us", "diag", "homdiag", "us_t", "diag_t")
     }, TRUE)
     if (!length(scalar_iid) || !all(scalar_iid)) {
-      stop("quadrature = TRUE currently supports scalar random ",
-           "intercepts only (every block must be a dim-1 us/diag term)",
-           call. = FALSE)
+      frm_stop("quadrature = TRUE currently supports scalar random ",
+               "intercepts only (every block must be a dim-1 us/diag term)",
+               call. = FALSE)
     }
     if (REML) {
-      stop("quadrature = TRUE cannot be combined with REML = TRUE",
-           call. = FALSE)
+      frm_stop("quadrature = TRUE cannot be combined with REML = TRUE",
+               call. = FALSE)
     }
     if (length(frame[["autocor"]] %||% list())) {
       # the Gauss-Kronrod rule integrates one scalar random effect
       # against a PRODUCT of per-row densities; an R-side residual is a
       # joint density over each group, so no per-row integrand exists
-      stop("quadrature = TRUE cannot be combined with the residual ",
-           "correlation term ", frame[["autocor"]][[1L]]$label,
-           ": the rule integrates a random effect against ",
-           "per-observation densities, and this residual is a joint ",
-           "density over each group. Use quadrature = FALSE (Laplace) ",
-           "or REML = TRUE", call. = FALSE)
+      frm_stop("quadrature = TRUE cannot be combined with the residual ",
+               "correlation term ", frame[["autocor"]][[1L]]$label,
+               ": the rule integrates a random effect against ",
+               "per-observation densities, and this residual is a joint ",
+               "density over each group. Use quadrature = FALSE (Laplace) ",
+               "or REML = TRUE", call. = FALSE)
     }
     # The truncation normalizer is log(F(ub) - F(lb)) over plain CDFs.
     # The Gauss-Kronrod nodes reach random-effect values where that
@@ -831,12 +831,12 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
       frame[["aterm_values"]],
       function(a) !is.null(a$trunc_lb) || !is.null(a$trunc_ub), TRUE)))
     if (length(trunc_resp)) {
-      stop("quadrature = TRUE cannot be combined with trunc() (",
-           paste(trunc_resp, collapse = ", "), "): the truncation ",
-           "normalizer underflows at the Gauss-Kronrod nodes and the ",
-           "marginalized objective is unbounded. Use quadrature = ",
-           "FALSE (Laplace), REML = TRUE, or ",
-           "frmtmb_control(profile = TRUE)", call. = FALSE)
+      frm_stop("quadrature = TRUE cannot be combined with trunc() (",
+               paste(trunc_resp, collapse = ", "), "): the truncation ",
+               "normalizer underflows at the Gauss-Kronrod nodes and the ",
+               "marginalized objective is unbounded. Use quadrature = ",
+               "FALSE (Laplace), REML = TRUE, or ",
+               "frmtmb_control(profile = TRUE)", call. = FALSE)
     }
     # adaptive Gauss-Kronrod marginalization per scalar random effect
     # (TMB's experimental `integrate`; the nAGQ analogue - matches
@@ -850,12 +850,12 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   profile_arg <- NULL
   if (isTRUE(control$profile)) {
     if (REML) {
-      stop("frmtmb_control(profile = TRUE) cannot be combined with ",
-           "REML = TRUE (beta is already integrated)", call. = FALSE)
+      frm_stop("frmtmb_control(profile = TRUE) cannot be combined with ",
+               "REML = TRUE (beta is already integrated)", call. = FALSE)
     }
     if (isTRUE(quadrature)) {
-      stop("frmtmb_control(profile = TRUE) cannot be combined with ",
-           "quadrature = TRUE", call. = FALSE)
+      frm_stop("frmtmb_control(profile = TRUE) cannot be combined with ",
+               "quadrature = TRUE", call. = FALSE)
     }
     profile_arg <- "beta"
   }
@@ -882,18 +882,18 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   }
   if (objective_only) {
     if (isTRUE(quadrature)) {
-      stop("quadrature = TRUE has no unfitted form: the Gauss-Kronrod ",
-           "tape is calibrated at a Laplace OPTIMUM, and stopping ",
-           "before the optimizer leaves nothing to calibrate it at. ",
-           "Sample the Laplace objective instead (quadrature = FALSE)",
-           call. = FALSE)
+      frm_stop("quadrature = TRUE has no unfitted form: the Gauss-Kronrod ",
+               "tape is calibrated at a Laplace OPTIMUM, and stopping ",
+               "before the optimizer leaves nothing to calibrate it at. ",
+               "Sample the Laplace objective instead (quadrature = FALSE)",
+               call. = FALSE)
     }
     if (n_imp > 0L) {
-      stop("`importance` has no unfitted form: the proposal is the ",
-           "Laplace Gaussian at a conditional mode, and stopping ",
-           "before the optimizer leaves no mode to centre it on. ",
-           "Sample the Laplace objective instead (importance = 0)",
-           call. = FALSE)
+      frm_stop("`importance` has no unfitted form: the proposal is the ",
+               "Laplace Gaussian at a conditional mode, and stopping ",
+               "before the optimizer leaves no mode to centre it on. ",
+               "Sample the Laplace objective instead (importance = 0)",
+               call. = FALSE)
     }
     return(unfitted_object(spec, frame, obj, template, bform, cl, REML,
                            prior, data2, control, lower_arg, upper_arg))
@@ -1067,8 +1067,8 @@ unfitted_object <- function(spec, frame, obj, template, bform, cl, REML,
 #' @noRd
 require_frmtmb_fit <- function(fit, what) {
   if (inherits(fit, "frmtmb_fit")) return(invisible(NULL))
-  stop(what, " needs a model fitted by frm(), not ", arg_desc(fit),
-       call. = FALSE)
+  frm_stop(what, " needs a model fitted by frm(), not ", arg_desc(fit),
+           call. = FALSE)
 }
 
 #' Refuse a method that reports a maximum-likelihood quantity on an
@@ -1078,13 +1078,13 @@ require_frmtmb_fit <- function(fit, what) {
 #' @noRd
 require_fitted <- function(fit, what) {
   if (!inherits(fit, "frmtmb_unfitted")) return(invisible(NULL))
-  stop(what, " needs a fitted model. This object was assembled by ",
-       "frm_sample() from a formula, for sampling only: it holds the ",
-       "objective and the starting values, but no optimizer result, no ",
-       "mode and no sdreport, so there is no estimate to report. Use ",
-       "the draws (summary(), fixef(), VarCorr(), hypothesis(), ",
-       "posterior_*()), or fit the model with frm() first",
-       call. = FALSE)
+  frm_stop(what, " needs a fitted model. This object was assembled by ",
+           "frm_sample() from a formula, for sampling only: it holds the ",
+           "objective and the starting values, but no optimizer result, no ",
+           "mode and no sdreport, so there is no estimate to report. Use ",
+           "the draws (summary(), fixef(), VarCorr(), hypothesis(), ",
+           "posterior_*()), or fit the model with frm() first",
+           call. = FALSE)
 }
 
 #' parList() at an outer parameter vector with the inner problem solved
@@ -1219,7 +1219,7 @@ quad_fit <- function(nll, template, random, map, integrate, lap_obj,
     if (!is.null(best) && isTRUE(best$stationary)) break
   }
   if (is.null(best)) {
-    stop(quad_breakdown_message(frame, lap_tpl$theta), call. = FALSE)
+    frm_stop(quad_breakdown_message(frame, lap_tpl$theta), call. = FALSE)
   }
   best[c("obj", "opt")]
 }
@@ -1502,10 +1502,10 @@ frmtmb_control <- function(optimizer = "nlminb",
   check_count(importance_rounds, "importance_rounds", min = 1L)
   check_positive(importance_ess, "importance_ess")
   if (importance_ess > 1) {
-    stop("`importance_ess` is an effective sample size as a FRACTION ",
-         "of the draw count, so it lies in (0, 1]; ",
-         format(importance_ess), " asks for more effective draws than ",
-         "there are draws", call. = FALSE)
+    frm_stop("`importance_ess` is an effective sample size as a FRACTION ",
+             "of the draw count, so it lies in (0, 1]; ",
+             format(importance_ess), " asks for more effective draws than ",
+             "there are draws", call. = FALSE)
   }
   # Only the SHAPE of `optimizer` is checked here. Which names are
   # known is settled at fit time, on purpose: that refusal carries the
@@ -1517,21 +1517,21 @@ frmtmb_control <- function(optimizer = "nlminb",
   if (!is.function(optimizer) &&
         !(is.character(optimizer) && length(optimizer) == 1L &&
             !is.na(optimizer))) {
-    stop("`optimizer` must be a single optimizer name or a function, ",
-         "not ", arg_desc(optimizer), call. = FALSE)
+    frm_stop("`optimizer` must be a single optimizer name or a function, ",
+             "not ", arg_desc(optimizer), call. = FALSE)
   }
   if (!is.list(optCtrl)) {
-    stop("`optCtrl` must be a list of options for the optimizer, e.g. ",
-         "optCtrl = list(iter.max = 1000), not ", arg_desc(optCtrl),
-         call. = FALSE)
+    frm_stop("`optCtrl` must be a list of options for the optimizer, e.g. ",
+             "optCtrl = list(iter.max = 1000), not ", arg_desc(optCtrl),
+             call. = FALSE)
   }
   # verbose stays NULL when unset, which is how frm(verbose =) knows an
   # explicit control value must win over its own shortcut
   list(optimizer = optimizer, optCtrl = optCtrl, restarts = restarts,
        grad_tol = grad_tol, profile = isTRUE(profile),
        sparse_x = isTRUE(sparse_x), autoscale = isTRUE(autoscale),
-       check_nlev_1 = match.arg(check_nlev_1),
-       check_olre = match.arg(check_olre),
+       check_nlev_1 = frm_match_arg(check_nlev_1),
+       check_olre = frm_match_arg(check_olre),
        importance_seed = as.integer(importance_seed),
        importance_rounds = as.integer(importance_rounds),
        importance_ess = importance_ess,
@@ -1548,8 +1548,8 @@ frmtmb_control <- function(optimizer = "nlminb",
 re_check_act <- function(what, msg) {
   switch(what %||% "warning",
          ignore = invisible(NULL),
-         stop = stop(msg, call. = FALSE),
-         warning(msg, call. = FALSE))
+         stop = frm_stop(msg, call. = FALSE),
+         frm_warning(msg, call. = FALSE))
 }
 
 #' Runs those two checks over the assembled random-effect blocks, before
@@ -1671,8 +1671,8 @@ run_optimizer <- function(optimizer, par, fn, gr, lower, upper, control,
     res <- optimizer(par, fn, gr, lower, upper, control)
     need <- c("par", "objective", "convergence")
     if (!all(need %in% names(res))) {
-      stop("A custom optimizer must return par, objective, and ",
-           "convergence", call. = FALSE)
+      frm_stop("A custom optimizer must return par, objective, and ",
+               "convergence", call. = FALSE)
     }
     res$message <- res$message %||% ""
     return(res)
@@ -1699,8 +1699,8 @@ run_optimizer <- function(optimizer, par, fn, gr, lower, upper, control,
       list(par = r$par, objective = r$value,
            convergence = r$convergence, message = r$message %||% "")
     },
-    stop("Unknown optimizer '", optimizer,
-         "' (use \"nlminb\", \"optim\", or a function)", call. = FALSE)
+    frm_stop("Unknown optimizer '", optimizer,
+             "' (use \"nlminb\", \"optim\", or a function)", call. = FALSE)
   )
 }
 
@@ -1948,9 +1948,7 @@ fit_error_context <- function(spec, start, REML, control, quadrature,
                vb_fit_detail(spec, REML, control, quadrature, prior),
                ")")
       }
-      stop(structure(
-        class = c("frmtmb_fit_error", "simpleError", "error", "condition"),
-        list(message = msg, call = NULL)))
+      frm_stop(msg, call. = FALSE, class = "frmtmb_fit_error")
     }),
     warning = function(w) {
       # nlminb's own "NA/NaN function evaluation" is the optimizer
@@ -2044,11 +2042,11 @@ make_start <- function(frame, start, prior_entries = NULL,
       # failed optimization with nothing pointing at the cause.
       # Announced on the same flag as the prior-start message, so the
       # autoscale pre-fit and the recovery restarts do not repeat it.
-      warning("Starting value ", format(raw[1L]), " for ", lp[["dpar"]],
-              " is ", format(val[1L]), " through its ", lp[["link"]]$name,
-              " link, so it was ignored and that intercept starts from ",
-              "zero on the link scale. Give init_dpars a value inside ",
-              "the link's range, or pass start =", call. = FALSE)
+      frm_warning("Starting value ", format(raw[1L]), " for ", lp[["dpar"]],
+                  " is ", format(val[1L]), " through its ", lp[["link"]]$name,
+                  " link, so it was ignored and that intercept starts from ",
+                  "zero on the link scale. Give init_dpars a value inside ",
+                  "the link's range, or pass start =", call. = FALSE)
     }
   }
   placed <- prior_nl_starts(frame, prior_entries)
@@ -2061,8 +2059,8 @@ make_start <- function(frame, start, prior_entries = NULL,
                                      function(r) r$nlpars %||% character(0))))
     for (nm in names(start)) {
       if (!nm %in% names(tpl)) {
-        stop("Unknown start component: '", nm, "' (template has: ",
-             paste(names(tpl), collapse = ", "), ")", call. = FALSE)
+        frm_stop("Unknown start component: '", nm, "' (template has: ",
+                 paste(names(tpl), collapse = ", "), ")", call. = FALSE)
       }
       if (nm %in% nl_named) {
         # the component reading is the one that applies, but it is not
@@ -2075,9 +2073,9 @@ make_start <- function(frame, start, prior_entries = NULL,
           # collision into the error rather than leaving it to a
           # warning the error would outrun
           error = function(e) {
-            stop(conditionMessage(e), ". ", msg, call. = FALSE)
+            frm_stop(conditionMessage(e), ". ", msg, call. = FALSE)
           })
-        warning(msg, call. = FALSE)
+        frm_warning(msg, call. = FALSE)
         next
       }
       tpl[[nm]] <- resolve_start_component(tpl[[nm]], start[[nm]], nm)
@@ -2089,11 +2087,11 @@ make_start <- function(frame, start, prior_entries = NULL,
     # what `start` set is the user's doing, not the prior's
     kept <- Filter(function(p) !p$idx %in% claimed, placed)
     if (length(kept)) {
-      message("Nonlinear starting values placed at the prior locations: ",
-              paste(paste0(names(kept), " = ",
-                           vapply(kept, function(p) format(p$value), "")),
-                    collapse = ", "),
-              ". Give `start` to choose your own.")
+      frm_message("Nonlinear starting values placed at the prior locations: ",
+                  paste(paste0(names(kept), " = ",
+                               vapply(kept, function(p) format(p$value), "")),
+                        collapse = ", "),
+                  ". Give `start` to choose your own.")
     }
   }
   tpl
@@ -2199,6 +2197,6 @@ check_convergence <- function(fit, control) {
                            "parameters; see the 'Convergence problems' ",
                            "section of vignette('diagnostics')"))
   }
-  for (m in msgs) warning(m, call. = FALSE)
+  for (m in msgs) frm_warning(m, call. = FALSE)
   invisible(list(grad = g, warnings = msgs))
 }

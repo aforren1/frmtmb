@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/rellib-r3 
+BLOCKS 23 PASS 986 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-brms-families.R
+CAUGHT 485 
+DONE

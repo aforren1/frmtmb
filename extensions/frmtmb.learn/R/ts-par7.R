@@ -101,10 +101,10 @@
 ts_par7 <- function(subject, trial = NULL, p_common = 0.7) {
   if (!is.numeric(p_common) || length(p_common) != 1L || is.na(p_common) ||
         p_common <= 0.5 || p_common >= 1) {
-    stop("ts_par7(p_common =) is the probability of the COMMON ",
-         "transition and must be one number strictly between 0.5 and 1; ",
-         "at 0.5 the two states are indistinguishable and there is no ",
-         "model-based value to compute", call. = FALSE)
+    frm_stop("ts_par7(p_common =) is the probability of the COMMON ",
+             "transition and must be one number strictly between 0.5 and 1; ",
+             "at 0.5 the two states are indistinguishable and there is no ",
+             "model-based value to compute", call. = FALSE)
   }
   pc <- p_common
   q2_of <- function(state, s2ind, a) {

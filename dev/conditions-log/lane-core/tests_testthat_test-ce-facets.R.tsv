@@ -1,0 +1,2 @@
+"file"	"class"	"message"
+"tests/testthat/test-ce-facets.R"	"frmtmb_error/error/condition"	"`ncol` must be a single whole number of at least 1, not numeric \"0\""

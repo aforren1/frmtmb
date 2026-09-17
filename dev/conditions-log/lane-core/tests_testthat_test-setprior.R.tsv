@@ -1,0 +1,5 @@
+"file"	"class"	"message"
+"tests/testthat/test-setprior.R"	"frmtmb_error/error/condition"	"Unsupported prior distribution 'bogus' (supported: normal, student_t, cauchy, exponential, logistic, gamma, inv_gamma, beta, lkj)"
+"tests/testthat/test-setprior.R"	"frmtmb_error/error/condition"	"set_prior() needs a distribution, bounds, or both"
+"tests/testthat/test-setprior.R"	"frmtmb_error/error/condition"	"Prior target not found (class=b, coef=zzz)"
+"tests/testthat/test-setprior.R"	"frmtmb_error/error/condition"	"No random-effect SDs match class=sd, group=zzz"

@@ -1,0 +1,4 @@
+"file"	"class"	"message"
+"tests/testthat/test-v07.R"	"frmtmb_error/error/condition"	"cens() upper bounds must not be NA on interval-censored rows"
+"tests/testthat/test-v07.R"	"frmtmb_error/error/condition"	"Interval censoring (code 2) needs upper bounds: cens(c, y2)"
+"tests/testthat/test-v07.R"	"frmtmb_error/error/condition"	"Discrete truncation needs lb >= 1 (lb = 0 is no truncation)"

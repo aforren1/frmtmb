@@ -1,0 +1,2 @@
+"file"	"class"	"message"
+"extensions/frmtmb.eam/tests/testthat/test-gddm-recovery.R"	"frmtmb_eam_error/frmtmb_error/error/condition"	"gddm_floored(): this is a wiener model. The floor it reports belongs to the generalized drift-diffusion density, so there is nothing to count on a fit from another family."

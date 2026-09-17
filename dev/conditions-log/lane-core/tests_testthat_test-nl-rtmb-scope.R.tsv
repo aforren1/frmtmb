@@ -1,0 +1,2 @@
+"file"	"class"	"message"
+"tests/testthat/test-nl-rtmb-scope.R"	"frmtmb_error/error/condition"	"The nonlinear formula body could not be evaluated: Non-numeric argument to mathematical function"

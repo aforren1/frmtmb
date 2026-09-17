@@ -38,7 +38,7 @@ test_that("a rule naming a feature outside the vocabulary is refused", {
   err <- expect_error(
     frmtmb_register_compat(features = c(wiener = "family"),
                            rules = one_rule("wiener", "mixture()")),
-    class = "simpleError")
+    class = "frmtmb_error")
   msg <- conditionMessage(err)
   # the rule, the spelling, and the near miss the registrant meant
   expect_match(msg, "`wiener x mixture()`", fixed = TRUE)

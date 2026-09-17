@@ -1,0 +1,98 @@
+Writing 'NAMESPACE'
+ℹ Loading frmtmb.coupling
+Loading required package: frmtmb
+* installing *source* package 'frmtmb.coupling' ...
+** this is package 'frmtmb.coupling' version '0.3.2'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+* DONE (frmtmb.coupling)
+R CMD INSTALL coupling exit 0 
+Writing 'NAMESPACE'
+ℹ Loading frmtmb.eam
+✖ gddm.R:169: @details Could not resolve link to topic "gd_tri_df" in the
+  dependencies or base packages..
+ℹ If you haven't documented "gd_tri_df" yet, or just changed its name, this is
+  normal. Once "gd_tri_df" is documented, this warning goes away.
+ℹ Make sure that the name of the topic is spelled correctly.
+ℹ Always list the linked package as a dependency.
+ℹ Alternatively, you can fully qualify the link with a package name.
+* installing *source* package 'frmtmb.eam' ...
+** this is package 'frmtmb.eam' version '0.8.2'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+* DONE (frmtmb.eam)
+R CMD INSTALL eam exit 0 
+Writing 'NAMESPACE'
+ℹ Loading frmtmb.latent
+* installing *source* package 'frmtmb.latent' ...
+** this is package 'frmtmb.latent' version '0.3.1'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+* DONE (frmtmb.latent)
+R CMD INSTALL latent exit 0 
+Writing 'NAMESPACE'
+ℹ Loading frmtmb.learn
+* installing *source* package 'frmtmb.learn' ...
+** this is package 'frmtmb.learn' version '0.4.2'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+* DONE (frmtmb.learn)
+R CMD INSTALL learn exit 0 
+Writing 'NAMESPACE'
+ℹ Loading frmtmb.ode
+* installing *source* package 'frmtmb.ode' ...
+** this is package 'frmtmb.ode' version '0.4.1'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+* DONE (frmtmb.ode)
+R CMD INSTALL ode exit 0 
+ℹ Loading frmtmb.sample
+* installing *source* package 'frmtmb.sample' ...
+** this is package 'frmtmb.sample' version '0.7.0'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+* DONE (frmtmb.sample)
+R CMD INSTALL sample exit 0 
+Writing 'NAMESPACE'
+ℹ Loading frmtmb.spline
+* installing *source* package 'frmtmb.spline' ...
+** this is package 'frmtmb.spline' version '0.5.2'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+* DONE (frmtmb.spline)
+R CMD INSTALL spline exit 0 

@@ -38,13 +38,13 @@ bcm_tree_lpdf <- function(y, logtheta) {
 bcm_tree_valid_y <- function(name, K) {
   function(y, aterms) {
     if (!is.matrix(y) || ncol(y) != K) {
-      stop(name, "(): the response must be an n by ", K,
-           " matrix of category counts, spelled cbind(k1, ..., k", K,
-           ")", call. = FALSE)
+      frm_stop(name, "(): the response must be an n by ", K,
+               " matrix of category counts, spelled cbind(k1, ..., k", K,
+               ")", call. = FALSE)
     }
     if (any(y < 0) || any(y != round(y))) {
-      stop(name, "(): category counts must be non-negative integers",
-           call. = FALSE)
+      frm_stop(name, "(): category counts must be non-negative integers",
+               call. = FALSE)
     }
   }
 }
@@ -101,8 +101,8 @@ bcm_mpt_pairs <- function(link = "probit") {
       uu <- rep(as.numeric(dpars[["u"]]), length.out = n)
       size <- aterms[["trials"]]
       if (is.null(size)) {
-        stop("simulate(): a bcm_mpt_pairs() fit needs trials() to know ",
-             "how many word pairs each respondent saw", call. = FALSE)
+        frm_stop("simulate(): a bcm_mpt_pairs() fit needs trials() to know ",
+                 "how many word pairs each respondent saw", call. = FALSE)
       }
       size <- rep(as.numeric(size), length.out = n)
       out <- matrix(0, n, 4L)
@@ -166,8 +166,8 @@ bcm_kappa <- function(link = "logit") {
       g <- rep(as.numeric(dpars[["gamma"]]), length.out = n)
       size <- aterms[["trials"]]
       if (is.null(size)) {
-        stop("simulate(): a bcm_kappa() fit needs trials() to know how ",
-             "many cases were rated", call. = FALSE)
+        frm_stop("simulate(): a bcm_kappa() fit needs trials() to know how ",
+                 "many cases were rated", call. = FALSE)
       }
       size <- rep(as.numeric(size), length.out = n)
       out <- matrix(0, n, 4L)

@@ -94,7 +94,8 @@ test_that("gddm_control validates its own arguments", {
   expect_error(gddm_control(t_max = -1), "`t_max` must be one positive")
   expect_error(gddm_control(renormalize = NA), "must be TRUE or FALSE")
   expect_error(gddm_control(max_ndt = 0), "`max_ndt` must be one positive")
-  expect_error(gddm_control(tridiagonal = "magic"), "should be one of")
+  expect_error(gddm_control(tridiagonal = "magic"),
+               "`tridiagonal` must be one of", class = "frmtmb_eam_error")
   expect_s3_class(gddm_control(), "gddm_control")
   expect_identical(gddm_control()$tridiagonal, "recorded")
 })

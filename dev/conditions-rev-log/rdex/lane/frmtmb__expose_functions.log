@@ -1,0 +1,3 @@
+Error : expose_functions() has no Stan program to read on a frmtmb fit: a custom family's lpdf is the plain R function handed to custom_family(), callable as it is
+
+RDEX-RESULT OK 

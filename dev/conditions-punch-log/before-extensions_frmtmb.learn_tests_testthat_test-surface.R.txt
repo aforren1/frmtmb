@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 11 PASS 141 FAIL 0 ERROR 1 SKIP 0  extensions/frmtmb.learn/tests/testthat/test-surface.R
+  failing: predict gives the learning parameters, and a mean on the data
+       <frmtmb_error/error/condition> Error: family 'bandit2arm_delta' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted() and predict(type = "response") have nothing to return. Ask for type = "link" or a dpar by name. 

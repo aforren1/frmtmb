@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 4 PASS 8 FAIL 0 ERROR 1 SKIP 0  tests/testthat/test-tabular-inputs.R
+  failing: list columns: unused ignored, used errors by name (G2.12)
+       Error in `model.frame.default(fr_formula, data = data, drop.unused.levels = TRUE, na.action = na.action)`: invalid type (list) for variable 'lc' 

@@ -106,10 +106,10 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
   sp_check_flag(simultaneous, "simultaneous")
   if (!identical(order, 1L) && !identical(order, 2L) &&
       !identical(order, 1) && !identical(order, 2)) {
-    stop("`order` must be 1 (the slope) or 2 (the curvature). Higher ",
-         "orders are not offered: a third central difference divides by ",
-         "eps^3 and there is no step size at which it is accurate",
-         call. = FALSE)
+    frm_stop("`order` must be 1 (the slope) or 2 (the curvature). Higher ",
+             "orders are not offered: a third central difference divides by ",
+             "eps^3 and there is no step size at which it is accurate",
+             call. = FALSE)
   }
   order <- as.integer(order)
   sp <- sp_spec(object, newdata, contrast, dpar, resp, re_formula)
@@ -164,13 +164,13 @@ frm_curve_deriv <- function(object, var, order = 1L, newdata = NULL,
     character(0)
   }
   for (msg in span) {
-    warning(warningCondition(paste0(
+    frm_warning(paste0(
       "frm_curve_deriv(): this grid leaves a ps() term's knot span, so ",
       "the derivative below is of a decaying partial sum rather than of ",
       "the fitted curve. Past the outer knot the derivative design is ",
       "exactly zero, so those rows carry a standard error of exactly ",
       "zero and drop out of the simultaneous band. ", msg),
-      class = "frmtmb_ps_span_warning"))
+      class = "frmtmb_ps_span_warning", call. = FALSE)
   }
   out <- sp_assemble(parts, est, se, Sigma, level, simultaneous, nsim,
                      FALSE, seed, nd,
@@ -200,20 +200,20 @@ sp_spec <- function(object, newdata, contrast, dpar, resp, re_formula) {
     # back on a difference object, which is the silent wrong answer
     # this file's own comment says it must not return.
     if (!is.null(s$contrast) && !is.null(newdata) && is.null(contrast)) {
-      stop("`object` is a difference curve, so a new `newdata` needs a ",
-           "new `contrast` with it. Without one the answer would be the ",
-           "derivative or the feature of the FIRST curve alone, returned ",
-           "without complaint for an object whose every row is a ",
-           "difference. Pass both grids, or pass neither and the pair ",
-           "the difference was built on is reused", call. = FALSE)
+      frm_stop("`object` is a difference curve, so a new `newdata` needs a ",
+               "new `contrast` with it. Without one the answer would be the ",
+               "derivative or the feature of the FIRST curve alone, returned ",
+               "without complaint for an object whose every row is a ",
+               "difference. Pass both grids, or pass neither and the pair ",
+               "the difference was built on is reused", call. = FALSE)
     }
     return(list(fit = attr(object, "fit"), newdata = nd, contrast = ct,
                 dpar = s$dpar, resp = s$resp, re_formula = s$re_formula))
   }
   if (is.null(newdata)) {
-    stop("`newdata` is required when the first argument is a fit: it is ",
-         "the grid the curve is evaluated on. Pass a frmtmb_curve from ",
-         "frm_curve() to reuse a grid instead", call. = FALSE)
+    frm_stop("`newdata` is required when the first argument is a fit: it is ",
+             "the grid the curve is evaluated on. Pass a frmtmb_curve from ",
+             "frm_curve() to reuse a grid instead", call. = FALSE)
   }
   list(fit = object, newdata = newdata, contrast = contrast, dpar = dpar,
        resp = resp, re_formula = re_formula)
@@ -234,11 +234,11 @@ sp_check_contrast_var <- function(nd, ct, var) {
   same <- !is.null(ct[[var]]) && is.numeric(ct[[var]]) &&
     isTRUE(all.equal(as.numeric(ct[[var]]), as.numeric(nd[[var]])))
   if (!same) {
-    stop("A derivative and a feature move '", var, "' in both grids ",
-         "together, so `contrast` must hold the same values of it as ",
-         "`newdata` does. Differencing against one fixed profile is a ",
-         "curve rather than a derivative or a feature of one, and ",
-         "frm_curve() reads it", call. = FALSE)
+    frm_stop("A derivative and a feature move '", var, "' in both grids ",
+             "together, so `contrast` must hold the same values of it as ",
+             "`newdata` does. Differencing against one fixed profile is a ",
+             "curve rather than a derivative or a feature of one, and ",
+             "frm_curve() reads it", call. = FALSE)
   }
   invisible(NULL)
 }
@@ -246,19 +246,19 @@ sp_check_contrast_var <- function(nd, ct, var) {
 #' @noRd
 sp_check_var <- function(nd, var) {
   if (!is.character(var) || length(var) != 1L) {
-    stop("`var` must name one covariate of the grid, as a string",
-         call. = FALSE)
+    frm_stop("`var` must name one covariate of the grid, as a string",
+             call. = FALSE)
   }
   if (is.null(nd[[var]])) {
-    stop("`var` names '", var, "', which is not a column of the grid. ",
-         "The grid has: ", paste(names(nd), collapse = ", "),
-         call. = FALSE)
+    frm_stop("`var` names '", var, "', which is not a column of the grid. ",
+             "The grid has: ", paste(names(nd), collapse = ", "),
+             call. = FALSE)
   }
   if (!is.numeric(nd[[var]])) {
-    stop("A curve is differentiated with respect to a NUMERIC covariate ",
-         "and '", var, "' is ", class(nd[[var]])[1L],
-         ". A factor has no derivative; take a contrast instead",
-         call. = FALSE)
+    frm_stop("A curve is differentiated with respect to a NUMERIC covariate ",
+             "and '", var, "' is ", class(nd[[var]])[1L],
+             ". A factor has no derivative; take a contrast instead",
+             call. = FALSE)
   }
   invisible(NULL)
 }
@@ -271,8 +271,8 @@ sp_eps <- function(eps, x, order) {
   if (!is.null(eps)) {
     if (!is.numeric(eps) || length(eps) != 1L || !is.finite(eps) ||
         eps <= 0) {
-      stop("`eps` must be one positive finite number, or NULL for the ",
-           "measured default", call. = FALSE)
+      frm_stop("`eps` must be one positive finite number, or NULL for the ",
+               "measured default", call. = FALSE)
     }
     return(eps)
   }

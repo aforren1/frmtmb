@@ -94,9 +94,9 @@ hmm_capture <- function(e, what) {
     return(e[[length(e)]])
   }
   if (!is.name(e) && !is.call(e)) {
-    stop("hmm(): `", what, "` must name a variable in the data, as a ",
-         "bare name (", what, " = subject) or a one-sided formula (",
-         what, " = ~subject)", call. = FALSE)
+    frm_stop("hmm(): `", what, "` must name a variable in the data, as a ",
+             "bare name (", what, " = subject) or a one-sided formula (",
+             what, " = ~subject)", call. = FALSE)
   }
   e
 }
@@ -405,51 +405,51 @@ hmm <- function(K, family = stats::gaussian(), time = NULL, group = NULL,
                 trans = ~1) {
   time_expr <- hmm_capture(substitute(time), "time")
   group_expr <- hmm_capture(substitute(group), "group")
-  init <- match.arg(init)
+  init <- frm_match_arg(init)
   if (length(K) != 1L || !is.numeric(K) || is.na(K) ||
       K != round(K) || K < 2) {
-    stop("hmm() needs the number of hidden states as a whole number ",
-         "of at least 2: hmm(2, gaussian())", call. = FALSE)
+    frm_stop("hmm() needs the number of hidden states as a whole number ",
+             "of at least 2: hmm(2, gaussian())", call. = FALSE)
   }
   K <- as.integer(K)
   if (K > 9L) {
-    stop("hmm(): at most 9 states are supported, because the transition ",
-         "dpar names concatenate the state indices (tr12, tr22, ...) and ",
-         "stop being unambiguous at two digits; K = ", K, " was given",
-         call. = FALSE)
+    frm_stop("hmm(): at most 9 states are supported, because the transition ",
+             "dpar names concatenate the state indices (tr12, tr22, ...) and ",
+             "stop being unambiguous at two digits; K = ", K, " was given",
+             call. = FALSE)
   }
   if (!inherits(trans, "formula") || length(trans) != 2L) {
-    stop("hmm(): `trans` must be a one-sided formula giving the default ",
-         "predictor of every transition cell, for example trans = ~x",
-         call. = FALSE)
+    frm_stop("hmm(): `trans` must be a one-sided formula giving the default ",
+             "predictor of every transition cell, for example trans = ~x",
+             call. = FALSE)
   }
   comp <- as_frmtmb_family(family)
   if (!is.null(comp[["hmm"]])) {
-    stop("hmm(): the state-dependent family cannot itself be an hmm(); ",
-         "higher-order and hierarchical chains are a different model",
-         call. = FALSE)
+    frm_stop("hmm(): the state-dependent family cannot itself be an hmm(); ",
+             "higher-order and hierarchical chains are a different model",
+             call. = FALSE)
   }
   if (!is.null(comp[["mix"]])) {
-    stop("hmm(): the state-dependent family cannot be a mixture(); a ",
-         "mixture inside a state is not identified against the state ",
-         "itself", call. = FALSE)
+    frm_stop("hmm(): the state-dependent family cannot be a mixture(); a ",
+             "mixture inside a state is not identified against the state ",
+             "itself", call. = FALSE)
   }
   if (identical(comp$type, "ordinal") || isTRUE(comp$drop_intercept)) {
-    stop("hmm(): ordinal families are not supported as state-dependent ",
-         "distributions ('", comp$family, "'); their thresholds are ",
-         "family-level extra parameters with no per-state copy",
-         call. = FALSE)
+    frm_stop("hmm(): ordinal families are not supported as state-dependent ",
+             "distributions ('", comp$family, "'); their thresholds are ",
+             "family-level extra parameters with no per-state copy",
+             call. = FALSE)
   }
   if (!is.null(comp$extra_pars)) {
-    stop("hmm(): the state-dependent family '", comp$family, "' carries ",
-         "family-level extra parameters, which have no per-state copy",
-         call. = FALSE)
+    frm_stop("hmm(): the state-dependent family '", comp$family, "' carries ",
+             "family-level extra parameters, which have no per-state copy",
+             call. = FALSE)
   }
   primaries <- comp$primary_dpars %||% "mu"
   if (!"mu" %in% comp$dpars && !identical(comp$family, "multinomial")) {
-    stop("hmm(): the state-dependent family needs a 'mu' parameter; '",
-         comp$family, "' has ", paste(comp$dpars, collapse = ", "),
-         call. = FALSE)
+    frm_stop("hmm(): the state-dependent family needs a 'mu' parameter; '",
+             comp$family, "' has ", paste(comp$dpars, collapse = ", "),
+             call. = FALSE)
   }
 
   dpars <- character(0)
@@ -497,10 +497,10 @@ hmm <- function(K, family = stats::gaussian(), time = NULL, group = NULL,
     # refuses instead; the objective takes its own branch and never
     # calls this.
     lpdf = function(y, dpars, aterms, extra = NULL) {
-      stop("The likelihood of an hmm() family is a per-SEQUENCE forward ",
-           "recursion, not a product of per-row densities, so it has no ",
-           "row-wise log-density. Use logLik() for the total, or ",
-           "hmm_probs() for the state probabilities", call. = FALSE)
+      frm_stop("The likelihood of an hmm() family is a per-SEQUENCE forward ",
+               "recursion, not a product of per-row densities, so it has no ",
+               "row-wise log-density. Use logLik() for the total, or ",
+               "hmm_probs() for the state probabilities", call. = FALSE)
     },
     valid_y = comp$valid_y,
     init_dpars = init_fns,
@@ -533,8 +533,8 @@ hmm <- function(K, family = stats::gaussian(), time = NULL, group = NULL,
     },
     state_sim = function(dp_all, aterms, n, k, rows) {
       if (is.null(comp$sim)) {
-        stop("simulate(): the state-dependent family '", comp$family,
-             "' of this hmm() fit has no simulator yet", call. = FALSE)
+        frm_stop("simulate(): the state-dependent family '", comp$family,
+                 "' of this hmm() fit has no simulator yet", call. = FALSE)
       }
       dk <- lapply(state_dpars(dp_all, k), function(v) {
         rep(v, length.out = n)[rows]
@@ -609,9 +609,9 @@ hmm_structure <- function(fam) {
     fitted_var = function(fit, block) {
       v <- hmm_var_response(fit)
       if (is.null(v)) {
-        stop("The state-dependent family '", hs[["comp"]][["family"]],
-             "' of this hmm() fit has no variance function, so pearson ",
-             "residuals are unavailable", call. = FALSE)
+        frm_stop("The state-dependent family '", hs[["comp"]][["family"]],
+                 "' of this hmm() fit has no variance function, so pearson ",
+                 "residuals are unavailable", call. = FALSE)
       }
       v
     },
@@ -740,10 +740,10 @@ hmm_seq_structure <- function(gidx, tidx, n) {
 hmm_check_aterms <- function(resp, spec, av) {
   if (is.null(resp$family[["hmm"]])) return(invisible(NULL))
   if (length(spec$responses) > 1L || isTRUE(spec$rescor)) {
-    stop("hmm() supports univariate models only: the forward recursion ",
-         "is a likelihood over one response's sequences, and mvbf() / ",
-         "rescor = TRUE would need a joint state process across ",
-         "responses", call. = FALSE)
+    frm_stop("hmm() supports univariate models only: the forward recursion ",
+             "is a likelihood over one response's sequences, and mvbf() / ",
+             "rescor = TRUE would need a joint state process across ",
+             "responses", call. = FALSE)
   }
   bad <- intersect(c("weights", "cens", "trunc_lb", "trunc_ub", "se"),
                    names(av))
@@ -752,13 +752,13 @@ hmm_check_aterms <- function(resp, spec, av) {
     lab <- c(weights = "weights()", cens = "cens()",
              trunc_lb = "trunc()", trunc_ub = "trunc()", se = "se()",
              mi = "mi()")[[bad[1L]]]
-    stop("hmm() cannot be combined with ", lab, ": that term reshapes a ",
-         "PER-ROW likelihood contribution, and an HMM's contribution is ",
-         "per SEQUENCE - the forward recursion couples the rows of a ",
-         "sequence and leaves no row-wise factor to weight, censor or ",
-         "truncate. A missing response needs none of this: an NA is ",
-         "kept and its emission masked, so the chain keeps its length",
-         call. = FALSE)
+    frm_stop("hmm() cannot be combined with ", lab, ": that term reshapes a ",
+             "PER-ROW likelihood contribution, and an HMM's contribution is ",
+             "per SEQUENCE - the forward recursion couples the rows of a ",
+             "sequence and leaves no row-wise factor to weight, censor or ",
+             "truncate. A missing response needs none of this: an NA is ",
+             "kept and its emission masked, so the chain keeps its length",
+             call. = FALSE)
   }
   invisible(NULL)
 }
@@ -779,10 +779,10 @@ hmm_frame_block <- function(resp, spec, av, mf, y, n) {
   } else {
     v <- eval(hs$group_expr, mf, resp$formula_env)
     if (anyNA(v)) {
-      stop("hmm(): the sequences are defined by group = ",
-           deparse1(hs$group_expr),
-           ", so every row needs a group; that variable has ",
-           sum(is.na(v)), " missing value(s)", call. = FALSE)
+      frm_stop("hmm(): the sequences are defined by group = ",
+               deparse1(hs$group_expr),
+               ", so every row needs a group; that variable has ",
+               sum(is.na(v)), " missing value(s)", call. = FALSE)
     }
     factor(v)
   }
@@ -794,9 +794,9 @@ hmm_frame_block <- function(resp, spec, av, mf, y, n) {
   } else {
     v <- eval(hs$time_expr, mf, resp$formula_env)
     if (anyNA(v)) {
-      stop("hmm(): the time variable '", deparse1(hs$time_expr),
-           "' has missing values, so the order of the chain is ",
-           "undefined at those rows", call. = FALSE)
+      frm_stop("hmm(): the time variable '", deparse1(hs$time_expr),
+               "' has missing values, so the order of the chain is ",
+               "undefined at those rows", call. = FALSE)
     }
     if (is.factor(v)) match(as.character(v), levels(v)) else as.numeric(v)
   }
@@ -804,12 +804,12 @@ hmm_frame_block <- function(resp, spec, av, mf, y, n) {
   if (anyDuplicated(key)) {
     dup <- key[duplicated(key)][1L]
     parts <- strsplit(dup, "\r", fixed = TRUE)[[1L]]
-    stop("hmm(): time points must be unique within a sequence; group '",
-         levels(gv)[as.integer(parts[1L])], "' has ", sum(key == dup),
-         " rows at time '", parts[2L], "'. A Markov chain has one state ",
-         "per time point, so repeated measurements at one time need ",
-         "either a finer time variable or a grouping that separates ",
-         "them", call. = FALSE)
+    frm_stop("hmm(): time points must be unique within a sequence; group '",
+             levels(gv)[as.integer(parts[1L])], "' has ", sum(key == dup),
+             " rows at time '", parts[2L], "'. A Markov chain has one state ",
+             "per time point, so repeated measurements at one time need ",
+             "either a finer time variable or a grouping that separates ",
+             "them", call. = FALSE)
   }
   st <- hmm_seq_structure(gidx, tv, n)
   tr_fixed <- vapply(hs$tr_names,
@@ -820,16 +820,16 @@ hmm_frame_block <- function(resp, spec, av, mf, y, n) {
     # converges, and reports a df (and an AIC) counting parameters the
     # data never touched (probe F2 measured df 7 against a mixture's 5).
     # The model IS a finite mixture at that point.
-    stop("hmm(): every sequence has length 1, so no transition is ever ",
-         "taken and the ", length(hs$tr_names), " transition ",
-         "parameter(s) are flat directions of the likelihood - the fit ",
-         "would report a df counting them. A model with one observation ",
-         "per group is a finite mixture: use mixture(",
-         paste(rep(hs$comp$family, min(hs$K, 2L)), collapse = ", "),
-         if (hs$K > 2L) ", ..." else "",
-         "), or hold every transition dpar at a constant (bf(..., ",
-         hs$tr_names[1L], " = 0, ...)) if the degenerate chain is ",
-         "deliberate", call. = FALSE)
+    frm_stop("hmm(): every sequence has length 1, so no transition is ever ",
+             "taken and the ", length(hs$tr_names), " transition ",
+             "parameter(s) are flat directions of the likelihood - the fit ",
+             "would report a df counting them. A model with one observation ",
+             "per group is a finite mixture: use mixture(",
+             paste(rep(hs$comp$family, min(hs$K, 2L)), collapse = ", "),
+             if (hs$K > 2L) ", ..." else "",
+             "), or hold every transition dpar at a constant (bf(..., ",
+             hs$tr_names[1L], " = 0, ...)) if the degenerate chain is ",
+             "deliberate", call. = FALSE)
   }
 
   const_trans <- all(vapply(hs$tr_names,
@@ -839,11 +839,11 @@ hmm_frame_block <- function(resp, spec, av, mf, y, n) {
     varying <- hs$tr_names[!vapply(
       hs$tr_names,
       function(nm) hmm_dpar_is_constant(resp$dpars[[nm]]), TRUE)]
-    stop("hmm(init = \"stationary\") needs a constant transition ",
-         "matrix, and ", paste0("'", varying, "'", collapse = ", "),
-         " carries a predictor. A chain whose transition matrix changes ",
-         "from row to row has no single stationary distribution; use ",
-         "init = \"estimated\" or init = \"uniform\"", call. = FALSE)
+    frm_stop("hmm(init = \"stationary\") needs a constant transition ",
+             "matrix, and ", paste0("'", varying, "'", collapse = ", "),
+             " carries a predictor. A chain whose transition matrix changes ",
+             "from row to row has no single stationary distribution; use ",
+             "init = \"estimated\" or init = \"uniform\"", call. = FALSE)
   }
 
   yv <- y
@@ -855,7 +855,7 @@ hmm_frame_block <- function(resp, spec, av, mf, y, n) {
   mask <- NULL
   if (any(miss)) {
     if (all(miss)) {
-      stop("hmm(): every response value is missing", call. = FALSE)
+      frm_stop("hmm(): every response value is missing", call. = FALSE)
     }
     # An NA response is a time point the chain PASSES THROUGH without
     # emitting: the correct likelihood drops that step's emission factor
@@ -1090,10 +1090,18 @@ hmm_lse_rows <- function(M) {
 #'
 #' @noRd
 hmm_rspec <- function(fit, what) {
+  # every reader below uses `$` on the fit, which on an atomic value is
+  # base R's error rather than a refusal naming the argument. The
+  # simulator passes a de novo shim that is not classed as a fit but
+  # carries `spec`, so the test is for that and not for the class.
+  if (!is.list(fit) || is.null(fit[["spec"]])) {
+    frm_stop(what, ": `fit` must be a model fitted by frm() with an hmm() ",
+             "family, not ", arg_desc(fit), call. = FALSE)
+  }
   rspec <- single_response(fit, what)
   if (is.null(rspec$family[["hmm"]])) {
-    stop("This fit does not use an hmm() family, so it has no hidden ",
-         "states to decode", call. = FALSE)
+    frm_stop("This fit does not use an hmm() family, so it has no hidden ",
+             "states to decode", call. = FALSE)
   }
   rspec
 }
@@ -1363,9 +1371,9 @@ hmm_mean_response <- function(fit) {
   for (k in seq_len(p$K)) {
     mk <- p$hs$state_mean(p$dp, p$av, k)
     if (is.null(mk)) {
-      stop("The state-dependent family '", p$hs$comp$family, "' of this ",
-           "hmm() fit has no mean, so the occupancy-weighted expected ",
-           "response is undefined", call. = FALSE)
+      frm_stop("The state-dependent family '", p$hs$comp$family, "' of this ",
+               "hmm() fit has no mean, so the occupancy-weighted expected ",
+               "response is undefined", call. = FALSE)
     }
     out <- out + P[, k] * rep(as.numeric(mk), length.out = p[["n"]])
   }
@@ -1472,13 +1480,13 @@ hmm_warn_symmetric_start <- function(resp, frame, template) {
   }, numeric(1))
   vals <- vals[is.finite(vals)]
   if (length(vals) > 1L && diff(range(vals)) < 1e-8) {
-    warning("hmm(): every state's location predictor starts at the ",
-            "same value (", format(vals[1L], digits = 4),
-            "). That start is a fixed point of the label symmetry: ",
-            "the optimizer cannot separate the states from it and ",
-            "the fit will collapse to a one-state solution. Spread ",
-            "the starting intercepts, or drop `start` and let the ",
-            "response-quantile defaults be used", call. = FALSE)
+    frm_warning("hmm(): every state's location predictor starts at the ",
+                "same value (", format(vals[1L], digits = 4),
+                "). That start is a fixed point of the label symmetry: ",
+                "the optimizer cannot separate the states from it and ",
+                "the fit will collapse to a one-state solution. Spread ",
+                "the starting intercepts, or drop `start` and let the ",
+                "response-quantile defaults be used", call. = FALSE)
   }
   invisible(NULL)
 }

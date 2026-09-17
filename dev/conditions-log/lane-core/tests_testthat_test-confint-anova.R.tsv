@@ -1,0 +1,4 @@
+"file"	"class"	"message"
+"tests/testthat/test-confint-anova.R"	"frmtmb_error/error/condition"	"anova() cannot mix REML and ML fits: their likelihoods are for different quantities. Refit them all with the same REML setting, or pass refit = TRUE to compare them as ML fits"
+"tests/testthat/test-confint-anova.R"	"frmtmb_error/error/condition"	"REML likelihoods are comparable only between fits whose fixed-effect designs span the same column space; these do not. Pass refit = TRUE (or refit with REML = FALSE) to compare fixed effects, or hold the fixed effects fixed to compare random-effect structures"
+"tests/testthat/test-confint-anova.R"	"frmtmb_error/error/condition"	"anova() cannot mix REML and ML fits: their likelihoods are for different quantities. Refit them all with the same REML setting, or pass refit = TRUE to compare them as ML fits"

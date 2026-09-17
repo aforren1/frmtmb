@@ -92,7 +92,7 @@ ode_failure_log <- new.env(parent = emptyenv())
 ode_warn_once <- function(key, ...) {
   if (!is.null(ode_warned[[key]])) return(invisible(NULL))
   ode_warned[[key]] <- TRUE
-  warning(..., call. = FALSE)
+  frm_warning(..., call. = FALSE)
 }
 
 #' Require the optional solver backend.
@@ -111,14 +111,14 @@ ode_require_backend <- function() {
   pkgs <- c("RTMBode", "deSolve")
   miss <- pkgs[!vapply(pkgs, ode_has_pkg, TRUE)]
   if (!length(miss)) return(invisible(TRUE))
-  stop("frm_ode() needs the ", paste(miss, collapse = " and "),
-       " package", if (length(miss) > 1L) "s" else "",
-       ", which ", if (length(miss) > 1L) "are" else "is",
-       " not installed. RTMBode is not on CRAN; install it with\n",
-       "  install.packages(\"RTMBode\", repos = c(\n",
-       "    \"https://kaskr.r-universe.dev\",\n",
-       "    \"https://cloud.r-project.org\"))",
-       call. = FALSE)
+  frm_stop("frm_ode() needs the ", paste(miss, collapse = " and "),
+           " package", if (length(miss) > 1L) "s" else "",
+           ", which ", if (length(miss) > 1L) "are" else "is",
+           " not installed. RTMBode is not on CRAN; install it with\n",
+           "  install.packages(\"RTMBode\", repos = c(\n",
+           "    \"https://kaskr.r-universe.dev\",\n",
+           "    \"https://cloud.r-project.org\"))",
+           call. = FALSE)
 }
 
 #' Normalize `init` / `parms` to a list of columns.
@@ -138,25 +138,25 @@ ode_columns <- function(x, n_obs, arg) {
   } else if (!is.null(dim(x))) {
     d <- dim(x)
     if (d[1L] != n_obs) {
-      stop("`", arg, "` is a matrix with ", d[1L], " rows but there are ",
-           n_obs, " observations", call. = FALSE)
+      frm_stop("`", arg, "` is a matrix with ", d[1L], " rows but there are ",
+               n_obs, " observations", call. = FALSE)
     }
     cols <- lapply(seq_len(d[2L]), function(j) x[, j])
   } else {
     cols <- list(x)
   }
   if (!length(cols)) {
-    stop("`", arg, "` is empty; it needs at least one column",
-         call. = FALSE)
+    frm_stop("`", arg, "` is empty; it needs at least one column",
+             call. = FALSE)
   }
   for (j in seq_along(cols)) {
     len <- length(cols[[j]])
     if (len != 1L && len != n_obs) {
-      stop("`", arg, "` column ", j, " has length ", len,
-           "; it must be length ", n_obs,
-           " (one value per observation) or length 1 (shared by every ",
-           "group). To give several values, pass a list: ", arg,
-           " = list(a, b, ...)", call. = FALSE)
+      frm_stop("`", arg, "` column ", j, " has length ", len,
+               "; it must be length ", n_obs,
+               " (one value per observation) or length 1 (shared by every ",
+               "group). To give several values, pass a list: ", arg,
+               " = list(a, b, ...)", call. = FALSE)
     }
   }
   cols
@@ -187,12 +187,12 @@ ode_check_constant <- function(cols, groups, arg, labels,
       rng <- range(v[idx])
       if (rng[2L] - rng[1L] >
             1e-8 * max(1, max(abs(rng)))) {
-        stop("`", arg, "` column ", j, " is not constant within group '",
-             labels[[g]], "' (values ", format(rng[1L]), " to ",
-             format(rng[2L]), "). ", who, " evaluates one system per ",
-             "group and reads each dynamics input off the group's ",
-             "first row, so a within-group covariate cannot enter the ",
-             "likelihood.", call. = FALSE)
+        frm_stop("`", arg, "` column ", j, " is not constant within group '",
+                 labels[[g]], "' (values ", format(rng[1L]), " to ",
+                 format(rng[2L]), "). ", who, " evaluates one system per ",
+                 "group and reads each dynamics input off the group's ",
+                 "first row, so a within-group covariate cannot enter the ",
+                 "likelihood.", call. = FALSE)
       }
     }
   }
@@ -238,21 +238,21 @@ ode_state_index <- function(x, states, n_state, what) {
   if (is.factor(x)) x <- as.character(x)
   if (is.character(x)) {
     if (is.null(states)) {
-      stop("`", what, "` is character, so `states` must name the states",
-           call. = FALSE)
+      frm_stop("`", what, "` is character, so `states` must name the states",
+               call. = FALSE)
     }
     i <- match(x, states)
     if (anyNA(i)) {
-      stop("`", what, "` names a state that is not in `states`: ",
-           paste(unique(x[is.na(i)]), collapse = ", "),
-           " (states: ", paste(states, collapse = ", "), ")",
-           call. = FALSE)
+      frm_stop("`", what, "` names a state that is not in `states`: ",
+               paste(unique(x[is.na(i)]), collapse = ", "),
+               " (states: ", paste(states, collapse = ", "), ")",
+               call. = FALSE)
     }
     return(i)
   }
   i <- suppressWarnings(as.integer(x))
   if (anyNA(i) || any(i < 1L) || any(i > n_state)) {
-    stop("`", what, "` must index states 1 to ", n_state, call. = FALSE)
+    frm_stop("`", what, "` must index states 1 to ", n_state, call. = FALSE)
   }
   i
 }
@@ -273,73 +273,73 @@ ode_split_events <- function(events, labels, n_state, states) {
   # environment (drop_nl_lexical_datavars(), R/frame.R).
   if (is.function(events)) {
     events <- tryCatch(events(), error = function(e) {
-      stop("`events` is a function and calling it failed: ",
-           conditionMessage(e), call. = FALSE)
+      frm_stop("`events` is a function and calling it failed: ",
+               conditionMessage(e), call. = FALSE)
     })
     if (!is.data.frame(events)) {
-      stop("`events` is a function, so it must return a data.frame of ",
-           "doses; it returned ", class(events)[1L], call. = FALSE)
+      frm_stop("`events` is a function, so it must return a data.frame of ",
+               "doses; it returned ", class(events)[1L], call. = FALSE)
     }
   }
   if (inherits(events, "advector")) {
-    stop("`events` is an estimated quantity. The event times fix where ",
-         "the solve is split, which is decided before the tape is built, ",
-         "so the table must be data. An estimated dose AMOUNT is ",
-         "supported through `event_scale`", call. = FALSE)
+    frm_stop("`events` is an estimated quantity. The event times fix where ",
+             "the solve is split, which is decided before the tape is built, ",
+             "so the table must be data. An estimated dose AMOUNT is ",
+             "supported through `event_scale`", call. = FALSE)
   }
   if (!is.data.frame(events)) {
-    stop("`events` must be a data.frame with columns time, value and ",
-         "state (plus optional group, method and duration), one row per ",
-         "dose", call. = FALSE)
+    frm_stop("`events` must be a data.frame with columns time, value and ",
+             "state (plus optional group, method and duration), one row per ",
+             "dose", call. = FALSE)
   }
   if (!nrow(events)) {
-    stop("`events` has no rows; pass NULL for a model without doses",
-         call. = FALSE)
+    frm_stop("`events` has no rows; pass NULL for a model without doses",
+             call. = FALSE)
   }
   nms <- names(events)
   miss <- setdiff(c("time", "value"), nms)
   if (length(miss)) {
-    stop("`events` is missing the ", paste(miss, collapse = " and "),
-         " column", if (length(miss) > 1L) "s" else "",
-         ". The columns are: group, time, state, value, method, ",
-         "duration", call. = FALSE)
+    frm_stop("`events` is missing the ", paste(miss, collapse = " and "),
+             " column", if (length(miss) > 1L) "s" else "",
+             ". The columns are: group, time, state, value, method, ",
+             "duration", call. = FALSE)
   }
   known <- c("group", "time", "state", "value", "method", "duration",
              "ii", "addl", "ss")
   extra <- setdiff(nms, known)
   if (length(extra)) {
-    stop("`events` has unknown column", if (length(extra) > 1L) "s" else "",
-         ": ", paste(extra, collapse = ", "),
-         ". The columns are: ", paste(known, collapse = ", "),
-         ". frm_ode() does not read NONMEM records: an `evid`/`amt`/`cmt` ",
-         "table has to be reshaped to these names first",
-         call. = FALSE)
+    frm_stop("`events` has unknown column", if (length(extra) > 1L) "s" else "",
+             ": ", paste(extra, collapse = ", "),
+             ". The columns are: ", paste(known, collapse = ", "),
+             ". frm_ode() does not read NONMEM records: an `evid`/`amt`/`cmt` ",
+             "table has to be reshaped to these names first",
+             call. = FALSE)
   }
 
   time <- events[["time"]]
   if (!is.numeric(time) || anyNA(time) || any(!is.finite(time))) {
-    stop("`events$time` must be finite and numeric", call. = FALSE)
+    frm_stop("`events$time` must be finite and numeric", call. = FALSE)
   }
   value <- events[["value"]]
   if (!is.numeric(value) || anyNA(value) || any(!is.finite(value))) {
-    stop("`events$value` must be finite and numeric. A dose that ",
-         "depends on an estimated parameter goes in `event_scale`, not ",
-         "here", call. = FALSE)
+    frm_stop("`events$value` must be finite and numeric. A dose that ",
+             "depends on an estimated parameter goes in `event_scale`, not ",
+             "here", call. = FALSE)
   }
 
   method <- if ("method" %in% nms) {
     m <- events[["method"]]
     if (is.factor(m)) m <- as.character(m)
     if (!is.character(m)) {
-      stop("`events$method` must be one of ",
-           paste(ode_event_methods, collapse = ", "), call. = FALSE)
+      frm_stop("`events$method` must be one of ",
+               paste(ode_event_methods, collapse = ", "), call. = FALSE)
     }
     bad <- setdiff(unique(m), ode_event_methods)
     if (length(bad)) {
-      stop("`events$method` has unknown method",
-           if (length(bad) > 1L) "s" else "", ": ",
-           paste(bad, collapse = ", "), ". It must be one of ",
-           paste(ode_event_methods, collapse = ", "), call. = FALSE)
+      frm_stop("`events$method` has unknown method",
+               if (length(bad) > 1L) "s" else "", ": ",
+               paste(bad, collapse = ", "), ". It must be one of ",
+               paste(ode_event_methods, collapse = ", "), call. = FALSE)
     }
     m
   } else rep("add", nrow(events))
@@ -351,18 +351,18 @@ ode_split_events <- function(events, labels, n_state, states) {
     if (is.factor(st)) st <- as.character(st)
     if (anyNA(st)) {
       if (any(is.na(st) & method != "reset")) {
-        stop("`events$state` is NA on a row whose method is not ",
-             "\"reset\". Only a reset names no compartment, because it ",
-             "sets every one of them", call. = FALSE)
+        frm_stop("`events$state` is NA on a row whose method is not ",
+                 "\"reset\". Only a reset names no compartment, because it ",
+                 "sets every one of them", call. = FALSE)
       }
       st[is.na(st)] <- if (is.character(st)) states[[1L]] else 1L
     }
     st
   } else {
     if (n_state != 1L && any(method != "reset")) {
-      stop("`events` has no `state` column and the system has ", n_state,
-           " states, so there is no state to dose. Name the compartment ",
-           "each row goes into", call. = FALSE)
+      frm_stop("`events` has no `state` column and the system has ", n_state,
+               " states, so there is no state to dose. Name the compartment ",
+               "each row goes into", call. = FALSE)
     }
     rep(1L, nrow(events))
   }
@@ -371,18 +371,18 @@ ode_split_events <- function(events, labels, n_state, states) {
   duration <- if ("duration" %in% nms) {
     dur <- events[["duration"]]
     if (!is.numeric(dur)) {
-      stop("`events$duration` must be numeric", call. = FALSE)
+      frm_stop("`events$duration` must be numeric", call. = FALSE)
     }
     dur[is.na(dur)] <- 0
     if (any(!is.finite(dur)) || any(dur < 0)) {
-      stop("`events$duration` must be finite and not negative. Use 0 or ",
-           "NA for an instantaneous dose", call. = FALSE)
+      frm_stop("`events$duration` must be finite and not negative. Use 0 or ",
+               "NA for an instantaneous dose", call. = FALSE)
     }
     if (any(dur > 0 & method != "add")) {
-      stop("`events$duration` is positive on a row whose method is not ",
-           "\"add\". An infusion delivers `value` at a constant rate ",
-           "into the state, which is an addition; \"replace\" and ",
-           "\"multiply\" are instantaneous only", call. = FALSE)
+      frm_stop("`events$duration` is positive on a row whose method is not ",
+               "\"add\". An infusion delivers `value` at a constant rate ",
+               "into the state, which is an addition; \"replace\" and ",
+               "\"multiply\" are instantaneous only", call. = FALSE)
     }
     dur
   } else rep(0, nrow(events))
@@ -394,14 +394,14 @@ ode_split_events <- function(events, labels, n_state, states) {
   ii <- if ("ii" %in% nms) {
     v <- events[["ii"]]
     if (!is.numeric(v)) {
-      stop("`events$ii` must be numeric: it is the interdose interval",
-           call. = FALSE)
+      frm_stop("`events$ii` must be numeric: it is the interdose interval",
+               call. = FALSE)
     }
     v[is.na(v)] <- 0
     if (any(!is.finite(v)) || any(v < 0)) {
-      stop("`events$ii` must be finite and not negative. Use 0 or NA on ",
-           "a row that is neither repeated nor at steady state",
-           call. = FALSE)
+      frm_stop("`events$ii` must be finite and not negative. Use 0 or NA on ",
+               "a row that is neither repeated nor at steady state",
+               call. = FALSE)
     }
     v
   } else rep(0, nrow(events))
@@ -409,13 +409,13 @@ ode_split_events <- function(events, labels, n_state, states) {
   addl <- if ("addl" %in% nms) {
     v <- events[["addl"]]
     if (!is.numeric(v)) {
-      stop("`events$addl` must be numeric: it counts the doses that ",
-           "follow the row's own", call. = FALSE)
+      frm_stop("`events$addl` must be numeric: it counts the doses that ",
+               "follow the row's own", call. = FALSE)
     }
     v[is.na(v)] <- 0
     if (any(!is.finite(v)) || any(v < 0) || any(v != trunc(v))) {
-      stop("`events$addl` must be a whole number and not negative",
-           call. = FALSE)
+      frm_stop("`events$addl` must be a whole number and not negative",
+               call. = FALSE)
     }
     as.integer(v)
   } else rep(0L, nrow(events))
@@ -424,33 +424,33 @@ ode_split_events <- function(events, labels, n_state, states) {
     v <- events[["ss"]]
     if (is.numeric(v)) v <- v != 0
     if (!is.logical(v)) {
-      stop("`events$ss` must be TRUE/FALSE (or 1/0): it marks a row ",
-           "whose dosing cycle has already reached steady state",
-           call. = FALSE)
+      frm_stop("`events$ss` must be TRUE/FALSE (or 1/0): it marks a row ",
+               "whose dosing cycle has already reached steady state",
+               call. = FALSE)
     }
     v[is.na(v)] <- FALSE
     v
   } else rep(FALSE, nrow(events))
 
   if (any(addl > 0L & ii <= 0)) {
-    stop("`events$addl` is positive on a row whose `ii` is not. The ",
-         "additional doses land at time + ii, 2 * ii, ..., so the ",
-         "interval has to be given", call. = FALSE)
+    frm_stop("`events$addl` is positive on a row whose `ii` is not. The ",
+             "additional doses land at time + ii, 2 * ii, ..., so the ",
+             "interval has to be given", call. = FALSE)
   }
   if (any(ss & ii <= 0)) {
-    stop("`events$ss` is TRUE on a row whose `ii` is not positive. A ",
-         "steady state is a state under a dose repeated every `ii`",
-         call. = FALSE)
+    frm_stop("`events$ss` is TRUE on a row whose `ii` is not positive. A ",
+             "steady state is a state under a dose repeated every `ii`",
+             call. = FALSE)
   }
   if (any(ss & method != "add")) {
-    stop("`events$ss` is TRUE on a row whose method is not \"add\". A ",
-         "steady state is reached by repeating a dose; \"replace\", ",
-         "\"multiply\" and \"reset\" are not doses", call. = FALSE)
+    frm_stop("`events$ss` is TRUE on a row whose method is not \"add\". A ",
+             "steady state is reached by repeating a dose; \"replace\", ",
+             "\"multiply\" and \"reset\" are not doses", call. = FALSE)
   }
   if (any(ss & duration > ii)) {
-    stop("`events$ss` is TRUE on a row whose `duration` is longer than ",
-         "its `ii`, so the infusions would overlap. Shorten the ",
-         "duration, or lengthen the interval", call. = FALSE)
+    frm_stop("`events$ss` is TRUE on a row whose `duration` is longer than ",
+             "its `ii`, so the infusions would overlap. Shorten the ",
+             "duration, or lengthen the interval", call. = FALSE)
   }
 
   grp <- if ("group" %in% nms) {
@@ -458,12 +458,12 @@ ode_split_events <- function(events, labels, n_state, states) {
     g <- if (is.factor(g)) as.character(g) else as.character(g)
     bad <- setdiff(unique(g), labels)
     if (length(bad)) {
-      stop("`events$group` names ", length(bad), " group",
-           if (length(bad) > 1L) "s" else "", " that ",
-           if (length(bad) > 1L) "are" else "is",
-           " not in `group`: ",
-           paste(utils::head(bad, 5L), collapse = ", "),
-           if (length(bad) > 5L) ", ..." else "", call. = FALSE)
+      frm_stop("`events$group` names ", length(bad), " group",
+               if (length(bad) > 1L) "s" else "", " that ",
+               if (length(bad) > 1L) "are" else "is",
+               " not in `group`: ",
+               paste(utils::head(bad, 5L), collapse = ", "),
+               if (length(bad) > 5L) ", ..." else "", call. = FALSE)
     }
     g
   } else {
@@ -508,10 +508,10 @@ ode_split_events <- function(events, labels, n_state, states) {
     if (is.null(x) || !nrow(x)) return(NULL)
     x <- x[order(x$time, x$row), , drop = FALSE]
     if (sum(x$ss) > 1L) {
-      stop("`events` marks more than one row `ss = TRUE` for one group. ",
-           "A run-in starts from an empty system, so a second one would ",
-           "discard the first; write the later doses out instead",
-           call. = FALSE)
+      frm_stop("`events` marks more than one row `ss = TRUE` for one group. ",
+               "A run-in starts from an empty system, so a second one would ",
+               "discard the first; write the later doses out instead",
+               call. = FALSE)
     }
     # two rows on the same state at the same instant compose only when
     # both are additions; "replace" and "multiply" would depend on the
@@ -523,12 +523,12 @@ ode_split_events <- function(events, labels, n_state, states) {
     dup <- key %in% key[duplicated(key)]
     if (any(dup & q$method != "add")) {
       i <- which(dup & q$method != "add")[1L]
-      stop("`events` has more than one row for state ", q$state[i],
-           " at time ", format(q$time[i]),
-           " and one of them is \"", q$method[i],
-           "\". Their order would decide the result, so the table is ",
-           "ambiguous. Only repeated \"add\" rows compose",
-           call. = FALSE)
+      frm_stop("`events` has more than one row for state ", q$state[i],
+               " at time ", format(q$time[i]),
+               " and one of them is \"", q$method[i],
+               "\". Their order would decide the result, so the table is ",
+               "ambiguous. Only repeated \"add\" rows compose",
+               call. = FALSE)
     }
     rownames(x) <- NULL
     x
@@ -570,10 +570,10 @@ ode_tv_blocks <- function(tv_cols, brk, idx, times, tstart, label) {
   }
   if (n > 1L && any(chg & c(FALSE, diff(tt) == 0))) {
     j <- which(chg & c(FALSE, diff(tt) == 0))[1L]
-    stop("group '", label, "' has two observations at time ",
-         format(tt[j]), " that disagree about a `tv` value. A ",
-         "time-varying input is a step function of time, so one time ",
-         "cannot carry two values", call. = FALSE)
+    frm_stop("group '", label, "' has two observations at time ",
+             format(tt[j]), " that disagree about a `tv` value. A ",
+             "time-varying input is a step function of time, so one time ",
+             "cannot carry two values", call. = FALSE)
   }
   starts <- c(1L, which(chg))
   # the first block's value reaches back to t0; every later block starts
@@ -594,10 +594,10 @@ ode_tv_blocks <- function(tv_cols, brk, idx, times, tstart, label) {
       x <- as.numeric(v[idx])
       tol <- 1e-8 * max(1, max(abs(x)))
       if (any(abs(x - x[starts][blk]) > tol)) {
-        stop("`tv` column ", j, " changes inside a block of group '",
-             label, "' that `tv_break` says is constant. The break ",
-             "column decides where the solve is split, so every `tv` ",
-             "value has to hold over the whole block", call. = FALSE)
+        frm_stop("`tv` column ", j, " changes inside a block of group '",
+                 label, "' that `tv_break` says is constant. The break ",
+                 "column decides where the solve is split, so every `tv` ",
+                 "value has to hold over the whole block", call. = FALSE)
       }
     }
   }
@@ -1649,22 +1649,22 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
   "[<-" <- RTMB::ADoverload("[<-")
   "c" <- RTMB::ADoverload("c")
 
-  on_error <- match.arg(on_error)
+  on_error <- frm_match_arg(on_error)
   if (!is.function(dynamics)) {
-    stop("`dynamics` must be a function(t, y, parms) returning the ",
-         "derivatives", call. = FALSE)
+    frm_stop("`dynamics` must be a function(t, y, parms) returning the ",
+             "derivatives", call. = FALSE)
   }
   # user code runs with the AD overloads in scope, so a dynamics
   # function need not carry the ADoverload boilerplate itself
   dynamics <- frmtmb::frmtmb_ad_overload(dynamics)
   if (length(method) != 1L || !is.character(method) ||
         !method %in% ode_adaptive_methods) {
-    stop("`method` must name an adaptive integrator, one of: ",
-         paste(ode_adaptive_methods, collapse = ", "),
-         ". Fixed-step integrators (rk4, euler, ...) do not solve the ",
-         "system to the tolerance the likelihood is defined at, so ",
-         "they return a different likelihood, not a noisier one",
-         call. = FALSE)
+    frm_stop("`method` must name an adaptive integrator, one of: ",
+             paste(ode_adaptive_methods, collapse = ", "),
+             ". Fixed-step integrators (rk4, euler, ...) do not solve the ",
+             "system to the tolerance the likelihood is defined at, so ",
+             "they return a different likelihood, not a noisier one",
+             call. = FALSE)
   }
 
   # The solve grid and the group membership decide the *structure* of
@@ -1673,27 +1673,27 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
   # one), not an accident to let through as a cryptic coercion error.
   for (nm in c("times", "group", "t0", "tv_break")) {
     if (inherits(get(nm), "advector")) {
-      stop("`", nm, "` is an estimated quantity. frm_ode() needs it as ",
-           "data: it fixes the solve grid, which is built before the ",
-           "tape. Estimated event times are not supported",
-           call. = FALSE)
+      frm_stop("`", nm, "` is an estimated quantity. frm_ode() needs it as ",
+               "data: it fixes the solve grid, which is built before the ",
+               "tape. Estimated event times are not supported",
+               call. = FALSE)
     }
   }
   if (length(n_ss) != 1L || !is.numeric(n_ss) || is.na(n_ss) ||
         n_ss < 1 || n_ss != trunc(n_ss)) {
-    stop("`n_ss` must be one whole number, at least 1: it is how many ",
-         "dosing cycles a steady-state run-in simulates", call. = FALSE)
+    frm_stop("`n_ss` must be one whole number, at least 1: it is how many ",
+             "dosing cycles a steady-state run-in simulates", call. = FALSE)
   }
   n_ss <- as.integer(n_ss)
   if (length(ss_extrapolate) != 1L || !is.logical(ss_extrapolate) ||
         is.na(ss_extrapolate)) {
-    stop("`ss_extrapolate` must be TRUE or FALSE", call. = FALSE)
+    frm_stop("`ss_extrapolate` must be TRUE or FALSE", call. = FALSE)
   }
   times <- as.numeric(times)
   n_obs <- length(times)
-  if (!n_obs) stop("`times` is empty", call. = FALSE)
+  if (!n_obs) frm_stop("`times` is empty", call. = FALSE)
   if (anyNA(times)) {
-    stop("`times` contains NA", call. = FALSE)
+    frm_stop("`times` contains NA", call. = FALSE)
   }
 
   if (is.null(group)) {
@@ -1701,8 +1701,8 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
     glab <- "1"
   } else {
     if (length(group) != n_obs) {
-      stop("`group` has length ", length(group), " but `times` has ",
-           n_obs, call. = FALSE)
+      frm_stop("`group` has length ", length(group), " but `times` has ",
+               n_obs, call. = FALSE)
     }
     gf <- if (is.factor(group)) droplevels(group) else factor(group)
     gi <- as.integer(gf)
@@ -1717,15 +1717,15 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
                      (is.list(parms) && !inherits(parms, "advector") &&
                         !length(parms))) {
     if (is.null(tv)) {
-      stop("`parms` is NULL or empty and `tv` was not given, so the ",
-           "dynamics has no parameters at all. Pass the constants in ",
-           "`parms`, the time-varying ones in `tv`", call. = FALSE)
+      frm_stop("`parms` is NULL or empty and `tv` was not given, so the ",
+               "dynamics has no parameters at all. Pass the constants in ",
+               "`parms`, the time-varying ones in `tv`", call. = FALSE)
     }
     list()
   } else ode_columns(parms, n_obs, "parms")
   t0_cols <- ode_columns(t0, n_obs, "t0")
   if (length(t0_cols) != 1L) {
-    stop("`t0` must be a single column", call. = FALSE)
+    frm_stop("`t0` must be a single column", call. = FALSE)
   }
   ode_check_constant(init_cols, groups, "init", labels)
   ode_check_constant(parm_cols, groups, "parms", labels)
@@ -1734,9 +1734,9 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
   n_state <- length(init_cols)
   if (!is.null(states)) {
     if (length(states) != n_state) {
-      stop("`states` names ", length(states), " states but `init` has ",
-           n_state, " column", if (n_state == 1L) "" else "s",
-           call. = FALSE)
+      frm_stop("`states` names ", length(states), " states but `init` has ",
+               n_state, " column", if (n_state == 1L) "" else "s",
+               call. = FALSE)
     }
     states <- as.character(states)
   }
@@ -1759,9 +1759,9 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
   out_sel <- NULL
   if (!is.null(output) && length(output) == n_obs && n_obs > n_state) {
     if (inherits(output, "advector")) {
-      stop("`output` is an estimated quantity. It picks which state each ",
-           "row reads, which is data: a state index cannot be ",
-           "differentiated", call. = FALSE)
+      frm_stop("`output` is an estimated quantity. It picks which state each ",
+               "row reads, which is data: a state index cannot be ",
+               "differentiated", call. = FALSE)
     }
     out_sel <- ode_state_index(output, states, n_state, "output")
     out_idx <- seq_len(n_state)
@@ -1782,21 +1782,21 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
     n_tv <- length(tv_cols)
     if (!is.null(tv_break)) {
       if (length(tv_break) != n_obs) {
-        stop("`tv_break` has length ", length(tv_break), " but `times` ",
-             "has ", n_obs, "; it is one value per observation",
-             call. = FALSE)
+        frm_stop("`tv_break` has length ", length(tv_break), " but `times` ",
+                 "has ", n_obs, "; it is one value per observation",
+                 call. = FALSE)
       }
       brk <- tv_break
     } else if (any(vapply(tv_cols, function(v) inherits(v, "advector"),
                           TRUE))) {
-      stop("`tv` carries an estimated quantity, so its change points ",
-           "cannot be read off its values: RTMB refuses comparison on ",
-           "AD types. Pass `tv_break`, the data column whose changes ",
-           "within a group are the change points", call. = FALSE)
+      frm_stop("`tv` carries an estimated quantity, so its change points ",
+               "cannot be read off its values: RTMB refuses comparison on ",
+               "AD types. Pass `tv_break`, the data column whose changes ",
+               "within a group are the change points", call. = FALSE)
     }
   } else if (!is.null(tv_break)) {
-    stop("`tv_break` was given but `tv` was not; there is nothing for ",
-         "it to split", call. = FALSE)
+    frm_stop("`tv_break` was given but `tv` was not; there is nothing for ",
+             "it to split", call. = FALSE)
   }
 
   # dosing events, and the one estimated quantity allowed to reach them
@@ -1813,16 +1813,16 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
       # a "reset" is a state assignment, not an amount, so it simply is
       # not scaled; "replace" and "multiply" would change meaning
       if (!all(meths %in% c("add", "reset"))) {
-        stop("`event_scale` scales a dose, so it applies only to ",
-             "\"add\" rows, but `events` also has ",
-             paste(setdiff(meths, c("add", "reset")), collapse = " and "),
-             " rows. Scaling those would change what they mean. Split ",
-             "the model, or fold the scale into the state itself",
-             call. = FALSE)
+        frm_stop("`event_scale` scales a dose, so it applies only to ",
+                 "\"add\" rows, but `events` also has ",
+                 paste(setdiff(meths, c("add", "reset")), collapse = " and "),
+                 " rows. Scaling those would change what they mean. Split ",
+                 "the model, or fold the scale into the state itself",
+                 call. = FALSE)
       }
       scale_cols <- ode_columns(event_scale, n_obs, "event_scale")
       if (length(scale_cols) != 1L) {
-        stop("`event_scale` must be a single column", call. = FALSE)
+        frm_stop("`event_scale` must be a single column", call. = FALSE)
       }
       ode_check_constant(scale_cols, groups, "event_scale", labels)
     }
@@ -1830,8 +1830,8 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
     has_infusion <- FALSE
     has_ss <- FALSE
     if (!identical(event_scale, 1)) {
-      stop("`event_scale` was given but `events` was not; there is ",
-           "nothing to scale", call. = FALSE)
+      frm_stop("`event_scale` was given but `events` was not; there is ",
+               "nothing to scale", call. = FALSE)
     }
   }
 
@@ -1887,8 +1887,8 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
     # a solver that gives up can also return a short matrix; that must be
     # a failure, not a length error later
     if (nrow(s) != length(grid)) {
-      stop("the integrator returned ", nrow(s), " of ", length(grid),
-           " requested time points", call. = FALSE)
+      frm_stop("the integrator returned ", nrow(s), " of ", length(grid),
+               " requested time points", call. = FALSE)
     }
     # The remaining two checks work on numbers only: RTMB refuses
     # comparison on AD types, so on the tape a diverging trajectory
@@ -1896,10 +1896,10 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
     # page for what that means for on_error.
     if (!inherits(s, "advector")) {
       if (!is.null(gave_up)) {
-        stop("the integrator did not converge: ", gave_up, call. = FALSE)
+        frm_stop("the integrator did not converge: ", gave_up, call. = FALSE)
       }
       if (!all(is.finite(s))) {
-        stop("the integrator returned non-finite values", call. = FALSE)
+        frm_stop("the integrator returned non-finite values", call. = FALSE)
       }
     }
     s
@@ -1918,18 +1918,18 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
     i1 <- idx[1L]
     tstart <- as.numeric(col_at(t0_cols[[1L]], i1))
     if (times[idx[1L]] < tstart) {
-      stop("group '", labels[[g]], "' has an observation time (",
-           format(times[idx[1L]]), ") before t0 (", format(tstart),
-           "); frm_ode() integrates forward from t0", call. = FALSE)
+      frm_stop("group '", labels[[g]], "' has an observation time (",
+               format(times[idx[1L]]), ") before t0 (", format(tstart),
+               "); frm_ode() integrates forward from t0", call. = FALSE)
     }
     y0 <- do.call(c, lapply(init_cols, col_at, i = i1))
     pv <- do.call(c, lapply(parm_cols, col_at, i = i1))
     ev <- if (is.null(ev_by_group)) NULL else ev_by_group[[labels[[g]]]]
     if (!is.null(ev) && any(ev$time < tstart)) {
       j <- which(ev$time < tstart)[1L]
-      stop("group '", labels[[g]], "' has an event at time ",
-           format(ev$time[j]), ", before t0 (", format(tstart),
-           "); frm_ode() integrates forward from t0", call. = FALSE)
+      frm_stop("group '", labels[[g]], "' has an event at time ",
+               format(ev$time[j]), ", before t0 (", format(tstart),
+               "); frm_ode() integrates forward from t0", call. = FALSE)
     }
 
     tvb <- if (!n_tv) NULL else
@@ -1955,8 +1955,8 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
 
     if (inherits(sol, "condition")) {
       if (on_error == "error") {
-        stop("frm_ode() failed to solve group '", labels[[g]], "': ",
-             conditionMessage(sol), call. = FALSE)
+        frm_stop("frm_ode() failed to solve group '", labels[[g]], "': ",
+                 conditionMessage(sol), call. = FALSE)
       }
       failed <- c(failed, labels[[g]])
       for (k in seq_along(out_idx)) {
@@ -1982,17 +1982,17 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
   ode_failure_log$penalty <- penalty
   ode_failure_log$when <- Sys.time()
   if (length(failed)) {
-    warning("frm_ode(): the solve failed for ", length(failed),
-            " of ", length(groups), " group",
-            if (length(groups) == 1L) "" else "s", " (",
-            paste(utils::head(failed, 10L), collapse = ", "),
-            if (length(failed) > 10L) ", ..." else "",
-            "). Their rows hold penalty = ", format(penalty),
-            ", not a solution. If this came from predict(), simulate() ",
-            "or residuals(), those rows of the result are the penalty ",
-            "value. See the 'Failed solves' section of ?frm_ode for ",
-            "what can and cannot be caught while fitting; ",
-            "frm_ode_failures() repeats this.", call. = FALSE)
+    frm_warning("frm_ode(): the solve failed for ", length(failed),
+                " of ", length(groups), " group",
+                if (length(groups) == 1L) "" else "s", " (",
+                paste(utils::head(failed, 10L), collapse = ", "),
+                if (length(failed) > 10L) ", ..." else "",
+                "). Their rows hold penalty = ", format(penalty),
+                ", not a solution. If this came from predict(), simulate() ",
+                "or residuals(), those rows of the result are the penalty ",
+                "value. See the 'Failed solves' section of ?frm_ode for ",
+                "what can and cannot be caught while fitting; ",
+                "frm_ode_failures() repeats this.", call. = FALSE)
   }
 
   # The run-in is a fixed number of cycles, so nothing forces it to have
@@ -2002,7 +2002,7 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
   # the cycle-to-cycle movement this used to print understated it by
   # about 1 / (lambda_z * ii), which is worst where the error is worst.
   if (length(ss_acc$groups)) {
-    warning(
+    frm_warning(
       "frm_ode(): after ", n_ss, " steady-state run-in cycles the ",
       "state at the start of the cycle is about ",
       format(signif(ss_acc$rel, 3)), " (relative) away from the limit ",
@@ -2013,14 +2013,14 @@ frm_ode <- function(dynamics, init, times, parms = list(), group = NULL,
       if (length(ss_acc$groups) > 5L) ", ..." else "", "). ",
       if (isTRUE(ss_acc$stalled))
         paste0("At least one state is not contracting between cycles ",
-               "at all, so it has no steady state to reach and no ",
-               "n_ss is enough for it: an `ss` row assumes every state ",
-               "settles. ")
+                   "at all, so it has no steady state to reach and no ",
+                   "n_ss is enough for it: an `ss` row assumes every state ",
+                   "settles. ")
       else if (ss_extrapolate)
         "Raise n_ss. "
       else
         paste0("Raise n_ss, or leave ss_extrapolate at TRUE, which ",
-               "sums this tail instead of truncating it. "),
+                   "sums this tail instead of truncating it. "),
       "That figure DETECTS rather than measures: it is built from the ",
       "same geometric model the correction is, so where the model is ",
       "poor it is poor with it, and it is a lower bound rather than ",
@@ -2169,18 +2169,18 @@ check_ode_constancy <- function(spec, frame) {
           bad <- c(ode_varying_cols(lp[["X"]], gi),
                    ode_varying_cols(lp[["Z"]], gi))
           if (length(bad)) {
-            stop("Nonlinear parameter '", np, "' is a dynamics input of ",
-                 utils::tail(as.character(cl[[1L]]), 1L),
-                 "() but is not constant within '", gname,
-                 "': ", paste(unique(bad), collapse = ", "),
-                 ". One system is solved per group and every dynamics ",
-                 "input is read off the group's first row, so a ",
-                 "term that varies within a group cannot enter the ",
-                 "likelihood - the fit would leave its coefficient at ",
-                 "the start value with an indefinite Hessian. Move the ",
-                 "term to a nonlinear parameter that is not a dynamics ",
-                 "input, or aggregate it to one value per group",
-                 call. = FALSE)
+            frm_stop("Nonlinear parameter '", np, "' is a dynamics input of ",
+                     utils::tail(as.character(cl[[1L]]), 1L),
+                     "() but is not constant within '", gname,
+                     "': ", paste(unique(bad), collapse = ", "),
+                     ". One system is solved per group and every dynamics ",
+                     "input is read off the group's first row, so a ",
+                     "term that varies within a group cannot enter the ",
+                     "likelihood - the fit would leave its coefficient at ",
+                     "the start value with an indefinite Hessian. Move the ",
+                     "term to a nonlinear parameter that is not a dynamics ",
+                     "input, or aggregate it to one value per group",
+                     call. = FALSE)
           }
         }
       }

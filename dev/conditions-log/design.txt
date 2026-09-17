@@ -1,0 +1,125 @@
+== what brms's code and suite rely on ==
+
+-- brms_error in brms R/: 2 lines
+   R/misc.R:854: #' Every error inherits from `"brms_error"` plus any subclasses
+   R/misc.R:876: .subclass = c(.subclass, "brms_error"),
+
+-- rlang_error in brms R/: 0 lines
+   
+
+-- catch_cnd in brms R/: 0 lines
+   
+
+-- rlang::abort in brms R/: 1 lines
+   R/misc.R:874: rlang::abort(
+
+-- rlang::warn in brms R/: 0 lines
+   
+
+-- rlang::inform in brms R/: 0 lines
+   
+
+-- cnd_ in brms R/: 0 lines
+   
+
+-- trace_back in brms R/: 0 lines
+   
+
+-- [^.[:alnum:]_]stop2[(] in brms R/: 605 lines
+
+-- [^.[:alnum:]_]warning2[(] in brms R/: 99 lines
+
+-- [^.[:alnum:]_]stopifnot[(] in brms R/: 318 lines
+
+-- [^.[:alnum:]_]stop[(] in brms R/: 9 lines
+   R/lsp.R:26: stop('\'what\' should be one of ',
+   R/lsp.R:42: } else stop(sprintf('no NAMESPACE file found for package %s', package))
+   R/misc.R:135: stop("Argument 'ls' must be named.")
+   R/misc.R:157: stop("Argument 'ls' must be named.")
+   R/posterior_epred.R:898: stop("lb and ub must be finite")
+   R/priors.R:1597: stop("Argument 'ls' must be named.")
+   R/priors.R:1601: stop("Names of 'ls' must some of ", collapse_comma(names))
+   R/rename_pars.R:546: stop("dim must be 1 or 2")
+   R/summary.R:466: stop("'x' must be of dimension 2 or 3.")
+
+-- [^.[:alnum:]_]warning[(] in brms R/: 1 lines
+   R/misc.R:883: warning(..., call. = FALSE)
+
+-- [^.[:alnum:]_]message[(] in brms R/: 42 lines
+
+-- brms_error in brms tests/: 5 lines
+   tests/testthat/tests.stop2.R:1: test_that("stop2() throws a brms_error with simple message", {
+   tests/testthat/tests.stop2.R:2: expect_error(stop2("Something went wrong"), class = "brms_error")
+   tests/testthat/tests.stop2.R:5: test_that("stop2() throws a brms_error with simple message", {
+   tests/testthat/tests.stop2.R:7: expect_error(stop2("Unexpected value {value}"), class = "brms_error")
+   tests/testthat/tests.stop2.R:15: expect_true(inherits(err, "brms_error"))
+
+-- rlang_error in brms tests/: 0 lines
+   
+
+-- catch_cnd in brms tests/: 0 lines
+   
+
+-- rlang::abort in brms tests/: 0 lines
+   
+
+-- rlang::warn in brms tests/: 0 lines
+   
+
+-- rlang::inform in brms tests/: 0 lines
+   
+
+-- cnd_ in brms tests/: 0 lines
+   
+
+-- trace_back in brms tests/: 0 lines
+   
+
+-- [^.[:alnum:]_]stop2[(] in brms tests/: 13 lines
+
+-- [^.[:alnum:]_]warning2[(] in brms tests/: 0 lines
+   
+
+-- [^.[:alnum:]_]stopifnot[(] in brms tests/: 5 lines
+   tests/testthat/helpers/insert_refcat_ch.R:21: stopifnot(is.matrix(eta), is.brmsfamily(family))
+   tests/testthat/helpers/link_categorical_ch.R:4: stopifnot(length(dim(x)) == 3)
+   tests/testthat/helpers/link_ordinal_ch.R:20: stopifnot(length(dim(x)) == 3)
+   tests/testthat/tests.distributions.R:250: stopifnot(identical(dim(eta_test), dim(thres_test)))
+   tests/testthat/tests.distributions.R:257: stopifnot(identical(dim(eta_test), dim(thres_test)))
+
+-- [^.[:alnum:]_]stop[(] in brms tests/: 2 lines
+   tests/testthat/helpers/inv_link_categorical_ch.R:19: stop("At most 3 dimensions are allowed here.")
+   tests/testthat/helpers/link_ordinal_ch.R:13: stop("Unknown link.")
+
+-- [^.[:alnum:]_]warning[(] in brms tests/: 0 lines
+   
+
+-- [^.[:alnum:]_]message[(] in brms tests/: 0 lines
+   
+
+== brms's helpers as installed ==
+function (message = "", ..., .subclass = NULL, call = NULL, .envir = parent.frame()) 
+{
+    if (is.null(call)) {
+        call <- rlang::caller_call()
+    }
+    rlang::abort(message = glue::glue(message, ..., .envir = .envir), 
+        .subclass = c(.subclass, "brms_error"), call = call)
+}
+<bytecode: 0x0000025953a77858>
+<environment: namespace:brms>
+function (...) 
+{
+    warning(..., call. = FALSE)
+}
+<bytecode: 0x0000025953a79f20>
+<environment: namespace:brms>
+message2 exists: FALSE 
+
+== the class brms raises ==
+[1] "brms_error"  "rlang_error" "error"       "condition"  
+
+== is rlang already in frmtmb's dependency closure? ==
+closure size: 39 ; rlang in closure: FALSE 
+closure: boot circular clue cluster generics graphics grDevices grid lattice MASS Matrix MatrixModels methods mgcv mnormt movMF mvtnorm nlme numDeriv quantreg rbibutils Rcpp RcppEigen Rdpack reformulas RTMB RTMBdist skmeans slam sn SparseM splines statmod stats stats4 survival TMB tools utils 
+rlang 1.3.0 installed size: 1.9 MB

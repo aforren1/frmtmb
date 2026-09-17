@@ -246,7 +246,9 @@ test_that("max_ndt and ndt_group together are refused", {
            drift ~ 1, bs ~ 1, ndt ~ 1, bias = 0.5),
         family = rlddm(subject = id, trial = trial, max_ndt = 0.2),
         data = s, dry_run = "frame"),
-    "both set the non-decision time's upper bound")
+    "both set the non-decision time's upper bound",
+    # frmtmb.eam raises it, for this package's family
+    class = "frmtmb_learn_error")
 })
 
 test_that("ndt_group on a family with no non-decision time is refused", {

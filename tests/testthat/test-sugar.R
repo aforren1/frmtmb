@@ -122,3 +122,22 @@ test_that("refit powers a small parametric bootstrap", {
   expect_true(all(is.finite(boots)))
   expect_lt(abs(mean(boots) - fixef(fit)$mu["x"]), 0.3)
 })
+
+test_that("insight still falls back to NA when model.matrix() refuses", {
+  skip_if_not_installed("insight")
+  # insight's .get_predicted_ci_modelmatrix() tests the error it catches
+  # for "simpleError"; a multivariate fit is where model.matrix() refuses
+  set.seed(20260917)
+  d <- data.frame(y = rnorm(60), z = rnorm(60), x = rnorm(60))
+  mv <- frm(mvbf(bf(y ~ x), bf(z ~ x)), data = d)
+  e <- tryCatch(model.matrix(mv), error = identity)
+  expect_identical(class(e), c("frmtmb_error", "simpleError", "error",
+                               "condition"))
+  expect_match(conditionMessage(e), "disambiguate with resp")
+  ci <- NULL
+  expect_warning(
+    ci <- insight::get_predicted_ci(mv, predictions = rep(0, 60), data = d),
+    "Something went wrong")
+  expect_identical(dim(ci), c(60L, 3L))
+  expect_true(all(is.na(ci$SE)))
+})

@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/rellib-r3 
+BLOCKS 13 PASS 52 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-bcm-latent-mixtures.R
+CAUGHT 1 
+DONE

@@ -50,9 +50,9 @@ lca_resolve_ncat <- function(y, ncat) {
   ncat <- as.integer(ncat)
   if (length(ncat) == 1L) ncat <- rep(ncat, J)
   if (length(ncat) != J) {
-    stop("lca(ncat =): ", length(ncat), " category count(s) for ", J,
-         " item column(s); give one value per item, or a single value ",
-         "for equal-length items", call. = FALSE)
+    frm_stop("lca(ncat =): ", length(ncat), " category count(s) for ", J,
+             " item column(s); give one value per item, or a single value ",
+             "for equal-length items", call. = FALSE)
   }
   ncat
 }
@@ -103,8 +103,8 @@ lca_ncat_from_extra <- function(extra, K) {
   nms <- grep("^pi[0-9]+$", names(extra), value = TRUE)
   J <- length(nms)
   if (!J) {
-    stop("lca(): the fit carries no item-profile parameters; this is ",
-         "not an lca() fit's parameter list", call. = FALSE)
+    frm_stop("lca(): the fit carries no item-profile parameters; this is ",
+             "not an lca() fit's parameter list", call. = FALSE)
   }
   vapply(seq_len(J), function(j) {
     as.integer(length(extra[[lca_par_name(j)]]) / K + 1L)
@@ -333,9 +333,9 @@ lca_comp_lpdf <- function(y, K, extra, k) {
   if (length(tabs) != ncol(y)) {
     # a saved lca() family object reused across two differently shaped
     # data sets used to reach here with the first fit's item structure
-    stop("lca(): the fit carries ", length(tabs), " item profile(s) ",
-         "but the response has ", ncol(y), " item column(s)",
-         call. = FALSE)
+    frm_stop("lca(): the fit carries ", length(tabs), " item profile(s) ",
+             "but the response has ", ncol(y), " item column(s)",
+             call. = FALSE)
   }
   cc <- lca_codes(y)
   S <- 0
@@ -658,15 +658,15 @@ lca_comp_lpdf <- function(y, K, extra, k) {
 lca <- function(K, ncat = NULL, na.rm = TRUE) {
   if (missing(K) || length(K) != 1L || !is.finite(K) || K != round(K) ||
         K < 2) {
-    stop("lca() needs a single whole number of latent classes, at ",
-         "least 2, e.g. lca(K = 3)", call. = FALSE)
+    frm_stop("lca() needs a single whole number of latent classes, at ",
+             "least 2, e.g. lca(K = 3)", call. = FALSE)
   }
   K <- as.integer(K)
   if (!is.null(ncat)) {
     if (!is.numeric(ncat) || !length(ncat) || any(!is.finite(ncat)) ||
           any(ncat != round(ncat)) || any(ncat < 2)) {
-      stop("lca(ncat =) must be whole numbers of at least 2, one per ",
-           "item", call. = FALSE)
+      frm_stop("lca(ncat =) must be whole numbers of at least 2, one per ",
+               "item", call. = FALSE)
     }
   }
   # na.rm decides whether a missing item is masked out of that
@@ -696,22 +696,22 @@ lca <- function(K, ncat = NULL, na.rm = TRUE) {
     valid_y = function(y, aterms) {
       if (is.list(y) || is.character(y) ||
             (is.matrix(y) && !ncol(y))) {
-        stop("lca(K = ", K, "): the response must be a matrix of item ",
-             "codes, one row per subject and one column per item; write ",
-             "cbind(item1, item2, ...) ~ ... or attach a matrix column ",
-             "with data.matrix()", call. = FALSE)
+        frm_stop("lca(K = ", K, "): the response must be a matrix of item ",
+                 "codes, one row per subject and one column per item; write ",
+                 "cbind(item1, item2, ...) ~ ... or attach a matrix column ",
+                 "with data.matrix()", call. = FALSE)
       }
       y <- lca_matrix(y)
       bad <- !is.na(y) & (y != round(y) | y < 1)
       if (any(bad)) {
-        stop("lca(): item responses must be whole-number category codes ",
-             "1..C_j (a factor column is converted with as.integer() or ",
-             "data.matrix(), which uses its level order)", call. = FALSE)
+        frm_stop("lca(): item responses must be whole-number category codes ",
+                 "1..C_j (a factor column is converted with as.integer() or ",
+                 "data.matrix(), which uses its level order)", call. = FALSE)
       }
       if (!na_rm && any(rowSums(!is.na(y)) == 0L)) {
-        stop("lca(na.rm = FALSE): ", sum(rowSums(!is.na(y)) == 0L),
-             " subject(s) have no observed item at all and carry no ",
-             "information; remove them", call. = FALSE)
+        frm_stop("lca(na.rm = FALSE): ", sum(rowSums(!is.na(y)) == 0L),
+                 " subject(s) have no observed item at all and carry no ",
+                 "information; remove them", call. = FALSE)
       }
       nc <- lca_resolve_ncat(y, ncat)
       obs <- vapply(seq_len(ncol(y)), function(j) {
@@ -719,26 +719,26 @@ lca <- function(K, ncat = NULL, na.rm = TRUE) {
       }, integer(1))
       if (any(obs < 2L)) {
         bad_j <- which(obs < 2L)
-        stop("lca(): item column(s) ",
-             paste(bad_j, collapse = ", "),
-             " take fewer than two distinct values, so no class can be ",
-             "told apart by them; drop the item(s)", call. = FALSE)
+        frm_stop("lca(): item column(s) ",
+                 paste(bad_j, collapse = ", "),
+                 " take fewer than two distinct values, so no class can be ",
+                 "told apart by them; drop the item(s)", call. = FALSE)
       }
       over <- vapply(seq_len(ncol(y)), function(j) {
         max(y[, j], na.rm = TRUE) > nc[j]
       }, TRUE)
       if (any(over)) {
-        stop("lca(ncat =): item column(s) ",
-             paste(which(over), collapse = ", "),
-             " hold codes above the declared category count",
-             call. = FALSE)
+        frm_stop("lca(ncat =): item column(s) ",
+                 paste(which(over), collapse = ", "),
+                 " hold codes above the declared category count",
+                 call. = FALSE)
       }
       for (at in c("weights", "cens", "trunc_lb", "trunc_ub", "se",
                    "trials")) {
         if (!is.null(aterms[[at]])) {
-          stop("lca() does not support addition terms on the response; ",
-               "the item matrix carries no per-row weight, window or ",
-               "known standard error to attach one to", call. = FALSE)
+          frm_stop("lca() does not support addition terms on the response; ",
+                   "the item matrix carries no per-row weight, window or ",
+                   "known standard error to attach one to", call. = FALSE)
         }
       }
       invisible(NULL)
@@ -747,11 +747,11 @@ lca <- function(K, ncat = NULL, na.rm = TRUE) {
     type = "discrete",
     post = list(
       mean_fn = function(dpars, aterms) {
-        stop("An lca() fit has no fitted mean: the response is a matrix ",
-             "of nominal item codes, so averaging them would average ",
-             "arbitrary labels. Use lca_probs() for posterior class ",
-             "membership and lca_profiles() for the item profiles",
-             call. = FALSE)
+        frm_stop("An lca() fit has no fitted mean: the response is a matrix ",
+                 "of nominal item codes, so averaging them would average ",
+                 "arbitrary labels. Use lca_probs() for posterior class ",
+                 "membership and lca_profiles() for the item profiles",
+                 call. = FALSE)
       }
     ),
     extra_pars = function(y, aterms) {
@@ -869,11 +869,11 @@ check_lca_structure <- function(spec, linpreds) {
   # the response loop, which runs before the predictors exist
   for (lp in linpreds) {
     if (!is.null(lp[["Z"]]) || length(lp[["smooth"]] %||% list())) {
-      stop("lca() does not support random effects, smooths or gp() ",
-           "terms in the class-membership predictor ('", lp[["dpar"]],
-           "'). A latent class with continuous random effects is the ",
-           "growth-mixture model; mixture(..., groups = ~g) fits that ",
-           "shape", call. = FALSE)
+      frm_stop("lca() does not support random effects, smooths or gp() ",
+               "terms in the class-membership predictor ('", lp[["dpar"]],
+               "'). A latent class with continuous random effects is the ",
+               "growth-mixture model; mixture(..., groups = ~g) fits that ",
+               "shape", call. = FALSE)
     }
   }
   invisible(NULL)
@@ -910,12 +910,12 @@ check_lca_structure <- function(spec, linpreds) {
 #' @export
 lca_profiles <- function(fit) {
   if (!inherits(fit, "frmtmb_fit")) {
-    stop("lca_profiles() takes a fitted model from frm()", call. = FALSE)
+    frm_stop("lca_profiles() takes a fitted model from frm()", call. = FALSE)
   }
   rspec <- single_response(fit, "lca_profiles()")
   fam <- rspec$family
   if (!is_lca_family(fam)) {
-    stop("lca_profiles() needs a fit with an lca() family", call. = FALSE)
+    frm_stop("lca_profiles() needs a fit with an lca() family", call. = FALSE)
   }
   K <- fam[["lca"]]$K
   # the item structure comes from THIS fit's parameters, so one saved
@@ -995,12 +995,12 @@ print.frmtmb_lca_profiles <- function(x, digits = 4, ...) {
 #' @export
 lca_probs <- function(fit) {
   if (!inherits(fit, "frmtmb_fit")) {
-    stop("lca_probs() takes a fitted model from frm()", call. = FALSE)
+    frm_stop("lca_probs() takes a fitted model from frm()", call. = FALSE)
   }
   rspec <- single_response(fit, "lca_probs()")
   if (!is_lca_family(rspec$family)) {
-    stop("lca_probs() needs a fit with an lca() family; mixture_probs() ",
-         "covers mixture() and mixture_mvn()", call. = FALSE)
+    frm_stop("lca_probs() needs a fit with an lca() family; mixture_probs() ",
+             "covers mixture() and mixture_mvn()", call. = FALSE)
   }
   P <- latent_probs(fit)
   lp <- ifelse(P > 0, log(P), 0)

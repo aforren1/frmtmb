@@ -1,0 +1,6 @@
+"file"	"class"	"message"
+"tests/testthat/test-multinomial.R"	"frmtmb_error/error/condition"	"multinomial(K = 4): response must be an n x 4 count matrix"
+"tests/testthat/test-multinomial.R"	"frmtmb_error/error/condition"	"Specifying 'trials' is required for this model. multinomial reads the number of trials from the formula: write Y | trials(n) ~ ..."
+"tests/testthat/test-multinomial.R"	"frmtmb_error/error/condition"	"Number of trials does not match the number of events. multinomial: rowSums(response) must equal trials()"
+"tests/testthat/test-multinomial.R"	"frmtmb_error/error/condition"	"multinomial() needs the number of categories, e.g. multinomial(K = 3)"
+"tests/testthat/test-multinomial.R"	"frmtmb_error/error/condition"	"family 'multinomial' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted() and predict(type = \"response\") have nothing to return. Ask for type = \"link\" or a dpar by name."

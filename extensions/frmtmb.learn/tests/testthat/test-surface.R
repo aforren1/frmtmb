@@ -49,7 +49,8 @@ test_that("predict gives the learning parameters, and a mean on the data", {
   # The response scale is refused, and that is the design rather than a
   # gap: a nominal option code has no mean, so core has nothing to
   # return and says so in the family's own name.
-  expect_error(stats::predict(f, type = "response"), "declares no mean")
+  expect_error(stats::predict(f, type = "response"), "declares no mean",
+               class = "frmtmb_learn_error")
   expect_error(stats::fitted(f), "bandit2arm_delta")
   # what replaces it. This fit is hierarchical, so sum(log(p)) is the
   # CONDITIONAL data log-likelihood and sits ABOVE the Laplace marginal

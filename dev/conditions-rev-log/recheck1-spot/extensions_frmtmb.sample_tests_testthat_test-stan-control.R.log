@@ -1,0 +1,6 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+Error : 'control' list contains unknown members of names: nonsense_option.
+error in specifying arguments; sampling not done
+BLOCKS 11 PASS 54 FAIL 0 ERROR 0 SKIP 0  extensions/frmtmb.sample/tests/testthat/test-stan-control.R
+CAUGHT 25 
+DONE

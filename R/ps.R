@@ -137,10 +137,10 @@
 #' fixef(fit)
 #' @export
 ps <- function(expr, k = 10, degree = 3, pad = 0.1, center = TRUE) {
-  stop("ps() is a term, not a function: it declares a penalized ",
-       "coefficient block and is only meaningful inside the body of a ",
-       "nonlinear formula (bf(..., nl = TRUE) or nlf()). It was ",
-       "evaluated as ordinary R code instead", call. = FALSE)
+  frm_stop("ps() is a term, not a function: it declares a penalized ",
+           "coefficient block and is only meaningful inside the body of a ",
+           "nonlinear formula (bf(..., nl = TRUE) or nlf()). It was ",
+           "evaluated as ordinary R code instead", call. = FALSE)
 }
 
 #' The truncated positive part, branch free.
@@ -311,10 +311,10 @@ ps_extract <- function(body, dpar) {
     fn <- e[[1L]]
     if (is.name(fn) && identical(as.character(fn), "ps")) {
       if (inside) {
-        stop("ps() inside ps(): a penalized block cannot be the ",
-             "argument of another one, because the inner block's knots ",
-             "would have to be rebuilt whenever its coefficients move",
-             call. = FALSE)
+        frm_stop("ps() inside ps(): a penalized block cannot be the ",
+                 "argument of another one, because the inner block's knots ",
+                 "would have to be rebuilt whenever its coefficients move",
+                 call. = FALSE)
       }
       pt <- ps_spec(e, length(terms) + 1L, dpar)
       terms[[length(terms) + 1L]] <<- pt
@@ -350,16 +350,16 @@ ps_spec <- function(call, index, dpar) {
                    # `match.call()`'s own "unused argument" names the
                    # argument and nothing else, so a reader is told that
                    # `by = g` is unused without being told by what
-                   stop("ps(): unknown argument in ", deparse1(call),
-                        ". ps() takes expr, k, degree, pad and center. ",
-                        "The penalty is always the second difference; ",
-                        "`by =` and `id =`, which a factor-smooth ",
-                        "surface would need, are not implemented and ",
-                        "are not silently ignored", call. = FALSE)
+                   frm_stop("ps(): unknown argument in ", deparse1(call),
+                            ". ps() takes expr, k, degree, pad and center. ",
+                            "The penalty is always the second difference; ",
+                            "`by =` and `id =`, which a factor-smooth ",
+                            "surface would need, are not implemented and ",
+                            "are not silently ignored", call. = FALSE)
                  })
   if (is.null(mc[["expr"]])) {
-    stop("ps() needs an expression to evaluate the spline at, as its ",
-         "first argument", call. = FALSE)
+    frm_stop("ps() needs an expression to evaluate the spline at, as its ",
+             "first argument", call. = FALSE)
   }
   # A LITERAL, not an expression that happens to evaluate. Evaluating in
   # `baseenv()` looked safe and was not: `ps(x, k = length(t))` resolves
@@ -369,9 +369,9 @@ ps_spec <- function(call, index, dpar) {
     if (is.null(mc[[nm]])) return(default)
     v <- mc[[nm]]
     if (!(is.numeric(v) || is.logical(v)) || length(v) != 1L) {
-      stop("ps(", nm, " = ) must be a literal constant, because the ",
-           "basis is frozen before any data is read; got ",
-           deparse1(mc[[nm]]), call. = FALSE)
+      frm_stop("ps(", nm, " = ) must be a literal constant, because the ",
+               "basis is frozen before any data is read; got ",
+               deparse1(mc[[nm]]), call. = FALSE)
     }
     v
   }
@@ -380,24 +380,24 @@ ps_spec <- function(call, index, dpar) {
   pad <- as.numeric(lit("pad", 0.1))
   center <- isTRUE(lit("center", TRUE))
   if (is.na(degree) || degree < 1L || degree > 5L) {
-    stop("ps(degree = ) must be a whole number between 1 and 5",
-         call. = FALSE)
+    frm_stop("ps(degree = ) must be a whole number between 1 and 5",
+             call. = FALSE)
   }
   kmin <- max(degree + 1L, 4L)
   if (is.na(k) || k < kmin) {
-    stop("ps(k = ) must be at least ", kmin, " for degree ", degree,
-         ", so the penalty has a range space to put in the ",
-         "random-effect block", call. = FALSE)
+    frm_stop("ps(k = ) must be at least ", kmin, " for degree ", degree,
+             ", so the penalty has a range space to put in the ",
+             "random-effect block", call. = FALSE)
   }
   if (k > 50L) {
-    stop("ps(k = ) above 50 is refused: the divided-difference basis ",
-         "cancels terms of order (range / spacing)^degree, so its ",
-         "agreement with splineDesign() degrades like k^(degree - 1) ",
-         "and is already 1.8e-11 at k = 40", call. = FALSE)
+    frm_stop("ps(k = ) above 50 is refused: the divided-difference basis ",
+             "cancels terms of order (range / spacing)^degree, so its ",
+             "agreement with splineDesign() degrades like k^(degree - 1) ",
+             "and is already 1.8e-11 at k = 40", call. = FALSE)
   }
   if (is.na(pad) || pad < 0) {
-    stop("ps(pad = ) must be a non-negative fraction of the range of ",
-         "the spline argument", call. = FALSE)
+    frm_stop("ps(pad = ) must be a non-negative fraction of the range of ",
+             "the spline argument", call. = FALSE)
   }
   list(index = index, dpar = dpar,
        fname = paste0(".frm_ps_", dpar, "_", index),
@@ -421,9 +421,9 @@ ps_build <- function(pt, mf, nlpars, env) {
   rng <- range(x0)
   span <- rng[2L] - rng[1L]
   if (!(span > 0)) {
-    stop("ps(): the spline argument ", deparse1(pt[["expr"]]),
-         " is constant over the data, so there is no range to place ",
-         "knots on", call. = FALSE)
+    frm_stop("ps(): the spline argument ", deparse1(pt[["expr"]]),
+             " is constant over the data, so there is no range to place ",
+             "knots on", call. = FALSE)
   }
   lo <- rng[1L] - pt[["pad"]] * span
   hi <- rng[2L] + pt[["pad"]] * span
@@ -478,14 +478,14 @@ ps_data_time <- function(pt, mf, nlpars, env) {
   x0 <- tryCatch(
     as.numeric(eval(pt[["expr"]], c(as.list(mf), zeros), env)),
     error = function(e) {
-      stop("ps(): the spline argument ", deparse1(pt[["expr"]]),
-           " could not be evaluated on the model frame: ",
-           conditionMessage(e), call. = FALSE)
+      frm_stop("ps(): the spline argument ", deparse1(pt[["expr"]]),
+               " could not be evaluated on the model frame: ",
+               conditionMessage(e), call. = FALSE)
     })
   if (!length(x0) || anyNA(x0) || any(!is.finite(x0))) {
-    stop("ps(): the spline argument ", deparse1(pt[["expr"]]),
-         " is not finite everywhere on the model frame, so no knot ",
-         "range exists", call. = FALSE)
+    frm_stop("ps(): the spline argument ", deparse1(pt[["expr"]]),
+             " is not finite everywhere on the model frame, so no knot ",
+             "range exists", call. = FALSE)
   }
   x0
 }
@@ -524,22 +524,22 @@ check_ps_fit <- function(frame, REML, quadrature, control) {
   if (!frame_has_ps(frame)) return(invisible(NULL))
   lab <- frame_ps_terms(frame)[[1L]][["label"]]
   if (isTRUE(REML)) {
-    stop("REML = TRUE cannot be combined with ", lab,
-         ": REML integrates the fixed coefficients out, and this term ",
-         "puts its own null space among them inside a body that is ",
-         "nonlinear in it", call. = FALSE)
+    frm_stop("REML = TRUE cannot be combined with ", lab,
+             ": REML integrates the fixed coefficients out, and this term ",
+             "puts its own null space among them inside a body that is ",
+             "nonlinear in it", call. = FALSE)
   }
   if (isTRUE(quadrature)) {
-    stop("quadrature = TRUE cannot be combined with ", lab,
-         ": marginalizing this block by Gauss-Kronrod means integrating ",
-         "over a whole curve, and the rule takes one scalar random ",
-         "effect at a time", call. = FALSE)
+    frm_stop("quadrature = TRUE cannot be combined with ", lab,
+             ": marginalizing this block by Gauss-Kronrod means integrating ",
+             "over a whole curve, and the rule takes one scalar random ",
+             "effect at a time", call. = FALSE)
   }
   if (isTRUE(control$profile)) {
-    stop("frmtmb_control(profile = TRUE) cannot be combined with ", lab,
-         ": profiling assumes the objective is quadratic in the fixed ",
-         "coefficients, which a nonlinear body makes it not",
-         call. = FALSE)
+    frm_stop("frmtmb_control(profile = TRUE) cannot be combined with ", lab,
+             ": profiling assumes the objective is quadratic in the fixed ",
+             "coefficients, which a nonlinear body makes it not",
+             call. = FALSE)
   }
   invisible(NULL)
 }
@@ -620,7 +620,7 @@ ps_span_flush <- function(sink) {
 #'
 #' @noRd
 ps_span_signal <- function(out, n, pt) {
-  warning(warningCondition(paste0(
+  frm_warning(paste0(
     out, " of ", n, " predicted values of ",
     deparse1(pt[["expr"]]), " lie outside the frozen knot span of ",
     pt[["label"]], " [", format(pt[["knot_range"]][1L], digits = 4), ", ",
@@ -630,7 +630,7 @@ ps_span_signal <- function(out, n, pt) {
     "extrapolations of the fitted curve: the curve decays and the ",
     "prediction bends to whatever the rest of the body gives. ",
     "Refit with a larger pad = to cover the range you predict on"),
-    class = "frmtmb_ps_span_warning"))
+    class = "frmtmb_ps_span_warning", call. = FALSE)
   invisible(NULL)
 }
 
@@ -659,13 +659,13 @@ ps_coverage_warning <- function(fit) {
       if (is.null(x) || !length(x)) next
       out <- sum(x < pt[["knot_range"]][1L] | x > pt[["knot_range"]][2L])
       if (out > 0L) {
-        warning(out, " of ", length(x), " fitted values of ",
-                deparse1(pt[["expr"]]), " fall outside the knot span of ",
-                pt[["label"]], " [", format(pt[["knot_range"]][1L],
-                digits = 4), ", ",
-                format(pt[["knot_range"]][2L], digits = 4),
-                "], where the basis is exactly zero and its gradient ",
-                "with it. Refit with a larger pad =", call. = FALSE)
+        frm_warning(out, " of ", length(x), " fitted values of ",
+                    deparse1(pt[["expr"]]), " fall outside the knot span of ",
+                    pt[["label"]], " [", format(pt[["knot_range"]][1L],
+                    digits = 4), ", ",
+                    format(pt[["knot_range"]][2L], digits = 4),
+                    "], where the basis is exactly zero and its gradient ",
+                    "with it. Refit with a larger pad =", call. = FALSE)
       }
     }
   }

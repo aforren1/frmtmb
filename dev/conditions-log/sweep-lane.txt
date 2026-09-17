@@ -1,0 +1,94 @@
+== suites, one file per R process ==
+runner dev/conditions-sweep-onefile.R, sums failures AND errors
+frmtmb           files 142 (no result line 0) blocks 1551 PASS 11733 FAIL 0 ERROR 0 SKIP 1
+   .start 06:50:45 
+   .end 06:59:05 
+frmtmb.coupling  files   9 (no result line 0) blocks   65 PASS   438 FAIL 0 ERROR 0 SKIP 5
+frmtmb.eam       files  26 (no result line 0) blocks  275 PASS  1640 FAIL 0 ERROR 0 SKIP 3
+frmtmb.latent    files   9 (no result line 0) blocks   69 PASS   339 FAIL 0 ERROR 0 SKIP 2
+frmtmb.learn     files  14 (no result line 0) blocks   98 PASS   467 FAIL 0 ERROR 0 SKIP 2
+frmtmb.ode       files  10 (no result line 0) blocks  117 PASS   333 FAIL 0 ERROR 0 SKIP 1
+frmtmb.sample    files  23 (no result line 0) blocks  231 PASS  1702 FAIL 0 ERROR 0 SKIP 1
+frmtmb.spline    files  14 (no result line 0) blocks   92 PASS   441 FAIL 0 ERROR 0 SKIP 1
+   .start 06:39:24 
+   .end 06:47:13 
+
+== sweep: conditions the suites' own expect_error() caught ==
+package          caught  frmtmb_error  other
+frmtmb             1419          1397     22
+frmtmb.coupling      33            32      1
+frmtmb.eam          193           192      1
+frmtmb.latent        55            55      0
+frmtmb.learn         56            56      0
+frmtmb.ode           78            78      0
+frmtmb.sample       142           138      4
+frmtmb.spline        56            55      1
+ALL                2032          2003     29
+
+frmtmb_error class vectors seen:
+
+frmtmb_coupling_error/frmtmb_error/error/condition 
+                                                28 
+     frmtmb_eam_error/frmtmb_error/error/condition 
+                                               170 
+                      frmtmb_error/error/condition 
+                                              1488 
+     frmtmb_fit_error/frmtmb_error/error/condition 
+                                                 3 
+  frmtmb_latent_error/frmtmb_error/error/condition 
+                                                42 
+   frmtmb_learn_error/frmtmb_error/error/condition 
+                                                34 
+     frmtmb_ode_error/frmtmb_error/error/condition 
+                                                76 
+  frmtmb_sample_error/frmtmb_error/error/condition 
+                                               108 
+  frmtmb_spline_error/frmtmb_error/error/condition 
+                                                54 
+
+not frmtmb_error, by class and whether the message carries a literal
+of a stop()/frm_stop()/stopifnot() call in frmtmb's sources:
+                                        frmtmb_literal
+class                                    FALSE TRUE
+  brms_error/rlang_error/error/condition     3    1
+  simpleError/error/condition               24    1
+
+every distinct non-frmtmb_error message (class | package | text):
+[foreign] brms_error/rlang_error/error/condition | frmtmb | Invalid addition arguments for this model.
+[foreign] brms_error/rlang_error/error/condition | frmtmb | The following variables can neither be found in 'data' nor in 'data2': 'z'
+[foreign] brms_error/rlang_error/error/condition | frmtmb | New factor levels are not allowed. Levels allowed: 'a', 'b', 'c' Levels found: 'a', 'zz'
+[foreign] simpleError/error/condition | frmtmb | 'arg' should be one of \response\, \linear\
+[foreign] simpleError/error/condition | frmtmb | brms parameterizes a bym2 field on a different set of latent variables than frmtmb; see dev/brms-likelihood-tests.md
+[foreign] simpleError/error/condition | frmtmb | 'arg' should be one of \epred\, \predict\
+[foreign] simpleError/error/condition | frmtmb | object 'z' not found
+[foreign] simpleError/error/condition | frmtmb | factor f has new levels zz
+[foreign] simpleError/error/condition | frmtmb | bad x: 3
+[foreign] simpleError/error/condition | frmtmb | 'arg' should be one of \fit\, \sample\
+[foreign] simpleError/error/condition | frmtmb | Stan parameter simo_sigma_1 is a monotonic simplex outside mu, which has no translation rule
+[foreign] simpleError/error/condition | frmtmb | invalid type (list) for variable 'tab'
+[foreign] simpleError/error/condition | frmtmb | variable lengths differ (found for 'short')
+[foreign] simpleError/error/condition | frmtmb | object 'no_such_thing' not found
+[foreign] simpleError/error/condition | frmtmb | 'softit' link not recognised
+[foreign] simpleError/error/condition | frmtmb | unused argument (priors = pl)
+[foreign] simpleError/error/condition | frmtmb | unused argument (lower = c(x = 1))
+[foreign] simpleError/error/condition | frmtmb | unused argument (upper = c(x = 1))
+[foreign] simpleError/error/condition | frmtmb | invalid type (list) for variable 'lc'
+[foreign] simpleError/error/condition | frmtmb.coupling | 'arg' should be one of \none\, \hann\
+[foreign] simpleError/error/condition | frmtmb.eam | 'arg' should be one of \recorded\, \atomic\
+[foreign] simpleError/error/condition | frmtmb.sample | The following variables are missing in the draws object: {'nope'}
+[foreign] simpleError/error/condition | frmtmb.sample | The following variables are missing in the draws object: {'^b_x$'}
+[foreign] simpleError/error/condition | frmtmb.sample | The following variables are missing in the draws object: {'nosuchvariable'}
+[foreign] simpleError/error/condition | frmtmb.sample | object '(Intercept)' not found
+[foreign] simpleError/error/condition | frmtmb.spline | 'arg' should be one of \hazard\, \odds\, \normal\
+[LITERAL] brms_error/rlang_error/error/condition | frmtmb | The model does not contain group-level effects.
+[LITERAL] simpleError/error/condition | frmtmb | error in evaluating the argument 'x' in selecting a method for function 't': Multiple responses have dpar 'mu'; disambiguate with resp = 
+
+not frmtmb_error, by origin (patterns below, first match wins):
+    7  R evaluation: an argument or object that does not exist
+    6  base match.arg() inside a frmtmb function
+    4  brms itself (the agreement tests)
+    4  stats::model.frame() and its relatives
+    3  test code: a test helper or a deliberate absent case
+    3  the posterior package
+    1  R's S4 dispatch rewraps a frmtmb_error as simpleError
+    1  stats::make.link()

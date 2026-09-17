@@ -1,0 +1,14 @@
+frmtmb from: C:/Users/adf44/source/r/rellib-r3 
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1.7, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, -0.4, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+BLOCKS 28 PASS 290 FAIL 0 ERROR 0 SKIP 0  extensions/frmtmb.sample/tests/testthat/test-reparam.R
+CAUGHT 8 
+DONE

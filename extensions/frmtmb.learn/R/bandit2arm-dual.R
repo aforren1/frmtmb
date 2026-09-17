@@ -72,7 +72,7 @@
 #' @export
 bandit2arm_dual <- function(subject, trial = NULL,
                             split = c("pe", "outcome")) {
-  split <- match.arg(split)
+  split <- frm_match_arg(split)
   upd <- function(state, d, ch) {
     q1 <- state[["q1"]]
     q2 <- state[["q2"]]

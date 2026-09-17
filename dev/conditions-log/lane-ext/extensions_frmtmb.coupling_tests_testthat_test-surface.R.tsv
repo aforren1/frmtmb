@@ -1,0 +1,2 @@
+"file"	"class"	"message"
+"extensions/frmtmb.coupling/tests/testthat/test-surface.R"	"frmtmb_error/error/condition"	"simulate(): family 'cross_wishart' has no simulator yet. a draw is a whole Hermitian matrix and the response carries only its first entry; frmtmb.coupling::frm_cross_simulate() returns all four columns"

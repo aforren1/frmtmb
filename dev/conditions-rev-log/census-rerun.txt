@@ -1,0 +1,20 @@
+control_unplanted          pass 4 fail 0 error 0 skip 0  -> PASSES
+control_bare_in_R          pass 3 fail 1 error 0 skip 0  -> FAILS (caught)
+lowercase_r                pass 3 fail 1 error 0 skip 0  -> FAILS (caught)
+subdir_windows             pass 4 fail 0 error 0 skip 0  -> PASSES
+subdir_unix                pass 4 fail 0 error 0 skip 0  -> PASSES
+ext_S                      pass 4 fail 0 error 0 skip 0  -> PASSES
+ext_q                      pass 4 fail 0 error 0 skip 0  -> PASSES
+sysdata                    pass 4 fail 0 error 0 skip 0  -> PASSES
+exemption_broad            pass 4 fail 0 error 0 skip 0  -> PASSES
+exemption_broad_frm_stop   pass 4 fail 0 error 0 skip 0  -> PASSES
+match_fun                  pass 4 fail 0 error 0 skip 0  -> PASSES
+get_string                 pass 4 fail 0 error 0 skip 0  -> PASSES
+docall_named_late          pass 4 fail 0 error 0 skip 0  -> PASSES
+parse_text                 pass 4 fail 0 error 0 skip 0  -> PASSES
+str2lang                   pass 4 fail 0 error 0 skip 0  -> PASSES
+deprecated                 pass 4 fail 0 error 0 skip 0  -> PASSES
+signal_error               pass 3 fail 1 error 0 skip 0  -> FAILS (caught)
+frm_as_value_lapply        pass 4 fail 0 error 0 skip 0  -> PASSES
+inst_subdir_uppercase_S    pass 4 fail 0 error 0 skip 0  -> PASSES
+vignette_code              pass 4 fail 0 error 0 skip 0  -> PASSES

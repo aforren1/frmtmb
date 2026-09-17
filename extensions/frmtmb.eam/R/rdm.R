@@ -234,17 +234,17 @@
 rdm <- function(n, max_ndt = NULL) {
   if (missing(n) || !is.numeric(n) || length(n) != 1L || is.na(n) ||
       n != round(n) || n < 2) {
-    stop("rdm(): `n` is the number of accumulators, one whole number ",
-         "of 2 or more, e.g. rdm(3) for a three-alternative choice.",
-         call. = FALSE)
+    frm_stop("rdm(): `n` is the number of accumulators, one whole number ",
+             "of 2 or more, e.g. rdm(3) for a three-alternative choice.",
+             call. = FALSE)
   }
   n <- as.integer(n)
   if (!is.null(max_ndt)) {
     if (!is.numeric(max_ndt) || length(max_ndt) != 1L ||
         !is.finite(max_ndt) || max_ndt <= 0) {
-      stop("rdm(): `max_ndt` bounds the non-decision time and must be ",
-           "one positive finite number, or NULL to read it off the ",
-           "response.", call. = FALSE)
+      frm_stop("rdm(): `max_ndt` bounds the non-decision time and must be ",
+               "one positive finite number, or NULL to read it off the ",
+               "response.", call. = FALSE)
     }
   }
 
@@ -287,14 +287,14 @@ rdm <- function(n, max_ndt = NULL) {
     # came back empty rather than refusing. A number that is not the
     # quantity it is labelled with is worse than an error.
     post = list(mean_fn = function(dpars, aterms) {
-      stop("rdm: this family has no mean response time to report. The ",
-           "mean of the winning accumulator's arrival is an ",
-           "expectation over the minimum of several inverse-Gaussian ",
-           "first passages and has no closed form, so fitted(), ",
-           "predict(type = \"response\") and residuals(type = ",
-           "\"response\") are all unavailable. predict(type = \"link\") ",
-           "gives the drift rates, thresholds and non-decision time ",
-           "the fit actually estimated.", call. = FALSE)
+      frm_stop("rdm: this family has no mean response time to report. The ",
+               "mean of the winning accumulator's arrival is an ",
+               "expectation over the minimum of several inverse-Gaussian ",
+               "first passages and has no closed form, so fitted(), ",
+               "predict(type = \"response\") and residuals(type = ",
+               "\"response\") are all unavailable. predict(type = \"link\") ",
+               "gives the drift rates, thresholds and non-decision time ",
+               "the fit actually estimated.", call. = FALSE)
     }),
     sim = function(dpars, aterms, n_) {
       rdm_sim_rt(dpars, aterms, n_, vp)
@@ -406,22 +406,22 @@ rdm_lccdf <- function(q, dpars, vp) {
 #' @noRd
 rdm_check_response <- function(y, aterms, n) {
   if (any(!is.finite(y)) || any(y <= 0)) {
-    stop("rdm: the response must be a strictly positive, finite ",
-         "response time. A time of zero or less leaves no decision ",
-         "time for any non-decision time at all.", call. = FALSE)
+    frm_stop("rdm: the response must be a strictly positive, finite ",
+             "response time. A time of zero or less leaves no decision ",
+             "time for any non-decision time at all.", call. = FALSE)
   }
   ddm_check_units(y, "rdm")
   ch <- aterms[["vint1"]]
   if (any(!is.finite(ch)) || any(ch != round(ch)) ||
       any(ch < 1) || any(ch > n)) {
     bad <- unique(ch[!is.finite(ch) | ch != round(ch) | ch < 1 | ch > n])
-    stop("rdm(", n, "): the vint() choice indicator names which ",
-         "accumulator reached the threshold and must be a whole number ",
-         "from 1 to ", n, ". Saw ",
-         paste(utils::head(sort(bad), 5), collapse = ", "),
-         ". A factor is not accepted; recode it with ",
-         "as.integer(factor(choice)) and check that the level order ",
-         "matches the accumulator numbering.", call. = FALSE)
+    frm_stop("rdm(", n, "): the vint() choice indicator names which ",
+             "accumulator reached the threshold and must be a whole number ",
+             "from 1 to ", n, ". Saw ",
+             paste(utils::head(sort(bad), 5), collapse = ", "),
+             ". A factor is not accepted; recode it with ",
+             "as.integer(factor(choice)) and check that the level order ",
+             "matches the accumulator numbering.", call. = FALSE)
   }
   invisible(NULL)
 }
@@ -482,13 +482,13 @@ rdm_sim_rt <- function(dpars, aterms, n_, vp) {
     todo <- todo[!hit]
   }
   if (length(todo)) {
-    stop("rdm: could not draw a response time for ", length(todo),
-         " row(s) whose observed choice the fitted parameters almost ",
-         "never produce. simulate() conditions each draw on that row's ",
-         "vint() choice, so a choice the model gives a vanishing ",
-         "probability has no draw to give. Use rdm_simulate() for an ",
-         "unconditional draw of choice and time together.",
-         call. = FALSE)
+    frm_stop("rdm: could not draw a response time for ", length(todo),
+             " row(s) whose observed choice the fitted parameters almost ",
+             "never produce. simulate() conditions each draw on that row's ",
+             "vint() choice, so a choice the model gives a vanishing ",
+             "probability has no draw to give. Use rdm_simulate() for an ",
+             "unconditional draw of choice and time together.",
+             call. = FALSE)
   }
   out
 }
@@ -567,35 +567,35 @@ rdm_ig <- function(dist, v) {
 #' @export
 rdm_simulate <- function(n, v, A = 0.5, k = 0.5, ndt = 0.2) {
   if (!is.numeric(n) || length(n) != 1L || is.na(n) || n < 1) {
-    stop("rdm_simulate(): `n` is the number of trials to draw, one ",
-         "whole number of 1 or more.", call. = FALSE)
+    frm_stop("rdm_simulate(): `n` is the number of trials to draw, one ",
+             "whole number of 1 or more.", call. = FALSE)
   }
   n <- as.integer(n)
   V <- if (is.matrix(v)) v else matrix(as.numeric(v), n, length(v),
                                        byrow = TRUE)
   if (nrow(V) != n) {
-    stop("rdm_simulate(): a matrix `v` gives one row of drift rates per ",
-         "trial, so it needs ", n, " rows, not ", nrow(V), ".",
-         call. = FALSE)
+    frm_stop("rdm_simulate(): a matrix `v` gives one row of drift rates per ",
+             "trial, so it needs ", n, " rows, not ", nrow(V), ".",
+             call. = FALSE)
   }
   nacc <- ncol(V)
   if (nacc < 2) {
-    stop("rdm_simulate(): `v` needs a drift rate for each of at least ",
-         "two accumulators; a race of one has nothing to lose to.",
-         call. = FALSE)
+    frm_stop("rdm_simulate(): `v` needs a drift rate for each of at least ",
+             "two accumulators; a race of one has nothing to lose to.",
+             call. = FALSE)
   }
   if (any(!is.finite(V)) || any(V <= 0)) {
-    stop("rdm_simulate(): every drift rate must be positive and finite. ",
-         "A racing-diffusion drift is the rate itself, not the mean of ",
-         "one, and an accumulator with a rate of zero or less never ",
-         "reaches the threshold.", call. = FALSE)
+    frm_stop("rdm_simulate(): every drift rate must be positive and finite. ",
+             "A racing-diffusion drift is the rate itself, not the mean of ",
+             "one, and an accumulator with a rate of zero or less never ",
+             "reaches the threshold.", call. = FALSE)
   }
   A <- rep(as.numeric(A), length.out = n)
   k <- rep(as.numeric(k), length.out = n)
   if (any(A <= 0) || any(k <= 0)) {
-    stop("rdm_simulate(): `A` and `k` must both be positive, so that ",
-         "the threshold A + k lies above the start-point range and no ",
-         "trial begins already finished.", call. = FALSE)
+    frm_stop("rdm_simulate(): `A` and `k` must both be positive, so that ",
+             "the threshold A + k lies above the start-point range and no ",
+             "trial begins already finished.", call. = FALSE)
   }
   dr <- rdm_race_draw(A, k, V)
   data.frame(choice = dr$choice,

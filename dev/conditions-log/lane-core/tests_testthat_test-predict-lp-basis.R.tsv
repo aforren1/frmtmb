@@ -1,0 +1,8 @@
+"file"	"class"	"message"
+"tests/testthat/test-predict-lp-basis.R"	"frmtmb_error/error/condition"	"frm_joint_cov() needs a model fitted by frm(), not a list of length 0"
+"tests/testthat/test-predict-lp-basis.R"	"frmtmb_error/error/condition"	"se.fit is not supported for the nonlinear predictor yet; request the nonlinear parameters (dpar = 'ult', ...) instead"
+"tests/testthat/test-predict-lp-basis.R"	"frmtmb_error/error/condition"	"frm_lp_basis(): allow_new_levels = TRUE is refused for a nonlinear predictor. A new level contributes its block's marginal variance, and how that variance passes through a nonlinear body has not been measured"
+"tests/testthat/test-predict-lp-basis.R"	"frmtmb_error/error/condition"	"`newdata` must be a data frame, or NULL to use the training data, not an integer of length 3"
+"tests/testthat/test-predict-lp-basis.R"	"frmtmb_error/error/condition"	"`re_formula` must be NULL to keep every random effect, NA to drop them all, or a one-sided formula naming the ones to keep, not character \"g\""
+"tests/testthat/test-predict-lp-basis.R"	"frmtmb_error/error/condition"	"frm_lp_basis(): unknown dpar 'nope' for response 'y'. Available: mu, sigma"
+"tests/testthat/test-predict-lp-basis.R"	"frmtmb_error/error/condition"	"Unknown response: 'nope'. Available: y"

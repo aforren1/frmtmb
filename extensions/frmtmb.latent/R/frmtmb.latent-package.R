@@ -12,4 +12,5 @@
 #' @importFrom frmtmb latent_probs mixture_multimodal_refusals
 #' @importFrom frmtmb mixture_posterior response_mean single_response
 #' @importFrom frmtmb structure_supports_all
+#' @importFrom frmtmb frm_match_arg frm_message frm_stop frm_warning
 NULL

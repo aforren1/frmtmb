@@ -1,0 +1,32 @@
+== 1. extension loaded, frmtmb NOT attached (fresh process)
+frmtmb_eam_error frmtmb_error error condition | wiener(): the non-decision time bound is not set yet. This happens when a wiener() family object is used outside frm(), for example to inspect its links before a fit, to pin the parameter with bf(non-decision time = ), or inside mixture(), which does not finalize its components. Pass `max_ndt` to wiener() to set the bound up front. | FALSE 
+
+== 2. helper reached from inside an extension function
+direct                                         frmtmb_eam_error/frmtmb_error/error/condition
+anonymous closure in lapply                    frmtmb_eam_error/frmtmb_error/error/condition
+tryCatch handler                               frmtmb_eam_error/frmtmb_error/error/condition
+do.call(frm_stop, ...)                         frmtmb_eam_error/frmtmb_error/error/condition
+do.call("frm_stop", ...)                       frmtmb_eam_error/frmtmb_error/error/condition
+lapply(msgs, frm_stop)  [helper as a value]    base_error/frmtmb_error/error/condition
+Map(frm_warning, msgs)  [helper as a value]    base_warning/frmtmb_warning/warning/condition
+vapply(msgs, frm_message, NULL)                simpleError/error/condition
+Reduce(function(a, b) frm_stop(b), ...)        frmtmb_eam_error/frmtmb_error/error/condition
+local({ frm_stop() })                          frmtmb_eam_error/frmtmb_error/error/condition
+eval(quote(frm_stop()), new.env())             frmtmb_eam_error/frmtmb_error/error/condition
+eval(quote(frm_stop()), globalenv())           frmtmb_error/error/condition
+env carrying .packageName (sys.source style)   frmtmb_error/error/condition
+core validator called from extension           character
+
+== 3. frm_stop() given a condition object, as stop(e) accepts
+stop(e) message                                boom
+frm_stop(e) message                            Error in f(1): boom
+
+warning(w) message                             careful
+frm_warning(w) message                         simpleWarning: careful
+
+
+== 4. cost of one raise and catch, stop() against frm_stop()
+iterations per block 32000 
+        stop     stop_ctl     frm_stop frm_stop_ext      warning  frm_warning 
+        17.5         19.7         28.4         80.9         24.4         36.9 
+ratio control 1.125  frm_stop/stop 1.625  ext/stop 4.625  frm_warning/warning 1.513

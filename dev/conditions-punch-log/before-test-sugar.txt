@@ -1,0 +1,5 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 9 PASS 39 FAIL 1 ERROR 1 SKIP 0  tests/testthat/test-sugar.R
+  failing: insight still falls back to NA when model.matrix() refuses
+       Expected `class(e)` to be identical to `c("frmtmb_error", "simpleError", "error", "condition")`. Differences: `actual`:   "frmtmb_error"               "error" "condition" `expected`: "frmtmb_error" "simpleError" "error" "condition"  
+       Error in `if (ncol(vcovmat) < ncol(mm)) {     mm <- mm[, intersect(colnames(mm), colnames(vcovmat))] }`: argument is of length zero 

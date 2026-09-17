@@ -145,7 +145,8 @@ test_that("posterior_summary() and posterior_interval() summarize draws", {
   expect_equal(colnames(pi), c("5%", "95%"))
   expect_true(all(pi[, 1] < pi[, 2]))
   expect_error(posterior_interval(cs$ds, variable = "nope"),
-               "missing in the draws")
+               "missing in the draws object: 'nope'",
+               class = "frmtmb_sample_error")
 })
 
 test_that("predictive_interval() and predictive_error() use the predictive draws", {
@@ -322,8 +323,11 @@ test_that("rhat() and neff_ratio() take brms's OTHER `pars` rule", {
   expect_equal(neff_ratio(cs$ds, NULL), neff_ratio(cs$ds))
   # an exact name that is not there is an error, as in brms; a regular
   # expression without regex = TRUE is such a name
-  expect_error(rhat(cs$ds, "^b_x$"))
-  expect_error(neff_ratio(cs$ds, "nosuchvariable"))
+  expect_error(rhat(cs$ds, "^b_x$"), "missing in the draws object",
+               class = "frmtmb_sample_error")
+  expect_error(neff_ratio(cs$ds, "nosuchvariable"),
+               "missing in the draws object: 'nosuchvariable'",
+               class = "frmtmb_sample_error")
   # the extract_pars rule is the OTHER methods', and they still have it
   expect_error(posterior_interval(cs$ds, 0.9),
                "must be NA or a character vector")

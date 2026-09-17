@@ -1,0 +1,7 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+StanHeaders: 2.32.10 
+Setting order = 'mu' for mixtures of the same family.
+Setting order = 'mu' for mixtures of the same family.
+BLOCKS 12 PASS 103 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-brms-priors.R 
+CAUGHT 1 
+DONE

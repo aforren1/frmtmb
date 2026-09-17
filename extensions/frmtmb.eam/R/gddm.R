@@ -445,14 +445,14 @@ gddm_drift_constant <- function() {
 gddm_drift_coherence <- function(cmax = 1, cov = 1L) {
   if (!is.numeric(cmax) || length(cmax) != 1L || !is.finite(cmax) ||
       cmax <= 0) {
-    stop("gddm_drift_coherence(): `cmax` must be one positive finite ",
-         "number, the coherence the nonlinearity is anchored at.",
-         call. = FALSE)
+    frm_stop("gddm_drift_coherence(): `cmax` must be one positive finite ",
+             "number, the coherence the nonlinearity is anchored at.",
+             call. = FALSE)
   }
   cov <- as.integer(cov)
   if (length(cov) != 1L || is.na(cov) || cov < 1L) {
-    stop("gddm_drift_coherence(): `cov` must be one positive integer, ",
-         "saying which vreal() value carries the coherence.", call. = FALSE)
+    frm_stop("gddm_drift_coherence(): `cov` must be one positive integer, ",
+             "saying which vreal() value carries the coherence.", call. = FALSE)
   }
   gd_component(
     "drift", "coherence",
@@ -758,34 +758,34 @@ gddm_start_term <- function(label, dpars, fn) {
 gddm_control <- function(dt = 0.01, ny = 201L, t_max = NULL,
                          renormalize = TRUE, max_ndt = NULL,
                          tridiagonal = c("recorded", "atomic")) {
-  tridiagonal <- match.arg(tridiagonal)
+  tridiagonal <- frm_match_arg(tridiagonal)
   if (!is.numeric(dt) || length(dt) != 1L || !is.finite(dt) || dt <= 0) {
-    stop("gddm_control(): `dt` must be one positive finite number.",
-         call. = FALSE)
+    frm_stop("gddm_control(): `dt` must be one positive finite number.",
+             call. = FALSE)
   }
   ny <- as.integer(ny)
   if (length(ny) != 1L || is.na(ny) || ny < 5L) {
-    stop("gddm_control(): `ny` must be one integer of at least 5. The ",
-         "flux at each wall is read with a three-point difference, so a ",
-         "grid shorter than that has nothing to read.", call. = FALSE)
+    frm_stop("gddm_control(): `ny` must be one integer of at least 5. The ",
+             "flux at each wall is read with a three-point difference, so a ",
+             "grid shorter than that has nothing to read.", call. = FALSE)
   }
   if (!is.null(t_max)) {
     if (!is.numeric(t_max) || length(t_max) != 1L || !is.finite(t_max) ||
         t_max <= 0) {
-      stop("gddm_control(): `t_max` must be one positive finite number, ",
-           "or NULL to take it from the data.", call. = FALSE)
+      frm_stop("gddm_control(): `t_max` must be one positive finite number, ",
+               "or NULL to take it from the data.", call. = FALSE)
     }
   }
   if (!is.logical(renormalize) || length(renormalize) != 1L ||
       is.na(renormalize)) {
-    stop("gddm_control(): `renormalize` must be TRUE or FALSE.",
-         call. = FALSE)
+    frm_stop("gddm_control(): `renormalize` must be TRUE or FALSE.",
+             call. = FALSE)
   }
   if (!is.null(max_ndt)) {
     if (!is.numeric(max_ndt) || length(max_ndt) != 1L ||
         !is.finite(max_ndt) || max_ndt <= 0) {
-      stop("gddm_control(): `max_ndt` must be one positive finite ",
-           "number, or NULL to take it from the data.", call. = FALSE)
+      frm_stop("gddm_control(): `max_ndt` must be one positive finite ",
+               "number, or NULL to take it from the data.", call. = FALSE)
     }
   }
   structure(list(dt = dt, ny = ny, t_max = t_max,
@@ -811,22 +811,22 @@ gd_normalize_drift <- function(drift) {
   if (inherits(drift, "gddm_component")) drift <- list(drift)
   if (!is.list(drift) || !length(drift) ||
       !all(vapply(drift, inherits, logical(1), "gddm_component"))) {
-    stop("gddm(): `drift` must be one drift component or a list of them, ",
-         "each from gddm_drift_constant(), gddm_drift_coherence(), ",
-         "gddm_drift_leak() or gddm_drift_term().", call. = FALSE)
+    frm_stop("gddm(): `drift` must be one drift component or a list of them, ",
+             "each from gddm_drift_constant(), gddm_drift_coherence(), ",
+             "gddm_drift_leak() or gddm_drift_term().", call. = FALSE)
   }
   if (!all(vapply(drift, function(z) z$kind, character(1)) == "drift")) {
-    stop("gddm(): every element of `drift` must be a drift component. A ",
-         "boundary or starting-point component belongs in its own ",
-         "argument.", call. = FALSE)
+    frm_stop("gddm(): every element of `drift` must be a drift component. A ",
+             "boundary or starting-point component belongs in its own ",
+             "argument.", call. = FALSE)
   }
   base <- vapply(drift, function(z) isTRUE(z$base), logical(1))
   if (sum(base) != 1L || !base[[1L]]) {
-    stop("gddm(): `drift` needs exactly one base term, first in the ",
-         "list. gddm_drift_constant() and gddm_drift_coherence() are ",
-         "base terms; they supply `mu`, the parameter the model formula ",
-         "is fitted to. gddm_drift_leak() adds to a base term and cannot ",
-         "stand alone.", call. = FALSE)
+    frm_stop("gddm(): `drift` needs exactly one base term, first in the ",
+             "list. gddm_drift_constant() and gddm_drift_coherence() are ",
+             "base terms; they supply `mu`, the parameter the model formula ",
+             "is fitted to. gddm_drift_leak() adds to a base term and cannot ",
+             "stand alone.", call. = FALSE)
   }
   drift
 }
@@ -973,19 +973,19 @@ gddm <- function(drift = gddm_drift_constant(),
                  control = gddm_control()) {
   drift <- gd_normalize_drift(drift)
   if (!inherits(bound, "gddm_component") || bound$kind != "bound") {
-    stop("gddm(): `bound` must be one boundary component, from ",
-         "gddm_bound_constant(), gddm_bound_exponential(), ",
-         "gddm_bound_linear() or gddm_bound_term().", call. = FALSE)
+    frm_stop("gddm(): `bound` must be one boundary component, from ",
+             "gddm_bound_constant(), gddm_bound_exponential(), ",
+             "gddm_bound_linear() or gddm_bound_term().", call. = FALSE)
   }
   if (!inherits(start, "gddm_component") || start$kind != "start") {
-    stop("gddm(): `start` must be one starting-point component, from ",
-         "gddm_start_point(), gddm_start_uniform() or ",
-         "gddm_start_term().", call. = FALSE)
+    frm_stop("gddm(): `start` must be one starting-point component, from ",
+             "gddm_start_point(), gddm_start_uniform() or ",
+             "gddm_start_term().", call. = FALSE)
   }
   if (!inherits(control, "gddm_control")) {
-    stop("gddm(): `control` must come from gddm_control().", call. = FALSE)
+    frm_stop("gddm(): `control` must come from gddm_control().", call. = FALSE)
   }
-  lapse <- match.arg(lapse)
+  lapse <- frm_match_arg(lapse)
 
   # One summed drift closure, built once, so the tape sees a single
   # expression rather than a dispatch per node.
@@ -1011,8 +1011,8 @@ gddm <- function(drift = gddm_drift_constant(),
   for (tm in terms) {
     for (nm in names(tm$dpars)) {
       if (!is.null(dp[[nm]])) {
-        stop("gddm(): two components both supply the parameter `", nm,
-             "`. Each free quantity must be named once.", call. = FALSE)
+        frm_stop("gddm(): two components both supply the parameter `", nm,
+                 "`. Each free quantity must be named once.", call. = FALSE)
       }
       dp[[nm]] <- tm$dpars[[nm]]
     }
@@ -1021,11 +1021,11 @@ gddm <- function(drift = gddm_drift_constant(),
   # from the data. Until family_finalize() supplies it the family says so
   # rather than naming a link it will not use.
   pending <- function(...) {
-    stop("gddm: the non-decision-time link is not resolved yet. Its ",
-         "upper bound comes from the response, so it is set when frm() ",
-         "assembles the model frame. Pass max_ndt to gddm_control() to ",
-         "fix the bound up front and inspect the family before a fit.",
-         call. = FALSE)
+    frm_stop("gddm: the non-decision-time link is not resolved yet. Its ",
+             "upper bound comes from the response, so it is set when frm() ",
+             "assembles the model frame. Pass max_ndt to gddm_control() to ",
+             "fix the bound up front and inspect the family before a fit.",
+             call. = FALSE)
   }
   dp[["ndt"]] <- list(
     link = list(name = "scaled_logit(0, from data)", linkfun = pending,
@@ -1035,9 +1035,9 @@ gddm <- function(drift = gddm_drift_constant(),
     dp[["lapse"]] <- list(link = "logit", init = function(y, aterms) 0.02)
   }
   if (names(dp)[[1L]] != "mu") {
-    stop("gddm(): the first free parameter must be `mu`. A base drift ",
-         "term supplies it; a component that renames it cannot receive ",
-         "the model formula.", call. = FALSE)
+    frm_stop("gddm(): the first free parameter must be `mu`. A base drift ",
+             "term supplies it; a component that renames it cannot receive ",
+             "the model formula.", call. = FALSE)
   }
   dpnames <- names(dp)
   # The boundary CAN be declared, as the choice it is: it arrives as
@@ -1063,10 +1063,10 @@ gddm <- function(drift = gddm_drift_constant(),
     dpars = dpnames,
     links = lapply(dp, function(z) z$link),
     lpdf = function(y, dpars, aterms) {
-      stop("gddm: this family was used without being finalized against ",
-           "the data. That happens only if the family object is called ",
-           "outside frm(); the grid and the non-decision-time bound are ",
-           "resolved when the model frame is assembled.", call. = FALSE)
+      frm_stop("gddm: this family was used without being finalized against ",
+               "the data. That happens only if the family object is called ",
+               "outside frm(); the grid and the non-decision-time bound are ",
+               "resolved when the model frame is assembled.", call. = FALSE)
     },
     valid_y = function(y, aterms) gd_check_response(y, aterms, comp),
     init_dpars = lapply(dp, function(z) z$init),
@@ -1114,16 +1114,16 @@ gd_indicator <- function(aterms) {
 #' @noRd
 gd_check_response <- function(y, aterms, comp) {
   if (any(!is.finite(y)) || any(y <= 0)) {
-    stop("gddm: the response must be a strictly positive, finite ",
-         "response time.", call. = FALSE)
+    frm_stop("gddm: the response must be a strictly positive, finite ",
+             "response time.", call. = FALSE)
   }
   ddm_check_units(y, "gddm")
   ix <- gd_indicator(aterms)
   up <- ix[["up"]]
   if (any(!is.finite(up))) {
-    stop("gddm: the decision indicator holds a missing or infinite ",
-         "value. Which boundary a trial ended at is data and has to be ",
-         "known for every trial the density scores.", call. = FALSE)
+    frm_stop("gddm: the decision indicator holds a missing or infinite ",
+             "value. Which boundary a trial ended at is data and has to be ",
+             "known for every trial the density scores.", call. = FALSE)
   }
   # The model is one accumulator between two absorbing boundaries, so the
   # number of responses it can express is two, structurally. A third
@@ -1132,40 +1132,40 @@ gd_check_response <- function(y, aterms, comp) {
   # for, so it is refused here, at the first point the family sees data.
   lev <- sort(unique(up))
   if (length(lev) > 2L) {
-    stop("gddm: the decision indicator has ", length(lev), " distinct ",
-         "values, and this family admits exactly two. A generalized ",
-         "drift-diffusion model is a single accumulator between two ",
-         "absorbing boundaries, so a trial can end at the upper one or ",
-         "the lower one and nowhere else. More than two alternatives is ",
-         "a different architecture, not another parameter: it needs ",
-         "racing accumulators rather than one accumulator between two ",
-         "walls. That is what lba() in this package fits, so use ",
-         "lba(n) for n alternatives. Collapse the response to two if ",
-         "you want this family.",
-         call. = FALSE)
+    frm_stop("gddm: the decision indicator has ", length(lev), " distinct ",
+             "values, and this family admits exactly two. A generalized ",
+             "drift-diffusion model is a single accumulator between two ",
+             "absorbing boundaries, so a trial can end at the upper one or ",
+             "the lower one and nowhere else. More than two alternatives is ",
+             "a different architecture, not another parameter: it needs ",
+             "racing accumulators rather than one accumulator between two ",
+             "walls. That is what lba() in this package fits, so use ",
+             "lba(n) for n alternatives. Collapse the response to two if ",
+             "you want this family.",
+             call. = FALSE)
   }
   if (!all(lev %in% c(0, 1))) {
-    stop("gddm: the decision indicator must be 0 at the lower boundary ",
-         "and 1 at the upper one. dec() reads a factor on its levels ",
-         "and produces that coding for you, taking the SECOND level as ",
-         "the upper boundary; a numeric column is passed through as it ",
-         "stands, so recode one yourself with ",
-         "as.integer(decision == \"upper\").", call. = FALSE)
+    frm_stop("gddm: the decision indicator must be 0 at the lower boundary ",
+             "and 1 at the upper one. dec() reads a factor on its levels ",
+             "and produces that coding for you, taking the SECOND level as ",
+             "the upper boundary; a numeric column is passed through as it ",
+             "stands, so recode one yourself with ",
+             "as.integer(decision == \"upper\").", call. = FALSE)
   }
   cnd <- ix[["cond"]]
   if (is.null(cnd)) {
-    stop("gddm: the condition index is missing. One solve of the ",
-         "Fokker-Planck equation serves every trial that shares a ",
-         "parameter vector, and this family finds those trials through ",
-         "an index it is given, because comparing parameter values is ",
-         "not something a tape can do. Supply it as ", ix[["cond_is"]],
-         ", which gddm_conditions() builds.", call. = FALSE)
+    frm_stop("gddm: the condition index is missing. One solve of the ",
+             "Fokker-Planck equation serves every trial that shares a ",
+             "parameter vector, and this family finds those trials through ",
+             "an index it is given, because comparing parameter values is ",
+             "not something a tape can do. Supply it as ", ix[["cond_is"]],
+             ", which gddm_conditions() builds.", call. = FALSE)
   }
   if (any(!is.finite(cnd)) || any(cnd < 1)) {
-    stop("gddm: the condition index must be a positive integer ",
-         "labelling the distinct parameter settings in the design. It ",
-         "is ", ix[["cond_is"]], " here, and gddm_conditions() builds ",
-         "one.", call. = FALSE)
+    frm_stop("gddm: the condition index must be a positive integer ",
+             "labelling the distinct parameter settings in the design. It ",
+             "is ", ix[["cond_is"]], " here, and gddm_conditions() builds ",
+             "one.", call. = FALSE)
   }
   # The covariates a drift term reads are the one part of the
   # constant-within-condition contract the family can check, so it does.
@@ -1175,10 +1175,10 @@ gd_check_response <- function(y, aterms, comp) {
     if (is.null(v)) next
     ok <- tapply(v, cnd, function(z) length(unique(z)) == 1L)
     if (!all(ok)) {
-      stop("gddm: ", nm, " is not constant within every condition. One ",
-           "solve serves a whole condition, so a covariate the drift ",
-           "reads has to take one value there. Split the condition ",
-           "index, or build it with gddm_conditions().", call. = FALSE)
+      frm_stop("gddm: ", nm, " is not constant within every condition. One ",
+               "solve serves a whole condition, so a covariate the drift ",
+               "reads has to take one value there. Split the condition ",
+               "index, or build it with gddm_conditions().", call. = FALSE)
     }
   }
   invisible(NULL)
@@ -1437,20 +1437,20 @@ gd_check_condition_constancy <- function(spec, frame) {
              format(lev[[g[[1L]]]]), ", and inside ", length(g), " of ",
              length(lev), " conditions in all")
     }, character(1))
-    stop("gddm: the parameter", if (length(bad_par) > 1L) "s" else "",
-         " ", gd_and(bad_par), " ",
-         if (length(bad_par) > 1L) "are" else "is",
-         " not constant within every condition. One solve of the ",
-         "Fokker-Planck equation serves a whole condition and every ",
-         "parameter is read at that condition's FIRST ROW, so a term ",
-         "that varies inside a condition never reaches the likelihood: ",
-         "the objective does not move at all when the other rows ",
-         "change, and the coefficient would be fitted from one row per ",
-         "condition. ", paste(clause, collapse = "; "),
-         ". Name every one of them in the index as well, which is what ",
-         "gddm_conditions() is for: gddm_conditions(data, ",
-         paste(vn, collapse = ", "), "), beside whatever the index ",
-         "already uses.", call. = FALSE)
+    frm_stop("gddm: the parameter", if (length(bad_par) > 1L) "s" else "",
+             " ", gd_and(bad_par), " ",
+             if (length(bad_par) > 1L) "are" else "is",
+             " not constant within every condition. One solve of the ",
+             "Fokker-Planck equation serves a whole condition and every ",
+             "parameter is read at that condition's FIRST ROW, so a term ",
+             "that varies inside a condition never reaches the likelihood: ",
+             "the objective does not move at all when the other rows ",
+             "change, and the coefficient would be fitted from one row per ",
+             "condition. ", paste(clause, collapse = "; "),
+             ". Name every one of them in the index as well, which is what ",
+             "gddm_conditions() is for: gddm_conditions(data, ",
+             paste(vn, collapse = ", "), "), beside whatever the index ",
+             "already uses.", call. = FALSE)
   }
   invisible(NULL)
 }
@@ -1474,18 +1474,18 @@ gd_finalize <- function(fam, y, aterms, comp, control, dpnames) {
   if (is.null(t_max)) {
     t_max <- (floor(max(y) / dt) + 1) * dt
   } else if (t_max <= max(y)) {
-    stop("gddm: t_max = ", format(t_max), " is at or below the largest ",
-         "response time (", format(max(y)), "). The modeled window has ",
-         "to contain every response it is asked to score.", call. = FALSE)
+    frm_stop("gddm: t_max = ", format(t_max), " is at or below the largest ",
+             "response time (", format(max(y)), "). The modeled window has ",
+             "to contain every response it is asked to score.", call. = FALSE)
   }
   ub <- control$max_ndt
   if (is.null(ub)) {
     ub <- min(y)
   } else if (ub > min(y)) {
-    stop("gddm: max_ndt = ", format(ub), " is above the smallest ",
-         "response time (", format(min(y)), "). The density is zero at ",
-         "and below the non-decision time, so a bound above min(rt) ",
-         "admits parameter values with no likelihood.", call. = FALSE)
+    frm_stop("gddm: max_ndt = ", format(ub), " is above the smallest ",
+             "response time (", format(min(y)), "). The density is zero at ",
+             "and below the non-decision time, so a bound above min(rt) ",
+             "admits parameter values with no likelihood.", call. = FALSE)
   }
   nt <- as.integer(round(t_max / dt))
   ctl <- list(dt = dt, ny = control$ny, t_max = nt * dt, nt = nt,
@@ -1572,11 +1572,11 @@ gd_aterm_data <- function(y, aterms, comp, ctl) {
   # response time the grid was never built to reach. Caught here rather
   # than read off the end of the density.
   if (any(k0 < 0L) || any(k0 + 2L > nb)) {
-    stop("gddm: a response time of ", format(max(y)), " falls outside the ",
-         "modeled window, which ends at ", format(ctl$t_max), ". The ",
-         "window is fixed when the model is fitted, so set t_max in ",
-         "gddm_control() high enough to cover the data you will predict ",
-         "on as well as the data you fit to.", call. = FALSE)
+    frm_stop("gddm: a response time of ", format(max(y)), " falls outside the ",
+             "modeled window, which ends at ", format(ctl$t_max), ". The ",
+             "window is fixed when the model is fitted, so set t_max in ",
+             "gddm_control() high enough to cover the data you will predict ",
+             "on as well as the data you fit to.", call. = FALSE)
   }
   up <- as.integer(ix[["up"]])
   # condition-major, upper wall then lower, so one offset reaches any row
@@ -1690,7 +1690,7 @@ gd_sim_rt <- function(dpars, aterms, comp, ctl, n) {
 #' @export
 gddm_conditions <- function(data, ...) {
   if (!is.data.frame(data)) {
-    stop("gddm_conditions(): `data` must be a data frame.", call. = FALSE)
+    frm_stop("gddm_conditions(): `data` must be a data frame.", call. = FALSE)
   }
   # The dots are evaluated in `data` first: a bare variable name is a
   # column, and evaluating it in the caller's frame would not find one.
@@ -1700,19 +1700,19 @@ gddm_conditions <- function(data, ...) {
     vars <- all.vars(vals[[1L]])
     miss <- setdiff(vars, names(data))
     if (length(miss)) {
-      stop("gddm_conditions(): the formula names ",
-           paste(miss, collapse = ", "), ", which `data` does not have.",
-           call. = FALSE)
+      frm_stop("gddm_conditions(): the formula names ",
+               paste(miss, collapse = ", "), ", which `data` does not have.",
+               call. = FALSE)
     }
     cols <- data[vars]
   } else {
     cols <- as.data.frame(vals)
   }
   if (!ncol(cols)) {
-    stop("gddm_conditions(): name at least one variable. An index with ",
-         "no variables in it puts every trial in one condition, which is ",
-         "right only when nothing in the model varies across rows.",
-         call. = FALSE)
+    frm_stop("gddm_conditions(): name at least one variable. An index with ",
+             "no variables in it puts every trial in one condition, which is ",
+             "right only when nothing in the model varies across rows.",
+             call. = FALSE)
   }
   as.integer(factor(do.call(paste, c(cols, sep = "\r"))))
 }
@@ -1757,10 +1757,10 @@ gddm_floored <- function(fit) {
   rsp <- frmtmb::single_response(fit)
   famobj <- rsp[["family"]]
   if (!identical(famobj[["family"]], "gddm")) {
-    stop("gddm_floored(): this is a ", famobj[["family"]], " model. The ",
-         "floor it reports belongs to the generalized drift-diffusion ",
-         "density, so there is nothing to count on a fit from another ",
-         "family.", call. = FALSE)
+    frm_stop("gddm_floored(): this is a ", famobj[["family"]], " model. The ",
+             "floor it reports belongs to the generalized drift-diffusion ",
+             "density, so there is nothing to count on a fit from another ",
+             "family.", call. = FALSE)
   }
   bag <- famobj[["gddm"]]
   atv <- fit$frame[["aterm_values"]][[rsp[["resp_name"]]]]
@@ -1810,7 +1810,7 @@ gddm_simulate <- function(n, ..., coh = 0,
                           start = gddm_start_point(),
                           lapse = c("none", "uniform"),
                           control = gddm_control()) {
-  lapse <- match.arg(lapse)
+  lapse <- frm_match_arg(lapse)
   fam <- gddm(drift = drift, bound = bound, start = start, lapse = lapse,
               control = control)
   comp <- fam[["gddm"]]$comp
@@ -1818,9 +1818,9 @@ gddm_simulate <- function(n, ..., coh = 0,
   vals <- list(...)
   bad <- setdiff(names(vals), dpnames)
   if (length(bad)) {
-    stop("gddm_simulate(): the chosen components have no parameter ",
-         paste(bad, collapse = ", "), ". They take ",
-         paste(dpnames, collapse = ", "), ".", call. = FALSE)
+    frm_stop("gddm_simulate(): the chosen components have no parameter ",
+             paste(bad, collapse = ", "), ". They take ",
+             paste(dpnames, collapse = ", "), ".", call. = FALSE)
   }
   coh <- rep_len(coh, n)
   cnd <- as.integer(factor(coh))
@@ -1838,8 +1838,8 @@ gddm_simulate <- function(n, ..., coh = 0,
     v <- vals[[nm]]
     if (is.null(v)) v <- defaults[[nm]]
     if (is.null(v)) {
-      stop("gddm_simulate(): no value and no default for `", nm,
-           "`. Give it by name.", call. = FALSE)
+      frm_stop("gddm_simulate(): no value and no default for `", nm,
+               "`. Give it by name.", call. = FALSE)
     }
     rep_len(as.numeric(v), n)
   })
@@ -1855,20 +1855,20 @@ gddm_simulate <- function(n, ..., coh = 0,
   vary <- names(pv)[vapply(pv, function(v)
     length(gd_varying_groups(v, cnd, first)) > 0L, TRUE)]
   if (length(vary)) {
-    stop("gddm_simulate(): ", gd_and(vary),
-         if (length(vary) > 1L) " vary" else " varies",
-         " between trials that share a coherence. One ",
-         "Fokker-Planck solve serves each distinct value of `coh` and ",
-         "every parameter is read at that value's first trial, so the ",
-         "rest of a per-trial parameter vector is never used and the ",
-         "draws come from the first trial's setting alone. Give `coh` ",
-         "a distinct value for each parameter setting, or call this ",
-         "once per setting and stack the results.", call. = FALSE)
+    frm_stop("gddm_simulate(): ", gd_and(vary),
+             if (length(vary) > 1L) " vary" else " varies",
+             " between trials that share a coherence. One ",
+             "Fokker-Planck solve serves each distinct value of `coh` and ",
+             "every parameter is read at that value's first trial, so the ",
+             "rest of a per-trial parameter vector is never used and the ",
+             "draws come from the first trial's setting alone. Give `coh` ",
+             "a distinct value for each parameter setting, or call this ",
+             "once per setting and stack the results.", call. = FALSE)
   }
   if (max(pv$ndt) >= t_max) {
-    stop("gddm_simulate(): ndt is at or past the end of the simulated ",
-         "window, so no trial can produce a response time inside it. ",
-         "Raise t_max in control, or lower ndt.", call. = FALSE)
+    frm_stop("gddm_simulate(): ndt is at or past the end of the simulated ",
+             "window, so no trial can produce a response time inside it. ",
+             "Raise t_max in control, or lower ndt.", call. = FALSE)
   }
   # The shift kernel only has to span the non-decision times actually
   # asked for, unlike a fit, where it has to span everything the link

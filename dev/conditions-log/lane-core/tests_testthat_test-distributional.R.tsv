@@ -1,0 +1,4 @@
+"file"	"class"	"message"
+"tests/testthat/test-distributional.R"	"frmtmb_error/error/condition"	"dpar(s) not available for family 'gaussian': shape (available: sigma)"
+"tests/testthat/test-distributional.R"	"frmtmb_error/error/condition"	"Duplicated dpar constant: 'sigma'"
+"tests/testthat/test-distributional.R"	"frmtmb_error/error/condition"	"Constant dpar values must be named, e.g. bf(y ~ x, sigma = 1)"

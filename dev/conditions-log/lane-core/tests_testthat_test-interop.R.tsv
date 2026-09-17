@@ -1,0 +1,5 @@
+"file"	"class"	"message"
+"tests/testthat/test-interop.R"	"frmtmb_error/error/condition"	"getME(): unknown name(s) Lambdat. Supported: X, Z, Zt, beta, fixef, b, theta, lower, sigma, flist, n_rtrms, n_rfacs"
+"tests/testthat/test-interop.R"	"frmtmb_error/error/condition"	"getME(): unknown name(s) Lambdat. Supported: X, Z, Zt, beta, fixef, b, theta, lower, sigma, flist, n_rtrms, n_rfacs"
+"tests/testthat/test-interop.R"	"frmtmb_error/error/condition"	"Multiple responses have dpar 'mu'; disambiguate with resp = "
+"tests/testthat/test-interop.R"	"simpleError/error/condition"	"error in evaluating the argument 'x' in selecting a method for function 't': Multiple responses have dpar 'mu'; disambiguate with resp = "

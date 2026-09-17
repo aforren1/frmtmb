@@ -457,27 +457,27 @@ get_link <- function(name, dpar = NULL, family = NULL) {
     if (!is.null(family)) where <- paste0(where, " given to ", family, "()")
     absent <- setdiff(link_required_fields, names(name))
     if (length(absent)) {
-      stop("The custom link", where, " has no ",
-           paste0("`", absent, "`", collapse = ", "),
-           ". A link object needs name, linkfun, linkinv and mu_eta ",
-           "(the derivative of linkinv, which predict(se.fit = TRUE) ",
-           "and every delta-method interval read)", call. = FALSE)
+      frm_stop("The custom link", where, " has no ",
+               paste0("`", absent, "`", collapse = ", "),
+               ". A link object needs name, linkfun, linkinv and mu_eta ",
+               "(the derivative of linkinv, which predict(se.fit = TRUE) ",
+               "and every delta-method interval read)", call. = FALSE)
     }
     bad <- Filter(function(f) !is.function(name[[f]]),
                   c("linkfun", "linkinv", "mu_eta"))
     if (length(bad)) {
-      stop("The custom link", where, " has a non-function ",
-           paste0("`", bad, "`", collapse = ", "),
-           "; each must be a function of one vector", call. = FALSE)
+      frm_stop("The custom link", where, " has a non-function ",
+               paste0("`", bad, "`", collapse = ", "),
+               "; each must be a function of one vector", call. = FALSE)
     }
     # [[ ]]: `$` on a link list is how a partial match would silently
     # answer for a field that is not there
     nm_field <- name[["name"]]
     if (!is.character(nm_field) || length(nm_field) != 1L ||
         is.na(nm_field)) {
-      stop("The custom link", where, " must name itself with a single ",
-           "string in `name`; it labels the link in summary() and in ",
-           "every method that reports the scale", call. = FALSE)
+      frm_stop("The custom link", where, " must name itself with a single ",
+               "string in `name`; it labels the link in summary() and in ",
+               "every method that reports the scale", call. = FALSE)
     }
     return(name)
   }
@@ -487,16 +487,16 @@ get_link <- function(name, dpar = NULL, family = NULL) {
   # integer index picks a link by position, so link = 1L silently became
   # the identity link. Neither reaches the "Unknown link" branch.
   if (!is.character(name) || length(name) != 1L || is.na(name)) {
-    stop("A link must be named by a single string, e.g. link = \"logit\", ",
-         "not ", arg_desc(name), ". Available links: ",
-         paste(names(frmtmb_links), collapse = ", "), call. = FALSE)
+    frm_stop("A link must be named by a single string, e.g. link = \"logit\", ",
+             "not ", arg_desc(name), ". Available links: ",
+             paste(names(frmtmb_links), collapse = ", "), call. = FALSE)
   }
   lk <- frmtmb_links[[name]]
   if (is.null(lk)) {
-    stop("Unknown link: '", name, "'. Available links: ",
-         paste(names(frmtmb_links), collapse = ", "),
-         ". See ?`frmtmb-links` for what each one maps and which ",
-         "families take it", call. = FALSE)
+    frm_stop("Unknown link: '", name, "'. Available links: ",
+             paste(names(frmtmb_links), collapse = ", "),
+             ". See ?`frmtmb-links` for what each one maps and which ",
+             "families take it", call. = FALSE)
   }
   lk
 }
@@ -534,15 +534,15 @@ dpar_link <- function(value, dpar, family, choices) {
   if (is.list(value)) return(get_link(value, dpar = dpar, family = family))
   allowed <- link_set_text(choices)
   if (!is.character(value) || length(value) != 1L || is.na(value)) {
-    stop(family, "(link_", dpar, " =) takes a single link name, not ",
-         arg_desc(value), ". Supported links are: ", allowed,
-         ". See ?`frmtmb-links`", call. = FALSE)
+    frm_stop(family, "(link_", dpar, " =) takes a single link name, not ",
+             arg_desc(value), ". Supported links are: ", allowed,
+             ". See ?`frmtmb-links`", call. = FALSE)
   }
   if (!value %in% choices) {
-    stop(family, "(link_", dpar, " =): '", value, "' is not a supported ",
-         "link for parameter '", dpar, "'. Supported links are: ", allowed,
-         ", the set brms allows, fixed by the range `", dpar,
-         "` has to stay inside. See ?`frmtmb-links`", call. = FALSE)
+    frm_stop(family, "(link_", dpar, " =): '", value, "' is not a supported ",
+             "link for parameter '", dpar, "'. Supported links are: ", allowed,
+             ", the set brms allows, fixed by the range `", dpar,
+             "` has to stay inside. See ?`frmtmb-links`", call. = FALSE)
   }
   get_link(value, dpar = dpar)
 }
@@ -572,20 +572,20 @@ link_set_text <- function(choices) {
 mu_link <- function(value, family, choices = brms_mu_links[[family]]) {
   if (is.list(value)) return(get_link(value, dpar = "mu", family = family))
   if (is.null(choices)) {
-    stop("mu_link(): no brms link set is recorded for family '", family,
-         "'. Add it to dev/famlink-gen-links.R and regenerate ",
-         "R/links-brms.R", call. = FALSE)
+    frm_stop("mu_link(): no brms link set is recorded for family '", family,
+             "'. Add it to dev/famlink-gen-links.R and regenerate ",
+             "R/links-brms.R", call. = FALSE)
   }
   allowed <- link_set_text(choices)
   if (!is.character(value) || length(value) != 1L || is.na(value)) {
-    stop(family, "(link =) takes a single link name, not ",
-         arg_desc(value), ". Supported links are: ", allowed,
-         ". See ?`frmtmb-links`", call. = FALSE)
+    frm_stop(family, "(link =) takes a single link name, not ",
+             arg_desc(value), ". Supported links are: ", allowed,
+             ". See ?`frmtmb-links`", call. = FALSE)
   }
   if (!value %in% choices) {
-    stop("'", value, "' is not a supported link for family '", family,
-         "'. Supported links are: ", allowed, ". See ?`frmtmb-links`",
-         call. = FALSE)
+    frm_stop("'", value, "' is not a supported link for family '", family,
+             "'. Supported links are: ", allowed, ". See ?`frmtmb-links`",
+             call. = FALSE)
   }
   get_link(value, dpar = "mu")
 }

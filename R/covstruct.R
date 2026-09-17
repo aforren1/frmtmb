@@ -47,8 +47,8 @@ us_chol_cor <- function(theta_cor, d) {
 us_theta_cor <- function(C) {
   d <- nrow(C)
   Lc <- tryCatch(t(chol(C)), error = function(e) {
-    stop("The requested correlation matrix is not positive definite",
-         call. = FALSE)
+    frm_stop("The requested correlation matrix is not positive definite",
+             call. = FALSE)
   })
   # column-major recycling divides row i by diag(Lc)[i]
   L <- Lc / diag(Lc)
@@ -78,8 +78,8 @@ us_sigma <- function(theta, d) {
 #' @noRd
 homogeneous_sd <- function(sds, what) {
   if (length(unique(signif(sds, 12))) > 1L) {
-    stop("A '", what, "' block has one shared standard deviation; got ",
-         paste(signif(sds, 4), collapse = ", "), call. = FALSE)
+    frm_stop("A '", what, "' block has one shared standard deviation; got ",
+             paste(signif(sds, 4), collapse = ", "), call. = FALSE)
   }
   log(sds[1L])
 }
@@ -1011,7 +1011,7 @@ car_types <- c("escar", "esicar", "icar", "bym2")
 #' @noRd
 car_adjacency <- function(M, locs) {
   if (length(dim(M)) != 2L || nrow(M) != ncol(M)) {
-    stop("car(): M must be a square adjacency matrix", call. = FALSE)
+    frm_stop("car(): M must be a square adjacency matrix", call. = FALSE)
   }
   Md <- as.matrix(M)
   # NA first: every check below compares, and a comparison against NA is
@@ -1019,10 +1019,10 @@ car_adjacency <- function(M, locs) {
   # needed" from isSymmetric() - naming neither the matrix nor the cell
   if (anyNA(Md)) {
     bad <- which(is.na(Md), arr.ind = TRUE)
-    stop("car(): M has ", nrow(bad), " missing entry/entries (the first ",
-         "at row ", bad[1L, 1L], ", column ", bad[1L, 2L], "); an ",
-         "adjacency matrix needs a 0 for every non-neighbor pair",
-         call. = FALSE)
+    frm_stop("car(): M has ", nrow(bad), " missing entry/entries (the first ",
+             "at row ", bad[1L, 1L], ", column ", bad[1L, 2L], "); an ",
+             "adjacency matrix needs a 0 for every non-neighbor pair",
+             call. = FALSE)
   }
   # Locations are matched by NAME, so one set of names is enough - but
   # when both are present they have to agree, or the row a location gets
@@ -1030,24 +1030,24 @@ car_adjacency <- function(M, locs) {
   rn <- rownames(Md)
   cn <- colnames(Md)
   if (is.null(rn) && is.null(cn)) {
-    stop("car(): M needs dimnames naming the locations", call. = FALSE)
+    frm_stop("car(): M needs dimnames naming the locations", call. = FALSE)
   }
   if (!is.null(rn) && !is.null(cn) && !identical(rn, cn)) {
-    stop("car(): M's rownames and colnames must name the same locations ",
-         "in the same order", call. = FALSE)
+    frm_stop("car(): M's rownames and colnames must name the same locations ",
+             "in the same order", call. = FALSE)
   }
   nms <- rn %||% cn
   dup <- unique(nms[duplicated(nms)])
   if (length(dup)) {
-    stop("car(): M names location(s) ",
-         paste(utils::head(dup, 5), collapse = ", "),
-         " more than once", call. = FALSE)
+    frm_stop("car(): M names location(s) ",
+             paste(utils::head(dup, 5), collapse = ", "),
+             " more than once", call. = FALSE)
   }
   miss <- setdiff(locs, nms)
   if (length(miss)) {
-    stop("car(): M has no row for location(s) ",
-         paste(utils::head(miss, 5), collapse = ", "),
-         if (length(miss) > 5) " ..." else "", call. = FALSE)
+    frm_stop("car(): M has no row for location(s) ",
+             paste(utils::head(miss, 5), collapse = ", "),
+             if (length(miss) > 5) " ..." else "", call. = FALSE)
   }
   # positional subsetting, so a matrix carrying only rownames (or only
   # colnames) is read exactly like one carrying both
@@ -1055,23 +1055,23 @@ car_adjacency <- function(M, locs) {
   W <- methods::as(Matrix::Matrix(Md[pos, pos, drop = FALSE],
                                   sparse = TRUE), "generalMatrix")
   if (!Matrix::isSymmetric(W, check.attributes = FALSE)) {
-    stop("car(): M must be symmetric", call. = FALSE)
+    frm_stop("car(): M must be symmetric", call. = FALSE)
   }
   if (any(Matrix::diag(W) != 0)) {
-    stop("car(): M must have a zero diagonal (no location neighbors ",
-         "itself)", call. = FALSE)
+    frm_stop("car(): M must have a zero diagonal (no location neighbors ",
+             "itself)", call. = FALSE)
   }
   W <- methods::as(W, "CsparseMatrix")
   # brms's validate_car_matrix reads an adjacency as non-negative
   # weights. Binarizing a negative entry would turn a stated repulsion
   # into a neighbor, so refuse it rather than reinterpret it.
   if (any(W@x < 0)) {
-    stop("car(): M has ", sum(W@x < 0), " negative entry/entries (the ",
-         "smallest is ", format(min(W@x), digits = 4), "); an adjacency ",
-         "matrix holds non-negative weights", call. = FALSE)
+    frm_stop("car(): M has ", sum(W@x < 0), " negative entry/entries (the ",
+             "smallest is ", format(min(W@x), digits = 4), "); an adjacency ",
+             "matrix holds non-negative weights", call. = FALSE)
   }
   if (any(W@x != 1)) {
-    message("car(): converting all non-zero values in M to 1.")
+    frm_message("car(): converting all non-zero values in M to 1.")
     W@x[W@x != 1] <- 1
   }
   dimnames(W) <- list(locs, locs)
@@ -1090,23 +1090,23 @@ spde_matrices <- function(fem) {
          else if (all(c("c0", "g1", "g2") %in% nms)) c("c0", "g1", "g2")
          else NULL
   if (is.null(key)) {
-    stop("spde(): fem must be a list holding M0, M1, M2 (INLA) or ",
-         "c0, g1, g2 (fmesher::fm_fem)", call. = FALSE)
+    frm_stop("spde(): fem must be a list holding M0, M1, M2 (INLA) or ",
+             "c0, g1, g2 (fmesher::fm_fem)", call. = FALSE)
   }
   M0 <- fem[[key[1L]]]
   if (length(dim(M0)) != 2L || nrow(M0) != ncol(M0)) {
-    stop("spde(): ", key[1L], " must be a square matrix, one row per ",
-         "mesh node", call. = FALSE)
+    frm_stop("spde(): ", key[1L], " must be a square matrix, one row per ",
+             "mesh node", call. = FALSE)
   }
   n <- nrow(M0)
   out <- list()
   for (i in seq_along(key)) {
     Mi <- fem[[key[i]]]
     if (length(dim(Mi)) != 2L || nrow(Mi) != n || ncol(Mi) != n) {
-      stop("spde(): ", key[i], " is ",
-           paste(dim(Mi) %||% length(Mi), collapse = " x "), " but ",
-           key[1L], " has ", n, " mesh nodes; the three finite-element ",
-           "matrices must be square and the same size", call. = FALSE)
+      frm_stop("spde(): ", key[i], " is ",
+               paste(dim(Mi) %||% length(Mi), collapse = " x "), " but ",
+               key[1L], " has ", n, " mesh nodes; the three finite-element ",
+               "matrices must be square and the same size", call. = FALSE)
     }
     out[[c("M0", "M1", "M2")[i]]] <-
       methods::as(methods::as(Matrix::Matrix(Mi, sparse = TRUE),
@@ -1132,19 +1132,19 @@ spde_matrices <- function(fem) {
 spde_node_index <- function(gv, n, gr_expr) {
   idx <- spde_node_numeric(gv)
   if (is.null(idx) || any(idx != trunc(idx))) {
-    stop("spde(): mesh nodes are indexed by their ROW NUMBER in the ",
-         "finite-element matrices, which carry no location names, so ",
-         "gr must hold whole-number node indices in 1..", n, "; '",
-         deparse1(gr_expr), "' holds labels that are not whole numbers. ",
-         "Map each observation onto its mesh row first and pass those ",
-         "indices as gr", call. = FALSE)
+    frm_stop("spde(): mesh nodes are indexed by their ROW NUMBER in the ",
+             "finite-element matrices, which carry no location names, so ",
+             "gr must hold whole-number node indices in 1..", n, "; '",
+             deparse1(gr_expr), "' holds labels that are not whole numbers. ",
+             "Map each observation onto its mesh row first and pass those ",
+             "indices as gr", call. = FALSE)
   }
   idx <- as.integer(idx)
   bad <- unique(idx[idx < 1L | idx > n])
   if (length(bad)) {
-    stop("spde(): gr = ", deparse1(gr_expr), " holds node index/indices ",
-         paste(utils::head(sort(bad), 5), collapse = ", "),
-         ", outside the mesh's 1..", n, " rows", call. = FALSE)
+    frm_stop("spde(): gr = ", deparse1(gr_expr), " holds node index/indices ",
+             paste(utils::head(sort(bad), 5), collapse = ", "),
+             ", outside the mesh's 1..", n, " rows", call. = FALSE)
   }
   idx
 }
@@ -1264,10 +1264,10 @@ car_aux <- function(W, type, con_sd = car_con_sd_default) {
   aux <- list(type = type, n = n, W = W, L = L, deg = deg)
   if (type == "escar") {
     if (any(deg == 0)) {
-      stop("car(type = \"escar\"): every location needs at least one ",
-           "neighbor; location(s) ",
-           paste(rownames(W)[deg == 0], collapse = ", "),
-           " have none. Use type = \"icar\" instead", call. = FALSE)
+      frm_stop("car(type = \"escar\"): every location needs at least one ",
+               "neighbor; location(s) ",
+               paste(rownames(W)[deg == 0], collapse = ", "),
+               " have none. Use type = \"icar\" instead", call. = FALSE)
     }
     isq <- diag(1 / sqrt(deg), nrow = n)
     ev <- eigen(isq %*% as.matrix(W) %*% isq, symmetric = TRUE,
@@ -1412,8 +1412,8 @@ car_cov <- function(theta, blk) {
 
 covstruct_registry[["car"]] <- list(
   npar = function(dim) {
-    stop("car npar needs the type; handled at the frame call site",
-         call. = FALSE)
+    frm_stop("car npar needs the type; handled at the frame call site",
+             call. = FALSE)
   },
   sd_idx = function(dim) 1L,
   nll = function(b, theta, blk) {
@@ -1459,8 +1459,8 @@ covstruct_registry[["car"]] <- list(
            dimnames = list("sd(car)", "sd(car)"))
   },
   start = function(dim) {
-    stop("car start needs the type; handled at the frame call site",
-         call. = FALSE)
+    frm_stop("car start needs the type; handled at the frame call site",
+             call. = FALSE)
   }
 )
 
@@ -1507,8 +1507,8 @@ spde_sd <- function(theta) {
 
 covstruct_registry[["spde"]] <- list(
   npar = function(dim) {
-    stop("spde npar is fixed at 2; handled at the frame call site",
-         call. = FALSE)
+    frm_stop("spde npar is fixed at 2; handled at the frame call site",
+             call. = FALSE)
   },
   sd_idx = function(dim) integer(0),
   nll = function(b, theta, blk) {
@@ -1523,7 +1523,7 @@ covstruct_registry[["spde"]] <- list(
            dimnames = list("sd(spde)", "sd(spde)"))
   },
   start = function(dim) {
-    stop("spde start is handled at the frame call site", call. = FALSE)
+    frm_stop("spde start is handled at the frame call site", call. = FALSE)
   }
 )
 
@@ -1593,8 +1593,8 @@ gp_cross_cov <- function(theta, blk, Xnew, pos) {
 
 covstruct_registry[["gp"]] <- list(
   npar = function(dim) {
-    stop("gp npar needs the dimension count; handled at the frame ",
-         "call site", call. = FALSE)
+    frm_stop("gp npar needs the dimension count; handled at the frame ",
+             "call site", call. = FALSE)
   },
   sd_idx = function(dim) 1L,
   nll = function(b, theta, blk) {
@@ -1608,8 +1608,8 @@ covstruct_registry[["gp"]] <- list(
     V
   },
   start = function(dim) {
-    stop("gp start needs the dimension count; handled at the frame ",
-         "call site", call. = FALSE)
+    frm_stop("gp start needs the dimension count; handled at the frame ",
+             "call site", call. = FALSE)
   }
 )
 
@@ -1691,8 +1691,8 @@ hsgp_start <- function(D, iso) {
 
 covstruct_registry[["hsgp"]] <- list(
   npar = function(dim) {
-    stop("hsgp npar needs the dimension count; handled at the frame ",
-         "call site", call. = FALSE)
+    frm_stop("hsgp npar needs the dimension count; handled at the frame ",
+             "call site", call. = FALSE)
   },
   sd_idx = function(dim) 1L,
   nll = function(b, theta, blk) {
@@ -1707,8 +1707,8 @@ covstruct_registry[["hsgp"]] <- list(
     V
   },
   start = function(dim) {
-    stop("hsgp start needs the dimension count; handled at the frame ",
-         "call site", call. = FALSE)
+    frm_stop("hsgp start needs the dimension count; handled at the frame ",
+             "call site", call. = FALSE)
   }
 )
 
@@ -1773,8 +1773,8 @@ rr_loadings <- function(theta, dim, rank) {
 
 covstruct_registry[["rr"]] <- list(
   npar = function(dim) {
-    stop("rr npar needs the rank; handled at the frame call site",
-         call. = FALSE)
+    frm_stop("rr npar needs the rank; handled at the frame call site",
+             call. = FALSE)
   },
   sd_idx = function(dim) integer(0),
   nll = function(b, theta, blk) {
@@ -1787,8 +1787,8 @@ covstruct_registry[["rr"]] <- list(
     V
   },
   start = function(dim) {
-    stop("rr start needs the rank; handled at the frame call site",
-         call. = FALSE)
+    frm_stop("rr start needs the rank; handled at the frame call site",
+             call. = FALSE)
   }
 )
 

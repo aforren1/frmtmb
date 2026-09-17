@@ -1,0 +1,5 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+4 rows removed because of missing values (na.action)
+BLOCKS 17 PASS 60 FAIL 0 ERROR 0 SKIP 0  tests/testthat/test-edgecases.R
+CAUGHT 11 
+DONE

@@ -54,7 +54,7 @@
 dharma_residuals <- function(fit, nsim = 250, re_formula = NULL,
                              seed = NULL, ...) {
   if (!requireNamespace("DHARMa", quietly = TRUE)) {
-    stop("dharma_residuals() needs the 'DHARMa' package", call. = FALSE)
+    frm_stop("dharma_residuals() needs the 'DHARMa' package", call. = FALSE)
   }
   rspec <- single_response(fit, "dharma_residuals()")
   # A quantile residual is the predictive CDF at the observation, so it
@@ -62,13 +62,13 @@ dharma_residuals <- function(fit, nsim = 250, re_formula = NULL,
   # labeling: relabel the levels and every residual changes. Refusing is
   # the honest answer, not a rank transform over the level order.
   if (identical(rspec$family[["type"]], "categorical")) {
-    stop("dharma_residuals() has no meaning for a nominal response: a ",
-         "scaled quantile residual is the predictive distribution ",
-         "function evaluated at the observation, and an unordered ",
-         "category has no distribution function - relabeling the levels ",
-         "would change every residual. Use pp_check(type = \"bars\") to ",
-         "compare observed and simulated category counts",
-         call. = FALSE)
+    frm_stop("dharma_residuals() has no meaning for a nominal response: a ",
+             "scaled quantile residual is the predictive distribution ",
+             "function evaluated at the observation, and an unordered ",
+             "category has no distribution function - relabeling the levels ",
+             "would change every residual. Use pp_check(type = \"bars\") to ",
+             "compare observed and simulated category counts",
+             call. = FALSE)
   }
   ordinal <- identical(rspec$family[["type"]], "ordinal")
   # DHARMa works in fitted-row space, so the na.exclude padding

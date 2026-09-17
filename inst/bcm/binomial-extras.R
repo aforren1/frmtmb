@@ -112,8 +112,8 @@ bcm_contaminant <- function(link = "logit", link_phi = "logit") {
       size <- aterms[["trials"]]
       if (is.null(size)) size <- 1
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
-        stop("bcm_contaminant(): the response must be integer counts in ",
-             "[0, trials]", call. = FALSE)
+        frm_stop("bcm_contaminant(): the response must be integer counts in ",
+                 "[0, trials]", call. = FALSE)
       }
     },
     init_dpars = list(
@@ -202,8 +202,8 @@ bcm_binomial_cdf <- function(link = "logit") {
       size <- aterms[["trials"]]
       if (is.null(size)) size <- 1
       if (any(y < 0) || any(y > size) || any(y != round(y))) {
-        stop("bcm_binomial_cdf(): the response is an integer count in ",
-             "[0, trials]", call. = FALSE)
+        frm_stop("bcm_binomial_cdf(): the response is an integer count in ",
+                 "[0, trials]", call. = FALSE)
       }
     },
     init_dpars = list(

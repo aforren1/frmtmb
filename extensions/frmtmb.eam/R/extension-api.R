@@ -83,10 +83,10 @@ wiener_lpdf <- function(dt, drift, bs, bias, upper) {
   if (!inherits(upper, "advector")) {
     u <- as.numeric(upper)
     if (anyNA(u) || !all(u %in% c(0, 1))) {
-      stop("wiener_lpdf(upper =) says which boundary each response ",
-           "landed on and must be 1 or 0. It is data, so it can be ",
-           "checked; the other four arguments are parameters and are ",
-           "not", call. = FALSE)
+      frm_stop("wiener_lpdf(upper =) says which boundary each response ",
+               "landed on and must be 1 or 0. It is data, so it can be ",
+               "checked; the other four arguments are parameters and are ",
+               "not", call. = FALSE)
     }
   }
   ddm_lpdf_both(dt, drift, bs, bias, upper)

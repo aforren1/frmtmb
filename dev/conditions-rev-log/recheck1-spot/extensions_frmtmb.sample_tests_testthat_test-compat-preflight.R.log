@@ -1,0 +1,4 @@
+frmtmb from: C:/Users/adf44/source/r/conditions-lib 
+BLOCKS 16 PASS 81 FAIL 0 ERROR 0 SKIP 0  extensions/frmtmb.sample/tests/testthat/test-compat-preflight.R
+CAUGHT 21 
+DONE

@@ -1,0 +1,2 @@
+"file"	"class"	"message"
+"tests/testthat/test-smooths.R"	"frmtmb_error/error/condition"	"te() and ti() smooths are not supported (no random-effect representation); use t2() instead"

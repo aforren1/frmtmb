@@ -1,0 +1,2 @@
+"file"	"class"	"message"
+"tests/testthat/test-tabular-inputs.R"	"simpleError/error/condition"	"invalid type (list) for variable 'lc'"

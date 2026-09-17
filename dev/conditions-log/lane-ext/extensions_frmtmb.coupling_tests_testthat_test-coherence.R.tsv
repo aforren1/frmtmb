@@ -1,0 +1,6 @@
+"file"	"class"	"message"
+"extensions/frmtmb.coupling/tests/testthat/test-coherence.R"	"frmtmb_coupling_error/frmtmb_error/error/condition"	"`level` must be one number strictly between 0 and 1."
+"extensions/frmtmb.coupling/tests/testthat/test-coherence.R"	"frmtmb_coupling_error/frmtmb_error/error/condition"	"`level` must be one number strictly between 0 and 1."
+"extensions/frmtmb.coupling/tests/testthat/test-coherence.R"	"frmtmb_coupling_error/frmtmb_error/error/condition"	"frm_coherence() reads the coherence and phase parameters of a cross_wishart() fit; this fit's family is `Gamma`."
+"extensions/frmtmb.coupling/tests/testthat/test-coherence.R"	"frmtmb_coupling_error/frmtmb_error/error/condition"	"frm_phase() reads the coherence and phase parameters of a cross_wishart() fit; this fit's family is `Gamma`."
+"extensions/frmtmb.coupling/tests/testthat/test-coherence.R"	"frmtmb_coupling_error/frmtmb_error/error/condition"	"frm_cross_simulate() reads the coherence and phase parameters of a cross_wishart() fit; this fit's family is `Gamma`."

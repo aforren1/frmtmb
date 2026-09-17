@@ -85,9 +85,9 @@ test_that("every condition message template in R/ is unique", {
     out
   }
 
-  pools <- list(error = c("stop", "errorCondition"),
-                warning = c("warning", "warningCondition"),
-                message = "message")
+  pools <- list(error = c("stop", "frm_stop", "errorCondition"),
+                warning = c("warning", "frm_warning", "warningCondition"),
+                message = c("message", "frm_message"))
   for (kind in names(pools)) {
     msgs <- collect(pools[[kind]])
     expect_gt(length(msgs), 0, label = paste0("templates found for ", kind))

@@ -1,0 +1,427 @@
+
+#### frm_family_unknown
+
+#### frm_family_unknown
+Error : not_a_family is not a supported family. Supported families are: gaussian, poisson, binomial, Gamma, lognormal, student, negbinomial, nbinom2, nbinom1, beta, Beta, tweedie, compois, zero_inflated_poisson, zero_inflated_negbinomial, hurdle_poisson, multinomial, cumulative, beta_binomial, skew_normal, inverse.gaussian, exgaussian, bernoulli, geometric, exponential, weibull, shifted_lognormal, hurdle_gamma, hurdle_lognormal, zero_inflated_binomial, zero_inflated_beta, asym_laplace, zero_inflated_asym_laplace, huber, sratio, cratio, acat, von_mises, cox, categorical
+
+#### frm_missing_var
+
+#### frm_missing_var
+Error in eval(predvars, data, env) : object 'nope' not found
+
+#### frm_start_unknown
+
+#### frm_start_unknown
+Error : Unknown start component: 'bogus' (template has: beta, betad)
+
+#### frm_start_len
+
+#### frm_start_len
+Error : start$beta must have length 2
+
+#### frm_trials_missing
+
+#### frm_trials_missing
+Error : Specifying 'trials' is required for this model. binomial reads the number of trials from the formula: write k | trials(n) ~ ..., or use bernoulli() for a response of zeros and ones
+
+#### frm_empty_data
+
+#### frm_empty_data
+Error : `data` has no rows; nothing to fit
+
+#### frm_reml_nl
+
+#### frm_reml_nl
+frmtmb fit: y ~ a * x 
+Family: gaussian   Method: REML 
+ Links: mu = identity; sigma = log
+
+logLik: -85.7942  AIC: 173.588  nobs: 60 
+
+Fixed effects:
+ a:
+(Intercept) 
+     0.1744 
+ mu:
+numeric(0)
+ sigma:
+(Intercept) 
+  0.0001274 
+
+#### frm_optimizer_fn
+
+#### frm_optimizer_fn
+Error : inner optimizer broke (raised while fitting: gaussian, ML, custom)
+
+#### frm_optimizer_name
+
+#### frm_optimizer_name
+Error : Unknown optimizer 'nosuch' (use "nlminb", "optim", or a function) (raised while fitting: gaussian, ML, nosuch)
+
+#### bf_bad_dpar
+
+#### bf_bad_dpar
+y ~ x
+nosuchdpar ~ 1 
+
+#### set_prior_class
+
+#### set_prior_class
+Error : class = "nosuch" names no distributional parameter of this model. It has mu, sigma. frmtmb's own classes are b, Intercept, sd, cor, theta, ar, ma, cosy, cortime, rescor
+
+#### set_prior_bad_dist
+
+#### set_prior_bad_dist
+Error : Unsupported prior distribution 'nosuchdist' (supported: normal, student_t, cauchy, exponential, logistic, gamma, inv_gamma, beta, lkj)
+
+#### predict_newdata_missing
+
+#### predict_newdata_missing
+Error in eval(predvars, data, env) : object 'x' not found
+
+#### predict_bad_arg
+
+#### predict_bad_arg
+Error : predict() has no argument `re_frmula`. Did you mean `re_formula`?. It takes: object, newdata, type, dpar, resp, re_formula, se.fit, allow_new_levels
+
+#### fitted_typo
+
+#### fitted_typo
+Error : fitted() has no argument `re_frmula`. Did you mean `re_formula`?. It takes: object, newdata, re_formula, scale, resp, dpar
+
+#### coef_typo
+
+#### coef_typo
+Error : coef() has no argument `robst`. Did you mean `robust`?. It takes: object, summary, robust, probs
+
+#### nobs_extra
+
+#### nobs_extra
+Error : nobs() was given 1 argument with no name, which it has nowhere to put. It takes: object
+
+#### print_digits
+
+#### print_digits
+Error : print() cannot honor `digits`: not implemented here yet. brms's print() takes it and this one does not; summary(object) returns the coefficient table, which round() accepts
+
+#### anova_mix
+
+#### anova_mix
+Error : anova() cannot mix REML and ML fits: their likelihoods are for different quantities. Refit them all with the same REML setting, or pass refit = TRUE to compare them as ML fits
+
+#### anova_space
+
+#### anova_space
+Warning: anova(): the fixed effects of y ~ x and y ~ z are not nested - neither model's coefficients are a subset of the other's, and neither design sits inside the other's column space. A likelihood-ratio test between models that are not nested has no chi-square null distribution; compare them by AIC instead
+Likelihood-ratio tests
+Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit
+
+      Df  logLik    AIC   Chisq Chi Df Pr(>Chisq)
+y ~ x  3 -82.049 170.10                          
+y ~ z  3 -82.166 170.33 -0.2331      0           
+
+#### confint_parm
+
+#### confint_parm
+Error : Unknown parameter(s) in confint(parm =): nosuchparm. Available: (Intercept), x, sigma_(Intercept). Parentheses may be dropped, intercept-only nonlinear parameters may be named bare, and the one-to-one natural-scale names of variables() (sd_<group>__<term>, and a correlation with a single internal parameter) are accepted as aliases
+
+#### hypothesis_bad
+
+#### hypothesis_bad
+Error : Some parameters cannot be found in the model: 
+'b_nosuchpar'
+variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL
+
+#### ranef_fixed
+
+#### ranef_fixed
+
+#### vcov_cluster_len
+
+#### vcov_cluster_len
+Error : `cluster` has length 3 but the model was fitted to 60 rows
+
+#### simulate_nsim
+
+#### simulate_nsim
+Error : `nsim` must be a single whole number of at least 1, not numeric "-1"
+
+#### cond_eff_bad
+
+#### cond_eff_bad
+Error : Variable 'nosuch' is not stored in the model frame; pass the original data via data =
+
+#### bf_bad_dpar2
+
+#### bf_bad_dpar2
+Error : dpar(s) not available for family 'gaussian': nosuch (available: sigma)
+
+#### confint_level
+
+#### confint_level
+Error : `level` must be a single number strictly between 0 and 1, not numeric "2"
+
+#### frm_data_chr
+
+#### frm_data_chr
+Error in model.frame.default(fr_formula, data = data, drop.unused.levels = TRUE,  : 
+  'data' must be a data.frame, environment, or list
+
+#### prior_coef
+
+#### prior_coef
+Error : Prior target not found (class=b, coef=nosuch)
+
+#### predict_type_matcharg
+
+#### predict_type_matcharg
+Error in match.arg(type) : 
+  'arg' should be one of "link", "response", "conditional", "zprob", "zlink", "disp"
+
+#### control_matcharg
+
+#### control_matcharg
+Error in match.arg(check_nlev_1) : 
+  'arg' should be one of "warning", "ignore", "stop"
+
+#### set_prior_stopifnot
+
+#### set_prior_stopifnot
+Error in parse_prior_dist(prior) : length(pars) == 2 is not TRUE
+
+#### spline_deriv_newdata
+
+#### spline_deriv_newdata
+Error : `newdata` is required when the first argument is a fit: it is the grid the curve is evaluated on. Pass a frmtmb_curve from frm_curve() to reuse a grid instead
+
+#### coupling_sfreq
+
+#### coupling_sfreq
+Error : `sfreq` must be one positive finite number.
+
+#### ode_lincmt_both
+
+#### ode_lincmt_both
+Error : `parms` mixes the two parameterizations: ke are rate constants and CL are clearances and volumes. Write one or the other; a mixed table has no reading that is not a guess
+
+#### coupling_frange
+
+#### coupling_frange
+Error : `frange` must be `c(low, high)` with low below high.
+
+#### spline_curve_empty
+
+#### spline_curve_empty
+Error : `newdata` must be a data frame with at least one row: it is the grid the curve is evaluated on
+
+#### getME_mv_Zt
+
+#### getME_mv_Zt
+Error in (function (cond)  : 
+  error in evaluating the argument 'x' in selecting a method for function 't': Multiple responses have dpar 'mu'; disambiguate with resp = 
+
+#### frm_periodogram_short
+
+#### frm_periodogram_short
+Error : frm_periodogram(): series 1 has length 1 and segments = 1, which leaves 0 usable ordinate(s). A segment needs at least 3 points, and far more than that to say anything
+
+#### eam_wiener_linkinv
+
+#### eam_wiener_linkinv
+Error : wiener(): the non-decision time bound is not set yet. This happens when a wiener() family object is used outside frm(), for example to inspect its links before a fit, to pin the parameter with bf(non-decision time = ), or inside mixture(), which does not finalize its components. Pass `max_ndt` to wiener() to set the bound up front.
+
+#### eam_wiener_lpdf
+
+#### eam_wiener_lpdf
+Error : wiener_lpdf(upper =) says which boundary each response landed on and must be 1 or 0. It is data, so it can be checked; the other four arguments are parameters and are not
+
+#### eam_wiener_nodec
+
+#### eam_wiener_nodec
+Error : wiener: the density needs one of `dec` or `vint1`, which nothing on this response supplies. Write the addition term: rt | dec(<column>) ~ ...
+
+#### eam_wiener_badcol
+
+#### eam_wiener_badcol
+Error in eval(predvars, data, env) : object 'one' not found
+
+#### ode_lincmt_parms
+
+#### ode_lincmt_parms
+Error : every element of `parms` must be named. frm_lincmt() reads its parameters by name, not by position, because which ones a model needs depends on `ncmt` and `depot`. The names are: ke, V, ka, k12, k21, k13, k31 (rate constants), or CL, V, ka, Q2, V2, Q3, V3 (clearances)
+
+#### ode_lincmt_missing
+
+#### ode_lincmt_missing
+Error : `parms` is missing V. A 1-compartment model with a depot needs ke, V, ka
+
+#### spline_curve_nonfit
+
+#### spline_curve_nonfit
+Error : frm_curve(): `object` must be a frmtmb fit, the model a curve is read off, not an object of class data.frame
+
+#### spline_curve_level
+
+#### spline_curve_level
+Error : `level` must be one number strictly between 0 and 1
+
+#### latent_hmm_reml
+
+#### latent_hmm_reml
+Error : REML = TRUE cannot be combined with hmm(): REML integrates out the location coefficients, which here are one set per hidden state, and leaves the transition and dispersion parameters outside. The result is a partial restricted likelihood matching no standard definition. Use REML = FALSE
+
+#### latent_hmm_weights
+
+#### latent_hmm_weights
+Error : hmm() cannot be combined with weights(): that term reshapes a PER-ROW likelihood contribution, and an HMM's contribution is per SEQUENCE - the forward recursion couples the rows of a sequence and leaves no row-wise factor to weight, censor or truncate. A missing response needs none of this: an NA is kept and its emission masked, so the chain keeps its length
+
+#### coupling_len
+
+#### coupling_len
+Error : `x` and `y` must have the same length; they are 64 and 10.
+
+#### coupling_segments
+
+#### coupling_segments
+Error : `segments` must be one whole number of at least 1.
+
+#### coupling_whole
+
+#### coupling_whole
+Error : `segments` must be one whole number of at least 1.
+
+#### coupling_coherence
+
+#### coupling_coherence
+Error : frm_coherence() reads the coherence and phase parameters of a cross_wishart() fit; this fit's family is `gaussian`.
+
+#### learn_ctprobe
+
+#### learn_ctprobe
+Error in family[["learn"]] : subscript out of bounds
+
+#### sample_loglik
+
+#### sample_loglik
+Error in UseMethod("log_lik") : 
+  no applicable method for 'log_lik' applied to an object of class "frmtmb_fit"
+
+#### sample_nonfit
+
+#### sample_nonfit
+Error : frm_sample() takes a frmtmb fit or a formula; got an object of class numeric. Fit with frm() first, or pass bf(y ~ x) with data =
+
+#### w_single_level
+
+#### w_single_level
+Warning: Grouping factor 'one' in `1 | one` has a single level, so its variance is not identified and collapses to zero. Drop the term (it is absorbed by the intercept), or set frmtmb_control(check_nlev_1 = "ignore")
+
+#### w_obs_level
+
+#### w_obs_level
+Warning: `1 | obs` gives every observation its own random effect, and for a gaussian response that variance is confounded with the residual sd: only their sum is identified, so the split between them is arbitrary. Observation-level random effects are meaningful for discrete families (overdispersion), not here. Set frmtmb_control(check_olre = "ignore") to keep it
+
+#### w_sigma_varies
+
+#### w_sigma_varies
+Warning: sigma varies by observation; returning NA (use predict(dpar = "sigma"))
+[1] NA
+
+#### w_nonfinite_cov
+
+#### w_nonfinite_cov
+Warning: The joint precision matrix is singular, so standard errors are NaN; the model is probably overparameterized. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics')
+     [,1] [,2]
+[1,]  NaN  NaN
+[2,]  NaN  NaN
+
+#### w_structure
+
+#### w_structure
+Warning: frmtmb_structure(loglik =) has no `weights` argument, so the row weights the core passes are dropped: a weights() term on this family would be accepted and then ignored. Take `weights` and use it, or refuse weights() in check_spec
+
+#### w_ps_span
+
+#### w_ps_span
+Error : ps() is a term, not a function: it declares a penalized coefficient block and is only meaningful inside the body of a nonlinear formula (bf(..., nl = TRUE) or nlf()). It was evaluated as ordinary R code instead
+
+#### w_two_in_call
+
+#### w_two_in_call
+Warning: Grouping factor 'one' in `1 | one` has a single level, so its variance is not identified and collapses to zero. Drop the term (it is absorbed by the intercept), or set frmtmb_control(check_nlev_1 = "ignore")
+Warning: sigma varies by observation; returning NA (use predict(dpar = "sigma"))
+[1] NA
+
+#### w_lapply
+
+#### w_lapply
+Warning: sigma varies by observation; returning NA (use predict(dpar = "sigma"))
+Warning: sigma varies by observation; returning NA (use predict(dpar = "sigma"))
+
+#### w_ode_states
+
+#### w_ode_states
+Warning: frm_ode() is solving a system of 8 states. Above about 8 states the second-order derivative path the Laplace approximation needs can return NaN gradients (the failure is integrator-dependent and silent). Check the gradient with diagnose() before trusting a fit this large
+Warning: frm_ode(): the solve failed for 1 of 1 group (1). Their rows hold penalty = 1e+06, not a solution. If this came from predict(), simulate() or residuals(), those rows of the result are the penalty value. See the 'Failed solves' section of ?frm_ode for what can and cannot be caught while fitting; frm_ode_failures() repeats this.
+
+#### w_sample_probs
+
+#### w_sample_probs
+NULL
+
+#### w_ar_levels
+
+#### w_ar_levels
+
+#### w_coupling_df
+
+#### w_coupling_df
+NULL
+
+#### w_under_warn2
+
+#### w_under_warn2
+Error : (converted from warning) sigma varies by observation; returning NA (use predict(dpar = "sigma"))
+
+#### m_na_rows
+
+#### m_na_rows
+8 rows removed because of missing values (na.action)
+
+#### m_dates
+
+#### m_dates
+Date/time column used as a number: day (Date, days since 1970-01-01). The coefficient is per unit of that origin and the intercept is the value at it, which is far outside the data and can stop the optimizer converging. Center the column, for example as.numeric(x - min(x)), to put the intercept back in range.
+
+#### m_rank_def
+
+#### m_rank_def
+Fixed-effect design of 'y.mu' is rank deficient; dropping column(s): I(2 * x)
+
+#### m_bernoulli
+
+#### m_bernoulli
+
+#### m_categorical
+
+#### m_categorical
+Categorical response 'ych' is a character vector; it is read as a factor with levels a, b, c and 'a' as the reference category. Set the order with factor() if that is not what you want.
+
+#### m_anova_refit
+
+#### m_anova_refit
+anova(): refitting 2 REML models with ML: y ~ x + (1 | g); y ~ 1 + (1 | g)
+
+#### m_confint_internal
+
+#### m_confint_internal
+confint(): 'sd_g__Intercept' is theta_1. The result is on that parameter's internal (unconstrained) scale, not the natural one; confint_varcorr() and hypothesis() report the natural scale.
+
+#### m_in_trycatch
+
+#### m_in_trycatch
+8 rows removed because of missing values (na.action)
+
+#### m_nolf_notice
+
+#### m_nolf_notice

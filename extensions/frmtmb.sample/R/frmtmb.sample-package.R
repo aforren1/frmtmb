@@ -43,7 +43,7 @@
 check_count <- function(x, arg, min = 0L) {
   if (!is.numeric(x) || length(x) != 1L || is.na(x) || x != as.integer(x) ||
         x < min) {
-    stop(arg, " must be a single whole number", if (min > 0L) {
+    frm_stop(arg, " must be a single whole number", if (min > 0L) {
       paste0(" of at least ", min)
     }, "; got ", paste(format(x), collapse = ", "), call. = FALSE)
   }
@@ -55,8 +55,8 @@ check_count <- function(x, arg, min = 0L) {
 #' @noRd
 check_flag <- function(x, arg) {
   if (!is.logical(x) || length(x) != 1L || is.na(x)) {
-    stop(arg, " must be TRUE or FALSE; got ",
-         paste(format(x), collapse = ", "), call. = FALSE)
+    frm_stop(arg, " must be TRUE or FALSE; got ",
+             paste(format(x), collapse = ", "), call. = FALSE)
   }
   invisible(TRUE)
 }
@@ -66,8 +66,8 @@ check_flag <- function(x, arg) {
 #' @noRd
 check_probability <- function(x, arg) {
   if (!is.numeric(x) || length(x) != 1L || is.na(x) || x <= 0 || x >= 1) {
-    stop(arg, " must be a single number strictly between 0 and 1; got ",
-         paste(format(x), collapse = ", "), call. = FALSE)
+    frm_stop(arg, " must be a single number strictly between 0 and 1; got ",
+             paste(format(x), collapse = ", "), call. = FALSE)
   }
   invisible(TRUE)
 }
@@ -79,7 +79,7 @@ check_named_list <- function(x, arg, example) {
   ok <- is.list(x) && (!length(x) ||
                          (!is.null(names(x)) && all(nzchar(names(x)))))
   if (!ok) {
-    stop(arg, " must be a named list, as in ", example, call. = FALSE)
+    frm_stop(arg, " must be a named list, as in ", example, call. = FALSE)
   }
   invisible(TRUE)
 }

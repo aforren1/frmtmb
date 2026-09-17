@@ -88,17 +88,17 @@ cp_link_se <- function(fit, dpar, newdata, re_formula, level,
                     else "frm_phase()")
   if (!is.numeric(level) || length(level) != 1L || !is.finite(level) ||
         level <= 0 || level >= 1) {
-    stop("`level` must be one number strictly between 0 and 1.",
-         call. = FALSE)
+    frm_stop("`level` must be one number strictly between 0 and 1.",
+             call. = FALSE)
   }
   p <- stats::predict(fit, newdata = newdata, type = "link", dpar = dpar,
                       re_formula = re_formula, se.fit = TRUE,
                       allow_new_levels = allow_new_levels)
   if (!is.list(p) || is.null(p$se.fit)) {
-    stop("predict() returned no standard error for `", dpar,
-         "`, so no interval can be formed. This happens when the fit did ",
-         "not produce a positive definite Hessian; check summary(fit).",
-         call. = FALSE)
+    frm_stop("predict() returned no standard error for `", dpar,
+             "`, so no interval can be formed. This happens when the fit did ",
+             "not produce a positive definite Hessian; check summary(fit).",
+             call. = FALSE)
   }
   # A zero or non-finite standard error would otherwise be pushed through
   # plogis() and returned as an interval whose lower, estimate and upper
@@ -107,15 +107,15 @@ cp_link_se <- function(fit, dpar, newdata, re_formula, level,
   # number is consumed.
   bad <- !is.finite(p$se.fit) | p$se.fit <= 0
   if (any(bad)) {
-    stop("the standard error of `", dpar, "` is ",
-         if (all(!is.finite(p$se.fit[bad]))) "not finite" else
-           "zero or negative",
-         " in ", sum(bad), " of ", length(bad),
-         " rows, so no interval exists for them. This is what a coherence ",
-         "estimated at 1 to machine precision looks like: the linear ",
-         "predictor has run off to where the fit carries no curvature. ",
-         "Refit with more segments per unit, or with a prior on `coh`.",
-         call. = FALSE)
+    frm_stop("the standard error of `", dpar, "` is ",
+             if (all(!is.finite(p$se.fit[bad]))) "not finite" else
+               "zero or negative",
+             " in ", sum(bad), " of ", length(bad),
+             " rows, so no interval exists for them. This is what a coherence ",
+             "estimated at 1 to machine precision looks like: the linear ",
+             "predictor has run off to where the fit carries no curvature. ",
+             "Refit with more segments per unit, or with a prior on `coh`.",
+             call. = FALSE)
   }
   list(fit = as.numeric(p$fit), se.fit = as.numeric(p$se.fit),
        z = stats::qnorm(1 - (1 - level) / 2))
@@ -125,10 +125,10 @@ cp_link_se <- function(fit, dpar, newdata, re_formula, level,
 cp_require_family <- function(fit, what) {
   fam <- tryCatch(stats::family(fit)$family, error = function(e) NULL)
   if (!identical(fam, "cross_wishart")) {
-    stop(what, " reads the coherence and phase parameters of a ",
-         "cross_wishart() fit; this fit's family is ",
-         if (is.null(fam)) "not readable" else paste0("`", fam, "`"), ".",
-         call. = FALSE)
+    frm_stop(what, " reads the coherence and phase parameters of a ",
+             "cross_wishart() fit; this fit's family is ",
+             if (is.null(fam)) "not readable" else paste0("`", fam, "`"), ".",
+             call. = FALSE)
   }
   invisible(TRUE)
 }
@@ -186,9 +186,9 @@ frm_cross_simulate <- function(fit, nsim = 1L, seed = NULL,
   n <- as.numeric(if (!is.null(dat) && !is.null(dat$n)) dat$n
                   else stats::model.frame(fit)$n)
   if (length(n) != length(s11)) {
-    stop("the degrees of freedom could not be recovered for the rows ",
-         "being simulated; pass `newdata` carrying its own `n` column.",
-         call. = FALSE)
+    frm_stop("the degrees of freedom could not be recovered for the rows ",
+             "being simulated; pass `newdata` carrying its own `n` column.",
+             call. = FALSE)
   }
   ## L = [[a, 0], [c, b]] with a = sqrt(S11), |c|^2 = C S22, b^2 = (1-C) S22.
   ## Conjugated so that the drawn cross term has argument +phase, which is

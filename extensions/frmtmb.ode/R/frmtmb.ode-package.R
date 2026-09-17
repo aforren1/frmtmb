@@ -7,4 +7,5 @@
 # that is loaded and not attached reaches nothing through the search
 # path.
 #' @importFrom frmtmb frmtmb_register_frame_check frmtmb_ad_overload
+#' @importFrom frmtmb frm_match_arg frm_message frm_stop frm_warning
 NULL

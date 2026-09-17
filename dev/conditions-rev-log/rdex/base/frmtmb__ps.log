@@ -1,0 +1,3 @@
+Warning: 2 of 320 fitted values of t + shift fall outside the knot span of ps(t + shift, k = 8) [-0.1, 1.1], where the basis is exactly zero and its gradient with it. Refit with a larger pad =
+
+RDEX-RESULT OK 

@@ -225,20 +225,20 @@ autocor_max_unstr <- 50L
 #' @noRd
 autocor_arg <- function(expr, nm, env, fn) {
   val <- tryCatch(eval(expr, env), error = function(e) {
-    stop(fn, "(): the argument ", nm, " = ", deparse1(expr),
-         " could not be evaluated in the formula environment: ",
-         conditionMessage(e), call. = FALSE)
+    frm_stop(fn, "(): the argument ", nm, " = ", deparse1(expr),
+             " could not be evaluated in the formula environment: ",
+             conditionMessage(e), call. = FALSE)
   })
   if (nm == "cov") {
     if (!is.logical(val) || length(val) != 1L || is.na(val)) {
-      stop(fn, "(): cov must be TRUE or FALSE", call. = FALSE)
+      frm_stop(fn, "(): cov must be TRUE or FALSE", call. = FALSE)
     }
     return(isTRUE(val))
   }
   if (!is.numeric(val) || length(val) != 1L || !is.finite(val) ||
       val < 0 || val != trunc(val)) {
-    stop(fn, "(): ", nm, " must be a single non-negative whole number ",
-         "(got ", deparse1(expr), ")", call. = FALSE)
+    frm_stop(fn, "(): ", nm, " must be a single non-negative whole number ",
+             "(got ", deparse1(expr), ")", call. = FALSE)
   }
   as.integer(val)
 }
@@ -265,8 +265,8 @@ parse_autocor_call <- function(tm, env) {
   time_expr <- if (na_arg(a$time)) NULL else a$time
   gr_expr <- if (na_arg(a$gr)) NULL else a$gr
   if (fn == "unstr" && (is.null(time_expr) || is.null(gr_expr))) {
-    stop("unstr() needs both a time variable and a grouping variable: ",
-         "unstr(week, subj)", call. = FALSE)
+    frm_stop("unstr() needs both a time variable and a grouping variable: ",
+             "unstr(week, subj)", call. = FALSE)
   }
   p <- if (fn %in% c("ar", "arma")) {
     if (is.null(a$p)) 1L else autocor_arg(a$p, "p", env, fn)
@@ -276,8 +276,8 @@ parse_autocor_call <- function(tm, env) {
   } else 0L
   if (fn %in% c("ar", "ma", "arma")) {
     if (p + q < 1L) {
-      stop(fn, "(): at least one of p and q must be greater than zero",
-           call. = FALSE)
+      frm_stop(fn, "(): at least one of p and q must be greater than zero",
+               call. = FALSE)
     }
     cov <- if (is.null(a$cov)) FALSE else {
       autocor_arg(a$cov, "cov", env, fn)
@@ -290,16 +290,17 @@ parse_autocor_call <- function(tm, env) {
       # giving them their stationary distribution. Fitting the
       # covariance form under that spelling would silently disagree
       # with brms; refusing says so.
-      stop(fn, "(): only the residual-covariance formulation is ",
-           "implemented, so the call needs cov = TRUE: ", fn, "(",
-           if (!is.null(time_expr)) paste0(deparse1(time_expr), ", ") else "",
-           if (!is.null(gr_expr)) paste0(deparse1(gr_expr), ", ") else "",
-           "cov = TRUE). brms's default cov = FALSE is the ",
-           "residual-regression form, a different likelihood (it ",
-           "conditions on the first observations of each group rather ",
-           "than giving them their stationary distribution). cov = ",
-           "TRUE is the marginal multivariate-normal residual that ",
-           "nlme::gls(correlation = corAR1()) fits", call. = FALSE)
+      frm_stop(fn, "(): only the residual-covariance formulation is ",
+               "implemented, so the call needs cov = TRUE: ", fn, "(",
+               if (!is.null(time_expr))
+                 paste0(deparse1(time_expr), ", ") else "",
+               if (!is.null(gr_expr)) paste0(deparse1(gr_expr), ", ") else "",
+               "cov = TRUE). brms's default cov = FALSE is the ",
+               "residual-regression form, a different likelihood (it ",
+               "conditions on the first observations of each group rather ",
+               "than giving them their stationary distribution). cov = ",
+               "TRUE is the marginal multivariate-normal residual that ",
+               "nlme::gls(correlation = corAR1()) fits", call. = FALSE)
     }
   }
   list(fn = fn, struct = fn, time_expr = time_expr, gr_expr = gr_expr,
@@ -523,33 +524,35 @@ check_autocor_response <- function(resp, spec, av, yv) {
   ac <- resp$autocor
   fam <- resp$family[["family"]]
   if (!fam %in% c("gaussian", "student")) {
-    stop(ac[["fn"]], "(): a residual correlation needs a family with real ",
-         "residuals, so gaussian() or student(); '", fam, "' has none. ",
-         "brms accepts the same call for other families but fits a ",
-         "different model there - a latent gaussian AR process added to ",
-         "the linear predictor - which is spelled as a random effect ",
-         "here: replace ", ac[["label"]], " with ar1(factor(",
-         if (is.null(ac[["time_expr"]])) "time" else
-           deparse1(ac[["time_expr"]]),
-         ") + 0 | ",
-         if (is.null(ac[["gr_expr"]])) "group" else deparse1(ac[["gr_expr"]]),
-         "), or toep()/us() for a freer lag structure", call. = FALSE)
+    frm_stop(ac[["fn"]], "(): a residual correlation needs a family with real ",
+             "residuals, so gaussian() or student(); '", fam, "' has none. ",
+             "brms accepts the same call for other families but fits a ",
+             "different model there - a latent gaussian AR process added to ",
+             "the linear predictor - which is spelled as a random effect ",
+             "here: replace ", ac[["label"]], " with ar1(factor(",
+             if (is.null(ac[["time_expr"]])) "time" else
+               deparse1(ac[["time_expr"]]),
+             ") + 0 | ",
+             if (is.null(ac[["gr_expr"]])) "group" else
+               deparse1(ac[["gr_expr"]]),
+             "), or toep()/us() for a freer lag structure", call. = FALSE)
   }
   if (is.matrix(yv)) {
-    stop(ac[["fn"]], "(): the response must be a numeric vector",
-         call. = FALSE)
+    frm_stop(ac[["fn"]], "(): the response must be a numeric vector",
+             call. = FALSE)
   }
   if (isTRUE(spec$rescor)) {
-    stop(ac[["fn"]], "(): residual correlation within a response cannot be ",
-         "combined with rescor = TRUE. Both describe the residual ",
-         "covariance - one across time, one across responses - and the ",
-         "joint structure is their Kronecker product, which is not ",
-         "implemented. brms refuses the same pair. Fit rescor = FALSE, ",
-         "or drop the time term", call. = FALSE)
+    frm_stop(ac[["fn"]],
+             "(): residual correlation within a response cannot be ",
+             "combined with rescor = TRUE. Both describe the residual ",
+             "covariance - one across time, one across responses - and the ",
+             "joint structure is their Kronecker product, which is not ",
+             "implemented. brms refuses the same pair. Fit rescor = FALSE, ",
+             "or drop the time term", call. = FALSE)
   }
   if (!is.null(resp$family[["mix"]])) {
-    stop(ac[["fn"]], "(): a mixture likelihood has no single residual to ",
-         "correlate", call. = FALSE)
+    frm_stop(ac[["fn"]], "(): a mixture likelihood has no single residual to ",
+             "correlate", call. = FALSE)
   }
   bad <- c(if (!is.null(av[["weights"]])) "weights()",
            if (!is.null(av[["cens"]])) "cens()",
@@ -558,15 +561,15 @@ check_autocor_response <- function(resp, spec, av, yv) {
            if (!is.null(av[["se"]])) "se()",
            if (isTRUE(resp$aterms[["mi"]])) "mi()")
   if (length(bad)) {
-    stop(ac[["fn"]], "(): ", paste(bad, collapse = ", "),
-         " cannot be combined with a residual correlation term. The ",
-         "likelihood is a joint density over each group, so it no ",
-         "longer factorizes into per-row contributions that a ",
-         "frequency weight could repeat, a censoring indicator could ",
-         "replace with a tail probability, a truncation bound could ",
-         "renormalize, or a known standard error could be added to. ",
-         "brms refuses weights(), cens() and trunc() here for the same ",
-         "reason", call. = FALSE)
+    frm_stop(ac[["fn"]], "(): ", paste(bad, collapse = ", "),
+             " cannot be combined with a residual correlation term. The ",
+             "likelihood is a joint density over each group, so it no ",
+             "longer factorizes into per-row contributions that a ",
+             "frequency weight could repeat, a censoring indicator could ",
+             "replace with a tail probability, a truncation bound could ",
+             "renormalize, or a known standard error could be added to. ",
+             "brms refuses weights(), cens() and trunc() here for the same ",
+             "reason", call. = FALSE)
   }
   if (fam == "student") {
     # brms's student_t_time_*_lpdf takes `real nu`: the multivariate t
@@ -577,10 +580,10 @@ check_autocor_response <- function(resp, spec, av, yv) {
       (length(nud$re %||% list()) || length(nud$smooth %||% list()) ||
          !identical(deparse1(reformulas::RHSForm(nud$fixed)), "1"))
     if (predicted) {
-      stop(ac[["fn"]], "(): student() with a residual correlation needs a ",
-           "constant nu; a predicted 'nu ~ ...' has no multivariate-t ",
-           "counterpart, because the group shares one shape parameter",
-           call. = FALSE)
+      frm_stop(ac[["fn"]], "(): student() with a residual correlation needs a ",
+               "constant nu; a predicted 'nu ~ ...' has no multivariate-t ",
+               "counterpart, because the group shares one shape parameter",
+               call. = FALSE)
     }
   }
   ac
@@ -602,8 +605,8 @@ autocor_time_index <- function(ac, mf, gidx, env, n) {
   }
   tv <- eval(ac[["time_expr"]], mf, env)
   if (anyNA(tv)) {
-    stop(ac[["fn"]], "(): the time variable '", deparse1(ac[["time_expr"]]),
-         "' has missing values", call. = FALSE)
+    frm_stop(ac[["fn"]], "(): the time variable '", deparse1(ac[["time_expr"]]),
+             "' has missing values", call. = FALSE)
   }
   if (is.factor(tv)) {
     lv <- levels(droplevels(tv))
@@ -633,14 +636,15 @@ autocor_warn_gaps <- function(ac, lv) {
   gap <- which(abs(diff(pos)) != 1)
   if (!length(gap)) return(invisible(NULL))
   i <- gap[1L]
-  warning(ac[["fn"]], "(): the time levels present are whole numbers but not ",
-          "consecutive ('", lv[i], "' is followed by '", lv[i + 1L],
-          "'), and the lag is counted in LEVELS, so that gap counts as ",
-          "a single step. Pad the level set (a row per missing time, ",
-          "with an NA response and na.action = na.exclude, is enough) ",
-          "or use ou(num_factor(", deparse1(ac[["time_expr"]]),
-          ") + 0 | ...) for a continuous-position structure",
-          call. = FALSE)
+  frm_warning(ac[["fn"]],
+              "(): the time levels present are whole numbers but not ",
+              "consecutive ('", lv[i], "' is followed by '", lv[i + 1L],
+              "'), and the lag is counted in LEVELS, so that gap counts as ",
+              "a single step. Pad the level set (a row per missing time, ",
+              "with an NA response and na.action = na.exclude, is enough) ",
+              "or use ou(num_factor(", deparse1(ac[["time_expr"]]),
+              ") + 0 | ...) for a continuous-position structure",
+              call. = FALSE)
   invisible(NULL)
 }
 
@@ -661,10 +665,10 @@ autocor_block <- function(ac, resp, mf, env, n) {
   } else {
     gv <- eval(ac[["gr_expr"]], mf, env)
     if (anyNA(gv)) {
-      stop(fn, "(): the residual factorizes over gr = ",
-           deparse1(ac[["gr_expr"]]),
-           ", so every row needs a group; that variable has ",
-           sum(is.na(gv)), " missing value(s)", call. = FALSE)
+      frm_stop(fn, "(): the residual factorizes over gr = ",
+               deparse1(ac[["gr_expr"]]),
+               ", so every row needs a group; that variable has ",
+               sum(is.na(gv)), " missing value(s)", call. = FALSE)
     }
     as.integer(factor(gv))
   }
@@ -675,44 +679,46 @@ autocor_block <- function(ac, resp, mf, env, n) {
     levels(factor(eval(ac[["gr_expr"]], mf, env)))
   }
   if (ac[["d"]] < 2L) {
-    stop(fn, "(): the residual correlation needs at least 2 time ",
-         "points; '",
-         if (is.null(ac[["time_expr"]])) "(row order)" else
-           deparse1(ac[["time_expr"]]), "' gives ", ac[["d"]], call. = FALSE)
+    frm_stop(fn, "(): the residual correlation needs at least 2 time ",
+             "points; '",
+             if (is.null(ac[["time_expr"]])) "(row order)" else
+               deparse1(ac[["time_expr"]]), "' gives ", ac[["d"]],
+             call. = FALSE)
   }
   if (ac[["d"]] > autocor_max_dim) {
-    stop(fn, "(): ", ac[["d"]], " time points would build a dense ", ac[["d"]],
-         " x ", ac[["d"]], " residual covariance on every gradient ",
-         "evaluation (cap ", autocor_max_dim,
-         "). Name a grouping variable - ", fn, "(",
-         if (!is.null(ac[["time_expr"]])) paste0(deparse1(ac[["time_expr"]]),
-           ", ")
-         else "", "gr = subject) - so the density factorizes over ",
-         "groups", call. = FALSE)
+    frm_stop(fn, "(): ", ac[["d"]], " time points would build a dense ",
+             ac[["d"]], " x ", ac[["d"]],
+             " residual covariance on every gradient ",
+             "evaluation (cap ", autocor_max_dim,
+             "). Name a grouping variable - ", fn, "(",
+             if (!is.null(ac[["time_expr"]]))
+               paste0(deparse1(ac[["time_expr"]]), ", ")
+             else "", "gr = subject) - so the density factorizes over ",
+             "groups", call. = FALSE)
   }
   if (ac[["struct"]] == "unstr" && ac[["d"]] > autocor_max_unstr) {
-    stop("unstr(): ", ac[["d"]], " time points means ",
-         autocor_n_cor(ac[["d"]]), " free correlations (cap ",
-         autocor_max_unstr, " levels). Use ar(), arma() or cosy() for a ",
-         "structure that does not grow with the number of time points",
-         call. = FALSE)
+    frm_stop("unstr(): ", ac[["d"]], " time points means ",
+             autocor_n_cor(ac[["d"]]), " free correlations (cap ",
+             autocor_max_unstr, " levels). Use ar(), arma() or cosy() for a ",
+             "structure that does not grow with the number of time points",
+             call. = FALSE)
   }
   key <- paste(gidx, ti$idx, sep = "\r")
   if (anyDuplicated(key)) {
     dup <- key[duplicated(key)][1L]
     parts <- strsplit(dup, "\r", fixed = TRUE)[[1L]]
-    stop(fn, "(): time points within groups must be unique; group '",
-         ac[["group_levels"]][as.integer(parts[1L])], "' has ",
-         sum(key == dup), " rows at time '",
-         ti$levels[as.integer(parts[2L])], "'. ",
-         if (is.null(ac[["gr_expr"]])) {
-           paste0("The first argument of ", fn,
-                  "() is the TIME variable and the second is the ",
-                  "grouping variable, so ", fn, "(g) reads g as time; ",
-                  "write ", fn, "(gr = g) if g is the group.")
-         } else {
-           "Aggregate the repeated rows, or add the replicate to the grouping variable."
-         }, call. = FALSE)
+    frm_stop(fn, "(): time points within groups must be unique; group '",
+             ac[["group_levels"]][as.integer(parts[1L])], "' has ",
+             sum(key == dup), " rows at time '",
+             ti$levels[as.integer(parts[2L])], "'. ",
+             if (is.null(ac[["gr_expr"]])) {
+               paste0("The first argument of ", fn,
+                      "() is the TIME variable and the second is the ",
+                      "grouping variable, so ", fn, "(g) reads g as time; ",
+                      "write ", fn, "(gr = g) if g is the group.")
+             } else {
+               "Aggregate the repeated rows, or add the replicate to the grouping variable."
+             }, call. = FALSE)
   }
   if (!is.null(ac[["time_expr"]])) autocor_warn_gaps(ac, ti$levels)
   # one pattern per distinct set of present time levels
@@ -873,8 +879,8 @@ autocor_matrix <- function(fit, resp = NULL) {
   if (!length(acs)) return(NULL)
   ac <- if (is.null(resp)) acs[[1L]] else acs[[resp]]
   if (is.null(ac)) {
-    stop("autocor_matrix(): no residual correlation term for response '",
-         resp, "'", call. = FALSE)
+    frm_stop("autocor_matrix(): no residual correlation term for response '",
+             resp, "'", call. = FALSE)
   }
   R <- autocor_cor(fit$estimates[["thetaac"]][ac[["theta_idx"]]], ac)
   R <- as.matrix(R)

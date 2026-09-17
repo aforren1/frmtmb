@@ -1,0 +1,21 @@
+frmtmb from: C:/Users/adf44/source/r/rellib-r3 
+BLOCKS 7 PASS 3 FAIL 7 ERROR 5 SKIP 0  tests/testthat/test-conditions.R
+  failing: a refusal from frm() is caught by class
+       Error: not_a_family is not a supported family. Supported families are: gaussian, poisson, binomial, Gamma, lognormal, student, negbinomial, nbinom2, nbinom1, beta, Beta, tweedie, compois, zero_inflated_poisson, zero_inflated_negbinomial, hurdle_poisson, multinomial, cumulative, beta_binomial, skew_normal, inverse.gaussian, exgaussian, bernoulli, geometric, exponential, weibull, shifted_lognormal, hurdle_gamma, hurdle_lognormal, zero_inflated_binomial, zero_inflated_beta, asym_laplace, zero_infla 
+  failing: the class vectors match the brms shape
+       Error in `frm_warning("x")`: could not find function "frm_warning" 
+  failing: a condition raised in another namespace gains its subclass
+       Expected `class(e)` to be identical to `c("stats_error", "frmtmb_error", "error", "condition")`. Differences: `actual`:   "simpleError"                "error" "condition" `expected`: "stats_error" "frmtmb_error" "error" "condition"  
+       Error in `frm_warning("x")`: could not find function "frm_warning" 
+  failing: frm_stop() records the message and call stop() records
+       Expected `conditionMessage(tryCatch(parts_b(), error = identity))` to be identical to `conditionMessage(tryCatch(parts_a(), error = identity))`. Differences: `lines(actual)`:   "could not find function \"frm_stop\""      `lines(expected)`: "a 1 b"                                "cd"  
+       Expected `conditionMessage(eb)` to be identical to `conditionMessage(ea)`. Differences: `actual`:   "could not find function \"frm_stop\"" `expected`: "bad x: 3"                              
+       Expected `conditionCall(eb)` to be identical to `quote(site_b(3))`. Differences: `actual`:   `frm_stop("bad x: ", x)` `expected`: `site_b(3)`               
+       Expected `sub("site_b", "site_a", as.character(tb))` to be identical to `as.character(ta)`. Differences: lines(actual) vs lines(expected) - "Error in frm_stop(\"bad x: \", x) : could not find function \"frm_stop\"" + "Error in site_a(3) : bad x: 3"   ""  
+       Expected `as.character(try(quiet_b(), silent = TRUE))` to be identical to `as.character(try(quiet_a(), silent = TRUE))`. Differences:     lines(actual)                                    | lines(expected)     [1] "Error in frm_stop(\"quiet\", call. = FALSE) : " - "Error : quiet" [1] [2] "  could not find function \"frm_stop\""         -                     [3] ""                                               | ""              [2]  
+  failing: frm_stop() records the call when forced inside another frame
+       Expected `conditionCall(eb)` to be identical to `quote(force_it(frm_stop("p")))`. Differences: `actual`:   `frm_stop("p")`           `expected`: `force_it(frm_stop("p"))`  
+  failing: frm_warning() records the message and call warning() does
+       Error in `frm_warning("careful: ", x)`: could not find function "frm_warning" 
+  failing: frm_message() prints what message() prints
+       Error in `frm_message("note ", 1, appendLF = TRUE)`: could not find function "frm_message" 

@@ -1,0 +1,8 @@
+"file"	"class"	"message"
+"tests/testthat/test-v14.R"	"frmtmb_error/error/condition"	"se() carries a known standard deviation into the density, so only a family that reads it can be given one, and 'poisson' does not declare that it does. A family declares it with frmtmb_family(accepts_aterms = c(..., \"se\")) or with required_aterms = \"se\", which also refuses a model that leaves the te"
+"tests/testthat/test-v14.R"	"frmtmb_error/error/condition"	"bernoulli: response must be 0/1"
+"tests/testthat/test-v14.R"	"frmtmb_error/error/condition"	"Unknown parameter(s) in confint(parm =): x. Available: theta_1. Parentheses may be dropped, intercept-only nonlinear parameters may be named bare, and the one-to-one natural-scale names of variables() (sd_<group>__<term>, and a correlation with a single internal parameter) are accepted as aliases"
+"tests/testthat/test-v14.R"	"frmtmb_error/error/condition"	"hypothesis(method = 'profile') needs a fit without frmtmb_control(profile = TRUE)"
+"tests/testthat/test-v14.R"	"frmtmb_error/error/condition"	"frmtmb_control(profile = TRUE) cannot be combined with REML = TRUE (beta is already integrated)"
+"tests/testthat/test-v14.R"	"frmtmb_error/error/condition"	"newparams$beta must have length 2"
+"tests/testthat/test-v14.R"	"frmtmb_error/error/condition"	"Unknown newparams name(s): zeta. Available: b_Intercept, b_x, sigma, sd_g__Intercept"

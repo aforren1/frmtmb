@@ -23,21 +23,21 @@ fit_end_checks <- function(fit) {
   # arguments. A fit that finished is worth more than a diagnostic that
   # did not: the failure is reported and the fit is returned.
   tryCatch(ps_coverage_warning(fit), error = function(e) {
-    warning("The ps() knot-span coverage report failed after the fit ",
-            "finished, so nothing was checked about it: ",
-            conditionMessage(e),
-            ". The fit itself is complete and unaffected", call. = FALSE)
+    frm_warning("The ps() knot-span coverage report failed after the fit ",
+                "finished, so nothing was checked about it: ",
+                conditionMessage(e),
+                ". The fit itself is complete and unaffected", call. = FALSE)
   })
   for (resp in fit$spec$responses) {
     fc <- resp$family[["post"]][["fit_check"]]
     if (!is.function(fc)) next
     fam_nm <- resp$family[["family"]]
     tryCatch(fc(fit, resp$resp_name), error = function(e) {
-      warning("The '", fam_nm, "' family's post$fit_check hook failed ",
-              "after the fit finished, so whatever it checks was not ",
-              "checked: ", conditionMessage(e),
-              ". The fit itself is complete and unaffected",
-              call. = FALSE)
+      frm_warning("The '", fam_nm, "' family's post$fit_check hook failed ",
+                  "after the fit finished, so whatever it checks was not ",
+                  "checked: ", conditionMessage(e),
+                  ". The fit itself is complete and unaffected",
+                  call. = FALSE)
     })
   }
   invisible(NULL)

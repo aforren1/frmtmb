@@ -1,3 +1,27 @@
+# frmtmb.sample (development version)
+
+* Requires the frmtmb release that exports `frm_stop()`; the
+  `frmtmb (>= 0.59.0)` floor must move to it.
+* **BREAKING:** every error, warning and message that frmtmb.sample
+  raises is classed. An error has the class
+  `c("frmtmb_sample_error", "frmtmb_error", "error", "condition")`,
+  and warnings and messages follow the same pattern, so
+  `tryCatch(frmtmb_error = )` catches any refusal. The class vector no
+  longer contains `simpleError`, `simpleWarning` or `simpleMessage`.
+  See `?frmtmb::frmtmb-conditions`.
+* **BREAKING:** a value that matches none of the choices of
+  `loo_compare(criterion =)`, `hypothesis(scope =)`,
+  `pp_check(prefix =)` and `predictive_error(method =)` is refused
+  with a `frmtmb_sample_error` that names the argument, the
+  value and the choices. The old text was `'arg' should be one of ...`.
+  A partial value still matches.
+* `posterior_interval()`, `as.matrix()`, `rhat()`, `neff_ratio()`
+  and the other accessors refuse an exact variable name that the
+  draws do not carry as a `frmtmb_sample_error`. The posterior
+  package used to raise it as a plain error. The text keeps
+  posterior's words, `missing in the draws object`.
+
+
 # frmtmb.sample 0.7.0
 
 * Requires frmtmb 0.59.0, for `brms_par_labels()`, `brms_coef_table()`,

@@ -235,29 +235,29 @@
 lba <- function(n, sd_v = 1, posdrift = TRUE, max_ndt = NULL) {
   if (missing(n) || !is.numeric(n) || length(n) != 1L || is.na(n) ||
       n != round(n) || n < 2) {
-    stop("lba(): `n` is the number of accumulators, one whole number ",
-         "of 2 or more, e.g. lba(3) for a three-alternative choice.",
-         call. = FALSE)
+    frm_stop("lba(): `n` is the number of accumulators, one whole number ",
+             "of 2 or more, e.g. lba(3) for a three-alternative choice.",
+             call. = FALSE)
   }
   n <- as.integer(n)
   if (!is.numeric(sd_v) || !all(is.finite(sd_v)) || any(sd_v <= 0) ||
       !length(sd_v) %in% c(1L, n)) {
-    stop("lba(): `sd_v` fixes the scale of the model and must be one ",
-         "positive finite number, or one per accumulator (", n, " of ",
-         "them). It is not estimated: something has to be held fixed ",
-         "or the model is not identified.", call. = FALSE)
+    frm_stop("lba(): `sd_v` fixes the scale of the model and must be one ",
+             "positive finite number, or one per accumulator (", n, " of ",
+             "them). It is not estimated: something has to be held fixed ",
+             "or the model is not identified.", call. = FALSE)
   }
   sd_v <- rep(as.numeric(sd_v), length.out = n)
   if (!is.logical(posdrift) || length(posdrift) != 1L || is.na(posdrift)) {
-    stop("lba(): `posdrift` says whether drift rates are truncated at ",
-         "zero and must be TRUE or FALSE.", call. = FALSE)
+    frm_stop("lba(): `posdrift` says whether drift rates are truncated at ",
+             "zero and must be TRUE or FALSE.", call. = FALSE)
   }
   if (!is.null(max_ndt)) {
     if (!is.numeric(max_ndt) || length(max_ndt) != 1L ||
         !is.finite(max_ndt) || max_ndt <= 0) {
-      stop("lba(): `max_ndt` bounds the non-decision time and must be ",
-           "one positive finite number, or NULL to read it off the ",
-           "response.", call. = FALSE)
+      frm_stop("lba(): `max_ndt` bounds the non-decision time and must be ",
+               "one positive finite number, or NULL to read it off the ",
+               "response.", call. = FALSE)
     }
   }
 
@@ -459,21 +459,21 @@ lba_race_lpdf <- function(t, choice, law, accs) {
 #' @noRd
 lba_check_response <- function(y, aterms, n) {
   if (any(!is.finite(y)) || any(y <= 0)) {
-    stop("lba: the response must be a strictly positive, finite ",
-         "response time. A time of zero or less has no decision in it ",
-         "for any non-decision time.", call. = FALSE)
+    frm_stop("lba: the response must be a strictly positive, finite ",
+             "response time. A time of zero or less has no decision in it ",
+             "for any non-decision time.", call. = FALSE)
   }
   ddm_check_units(y, "lba")
   ch <- aterms[["vint1"]]
   if (any(!is.finite(ch)) || any(ch != round(ch)) ||
       any(ch < 1) || any(ch > n)) {
     bad <- unique(ch[!is.finite(ch) | ch != round(ch) | ch < 1 | ch > n])
-    stop("lba(", n, "): the vint() choice indicator names which ",
-         "accumulator responded and must be a whole number from 1 to ",
-         n, ". Saw ", paste(utils::head(sort(bad), 5), collapse = ", "),
-         ". A factor is not accepted; recode it with ",
-         "as.integer(factor(choice)) and check the level order ",
-         "matches the accumulator numbering.", call. = FALSE)
+    frm_stop("lba(", n, "): the vint() choice indicator names which ",
+             "accumulator responded and must be a whole number from 1 to ",
+             n, ". Saw ", paste(utils::head(sort(bad), 5), collapse = ", "),
+             ". A factor is not accepted; recode it with ",
+             "as.integer(factor(choice)) and check the level order ",
+             "matches the accumulator numbering.", call. = FALSE)
   }
   invisible(NULL)
 }
@@ -488,11 +488,11 @@ lba_check_response <- function(y, aterms, n) {
 lba_finalize <- function(fam, y, aterms, max_ndt) {
   sp <- ddm_ndt_spec(y, aterms, max_ndt, "lba")
   if (!is.null(max_ndt) && sp$ub > min(y)) {
-    stop("lba: max_ndt = ", format(sp$ub), " is above the fastest ",
-         "response (", format(min(y)), "). No accumulator can arrive ",
-         "before the non-decision time, so a bound above the fastest ",
-         "response admits parameter values at which that trial has no ",
-         "likelihood.", call. = FALSE)
+    frm_stop("lba: max_ndt = ", format(sp$ub), " is above the fastest ",
+             "response (", format(min(y)), "). No accumulator can arrive ",
+             "before the non-decision time, so a bound above the fastest ",
+             "response admits parameter values at which that trial has no ",
+             "likelihood.", call. = FALSE)
   }
   ddm_ndt_install(fam, sp$ub, sp$floors, "lba")
 }
@@ -545,13 +545,13 @@ lba_sim_rt <- function(dpars, aterms, n_, vp, sd_v, posdrift) {
     todo <- todo[!hit]
   }
   if (length(todo)) {
-    stop("lba: could not draw a response time for ", length(todo),
-         " row(s) whose observed choice the fitted parameters almost ",
-         "never produce. simulate() conditions each draw on that row's ",
-         "vint() choice, so a choice the model gives a vanishing ",
-         "probability has no draw to give. Use lba_simulate() for an ",
-         "unconditional draw of choice and time together.",
-         call. = FALSE)
+    frm_stop("lba: could not draw a response time for ", length(todo),
+             " row(s) whose observed choice the fitted parameters almost ",
+             "never produce. simulate() conditions each draw on that row's ",
+             "vint() choice, so a choice the model gives a vanishing ",
+             "probability has no draw to give. Use lba_simulate() for an ",
+             "unconditional draw of choice and time together.",
+             call. = FALSE)
   }
   out
 }
@@ -615,34 +615,34 @@ lba_race_draw <- function(A, b, V, sd_v, posdrift) {
 lba_simulate <- function(n, v, A = 0.5, k = 0.4, ndt = 0.2, sd_v = 1,
                          posdrift = TRUE) {
   if (!is.numeric(n) || length(n) != 1L || is.na(n) || n < 1) {
-    stop("lba_simulate(): `n` is the number of trials to draw, one ",
-         "whole number of 1 or more.", call. = FALSE)
+    frm_stop("lba_simulate(): `n` is the number of trials to draw, one ",
+             "whole number of 1 or more.", call. = FALSE)
   }
   n <- as.integer(n)
   V <- if (is.matrix(v)) v else matrix(as.numeric(v), n, length(v),
                                        byrow = TRUE)
   if (nrow(V) != n) {
-    stop("lba_simulate(): a matrix `v` gives one row of drift means per ",
-         "trial, so it needs ", n, " rows, not ", nrow(V), ".",
-         call. = FALSE)
+    frm_stop("lba_simulate(): a matrix `v` gives one row of drift means per ",
+             "trial, so it needs ", n, " rows, not ", nrow(V), ".",
+             call. = FALSE)
   }
   nacc <- ncol(V)
   if (nacc < 2) {
-    stop("lba_simulate(): `v` needs a drift mean for each of at least ",
-         "two accumulators; a race of one has nothing to lose to.",
-         call. = FALSE)
+    frm_stop("lba_simulate(): `v` needs a drift mean for each of at least ",
+             "two accumulators; a race of one has nothing to lose to.",
+             call. = FALSE)
   }
   if (!length(sd_v) %in% c(1L, nacc) || any(sd_v <= 0)) {
-    stop("lba_simulate(): `sd_v` must be one positive number, or one ",
-         "for each of the ", nacc, " accumulators.", call. = FALSE)
+    frm_stop("lba_simulate(): `sd_v` must be one positive number, or one ",
+             "for each of the ", nacc, " accumulators.", call. = FALSE)
   }
   sd_v <- rep(as.numeric(sd_v), length.out = nacc)
   A <- rep(as.numeric(A), length.out = n)
   k <- rep(as.numeric(k), length.out = n)
   if (any(A <= 0) || any(k <= 0)) {
-    stop("lba_simulate(): `A` and `k` must both be positive, so that ",
-         "the threshold A + k lies above the start-point range and no ",
-         "trial begins already finished.", call. = FALSE)
+    frm_stop("lba_simulate(): `A` and `k` must both be positive, so that ",
+             "the threshold A + k lies above the start-point range and no ",
+             "trial begins already finished.", call. = FALSE)
   }
   dr <- lba_race_draw(A, A + k, V, sd_v, posdrift)
   data.frame(choice = dr$choice,

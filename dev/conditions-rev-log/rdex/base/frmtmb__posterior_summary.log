@@ -1,0 +1,3 @@
+Error : posterior_summary() needs posterior draws and a frmtmb_fit has none: frm() is maximum likelihood, so it carries one parameter vector rather than chains. Install frmtmb.sample and sample first, with posterior_summary(frmtmb.sample::frm_sample(fit)); for the point estimates and their covariance use fixef(), vcov() or confint() on the fit itself
+
+RDEX-RESULT OK 

@@ -236,10 +236,10 @@ frm_curve <- function(object, newdata, contrast = NULL, dpar = NULL,
   sp_check_flag(transform, "transform")
   sp_check_contrast(newdata, contrast)
   if (!is.null(contrast) && isTRUE(transform)) {
-    stop("frm_curve(contrast = , transform = TRUE): a difference of two ",
-         "linear predictors is not the difference of two responses ",
-         "under any link but the identity, so there is no inverse to ",
-         "return it through. Leave transform = FALSE", call. = FALSE)
+    frm_stop("frm_curve(contrast = , transform = TRUE): a difference of two ",
+             "linear predictors is not the difference of two responses ",
+             "under any link but the identity, so there is no inverse to ",
+             "return it through. Leave transform = FALSE", call. = FALSE)
   }
   sp_rp_gate(object)
   parts <- sp_curve_parts(object, newdata, dpar, resp, re_formula, tol,
@@ -249,11 +249,11 @@ frm_curve <- function(object, newdata, contrast = NULL, dpar = NULL,
   # and the sibling functions hand the seam a stencil rather than the
   # grid, so core's row count needs a caller to explain it
   for (msg in parts$span) {
-    warning(warningCondition(paste0(
+    frm_warning(paste0(
       "frm_curve(): this grid leaves a ps() term's knot span, so the ",
       "band below is drawn around a decaying partial sum rather than ",
       "around the fitted curve. ", msg),
-      class = "frmtmb_ps_span_warning"))
+      class = "frmtmb_ps_span_warning", call. = FALSE)
   }
   sp_assemble(parts, parts$eta, parts$se, parts$Sigma, level, simultaneous,
               nsim, transform, seed, newdata,
@@ -278,9 +278,9 @@ sp_assemble <- function(parts, est, se, Sigma, level, simultaneous, nsim,
   if (isTRUE(simultaneous)) {
     sp_check_count(nsim, "nsim")
     if (nrow(newdata) < 2L) {
-      stop("frm_curve(simultaneous = TRUE) needs a grid of at least two ",
-           "points: a band over one point is the pointwise interval",
-           call. = FALSE)
+      frm_stop("frm_curve(simultaneous = TRUE) needs a grid of at least two ",
+               "points: a band over one point is the pointwise interval",
+               call. = FALSE)
     }
     sim <- sp_sim_crit(Sigma, se, nsim, level, seed)
     out[[".crit_sim"]] <- sim$crit
@@ -327,19 +327,19 @@ sp_linkinv <- function(parts) {
                                       re_formula = parts$re_formula)),
             silent = TRUE)
   if (inherits(rs, "try-error") || length(rs) != 1L) {
-    stop("frm_curve(transform = TRUE): this linear predictor has no ",
-         "response scale to transform onto. predict(type = \"response\") ",
-         "refuses it, so the curve stays on the link scale",
-         call. = FALSE)
+    frm_stop("frm_curve(transform = TRUE): this linear predictor has no ",
+             "response scale to transform onto. predict(type = \"response\") ",
+             "refuses it, so the curve stays on the link scale",
+             call. = FALSE)
   }
   fam <- stats::family(fit)
   lnk <- fam[["links"]][[parts$dpar %||% "mu"]]
   if (!is.null(lnk) && is.function(lnk[["linkinv"]])) return(lnk[["linkinv"]])
   if (isTRUE(all.equal(lk, rs))) return(identity)
-  stop("frm_curve(transform = TRUE): the link inverse of dpar '",
-       parts$dpar %||% "mu", "' is not reachable from the family object, ",
-       "so the band cannot be transformed. Leave transform = FALSE and ",
-       "transform the columns yourself", call. = FALSE)
+  frm_stop("frm_curve(transform = TRUE): the link inverse of dpar '",
+           parts$dpar %||% "mu", "' is not reachable from the family object, ",
+           "so the band cannot be transformed. Leave transform = FALSE and ",
+           "transform the columns yourself", call. = FALSE)
 }
 
 #' @export
@@ -387,8 +387,8 @@ print.frmtmb_curve <- function(x, ...) {
 sp_check_level <- function(level) {
   if (!is.numeric(level) || length(level) != 1L || !is.finite(level) ||
       level <= 0 || level >= 1) {
-    stop("`level` must be one number strictly between 0 and 1",
-         call. = FALSE)
+    frm_stop("`level` must be one number strictly between 0 and 1",
+             call. = FALSE)
   }
   invisible(NULL)
 }
@@ -396,7 +396,7 @@ sp_check_level <- function(level) {
 #' @noRd
 sp_check_flag <- function(x, nm) {
   if (!is.logical(x) || length(x) != 1L || is.na(x)) {
-    stop("`", nm, "` must be TRUE or FALSE", call. = FALSE)
+    frm_stop("`", nm, "` must be TRUE or FALSE", call. = FALSE)
   }
   invisible(NULL)
 }
@@ -414,17 +414,17 @@ sp_check_flag <- function(x, nm) {
 sp_check_contrast <- function(newdata, contrast) {
   if (is.null(contrast)) return(invisible(NULL))
   if (!is.data.frame(contrast) || !nrow(contrast)) {
-    stop("`contrast` must be a data frame with at least one row: it is ",
-         "the second grid the curve is differenced against",
-         call. = FALSE)
+    frm_stop("`contrast` must be a data frame with at least one row: it is ",
+             "the second grid the curve is differenced against",
+             call. = FALSE)
   }
   if (!is.data.frame(newdata) || nrow(contrast) != nrow(newdata)) {
-    stop("`contrast` must have the same number of rows as `newdata`, ",
-         "because the difference is taken row by row. It has ",
-         nrow(contrast), " against ",
-         if (is.data.frame(newdata)) nrow(newdata) else "none",
-         ". Repeat the row yourself to difference against one profile",
-         call. = FALSE)
+    frm_stop("`contrast` must have the same number of rows as `newdata`, ",
+             "because the difference is taken row by row. It has ",
+             nrow(contrast), " against ",
+             if (is.data.frame(newdata)) nrow(newdata) else "none",
+             ". Repeat the row yourself to difference against one profile",
+             call. = FALSE)
   }
   invisible(NULL)
 }
@@ -433,8 +433,8 @@ sp_check_contrast <- function(newdata, contrast) {
 sp_check_count <- function(x, nm, min = 1L) {
   if (!is.numeric(x) || length(x) != 1L || !is.finite(x) || x < min ||
       x != round(x)) {
-    stop("`", nm, "` must be a single whole number of at least ", min,
-         call. = FALSE)
+    frm_stop("`", nm, "` must be a single whole number of at least ", min,
+             call. = FALSE)
   }
   invisible(NULL)
 }

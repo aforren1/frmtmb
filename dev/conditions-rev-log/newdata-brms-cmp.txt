@@ -1,0 +1,29 @@
+rows 180 
+base OK, lane ERR (regression): 0 
+base ERR, lane OK: 0 
+lane ERR where brms OK: 3 
+lane OK where brms ERR: 19 
+
+ spec  newdata setting base lane brms lane_msg                  brms_msg                                                    
+ mixed no_g    allow   ERR  ERR  OK   ERR: object 'g' not found OK                                                          
+ mixed no_y    keep    OK   OK   ERR  OK                        ERR: Response variables must be specified in 'newdata'. Miss
+ mixed no_y    allow   OK   OK   ERR  OK                        ERR: Response variables must be specified in 'newdata'. Miss
+ mixed no_y    reNA    OK   OK   ERR  OK                        ERR: Response variables must be specified in 'newdata'. Miss
+ slope no_g    allow   ERR  ERR  OK   ERR: object 'g' not found OK                                                          
+ slope no_y    keep    OK   OK   ERR  OK                        ERR: Response variables must be specified in 'newdata'. Miss
+ slope no_y    allow   OK   OK   ERR  OK                        ERR: Response variables must be specified in 'newdata'. Miss
+ slope no_y    reNA    OK   OK   ERR  OK                        ERR: Response variables must be specified in 'newdata'. Miss
+ slope new_f   reNA    OK   OK   ERR  OK                        ERR: New factor levels are not allowed. Levels allowed: 'a',
+ wt    no_y    keep    OK   OK   ERR  OK                        ERR: Response variables must be specified in 'newdata'. Miss
+ wt    no_y    allow   OK   OK   ERR  OK                        ERR: Response variables must be specified in 'newdata'. Miss
+ wt    no_y    reNA    OK   OK   ERR  OK                        ERR: Response variables must be specified in 'newdata'. Miss
+ cens  no_y    keep    OK   OK   ERR  OK                        ERR: Response variables must be specified in 'newdata'. Miss
+ cens  no_y    allow   OK   OK   ERR  OK                        ERR: Response variables must be specified in 'newdata'. Miss
+ cens  no_y    reNA    OK   OK   ERR  OK                        ERR: Response variables must be specified in 'newdata'. Miss
+ binom no_g    allow   ERR  ERR  OK   ERR: object 'g' not found OK                                                          
+ binom no_y    keep    OK   OK   ERR  OK                        ERR: Response variables must be specified in 'newdata'. Miss
+ binom no_y    allow   OK   OK   ERR  OK                        ERR: Response variables must be specified in 'newdata'. Miss
+ binom no_y    reNA    OK   OK   ERR  OK                        ERR: Response variables must be specified in 'newdata'. Miss
+ binom no_ntr  keep    OK   OK   ERR  OK                        ERR: The following variables can neither be found in 'data' 
+ binom no_ntr  allow   OK   OK   ERR  OK                        ERR: The following variables can neither be found in 'data' 
+ binom no_ntr  reNA    OK   OK   ERR  OK                        ERR: The following variables can neither be found in 'data' 

@@ -1,0 +1,10 @@
+.libPaths(c('C:/Users/adf44/source/r/conditions-lib', 'C:/Users/adf44/source/r/pinlib', 'C:/Users/adf44/AppData/Local/R/win-library/4.6'))
+suppressPackageStartupMessages(library(frmtmb))
+
+f <- function() frm_message("note")
+zz <- textConnection("cap", "w")
+sink(zz, type = "message")
+f()
+sink(type = "message")
+close(zz)
+print(cap)

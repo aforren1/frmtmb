@@ -32,8 +32,8 @@ arg_desc <- function(x) {
 #' @noRd
 check_flag <- function(x, arg, what = NULL) {
   if (!is.logical(x) || length(x) != 1L || is.na(x)) {
-    stop("`", arg, "` must be TRUE or FALSE, not ", arg_desc(x),
-         if (is.null(what)) "" else paste0(". ", what), call. = FALSE)
+    frm_stop("`", arg, "` must be TRUE or FALSE, not ", arg_desc(x),
+             if (is.null(what)) "" else paste0(". ", what), call. = FALSE)
   }
   invisible(x)
 }

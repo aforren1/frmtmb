@@ -1,0 +1,4 @@
+Error in UseMethod("ndraws") : 
+  no applicable method for 'ndraws' applied to an object of class "frmtmb_multiple"
+
+RDEX-RESULT OK 

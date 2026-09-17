@@ -1,0 +1,6 @@
+"file"	"class"	"message"
+"tests/testthat/test-api-spellings.R"	"frmtmb_error/error/condition"	"pp_check() cannot honor `re.form`: lme4's spelling, no longer accepted. brms LEAKS it: pp_check.brmsfit() forwards its dots to posterior_predict(), so brms honors `re.form` there while WARNING that it ignored it. Warn-then-honor is the failure this refusal exists to stop, so the spelling is refused "
+"tests/testthat/test-api-spellings.R"	"frmtmb_error/error/condition"	"predict() cannot honor `re.form`: lme4's spelling, no longer accepted. brms is the tiebreaker on a name, so this setting is `re_formula` here as it is in brms. Pass re_formula ="
+"tests/testthat/test-api-spellings.R"	"frmtmb_error/error/condition"	"set_rescor() was given both `rescor` and `rescor_value`, which are two spellings of ONE setting, so it cannot tell which was meant. `rescor` is the spelling this function takes (it is brms's, and this is a brms function); `rescor_value` is accepted as an alias. Pass one of them"
+"tests/testthat/test-api-spellings.R"	"frmtmb_error/error/condition"	"`rescor` must be TRUE or FALSE, not character \"yes\". (`rescor_value` is the same setting under its old name)"
+"tests/testthat/test-api-spellings.R"	"frmtmb_error/error/condition"	"`flatten` must be TRUE or FALSE, not character \"yes\""

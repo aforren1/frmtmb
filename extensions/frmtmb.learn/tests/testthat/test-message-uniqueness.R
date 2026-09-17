@@ -38,7 +38,7 @@ test_that("every condition message template in this R/ is unique", {
     out <- character(0)
     walk <- function(e) {
       if (!is.call(e)) return(invisible(NULL))
-      if (is.name(e[[1L]]) && identical(as.character(e[[1L]]), kind)) {
+      if (is.name(e[[1L]]) && as.character(e[[1L]]) %in% kind) {
         lits <- character(0)
         for (i in seq_along(e)[-1L]) {
           # an empty argument (`x[, 1]`) errors when TOUCHED, not when
@@ -64,8 +64,13 @@ test_that("every condition message template in this R/ is unique", {
   }
 
   found <- 0L
-  for (kind in c("stop", "warning", "message")) {
-    msgs <- collect(kind)
+  # frm_stop() and its siblings raise the classed conditions and take
+  # the same arguments, so a template is pooled with its base spelling
+  pools <- list(stop = c("stop", "frm_stop"),
+                warning = c("warning", "frm_warning"),
+                message = c("message", "frm_message"))
+  for (kind in names(pools)) {
+    msgs <- collect(pools[[kind]])
     found <- found + length(msgs)
     dup <- unique(msgs[duplicated(msgs)])
     expect_length(dup, 0)

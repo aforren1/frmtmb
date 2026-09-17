@@ -399,10 +399,10 @@ family.frmtmb_fit <- function(object, ...) {
 #' @export
 rescor_matrix <- function(fit) {
   if (inherits(fit, "frmtmb_draws")) {
-    stop("rescor_matrix() reads the fitted point estimate, so it ",
-         "takes the frmtmb_fit, not draws: rescor_matrix(ds$fit). For ",
-         "the posterior of the correlation, subset_draws() on the ",
-         "rescor columns of as_draws(ds)", call. = FALSE)
+    frm_stop("rescor_matrix() reads the fitted point estimate, so it ",
+             "takes the frmtmb_fit, not draws: rescor_matrix(ds$fit). For ",
+             "the posterior of the correlation, subset_draws() on the ",
+             "rescor columns of as_draws(ds)", call. = FALSE)
   }
   if (!isTRUE(fit$spec$rescor)) return(NULL)
   K <- length(fit$spec$responses)
@@ -549,9 +549,9 @@ vcov.frmtmb_fit <- function(object, full = FALSE, cluster = NULL,
         dimnames(Vf) <- list(onm, onm)
         return(Vf)
       }
-      warning("full = TRUE could not align the joint-precision blocks ",
-              "with the outer parameter names; returning the ",
-              "fixed-effect block", call. = FALSE)
+      frm_warning("full = TRUE could not align the joint-precision blocks ",
+                  "with the outer parameter names; returning the ",
+                  "fixed-effect block", call. = FALSE)
     }
     ord <- c(which(rn == "beta"), which(rn == "betad"))
     V <- as.matrix(Vall[ord, ord, drop = FALSE])
@@ -913,13 +913,13 @@ ranef_pick <- function(x, i) {
   ti <- which(tl == i)
   if (length(ti) == 1L) return(list(found = TRUE, value = y[[ti]]))
   if (length(hit) > 1L) {
-    stop("ranef() has ", length(hit), " random-effect blocks on ",
-         "grouping factor '", i, "', so '", i, "' does not name one of ",
-         "them. Address a block by its term label - ",
-         paste0("[[\"", tl[hit], "\"]]", collapse = ", "),
-         " - or by position. The label is also each block's \"term\" ",
-         "attribute and the `grp` column of as.data.frame()",
-         call. = FALSE)
+    frm_stop("ranef() has ", length(hit), " random-effect blocks on ",
+             "grouping factor '", i, "', so '", i, "' does not name one of ",
+             "them. Address a block by its term label - ",
+             paste0("[[\"", tl[hit], "\"]]", collapse = ", "),
+             " - or by position. The label is also each block's \"term\" ",
+             "attribute and the `grp` column of as.data.frame()",
+             call. = FALSE)
   }
   list(found = FALSE, value = NULL)
 }
@@ -1257,12 +1257,12 @@ VarCorr.frmtmb_fit <- function(x, sigma = 1, summary = TRUE,
   fit_refuse_draws_args("VarCorr()", summary = summary, robust = robust)
   if (!is.numeric(probs) || !length(probs) || anyNA(probs) ||
         any(probs < 0) || any(probs > 1)) {
-    stop("VarCorr(): `probs` must be numbers between 0 and 1",
-         call. = FALSE)
+    frm_stop("VarCorr(): `probs` must be numbers between 0 and 1",
+             call. = FALSE)
   }
   lay <- varcorr_layout(x)
   if (!length(lay$groups) && is.null(lay$residual)) {
-    stop("The model does not contain covariance matrices.", call. = FALSE)
+    frm_stop("The model does not contain covariance matrices.", call. = FALSE)
   }
   pc <- hyp_par_cov(x)
   flat <- function(v) {
@@ -1336,31 +1336,31 @@ fit_refuse_draws_args <- function(what, summary = TRUE, robust = FALSE,
   tail <- paste0(" Sample with frmtmb.sample::frm_sample() and call ",
                  what, " on the draws for that")
   if (!summary) {
-    stop(what, " cannot honor summary = FALSE: brms returns the ",
-         "posterior draws there, and a maximum-likelihood fit has none. ",
-         "It carries one estimate and no chains, so the only answer it ",
-         "has is the summary, which is a different return shape.", tail,
-         call. = FALSE)
+    frm_stop(what, " cannot honor summary = FALSE: brms returns the ",
+             "posterior draws there, and a maximum-likelihood fit has none. ",
+             "It carries one estimate and no chains, so the only answer it ",
+             "has is the summary, which is a different return shape.", tail,
+             call. = FALSE)
   }
   if (robust) {
-    stop(what, " cannot honor robust = TRUE: brms's robust summary is ",
-         "the median and MAD of the draws, and a maximum-likelihood fit ",
-         "has no draws.", tail, call. = FALSE)
+    frm_stop(what, " cannot honor robust = TRUE: brms's robust summary is ",
+             "the median and MAD of the draws, and a maximum-likelihood fit ",
+             "has no draws.", tail, call. = FALSE)
   }
   if (!is.null(probs) && !isTRUE(all.equal(probs, c(0.025, 0.975)))) {
-    stop(what, " cannot honor `probs`: brms reports quantiles of the ",
-         "draws, and this method returns point estimates with no ",
-         "quantile columns. For an interval here use confint().", tail,
-         call. = FALSE)
+    frm_stop(what, " cannot honor `probs`: brms reports quantiles of the ",
+             "draws, and this method returns point estimates with no ",
+             "quantile columns. For an interval here use confint().", tail,
+             call. = FALSE)
   }
   if (!is.null(pars)) {
-    stop(what, " cannot honor `pars`: ",
-         brms_draws_summary_args[["pars"]], call. = FALSE)
+    frm_stop(what, " cannot honor `pars`: ",
+             brms_draws_summary_args[["pars"]], call. = FALSE)
   }
   if (!is.null(groups)) {
-    stop(what, " cannot honor `groups`: brms's `groups` selects ",
-         "grouping factors; the return value here is a named list, so ",
-         "index it", call. = FALSE)
+    frm_stop(what, " cannot honor `groups`: brms's `groups` selects ",
+             "grouping factors; the return value here is a named list, so ",
+             "index it", call. = FALSE)
   }
   invisible(NULL)
 }
@@ -1429,7 +1429,7 @@ expose_functions <- function(x, ...) UseMethod("expose_functions")
 #' @exportS3Method brms::expose_functions
 #' @export
 expose_functions.frmtmb_fit <- function(x, ...) {
-  stop("expose_functions() has no Stan program to read on a frmtmb ",
-       "fit: a custom family's lpdf is the plain R function handed to ",
-       "custom_family(), callable as it is", call. = FALSE)
+  frm_stop("expose_functions() has no Stan program to read on a frmtmb ",
+           "fit: a custom family's lpdf is the plain R function handed to ",
+           "custom_family(), callable as it is", call. = FALSE)
 }

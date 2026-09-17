@@ -1,0 +1,2 @@
+"file"	"class"	"message"
+"extensions/frmtmb.spline/tests/testthat/test-frailty.R"	"frmtmb_spline_error/frmtmb_error/error/condition"	"rp_floored(): this fit's reported likelihood is not the model's. 15 of 800 observed rows have a non-positive d(eta)/d(log t) at the fitted parameters, so no hazard exists there and their true log density is -Inf. This family floors them to keep the optimizer alive, which makes logLik() and AIC() a p"

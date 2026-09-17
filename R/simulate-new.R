@@ -150,19 +150,19 @@ check_natural_supported <- function(frame) {
   extra <- setdiff(names(frame[["par_template"]]),
                    c("beta", "betad", "b", "theta"))
   if (length(extra)) {
-    stop("Natural-scale newparams does not cover the parameter ",
-         "component(s) ", paste(extra, collapse = ", "),
-         "; use the internal spelling", call. = FALSE)
+    frm_stop("Natural-scale newparams does not cover the parameter ",
+             "component(s) ", paste(extra, collapse = ", "),
+             "; use the internal spelling", call. = FALSE)
   }
   for (bk in frame[["re_blocks"]]) {
     if (is.null(covstruct_registry[[bk[["covstruct"]]]]$from_natural)) {
-      stop("Natural-scale newparams cannot set the '", bk[["covstruct"]],
-           "' block (", bk[["term_label"]], "): no inverse map from ",
-           "standard deviations and correlations. Structures with one: ",
-           paste(sort(names(Filter(function(e) !is.null(e$from_natural),
-                                   covstruct_registry))),
-                 collapse = ", "),
-           ". Use the internal spelling (theta).", call. = FALSE)
+      frm_stop("Natural-scale newparams cannot set the '", bk[["covstruct"]],
+               "' block (", bk[["term_label"]], "): no inverse map from ",
+               "standard deviations and correlations. Structures with one: ",
+               paste(sort(names(Filter(function(e) !is.null(e$from_natural),
+                                       covstruct_registry))),
+                     collapse = ", "),
+               ". Use the internal spelling (theta).", call. = FALSE)
     }
   }
 }
@@ -180,25 +180,25 @@ apply_natural <- function(est, frame, slots, np) {
     # brms's names only, the strings variables() returns: accepting the
     # bare spelling too would give one parameter two names here and one
     # everywhere else
-    stop("newparams takes brms's parameter names, the ones variables() ",
-         "returns. Rename: ",
-         paste0(old, " -> ", attr(slots, "legacy")[old], collapse = ", "),
-         call. = FALSE)
+    frm_stop("newparams takes brms's parameter names, the ones variables() ",
+             "returns. Rename: ",
+             paste0(old, " -> ", attr(slots, "legacy")[old], collapse = ", "),
+             call. = FALSE)
   }
   if (length(bad)) {
-    stop("Unknown newparams name(s): ", paste(bad, collapse = ", "),
-         ". Available: ", paste(names(slots), collapse = ", "),
-         call. = FALSE)
+    frm_stop("Unknown newparams name(s): ", paste(bad, collapse = ", "),
+             ". Available: ", paste(names(slots), collapse = ", "),
+             call. = FALSE)
   }
   amb <- intersect(names(np), attr(slots, "ambiguous"))
   if (length(amb)) {
-    stop("Ambiguous newparams name(s): ", paste(amb, collapse = ", "),
-         " (two parameters share the name); use the internal spelling",
-         call. = FALSE)
+    frm_stop("Ambiguous newparams name(s): ", paste(amb, collapse = ", "),
+             " (two parameters share the name); use the internal spelling",
+             call. = FALSE)
   }
   for (nm in names(np)) {
     if (!is.numeric(np[[nm]]) || length(np[[nm]]) != 1L) {
-      stop("newparams$", nm, " must be a single number", call. = FALSE)
+      frm_stop("newparams$", nm, " must be a single number", call. = FALSE)
     }
   }
 
@@ -236,13 +236,13 @@ apply_natural <- function(est, frame, slots, np) {
       est[[s$comp]][s$idx] <- s$link$linkfun(v)
     } else if (s$kind == "sd") {
       if (v <= 0) {
-        stop("newparams$", nm, " must be positive", call. = FALSE)
+        frm_stop("newparams$", nm, " must be positive", call. = FALSE)
       }
       sds[[as.character(s$blk)]][s$pos] <- v
     } else {
       if (abs(v) >= 1) {
-        stop("newparams$", nm, " must lie strictly between -1 and 1",
-             call. = FALSE)
+        frm_stop("newparams$", nm, " must lie strictly between -1 and 1",
+                 call. = FALSE)
       }
       C <- cors[[as.character(s$blk)]]
       C[s$j, s$k] <- v
@@ -270,21 +270,21 @@ apply_natural <- function(est, frame, slots, np) {
     }, TRUE)]
     all_nm <- all_nm[order(vapply(slots[all_nm], `[[`, 1L, "k"))]
     if (!setequal(names(given), all_nm)) {
-      stop("newparams sets a mixture's weights together: give ",
-           paste(all_nm, collapse = ", "), ", which sum to one (",
-           "missing: ", paste(setdiff(all_nm, names(given)),
-                              collapse = ", "), ")", call. = FALSE)
+      frm_stop("newparams sets a mixture's weights together: give ",
+               paste(all_nm, collapse = ", "), ", which sum to one (",
+               "missing: ", paste(setdiff(all_nm, names(given)),
+                                  collapse = ", "), ")", call. = FALSE)
     }
     p <- unlist(given[all_nm])
     if (any(p <= 0 | p >= 1)) {
-      stop("newparams: the mixture weights ",
-           paste(all_nm, collapse = ", "), " must each lie strictly ",
-           "between 0 and 1", call. = FALSE)
+      frm_stop("newparams: the mixture weights ",
+               paste(all_nm, collapse = ", "), " must each lie strictly ",
+               "between 0 and 1", call. = FALSE)
     }
     if (abs(sum(p) - 1) > sqrt(.Machine$double.eps)) {
-      stop("newparams: the mixture weights ",
-           paste(all_nm, collapse = ", "), " must sum to one, not ",
-           format(sum(p), digits = 15), call. = FALSE)
+      frm_stop("newparams: the mixture weights ",
+               paste(all_nm, collapse = ", "), " must sum to one, not ",
+               format(sum(p), digits = 15), call. = FALSE)
     }
     lg <- s1$to_logits(p)
     for (nm in all_nm) {
@@ -315,7 +315,7 @@ rprior_one <- function(dist) {
     inv_gamma = 1 / stats::rgamma(1L, shape = dist$shape,
                                   rate = dist$scale),
     beta = stats::rbeta(1L, dist$shape1, dist$shape2),
-    stop("No sampler for prior kind '", dist$kind, "'", call. = FALSE)
+    frm_stop("No sampler for prior kind '", dist$kind, "'", call. = FALSE)
   )
 }
 
@@ -331,10 +331,10 @@ draw_prior_entry <- function(e, label, max_try = 1000L) {
     # the entry is a density on a whole ORDERED vector, and one draw
     # from the marginal would not be ordered. Pinning the thresholds is
     # what a prior-predictive ordinal simulation needs anyway
-    stop("A prior on ", label, " is a density on the whole threshold ",
-         "vector, and drawing from it one threshold at a time would ",
-         "not produce an ordered one. Pin the thresholds with ",
-         "newparams = list(tau_raw = ) instead", call. = FALSE)
+    frm_stop("A prior on ", label, " is a density on the whole threshold ",
+             "vector, and drawing from it one threshold at a time would ",
+             "not produce an ordered one. Pin the thresholds with ",
+             "newparams = list(tau_raw = ) instead", call. = FALSE)
   }
   # a "natural" entry's density is about the dpar itself, so a draw
   # outside the link's own support has no internal value to write and is
@@ -350,8 +350,8 @@ draw_prior_entry <- function(e, label, max_try = 1000L) {
       return(v)
     }
   }
-  stop("The prior on ", label, " did not produce a draw inside [",
-       lb, ", ", ub, "] in ", max_try, " tries", call. = FALSE)
+  frm_stop("The prior on ", label, " did not produce a draw inside [",
+           lb, ", ", ub, "] in ", max_try, " tries", call. = FALSE)
 }
 
 #' The internal value one drawn prior value stands for, undoing the
@@ -507,9 +507,9 @@ check_coverage <- function(frame, slots, np_internal, np_natural,
   }
 
   if (length(missing_nm)) {
-    stop("No value for ", paste(unique(missing_nm), collapse = ", "),
-         ": every coefficient and random-effect SD needs a newparams ",
-         "entry or a prior", call. = FALSE)
+    frm_stop("No value for ", paste(unique(missing_nm), collapse = ", "),
+             ": every coefficient and random-effect SD needs a newparams ",
+             "entry or a prior", call. = FALSE)
   }
   invisible(NULL)
 }
@@ -678,19 +678,20 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
   # written rather than the one the likelihood would score.
   spec <- carry_finalized_responses(spec, frame)
   if (length(spec$responses) > 1L) {
-    stop("frm_simulate() supports univariate models", call. = FALSE)
+    frm_stop("frm_simulate() supports univariate models", call. = FALSE)
   }
   rspec <- spec$responses[[1L]]
   if (!sim_can(rspec$family)) {
-    stop("frm_simulate(): family '", rspec$family[["family"]],
-         "' has no simulator yet", sim_note(rspec$family), call. = FALSE)
+    frm_stop("frm_simulate(): family '", rspec$family[["family"]],
+             "' has no simulator yet", sim_note(rspec$family), call. = FALSE,
+             package = frm_family_package(rspec$family))
   }
   if (is.null(newparams) && is.null(prior)) {
-    stop("frm_simulate() needs newparams, prior, or both", call. = FALSE)
+    frm_stop("frm_simulate() needs newparams, prior, or both", call. = FALSE)
   }
   newparams <- newparams %||% list()
   if (length(newparams) && is.null(names(newparams))) {
-    stop("newparams must be a named list", call. = FALSE)
+    frm_stop("newparams must be a named list", call. = FALSE)
   }
 
   est <- frame[["par_template"]]
@@ -707,14 +708,14 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
                                      function(r) r$nlpars %||% character(0))))
     for (nm in names(np_internal)) {
       if (length(np_internal[[nm]]) != length(est[[nm]])) {
-        stop("newparams$", nm, " must have length ", length(est[[nm]]),
-             if (nm %in% nl_named) {
-               paste0(". ", nl_start_collision_msg(nm, est, "newparams"))
-             },
-             call. = FALSE)
+        frm_stop("newparams$", nm, " must have length ", length(est[[nm]]),
+                 if (nm %in% nl_named) {
+                   paste0(". ", nl_start_collision_msg(nm, est, "newparams"))
+                 },
+                 call. = FALSE)
       }
       if (nm %in% nl_named) {
-        warning(nl_start_collision_msg(nm, est, "newparams"), call. = FALSE)
+        frm_warning(nl_start_collision_msg(nm, est, "newparams"), call. = FALSE)
       }
       est[[nm]][] <- np_internal[[nm]]
     }
@@ -729,7 +730,7 @@ frm_simulate <- function(formula, data, family = NULL, newparams = NULL,
     shim0 <- list(spec = spec, frame = frame, estimates = est)
     entries <- resolve_prior_input(shim0, prior)$entries
     if (!length(entries)) {
-      stop("The prior specification targets no parameter", call. = FALSE)
+      frm_stop("The prior specification targets no parameter", call. = FALSE)
     }
     labels <- vapply(entries, function(e) {
       prior_entry_label(frame, slots, e)

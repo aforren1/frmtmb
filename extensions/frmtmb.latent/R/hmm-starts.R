@@ -310,32 +310,32 @@ hmm_starts <- function(fit, n = 8L, jitter = 2, seed = NULL,
   check_flag(keep, "keep")
   if (length(n) != 1L || !is.numeric(n) || is.na(n) || n != round(n) ||
       n < 1) {
-    stop("hmm_starts(): `n` must be a whole number of refits, at ",
-         "least 1, not ", arg_desc(n), call. = FALSE)
+    frm_stop("hmm_starts(): `n` must be a whole number of refits, at ",
+             "least 1, not ", arg_desc(n), call. = FALSE)
   }
   n <- as.integer(n)
   if (length(jitter) != 1L || !is.numeric(jitter) || !is.finite(jitter) ||
       jitter <= 0) {
-    stop("hmm_starts(): `jitter` must be one positive number, the ",
-         "perturbation size in standard errors, not ", arg_desc(jitter),
-         call. = FALSE)
+    frm_stop("hmm_starts(): `jitter` must be one positive number, the ",
+             "perturbation size in standard errors, not ", arg_desc(jitter),
+             call. = FALSE)
   }
   if (length(grad_tol) != 1L || !is.numeric(grad_tol) ||
       !is.finite(grad_tol) || grad_tol <= 0) {
-    stop("hmm_starts(): `grad_tol` must be one positive number, the ",
-         "largest max|gradient| / |logLik| a refit may have and still ",
-         "count as converged, not ", arg_desc(grad_tol), call. = FALSE)
+    frm_stop("hmm_starts(): `grad_tol` must be one positive number, the ",
+             "largest max|gradient| / |logLik| a refit may have and still ",
+             "count as converged, not ", arg_desc(grad_tol), call. = FALSE)
   }
   par <- fit[["opt"]][["par"]]
   if (!length(par)) {
-    stop("hmm_starts(): this fit has no free outer parameters, so ",
-         "there is nothing to restart from", call. = FALSE)
+    frm_stop("hmm_starts(): this fit has no free outer parameters, so ",
+             "there is nothing to restart from", call. = FALSE)
   }
 
   cl <- fit[["call"]]
   if (is.null(cl)) {
-    stop("hmm_starts(): this fit carries no call to re-evaluate, so it ",
-         "cannot be refit", call. = FALSE)
+    frm_stop("hmm_starts(): this fit carries no call to re-evaluate, so it ",
+             "cannot be refit", call. = FALSE)
   }
   env <- new.env(parent = parent.frame())
   # a `[[` READ of an absent name on a call is an error rather than
@@ -358,10 +358,10 @@ hmm_starts <- function(fit, n = 8L, jitter = 2, seed = NULL,
     TRUE
   }, error = function(e) conditionMessage(e))
   if (!isTRUE(ok)) {
-    stop("hmm_starts(): the model's own call could not be re-evaluated ",
-         "from here, so there is nothing to refit. The data and any ",
-         "other symbol the call names must be visible from where ",
-         "hmm_starts() is called. The call reported: ", ok, call. = FALSE)
+    frm_stop("hmm_starts(): the model's own call could not be re-evaluated ",
+             "from here, so there is nothing to refit. The data and any ",
+             "other symbol the call names must be visible from where ",
+             "hmm_starts() is called. The call reported: ", ok, call. = FALSE)
   }
 
   sc <- hmm_starts_scale(fit)

@@ -1214,7 +1214,8 @@ test_that("conditional_effects(method =) takes brms's vocabulary too", {
                                    method = "posterior_linpred"),
                "no frmtmb spelling")
   expect_error(conditional_effects(s$fit, effects = "x", method = "nope"),
-               "should be one of")
+               "`method` must be one of \"epred\", \"predict\"",
+               class = "frmtmb_error")
 })
 
 # ---------------------------------------------------------------------
@@ -1465,7 +1466,8 @@ test_that("newdata: both agree on the values and on what is refused", {
   # a column the model needs is refused by both, in different words
   drop <- dd[1:5, setdiff(names(dd), "z"), drop = FALSE]
   expect_error(brms::posterior_epred(s$brmsfit, newdata = drop))
-  expect_error(predict(s$fit, newdata = drop, type = "response"))
+  expect_error(predict(s$fit, newdata = drop, type = "response"),
+               "Variable 'z' missing from newdata", class = "frmtmb_error")
 })
 
 test_that("newdata: dropping a factor level, and adding one", {
@@ -1494,5 +1496,6 @@ test_that("newdata: dropping a factor level, and adding one", {
   expect_error(brms::posterior_epred(s$brmsfit, newdata = ndn),
                "New factor levels are not allowed")
   expect_error(predict(s$fit, newdata = ndn, type = "response"),
-               "new levels")
+               "a level of `f` that the fit did not see: 'zz'",
+               class = "frmtmb_error")
 })

@@ -103,18 +103,22 @@ ndt_bound <- function(y, aterms = list(), max_ndt = NULL,
   # which is the exact sentinel ddm_scaled_logit() reads as PENDING: a
   # response with one missing value would then produce "the bound is not
   # set yet" from a family whose bound WAS set.
-  ddm_check_y_times(y, what)
-  ddm_check_max_ndt(max_ndt, what)
-  sp <- ddm_ndt_spec(y, aterms, max_ndt, what)
+  # the refusals below are the calling family's, so they carry the
+  # subclass of the package that asked for the bound
+  package <- ddm_caller_package(parent.frame())
+  ddm_check_y_times(y, what, package)
+  ddm_check_max_ndt(max_ndt, what, package)
+  sp <- ddm_ndt_spec(y, aterms, max_ndt, what, package)
   if (!is.null(max_ndt) && sp[["ub"]] > min(y)) {
-    stop(what, ": max_ndt = ", format(sp[["ub"]]), " is above the ",
-         "fastest response (", format(min(y)), "), so the bound admits ",
-         "non-decision times at which that trial has no likelihood. ",
-         "Give a max_ndt at or below the fastest response, or drop it ",
-         "and let the data set the bound.", call. = FALSE)
+    frm_stop(what, ": max_ndt = ", format(sp[["ub"]]), " is above the ",
+             "fastest response (", format(min(y)), "), so the bound admits ",
+             "non-decision times at which that trial has no likelihood. ",
+             "Give a max_ndt at or below the fastest response, or drop it ",
+             "and let the data set the bound.", call. = FALSE,
+             package = package)
   }
   ddm_ndt_bound_new(sp[["ub"]], sp[["floors"]], FALSE, sp[["sizes"]],
-                    what)
+                    what, package)
 }
 
 #' The bound a family carries before it has seen a response
@@ -156,11 +160,26 @@ ndt_bound <- function(y, aterms = list(), max_ndt = NULL,
 #' ndt_bound_pending(0.4)[["ub"]]
 #' @export
 ndt_bound_pending <- function(max_ndt = NULL, what = "ndt_bound()") {
+  package <- ddm_caller_package(parent.frame())
   if (is.null(max_ndt)) {
-    return(ddm_ndt_bound_new(NA_real_, NULL, TRUE, NULL, what))
+    return(ddm_ndt_bound_new(NA_real_, NULL, TRUE, NULL, what, package))
   }
-  ddm_check_max_ndt(max_ndt, what)
-  ddm_ndt_bound_new(as.numeric(max_ndt), NULL, FALSE, NULL, what)
+  ddm_check_max_ndt(max_ndt, what, package)
+  ddm_ndt_bound_new(as.numeric(max_ndt), NULL, FALSE, NULL, what, package)
+}
+
+#' The package whose code called a seam entry point, or `NULL` from
+#' outside any namespace.
+#'
+#' A refusal the seam raises for another package's family is that
+#' package's refusal (?frmtmb::frmtmb-conditions), and the seam is the
+#' only place that knows which package asked. `NULL` leaves the
+#' subclass to frm_stop(), which gives frmtmb.eam's own.
+#'
+#' @noRd
+ddm_caller_package <- function(env) {
+  top <- topenv(env)
+  if (isNamespace(top)) unname(getNamespaceName(top))
 }
 
 #' The one check both seam entry points make on `max_ndt`.
@@ -171,13 +190,13 @@ ndt_bound_pending <- function(max_ndt = NULL, what = "ndt_bound()") {
 #' with one of them exported as API.
 #'
 #' @noRd
-ddm_check_max_ndt <- function(max_ndt, what) {
+ddm_check_max_ndt <- function(max_ndt, what, package = NULL) {
   if (is.null(max_ndt)) return(invisible(NULL))
   if (!is.numeric(max_ndt) || length(max_ndt) != 1L ||
       !is.finite(max_ndt) || max_ndt <= 0) {
-    stop(what, ": max_ndt is one positive number, the largest ",
-         "non-decision time the fit may consider, in the response's ",
-         "own units.", call. = FALSE)
+    frm_stop(what, ": max_ndt is one positive number, the largest ",
+             "non-decision time the fit may consider, in the response's ",
+             "own units.", call. = FALSE, package = package)
   }
   invisible(NULL)
 }
@@ -191,19 +210,19 @@ ddm_check_max_ndt <- function(max_ndt, what) {
 #' last of those collides with the PENDING sentinel.
 #'
 #' @noRd
-ddm_check_y_times <- function(y, what) {
+ddm_check_y_times <- function(y, what, package = NULL) {
   if (!is.numeric(y) || !length(y) || anyNA(y) || !all(is.finite(y)) ||
       any(y <= 0)) {
-    stop(what, ": the response a non-decision-time bound is derived ",
-         "from is one or more positive, finite times, and the bound is ",
-         "the fastest of them. Got ", class(y)[[1L]], " of length ",
-         length(y),
-         if (is.numeric(y) && length(y) && anyNA(y)) {
-           " with a missing value"
-         } else if (is.numeric(y) && length(y) && any(y <= 0)) {
-           " with a value at or below zero"
-         } else "",
-         ".", call. = FALSE)
+    frm_stop(what, ": the response a non-decision-time bound is derived ",
+             "from is one or more positive, finite times, and the bound is ",
+             "the fastest of them. Got ", class(y)[[1L]], " of length ",
+             length(y),
+             if (is.numeric(y) && length(y) && anyNA(y)) {
+               " with a missing value"
+             } else if (is.numeric(y) && length(y) && any(y <= 0)) {
+               " with a value at or below zero"
+             } else "",
+             ".", call. = FALSE, package = package)
   }
   invisible(NULL)
 }
@@ -289,14 +308,15 @@ ndt_apply <- function(dpars, aterms = dpars, what = "this family") {
   fl <- aterms[["ndt_floor"]]
   if (!is.null(fl)) return(dpars[["ndt"]] * fl)
   if (!is.null(aterms[["ndt_group"]])) {
-    stop(what, ": this model bounds the non-decision time by each ",
-         "ndt_group()'s own fastest response, so `ndt` is a fraction ",
-         "of that bound and the per-row bound has to arrive with the ",
-         "addition-term values as `ndt_floor`. It did not, and reading ",
-         "the fraction as a time would give a converged fit at a wrong ",
-         "answer. ndt_bound_attach() is what adds `ndt_floor`, so a ",
-         "family object assembled by hand, or a frame built without ",
-         "that family_finalize(), is what reaches this.", call. = FALSE)
+    frm_stop(what, ": this model bounds the non-decision time by each ",
+             "ndt_group()'s own fastest response, so `ndt` is a fraction ",
+             "of that bound and the per-row bound has to arrive with the ",
+             "addition-term values as `ndt_floor`. It did not, and reading ",
+             "the fraction as a time would give a converged fit at a wrong ",
+             "answer. ndt_bound_attach() is what adds `ndt_floor`, so a ",
+             "family object assembled by hand, or a frame built without ",
+             "that family_finalize(), is what reaches this.", call. = FALSE,
+             package = ddm_caller_package(parent.frame()))
   }
   dpars[["ndt"]]
 }
@@ -392,15 +412,15 @@ ndt_bound_key <- function(x) ddm_coerce_ndt_group(x)
 #' @export
 ndt_bound_attach <- function(fam, bound) {
   if (!inherits(fam, "frmtmb_family")) {
-    stop("ndt_bound_attach(fam =) takes the family object a ",
-         "family_finalize() is handed, and got ",
-         paste(class(fam), collapse = "/"), call. = FALSE)
+    frm_stop("ndt_bound_attach(fam =) takes the family object a ",
+             "family_finalize() is handed, and got ",
+             paste(class(fam), collapse = "/"), call. = FALSE)
   }
   if (!inherits(bound, "frmtmb_eam_ndt_bound")) {
-    stop("ndt_bound_attach(bound =) takes what ndt_bound() returns. A ",
-         "hand-built list is refused because the seam owns the ",
-         "refusals that go with deriving a bound, and a list assembled ",
-         "beside them would carry none of them.", call. = FALSE)
+    frm_stop("ndt_bound_attach(bound =) takes what ndt_bound() returns. A ",
+             "hand-built list is refused because the seam owns the ",
+             "refusals that go with deriving a bound, and a list assembled ",
+             "beside them would carry none of them.", call. = FALSE)
   }
   # THE GUARD, AND WHY IT IS NOT `ndt_raw`. The first version refused a
   # family carrying `ndt_raw`, the marker ddm_ndt_install() leaves. Only
@@ -418,24 +438,24 @@ ndt_bound_attach <- function(fam, bound) {
   # object that has already been through ddm_ndt_install().
   if (!is.null(fam[["ndt_raw"]]) ||
         isTRUE(fam[["family"]] %in% names(ddm_accepts))) {
-    stop("ndt_bound_attach(): `", fam[["family"]], "` is one of ",
-         "frmtmb.eam's own families and cannot take a bound this way. ",
-         "wiener(), lba(), rdm() and wiener_gng() install theirs ",
-         "through their constructor's max_ndt argument and their own ",
-         "family_finalize(), and attaching a second one here would set ",
-         "the link without the slot wrapping that goes with it, so the ",
-         "density would read a fraction as a time. gddm() takes no ",
-         "per-group bound at all: its solver reads every distributional ",
-         "parameter at the FIRST ROW of a condition, so a per-row bound ",
-         "would never reach its density, and ?gddm says so. This seam ",
-         "is for a family in ANOTHER package whose own density reads ",
-         "`ndt_floor`.", call. = FALSE)
+    frm_stop("ndt_bound_attach(): `", fam[["family"]], "` is one of ",
+             "frmtmb.eam's own families and cannot take a bound this way. ",
+             "wiener(), lba(), rdm() and wiener_gng() install theirs ",
+             "through their constructor's max_ndt argument and their own ",
+             "family_finalize(), and attaching a second one here would set ",
+             "the link without the slot wrapping that goes with it, so the ",
+             "density would read a fraction as a time. gddm() takes no ",
+             "per-group bound at all: its solver reads every distributional ",
+             "parameter at the FIRST ROW of a condition, so a per-row bound ",
+             "would never reach its density, and ?gddm says so. This seam ",
+             "is for a family in ANOTHER package whose own density reads ",
+             "`ndt_floor`.", call. = FALSE)
   }
   if (!"ndt" %in% names(fam[["links"]])) {
-    stop("ndt_bound_attach(): this family has no distributional ",
-         "parameter named `ndt`, so there is nothing to bound. The ",
-         "seam sets the `ndt` link and the `ndt` starting value and ",
-         "reads no other parameter.", call. = FALSE)
+    frm_stop("ndt_bound_attach(): this family has no distributional ",
+             "parameter named `ndt`, so there is nothing to bound. The ",
+             "seam sets the `ndt` link and the `ndt` starting value and ",
+             "reads no other parameter.", call. = FALSE)
   }
   # The pre-attach state is kept so that a second call REPLACES the
   # first bound instead of composing with it. frm() finalizes the same
@@ -452,12 +472,13 @@ ndt_bound_attach <- function(fam, bound) {
   fl <- bound[["floors"]]
   what <- bound[["what"]]
   if (is.null(what)) what <- "ndt_bound()"
+  package <- attr(bound, "package", exact = TRUE)
   if (is.null(fl)) {
     fam[["links"]][["ndt"]] <- ddm_scaled_logit(
       if (isTRUE(bound[["pending"]])) NA_real_ else bound[["ub"]],
-      "non-decision time", what)
+      "non-decision time", what, package)
   } else {
-    scale <- ddm_ndt_scaler(fl, what)
+    scale <- ddm_ndt_scaler(fl, what, package)
     fam[["links"]][["ndt"]] <- "logit"
     # half of each group's own bound, which is what the scalar case's
     # `0.5 * min(y)` meant when there was one bound. max_ndt cannot be

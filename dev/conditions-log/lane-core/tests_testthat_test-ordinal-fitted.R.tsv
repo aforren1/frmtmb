@@ -1,0 +1,3 @@
+"file"	"class"	"message"
+"tests/testthat/test-ordinal-fitted.R"	"frmtmb_error/error/condition"	"residuals(type = \"deviance\") is not available for family 'cumulative': it has no standard unit deviance. Families with one: Beta, Gamma, bernoulli, beta, binomial, exponential, gaussian, geometric, huber, inverse.gaussian, nbinom1, nbinom2, negbinomial, poisson, tweedie. Use type = \"osa\" or dharma_r"
+"tests/testthat/test-ordinal-fitted.R"	"frmtmb_error/error/condition"	"method = \"predict\" has no meaning on an ordinal family: the category probabilities conditional_effects() draws ARE the predictive distribution, so there is no further observation noise to add. Use method = \"epred\" (the default), or ask for the latent predictor with dpar = \"mu\""

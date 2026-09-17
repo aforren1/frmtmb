@@ -423,11 +423,11 @@ rlddm <- function(subject, trial = NULL, max_ndt = NULL) {
 #' @noRd
 ln_valid_rt <- function(y, aterms) {
   if (!is.numeric(y) || anyNA(y) || any(y <= 0)) {
-    stop("rlddm(): the response is the response TIME, a positive ",
-         "number, and the option taken travels in dec(). A response ",
-         "coded 1 or 2 is the usual mistake: that is what the six ",
-         "softmax families here take, and this one takes the time",
-         call. = FALSE)
+    frm_stop("rlddm(): the response is the response TIME, a positive ",
+             "number, and the option taken travels in dec(). A response ",
+             "coded 1 or 2 is the usual mistake: that is what the six ",
+             "softmax families here take, and this one takes the time",
+             call. = FALSE)
   }
   invisible(NULL)
 }

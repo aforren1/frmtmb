@@ -1,0 +1,5 @@
+"file"	"class"	"message"
+"tests/testthat/test-boot.R"	"frmtmb_error/error/condition"	"Some parameters cannot be found in the model:  'sd_h__Intercept' variables() lists every name; brms's default class = \"b\" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL"
+"tests/testthat/test-boot.R"	"frmtmb_error/error/condition"	"Hypothesis 'exp(x1)' is not linear in the parameters; use method = 'boot'"
+"tests/testthat/test-boot.R"	"frmtmb_error/error/condition"	"method = 'profile' requires an ML fit (REML integrates the fixed effects out of the outer problem)"
+"tests/testthat/test-boot.R"	"frmtmb_error/error/condition"	"hypothesis() has no argument `ytol`. It takes: x, hypothesis, class, group, scope, alpha, robust, seed, method, nsim, vcov"

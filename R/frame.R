@@ -74,23 +74,23 @@ refuse_duplicated_re <- function(cps) {
     hit <- match(keys, seen_key)
     if (any(!is.na(hit))) {
       j <- which(!is.na(hit))[1L]
-      stop("Duplicated group-level effects are not allowed: the ",
-           "coefficient '", cp[["cnms"]][j], "' of group '",
-           grp, "' appears in both ",
-           seen_label[hit[j]], " and ", lab, ". Only the sum ",
-           "of the two variances is identified; write the coefficient ",
-           "in one term",
-           # an animal model's genetic and permanent-environment terms
-           # ARE identified, through the matrix, and brms writes the
-           # second on a copy of the column; so does this package
-           if (known || seen_known[hit[j]]) {
-             paste0(". A term with a known covariance, gr(cov = ) or ",
-                    "gr(prec = ), beside an ordinary one on the same ",
-                    "factor is written on a copy of the column, as brms ",
-                    "writes it: d$", cp[["group_name"]], "2 <- d$",
-                    cp[["group_name"]], " and (1 | ",
-                    cp[["group_name"]], "2)")
-           }, call. = FALSE)
+      frm_stop("Duplicated group-level effects are not allowed: the ",
+               "coefficient '", cp[["cnms"]][j], "' of group '",
+               grp, "' appears in both ",
+               seen_label[hit[j]], " and ", lab, ". Only the sum ",
+               "of the two variances is identified; write the coefficient ",
+               "in one term",
+               # an animal model's genetic and permanent-environment terms
+               # ARE identified, through the matrix, and brms writes the
+               # second on a copy of the column; so does this package
+               if (known || seen_known[hit[j]]) {
+                 paste0(". A term with a known covariance, gr(cov = ) or ",
+                        "gr(prec = ), beside an ordinary one on the same ",
+                        "factor is written on a copy of the column, as brms ",
+                        "writes it: d$", cp[["group_name"]], "2 <- d$",
+                        cp[["group_name"]], " and (1 | ",
+                        cp[["group_name"]], "2)")
+               }, call. = FALSE)
     }
     seen_key <- c(seen_key, keys)
     seen_label <- c(seen_label, rep(lab, length(keys)))
@@ -191,9 +191,9 @@ dpar_frame_rhs <- function(dp) {
 check_special_mult <- function(mult, expr, fn) {
   if (is.logical(mult)) return(as.numeric(mult))
   if (!is.numeric(mult) || is.factor(mult)) {
-    stop(fn, "() interactions support numeric multipliers only: ",
-         deparse1(expr), " is ", class(mult)[1L],
-         "; expand it to numeric indicator columns first", call. = FALSE)
+    frm_stop(fn, "() interactions support numeric multipliers only: ",
+             deparse1(expr), " is ", class(mult)[1L],
+             "; expand it to numeric indicator columns first", call. = FALSE)
   }
   as.numeric(mult)
 }
@@ -250,12 +250,12 @@ warn_ar1_level_gaps <- function(bar, mf, cs_name) {
   gap <- which(abs(diff(pos)) != 1)
   if (!length(gap)) return(invisible(NULL))
   i <- gap[1L]
-  warning(cs_name, "(): the levels of '", v, "' are whole numbers but ",
-          "not consecutive ('", lv[i], "' is followed by '", lv[i + 1L],
-          "'), and ", cs_name, "() correlates levels by position, so ",
-          "that gap counts as a single step. For irregularly spaced ",
-          "positions use ou() over num_factor(): ou(num_factor(", v,
-          ") + 0 | ...)", call. = FALSE)
+  frm_warning(cs_name, "(): the levels of '", v, "' are whole numbers but ",
+              "not consecutive ('", lv[i], "' is followed by '", lv[i + 1L],
+              "'), and ", cs_name, "() correlates levels by position, so ",
+              "that gap counts as a single step. For irregularly spaced ",
+              "positions use ou() over num_factor(): ou(num_factor(", v,
+              ") + 0 | ...)", call. = FALSE)
   invisible(NULL)
 }
 
@@ -283,10 +283,10 @@ extract_y <- function(resp, mf) {
       # print it twice for one fit
       obs <- levels(factor(y))
       if (!all(obs %in% known)) {
-        stop("categorical(): the response holds values (",
-             paste(setdiff(obs, known), collapse = ", "),
-             ") that are not among the family's categories (",
-             paste(known, collapse = ", "), ")", call. = FALSE)
+        frm_stop("categorical(): the response holds values (",
+                 paste(setdiff(obs, known), collapse = ", "),
+                 ") that are not among the family's categories (",
+                 paste(known, collapse = ", "), ")", call. = FALSE)
       }
       known
     } else {
@@ -298,12 +298,13 @@ extract_y <- function(resp, mf) {
     # set it, and that order IS the model here. brms 2.23.0 refuses it
     # (dev/famlink-brms-behavior-log.txt); this used to warn and fit.
     if (!is.ordered(y)) {
-      stop("Family '", resp$family[["family"]], "' requires either ",
-           "positive integers or ordered factors as responses. '",
-           deparse1(resp$resp_expr), "' is an unordered factor, whose ",
-           "level order (", paste(levels(y), collapse = " < "),
-           ") is not a category order anyone stated. Use ",
-           "factor(..., levels = ..., ordered = TRUE)", call. = FALSE)
+      frm_stop("Family '", resp$family[["family"]], "' requires either ",
+               "positive integers or ordered factors as responses. '",
+               deparse1(resp$resp_expr), "' is an unordered factor, whose ",
+               "level order (", paste(levels(y), collapse = " < "),
+               ") is not a category order anyone stated. Use ",
+               "factor(..., levels = ..., ordered = TRUE)", call. = FALSE,
+               package = frm_family_package(resp$family))
     }
     # the codes carry no meaning without the labels, and simulate() has
     # to hand draws back in the response's own type
@@ -311,9 +312,9 @@ extract_y <- function(resp, mf) {
     y <- as.numeric(y)   # category codes 1..K in level order
   } else if (is.factor(y)) {
     if (!identical(resp$family[["family"]], "binomial") || nlevels(y) != 2L) {
-      stop("Factor responses are only supported for binomial families ",
-           "with 2 levels (ordinal families accept ordered factors)",
-           call. = FALSE)
+      frm_stop("Factor responses are only supported for binomial families ",
+               "with 2 levels (ordinal families accept ordered factors)",
+               call. = FALSE)
     }
     y <- as.numeric(y) - 1
   }
@@ -326,8 +327,8 @@ extract_y <- function(resp, mf) {
     y <- as.numeric(as.vector(y))
   }
   if (any(!is.finite(y) & !is.na(y))) {
-    stop("Non-finite (Inf/NaN) values in the response are not allowed",
-         call. = FALSE)
+    frm_stop("Non-finite (Inf/NaN) values in the response are not allowed",
+             call. = FALSE)
   }
   # attached last: the numeric coercions above drop attributes
   if (!is.null(lv)) attr(y, "y_levels") <- lv
@@ -358,13 +359,13 @@ check_trials_given <- function(resp, av) {
   if (!any(fams %in% trials_families) || !is.null(av[["trials"]])) {
     return(invisible(NULL))
   }
-  stop("Specifying 'trials' is required for this model. ",
-       paste(intersect(fams, trials_families), collapse = ", "),
-       " reads the number of trials from the formula: write ",
-       resp$resp_name, " | trials(n) ~ ...",
-       if (!identical(fams, "multinomial")) {
-         ", or use bernoulli() for a response of zeros and ones"
-       }, call. = FALSE)
+  frm_stop("Specifying 'trials' is required for this model. ",
+           paste(intersect(fams, trials_families), collapse = ", "),
+           " reads the number of trials from the formula: write ",
+           resp$resp_name, " | trials(n) ~ ...",
+           if (!identical(fams, "multinomial")) {
+             ", or use bernoulli() for a response of zeros and ones"
+           }, call. = FALSE)
 }
 
 #' Say when a response has only two outcomes and `bernoulli()` would do.
@@ -400,8 +401,8 @@ suggest_bernoulli <- function(spec, frame) {
       FALSE
     }
     if (isTRUE(two)) {
-      message("Only 2 levels detected so that family 'bernoulli' might ",
-              "be a more efficient choice.")
+      frm_message("Only 2 levels detected so that family 'bernoulli' might ",
+                  "be a more efficient choice.")
     }
   }
   invisible(NULL)
@@ -452,9 +453,9 @@ sparse_mm <- function(tt, mf, contrasts.arg = NULL) {
   attr(mf1, "terms") <- attr(mf, "terms")
   hdr <- stats::model.matrix(tt, mf1, contrasts.arg = contrasts.arg)
   if (ncol(hdr) != ncol(X)) {
-    stop("Internal error: sparse and dense fixed-effect designs disagree ",
-         "on columns; refit without frmtmb_control(sparse_x = TRUE)",
-         call. = FALSE)
+    frm_stop("Internal error: sparse and dense fixed-effect designs disagree ",
+             "on columns; refit without frmtmb_control(sparse_x = TRUE)",
+             call. = FALSE)
   }
   colnames(X) <- colnames(hdr)
   X
@@ -538,8 +539,8 @@ mm_member_values <- function(mmspec, data, env) {
     v <- data[[deparse1(g)]]
     if (is.null(v)) v <- eval(g, data, env)
     if (is.null(v)) {
-      stop("mm(): membership variable '", deparse1(g),
-           "' is not in the data", call. = FALSE)
+      frm_stop("mm(): membership variable '", deparse1(g),
+               "' is not in the data", call. = FALSE)
     }
     v
   })
@@ -568,27 +569,27 @@ mm_index_weights <- function(mmspec, data, env, levels) {
     W <- eval(mmspec$weights_expr, data, env)
     W <- as.matrix(W)
     if (!identical(dim(W), c(n, ng))) {
-      stop("mm(weights = ", deparse1(mmspec$weights_expr),
-           "): expected a matrix with one row per observation and one ",
-           "column per membership variable (", n, " x ", ng, "), got ",
-           nrow(W), " x ", ncol(W),
-           ". Build it with cbind(w1, w2)", call. = FALSE)
+      frm_stop("mm(weights = ", deparse1(mmspec$weights_expr),
+               "): expected a matrix with one row per observation and one ",
+               "column per membership variable (", n, " x ", ng, "), got ",
+               nrow(W), " x ", ncol(W),
+               ". Build it with cbind(w1, w2)", call. = FALSE)
     }
     storage.mode(W) <- "double"
     if (any(!is.finite(W))) {
-      stop("mm(weights = ", deparse1(mmspec$weights_expr),
-           "): the weights must all be finite", call. = FALSE)
+      frm_stop("mm(weights = ", deparse1(mmspec$weights_expr),
+               "): the weights must all be finite", call. = FALSE)
     }
     if (isTRUE(mmspec$scale)) {
       if (any(W < 0)) {
-        stop("mm(scale = TRUE) cannot scale negative weights; pass ",
-             "scale = FALSE to use them as they are", call. = FALSE)
+        frm_stop("mm(scale = TRUE) cannot scale negative weights; pass ",
+                 "scale = FALSE to use them as they are", call. = FALSE)
       }
       rs <- rowSums(W)
       if (any(rs == 0)) {
-        stop("mm(scale = TRUE): row(s) of the weight matrix sum to ",
-             "zero, so the scaled weights are undefined (first at row ",
-             which(rs == 0)[1L], ")", call. = FALSE)
+        frm_stop("mm(scale = TRUE): row(s) of the weight matrix sum to ",
+                 "zero, so the scaled weights are undefined (first at row ",
+                 which(rs == 0)[1L], ")", call. = FALSE)
       }
       W <- W / rs
     }
@@ -611,6 +612,7 @@ mm_member_designs <- function(mmspec, data, env, n_members,
   tt <- stats::terms(stats::as.formula(call("~", mmspec$lhs), env = env))
   tt <- patch_predvars(tt, predvar_map)
   Xp <- if (use_model_frame) {
+    check_newdata_frame(tt, data, xlev)
     mf2 <- stats::model.frame(tt, data, na.action = stats::na.pass,
                               xlev = xlev)
     stats::model.matrix(tt, mf2)
@@ -623,9 +625,9 @@ mm_member_designs <- function(mmspec, data, env, n_members,
       v <- data[[deparse1(ex)]]
       if (is.null(v)) v <- eval(ex, data, env)
       if (is.factor(v) || is.character(v)) {
-        stop("mmc() requires numeric variables; '", deparse1(ex),
-             "' is a ", if (is.factor(v)) "factor" else "character",
-             " column", call. = FALSE)
+        frm_stop("mmc() requires numeric variables; '", deparse1(ex),
+                 "' is a ", if (is.factor(v)) "factor" else "character",
+                 " column", call. = FALSE)
       }
       as.numeric(v)
     })
@@ -634,9 +636,9 @@ mm_member_designs <- function(mmspec, data, env, n_members,
   cnms <- c(colnames(Xp),
             vapply(mmspec$mmc, `[[`, "", "label"))
   if (!length(cnms)) {
-    stop("A multi-membership term needs at least one coefficient: ",
-         deparse1(mmspec$lhs), " | ", mmspec$label,
-         " has an empty design", call. = FALSE)
+    frm_stop("A multi-membership term needs at least one coefficient: ",
+             deparse1(mmspec$lhs), " | ", mmspec$label,
+             " has an empty design", call. = FALSE)
   }
   designs <- lapply(seq_len(n_members), function(k) {
     out <- Xp
@@ -706,11 +708,11 @@ decode_cens <- function(v) {
   }, integer(1L), USE.NAMES = FALSE)
   bad <- unique(v[is.na(idx) & is.na(num)])
   if (length(bad)) {
-    stop("cens() cannot decode: ",
-         paste0("\"", bad, "\"", collapse = ", "),
-         "; use \"none\", \"left\", \"right\", or \"interval\" ",
-         "(any unambiguous prefix), or the codes 0, -1, 1, 2",
-         call. = FALSE)
+    frm_stop("cens() cannot decode: ",
+             paste0("\"", bad, "\"", collapse = ", "),
+             "; use \"none\", \"left\", \"right\", or \"interval\" ",
+             "(any unambiguous prefix), or the codes 0, -1, 1, 2",
+             call. = FALSE)
   }
   out <- unname(cens_code_map[idx])
   ifelse(is.na(num), out, num)
@@ -729,13 +731,13 @@ validate_data2 <- function(data2) {
   nms <- names(data2)
   if (!is.list(data2) || (length(data2) && is.null(nms)) ||
       any(!nzchar(nms))) {
-    stop("data2 must be a named list, e.g. data2 = list(W = W)",
-         call. = FALSE)
+    frm_stop("data2 must be a named list, e.g. data2 = list(W = W)",
+             call. = FALSE)
   }
   if (anyDuplicated(nms)) {
-    stop("data2 has duplicate names: ",
-         paste(unique(nms[duplicated(nms)]), collapse = ", "),
-         call. = FALSE)
+    frm_stop("data2 has duplicate names: ",
+             paste(unique(nms[duplicated(nms)]), collapse = ", "),
+             call. = FALSE)
   }
   data2
 }
@@ -780,9 +782,9 @@ lookup_structural <- function(expr, data2, data, env, what) {
     # the data2-mask attempt saw the widest scope, so when both paths
     # fail its error names the real cause (the fallback just repeats
     # "not found" for objects that only exist in data2)
-    stop(structural_lookup_msg(expr, data2, what,
-                               if (is.null(e2)) e else e2),
-         call. = FALSE)
+    frm_stop(structural_lookup_msg(expr, data2, what,
+                                   if (is.null(e2)) e else e2),
+             call. = FALSE)
   })
 }
 
@@ -975,20 +977,20 @@ check_nl_self_reference <- function(spec, data) {
       if (!nm %in% (dp[["datavars"]] %||% character(0))) next
       if (nm %in% dn) next
       reserved <- resp$family[["dpars"]] %||% character(0)
-      stop("The body of '", nm, "' refers to '", nm, "' itself, and ",
-           "`data` has no column of that name. A nonlinear body is ",
-           "computed FROM its parameters, so it cannot read the ",
-           "parameter it computes.",
-           if (nm %in% reserved) {
-             paste0(" '", nm, "' is a distributional parameter of family '",
-                    resp$family[["family"]], "': a nonlinear parameter ",
-                    "cannot be named after one, so rename it. This ",
-                    "family reserves: ",
-                    paste(reserved, collapse = ", "), ".")
-           },
-           " Declare the parameter under another name with ",
-           "bf(..., a ~ 1, nl = TRUE), or add the column to `data`",
-           call. = FALSE)
+      frm_stop("The body of '", nm, "' refers to '", nm, "' itself, and ",
+               "`data` has no column of that name. A nonlinear body is ",
+               "computed FROM its parameters, so it cannot read the ",
+               "parameter it computes.",
+               if (nm %in% reserved) {
+                 paste0(" '", nm, "' is a distributional parameter of family '",
+                        resp$family[["family"]], "': a nonlinear parameter ",
+                        "cannot be named after one, so rename it. This ",
+                        "family reserves: ",
+                        paste(reserved, collapse = ", "), ".")
+               },
+               " Declare the parameter under another name with ",
+               "bf(..., a ~ 1, nl = TRUE), or add the column to `data`",
+               call. = FALSE)
     }
   }
   invisible(NULL)
@@ -1009,8 +1011,8 @@ nl_body_error <- function(e, lp) {
   } else {
     ""
   }
-  stop("The nonlinear formula body could not be evaluated: ",
-       conditionMessage(e), extra, call. = FALSE)
+  frm_stop("The nonlinear formula body could not be evaluated: ",
+           conditionMessage(e), extra, call. = FALSE)
 }
 
 #' The language objects a structured family needs in the model frame:
@@ -1124,7 +1126,7 @@ report_datetime_columns <- function(mf, exclude = character(0)) {
   hits <- vapply(mf, kind, "")
   hits <- hits[!is.na(hits)]
   if (!length(hits)) return(invisible(NULL))
-  message(
+  frm_message(
     "Date/time column", if (length(hits) > 1L) "s" else "",
     " used as ", if (length(hits) > 1L) "numbers" else "a number", ": ",
     paste0(names(hits), " (", hits, ")", collapse = ", "),
@@ -1166,6 +1168,70 @@ smooth_pen_order <- function(sm, re2) {
     return(NULL)
   }
   ord
+}
+
+#' Refuse, by name, the variables stats::model.frame() would refuse in
+#' its own words: a name that neither `data` nor the formula
+#' environment holds, a list used as a variable, and an object from the
+#' environment whose length is not the number of rows.
+#'
+#' The lookup is model.frame()'s: `data` first, then `env` and its
+#' parents. An environment `data` is where model.frame() evaluates, so
+#' there the parents of `data` are searched and `env` is not. Only a
+#' whole term is tested for type and length, because a list or a scalar
+#' inside a call such as `I(x / k)` is legitimate.
+#'
+#' @noRd
+check_frame_variables <- function(rhs, data, env) {
+  data_env <- is.environment(data)
+  in_data <- function(v) {
+    if (data_env) exists(v, envir = data) else v %in% names(data)
+  }
+  if ("." %in% all.vars(rhs)) {
+    frm_stop("A formula with `.` is not supported: frmtmb does not expand ",
+             "`.` into the columns of `data`. Write the predictors out, ",
+             "e.g. y ~ x1 + x2", call. = FALSE)
+  }
+  for (v in all.vars(rhs)) {
+    if (!in_data(v) && (data_env || !exists(v, envir = env))) {
+      frm_stop("The model uses `", v, "`, which is not a column of `data` ",
+               "and not an object that R finds from the formula. Add the ",
+               "column to `data` or correct the name", call. = FALSE)
+    }
+  }
+  leaves <- function(e) {
+    if (is.call(e) && identical(e[[1L]], as.name("+")) && length(e) == 3L) {
+      c(leaves(e[[2L]]), leaves(e[[3L]]))
+    } else if (is.name(e)) {
+      as.character(e)
+    }
+  }
+  n <- if (is.data.frame(data)) nrow(data)
+  for (v in unique(leaves(rhs))) {
+    from_data <- in_data(v)
+    x <- if (!from_data) {
+      get(v, envir = env)
+    } else if (data_env) {
+      get(v, envir = data)
+    } else {
+      data[[v]]
+    }
+    if (is.list(x)) {
+      where <- if (from_data) "a column of `data`" else {
+        "found from the formula"
+      }
+      frm_stop("`", v, "` is a list, ", where, ", and a model variable ",
+               "must be a vector, a factor or a matrix", call. = FALSE)
+    }
+    if (!from_data && !is.null(n) && (is.atomic(x) || is.factor(x)) &&
+          NROW(x) != n) {
+      frm_stop("`", v, "` is not a column of `data`; the object R finds ",
+               "from the formula has ", NROW(x), " rows and `data` has ", n,
+               ". Add the column to `data` or correct the name",
+               call. = FALSE)
+    }
+  }
+  invisible(NULL)
 }
 
 #' Turn a parsed spec plus data into the numeric `frmtmb_frame` the
@@ -1210,9 +1276,14 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   # data.frame, a tibble, a data.table and a plain named list all reach
   # model.frame() unchanged and are all supported.
   if (is.null(data)) {
-    stop("`data` is NULL: frm() needs the data frame holding the model ",
-         "variables, e.g. frm(bf(y ~ x) + gaussian(), data = d)",
-         call. = FALSE)
+    frm_stop("`data` is NULL: frm() needs the data frame holding the model ",
+             "variables, e.g. frm(bf(y ~ x) + gaussian(), data = d)",
+             call. = FALSE)
+  }
+  if (!is.data.frame(data) && !is.environment(data) &&
+        !(is.list(data) && !is.null(names(data)))) {
+    frm_stop("`data` must be a data frame holding the model variables, ",
+             "not ", arg_desc(data), call. = FALSE)
   }
   data2 <- validate_data2(data2)
   check_nl_self_reference(spec, data)
@@ -1257,6 +1328,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   }
   env <- spec$responses[[1]]$formula_env
   fr_formula <- stats::as.formula(call("~", rhs_comb), env = env)
+  check_frame_variables(rhs_comb, data, env)
   # x | mi() responses may carry NAs (they become latent parameters);
   # rows are dropped only for NAs in every OTHER variable. A structured
   # family that declares `keep_na` reads the NAs itself and takes the
@@ -1298,23 +1370,23 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   # from nobs(). One message per fit; suppressMessages() silences it.
   n_dropped <- length(attr(mf, "na.action"))
   if (n_dropped > 0L) {
-    message(n_dropped, if (n_dropped == 1L) " row" else " rows",
-            " removed because of missing values (na.action)")
+    frm_message(n_dropped, if (n_dropped == 1L) " row" else " rows",
+                " removed because of missing values (na.action)")
   }
   n <- nrow(mf)
   if (n == 0L) {
     # zero rows in and zero rows left are different faults, and the
     # generic "after removing NAs" wording sends the second one hunting
     # for missing values that were never there
-    stop(if (n_dropped > 0L) {
-           "No complete observations after removing NAs"
-         } else {
-           "`data` has no rows; nothing to fit"
-         }, call. = FALSE)
+    frm_stop(if (n_dropped > 0L) {
+               "No complete observations after removing NAs"
+             } else {
+               "`data` has no rows; nothing to fit"
+             }, call. = FALSE)
   }
   if (anyNA(mf[setdiff(names(mf), mi_cols)])) {
-    stop("NA values remain in the model variables after applying ",
-         "na.action; use na.omit (default) or na.exclude", call. = FALSE)
+    frm_stop("NA values remain in the model variables after applying ",
+             "na.action; use na.omit (default) or na.exclude", call. = FALSE)
   }
   report_datetime_columns(mf, exclude = nonpredictor_frame_vars(spec))
   # freeze data-dependent bases: map deparsed variable -> predvar call
@@ -1345,11 +1417,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     if (length(resp$nlpars)) {
       clash <- intersect(resp$nlpars, names(data))
       if (length(clash)) {
-        stop("Nonlinear parameter(s) ",
-             paste0("'", clash, "'", collapse = ", "),
-             " also name columns of the data. The nonlinear formula ",
-             "would use the parameter and ignore the column; rename ",
-             "one of them", call. = FALSE)
+        frm_stop("Nonlinear parameter(s) ",
+                 paste0("'", clash, "'", collapse = ", "),
+                 " also name columns of the data. The nonlinear formula ",
+                 "would use the parameter and ignore the column; rename ",
+                 "one of them", call. = FALSE)
       }
     }
     yv0 <- extract_y(resp, mf)
@@ -1370,10 +1442,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       if (is.null(reg_at)) return(as.numeric(v))
       v <- reg_at$coerce(v)
       if (!is.numeric(v)) {
-        stop("The coercion registered for `", reg_at$name,
-             "()` returned ", arg_desc(v), "; an addition term's value ",
-             "is baked into the tape as data and must be numeric",
-             call. = FALSE)
+        frm_stop("The coercion registered for `", reg_at$name,
+                 "()` returned ", arg_desc(v), "; an addition term's value ",
+                 "is baked into the tape as data and must be numeric",
+                 call. = FALSE)
       }
       as.numeric(v)
     }), at_names)
@@ -1409,12 +1481,13 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # Which others there are is in the sentence above it; a formula
       # has to pick one spelling to be a formula at all.
       spell <- vapply(miss_at, function(g) aterm_spelling(g[[1L]]), "")
-      stop(resp$family[["family"]], ": the density needs ",
-           paste(needs, collapse = ", "),
-           ", which nothing on this response supplies. Write the ",
-           "addition term: ", resp$resp_name, " | ",
-           paste(spell, collapse = " + "),
-           " ~ ...", call. = FALSE)
+      frm_stop(resp$family[["family"]], ": the density needs ",
+               paste(needs, collapse = ", "),
+               ", which nothing on this response supplies. Write the ",
+               "addition term: ", resp$resp_name, " | ",
+               paste(spell, collapse = " + "),
+               " ~ ...", call. = FALSE,
+               package = frm_family_package(resp$family))
     }
     # The same declaration read the other way round: the check above
     # asks whether the datum arrived, this one whether two spellings of
@@ -1428,31 +1501,31 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     if (!is.null(st_[["check_spec"]])) st_[["check_spec"]](resp, spec, av)
     if (isTRUE(resp$aterms[["mi"]])) {
       if (!resp$family[["family"]] %in% c("gaussian", "student")) {
-        stop("mi() responses need a gaussian or student model",
-             call. = FALSE)
+        frm_stop("mi() responses need a gaussian or student model",
+                 call. = FALSE)
       }
       if (any(c("cens", "trunc_lb", "trunc_ub", "se") %in%
                 names(resp$aterms))) {
-        stop("mi() cannot be combined with cens(), trunc(), or se() ",
-             "on the same response", call. = FALSE)
+        frm_stop("mi() cannot be combined with cens(), trunc(), or se() ",
+                 "on the same response", call. = FALSE)
       }
       if (spec$rescor) {
-        stop("mi() cannot be combined with rescor = TRUE", call. = FALSE)
+        frm_stop("mi() cannot be combined with rescor = TRUE", call. = FALSE)
       }
       yv <- y[[resp$resp_name]]
       if (is.matrix(yv)) {
-        stop("mi() responses must be numeric vectors", call. = FALSE)
+        frm_stop("mi() responses must be numeric vectors", call. = FALSE)
       }
       if (!is.null(av[["mi_sd"]])) {
         # measurement error (brms me()): every true value is latent;
         # observed values get a N(latent, sd) term in the objective
         if (any(av[["mi_sd"]] <= 0)) {
-          stop("mi(sd): measurement SDs must be positive", call. = FALSE)
+          frm_stop("mi(sd): measurement SDs must be positive", call. = FALSE)
         }
         obs <- which(!is.na(yv))
         if (!length(obs)) {
-          stop("mi(sd): the response has no observed values",
-               call. = FALSE)
+          frm_stop("mi(sd): the response has no observed values",
+                   call. = FALSE)
         }
         rows <- seq_along(yv)
         mi_map[[resp$resp_name]] <- list(
@@ -1486,17 +1559,17 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     }
     for (vn in grep("^vint", names(av), value = TRUE)) {
       if (any(av[[vn]] != round(av[[vn]]))) {
-        stop(vn, " values must be integers (use vreal() for reals)",
-             call. = FALSE)
+        frm_stop(vn, " values must be integers (use vreal() for reals)",
+                 call. = FALSE)
       }
     }
     if (!is.null(av[["weights"]])) {
       if (any(av[["weights"]] < 0)) {
-        stop("weights() must be non-negative", call. = FALSE)
+        frm_stop("weights() must be non-negative", call. = FALSE)
       }
       if (spec$rescor) {
-        stop("weights() cannot be combined with rescor = TRUE",
-             call. = FALSE)
+        frm_stop("weights() cannot be combined with rescor = TRUE",
+                 call. = FALSE)
       }
     }
     # the joint-gaussian rescor likelihood has no censoring,
@@ -1505,8 +1578,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     if (spec$rescor &&
         (!is.null(av[["cens"]]) || !is.null(av[["trunc_lb"]]) ||
          !is.null(av[["trunc_ub"]]) || !is.null(av[["se"]]))) {
-      stop("cens()/trunc()/se() cannot be combined with rescor = TRUE",
-           call. = FALSE)
+      frm_stop("cens()/trunc()/se() cannot be combined with rescor = TRUE",
+               call. = FALSE)
     }
     if (!is.null(av[["cens"]]) || !is.null(av[["trunc_lb"]]) ||
         !is.null(av[["trunc_ub"]])) {
@@ -1518,20 +1591,21 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         !is.null(av[["cens"]]) && all(av[["cens"]] %in% c(0, 1))
       if (is.null(resp$family[["lcdf"]]) &&
           !(right_only && !is.null(resp$family[["lccdf"]]))) {
-        stop("cens()/trunc() need a family with a CDF (currently: ",
-             "gaussian, lognormal, poisson, exponential, weibull, ",
-             "inverse.gaussian, cox). The list is not closed: a family ",
-             "supplies one through the lcdf argument of ",
-             "frmtmb_family(), and a family that only ever sees RIGHT ",
-             "censoring may supply the log survivor function through ",
-             "lccdf instead", call. = FALSE)
+        frm_stop("cens()/trunc() need a family with a CDF (currently: ",
+                 "gaussian, lognormal, poisson, exponential, weibull, ",
+                 "inverse.gaussian, cox). The list is not closed: a family ",
+                 "supplies one through the lcdf argument of ",
+                 "frmtmb_family(), and a family that only ever sees RIGHT ",
+                 "censoring may supply the log survivor function through ",
+                 "lccdf instead", call. = FALSE,
+                 package = frm_family_package(resp$family))
       }
       if (!is.null(av[["cens"]]) && !all(av[["cens"]] %in% c(-1, 0, 1, 2))) {
-        stop("cens() codes must be -1 (left), 0 (observed), 1 (right), ",
-             "or 2 (interval), or the matching names \"left\", \"none\", ",
-             "\"right\", \"interval\"; got: ",
-             paste(unique(av[["cens"]][!av[["cens"]] %in% c(-1, 0, 1, 2)]),
-                   collapse = ", "), call. = FALSE)
+        frm_stop("cens() codes must be -1 (left), 0 (observed), 1 (right), ",
+                 "or 2 (interval), or the matching names \"left\", \"none\", ",
+                 "\"right\", \"interval\"; got: ",
+                 paste(unique(av[["cens"]][!av[["cens"]] %in% c(-1, 0, 1, 2)]),
+                       collapse = ", "), call. = FALSE)
       }
       # The discrete censoring convention (see row_lpdf() in
       # R/objective.R, where it is the arithmetic). A bound on a count
@@ -1556,25 +1630,25 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                    })
         edges <- edges[!is.na(edges)]
         if (length(edges) && any(edges != round(edges))) {
-          stop("cens() on a discrete family reads every bound as a ",
-               "value the response can take: right censoring at k is ",
-               "Y >= k, an interval is k <= Y <= k2, and a lower bound ",
-               "enters the CDF as F(k - 1). That step assumes the ",
-               "support is the integers, so a censoring bound must be ",
-               "one; got ",
-               paste(utils::head(unique(edges[edges != round(edges)]), 3),
-                     collapse = ", "), call. = FALSE)
+          frm_stop("cens() on a discrete family reads every bound as a ",
+                   "value the response can take: right censoring at k is ",
+                   "Y >= k, an interval is k <= Y <= k2, and a lower bound ",
+                   "enters the CDF as F(k - 1). That step assumes the ",
+                   "support is the integers, so a censoring bound must be ",
+                   "one; got ",
+                   paste(utils::head(unique(edges[edges != round(edges)]), 3),
+                         collapse = ", "), call. = FALSE)
         }
       }
       if (!is.null(av[["cens"]]) && any(av[["cens"]] == 2)) {
         i2 <- av[["cens"]] == 2
         if (is.null(av[["cens_y2"]])) {
-          stop("Interval censoring (code 2) needs upper bounds: ",
-               "cens(c, y2)", call. = FALSE)
+          frm_stop("Interval censoring (code 2) needs upper bounds: ",
+                   "cens(c, y2)", call. = FALSE)
         }
         if (anyNA(av[["cens_y2"]][i2])) {
-          stop("cens() upper bounds must not be NA on interval-censored ",
-               "rows", call. = FALSE)
+          frm_stop("cens() upper bounds must not be NA on interval-censored ",
+                   "rows", call. = FALSE)
         }
         yv <- y[[resp$resp_name]]
         # A discrete interval includes both ends, so one whose ends
@@ -1584,14 +1658,14 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         # probability zero, so it stays refused.
         if (identical(resp$family[["type"]], "discrete")) {
           if (any(av[["cens_y2"]][i2] < yv[i2])) {
-            stop("Interval upper bounds (y2) must be at least the lower ",
-                 "bounds (the response). Both ends of a discrete ",
-                 "interval are included, so y2 == y is the exact ",
-                 "observation and is allowed", call. = FALSE)
+            frm_stop("Interval upper bounds (y2) must be at least the lower ",
+                     "bounds (the response). Both ends of a discrete ",
+                     "interval are included, so y2 == y is the exact ",
+                     "observation and is allowed", call. = FALSE)
           }
         } else if (any(av[["cens_y2"]][i2] <= yv[i2])) {
-          stop("Interval upper bounds (y2) must exceed the lower bounds ",
-               "(the response)", call. = FALSE)
+          frm_stop("Interval upper bounds (y2) must exceed the lower bounds ",
+                   "(the response)", call. = FALSE)
         }
         # NA bounds on non-interval rows are legal and unused; make them
         # harmless for the taped CDF evaluation
@@ -1643,20 +1717,22 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # also the behavior every custom family had before this test
       # replaced the name test.
       if (!family_declares_aterm(resp$family, "se")) {
-        stop("se() carries a known standard deviation into the density, ",
-             "so only a family that reads it can be given one, and '",
-             resp$family[["family"]], "' does not declare that it does. ",
-             "A family declares it with frmtmb_family(accepts_aterms = ",
-             "c(..., \"se\")) or with required_aterms = \"se\", which ",
-             "also refuses a model that leaves the term out. The density ",
-             "then reads aterms[[\"se\"]] as the standard deviation, and ",
-             "honors se(x, sigma = TRUE) by reading aterms[[\"se_sigma\"]] ",
-             "and using sqrt(dpars[[\"sigma\"]]^2 + aterms[[\"se\"]]^2) ",
-             "where it is TRUE. The built-in families that read it are ",
-             "gaussian and student", call. = FALSE)
+        frm_stop(
+          "se() carries a known standard deviation into the density, ",
+          "so only a family that reads it can be given one, and '",
+          resp$family[["family"]], "' does not declare that it does. ",
+          "A family declares it with frmtmb_family(accepts_aterms = ",
+          "c(..., \"se\")) or with required_aterms = \"se\", which ",
+          "also refuses a model that leaves the term out. The density ",
+          "then reads aterms[[\"se\"]] as the standard deviation, and ",
+          "honors se(x, sigma = TRUE) by reading aterms[[\"se_sigma\"]] ",
+          "and using sqrt(dpars[[\"sigma\"]]^2 + aterms[[\"se\"]]^2) ",
+          "where it is TRUE. The built-in families that read it are ",
+          "gaussian and student", call. = FALSE,
+                 package = frm_family_package(resp$family))
       }
       if (any(av[["se"]] <= 0)) {
-        stop("se() values must be positive", call. = FALSE)
+        frm_stop("se() values must be positive", call. = FALSE)
       }
     }
     # cbind(successes, failures) reaches here already rewritten to
@@ -1667,8 +1743,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     if (isTRUE(resp$cbind_resp)) {
       fails <- av[["trials"]] - y[[resp$resp_name]]
       if (any(fails < 0) || any(fails != round(fails))) {
-        stop("cbind(successes, failures): the failure column must hold ",
-             "non-negative integer counts", call. = FALSE)
+        frm_stop("cbind(successes, failures): the failure column must hold ",
+                 "non-negative integer counts", call. = FALSE)
       }
     }
     # glm/glmer compatibility: a proportion response with trials()
@@ -1679,8 +1755,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       if (is.numeric(yv) && !is.matrix(yv) && any(yv != round(yv))) {
         yc <- yv * av[["trials"]]
         if (max(abs(yc - round(yc))) > 1e-6) {
-          stop(resp$family[["family"]], ": a proportion response times ",
-               "trials() must give integer counts", call. = FALSE)
+          frm_stop(resp$family[["family"]], ": a proportion response times ",
+                   "trials() must give integer counts", call. = FALSE,
+                   package = frm_family_package(resp$family))
         }
         y[[resp$resp_name]] <- round(yc)
       }
@@ -1737,10 +1814,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       fam_fin <- resp$family[["family_finalize"]](resp$family,
                                              y[[resp$resp_name]], av)
       if (!inherits(fam_fin, "frmtmb_family")) {
-        stop(resp$family[["family"]], ": family_finalize() must return a ",
-             "family object, not ", arg_desc(fam_fin),
-             ". Modify the family it is given and return it",
-             call. = FALSE)
+        frm_stop(resp$family[["family"]], ": family_finalize() must return a ",
+                 "family object, not ", arg_desc(fam_fin),
+                 ". Modify the family it is given and return it",
+                 call. = FALSE)
       }
       fam_fin$links <- Map(function(lk, dp) get_link(lk, dpar = dp),
                            fam_fin$links, names(fam_fin$links))
@@ -1760,9 +1837,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     }
     if (!is.null(resp$family[["extra_pars"]])) {
       if (length(spec$responses) > 1) {
-        stop("Families with extra parameters ('",
-             resp$family[["family"]], "') are not supported in multivariate ",
-             "fits yet", call. = FALSE)
+        frm_stop("Families with extra parameters ('",
+                 resp$family[["family"]],
+                 "') are not supported in multivariate ",
+                 "fits yet", call. = FALSE,
+                 package = frm_family_package(resp$family))
       }
       extras <- resp$family[["extra_pars"]](y[[resp$resp_name]], av)
     }
@@ -1795,9 +1874,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                             function(v) {
                               val <- mf[[v]]
                               if (is.null(val)) {
-                                stop("Variable '", v, "' from the ",
-                                     "nonlinear formula not found",
-                                     call. = FALSE)
+                                frm_stop("Variable '", v, "' from the ",
+                                         "nonlinear formula not found",
+                                         call. = FALSE)
                               }
                               val
                             })
@@ -1809,10 +1888,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         # there is no Z column for it to occupy.
         ps_terms <- dp[["ps_terms"]] %||% list()
         if (length(ps_terms) && length(spec$responses) > 1L) {
-          stop("ps() is not supported in a multivariate model yet: its ",
-               "block reaches the body through the per-call evaluation ",
-               "frame, and which response's frame that is has not been ",
-               "measured", call. = FALSE)
+          frm_stop("ps() is not supported in a multivariate model yet: its ",
+                   "block reaches the body through the per-call evaluation ",
+                   "frame, and which response's frame that is has not been ",
+                   "measured", call. = FALSE)
         }
         for (ti in seq_along(ps_terms)) {
           pt <- ps_build(ps_terms[[ti]], mf, resp$nlpars %||% character(0),
@@ -1891,9 +1970,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           qrX <- qr(Xq)
           if (qrX$rank < ncol(X)) {
             dropped <- colnames(X)[qrX$pivot[(qrX$rank + 1L):ncol(X)]]
-            message("Fixed-effect design of '", lp_key,
-                    "' is rank deficient; dropping column(s): ",
-                    paste(dropped, collapse = ", "))
+            frm_message("Fixed-effect design of '", lp_key,
+                        "' is rank deficient; dropping column(s): ",
+                        paste(dropped, collapse = ", "))
             # Directions the data could not identify: null(X) is the
             # orthogonal complement of the row space, so the trailing
             # columns of the complete Q of t(X) span it. Frozen here so
@@ -1963,14 +2042,14 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           dist_cs <- c("ou", "exp", "gau", "mat")
           if (cs_name %in% c("ar1", "hetar1", "cs", "homcs", "toep",
                              "homtoep", "rr", dist_cs) && d_k < 2L) {
-            stop(cs_name, "() needs at least 2 terms per level",
-                 call. = FALSE)
+            frm_stop(cs_name, "() needs at least 2 terms per level",
+                     call. = FALSE)
           }
           if (cs_name %in% c("ar1", "hetar1", dist_cs) &&
               "(Intercept)" %in% rt$cnms[[kk]]) {
-            stop(cs_name, "() requires a factor without intercept on ",
-                 "the left of the bar, e.g. ", cs_name,
-                 "(times + 0 | g)", call. = FALSE)
+            frm_stop(cs_name, "() requires a factor without intercept on ",
+                     "the left of the bar, e.g. ", cs_name,
+                     "(times + 0 | g)", call. = FALSE)
           }
           if (cs_name %in% c("ar1", "hetar1")) {
             warn_ar1_level_gaps(bars[[k]], mf, cs_name)
@@ -1982,9 +2061,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           if (cs_name %in% dist_cs) {
             v <- all.vars(bars[[k]][[2]])
             if (length(v) != 1L || !is.factor(mf[[v]])) {
-              stop(cs_name, "() needs a single factor built with ",
-                   "num_factor(): ", cs_name, "(pos + 0 | g)",
-                   call. = FALSE)
+              frm_stop(cs_name, "() needs a single factor built with ",
+                       "num_factor(): ", cs_name, "(pos + 0 | g)",
+                       call. = FALSE)
             }
             coords <- parse_num_levels(levels(mf[[v]]))
             if (is.matrix(coords)) {
@@ -2000,8 +2079,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                                    resp$formula_env, "gr(prec = )")
             if (is.null(rownames(Q)) ||
                 !all(levels(fac) %in% rownames(Q))) {
-              stop("gr(prec=): prec needs dimnames covering all ",
-                   "grouping levels", call. = FALSE)
+              frm_stop("gr(prec=): prec needs dimnames covering all ",
+                       "grouping levels", call. = FALSE)
             }
             lv <- levels(fac)
             aux_Q <- methods::as(Matrix::Matrix(Q[lv, lv], sparse = TRUE),
@@ -2012,12 +2091,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             A <- lookup_structural(dp[["re"]][[k]]$cov_expr, data2, data,
                                    resp$formula_env, "gr(cov = )")
             if (!is.matrix(A) || nrow(A) != ncol(A)) {
-              stop("gr(cov=): cov must be a square matrix", call. = FALSE)
+              frm_stop("gr(cov=): cov must be a square matrix", call. = FALSE)
             }
             lv <- levels(fac)
             if (is.null(rownames(A)) || !all(lv %in% rownames(A))) {
-              stop("gr(cov=): cov needs dimnames covering all grouping ",
-                   "levels", call. = FALSE)
+              frm_stop("gr(cov=): cov needs dimnames covering all grouping ",
+                       "levels", call. = FALSE)
             }
             aux_A <- unname(A[lv, lv])
             if (d_k > 1L) {
@@ -2028,8 +2107,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             V <- lookup_structural(dp[["re"]][[k]]$cov_expr, data2, data,
                                    resp$formula_env, "equalto()")
             if (!is.matrix(V) || nrow(V) != d_k || ncol(V) != d_k) {
-              stop("equalto(): V must be a ", d_k, " x ", d_k,
-                   " matrix", call. = FALSE)
+              frm_stop("equalto(): V must be a ", d_k, " x ", d_k,
+                       " matrix", call. = FALSE)
             }
             aux_A <- unname(V)
           }
@@ -2080,8 +2159,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         for (sm in scl) {
           re2 <- mgcv::smooth2random(sm, names(mf), type = 2)
           if (isTRUE(re2$fixed)) {
-            stop("Fixed (fx = TRUE) smooths are not supported: ", sm$label,
-                 call. = FALSE)
+            frm_stop("Fixed (fx = TRUE) smooths are not supported: ", sm$label,
+                     call. = FALSE)
           }
           nr <- integer(0)
           sm_comp_ids <- integer(0)
@@ -2157,9 +2236,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           pos <- unname(as.matrix(posdf))
           npos <- nrow(pos)
           if (npos > 500L) {
-            stop("gp() without k= builds a dense ", npos,
-                 "-point covariance; use k= for the Hilbert-space ",
-                 "approximation", call. = FALSE)
+            frm_stop("gp() without k= builds a dense ", npos,
+                     "-point covariance; use k= for the Hilbert-space ",
+                     "approximation", call. = FALSE)
           }
           Zg <- Matrix::sparseMatrix(i = seq_len(nrow(Xc)),
                                      j = match(pos_rowkey(Xc),
@@ -2194,25 +2273,25 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           cvec <- ge$c
           if (length(cvec) == 1L) cvec <- rep(cvec, Dg)
           if (length(cvec) != Dg) {
-            stop("gp(): c = must be length 1 or the number of ",
-                 "variables (", Dg, ")", call. = FALSE)
+            frm_stop("gp(): c = must be length 1 or the number of ",
+                     "variables (", Dg, ")", call. = FALSE)
           }
           uq <- Xc[!duplicated(pos_rowkey(Xc)), , drop = FALSE]
           dmax <- gp_max_dist(uq)
           if (!isTRUE(dmax > 0)) {
             # a single scale over all coordinates, so it vanishes only
             # when every coordinate row is identical
-            stop("gp(", paste(vnames, collapse = ", "),
-                 "): the coordinates have no spread", call. = FALSE)
+            frm_stop("gp(", paste(vnames, collapse = ", "),
+                     "): the coordinates have no spread", call. = FALSE)
           }
           ctr <- colMeans(uq / dmax)
           Lb <- gp_choose_L(sweep(uq / dmax, 2, ctr), cvec)
           xc <- sweep(Xc / dmax, 2, ctr)
           m <- ge$k
           if (m^Dg > 1000) {
-            stop("gp(): k = ", m, " over ", Dg, " dimensions gives ",
-                 m^Dg, " basis columns (cap 1000); lower k=",
-                 call. = FALSE)
+            frm_stop("gp(): k = ", m, " over ", Dg, " dimensions gives ",
+                     m^Dg, " basis columns (cap 1000); lower k=",
+                     call. = FALSE)
           }
           idx <- as.matrix(do.call(expand.grid,
                                    rep(list(seq_len(m)), Dg)))
@@ -2251,8 +2330,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         fn <- if (is_car) "car" else "spde"
         gv <- eval(ce$gr_expr, mf, resp$formula_env)
         if (anyNA(gv)) {
-          stop(fn, "(): the grouping variable '", deparse1(ce$gr_expr),
-               "' has missing values", call. = FALSE)
+          frm_stop(fn, "(): the grouping variable '", deparse1(ce$gr_expr),
+                   "' has missing values", call. = FALSE)
         }
         aux_car <- NULL
         aux_spde <- NULL
@@ -2313,23 +2392,23 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         v <- eval(mexpr, mf, resp$formula_env)
         if (is.factor(v)) {
           if (!is.ordered(v)) {
-            stop("mo(): factor variables must be ordered factors",
-                 call. = FALSE)
+            frm_stop("mo(): factor variables must be ordered factors",
+                     call. = FALSE)
           }
           codes <- as.integer(v) - 1L
           D_mo <- nlevels(v) - 1L
           mo_levels <- levels(v)
         } else {
           if (any(v < 0) || any(v != round(v))) {
-            stop("mo(): variable must be an ordered factor or ",
-                 "non-negative integers", call. = FALSE)
+            frm_stop("mo(): variable must be an ordered factor or ",
+                     "non-negative integers", call. = FALSE)
           }
           codes <- as.integer(v)
           D_mo <- max(codes)
           mo_levels <- NULL
         }
         if (D_mo < 2L) {
-          stop("mo() needs at least 3 ordered categories", call. = FALSE)
+          frm_stop("mo() needs at least 3 ordered categories", call. = FALSE)
         }
         vkey <- deparse1(mexpr)
         # one simplex per term occurrence, never shared between a main
@@ -2363,12 +2442,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         vn <- deparse1(ent$expr)
         tgt <- spec$responses[[vn]]
         if (is.null(tgt) || !isTRUE(tgt$aterms[["mi"]])) {
-          stop("mi(", vn, ") needs a matching imputation model: ",
-               "add bf(", vn, " | mi() ~ ...)", call. = FALSE)
+          frm_stop("mi(", vn, ") needs a matching imputation model: ",
+                   "add bf(", vn, " | mi() ~ ...)", call. = FALSE)
         }
         if (identical(vn, resp$resp_name)) {
-          stop("mi(", vn, ") cannot appear in its own model",
-               call. = FALSE)
+          frm_stop("mi(", vn, ") cannot appear in its own model",
+                   call. = FALSE)
         }
         mult <- NULL
         if (!is.null(ent$mult)) {
@@ -2392,8 +2471,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       if (length(dp[["csterms"]] %||% list())) {
         if (!identical(resp$family[["type"]], "ordinal") ||
             identical(resp$family[["family"]], "cumulative")) {
-          stop("cs() needs an sratio, cratio, or acat family",
-               call. = FALSE)
+          frm_stop("cs() needs an sratio, cratio, or acat family",
+                   call. = FALSE)
         }
         K_cs <- max(y[[resp$resp_name]])
         for (cexpr in dp[["csterms"]]) {
@@ -2502,14 +2581,14 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     if (length(cps) > 1L) {
       cs_set <- unique(vapply(cps, `[[`, "", "covstruct"))
       if ("rr" %in% cs_set) {
-        stop("rr() terms cannot share an |ID| key", call. = FALSE)
+        frm_stop("rr() terms cannot share an |ID| key", call. = FALSE)
       }
       lv <- cps[[1]]$levels
       for (cp in cps) {
         if (!identical(cp$levels, lv)) {
-          stop("|ID|-linked terms must share identical grouping-factor ",
-               "levels (", cps[[1]]$label, " vs ", cp$label, ")",
-               call. = FALSE)
+          frm_stop("|ID|-linked terms must share identical grouping-factor ",
+                   "levels (", cps[[1]]$label, " vs ", cp$label, ")",
+                   call. = FALSE)
         }
       }
       D <- sum(vapply(cps, `[[`, 0L, "dim"))
@@ -2528,14 +2607,14 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         akey <- if (cs_name == "gr_cov") "aux_A" else "aux_Q"
         for (cp in cps[-1]) {
           if (!same_structural_matrix(cps[[1]][[akey]], cp[[akey]])) {
-            stop("|ID|-linked ",
-                 if (cs_name == "gr_cov") "gr(cov = )" else "gr(prec = )",
-                 " terms must resolve to the same matrix (",
-                 cps[[1]]$label, " vs ", cp$label,
-                 "). The terms merge into one Kronecker block, which ",
-                 "carries a single relationship matrix; put it in ",
-                 "data2 so every formula resolves the same object.",
-                 call. = FALSE)
+            frm_stop("|ID|-linked ",
+                     if (cs_name == "gr_cov") "gr(cov = )" else "gr(prec = )",
+                     " terms must resolve to the same matrix (",
+                     cps[[1]]$label, " vs ", cp$label,
+                     "). The terms merge into one Kronecker block, which ",
+                     "carries a single relationship matrix; put it in ",
+                     "data2 so every formula resolves the same object.",
+                     call. = FALSE)
           }
         }
         if (cs_name == "gr_cov") {
@@ -2550,10 +2629,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         # up front. Kept because the failure mode it guards is silent:
         # falling through to "us" here would drop a relationship matrix
         # into a density that never reads it.
-        stop("|ID|-linked terms mix covariance structures (",
-             paste(cs_set, collapse = ", "),
-             "), which a single merged block cannot carry",
-             call. = FALSE)
+        frm_stop("|ID|-linked terms mix covariance structures (",
+                 paste(cs_set, collapse = ", "),
+                 "), which a single merged block cannot carry",
+                 call. = FALSE)
       }
       cnms <- unlist(lapply(cps, function(cp) {
         paste0(cp$lp_key, ":", cp$cnms)
@@ -2572,8 +2651,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     }
     if (cs_name == "rr") {
       if (is.null(rank_k) || rank_k > D) {
-        stop("rr(): the rank d must not exceed the term dimension (",
-             D, ")", call. = FALSE)
+        frm_stop("rr(): the rank d must not exceed the term dimension (",
+                 D, ")", call. = FALSE)
       }
       has_rr <- TRUE
       npar_k <- rr_npar(D, rank_k)
@@ -2738,8 +2817,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   if (n_miss) par_template[["miss"]] <- miss_init
   for (nm in names(extras)) {
     if (nm %in% names(par_template)) {
-      stop("Extra-parameter name collides with the template: ", nm,
-           call. = FALSE)
+      frm_stop("Extra-parameter name collides with the template: ", nm,
+               call. = FALSE)
     }
     par_template[[nm]] <- extras[[nm]]
   }
