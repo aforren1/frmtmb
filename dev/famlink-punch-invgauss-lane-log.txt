@@ -1,0 +1,6 @@
+arm lane frmtmb 0.58.0 
+design    link    status conv  logLik         max|grad| warnings
+setprior  1/mu^2  fit    0     -1082.000253   2.22e-06  16 (NA/NaN function evaluation)
+robust    1/mu^2  fit    0     0.541039       2.37e-06  1 (NA/NaN function evaluation)
+band      1/mu^2  fit    0     -157.610851    1.99e-05  11 (NA/NaN function evaluation)
+brmslp    1/mu^2  fit    0     15.553074      2.28e-06  1 (NA/NaN function evaluation)

@@ -87,7 +87,7 @@ fit_g <- bv("model", "ML: plain frm() with brms attached", {
 }, NA_character_, "")
 
 fit_b <- bv("model", "ML: frm() binomial with brms attached", {
-  frm(z ~ x + (1 | g), data = d, family = binomial())
+  frm(z ~ x + (1 | g), data = d, family = bernoulli())
 }, NA_character_, "")
 
 # bf() is the highest-traffic collision, and frm() catches it: the

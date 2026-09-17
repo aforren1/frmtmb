@@ -1,0 +1,47 @@
+---- GENERATED: dev/famlink-falsealarm-sum.R ----
+(family, link) pairs brms 2.23.0 accepts, excluding multinomial: 212
+families: 37
+fitted on base: 207; fitted on lane: 207
+false alarms (base fitted, lane refused): 0
+fitted in both with logLik identical to 10 decimals: 207 of 207
+fitted in both, lane optimizer code not 0: 24
+pairs the lane does not fit:
+ family          link status_base
+   acat       cauchit       error
+   acat       cloglog       error
+   acat        probit       error
+   acat probit_approx       error
+   acat        softit       error
+                                                 message_lane
+ acat() takes the 'logit' link only, and not because characte
+ acat() takes the 'logit' link only, and not because characte
+ acat() takes the 'logit' link only, and not because characte
+ acat() takes the 'logit' link only, and not because characte
+ acat() takes the 'logit' link only, and not because characte
+pairs fitted with a nonzero optimizer code (same in base?):
+                     family          link convergence_base convergence_lane
+               asym_laplace      identity                1                1
+               asym_laplace       inverse                1                1
+               asym_laplace           log                1                1
+               asym_laplace      softplus                1                1
+               asym_laplace    squareplus                1                1
+              beta_binomial       cauchit                1                1
+              beta_binomial       cloglog                1                1
+              beta_binomial      identity                1                1
+              beta_binomial        probit                1                1
+              beta_binomial probit_approx                1                1
+              beta_binomial        softit                1                1
+                 exgaussian      identity                1                1
+                 exgaussian       inverse                1                1
+                 exgaussian           log                1                1
+                 exgaussian      softplus                1                1
+                 exgaussian    squareplus                1                1
+                    nbinom1      softplus                1                1
+                negbinomial           log                1                1
+                negbinomial    squareplus                1                1
+ zero_inflated_asym_laplace      identity                1                1
+ zero_inflated_asym_laplace       inverse                1                1
+ zero_inflated_asym_laplace           log                1                1
+ zero_inflated_asym_laplace      softplus                1                1
+ zero_inflated_asym_laplace    squareplus                1                1
+---- END GENERATED ----

@@ -1,0 +1,8 @@
+file	pass	fail	error	skip	crashed
+test-bracket-access.R	1	0	0	0	FALSE
+test-coherence.R	61	0	0	0	FALSE
+test-cross-spectrum.R	96	0	0	0	FALSE
+test-cross-wishart.R	211	0	0	0	FALSE
+test-message-uniqueness.R	4	0	0	0	FALSE
+test-scale.R	0	0	0	5	FALSE
+test-surface.R	58	0	0	0	FALSE

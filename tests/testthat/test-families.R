@@ -241,20 +241,22 @@ test_that("every constructor takes the dpar links brms allows", {
   }
 })
 
-test_that("frm_family() reaches the links the stats families cannot", {
+test_that("brmsfamily() reaches the links the stats families cannot", {
   # stats::gaussian() has no link_sigma and stats::poisson() refuses
   # softplus, so these are unreachable through the constructors
   expect_identical(
-    frm_family("gaussian", link_sigma = "softplus")$links$sigma$name,
+    brmsfamily("gaussian", link_sigma = "softplus")$links$sigma$name,
     "softplus")
-  expect_identical(frm_family("poisson", link = "softplus")$links$mu$name,
+  expect_identical(brmsfamily("poisson", link = "softplus")$links$mu$name,
                    "softplus")
   expect_identical(
-    frm_family("Gamma", link = "inverse", link_shape = "identity")$links$
+    brmsfamily("Gamma", link = "inverse", link_shape = "identity")$links$
       shape$name, "identity")
-  expect_error(frm_family("gaussian", link_shape = "log"), "link_shape")
-  expect_error(frm_family("nope"), "no family called")
-  expect_error(frm_family("gaussian", "softplus"), "has to be named")
+  expect_error(brmsfamily("gaussian", link_shape = "log"), "link_shape")
+  expect_error(brmsfamily("nope"), "nope is not a supported family")
+  # the second argument is the link, as in brms's brmsfamily()
+  expect_identical(brmsfamily("gaussian", "softplus")$link, "softplus")
+  expect_error(brmsfamily("gaussian", "softplus", "log"), "has to be named")
 })
 
 test_that("a dpar link that is not log keeps the density honest", {
@@ -311,7 +313,7 @@ test_that("a dpar's prior goes through that dpar's own link", {
                                               "softplus", "squareplus"))
   for (l in names(got)) {
     lk <- frmtmb:::get_link(l)
-    f <- frm(bf(y ~ x), family = frm_family("gaussian", link_sigma = l),
+    f <- frm(bf(y ~ x), family = brmsfamily("gaussian", link_sigma = l),
              data = d, prior = pr)
     got[l] <- lk$linkinv(unname(unlist(fixef(f))[["sigma.(Intercept)"]]))
     obj <- function(eta) {
@@ -339,7 +341,7 @@ test_that("summary() and print() name the link of every dpar", {
                "Links: mu = identity; sigma = log", fixed = TRUE)
   expect_match(paste(utils::capture.output(print(f)), collapse = "\n"),
                "Links: mu = identity; sigma = log", fixed = TRUE)
-  g <- frm(bf(y ~ x), family = frm_family("gaussian",
+  g <- frm(bf(y ~ x), family = brmsfamily("gaussian",
                                           link_sigma = "softplus"), data = d)
   expect_match(paste(utils::capture.output(print(summary(g))),
                      collapse = "\n"),

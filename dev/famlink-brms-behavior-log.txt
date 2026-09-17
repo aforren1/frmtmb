@@ -1,0 +1,201 @@
+brms 2.23.0 
+
+== cumulative unordered factor 
+  result: ERROR [brms_error/rlang_error/error/condition]: Family 'cumulative' requires either positive integers or ordered factors as responses. 
+== cumulative ordered factor 
+  result: OK 
+== sratio unordered factor 
+  result: ERROR [brms_error/rlang_error/error/condition]: Family 'sratio' requires either positive integers or ordered factors as responses. 
+== sratio ordered factor 
+  result: OK 
+== cratio unordered factor 
+  result: ERROR [brms_error/rlang_error/error/condition]: Family 'cratio' requires either positive integers or ordered factors as responses. 
+== cratio ordered factor 
+  result: OK 
+== acat unordered factor 
+  result: ERROR [brms_error/rlang_error/error/condition]: Family 'acat' requires either positive integers or ordered factors as responses. 
+== acat ordered factor 
+  result: OK 
+== categorical unordered factor 
+  result: OK 
+== binomial trials(1) 
+  result: OK 
+  message: Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 
+== binomial trials(one) column 
+  result: OK 
+  message: Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 
+== binomial trials(2) 
+  result: OK 
+== binomial no trials 
+  result: ERROR [brms_error/rlang_error/error/condition]: Specifying 'trials' is required for this model. 
+== beta_binomial trials(1) 
+  result: OK 
+  message: Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 
+== zero_inflated_binomial trials(1) 
+  result: OK 
+  message: Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 
+== cumulative 2 categories integer 
+  result: OK 
+  message: Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 
+== cumulative 3 categories integer 
+  result: OK 
+== sratio 2 categories integer 
+  result: OK 
+  message: Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 
+== sratio 3 categories integer 
+  result: OK 
+== cratio 2 categories integer 
+  result: OK 
+  message: Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 
+== cratio 3 categories integer 
+  result: OK 
+== acat 2 categories integer 
+  result: OK 
+  message: Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 
+== acat 3 categories integer 
+  result: OK 
+== cumulative 2-level ordered factor 
+  result: OK 
+  message: Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 
+== categorical 2 levels 
+  result: OK 
+  message: Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 
+== categorical 3 levels 
+  result: OK 
+== family = c('weibull','log') 
+  result: OK 
+== validate_family c('weibull','sqrt') 
+  result: ERROR [brms_error/rlang_error/error/condition]: 'sqrt' is not a supported link for family 'weibull'.
+Supported links are: 'log', 'identity', 'inverse', 'softplus', 'squareplus' 
+== validate_family c('categorical','probit') 
+  result: ERROR [brms_error/rlang_error/error/condition]: 'probit' is not a supported link for family 'categorical'.
+Supported links are: 'logit' 
+[1] "log"
+== validate_family c('poisson') 
+  result: OK 
+== validate_family 3 long 
+  result: OK 
+[1] "identity"
+== validate_family c('zi_poisson', 'identity') 
+  result: OK 
+[1] "gamma"
+== brmsfamily('Gamma') 
+  result: OK 
+[1] "gaussian"
+== brmsfamily('normal') 
+  result: OK 
+[1] "hurdle_poisson"
+== brmsfamily('hu_poisson') 
+  result: OK 
+ [1] "family"   "link"     "linkfun"  "linkinv"  "dpars"    "type"    
+ [7] "ybounds"  "closed"   "ad"       "specials"
+== brmsfamily('poisson', link_sigma = 'identity') 
+  result: OK 
+[1] "sqrt"
+== brmsfamily('poisson', 'sqrt')$link 
+  result: OK 
+== brmsfamily(c('poisson','sqrt')) 
+  result: ERROR [brms_error/rlang_error/error/condition]: Cannot coerce 'family' to a single character value. 
+[1] "probit"
+== bernoulli(lk) with lk <- 'probit' 
+  result: OK 
+[1] "logit"
+== bernoulli(link = NULL) 
+  result: OK 
+[1] "logit"
+== bernoulli(link = NA) 
+  result: OK 
+== student(link_sigma = identity) unquoted secondary 
+  result: ERROR [simpleError/error/condition]: cannot coerce type 'closure' to vector of type 'character' 
+== weibull(link_shape = 'logit') 
+  result: ERROR [brms_error/rlang_error/error/condition]: 'logit' is not a supported link for parameter 'shape'.
+Supported links are: 'log', 'identity', 'softplus', 'squareplus' 
+== mixture(poisson(), categorical()) 
+  result: ERROR [brms_error/rlang_error/error/condition]: Some of the families are not allowed in mixture models. 
+== mixture(lognormal, exgaussian, poisson()) 
+  result: ERROR [brms_error/rlang_error/error/condition]: Cannot mix families with real and integer support. 
+== mixture(poisson, 'cumulative') 
+  result: ERROR [brms_error/rlang_error/error/condition]: Cannot mix ordinal and non-ordinal families. 
+== mixture(gaussian, hurdle_gamma) 
+  result: ERROR [brms_error/rlang_error/error/condition]: Some of the families are not allowed in mixture models. 
+== mixture(poisson, bernoulli) 
+  result: OK 
+  message: Setting order = 'none' for mixtures of different families. 
+== mixture(gaussian, Beta) 
+  result: OK 
+  message: Setting order = 'none' for mixtures of different families. 
+== mixture(poisson, multinomial) 
+  result: ERROR [brms_error/rlang_error/error/condition]: Some of the families are not allowed in mixture models. 
+== mixture(poisson, cox) 
+  result: ERROR [brms_error/rlang_error/error/condition]: Cannot mix families with real and integer support. 
+List of 14
+ $ family    : chr "student"
+ $ link      : chr "identity"
+ $ linkfun   :function (mu)  
+ $ linkinv   :function (eta)  
+ $ dpars     : chr [1:3] "mu" "sigma" "nu"
+ $ type      : chr "real"
+ $ ybounds   : num [1:2] -Inf Inf
+ $ closed    : logi [1:2] NA NA
+ $ ad        : chr [1:7] "weights" "subset" "se" "cens" ...
+ $ include   : chr "fun_logm1.stan"
+ $ normalized: chr [1:5] "_time_hom" "_time_het" "_lagsar" "_errorsar" ...
+ $ specials  : chr [1:2] "residuals" "rescor"
+ $ link_sigma: chr "log"
+ $ link_nu   : chr "logm1"
+List of 13
+ $ family    : chr "cumulative"
+ $ link      : chr "probit"
+ $ linkfun   :function (mu)  
+ $ linkinv   :function (eta)  
+ $ dpars     : chr [1:2] "mu" "disc"
+ $ type      : chr "int"
+ $ ybounds   : num [1:2] -Inf Inf
+ $ closed    : logi [1:2] NA NA
+ $ ad        : chr [1:5] "weights" "subset" "thres" "cat" ...
+ $ specials  : chr [1:6] "ordinal" "ordered_thres" "thres_minus_eta" "joint_link" ...
+ $ normalized: chr ""
+ $ link_disc : chr "log"
+ $ threshold : chr "flexible"
+List of 11
+ $ family     : chr "categorical"
+ $ link       : chr "logit"
+ $ linkfun    :function (mu)  
+ $ linkinv    :function (eta)  
+ $ dpars      : NULL
+ $ multi_dpars: chr "mu"
+ $ type       : chr "int"
+ $ ybounds    : num [1:2] -Inf Inf
+ $ closed     : logi [1:2] NA NA
+ $ ad         : chr [1:3] "weights" "subset" "index"
+ $ specials   : chr [1:3] "categorical" "joint_link" "sbi_logit"
+Setting order = 'none' for mixtures of different families.
+List of 4
+ $ family: chr "mixture"
+ $ link  : chr "identity"
+ $ mix   :List of 2
+ $ order : chr "none"
+List of 13
+ $ family    : chr "von_mises"
+ $ link      : chr "tan_half"
+ $ linkfun   :function (mu)  
+ $ linkinv   :function (eta)  
+ $ dpars     : chr [1:2] "mu" "kappa"
+ $ type      : chr "real"
+ $ ybounds   : num [1:2] -3.14 3.14
+ $ closed    : logi [1:2] TRUE TRUE
+ $ ad        : chr [1:6] "weights" "subset" "cens" "trunc" ...
+ $ include   : chr "fun_tan_half.stan"
+ $ normalized: chr ""
+ $ prior     :function (dpar, link = "identity", ...)  
+ $ link_kappa: chr "log"
+
+Family: weibull 
+Link function: log 
+
+
+Family: student 
+Link function: identity 
+Link function of 'sigma' (if predicted): log
+Link function of 'nu' (if predicted): logm1
+

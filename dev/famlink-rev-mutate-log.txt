@@ -1,0 +1,24 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+fam$links$mu <- probit obj                     fresh  link=probit  link_sigma=log
+fam[['links']][['sigma']] <- 'softplus'        fresh  link=identity  link_sigma=softplus
+fam['links'] <- list(...)  ([<-)               link,link_sigma +linkinv stale  link=identity  link_sigma=log
+fam[c('links','dpars')] <- ...                 link +linkinv stale  link=identity  link_sigma=log
+fam[[idx of links]] <- ...                     link +linkinv stale  link=identity  link_sigma=log
+utils::modifyList(fam, list(links=))           fresh  link=log  link_sigma=log
+unclass, edit, class<-                         link +linkinv stale  link=identity  link_sigma=log
+structure(modified list, class=)               link +linkinv stale  link=identity  link_sigma=log
+within(fam, links$mu <- ...)                   link +linkinv stale  link=identity  link_sigma=log
+attr<- names (rename a field)                  fresh  link=identity  link_sigma=log
+fam$dpars <- c(dpars, 'extra')                 fresh  link=identity  link_sigma=log
+fam$links <- NULL                              fresh  link=identity  link_sigma=NA
+fam$ord_link on cumulative <- probit obj       fresh  link=probit  link_sigma=NULL
+mixture comps edited: fam$mix$...              fresh  link=identity  link_sigma=NULL
+fam$link <- 'log' (refused?)                   ERROR: `link` on a family object is derived from `links` and cannot be assign
+fam[['link']] <- 'log' (refused?)              ERROR: `link` on a family object is derived from `links` and cannot be assign
+fam['link'] <- 'log' ([<- bypass)              link  link=log  link_sigma=log
+fam$linkinv <- exp (refused?)                  ERROR: `linkinv` on a family object is derived from `links` and cannot be ass
+fam$link_sigma <- 'identity' (refused?)        ERROR: `link_sigma` on a family object is derived from `links` and cannot be 
+fam$link_new <- 'x' on absent dpar             ERROR: `link_new` on a family object is derived from `links` and cannot be as
+
+-- does a stale `link` after [<- change the fit? --
+family(fit)$link: identity  links$mu used by the fit: log 

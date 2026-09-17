@@ -1,0 +1,106 @@
+ARM base frmtmb from C:/Users/adf44/source/r/rellib-r3 
+str_gaussian                 ok    msg 0 
+str_normal                   error msg 0 Unsupported family name: 'normal'. Currently supported: gaussian, poisson, binomial, Gamma, lognormal, student
+str_gamma_lower              error msg 0 Unsupported family name: 'gamma'. Currently supported: gaussian, poisson, binomial, Gamma, lognormal, student,
+str_Gamma                    ok    msg 0 
+str_zi_poisson               error msg 0 Unsupported family name: 'zi_poisson'. Currently supported: gaussian, poisson, binomial, Gamma, lognormal, stu
+str_hu_poisson               error msg 0 Unsupported family name: 'hu_poisson'. Currently supported: gaussian, poisson, binomial, Gamma, lognormal, stu
+str_cumulative               ok    msg 0 
+str_Bernoulli_case           error msg 0 Unsupported family name: 'Bernoulli'. Currently supported: gaussian, poisson, binomial, Gamma, lognormal, stud
+pair_poisson_sqrt            error msg 0 Cannot interpret `family` of class character: pass a family constructor or its name as the `family` argument o
+pair_bernoulli_probit        error msg 0 Cannot interpret `family` of class character: pass a family constructor or its name as the `family` argument o
+pair_gamma_inverse           error msg 0 Cannot interpret `family` of class character: pass a family constructor or its name as the `family` argument o
+pair_cumulative_probit       error msg 0 Cannot interpret `family` of class character: pass a family constructor or its name as the `family` argument o
+stats_Gamma_default          ok    msg 0 
+stats_Gamma_identity         ok    msg 0 
+stats_invgauss_default       ok    msg 0 
+stats_invgauss_log           ok    msg 0 
+stats_gaussian_log           ok    msg 0 
+stats_gaussian_inverse       ok    msg 0 
+stats_poisson_sqrt           ok    msg 0 
+stats_poisson_identity       ok    msg 0 
+stats_binomial_probit        ok    msg 0 
+stats_binomial_cauchit       ok    msg 0 
+stats_binomial_cloglog       ok    msg 0 
+stats_binomial_fn            ok    msg 0 
+stats_quasipoisson           error msg 0 Unsupported family object: 'quasipoisson'. Currently supported: gaussian, poisson, binomial, Gamma, lognormal,
+fn_poisson                   ok    msg 0 
+fn_bernoulli                 ok    msg 0 
+fn_negbinomial               ok    msg 0 
+fn_cumulative                ok    msg 0 
+brms_bernoulli_probit        ok    msg 0 
+brms_student                 ok    msg 0 
+brms_student_sigma_ident     ok    msg 0 
+brms_negbinomial_sqrt        ok    msg 0 
+brms_Beta                    ok    msg 0 
+brms_weibull_identity        ok    msg 0 
+brms_lognormal               ok    msg 0 
+brms_shifted_lognormal       ok    msg 0 
+brms_exgaussian              ok    msg 0 
+brms_skew_normal             ok    msg 0 
+brms_zip                     ok    msg 0 
+brms_hurdle_poisson          ok    msg 0 
+brms_hurdle_gamma            ok    msg 0 
+brms_cumulative_probit       ok    msg 0 
+brms_sratio_cloglog          ok    msg 0 
+brms_von_mises               ok    msg 0 
+brms_asym_laplace            ok    msg 0 
+brms_invgauss                error msg 0 'inverse.gaussian' is not an exported object from 'namespace:brms'
+brms_geometric               ok    msg 0 
+brms_exponential             ok    msg 0 
+brms_brmsfamily_gamma        error msg 0 Unsupported family object: 'gamma'. Currently supported: gaussian, poisson, binomial, Gamma, lognormal, studen
+brms_brmsfamily_zi_nb        ok    msg 0 
+dist_student_identity        error msg 0 A link must be named by a single string, e.g. link = "logit", not a function of length 1. Available links: ide
+dist_negbin_sqrt             error msg 0 A link must be named by a single string, e.g. link = "logit", not a function of length 1. Available links: ide
+dist_zip_identity            ok    msg 0 
+re_bernoulli_cloglog         ok    msg 0 
+re_poisson_sqrt              ok    msg 0 
+re_gaussian_log              ok    msg 0 
+cens_weibull_identity        ok    msg 0 
+cens_lognormal               ok    msg 0 
+trunc_gaussian_log           ok    msg 0 
+trials_binomial_probit       ok    msg 0 
+trials_betabin_cloglog       ok    msg 0 
+trials_zib                   ok    msg 0 
+msg_binomial_trials1         ok    msg 0 
+msg_binomial_notrials        ok    msg 0 
+msg_betabin_trials1          ok    msg 0 
+msg_cumulative_2cat          ok    msg 0 
+msg_cumulative_2cat_f        ok    msg 0 
+msg_categorical_2            error msg 0 categorical(): the response 'y' has fewer than two categories
+msg_bernoulli                ok    msg 0 
+msg_categorical_3            ok    msg 0 
+msg_binomial_trials_var      ok    msg 0 
+ord_unordered_factor         ok    msg 0 
+ord_integer                  ok    msg 0 
+cat_unordered                ok    msg 0 
+mix_gauss_gauss              ok    msg 0 
+mix_gauss_student            ok    msg 0 
+mix_poisson_poisson          ok    msg 0 
+mix_poisson_negbin           ok    msg 0 
+mix_poisson_zip              ok    msg 0 
+mix_poisson_hurdle           ok    msg 0 
+mix_binom_betabin            ok    msg 0 
+mix_poisson_binomial         ok    msg 0 
+mix_bern_bern                ok    msg 0 
+mix_lognormal_gamma          ok    msg 0 
+mix_cum_cum                  error msg 0 mixture() does not support component family 'cumulative'
+mix_zibeta_beta              ok    msg 0 
+mix_exg_shiftln              ok    msg 0 
+mix_vonmises                 ok    msg 0 
+mix_gauss_hurdle_ln          ok    msg 0 
+mv_gauss_pois_sqrt           ok    msg 0 
+mv_student_negbin            error msg 0 A link must be named by a single string, e.g. link = "logit", not a function of length 1. Available links: ide
+brms_brmsfamily_invgauss     ok    msg 0 
+Setting order = 'mu' for mixtures of the same family.
+brms_mixture_gauss           error msg 0 Unsupported family object: 'mixture'. Currently supported: gaussian, poisson, binomial, Gamma, lognormal, stud
+mix_gauss_ziasym             ok    msg 0 
+mix_hurdle_pois2             ok    msg 0 
+mix_zip_zinb                 ok    msg 0 
+mix_zib_binom                ok    msg 0 
+mix_gauss_exgauss_str        ok    msg 0 
+mix_weibull_exponential      ok    msg 0 
+mix_student_skew             ok    msg 0 
+mix_asym_asym                ok    msg 0 
+Warning message:
+In sqrt(diag(vcov(out))) : NaNs produced

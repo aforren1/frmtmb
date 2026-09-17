@@ -1,0 +1,26 @@
+ARM base frmtmb from C:/Users/adf44/source/r/rellib-r3 
+6 negbinomial(inverse) ~ "inverse"           ERROR: object 'inverse' not found
+11 weibull()$family == weibull               VALUE: weibull
+17 hurdle_negbinomial("inverse")             ERROR: could not find function "hurdle_negbinomial"
+21 zero_inflated_poisson(list(1)) ~ zip      ERROR: The custom link of dpar 'mu' has no `name`, `linkfun`, `linkinv`, `mu_eta`. A link object needs name, linkfun, li
+26 zero_inflated_binomial(y ~ x) ~ zib       ERROR: A link must be named by a single string, e.g. link = "logit", not a formula of length 3. Available links: identit
+28 categorical(probit) ~ "probit"            ERROR: object 'probit' not found
+42 beta_binomial(link_phi = "logit")         ERROR: beta_binomial(link_phi =): 'logit' is not a link `phi` can take. Allowed: "log", "identity", "softplus", "squarep
+70 family_names(mix)                         ERROR: object 'mix' not found
+77 mixture(poisson, binomial, order = "x")   ERROR: Unsupported family name: 'x'. Currently supported: gaussian, poisson, binomial, Gamma, lognormal, student, negbin
+88 frm(family = "ordinal")                   ERROR: Unsupported family name: 'ordinal'. Currently supported: gaussian, poisson, binomial, Gamma, lognormal, student, 
+89 standata cratio on factor(-1:1)           VALUE: y, y, cratio, mu, identity, function (mu) , mu, function (eta) , eta, function (eta) , rep(1, length(eta)), funct
+Warning message:
+Ordinal response 'y' is an unordered factor; its level order (-1 < 0 < 1) is taken as the category order. Use factor(..., ordered = TRUE) to state it explicitly 
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+6 negbinomial(inverse) ~ "inverse"           ERROR: 'inverse' is not a supported link for family 'negbinomial'. Supported links are: 'log', 'identity', 'sqrt', 'soft
+11 weibull()$family == weibull               VALUE: weibull
+17 hurdle_negbinomial("inverse")             ERROR: could not find function "hurdle_negbinomial"
+21 zero_inflated_poisson(list(1)) ~ zip      ERROR: The custom link of dpar 'mu' given to zero_inflated_poisson() has no `name`, `linkfun`, `linkinv`, `mu_eta`. A li
+26 zero_inflated_binomial(y ~ x) ~ zib       ERROR: 'y ~ x' is not a supported link for family 'zero_inflated_binomial'. Supported links are: 'logit', 'probit', 'pro
+28 categorical(probit) ~ "probit"            ERROR: 'probit' is not a supported link for family 'categorical'. Supported links are: 'logit'. categorical() takes the 
+42 beta_binomial(link_phi = "logit")         ERROR: beta_binomial(link_phi =): 'logit' is not a supported link for parameter 'phi'. Supported links are: 'log', 'iden
+70 family_names(mix)                         ERROR: object 'mix' not found
+77 mixture(poisson, binomial, order = "x")   ERROR: mixture() has no argument `order`. It takes the component families, unnamed, and `groups`. brms's `nmix` and `ord
+88 frm(family = "ordinal")                   ERROR: ordinal is not a supported family. Supported families are: gaussian, poisson, binomial, Gamma, lognormal, student
+89 standata cratio on factor(-1:1)           ERROR: Family 'cratio' requires either positive integers or ordered factors as responses. 'y' is an unordered factor, wh

@@ -8,7 +8,7 @@ A link is not a free-standing function. It is named to a
 family constructor, which resolves it against the registry and
 carries it on the fitted model, so the value a link contributes is
 the scale each distributional parameter is estimated on. Read it
-back with \code{frm_family()}, and read a custom link's own fields with
+back with \verb{$link} and \verb{$link_<dpar>} on the family, and read a custom link's own fields with
 the list that was supplied. This page documents the roster.
 }
 \description{
@@ -65,11 +65,25 @@ count mean anyway, and so does frmtmb.
 \section{Links for the mean}{
 
 
-Any link in the roster is accepted for \code{mu}. The table below is what
-brms 2.23.0 accepts, so it says which pairings PORT. frmtmb does not
-refuse the others, because an extension family is free to mean
-something else by its own \code{mu}. The first link listed is the
-default.\tabular{ll}{
+Each family constructor takes, for \code{mu}, the links brms 2.23.0 takes
+for that family, and refuses the rest by name with the set it
+allows: \code{bernoulli("sqrt")} is an error, as in brms, because a
+probability on \code{eta^2} is not bounded by one. The sets are read out
+of brms by a script rather than copied by hand. The first link
+listed is the default.
+
+The link may be written unquoted, as in \code{student(identity)} or
+\code{negbinomial(sqrt)}, as \code{stats::family()} and brms allow. Only the
+link for the mean can be; a \verb{link_<dpar>} argument is a string.
+
+A custom link object (see Custom links) is not held to the table:
+brms has no such object, and a user who writes one has said what
+range the mean has. \code{\link[=frmtmb_family]{frmtmb_family()}} checks no set at all, because
+an extension family is free to mean something else by its own \code{mu}.
+
+\code{nbinom1}, \code{tweedie} and \code{huber} have no brms family. They take the
+set of the nearest brms family: \code{negbinomial}, \code{Gamma} and
+\code{gaussian}, in that order.\tabular{ll}{
    Family \tab Links for \code{mu} \cr
    \code{gaussian}, \code{student}, \code{skew_normal} \tab \code{identity}, \code{log}, \code{inverse}, \code{softplus}, \code{squareplus}, and every unit-interval link \cr
    \code{lognormal}, \code{shifted_lognormal}, \code{hurdle_lognormal} \tab \code{identity}, \code{inverse} \cr
@@ -88,10 +102,9 @@ default.\tabular{ll}{
 }
 
 
-An ordinal family is the exception that IS enforced. Its \code{link}
-names the cumulative distribution function the thresholds are read
-through, not a link on a mean, so only a link whose inverse maps
-onto the unit interval can serve. The rest are refused by name.
+An ordinal family's \code{link} names the cumulative distribution
+function the thresholds are read through, not a link on a mean, so
+only a link whose inverse maps onto the unit interval can serve.
 
 \code{acat()} is refused for a different reason, and it is the one place
 in this table where frmtmb takes less than brms. Probit, cloglog,

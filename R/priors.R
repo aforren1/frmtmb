@@ -1117,7 +1117,7 @@ get_prior <- function(formula, data = NULL, family = NULL,
   } else {
     bform <- resolve_deferred_families(as_bform(formula, family), data)
     spec <- parse_spec(bform)
-    frame <- assemble_frame(spec, data, data2 = data2)
+    frame <- assemble_frame(spec, data, data2 = data2, check_trials = FALSE)
     # the table is built from the spec's primary_dpars and nlpars, so
     # it needs the finalized families: a family that derived its dpars
     # from the response would otherwise be tabled under the vocabulary

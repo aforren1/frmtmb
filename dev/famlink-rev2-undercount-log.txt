@@ -1,0 +1,19 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+Tracing function "run_optimizer" in package "namespace:frmtmb"
+[1] "run_optimizer"
+  | frmtmb: parse [1.09s]
+  | frmtmb: frame [0.02s]: 200 obs, 1 linear predictor, 0 random-effect blocks
+  | frmtmb: fit: bernoulli, ML, nlminb
+  | frmtmb: tape [0.95s]: 2 outer, 0 inner parameters
+  | frmtmb: optimize [0.00s]: objective 56.447481
+  | frmtmb: restart 1 [0.03s]: objective 56.447481, from max|grad| 0.00318
+  | frmtmb: done [0.98s]: objective 56.447481, max|grad| 0.000273, 0 warnings
+bern_identity_wall : run_optimizer calls 2 ; counts 7 0 ; fit$opt$nonfinite_trials 0 ; NaN warnings 0 
+  | frmtmb: parse [0.00s]
+  | frmtmb: frame [0.02s]: 200 obs, 2 linear predictors, 0 random-effect blocks
+  | frmtmb: fit: Gamma, ML, nlminb
+  | frmtmb: tape [0.01s]: 3 outer, 0 inner parameters
+  | frmtmb: optimize [0.00s]: objective 324.07614
+  | frmtmb: restart 1 [0.00s]: objective 324.07614, from max|grad| 0.00107
+  | frmtmb: done [0.01s]: objective 324.07614, max|grad| 0.000132, 0 warnings
+gamma_inverse_cross : run_optimizer calls 2 ; counts 4 0 ; fit$opt$nonfinite_trials 0 ; NaN warnings 0 

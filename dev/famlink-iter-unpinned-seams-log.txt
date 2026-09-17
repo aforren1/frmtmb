@@ -1,0 +1,7 @@
+frmtmb from: C:/Users/adf44/source/r/famlink-lib 
+version    : 0.58.0 
+unpinned-seams: ............................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FAMLINK unpinned-seams pass 28 fail 0 error 0 skip 0 in 2 s

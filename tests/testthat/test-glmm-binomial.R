@@ -23,12 +23,14 @@ test_that("bernoulli responses (0/1 and factor) match glm", {
   set.seed(42)
   dd <- data.frame(x = rnorm(200))
   dd$y <- rbinom(200, 1, plogis(-0.5 + 0.8 * dd$x))
-  fit <- frm(bf(y ~ x) + binomial(), data = dd)
+  fit <- frm(bf(y ~ x) + bernoulli(), data = dd)
   ref <- stats::glm(y ~ x, family = binomial, data = dd)
   expect_loglik_equal(fit, ref, tol = 1e-6)
   expect_vector_equal(fixef(fit)$mu, coef(ref), tol = 1e-5)
 
   dd$yf <- factor(ifelse(dd$y == 1, "yes", "no"), levels = c("no", "yes"))
-  fit2 <- frm(bf(yf ~ x) + binomial(), data = dd)
+  # a factor response reaches binomial() with its single trial stated
+  fit2 <- suppressMessages(frm(bf(yf | trials(1) ~ x) + binomial(),
+                               data = dd))
   expect_vector_equal(fixef(fit2)$mu, coef(ref), tol = 1e-5)
 })

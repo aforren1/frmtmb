@@ -1,0 +1,103 @@
+---- GENERATED: dev/famlink-ledger-sum.R ----
+brms assertions: 90 (tests.brm.R 4, tests.families.R 84, tests.standata.R 2)
+genuine passes on base: 4; on lane: 50
+passes on a missing function or object, not counted: base 10, lane 8
+cannot transfer: 37
+deliberate divergence: 2
+not fixed: 1
+pass (genuine on base too): 4
+pass (not a genuine pass on base): 46 
+
+| # | file | assertion | outcome |
+|---|---|---|---|
+| 1 | families.R | `expect_equal(student(identity)$link, "identity")` | pass (not a genuine pass on base) |
+| 2 | families.R | `expect_equal(student()$link, "identity")` | pass (not a genuine pass on base) |
+| 3 | families.R | `expect_equal(bernoulli(logit)$link, "logit")` | pass (not a genuine pass on base) |
+| 4 | families.R | `expect_error(bernoulli("sqrt"), "bernoulli")` | pass (not a genuine pass on base) |
+| 5 | families.R | `expect_equal(negbinomial(sqrt)$link, "sqrt")` | pass (not a genuine pass on base) |
+| 6 | families.R | `expect_error(negbinomial(inverse), "inverse")` | pass (not a genuine pass on base) |
+| 7 | families.R | `expect_equal(geometric(identity)$link, "identity")` | pass (not a genuine pass on base) |
+| 8 | families.R | `expect_error(geometric("inv"), "geometric")` | pass (not a genuine pass on base) |
+| 9 | families.R | `expect_equal(exponential(log)$link, "log")` | pass (not a genuine pass on base) |
+| 10 | families.R | `expect_error(exponential("cloglog"), "exponential")` | pass (not a genuine pass on base) |
+| 11 | families.R | `expect_equal(weibull()$family, "weibull")` | pass (genuine on base too) |
+| 12 | families.R | `expect_error(weibull(sqrt), "weibull")` | pass (not a genuine pass on base) |
+| 13 | families.R | `expect_equal(Beta("probit")$link, "probit")` | pass (not a genuine pass on base) |
+| 14 | families.R | `expect_error(Beta("1/mu^2"), "beta")` | pass (not a genuine pass on base) |
+| 15 | families.R | `expect_equal(hurdle_poisson()$link, "log")` | pass (not a genuine pass on base) |
+| 16 | families.R | `expect_equal(hurdle_negbinomial(log)$link, "log")` | cannot transfer: could not find function "hurdle_negbinomial" |
+| 17 | families.R | `expect_error(hurdle_negbinomial("inverse"), "hurdle_negbinomial")` | cannot transfer: could not find function "hurdle_negbinomial" |
+| 18 | families.R | `expect_equal(hurdle_gamma()$family, "hurdle_gamma")` | pass (genuine on base too) |
+| 19 | families.R | `expect_error(hurdle_gamma(sqrt), "hurdle_gamma")` | pass (not a genuine pass on base) |
+| 20 | families.R | `expect_equal(zero_inflated_poisson(log)$link, "log")` | pass (not a genuine pass on base) |
+| 21 | families.R | `expect_error(zero_inflated_poisson(list(1)), "zero_inflated_poisson")` | pass (not a genuine pass on base) |
+| 22 | families.R | `expect_equal(zero_inflated_negbinomial("log")$link, "log")` | pass (not a genuine pass on base) |
+| 23 | families.R | `expect_error(zero_inflated_negbinomial("logit"), "zero_inflated_neg...` | pass (not a genuine pass on base) |
+| 24 | families.R | `expect_equal(zero_inflated_beta(logit)$family, "zero_inflated_beta")` | pass (not a genuine pass on base) |
+| 25 | families.R | `expect_equivalent(zero_inflated_binomial()$link_zi, "logit")` | pass (not a genuine pass on base) |
+| 26 | families.R | `expect_error(zero_inflated_binomial(y ~ x), "zero_inflated_binomial")` | pass (not a genuine pass on base) |
+| 27 | families.R | `expect_equal(categorical()$link, "logit")` | pass (not a genuine pass on base) |
+| 28 | families.R | `expect_error(categorical(probit), "probit")` | pass (not a genuine pass on base) |
+| 29 | families.R | `expect_equal(cumulative(cauchit)$family, "cumulative")` | pass (not a genuine pass on base) |
+| 30 | families.R | `expect_equal(sratio(probit_approx)$link, "probit_approx")` | pass (not a genuine pass on base) |
+| 31 | families.R | `expect_equal(cratio("cloglog")$family, "cratio")` | pass (genuine on base too) |
+| 32 | families.R | `expect_equal(acat(cloglog)$link, "cloglog")` | deliberate divergence: acat off the logit is a second density frmtmb has not written (?frmtmb-links) |
+| 33 | families.R | `expect_equal(brmsfamily("gaussian", inverse)$link, "inverse")` | pass (not a genuine pass on base) |
+| 34 | families.R | `expect_equal(brmsfamily("geometric", "identity")$family, "geometric")` | pass (not a genuine pass on base) |
+| 35 | families.R | `expect_equal(brmsfamily("zi_poisson")$link_zi, "logit")` | pass (not a genuine pass on base) |
+| 36 | families.R | `expect_error(weibull(link_shape = "logit"), "'logit' is not a suppo...` | pass (not a genuine pass on base) |
+| 37 | families.R | `expect_error(weibull(link_shape = c("log", "logit")), "Cannot coerc...` | deliberate divergence: the call is refused, but brms's message names its internal variable `alink` |
+| 38 | families.R | `expect_equal(beta_binomial()$link, "logit")` | pass (not a genuine pass on base) |
+| 39 | families.R | `expect_equal(beta_binomial("probit")$link, "probit")` | pass (not a genuine pass on base) |
+| 40 | families.R | `expect_equal(beta_binomial()$link_phi, "log")` | pass (not a genuine pass on base) |
+| 41 | families.R | `expect_error(beta_binomial("log"))` | pass (not a genuine pass on base) |
+| 42 | families.R | `expect_error(beta_binomial(link_phi = "logit"))` | pass (genuine on base too) |
+| 43 | families.R | `expect_equal(zero_inflated_beta_binomial()$link, "logit")` | cannot transfer: could not find function "zero_inflated_beta_binomial" |
+| 44 | families.R | `expect_equal(zero_inflated_beta_binomial("probit")$link, "probit")` | cannot transfer: could not find function "zero_inflated_beta_binomial" |
+| 45 | families.R | `expect_equal(zero_inflated_beta_binomial()$link_phi, "log")` | cannot transfer: could not find function "zero_inflated_beta_binomial" |
+| 46 | families.R | `expect_equal(zero_inflated_beta_binomial()$link_zi, "logit")` | cannot transfer: could not find function "zero_inflated_beta_binomial" |
+| 47 | families.R | `expect_equal(zero_inflated_beta_binomial(link_zi = "identity")$link...` | cannot transfer: could not find function "zero_inflated_beta_binomial" |
+| 48 | families.R | `expect_error(zero_inflated_beta_binomial("sqrt"))` | cannot transfer: could not find function "zero_inflated_beta_binomial" |
+| 49 | families.R | `expect_error(zero_inflated_beta_binomial(link_phi = "logit"))` | cannot transfer: could not find function "zero_inflated_beta_binomial" |
+| 50 | families.R | `expect_error(zero_inflated_beta_binomial(link_zi = "log"))` | cannot transfer: could not find function "zero_inflated_beta_binomial" |
+| 51 | families.R | `expect_equal(hurdle_cumulative()$link, "logit")` | cannot transfer: could not find function "hurdle_cumulative" |
+| 52 | families.R | `expect_equal(hurdle_cumulative("probit")$link, "probit")` | cannot transfer: could not find function "hurdle_cumulative" |
+| 53 | families.R | `expect_equal(hurdle_cumulative("cauchit")$link, "cauchit")` | cannot transfer: could not find function "hurdle_cumulative" |
+| 54 | families.R | `expect_equal(hurdle_cumulative()$link_hu, "logit")` | cannot transfer: could not find function "hurdle_cumulative" |
+| 55 | families.R | `expect_equal(hurdle_cumulative()$link_disc, "log")` | cannot transfer: could not find function "hurdle_cumulative" |
+| 56 | families.R | `expect_error(hurdle_cumulative(link = "log")$link)` | cannot transfer: could not find function "hurdle_cumulative" |
+| 57 | families.R | `expect_error(hurdle_cumulative(link_hu = "probit")$link_hu)` | cannot transfer: could not find function "hurdle_cumulative" |
+| 58 | families.R | `expect_error(hurdle_cumulative(link_disc = "logit")$link_disc)` | cannot transfer: could not find function "hurdle_cumulative" |
+| 59 | families.R | `expect_equal(xbeta()$link, "logit")` | cannot transfer: could not find function "xbeta" |
+| 60 | families.R | `expect_equal(xbeta("probit")$link, "probit")` | cannot transfer: could not find function "xbeta" |
+| 61 | families.R | `expect_equal(xbeta("cloglog")$link, "cloglog")` | cannot transfer: could not find function "xbeta" |
+| 62 | families.R | `expect_error(xbeta("1/mu"), "xbeta")` | cannot transfer: could not find function "xbeta" |
+| 63 | families.R | `expect_equal(xbeta(link_phi = "log")$link_phi, "log")` | cannot transfer: could not find function "xbeta" |
+| 64 | families.R | `expect_equal(xbeta(link_phi = "softplus")$link_phi, "softplus")` | cannot transfer: could not find function "xbeta" |
+| 65 | families.R | `expect_error(xbeta(link_phi = "sqrt")$link_phi, "sqrt")` | cannot transfer: could not find function "xbeta" |
+| 66 | families.R | `expect_equal(xbeta(link_kappa = "identity")$link_kappa, "identity")` | cannot transfer: could not find function "xbeta" |
+| 67 | families.R | `expect_equal(xbeta(link_kappa = "log")$link_kappa, "log")` | cannot transfer: could not find function "xbeta" |
+| 68 | families.R | `expect_output(print(weibull()), "Family: weibull \nLink function: l...` | pass (not a genuine pass on base) |
+| 69 | families.R | `expect_output(print(xbeta()), "Family: xbeta \nLink function: logit")` | cannot transfer: could not find function "xbeta" |
+| 70 | families.R | `expect_equal(brms:::family_names(mix), rep("gaussian", 3))` | cannot transfer: object 'mix' not found |
+| 71 | families.R | `expect_equal(brms:::family_names(mix), c(rep("gaussian", 3), rep("s...` | cannot transfer: object 'mix' not found |
+| 72 | families.R | `expect_error(mixture(gaussian, "x"), "x is not a supported family")` | pass (not a genuine pass on base) |
+| 73 | families.R | `expect_error(mixture(poisson(), categorical()), "Some of the famili...` | pass (not a genuine pass on base) |
+| 74 | families.R | `expect_error(mixture(poisson, "cumulative"), "Cannot mix ordinal an...` | pass (not a genuine pass on base) |
+| 75 | families.R | `expect_error(mixture(lognormal, exgaussian, poisson()), "Cannot mix...` | pass (not a genuine pass on base) |
+| 76 | families.R | `expect_error(mixture(lognormal), "Expecting at least 2 mixture comp...` | pass (not a genuine pass on base) |
+| 77 | families.R | `expect_error(mixture(poisson, binomial, order = "x"), "Argument 'or...` | not fixed: mixture() has no `order`; the call is refused naming `order`, not with brms's sentence |
+| 78 | families.R | `expect_equal(xbeta()$closed, rep(TRUE, 2))` | cannot transfer: could not find function "xbeta" |
+| 79 | families.R | `expect_equal(xbeta()$ybounds, c(0, 1))` | cannot transfer: could not find function "xbeta" |
+| 80 | families.R | `expect_equal(xbeta()$type, "real")` | cannot transfer: could not find function "xbeta" |
+| 81 | families.R | `expect_identical(xbeta()$dpars, c("mu", "phi", "kappa"))` | cannot transfer: could not find function "xbeta" |
+| 82 | families.R | `expect_output(print(xbeta()$prior), "gamma\\(0.01, 0.01\\)")` | cannot transfer: could not find function "xbeta" |
+| 83 | families.R | `expect_output(print(xbeta()$prior), "student\\_t\\(3, 0, 2.5\\)")` | cannot transfer: could not find function "xbeta" |
+| 84 | families.R | `expect_equal(xbeta()$include, "fun_xbeta.stan")` | cannot transfer: could not find function "xbeta" |
+| 85 | brm.R | `expect_error(brm(y ~ x, dat, family = poisson("inverse")), "'invers...` | pass (not a genuine pass on base) |
+| 86 | brm.R | `expect_error(brm(y ~ x, dat, family = c("weibull", "sqrt")), "'sqrt...` | pass (not a genuine pass on base) |
+| 87 | brm.R | `expect_error(brm(y ~ x, dat, family = c("categorical", "probit")), ...` | pass (not a genuine pass on base) |
+| 88 | brm.R | `expect_error(brm(y ~ x, dat, family = "ordinal"), "ordinal is not a...` | pass (not a genuine pass on base) |
+| 89 | standata.R | `expect_error(standata(y ~ 1, data = data.frame(y = factor(-1:1)), f...` | pass (not a genuine pass on base) |
+| 90 | standata.R | `expect_error(standata(y ~ 1, data = data.frame(y = rep(0.5:7.5), 2)...` | pass (not a genuine pass on base) |
+---- END GENERATED ----

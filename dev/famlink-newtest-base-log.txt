@@ -1,0 +1,1354 @@
+frmtmb from: C:/Users/adf44/source/r/rellib-r3 
+version    : 0.58.0 
+brms-families: 1234567W89abcde.fghi.jkl.mno.pqrs.tuvw.xyzAB.CDEF.GHIJ.KLMN.OPQR.STUV.WXYZF.FFFF.FFFF.FFFFF.FFFF.F.FFF.FFFF.FFFFF.FFFF.FFFFF.FFF.FFF.FFF.FFFF.FFFFF.FFFFF.FFFFF.FFFF.FFFFF.FFFFF.FFFFFF.FFFF.FFF.FFF.FFF.FFFF.FFF..FFF.FFEFFFEWFWFWFWF..FFFFF.FFFFFF....EEFF
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+1. the refusal fires on the silent wrong answer it was built for ('test-brms-families.R:149:3') - NA/NaN function evaluation
+
+2. an unordered factor response to an ordinal family is refused ('test-brms-families.R:301:5') - Ordinal response 'y' is an unordered factor; its level order (high < low < mid) is taken as the category order. Use factor(..., ordered = TRUE) to state it explicitly
+
+3. an unordered factor response to an ordinal family is refused ('test-brms-families.R:301:5') - Ordinal response 'y' is an unordered factor; its level order (high < low < mid) is taken as the category order. Use factor(..., ordered = TRUE) to state it explicitly
+
+4. an unordered factor response to an ordinal family is refused ('test-brms-families.R:301:5') - Ordinal response 'y' is an unordered factor; its level order (high < low < mid) is taken as the category order. Use factor(..., ordered = TRUE) to state it explicitly
+
+5. an unordered factor response to an ordinal family is refused ('test-brms-families.R:301:5') - Ordinal response 'y' is an unordered factor; its level order (high < low < mid) is taken as the category order. Use factor(..., ordered = TRUE) to state it explicitly
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-brms-families.R:9:3'): brms tests.families.R: family function
+Error: A link must be named by a single string, e.g. link = "logit", not a function of length 1. Available links: identity, log, logit, cloglog, probit, probit_approx, cauchit, softit, inverse, logm1, log1p, tan_half, power12, softplus, squareplus, sqrt, 1/mu^2
+Backtrace:
+     ▆
+  1. ├─testthat::expect_equal(student(identity)$link, "identity") at test-brms-families.R:9:3
+  2. │ └─testthat::quasi_label(enquo(object), label)
+  3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+  4. └─frmtmb::student(identity)
+  5.   └─frmtmb:::fam_student(link, link_sigma, link_nu)
+  6.     └─frmtmb::frmtmb_family(...)
+  7.       └─base::Map(function(lk, dp) get_link(lk, dpar = dp), links, names(links))
+  8.         └─base::mapply(FUN = f, ..., SIMPLIFY = FALSE)
+  9.           └─frmtmb (local) `<fn>`(dots[[1L]][[1L]], dots[[2L]][[1L]])
+ 10.             └─frmtmb:::get_link(lk, dpar = dp)
+
+── 2. Failure ('test-brms-families.R:53:3'): brms tests.families.R: print and mi
+Expected output from `print(weibull())` to match regexp "Family: weibull \nLink function: log".
+Actual output:
+x | <frmtmb family> weibull
+  |   dpars: mu (log), shape (log)
+
+── 3. Error ('test-brms-families.R:54:3'): brms tests.families.R: print and mixt
+Error: Unsupported family name: 'x'. Currently supported: gaussian, poisson, binomial, Gamma, lognormal, student, negbinomial, nbinom2, nbinom1, beta, Beta, tweedie, compois, zero_inflated_poisson, zero_inflated_negbinomial, hurdle_poisson, multinomial, cumulative, beta_binomial, skew_normal, inverse.gaussian, exgaussian, bernoulli, geometric, exponential, weibull, shifted_lognormal, hurdle_gamma, hurdle_lognormal, zero_inflated_binomial, zero_inflated_beta, asym_laplace, zero_inflated_asym_laplace, huber, sratio, cratio, acat, von_mises, cox, categorical
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(mixture(gaussian, "x"), "x is not a supported family") at test-brms-families.R:54:3
+ 2. │ └─testthat:::expect_condition_matching_(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─frmtmb::mixture(gaussian, "x")
+ 8.   └─base::lapply(list(...), as_frmtmb_family)
+ 9.     └─frmtmb (local) FUN(X[[i]], ...)
+
+── 4. Error ('test-brms-families.R:69:3'): brms tests.brm.R and tests.standata.R
+Error: poisson: response must be non-negative integers
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-brms-families.R:69:3
+ 2. │ └─testthat:::expect_condition_matching_(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─frmtmb::frm(y ~ x, dat, family = poisson("inverse"))
+ 8.   └─frmtmb:::assemble_frame(...)
+ 9.     └─resp$family[["valid_y"]](y[[resp$resp_name]], av)
+
+── 5. Error ('test-brms-families.R:92:3'): the committed mean-link sets are the 
+Error in `eval(code, test_env)`: object 'brms_mu_link_source' not found
+
+── 6. Error ('test-brms-families.R:111:3'): every (family, link) pair brms accep
+Error in `eval(code, test_env)`: object 'brms_mu_links' not found
+
+── 7. Error ('test-brms-families.R:127:3'): every roster link brms refuses for a
+Error in `eval(code, test_env)`: object 'brms_mu_links' not found
+
+── 8. Failure ('test-brms-families.R:149:3'): the refusal fires on the silent wr
+Expected `frm(y ~ x, d, family = bernoulli("sqrt"))` to throw a error.
+
+── 9. Failure ('test-brms-families.R:152:3'): the refusal fires on the silent wr
+Expected `frm(y ~ 1, data.frame(y = rpois(20, 3)), family = stats::poisson("inverse"))` to throw a error.
+
+── 10. Failure ('test-brms-families.R:160:3'): a custom link passes, and a malfo
+Expected `bernoulli(lk)$link` to be identical to "my_logit".
+Differences:
+`actual` is a list
+`expected` is a character vector ('my_logit')
+
+
+── 11. Error ('test-brms-families.R:161:3'): a custom link passes, and a malform
+Error: The custom link of dpar 'mu' has no `linkfun`, `linkinv`, `mu_eta`. A link object needs name, linkfun, linkinv and mu_eta (the derivative of linkinv, which predict(se.fit = TRUE) and every delta-method interval read)
+Backtrace:
+     ▆
+  1. ├─testthat::expect_error(...) at test-brms-families.R:161:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb::zero_inflated_poisson(list(name = "x"))
+  8.   └─frmtmb:::fam_zi_poisson(link, link_zi)
+  9.     └─frmtmb::frmtmb_family(...)
+ 10.       └─base::Map(function(lk, dp) get_link(lk, dpar = dp), links, names(links))
+ 11.         └─base::mapply(FUN = f, ..., SIMPLIFY = FALSE)
+ 12.           └─frmtmb (local) `<fn>`(dots[[1L]][[1L]], dots[[2L]][[1L]])
+ 13.             └─frmtmb:::get_link(lk, dpar = dp)
+
+── 12. Failure ('test-brms-families.R:167:3'): an unquoted link resolves as brms
+Expected `bernoulli(lk)$link` to be identical to "probit".
+Differences:
+`actual` is a list
+`expected` is a character vector ('probit')
+
+
+── 13. Error ('test-brms-families.R:168:3'): an unquoted link resolves as brms r
+Error: A link must be named by a single string, e.g. link = "logit", not NULL. Available links: identity, log, logit, cloglog, probit, probit_approx, cauchit, softit, inverse, logm1, log1p, tan_half, power12, softplus, squareplus, sqrt, 1/mu^2
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_identical(bernoulli(link = NULL)$link, "logit") at test-brms-families.R:168:3
+ 2. │ └─testthat::quasi_label(enquo(object), label)
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─frmtmb::bernoulli(link = NULL)
+ 5.   └─frmtmb:::fam_bernoulli(link)
+ 6.     └─frmtmb:::get_link(link)
+
+── 14. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected gaussian to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 15. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected gaussian to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('identity')
+
+
+── 16. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected gaussian to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 17. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected gaussian sigma to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 18. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected poisson to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 19. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected poisson to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('log')
+
+
+── 20. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected poisson to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 21. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected binomial to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 22. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected binomial to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('logit')
+
+
+── 23. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected binomial to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 24. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected Gamma to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 25. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected Gamma to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('log')
+
+
+── 26. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected Gamma to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 27. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected Gamma shape to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 28. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected lognormal to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 29. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected lognormal to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('identity')
+
+
+── 30. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected lognormal to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 31. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected lognormal sigma to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 32. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected student to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 33. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected student to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('identity')
+
+
+── 34. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected student to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 35. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected student sigma to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 36. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected student nu to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('logm1')
+`expected` is NULL
+
+
+── 37. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected negbinomial to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 38. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected negbinomial to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('log')
+
+
+── 39. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected negbinomial to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 40. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected negbinomial shape to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 41. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected nbinom2 to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 42. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected nbinom2 to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('log')
+
+
+── 43. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected nbinom2 to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 44. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected nbinom2 shape to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 45. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected nbinom1 to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 46. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected nbinom1 to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('log')
+
+
+── 47. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected nbinom1 to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 48. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected nbinom1 phi to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 49. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected beta to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 50. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected beta to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('logit')
+
+
+── 51. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected beta to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 52. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected beta phi to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 53. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected Beta to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 54. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected Beta to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('logit')
+
+
+── 55. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected Beta to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 56. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected Beta phi to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 57. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected tweedie to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 58. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected tweedie to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('log')
+
+
+── 59. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected tweedie to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 60. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected tweedie phi to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 61. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected tweedie power to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('power12')
+`expected` is NULL
+
+
+── 62. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected compois to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 63. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected compois to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('log')
+
+
+── 64. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected compois to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 65. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected compois nu to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 66. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected zero_inflated_poisson to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 67. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected zero_inflated_poisson to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('log')
+
+
+── 68. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected zero_inflated_poisson to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 69. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected zero_inflated_poisson zi to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('logit')
+`expected` is NULL
+
+
+── 70. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected zero_inflated_negbinomial to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 71. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected zero_inflated_negbinomial to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('log')
+
+
+── 72. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected zero_inflated_negbinomial to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 73. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected zero_inflated_negbinomial shape to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 74. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected zero_inflated_negbinomial zi to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('logit')
+`expected` is NULL
+
+
+── 75. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected hurdle_poisson to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 76. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected hurdle_poisson to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('log')
+
+
+── 77. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected hurdle_poisson to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 78. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected hurdle_poisson hu to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('logit')
+`expected` is NULL
+
+
+── 79. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected multinomial to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 80. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected cumulative to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 81. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected cumulative to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('logit')
+
+
+── 82. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected cumulative to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 83. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected beta_binomial to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 84. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected beta_binomial to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('logit')
+
+
+── 85. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected beta_binomial to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 86. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected beta_binomial phi to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 87. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected skew_normal to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 88. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected skew_normal to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('identity')
+
+
+── 89. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected skew_normal to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 90. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected skew_normal sigma to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 91. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected skew_normal alpha to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('identity')
+`expected` is NULL
+
+
+── 92. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected inverse.gaussian to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 93. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected inverse.gaussian to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('log')
+
+
+── 94. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected inverse.gaussian to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 95. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected inverse.gaussian shape to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 96. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with l
+Expected exgaussian to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 97. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with l
+Expected exgaussian to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('identity')
+
+
+── 98. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with l
+Expected exgaussian to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 99. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with l
+Expected exgaussian sigma to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 100. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with 
+Expected exgaussian beta to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 101. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with 
+Expected bernoulli to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 102. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with 
+Expected bernoulli to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('logit')
+
+
+── 103. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with 
+Expected bernoulli to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 104. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with 
+Expected geometric to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 105. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with 
+Expected geometric to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('log')
+
+
+── 106. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with 
+Expected geometric to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 107. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with 
+Expected exponential to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 108. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with 
+Expected exponential to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('log')
+
+
+── 109. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with 
+Expected exponential to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 110. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with 
+Expected weibull to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 111. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with 
+Expected weibull to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('log')
+
+
+── 112. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with 
+Expected weibull to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 113. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with 
+Expected weibull shape to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 114. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with 
+Expected shifted_lognormal to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 115. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with 
+Expected shifted_lognormal to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('identity')
+
+
+── 116. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with 
+Expected shifted_lognormal to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 117. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with 
+Expected shifted_lognormal sigma to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 118. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with 
+Expected shifted_lognormal ndt to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 119. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with 
+Expected hurdle_gamma to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 120. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with 
+Expected hurdle_gamma to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('log')
+
+
+── 121. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with 
+Expected hurdle_gamma to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 122. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with 
+Expected hurdle_gamma shape to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 123. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with 
+Expected hurdle_gamma hu to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('logit')
+`expected` is NULL
+
+
+── 124. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with 
+Expected hurdle_lognormal to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 125. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with 
+Expected hurdle_lognormal to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('identity')
+
+
+── 126. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with 
+Expected hurdle_lognormal to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 127. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with 
+Expected hurdle_lognormal sigma to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 128. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with 
+Expected hurdle_lognormal hu to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('logit')
+`expected` is NULL
+
+
+── 129. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with 
+Expected zero_inflated_binomial to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 130. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with 
+Expected zero_inflated_binomial to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('logit')
+
+
+── 131. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with 
+Expected zero_inflated_binomial to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 132. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with 
+Expected zero_inflated_binomial zi to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('logit')
+`expected` is NULL
+
+
+── 133. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with 
+Expected zero_inflated_beta to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 134. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with 
+Expected zero_inflated_beta to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('logit')
+
+
+── 135. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with 
+Expected zero_inflated_beta to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 136. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with 
+Expected zero_inflated_beta phi to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 137. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with 
+Expected zero_inflated_beta zi to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('logit')
+`expected` is NULL
+
+
+── 138. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with 
+Expected asym_laplace to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 139. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with 
+Expected asym_laplace to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('identity')
+
+
+── 140. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with 
+Expected asym_laplace to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 141. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with 
+Expected asym_laplace sigma to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 142. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with 
+Expected asym_laplace quantile to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('logit')
+`expected` is NULL
+
+
+── 143. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with 
+Expected zero_inflated_asym_laplace to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 144. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with 
+Expected zero_inflated_asym_laplace to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('identity')
+
+
+── 145. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with 
+Expected zero_inflated_asym_laplace to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 146. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with 
+Expected zero_inflated_asym_laplace sigma to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 147. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with 
+Expected zero_inflated_asym_laplace quantile to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('logit')
+`expected` is NULL
+
+
+── 148. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with 
+Expected zero_inflated_asym_laplace zi to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('logit')
+`expected` is NULL
+
+
+── 149. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with 
+Expected huber to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 150. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with 
+Expected huber to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('identity')
+
+
+── 151. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with 
+Expected huber to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 152. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with 
+Expected huber sigma to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 153. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with 
+Expected sratio to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 154. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with 
+Expected sratio to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('logit')
+
+
+── 155. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with 
+Expected sratio to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 156. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with 
+Expected cratio to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 157. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with 
+Expected cratio to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('logit')
+
+
+── 158. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with 
+Expected cratio to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 159. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with 
+Expected acat to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 160. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with 
+Expected acat to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('logit')
+
+
+── 161. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with 
+Expected acat to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 162. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with 
+Expected von_mises to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 163. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with 
+Expected von_mises to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('tan_half')
+
+
+── 164. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with 
+Expected von_mises to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 165. Failure ('test-brms-families.R:203:7'): link and link_<dpar> agree with 
+Expected von_mises kappa to be identical to `eval(call("$", f, paste0("link_", dp)))`.
+Differences:
+`actual` is a character vector ('log')
+`expected` is NULL
+
+
+── 166. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with 
+Expected cox to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 167. Failure ('test-brms-families.R:196:7'): link and link_<dpar> agree with 
+Expected cox to be identical to `main$name`.
+Differences:
+`actual` is a list
+`expected` is a character vector ('log')
+
+
+── 168. Failure ('test-brms-families.R:197:7'): link and link_<dpar> agree with 
+Expected cox to be identical to `main$linkinv`.
+Differences:
+`actual` is NULL
+`expected` is a function
+
+
+── 169. Failure ('test-brms-families.R:190:5'): link and link_<dpar> agree with 
+Expected categorical to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 170. Failure ('test-brms-families.R:214:3'): $ does not partial-match on a fa
+Expected `f$link_phi` to be identical to "log".
+Differences:
+`actual` is NULL
+`expected` is a character vector ('log')
+
+
+── 171. Failure ('test-brms-families.R:215:3'): $ does not partial-match on a fa
+Expected `f$link_p` to throw a error.
+
+── 172. Failure ('test-brms-families.R:216:3'): $ does not partial-match on a fa
+Expected `f$lpd` to throw a error.
+
+── 173. Failure ('test-brms-families.R:218:3'): $ does not partial-match on a fa
+Expected `f$lin` to be NULL.
+Differences:
+`actual` is a list
+`expected` is NULL
+
+
+── 174. Failure ('test-brms-families.R:220:3'): $ does not partial-match on a fa
+Expected `is.character(student()$link)` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 175. Error ('test-brms-families.R:225:3'): the link fields follow links throu
+Error in `brmsfamily("gaussian")`: could not find function "brmsfamily"
+
+── 176. Failure ('test-brms-families.R:270:3'): a link replaced in family_finali
+Expected `fam$link_shape` to be identical to "log".
+Differences:
+`actual` is NULL
+`expected` is a character vector ('log')
+
+
+── 177. Failure ('test-brms-families.R:272:3'): a link replaced in family_finali
+Expected `family(fit)$link_shape` to be identical to "softplus".
+Differences:
+`actual` is NULL
+`expected` is a character vector ('softplus')
+
+
+── 178. Failure ('test-brms-families.R:278:3'): mixture() refuses what brms refu
+Expected `mixture(gaussian, hurdle_gamma)` to throw a error.
+
+── 179. Error ('test-brms-families.R:280:3'): mixture() refuses what brms refuse
+Error: mixture() components need a 'mu' parameter
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-brms-families.R:280:3
+ 2. │ └─testthat:::expect_condition_matching_(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─frmtmb::mixture(poisson, multinomial(3))
+
+── 180. Failure ('test-brms-families.R:301:5'): an unordered factor response to 
+Expected `frm(y ~ x, dd, family = fn(), dry_run = "frame")` to throw a error.
+
+── 181. Failure ('test-brms-families.R:301:5'): an unordered factor response to 
+Expected `frm(y ~ x, dd, family = fn(), dry_run = "frame")` to throw a error.
+
+── 182. Failure ('test-brms-families.R:301:5'): an unordered factor response to 
+Expected `frm(y ~ x, dd, family = fn(), dry_run = "frame")` to throw a error.
+
+── 183. Failure ('test-brms-families.R:301:5'): an unordered factor response to 
+Expected `frm(y ~ x, dd, family = fn(), dry_run = "frame")` to throw a error.
+
+── 184. Failure ('test-brms-families.R:318:5'): a binomial-type response without
+Expected `frm(y ~ x, db, family = fam, dry_run = "frame")` to throw a error.
+
+── 185. Failure ('test-brms-families.R:318:5'): a binomial-type response without
+Expected `frm(y ~ x, db, family = fam, dry_run = "frame")` to throw a error.
+
+── 186. Failure ('test-brms-families.R:318:5'): a binomial-type response without
+Expected `frm(y ~ x, db, family = fam, dry_run = "frame")` to throw a error.
+
+── 187. Failure ('test-brms-families.R:318:5'): a binomial-type response without
+Expected `frm(y ~ x, db, family = fam, dry_run = "frame")` to throw a error.
+
+── 188. Failure ('test-brms-families.R:321:3'): a binomial-type response without
+Expected `frm(y ~ x, db, family = "binomial", dry_run = "frame")` to throw a error.
+
+── 189. Failure ('test-brms-families.R:327:3'): a binomial-type response without
+Expected `frm(...)` to throw a message.
+
+── 190. Failure ('test-brms-families.R:342:3'): a two-outcome response gets brms
+Expected `fr(y | trials(1) ~ x, family = binomial())` to throw a message.
+
+── 191. Failure ('test-brms-families.R:344:3'): a two-outcome response gets brms
+Expected `fr(y | trials(1) ~ x, family = beta_binomial())` to throw a message.
+
+── 192. Failure ('test-brms-families.R:346:3'): a two-outcome response gets brms
+Expected `fr(y | trials(1) ~ x, family = zero_inflated_binomial())` to throw a message.
+
+── 193. Failure ('test-brms-families.R:348:3'): a two-outcome response gets brms
+Expected `fr(y2 ~ x, family = cumulative())` to throw a message.
+
+── 194. Failure ('test-brms-families.R:349:3'): a two-outcome response gets brms
+Expected `fr(f2 ~ x, family = categorical())` to throw a message.
+
+── 195. Error ('test-brms-families.R:359:3'): brmsfamily() follows brms's spelli
+Error in `brmsfamily("normal")`: could not find function "brmsfamily"
+Backtrace:
+    ▆
+ 1. └─testthat::expect_identical(brmsfamily("normal")$family, "gaussian") at test-brms-families.R:359:3
+ 2.   └─testthat::quasi_label(enquo(object), label)
+ 3.     └─rlang::eval_bare(expr, quo_get_env(quo))
+
+── 196. Error ('test-brms-families.R:372:3'): family = c(name, link) works in fr
+Error: Cannot interpret `family` of class character: pass a family constructor or its name as the `family` argument of frm(), or attach it with `bf(...) + gaussian()`
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_identical(...) at test-brms-families.R:372:3
+ 2. │ └─testthat::quasi_label(enquo(object), label)
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─frmtmb:::as_frmtmb_family(c("weibull", "identity"))
+
+── 197. Failure ('test-brms-families.R:387:3'): a brms family object keeps its s
+Expected `f$link` to be identical to "probit".
+Differences:
+`actual` is a list
+`expected` is a character vector ('probit')
+
+
+── 198. Failure ('test-brms-families.R:388:3'): a brms family object keeps its s
+Expected `f$link_phi` to be identical to "softplus".
+Differences:
+`actual` is NULL
+`expected` is a character vector ('softplus')
+
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+No one gets it right on their first try
+
+FAMLINK brms-families pass 49 fail 186 error 12 skip 0 in 12 s

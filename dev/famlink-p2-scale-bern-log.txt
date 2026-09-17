@@ -1,0 +1,3 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+(a) bernoulli(): logLik -112.7997206422
+coexistence: bernoulli is brms; fit logLik -53.3211196734, family bernoulli

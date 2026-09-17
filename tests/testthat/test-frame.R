@@ -48,7 +48,9 @@ test_that("NA rows are dropped consistently across design and aterms", {
 test_that("factor binomial responses convert to 0/1", {
   dd <- data.frame(y = factor(sample(c("no", "yes"), 40, replace = TRUE)),
                    x = rnorm(40))
-  fr <- frm(bf(y ~ x) + binomial(), data = dd, dry_run = "frame")
+  # binomial() takes its trials from the formula, as in brms
+  fr <- suppressMessages(
+    frm(bf(y | trials(1) ~ x) + binomial(), data = dd, dry_run = "frame"))
   expect_true(all(fr$y$y %in% c(0, 1)))
 })
 

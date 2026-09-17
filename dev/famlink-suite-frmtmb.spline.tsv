@@ -1,0 +1,13 @@
+file	pass	fail	error	skip	crashed
+test-bracket-access.R	1	0	0	0	FALSE
+test-curve.R	62	0	0	0	FALSE
+test-deriv.R	38	0	0	0	FALSE
+test-difference.R	59	0	0	0	FALSE
+test-frailty.R	28	0	0	0	FALSE
+test-gratia.R	13	0	0	0	FALSE
+test-message-uniqueness.R	4	0	0	0	FALSE
+test-royston-parmar.R	67	0	0	0	FALSE
+test-rp-floored.R	42	0	0	0	FALSE
+test-scale.R	0	0	0	1	FALSE
+test-span.R	73	0	0	0	FALSE
+test-surface.R	47	0	0	0	FALSE

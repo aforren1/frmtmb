@@ -1,0 +1,7 @@
+frmtmb from: C:/Users/adf44/source/r/famlink-lib 
+version    : 0.58.0 
+fuzz: ..
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FAMLINK fuzz pass 2 fail 0 error 0 skip 0 in 260 s

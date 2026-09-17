@@ -1,0 +1,6 @@
+arm base frmtmb 0.58.0 
+design    link    status conv  logLik         max|grad| warnings
+setprior  log     fit    0     -1072.293047   1.16e-04  0
+robust    log     fit    0     0.770882       8.97e-05  0
+band      log     fit    0     -181.182207    1.51e-06  0
+brmslp    log     fit    0     15.783883      5.60e-06  0

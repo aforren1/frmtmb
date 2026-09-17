@@ -1,0 +1,80 @@
+                              
+                               clean convergence warning error gradient warning
+  censored default                10                   7     0                0
+  censored log                    20                   0     0                0
+  distributional_shape default    15                   0     0                2
+  distributional_shape log        20                   0     0                0
+  factor_pred default             15                   0     0                0
+  factor_pred log                 20                   0     0                0
+  fixed_large_mean default         0                   5     0               14
+  fixed_large_mean log            20                   0     0                0
+  fixed_small_mean default        20                   0     0                0
+  fixed_small_mean log            20                   0     0                0
+  fixed_steep default              0                   1     0                3
+  fixed_steep log                 20                   0     0                0
+  intercept_only default          20                   0     0                0
+  intercept_only log              20                   0     0                0
+  random_intercept default         9                   7     0                1
+  random_intercept log            20                   0     0                0
+  random_slope default             3                  16     0                0
+  random_slope log                15                   5     0                0
+  small_n default                 19                   0     0                0
+  small_n log                     20                   0     0                0
+  truncated default               14                   0     0                0
+  truncated log                   19                   0     1                0
+  weights default                 10                   0     0                0
+  weights log                     20                   0     0                0
+                              
+                               pdHess warning
+  censored default                          3
+  censored log                              0
+  distributional_shape default              3
+  distributional_shape log                  0
+  factor_pred default                       5
+  factor_pred log                           0
+  fixed_large_mean default                  1
+  fixed_large_mean log                      0
+  fixed_small_mean default                  0
+  fixed_small_mean log                      0
+  fixed_steep default                      16
+  fixed_steep log                           0
+  intercept_only default                    0
+  intercept_only log                        0
+  random_intercept default                  3
+  random_intercept log                      0
+  random_slope default                      1
+  random_slope log                          0
+  small_n default                           1
+  small_n log                               0
+  truncated default                         6
+  truncated log                             0
+  weights default                          10
+  weights log                               0
+
+log-link replicates not clean:
+       design rep status conv
+ random_slope   3    fit    1
+ random_slope   4    fit    1
+ random_slope   5    fit    1
+ random_slope  12    fit    1
+ random_slope  18    fit    1
+    truncated  13  error   NA
+                                                                              msg
+ Optimizer did not report convergence: singular convergence (7) | Hessian is not 
+ Optimizer did not report convergence: singular convergence (7) | Hessian is not 
+ Optimizer did not report convergence: singular convergence (7) | Hessian is not 
+ Optimizer did not report convergence: singular convergence (7) | Hessian is not 
+ Optimizer did not report convergence: singular convergence (7) | Hessian is not 
+ The optimizer failed on this model (inverse.gaussian, ML, nlminb): NA/NaN gradie
+
+example messages, default link:
+[1] "Large maximum absolute gradient at the optimum (0.00222); the fit may not have c"
+[2] "Large maximum absolute gradient at the optimum (0.00172); the fit may not have c"
+[3] "Large maximum absolute gradient at the optimum (0.0168); the fit may not have co"
+[4] "Large maximum absolute gradient at the optimum (0.00821); the fit may not have c"
+[5] "Large maximum absolute gradient at the optimum (0.00322); the fit may not have c"
+[6] "Large maximum absolute gradient at the optimum (0.0137); the fit may not have co"
+[7] "Large maximum absolute gradient at the optimum (0.0049); the fit may not have co"
+[8] "Hessian is not positive definite; standard errors are unreliable. The model may "
+
+clean replicates: default 135 of 240 ; log 234 of 240 

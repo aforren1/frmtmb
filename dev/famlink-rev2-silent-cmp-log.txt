@@ -1,0 +1,17 @@
+pois_identity_wall       differs in:                                          NaN warnings base  8 lane  0; lane fit$opt$nonfinite_trials 8; other warnings identical TRUE
+bern_log_wall            differs in:                                          NaN warnings base  3 lane  0; lane fit$opt$nonfinite_trials 3; other warnings identical TRUE
+bern_identity_wall       differs in:                                          NaN warnings base  7 lane  0; lane fit$opt$nonfinite_trials 0; other warnings identical TRUE
+binom_identity_trials    differs in:                                          NaN warnings base 12 lane  0; lane fit$opt$nonfinite_trials 12; other warnings identical TRUE
+gamma_inverse_cross      differs in:                                          NaN warnings base  4 lane  0; lane fit$opt$nonfinite_trials 0; other warnings identical TRUE
+invgauss_default         differs in: ll,est,se,vcov_warnings,diag,print,summary NaN warnings base  0 lane  0; lane fit$opt$nonfinite_trials 18; other warnings identical TRUE
+invgauss_default_re      differs in: ll,est,se,diag,print,summary             NaN warnings base  0 lane  0; lane fit$opt$nonfinite_trials 266; other warnings identical TRUE
+pois_identity_re         differs in:                                          NaN warnings base 26 lane  0; lane fit$opt$nonfinite_trials 26; other warnings identical TRUE
+pois_sqrt                differs in:                                          NaN warnings base  0 lane  0; lane fit$opt$nonfinite_trials 0; other warnings identical TRUE
+cox_identity             differs in:                                          NaN warnings base  1 lane  0; lane fit$opt$nonfinite_trials 1; other warnings identical TRUE
+zib_identity             differs in:                                          NaN warnings base  8 lane  0; lane fit$opt$nonfinite_trials 8; other warnings identical TRUE
+gauss_reml_re            differs in:                                          NaN warnings base  0 lane  0; lane fit$opt$nonfinite_trials 0; other warnings identical TRUE
+gauss_sigma_bound        differs in:                                          NaN warnings base  0 lane  0; lane fit$opt$nonfinite_trials 0; other warnings identical TRUE
+exgauss_bound            differs in:                                          NaN warnings base  0 lane  0; lane fit$opt$nonfinite_trials 0; other warnings identical TRUE
+pois_identity_optim      differs in:                                          NaN warnings base  0 lane  0; lane fit$opt$nonfinite_trials NULL; other warnings identical TRUE
+pois_identity_restarts   differs in:                                          NaN warnings base  8 lane  0; lane fit$opt$nonfinite_trials 8; other warnings identical TRUE
+negbin_identity_re       differs in:                                          NaN warnings base 13 lane  0; lane fit$opt$nonfinite_trials 12; other warnings identical TRUE

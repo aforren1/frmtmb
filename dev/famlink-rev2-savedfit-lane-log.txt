@@ -1,0 +1,101 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+gaussian 
+    value class: character 
+  family(fit)$link       ok
+  family(fit)$links      ok
+  print(family)          ok
+  print(fit)             ok
+  summary(fit)           ok
+  predict(fit)           ok
+  predict(newdata)       ERROR: incorrect number of dimensions
+  fitted(fit)            ok
+  residuals(fit)         ok
+  simulate(fit)          ok
+  confint(fit)           ok
+  update(fit)            ERROR: object 'd' not found
+  model_info             ok
+  emmeans                ok
+  avg_slopes             ok
+  conditional_effects    ok
+  loo                    ERROR: loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the likelihood over draws. Sample first, with frmtmb.sampl
+  get_prior              ok
+binomial 
+    value class: character 
+  family(fit)$link       ok
+  family(fit)$links      ok
+  print(family)          ok
+  print(fit)             ok
+  summary(fit)           ok
+  predict(fit)           ok
+  predict(newdata)       ERROR: incorrect number of dimensions
+  fitted(fit)            ok
+  residuals(fit)         ok
+  simulate(fit)          ok
+  confint(fit)           ok
+  update(fit)            ERROR: object 'd' not found
+  model_info             ok
+  emmeans                ok
+  avg_slopes             ok
+  conditional_effects    ok
+  loo                    ERROR: loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the likelihood over draws. Sample first, with frmtmb.sampl
+  get_prior              ok
+bernoulli 
+    value class: character 
+  family(fit)$link       ok
+  family(fit)$links      ok
+  print(family)          ok
+  print(fit)             ok
+  summary(fit)           ok
+  predict(fit)           ok
+  predict(newdata)       ERROR: incorrect number of dimensions
+  fitted(fit)            ok
+  residuals(fit)         ok
+  simulate(fit)          ok
+  confint(fit)           ok
+  update(fit)            ERROR: object 'd' not found
+  model_info             ok
+  emmeans                ok
+  avg_slopes             ok
+  conditional_effects    ok
+  loo                    ERROR: loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the likelihood over draws. Sample first, with frmtmb.sampl
+  get_prior              ok
+negbin_re 
+    value class: character 
+  family(fit)$link       ok
+  family(fit)$links      ok
+  print(family)          ok
+  print(fit)             ok
+  summary(fit)           ok
+  predict(fit)           ok
+  predict(newdata)       ERROR: incorrect number of dimensions
+  fitted(fit)            ok
+  residuals(fit)         ok
+  simulate(fit)          ok
+  confint(fit)           ok
+  update(fit)            ERROR: object 'd' not found
+  model_info             ok
+  emmeans                ok
+  avg_slopes             ok
+  conditional_effects    ok
+  loo                    ERROR: loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the likelihood over draws. Sample first, with frmtmb.sampl
+  get_prior              ok
+zip 
+    value class: character 
+  family(fit)$link       ok
+  family(fit)$links      ok
+  print(family)          ok
+  print(fit)             ok
+  summary(fit)           ok
+  predict(fit)           ok
+  predict(newdata)       ERROR: incorrect number of dimensions
+  fitted(fit)            ok
+  residuals(fit)         ok
+  simulate(fit)          ok
+  confint(fit)           ok
+  update(fit)            ERROR: object 'd' not found
+  model_info             ok
+  emmeans                ok
+  avg_slopes             ok
+  conditional_effects    ok
+  loo                    ERROR: loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the likelihood over draws. Sample first, with frmtmb.sampl
+  get_prior              ok

@@ -1,0 +1,3 @@
+pairs: 212  fitted in both: 207  bitwise identical in logLik, estimates, SEs, fitted: 207 
+fitted base only: 0  fitted lane only: 0 
+pairs fitted in either: 207  identical round 0 vs round 1b: 207 

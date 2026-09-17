@@ -1,0 +1,10 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+reads per block: plain 8192000; plain2 8192000; method 256000; r1b 32000; derived 16000; r1b_derived 16000; bracket 2048000 
+plain       0.148 us per read
+plain2      0.127 us per read
+method      3.479 us per read
+r1b        24.478 us per read
+derived    31.000 us per read
+r1b_derived   35.902 us per read
+bracket     0.458 us per read
+control plain2/plain 0.856; method/plain 23.44; r1b/plain 164.93; r1b/method 7.04; r1b_derived/derived 1.16

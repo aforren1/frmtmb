@@ -1,0 +1,43 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+---- type: frmtmb vs brms ----
+gaussian                     frmtmb continuous   brms real
+poisson                      frmtmb discrete     brms int
+binomial                     frmtmb discrete     brms int
+Gamma                        frmtmb continuous   brms real
+lognormal                    frmtmb continuous   brms real
+student                      frmtmb continuous   brms real
+negbinomial                  frmtmb discrete     brms int
+nbinom1                      frmtmb discrete     brms int
+beta                         frmtmb continuous   brms real
+tweedie                      frmtmb continuous   brms real
+compois                      frmtmb discrete     brms int
+zero_inflated_poisson        frmtmb discrete     brms int
+zero_inflated_negbinomial    frmtmb discrete     brms int
+hurdle_poisson               frmtmb discrete     brms int
+multinomial                  frmtmb int          brms int
+cumulative                   frmtmb ordinal      brms int
+beta_binomial                frmtmb discrete     brms int
+skew_normal                  frmtmb continuous   brms real
+inverse.gaussian             frmtmb continuous   brms real
+exgaussian                   frmtmb continuous   brms real
+bernoulli                    frmtmb discrete     brms int
+geometric                    frmtmb discrete     brms int
+exponential                  frmtmb continuous   brms real
+weibull                      frmtmb continuous   brms real
+shifted_lognormal            frmtmb continuous   brms real
+hurdle_gamma                 frmtmb continuous   brms real
+hurdle_lognormal             frmtmb continuous   brms real
+zero_inflated_binomial       frmtmb discrete     brms int
+zero_inflated_beta           frmtmb continuous   brms real
+asym_laplace                 frmtmb continuous   brms real
+zero_inflated_asym_laplace   frmtmb continuous   brms real
+huber                        frmtmb continuous   brms real
+sratio                       frmtmb ordinal      brms int
+cratio                       frmtmb ordinal      brms int
+acat                         frmtmb ordinal      brms int
+von_mises                    frmtmb continuous   brms real
+cox                          frmtmb continuous   brms real
+categorical                  frmtmb categorical  brms int
+---- independent mean-link sets ----
+families whose set differs: 0 of 37 
+links in generated sets that frmtmb's roster lacks:  

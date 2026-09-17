@@ -320,11 +320,11 @@
 #' @srrstats {G2.5} Where a factor input is expected, the expected kind is
 #'   checked and documented. `mo()` requires an ordered factor and errors
 #'   otherwise ("mo(): factor variables must be ordered factors"). An
-#'   ordinal family takes level order as category order, and warns when
-#'   the response is an unordered factor, naming the order it is about to
-#'   use: that order is alphabetical unless the user set it, so the model
-#'   can differ from the one intended. The fit still runs, which is what
-#'   brms does. A factor response for a non-ordinal, non-binomial family
+#'   ordinal family takes level order as category order, and refuses an
+#'   unordered factor response, naming its level order: that order is
+#'   alphabetical unless the user set it, so the model could differ from
+#'   the one intended. brms refuses it too. A factor response for a
+#'   non-ordinal, non-categorical, non-binomial family
 #'   is refused. The compatibility registry states the requirement in
 #'   prose and it is rendered in `vignette("compatibility")`.
 #' @srrstats {G2.6} One-dimensional responses are pre-processed to a plain
@@ -550,6 +550,7 @@ frm <- function(formula, data, family = NULL, REML = FALSE, start = NULL,
   # written rather than the one that was taped.
   spec <- carry_finalized_responses(spec, frame)
   check_re_structure(spec, frame, control)
+  suggest_bernoulli(spec, frame)
   if (identical(dry_run, "frame")) return(frame)
 
   fit_assembled(spec, frame, bform, cl, REML = REML, start = start,
@@ -638,13 +639,21 @@ vb_fit_detail <- function(spec, REML, control, quadrature, prior,
 }
 
 #' An optimizer result in one clause: the objective, plus the status code
-#' when the optimizer did not report success.
+#' when the optimizer did not report success and the count of non-finite
+#' trials when there were any.
 #'
 #' @noRd
 vb_opt_detail <- function(opt) {
   paste0("objective ", format(opt$objective, digits = 8),
          if (opt$convergence != 0) {
            paste0(", convergence ", opt$convergence)
+         },
+         # the NA/NaN warning these trials used to raise is gone (see
+         # nlminb_trial_fn()), so the trace is where a user watching the
+         # optimizer still sees them
+         if (isTRUE(opt$nonfinite_trials > 0L)) {
+           paste0(", ", vb_plural(opt$nonfinite_trials,
+                                  "non-finite trial"))
          })
 }
 
@@ -912,9 +921,14 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     obj <- imp$obj
     opt <- imp$opt
   } else if (is.null(integrate)) {
+    # shared by the first attempt and every recovery start, so the trials
+    # a failed attempt mapped are still in the count the fit reports
+    tally <- new.env(parent = emptyenv())
+    tally$n <- 0L
     opt <- fit_error_context(
       spec, start, REML, control, quadrature, prior,
-      tryCatch(optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb),
+      tryCatch(optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb,
+                            tally = tally),
                error = function(e) {
                  rs <- fit_recovery_starts(obj, nll, template, random,
                                            frame[["map"]], frame, start,
@@ -927,7 +941,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                    }
                    op <- tryCatch(optimize_obj(obj, ctl_opt, bounds,
                                                par_units, verbose = vb,
-                                               start_par = rs[[lbl]]),
+                                               start_par = rs[[lbl]],
+                                               tally = tally),
                                   error = function(e2) NULL)
                    if (!is.null(op)) return(op)
                  }
@@ -1001,7 +1016,13 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     vb_stage("done", t_fit,
              paste0("objective ", format(fit$opt$objective, digits = 8),
                     ", max|grad| ", format(chk$grad, digits = 3), ", ",
-                    vb_plural(length(chk$warnings), "warning")))
+                    vb_plural(length(chk$warnings), "warning"),
+                    # the per-stage lines give each run's own count;
+                    # this is the total the fit carries
+                    if (isTRUE(fit$opt$nonfinite_trials > 0L)) {
+                      paste0(", ", vb_plural(fit$opt$nonfinite_trials,
+                                             "non-finite trial"))
+                    }))
   }
   fit
 }
@@ -1597,13 +1618,54 @@ check_re_structure <- function(spec, frame, control) {
   invisible(NULL)
 }
 
+#' The objective as nlminb sees it: a NaN at a TRIAL point becomes +Inf.
+#'
+#' A link whose inverse is undefined on part of the line (`1/mu^2` below
+#' zero, `inverse` for a positive mean, `identity` or `log` for a
+#' probability) makes the objective NaN wherever a line search overshoots
+#' into that part. PORT treats NaN and +Inf alike, backtracking from
+#' either, but R's nlminb warns "NA/NaN function evaluation" for each
+#' NaN, so a correct `inverse.gaussian()` fit on its default link warned
+#' every time. Measured on the same tape, the two values give the same
+#' iterates to the last bit and differ only in the warning
+#' (dev/famlink-1b-nlminb-inf-log.txt).
+#'
+#' The START is passed through unchanged: an objective that is NaN
+#' where the optimizer begins is a broken model, not an overshoot, and
+#' keeps its warning. Every mapped trial is counted into
+#' `nonfinite_trials` on the result, so the event stays measurable.
+#'
+#' `tally`, an environment holding `n`, is counted into as each trial is
+#' mapped rather than when nlminb returns: optimize_obj() keeps one total
+#' across its restarts, and a run that raises (and is retried from its
+#' best point) never returns a result that could carry its count.
+#'
+#' @noRd
+nlminb_trial_fn <- function(fn, tally = NULL) {
+  n_eval <- 0L
+  n_mapped <- 0L
+  list(
+    fn = function(par) {
+      v <- fn(par)
+      n_eval <<- n_eval + 1L
+      if (n_eval > 1L && length(v) == 1L && is.nan(v)) {
+        n_mapped <<- n_mapped + 1L
+        if (!is.null(tally)) tally$n <- tally$n + 1L
+        return(Inf)
+      }
+      v
+    },
+    count = function() n_mapped
+  )
+}
+
 #' One optimizer invocation, normalized to nlminb's result shape.
 #' par_units (autoscale) carries per-parameter magnitudes into nlminb's
 #' scaling hook; the custom-optimizer contract is unchanged.
 #'
 #' @noRd
 run_optimizer <- function(optimizer, par, fn, gr, lower, upper, control,
-                          par_units = NULL) {
+                          par_units = NULL, tally = NULL) {
   if (is.function(optimizer)) {
     res <- optimizer(par, fn, gr, lower, upper, control)
     need <- c("par", "objective", "convergence")
@@ -1615,11 +1677,16 @@ run_optimizer <- function(optimizer, par, fn, gr, lower, upper, control,
     return(res)
   }
   switch(optimizer,
-    nlminb = stats::nlminb(par, fn, gr, control = control,
+    nlminb = {
+      fnw <- nlminb_trial_fn(fn, tally)
+      res <- stats::nlminb(par, fnw$fn, gr, control = control,
                            # PORT iterates in scale * par units
                            scale = if (is.null(par_units)) 1 else
                              1 / par_units,
-                           lower = lower, upper = upper),
+                           lower = lower, upper = upper)
+      res$nonfinite_trials <- fnw$count()
+      res
+    },
     optim = {
       ctl <- control[names(control) %in%
                        c("maxit", "factr", "pgtol", "trace", "REPORT")]
@@ -1722,7 +1789,7 @@ fit_recovery_starts <- function(obj, nll, template, random, map, frame,
 #'
 #' @noRd
 optimizer_from_best <- function(obj, par, e, optimizer, bounds, control,
-                                par_units, verbose = 0L) {
+                                par_units, verbose = 0L, tally = NULL) {
   pb <- obj$env$last.par.best
   # last.par.best spans the joint vector when the model has random
   # effects (profiled parameters included); lfixed() selects the outer
@@ -1738,7 +1805,7 @@ optimizer_from_best <- function(obj, par, e, optimizer, bounds, control,
   }
   run_optimizer(optimizer, stats::setNames(as.numeric(p0), names(par)),
                 obj$fn, obj$gr, bounds$lower, bounds$upper,
-                control$optCtrl, par_units)
+                control$optCtrl, par_units, tally)
 }
 
 #' The single entry point to the optimizer for every fit mode: it runs
@@ -1747,11 +1814,17 @@ optimizer_from_best <- function(obj, par, e, optimizer, bounds, control,
 #' units, and the restart-from-best recovery are applied here, so no
 #' caller has to repeat them.
 #'
+#' The result's `nonfinite_trials` is the total over EVERY optimizer run
+#' here, not the count of the run that was kept: a restart that replaces
+#' `opt` maps few or no trials, so its own count would erase the ones
+#' that got the fit there. `tally` lets a caller that retries a failed
+#' call (fit_assembled()'s recovery starts) keep counting across calls.
+#'
 #' @noRd
 optimize_obj <- function(obj, control,
                          bounds = list(lower = -Inf, upper = Inf),
                          par_units = NULL, verbose = 0L,
-                         start_par = obj$par) {
+                         start_par = obj$par, tally = NULL) {
   optimizer <- control$optimizer %||% "nlminb"
   # A model with no free outer parameters - every dpar pinned by a
   # constant and every design zero-column, e.g. y | trials(n) ~ 0 - is
@@ -1765,13 +1838,18 @@ optimize_obj <- function(obj, control,
                 convergence = 0L,
                 message = "no free parameters (degenerate model)"))
   }
+  if (is.null(tally)) {
+    tally <- new.env(parent = emptyenv())
+    tally$n <- 0L
+  }
   run <- function(par) {
     tryCatch(run_optimizer(optimizer, par, obj$fn, obj$gr,
                            bounds$lower, bounds$upper, control$optCtrl,
-                           par_units),
+                           par_units, tally),
              error = function(e) optimizer_from_best(obj, par, e, optimizer,
                                                      bounds, control,
-                                                     par_units, verbose))
+                                                     par_units, verbose,
+                                                     tally))
   }
   if (verbose) t0 <- vb_now()
   opt <- run(start_par)
@@ -1788,6 +1866,9 @@ optimize_obj <- function(obj, control,
     }
     if (opt2$objective <= opt$objective) opt <- opt2
   }
+  # only the nlminb path maps trials; optim and a custom optimizer have
+  # no count to report, and NULL says so where 0 would claim a measurement
+  if (identical(optimizer, "nlminb")) opt$nonfinite_trials <- tally$n
   opt
 }
 

@@ -1,0 +1,34 @@
+files: 24 
+test-bracket-access.R                          pass     1 fail   0 error   0 skip   0
+test-brms-parity.R                             pass    18 fail   0 error   0 skip   0
+test-defects.R                                 pass    59 fail   0 error   0 skip   0
+test-density.R                                 pass   132 fail   0 error   0 skip   0
+test-extension-api.R                           pass    14 fail   0 error   0 skip   0
+test-family.R                                  pass    51 fail   0 error   0 skip   0
+test-gddm-conditions.R                         pass    58 fail   0 error   0 skip   0
+test-gddm-family.R                             pass    77 fail   0 error   0 skip   0
+test-gddm-gradients.R                          pass    22 fail   0 error   0 skip   0
+test-gddm-recovery.R                           pass    28 fail   0 error   0 skip   0
+test-gddm-reference.R                          pass   166 fail   0 error   0 skip   0
+test-gddm-solver.R                             pass    94 fail   0 error   0 skip   0
+test-lba.R                                     pass   109 fail   0 error   0 skip   0
+test-message-uniqueness.R                      pass     4 fail   0 error   0 skip   0
+test-moments.R                                 pass    29 fail   0 error   0 skip   0
+test-ndt-bound.R                               pass    79 fail   0 error   0 skip   0
+test-ndt-seam.R                                pass    83 fail   0 error   0 skip   0
+test-rdm-gng.R                                 pass   221 fail   0 error   0 skip   0
+test-sampling.R                                pass    97 fail   0 error   0 skip   0
+test-scale.R                                   pass     0 fail   0 error   0 skip   3
+test-simulate-density.R                        pass    69 fail   0 error   0 skip   0
+test-surface.R                                 pass    50 fail   0 error   0 skip   0
+test-units.R                                   pass    32 fail   0 error   0 skip   0
+test-variability.R                             pass   140 fail   0 error   0 skip   0
+
+---- GENERATED COUNTS (paste verbatim) ----
+package        : frmtmb.eam
+files run      : 24
+crashed        : 0
+pass 1633  fail 0  error 0  skip 3  in 1321 s
+files below their 0.57.0 baseline count: 0
+baseline files with no run: 0 
+---- END GENERATED COUNTS ----

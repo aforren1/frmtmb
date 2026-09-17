@@ -1,0 +1,9 @@
+insight : functions reading [["link"]]-style: none 
+emmeans : functions reading [["link"]]-style: none 
+marginaleffects : functions reading [["link"]]-style: none 
+broom : functions reading [["link"]]-style: none 
+ggeffects : not installed
+modelbased : not installed
+performance : not installed
+parameters : not installed
+control: insight functions containing `$link`: 212 

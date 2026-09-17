@@ -1,3 +1,137 @@
+# frmtmb (development version)
+
+* **BREAKING, and the silent wrong answer it removes.** The link for the
+  mean is now checked against the set brms 2.23.0 allows for the family,
+  and a link outside it is refused with brms's sentence and the set:
+  `'sqrt' is not a supported link for family 'bernoulli'`. Before, only
+  `link_<dpar>` was checked, so `bernoulli("sqrt")` FITTED, returning
+  coefficients for a probability on `eta^2`, which is not bounded by
+  one. What stops working: every (family, link) pair brms refuses, 417
+  pairs over 37 families, of which 371 used to construct. Among them
+  are `exponential("cloglog")`, `Beta("1/mu^2")`,
+  `zero_inflated_negbinomial("logit")`, `beta_binomial("log")`, a
+  `stats` family carrying such a link (`frm(..., family =
+  poisson("inverse"))`), and any link but `"logit"` on `categorical()`
+  reached by name. Every pair brms accepts still constructs and fits:
+  207 fits give the same log-likelihood as before to ten decimals. The
+  sets are read out of brms by `dev/famlink-gen-links.R`, not typed.
+  `nbinom1()`, `tweedie()` and `huber()` have no brms family and take
+  the set of `negbinomial`, `Gamma` and `gaussian`. A custom link object
+  is not held to a set.
+
+* A family object carries brms's fields. `$link` is the name of the
+  link for the mean, `$linkfun` and `$linkinv` are its functions, and
+  `$link_<dpar>` names the link of every other parameter:
+  `beta_binomial()$link_phi` is `"log"`. `$link` used to partial-match
+  the `links` list and return it. The fields are not stored: `$`
+  computes them from `links` when they are read, so they describe the
+  links a fit uses however the object was edited, and a fit saved by an
+  earlier version answers them too. `names()` and `[[` do not show them.
+  **BREAKING:** `$` on a family object no longer partial-matches. A
+  name that is only a prefix of one field (`fam$lpd`) is an error naming
+  the field. An element stored on the list under one of those names is
+  an error when `$` reads it.
+
+* **BREAKING:** `print()` on a family object prints brms's first two
+  lines, `Family:` and `Link function:`, and then the parameters with
+  their links. The `<frmtmb family>` header is gone.
+
+* The link for the mean may be unquoted, as `stats::family()` and brms
+  allow: `student(identity)`, `negbinomial(sqrt)`,
+  `zero_inflated_poisson(log)`. A bare link name is read as the name
+  without being evaluated, and a variable holding a link name is read
+  for its value, which is the order brms uses. `link = NULL` and
+  `link = NA` give the default. A bare link name the family does not
+  take and that is bound to nothing, as in `negbinomial(inverse)`, is
+  refused as that link, where brms reports "object 'inverse' not
+  found".
+
+* New `brmsfamily()`, brms's generic constructor:
+  `brmsfamily("gaussian", inverse)`, `brmsfamily("zi_poisson")`. A
+  family name now follows brms's spelling rules wherever a name is
+  accepted: case does not matter, `"normal"` is `"gaussian"`,
+  `"com_poisson"` is `"compois"`, and `"zi_"` and `"hu_"` stand for
+  `"zero_inflated_"` and `"hurdle_"`. An unknown name is refused with
+  brms's sentence, `x is not a supported family`.
+
+* **BREAKING:** `frm_family()` is removed. `brmsfamily()` is the one
+  spelling, and takes the same arguments with the link second.
+  `frm(family =)` takes the family and its link as one vector,
+  `c("weibull", "log")`, which brms accepts for `family =`; a vector of
+  three or more is refused.
+
+* **Changes fits, and the silent wrong answer it removes.** A brms
+  family object passed to `frm()` now keeps its `link_<dpar>` links.
+  They used to be dropped without a word, so
+  `family = brms::student(link_sigma = "identity")` fitted sigma on the
+  log link the user had not asked for. Such a model now fits the link
+  it names, and its estimates move.
+
+* A correct fit no longer warns "NA/NaN function evaluation" when
+  nlminb's line search steps past the domain of a link, such as below
+  zero on `inverse.gaussian`'s `1/mu^2` or `Gamma`'s `inverse`, or
+  outside the unit interval on `bernoulli("identity")`. Such a trial
+  value is handed to nlminb as `+Inf` rather than `NaN`; nlminb
+  backtracks from both identically, so every optimum is unchanged (212
+  brms link pairs and five inverse gaussian designs give `identical()`
+  estimates). A model whose objective is `NaN` at its starting values
+  still warns. The number of mapped trials, summed over every optimizer
+  run of the fit including restarts, is `fit$opt$nonfinite_trials`.
+  When it is not zero, `diagnose()` prints it and returns it as
+  `nonfinite_trials`, and `verbose = TRUE` adds it to the optimizer
+  stage lines and to the final `done` line.
+
+* **BREAKING, changes fits:** `inverse.gaussian` takes brms's default
+  link, `1/mu^2`, where frmtmb's was `log`. It reaches every fit that
+  names the family as a string or through `brmsfamily()` without a
+  link, and those estimates move. `stats::inverse.gaussian()` already
+  carried `1/mu^2` and is unaffected. Write
+  `brmsfamily("inverse.gaussian", "log")` for the old model. Fits move,
+  and some designs converge poorly on this link: over 12 designs of 20
+  data sets each, 135 of 240 default-link fits ended with code 0 and no
+  warning, against 234 of 240 on `log`. The failures are warnings such
+  as a large gradient or a Hessian that is not positive definite, never
+  a silent wrong answer. If a fit warns, pass `link = "log"`.
+
+* **BREAKING:** `binomial()`, `beta_binomial()`,
+  `zero_inflated_binomial()` and `multinomial()` without a `trials()`
+  term are refused with brms's message, `Specifying 'trials' is required
+  for this model.`, and so is a `mixture()` with such a component.
+  `multinomial()` used to take its trials from the row sums of the
+  response; its `trials()` must now equal them, as in brms. The others
+  used to be fitted as one trial per row. Write `y | trials(n) ~ ...`, or `bernoulli()`
+  for a 0/1 response. `cbind(successes, failures)` supplies the trials
+  and is unaffected. `get_prior()` does not refuse these responses,
+  because brms's `get_prior()` does not and no prior depends on the
+  trials.
+
+* **BREAKING:** `mixture()` refuses what brms refuses. Components with
+  real and integer support (`mixture(lognormal, exgaussian,
+  poisson())`) are refused, because a weighted sum of a density and a
+  probability mass is not a likelihood. `categorical()`,
+  `multinomial()`, `hurdle_gamma()`, `hurdle_lognormal()` and
+  `zero_inflated_beta()`, the families brms's `no_mixture()` bars, are
+  refused as components, and a mix of ordinal and non-ordinal components is
+  refused with brms's sentence. A named argument in the dots, such as
+  brms's `nmix` or `order`, is refused by name; it used to be read as a
+  component and reported as an unsupported family.
+
+* **BREAKING:** an unordered factor response to `cumulative()`,
+  `sratio()`, `cratio()` or `acat()` is an error, as in brms. It used to
+  warn and fit with the alphabetical level order as the category order.
+  Use an ordered factor or integer codes. The ordinal response refusals
+  open with brms's sentence, `Family 'cratio' requires either positive
+  integers or ordered factors as responses`.
+
+* `frm()` messages brms's suggestion, `Only 2 levels detected so that
+  family 'bernoulli' might be a more efficient choice.`, for a
+  `binomial()`, `beta_binomial()` or `zero_inflated_binomial()` response
+  whose trials are all one, including a `mixture()` of those, and for
+  an ordinal or categorical response with two categories.
+
+* The `link_<dpar>` refusal now opens with brms's sentence,
+  `'logit' is not a supported link for parameter 'shape'`.
+
 # frmtmb 0.58.0
 
 * **BREAKING, and the rule behind it.** Where lme4 or glmmTMB and brms

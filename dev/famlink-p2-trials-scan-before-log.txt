@@ -1,0 +1,13 @@
+tests/testthat/test-bcm-retention.R (expr at line 116): frm(bcm_retention1_formula(), family = binomial(link = "identity"), data = d, start = bcm_retention_start(1L))
+tests/testthat/test-bcm-retention.R (expr at line 133): frm(bcm_retention1_formula(), family = binomial(link = "identity"), data = d, start = bcm_retention_start(1L))
+tests/testthat/test-bcm-retention.R (expr at line 160): frm(bcm_retention2_formula(), family = binomial(link = "identity"), data = d, start = bcm_retention_start(2L))
+tests/testthat/test-bcm-retention.R (expr at line 175): frm(bcm_retention2_formula(), family = binomial(link = "identity"), data = d, start = bcm_retention_start(2L))
+tests/testthat/test-bcm-retention.R (expr at line 200): frm(bcm_retention3_formula(), family = binomial(link = "identity"), data = d, start = bcm_retention_start(3L))
+tests/testthat/test-bcm-retention.R (expr at line 222): frm(bcm_retention3_formula(), family = binomial(link = "identity"), data = d, start = bcm_retention_start(3L))
+tests/testthat/test-brms-families.R (expr at line 312): frm(y ~ x, db, family = "binomial", dry_run = "frame")
+tests/testthat/test-multinomial.R (expr at line 60): frm(bf(Y ~ x) + multinomial(K = 3), data = dd)
+extensions/frmtmb.latent/tests/testthat/test-hmm.R (expr at line 338): frm(bf(Y ~ 1), family = hmm(K = 2, multinomial(K = 4), time = t, group = id, init = "estimated"), data = dd)
+extensions/frmtmb.latent/tests/testthat/test-hmm.R (expr at line 389): frm(bf(Y ~ 1), family = hmm(K = 2, multinomial(K = 3), time = t, group = id, init = "estimated", trans = ~x), data = dd)
+extensions/frmtmb.sample/tests/testthat/test-scale.R (expr at line 42): frm(form, family = stats::binomial(), data = d, se = TRUE)
+dev/brms-vignettes/brms-coexistence.R (expr at line 89): frm(z ~ x + (1 | g), data = d, family = binomial())
+files scanned 262  hits 12 

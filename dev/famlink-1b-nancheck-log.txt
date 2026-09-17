@@ -1,0 +1,10 @@
+(a) and (b): NaN warnings and the optimum, old path against new
+design     old  new  mapped logLik old         logLik new         identical  max|dpar| eta at optimum (min)
+setprior   16   0    16     -1082.0002531536   -1082.0002531536   TRUE       0.00e+00  0.003541
+robust     1    0    1      0.5410390023       0.5410390023       TRUE       0.00e+00  1.284
+band       11   0    11     -157.6108509082    -157.6108509082    TRUE       0.00e+00  0.01216
+brmslp     1    0    1      15.5530743738      15.5530743738      TRUE       0.00e+00  1.288
+near_zero  2    0    2      -913.2735139475    -913.2735139475    TRUE       0.00e+00  0.01053
+
+(c) a genuinely NaN objective still warns
+broken family: NaN warnings 2 ; outcome: fit, logLik -Inf 

@@ -725,7 +725,9 @@ band_case <- function(lk, seed = 5, n = 200) {
       # off their turning points
       ep <- 1.5 + 0.4 * pmax(pmin(d$x, 3), -3)
       d$y <- stats::rpois(n, lo$linkinv(ep))
-      negbinomial(lk)
+      # brms allows log1p only for gen_extreme_value's xi, so it reaches
+      # a count mean only as a link object, which no set is held to
+      negbinomial(if (lk == "log1p") lo else lk)
     },
     `1/mu^2` = {
       ei <- 2 + 0.3 * pmax(pmin(d$x, 3), -3)

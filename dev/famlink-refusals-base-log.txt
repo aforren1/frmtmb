@@ -1,0 +1,5 @@
+---- GENERATED: dev/famlink-refusals.R base ----
+pairs brms refuses: 417 over 37 families
+constructed: 371; refused: 46
+constructed, by family: asym_laplace 12; bernoulli 9; beta 9; beta_binomial 10; binomial 9; categorical 16; compois 12; cox 13; exgaussian 12; exponential 12; Gamma 12; gaussian 6; geometric 12; huber 6; hurdle_gamma 12; hurdle_lognormal 15; hurdle_poisson 12; inverse.gaussian 11; lognormal 15; nbinom1 12; negbinomial 12; poisson 12; shifted_lognormal 15; skew_normal 6; student 6; tweedie 12; von_mises 15; weibull 12; zero_inflated_asym_laplace 12; zero_inflated_beta 9; zero_inflated_binomial 9; zero_inflated_negbinomial 12; zero_inflated_poisson 12 
+---- END GENERATED ----

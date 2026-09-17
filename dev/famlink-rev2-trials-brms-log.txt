@@ -1,0 +1,31 @@
+trials_col                   ok    gp ok     
+trials_const1_y01            ok    gp ok     
+no_trials_y01                error gp ok     Specifying 'trials' is required for this model.
+no_trials_counts             error gp ok     Specifying 'trials' is required for this model.
+cbind_sf                     error gp ok     Specifying 'trials' is required for this model.
+cbind_sf_re                  error gp ok     Specifying 'trials' is required for this model.
+cbind_betabin                error gp ok     Specifying 'trials' is required for this model.
+weights_y01_no_trials        error gp ok     Specifying 'trials' is required for this model.
+prop_weights_no_trials       error gp ok     Family 'binomial' requires integer responses.
+trials_and_weights           ok    gp ok     
+betabin_no_trials            error gp ok     Specifying 'trials' is required for this model.
+zib_no_trials                error gp ok     Specifying 'trials' is required for this model.
+zib_trials                   ok    gp ok     
+family_string_no_trials      error gp ok     Specifying 'trials' is required for this model.
+family_string_trials         ok    gp ok     
+mv_both_trials               ok    gp ok     
+mv_one_missing               error gp ok     Specifying 'trials' is required for this model.
+mv_mixed_families            ok    gp ok     
+Setting order = 'mu' for mixtures of the same family.
+mix_binom_trials             ok    gp ok     
+Setting order = 'mu' for mixtures of the same family.
+mix_binom_no_trials          error gp ok     Specifying 'trials' is required for this model.
+Setting order = 'none' for mixtures of different families.
+mix_binom_poisson_trials     ok    gp ok     
+Setting order = 'mu' for mixtures of the same family.
+mix_bern_bern                ok    gp ok     
+multinom_trials              ok    gp ok     
+multinom_no_trials           error gp ok     Specifying 'trials' is required for this model.
+multinom_trials_wrong        error gp ok     Number of trials does not match the number of events.
+multinom_onehot_trials1      ok    gp ok     
+multinom_onehot_no_trials    error gp ok     Specifying 'trials' is required for this model.

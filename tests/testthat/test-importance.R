@@ -110,8 +110,8 @@ test_that("the probe design lands on GLMMadaptive within its MCSE", {
   ref_nll <- -as.numeric(logLik(ga))
   ref_fix <- unname(GLMMadaptive::fixef(ga))
 
-  fl <- frm(bf(y ~ x + (x | g)) + binomial(), data = dd)
-  fi <- frm(bf(y ~ x + (x | g)) + binomial(), data = dd,
+  fl <- frm(bf(y ~ x + (x | g)) + bernoulli(), data = dd)
+  fi <- frm(bf(y ~ x + (x | g)) + bernoulli(), data = dd,
             importance = 2000L, se = TRUE)
   mcse <- fi$importance$mcse
   expect_gt(mcse, 0)
@@ -138,9 +138,9 @@ test_that("the probe design lands on GLMMadaptive within its MCSE", {
 test_that("scalar intercept agrees with quadrature and glmer(nAGQ = 25)", {
   skip_if_not_installed("lme4")
   dd <- imp_scalar_data()
-  fq <- frm(bf(y ~ x + (1 | g)) + binomial(), data = dd,
+  fq <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd,
             quadrature = TRUE)
-  fi <- frm(bf(y ~ x + (1 | g)) + binomial(), data = dd,
+  fi <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd,
             importance = 1000L)
   ref <- lme4::glmer(y ~ x + (1 | g), dd, family = binomial, nAGQ = 25)
 
@@ -175,8 +175,8 @@ test_that("the correction recovers a variance component Laplace shrinks", {
   u <- rnorm(ng, 0, sd_true)
   dd <- data.frame(y = rbinom(ng * per, 1, plogis(-0.3 + 0.6 * x + u[g])),
                    x = x, g = g)
-  fl <- frm(bf(y ~ x + (1 | g)) + binomial(), data = dd)
-  fi <- frm(bf(y ~ x + (1 | g)) + binomial(), data = dd,
+  fl <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd)
+  fi <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd,
             importance = 2000L)
   sd_lap <- sqrt(VarCorr(fl)[[1L]][1, 1])
   sd_imp <- sqrt(VarCorr(fi)[[1L]][1, 1])
@@ -196,7 +196,7 @@ test_that("the correction recovers a variance component Laplace shrinks", {
 # ---------------------------------------------------------------------
 test_that("the corrected objective's gradient matches numDeriv", {
   skip_if_not_installed("numDeriv")
-  p <- imp_parts(bf(y ~ x + (1 | g)) + binomial(), imp_scalar_data())
+  p <- imp_parts(bf(y ~ x + (1 | g)) + bernoulli(), imp_scalar_data())
   plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, p$opt$par, 200L, 1L)
   io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
   otpl <- frmtmb:::imp_template(p$tpl, "b")
@@ -214,7 +214,7 @@ test_that("the corrected objective's gradient matches numDeriv", {
 # ---------------------------------------------------------------------
 test_that("the effective sample size diagnostic separates the two regimes", {
   skip_if_not_installed("MASS")
-  p <- imp_parts(bf(y ~ x + (x | g)) + binomial(), imp_probe_data())
+  p <- imp_parts(bf(y ~ x + (x | g)) + bernoulli(), imp_probe_data())
   ess_at <- function(anchor, at) {
     plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, anchor, 1000L, 1L)
     io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
@@ -336,7 +336,7 @@ test_that("a nonlinear predictor refuses before any tape is built", {
 # ---------------------------------------------------------------------
 test_that("the same seed gives the same answer, and the session RNG is safe", {
   dd <- imp_scalar_data()
-  bfm <- bf(y ~ x + (1 | g)) + binomial()
+  bfm <- bf(y ~ x + (1 | g)) + bernoulli()
   f1 <- frm(bfm, dd, importance = 200L)
   f2 <- frm(bfm, dd, importance = 200L)
   expect_identical(f1$opt$objective, f2$opt$objective)
@@ -391,7 +391,7 @@ test_that("trunc() and cens() are corrected, not refused", {
 # ---------------------------------------------------------------------
 test_that("the fit records the correction, and print/summary say so", {
   dd <- imp_scalar_data()
-  fi <- frm(bf(y ~ x + (1 | g)) + binomial(), data = dd,
+  fi <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd,
             importance = 200L)
   im <- fi$importance
   expect_identical(im$draws, 200L)
@@ -401,7 +401,7 @@ test_that("the fit records the correction, and print/summary say so", {
   expect_length(im$ess, 100L)
   expect_identical(names(im$ess), levels(dd$g))
   # an odd request is rounded UP so the antithetic draws pair
-  fo <- frm(bf(y ~ x + (1 | g)) + binomial(), data = dd,
+  fo <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd,
             importance = 51L)
   expect_identical(fo$importance$draws, 52L)
   out <- paste(utils::capture.output(print(fi)), collapse = " ")
@@ -409,7 +409,7 @@ test_that("the fit records the correction, and print/summary say so", {
   sout <- paste(utils::capture.output(print(summary(fi))), collapse = " ")
   expect_match(sout, "importance-corrected")
   # a Laplace fit says nothing about a correction it did not make
-  fl <- frm(bf(y ~ x + (1 | g)) + binomial(), data = dd)
+  fl <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd)
   expect_null(fl$importance)
   lout <- paste(utils::capture.output(print(fl)), collapse = " ")
   expect_false(grepl("importance-corrected", lout))
@@ -418,7 +418,7 @@ test_that("the fit records the correction, and print/summary say so", {
 test_that("the per-group pieces reproduce the joint density they sum", {
   # imp_verify() is the pin that keeps the stacked reimplementation from
   # drifting away from the objective it corrects.
-  p <- imp_parts(bf(y ~ x + (1 | g)) + binomial(), imp_scalar_data())
+  p <- imp_parts(bf(y ~ x + (1 | g)) + bernoulli(), imp_scalar_data())
   plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, p$opt$par, 50L, 1L)
   io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
   expect_silent(frmtmb:::imp_verify(io, p$nll, plan, p$tpl, p$opt$par))
@@ -448,10 +448,10 @@ test_that("a diverging iteration refuses instead of reporting nonsense", {
                    x = x, g = factor(g))
   # four binary rows per group cannot identify a 2 x 2 covariance, and
   # the Laplace fit says so itself
-  fl <- suppressWarnings(frm(bf(y ~ x + (x | g)) + binomial(), data = dd))
+  fl <- suppressWarnings(frm(bf(y ~ x + (x | g)) + bernoulli(), data = dd))
   expect_gt(fl$opt$convergence, 0)
   expect_error(
-    suppressWarnings(frm(bf(y ~ x + (x | g)) + binomial(), data = dd,
+    suppressWarnings(frm(bf(y ~ x + (x | g)) + bernoulli(), data = dd,
                          importance = 500L)),
     "ROSE from")
   # and the correction AT the Laplace estimates is still sound: it is
@@ -459,7 +459,7 @@ test_that("a diverging iteration refuses instead of reporting nonsense", {
   skip_if_not_installed("GLMMadaptive")
   ga <- suppressWarnings(
     GLMMadaptive::mixed_model(y ~ x, ~ x | g, dd, binomial(), nAGQ = 25))
-  p <- imp_parts(bf(y ~ x + (x | g)) + binomial(), dd)
+  p <- imp_parts(bf(y ~ x + (x | g)) + bernoulli(), dd)
   plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, p$opt$par, 500L, 1L)
   io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
   pl <- frmtmb:::imp_par_list(p$tpl, p$opt$par)
@@ -494,7 +494,7 @@ test_that("the refit paths carry the correction rather than dropping it", {
   u <- rnorm(ng, 0, 1.2)
   dd <- data.frame(y = rbinom(ng * per, 1, plogis(-0.5 + 0.7 * x + u[g])),
                    x = x, g = g)
-  fi <- frm(bf(y ~ x + (1 | g)) + binomial(), data = dd,
+  fi <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd,
             importance = 100L)
   r <- refit(fi, newresp = dd$y)
   expect_false(is.null(r$importance))
@@ -515,7 +515,7 @@ test_that("cluster-robust covariance refuses a corrected fit", {
   u <- rnorm(ng, 0, 1.2)
   dd <- data.frame(y = rbinom(ng * per, 1, plogis(-0.5 + 0.7 * x + u[g])),
                    x = x, g = g)
-  fi <- frm(bf(y ~ x + (1 | g)) + binomial(), data = dd,
+  fi <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd,
             importance = 100L)
   # the corrected objective is a sum over GROUPS of reweighted
   # integrals, not the per-row sum the cluster scores are read off
@@ -564,7 +564,7 @@ test_that("a profile bound in the degenerate regime warns", {
   dd <- data.frame(y = rbinom(ng * per, 1,
                               plogis(-0.4 + 0.7 * x + u[g])),
                    x = x, g = g)
-  fi <- frm(bf(y ~ x + (1 | g)) + binomial(), data = dd,
+  fi <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd,
             importance = 500L)
   # the frozen proposal, rebuilt from the fit, reproduces the anchor
   # the fit reported: same draws, same seed, same Gaussian
@@ -577,7 +577,7 @@ test_that("a profile bound in the degenerate regime warns", {
   # the fixed effect does not, on this design
   expect_silent(confint(fi, parm = "x", method = "profile"))
   # and a Laplace fit profiles with none of this machinery
-  fl <- frm(bf(y ~ x + (1 | g)) + binomial(), data = dd)
+  fl <- frm(bf(y ~ x + (1 | g)) + bernoulli(), data = dd)
   expect_silent(confint(fl, parm = "theta_1", method = "profile"))
 })
 
@@ -586,7 +586,7 @@ test_that("a profile bound in the degenerate regime warns", {
 # per-group values are what the log-mean-exp and the effective sample
 # sizes rest on.
 test_that("the pin catches a per-group error that cancels in the total", {
-  p <- imp_parts(bf(y ~ x + (1 | g)) + binomial(), imp_scalar_data())
+  p <- imp_parts(bf(y ~ x + (1 | g)) + bernoulli(), imp_scalar_data())
   plan <- frmtmb:::imp_plan(p$lap, p$frame, p$lay, p$opt$par, 50L, 1L)
   io <- frmtmb:::build_importance_objective(p$frame, p$lay, p$gmap, plan)
   # the honest objective passes
@@ -878,7 +878,7 @@ imp_ghq_bern_ref <- function(y, X, x, g, beta, s1, s2, nq = 70L) {
 
 test_that("two blocks, Bernoulli: brute force agrees, Laplace does not", {
   dd <- imp_bern_data()
-  p <- imp_parts(bf(y ~ x + (1 | g) + (0 + x | g)) + binomial(), dd)
+  p <- imp_parts(bf(y ~ x + (1 | g) + (0 + x | g)) + bernoulli(), dd)
   ng <- nlevels(dd$g)
   expect_length(p$lay$blocks, 2L)
   # the coefficients really are scattered on this design too

@@ -1,0 +1,4 @@
+---- GENERATED: dev/famlink-refusals.R lane ----
+pairs brms refuses: 417 over 37 families
+constructed: 0; refused: 417
+---- END GENERATED ----

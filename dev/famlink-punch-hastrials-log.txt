@@ -1,0 +1,10 @@
+function (family) 
+{
+    "trials" %in% family_info(family, "ad") && !"custom" %in% 
+        family_names(family)
+}
+<bytecode: 0x00000175bd564770>
+<environment: namespace:brms>
+has_trials: beta_binomial binomial dirichlet_multinomial multinomial zero_inflated_beta_binomial zero_inflated_binomial 
+Setting order = 'mu' for mixtures of the same family.
+mixture(binomial, binomial) without trials: Specifying 'trials' is required for this model. 

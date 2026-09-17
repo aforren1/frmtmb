@@ -1,0 +1,33 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+-- A: mutation paths --
+fam$links$mu <- probit obj                   agrees  link=probit link_sigma=log
+fam[['links']][['sigma']] <- 'softplus'      agrees  link=identity link_sigma=softplus
+fam['links'] <- list(...)  ([<-)             agrees  link=log link_sigma=softplus
+fam[c('links','dpars')] <- ...               agrees  link=log link_sigma=log
+fam[[idx of links]] <- ...                   agrees  link=log link_sigma=log
+utils::modifyList(fam, list(links=))         agrees  link=log link_sigma=log
+unclass, edit, class<-                       agrees  link=log link_sigma=log
+structure(modified list, class=)             agrees  link=log link_sigma=log
+fam$links <- NULL                            agrees  link=NA link_sigma=NA
+fam$ord_link on cumulative <- probit obj     agrees  link=probit link_sigma=NULL
+fam['link'] <- 'log' ([<- store)             ERROR on read: This family object stores an element named `link`, which is 
+fam$link <- 'log' (store)                    ERROR on read: This family object stores an element named `link`, which is 
+fam$link_sigma <- 'identity' (store)         ERROR on read: This family object stores an element named `link_sigma`, whi
+
+-- B: does family(fit) report the link the fit applied? --
+family(fit)$link: log  link applied by the fit: log 
+
+-- C: fits saved by the base build --
+gaussian     $link = identity   model_info: ok, link_function = identity
+binomial     $link = logit      model_info: ok, link_function = logit
+bernoulli    $link = logit      model_info: ok, link_function = logit
+negbin_re    $link = log        model_info: ok, link_function = log
+zip          $link = log        model_info: ok, link_function = log
+
+-- D: calls to $.frmtmb_family, counted --
+control: 3 direct reads (must be 3)      $ calls       3
+frm negbinomial + (1|g)                  $ calls       0
+predict(newdata)                         $ calls       0
+simulate(nsim = 50)                      $ calls       0
+frm_bootstrap(nsim = 20)                 $ calls       0
+print(family(fit))                       $ calls       1

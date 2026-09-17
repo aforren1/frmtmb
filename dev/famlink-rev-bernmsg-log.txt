@@ -1,0 +1,18 @@
+ARM lane frmtmb from C:/Users/adf44/source/r/famlink-lib 
+frm binomial trials(1)             messages   1 
+frm bernoulli (control)            messages   0 
+update()                           messages   1 
+update(formula.)                   messages   1 
+refit()                            messages   0 
+frm_bootstrap(nsim = 5)            messages   0 
+frm_allfit()                       messages   0 
+profile(parm = 1)                  messages   0 
+confint(method=profile)            messages   0 ERROR `parm` must be a character vector of parameter names, or NULL for all of them, not n
+simulate()                         messages   0 
+predict(newdata)                   messages   0 
+loo()                              messages   0 ERROR loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages
+get_prior()                        messages   0 
+frm(dry_run = 'frame')             messages   1 
+frm_multiple(list of 3)            messages   3 
+mvbf two binomial responses        messages   2 
+mixture(binomial, binomial) trials(1) messages   0 

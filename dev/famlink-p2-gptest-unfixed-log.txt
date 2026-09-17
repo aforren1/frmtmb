@@ -1,0 +1,13 @@
+Error ('test-brms-families.R:511:5'): get_prior() answers without trials() where brms does
+Error: Specifying 'trials' is required for this model. binomial reads the number of trials from the formula: write y01 | trials(n) ~ ..., or use bernoulli() for a response of zeros and ones
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_s3_class(...) at test-brms-families.R:511:5
+--
+Error ('test-brms-families.R:511:5'): get_prior() answers without trials() where brms does
+Error: Specifying 'trials' is required for this model. binomial reads the number of trials from the formula: write y01 | trials(n) ~ ..., or use bernoulli() for a response of zeros and ones
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_s3_class(...) at test-brms-families.R:511:5
+[ FAIL 1 | WARN 12 | SKIP 0 | PASS 973 ]
+FAMLINK test-brms-families.R tests 23 fail 0 error 1 skip 0
