@@ -74,6 +74,8 @@ Reading man/frm.Rd
 Writing `reference/frm.html`
 Reading man/frmtmb-autocor.Rd
 Writing `reference/frmtmb-autocor.html`
+Reading man/frmtmb-conditions.Rd
+Writing `reference/frmtmb-conditions.html`
 Reading man/frmtmb-extension-api.Rd
 Writing `reference/frmtmb-extension-api.html`
 Reading man/frmtmb-families.Rd
@@ -247,54 +249,16 @@ Writing `news/index.html`
 Writing `sitemap.xml`
 -- Building docs for llms ------------------------------------------------------
 -- Building redirects ----------------------------------------------------------
-Adding redirect from reference/$.frmtmb_family.html to
-reference/frmtmb_family-access.html.
-Adding redirect from reference/$.frmtmb_priorlist.html to
-reference/frmtmb_priorlist-columns.html.
-Adding redirect from reference/brms_block_has_r.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/brms_coef_names.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/brms_coef_table.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/brms_group_name.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/brms_levels.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/brms_par_labels.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/brms_re_parts.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/brms_re_rnames.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/brms_stan_name.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/check_prior_slots.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/expand_b.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/hyp_brms_result.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/hyp_class_prefix.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/hyp_eval_in.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/hyp_expr_vars.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/hyp_labels.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/hyp_samples_frame.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/posterior_summary.frmtmb_fit.html to
-reference/posterior_summary.html.
-Adding redirect from reference/posterior_summary.frmtmb_multiple.html to
-reference/posterior_summary.html.
-Adding redirect from reference/varcorr_layout.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/varcorr_matrices.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/varcorr_values.html to
-reference/frmtmb-sampling-api.html.
+Adding redirect from reference/frm_family_package.html to
+reference/frmtmb-conditions.html.
+Adding redirect from reference/frm_match_arg.html to
+reference/frmtmb-conditions.html.
+Adding redirect from reference/frm_message.html to
+reference/frmtmb-conditions.html.
+Adding redirect from reference/frm_stop.html to
+reference/frmtmb-conditions.html.
+Adding redirect from reference/frm_warning.html to
+reference/frmtmb-conditions.html.
 -- Building search index -------------------------------------------------------
 -- Checking for problems -------------------------------------------------------
 -- Finished building pkgdown site for package frmtmb ---------------------------
@@ -630,14 +594,6 @@ Writing `news/index.html`
 -- Building sitemap ------------------------------------------------------------
 -- Building docs for llms ------------------------------------------------------
 -- Building redirects ----------------------------------------------------------
-Adding redirect from reference/as.data.frame.frmtmb_draws.html to
-reference/sample-as_draws.html.
-Adding redirect from reference/as.matrix.frmtmb_draws.html to
-reference/sample-as_draws.html.
-Adding redirect from reference/ranef.frmtmb_draws.html to
-reference/draws-structure.html.
-Adding redirect from reference/VarCorr.frmtmb_draws.html to
-reference/draws-structure.html.
 -- Building search index -------------------------------------------------------
 -- Checking for problems -------------------------------------------------------
 -- Finished building pkgdown site for package frmtmb.sample --------------------

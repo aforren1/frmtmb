@@ -1,6 +1,6 @@
 Package: frmtmb
 Title: Formula-Based Regression Models via 'RTMB'
-Version: 0.59.0
+Version: 0.60.0
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"),
@@ -76,7 +76,7 @@ Suggests:
     testthat (>= 3.0.0),
     tibble,
     tinyplot,
-    tmbstan,
+    tmbstan (>= 1.2.1),
     withr
 VignetteBuilder: knitr
 Config/testthat/edition: 3

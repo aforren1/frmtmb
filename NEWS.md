@@ -1,4 +1,8 @@
-# frmtmb (development version)
+# frmtmb 0.60.0
+
+* `tmbstan (>= 1.2.1)` in Suggests. tmbstan 1.2.1 is the first build that
+  samples the model rather than a standard normal when built against
+  StanHeaders 2.39 (dev/tmbstan121-findings.md).
 
 * **BREAKING: every condition frmtmb raises is classed**, the contract
   brms keeps with `brms_error`. An error has the class

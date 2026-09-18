@@ -47,14 +47,17 @@ $suite = @(
   @{ n = "frmtmb"; d = $core },
   @{ n = "frmtmb.sample"; d = "$ROOT/extensions/frmtmb.sample/tests/testthat" }
 )
-foreach ($s in $suite) {
-  $hits = @(Get-ChildItem -Path $s.d -Filter "test-brms-suite-*.R" |
+# PowerShell names are case-insensitive: a loop variable `$s` here was
+# `$S`, the runner path, so every job after it ran Rscript on a hashtable,
+# printed nothing, and the tier reported 0 of 38.
+foreach ($suiteDir in $suite) {
+  $hits = @(Get-ChildItem -Path $suiteDir.d -Filter "test-brms-suite-*.R" |
             Sort-Object Name)
   if ($hits.Count -eq 0) {
-    throw ("no test-brms-suite-*.R files in " + $s.d)
+    throw ("no test-brms-suite-*.R files in " + $suiteDir.d)
   }
   foreach ($f in $hits) {
-    [void]$jobs.Add(@{ n = $s.n; f = $f.FullName })
+    [void]$jobs.Add(@{ n = $suiteDir.n; f = $f.FullName })
   }
 }
 [void]$jobs.Add(@{ n = "frmtmb.learn"; f = "$ROOT/extensions/frmtmb.learn/tests/testthat/test-stan-identity.R" })

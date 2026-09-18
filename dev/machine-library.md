@@ -95,6 +95,40 @@ rather than a wrong record.
 The `frmtmb` packages themselves are excluded above because they are
 installed from a checkout, not from a repository.
 
+## The sixth loss, 2026-09-17, and the first one with a dated trigger
+
+136 of 401 packages in the user library went hollow, and `frmtmb` in
+the release library `rellib-r3` went with them. `pinlib` was untouched,
+as in every previous loss. The directory mtimes are 17:09:30 to
+17:10:05.
+
+**What was running, and what the session did.** The scale tier and
+`R CMD check --as-cran` were running together when the user asked for a
+pause. The session stopped both drivers and then killed every remaining
+`Rscript.exe` and `Rterm.exe` with `taskkill /T /F`. The damage
+timestamps are that minute. That is the closest this failure has come to
+a named trigger, and it points at the third suspect above, an
+interrupted install: `R CMD check` installs the package under check, and
+a hard kill during an install leaves exactly this signature, because R
+installs by emptying a directory and then unpacking into it.
+
+**What is NOT explained.** No step of either driver installs into the
+USER library, and 136 unrelated packages went with it. So a check-time
+install alone does not account for the blast radius, and the cause is
+still open. Recorded because a dated, attributable trigger is more than
+any earlier loss had.
+
+**What to do differently.** Do not hard-kill R processes to pause a
+release. Stop the drivers and let the R processes finish the file they
+are on; if one must die, prefer stopping the driver and waiting.
+
+**The restore.** `dev/release/restore-library.R` recovered 136 of 136
+with no warnings, and the four non-CRAN packages (RTMBode, RTMBp,
+autotest, pkgcheck) survived. The eight frmtmb packages were reinstalled
+from the checkout. Verified by FITTING, as this file requires: gaussian
+`(1 | g)` logLik -304.480044337 and poisson logLik -307.276634783 on the
+seed-1 design in the session scratchpad, with brms and testthat loading.
+
 ## What this costs a round
 
 Every private library and every reference build is derived from this

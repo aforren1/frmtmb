@@ -11,15 +11,25 @@
 # Usage: Rscript run-tests.R <package> <path-to-test-file>
 
 LIB <- "C:/Users/adf44/source/r/rellib-r3"
-.libPaths(c(LIB, "C:/Users/adf44/source/r/pinlib",
-            "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
+.libPaths(c(LIB, "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
 
-# The pin has to win over the user library's StanHeaders 2.39.1, which
-# rstan 2.32.7 cannot compile against. A populated Stan cache hides that
-# everywhere except code that compiles something new, so a green suite
-# is the weaker evidence and this assertion is the stronger one.
-stopifnot(identical(as.character(utils::packageVersion("StanHeaders")),
-                    "2.32.10"))
+# The StanHeaders 2.32.10 pin is gone (2026-09-17). Its two reasons were a
+# tmbstan build that sampled a standard normal, fixed in tmbstan 1.2.1,
+# and rstan failing to compile against StanHeaders 2.39.1, fixed by
+# `CXX17FLAGS += -std=gnu++17` in the user Makevars
+# (dev/tmbstan121-findings.md). R only reads <HOME>/.R/Makevars.win and
+# HOME depends on the launcher, so the file is named explicitly. A
+# populated Stan cache hides a compile failure everywhere except code
+# that compiles something new, so these assertions are the stronger
+# evidence and a green suite the weaker.
+mk <- "C:/Users/adf44/Documents/.R/Makevars.win"
+if (!nzchar(Sys.getenv("R_MAKEVARS_USER")) && file.exists(mk)) {
+  Sys.setenv(R_MAKEVARS_USER = mk)
+}
+stopifnot(utils::packageVersion("tmbstan") >= "1.2.1",
+          any(grepl("-std=gnu++17",
+                    readLines(tools::makevars_user(), warn = FALSE),
+                    fixed = TRUE)))
 
 suppressMessages(library(testthat))
 a <- commandArgs(trailingOnly = TRUE)

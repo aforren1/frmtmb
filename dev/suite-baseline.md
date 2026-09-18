@@ -1,7 +1,7 @@
 # The per-file suite baseline, and what it is for
 
 `dev/suite-baseline.tsv` records one row per test file as of the round 3
-release, at frmtmb 0.59.0 and frmtmb.sample 0.7.0: package, file, passing
+release, at frmtmb 0.60.0 and frmtmb.sample 0.8.0: package, file, passing
 assertions, skips. It is a floor, not a target.
 
 ## Why it exists
@@ -169,4 +169,21 @@ file recorded in its own full run before the merge:
 - `frmtmb/test-prior-compat.R`, 195 to 194, and
   `frmtmb/test-priors-autocor-classes.R`, 63 to 62. wt-priorform merged
   several print assertions into one `expect_identical()` each.
+
+## What the 2.6b, 2.6e and tmbstan release changed
+
+Regenerated at 262 rows and 15567 assertions, from 231 rows and 15278.
+31 files are new and nothing fell below its previous count.
+
+The new files are the census and condition tests item 2.6e generates
+into all eight packages (`test-conditions-census.R` everywhere, and
+`test-conditions.R` in core and each extension), and item 2.6b's ported
+bin-1 tier of brms's own suite, which SKIPS here and runs in the gated
+tier (`dev/release/run-gated.ps1`).
+
+Read the gated line beside this one. Gated is 38 files and 3127
+assertions at this release, from 23 files and 2496, and it compiled 109
+Stan programs from an EMPTY cache against StanHeaders 2.39.1. That is
+the evidence that dropping the StanHeaders pin is safe; the ungated
+suite compiles no Stan program and cannot show it.
 

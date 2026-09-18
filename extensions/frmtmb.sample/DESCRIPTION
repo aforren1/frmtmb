@@ -1,6 +1,6 @@
 Package: frmtmb.sample
 Title: NUTS Sampling and Posterior Methods for 'frmtmb'
-Version: 0.7.0
+Version: 0.8.0
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"),
@@ -25,7 +25,7 @@ Roxygen: list(markdown = TRUE)
 Depends:
     R (>= 4.1)
 Imports:
-    frmtmb (>= 0.59.0),
+    frmtmb (>= 0.60.0),
     graphics,
     RTMB (>= 1.9),
     stats,
@@ -51,7 +51,7 @@ Suggests:
     rstan,
     rstantools,
     testthat (>= 3.0.0),
-    tmbstan,
+    tmbstan (>= 1.2.1),
     withr
 VignetteBuilder: knitr
 Config/testthat/edition: 3

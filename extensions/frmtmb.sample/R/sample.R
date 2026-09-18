@@ -2384,9 +2384,9 @@ check_tmbstan_build <- function(caller) {
              "two generated log-density overloads unpatched, so EVERY ",
              "chain silently samples a standard normal instead of the ",
              "model (tmbstan tools/autogen.R replaces only the first ",
-             "match). Until an upstream fix, install a binary tmbstan ",
-             "build, or reinstall tmbstan with StanHeaders 2.32.10, and ",
-             "distrust any draws already produced by this installation",
+             "match). Reinstall tmbstan (>= 1.2.1), which patches every ",
+             "overload, and distrust any draws already produced by this ",
+             "installation",
              call. = FALSE)
   }
   invisible(NULL)

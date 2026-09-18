@@ -1,4 +1,6 @@
-# frmtmb.ode (development version)
+# frmtmb.ode 0.5.0
+
+* Requires frmtmb 0.60.0, for `frm_stop()` and the other condition helpers.
 
 * Requires the frmtmb release that exports `frm_stop()`; the
   `frmtmb (>= 0.59.0)` floor must move to it.

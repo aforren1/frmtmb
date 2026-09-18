@@ -1,104 +1,89 @@
 # Handing a round to a new session
 
-Written 2026-09-17, at the 2.6c release. Read this, then
+Written 2026-09-17, at the 0.60.0 release. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
 `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
-anything: this machine has lost its R library five times, and the cause
-is OPEN rather than settled.
+anything: the library has now been lost SIX times, and the sixth has a
+dated trigger.
 
-## Where the tree stands
+Main carries items 2.6b (brms's own bin-1 suite ported as a gated tier),
+2.6c (the defects that suite found) and 2.6e (classed conditions), plus
+the tmbstan 1.2.1 verification. Four lanes merged since the last
+release: `wt-brmsport`, `wt-conditions`, `wt-tmbstan121`, and before
+them the three 2.6c lanes. No worktree is left. `wt-vectorize` and
+`wt-vecshape` are branches, deferred by the user and never merged.
 
-Main carries item 2.6c, the defects brms's own test suite found. Three
-lanes merged: `wt-famlink` (family objects and links), `wt-priorform`
-(`bf()`, formula grammar, priors) and `wt-brmsnames` (brms's names,
-`VarCorr()`, `hypothesis()`, frmtmb.sample output). A fourth worktree,
-`wt-vectorize`, is NOT merged and waits on the user (see below). The
-release commit and the docs rebuild are separate commits, in that order.
-**The user pushes; no session pushes for them.**
+Versions: frmtmb **0.60.0**, frmtmb.sample **0.8.0**, frmtmb.eam 0.9.0,
+frmtmb.learn 0.5.0, frmtmb.latent 0.4.0, frmtmb.spline 0.6.0,
+frmtmb.coupling 0.4.0, frmtmb.ode 0.5.0. Every extension floors on
+frmtmb 0.60.0, because each imports `frm_stop()` and the other condition
+helpers.
 
-Versions: frmtmb **0.59.0**, frmtmb.sample **0.7.0**, frmtmb.learn 0.4.2,
-frmtmb.latent 0.3.1, frmtmb.eam 0.8.2, frmtmb.spline 0.5.2,
-frmtmb.coupling 0.3.2, frmtmb.ode 0.4.1. Every extension floors on core
-0.59.0, because its tests read brms's names or `varcorr_matrices()`.
+**The StanHeaders 2.32.10 pin is GONE.** tmbstan 1.2.1 fixes the build
+that sampled a standard normal, and `CXX17FLAGS += -std=gnu++17` in the
+user Makevars fixes rstan's compile against StanHeaders 2.39.1. The
+release scripts no longer put `pinlib` on the path; `run-tests.R`
+asserts tmbstan >= 1.2.1 and that the Makevars carries the flag, and
+names `R_MAKEVARS_USER` because HOME depends on the launcher.
 
 ### Verified at the release commit
 
-- Suite: 231 files, 15278 assertions, no failures and no errors. Three
-  counts fell, and each lane recorded the same count before merging;
-  `dev/suite-baseline.md` has the details.
-- The merge broke one design that each lane passed alone:
-  `(1 | h:g) + (1 | g/h)`. reformulas expands `g/h` into `h:g` where
-  brms writes `g:h`, so brmsnames gave two different blocks one name.
-  A block from a slash now carries the flag, and brms's names read it.
-  Fixed in commit 4e179c0, before the release suite.
-- Gated, no skips: 23 of 23 files, 2496 assertions, and three files
-  gained assertions. Scale: 7 of 7, with every logLik identical to
-  0.58.0. `R CMD check --as-cran`: 8 of 8, with no warnings or errors.
-  Five packages carry the environmental "V8 unavailable" NOTE.
-
-**Read the comment at the top of each `dev/release/` script before you
-change it.** Two flags are forbidden there.
-
-## PAUSED 2026-09-17 mid-round (read this first)
-
-The user shut the machine down with agents running. They were stopped
-cleanly; nothing is half-merged. Worktrees and their state:
-
-- `wt-conditions` (2.6e, classed conditions): worker DONE, all suites
-  green, uncommitted. Its reviewer was STOPPED before reporting; rerun
-  the review from scratch (brief: message fidelity on 60+ sites, the
-  runtime subclass rule, census gaps, the 29 unclassed sweep cases,
-  interop code checking `simpleError`). The punch round must also carry
-  the user's decisions: keep warnings/messages classed; turn the
-  user-reachable `stopifnot()`/`match.arg()` refusals into named
-  classed refusals (`set_prior("normal(0)")`, `student_t(3, 0)`,
-  `exponential(-1)`, `gamma(1)`, `lkj()`, six match.arg sites); apply
-  the one-line `getME` S4 fix at `R/interop.R:421`.
-- `wt-brmsport` (2.6b, bin-1 port): reviewer said MERGEABLE. The worker
-  was STOPPED partway through a small last round (R5 emmeans rows back
-  to cannot transfer, target totals 192/112/34/12/144; R1 caveats and a
-  pattern specificity guard; R2 stale check in `brms_port_own()`; R6
-  helper-drift test into the gated tier; cheap R3 hollow forms; the
-  run-gated.ps1 header NIT). Check the worktree state, finish or redo
-  that round, then merge. It adds tests only.
-- `wt-tmbstan121`: findings DONE (`dev/tmbstan121-findings.md`), one test
-  fix, uncommitted. Its DESCRIPTION floor, CI and advice-text changes
-  wait for 2.6e. The user must add `CXX17FLAGS += -std=gnu++17` to their
-  Makevars and reinstall tmbstan from CRAN before the pin can drop.
-- `wt-vectorize`, `wt-vecshape`: deferred by the user, committed on
-  their branches, worktrees removed.
-
-Queue after 2.6e merges: 2.6d and 2.6f together (predict and return
-shapes), the port's defects (eight silent ones ranked in
-`dev/brmsport-findings.md`), `hmm_starts(1)`, `brmshypothesis` class,
-the tmbstan floor and CI.
+- Suite: 262 files, 15567 assertions, 0 fail, 0 error, nothing below its
+  baseline. 31 files are new; see `dev/suite-baseline.md`.
+- Gated: 38 of 38 files, 3127 assertions, 0 skips, and 109 Stan programs
+  compiled from an EMPTY cache against StanHeaders 2.39.1.
+- Scale: 7 of 7, every logLik identical to 0.59.0.
+- `R CMD check --as-cran`: 8 of 8, no warnings or errors, 5 packages
+  carrying the environmental "V8 unavailable" NOTE and no timing NOTE.
+- Two harness defects found and fixed on the way. `run-gated.ps1` had a
+  loop variable `$s` that clobbered `$S`, the runner path, so the tier
+  reported 0 of 38 while running nothing: PowerShell names are
+  case-insensitive. And the sixth library loss, recorded in
+  `dev/machine-library.md`, happened in the minute this session
+  hard-killed R processes to pause a release. Do not do that.
 
 ## What is next, in order
 
-**Waiting on the user:** whether `frmtmb_control(vectorize = FALSE)`
-merges. `wt-vectorize` measured `TapeConfig(vectorize = "enable")` on
-17 models and found it SLOWER on every random-effects model, from 1.36x
-(`s(x)`) to 1,116x (`ar1()`), and faster on none. It breaks the
-sparsity of the Laplace sparse Hessian tape, which grows as rows times
-groups. The option is built, off by default, with tests seen failing,
-in that worktree, uncommitted. Merging it needs a core bump, because
-frmtmb.sample calls the new `make_adfun()` export. The record is
-`dev/vectorize-findings.md` there.
+**2.6d and 2.6f together, next.** Both reshape the post-fit methods in
+the same files, so one lane.
+- 2.6d: `predict()` becomes brms's predictive summary (user decision,
+  2026-09-16). Audit every caller of `predict(type = )` first, including
+  `conditional_effects()` and the interop packages.
+- 2.6f: the return shapes of `fitted`, `residuals`, `fixef`, `ngrps`,
+  `vcov` and `summary` follow brms, and frmtmb.sample offers
+  `nsamples()` and `posterior_samples()` (user decision, 2026-09-17).
 
-- **2.6d**, `predict()` becomes brms's predictive summary (user
-  decision, 2026-09-16).
-- **2.6e**, classed conditions, now that the three lanes are merged.
-- Filed during 2.6c and not fixed. The details are in each lane's
-  findings file.
-  - Two prior-scope differences from brms: a `sd` prior with a group
-    and no dpar reaches `phi`; mv `sd group = g` without `resp` is
-    accepted.
-  - Two frmtmb.sample default priors: rescor is flat where brms uses
-    `lkj(1)`; the offset intercept location.
-  - `mi()` is still `b_` where brms uses `bsp_`.
-  - A written `theta` formula's reference component.
-- Then **2.6b**, the port of bin 1, and tmbstan 1.2.1's verification in
-  a private library.
+**Then the defects the ported suite found**, ranked with constructions
+in `dev/brmsport-findings.md`. Eight are SILENT: `ar()`/`ma()` taking an
+expression as the time index; `gr = g1/g2` on numeric codes grouping by
+the quotient; `variables()` omitting an ordinal fit's thresholds; a
+hypothesis with no relation answered as `= 0`; `fit$data`
+partial-matching `fit$data2`; `point_estimate` ignored on draws;
+`fitted()`/`residuals()` returning NULL on draws; ordinal residuals
+answered where brms refuses. Beside them: `hmm_starts(1)`, the
+`brmshypothesis` class on `hypothesis()` output (it breaks the user's
+own rule), `predict(allow_new_levels = TRUE)` without the grouping
+column, and `log_lik()` on a fit giving "no applicable method".
+
+**Filed during 2.6c and not fixed**, details in each lane's findings:
+two prior-scope differences from brms (a `sd` prior with a group and no
+dpar reaches `phi`; mv `sd group = g` without `resp` is accepted); two
+frmtmb.sample default priors (rescor flat where brms uses `lkj(1)`, and
+the offset intercept location); `mi()` still `b_` where brms uses
+`bsp_`; and a written `theta` formula's reference component.
+
+**Deferred by the user, 2026-09-17:** `frmtmb_control(vectorize = FALSE)`
+on branch `wt-vectorize`, with the census on `wt-vecshape`. Vectorizing
+is slower on every random-effects model, 1.36x to 1,116x, because it
+breaks the sparsity of the Laplace sparse Hessian tape. Only the sampler
+tape could gain, and only for gaussian-like models, after three
+reshapings whose first one can break custom likelihoods. Revisit only if
+sampling speed becomes a priority.
+
+**Bin 2 of brms's suite is NOT ported and the audit recommends against
+it** (`dev/brms-suite-audit.md` section 9). Quote any "passes brms's
+suite" fraction against 823, bins 1 and 2, never 2,011. Today bin 1 is
+192 of 494.
 
 **Settled, do not reopen:**
 - The non-generic name collisions with brms stay, because `::` is

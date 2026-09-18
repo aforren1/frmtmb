@@ -1,4 +1,9 @@
-# frmtmb.sample (development version)
+# frmtmb.sample 0.8.0
+
+* Requires frmtmb 0.60.0, for `frm_stop()` and the other condition helpers.
+* `tmbstan (>= 1.2.1)` in Suggests, and `check_tmbstan_build()` now names
+  that version as the remedy. The CI step that pinned a dated snapshot of
+  the Stan trio is removed.
 
 * Requires the frmtmb release that exports `frm_stop()`; the
   `frmtmb (>= 0.59.0)` floor must move to it.

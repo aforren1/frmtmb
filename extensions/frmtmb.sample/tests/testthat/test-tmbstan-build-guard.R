@@ -87,8 +87,8 @@ test_that("the detector reads model.hpp rather than the runtime StanHeaders", {
   # generated when tmbstan is compiled and shipped inside it. This
   # machine carries StanHeaders 2.39.1 beside a clean CRAN binary
   # tmbstan, which is the case a version comparison would have called
-  # broken, and is also why "install a binary tmbstan build" is the
-  # working remedy the refusal names.
+  # broken. tmbstan (>= 1.2.1), the remedy the refusal names, is clean
+  # against any StanHeaders.
   skip_if_not_installed("StanHeaders")
   sh <- utils::packageVersion("StanHeaders")
   broken <- frmtmb.sample:::tmbstan_build_broken()
