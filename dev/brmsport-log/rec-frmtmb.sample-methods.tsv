@@ -73,9 +73,9 @@ assert	frmtmb.sample	brmsfit-methods:650	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:655	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:660	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:708	pass	TRUE	FALSE			TRUE
-setup	frmtmb.sample	brmsfit-methods:711		TRUE	FALSE			TRUE
-assert	frmtmb.sample	brmsfit-methods:713	defect	FALSE	FALSE	Expected `nrow(pe)` to equal 2. Differences:   `actual`: 25.0 `expected`:  2.0 		FALSE
-assert	frmtmb.sample	brmsfit-methods:714	defect	FALSE	FALSE	Expected `all(pe[1, ] == pe[2, ])` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
+setup	frmtmb.sample	brmsfit-methods:711		FALSE	FALSE	posterior_epred() has no argument `point_estimate` (and 1 more: ndraws_point_estimate). It takes: object, newdata, re_formula, re.form, resp, dpar, nlpar, ndraws, draw_ids, allow_new_levels		FALSE
+assert	frmtmb.sample	brmsfit-methods:713	defect	FALSE	TRUE	STALE: reads 'pe', whose last assignment failed: posterior_epred() has no argument `point_estimate` (and 1 more: ndraws_point_estimate). It takes: object, newdata, re_formula, re.form, resp, dpar, nlpar, ndraws, draw_ids, allow_new_levels		FALSE
+assert	frmtmb.sample	brmsfit-methods:714	defect	FALSE	TRUE	STALE: reads 'pe', whose last assignment failed: posterior_epred() has no argument `point_estimate` (and 1 more: ndraws_point_estimate). It takes: object, newdata, re_formula, re.form, resp, dpar, nlpar, ndraws, draw_ids, allow_new_levels		FALSE
 assert	frmtmb.sample	brmsfit-methods:718	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:719	own	TRUE	FALSE		mixture_probs() needs a mixture() family fit	FALSE
 assert	frmtmb.sample	brmsfit-methods:779	pass	TRUE	FALSE			TRUE

@@ -466,7 +466,13 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
 #'   sign convention for its own wiener family.
 #' @param transform For `posterior_predict()`: a function applied to
 #'   the finished draws, in brms's own fifth position.
-#' @param ... Unused.
+#' @param allow_new_levels For `posterior_epred()` and
+#'   `posterior_predict()`: predict grouping-factor levels the fit never
+#'   saw at the population level, and let `newdata` leave the grouping
+#'   column out altogether. Passed to
+#'   [frmtmb::predict.frmtmb_fit()], which is where brms passes it too.
+#' @param ... Refused: an argument the method does not have is an error
+#'   naming it, rather than a silently ignored name.
 #' @return A draws-by-observations matrix; for a categorical outcome
 #'   `posterior_epred()` returns a draws-by-observations-by-categories
 #'   array (see the section below).
@@ -508,7 +514,24 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
                                          re.form = arg_unset(),
                                          resp = NULL, dpar = NULL,
                                          nlpar = NULL, ndraws = NULL,
-                                         draw_ids = NULL, ...) {
+                                         draw_ids = NULL, ...,
+                                         allow_new_levels = FALSE) {
+  # AFTER the dots on purpose. brms has no `allow_new_levels` formal at
+  # all, it reads it out of `...`, so a named slot before `...` would
+  # take brms's tenth position (`sort`) and a positional brms call would
+  # mean something else here. After `...` the name occupies no position
+  # and must be spelled in full, which is how brms callers write it.
+  #
+  # It is FORWARDED, which is what brms does: its
+  # methods carry it in `...` down to prepare_predictions(), and
+  # posterior_epred(newdata = <no grouping column>,
+  # allow_new_levels = TRUE) answers there (25 x 3 on
+  # brmsfit_example1). It used to be swallowed here, and the caller then
+  # met a refusal whose remedy named this very argument. Every other
+  # name is refused rather than swallowed, which is item 2.5e's rule and
+  # what the rest of this file already does.
+  frm_check_dots(...)
+  check_flag(allow_new_levels, "allow_new_levels")
   re_form <- re_form_arg(re_formula, re.form, "posterior_epred()")
   dpar <- draws_dpar_arg(dpar, nlpar, "posterior_epred()")
   idx <- draws_par_index(object$fit)
@@ -518,7 +541,8 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
   for (k in seq_along(rows)) {
     sh <- draws_fit_at(object, rows[k], idx)
     p <- predict(sh, newdata = newdata, resp = resp, dpar = dpar,
-                 re_formula = re_form, type = "response")
+                 re_formula = re_form, type = "response",
+                 allow_new_levels = allow_new_levels)
     if (is.null(out)) {
       # A categorical outcome predicts a matrix per draw (an ordinal
       # family's n x K category probabilities), so the draws stack into
@@ -641,7 +665,12 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
                                            resp = NULL,
                                            negative_rt = FALSE,
                                            ndraws = NULL,
-                                           draw_ids = NULL, ...) {
+                                           draw_ids = NULL, ...,
+                                           allow_new_levels = FALSE) {
+  # after the dots, forwarded, and every other dots name refused: see
+  # posterior_epred.frmtmb_draws() above for the measurement
+  frm_check_dots(...)
+  check_flag(allow_new_levels, "allow_new_levels")
   re_form <- re_form_arg(re_formula, re.form, "posterior_predict()")
   check_flag(negative_rt, "negative_rt")
   if (negative_rt) {
@@ -708,7 +737,9 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
         dpv[[dnm]] <- as.vector(predict(sh, newdata = newdata,
                                         dpar = dnm, resp = resp,
                                         re_formula = re_form,
-                                        type = "response"))
+                                        type = "response",
+                                        allow_new_levels =
+                                          allow_new_levels))
       }
       dpv
     }

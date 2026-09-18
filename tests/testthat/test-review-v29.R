@@ -60,12 +60,12 @@ test_that("gr(cov =) blocks expose sd_/cor_ names to hypothesis()", {
   # the name is the block's own within-level sd, which is what VarCorr
   # reports for the block
   vc <- as.data.frame(varcorr_matrices(fit))
-  h_sd <- hypothesis(fit, "sd_id__Intercept", class = NULL)$hypothesis
+  h_sd <- hypothesis(fit, "sd_id__Intercept = 0", class = NULL)$hypothesis
   expect_equal(h_sd$Estimate, vc$sdcor[1], tolerance = 1e-10)
 
   # the headline idiom: heritability as an ICC
   h <- hypothesis(fit,
-                  "sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2)",
+                  "sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2) = 0",
                   class = NULL)$hypothesis
   expect_equal(nrow(h), 1L)
   expect_true(is.finite(h$Estimate) && h$Estimate > 0 && h$Estimate < 1)
@@ -81,7 +81,7 @@ test_that("gr(cov =) blocks expose sd_/cor_ names to hypothesis()", {
   # a bootstrap sanity check on the delta-method interval: the two
   # methods agree on the point estimate and overlap substantially
   hb <- hypothesis(fit,
-                   "sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2)",
+                   "sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2) = 0",
                    class = NULL, method = "boot", nsim = 40,
                    seed = 7)$hypothesis
   expect_equal(hb$Estimate, h$Estimate, tolerance = 1e-10)
@@ -108,7 +108,7 @@ test_that("gr(prec =) and equalto() blocks contribute names too", {
   fp <- frm(bf(y ~ x + (1 | gr(g, prec = Q))) + gaussian(), data = dd,
             data2 = list(Q = Q))
   expect_true("sd_g__Intercept" %in% variables(fp))
-  expect_equal(hypothesis(fp, "sd_g__Intercept",
+  expect_equal(hypothesis(fp, "sd_g__Intercept = 0",
                           class = NULL)$hypothesis$Estimate,
                as.data.frame(varcorr_matrices(fp))$sdcor[1], tolerance = 1e-10)
 
@@ -125,13 +125,14 @@ test_that("gr(prec =) and equalto() blocks contribute names too", {
   vv <- variables(fe)
   sd_nms <- grep("^sd_g__", vv, value = TRUE)
   expect_length(sd_nms, 2L)
-  he <- hypothesis(fe, sd_nms, class = NULL)$hypothesis
+  he <- hypothesis(fe, paste0(sd_nms, " = 0"), class = NULL)$hypothesis
   expect_equal(he$Est.Error, c(0, 0), tolerance = 1e-10)
   expect_vector_equal(he$Estimate, sqrt(diag(V)), tol = 1e-10)
   # the correlation of a fixed covariance is a constant too
   cor_nms <- grep("^cor_g__", vv, value = TRUE)
   expect_length(cor_nms, 1L)
-  expect_equal(hypothesis(fe, cor_nms, class = NULL)$hypothesis$Estimate,
+  expect_equal(hypothesis(fe, paste0(cor_nms, " = 0"),
+                          class = NULL)$hypothesis$Estimate,
                V[1, 2] / sqrt(V[1, 1] * V[2, 2]), tolerance = 1e-10)
 })
 
@@ -172,7 +173,7 @@ test_that("vcov(full = TRUE) carries theta under REML", {
 
   # so the ICC is available under REML as well
   h <- hypothesis(fr,
-                  "sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2)",
+                  "sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2) = 0",
                   class = NULL)
   expect_gt(h$hypothesis$Est.Error, 0)
 })

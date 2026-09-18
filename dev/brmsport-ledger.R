@@ -209,12 +209,19 @@ lines <- c(lines, "",
            sprintf("Bin 1 passes: %d of 494 (%.1f%%).", np, 100 * np / 494),
            sprintf("Against bins 1 and 2: %d of 823 (%.1f%%); bin 2 was not ported.",
                    np, 100 * np / 823),
+           # GENERATED from the messages, not typed: the rule list used
+           # to be a sentence, and it went stale the day the fit-data
+           # class reached zero and no run was withheld for a partial
+           # `$` match any more. helper-brms-suite.R holds the rules.
            sprintf(paste("Runs testthat alone would count as a pass and the",
-                         "harness does not (missing function or object,",
-                         "stale object, argument-name refusal, a NULL",
-                         "read through a partial $ match), over both",
-                         "packages: %d; hollow passes marked by hand: %d."),
+                         "harness does not, over both packages: %d (%d",
+                         "vacuous, %d reading a stale object); hollow",
+                         "passes marked by hand: %d."),
                    sum(rec$raw_held & !rec$held),
+                   sum(rec$raw_held & !rec$held &
+                         startsWith(rec$msg, "VACUOUS")),
+                   sum(rec$raw_held & !rec$held &
+                         startsWith(rec$msg, "STALE")),
                    sum(ledger$class == "hollow")))
 # the sample half, its own totals: every run in frmtmb.sample
 vs <- verd[verd$pkg == "frmtmb.sample", ]

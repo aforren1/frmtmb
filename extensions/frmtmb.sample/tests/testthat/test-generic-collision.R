@@ -22,8 +22,10 @@
 
 # Kept here rather than read from the package, so that dropping a name
 # from the package cannot silently drop it from the test.
+# log_lik is NOT here: frmtmb defines that generic and the fit refusal,
+# and this package re-exports it (R/reexports.R), the way it does loo().
 own_generics <- c(
-  "as.mcmc", "bayes_factor", "bridge_sampler", "kfold", "log_lik",
+  "as.mcmc", "bayes_factor", "bridge_sampler", "kfold",
   "log_posterior", "loo_moment_match", "loo_subsample", "mcmc_plot",
   "neff_ratio", "nsamples", "nuts_params", "parnames", "post_prob",
   "posterior_epred", "posterior_interval", "posterior_linpred",
@@ -38,7 +40,7 @@ owner_table <- list(
   as.mcmc = "coda", bayes_factor = "bridgesampling",
   bridge_sampler = "bridgesampling", post_prob = "bridgesampling",
   kfold = "loo", loo_moment_match = "loo", loo_subsample = "loo",
-  psis = "loo", log_lik = "rstantools", nsamples = "rstantools",
+  psis = "loo", nsamples = "rstantools",
   posterior_epred = "rstantools", posterior_interval = "rstantools",
   posterior_linpred = "rstantools", posterior_predict = "rstantools",
   predictive_error = "rstantools", predictive_interval = "rstantools",
@@ -185,7 +187,7 @@ test_that("a package importing frmtmb.sample does not lose brms methods", {
     "suppressMessages(library(brms))",
     "suppressMessages(loadNamespace('samplegenimp'))",
     "cat('ATTACHED:', 'package:frmtmb.sample' %in% search(), '\\n')",
-    "cat('IMPACTIVE:', bindingIsActive('log_lik',",
+    "cat('IMPACTIVE:', bindingIsActive('posterior_epred',",
     "    parent.env(asNamespace('samplegenimp'))), '\\n')"),
     where = "asNamespace('samplegenimp')"))
   expect_equal(parse_field(out, "ATTACHED"), "FALSE")
@@ -282,7 +284,7 @@ test_that("the bindings are ACTIVE, in this namespace and not frmtmb's", {
     sprintf("own <- %s", paste0(deparse(own_generics), collapse = "")),
     "act <- vapply(own, bindingIsActive, NA, env = ns)",
     "cat('NOTACTIVE:', paste(own[!act], collapse = ','), '\\n')",
-    "cat('ATT:', bindingIsActive('log_lik',",
+    "cat('ATT:', bindingIsActive('posterior_epred',",
     "      as.environment('package:frmtmb.sample')), '\\n')",
     "cat('INCORE:', any(vapply(own, exists, NA,",
     "      envir = asNamespace('frmtmb'), inherits = FALSE)), '\\n')",

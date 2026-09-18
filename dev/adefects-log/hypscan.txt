@@ -1,0 +1,23 @@
+hypothesis() calls with a literal hypothesis and a relation: 145 
+hypothesis() calls with a literal hypothesis and NO relation: 5 
+  BARE tests/testthat/test-adefects.R:91  Age
+  BARE tests/testthat/test-adefects.R:91  Age
+  BARE tests/testthat/test-adefects.R:91  Age + Trt
+  BARE tests/testthat/test-adefects.R:91  Trt
+  BARE tests/testthat/test-brms-suite-methods.R:616  b_Age x 0
+hypothesis() calls whose hypothesis is not a literal: 15 
+  DYN  tests/testthat/test-boot.R:42  hypothesis(fit, icc, class = NULL)
+  DYN  tests/testthat/test-boot.R:42  hypothesis(fit, icc, class = NULL, method = "boot", nsim = 40, seed = 2)
+  DYN  tests/testthat/test-brms-methods.R:1225  hypothesis(s$fit, h)
+  DYN  tests/testthat/test-brms-methods.R:1237  hypothesis(s$fit, paste0(co, " = 0"), class = cls, group = grp)
+  DYN  tests/testthat/test-brms-methods.R:1237  hypothesis(s$fit, paste0(v, " = 0"), class = NULL)
+  DYN  tests/testthat/test-brms-suite-methods.R:616  hypothesis(fit1, 1)
+  DYN  tests/testthat/test-multiple-pooling.R:6  hypothesis(mfit, hyps, class = NULL)
+  DYN  tests/testthat/test-multiple-pooling.R:6  hypothesis(f0, hyps, class = NULL)
+  DYN  tests/testthat/test-multiple-pooling.R:64  hypothesis(mfit, h, class = NULL)
+  DYN  tests/testthat/test-multiple-pooling.R:64  hypothesis(f, h, class = NULL)
+  DYN  tests/testthat/test-review-v29.R:93  hypothesis(fe, paste0(sd_nms, " = 0"), class = NULL)
+  DYN  tests/testthat/test-review-v29.R:93  hypothesis(fe, paste0(cor_nms, " = 0"), class = NULL)
+  DYN  tests/testthat/test-v19.R:61  hypothesis(fit, paste0(nm, " = 0"), class = NULL)
+  DYN  extensions/frmtmb.sample/tests/testthat/test-brms-output.R:80  hypothesis(ds, h)
+  DYN  extensions/frmtmb.sample/tests/testthat/test-brms-output.R:80  hypothesis(ds, h)

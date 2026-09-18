@@ -71,7 +71,7 @@ test_that("variables() lists the usable parameter names", {
                     "cor_Subject__Intercept__Days", "sigma") %in% v))
   # every listed name is accepted by hypothesis() as written
   for (nm in v) {
-    h <- hypothesis(fit, nm, class = NULL)
+    h <- hypothesis(fit, paste0(nm, " = 0"), class = NULL)
     expect_true(is.finite(h$hypothesis$Estimate), label = nm)
   }
 })

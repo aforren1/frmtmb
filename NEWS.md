@@ -1,3 +1,68 @@
+# frmtmb (development version)
+
+The silent wrong answers brms's own ported test suite found
+(item 2.6f, lane `wt-adefects`). Each one is a case where frmtmb
+returned a number where brms refuses, or returned the wrong number with
+nothing said. `dev/adefects-findings.md` has the construction and the
+before-and-after figure for every item.
+
+* **BREAKING: `ar()`, `ma()`, `arma()`, `cosy()` and `unstr()` take ONE
+  VARIABLE NAME as the time index.** An expression was evaluated against
+  the model frame and its values became the time points, so
+  `ar(x + t, g, cov = TRUE)` fitted a different likelihood and said
+  nothing: log-likelihood -30.33421 against -30.88513 for
+  `ar(t, g, cov = TRUE)` on the same 24 rows. brms refuses the same call
+  ("Cannot coerce 'x + t' to a single variable name"). Compute the
+  column first and name it. `time = NA` and an omitted `time` are
+  unchanged.
+
+* **BREAKING: `gr =` takes variable names crossed by `:` and nothing
+  else**, which is brms's grammar ("It may contain only variable names
+  combined by the symbol ':'"). Two things change.
+
+  `gr = a:b` now CROSSES the two variables instead of being evaluated.
+  R's `:` is the interaction for two factors but the sequence operator
+  for anything else, so on numeric group codes `gr = g1:g2` used to
+  produce a length-one vector; it now groups by the pair, as it already
+  did for factors and as it does in brms.
+
+  Every other operator is refused. `gr = g1/g2` on numeric codes used to
+  group the residual by the QUOTIENT, merging the series (1, 1) and
+  (2, 2), for a log-likelihood of -30.87554 against -30.88513 with
+  nothing said. `gr = g1 + g2`, `gr = g1 * g2`, `gr = factor(g)` and
+  `gr = interaction(g1, g2)` are refused too; the last two worked before
+  and now need the column computed first, which is what brms asks for.
+
+* **BREAKING: a hypothesis must state a relation.**
+  `hypothesis(fit, "Age")` used to be answered as the row of
+  `"Age = 0"`. brms refuses it, "Every hypothesis must be of the form
+  'left (= OR < OR >) right'", and so does frmtmb now. Write
+  `"Age = 0"`, `"x1 - x2 = 0"` or a directional `"x > 0"`. The bare
+  spelling was documented as an extension; it is gone, and 48 call sites
+  in this repository's own suites were rewritten.
+
+* **A fit carries its model frame as `fit$data`**, which is what brms
+  keeps there. A `frmtmb_fit` had no `data` element, so `fit$data`
+  partial-matched `fit$data2` and brms-shaped code read the `data2` list
+  (a covariance matrix, or an empty list) with no error. It is the same
+  object `model.frame()` already returned, so it costs no memory.
+
+* **`predict(newdata = )` may omit a grouping column when
+  `allow_new_levels = TRUE`**, which is brms's rule
+  ("grouping factors do not need to be specified by the user if new
+  levels are allowed"). The column is filled with `NA`, so every row is
+  an unseen level: the population value, plus that block's variance in
+  an interval. It used to stop at base R's "object 'g' not found".
+  Without `allow_new_levels` the call is still refused, now by a classed
+  error naming the column and the two arguments that answer it.
+
+* **`log_lik()` on a maximum-likelihood fit says to sample**, the way
+  `loo()` and `waic()` already did. frmtmb defines the generic and the
+  `frmtmb_fit` method, and registers it on rstantools' generic;
+  `frmtmb.sample` re-exports it rather than defining a second one. It
+  used to be "could not find function".
+
+
 # frmtmb 0.60.0
 
 * `tmbstan (>= 1.2.1)` in Suggests. tmbstan 1.2.1 is the first build that

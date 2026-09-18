@@ -57,7 +57,7 @@ test_that("FN-6: a family given as a bare constructor is accepted", {
 test_that("FN-5: hypothesis() takes brms's directional form", {
   d <- port_data()
   fit <- frm(bf(y ~ x), family = gaussian(), data = d)
-  two <- hypothesis(fit, "x")
+  two <- hypothesis(fit, "x = 0")
   gt <- hypothesis(fit, "x > 0")
   lt <- hypothesis(fit, "x < 0")
   hs <- function(h) h$hypothesis
@@ -80,7 +80,7 @@ test_that("FN-5: hypothesis() takes brms's directional form", {
   expect_identical(hs(gt)$Star, if (p(gt) < 0.05) "*" else "")
   # "lhs > rhs" is the difference of the two sides
   expect_equal(hs(hypothesis(fit, "x > Intercept"))$Estimate,
-               hs(hypothesis(fit, "x - Intercept"))$Estimate,
+               hs(hypothesis(fit, "x - Intercept = 0"))$Estimate,
                tolerance = 1e-10)
   expect_output(print(gt), "one-sided")
   expect_error(hypothesis(fit, "x > 0 > 1"), "at most one")
@@ -101,14 +101,14 @@ test_that("FN-5: class/group name the natural-scale summaries", {
   expect_equal(attr(a, "test")$p, attr(b, "test")$p, tolerance = 1e-10)
   expect_identical(a$class, "sd_g")
   # brms's default class "b" prefixes b_; NULL takes names as written
-  expect_equal(est(hypothesis(fit, "x", class = "b")),
-               est(hypothesis(fit, "b_x", class = NULL)), tolerance = 1e-10)
+  expect_equal(est(hypothesis(fit, "x = 0", class = "b")),
+               est(hypothesis(fit, "b_x = 0", class = NULL)), tolerance = 1e-10)
   # a natural-scale name under the default class is refused, as in brms
   expect_error(hypothesis(fit, "sd_g__x > 0"), "class = NULL")
   # a class without a group is brms's `b_sigma` prefix spelled out
   fd <- frm(bf(y ~ x, sigma ~ x), family = gaussian(), data = d)
-  expect_equal(est(hypothesis(fd, "Intercept", class = "b_sigma")),
-               est(hypothesis(fd, "sigma_Intercept")),
+  expect_equal(est(hypothesis(fd, "Intercept = 0", class = "b_sigma")),
+               est(hypothesis(fd, "sigma_Intercept = 0")),
                tolerance = 1e-10)
   # a class/group that names nothing is refused, not silently dropped
   flin <- frm(bf(y ~ x), family = gaussian(), data = d)
@@ -127,7 +127,7 @@ test_that("FN-5: class/group name the natural-scale summaries", {
 test_that("FN-5: the bootstrap and profile bounds are one-sided too", {
   d <- port_data()
   fit <- frm(bf(y ~ x), family = gaussian(), data = d)
-  bo <- hypothesis(fit, c("x > 0", "x"), method = "boot", nsim = 40,
+  bo <- hypothesis(fit, c("x > 0", "x = 0"), method = "boot", nsim = 40,
                    seed = 3)
   hb <- bo$hypothesis
   # the directional row's interval is central at 1 - 2 alpha, so its
@@ -140,7 +140,7 @@ test_that("FN-5: the bootstrap and profile bounds are one-sided too", {
                tolerance = 1e-10)
   # brms's samples frame carries the same replicates
   expect_identical(bo$samples$H1, unname(dr))
-  pr <- hypothesis(fit, c("x > 0", "x"), method = "profile")
+  pr <- hypothesis(fit, c("x > 0", "x = 0"), method = "profile")
   expect_true(pr$hypothesis$CI.Lower[1] > pr$hypothesis$CI.Lower[2])
 })
 
@@ -240,7 +240,7 @@ test_that("parameter names: one vocabulary across the methods", {
                    confint(fit, "tarsus_(Intercept)"))
   # hypothesis() reads brms's names only, as brms does: the internal
   # spelling is refused, not aliased
-  expect_error(hypothesis(fit, "`tarsus_(Intercept)`"),
+  expect_error(hypothesis(fit, "`tarsus_(Intercept)` = 0"),
                "cannot be found in the model")
   # variables() still lists one spelling only
   expect_false(any(grepl("[()]", variables(fit))))
@@ -307,7 +307,7 @@ test_that("a name that is not one internal parameter is refused", {
   expect_error(confint(fit, "cor_g__Intercept__x", method = "profile"),
                "method = 'profile'")
   # hypothesis() is the route named, and it handles the combination
-  expect_true(is.finite(hypothesis(fit, "cor_g__Intercept__x",
+  expect_true(is.finite(hypothesis(fit, "cor_g__Intercept__x = 0",
                                    class = NULL)$hypothesis$Estimate))
 })
 
@@ -329,6 +329,6 @@ test_that("FN-11: frm_multiple refuses what it cannot pool", {
   expect_named(h$hypothesis, c("Hypothesis", "Estimate", "Est.Error",
                                "CI.Lower", "CI.Upper", "Evid.Ratio",
                                "Post.Prob", "Star"))
-  expect_equal(attr(h, "test")$p, attr(hypothesis(fm, "x"), "test")$p / 2,
+  expect_equal(attr(h, "test")$p, attr(hypothesis(fm, "x = 0"), "test")$p / 2,
                tolerance = 1e-10)
 })

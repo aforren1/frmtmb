@@ -1,0 +1,27 @@
+RESULT frmtmb.eam test-bracket-access.R pass=1 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-brms-parity.R pass=18 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-conditions.R pass=8 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-conditions-census.R pass=11 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-defects.R pass=59 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-density.R pass=132 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-extension-api.R pass=14 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-family.R pass=51 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-gddm-conditions.R pass=58 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-gddm-family.R pass=77 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-gddm-gradients.R pass=22 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-gddm-recovery.R pass=28 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-gddm-reference.R pass=166 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-gddm-solver.R pass=94 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-lba.R pass=109 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-message-uniqueness.R pass=4 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-moments.R pass=29 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-ndt-bound.R pass=79 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-ndt-seam.R pass=83 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-rdm-gng.R pass=221 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-sampling.R pass=97 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-scale.R pass=0 fail=0 err=0 skip=3
+RESULT frmtmb.eam test-simulate-density.R pass=69 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-surface.R pass=50 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-units.R pass=32 fail=0 err=0 skip=0
+RESULT frmtmb.eam test-variability.R pass=140 fail=0 err=0 skip=0
+SUITE frmtmb.eam ran 26 files

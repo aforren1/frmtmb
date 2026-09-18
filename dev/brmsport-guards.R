@@ -6,8 +6,12 @@
 # Every block below MUST report exactly the failures named in its
 # label; the script stops otherwise. The gate is checked last, in a
 # child process with FRMTMB_BRMS_FIT_TESTS unset.
-.libPaths(c("C:/Users/adf44/source/r/brmsport-lib",
-            "C:/Users/adf44/source/r/pinlib",
+# The library is an argument, FRMTMB_PORT_LIB, for the reason
+# dev/brmsport-run.R gives: brmsport-lib and the StanHeaders pin are
+# both gone, and a hardcoded path makes the guards unrunnable rather
+# than red.
+.libPaths(c(Sys.getenv("FRMTMB_PORT_LIB",
+                       "C:/Users/adf44/source/r/rellib-r3"),
             "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
 suppressPackageStartupMessages({
   library(testthat)

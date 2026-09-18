@@ -1,0 +1,44 @@
+frmtmb 0.60.0 
+
+== A. is a registered $.frmtmb_fit reached from inside frmtmb? TRUE (reads seen: 10 )
+  `$` reads on a fit, per user action:
+  frm(y ~ x + (1 | g))                            9
+  predict(fit)                                   10
+  predict(fit, newdata, se.fit = TRUE)           32
+  fitted(fit)                                    12
+  simulate(fit, nsim = 5)                        49
+  summary(fit)                                   39
+  ranef(fit)                                      4
+  vcov(fit)                                       5
+  frm_bootstrap(fit, nsim = 20)                 751
+  insight::get_data / model.frame                 1
+  emmeans::emmeans(fit, 'x')                     18
+  the largest single action: 751 reads
+
+== B. one `$` read, seconds, minimum of 5 rounds
+  plain             0.102 us  (block of 1.6384e+07)
+  plain2            0.102 us  (block of 1.6384e+07)
+  method            0.949 us  (block of 2.048e+06)
+  method_data       1.563 us  (block of 1.024e+06)
+  bracket           0.121 us  (block of 8.192e+06)
+  CONTROL plain2 / plain = 1.0035 (must read about 1.0)
+  a method read costs 0.847 us more than a plain one
+  at 751 reads, the largest action above, that is 0.636 ms
+
+== C. what the duplicate costs on disk
+  n =    240  with data: raw   3690464 gz   328646
+               without : raw   3684677 gz   323821
+               delta   : raw     +5787 (+0.16%) gz    +4825 (+1.49%)
+               the frame alone: raw      6279
+  n =  20000  with data: raw   8029502 gz  2555789
+               without : raw   7624563 gz  2241953
+               delta   : raw   +404939 (+5.31%) gz  +313836 (+14.00%)
+               the frame alone: raw    405431
+Warning message:
+Large maximum absolute gradient at the optimum (0.00673); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+
+  control, shared  list(mf, mf)  raw    640314
+  control, copies  list(mf, cp)  raw    640314
+  control, one     list(mf)      raw    320194
+
+DONE

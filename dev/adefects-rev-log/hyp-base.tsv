@@ -1,0 +1,89 @@
+h	brms	frm	files
+-x = 0	accept	accept	test-evidence-ratio.R
+`(Intercept)` > 0	accept	accept	test-sample-direct.R
+`tarsus_(Intercept)`	grammar-refuse	accept	test-portability.R
+0 > r_visit[4,Intercept]	accept	accept	test-brms-suite-methods.R
+2 * x = 0	accept	accept	test-evidence-ratio.R
+abs(x) = 0	accept	accept	test-evidence-ratio.R
+Age > Trt1	accept	accept	test-brms-suite-methods.R
+ar[1]	grammar-refuse	accept	test-autocor.R
+ar[1] - 0.5 = 0	accept	accept	test-autocor.R
+b_Age = 0	accept	accept	test-brms-suite-methods.R
+b_Age x 0	grammar-refuse	accept	test-brms-suite-methods.R
+b_Intercept = 0	accept	accept	test-nlf.R
+b_Intercept > 0	accept	accept	test-sample-direct.R
+b_sigma	grammar-refuse	accept	test-naming-collisions.R
+b_v = 0	accept	accept	test-naming-collisions.R
+b_x	grammar-refuse	accept	test-portability.R
+b_x:fe = 0	accept	accept	test-brms-names.R
+b_x:fe > 0	accept	accept	test-brms-names.R
+bsp_meAgeAgeSD > sigma	accept	accept	test-brms-suite-methods.R
+cor_g__Intercept__x	grammar-refuse	accept	test-portability.R
+cor_id__y1_Intercept__y2_Intercept = 0	accept	accept	test-id-kron.R
+cor_Subject__Intercept__Days	grammar-refuse	accept	test-boot.R
+Days > 5	accept	accept	frmtmb.Rmd
+exp(log(sigma))	grammar-refuse	accept	test-effects.R
+exp(sigma_Intercept + sigma_grouptreat) = 0	accept	accept	test-brms-port.R
+exp(sigma_Intercept) = 0	accept	accept	test-brms-port.R
+exp(x)	grammar-refuse	accept	test-boot.R
+exp(x1)	grammar-refuse	accept	test-boot.R
+Intercept	grammar-refuse	accept	test-portability.R
+Intercept - x > 0	accept	accept	test-portability.R
+Intercept + exp(Trt1) = 0	accept	accept	test-brms-suite-methods.R
+Intercept < 2	accept	accept	test-brms-names.R
+Intercept = 0	accept	accept	test-brms-suite-methods.R;test-evidence-ratio.R
+Intercept > 0	accept	accept	test-brms-names.R;test-draws-spellings.R;test-sample-direct.R
+Intercept > x	accept	accept	test-brms-suite-methods.R
+IxE2 + fcMd = 0	accept	accept	test-brms-names.R
+nope > 0	accept	accept	test-brms-names.R
+r_gd[lvl.1,Intercept] = 0	accept	accept	test-brms-pins.R
+sd_g__Intercept	grammar-refuse	accept	test-boot.R;test-brms-names.R;test-review-v29.R
+sd_g__Intercept - sd_g__x > 0	accept	accept	test-portability.R
+sd_g__Intercept = 0	accept	accept	test-naming-collisions.R;test-evidence-ratio.R
+sd_g__Intercept > 0	accept	accept	test-portability.R;test-tre.R;test-reparam.R
+sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)	grammar-refuse	accept	test-sampling-ported.R
+sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0	accept	accept	brms-posterior.Rmd;sampling.Rmd
+sd_g__sigma_Intercept	grammar-refuse	accept	test-brms-names.R
+sd_g__x > 0	accept	accept	test-portability.R
+sd_h__Intercept	grammar-refuse	accept	test-boot.R
+sd_id__Intercept	grammar-refuse	accept	test-review-v29.R
+sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2)	grammar-refuse	accept	test-review-v29.R
+sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2) = 0	accept	accept	case-studies.Rmd
+sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2) = 0	accept	accept	frmtmb.Rmd
+sigma	grammar-refuse	accept	test-brms-names.R;test-naming-collisions.R
+sigma = 0	accept	accept	test-naming-collisions.R;test-review-fixes.R;test-draws-methods.R
+sigma = 0.9	accept	accept	test-evidence-ratio.R
+sigma > 0	accept	accept	test-naming-collisions.R
+sigma_Intercept	grammar-refuse	accept	test-portability.R
+sigma_z = 0	accept	accept	test-brms-names.R
+sigma_z__1 = 0	accept	accept	test-brms-names.R
+theta1 + theta2 = 0	accept	accept	test-brms-names.R
+theta1 = 0	accept	accept	test-brms-names.R
+theta1 = 0.5	accept	accept	test-brms-names.R;test-brms-pins.R
+theta1_x = 0	accept	accept	test-lca.R
+theta2 = 0	accept	accept	test-brms-names.R
+theta3 = 0	accept	accept	test-brms-names.R
+tr12_Intercept = 0	accept	accept	test-hmm.R
+Trt1:Age = -1	accept	accept	test-brms-suite-methods.R
+x	grammar-refuse	accept	test-boot.R;test-portability.R;test-v14.R
+x - Intercept	grammar-refuse	accept	test-portability.R
+x - w = 0	accept	accept	test-evidence-ratio.R
+x - x2	grammar-refuse	accept	test-v14.R
+x < 0	accept	accept	test-portability.R;test-evidence-ratio.R
+x = 0	accept	accept	test-brms-methods.R;test-conditions.R;test-sandwich.R;test-evidence-ratio.R;sampling.Rmd
+x = 0.5	accept	accept	test-brms-names.R
+x > 0	accept	accept	test-brms-names.R;test-portability.R;test-evidence-ratio.R;test-sample-direct.R;sampling.Rmd
+x > 0 = 1	grammar-refuse	other-refuse	test-portability.R
+x > 0 > 1	grammar-refuse	other-refuse	test-portability.R
+x > Intercept	accept	accept	test-portability.R
+x > z	accept	accept	test-brms-methods.R
+x:fe - x = 0	accept	accept	test-brms-names.R
+x:fe > 0	accept	accept	test-brms-names.R
+x^2 = 0	accept	accept	test-evidence-ratio.R
+x1	grammar-refuse	accept	test-boot.R;test-effects.R
+x1 - x2 = 0	accept	accept	test-effects.R
+x1 - x2 = 0.1	accept	accept	test-boot.R
+x1 + x2 = 1	accept	accept	test-effects.R
+x1 = 0 = 1	grammar-refuse	other-refuse	test-effects.R
+x2	grammar-refuse	accept	test-effects.R
+y_x = 0	accept	accept	test-compat.R

@@ -44,7 +44,8 @@ test_that("identical imputations reduce pooling to the single fit", {
   # hence the pooled (t) interval contains the single-fit (z) interval
   expect_true(all(pvc$lwr <= cv$lwr & pvc$upr >= cv$upr))
 
-  hyps <- c("b_x = 0", "sd_g__Intercept - 0.5", "cor_g__Intercept__x")
+  hyps <- c("b_x = 0", "sd_g__Intercept - 0.5 = 0",
+            "cor_g__Intercept__x = 0")
   hpo <- hypothesis(mfit, hyps, class = NULL)
   h0o <- hypothesis(f0, hyps, class = NULL)
   expect_s3_class(hpo, "frmtmb_hypothesis")
@@ -89,7 +90,7 @@ test_that("pooling across distinct imputations is Rubin-consistent", {
   expect_true(pvc$fmi >= 0 && pvc$fmi <= 1)
   expect_true(pvc$lwr < pvc$estimate && pvc$estimate < pvc$upr)
 
-  h <- "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"
+  h <- "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0"
   hpo <- hypothesis(mfit, h, class = NULL)
   hp <- hpo$hypothesis
   per <- lapply(mfit$fits, function(f) {

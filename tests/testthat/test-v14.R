@@ -288,14 +288,14 @@ test_that("control profile = TRUE reproduces the plain fit", {
   expect_equal(rownames(vcov(fp)), rownames(vcov(f0)))
   expect_vector_equal(sqrt(diag(vcov(fp))), sqrt(diag(vcov(f0))),
                       tol = 0.02)
-  h <- hypothesis(fp, "x - x2")
+  h <- hypothesis(fp, "x - x2 = 0")
   expect_equal(h$hypothesis$Estimate,
                unname(fixef(fp)$mu["x"] - fixef(fp)$mu["x2"]),
                tolerance = 1e-10)
 
   expect_error(confint(fp, parm = "x", method = "uniroot"),
                "Unknown parameter|profile")
-  expect_error(hypothesis(fp, "x", method = "profile"), "profile")
+  expect_error(hypothesis(fp, "x = 0", method = "profile"), "profile")
   expect_error(frm(form, data = dd, REML = TRUE,
                    control = frmtmb_control(profile = TRUE)), "REML")
 })

@@ -1,0 +1,450 @@
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|frmtmb|visible=NOTFOUND
+P|frmtmb|rstantools_loaded=FALSE
+P|frmtmb|searchpos=package:frmtmb
+P|frmtmb|table.frmtmb=
+P|frmtmb|table.frmtmb.sample=
+P|frmtmb|table.rstantools=
+P|frmtmb|table.brms=
+P|frmtmb|any_default=FALSE
+P|frmtmb|fit_refusal_class=simpleError,error,condition
+P|frmtmb|fit_refusal_msg=could not find function "log_lik"
+P|frmtmb|DONE
+P|frmtmb|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|frmtmb|frmtmb.sample|visible=frmtmb.sample
+P|frmtmb|frmtmb.sample|rstantools_loaded=FALSE
+P|frmtmb|frmtmb.sample|searchpos=package:frmtmb.sample,package:frmtmb
+P|frmtmb|frmtmb.sample|table.frmtmb=
+P|frmtmb|frmtmb.sample|table.frmtmb.sample=log_lik.frmtmb_draws
+P|frmtmb|frmtmb.sample|table.rstantools=
+P|frmtmb|frmtmb.sample|table.brms=
+P|frmtmb|frmtmb.sample|any_default=FALSE
+P|frmtmb|frmtmb.sample|fit_refusal_class=simpleError,error,condition
+P|frmtmb|frmtmb.sample|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|frmtmb|frmtmb.sample|draws_dispatch=REACHED_METHOD
+P|frmtmb|frmtmb.sample|draws_msg=attempt to set an attribute on NULL
+P|frmtmb|frmtmb.sample|DONE
+P|frmtmb|frmtmb.sample|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|frmtmb.sample|visible=frmtmb.sample
+P|frmtmb.sample|rstantools_loaded=FALSE
+P|frmtmb.sample|searchpos=package:frmtmb.sample
+P|frmtmb.sample|table.frmtmb=
+P|frmtmb.sample|table.frmtmb.sample=log_lik.frmtmb_draws
+P|frmtmb.sample|table.rstantools=
+P|frmtmb.sample|table.brms=
+P|frmtmb.sample|any_default=FALSE
+P|frmtmb.sample|fit_refusal_class=simpleError,error,condition
+P|frmtmb.sample|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|frmtmb.sample|draws_dispatch=REACHED_METHOD
+P|frmtmb.sample|draws_msg=attempt to set an attribute on NULL
+P|frmtmb.sample|DONE
+P|frmtmb.sample|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|frmtmb.sample|frmtmb|visible=frmtmb.sample
+P|frmtmb.sample|frmtmb|rstantools_loaded=FALSE
+P|frmtmb.sample|frmtmb|searchpos=package:frmtmb,package:frmtmb.sample
+P|frmtmb.sample|frmtmb|table.frmtmb=
+P|frmtmb.sample|frmtmb|table.frmtmb.sample=log_lik.frmtmb_draws
+P|frmtmb.sample|frmtmb|table.rstantools=
+P|frmtmb.sample|frmtmb|table.brms=
+P|frmtmb.sample|frmtmb|any_default=FALSE
+P|frmtmb.sample|frmtmb|fit_refusal_class=simpleError,error,condition
+P|frmtmb.sample|frmtmb|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|frmtmb.sample|frmtmb|draws_dispatch=REACHED_METHOD
+P|frmtmb.sample|frmtmb|draws_msg=attempt to set an attribute on NULL
+P|frmtmb.sample|frmtmb|DONE
+P|frmtmb.sample|frmtmb|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|brms|frmtmb|visible=rstantools
+P|brms|frmtmb|rstantools_loaded=TRUE
+P|brms|frmtmb|is_rstantools_generic=TRUE
+P|brms|frmtmb|searchpos=package:frmtmb,package:brms
+P|brms|frmtmb|table.frmtmb=
+P|brms|frmtmb|table.frmtmb.sample=
+P|brms|frmtmb|table.rstantools=log_lik.brmsfit,log_lik.brmsprep,log_lik.mvbrmsprep
+P|brms|frmtmb|table.brms=
+P|brms|frmtmb|any_default=FALSE
+P|brms|frmtmb|fit_refusal_class=simpleError,error,condition
+P|brms|frmtmb|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|brms|frmtmb|brms_loglik_dispatch=TRUE noapplicable=FALSE
+P|brms|frmtmb|brms_loglik_msg=Group-level coefficients of group 'visit' not found. You can
+P|brms|frmtmb|brms_loo_dispatch=TRUE noapplicable=FALSE
+P|brms|frmtmb|DONE
+P|brms|frmtmb|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|frmtmb|brms|visible=rstantools
+P|frmtmb|brms|rstantools_loaded=TRUE
+P|frmtmb|brms|is_rstantools_generic=TRUE
+P|frmtmb|brms|searchpos=package:brms,package:frmtmb
+P|frmtmb|brms|table.frmtmb=
+P|frmtmb|brms|table.frmtmb.sample=
+P|frmtmb|brms|table.rstantools=log_lik.brmsfit,log_lik.brmsprep,log_lik.mvbrmsprep
+P|frmtmb|brms|table.brms=
+P|frmtmb|brms|any_default=FALSE
+P|frmtmb|brms|fit_refusal_class=simpleError,error,condition
+P|frmtmb|brms|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|frmtmb|brms|brms_loglik_dispatch=TRUE noapplicable=FALSE
+P|frmtmb|brms|brms_loglik_msg=Group-level coefficients of group 'visit' not found. You can
+P|frmtmb|brms|brms_loo_dispatch=TRUE noapplicable=FALSE
+P|frmtmb|brms|DONE
+P|frmtmb|brms|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|brms|frmtmb|frmtmb.sample|visible=rstantools
+P|brms|frmtmb|frmtmb.sample|rstantools_loaded=TRUE
+P|brms|frmtmb|frmtmb.sample|is_rstantools_generic=TRUE
+P|brms|frmtmb|frmtmb.sample|searchpos=package:frmtmb.sample,package:frmtmb,package:brms
+P|brms|frmtmb|frmtmb.sample|table.frmtmb=
+P|brms|frmtmb|frmtmb.sample|table.frmtmb.sample=log_lik.frmtmb_draws
+P|brms|frmtmb|frmtmb.sample|table.rstantools=log_lik.brmsfit,log_lik.brmsprep,log_lik.frmtmb_draws,log_lik.mvbrmsprep
+P|brms|frmtmb|frmtmb.sample|table.brms=
+P|brms|frmtmb|frmtmb.sample|any_default=FALSE
+P|brms|frmtmb|frmtmb.sample|fit_refusal_class=simpleError,error,condition
+P|brms|frmtmb|frmtmb.sample|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|brms|frmtmb|frmtmb.sample|draws_dispatch=REACHED_METHOD
+P|brms|frmtmb|frmtmb.sample|draws_msg=attempt to set an attribute on NULL
+P|brms|frmtmb|frmtmb.sample|brms_loglik_dispatch=TRUE noapplicable=FALSE
+P|brms|frmtmb|frmtmb.sample|brms_loglik_msg=Group-level coefficients of group 'visit' not found. You can
+P|brms|frmtmb|frmtmb.sample|brms_loo_dispatch=TRUE noapplicable=FALSE
+P|brms|frmtmb|frmtmb.sample|DONE
+P|brms|frmtmb|frmtmb.sample|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|frmtmb|frmtmb.sample|brms|visible=rstantools
+P|frmtmb|frmtmb.sample|brms|rstantools_loaded=TRUE
+P|frmtmb|frmtmb.sample|brms|is_rstantools_generic=TRUE
+P|frmtmb|frmtmb.sample|brms|searchpos=package:brms,package:frmtmb.sample,package:frmtmb
+P|frmtmb|frmtmb.sample|brms|table.frmtmb=
+P|frmtmb|frmtmb.sample|brms|table.frmtmb.sample=log_lik.frmtmb_draws
+P|frmtmb|frmtmb.sample|brms|table.rstantools=log_lik.brmsfit,log_lik.brmsprep,log_lik.frmtmb_draws,log_lik.mvbrmsprep
+P|frmtmb|frmtmb.sample|brms|table.brms=
+P|frmtmb|frmtmb.sample|brms|any_default=FALSE
+P|frmtmb|frmtmb.sample|brms|fit_refusal_class=simpleError,error,condition
+P|frmtmb|frmtmb.sample|brms|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|frmtmb|frmtmb.sample|brms|draws_dispatch=REACHED_METHOD
+P|frmtmb|frmtmb.sample|brms|draws_msg=attempt to set an attribute on NULL
+P|frmtmb|frmtmb.sample|brms|brms_loglik_dispatch=TRUE noapplicable=FALSE
+P|frmtmb|frmtmb.sample|brms|brms_loglik_msg=Group-level coefficients of group 'visit' not found. You can
+P|frmtmb|frmtmb.sample|brms|brms_loo_dispatch=TRUE noapplicable=FALSE
+P|frmtmb|frmtmb.sample|brms|DONE
+P|frmtmb|frmtmb.sample|brms|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|frmtmb.sample|brms|visible=rstantools
+P|frmtmb.sample|brms|rstantools_loaded=TRUE
+P|frmtmb.sample|brms|is_rstantools_generic=TRUE
+P|frmtmb.sample|brms|searchpos=package:brms,package:frmtmb.sample
+P|frmtmb.sample|brms|table.frmtmb=
+P|frmtmb.sample|brms|table.frmtmb.sample=log_lik.frmtmb_draws
+P|frmtmb.sample|brms|table.rstantools=log_lik.brmsfit,log_lik.brmsprep,log_lik.frmtmb_draws,log_lik.mvbrmsprep
+P|frmtmb.sample|brms|table.brms=
+P|frmtmb.sample|brms|any_default=FALSE
+P|frmtmb.sample|brms|fit_refusal_class=simpleError,error,condition
+P|frmtmb.sample|brms|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|frmtmb.sample|brms|draws_dispatch=REACHED_METHOD
+P|frmtmb.sample|brms|draws_msg=attempt to set an attribute on NULL
+P|frmtmb.sample|brms|brms_loglik_dispatch=TRUE noapplicable=FALSE
+P|frmtmb.sample|brms|brms_loglik_msg=Group-level coefficients of group 'visit' not found. You can
+P|frmtmb.sample|brms|brms_loo_dispatch=TRUE noapplicable=FALSE
+P|frmtmb.sample|brms|DONE
+P|frmtmb.sample|brms|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|brms|frmtmb.sample|visible=rstantools
+P|brms|frmtmb.sample|rstantools_loaded=TRUE
+P|brms|frmtmb.sample|is_rstantools_generic=TRUE
+P|brms|frmtmb.sample|searchpos=package:frmtmb.sample,package:brms
+P|brms|frmtmb.sample|table.frmtmb=
+P|brms|frmtmb.sample|table.frmtmb.sample=log_lik.frmtmb_draws
+P|brms|frmtmb.sample|table.rstantools=log_lik.brmsfit,log_lik.brmsprep,log_lik.frmtmb_draws,log_lik.mvbrmsprep
+P|brms|frmtmb.sample|table.brms=
+P|brms|frmtmb.sample|any_default=FALSE
+P|brms|frmtmb.sample|fit_refusal_class=simpleError,error,condition
+P|brms|frmtmb.sample|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|brms|frmtmb.sample|draws_dispatch=REACHED_METHOD
+P|brms|frmtmb.sample|draws_msg=attempt to set an attribute on NULL
+P|brms|frmtmb.sample|brms_loglik_dispatch=TRUE noapplicable=FALSE
+P|brms|frmtmb.sample|brms_loglik_msg=Group-level coefficients of group 'visit' not found. You can
+P|brms|frmtmb.sample|brms_loo_dispatch=TRUE noapplicable=FALSE
+P|brms|frmtmb.sample|DONE
+P|brms|frmtmb.sample|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|ns:brms|frmtmb|visible=NOTFOUND
+P|ns:brms|frmtmb|rstantools_loaded=TRUE
+P|ns:brms|frmtmb|is_rstantools_generic=FALSE
+P|ns:brms|frmtmb|searchpos=package:frmtmb
+P|ns:brms|frmtmb|table.frmtmb=
+P|ns:brms|frmtmb|table.frmtmb.sample=
+P|ns:brms|frmtmb|table.rstantools=log_lik.brmsfit,log_lik.brmsprep,log_lik.mvbrmsprep
+P|ns:brms|frmtmb|table.brms=
+P|ns:brms|frmtmb|any_default=FALSE
+P|ns:brms|frmtmb|fit_refusal_class=simpleError,error,condition
+P|ns:brms|frmtmb|fit_refusal_msg=could not find function "log_lik"
+P|ns:brms|frmtmb|brms_loglik_dispatch=FALSE noapplicable=FALSE
+P|ns:brms|frmtmb|brms_loglik_msg=could not find function "log_lik"
+P|ns:brms|frmtmb|brms_loo_dispatch=TRUE noapplicable=FALSE
+P|ns:brms|frmtmb|DONE
+P|ns:brms|frmtmb|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|ns:brms|frmtmb|frmtmb.sample|visible=rstantools
+P|ns:brms|frmtmb|frmtmb.sample|rstantools_loaded=TRUE
+P|ns:brms|frmtmb|frmtmb.sample|is_rstantools_generic=TRUE
+P|ns:brms|frmtmb|frmtmb.sample|searchpos=package:frmtmb.sample,package:frmtmb
+P|ns:brms|frmtmb|frmtmb.sample|table.frmtmb=
+P|ns:brms|frmtmb|frmtmb.sample|table.frmtmb.sample=log_lik.frmtmb_draws
+P|ns:brms|frmtmb|frmtmb.sample|table.rstantools=log_lik.brmsfit,log_lik.brmsprep,log_lik.frmtmb_draws,log_lik.mvbrmsprep
+P|ns:brms|frmtmb|frmtmb.sample|table.brms=
+P|ns:brms|frmtmb|frmtmb.sample|any_default=FALSE
+P|ns:brms|frmtmb|frmtmb.sample|fit_refusal_class=simpleError,error,condition
+P|ns:brms|frmtmb|frmtmb.sample|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|ns:brms|frmtmb|frmtmb.sample|draws_dispatch=REACHED_METHOD
+P|ns:brms|frmtmb|frmtmb.sample|draws_msg=attempt to set an attribute on NULL
+P|ns:brms|frmtmb|frmtmb.sample|brms_loglik_dispatch=TRUE noapplicable=FALSE
+P|ns:brms|frmtmb|frmtmb.sample|brms_loglik_msg=Group-level coefficients of group 'visit' not found. You can
+P|ns:brms|frmtmb|frmtmb.sample|brms_loo_dispatch=TRUE noapplicable=FALSE
+P|ns:brms|frmtmb|frmtmb.sample|DONE
+P|ns:brms|frmtmb|frmtmb.sample|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|frmtmb|ns:brms|visible=NOTFOUND
+P|frmtmb|ns:brms|rstantools_loaded=TRUE
+P|frmtmb|ns:brms|is_rstantools_generic=FALSE
+P|frmtmb|ns:brms|searchpos=package:frmtmb
+P|frmtmb|ns:brms|table.frmtmb=
+P|frmtmb|ns:brms|table.frmtmb.sample=
+P|frmtmb|ns:brms|table.rstantools=log_lik.brmsfit,log_lik.brmsprep,log_lik.mvbrmsprep
+P|frmtmb|ns:brms|table.brms=
+P|frmtmb|ns:brms|any_default=FALSE
+P|frmtmb|ns:brms|fit_refusal_class=simpleError,error,condition
+P|frmtmb|ns:brms|fit_refusal_msg=could not find function "log_lik"
+P|frmtmb|ns:brms|brms_loglik_dispatch=FALSE noapplicable=FALSE
+P|frmtmb|ns:brms|brms_loglik_msg=could not find function "log_lik"
+P|frmtmb|ns:brms|brms_loo_dispatch=TRUE noapplicable=FALSE
+P|frmtmb|ns:brms|DONE
+P|frmtmb|ns:brms|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|rstantools|frmtmb|visible=rstantools
+P|rstantools|frmtmb|rstantools_loaded=TRUE
+P|rstantools|frmtmb|is_rstantools_generic=TRUE
+P|rstantools|frmtmb|searchpos=package:frmtmb,package:rstantools
+P|rstantools|frmtmb|table.frmtmb=
+P|rstantools|frmtmb|table.frmtmb.sample=
+P|rstantools|frmtmb|table.rstantools=
+P|rstantools|frmtmb|table.brms=
+P|rstantools|frmtmb|any_default=FALSE
+P|rstantools|frmtmb|fit_refusal_class=simpleError,error,condition
+P|rstantools|frmtmb|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|rstantools|frmtmb|DONE
+P|rstantools|frmtmb|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|frmtmb|rstantools|visible=rstantools
+P|frmtmb|rstantools|rstantools_loaded=TRUE
+P|frmtmb|rstantools|is_rstantools_generic=TRUE
+P|frmtmb|rstantools|searchpos=package:rstantools,package:frmtmb
+P|frmtmb|rstantools|table.frmtmb=
+P|frmtmb|rstantools|table.frmtmb.sample=
+P|frmtmb|rstantools|table.rstantools=
+P|frmtmb|rstantools|table.brms=
+P|frmtmb|rstantools|any_default=FALSE
+P|frmtmb|rstantools|fit_refusal_class=simpleError,error,condition
+P|frmtmb|rstantools|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|frmtmb|rstantools|DONE
+P|frmtmb|rstantools|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|ns:rstantools|frmtmb|frmtmb.sample|visible=rstantools
+P|ns:rstantools|frmtmb|frmtmb.sample|rstantools_loaded=TRUE
+P|ns:rstantools|frmtmb|frmtmb.sample|is_rstantools_generic=TRUE
+P|ns:rstantools|frmtmb|frmtmb.sample|searchpos=package:frmtmb.sample,package:frmtmb
+P|ns:rstantools|frmtmb|frmtmb.sample|table.frmtmb=
+P|ns:rstantools|frmtmb|frmtmb.sample|table.frmtmb.sample=log_lik.frmtmb_draws
+P|ns:rstantools|frmtmb|frmtmb.sample|table.rstantools=log_lik.frmtmb_draws
+P|ns:rstantools|frmtmb|frmtmb.sample|table.brms=
+P|ns:rstantools|frmtmb|frmtmb.sample|any_default=FALSE
+P|ns:rstantools|frmtmb|frmtmb.sample|fit_refusal_class=simpleError,error,condition
+P|ns:rstantools|frmtmb|frmtmb.sample|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|ns:rstantools|frmtmb|frmtmb.sample|draws_dispatch=REACHED_METHOD
+P|ns:rstantools|frmtmb|frmtmb.sample|draws_msg=attempt to set an attribute on NULL
+P|ns:rstantools|frmtmb|frmtmb.sample|DONE
+P|ns:rstantools|frmtmb|frmtmb.sample|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|frmtmb|frmtmb.sample|ns:rstantools|visible=rstantools
+P|frmtmb|frmtmb.sample|ns:rstantools|rstantools_loaded=TRUE
+P|frmtmb|frmtmb.sample|ns:rstantools|is_rstantools_generic=TRUE
+P|frmtmb|frmtmb.sample|ns:rstantools|searchpos=package:frmtmb.sample,package:frmtmb
+P|frmtmb|frmtmb.sample|ns:rstantools|table.frmtmb=
+P|frmtmb|frmtmb.sample|ns:rstantools|table.frmtmb.sample=log_lik.frmtmb_draws
+P|frmtmb|frmtmb.sample|ns:rstantools|table.rstantools=log_lik.frmtmb_draws
+P|frmtmb|frmtmb.sample|ns:rstantools|table.brms=
+P|frmtmb|frmtmb.sample|ns:rstantools|any_default=FALSE
+P|frmtmb|frmtmb.sample|ns:rstantools|fit_refusal_class=simpleError,error,condition
+P|frmtmb|frmtmb.sample|ns:rstantools|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|frmtmb|frmtmb.sample|ns:rstantools|draws_dispatch=REACHED_METHOD
+P|frmtmb|frmtmb.sample|ns:rstantools|draws_msg=attempt to set an attribute on NULL
+P|frmtmb|frmtmb.sample|ns:rstantools|DONE
+P|frmtmb|frmtmb.sample|ns:rstantools|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|loo|frmtmb|frmtmb.sample|visible=frmtmb.sample
+P|loo|frmtmb|frmtmb.sample|rstantools_loaded=FALSE
+P|loo|frmtmb|frmtmb.sample|searchpos=package:frmtmb.sample,package:frmtmb,package:loo
+P|loo|frmtmb|frmtmb.sample|table.frmtmb=
+P|loo|frmtmb|frmtmb.sample|table.frmtmb.sample=log_lik.frmtmb_draws
+P|loo|frmtmb|frmtmb.sample|table.rstantools=
+P|loo|frmtmb|frmtmb.sample|table.brms=
+P|loo|frmtmb|frmtmb.sample|any_default=FALSE
+P|loo|frmtmb|frmtmb.sample|fit_refusal_class=simpleError,error,condition
+P|loo|frmtmb|frmtmb.sample|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|loo|frmtmb|frmtmb.sample|draws_dispatch=REACHED_METHOD
+P|loo|frmtmb|frmtmb.sample|draws_msg=attempt to set an attribute on NULL
+P|loo|frmtmb|frmtmb.sample|DONE
+P|loo|frmtmb|frmtmb.sample|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|frmtmb|frmtmb.sample|loo|visible=frmtmb.sample
+P|frmtmb|frmtmb.sample|loo|rstantools_loaded=FALSE
+P|frmtmb|frmtmb.sample|loo|searchpos=package:loo,package:frmtmb.sample,package:frmtmb
+P|frmtmb|frmtmb.sample|loo|table.frmtmb=
+P|frmtmb|frmtmb.sample|loo|table.frmtmb.sample=log_lik.frmtmb_draws
+P|frmtmb|frmtmb.sample|loo|table.rstantools=
+P|frmtmb|frmtmb.sample|loo|table.brms=
+P|frmtmb|frmtmb.sample|loo|any_default=FALSE
+P|frmtmb|frmtmb.sample|loo|fit_refusal_class=simpleError,error,condition
+P|frmtmb|frmtmb.sample|loo|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|frmtmb|frmtmb.sample|loo|draws_dispatch=REACHED_METHOD
+P|frmtmb|frmtmb.sample|loo|draws_msg=attempt to set an attribute on NULL
+P|frmtmb|frmtmb.sample|loo|DONE
+P|frmtmb|frmtmb.sample|loo|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|posterior|frmtmb|frmtmb.sample|visible=frmtmb.sample
+P|posterior|frmtmb|frmtmb.sample|rstantools_loaded=FALSE
+P|posterior|frmtmb|frmtmb.sample|searchpos=package:frmtmb.sample,package:frmtmb,package:posterior
+P|posterior|frmtmb|frmtmb.sample|table.frmtmb=
+P|posterior|frmtmb|frmtmb.sample|table.frmtmb.sample=log_lik.frmtmb_draws
+P|posterior|frmtmb|frmtmb.sample|table.rstantools=
+P|posterior|frmtmb|frmtmb.sample|table.brms=
+P|posterior|frmtmb|frmtmb.sample|any_default=FALSE
+P|posterior|frmtmb|frmtmb.sample|fit_refusal_class=simpleError,error,condition
+P|posterior|frmtmb|frmtmb.sample|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|posterior|frmtmb|frmtmb.sample|draws_dispatch=REACHED_METHOD
+P|posterior|frmtmb|frmtmb.sample|draws_msg=attempt to set an attribute on NULL
+P|posterior|frmtmb|frmtmb.sample|DONE
+P|posterior|frmtmb|frmtmb.sample|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|frmtmb|frmtmb.sample|posterior|visible=frmtmb.sample
+P|frmtmb|frmtmb.sample|posterior|rstantools_loaded=FALSE
+P|frmtmb|frmtmb.sample|posterior|searchpos=package:posterior,package:frmtmb.sample,package:frmtmb
+P|frmtmb|frmtmb.sample|posterior|table.frmtmb=
+P|frmtmb|frmtmb.sample|posterior|table.frmtmb.sample=log_lik.frmtmb_draws
+P|frmtmb|frmtmb.sample|posterior|table.rstantools=
+P|frmtmb|frmtmb.sample|posterior|table.brms=
+P|frmtmb|frmtmb.sample|posterior|any_default=FALSE
+P|frmtmb|frmtmb.sample|posterior|fit_refusal_class=simpleError,error,condition
+P|frmtmb|frmtmb.sample|posterior|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|frmtmb|frmtmb.sample|posterior|draws_dispatch=REACHED_METHOD
+P|frmtmb|frmtmb.sample|posterior|draws_msg=attempt to set an attribute on NULL
+P|frmtmb|frmtmb.sample|posterior|DONE
+P|frmtmb|frmtmb.sample|posterior|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|loo|posterior|brms|frmtmb|frmtmb.sample|visible=rstantools
+P|loo|posterior|brms|frmtmb|frmtmb.sample|rstantools_loaded=TRUE
+P|loo|posterior|brms|frmtmb|frmtmb.sample|is_rstantools_generic=TRUE
+P|loo|posterior|brms|frmtmb|frmtmb.sample|searchpos=package:frmtmb.sample,package:frmtmb,package:brms,package:posterior,package:loo
+P|loo|posterior|brms|frmtmb|frmtmb.sample|table.frmtmb=
+P|loo|posterior|brms|frmtmb|frmtmb.sample|table.frmtmb.sample=log_lik.frmtmb_draws
+P|loo|posterior|brms|frmtmb|frmtmb.sample|table.rstantools=log_lik.brmsfit,log_lik.brmsprep,log_lik.frmtmb_draws,log_lik.mvbrmsprep
+P|loo|posterior|brms|frmtmb|frmtmb.sample|table.brms=
+P|loo|posterior|brms|frmtmb|frmtmb.sample|any_default=FALSE
+P|loo|posterior|brms|frmtmb|frmtmb.sample|fit_refusal_class=simpleError,error,condition
+P|loo|posterior|brms|frmtmb|frmtmb.sample|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|loo|posterior|brms|frmtmb|frmtmb.sample|draws_dispatch=REACHED_METHOD
+P|loo|posterior|brms|frmtmb|frmtmb.sample|draws_msg=attempt to set an attribute on NULL
+P|loo|posterior|brms|frmtmb|frmtmb.sample|brms_loglik_dispatch=TRUE noapplicable=FALSE
+P|loo|posterior|brms|frmtmb|frmtmb.sample|brms_loglik_msg=Group-level coefficients of group 'visit' not found. You can
+P|loo|posterior|brms|frmtmb|frmtmb.sample|brms_loo_dispatch=TRUE noapplicable=FALSE
+P|loo|posterior|brms|frmtmb|frmtmb.sample|DONE
+P|loo|posterior|brms|frmtmb|frmtmb.sample|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|frmtmb|frmtmb.sample|loo|posterior|brms|visible=rstantools
+P|frmtmb|frmtmb.sample|loo|posterior|brms|rstantools_loaded=TRUE
+P|frmtmb|frmtmb.sample|loo|posterior|brms|is_rstantools_generic=TRUE
+P|frmtmb|frmtmb.sample|loo|posterior|brms|searchpos=package:brms,package:posterior,package:loo,package:frmtmb.sample,package:frmtmb
+P|frmtmb|frmtmb.sample|loo|posterior|brms|table.frmtmb=
+P|frmtmb|frmtmb.sample|loo|posterior|brms|table.frmtmb.sample=log_lik.frmtmb_draws
+P|frmtmb|frmtmb.sample|loo|posterior|brms|table.rstantools=log_lik.brmsfit,log_lik.brmsprep,log_lik.frmtmb_draws,log_lik.mvbrmsprep
+P|frmtmb|frmtmb.sample|loo|posterior|brms|table.brms=
+P|frmtmb|frmtmb.sample|loo|posterior|brms|any_default=FALSE
+P|frmtmb|frmtmb.sample|loo|posterior|brms|fit_refusal_class=simpleError,error,condition
+P|frmtmb|frmtmb.sample|loo|posterior|brms|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|frmtmb|frmtmb.sample|loo|posterior|brms|draws_dispatch=REACHED_METHOD
+P|frmtmb|frmtmb.sample|loo|posterior|brms|draws_msg=attempt to set an attribute on NULL
+P|frmtmb|frmtmb.sample|loo|posterior|brms|brms_loglik_dispatch=TRUE noapplicable=FALSE
+P|frmtmb|frmtmb.sample|loo|posterior|brms|brms_loglik_msg=Group-level coefficients of group 'visit' not found. You can
+P|frmtmb|frmtmb.sample|loo|posterior|brms|brms_loo_dispatch=TRUE noapplicable=FALSE
+P|frmtmb|frmtmb.sample|loo|posterior|brms|DONE
+P|frmtmb|frmtmb.sample|loo|posterior|brms|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|frmtmb|frmtmb.sample|ns:rstantools|un:rstantools|visible=frmtmb.sample
+P|frmtmb|frmtmb.sample|ns:rstantools|un:rstantools|rstantools_loaded=FALSE
+P|frmtmb|frmtmb.sample|ns:rstantools|un:rstantools|searchpos=package:frmtmb.sample,package:frmtmb
+P|frmtmb|frmtmb.sample|ns:rstantools|un:rstantools|table.frmtmb=
+P|frmtmb|frmtmb.sample|ns:rstantools|un:rstantools|table.frmtmb.sample=log_lik.frmtmb_draws
+P|frmtmb|frmtmb.sample|ns:rstantools|un:rstantools|table.rstantools=
+P|frmtmb|frmtmb.sample|ns:rstantools|un:rstantools|table.brms=
+P|frmtmb|frmtmb.sample|ns:rstantools|un:rstantools|any_default=FALSE
+P|frmtmb|frmtmb.sample|ns:rstantools|un:rstantools|fit_refusal_class=simpleError,error,condition
+P|frmtmb|frmtmb.sample|ns:rstantools|un:rstantools|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|frmtmb|frmtmb.sample|ns:rstantools|un:rstantools|draws_dispatch=REACHED_METHOD
+P|frmtmb|frmtmb.sample|ns:rstantools|un:rstantools|draws_msg=attempt to set an attribute on NULL
+P|frmtmb|frmtmb.sample|ns:rstantools|un:rstantools|DONE
+P|frmtmb|frmtmb.sample|ns:rstantools|un:rstantools|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|ns:rstantools|frmtmb|frmtmb.sample|un:rstantools|visible=frmtmb.sample
+P|ns:rstantools|frmtmb|frmtmb.sample|un:rstantools|rstantools_loaded=FALSE
+P|ns:rstantools|frmtmb|frmtmb.sample|un:rstantools|searchpos=package:frmtmb.sample,package:frmtmb
+P|ns:rstantools|frmtmb|frmtmb.sample|un:rstantools|table.frmtmb=
+P|ns:rstantools|frmtmb|frmtmb.sample|un:rstantools|table.frmtmb.sample=log_lik.frmtmb_draws
+P|ns:rstantools|frmtmb|frmtmb.sample|un:rstantools|table.rstantools=
+P|ns:rstantools|frmtmb|frmtmb.sample|un:rstantools|table.brms=
+P|ns:rstantools|frmtmb|frmtmb.sample|un:rstantools|any_default=FALSE
+P|ns:rstantools|frmtmb|frmtmb.sample|un:rstantools|fit_refusal_class=simpleError,error,condition
+P|ns:rstantools|frmtmb|frmtmb.sample|un:rstantools|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|ns:rstantools|frmtmb|frmtmb.sample|un:rstantools|draws_dispatch=REACHED_METHOD
+P|ns:rstantools|frmtmb|frmtmb.sample|un:rstantools|draws_msg=attempt to set an attribute on NULL
+P|ns:rstantools|frmtmb|frmtmb.sample|un:rstantools|DONE
+P|ns:rstantools|frmtmb|frmtmb.sample|un:rstantools|EXIT=0
+ARM base 
+frmtmb 0.60.0 at C:/Users/adf44/source/r/rellib-r3 
+P|brms|frmtmb|frmtmb.sample|un:brms|un:rstantools|visible=frmtmb.sample
+P|brms|frmtmb|frmtmb.sample|un:brms|un:rstantools|rstantools_loaded=FALSE
+P|brms|frmtmb|frmtmb.sample|un:brms|un:rstantools|searchpos=package:frmtmb.sample,package:frmtmb
+P|brms|frmtmb|frmtmb.sample|un:brms|un:rstantools|table.frmtmb=
+P|brms|frmtmb|frmtmb.sample|un:brms|un:rstantools|table.frmtmb.sample=log_lik.frmtmb_draws
+P|brms|frmtmb|frmtmb.sample|un:brms|un:rstantools|table.rstantools=
+P|brms|frmtmb|frmtmb.sample|un:brms|un:rstantools|table.brms=
+P|brms|frmtmb|frmtmb.sample|un:brms|un:rstantools|any_default=FALSE
+P|brms|frmtmb|frmtmb.sample|un:brms|un:rstantools|fit_refusal_class=simpleError,error,condition
+P|brms|frmtmb|frmtmb.sample|un:brms|un:rstantools|fit_refusal_msg=no applicable method for 'log_lik' applied to an object of c
+P|brms|frmtmb|frmtmb.sample|un:brms|un:rstantools|draws_dispatch=REACHED_METHOD
+P|brms|frmtmb|frmtmb.sample|un:brms|un:rstantools|draws_msg=attempt to set an attribute on NULL
+P|brms|frmtmb|frmtmb.sample|un:brms|un:rstantools|DONE
+P|brms|frmtmb|frmtmb.sample|un:brms|un:rstantools|EXIT=0

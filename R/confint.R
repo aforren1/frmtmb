@@ -279,7 +279,7 @@ resolve_par_index <- function(fit, parm, what) {
                "parameter, and it does not stand for a single internal one ",
                "here (a correlation of a wider us() block mixes several, ",
                "and a response-scale summary such as sigma is a transform ",
-               "of one). Use hypothesis(fit, \"", b, "\", method = ",
+               "of one). Use hypothesis(fit, \"", b, " = 0\", method = ",
                "'profile'), which profiles the combination itself, read ",
                "confint_varcorr() for natural-scale variance components, ",
                "or name the internal parameter: confint(fit) lists them",
@@ -2121,8 +2121,14 @@ hyp_env_vals <- function(fit, vals, comp) {
 #' Split one hypothesis string the way `brms:::eval_hypothesis()` does:
 #' whitespace removed, the two sides around the one sign, and the text
 #' `(lhs)-(rhs)` with the right side dropped when it is `0`. Returns
-#' that text and the alternative. The bare-quantity spelling, one side
-#' with no sign, is kept as `(expr)`.
+#' that text and the alternative.
+#'
+#' A string with NO sign used to be read as the quantity tested against
+#' zero, so `hypothesis(fit, "Age")` answered the row of `"Age = 0"`
+#' with nothing said, where brms refuses: "Every hypothesis must be of
+#' the form 'left (= OR < OR >) right'". `brms:::eval_hypothesis()`
+#' requires exactly one sign and exactly two sides, and so does this now
+#' (dev/adefects-findings.md, D3).
 #'
 #' @noRd
 hyp_parse <- function(h) {
@@ -2150,9 +2156,13 @@ hyp_parse <- function(h) {
   if (length(eq) > 2L) {
     frm_stop("A hypothesis has at most one '=': '", h, "'", call. = FALSE)
   }
-  txt <- if (length(eq) == 2L) hyp_two_sides(eq[1L], eq[2L], h) else
-    paste0("(", h, ")")
-  list(text = txt, dir = "two.sided")
+  if (length(eq) < 2L) {
+    frm_stop("Every hypothesis must be of the form 'left (= OR < OR >) ",
+             "right': '", h, "' states no relation. Write '", h, " = 0' ",
+             "for the test against zero, which is what brms writes",
+             call. = FALSE)
+  }
+  list(text = hyp_two_sides(eq[1L], eq[2L], h), dir = "two.sided")
 }
 
 #' brms's `(lhs)-(rhs)` text of a two-sided hypothesis.
@@ -2354,9 +2364,10 @@ hyp_fd_grad <- function(f, v) {
 #' The frequentist analog of brms's `hypothesis()`: evaluates
 #' expressions of the model parameters at the estimates and tests them
 #' against zero. A hypothesis is `"lhs = rhs"`, e.g. `"x1 - x2 = 0"` or
-#' `"exp(Intercept) = 1"`, brms's directional `"lhs > rhs"` /
-#' `"lhs < rhs"`, or a bare `"expr"`, which brms does not accept and
-#' which is tested against 0 here.
+#' `"exp(Intercept) = 1"`, or brms's directional `"lhs > rhs"` /
+#' `"lhs < rhs"`. Every hypothesis states a relation: a string with no
+#' `=`, `<` or `>` is refused, as it is in brms, so write `"x1 = 0"`
+#' rather than `"x1"`.
 #'
 #' @section The returned object:
 #' brms's shape: a list of class `c("frmtmb_hypothesis",

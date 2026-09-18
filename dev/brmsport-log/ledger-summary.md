@@ -4,42 +4,40 @@
 
 | file | assertions | pass | defect | divergence | pending 2.6d | cannot transfer |
 |---|---|---|---|---|---|---|
-| `tests.brm.R` | 23 | 16 | 5 | 0 | 0 | 2 |
+| `tests.brm.R` | 23 | 18 | 3 | 0 | 0 | 2 |
 | `tests.brmsfit-helpers.R` | 3 | 0 | 0 | 0 | 0 | 3 |
-| `tests.brmsfit-methods.R` | 223 | 61 | 92 | 29 | 12 | 29 |
+| `tests.brmsfit-methods.R` | 223 | 66 | 86 | 29 | 13 | 29 |
 | `tests.brmsformula.R` | 16 | 7 | 0 | 0 | 0 | 9 |
 | `tests.brmsterms.R` | 5 | 0 | 0 | 0 | 0 | 5 |
-| `tests.data-helpers.R` | 6 | 0 | 3 | 0 | 0 | 3 |
+| `tests.data-helpers.R` | 6 | 1 | 2 | 0 | 0 | 3 |
 | `tests.emmeans.R` | 11 | 4 | 2 | 0 | 0 | 5 |
 | `tests.families.R` | 84 | 45 | 1 | 1 | 0 | 37 |
 | `tests.priors.R` | 36 | 17 | 4 | 4 | 0 | 11 |
 | `tests.standata.R` | 87 | 42 | 5 | 0 | 0 | 40 |
-| **total** | **494** | **192** | **112** | **34** | **12** | **144** |
+| **total** | **494** | **200** | **103** | **34** | **13** | **144** |
 
 ### Outcome by class
 
 | outcome | class | assertions |
 |---|---|---|
-| pass | - | 165 |
-| pass | own-words | 27 |
+| pass | - | 170 |
+| pass | own-words | 30 |
 | defect | accepts-refused | 3 |
 | defect | argument | 23 |
-| defect | different-error | 1 |
+| defect | different-error | 2 |
 | defect | filed | 1 |
-| defect | fit-data | 13 |
-| defect | internal-error | 5 |
-| defect | misparse | 1 |
+| defect | internal-error | 6 |
 | defect | naming | 2 |
-| defect | output | 5 |
+| defect | output | 7 |
 | defect | refuses-accepted | 28 |
-| defect | shape | 22 |
-| defect | silent | 4 |
+| defect | shape | 25 |
+| defect | silent | 2 |
 | defect | spelling | 4 |
 | divergence | class | 18 |
 | divergence | hollow | 1 |
 | divergence | no-draws | 8 |
 | divergence | policy | 7 |
-| pending 2.6d | shape | 12 |
+| pending 2.6d | shape | 13 |
 | cannot transfer | absent | 106 |
 | cannot transfer | brms-internal | 10 |
 | cannot transfer | fixture | 1 |
@@ -47,9 +45,9 @@
 | cannot transfer | no-draws | 1 |
 | cannot transfer | stan | 22 |
 
-Bin 1 passes: 192 of 494 (38.9%).
-Against bins 1 and 2: 192 of 823 (23.3%); bin 2 was not ported.
-Runs testthat alone would count as a pass and the harness does not (missing function or object, stale object, argument-name refusal, a NULL read through a partial $ match), over both packages: 27; hollow passes marked by hand: 1.
+Bin 1 passes: 200 of 494 (40.5%).
+Against bins 1 and 2: 200 of 823 (24.3%); bin 2 was not ported.
+Runs testthat alone would count as a pass and the harness does not, over both packages: 26 (19 vacuous, 7 reading a stale object); hollow passes marked by hand: 1.
 
 ### The frmtmb.sample half
 

@@ -127,13 +127,8 @@ test_that("conditional_effects has reasonable ouputs", {
   brms_setup("brmsfit-methods:178",
     exp_nrow <- 100 * length(unique(fit1$data$visit))
   )
-  brms_port("brmsfit-methods:179", "defect",
-    paste0(
-      "the value is right (400 rows, 100 per visit level) but ",
-      "brms's expected count reads fit1$data, and fit$data ",
-      "partial-matches fit$data2 (the fit has no data element) ",
-      "(dev/brmsport-probe4.R) [fit$data is the $ partial match of ",
-      "fit$data2, dev/brmsport-rev-silent.R R8]"),
+  brms_port("brmsfit-methods:179", "pass",
+    "",
     expect_equal(nrow(me[[2]]), exp_nrow)
   )
   brms_setup("brmsfit-methods:181", {
@@ -514,9 +509,11 @@ test_that("fitted has reasonable outputs", {
   )
   brms_port("brmsfit-methods:345", "defect",
     paste0(
-      "newdata is read from fit3$data, fit$data partial-matches ",
-      "fit$data2 (the fit has no data element) [fit$data is the $ ",
-      "partial match of fit$data2, dev/brmsport-rev-silent.R R8]"),
+      "dim(fitted(fit1, newdata = fit1$data[1:10, ])) is NULL: ",
+      "fitted() returns a vector where brms returns a 10 x 4 ",
+      "summary matrix. Rule 3, item 2.6f; :348 is the same ",
+      "assertion without newdata. Was fit-data, and the fit$data ",
+      "blocker is gone (dev/adefects-findings.md D4)"),
     expect_equal(dim(fi), c(10, 4))
   )
   brms_setup("brmsfit-methods:347",
@@ -534,9 +531,11 @@ test_that("fitted has reasonable outputs", {
   )
   brms_port("brmsfit-methods:350", "defect",
     paste0(
-      "newdata is read from fit4$data, fit$data partial-matches ",
-      "fit$data2 (the fit has no data element) [fit$data is the $ ",
-      "partial match of fit$data2, dev/brmsport-rev-silent.R R8]"),
+      "dim(fitted(fit4, newdata = fit4$data[1, ])) is 1 x 4 where ",
+      "brms gives 1 x 4 x 4: an ordinal fitted() returns the ",
+      "category probabilities, not brms's draws summary per ",
+      "category. Rule 3, item 2.6f; :348 is the same shape without ",
+      "newdata. Was fit-data"),
     expect_equal(dim(fi), c(1, 4, 4))
   )
   brms_setup("brmsfit-methods:351",
@@ -544,9 +543,9 @@ test_that("fitted has reasonable outputs", {
   )
   brms_port("brmsfit-methods:352", "defect",
     paste0(
-      "newdata is read from fit4$data, fit$data partial-matches ",
-      "fit$data2 (the fit has no data element) [fit$data is the $ ",
-      "partial match of fit$data2, dev/brmsport-rev-silent.R R8]"),
+      "dim(fitted(fit4, newdata = fit4$data[1, ], scale = ...)) is ",
+      "NULL where brms gives 1 x 4 x 3. Rule 3, item 2.6f. Was ",
+      "fit-data"),
     expect_equal(dim(fi), c(1, 4, 3))
   )
   brms_setup("brmsfit-methods:354",
@@ -703,13 +702,8 @@ test_that("hypothesis has reasonable ouputs", {
                  "Argument 'alpha' must be a single value in [0,1]",
                  fixed = TRUE)
   )
-  brms_port("brmsfit-methods:417", "defect",
-    paste0(
-      "'b_Age x 0' is refused loudly as the unknown parameter ",
-      "b_b_Agex0, not as malformed. The silent half is elsewhere: ",
-      "a hypothesis with no relation, 'Trt1 + Age', returns ",
-      "exactly the row of 'Trt1 + Age = 0' where brms refuses ",
-      "(dev/brmsport-defects.R S5)"),
+  brms_port("brmsfit-methods:417", "pass",
+    "",
     expect_error(hypothesis(fit3, "b_Age x 0"), "Every hypothesis must be of the form 'left (= OR < OR >) right'", 
         fixed = TRUE)
   )
@@ -735,12 +729,8 @@ test_that("hypothesis has reasonable ouputs", {
 })
 
 test_that("model.frame has reasonable ouputs", {
-  brms_port("brmsfit-methods:567", "defect",
-    paste0(
-      "fit$data partial-matches fit$data2 (the fit has no data ",
-      "element), where brms keeps the model frame and brms-shaped ",
-      "code reads it (dev/brmsport-probe4.R) [fit$data is the $ ",
-      "partial match of fit$data2, dev/brmsport-rev-silent.R R8]"),
+  brms_port("brmsfit-methods:567", "pass",
+    "",
     expect_equal(model.frame(fit1), fit1$data)
   )
 })
@@ -801,11 +791,8 @@ test_that("pp_check has reasonable outputs", {
     "",
     expect_ggplot(pp_check(fit1))
   )
-  brms_port("brmsfit-methods:675", "defect",
-    paste0(
-      "newdata is read from fit1$data, fit$data partial-matches ",
-      "fit$data2 (the fit has no data element) [fit$data is the $ ",
-      "partial match of fit$data2, dev/brmsport-rev-silent.R R8]"),
+  brms_port("brmsfit-methods:675", "pass",
+    "",
     expect_ggplot(pp_check(fit1, newdata = fit1$data[1:10, ]))
   )
   brms_port("brmsfit-methods:676", "pass",
@@ -832,9 +819,13 @@ test_that("pp_check has reasonable outputs", {
   )
   brms_port("brmsfit-methods:682", "defect",
     paste0(
-      "newdata is read from fit1$data, fit$data partial-matches ",
-      "fit$data2 (the fit has no data element) [fit$data is the $ ",
-      "partial match of fit$data2, dev/brmsport-rev-silent.R R8]"),
+      "the assignment above it fails: pp_check(group = ) hands ",
+      "bayesplot the group NAME rather than the column, so every ",
+      "ppc_*_grouped type dies on bayesplot's 'length(group) must ",
+      "be equal to the number of observations'. Measured with and ",
+      "without newdata, and on a plain y ~ x + (1 | g) fit as well ",
+      "as on fixture 1 (dev/adefects-findings.md, found and not ",
+      "fixed 1). Was fit-data"),
     expect_ggplot(pp)
   )
   brms_setup("brmsfit-methods:684",
@@ -1019,11 +1010,12 @@ test_that("predict has reasonable outputs", {
   brms_setup("brmsfit-methods:763",
     pred <- predict(fit4, newdata = fit4$data[1, ])
   )
-  brms_port("brmsfit-methods:764", "defect",
+  brms_port("brmsfit-methods:764", "pending 2.6d",
     paste0(
-      "newdata is read from fit4$data, fit$data partial-matches ",
-      "fit$data2 (the fit has no data element) [fit$data is the $ ",
-      "partial match of fit$data2, dev/brmsport-rev-silent.R R8]"),
+      "dim(predict(fit4, newdata = fit4$data[1, ])) is NULL where ",
+      "brms gives 1 x 4: predict() returns a vector, which item ",
+      "2.6d is about; :761, :762 and :767 are the same assertion ",
+      "on other rows. Was fit-data"),
     expect_equal(dim(pred), c(1, 4))
   )
   brms_setup("brmsfit-methods:766",
@@ -1299,10 +1291,9 @@ test_that("update has reasonable outputs", {
   )
   brms_port("brmsfit-methods:924", "defect",
     paste0(
-      "reads attr(up$data, 'data_name'), and fit$data ",
-      "partial-matches fit$data2 (the fit has no data element) ",
-      "[fit$data is the $ partial match of fit$data2, ",
-      "dev/brmsport-rev-silent.R R8]"),
+      "attr(up$data, 'data_name') is NULL: brms records the name ",
+      "of the newdata argument on the frame it stores and frmtmb ",
+      "does not. The frame itself is there now. Was fit-data"),
     expect_equal(attr(up$data, "data_name"), "new_data")
   )
   brms_port("brmsfit-methods:927", "defect",
@@ -1482,12 +1473,8 @@ test_that("vcov has reasonable outputs", {
 })
 
 test_that("contrasts of grouping factors are not stored #214", {
-  brms_port("brmsfit-methods:1035", "defect",
-    paste0(
-      "holds only because fit$data partial-matches fit$data2 (the ",
-      "fit has no data element), so the attribute read is NULL ",
-      "whatever frmtmb does with contrasts [fit$data is the $ ",
-      "partial match of fit$data2, dev/brmsport-rev-silent.R R8]"),
+  brms_port("brmsfit-methods:1035", "pass",
+    "",
     expect_true(is.null(attr(fit1$data$patient, "contrasts")))
   )
 })

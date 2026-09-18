@@ -317,6 +317,63 @@ smooth_newdata_check <- function(si, newdata, use_re, allow_new_levels) {
   invisible(NULL)
 }
 
+#' The grouping columns one linear predictor's random effects need, and
+#' what to do when `newdata` does not carry them.
+#'
+#' brms's rule, from `validate_newdata()`: "grouping factors do not need
+#' to be specified by the user if new levels are allowed". It fills the
+#' absent ones with `NA`, so every row is a level the fit never saw and
+#' the block contributes its population value and, in an interval, its
+#' marginal variance. frmtmb reached base R's
+#' `eval(comp$bar[[3]], newdata, env)` instead and stopped at "object 'g'
+#' not found", which names neither the argument nor the rule
+#' (dev/adefects-findings.md, D6).
+#'
+#' Without `allow_new_levels` brms stops too, and on the same base R
+#' error; measured on `brmsfit_example1` with `visit` removed. The
+#' refusal here says which column and which argument, and is classed,
+#' which item 2.6e asks of every refusal frmtmb makes.
+#'
+#' Only the ordinary grouping blocks are read. A factor smooth has its
+#' own named refusal in `smooth_newdata_check()`, and an `spde()` block's
+#' levels are mesh row numbers, where a new level means nothing; both
+#' keep the behavior they had.
+#'
+#' @noRd
+fill_new_group_vars <- function(fit, lp, newdata, allow_new_levels, env) {
+  key <- linpred_key(lp[["resp"]], lp[["dpar"]])
+  need <- character(0)
+  for (bk in fit$frame[["re_blocks"]]) {
+    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "spde")) next
+    for (comp in bk[["components"]]) {
+      if (comp$lp_key != key) next
+      need <- c(need, if (is.null(comp$mm)) all.vars(comp$bar[[3L]]) else
+                        comp$mm$gvars)
+    }
+  }
+  # the environment lookup is model.frame()'s own, the one
+  # check_newdata_frame() honors, so a variable R would have found is
+  # neither refused nor overwritten with NA here
+  need <- setdiff(unique(need), names(newdata))
+  need <- need[!vapply(need, exists, NA, envir = env)]
+  if (!length(need)) return(newdata)
+  if (!allow_new_levels) {
+    frm_stop("newdata has no column ",
+             paste0("`", need, "`", collapse = ", "),
+             ", the grouping factor", if (length(need) > 1L) "s" else "",
+             " of a random effect. Add ",
+             if (length(need) > 1L) "them" else "it",
+             ", or say what the prediction should do without ",
+             if (length(need) > 1L) "them" else "it",
+             ": allow_new_levels = TRUE treats every row as an unseen ",
+             "level (the population value, plus that block's variance in ",
+             "an interval), and re_formula = NA drops the random effects ",
+             "altogether", call. = FALSE)
+  }
+  for (v in need) newdata[[v]] <- NA
+  newdata
+}
+
 #' Rebuild the design pieces of one linear predictor for new data:
 #' dense X (parametric + smooth null-space columns), per-block RE
 #' component designs with level indices, and the offset.
@@ -325,6 +382,9 @@ smooth_newdata_check <- function(si, newdata, use_re, allow_new_levels) {
 pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
                         use_re = TRUE) {
   env <- fit$spec$responses[[lp[["resp"]]]]$formula_env
+  if (use_re) {
+    newdata <- fill_new_group_vars(fit, lp, newdata, allow_new_levels, env)
+  }
   tt <- patch_predvars(lp[["terms"]], fit$frame[["predvar_map"]])
   check_newdata_frame(tt, newdata, xlev_for(lp[["xlevels"]], tt))
   mfp <- stats::model.frame(tt, newdata, na.action = stats::na.pass,
@@ -1119,6 +1179,14 @@ predict_retired <- c(
 #'   population level instead of erroring. A factor-smooth term
 #'   (`bs = "fs"`) follows the same rule: a level it never saw
 #'   contributes nothing, which leaves the population curve.
+#'
+#'   It also makes the grouping COLUMN optional, as it does in brms
+#'   (`validate_newdata()`: "grouping factors do not need to be
+#'   specified by the user if new levels are allowed"). A column
+#'   `newdata` does not carry is filled with `NA`, so every row is an
+#'   unseen level. Without `allow_new_levels` a missing grouping column
+#'   is refused by name, and the refusal offers this argument and
+#'   `re_formula = NA`, which drops the random effects instead.
 #' @param ... Refused. An argument this method does not have is an
 #'   error naming it, and the two lme4 spellings that were live in
 #'   0.57.0 (`re.form`, `allow.new.levels`) are refused by name with

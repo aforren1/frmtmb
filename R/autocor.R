@@ -93,11 +93,28 @@
 #' `time` and the second is `gr`: write `cosy(gr = subj)`, not
 #' `cosy(subj)`.
 #' \describe{
-#'   \item{`time`}{The variable whose levels index the correlation. Omit
-#'     it (brms's `time = NA`) to use each row's position within its
-#'     group.}
-#'   \item{`gr`}{The grouping variable the residual factorizes over.
-#'     Omit it to treat the whole data set as one series.}
+#'   \item{`time`}{ONE variable name, whose levels index the
+#'     correlation. Omit it (brms's `time = NA`) to use each row's
+#'     position within its group. An expression is refused rather than
+#'     evaluated, as it is in brms: the distinct values of the index are
+#'     the time points and the distance between them is the lag, so
+#'     `ar(x + t, g)` would be indexed by the sum. Compute the column
+#'     first and name it.}
+#'   \item{`gr`}{The grouping variable the residual factorizes over, or
+#'     several crossed with `:`. Omit it to treat the whole data set as
+#'     one series. `gr = a:b` crosses the two, on numeric codes as well
+#'     as on factors; every other operator is refused rather than
+#'     evaluated, again as in brms ("It may contain only variable names
+#'     combined by the symbol ':'"), because `gr = a/b` would otherwise
+#'     group by the quotient. `gr = factor(g)` and
+#'     `gr = interaction(a, b)` are refused for the same reason: the
+#'     grouping variable is made a factor here anyway, so write
+#'     `gr = g` and `gr = a:b`. The crossing PASTES the levels with an
+#'     underscore, as brms's `combine_groups()` does, so it is not
+#'     injective: levels `("x_1", "2")` and `("x", "1_2")` both become
+#'     `"x_1_2"` and share one series, where `interaction()` would keep
+#'     them apart. brms merges them too; make the column yourself if the
+#'     labels can collide.}
 #'   \item{`p`, `q`}{Autoregressive and moving-average orders.}
 #'   \item{`cov`}{Must be `TRUE`. brms's default `cov = FALSE` is a
 #'     different likelihood (a residual regression that conditions on
@@ -243,6 +260,58 @@ autocor_arg <- function(expr, nm, env, fn) {
   as.integer(val)
 }
 
+#' The `time` argument of an autocorrelation term, which must be ONE
+#' variable name.
+#'
+#' brms reads it as `as_one_variable(deparse(substitute(time)))` and
+#' refuses anything else: "Cannot coerce '...' to a single variable
+#' name". frmtmb used to EVALUATE whatever was written against the model
+#' frame, so `ar(x + t, g, cov = TRUE)` indexed the correlation by the
+#' sum and fitted a different likelihood with nothing said, logLik
+#' -30.33421 against -30.88513 for `ar(t, g, cov = TRUE)` on the same
+#' data (dev/adefects-findings.md, D1). The refusal loses no model: the
+#' distinct values of the index are the time points and their spacing is
+#' the lag, so an expression has to become a column before it can be one.
+#'
+#' @noRd
+autocor_time_name <- function(e, fn) {
+  if (is.name(e)) return(e)
+  frm_stop(fn, "(): the time index must be ONE variable name, not the ",
+           "expression `", deparse1(e), "`. Its distinct values are the ",
+           "time points and the distance between them is the lag, so an ",
+           "expression would be indexed by its own value rather than by ",
+           "time. Compute the column first (d$tt <- ", deparse1(e),
+           ") and write ", fn, "(tt, ...). brms refuses the same call",
+           call. = FALSE)
+}
+
+#' The `gr` argument of an autocorrelation term, as the variable names
+#' it crosses.
+#'
+#' brms checks the DEPARSED text (`stopif_illegal_group()`: "It may
+#' contain only variable names combined by the symbol ':'"), so
+#' `gr = g1/g2`, `gr = g1 + g2`, `gr = g1 * g2` and `gr = factor(g)` are
+#' all refused there, and `gr = a:b` means CROSSING. frmtmb evaluated the
+#' expression instead, so `ar(t, gr = g1/g2, cov = TRUE)` on numeric
+#' group codes grouped the residual by the quotient and merged the series
+#' (1, 1) and (2, 2) with nothing said, logLik -30.87554 against
+#' -30.88513, while `gr = g1:g2` on numeric codes was R's sequence
+#' operator (dev/adefects-findings.md, D2).
+#'
+#' @noRd
+autocor_gr_vars <- function(e, fn) {
+  if (is.name(e)) return(as.character(e))
+  if (is.call(e) && identical(e[[1L]], as.name(":")) && length(e) == 3L) {
+    return(c(autocor_gr_vars(e[[2L]], fn), autocor_gr_vars(e[[3L]], fn)))
+  }
+  frm_stop(fn, "(): the grouping term must be variable names combined by ",
+           "`:`, not the expression `", deparse1(e), "`. `", fn,
+           "(gr = a:b)` crosses two factors; any other operator would be ",
+           "EVALUATED, so `gr = a/b` would group by the quotient. Compute ",
+           "the column first (d$gg <- ", deparse1(e), ") and write ", fn,
+           "(gr = gg). brms refuses the same call", call. = FALSE)
+}
+
 #' brms's `ar(time, gr, p, cov)` and relatives, parsed into the spec
 #' entry the frame builds a residual block from.
 #'
@@ -262,8 +331,11 @@ parse_autocor_call <- function(tm, env) {
   a <- match_special_args(tm, argn, fn)
   na_arg <- function(e) is.null(e) || identical(e, quote(NA)) ||
     (is.logical(e) && length(e) == 1L && is.na(e))
-  time_expr <- if (na_arg(a$time)) NULL else a$time
+  time_expr <- if (na_arg(a$time)) NULL else autocor_time_name(a$time, fn)
   gr_expr <- if (na_arg(a$gr)) NULL else a$gr
+  gr_vars <- if (is.null(gr_expr)) character(0) else {
+    autocor_gr_vars(gr_expr, fn)
+  }
   if (fn == "unstr" && (is.null(time_expr) || is.null(gr_expr))) {
     frm_stop("unstr() needs both a time variable and a grouping variable: ",
              "unstr(week, subj)", call. = FALSE)
@@ -304,7 +376,7 @@ parse_autocor_call <- function(tm, env) {
     }
   }
   list(fn = fn, struct = fn, time_expr = time_expr, gr_expr = gr_expr,
-       p = p, q = q, label = deparse1(tm))
+       gr_vars = gr_vars, p = p, q = q, label = deparse1(tm))
 }
 
 #' Free correlations of a `d x d` unstructured matrix.
@@ -589,6 +661,37 @@ check_autocor_response <- function(resp, spec, av, yv) {
   ac
 }
 
+#' The grouping value of every row, as one label per row.
+#'
+#' `gr = a:b` is CROSSED here rather than evaluated. R's `:` gives the
+#' interaction for two factors and the sequence operator for anything
+#' else, so on numeric group codes `eval(quote(g1:g2))` used to return a
+#' vector of the wrong length, which the duplicate-time check then
+#' reported as repeated times. brms pastes the levels of an interaction
+#' group with `_` (`combine_groups()`); that is what this does, and the
+#' components are checked for missing values BEFORE the paste, because
+#' `paste(NA, 1, sep = "_")` is the string `"NA_1"` and would hide one.
+#'
+#' @noRd
+autocor_gr_value <- function(ac, mf, env) {
+  fn <- ac[["fn"]]
+  vars <- ac[["gr_vars"]] %||% all.vars(ac[["gr_expr"]])
+  vals <- lapply(vars, function(v) {
+    x <- eval(as.name(v), mf, env)
+    if (anyNA(x)) {
+      frm_stop(fn, "(): the residual factorizes over gr = ",
+               deparse1(ac[["gr_expr"]]),
+               ", so every row needs a group; `", v, "` has ",
+               sum(is.na(x)), " missing value(s)", call. = FALSE)
+    }
+    x
+  })
+  # one variable keeps its own type, so that factor(gv) orders numeric
+  # codes numerically and the group labels read as they were written
+  if (length(vals) == 1L) return(vals[[1L]])
+  do.call(paste, c(lapply(vals, as.character), list(sep = "_")))
+}
+
 #' Time-level index of every row plus the level labels.
 #'
 #' With no `time` variable the index is the row's POSITION within its
@@ -660,24 +763,14 @@ autocor_warn_gaps <- function(ac, lv) {
 #' @noRd
 autocor_block <- function(ac, resp, mf, env, n) {
   fn <- ac[["fn"]]
-  gidx <- if (is.null(ac[["gr_expr"]])) {
-    rep(1L, n)
-  } else {
-    gv <- eval(ac[["gr_expr"]], mf, env)
-    if (anyNA(gv)) {
-      frm_stop(fn, "(): the residual factorizes over gr = ",
-               deparse1(ac[["gr_expr"]]),
-               ", so every row needs a group; that variable has ",
-               sum(is.na(gv)), " missing value(s)", call. = FALSE)
-    }
-    as.integer(factor(gv))
+  gv <- if (is.null(ac[["gr_expr"]])) NULL else {
+    autocor_gr_value(ac, mf, env)
   }
+  gidx <- if (is.null(gv)) rep(1L, n) else as.integer(factor(gv))
   ti <- autocor_time_index(ac, mf, gidx, env, n)
   ac[["d"]] <- length(ti$levels)
   ac[["time_levels"]] <- ti$levels
-  ac[["group_levels"]] <- if (is.null(ac[["gr_expr"]])) "1" else {
-    levels(factor(eval(ac[["gr_expr"]], mf, env)))
-  }
+  ac[["group_levels"]] <- if (is.null(gv)) "1" else levels(factor(gv))
   if (ac[["d"]] < 2L) {
     frm_stop(fn, "(): the residual correlation needs at least 2 time ",
              "points; '",

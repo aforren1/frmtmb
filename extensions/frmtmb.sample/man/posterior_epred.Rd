@@ -21,7 +21,8 @@ posterior_epred(object, ...)
   nlpar = NULL,
   ndraws = NULL,
   draw_ids = NULL,
-  ...
+  ...,
+  allow_new_levels = FALSE
 )
 
 posterior_linpred(object, transform = FALSE, ...)
@@ -53,13 +54,15 @@ posterior_predict(object, ...)
   negative_rt = FALSE,
   ndraws = NULL,
   draw_ids = NULL,
-  ...
+  ...,
+  allow_new_levels = FALSE
 )
 }
 \arguments{
 \item{object}{A \code{frmtmb_draws} from \code{\link[=frm_sample]{frm_sample()}}.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an error
+naming it, rather than a silently ignored name.}
 
 \item{newdata, resp}{As in \code{\link[frmtmb:predict.frmtmb_fit]{frmtmb::predict.frmtmb_fit()}}.}
 
@@ -85,6 +88,12 @@ this is the same setting and the slot is here for brms's position.}
 
 \item{draw_ids}{The draws to use, by row index, instead of the
 evenly spaced subsample \code{ndraws} takes. Give one or the other.}
+
+\item{allow_new_levels}{For \code{posterior_epred()} and
+\code{posterior_predict()}: predict grouping-factor levels the fit never
+saw at the population level, and let \code{newdata} leave the grouping
+column out altogether. Passed to
+\code{\link[frmtmb:predict.frmtmb_fit]{frmtmb::predict.frmtmb_fit()}}, which is where brms passes it too.}
 
 \item{transform}{For \code{posterior_linpred()}: if \code{TRUE}, apply the
 inverse link (the value of the \code{mu} dpar on its natural scale,

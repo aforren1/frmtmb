@@ -139,6 +139,50 @@ WAIC.frmtmb_fit <- function(x, ...) {
            "version, waic(frm_sample(fit))", call. = FALSE)
 }
 
+#' Pointwise log-likelihood
+#'
+#' `log_lik()` is the log-likelihood of every observation at every
+#' posterior draw, the matrix [loo()] and [waic()] are computed from. A
+#' `frmtmb_fit` is one maximum-likelihood parameter vector rather than a
+#' posterior, so this refuses and names the route to draws, as `loo()`
+#' and `waic()` do; the estimator itself is in the `frmtmb.sample`
+#' package, on this same generic.
+#'
+#' The generic lives here rather than in `frmtmb.sample` so that a
+#' script ported from brms is told to sample before it has sampled.
+#' Without it `log_lik(fit)` stopped at "could not find function", which
+#' names neither the reason nor the route.
+#'
+#' @param object A `frmtmb_fit`, or (with `frmtmb.sample` loaded) draws.
+#' @param ... Passed to methods.
+#' @return This method signals an error on a maximum-likelihood fit.
+#' @seealso [loo()] and [waic()], which average this matrix over draws;
+#'   [logLik()] for the maximum-likelihood total.
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(40))
+#' dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
+#' fit <- frm(bf(y ~ x) + gaussian(), data = dd)
+#'
+#' # the maximum-likelihood total is available directly
+#' logLik(fit)
+#' # the pointwise posterior matrix needs draws, and says so
+#' try(log_lik(fit))
+#' @export
+log_lik <- function(object, ...) UseMethod("log_lik")
+
+#' @rdname log_lik
+#' @exportS3Method rstantools::log_lik
+#' @export
+log_lik.frmtmb_fit <- function(object, ...) {
+  frm_stop("log_lik() is the pointwise likelihood at every posterior draw, ",
+           "and this is a maximum-likelihood fit with one parameter vector. ",
+           "Sample first, with ",
+           "frmtmb.sample::log_lik(frmtmb.sample::frm_sample(fit)) once ",
+           "that package is installed; logLik() is the maximum-likelihood ",
+           "total already on the fit", call. = FALSE)
+}
+
 #' Bayesian R-squared
 #'
 #' The proportion of the outcome's variance a model explains, computed

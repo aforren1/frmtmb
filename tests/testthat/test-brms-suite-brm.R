@@ -33,10 +33,13 @@ test_that("brm produces expected errors", {
   )
   brms_port("brm:81", "defect",
     paste0(
-      "not the same refusal: frmtmb evaluates the data first and ",
-      "stops on object 'sei' not found, where brms refuses se() ",
+      "not the same refusal: frmtmb validates the data first and ",
+      "refuses the missing column by name, 'The model uses `sei`, ",
+      "which is not a column of `data`', where brms refuses se() ",
       "for weibull from the formula alone; with sei present frmtmb ",
-      "refuses se() for weibull (dev/brmsport-probe3.R)"),
+      "does refuse se() for weibull (dev/brmsport-probe3.R). The ",
+      "message is frmtmb's own, not base R's 'object not found', ",
+      "which is what this reason used to say"),
     expect_error(brm(y | se(sei) ~ x, dat, family = weibull()),
                  "Argument 'se' is not supported for family")
   )
@@ -103,24 +106,21 @@ test_that("brm produces expected errors", {
     expect_error(brm(y ~ 1 + set_rescor(TRUE), data = dat),
                  "Function 'set_rescor' should not be part")
   )
-  brms_port("brm:106", "defect",
+  brms_port_own("brm:106",
+    "the time index must be ONE variable name",
     paste0(
-      "refused only because cov = TRUE is missing; with cov = TRUE ",
-      "an expression time term FITS with no refusal: ar(x + t, g) ",
-      "logLik -30.33421 and ar(t - 10 * x, g) -31.00618 against ",
-      "-30.88513 for ar(t, g), and ma(x + t, g) -29.84347 against ",
-      "-30.49819; brms refuses all three (dev/brmsport-defects.R ",
-      "S2)"),
+      "brms: Cannot coerce 'x + y' to a single variable name. The ",
+      "grammar check runs before the cov = TRUE one, so the ported ",
+      "call, which omits cov, reaches it ",
+      "(dev/adefects-log/evidence.txt)"),
     expect_error(brm(y ~ ar(x+y, g), dat),
                  "Cannot coerce 'x \\+ y' to a single variable name")
   )
-  brms_port("brm:108", "defect",
+  brms_port_own("brm:108",
+    "grouping term must be variable names combined by",
     paste0(
-      "refused only because cov = TRUE is missing; with cov = ",
-      "TRUE, ar(t, gr = g1/g2) on numeric codes FITS, grouping by ",
-      "the quotient g1/g2 and so merging series (1, 1) and (2, 2), ",
-      "logLik -30.87554 against -30.88513, where brms refuses the ",
-      "term (dev/brmsport-defects.R S3)"),
+      "brms: Illegal grouping term 'g1/g2'. The grammar check runs ",
+      "before the cov = TRUE one, so the ported call reaches it"),
     expect_error(brm(y ~ ar(gr = g1/g2), dat),
                  "Illegal grouping term 'g1/g2'")
   )

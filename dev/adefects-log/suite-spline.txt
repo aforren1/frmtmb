@@ -1,0 +1,15 @@
+RESULT frmtmb.spline test-bracket-access.R pass=1 fail=0 err=0 skip=0
+RESULT frmtmb.spline test-conditions.R pass=5 fail=0 err=0 skip=0
+RESULT frmtmb.spline test-conditions-census.R pass=11 fail=0 err=0 skip=0
+RESULT frmtmb.spline test-curve.R pass=62 fail=0 err=0 skip=0
+RESULT frmtmb.spline test-deriv.R pass=38 fail=0 err=0 skip=0
+RESULT frmtmb.spline test-difference.R pass=59 fail=0 err=0 skip=0
+RESULT frmtmb.spline test-frailty.R pass=28 fail=0 err=0 skip=0
+RESULT frmtmb.spline test-gratia.R pass=13 fail=0 err=0 skip=0
+RESULT frmtmb.spline test-message-uniqueness.R pass=4 fail=0 err=0 skip=0
+RESULT frmtmb.spline test-royston-parmar.R pass=67 fail=0 err=0 skip=0
+RESULT frmtmb.spline test-rp-floored.R pass=42 fail=0 err=0 skip=0
+RESULT frmtmb.spline test-scale.R pass=0 fail=0 err=0 skip=1
+RESULT frmtmb.spline test-span.R pass=73 fail=0 err=0 skip=0
+RESULT frmtmb.spline test-surface.R pass=47 fail=0 err=0 skip=0
+SUITE frmtmb.spline ran 14 files

@@ -1437,8 +1437,9 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' matrix
 #' hold the same quantity in the same order under the same names as
 #' `reparameterize = FALSE` gives, and every method downstream
-#' ([posterior_epred()], [frmtmb::ranef()], [log_lik()], [frmtmb::loo()],
-#' [frmtmb::conditional_effects()], [frmtmb::hypothesis()]) reads them without knowing
+#' ([posterior_epred()], [frmtmb::ranef()], [frmtmb::log_lik()],
+#' [frmtmb::loo()], [frmtmb::conditional_effects()],
+#' [frmtmb::hypothesis()]) reads them without knowing
 #' which route produced them. Only the `stanfit` inside the object
 #' carries `z`.
 #'

@@ -1,3 +1,23 @@
+# frmtmb.sample (development version)
+
+* **`log_lik()` is frmtmb's generic now, re-exported here**, rather than
+  a second generic of the same name defined in this package. frmtmb owns
+  the name because it has a method for it: `log_lik(fit)` on a
+  maximum-likelihood fit refuses and names the route to draws, as
+  `loo()` and `waic()` do, where it used to be "could not find
+  function". `log_lik(draws)` is unchanged, and the `frmtmb_draws`
+  method is still registered on rstantools' generic as well. The method
+  page is `?log_lik.frmtmb_draws`; `?frmtmb::log_lik` documents the
+  generic. Requires the frmtmb release that exports `log_lik()`.
+
+* `posterior_epred()` and `posterior_predict()` on draws take
+  `allow_new_levels` and pass it to `predict()`, which is what brms does
+  with it. They used to swallow it in `...`, and the caller then met a
+  refusal whose remedy named that same argument. Every other name in
+  `...` is now refused rather than ignored, as it already is on the
+  other methods here.
+
+
 # frmtmb.sample 0.8.0
 
 * Requires frmtmb 0.60.0, for `frm_stop()` and the other condition helpers.

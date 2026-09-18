@@ -8,7 +8,6 @@ brmsfit-methods:164	frmtmb	cannot transfer	absent	conditional_effects() has no t
 brmsfit-methods:167	frmtmb	cannot transfer	absent	conditional_effects() has no spaghetti (dev/brms-api-diff.md (c))
 brmsfit-methods:169	frmtmb	cannot transfer	absent	conditional_effects() has no spaghetti
 brmsfit-methods:170	frmtmb	cannot transfer	absent	conditional_effects() has no spaghetti, so the spaghetti-with-surface refusal brms asserts is never reached
-brmsfit-methods:179	frmtmb	defect	fit-data	the value is right (400 rows, 100 per visit level) but brms's expected count reads fit1$data, and fit$data partial-matches fit$data2 (the fit has no data element) (dev/brmsport-probe4.R) [fit$data is the $ partial match of fit$data2, dev/brmsport-rev-silent.R R8]
 brmsfit-methods:205	frmtmb	defect	refuses-accepted	one invalid effect among valid ones is an error; brms warns 'Some specified effects are invalid' and returns the valid ones (dev/brmsport-probe4.R)
 brmsfit-methods:213	frmtmb	defect	refuses-accepted	conditional_effects() refuses its default Wald band on the nonlinear fit2 and names band = 'boot'; brms answers. No document records refusing the default band as a decision
 brmsfit-methods:215	frmtmb	defect	refuses-accepted	conditional_effects() refuses its default Wald band on the nonlinear fit2 and names band = 'boot'; brms answers. No document records refusing the default band as a decision
@@ -39,10 +38,10 @@ brmsfit-methods:337	frmtmb	defect	argument	fitted() refuses allow_new_levels by 
 brmsfit-methods:339	frmtmb	defect	shape	fitted(dpar = 'shape') returns a vector, not the four-column summary (user decision, 2026-09-17, rule 3; item 2.6f)
 brmsfit-methods:340	frmtmb	defect	shape	fi[1, ] fails on the vector fitted() returns (user decision, 2026-09-17, rule 3; item 2.6f)
 brmsfit-methods:342	frmtmb	defect	argument	fitted() refuses brms's nlpar by name and says to use dpar
-brmsfit-methods:345	frmtmb	defect	fit-data	newdata is read from fit3$data, fit$data partial-matches fit$data2 (the fit has no data element) [fit$data is the $ partial match of fit$data2, dev/brmsport-rev-silent.R R8]
+brmsfit-methods:345	frmtmb	defect	shape	dim(fitted(fit1, newdata = fit1$data[1:10, ])) is NULL: fitted() returns a vector where brms returns a 10 x 4 summary matrix. Rule 3, item 2.6f; :348 is the same assertion without newdata. Was fit-data, and the fit$data blocker is gone (dev/adefects-findings.md D4)
 brmsfit-methods:348	frmtmb	defect	shape	fitted() on the ordinal fit4 returns the 40 x 4 category probabilities, not brms's 40 x 4 x 4 summary array (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:350	frmtmb	defect	fit-data	newdata is read from fit4$data, fit$data partial-matches fit$data2 (the fit has no data element) [fit$data is the $ partial match of fit$data2, dev/brmsport-rev-silent.R R8]
-brmsfit-methods:352	frmtmb	defect	fit-data	newdata is read from fit4$data, fit$data partial-matches fit$data2 (the fit has no data element) [fit$data is the $ partial match of fit$data2, dev/brmsport-rev-silent.R R8]
+brmsfit-methods:350	frmtmb	defect	shape	dim(fitted(fit4, newdata = fit4$data[1, ])) is 1 x 4 where brms gives 1 x 4 x 4: an ordinal fitted() returns the category probabilities, not brms's draws summary per category. Rule 3, item 2.6f; :348 is the same shape without newdata. Was fit-data
+brmsfit-methods:352	frmtmb	defect	shape	dim(fitted(fit4, newdata = fit4$data[1, ], scale = ...)) is NULL where brms gives 1 x 4 x 3. Rule 3, item 2.6f. Was fit-data
 brmsfit-methods:355	frmtmb	defect	shape	fitted(fit5) returns a vector, not the four-column summary (user decision, 2026-09-17, rule 3; item 2.6f)
 brmsfit-methods:358	frmtmb	defect	refuses-accepted	fitted() exists and refuses the multivariate fit6 as 'not supported yet'; brms answers (user decision, 2026-09-17, rule 3; item 2.6f)
 brmsfit-methods:359	frmtmb	defect	refuses-accepted	fitted() exists and refuses the multivariate fit6 as 'not supported yet'; brms answers (user decision, 2026-09-17, rule 3; item 2.6f)
@@ -56,19 +55,16 @@ brmsfit-methods:400	frmtmb	divergence	no-draws	as brmsfit-methods:399 (D4)
 brmsfit-methods:401	frmtmb	divergence	no-draws	as brmsfit-methods:399 (D4)
 brmsfit-methods:407	frmtmb	divergence	no-draws	hypothesis(scope = 'coef') is refused by name on a fit (D4)
 brmsfit-methods:408	frmtmb	divergence	no-draws	hypothesis(scope = 'coef') is refused by name on a fit (D4)
-brmsfit-methods:417	frmtmb	defect	misparse	'b_Age x 0' is refused loudly as the unknown parameter b_b_Agex0, not as malformed. The silent half is elsewhere: a hypothesis with no relation, 'Trt1 + Age', returns exactly the row of 'Trt1 + Age = 0' where brms refuses (dev/brmsport-defects.R S5)
 brmsfit-methods:423	frmtmb	cannot transfer	no-draws	hypothesis() on as.data.frame() of posterior draws: an ML fit has no draws to coerce, and fit3's me() term is not in the fixture (D8)
 brmsfit-methods:425	frmtmb	cannot transfer	stan	reads fit3$fit, the stanfit (D10), and fit3's me() term (D8)
-brmsfit-methods:567	frmtmb	defect	fit-data	fit$data partial-matches fit$data2 (the fit has no data element), where brms keeps the model frame and brms-shaped code reads it (dev/brmsport-probe4.R) [fit$data is the $ partial match of fit$data2, dev/brmsport-rev-silent.R R8]
 brmsfit-methods:584	frmtmb	defect	shape	ngrps() returns lme4's named integer vector, not brms's named list (user decision, 2026-09-17, rule 3; item 2.6f)
 brmsfit-methods:585	frmtmb	defect	shape	ngrps() returns lme4's named integer vector, not brms's named list (user decision, 2026-09-17, rule 3; item 2.6f)
 brmsfit-methods:604	frmtmb	cannot transfer	mcmc	brms's plot() of a fit draws posterior trace and density plots; an ML fit's plot() is a diagnostics plot and takes neither plot nor variable
 brmsfit-methods:605	frmtmb	cannot transfer	mcmc	brms's plot() of a fit plots posterior draws (see brmsfit-methods:604)
 brmsfit-methods:606	frmtmb	cannot transfer	mcmc	brms's plot() of a fit plots posterior draws (see brmsfit-methods:604)
 brmsfit-methods:607	frmtmb	cannot transfer	mcmc	the expect_error is met only by plot() refusing the argument name variable, not by the missing variable brms refuses
-brmsfit-methods:675	frmtmb	defect	fit-data	newdata is read from fit1$data, fit$data partial-matches fit$data2 (the fit has no data element) [fit$data is the $ partial match of fit$data2, dev/brmsport-rev-silent.R R8]
 brmsfit-methods:679	frmtmb	defect	argument	pp_check() passes x = 'Age' to bayesplot as the string, which stops with 'is.numeric(x) is not TRUE'; brms reads x and group as data variable names
-brmsfit-methods:682	frmtmb	defect	fit-data	newdata is read from fit1$data, fit$data partial-matches fit$data2 (the fit has no data element) [fit$data is the $ partial match of fit$data2, dev/brmsport-rev-silent.R R8]
+brmsfit-methods:682	frmtmb	defect	internal-error	the assignment above it fails: pp_check(group = ) hands bayesplot the group NAME rather than the column, so every ppc_*_grouped type dies on bayesplot's 'length(group) must be equal to the number of observations'. Measured with and without newdata, and on a plain y ~ x + (1 | g) fit as well as on fixture 1 (dev/adefects-findings.md, found and not fixed 1). Was fit-data
 brmsfit-methods:685	frmtmb	defect	filed	pp_check(type = 'loo_pit_qq') is given no lw or psis_object (dev/brmsnames-findings.md not fixed 8)
 brmsfit-methods:694	frmtmb	defect	argument	pp_check() passes x = 'Age' to bayesplot as the string (see brmsfit-methods:679)
 brmsfit-methods:695	frmtmb	defect	argument	pp_check() passes x = 'x' to bayesplot unchecked, so the refusal is bayesplot's 'is.numeric(x) is not TRUE', not 'Variable x could not be found in the data'
@@ -86,7 +82,7 @@ brmsfit-methods:753	frmtmb	pending 2.6d	shape	predict() shape, item 2.6d
 brmsfit-methods:758	frmtmb	pending 2.6d	shape	predict() shape, item 2.6d
 brmsfit-methods:761	frmtmb	pending 2.6d	shape	predict() shape on an ordinal fit, item 2.6d
 brmsfit-methods:762	frmtmb	pending 2.6d	shape	predict() columns P(Y = k) on an ordinal fit, item 2.6d
-brmsfit-methods:764	frmtmb	defect	fit-data	newdata is read from fit4$data, fit$data partial-matches fit$data2 (the fit has no data element) [fit$data is the $ partial match of fit$data2, dev/brmsport-rev-silent.R R8]
+brmsfit-methods:764	frmtmb	pending 2.6d	shape	dim(predict(fit4, newdata = fit4$data[1, ])) is NULL where brms gives 1 x 4: predict() returns a vector, which item 2.6d is about; :761, :762 and :767 are the same assertion on other rows. Was fit-data
 brmsfit-methods:767	frmtmb	pending 2.6d	shape	predict() shape on a mixture, item 2.6d
 brmsfit-methods:772	frmtmb	pending 2.6d	shape	predict(sample_new_levels =) belongs to the predictive summary of item 2.6d
 brmsfit-methods:775	frmtmb	pending 2.6d	shape	predict(sample_new_levels =) belongs to the predictive summary of item 2.6d
@@ -114,7 +110,7 @@ brmsfit-methods:901	frmtmb	divergence	no-draws	summary(robust = TRUE) is refused
 brmsfit-methods:904	frmtmb	defect	output	print(summary(fit6)) labels the GP standard deviation 'sd(gp)', not sdgp (user decision, 2026-09-17, rule 3; item 2.6f)
 brmsfit-methods:914	frmtmb	divergence	class	update() returns a frmtmb_fit, not a brmsfit ; the update itself succeeded brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:923	frmtmb	divergence	class	update(newdata =) returns a frmtmb_fit ; save_pars() was dropped by the shim (D10) brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
-brmsfit-methods:924	frmtmb	defect	fit-data	reads attr(up$data, 'data_name'), and fit$data partial-matches fit$data2 (the fit has no data element) [fit$data is the $ partial match of fit$data2, dev/brmsport-rev-silent.R R8]
+brmsfit-methods:924	frmtmb	defect	output	attr(up$data, 'data_name') is NULL: brms records the name of the newdata argument on the frame it stores and frmtmb does not. The frame itself is there now. Was fit-data
 brmsfit-methods:927	frmtmb	defect	accepts-refused	update(fit, data = new_data) refits on the new data where brms refuses and demands newdata (dev/brms-suite-audit.md section 7 contract 15; dev/brmsport-probe4.R)
 brmsfit-methods:931	frmtmb	divergence	class	update() returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:933	frmtmb	divergence	class	update() returns a frmtmb_fit brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
@@ -133,7 +129,6 @@ brmsfit-methods:991	frmtmb	cannot transfer	fixture	lscale_volume_gpAgeTrt0 needs
 brmsfit-methods:995	frmtmb	defect	spelling	parnames() is brms's live spelling of variables(); frmtmb.sample defines parnames() and refuses it, core has none (dev/brms-suite-audit.md section 7 contract 14)
 brmsfit-methods:999	frmtmb	defect	shape	vcov(fit1) is 10 x 10: it adds nu's intercept to brms's nine population-level coefficients, under frmtmb's '(Intercept)' names (dev/brmsport-probe4.R) (user decision, 2026-09-17, rule 3; item 2.6f)
 brmsfit-methods:1000	frmtmb	defect	argument	vcov() refuses brms's cor argument by name
-brmsfit-methods:1035	frmtmb	defect	fit-data	holds only because fit$data partial-matches fit$data2 (the fit has no data element), so the attribute read is NULL whatever frmtmb does with contrasts [fit$data is the $ partial match of fit$data2, dev/brmsport-rev-silent.R R8]
 brmsfit-methods:82	frmtmb.sample	defect	argument	as.matrix() of draws refuses brms's iteration argument by name
 brmsfit-methods:83	frmtmb.sample	defect	argument	as.matrix() of draws refuses brms's iteration argument by name
 brmsfit-methods:91	frmtmb.sample	cannot transfer	stan	reads fit1$fit@sim$chains, the stanfit slot (D10); frmtmb.sample keeps it in x$stanfit
@@ -166,9 +161,8 @@ emmeans:35	frmtmb	cannot transfer	absent	frmtmb's emmeans support is declared re
 emmeans:38	frmtmb	cannot transfer	absent	frmtmb's emmeans support is declared refused for a nonlinear mu ('needs a linear mu predictor', R/compat.R:1612, enforced by emm_mu_linpred()); the reason is hidden by emmeans, a separate defect
 emmeans:42	frmtmb	cannot transfer	absent	frmtmb's emmeans support is declared univariate only (R/compat.R:1356); the reason is hidden by emmeans, a separate defect
 emmeans:50	frmtmb	cannot transfer	absent	frmtmb's emmeans support is declared refused for a nonlinear mu ('needs a linear mu predictor', R/compat.R:1612, enforced by emm_mu_linpred()); the reason is hidden by emmeans, a separate defect
-data-helpers:7	frmtmb	defect	fit-data	newdata is fit$data[1:5, ], and fit$data partial-matches fit$data2 (the fit has no data element); on model.frame(fit) rows fitted() works, with a spurious 'contrasts dropped from factor Trt' warning (dev/brmsport-probe4.R) [fit$data is the $ partial match of fit$data2, dev/brmsport-rev-silent.R R8]
-data-helpers:9	frmtmb	defect	fit-data	blocked by fit$data; on model.frame(fit) rows frmtmb refuses the new visit level in its own words, 'New levels in grouping factor visit: 5' (dev/brmsport-probe4.R) [fit$data is the $ partial match of fit$data2, dev/brmsport-rev-silent.R R8]
-data-helpers:12	frmtmb	defect	fit-data	blocked by fit$data; the factor fac brms checks is a data column the model does not use [fit$data is the $ partial match of fit$data2, dev/brmsport-rev-silent.R R8]
+data-helpers:7	frmtmb	defect	output	expect_silent() fails on R's 'contrasts dropped from factor Trt' warning, twice, from model.matrix() on the newdata slice; brms is silent. The NUMBERS are unaffected: the five predictions equal the first five of the full-data ones, max absolute difference 0 (dev/adefects-log/evidence.txt). Was fit-data
+data-helpers:12	frmtmb	defect	different-error	brms refuses the integer codes of `fac`, a factor column of the data that the model does not use; frmtmb refuses the new `visit` level set on the line before, and never checks an unused column. Both refuse the call, for different faults. Was fit-data
 data-helpers:22	frmtmb	cannot transfer	brms-internal	reads brms:::validate_data() and brms's internal brmsterms()
 data-helpers:26	frmtmb	cannot transfer	brms-internal	reads brms:::validate_data() and brms's internal brmsterms()
 data-helpers:27	frmtmb	cannot transfer	brms-internal	reads brms:::validate_data() and brms's internal brmsterms()

@@ -44,7 +44,7 @@ test_that("hypothesis exposes natural-scale RE names", {
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 
   # natural-scale names need class = NULL, as in brms
-  h <- hypothesis(fit, "sd_g__Intercept", class = NULL)$hypothesis
+  h <- hypothesis(fit, "sd_g__Intercept = 0", class = NULL)$hypothesis
   expect_equal(h$Estimate, sqrt(varcorr_matrices(fit)[[1]][1, 1]),
                tolerance = 1e-8)
   # Wald se agrees with confint_varcorr's delta method (log-scale
@@ -58,7 +58,7 @@ test_that("hypothesis exposes natural-scale RE names", {
   expect_equal(unname(vcr[1, "Est.Error"]), h$Est.Error,
                tolerance = 1e-4)
 
-  icc <- "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)"
+  icc <- "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0"
   hw <- hypothesis(fit, icc, class = NULL)$hypothesis
   vc <- varcorr_matrices(fit)[[1]][1, 1]
   expect_equal(hw$Estimate, vc / (vc + sigma(fit)^2), tolerance = 1e-8)
@@ -73,14 +73,14 @@ test_that("hypothesis exposes natural-scale RE names", {
   data(sleepstudy, package = "lme4")
   fs <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
             data = sleepstudy)
-  hc <- hypothesis(fs, "cor_Subject__Intercept__Days", class = NULL)
+  hc <- hypothesis(fs, "cor_Subject__Intercept__Days = 0", class = NULL)
   C <- stats::cov2cor(varcorr_matrices(fs)[[1]])
   expect_equal(hc$hypothesis$Estimate, C[1, 2], tolerance = 1e-8)
   expect_equal(VarCorr(fs)$Subject$cor["Intercept", "Estimate", "Days"],
                C[1, 2], tolerance = 1e-8)
 
   # unknown names error with the available list
-  expect_error(hypothesis(fit, "sd_h__Intercept", class = NULL),
+  expect_error(hypothesis(fit, "sd_h__Intercept = 0", class = NULL),
                "cannot be found in the model: 
 'sd_h__Intercept'",
                fixed = TRUE)
@@ -94,7 +94,7 @@ test_that("hypothesis method = 'profile' handles linear contrasts", {
 
   # single coefficient: profile lincomb matches confint's uniroot
   # (interpolated from the tmbprofile curve, hence the tolerance)
-  hpo <- hypothesis(fit, "x1", method = "profile")
+  hpo <- hypothesis(fit, "x1 = 0", method = "profile")
   hp <- hpo$hypothesis
   cu <- confint(fit, parm = "x1", method = "uniroot")
   expect_equal(unname(c(hp$CI.Lower, hp$CI.Upper)), unname(cu[1, 1:2]),
@@ -113,12 +113,12 @@ test_that("hypothesis method = 'profile' handles linear contrasts", {
                unname(c(hw$CI.Lower, hw$CI.Upper)), tolerance = 0.02)
 
   # nonlinear expressions and REML fits are rejected
-  expect_error(hypothesis(fit, "exp(x1)", method = "profile"),
+  expect_error(hypothesis(fit, "exp(x1) = 0", method = "profile"),
                "not linear")
   fr <- frm(bf(y ~ x1 + x2) + gaussian(), data = dd, REML = TRUE)
-  expect_error(hypothesis(fr, "x1", method = "profile"), "ML fit")
+  expect_error(hypothesis(fr, "x1 = 0", method = "profile"), "ML fit")
   # wald on an REML fit still works, including RE-free sd-less names
-  expect_equal(hypothesis(fr, "x1")$hypothesis$Estimate,
+  expect_equal(hypothesis(fr, "x1 = 0")$hypothesis$Estimate,
                fixef(fr)$mu[["x1"]],
                tolerance = 1e-10)
 })
@@ -129,7 +129,7 @@ test_that("hypothesis method = 'boot' handles nonlinear expressions", {
   dd$y <- rnorm(120, 1 + 0.5 * dd$x, 1)
   fit <- frm(bf(y ~ x) + gaussian(), data = dd)
 
-  hbo <- hypothesis(fit, c("exp(x)", "x"), method = "boot", nsim = 60,
+  hbo <- hypothesis(fit, c("exp(x) = 0", "x = 0"), method = "boot", nsim = 60,
                     seed = 3)
   expect_s3_class(hbo, "frmtmb_hypothesis")
   expect_s3_class(hbo, "brmshypothesis")
@@ -138,7 +138,8 @@ test_that("hypothesis method = 'boot' handles nonlinear expressions", {
   # the draws ride along for interrogation and are coupled across rows
   d <- attr(hbo, "draws")
   expect_equal(dim(d), c(60L, 2L))
-  expect_equal(colnames(d), c("exp(x)", "x"))
+  # the draws are keyed by the hypothesis as written, relation included
+  expect_equal(colnames(d), c("exp(x) = 0", "x = 0"))
   expect_equal(d[, 1], exp(d[, 2]), tolerance = 1e-10)
   expect_equal(unname(as.matrix(hbo$samples)), unname(d))
   expect_equal(hb$Estimate[1], exp(fixef(fit)$mu[["x"]]),
@@ -147,7 +148,7 @@ test_that("hypothesis method = 'boot' handles nonlinear expressions", {
   # consistent with the x row
   expect_true(hb$CI.Lower[1] > 0)
   expect_true(attr(hbo, "test")$p[2] < 0.1)
-  hw <- hypothesis(fit, "exp(x)")$hypothesis
+  hw <- hypothesis(fit, "exp(x) = 0")$hypothesis
   expect_lt(abs(hb$Est.Error[1] - hw$Est.Error[1]) / hw$Est.Error[1], 0.6)
 })
 
@@ -157,21 +158,21 @@ test_that("backend controls pass through hypothesis's dots", {
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 
   # profile: a wider ytol extends the stored curve
-  h1 <- hypothesis(fit, "x", method = "profile")
-  h2 <- hypothesis(fit, "x", method = "profile", ytol = 8)
+  h1 <- hypothesis(fit, "x = 0", method = "profile")
+  h2 <- hypothesis(fit, "x = 0", method = "profile", ytol = 8)
   r1 <- diff(range(attr(h1, "profiles")[[1]][[1]]))
   r2 <- diff(range(attr(h2, "profiles")[[1]][[1]]))
   expect_gt(r2, r1)
 
   # boot: re_formula reaches frm_bootstrap (conditional bootstrap runs)
-  hb <- hypothesis(fit, "x", method = "boot", nsim = 10, seed = 5,
+  hb <- hypothesis(fit, "x = 0", method = "boot", nsim = 10, seed = 5,
                    re_formula = NULL)
   expect_equal(dim(attr(hb, "draws")), c(10L, 1L))
 
   # wald: a stray argument is REFUSED instead of vanishing. ytol is a
   # real TMB::tmbprofile() argument, so the point is not that the name
   # is unknown but that this method never reaches a profile.
-  expect_error(hypothesis(fit, "x", ytol = 8), "ytol")
+  expect_error(hypothesis(fit, "x = 0", ytol = 8), "ytol")
 })
 
 test_that("hypothesis objects print and plot for every method", {
@@ -180,9 +181,9 @@ test_that("hypothesis objects print and plot for every method", {
   dd$y <- rnorm(100, 1 + 0.5 * dd$x, 1)
   fit <- frm(bf(y ~ x) + gaussian(), data = dd)
 
-  hw <- hypothesis(fit, c("x", "exp(x)"))
-  hp <- hypothesis(fit, "x", method = "profile")
-  hb <- hypothesis(fit, "x", method = "boot", nsim = 20, seed = 4)
+  hw <- hypothesis(fit, c("x = 0", "exp(x) = 0"))
+  hp <- hypothesis(fit, "x = 0", method = "profile")
+  hb <- hypothesis(fit, "x = 0", method = "boot", nsim = 20, seed = 4)
   expect_output(print(hw), "Method: wald")
   expect_output(print(hb), "20 bootstrap draws")
 
@@ -200,7 +201,7 @@ test_that("hypothesis objects print and plot for every method", {
 test_that("hypothesis wald with RE names works under REML", {
   dd <- sim_lmm_boot(seed = 71)
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd, REML = TRUE)
-  h <- hypothesis(fit, "sd_g__Intercept", class = NULL)$hypothesis
+  h <- hypothesis(fit, "sd_g__Intercept = 0", class = NULL)$hypothesis
   expect_equal(h$Estimate, sqrt(varcorr_matrices(fit)[[1]][1, 1]),
                tolerance = 1e-8)
   expect_true(is.finite(h$Est.Error) && h$Est.Error > 0)

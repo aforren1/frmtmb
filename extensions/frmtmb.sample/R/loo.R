@@ -263,17 +263,18 @@ draws_row_loglik <- function(fit, resp) {
 #'   head(colMeans(ll))
 #' }
 #' }
-#' @export
-log_lik <- function(object, ...) {
-  # A fallback, not the generic a user normally reaches. rstantools owns
-  # this name and stays out of Imports, so log_lik(ds) needs a generic
-  # when it is absent; while it is loaded, the binding .onLoad installs
-  # hands back rstantools' generic instead (R/generic-owners.R). Nothing
-  # else may go in this body: whenever rstantools is loaded it never runs.
-  UseMethod("log_lik")
-}
+#' @name sample-log_lik
+NULL
 
-#' @rdname log_lik
+# The generic is frmtmb's, re-exported by R/reexports.R. It used to be
+# defined here, which left `log_lik(fit)` on a maximum-likelihood fit
+# with no method at all: frmtmb had no generic of the name, so a user
+# who had not sampled got "could not find function" rather than the
+# refusal loo() and waic() give. frmtmb now defines the generic and the
+# frmtmb_fit refusal, and this package registers its frmtmb_draws method
+# on that one, which is the rule R/reexports.R states.
+
+#' @rdname sample-log_lik
 #' @exportS3Method rstantools::log_lik
 #' @export
 log_lik.frmtmb_draws <- function(object, newdata = NULL,
@@ -353,7 +354,7 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
 #' Approximate leave-one-out cross-validation
 #'
 #' `loo()` runs Pareto-smoothed importance-sampling LOO and `waic()` the
-#' widely applicable information criterion, both on the [log_lik()]
+#' widely applicable information criterion, both on the [frmtmb::log_lik()]
 #' matrix, by handing it to `loo::loo.matrix()` and `loo::waic.matrix()`
 #' unchanged. The returned objects are the loo package's own, so
 #' `print()` and `loo::pareto_k_table()` work on them directly.
@@ -386,12 +387,12 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
 #'
 #' @param x A `frmtmb_draws` from [frm_sample()], or (for
 #'   `loo_compare()`) already-computed criteria.
-#' @param ndraws,resp Passed to [log_lik()].
+#' @param ndraws,resp Passed to [frmtmb::log_lik()].
 #' @param ... Further models for `loo_compare()`; otherwise passed to
 #'   the loo package function.
 #' @return A `loo`, `waic`, `compare.loo` or `psis` object from the loo
 #'   package.
-#' @seealso [log_lik()], [frmtmb::bayes_R2()]
+#' @seealso [frmtmb::log_lik()], [frmtmb::bayes_R2()]
 #' @examples
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&
@@ -535,7 +536,7 @@ loo_call_names <- function(cl, n) {
 #' @param log_ratios For `psis()`, the draws object whose negative
 #'   pointwise log-likelihood supplies the importance ratios.
 #' @param newdata For `psis()`, accepted in brms's own second position
-#'   and refused, because [log_lik()] does not take it.
+#'   and refused, because [frmtmb::log_lik()] does not take it.
 #' @param model_name For `psis()`, brms's label for the model.
 #'   Accepted and unused: a `psis` object has nothing to label.
 #' @export
@@ -616,7 +617,7 @@ WAIC.frmtmb_draws <- function(x, ...) {
 #'   error naming it, rather than silently changing nothing.
 #' @return A one-row summary matrix, or the matrix of draws when
 #'   `summary = FALSE`.
-#' @seealso [log_lik()], [frmtmb::loo()]
+#' @seealso [frmtmb::log_lik()], [frmtmb::loo()]
 #' @examples
 #' \donttest{
 #' if (requireNamespace("tmbstan", quietly = TRUE) &&

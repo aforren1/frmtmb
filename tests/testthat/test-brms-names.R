@@ -61,7 +61,7 @@ test_that("variables() uses brms's names, b_ on every coefficient", {
   expect_identical(variables(fit),
                    c("b_Intercept", "b_x", "sd_g__Intercept", "sd_g__x",
                      "cor_g__Intercept__x", "sigma"))
-  bn_exact(hypothesis(fit, "sigma", class = NULL)$hypothesis$Estimate,
+  bn_exact(hypothesis(fit, "sigma = 0", class = NULL)$hypothesis$Estimate,
            sigma(fit))
   # written out as `sigma ~ 1` it is the coefficient b_sigma_Intercept,
   # on the link scale, and there is no `sigma`, as in brms
@@ -76,8 +76,9 @@ test_that("variables() uses brms's names, b_ on every coefficient", {
   v <- variables(fs)
   expect_true(all(c("sd_g__Intercept", "sd_g__sigma_Intercept") %in% v))
   expect_false(isTRUE(all.equal(
-    hypothesis(fs, "sd_g__Intercept", class = NULL)$hypothesis$Estimate,
-    hypothesis(fs, "sd_g__sigma_Intercept", class = NULL)$hypothesis$Estimate)))
+    hypothesis(fs, "sd_g__Intercept = 0", class = NULL)$hypothesis$Estimate,
+    hypothesis(fs, "sd_g__sigma_Intercept = 0",
+               class = NULL)$hypothesis$Estimate)))
   # the inverse case: the old spelling names nothing
   expect_false(any(c("Intercept", "x", "sigma_Intercept") %in% v))
 })

@@ -85,9 +85,10 @@ the implied Wald normal density, one panel per hypothesis.
 The frequentist analog of brms's \code{hypothesis()}: evaluates
 expressions of the model parameters at the estimates and tests them
 against zero. A hypothesis is \code{"lhs = rhs"}, e.g. \code{"x1 - x2 = 0"} or
-\code{"exp(Intercept) = 1"}, brms's directional \code{"lhs > rhs"} /
-\code{"lhs < rhs"}, or a bare \code{"expr"}, which brms does not accept and
-which is tested against 0 here.
+\code{"exp(Intercept) = 1"}, or brms's directional \code{"lhs > rhs"} /
+\code{"lhs < rhs"}. Every hypothesis states a relation: a string with no
+\code{=}, \code{<} or \code{>} is refused, as it is in brms, so write \code{"x1 = 0"}
+rather than \code{"x1"}.
 }
 \section{The returned object}{
 
