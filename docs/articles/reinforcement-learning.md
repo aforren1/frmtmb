@@ -96,9 +96,9 @@ rw_block <- function(resp, spec, av, mf, y, n) {
   rw <- resp$family[["rw"]]
   gv <- eval(rw[["subject_expr"]], mf, resp$formula_env)
   if (anyNA(gv)) {
-    stop("rw_delta(): every row needs a subject, and ",
-         deparse1(rw[["subject_expr"]]), " has ", sum(is.na(gv)),
-         " missing value(s)", call. = FALSE)
+    frm_stop("rw_delta(): every row needs a subject, and ",
+             deparse1(rw[["subject_expr"]]), " has ", sum(is.na(gv)),
+             " missing value(s)", call. = FALSE)
   }
   gv <- factor(gv)
   tv <- if (is.null(rw[["trial_expr"]])) {
@@ -109,9 +109,9 @@ rw_block <- function(resp, spec, av, mf, y, n) {
   } else {
     v <- eval(rw[["trial_expr"]], mf, resp$formula_env)
     if (anyNA(v)) {
-      stop("rw_delta(): the trial variable '", deparse1(rw[["trial_expr"]]),
-           "' has missing values, so the order of the recursion is ",
-           "undefined at those rows", call. = FALSE)
+      frm_stop("rw_delta(): the trial variable '", deparse1(rw[["trial_expr"]]),
+               "' has missing values, so the order of the recursion is ",
+               "undefined at those rows", call. = FALSE)
     }
     as.numeric(v)
   }
@@ -119,10 +119,10 @@ rw_block <- function(resp, spec, av, mf, y, n) {
   key <- paste(as.integer(gv), tv, sep = "|")
   if (anyDuplicated(key)) {
     dup <- key[duplicated(key)][1L]
-    stop("rw_delta(): trial numbers must be unique within a subject; ",
-         sum(key == dup), " rows share one. A delta rule updates once ",
-         "per trial, so two rows at one trial have no order to learn in",
-         call. = FALSE)
+    frm_stop("rw_delta(): trial numbers must be unique within a subject; ",
+             sum(key == dup), " rows share one. A delta rule updates once ",
+             "per trial, so two rows at one trial have no order to learn in",
+             call. = FALSE)
   }
   len <- lengths(rows)
   nt <- max(len)
@@ -388,8 +388,8 @@ rw_delta <- function(subject, trial = NULL) {
   subject_expr <- substitute(subject)
   trial_expr <- substitute(trial)
   if (is.null(subject_expr)) {
-    stop("rw_delta(subject =) names the column that separates one ",
-         "learner's trial sequence from the next", call. = FALSE)
+    frm_stop("rw_delta(subject =) names the column that separates one ",
+             "learner's trial sequence from the next", call. = FALSE)
   }
   fam <- frmtmb_family(
     "rw_delta",
@@ -403,16 +403,16 @@ rw_delta <- function(subject, trial = NULL) {
     # signature cannot see. Returning something anyway is the silent lie
     # the structured protocol exists to remove.
     lpdf = function(y, dpars, aterms, extra = NULL) {
-      stop("A rw_delta() trial's probability depends on every earlier ",
-           "trial of the same subject, so the family has no row-wise ",
-           "log-density. Use logLik() for the total, or fitted() for ",
-           "the per-trial choice probabilities", call. = FALSE)
+      frm_stop("A rw_delta() trial's probability depends on every earlier ",
+               "trial of the same subject, so the family has no row-wise ",
+               "log-density. Use logLik() for the total, or fitted() for ",
+               "the per-trial choice probabilities", call. = FALSE)
     },
     valid_y = function(y, aterms) {
       if (!all(y %in% c(0, 1))) {
-        stop("rw_delta(): the response is the arm chosen on each trial, ",
-             "coded 1 for the first arm and 0 for the second",
-             call. = FALSE)
+        frm_stop("rw_delta(): the response is the arm chosen on each trial, ",
+                 "coded 1 for the first arm and 0 for the second",
+                 call. = FALSE)
       }
     },
     init_dpars = list(alpha = function(y, aterms) 0.3,
@@ -443,17 +443,17 @@ rw_structure <- function() {
     keep_na = FALSE,
     check_spec = function(resp, spec, av) {
       if (length(spec$responses) > 1L || isTRUE(spec$rescor)) {
-        stop("rw_delta() supports univariate models only: the recursion ",
-             "is a likelihood over one response's trial sequences",
-             call. = FALSE)
+        frm_stop("rw_delta() supports univariate models only: the recursion ",
+                 "is a likelihood over one response's trial sequences",
+                 call. = FALSE)
       }
       bad <- intersect(c("weights", "cens", "trunc_lb", "trunc_ub", "se"),
                        names(av))
       if (length(bad)) {
-        stop("rw_delta() cannot be combined with ", bad[1L], "(): that ",
-             "term reshapes a per-row likelihood contribution, and a ",
-             "trial's contribution here is conditional on every earlier ",
-             "trial of the same subject", call. = FALSE)
+        frm_stop("rw_delta() cannot be combined with ", bad[1L], "(): that ",
+                 "term reshapes a per-row likelihood contribution, and a ",
+                 "trial's contribution here is conditional on every earlier ",
+                 "trial of the same subject", call. = FALSE)
       }
     },
     frame_block = rw_block,

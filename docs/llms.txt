@@ -472,6 +472,13 @@ and `NEWS.md` for the changelog.
   : The two fitting options every mixture-type family refuses, in its
   own name.
 
+- [`frm_stop()`](https://aforren1.github.io/frmtmb/reference/frmtmb-conditions.md)
+  [`frm_warning()`](https://aforren1.github.io/frmtmb/reference/frmtmb-conditions.md)
+  [`frm_message()`](https://aforren1.github.io/frmtmb/reference/frmtmb-conditions.md)
+  [`frm_family_package()`](https://aforren1.github.io/frmtmb/reference/frmtmb-conditions.md)
+  [`frm_match_arg()`](https://aforren1.github.io/frmtmb/reference/frmtmb-conditions.md)
+  : Classed conditions
+
 - [`dpar_log()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)
   [`dpar_log1m()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)
   [`dpar_log_complement()`](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)

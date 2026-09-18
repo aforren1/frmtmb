@@ -1,5 +1,31 @@
 # Changelog
 
+## frmtmb.coupling 0.4.0
+
+- Requires frmtmb 0.60.0, for `frm_stop()` and the other condition
+  helpers.
+
+- Requires the frmtmb release that exports `frm_stop()`; the
+  `frmtmb (>= 0.59.0)` floor must move to it.
+
+- **BREAKING:** every error, warning and message that frmtmb.coupling
+  raises is classed. An error has the class
+  `c("frmtmb_coupling_error", "frmtmb_error", "error", "condition")`,
+  and warnings and messages follow the same pattern, so
+  `tryCatch(frmtmb_error = )` catches any refusal. The class vector no
+  longer contains `simpleError`, `simpleWarning` or `simpleMessage`. See
+  `?frmtmb::frmtmb-conditions`.
+
+- **BREAKING:** a value that matches none of the choices of
+  `frm_cross_spectrum(window =)` is refused with a
+  `frmtmb_coupling_error` that names the argument, the value and the
+  choices. The old text was `'arg' should be one of ...`. A partial
+  value still matches.
+
+- A refusal that frmtmb raises about
+  [`cross_wishart()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/cross_wishart.md),
+  such as a missing addition term, is a `frmtmb_coupling_error`.
+
 ## frmtmb.coupling 0.3.2
 
 - Requires frmtmb 0.59.0.

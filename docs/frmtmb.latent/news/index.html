@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.latent</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +43,15 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.latent/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.4.0" id="frmtmblatent-040">frmtmb.latent 0.4.0<a class="anchor" aria-label="anchor" href="#frmtmblatent-040"></a></h2>
+<ul><li><p>Requires frmtmb 0.60.0, for <code>frm_stop()</code> and the other condition helpers.</p></li>
+<li><p>Requires the frmtmb release that exports <code>frm_stop()</code>; the <code>frmtmb (&gt;= 0.59.0)</code> floor must move to it.</p></li>
+<li><p><strong>BREAKING:</strong> every error, warning and message that frmtmb.latent raises is classed. An error has the class <code>c("frmtmb_latent_error", "frmtmb_error", "error", "condition")</code>, and warnings and messages follow the same pattern, so <code>tryCatch(frmtmb_error = )</code> catches any refusal. The class vector no longer contains <code>simpleError</code>, <code>simpleWarning</code> or <code>simpleMessage</code>. See <code>?frmtmb::frmtmb-conditions</code>.</p></li>
+<li><p><strong>BREAKING:</strong> a value that matches none of the choices of <code>hmm(init =)</code> is refused with a <code>frmtmb_latent_error</code> that names the argument, the value and the choices. The old text was <code>'arg' should be one of ...</code>. A partial value still matches.</p></li>
+<li><p><code><a href="../reference/hmm_starts.html">hmm_starts()</a></code> and the other <code>hmm_*()</code> readers refuse an object that is not a fit by name. <code>hmm_starts(1)</code> used to fail with <code>$ operator is invalid for atomic vectors</code>.</p></li>
+<li><p>The refusals that <code><a href="../reference/hmm.html">hmm()</a></code> and <code><a href="../reference/lca.html">lca()</a></code> write in <code>frmtmb_structure(refusals =)</code>, such as <code>frm(..., family = hmm(...), REML = TRUE)</code>, are a <code>frmtmb_latent_error</code>. frmtmb raises them, and before they had no subclass.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.1" id="frmtmblatent-031">frmtmb.latent 0.3.1<a class="anchor" aria-label="anchor" href="#frmtmblatent-031"></a></h2>
 <ul><li>Requires frmtmb 0.59.0.</li>

@@ -92,8 +92,8 @@ at once through the structured protocol’s `loglik` slot:
 # instead of being added as -Infinity.
 bcm_survey <- function(nmax, link = "logit") {
   if (length(nmax) != 1L || nmax < 1 || nmax != round(nmax)) {
-    stop("bcm_survey(nmax =) is the largest number of surveys that ",
-         "could have been sent, one whole number", call. = FALSE)
+    frm_stop("bcm_survey(nmax =) is the largest number of surveys that ",
+             "could have been sent, one whole number", call. = FALSE)
   }
   fam <- frmtmb_family(
     "bcm_survey",
@@ -101,17 +101,17 @@ bcm_survey <- function(nmax, link = "logit") {
     links = list(mu = link),
     type = "discrete",
     lpdf = function(y, dpars, aterms, extra = NULL) {
-      stop("A bcm_survey() return count has no row-wise log density: ",
-           "every count is binomial in the SAME unknown number of ",
-           "surveys, and that number is summed out of the whole ",
-           "response at once. Use logLik() for the total, or ",
-           "latent_probs() for the posterior over the number sent",
-           call. = FALSE)
+      frm_stop("A bcm_survey() return count has no row-wise log density: ",
+               "every count is binomial in the SAME unknown number of ",
+               "surveys, and that number is summed out of the whole ",
+               "response at once. Use logLik() for the total, or ",
+               "latent_probs() for the posterior over the number sent",
+               call. = FALSE)
     },
     valid_y = function(y, aterms) {
       if (any(y < 0) || any(y != round(y))) {
-        stop("bcm_survey(): the response is a count of returns",
-             call. = FALSE)
+        frm_stop("bcm_survey(): the response is a count of returns",
+                 call. = FALSE)
       }
     },
     init_dpars = list(mu = function(y, aterms) 0.5),
@@ -135,15 +135,15 @@ bcm_survey_structure <- function() {
   frmtmb_structure(
     check_spec = function(resp, spec, av) {
       if (length(spec$responses) > 1L || isTRUE(spec$rescor)) {
-        stop("bcm_survey() supports univariate models only",
-             call. = FALSE)
+        frm_stop("bcm_survey() supports univariate models only",
+                 call. = FALSE)
       }
     },
     frame_block = function(resp, spec, av, mf, y, n) {
       nmax <- resp$family[["survey"]][["nmax"]]
       if (max(y) > nmax) {
-        stop("bcm_survey(nmax = ", nmax, "): ", max(y), " surveys came ",
-             "back, so at least that many were sent", call. = FALSE)
+        frm_stop("bcm_survey(nmax = ", nmax, "): ", max(y), " surveys came ",
+                 "back, so at least that many were sent", call. = FALSE)
       }
       list(n = n, nmax = nmax, nmin = as.integer(max(y)))
     },

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.learn</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +43,15 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.learn/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.5.0" id="frmtmblearn-050">frmtmb.learn 0.5.0<a class="anchor" aria-label="anchor" href="#frmtmblearn-050"></a></h2>
+<ul><li><p>Requires frmtmb 0.60.0, for <code>frm_stop()</code> and the other condition helpers.</p></li>
+<li><p>Requires the frmtmb release that exports <code>frm_stop()</code>; the <code>frmtmb (&gt;= 0.59.0)</code> floor must move to it.</p></li>
+<li><p><strong>BREAKING:</strong> every error, warning and message that frmtmb.learn raises is classed. An error has the class <code>c("frmtmb_learn_error", "frmtmb_error", "error", "condition")</code>, and warnings and messages follow the same pattern, so <code>tryCatch(frmtmb_error = )</code> catches any refusal. The class vector no longer contains <code>simpleError</code>, <code>simpleWarning</code> or <code>simpleMessage</code>. See <code>?frmtmb::frmtmb-conditions</code>.</p></li>
+<li><p><strong>BREAKING:</strong> a value that matches none of the choices of <code>bandit2arm_dual(split =)</code> and <code>frm_task_design(task =)</code> is refused with a <code>frmtmb_learn_error</code> that names the argument, the value and the choices. The old text was <code>'arg' should be one of ...</code>. A partial value still matches.</p></li>
+<li><p><code><a href="../reference/frm_task_simulate.html">frm_task_simulate()</a></code> refuses a <code>family</code> that is not a family object by name. <code>frm_task_simulate(1, d)</code> used to fail with <code>subscript out of bounds</code>.</p></li>
+<li><p>The refusals about <code><a href="../reference/rlddm.html">rlddm()</a></code>’s non-decision-time bound, which frmtmb.eam raises, and the refusals frmtmb raises about this package’s families, such as <code>declares no mean</code>, are a <code>frmtmb_learn_error</code>.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.2" id="frmtmblearn-042">frmtmb.learn 0.4.2<a class="anchor" aria-label="anchor" href="#frmtmblearn-042"></a></h2>
 <ul><li><p>Requires frmtmb 0.59.0.</p></li>

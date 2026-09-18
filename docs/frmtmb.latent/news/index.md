@@ -1,5 +1,40 @@
 # Changelog
 
+## frmtmb.latent 0.4.0
+
+- Requires frmtmb 0.60.0, for `frm_stop()` and the other condition
+  helpers.
+
+- Requires the frmtmb release that exports `frm_stop()`; the
+  `frmtmb (>= 0.59.0)` floor must move to it.
+
+- **BREAKING:** every error, warning and message that frmtmb.latent
+  raises is classed. An error has the class
+  `c("frmtmb_latent_error", "frmtmb_error", "error", "condition")`, and
+  warnings and messages follow the same pattern, so
+  `tryCatch(frmtmb_error = )` catches any refusal. The class vector no
+  longer contains `simpleError`, `simpleWarning` or `simpleMessage`. See
+  `?frmtmb::frmtmb-conditions`.
+
+- **BREAKING:** a value that matches none of the choices of
+  `hmm(init =)` is refused with a `frmtmb_latent_error` that names the
+  argument, the value and the choices. The old text was
+  `'arg' should be one of ...`. A partial value still matches.
+
+- [`hmm_starts()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_starts.md)
+  and the other `hmm_*()` readers refuse an object that is not a fit by
+  name. `hmm_starts(1)` used to fail with
+  `$ operator is invalid for atomic vectors`.
+
+- The refusals that
+  [`hmm()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm.md)
+  and
+  [`lca()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/lca.md)
+  write in `frmtmb_structure(refusals =)`, such as
+  `frm(..., family = hmm(...), REML = TRUE)`, are a
+  `frmtmb_latent_error`. frmtmb raises them, and before they had no
+  subclass.
+
 ## frmtmb.latent 0.3.1
 
 - Requires frmtmb 0.59.0.

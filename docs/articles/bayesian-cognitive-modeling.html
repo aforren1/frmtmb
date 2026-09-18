@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.59.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -226,8 +226,8 @@ of the whole response at once through the structured protocol’s
 <span><span class="co"># instead of being added as -Infinity.</span></span>
 <span><span class="va">bcm_survey</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">nmax</span>, <span class="va">link</span> <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">nmax</span><span class="op">)</span> <span class="op">!=</span> <span class="fl">1L</span> <span class="op">||</span> <span class="va">nmax</span> <span class="op">&lt;</span> <span class="fl">1</span> <span class="op">||</span> <span class="va">nmax</span> <span class="op">!=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">nmax</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"bcm_survey(nmax =) is the largest number of surveys that "</span>,</span>
-<span>         <span class="st">"could have been sent, one whole number"</span>, call. <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="../reference/frmtmb-conditions.html">frm_stop</a></span><span class="op">(</span><span class="st">"bcm_survey(nmax =) is the largest number of surveys that "</span>,</span>
+<span>             <span class="st">"could have been sent, one whole number"</span>, call. <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span>  <span class="op">}</span></span>
 <span>  <span class="va">fam</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frmtmb_family.html">frmtmb_family</a></span><span class="op">(</span></span>
 <span>    <span class="st">"bcm_survey"</span>,</span>
@@ -235,17 +235,17 @@ of the whole response at once through the structured protocol’s
 <span>    links <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>mu <span class="op">=</span> <span class="va">link</span><span class="op">)</span>,</span>
 <span>    type <span class="op">=</span> <span class="st">"discrete"</span>,</span>
 <span>    lpdf <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">dpars</span>, <span class="va">aterms</span>, <span class="va">extra</span> <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"A bcm_survey() return count has no row-wise log density: "</span>,</span>
-<span>           <span class="st">"every count is binomial in the SAME unknown number of "</span>,</span>
-<span>           <span class="st">"surveys, and that number is summed out of the whole "</span>,</span>
-<span>           <span class="st">"response at once. Use logLik() for the total, or "</span>,</span>
-<span>           <span class="st">"latent_probs() for the posterior over the number sent"</span>,</span>
-<span>           call. <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>      <span class="fu"><a href="../reference/frmtmb-conditions.html">frm_stop</a></span><span class="op">(</span><span class="st">"A bcm_survey() return count has no row-wise log density: "</span>,</span>
+<span>               <span class="st">"every count is binomial in the SAME unknown number of "</span>,</span>
+<span>               <span class="st">"surveys, and that number is summed out of the whole "</span>,</span>
+<span>               <span class="st">"response at once. Use logLik() for the total, or "</span>,</span>
+<span>               <span class="st">"latent_probs() for the posterior over the number sent"</span>,</span>
+<span>               call. <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span>    <span class="op">}</span>,</span>
 <span>    valid_y <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">aterms</span><span class="op">)</span> <span class="op">{</span></span>
 <span>      <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/any.html" class="external-link">any</a></span><span class="op">(</span><span class="va">y</span> <span class="op">&lt;</span> <span class="fl">0</span><span class="op">)</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/any.html" class="external-link">any</a></span><span class="op">(</span><span class="va">y</span> <span class="op">!=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>        <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"bcm_survey(): the response is a count of returns"</span>,</span>
-<span>             call. <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>        <span class="fu"><a href="../reference/frmtmb-conditions.html">frm_stop</a></span><span class="op">(</span><span class="st">"bcm_survey(): the response is a count of returns"</span>,</span>
+<span>                 call. <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span>      <span class="op">}</span></span>
 <span>    <span class="op">}</span>,</span>
 <span>    init_dpars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>mu <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span>, <span class="va">aterms</span><span class="op">)</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
@@ -269,15 +269,15 @@ of the whole response at once through the structured protocol’s
 <span>  <span class="fu"><a href="../reference/frmtmb_structure.html">frmtmb_structure</a></span><span class="op">(</span></span>
 <span>    check_spec <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">resp</span>, <span class="va">spec</span>, <span class="va">av</span><span class="op">)</span> <span class="op">{</span></span>
 <span>      <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">spec</span><span class="op">$</span><span class="va">responses</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">1L</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/Logic.html" class="external-link">isTRUE</a></span><span class="op">(</span><span class="va">spec</span><span class="op">$</span><span class="va">rescor</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>        <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"bcm_survey() supports univariate models only"</span>,</span>
-<span>             call. <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>        <span class="fu"><a href="../reference/frmtmb-conditions.html">frm_stop</a></span><span class="op">(</span><span class="st">"bcm_survey() supports univariate models only"</span>,</span>
+<span>                 call. <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span>      <span class="op">}</span></span>
 <span>    <span class="op">}</span>,</span>
 <span>    frame_block <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">resp</span>, <span class="va">spec</span>, <span class="va">av</span>, <span class="va">mf</span>, <span class="va">y</span>, <span class="va">n</span><span class="op">)</span> <span class="op">{</span></span>
 <span>      <span class="va">nmax</span> <span class="op">&lt;-</span> <span class="va">resp</span><span class="op">$</span><span class="va">family</span><span class="op">[[</span><span class="st">"survey"</span><span class="op">]</span><span class="op">]</span><span class="op">[[</span><span class="st">"nmax"</span><span class="op">]</span><span class="op">]</span></span>
 <span>      <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="op">&gt;</span> <span class="va">nmax</span><span class="op">)</span> <span class="op">{</span></span>
-<span>        <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"bcm_survey(nmax = "</span>, <span class="va">nmax</span>, <span class="st">"): "</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span>, <span class="st">" surveys came "</span>,</span>
-<span>             <span class="st">"back, so at least that many were sent"</span>, call. <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>        <span class="fu"><a href="../reference/frmtmb-conditions.html">frm_stop</a></span><span class="op">(</span><span class="st">"bcm_survey(nmax = "</span>, <span class="va">nmax</span>, <span class="st">"): "</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span>, <span class="st">" surveys came "</span>,</span>
+<span>                 <span class="st">"back, so at least that many were sent"</span>, call. <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span>      <span class="op">}</span></span>
 <span>      <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n <span class="op">=</span> <span class="va">n</span>, nmax <span class="op">=</span> <span class="va">nmax</span>, nmin <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">y</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span>    <span class="op">}</span>,</span>

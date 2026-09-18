@@ -1,5 +1,27 @@
 # Changelog
 
+## frmtmb.ode 0.5.0
+
+- Requires frmtmb 0.60.0, for `frm_stop()` and the other condition
+  helpers.
+
+- Requires the frmtmb release that exports `frm_stop()`; the
+  `frmtmb (>= 0.59.0)` floor must move to it.
+
+- **BREAKING:** every error, warning and message that frmtmb.ode raises
+  is classed. An error has the class
+  `c("frmtmb_ode_error", "frmtmb_error", "error", "condition")`, and
+  warnings and messages follow the same pattern, so
+  `tryCatch(frmtmb_error = )` catches any refusal. The class vector no
+  longer contains `simpleError`, `simpleWarning` or `simpleMessage`. See
+  `?frmtmb::frmtmb-conditions`.
+
+- **BREAKING:** a value that matches none of the choices of
+  `frm_lincmt(output =)` and `frm_ode(on_error =)` is refused with a
+  `frmtmb_ode_error` that names the argument, the value and the choices.
+  The old text was `'arg' should be one of ...`. A partial value still
+  matches.
+
 ## frmtmb.ode 0.4.1
 
 - Requires frmtmb 0.59.0.

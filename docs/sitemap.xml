@@ -132,6 +132,8 @@
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/index.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/news/index.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/as.array.frmtmb_draws.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/as.data.frame.frmtmb_draws.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/as.matrix.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/as.mcmc.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/as.mcmc.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/as_draws.frmtmb_draws.html</loc></url>
@@ -233,6 +235,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/prior_summary.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/psis.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/psis.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/ranef.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/ranef.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/reexports.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/reloo.frmtmb_draws.html</loc></url>
@@ -251,6 +254,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/standata.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/standata.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/update.frmtmb_draws.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/VarCorr.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/VarCorr.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/variables.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/waic.frmtmb_draws.html</loc></url>
@@ -322,6 +326,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/formula.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-autocor.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-conditions.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-draws-refusals.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-families.html</loc></url>

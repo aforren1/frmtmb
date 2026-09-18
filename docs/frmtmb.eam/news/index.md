@@ -1,5 +1,43 @@
 # Changelog
 
+## frmtmb.eam 0.9.0
+
+- Requires frmtmb 0.60.0, for `frm_stop()` and the other condition
+  helpers.
+
+- Requires the frmtmb release that exports `frm_stop()`; the
+  `frmtmb (>= 0.59.0)` floor must move to it.
+
+- **BREAKING:** every error, warning and message that frmtmb.eam raises
+  is classed. An error has the class
+  `c("frmtmb_eam_error", "frmtmb_error", "error", "condition")`, and
+  warnings and messages follow the same pattern, so
+  `tryCatch(frmtmb_error = )` catches any refusal. The class vector no
+  longer contains `simpleError`, `simpleWarning` or `simpleMessage`. See
+  `?frmtmb::frmtmb-conditions`.
+
+- **BREAKING:** a value that matches none of the choices of
+  `gddm_control(tridiagonal =)`, `gddm(lapse =)` and
+  `gddm_simulate(lapse =)` is refused with a `frmtmb_eam_error` that
+  names the argument, the value and the choices. The old text was
+  `'arg' should be one of ...`. A partial value still matches.
+
+- A refusal of the non-decision-time seam
+  ([`ndt_bound()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound.md),
+  [`ndt_bound_pending()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_bound_pending.md),
+  [`ndt_apply()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_apply.md)
+  and the bound they attach) has the subclass of the package that called
+  the seam. For
+  [`frmtmb.learn::rlddm()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/rlddm.html)
+  it is now `frmtmb_learn_error`, not `frmtmb_eam_error`.
+
+- A refusal that frmtmb raises about a family of this package, such as
+  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)
+  without `dec()`, is a `frmtmb_eam_error`.
+
+- The `frmtmb_eam_units_warning` now also has the classes
+  `frmtmb_eam_warning` and `frmtmb_warning`.
+
 ## frmtmb.eam 0.8.2
 
 - Requires frmtmb 0.59.0.

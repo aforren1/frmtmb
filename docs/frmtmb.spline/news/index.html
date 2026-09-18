@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,6 +44,15 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.spline/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.6.0" id="frmtmbspline-060">frmtmb.spline 0.6.0<a class="anchor" aria-label="anchor" href="#frmtmbspline-060"></a></h2>
+<ul><li><p>Requires frmtmb 0.60.0, for <code>frm_stop()</code> and the other condition helpers.</p></li>
+<li><p>Requires the frmtmb release that exports <code>frm_stop()</code>; the <code>frmtmb (&gt;= 0.59.0)</code> floor must move to it.</p></li>
+<li><p><strong>BREAKING:</strong> every error, warning and message that frmtmb.spline raises is classed. An error has the class <code>c("frmtmb_spline_error", "frmtmb_error", "error", "condition")</code>, and warnings and messages follow the same pattern, so <code>tryCatch(frmtmb_error = )</code> catches any refusal. The class vector no longer contains <code>simpleError</code>, <code>simpleWarning</code> or <code>simpleMessage</code>. See <code>?frmtmb::frmtmb-conditions</code>.</p></li>
+<li><p><strong>BREAKING:</strong> a value that matches none of the choices of <code>frm_curve_feature(type =)</code>, <code>royston_parmar(scale =)</code> and <code>rp_floored(action =)</code> is refused with a <code>frmtmb_spline_error</code> that names the argument, the value and the choices. The old text was <code>'arg' should be one of ...</code>. A partial value still matches.</p></li>
+<li><p>A refusal that frmtmb raises about <code><a href="../reference/royston_parmar.html">royston_parmar()</a></code>, such as <code>residuals(type = "deviance")</code>, is a <code>frmtmb_spline_error</code>.</p></li>
+<li><p>The <code>frmtmb_ps_span_warning</code> that <code><a href="../reference/frm_curve.html">frm_curve()</a></code> and <code><a href="../reference/frm_curve_deriv.html">frm_curve_deriv()</a></code> raise now also has the classes <code>frmtmb_spline_warning</code> and <code>frmtmb_warning</code>.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.5.2" id="frmtmbspline-052">frmtmb.spline 0.5.2<a class="anchor" aria-label="anchor" href="#frmtmbspline-052"></a></h2>
 <ul><li>Requires frmtmb 0.59.0.</li>

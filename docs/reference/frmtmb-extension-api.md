@@ -267,8 +267,15 @@ for the protocol these serve,
 [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md)
 for the family object they read,
 [frmtmb-robust-dpars](https://aforren1.github.io/frmtmb/reference/frmtmb-robust-dpars.md)
-for the accessors a DENSITY uses while the objective is taped, and the
-registries an extension fills from its own `.onLoad()`:
+for the accessors a DENSITY uses while the objective is taped,
+[frmtmb-conditions](https://aforren1.github.io/frmtmb/reference/frmtmb-conditions.md)
+for
+[`frm_stop()`](https://aforren1.github.io/frmtmb/reference/frmtmb-conditions.md),
+[`frm_warning()`](https://aforren1.github.io/frmtmb/reference/frmtmb-conditions.md)
+and
+[`frm_message()`](https://aforren1.github.io/frmtmb/reference/frmtmb-conditions.md),
+which an extension raises its conditions with, and the registries an
+extension fills from its own `.onLoad()`:
 [`frmtmb_register_frame_check()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_frame_check.md),
 [`frmtmb_register_aterm()`](https://aforren1.github.io/frmtmb/reference/frmtmb_register_aterm.md)
 and

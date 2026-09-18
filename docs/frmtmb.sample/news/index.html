@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,6 +45,15 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.sample/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.8.0" id="frmtmbsample-080">frmtmb.sample 0.8.0<a class="anchor" aria-label="anchor" href="#frmtmbsample-080"></a></h2>
+<ul><li><p>Requires frmtmb 0.60.0, for <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-conditions.html" class="external-link">frm_stop()</a></code> and the other condition helpers.</p></li>
+<li><p><code>tmbstan (&gt;= 1.2.1)</code> in Suggests, and <code>check_tmbstan_build()</code> now names that version as the remedy. The CI step that pinned a dated snapshot of the Stan trio is removed.</p></li>
+<li><p>Requires the frmtmb release that exports <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-conditions.html" class="external-link">frm_stop()</a></code>; the <code>frmtmb (&gt;= 0.59.0)</code> floor must move to it.</p></li>
+<li><p><strong>BREAKING:</strong> every error, warning and message that frmtmb.sample raises is classed. An error has the class <code>c("frmtmb_sample_error", "frmtmb_error", "error", "condition")</code>, and warnings and messages follow the same pattern, so <code>tryCatch(frmtmb_error = )</code> catches any refusal. The class vector no longer contains <code>simpleError</code>, <code>simpleWarning</code> or <code>simpleMessage</code>. See <code>?frmtmb::frmtmb-conditions</code>.</p></li>
+<li><p><strong>BREAKING:</strong> a value that matches none of the choices of <code>loo_compare(criterion =)</code>, <code>hypothesis(scope =)</code>, <code>pp_check(prefix =)</code> and <code>predictive_error(method =)</code> is refused with a <code>frmtmb_sample_error</code> that names the argument, the value and the choices. The old text was <code>'arg' should be one of ...</code>. A partial value still matches.</p></li>
+<li><p><code><a href="../reference/sample-posterior_summary.html">posterior_interval()</a></code>, <code><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix()</a></code>, <code><a href="../reference/draws-diagnostics.html">rhat()</a></code>, <code><a href="../reference/draws-diagnostics.html">neff_ratio()</a></code> and the other accessors refuse an exact variable name that the draws do not carry as a <code>frmtmb_sample_error</code>. The posterior package used to raise it as a plain error. The text keeps posterior’s words, <code>missing in the draws object</code>.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.7.0" id="frmtmbsample-070">frmtmb.sample 0.7.0<a class="anchor" aria-label="anchor" href="#frmtmbsample-070"></a></h2>
 <ul><li><p>Requires frmtmb 0.59.0, for <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">brms_par_labels()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">brms_coef_table()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">brms_stan_name()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">expand_b()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">varcorr_layout()</a></code>, the <code><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis()</a></code> helpers (<code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">hyp_eval_in()</a></code>, <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">hyp_expr_vars()</a></code>) and <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">check_prior_slots()</a></code> on <code>?frmtmb::frmtmb-sampling-api</code>.</p></li>
