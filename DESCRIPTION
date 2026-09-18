@@ -69,6 +69,7 @@ Suggests:
     quantreg,
     rmarkdown,
     rstan,
+    rstantools,
     RWiener,
     sandwich,
     splines2,

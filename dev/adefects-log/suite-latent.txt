@@ -1,0 +1,10 @@
+RESULT frmtmb.latent test-bracket-access.R pass=1 fail=0 err=0 skip=0
+RESULT frmtmb.latent test-conditions.R pass=6 fail=0 err=0 skip=0
+RESULT frmtmb.latent test-conditions-census.R pass=11 fail=0 err=0 skip=0
+RESULT frmtmb.latent test-hmm.R pass=118 fail=0 err=0 skip=0
+RESULT frmtmb.latent test-hmm-starts.R pass=84 fail=0 err=0 skip=0
+RESULT frmtmb.latent test-lca.R pass=105 fail=0 err=0 skip=0
+RESULT frmtmb.latent test-message-uniqueness.R pass=4 fail=0 err=0 skip=0
+RESULT frmtmb.latent test-scale.R pass=0 fail=0 err=0 skip=2
+RESULT frmtmb.latent test-structure-latent.R pass=20 fail=0 err=0 skip=0
+SUITE frmtmb.latent ran 9 files

@@ -265,17 +265,38 @@ first_divergence <- function(b, o) {
   if (length(d)) d[[1L]] else NA_integer_
 }
 
+# The method UseMethod() would reach, wherever it was registered. A
+# method lands in the table of the environment of the GENERIC it was
+# registered against, and that is this package's namespace only while
+# this package DEFINES the generic. `log_lik` is frmtmb's now,
+# re-exported here, so its `frmtmb_draws` method lives in frmtmb's table
+# or in rstantools', depending on what was loaded at registration time;
+# reading only this package's table errored on it the day that moved.
+draws_method <- function(nm) {
+  ns <- list(asNamespace("frmtmb.sample"), asNamespace("frmtmb"))
+  for (p in c("rstantools", "loo", "brms", "coda", "bayesplot")) {
+    if (isNamespaceLoaded(p)) ns <- c(ns, list(asNamespace(p)))
+  }
+  for (e in ns) {
+    tb <- get0(".__S3MethodsTable__.", envir = e, inherits = FALSE)
+    if (is.null(tb)) next
+    f <- get0(paste0(nm, ".frmtmb_draws"), envir = tb, inherits = FALSE)
+    if (is.function(f)) return(f)
+  }
+  NULL
+}
+
 test_that("ten brms-facing methods take brms's arguments in brms's order", {
   # generated from the installed brms rather than typed, so it cannot
   # drift from the package it is matching
   skip_if_not_installed("brms")
-  tb <- get(".__S3MethodsTable__.", envir = asNamespace("frmtmb.sample"),
-            inherits = FALSE)
   bad <- character()
   for (nm in brms_ten) {
     b <- positional_args(get(paste0(nm, ".brmsfit"),
                              envir = asNamespace("brms")))
-    o <- positional_args(get(paste0(nm, ".frmtmb_draws"), envir = tb))
+    m <- draws_method(nm)
+    expect_true(is.function(m), label = paste("method reached:", nm))
+    o <- positional_args(m)
     p <- first_divergence(b, o)
     if (!is.na(p)) {
       bad <- c(bad, sprintf("%s: position %d is brms's `%s` and this ",

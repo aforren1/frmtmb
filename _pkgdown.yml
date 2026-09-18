@@ -92,6 +92,7 @@ reference:
   - drop1.frmtmb_fit
   - as_draws
   - loo
+  - log_lik
   - bayes_R2
   - posterior_summary
   - expose_functions

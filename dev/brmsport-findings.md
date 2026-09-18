@@ -195,42 +195,40 @@ text, and frmtmb's message. Pasted verbatim from
 
 | file | assertions | pass | defect | divergence | pending 2.6d | cannot transfer |
 |---|---|---|---|---|---|---|
-| `tests.brm.R` | 23 | 16 | 5 | 0 | 0 | 2 |
+| `tests.brm.R` | 23 | 18 | 3 | 0 | 0 | 2 |
 | `tests.brmsfit-helpers.R` | 3 | 0 | 0 | 0 | 0 | 3 |
-| `tests.brmsfit-methods.R` | 223 | 61 | 92 | 29 | 12 | 29 |
+| `tests.brmsfit-methods.R` | 223 | 66 | 86 | 29 | 13 | 29 |
 | `tests.brmsformula.R` | 16 | 7 | 0 | 0 | 0 | 9 |
 | `tests.brmsterms.R` | 5 | 0 | 0 | 0 | 0 | 5 |
-| `tests.data-helpers.R` | 6 | 0 | 3 | 0 | 0 | 3 |
+| `tests.data-helpers.R` | 6 | 1 | 2 | 0 | 0 | 3 |
 | `tests.emmeans.R` | 11 | 4 | 2 | 0 | 0 | 5 |
 | `tests.families.R` | 84 | 45 | 1 | 1 | 0 | 37 |
 | `tests.priors.R` | 36 | 17 | 4 | 4 | 0 | 11 |
 | `tests.standata.R` | 87 | 42 | 5 | 0 | 0 | 40 |
-| **total** | **494** | **192** | **112** | **34** | **12** | **144** |
+| **total** | **494** | **200** | **103** | **34** | **13** | **144** |
 
 ### Outcome by class
 
 | outcome | class | assertions |
 |---|---|---|
-| pass | - | 165 |
-| pass | own-words | 27 |
+| pass | - | 170 |
+| pass | own-words | 30 |
 | defect | accepts-refused | 3 |
 | defect | argument | 23 |
-| defect | different-error | 1 |
+| defect | different-error | 2 |
 | defect | filed | 1 |
-| defect | fit-data | 13 |
-| defect | internal-error | 5 |
-| defect | misparse | 1 |
+| defect | internal-error | 6 |
 | defect | naming | 2 |
-| defect | output | 5 |
+| defect | output | 7 |
 | defect | refuses-accepted | 28 |
-| defect | shape | 22 |
-| defect | silent | 4 |
+| defect | shape | 25 |
+| defect | silent | 2 |
 | defect | spelling | 4 |
 | divergence | class | 18 |
 | divergence | hollow | 1 |
 | divergence | no-draws | 8 |
 | divergence | policy | 7 |
-| pending 2.6d | shape | 12 |
+| pending 2.6d | shape | 13 |
 | cannot transfer | absent | 106 |
 | cannot transfer | brms-internal | 10 |
 | cannot transfer | fixture | 1 |
@@ -238,9 +236,9 @@ text, and frmtmb's message. Pasted verbatim from
 | cannot transfer | no-draws | 1 |
 | cannot transfer | stan | 22 |
 
-Bin 1 passes: 192 of 494 (38.9%).
-Against bins 1 and 2: 192 of 823 (23.3%); bin 2 was not ported.
-Runs testthat alone would count as a pass and the harness does not (missing function or object, stale object, argument-name refusal, a NULL read through a partial $ match), over both packages: 27; hollow passes marked by hand: 1.
+Bin 1 passes: 200 of 494 (40.5%).
+Against bins 1 and 2: 200 of 823 (24.3%); bin 2 was not ported.
+Runs testthat alone would count as a pass and the harness does not, over both packages: 26 (19 vacuous, 7 reading a stale object); hollow passes marked by hand: 1.
 
 ### The frmtmb.sample half
 
@@ -510,3 +508,46 @@ Guards: 60 of 60 (`dev/brmsport-log/guards.txt`). Tier: 15 of 15 files,
 verdict or class changed this round: the five emmeans rows,
 `brmsfit-methods:394` (divergence, `no-draws` to `hollow`) and
 `brmsfit-methods:1035` (defect, `hollow` to `fit-data`).
+
+## 12. What lane `wt-adefects` changed, and when
+
+Item 2.6f, the silent half. That lane fixed five of the eight silent
+defects section 5 ranks, and the generated block in section 4 above is
+its ledger, not round 2's. Section 5 is left as this lane WROTE it,
+because it is the record of what the port found; read it beside
+`dev/adefects-findings.md`, which carries the fix and the
+before-and-after number for each.
+
+| section 5 item | what happened |
+|---|---|
+| S2, `ar()`/`ma()` with an expression as time | FIXED. `brm:106` is now an own-words pass |
+| S3, `ar(gr = g1/g2)` groups by the quotient | FIXED. `brm:108` is now an own-words pass |
+| S5, a hypothesis with no relation | FIXED. `brmsfit-methods:417` passes on brms's own pattern, because frmtmb's refusal contains brms's sentence |
+| S8, `fit$data` is `fit$data2` | FIXED. The 13 `fit-data` rows are gone: five hold (`:179`, `:567`, `:675`, `:1035`, and `data-helpers:9` as own words), and the other eight were reclassified to the fault the run now reports |
+| S1, S4, S6, S7 | not this lane's; S4 and S6 belong to `wt-shapes` |
+
+Totals, before and after (`dev/brmsport-log/ledger-summary.md`):
+
+| outcome | round 2 | after `wt-adefects` |
+|---|---|---|
+| pass | 192 | 200 |
+| defect | 112 | 103 |
+| divergence | 34 | 34 |
+| pending 2.6d | 12 | 13 |
+| cannot transfer | 144 | 144 |
+
+The eight rows that moved, and the eight whose class moved with the
+`fit-data` blocker gone, are listed in `dev/adefects-verdicts.R`, which
+applies them idempotently. The harness itself is unchanged; the guards
+still report 60 of 60 and the tier 15 of 15 files with 631
+expectations.
+
+**Three harness scripts took a path as an argument.**
+`dev/brmsport-run.R`, `dev/brmsport-record.sh`, `dev/brmsport-tier.sh`
+and `dev/brmsport-guards.R` named `frmtmb-wt-brmsport` and
+`brmsport-lib`, neither of which outlived that lane, and
+`dev/brmsport-run.R` asserted the StanHeaders 2.32.10 pin, which was
+removed on 2026-09-17. They now read `FRMTMB_PORT_ROOT` and
+`FRMTMB_PORT_LIB`, defaulting to the main checkout and the round's
+reference build, and assert the user Makevars flag that replaced the
+pin, as `dev/release/run-tests.R` does.

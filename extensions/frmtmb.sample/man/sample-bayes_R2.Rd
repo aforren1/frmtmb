@@ -74,5 +74,5 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
 }
 }
 \seealso{
-\code{\link[=log_lik]{log_lik()}}, \code{\link[frmtmb:loo]{frmtmb::loo()}}
+\code{\link[frmtmb:log_lik]{frmtmb::log_lik()}}, \code{\link[frmtmb:loo]{frmtmb::loo()}}
 }

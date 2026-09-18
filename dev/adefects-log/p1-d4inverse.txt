@@ -1,0 +1,5 @@
+alt$data is the frame          : TRUE 
+PIN 1 name in names(alt)      : FALSE (want FALSE)
+PIN 2 [[exact = TRUE]] non-NULL: FALSE (want FALSE)
+PIN 3 no $ method              : FALSE (want FALSE)
+PIN 4 delta > 0.9 * cols       : FALSE (want FALSE; delta = 0 )

@@ -1,0 +1,4 @@
+frmtmb : 1045 of 1045 functions identical to the source
+frmtmb.sample : 199 of 199 functions identical to the source
+frmtmb versions: 0.60.0 0.8.0 
+the lane library is this worktree's source

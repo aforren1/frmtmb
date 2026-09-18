@@ -38,16 +38,16 @@ test_that("a covariate named sigma is b_sigma, and sigma is the SD", {
                rep(unname(fixef(fit)$mu[["sigma"]]), 2L), tolerance = 1e-10)
 
   # class = NULL reads it as written, which is the residual SD
-  expect_equal(hypothesis(fit, "sigma", class = NULL)$hypothesis$Estimate,
+  expect_equal(hypothesis(fit, "sigma = 0", class = NULL)$hypothesis$Estimate,
                unname(sigma(fit)), tolerance = 1e-8)
-  expect_equal(hypothesis(fit, "b_sigma", class = NULL)$hypothesis$Estimate,
+  expect_equal(hypothesis(fit, "b_sigma = 0", class = NULL)$hypothesis$Estimate,
                unname(fixef(fit)$mu[["sigma"]]), tolerance = 1e-10)
 
   # both names are listed, and no dot spelling exists any more
   vv <- variables(fit)
   expect_true(all(c("b_sigma", "sigma") %in% vv))
   expect_false(any(startsWith(vv, ".")))
-  expect_error(hypothesis(fit, ".sigma", class = NULL),
+  expect_error(hypothesis(fit, ".sigma = 0", class = NULL),
                "cannot be found in the model")
 })
 
@@ -75,7 +75,7 @@ test_that("a clean model says nothing and grows no dot names", {
   expect_no_message(hypothesis(fit, c("b_v = 0", "sigma > 0"),
                                class = NULL))
   expect_false(any(startsWith(variables(fit), ".")))
-  expect_equal(hypothesis(fit, "sigma", class = NULL)$hypothesis$Estimate,
+  expect_equal(hypothesis(fit, "sigma = 0", class = NULL)$hypothesis$Estimate,
                unname(sigma(fit)), tolerance = 1e-8)
 })
 

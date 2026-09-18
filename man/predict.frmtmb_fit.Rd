@@ -52,7 +52,15 @@ with the GP conditional variance added to the standard errors.}
 \item{allow_new_levels}{Predict unseen grouping-factor levels at the
 population level instead of erroring. A factor-smooth term
 (\code{bs = "fs"}) follows the same rule: a level it never saw
-contributes nothing, which leaves the population curve.}
+contributes nothing, which leaves the population curve.
+
+It also makes the grouping COLUMN optional, as it does in brms
+(\code{validate_newdata()}: "grouping factors do not need to be
+specified by the user if new levels are allowed"). A column
+\code{newdata} does not carry is filled with \code{NA}, so every row is an
+unseen level. Without \code{allow_new_levels} a missing grouping column
+is refused by name, and the refusal offers this argument and
+\code{re_formula = NA}, which drops the random effects instead.}
 
 \item{...}{Refused. An argument this method does not have is an
 error naming it, and the two lme4 spellings that were live in

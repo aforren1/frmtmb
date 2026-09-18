@@ -59,11 +59,28 @@ The argument order is brms's, so the FIRST positional argument is
 \code{time} and the second is \code{gr}: write \code{cosy(gr = subj)}, not
 \code{cosy(subj)}.
 \describe{
-\item{\code{time}}{The variable whose levels index the correlation. Omit
-it (brms's \code{time = NA}) to use each row's position within its
-group.}
-\item{\code{gr}}{The grouping variable the residual factorizes over.
-Omit it to treat the whole data set as one series.}
+\item{\code{time}}{ONE variable name, whose levels index the
+correlation. Omit it (brms's \code{time = NA}) to use each row's
+position within its group. An expression is refused rather than
+evaluated, as it is in brms: the distinct values of the index are
+the time points and the distance between them is the lag, so
+\code{ar(x + t, g)} would be indexed by the sum. Compute the column
+first and name it.}
+\item{\code{gr}}{The grouping variable the residual factorizes over, or
+several crossed with \code{:}. Omit it to treat the whole data set as
+one series. \code{gr = a:b} crosses the two, on numeric codes as well
+as on factors; every other operator is refused rather than
+evaluated, again as in brms ("It may contain only variable names
+combined by the symbol ':'"), because \code{gr = a/b} would otherwise
+group by the quotient. \code{gr = factor(g)} and
+\code{gr = interaction(a, b)} are refused for the same reason: the
+grouping variable is made a factor here anyway, so write
+\code{gr = g} and \code{gr = a:b}. The crossing PASTES the levels with an
+underscore, as brms's \code{combine_groups()} does, so it is not
+injective: levels \verb{("x_1", "2")} and \verb{("x", "1_2")} both become
+\code{"x_1_2"} and share one series, where \code{interaction()} would keep
+them apart. brms merges them too; make the column yourself if the
+labels can collide.}
 \item{\code{p}, \code{q}}{Autoregressive and moving-average orders.}
 \item{\code{cov}}{Must be \code{TRUE}. brms's default \code{cov = FALSE} is a
 different likelihood (a residual regression that conditions on

@@ -1,0 +1,58 @@
+pass verdict, assertion holds                                  failures 0 (want 0) OK
+pass verdict, assertion fails                                  failures 1 (want 1) OK
+defect verdict, assertion fails                                failures 0 (want 0) OK
+defect verdict, assertion now holds (stale verdict)            failures 1 (want 1) OK
+pass verdict, expect_error met by a missing function           failures 1 (want 1) OK
+pass verdict, expect_error met by a real refusal               failures 0 (want 0) OK
+pass verdict, bare expect_error met by an argument refusal     failures 1 (want 1) OK
+pass verdict, reads an object whose assignment failed          failures 1 (want 1) OK
+pass verdict, object reassigned successfully after a failure   failures 0 (want 0) OK
+not-run assertion recorded as pass                             failures 1 (want 1) OK
+hollow verdict, still holds                                    failures 0 (want 0) OK
+hollow verdict, stops holding                                  failures 1 (want 1) OK
+H1 regex expect_error met by an argument-name refusal          failures 1 (want 1) OK
+H1 control: the same regex met by a value refusal              failures 0 (want 0) OK
+H2 bare expect_error met by a 'cannot honor' refusal           failures 1 (want 1) OK
+H2 control: bare expect_error met by a real refusal            failures 0 (want 0) OK
+H3 expect_equal on two NULLs through fit$data                  failures 1 (want 1) OK
+H3 control: expect_equal on a NULL against the literal NULL    failures 0 (want 0) OK
+H3 control: expect_equal on two equal non-NULL values          failures 0 (want 0) OK
+H4 regex met by R's missing-argument error                     failures 1 (want 1) OK
+H4 control: the regex met by a designed refusal                failures 0 (want 0) OK
+H5 stale object through x$a <-                                 failures 1 (want 1) OK
+H5 control: a successful x$a <- leaves x fresh                 failures 0 (want 0) OK
+H5 control: x$a <- after a failed x <- keeps x stale           failures 1 (want 1) OK
+H6 a missing function 'of mode function was not found'         failures 1 (want 1) OK
+H7/V3 is.numeric() on NA is not rejected by a rule             failures 0 (want 0) OK
+H7 hand-marked hollow: still holds                             failures 0 (want 0) OK
+H7 hand-marked hollow: stops holding                           failures 1 (want 1) OK
+U1 expect_null on a partial $ read                             failures 1 (want 1) OK
+U1 control: expect_null on a final absent name                 failures 0 (want 0) OK
+U2 expect_true(is.null()) on a partial $ read                  failures 1 (want 1) OK
+U5 expect_length on a partial $ read                           failures 1 (want 1) OK
+U5 control: expect_length on a real element                    failures 0 (want 0) OK
+U6 argument refusal in other words                             failures 1 (want 1) OK
+U7 stale through assign()                                      failures 1 (want 1) OK
+U7 control: a successful assign() is fresh                     failures 0 (want 0) OK
+U8 NULL against a variable holding NULL, partial read          failures 1 (want 1) OK
+V1 two genuinely NULL names() pass                             failures 0 (want 0) OK
+V2 an assertion ABOUT an argument refusal passes               failures 0 (want 0) OK
+O2 own words reading a stale object                            failures 1 (want 1) OK
+O2 control: the same own-words row on a fresh object           failures 0 (want 0) OK
+O3 own-words pattern '.' is not specific                       failures 1 (want 1) OK
+O3 own-words pattern matching the empty string                 failures 1 (want 1) OK
+O3 own-words pattern matching an unrelated refusal only        failures 1 (want 1) OK
+U3 expect_type() on NA is not rejected by a rule               failures 0 (want 0) OK
+U4 compound type check on NA is not rejected by a rule         failures 0 (want 0) OK
+reviewer control: bare expect_error met by 'has no argument'   failures 1 (want 1) OK
+reviewer control: simple stale object                          failures 1 (want 1) OK
+own words: frmtmb's refusal of the same case holds             failures 0 (want 0) OK
+own words: a DIFFERENT error does not satisfy it (brm:81)      failures 1 (want 1) OK
+own words: no error at all does not satisfy it                 failures 1 (want 1) OK
+own words: brms's pattern already holds (stale verdict)        failures 1 (want 1) OK
+own words: fixed = TRUE in brms's call is dropped              failures 0 (want 0) OK
+helper copy identical to core: TRUE; a mutated copy: FALSE
+helper-copy test on the real copy: pass 33 fail 0 skip 0; on a mutated copy: pass 32 fail 1 skip 0
+own-words rows with a caught message: 30 of 30; patterns matching another row's message: 0 (); an unspecific control pattern matches: 1
+families file passes with the variable unset: 0 and set: 84
+60 of 60 guards behave; the gate skips

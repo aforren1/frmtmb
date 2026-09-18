@@ -229,7 +229,25 @@ maximum-likelihood quantity refuse on that object.}
 are given. See \code{\link[=frmtmb_control]{frmtmb_control()}} for the levels and the output.}
 }
 \value{
-An object of class \code{frmtmb_fit}.
+An object of class \code{frmtmb_fit}. It is a list, and two of its
+elements are read directly often enough to name here. \code{fit$data2}
+is the \code{data2} list of known matrices. \code{fit$data} is the MODEL
+FRAME, the object \code{\link[=model.frame]{model.frame()}} returns: one column per term the
+formula names, under the term's own spelling, so a model with
+\code{offset(Age)} carries a literal \code{offset(Age)} column and a data
+column no term uses is absent. brms keeps its VALIDATED RAW DATA
+under the same name, so \code{names(fit$data)} and \code{ncol(fit$data)}
+differ from brms on any model with a transformed term, and
+\code{newdata = fit$data} is not the brms idiom it looks like. The
+element exists because brms-shaped code reads \code{fit$data} and used
+to reach the \code{data2} list through \code{$}'s partial matching; the model
+frame is the object this package already had. It is the same object
+in memory that \code{fit$frame[["data_frame"]]} holds, but R's
+serializer does not deduplicate a shared value, so a SAVED fit
+carries the frame twice: 5.3\% more raw bytes and 14.0\% more gzipped
+on a 20,000-row fit, 0.16\% and 1.49\% on a 240-row one
+(\code{dev/adefects-log/p1-dollar.txt}). Everything else the fit carries
+has an accessor, and the accessor is the supported route.
 }
 \description{
 Fits a model specified with \code{\link[=bf]{bf()}} by maximum likelihood, using the

@@ -1,0 +1,87 @@
+arm lane lib C:/Users/adf44/source/r/adefects-lib root . 
+frmtmb 0.60.0 brms 2.23.0 
+harvested autocor-shaped calls: 137 
+harvested hypothesis strings: 180 
+
+== D1/D2 autocor term grammar, distinct calls: 57 
+  both accept : 29 
+  both refuse : 3 
+  FALSE ALARM (frmtmb refuses, brms accepts): 23 
+    brms:tests.brm.R ma(x)
+    brms:tests.brm.R arma(x)
+    brms:tests.posterior_epred.R arma(visit, patient)
+    brms:tests.priors.R ar()
+    brms:tests.stancode.R arma(p = 2, q = 2, gr = g)
+    brms:tests.stancode.R ma()
+    brms:tests.stancode.R ar(time)
+    brms:tests.stancode.R ma(time, q = 2)
+    brms:tests.standata.R ma(tim, g)
+    brms:tests.standata.R ar(tim, g, p = 2)
+    brms:tests.standata.R ar(tim)
+    brms:tests.standata.R arma()
+    brms:tests.standata.R ar(time, id)
+    brms:tests.standata.R ma(time, id)
+    brms:ar.Rd ar(p = 2)
+    brms:arma.Rd arma(p = 2, q = 1)
+    brms:autocor-terms.Rd arma(p = 1, q = 1)
+    own:test-autocor.R ar(week, subj)
+    own:test-autocor.R arma(week, subj)
+    own:test-autocor.R unstr(week)
+    own:test-brms-likelihood.R ar(time, gr = g, p = 1)
+    own:test-nlf.R ar(x, g)
+    own:test-compat-preflight.R ar(x)
+  MISSED (frmtmb accepts, brms refuses): 2 
+    own:test-autocor.R ar(week, subj, p = 2, cov = TRUE)
+    own:test-priors-autocor-classes.R ar(t, g, p = 2, cov = TRUE)
+  accepted by both, listed:
+    brms:tests.stancode.R arma(cov = TRUE)
+    brms:tests.stancode.R ar(cov = TRUE)
+    brms:tests.stancode.R ma(cov = TRUE)
+    brms:tests.stancode.R arma(time, cov = TRUE)
+    brms:tests.stancode.R ar(time, cov = TRUE)
+    brms:tests.stancode.R cosy(time)
+    brms:tests.stancode.R unstr(tim, g)
+    brms:tests.standata.R ar(tim, g, cov = TRUE)
+    brms:cosy.Rd cosy()
+    brms:unstr.Rd unstr(visit, patient)
+    own:test-autocor.R ar(week, subj, cov = TRUE)
+    own:test-autocor.R ma(week, subj, cov = TRUE)
+    own:test-autocor.R arma(week, subj, cov = TRUE)
+    own:test-autocor.R cosy(week, subj)
+    own:test-autocor.R unstr(week, subj)
+    own:test-autocor.R ar(gr = subj, cov = TRUE)
+    own:test-autocor.R cosy(subj)
+    own:test-autocor.R cosy(gr = subj)
+    own:test-autocor.R ar(one, subj, cov = TRUE)
+    own:test-autocor.R ar(t, cov = TRUE)
+    own:test-autocor.R unstr(t, g)
+    own:test-brms-likelihood.R ar(time, gr = g, p = 1, cov = TRUE)
+    own:test-brms-likelihood.R cosy(time, gr = g)
+    own:test-brms-likelihood.R unstr(time, gr = g)
+    own:test-importance.R ar(wk, subj, cov = TRUE)
+    own:test-portability.R ar(t, subj, cov = TRUE)
+    own:test-priors-autocor-classes.R ar(t, g, cov = TRUE)
+    own:test-priors-autocor-classes.R cosy(t, g)
+    own:test-priors-autocor-classes.R arma(t, g, cov = TRUE)
+Warning messages:
+1: Sampling from the prior of an overall intercept is not possible by default. See the documentation of the 'sample_prior' argument in help('brm'). 
+2: Sampling from the prior of an overall intercept is not possible by default. See the documentation of the 'sample_prior' argument in help('brm'). 
+3: Sampling from the prior of an overall intercept is not possible by default. See the documentation of the 'sample_prior' argument in help('brm'). 
+4: Sampling from the prior of an overall intercept is not possible by default. See the documentation of the 'sample_prior' argument in help('brm'). 
+5: Sampling from the prior of an overall intercept is not possible by default. See the documentation of the 'sample_prior' argument in help('brm'). 
+6: Sampling from the prior of an overall intercept is not possible by default. See the documentation of the 'sample_prior' argument in help('brm'). 
+7: Sampling from the prior of an overall intercept is not possible by default. See the documentation of the 'sample_prior' argument in help('brm'). 
+
+== D3 hypothesis grammar, distinct strings: 92 
+  both accept : 88 
+  both refuse : 4 
+  FALSE ALARM (frmtmb refuses, brms accepts): 0 
+  MISSED (frmtmb accepts, brms refuses): 0 
+  refused by both, listed:
+    brms:tests.brmsfit-methods.R 'b_Age x 0'
+    own:test-effects.R 'x1 = 0 = 1'
+    own:test-portability.R 'x > 0 > 1'
+    own:test-portability.R 'x > 0 = 1'
+wrote dev/adefects-log/falsealarm-lane.tsv 149 rows
+
+DONE

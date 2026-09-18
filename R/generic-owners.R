@@ -123,6 +123,7 @@ frm_generic_owners <- list(
   loo = "loo",
   loo_compare = "loo",
   waic = "loo",
+  log_lik = "rstantools",
   bayes_R2 = "rstantools",
   prior_summary = "rstantools",
   pp_check = "bayesplot",

@@ -1,0 +1,28 @@
+lib C:/Users/adf44/source/r/adefects-lib 
+frmtmb 0.60.0 frmtmb.latent 0.4.0 brms 2.23.0 
+
+== D4 what the `data` element costs
+  address of fit$data               @0x00000220a2baca58 
+  address of fit$frame$data_frame   @0x00000220a2baca58 
+  SAME OBJECT: TRUE 
+  control, an equal copy of the same frame: FALSE 
+  control, object.size double counts a shared object:
+    object.size(list(mf))       8032 bytes
+    object.size(list(mf, mf))   16016 bytes
+    object.size(mf)             7976 bytes
+  so the +7976 bytes object.size() reports on the fit is the double count, not an allocation
+  lobstr is not installed; the address identity is the evidence
+  names(fit): spec frame obj opt sdr REML estimates prior bform call data data2 control quadrature importance lower upper par_units cache 
+  brms keeps the model frame there too: dim(ex1$data) = 40 x 7 
+
+== D1/D2 which refusal an autocorrelation term reaches first
+  ar(x + y, g)      : ar(): the time index must be ONE variable name, not the expression `x  
+  ar(gr = g1/g2)    : ar(): the grouping term must be variable names combined by `:`, not th 
+  ar(x, g)          : ar(): only the residual-covariance formulation is implemented, so the  
+
+== D5 frmtmb.latent's hmm/lca readers on an atomic argument
+  every exported reader, given 1, a string, NULL and an empty list
+  readers scanned: 5 
+  arguments that do NOT get a classed frmtmb refusal: 0 
+
+DONE

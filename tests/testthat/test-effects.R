@@ -126,7 +126,7 @@ test_that("hypothesis reproduces Wald results and the delta method", {
   fit <- frm(bf(y ~ x1 + x2) + gaussian(), data = dd)
 
   # single coefficient: matches summary's z-test
-  h1 <- hypothesis(fit, "x1")$hypothesis
+  h1 <- hypothesis(fit, "x1 = 0")$hypothesis
   sm <- summary(fit)$coefficients$mu
   expect_equal(h1$Estimate, sm["x1", "Estimate"], tolerance = 1e-10)
   expect_equal(h1$Est.Error, sm["x1", "Std. Error"], tolerance = 1e-8)
@@ -139,11 +139,11 @@ test_that("hypothesis reproduces Wald results and the delta method", {
 
   # a nonlinear expression of a natural-scale dpar, which brms names
   # `sigma` when sigma has no formula
-  h3 <- hypothesis(fit, "exp(log(sigma))", class = NULL)
+  h3 <- hypothesis(fit, "exp(log(sigma)) = 0", class = NULL)
   expect_equal(h3$hypothesis$Estimate, sigma(fit), tolerance = 1e-8)
 
   # multiple hypotheses come back as rows
-  hh <- hypothesis(fit, c("x1", "x2", "x1 + x2 = 1"))
+  hh <- hypothesis(fit, c("x1 = 0", "x2 = 0", "x1 + x2 = 1"))
   expect_equal(nrow(hh$hypothesis), 3L)
   expect_error(hypothesis(fit, "x1 = 0 = 1"), "at most one")
 })

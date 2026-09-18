@@ -195,7 +195,25 @@
 #' @param verbose Report fit progress; a shortcut for
 #'   `control = frmtmb_control(verbose =)`, whose value wins when both
 #'   are given. See [frmtmb_control()] for the levels and the output.
-#' @return An object of class `frmtmb_fit`.
+#' @return An object of class `frmtmb_fit`. It is a list, and two of its
+#'   elements are read directly often enough to name here. `fit$data2`
+#'   is the `data2` list of known matrices. `fit$data` is the MODEL
+#'   FRAME, the object [model.frame()] returns: one column per term the
+#'   formula names, under the term's own spelling, so a model with
+#'   `offset(Age)` carries a literal `offset(Age)` column and a data
+#'   column no term uses is absent. brms keeps its VALIDATED RAW DATA
+#'   under the same name, so `names(fit$data)` and `ncol(fit$data)`
+#'   differ from brms on any model with a transformed term, and
+#'   `newdata = fit$data` is not the brms idiom it looks like. The
+#'   element exists because brms-shaped code reads `fit$data` and used
+#'   to reach the `data2` list through `$`'s partial matching; the model
+#'   frame is the object this package already had. It is the same object
+#'   in memory that `fit$frame[["data_frame"]]` holds, but R's
+#'   serializer does not deduplicate a shared value, so a SAVED fit
+#'   carries the frame twice: 5.3% more raw bytes and 14.0% more gzipped
+#'   on a 20,000-row fit, 0.16% and 1.49% on a 240-row one
+#'   (`dev/adefects-log/p1-dollar.txt`). Everything else the fit carries
+#'   has an accessor, and the accessor is the supported route.
 #'
 #' @section What a nonlinear body sees:
 #' The body of a nonlinear formula - the response formula under
@@ -992,7 +1010,8 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   fit <- structure(
     list(spec = spec, frame = frame, obj = obj, opt = opt, sdr = NULL,
          REML = REML, estimates = est, prior = prior,
-         bform = bform, call = cl, data2 = data2,
+         bform = bform, call = cl, data = frame[["data_frame"]],
+         data2 = data2,
          control = control, quadrature = isTRUE(quadrature),
          importance = imp_record(imp),
          lower = lower_arg, upper = upper_arg, par_units = par_units,
@@ -1050,7 +1069,8 @@ unfitted_object <- function(spec, frame, obj, template, bform, cl, REML,
   structure(
     list(spec = spec, frame = frame, obj = obj, opt = NULL, sdr = NULL,
          REML = REML, estimates = est, prior = prior,
-         bform = bform, call = cl, data2 = data2,
+         bform = bform, call = cl, data = frame[["data_frame"]],
+         data2 = data2,
          control = control, quadrature = FALSE, importance = NULL,
          lower = lower, upper = upper, par_units = NULL,
          cache = new.env(parent = emptyenv())),

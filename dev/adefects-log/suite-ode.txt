@@ -1,0 +1,11 @@
+RESULT frmtmb.ode test-bracket-access.R pass=1 fail=0 err=0 skip=0
+RESULT frmtmb.ode test-compat.R pass=15 fail=0 err=0 skip=0
+RESULT frmtmb.ode test-conditions.R pass=6 fail=0 err=0 skip=0
+RESULT frmtmb.ode test-conditions-census.R pass=11 fail=0 err=0 skip=0
+RESULT frmtmb.ode test-lincmt.R pass=65 fail=0 err=0 skip=0
+RESULT frmtmb.ode test-ode.R pass=72 fail=0 err=0 skip=0
+RESULT frmtmb.ode test-ode-events.R pass=142 fail=0 err=0 skip=0
+RESULT frmtmb.ode test-ode-nlf.R pass=4 fail=0 err=0 skip=0
+RESULT frmtmb.ode test-ode-tv.R pass=27 fail=0 err=0 skip=0
+RESULT frmtmb.ode test-scale.R pass=0 fail=0 err=0 skip=1
+SUITE frmtmb.ode ran 10 files

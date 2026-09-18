@@ -36,7 +36,7 @@ psis(log_ratios, ...)
 \item{x}{A \code{frmtmb_draws} from \code{\link[=frm_sample]{frm_sample()}}, or (for
 \code{loo_compare()}) already-computed criteria.}
 
-\item{ndraws, resp}{Passed to \code{\link[=log_lik]{log_lik()}}.}
+\item{ndraws, resp}{Passed to \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}}.}
 
 \item{...}{Further models for \code{loo_compare()}; otherwise passed to
 the loo package function.}
@@ -51,7 +51,7 @@ the arguments, as loo does.}
 pointwise log-likelihood supplies the importance ratios.}
 
 \item{newdata}{For \code{psis()}, accepted in brms's own second position
-and refused, because \code{\link[=log_lik]{log_lik()}} does not take it.}
+and refused, because \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}} does not take it.}
 
 \item{model_name}{For \code{psis()}, brms's label for the model.
 Accepted and unused: a \code{psis} object has nothing to label.}
@@ -62,7 +62,7 @@ package.
 }
 \description{
 \code{loo()} runs Pareto-smoothed importance-sampling LOO and \code{waic()} the
-widely applicable information criterion, both on the \code{\link[=log_lik]{log_lik()}}
+widely applicable information criterion, both on the \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}}
 matrix, by handing it to \code{loo::loo.matrix()} and \code{loo::waic.matrix()}
 unchanged. The returned objects are the loo package's own, so
 \code{print()} and \code{loo::pareto_k_table()} work on them directly.
@@ -120,5 +120,5 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
 }
 }
 \seealso{
-\code{\link[=log_lik]{log_lik()}}, \code{\link[frmtmb:bayes_R2]{frmtmb::bayes_R2()}}
+\code{\link[frmtmb:log_lik]{frmtmb::log_lik()}}, \code{\link[frmtmb:bayes_R2]{frmtmb::bayes_R2()}}
 }

@@ -372,7 +372,7 @@ test_that("the parameters reach summary, confint and hypothesis", {
   h <- hypothesis(f, "ar[1] - 0.5 = 0", class = NULL)
   expect_true(is.finite(h$hypothesis$Est.Error))
   # the fitted R is what the natural-scale name reports
-  expect_equal(hypothesis(f, "ar[1]", class = NULL)$hypothesis$Estimate,
+  expect_equal(hypothesis(f, "ar[1] = 0", class = NULL)$hypothesis$Estimate,
                autocor_matrix(f)[1, 2], tolerance = 1e-8)
 })
 

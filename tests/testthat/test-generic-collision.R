@@ -27,8 +27,8 @@
 brms_shared <- c(
   "as_draws", "as_draws_array", "as_draws_df", "as_draws_list",
   "as_draws_matrix", "as_draws_rvars", "nchains", "ndraws",
-  "niterations", "nvariables", "variables", "loo", "loo_compare",
-  "waic", "bayes_R2", "prior_summary", "pp_check",
+  "niterations", "nvariables", "variables", "log_lik", "loo",
+  "loo_compare", "waic", "bayes_R2", "prior_summary", "pp_check",
   "conditional_effects", "expose_functions", "hypothesis",
   "posterior_summary", "LOO", "WAIC", "ngrps", "fixef", "ranef",
   "VarCorr"

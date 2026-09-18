@@ -391,8 +391,15 @@ when it refuses one:
 writes them, in the model formula, and mean what brms means under
 `cov = TRUE`: the residuals of one group become a single correlated
 draw, `y_g ~ N(mu_g, D R D)` with `D` the diagonal of that group's
-`sigma` values. `?frmtmb-autocor` has the full page; four things
+`sigma` values. `?frmtmb-autocor` has the full page; five things
 matter when porting.
+
+**The term grammar is brms's.** `time` is ONE variable name, or absent
+for the row's position within its group, and `gr` is variable names
+crossed with `:`. An expression in either position is refused rather
+than evaluated, exactly as brms refuses it: `ar(x + t, g)` would index
+the correlation by the sum, and `gr = g1/g2` would group the residual
+by the quotient. Compute the column first and name it.
 
 **`cov = TRUE` is required for `ar()`, `ma()` and `arma()`.** brms
 defaults to `cov = FALSE`, which is a different likelihood - a
@@ -526,6 +533,8 @@ the SHAPE of what a standard generic returns:
   brms fills from draws; `fixef()`, `ranef()` and `coef()` take brms's
   `summary`, `robust` and `probs` in brms's positions and refuse
   `summary = FALSE` by name, because a fit has no draws to return.
+  `hypothesis()` reads brms's grammar too: every hypothesis states a
+  relation, so write `"x = 0"` and not `"x"`.
 - stats-origin generics return stats-shaped values, not brms-shaped
   ones: `predict()` returns a vector (with `se.fit = TRUE`, a list),
   not a draws matrix with `Estimate`/`Q2.5` columns; `fitted()` and

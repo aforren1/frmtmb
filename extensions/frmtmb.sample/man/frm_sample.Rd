@@ -199,8 +199,9 @@ through ITS OWN \code{theta}, so the random-effect columns of the draws
 matrix
 hold the same quantity in the same order under the same names as
 \code{reparameterize = FALSE} gives, and every method downstream
-(\code{\link[=posterior_epred]{posterior_epred()}}, \code{\link[frmtmb:ranef]{frmtmb::ranef()}}, \code{\link[=log_lik]{log_lik()}}, \code{\link[frmtmb:loo]{frmtmb::loo()}},
-\code{\link[frmtmb:conditional_effects]{frmtmb::conditional_effects()}}, \code{\link[frmtmb:hypothesis]{frmtmb::hypothesis()}}) reads them without knowing
+(\code{\link[=posterior_epred]{posterior_epred()}}, \code{\link[frmtmb:ranef]{frmtmb::ranef()}}, \code{\link[frmtmb:log_lik]{frmtmb::log_lik()}},
+\code{\link[frmtmb:loo]{frmtmb::loo()}}, \code{\link[frmtmb:conditional_effects]{frmtmb::conditional_effects()}},
+\code{\link[frmtmb:hypothesis]{frmtmb::hypothesis()}}) reads them without knowing
 which route produced them. Only the \code{stanfit} inside the object
 carries \code{z}.
 

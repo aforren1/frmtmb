@@ -1,0 +1,98 @@
+lib C:/Users/adf44/source/r/rellib-r3 
+frmtmb 0.60.0 frmtmb.sample 0.8.0 frmtmb.latent 0.4.0 brms 2.23.0 
+
+== D1 ar()/ma() accept an EXPRESSION as the time index
+  frmtmb ar(t, g, cov = TRUE) control          'log Lik.' -30.88513 (df=4)
+  frmtmb ar(x + t, g, cov = TRUE)              'log Lik.' -30.33421 (df=4)
+  frmtmb ar(t - 10 * x, g, cov = TRUE)         'log Lik.' -31.00618 (df=4)
+  frmtmb ma(t, g, cov = TRUE) control          'log Lik.' -30.49819 (df=4)
+  frmtmb ma(x + t, g, cov = TRUE)              'log Lik.' -29.84347 (df=4)
+                                               [warning] Optimizer did not report convergence: singular convergence (7)
+  frmtmb arma(x + t, g, cov = TRUE)            'log Lik.' -29.43557 (df=5)
+                                               [warning] Optimizer did not report convergence: singular convergence (7)
+  frmtmb cosy(x + t, g)                        'log Lik.' -30.86409 (df=4)
+  frmtmb unstr(x + t, g)                       'log Lik.' 40.3157 (df=279)
+                                               [warning] Optimizer did not report convergence: false convergence (8)
+  brms ar(x + t, g)                            ERROR[brms_error,rlang_error,error,condition]: Cannot coerce 'x + t' to a single variable name.
+  brms ma(x + t, g)                            ERROR[brms_error,rlang_error,error,condition]: Cannot coerce 'x + t' to a single variable name.
+  brms arma(x + t, g)                          ERROR[brms_error,rlang_error,error,condition]: Cannot coerce 'x + t' to a single variable name.
+  brms cosy(x + t, g)                          ERROR[brms_error,rlang_error,error,condition]: Cannot coerce 'x + t' to a single variable name.
+  brms unstr(x + t, g)                         ERROR[brms_error,rlang_error,error,condition]: Cannot coerce 'x + t' to a single variable name.
+  what brms ACCEPTS as time (control: bare names and NA)
+  brms ar(t, g)                                [1] 12
+  brms ar(gr = g)                              [1] 12
+  brms ar(NA, g)                               [1] 12
+  brms ar(`odd name`, g)                       [1] 12
+
+== D2 gr = grammar
+  frmtmb ar(t, gr = g1/g2, cov = TRUE)         'log Lik.' -30.87554 (df=4)
+  frmtmb ar(t, gr = g1:g2, cov = TRUE)         ERROR[frmtmb_error,error,condition]: ar(): time points within groups must be unique; group '1' has 3 rows at time '1'. Aggregate the repeated rows, or add the replicate to the grouping variable.
+                                               [warning] numerical expression has 24 elements: only the first used
+  frmtmb ar(t, gr = gf1:gf2, cov = TRUE) factors 'log Lik.' -30.88513 (df=4)
+  frmtmb ar(t, gr = interaction(g1,g2), cov = TRUE) 'log Lik.' -30.88513 (df=4)
+  frmtmb ar(t, gr = g1 + g2, cov = TRUE)       ERROR[frmtmb_error,error,condition]: ar(): time points within groups must be unique; group '3' has 2 rows at time '1'. Aggregate the repeated rows, or add the replicate to the grouping variable.
+  frmtmb ar(t, gr = g1 * g2, cov = TRUE)       ERROR[frmtmb_error,error,condition]: ar(): time points within groups must be unique; group '2' has 2 rows at time '1'. Aggregate the repeated rows, or add the replicate to the grouping variable.
+  frmtmb ar(t, gr = factor(g), cov = TRUE)     'log Lik.' -30.88513 (df=4)
+  brms ar(t, gr = g1/g2)                       ERROR[brms_error,rlang_error,error,condition]: Illegal grouping term 'g1/g2'. It may contain only variable names combined by the symbol ':'
+  brms ar(t, gr = g1:g2)                       [1] 12
+  brms ar(t, gr = gf1:gf2) factors             [1] 12
+  brms ar(t, gr = interaction(g1, g2))         ERROR[brms_error,rlang_error,error,condition]: Illegal grouping term 'interaction(g1, g2)'. It may contain only variable names combined by the symbol ':'
+  brms ar(t, gr = g1 + g2)                     ERROR[brms_error,rlang_error,error,condition]: Illegal grouping term 'g1 + g2'. It may contain only variable names combined by the symbol ':'
+  brms ar(t, gr = g1 * g2)                     ERROR[brms_error,rlang_error,error,condition]: Illegal grouping term 'g1 * g2'. It may contain only variable names combined by the symbol ':'
+  R's own reading of the two gr spellings
+  class(d$g1 / d$g2)                           [1] "numeric" "24" 
+  eval(g1:g2) on numeric codes                 [1] 1
+                                               [warning] numerical expression has 24 elements: only the first used
+  eval(gf1:gf2) on factors                      [1] "1:1" "1:1" "1:1" "1:1" "1:1" "1:1" "1:2" "1:2" "1:2" "1:2" "1:2" "1:2"
+
+== D3 hypothesis() with no relation
+  frmtmb hypothesis(fh, 'Age')                  Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob | 1 (Age) -0.07309253 0.1439972 -0.3553219 0.2091369 NA NA | Star | 1 
+  frmtmb hypothesis(fh, 'Age = 0')              Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob | 1 (Age) = 0 -0.07309253 0.1439972 -0.3553219 0.2091369 NA NA | Star | 1 
+  frmtmb hypothesis(fh, 'Age + Trt')            Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob | 1 (Age+Trt) -0.1251326 0.1555464 -0.4299979 0.1797327 NA NA | Star | 1 
+  frmtmb hypothesis(fh, 'Age x 0') loud        ERROR[frmtmb_error,error,condition]: Some parameters cannot be found in the model: 
+'b_Agex0'
+variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL
+  frmtmb hypothesis(fh, c('Age', 'Trt = 0'))   [1] 2
+  brms hypothesis(ex1, 'Age')                  ERROR[brms_error,rlang_error,error,condition]: Every hypothesis must be of the form 'left (= OR < OR >) right'.
+  brms hypothesis(ex1, 'Age = 0')               Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob Star | 1 (Age) = 0 -0.6744679 1.317927 -2.480578 1.298658 0.9709304 0.4926254 
+
+== D4 fit$data partial-matches fit$data2
+  names(fh)                                     [1] "spec" "frame" "obj" "opt" "sdr" | [6] "REML" "estimates" "prior" "bform" "call" | [11] "data2" "control" "quadrature" "importance" "lower" | [16] "upper" "par_units" "cache" 
+  fh[['data', exact = TRUE]]                   NULL
+  identical(fh$data, fh$data2)                 [1] TRUE
+  fit with data2: names(fa$data)               [1] "A"
+  fit with data2: dim(fa$data$A)               [1] 6 6
+  brms dim(ex1$data)                           [1] 40 7
+  brms names(ex1$data)                         [1] "count" "Trt" "Age" "volume" "visit" "Exp" "patient"
+  brms class(ex1$data)                         [1] "data.frame"
+  brms attr(ex1$data, 'terms') present         [1] TRUE
+  brms object.size(ex1$data) bytes             [1] 28192
+  frmtmb object.size(model.frame(fh)) bytes    [1] 7224
+  frmtmb object.size(fh) bytes                 [1] 1222832
+
+== D5 frmtmb.latent::hmm_starts(1)
+  hmm_starts(1)                                ERROR[frmtmb_latent_error,frmtmb_error,error,condition]: hmm_starts(): `fit` must be a model fitted by frm() with an hmm() family, not numeric "1"
+  hmm_starts('a')                              ERROR[frmtmb_latent_error,frmtmb_error,error,condition]: hmm_starts(): `fit` must be a model fitted by frm() with an hmm() family, not character "a"
+  hmm_starts(NULL)                             ERROR[frmtmb_latent_error,frmtmb_error,error,condition]: hmm_starts(): `fit` must be a model fitted by frm() with an hmm() family, not NULL
+  hmm_starts(list())                           ERROR[frmtmb_latent_error,frmtmb_error,error,condition]: hmm_starts(): `fit` must be a model fitted by frm() with an hmm() family, not a list of length 0
+
+== D6 predict(newdata) without the grouping column
+  frmtmb predict(allow_new_levels = TRUE)      ERROR[simpleError,error,condition]: object 'g' not found
+  frmtmb predict(newdata with a NEW level)      1 2 | -0.4717254 0.4963306 
+  frmtmb predict(re_formula = NA)               1 2 | -0.4717254 0.4963306 
+  frmtmb se.fit, filled column                 ERROR[simpleError,error,condition]: object 'g' not found
+  frmtmb se.fit, re_formula = NA                1 2 | 0.3183920 0.3995182 
+  frmtmb fitted(allow_new_levels = TRUE)       ERROR[frmtmb_error,error,condition]: fitted() has no argument `allow_new_levels`. It takes: object, newdata, re_formula, scale, resp, dpar
+  frmtmb predict(no allow_new_levels)          ERROR[simpleError,error,condition]: object 'g' not found
+  brms epred, full newdata                     [1] 25 3
+  brms epred, no visit column, allow_new_levels [1] 25 3
+  brms epred, no visit column, NO allow_new_levels ERROR[simpleError,error,condition]: object 'visit' not found
+  brms validate_newdata fills visit with       [1] NA NA NA
+
+== D7 log_lik() on a frequentist fit
+  frmtmb log_lik(fh)                           ERROR[simpleError,error,condition]: could not find function "log_lik"
+  frmtmb loo(fh)                               ERROR[frmtmb_error,error,condition]: loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the likelihood over draws. Sample first, with frmtmb.sample::loo(frmtmb.sample::frm_sample(fit)) once that package is installed, or compar
+  frmtmb waic(fh)                              ERROR[frmtmb_error,error,condition]: waic() averages the likelihood over posterior draws and a maximum-likelihood fit has none. Sample first, with frmtmb.sample::waic(frmtmb.sample::frm_sample(fit)) once that package is installed; AIC() is the maximum-likeliho
+  exists log_lik generic                       frmtmb sample | FALSE TRUE 
+
+DONE

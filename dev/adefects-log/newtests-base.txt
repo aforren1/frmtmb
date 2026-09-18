@@ -1,0 +1,7 @@
+RESULT frmtmb test-adefects.R pass=16 fail=24 err=4 skip=0 blocks=6
+  BLOCK fail=12 err=TRUE pass=1  an autocorrelation term refuses an expression as its time index
+  BLOCK fail=0 err=TRUE pass=0  gr = takes variable names crossed by `:` and nothing else
+  BLOCK fail=4 err=FALSE pass=4  a hypothesis with no relation is refused, as in brms
+  BLOCK fail=8 err=FALSE pass=11  fit$data is the model frame, not a partial match of data2
+  BLOCK fail=0 err=TRUE pass=0  newdata may omit a grouping column when new levels are allowed
+  BLOCK fail=0 err=TRUE pass=0  log_lik() on a maximum-likelihood fit says to sample

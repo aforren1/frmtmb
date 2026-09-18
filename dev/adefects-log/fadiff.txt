@@ -1,0 +1,47 @@
+rows in base: 155  rows in lane: 149  rows in both arms: 131 
+rows whose frmtmb verdict CHANGED: 1 
+  hypothesis brms=FALSE base=TRUE  lane=FALSE b_Age x 0  [brms:tests.brmsfit-methods.R]
+only in the base corpus: 24 (the spellings this lane rewrote)
+   - hypothesis brms=FALSE base=TRUE  .sigma
+   - hypothesis brms=FALSE base=TRUE  `tarsus_(Intercept)`
+   - hypothesis brms=FALSE base=TRUE  ar[1]
+   - hypothesis brms=FALSE base=TRUE  b_sigma
+   - hypothesis brms=FALSE base=TRUE  b_x
+   - hypothesis brms=FALSE base=TRUE  cor_g__Intercept__x
+   - hypothesis brms=FALSE base=TRUE  cor_Subject__Intercept__Days
+   - hypothesis brms=FALSE base=TRUE  exp(log(sigma))
+   - hypothesis brms=FALSE base=TRUE  exp(x)
+   - hypothesis brms=FALSE base=TRUE  exp(x1)
+   - hypothesis brms=FALSE base=TRUE  Intercept
+   - hypothesis brms=FALSE base=TRUE  sd_g__Intercept
+   - hypothesis brms=FALSE base=TRUE  sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)
+   - hypothesis brms=FALSE base=TRUE  sd_g__sigma_Intercept
+   - hypothesis brms=FALSE base=TRUE  sd_h__Intercept
+   - hypothesis brms=FALSE base=TRUE  sd_id__Intercept
+   - hypothesis brms=FALSE base=TRUE  sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2)
+   - hypothesis brms=FALSE base=TRUE  sigma
+   - hypothesis brms=FALSE base=TRUE  sigma_Intercept
+   - hypothesis brms=FALSE base=TRUE  x
+   - hypothesis brms=FALSE base=TRUE  x - Intercept
+   - hypothesis brms=FALSE base=TRUE  x - x2
+   - hypothesis brms=FALSE base=TRUE  x1
+   - hypothesis brms=FALSE base=TRUE  x2
+only in the lane corpus: 18 (the replacements, and this lane's own test file)
+   + hypothesis brms=TRUE  lane=TRUE  .sigma = 0
+   + hypothesis brms=TRUE  lane=TRUE  `tarsus_(Intercept)` = 0
+   + hypothesis brms=TRUE  lane=TRUE  ar[1] = 0
+   + hypothesis brms=TRUE  lane=TRUE  b_sigma = 0
+   + hypothesis brms=TRUE  lane=TRUE  b_x = 0
+   + hypothesis brms=TRUE  lane=TRUE  cor_g__Intercept__x = 0
+   + hypothesis brms=TRUE  lane=TRUE  cor_Subject__Intercept__Days = 0
+   + hypothesis brms=TRUE  lane=TRUE  exp(log(sigma)) = 0
+   + hypothesis brms=TRUE  lane=TRUE  exp(x) = 0
+   + hypothesis brms=TRUE  lane=TRUE  exp(x1) = 0
+   + hypothesis brms=TRUE  lane=TRUE  sd_g__sigma_Intercept = 0
+   + hypothesis brms=TRUE  lane=TRUE  sd_h__Intercept = 0
+   + hypothesis brms=TRUE  lane=TRUE  sd_id__Intercept = 0
+   + hypothesis brms=TRUE  lane=TRUE  sigma_Intercept = 0
+   + hypothesis brms=TRUE  lane=TRUE  x - Intercept = 0
+   + hypothesis brms=TRUE  lane=TRUE  x - x2 = 0
+   + hypothesis brms=TRUE  lane=TRUE  x1 = 0
+   + hypothesis brms=TRUE  lane=TRUE  x2 = 0

@@ -1,0 +1,150 @@
+kind	src	text	brms	frm
+autocor	brms:tests.brm.R	ar(x + y, g)	FALSE	FALSE
+autocor	brms:tests.brm.R	ar(gr = g1/g2)	FALSE	FALSE
+autocor	brms:tests.brm.R	ma(x)	TRUE	FALSE
+autocor	brms:tests.brm.R	arma(x)	TRUE	FALSE
+autocor	brms:tests.posterior_epred.R	arma(visit, patient)	TRUE	FALSE
+autocor	brms:tests.priors.R	ar()	TRUE	FALSE
+autocor	brms:tests.stancode.R	arma(cov = TRUE)	TRUE	TRUE
+autocor	brms:tests.stancode.R	arma(p = 2, q = 2, gr = g)	TRUE	FALSE
+autocor	brms:tests.stancode.R	ar(cov = TRUE)	TRUE	TRUE
+autocor	brms:tests.stancode.R	ma(cov = TRUE)	TRUE	TRUE
+autocor	brms:tests.stancode.R	ma()	TRUE	FALSE
+autocor	brms:tests.stancode.R	ar(time)	TRUE	FALSE
+autocor	brms:tests.stancode.R	ma(time, q = 2)	TRUE	FALSE
+autocor	brms:tests.stancode.R	arma(time, cov = TRUE)	TRUE	TRUE
+autocor	brms:tests.stancode.R	ar(time, cov = TRUE)	TRUE	TRUE
+autocor	brms:tests.stancode.R	cosy(time)	TRUE	TRUE
+autocor	brms:tests.stancode.R	unstr(tim, g)	TRUE	TRUE
+autocor	brms:tests.standata.R	ma(tim, g)	TRUE	FALSE
+autocor	brms:tests.standata.R	ar(tim, g, p = 2)	TRUE	FALSE
+autocor	brms:tests.standata.R	ar(tim, g, cov = TRUE)	TRUE	TRUE
+autocor	brms:tests.standata.R	ar(tim)	TRUE	FALSE
+autocor	brms:tests.standata.R	arma()	TRUE	FALSE
+autocor	brms:tests.standata.R	ar(time, id)	TRUE	FALSE
+autocor	brms:tests.standata.R	ma(time, id)	TRUE	FALSE
+autocor	brms:ar.Rd	ar(p = 2)	TRUE	FALSE
+autocor	brms:arma.Rd	arma(p = 2, q = 1)	TRUE	FALSE
+autocor	brms:autocor-terms.Rd	arma(p = 1, q = 1)	TRUE	FALSE
+autocor	brms:cosy.Rd	cosy()	TRUE	TRUE
+autocor	brms:ma.Rd	ma(p = 2)	FALSE	FALSE
+autocor	brms:unstr.Rd	unstr(visit, patient)	TRUE	TRUE
+autocor	own:test-autocor.R	ar(week, subj, cov = TRUE)	TRUE	TRUE
+autocor	own:test-autocor.R	ar(week, subj, p = 2, cov = TRUE)	FALSE	TRUE
+autocor	own:test-autocor.R	ma(week, subj, cov = TRUE)	TRUE	TRUE
+autocor	own:test-autocor.R	arma(week, subj, cov = TRUE)	TRUE	TRUE
+autocor	own:test-autocor.R	cosy(week, subj)	TRUE	TRUE
+autocor	own:test-autocor.R	unstr(week, subj)	TRUE	TRUE
+autocor	own:test-autocor.R	ar(gr = subj, cov = TRUE)	TRUE	TRUE
+autocor	own:test-autocor.R	ar(week, subj)	TRUE	FALSE
+autocor	own:test-autocor.R	arma(week, subj)	TRUE	FALSE
+autocor	own:test-autocor.R	cosy(subj)	TRUE	TRUE
+autocor	own:test-autocor.R	unstr(week)	TRUE	FALSE
+autocor	own:test-autocor.R	cosy(gr = subj)	TRUE	TRUE
+autocor	own:test-autocor.R	ar(one, subj, cov = TRUE)	TRUE	TRUE
+autocor	own:test-autocor.R	ar(t, cov = TRUE)	TRUE	TRUE
+autocor	own:test-autocor.R	unstr(t, g)	TRUE	TRUE
+autocor	own:test-brms-likelihood.R	ar(time, gr = g, p = 1, cov = TRUE)	TRUE	TRUE
+autocor	own:test-brms-likelihood.R	cosy(time, gr = g)	TRUE	TRUE
+autocor	own:test-brms-likelihood.R	unstr(time, gr = g)	TRUE	TRUE
+autocor	own:test-brms-likelihood.R	ar(time, gr = g, p = 1)	TRUE	FALSE
+autocor	own:test-importance.R	ar(wk, subj, cov = TRUE)	TRUE	TRUE
+autocor	own:test-nlf.R	ar(x, g)	TRUE	FALSE
+autocor	own:test-portability.R	ar(t, subj, cov = TRUE)	TRUE	TRUE
+autocor	own:test-priors-autocor-classes.R	ar(t, g, cov = TRUE)	TRUE	TRUE
+autocor	own:test-priors-autocor-classes.R	cosy(t, g)	TRUE	TRUE
+autocor	own:test-priors-autocor-classes.R	ar(t, g, p = 2, cov = TRUE)	FALSE	TRUE
+autocor	own:test-priors-autocor-classes.R	arma(t, g, cov = TRUE)	TRUE	TRUE
+autocor	own:test-compat-preflight.R	ar(x)	TRUE	FALSE
+hypothesis	brms:tests.brmsfit-methods.R	Age > Trt1	TRUE	TRUE
+hypothesis	brms:tests.brmsfit-methods.R	Trt1:Age = -1	TRUE	TRUE
+hypothesis	brms:tests.brmsfit-methods.R	Intercept = 0	TRUE	TRUE
+hypothesis	brms:tests.brmsfit-methods.R	0 > r_visit[4,Intercept]	TRUE	TRUE
+hypothesis	brms:tests.brmsfit-methods.R	Intercept + exp(Trt1) = 0	TRUE	TRUE
+hypothesis	brms:tests.brmsfit-methods.R	Intercept > x	TRUE	TRUE
+hypothesis	brms:tests.brmsfit-methods.R	b_Age = 0	TRUE	TRUE
+hypothesis	brms:tests.brmsfit-methods.R	b_Age x 0	FALSE	FALSE
+hypothesis	brms:tests.brmsfit-methods.R	bsp_meAgeAgeSD > sigma	TRUE	TRUE
+hypothesis	brms:hypothesis.brmsfit.Rd	sexfemale = age + diseasePKD	TRUE	TRUE
+hypothesis	brms:hypothesis.brmsfit.Rd	exp(age) - 3 = 0	TRUE	TRUE
+hypothesis	brms:hypothesis.brmsfit.Rd	diseasePKD + diseaseGN - 3 < 0	TRUE	TRUE
+hypothesis	brms:hypothesis.brmsfit.Rd	age < Intercept	TRUE	TRUE
+hypothesis	brms:hypothesis.brmsfit.Rd	age = 0	TRUE	TRUE
+hypothesis	brms:hypothesis.brmsfit.Rd	b_age > 0	TRUE	TRUE
+hypothesis	own:test-autocor.R	ar[1] - 0.5 = 0	TRUE	TRUE
+hypothesis	own:test-autocor.R	ar[1] = 0	TRUE	TRUE
+hypothesis	own:test-boot.R	sd_g__Intercept = 0	TRUE	TRUE
+hypothesis	own:test-boot.R	cor_Subject__Intercept__Days = 0	TRUE	TRUE
+hypothesis	own:test-boot.R	sd_h__Intercept = 0	TRUE	TRUE
+hypothesis	own:test-boot.R	x1 = 0	TRUE	TRUE
+hypothesis	own:test-boot.R	x1 - x2 = 0.1	TRUE	TRUE
+hypothesis	own:test-boot.R	exp(x1) = 0	TRUE	TRUE
+hypothesis	own:test-boot.R	exp(x) = 0	TRUE	TRUE
+hypothesis	own:test-boot.R	x = 0	TRUE	TRUE
+hypothesis	own:test-brms-methods.R	x > z	TRUE	TRUE
+hypothesis	own:test-brms-names.R	sigma = 0	TRUE	TRUE
+hypothesis	own:test-brms-names.R	sd_g__sigma_Intercept = 0	TRUE	TRUE
+hypothesis	own:test-brms-names.R	x = 0.5	TRUE	TRUE
+hypothesis	own:test-brms-names.R	x > 0	TRUE	TRUE
+hypothesis	own:test-brms-names.R	Intercept < 2	TRUE	TRUE
+hypothesis	own:test-brms-names.R	Intercept > 0	TRUE	TRUE
+hypothesis	own:test-brms-names.R	x:fe > 0	TRUE	TRUE
+hypothesis	own:test-brms-names.R	x:fe - x = 0	TRUE	TRUE
+hypothesis	own:test-brms-names.R	b_x:fe = 0	TRUE	TRUE
+hypothesis	own:test-brms-names.R	b_x:fe > 0	TRUE	TRUE
+hypothesis	own:test-brms-names.R	nope > 0	TRUE	TRUE
+hypothesis	own:test-brms-names.R	IxE2 + fcMd = 0	TRUE	TRUE
+hypothesis	own:test-brms-names.R	sigma_z = 0	TRUE	TRUE
+hypothesis	own:test-brms-names.R	sigma_z__1 = 0	TRUE	TRUE
+hypothesis	own:test-brms-names.R	theta1 = 0.5	TRUE	TRUE
+hypothesis	own:test-brms-names.R	theta1 + theta2 = 0	TRUE	TRUE
+hypothesis	own:test-brms-names.R	theta1 = 0	TRUE	TRUE
+hypothesis	own:test-brms-names.R	theta2 = 0	TRUE	TRUE
+hypothesis	own:test-brms-names.R	theta3 = 0	TRUE	TRUE
+hypothesis	own:test-brms-port.R	exp(sigma_Intercept) = 0	TRUE	TRUE
+hypothesis	own:test-brms-port.R	exp(sigma_Intercept + sigma_grouptreat) = 0	TRUE	TRUE
+hypothesis	own:test-compat.R	y_x = 0	TRUE	TRUE
+hypothesis	own:test-effects.R	x1 - x2 = 0	TRUE	TRUE
+hypothesis	own:test-effects.R	exp(log(sigma)) = 0	TRUE	TRUE
+hypothesis	own:test-effects.R	x2 = 0	TRUE	TRUE
+hypothesis	own:test-effects.R	x1 + x2 = 1	TRUE	TRUE
+hypothesis	own:test-effects.R	x1 = 0 = 1	FALSE	FALSE
+hypothesis	own:test-id-kron.R	cor_id__y1_Intercept__y2_Intercept = 0	TRUE	TRUE
+hypothesis	own:test-naming-collisions.R	sigma > 0	TRUE	TRUE
+hypothesis	own:test-naming-collisions.R	b_sigma = 0	TRUE	TRUE
+hypothesis	own:test-naming-collisions.R	.sigma = 0	TRUE	TRUE
+hypothesis	own:test-naming-collisions.R	b_v = 0	TRUE	TRUE
+hypothesis	own:test-nlf.R	b_Intercept = 0	TRUE	TRUE
+hypothesis	own:test-portability.R	x < 0	TRUE	TRUE
+hypothesis	own:test-portability.R	x > Intercept	TRUE	TRUE
+hypothesis	own:test-portability.R	x - Intercept = 0	TRUE	TRUE
+hypothesis	own:test-portability.R	x > 0 > 1	FALSE	FALSE
+hypothesis	own:test-portability.R	x > 0 = 1	FALSE	FALSE
+hypothesis	own:test-portability.R	Intercept - x > 0	TRUE	TRUE
+hypothesis	own:test-portability.R	sd_g__Intercept - sd_g__x > 0	TRUE	TRUE
+hypothesis	own:test-portability.R	b_x = 0	TRUE	TRUE
+hypothesis	own:test-portability.R	sd_g__x > 0	TRUE	TRUE
+hypothesis	own:test-portability.R	sigma_Intercept = 0	TRUE	TRUE
+hypothesis	own:test-portability.R	sd_g__Intercept > 0	TRUE	TRUE
+hypothesis	own:test-portability.R	`tarsus_(Intercept)` = 0	TRUE	TRUE
+hypothesis	own:test-portability.R	cor_g__Intercept__x = 0	TRUE	TRUE
+hypothesis	own:test-review-v29.R	sd_id__Intercept = 0	TRUE	TRUE
+hypothesis	own:test-review-v29.R	sd_id__Intercept^2 / (sd_id__Intercept^2 + sigma^2) = 0	TRUE	TRUE
+hypothesis	own:test-v14.R	x - x2 = 0	TRUE	TRUE
+hypothesis	own:frmtmb.Rmd	Days > 5	TRUE	TRUE
+hypothesis	own:frmtmb.Rmd	sd_Subject__Days^2 / (sd_Subject__Days^2 + sigma^2) = 0	TRUE	TRUE
+hypothesis	own:inputs.Rmd	sigma = 1	TRUE	TRUE
+hypothesis	own:hypothesis.Rd	exp(Intercept) = 1	TRUE	TRUE
+hypothesis	own:hypothesis.Rd	x1 > x2	TRUE	TRUE
+hypothesis	own:hypothesis.Rd	sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0	TRUE	TRUE
+hypothesis	own:test-hmm.R	tr12_Intercept = 0	TRUE	TRUE
+hypothesis	own:test-lca.R	theta1_x = 0	TRUE	TRUE
+hypothesis	own:test-brms-pins.R	r_gd[lvl.1,Intercept] = 0	TRUE	TRUE
+hypothesis	own:test-evidence-ratio.R	x - w = 0	TRUE	TRUE
+hypothesis	own:test-evidence-ratio.R	2 * x = 0	TRUE	TRUE
+hypothesis	own:test-evidence-ratio.R	sigma = 0.9	TRUE	TRUE
+hypothesis	own:test-evidence-ratio.R	x^2 = 0	TRUE	TRUE
+hypothesis	own:test-evidence-ratio.R	abs(x) = 0	TRUE	TRUE
+hypothesis	own:test-evidence-ratio.R	-x = 0	TRUE	TRUE
+hypothesis	own:test-sample-direct.R	b_Intercept > 0	TRUE	TRUE
+hypothesis	own:test-sample-direct.R	`(Intercept)` > 0	TRUE	TRUE

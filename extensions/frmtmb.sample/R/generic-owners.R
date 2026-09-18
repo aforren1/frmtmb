@@ -68,7 +68,6 @@ sample_generic_owners <- list(
   loo_moment_match = "loo",
   loo_subsample = "loo",
   psis = "loo",
-  log_lik = "rstantools",
   nsamples = "rstantools",
   posterior_epred = "rstantools",
   posterior_interval = "rstantools",

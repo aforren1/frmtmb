@@ -1,11 +1,11 @@
 setup	frmtmb	data-helpers:4		TRUE	FALSE			TRUE
-setup	frmtmb	data-helpers:5		FALSE	FALSE	invalid 'size' argument		FALSE
-setup	frmtmb	data-helpers:6		FALSE	FALSE	incorrect number of dimensions		FALSE
-assert	frmtmb	data-helpers:7	defect	FALSE	TRUE	STALE: reads 'newdata', whose last assignment failed: incorrect number of dimensions		FALSE
-setup	frmtmb	data-helpers:8		FALSE	FALSE	object 'newdata' not found		FALSE
-assert	frmtmb	data-helpers:9	defect	FALSE	TRUE	STALE: reads 'newdata', whose last assignment failed: object 'newdata' not found		FALSE
-setup	frmtmb	data-helpers:11		FALSE	FALSE	object 'newdata' not found		FALSE
-assert	frmtmb	data-helpers:12	defect	FALSE	TRUE	STALE: reads 'newdata', whose last assignment failed: object 'newdata' not found		FALSE
+setup	frmtmb	data-helpers:5		TRUE	FALSE			TRUE
+setup	frmtmb	data-helpers:6		TRUE	FALSE			TRUE
+assert	frmtmb	data-helpers:7	defect	FALSE	FALSE	Expected `brms_shim_validate_newdata(newdata, fit)` to run silently. Actual noise: warnings.		FALSE
+setup	frmtmb	data-helpers:8		TRUE	FALSE			TRUE
+assert	frmtmb	data-helpers:9	own	TRUE	FALSE		New levels in grouping factor `visit`: 5. Use allow_new_levels = TRUE to predict them at the population level	FALSE
+setup	frmtmb	data-helpers:11		TRUE	FALSE			TRUE
+assert	frmtmb	data-helpers:12	defect	FALSE	FALSE	ERROR: New levels in grouping factor `visit`: 5. Use allow_new_levels = TRUE to predict them at the population level		FALSE
 setup	frmtmb	data-helpers:17		TRUE	FALSE			TRUE
 setup	frmtmb	data-helpers:19		FALSE	FALSE	could not find function "brmsterms"		FALSE
 setup	frmtmb	data-helpers:21		FALSE	FALSE	NOT RUN: the setup line reaches brms's own namespace		FALSE

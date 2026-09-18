@@ -17,24 +17,22 @@ test_that("validate_newdata handles factors correctly", {
   )
   brms_port("data-helpers:7", "defect",
     paste0(
-      "newdata is fit$data[1:5, ], and fit$data partial-matches ",
-      "fit$data2 (the fit has no data element); on ",
-      "model.frame(fit) rows fitted() works, with a spurious ",
-      "'contrasts dropped from factor Trt' warning ",
-      "(dev/brmsport-probe4.R) [fit$data is the $ partial match of ",
-      "fit$data2, dev/brmsport-rev-silent.R R8]"),
+      "expect_silent() fails on R's 'contrasts dropped from factor ",
+      "Trt' warning, twice, from model.matrix() on the newdata ",
+      "slice; brms is silent. The NUMBERS are unaffected: the five ",
+      "predictions equal the first five of the full-data ones, max ",
+      "absolute difference 0 (dev/adefects-log/evidence.txt). Was ",
+      "fit-data"),
     expect_silent(brms_shim_validate_newdata(newdata, fit))
   )
   brms_setup("data-helpers:8",
     newdata$visit <- 1:5
   )
-  brms_port("data-helpers:9", "defect",
+  brms_port_own("data-helpers:9",
+    "New levels in grouping factor .visit.: 5",
     paste0(
-      "blocked by fit$data; on model.frame(fit) rows frmtmb ",
-      "refuses the new visit level in its own words, 'New levels ",
-      "in grouping factor visit: 5' (dev/brmsport-probe4.R) ",
-      "[fit$data is the $ partial match of fit$data2, ",
-      "dev/brmsport-rev-silent.R R8]"),
+      "brms: Levels '5' of grouping factor 'visit' cannot be used. ",
+      "The same refusal of the same case in frmtmb's words"),
     expect_error(brms_shim_validate_newdata(newdata, fit),
                  "Levels '5' of grouping factor 'visit' cannot")
   )
@@ -43,9 +41,11 @@ test_that("validate_newdata handles factors correctly", {
   )
   brms_port("data-helpers:12", "defect",
     paste0(
-      "blocked by fit$data; the factor fac brms checks is a data ",
-      "column the model does not use [fit$data is the $ partial ",
-      "match of fit$data2, dev/brmsport-rev-silent.R R8]"),
+      "brms refuses the integer codes of `fac`, a factor column of ",
+      "the data that the model does not use; frmtmb refuses the ",
+      "new `visit` level set on the line before, and never checks ",
+      "an unused column. Both refuse the call, for different ",
+      "faults. Was fit-data"),
     expect_error(brms_shim_validate_newdata(newdata, fit),
                  "New factor levels are not allowed")
   )

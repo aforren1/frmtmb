@@ -19,7 +19,7 @@ assert	frmtmb	brmsfit-methods:170	cannot transfer	FALSE	FALSE	ERROR: conditional
 setup	frmtmb	brmsfit-methods:175		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:177	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:178		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:179	defect	FALSE	FALSE	Expected `nrow(me[[2]])` to equal `exp_nrow`. Differences:   `actual`: 400.0 `expected`:   0.0 		FALSE
+assert	frmtmb	brmsfit-methods:179	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:181		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:186		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:187		TRUE	FALSE			TRUE
@@ -90,14 +90,14 @@ assert	frmtmb	brmsfit-methods:339	defect	FALSE	FALSE	Expected `dim(fi)` to equal
 assert	frmtmb	brmsfit-methods:340	defect	FALSE	FALSE	ERROR: incorrect number of dimensions		FALSE
 setup	frmtmb	brmsfit-methods:341		FALSE	FALSE	fitted() cannot honor `nlpar`: a non-linear parameter is reached through `dpar` in this package; nlf() parameters appear there		FALSE
 assert	frmtmb	brmsfit-methods:342	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: fitted() cannot honor `nlpar`: a non-linear parameter is reached through `dpar` in this package; nlf() parameters appear there		FALSE
-setup	frmtmb	brmsfit-methods:344		FALSE	FALSE	incorrect number of dimensions		FALSE
-assert	frmtmb	brmsfit-methods:345	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: incorrect number of dimensions		FALSE
+setup	frmtmb	brmsfit-methods:344		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:345	defect	FALSE	FALSE	Expected `dim(fi)` to equal `c(10, 4)`. Differences: `actual` is NULL `expected` is a double vector (10, 4) 		FALSE
 setup	frmtmb	brmsfit-methods:347		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:348	defect	FALSE	FALSE	Expected `dim(fi)` to equal `c(nobs(fit4), 4, 4)`. Differences:   `actual`: 40 4   `expected`: 40 4 4 		FALSE
-setup	frmtmb	brmsfit-methods:349		FALSE	FALSE	incorrect number of dimensions		FALSE
-assert	frmtmb	brmsfit-methods:350	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: incorrect number of dimensions		FALSE
-setup	frmtmb	brmsfit-methods:351		FALSE	FALSE	incorrect number of dimensions		FALSE
-assert	frmtmb	brmsfit-methods:352	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: incorrect number of dimensions		FALSE
+setup	frmtmb	brmsfit-methods:349		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:350	defect	FALSE	FALSE	Expected `dim(fi)` to equal `c(1, 4, 4)`. Differences:   `actual`: 1 4   `expected`: 1 4 4 		FALSE
+setup	frmtmb	brmsfit-methods:351		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:352	defect	FALSE	FALSE	Expected `dim(fi)` to equal `c(1, 4, 3)`. Differences: `actual` is NULL `expected` is a double vector (1, 4, 3) 		FALSE
 setup	frmtmb	brmsfit-methods:354		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:355	defect	FALSE	FALSE	Expected `dim(fi)` to equal `c(nobs(fit5), 4)`. Differences: `actual` is NULL `expected` is a double vector (40, 4) 		FALSE
 setup	frmtmb	brmsfit-methods:357		FALSE	FALSE	fitted() is not supported yet for multivariate fits		FALSE
@@ -126,12 +126,12 @@ assert	frmtmb	brmsfit-methods:408	divergence	FALSE	TRUE	STALE: reads 'hyp', whos
 assert	frmtmb	brmsfit-methods:410	pass	TRUE	FALSE		Some parameters cannot be found in the model:  'b_x' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL	TRUE
 assert	frmtmb	brmsfit-methods:412	pass	TRUE	FALSE		Argument 'hypothesis' must be a character vector.	TRUE
 assert	frmtmb	brmsfit-methods:414	own	TRUE	FALSE		`alpha` must be a single number strictly between 0 and 1, not numeric "2"	FALSE
-assert	frmtmb	brmsfit-methods:417	defect	FALSE	FALSE	ERROR: Some parameters cannot be found in the model:  'b_b_Agex0' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL		FALSE
+assert	frmtmb	brmsfit-methods:417	pass	TRUE	FALSE		Every hypothesis must be of the form 'left (= OR < OR >) right': 'b_Agex0' states no relation. Write 'b_Agex0 = 0' for the test against zero, which is what brms writes	TRUE
 setup	frmtmb	brmsfit-methods:422		FALSE	FALSE	cannot coerce class '"frmtmb_fit"' to a data.frame		FALSE
 assert	frmtmb	brmsfit-methods:423	cannot transfer	FALSE	TRUE	STALE: reads 'hyp', whose last assignment failed: cannot coerce class '"frmtmb_fit"' to a data.frame		TRUE
 setup	frmtmb	brmsfit-methods:424		FALSE	FALSE	Some parameters cannot be found in the model:  'bsp_meAgeAgeSD', 'sigma'		FALSE
 assert	frmtmb	brmsfit-methods:425	cannot transfer	FALSE	TRUE	STALE: reads 'hyp', whose last assignment failed: Some parameters cannot be found in the model:  'bsp_meAgeAgeSD', 'sigma'		TRUE
-assert	frmtmb	brmsfit-methods:567	defect	FALSE	FALSE	Expected `model.frame(fit1)` to equal `fit1$data`. Differences: `actual` is length 8 `expected` is length 0 `class(actual)` is a character vector ('data.frame') `class(expected)` is absent `names(actual)` is a character vector ('count', 'Trt', 'Age', 'volume', 'offset(Age)', ...) `names(expected)` is absent `attr(actual, 'row.names')` is an integer vector (1, 2, 3, 4, 5, ...) `attr(expected, 'row.		FALSE
+assert	frmtmb	brmsfit-methods:567	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:584	defect	FALSE	FALSE	Expected `ngrps(fit1)` to equal `list(visit = 4)`. Differences: `actual` is an integer vector (4) `expected` is a list 		FALSE
 assert	frmtmb	brmsfit-methods:585	defect	FALSE	FALSE	Expected `ngrps(fit2)` to equal `list(patient = 10)`. Differences: `actual` is an integer vector (10) `expected` is a list 		FALSE
 assert	frmtmb	brmsfit-methods:589	pass	TRUE	FALSE			TRUE
@@ -140,13 +140,13 @@ assert	frmtmb	brmsfit-methods:605	cannot transfer	FALSE	FALSE	ERROR: plot() has 
 assert	frmtmb	brmsfit-methods:606	cannot transfer	FALSE	FALSE	ERROR: plot() has no argument `variable` (and 2 more: regex, plot). It takes: x, which, ask		FALSE
 assert	frmtmb	brmsfit-methods:607	cannot transfer	FALSE	TRUE	VACUOUS: plot() has no argument `variable`. It takes: x, which, ask	plot() has no argument `variable`. It takes: x, which, ask	TRUE
 assert	frmtmb	brmsfit-methods:674	pass	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:675	defect	FALSE	FALSE	ERROR: incorrect number of dimensions		FALSE
+assert	frmtmb	brmsfit-methods:675	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:676	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:677	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:678		FALSE	FALSE	is.numeric(x) is not TRUE		FALSE
 assert	frmtmb	brmsfit-methods:679	defect	FALSE	TRUE	STALE: reads 'pp', whose last assignment failed: is.numeric(x) is not TRUE		FALSE
-setup	frmtmb	brmsfit-methods:680		FALSE	FALSE	incorrect number of dimensions		FALSE
-assert	frmtmb	brmsfit-methods:682	defect	FALSE	TRUE	STALE: reads 'pp', whose last assignment failed: incorrect number of dimensions		FALSE
+setup	frmtmb	brmsfit-methods:680		FALSE	FALSE	length(group) must be equal to the number of observations.		FALSE
+assert	frmtmb	brmsfit-methods:682	defect	FALSE	TRUE	STALE: reads 'pp', whose last assignment failed: length(group) must be equal to the number of observations.		FALSE
 setup	frmtmb	brmsfit-methods:684		FALSE	FALSE	One of 'lw' and 'psis_object' must be specified.		FALSE
 assert	frmtmb	brmsfit-methods:685	defect	FALSE	TRUE	STALE: reads 'pp', whose last assignment failed: One of 'lw' and 'psis_object' must be specified.		FALSE
 assert	frmtmb	brmsfit-methods:688	pass	TRUE	FALSE			TRUE
@@ -170,8 +170,8 @@ assert	frmtmb	brmsfit-methods:737	defect	FALSE	TRUE	STALE: reads 'pred', whose l
 setup	frmtmb	brmsfit-methods:739		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:740		FALSE	FALSE	contrasts apply only to factors		FALSE
 assert	frmtmb	brmsfit-methods:741	defect	FALSE	TRUE	STALE: reads 'pred', whose last assignment failed: contrasts apply only to factors		FALSE
-setup	frmtmb	brmsfit-methods:744		FALSE	FALSE	incorrect number of dimensions		FALSE
-setup	frmtmb	brmsfit-methods:745		FALSE	FALSE	object of type 'closure' is not subsettable		FALSE
+setup	frmtmb	brmsfit-methods:744		TRUE	FALSE			TRUE
+setup	frmtmb	brmsfit-methods:745		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:746		FALSE	FALSE	predict() cannot honor `ndraws`: a maximum likelihood fit carries one estimate, not a posterior. frmtmb.sample's posterior_predict() takes ndraws		FALSE
 assert	frmtmb	brmsfit-methods:747	pending 2.6d	FALSE	TRUE	STALE: reads 'pred', whose last assignment failed: predict() cannot honor `ndraws`: a maximum likelihood fit carries one estimate, not a posterior. frmtmb.sample's posterior_predict() takes ndraws		FALSE
 setup	frmtmb	brmsfit-methods:749		TRUE	FALSE			TRUE
@@ -184,11 +184,11 @@ assert	frmtmb	brmsfit-methods:758	pending 2.6d	FALSE	FALSE	Expected `dim(pred)` 
 setup	frmtmb	brmsfit-methods:760		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:761	pending 2.6d	FALSE	FALSE	Expected `dim(pred)` to equal `c(nobs(fit4), 4)`. Differences: `actual` is NULL `expected` is a double vector (40, 4) 		FALSE
 assert	frmtmb	brmsfit-methods:762	pending 2.6d	FALSE	FALSE	Expected `colnames(pred)` to equal `paste0("P(Y = ", 1:4, ")")`. Differences: `actual` is NULL `expected` is a character vector ('P(Y = 1)', 'P(Y = 2)', 'P(Y = 3)', 'P(Y = 4)') 		FALSE
-setup	frmtmb	brmsfit-methods:763		FALSE	FALSE	incorrect number of dimensions		FALSE
-assert	frmtmb	brmsfit-methods:764	defect	FALSE	TRUE	STALE: reads 'pred', whose last assignment failed: incorrect number of dimensions		FALSE
+setup	frmtmb	brmsfit-methods:763		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:764	pending 2.6d	FALSE	FALSE	Expected `dim(pred)` to equal `c(1, 4)`. Differences: `actual` is NULL `expected` is a double vector (1, 4) 		FALSE
 setup	frmtmb	brmsfit-methods:766		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:767	pending 2.6d	FALSE	FALSE	Expected `dim(pred)` to equal `c(nobs(fit5), 4)`. Differences: `actual` is NULL `expected` is a double vector (40, 4) 		FALSE
-setup	frmtmb	brmsfit-methods:768		FALSE	FALSE	incorrect number of dimensions		FALSE
+setup	frmtmb	brmsfit-methods:768		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:769		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:770		FALSE	FALSE	predict() has no argument `sample_new_levels`. It takes: object, newdata, type, dpar, resp, re_formula, se.fit, allow_new_levels		FALSE
 assert	frmtmb	brmsfit-methods:772	pending 2.6d	FALSE	TRUE	STALE: reads 'pred', whose last assignment failed: predict() has no argument `sample_new_levels`. It takes: object, newdata, type, dpar, resp, re_formula, se.fit, allow_new_levels		FALSE
@@ -243,7 +243,7 @@ setup	frmtmb	brmsfit-methods:932		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:933	divergence	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:935		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:937	divergence	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
-assert	frmtmb	brmsfit-methods:938	defect	FALSE	TRUE	ERROR: object 'wrong_var' not found		FALSE
+assert	frmtmb	brmsfit-methods:938	defect	FALSE	FALSE	ERROR: The model uses `wrong_var`, which is not a column of `data` and not an object that R finds from the formula. Add the column to `data` or correct the name		FALSE
 setup	frmtmb	brmsfit-methods:941		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:942	divergence	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:944		TRUE	FALSE			TRUE
@@ -264,4 +264,4 @@ assert	frmtmb	brmsfit-methods:991	cannot transfer	FALSE	FALSE	Expected `all(...)
 assert	frmtmb	brmsfit-methods:995	defect	FALSE	TRUE	ERROR: could not find function "parnames"		FALSE
 assert	frmtmb	brmsfit-methods:999	defect	FALSE	FALSE	Expected `dim(vcov(fit1))` to equal `c(9, 9)`. Differences:   `actual`: 10.0 10.0 `expected`:  9.0  9.0 		FALSE
 assert	frmtmb	brmsfit-methods:1000	defect	FALSE	FALSE	ERROR: vcov() has no argument `cor`. It takes: object, full, cluster, type		FALSE
-assert	frmtmb	brmsfit-methods:1035	defect	FALSE	TRUE	VACUOUS: a NULL read through a partial or intermediate $ match		TRUE
+assert	frmtmb	brmsfit-methods:1035	pass	TRUE	FALSE			TRUE

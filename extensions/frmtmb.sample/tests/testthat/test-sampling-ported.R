@@ -541,7 +541,7 @@ test_that("the draws surface runs the model machinery per draw", {
   expect_true(all(re_d[["g"]][, "Q2.5", 1] <
                     re_d[["g"]][, "Q97.5", 1]))
 
-  h <- hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2)",
+  h <- hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0",
                   class = NULL)
   expect_s3_class(h, "frmtmb_hypothesis")
   expect_true(h$hypothesis$CI.Lower > 0 && h$hypothesis$CI.Upper < 1)

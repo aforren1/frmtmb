@@ -1,0 +1,3 @@
+RESULT frmtmb.sample test-adefects.R pass=0 fail=0 err=2 skip=0 blocks=2
+  BLOCK fail=0 err=TRUE pass=0  log_lik is frmtmb's generic, re-exported, not a rival one
+  BLOCK fail=0 err=TRUE pass=0  log_lik on a fit refuses with this package attached
