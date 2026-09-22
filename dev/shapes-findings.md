@@ -1478,3 +1478,52 @@ frmtmb, frmtmb.sample and frmtmb.spline.
 **Left open, pre-existing.** On draws, an unseen level passed without
 the flag still gets core's hint "Use allow_new_levels = TRUE", which
 then leads to the refusal. Filed in `dev/test-backlog.md`.
+
+## 13. Found at consolidation: two REML defects the lane shipped
+
+The 0.61.0 release run found two defects on fits whose fixed effects are
+integrated out (`REML = TRUE`, or `control(profile = TRUE)`), where the
+fixed effects are NOT outer parameters. Base 0.60.0 has neither. The
+fuzz tier found the first (three `summary_prints` findings); the second
+was found by asking whether the first's cause had siblings.
+
+**1. `summary()` stopped on every REML and profile fit**, with "row names
+contain missing values", including the plain `y ~ x + (1 | g)`.
+`summary_spec_frame()` read standard errors from `vcov(full = TRUE)` by
+position. That is the OUTER covariance, which under REML has no
+fixed-effect rows, so sigma's standard error was an NA-named NA and
+`data.frame()` refused the name. It now reads `vcov_estimated()`, the
+covariance over exactly the coefficients `fixef_estimated()` returns,
+under every mode.
+
+**2. `predict()`'s interval dropped the fixed-effect uncertainty under
+REML**, with nothing said. The parameter draw perturbed the outer vector
+only, so `beta` stayed at its estimate. At an extrapolated point
+(x = 3, 40 rows):
+
+| mode | analytic sqrt(se^2 + sigma^2) | Est.Error before | after | plug-in |
+|---|---|---|---|---|
+| ML | 1.1419 | 1.1544 | 1.1604 | 0.9867 |
+| REML | 1.1611 | 1.0147 | 1.1802 | 1.0007 |
+| profile | 1.1419 | not measured | 1.1604 | 0.9867 |
+
+`fit_draw_space()` adds `beta` to the draw under REML and profile, with
+its covariance taken jointly with the outer parameters from the joint
+precision, the source `vcov_estimated()` reads. `fit_fd_se()` uses it
+too. Under ML it returns `outer_par_map()` and `vcov(full = TRUE)`
+unchanged: summary, spec_pars, predict with parameter draws and
+fitted() are `identical()` before and after on a gaussian, a
+distributional and a cumulative fit.
+
+**Why three reviews missed it.** No test in any tier calls `summary()` or
+`predict()` on a REML fit, and every harness in the lane and the review
+used ML fits. `tests/testthat/test-reml-shapes.R` now pins both, and was
+seen failing on the lane build (`shapes-lib`).
+
+**Also at consolidation, not defects:** the fuzz tier's `vcov_dim`
+invariant compared `vcov()` with the estimated-coefficient count, which
+2.6f made false by design (`vcov()` is brms's population-level block);
+it now compares `vcov_estimated()`. And four ported rows (:345, :350,
+:764, :775) HOLD on the merged build, because this lane's shapes and
+lane adefects' `fit$data` fix together remove each row's recorded
+reason.

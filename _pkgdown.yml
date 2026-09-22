@@ -114,6 +114,7 @@ reference:
 - title: Extractors and prediction
   contents:
   - predict.frmtmb_fit
+  - frm_linpred
   - fitted.frmtmb_fit
   - conditional_effects
   - simulate.frmtmb_fit
@@ -121,6 +122,7 @@ reference:
   - update.frmtmb_fit
   - coef.frmtmb_fit
   - fixef
+  - fixef_by_dpar
   - ranef
   - ngrps
   - VarCorr

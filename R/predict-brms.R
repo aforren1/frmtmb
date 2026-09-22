@@ -788,8 +788,8 @@ predict_dpar_values <- function(fit, rspec, newdata, re_formula,
 #' @noRd
 predict_par_drawer <- function(object, param_uncertainty, ndraws) {
   if (!param_uncertainty) return(function(s) object)
-  V <- tryCatch(suppressWarnings(vcov(object, full = TRUE)),
-                error = function(e) NULL)
+  ds <- fit_draw_space(object)
+  V <- ds$V
   L <- if (is.null(V) || !all(is.finite(V))) NULL else {
     tryCatch(chol(V + diag(0, nrow(V))), error = function(e) NULL)
   }
@@ -805,8 +805,8 @@ predict_par_drawer <- function(object, param_uncertainty, ndraws) {
                 call. = FALSE)
     return(function(s) object)
   }
-  map <- outer_par_map(object)
-  v0 <- fit_outer_vector(object)
+  map <- ds$map
+  v0 <- fit_outer_vector(object, map)
   p <- length(v0)
   # all ndraws draws at once, column s for replicate s: the caller's
   # stream is consumed by the same amount whatever the rows are

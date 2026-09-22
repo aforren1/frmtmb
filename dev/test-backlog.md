@@ -131,6 +131,24 @@ to do, and every closure carries the measurement that closed it.
 
 ## Open - medium
 
+- REML against mgcv on a location-scale smooth (filed 2026-09-22).
+  frmtmb's `REML = TRUE` integrates the `mu` coefficients and keeps the
+  distributional coefficients outer, which is the double-GLM REML
+  (Smyth and Verbyla; `nlme` varFunc; pinned against
+  `gls(method = "REML")` at 1e-5). mgcv's LAML integrates every
+  coefficient of every linear predictor, so for `sigma ~ s(z)` the two
+  `REML` criteria differ by design, and nothing says so: the only
+  frmtmb-versus-`gaulss` comparison (`test-smooths.R`) runs under ML.
+  Two parts. (1) One sentence in `?frm` under `REML` naming the
+  difference, so a ported mgcv model compared under REML is not read as
+  a defect. (2) A test fitting `bf(y ~ s(x), sigma ~ s(z))` with
+  `REML = TRUE` against `gam(list(y ~ s(x), ~ s(z)), family =
+  gaulss(b = 0), method = "REML")` that MEASURES the gap in the fitted
+  curves and smoothing parameters and pins its size, rather than
+  asserting agreement. Integrating the distributional coefficients is
+  not proposed: it would turn a gaussian model's sigma back into the
+  ML estimate, and the inner problem can be unbounded as sigma goes to 0.
+
 - Draws hint that leads to a refusal (found 2026-09-22 by the round-3
   recheck of 2.6d/2.6f). On a draws object, a `newdata` holding an
   unseen level WITHOUT `allow_new_levels` gets core's error, whose hint

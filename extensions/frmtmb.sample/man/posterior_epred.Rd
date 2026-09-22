@@ -70,7 +70,17 @@ posterior_predict(object, ...)
 \arguments{
 \item{object}{A \code{frmtmb_draws} from \code{\link[=frm_sample]{frm_sample()}}.}
 
-\item{...}{Unused.}
+\item{...}{Refused: an argument the method does not have is an error
+naming it, rather than a silently ignored name. The exceptions are
+brms's \code{allow_new_levels} (and \code{allow.new.levels}) and
+\code{sample_new_levels}. \code{allow_new_levels = FALSE}, and \code{TRUE} with
+levels the fit saw, answer as the call without it does. \code{TRUE}
+with a level the fit did not see, including a \code{newdata} that leaves
+the grouping column out, is refused: brms draws that level's
+effect from each posterior draw, which is not built here, and
+predicting it at the population level would drop the group
+variance from every draw. \code{\link[frmtmb:predict.frmtmb_fit]{frmtmb::predict.frmtmb_fit()}} predicts
+unseen levels from the maximum-likelihood fit.}
 
 \item{newdata, resp}{As in \code{\link[frmtmb:predict.frmtmb_fit]{frmtmb::predict.frmtmb_fit()}}.}
 

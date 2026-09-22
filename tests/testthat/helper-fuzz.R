@@ -1061,15 +1061,20 @@ fuzz_inv_vcov_summary <- function(recs, sp, fit) {
   }
   # The reference is the optimizer's own coefficient count, not
   # length(fixef()): fixef() reports dpars held at a constant (se()
-  # maps sigma out that way) and vcov() documents that it excludes
-  # them. Under REML and profile the coefficients are inner
-  # parameters and absent from opt$par, so there is nothing to compare.
+  # maps sigma out that way). It is compared with vcov_estimated(), the
+  # matrix over every estimated coefficient, because vcov() is brms's
+  # population-level block since item 2.6f and drops an intercept-only
+  # distributional parameter by design. Under REML and profile the
+  # coefficients are inner parameters and absent from opt$par, so there
+  # is nothing to compare.
   if (!sp$mode %in% c("reml", "profile")) {
     nc <- sum(names(fit$opt$par) %in% c("beta", "betad"))
-    if (nc > 0 && nc != nrow(M)) {
+    E <- fuzz_try(frmtmb::vcov_estimated(fit))
+    ne <- if (E$ok) nrow(as.matrix(E$value)) else NA_integer_
+    if (nc > 0 && !identical(as.integer(nc), as.integer(ne))) {
       fuzz_finding(recs, sp, "vcov_dim", "candidate",
-                   "vcov() dimension != estimated coefficient count",
-                   list(vcov_dim = nrow(M), n_coef = nc))
+                   "vcov_estimated() dimension != estimated coefficient count",
+                   list(vcov_dim = ne, n_coef = nc))
     }
   }
   if (any(!is.finite(M))) {

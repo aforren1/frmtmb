@@ -102,7 +102,8 @@ test_that("a hypothesis with no relation is refused, as in brms", {
 
   # the relation spellings still answer, and with the same numbers
   h0 <- hypothesis(fh, "Age = 0")$hypothesis
-  expect_equal(h0$Estimate, unname(fixef(fh)$mu[["Age"]]), tolerance = 1e-10)
+  expect_equal(h0$Estimate, unname(fixef_by_dpar(fh)$mu[["Age"]]),
+               tolerance = 1e-10)
   expect_true(is.finite(hypothesis(fh, "Age > 0")$hypothesis$Est.Error))
   expect_true(is.finite(hypothesis(fh, "Age < Trt")$hypothesis$Est.Error))
   expect_true(is.finite(hypothesis(fh, "exp(Age) = 1")$hypothesis$Est.Error))

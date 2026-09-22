@@ -375,11 +375,19 @@ summary_spec_frame <- function(object, prob) {
   smp <- attr(tab, "simplex")
   in_smp <- unlist(lapply(smp, `[[`, "pos"))
   keep <- setdiff(which(tab$natural), in_smp)
-  V <- tryCatch(suppressWarnings(vcov(object, full = TRUE)),
+  # vcov_estimated() is the covariance over exactly the coefficients
+  # fixef_estimated() returns, in its order, under every estimation
+  # mode. vcov(full = TRUE) is the OUTER covariance: under REML and
+  # profile it has no fixed-effect rows, and reading it by position put
+  # an NA-named standard error on sigma and stopped summary() on every
+  # such fit.
+  V <- tryCatch(suppressWarnings(vcov_estimated(object)),
                 error = function(e) NULL)
   cf <- fixef_estimated(object)
-  se_in <- if (is.null(V)) rep(NA_real_, length(cf)) else {
-    sqrt(diag(V))[seq_along(cf)]
+  se_in <- if (is.null(V) || nrow(V) != length(cf)) {
+    rep(NA_real_, length(cf))
+  } else {
+    unname(sqrt(diag(V)))
   }
   q <- stats::qnorm(1 - (1 - prob) / 2)
   est <- err <- lo <- hi <- numeric(0)

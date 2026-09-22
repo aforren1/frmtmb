@@ -1,69 +1,69 @@
 # Handing a round to a new session
 
-Written 2026-09-17, at the 0.60.0 release. Read this, then
+Written 2026-09-22, at the 0.61.0 release. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
 `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
-anything: the library has now been lost SIX times, and the sixth has a
-dated trigger.
+anything: the library has been lost SIX times, and the sixth has a
+dated trigger (a hard kill of R processes).
 
-Main carries items 2.6b (brms's own bin-1 suite ported as a gated tier),
-2.6c (the defects that suite found) and 2.6e (classed conditions), plus
-the tmbstan 1.2.1 verification. Four lanes merged since the last
-release: `wt-brmsport`, `wt-conditions`, `wt-tmbstan121`, and before
-them the three 2.6c lanes. No worktree is left. `wt-vectorize` and
-`wt-vecshape` are branches, deferred by the user and never merged.
+Main carries items 2.6d (`predict()` is brms's predictive summary; the
+old predictor is `frm_linpred()`) and 2.6f (brms's post-fit shapes and
+names), lane `wt-shapes`; the silent wrong answers of lane `wt-adefects`;
+and the RTMB 2.0 fallout. `wt-vectorize` and `wt-vecshape` stay
+branches, deferred by the user and never merged.
 
-Versions: frmtmb **0.60.0**, frmtmb.sample **0.8.0**, frmtmb.eam 0.9.0,
-frmtmb.learn 0.5.0, frmtmb.latent 0.4.0, frmtmb.spline 0.6.0,
-frmtmb.coupling 0.4.0, frmtmb.ode 0.5.0. Every extension floors on
-frmtmb 0.60.0, because each imports `frm_stop()` and the other condition
-helpers.
+Versions: frmtmb **0.61.0**, frmtmb.sample **0.9.0**, frmtmb.eam 0.10.0,
+frmtmb.learn 0.6.0, frmtmb.latent 0.5.0, frmtmb.spline 0.7.0,
+frmtmb.coupling 0.5.0, frmtmb.ode 0.6.0. Every extension floors on
+frmtmb 0.61.0, because each reads `frm_linpred()` or the new exports.
 
-**The StanHeaders 2.32.10 pin is GONE.** tmbstan 1.2.1 fixes the build
-that sampled a standard normal, and `CXX17FLAGS += -std=gnu++17` in the
-user Makevars fixes rstan's compile against StanHeaders 2.39.1. The
-release scripts no longer put `pinlib` on the path; `run-tests.R`
-asserts tmbstan >= 1.2.1 and that the Makevars carries the flag, and
-names `R_MAKEVARS_USER` because HOME depends on the launcher.
+**RTMB 2.0 is in the user library** (the user's install, 2026-09-21).
+It changes no answer: the objective agrees with 1.9 to 2 ulp. It
+exports `atan2`, now in the `nl()` shadow set. RTMB 1.9 remains the
+Windows R 4.6 binary on CRAN, so the transparency block skips there.
 
 ### Verified at the release commit
 
-- Suite: 262 files, 15567 assertions, 0 fail, 0 error, nothing below its
-  baseline. 31 files are new; see `dev/suite-baseline.md`.
-- Gated: 38 of 38 files, 3127 assertions, 0 skips, and 109 Stan programs
-  compiled from an EMPTY cache against StanHeaders 2.39.1.
-- Scale: 7 of 7, every logLik identical to 0.59.0.
-- `R CMD check --as-cran`: 8 of 8, no warnings or errors, 5 packages
-  carrying the environmental "V8 unavailable" NOTE and no timing NOTE.
-- Two harness defects found and fixed on the way. `run-gated.ps1` had a
-  loop variable `$s` that clobbered `$S`, the runner path, so the tier
-  reported 0 of 38 while running nothing: PowerShell names are
-  case-insensitive. And the sixth library loss, recorded in
-  `dev/machine-library.md`, happened in the minute this session
-  hard-killed R processes to pause a release. Do not do that.
+- Suite: 269 files, 15,919 assertions, 0 fail, 0 error; every drop
+  against 0.60.0 explained in `dev/suite-baseline.md`.
+- Gated: 38 of 38 files, 3,130 assertions, 0 fail.
+- Scale: 7 of 7.
+- `R CMD check --as-cran`: 8 of 8, no warnings or errors after one
+  merge-artifact Rd fix in frmtmb.sample; 5 packages carry the
+  environmental "V8 unavailable" NOTE.
+- Ported brms bin 1: 243 of 494 (was 231), ledger rebuilt on the merged
+  build.
+
+**Consolidation found four defects the lane's three review rounds did
+not**, all now fixed and pinned (`dev/shapes-findings.md` section 13):
+`summary()` stopped on every REML and profile fit; `predict()` under
+REML dropped the fixed-effect uncertainty (1.0147 against 1.1611);
+the adefects forward of `allow_new_levels` on draws was bit-identical
+to `re_formula = NA`; and two `skip_if_not()` guards in
+`test-unpinned-seams.R` skipped a measurement in silence after the
+`vcov()` rename. The lesson for a review: no harness in the lane or
+review touched a REML fit, and a gate the lane never set
+(`FRMTMB_BRMS_FIT_TESTS`) hid 25 errors until round 3. Ask every lane
+to run the release tiers, not its own subset.
 
 ## What is next, in order
 
-**2.6d and 2.6f together, next.** Both reshape the post-fit methods in
-the same files, so one lane.
-- 2.6d: `predict()` becomes brms's predictive summary (user decision,
-  2026-09-16). Audit every caller of `predict(type = )` first, including
-  `conditional_effects()` and the interop packages.
-- 2.6f: the return shapes of `fitted`, `residuals`, `fixef`, `ngrps`,
-  `vcov` and `summary` follow brms, and frmtmb.sample offers
-  `nsamples()` and `posterior_samples()` (user decision, 2026-09-17).
+**Silent first.**
+- A partial `re_formula` is accepted and not honored, with nothing said
+  (`dev/adefects-findings.md` section 11, item 7), and
+  `re_formula = ~(1 | nosuch)` is treated as `NULL` silently
+  (`dev/test-backlog.md`).
+- `residuals()` on an ordinal fit still answers where brms refuses.
 
-**Then the defects the ported suite found**, ranked with constructions
-in `dev/brmsport-findings.md`. Eight are SILENT: `ar()`/`ma()` taking an
-expression as the time index; `gr = g1/g2` on numeric codes grouping by
-the quotient; `variables()` omitting an ordinal fit's thresholds; a
-hypothesis with no relation answered as `= 0`; `fit$data`
-partial-matching `fit$data2`; `point_estimate` ignored on draws;
-`fitted()`/`residuals()` returning NULL on draws; ordinal residuals
-answered where brms refuses. Beside them: `hmm_starts(1)`, the
-`brmshypothesis` class on `hypothesis()` output (it breaks the user's
-own rule), `predict(allow_new_levels = TRUE)` without the grouping
-column, and `log_lik()` on a fit giving "no applicable method".
+**Then loud ones.** `pp_check(type = "*_grouped")` is broken for every
+grouped type, and `type = "violin"`; `fitted()` on a multivariate fit
+refuses while `predict()` answers; on draws, an unseen level without
+the flag gets a hint that leads to a refusal (`dev/test-backlog.md`).
+
+**Decisions for the user, filed:** `Var(b|y)` at levels the fit saw is
+left out of `predict()`'s interval, where brms's draws carry it
+(`dev/test-backlog.md`); new levels on draws are refused rather than
+drawn per posterior draw.
 
 **Filed during 2.6c and not fixed**, details in each lane's findings:
 two prior-scope differences from brms (a `sd` prior with a group and no
@@ -72,18 +72,19 @@ frmtmb.sample default priors (rescor flat where brms uses `lkj(1)`, and
 the offset intercept location); `mi()` still `b_` where brms uses
 `bsp_`; and a written `theta` formula's reference component.
 
-**Deferred by the user, 2026-09-17:** `frmtmb_control(vectorize = FALSE)`
-on branch `wt-vectorize`, with the census on `wt-vecshape`. Vectorizing
-is slower on every random-effects model, 1.36x to 1,116x, because it
-breaks the sparsity of the Laplace sparse Hessian tape. Only the sampler
-tape could gain, and only for gaussian-like models, after three
-reshapings whose first one can break custom likelihoods. Revisit only if
-sampling speed becomes a priority.
+**Small follow-ups:** a sentence in `?frm` that frmtmb's REML and
+mgcv's differ on a location-scale smooth, and a test measuring the gap
+(`dev/test-backlog.md`).
+
+**Deferred by the user:** `frmtmb_control(vectorize = FALSE)`
+(2026-09-17; branches `wt-vectorize`, `wt-vecshape`): slower on every
+random-effects model, 1.36x to 1,116x. EM-seeded starts for the
+latent-discrete families (2026-09-21; `dev/extension-gaps-plan.md`).
 
 **Bin 2 of brms's suite is NOT ported and the audit recommends against
 it** (`dev/brms-suite-audit.md` section 9). Quote any "passes brms's
 suite" fraction against 823, bins 1 and 2, never 2,011. Today bin 1 is
-192 of 494.
+243 of 494.
 
 **Settled, do not reopen:**
 - The non-generic name collisions with brms stay, because `::` is
@@ -95,6 +96,12 @@ suite" fraction against 823, bins 1 and 2, never 2,011. Today bin 1 is
 - Duplicate priors on one slot, and duplicate group-level effects
   including the animal model, are refused as brms refuses them.
 - `frm_simulate(newparams =)` takes brms names only.
+- `variables()` keeps frmtmb's order (2026-09-17); frmtmb objects carry
+  no brms class, so `hypothesis()` output is `frmtmb_hypothesis` alone.
+- `REML = TRUE` integrates the `mu` coefficients only; distributional
+  coefficients stay outer (the double-GLM REML, `cd5bb83`). Integrating
+  them would make a gaussian sigma the ML estimate again, and the inner
+  problem can be unbounded.
 
 ## How a round runs here
 
@@ -179,6 +186,6 @@ document, and the fix found a real error on its first run.
 
 ## Worktrees
 
-`wt-frailty`, `wt-eamhier`, `wt-learnhier` and `wt-coh` are merged and
-removed, with their evidence committed on main under `dev/`. Create
-fresh worktrees off the current main.
+`wt-shapes` and `wt-adefects` are merged and removed, with their evidence
+committed on main under `dev/`. Create fresh worktrees off the current
+main.

@@ -1,9 +1,8 @@
-# frmtmb.eam (development version)
+# frmtmb.eam 0.10.0
 
 * `ndt_time()` reads `frmtmb::frm_linpred()` rather than `predict()`,
-  which is brms's predictive summary in frmtmb's development version
-  and has no `dpar` or `type`. The `frmtmb (>= 0.60.0)` floor must move
-  to the release that exports `frm_linpred()`.
+  which is brms's predictive summary in frmtmb 0.61.0
+  and has no `dpar` or `type`. Requires frmtmb 0.61.0.
 
 # frmtmb.eam 0.9.0
 

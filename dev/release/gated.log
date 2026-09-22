@@ -14,9 +14,9 @@ RESULT test-bcm-signal-detection.R pass=30 fail=0 err=0 skip=0
 RESULT test-bcm-simple.R pass=13 fail=0 err=0 skip=0
 RESULT test-brms-agreement.R pass=187 fail=0 err=0 skip=0
 RESULT test-brms-likelihood.R pass=404 fail=0 err=0 skip=0
-RESULT test-brms-methods.R pass=953 fail=0 err=0 skip=0
+RESULT test-brms-methods.R pass=954 fail=0 err=0 skip=0
 RESULT test-brms-priors.R pass=103 fail=0 err=0 skip=0
-RESULT test-brms-port.R pass=19 fail=0 err=0 skip=0
+RESULT test-brms-port.R pass=21 fail=0 err=0 skip=0
 RESULT test-rl-example.R pass=102 fail=0 err=0 skip=0
 RESULT test-fuzz.R pass=2 fail=0 err=0 skip=0
 RESULT test-brms-suite-brm.R pass=23 fail=0 err=0 skip=0

@@ -197,9 +197,12 @@ test_that("a mixing weight's response-scale SE is the one-predictor rule", {
   p1 <- exp(eta[, 1]) / den2
   p2 <- exp(eta[, 2]) / den2
   X <- cbind(1, d$x)
-  V <- vcov(fit)
+  # vcov_estimated() keeps the internal names; vcov() takes brms's
+  # since item 2.6f, and a skip_if_not() here skipped this whole
+  # measurement in silence when that happened. An assertion fails.
+  V <- vcov_estimated(fit)
   cn <- c("theta1_(Intercept)", "theta1_x", "theta2_(Intercept)", "theta2_x")
-  skip_if_not(all(cn %in% rownames(V)))
+  expect_true(all(cn %in% rownames(V)))
 
   rep_se <- as.numeric(frm_linpred(fit, type = "response", dpar = "theta1",
                                se.fit = TRUE)$se.fit)
@@ -232,9 +235,9 @@ test_that("a mixing weight's response-scale SE is the one-predictor rule", {
   r2 <- as.numeric(frm_linpred(f2, type = "response", dpar = "theta1",
                            se.fit = TRUE)$se.fit)
   q <- as.numeric(frm_linpred(f2, type = "response", dpar = "theta1"))
-  V2 <- vcov(f2)
+  V2 <- vcov_estimated(f2)
   c2 <- c("theta1_(Intercept)", "theta1_x")
-  skip_if_not(all(c2 %in% rownames(V2)))
+  expect_true(all(c2 %in% rownames(V2)))
   G2 <- q * (1 - q) * cbind(1, d2$x)
   ex <- sqrt(pmax(rowSums((G2 %*% V2[c2, c2, drop = FALSE]) * G2), 0))
   expect_lt(max(abs(r2 / ex - 1)), 1e-10)

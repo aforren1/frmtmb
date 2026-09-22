@@ -1,0 +1,59 @@
+== roxygenise frmtmb 
+  * [G3.1, G3.1a, G4.0, G5.1, G5.4c, G5.11, G5.11a, RE4.15, RE6.3, RE7.4] on line#151 of file [R/srr-stats-standards.R]
+────────────────────────────────────────────────────────────────────────────────
+Writing 'frm_linpred.Rd'
+== install frmtmb 
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb)
+== roxygenise frmtmb.eam 
+ℹ Make sure that the name of the topic is spelled correctly.
+ℹ Always list the linked package as a dependency.
+ℹ Alternatively, you can fully qualify the link with a package name.
+== install frmtmb.eam 
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.eam)
+== roxygenise frmtmb.sample 
+Warning: Aliases documented in multiple Rd files: 'log_lik' (reexports.Rd, sample-log_lik.Rd)
+Writing 'sample-log_lik.Rd'
+Writing 'posterior_epred.Rd'
+== install frmtmb.sample 
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.sample)
+== roxygenise frmtmb.coupling 
+ℹ Loading frmtmb.coupling
+Loading required package: frmtmb
+== install frmtmb.coupling 
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.coupling)
+== roxygenise frmtmb.spline 
+ℹ Loading frmtmb.spline
+Loading required package: frmtmb
+== install frmtmb.spline 
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.spline)
+== roxygenise frmtmb.learn 
+ℹ Loading frmtmb.learn
+Loading required package: frmtmb
+== install frmtmb.learn 
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.learn)
+== roxygenise frmtmb.latent 
+ℹ Loading frmtmb.latent
+Loading required package: frmtmb
+== install frmtmb.latent 
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.latent)
+== roxygenise frmtmb.ode 
+ℹ Loading frmtmb.ode
+Loading required package: frmtmb
+== install frmtmb.ode 
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.ode)
+frmtmb 0.61.0 
+frmtmb.eam 0.10.0 
+frmtmb.sample 0.9.0 
+frmtmb.coupling 0.5.0 
+frmtmb.spline 0.7.0 
+frmtmb.learn 0.6.0 
+frmtmb.latent 0.5.0 
+frmtmb.ode 0.6.0 

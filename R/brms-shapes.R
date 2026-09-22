@@ -333,8 +333,7 @@ brms_pars_filter <- function(x, pars, what) {
 #' belongs to the estimates it was computed at.
 #'
 #' @noRd
-fit_outer_vector <- function(fit) {
-  map <- outer_par_map(fit)
+fit_outer_vector <- function(fit, map = outer_par_map(fit)) {
   est <- fit$estimates
   out <- numeric(length(map$names))
   for (cp in unique(map$comp)) {
@@ -365,6 +364,49 @@ fit_set_outer <- function(fit, v, map = outer_par_map(fit)) {
   fit
 }
 
+#' The parameters a draw from the estimates' asymptotic law perturbs,
+#' and their joint covariance.
+#'
+#' Under ML these are the outer parameters and `vcov(full = TRUE)`,
+#' unchanged. Under REML or `control(profile = TRUE)` the fixed effects
+#' are integrated out, so they are NOT outer parameters, and a draw over
+#' the outer vector alone left them at their estimates: `predict()`'s
+#' interval dropped the fixed-effect uncertainty on every such fit
+#' (1.0147 against the analytic 1.1611 at an extrapolated point). Here
+#' `beta` joins the draw, with its covariance taken jointly with the
+#' outer parameters from the joint precision, the source
+#' `vcov_estimated()` reads under the same modes.
+#'
+#' Returns `list(map, V)`; `V` is `NULL` when the covariance is not
+#' usable.
+#'
+#' @noRd
+fit_draw_space <- function(fit) {
+  map <- outer_par_map(fit)
+  V <- tryCatch(suppressWarnings(vcov(fit, full = TRUE)),
+                error = function(e) NULL)
+  nb <- length(fit$frame[["par_template"]][["beta"]])
+  if (!(fit$REML || isTRUE(fit$control$profile)) || nb == 0L) {
+    return(list(map = map, V = V))
+  }
+  bn <- names(fit$frame[["par_template"]][["beta"]])
+  if (is.null(bn)) bn <- paste0("beta_", seq_len(nb))
+  map <- list(names = c(bn, map$names), comp = c(rep("beta", nb), map$comp))
+  Q <- sdr_of(fit)$jointPrecision
+  Vall <- tryCatch(solve_joint_precision(Q, fit$cache, fit),
+                   error = function(e) NULL)
+  rn <- rownames(Q)
+  keep <- c(which(rn == "beta"),
+            unlist(lapply(unique(map$comp[-seq_len(nb)]),
+                          function(cp) which(rn == cp))))
+  if (is.null(Vall) || length(keep) != length(map$names)) {
+    return(list(map = map, V = NULL))
+  }
+  V <- as.matrix(Vall[keep, keep, drop = FALSE])
+  dimnames(V) <- list(map$names, map$names)
+  list(map = map, V = V)
+}
+
 #' Delta-method standard errors of a matrix-valued function of the outer
 #' parameters, by central differences.
 #'
@@ -381,11 +423,11 @@ fit_set_outer <- function(fit, v, map = outer_par_map(fit)) {
 #'
 #' @noRd
 fit_fd_se <- function(fit, f, eps = 1e-5) {
-  V <- tryCatch(suppressWarnings(vcov(fit, full = TRUE)),
-                error = function(e) NULL)
+  ds <- fit_draw_space(fit)
+  V <- ds$V
   if (is.null(V) || !all(is.finite(V))) return(NULL)
-  map <- outer_par_map(fit)
-  v0 <- fit_outer_vector(fit)
+  map <- ds$map
+  v0 <- fit_outer_vector(fit, map)
   m0 <- as.matrix(f(fit))
   p <- length(v0)
   # J is (n * K) x p: one column per outer parameter, flattened the way

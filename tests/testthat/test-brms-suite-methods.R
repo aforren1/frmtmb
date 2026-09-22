@@ -502,13 +502,8 @@ test_that("fitted has reasonable outputs", {
   brms_setup("brmsfit-methods:344",
     fi <- fitted(fit3, newdata = fit3$data[1:10, ])
   )
-  brms_port("brmsfit-methods:345", "defect",
-    paste0(
-      "dim(fitted(fit1, newdata = fit1$data[1:10, ])) is NULL: ",
-      "fitted() returns a vector where brms returns a 10 x 4 ",
-      "summary matrix. Rule 3, item 2.6f; :348 is the same ",
-      "assertion without newdata. Was fit-data, and the fit$data ",
-      "blocker is gone (dev/adefects-findings.md D4)"),
+  brms_port("brmsfit-methods:345", "pass",
+    "",
     expect_equal(dim(fi), c(10, 4))
   )
   brms_setup("brmsfit-methods:347",
@@ -521,13 +516,8 @@ test_that("fitted has reasonable outputs", {
   brms_setup("brmsfit-methods:349",
     fi <- fitted(fit4, newdata = fit4$data[1, ])
   )
-  brms_port("brmsfit-methods:350", "defect",
-    paste0(
-      "dim(fitted(fit4, newdata = fit4$data[1, ])) is 1 x 4 where ",
-      "brms gives 1 x 4 x 4: an ordinal fitted() returns the ",
-      "category probabilities, not brms's draws summary per ",
-      "category. Rule 3, item 2.6f; :348 is the same shape without ",
-      "newdata. Was fit-data"),
+  brms_port("brmsfit-methods:350", "pass",
+    "",
     expect_equal(dim(fi), c(1, 4, 4))
   )
   brms_setup("brmsfit-methods:351",
@@ -985,12 +975,8 @@ test_that("predict has reasonable outputs", {
   brms_setup("brmsfit-methods:763",
     pred <- predict(fit4, newdata = fit4$data[1, ])
   )
-  brms_port("brmsfit-methods:764", "pending 2.6d",
-    paste0(
-      "dim(predict(fit4, newdata = fit4$data[1, ])) is NULL where ",
-      "brms gives 1 x 4: predict() returns a vector, which item ",
-      "2.6d is about; :761, :762 and :767 are the same assertion ",
-      "on other rows. Was fit-data"),
+  brms_port("brmsfit-methods:764", "pass",
+    "",
     expect_equal(dim(pred), c(1, 4))
   )
   brms_setup("brmsfit-methods:766",
@@ -1023,16 +1009,8 @@ test_that("predict has reasonable outputs", {
     pred <- predict(fit5, newdata, allow_new_levels = TRUE,
                     sample_new_levels = "gaussian")
   )
-  brms_port("brmsfit-methods:775", "defect",
-    paste0(
-      "predict(sample_new_levels = \"gaussian\") is ANSWERED now: an ",
-      "unseen level's effect is drawn from its block's estimated ",
-      "covariance. The assertion still fails, on the pre-existing ",
-      "fixture defect :764 records: newdata is fit5$data[1:5, ], ",
-      "fit$data partial-matches fit$data2 (the fit has no data ",
-      "element), so newdata has 2 rows and the answer is 2 x 4 ",
-      "[fit$data is the $ partial match of fit$data2, ",
-      "dev/brmsport-rev-silent.R R8]"),
+  brms_port("brmsfit-methods:775", "pass",
+    "",
     expect_equal(dim(pred), c(5, 4))
   )
 })

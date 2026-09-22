@@ -1,8 +1,20 @@
 # The per-file suite baseline, and what it is for
 
-`dev/suite-baseline.tsv` records one row per test file as of the round 3
-release, at frmtmb 0.60.0 and frmtmb.sample 0.8.0: package, file, passing
+`dev/suite-baseline.tsv` records one row per test file as of the 0.61.0
+release, at frmtmb 0.61.0 and frmtmb.sample 0.9.0: package, file, passing
 assertions, skips. It is a floor, not a target.
+
+One row is not from the release run: `test-unpinned-seams.R` (30, 0).
+The release run showed it at 23 with one skip, because two
+`skip_if_not()` guards read `vcov()` under the internal names that item
+2.6f replaced with brms's, and so skipped the mixture-weight
+measurement in silence. The guards are assertions now, on
+`vcov_estimated()`, and the row is that file's rerun. Every other drop
+against 0.60.0 is a deliberate change: `test-stan-control.R` and
+`test-sample-direct.R` assert over seeds or on the density instead of
+one chain (RTMB 2.0), and `test-arg-refusal.R` and
+`test-draws-methods.R` lost refusals of arguments and functions that now
+answer as brms's do.
 
 ## Why it exists
 

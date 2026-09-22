@@ -1,8 +1,8 @@
-# frmtmb.ode (development version)
+# frmtmb.ode 0.6.0
 
 * Documentation only: the vignette and the compatibility notes name
   `frm_linpred()` where they named `predict()`. frmtmb's `predict()`
-  is brms's predictive summary in the development version and the
+  is brms's predictive summary in frmtmb 0.61.0 and the
   linear predictor moved to `frm_linpred()`.
 
 # frmtmb.ode 0.5.0

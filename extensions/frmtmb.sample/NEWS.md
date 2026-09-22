@@ -1,4 +1,4 @@
-# frmtmb.sample (development version)
+# frmtmb.sample 0.9.0
 
 * **`log_lik()` is frmtmb's generic now, re-exported here**, rather than
   a second generic of the same name defined in this package. frmtmb owns
@@ -8,19 +8,15 @@
   function". `log_lik(draws)` is unchanged, and the `frmtmb_draws`
   method is still registered on rstantools' generic as well. The method
   page is `?log_lik.frmtmb_draws`; `?frmtmb::log_lik` documents the
-  generic. Requires the frmtmb release that exports `log_lik()`.
+  generic.
 
 * `posterior_epred()` and `posterior_predict()` on draws refuse every
   name in `...` they do not read, where they used to ignore it, as the
   other methods here already do. The new-level arguments pass through
   to the refusal described below.
 
-* Requires the frmtmb development version that exports `frm_linpred()`,
-  `fixef_by_dpar()` and the shape helpers `brms_summary_matrix()`,
-  `brms_summary_array()`, `brms_summarize_draws()`,
-  `brms_prob_cols()`, `fam_is_category_valued()` and
-  `predict_category_props()`; the `frmtmb (>= 0.60.0)` floor must move
-  to it.
+* Requires frmtmb 0.61.0, for `log_lik()`, `frm_linpred()`,
+  `fixef_by_dpar()`, `brms_fixef_rows()` and the brms shape helpers.
 
 * **`fitted()`, `predict()` and `residuals()` on draws exist** (item
   2.6f). They are brms's three summarizing methods, each a summary of
@@ -68,9 +64,6 @@
   FALSE`, brms's default, and `TRUE` with no `newdata` or with levels
   the fit saw.
 
-* Needs the frmtmb development version that exports
-  `brms_fixef_rows()` as extension API.
-
 * **BREAKING: `hypothesis()` on draws no longer returns an object of
   class `brmshypothesis`.** The class is `"frmtmb_hypothesis"` alone;
   the shape and every element are unchanged, and what stops working is
@@ -90,7 +83,7 @@
 * `posterior_epred()`, `posterior_linpred()` and
   `posterior_predict()` build each draw's prediction with
   `frmtmb::frm_linpred()` rather than `predict()`, which is brms's
-  predictive summary in frmtmb's development version.
+  predictive summary in frmtmb 0.61.0.
 
 # frmtmb.sample 0.8.0
 

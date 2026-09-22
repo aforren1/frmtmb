@@ -1,4 +1,4 @@
-# frmtmb.learn (development version)
+# frmtmb.learn 0.6.0
 
 * Documentation only: the compatibility notes and the family refusals
   name `frm_linpred(type = )` where they named `predict(type = )`.

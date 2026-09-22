@@ -1,4 +1,4 @@
-# frmtmb (development version)
+# frmtmb 0.61.0
 
 The silent wrong answers brms's own ported test suite found
 (item 2.6f, lane `wt-adefects`). Each one is a case where frmtmb

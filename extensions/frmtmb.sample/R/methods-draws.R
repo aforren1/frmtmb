@@ -551,13 +551,17 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
 #'   sign convention for its own wiener family.
 #' @param transform For `posterior_predict()`: a function applied to
 #'   the finished draws, in brms's own fifth position.
-#' @param allow_new_levels For `posterior_epred()` and
-#'   `posterior_predict()`: predict grouping-factor levels the fit never
-#'   saw at the population level, and let `newdata` leave the grouping
-#'   column out altogether. Passed to
-#'   [frmtmb::predict.frmtmb_fit()], which is where brms passes it too.
 #' @param ... Refused: an argument the method does not have is an error
-#'   naming it, rather than a silently ignored name.
+#'   naming it, rather than a silently ignored name. The exceptions are
+#'   brms's `allow_new_levels` (and `allow.new.levels`) and
+#'   `sample_new_levels`. `allow_new_levels = FALSE`, and `TRUE` with
+#'   levels the fit saw, answer as the call without it does. `TRUE`
+#'   with a level the fit did not see, including a `newdata` that leaves
+#'   the grouping column out, is refused: brms draws that level's
+#'   effect from each posterior draw, which is not built here, and
+#'   predicting it at the population level would drop the group
+#'   variance from every draw. [frmtmb::predict.frmtmb_fit()] predicts
+#'   unseen levels from the maximum-likelihood fit.
 #' @return A draws-by-observations matrix; for a categorical outcome
 #'   `posterior_epred()` returns a draws-by-observations-by-categories
 #'   array (see the section below).

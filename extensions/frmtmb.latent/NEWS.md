@@ -1,13 +1,12 @@
-# frmtmb.latent (development version)
+# frmtmb.latent 0.5.0
 
 * `hmm_starts()`'s scale check reads `frmtmb::vcov_estimated()` rather
   than `stats::vcov()` on a frmtmb fit. `vcov()` is brms's
-  population-level block in frmtmb's development version: it names its
+  population-level block in frmtmb 0.61.0: it names its
   rows brms's way and drops an intercept-only distributional parameter,
   so the check's name intersection would have been empty and it would
-  have fallen back to a unit scale without saying why. The
-  `frmtmb (>= 0.60.0)` floor must move to the release that exports
-  `vcov_estimated()`.
+  have fallen back to a unit scale without saying why. Requires
+  frmtmb 0.61.0.
 
 # frmtmb.latent 0.4.0
 
