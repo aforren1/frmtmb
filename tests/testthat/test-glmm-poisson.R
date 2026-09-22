@@ -6,7 +6,7 @@ test_that("poisson GLMM with correlated slopes matches glmmTMB", {
   ref <- glmmTMB::glmmTMB(y ~ x + (x | g), dd, family = poisson)
 
   expect_loglik_equal(fit, ref, tol = 1e-6)
-  expect_vector_equal(fixef(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
+  expect_vector_equal(fixef_by_dpar(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
                       tol = 1e-4)
   se_f <- summary(fit)$coefficients$mu[, "Std. Error"]
   se_g <- summary(ref)$coefficients$cond[, "Std. Error"]
@@ -18,7 +18,7 @@ test_that("poisson GLM (no random effects) matches glm", {
   fit <- frm(bf(y ~ x) + poisson(), data = dd)
   ref <- stats::glm(y ~ x, family = poisson, data = dd)
   expect_loglik_equal(fit, ref, tol = 1e-6)
-  expect_vector_equal(fixef(fit)$mu, coef(ref), tol = 1e-5)
+  expect_vector_equal(fixef_by_dpar(fit)$mu, coef(ref), tol = 1e-5)
 })
 
 test_that("weights() matches weighted glm", {
@@ -28,7 +28,7 @@ test_that("weights() matches weighted glm", {
   ref <- suppressWarnings(
     stats::glm(y ~ x, family = poisson, data = dd, weights = w)
   )
-  expect_vector_equal(fixef(fit)$mu, coef(ref), tol = 1e-5)
+  expect_vector_equal(fixef_by_dpar(fit)$mu, coef(ref), tol = 1e-5)
 })
 
 test_that("offset() is applied", {
@@ -36,5 +36,5 @@ test_that("offset() is applied", {
   dd$expo <- runif(nrow(dd), 0.5, 2)
   fit <- frm(bf(y ~ x + offset(log(expo))) + poisson(), data = dd)
   ref <- stats::glm(y ~ x + offset(log(expo)), family = poisson, data = dd)
-  expect_vector_equal(fixef(fit)$mu, coef(ref), tol = 1e-5)
+  expect_vector_equal(fixef_by_dpar(fit)$mu, coef(ref), tol = 1e-5)
 })

@@ -16,9 +16,9 @@ test_that("zero_inflated_poisson with zi formula matches glmmTMB", {
   ref <- glmmTMB::glmmTMB(y ~ x, ziformula = ~z, family = poisson,
                           data = dd)
   expect_loglik_equal(fit, ref, tol = 1e-6)
-  expect_vector_equal(fixef(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
+  expect_vector_equal(fixef_by_dpar(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
                       tol = 1e-3)
-  expect_vector_equal(fixef(fit)$zi, unname(glmmTMB::fixef(ref)$zi),
+  expect_vector_equal(fixef_by_dpar(fit)$zi, unname(glmmTMB::fixef(ref)$zi),
                       tol = 1e-3)
 })
 
@@ -52,7 +52,7 @@ test_that("zero_inflated_negbinomial matches glmmTMB", {
   ref <- glmmTMB::glmmTMB(y ~ x, ziformula = ~1,
                           family = glmmTMB::nbinom2, data = dd)
   expect_loglik_equal(fit, ref, tol = 1e-5)
-  expect_vector_equal(fixef(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
+  expect_vector_equal(fixef_by_dpar(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
                       tol = 1e-3)
 })
 

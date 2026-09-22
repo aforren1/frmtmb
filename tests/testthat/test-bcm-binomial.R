@@ -61,7 +61,7 @@ test_that("Rate_1 is an intercept-only binomial", {
   d <- data.frame(k = 5, n = 10)
   fit <- frm(k | trials(n) ~ 1, family = binomial(), data = d)
   # the book's theta, read back off the logit scale
-  expect_equal(plogis(unname(fixef(fit)$mu)), 0.5, tolerance = 1e-6)
+  expect_equal(plogis(unname(fixef_by_dpar(fit)$mu)), 0.5, tolerance = 1e-6)
   expect_equal(as.numeric(logLik(fit)), dbinom(5, 10, 0.5, log = TRUE),
                tolerance = 1e-8)
 })
@@ -74,7 +74,7 @@ test_that("Rate_1 matches its Stan program", {
     bcm_rate_common_code(),
     data = list(m = 1L, n = as.array(10L), k = as.array(5L)),
     fit = fit,
-    pars = function(f) list(theta = plogis(unname(fixef(f)$mu))),
+    pars = function(f) list(theta = plogis(unname(fixef_by_dpar(f)$mu))),
     # beta(1, 1) is the uniform density on the unit interval, so its log
     # density is 0 and frmtmb's flat objective is the same function.
     const = 0)
@@ -90,7 +90,7 @@ test_that("Rate_2 is a binomial with one rate per group", {
   d <- data.frame(k = c(5, 7), n = c(10, 10),
                   g = factor(c("g1", "g2")))
   fit <- frm(k | trials(n) ~ 0 + g, family = binomial(), data = d)
-  th <- plogis(unname(fixef(fit)$mu))
+  th <- plogis(unname(fixef_by_dpar(fit)$mu))
   expect_equal(th, c(0.5, 0.7), tolerance = 1e-6)
   expect_equal(th[1] - th[2], -0.2, tolerance = 1e-6)
 })
@@ -118,7 +118,7 @@ test_that("Rate_2 matches its Stan program", {
 test_that("Rate_3 pools two counts into one rate", {
   d <- data.frame(k = c(5, 7), n = c(10, 10))
   fit <- frm(k | trials(n) ~ 1, family = binomial(), data = d)
-  expect_equal(plogis(unname(fixef(fit)$mu)), 0.6, tolerance = 1e-6)
+  expect_equal(plogis(unname(fixef_by_dpar(fit)$mu)), 0.6, tolerance = 1e-6)
 })
 
 test_that("Rate_3 matches its Stan program", {
@@ -129,7 +129,7 @@ test_that("Rate_3 matches its Stan program", {
     bcm_rate_common_code(),
     data = list(m = 2L, n = c(10L, 10L), k = c(5L, 7L)),
     fit = fit,
-    pars = function(f) list(theta = plogis(unname(fixef(f)$mu))),
+    pars = function(f) list(theta = plogis(unname(fixef_by_dpar(f)$mu))),
     const = 0)
 })
 
@@ -146,7 +146,7 @@ test_that("Rate_3 matches its Stan program", {
 test_that("Rate_4 is Rate_1 with a different count", {
   d <- data.frame(k = 1, n = 15)
   fit <- frm(k | trials(n) ~ 1, family = binomial(), data = d)
-  expect_equal(plogis(unname(fixef(fit)$mu)), 1 / 15, tolerance = 1e-6)
+  expect_equal(plogis(unname(fixef_by_dpar(fit)$mu)), 1 / 15, tolerance = 1e-6)
 })
 
 test_that("Rate_4's posterior predictive is a binomial at the estimate", {
@@ -167,7 +167,7 @@ test_that("Rate_4 matches its Stan program", {
     bcm_rate_common_code(),
     data = list(m = 1L, n = as.array(15L), k = as.array(1L)),
     fit = fit,
-    pars = function(f) list(theta = plogis(unname(fixef(f)$mu))),
+    pars = function(f) list(theta = plogis(unname(fixef_by_dpar(f)$mu))),
     const = 0)
 })
 
@@ -181,7 +181,7 @@ test_that("Rate_4 matches its Stan program", {
 test_that("Rate_5 pools two contradictory counts", {
   d <- data.frame(k = c(0, 10), n = c(10, 10))
   fit <- frm(k | trials(n) ~ 1, family = binomial(), data = d)
-  expect_equal(plogis(unname(fixef(fit)$mu)), 0.5, tolerance = 1e-6)
+  expect_equal(plogis(unname(fixef_by_dpar(fit)$mu)), 0.5, tolerance = 1e-6)
   set.seed(5)
   draws <- do.call(rbind, simulate(fit, nsim = 2000))
   # the predictive puts almost no mass on the observed pair
@@ -197,7 +197,7 @@ test_that("Rate_5 matches its Stan program", {
     bcm_rate_common_code(),
     data = list(m = 2L, n = c(10L, 10L), k = c(0L, 10L)),
     fit = fit,
-    pars = function(f) list(theta = plogis(unname(fixef(f)$mu))),
+    pars = function(f) list(theta = plogis(unname(fixef_by_dpar(f)$mu))),
     const = 0)
 })
 
@@ -239,7 +239,7 @@ test_that("Survey sums out the number of surveys sent", {
   skip_unless_bcm("marginal.R")
   d <- bcm_survey_data()
   fit <- frm(k ~ 1, family = bcm_survey(nmax = 500L), data = d)
-  theta <- plogis(unname(fixef(fit)$mu))
+  theta <- plogis(unname(fixef_by_dpar(fit)$mu))
   expect_gt(theta, 0)
   expect_lt(theta, 1)
   # the posterior over the number sent is a proper distribution over
@@ -270,6 +270,6 @@ test_that("Survey matches its Stan program", {
     bcm_survey_code(),
     data = list(nmax = 500L, m = nrow(d), k = as.integer(d$k)),
     fit = fit,
-    pars = function(f) list(theta = plogis(unname(fixef(f)$mu))),
+    pars = function(f) list(theta = plogis(unname(fixef_by_dpar(f)$mu))),
     const = 0)
 })

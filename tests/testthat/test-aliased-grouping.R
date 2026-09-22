@@ -33,16 +33,16 @@ test_that("prediction at an aliased cell returns NA, not a partial sum (lme4#303
                    g = factor(rep(1, 3), levels = lv_g))
   # estimable rows are exact, not merely close: same numbers as the
   # reparameterized fit, and no warning
-  expect_silent(p_ok <- predict(fit, newdata = ok))
+  expect_silent(p_ok <- frm_linpred(fit, newdata = ok))
   expect_equal(unname(p_ok),
-               unname(predict(ref, newdata = ok[, c("f", "g")])),
+               unname(frm_linpred(ref, newdata = ok[, c("f", "g")])),
                tolerance = 1e-8)
 
   # (f = a, h = B) is the cell the data never saw
   mixed <- rbind(ok, data.frame(f = factor("a", levels = lv_f),
                                 h = factor("B", levels = lv_h),
                                 g = factor(1, levels = lv_g)))
-  expect_warning(p_mix <- predict(fit, newdata = mixed),
+  expect_warning(p_mix <- frm_linpred(fit, newdata = mixed),
                  "not estimable.*hB")
   expect_equal(unname(p_mix[1:3]), unname(p_ok), tolerance = 1e-12)
   expect_true(is.na(p_mix[4]))
@@ -51,7 +51,7 @@ test_that("prediction at an aliased cell returns NA, not a partial sum (lme4#303
   two_bad <- mixed[c(4, 4), , drop = FALSE]
   w <- character(0)
   p_two <- withCallingHandlers(
-    predict(fit, newdata = two_bad),
+    frm_linpred(fit, newdata = two_bad),
     warning = function(cnd) {
       w <<- c(w, conditionMessage(cnd))
       invokeRestart("muffleWarning")
@@ -61,19 +61,20 @@ test_that("prediction at an aliased cell returns NA, not a partial sum (lme4#303
   expect_true(all(is.na(p_two)))
 
   # se.fit follows the point prediction: NA there, unchanged elsewhere
-  s_ok <- predict(fit, newdata = ok, se.fit = TRUE)
-  s_mix <- suppressWarnings(predict(fit, newdata = mixed, se.fit = TRUE))
+  s_ok <- frm_linpred(fit, newdata = ok, se.fit = TRUE)
+  s_mix <- suppressWarnings(frm_linpred(fit, newdata = mixed, se.fit = TRUE))
   expect_equal(s_mix$se.fit[1:3], s_ok$se.fit, tolerance = 1e-12)
   expect_true(is.na(s_mix$fit[4]))
   expect_true(is.na(s_mix$se.fit[4]))
 
   # in-sample paths use the fitted design, where the dropped columns
   # were consistently absent, so nothing changes there
-  expect_silent(p_in <- predict(fit))
-  expect_equal(unname(p_in), unname(predict(ref)), tolerance = 1e-8)
-  expect_equal(unname(fitted(fit)), unname(fitted(ref)), tolerance = 1e-8)
-  expect_silent(predict(fit, newdata = d))
-  expect_false(anyNA(predict(fit, newdata = d)))
+  expect_silent(p_in <- frm_linpred(fit))
+  expect_equal(unname(p_in), unname(frm_linpred(ref)), tolerance = 1e-8)
+  expect_equal(unname(fitted(fit)[, "Estimate"]),
+               unname(fitted(ref)[, "Estimate"]), tolerance = 1e-8)
+  expect_silent(frm_linpred(fit, newdata = d))
+  expect_false(anyNA(frm_linpred(fit, newdata = d)))
 })
 
 test_that("estimability tests the null space, not the dropped columns (lme4#303)", {
@@ -86,11 +87,11 @@ test_that("estimability tests the null space, not the dropped columns (lme4#303)
   m0 <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
   # x2 is nonzero on every row, yet every row restates the kept column,
   # so a "dropped column is nonzero" rule would blank the whole frame
-  expect_silent(p <- predict(m, newdata = dd))
-  expect_equal(p, predict(m0, newdata = dd), tolerance = 1e-6)
+  expect_silent(p <- frm_linpred(m, newdata = dd))
+  expect_equal(p, frm_linpred(m0, newdata = dd), tolerance = 1e-6)
   # break the collinearity in newdata and the rows become non-estimable
   off <- transform(dd, x2 = x2 + 1)
-  expect_warning(p_off <- predict(m, newdata = off), "not estimable")
+  expect_warning(p_off <- frm_linpred(m, newdata = off), "not estimable")
   expect_true(all(is.na(p_off)))
 })
 
@@ -111,7 +112,7 @@ test_that("grouping factors written as calls fit (lme4#464, #156)", {
   f_col <- frm(bf(Reaction ~ Days + (1 | xf)) + gaussian(), data = ss)
   expect_equal(as.numeric(logLik(f_call)), as.numeric(logLik(f_col)),
                tolerance = 1e-10)
-  expect_equal(unname(predict(f_call)), unname(predict(f_col)),
+  expect_equal(unname(frm_linpred(f_call)), unname(frm_linpred(f_col)),
                tolerance = 1e-10)
   # the list is keyed by the grouping factor (brms's and lme4's key),
   # and the block label - the expression, not a synthetic column name -
@@ -119,16 +120,16 @@ test_that("grouping factors written as calls fit (lme4#464, #156)", {
   expect_identical(names(ranef(f_call)), "factor(xn)")
   expect_identical(attr(ranef(f_call)[[1]], "term"), "1 | factor(xn)")
   # prediction re-evaluates the expression against newdata
-  expect_equal(unname(predict(f_call, newdata = ss)),
-               unname(predict(f_col, newdata = ss)), tolerance = 1e-10)
+  expect_equal(unname(frm_linpred(f_call, newdata = ss)),
+               unname(frm_linpred(f_col, newdata = ss)), tolerance = 1e-10)
 
   g_call <- frm(bf(Reaction ~ Days + (1 | interaction(a, b))) + gaussian(),
                 data = ss)
   g_col <- frm(bf(Reaction ~ Days + (1 | ab)) + gaussian(), data = ss)
   expect_equal(as.numeric(logLik(g_call)), as.numeric(logLik(g_col)),
                tolerance = 1e-10)
-  expect_equal(unname(predict(g_call, newdata = ss)),
-               unname(predict(g_col, newdata = ss)), tolerance = 1e-10)
+  expect_equal(unname(frm_linpred(g_call, newdata = ss)),
+               unname(frm_linpred(g_col, newdata = ss)), tolerance = 1e-10)
 
   # ':' and '/' groupings keep their reformulas expansion untouched
   h_colon <- frm(bf(Reaction ~ Days + (1 | Subject:a)) + gaussian(),

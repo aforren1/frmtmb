@@ -18,41 +18,54 @@
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
 
-\item{summary, robust, probs, pars}{brms's arguments, in brms's
-positions so that a positional brms call asks the same question.
-brms answers \code{summary = FALSE} with the posterior draws and
-\code{robust = TRUE} with their median and MAD, and a maximum-likelihood
-fit has no draws, so both are refused by name with the reason. The
-default of each is accepted and changes nothing.}
+\item{summary, robust}{brms's arguments, in brms's positions so that
+a positional brms call asks the same question. brms answers
+\code{summary = FALSE} with the posterior draws and \code{robust = TRUE} with
+their median and MAD, and a maximum-likelihood fit has no draws, so
+both are refused by name with the reason. The default of each is
+accepted and changes nothing.}
+
+\item{probs}{Probabilities of the two quantile columns. brms takes
+the posterior quantiles there; here they are the ends of the Wald
+interval at those probabilities.}
+
+\item{pars}{Row names to keep, in the order given, as in brms. A name
+the fit does not have is an error listing the ones it does.}
 
 \item{...}{Refused: an argument the method does not have is an
 error naming it, rather than silently changing nothing.}
 
-\item{flatten}{If \code{TRUE}, one named vector in the \code{vcov()} /
-\code{confint()} spelling instead of the per-dpar list. Coefficients
-come in linear-predictor order, which need not be \code{vcov()}'s row
+\item{flatten}{If \code{TRUE}, one named vector of ESTIMATES in the
+\code{confint()} spelling instead of the summary matrix. Coefficients
+come in linear-predictor order, which need not be the matrix's row
 order; index by name. Distributional parameters held at a constant
-are included here and are absent from \code{vcov()}, which covers the
-ESTIMATED coefficients only - so dividing by a \code{vcov()} diagonal is
-\code{NA} for those entries, and
-\code{intersect(names(cf), rownames(vcov(fit)))} selects the ones a
-standard error exists for.}
+are included here and are absent from \code{vcov()} and from the matrix,
+which cover the ESTIMATED population-level coefficients only.}
 }
 \value{
-A named list of coefficient vectors, one per dpar, or with
-\code{flatten = TRUE} a single named vector.
+A coefficients-by-four matrix, or with \code{flatten = TRUE} a
+single named vector of estimates.
 }
 \description{
-Two shapes, and the difference is the NAMES. The default is a list
-keyed by distributional parameter, whose entries are named by DESIGN
-COLUMN: \code{fixef(fit)$sigma[["(Intercept)"]]}. \code{flatten = TRUE} is one
-vector in the INTERNAL parameter name, which is what \code{vcov()},
-\code{confint()}, \code{par_template()}, \code{start} and \code{newparams} use:
-\code{dpar_column}, with the location parameter's own coefficients left
-unprefixed (\code{x}, not \code{mu_x}), and the response prefixed ahead of that
-in a multivariate fit.
+Two shapes, and the difference is the NAMES. The default is brms's
+summary matrix: one row per population-level coefficient under
+brms's own name (\code{Intercept}, \code{sigma_Intercept}, \code{x}), and the
+columns \code{Estimate}, \code{Est.Error}, \code{Q2.5} and \code{Q97.5}. A
+maximum-likelihood fit has no draws, so \code{Est.Error} is the standard
+error and the \code{Q} columns are the Wald interval at those
+probabilities, which is the interval \code{\link[=confint]{confint()}} reports.
+\code{flatten = TRUE} is one vector of estimates in the INTERNAL parameter
+name, which is what \code{confint()}, \code{par_template()}, \code{start} and
+\code{newparams} use: \code{dpar_column}, with the location parameter's own
+coefficients left unprefixed (\code{x}, not \code{mu_x}), and the response
+prefixed ahead of that in a multivariate fit.
 }
 \details{
+A distributional parameter nobody wrote a formula for is not a
+population-level coefficient in brms and is not a row here: \code{sigma}
+of a plain gaussian fit is reported by \code{summary()} under
+\verb{Further Distributional Parameters}, on its own natural scale.
+
 \code{hypothesis()} and \code{variables()} use a THIRD vocabulary, brms's
 parameter names: \code{b_Intercept}, \code{b_sigma_Intercept} for a \code{sigma}
 formula, and \code{sigma} on its natural scale when no formula was written
@@ -60,31 +73,30 @@ for it. \code{hypothesis()} puts \code{class = "b"}'s \code{b_} in front of a ba
 name, so its default spelling of those is \code{Intercept} and
 \code{sigma_Intercept}.
 
-\code{unlist(fixef(fit))} is none of them. It is base R's composite of a
-list KEY and an element name, \code{mu.x}, and it names no parameter of
-the model: the separator differs and the location parameter is named
-where the model does not name it. Use \code{flatten = TRUE} to line
-coefficients up with a covariance matrix or a prior.
+\code{unlist(fixef(fit, flatten = TRUE))} is none of them. Use
+\code{flatten = TRUE} to line coefficients up with a prior or with
+\code{confint()}, and the default matrix to read an estimate with its
+standard error.
 }
 \examples{
 set.seed(1)
 dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
 dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
 
-# one entry per distributional parameter, each on its link scale
+# brms's summary matrix, one row per population-level coefficient
 fit <- frm(bf(y ~ x + (1 | g), sigma ~ x) + gaussian(), data = dd)
 fixef(fit)
-exp(fixef(fit)$sigma[["(Intercept)"]])   # sigma is modeled on the log
+exp(fixef(fit)["sigma_Intercept", "Estimate"])  # sigma is on the log
 
-# flatten to the vector vcov() and confint() name their rows by
+# flatten to the vector confint() names its rows by
 fixef(fit, flatten = TRUE)
 all(names(fixef(fit, flatten = TRUE)) \%in\% rownames(confint(fit)))
 
-# so a standard error goes with its coefficient by name
-cf <- fixef(fit, flatten = TRUE)
-cf / sqrt(diag(vcov(fit))[names(cf)])
+# the standard error column is vcov()'s diagonal
+all.equal(fixef(fit)[, "Est.Error"], sqrt(diag(vcov(fit))))
 }
 \seealso{
-\code{\link[=vcov.frmtmb_fit]{vcov.frmtmb_fit()}} and \code{\link[=confint.frmtmb_fit]{confint.frmtmb_fit()}}, which name
-their rows the way \code{flatten = TRUE} names its entries.
+\code{\link[=vcov.frmtmb_fit]{vcov.frmtmb_fit()}}, which names its rows as this matrix
+does, and \code{\link[=confint.frmtmb_fit]{confint.frmtmb_fit()}}, which names them as
+\code{flatten = TRUE} names its entries.
 }

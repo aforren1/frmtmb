@@ -52,7 +52,7 @@ test_that("a hook that warns reaches the user and keeps the fit", {
   expect_warning(fit <- frm(bf(y ~ x), d, fam),
                  "this family is unhappy about y")
   expect_s3_class(fit, "frmtmb_fit")
-  expect_equal(unname(fixef(fit)$mu[["x"]]), 2, tolerance = 0.1)
+  expect_equal(unname(fixef_by_dpar(fit)$mu[["x"]]), 2, tolerance = 0.1)
 })
 
 test_that("a hook that THROWS does not destroy the fit", {
@@ -71,7 +71,7 @@ test_that("a hook that THROWS does not destroy the fit", {
   expect_true(grepl("complete and unaffected", w, fixed = TRUE))
 
   expect_s3_class(fit, "frmtmb_fit")
-  expect_equal(unname(fixef(fit)$mu[["x"]]), 2, tolerance = 0.1)
+  expect_equal(unname(fixef_by_dpar(fit)$mu[["x"]]), 2, tolerance = 0.1)
   expect_true(is.finite(as.numeric(logLik(fit))))
   # and the fit is the SAME fit a family with no hook would have given
   plain <- frm(bf(y ~ x), d, hook_family(NULL))

@@ -136,7 +136,7 @@ test_that("a registered aterm parses, coerces and reaches the density", {
   nd <- data.frame(x = c(0, 0),
                    bound = factor(c("upper", "lower"),
                                   levels = levels(dd$bound)))
-  pr <- predict(fit, newdata = nd, type = "response")
+  pr <- frm_linpred(fit, newdata = nd, type = "response")
   expect_gt(pr[1], pr[2])
 })
 
@@ -154,7 +154,7 @@ test_that("a registered aterm is required on newdata that omits it", {
     },
     post = list(mean_fn = function(dpars, aterms) dpars$mu + aterms$dec))
   fit <- frm(bf(y | dec(bound) ~ x) + fam, data = dd)
-  expect_error(predict(fit, newdata = data.frame(x = 0),
+  expect_error(frm_linpred(fit, newdata = data.frame(x = 0),
                        type = "response"),
                "could not be evaluated on newdata")
 })

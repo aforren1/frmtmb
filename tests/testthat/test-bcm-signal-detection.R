@@ -163,13 +163,15 @@ test_that("SDT_1 is a probit GLM whose coefficients are d and c", {
   fit <- frm(y | trials(N) ~ 0 + case:half + case:bias,
              family = binomial(link = "probit"), data = d,
              prior = bcm_sdt1_prior())
-  b <- fixef(fit)$mu
+  b <- fixef_by_dpar(fit)$mu
   dd <- unname(b[paste0("case", 1:3, ":half")])
   cc <- unname(b[paste0("case", 1:3, ":bias")])
   # the fitted hit and false-alarm rates are the book's transforms
-  expect_equal(pnorm(dd / 2 - cc), unname(fitted(fit)[1:3] / d$N[1:3]),
+  expect_equal(pnorm(dd / 2 - cc),
+               unname(fitted(fit)[, "Estimate"][1:3] / d$N[1:3]),
                tolerance = 0.02)
-  expect_equal(pnorm(-dd / 2 - cc), unname(fitted(fit)[4:6] / d$N[4:6]),
+  expect_equal(pnorm(-dd / 2 - cc),
+               unname(fitted(fit)[, "Estimate"][4:6] / d$N[4:6]),
                tolerance = 0.02)
   # all three cases discriminate
   expect_true(all(dd > 1))
@@ -188,7 +190,7 @@ test_that("SDT_1 matches its Stan program", {
     data = list(k = 3L, h = cn$h, f = cn$f, s = cn$s, n = cn$n),
     fit = fit,
     pars = function(f) {
-      b <- fixef(f)$mu
+      b <- fixef_by_dpar(f)$mu
       list(d = unname(b[paste0("case", 1:3, ":half")]),
            c = unname(b[paste0("case", 1:3, ":bias")]))
     },
@@ -232,7 +234,7 @@ test_that("SDT_2 is a probit GLMM with independent d and c effects", {
   d <- bcm_sdt2_data()
   fit <- frm(y | trials(N) ~ 0 + half + bias + (0 + half + bias || id),
              family = binomial(link = "probit"), data = d)
-  b <- fixef(fit)$mu
+  b <- fixef_by_dpar(fit)$mu
   expect_gt(unname(b["half"]), 0)
   # every subject's pair is finite, which is what the group
   # distribution buys: the raw per-subject estimates are not
@@ -252,7 +254,7 @@ test_that("SDT_2 matches its Stan program", {
     data = list(k = cn$k, h = cn$h, f = cn$f, s = cn$s, n = cn$n),
     fit = fit,
     pars = function(f) {
-      b <- fixef(f)$mu
+      b <- fixef_by_dpar(f)$mu
       list(d = unname(b["half"]) + frm_u_term(f, "0 + half | id"),
            c = unname(b["bias"]) + frm_u_term(f, "0 + bias | id"),
            mud = unname(b["half"]), muc = unname(b["bias"]),
@@ -277,7 +279,7 @@ test_that("SDT_3's parameter expansion is a ridge, not a model", {
     data = list(k = cn$k, h = cn$h, f = cn$f, s = cn$s, n = cn$n),
     fit = fit,
     pars = function(f) {
-      b <- fixef(f)$mu
+      b <- fixef_by_dpar(f)$mu
       list(mud = unname(b["half"]), muc = unname(b["bias"]),
            sigmadnew = frm_sd_term(f, "0 + half | id"),
            sigmacnew = frm_sd_term(f, "0 + bias | id"),

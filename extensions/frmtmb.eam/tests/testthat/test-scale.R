@@ -101,18 +101,18 @@ eam_scale_run <- function(row, fam, sv, group = TRUE) {
   mem <- scale_mem_peak_mb()
 
   ci <- suppressWarnings(stats::confint(fit))
-  b <- unlist(fixef(fit))
+  b <- unlist(fixef_by_dpar(fit))
   # ONLY the grouped link reports a fraction. Under `ndt_group()` the
   # link is a plain logit on a fraction of the row's own bound, so the
   # population non-decision time is that fraction on the mean of the
   # bounds the fit used, and the delta-method standard error rides with
   # it. Under the scalar bound the bound stays INSIDE the link, a scaled
-  # logit onto (0, ub), so `predict()` already reports a time; this line
+  # logit onto (0, ub), so `frm_linpred()` already reports a time; this line
   # used to multiply by `ub` in that case too and the `eam-unbounded`
   # row recorded `time * ub`, 0.1315 s where `ndt_time()` on the same
   # fit said 0.2921. The expectation below is what now catches it.
   nd <- suppressWarnings(
-    stats::predict(fit, newdata = d[1L, , drop = FALSE], dpar = "ndt",
+    frm_linpred(fit, newdata = d[1L, , drop = FALSE], dpar = "ndt",
                    type = "response", re_formula = NA, se.fit = TRUE))
   ndt_frac <- as.numeric(nd$fit[1L])
   ndt_frac_se <- as.numeric(nd$se.fit[1L])
@@ -175,7 +175,7 @@ eam_scale_run <- function(row, fam, sv, group = TRUE) {
     ndt_z_drawn = scale_z(ndt_hat, ndt_se,
                           mean(attr(d, "ndt_subject"))),
     ndt_frac = ndt_frac, ndt_frac_se = ndt_frac_se,
-    # 1 when `predict()` already reported a time, the mean floor when it
+    # 1 when `frm_linpred()` already reported a time, the mean floor when it
     # reported a fraction, so the row says which scale it was read on
     ndt_to_time = to_time,
     ndt_sub_mean = mean(ndt_sub),
@@ -245,7 +245,7 @@ test_that("the eam scale row fits and reports its cost", {
     # is 60 of 60 there at a maximum of 2.98.
     d <- eam_scale_data(sv = 0)
     one <- d[match(levels(d$s), as.character(d$s)), , drop = FALSE]
-    nd <- suppressWarnings(stats::predict(
+    nd <- suppressWarnings(frm_linpred(
       r$fit, newdata = d1_of(r), dpar = "ndt", type = "response",
       re_formula = NA, se.fit = TRUE))
     bd <- frmtmb::single_response(r$fit)[["family"]][["ndt_bound"]]
@@ -344,7 +344,7 @@ test_that("the eam scale row fits with across-trial drift variability", {
     expect_lt(sqrt(mean((hat - t0)^2)), stats::sd(t0))
     # a z against the fit's own standard error rather than an absolute
     # 20 ms, which is the rule helper-scale.R states above scale_z()
-    nd <- suppressWarnings(stats::predict(
+    nd <- suppressWarnings(frm_linpred(
       r$fit, newdata = one[1L, , drop = FALSE], dpar = "ndt",
       type = "response", re_formula = NA, se.fit = TRUE))
     bd <- frmtmb::single_response(r$fit)[["family"]][["ndt_bound"]]

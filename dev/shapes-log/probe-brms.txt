@@ -1,0 +1,414 @@
+
+== fitted(f1)
+dim: 40 x 4  class: matrix,array 
+[1] "Estimate"  "Est.Error" "Q2.5"      "Q97.5"    
+     Estimate Est.Error     Q2.5    Q97.5
+[1,] 18.28453  2.417614 14.02645 22.53583
+[2,] 19.52746  2.403038 16.93192 24.36209
+[3,] 18.16340  1.992464 14.46733 21.64491
+
+== fitted(f1, summary = FALSE)
+dim: 25 x 40  class: matrix,array 
+
+== fitted(f1, probs = c(.1,.9))
+[1] "Estimate"  "Est.Error" "Q10"       "Q90"      
+
+== fitted(f1, robust = TRUE)
+[1] "Estimate"  "Est.Error" "Q2.5"      "Q97.5"    
+
+== fitted(f4) ordinal
+dim: 40 x 4 x 4  class: array 
+[[1]]
+[1] "Estimate"  "Est.Error" "Q2.5"      "Q97.5"    
+
+[[2]]
+[1] "P(Y = 1)" "P(Y = 2)" "P(Y = 3)" "P(Y = 4)"
+
+
+== fitted(f5) mixture
+dim: 40 x 4  class: matrix,array 
+[1] "Estimate"  "Est.Error" "Q2.5"      "Q97.5"    
+
+== fitted(f6) multivariate
+dim: 40 x 4 x 2  class: array 
+[[1]]
+[1] "Estimate"  "Est.Error" "Q2.5"      "Q97.5"    
+
+[[2]]
+[1] "volume" "count" 
+
+
+== fitted(f1, scale = 'linear')
+dim: 40 x 4  class: matrix,array 
+     Estimate Est.Error     Q2.5    Q97.5
+[1,] 18.28453  2.417614 14.02645 22.53583
+[2,] 19.52746  2.403038 16.93192 24.36209
+
+== fitted(f1, dpar = 'sigma')
+dim: 40 x 4  class: matrix,array 
+     Estimate Est.Error     Q2.5    Q97.5
+[1,] 3.962715 0.6947524 2.689701 4.929528
+[2,] 3.741593 0.7674163 2.398638 5.164909
+
+== residuals(f1)
+dim: 40 x 4  class: matrix,array 
+[1] "Estimate"  "Est.Error" "Q2.5"      "Q97.5"    
+
+== residuals(f1, summary = FALSE)
+dim: 25 x 40  class: matrix,array 
+
+== predict(f1)
+dim: 40 x 4  class: matrix,array 
+[1] "Estimate"  "Est.Error" "Q2.5"      "Q97.5"    
+     Estimate Est.Error     Q2.5    Q97.5
+[1,] 18.21911  5.359107  9.87770 26.23920
+[2,] 21.10461  3.526234 15.04225 27.59611
+[3,] 18.23405  4.345974  9.26862 24.72726
+
+== predict(f4) ordinal
+dim: 40 x 4  class: matrix,array 
+[1] "P(Y = 1)" "P(Y = 2)" "P(Y = 3)" "P(Y = 4)"
+     P(Y = 1) P(Y = 2) P(Y = 3) P(Y = 4)
+[1,]     0.24     0.48     0.04     0.24
+[2,]     0.44     0.32     0.16     0.08
+[3,]     0.32     0.32     0.16     0.20
+
+== predict(f4, ntrys)
+dim: 40 x 4  class: matrix,array 
+
+== predict(f1, summary = FALSE)
+dim: 25 x 40  class: matrix,array 
+
+== predict(f5) mixture
+dim: 40 x 4  class: matrix,array 
+[1] "Estimate"  "Est.Error" "Q2.5"      "Q97.5"    
+
+== predict(f6) multivariate
+dim: 40 x 4 x 2  class: array 
+[[1]]
+[1] "Estimate"  "Est.Error" "Q2.5"      "Q97.5"    
+
+[[2]]
+[1] "volume" "count" 
+
+
+== formals predict.brmsfit
+ [1] "object"      "newdata"     "re_formula"  "transform"   "resp"       
+ [6] "negative_rt" "ndraws"      "draw_ids"    "sort"        "ntrys"      
+[11] "cores"       "summary"     "robust"      "probs"       "..."        
+
+== formals fitted.brmsfit
+ [1] "object"     "newdata"    "re_formula" "scale"      "resp"      
+ [6] "dpar"       "nlpar"      "ndraws"     "draw_ids"   "sort"      
+[11] "summary"    "robust"     "probs"      "..."       
+
+== formals residuals.brmsfit
+ [1] "object"     "newdata"    "re_formula" "method"     "type"      
+ [6] "resp"       "ndraws"     "draw_ids"   "sort"       "summary"   
+[11] "robust"     "probs"      "..."       
+
+== fixef(f1)
+dim: 9 x 4  class: matrix,array 
+[[1]]
+[1] "Intercept"       "sigma_Intercept" "Trt1"            "Age"            
+[5] "volume"          "Trt1:Age"        "sigma_Trt1"      "sAge_1"         
+[9] "moExp"          
+
+[[2]]
+[1] "Estimate"  "Est.Error" "Q2.5"      "Q97.5"    
+
+                Estimate Est.Error    Q2.5   Q97.5
+Intercept        19.4008    1.3612 17.6613 21.7746
+sigma_Intercept   1.2985    0.2124  0.8748  1.6412
+Trt1             -0.2776    1.2482 -2.5365  1.6597
+Age              -0.6745    1.3179 -2.4806  1.2987
+volume           -0.0644    0.6939 -0.9158  1.5555
+Trt1:Age         -0.0810    1.4394 -1.9033  2.4027
+sigma_Trt1        0.0626    0.3082 -0.5550  0.6537
+sAge_1            0.0605    1.6662 -2.6695  3.0857
+moExp            -0.0656    0.4106 -0.7176  0.6190
+
+== formals fixef.brmsfit
+[1] "object"  "summary" "robust"  "probs"   "pars"    "..."    
+
+== fixef(f1, pars = 'Trt1')
+       Estimate Est.Error      Q2.5    Q97.5
+Trt1 -0.2775566   1.24815 -2.536549 1.659706
+
+== fixef(f1, summary = FALSE)
+dim: 25 x 9  class: matrix,array 
+
+== ngrps(f1)
+List of 1
+ $ visit: int 4
+
+== ngrps(f6)
+ NULL
+
+== ngrps of a fit with no groups
+List of 1
+ $ patient: int 10
+
+== vcov(f1)
+dim: 9 x 9  class: matrix,array 
+[1] "Intercept"       "sigma_Intercept" "Trt1"            "Age"            
+[5] "volume"          "Trt1:Age"        "sigma_Trt1"      "sAge_1"         
+[9] "moExp"          
+
+== vcov(f1, correlation = TRUE)
+      Intercept sigma_Intercept            Trt1             Age          volume 
+              1               1               1               1               1 
+       Trt1:Age      sigma_Trt1          sAge_1           moExp 
+              1               1               1               1 
+
+== formals vcov.brmsfit
+[1] "object"      "correlation" "pars"        "..."        
+
+== summary(f1) names
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] Parts of the model have not converged (some Rhats are > 1.05). Be careful when analysing the results! We recommend running more iterations and/or setting stronger priors.
+ [1] "formula"      "data_name"    "group"        "nobs"         "ngrps"       
+ [6] "autocor"      "prior"        "algorithm"    "sampler"      "total_ndraws"
+[11] "chains"       "iter"         "warmup"       "thin"         "has_rhat"    
+[16] "fixed"        "spec_pars"    "cor_pars"     "random"       "splines"     
+[21] "mo"          
+class: brmssummary 
+
+== summary(f1)$fixed
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] Parts of the model have not converged (some Rhats are > 1.05). Be careful when analysing the results! We recommend running more iterations and/or setting stronger priors.
+[[1]]
+[1] "Intercept"       "sigma_Intercept" "Trt1"            "Age"            
+[5] "volume"          "Trt1:Age"        "sigma_Trt1"      "sAge_1"         
+[9] "moExp"          
+
+[[2]]
+[1] "Estimate"  "Est.Error" "l-95% CI"  "u-95% CI"  "Rhat"      "Bulk_ESS" 
+[7] "Tail_ESS" 
+
+
+== summary(f1)$random
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] Parts of the model have not converged (some Rhats are > 1.05). Be careful when analysing the results! We recommend running more iterations and/or setting stronger priors.
+List of 1
+ $ visit:'data.frame':	3 obs. of  7 variables:
+  ..$ Estimate : num [1:3] 3.203 3.745 -0.589
+  ..$ Est.Error: num [1:3] 1.206 1.69 0.372
+  ..$ l-95% CI : num [1:3] 0.788 1.226 -0.996
+  ..$ u-95% CI : num [1:3] 4.907 6.614 0.238
+  ..$ Rhat     : num [1:3] 1.01 1.08 1.02
+  ..$ Bulk_ESS : num [1:3] 23.1 19.1 28.9
+  ..$ Tail_ESS : num [1:3] 24.3 10.3 24.3
+  ..- attr(*, "num_args")= list()
+
+== summary(f4)$random
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] Parts of the model have not converged (some Rhats are > 1.05). Be careful when analysing the results! We recommend running more iterations and/or setting stronger priors.
+List of 1
+ $ subject:'data.frame':	6 obs. of  7 variables:
+  ..$ Estimate : num [1:6] 1.97 2.6 2.35 2.83 3.23 ...
+  ..$ Est.Error: num [1:6] 2.32 3 2.02 2.24 4 ...
+  ..$ l-95% CI : num [1:6] 0.2759 0.0711 0.2405 0.2503 0.4069 ...
+  ..$ u-95% CI : num [1:6] 7.39 10.07 6.96 7.84 13.83 ...
+  ..$ Rhat     : num [1:6] 0.961 1.012 1.008 0.964 1.078 ...
+  ..$ Bulk_ESS : num [1:6] 33.1 29.6 30.3 32.8 10.5 ...
+  ..$ Tail_ESS : num [1:6] 15.5 33.1 29.3 29.3 10.3 ...
+  ..- attr(*, "num_args")= list()
+
+== summary(f1) slot classes
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] The ESS has been capped to avoid unstable estimates.
+  [warning] Parts of the model have not converged (some Rhats are > 1.05). Be careful when analysing the results! We recommend running more iterations and/or setting stronger priors.
+ formula: brmsformula 
+ data_name: character 
+ group: character 
+ nobs: integer 
+ ngrps: list 
+ autocor: NULL 
+ prior: brmsprior 0x11
+ algorithm: character 
+ sampler: character 
+ total_ndraws: integer 
+ chains: numeric 
+ iter: numeric 
+ warmup: numeric 
+ thin: numeric 
+ has_rhat: logical 
+ fixed: data.frame 9x7
+ spec_pars: data.frame 1x7
+ cor_pars: data.frame 2x7
+ random: list 
+ splines: data.frame 1x7
+ mo: data.frame 4x7
+
+== formals summary.brmsfit
+[1] "object" "priors" "prob"   "robust" "mc_se"  "..."   
+
+== nsamples(f1)
+  [warning] 'nsamples.brmsfit' is deprecated. Please use 'ndraws' instead.
+[1] 25
+
+== formals nsamples
+[1] "object"      "subset"      "incl_warmup" "..."        
+
+== posterior_samples(f1)
+  [warning] Method 'posterior_samples' is deprecated. Please see ?as_draws for recommended alternatives.
+dim: 25 x 54  class: data.frame 
+ [1] "b_Intercept"                "b_sigma_Intercept"         
+ [3] "b_Trt1"                     "b_Age"                     
+ [5] "b_volume"                   "b_Trt1:Age"                
+ [7] "b_sigma_Trt1"               "bs_sAge_1"                 
+ [9] "bsp_moExp"                  "ar[1]"                     
+[11] "ma[1]"                      "sd_visit__Intercept"       
+[13] "sd_visit__Trt1"             "cor_visit__Intercept__Trt1"
+
+== formals posterior_samples
+[1] "x"         "pars"      "fixed"     "add_chain" "subset"    "as.matrix"
+[7] "as.array"  "..."      
+
+== posterior_samples(f1, pars = 'b_')
+  [warning] Method 'posterior_samples' is deprecated. Please see ?as_draws for recommended alternatives.
+[1] "b_Intercept"       "b_sigma_Intercept" "b_Trt1"           
+[4] "b_Age"             "b_volume"          "b_Trt1:Age"       
+[7] "b_sigma_Trt1"      "prior_b_sigma"    
+
+== posterior_samples(f1, 'b_Trt1')
+  [warning] Method 'posterior_samples' is deprecated. Please see ?as_draws for recommended alternatives.
+[1] "b_Trt1"     "b_Trt1:Age"
+
+== posterior_samples(f1, fixed = TRUE)
+  [warning] Method 'posterior_samples' is deprecated. Please see ?as_draws for recommended alternatives.
+[1] "b_Trt1"
+
+== variables(f4)
+ [1] "b_Intercept[1]"            "b_Intercept[2]"           
+ [3] "b_Intercept[3]"            "b_disc_Intercept"         
+ [5] "b_x1"                      "bcs_x2[1]"                
+ [7] "bcs_x2[2]"                 "bcs_x2[3]"                
+ [9] "sd_subject__Intercept[1]"  "sd_subject__Intercept[2]" 
+[11] "sd_subject__Intercept[3]"  "sd_subject__x2[1]"        
+[13] "sd_subject__x2[2]"         "sd_subject__x2[3]"        
+[15] "Intercept[1]"              "Intercept[2]"             
+[17] "Intercept[3]"              "Intercept_disc"           
+[19] "r_subject[1,Intercept[1]]" "r_subject[2,Intercept[1]]"
+[21] "r_subject[3,Intercept[1]]" "r_subject[4,Intercept[1]]"
+[23] "r_subject[5,Intercept[1]]" "r_subject[6,Intercept[1]]"
+[25] "r_subject[7,Intercept[1]]" "r_subject[8,Intercept[1]]"
+[27] "r_subject[1,Intercept[2]]" "r_subject[2,Intercept[2]]"
+[29] "r_subject[3,Intercept[2]]" "r_subject[4,Intercept[2]]"
+[31] "r_subject[5,Intercept[2]]" "r_subject[6,Intercept[2]]"
+[33] "r_subject[7,Intercept[2]]" "r_subject[8,Intercept[2]]"
+[35] "r_subject[1,Intercept[3]]" "r_subject[2,Intercept[3]]"
+[37] "r_subject[3,Intercept[3]]" "r_subject[4,Intercept[3]]"
+[39] "r_subject[5,Intercept[3]]" "r_subject[6,Intercept[3]]"
+[41] "r_subject[7,Intercept[3]]" "r_subject[8,Intercept[3]]"
+[43] "r_subject[1,x2[1]]"        "r_subject[2,x2[1]]"       
+[45] "r_subject[3,x2[1]]"        "r_subject[4,x2[1]]"       
+[47] "r_subject[5,x2[1]]"        "r_subject[6,x2[1]]"       
+[49] "r_subject[7,x2[1]]"        "r_subject[8,x2[1]]"       
+[51] "r_subject[1,x2[2]]"        "r_subject[2,x2[2]]"       
+[53] "r_subject[3,x2[2]]"        "r_subject[4,x2[2]]"       
+[55] "r_subject[5,x2[2]]"        "r_subject[6,x2[2]]"       
+[57] "r_subject[7,x2[2]]"        "r_subject[8,x2[2]]"       
+[59] "r_subject[1,x2[3]]"        "r_subject[2,x2[3]]"       
+[61] "r_subject[3,x2[3]]"        "r_subject[4,x2[3]]"       
+[63] "r_subject[5,x2[3]]"        "r_subject[6,x2[3]]"       
+[65] "r_subject[7,x2[3]]"        "r_subject[8,x2[3]]"       
+[67] "lprior"                    "lp__"                     
+
+== variables(f1)
+ [1] "b_Intercept"                "b_sigma_Intercept"         
+ [3] "b_Trt1"                     "b_Age"                     
+ [5] "b_volume"                   "b_Trt1:Age"                
+ [7] "b_sigma_Trt1"               "bs_sAge_1"                 
+ [9] "bsp_moExp"                  "ar[1]"                     
+[11] "ma[1]"                      "sd_visit__Intercept"       
+[13] "sd_visit__Trt1"             "cor_visit__Intercept__Trt1"
+[15] "sds_sAge_1"                 "nu"                        
+[17] "Intercept"                  "Intercept_sigma"           
+[19] "simo_moExp1[1]"             "simo_moExp1[2]"            
+[21] "simo_moExp1[3]"             "simo_moExp1[4]"            
+[23] "r_visit[1,Intercept]"       "r_visit[2,Intercept]"      
+[25] "r_visit[3,Intercept]"       "r_visit[4,Intercept]"      
+[27] "r_visit[1,Trt1]"            "r_visit[2,Trt1]"           
+[29] "r_visit[3,Trt1]"            "r_visit[4,Trt1]"           
+[31] "s_sAge_1[1]"                "s_sAge_1[2]"               
+[33] "s_sAge_1[3]"                "s_sAge_1[4]"               
+[35] "s_sAge_1[5]"                "s_sAge_1[6]"               
+[37] "s_sAge_1[7]"                "s_sAge_1[8]"               
+[39] "prior_Intercept"            "prior_b"                   
+[41] "prior_simo_moExp1[1]"       "prior_simo_moExp1[2]"      
+[43] "prior_simo_moExp1[3]"       "prior_simo_moExp1[4]"      
+[45] "prior_bsp"                  "prior_bs"                  
+[47] "prior_sds_sAge"             "prior_b_sigma"             
+[49] "prior_Intercept_sigma"      "prior_nu"                  
+[51] "prior_sd_visit"             "prior_cor_visit"           
+[53] "lprior"                     "lp__"                      
+
+== nobs(f1)
+[1] 40

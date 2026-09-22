@@ -49,7 +49,7 @@ test_that("par_template() on a fit returns the estimates", {
   tp <- par_template(fit)
   expect_s3_class(tp, "frmtmb_par_template")
   expect_equal(unname(tp[["beta"]]), unname(fit$estimates$beta))
-  expect_equal(tp[["beta"]][["x"]], unname(fixef(fit)$mu[["x"]]))
+  expect_equal(tp[["beta"]][["x"]], unname(fixef_by_dpar(fit)$mu[["x"]]))
   expect_true(attr(tp, "fitted"))
   expect_false(attr(par_template(bf(y ~ x) + gaussian(), data = dd),
                     "fitted"))
@@ -159,7 +159,7 @@ test_that("a located prior places a nonlinear start", {
   # the fit that would die at zero now runs, and says so
   expect_message(fit <- frm(nf, data = nd, prior = pr),
                  "placed at the prior locations")
-  expect_equal(unname(fixef(fit)$asym[["(Intercept)"]]), 8,
+  expect_equal(unname(fixef_by_dpar(fit)$asym[["(Intercept)"]]), 8,
                tolerance = 0.1)
 
   # scoped to nonlinear parameters: a prior on an ordinary coefficient

@@ -23,7 +23,7 @@ test_that("bandit2arm_delta learns the better arm", {
             mean(d$choice[d$trial <= 10] == 1))
   fit <- ln_fit(bandit2arm_delta(subject = id, trial = trial), d,
                 choice | reward(pay1, pay2) ~ 1, tau ~ 1)
-  fx <- unlist(frmtmb::fixef(fit))
+  fx <- unlist(frmtmb::fixef_by_dpar(fit))
   expect_gt(stats::plogis(fx[["alpha.(Intercept)"]]), 0.15)
   expect_lt(stats::plogis(fx[["alpha.(Intercept)"]]), 0.75)
   expect_gt(exp(fx[["tau.(Intercept)"]]), 1.5)
@@ -40,7 +40,7 @@ test_that("a covariate on the learning rate is the reversal model", {
     pars = list(alpha = 0.3, tau = 3), seed = 52)[[1L]]$choice
   fit <- ln_fit(bandit2arm_delta(subject = id, trial = trial), d,
                 choice | reward(pay1, pay2) ~ after_reversal, tau ~ 1)
-  fx <- unlist(frmtmb::fixef(fit))
+  fx <- unlist(frmtmb::fixef_by_dpar(fit))
   expect_true("alpha.after_reversalafter" %in% names(fx))
   # the effect has a standard error, which is the point
   ci <- stats::confint(fit)
@@ -97,7 +97,7 @@ test_that("bandit2arm_dual recovers an asymmetry that is there", {
     pars = list(Arew = 0.6, Apun = 0.1, tau = 3), seed = 54)[[1L]]$choice
   fit <- ln_fit(bandit2arm_dual(subject = id, trial = trial), d,
                 choice | reward(pay1, pay2) ~ 1, Apun ~ 1, tau ~ 1)
-  fx <- unlist(frmtmb::fixef(fit))
+  fx <- unlist(frmtmb::fixef_by_dpar(fit))
   expect_gt(stats::plogis(fx[["Arew.(Intercept)"]]),
             stats::plogis(fx[["Apun.(Intercept)"]]))
 })
@@ -222,7 +222,8 @@ test_that("ts_par7 is model-based when w says so", {
                 alpha1 ~ 1, tau1 ~ 1, alpha2 ~ 1, tau2 ~ 1, lambda ~ 1,
                 pers ~ 1)
   # and the fit recovers a high w from model-based data
-  expect_gt(stats::plogis(unlist(frmtmb::fixef(fit))[["w.(Intercept)"]]),
+  fx_w <- unlist(frmtmb::fixef_by_dpar(fit))[["w.(Intercept)"]]
+  expect_gt(stats::plogis(fx_w),
             0.5)
 })
 
@@ -257,7 +258,7 @@ test_that("a parameter may vary within a subject, one value per row", {
                                 seed = 60)[[1L]]$choice
   fit <- ln_fit(fam, d, choice | reward(pay1, pay2) ~ after_reversal,
                 tau ~ 1)
-  fx <- unlist(frmtmb::fixef(fit))
+  fx <- unlist(frmtmb::fixef_by_dpar(fit))
   # the effect is in the right direction and reaches significance
   expect_gt(fx[["alpha.after_reversalafter"]], 0)
   ci <- stats::confint(fit)
@@ -282,7 +283,8 @@ test_that("rlddm refuses a response that is an option code", {
     "the response is the response TIME")
 })
 
-test_that("rlddm refuses a non-decision-time bound above the fastest response", {
+test_that("rlddm refuses a non-decision-time bound above the fastest response",
+          {
   skip_if_not_installed("RWiener")
   d <- frm_task_design("bandit2arm", n_subject = 4L, n_trial = 20L,
                        seed = 82L)

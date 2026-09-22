@@ -211,9 +211,11 @@ test_that("newdata may omit a grouping column when new levels are allowed", {
   # the defect: this stopped at base R's "object 'g' not found", where
   # brms's validate_newdata() fills the column with NA and answers
   # (measured on brmsfit_example1 with `visit` removed)
-  p_fill <- predict(fg, newdata = nd, allow_new_levels = TRUE)
-  p_new <- predict(fg, newdata = nd_new, allow_new_levels = TRUE)
-  p_pop <- predict(fg, newdata = nd, re_formula = NA)
+  # frm_linpred() is the predictor this item was measured on; predict()
+  # became brms's predictive summary (item 2.6d)
+  p_fill <- frm_linpred(fg, newdata = nd, allow_new_levels = TRUE)
+  p_new <- frm_linpred(fg, newdata = nd_new, allow_new_levels = TRUE)
+  p_pop <- frm_linpred(fg, newdata = nd, re_formula = NA)
   # an absent column means an unseen level, and an unseen level is the
   # population value for a maximum-likelihood fit
   expect_equal(unname(p_fill), unname(p_new), tolerance = 1e-12)
@@ -221,11 +223,12 @@ test_that("newdata may omit a grouping column when new levels are allowed", {
 
   # and an unseen level carries the block's variance, which the
   # population prediction does not
-  s_fill <- predict(fg, newdata = nd, allow_new_levels = TRUE,
-                    se.fit = TRUE)$se.fit
-  s_new <- predict(fg, newdata = nd_new, allow_new_levels = TRUE,
-                   se.fit = TRUE)$se.fit
-  s_pop <- predict(fg, newdata = nd, re_formula = NA, se.fit = TRUE)$se.fit
+  s_fill <- frm_linpred(fg, newdata = nd, allow_new_levels = TRUE,
+                        se.fit = TRUE)$se.fit
+  s_new <- frm_linpred(fg, newdata = nd_new, allow_new_levels = TRUE,
+                       se.fit = TRUE)$se.fit
+  s_pop <- frm_linpred(fg, newdata = nd, re_formula = NA,
+                       se.fit = TRUE)$se.fit
   expect_equal(unname(s_fill), unname(s_new), tolerance = 1e-12)
   expect_true(all(s_fill > s_pop))
 

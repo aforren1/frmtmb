@@ -190,10 +190,10 @@ another entry point) needs them stated: \code{categorical(levels = c("a", "b", "
 response is coerced to a factor with a message naming the level
 order, because that order is the model.
 
-\code{fitted()} and \code{predict(type = "response")} return the \verb{n x K} matrix
+\code{fitted()} and \code{frm_linpred(type = "response")} return the \verb{n x K} matrix
 of category probabilities, columns named by the response's own
 levels and rows summing to one - the same convention the ordinal
-families follow. \code{predict(type = "link")} and \code{predict(dpar =)} give
+families follow. \code{frm_linpred(type = "link")} and \code{frm_linpred(dpar =)} give
 the per-category latent predictors, which is where \code{se.fit} lives.
 \code{simulate()} draws factor levels. The same likelihood is available on
 a count-matrix response as \code{multinomial(K)}, and a one-hot matrix
@@ -206,7 +206,7 @@ gives an identical log-likelihood.
 the mean direction and takes the \code{tan_half} link, which maps the
 whole line onto that interval; \code{kappa} is the concentration and takes
 a log link, with \code{kappa = 0} the uniform distribution on the circle.
-Both are brms's choices. \code{fitted()} and \code{predict(type = "response")}
+Both are brms's choices. \code{fitted()} and \code{frm_linpred(type = "response")}
 report the mean direction. The normalizing constant needs
 \verb{log I0(kappa)}, which RTMB differentiates exactly through its own
 \code{besselI} method, so nothing here is a series approximation.
@@ -240,8 +240,8 @@ out.
 The baseline is semiparametric only in spirit - it has \code{df}
 parameters, not one per event time - so coefficients agree with
 \code{coxph()} closely rather than exactly. A survival response has no
-mean, so \code{fitted()} and \code{predict(type = "response")} are refused;
-\code{predict(type = "link")} gives the log hazard ratio. \code{simulate()} is
+mean, so \code{fitted()} and \code{frm_linpred(type = "response")} are refused;
+\code{frm_linpred(type = "link")} gives the log hazard ratio. \code{simulate()} is
 not available.
 
 Maximum likelihood often puts one or more baseline weights ON the
@@ -389,7 +389,7 @@ fixef(frm(bf(y ~ x) + student(), data = dd))
 # counts with more spread than poisson() allows
 dd$cnt <- rnbinom(n, mu = exp(0.5 + 0.4 * dd$x), size = 2)
 fit <- frm(bf(cnt ~ x) + negbinomial(), data = dd)
-fixef(fit)$mu
+fixef_by_dpar(fit)$mu
 
 # a zero-inflated count: the zi dpar gets its own predictor
 dd$zi <- ifelse(runif(n) < 0.3, 0, dd$cnt)
@@ -407,8 +407,8 @@ frm(bf(p ~ x) + Beta(), data = dd)
 # bounded influence: a few wild points barely move the slope
 dd$rob <- 1 + 0.8 * dd$x + rnorm(n)
 dd$rob[1:5] <- dd$rob[1:5] + 30
-fixef(frm(bf(rob ~ x), family = huber(), data = dd))$mu
-fixef(frm(bf(rob ~ x), family = gaussian(), data = dd))$mu
+fixef_by_dpar(frm(bf(rob ~ x), family = huber(), data = dd))$mu
+fixef_by_dpar(frm(bf(rob ~ x), family = gaussian(), data = dd))$mu
 
 # an unordered factor: one predictor per non-reference category,
 # named after the level it belongs to
@@ -431,6 +431,6 @@ head(fitted(vm_fit))               # the mean direction, in radians
 dd$time <- rexp(n, exp(-0.5 + 0.7 * dd$x))
 dd$out <- rbinom(n, 1, 0.3)        # 1 = right censored
 cox_fit <- frm(bf(time | cens(out) ~ x), family = cox(), data = dd)
-fixef(cox_fit)$mu                  # log hazard ratios
+fixef_by_dpar(cox_fit)$mu                  # log hazard ratios
 cox_baseline(cox_fit)              # the baseline hazard weights
 }

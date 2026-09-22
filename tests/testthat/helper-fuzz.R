@@ -773,11 +773,11 @@ fuzz_inv_no_silent_na <- function(recs, sp, fit, warns) {
   }
 }
 
-# I3: predict() on the training data reproduces fitted().
+# I3: frm_linpred() on the training data reproduces fitted().
 fuzz_inv_predict_fitted <- function(recs, sp, fit, d) {
   if (fuzz_families[[sp$family]]$ordinal) return(invisible())
-  ft <- fuzz_try(stats::fitted(fit))
-  pr <- fuzz_try(stats::predict(fit, newdata = d, type = "response"))
+  ft <- fuzz_try(stats::fitted(fit)[, "Estimate"])
+  pr <- fuzz_try(frm_linpred(fit, newdata = d, type = "response"))
   if (!ft$ok || !pr$ok) {
     return(fuzz_finding(recs, sp, "predict_eq_fitted", "candidate",
                         paste("fitted/predict errored:",
@@ -792,7 +792,7 @@ fuzz_inv_predict_fitted <- function(recs, sp, fit, d) {
   dif <- max(abs(a - b))
   if (!is.finite(dif) || dif > 1e-8) {
     fuzz_finding(recs, sp, "predict_eq_fitted", "candidate",
-                 "predict(newdata = training) != fitted()",
+                 "frm_linpred(newdata = training) != fitted()",
                  list(max_abs_diff = dif,
                       fitted_head = utils::head(a, 3),
                       predict_head = utils::head(b, 3)))
@@ -964,7 +964,7 @@ fuzz_inv_simulate_mean <- function(recs, sp, fit, nsim = 200L) {
   fm <- fuzz_families[[sp$family]]
   if (!fm$mean_check) return(invisible())
   sm <- fuzz_try(stats::simulate(fit, nsim = nsim, seed = sp$seed + 5L))
-  pm <- fuzz_try(stats::predict(fit, type = "response"))
+  pm <- fuzz_try(frm_linpred(fit, type = "response"))
   if (!sm$ok || !pm$ok) {
     return(fuzz_finding(recs, sp, "simulate_mean", "candidate",
                         paste("simulate/predict errored:",
@@ -978,7 +978,7 @@ fuzz_inv_simulate_mean <- function(recs, sp, fit, nsim = 200L) {
     z <- abs(mean(means) - target) / se
     if (z > 4) {
       fuzz_finding(recs, sp, "simulate_mean", "candidate",
-                   "mean of simulate() draws is far from mean(predict())",
+                   "mean of simulate() draws is far from mean(frm_linpred())",
                    list(sim_mean = mean(means), predict_mean = target,
                         se = se, z = z))
     }
@@ -989,13 +989,14 @@ fuzz_inv_simulate_mean <- function(recs, sp, fit, nsim = 200L) {
   # is blind to exactly the row-order class of defect the rest of the
   # harness hunts. simulate() conditions on the fitted modes (re_formula =
   # NULL), so each column is a draw from the same per-row distribution
-  # predict(type = "response") gives the mean of: row i's draw mean is
+  # frm_linpred(type = "response") gives the mean of: row i's draw mean is
   # then predict_i plus noise of a known size, and the standardized
   # residuals are a chi-square with one degree of freedom per row.
   p <- as.numeric(pm$value)
   if (length(p) != nrow(S)) {
     return(fuzz_finding(recs, sp, "simulate_rows", "candidate",
-                        "simulate() and predict() disagree on the number of rows",
+                        paste("simulate() and frm_linpred() disagree",
+                              "on the number of rows"),
                         list(simulate = nrow(S), predict = length(p))))
   }
   rm_ <- rowMeans(S)
@@ -1010,7 +1011,8 @@ fuzz_inv_simulate_mean <- function(recs, sp, fit, nsim = 200L) {
   if (chi > crit) {
     worst <- which.max(abs(zz))
     fuzz_finding(recs, sp, "simulate_mean_rows", "candidate",
-                 "per-row simulate() means disagree with predict(type = 'response')",
+                 paste("per-row simulate() means disagree with",
+                       "frm_linpred(type = 'response')"),
                  list(chisq = chi, df = sum(use), crit = crit,
                       max_abs_z = max(abs(zz)),
                       worst_sim = rm_[use][worst],
@@ -1020,7 +1022,7 @@ fuzz_inv_simulate_mean <- function(recs, sp, fit, nsim = 200L) {
 }
 
 # I7b: a simulator must respect the support the model was fitted under.
-# Comparing simulate() with predict() cannot see an aterm that BOTH of
+# Comparing simulate() with frm_linpred() cannot see an aterm that BOTH of
 # them ignore, which is exactly how a truncated post-fit surface fails;
 # the truncation bound is the independent reference that can.
 fuzz_inv_trunc_support <- function(recs, sp, fit, nsim = 10L) {
@@ -1165,7 +1167,8 @@ fuzz_inv_confint <- function(recs, sp, fit, cover = NULL) {
         tol <- 1e-8 * max(1, max(abs(M[ok, "est"]), na.rm = TRUE))
         if (!is.finite(dif) || dif > tol) {
           fuzz_finding(recs, sp, "confint_wald", "candidate",
-                       "confint(method = 'wald') is not est +/- z * se from vcov()",
+                       paste("confint(method = 'wald') is not",
+                             "est +/- z * se from vcov()"),
                        list(max_abs_diff = dif,
                             rows = rownames(M)[ok][which.max(
                               pmax(abs(M[ok, "lwr"] - lwr[ok]),

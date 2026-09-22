@@ -209,7 +209,7 @@ test_that("bandit4arm2_kalman_filter reproduces Stan with the bonus", {
   # the bonus is the only difference between the two programs, so a
   # non-zero phi must move the objective; otherwise this row would agree
   # with the plain one for a reason that has nothing to do with sqrt(s)
-  expect_gt(abs(unlist(frmtmb::fixef(fit))[["phi.(Intercept)"]]), 0.1)
+  expect_gt(abs(unlist(frmtmb::fixef_by_dpar(fit))[["phi.(Intercept)"]]), 0.1)
 })
 
 test_that("igt_orl reproduces a Stan program of the same model", {

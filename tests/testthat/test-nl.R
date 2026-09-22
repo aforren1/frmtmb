@@ -9,11 +9,11 @@ test_that("nonlinear fixed-effects model matches nls", {
              data = dd, start = list(beta = c(1, 0.3)))
   ref <- nls(y ~ a * exp(-b * x), data = dd, start = list(a = 1, b = 0.3))
 
-  expect_lt(abs(fixef(fit)$a[[1]] - coef(ref)[["a"]]), 1e-4)
-  expect_lt(abs(fixef(fit)$b[[1]] - coef(ref)[["b"]]), 1e-4)
+  expect_lt(abs(fixef_by_dpar(fit)$a[[1]] - coef(ref)[["a"]]), 1e-4)
+  expect_lt(abs(fixef_by_dpar(fit)$b[[1]] - coef(ref)[["b"]]), 1e-4)
   # ML sigma^2 = RSS/n at the same coefficients
   sig_ml <- sqrt(sum(residuals(ref)^2) / n)
-  expect_lt(abs(exp(fixef(fit)$sigma[[1]]) - sig_ml), 1e-4)
+  expect_lt(abs(exp(fixef_by_dpar(fit)$sigma[[1]]) - sig_ml), 1e-4)
 })
 
 test_that("nonlinear mixed model matches a hand-rolled reference", {
@@ -57,17 +57,18 @@ test_that("nl prediction and post-processing", {
   fit <- frm(bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE) + gaussian(),
              data = dd, start = list(beta = c(1, 0.3)))
 
-  expect_equal(predict(fit, newdata = dd), predict(fit), tolerance = 1e-8)
-  expect_equal(fitted(fit), predict(fit, type = "response"),
+  expect_equal(frm_linpred(fit, newdata = dd), frm_linpred(fit),
                tolerance = 1e-8)
-  a_hat <- predict(fit, dpar = "a")
+  expect_equal(unname(fitted(fit)[, "Estimate"]),
+               unname(frm_linpred(fit, type = "response")), tolerance = 1e-8)
+  a_hat <- frm_linpred(fit, dpar = "a")
   expect_lt(stats::sd(a_hat), 1e-10)   # intercept-only nlpar is constant
   nd <- data.frame(x = c(0, 1, 2))
-  p <- predict(fit, newdata = nd)
-  expect_equal(p[1], fixef(fit)$a[[1]], tolerance = 1e-8,
+  p <- frm_linpred(fit, newdata = nd)
+  expect_equal(p[1], fixef_by_dpar(fit)$a[[1]], tolerance = 1e-8,
                ignore_attr = TRUE)
-  expect_error(predict(fit, se.fit = TRUE), "se.fit is not supported")
-  expect_length(residuals(fit), n)
+  expect_error(frm_linpred(fit, se.fit = TRUE), "se.fit is not supported")
+  expect_length(residuals(fit)[, "Estimate"], n)
 })
 
 test_that("nl validation errors are clear", {
@@ -96,7 +97,8 @@ nl_reserved_data <- function(n_id = 8, seed = 7) {
   d
 }
 
-test_that("a nonlinear parameter named after a family dpar is refused by name", {
+test_that("a nonlinear parameter named after a family dpar is refused by name",
+          {
   d <- nl_reserved_data()
   # the reported spelling: `mu ~ 1 + (1 | id)` alongside nl = TRUE
   expect_error(
@@ -138,7 +140,7 @@ test_that("a body that names its own parameter is refused, with the data checked
            family = exponential(link = "log"), data = d2)
   # mu is computed by the body, so it contributes no coefficient block;
   # what matters is that the fit happened at all
-  expect_setequal(names(fixef(f)), c("apo", "chi"))
+  expect_setequal(names(fixef_by_dpar(f)), c("apo", "chi"))
   expect_true(all(is.finite(fixef(f, flatten = TRUE))))
   # an nlf() body that names ITSELF is the same fault under another
   # spelling
@@ -157,7 +159,7 @@ test_that("a body reading ANOTHER dpar's value is untouched", {
   dd <- data.frame(x = rnorm(120))
   dd$y <- 2 + dd$x + rnorm(120)
   f <- frm(bf(y ~ sigma * x + a, a ~ 1, nl = TRUE), gaussian(), data = dd)
-  expect_true(is.finite(fixef(f)$a[[1]]))
+  expect_true(is.finite(fixef_by_dpar(f)$a[[1]]))
 })
 
 test_that("a nonlinear parameter named after a template component fits, and start names the collision", {

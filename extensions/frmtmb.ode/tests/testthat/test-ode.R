@@ -271,9 +271,9 @@ test_that("the population PK fit matches the probe reference", {
   # dev/ode/probeA2-frmtmb-nl.R, cross-checked against a hand-rolled
   # RTMB MakeADFun (same objective to 6 digits) and nlmixr2 FOCEi
   expect_equal(as.numeric(logLik(fit)), -60.462931, tolerance = 1e-6)
-  expect_equal(unname(fixef(fit)$lka), -0.2292, tolerance = 1e-3)
-  expect_equal(unname(fixef(fit)$lke), -1.5932, tolerance = 1e-3)
-  expect_equal(unname(fixef(fit)$lV), 2.2704, tolerance = 1e-3)
+  expect_equal(unname(fixef_by_dpar(fit)$lka), -0.2292, tolerance = 1e-3)
+  expect_equal(unname(fixef_by_dpar(fit)$lke), -1.5932, tolerance = 1e-3)
+  expect_equal(unname(fixef_by_dpar(fit)$lV), 2.2704, tolerance = 1e-3)
   expect_equal(sigma(fit), 0.3040, tolerance = 1e-3)
   expect_equal(AIC(fit), 132.926, tolerance = 1e-5)
 
@@ -290,21 +290,21 @@ test_that("the population PK fit matches the probe reference", {
   expect_gt(stats::cor(as.numeric(ranef(fit)[[1L]]), b_ka), 0.95)
 })
 
-test_that("predict() re-solves on newdata", {
+test_that("frm_linpred() re-solves on newdata", {
   skip_if_not_installed("RTMBode")
   skip_on_cran()
   d <- sim_pk(6)
   fit <- frm(pk_form + gaussian(), data = d,
              start = list(beta = c(0, log(0.25), log(8))))
-  p_in <- predict(fit)
+  p_in <- frm_linpred(fit)
   keep <- d$id %in% c("1", "3")
-  expect_equal(predict(fit, newdata = d[keep, ]), unname(p_in[keep]),
+  expect_equal(frm_linpred(fit, newdata = d[keep, ]), unname(p_in[keep]),
                tolerance = 1e-6, ignore_attr = TRUE)
   # a denser grid the fit never saw
   nd <- expand.grid(time = seq(0.5, 12, by = 0.5),
                     id = factor("1", levels = levels(d$id)))
   nd$dose <- 100
-  expect_length(predict(fit, newdata = nd), nrow(nd))
+  expect_length(frm_linpred(fit, newdata = nd), nrow(nd))
 })
 
 test_that("an integrator choice does not move the likelihood", {
@@ -437,9 +437,10 @@ test_that("a parent-and-metabolite fit is the same one call or two", {
                gaussian(), data = d, start = st)
   expect_equal(as.numeric(logLik(one)), as.numeric(logLik(two)),
                tolerance = 1e-8)
-  expect_equal(unlist(fixef(one)), unlist(fixef(two)), tolerance = 1e-6)
+  expect_equal(unlist(fixef_by_dpar(one)), unlist(fixef_by_dpar(two)),
+               tolerance = 1e-6)
   # and it recovers what generated the data
-  fx <- unlist(fixef(one))
+  fx <- unlist(fixef_by_dpar(one))
   expect_equal(unname(exp(fx[["lka.(Intercept)"]])), 1.1, tolerance = 0.3)
   expect_equal(unname(exp(fx[["lkme.(Intercept)"]])), 0.25,
                tolerance = 0.3)
@@ -475,14 +476,14 @@ test_that("nlf(sigma ~ ) writes the combined error model", {
     data = d, start = list(beta = c(0, log(0.25), log(8)),
                            betad = c(log(0.2), log(0.2))))
 
-  fx <- unlist(fixef(fit))
+  fx <- unlist(fixef_by_dpar(fit))
   expect_equal(unname(exp(fx[["ladd.(Intercept)"]])), add, tolerance = 0.8)
   expect_equal(unname(exp(fx[["lprop.(Intercept)"]])), prop,
                tolerance = 0.8)
   # the residual sd rises with the fitted value, which a single sigma
   # cannot do
-  s <- predict(fit, dpar = "sigma")
-  p <- predict(fit)
+  s <- frm_linpred(fit, dpar = "sigma")
+  p <- frm_linpred(fit)
   expect_gt(stats::cor(as.numeric(s), as.numeric(p)), 0.9)
 
   flat <- frm(
@@ -576,7 +577,7 @@ test_that("a numeric-only body is loud when a solve fails at tape time", {
   expect_identical(frm_ode_failures()$groups, "3")
 })
 
-test_that("a penalty reached through predict() warns and names the group", {
+test_that("a penalty reached through frm_linpred() warns and names the group", {
   skip_if_not_installed("RTMBode")
   skip_on_cran()
   blowup <- function(t, y, p) list(p[1] * y * y)
@@ -595,7 +596,7 @@ test_that("a penalty reached through predict() warns and names the group", {
   nd <- data.frame(id = factor(c("1", "2"), levels = levels(d$id)),
                    time = c(2, 500))
   # capture_warnings absorbs the propagated DLSODA give-up warnings too
-  ws <- capture_warnings(p <- predict(fit, newdata = nd))
+  ws <- capture_warnings(p <- frm_linpred(fit, newdata = nd))
   expect_true(any(grepl("the solve failed for 1 of 2 groups \\(2\\)", ws)))
   expect_equal(unname(p[2]), 1e6)
   expect_identical(frm_ode_failures()$groups, "2")
@@ -632,6 +633,7 @@ test_that("dynamics need no ADoverload boilerplate of their own", {
   f2 <- mk(boiler)
   expect_equal(as.numeric(logLik(f1)), as.numeric(logLik(f2)),
                tolerance = 1e-10)
-  expect_equal(unname(unlist(fixef(f1))), unname(unlist(fixef(f2))),
+  expect_equal(unname(unlist(fixef_by_dpar(f1))),
+               unname(unlist(fixef_by_dpar(f2))),
                tolerance = 1e-8)
 })

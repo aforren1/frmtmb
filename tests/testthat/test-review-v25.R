@@ -50,13 +50,13 @@ test_that("right censoring under trunc() is the windowed event probability", {
                     RTMB::pnorm((dd$y[ir] - mu[ir]) / s))
     -sum(ll - log(Z))
   }
-  est <- c(fixef(fit)$mu, exp = fixef(fit)$sigma[[1]])
+  est <- c(fixef_by_dpar(fit)$mu, exp = fixef_by_dpar(fit)$sigma[[1]])
   obj <- RTMB::MakeADFun(nll_ref, list(b = c(0, 0), ls = 0), silent = TRUE)
   expect_lt(abs(obj$fn(unname(est)) + as.numeric(logLik(fit))), 1e-8)
 
   opt <- nlminb(unname(est), obj$fn, obj$gr)
   expect_lt(abs(as.numeric(logLik(fit)) - (-opt$objective)), 1e-6)
-  expect_vector_equal(fixef(fit)$mu, opt$par[1:2], tol = 1e-4)
+  expect_vector_equal(fixef_by_dpar(fit)$mu, opt$par[1:2], tol = 1e-4)
 
   # the pre-fix composition censored the UNtruncated variable and only
   # renormalized afterwards, which inflates the residual sd well past
@@ -73,8 +73,8 @@ test_that("right censoring under trunc() is the windowed event probability", {
   }
   o2 <- RTMB::MakeADFun(nll_old, list(b = c(0, 0), ls = 0), silent = TRUE)
   opt2 <- nlminb(unname(est), o2$fn, o2$gr)
-  expect_gt(exp(opt2$par[3]) - exp(fixef(fit)$sigma[[1]]), 0.05)
-  expect_lt(abs(exp(fixef(fit)$sigma[[1]]) - 0.9), 0.05)
+  expect_gt(exp(opt2$par[3]) - exp(fixef_by_dpar(fit)$sigma[[1]]), 0.05)
+  expect_lt(abs(exp(fixef_by_dpar(fit)$sigma[[1]]) - 0.9), 0.05)
 })
 
 test_that("left censoring under trunc() subtracts the truncation lower tail", {
@@ -107,7 +107,7 @@ test_that("left censoring under trunc() subtracts the truncation lower tail", {
     ll[il] <- log(RTMB::pnorm((dd$y[il] - mu[il]) / s) - Flb[il])
     -sum(ll - log(Z))
   }
-  est <- c(fixef(fit)$mu, fixef(fit)$sigma[[1]])
+  est <- c(fixef_by_dpar(fit)$mu, fixef_by_dpar(fit)$sigma[[1]])
   obj <- RTMB::MakeADFun(nll_ref, list(b = c(0, 0), ls = 0), silent = TRUE)
   expect_lt(abs(obj$fn(unname(est)) + as.numeric(logLik(fit))), 1e-8)
 })
@@ -137,12 +137,13 @@ test_that("interval censoring under trunc() divides by the window mass", {
                     RTMB::pnorm((dd$y[ii] - mu[ii]) / s))
     -sum(ll - log(Z))
   }
-  est <- c(fixef(fit)$mu, fixef(fit)$sigma[[1]])
+  est <- c(fixef_by_dpar(fit)$mu, fixef_by_dpar(fit)$sigma[[1]])
   obj <- RTMB::MakeADFun(nll_ref, list(b = c(0, 0), ls = 0), silent = TRUE)
   expect_lt(abs(obj$fn(unname(est)) + as.numeric(logLik(fit))), 1e-8)
 })
 
-test_that("the discrete censored-truncated form keeps the F(lb - 1) convention", {
+test_that("the discrete censored-truncated form keeps the F(lb - 1) convention",
+          {
   # One convention, two terms: an inclusive lower bound enters the CDF
   # as F(bound - 1) whether it came from trunc(lb = ) or from a
   # right-censored row. The censoring is injected on the objective
@@ -184,7 +185,7 @@ test_that("OSA residuals stay calibrated on a cens() x trunc() fit", {
   dd <- sim_cens_trunc(77, 300, -1, 3, 1.5)
   fit <- frm(bf(y | cens(cen) + trunc(lb = -1, ub = 3) ~ x) + gaussian(),
              data = dd)
-  r <- residuals(fit, type = "osa")
+  r <- residuals(fit, type = "osa")[, "Estimate"]
   obs <- dd$cen == 0
   expect_true(all(is.na(r[!obs])))
   expect_true(all(is.finite(r[obs])))
@@ -204,7 +205,8 @@ test_that("OSA residuals stay calibrated on a cens() x trunc() fit", {
                                         fit$frame$y$y)$hi, 1.5)
 })
 
-test_that("the compat registry describes the composed cens x trunc likelihood", {
+test_that("the compat registry describes the composed cens x trunc likelihood",
+          {
   rules <- frm_compat_rules()
   i <- which(rules$feature_a == "cens()" & rules$feature_b == "trunc()")
   expect_length(i, 1L)
@@ -222,13 +224,13 @@ test_that("deviance residuals weight se() by the row's known variance", {
   dd$y <- 1 + 0.5 * dd$x + stats::rnorm(m, 0, sdv)
 
   fit <- frm(bf(y | se(sdy) ~ x) + gaussian(), data = dd)
-  rd <- residuals(fit, type = "deviance")
+  rd <- residuals(fit, type = "deviance")[, "Estimate"]
   # se() alone maps sigma out at 1, so the prior weight is 1 / se^2 and
   # the deviance residual is the standardized residual
-  expect_vector_equal(rd, (dd$y - fitted(fit)) / sdv, tol = 1e-8)
+  expect_vector_equal(rd, (dd$y - fitted(fit)[, "Estimate"]) / sdv, tol = 1e-8)
   # the defect: every row used to be scaled as if one dispersion
   # covered them all, so rd was exactly the raw residual
-  raw <- dd$y - fitted(fit)
+  raw <- dd$y - fitted(fit)[, "Estimate"]
   scaling <- rd / raw
   expect_vector_equal(scaling, 1 / sdv, tol = 1e-8)
   expect_equal(max(scaling) / min(scaling), 5, tolerance = 1e-8)
@@ -236,8 +238,9 @@ test_that("deviance residuals weight se() by the row's known variance", {
   fitb <- frm(bf(y | se(sdy, sigma = TRUE) ~ x) + gaussian(), data = dd)
   dpb <- frmtmb:::eval_dpars(fitb)[["y"]]
   s_i <- sqrt(dpb$sigma^2 + sdv^2)
-  expect_vector_equal(residuals(fitb, type = "deviance"),
-                      (dd$y - fitted(fitb)) * dpb$sigma / s_i, tol = 1e-8)
+  expect_vector_equal(residuals(fitb, type = "deviance")[, "Estimate"],
+                      (dd$y - fitted(fitb)[, "Estimate"]) * dpb$sigma / s_i,
+                      tol = 1e-8)
 })
 
 test_that("the glm deviance agreement survives the se() weight", {
@@ -246,13 +249,13 @@ test_that("the glm deviance agreement survives the se() weight", {
   dd$y <- 1 + 0.5 * dd$x + stats::rnorm(60)
   fit <- frm(bf(y ~ x) + gaussian(), data = dd)
   ref <- stats::glm(y ~ x, data = dd)
-  expect_vector_equal(residuals(fit, type = "deviance"),
+  expect_vector_equal(residuals(fit, type = "deviance")[, "Estimate"],
                       unname(residuals(ref, type = "deviance")), tol = 1e-5)
 })
 
 # ------------------------------------------- B1 quadrature x se.fit
 
-test_that("quadrature x predict(se.fit) reports modes-conditional SEs", {
+test_that("quadrature x frm_linpred(se.fit) reports modes-conditional SEs", {
   set.seed(4)
   ng <- 20
   nt <- 5
@@ -266,19 +269,19 @@ test_that("quadrature x predict(se.fit) reports modes-conditional SEs", {
 
   # the sdreport of a marginalized objective has no b rows, so the Z
   # block used to be cbind'd against an empty column-position vector
-  expect_warning(p <- predict(fit, se.fit = TRUE),
+  expect_warning(p <- frm_linpred(fit, se.fit = TRUE),
                  "conditional on the conditional modes")
   expect_true(all(is.finite(p$se.fit)))
   expect_length(p$se.fit, n)
-  expect_warning(pn <- predict(fit, newdata = dd, se.fit = TRUE),
+  expect_warning(pn <- frm_linpred(fit, newdata = dd, se.fit = TRUE),
                  "quadrature")
   expect_vector_equal(pn$se.fit, p$se.fit, tol = 1e-8)
-  expect_warning(pr <- predict(fit, newdata = dd, se.fit = TRUE,
+  expect_warning(pr <- frm_linpred(fit, newdata = dd, se.fit = TRUE,
                                type = "response"), "quadrature")
   expect_true(all(is.finite(pr$se.fit)))
 
   # population-level prediction adds no b columns, so it is unaffected
-  expect_silent(p0 <- predict(fit, se.fit = TRUE, re_formula = NA))
+  expect_silent(p0 <- frm_linpred(fit, se.fit = TRUE, re_formula = NA))
   expect_true(all(is.finite(p0$se.fit)))
 })
 
@@ -307,20 +310,20 @@ exposure_poisson <- function() {
   )
 }
 
-test_that("predict() requires the vreal() column instead of dropping it", {
+test_that("frm_linpred() requires the vreal() column instead of dropping it", {
   set.seed(31)
   n <- 200
   dd <- data.frame(x = stats::rnorm(n), expo = stats::runif(n, 0.5, 2))
   dd$y <- stats::rpois(n, exp(0.4 + 0.3 * dd$x) * dd$expo)
   fit <- frm(bf(y | vreal(expo) ~ x) + exposure_poisson(), data = dd)
 
-  p <- predict(fit, newdata = dd, type = "response")
+  p <- frm_linpred(fit, newdata = dd, type = "response")
   expect_length(p, n)
-  expect_vector_equal(p, unname(fitted(fit)), tol = 1e-8)
+  expect_vector_equal(p, unname(fitted(fit)[, "Estimate"]), tol = 1e-8)
 
   # the payload used to be dropped, and the family's mean_fn then
   # returned a LENGTH-0 prediction with no message at all
-  expect_error(predict(fit, newdata = data.frame(x = dd$x),
+  expect_error(frm_linpred(fit, newdata = data.frame(x = dd$x),
                        type = "response"),
                "vreal\\(expo\\).*no column expo")
   expect_error(frmtmb:::aterms_for_newdata(fit$spec$responses$y,
@@ -355,17 +358,17 @@ test_that("quad_fit keeps the lowest objective when none is stationary", {
 
 # -------------------------------------------- B5 singular joint precision
 
-test_that("predict(se.fit) degrades on a singular joint precision", {
+test_that("frm_linpred(se.fit) degrades on a singular joint precision", {
   set.seed(21)
   n <- 120
   dd <- data.frame(x = stats::rnorm(n), g = factor(rep(1:12, 10)))
   dd$y <- 1 + 0.5 * dd$x + stats::rnorm(12, 0, 0.4)[dd$g] +
     stats::rnorm(n)
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd, REML = TRUE)
-  p0 <- predict(fit, se.fit = TRUE)
+  p0 <- frm_linpred(fit, se.fit = TRUE)
   expect_true(all(is.finite(p0$se.fit)))
 
-  # predict() inverted the joint precision by hand, so a singular one
+  # frm_linpred() inverted the joint precision by hand, so a singular one
   # threw a raw LAPACK message from inside the delta method
   Q <- fit$cache$sdr$jointPrecision
   sdr <- fit$cache$sdr
@@ -373,7 +376,7 @@ test_that("predict(se.fit) degrades on a singular joint precision", {
                                        dimnames = dimnames(Q))
   fit$cache$sdr <- sdr
   rm("Vjoint", envir = fit$cache)
-  expect_warning(p <- predict(fit, se.fit = TRUE), "diagnose\\(\\)")
+  expect_warning(p <- frm_linpred(fit, se.fit = TRUE), "diagnose\\(\\)")
   expect_true(all(is.nan(p$se.fit)))
 })
 

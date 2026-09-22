@@ -1,0 +1,7 @@
+design: newlevel  replicates: 220  failed fits: 0 
+n: 60  new points per replicate: 10  ndraws: 1000  seed0: 20260917  allow_new_levels: TRUE 
+script: dev/shapes-coverage.R
+
+joint     2097 of  2200 = 0.9532  (0.9435, 0.9616) binomial; replicate mean 0.9532 se 0.0051  median width 4.9803  non-finite widths 0 of 220
+plugin    2048 of  2200 = 0.9309  (0.9195, 0.9412) binomial; replicate mean 0.9309 se 0.0061  median width 4.5698  non-finite widths 0 of 220
+wald      1531 of  2200 = 0.6959  (0.6762, 0.7151) binomial; replicate mean 0.6959 se 0.0144  median width 2.6241  non-finite widths 0 of 220

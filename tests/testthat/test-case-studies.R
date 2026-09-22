@@ -103,7 +103,8 @@ test_that("the multi-trait animal model reads the pedigree", {
   Gh <- varcorr_matrices(fmv)[[1]]
   expect_equal(cov2cor(Gh)[1, 2], 0.6 / sqrt(1.0 * 0.8), tolerance = 0.05)
   expect_equal(unname(sqrt(diag(Gh))), c(1, sqrt(0.8)), tolerance = 0.2)
-  expect_equal(unname(exp(fixef(fmv)$sigma)), c(0.7, 0.9), tolerance = 0.15)
+  expect_equal(unname(exp(fixef_by_dpar(fmv)$sigma)), c(0.7, 0.9),
+               tolerance = 0.15)
 
   # a known covariance can be accepted, ignored, and still converge.
   # Refitting with the identity has to move the log likelihood, or A
@@ -141,7 +142,8 @@ test_that("the phylogenetic mixed model matches PGLS with Pagel's lambda", {
   lam <- sd_p^2 / (sd_p^2 + sigma(fphy)^2)
   lam_gls <- as.numeric(coef(g$modelStruct$corStruct,
                              unconstrained = FALSE))
-  expect_equal(unname(fixef(fphy)$mu), unname(coef(g)), tolerance = 1e-4)
+  expect_equal(unname(fixef_by_dpar(fphy)$mu), unname(coef(g)),
+               tolerance = 1e-4)
   expect_equal(lam, lam_gls, tolerance = 1e-4)
   expect_equal(sd_p^2 + sigma(fphy)^2, g$sigma^2, tolerance = 1e-4)
   expect_lt(abs(as.numeric(logLik(fphy)) - as.numeric(logLik(g))), 1e-4)
@@ -169,7 +171,7 @@ test_that("se() meta-analysis matches metafor::rma", {
   fmeta <- frm(bf(yi | se(sei) ~ 1 + (1 | study)) + gaussian(),
                data = bcg, REML = TRUE)
   rr <- metafor::rma(bcg$yi, bcg$vi, method = "REML")
-  expect_equal(unname(fixef(fmeta)$mu), as.numeric(rr$beta),
+  expect_equal(unname(fixef_by_dpar(fmeta)$mu), as.numeric(rr$beta),
                tolerance = 1e-5)
   expect_equal(sqrt(varcorr_matrices(fmeta)[[1]][1, 1]), sqrt(rr$tau2),
                tolerance = 1e-5)
@@ -180,7 +182,8 @@ test_that("se() meta-analysis matches metafor::rma", {
   freg <- frm(bf(yi | se(sei) ~ ablat + (1 | study)) + gaussian(),
               data = bcg, REML = TRUE)
   rr2 <- metafor::rma(bcg$yi, bcg$vi, mods = ~ bcg$ablat, method = "REML")
-  expect_equal(unname(fixef(freg)$mu), unname(coef(rr2)), tolerance = 1e-4)
+  expect_equal(unname(fixef_by_dpar(freg)$mu), unname(coef(rr2)),
+               tolerance = 1e-4)
   expect_equal(sqrt(varcorr_matrices(freg)[[1]][1, 1]), sqrt(rr2$tau2),
                tolerance = 1e-3)
 })
@@ -198,9 +201,9 @@ test_that("mo() reproduces the saturated factor fit on monotone data", {
   fmo <- frm(bf(ls ~ mo(income) + z) + gaussian(), data = dmo)
   fsat <- frm(bf(ls ~ income + z) + gaussian(), data = dmo)
   nd <- data.frame(income = factor(seq_len(L), ordered = TRUE), z = 0)
-  p <- predict(fmo, newdata = nd)
+  p <- frm_linpred(fmo, newdata = nd)
 
-  expect_equal(unname(p), unname(predict(fsat, newdata = nd)),
+  expect_equal(unname(p), unname(frm_linpred(fsat, newdata = nd)),
                tolerance = 1e-4)
   expect_equal(as.numeric(logLik(fmo)), as.numeric(logLik(fsat)),
                tolerance = 1e-6)
@@ -221,10 +224,10 @@ test_that("location-scale smooths agree with mgcv's gaulss", {
                   family = mgcv::gaulss(b = 0), method = "ML")
   nd <- data.frame(x = seq(0.05, 0.95, length.out = 6))
   pg <- stats::predict(gm, newdata = nd, type = "response")
-  sg <- predict(fls, newdata = nd, dpar = "sigma", type = "response")
+  sg <- frm_linpred(fls, newdata = nd, dpar = "sigma", type = "response")
   # the two packages pick smoothing parameters by different criteria,
   # so the curves are close rather than identical
-  expect_lt(max(abs(predict(fls, newdata = nd) - pg[, 1])), 0.02)
+  expect_lt(max(abs(frm_linpred(fls, newdata = nd) - pg[, 1])), 0.02)
   expect_lt(max(abs(sg * pg[, 2] - 1)), 0.03)
 })
 
@@ -273,7 +276,8 @@ test_that("the growth mixture recovers class-specific slopes", {
   fgmm <- frm(bf(y ~ time + (1 | id)) +
                 mixture(gaussian(), gaussian(), groups = ~id),
               data = dg)
-  slopes <- sort(c(fixef(fgmm)$mu1[["time"]], fixef(fgmm)$mu2[["time"]]))
+  slopes <- sort(c(fixef_by_dpar(fgmm)$mu1[["time"]],
+                   fixef_by_dpar(fgmm)$mu2[["time"]]))
   expect_equal(slopes, c(0.2, 1.2), tolerance = 0.15)
 
   assigned <- max.col(mixture_probs(fgmm)) - 1L
@@ -296,7 +300,7 @@ test_that("mi(sdx) corrects attenuation from measurement error", {
   fme <- frm(bf(y ~ mi(x) + z) + gaussian() +
                bf(x | mi(su) ~ z) + gaussian(), data = dme)
   naive <- stats::coef(stats::lm(y ~ x + z, data = dme))[["x"]]
-  corrected <- fixef(fme)$y_mu[["mix"]]
+  corrected <- fixef_by_dpar(fme)$y_mu[["mix"]]
 
   expect_lt(naive, 0.9)
   expect_equal(corrected, 1, tolerance = 0.12)

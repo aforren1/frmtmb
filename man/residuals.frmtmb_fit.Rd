@@ -6,15 +6,24 @@
 \usage{
 \method{residuals}{frmtmb_fit}(
   object,
-  type = c("response", "pearson", "deviance", "osa"),
+  type = c("response", "ordinary", "pearson", "deviance", "osa"),
   osa_method = NULL,
-  ...
+  ...,
+  ndraws = NULL,
+  draw_ids = NULL,
+  sort = FALSE,
+  summary = TRUE,
+  robust = FALSE,
+  probs = c(0.025, 0.975)
 )
 }
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
 
-\item{type}{\code{"response"}, \code{"pearson"}, \code{"deviance"}, or \code{"osa"}.}
+\item{type}{\code{"response"} (brms spells the same thing \code{"ordinary"},
+and both are accepted), \code{"pearson"}, \code{"deviance"}, or \code{"osa"}.
+brms's \code{residuals()} takes \code{newdata} in this position; this one
+has always taken \code{type} there, and \code{newdata} is refused by name.}
 
 \item{osa_method}{Method for \code{\link[TMB:oneStepPredict]{TMB::oneStepPredict()}}; defaults to
 \code{"fullGaussian"} for gaussian models and \code{"oneStepGeneric"}
@@ -31,9 +40,22 @@ arguments this one does not have (\code{newdata}, \code{re_formula},
 \code{method}, \code{resp}, \code{ndraws}, \code{draw_ids}, \code{sort}, \code{summary},
 \code{robust}, \code{probs}) are refused with the reason rather than
 reported as unknown names.}
+
+\item{ndraws, draw_ids, sort, summary, robust}{brms's arguments. Each
+needs posterior draws and a maximum-likelihood fit has none, so
+each is refused by name with the reason. The default of each is
+accepted and changes nothing.}
+
+\item{probs}{Probabilities of the two quantile columns, the ends of
+the Wald interval at those probabilities.}
 }
 \value{
-A numeric vector, \code{NA} on censored rows.
+brms's summary matrix: \code{n} rows with \code{NULL} dimnames, as
+brms's are, and the columns \code{Estimate}, \code{Est.Error} and one per
+entry of \code{probs}, \code{NA} on censored rows.
+The observed response is fixed, so \code{Est.Error} is the standard
+error of the fitted value; a \code{"deviance"} or \code{"osa"} residual has
+none and reports \code{NA} there.
 }
 \description{
 \code{"osa"} gives one-step-ahead (conditional quantile) residuals via
@@ -147,11 +169,12 @@ fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
 head(residuals(fit))
 head(residuals(fit, type = "pearson"))
 # the usual overdispersion check for a poisson fit
-sum(residuals(fit, type = "pearson")^2) / df.residual(fit)
+pr <- residuals(fit, type = "pearson")[, "Estimate"]
+sum(pr^2) / df.residual(fit)
 
 # one-step-ahead quantile residuals are standard normal under a
 # correctly specified model, whatever the family
-r <- residuals(fit, type = "osa")
+r <- residuals(fit, type = "osa")[, "Estimate"]
 qqnorm(r); qqline(r)
 }
 \seealso{

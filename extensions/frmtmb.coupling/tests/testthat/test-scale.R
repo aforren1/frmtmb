@@ -126,7 +126,7 @@ coupling_one <- function(row, rhs, d) {
   g1 <- scale_grad(fit$obj, fit$opt$par)
   mem <- scale_mem_peak_mb()
 
-  b <- unlist(frmtmb::fixef(fit))
+  b <- unlist(frmtmb::fixef_by_dpar(fit))
   ci <- suppressWarnings(stats::confint(fit))
   j <- grep("coh_condb", rownames(ci), fixed = TRUE)
   i_c <- if (length(j)) as.numeric(ci[j[1L], 1:2]) else c(NA, NA)

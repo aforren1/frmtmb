@@ -68,7 +68,8 @@ test_that("the generic refusal names the unit as a leave-out unit", {
   msg <- structure_generic(f, "REML = TRUE")
   expect_match(msg, "REML = TRUE is not available for a 'toy' family:",
                fixed = TRUE)
-  expect_match(msg, "Its own unit for leaving data out is a hidden-Markov sequence",
+  expect_match(msg,
+               "Its own unit for leaving data out is a hidden-Markov sequence",
                fixed = TRUE)
   # a family that declares no unit still gets a sentence that parses
   g <- fam_with(loglik = ll_ok, supports = list(reml = FALSE))
@@ -337,7 +338,8 @@ test_that("the block a factorization rests on is checked at assembly", {
   expect_error(
     check_structure_block(grp, list(group = matrix(1:4, 2)), fam, "y", 4L),
     "one entry per row")
-  expect_null(check_structure_block(grp, list(group = factor(letters[c(1, 1, 2, 2)])),
+  expect_null(check_structure_block(grp, list(group = factor(letters[c(1, 1, 2,
+                                                                       2)])),
                                     fam, "y", 4L))
   # a family with no structure at all is not asked for any of this
   expect_null(check_structure_block(NULL, NULL, fam, "y", 4L))
@@ -469,10 +471,11 @@ test_that("the family applies the row weights, and the core does not", {
   # the same weighted likelihood, so the same fit
   expect_equal(as.numeric(logLik(fit)), as.numeric(logLik(ref)),
                tolerance = 1e-8)
-  expect_equal(unlist(fixef(fit)), unlist(fixef(ref)), tolerance = 1e-6)
+  expect_equal(unlist(fixef_by_dpar(fit)), unlist(fixef_by_dpar(ref)),
+               tolerance = 1e-6)
 
-  d_str <- as.numeric(residuals(fit, type = "deviance"))
-  d_ref <- as.numeric(residuals(ref, type = "deviance"))
+  d_str <- as.numeric(residuals(fit, type = "deviance")[, "Estimate"])
+  d_ref <- as.numeric(residuals(ref, type = "deviance")[, "Estimate"])
   # The toy's unit deviance is the SCALED one (its log-densities carry
   # sigma), so it differs from gaussian()'s by a constant 1 / sigma. A
   # constant is all it may differ by: the ratio must not track the

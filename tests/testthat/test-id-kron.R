@@ -116,10 +116,11 @@ test_that("|ID|-merged gr(cov =) is the long-format model", {
   # the same fixed effects: two trait means and two residual sds. The
   # long format keeps them in one linear predictor each, the wide one
   # splits them per response, so they are compared by value.
-  expect_equal(unname(c(fixef(fw)$y1_mu, fixef(fw)$y2_mu)),
-               unname(fixef(fl)$mu), tolerance = 1e-4)
-  expect_equal(unname(c(fixef(fw)$y1_sigma, fixef(fw)$y2_sigma)),
-               unname(fixef(fl)$sigma), tolerance = 1e-4)
+  expect_equal(unname(c(fixef_by_dpar(fw)$y1_mu, fixef_by_dpar(fw)$y2_mu)),
+               unname(fixef_by_dpar(fl)$mu), tolerance = 1e-4)
+  expect_equal(unname(c(fixef_by_dpar(fw)$y1_sigma,
+                        fixef_by_dpar(fw)$y2_sigma)),
+               unname(fixef_by_dpar(fl)$sigma), tolerance = 1e-4)
 })
 
 test_that("the merged block actually reads the relationship matrix", {
@@ -314,7 +315,9 @@ test_that("the merged block reports sane named summaries", {
 
   re <- ranef(fw, condVar = TRUE)[[1]]
   expect_equal(dim(re), c(nrow(d$A), 2L))
-  expect_equal(colnames(re), nm)
+  # ranef() names its columns as brms does, <resp>_<coef>, which is
+  # also the spelling of variables() below
+  expect_equal(colnames(re), c("y1_Intercept", "y2_Intercept"))
   expect_equal(rownames(re), rownames(d$A))
   expect_true(all(is.finite(attr(re, "condSD"))))
 
@@ -342,12 +345,12 @@ test_that("the merged block reports sane named summaries", {
                h$Estimate, tolerance = 1e-10)
 })
 
-test_that("predict() on the merged block behaves as for a single gr()", {
+test_that("frm_linpred() on the merged block behaves as for a single gr()", {
   skip_on_cran()
   d <- kron_traits(nsire = 4, ndam_per = 2, noff = 3)
   fw <- kron_fit_wide(d)
   nd <- d$wide[1:4, ]
-  p <- predict(fw, newdata = nd, resp = "y1")
+  p <- frm_linpred(fw, newdata = nd, resp = "y1")
   expect_length(p, 4L)
   expect_true(all(is.finite(p)))
   # the levels ARE the structure, so an unseen one gets the population
@@ -355,7 +358,7 @@ test_that("predict() on the merged block behaves as for a single gr()", {
   nd2 <- nd
   levels(nd2$id) <- c(levels(nd2$id), "zzz")
   nd2$id[] <- "zzz"
-  pn <- predict(fw, newdata = nd2, resp = "y1", allow_new_levels = TRUE)
+  pn <- frm_linpred(fw, newdata = nd2, resp = "y1", allow_new_levels = TRUE)
   expect_true(all(is.finite(pn)))
   expect_equal(length(unique(round(pn, 10))), 1L)
 })

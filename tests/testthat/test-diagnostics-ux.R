@@ -17,7 +17,7 @@ test_that("cbind(successes, failures) matches glm() exactly (glmmTMB#1319)", {
   d <- make_binom()
   f <- frm(cbind(succ, fail) ~ x, data = d, family = binomial())
   g <- glm(cbind(succ, fail) ~ x, data = d, family = binomial())
-  expect_equal(unname(fixef(f)$mu), unname(coef(g)), tolerance = 1e-5)
+  expect_equal(unname(fixef_by_dpar(f)$mu), unname(coef(g)), tolerance = 1e-5)
   expect_equal(as.numeric(logLik(f)), as.numeric(logLik(g)),
                tolerance = 1e-8)
   expect_equal(unname(sqrt(diag(vcov(f)))[1:2]),
@@ -30,11 +30,11 @@ test_that("cbind() is exactly the trials() spelling (glmmTMB#1325)", {
   f2 <- frm(succ | trials(trials) ~ x + (1 | g), data = d,
             family = binomial())
   expect_equal(as.numeric(logLik(f1)), as.numeric(logLik(f2)))
-  expect_equal(fixef(f1)$mu, fixef(f2)$mu)
+  expect_equal(fixef_by_dpar(f1)$mu, fixef_by_dpar(f2)$mu)
   # the response really is the success count, and the aterm the total
   expect_equal(f1$frame$y[[1]], d$succ)
   expect_equal(f1$frame$aterm_values[[1]]$trials, as.numeric(d$trials))
-  expect_equal(fitted(f1), fitted(f2))
+  expect_equal(fitted(f1)[, "Estimate"], fitted(f2)[, "Estimate"])
 })
 
 test_that("cbind() responses are refused where they are ambiguous", {
@@ -70,7 +70,7 @@ test_that("a model with no free parameters fits degenerately (glmmTMB#1317)", {
                sum(dbinom(d$succ, d$trials, 0.5, log = TRUE)))
   expect_equal(attr(logLik(f), "df"), 0L)
   # the post-fit surface still answers rather than dying in nlminb
-  expect_equal(unname(fitted(f)), rep(5, nrow(d)))
+  expect_equal(unname(fitted(f)[, "Estimate"]), rep(5, nrow(d)))
   expect_s3_class(summary(f), "summary.frmtmb_fit")
   expect_type(diagnose(f, quiet = TRUE), "list")
 })
@@ -265,7 +265,7 @@ test_that("ordinal category probabilities reproduce the lpdf exactly", {
       "frmtmb"))())
     ordered <- fam %in% c("cumulative", "sratio")
     tau <- frmtmb:::ord_tau_from_raw(f$estimates$tau_raw, ordered)
-    eta <- as.numeric(model.matrix(~ x - 1, d) %*% fixef(f)$mu)
+    eta <- as.numeric(model.matrix(~ x - 1, d) %*% fixef_by_dpar(f)$mu)
     P <- frmtmb:::ord_cat_probs(fam, eta, tau, NULL, "logit")
     expect_equal(unname(rowSums(P)), rep(1, n), tolerance = 1e-12,
                  info = fam)
@@ -327,8 +327,8 @@ test_that("an nlpar colliding with a data column is refused (brms#391)", {
   # renaming them fits
   f <- frm(bf(yn ~ A * exp(B * x), A ~ 1, B ~ 1, nl = TRUE), data = d,
            family = gaussian())
-  expect_equal(unname(fixef(f)$A), 2, tolerance = 0.1)
-  expect_equal(unname(fixef(f)$B), 0.5, tolerance = 0.1)
+  expect_equal(unname(fixef_by_dpar(f)$A), 2, tolerance = 0.1)
+  expect_equal(unname(fixef_by_dpar(f)$B), 0.5, tolerance = 0.1)
 })
 
 test_that("a failed nl fit names start= (brms#734)", {
@@ -344,8 +344,8 @@ test_that("a failed nl fit names start= (brms#734)", {
   # with a start in the right region the same model fits
   f <- frm(bf(y ~ A * exp(t / B), A ~ 1, B ~ 1, nl = TRUE), data = dd,
            family = gaussian(), start = list(beta = c(3, 2)))
-  expect_equal(unname(fixef(f)$A), 3, tolerance = 0.2)
-  expect_equal(unname(fixef(f)$B), 2, tolerance = 0.2)
+  expect_equal(unname(fixef_by_dpar(f)$A), 3, tolerance = 0.2)
+  expect_equal(unname(fixef_by_dpar(f)$B), 2, tolerance = 0.2)
 })
 
 # --- REML anova() [glmmTMB#776] ---------------------------------------
@@ -395,20 +395,20 @@ test_that("offset() in a dpar formula reaches the likelihood", {
   d$y <- rnorm(n, 1 + d$x, sd = exp(0.2 + 0.3 * d$x))
   f <- frm(bf(y ~ x, sigma ~ x + offset(off)), data = d,
            family = gaussian())
-  mu <- as.numeric(model.matrix(~x, d) %*% fixef(f)$mu)
-  sg <- exp(as.numeric(model.matrix(~x, d) %*% fixef(f)$sigma) + d$off)
+  mu <- as.numeric(model.matrix(~x, d) %*% fixef_by_dpar(f)$mu)
+  sg <- exp(as.numeric(model.matrix(~x, d) %*% fixef_by_dpar(f)$sigma) + d$off)
   expect_equal(as.numeric(logLik(f)),
                sum(dnorm(d$y, mu, sg, log = TRUE)), tolerance = 1e-8)
   # the offset moves the estimate: dropping it is not a no-op
   f0 <- frm(bf(y ~ x, sigma ~ x), data = d, family = gaussian())
-  expect_gt(abs(fixef(f)$sigma[1] - fixef(f0)$sigma[1]), 0.5)
+  expect_gt(abs(fixef_by_dpar(f)$sigma[1] - fixef_by_dpar(f0)$sigma[1]), 0.5)
   # and it follows through to prediction, in sample and on newdata
-  expect_equal(as.numeric(predict(f, dpar = "sigma", type = "link")),
+  expect_equal(as.numeric(frm_linpred(f, dpar = "sigma", type = "link")),
                log(sg))
   nd <- data.frame(x = c(-1, 0, 1), off = c(0, 1, 2))
   expect_equal(
-    as.numeric(predict(f, newdata = nd, dpar = "sigma", type = "link")),
-    as.numeric(model.matrix(~x, nd) %*% fixef(f)$sigma) + nd$off
+    as.numeric(frm_linpred(f, newdata = nd, dpar = "sigma", type = "link")),
+    as.numeric(model.matrix(~x, nd) %*% fixef_by_dpar(f)$sigma) + nd$off
   )
 })
 
@@ -547,7 +547,8 @@ test_that("the nonlinear explanation still fires on a nonlinear fit", {
   expect_match(w, "nonlinear term that has left its own support")
 })
 
-test_that("a theta in the flat set says which block's standard deviation it is", {
+test_that("a theta in the flat set says which block's standard deviation it is",
+          {
   d <- flat_peak_data()
   # pk carries the random effect here, so its group sd goes flat with it
   fit <- suppressWarnings(frm(

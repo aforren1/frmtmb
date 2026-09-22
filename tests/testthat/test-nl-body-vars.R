@@ -77,7 +77,8 @@ test_that("a curried call in a nonlinear body fits", {
   f_curry <- frm(bf(y ~ a * curry(tv)(zv), a ~ 1, nl = TRUE), d, gaussian())
   # identical model, so identical coefficient: before the fix the second
   # spelling died with "object 'tv' not found"
-  expect_equal(fixef(f_curry)$a[[1]], fixef(f_plain)$a[[1]], tolerance = 1e-8)
+  expect_equal(fixef_by_dpar(f_curry)$a[[1]], fixef_by_dpar(f_plain)$a[[1]],
+               tolerance = 1e-8)
   expect_equal(as.numeric(logLik(f_curry)), as.numeric(logLik(f_plain)),
                tolerance = 1e-8)
 })

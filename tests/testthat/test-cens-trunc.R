@@ -13,8 +13,8 @@ test_that("right-censored gaussian matches survival::survreg", {
   ref <- survival::survreg(survival::Surv(y, 1 - cen) ~ x,
                            data = dd, dist = "gaussian")
   expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(logLik(ref))), 1e-5)
-  expect_vector_equal(fixef(fit)$mu, unname(coef(ref)), tol = 1e-4)
-  expect_lt(abs(exp(fixef(fit)$sigma[[1]]) - ref$scale), 1e-3)
+  expect_vector_equal(fixef_by_dpar(fit)$mu, unname(coef(ref)), tol = 1e-4)
+  expect_lt(abs(exp(fixef_by_dpar(fit)$sigma[[1]]) - ref$scale), 1e-3)
 })
 
 test_that("mixed left/right censoring matches a hand-rolled reference", {
@@ -66,7 +66,7 @@ test_that("truncation matches a hand-rolled reference", {
   opt <- nlminb(obj$par, obj$fn, obj$gr)
   expect_lt(abs(as.numeric(logLik(fit)) - (-opt$objective)), 1e-6)
   # truncation-corrected fit recovers the latent coefficients
-  expect_vector_equal(fixef(fit)$mu, c(1, 0.5), tol = 0.15)
+  expect_vector_equal(fixef_by_dpar(fit)$mu, c(1, 0.5), tol = 0.15)
 })
 
 test_that("brms character and factor censoring codes fit identically", {
@@ -89,8 +89,10 @@ test_that("brms character and factor censoring codes fit identically", {
     fit <- frm(bf(fo) + gaussian(), data = dd)
     expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(logLik(fit_num))),
               1e-8)
-    expect_vector_equal(fixef(fit)$mu, fixef(fit_num)$mu, tol = 1e-8)
-    expect_vector_equal(fixef(fit)$sigma, fixef(fit_num)$sigma, tol = 1e-8)
+    expect_vector_equal(fixef_by_dpar(fit)$mu, fixef_by_dpar(fit_num)$mu,
+                        tol = 1e-8)
+    expect_vector_equal(fixef_by_dpar(fit)$sigma, fixef_by_dpar(fit_num)$sigma,
+                        tol = 1e-8)
   }
 })
 
@@ -106,7 +108,8 @@ test_that("string interval censoring matches its numeric code", {
   fit_s <- frm(bf(y | cens(cs, y2) ~ x) + gaussian(), data = dd)
   fit_n <- frm(bf(y | cens(cn, y2) ~ x) + gaussian(), data = dd)
   expect_lt(abs(as.numeric(logLik(fit_s)) - as.numeric(logLik(fit_n))), 1e-8)
-  expect_vector_equal(fixef(fit_s)$mu, fixef(fit_n)$mu, tol = 1e-8)
+  expect_vector_equal(fixef_by_dpar(fit_s)$mu, fixef_by_dpar(fit_n)$mu,
+                      tol = 1e-8)
 })
 
 test_that("cens/trunc validation", {
@@ -191,7 +194,7 @@ disc_cens_ll <- function(d, m) {
 test_that("all four discrete censoring codes match a hand-rolled likelihood", {
   d <- disc_cens_data()
   fit <- frm(y | cens(cc, y2) ~ 1, family = poisson(), data = d)
-  mu <- exp(unname(fixef(fit)$mu))
+  mu <- exp(unname(fixef_by_dpar(fit)$mu))
   expect_equal(as.numeric(logLik(fit)), disc_cens_ll(d, mu),
                tolerance = 1e-10)
   # and the estimate is the hand-rolled likelihood's own maximum
@@ -203,7 +206,7 @@ test_that("all four discrete censoring codes match a hand-rolled likelihood", {
   for (k in c("right", "left", "interval")) {
     dk <- d[d$cc %in% c("none", k), ]
     f <- frm(y | cens(cc, y2) ~ 1, family = poisson(), data = dk)
-    mk <- exp(unname(fixef(f)$mu))
+    mk <- exp(unname(fixef_by_dpar(f)$mu))
     expect_equal(as.numeric(logLik(f)), disc_cens_ll(dk, mk),
                  tolerance = 1e-10, label = k)
   }
@@ -216,7 +219,7 @@ test_that("the discrete convention is NOT the continuous one", {
   d <- disc_cens_data()
   d <- d[d$cc %in% c("none", "right"), ]
   fit <- frm(y | cens(cc) ~ 1, family = poisson(), data = d)
-  mu <- exp(unname(fixef(fit)$mu))
+  mu <- exp(unname(fixef_by_dpar(fit)$mu))
   i_r <- d$cc == "right"
   excl <- sum(stats::dpois(d$y[!i_r], mu, log = TRUE)) +
     sum(stats::ppois(d$y[i_r], mu, lower.tail = FALSE, log.p = TRUE))
@@ -230,7 +233,7 @@ test_that("discrete cens() composes with trunc() on one convention", {
   d <- d[d$cc %in% c("none", "right") & d$y >= 2, ]
   fit <- frm(y | cens(cc) + trunc(lb = 2) ~ 1, family = poisson(),
              data = d)
-  mu <- exp(unname(fixef(fit)$mu))
+  mu <- exp(unname(fixef_by_dpar(fit)$mu))
   i_r <- d$cc == "right"
   ll <- numeric(nrow(d))
   ll[!i_r] <- stats::dpois(d$y[!i_r], mu, log = TRUE)
@@ -303,7 +306,7 @@ test_that("osa residuals are refused on a censored discrete fit", {
   expect_error(residuals(fit, type = "osa"),
                "not supported on a cens.. fit with a discrete family")
   # every other residual type still works
-  expect_true(all(is.finite(residuals(fit, type = "response"))))
+  expect_true(all(is.finite(residuals(fit, type = "response")[, "Estimate"])))
 })
 
 test_that("a discrete row censored at the support minimum is free", {
@@ -316,7 +319,7 @@ test_that("a discrete row censored at the support minimum is free", {
   expect_gt(sum(d$cc == "right"), 5)
   fit <- suppressWarnings(frm(y | cens(cc) ~ 1, family = poisson(),
                               data = d))
-  mu <- exp(unname(fixef(fit)$mu))
+  mu <- exp(unname(fixef_by_dpar(fit)$mu))
   obs <- d$cc == "none"
   expect_equal(as.numeric(logLik(fit)),
                sum(stats::dpois(d$y[obs], mu, log = TRUE)),

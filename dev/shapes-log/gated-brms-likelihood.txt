@@ -1,0 +1,2 @@
+Setting order = 'mu' for mixtures of the same family.
+RESULT test-brms-likelihood.R pass=404 fail=0 err=0 skip=0

@@ -514,7 +514,7 @@ test_that("the multivariate declarations match a multivariate fit", {
   expect_error(fitted(fit), "multivariate")
   expect_error(simulate(fit), "multivariate")
   expect_error(residuals(fit), "multivariate")
-  expect_length(predict(fit), n)
+  expect_length(frm_linpred(fit), n)
 
   # the inference surface is declared to work, so it has to
   ci <- confint(fit, method = "profile", parm = "y_x")

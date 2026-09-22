@@ -174,9 +174,9 @@ test_that("posterior_epred returns a draws x obs x category array", {
                      as.vector(flat[, (k - 1L) * 4L + seq_len(4L)]))
   }
 
-  # and each draw's slice is the matrix predict(type = "response")
+  # and each draw's slice is the matrix frm_linpred(type = "response")
   # returns, so the posterior mean tracks the MLE probabilities
-  P <- predict(fit, newdata = nd, type = "response")
+  P <- frm_linpred(fit, newdata = nd, type = "response")
   epf <- posterior_epred(ds, newdata = nd, ndraws = 60)
   # judged against the chain's own spread: a seeded chain is not
   # platform-deterministic, and the band asserts wiring, not mixing
@@ -343,7 +343,7 @@ test_that("as_tmbstan hands the objective to NUTS", {
   # judged against the chain's own spread: a seeded chain is not
   # platform-deterministic, and this asserts wiring, not mixing
   if (sampler_gates_on()) {
-    expect_lt(abs(mean(dr[, 1]) - fixef(fit)$mu[[1]]),
+    expect_lt(abs(mean(dr[, 1]) - fixef_by_dpar(fit)$mu[[1]]),
               5 * stats::sd(dr[, 1]) + 1e-8)
   }
 })
@@ -365,7 +365,7 @@ test_that("a tight prior pulls the posterior toward it", {
     expect_lt(stats::sd(m[, "b_x"]), 0.05)
     expect_lt(abs(mean(m[, "b_x"])), 5 * stats::sd(m[, "b_x"]) + 1e-8)
   }
-  expect_gt(fixef(fit)$mu[["x"]], 0.3)          # ML untouched
+  expect_gt(fixef_by_dpar(fit)$mu[["x"]], 0.3)          # ML untouched
 })
 
 # ---- from tests/testthat/test-hmm.R ----
@@ -434,7 +434,7 @@ test_that("frm_sample returns named draws and check_laplace agrees on a clean mo
   # judged against the chain's own spread: a seeded chain is not
   # platform-deterministic, and this asserts wiring, not mixing
   if (sampler_gates_on()) {
-    expect_lt(abs(mean(m[, "b_x"]) - fixef(fit)$mu[["x"]]),
+    expect_lt(abs(mean(m[, "b_x"]) - fixef_by_dpar(fit)$mu[["x"]]),
               5 * stats::sd(m[, "b_x"]) + 1e-8)
   }
 
@@ -480,7 +480,7 @@ test_that("the draws surface runs the model machinery per draw", {
   # wiring bug moves the estimate by O(1) while the spread stays small,
   # and a drifted chain widens its spread along with its error
   if (sampler_gates_on()) {
-    expect_lt(abs(fe["x", "Estimate"] - fixef(fit)$mu[["x"]]),
+    expect_lt(abs(fe["x", "Estimate"] - fixef_by_dpar(fit)$mu[["x"]]),
               5 * fe["x", "Est.Error"] + 1e-8)
   }
 
@@ -502,7 +502,7 @@ test_that("the draws surface runs the model machinery per draw", {
   ep <- posterior_epred(ds, ndraws = 25)
   expect_equal(dim(ep), c(25L, 80L))
   if (sampler_gates_on()) {
-    expect_lt(max(abs(colMeans(ep) - fitted(fit))),
+    expect_lt(max(abs(colMeans(ep) - fitted(fit)[, "Estimate"])),
               5 * max(apply(ep, 2, stats::sd)) + 1e-8)
   }
   pp <- posterior_predict(ds, ndraws = 25)
@@ -768,7 +768,7 @@ test_that("prior-augmented objective equals nll + neg log prior", {
   obj2 <- frmtmb.sample:::prior_augmented_obj(fit, ri$entries)
   est <- fit$opt$par
   nlp_manual <-
-    -stats::dnorm(fixef(fit)$mu[["x"]], 0, 1, log = TRUE) -
+    -stats::dnorm(fixef_by_dpar(fit)$mu[["x"]], 0, 1, log = TRUE) -
     stats::dnorm(fit$estimates$theta[1], 0, 2, log = TRUE)
   expect_lt(abs(obj2$fn(obj2$par) -
                   (-as.numeric(logLik(fit)) + nlp_manual)), 1e-8)

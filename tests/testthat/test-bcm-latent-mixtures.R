@@ -90,13 +90,13 @@ test_that("Exams_1 is a two-component mixture with one rate pinned", {
   fit <- suppressWarnings(
     frm(bcm_exams1_formula(), family = mixture(binomial, binomial),
         data = d))
-  phi <- plogis(unname(fixef(fit)$mu1))
+  phi <- plogis(unname(fixef_by_dpar(fit)$mu1))
   # the second group knows something, and the first is at chance
   expect_gt(phi, 0.5)
   expect_lt(phi, 1)
   # the pinned pieces have no coefficients at all
-  expect_length(fixef(fit)$mu2, 0L)
-  expect_length(fixef(fit)$theta1, 0L)
+  expect_length(fixef_by_dpar(fit)$mu2, 0L)
+  expect_length(fixef_by_dpar(fit)$theta1, 0L)
   # and the latent probabilities split the class exactly where the book
   # splits it: the first five people are the guessers
   pr <- mixture_probs(fit)
@@ -114,7 +114,7 @@ test_that("Exams_1 matches its Stan program", {
     bcm_exams1_code(),
     data = list(p = nrow(d), k = as.integer(d$k), n = 40L),
     fit = fit,
-    pars = function(f) list(phi = plogis(unname(fixef(f)$mu1))),
+    pars = function(f) list(phi = plogis(unname(fixef_by_dpar(f)$mu1))),
     const = 0)
 })
 
@@ -141,7 +141,7 @@ test_that("Exams_2 matches its Stan program", {
     data = list(p = nrow(d), k = as.integer(d$k), n = 40L),
     fit = fit,
     pars = function(f) {
-      b <- unname(fixef(f)$mu1)
+      b <- unname(fixef_by_dpar(f)$mu1)
       list(mu = b, sigma = sqrt(unname(varcorr_matrices(f)[[1L]])[1, 1]),
            philogit = b + ranef(f)[[1L]][, 1L])
     },
@@ -203,7 +203,8 @@ test_that("Malingering_1 separates two response rates", {
     frm(bf(k | trials(n) ~ 1, theta1 ~ 0 + offset(zero)),
         family = mixture(binomial, binomial), data = d,
         start = bcm_mix_start(c(0.55, 0.95))))
-  psi <- sort(plogis(c(unname(fixef(fit)$mu1), unname(fixef(fit)$mu2))))
+  psi <- sort(plogis(c(unname(fixef_by_dpar(fit)$mu1),
+                       unname(fixef_by_dpar(fit)$mu2))))
   # the bona fide group answers nearly everything, the malingerers do
   # not; the book's order restriction psi[2] < psi[1] is a PRIOR, and
   # under maximum likelihood the two components are exchangeable, so
@@ -225,7 +226,8 @@ test_that("Malingering_1 matches its Stan program", {
     data = list(p = nrow(d), k = as.integer(d$k), n = 45L),
     fit = fit,
     pars = function(f) {
-      list(psi = plogis(c(unname(fixef(f)$mu1), unname(fixef(f)$mu2))))
+      list(psi = plogis(c(unname(fixef_by_dpar(f)$mu1),
+                          unname(fixef_by_dpar(f)$mu2))))
     },
     const = 0)
 })
@@ -270,7 +272,7 @@ bcm_betamix_code <- function() {
 }
 
 bcm_betamix_pars <- function(f) {
-  g <- function(nm) unname(fixef(f)[[nm]])
+  g <- function(nm) unname(fixef_by_dpar(f)[[nm]])
   list(w = plogis(g("theta1")),
        mu1 = plogis(g("mu1")), phi1 = exp(g("phi1")),
        mu2 = plogis(g("mu2")), phi2 = exp(g("phi2")))
@@ -282,7 +284,8 @@ test_that("Malingering_2 is a mixture of beta-binomials", {
     frm(bf(k | trials(n) ~ 1),
         family = mixture(beta_binomial, beta_binomial), data = d,
         start = bcm_mix_start(c(0.55, 0.95), phi = c(15, 15), theta = 0)))
-  mu <- sort(plogis(c(unname(fixef(fit)$mu1), unname(fixef(fit)$mu2))))
+  mu <- sort(plogis(c(unname(fixef_by_dpar(fit)$mu1),
+                      unname(fixef_by_dpar(fit)$mu2))))
   # the malingerers answer about half, the bona fide group nearly all
   expect_lt(mu[1], 0.7)
   expect_gt(mu[2], 0.9)
@@ -293,8 +296,8 @@ test_that("Malingering_2 is a mixture of beta-binomials", {
   # matters. Asserting that the two precisions are "finite" would say
   # nothing at all: fixef() returns log(phi), so such an assertion
   # passes at log(phi2) = 20.4 and cannot fail.
-  expect_lt(unname(fixef(fit)$phi1), log(100))
-  expect_gt(unname(fixef(fit)$phi2), log(1e6))
+  expect_lt(unname(fixef_by_dpar(fit)$phi1), log(100))
+  expect_gt(unname(fixef_by_dpar(fit)$phi2), log(1e6))
   # and this is what an infinite phi2 MEANS, from inside the grammar:
   # the same mixture with component 2 AT the binomial limit reaches the
   # same optimum with one parameter fewer
@@ -304,8 +307,8 @@ test_that("Malingering_2 is a mixture of beta-binomials", {
         start = bcm_mix_start(c(0.55, 0.95), phi = 15, theta = 0)))
   expect_equal(as.numeric(logLik(lim)), as.numeric(logLik(fit)),
                tolerance = 1e-4)
-  expect_equal(sort(plogis(c(unname(fixef(lim)$mu1),
-                             unname(fixef(lim)$mu2)))),
+  expect_equal(sort(plogis(c(unname(fixef_by_dpar(lim)$mu1),
+                             unname(fixef_by_dpar(lim)$mu2)))),
                mu, tolerance = 1e-4)
 })
 
@@ -348,7 +351,8 @@ test_that("Cheating classifies better than chance", {
         start = bcm_mix_start(c(0.72, 0.92), phi = c(30, 30), theta = 0)))
   pr <- mixture_probs(fit)
   # the higher-scoring component is the cheating one
-  hi <- which.max(c(unname(fixef(fit)$mu1), unname(fixef(fit)$mu2)))
+  hi <- which.max(c(unname(fixef_by_dpar(fit)$mu1),
+                    unname(fixef_by_dpar(fit)$mu2)))
   called <- as.integer(pr[, hi] > 0.5)
   acc <- mean(called == d$truth)
   # the book reports about 60 percent correct; anything at chance would
@@ -420,7 +424,7 @@ test_that("TwentyQuestions is a product of two rates", {
   expect_lt(p[8], min(p[-8]))
   expect_true(all(q >= 0 & q <= 1))
   # the fitted probability of every cell is the product
-  expect_equal(unname(fitted(fit)),
+  expect_equal(unname(fitted(fit)[, "Estimate"]),
                p[as.integer(d$person)] * q[as.integer(d$question)],
                tolerance = 1e-6)
 })
@@ -481,8 +485,8 @@ test_that("TwoCountryQuiz recovers the two blocks", {
   skip_unless_bcm("marginal.R")
   d <- bcm_tcq_data()
   fit <- frm(k ~ 1, family = bcm_two_country(person, question), data = d)
-  a <- plogis(unname(fixef(fit)$alpha))
-  b <- plogis(unname(fixef(fit)$beta))
+  a <- plogis(unname(fixef_by_dpar(fit)$alpha))
+  b <- plogis(unname(fixef_by_dpar(fit)$beta))
   # own-country questions are answered, other-country ones are not
   expect_gt(a, 0.8)
   expect_lt(b, 0.2)

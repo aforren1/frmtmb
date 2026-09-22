@@ -77,7 +77,7 @@ test_that("lca() fits the measurement model and reports its parts", {
 
   # the gating dpars ARE the model's fixed effects; the item profiles
   # are family extra parameters and take no linear predictor
-  expect_named(fixef(fit), "theta1")
+  expect_named(fixef_by_dpar(fit), "theta1")
   # one extra parameter vector per ITEM, K * (C_j - 1) long. Per item
   # rather than one flat vector is what lets every consumer read the
   # item structure back off the fit instead of caching it.
@@ -135,7 +135,7 @@ test_that("a covariate on the formula gates class membership", {
   dd$Y <- Y
 
   fit <- frm(bf(Y ~ x), family = lca(K = 2), data = dd)
-  cf <- fixef(fit)$theta1
+  cf <- fixef_by_dpar(fit)$theta1
   expect_named(cf, c("(Intercept)", "x"))
   # theta1 is class 1 against class 2; the simulated slope puts high x
   # in class 2, so the fitted slope is negative under that labeling
@@ -244,7 +244,7 @@ test_that("lca() reproduces poLCA at the realistic scale (K = 4, n = 2000)", {
 
   # the gating coefficients, both re-referenced to poLCA's class 1
   Bf <- rbind(matrix(unlist(lapply(seq_len(K - 1L), function(k) {
-    unname(fixef(fit)[[paste0("theta", k)]])
+    unname(fixef_by_dpar(fit)[[paste0("theta", k)]])
   })), nrow = K - 1L, byrow = TRUE), 0)[pm, , drop = FALSE]
   Bf <- sweep(Bf, 2L, Bf[1L, ], "-")
   expect_lt(max(abs(Bf - rbind(0, t(pl$coeff)))) / max(pl$coeff.se),
@@ -321,7 +321,7 @@ test_that("lca() reproduces poLCA's latent class regression", {
   # gating coefficients: frmtmb's theta1 is class 1 against class K,
   # poLCA's coeff is its class 2 against its class 1, so the two agree
   # up to the label permutation (a sign flip when K = 2)
-  cf <- unname(fixef(fit)$theta1)
+  cf <- unname(fixef_by_dpar(fit)$theta1)
   sgn <- if (identical(al$perm, 1:2)) -1 else 1
   expect_lt(max(abs(sgn * cf - as.numeric(pl$coeff))), 1e-4)
 })
@@ -554,7 +554,7 @@ test_that("lca() refuses what it does not model", {
 
   fit <- frm(bf(Y ~ 1), family = lca(K = 2), data = s$dd)
   expect_error(fitted(fit), "no fitted mean")
-  expect_error(stats::predict(fit, type = "response"), "no fitted mean")
+  expect_error(frm_linpred(fit, type = "response"), "no fitted mean")
   expect_error(residuals(fit), "no fitted mean")
   expect_error(residuals(fit, type = "osa"), "whole item response")
   expect_error(lca_probs(1), "fitted model")
@@ -570,10 +570,10 @@ test_that("what an lca() fit does support keeps working", {
   s <- sim_lca_data(n = 300)
   fit <- frm(bf(Y ~ x), family = lca(K = 2), data = s$dd)
 
-  # predict() defaults to the gating predictor on the link scale
-  p <- stats::predict(fit)
+  # frm_linpred() defaults to the gating predictor on the link scale
+  p <- frm_linpred(fit)
   expect_length(p, nrow(s$dd))
-  expect_equal(unname(p), unname(stats::predict(fit, dpar = "theta1")))
+  expect_equal(unname(p), unname(frm_linpred(fit, dpar = "theta1")))
 
   ci <- stats::confint(fit)
   expect_true(all(c("theta1_x", "pi1_1") %in% rownames(ci)))

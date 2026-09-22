@@ -73,7 +73,7 @@ test_that("spatial exp/gau/mat covstructs work over num_factor(x, y)", {
   fx <- frm(bf(y ~ exp(as.numeric(pos) / 25) + (1 | grp)) + gaussian(),
             data = sp,
             control = frmtmb_control(check_nlev_1 = "ignore"))
-  expect_length(fixef(fx)$mu, 2L)
+  expect_length(fixef_by_dpar(fx)$mu, 2L)
 })
 
 test_that("sratio/cratio/acat match direct ML and collapse at K = 2", {
@@ -142,12 +142,12 @@ test_that("mo() matches direct ML and predicts monotonically", {
                      control = list(reltol = 1e-13, maxit = 5000))
   expect_lt(abs(as.numeric(logLik(fit)) + op$value), 1e-6)
 
-  p_new <- predict(fit, newdata = data.frame(x = 0, inc = 0:3))
+  p_new <- frm_linpred(fit, newdata = data.frame(x = 0, inc = 0:3))
   expect_true(all(diff(p_new) >= -1e-8))
-  expect_equal(unname(fitted(fit)),
-               unname(predict(fit, newdata = dd, type = "response")),
+  expect_equal(unname(fitted(fit)[, "Estimate"]),
+               unname(frm_linpred(fit, newdata = dd, type = "response")),
                tolerance = 1e-10)
-  ps <- predict(fit, newdata = data.frame(x = 0, inc = 0:3),
+  ps <- frm_linpred(fit, newdata = data.frame(x = 0, inc = 0:3),
                 se.fit = TRUE)
   expect_true(all(is.finite(ps$se.fit)))
   # ordered factors work and interactions are refused
@@ -156,7 +156,7 @@ test_that("mo() matches direct ML and predicts monotonically", {
   expect_loglik_equal(ff, fit, tol = 1e-6)
   # interactions work since v0.18, each with its own simplex
   fint <- frm(bf(y ~ mo(inc) * x) + gaussian(), data = dd)
-  expect_true(all(c("moinc", "moinc:x") %in% names(fixef(fint)$mu)))
+  expect_true(all(c("moinc", "moinc:x") %in% names(fixef_by_dpar(fint)$mu)))
   expect_gte(as.numeric(logLik(fint)), as.numeric(logLik(fit)) - 1e-6)
 })
 
@@ -220,7 +220,7 @@ test_that("vint()/vreal() reach a custom family", {
   fv <- frm(bf(y | vint(size) ~ x) + fam, data = dd)
   fr <- frm(bf(y | trials(size) ~ x) + binomial(), data = dd)
   expect_loglik_equal(fv, fr, tol = 1e-6)
-  expect_vector_equal(fixef(fv)$mu, fixef(fr)$mu, tol = 1e-5)
+  expect_vector_equal(fixef_by_dpar(fv)$mu, fixef_by_dpar(fr)$mu, tol = 1e-5)
   expect_error(frm(bf(y | vint(x) ~ 1) + fam, data = dd), "integers")
 })
 
@@ -253,7 +253,8 @@ test_that("frm_multiple pools by Rubin's rules", {
                      data = list(imps[[1]], imps[[1]]))
   f0 <- frm(bf(y ~ x) + gaussian(), data = imps[[1]])
   expect_vector_equal(m0$pooled$estimate,
-                      c(fixef(f0)$mu, fixef(f0)$sigma), tol = 1e-6)
+                      c(fixef_by_dpar(f0)$mu,
+                        fixef_by_dpar(f0)$sigma), tol = 1e-6)
   expect_output(print(mfit), "Rubin")
 })
 
@@ -316,7 +317,7 @@ test_that("wiener diffusion as a custom family (vint decision)", {
                      control = list(reltol = 1e-12, maxit = 5000))
   expect_lt(abs(as.numeric(logLik(fit)) + op$value), 1e-4)
   # parameters near the simulation truth (Euler + n = 150: loose)
-  expect_lt(abs(fixef(fit)$mu[[1]] - 1), 0.6)
-  expect_lt(abs(exp(fixef(fit)$bs[[1]]) - 1.5), 0.4)
+  expect_lt(abs(fixef_by_dpar(fit)$mu[[1]] - 1), 0.6)
+  expect_lt(abs(exp(fixef_by_dpar(fit)$bs[[1]]) - 1.5), 0.4)
 })
 

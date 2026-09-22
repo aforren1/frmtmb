@@ -1,0 +1,56 @@
+brms-shapes-draws: frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+WW...........................frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  b                  (flat), as brms leaves slopes
+  no defaults for this family's thresholds (brms priors them as its Intercept class) - see ?frm_sample
+WW....frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+WW1
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+1. fitted() on draws summarizes posterior_epred() ('test-brms-shapes-draws.R:28:3') - Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+
+2. fitted() on draws summarizes posterior_epred() ('test-brms-shapes-draws.R:28:3') - Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+
+3. fixef() on ordinal draws has the thresholds, in brms's order ('test-brms-shapes-draws.R:115:3') - Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+
+4. fixef() on ordinal draws has the thresholds, in brms's order ('test-brms-shapes-draws.R:115:3') - Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+
+5. allow_new_levels on draws refuses only an unseen level ('test-brms-shapes-draws.R:135:3') - Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+
+6. allow_new_levels on draws refuses only an unseen level ('test-brms-shapes-draws.R:135:3') - Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Error ('test-brms-shapes-draws.R:143:7'): allow_new_levels on draws refuse
+<frmtmb_sample_error/frmtmb_error/error/condition>
+Error: posterior_predict() on draws cannot predict a grouping level the fit did not see: brms draws that level's effect from each posterior draw or resamples the levels it saw, and neither is implemented for frmtmb_draws yet, so `allow_new_levels` is refused rather than ignored. predict(fit, allow_new_levels = TRUE) on the maximum-likelihood fit draws it, and re_formula = NA predicts at the population level
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_equal(...) at test-brms-shapes-draws.R:146:5
+ 2. │ └─testthat::quasi_label(enquo(object), label)
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. └─frmtmb.sample (local) run(allow_new_levels = FALSE)
+ 5.   ├─base::do.call(fn, list(ds, ...)) at test-brms-shapes-draws.R:143:7
+ 6.   ├─frmtmb.sample::posterior_predict(`<frmtmb_d>`, allow_new_levels = FALSE)
+ 7.   └─frmtmb.sample:::posterior_predict.frmtmb_draws(...)
+ 8.     └─frmtmb.sample:::draws_refuse_new_levels(list(...), "posterior_predict()")
+ 9.       └─frmtmb::frm_stop(...)
+
+══ DONE ════════════════════════════════════════════════════════════════════════

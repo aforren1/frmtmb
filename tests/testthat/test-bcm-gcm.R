@@ -114,7 +114,7 @@ test_that("GCM_1 estimates a gradient and an attention weight", {
   expect_gt(ww, 0)
   expect_lt(ww, 1)
   # the fitted category-A counts track the observed ones
-  expect_gt(stats::cor(fitted(fit), d$y), 0.95)
+  expect_gt(stats::cor(fitted(fit)[, "Estimate"], d$y), 0.95)
 })
 
 test_that("GCM_1 matches its Stan program", {
@@ -167,8 +167,8 @@ test_that("GCM_2 gives every subject a gradient and a weight", {
   d <- bcm_gcm2_data()
   fit <- frm(bf(y | trials(t) ~ 0 + subj, w ~ 0 + subj),
              family = bcm_gcm_family(), data = d)
-  expect_length(fixef(fit)[["c"]], 10L)
-  expect_length(fixef(fit)[["w"]], 10L)
+  expect_length(fixef_by_dpar(fit)[["c"]], 10L)
+  expect_length(fixef_by_dpar(fit)[["w"]], 10L)
   # the case study's point is that subjects differ in BOTH, so neither
   # set of estimates collapses to a common value
   expect_gt(stats::sd(exp(frm_b(fit, "c"))), 0)

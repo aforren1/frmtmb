@@ -10,13 +10,87 @@
   page is `?log_lik.frmtmb_draws`; `?frmtmb::log_lik` documents the
   generic. Requires the frmtmb release that exports `log_lik()`.
 
-* `posterior_epred()` and `posterior_predict()` on draws take
-  `allow_new_levels` and pass it to `predict()`, which is what brms does
-  with it. They used to swallow it in `...`, and the caller then met a
-  refusal whose remedy named that same argument. Every other name in
-  `...` is now refused rather than ignored, as it already is on the
-  other methods here.
+* `posterior_epred()` and `posterior_predict()` on draws refuse every
+  name in `...` they do not read, where they used to ignore it, as the
+  other methods here already do. The new-level arguments pass through
+  to the refusal described below.
 
+* Requires the frmtmb development version that exports `frm_linpred()`,
+  `fixef_by_dpar()` and the shape helpers `brms_summary_matrix()`,
+  `brms_summary_array()`, `brms_summarize_draws()`,
+  `brms_prob_cols()`, `fam_is_category_valued()` and
+  `predict_category_props()`; the `frmtmb (>= 0.60.0)` floor must move
+  to it.
+
+* **`fitted()`, `predict()` and `residuals()` on draws exist** (item
+  2.6f). They are brms's three summarizing methods, each a summary of
+  the draws method beside it: `posterior_epred()`,
+  `posterior_predict()` and `predictive_error()`. Before this there
+  was no method at all, so `fitted(ds)` reached
+  `stats::fitted.default()`, read `ds$fitted.values` and returned
+  `NULL`, a wrong answer with nothing said. `summary = FALSE` gives
+  the draws, `robust` and `probs` are brms's, and `predict()` on an
+  ordinal or categorical response returns brms's `P(Y = k)`
+  proportions.
+
+* **BREAKING: `nsamples()`, `posterior_samples()` and `parnames()`
+  answer instead of refusing.** All three were refused as "the
+  deprecated brms spelling". brms keeps all three live with a
+  deprecation warning, and the refusal stopped a ported script dead
+  where brms's warning does not. Each now does what brms's does and
+  warns as brms warns:
+
+  - `posterior_samples(x)` is `as.data.frame(x)`, with brms's `pars`
+    (a regular expression unless `fixed = TRUE`), `add_chain`,
+    `subset`, `as.matrix` and `as.array`;
+  - `nsamples(x)` is `ndraws(x)`, with brms's `subset`;
+  - `parnames(x)` is `variables(x)`.
+
+  `nsamples(incl_warmup = TRUE)` is still refused: `frm_sample()`
+  discards the warmup rather than storing it, so there is nothing to
+  count.
+
+* **`fixef()` on an ordinal draws object reports the thresholds**,
+  `Intercept[1]`, `Intercept[2]`, then the coefficients and any `cs()`
+  terms, in brms's order and on the model's own scale, which is what
+  the fit's `fixef()` reports. It reported the slopes alone, because
+  the sampler stores the thresholds as `tau_raw`.
+
+* `posterior_epred()`, `posterior_linpred()`, `posterior_predict()`,
+  `fitted()`, `predict()` and `residuals()` on draws refuse
+  `allow_new_levels = TRUE` when `newdata` holds a grouping level the
+  fit did not see, with a message that names the function called and
+  says why. That case used to fail in the design builder with "Use
+  allow_new_levels = TRUE", which the caller had just done. Predicting
+  an unseen level from draws is not implemented;
+  `predict(fit, allow_new_levels = TRUE)` on the maximum-likelihood fit
+  does it. Every other use answers as before: `allow_new_levels =
+  FALSE`, brms's default, and `TRUE` with no `newdata` or with levels
+  the fit saw.
+
+* Needs the frmtmb development version that exports
+  `brms_fixef_rows()` as extension API.
+
+* **BREAKING: `hypothesis()` on draws no longer returns an object of
+  class `brmshypothesis`.** The class is `"frmtmb_hypothesis"` alone;
+  the shape and every element are unchanged, and what stops working is
+  `is(x, "brmshypothesis")` and `inherits(x, "brmshypothesis")` in a
+  ported script. frmtmb owns `print()` and `plot()` for its own class,
+  so neither changes.
+
+* **`point_estimate` and `ndraws_point_estimate` are honored** by
+  `posterior_epred()`, `posterior_predict()`, `posterior_linpred()`
+  and `log_lik()`. They were accepted and ignored, so
+  `posterior_epred(ds, point_estimate = "median",
+  ndraws_point_estimate = 2)` returned all 25 draws where brms returns
+  2. As in brms it is a PARAMETER-space operation: the draws are
+  collapsed to their mean or median first and the method runs once at
+  that one vector, repeated `ndraws_point_estimate` times.
+
+* `posterior_epred()`, `posterior_linpred()` and
+  `posterior_predict()` build each draw's prediction with
+  `frmtmb::frm_linpred()` rather than `predict()`, which is brms's
+  predictive summary in frmtmb's development version.
 
 # frmtmb.sample 0.8.0
 

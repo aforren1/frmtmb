@@ -1,3 +1,14 @@
+# frmtmb.coupling (development version)
+
+* `frm_coherence()` and `frm_phase()` read `frmtmb::frm_linpred()`
+  rather than `predict()`. frmtmb's `predict()` is brms's predictive
+  summary in the development version and has no `type` or `se.fit`;
+  `frm_linpred()` is the old function under a name that says what it
+  returns. Nothing in this package's own surface changes: the interval
+  is still `type = "link", se.fit = TRUE` on the `coh` dpar, pushed
+  through `plogis`. The `frmtmb (>= 0.60.0)` floor must move to the
+  release that exports `frm_linpred()`.
+
 # frmtmb.coupling 0.4.0
 
 * Requires frmtmb 0.60.0, for `frm_stop()` and the other condition helpers.

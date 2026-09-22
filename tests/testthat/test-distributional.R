@@ -15,10 +15,11 @@ test_that("gaussian sigma ~ x matches glmmTMB dispformula", {
   fit <- frm(bf(y ~ x, sigma ~ z) + gaussian(), data = dd)
   ref <- glmmTMB::glmmTMB(y ~ x, dispformula = ~z, data = dd)
   expect_loglik_equal(fit, ref, tol = 1e-6)
-  expect_vector_equal(fixef(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
+  expect_vector_equal(fixef_by_dpar(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
                       tol = 1e-4)
   # glmmTMB's gaussian dispformula models log(sd): coefficients match 1:1
-  expect_vector_equal(fixef(fit)$sigma, unname(glmmTMB::fixef(ref)$disp),
+  expect_vector_equal(fixef_by_dpar(fit)$sigma,
+                      unname(glmmTMB::fixef(ref)$disp),
                       tol = 1e-4)
 })
 
@@ -36,9 +37,10 @@ test_that("negbinomial shape ~ x matches glmmTMB nbinom2 dispformula", {
   ref <- glmmTMB::glmmTMB(y ~ x, dispformula = ~z, data = dd,
                           family = glmmTMB::nbinom2)
   expect_loglik_equal(fit, ref, tol = 1e-6)
-  expect_vector_equal(fixef(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
+  expect_vector_equal(fixef_by_dpar(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
                       tol = 1e-4)
-  expect_vector_equal(fixef(fit)$shape, unname(glmmTMB::fixef(ref)$disp),
+  expect_vector_equal(fixef_by_dpar(fit)$shape,
+                      unname(glmmTMB::fixef(ref)$disp),
                       tol = 1e-3)
 })
 
@@ -71,8 +73,9 @@ test_that("random effects in sigma match a hand-rolled RTMB objective", {
 
   expect_lt(abs(as.numeric(logLik(fit)) - (-opt$objective)), 1e-6)
   est <- opt$par
-  expect_vector_equal(fixef(fit)$mu, est[names(est) == "bm"], tol = 1e-4)
-  expect_vector_equal(fixef(fit)$sigma, est[names(est) == "bs"],
+  expect_vector_equal(fixef_by_dpar(fit)$mu, est[names(est) == "bm"],
+                      tol = 1e-4)
+  expect_vector_equal(fixef_by_dpar(fit)$sigma, est[names(est) == "bs"],
                       tol = 1e-4)
   # dispersion RE standard deviation
   vc <- varcorr_matrices(fit)
@@ -85,8 +88,8 @@ test_that("constant dpars are fixed via map", {
   fit <- frm(bf(y ~ x, sigma = 2) + gaussian(), data = dd)
   # sigma must not be estimated
   expect_false("sigma_(Intercept)" %in% outer_par_names(fit))
-  expect_identical(unname(fixef(fit)$sigma), log(2))
-  expect_equal(unique(predict(fit, dpar = "sigma", type = "response")), 2)
+  expect_identical(unname(fixef_by_dpar(fit)$sigma), log(2))
+  expect_equal(unique(frm_linpred(fit, dpar = "sigma", type = "response")), 2)
   # loglik equals a direct fixed-sigma ML fit
   nll <- function(p) -sum(dnorm(dd$y, p[1] + p[2] * dd$x, 2, log = TRUE))
   o <- nlminb(c(0, 0), nll)

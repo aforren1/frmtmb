@@ -131,7 +131,7 @@ of two ways.
 \strong{Without \code{ndt_group()}, \code{ndt} is a TIME}, on a logit scaled onto
 \verb{(0, ub)} with \code{ub} the fastest response in the whole data set, or
 \code{max_ndt} when you give one. This is the parameterization the family
-has always had. \code{predict(dpar = "ndt", type = "response")} reports
+has always had. \code{frm_linpred(dpar = "ndt", type = "response")} reports
 seconds, a \code{prior(class = "ndt")} is a density on those seconds, and
 a \code{bf(ndt = 0.2)} constant is 0.2 seconds.
 
@@ -147,7 +147,7 @@ bound is the fastest response of the row's group. Write
 and each subject's non-decision time is bounded by its own fastest
 response. That is what a random effect on \code{ndt} needs; the next
 section is what one global bound does to it. The price is that \code{ndt}
-is on a different scale: \code{predict(dpar = "ndt", type = "response")}
+is on a different scale: \code{frm_linpred(dpar = "ndt", type = "response")}
 reports the fraction, and \code{\link[=ndt_time]{ndt_time()}} reports the time for either
 parameterization. A \code{prior(class = "ndt")} and a \code{bf(ndt = )}
 constant are fractions under a grouping too.

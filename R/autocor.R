@@ -945,7 +945,7 @@ autocor_trans_rows <- function(fit) {
 #' or `unstr()` term of a fit, over the model's time levels. The
 #' residual covariance of a group is `D R D` restricted to the time
 #' points that group has, with `D` the diagonal matrix of that group's
-#' `sigma` values, so `R` plus [sigma()] (or `predict(dpar = "sigma")`)
+#' `sigma` values, so `R` plus [sigma()] (or `frm_linpred(dpar = "sigma")`)
 #' describes the whole residual structure.
 #'
 #' @param fit A `frmtmb_fit`.

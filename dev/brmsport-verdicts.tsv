@@ -92,31 +92,31 @@ brmsfit-methods:282	frmtmb	divergence	family(fit) is a frmtmb_family, not a brms
 brmsfit-methods:283	frmtmb	defect	family() refuses brms's resp argument by name and says to index the returned list instead
 brmsfit-methods:284	frmtmb	defect	print() of a family refuses brms's links argument by name
 brmsfit-methods:285	frmtmb	defect	print(family(fit5)) reads 'Family: mixture(gaussian, exponential)', not brms's 'Mixture' then one family per component (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:292	frmtmb	defect	fitted() returns a vector, not brms's four-column summary matrix Estimate, Est.Error, Q2.5, Q97.5; row 2.6d says brms's mean 'already matches', which is true of the value and not of the shape (dev/brmsport-probe4.R) (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:293	frmtmb	defect	fitted() returns a vector with no Estimate, Est.Error, Q2.5, Q97.5 columns (user decision, 2026-09-17, rule 3; item 2.6f)
+brmsfit-methods:292	frmtmb	pass	
+brmsfit-methods:293	frmtmb	pass	
 brmsfit-methods:301	frmtmb	defect	newdata carrying the numeric codes 0 and 1 of the factor Trt dies with R's 'contrasts apply only to factors'; brms matches them to the levels (dev/brmsport-probe4.R)
 brmsfit-methods:305	frmtmb	defect	fitted() refuses brms's allow_new_levels by name, though predict() takes it
-brmsfit-methods:314	frmtmb	defect	fitted() refuses ndraws, and past the refusal it returns a vector where brms returns the 4-column summary (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:317	frmtmb	defect	fitted() refuses ndraws, and past the refusal it returns a vector where brms returns the 4-column summary (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:325	frmtmb	defect	fitted(dpar = 'sigma') returns a vector, not the four-column summary (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:326	frmtmb	pass	
-brmsfit-methods:328	frmtmb	defect	fitted(scale = 'linear') returns a vector, not the four-column summary (user decision, 2026-09-17, rule 3; item 2.6f)
+brmsfit-methods:314	frmtmb	defect	fitted() is brms's four-column summary now (item 2.6f) and still refuses ndraws BY NAME: a maximum-likelihood fit has no draws to thin. The setup line dies on that refusal, so the assertion reads a stale object
+brmsfit-methods:317	frmtmb	defect	fitted() is brms's four-column summary now (item 2.6f) and still refuses ndraws BY NAME: a maximum-likelihood fit has no draws to thin. The setup line dies on that refusal, so the assertion reads a stale object
+brmsfit-methods:325	frmtmb	pass	
+brmsfit-methods:326	frmtmb	cannot transfer	fitted(fit1, dpar = 'sigma') is brms's four-column summary now, and FIXTURE 1 DOES NOT CONVERGE (nlminb code 1, NaN standard errors), so the Est.Error and the two Q columns are NA and all(fi > 0) is NA rather than TRUE. The Estimate column is positive, which is what the assertion is about; brms's fixture converged. A converged stand-in would transfer it (dev/brmsport-findings.md section 3)
+brmsfit-methods:328	frmtmb	pass	
 brmsfit-methods:329	frmtmb	pass	
 brmsfit-methods:330	frmtmb	pass	frmtmb's own words: Unknown dpar: 'inv' | brms: Invalid argument 'dpar'
-brmsfit-methods:334	frmtmb	defect	fitted(fit2) returns a vector, not the four-column summary (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:337	frmtmb	defect	fitted() refuses allow_new_levels by name
-brmsfit-methods:339	frmtmb	defect	fitted(dpar = 'shape') returns a vector, not the four-column summary (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:340	frmtmb	defect	fi[1, ] fails on the vector fitted() returns (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:342	frmtmb	defect	fitted() refuses brms's nlpar by name and says to use dpar
+brmsfit-methods:334	frmtmb	pass	
+brmsfit-methods:337	frmtmb	pass	
+brmsfit-methods:339	frmtmb	pass	
+brmsfit-methods:340	frmtmb	pass	WEAKER than brms wrote it: fitted() is brms's n x 4 matrix now, so fi[1, ] and fi[2, ] each carry Estimate plus three NA cells on this non-converging fixture, and expect_equal compares c(19.122, NA, NA, NA) with itself. Before the shapes item this compared two numbers and errored on fi[1, ]. It moved from defect to pass on that weakening, not on a fix (dev/reviews/20260918-shapes.md, m7).
+brmsfit-methods:342	frmtmb	pass	
 brmsfit-methods:345	frmtmb	defect	dim(fitted(fit1, newdata = fit1$data[1:10, ])) is NULL: fitted() returns a vector where brms returns a 10 x 4 summary matrix. Rule 3, item 2.6f; :348 is the same assertion without newdata. Was fit-data, and the fit$data blocker is gone (dev/adefects-findings.md D4)
-brmsfit-methods:348	frmtmb	defect	fitted() on the ordinal fit4 returns the 40 x 4 category probabilities, not brms's 40 x 4 x 4 summary array (user decision, 2026-09-17, rule 3; item 2.6f)
+brmsfit-methods:348	frmtmb	pass	
 brmsfit-methods:350	frmtmb	defect	dim(fitted(fit4, newdata = fit4$data[1, ])) is 1 x 4 where brms gives 1 x 4 x 4: an ordinal fitted() returns the category probabilities, not brms's draws summary per category. Rule 3, item 2.6f; :348 is the same shape without newdata. Was fit-data
 brmsfit-methods:352	frmtmb	defect	dim(fitted(fit4, newdata = fit4$data[1, ], scale = ...)) is NULL where brms gives 1 x 4 x 3. Rule 3, item 2.6f. Was fit-data
-brmsfit-methods:355	frmtmb	defect	fitted(fit5) returns a vector, not the four-column summary (user decision, 2026-09-17, rule 3; item 2.6f)
+brmsfit-methods:355	frmtmb	pass	
 brmsfit-methods:358	frmtmb	defect	fitted() exists and refuses the multivariate fit6 as 'not supported yet'; brms answers (user decision, 2026-09-17, rule 3; item 2.6f)
 brmsfit-methods:359	frmtmb	defect	fitted() exists and refuses the multivariate fit6 as 'not supported yet'; brms answers (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:364	frmtmb	defect	fixef() returns a named list of vectors per dpar with frmtmb's '(Intercept)' names (glmmTMB's shape), not brms's summary matrix with rows Intercept, sigma_Intercept, ... (dev/brmsport-probe4.R) (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:369	frmtmb	defect	fixef() refuses brms's pars by name and says to subset the result
+brmsfit-methods:364	frmtmb	pass	
+brmsfit-methods:369	frmtmb	pass	
 brmsfit-methods:373	frmtmb	divergence	is.brmsformula(formula(fit1)): brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:389	frmtmb	pass	
 brmsfit-methods:390	frmtmb	pass	
@@ -139,12 +139,12 @@ brmsfit-methods:567	frmtmb	pass
 brmsfit-methods:578	frmtmb.sample	pass	
 brmsfit-methods:579	frmtmb.sample	pass	
 brmsfit-methods:580	frmtmb.sample	pass	
-brmsfit-methods:584	frmtmb	defect	ngrps() returns lme4's named integer vector, not brms's named list (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:585	frmtmb	defect	ngrps() returns lme4's named integer vector, not brms's named list (user decision, 2026-09-17, rule 3; item 2.6f)
+brmsfit-methods:584	frmtmb	pass	
+brmsfit-methods:585	frmtmb	pass	
 brmsfit-methods:589	frmtmb	pass	
-brmsfit-methods:593	frmtmb.sample	defect	nsamples() is refused as a deprecated spelling (frmtmb NEWS, ?frmtmb-draws-refusals); brms keeps it live, and that refusal predates the user's 2026-09-15 rule that frmtmb.sample matches brms
-brmsfit-methods:594	frmtmb.sample	defect	nsamples() is refused as a deprecated spelling (see brmsfit-methods:593)
-brmsfit-methods:595	frmtmb.sample	defect	nsamples() is refused as a deprecated spelling; incl_warmup would also meet D6
+brmsfit-methods:593	frmtmb.sample	pass	
+brmsfit-methods:594	frmtmb.sample	pass	
+brmsfit-methods:595	frmtmb.sample	defect	nsamples() answers now, as brms's does, but incl_warmup = TRUE is refused: frm_sample() discards the warmup rather than storing it, so there is nothing to count. The gap is dev/brms-api-diff.md (c), 'Blocked, not small'
 brmsfit-methods:599	frmtmb.sample	pass	
 brmsfit-methods:604	frmtmb	cannot transfer	brms's plot() of a fit draws posterior trace and density plots; an ML fit's plot() is a diagnostics plot and takes neither plot nor variable
 brmsfit-methods:605	frmtmb	cannot transfer	brms's plot() of a fit plots posterior draws (see brmsfit-methods:604)
@@ -154,9 +154,9 @@ brmsfit-methods:619	frmtmb.sample	cannot transfer	frmtmb.sample has no posterior
 brmsfit-methods:620	frmtmb.sample	cannot transfer	frmtmb.sample has no posterior_average()
 brmsfit-methods:627	frmtmb.sample	cannot transfer	frmtmb.sample has no posterior_average(), and brms wraps the call in brms:::SW
 brmsfit-methods:628	frmtmb.sample	cannot transfer	frmtmb.sample has no posterior_average()
-brmsfit-methods:633	frmtmb.sample	defect	posterior_samples() is refused as a deprecated spelling (see brmsfit-methods:593)
-brmsfit-methods:634	frmtmb.sample	defect	posterior_samples() is refused as a deprecated spelling
-brmsfit-methods:635	frmtmb.sample	defect	posterior_samples() is refused as a deprecated spelling
+brmsfit-methods:633	frmtmb.sample	pass	
+brmsfit-methods:634	frmtmb.sample	pass	
+brmsfit-methods:635	frmtmb.sample	defect	posterior_samples(pars = '^b_') answers now and returns the right SET of columns; their ORDER is frmtmb's variables() order, which lists each predictor's coefficients together, where brms lists every intercept first. fixef(), vcov() and summary()$fixed take brms's order at item 2.6f; variables() keeps its own, and reordering it is a separate decision (dev/shapes-findings.md section 8)
 brmsfit-methods:641	frmtmb.sample	cannot transfer	posterior_samples() on fit1$fit, the stanfit (D10)
 brmsfit-methods:646	frmtmb.sample	pass	
 brmsfit-methods:650	frmtmb.sample	pass	
@@ -180,27 +180,27 @@ brmsfit-methods:701	frmtmb	pass
 brmsfit-methods:702	frmtmb	pass	
 brmsfit-methods:703	frmtmb	defect	pp_check(type = 'error_binned') on the ordinal fit4 returns a plot of category-code errors; brms refuses because predictive errors are not defined for ordinal models (dev/brmsport-probe4.R)
 brmsfit-methods:708	frmtmb.sample	pass	
-brmsfit-methods:713	frmtmb.sample	defect	posterior_epred() ignores brms's point_estimate = 'median' and ndraws_point_estimate = 2 and returns all 25 draws, 25 x 40, where brms returns 2 x 40. Ignoring an UNKNOWN argument is brms parity: brms also returns 25 x 40 for not_an_argument = 2 (dev/brmsport-defects.R S1)
-brmsfit-methods:714	frmtmb.sample	defect	as brmsfit-methods:713: the point estimate brms repeats is never computed, so the rows differ
+brmsfit-methods:713	frmtmb.sample	pass	
+brmsfit-methods:714	frmtmb.sample	pass	
 brmsfit-methods:718	frmtmb.sample	pass	
 brmsfit-methods:719	frmtmb.sample	pass	frmtmb's own words: needs a mixture[(][)] family fit | brms: Method 'pp_mixture' can only be applied to mixture models
-brmsfit-methods:726	frmtmb	pending 2.6d	predict() is the linear predictor today; brms's four-column predictive summary is item 2.6d
-brmsfit-methods:727	frmtmb	pending 2.6d	predict() has no Estimate, Est.Error, Q2.5, Q97.5 columns until item 2.6d
-brmsfit-methods:729	frmtmb	pending 2.6d	predict(ndraws =, probs =) belongs to the predictive summary of item 2.6d
+brmsfit-methods:726	frmtmb	pass	
+brmsfit-methods:727	frmtmb	pass	
+brmsfit-methods:729	frmtmb	pass	
 brmsfit-methods:737	frmtmb	defect	newdata with the numeric codes of the factor Trt dies with 'contrasts apply only to factors' (as brmsfit-methods:301); the shape after it is item 2.6d
 brmsfit-methods:741	frmtmb	defect	newdata with the numeric codes of the factor Trt dies with 'contrasts apply only to factors' (as brmsfit-methods:301)
-brmsfit-methods:747	frmtmb	pending 2.6d	predict(ndraws =) on NA responses belongs to the predictive summary of item 2.6d
-brmsfit-methods:750	frmtmb	pending 2.6d	predict() shape, item 2.6d
-brmsfit-methods:753	frmtmb	pending 2.6d	predict() shape, item 2.6d
-brmsfit-methods:758	frmtmb	pending 2.6d	predict() shape, item 2.6d
-brmsfit-methods:761	frmtmb	pending 2.6d	predict() shape on an ordinal fit, item 2.6d
-brmsfit-methods:762	frmtmb	pending 2.6d	predict() columns P(Y = k) on an ordinal fit, item 2.6d
+brmsfit-methods:747	frmtmb	defect	predict(ndraws =) is answered now - the draws are SIMULATED, so ndraws sets how many - and the setup still dies earlier, on fit1$data, which partial-matches fit1$data2 (the fit has no data element)
+brmsfit-methods:750	frmtmb	pass	
+brmsfit-methods:753	frmtmb	pass	
+brmsfit-methods:758	frmtmb	pass	
+brmsfit-methods:761	frmtmb	pass	
+brmsfit-methods:762	frmtmb	pass	
 brmsfit-methods:764	frmtmb	pending 2.6d	dim(predict(fit4, newdata = fit4$data[1, ])) is NULL where brms gives 1 x 4: predict() returns a vector, which item 2.6d is about; :761, :762 and :767 are the same assertion on other rows. Was fit-data
-brmsfit-methods:767	frmtmb	pending 2.6d	predict() shape on a mixture, item 2.6d
-brmsfit-methods:772	frmtmb	pending 2.6d	predict(sample_new_levels =) belongs to the predictive summary of item 2.6d
-brmsfit-methods:775	frmtmb	pending 2.6d	predict(sample_new_levels =) belongs to the predictive summary of item 2.6d
+brmsfit-methods:767	frmtmb	pass	
+brmsfit-methods:772	frmtmb	defect	predict() honors sample_new_levels = "gaussian", which is what it does, and refuses "old_levels" BY NAME: that value resamples the POSTERIOR draws of the levels the fit saw, and a maximum-likelihood fit has no such draws. The setup line dies, so this assertion reads a stale object
+brmsfit-methods:775	frmtmb	defect	predict(sample_new_levels = "gaussian") is ANSWERED now: an unseen level's effect is drawn from its block's estimated covariance. The assertion still fails, on the pre-existing fixture defect :764 records: newdata is fit5$data[1:5, ], fit$data partial-matches fit$data2 (the fit has no data element), so newdata has 2 rows and the answer is 2 x 4 [fit$data is the $ partial match of fit$data2, dev/brmsport-rev-silent.R R8]
 brmsfit-methods:779	frmtmb.sample	pass	
-brmsfit-methods:784	frmtmb	defect	print(fit) is frmtmb's own layout, with no 'Multilevel Hyperparameters:' section (user decision, 2026-09-17, rule 3; item 2.6f)
+brmsfit-methods:784	frmtmb	pass	
 brmsfit-methods:794	frmtmb.sample	cannot transfer	frmtmb.sample stores no prior draws, brms's sample_prior (D10)
 brmsfit-methods:797	frmtmb.sample	cannot transfer	frmtmb.sample stores no prior draws (D10)
 brmsfit-methods:798	frmtmb.sample	cannot transfer	frmtmb.sample stores no prior draws (D10)
@@ -210,19 +210,19 @@ brmsfit-methods:811	frmtmb	divergence	ranef() returns the conditional modes, lev
 brmsfit-methods:814	frmtmb	defect	ranef() refuses brms's pars by name and says to subset
 brmsfit-methods:817	frmtmb	defect	ranef() refuses brms's groups by name and says to index the list
 brmsfit-methods:820	frmtmb	divergence	ranef(summary = FALSE) is refused by name on a fit (D3)
-brmsfit-methods:825	frmtmb	defect	residuals() refuses probs, and past the refusal it returns a vector where brms returns the summary (user decision, 2026-09-17, rule 3; item 2.6f)
+brmsfit-methods:825	frmtmb	pass	
 brmsfit-methods:828	frmtmb	defect	residuals(newdata =) is refused by name, though newdata carries the response brms reads
 brmsfit-methods:832	frmtmb	defect	residuals(newdata =) is refused by name
-brmsfit-methods:835	frmtmb	defect	residuals() returns a vector, not brms's four-column summary (user decision, 2026-09-17, rule 3; item 2.6f)
+brmsfit-methods:835	frmtmb	pass	
 brmsfit-methods:837	frmtmb	defect	residuals() on the ordinal fit4 returns the response code minus the expected score, y - sum(k P(Y = k)), identical at relative 0; brms refuses because predictive errors are not defined for ordinal models (dev/brmsport-defects.R S7)
 brmsfit-methods:840	frmtmb	defect	residuals() exists and refuses the multivariate fit6 as 'not supported yet'; brms answers (user decision, 2026-09-17, rule 3; item 2.6f)
 brmsfit-methods:841	frmtmb	defect	residuals() exists and refuses the multivariate fit6 as 'not supported yet'; brms answers (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:887	frmtmb	defect	summary() refuses priors = TRUE, and past the refusal summary(fit) has no $fixed or $random (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:888	frmtmb	defect	blocked by the priors refusal, and past it summary(fit) has no $fixed: its slots are frmtmb's (call, family, ..., coefficients, varcor, rescor, autocor, smooth_edf, extras, fixed_dpars) (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:891	frmtmb	defect	blocked by the priors refusal, and summary(fit) has no $fixed with brms's names (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:894	frmtmb	defect	blocked by the priors refusal, and summary(fit) has no $fixed with brms's columns (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:896	frmtmb	defect	blocked by the priors refusal, and summary(fit) has no $random (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:897	frmtmb	defect	blocked by the priors refusal, and print(summary(fit)) has no 'Regression Coefficients:' section (user decision, 2026-09-17, rule 3; item 2.6f)
+brmsfit-methods:887	frmtmb	pass	
+brmsfit-methods:888	frmtmb	pass	
+brmsfit-methods:891	frmtmb	divergence	summary(fit)$fixed carries brms's four columns and then the Wald test this package reports, where brms writes Rhat, Bulk_ESS and Tail_ESS. Those three describe a SAMPLER and a maximum-likelihood fit has none, so the column set cannot match (item 2.6f)
+brmsfit-methods:894	frmtmb	pass	
+brmsfit-methods:896	frmtmb	pass	
+brmsfit-methods:897	frmtmb	pass	
 brmsfit-methods:900	frmtmb	divergence	summary(robust = TRUE) is refused: a median and MAD need draws (D3's reason); past it, print(summary(fit5)) does name sigma1
 brmsfit-methods:901	frmtmb	divergence	summary(robust = TRUE) is refused (D3's reason); past it, print(summary(fit5)) does name theta1
 brmsfit-methods:904	frmtmb	defect	print(summary(fit6)) labels the GP standard deviation 'sd(gp)', not sdgp (user decision, 2026-09-17, rule 3; item 2.6f)
@@ -245,49 +245,29 @@ brmsfit-methods:978	frmtmb	divergence	variables(fit) lists an ML fit's parameter
 brmsfit-methods:984	frmtmb	divergence	variables(fit2) has brms's b_, sd_ and cor_ names; the r_ and prior_ names are posterior or Stan quantities (D5, D10)
 brmsfit-methods:991	frmtmb	cannot transfer	lscale_volume_gpAgeTrt0 needs gp(Age, by = Trt), which frmtmb's gp() does not take (D8)
 brmsfit-methods:995	frmtmb	defect	parnames() is brms's live spelling of variables(); frmtmb.sample defines parnames() and refuses it, core has none (dev/brms-suite-audit.md section 7 contract 14)
-brmsfit-methods:999	frmtmb	defect	vcov(fit1) is 10 x 10: it adds nu's intercept to brms's nine population-level coefficients, under frmtmb's '(Intercept)' names (dev/brmsport-probe4.R) (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:1000	frmtmb	defect	vcov() refuses brms's cor argument by name
+brmsfit-methods:999	frmtmb	pass	
+brmsfit-methods:1000	frmtmb	pass	
 brmsfit-methods:1035	frmtmb	pass	
 brmsformula:4	frmtmb	pass	
-brmsformula:4	frmtmb.sample	pass	
 brmsformula:6	frmtmb	pass	
-brmsformula:6	frmtmb.sample	pass	
 brmsformula:8	frmtmb	pass	
-brmsformula:8	frmtmb.sample	pass	
 brmsformula:13	frmtmb	pass	
-brmsformula:13	frmtmb.sample	pass	
 brmsformula:19	frmtmb	pass	
-brmsformula:19	frmtmb.sample	pass	
 brmsformula:24	frmtmb	pass	
-brmsformula:24	frmtmb.sample	pass	
 brmsformula:26	frmtmb	pass	
-brmsformula:26	frmtmb.sample	pass	
 brmsformula:30	frmtmb	cannot transfer	frmtmb has no equating of one dpar to another, bf(y ~ x, sigma1 = 'sigma2') (priorform ledger F8)
-brmsformula:30	frmtmb.sample	cannot transfer	frmtmb has no equating of one dpar to another, bf(y ~ x, sigma1 = 'sigma2') (priorform ledger F8)
 brmsformula:32	frmtmb	cannot transfer	frmtmb has no dpar equating (priorform ledger F9)
-brmsformula:32	frmtmb.sample	cannot transfer	frmtmb has no dpar equating (priorform ledger F9)
 brmsformula:34	frmtmb	cannot transfer	frmtmb has no dpar equating (priorform ledger F10)
-brmsformula:34	frmtmb.sample	cannot transfer	frmtmb has no dpar equating (priorform ledger F10)
 brmsformula:36	frmtmb	cannot transfer	frmtmb has no dpar equating (priorform ledger F11)
-brmsformula:36	frmtmb.sample	cannot transfer	frmtmb has no dpar equating (priorform ledger F11)
 brmsformula:38	frmtmb	cannot transfer	frmtmb has no dpar equating (priorform ledger F12)
-brmsformula:38	frmtmb.sample	cannot transfer	frmtmb has no dpar equating (priorform ledger F12)
 brmsformula:44	frmtmb	cannot transfer	frmtmb exports no update_adterms() (priorform ledger F13)
-brmsformula:44	frmtmb.sample	cannot transfer	frmtmb exports no update_adterms() (priorform ledger F13)
 brmsformula:48	frmtmb	cannot transfer	frmtmb exports no update_adterms() (priorform ledger F14)
-brmsformula:48	frmtmb.sample	cannot transfer	frmtmb exports no update_adterms() (priorform ledger F14)
 brmsformula:52	frmtmb	cannot transfer	frmtmb exports no update_adterms() (priorform ledger F15)
-brmsformula:52	frmtmb.sample	cannot transfer	frmtmb exports no update_adterms() (priorform ledger F15)
 brmsformula:56	frmtmb	cannot transfer	frmtmb exports no update_adterms() (priorform ledger F16)
-brmsformula:56	frmtmb.sample	cannot transfer	frmtmb exports no update_adterms() (priorform ledger F16)
 brmsterms:40	frmtmb	cannot transfer	is.brmsterms() and brmsterms() are brms internals; frm() accepts bf(y ~ 1, sigma = 4) (dev/brmsport-probe3.R)
-brmsterms:40	frmtmb.sample	cannot transfer	is.brmsterms() and brmsterms() are brms internals; frm() accepts bf(y ~ 1, sigma = 4) (dev/brmsport-probe3.R)
 brmsterms:42	frmtmb	cannot transfer	is.brmsterms() and brmsterms() are brms internals; frm() accepts bf(y ~ 1, zi = 0.5) under zero_inflated_beta() (dev/brmsport-probe3.R)
-brmsterms:42	frmtmb.sample	cannot transfer	is.brmsterms() and brmsterms() are brms internals; frm() accepts bf(y ~ 1, zi = 0.5) under zero_inflated_beta() (dev/brmsport-probe3.R)
 brmsterms:44	frmtmb	cannot transfer	brmsterms() is a brms internal; frm() refuses shape = -2 in its own words, 'not in the range of the log link' (dev/brmsport-probe3.R)
-brmsterms:44	frmtmb.sample	cannot transfer	brmsterms() is a brms internal; frm() refuses shape = -2 in its own words, 'not in the range of the log link' (dev/brmsport-probe3.R)
 brmsterms:46	frmtmb	cannot transfer	brmsterms() is a brms internal; frm() refuses quantile = 1.5 in its own words, 'not in the range of the logit link' (dev/brmsport-probe3.R)
-brmsterms:46	frmtmb.sample	cannot transfer	brmsterms() is a brms internal; frm() refuses quantile = 1.5 in its own words, 'not in the range of the logit link' (dev/brmsport-probe3.R)
 brmsterms:89	frmtmb	cannot transfer	brmsterms() is a brms internal, and frm() has no unused = ~ x: it is refused as an unavailable dpar (dev/brmsport-probe3.R)
 data-helpers:7	frmtmb	defect	expect_silent() fails on R's 'contrasts dropped from factor Trt' warning, twice, from model.matrix() on the newdata slice; brms is silent. The NUMBERS are unaffected: the five predictions equal the first five of the full-data ones, max absolute difference 0 (dev/adefects-log/evidence.txt). Was fit-data
 data-helpers:9	frmtmb	pass	frmtmb's own words: New levels in grouping factor .visit.: 5 | brms: Levels '5' of grouping factor 'visit' cannot be used. The same refusal of the same case in frmtmb's words
@@ -307,173 +287,89 @@ emmeans:42	frmtmb	cannot transfer	frmtmb's emmeans support is declared univariat
 emmeans:47	frmtmb	pass	
 emmeans:50	frmtmb	cannot transfer	frmtmb's emmeans support is declared refused for a nonlinear mu ('needs a linear mu predictor', R/compat.R:1612, enforced by emm_mu_linpred()); the reason is hidden by emmeans, a separate defect
 families:4	frmtmb	pass	
-families:4	frmtmb.sample	pass	
 families:5	frmtmb	pass	
-families:5	frmtmb.sample	pass	
 families:6	frmtmb	pass	
-families:6	frmtmb.sample	pass	
 families:7	frmtmb	pass	
-families:7	frmtmb.sample	pass	
 families:8	frmtmb	pass	
-families:8	frmtmb.sample	pass	
 families:9	frmtmb	pass	
-families:9	frmtmb.sample	pass	
 families:10	frmtmb	pass	
-families:10	frmtmb.sample	pass	
 families:11	frmtmb	pass	
-families:11	frmtmb.sample	pass	
 families:12	frmtmb	pass	
-families:12	frmtmb.sample	pass	
 families:13	frmtmb	pass	
-families:13	frmtmb.sample	pass	
 families:14	frmtmb	pass	
-families:14	frmtmb.sample	pass	
 families:15	frmtmb	pass	
-families:15	frmtmb.sample	pass	
 families:16	frmtmb	pass	
-families:16	frmtmb.sample	pass	
 families:17	frmtmb	pass	
-families:17	frmtmb.sample	pass	
 families:18	frmtmb	pass	
-families:18	frmtmb.sample	pass	
 families:19	frmtmb	cannot transfer	frmtmb has no hurdle_negbinomial() (famlink ledger row 16)
-families:19	frmtmb.sample	cannot transfer	frmtmb has no hurdle_negbinomial() (famlink ledger row 16)
 families:20	frmtmb	cannot transfer	frmtmb has no hurdle_negbinomial(); the expect_error passes only on could not find function (famlink ledger row 17)
-families:20	frmtmb.sample	cannot transfer	frmtmb has no hurdle_negbinomial(); the expect_error passes only on could not find function (famlink ledger row 17)
 families:21	frmtmb	pass	
-families:21	frmtmb.sample	pass	
 families:22	frmtmb	pass	
-families:22	frmtmb.sample	pass	
 families:23	frmtmb	pass	
-families:23	frmtmb.sample	pass	
 families:24	frmtmb	pass	
-families:24	frmtmb.sample	pass	
 families:25	frmtmb	pass	
-families:25	frmtmb.sample	pass	
 families:26	frmtmb	pass	
-families:26	frmtmb.sample	pass	
 families:28	frmtmb	pass	
-families:28	frmtmb.sample	pass	
 families:30	frmtmb	pass	
-families:30	frmtmb.sample	pass	
 families:31	frmtmb	pass	
-families:31	frmtmb.sample	pass	
 families:32	frmtmb	pass	
-families:32	frmtmb.sample	pass	
 families:33	frmtmb	pass	
-families:33	frmtmb.sample	pass	
 families:34	frmtmb	pass	
-families:34	frmtmb.sample	pass	
 families:35	frmtmb	pass	
-families:35	frmtmb.sample	pass	
 families:36	frmtmb	pass	
-families:36	frmtmb.sample	pass	
 families:37	frmtmb	divergence	acat() takes the logit link only: off the logit acat is a second density frmtmb has not written (?frmtmb-links; famlink ledger row 32)
-families:37	frmtmb.sample	divergence	acat() takes the logit link only: off the logit acat is a second density frmtmb has not written (?frmtmb-links; famlink ledger row 32)
 families:38	frmtmb	pass	
-families:38	frmtmb.sample	pass	
 families:39	frmtmb	pass	
-families:39	frmtmb.sample	pass	
 families:40	frmtmb	pass	
-families:40	frmtmb.sample	pass	
 families:42	frmtmb	pass	
-families:42	frmtmb.sample	pass	
 families:44	frmtmb	pass	frmtmb's own words: takes a single link name, not a character of length 2 | brms: Cannot coerce 'alink' to a single character value
-families:44	frmtmb.sample	pass	frmtmb's own words: takes a single link name, not a character of length 2 | brms: Cannot coerce 'alink' to a single character value
 families:47	frmtmb	pass	
-families:47	frmtmb.sample	pass	
 families:48	frmtmb	pass	
-families:48	frmtmb.sample	pass	
 families:49	frmtmb	pass	
-families:49	frmtmb.sample	pass	
 families:50	frmtmb	pass	
-families:50	frmtmb.sample	pass	
 families:51	frmtmb	pass	
-families:51	frmtmb.sample	pass	
 families:52	frmtmb	cannot transfer	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 43)
-families:52	frmtmb.sample	cannot transfer	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 43)
 families:53	frmtmb	cannot transfer	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 44)
-families:53	frmtmb.sample	cannot transfer	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 44)
 families:54	frmtmb	cannot transfer	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 45)
-families:54	frmtmb.sample	cannot transfer	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 45)
 families:55	frmtmb	cannot transfer	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 46)
-families:55	frmtmb.sample	cannot transfer	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 46)
 families:56	frmtmb	cannot transfer	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 47)
-families:56	frmtmb.sample	cannot transfer	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 47)
 families:57	frmtmb	cannot transfer	frmtmb has no zero_inflated_beta_binomial(); the expect_error passes only on could not find function (famlink ledger row 48)
-families:57	frmtmb.sample	cannot transfer	frmtmb has no zero_inflated_beta_binomial(); the expect_error passes only on could not find function (famlink ledger row 48)
 families:58	frmtmb	cannot transfer	frmtmb has no zero_inflated_beta_binomial(); the expect_error passes only on could not find function (famlink ledger row 49)
-families:58	frmtmb.sample	cannot transfer	frmtmb has no zero_inflated_beta_binomial(); the expect_error passes only on could not find function (famlink ledger row 49)
 families:59	frmtmb	cannot transfer	frmtmb has no zero_inflated_beta_binomial(); the expect_error passes only on could not find function (famlink ledger row 50)
-families:59	frmtmb.sample	cannot transfer	frmtmb has no zero_inflated_beta_binomial(); the expect_error passes only on could not find function (famlink ledger row 50)
 families:60	frmtmb	cannot transfer	frmtmb has no hurdle_cumulative() (famlink ledger row 51)
-families:60	frmtmb.sample	cannot transfer	frmtmb has no hurdle_cumulative() (famlink ledger row 51)
 families:61	frmtmb	cannot transfer	frmtmb has no hurdle_cumulative() (famlink ledger row 52)
-families:61	frmtmb.sample	cannot transfer	frmtmb has no hurdle_cumulative() (famlink ledger row 52)
 families:62	frmtmb	cannot transfer	frmtmb has no hurdle_cumulative() (famlink ledger row 53)
-families:62	frmtmb.sample	cannot transfer	frmtmb has no hurdle_cumulative() (famlink ledger row 53)
 families:63	frmtmb	cannot transfer	frmtmb has no hurdle_cumulative() (famlink ledger row 54)
-families:63	frmtmb.sample	cannot transfer	frmtmb has no hurdle_cumulative() (famlink ledger row 54)
 families:64	frmtmb	cannot transfer	frmtmb has no hurdle_cumulative() (famlink ledger row 55)
-families:64	frmtmb.sample	cannot transfer	frmtmb has no hurdle_cumulative() (famlink ledger row 55)
 families:65	frmtmb	cannot transfer	frmtmb has no hurdle_cumulative(); the expect_error passes only on could not find function (famlink ledger row 56)
-families:65	frmtmb.sample	cannot transfer	frmtmb has no hurdle_cumulative(); the expect_error passes only on could not find function (famlink ledger row 56)
 families:66	frmtmb	cannot transfer	frmtmb has no hurdle_cumulative(); the expect_error passes only on could not find function (famlink ledger row 57)
-families:66	frmtmb.sample	cannot transfer	frmtmb has no hurdle_cumulative(); the expect_error passes only on could not find function (famlink ledger row 57)
 families:67	frmtmb	cannot transfer	frmtmb has no hurdle_cumulative(); the expect_error passes only on could not find function (famlink ledger row 58)
-families:67	frmtmb.sample	cannot transfer	frmtmb has no hurdle_cumulative(); the expect_error passes only on could not find function (famlink ledger row 58)
 families:68	frmtmb	cannot transfer	frmtmb has no xbeta() (famlink ledger row 59)
-families:68	frmtmb.sample	cannot transfer	frmtmb has no xbeta() (famlink ledger row 59)
 families:69	frmtmb	cannot transfer	frmtmb has no xbeta() (famlink ledger row 60)
-families:69	frmtmb.sample	cannot transfer	frmtmb has no xbeta() (famlink ledger row 60)
 families:70	frmtmb	cannot transfer	frmtmb has no xbeta() (famlink ledger row 61)
-families:70	frmtmb.sample	cannot transfer	frmtmb has no xbeta() (famlink ledger row 61)
 families:71	frmtmb	cannot transfer	frmtmb has no xbeta(); the expect_error passes only on could not find function (famlink ledger row 62)
-families:71	frmtmb.sample	cannot transfer	frmtmb has no xbeta(); the expect_error passes only on could not find function (famlink ledger row 62)
 families:72	frmtmb	cannot transfer	frmtmb has no xbeta() (famlink ledger row 63)
-families:72	frmtmb.sample	cannot transfer	frmtmb has no xbeta() (famlink ledger row 63)
 families:73	frmtmb	cannot transfer	frmtmb has no xbeta() (famlink ledger row 64)
-families:73	frmtmb.sample	cannot transfer	frmtmb has no xbeta() (famlink ledger row 64)
 families:74	frmtmb	cannot transfer	frmtmb has no xbeta() (famlink ledger row 65)
-families:74	frmtmb.sample	cannot transfer	frmtmb has no xbeta() (famlink ledger row 65)
 families:75	frmtmb	cannot transfer	frmtmb has no xbeta() (famlink ledger row 66)
-families:75	frmtmb.sample	cannot transfer	frmtmb has no xbeta() (famlink ledger row 66)
 families:76	frmtmb	cannot transfer	frmtmb has no xbeta() (famlink ledger row 67)
-families:76	frmtmb.sample	cannot transfer	frmtmb has no xbeta() (famlink ledger row 67)
 families:80	frmtmb	pass	
-families:80	frmtmb.sample	pass	
 families:81	frmtmb	cannot transfer	frmtmb has no xbeta() (famlink ledger row 69)
-families:81	frmtmb.sample	cannot transfer	frmtmb has no xbeta() (famlink ledger row 69)
 families:86	frmtmb	cannot transfer	reads brms:::family_names(), and the mixture it reads is built with nmix, which mixture() does not take (famlink ledger row 70)
-families:86	frmtmb.sample	cannot transfer	reads brms:::family_names(), and the mixture it reads is built with nmix, which mixture() does not take (famlink ledger row 70)
 families:88	frmtmb	cannot transfer	reads brms:::family_names(), and the mixture it reads is built with nmix, which mixture() does not take (famlink ledger row 71)
-families:88	frmtmb.sample	cannot transfer	reads brms:::family_names(), and the mixture it reads is built with nmix, which mixture() does not take (famlink ledger row 71)
 families:92	frmtmb	pass	
-families:92	frmtmb.sample	pass	
 families:94	frmtmb	pass	
-families:94	frmtmb.sample	pass	
 families:96	frmtmb	pass	
-families:96	frmtmb.sample	pass	
 families:98	frmtmb	pass	
-families:98	frmtmb.sample	pass	
 families:100	frmtmb	pass	
-families:100	frmtmb.sample	pass	
 families:102	frmtmb	defect	mixture() refuses the argument NAME order, where brms refuses its value 'x' (famlink ledger row 77, not fixed)
-families:102	frmtmb.sample	defect	mixture() refuses the argument NAME order, where brms refuses its value 'x' (famlink ledger row 77, not fixed)
 families:107	frmtmb	cannot transfer	frmtmb has no xbeta() (famlink ledger row 78)
-families:107	frmtmb.sample	cannot transfer	frmtmb has no xbeta() (famlink ledger row 78)
 families:108	frmtmb	cannot transfer	frmtmb has no xbeta() (famlink ledger row 79)
-families:108	frmtmb.sample	cannot transfer	frmtmb has no xbeta() (famlink ledger row 79)
 families:109	frmtmb	cannot transfer	frmtmb has no xbeta() (famlink ledger row 80)
-families:109	frmtmb.sample	cannot transfer	frmtmb has no xbeta() (famlink ledger row 80)
 families:113	frmtmb	cannot transfer	frmtmb has no xbeta() (famlink ledger row 81)
-families:113	frmtmb.sample	cannot transfer	frmtmb has no xbeta() (famlink ledger row 81)
 families:117	frmtmb	cannot transfer	frmtmb has no xbeta(); it also reads a Stan prior string (famlink ledger row 82)
-families:117	frmtmb.sample	cannot transfer	frmtmb has no xbeta(); it also reads a Stan prior string (famlink ledger row 82)
 families:118	frmtmb	cannot transfer	frmtmb has no xbeta(); it also reads a Stan prior string (famlink ledger row 83)
-families:118	frmtmb.sample	cannot transfer	frmtmb has no xbeta(); it also reads a Stan prior string (famlink ledger row 83)
 families:122	frmtmb	cannot transfer	frmtmb has no xbeta(), and the assertion reads the Stan include file (famlink ledger row 84)
-families:122	frmtmb.sample	cannot transfer	frmtmb has no xbeta(), and the assertion reads the Stan include file (famlink ledger row 84)
 priors:5	frmtmb	divergence	frmtmb lists 5 class theta rows (its covariance parameters) and no per-coefficient sd rows, since its class sd addresses a block and refuses coef (priorform ledger P1)
 priors:14	frmtmb	cannot transfer	sratio() takes no threshold = 'equidistant' and there is no cse() alias (priorform ledger P2)
 priors:27	frmtmb	divergence	expect_is(bprior, 'brmsprior'): the object is a frmtmb_priorlist; brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)

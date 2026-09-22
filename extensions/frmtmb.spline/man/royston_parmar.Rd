@@ -197,16 +197,17 @@ increases is not one.
 
 So where a group can have no events, check it yourself, in two lines:
 
-\if{html}{\out{<div class="sourceCode">}}\preformatted{slope <- fixef(fit)$gamma1[["(Intercept)"]] +
-  ranef(fit)[["centre"]][, "time.gamma1:(Intercept)"]
+\if{html}{\out{<div class="sourceCode">}}\preformatted{slope <- fixef_by_dpar(fit)$gamma1[["(Intercept)"]] +
+  ranef(fit)[["centre"]][, "gamma1_Intercept"]
 rownames(ranef(fit)[["centre"]])[slope <= 0]
 }\if{html}{\out{</div>}}
 
 and confirm that comes back empty. Name the column: under the paired
-spelling recommended below, that grouping carries TWO of them, and
-the \code{mu} one is the frailty deviation, which says nothing about
-monotonicity. With a block on \code{gamma1} alone there is one column and
-\verb{[, 1]} will do.
+spelling recommended below, that grouping carries TWO of them,
+\code{Intercept} and \code{gamma1_Intercept} (brms's names, which \code{\link[frmtmb:ranef]{frmtmb::ranef()}}
+uses), and the \code{Intercept} one is the frailty deviation on \code{mu},
+which says nothing about monotonicity. With a block on \code{gamma1}
+alone there is one column and \verb{[, 1]} will do.
 
 Those two lines are the \code{df = 1} FORM, and they are exact only
 there, because \verb{d(eta)/d(log t)} is \code{gamma_1 + u} and nothing else.
@@ -300,7 +301,7 @@ dd$censored <- as.integer(dd$t > 3)
 dd$t <- pmin(dd$t, 3)
 fit <- frmtmb::frm(frmtmb::bf(t | cens(censored) ~ trt),
                    family = royston_parmar(df = 2), data = dd)
-frmtmb::fixef(fit)$mu
+frmtmb::fixef_by_dpar(fit)$mu
 }
 \references{
 Royston, P. and Parmar, M. K. B. (2002) Flexible parametric

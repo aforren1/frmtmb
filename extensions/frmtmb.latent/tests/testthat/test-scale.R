@@ -126,7 +126,7 @@ test_that("the hmm scale row fits and reports its cost", {
   post <- function(fit) {
     pf <- scale_interleave(list(probs = function() hmm_probs(fit),
                                 viterbi = function() hmm_viterbi(fit)))
-    b <- unlist(fixef(fit))
+    b <- unlist(fixef_by_dpar(fit))
     ci <- suppressWarnings(stats::confint(fit))
     i12 <- latent_ci(ci, "tr12_(Intercept)")
     mu <- sort(c(unname(b["mu1.(Intercept)"]), unname(b["mu2.(Intercept)"]),

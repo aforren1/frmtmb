@@ -601,7 +601,7 @@ lca_comp_lpdf <- function(y, K, extra, k) {
 #' probabilities per subject (with the relative-entropy classification
 #' diagnostic attached), [lca_profiles()] gives the item profile table,
 #' and `simulate()` draws a class per subject and then its items.
-#' `fitted()`, `predict(type = "response")` and `residuals()` are
+#' `fitted()`, `frm_linpred(type = "response")` and `residuals()` are
 #' refused: the response is a matrix of nominal codes, so an "expected
 #' item code" would be an average of arbitrary labels. Read
 #' [lca_probs()] and [lca_profiles()] instead. `predict()` itself

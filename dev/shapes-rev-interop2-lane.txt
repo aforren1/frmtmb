@@ -1,0 +1,41 @@
+lib: C:/Users/adf44/source/r/shapes-lib 
+
+== marginaleffects ==
+  avg_predictions(gaussian)                      df 1x8 sum=Inf
+  avg_comparisons(gaussian)                      df 3x9 sum=44.16180163
+  comparisons(gaussian, variables='x')           df 150x22 sum=18674.29408
+   [warn] 
+It is essential to check the order of estimates when specifying hypothesis tests using po
+  hypotheses(gaussian, 'b2 = 0')                 df 1x8 sum=41.75926908
+  predictions(gaussian, type='link')             df 150x18 sum=Inf
+  slopes(mixed)                                  df 150x22 sum=20069.66114
+  avg_slopes(ordinal)                            df 3x10 sum=Inf
+
+== insight ==
+  get_predicted(gaussian)                        num 150 sum=156.6016356
+  get_predicted(gaussian, 'link')                num 150 sum=156.6016356
+  get_predicted(gaussian, 'prediction')          num 150 sum=156.4012883
+  get_predicted(ordinal)                         num 150 sum=9.309898309
+  get_fitted(gaussian)                           ERROR: 'get_fitted' is not an exported object from 'namespace:insight'
+  get_residuals(gaussian)                        num 600 sum=23.38770852
+  get_sigma(gaussian)                            num 1 sum=0.9669127396
+  get_df(gaussian)                               num 1 sum=145
+   [warn] Objects of class `frmtmb_fit` are not supported.
+  get_variance(mixed)                            NULL 0
+  model_info(gaussian)                           character 51
+  find_parameters(ordinal)                       character 1
+
+== emmeans ==
+  emmeans(gaussian, ~f)                          df 3x6 sum=Inf
+  emtrends(gaussian, ~f, 'x')                    df 3x6 sum=Inf
+  emmeans(mixed, ~x, at)                         df 2x6 sum=Inf
+  emmeans(ordinal, ~x)                           df 1x6 sum=Inf
+
+== base R and broom-style seams ==
+  as.data.frame(fit)                             ERROR: cannot coerce class '"frmtmb_fit"' to a data.frame
+  coef(fit)                                      num 4 sum=1.170562909
+  model.matrix(fit)                              num 600 sum=257.2167464
+  simulate(fit, nsim = 2)                        df 150x2 sum=292.6012442
+  stats::confint(fit)                            df 5x3 sum=3.410747649
+  stats::nobs(fit)                               num 1 sum=150
+  sandwich::sandwich-style vcov(cluster)         num 16 sum=0.04705760375

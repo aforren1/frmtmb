@@ -207,7 +207,7 @@ test_that("a custom family in a fit reaches the tape path", {
   ref <- frm(bf(y ~ x), family = bernoulli(), data = d)
   expect_equal(as.numeric(stats::logLik(fit)),
                as.numeric(stats::logLik(ref)), tolerance = 1e-6)
-  expect_equal(unlist(fixef(fit)$mu), unlist(fixef(ref)$mu),
+  expect_equal(unlist(fixef_by_dpar(fit)$mu), unlist(fixef_by_dpar(ref)$mu),
                tolerance = 1e-5)
 })
 

@@ -83,7 +83,7 @@
 #' **Without `ndt_group()`, `ndt` is a TIME**, on a logit scaled onto
 #' `(0, ub)` with `ub` the fastest response in the whole data set, or
 #' `max_ndt` when you give one. This is the parameterization the family
-#' has always had. `predict(dpar = "ndt", type = "response")` reports
+#' has always had. `frm_linpred(dpar = "ndt", type = "response")` reports
 #' seconds, a `prior(class = "ndt")` is a density on those seconds, and
 #' a `bf(ndt = 0.2)` constant is 0.2 seconds.
 #'
@@ -100,7 +100,7 @@
 #' and each subject's non-decision time is bounded by its own fastest
 #' response. That is what a random effect on `ndt` needs; the next
 #' section is what one global bound does to it. The price is that `ndt`
-#' is on a different scale: `predict(dpar = "ndt", type = "response")`
+#' is on a different scale: `frm_linpred(dpar = "ndt", type = "response")`
 #' reports the fraction, and [ndt_time()] reports the time for either
 #' parameterization. A `prior(class = "ndt")` and a `bf(ndt = )`
 #' constant are fractions under a grouping too.

@@ -4,7 +4,7 @@
 ## knots. Past them it is a partial sum that decays to zero, so a curve
 ## drawn there bends smoothly to whatever the rest of the nonlinear body
 ## gives, which is the one shape a reader will not question. frmtmb says
-## so at predict(newdata = ) and, since the SPLINE-SPAN lane, at
+## so at frm_linpred(newdata = ) and, since the SPLINE-SPAN lane, at
 ## frm_lp_basis(newdata = ) as well.
 ##
 ## These three functions are the doors a user actually draws a curve
@@ -206,7 +206,7 @@ test_that("the refusal replaces a warning per Newton step, not adds to it", {
   g_out <- data.frame(t = seq(o$span[2] + 0.05, o$span[2] + 2,
                               length.out = 15))
   # Before this lane the feature search reached the curve through
-  # predict(newdata = ), which IS armed, so one call raised the span
+  # frm_linpred(newdata = ), which IS armed, so one call raised the span
   # warning eleven times: once for the grid scan and once per Newton
   # iteration per root. It now refuses, and raises none.
   ws <- character(0)
@@ -251,7 +251,7 @@ test_that("a model with no ps() term is untouched by any of this", {
 ## frm_curve_feature() checks the span twice, and the two checks are not
 ## the same question. The scan, the Newton steps and the five-point
 ## stencil are all row 1 replicated, so they hold every column but `var`
-## pinned; the second check runs one predict() on the WHOLE grid. A
+## pinned; the second check runs one frm_linpred() on the WHOLE grid. A
 ## second ps() term can therefore leave its span in a row the scan never
 ## evaluates, and that check is the only thing between the user and a
 ## root reported with a standard error. The block was deleted once as
@@ -291,7 +291,7 @@ test_that("a second ps() term's span refuses at a root by the knot", {
   eta_at <- function(tv) {
     dd <- g[rep(1L, length(tv)), , drop = FALSE]
     dd$t <- tv
-    as.numeric(stats::predict(o$fit, newdata = dd, type = "link"))
+    as.numeric(frm_linpred(o$fit, newdata = dd, type = "link"))
   }
   e2 <- 1e-4 * diff(range(g$t))
   at <- eta_at(b - 0.2 * e2)
@@ -337,7 +337,7 @@ test_that("a second ps() term's span refuses at a root in the middle", {
   eta_at <- function(tv) {
     dd <- g[rep(1L, length(tv)), , drop = FALSE]
     dd$t <- tv
-    as.numeric(stats::predict(o$fit, newdata = dd, type = "link"))
+    as.numeric(frm_linpred(o$fit, newdata = dd, type = "link"))
   }
   at <- eta_at(0.5 * (a + b))
 
@@ -425,7 +425,7 @@ test_that("an out-of-span row refuses from either grid of a difference", {
   ct <- data.frame(t = g, z = 0.5, w = 0)
 
   # in `newdata`: z varies down the grid, so the gate fires and the
-  # whole-grid predict() reports z outside its span
+  # whole-grid frm_linpred() reports z outside its span
   nd_out <- nd
   nd_out$z[10] <- o$z_span[2] + 5
   e <- expect_error(frm_curve_feature(o$fit, var = "t", type = "crossing",

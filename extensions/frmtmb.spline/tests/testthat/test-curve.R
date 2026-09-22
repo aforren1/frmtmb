@@ -13,14 +13,14 @@ sp_curve_fit <- function(n = 250, seed = 7, k = 10) {
                          family = stats::gaussian(), data = d))
 }
 
-test_that("the assembled covariance reproduces predict(se.fit) exactly", {
+test_that("the assembled covariance reproduces frm_linpred(se.fit) exactly", {
   o <- sp_curve_fit()
   g <- data.frame(x = seq(0, 1, length.out = 40))
   cv <- frm_curve(o$fit, newdata = g, nsim = 2000, seed = 1)
   ck <- attr(cv, "check")
   # machine precision, not a tolerance chosen to pass
   expect_lt(ck$cov_rel_error, 1e-10)
-  p <- stats::predict(o$fit, newdata = g, type = "link", se.fit = TRUE,
+  p <- frm_linpred(o$fit, newdata = g, type = "link", se.fit = TRUE,
                       re_formula = NA)
   expect_equal(cv$.estimate, as.numeric(p$fit), tolerance = 1e-12)
   expect_equal(cv$.se, as.numeric(p$se.fit), tolerance = 1e-10)
@@ -28,12 +28,12 @@ test_that("the assembled covariance reproduces predict(se.fit) exactly", {
   expect_equal(sqrt(diag(attr(cv, "Sigma"))), cv$.se, tolerance = 1e-12)
 })
 
-test_that("the design costs one predict() call whatever its width", {
+test_that("the design costs one frm_linpred() call whatever its width", {
   # Up to frmtmb 0.51.0 this package rebuilt the design by unit
-  # perturbation and s(x, k = 10) cost 11 predict() calls: 10 live
+  # perturbation and s(x, k = 10) cost 11 frm_linpred() calls: 10 live
   # columns plus sigma's intercept, which cannot move the mu curve and
   # whose column came back all zero. frm_lp_basis() returns the design
-  # core already had, so the only predict() call left is the covariance
+  # core already had, so the only frm_linpred() call left is the covariance
   # check, and the count no longer depends on the number of
   # coefficients at all. The next test pins the same number on a model
   # with 110 random coefficients.
@@ -50,7 +50,7 @@ test_that("a grouping block costs nothing, because there is no probe", {
   # perturbation and coefficients were screened in chunks of 24, so a
   # 40-level grouping block cost one call per chunk rather than one per
   # level. frm_lp_basis() returns the design core already had, so there
-  # is no perturbation, no chunk and no probe, and the only predict()
+  # is no perturbation, no chunk and no probe, and the only frm_linpred()
   # call left is the covariance check. What is worth pinning now is that
   # the count does not respond to the block at all.
   set.seed(3)
@@ -137,7 +137,7 @@ test_that("the refusals name what is wrong", {
   expect_error(frm_curve(o$fit, newdata = g, nsim = 0), "whole number")
   # a tolerance no covariance could meet refuses rather than returning
   expect_error(frm_curve(o$fit, newdata = g, tol = 0),
-               "disagrees with predict")
+               "disagrees with frm_linpred")
 })
 
 test_that("a fit with no random-effect block works, through cov.fixed", {
@@ -153,7 +153,7 @@ test_that("a fit with no random-effect block works, through cov.fixed", {
   g <- data.frame(x = seq(-2, 2, length.out = 9))
   cv <- frm_curve(fit, newdata = g, simultaneous = FALSE)
   expect_lt(attr(cv, "check")$cov_rel_error, 1e-10)
-  p <- stats::predict(fit, newdata = g, type = "link", se.fit = TRUE,
+  p <- frm_linpred(fit, newdata = g, type = "link", se.fit = TRUE,
                       re_formula = NA)
   expect_equal(cv$.se, as.numeric(p$se.fit), tolerance = 1e-14)
   expect_true(all(cv$.se > 0))
@@ -217,11 +217,11 @@ test_that("a reduced-rank block is caught by the check, not by the probe", {
   # linear in b at fixed theta and the probe passed, while the design
   # the perturbation could build was missing the derivative with
   # respect to the loadings and the standard errors came out 27 percent
-  # away from predict(se.fit = TRUE)'s. frm_lp_basis() carries the
+  # away from frm_linpred(se.fit = TRUE)'s. frm_lp_basis() carries the
   # loading columns through rr_jacobians(), so it now works.
   cvn <- frm_curve(fit, newdata = g, re_formula = NULL, simultaneous = FALSE)
   expect_lt(attr(cvn, "check")$cov_rel_error, 1e-8)
-  pn <- stats::predict(fit, newdata = g, type = "link", re_formula = NULL,
+  pn <- frm_linpred(fit, newdata = g, type = "link", re_formula = NULL,
                        se.fit = TRUE)
   expect_equal(cvn$.se, as.numeric(pn$se.fit), tolerance = 1e-10)
 })
@@ -241,7 +241,7 @@ test_that("a curve on a dpar other than mu finds its coefficients", {
   cv <- frm_curve(fit, newdata = g, dpar = "sigma", nsim = 2000, seed = 1)
   expect_lt(attr(cv, "check")$cov_rel_error, 1e-10)
   expect_true(all(cv$.se > 0))
-  p <- stats::predict(fit, newdata = g, type = "link", dpar = "sigma",
+  p <- frm_linpred(fit, newdata = g, type = "link", dpar = "sigma",
                       se.fit = TRUE, re_formula = NA)
   expect_equal(cv$.estimate, as.numeric(p$fit), tolerance = 1e-12)
   expect_equal(cv$.se, as.numeric(p$se.fit), tolerance = 1e-10)
@@ -287,7 +287,7 @@ test_that("a factor-smooth model costs the documented number of calls", {
 
   # suppressWarnings: this fit reaches a maximum absolute gradient of
   # about 1.5e-3 on some platforms and not others. What this test
-  # measures is the number of predict() calls and the covariance
+  # measures is the number of frm_linpred() calls and the covariance
   # identity below, neither of which that touches.
   fit <- suppressWarnings(frmtmb::frm(
     frmtmb::bf(v ~ s(t, k = 12) + s(t, subject, bs = "fs", k = 5)),
@@ -295,7 +295,7 @@ test_that("a factor-smooth model costs the documented number of calls", {
   expect_equal(length(fit$estimates$b), 110L)
   g <- data.frame(t = seq(0, 1, length.out = 80))
   cv <- frm_curve(fit, newdata = g, re_formula = NA, simultaneous = FALSE)
-  # 32 predict() calls before the seam; one now, on a model with 110
+  # 32 frm_linpred() calls before the seam; one now, on a model with 110
   # random coefficients, which is the point of the seam
   expect_equal(attr(cv, "check")$n_predict, 1L)
   expect_lt(attr(cv, "check")$cov_rel_error, 1e-10)
@@ -331,7 +331,7 @@ test_that("an autoscaled fit works, because the covariance is core's", {
   g <- data.frame(x = seq(0, 1, length.out = 20), z = 0)
   cv <- frm_curve(fit, newdata = g, simultaneous = FALSE)
   expect_lt(attr(cv, "check")$cov_rel_error, 1e-10)
-  p <- stats::predict(fit, newdata = g, type = "link", se.fit = TRUE,
+  p <- frm_linpred(fit, newdata = g, type = "link", se.fit = TRUE,
                       re_formula = NA)
   expect_equal(cv$.se, as.numeric(p$se.fit), tolerance = 1e-13)
 })

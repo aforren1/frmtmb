@@ -22,7 +22,7 @@ test_that("cumulative logit matches MASS::polr", {
   ref <- MASS::polr(factor(y) ~ x, data = dd, method = "logistic",
                     Hess = TRUE)
   expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(logLik(ref))), 1e-5)
-  expect_vector_equal(fixef(fit)$mu, coef(ref), tol = 1e-3)
+  expect_vector_equal(fixef_by_dpar(fit)$mu, coef(ref), tol = 1e-3)
   expect_vector_equal(tau_of(fit), ref$zeta, tol = 1e-3)
 })
 
@@ -32,7 +32,7 @@ test_that("cumulative probit matches MASS::polr", {
   fit <- frm(bf(y ~ x) + cumulative(link = "probit"), data = dd)
   ref <- MASS::polr(factor(y) ~ x, data = dd, method = "probit")
   expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(logLik(ref))), 1e-4)
-  expect_vector_equal(fixef(fit)$mu, coef(ref), tol = 1e-3)
+  expect_vector_equal(fixef_by_dpar(fit)$mu, coef(ref), tol = 1e-3)
 })
 
 test_that("ordered factor responses and threshold-only models work", {
@@ -168,11 +168,11 @@ test_that("a probit cumulative fit agrees with its own category probs", {
   d <- sim_ord_data()
   for (l in c("probit", "cloglog", "cauchit")) {
     fit <- frm(bf(y ~ x), family = cumulative(l), data = d)
-    P <- fitted(fit)
+    P <- fitted(fit)[, "Estimate", ]
     expect_equal(unname(rowSums(P)), rep(1, nrow(d)), tolerance = 1e-10)
     expect_true(all(P > 0))
     # the slope keeps its sign whichever CDF reads the thresholds
-    expect_gt(unlist(fixef(fit))[["mu.x"]], 0)
+    expect_gt(unlist(fixef_by_dpar(fit))[["mu.x"]], 0)
   }
 })
 
@@ -184,7 +184,7 @@ test_that("cratio's robust branch reads its CDF where the density does", {
   # agrees with a direct evaluation of its own category probabilities.
   d <- sim_ord_data()
   fit <- frm(bf(y ~ x), family = cratio("cloglog"), data = d)
-  P <- fitted(fit)
+  P <- fitted(fit)[, "Estimate", ]
   expect_equal(unname(rowSums(P)), rep(1, nrow(d)), tolerance = 1e-10)
   # the log-likelihood equals the sum of the log of the chosen cell
   ll <- sum(log(P[cbind(seq_len(nrow(d)), d$y)]))
@@ -202,7 +202,7 @@ test_that("the taped ordinal density matches the numeric category probs", {
     for (l in links) {
       f <- suppressWarnings(frm(bf(y ~ x), family = do.call(fam, list(l)),
                                 data = d))
-      P <- fitted(f)
+      P <- fitted(f)[, "Estimate", ]
       ll <- sum(log(P[cbind(seq_len(nrow(d)), d$y)]))
       expect_equal(as.numeric(logLik(f)), ll, tolerance = 1e-8,
                    label = paste(fam, l))
@@ -221,7 +221,8 @@ test_that("cloglog makes cumulative and sratio the same model", {
   b <- frm(bf(y ~ x), family = sratio("cloglog"), data = d)
   expect_equal(as.numeric(logLik(a)), as.numeric(logLik(b)),
                tolerance = 1e-7)
-  expect_equal(unlist(fixef(a)$mu), unlist(fixef(b)$mu), tolerance = 1e-5)
+  expect_equal(unlist(fixef_by_dpar(a)$mu), unlist(fixef_by_dpar(b)$mu),
+               tolerance = 1e-5)
   # and it is NOT an accident of the data: the logit pair differs
   al <- frm(bf(y ~ x), family = cumulative("logit"), data = d)
   bl <- frm(bf(y ~ x), family = sratio("logit"), data = d)

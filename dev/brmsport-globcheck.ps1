@@ -3,7 +3,7 @@
 # (must throw), so the fail-closed branch is seen firing and not firing.
 #   powershell -File dev/brmsport-globcheck.ps1
 $ErrorActionPreference = "Stop"
-$ROOT = "C:/Users/adf44/source/r/frmtmb-wt-brmsport"
+$ROOT = (Get-Location).Path -replace "\\", "/"
 $text = Get-Content "$ROOT/dev/release/run-gated.ps1" -Raw
 $start = $text.IndexOf('$suite = @(')
 $end = $text.IndexOf('[void]$jobs.Add(@{ n = "frmtmb.learn"')

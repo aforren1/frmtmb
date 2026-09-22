@@ -58,7 +58,7 @@ sp_rp_knots_of <- function(fam) environment(fam[["lpdf"]])$allknots
 #' The fitted spline, evaluated at the observed rows.
 #'
 #' Every spline coefficient is a distributional parameter, so each one
-#' is read off with `predict(type = "link", dpar = )` and the basis is
+#' is read off with `frm_linpred(type = "link", dpar = )` and the basis is
 #' rebuilt at the observed log times. This is the same arithmetic the
 #' objective does, on the same knots.
 #'
@@ -69,7 +69,7 @@ sp_rp_fitted <- function(object, fam) {
   y <- as.numeric(object$frame[["y"]][[rnm]])
   kn <- sp_rp_knots_of(fam)
   dp <- lapply(fam[["dpars"]], function(p) {
-    as.numeric(stats::predict(object, type = "link", dpar = p))
+    as.numeric(frmtmb::frm_linpred(object, type = "link", dpar = p))
   })
   x <- log(y)
   eta <- sp_rp_eta(sp_rp_basis(kn, x), dp)

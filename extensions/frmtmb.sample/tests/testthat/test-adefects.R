@@ -47,13 +47,16 @@ test_that("log_lik on a fit refuses with this package attached", {
   expect_error(log_lik(fit), "Sample first")
 })
 
-# Punch round 1, MINOR 3. Both methods used to swallow `allow_new_levels`
-# in `...`, and the caller then met frmtmb's own refusal, whose remedy
-# named that same argument. brms FORWARDS it: measured on
-# brmsfit_example1 with `visit` removed from newdata,
-# posterior_epred() and posterior_predict() both answer 25 x 3 under
-# allow_new_levels = TRUE and both die on base R's "object 'visit' not
-# found" without it (dev/adefects-findings.md, punch round 1).
+# Punch round 1, MINOR 3 of lane adefects, revised at the merge with
+# lane shapes. Both methods used to swallow `allow_new_levels` in `...`.
+# adefects FORWARDED it to the per-draw predictor, which is what brms
+# does, but frmtmb's per-draw predictor puts an unseen level at a group
+# effect of exactly 0: posterior_epred() there was bit-identical to
+# re_formula = NA, the group sd (1.02 on a 12-group fixture measured at
+# the merge) missing from every draw. brms draws the level's effect
+# per draw. Until that is built, TRUE with an unseen level is
+# refused, and an absent grouping column IS an unseen level (brms
+# fills it with NA).
 ad_draws <- local({
   cache <- NULL
   function() {
@@ -71,17 +74,26 @@ ad_draws <- local({
   }
 })
 
-test_that("the draws methods forward allow_new_levels, as brms does", {
+test_that("the draws methods refuse an unseen level rather than drop its variance", {
   skip_on_cran()
   ds <- ad_draws()
   nd <- data.frame(x = c(-1, 0, 1))
-
-  for (f in list(posterior_epred, posterior_predict)) {
-    # the grouping column may be left out entirely
-    ep <- f(ds, newdata = nd, allow_new_levels = TRUE, ndraws = 3)
+  known <- data.frame(x = c(-1, 0, 1), g = factor(c(1, 2, 3), levels = 1:6))
+  fns <- list("posterior_epred()" = posterior_epred,
+              "posterior_predict()" = posterior_predict)
+  for (nm in names(fns)) {
+    f <- fns[[nm]]
+    # an absent grouping column is an unseen level: refused, classed,
+    # and naming the function that was called
+    expect_error(f(ds, newdata = nd, allow_new_levels = TRUE, ndraws = 3),
+                 class = "frmtmb_error")
+    expect_error(f(ds, newdata = nd, allow_new_levels = TRUE, ndraws = 3),
+                 nm, fixed = TRUE)
+    # TRUE with levels the fit saw changes nothing, as in brms
+    ep <- f(ds, newdata = known, allow_new_levels = TRUE, ndraws = 3)
     expect_equal(dim(ep), c(3L, 3L))
-    # and without it the call is refused by the D6 message, which names
-    # the argument the method now HAS
+    # without the flag the D6 message still names it (its hint then
+    # leads to the refusal above: dev/test-backlog.md, Open - medium)
     expect_error(f(ds, newdata = nd, ndraws = 3), class = "frmtmb_error")
     expect_error(f(ds, newdata = nd, ndraws = 3), "allow_new_levels = TRUE")
     # every OTHER name in the dots is refused rather than ignored

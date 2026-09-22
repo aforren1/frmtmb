@@ -20,7 +20,7 @@ A \code{frmtmb_family}.
 component keeps its own distributional parameters, suffixed by the
 component index (\code{mu1}, \code{sigma1}, \code{mu2}, ...), and the mixing
 A mixing weight's RESPONSE scale is the softmax over the component
-predictors, so \code{predict(type = "response", dpar = "theta1")} is a
+predictors, so \code{frm_linpred(type = "response", dpar = "theta1")} is a
 probability while \code{type = "link"} stays the predictor the density
 works on. Under \code{se.fit = TRUE} that probability's standard error is
 the delta method through its OWN predictor, \code{p (1 - p)} times the

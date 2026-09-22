@@ -18,19 +18,20 @@ fit_np <- local({
 
 test_that("newdata = training data reproduces in-sample predictions", {
   fit <- fit_np$fit; dd <- fit_np$data
-  expect_equal(predict(fit, newdata = dd), predict(fit), tolerance = 1e-10)
-  expect_equal(predict(fit, newdata = dd, type = "response"),
-               predict(fit, type = "response"), tolerance = 1e-10)
-  expect_equal(predict(fit, newdata = dd, dpar = "sigma",
+  expect_equal(frm_linpred(fit, newdata = dd), frm_linpred(fit),
+               tolerance = 1e-10)
+  expect_equal(frm_linpred(fit, newdata = dd, type = "response"),
+               frm_linpred(fit, type = "response"), tolerance = 1e-10)
+  expect_equal(frm_linpred(fit, newdata = dd, dpar = "sigma",
                        type = "response"),
-               predict(fit, dpar = "sigma", type = "response"),
+               frm_linpred(fit, dpar = "sigma", type = "response"),
                tolerance = 1e-10)
 })
 
 test_that("population-level predictions drop the random effects", {
   fit <- fit_np$fit; dd <- fit_np$data
-  p0 <- predict(fit, newdata = dd, re_formula = NA)
-  beta <- fixef(fit)$mu
+  p0 <- frm_linpred(fit, newdata = dd, re_formula = NA)
+  beta <- fixef_by_dpar(fit)$mu
   X <- model.matrix(~ x + f, dd)
   expect_equal(p0, unname(drop(X %*% beta)), tolerance = 1e-10,
                ignore_attr = TRUE)
@@ -39,8 +40,8 @@ test_that("population-level predictions drop the random effects", {
 test_that("factor levels and subsets round-trip", {
   fit <- fit_np$fit; dd <- fit_np$data
   nd <- dd[dd$f == "b", ][1:5, ]
-  p_sub <- predict(fit, newdata = nd)
-  expect_equal(p_sub, predict(fit)[which(dd$f == "b")[1:5]],
+  p_sub <- frm_linpred(fit, newdata = nd)
+  expect_equal(p_sub, frm_linpred(fit)[which(dd$f == "b")[1:5]],
                tolerance = 1e-10)
 })
 
@@ -48,9 +49,9 @@ test_that("new grouping levels error unless allowed", {
   fit <- fit_np$fit; dd <- fit_np$data
   nd <- dd[1:3, ]
   nd$g <- factor("999")
-  expect_error(predict(fit, newdata = nd), "New levels")
-  p_new <- predict(fit, newdata = nd, allow_new_levels = TRUE)
-  p_pop <- predict(fit, newdata = nd, re_formula = NA)
+  expect_error(frm_linpred(fit, newdata = nd), "New levels")
+  p_new <- frm_linpred(fit, newdata = nd, allow_new_levels = TRUE)
+  p_pop <- frm_linpred(fit, newdata = nd, re_formula = NA)
   expect_equal(p_new, p_pop, tolerance = 1e-10)
 })
 
@@ -66,7 +67,7 @@ test_that("se.fit matches glmmTMB delta-method standard errors", {
 
   nd <- data.frame(x = seq(-2, 2, length.out = 9),
                    g = factor(rep(1, 9), levels = levels(dd$g)))
-  pf <- predict(fit, newdata = nd, re_formula = NA, se.fit = TRUE)
+  pf <- frm_linpred(fit, newdata = nd, re_formula = NA, se.fit = TRUE)
   # glmmTMB's own spelling, untouched: the rename is frmtmb's surface
   pr <- predict(ref, newdata = nd, re.form = NA, se.fit = TRUE)
   expect_vector_equal(pf$fit, pr$fit, tol = 1e-4)
@@ -79,7 +80,7 @@ test_that("response-scale se applies the chain rule", {
   dd$y <- rpois(200, exp(0.5 + 0.4 * dd$x))
   fit <- frm(bf(y ~ x) + poisson(), data = dd)
   nd <- data.frame(x = c(-1, 0, 1))
-  pl <- predict(fit, newdata = nd, se.fit = TRUE)
-  pr <- predict(fit, newdata = nd, type = "response", se.fit = TRUE)
+  pl <- frm_linpred(fit, newdata = nd, se.fit = TRUE)
+  pr <- frm_linpred(fit, newdata = nd, type = "response", se.fit = TRUE)
   expect_equal(pr$se.fit, exp(pl$fit) * pl$se.fit, tolerance = 1e-10)
 })

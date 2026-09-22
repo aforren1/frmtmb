@@ -26,13 +26,13 @@ test_that("prior name resolution: classes, coefficients, errors", {
 test_that("hard bounds constrain the ML fit", {
   dd <- sim_lmm(seed = 303)
   fit0 <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
-  est0 <- fixef(fit0)$mu[["x"]]
+  est0 <- fixef_by_dpar(fit0)$mu[["x"]]
   expect_lt(est0, 1)
   fitb <- suppressWarnings(
     frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
         prior = set_prior("", class = "b", coef = "x", lb = 1))
   )
-  expect_equal(fixef(fitb)$mu[["x"]], 1, tolerance = 1e-6)
+  expect_equal(fixef_by_dpar(fitb)$mu[["x"]], 1, tolerance = 1e-6)
   expect_lt(as.numeric(logLik(fitb)), as.numeric(logLik(fit0)))
   expect_error(frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
                    prior = set_prior("", class = "b", coef = "zzz",
@@ -80,7 +80,7 @@ test_that("gr(cov=) matches a hand-rolled correlated-intercepts reference", {
   expect_identical(dim(ranef(fit)[[1]]), c(30L, 1L))
   cv <- confint_varcorr(fit)
   expect_true(all(cv$lwr < cv$estimate & cv$estimate < cv$upr))
-  expect_equal(predict(fit, newdata = dd), predict(fit),
+  expect_equal(frm_linpred(fit, newdata = dd), frm_linpred(fit),
                tolerance = 1e-8)
 
   # validations
@@ -123,11 +123,11 @@ test_that("a prior bound on an nlpar lands on that parameter, and fits", {
   # the defect refused this outright ("Unknown parameter(s) in bounds:
   # (Intercept)"), so merely fitting is half the regression
   expect_s3_class(fit, "frmtmb_fit")
-  expect_lt(abs(unname(fixef(fit)$guess) - 0.25), 0.1)
-  expect_lt(abs(unname(fixef(fit)$thr) - 5), 0.5)
+  expect_lt(abs(unname(fixef_by_dpar(fit)$guess) - 0.25), 0.1)
+  expect_lt(abs(unname(fixef_by_dpar(fit)$thr) - 5), 0.5)
   # and inside the box it was given, which is the point of the bound
-  expect_gte(unname(fixef(fit)$guess), 0)
-  expect_lte(unname(fixef(fit)$guess), 1)
+  expect_gte(unname(fixef_by_dpar(fit)$guess), 0)
+  expect_lte(unname(fixef_by_dpar(fit)$guess), 1)
 
   ri <- frmtmb:::resolve_prior_input(fit,
     set_prior("", nlpar = "guess", lb = 0, ub = 1))
@@ -236,7 +236,7 @@ test_that("both bounds of a slot are written in one specification", {
   fit <- suppressWarnings(
     frm(form, family = bernoulli(link = "identity"), data = dd,
         start = st, prior = pr))
-  expect_equal(unname(fixef(fit)$guess), 0.4, tolerance = 1e-5)
+  expect_equal(unname(fixef_by_dpar(fit)$guess), 0.4, tolerance = 1e-5)
   ri <- frmtmb:::resolve_prior_input(fit, pr)
   expect_identical(unname(ri$lower["guess_(Intercept)"]), 0.4)
   expect_identical(unname(ri$upper["guess_(Intercept)"]), 1)

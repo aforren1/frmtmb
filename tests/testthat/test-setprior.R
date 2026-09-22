@@ -80,7 +80,7 @@ test_that("RTMBdist families: beta_binomial matches glmmTMB", {
   ref <- glmmTMB::glmmTMB(cbind(y, size - y) ~ x,
                           family = glmmTMB::betabinomial, data = dd)
   expect_loglik_equal(fit, ref, tol = 1e-5)
-  expect_vector_equal(fixef(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
+  expect_vector_equal(fixef_by_dpar(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
                       tol = 1e-3)
 })
 
@@ -92,22 +92,22 @@ test_that("RTMBdist families: skew_normal, inverse.gaussian, exgaussian", {
   y_sn <- RTMBdist::rskewnorm2(n, 1 + 0.5 * x, 1.2, 4)
   d1 <- data.frame(y = y_sn, x = x)
   f1 <- suppressWarnings(frm(bf(y ~ x) + skew_normal(), data = d1))
-  expect_vector_equal(fixef(f1)$mu, c(1, 0.5), tol = 0.15)
+  expect_vector_equal(fixef_by_dpar(f1)$mu, c(1, 0.5), tol = 0.15)
   # alpha is weakly identified in the skew normal (its ML is known to
   # drift); assert the detected skew direction only
-  expect_gt(fixef(f1)$alpha[[1]], 1)
+  expect_gt(fixef_by_dpar(f1)$alpha[[1]], 1)
 
   y_ig <- RTMBdist::rinvgauss(n, exp(0.5 + 0.3 * x), 2)
   d2 <- data.frame(y = y_ig, x = x)
   f2 <- frm(bf(y ~ x) + inverse.gaussian(link = "log"), data = d2)
-  expect_vector_equal(fixef(f2)$mu, c(0.5, 0.3), tol = 0.1)
-  expect_lt(abs(exp(fixef(f2)$shape[[1]]) - 2), 0.4)
+  expect_vector_equal(fixef_by_dpar(f2)$mu, c(0.5, 0.3), tol = 0.1)
+  expect_lt(abs(exp(fixef_by_dpar(f2)$shape[[1]]) - 2), 0.4)
 
   y_exg <- RTMBdist::rexgauss(n, 2 - 1, 0.5, 1)   # mean 2, beta 1
   d3 <- data.frame(y = y_exg, x = rnorm(n))
   f3 <- frm(bf(y ~ 1) + exgaussian(), data = d3)
-  expect_lt(abs(fixef(f3)$mu[[1]] - 2), 0.15)
-  expect_lt(abs(exp(fixef(f3)$beta[[1]]) - 1), 0.3)
+  expect_lt(abs(fixef_by_dpar(f3)$mu[[1]] - 2), 0.15)
+  expect_lt(abs(exp(fixef_by_dpar(f3)$beta[[1]]) - 1), 0.3)
   # simulators round-trip
   expect_length(simulate(f3, nsim = 1, seed = 1)$sim_1, n)
 })

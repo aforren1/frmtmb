@@ -1,0 +1,123 @@
+brms-shapes-punch2: 1.234.567.89ab.cd.e
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-brms-shapes-punch2.R:59:3'): each unseen level draws its ow
+Expected `all(abs(distinct) < 0.06)` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+── 2. Failure ('test-brms-shapes-punch2.R:79:5'): coef() on a mixed ordinal fit 
+Expected `colnames(cf)` to equal `rownames(fixef(fit))`.
+Differences:
+`actual`:   "Intercept[1]" "Intercept[2]" "x" "(Intercept)"
+`expected`: "Intercept[1]" "Intercept[2]" "x"              
+
+ordmix
+
+── 3. Failure ('test-brms-shapes-punch2.R:83:7'): coef() on a mixed ordinal fit 
+Expected `unname(cf[[nm]])` to equal `unname(want)`.
+Differences:
+     actual | expected               
+ [1] -0.701 - 0.489    [1]           
+ [2] -0.701 - -3.032   [2]           
+ [3] -0.701 - -0.242   [3]           
+ [4] -0.701 - -2.006   [4]           
+ [5] -0.701 - -0.577   [5]           
+ [6] -0.701 - -1.146   [6]           
+ [7] -0.701 - -1.318   [7]           
+ [8] -0.701 - -0.213   [8]           
+ [9] -0.701 - -0.509   [9]           
+[10] -0.701 - -0.729   [10]          
+ ... ...      ...      and 5 more ...
+
+ordmix Intercept[1]
+
+── 4. Failure ('test-brms-shapes-punch2.R:83:7'): coef() on a mixed ordinal fit 
+Expected `unname(cf[[nm]])` to equal `unname(want)`.
+Differences:
+     actual | expected               
+ [1] 0.770  - 1.960    [1]           
+ [2] 0.770  - -1.561   [2]           
+ [3] 0.770  - 1.229    [3]           
+ [4] 0.770  - -0.535   [4]           
+ [5] 0.770  - 0.893    [5]           
+ [6] 0.770  - 0.324    [6]           
+ [7] 0.770  - 0.153    [7]           
+ [8] 0.770  - 1.258    [8]           
+ [9] 0.770  - 0.962    [9]           
+[10] 0.770  - 0.742    [10]          
+ ... ...      ...      and 5 more ...
+
+ordmix Intercept[2]
+
+── 5. Failure ('test-brms-shapes-punch2.R:79:5'): coef() on a mixed ordinal fit 
+Expected `colnames(cf)` to equal `rownames(fixef(fit))`.
+Differences:
+`actual`:   "Intercept[1]" "Intercept[2]" "x" "(Intercept)"
+`expected`: "Intercept[1]" "Intercept[2]" "x"              
+
+acatmix
+
+── 6. Failure ('test-brms-shapes-punch2.R:83:7'): coef() on a mixed ordinal fit 
+Expected `unname(cf[[nm]])` to equal `unname(want)`.
+Differences:
+     actual | expected               
+ [1] 0.043  - -0.885   [1]           
+ [2] 0.043  - 1.454    [2]           
+ [3] 0.043  - -0.408   [3]           
+ [4] 0.043  - 0.885    [4]           
+ [5] 0.043  - -0.081   [5]           
+ [6] 0.043  - 0.267    [6]           
+ [7] 0.043  - 0.386    [7]           
+ [8] 0.043  - -0.341   [8]           
+ [9] 0.043  - -0.129   [9]           
+[10] 0.043  - -0.011   [10]          
+ ... ...      ...      and 5 more ...
+
+acatmix Intercept[1]
+
+── 7. Failure ('test-brms-shapes-punch2.R:83:7'): coef() on a mixed ordinal fit 
+Expected `unname(cf[[nm]])` to equal `unname(want)`.
+Differences:
+     actual  | expected               
+ [1] -0.0207 - -0.8217  [1]           
+ [2] -0.0207 - 1.5174   [2]           
+ [3] -0.0207 - -0.3442  [3]           
+ [4] -0.0207 - 0.9483   [4]           
+ [5] -0.0207 - -0.0173  [5]           
+ [6] -0.0207 - 0.3307   [6]           
+ [7] -0.0207 - 0.4496   [7]           
+ [8] -0.0207 - -0.2779  [8]           
+ [9] -0.0207 - -0.0653  [9]           
+[10] -0.0207 - 0.0522   [10]          
+ ... ...       ...      and 5 more ...
+
+acatmix Intercept[2]
+
+── 8. Failure ('test-brms-shapes-punch2.R:111:3'): a row predicted alone and bes
+Expected `ab[1L, ]` to be identical to `a[1L, ]`.
+Differences:
+  `actual`: 6.04 2.75 2.00 11.00
+`expected`: 7.86 3.25 2.00 14.00
+
+
+── 9. Failure ('test-brms-shapes-punch2.R:112:3'): a row predicted alone and bes
+Expected `w` to match regexp "row 2".
+Actual text:
+x | predict(): 205 of 400 simulated replicates drew a distributional parameter that is not finite and are NA in the summary. A parameter the draw law covers is barely identified; vcov(object, full = TRUE) has its variance. param_uncertainty = FALSE simulates at the estimates alone
+
+── 10. Failure ('test-brms-shapes-punch2.R:127:3'): predict(summary = FALSE) on 
+Expected `mean(within)` to equal `rc`.
+Differences:
+  `actual`: 0.00
+`expected`: 0.61
+
+  ... and 4 more
+
+
+Maximum number of 10 failures reached, some test results may be missing.
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+Frustration is a natural part of programming :)

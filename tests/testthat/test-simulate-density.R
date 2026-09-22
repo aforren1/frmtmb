@@ -217,7 +217,8 @@ sim_data <- function(ydummy, extra_cols = list()) {
   n <- 2L * SIM_N
   dd <- data.frame(g = factor(rep(c("a", "b"), each = SIM_N)))
   dd[["y"]] <- rep(ydummy, length.out = n)
-  for (nm in names(extra_cols)) dd[[nm]] <- rep(extra_cols[[nm]], length.out = n)
+  for (nm in names(extra_cols)) dd[[nm]] <- rep(extra_cols[[nm]],
+                                                length.out = n)
   dd
 }
 
@@ -524,7 +525,8 @@ test_that("categorical: category draws agree with the family's own density", {
   }
 })
 
-test_that("multinomial: count-vector draws agree with the family's own density", {
+test_that("multinomial: count-vector draws agree with the family's own density",
+          {
   K <- 3L
   size <- 5L
   fam <- multinomial(K)
@@ -742,7 +744,7 @@ test_that("simulate() on a fit draws from the fitted family's density", {
   fit <- frmtmb::frm(y ~ x, family = stats::gaussian(), data = dd)
   ffam <- frmtmb::as_frmtmb_family(stats::gaussian())
   # the fit's own dpars, through the exported accessors
-  mu <- stats::fitted(fit)
+  mu <- stats::fitted(fit)[, "Estimate"]
   sg <- stats::sigma(fit)
   sims <- stats::simulate(fit, nsim = 40L, seed = SIM_SEED)
   # standardized residuals of the draws are one iid sample from the
@@ -834,7 +836,8 @@ sim_gap_families <- function() {
   }, names(reg))
 }
 
-test_that("a family with no simulator is refused by name at both entry points", {
+test_that("a family with no simulator is refused by name at both entry points",
+          {
   gaps <- sim_gap_families()
   # cox() is the one deliberate refusal: inverting a cumulative baseline
   # hazard identified only on the observed window has no answer

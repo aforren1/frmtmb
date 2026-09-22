@@ -327,7 +327,7 @@ test_that("simulate() draws correlated residuals", {
   f <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(), data = d)
   rho <- autocor_matrix(f)[1, 2]
   s <- as.matrix(simulate(f, nsim = 200, seed = 1))
-  r <- array(s - fitted(f), dim = c(5, 30, 200))
+  r <- array(s - fitted(f)[, "Estimate"], dim = c(5, 30, 200))
   lag1 <- mean(apply(r, 3, function(m) {
     stats::cor(as.vector(m[-5, ]), as.vector(m[-1, ]))
   }))
@@ -335,7 +335,8 @@ test_that("simulate() draws correlated residuals", {
   expect_equal(stats::sd(as.vector(r)), sigma(f), tolerance = 0.05)
 })
 
-test_that("autocor_matrix() is the fitted correlation and predict is unchanged", {
+test_that("autocor_matrix() is the fitted correlation and predict is unchanged",
+          {
   d <- ac_sim(seed = 11, G = 30, K = 5)
   f <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(), data = d)
   R <- autocor_matrix(f)
@@ -344,15 +345,16 @@ test_that("autocor_matrix() is the fitted correlation and predict is unchanged",
   expect_equal(R[1, 3], R[1, 2]^2, tolerance = 1e-10)
   expect_identical(dimnames(R)[[1]], as.character(1:5))
   # the mean structure is untouched
-  expect_equal(max(abs(fitted(f) - predict(f, type = "response"))), 0)
+  expect_equal(max(abs(fitted(f)[, "Estimate"] -
+                         frm_linpred(f, type = "response"))), 0)
   nd <- d[1:5, ]
-  expect_length(predict(f, newdata = nd), 5L)
-  expect_true(all(is.finite(predict(f, newdata = nd,
+  expect_length(frm_linpred(f, newdata = nd), 5L)
+  expect_true(all(is.finite(frm_linpred(f, newdata = nd,
                                     se.fit = TRUE)$se.fit)))
   # pearson divides by the marginal SD, which is sigma (R is unit
   # diagonal), so it stays the plain standardization
-  expect_equal(residuals(f, type = "pearson"),
-               residuals(f) / sigma(f), tolerance = 1e-12)
+  expect_equal(residuals(f, type = "pearson")[, "Estimate"],
+               residuals(f)[, "Estimate"] / sigma(f), tolerance = 1e-12)
   expect_null(autocor_matrix(frm(bf(y ~ x) + gaussian(), data = d)))
 })
 

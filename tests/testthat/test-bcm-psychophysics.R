@@ -85,7 +85,7 @@ test_that("PsychophysicalFunction1 is a binomial logit GLMM", {
   d <- bcm_psy_data()
   fit <- frm(r | trials(n) ~ xc + (xc || subj),
              family = binomial(), data = d)
-  b <- fixef(fit)$mu
+  b <- fixef_by_dpar(fit)$mu
   # longer intervals are called long more often, so the slope is positive
   expect_gt(unname(b["xc"]), 0)
   expect_equal(nrow(ranef(fit)[[1L]]), 8L)
@@ -106,7 +106,7 @@ test_that("PsychophysicalFunction1 matches its Stan program", {
     data = bcm_psy_stan_data(d),
     fit = fit,
     pars = function(f) {
-      b <- fixef(f)$mu
+      b <- fixef_by_dpar(f)$mu
       list(mua = unname(b["(Intercept)"]), mub = unname(b["xc"]),
            sigmaa = frm_sd_term(f, "1 | subj"),
            sigmab = frm_sd_term(f, "0 + xc | subj"),
@@ -129,7 +129,7 @@ test_that("PsychophysicalFunction2 adds a contaminant component", {
   skip_unless_bcm("binomial-extras.R")
   d <- bcm_psy_data()
   fit <- frm(bcm_psy2_formula(), family = bcm_contaminant(), data = d)
-  ph <- plogis(unname(fixef(fit)$phi["(Intercept)"]))
+  ph <- plogis(unname(fixef_by_dpar(fit)$phi["(Intercept)"]))
   # a contamination rate, not a second psychometric function: it stays
   # well away from one, which is what the closed-form integral in
   # inst/bcm/binomial-extras.R buys
@@ -140,7 +140,8 @@ test_that("PsychophysicalFunction2 adds a contaminant component", {
   # shrinks
   plain <- frm(r | trials(n) ~ xc + (xc || subj),
                family = binomial(), data = d)
-  expect_gt(unname(fixef(fit)$mu["xc"]), unname(fixef(plain)$mu["xc"]))
+  expect_gt(unname(fixef_by_dpar(fit)$mu["xc"]),
+            unname(fixef_by_dpar(plain)$mu["xc"]))
 })
 
 test_that("PsychophysicalFunction2 matches its Stan program", {
@@ -153,8 +154,8 @@ test_that("PsychophysicalFunction2 matches its Stan program", {
     data = bcm_psy_stan_data(d),
     fit = fit,
     pars = function(f) {
-      b <- fixef(f)$mu
-      bp <- fixef(f)$phi
+      b <- fixef_by_dpar(f)$mu
+      bp <- fixef_by_dpar(f)$phi
       # three independent blocks on the same grouping factor, two from
       # the mu formula and one from the phi formula, so every one is
       # addressed by the coefficient it carries

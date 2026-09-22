@@ -138,7 +138,7 @@ positive definite and four \code{NaN} standard errors.
 
 With it, each row's bound is its own group's fastest response, \code{ndt}
 is a FRACTION of that bound on a plain logit, and the density
-multiplies it back out. \code{predict(dpar = "ndt", type = "response")}
+multiplies it back out. \code{frm_linpred(dpar = "ndt", type = "response")}
 then reports the fraction, and \code{\link[frmtmb.eam:ndt_time]{frmtmb.eam::ndt_time()}} reports the
 non-decision time in seconds whichever parameterization a fit is in.
 Without it nothing about the family moved.

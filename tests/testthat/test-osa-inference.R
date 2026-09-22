@@ -18,7 +18,7 @@ fit_cens_right <- function() {
 
 test_that("OSA residuals on a right-censored fit are the conditional PIT", {
   z <- fit_cens_right()
-  r <- residuals(z$fit, type = "osa")
+  r <- residuals(z$fit, type = "osa")[, "Estimate"]
   cen <- z$data$cen != 0
   # a censored row observes an event, not a value: no residual
   expect_equal(length(r), nrow(z$data))
@@ -48,7 +48,7 @@ test_that("OSA residuals survive two-sided censoring", {
   dd <- data.frame(y = pmin(pmax(ys, lo), hi), x = x,
                    cen = ifelse(ys < lo, -1, ifelse(ys > hi, 1, 0)))
   fit <- frm(bf(y | cens(cen) ~ x) + gaussian(), data = dd)
-  r <- residuals(fit, type = "osa")
+  r <- residuals(fit, type = "osa")[, "Estimate"]
   expect_true(all(is.na(r[dd$cen != 0])))
   expect_gt(stats::ks.test(r[dd$cen == 0], "pnorm")$p.value, 0.01)
 })
@@ -92,7 +92,7 @@ test_that("OSA residuals on ordinal fits are randomized quantile residuals", {
 
   for (fam in list(cumulative(), sratio(), cratio(), acat())) {
     fit <- frm(bf(y ~ x) + fam, data = dd)
-    r <- residuals(fit, type = "osa")
+    r <- residuals(fit, type = "osa")[, "Estimate"]
     expect_true(all(is.finite(r)), info = fam$family)
     expect_gt(stats::ks.test(r, "pnorm")$p.value, 0.01)
   }
@@ -100,7 +100,7 @@ test_that("OSA residuals on ordinal fits are randomized quantile residuals", {
   # the taped pmf is exact: reproduce the residual analytically, using
   # oneStepPredict's own default randomization seed
   fit <- frm(bf(y ~ x) + cumulative(), data = dd)
-  r <- residuals(fit, type = "osa")
+  r <- residuals(fit, type = "osa")[, "Estimate"]
   dp <- frmtmb:::eval_dpars(fit)[["y"]]
   raw <- fit$estimates[["tau_raw"]]
   tau <- cumsum(c(raw[1], exp(raw[-1])))
@@ -127,7 +127,7 @@ test_that("ordinal OSA residuals work with random effects", {
   y <- apply(P, 2, function(p) sample.int(3, 1, prob = p))
   fit <- frm(bf(y ~ x + (1 | g)) + cumulative(),
              data = data.frame(y = ordered(y), x = x, g = g))
-  r <- residuals(fit, type = "osa")
+  r <- residuals(fit, type = "osa")[, "Estimate"]
   expect_true(all(is.finite(r)))
   expect_gt(stats::ks.test(r, "pnorm")$p.value, 0.01)
 })

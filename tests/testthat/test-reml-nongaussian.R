@@ -127,7 +127,7 @@ test_that("distributional gaussian REML is exact classical REML (gls)", {
                   weights = nlme::varIdent(form = ~ 1 | f),
                   method = "REML")
   expect_lt(abs(as.numeric(logLik(fi)) - as.numeric(logLik(gi))), 1e-5)
-  expect_lt(max(abs(unlist(fixef(fi)$mu) - stats::coef(gi))), 1e-4)
+  expect_lt(max(abs(unlist(fixef_by_dpar(fi)$mu) - stats::coef(gi))), 1e-4)
 
   fe <- frm(bf(y ~ x, sigma ~ v), family = gaussian(), data = dd,
             REML = TRUE)

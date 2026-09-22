@@ -22,7 +22,7 @@ test_that("conditional_effects builds sensible grids with Wald bands", {
   expect_equal(range(dx$x), range(dd$x))
   expect_true(all(dx$f == "a"))
   # a population prediction at the same point matches
-  p <- predict(fit, newdata = data.frame(x = dx$x[1], f = "a"),
+  p <- frm_linpred(fit, newdata = data.frame(x = dx$x[1], f = "a"),
                re_formula = NA, se.fit = TRUE)
   expect_equal(dx$estimate__[1], unname(p$fit), tolerance = 1e-8)
   expect_equal(dx$se__[1], unname(p$se.fit), tolerance = 1e-8)
@@ -79,7 +79,7 @@ test_that("conditional_effects respects the link scale", {
   fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
   ce <- conditional_effects(fit, effects = "x")
   expect_true(all(ce$x$lower__ > 0))
-  eta <- predict(fit, newdata = data.frame(x = ce$x$x), re_formula = NA)
+  eta <- frm_linpred(fit, newdata = data.frame(x = ce$x$x), re_formula = NA)
   expect_equal(ce$x$estimate__, unname(exp(eta)), tolerance = 1e-8)
 })
 
@@ -212,7 +212,7 @@ test_that("conditional_effects() takes re_formula, brms's spelling", {
   expect_identical(unique(as.character(ce_g3$x$g)), "3")
 
   # the lme4 spelling is REFUSED now, not redirected: brms is the
-  # tiebreaker on a name, so it is gone from predict() and simulate()
+  # tiebreaker on a name, so it is gone from frm_linpred() and simulate()
   # too and there is nothing left for it to be an alias of
   expect_error(conditional_effects(fit, effects = "x", re.form = NULL),
                "lme4's spelling")

@@ -38,7 +38,7 @@ test_that("nlf() composition is the nl = TRUE model exactly", {
                tolerance = 1e-10)
   expect_equal(vcov(composed), vcov(direct), tolerance = 1e-10)
   expect_identical(dimnames(vcov(composed)), dimnames(vcov(direct)))
-  expect_equal(predict(composed), predict(direct), tolerance = 1e-10)
+  expect_equal(frm_linpred(composed), frm_linpred(direct), tolerance = 1e-10)
 })
 
 test_that("a nonlinear sigma with a linear mu matches a hand-rolled tape", {
@@ -67,10 +67,11 @@ test_that("a nonlinear sigma with a linear mu matches a hand-rolled tape", {
   expect_equal(fit$obj$fn(pv), obj$fn(pv), tolerance = 1e-10)
 
   expect_equal(as.numeric(logLik(fit)), -opt$objective, tolerance = 1e-8)
-  expect_equal(unname(c(fixef(fit)$mu, fixef(fit)$a, fixef(fit)$b)),
+  expect_equal(unname(c(fixef_by_dpar(fit)$mu, fixef_by_dpar(fit)$a,
+                        fixef_by_dpar(fit)$b)),
                unname(opt$par), tolerance = 1e-5)
   # the log link is applied to the BODY's value, as it is in brms
-  expect_equal(unname(predict(fit, dpar = "sigma", type = "response")),
+  expect_equal(unname(frm_linpred(fit, dpar = "sigma", type = "response")),
                exp(opt$par[3] + opt$par[4] * zv), tolerance = 1e-5)
 })
 
@@ -90,7 +91,7 @@ test_that("nonlinear bodies chain to any depth in dependency order", {
                tolerance = 1e-10)
   expect_equal(as.numeric(logLik(deep)), as.numeric(logLik(ref)),
                tolerance = 1e-10)
-  expect_equal(predict(deep), predict(ref), tolerance = 1e-10)
+  expect_equal(frm_linpred(deep), frm_linpred(ref), tolerance = 1e-10)
   # the parameters a body reads are computed before it
   expect_identical(names(chain$spec$responses$y$dpars),
                    c("bb", "cc", "a", "mu", "sigma"))
@@ -154,13 +155,14 @@ test_that("post-processing follows the nonlinear parameter a body names", {
   fit <- frm(bf(y ~ x) + nlf(sigma ~ a + b * z) + lf(a ~ 1, b ~ 1) +
                gaussian(), data = d)
 
-  expect_equal(predict(fit, newdata = d), predict(fit), tolerance = 1e-8)
-  expect_equal(fitted(fit), predict(fit, type = "response"),
+  expect_equal(frm_linpred(fit, newdata = d), frm_linpred(fit),
                tolerance = 1e-8)
-  expect_length(residuals(fit), n)
+  expect_equal(unname(fitted(fit)[, "Estimate"]),
+               unname(frm_linpred(fit, type = "response")), tolerance = 1e-8)
+  expect_length(residuals(fit)[, "Estimate"], n)
   # mu is linear, so its delta-method standard error is unaffected
-  expect_false(is.null(predict(fit, se.fit = TRUE)$se.fit))
-  expect_error(predict(fit, dpar = "sigma", se.fit = TRUE),
+  expect_false(is.null(frm_linpred(fit, se.fit = TRUE)$se.fit))
+  expect_error(frm_linpred(fit, dpar = "sigma", se.fit = TRUE),
                "se.fit is not supported")
   # the effect display finds the body's covariate, not mu's
   ce <- conditional_effects(fit, dpar = "sigma", band = "boot", boot = 5)
@@ -309,18 +311,18 @@ test_that("a body can read another dpar's value: varPower(~ fitted(.))", {
   expect_gte(as.numeric(logLik(fit)), as.numeric(stats::logLik(g)))
   expect_equal(as.numeric(logLik(fit)), as.numeric(stats::logLik(g)),
                tolerance = 1e-3)
-  expect_equal(unname(fixef(fit)$mu), unname(stats::coef(g)),
+  expect_equal(unname(fixef_by_dpar(fit)$mu), unname(stats::coef(g)),
                tolerance = 1e-2)
-  expect_equal(exp(fixef(fit)$ls[[1]]), g$sigma, tolerance = 1e-2)
-  expect_equal(fixef(fit)$th[[1]],
+  expect_equal(exp(fixef_by_dpar(fit)$ls[[1]]), g$sigma, tolerance = 1e-2)
+  expect_equal(fixef_by_dpar(fit)$th[[1]],
                unname(stats::coef(g$modelStruct$varStruct,
                                   unconstrained = FALSE)),
                tolerance = 1e-2)
 
   # newdata and eval_dpars take the same route through the reference
-  expect_equal(predict(fit, newdata = d[1:20, ], dpar = "sigma",
+  expect_equal(frm_linpred(fit, newdata = d[1:20, ], dpar = "sigma",
                        type = "response"),
-               predict(fit, dpar = "sigma",
+               frm_linpred(fit, dpar = "sigma",
                        type = "response")[1:20],
                tolerance = 1e-10, ignore_attr = TRUE)
 

@@ -24,7 +24,7 @@
 #' covariance of a curve needs the joint covariance of the fixed AND
 #' random coefficients. frmtmb exports no route to it: `vcov(full =
 #' TRUE)` returns the outer parameter vector, which excludes `b` under
-#' both of its branches, and `predict(se.fit = TRUE)` forms the grid
+#' both of its branches, and `frm_linpred(se.fit = TRUE)` forms the grid
 #' covariance internally and returns only its diagonal.
 #'
 #' So this function rebuilds it. The linear predictor is LINEAR in the
@@ -35,7 +35,7 @@
 #'
 #' Neither piece was handed over by an exported function, so neither is
 #' trusted. Every call recomputes `sqrt(diag(Sigma))` and compares it
-#' with `predict(se.fit = TRUE)`, and refuses when the two disagree by
+#' with `frm_linpred(se.fit = TRUE)`, and refuses when the two disagree by
 #' more than `tol`. The measured agreement is in the `"check"` attribute
 #' and is reported by `print()`. On the package's own test models it is
 #' at the tenth significant figure or better.
@@ -58,19 +58,19 @@
 #' number" to "the seam is being read correctly".
 #'
 #' The check itself stays. Every call recomputes `sqrt(diag(Sigma))` and
-#' compares it with `predict(se.fit = TRUE)`, and refuses when the two
+#' compares it with `frm_linpred(se.fit = TRUE)`, and refuses when the two
 #' disagree by more than `tol`. The measured agreement is in the
 #' `"check"` attribute and is reported by `print()`.
 #'
 #' The one case with nothing to check against is a nonlinear (`nl =
-#' TRUE`) body: `predict(se.fit = TRUE)` is refused there, so
+#' TRUE`) body: `frm_linpred(se.fit = TRUE)` is refused there, so
 #' `frm_lp_basis()` is the only route to the number and `cov_rel_error`
 #' is `NA`. `print()` says so rather than reporting a check that never
 #' ran.
 #'
 #' @section Cost:
 #' What this call costs is dominated by ONE thing: the single
-#' `predict(se.fit = TRUE)` check call, inside which core inverts the
+#' `frm_linpred(se.fit = TRUE)` check call, inside which core inverts the
 #' fit's joint precision matrix over EVERY coefficient, including the
 #' ones this curve does not touch. Measured at `re_formula = NA` on a
 #' 20-point grid, one process each:
@@ -121,7 +121,7 @@
 #' }
 #'
 #' The covariance check also means less here, and `print()` says so.
-#' `predict(se.fit = TRUE)` returns a marginal standard error per row
+#' `frm_linpred(se.fit = TRUE)` returns a marginal standard error per row
 #' and never the covariance between the grids, so the check runs on each
 #' half and `cov_rel_error` is the worse of the two: what it licenses is
 #' that both designs were read correctly.
@@ -184,7 +184,7 @@
 #'   inverse. The bands are transformed end to end rather than rebuilt,
 #'   which keeps their coverage under any monotone link.
 #' @param seed Seed for the simulation, for a reproducible band.
-#' @param tol Largest relative disagreement with `predict(se.fit = TRUE)`
+#' @param tol Largest relative disagreement with `frm_linpred(se.fit = TRUE)`
 #'   the assembled covariance may show before the call refuses.
 #'
 #' @section Past a `ps()` knot span:
@@ -322,13 +322,13 @@ sp_linkinv <- function(parts) {
   fit <- parts$fit
   nd <- parts$newdata[1L, , drop = FALSE]
   lk <- sp_predict_eta(fit, nd, parts$dpar, parts$resp, parts$re_formula)
-  rs <- try(as.numeric(stats::predict(fit, newdata = nd, type = "response",
-                                      dpar = parts$dpar, resp = parts$resp,
-                                      re_formula = parts$re_formula)),
-            silent = TRUE)
+  rs <- try(as.numeric(
+    frmtmb::frm_linpred(fit, newdata = nd, type = "response",
+                        dpar = parts$dpar, resp = parts$resp,
+                        re_formula = parts$re_formula)), silent = TRUE)
   if (inherits(rs, "try-error") || length(rs) != 1L) {
     frm_stop("frm_curve(transform = TRUE): this linear predictor has no ",
-             "response scale to transform onto. predict(type = \"response\") ",
+             "response scale to transform onto. frm_linpred(type = \"response\") ",
              "refuses it, so the curve stays on the link scale",
              call. = FALSE)
   }
@@ -358,20 +358,20 @@ print.frmtmb_curve <- function(x, ...) {
   # a SUBSET of a curve keeps its rows and loses its attributes, so
   # this reads a zero-length value rather than a missing one
   if (!length(ck$cov_rel_error) || is.na(ck$cov_rel_error)) {
-    cat("  covariance NOT checked: predict(se.fit = TRUE) is refused",
+    cat("  covariance NOT checked: frm_linpred(se.fit = TRUE) is refused",
         " for a nonlinear predictor, so there is no second route to",
         " compare against\n", sep = "")
   } else if (!is.null(attr(x, "spec")[["contrast"]])) {
     # the number is the worse of the two grids, and it says the two
-    # DESIGNS were read correctly. predict(se.fit = TRUE) has no
+    # DESIGNS were read correctly. frm_linpred(se.fit = TRUE) has no
     # covariance between the grids to offer, so the difference's own
     # standard error has no second route and print() must not imply one
-    cat("  each grid checked against predict(se.fit = TRUE) to ",
+    cat("  each grid checked against frm_linpred(se.fit = TRUE) to ",
         format(ck$cov_rel_error, digits = 3),
         " relative; the difference itself has no second route\n",
         sep = "")
   } else {
-    cat("  covariance checked against predict(se.fit = TRUE) to ",
+    cat("  covariance checked against frm_linpred(se.fit = TRUE) to ",
         format(ck$cov_rel_error, digits = 3), " relative\n",
         sep = "")
   }

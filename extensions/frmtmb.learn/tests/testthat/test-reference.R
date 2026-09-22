@@ -95,7 +95,7 @@ ln_ref_ts <- function(d, p, pc = 0.7) {
 
 # the fitted parameters of a no-random-effect fit, on natural scales
 ln_nat <- function(fit) {
-  b <- unlist(frmtmb::fixef(fit))
+  b <- unlist(frmtmb::fixef_by_dpar(fit))
   nm <- sub("[.][(]Intercept[)]$", "", names(b))
   fam <- frmtmb::single_response(fit, "a fit")$family
   lk <- fam$links

@@ -37,7 +37,7 @@ cp_pooled <- function(d) {
 }
 
 cp_est <- function(fit) {
-  fx <- vapply(frmtmb::fixef(fit), function(z) z[["(Intercept)"]], 0)
+  fx <- vapply(frmtmb::fixef_by_dpar(fit), function(z) z[["(Intercept)"]], 0)
   c(s11 = exp(fx[["mu"]]), s22 = exp(fx[["pow2"]]),
     coh = stats::plogis(fx[["coh"]]), phase = fx[["phase"]])
 }
@@ -105,7 +105,8 @@ test_that("the log likelihood matches an independent evaluation", {
   lds <- sum(log(Re(eigen(S, symmetric = TRUE, only.values = TRUE)$values)))
   ll <- 0
   for (i in seq_len(nrow(d))) {
-    W <- matrix(c(d$w11[i] + 0i, complex(real = d$w12r[i], imaginary = -d$w12i[i]),
+    W <- matrix(c(d$w11[i] + 0i, complex(real = d$w12r[i],
+                                         imaginary = -d$w12i[i]),
                   complex(real = d$w12r[i], imaginary = d$w12i[i]),
                   d$w22[i] + 0i), 2, 2)
     ldw <- sum(log(Re(eigen(W, symmetric = TRUE, only.values = TRUE)$values)))

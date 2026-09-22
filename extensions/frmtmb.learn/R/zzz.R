@@ -207,7 +207,7 @@ ln_common_rules <- function(r, nm, nominal = TRUE) {
   r(nm, "predict", "conditional",
     paste0("type = 'link' works everywhere, on new data too, and is how ",
            "a fitted learning parameter is read: ",
-           "predict(type = 'link', dpar = 'alpha'). type = 'response' is ",
+           "frm_linpred(type = 'link', dpar = 'alpha'). type = 'response' is ",
            "refused, for the reason in the fitted row, and separately ",
            "would be refused on newdata because a trial's choice ",
            "probability is conditional on a history newdata does not ",
@@ -399,7 +399,7 @@ ln_compat_rules <- function() {
            "set one bound to two different things. ",
            "frmtmb.eam::ndt_time() reports the fitted non-decision time ",
            "in seconds under either parameterization, and ",
-           "predict(dpar = 'ndt', type = 'response') reports the ",
+           "frm_linpred(dpar = 'ndt', type = 'response') reports the ",
            "FRACTION under this one."))
   r("rlddm", "reward()", "works",
     paste0("As bandit2arm_delta(). The learning rule is that family's ",
@@ -430,11 +430,11 @@ ln_compat_rules <- function() {
            "frame_block_of()."))
   r("frm_value_trace", "predict", "conditional",
     paste0("The two answer different questions and neither replaces the ",
-           "other. predict(type = 'link', dpar = ) gives a fitted ",
+           "other. frm_linpred(type = 'link', dpar = ) gives a fitted ",
            "PARAMETER, one number per row, and works on new data. The ",
            "trace gives the fitted STATE, which exists only where a ",
            "history exists, so it runs on the training data alone. ",
-           "predict(type = 'response') is refused, and the trace's `p` ",
+           "frm_linpred(type = 'response') is refused, and the trace's `p` ",
            "column is what it would have returned."))
   r("frm_task_simulate", "simulate", "works",
     paste0("The other simulation route. It takes parameters directly, ",

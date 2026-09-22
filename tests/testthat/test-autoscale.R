@@ -33,7 +33,7 @@ test_that("autoscale reproduces the plain fit on a well-scaled model", {
   fa <- frm(form, data = dd,
             control = frmtmb_control(autoscale = TRUE))
   expect_loglik_equal(fa, f0, tol = 1e-8)
-  expect_vector_equal(fixef(fa)$mu, fixef(f0)$mu, tol = 1e-6)
+  expect_vector_equal(fixef_by_dpar(fa)$mu, fixef_by_dpar(f0)$mu, tol = 1e-6)
   expect_vector_equal(fa$estimates$theta, f0$estimates$theta, tol = 1e-5)
 })
 
@@ -74,11 +74,11 @@ test_that("autoscale rescues a badly scaled poisson GLMM", {
   db2$z2 <- (db$x2 - m2) / s2
   fr <- frm(bf(y ~ z1 + z2 + (1 | g)) + poisson(), data = db2)
   expect_loglik_equal(fa, fr, tol = 1e-6)
-  cz <- fixef(fr)$mu
+  cz <- fixef_by_dpar(fr)$mu
   ref <- c(cz[["(Intercept)"]] - cz[["z1"]] * m1 / s1 -
              cz[["z2"]] * m2 / s2,
            cz[["z1"]] / s1, cz[["z2"]] / s2)
-  expect_equal(unname(fixef(fa)$mu), ref, tolerance = 1e-6)
+  expect_equal(unname(fixef_by_dpar(fa)$mu), ref, tolerance = 1e-6)
   expect_vector_equal(fa$estimates$theta, fr$estimates$theta, tol = 1e-4)
 
   # SEs transform by the same column scales (finite-difference Hessians
@@ -89,8 +89,8 @@ test_that("autoscale rescues a badly scaled poisson GLMM", {
                unname(se_r[c("z1", "z2")]) / c(s1, s2),
                tolerance = 1e-3)
   # prediction SEs ride on the joint precision and match too
-  pa <- predict(fa, se.fit = TRUE)
-  pr <- predict(fr, se.fit = TRUE)
+  pa <- frm_linpred(fa, se.fit = TRUE)
+  pr <- frm_linpred(fr, se.fit = TRUE)
   expect_true(all(is.finite(pa$se.fit)))
   expect_vector_equal(pa$se.fit, pr$se.fit, tol = 1e-3)
 
@@ -145,8 +145,8 @@ test_that("autoscale leaves smooth and mo() columns untouched", {
   fr <- frm(bf(y ~ xz + mo(m) + s(xs) + (1 | g)) + gaussian(),
             data = dd2)
   expect_loglik_equal(fa, fr, tol = 1e-6)
-  ca <- fixef(fa)$mu
-  cr <- fixef(fr)$mu
+  ca <- fixef_by_dpar(fa)$mu
+  cr <- fixef_by_dpar(fr)$mu
   expect_equal(ca[["xbig"]], cr[["xz"]] / sb, tolerance = 1e-6)
   expect_equal(ca[["(Intercept)"]],
                cr[["(Intercept)"]] - cr[["xz"]] * mb / sb,
@@ -174,8 +174,8 @@ test_that("autoscale scales without centering when there is no intercept", {
   db2$z2 <- db$x2 / s2
   fr <- frm(bf(y ~ 0 + z1 + z2 + (1 | g)) + poisson(), data = db2)
   expect_loglik_equal(fa, fr, tol = 1e-6)
-  cz <- fixef(fr)$mu
-  expect_equal(unname(fixef(fa)$mu),
+  cz <- fixef_by_dpar(fr)$mu
+  expect_equal(unname(fixef_by_dpar(fa)$mu),
                c(cz[["z1"]] / s1, cz[["z2"]] / s2),
                tolerance = 1e-6)
 })
@@ -203,9 +203,11 @@ test_that("autoscale covers dpar formulas and combines with profile", {
   dd2$xz <- (dd$xbig - mb) / sb
   fr <- frm(bf(y ~ xz + (1 | g), sigma ~ xz) + gaussian(), data = dd2)
   expect_loglik_equal(fa, fr, tol = 1e-6)
-  expect_equal(fixef(fa)$mu[["xbig"]], fixef(fr)$mu[["xz"]] / sb,
+  expect_equal(fixef_by_dpar(fa)$mu[["xbig"]],
+               fixef_by_dpar(fr)$mu[["xz"]] / sb,
                tolerance = 1e-6)
-  expect_equal(fixef(fa)$sigma[["xbig"]], fixef(fr)$sigma[["xz"]] / sb,
+  expect_equal(fixef_by_dpar(fa)$sigma[["xbig"]],
+               fixef_by_dpar(fr)$sigma[["xz"]] / sb,
                tolerance = 1e-6)
 
   # profile = TRUE moves beta into the inner problem; autoscale rides
@@ -224,6 +226,7 @@ test_that("autoscale covers dpar formulas and combines with profile", {
   frp <- frm(bf(y ~ z1 + z2 + (1 | g)) + poisson(), data = db2,
              control = frmtmb_control(profile = TRUE))
   expect_loglik_equal(fp$fit, frp, tol = 1e-6)
-  expect_equal(fixef(fp$fit)$mu[["x1"]], fixef(frp)$mu[["z1"]] / s1,
+  expect_equal(fixef_by_dpar(fp$fit)$mu[["x1"]],
+               fixef_by_dpar(frp)$mu[["z1"]] / s1,
                tolerance = 1e-5)
 })

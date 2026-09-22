@@ -96,7 +96,12 @@ frm_multiple <- function(formula, data, level = 0.95, ...) {
     c(f$estimates[["beta"]], bd)
   }, numeric(length(nm)))
   cf <- matrix(cf, nrow = length(nm), dimnames = list(nm, NULL))
-  us <- vapply(fits, function(f) diag(vcov(f)), numeric(length(nm)))
+  # vcov_estimated(), not vcov(): the pooling runs over EVERY estimated
+  # coefficient, which is what `nm` and `cf` above are, and vcov() is
+  # brms's population-level block, one row shorter on a fit with an
+  # intercept-only dispersion parameter
+  us <- vapply(fits, function(f) diag(vcov_estimated(f)),
+               numeric(length(nm)))
   pl <- rubin_pool(cf, matrix(us, nrow = length(nm)), dfcom)
   tstat <- pl$estimate / pl$se
   tab <- data.frame(
@@ -399,7 +404,9 @@ pooled_wald_parts <- function(big, small, constraint) {
             })
     names(cf) <- estimated_coef_names(f)
     Q[, j] <- cf[tested]
-    U[, , j] <- vcov(f)[tested, tested, drop = FALSE]
+    # `tested` are estimated_coef_names(), so the covariance has to be
+    # the one over that vector rather than brms's block
+    U[, , j] <- vcov_estimated(f)[tested, tested, drop = FALSE]
   }
   # per-imputation Wald chi-squares, for D2(use = "wald")
   d <- vapply(seq_len(m), function(j) {

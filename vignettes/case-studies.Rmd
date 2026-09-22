@@ -194,7 +194,8 @@ fmv <- frm(bf(value ~ 0 + trait + (0 + trait | gr(id, cov = A)),
            data = long, data2 = list(A = A))
 Gh <- VarCorr(fmv)$id$cov[, "Estimate", ]
 out <- rbind(
-  estimated = c(sqrt(diag(Gh)), cov2cor(Gh)[1, 2], exp(fixef(fmv)$sigma)),
+  estimated = c(sqrt(diag(Gh)), cov2cor(Gh)[1, 2],
+                exp(fixef_by_dpar(fmv)$sigma)),
   simulated = c(sqrt(diag(G)), 0.6 / sqrt(1.0 * 0.8), 0.7, 0.9))
 colnames(out) <- c("gen_sd_y1", "gen_sd_y2", "gen_cor",
                    "resid_sd_y1", "resid_sd_y2")
@@ -259,7 +260,7 @@ fphy <- frm(bf(y ~ x + (1 | gr(sp, cov = A_phy))) + gaussian(),
             data = d, data2 = list(A_phy = A_phy),
             control = frmtmb_control(check_olre = "ignore"))
 sd_p <- VarCorr(fphy)$sp$sd["Intercept", "Estimate"]
-c(fixef(fphy)$mu, sd_phylo = sd_p, sigma = sigma(fphy),
+c(fixef_by_dpar(fphy)$mu, sd_phylo = sd_p, sigma = sigma(fphy),
   phylogenetic_h2 = sd_p^2 / (sd_p^2 + sigma(fphy)^2))
 ```
 
@@ -278,7 +279,7 @@ the two fits are the same model and must agree.
 g <- nlme::gls(y ~ x, data = d, method = "ML",
                correlation = ape::corPagel(0.5, phy = tree, form = ~sp))
 out <- rbind(
-  frmtmb = c(fixef(fphy)$mu, sd_p^2 / (sd_p^2 + sigma(fphy)^2),
+  frmtmb = c(fixef_by_dpar(fphy)$mu, sd_p^2 / (sd_p^2 + sigma(fphy)^2),
              sd_p^2 + sigma(fphy)^2, as.numeric(logLik(fphy))),
   gls = c(coef(g), coef(g$modelStruct$corStruct, unconstrained = FALSE),
           g$sigma^2, as.numeric(logLik(g))))
@@ -289,7 +290,7 @@ out
 ```{r phylo-assert, eval = has_phy}
 lam_gls <- as.numeric(coef(g$modelStruct$corStruct, unconstrained = FALSE))
 stopifnot(
-  max(abs(fixef(fphy)$mu - coef(g))) < 1e-4,
+  max(abs(fixef_by_dpar(fphy)$mu - coef(g))) < 1e-4,
   abs(sd_p^2 / (sd_p^2 + sigma(fphy)^2) - lam_gls) < 1e-4,
   abs(as.numeric(logLik(fphy)) - as.numeric(logLik(g))) < 1e-4
 )
@@ -333,7 +334,7 @@ bcg$study <- factor(seq_len(nrow(bcg)))
 ```{r meta}
 fmeta <- frm(bf(yi | se(sei) ~ 1 + (1 | study)) + gaussian(),
              data = bcg, REML = TRUE)
-c(pooled_logRR = unname(fixef(fmeta)$mu), se = sqrt(vcov(fmeta)[1, 1]),
+c(pooled_logRR = unname(fixef_by_dpar(fmeta)$mu), se = sqrt(vcov(fmeta)[1, 1]),
   tau = VarCorr(fmeta)$study$sd["Intercept", "Estimate"])
 ```
 
@@ -347,7 +348,7 @@ standard error. The dashed line is the pooled log risk ratio and the
 dotted line is no effect.
 
 ```{r meta-forest, eval = has_tinyplot, fig.width = 7, fig.height = 4.2, fig.alt = "Forest plot of the 13 BCG vaccine trials. Study number runs up the vertical axis and the log risk ratio runs along the horizontal axis. Each study is a black point with a horizontal interval. A dashed red vertical line marks the pooled estimate near minus 0.71. A dotted gray line marks zero. Most studies fall to the left of zero. The intervals differ widely in width, and several short intervals miss the pooled line on one side or the other."}
-pooled <- unname(fixef(fmeta)$mu)
+pooled <- unname(fixef_by_dpar(fmeta)$mu)
 tinyplot::tinyplot(yi ~ study, data = bcg,
                    ymin = bcg$yi - 1.96 * bcg$sei,
                    ymax = bcg$yi + 1.96 * bcg$sei,
@@ -374,7 +375,8 @@ uses REML by default.
 
 ```{r meta-check, eval = has_metafor}
 rr <- metafor::rma(yi, vi, data = bcg, method = "REML")
-out <- rbind(frmtmb = c(unname(fixef(fmeta)$mu), sqrt(vcov(fmeta)[1, 1]),
+out <- rbind(frmtmb = c(unname(fixef_by_dpar(fmeta)$mu),
+                        sqrt(vcov(fmeta)[1, 1]),
                         VarCorr(fmeta)$study$sd["Intercept", "Estimate"]),
              metafor = c(as.numeric(rr$beta), rr$se, sqrt(rr$tau2)))
 colnames(out) <- c("pooled_logRR", "se", "tau")
@@ -383,7 +385,7 @@ out
 
 ```{r meta-assert, eval = has_metafor}
 stopifnot(
-  abs(fixef(fmeta)$mu - as.numeric(rr$beta)) < 1e-5,
+  abs(fixef_by_dpar(fmeta)$mu - as.numeric(rr$beta)) < 1e-5,
   abs(VarCorr(fmeta)$study$sd["Intercept", "Estimate"] -
         sqrt(rr$tau2)) < 1e-5,
   # the standard errors come from different expressions: metafor uses
@@ -405,12 +407,12 @@ the equator.
 ```{r meta-reg}
 freg <- frm(bf(yi | se(sei) ~ ablat + (1 | study)) + gaussian(),
             data = bcg, REML = TRUE)
-c(fixef(freg)$mu, tau = VarCorr(freg)$study$sd["Intercept", "Estimate"])
+c(fixef_by_dpar(freg)$mu, tau = VarCorr(freg)$study$sd["Intercept", "Estimate"])
 ```
 
 ```{r meta-reg-check, eval = has_metafor}
 rr2 <- metafor::rma(yi, vi, mods = ~ablat, data = bcg, method = "REML")
-out <- rbind(frmtmb = c(fixef(freg)$mu,
+out <- rbind(frmtmb = c(fixef_by_dpar(freg)$mu,
                         VarCorr(freg)$study$sd["Intercept", "Estimate"]),
              metafor = c(coef(rr2), sqrt(rr2$tau2)))
 colnames(out) <- c("intercept", "ablat", "tau")
@@ -447,7 +449,7 @@ dmo$ls <- 5 + 2.0 * shape[inc] + 0.4 * dmo$z + rnorm(n, 0, 0.8)
 
 ```{r mo-fit}
 fmo <- frm(bf(ls ~ mo(income) + z) + gaussian(), data = dmo)
-fixef(fmo)$mu
+fixef_by_dpar(fmo)$mu
 ```
 
 `moincome` is the average step, not the total effect. The total effect
@@ -457,7 +459,7 @@ and rescale to the unit interval.
 
 ```{r mo-shape}
 nd <- data.frame(income = factor(1:L, ordered = TRUE), z = 0)
-p <- predict(fmo, newdata = nd)
+p <- frm_linpred(fmo, newdata = nd)
 rbind(estimated = round((p - p[1]) / (p[L] - p[1]), 3),
       simulated = shape)
 ```
@@ -474,13 +476,13 @@ increase, the restriction is not active and the two fits are identical.
 ```{r mo-check}
 fsat <- frm(bf(ls ~ income + z) + gaussian(), data = dmo)
 out <- rbind(
-  mo = c(predict(fmo, newdata = nd), logLik(fmo), attr(logLik(fmo), "df")),
-  saturated = c(predict(fsat, newdata = nd), logLik(fsat),
+  mo = c(frm_linpred(fmo, newdata = nd), logLik(fmo), attr(logLik(fmo), "df")),
+  saturated = c(frm_linpred(fsat, newdata = nd), logLik(fsat),
                 attr(logLik(fsat), "df")))
 colnames(out) <- c(paste0("band", 1:L), "logLik", "df")
 round(out, 4)
-stopifnot(max(abs(predict(fmo, newdata = nd) -
-                    predict(fsat, newdata = nd))) < 1e-4)
+stopifnot(max(abs(frm_linpred(fmo, newdata = nd) -
+                    frm_linpred(fsat, newdata = nd))) < 1e-4)
 ```
 
 The step shape is easier to read as a picture than as a row of numbers.
@@ -498,7 +500,7 @@ tinyplot::tinyplot(x = 1:L, y = band, ymin = band - 1.96 * band_se,
                    xlab = "income band", ylab = "mean of ls")
 tinyplot::plt_add(x = 1:L, y = as.numeric(p), type = "l",
                   col = "firebrick", lwd = 2)
-tinyplot::plt_add(x = 1:L, y = as.numeric(predict(fsat, newdata = nd)),
+tinyplot::plt_add(x = 1:L, y = as.numeric(frm_linpred(fsat, newdata = nd)),
                   type = "p", pch = 4, cex = 1.6, col = "steelblue")
 ```
 
@@ -511,7 +513,8 @@ the data are noisy, and that interactions stay readable. `mo()` takes
 two-way interactions with numeric terms.
 
 ```{r mo-interaction}
-fixef(frm(bf(ls ~ mo(income) * z) + gaussian(), data = dmo))$mu
+fixef_by_dpar(frm(bf(ls ~ mo(income) * z) + gaussian(),
+                  data = dmo))$mu
 ```
 
 The interaction is near zero here, which is right: the simulation has
@@ -553,9 +556,9 @@ gm <- mgcv::gam(list(y ~ s(x, k = 10), ~ s(x, k = 10)), data = dls,
                 family = mgcv::gaulss(b = 0), method = "ML")
 nd <- data.frame(x = seq(0.05, 0.95, length.out = 6))
 pg <- predict(gm, newdata = nd, type = "response")
-out <- rbind(frmtmb_mu = predict(fls, newdata = nd),
+out <- rbind(frmtmb_mu = frm_linpred(fls, newdata = nd),
              mgcv_mu = pg[, 1],
-             frmtmb_sigma = predict(fls, newdata = nd, dpar = "sigma",
+             frmtmb_sigma = frm_linpred(fls, newdata = nd, dpar = "sigma",
                                     type = "response"),
              mgcv_sigma = 1 / pg[, 2],
              true_sigma = exp(-1 + 1.2 * cos(2 * pi * nd$x)))
@@ -564,9 +567,9 @@ round(out, 4)
 ```
 
 ```{r ls-assert}
-sg <- predict(fls, newdata = nd, dpar = "sigma", type = "response")
+sg <- frm_linpred(fls, newdata = nd, dpar = "sigma", type = "response")
 stopifnot(
-  max(abs(predict(fls, newdata = nd) - pg[, 1])) < 0.02,
+  max(abs(frm_linpred(fls, newdata = nd) - pg[, 1])) < 0.02,
   max(abs(sg * pg[, 2] - 1)) < 0.03
 )
 ```
@@ -574,8 +577,8 @@ stopifnot(
 The two mean curves agree to about 0.01, and the two scale curves to
 about two percent. They are not expected to agree exactly, because the
 packages choose their smoothing parameters with different criteria.
-Note that `predict()` on a distributional parameter returns the link
-scale by default, so `type = "response"` is needed for a standard
+Note that `frm_linpred()` on a distributional parameter returns the
+link scale by default, so `type = "response"` is needed for a standard
 deviation.
 
 One figure holds both curves. The band is the frmtmb mean plus and
@@ -585,8 +588,8 @@ band from mgcv.
 
 ```{r ls-fig, eval = has_tinyplot, fig.width = 7, fig.height = 4.4, fig.alt = "Plot of y against x on the unit interval. A shaded blue band runs across the plot with a blue center line. The band is wide at both ends and narrow near x equal to 0.6. Gray points are the 400 observations, and they crowd where the band is narrow and spread where it is wide. Dashed red lines from mgcv lie on the edges of the band."}
 xg <- data.frame(x = seq(0, 1, length.out = 100))
-mu_f <- as.numeric(predict(fls, newdata = xg))
-sd_f <- as.numeric(predict(fls, newdata = xg, dpar = "sigma",
+mu_f <- as.numeric(frm_linpred(fls, newdata = xg))
+sd_f <- as.numeric(frm_linpred(fls, newdata = xg, dpar = "sigma",
                            type = "response"))
 pg <- predict(gm, newdata = xg, type = "response")
 tinyplot::tinyplot(x = xg$x, y = mu_f, ymin = mu_f - 2 * sd_f,
@@ -633,7 +636,7 @@ dg$y <- b0[id] + b1[id] * dg$time + rnorm(nid * nt, 0, 0.6)
 fgmm <- frm(bf(y ~ time + (1 | id)) +
               mixture(gaussian(), gaussian(), groups = ~id),
             data = dg)
-rbind(class1 = fixef(fgmm)$mu1, class2 = fixef(fgmm)$mu2)
+rbind(class1 = fixef_by_dpar(fgmm)$mu1, class2 = fixef_by_dpar(fgmm)$mu2)
 ```
 
 Each component keeps its own intercept, slope, residual standard
@@ -662,7 +665,7 @@ draw each component mean over its own panel.
 dg$class <- factor(assigned[as.integer(dg$id)] + 1L,
                    labels = c("class 1", "class 2"))
 tt <- 0:(nt - 1)
-b <- rbind(fixef(fgmm)$mu1, fixef(fgmm)$mu2)
+b <- rbind(fixef_by_dpar(fgmm)$mu1, fixef_by_dpar(fgmm)$mu2)
 comp <- data.frame(
   time = rep(tt, 2),
   yhat = c(b[1, 1] + b[1, 2] * tt, b[2, 1] + b[2, 2] * tt),
@@ -714,7 +717,7 @@ dme$y <- 1 + 1.0 * x_true + 0.3 * z + rnorm(n, 0, 0.7)
 fme <- frm(bf(y ~ mi(x) + z) + gaussian() +
              bf(x | mi(su) ~ z) + gaussian(),
            data = dme)
-fixef(fme)$y_mu
+fixef_by_dpar(fme)$y_mu
 ```
 
 The coefficient on the latent `x` is `mix`. Compare it with the naive
@@ -725,9 +728,9 @@ predicts.
 naive <- coef(lm(y ~ x + z, data = dme))[["x"]]
 c(naive = naive,
   predicted_attenuation = 1.0 * var(x_true) / (var(x_true) + su^2),
-  corrected = fixef(fme)$y_mu[["mix"]],
+  corrected = fixef_by_dpar(fme)$y_mu[["mix"]],
   simulated_truth = 1.0)
-stopifnot(fixef(fme)$y_mu[["mix"]] > naive + 0.1)
+stopifnot(fixef_by_dpar(fme)$y_mu[["mix"]] > naive + 0.1)
 ```
 
 The naive slope sits near the attenuated value that theory predicts.
@@ -1013,15 +1016,15 @@ a genetic correlation the same way.
 residuals(fbt)
 ```
 
-`predict()` takes `resp`, so one response at a time is available, and
-a residual is the subtraction. The figure below needs both levels:
+`frm_linpred()` takes `resp`, so one response at a time is available,
+and a residual is the subtraction. The figure below needs both levels:
 `ranef()` for the nest effects, and that subtraction for what is left
 inside a nest.
 
 ```{r bt-fig, eval = has_tinyplot, fig.width = 7, fig.height = 3.6, fig.alt = "Two scatter panels side by side. The left panel plots the 40 fitted nest effects for tarsus against those for mass; the cloud runs from lower left to upper right, so the two nest effects rise together. The right panel plots the 200 within-nest residuals for tarsus against those for mass; that cloud runs from upper left to lower right, the opposite direction. A dotted gray line marks zero on each axis of both panels."}
 re <- ranef(fbt)[[1]]
-r_mass <- bt$mass - as.numeric(predict(fbt, resp = "mass"))
-r_tarsus <- bt$tarsus - as.numeric(predict(fbt, resp = "tarsus"))
+r_mass <- bt$mass - as.numeric(frm_linpred(fbt, resp = "mass"))
+r_tarsus <- bt$tarsus - as.numeric(frm_linpred(fbt, resp = "tarsus"))
 pp <- par(mfrow = c(1, 2), mar = c(4, 4, 2.5, 1))
 tinyplot::tinyplot(x = re[, 1], y = re[, 2], type = "p", pch = 16,
                    col = "steelblue4", theme = "clean2",
@@ -1096,7 +1099,7 @@ confint_varcorr(ffix)
 
 Each smooth contributes one variance component, and its smoothing
 parameter is `sigma^2` divided by that variance. Read the coefficient
-functions off `predict()`: `b0(t)` is the prediction at `x = 0` and
+functions off `frm_linpred()`: `b0(t)` is the prediction at `x = 0` and
 `b1(t)` is the contrast between `x = 1` and `x = 0` at the same `t`.
 
 ```{r fosr-check}
@@ -1105,7 +1108,7 @@ g0 <- data.frame(t = sg, x = 0, subject = fos$subject[1])
 g1 <- data.frame(t = sg, x = 1, subject = fos$subject[1])
 gfix <- mgcv::gam(y ~ s(t, k = 10) + s(t, by = x, k = 10), data = fos,
                   method = "ML")
-b1_frm <- predict(ffix, newdata = g1) - predict(ffix, newdata = g0)
+b1_frm <- frm_linpred(ffix, newdata = g1) - frm_linpred(ffix, newdata = g0)
 b1_gam <- predict(gfix, newdata = g1) - predict(gfix, newdata = g0)
 out <- rbind(frmtmb = as.numeric(b1_frm), mgcv = as.numeric(b1_gam),
              truth = b1(sg))
@@ -1159,7 +1162,7 @@ parameters for the same term, and the fits still agree.
 gfs <- mgcv::gam(y ~ s(t, k = 10) + s(t, by = x, k = 10) +
                    s(t, subject, bs = "fs", k = 5), data = fos,
                  method = "ML")
-b1_frm2 <- predict(ffs, newdata = g1) - predict(ffs, newdata = g0)
+b1_frm2 <- frm_linpred(ffs, newdata = g1) - frm_linpred(ffs, newdata = g0)
 b1_gam2 <- predict(gfs, newdata = g1) - predict(gfs, newdata = g0)
 c(max_abs_difference = max(abs(b1_frm2 - b1_gam2)),
   frmtmb_logLik = as.numeric(logLik(ffs)),
@@ -1199,8 +1202,8 @@ xg <- data.frame(t = seq(0, 1, length.out = 100), x = 0)
 xg1 <- transform(xg, x = 1)
 # re_formula = NA drops the per-subject fs curves, so this IS the
 # population coefficient function; no subject column is needed
-f0 <- as.numeric(predict(ffs, newdata = xg, re_formula = NA))
-f1 <- as.numeric(predict(ffs, newdata = xg1, re_formula = NA)) - f0
+f0 <- as.numeric(frm_linpred(ffs, newdata = xg, re_formula = NA))
+f1 <- as.numeric(frm_linpred(ffs, newdata = xg1, re_formula = NA)) - f0
 tinyplot::tinyplot(x = xg$t, y = f0, type = "l", col = "steelblue4",
                    lwd = 2, theme = "clean2", xlab = "t",
                    ylab = "coefficient function",
@@ -1240,8 +1243,8 @@ fsof <- frm(bf(y ~ s(Smat, by = LX, k = 12)), family = gaussian(),
             data = sof)
 gsof <- mgcv::gam(y ~ s(Smat, by = LX, k = 12), data = sof, method = "ML")
 c(frmtmb_sigma = sigma(fsof), mgcv_sigma = sqrt(gsof$sig2),
-  max_abs_fitted_difference = max(abs(as.numeric(fitted(fsof)) -
-                                        as.numeric(fitted(gsof)))))
+  max_abs_fitted_difference =
+    max(abs(fitted(fsof)[, "Estimate"] - as.numeric(fitted(gsof)))))
 ```
 
 Recover `b(s)` by predicting at a synthetic case whose weight vector is
@@ -1253,12 +1256,12 @@ sgrid <- seq(0, 1, length.out = 9)
 nd <- sof[rep(1, length(sgrid)), "y", drop = FALSE]
 nd$Smat <- matrix(sgrid, length(sgrid), nS)
 nd$LX <- cbind(1, matrix(0, length(sgrid), nS - 1))
-out <- rbind(frmtmb = as.numeric(predict(fsof, newdata = nd)),
+out <- rbind(frmtmb = as.numeric(frm_linpred(fsof, newdata = nd)),
              mgcv = as.numeric(predict(gsof, newdata = nd)),
              truth_plus_intercept = beta_f(sgrid) + 1)
 colnames(out) <- paste0("s=", round(sgrid, 3))
 round(out, 4)
-stopifnot(max(abs(as.numeric(fitted(fsof)) -
+stopifnot(max(abs(fitted(fsof)[, "Estimate"] -
                     as.numeric(fitted(gsof)))) < 1e-5)
 ```
 
@@ -1279,7 +1282,7 @@ conditional_effects(fsof)
 ```
 
 The refusal names the matrix columns itself and points at the way
-out. Draw the coefficient function from `predict()` as above.
+out. Draw the coefficient function from `frm_linpred()` as above.
 
 ## 11. A custom family with a bounded parameter
 
@@ -1396,7 +1399,7 @@ sln_d <- data.frame(x = rnorm(400))
 sln_d$rt <- 0.25 + rlnorm(400, -0.4 + 0.3 * sln_d$x, 0.35)
 fsl <- frm(bf(rt ~ x), family = shifted_ln(max_shift = min(sln_d$rt)),
            data = sln_d)
-e <- unlist(fixef(fsl))
+e <- unlist(fixef_by_dpar(fsl))
 shift_hat <- min(sln_d$rt) / (1 + exp(-e[["shift.(Intercept)"]]))
 out <- rbind(
   estimated = c(e[["mu.(Intercept)"]], e[["mu.x"]],
@@ -1426,7 +1429,7 @@ the same shift on the response scale.
 
 ```{r sln-builtin}
 fbi <- frm(bf(rt ~ x), family = shifted_lognormal(), data = sln_d)
-eb <- unlist(fixef(fbi))
+eb <- unlist(fixef_by_dpar(fbi))
 c(custom = as.numeric(logLik(fsl)), builtin = as.numeric(logLik(fbi)),
   loglik_difference = as.numeric(logLik(fsl)) - as.numeric(logLik(fbi)),
   shift_difference = shift_hat - exp(eb[["ndt.(Intercept)"]]))
@@ -1515,9 +1518,9 @@ fvm <- frm(bf(angle ~ s(hour, bs = "cc", k = 8),
            family = von_mises(), data = wind)
 nd <- data.frame(hour = c(0, 6, 12, 18))
 out <- rbind(
-  mu_estimated = as.numeric(predict(fvm, newdata = nd, type = "response")),
+  mu_estimated = as.numeric(frm_linpred(fvm, newdata = nd, type = "response")),
   mu_simulated = 2 * atan(0.6 * sin(2 * pi * nd$hour / 24)),
-  kappa_estimated = as.numeric(predict(fvm, newdata = nd, dpar = "kappa",
+  kappa_estimated = as.numeric(frm_linpred(fvm, newdata = nd, dpar = "kappa",
                                        type = "response")),
   kappa_simulated = exp(0.7 + 0.8 * cos(2 * pi * (nd$hour - 15) / 24)))
 colnames(out) <- paste0("hour ", nd$hour)
@@ -1542,9 +1545,9 @@ w0 <- data.frame(angle = rvon_mises(500, 0.8, 2.2))
 f0 <- frm(bf(angle ~ 1), family = von_mises(), data = w0)
 Rbar <- sqrt(mean(sin(w0$angle))^2 + mean(cos(w0$angle))^2)
 out <- rbind(
-  frmtmb = c(as.numeric(predict(f0, newdata = w0[1, , drop = FALSE],
+  frmtmb = c(as.numeric(frm_linpred(f0, newdata = w0[1, , drop = FALSE],
                                 type = "response")),
-             exp(unlist(fixef(f0)$kappa))),
+             exp(unlist(fixef_by_dpar(f0)$kappa))),
   closed_form = c(atan2(mean(sin(w0$angle)), mean(cos(w0$angle))),
                   uniroot(function(k) besselI(k, 1) / besselI(k, 0) - Rbar,
                           c(1e-8, 500), tol = 1e-12)$root),
@@ -1555,10 +1558,10 @@ round(out, 6)
 
 ```{r vm-assert}
 stopifnot(
-  abs(as.numeric(predict(f0, newdata = w0[1, , drop = FALSE],
+  abs(as.numeric(frm_linpred(f0, newdata = w0[1, , drop = FALSE],
                          type = "response")) -
         atan2(mean(sin(w0$angle)), mean(cos(w0$angle)))) < 1e-6,
-  abs(exp(unlist(fixef(f0)$kappa)) -
+  abs(exp(unlist(fixef_by_dpar(f0)$kappa)) -
         uniroot(function(k) besselI(k, 1) / besselI(k, 0) - Rbar,
                 c(1e-8, 500), tol = 1e-12)$root) < 1e-5)
 ```
@@ -1577,8 +1580,8 @@ The daily cycle is easier to see on the circle than in a table.
 
 ```{r vm-fig, eval = has_tinyplot, fig.width = 7, fig.height = 4, fig.alt = "Two stacked panels against hour of day from 0 to 24. The upper panel holds 600 gray points of wind direction in radians, with a blue fitted curve that rises to about 1 radian near hour 6, crosses zero near hour 12, and falls to about minus 1 near hour 18. The lower panel holds the fitted concentration as a red curve, low near hour 3 and peaking above 4 near hour 15. The gray points scatter widely where the red curve is low and tightly where it is high."}
 hg <- data.frame(hour = seq(0, 24, length.out = 200))
-mu_g <- as.numeric(predict(fvm, newdata = hg, type = "response"))
-kp_g <- as.numeric(predict(fvm, newdata = hg, dpar = "kappa",
+mu_g <- as.numeric(frm_linpred(fvm, newdata = hg, type = "response"))
+kp_g <- as.numeric(frm_linpred(fvm, newdata = hg, dpar = "kappa",
                            type = "response"))
 op <- par(mfrow = c(2, 1), mar = c(4, 4, 1, 1))
 tinyplot::tinyplot(angle ~ hour, data = wind, type = "p", pch = 16,
@@ -1670,7 +1673,7 @@ fit_smocc <- frm(
      nl = TRUE),
   data = smocc, family = gaussian(),
   start = list(beta = c(68, 2, 0, 1, 0)))
-fixef(fit_smocc)[c("int", "amp", "shift")]
+fixef_by_dpar(fit_smocc)[c("int", "amp", "shift")]
 VarCorr(fit_smocc)
 ```
 
@@ -1679,8 +1682,8 @@ VarCorr(fit_smocc)
 the spline is evaluated at `age + shift`, the fitted shift SD is over
 three weeks, and the basis is exactly zero outside its knot span, so the
 padding has to cover where the fit will actually look. `frm()` reports
-at the end how many rows fell outside it, and `predict()` reports it
-again for a grid that leaves the span.
+at the end how many rows fell outside it, and `frm_linpred()` reports
+it again for a grid that leaves the span.
 
 The knot RULE is not the paper's, and this section is not a
 reimplementation of it. The paper's section 2.3.1 rescales the spline
@@ -1694,7 +1697,7 @@ related constructions that agree on this application. See `?ps`.
 The estimates against the paper's Table 1:
 
 ```{r smocc-table, eval = has_brokenstick}
-fx <- fixef(fit_smocc)
+fx <- fixef_by_dpar(fit_smocc)
 vc <- VarCorr(fit_smocc)
 got <- c(beta0 = fx$int[["(Intercept)"]], beta1 = fx$int[["sex"]],
          beta2 = fx$amp[["sex"]],         beta3 = fx$shift[["ga"]],
@@ -1771,7 +1774,7 @@ stopifnot(abs(joint - ref) < 1e-8)
 
 ### The curve, with a band
 
-`predict(se.fit = TRUE)` refuses a nonlinear predictor, and it is right
+`frm_linpred(se.fit = TRUE)` refuses a nonlinear predictor, and it is right
 to: the map from coefficients to `eta` is not a design matrix there, it
 is a Jacobian. `frm_lp_basis()` is the route. It tapes the body against
 every coefficient the body reaches through, including the `ps()`
@@ -1856,18 +1859,19 @@ and each one is handled above:
   and reports as `-gam$gcv.ubre`. `logLik.gam` is the unpenalized
   likelihood at the fit and is the wrong number to compare against.
   Section 10 compares the right pair.
-- On a model with an `fs` factor-smooth, `predict(re_formula = NA)`
+- On a model with an `fs` factor-smooth, `frm_linpred(re_formula = NA)`
   drops the per-subject curves and gives the population coefficient
   function directly, with no grouping column needed in `newdata`.
   Section 10 draws its figure that way.
 - A custom family may pass a link OBJECT rather than a link name, which
   is how section 11 bounds a shift parameter by the data. The object
   needs `name`, `linkfun`, `linkinv` and `mu_eta`.
-- `residuals()` and `fitted()` refuse a multivariate fit. `predict()`
-  takes `resp`, so a fitted value for one response is one call and a
-  residual is a subtraction. Section 9 draws its figure that way, and
+- `residuals()` and `fitted()` refuse a multivariate fit.
+  `frm_linpred()` takes `resp`, so a fitted value for one response is
+  one call and a residual is a subtraction. Section 9 draws its figure
+  that way, and
   reads the other level of the same model out of `ranef()`.
-- `predict(se.fit = TRUE)` refuses a nonlinear predictor, and a
+- `frm_linpred(se.fit = TRUE)` refuses a nonlinear predictor, and a
   `ps()` curve is one. `frm_lp_basis()` is the route: it returns
   `d eta / d coef` as a Jacobian, taped rather than perturbed, together
   with the joint covariance at the rows its columns sit at. Section 13

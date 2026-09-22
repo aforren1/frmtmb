@@ -1,0 +1,8 @@
+design: gauss  replicates: 220  failed fits: 0 
+n: 60  new points per replicate: 10  ndraws: 1000  seed0: 20260917  allow_new_levels: FALSE 
+script: dev/shapes-coverage.R
+
+joint     2085 of  2200 = 0.9477  (0.9376, 0.9567) binomial; replicate mean 0.9477 se 0.0047  median width 3.9391  non-finite widths 0 of 220
+plugin    2072 of  2200 = 0.9418  (0.9312, 0.9512) binomial; replicate mean 0.9418 se 0.0054  median width 3.8306  non-finite widths 0 of 220
+wald       577 of  2200 = 0.2623  (0.2440, 0.2812) binomial; replicate mean 0.2623 se 0.0092  median width 0.6730  non-finite widths 0 of 220
+exact     2101 of  2200 = 0.9550  (0.9455, 0.9633) binomial; replicate mean 0.9550 se 0.0043  median width 4.0737  non-finite widths 0 of 220

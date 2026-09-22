@@ -70,7 +70,7 @@ test_that("the received outcome alone gives the same fit", {
   # than bitwise: the objective is identical but gradient accumulation
   # over a tape whose constants changed can move the last place
   expect_equal(as.numeric(logLik(one)), as.numeric(logLik(two)))
-  expect_equal(unlist(fixef(one)), unlist(fixef(two)))
+  expect_equal(unlist(fixef_by_dpar(one)), unlist(fixef_by_dpar(two)))
 })
 
 test_that("prl_fictitious() reads one column too, bitwise", {

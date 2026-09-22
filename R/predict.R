@@ -587,8 +587,15 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
                  ". Use allow_new_levels = TRUE to predict them at the ",
                  "population level", call. = FALSE)
       }
+      # new_key is the level label: two rows at the SAME unseen level
+      # load one draw of its effect and two DIFFERENT unseen levels load
+      # independent ones. Without it every unseen level of a block
+      # shared one key, which a per-row variance cannot see and a joint
+      # draw can: predict(summary = FALSE) gave three distinct new
+      # groups the same effect in every replicate
       re_parts[[length(re_parts) + 1L]] <- list(bk = bk, comp = comp,
-                                                mm = mm, j = j)
+                                                mm = mm, j = j,
+                                                new_key = gv)
     }
   }
   list(X = X, off = off, re_parts = re_parts, sm_parts = sm_parts,
@@ -909,7 +916,7 @@ aterms_for_newdata <- function(rspec, newdata) {
 #' Every dpar of one response on the scale the DENSITY consumes, which
 #' is the link inverse of its linear predictor.
 #'
-#' Not the same thing as `predict(type = "response", dpar = )` any more:
+#' Not the same thing as `frm_linpred(type = "response", dpar = )` any more:
 #' a family may declare a REPORTING scale for a dpar (a mixture's
 #' mixing weights are a softmax over the component predictors, and the
 #' predictor itself is not a probability), and feeding a reported value
@@ -924,9 +931,9 @@ dpars_natural <- function(fit, rspec, newdata, re_formula,
   dp <- list()
   for (dnm in names(rspec$dpars)) {
     lp <- fit$frame[["linpreds"]][[linpred_key(rn, dnm)]]
-    eta <- predict(fit, newdata = newdata, dpar = dnm, resp = rn,
-                   re_formula = re_formula, type = "link",
-                   allow_new_levels = allow_new_levels)
+    eta <- frm_linpred(fit, newdata = newdata, dpar = dnm, resp = rn,
+                       re_formula = re_formula, type = "link",
+                       allow_new_levels = allow_new_levels)
     dp[[dnm]] <- as.vector(lp[["link"]]$linkinv(eta))
   }
   dp
@@ -935,7 +942,7 @@ dpars_natural <- function(fit, rspec, newdata, re_formula,
 #' `y | se(s)` without `sigma = TRUE`: the residual standard deviation
 #' beyond the known `s` is not in the density at all - `resid_sd()`
 #' returns `s` alone and the dpar is mapped out at the link-scale zero.
-#' `sigma()` has always reported that as 0; `predict(dpar = "sigma")`
+#' `sigma()` has always reported that as 0; `frm_linpred(dpar = "sigma")`
 #' reported the log link's inverse of the mapped-out coefficient, 1,
 #' which reads as an estimate of a parameter the model does not have.
 #'
@@ -1014,17 +1021,20 @@ predict_retired <- c(
   allow.new.levels = paste("lme4's spelling, no longer accepted. brms",
                            "spells it `allow_new_levels`, and so does",
                            "this. Pass allow_new_levels ="),
-  ndraws = paste("a maximum likelihood fit carries one estimate, not a",
-                 "posterior. frmtmb.sample's posterior_predict() takes",
-                 "ndraws"),
+  ndraws = paste("frm_linpred() evaluates one parameter vector, so",
+                 "there is nothing to thin. predict() SIMULATES and",
+                 "takes ndraws; on posterior draws,",
+                 "frmtmb.sample's posterior_linpred() takes it too"),
   draw_ids = paste("a maximum likelihood fit has no draws to index.",
-                   "frmtmb.sample's posterior_predict() takes draw_ids"),
+                   "frmtmb.sample's posterior_linpred() takes draw_ids"),
   sort = "there is no draws dimension here to sort against",
-  summary = paste("the return value is already the point estimate.",
-                  "frmtmb.sample's posterior_predict() takes summary"),
+  summary = paste("the return value is one number per row and there is",
+                  "nothing behind it to summarize. fitted() is the",
+                  "expected response in brms's summary shape"),
   robust = "a median over draws needs draws",
-  probs = paste("quantiles of a prediction need draws. For an interval",
-                "here, use se.fit = TRUE"),
+  probs = paste("quantiles of a linear predictor need draws. Use",
+                "se.fit = TRUE here, or fitted() for brms's",
+                "quantile columns"),
   nlpar = paste("a non-linear parameter is reached through `dpar` in",
                 "this package"),
   transform = paste("the scale is chosen with `type` here:",
@@ -1068,7 +1078,7 @@ predict_retired <- c(
 #' threshold separately and are re-evaluated on `newdata`.
 #'
 #' [fitted()] returns the same matrix, so the usual
-#' `predict(type = "response") == fitted()` identity holds here too.
+#' `frm_linpred(type = "response") == fitted()` identity holds here too.
 #'
 #' `type = "link"` (the default) and `dpar = "mu"` still give the latent
 #' linear predictor, which is where the fixed-effect coefficients live
@@ -1227,15 +1237,23 @@ predict_retired <- c(
 #'   deviation or a zero row-sum of weights, reject on the boundary
 #'   rather than accept there.
 #' @srrstats {RE1.3} Output structures retain the relevant aspects of the
-#'   input. Predictions, `fitted()` values, and residuals carry the row
-#'   names of the data they were computed from; `vcov()`, `confint()`,
-#'   and `fixef()` share one coefficient naming scheme;
+#'   input. `frm_linpred()` and `model.frame()` carry the row names of
+#'   the data they were computed from, and
+#'   `tests/testthat/test-edgecases.R` asserts it, including across a
+#'   row dropped for missingness. `fitted()`, `residuals()` and
+#'   `predict()` are brms's summary matrices and leave their row
+#'   dimnames NULL as brms does, because brms names those rows after
+#'   the draws matrix's columns, which are unnamed; the same test
+#'   asserts THAT, so neither convention can drift. `vcov()`,
+#'   `confint()` and `fixef()` share one coefficient naming scheme, and
+#'   so does `coef()`;
 #'   `tests/testthat/test-methods-audit.R` asserts that
 #'   `vcov(full = TRUE)` carries exactly the row names of `confint()`
-#'   and that `vcov()` is its coefficient sub-block. The stored model
-#'   frame keeps the input row names.
+#'   and that `vcov()` is its population-level sub-block, matched
+#'   through `brms_coef_table()` because `vcov()` names its rows as
+#'   brms does. The stored model frame keeps the input row names.
 #' @srrstats {RE4.9} Modelled values of the response are returned by
-#'   `fitted()`, and by `predict(type = "response")`, which is asserted
+#'   `fitted()`, and by `frm_linpred(type = "response")`, which is asserted
 #'   to equal `fitted()` on the training data wherever both are defined:
 #'   the fuzz harness checks the invariant across the family grid, and
 #'   `tests/testthat/test-methods-audit.R` checks it on the cases where
@@ -1244,16 +1262,22 @@ predict_retired <- c(
 #'   `cox()`, refuses both alike. On an ordinal family the modelled
 #'   response is a category
 #'   distribution rather than a mean, so both return the same `n x K`
-#'   matrix of category probabilities (the brms convention), named by the
-#'   response's own levels; the latent linear predictor stays reachable
-#'   as `predict(type = "link")`.
+#'   matrix of category probabilities (the brms convention), which
+#'   `fitted()` names `P(Y = k)` as brms does and `frm_linpred()` names
+#'   by the response's own levels; the latent linear predictor stays
+#'   reachable as `frm_linpred(type = "link")`.
 #' @srrstats {RE4.14} Uncertainty is available away from the observed
-#'   data. `se.fit = TRUE` returns delta-method standard errors that
+#'   data, and in three shapes: `fitted()` reports brms's `Est.Error`
+#'   and `Q` columns around the expected response,
+#'   [predict.frmtmb_fit()] simulates the PREDICTIVE distribution, which
+#'   is much wider because it carries the observation noise, and
+#'   `se.fit = TRUE` here returns delta-method standard errors that
 #'   include fixed-effect and random-effect uncertainty; unseen grouping
 #'   levels add their block's marginal variance, and exact `gp()` terms
 #'   add the Gaussian-process conditional (kriging) variance, so the
 #'   reported error grows with distance from the observed positions.
-#' @srrstats {RE4.16} New groups can be submitted to `predict()`. Levels
+#' @srrstats {RE4.16} New groups can be submitted here, and to
+#'   `fitted()` and `predict()`. Levels
 #'   of a grouping factor that were not in the training data error by
 #'   default, naming the offending levels, and are predicted at the
 #'   population level under `allow_new_levels = TRUE`, which is brms's
@@ -1266,43 +1290,43 @@ predict_retired <- c(
 #' dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
 #' fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
 #'
-#' # the link scale by default; "response" is what fitted() returns
-#' head(predict(fit))
-#' max(abs(predict(fit, type = "response") - fitted(fit)))
+#' # the link scale by default; "response" is what fitted() estimates
+#' head(frm_linpred(fit))
+#' max(abs(frm_linpred(fit, type = "response") -
+#'           fitted(fit)[, "Estimate"]))
 #'
 #' # re_formula = NA drops the random effects: the population prediction
 #' nd <- data.frame(x = c(-1, 0, 1), g = factor(1, levels = levels(dd$g)))
-#' predict(fit, newdata = nd, re_formula = NA, type = "response")
+#' frm_linpred(fit, newdata = nd, re_formula = NA, type = "response")
 #'
 #' # delta-method standard errors, on whichever scale was asked for
-#' p <- predict(fit, newdata = nd, se.fit = TRUE)
+#' p <- frm_linpred(fit, newdata = nd, se.fit = TRUE)
 #' cbind(fit = p$fit, se = p$se.fit)
 #'
 #' # a level the fit never saw errors unless it is allowed explicitly,
 #' # in which case it is predicted at the population level
 #' nd_new <- data.frame(x = 0, g = factor("new"))
-#' try(predict(fit, newdata = nd_new))
-#' predict(fit, newdata = nd_new, allow_new_levels = TRUE)
+#' try(frm_linpred(fit, newdata = nd_new))
+#' frm_linpred(fit, newdata = nd_new, allow_new_levels = TRUE)
 #'
 #' # a distributional parameter instead of the mean
 #' fit2 <- frm(bf(y ~ x, sigma ~ x) + gaussian(), data = dd)
-#' head(predict(fit2, dpar = "sigma", type = "response"))
-#' @seealso [frmtmb-scales], which states which scale every
-#'   method reports. The default here is the LINK scale, where
-#'   brms's `predict()` gives the response scale.
+#' head(frm_linpred(fit2, dpar = "sigma", type = "response"))
+#' @seealso [fitted.frmtmb_fit()] for the same expected response in
+#'   brms's four-column shape, [predict.frmtmb_fit()] for the predictive
+#'   summary, and [frmtmb-scales], which states which scale every method
+#'   reports. The default here is the LINK scale.
 #' @export
-predict.frmtmb_fit <- function(object, newdata = NULL,
-                               type = c("link", "response",
-                                        "conditional", "zprob", "zlink",
-                                        "disp"),
-                               dpar = NULL, resp = NULL, re_formula = NULL,
-                               se.fit = FALSE,
-                               allow_new_levels = FALSE, ...) {
+frm_linpred <- function(object, newdata = NULL,
+                        type = c("link", "response", "conditional",
+                                 "zprob", "zlink", "disp"),
+                        dpar = NULL, resp = NULL, re_formula = NULL,
+                        se.fit = FALSE, allow_new_levels = FALSE, ...) {
   # A warning here was not enough: `predict(fit, re_form = NA)` warned
   # and then returned the CONDITIONAL prediction, and a warning in a
   # loop or under suppressWarnings() is a wrong number with no record.
   frm_check_dots(..., .unsupported = predict_retired)
-  require_fitted(object, "predict()")
+  require_fitted(object, "frm_linpred()")
   # re_formula is read three lines down as "NULL, a formula, or anything
   # else drops the random effects", so a typo used to return the
   # POPULATION prediction and say nothing. newdata that is not
@@ -1446,9 +1470,9 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     # unwinds by recursion in dependency order.
     vals <- list()
     for (np in lp[["nl_pars"]]) {
-      vals[[np]] <- predict(object, newdata = newdata, dpar = np,
-                            resp = resp, re_formula = re_formula,
-                            allow_new_levels = allow_new_levels)
+      vals[[np]] <- frm_linpred(object, newdata = newdata, dpar = np,
+                                resp = resp, re_formula = re_formula,
+                                allow_new_levels = allow_new_levels)
     }
     # a reference to another dpar reads its VALUE, so it comes back
     # through that parameter's link inverse - the NATURAL scale, which
@@ -1456,9 +1480,9 @@ predict.frmtmb_fit <- function(object, newdata = NULL,
     for (dr in lp[["nl_dpar_refs"]] %||% character(0)) {
       lpr <- object$frame[["linpreds"]][[linpred_key(resp, dr)]]
       vals[[dr]] <- lpr[["link"]]$linkinv(
-        predict(object, newdata = newdata, dpar = dr,
-                type = "link", resp = resp, re_formula = re_formula,
-                allow_new_levels = allow_new_levels))
+        frm_linpred(object, newdata = newdata, dpar = dr,
+                    type = "link", resp = resp, re_formula = re_formula,
+                    allow_new_levels = allow_new_levels))
     }
     dl <- if (is.null(newdata)) {
       lp[["data_list"]]
@@ -1802,6 +1826,10 @@ extra_var_blocks <- function(nl, n, weights = NULL) {
     e <- nl[[idx]]
     if (!length(e$nas)) next
     kv <- e$new_key %||% rep(".", n)
+    # a missing level label (conditional_effects() grids write NA for
+    # "a group the fit did not see") is its own unseen level per row;
+    # left NA, the row matched no key below and lost its variance
+    if (anyNA(kv)) kv[is.na(kv)] <- paste0(".na.", which(is.na(kv)))
     w <- if (is.null(weights)) rep(1, n) else weights[[idx]]
     bkey <- as.character(e$bk[["c_idx"]][1L])
     for (lev in unique(kv[e$nas])) {
@@ -1967,9 +1995,23 @@ napred <- function(fit, x) {
 
 #' Fitted values
 #'
-#' The modelled response at the estimates, conditional on the
-#' random-effect modes. Equal to `predict(object, type = "response")` on
-#' the training data, for every family.
+#' brms's `fitted()`: a summary of the expected response, in the columns
+#' `Estimate`, `Est.Error`, `Q2.5` and `Q97.5`. The estimate is the
+#' modelled response at the estimates, conditional on the random-effect
+#' modes, which is `frm_linpred(object, type = "response")` on the
+#' training data for every family.
+#'
+#' A maximum-likelihood fit has no draws to summarize, so `Est.Error` is
+#' the delta-method standard error [frm_linpred()] reports for the same
+#' quantity, and the `Q` columns are the Wald interval at those
+#' probabilities. The interval is around the EXPECTED response and
+#' carries no observation noise; [predict.frmtmb_fit()] is the
+#' predictive interval that does.
+#'
+#' A predictor whose standard error this package cannot produce, such
+#' as a nonlinear body or a structured likelihood, reports `NA` in
+#' `Est.Error` and in the `Q` columns rather than a number it does not
+#' have. The estimate is unaffected.
 #'
 #' @param object A `frmtmb_fit`.
 #' @param newdata Optional data frame to evaluate on. Defaults to the
@@ -1985,51 +2027,204 @@ napred <- function(fit, x) {
 #'   first).
 #' @param dpar Which distributional parameter to report instead of the
 #'   mean.
+#' @param nlpar brms's name for a non-linear parameter, which is a
+#'   distributional parameter here: a synonym for `dpar`, and giving
+#'   both is an error.
+#' @param ndraws,draw_ids,sort,summary,robust brms's arguments, in
+#'   brms's positions so that a positional brms call asks the same
+#'   question. Each needs posterior draws, and a maximum-likelihood fit
+#'   has none, so each is refused by name with the reason and with the
+#'   place it does work: `frmtmb.sample`'s `posterior_epred()`. The
+#'   default of each is accepted and changes nothing.
+#' @param probs Probabilities of the two quantile columns. brms takes
+#'   the posterior quantiles there; here they are the ends of the Wald
+#'   interval at those probabilities.
+#' @param allow_new_levels Predict unseen grouping-factor levels at the
+#'   population level instead of erroring, as in
+#'   [frm_linpred()].
 #' @param ... Refused. An argument this method does not have is an
 #'   error naming it, because a swallowed `re_formula` returned the
 #'   conditional fit and said nothing.
-#' @return A numeric vector of expected responses; for an ordinal family
-#'   (`cumulative()`, `sratio()`, `cratio()`, `acat()`) an `n x K` matrix
-#'   of category probabilities.
-#' @section Arguments brms has and this does not:
-#' `fitted.brmsfit()` summarizes posterior draws, so it also takes
-#' `ndraws`, `draw_ids`, `sort`, `summary`, `robust` and `probs`. A
-#' maximum likelihood fit has no draws to thin or summarize, so each of
-#' those is refused by name and the message says where the argument does
-#' work: `frmtmb.sample`'s `posterior_epred()`. `nlpar` is refused too;
-#' a non-linear parameter is reached through `dpar`.
+#' @return An `n x 4` matrix with the columns `Estimate`, `Est.Error`
+#'   and one per entry of `probs`. For an ordinal or categorical family
+#'   an `n x 4 x K` array, the third dimension named `P(Y = k)`, which
+#'   is brms's shape. The ROW dimnames are `NULL`, as brms's are; the
+#'   data's row names are on `frm_linpred()` and `model.frame()`.
 #' @section Ordinal responses:
-#' An ordinal response has no mean, so `fitted()` returns the `n x K`
-#' matrix of category probabilities, with the response's own factor
-#' levels as column names and rows summing to one - the brms `fitted()`
-#' convention. `cs()` terms are honored. The latent linear predictor,
-#' which is where the coefficients live and where `se.fit` is available,
-#' is `predict(object, type = "link")`.
-#' @seealso [predict.frmtmb_fit()], [residuals.frmtmb_fit()],
-#'   [frmtmb-scales] for which scale each method reports
+#' An ordinal response has no mean, so `fitted()` summarizes the `K`
+#' category probabilities, with rows of `Estimate` summing to one,
+#' which is the brms `fitted()` convention. `cs()` terms are honored.
+#' The standard error of a category probability is the
+#' finite-difference delta method
+#' over the whole outer parameter vector, because the probability
+#' depends on the thresholds and the `cs()` coefficients as well as on
+#' the linear predictor. That route covers the OUTER parameters only, so
+#' on a mixed ordinal fit it does not carry the conditional variance of
+#' the random-effect modes, which the scalar route does: `se.fit` reads
+#' the joint precision and this reads `vcov(full = TRUE)`. The estimates
+#' are unaffected. The latent linear predictor, which is where the
+#' coefficients live, is `frm_linpred(object, type = "link")`.
+#' @seealso [predict.frmtmb_fit()] for the predictive interval,
+#'   [frm_linpred()] for the linear predictor,
+#'   [residuals.frmtmb_fit()], and [frmtmb-scales] for which scale each
+#'   method reports
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(100))
 #' dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x))
 #' fit <- frm(bf(y ~ x) + poisson(), data = dd)
-#' max(abs(fitted(fit) - predict(fit, type = "response")))
+#' head(fitted(fit))
+#' max(abs(fitted(fit)[, "Estimate"] -
+#'           frm_linpred(fit, type = "response")))
 #' @export
 fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
                               scale = c("response", "linear"),
-                              resp = NULL, dpar = NULL, ...) {
+                              resp = NULL, dpar = NULL, nlpar = NULL,
+                              ndraws = NULL, draw_ids = NULL, sort = FALSE,
+                              summary = TRUE, robust = FALSE,
+                              probs = c(0.025, 0.975), ...,
+                              allow_new_levels = FALSE) {
   frm_check_dots(..., .unsupported = fitted_no_draws)
   scale <- frm_match_arg(scale)
-  # predict() defaults an unnamed multivariate response to the first;
-  # fitted() refuses instead, as it always has, because the caller who
-  # did not name one is asking for all of them
+  fitted_refuse_draws_args("fitted()", ndraws, draw_ids, sort, summary,
+                           robust)
+  check_flag(allow_new_levels, "allow_new_levels")
+  # brms reaches a non-linear parameter with `nlpar`; in this package an
+  # nlf() parameter IS a dpar, so the two names address one thing
+  if (!is.null(nlpar)) {
+    if (!is.null(dpar)) {
+      frm_stop("fitted(): give `dpar` or `nlpar`, not both. A non-linear ",
+               "parameter is a distributional parameter in this package, ",
+               "so the two names address the same thing", call. = FALSE)
+    }
+    dpar <- nlpar
+  }
+  # frm_linpred() defaults an unnamed multivariate response to the
+  # first; fitted() refuses instead, as it always has, because the
+  # caller who did not name one is asking for all of them
   if (is.null(resp)) single_response(object, "fitted()")
-  # One implementation, not two: every documented identity between
-  # fitted() and predict(type = "response") was previously a claim about
-  # two bodies that happened to agree, and the ordinal, categorical and
-  # structured branches were written out twice.
-  predict(object, newdata = newdata,
-          type = if (scale == "response") "response" else "link",
-          dpar = dpar, resp = resp, re_formula = re_formula)
+  est <- fitted_point(object, newdata, re_formula, scale, resp, dpar,
+                      allow_new_levels)
+  se <- fitted_point_se(object, newdata, re_formula, scale, resp, dpar,
+                        allow_new_levels, est)
+  if (is.matrix(est)) {
+    # a category distribution: one summary layer per category, brms's
+    # n x 4 x K array, named by the response's own categories the way
+    # brms's posterior_epred() names them
+    out <- brms_summary_array(est, se, probs,
+                              third = brms_category_labels(colnames(est),
+                                                           ncol(est)))
+    dn <- dimnames(out)
+    dn[1L] <- list(NULL)
+    dimnames(out) <- dn
+    return(prob_clamp_quantiles(out))
+  }
+  out <- brms_summary_matrix(est, se, probs, rownames = NULL)
+  out
+}
+
+#' Hold the quantile columns of a category-probability summary between
+#' 0 and 1.
+#'
+#' The `Q` columns of a maximum-likelihood summary are a Wald interval,
+#' `est + qnorm(p) * se`, which is unbounded; brms's are quantiles OF
+#' probabilities and cannot leave the range. Measured on a three-
+#' category ordinal fit, 15 of 450 bounds were below 0 and 5 above 1
+#' (`dev/reviews/20260918-shapes.md`, m1). Clamping keeps the reported
+#' bound inside the range the quantity lives in; it does NOT widen the
+#' interval, so a bound that was clamped is a sign that the normal
+#' approximation is poor there.
+#'
+#' @noRd
+prob_clamp_quantiles <- function(out) {
+  q <- setdiff(seq_len(dim(out)[2L]), 1:2)
+  if (length(q)) {
+    out[, q, ] <- pmin(pmax(out[, q, , drop = FALSE], 0), 1)
+  }
+  out
+}
+
+#' The fitted value itself, which is what every internal caller wants.
+#'
+#' One implementation, not two: every documented identity between
+#' `fitted()` and `frm_linpred(type = "response")` was previously a
+#' claim about two bodies that happened to agree, and the ordinal,
+#' categorical and structured branches were written out twice.
+#'
+#' @noRd
+fitted_point <- function(object, newdata = NULL, re_formula = NULL,
+                         scale = "response", resp = NULL, dpar = NULL,
+                         allow_new_levels = FALSE) {
+  frm_linpred(object, newdata = newdata,
+              type = if (scale == "response") "response" else "link",
+              dpar = dpar, resp = resp, re_formula = re_formula,
+              allow_new_levels = allow_new_levels)
+}
+
+#' The standard error of a fitted value, or `NULL` where none is
+#' available.
+#'
+#' Two routes, and neither is new arithmetic. A scalar fitted value has
+#' the delta-method standard error `frm_linpred(se.fit = TRUE)` already
+#' computes, which carries the fixed-effect block, the random-effect
+#' block and the `gp()` kriging variance. A CATEGORY DISTRIBUTION has
+#' none, because a category probability depends on the thresholds and on
+#' the `cs()` coefficients as well as on the linear predictor, so it
+#' takes the finite-difference delta method over the whole outer
+#' parameter vector.
+#'
+#' A predictor `se.fit` cannot answer, such as a nonlinear body or a
+#' structured likelihood, reports `NA` rather than a number it does
+#' not have.
+#'
+#' @noRd
+fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
+                            allow_new_levels, est) {
+  if (is.matrix(est)) {
+    f <- function(fit) {
+      fitted_point(fit, newdata, re_formula, scale, resp, dpar,
+                   allow_new_levels)
+    }
+    return(fit_fd_se(object, f))
+  }
+  p <- tryCatch(suppressWarnings(
+    frm_linpred(object, newdata = newdata,
+                type = if (scale == "response") "response" else "link",
+                dpar = dpar, resp = resp, re_formula = re_formula,
+                allow_new_levels = allow_new_levels, se.fit = TRUE)),
+    error = function(e) NULL)
+  if (is.null(p)) NULL else p$se.fit
+}
+
+#' The draws-only arguments of `fitted()` and `residuals()`, refused
+#' when they are set to anything but their default.
+#'
+#' @noRd
+fitted_refuse_draws_args <- function(what, ndraws, draw_ids, sort, summary,
+                                     robust) {
+  check_flag(summary, "summary")
+  check_flag(robust, "robust")
+  if (!is.null(ndraws)) {
+    frm_stop(what, " cannot honor `ndraws`: ", fitted_no_draws[["ndraws"]],
+             call. = FALSE)
+  }
+  if (!is.null(draw_ids)) {
+    frm_stop(what, " cannot honor `draw_ids`: ",
+             fitted_no_draws[["draw_ids"]], call. = FALSE)
+  }
+  if (!isFALSE(sort)) {
+    frm_stop(what, " cannot honor `sort`: ", fitted_no_draws[["sort"]],
+             call. = FALSE)
+  }
+  if (!summary) {
+    frm_stop(what, " cannot honor summary = FALSE: ",
+             fitted_no_draws[["summary"]], call. = FALSE)
+  }
+  if (robust) {
+    frm_stop(what, " cannot honor robust = TRUE: ",
+             fitted_no_draws[["robust"]], call. = FALSE)
+  }
+  invisible(NULL)
 }
 
 #' Arguments `fitted.brmsfit()` has that a point estimate cannot answer.
@@ -2049,17 +2244,12 @@ fitted_no_draws <- c(
   sort = paste("rows come back in the order of the data, always: there",
                "is no draws dimension here to sort against.",
                "frmtmb.sample's posterior_epred() takes sort"),
-  summary = paste("there is nothing to summarize: the return value is",
-                  "already the point estimate, one number per row.",
+  summary = paste("brms returns the posterior draws there, and a",
+                  "maximum-likelihood fit has none: the Estimate column",
+                  "IS the fitted value and there is nothing behind it.",
                   "frmtmb.sample's posterior_epred() takes summary"),
   robust = paste("a median over draws needs draws.",
-                 "frmtmb.sample's posterior_epred() takes robust"),
-  probs = paste("quantiles of the fitted value need draws.",
-                "frmtmb.sample's posterior_epred() takes probs.",
-                "For an interval around a linear predictor here, use",
-                "predict(se.fit = TRUE)"),
-  nlpar = paste("a non-linear parameter is reached through `dpar` in",
-                "this package; nlf() parameters appear there")
+                 "frmtmb.sample's posterior_epred() takes robust")
 )
 
 #' Number of ordinal categories, from the threshold vector rather than
@@ -2268,7 +2458,7 @@ predict_categorical <- function(object, rspec, newdata, use_re,
 #' taken over all of them jointly and the quadratic form uses the joint
 #' covariance: thresholds are estimated too, and pretending otherwise
 #' would understate every band. The eta part reuses `lp_delta_A()`, so
-#' the coefficient bookkeeping is exactly `predict(se.fit = TRUE)`'s;
+#' the coefficient bookkeeping is exactly `frm_linpred(se.fit = TRUE)`'s;
 #' the derivative of `p_k` with respect to eta and with respect to each
 #' extra parameter is a central difference of the family's own lpdf,
 #' the same differencing rule `mean_eta_grad()` uses and for the same
@@ -2484,13 +2674,7 @@ residuals_unsupported <- c(
                  "this package has one. The one-step-ahead algorithm is",
                  "chosen with `osa_method`"),
   resp = paste("residuals() is not supported for multivariate fits at",
-               "all yet, so there is no response to choose"),
-  ndraws = "a maximum likelihood fit carries one estimate, not a posterior",
-  draw_ids = "a maximum likelihood fit has no draws to index",
-  sort = "there is no draws dimension here to sort against",
-  summary = "the return value is already one number per row",
-  robust = "a median over draws needs draws",
-  probs = "quantiles of a residual need draws"
+               "all yet, so there is no response to choose")
 )
 
 #' Residuals from a frmtmb fit
@@ -2592,7 +2776,10 @@ residuals_unsupported <- c(
 #' "deviance")^2)`.
 #'
 #' @param object A `frmtmb_fit`.
-#' @param type `"response"`, `"pearson"`, `"deviance"`, or `"osa"`.
+#' @param type `"response"` (brms spells the same thing `"ordinary"`,
+#'   and both are accepted), `"pearson"`, `"deviance"`, or `"osa"`.
+#'   brms's `residuals()` takes `newdata` in this position; this one
+#'   has always taken `type` there, and `newdata` is refused by name.
 #' @param osa_method Method for [TMB::oneStepPredict()]; defaults to
 #'   `"fullGaussian"` for gaussian models and `"oneStepGeneric"`
 #'   otherwise. A truncated, censored or ordinal response always uses
@@ -2607,7 +2794,18 @@ residuals_unsupported <- c(
 #'   `method`, `resp`, `ndraws`, `draw_ids`, `sort`, `summary`,
 #'   `robust`, `probs`) are refused with the reason rather than
 #'   reported as unknown names.
-#' @return A numeric vector, `NA` on censored rows.
+#' @param ndraws,draw_ids,sort,summary,robust brms's arguments. Each
+#'   needs posterior draws and a maximum-likelihood fit has none, so
+#'   each is refused by name with the reason. The default of each is
+#'   accepted and changes nothing.
+#' @param probs Probabilities of the two quantile columns, the ends of
+#'   the Wald interval at those probabilities.
+#' @return brms's summary matrix: `n` rows with `NULL` dimnames, as
+#'   brms's are, and the columns `Estimate`, `Est.Error` and one per
+#'   entry of `probs`, `NA` on censored rows.
+#'   The observed response is fixed, so `Est.Error` is the standard
+#'   error of the fitted value; a `"deviance"` or `"osa"` residual has
+#'   none and reports `NA` there.
 #'
 #' @srrstats {G2.2} Parameters that expect a univariate response refuse a
 #'   multivariate fit rather than silently using the first response. One
@@ -2637,26 +2835,91 @@ residuals_unsupported <- c(
 #' head(residuals(fit))
 #' head(residuals(fit, type = "pearson"))
 #' # the usual overdispersion check for a poisson fit
-#' sum(residuals(fit, type = "pearson")^2) / df.residual(fit)
+#' pr <- residuals(fit, type = "pearson")[, "Estimate"]
+#' sum(pr^2) / df.residual(fit)
 #'
 #' # one-step-ahead quantile residuals are standard normal under a
 #' # correctly specified model, whatever the family
-#' r <- residuals(fit, type = "osa")
+#' r <- residuals(fit, type = "osa")[, "Estimate"]
 #' qqnorm(r); qqline(r)
 #' @seealso [frmtmb-scales] for which scale each type is on.
 #' @export
-residuals.frmtmb_fit <- function(object, type = c("response", "pearson",
-                                                  "deviance", "osa"),
-                                 osa_method = NULL, ...) {
+residuals.frmtmb_fit <- function(object, type = c("response", "ordinary",
+                                                  "pearson", "deviance",
+                                                  "osa"),
+                                 osa_method = NULL, ...,
+                                 ndraws = NULL, draw_ids = NULL,
+                                 sort = FALSE, summary = TRUE,
+                                 robust = FALSE, probs = c(0.025, 0.975)) {
   type <- frm_match_arg(type)
-  # The dots reach TMB::oneStepPredict() and ONLY on the osa branch, so
-  # before this every other type swallowed whatever it was handed:
-  # `residuals(fit, re_formula = NA)` returned the conditional residual
-  # and said nothing, the same defect fitted() had.
+  # brms spells the raw residual "ordinary"; this package has always
+  # spelled it "response", and both reach the same branch
+  if (identical(type, "ordinary")) type <- "response"
+  fitted_refuse_draws_args("residuals()", ndraws, draw_ids, sort, summary,
+                           robust)
+  # the dots are checked HERE, not in residual_values(): the message and
+  # the S3 contract table (`na.rm` on residuals()) are both keyed by the
+  # name the caller typed, and residual_values() is not it
   frm_check_dots(..., .unsupported = residuals_unsupported,
                  .allow = if (identical(type, "osa")) {
                    names(formals(TMB::oneStepPredict))
                  })
+  r <- residual_values(object, type = type, osa_method = osa_method, ...)
+  se <- residual_point_se(object, type, r)
+  if (is.matrix(r)) {
+    # a matrix-valued response (multinomial counts, the mvn mixture's
+    # columns, lca item codes) has one residual per CELL, so the summary
+    # is the same n x 4 x K array fitted() returns there
+    return(brms_summary_array(r, se, probs))
+  }
+  # brms's row dimnames are NULL here (measured,
+  # dev/shapes-rev-brmsref.rds); carrying the data's row names made
+  # rownames(residuals(fit)) differ from rownames(residuals(brmsfit))
+  brms_summary_matrix(r, se, probs, rownames = NULL)
+}
+
+#' The standard error of a residual, or `NULL` where none is defined.
+#'
+#' The observed response is fixed, so the spread of `y - mu` is the
+#' spread of `mu`, which is the quantity [fitted()] reports. A Pearson
+#' residual divides by the row's residual standard deviation, so its
+#' standard error divides by the same number; that divisor is read off
+#' the two residual types rather than recomputed, and a row whose raw
+#' residual is exactly zero carries no ratio and reports `NA`.
+#'
+#' A deviance or one-step-ahead residual is a nonlinear transform of the
+#' whole row likelihood, and neither has a standard error here.
+#'
+#' @noRd
+residual_point_se <- function(object, type, r) {
+  if (!type %in% c("response", "pearson")) return(NULL)
+  se_mu <- tryCatch(fitted_point_se(object, NULL, NULL, "response", NULL,
+                                    NULL, FALSE, r),
+                    error = function(e) NULL)
+  if (is.null(se_mu)) return(NULL)
+  if (is.matrix(r)) {
+    # a cell of a matrix-valued response has no Pearson scale to divide
+    # by, so only the raw residual carries one
+    return(if (identical(type, "response") && is.matrix(se_mu)) {
+      se_mu
+    } else NULL)
+  }
+  if (is.matrix(se_mu)) return(NULL)
+  if (identical(type, "response")) return(se_mu)
+  r0 <- residual_values(object, type = "response")
+  sc <- r0 / r
+  sc[!is.finite(sc)] <- NA_real_
+  se_mu / sc
+}
+
+#' @noRd
+residual_values <- function(object, type = c("response", "pearson",
+                                             "deviance", "osa"),
+                            osa_method = NULL, ...) {
+  type <- frm_match_arg(type)
+  # The dots reach TMB::oneStepPredict() and ONLY on the osa branch.
+  # They are CHECKED by residuals(), the public method, whose name is
+  # what the refusal has to print.
   rspec <- single_response(object, "residuals()")
   fam <- rspec$family
   if (identical(fam[["type"]], "categorical")) {
@@ -3314,7 +3577,7 @@ b_coef_labels <- function(fit) {
 
 #' The design of a linear predictor over the coefficient vector
 #'
-#' `predict(se.fit = TRUE)` builds a matrix `A` with one row per
+#' `frm_linpred(se.fit = TRUE)` builds a matrix `A` with one row per
 #' prediction and one column per contributing coefficient, forms
 #' `A V A'` and keeps only its diagonal. Every delta-method quantity
 #' over a fitted curve needs the whole thing: a contrast between two
@@ -3339,7 +3602,7 @@ b_coef_labels <- function(fit) {
 #' @return A list with
 #' \describe{
 #'   \item{`eta`}{the linear predictor, exactly
-#'     `predict(type = "link")`.}
+#'     `frm_linpred(type = "link")`.}
 #'   \item{`A`}{`n x p`; `d eta / d coef`.}
 #'   \item{`coef_pos`}{length `p`; the rows of `V` the columns of `A`
 #'     belong to, in `V`'s own order.}
@@ -3353,13 +3616,13 @@ b_coef_labels <- function(fit) {
 #'     rank-deficient design could not identify.}
 #' }
 #' `var(eta)` is `rowSums((A %*% V) * A) + extra_var`, and
-#' `predict(se.fit = TRUE)` is written that way.
+#' `frm_linpred(se.fit = TRUE)` is written that way.
 #' @section A nonlinear body:
 #' For a nonlinear predictor `A` is a JACOBIAN rather than a design, and
 #' it is computed by taping the body against the coefficients it reaches
 #' through. That includes a [ps()] block, whose coefficients enter the
 #' body through a spline evaluated at an argument the parameters move.
-#' `predict(se.fit = TRUE)` stays refused for a nonlinear predictor;
+#' `frm_linpred(se.fit = TRUE)` stays refused for a nonlinear predictor;
 #' this is the route.
 #'
 #' The Jacobian is exact, and the delta method built on it is still a
@@ -3385,11 +3648,12 @@ b_coef_labels <- function(fit) {
 #' str(lb$A)
 #' lb$coef_names
 #'
-#' # the covariance of the WHOLE grid, which predict() reduces to its
+#' # the covariance of the WHOLE grid, which frm_linpred() reduces to
 #' # diagonal
 #' Sigma <- lb$A %*% lb$V %*% t(lb$A)
 #' all.equal(sqrt(diag(Sigma)),
-#'           predict(fit, newdata = nd, re_formula = NA, se.fit = TRUE)$se.fit)
+#'           frm_linpred(fit, newdata = nd, re_formula = NA,
+#'                       se.fit = TRUE)$se.fit)
 #' @export
 frm_lp_basis <- function(object, newdata = NULL, dpar = NULL, resp = NULL,
                          re_formula = NULL, allow_new_levels = FALSE) {

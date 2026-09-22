@@ -386,9 +386,9 @@ pr
 
 # the priors penalize the likelihood: the fit is a MAP estimate
 fit <- frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd, prior = pr)
-fixef(fit)$mu
+fixef_by_dpar(fit)$mu
 # the tight prior on z shrinks it toward zero
-fixef(frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd))$mu
+fixef_by_dpar(frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd))$mu
 
 # an empty distribution string sets a hard bound only
 set_prior("", class = "b", coef = "x", lb = 0)

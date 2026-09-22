@@ -25,8 +25,8 @@ test_that("independent multivariate fit equals the sum of separate fits", {
   expect_lt(abs(as.numeric(logLik(mv)) -
                   (as.numeric(logLik(f1)) + as.numeric(logLik(f2)))),
             1e-6)
-  expect_vector_equal(fixef(mv)$y1_mu, fixef(f1)$mu, tol = 1e-5)
-  expect_vector_equal(fixef(mv)$y2_mu, fixef(f2)$mu, tol = 1e-5)
+  expect_vector_equal(fixef_by_dpar(mv)$y1_mu, fixef_by_dpar(f1)$mu, tol = 1e-5)
+  expect_vector_equal(fixef_by_dpar(mv)$y2_mu, fixef_by_dpar(f2)$mu, tol = 1e-5)
 })
 
 test_that("bf() + bf() and mvbind() build multivariate formulas", {
@@ -113,13 +113,13 @@ test_that("multivariate predict targets responses; post-processing guards", {
   dd <- sim_mv_data()
   mv <- frm(mvbf(bf(y1 ~ x + (1 | g)) + gaussian(),
                  bf(y2 ~ x + (1 | g)) + gaussian()), data = dd)
-  p1 <- predict(mv, resp = "y1")
-  p2 <- predict(mv, resp = "y2")
+  p1 <- frm_linpred(mv, resp = "y1")
+  p2 <- frm_linpred(mv, resp = "y2")
   expect_length(p1, nrow(dd))
   expect_false(isTRUE(all.equal(p1, p2)))
-  expect_equal(predict(mv, newdata = dd, resp = "y2"), p2,
+  expect_equal(frm_linpred(mv, newdata = dd, resp = "y2"), p2,
                tolerance = 1e-8)
-  expect_error(predict(mv, resp = "zzz"), "Unknown response")
+  expect_error(frm_linpred(mv, resp = "zzz"), "Unknown response")
   expect_error(fitted(mv), "multivariate")
   expect_error(simulate(mv), "multivariate")
 })

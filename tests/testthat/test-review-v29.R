@@ -207,7 +207,7 @@ test_that("the OLRE check skips known-structure blocks", {
 
 
 ## F4 -------------------------------------------------------------------
-# predict(type = "response") returned the linear predictor for the
+# frm_linpred(type = "response") returned the linear predictor for the
 # ordinal families; an ordinal response has no mean, so what "response"
 # has to give is the category distribution.
 
@@ -224,12 +224,13 @@ v29_ordinal_data <- function(seed, n = 250, tau = c(-0.8, 0.6),
   dd
 }
 
-test_that("predict(type = 'response') gives ordinal category probabilities", {
+test_that("frm_linpred(type = 'response') gives ordinal category probabilities",
+          {
   dd <- v29_ordinal_data(41)
   fit <- frm(bf(y ~ x) + cumulative(), data = dd)
 
   nd <- data.frame(x = c(-1, 0, 1))
-  P <- predict(fit, newdata = nd, type = "response")
+  P <- frm_linpred(fit, newdata = nd, type = "response")
   expect_true(is.matrix(P))
   expect_equal(dim(P), c(3L, 3L))
   expect_equal(colnames(P), levels(dd$y))
@@ -239,7 +240,7 @@ test_that("predict(type = 'response') gives ordinal category probabilities", {
   # thresholds read off the fit's own (tau_1, log increment) storage
   raw <- fit$estimates$tau_raw
   tau <- c(raw[1], raw[1] + exp(raw[2]))
-  eta <- predict(fit, newdata = nd, type = "link")
+  eta <- frm_linpred(fit, newdata = nd, type = "link")
   Fm <- cbind(0, stats::plogis(tau[1] - eta),
               stats::plogis(tau[2] - eta), 1)
   ref <- Fm[, -1L, drop = FALSE] - Fm[, -4L, drop = FALSE]
@@ -251,15 +252,15 @@ test_that("predict(type = 'response') gives ordinal category probabilities", {
   expect_true(all(diff(P[, 1]) < 0))
 
   # in sample: one row per observation, still a distribution
-  Pin <- predict(fit, type = "response")
+  Pin <- frm_linpred(fit, type = "response")
   expect_equal(nrow(Pin), nobs(fit))
   expect_equal(unname(rowSums(Pin)), rep(1, nobs(fit)), tolerance = 1e-12)
 
   # the link scale is untouched, and se.fit lives there
-  expect_true(is.numeric(predict(fit, newdata = nd)))
-  expect_equal(predict(fit, newdata = nd, dpar = "mu", type = "response"),
-               predict(fit, newdata = nd, type = "link"))
-  expect_error(predict(fit, type = "response", se.fit = TRUE),
+  expect_true(is.numeric(frm_linpred(fit, newdata = nd)))
+  expect_equal(frm_linpred(fit, newdata = nd, dpar = "mu", type = "response"),
+               frm_linpred(fit, newdata = nd, type = "link"))
+  expect_error(frm_linpred(fit, type = "response", se.fit = TRUE),
                "not supported")
 })
 
@@ -267,7 +268,7 @@ test_that("the other three ordinal families predict distributions too", {
   dd <- v29_ordinal_data(42)
   for (fam in list(sratio(), cratio(), acat())) {
     fit <- frm(bf(y ~ x) + fam, data = dd)
-    P <- predict(fit, newdata = data.frame(x = c(-1, 0, 1)),
+    P <- frm_linpred(fit, newdata = data.frame(x = c(-1, 0, 1)),
                  type = "response")
     expect_equal(dim(P), c(3L, 3L), info = fam$family)
     expect_equal(unname(rowSums(P)), rep(1, 3), tolerance = 1e-12,
@@ -276,7 +277,7 @@ test_that("the other three ordinal families predict distributions too", {
   }
   # probit is the other supported link
   fp <- frm(bf(y ~ x) + cumulative("probit"), data = dd)
-  Pp <- predict(fp, newdata = data.frame(x = 0), type = "response")
+  Pp <- frm_linpred(fp, newdata = data.frame(x = 0), type = "response")
   expect_equal(unname(rowSums(Pp)), 1, tolerance = 1e-12)
 })
 
@@ -285,7 +286,7 @@ test_that("cs() terms enter the ordinal predictions and are re-evaluated", {
   fit <- frm(bf(y ~ x + cs(x)) + sratio(), data = dd)
 
   nd <- data.frame(x = c(-1, 0, 1))
-  P <- predict(fit, newdata = nd, type = "response")
+  P <- frm_linpred(fit, newdata = nd, type = "response")
   expect_equal(unname(rowSums(P)), rep(1, 3), tolerance = 1e-12)
   # non-degenerate: the defect returned a constant (all-zero) prediction
   expect_gt(min(P), 0)
@@ -293,7 +294,7 @@ test_that("cs() terms enter the ordinal predictions and are re-evaluated", {
 
   # the cs() coefficients really move the answer: dropping them changes
   # the distribution at a non-zero x
-  P0 <- predict(fit, newdata = data.frame(x = 0), type = "response")
+  P0 <- frm_linpred(fit, newdata = data.frame(x = 0), type = "response")
   raw <- fit$estimates$tau_raw
   tau <- c(raw[1], raw[1] + exp(raw[2]))
   h <- stats::plogis(tau)          # at x = 0 the cs offsets vanish
@@ -303,8 +304,8 @@ test_that("cs() terms enter the ordinal predictions and are re-evaluated", {
 
   # in-sample and newdata routes agree on the training rows, which is
   # the check that the newdata re-evaluation of cs(x) is the same column
-  Pin <- predict(fit, type = "response")
-  Pnd <- predict(fit, newdata = fit$frame$data_frame[1:5, ],
+  Pin <- frm_linpred(fit, type = "response")
+  Pnd <- frm_linpred(fit, newdata = fit$frame$data_frame[1:5, ],
                  type = "response")
   expect_vector_equal(as.vector(Pin[1:5, ]), as.vector(Pnd), tol = 1e-10)
 })
@@ -601,7 +602,7 @@ test_that("the long-format spelling fits through the same path", {
 
 
 ## F4 (follow-up) --------------------------------------------------------
-# Three internal callers of predict() assumed a vector on the response
+# Three internal callers of frm_linpred() assumed a vector on the response
 # scale.
 
 test_that("get_predict keys ordinal categories with a group column", {
@@ -619,14 +620,14 @@ test_that("get_predict keys ordinal categories with a group column", {
   expect_vector_equal(as.numeric(tapply(gp$estimate, gp$rowid, sum)),
                       rep(1, 3), tol = 1e-12)
   # the values are the prediction matrix, flattened the same way
-  P <- predict(fit, newdata = nd, type = "response")
+  P <- frm_linpred(fit, newdata = nd, type = "response")
   expect_vector_equal(gp$estimate, as.vector(P), tol = 1e-12)
 
   # the link scale keeps the plain one-row-per-observation shape
   gl <- marginaleffects::get_predict(fit, newdata = nd, type = "link")
   expect_equal(nrow(gl), 3L)
   expect_false("group" %in% names(gl))
-  expect_vector_equal(gl$estimate, predict(fit, newdata = nd), tol = 1e-12)
+  expect_vector_equal(gl$estimate, frm_linpred(fit, newdata = nd), tol = 1e-12)
 
   # a scalar-response fit is untouched
   set.seed(45)

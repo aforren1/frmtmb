@@ -1,5 +1,5 @@
 # Method-surface audit fixes: stats/lme4/glmmTMB argument conventions
-# and the expected-response predict() semantics.
+# and the expected-response frm_linpred() semantics.
 
 #' @srrstats {RE7.3} The accessor methods of RE4.2 to RE4.7 are exercised
 #'   on returned model objects and their expected behavior is asserted.
@@ -14,7 +14,7 @@
 #'   lme4 on AIC, LRT, and degrees of freedom; `nobs()`, `logLik()` with
 #'   its `df` attribute, `fixef()`, `ranef()`, `VarCorr()`, `family()`,
 #'   and `formula()` are checked in `test-methods.R`; and
-#'   `predict(type = "response")` must equal `fitted()`, the invariant
+#'   `frm_linpred(type = "response")` must equal `fitted()`, the invariant
 #'   every reference package satisfies. `na.action()` must return the
 #'   dropped row indices.
 #' @noRd
@@ -32,9 +32,16 @@ test_that("vcov(full = TRUE) is labeled like confint rows", {
   fit <- meth_env$fit
   V <- vcov(fit, full = TRUE)
   expect_identical(rownames(V), rownames(confint(fit)))
-  # the coefficient block is vcov() itself
-  nm <- rownames(vcov(fit))
-  expect_equal(V[nm, nm], vcov(fit), tolerance = 1e-12)
+  # vcov() takes brms's names since item 2.6f and full = TRUE keeps the
+  # internal ones, so the two are lined up through the name table
+  # rather than by a shared spelling. The sub-block is still the same
+  # numbers: what moved is the label and the intercept-only dispersion
+  # row, which brms reports as a parameter of its own.
+  tab <- frmtmb:::brms_coef_table(fit)
+  rows <- frmtmb:::brms_fixef_rows(fit)
+  int <- tab$internal[rows$idx]
+  expect_identical(rows$names, rownames(vcov(fit)))
+  expect_equal(unname(V[int, int]), unname(vcov(fit)), tolerance = 1e-12)
 })
 
 test_that("confint accepts the Wald spelling and a boot method", {
@@ -80,7 +87,9 @@ test_that("na.action returns the fit's na.action", {
 })
 
 test_that("summary reports the grouping-factor sizes", {
-  expect_output(print(summary(meth_env$fit)), "Groups: g, 10")
+  # brms's heading, which carries the level count with the group
+  expect_output(print(summary(meth_env$fit)),
+                "~g [(]Number of levels: 10[)]")
 })
 
 test_that("drop1 matches lme4", {
@@ -114,12 +123,12 @@ test_that("cooks.distance on the fit and dfbeta/dfbetas match lme4", {
   dbs <- dfbetas(infl)
   expect_identical(dim(db), dim(infl$fixed))
   # dfbetas is dfbeta scaled by the coefficient SEs
-  expect_equal(dbs, sweep(db, 2, sqrt(diag(vcov(fit))), `/`),
+  expect_equal(dbs, sweep(db, 2, sqrt(diag(vcov_estimated(fit))), `/`),
                tolerance = 1e-12)
   # sign convention: full-data estimate minus leave-one-out estimate
   # (influence columns carry the vcov labels since the v0.21 alignment)
   expect_equal(db[1, "x"],
-               unname(fixef(fit)$mu["x"] - infl$fixed[1, "x"]))
+               unname(fixef_by_dpar(fit)$mu["x"] - infl$fixed[1, "x"]))
 
   skip_if_not_installed("lme4")
   ref <- lme4::lmer(y ~ x + (1 | g), data = meth_env$dd, REML = FALSE)
@@ -147,49 +156,49 @@ test_that("predict type = 'response' is the expected response (zi)", {
                           data = dd)
 
   # the fitted() invariant every reference package satisfies
-  expect_equal(predict(fit, type = "response"), fitted(fit),
-               tolerance = 1e-12)
+  expect_equal(unname(frm_linpred(fit, type = "response")),
+               unname(fitted(fit)[, "Estimate"]), tolerance = 1e-12)
   # glmmTMB type values agree numerically
-  expect_vector_equal(predict(fit, type = "response"),
+  expect_vector_equal(frm_linpred(fit, type = "response"),
                       predict(ref, type = "response"), tol = 1e-4)
-  expect_vector_equal(predict(fit, type = "conditional"),
+  expect_vector_equal(frm_linpred(fit, type = "conditional"),
                       predict(ref, type = "conditional"), tol = 1e-4)
-  expect_vector_equal(predict(fit, type = "zprob"),
+  expect_vector_equal(frm_linpred(fit, type = "zprob"),
                       predict(ref, type = "zprob"), tol = 1e-4)
-  expect_vector_equal(predict(fit, type = "zlink"),
+  expect_vector_equal(frm_linpred(fit, type = "zlink"),
                       predict(ref, type = "zlink"), tol = 1e-3)
   # an explicit dpar keeps the per-dpar meaning
-  expect_equal(predict(fit, dpar = "mu", type = "response"),
-               predict(fit, type = "conditional"), tolerance = 1e-12)
+  expect_equal(frm_linpred(fit, dpar = "mu", type = "response"),
+               frm_linpred(fit, type = "conditional"), tolerance = 1e-12)
   # newdata goes through the same mean
   nd <- dd[1:5, ]
-  expect_equal(predict(fit, newdata = nd, type = "response"),
-               unname(fitted(fit)[1:5]), tolerance = 1e-8)
+  expect_equal(frm_linpred(fit, newdata = nd, type = "response"),
+               unname(fitted(fit)[, "Estimate"][1:5]), tolerance = 1e-8)
   # the expected response now carries joint delta-method SEs, and they
   # agree with glmmTMB's own response-scale delta method
-  ps <- predict(fit, type = "response", se.fit = TRUE)
+  ps <- frm_linpred(fit, type = "response", se.fit = TRUE)
   rs <- predict(ref, type = "response", se.fit = TRUE)
   expect_vector_equal(ps$fit, rs$fit, tol = 1e-3)
   expect_vector_equal(ps$se.fit, rs$se.fit, tol = 1e-3)
-  expect_error(predict(fit, type = "disp"), "dispersion")
+  expect_error(frm_linpred(fit, type = "disp"), "dispersion")
 })
 
 test_that("predict type aliases and spellings on gaussian fits", {
   fit <- meth_env$fit
   # identity-mean family: response semantics are unchanged
-  expect_equal(predict(fit, type = "response"), fitted(fit),
-               tolerance = 1e-12)
-  expect_equal(predict(fit, type = "conditional"),
-               predict(fit, type = "response"), tolerance = 1e-12)
-  expect_equal(unique(round(predict(fit, type = "disp"), 10)),
+  expect_equal(unname(frm_linpred(fit, type = "response")),
+               unname(fitted(fit)[, "Estimate"]), tolerance = 1e-12)
+  expect_equal(frm_linpred(fit, type = "conditional"),
+               frm_linpred(fit, type = "response"), tolerance = 1e-12)
+  expect_equal(unique(round(frm_linpred(fit, type = "disp"), 10)),
                round(sigma(fit), 10))
   # the lme4/glmmTMB dot spelling of allow_new_levels is REFUSED now:
   # brms is the tiebreaker on a name, so allow_new_levels is the only
   # one, and the refusal says so rather than accepting both
   nd <- data.frame(x = 0, g = factor("99"))
-  expect_error(predict(fit, newdata = nd, allow.new.levels = TRUE),
+  expect_error(frm_linpred(fit, newdata = nd, allow.new.levels = TRUE),
                "allow_new_levels")
-  expect_error(predict(fit, bogus_arg = 1), "bogus_arg")
+  expect_error(frm_linpred(fit, bogus_arg = 1), "bogus_arg")
 })
 
 test_that("predict type = 'response' scales binomial means by trials", {
@@ -203,12 +212,12 @@ test_that("predict type = 'response' scales binomial means by trials", {
   dd <- data.frame(y = rbinom(n, sz, p), size = sz, x = x)
   fit <- frm(bf(y | trials(size) ~ x) + binomial(), data = dd)
   # brms epred convention (and the fitted() invariant): counts scale
-  expect_equal(predict(fit, type = "response"), fitted(fit),
-               tolerance = 1e-12)
+  expect_equal(unname(frm_linpred(fit, type = "response")),
+               unname(fitted(fit)[, "Estimate"]), tolerance = 1e-12)
   nd <- data.frame(x = c(0, 0), size = c(1, 10))
-  pr <- predict(fit, newdata = nd, type = "response")
+  pr <- frm_linpred(fit, newdata = nd, type = "response")
   expect_equal(pr[2], 10 * pr[1], tolerance = 1e-10)
   # missing trials in newdata is an error, not a silent 1
-  expect_error(predict(fit, newdata = data.frame(x = 0),
+  expect_error(frm_linpred(fit, newdata = data.frame(x = 0),
                        type = "response"), "trials")
 })

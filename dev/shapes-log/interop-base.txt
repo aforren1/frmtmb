@@ -1,0 +1,653 @@
+library: C:/Users/adf44/source/r/rellib-r3  frmtmb  0.60.0 
+
+================ gaussian ================
+
+-- emmeans(x)
+   class:  summary_emm, data.frame
+   length: 6
+   dim:    3 x 6
+   dimnames: 1, 2, 3 | x, emmean, SE, df, asymp.LCL, asymp.UCL
+  x emmean     SE  df asymp.LCL asymp.UCL
+ -1 0.4803 0.1073 Inf    0.2701    0.6906
+  0 1.1199 0.0810 Inf    0.9611    1.2786
+  1 1.7594 0.1205 Inf    1.5231    1.9956
+
+Results are averaged over the levels of: f 
+Confidence level used: 0.95 
+
+-- emmeans pairwise f
+   class:  summary_emm, data.frame
+   length: 6
+   dim:    3 x 6
+   dimnames: 1, 2, 3 | contrast, estimate, SE, df, z.ratio, p.value
+ contrast estimate     SE  df z.ratio p.value
+ a - b     -0.5847 0.1975 Inf  -2.961  0.0086
+ a - c      0.3191 0.1972 Inf   1.618  0.2381
+ b - c      0.9038 0.1971 Inf   4.585 <0.0001
+
+P value adjustment: tukey method for comparing a family of 3 estimates 
+
+-- insight::get_predicted
+   [warning] Could not compute standard errors or confidence intervals because the
+  model and variance-covariance matrices are non-conformable. This can
+  sometimes happen when the `data` used to make predictions fails to
+  include all the levels of a factor variable or all the interaction
+  components.
+   class:  get_predicted, numeric
+   length: 150
+   dim:    NULL
+   dimnames: 1, 2, 3, 4, 5, 6 ...
+     1      2      3      4      5 
+0.6625 1.5926 0.3838 0.3364 1.1416 
+   [ok  ] get_predicted() is one value per observation
+
+-- insight::get_parameters
+   class:  data.frame
+   length: 3
+   dim:    5 x 3
+   dimnames: 1, 2, 3, 4, 5 | Parameter, Estimate, Component
+          Parameter Estimate   Component
+1       (Intercept)   1.0313 conditional
+2                 x   0.6395 conditional
+3                fb   0.5847 conditional
+4                fc  -0.3191 conditional
+5 sigma_(Intercept)  -0.0148  dispersion
+
+-- insight::find_parameters
+   class:  character
+   length: 4
+   dim:    NULL
+   dimnames: conditional1, conditional2, conditional3, conditional4
+ conditional1  conditional2  conditional3  conditional4 
+"(Intercept)"           "x"          "fb"          "fc" 
+
+-- insight::get_varcov diag
+   class:  numeric
+   length: 5
+   dim:    NULL
+   dimnames: (Intercept), x, fb, fc, sigma_(Intercept)
+      (Intercept)                 x                fb                fc 
+           0.0194            0.0065            0.0390            0.0389 
+sigma_(Intercept) 
+           0.0033 
+   [ok  ] get_varcov() covers every get_parameters() row
+
+-- insight::model_info family
+   class:  character
+   length: 1
+   dim:    NULL
+   dimnames: NULL
+[1] "gaussian"
+
+-- insight::get_residuals
+   class:  numeric
+   length: 150
+   dim:    NULL
+   dimnames: 1, 2, 3, 4, 5, 6 ...
+      1       2       3       4       5 
+ 0.5321  0.1597 -0.1910  0.8171 -0.7380 
+   [ok  ] get_residuals() is a length-n vector, not a summary matrix
+   [FAIL] get_residuals() carries insight's class
+
+-- insight::get_response
+   class:  numeric
+   length: 150
+   dim:    NULL
+   dimnames: NULL
+[1] 1.1946 1.7524 0.1928 1.1535 0.4036
+   [ok  ] get_response() is one value per observation
+
+-- stats::fitted
+   class:  numeric
+   length: 150
+   dim:    NULL
+   dimnames: 1, 2, 3, 4, 5, 6 ...
+     1      2      3      4      5 
+0.6625 1.5926 0.3838 0.3364 1.1416 
+
+-- stats::residuals
+   class:  numeric
+   length: 150
+   dim:    NULL
+   dimnames: 1, 2, 3, 4, 5, 6 ...
+      1       2       3       4       5 
+ 0.5321  0.1597 -0.1910  0.8171 -0.7380 
+
+-- coef()
+   class:  numeric
+   length: 4
+   dim:    NULL
+   dimnames: (Intercept), x, fb, fc
+(Intercept)           x          fb          fc 
+     1.0313      0.6395      0.5847     -0.3191 
+
+-- vcov() rownames
+   class:  character
+   length: 5
+   dim:    NULL
+   dimnames: NULL
+[1] "(Intercept)"       "x"                 "fb"               
+[4] "fc"                "sigma_(Intercept)"
+
+-- lmtest::coeftest
+   class:  data.frame
+   length: 4
+   dim:    4 x 4
+   dimnames: (Intercept), x, fb, fc | Estimate, Std. Error, t value, Pr(>|t|)
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept)   1.0313     0.1394  7.3999   0.0000
+x             0.6395     0.0804  7.9583   0.0000
+fb            0.5847     0.1975  2.9609   0.0036
+fc           -0.3191     0.1972 -1.6176   0.1079
+   [FAIL] coeftest() keeps every vcov() row
+   [FAIL] coef() and vcov() name the same parameters
+
+-- marginaleffects::avg_slopes
+   class:  data.frame
+   length: 3
+   dim:    1 x 3
+   dimnames: 1 | term, estimate, std.error
+  term estimate std.error
+1    x   0.6395    0.0804
+   [ok  ] avg_slopes() standard errors are finite
+
+-- marginaleffects::predictions head
+   class:  data.frame
+   length: 2
+   dim:    6 x 2
+   dimnames: 1, 2, 3, 4, 5, 6 | estimate, std.error
+  estimate std.error
+1   0.3918    0.1597
+2   0.9765    0.1538
+3   0.0727    0.1558
+4   0.3918    0.1597
+5   1.0313    0.1394
+6   1.6708    0.1620
+
+================ binomial ================
+
+-- emmeans(x)
+   class:  summary_emm, data.frame
+   length: 6
+   dim:    3 x 6
+   dimnames: 1, 2, 3 | x, emmean, SE, df, asymp.LCL, asymp.UCL
+  x  emmean     SE  df asymp.LCL asymp.UCL
+ -1 -0.5791 0.2471 Inf   -1.0634   -0.0947
+  0  0.2067 0.1760 Inf   -0.1382    0.5517
+  1  0.9925 0.2867 Inf    0.4305    1.5544
+
+Confidence level used: 0.95 
+
+-- insight::get_predicted
+   [warning] Could not apply Delta method to transform standard errors.
+  You may be able to obtain standard errors by using the 
+  `predict="link"` argument value.
+   class:  get_predicted, numeric
+   length: 150
+   dim:    NULL
+   dimnames: 1, 2, 3, 4, 5, 6 ...
+     1      2      3      4      5 
+0.4387 0.5444 0.4510 0.3436 0.4070 
+   [ok  ] get_predicted() is one value per observation
+
+-- insight::get_parameters
+   class:  data.frame
+   length: 3
+   dim:    2 x 3
+   dimnames: 1, 2 | Parameter, Estimate, Component
+    Parameter Estimate   Component
+1 (Intercept)   0.2067 conditional
+2           x   0.7858 conditional
+
+-- insight::find_parameters
+   class:  character
+   length: 2
+   dim:    NULL
+   dimnames: conditional1, conditional2
+ conditional1  conditional2 
+"(Intercept)"           "x" 
+
+-- insight::get_varcov diag
+   class:  numeric
+   length: 2
+   dim:    NULL
+   dimnames: (Intercept), x
+(Intercept)           x 
+     0.0310      0.0407 
+   [ok  ] get_varcov() covers every get_parameters() row
+
+-- insight::model_info family
+   class:  character
+   length: 1
+   dim:    NULL
+   dimnames: NULL
+[1] "bernoulli"
+
+-- insight::get_residuals
+   class:  numeric
+   length: 150
+   dim:    NULL
+   dimnames: 1, 2, 3, 4, 5, 6 ...
+      1       2       3       4       5 
+-0.4387  0.4556  0.5490  0.6564  0.5930 
+   [ok  ] get_residuals() is a length-n vector, not a summary matrix
+   [FAIL] get_residuals() carries insight's class
+
+-- insight::get_response
+   class:  integer
+   length: 150
+   dim:    NULL
+   dimnames: NULL
+[1] 0 1 1 1 1
+   [ok  ] get_response() is one value per observation
+
+-- stats::fitted
+   class:  numeric
+   length: 150
+   dim:    NULL
+   dimnames: 1, 2, 3, 4, 5, 6 ...
+     1      2      3      4      5 
+0.4387 0.5444 0.4510 0.3436 0.4070 
+
+-- stats::residuals
+   class:  numeric
+   length: 150
+   dim:    NULL
+   dimnames: 1, 2, 3, 4, 5, 6 ...
+      1       2       3       4       5 
+-0.4387  0.4556  0.5490  0.6564  0.5930 
+
+-- coef()
+   class:  numeric
+   length: 2
+   dim:    NULL
+   dimnames: (Intercept), x
+(Intercept)           x 
+     0.2067      0.7858 
+
+-- vcov() rownames
+   class:  character
+   length: 2
+   dim:    NULL
+   dimnames: NULL
+[1] "(Intercept)" "x"          
+
+-- lmtest::coeftest
+   class:  data.frame
+   length: 4
+   dim:    2 x 4
+   dimnames: (Intercept), x | Estimate, Std. Error, t value, Pr(>|t|)
+            Estimate Std. Error t value Pr(>|t|)
+(Intercept)   0.2067     0.1760  1.1745   0.2421
+x             0.7858     0.2016  3.8968   0.0001
+   [ok  ] coeftest() keeps every vcov() row
+   [ok  ] coef() and vcov() name the same parameters
+
+-- marginaleffects::avg_slopes
+   class:  data.frame
+   length: 3
+   dim:    1 x 3
+   dimnames: 1 | term, estimate, std.error
+  term estimate std.error
+1    x    0.173    0.0353
+   [ok  ] avg_slopes() standard errors are finite
+
+-- marginaleffects::predictions head
+   class:  data.frame
+   length: 3
+   dim:    3 x 3
+   dimnames: 1, 2, 3 | x, estimate, std.error
+   x estimate std.error
+1 -1   0.3591    0.0569
+2  0   0.5515    0.0435
+3  1   0.7296    0.0566
+
+================ mixed ================
+
+-- emmeans(x)
+   class:  summary_emm, data.frame
+   length: 6
+   dim:    3 x 6
+   dimnames: 1, 2, 3 | x, emmean, SE, df, asymp.LCL, asymp.UCL
+  x emmean     SE  df asymp.LCL asymp.UCL
+ -1 0.7845 0.1260 Inf    0.5376    1.0314
+  0 1.2109 0.1069 Inf    1.0015    1.4204
+  1 1.6373 0.1364 Inf    1.3700    1.9046
+
+Confidence level used: 0.95 
+
+-- insight::get_predicted
+   [warning] Could not compute standard errors or confidence intervals because the
+  model and variance-covariance matrices are non-conformable. This can
+  sometimes happen when the `data` used to make predictions fails to
+  include all the levels of a factor variable or all the interaction
+  components.
+   class:  get_predicted, numeric
+   length: 150
+   dim:    NULL
+   dimnames: 1, 2, 3, 4, 5, 6 ...
+     1      2      3      4      5 
+0.8891 1.1194 0.9161 0.6717 0.8187 
+   [ok  ] get_predicted() is one value per observation
+
+-- insight::get_parameters
+   class:  data.frame
+   length: 3
+   dim:    3 x 3
+   dimnames: 1, 2, 3 | Parameter, Estimate, Component
+          Parameter Estimate   Component
+1       (Intercept)   1.2109 conditional
+2                 x   0.4264 conditional
+3 sigma_(Intercept)  -0.1077  dispersion
+
+-- insight::find_parameters
+   class:  character
+   length: 1
+   dim:    NULL
+   dimnames: conditional
+conditional 
+        "g" 
+
+-- insight::get_varcov diag
+   class:  numeric
+   length: 3
+   dim:    NULL
+   dimnames: (Intercept), x, sigma_(Intercept)
+      (Intercept)                 x sigma_(Intercept) 
+           0.0114            0.0058            0.0037 
+   [ok  ] get_varcov() covers every get_parameters() row
+
+-- insight::model_info family
+   class:  character
+   length: 1
+   dim:    NULL
+   dimnames: NULL
+[1] "gaussian"
+
+-- insight::get_residuals
+   class:  numeric
+   length: 150
+   dim:    NULL
+   dimnames: 1, 2, 3, 4, 5, 6 ...
+      1       2       3       4       5 
+-1.2943 -0.1005  0.5166  1.2527  0.7830 
+   [ok  ] get_residuals() is a length-n vector, not a summary matrix
+   [FAIL] get_residuals() carries insight's class
+
+-- insight::get_response
+   class:  numeric
+   length: 150
+   dim:    NULL
+   dimnames: NULL
+[1] -0.4052  1.0190  1.4327  1.9244  1.6017
+   [ok  ] get_response() is one value per observation
+
+-- stats::fitted
+   class:  numeric
+   length: 150
+   dim:    NULL
+   dimnames: 1, 2, 3, 4, 5, 6 ...
+     1      2      3      4      5 
+0.8891 1.1194 0.9161 0.6717 0.8187 
+
+-- stats::residuals
+   class:  numeric
+   length: 150
+   dim:    NULL
+   dimnames: 1, 2, 3, 4, 5, 6 ...
+      1       2       3       4       5 
+-1.2943 -0.1005  0.5166  1.2527  0.7830 
+
+-- coef()
+   class:  list
+   length: 1
+   dim:    NULL
+   dimnames: g
+$g
+   (Intercept)         x
+1    1.1350243 0.4264146
+2    1.5471615 0.4264146
+3    0.7979791 0.4264146
+4    0.9929450 0.4264146
+5    1.4690494 0.4264146
+6    1.1636194 0.4264146
+7    1.5421736 0.4264146
+8    1.0874773 0.4264146
+9    1.3991856 0.4264146
+10   1.2066450 0.4264146
+11   0.9233881 0.4264146
+12   1.0861777 0.4264146
+13   1.1370849 0.4264146
+14   1.2930790 0.4264146
+15   1.3828787 0.4264146
+
+
+-- vcov() rownames
+   class:  character
+   length: 3
+   dim:    NULL
+   dimnames: NULL
+[1] "(Intercept)"       "x"                 "sigma_(Intercept)"
+
+-- lmtest::coeftest
+   ERROR: non-numeric argument to binary operator
+   class:  ioErr
+   length: 1
+   dim:    NULL
+   dimnames: msg
+   [n/a ] coeftest(): coef() is per-group here
+
+-- marginaleffects::avg_slopes
+   class:  data.frame
+   length: 3
+   dim:    1 x 3
+   dimnames: 1 | term, estimate, std.error
+  term estimate std.error
+1    x   0.4264    0.0763
+   [ok  ] avg_slopes() standard errors are finite
+
+-- marginaleffects::predictions head
+   class:  data.frame
+   length: 2
+   dim:    18 x 2
+   dimnames: 1, 2, 3, 4, 5, 6 ... | estimate, std.error
+   estimate std.error
+1    0.7086    0.1260
+2    1.1207    0.1260
+3    0.3716    0.1260
+4    0.5665    0.1260
+5    1.0426    0.1260
+6    0.7372    0.1260
+7    1.1158    0.1260
+8    0.6611    0.1260
+9    0.9728    0.1260
+10   0.7802    0.1260
+11   0.4970    0.1260
+12   0.6598    0.1260
+13   0.7107    0.1260
+14   0.8667    0.1260
+15   0.9565    0.1260
+16   0.7086    0.1260
+17   1.1350    0.1069
+18   1.5614    0.1364
+
+================ ordinal ================
+
+-- emmeans(x)
+   class:  summary_emm, data.frame
+   length: 6
+   dim:    3 x 6
+   dimnames: 1, 2, 3 | x, emmean, SE, df, asymp.LCL, asymp.UCL
+  x  emmean     SE  df asymp.LCL asymp.UCL
+ -1 -1.5163 0.2334 Inf   -1.9738   -1.0588
+  0  0.0000 0.0000 Inf    0.0000    0.0000
+  1  1.5163 0.2334 Inf    1.0588    1.9738
+
+Confidence level used: 0.95 
+
+-- insight::get_predicted
+   class:  get_predicted, numeric
+   length: 150
+   dim:    NULL
+   dimnames: 1, 2, 3, 4, 5, 6 ...
+      1       2       3       4       5 
+-0.8745 -0.0554 -0.7786 -1.6475 -1.1249 
+   [ok  ] get_predicted() is one value per observation
+
+-- insight::get_parameters
+   class:  data.frame
+   length: 3
+   dim:    1 x 3
+   dimnames: 1 | Parameter, Estimate, Component
+  Parameter Estimate   Component
+1         x   1.5163 conditional
+
+-- insight::find_parameters
+   class:  character
+   length: 1
+   dim:    NULL
+   dimnames: conditional
+conditional 
+        "x" 
+
+-- insight::get_varcov diag
+   class:  numeric
+   length: 1
+   dim:    NULL
+   dimnames: x
+     x 
+0.0545 
+   [ok  ] get_varcov() covers every get_parameters() row
+
+-- insight::model_info family
+   class:  character
+   length: 1
+   dim:    NULL
+   dimnames: NULL
+[1] "cumulative"
+
+-- insight::get_residuals
+   class:  numeric
+   length: 150
+   dim:    NULL
+   dimnames: NULL
+[1] -0.0958 -1.4012  0.8671 -0.7960  1.0017
+   [ok  ] get_residuals() is a length-n vector, not a summary matrix
+   [FAIL] get_residuals() carries insight's class
+
+-- insight::get_response
+   class:  ordered, factor
+   length: 150
+   dim:    NULL
+   dimnames: NULL
+[1] 2 1 3 1 3
+Levels: 1 < 2 < 3
+   [ok  ] get_response() is one value per observation
+
+-- stats::fitted
+   class:  matrix, array
+   length: 450
+   dim:    150 x 3
+   dimnames: 1, 2, 3, 4, 5, 6 ... | 1, 2, 3
+       1      2      3
+1 0.2205 0.4631 0.3164
+2 0.1109 0.3770 0.5121
+3 0.2045 0.4581 0.3374
+
+-- stats::residuals
+   class:  numeric
+   length: 150
+   dim:    NULL
+   dimnames: NULL
+[1] -0.0958 -1.4012  0.8671 -0.7960  1.0017
+
+-- coef()
+   class:  numeric
+   length: 1
+   dim:    NULL
+   dimnames: x
+     x 
+1.5163 
+
+-- vcov() rownames
+   class:  character
+   length: 1
+   dim:    NULL
+   dimnames: NULL
+[1] "x"
+
+-- lmtest::coeftest
+   class:  data.frame
+   length: 4
+   dim:    1 x 4
+   dimnames: x | Estimate, Std. Error, t value, Pr(>|t|)
+  Estimate Std. Error t value Pr(>|t|)
+x   1.5163     0.2334   6.496        0
+   [ok  ] coeftest() keeps every vcov() row
+   [ok  ] coef() and vcov() name the same parameters
+
+-- marginaleffects::avg_slopes
+   class:  data.frame
+   length: 4
+   dim:    3 x 4
+   dimnames: 1, 2, 3 | term, group, estimate, std.error
+  term group estimate std.error
+1    x     1  -0.1732    0.0263
+2    x     2  -0.0996    0.0026
+3    x     3   0.2728    0.0237
+   [ok  ] avg_slopes() standard errors are finite
+
+-- marginaleffects::predictions head
+   class:  data.frame
+   length: 4
+   dim:    9 x 4
+   dimnames: 1, 2, 3, 4, 5, 6 ... | group, x, estimate, std.error
+  group  x estimate std.error
+1     1 -1   0.3496    0.0531
+2     1  0   0.1056        NA
+3     1  1   0.0253    0.0057
+4     2 -1   0.4545    0.0163
+5     2  0   0.3685        NA
+6     2  1   0.1399    0.0264
+7     3 -1   0.1959    0.0368
+8     3  0   0.5259        NA
+9     3  1   0.8348    0.0322
+
+================  ordinal against MASS::polr  ================
+
+-- MASS::polr avg_slopes
+   class:  data.frame
+   length: 3
+   dim:    3 x 3
+   dimnames: 1, 2, 3 | group, estimate, std.error
+  group estimate std.error
+1     1  -0.1732    0.0241
+2     2  -0.0996    0.0193
+3     3   0.2728    0.0238
+
+-- frmtmb avg_slopes
+   class:  data.frame
+   length: 3
+   dim:    3 x 3
+   dimnames: 1, 2, 3 | group, estimate, std.error
+  group estimate std.error
+1     1  -0.1732    0.0263
+2     2  -0.0996    0.0026
+3     3   0.2728    0.0237
+  group estimate.polr std.error.polr estimate.frm std.error.frm se_ratio
+1     1   -0.17323133     0.02414857  -0.17323152   0.026316881   1.0898
+2     2   -0.09960423     0.01934454  -0.09960421   0.002593243   0.1341
+3     3    0.27283557     0.02378688   0.27283573   0.023723756   0.9973
+   [FAIL] ordinal avg_slopes() SE within 5% of MASS::polr on every category
+
+---- contract summary ----
+failures: 7 
+  FAIL: get_residuals() carries insight's class
+  FAIL: coeftest() keeps every vcov() row
+  FAIL: coef() and vcov() name the same parameters
+  FAIL: get_residuals() carries insight's class
+  FAIL: get_residuals() carries insight's class
+  FAIL: get_residuals() carries insight's class
+  FAIL: ordinal avg_slopes() SE within 5% of MASS::polr on every category 
+
+HARNESS FAILED

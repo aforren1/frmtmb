@@ -78,6 +78,14 @@
 \alias{re_form_arg}
 \alias{frm_install_generics}
 \alias{frm_check_dots}
+\alias{vcov_estimated}
+\alias{fam_is_category_valued}
+\alias{predict_category_props}
+\alias{brms_summary_matrix}
+\alias{brms_summary_array}
+\alias{brms_summarize_draws}
+\alias{brms_prob_cols}
+\alias{brms_fixef_rows}
 \title{Core internals for a sampling extension}
 \arguments{
 \item{frame}{An assembled model frame (\code{fit$frame}).}
@@ -145,6 +153,29 @@ one specification addresses, and \code{spec_spelling()} gives back the
 class and dpar it was WRITTEN with, which for a density on a
 distributional parameter itself is that parameter's own class rather
 than the intercept slot the resolver assigns to.
+
+\code{vcov_estimated(fit)} is the covariance of EVERY estimated
+coefficient under the internal names, which is what pairs with
+\code{estimated_coef_names()}; \code{vcov()} itself covers brms's
+population-level block and leaves out an intercept-only
+distributional parameter. It does NOT cover an ordinal fit's
+thresholds or its \code{cs()} coefficients, which live outside \code{beta}
+and \code{betad}: the interop seams pair with a longer vector that has
+them, and \code{vcov(fit, full = TRUE)} is where they are under
+\code{confint()}'s names.
+
+\code{fam_is_category_valued(fam)} says whether a response is a set of
+categories, so that a predictive summary is a set of proportions
+rather than a mean, and \code{predict_category_props(fit, rspec, draws)}
+builds brms's \code{P(Y = k)} matrix from a matrix of simulated or
+sampled responses. \code{brms_summary_matrix()}, \code{brms_summary_array()},
+\code{brms_summarize_draws()} and \code{brms_prob_cols()} build brms's
+\code{Estimate} / \code{Est.Error} / \code{Q} columns from a point estimate with a
+standard error, or from draws. \code{brms_fixef_rows(fit)} gives brms's
+population-level rows in brms's order: which coefficient-table rows
+they are, and the ordinal thresholds and \code{cs()} coefficients that are
+not, each with the map from the internal vector to the reported value,
+so a draws object can report the same rows \code{fixef()} does.
 
 \code{frmtmb_register_prior_defaults()} is the other direction: it lets a
 package tell \code{\link[=get_prior]{get_prior()}} what defaults it would apply.
@@ -243,7 +274,7 @@ once, then per vector swaps the estimates in and calls
 \code{class} and \code{group} arguments. \code{hyp_labels()} writes brms's
 \code{Hypothesis} label for each string, \code{hyp_samples_frame(m, k)} lays a
 draws matrix out as brms's \code{samples} frame (\code{H1}, \code{H2}, ...), and
-\code{hyp_brms_result()} assembles the \code{brmshypothesis}-shaped list every
+\code{hyp_brms_result()} assembles the brms-shaped list every
 \code{hypothesis()} method returns, so no method builds that shape on its
 own.
 }

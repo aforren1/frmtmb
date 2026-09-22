@@ -1,3 +1,10 @@
+# frmtmb.learn (development version)
+
+* Documentation only: the compatibility notes and the family refusals
+  name `frm_linpred(type = )` where they named `predict(type = )`.
+  frmtmb's `predict()` is brms's predictive summary in the development
+  version and the linear predictor moved to `frm_linpred()`.
+
 # frmtmb.learn 0.5.0
 
 * Requires frmtmb 0.60.0, for `frm_stop()` and the other condition helpers.

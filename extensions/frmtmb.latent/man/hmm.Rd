@@ -106,7 +106,7 @@ agree to 1e-11 relative (\verb{dev/latent-2p3-hmmtmb-probe4.R}).
 the smoothed state probability and therefore a backward pass over the
 whole sequence. \code{\link[=hmm_probs]{hmm_probs()}} returns those probabilities and
 \code{\link[=hmm_viterbi]{hmm_viterbi()}} the maximum-a-posteriori state path; \code{\link[=fitted]{fitted()}},
-\code{predict(type = "response")} and \code{\link[=residuals]{residuals()}} all route through
+\code{frm_linpred(type = "response")} and \code{\link[=residuals]{residuals()}} all route through
 \code{\link[=hmm_probs]{hmm_probs()}}, so they report the occupancy-weighted mean rather than
 any single state's.
 }
@@ -248,7 +248,7 @@ PRODUCT of per-row densities, and the forward algorithm is not one.
 location coefficients, which matches no standard definition),
 \code{quadrature}, \code{frmtmb_control(profile = TRUE)}, \code{weights()}, \code{cens()},
 \code{trunc()}, \code{se()} and \code{mi()} on the response, multivariate models and
-\code{rescor}, \code{residuals(type = "osa")}, \code{predict(se.fit = TRUE)} on the
+\code{rescor}, \code{residuals(type = "osa")}, \code{frm_linpred(se.fit = TRUE)} on the
 response scale, and \code{conditional_effects()}. A grouping in which every
 sequence has length 1 is refused too: the chain is then unidentified
 and the model is a \code{\link[frmtmb:mixture]{frmtmb::mixture()}}.
@@ -275,7 +275,7 @@ head(hmm_probs(fit))
 mean(hmm_viterbi(fit) == dd$state)
 
 # fitted() is the occupancy-weighted mean, not state 1's
-cor(fitted(fit), dd$y)
+cor(fitted(fit)[, "Estimate"], dd$y)
 
 \donttest{
 # one state's mean takes its own predictor, random effects included

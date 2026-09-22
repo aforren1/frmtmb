@@ -29,7 +29,7 @@ test_that("deviance residuals reproduce stats::glm exactly", {
   # start at the glm solution so both optima are the same point; the
   # unit deviance is what is under test, not the optimizer
   cmp <- function(fit, ref) {
-    expect_vector_equal(residuals(fit, type = "deviance"),
+    expect_vector_equal(residuals(fit, type = "deviance")[, "Estimate"],
                         residuals(ref, type = "deviance"), tol = 1e-8)
   }
 
@@ -73,14 +73,14 @@ test_that("weights() multiply the unit deviance the glm way", {
            control = tight_glm())
   f <- frm(bf(cnt | weights(w) ~ x) + poisson(), data = dd,
            start = list(beta = unname(coef(g))))
-  expect_vector_equal(residuals(f, type = "deviance"),
+  expect_vector_equal(residuals(f, type = "deviance")[, "Estimate"],
                       residuals(g, type = "deviance"), tol = 1e-8)
   # the weight enters the unit deviance, so the residual scales by
   # sqrt(w), not by w
-  mu <- fitted(f)
+  mu <- fitted(f)[, "Estimate"]
   d <- 2 * (ifelse(dd$cnt > 0, dd$cnt * log(dd$cnt / mu), 0) -
               (dd$cnt - mu))
-  expect_vector_equal(residuals(f, type = "deviance"),
+  expect_vector_equal(residuals(f, type = "deviance")[, "Estimate"],
                       sign(dd$cnt - mu) * sqrt(dd$w * d), tol = 1e-12)
 })
 
@@ -93,33 +93,33 @@ test_that("negative-binomial deviance residuals match glmmTMB", {
 
   f2 <- frm(bf(y ~ x) + negbinomial(), data = dn)
   g2 <- glmmTMB::glmmTMB(y ~ x, data = dn, family = glmmTMB::nbinom2)
-  expect_vector_equal(residuals(f2, type = "deviance"),
+  expect_vector_equal(residuals(f2, type = "deviance")[, "Estimate"],
                       as.numeric(residuals(g2, type = "deviance")),
                       tol = 1e-5)
   # at a shared mu and shape the two definitions agree to machine noise
-  mu <- fitted(f2)
-  sh <- unique(round(predict(f2, dpar = "shape", type = "response"), 12))
+  mu <- fitted(f2)[, "Estimate"]
+  sh <- unique(round(frm_linpred(f2, dpar = "shape", type = "response"), 12))
   dv <- stats::family(g2)$dev.resids(dn$y, mu, 1, theta = sh)
-  expect_vector_equal(residuals(f2, type = "deviance"),
+  expect_vector_equal(residuals(f2, type = "deviance")[, "Estimate"],
                       sign(dn$y - mu) * sqrt(pmax(dv, 0)), tol = 1e-10)
 
   f1 <- frm(bf(y ~ x) + nbinom1(), data = dn)
   g1 <- glmmTMB::glmmTMB(y ~ x, data = dn, family = glmmTMB::nbinom1)
-  expect_vector_equal(residuals(f1, type = "deviance"),
+  expect_vector_equal(residuals(f1, type = "deviance")[, "Estimate"],
                       as.numeric(residuals(g1, type = "deviance")),
                       tol = 1e-5)
-  mu1 <- fitted(f1)
-  ph1 <- unique(round(predict(f1, dpar = "phi", type = "response"), 12))
+  mu1 <- fitted(f1)[, "Estimate"]
+  ph1 <- unique(round(frm_linpred(f1, dpar = "phi", type = "response"), 12))
   dv1 <- stats::family(g1)$dev.resids(dn$y, mu1, 1, phi = ph1)
-  expect_vector_equal(residuals(f1, type = "deviance"),
+  expect_vector_equal(residuals(f1, type = "deviance")[, "Estimate"],
                       sign(dn$y - mu1) * sqrt(pmax(dv1, 0)), tol = 1e-10)
 
   # geometric is negbinomial with the shape pinned at 1
   fg <- frm(bf(y ~ x) + geometric(), data = dn)
-  mug <- fitted(fg)
+  mug <- fitted(fg)[, "Estimate"]
   dvg <- 2 * (ifelse(dn$y > 0, dn$y * log(dn$y / mug), 0) -
                 (dn$y + 1) * log((dn$y + 1) / (mug + 1)))
-  expect_vector_equal(residuals(fg, type = "deviance"),
+  expect_vector_equal(residuals(fg, type = "deviance")[, "Estimate"],
                       sign(dn$y - mug) * sqrt(pmax(dvg, 0)), tol = 1e-12)
 })
 
@@ -129,11 +129,11 @@ test_that("beta and tweedie deviances follow the saturated likelihood", {
   db <- data.frame(x = rnorm(n))
   db$y <- rbeta(n, 2, 3)
   fb <- frm(bf(y ~ x) + Beta(), data = db)
-  mu <- fitted(fb)
-  ph <- unique(round(predict(fb, dpar = "phi", type = "response"), 12))
+  mu <- fitted(fb)[, "Estimate"]
+  ph <- unique(round(frm_linpred(fb, dpar = "phi", type = "response"), 12))
   ll <- function(y, m) stats::dbeta(y, m * ph, (1 - m) * ph, log = TRUE)
   dev <- 2 * (ll(db$y, db$y) - ll(db$y, mu))
-  expect_vector_equal(residuals(fb, type = "deviance"),
+  expect_vector_equal(residuals(fb, type = "deviance")[, "Estimate"],
                       sign(db$y - mu) * sqrt(pmax(dev, 0)), tol = 1e-10)
 
   set.seed(12)
@@ -141,14 +141,14 @@ test_that("beta and tweedie deviances follow the saturated likelihood", {
   dt$y <- ifelse(runif(n) < 0.3, 0,
                  rgamma(n, 2, rate = 2 / exp(0.3 + 0.2 * dt$x)))
   ft <- frm(bf(y ~ x) + tweedie(), data = dt)
-  mu <- fitted(ft)
-  pht <- unique(round(predict(ft, dpar = "phi", type = "response"), 12))
-  pwr <- unique(round(predict(ft, dpar = "power", type = "response"), 12))
+  mu <- fitted(ft)[, "Estimate"]
+  pht <- unique(round(frm_linpred(ft, dpar = "phi", type = "response"), 12))
+  pwr <- unique(round(frm_linpred(ft, dpar = "power", type = "response"), 12))
   # d = 2 phi (ll_sat - ll_fit); dtweedie's series is good to ~1e-7
   llt <- function(y, m) RTMB::dtweedie(y, m, pht, pwr, log = TRUE)
   dev <- 2 * pht * (llt(dt$y, ifelse(dt$y > 0, dt$y, 1e-8)) -
                       llt(dt$y, mu))
-  rt <- residuals(ft, type = "deviance")
+  rt <- residuals(ft, type = "deviance")[, "Estimate"]
   expect_vector_equal(rt, sign(dt$y - mu) * sqrt(pmax(dev, 0)), tol = 1e-4)
   # the zero rows have a closed form: d = 2 mu^(2-p) / (2-p)
   i0 <- dt$y == 0
@@ -160,14 +160,15 @@ test_that("beta and tweedie deviances follow the saturated likelihood", {
 test_that("deviance residuals condition on the random-effect modes", {
   dd <- sim_pois_glmm(seed = 77, n_g = 12, n_per = 12)
   fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
-  mu <- fitted(fit)   # conditional on the modes, the glmmTMB convention
+  # conditional on the modes, the glmmTMB convention
+  mu <- fitted(fit)[, "Estimate"]
   dev <- 2 * (ifelse(dd$y > 0, dd$y * log(dd$y / mu), 0) - (dd$y - mu))
-  expect_vector_equal(residuals(fit, type = "deviance"),
+  expect_vector_equal(residuals(fit, type = "deviance")[, "Estimate"],
                       sign(dd$y - mu) * sqrt(pmax(dev, 0)), tol = 1e-12)
   # deviance() is a different quantity and stays -2 logLik (lme4)
   expect_equal(deviance(fit), -2 * as.numeric(logLik(fit)))
   expect_gt(abs(deviance(fit) -
-                  sum(residuals(fit, type = "deviance")^2)), 1)
+                  sum(residuals(fit, type = "deviance")[, "Estimate"]^2)), 1)
 })
 
 test_that("families without a unit deviance are refused by name", {
@@ -230,7 +231,7 @@ test_that("expected-response se.fit matches glmmTMB (zi and plain)", {
   # single-predictor path against the same reference
   fp <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
   gp <- glmmTMB::glmmTMB(y ~ x + (1 | g), data = dd, family = poisson)
-  pp <- predict(fp, type = "response", se.fit = TRUE)
+  pp <- frm_linpred(fp, type = "response", se.fit = TRUE)
   gpp <- predict(gp, type = "response", se.fit = TRUE)
   expect_lt(max(abs(pp$fit - gpp$fit) / gpp$fit), 1e-3)
   expect_lt(max(abs(pp$se.fit - gpp$se.fit) / gpp$se.fit), 1e-3)
@@ -239,13 +240,13 @@ test_that("expected-response se.fit matches glmmTMB (zi and plain)", {
     frm(bf(y ~ x + (1 | g), zi ~ z) + zero_inflated_poisson(), data = dd))
   gz <- glmmTMB::glmmTMB(y ~ x + (1 | g), ziformula = ~z, data = dd,
                          family = poisson)
-  pz <- predict(fz, type = "response", se.fit = TRUE)
+  pz <- frm_linpred(fz, type = "response", se.fit = TRUE)
   gzz <- predict(gz, type = "response", se.fit = TRUE)
   expect_lt(max(abs(pz$fit - gzz$fit) / gzz$fit), 1e-3)
   expect_lt(max(abs(pz$se.fit - gzz$se.fit) / gzz$se.fit), 1e-3)
 
   # newdata reproduces the in-sample answer exactly
-  pn <- predict(fz, newdata = dd, type = "response", se.fit = TRUE)
+  pn <- frm_linpred(fz, newdata = dd, type = "response", se.fit = TRUE)
   expect_equal(unname(pn$fit), unname(pz$fit))
   expect_equal(unname(pn$se.fit), unname(pz$se.fit))
 })
@@ -254,9 +255,9 @@ test_that("the FD gradients reproduce the analytic ones (zi, lognormal)", {
   dd <- se_env$dd
   fz <- suppressWarnings(
     frm(bf(y ~ x, zi ~ z) + zero_inflated_poisson(), data = dd))
-  p <- predict(fz, type = "response", se.fit = TRUE)
-  mu <- predict(fz, type = "conditional")
-  zi <- predict(fz, type = "zprob")
+  p <- frm_linpred(fz, type = "response", se.fit = TRUE)
+  mu <- frm_linpred(fz, type = "conditional")
+  zi <- frm_linpred(fz, type = "zprob")
   # m = (1 - p) mu, log link on mu and logit on zi:
   # dm/deta_mu = (1 - p) mu, dm/deta_zi = -mu p (1 - p)
   G <- cbind(((1 - zi) * mu) * stats::model.matrix(~x, dd),
@@ -268,9 +269,9 @@ test_that("the FD gradients reproduce the analytic ones (zi, lognormal)", {
   dl <- data.frame(x = rnorm(200), z = rnorm(200))
   dl$y <- rlnorm(200, 0.3 + 0.4 * dl$x, exp(-0.5 + 0.3 * dl$z))
   fl <- frm(bf(y ~ x, sigma ~ z) + frmtmb::lognormal(), data = dl)
-  pl <- predict(fl, type = "response", se.fit = TRUE)
-  mul <- predict(fl, dpar = "mu", type = "response")
-  sgl <- predict(fl, dpar = "sigma", type = "response")
+  pl <- frm_linpred(fl, type = "response", se.fit = TRUE)
+  mul <- frm_linpred(fl, dpar = "mu", type = "response")
+  sgl <- frm_linpred(fl, dpar = "sigma", type = "response")
   m <- exp(mul + sgl^2 / 2)
   # identity link on mu, log link on sigma: dm/deta_mu = m,
   # dm/deta_sigma = m sigma^2
@@ -287,8 +288,8 @@ test_that("se.fit covers trials-binomial and truncated responses", {
   db <- data.frame(x = rnorm(150), m = 8)
   db$k <- rbinom(150, 8, plogis(0.2 + 0.6 * db$x))
   fb <- frm(bf(k | trials(m) ~ x) + binomial(), data = db)
-  pb <- predict(fb, type = "response", se.fit = TRUE)
-  pc <- predict(fb, type = "conditional", se.fit = TRUE)
+  pb <- frm_linpred(fb, type = "response", se.fit = TRUE)
+  pc <- frm_linpred(fb, type = "conditional", se.fit = TRUE)
   # the mean is trials * p, so both the value and its SE scale by trials
   expect_vector_equal(pb$fit, 8 * pc$fit, tol = 1e-12)
   expect_vector_equal(pb$se.fit, 8 * pc$se.fit, tol = 1e-10)
@@ -298,20 +299,20 @@ test_that("se.fit covers trials-binomial and truncated responses", {
   dt$y <- rnorm(300, 1 + 0.5 * dt$x, 1)
   dt <- dt[dt$y > 0, ]
   ft <- frm(bf(y | trunc(lb = 0) ~ x) + gaussian(), data = dt)
-  pt <- predict(ft, type = "response", se.fit = TRUE)
+  pt <- frm_linpred(ft, type = "response", se.fit = TRUE)
   expect_true(all(is.finite(pt$se.fit)) && all(pt$se.fit > 0))
   # the point predictions are the ones the no-se path gives
   expect_equal(unname(pt$fit),
-               unname(predict(ft, type = "response")))
+               unname(frm_linpred(ft, type = "response")))
   # and the truncated mean is above the untruncated one here
-  expect_true(all(pt$fit > predict(ft, type = "conditional")))
+  expect_true(all(pt$fit > frm_linpred(ft, type = "conditional")))
 })
 
 test_that("the identity-mean se.fit path is untouched", {
   dd <- se_env$dd
   fp <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
-  pl <- predict(fp, type = "link", se.fit = TRUE)
-  pr <- predict(fp, type = "response", se.fit = TRUE)
+  pl <- frm_linpred(fp, type = "link", se.fit = TRUE)
+  pr <- frm_linpred(fp, type = "response", se.fit = TRUE)
   # plain one-predictor delta method, not the joint one
   expect_equal(pr$se.fit, exp(pl$fit) * pl$se.fit)
 })
@@ -322,5 +323,5 @@ test_that("se.fit still refuses a nonlinear predictor's response mean", {
   dn$y <- 3 * exp(-0.8 * dn$x) + rnorm(80, 0, 0.1)
   fit <- frm(bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE) +
                gaussian(), data = dn)
-  expect_error(predict(fit, se.fit = TRUE), "se.fit is not supported")
+  expect_error(frm_linpred(fit, se.fit = TRUE), "se.fit is not supported")
 })

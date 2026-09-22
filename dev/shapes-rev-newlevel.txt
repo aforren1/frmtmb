@@ -1,0 +1,9 @@
+replicates: 220  failed: 0 
+n: 60  groups: 12  new points: 10  ndraws: 600  tau: 0.7  sigma: 0.8  SEED0: 883000 
+script: dev/shapes-rev-newlevel.R
+
+new     1883 of  2200 = 0.8559  (0.8405, 0.8703) binomial; replicate mean 0.8559 se 0.0073  z=-12.85  mean width 3.2572
+known   2056 of  2200 = 0.9345  (0.9234, 0.9445) binomial; replicate mean 0.9345 se 0.0055  z=-2.83  mean width 3.2503
+
+width ratio new/known: 1.0021
+what brms's fresh-effect draw would need: 1.3288

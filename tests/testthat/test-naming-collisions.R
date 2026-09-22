@@ -35,13 +35,14 @@ test_that("a covariate named sigma is b_sigma, and sigma is the SD", {
   msgs <- capture_messages(h <- hypothesis(fit, c("sigma = 0", "sigma > 0")))
   expect_length(msgs, 0L)
   expect_equal(h$hypothesis$Estimate,
-               rep(unname(fixef(fit)$mu[["sigma"]]), 2L), tolerance = 1e-10)
+               rep(unname(fixef_by_dpar(fit)$mu[["sigma"]]),
+                   2L), tolerance = 1e-10)
 
   # class = NULL reads it as written, which is the residual SD
   expect_equal(hypothesis(fit, "sigma = 0", class = NULL)$hypothesis$Estimate,
                unname(sigma(fit)), tolerance = 1e-8)
   expect_equal(hypothesis(fit, "b_sigma = 0", class = NULL)$hypothesis$Estimate,
-               unname(fixef(fit)$mu[["sigma"]]), tolerance = 1e-10)
+               unname(fixef_by_dpar(fit)$mu[["sigma"]]), tolerance = 1e-10)
 
   # both names are listed, and no dot spelling exists any more
   vv <- variables(fit)
@@ -65,7 +66,7 @@ test_that("a coefficient named like an sd_ summary is b_ prefixed", {
                tolerance = 1e-8)
   # and the coefficient is b_sd_g__Intercept
   expect_equal(hypothesis(fit, "sd_g__Intercept = 0")$hypothesis$Estimate,
-               unname(fixef(fit)$mu[["sd_g__Intercept"]]),
+               unname(fixef_by_dpar(fit)$mu[["sd_g__Intercept"]]),
                tolerance = 1e-10)
 })
 
@@ -110,7 +111,7 @@ test_that("an intercept-only nlpar may be bounded by its bare name", {
   # and it reaches frm() itself, which is where a user writes it
   bounded <- frm(form + gaussian(), data = dd,
                  prior = set_prior("", nlpar = "b", lb = 0.1, ub = 2))
-  expect_equal(unname(fixef(bounded)$b), unname(fixef(fit)$b),
+  expect_equal(unname(fixef_by_dpar(bounded)$b), unname(fixef_by_dpar(fit)$b),
                tolerance = 1e-6)
 
   # confint(parm =) takes it too, silently: it is a spelling of one

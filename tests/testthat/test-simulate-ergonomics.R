@@ -61,7 +61,7 @@ test_that("a refit recovers natural-scale simulation parameters", {
   f <- frm(form, data = d2)
   expect_lt(abs(sqrt(varcorr_matrices(f)[[1]][1, 1]) - 0.7), 0.25)
   expect_lt(abs(sigma(f) - 0.5), 0.1)
-  expect_lt(abs(fixef(f)$mu[["x"]] - 0.5), 0.1)
+  expect_lt(abs(fixef_by_dpar(f)$mu[["x"]] - 0.5), 0.1)
 })
 
 test_that("natural newparams reject what they cannot express", {

@@ -66,7 +66,7 @@ test_that("r_, b_ and sigma columns hold what the model reads there", {
                          info = col)
       }
     }
-    fe <- fixef(sh)$mu
+    fe <- fixef_by_dpar(sh)$mu
     for (nm in names(fe)) {
       col <- paste0("b_", gsub("[()]", "", nm))
       expect_identical(unname(ds$draws[i, col]), unname(fe[[nm]]),

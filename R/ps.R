@@ -99,7 +99,7 @@
 #' data or at the drawn coefficients, and the frozen basis is evaluated
 #' at whatever argument comes out.
 #'
-#' `predict(se.fit = TRUE)` stays refused for a nonlinear predictor.
+#' `frm_linpred(se.fit = TRUE)` stays refused for a nonlinear predictor.
 #' [frm_lp_basis()] is the route: it tapes the body and returns
 #' `d eta / d coef` as a Jacobian, which is what a delta method over a
 #' warped curve needs.

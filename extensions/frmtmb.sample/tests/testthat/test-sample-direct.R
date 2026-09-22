@@ -627,8 +627,10 @@ test_that("every draws accessor speaks brms's names", {
   expect_equal(colnames(posterior::as_draws_matrix(as_draws(ds))),
                colnames(ds$draws))
 
-  # the FIT side keeps its own canonical spelling
-  expect_true("(Intercept)" %in% rownames(stats::vcov(fit)))
+  # the FIT side takes brms's names on vcov() too since item 2.6f, and
+  # keeps the internal spelling where confint() names its rows
+  expect_true("Intercept" %in% rownames(stats::vcov(fit)))
+  expect_true("(Intercept)" %in% rownames(stats::confint(fit)))
 
   # hypothesis() takes brms's names alone, as brms does; the priors keep
   # both spellings of a coefficient

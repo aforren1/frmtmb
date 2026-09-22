@@ -16,7 +16,11 @@ ngrps(object, ...)
 error naming it, rather than silently changing nothing.}
 }
 \value{
-A named integer vector (smooth terms are excluded).
+brms's named list, one integer per grouping factor, or \code{NULL}
+for a fit with no grouping factor. Smooth, Gaussian-process, CAR
+and SPDE blocks are random-effect blocks here and are not grouping
+factors in brms, so they are excluded; their parameters are in
+\code{\link[=VarCorr]{VarCorr()}} and \code{\link[=confint_varcorr]{confint_varcorr()}}.
 }
 \description{
 Number of levels per random-effect grouping factor

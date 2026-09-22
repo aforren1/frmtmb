@@ -284,7 +284,7 @@ test_that("a fit recovers a clearance that changes at a known time", {
        lk ~ 1 + phase + (1 | id), nl = TRUE) + gaussian(),
     data = d, start = list(beta = c(log(0.2), 0)))
 
-  fx <- unlist(fixef(fit))
+  fx <- unlist(fixef_by_dpar(fit))
   expect_equal(unname(fx[["lk.(Intercept)"]]), log(0.15), tolerance = 0.15)
   expect_equal(unname(fx[["lk.phaselate"]]), log(2), tolerance = 0.3)
   # sigma comes back high (about 0.9 against a truth of 0.6): with ten
@@ -303,9 +303,9 @@ test_that("a fit recovers a clearance that changes at a known time", {
     data = d, start = list(beta = log(0.2)))
   expect_gt(as.numeric(logLik(fit)), as.numeric(logLik(flat)) + 10)
 
-  # predict() re-solves the step function on newdata
+  # frm_linpred() re-solves the step function on newdata
   nd <- d[d$id %in% c("1", "2"), ]
-  expect_equal(predict(fit, newdata = nd),
-               unname(predict(fit)[d$id %in% c("1", "2")]),
+  expect_equal(frm_linpred(fit, newdata = nd),
+               unname(frm_linpred(fit)[d$id %in% c("1", "2")]),
                tolerance = 1e-6, ignore_attr = TRUE)
 })

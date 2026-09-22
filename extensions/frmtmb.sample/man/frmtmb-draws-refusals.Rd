@@ -11,12 +11,6 @@
 \alias{update.frmtmb_draws}
 \alias{restructure}
 \alias{restructure.frmtmb_draws}
-\alias{posterior_samples}
-\alias{posterior_samples.frmtmb_draws}
-\alias{nsamples}
-\alias{nsamples.frmtmb_draws}
-\alias{parnames}
-\alias{parnames.frmtmb_draws}
 \title{Methods a ported brms script may call that frmtmb does not have}
 \usage{
 stancode(object, ...)
@@ -36,21 +30,9 @@ standata(object, ...)
 restructure(x, ...)
 
 \method{restructure}{frmtmb_draws}(x, ...)
-
-posterior_samples(x, pars = NA, ...)
-
-\method{posterior_samples}{frmtmb_draws}(x, pars = NA, ...)
-
-nsamples(object, ...)
-
-\method{nsamples}{frmtmb_draws}(object, ...)
-
-parnames(x, ...)
-
-\method{parnames}{frmtmb_draws}(x, ...)
 }
 \arguments{
-\item{object, x, pars, ...}{Ignored; these functions always stop.}
+\item{object, x, ...}{Ignored; these functions always stop.}
 }
 \value{
 These functions never return; they signal an error.
@@ -75,7 +57,7 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
   ds <- frm_sample(fit, chains = 1, iter = 400, refresh = 0)
   # each refusal names its reason and the replacement
   try(stancode(ds))
-  try(nsamples(ds))
+  try(standata(ds))
 }
 }
 }

@@ -9,7 +9,7 @@
 ## against the exact zero a grid differenced with itself has to give.
 ##
 ## The built-in covariance check cannot settle it, and that is a fact
-## about the seam rather than about this package: predict(se.fit = TRUE)
+## about the seam rather than about this package: frm_linpred(se.fit = TRUE)
 ## returns a marginal standard error per row and never the covariance
 ## BETWEEN two grids, which is the whole content of a difference. So the
 ## check runs on each half and the identities here carry the rest.
@@ -103,7 +103,9 @@ test_that("the difference variance is core's vcov(), where core has one", {
   nB <- data.frame(x = c(-1, 0, 1),
                    fac = factor("B", levels = levels(d$fac)))
   cv <- frm_curve(fit, newdata = nA, contrast = nB, simultaneous = FALSE)
-  V <- stats::vcov(fit)
+  # vcov_estimated(): vcov() takes brms's names since item 2.6f, and
+  # the design columns below are the model matrix's own
+  V <- frmtmb::vcov_estimated(fit)
   keep <- c("(Intercept)", "facB", "x", "facB:x")
   D <- (stats::model.matrix(~ fac * x, nA) -
           stats::model.matrix(~ fac * x, nB))[, keep, drop = FALSE]
@@ -112,8 +114,11 @@ test_that("the difference variance is core's vcov(), where core has one", {
   # covariance has to give the same doubles
   expect_identical(cv$.se, se)
   expect_true(all(se > 0))
+  # fixef_by_dpar(), not coef(): coef() takes brms's names since punch
+  # round 1 and `keep` is the model matrix's own column names
   expect_equal(cv$.estimate,
-               as.numeric(D %*% stats::coef(fit)[keep]), tolerance = 1e-12)
+               as.numeric(D %*% frmtmb::fixef_by_dpar(fit)$mu[keep]),
+               tolerance = 1e-12)
 })
 
 test_that("a grid differenced with itself is exactly zero", {
@@ -355,7 +360,7 @@ test_that("a gp() difference at ONE position cancels the kriging residual", {
   # coefficients rather than to one ulp: measured 1.5e-12, about 6900
   # ulps, so the bound is a ulp count and not a decimal constant.
   se <- unname(sqrt(stats::vcov(o$fit)["facB", "facB"]))
-  bhat <- unname(frmtmb::fixef(o$fit)$mu["facB"])
+  bhat <- unname(frmtmb::fixef_by_dpar(o$fit)$mu["facB"])
   expect_lt(abs(dif$.se[1L] / se - 1), 1e5 * .Machine$double.eps)
   expect_lt(abs(dif$.estimate[1L] / (-bhat) - 1), 1e5 * .Machine$double.eps)
 })
@@ -439,7 +444,7 @@ test_that("print() says the difference itself was not checked", {
   out <- utils::capture.output(print(dif))
   expect_true(any(grepl("difference", out, fixed = TRUE)))
   expect_true(any(grepl("has no second route", out, fixed = TRUE)))
-  # two predict(se.fit = TRUE) calls, one per grid, and both agreed. The
+  # two frm_linpred(se.fit = TRUE) calls, one per grid, and both agreed. The
   # scale to judge that on is the SAME check run on one grid of the same
   # fit, floored at the machine epsilon the triple product cannot beat,
   # rather than a constant that has to be right on every BLAS

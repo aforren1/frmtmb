@@ -2,7 +2,7 @@
 #
 # The log-density tier next door proves that frmtmb's objective IS the
 # Stan program's log density at a point. That says nothing about what
-# the two packages RETURN from fitted(), predict(), ranef() and the
+# the two packages RETURN from fitted(), frm_linpred(), ranef() and the
 # rest, and nothing in the repository compared those against brms until
 # this file. See dev/brms-methods-tests.md.
 #
@@ -454,7 +454,7 @@ frm_row_loglik <- function(fit, resp = NULL) {
 # them into one matrix and puts the dpar or nlpar in FRONT of the
 # coefficient name, with "Intercept" for model.matrix's "(Intercept)".
 brms_flatten_fixef <- function(fit) {
-  fe <- fixef(fit)
+  fe <- fixef_by_dpar(fit)
   out <- unlist(lapply(names(fe), function(dp) {
     v <- fe[[dp]]
     cn <- names(v)
@@ -517,7 +517,7 @@ brms_dpars_of <- function(shape) {
 
 # TRUE when brms declares the dpar as a bare scalar on its natural
 # scale rather than building a linear predictor for it. That is the one
-# case where posterior_linpred(dpar = ) and predict(type = "link",
+# case where posterior_linpred(dpar = ) and frm_linpred(type = "link",
 # dpar = ) are on different scales, so it decides which comparison a
 # dpar belongs in.
 brms_dpar_is_scalar <- function(shape, dpar) {
@@ -563,7 +563,7 @@ brms_exclusions <- function() {
     # nominal per-category display needs a bootstrap band" covers the
     # shape under band = "boot", where the estimate is the fit's own.
     c("brms_ce_shapes", "r13", "9", "P"),
-    # posterior_linpred() against predict(type = "link")
+    # posterior_linpred() against frm_linpred(type = "link")
     c("brms_linpred_shapes", "r12e", "13", "C"),
     c("brms_linpred_shapes", "r13", "13", "C"),
     c("brms_linpred_shapes", "r17", "13", "C"),
@@ -644,7 +644,7 @@ brms_ce_agrees <- function(shape, tol = 1e-8) {
 brms_dpar_epred_agrees <- function(shape, dpar, tol = 1e-8) {
   a <- try(brms::posterior_epred(shape$brmsfit, dpar = dpar),
            silent = TRUE)
-  b <- try(predict(shape$fit, type = "response", dpar = dpar),
+  b <- try(frm_linpred(shape$fit, type = "response", dpar = dpar),
            silent = TRUE)
   if (inherits(a, "try-error") || inherits(b, "try-error")) {
     return(FALSE)
@@ -698,7 +698,7 @@ brms_linpred_shapes <- function() {
 
 # The shapes whose MEAN is the inverse link of the mu linear predictor,
 # so brms's posterior_linpred(transform = TRUE) and frmtmb's
-# predict(type = "response") are the same quantity.
+# frm_linpred(type = "response") are the same quantity.
 brms_meanlink_shapes <- function() {
   setdiff(names(brms_methods_shapes),
           brms_excluded("brms_meanlink_shapes"))

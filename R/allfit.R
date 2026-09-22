@@ -122,8 +122,10 @@ print.frmtmb_allfit <- function(x, ...) {
   if (sum(ok) > 1L) {
     ll <- tab$logLik[ok]
     cat("\nlogLik spread:", format(diff(range(ll)), digits = 3), "\n")
-    fe <- vapply(x$fits[ok], function(f) unlist(fixef(f)),
-                 unlist(fixef(x$fits[ok][[1L]])))
+    # the flat vector, not the summary matrix: what is compared across
+    # restarts is the estimates, one per coefficient
+    fe <- vapply(x$fits[ok], function(f) fixef(f, flatten = TRUE),
+                 fixef(x$fits[ok][[1L]], flatten = TRUE))
     fe <- matrix(fe, ncol = sum(ok))
     cat("max fixed-effect spread:",
         format(max(apply(fe, 1, function(r) diff(range(r)))), digits = 3),

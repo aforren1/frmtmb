@@ -525,7 +525,7 @@ test_that("a validate_prior() table fits the model its prior fits", {
   # the two orders are one model
   expect_identical(fixef(fits[[1]]), fixef(fits[[2]]))
   # the coefficient prior bites: z sits at 3, x at 0
-  expect_lt(abs(fixef(fits[[1]])$mu[["z"]] - 3), 0.1)
+  expect_lt(abs(fixef_by_dpar(fits[[1]])$mu[["z"]] - 3), 0.1)
   # and the table is not simply ignored: without the prior the fit moves
   expect_false(identical(fixef(fits[[1]]), fixef(frm(f, d))))
 })
@@ -588,7 +588,8 @@ pf_table_matches_fit <- function(pr, f, data) {
   checked
 }
 
-test_that("every leaf row of a validate_prior() table is what the fit applies", {
+test_that("every leaf row of a validate_prior() table is what the fit applies",
+          {
   set.seed(20260916)
   n <- 200
   d <- data.frame(g = factor(rep(1:10, 20)), h = factor(rep(1:8, 25)),

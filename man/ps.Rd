@@ -104,7 +104,7 @@ truncated powers cancels terms of order \code{(range / spacing)^degree}.
 data or at the drawn coefficients, and the frozen basis is evaluated
 at whatever argument comes out.
 
-\code{predict(se.fit = TRUE)} stays refused for a nonlinear predictor.
+\code{frm_linpred(se.fit = TRUE)} stays refused for a nonlinear predictor.
 \code{\link[=frm_lp_basis]{frm_lp_basis()}} is the route: it tapes the body and returns
 \verb{d eta / d coef} as a Jacobian, which is what a delta method over a
 warped curve needs.

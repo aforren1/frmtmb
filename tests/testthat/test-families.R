@@ -9,7 +9,7 @@ test_that("Gamma matches glmmTMB", {
   fit <- frm(bf(y ~ x) + Gamma(link = "log"), data = dd)
   ref <- glmmTMB::glmmTMB(y ~ x, family = Gamma(link = "log"), data = dd)
   expect_loglik_equal(fit, ref, tol = 1e-6)
-  expect_vector_equal(fixef(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
+  expect_vector_equal(fixef_by_dpar(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
                       tol = 1e-4)
 })
 
@@ -23,7 +23,7 @@ test_that("lognormal equals lm on the log scale plus the Jacobian", {
   ref <- lm(log(y) ~ x, dd)
   expect_lt(abs(as.numeric(logLik(fit)) -
                   (as.numeric(logLik(ref)) - sum(log(y)))), 1e-6)
-  expect_vector_equal(fixef(fit)$mu, coef(ref), tol = 1e-5)
+  expect_vector_equal(fixef_by_dpar(fit)$mu, coef(ref), tol = 1e-5)
 })
 
 test_that("student matches MASS::fitdistr", {
@@ -34,10 +34,10 @@ test_that("student matches MASS::fitdistr", {
   fit <- frm(bf(y ~ 1) + student(), data = dd)
   ref <- suppressWarnings(MASS::fitdistr(y, "t"))
   expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(logLik(ref))), 1e-4)
-  expect_lt(abs(fixef(fit)$mu[[1]] - ref$estimate[["m"]]), 1e-3)
-  est_sigma <- exp(fixef(fit)$sigma[[1]])
+  expect_lt(abs(fixef_by_dpar(fit)$mu[[1]] - ref$estimate[["m"]]), 1e-3)
+  est_sigma <- exp(fixef_by_dpar(fit)$sigma[[1]])
   expect_lt(abs(est_sigma - ref$estimate[["s"]]), 1e-3)
-  est_nu <- 1 + exp(fixef(fit)$nu[[1]])
+  est_nu <- 1 + exp(fixef_by_dpar(fit)$nu[[1]])
   expect_lt(abs(est_nu - ref$estimate[["df"]]) / ref$estimate[["df"]], 1e-2)
 })
 
@@ -111,8 +111,8 @@ test_that("negbinomial GLM matches MASS::glm.nb", {
   fit <- frm(bf(y ~ x) + negbinomial(), data = dd)
   ref <- MASS::glm.nb(y ~ x, data = dd)
   expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(logLik(ref))), 1e-5)
-  expect_vector_equal(fixef(fit)$mu, coef(ref), tol = 1e-4)
-  expect_lt(abs(exp(fixef(fit)$shape[[1]]) - ref$theta), 1e-2)
+  expect_vector_equal(fixef_by_dpar(fit)$mu, coef(ref), tol = 1e-4)
+  expect_lt(abs(exp(fixef_by_dpar(fit)$shape[[1]]) - ref$theta), 1e-2)
 })
 
 test_that("nbinom1 matches glmmTMB", {
@@ -127,7 +127,7 @@ test_that("nbinom1 matches glmmTMB", {
   fit <- frm(bf(y ~ x) + nbinom1(), data = dd)
   ref <- glmmTMB::glmmTMB(y ~ x, family = glmmTMB::nbinom1, data = dd)
   expect_loglik_equal(fit, ref, tol = 1e-5)
-  expect_vector_equal(fixef(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
+  expect_vector_equal(fixef_by_dpar(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
                       tol = 1e-4)
 })
 
@@ -144,9 +144,9 @@ test_that("beta matches glmmTMB beta_family", {
   ref <- glmmTMB::glmmTMB(y ~ x, family = glmmTMB::beta_family(),
                           data = dd)
   expect_loglik_equal(fit, ref, tol = 1e-6)
-  expect_vector_equal(fixef(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
+  expect_vector_equal(fixef_by_dpar(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
                       tol = 1e-4)
-  expect_lt(abs(exp(fixef(fit)$phi[[1]]) - glmmTMB::sigma(ref)), 1e-2)
+  expect_lt(abs(exp(fixef_by_dpar(fit)$phi[[1]]) - glmmTMB::sigma(ref)), 1e-2)
 })
 
 test_that("tweedie matches glmmTMB", {
@@ -161,7 +161,7 @@ test_that("tweedie matches glmmTMB", {
   fit <- frm(bf(y ~ x) + tweedie(), data = dd)
   ref <- glmmTMB::glmmTMB(y ~ x, family = glmmTMB::tweedie(), data = dd)
   expect_loglik_equal(fit, ref, tol = 1e-4)
-  expect_vector_equal(fixef(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
+  expect_vector_equal(fixef_by_dpar(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
                       tol = 1e-3)
 })
 
@@ -173,7 +173,7 @@ test_that("compois fits and recovers the mean model", {
   dd <- data.frame(y, x)
   fit <- frm(bf(y ~ x) + compois(), data = dd)
   expect_true(is.finite(as.numeric(logLik(fit))))
-  expect_vector_equal(fixef(fit)$mu, c(0.6, 0.4), tol = 0.3)
+  expect_vector_equal(fixef_by_dpar(fit)$mu, c(0.6, 0.4), tol = 0.3)
   # poisson nested in compois: likelihood at optimum can't be worse
   ref <- glm(y ~ x, family = poisson, data = dd)
   expect_gt(as.numeric(logLik(fit)), as.numeric(logLik(ref)) - 1e-6)
@@ -273,10 +273,11 @@ test_that("a dpar link that is not log keeps the density honest", {
            data = d)
   expect_equal(as.numeric(logLik(a)), as.numeric(logLik(b)),
                tolerance = 1e-6)
-  expect_equal(unlist(fixef(a)$mu), unlist(fixef(b)$mu), tolerance = 1e-5)
+  expect_equal(unlist(fixef_by_dpar(a)$mu), unlist(fixef_by_dpar(b)$mu),
+               tolerance = 1e-5)
   # the shape itself, read back off each link, agrees
-  sa <- exp(unlist(fixef(a))[["shape.(Intercept)"]])
-  sb <- log1p(exp(unlist(fixef(b))[["shape.(Intercept)"]]))
+  sa <- exp(unlist(fixef_by_dpar(a))[["shape.(Intercept)"]])
+  sb <- log1p(exp(unlist(fixef_by_dpar(b))[["shape.(Intercept)"]]))
   expect_equal(sa, sb, tolerance = 1e-4)
 })
 
@@ -292,8 +293,8 @@ test_that("a gate link that is not logit keeps the density honest", {
            data = d)
   expect_equal(as.numeric(logLik(a)), as.numeric(logLik(b)),
                tolerance = 1e-5)
-  za <- plogis(unlist(fixef(a))[["zi.(Intercept)"]])
-  zb <- unlist(fixef(b))[["zi.(Intercept)"]]
+  za <- plogis(unlist(fixef_by_dpar(a))[["zi.(Intercept)"]])
+  zb <- unlist(fixef_by_dpar(b))[["zi.(Intercept)"]]
   expect_equal(za, zb, tolerance = 1e-4)
 })
 
@@ -315,7 +316,8 @@ test_that("a dpar's prior goes through that dpar's own link", {
     lk <- frmtmb:::get_link(l)
     f <- frm(bf(y ~ x), family = brmsfamily("gaussian", link_sigma = l),
              data = d, prior = pr)
-    got[l] <- lk$linkinv(unname(unlist(fixef(f))[["sigma.(Intercept)"]]))
+    s0 <- unname(unlist(fixef_by_dpar(f))[["sigma.(Intercept)"]])
+    got[l] <- lk$linkinv(s0)
     obj <- function(eta) {
       s <- lk$linkinv(eta)
       if (s <= 0) return(1e10)

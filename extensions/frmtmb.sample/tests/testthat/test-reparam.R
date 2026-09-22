@@ -540,8 +540,13 @@ test_that("the whole draws method surface runs on non-centered draws", {
   expect_true(is.matrix(fixef(ds)))
   expect_named(VarCorr(ds)$g, "sd")
   expect_true(is.list(ranef(ds)))
-  expect_s3_class(hypothesis(ds, "sd_g__Intercept > 0", class = NULL),
-                  "brmshypothesis")
+  hy <- hypothesis(ds, "sd_g__Intercept > 0", class = NULL)
+  # brms's SHAPE under frmtmb's own class: a frmtmb object must not
+  # answer is(x, "<brms class>") TRUE (rule 2)
+  expect_s3_class(hy, "frmtmb_hypothesis")
+  expect_false(inherits(hy, "brmshypothesis"))
+  expect_named(hy, c("hypothesis", "samples", "prior_samples",
+                     "class", "alpha"))
   ce <- conditional_effects(ds, effects = "x", resolution = 10)
   expect_equal(nrow(ce[[1L]]), 10L)
   pp <- posterior_predict(ds, ndraws = 10)

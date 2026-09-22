@@ -210,7 +210,7 @@ hmm_tr_init <- function(i, j) {
 #' the smoothed state probability and therefore a backward pass over the
 #' whole sequence. [hmm_probs()] returns those probabilities and
 #' [hmm_viterbi()] the maximum-a-posteriori state path; [fitted()],
-#' `predict(type = "response")` and [residuals()] all route through
+#' `frm_linpred(type = "response")` and [residuals()] all route through
 #' [hmm_probs()], so they report the occupancy-weighted mean rather than
 #' any single state's.
 #'
@@ -340,7 +340,7 @@ hmm_tr_init <- function(i, j) {
 #' location coefficients, which matches no standard definition),
 #' `quadrature`, `frmtmb_control(profile = TRUE)`, `weights()`, `cens()`,
 #' `trunc()`, `se()` and `mi()` on the response, multivariate models and
-#' `rescor`, `residuals(type = "osa")`, `predict(se.fit = TRUE)` on the
+#' `rescor`, `residuals(type = "osa")`, `frm_linpred(se.fit = TRUE)` on the
 #' response scale, and `conditional_effects()`. A grouping in which every
 #' sequence has length 1 is refused too: the chain is then unidentified
 #' and the model is a [frmtmb::mixture()].
@@ -384,7 +384,7 @@ hmm_tr_init <- function(i, j) {
 #' mean(hmm_viterbi(fit) == dd$state)
 #'
 #' # fitted() is the occupancy-weighted mean, not state 1's
-#' cor(fitted(fit), dd$y)
+#' cor(fitted(fit)[, "Estimate"], dd$y)
 #'
 #' \donttest{
 #' # one state's mean takes its own predictor, random effects included
@@ -644,7 +644,7 @@ hmm_structure <- function(fam) {
         "forward-backward pass does not produce. Use type = ",
         "\"link\" with dpar = for a state's own predictor"),
       newdata_response = paste0(
-        "predict(type = \"response\") on an hmm() fit is not ",
+        "frm_linpred(type = \"response\") on an hmm() fit is not ",
         "available for newdata: the state occupancy at a row is ",
         "conditional on the observed RESPONSES of its whole ",
         "sequence, which newdata does not carry. Predict a state's ",
@@ -686,7 +686,7 @@ hmm_structure <- function(fam) {
         "occupancies, which depend on the observed responses of a whole ",
         "sequence and are therefore undefined on the synthetic grid ",
         "this function builds. Plot one state's own predictor from ",
-        "predict(dpar = \"mu2\"), or the occupancies from hmm_probs()")
+        "frm_linpred(dpar = \"mu2\"), or the occupancies from hmm_probs()")
     )
   )
 }
@@ -1358,7 +1358,7 @@ hmm_viterbi <- function(fit) {
 #' The occupancy-weighted response mean of an hmm fit,
 #' `E[y_t | y] = sum_k P(S_t = k | y) mu_k(x_t)`.
 #'
-#' This is the quantity `fitted()`, `predict(type = "response")` and the
+#' This is the quantity `fitted()`, `frm_linpred(type = "response")` and the
 #' response/pearson residuals all report. There is no per-row `mean_fn`
 #' that could produce it, which is exactly why rung 1 of this feature
 #' silently reported state 1's mean everywhere.

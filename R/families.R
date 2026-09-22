@@ -256,7 +256,7 @@
 #'   link with `linkfun`, `linkinv`, and `mu_eta` (the derivative), and
 #'   `links` selects them per parameter. They are reachable through the
 #'   fit with `family()`, through `insight::link_function()` and
-#'   `insight::link_inverse()`, and are applied by `predict(type =)` to
+#'   `insight::link_inverse()`, and are applied by `frm_linpred(type =)` to
 #'   move between the link and response scales. Link functions are
 #'   written out over plain arithmetic rather than taken from
 #'   `stats::make.link()`, because the latter clamps at C level in ways
@@ -1035,7 +1035,7 @@ trunc_bounds <- function(aterms, n) {
 }
 
 # On a truncated response this is E[Y | lb <= Y <= ub], the quantity
-# fitted(), residuals() and predict(type = "response") report; per-dpar
+# fitted(), residuals() and frm_linpred(type = "response") report; per-dpar
 # predictions stay untruncated, because they describe the latent
 # parameter rather than the observable.
 
@@ -1053,7 +1053,7 @@ response_mean <- function(fam, dpars, aterms) {
     # parameter as one reported a race model's drift rate
     frm_stop("family '", fam[["family"]], "' declares no mean: it has no dpar ",
              "named mu and no post$mean_fn, so fitted() and ",
-             "predict(type = \"response\") have nothing to return. ",
+             "frm_linpred(type = \"response\") have nothing to return. ",
              "Ask for type = \"link\" or a dpar by name.", call. = FALSE,
              package = frm_family_package(fam))
   }
@@ -1061,9 +1061,9 @@ response_mean <- function(fam, dpars, aterms) {
   if (is.null(tb)) return(mu)
   tmf <- fam[["post"]]$trunc_mean_fn
   if (is.null(tmf)) {
-    frm_stop("Family '", fam[["family"]], "' has no truncated mean; fitted(), ",
-             "residuals() and predict(type = \"response\") would report the ",
-             "untruncated mean", call. = FALSE,
+    frm_stop("Family '", fam[["family"]], "' has no truncated mean; ",
+             "fitted(), residuals() and frm_linpred(type = \"response\") ",
+             "would report the untruncated mean", call. = FALSE,
              package = frm_family_package(fam))
   }
   tmf(dpars, aterms, tb$lb, tb$ub)
@@ -1242,7 +1242,7 @@ sim_response <- function(fam, dpars, aterms, n, max_iter = 100L,
 #'
 #' @noRd
 sim_context <- function(fit, rspec, dpars, aterms = NULL, n = NULL,
-                        extra = NULL) {
+                        extra = NULL, max_iter = NULL) {
   resp <- rspec[["resp_name"]]
   frame <- fit[["frame"]]
   list(fit = fit,
@@ -1254,6 +1254,10 @@ sim_context <- function(fit, rspec, dpars, aterms = NULL, n = NULL,
        n = n %||% frame[["n_obs"]],
        extra = extra %||% fit_extras(fit),
        autocor = frame[["autocor"]][[resp]],
+       # the rejection-sampling limit a trunc()ed response needs, which
+       # predict() exposes as brms's `ntrys`; absent means the
+       # simulator's own default
+       max_iter = max_iter,
        block = frame_block_of(frame, resp))
 }
 
@@ -1301,7 +1305,9 @@ sim_draw <- function(ctx) {
   sf <- fam_sim_ctx(ctx[["family"]])
   if (is.null(ac) && is.null(sf)) {
     return(sim_response(ctx[["family"]], ctx[["dpars"]], ctx[["aterms"]],
-                        ctx[["n"]], extra = ctx[["extra"]]))
+                        ctx[["n"]],
+                        max_iter = ctx[["max_iter"]] %||% 100L,
+                        extra = ctx[["extra"]]))
   }
   if (!is.null(trunc_bounds(ctx[["aterms"]], ctx[["n"]]))) {
     frm_stop("trunc() cannot be combined with a structured draw (here: '",
@@ -3165,6 +3171,7 @@ fam_cumulative <- function(link = "logit") {
       ord_tau_init(y, ordered = TRUE, link = lk)
     },
     sim = ord_sim("cumulative", ordered = TRUE, link = lk),
+    post = list(ord_thresholds = ord_threshold_map(TRUE)),
     drop_intercept = TRUE
   )
   ord_tag_link(fam, lk)
@@ -3261,6 +3268,21 @@ ord_tau_init <- function(y, ordered = TRUE, link = "logit") {
 # simulator needs the whole category distribution instead. These build
 # it in plain doubles, one branch per family, matching each lpdf term
 # for term.
+
+#' The map from the internal threshold vector to the thresholds
+#' themselves, as a family declares it in `post$ord_thresholds`.
+#'
+#' Two of the four ordinal families estimate `(tau_1, log increments)`
+#' so that the thresholds cannot cross, and two estimate the thresholds
+#' directly. `variables()` and `hypothesis()` report the THRESHOLDS,
+#' brms's `b_Intercept[k]`, so they need the map; asking the family for
+#' it keeps an ordinal family shipped by another package working, which
+#' a list of four names here would not.
+#'
+#' @noRd
+ord_threshold_map <- function(ordered) {
+  function(raw) ord_tau_from_raw(raw, ordered)
+}
 
 #' cumulative and sratio store ordered thresholds as (tau_1, log
 #' increments); cratio and acat store them raw. This returns the
@@ -3512,6 +3534,7 @@ fam_sratio <- function(link = "logit") {
       ord_tau_init(y, ordered = TRUE, link = lk)
     },
     sim = ord_sim("sratio", ordered = TRUE, link = lk),
+    post = list(ord_thresholds = ord_threshold_map(TRUE)),
     drop_intercept = TRUE
   )
   ord_tag_link(fam, lk)
@@ -3568,6 +3591,7 @@ fam_cratio <- function(link = "logit") {
       ord_tau_init(y, ordered = FALSE, link = lk)
     },
     sim = ord_sim("cratio", ordered = FALSE, link = lk),
+    post = list(ord_thresholds = ord_threshold_map(FALSE)),
     drop_intercept = TRUE
   )
   ord_tag_link(fam, lk)
@@ -3635,6 +3659,7 @@ fam_acat <- function(link = "logit") {
     type = "ordinal",
     extra_pars = function(y, aterms) ord_tau_init(y, ordered = FALSE),
     sim = ord_sim("acat", ordered = FALSE, link = lk),
+    post = list(ord_thresholds = ord_threshold_map(FALSE)),
     drop_intercept = TRUE
   )
   ord_tag_link(fam, lk)
@@ -3717,7 +3742,7 @@ mixture_mu_start <- function(y, aterms, p, bounded) {
 #' component keeps its own distributional parameters, suffixed by the
 #' component index (`mu1`, `sigma1`, `mu2`, ...), and the mixing
 #' A mixing weight's RESPONSE scale is the softmax over the component
-#' predictors, so `predict(type = "response", dpar = "theta1")` is a
+#' predictors, so `frm_linpred(type = "response", dpar = "theta1")` is a
 #' probability while `type = "link"` stays the predictor the density
 #' works on. Under `se.fit = TRUE` that probability's standard error is
 #' the delta method through its OWN predictor, `p (1 - p)` times the
@@ -5118,7 +5143,7 @@ fam_cox <- function(link = "log", df = 5, degree = 3, intercept = TRUE) {
         frm_stop("cox: a survival time has no mean on the response scale ",
                  "here - the model fits a hazard, and the mean survival ",
                  "time would be an integral over the baseline that the ",
-                 "censored rows do not identify. predict(type = \"link\") ",
+                 "censored rows do not identify. frm_linpred(type = \"link\") ",
                  "gives the log hazard ratio and cox_baseline() the fitted ",
                  "baseline weights", call. = FALSE)
       }
@@ -5555,10 +5580,10 @@ as_frmtmb_family <- function(x) {
 #' response is coerced to a factor with a message naming the level
 #' order, because that order is the model.
 #'
-#' `fitted()` and `predict(type = "response")` return the `n x K` matrix
+#' `fitted()` and `frm_linpred(type = "response")` return the `n x K` matrix
 #' of category probabilities, columns named by the response's own
 #' levels and rows summing to one - the same convention the ordinal
-#' families follow. `predict(type = "link")` and `predict(dpar =)` give
+#' families follow. `frm_linpred(type = "link")` and `frm_linpred(dpar =)` give
 #' the per-category latent predictors, which is where `se.fit` lives.
 #' `simulate()` draws factor levels. The same likelihood is available on
 #' a count-matrix response as `multinomial(K)`, and a one-hot matrix
@@ -5569,7 +5594,7 @@ as_frmtmb_family <- function(x) {
 #' the mean direction and takes the `tan_half` link, which maps the
 #' whole line onto that interval; `kappa` is the concentration and takes
 #' a log link, with `kappa = 0` the uniform distribution on the circle.
-#' Both are brms's choices. `fitted()` and `predict(type = "response")`
+#' Both are brms's choices. `fitted()` and `frm_linpred(type = "response")`
 #' report the mean direction. The normalizing constant needs
 #' `log I0(kappa)`, which RTMB differentiates exactly through its own
 #' `besselI` method, so nothing here is a series approximation.
@@ -5601,8 +5626,8 @@ as_frmtmb_family <- function(x) {
 #' The baseline is semiparametric only in spirit - it has `df`
 #' parameters, not one per event time - so coefficients agree with
 #' `coxph()` closely rather than exactly. A survival response has no
-#' mean, so `fitted()` and `predict(type = "response")` are refused;
-#' `predict(type = "link")` gives the log hazard ratio. `simulate()` is
+#' mean, so `fitted()` and `frm_linpred(type = "response")` are refused;
+#' `frm_linpred(type = "link")` gives the log hazard ratio. `simulate()` is
 #' not available.
 #'
 #' Maximum likelihood often puts one or more baseline weights ON the
@@ -5756,7 +5781,7 @@ as_frmtmb_family <- function(x) {
 #' # counts with more spread than poisson() allows
 #' dd$cnt <- rnbinom(n, mu = exp(0.5 + 0.4 * dd$x), size = 2)
 #' fit <- frm(bf(cnt ~ x) + negbinomial(), data = dd)
-#' fixef(fit)$mu
+#' fixef_by_dpar(fit)$mu
 #'
 #' # a zero-inflated count: the zi dpar gets its own predictor
 #' dd$zi <- ifelse(runif(n) < 0.3, 0, dd$cnt)
@@ -5774,8 +5799,8 @@ as_frmtmb_family <- function(x) {
 #' # bounded influence: a few wild points barely move the slope
 #' dd$rob <- 1 + 0.8 * dd$x + rnorm(n)
 #' dd$rob[1:5] <- dd$rob[1:5] + 30
-#' fixef(frm(bf(rob ~ x), family = huber(), data = dd))$mu
-#' fixef(frm(bf(rob ~ x), family = gaussian(), data = dd))$mu
+#' fixef_by_dpar(frm(bf(rob ~ x), family = huber(), data = dd))$mu
+#' fixef_by_dpar(frm(bf(rob ~ x), family = gaussian(), data = dd))$mu
 #'
 #' # an unordered factor: one predictor per non-reference category,
 #' # named after the level it belongs to
@@ -5798,7 +5823,7 @@ as_frmtmb_family <- function(x) {
 #' dd$time <- rexp(n, exp(-0.5 + 0.7 * dd$x))
 #' dd$out <- rbinom(n, 1, 0.3)        # 1 = right censored
 #' cox_fit <- frm(bf(time | cens(out) ~ x), family = cox(), data = dd)
-#' fixef(cox_fit)$mu                  # log hazard ratios
+#' fixef_by_dpar(cox_fit)$mu                  # log hazard ratios
 #' cox_baseline(cox_fit)              # the baseline hazard weights
 #' @name frmtmb-families
 NULL

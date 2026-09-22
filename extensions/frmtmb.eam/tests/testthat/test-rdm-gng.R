@@ -138,7 +138,7 @@ test_that("the family's log-density is the race, through a fitted object", {
   dat <- rdm_simulate(200, v = c(3.0, 2.0, 1.2), A = 0.5, k = 0.5,
                       ndt = 0.2)
   fit <- frm(bf(rt | vint(choice) ~ 1), family = rdm(3), data = dat)
-  e <- fixef(fit)
+  e <- fixef_by_dpar(fit)
   A <- exp(e$A[[1]]); k <- exp(e$k[[1]])
   ndt <- stats::family(fit)$links$ndt$linkinv(e$ndt[[1]])
   vv <- exp(c(e$v1[[1]], e$v2[[1]], e$v3[[1]]))
@@ -266,7 +266,7 @@ test_that("a decision time at or below zero gives a wall, not a NaN", {
   lp <- race(c(-1, 0, 1e-9, 0.4), c(1, 1, 2, 2), law, pars)
   expect_true(all(is.finite(lp)))
   expect_true(all(lp[1:3] < -100))
-  # predict() on new data faster than anything in training holds the
+  # frm_linpred() on new data faster than anything in training holds the
   # training bound, so the row can land there and must not take the
   # whole prediction with it
   set.seed(17)
@@ -275,7 +275,7 @@ test_that("a decision time at or below zero gives a wall, not a NaN", {
   nd <- d[1:5, ]
   nd$rt <- min(d$rt) / 4
   expect_true(is.finite(as.numeric(logLik(fit))))
-  expect_silent(p <- predict(fit, newdata = nd, type = "link"))
+  expect_silent(p <- frm_linpred(fit, newdata = nd, type = "link"))
 })
 
 # ------------------------------------------------------------ RDM (d)
@@ -300,7 +300,7 @@ test_that("three accumulators and a covariate on one drift recover", {
     f <- try(frm(bf(rt | vint(choice) ~ 1, v2 ~ x), family = rdm(3),
                  data = d), silent = TRUE)
     if (inherits(f, "try-error")) next
-    e <- fixef(f)
+    e <- fixef_by_dpar(f)
     est[r, ] <- c(e$v1[[1]], e$v2[[1]], e$v2[[2]], e$v3[[1]])
   }
   ok <- stats::complete.cases(est)
@@ -324,7 +324,7 @@ test_that("a covariate on one drift moves that drift and not the others", {
   d <- rdm_simulate(N, v = V, A = 0.5, k = 0.5, ndt = 0.2)
   d$x <- x
   fit <- frm(bf(rt | vint(choice) ~ x), family = rdm(3), data = d)
-  e <- fixef(fit)
+  e <- fixef_by_dpar(fit)
   expect_gt(e$v2[["x"]], 0.3)
   expect_lt(abs(e$v1[["x"]]), 0.2)
   expect_lt(abs(e$v3[["x"]]), 0.2)
@@ -734,7 +734,7 @@ test_that("wiener_gng recovers its parameters", {
                  family = wiener_gng(deadline = 1.5), data = d),
              silent = TRUE)
     if (inherits(f, "try-error")) next
-    e <- fixef(f)
+    e <- fixef_by_dpar(f)
     est[r, ] <- c(e$mu[[1]], exp(e$bs[[1]]),
                   stats::family(f)$links$ndt$linkinv(e$ndt[[1]]))
   }
@@ -757,7 +757,7 @@ test_that("a covariate on the drift recovers", {
   d$x <- x
   fit <- frm(bf(rt | dec(responded) ~ x, bias = 0.5),
              family = wiener_gng(deadline = 1.5), data = d)
-  e <- fixef(fit)
+  e <- fixef_by_dpar(fit)
   expect_equal(e$mu[["(Intercept)"]], 0.4, tolerance = 0.2)
   expect_equal(e$mu[["x"]], 1.2, tolerance = 0.3)
   # the covariate really does change the go rate, which is the thing a
@@ -777,7 +777,8 @@ test_that("the two deadline spellings are one model", {
             family = wiener_gng(), data = d)
   expect_equal(as.numeric(logLik(f1)), as.numeric(logLik(f2)),
                tolerance = 1e-10)
-  expect_equal(unlist(fixef(f1)), unlist(fixef(f2)), tolerance = 1e-6)
+  expect_equal(unlist(fixef_by_dpar(f1)), unlist(fixef_by_dpar(f2)),
+               tolerance = 1e-6)
 })
 
 test_that("a deadline that varies by row is read per row", {
@@ -791,7 +792,7 @@ test_that("a deadline that varies by row is read per row", {
   fit <- frm(bf(rt | dec(responded) + vreal(deadline) ~ 1, bias = 0.5),
              family = wiener_gng(), data = d)
   expect_true(is.finite(as.numeric(logLik(fit))))
-  e <- fixef(fit)
+  e <- fixef_by_dpar(fit)
   expect_equal(e$mu[["(Intercept)"]], 1.0, tolerance = 0.3)
   # and reading one deadline for all rows is a DIFFERENT model, so the
   # per-row spelling is doing something
@@ -896,7 +897,7 @@ test_that("both families refuse the post-fit methods they have no mean for", {
   # returned a DRIFT RATE of 3.51 for data whose response times average
   # 0.36. That is the regression these three pin.
   expect_error(fitted(f), "no mean response time")
-  expect_error(predict(f, type = "response"), "no mean response time")
+  expect_error(frm_linpred(f, type = "response"), "no mean response time")
   expect_error(residuals(f, type = "response"), "no mean response time")
   # pearson needs the mean before it needs the variance, so the refusal
   # a user meets is the mean's, not the variance function's
@@ -908,13 +909,13 @@ test_that("both families refuse the post-fit methods they have no mean for", {
   h <- frm(bf(rt | dec(responded) ~ 1, bias = 0.5),
            family = wiener_gng(deadline = 1.5), data = g)
   expect_error(fitted(h), "no mean response to report")
-  expect_error(predict(h, type = "response"), "no mean response to report")
+  expect_error(frm_linpred(h, type = "response"), "no mean response to report")
   expect_error(residuals(h, type = "response"), "no mean response to report")
   expect_error(residuals(h, type = "pearson"), "no mean response to report")
   expect_error(residuals(h, type = "deviance"), "unit deviance")
   # the link scale is always available and is what a user reads instead
-  expect_no_error(predict(f, type = "link"))
-  expect_no_error(predict(h, type = "link"))
+  expect_no_error(frm_linpred(f, type = "link"))
+  expect_no_error(frm_linpred(h, type = "link"))
 
   # The refusal comes from the FAMILY, not from a core guard, and that
   # is the property that matters. Core's own protection is backwards:
@@ -924,8 +925,10 @@ test_that("both families refuse the post-fit methods they have no mean for", {
   # wiener_gng(), whose drift IS called mu, not at all. Declaring a
   # mean that stops makes both refusals independent of which way that
   # core guard happens to fall, so they survive the core fix unchanged.
-  expect_match(tryCatch(fitted(f), error = conditionMessage), "^rdm:")
-  expect_match(tryCatch(fitted(h), error = conditionMessage), "^wiener_gng:")
+  expect_match(tryCatch(fitted(f)[, "Estimate"], error = conditionMessage),
+               "^rdm:")
+  expect_match(tryCatch(fitted(h)[, "Estimate"], error = conditionMessage),
+               "^wiener_gng:")
   # rdm has no dpar called mu and wiener_gng does; both refuse anyway
   expect_false("mu" %in% names(stats::family(f)$links))
   expect_true("mu" %in% names(stats::family(h)$links))
@@ -1082,7 +1085,7 @@ test_that("rdm scores a right-censored race as the product of survivals", {
              data = d)
 
   # the same likelihood written out by hand at the fitted parameters
-  fe <- fixef(fit)
+  fe <- fixef_by_dpar(fit)
   lk <- stats::family(fit)$links
   dp <- list(v1 = exp(fe$v1[[1]]), v2 = exp(fe$v2[[1]]),
              v3 = exp(fe$v3[[1]]), A = exp(fe$A[[1]]), k = exp(fe$k[[1]]),
@@ -1116,7 +1119,7 @@ test_that("rdm takes all four censoring codes and a truncation bound", {
   d$yy <- ifelse(d$code == 2L, pmax(d$rt - 0.05, 0.21), d$rt)
   fit <- frm(bf(yy | vint(choice) + cens(code, y2) ~ 1), family = rdm(2),
              data = d)
-  fe <- fixef(fit)
+  fe <- fixef_by_dpar(fit)
   lk <- stats::family(fit)$links
   dp <- list(v1 = exp(fe$v1[[1]]), v2 = exp(fe$v2[[1]]),
              A = exp(fe$A[[1]]), k = exp(fe$k[[1]]),

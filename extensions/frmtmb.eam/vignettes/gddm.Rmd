@@ -176,7 +176,7 @@ summary(fit)
 The estimates come back on the link scale, so put them back:
 
 ```{r estimates}
-e <- unlist(fixef(fit))
+e <- unlist(fixef_by_dpar(fit))
 data.frame(
   truth = c(mu = 6, alpha = 0.8, leak = 1, bs = 3, tau = 1.2, ndt = 0.25),
   estimate = round(c(

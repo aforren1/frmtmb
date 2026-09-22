@@ -63,7 +63,7 @@ test_that("every shadowed name is numerically transparent", {
   # lexical meaning
   skip_if_not(all(frmtmb:::nl_rtmb_shadow %in% getNamespaceExports("RTMB")),
               "this RTMB does not export every shadowed name")
-  # the numeric paths - simulate(), predict(), the plain-numeric
+  # the numeric paths - simulate(), frm_linpred(), the plain-numeric
   # objective - re-run the same body off the tape. A shadowed name that
   # returned a different number there would split the two paths without
   # saying so, so transparency is the whole safety argument.
@@ -219,11 +219,12 @@ test_that("a bare pnorm body is the RTMB:: body bit for bit", {
 
   expect_identical(as.numeric(logLik(bare)), as.numeric(logLik(qual)))
   expect_identical(coef(bare), coef(qual))
-  expect_identical(unname(fitted(bare)), unname(fitted(qual)))
+  expect_identical(unname(fitted(bare)[, "Estimate"]),
+                   unname(fitted(qual)[, "Estimate"]))
   # and it is a real fit, not two matching failures
-  expect_equal(unname(fixef(bare)$a[["(Intercept)"]]), 1.4,
+  expect_equal(unname(fixef_by_dpar(bare)$a[["(Intercept)"]]), 1.4,
                tolerance = 0.1)
-  expect_equal(unname(fixef(bare)$b[["(Intercept)"]]), 0.8,
+  expect_equal(unname(fixef_by_dpar(bare)$b[["(Intercept)"]]), 0.8,
                tolerance = 0.1)
 })
 
@@ -251,7 +252,8 @@ test_that("qgamma and plogis bodies tape bare, and match the prefix", {
                nl = TRUE),
             family = gaussian(), data = d2, start = st2)
   expect_identical(as.numeric(logLik(b2)), as.numeric(logLik(q2)))
-  expect_equal(unname(fixef(b2)$sh[["(Intercept)"]]), 3, tolerance = 0.15)
+  expect_equal(unname(fixef_by_dpar(b2)$sh[["(Intercept)"]]), 3,
+               tolerance = 0.15)
 })
 
 test_that("an nlf() body is shadowed the same way as an inline one", {
@@ -300,9 +302,9 @@ test_that("a bare-pnorm body gives one logLik taped and numeric", {
   expect_equal(fit$obj$fn(fit$opt$par), -as.numeric(logLik(fit)),
                tolerance = 1e-9, ignore_attr = TRUE)
   # eval_dpars() and the newdata route are the other two numeric paths
-  expect_equal(unname(fitted(fit)),
-               unname(predict(fit, type = "response")), tolerance = 1e-12)
-  expect_equal(unname(predict(fit, newdata = d)), unname(predict(fit)),
+  expect_equal(unname(fitted(fit)[, "Estimate"]),
+               unname(frm_linpred(fit, type = "response")), tolerance = 1e-12)
+  expect_equal(unname(frm_linpred(fit, newdata = d)), unname(frm_linpred(fit)),
                tolerance = 1e-12)
 })
 
@@ -345,9 +347,10 @@ test_that("stats:: is the escape hatch a body can still reach", {
                start = st)
   expect_equal(as.numeric(logLik(scaled)), as.numeric(logLik(plain)),
                tolerance = 1e-8)
-  expect_equal(unname(fixef(scaled)$a[["(Intercept)"]]) *
+  expect_equal(unname(fixef_by_dpar(scaled)$a[["(Intercept)"]]) *
                  stats::qnorm(0.75),
-               unname(fixef(plain)$a[["(Intercept)"]]), tolerance = 1e-5)
+               unname(fixef_by_dpar(plain)$a[["(Intercept)"]]),
+               tolerance = 1e-5)
 })
 
 test_that("a user helper in the formula environment is still found", {
@@ -412,21 +415,22 @@ test_that("a response-preparation model fits with no RTMB:: anywhere", {
   expect_s3_class(fit, "frmtmb_fit")
   # absolute bounds, because these are times in seconds and a relative
   # tolerance on a 45 ms standard deviation says nothing useful
-  expect_lt(abs(unname(fixef(fit)$m1[["(Intercept)"]]) - m1), 0.025)
-  expect_lt(abs(unname(fixef(fit)$m2[["(Intercept)"]]) - m2), 0.015)
-  expect_lt(abs(exp(unname(fixef(fit)$ls[["(Intercept)"]])) - sdev), 0.006)
+  expect_lt(abs(unname(fixef_by_dpar(fit)$m1[["(Intercept)"]]) - m1), 0.025)
+  expect_lt(abs(unname(fixef_by_dpar(fit)$m2[["(Intercept)"]]) - m2), 0.015)
+  expect_lt(abs(exp(unname(fixef_by_dpar(fit)$ls[["(Intercept)"]])) - sdev),
+            0.006)
 
   # the fitted probability is a probability on every row, and the two
   # numeric routes through the body agree with the taped one. The
   # likelihood-only closure is checked in the gaussian test above
   # instead: a prior is a penalty on this objective, so here
   # build_objective(frame) and logLik() differ by exactly that penalty.
-  fv <- fitted(fit)
+  fv <- fitted(fit)[, "Estimate"]
   expect_true(all(fv > 0 & fv < 1))
   expect_equal(fit$obj$fn(fit$opt$par), -as.numeric(logLik(fit)),
                tolerance = 1e-9, ignore_attr = TRUE)
-  expect_equal(unname(fv), unname(predict(fit, type = "response")),
+  expect_equal(unname(fv), unname(frm_linpred(fit, type = "response")),
                tolerance = 1e-12)
-  expect_equal(unname(predict(fit, newdata = d)), unname(predict(fit)),
+  expect_equal(unname(frm_linpred(fit, newdata = d)), unname(frm_linpred(fit)),
                tolerance = 1e-12)
 })

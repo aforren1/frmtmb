@@ -3,7 +3,8 @@
 # a family with no such dpar used to be read as "the mean is mu" anyway,
 # which reported a race model's first parameter as its fitted value.
 
-test_that("a family with neither a mean function nor a mu has no fitted value", {
+test_that("a family with neither a mean function nor a mu has no fitted value",
+          {
   skip_on_cran()
   set.seed(4)
   d <- data.frame(x = rnorm(60))
@@ -20,8 +21,8 @@ test_that("a family with neither a mean function nor a mu has no fitted value", 
   )
   fit <- frm(bf(y ~ x) + fam, data = d)
   expect_error(fitted(fit), "not defined for family|declares no mean")
-  expect_error(predict(fit, type = "response"), "declares no mean")
+  expect_error(frm_linpred(fit, type = "response"), "declares no mean")
   # the link-scale prediction and a dpar by name are unaffected
-  expect_length(predict(fit, type = "link"), 60)
-  expect_length(predict(fit, dpar = "shape"), 60)
+  expect_length(frm_linpred(fit, type = "link"), 60)
+  expect_length(frm_linpred(fit, dpar = "shape"), 60)
 })

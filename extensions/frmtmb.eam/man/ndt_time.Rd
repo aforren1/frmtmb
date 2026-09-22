@@ -21,7 +21,7 @@ from \code{\link[=ndt_bound_attach]{ndt_bound_attach()}}.}
 A numeric vector, one non-decision time per row.
 }
 \description{
-Without \code{ndt_group()} this is \code{predict(fit, dpar = "ndt", type = "response")}, which already reports a time. With \code{ndt_group()} the
+Without \code{ndt_group()} this is \code{frm_linpred(fit, dpar = "ndt", type = "response")}, which already reports a time. With \code{ndt_group()} the
 \code{ndt} link is a plain logit on a FRACTION of the row's own bound, so
 \code{predict()} reports that fraction and this multiplies it back out.
 Written so that a caller need not know which of the two a fit is.
@@ -44,7 +44,7 @@ d <- ddm_simulate(300, mu = 1.2, bs = 1.5, ndt = 0.25)
 fit <- frm(bf(rt | dec(upper) ~ 1, bs ~ 1, ndt ~ 1, bias = 0.5),
            family = wiener(), data = d)
 # with no ndt_group() the two agree: `ndt` is already a time
-head(predict(fit, dpar = "ndt", type = "response"), 3)
+head(frmtmb::frm_linpred(fit, dpar = "ndt", type = "response"), 3)
 head(ndt_time(fit), 3)
 }
 \seealso{

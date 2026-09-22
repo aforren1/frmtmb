@@ -11,7 +11,7 @@ test_that("OSA residuals are standard normal for correct models", {
   data(sleepstudy, package = "lme4")
   fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
              data = sleepstudy)
-  r <- residuals(fit, type = "osa")
+  r <- residuals(fit, type = "osa")[, "Estimate"]
   expect_length(r, 180)
   expect_gt(stats::ks.test(r, "pnorm")$p.value, 0.01)
 
@@ -19,7 +19,7 @@ test_that("OSA residuals are standard normal for correct models", {
   dp <- data.frame(x = rnorm(300), g = factor(rep(1:15, 20)))
   dp$y <- rpois(300, exp(0.4 + 0.3 * dp$x + rnorm(15, 0, 0.4)[dp$g]))
   fitp <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dp)
-  rp <- residuals(fitp, type = "osa")
+  rp <- residuals(fitp, type = "osa")[, "Estimate"]
   expect_gt(stats::ks.test(rp, "pnorm")$p.value, 0.01)
 })
 
@@ -73,7 +73,7 @@ test_that("zero-truncated poisson matches glmmTMB truncated_poisson", {
   ref <- glmmTMB::glmmTMB(y ~ x, family = glmmTMB::truncated_poisson,
                           data = dd)
   expect_loglik_equal(fit, ref, tol = 1e-6)
-  expect_vector_equal(fixef(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
+  expect_vector_equal(fixef_by_dpar(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
                       tol = 1e-4)
   expect_error(frm(bf(y | trunc(lb = 0) ~ x) + poisson(), data = dd),
                "lb >= 1")

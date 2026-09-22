@@ -73,7 +73,7 @@
 #' @param control A list from [frmtmb_control()].
 #' @param se If `TRUE`, run [RTMB::sdreport()] at fit time. The default
 #'   (`FALSE`) defers it until standard errors are first needed
-#'   (`summary`, `vcov`, `confint`, `predict(se.fit = TRUE)`), which cuts
+#'   (`summary`, `vcov`, `confint`, `frm_linpred(se.fit = TRUE)`), which cuts
 #'   roughly a quarter off fit time in fit-and-predict or bootstrap
 #'   loops. The deferred report is cached, so nothing is computed twice.
 #' @param na.action How to handle missing values, as in [stats::lm()]
@@ -1311,7 +1311,7 @@ needs_jp <- function(fit) {
 #' @noRd
 sdr_of <- function(fit) {
   require_fitted(fit, paste("The standard-error machinery (summary(),",
-                            "vcov(), confint(), predict(se.fit =))"))
+                            "vcov(), confint(), frm_linpred(se.fit =))"))
   cache <- fit$cache
   if (is.null(cache$sdr)) {
     cache$sdr <- autoscale_sdreport(fit)

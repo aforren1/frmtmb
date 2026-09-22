@@ -65,6 +65,29 @@
 #' distributional parameter itself is that parameter's own class rather
 #' than the intercept slot the resolver assigns to.
 #'
+#' `vcov_estimated(fit)` is the covariance of EVERY estimated
+#' coefficient under the internal names, which is what pairs with
+#' `estimated_coef_names()`; `vcov()` itself covers brms's
+#' population-level block and leaves out an intercept-only
+#' distributional parameter. It does NOT cover an ordinal fit's
+#' thresholds or its `cs()` coefficients, which live outside `beta`
+#' and `betad`: the interop seams pair with a longer vector that has
+#' them, and `vcov(fit, full = TRUE)` is where they are under
+#' `confint()`'s names.
+#'
+#' `fam_is_category_valued(fam)` says whether a response is a set of
+#' categories, so that a predictive summary is a set of proportions
+#' rather than a mean, and `predict_category_props(fit, rspec, draws)`
+#' builds brms's `P(Y = k)` matrix from a matrix of simulated or
+#' sampled responses. `brms_summary_matrix()`, `brms_summary_array()`,
+#' `brms_summarize_draws()` and `brms_prob_cols()` build brms's
+#' `Estimate` / `Est.Error` / `Q` columns from a point estimate with a
+#' standard error, or from draws. `brms_fixef_rows(fit)` gives brms's
+#' population-level rows in brms's order: which coefficient-table rows
+#' they are, and the ordinal thresholds and `cs()` coefficients that are
+#' not, each with the map from the internal vector to the reported value,
+#' so a draws object can report the same rows `fixef()` does.
+#'
 #' `frmtmb_register_prior_defaults()` is the other direction: it lets a
 #' package tell [get_prior()] what defaults it would apply.
 #' `get_prior()` reads the registry under `route = "sample"` ONLY, and
@@ -153,7 +176,7 @@
 #' `class` and `group` arguments. `hyp_labels()` writes brms's
 #' `Hypothesis` label for each string, `hyp_samples_frame(m, k)` lays a
 #' draws matrix out as brms's `samples` frame (`H1`, `H2`, ...), and
-#' `hyp_brms_result()` assembles the `brmshypothesis`-shaped list every
+#' `hyp_brms_result()` assembles the brms-shaped list every
 #' `hypothesis()` method returns, so no method builds that shape on its
 #' own.
 #'
@@ -349,6 +372,14 @@
 #' @aliases re_form_arg
 #' @aliases frm_install_generics
 #' @aliases frm_check_dots
+#' @aliases vcov_estimated
+#' @aliases fam_is_category_valued
+#' @aliases predict_category_props
+#' @aliases brms_summary_matrix
+#' @aliases brms_summary_array
+#' @aliases brms_summarize_draws
+#' @aliases brms_prob_cols
+#' @aliases brms_fixef_rows
 #' @rawNamespace export(build_objective, row_lpdf, with_cs_offsets,
 #'   us_chol_cor, expand_b, aterms_for_newdata, has_trunc, as_priorlist,
 #'   check_prior_slots, resolve_prior_input, neg_log_prior_fn,
@@ -370,7 +401,10 @@
 #'   ce_cats_display, ce_display_kind, ce_pred_dpar, ce_group_vars,
 #'   ce_new_level_spec, ce_boot_grids, ce_draw_new_levels,
 #'   ce_structure_check, ce_re_formula, ce_dots, find_linpred,
-#'   arg_unset, re_form_arg, frm_check_dots, frm_install_generics)
+#'   arg_unset, re_form_arg, frm_check_dots, frm_install_generics,
+#'   fam_is_category_valued, predict_category_props, vcov_estimated,
+#'   brms_summary_matrix, brms_summary_array, brms_summarize_draws,
+#'   brms_prob_cols, brms_fixef_rows)
 NULL
 
 # ---- the prior-defaults registry -------------------------------------

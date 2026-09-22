@@ -25,9 +25,11 @@ test_that("frm_bootstrap recovers the sampling distribution", {
   expect_equal(dim(bs$t), c(40L, 3L))
   expect_true(all(bs$converged))
   # the default statistic is fixef(flatten = TRUE), so the names are
-  # vcov()'s rows and a bootstrap SE lines up with the Wald one
+  # the INTERNAL ones confint() reports; vcov() takes brms's since item
+  # 2.6f, and a bootstrap SE lines up with the Wald one through the
+  # coefficient table
   expect_named(bs$t0, c("(Intercept)", "x", "sigma_(Intercept)"))
-  expect_true(all(names(bs$t0) %in% rownames(vcov(fit))))
+  expect_true(all(names(bs$t0) %in% rownames(confint(fit))))
   # bootstrap mean near the estimate, bootstrap SE near the Wald SE
   expect_lt(abs(mean(bs$t[, 2]) - bs$t0[[2]]), 0.1)
   se_wald <- sqrt(vcov(fit)["x", "x"])
@@ -119,7 +121,7 @@ test_that("hypothesis method = 'profile' handles linear contrasts", {
   expect_error(hypothesis(fr, "x1 = 0", method = "profile"), "ML fit")
   # wald on an REML fit still works, including RE-free sd-less names
   expect_equal(hypothesis(fr, "x1 = 0")$hypothesis$Estimate,
-               fixef(fr)$mu[["x1"]],
+               fixef_by_dpar(fr)$mu[["x1"]],
                tolerance = 1e-10)
 })
 
@@ -132,7 +134,8 @@ test_that("hypothesis method = 'boot' handles nonlinear expressions", {
   hbo <- hypothesis(fit, c("exp(x) = 0", "x = 0"), method = "boot", nsim = 60,
                     seed = 3)
   expect_s3_class(hbo, "frmtmb_hypothesis")
-  expect_s3_class(hbo, "brmshypothesis")
+  # frmtmb objects do not carry brms class names (rule 2)
+  expect_false(inherits(hbo, "brmshypothesis"))
   hb <- hbo$hypothesis
   expect_equal(nrow(hb), 2L)
   # the draws ride along for interrogation and are coupled across rows
@@ -142,7 +145,7 @@ test_that("hypothesis method = 'boot' handles nonlinear expressions", {
   expect_equal(colnames(d), c("exp(x) = 0", "x = 0"))
   expect_equal(d[, 1], exp(d[, 2]), tolerance = 1e-10)
   expect_equal(unname(as.matrix(hbo$samples)), unname(d))
-  expect_equal(hb$Estimate[1], exp(fixef(fit)$mu[["x"]]),
+  expect_equal(hb$Estimate[1], exp(fixef_by_dpar(fit)$mu[["x"]]),
                tolerance = 1e-10)
   # one shared bootstrap run: the draws are coupled, exp(x) row must be
   # consistent with the x row

@@ -388,7 +388,7 @@ test_that("a new level carries the t's variance, not its scale", {
   f <- frm(bf(y ~ x + (1 | gr(g, dist = "student", dist_nu = 5))),
            family = gaussian(), data = d)
   nd <- data.frame(x = 0, g = factor("new", levels = "new"))
-  p <- predict(f, newdata = nd, allow_new_levels = TRUE, se.fit = TRUE)
+  p <- frm_linpred(f, newdata = nd, allow_new_levels = TRUE, se.fit = TRUE)
   s2 <- unname(varcorr_matrices(f)[[1L]])[1, 1]
   fx <- vcov(f)[1, 1]
   expect_equal(unname(p$se.fit)^2, s2 * 5 / 3 + fx, tolerance = 1e-6)
@@ -458,13 +458,13 @@ test_that("the post-fit surface is NA-free over a t block", {
   d <- tre_data(G = 20, n = 6, nu = 5)
   f <- frm(bf(y ~ x + (x | gr(g, dist = "student"))),
            family = gaussian(), data = d)
-  expect_false(anyNA(fitted(f)))
-  expect_false(anyNA(residuals(f)))
-  expect_false(anyNA(predict(f)))
+  expect_false(anyNA(fitted(f)[, "Estimate"]))
+  expect_false(anyNA(residuals(f)[, "Estimate"]))
+  expect_false(anyNA(frm_linpred(f)))
   expect_false(anyNA(ranef(f)[[1L]]))
   expect_false(anyNA(confint(f)))
   expect_false(anyNA(as.data.frame(varcorr_matrices(f))$sdcor))
-  expect_equal(unname(ngrps(f)), 20L)
+  expect_equal(unname(unlist(ngrps(f))), 20L)
   expect_false(anyNA(simulate(f, nsim = 2)))
   expect_s3_class(summary(f), "summary.frmtmb_fit")
 })

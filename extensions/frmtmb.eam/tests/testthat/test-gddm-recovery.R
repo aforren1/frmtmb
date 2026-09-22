@@ -33,7 +33,7 @@ gd_rfit <- function(d, renormalize = TRUE) {
            family = gddm(drift = gd_drift(), bound = gddm_bound_exponential(),
                          control = gd_rctl(renormalize)),
            data = d)
-  e <- unlist(fixef(f))
+  e <- unlist(fixef_by_dpar(f))
   c(leak = unname(e[["leak.(Intercept)"]]),
     bs = exp(unname(e[["bs.(Intercept)"]])),
     tau = exp(unname(e[["tau.(Intercept)"]])),
@@ -112,13 +112,13 @@ test_that("a fitted model supports the surface a user reaches for next", {
   expect_true(is.finite(AIC(fit)))
 
   ## fitted() is the conditional mean response time for the row's own wall
-  ft <- fitted(fit)
+  ft <- fitted(fit)[, "Estimate"]
   expect_length(ft, nrow(d))
   expect_true(all(is.finite(ft)))
   expect_true(all(ft > 0))
   expect_equal(mean(ft), mean(d$rt), tolerance = 0.15)
-  expect_equal(predict(fit, type = "response"), ft, tolerance = 1e-8)
-  expect_no_error(predict(fit, type = "link"))
+  expect_equal(frm_linpred(fit, type = "response"), ft, tolerance = 1e-8)
+  expect_no_error(frm_linpred(fit, type = "link"))
 
   ## the two walls have different mean response times under a leak
   expect_gt(stats::sd(ft), 0)
@@ -143,8 +143,8 @@ test_that("the generalized family reproduces the analytic one end to end", {
             family = gddm(control = gddm_control(t_max = max(d$rt) + 0.5,
                                                  dt = 0.01, ny = 201L)),
             data = d)
-  ew <- unlist(fixef(aw))
-  eg <- unlist(fixef(ag))
+  ew <- unlist(fixef_by_dpar(aw))
+  eg <- unlist(fixef_by_dpar(ag))
   expect_equal(unname(eg[["mu.(Intercept)"]]),
                unname(ew[["mu.(Intercept)"]]), tolerance = 0.05)
   expect_equal(exp(unname(eg[["bs.(Intercept)"]])),

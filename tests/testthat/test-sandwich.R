@@ -30,7 +30,8 @@ test_that("one cluster per row reproduces the classical glm sandwich", {
   fit <- frm(bf(y ~ x + z) + poisson(), data = dd)
   ref <- glm(y ~ x + z, poisson(), dd)
 
-  expect_equal(unname(fixef(fit)$mu), unname(coef(ref)), tolerance = 1e-6)
+  expect_equal(unname(fixef_by_dpar(fit)$mu), unname(coef(ref)),
+               tolerance = 1e-6)
 
   # with no random effects and one cluster per row, our per-cluster
   # scores ARE sandwich::estfun()'s per-observation scores
@@ -61,7 +62,7 @@ test_that("clustered LMM matches clubSandwich on the matched lme4 fit", {
   ref <- lme4::lmer(y ~ x + (1 | g), dd, REML = FALSE)
 
   # same estimates first, or nothing below means anything
-  expect_equal(unname(fixef(fit)$mu), unname(lme4::fixef(ref)),
+  expect_equal(unname(fixef_by_dpar(fit)$mu), unname(lme4::fixef(ref)),
                tolerance = 1e-5)
 
   cs0 <- as.matrix(clubSandwich::vcovCR(ref, cluster = dd$g,
@@ -74,7 +75,7 @@ test_that("clustered LMM matches clubSandwich on the matched lme4 fit", {
   # it agrees exactly.
   S <- cluster_scores(fit, ~ g)
   info <- solve(vcov(fit, full = TRUE))
-  bi <- seq_along(fixef(fit)$mu)
+  bi <- seq_along(fixef_by_dpar(fit)$mu)
   A <- solve(info[bi, bi, drop = FALSE])
   cond0 <- A %*% crossprod(S[, bi, drop = FALSE]) %*% A
   # relative, entry by entry: what is left is the two optimizers'
@@ -88,7 +89,9 @@ test_that("clustered LMM matches clubSandwich on the matched lme4 fit", {
   # the same number (documented on the vcov_cluster() page). Its
   # fixed-effect block carries log(sigma) too, as vcov() does.
   V0 <- vcov_cluster(fit, ~ g, type = "CR0")
-  expect_equal(dim(V0), dim(vcov(fit)))
+  # vcov_cluster() keeps every estimated coefficient under the internal
+  # names; vcov() takes brms's population-level block since item 2.6f
+  expect_equal(dim(V0), dim(vcov_estimated(fit)))
   expect_lt(max(abs(sqrt(diag(V0)[bi]) / sqrt(diag(cs0)) - 1)), 0.05)
   expect_equal(attr(V0, "nclusters"), G)
   expect_equal(attr(V0, "df"), G - 1L)
@@ -116,13 +119,18 @@ test_that("small-sample factors and the surface behave", {
   # symmetric, positive semidefinite, and named like vcov()
   expect_equal(V0, t(V0), ignore_attr = TRUE)
   expect_gte(min(eigen(V0, only.values = TRUE)$values), -1e-10)
-  expect_equal(rownames(V0), rownames(vcov(fit)))
+  expect_equal(rownames(V0), rownames(vcov_estimated(fit)))
   expect_equal(rownames(vcov_cluster(fit, ~ g, full = TRUE)),
                frmtmb:::outer_par_names(fit))
 
   # vcov(cluster =) is the sandwich::vcovCL spelling and forwards here
+  # vcov(cluster =) forwards and then takes brms's block, as vcov()
+  # does without a cluster; vcov_cluster() is the whole matrix
   expect_equal(vcov(fit, cluster = ~ g, type = "CR1"),
-               vcov_cluster(fit, ~ g, type = "CR1"))
+               frmtmb:::vcov_brms_block(
+                 fit, vcov_cluster(fit, ~ g, type = "CR1")))
+  expect_equal(attr(vcov(fit, cluster = ~ g, type = "CR1"), "df"),
+               attr(vcov_cluster(fit, ~ g, type = "CR1"), "df"))
   # a plain factor and a variable name resolve the same way
   expect_equal(vcov_cluster(fit, dd$g), V0)
   expect_equal(vcov_cluster(fit, "g"), V0)

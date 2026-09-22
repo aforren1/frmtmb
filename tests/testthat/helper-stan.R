@@ -137,10 +137,10 @@ frm_joint_lp <- function(fit) {
 # Population-level coefficients of one linear predictor, unnamed and in
 # frmtmb's own column order, which is model.matrix()'s.
 frm_b <- function(fit, dpar = "mu") {
-  b <- fixef(fit)[[dpar]]
+  b <- fixef_by_dpar(fit)[[dpar]]
   if (is.null(b)) {
     stop("frm_b(): the fit has no '", dpar, "' linear predictor; it has ",
-         paste(names(fixef(fit)), collapse = ", "), call. = FALSE)
+         paste(names(fixef_by_dpar(fit)), collapse = ", "), call. = FALSE)
   }
   unname(b)
 }

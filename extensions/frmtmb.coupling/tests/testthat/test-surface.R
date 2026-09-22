@@ -7,7 +7,8 @@ cp_surface_fit <- function() {
   # the shared source is low-pass, so the low band really is the coherent
   # one; a white shared source would make coherence flat in frequency and
   # the band contrast would be testing nothing
-  src <- as.numeric(stats::filter(stats::rnorm(4096), 0.9, method = "recursive"))
+  src <- as.numeric(stats::filter(stats::rnorm(4096), 0.9,
+                                  method = "recursive"))
   a <- src + stats::rnorm(4096, 0, 0.5)
   b <- 0.9 * src + stats::rnorm(4096, 0, 2)
   d <- frm_cross_spectrum(a, b, sfreq = 128, segments = 16L)
@@ -28,21 +29,22 @@ test_that("summary, fixef, logLik and nobs work", {
   f <- o$fit
   expect_s3_class(f, "frmtmb_fit")
   expect_no_error(summary(f))
-  expect_setequal(names(frmtmb::fixef(f)), c("mu", "pow2", "coh", "phase"))
+  expect_setequal(names(frmtmb::fixef_by_dpar(f)), c("mu", "pow2", "coh",
+                                                     "phase"))
   expect_true(is.finite(as.numeric(stats::logLik(f))))
   expect_true(is.finite(stats::AIC(f)))
   expect_equal(stats::nobs(f), nrow(o$dat))
-  expect_true(all(is.finite(unlist(frmtmb::fixef(f)))))
+  expect_true(all(is.finite(unlist(frmtmb::fixef_by_dpar(f)))))
   expect_true(all(is.finite(stats::vcov(f))))
 })
 
 test_that("every dpar is reachable on the link scale, with a standard error", {
   o <- cp_surface_fit()
   for (dp in c("mu", "pow2", "coh", "phase")) {
-    v <- stats::predict(o$fit, type = "link", dpar = dp)
+    v <- frm_linpred(o$fit, type = "link", dpar = dp)
     expect_length(v, nrow(o$dat))
     expect_true(all(is.finite(v)), info = dp)
-    s <- stats::predict(o$fit, type = "link", dpar = dp, se.fit = TRUE)
+    s <- frm_linpred(o$fit, type = "link", dpar = dp, se.fit = TRUE)
     expect_true(all(s$se.fit > 0), info = dp)
   }
 })
@@ -51,7 +53,7 @@ test_that("predict on newdata works", {
   o <- cp_surface_fit()
   nd <- data.frame(band = factor(c("low", "high"), c("low", "high")),
                    freq = c(16, 48))
-  p <- stats::predict(o$fit, newdata = nd, type = "link", dpar = "coh",
+  p <- frm_linpred(o$fit, newdata = nd, type = "link", dpar = "coh",
                       se.fit = TRUE)
   expect_length(p$fit, 2L)
   expect_true(all(p$se.fit > 0))
@@ -64,26 +66,27 @@ test_that("predict on newdata works", {
 test_that("fitted() is the mean of the response and says so by being it", {
   o <- cp_surface_fit()
   # W11 is Gamma(n, scale S11), so its mean is exactly n * S11
-  s11 <- exp(stats::predict(o$fit, type = "link", dpar = "mu"))
-  expect_equal(as.numeric(stats::fitted(o$fit)), o$dat$n * s11,
+  s11 <- exp(frm_linpred(o$fit, type = "link", dpar = "mu"))
+  expect_equal(as.numeric(stats::fitted(o$fit)[, "Estimate"]), o$dat$n * s11,
                ignore_attr = TRUE)
   # and type = "response" agrees with it
-  expect_equal(as.numeric(stats::predict(o$fit, type = "response")),
-               as.numeric(stats::fitted(o$fit)), ignore_attr = TRUE)
+  expect_equal(as.numeric(frm_linpred(o$fit, type = "response")),
+               as.numeric(stats::fitted(o$fit)[,
+                                               "Estimate"]), ignore_attr = TRUE)
 })
 
 test_that("residuals work and are what they claim", {
   o <- cp_surface_fit()
-  rr <- stats::residuals(o$fit, type = "response")
+  rr <- stats::residuals(o$fit, type = "response")[, "Estimate"]
   expect_equal(as.numeric(rr),
-               o$dat$w11 - as.numeric(stats::fitted(o$fit)),
+               o$dat$w11 - as.numeric(stats::fitted(o$fit)[, "Estimate"]),
                ignore_attr = TRUE)
   # pearson divides by the exact standard deviation, sqrt(n) * S11
-  s11 <- exp(stats::predict(o$fit, type = "link", dpar = "mu"))
-  pr <- stats::residuals(o$fit, type = "pearson")
+  s11 <- exp(frm_linpred(o$fit, type = "link", dpar = "mu"))
+  pr <- stats::residuals(o$fit, type = "pearson")[, "Estimate"]
   expect_equal(as.numeric(pr), as.numeric(rr) / (sqrt(o$dat$n) * s11),
                ignore_attr = TRUE, tolerance = 1e-8)
-  dv <- stats::residuals(o$fit, type = "deviance")
+  dv <- stats::residuals(o$fit, type = "deviance")[, "Estimate"]
   expect_true(all(is.finite(dv)))
   # the deviance is a deviance: it is non-negative before the sign is taken
   expect_true(all(dv^2 >= 0))
@@ -106,8 +109,8 @@ test_that("par_template and set_prior reach the coherence dpar", {
   f2 <- frmtmb::frm(
     cp_bform(), family = cross_wishart(), data = o$dat,
     prior = frmtmb::set_prior("normal(0, 0.02)", class = "b", dpar = "coh"))
-  expect_lt(abs(frmtmb::fixef(f2)$coh[["bandhigh"]]),
-            abs(frmtmb::fixef(o$fit)$coh[["bandhigh"]]))
+  expect_lt(abs(frmtmb::fixef_by_dpar(f2)$coh[["bandhigh"]]),
+            abs(frmtmb::fixef_by_dpar(o$fit)$coh[["bandhigh"]]))
 })
 
 test_that("a random effect and a smooth both reach the coherence dpar", {

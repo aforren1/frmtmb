@@ -17,7 +17,7 @@ test_that("summary, fixef and logLik work", {
   f <- ddm_fit()$fit
   expect_s3_class(f, "frmtmb_fit")
   expect_no_error(summary(f))
-  fx <- fixef(f)
+  fx <- fixef_by_dpar(f)
   expect_setequal(names(fx), c("mu", "bs", "ndt", "bias"))
   expect_true(is.finite(as.numeric(logLik(f))))
   expect_true(is.finite(AIC(f)))
@@ -27,30 +27,30 @@ test_that("fitted and predict return conditional mean response times", {
   skip_if_not_installed("RWiener")
   o <- ddm_fit()
   f <- o$fit
-  ft <- fitted(f)
+  ft <- fitted(f)[, "Estimate"]
   expect_length(ft, nrow(o$dat))
   expect_true(all(is.finite(ft)))
   # a mean response time is a non-decision time plus a positive
   # decision time, so it exceeds ndt everywhere
-  e <- unlist(fixef(f))
+  e <- unlist(fixef_by_dpar(f))
   ndt_hat <- min(o$dat$rt) / (1 + exp(-e[["ndt.(Intercept)"]]))
   expect_true(all(ft > ndt_hat))
   # and it is in the right ballpark for the data it was fitted to
   expect_equal(mean(ft), mean(o$dat$rt), tolerance = 0.1)
 
-  expect_no_error(predict(f, type = "link"))
-  expect_equal(predict(f, type = "response"), ft, tolerance = 1e-8)
+  expect_no_error(frm_linpred(f, type = "link"))
+  expect_equal(frm_linpred(f, type = "response"), ft, tolerance = 1e-8)
 })
 
 test_that("predict on newdata requires the decision indicator", {
   skip_if_not_installed("RWiener")
   f <- ddm_fit()$fit
   nd <- data.frame(cond = c(0, 1), upper = c(1, 1))
-  p <- predict(f, newdata = nd, type = "response")
+  p <- frm_linpred(f, newdata = nd, type = "response")
   expect_length(p, 2L)
   expect_true(all(is.finite(p)))
   # omitting it is refused by frmtmb, not silently defaulted
-  expect_error(predict(f, newdata = data.frame(cond = c(0, 1)),
+  expect_error(frm_linpred(f, newdata = data.frame(cond = c(0, 1)),
                        type = "response"),
                "could not be evaluated on newdata")
 
@@ -60,8 +60,8 @@ test_that("predict on newdata requires the decision indicator", {
   set.seed(99)
   d2 <- ddm_simulate(900, mu = 0.7, bs = 1.4, ndt = 0.25, bias = 0.35)
   f2 <- frm(bf(rt | vint(upper) ~ 1), family = wiener(), data = d2)
-  p1 <- predict(f2, newdata = data.frame(upper = 1), type = "response")
-  p0 <- predict(f2, newdata = data.frame(upper = 0), type = "response")
+  p1 <- frm_linpred(f2, newdata = data.frame(upper = 1), type = "response")
+  p0 <- frm_linpred(f2, newdata = data.frame(upper = 0), type = "response")
   expect_gt(abs(p1 - p0), 0.05)
   # and each tracks the observed mean at its own boundary
   expect_equal(p1, mean(d2$rt[d2$upper == 1]), tolerance = 0.05)
@@ -73,7 +73,7 @@ test_that("all four dpars recover when none is held fixed", {
   set.seed(99)
   d <- ddm_simulate(900, mu = 0.7, bs = 1.4, ndt = 0.25, bias = 0.35)
   f <- frm(bf(rt | vint(upper) ~ 1), family = wiener(), data = d)
-  e <- unlist(fixef(f))
+  e <- unlist(fixef_by_dpar(f))
   expect_equal(e[["mu.(Intercept)"]], 0.7, tolerance = 0.2)
   expect_equal(exp(e[["bs.(Intercept)"]]), 1.4, tolerance = 0.1)
   expect_equal(1 / (1 + exp(-e[["bias.(Intercept)"]])), 0.35,
@@ -85,9 +85,9 @@ test_that("all four dpars recover when none is held fixed", {
 test_that("residuals: response works, pearson and deviance refuse", {
   skip_if_not_installed("RWiener")
   o <- ddm_fit()
-  r <- residuals(o$fit, type = "response")
+  r <- residuals(o$fit, type = "response")[, "Estimate"]
   expect_length(r, nrow(o$dat))
-  expect_equal(r, o$dat$rt - fitted(o$fit), tolerance = 1e-8)
+  expect_equal(r, o$dat$rt - fitted(o$fit)[, "Estimate"], tolerance = 1e-8)
   # declared omissions, and the refusals name the reason
   # frmtmb raises both about this package's family, so they carry its
   # subclass
@@ -104,7 +104,7 @@ test_that("simulate draws response times at each row's own boundary", {
   s <- as.matrix(simulate(o$fit, nsim = 20))
   expect_equal(dim(s), c(nrow(o$dat), 20L))
   expect_true(all(is.finite(s)))
-  e <- unlist(fixef(o$fit))
+  e <- unlist(fixef_by_dpar(o$fit))
   ndt_hat <- min(o$dat$rt) / (1 + exp(-e[["ndt.(Intercept)"]]))
   expect_true(all(s > ndt_hat))
   # the draws sit around the observed response times
@@ -145,8 +145,8 @@ test_that("par_template and set_prior reach the wiener dpars", {
   # and |shrunk| < |unpenalized| stays true while the estimate changes
   # sign. The ratio bounds both at once. class "b" is link-scale on the
   # slopes in brms and here, so this one shrinks without flipping.
-  shrink <- unlist(fixef(f2))[["mu.cond"]] /
-    unlist(fixef(o$fit))[["mu.cond"]]
+  shrink <- unlist(fixef_by_dpar(f2))[["mu.cond"]] /
+    unlist(fixef_by_dpar(o$fit))[["mu.cond"]]
   expect_gt(shrink, 0)
   expect_lt(shrink, 1)
 
@@ -156,8 +156,8 @@ test_that("par_template and set_prior reach the wiener dpars", {
   f3 <- frm(bf(rt | vint(upper) ~ cond, bias = 0.5), family = wiener(),
             data = o$dat,
             prior = set_prior("normal(1, 0.05)", class = "bs"))
-  bs0 <- unlist(fixef(o$fit))[["bs.(Intercept)"]]
-  bs3 <- unlist(fixef(f3))[["bs.(Intercept)"]]
+  bs0 <- unlist(fixef_by_dpar(o$fit))[["bs.(Intercept)"]]
+  bs3 <- unlist(fixef_by_dpar(f3))[["bs.(Intercept)"]]
   expect_lt(abs(exp(bs3) - 1), abs(exp(bs0) - 1))
   # the link-scale spelling for the same parameter is refused here by
   # name, because this model gives bs no predictor
@@ -213,6 +213,6 @@ test_that("dec() is the spelling now, and vint() is the same model", {
                family = wiener(), data = o$dat)
   expect_equal(as.numeric(logLik(f_dec)), as.numeric(logLik(o$fit)),
                tolerance = 1e-10)
-  expect_equal(unlist(fixef(f_dec)), unlist(fixef(o$fit)),
+  expect_equal(unlist(fixef_by_dpar(f_dec)), unlist(fixef_by_dpar(o$fit)),
                tolerance = 1e-6)
 })

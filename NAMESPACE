@@ -64,6 +64,8 @@ S3method(insight::find_formula,frmtmb_fit)
 S3method(insight::find_random,frmtmb_fit)
 S3method(insight::find_statistic,frmtmb_fit)
 S3method(insight::get_parameters,frmtmb_fit)
+S3method(insight::get_predicted,frmtmb_fit)
+S3method(insight::get_residuals,frmtmb_fit)
 S3method(insight::get_varcov,frmtmb_fit)
 S3method(insight::link_function,frmtmb_fit)
 S3method(insight::link_inverse,frmtmb_fit)
@@ -201,7 +203,10 @@ export(build_objective, row_lpdf, with_cs_offsets,
   ce_cats_display, ce_display_kind, ce_pred_dpar, ce_group_vars,
   ce_new_level_spec, ce_boot_grids, ce_draw_new_levels,
   ce_structure_check, ce_re_formula, ce_dots, find_linpred,
-  arg_unset, re_form_arg, frm_check_dots, frm_install_generics)
+  arg_unset, re_form_arg, frm_check_dots, frm_install_generics,
+  fam_is_category_valued, predict_category_props, vcov_estimated,
+  brms_summary_matrix, brms_summary_array, brms_summarize_draws,
+  brms_prob_cols, brms_fixef_rows)
 export(categorical)
 export(check_custom_family)
 export(cluster_scores)
@@ -229,6 +234,7 @@ export(exgaussian)
 export(exponential)
 export(expose_functions)
 export(fit_extras)
+export(fixef_by_dpar)
 export(frame_block_of)
 export(frm)
 export(frm_allfit)
@@ -239,6 +245,7 @@ export(frm_compat_rules)
 export(frm_family_package)
 export(frm_hazard_reads)
 export(frm_joint_cov)
+export(frm_linpred)
 export(frm_lp_basis)
 export(frm_match_arg)
 export(frm_message)

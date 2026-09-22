@@ -240,7 +240,7 @@ note_table("structure", "aterm")
 ### Structures and post-fit methods
 
 Several post-fit methods are univariate-only. A multivariate fit
-predicts one response at a time, through `predict(fit, resp = )`, and
+predicts one response at a time, through `frm_linpred(fit, resp = )`, and
 refuses `fitted()`, `simulate()` and `residuals()`. The inference
 surface is not univariate-only: `confint()`, `hypothesis()` and
 `frmtmb.sample::frm_sample()` read the outer parameter vector, which a

@@ -1,0 +1,13 @@
+design: mixed  replicates: 220  failed fits: 0 
+n: 60  new points: 10  ndraws: 1000  SEED0: 771000 
+distinct seeds used: 880 of 880 set.seed calls
+script: dev/shapes-rev-cov.R
+
+joint                 2054 of  2200 = 0.9336  (0.9224, 0.9437) binomial; replicate mean 0.9336 se 0.0059  z=-2.80
+plugin                2015 of  2200 = 0.9159  (0.9035, 0.9272) binomial; replicate mean 0.9159 se 0.0065  z=-5.22
+exact                n/a
+joint_plus_condvar    2085 of  2200 = 0.9477  (0.9376, 0.9567) binomial; replicate mean 0.9477 se 0.0052  z=-0.44
+
+side measurements (column means over 220 rows)
+      sigma         tau mean_condsd 
+    0.77982     0.64193     0.29716 

@@ -18,11 +18,11 @@
 #'
 #' | method | returns | scale |
 #' |---|---|---|
-#' | `predict()`, default | the `mu` linear predictor | link |
-#' | `predict(type = "link")` | the same | link |
-#' | `predict(type = "response")` | the conditional mean | response |
-#' | `predict(dpar = "sigma")` | that predictor | link; `type = "response"` gives response |
-#' | `fitted()` | the conditional mean | response |
+#' | `predict()` | a summary of the PREDICTIVE distribution | response |
+#' | `frm_linpred()`, default | the `mu` linear predictor | link |
+#' | `frm_linpred(type = "response")` | the conditional mean | response |
+#' | `frm_linpred(dpar = "sigma")` | that predictor | link; `"response"` gives response |
+#' | `fitted()` | a summary of the conditional mean | response |
 #' | `conditional_effects()` | `estimate__` and its band | response |
 #' | `residuals()`, default | observed minus `fitted()` | response |
 #' | `residuals(type = "pearson")` | that, over the conditional SD | unitless |
@@ -39,23 +39,24 @@
 #' | `bayes_R2()` | refuses on a `frmtmb_fit` | neither |
 #' | `logLik()`, `AIC()`, `BIC()` | the fitted likelihood | the data's own |
 #'
-#' @section The two places this differs from brms:
+#' @section Where this differs from brms:
 #'
-#' `predict()` is the first. brms returns posterior predictive draws
-#' summarized on the RESPONSE scale; frmtmb returns the LINEAR
-#' PREDICTOR, because it has one parameter vector rather than a
-#' posterior and the linear predictor is the quantity an ML fit
-#' actually estimates. On a lognormal fit that is the difference
-#' between about 8 and about 6,700. Ask for `type = "response"`, or
-#' call `fitted()`, to get the quantity brms's `fitted()` reports.
-#' Measured with `dev/generics-scale.R` and
+#' `predict()` used to be the first, and is no longer: since item 2.6d
+#' it is brms's, a summary of the predictive distribution on the
+#' response scale. The LINEAR PREDICTOR, which is what it returned
+#' before and what the glmmTMB `type` vocabulary reaches, moved to
+#' [frm_linpred()] unchanged. On a lognormal fit the two differ by
+#' about 8 against about 6,700, which is why they could not share a
+#' name. Measured with `dev/generics-scale.R` and
 #' `dev/generics-scale-brms.R`.
 #'
-#' `sigma` is the second. `summary()` and `fixef()` report every
-#' coefficient on its own link, so a `sigma` with the default log link
-#' is printed as `log(sigma)` and can be negative. brms samples `sigma`
-#' itself and prints it on the response scale. [sigma()] here
-#' back-transforms and gives brms's number.
+#' `sigma` is the one that remains. `summary()`'s
+#' `Regression Coefficients` block and `fixef()` report every
+#' coefficient on its own link, so a `sigma` WITH A FORMULA and the
+#' default log link is reported as `log(sigma)` and can be negative.
+#' A `sigma` nobody wrote a formula for is not a coefficient at all: it
+#' is in `summary()`'s `Further Distributional Parameters` block on its
+#' own response scale, as in brms, and [sigma()] returns that number.
 #'
 #' @section What agrees with brms without any conversion:
 #'
@@ -73,8 +74,9 @@
 #' * With a distributional sigma (`bf(y ~ x, sigma ~ x)`), `sigma()`
 #'   returns `NA` with a warning, because there is no one number to
 #'   return, and the formula gives `NA` with it. Use
-#'   `predict(dpar = "sigma", type = "response")`, which reproduces
-#'   `fitted()` exactly (`identical()` is `TRUE`).
+#'   `frm_linpred(dpar = "sigma", type = "response")`, which reproduces
+#'   `fitted(dpar = "sigma")[, "Estimate"]` exactly (`identical()` is
+#'   `TRUE`).
 #' * Under truncation, `fitted()` is the TRUNCATED mean and the
 #'   formula answers a different question. With a lower bound `lb`,
 #'   the truncated mean is `exp(mu + sigma^2 / 2) * pnorm(sigma - a) /
@@ -98,7 +100,8 @@
 #' the `fitted()` figures above are deterministic and repeat to the
 #' last digit.
 #'
-#' @seealso [predict.frmtmb_fit()], [fitted.frmtmb_fit()],
+#' @seealso [predict.frmtmb_fit()], [frm_linpred()],
+#'   [fitted.frmtmb_fit()],
 #'   [residuals.frmtmb_fit()], [sigma.frmtmb_fit()], [fixef()],
 #'   [VarCorr()], [confint.frmtmb_fit()]
 #' @examples
@@ -107,15 +110,19 @@
 #' dd$y <- exp(rnorm(200, 8 + 0.4 * dd$x, 0.4))
 #' fit <- frm(bf(y ~ x) + lognormal(), data = dd)
 #'
-#' # the default is the linear predictor, not the outcome
-#' head(predict(fit))
+#' # predict() summarizes the predictive distribution; frm_linpred()
+#' # is the linear predictor and fitted() the expected response
+#' head(predict(fit, ndraws = 200))
+#' head(frm_linpred(fit))
 #' head(fitted(fit))
 #'
-#' # and the two are related by the family's own mean
-#' head(exp(predict(fit) + sigma(fit)^2 / 2) - fitted(fit))
+#' # the last two are related by the family's own mean
+#' head(exp(frm_linpred(fit) + sigma(fit)^2 / 2) -
+#'        fitted(fit)[, "Estimate"])
 #'
-#' # sigma is printed on its log link and back-transformed by sigma()
-#' summary(fit)$coefficients$sigma[1, 1]
+#' # a sigma nobody wrote a formula for is a distributional parameter
+#' # on its own scale, not a coefficient on its link
+#' summary(fit)$spec_pars
 #' sigma(fit)
 #' @return This page documents a convention. It is not a function, so it
 #'   returns no value.

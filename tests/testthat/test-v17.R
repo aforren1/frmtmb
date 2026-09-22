@@ -15,8 +15,8 @@ test_that("gaussian and poisson mixtures match direct ML", {
   op <- stats::optim(c(0, 3, 0, log(0.6), 0.6), nll, method = "BFGS",
                      control = list(reltol = 1e-13, maxit = 5000))
   expect_lt(abs(as.numeric(logLik(fit)) + op$value), 1e-6)
-  expect_length(fitted(fit), n)
-  expect_lt(abs(mean(fitted(fit)) - mean(y)), 1e-6)
+  expect_length(fitted(fit)[, "Estimate"], n)
+  expect_lt(abs(mean(fitted(fit)[, "Estimate"]) - mean(y)), 1e-6)
   s <- simulate(fit, nsim = 1, seed = 1)
   expect_lt(abs(stats::sd(s[[1]]) - stats::sd(y)), 0.3)
 
@@ -44,7 +44,7 @@ test_that("mixing weights can depend on covariates (experts)", {
                data = dd)
   f_flat <- frm(bf(y ~ 1) + mixture(gaussian(), gaussian()), data = dd)
   expect_gt(as.numeric(logLik(f_moe)), as.numeric(logLik(f_flat)) + 10)
-  expect_gt(abs(fixef(f_moe)$theta1[["x"]]), 0.5)
+  expect_gt(abs(fixef_by_dpar(f_moe)$theta1[["x"]]), 0.5)
 })
 
 test_that("mi(sd) measurement error matches the closed form", {
@@ -78,11 +78,11 @@ test_that("mi(sd) measurement error matches the closed form", {
                      method = "BFGS",
                      control = list(reltol = 1e-13, maxit = 5000))
   expect_lt(abs(as.numeric(logLik(fit)) + op$value), 1e-5)
-  expect_equal(unname(fixef(fit)$y_mu[c("(Intercept)", "mix", "z")]),
+  expect_equal(unname(fixef_by_dpar(fit)$y_mu[c("(Intercept)", "mix", "z")]),
                op$par[1:3], tolerance = 1e-3)
   # attenuation corrected: naive regression on x_obs shrinks b1
   naive <- stats::coef(stats::lm(y ~ x_obs + z))[["x_obs"]]
-  expect_gt(fixef(fit)$y_mu[["mix"]], naive + 0.02)
+  expect_gt(fixef_by_dpar(fit)$y_mu[["mix"]], naive + 0.02)
   # latent truths tracked
   expect_gt(cor(fit$estimates$miss, t_true), 0.8)
 })
@@ -198,12 +198,12 @@ test_that("rr() se.fit runs and is parameterization-invariant", {
   fu <- suppressWarnings(
     frm(bf(y ~ 1 + us(spp + 0 | site)) + poisson(), data = dd)
   )
-  pr <- predict(fr, se.fit = TRUE)
-  pu <- predict(fu, se.fit = TRUE)
+  pr <- frm_linpred(fr, se.fit = TRUE)
+  pu <- frm_linpred(fu, se.fit = TRUE)
   expect_vector_equal(pr$fit, pu$fit, tol = 1e-3)
   expect_vector_equal(pr$se.fit, pu$se.fit, tol = 0.02)
   # newdata path too
-  nr <- predict(fr, newdata = dd[1:3, ], se.fit = TRUE)
+  nr <- frm_linpred(fr, newdata = dd[1:3, ], se.fit = TRUE)
   expect_vector_equal(nr$se.fit, pr$se.fit[1:3], tol = 1e-6)
 })
 

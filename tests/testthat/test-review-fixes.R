@@ -77,7 +77,9 @@ test_that("influence machinery works with a constant dpar", {
     frm(bf(y ~ x + (1 | g), sigma = 1) + gaussian(), data = d))
   infl <- suppressWarnings(influence(fit, groups = "g"))
   # influence columns now align with vcov (mapped constants excluded)
-  expect_identical(colnames(infl$fixed), rownames(vcov(fit)))
+  # get_coef()'s vector, which is every estimated coefficient;
+  # vcov() is brms's population-level block since item 2.6f
+  expect_identical(colnames(infl$fixed), rownames(vcov_estimated(fit)))
   cd <- cooks.distance(infl)
   expect_length(cd, 6L)
   expect_true(all(is.finite(cd)))
@@ -101,7 +103,7 @@ test_that("NA in an RE-only design variable propagates to predictions", {
   d$y <- rnorm(80, 1 + (0.5 + rnorm(8, 0, 0.3)[d$g]) * d$x, 1)
   fit <- frm(bf(y ~ 1 + (0 + x | g)) + gaussian(), data = d)
   nd <- data.frame(x = c(1, NA), g = factor(c(1, 2), levels = levels(d$g)))
-  p <- predict(fit, newdata = nd)
+  p <- frm_linpred(fit, newdata = nd)
   expect_true(is.finite(p[1]))
   expect_true(is.na(p[2]))
 })

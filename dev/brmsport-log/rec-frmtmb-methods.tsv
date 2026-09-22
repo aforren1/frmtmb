@@ -19,7 +19,7 @@ assert	frmtmb	brmsfit-methods:170	cannot transfer	FALSE	FALSE	ERROR: conditional
 setup	frmtmb	brmsfit-methods:175		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:177	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:178		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:179	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:179	defect	FALSE	FALSE	Expected `nrow(me[[2]])` to equal `exp_nrow`. Differences:   `actual`: 400.0 `expected`:   0.0 		FALSE
 setup	frmtmb	brmsfit-methods:181		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:186		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:187		TRUE	FALSE			TRUE
@@ -60,53 +60,53 @@ assert	frmtmb	brmsfit-methods:283	defect	FALSE	FALSE	ERROR: family() cannot hono
 assert	frmtmb	brmsfit-methods:284	defect	FALSE	FALSE	ERROR: print() has no argument `links`. It takes: x		FALSE
 assert	frmtmb	brmsfit-methods:285	defect	FALSE	FALSE	Expected output from `print(family(fit5))` to match regexp "Mixture.*gaussian.*exponential". Actual output: x |    | Family: mixture(gaussian, exponential)    | Link function: identity    | Parameters: mu1 (identity), sigma1 (log), mu2 (log), theta1 (identity)   | 		FALSE
 setup	frmtmb	brmsfit-methods:291		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:292	defect	FALSE	FALSE	Expected `dim(fi)` to equal `c(nobs(fit1), 4)`. Differences: `actual` is NULL `expected` is a double vector (40, 4) 		FALSE
-assert	frmtmb	brmsfit-methods:293	defect	FALSE	FALSE	Expected `colnames(fi)` to equal `c("Estimate", "Est.Error", "Q2.5", "Q97.5")`. Differences: `actual` is NULL `expected` is a character vector ('Estimate', 'Est.Error', 'Q2.5', 'Q97.5') 		FALSE
+assert	frmtmb	brmsfit-methods:292	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:293	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:295		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:300		FALSE	FALSE	contrasts apply only to factors		FALSE
 assert	frmtmb	brmsfit-methods:301	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: contrasts apply only to factors		FALSE
 setup	frmtmb	brmsfit-methods:302		TRUE	FALSE			TRUE
-setup	frmtmb	brmsfit-methods:303		FALSE	FALSE	fitted() has no argument `allow_new_levels`. It takes: object, newdata, re_formula, scale, resp, dpar		FALSE
-assert	frmtmb	brmsfit-methods:305	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: fitted() has no argument `allow_new_levels`. It takes: object, newdata, re_formula, scale, resp, dpar		FALSE
+setup	frmtmb	brmsfit-methods:303		FALSE	FALSE	contrasts apply only to factors		FALSE
+assert	frmtmb	brmsfit-methods:305	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: contrasts apply only to factors		FALSE
 setup	frmtmb	brmsfit-methods:308		TRUE	FALSE			TRUE
-setup	frmtmb	brmsfit-methods:312		FALSE	FALSE	fitted() cannot honor `ndraws`: a maximum likelihood fit carries one estimate, not a posterior, so there is nothing to thin. Draw from the fit with frmtmb.sample::frm_sample() and use posterior_epred(ndraws = ) there		FALSE
-assert	frmtmb	brmsfit-methods:314	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: fitted() cannot honor `ndraws`: a maximum likelihood fit carries one estimate, not a posterior, so there is nothing to thin. Draw from the fit with frmtmb.sample::frm_sample() and use posterior_epred(ndraws = ) there		FALSE
-setup	frmtmb	brmsfit-methods:315		FALSE	FALSE	fitted() cannot honor `ndraws`: a maximum likelihood fit carries one estimate, not a posterior, so there is nothing to thin. Draw from the fit with frmtmb.sample::frm_sample() and use posterior_epred(ndraws = ) there		FALSE
-assert	frmtmb	brmsfit-methods:317	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: fitted() cannot honor `ndraws`: a maximum likelihood fit carries one estimate, not a posterior, so there is nothing to thin. Draw from the fit with frmtmb.sample::frm_sample() and use posterior_epred(ndraws = ) there		FALSE
+setup	frmtmb	brmsfit-methods:312		FALSE	FALSE	fitted() has no argument `sample_new_levels`. It takes: object, newdata, re_formula, scale, resp, dpar, nlpar, ndraws, draw_ids, sort, summary, robust, probs, allow_new_levels		FALSE
+assert	frmtmb	brmsfit-methods:314	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: fitted() has no argument `sample_new_levels`. It takes: object, newdata, re_formula, scale, resp, dpar, nlpar, ndraws, draw_ids, sort, summary, robust, probs, allow_new_levels		FALSE
+setup	frmtmb	brmsfit-methods:315		FALSE	FALSE	fitted() has no argument `sample_new_levels`. It takes: object, newdata, re_formula, scale, resp, dpar, nlpar, ndraws, draw_ids, sort, summary, robust, probs, allow_new_levels		FALSE
+assert	frmtmb	brmsfit-methods:317	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: fitted() has no argument `sample_new_levels`. It takes: object, newdata, re_formula, scale, resp, dpar, nlpar, ndraws, draw_ids, sort, summary, robust, probs, allow_new_levels		FALSE
 setup	frmtmb	brmsfit-methods:320		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:324		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:325	defect	FALSE	FALSE	Expected `dim(fi)` to equal `c(nobs(fit1), 4)`. Differences: `actual` is NULL `expected` is a double vector (40, 4) 		FALSE
-assert	frmtmb	brmsfit-methods:326	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:325	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:326	cannot transfer	FALSE	FALSE	Expected `all(fi > 0)` to be TRUE. Differences: `actual`:   <NA> `expected`: TRUE 		FALSE
 setup	frmtmb	brmsfit-methods:327		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:328	defect	FALSE	FALSE	Expected `dim(fi_lin)` to equal `c(nobs(fit1), 4)`. Differences: `actual` is NULL `expected` is a double vector (40, 4) 		FALSE
+assert	frmtmb	brmsfit-methods:328	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:329	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:330	own	TRUE	FALSE		Unknown dpar: 'inv' for response 'count'. Available: mu, sigma, nu	FALSE
 setup	frmtmb	brmsfit-methods:333		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:334	defect	FALSE	FALSE	Expected `dim(fi)` to equal `c(nobs(fit2), 4)`. Differences: `actual` is NULL `expected` is a double vector (40, 4) 		FALSE
-setup	frmtmb	brmsfit-methods:335		FALSE	FALSE	fitted() has no argument `allow_new_levels`. It takes: object, newdata, re_formula, scale, resp, dpar		FALSE
-assert	frmtmb	brmsfit-methods:337	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: fitted() has no argument `allow_new_levels`. It takes: object, newdata, re_formula, scale, resp, dpar		FALSE
+assert	frmtmb	brmsfit-methods:334	pass	TRUE	FALSE			TRUE
+setup	frmtmb	brmsfit-methods:335		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:337	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:338		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:339	defect	FALSE	FALSE	Expected `dim(fi)` to equal `c(nobs(fit2), 4)`. Differences: `actual` is NULL `expected` is a double vector (40, 4) 		FALSE
-assert	frmtmb	brmsfit-methods:340	defect	FALSE	FALSE	ERROR: incorrect number of dimensions		FALSE
-setup	frmtmb	brmsfit-methods:341		FALSE	FALSE	fitted() cannot honor `nlpar`: a non-linear parameter is reached through `dpar` in this package; nlf() parameters appear there		FALSE
-assert	frmtmb	brmsfit-methods:342	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: fitted() cannot honor `nlpar`: a non-linear parameter is reached through `dpar` in this package; nlf() parameters appear there		FALSE
-setup	frmtmb	brmsfit-methods:344		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:345	defect	FALSE	FALSE	Expected `dim(fi)` to equal `c(10, 4)`. Differences: `actual` is NULL `expected` is a double vector (10, 4) 		FALSE
+assert	frmtmb	brmsfit-methods:339	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:340	pass	TRUE	FALSE			TRUE
+setup	frmtmb	brmsfit-methods:341		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:342	pass	TRUE	FALSE			TRUE
+setup	frmtmb	brmsfit-methods:344		FALSE	FALSE	incorrect number of dimensions		FALSE
+assert	frmtmb	brmsfit-methods:345	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: incorrect number of dimensions		FALSE
 setup	frmtmb	brmsfit-methods:347		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:348	defect	FALSE	FALSE	Expected `dim(fi)` to equal `c(nobs(fit4), 4, 4)`. Differences:   `actual`: 40 4   `expected`: 40 4 4 		FALSE
-setup	frmtmb	brmsfit-methods:349		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:350	defect	FALSE	FALSE	Expected `dim(fi)` to equal `c(1, 4, 4)`. Differences:   `actual`: 1 4   `expected`: 1 4 4 		FALSE
-setup	frmtmb	brmsfit-methods:351		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:352	defect	FALSE	FALSE	Expected `dim(fi)` to equal `c(1, 4, 3)`. Differences: `actual` is NULL `expected` is a double vector (1, 4, 3) 		FALSE
+assert	frmtmb	brmsfit-methods:348	pass	TRUE	FALSE			TRUE
+setup	frmtmb	brmsfit-methods:349		FALSE	FALSE	incorrect number of dimensions		FALSE
+assert	frmtmb	brmsfit-methods:350	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: incorrect number of dimensions		FALSE
+setup	frmtmb	brmsfit-methods:351		FALSE	FALSE	incorrect number of dimensions		FALSE
+assert	frmtmb	brmsfit-methods:352	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: incorrect number of dimensions		FALSE
 setup	frmtmb	brmsfit-methods:354		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:355	defect	FALSE	FALSE	Expected `dim(fi)` to equal `c(nobs(fit5), 4)`. Differences: `actual` is NULL `expected` is a double vector (40, 4) 		FALSE
+assert	frmtmb	brmsfit-methods:355	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:357		FALSE	FALSE	fitted() is not supported yet for multivariate fits		FALSE
 assert	frmtmb	brmsfit-methods:358	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: fitted() is not supported yet for multivariate fits		FALSE
 assert	frmtmb	brmsfit-methods:359	defect	FALSE	TRUE	STALE: reads 'fi', whose last assignment failed: fitted() is not supported yet for multivariate fits		FALSE
 setup	frmtmb	brmsfit-methods:363		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:364	defect	FALSE	FALSE	Expected `rownames(fixef1)` to equal `c(...)`. Differences: `actual` is NULL `expected` is a character vector ('Intercept', 'sigma_Intercept', 'Trt1', 'Age', 'volume', ...) 		FALSE
-setup	frmtmb	brmsfit-methods:368		FALSE	FALSE	fixef() cannot honor `pars`: brms's `pars` filters parameter names with a regular expression. Subset the returned value instead; variables() lists the names this package uses		FALSE
-assert	frmtmb	brmsfit-methods:369	defect	FALSE	TRUE	STALE: reads 'fixef1', whose last assignment failed: fixef() cannot honor `pars`: brms's `pars` filters parameter names with a regular expression. Subset the returned value instead; variables() lists the names this package uses		FALSE
+assert	frmtmb	brmsfit-methods:364	pass	TRUE	FALSE			TRUE
+setup	frmtmb	brmsfit-methods:368		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:369	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:373	divergence	FALSE	TRUE	ERROR: could not find function "is.brmsformula"		FALSE
 setup	frmtmb	brmsfit-methods:388		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:389	pass	TRUE	FALSE			TRUE
@@ -126,27 +126,27 @@ assert	frmtmb	brmsfit-methods:408	divergence	FALSE	TRUE	STALE: reads 'hyp', whos
 assert	frmtmb	brmsfit-methods:410	pass	TRUE	FALSE		Some parameters cannot be found in the model:  'b_x' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL	TRUE
 assert	frmtmb	brmsfit-methods:412	pass	TRUE	FALSE		Argument 'hypothesis' must be a character vector.	TRUE
 assert	frmtmb	brmsfit-methods:414	own	TRUE	FALSE		`alpha` must be a single number strictly between 0 and 1, not numeric "2"	FALSE
-assert	frmtmb	brmsfit-methods:417	pass	TRUE	FALSE		Every hypothesis must be of the form 'left (= OR < OR >) right': 'b_Agex0' states no relation. Write 'b_Agex0 = 0' for the test against zero, which is what brms writes	TRUE
+assert	frmtmb	brmsfit-methods:417	defect	FALSE	FALSE	ERROR: Some parameters cannot be found in the model:  'b_b_Agex0' variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL		FALSE
 setup	frmtmb	brmsfit-methods:422		FALSE	FALSE	cannot coerce class '"frmtmb_fit"' to a data.frame		FALSE
 assert	frmtmb	brmsfit-methods:423	cannot transfer	FALSE	TRUE	STALE: reads 'hyp', whose last assignment failed: cannot coerce class '"frmtmb_fit"' to a data.frame		TRUE
 setup	frmtmb	brmsfit-methods:424		FALSE	FALSE	Some parameters cannot be found in the model:  'bsp_meAgeAgeSD', 'sigma'		FALSE
 assert	frmtmb	brmsfit-methods:425	cannot transfer	FALSE	TRUE	STALE: reads 'hyp', whose last assignment failed: Some parameters cannot be found in the model:  'bsp_meAgeAgeSD', 'sigma'		TRUE
-assert	frmtmb	brmsfit-methods:567	pass	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:584	defect	FALSE	FALSE	Expected `ngrps(fit1)` to equal `list(visit = 4)`. Differences: `actual` is an integer vector (4) `expected` is a list 		FALSE
-assert	frmtmb	brmsfit-methods:585	defect	FALSE	FALSE	Expected `ngrps(fit2)` to equal `list(patient = 10)`. Differences: `actual` is an integer vector (10) `expected` is a list 		FALSE
+assert	frmtmb	brmsfit-methods:567	defect	FALSE	FALSE	Expected `model.frame(fit1)` to equal `fit1$data`. Differences: `actual` is length 8 `expected` is length 0 `class(actual)` is a character vector ('data.frame') `class(expected)` is absent `names(actual)` is a character vector ('count', 'Trt', 'Age', 'volume', 'offset(Age)', ...) `names(expected)` is absent `attr(actual, 'row.names')` is an integer vector (1, 2, 3, 4, 5, ...) `attr(expected, 'row.		FALSE
+assert	frmtmb	brmsfit-methods:584	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:585	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:589	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:604	cannot transfer	FALSE	FALSE	ERROR: plot() has no argument `plot`. Did you mean `plt`?. It takes: x, which, ask		FALSE
 assert	frmtmb	brmsfit-methods:605	cannot transfer	FALSE	FALSE	ERROR: plot() has no argument `variable` (and 2 more: regex, plot). It takes: x, which, ask		FALSE
 assert	frmtmb	brmsfit-methods:606	cannot transfer	FALSE	FALSE	ERROR: plot() has no argument `variable` (and 2 more: regex, plot). It takes: x, which, ask		FALSE
 assert	frmtmb	brmsfit-methods:607	cannot transfer	FALSE	TRUE	VACUOUS: plot() has no argument `variable`. It takes: x, which, ask	plot() has no argument `variable`. It takes: x, which, ask	TRUE
 assert	frmtmb	brmsfit-methods:674	pass	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:675	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:675	defect	FALSE	FALSE	ERROR: incorrect number of dimensions		FALSE
 assert	frmtmb	brmsfit-methods:676	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:677	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:678		FALSE	FALSE	is.numeric(x) is not TRUE		FALSE
 assert	frmtmb	brmsfit-methods:679	defect	FALSE	TRUE	STALE: reads 'pp', whose last assignment failed: is.numeric(x) is not TRUE		FALSE
-setup	frmtmb	brmsfit-methods:680		FALSE	FALSE	length(group) must be equal to the number of observations.		FALSE
-assert	frmtmb	brmsfit-methods:682	defect	FALSE	TRUE	STALE: reads 'pp', whose last assignment failed: length(group) must be equal to the number of observations.		FALSE
+setup	frmtmb	brmsfit-methods:680		FALSE	FALSE	incorrect number of dimensions		FALSE
+assert	frmtmb	brmsfit-methods:682	defect	FALSE	TRUE	STALE: reads 'pp', whose last assignment failed: incorrect number of dimensions		FALSE
 setup	frmtmb	brmsfit-methods:684		FALSE	FALSE	One of 'lw' and 'psis_object' must be specified.		FALSE
 assert	frmtmb	brmsfit-methods:685	defect	FALSE	TRUE	STALE: reads 'pp', whose last assignment failed: One of 'lw' and 'psis_object' must be specified.		FALSE
 assert	frmtmb	brmsfit-methods:688	pass	TRUE	FALSE			TRUE
@@ -160,41 +160,41 @@ assert	frmtmb	brmsfit-methods:701	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:702	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:703	defect	FALSE	FALSE	Expected `pp_check(fit4, "error_binned")` to throw a error.		FALSE
 setup	frmtmb	brmsfit-methods:725		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:726	pending 2.6d	FALSE	FALSE	Expected `dim(pred)` to equal `c(nobs(fit1), 4)`. Differences: `actual` is NULL `expected` is a double vector (40, 4) 		FALSE
-assert	frmtmb	brmsfit-methods:727	pending 2.6d	FALSE	FALSE	Expected `colnames(pred)` to equal `c("Estimate", "Est.Error", "Q2.5", "Q97.5")`. Differences: `actual` is NULL `expected` is a character vector ('Estimate', 'Est.Error', 'Q2.5', 'Q97.5') 		FALSE
-setup	frmtmb	brmsfit-methods:728		FALSE	FALSE	predict() cannot honor `ndraws`: a maximum likelihood fit carries one estimate, not a posterior. frmtmb.sample's posterior_predict() takes ndraws		FALSE
-assert	frmtmb	brmsfit-methods:729	pending 2.6d	FALSE	TRUE	STALE: reads 'pred', whose last assignment failed: predict() cannot honor `ndraws`: a maximum likelihood fit carries one estimate, not a posterior. frmtmb.sample's posterior_predict() takes ndraws		FALSE
+assert	frmtmb	brmsfit-methods:726	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:727	pass	TRUE	FALSE			TRUE
+setup	frmtmb	brmsfit-methods:728		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:729	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:731		TRUE	FALSE			TRUE
-setup	frmtmb	brmsfit-methods:736		FALSE	FALSE	contrasts apply only to factors		FALSE
-assert	frmtmb	brmsfit-methods:737	defect	FALSE	TRUE	STALE: reads 'pred', whose last assignment failed: contrasts apply only to factors		FALSE
+setup	frmtmb	brmsfit-methods:736		FALSE	FALSE	predict(newdata = ) is not supported for this model: its draws are structured (a hidden state sequence, a group-level latent class, or a correlated residual) and that structure indexes the rows the model was fitted on. Drop newdata to predict those rows		FALSE
+assert	frmtmb	brmsfit-methods:737	defect	FALSE	TRUE	STALE: reads 'pred', whose last assignment failed: predict(newdata = ) is not supported for this model: its draws are structured (a hidden state sequence, a group-level latent class, or a correlated residual) and that structure indexes the rows the model was fitted on. Drop newdata to predict those rows		FALSE
 setup	frmtmb	brmsfit-methods:739		TRUE	FALSE			TRUE
-setup	frmtmb	brmsfit-methods:740		FALSE	FALSE	contrasts apply only to factors		FALSE
-assert	frmtmb	brmsfit-methods:741	defect	FALSE	TRUE	STALE: reads 'pred', whose last assignment failed: contrasts apply only to factors		FALSE
-setup	frmtmb	brmsfit-methods:744		TRUE	FALSE			TRUE
-setup	frmtmb	brmsfit-methods:745		TRUE	FALSE			TRUE
-setup	frmtmb	brmsfit-methods:746		FALSE	FALSE	predict() cannot honor `ndraws`: a maximum likelihood fit carries one estimate, not a posterior. frmtmb.sample's posterior_predict() takes ndraws		FALSE
-assert	frmtmb	brmsfit-methods:747	pending 2.6d	FALSE	TRUE	STALE: reads 'pred', whose last assignment failed: predict() cannot honor `ndraws`: a maximum likelihood fit carries one estimate, not a posterior. frmtmb.sample's posterior_predict() takes ndraws		FALSE
+setup	frmtmb	brmsfit-methods:740		FALSE	FALSE	predict(newdata = ) is not supported for this model: its draws are structured (a hidden state sequence, a group-level latent class, or a correlated residual) and that structure indexes the rows the model was fitted on. Drop newdata to predict those rows		FALSE
+assert	frmtmb	brmsfit-methods:741	defect	FALSE	TRUE	STALE: reads 'pred', whose last assignment failed: predict(newdata = ) is not supported for this model: its draws are structured (a hidden state sequence, a group-level latent class, or a correlated residual) and that structure indexes the rows the model was fitted on. Drop newdata to predict those rows		FALSE
+setup	frmtmb	brmsfit-methods:744		FALSE	FALSE	incorrect number of dimensions		FALSE
+setup	frmtmb	brmsfit-methods:745		FALSE	FALSE	object of type 'closure' is not subsettable		FALSE
+setup	frmtmb	brmsfit-methods:746		FALSE	FALSE	predict(): `newdata` must be a data frame, or NULL to draw for the training rows, not a function of length 1		FALSE
+assert	frmtmb	brmsfit-methods:747	defect	FALSE	TRUE	STALE: reads 'pred', whose last assignment failed: predict(): `newdata` must be a data frame, or NULL to draw for the training rows, not a function of length 1		TRUE
 setup	frmtmb	brmsfit-methods:749		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:750	pending 2.6d	FALSE	FALSE	Expected `dim(pred)` to equal `c(nobs(fit2), 4)`. Differences: `actual` is NULL `expected` is a double vector (40, 4) 		FALSE
+assert	frmtmb	brmsfit-methods:750	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:752		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:753	pending 2.6d	FALSE	FALSE	Expected `dim(pred)` to equal `c(2, 4)`. Differences: `actual` is NULL `expected` is a double vector (2, 4) 		FALSE
+assert	frmtmb	brmsfit-methods:753	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:756		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:757		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:758	pending 2.6d	FALSE	FALSE	Expected `dim(pred)` to equal `c(2, 4)`. Differences: `actual` is NULL `expected` is a double vector (2, 4) 		FALSE
+assert	frmtmb	brmsfit-methods:758	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:760		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:761	pending 2.6d	FALSE	FALSE	Expected `dim(pred)` to equal `c(nobs(fit4), 4)`. Differences: `actual` is NULL `expected` is a double vector (40, 4) 		FALSE
-assert	frmtmb	brmsfit-methods:762	pending 2.6d	FALSE	FALSE	Expected `colnames(pred)` to equal `paste0("P(Y = ", 1:4, ")")`. Differences: `actual` is NULL `expected` is a character vector ('P(Y = 1)', 'P(Y = 2)', 'P(Y = 3)', 'P(Y = 4)') 		FALSE
-setup	frmtmb	brmsfit-methods:763		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:764	pending 2.6d	FALSE	FALSE	Expected `dim(pred)` to equal `c(1, 4)`. Differences: `actual` is NULL `expected` is a double vector (1, 4) 		FALSE
+assert	frmtmb	brmsfit-methods:761	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:762	pass	TRUE	FALSE			TRUE
+setup	frmtmb	brmsfit-methods:763		FALSE	FALSE	incorrect number of dimensions		FALSE
+assert	frmtmb	brmsfit-methods:764	defect	FALSE	TRUE	STALE: reads 'pred', whose last assignment failed: incorrect number of dimensions		FALSE
 setup	frmtmb	brmsfit-methods:766		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:767	pending 2.6d	FALSE	FALSE	Expected `dim(pred)` to equal `c(nobs(fit5), 4)`. Differences: `actual` is NULL `expected` is a double vector (40, 4) 		FALSE
-setup	frmtmb	brmsfit-methods:768		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:767	pass	TRUE	FALSE			TRUE
+setup	frmtmb	brmsfit-methods:768		FALSE	FALSE	incorrect number of dimensions		FALSE
 setup	frmtmb	brmsfit-methods:769		TRUE	FALSE			TRUE
-setup	frmtmb	brmsfit-methods:770		FALSE	FALSE	predict() has no argument `sample_new_levels`. It takes: object, newdata, type, dpar, resp, re_formula, se.fit, allow_new_levels		FALSE
-assert	frmtmb	brmsfit-methods:772	pending 2.6d	FALSE	TRUE	STALE: reads 'pred', whose last assignment failed: predict() has no argument `sample_new_levels`. It takes: object, newdata, type, dpar, resp, re_formula, se.fit, allow_new_levels		FALSE
-setup	frmtmb	brmsfit-methods:773		FALSE	FALSE	predict() has no argument `sample_new_levels`. It takes: object, newdata, type, dpar, resp, re_formula, se.fit, allow_new_levels		FALSE
-assert	frmtmb	brmsfit-methods:775	pending 2.6d	FALSE	TRUE	STALE: reads 'pred', whose last assignment failed: predict() has no argument `sample_new_levels`. It takes: object, newdata, type, dpar, resp, re_formula, se.fit, allow_new_levels		FALSE
-assert	frmtmb	brmsfit-methods:784	defect	FALSE	FALSE	Expected output from `SW(print(fit1))` to match regexp "Multilevel Hyperparameters:". Actual output: x | frmtmb fit: count ~ Trt * Age + mo(Exp) + s(Age) + volume + offset(Age) + (1 + Trt | visit) + arma(visit, patient, cov = TRUE)    | Family: student   Method: ML    |  Links: mu = identity; sigma = log; nu = logm1   |    | logLik: -110.264  AIC: 258.528  nobs: 40    |    | Fixed effects:   |  mu		FALSE
+setup	frmtmb	brmsfit-methods:770		FALSE	FALSE	predict() honors sample_new_levels = "gaussian" only. An unseen level's effect is drawn from its block's own estimated covariance, which is what brms's "gaussian" does. "uncertainty" and "old_levels" resample the POSTERIOR draws of the levels that were seen, and a maximum-likelihood fit has no such draws		FALSE
+assert	frmtmb	brmsfit-methods:772	defect	FALSE	TRUE	STALE: reads 'pred', whose last assignment failed: predict() honors sample_new_levels = "gaussian" only. An unseen level's effect is drawn from its block's own estimated covariance, which is what brms's "gaussian" does. "uncertainty" and "old_levels" resample the POSTERIOR draws of the levels that were seen, and a maximum-likelihood fit has no such draws		FALSE
+setup	frmtmb	brmsfit-methods:773		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:775	defect	FALSE	FALSE	Expected `dim(pred)` to equal `c(5, 4)`. Differences:   `actual`: 2.0 4.0 `expected`: 5.0 4.0 		FALSE
+assert	frmtmb	brmsfit-methods:784	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:806	divergence	FALSE	FALSE	Expected `is(prior_summary(fit1), "brmsprior")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:810		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:811	divergence	FALSE	FALSE	Expected `dim(ranef1$visit)` to equal `c(nvisits, 4, 2)`. Differences:   `actual`: 4 2   `expected`: 4 4 2 		FALSE
@@ -204,8 +204,8 @@ setup	frmtmb	brmsfit-methods:816		FALSE	FALSE	ranef() cannot honor `groups`: brm
 assert	frmtmb	brmsfit-methods:817	defect	FALSE	TRUE	STALE: reads 'ranef1', whose last assignment failed: ranef() cannot honor `groups`: brms's `groups` selects grouping factors; the return value here is a named list, so index it		FALSE
 setup	frmtmb	brmsfit-methods:819		FALSE	FALSE	ranef() cannot honor summary = FALSE: brms returns the posterior draws there, and a maximum-likelihood fit has none. It carries one estimate and no chains, so the only answer it has is the summary, which is a different return shape. Sample with frmtmb.sample::frm_sample() and call ranef() on the draws for that		FALSE
 assert	frmtmb	brmsfit-methods:820	divergence	FALSE	TRUE	STALE: reads 'ranef2', whose last assignment failed: ranef() cannot honor summary = FALSE: brms returns the posterior draws there, and a maximum-likelihood fit has none. It carries one estimate and no chains, so the only answer it has is the summary, which is a different return shape. Sample with frmtmb.sample::frm_sample() and call ranef() on the draws for that		FALSE
-setup	frmtmb	brmsfit-methods:824		FALSE	FALSE	residuals() cannot honor `probs`: quantiles of a residual need draws		FALSE
-assert	frmtmb	brmsfit-methods:825	defect	FALSE	TRUE	STALE: reads 'res1', whose last assignment failed: residuals() cannot honor `probs`: quantiles of a residual need draws		FALSE
+setup	frmtmb	brmsfit-methods:824		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:825	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:826		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:827		FALSE	FALSE	residuals() cannot honor `newdata`: a residual needs the observed response, and residuals() here reads the fitted rows only. Compute it yourself from predict(newdata = )		FALSE
 assert	frmtmb	brmsfit-methods:828	defect	FALSE	TRUE	STALE: reads 'res2', whose last assignment failed: residuals() cannot honor `newdata`: a residual needs the observed response, and residuals() here reads the fitted rows only. Compute it yourself from predict(newdata = )		FALSE
@@ -213,23 +213,23 @@ setup	frmtmb	brmsfit-methods:829		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:831		FALSE	FALSE	residuals() cannot honor `newdata`: a residual needs the observed response, and residuals() here reads the fitted rows only. Compute it yourself from predict(newdata = )		FALSE
 assert	frmtmb	brmsfit-methods:832	defect	FALSE	TRUE	STALE: reads 'res3', whose last assignment failed: residuals() cannot honor `newdata`: a residual needs the observed response, and residuals() here reads the fitted rows only. Compute it yourself from predict(newdata = )		FALSE
 setup	frmtmb	brmsfit-methods:834		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:835	defect	FALSE	FALSE	Expected `dim(res4)` to equal `c(nobs(fit2), 4)`. Differences: `actual` is NULL `expected` is a double vector (40, 4) 		FALSE
+assert	frmtmb	brmsfit-methods:835	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:837	defect	FALSE	FALSE	Expected `residuals(fit4)` to throw a error.		FALSE
 setup	frmtmb	brmsfit-methods:839		FALSE	FALSE	residuals() is not supported yet for multivariate fits		FALSE
 assert	frmtmb	brmsfit-methods:840	defect	FALSE	TRUE	STALE: reads 'res6', whose last assignment failed: residuals() is not supported yet for multivariate fits		FALSE
 assert	frmtmb	brmsfit-methods:841	defect	FALSE	TRUE	STALE: reads 'res6', whose last assignment failed: residuals() is not supported yet for multivariate fits		FALSE
-setup	frmtmb	brmsfit-methods:886		FALSE	FALSE	summary() cannot honor `priors`: brms prints the priors it sampled under. prior_summary(object) reports them here		FALSE
-assert	frmtmb	brmsfit-methods:887	defect	FALSE	TRUE	STALE: reads 'summary1', whose last assignment failed: summary() cannot honor `priors`: brms prints the priors it sampled under. prior_summary(object) reports them here		FALSE
-assert	frmtmb	brmsfit-methods:888	defect	FALSE	TRUE	STALE: reads 'summary1', whose last assignment failed: summary() cannot honor `priors`: brms prints the priors it sampled under. prior_summary(object) reports them here		FALSE
-assert	frmtmb	brmsfit-methods:891	defect	FALSE	TRUE	STALE: reads 'summary1', whose last assignment failed: summary() cannot honor `priors`: brms prints the priors it sampled under. prior_summary(object) reports them here		FALSE
-assert	frmtmb	brmsfit-methods:894	defect	FALSE	TRUE	STALE: reads 'summary1', whose last assignment failed: summary() cannot honor `priors`: brms prints the priors it sampled under. prior_summary(object) reports them here		FALSE
-assert	frmtmb	brmsfit-methods:896	defect	FALSE	TRUE	STALE: reads 'summary1', whose last assignment failed: summary() cannot honor `priors`: brms prints the priors it sampled under. prior_summary(object) reports them here		FALSE
-assert	frmtmb	brmsfit-methods:897	defect	FALSE	TRUE	STALE: reads 'summary1', whose last assignment failed: summary() cannot honor `priors`: brms prints the priors it sampled under. prior_summary(object) reports them here		FALSE
-setup	frmtmb	brmsfit-methods:899		FALSE	FALSE	summary() cannot honor `robust`: a median and MAD over draws need draws. frmtmb.sample's posterior_summary() takes robust		FALSE
-assert	frmtmb	brmsfit-methods:900	divergence	FALSE	TRUE	STALE: reads 'summary5', whose last assignment failed: summary() cannot honor `robust`: a median and MAD over draws need draws. frmtmb.sample's posterior_summary() takes robust		FALSE
-assert	frmtmb	brmsfit-methods:901	divergence	FALSE	TRUE	STALE: reads 'summary5', whose last assignment failed: summary() cannot honor `robust`: a median and MAD over draws need draws. frmtmb.sample's posterior_summary() takes robust		FALSE
+setup	frmtmb	brmsfit-methods:886		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:887	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:888	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:891	divergence	FALSE	FALSE	Expected `colnames(summary1$fixed)` to equal `c(...)`. Differences:     actual      | expected        [2] "Est.Error" | "Est.Error" [2] [3] "l-95% CI"  | "l-95% CI"  [3] [4] "u-95% CI"  | "u-95% CI"  [4] [5] "z value"   - "Rhat"      [5] [6] "Pr(>|z|)"  - "Bulk_ESS"  [6]                 - "Tail_ESS"  [7] 		FALSE
+assert	frmtmb	brmsfit-methods:894	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:896	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:897	pass	TRUE	FALSE			TRUE
+setup	frmtmb	brmsfit-methods:899		FALSE	FALSE	summary() cannot honor robust = TRUE: brms's robust summary is the median and MAD of the draws, and a maximum-likelihood fit has no draws. Sample with frmtmb.sample::frm_sample() and summarize the draws for that		FALSE
+assert	frmtmb	brmsfit-methods:900	divergence	FALSE	TRUE	STALE: reads 'summary5', whose last assignment failed: summary() cannot honor robust = TRUE: brms's robust summary is the median and MAD of the draws, and a maximum-likelihood fit has no draws. Sample with frmtmb.sample::frm_sample() and summarize the draws for that		FALSE
+assert	frmtmb	brmsfit-methods:901	divergence	FALSE	TRUE	STALE: reads 'summary5', whose last assignment failed: summary() cannot honor robust = TRUE: brms's robust summary is the median and MAD of the draws, and a maximum-likelihood fit has no draws. Sample with frmtmb.sample::frm_sample() and summarize the draws for that		FALSE
 setup	frmtmb	brmsfit-methods:903		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:904	defect	FALSE	FALSE	Expected output from `print(summary6)` to match regexp "sdgp". Actual output: x | Family:    |  Links: volume: mu = identity; sigma = log; count: mu = log   |    | Formula: volume ~ Trt + gp(Age)    | Method: ML   nobs: 40    | Groups: gp(Age), 1    | logLik: -177.247  AIC: 370.495  BIC: 384.006    |    | Random effects:   |   volume gp(Age)    |    Name  Std.Dev.   |  sd(gp) 0.0036554   |    | Co		FALSE
+assert	frmtmb	brmsfit-methods:904	defect	FALSE	FALSE	Expected output from `print(summary6)` to match regexp "sdgp". Actual output: x |  Family:    |  Links: volume: mu = identity; sigma = log; count: mu = log   |    | Formula: volume ~ Trt + gp(Age)    |    Data: structure(list(volume = c(-2.85575865501923, -0.789646852263761, 0.487814635163685, 2.16803253951933, 0.500694614280786, 0.62021020366732, -0.965903210133575, 0.162654708118265, -2.07823754		FALSE
 setup	frmtmb	brmsfit-methods:913		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:914	divergence	FALSE	FALSE	Expected `is(up, "brmsfit")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:916		TRUE	FALSE			TRUE
@@ -262,6 +262,6 @@ assert	frmtmb	brmsfit-methods:978	divergence	FALSE	FALSE	Expected `all(...)` to 
 assert	frmtmb	brmsfit-methods:984	divergence	FALSE	FALSE	Expected `all(...)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 assert	frmtmb	brmsfit-methods:991	cannot transfer	FALSE	FALSE	Expected `all(...)` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 assert	frmtmb	brmsfit-methods:995	defect	FALSE	TRUE	ERROR: could not find function "parnames"		FALSE
-assert	frmtmb	brmsfit-methods:999	defect	FALSE	FALSE	Expected `dim(vcov(fit1))` to equal `c(9, 9)`. Differences:   `actual`: 10.0 10.0 `expected`:  9.0  9.0 		FALSE
-assert	frmtmb	brmsfit-methods:1000	defect	FALSE	FALSE	ERROR: vcov() has no argument `cor`. It takes: object, full, cluster, type		FALSE
-assert	frmtmb	brmsfit-methods:1035	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:999	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:1000	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:1035	defect	FALSE	TRUE	VACUOUS: a NULL read through a partial or intermediate $ match		TRUE

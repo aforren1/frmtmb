@@ -73,7 +73,7 @@ test_that("the translator round-trips through Stan's constraints", {
   # brms centers X inside the Stan program, so its Intercept is not the
   # intercept frmtmb reports; the generated quantity is
   #   b_Intercept = Intercept - dot_product(means_X, b)
-  fe <- fixef(fit)
+  fe <- fixef_by_dpar(fit)
   expect_lt(abs(pars[["Intercept"]] -
                   sum(colMeans(sdat$X)[-1] * pars[["b"]]) -
                   fe$mu[["(Intercept)"]]), 1e-10)
@@ -105,7 +105,8 @@ test_that("the simplex and group-level rules round-trip", {
   expect_length(pars[["simo_1"]], sdat$Jmo[[1]])
   # sigma has no linear predictor, so brms declares it on the natural
   # scale while frmtmb estimates it through the log link
-  expect_lt(abs(log(pars[["sigma"]]) - fixef(fit)$sigma[["(Intercept)"]]),
+  sg <- fixef_by_dpar(fit)$sigma[["(Intercept)"]]
+  expect_lt(abs(log(pars[["sigma"]]) - sg),
             1e-12)
 
   data(sleepstudy, package = "lme4")
@@ -201,7 +202,7 @@ test_that("row 3: mo(inc) * z is the same model in both packages", {
   # zeta<j> is simo_<j>: two simplexes, in brms's special-term order
   expect_identical(grep("^zeta", names(fit$estimates), value = TRUE),
                    c("zeta1", "zeta2"))
-  expect_true(all(c("moinc", "moinc:z") %in% names(fixef(fit)$mu)))
+  expect_true(all(c("moinc", "moinc:z") %in% names(fixef_by_dpar(fit)$mu)))
   # the admitted constant is the flat Dirichlet on EACH simplex
   brms_lp_check(brms::bf(y ~ mo(inc) * z), gaussian(), dm, fit,
                 const = 2 * lgamma(3))
@@ -506,7 +507,7 @@ test_that("row 8: mvbf(y1 ~ x, y2 ~ x) with set_rescor(TRUE)", {
 
   # the two spellings of one name: brms's b_y1 is frmtmb's y1_mu, and
   # brms's sigma_y1 is frmtmb's y1_sigma on the natural scale
-  fe <- fixef(fit)
+  fe <- fixef_by_dpar(fit)
   expect_lt(abs(pars[["b_y1"]][[1]] - fe$y1_mu[["x"]]), 1e-12)
   expect_lt(abs(log(pars[["sigma_y1"]]) - fe$y1_sigma[["(Intercept)"]]),
             1e-12)
@@ -605,7 +606,7 @@ test_that("check C: row 4, mi() imputation and mi(sdx) measurement error", {
                       fit$estimates[["miss"]])), 1e-12)
   # mi(x) is a special term, so its coefficient is bsp_y and not a
   # column of X_y
-  expect_lt(abs(pars[["bsp_y"]][[1]] - fixef(fit)$y_mu[["mix"]]), 1e-12)
+  expect_lt(abs(pars[["bsp_y"]][[1]] - fixef_by_dpar(fit)$y_mu[["mix"]]), 1e-12)
 
   brms_lp_check(bform, gaussian(), d4, fit, joint = TRUE)
 })
@@ -650,7 +651,7 @@ test_that("check C: row 6, nonlinear with a ~ 1 + (1 | g)", {
   expect_identical(attr(ranef(fit)[[1]], "term"), "a: 1 | g")
   # nlpar predictors are not centered, so b_a carries the intercept
   # itself rather than a centered one
-  expect_lt(abs(pars[["b_a"]][[1]] - fixef(fit)$a[["(Intercept)"]]),
+  expect_lt(abs(pars[["b_a"]][[1]] - fixef_by_dpar(fit)$a[["(Intercept)"]]),
             1e-12)
 
   brms_lp_check(bform, gaussian(), d6, fit, joint = TRUE)
@@ -716,7 +717,7 @@ test_that("check C: row 11, s(x) is a random effect with one basis", {
   xb <- as.numeric(sdat$Xs)
   xf <- as.matrix(brms_lp_of(fit, "mu")$X)[, "s(x).fx1"]
   expect_lt(max(abs(xf / xb - xf[[1]] / xb[[1]])), 1e-10)
-  expect_lt(abs(pars[["bs"]][[1]] - fixef(fit)$mu[["s(x).fx1"]] *
+  expect_lt(abs(pars[["bs"]][[1]] - fixef_by_dpar(fit)$mu[["s(x).fx1"]] *
                   (xf[[1]] / xb[[1]])), 1e-10)
 
   brms_lp_check(bform, gaussian(), d11, fit, joint = TRUE)
@@ -923,7 +924,7 @@ test_that("row 18: ar(p = 1), cosy and unstr residual correlation", {
   expect_match(code, "return cholesky_decompose(mat ./ (1 - ar^2));",
                fixed = TRUE)
   expect_lt(abs(pars[["sigma"]] -
-                  exp(fixef(fit_ar)$sigma[["(Intercept)"]]) *
+                  exp(fixef_by_dpar(fit_ar)$sigma[["(Intercept)"]]) *
                     sqrt(1 - arv^2)), 1e-12)
   brms_lp_check(bform, gaussian(), d18, fit_ar)
 
@@ -1113,7 +1114,7 @@ test_that("row 19c-esicar: car(esicar) is the same model in both packages", {
   expect_match(code, "(Nloc - 1) * log(tau)", fixed = TRUE)
 
   # frmtmb's layout did NOT change: Nloc coefficients, level-major,
-  # which is what keeps ranef(), predict() and the importance layout
+  # which is what keeps ranef(), frm_linpred() and the importance layout
   # reading one value per location.
   bk <- brms_car_block(fit)
   expect_identical(bk$aux_car$type, "esicar")

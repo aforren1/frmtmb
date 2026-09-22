@@ -10,13 +10,13 @@ test_that("cbpp binomial GLMM with trials() matches glmmTMB and glmer", {
                             period + (1 | herd),
                           data = cbpp, family = binomial)
   expect_loglik_equal(fit, ref, tol = 1e-6)
-  expect_vector_equal(fixef(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
+  expect_vector_equal(fixef_by_dpar(fit)$mu, unname(glmmTMB::fixef(ref)$cond),
                       tol = 1e-4)
 
   ref2 <- lme4::glmer(cbind(incidence, size - incidence) ~
                         period + (1 | herd),
                       data = cbpp, family = binomial)
-  expect_vector_equal(fixef(fit)$mu, lme4::fixef(ref2), tol = 1e-3)
+  expect_vector_equal(fixef_by_dpar(fit)$mu, lme4::fixef(ref2), tol = 1e-3)
 })
 
 test_that("bernoulli responses (0/1 and factor) match glm", {
@@ -26,11 +26,11 @@ test_that("bernoulli responses (0/1 and factor) match glm", {
   fit <- frm(bf(y ~ x) + bernoulli(), data = dd)
   ref <- stats::glm(y ~ x, family = binomial, data = dd)
   expect_loglik_equal(fit, ref, tol = 1e-6)
-  expect_vector_equal(fixef(fit)$mu, coef(ref), tol = 1e-5)
+  expect_vector_equal(fixef_by_dpar(fit)$mu, coef(ref), tol = 1e-5)
 
   dd$yf <- factor(ifelse(dd$y == 1, "yes", "no"), levels = c("no", "yes"))
   # a factor response reaches binomial() with its single trial stated
   fit2 <- suppressMessages(frm(bf(yf | trials(1) ~ x) + binomial(),
                                data = dd))
-  expect_vector_equal(fixef(fit2)$mu, coef(ref), tol = 1e-5)
+  expect_vector_equal(fixef_by_dpar(fit2)$mu, coef(ref), tol = 1e-5)
 })

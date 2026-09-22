@@ -25,7 +25,7 @@ test_that("se() reproduces fixed- and random-effects meta-analysis", {
   # fixed-effect MA: inverse-variance weighted mean, sigma mapped out
   ff <- frm(bf(yi | se(sei) ~ 1) + gaussian(), data = dd)
   w <- 1 / sei^2
-  expect_equal(unname(fixef(ff)$mu), sum(w * yi) / sum(w),
+  expect_equal(unname(fixef_by_dpar(ff)$mu), sum(w * yi) / sum(w),
                tolerance = 1e-6)
   expect_equal(sigma(ff), 0)
   expect_equal(unname(sqrt(vcov(ff)[1, 1])), sqrt(1 / sum(w)),
@@ -38,7 +38,7 @@ test_that("se() reproduces fixed- and random-effects meta-analysis", {
   }
   op <- stats::optim(c(0, log(0.2)), nll, method = "BFGS")
   expect_lt(abs(as.numeric(logLik(fr)) + op$value), 1e-4)
-  expect_equal(unname(fixef(fr)$mu), op$par[1], tolerance = 1e-3)
+  expect_equal(unname(fixef_by_dpar(fr)$mu), op$par[1], tolerance = 1e-3)
 
   # se(sigma = TRUE): estimated sigma added in quadrature
   fs <- frm(bf(yi | se(sei, sigma = TRUE) ~ 1) + gaussian(), data = dd)
@@ -59,7 +59,7 @@ test_that("proportion response with trials() matches the counts form", {
   f2 <- frm(bf(prop | trials(size) ~ period + (1 | herd)) + binomial(),
             data = cbpp)
   expect_loglik_equal(f1, f2, tol = 1e-8)
-  expect_vector_equal(fixef(f1)$mu, fixef(f2)$mu, tol = 1e-8)
+  expect_vector_equal(fixef_by_dpar(f1)$mu, fixef_by_dpar(f2)$mu, tol = 1e-8)
 })
 
 test_that("weibull and exponential match survreg", {
@@ -73,14 +73,14 @@ test_that("weibull and exponential match survreg", {
                           dist = "weibull")
   expect_lt(abs(as.numeric(logLik(fw)) - as.numeric(logLik(rw))), 1e-4)
   # both are log-linear; the mean parameterization shifts the intercept
-  expect_equal(fixef(fw)$mu[["x"]], unname(coef(rw)["x"]),
+  expect_equal(fixef_by_dpar(fw)$mu[["x"]], unname(coef(rw)["x"]),
                tolerance = 1e-3)
 
   fe <- frm(bf(y ~ x) + exponential(), data = dd)
   re <- survival::survreg(survival::Surv(y) ~ x, data = dd,
                           dist = "exponential")
   expect_lt(abs(as.numeric(logLik(fe)) - as.numeric(logLik(re))), 1e-4)
-  expect_vector_equal(fixef(fe)$mu, coef(re), tol = 1e-3)
+  expect_vector_equal(fixef_by_dpar(fe)$mu, coef(re), tol = 1e-3)
 })
 
 test_that("bernoulli and geometric reduce to their parents", {
@@ -92,13 +92,13 @@ test_that("bernoulli and geometric reduce to their parents", {
   fb <- frm(bf(yb ~ x) + bernoulli(), data = dd)
   g <- stats::glm(yb ~ x, binomial, dd)
   expect_lt(abs(as.numeric(logLik(fb)) - as.numeric(logLik(g))), 1e-6)
-  expect_vector_equal(fixef(fb)$mu, coef(g), tol = 1e-5)
+  expect_vector_equal(fixef_by_dpar(fb)$mu, coef(g), tol = 1e-5)
   expect_error(frm(bf(yc ~ x) + bernoulli(), data = dd), "0/1")
 
   fg <- frm(bf(yc ~ x) + geometric(), data = dd)
   fn <- frm(bf(yc ~ x, shape = 1) + negbinomial(), data = dd)
   expect_loglik_equal(fg, fn, tol = 1e-8)
-  expect_vector_equal(fixef(fg)$mu, fixef(fn)$mu, tol = 1e-6)
+  expect_vector_equal(fixef_by_dpar(fg)$mu, fixef_by_dpar(fn)$mu, tol = 1e-6)
 })
 
 test_that("shifted_lognormal matches a direct ML reference", {
@@ -133,14 +133,14 @@ test_that("hurdle and zero-inflated additions match references", {
   dd$bt <- pmin(dd$bt, 0.999)
 
   fh <- frm(bf(yg ~ x) + hurdle_gamma(), data = dd)
-  hu_hat <- unname(plogis(fixef(fh)$hu))
+  hu_hat <- unname(plogis(fixef_by_dpar(fh)$hu))
   expect_lt(abs(hu_hat - mean(dd$yg == 0)), 0.05)
   if (requireNamespace("glmmTMB", quietly = TRUE)) {
     gt <- glmmTMB::glmmTMB(yg ~ x, ziformula = ~1,
                            family = glmmTMB::ziGamma(link = "log"),
                            data = dd)
     expect_lt(abs(as.numeric(logLik(fh)) - as.numeric(logLik(gt))), 1e-4)
-    expect_vector_equal(fixef(fh)$mu, glmmTMB::fixef(gt)$cond,
+    expect_vector_equal(fixef_by_dpar(fh)$mu, glmmTMB::fixef(gt)$cond,
                         tol = 1e-3)
   }
 
@@ -183,7 +183,7 @@ test_that("asym_laplace reproduces quantile regression", {
     frm(bf(y ~ x, quantile = 0.25) + asym_laplace(), data = dd)
   )
   rq <- quantreg::rq(y ~ x, tau = 0.25, data = dd)
-  expect_vector_equal(fixef(fq)$mu, coef(rq), tol = 0.02)
+  expect_vector_equal(fixef_by_dpar(fq)$mu, coef(rq), tol = 0.02)
 })
 
 test_that("zero_inflated_asym_laplace matches direct ML and collapses", {
@@ -227,7 +227,7 @@ test_that("zero_inflated_asym_laplace matches direct ML and collapses", {
     frm(bf(y ~ x, quantile = 0.5, zi = 0.001) +
           zero_inflated_asym_laplace(), data = dd2)
   )
-  expect_vector_equal(fixef(fz0)$mu, fixef(f0)$mu, tol = 1e-3)
+  expect_vector_equal(fixef_by_dpar(fz0)$mu, fixef_by_dpar(f0)$mu, tol = 1e-3)
 
   # simulate() round trip: zero fraction near the fitted zi
   sim <- simulate(fz, nsim = 200, seed = 1)
@@ -251,7 +251,8 @@ test_that("ranef condVar and the tidy data-frame forms", {
   gt <- glmmTMB::glmmTMB(Reaction ~ Days + (Days | Subject),
                          data = sleepstudy)
   gdf <- as.data.frame(glmmTMB::ranef(gt))
-  expect_vector_equal(S[, "(Intercept)"],
+  # ranef() takes brms's `Intercept`; glmmTMB keeps `(Intercept)`
+  expect_vector_equal(S[, "Intercept"],
                       gdf$condsd[gdf$term == "(Intercept)"], tol = 0.05)
   expect_vector_equal(S[, "Days"], gdf$condsd[gdf$term == "Days"],
                       tol = 0.05)
@@ -277,7 +278,7 @@ test_that("control profile = TRUE reproduces the plain fit", {
   # (the profiled betas ride inside the Laplace step)
   expect_loglik_equal(fp, f0, tol = 0.1)
   expect_equal(stats::AIC(fp), stats::AIC(f0), tolerance = 1e-4)
-  expect_vector_equal(fixef(fp)$mu, fixef(f0)$mu, tol = 0.05)
+  expect_vector_equal(fixef_by_dpar(fp)$mu, fixef_by_dpar(f0)$mu, tol = 0.05)
   s <- summary(fp)$coefficients$mu
   s0 <- summary(f0)$coefficients$mu
   expect_vector_equal(s[, "Std. Error"], s0[, "Std. Error"], tol = 0.02)
@@ -290,7 +291,7 @@ test_that("control profile = TRUE reproduces the plain fit", {
                       tol = 0.02)
   h <- hypothesis(fp, "x - x2 = 0")
   expect_equal(h$hypothesis$Estimate,
-               unname(fixef(fp)$mu["x"] - fixef(fp)$mu["x2"]),
+               unname(fixef_by_dpar(fp)$mu["x"] - fixef_by_dpar(fp)$mu["x2"]),
                tolerance = 1e-10)
 
   expect_error(confint(fp, parm = "x", method = "uniroot"),
@@ -345,7 +346,7 @@ test_that("frm_simulate simulates de novo and recovers parameters", {
   d2 <- dd
   d2$y <- s[[1L]]
   f <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = d2)
-  expect_lt(abs(fixef(f)$mu[["x"]] - 0.5), 0.15)
+  expect_lt(abs(fixef_by_dpar(f)$mu[["x"]] - 0.5), 0.15)
   expect_lt(abs(sqrt(varcorr_matrices(f)[[1]][1, 1]) - 0.8), 0.5)
 
   # fixed b: identical group structure across draws

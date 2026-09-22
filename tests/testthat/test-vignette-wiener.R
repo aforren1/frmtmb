@@ -121,7 +121,7 @@ test_that("the fitted log likelihood is RWiener's at the same parameters", {
   dat$x <- cond
   fit <- frm(bf(rt | vint(upper) ~ x, bias = 0.5),
              family = wiener_family(max_ndt = min(dat$rt)), data = dat)
-  e <- unlist(fixef(fit))
+  e <- unlist(fixef_by_dpar(fit))
   ndt_hat <- min(dat$rt) / (1 + exp(-e[["ndt.(Intercept)"]]))
   drift <- e[["mu.(Intercept)"]] + e[["mu.x"]] * dat$x
   ll_ref <- sum(mapply(function(q, up, v) {

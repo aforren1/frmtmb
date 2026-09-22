@@ -38,7 +38,7 @@ test_that("with no ndt_group() the bound is the global fastest response", {
   # the bound is IN THE LINK here, so the reported quantity is the
   # non-decision time itself and ndt_time() is the same number
   expect_equal(family(fit)$links$ndt$name, "scaled_logit")
-  tt <- predict(fit, dpar = "ndt", type = "response")
+  tt <- frm_linpred(fit, dpar = "ndt", type = "response")
   expect_equal(as.numeric(ndt_time(fit)), as.numeric(tt))
   # which is below the fastest response, structurally
   expect_true(all(tt > 0 & tt < min(d$rt)))
@@ -243,14 +243,14 @@ test_that("st follows ndt onto whichever scale ndt is on", {
                 bias = 0.5), family = wiener(variability = "st"),
             data = d)
   expect_equal(family(f1)$links$st$name, "scaled_logit")
-  w1 <- as.numeric(predict(f1, dpar = "st", type = "response"))
+  w1 <- as.numeric(frm_linpred(f1, dpar = "st", type = "response"))
   expect_true(all(w1 > 0 & w1 < 2 * min(d$rt)))
   # per-group bound: st is a FRACTION of twice the row's own bound
   f2 <- frm(bf(rt | dec(upper) + ndt_group(g) ~ 1, bs ~ 1, ndt ~ 1,
                st ~ 1, bias = 0.5),
             family = wiener(variability = "st"), data = d)
   expect_equal(family(f2)$links$st$name, "logit")
-  fr <- as.numeric(predict(f2, dpar = "st", type = "response"))
+  fr <- as.numeric(frm_linpred(f2, dpar = "st", type = "response"))
   expect_true(all(fr > 0 & fr < 1))
   expect_true(is.finite(as.numeric(logLik(f2))))
 })
@@ -286,7 +286,7 @@ test_that("a mixture component needs its bound given up front", {
              family = frmtmb::mixture(fam, frmtmb::lognormal()),
              data = d)
   expect_true(is.finite(as.numeric(logLik(fit))))
-  e <- unlist(fixef(fit))
+  e <- unlist(fixef_by_dpar(fit))
   # a time strictly inside 0.4, on the component's own scaled logit,
   # which is the arithmetic 0.6.0 used. Whether the fit puts it ABOVE
   # the fastest response is a property of the data rather than of the
@@ -335,7 +335,7 @@ test_that("the group's LABEL decides its bound, not its level index", {
     nd <- grids[[nm]]
     one <- nd[match(c("s2", "s3"), as.character(nd$g)), , drop = FALSE]
     tt <- as.numeric(ndt_time(fit, newdata = one))
-    mm <- as.numeric(predict(fit, newdata = one, type = "response"))
+    mm <- as.numeric(frm_linpred(fit, newdata = one, type = "response"))
     if (is.null(ref_t)) {
       ref_t <- tt
       ref_m <- mm
@@ -373,7 +373,7 @@ test_that("a group the fit never saw cannot fail open", {
   nd <- d[1:3, ]
   nd$g <- factor(rep("s9", 3), levels = c(levels(d$g), "s9"))
   expect_error(ndt_time(fit, newdata = nd), "was not fitted to")
-  expect_error(predict(fit, newdata = nd, type = "response"),
+  expect_error(frm_linpred(fit, newdata = nd, type = "response"),
                "was not fitted to")
   # and through frame assembly, which is where an NA would reach the
   # tape as data

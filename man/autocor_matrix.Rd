@@ -20,7 +20,7 @@ The correlation matrix \code{R} of the \code{ar()}, \code{ma()}, \code{arma()}, 
 or \code{unstr()} term of a fit, over the model's time levels. The
 residual covariance of a group is \verb{D R D} restricted to the time
 points that group has, with \code{D} the diagonal matrix of that group's
-\code{sigma} values, so \code{R} plus \code{\link[=sigma]{sigma()}} (or \code{predict(dpar = "sigma")})
+\code{sigma} values, so \code{R} plus \code{\link[=sigma]{sigma()}} (or \code{frm_linpred(dpar = "sigma")})
 describes the whole residual structure.
 }
 \examples{

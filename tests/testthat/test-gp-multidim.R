@@ -97,8 +97,8 @@ test_that("exact gp() kriging matches the closed form", {
 
   # observed positions: exact reproduction of fitted values and the
   # pre-kriging se.fit (indicator fast path)
-  p_obs <- predict(fg, newdata = dg[1:8, ], se.fit = TRUE)
-  expect_equal(unname(p_obs$fit), unname(fitted(fg)[1:8]),
+  p_obs <- frm_linpred(fg, newdata = dg[1:8, ], se.fit = TRUE)
+  expect_equal(unname(p_obs$fit), unname(fitted(fg)[, "Estimate"][1:8]),
                tolerance = 1e-12)
 
   # fitted kernel pieces (nugget included, as in the fit)
@@ -114,7 +114,7 @@ test_that("exact gp() kriging matches the closed form", {
   xs <- seq(0.05, 9.55, by = 0.5)
   expect_false(any(xs %in% pos))
   nd <- data.frame(x = xs)
-  pk <- predict(fg, newdata = nd, se.fit = TRUE)
+  pk <- frm_linpred(fg, newdata = nd, se.fit = TRUE)
 
   # conditional mean K* K^-1 b_hat plus the fixed-effect part
   Kst <- sd2 * exp(-outer(xs, pos, "-")^2 / (2 * rho^2))
@@ -144,7 +144,7 @@ test_that("exact gp() kriging matches the closed form", {
   # mixed newdata (observed + unseen rows) goes through the kriging
   # path; observed rows still reproduce the indicator behavior
   ndm <- data.frame(x = c(dg$x[1:3], 0.05))
-  pm <- predict(fg, newdata = ndm, se.fit = TRUE)
+  pm <- frm_linpred(fg, newdata = ndm, se.fit = TRUE)
   expect_lt(max(abs(pm$fit[1:3] - p_obs$fit[1:3])), 1e-8)
   expect_lt(max(abs(pm$se.fit[1:3] - p_obs$se.fit[1:3])), 1e-8)
   expect_lt(abs(pm$fit[4] - pk$fit[1]), 1e-8)
@@ -163,8 +163,8 @@ test_that("gp() k/c/iso resolve in the formula environment", {
   # the spec keeps the evaluated scalars, so newdata prediction needs no
   # access to kk/cc
   ndg <- expand.grid(x1 = c(0.25, 2.25), x2 = c(0.75, 2.75))
-  expect_equal(predict(f_var, newdata = ndg),
-               predict(f_lit, newdata = ndg))
+  expect_equal(frm_linpred(f_var, newdata = ndg),
+               frm_linpred(f_lit, newdata = ndg))
 
   # arbitrary expressions, not just names
   f_expr <- frm(bf(y ~ gp(x1, x2, k = 5 + 5, c = 1.5)) + gaussian(),
@@ -209,13 +209,14 @@ test_that("2-D Hilbert-space gp() approximates the exact fit", {
   # anywhere, the exact fit kriges; the surfaces agree
   ndg <- expand.grid(x1 = c(0.25, 1.25, 2.25, 3.25),
                      x2 = c(0.75, 1.75, 2.75))
-  p_e <- predict(f2, newdata = ndg)
-  p_h <- predict(fh, newdata = ndg, se.fit = TRUE)
+  p_e <- frm_linpred(f2, newdata = ndg)
+  p_h <- frm_linpred(fh, newdata = ndg, se.fit = TRUE)
   expect_lt(max(abs(p_h$fit - p_e)), 0.06)
   expect_true(all(is.finite(p_h$se.fit)))
 
   # in-sample newdata reproduces the fit exactly (stored scaling)
-  expect_equal(unname(predict(fh, newdata = dg)), unname(fitted(fh)),
+  expect_equal(unname(frm_linpred(fh, newdata = dg)),
+               unname(fitted(fh)[, "Estimate"]),
                tolerance = 1e-12)
 
   # the lengthscales are estimated on the rescaled inputs but reported in

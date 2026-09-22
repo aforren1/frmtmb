@@ -148,7 +148,8 @@ test_that("a degenerate mm(g, g) with weights c(1, 0) IS (1 | g)", {
   fb <- frm(bf(y ~ x + (1 | g1)) + gaussian(), data = dd)
   expect_equal(as.numeric(logLik(fa)), as.numeric(logLik(fb)),
                tolerance = 1e-10)
-  expect_equal(unlist(fixef(fa)), unlist(fixef(fb)), tolerance = 1e-8)
+  expect_equal(unlist(fixef_by_dpar(fa)), unlist(fixef_by_dpar(fb)),
+               tolerance = 1e-8)
   expect_equal(unname(unlist(ranef(fa))), unname(unlist(ranef(fb))),
                tolerance = 1e-8)
   # and so is mm(g, g) with the default 1/2 + 1/2 weights, which lands
@@ -313,17 +314,17 @@ test_that("ranef, VarCorr, ngrps and simulate see an ordinary block", {
   expect_identical(dim(re[[1L]]), c(9L, 2L))
   expect_identical(rownames(re[[1L]]),
                    unique(c(levels(dd$g1), levels(dd$g2))))
-  expect_identical(colnames(re[[1L]]),
-                   c("(Intercept)", "mmc(c1, c2)"))
+  # brms's names for the block's coefficients, as brms renames them
+  expect_identical(colnames(re[[1L]]), c("Intercept", "mmcc1c2"))
   vc <- varcorr_matrices(fit)
   expect_identical(dim(vc[[1L]]), c(2L, 2L))
   expect_identical(dimnames(vc[[1L]])[[1L]],
                    c("(Intercept)", "mmc(c1, c2)"))
-  expect_identical(unname(ngrps(fit)), 9L)
+  expect_identical(unname(unlist(ngrps(fit))), 9L)
   sm <- simulate(fit, nsim = 3)
   expect_identical(dim(as.matrix(sm)), c(nrow(dd), 3L))
   expect_false(anyNA(sm))
-  expect_false(anyNA(residuals(fit)))
+  expect_false(anyNA(residuals(fit)[, "Estimate"]))
 })
 
 test_that("REML runs over a multi-membership block", {
@@ -359,7 +360,8 @@ test_that("predict on the training rows reproduces fitted()", {
     bf(y ~ x + (1 | mm(g1, g2, weights = cbind(w1, w2)))) + gaussian()
   )) {
     fit <- frm(form, data = dd)
-    expect_lt(max(abs(predict(fit, newdata = dd) - fitted(fit))), 1e-10)
+    expect_lt(max(abs(frm_linpred(fit, newdata = dd) -
+                        fitted(fit)[, "Estimate"])), 1e-10)
   }
 })
 
@@ -370,18 +372,18 @@ test_that("a partially-new member set predicts its known members", {
   nd <- dd[1:6, ]
   nd$g2 <- factor(c("zz", "zz", as.character(nd$g2[3:6])),
                   levels = c("zz", levels(dd$g2)))
-  expect_error(predict(fit, newdata = nd), "New levels")
-  p <- predict(fit, newdata = nd, allow_new_levels = TRUE)
+  expect_error(frm_linpred(fit, newdata = nd), "New levels")
+  p <- frm_linpred(fit, newdata = nd, allow_new_levels = TRUE)
   bhat <- ranef(fit)[[1L]][, 1L]
   j1 <- match(as.character(nd$g1), bk$levels)
   j2 <- match(as.character(nd$g2), bk$levels)
   manual <- as.numeric(stats::model.matrix(~ x, nd) %*%
-                         unlist(fixef(fit)$mu)) +
+                         unlist(fixef_by_dpar(fit)$mu)) +
     0.5 * bhat[j1] + 0.5 * ifelse(is.na(j2), 0, bhat[j2])
   # the unknown member contributes the population value (zero); the
   # known one still contributes its own weighted effect
   expect_lt(max(abs(p - manual)), 1e-10)
-  se <- predict(fit, newdata = nd, allow_new_levels = TRUE,
+  se <- frm_linpred(fit, newdata = nd, allow_new_levels = TRUE,
                 se.fit = TRUE)$se.fit
   expect_true(all(is.finite(se)))
 })
@@ -403,8 +405,8 @@ test_that("one new level reached through both members is ONE draw", {
   nd$g2 <- factor(c("zz", "zz", "qq", "qq"),
                   levels = c("zz", "qq", levels(dd$g2)))
 
-  p <- predict(fit, newdata = nd, allow_new_levels = TRUE, se.fit = TRUE)
-  base <- predict(fit, newdata = nd, se.fit = TRUE, re_formula = NA)
+  p <- frm_linpred(fit, newdata = nd, allow_new_levels = TRUE, se.fit = TRUE)
+  base <- frm_linpred(fit, newdata = nd, se.fit = TRUE, re_formula = NA)
   extra <- unname(p$se.fit^2 - base$se.fit^2)
   expect_equal(extra[1:2], rep((0.5 + 0.5)^2 * S, 2), tolerance = 1e-8)
   expect_equal(extra[3:4], rep(2 * 0.5^2 * S, 2), tolerance = 1e-8)
@@ -426,9 +428,9 @@ test_that("the expected-response path groups new levels the same way", {
   nd$g2 <- factor(c("zz", "zz", "qq", "qq"),
                   levels = c("zz", "qq", levels(dd$g2)))
 
-  p <- predict(fit, newdata = nd, type = "response",
+  p <- frm_linpred(fit, newdata = nd, type = "response",
                allow_new_levels = TRUE, se.fit = TRUE)
-  base <- predict(fit, newdata = nd, type = "response", se.fit = TRUE,
+  base <- frm_linpred(fit, newdata = nd, type = "response", se.fit = TRUE,
                   re_formula = NA)
   extra <- unname(p$se.fit^2 - base$se.fit^2)
   expect_equal(extra[1], extra[2], tolerance = 1e-10)
@@ -443,7 +445,8 @@ test_that("newdata that drops a factor level keeps the block's columns", {
   rows <- which(dd$fc == "p")[1:5]
   nd <- dd[rows, ]
   nd$fc <- droplevels(nd$fc)   # xlev has to restore the dropped column
-  expect_lt(max(abs(predict(fit, newdata = nd) - fitted(fit)[rows])),
+  expect_lt(max(abs(frm_linpred(fit, newdata = nd) -
+                      fitted(fit)[, "Estimate"][rows])),
             1e-10)
 })
 

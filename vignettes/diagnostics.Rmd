@@ -97,7 +97,7 @@ Three residual types, in increasing order of statistical care:
   observations, where pearson residuals mislead.
 
 ```{r osa-qq, fig.width = 6, fig.height = 4.5, fig.alt = "Normal quantile-quantile plot of the one-step-ahead residuals. The points follow the identity line over most of the range, with small departures in the tails."}
-r <- residuals(fit, type = "osa")
+r <- residuals(fit, type = "osa")[, "Estimate"]
 qqnorm(r); abline(0, 1)
 ```
 

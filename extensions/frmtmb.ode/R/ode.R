@@ -1439,9 +1439,9 @@ ode_solve_events <- function(run, y0, pv, tvals, ev, tstart, n_state,
 #' change points are not supported: they decide where the solve is
 #' split, which is settled before the tape is built.
 #'
-#' `predict(se.fit = TRUE)` is not available for a nonlinear predictor,
+#' `frm_linpred(se.fit = TRUE)` is not available for a nonlinear predictor,
 #' including one containing `frm_ode()`; request a nonlinear parameter
-#' with `predict(dpar = )` instead.
+#' with `frm_linpred(dpar = )` instead.
 #'
 #' @param dynamics A function `function(t, y, parms)` giving the
 #'   derivatives, following the \pkg{deSolve} convention: `t` is the

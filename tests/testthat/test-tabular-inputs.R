@@ -40,9 +40,9 @@ test_that("tibble input reproduces the data.frame fit (G2.7, G2.10)", {
   f_df <- frm(tab_form, data = tab_dd)
   f_tb <- frm(tab_form, data = tibble::as_tibble(tab_dd))
   expect_identical(as.numeric(logLik(f_tb)), as.numeric(logLik(f_df)))
-  expect_identical(unlist(fixef(f_tb)), unlist(fixef(f_df)))
-  p_df <- predict(f_df, newdata = tab_dd[1:5, ])
-  p_tb <- predict(f_tb, newdata = tibble::as_tibble(tab_dd)[1:5, ])
+  expect_identical(unlist(fixef_by_dpar(f_tb)), unlist(fixef_by_dpar(f_df)))
+  p_df <- frm_linpred(f_df, newdata = tab_dd[1:5, ])
+  p_tb <- frm_linpred(f_tb, newdata = tibble::as_tibble(tab_dd)[1:5, ])
   expect_identical(unname(p_tb), unname(p_df))
 })
 
@@ -51,7 +51,7 @@ test_that("data.table input reproduces the data.frame fit (G2.7)", {
   f_df <- frm(tab_form, data = tab_dd)
   f_dt <- frm(tab_form, data = data.table::as.data.table(tab_dd))
   expect_identical(as.numeric(logLik(f_dt)), as.numeric(logLik(f_df)))
-  expect_identical(unlist(fixef(f_dt)), unlist(fixef(f_df)))
+  expect_identical(unlist(fixef_by_dpar(f_dt)), unlist(fixef_by_dpar(f_df)))
 })
 
 test_that("columns with extra classes and attributes fit intact (G2.11)", {
@@ -61,7 +61,7 @@ test_that("columns with extra classes and attributes fit intact (G2.11)", {
   f_cl <- frm(tab_form, data = d)
   f_df <- frm(tab_form, data = tab_dd)
   expect_identical(as.numeric(logLik(f_cl)), as.numeric(logLik(f_df)))
-  expect_identical(unlist(fixef(f_cl)), unlist(fixef(f_df)))
+  expect_identical(unlist(fixef_by_dpar(f_cl)), unlist(fixef_by_dpar(f_df)))
 })
 
 test_that("list columns: unused ignored, used errors by name (G2.12)", {

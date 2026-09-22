@@ -48,7 +48,7 @@ This function REPLACES \code{\link[stats:fitted]{stats::fitted()}} for these fam
 than supplementing it. They decline to declare a mean on the response
 scale, because the response is a nominal option code and \code{y - mu}
 would be arithmetic on a category, so \code{fitted()} and
-\code{predict(type = "response")} refuse. Everything a mean would have
+\code{frm_linpred(type = "response")} refuse. Everything a mean would have
 carried is in this table, with more beside it.
 }
 
