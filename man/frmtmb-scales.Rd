@@ -27,11 +27,11 @@ quantile residual, which has no units by construction.
 \section{What each method returns}{
 \tabular{lll}{
    method \tab returns \tab scale \cr
-   \code{predict()}, default \tab the \code{mu} linear predictor \tab link \cr
-   \code{predict(type = "link")} \tab the same \tab link \cr
-   \code{predict(type = "response")} \tab the conditional mean \tab response \cr
-   \code{predict(dpar = "sigma")} \tab that predictor \tab link; \code{type = "response"} gives response \cr
-   \code{fitted()} \tab the conditional mean \tab response \cr
+   \code{predict()} \tab a summary of the PREDICTIVE distribution \tab response \cr
+   \code{frm_linpred()}, default \tab the \code{mu} linear predictor \tab link \cr
+   \code{frm_linpred(type = "response")} \tab the conditional mean \tab response \cr
+   \code{frm_linpred(dpar = "sigma")} \tab that predictor \tab link; \code{"response"} gives response \cr
+   \code{fitted()} \tab a summary of the conditional mean \tab response \cr
    \code{conditional_effects()} \tab \code{estimate__} and its band \tab response \cr
    \code{residuals()}, default \tab observed minus \code{fitted()} \tab response \cr
    \code{residuals(type = "pearson")} \tab that, over the conditional SD \tab unitless \cr
@@ -50,24 +50,25 @@ quantile residual, which has no units by construction.
 }
 }
 
-\section{The two places this differs from brms}{
+\section{Where this differs from brms}{
 
 
-\code{predict()} is the first. brms returns posterior predictive draws
-summarized on the RESPONSE scale; frmtmb returns the LINEAR
-PREDICTOR, because it has one parameter vector rather than a
-posterior and the linear predictor is the quantity an ML fit
-actually estimates. On a lognormal fit that is the difference
-between about 8 and about 6,700. Ask for \code{type = "response"}, or
-call \code{fitted()}, to get the quantity brms's \code{fitted()} reports.
-Measured with \code{dev/generics-scale.R} and
+\code{predict()} used to be the first, and is no longer: since item 2.6d
+it is brms's, a summary of the predictive distribution on the
+response scale. The LINEAR PREDICTOR, which is what it returned
+before and what the glmmTMB \code{type} vocabulary reaches, moved to
+\code{\link[=frm_linpred]{frm_linpred()}} unchanged. On a lognormal fit the two differ by
+about 8 against about 6,700, which is why they could not share a
+name. Measured with \code{dev/generics-scale.R} and
 \code{dev/generics-scale-brms.R}.
 
-\code{sigma} is the second. \code{summary()} and \code{fixef()} report every
-coefficient on its own link, so a \code{sigma} with the default log link
-is printed as \code{log(sigma)} and can be negative. brms samples \code{sigma}
-itself and prints it on the response scale. \code{\link[=sigma]{sigma()}} here
-back-transforms and gives brms's number.
+\code{sigma} is the one that remains. \code{summary()}'s
+\verb{Regression Coefficients} block and \code{fixef()} report every
+coefficient on its own link, so a \code{sigma} WITH A FORMULA and the
+default log link is reported as \code{log(sigma)} and can be negative.
+A \code{sigma} nobody wrote a formula for is not a coefficient at all: it
+is in \code{summary()}'s \verb{Further Distributional Parameters} block on its
+own response scale, as in brms, and \code{\link[=sigma]{sigma()}} returns that number.
 }
 
 \section{What agrees with brms without any conversion}{
@@ -87,8 +88,9 @@ obvious from the formula:
 \item With a distributional sigma (\code{bf(y ~ x, sigma ~ x)}), \code{sigma()}
 returns \code{NA} with a warning, because there is no one number to
 return, and the formula gives \code{NA} with it. Use
-\code{predict(dpar = "sigma", type = "response")}, which reproduces
-\code{fitted()} exactly (\code{identical()} is \code{TRUE}).
+\code{frm_linpred(dpar = "sigma", type = "response")}, which reproduces
+\code{fitted(dpar = "sigma")[, "Estimate"]} exactly (\code{identical()} is
+\code{TRUE}).
 \item Under truncation, \code{fitted()} is the TRUNCATED mean and the
 formula answers a different question. With a lower bound \code{lb},
 the truncated mean is \code{exp(mu + sigma^2 / 2) * pnorm(sigma - a) / pnorm(-a)} with \code{a = (log(lb) - mu) / sigma}, so the naive
@@ -118,19 +120,24 @@ dd <- data.frame(x = rnorm(200))
 dd$y <- exp(rnorm(200, 8 + 0.4 * dd$x, 0.4))
 fit <- frm(bf(y ~ x) + lognormal(), data = dd)
 
-# the default is the linear predictor, not the outcome
-head(predict(fit))
+# predict() summarizes the predictive distribution; frm_linpred()
+# is the linear predictor and fitted() the expected response
+head(predict(fit, ndraws = 200))
+head(frm_linpred(fit))
 head(fitted(fit))
 
-# and the two are related by the family's own mean
-head(exp(predict(fit) + sigma(fit)^2 / 2) - fitted(fit))
+# the last two are related by the family's own mean
+head(exp(frm_linpred(fit) + sigma(fit)^2 / 2) -
+       fitted(fit)[, "Estimate"])
 
-# sigma is printed on its log link and back-transformed by sigma()
-summary(fit)$coefficients$sigma[1, 1]
+# a sigma nobody wrote a formula for is a distributional parameter
+# on its own scale, not a coefficient on its link
+summary(fit)$spec_pars
 sigma(fit)
 }
 \seealso{
-\code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}}, \code{\link[=fitted.frmtmb_fit]{fitted.frmtmb_fit()}},
+\code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}}, \code{\link[=frm_linpred]{frm_linpred()}},
+\code{\link[=fitted.frmtmb_fit]{fitted.frmtmb_fit()}},
 \code{\link[=residuals.frmtmb_fit]{residuals.frmtmb_fit()}}, \code{\link[=sigma.frmtmb_fit]{sigma.frmtmb_fit()}}, \code{\link[=fixef]{fixef()}},
 \code{\link[=VarCorr]{VarCorr()}}, \code{\link[=confint.frmtmb_fit]{confint.frmtmb_fit()}}
 }

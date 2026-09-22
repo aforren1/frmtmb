@@ -43,17 +43,17 @@ ar_case <- local({
 
 test_that("fitted() honors re_formula instead of swallowing it", {
   fit <- ar_case()
-  cond <- fitted(fit)
-  pop <- fitted(fit, re_formula = NA)
+  cond <- fitted(fit)[, "Estimate"]
+  pop <- fitted(fit, re_formula = NA)[, "Estimate"]
 
   # the two answers are different numbers, which is the whole defect
   expect_false(isTRUE(all.equal(unname(cond), unname(pop))))
 
-  # and the population one is predict()'s, exactly
+  # and the population one is frm_linpred()'s, exactly
   expect_equal(unname(pop),
-               unname(predict(fit, re_formula = NA, type = "response")))
+               unname(frm_linpred(fit, re_formula = NA, type = "response")))
   expect_equal(unname(cond),
-               unname(predict(fit, type = "response")))
+               unname(frm_linpred(fit, type = "response")))
 
   # the gap at every row is that row's fitted group mode, so the size of
   # the difference is accounted for rather than merely observed
@@ -67,13 +67,14 @@ test_that("fitted() reaches newdata, scale, dpar and resp", {
   fit <- ar_case()
   nd <- fit[["frame"]][["data_frame"]][1:5, ]
 
-  expect_equal(unname(fitted(fit, newdata = nd)),
-               unname(fitted(fit))[1:5])
-  expect_equal(unname(fitted(fit, scale = "linear")),
-               unname(predict(fit, type = "link")))
-  expect_equal(unname(fitted(fit, dpar = "sigma")),
-               unname(predict(fit, dpar = "sigma", type = "response")))
-  expect_equal(unname(fitted(fit, resp = "y")), unname(fitted(fit)))
+  expect_equal(unname(fitted(fit, newdata = nd)[, "Estimate"]),
+               unname(fitted(fit)[, "Estimate"])[1:5])
+  expect_equal(unname(fitted(fit, scale = "linear")[, "Estimate"]),
+               unname(frm_linpred(fit, type = "link")))
+  expect_equal(unname(fitted(fit, dpar = "sigma")[, "Estimate"]),
+               unname(frm_linpred(fit, dpar = "sigma", type = "response")))
+  expect_equal(unname(fitted(fit, resp = "y")[, "Estimate"]),
+               unname(fitted(fit)[, "Estimate"]))
   # the refusal names the argument, the value and the permitted values
   expect_error(fitted(fit, scale = "latent"),
                "`scale` must be one of .*not character \"latent\"",
@@ -87,7 +88,7 @@ test_that("a misspelled argument is refused and named", {
 
   expect_error(fitted(fit, re_frmula = NA), "re_frmula")
   expect_error(fitted(fit, re_frmula = NA), "Did you mean")
-  expect_error(predict(fit, re_frmula = NA), "re_frmula")
+  expect_error(frm_linpred(fit, re_frmula = NA), "re_frmula")
   expect_error(coef(fit, robst = TRUE), "robst")
   expect_error(ranef(fit, condVarr = TRUE), "condVarr")
   expect_error(logLik(fit, REML = TRUE), "REML")
@@ -100,8 +101,10 @@ test_that("a misspelled argument is refused and named", {
 
 test_that("an argument brms has and a point fit cannot honor says why", {
   fit <- ar_case()
-  for (a in c("ndraws", "draw_ids", "summary", "robust", "probs", "sort",
-              "nlpar")) {
+  # `probs` and `nlpar` left this list at item 2.6f: fitted() reports
+  # brms's quantile columns now, as a Wald interval, and `nlpar` is a
+  # synonym for `dpar` here
+  for (a in c("ndraws", "draw_ids", "summary", "robust", "sort")) {
     cl <- list(quote(stats::fitted), quote(fit))
     cl[[a]] <- 1
     msg <- tryCatch(eval(as.call(cl)), error = conditionMessage)
@@ -109,7 +112,8 @@ test_that("an argument brms has and a point fit cannot honor says why", {
     expect_match(msg, a, fixed = TRUE, info = a)
   }
   # the draws-specific ones say where the argument does work
-  expect_match(tryCatch(fitted(fit, ndraws = 10), error = conditionMessage),
+  expect_match(tryCatch(fitted(fit, ndraws = 10)[, "Estimate"],
+                        error = conditionMessage),
                "frmtmb.sample")
 })
 
@@ -137,17 +141,22 @@ test_that("a brms argument is refused with its reason, not as unknown", {
     list(quote(print(fit, digits = 3)), "digits", "not implemented"),
     list(quote(print(summary(fit), digits = 3)), "digits",
          "not implemented"),
-    list(quote(summary(fit, prob = 0.9)), "prob", "confint"),
-    list(quote(summary(fit, priors = TRUE)), "priors", "prior_summary"),
-    list(quote(fixef(fit, pars = "x")), "pars", "regular expression"),
+    list(quote(summary(fit, mc_se = TRUE)), "mc_se", "sampler"),
+    list(quote(summary(fit, robust = TRUE)), "robust", "draws"),
     list(quote(coef(fit, robust = TRUE)), "robust", "draws"),
     list(quote(ranef(fit, groups = "g")), "groups", "named list"),
     list(quote(VarCorr(fit, robust = TRUE)), "robust", "draws"),
     list(quote(fixef(fit, summary = FALSE)), "summary = FALSE", "draws"),
     list(quote(nobs(fit, resp = "y")), "resp", "same nobs"),
     list(quote(family(fit, resp = "y")), "resp", "NAMED LIST"),
-    list(quote(vcov(fit, correlation = TRUE)), "correlation", "cov2cor")
+    list(quote(predict(fit, type = "link")), "type", "frm_linpred"),
+    list(quote(predict(fit, se.fit = TRUE)), "se.fit", "frm_linpred"),
+    list(quote(predict(fit, dpar = "sigma")), "dpar", "fitted")
   )
+  # `prob`, `priors`, `pars` and `correlation` left this list at item
+  # 2.6f: summary() sets the interval width and prints the priors,
+  # fixef() and vcov() filter rows, and vcov() returns the correlation
+  # matrix, each as brms does
   for (cs in cases) {
     msg <- tryCatch(eval(cs[[1L]]), error = conditionMessage)
     expect_true(is.character(msg), info = deparse(cs[[1L]]))
@@ -161,7 +170,7 @@ test_that("a brms argument is refused with its reason, not as unknown", {
   expect_false(grepl("print.summary(", msg, fixed = TRUE))
 })
 
-test_that("predict() and simulate() take brms's re_formula, not lme4's", {
+test_that("frm_linpred() and simulate() take brms's re_formula, not lme4's", {
   for (nm in c("predict.frmtmb_fit", "simulate.frmtmb_fit")) {
     fo <- names(formals(getFromNamespace(nm, "frmtmb")))
     expect_true("re_formula" %in% fo, info = nm)
@@ -173,8 +182,8 @@ test_that("predict() and simulate() take brms's re_formula, not lme4's", {
 
   fit <- ar_case()
   # the dropped lme4 spellings are refused, not ignored
-  expect_error(predict(fit, re.form = NA), "re.form", fixed = TRUE)
-  expect_error(predict(fit, allow.new.levels = TRUE),
+  expect_error(frm_linpred(fit, re.form = NA), "re.form", fixed = TRUE)
+  expect_error(frm_linpred(fit, allow.new.levels = TRUE),
                "allow.new.levels", fixed = TRUE)
   expect_error(simulate(fit, nsim = 1, re.form = NA), "re.form",
                fixed = TRUE)
@@ -282,6 +291,9 @@ ar_swallows <- function(fn) {
 ar_dots_exempt <- c(
   "emm_basis.frmtmb_fit", "get_predict.frmtmb_fit",
   "get_vcov.frmtmb_fit", "get_varcov.frmtmb_fit",
+  # insight::get_predicted() forwards its own caller's dots, which
+  # carry insight's arguments and not this method's
+  "get_predicted.frmtmb_fit",
   "get_parameters.frmtmb_fit", "find_formula.frmtmb_fit",
   "find_random.frmtmb_fit",
   # not found by either static count; found by RUNNING marginaleffects
@@ -364,6 +376,15 @@ test_that("R's own S3 contract is honored, and the scan finds the next hop", {
   } else {
     character()
   }
+  # Two names R passes through predict() are refused here ON PURPOSE,
+  # by item 2.6d: predict() is brms's predictive summary and has no
+  # `type` or `se.fit`, and the refusal names frm_linpred(), which does.
+  # Neither caller reaches a frmtmb fit: this package has its own
+  # residuals() method, and termplot() has no frmtmb support. Listed
+  # rather than added to s3_contract_args, so that the refusal stands
+  # and the divergence is on the page.
+  miss <- setdiff(miss, c("predict type stats::residuals.glm",
+                          "predict se.fit stats::termplot"))
   expect_identical(miss, character())
 })
 
@@ -376,7 +397,7 @@ test_that("the contract tolerates R's names and refuses everything else", {
   expect_no_error(model.frame(fit,
                               data = fit[["frame"]][["data_frame"]]))
   expect_no_error(confint(fit, trace = FALSE, parm = "x"))
-  expect_no_error(residuals(fit, na.rm = TRUE))
+  expect_no_error(residuals(fit, na.rm = TRUE)[, "Estimate"])
   expect_no_error(coef(fit, complete = TRUE))
   expect_no_error(nobs(fit, use.fallback = TRUE))
   expect_identical(nobs(fit, use.fallback = TRUE), nobs(fit))

@@ -5,7 +5,7 @@
 skip_on_cran()
 
 # trunc() must reach the post-fit surface, not just the likelihood:
-# fitted(), predict(type = "response"), residuals() and simulate() all
+# fitted(), frm_linpred(type = "response"), residuals() and simulate() all
 # describe the TRUNCATED distribution. [brms#1923, #1903]
 
 # Brute-force E[Y | lb <= Y <= ub] over the support.
@@ -31,24 +31,24 @@ fit_trunc_pois <- function() {
 
 test_that("truncated poisson fitted() is the truncated mean", {
   fit <- fit_trunc_pois()
-  mu <- exp(fixef(fit)$mu[[1]])
+  mu <- exp(fixef_by_dpar(fit)$mu[[1]])
   want <- trunc_mean_disc(function(y) stats::dpois(y, mu), 2, 6)
-  expect_equal(unname(fitted(fit)[1]), want, tolerance = 1e-10)
-  expect_equal(unname(predict(fit, type = "response")[1]), want,
+  expect_equal(unname(fitted(fit)[, "Estimate"][1]), want, tolerance = 1e-10)
+  expect_equal(unname(frm_linpred(fit, type = "response")[1]), want,
                tolerance = 1e-10)
   # the fitted mean is well away from the untruncated mu: this is the
   # whole defect (2.976 vs 3.375)
   expect_gt(abs(want - mu), 0.3)
   # dpar-scale predictions describe the LATENT parameter and stay
   # untruncated
-  expect_equal(unname(predict(fit, type = "conditional")[1]), mu,
+  expect_equal(unname(frm_linpred(fit, type = "conditional")[1]), mu,
                tolerance = 1e-10)
-  expect_equal(unname(predict(fit, dpar = "mu", type = "response")[1]), mu,
+  expect_equal(unname(frm_linpred(fit, dpar = "mu", type = "response")[1]), mu,
                tolerance = 1e-10)
-  expect_equal(unname(exp(predict(fit, type = "link")[1])), mu,
+  expect_equal(unname(exp(frm_linpred(fit, type = "link")[1])), mu,
                tolerance = 1e-10)
   # an intercept-only correctly specified fit reproduces the sample mean
-  expect_equal(mean(residuals(fit)), 0, tolerance = 1e-8)
+  expect_equal(mean(residuals(fit)[, "Estimate"]), 0, tolerance = 1e-8)
 })
 
 test_that("truncated gaussian and lognormal means match integration", {
@@ -64,9 +64,9 @@ test_that("truncated gaussian and lognormal means match integration", {
     m <- dp$mu[i]; s <- dp$sigma[i]
     trunc_mean_cont(function(z) stats::dnorm(z, m, s), 0.5, m + 15 * s)
   }, 0)
-  expect_vector_equal(as.numeric(fitted(gfit)), ref, tol = 1e-6)
+  expect_vector_equal(as.numeric(fitted(gfit)[, "Estimate"]), ref, tol = 1e-6)
   # the truncation-aware residuals of a correctly specified model centre
-  expect_lt(abs(mean(residuals(gfit))), 0.02)
+  expect_lt(abs(mean(residuals(gfit)[, "Estimate"])), 0.02)
 
   set.seed(12)
   ln <- stats::rlnorm(4000, 0.4, 0.8)
@@ -76,15 +76,16 @@ test_that("truncated gaussian and lognormal means match integration", {
   ld <- frmtmb:::eval_dpars(lfit)[["y"]]
   lref <- trunc_mean_cont(
     function(z) stats::dlnorm(z, ld$mu[1], ld$sigma[1]), 1, 5)
-  expect_equal(unname(fitted(lfit)[1]), lref, tolerance = 1e-8)
-  expect_lt(abs(mean(residuals(lfit))), 0.02)
+  expect_equal(unname(fitted(lfit)[, "Estimate"][1]), lref, tolerance = 1e-8)
+  expect_lt(abs(mean(residuals(lfit)[, "Estimate"])), 0.02)
 })
 
 test_that("simulate() respects trunc() bounds and hits the right mean", {
   fit <- fit_trunc_pois()
   sims <- as.matrix(simulate(fit, nsim = 60, seed = 7))
   expect_true(all(sims >= 2 & sims <= 6))
-  expect_equal(mean(sims), unname(fitted(fit)[1]), tolerance = 0.05)
+  expect_equal(mean(sims), unname(fitted(fit)[, "Estimate"][1]),
+               tolerance = 0.05)
 
   # bounds that exclude essentially all the fitted mass cannot be filled
   # by rejection; the error must say so rather than spin
@@ -106,7 +107,7 @@ test_that("DHARMa residuals on a truncated fit are uniform", {
 
 test_that("OSA residuals on truncated fits are standard normal", {
   fit <- fit_trunc_pois()
-  expect_gt(stats::ks.test(residuals(fit, type = "osa"),
+  expect_gt(stats::ks.test(residuals(fit, type = "osa")[, "Estimate"],
                            "pnorm")$p.value, 0.01)
   set.seed(11)
   n <- 1500
@@ -115,7 +116,7 @@ test_that("OSA residuals on truncated fits are standard normal", {
   keep <- ystar > 0.5
   gd <- data.frame(y = ystar[keep], x = x[keep])
   gfit <- frm(bf(y | trunc(lb = 0.5) ~ x) + gaussian(), data = gd)
-  osa <- residuals(gfit, type = "osa")
+  osa <- residuals(gfit, type = "osa")[, "Estimate"]
   expect_gt(stats::ks.test(osa, "pnorm")$p.value, 0.01)
   # ... and equal the analytic truncated-normal PIT
   dp <- frmtmb:::eval_dpars(gfit)[["y"]]
@@ -134,26 +135,27 @@ test_that("truncation bounds follow newdata", {
   # literal bounds carry over to any newdata
   fit <- frm(bf(y | trunc(lb = 1, ub = 8) ~ x) + poisson(), data = dd)
   nd <- data.frame(x = c(-1, 0, 1))
-  mu <- exp(predict(fit, newdata = nd, type = "link"))
+  mu <- exp(frm_linpred(fit, newdata = nd, type = "link"))
   want <- vapply(mu, function(m) {
     trunc_mean_disc(function(z) stats::dpois(z, m), 1, 8)
   }, 0)
-  expect_vector_equal(predict(fit, newdata = nd, type = "response"), want,
+  expect_vector_equal(frm_linpred(fit, newdata = nd, type = "response"), want,
                       tol = 1e-10)
   # in-sample newdata reproduces fitted()
-  expect_vector_equal(predict(fit, newdata = dd, type = "response"),
-                      as.numeric(fitted(fit)), tol = 1e-8)
+  expect_vector_equal(frm_linpred(fit, newdata = dd, type = "response"),
+                      as.numeric(fitted(fit)[, "Estimate"]), tol = 1e-8)
 
   # a bound given as a VARIABLE is data, so newdata must supply it
   dd$lo <- 1
   dd$hi <- 8
   vfit <- frm(bf(y | trunc(lb = lo, ub = hi) ~ x) + poisson(), data = dd)
-  expect_vector_equal(as.numeric(fitted(vfit)), as.numeric(fitted(fit)),
+  expect_vector_equal(as.numeric(fitted(vfit)[, "Estimate"]),
+                      as.numeric(fitted(fit)[, "Estimate"]),
                       tol = 1e-8)
   nd2 <- data.frame(x = c(-1, 0, 1), lo = 1, hi = 8)
-  expect_vector_equal(predict(vfit, newdata = nd2, type = "response"),
+  expect_vector_equal(frm_linpred(vfit, newdata = nd2, type = "response"),
                       want, tol = 1e-10)
-  expect_error(predict(vfit, newdata = nd, type = "response"),
+  expect_error(frm_linpred(vfit, newdata = nd, type = "response"),
                "trunc\\(lb = lo\\)")
 })
 
@@ -170,11 +172,11 @@ test_that("zero-truncated poisson matches glmmTMB likelihood and mean", {
   expect_loglik_equal(fit, ref, tol = 1e-5)
   # glmmTMB's response prediction IS the truncated mean, so it doubles as
   # a reference for ours; brute force pins both
-  mu <- exp(as.numeric(predict(fit, type = "link")))
+  mu <- exp(as.numeric(frm_linpred(fit, type = "link")))
   brute <- vapply(mu, function(m) {
     trunc_mean_disc(function(z) stats::dpois(z, m), 1, Inf)
   }, 0)
-  ours <- as.numeric(predict(fit, type = "response"))
+  ours <- as.numeric(frm_linpred(fit, type = "response"))
   expect_vector_equal(ours, brute, tol = 1e-8)
   expect_vector_equal(ours, unname(stats::predict(ref, type = "response")),
                       tol = 1e-4)

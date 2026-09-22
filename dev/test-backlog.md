@@ -60,6 +60,48 @@ to do, and every closure carries the measurement that closed it.
 
 ## Open - high priority
 
+- DECISION NEEDED: should `predict()` carry `Var(b | y)` at a grouping
+  level the fit saw? Today it draws conditional on the modes, so its
+  interval at a known level of a mixed fit is narrow: 0.9445 out of
+  sample on `dev/shapes-coverage.R`'s mixed design, 0.9336 on the
+  reviewer's, and adding exactly the analytic conditional variance
+  moves it to 0.9609 and 0.9477. brms's draws carry the posterior of
+  `r_g` at a known level, so leaving the term out DIVERGES from brms;
+  the case for leaving it out is only that every other method here
+  (`fitted()`, `frm_linpred()`, `residuals()`) is conditional on the
+  modes. Carrying it means drawing each replicate's modes from their
+  joint conditional law (the `sdreport()` joint precision has it),
+  not adding a per-row variance, so that `summary = FALSE` stays
+  jointly right across rows of one group. Filed by lane wt-shapes,
+  punch round 2 (`dev/shapes-findings.md` section 3).
+
+- `predict()` on a draw that is FINITE but absurd. Masking a
+  non-finite cell (punch round 2) does nothing for a draw that
+  overflows to a huge finite number: a poisson row whose linear
+  predictor sits just under the overflow point summarizes to an
+  Estimate of 1.4e146 in the recheck. The parametric-bootstrap law is
+  honest about a barely identified parameter and the summary is
+  useless. Candidates: report the median and quantiles only when the
+  mean is dominated by a few draws, or warn when the draw law puts
+  mass far outside the data's range. Not fixed; filed by lane
+  wt-shapes.
+
+- `re_formula` naming a grouping factor the model does not have is
+  silently treated as `NULL`. Measured by the review of items 2.6d and
+  2.6f (`dev/reviews/20260918-shapes.md`, m5): `predict(fit,
+  re_formula = ~(1 | nosuch))` returns the CONDITIONAL prediction, bit
+  for bit what `re_formula = NULL` returns, with no warning, on a
+  grouping factor the model never had. The same holds for `fitted()`,
+  `frm_linpred()` and `conditional_effects()`. `check_re_form()`
+  accepts any formula and `re_form_keeps()` only asks whether it is
+  `NA` or `~0`, so a typo in a grouping-factor name reads as "keep
+  everything". This is the same family as the partial-`re_formula`
+  defect (a formula naming SOME of the model's blocks is also read as
+  all of them) that another lane filed, and it wants one fix for both:
+  resolve the formula's terms against the fit's blocks, keep exactly
+  those, and error on a name the fit does not have. Pre-existing; the
+  shapes lane did not touch `check_re_form`.
+
 - Constant-weight (non-)invariance for gaussian documented and tested.
   The behavior is already right and only unpinned: at 0.53.0 a constant
   `weights(w)` of 2 leaves the coefficients invariant to 5.9e-06 and
@@ -88,6 +130,15 @@ to do, and every closure carries the measurement that closed it.
   "Verified immune" below. [lme4#635/#636/#945]
 
 ## Open - medium
+
+- Draws hint that leads to a refusal (found 2026-09-22 by the round-3
+  recheck of 2.6d/2.6f). On a draws object, a `newdata` holding an
+  unseen level WITHOUT `allow_new_levels` gets core's error, whose hint
+  says "Use allow_new_levels = TRUE". Following the hint reaches
+  frmtmb.sample's refusal, since new levels are not implemented on
+  draws. The same happens with `sample_new_levels` alone. Either
+  implement new levels on draws or have the draws methods replace the
+  hint with the refusal.
 
 - Singular-fit detection: the isSingular verdict is done (see the
   diagnostics/UX cluster below); what is left is profile CIs on

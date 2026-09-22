@@ -22,7 +22,7 @@ test_that("summary, fixef, ranef and logLik work", {
   f <- o$fit
   expect_s3_class(f, "frmtmb_fit")
   expect_no_error(summary(f))
-  fx <- frmtmb::fixef(f)
+  fx <- frmtmb::fixef_by_dpar(f)
   expect_setequal(names(fx), c("alpha", "tau"))
   expect_true(is.finite(as.numeric(stats::logLik(f))))
   expect_true(is.finite(stats::AIC(f)))
@@ -34,22 +34,22 @@ test_that("summary, fixef, ranef and logLik work", {
 test_that("predict gives the learning parameters, and a mean on the data", {
   o <- ln_surface_fit()
   f <- o$fit
-  p <- stats::predict(f, type = "link")
+  p <- frm_linpred(f, type = "link")
   expect_length(p, nrow(o$d))
   expect_true(all(is.finite(p)))
   for (dp in c("alpha", "tau")) {
-    v <- stats::predict(f, type = "link", dpar = dp)
+    v <- frm_linpred(f, type = "link", dpar = dp)
     expect_true(all(is.finite(v)))
   }
   # the link scale reaches new data, because a linear predictor is
   # rowwise and belongs to the core
   nd <- o$d[1:5, ]
   expect_true(all(is.finite(
-    stats::predict(f, newdata = nd, type = "link", dpar = "alpha"))))
+    frm_linpred(f, newdata = nd, type = "link", dpar = "alpha"))))
   # The response scale is refused, and that is the design rather than a
   # gap: a nominal option code has no mean, so core has nothing to
   # return and says so in the family's own name.
-  expect_error(stats::predict(f, type = "response"), "declares no mean",
+  expect_error(frm_linpred(f, type = "response"), "declares no mean",
                class = "frmtmb_learn_error")
   expect_error(stats::fitted(f), "bandit2arm_delta")
   # what replaces it. This fit is hierarchical, so sum(log(p)) is the
@@ -134,8 +134,8 @@ test_that("par_template and set_prior reach every learning parameter", {
     family = bandit2arm_delta(subject = id, trial = trial), data = o$d,
     prior = frmtmb::set_prior("normal(0, 0.05)", class = "b",
                               dpar = "alpha"))
-  a1 <- abs(unlist(frmtmb::fixef(f2))[["alpha.after_reversalafter"]])
-  a0 <- abs(unlist(frmtmb::fixef(o$fit))[["alpha.after_reversalafter"]])
+  a1 <- abs(unlist(frmtmb::fixef_by_dpar(f2))[["alpha.after_reversalafter"]])
+  a0 <- abs(unlist(frmtmb::fixef_by_dpar(o$fit))[["alpha.after_reversalafter"]])
   expect_lt(a1, a0)
 })
 

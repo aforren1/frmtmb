@@ -117,7 +117,7 @@ attr(cv, "check")$crit_mcse
 The `"check"` attribute carries one more number, and it is the one that
 licenses everything above. frmtmb exports no route to the joint
 covariance of a grid prediction, so this package rebuilds it and then
-checks its own answer against `predict(se.fit = TRUE)`, which is
+checks its own answer against `frm_linpred(se.fit = TRUE)`, which is
 exported. The two agree to about twelve significant figures:
 
 ```{r check}
@@ -125,8 +125,9 @@ attr(cv, "check")$cov_rel_error
 ```
 
 If they ever did not, `frm_curve()` would refuse rather than report a
-band. The count of `predict()` calls the rebuild cost is there too, and
-it is small: at `re_formula = NA` the per-subject coefficients contribute
+band. The count of `frm_linpred()` calls the rebuild cost is there
+too, and it is small: at `re_formula = NA` the per-subject
+coefficients contribute
 nothing and are skipped in blocks rather than one at a time.
 
 ```{r ncall}

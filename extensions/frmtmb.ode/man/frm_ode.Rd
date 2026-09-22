@@ -571,9 +571,9 @@ Estimated event times, lag times, inter-dose intervals and \code{tv}
 change points are not supported: they decide where the solve is
 split, which is settled before the tape is built.
 
-\code{predict(se.fit = TRUE)} is not available for a nonlinear predictor,
+\code{frm_linpred(se.fit = TRUE)} is not available for a nonlinear predictor,
 including one containing \code{frm_ode()}; request a nonlinear parameter
-with \code{predict(dpar = )} instead.
+with \code{frm_linpred(dpar = )} instead.
 }
 
 \section{Installation}{

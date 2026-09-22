@@ -49,15 +49,15 @@ test_that("the coercion keeps the slope and moves the intercept", {
   ctr <- frm(bf(y ~ days) + gaussian(), data = d)
 
   # same model, so the same slope
-  expect_equal(unname(fixef(raw)$mu[["day"]]),
-               unname(fixef(ctr)$mu[["days"]]), tolerance = 1e-5)
+  expect_equal(unname(fixef_by_dpar(raw)$mu[["day"]]),
+               unname(fixef_by_dpar(ctr)$mu[["days"]]), tolerance = 1e-5)
   # but the intercept is the value at 1970-01-01, thousands of days out,
   # which is why the message points at centering
-  expect_lt(fixef(raw)$mu[["(Intercept)"]], -100)
+  expect_lt(fixef_by_dpar(raw)$mu[["(Intercept)"]], -100)
   expect_equal(
-    fixef(raw)$mu[["(Intercept)"]] +
-      fixef(raw)$mu[["day"]] * as.numeric(min(d$day)),
-    unname(fixef(ctr)$mu[["(Intercept)"]]), tolerance = 1e-4
+    fixef_by_dpar(raw)$mu[["(Intercept)"]] +
+      fixef_by_dpar(raw)$mu[["day"]] * as.numeric(min(d$day)),
+    unname(fixef_by_dpar(ctr)$mu[["(Intercept)"]]), tolerance = 1e-4
   )
 })
 
@@ -79,7 +79,7 @@ test_that("a Date response says nothing", {
   d <- data.frame(x = stats::rnorm(40))
   d$yd <- as.Date("2020-01-01") + round(10 * d$x) + stats::rpois(40, 20)
   expect_no_message(fit <- frm(bf(yd ~ x) + gaussian(), data = d))
-  expect_equal(unname(fixef(fit)$mu[["x"]]), 10, tolerance = 1)
+  expect_equal(unname(fixef_by_dpar(fit)$mu[["x"]]), 10, tolerance = 1)
 })
 
 test_that("a difftime response says nothing either", {

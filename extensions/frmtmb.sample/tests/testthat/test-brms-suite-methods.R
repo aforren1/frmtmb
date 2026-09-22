@@ -248,24 +248,20 @@ test_that("ndraws and friends have reasonable ouputs", {
 })
 
 test_that("nsamples has reasonable ouputs", {
-  brms_port("brmsfit-methods:593", "defect",
-    paste0(
-      "nsamples() is refused as a deprecated spelling (frmtmb ",
-      "NEWS, ?frmtmb-draws-refusals); brms keeps it live, and that ",
-      "refusal predates the user's 2026-09-15 rule that ",
-      "frmtmb.sample matches brms"),
+  brms_port("brmsfit-methods:593", "pass",
+    "",
     expect_equal(SW(nsamples(fit1)), 25)
   )
-  brms_port("brmsfit-methods:594", "defect",
-    paste0(
-      "nsamples() is refused as a deprecated spelling (see ",
-      "brmsfit-methods:593)"),
+  brms_port("brmsfit-methods:594", "pass",
+    "",
     expect_equal(SW(nsamples(fit1, subset = 10:1)), 10)
   )
   brms_port("brmsfit-methods:595", "defect",
     paste0(
-      "nsamples() is refused as a deprecated spelling; incl_warmup ",
-      "would also meet D6"),
+      "nsamples() answers now, as brms's does, but incl_warmup = ",
+      "TRUE is refused: frm_sample() discards the warmup rather ",
+      "than storing it, so there is nothing to count. The gap is ",
+      "dev/brms-api-diff.md (c), 'Blocked, not small'"),
     expect_equal(SW(nsamples(fit1, incl_warmup = TRUE)), 75)
   )
 })
@@ -318,18 +314,23 @@ test_that("posterior_samples has reasonable outputs", {
   brms_setup("brmsfit-methods:632",
     draws <- SW(posterior_samples(fit1))
   )
-  brms_port("brmsfit-methods:633", "defect",
-    paste0(
-      "posterior_samples() is refused as a deprecated spelling ",
-      "(see brmsfit-methods:593)"),
+  brms_port("brmsfit-methods:633", "pass",
+    "",
     expect_equal(dim(draws), c(ndraws(fit1), length(variables(fit1))))
   )
-  brms_port("brmsfit-methods:634", "defect",
-    "posterior_samples() is refused as a deprecated spelling",
+  brms_port("brmsfit-methods:634", "pass",
+    "",
     expect_equal(names(draws), variables(fit1))
   )
   brms_port("brmsfit-methods:635", "defect",
-    "posterior_samples() is refused as a deprecated spelling",
+    paste0(
+      "posterior_samples(pars = '^b_') answers now and returns the ",
+      "right SET of columns; their ORDER is frmtmb's variables() ",
+      "order, which lists each predictor's coefficients together, ",
+      "where brms lists every intercept first. fixef(), vcov() and ",
+      "summary()$fixed take brms's order at item 2.6f; variables() ",
+      "keeps its own, and reordering it is a separate decision ",
+      "(dev/shapes-findings.md section 8)"),
     expect_equal(names(SW(posterior_samples(fit1, pars = "^b_"))),
                  c("b_Intercept", "b_sigma_Intercept", "b_Trt1",
                    "b_Age", "b_volume", "b_Trt1:Age", "b_sigma_Trt1"))
@@ -386,19 +387,12 @@ test_that("posterior_epred has reasonable outputs", {
     pe <- posterior_epred(fit1, point_estimate = "median",
                           ndraws_point_estimate = 2)
   )
-  brms_port("brmsfit-methods:713", "defect",
-    paste0(
-      "posterior_epred() ignores brms's point_estimate = 'median' ",
-      "and ndraws_point_estimate = 2 and returns all 25 draws, 25 ",
-      "x 40, where brms returns 2 x 40. Ignoring an UNKNOWN ",
-      "argument is brms parity: brms also returns 25 x 40 for ",
-      "not_an_argument = 2 (dev/brmsport-defects.R S1)"),
+  brms_port("brmsfit-methods:713", "pass",
+    "",
     expect_equal(nrow(pe), 2)
   )
-  brms_port("brmsfit-methods:714", "defect",
-    paste0(
-      "as brmsfit-methods:713: the point estimate brms repeats is ",
-      "never computed, so the rows differ"),
+  brms_port("brmsfit-methods:714", "pass",
+    "",
     expect_true(all(pe[1, ] == pe[2, ]))
   )
 })

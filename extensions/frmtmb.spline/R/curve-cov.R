@@ -7,7 +7,7 @@
 # coefficients. A smooth's wiggly part is a random-effect block even when
 # the smooth is a population term, so V must carry the b block.
 # `vcov(fit, full = TRUE)` does not carry it under either of its
-# branches, and `predict(se.fit = TRUE)` forms Sigma internally and
+# branches, and `frm_linpred(se.fit = TRUE)` forms Sigma internally and
 # returns only sqrt(diag(Sigma)).
 #
 # Until frmtmb 0.52.0 this package rebuilt A by unit perturbation, one
@@ -19,7 +19,7 @@
 # below is a consumer of the first of those.
 #
 # The check survives the change and is still not decoration:
-# `diag(A V A') + extra_var` must equal `predict(se.fit = TRUE)^2`
+# `diag(A V A') + extra_var` must equal `frm_linpred(se.fit = TRUE)^2`
 # wherever core has an independent route to that number. What the check
 # now verifies is that this package reads the seam correctly, rather
 # than that a reconstruction reproduced it.
@@ -27,7 +27,7 @@
 # A DIFFERENCE CURVE is the same object twice. `contrast = ` builds the
 # seam at a second grid, subtracts the two designs and reports
 # `(A1 - A2) V (A1 - A2)'`. What the seam does NOT hand over is a second
-# route to that number: `predict(se.fit = TRUE)` returns a marginal
+# route to that number: `frm_linpred(se.fit = TRUE)` returns a marginal
 # standard error per row and never the covariance BETWEEN the two grids,
 # which is the whole content of a difference. So the check is run on
 # each half and `cov_rel_error` is the worse of the two, and what it
@@ -169,8 +169,9 @@ sp_grid_pinned <- function(nd, var) {
 #'
 #' @noRd
 sp_predict_eta <- function(fit, newdata, dpar, resp, re_formula) {
-  as.numeric(stats::predict(fit, newdata = newdata, type = "link",
-                            dpar = dpar, resp = resp, re_formula = re_formula))
+  as.numeric(frmtmb::frm_linpred(fit, newdata = newdata, type = "link",
+                                 dpar = dpar, resp = resp,
+                                 re_formula = re_formula))
 }
 
 #' The seam read at ONE grid: the design, its covariance and the
@@ -280,7 +281,7 @@ sp_same_latent <- function(fit, a, b) {
     identical(a$lb$extra_var, b$lb$extra_var)
 }
 
-#' `sqrt(diag(A V A') + extra_var)` against `predict(se.fit = TRUE)`, or
+#' `sqrt(diag(A V A') + extra_var)` against `frm_linpred(se.fit = TRUE)`, or
 #' a refusal.
 #'
 #' One template, called once for an ordinary curve and twice for a
@@ -289,13 +290,14 @@ sp_same_latent <- function(fit, a, b) {
 #'
 #' @noRd
 sp_cov_check <- function(fit, nd, se, dpar, resp, re_formula, tol, side) {
-  ref <- stats::predict(fit, newdata = nd, type = "link", dpar = dpar,
-                        resp = resp, re_formula = re_formula, se.fit = TRUE)
+  ref <- frmtmb::frm_linpred(fit, newdata = nd, type = "link", dpar = dpar,
+                             resp = resp, re_formula = re_formula,
+                             se.fit = TRUE)
   se_ref <- as.numeric(ref$se.fit)
   rel <- max(abs(se / pmax(se_ref, .Machine$double.eps) - 1))
   if (!is.finite(rel) || rel > tol) {
     frm_stop("frm_curve(): the assembled covariance of ", side,
-             " disagrees with predict(se.fit = TRUE) by ",
+             " disagrees with frm_linpred(se.fit = TRUE) by ",
              format(rel, digits = 3),
              " relative, which is above the tolerance ", format(tol),
              ". Both come from frm_lp_basis(); a disagreement means this ",
@@ -310,9 +312,9 @@ sp_cov_check <- function(fit, nd, se, dpar, resp, re_formula, tol, side) {
 #'
 #' `frm_lp_basis()` (frmtmb >= 0.52.0) returns `A`, `V` and the variance
 #' that is not coefficient uncertainty. For a linear predictor it is the
-#' same object `predict(se.fit = TRUE)` reduces to a diagonal, so the
+#' same object `frm_linpred(se.fit = TRUE)` reduces to a diagonal, so the
 #' two are compared on every call. For a NONLINEAR body `A` is a
-#' Jacobian, `predict(se.fit = TRUE)` refuses outright, and there is
+#' Jacobian, `frm_linpred(se.fit = TRUE)` refuses outright, and there is
 #' nothing to compare against: the check is skipped and `rel` is `NA`,
 #' which `print()` reports rather than hides.
 #'
@@ -329,7 +331,7 @@ sp_cov_check <- function(fit, nd, se, dpar, resp, re_formula, tol, side) {
 #'    grids. Where the two grids load the SAME latent draw the cross
 #'    term is exactly zero and there is nothing to fetch, which
 #'    `sp_same_latent()` decides; otherwise the difference is refused.
-#' 3. The check compares each half against `predict(se.fit = TRUE)`.
+#' 3. The check compares each half against `frm_linpred(se.fit = TRUE)`.
 #'    There is no second route to the difference's own standard error.
 #'
 #' @noRd

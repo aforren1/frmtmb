@@ -9,26 +9,27 @@ test_that("non-default contrasts survive prediction (glmmTMB#439)", {
   old <- options(contrasts = c("contr.sum", "contr.poly"))
   on.exit(options(old), add = TRUE)
   fit <- frm(bf(y ~ f + (1 | g)) + gaussian(), data = dd)
-  p0 <- predict(fit)
+  p0 <- frm_linpred(fit)
   options(old)   # flip back BEFORE predicting on newdata
-  expect_equal(predict(fit, newdata = dd), p0, tolerance = 1e-8)
+  expect_equal(frm_linpred(fit, newdata = dd), p0, tolerance = 1e-8)
   # explicit contrasts= attribute on the factor
   dd2 <- dd
   contrasts(dd2$f) <- stats::contr.sum(3)
   fit2 <- frm(bf(y ~ f + (1 | g)) + gaussian(), data = dd2)
   # xlev refactoring drops the factor's contrasts attr with a warning;
   # the stored contrasts matrix still applies, so values must match
-  expect_equal(suppressWarnings(predict(fit2, newdata = dd2)),
-               predict(fit2), tolerance = 1e-8)
+  expect_equal(suppressWarnings(frm_linpred(fit2, newdata = dd2)),
+               frm_linpred(fit2), tolerance = 1e-8)
 })
 
-test_that("re_formula = NA needs no grouping columns in newdata (glmmTMB#923)", {
+test_that("re_formula = NA needs no grouping columns in newdata (glmmTMB#923)",
+          {
   set.seed(162)
   dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
   dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.6)[dd$g], 1)
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
   nd <- data.frame(x = c(-1, 0, 1))    # no g column at all
-  p <- predict(fit, newdata = nd, re_formula = NA, se.fit = TRUE)
+  p <- frm_linpred(fit, newdata = nd, re_formula = NA, se.fit = TRUE)
   expect_length(p$fit, 3)
   expect_true(all(is.finite(p$se.fit)))
 })
@@ -43,8 +44,8 @@ test_that("fits survive the calling environment disappearing (lme4 formulaEval)"
   }
   fit <- make_fit()
   # local_dat is gone; the stored frame must carry prediction and emmeans
-  expect_length(predict(fit, newdata = model.frame(fit)), 80)
-  expect_length(fitted(fit), 80)
+  expect_length(frm_linpred(fit, newdata = model.frame(fit)), 80)
+  expect_length(fitted(fit)[, "Estimate"], 80)
   skip_if_not_installed("emmeans")
   em <- as.data.frame(emmeans::emmeans(fit, ~1))
   expect_true(is.finite(em$emmean[1]))
@@ -99,7 +100,7 @@ test_that("weights are frequency-like: aggregated poisson equivalence", {
   agg <- aggregate(cnt ~ y + x, transform(long, cnt = 1), sum)
   m1 <- frm(bf(y ~ x) + poisson(), data = long)
   m2 <- frm(bf(y | weights(cnt) ~ x) + poisson(), data = agg)
-  expect_vector_equal(fixef(m1)$mu, fixef(m2)$mu, tol = 1e-5)
+  expect_vector_equal(fixef_by_dpar(m1)$mu, fixef_by_dpar(m2)$mu, tol = 1e-5)
   expect_lt(abs(as.numeric(logLik(m1)) - as.numeric(logLik(m2))), 1e-5)
 })
 
@@ -115,9 +116,9 @@ test_that("predict refuses unknown arguments", {
   # a WARNING here was the defect of plan item 2.5e in miniature: the
   # call returned a number, and under suppressWarnings() or in a loop
   # the record of the ignored argument was gone
-  expect_error(predict(fit, bogus = 1), "bogus")
+  expect_error(frm_linpred(fit, bogus = 1), "bogus")
   # the common typo se= partial-matches se.fit and just works
-  p <- predict(fit, se = TRUE)
+  p <- frm_linpred(fit, se = TRUE)
   expect_named(p, c("fit", "se.fit"))
 })
 
@@ -129,14 +130,14 @@ test_that("na.exclude pads fitted/residuals/predict to full length", {
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
              na.action = stats::na.exclude)
   expect_identical(stats::nobs(fit), 48L)
-  expect_length(fitted(fit), 50)
-  expect_true(all(is.na(fitted(fit)[c(3, 7)])))
-  expect_length(residuals(fit), 50)
-  expect_length(predict(fit), 50)
+  expect_length(fitted(fit)[, "Estimate"], 50)
+  expect_true(all(is.na(fitted(fit)[, "Estimate"][c(3, 7)])))
+  expect_length(residuals(fit)[, "Estimate"], 50)
+  expect_length(frm_linpred(fit), 50)
   # na.omit(padded) equals the na.omit fit's values
   fit0 <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
-  expect_equal(unname(as.vector(stats::na.omit(fitted(fit)))),
-               unname(fitted(fit0)), tolerance = 1e-8)
+  expect_equal(unname(as.vector(stats::na.omit(fitted(fit)[, "Estimate"]))),
+               unname(fitted(fit0)[, "Estimate"]), tolerance = 1e-8)
 })
 
 test_that("lazy sdreport: estimates identical, SEs on demand", {
@@ -147,7 +148,8 @@ test_that("lazy sdreport: estimates identical, SEs on demand", {
   f_eager <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd, se = TRUE)
   expect_null(f_lazy$cache$sdr)
   expect_false(is.null(f_eager$cache$sdr))
-  expect_vector_equal(fixef(f_lazy)$mu, fixef(f_eager)$mu, tol = 1e-10)
+  expect_vector_equal(fixef_by_dpar(f_lazy)$mu, fixef_by_dpar(f_eager)$mu,
+                      tol = 1e-10)
   expect_vector_equal(unlist(f_lazy$estimates$b),
                       unlist(f_eager$estimates$b), tol = 1e-10)
   # first SE request computes and caches the report

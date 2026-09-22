@@ -174,6 +174,6 @@ test_that("a fitted model's standard errors are finite", {
              data = d)
   se <- summary(fit)
   expect_s3_class(fit, "frmtmb_fit")
-  expect_true(all(is.finite(unlist(fixef(fit)))))
+  expect_true(all(is.finite(unlist(fixef_by_dpar(fit)))))
   expect_true(is.finite(as.numeric(logLik(fit))))
 })

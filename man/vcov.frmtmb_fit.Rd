@@ -4,14 +4,33 @@
 \alias{vcov.frmtmb_fit}
 \title{Covariance matrix of the fixed-effect estimates}
 \usage{
-\method{vcov}{frmtmb_fit}(object, full = FALSE, cluster = NULL, type = "CR0", ...)
+\method{vcov}{frmtmb_fit}(
+  object,
+  correlation = FALSE,
+  pars = NULL,
+  ...,
+  full = FALSE,
+  cluster = NULL,
+  type = "CR0"
+)
 }
 \arguments{
 \item{object}{A \code{frmtmb_fit}.}
 
+\item{correlation}{If \code{TRUE}, the correlation matrix instead, as in
+brms.}
+
+\item{pars}{Row and column names to keep, in the order given, as in
+brms.}
+
+\item{...}{Refused: an argument the method does not have is an
+error naming it, rather than silently changing nothing.}
+
 \item{full}{If \code{TRUE}, include covariance parameters (\code{theta}),
 named as in \code{confint()} (the glmmTMB \code{vcov(full = TRUE)}
-convention).}
+convention). \code{full = TRUE} keeps the INTERNAL names, because it is
+the matrix a delta-method calculation on \code{confint()}'s rows needs;
+the default block takes brms's.}
 
 \item{cluster}{Optional clustering factor. When given, the result is
 \code{\link[=vcov_cluster]{vcov_cluster()}}'s cluster-robust covariance instead of the
@@ -19,16 +38,18 @@ model-based one.}
 
 \item{type}{Small-sample correction for \code{cluster}, see
 \code{\link[=vcov_cluster]{vcov_cluster()}}.}
-
-\item{...}{Refused: an argument the method does not have is an
-error naming it, rather than silently changing nothing.}
 }
 \value{
 A covariance matrix.
 }
 \description{
-Covers the estimated coefficients of every linear predictor; dpars
-fixed to constants are excluded.
+Covers brms's population-level coefficients and names its rows as
+brms does (\code{Intercept}, \code{sigma_Intercept}, \code{x}). A distributional
+parameter nobody wrote a formula for is not one of them: frmtmb
+estimates \code{sigma} or \code{nu} as an intercept-only linear predictor,
+brms reports it as a parameter of its own, and \code{summary()} shows it
+under \verb{Further Distributional Parameters}. Dpars fixed to constants
+are excluded too.
 }
 \details{
 \code{full = TRUE} is the joint covariance of the whole outer parameter
@@ -59,9 +80,10 @@ dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
 dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
 fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 
-# standard errors of the fixed effects
+# standard errors of the fixed effects, which is fixef()'s Est.Error
 sqrt(diag(vcov(fit)))
-# the covariance parameters join the block on their internal scale
+# the covariance parameters join the block on their internal scale,
+# under the internal names, which is confint()'s vocabulary
 rownames(vcov(fit, full = TRUE))
 
 # the matrix is what a delta-method calculation needs

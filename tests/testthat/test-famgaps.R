@@ -25,8 +25,8 @@ test_that("categorical() matches nnet::multinom exactly", {
   # coefficient to reconcile, unlike the count-matrix spelling
   expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(logLik(ref))), 1e-6)
   cf <- coef(ref)
-  expect_vector_equal(fixef(fit)$mub, cf["b", ], tol = 1e-4)
-  expect_vector_equal(fixef(fit)$muc, cf["c", ], tol = 1e-4)
+  expect_vector_equal(fixef_by_dpar(fit)$mub, cf["b", ], tol = 1e-4)
+  expect_vector_equal(fixef_by_dpar(fit)$muc, cf["c", ], tol = 1e-4)
 })
 
 test_that("categorical() equals multinomial() on the one-hot response", {
@@ -41,26 +41,28 @@ test_that("categorical() equals multinomial() on the one-hot response", {
   # one trial per row, so the multinomial coefficient is log(1) = 0 and
   # the two log-likelihoods are the same number, not merely proportional
   expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(logLik(fm))), 1e-8)
-  expect_vector_equal(unname(fixef(fit)$mub), unname(fixef(fm)$mu2),
+  expect_vector_equal(unname(fixef_by_dpar(fit)$mub),
+                      unname(fixef_by_dpar(fm)$mu2),
                       tol = 1e-6)
-  expect_vector_equal(unname(fixef(fit)$muc), unname(fixef(fm)$mu3),
+  expect_vector_equal(unname(fixef_by_dpar(fit)$muc),
+                      unname(fixef_by_dpar(fm)$mu3),
                       tol = 1e-6)
 })
 
 test_that("categorical() dpars follow the brms mu<Level> spelling", {
   dd <- sim_categorical(seed = 13)
   fit <- frm(bf(y ~ x), family = categorical(), data = dd)
-  expect_named(fixef(fit), c("mub", "muc"))
+  expect_named(fixef_by_dpar(fit), c("mub", "muc"))
   # the first level is the reference and gets no predictor
-  expect_false("mua" %in% names(fixef(fit)))
+  expect_false("mua" %in% names(fixef_by_dpar(fit)))
   # one category may take its own formula; the rest keep the main one
   f2 <- frm(bf(y ~ x, muc ~ z), family = categorical(), data = dd)
-  expect_named(fixef(f2)$mub, c("(Intercept)", "x"))
-  expect_named(fixef(f2)$muc, c("(Intercept)", "z"))
+  expect_named(fixef_by_dpar(f2)$mub, c("(Intercept)", "x"))
+  expect_named(fixef_by_dpar(f2)$muc, c("(Intercept)", "z"))
   # relevel and the reference moves with it
   dd$y2 <- factor(dd$y, levels = c("c", "a", "b"))
   f3 <- frm(bf(y2 ~ x), family = categorical(), data = dd)
-  expect_named(fixef(f3), c("mua", "mub"))
+  expect_named(fixef_by_dpar(f3), c("mua", "mub"))
   expect_equal(as.numeric(logLik(f3)), as.numeric(logLik(fit)),
                tolerance = 1e-6)
 })
@@ -70,7 +72,7 @@ test_that("categorical() accepts K= and character responses", {
   fit <- frm(bf(y ~ x), family = categorical(), data = dd)
   dd$yi <- as.integer(dd$y)
   fk <- frm(bf(yi ~ x), family = categorical(K = 3), data = dd)
-  expect_named(fixef(fk), c("mu2", "mu3"))
+  expect_named(fixef_by_dpar(fk), c("mu2", "mu3"))
   expect_equal(as.numeric(logLik(fk)), as.numeric(logLik(fit)),
                tolerance = 1e-6)
   fl <- frm(bf(y ~ x), family = categorical(levels = c("a", "b", "c")),
@@ -85,22 +87,28 @@ test_that("categorical() accepts K= and character responses", {
 test_that("categorical() fitted/predict give the n x K probabilities", {
   dd <- sim_categorical(seed = 15)
   fit <- frm(bf(y ~ x), family = categorical(), data = dd)
-  P <- fitted(fit)
+  P <- fitted(fit)[, "Estimate", ]
   expect_equal(dim(P), c(nrow(dd), 3L))
-  expect_equal(colnames(P), c("a", "b", "c"))
+  # brms names a category layer P(Y = <level>) on fitted(); the plain
+  # matrix frm_linpred() returns keeps the level names
+  expect_equal(colnames(P), paste0("P(Y = ", c("a", "b", "c"), ")"))
   expect_equal(unname(rowSums(P)), rep(1, nrow(dd)), tolerance = 1e-12)
-  expect_equal(P, predict(fit, type = "response"))
+  expect_equal(unname(P), unname(frm_linpred(fit, type = "response")))
+  expect_equal(colnames(frm_linpred(fit, type = "response")),
+               c("a", "b", "c"))
   # the probabilities are the family's own softmax of the two predictors
-  eb <- predict(fit, type = "link", dpar = "mub")
-  ec <- predict(fit, type = "link", dpar = "muc")
+  eb <- frm_linpred(fit, type = "link", dpar = "mub")
+  ec <- frm_linpred(fit, type = "link", dpar = "muc")
   den <- 1 + exp(eb) + exp(ec)
-  expect_equal(unname(P[, "a"]), unname(1 / den), tolerance = 1e-10)
-  expect_equal(unname(P[, "c"]), unname(exp(ec) / den), tolerance = 1e-10)
+  expect_equal(unname(P[, "P(Y = a)"]), unname(1 / den),
+               tolerance = 1e-10)
+  expect_equal(unname(P[, "P(Y = c)"]), unname(exp(ec) / den),
+               tolerance = 1e-10)
   nd <- data.frame(x = c(-1, 0, 1))
-  Pn <- predict(fit, newdata = nd, type = "response")
+  Pn <- frm_linpred(fit, newdata = nd, type = "response")
   expect_equal(dim(Pn), c(3L, 3L))
   expect_equal(unname(rowSums(Pn)), rep(1, 3), tolerance = 1e-12)
-  expect_error(predict(fit, type = "response", se.fit = TRUE),
+  expect_error(frm_linpred(fit, type = "response", se.fit = TRUE),
                "se.fit is not supported on the response scale for a")
 })
 
@@ -112,7 +120,7 @@ test_that("categorical() simulates factor levels and refuses residuals", {
   expect_false(is.ordered(s$sim_1))   # nominal, so no claimed order
   expect_equal(levels(s$sim_1), c("a", "b", "c"))
   # the draws follow the fitted probabilities
-  P <- fitted(fit)
+  P <- fitted(fit)[, "Estimate", ]
   expect_lt(max(abs(prop.table(table(s$sim_1)) - colMeans(P))), 0.06)
   expect_error(residuals(fit), "not defined for a categorical family")
 })
@@ -130,7 +138,7 @@ test_that("categorical() takes random effects and marginaleffects", {
   fit <- frm(bf(y ~ x + (1 | g)), family = categorical(), data = dd)
   vc <- varcorr_matrices(fit)
   expect_true(length(vc) >= 1L)
-  expect_equal(dim(fitted(fit)), c(nrow(dd), 3L))
+  expect_equal(dim(fitted(fit)), c(nrow(dd), 4L, 3L))
 
   skip_if_not_installed("marginaleffects")
   # a categorical outcome predicts a DISTRIBUTION per row, which
@@ -182,8 +190,8 @@ test_that("von_mises() matches a hand-rolled circular ML fit", {
   opt <- nlminb(obj$par, obj$fn, obj$gr,
                 control = list(rel.tol = 1e-12, eval.max = 1000))
   expect_lt(abs(as.numeric(logLik(fit)) - (-opt$objective)), 1e-6)
-  expect_vector_equal(fixef(fit)$mu, opt$par[1:2], tol = 1e-4)
-  expect_vector_equal(fixef(fit)$kappa, opt$par[3], tol = 1e-4)
+  expect_vector_equal(fixef_by_dpar(fit)$mu, opt$par[1:2], tol = 1e-4)
+  expect_vector_equal(fixef_by_dpar(fit)$kappa, opt$par[3], tol = 1e-4)
 })
 
 test_that("von_mises() matches circular::mle.vonmises on an intercept fit", {
@@ -195,9 +203,9 @@ test_that("von_mises() matches circular::mle.vonmises on an intercept fit", {
   ref <- circular::mle.vonmises(circular::circular(y))
   # mu comes back through the tan-half link; circular's kappa uses a
   # different root finder, so it agrees to about three digits
-  expect_equal(2 * atan(unname(fixef(fit)$mu)), as.numeric(ref$mu),
+  expect_equal(2 * atan(unname(fixef_by_dpar(fit)$mu)), as.numeric(ref$mu),
                tolerance = 1e-5)
-  expect_equal(exp(unname(fixef(fit)$kappa)), as.numeric(ref$kappa),
+  expect_equal(exp(unname(fixef_by_dpar(fit)$kappa)), as.numeric(ref$kappa),
                tolerance = 1e-2)
 })
 
@@ -209,7 +217,7 @@ test_that("von_mises() takes a distributional kappa", {
   y <- frmtmb:::rvon_mises(n, rep(0.4, n), kap)
   dd <- data.frame(x = x, y = y)
   fit <- frm(bf(y ~ 1, kappa ~ x), family = von_mises(), data = dd)
-  expect_equal(unname(fixef(fit)$kappa), c(0.6, 0.8), tolerance = 0.15)
+  expect_equal(unname(fixef_by_dpar(fit)$kappa), c(0.6, 0.8), tolerance = 0.15)
 
   nll_ref <- function(p) {
     m <- 2 * atan(p$b0)
@@ -231,9 +239,11 @@ test_that("von_mises() surface: link, fitted, simulate, validation", {
   fit <- frm(bf(y ~ x), family = von_mises(), data = dd)
   expect_equal(family(fit)$links$mu$name, "tan_half")
   # tan_half maps the whole line onto the circle
-  ft <- fitted(fit)
+  # von_mises has a MEAN direction, so fitted() is the plain n x 4
+  # summary and not a category array
+  ft <- fitted(fit)[, "Estimate"]
   expect_true(all(ft > -pi & ft <= pi))
-  expect_equal(unname(ft), unname(2 * atan(predict(fit, type = "link"))),
+  expect_equal(unname(ft), unname(2 * atan(frm_linpred(fit, type = "link"))),
                tolerance = 1e-10)
   s <- simulate(fit, nsim = 1, seed = 3)[[1]]
   expect_true(all(s > -pi & s <= pi))
@@ -336,7 +346,7 @@ test_that("cox() matches a hand-rolled M-spline PH likelihood exactly", {
                 control = list(rel.tol = 1e-12, eval.max = 2000,
                                iter.max = 2000))
   expect_lt(abs(as.numeric(logLik(fit)) - (-opt$objective)), 1e-6)
-  expect_vector_equal(fixef(fit)$mu, opt$par[1:2], tol = 1e-4)
+  expect_vector_equal(fixef_by_dpar(fit)$mu, opt$par[1:2], tol = 1e-4)
   e <- exp(c(0, opt$par[3:6]))
   expect_vector_equal(unname(cox_baseline(fit)), e / sum(e), tol = 1e-4)
 })
@@ -349,11 +359,11 @@ test_that("cox() agrees with survival::coxph on the hazard ratio", {
   # coxph leaves the baseline fully nonparametric while this family
   # spends five spline weights on it, so the agreement is close but not
   # exact; the hand-rolled test above is the exact one
-  expect_equal(unname(fixef(fit)$mu["x"]), unname(coef(ref)["x"]),
+  expect_equal(unname(fixef_by_dpar(fit)$mu["x"]), unname(coef(ref)["x"]),
                tolerance = 2e-2)
   # a bigger basis moves toward coxph rather than away from it
   f9 <- frm(bf(time | cens(cens) ~ x), family = cox(df = 9), data = dd)
-  expect_equal(unname(fixef(f9)$mu["x"]), unname(coef(ref)["x"]),
+  expect_equal(unname(fixef_by_dpar(f9)$mu["x"]), unname(coef(ref)["x"]),
                tolerance = 2e-2)
 })
 
@@ -364,7 +374,7 @@ test_that("cox() with no censoring is a plain flexible parametric PH fit", {
   dd <- data.frame(x = x,
                    time = stats::rexp(n, exp(-0.4 + 0.6 * x)))
   fit <- frm(bf(time ~ x), family = cox(), data = dd)
-  expect_equal(unname(fixef(fit)$mu["x"]), 0.6, tolerance = 0.15)
+  expect_equal(unname(fixef_by_dpar(fit)$mu["x"]), 0.6, tolerance = 0.15)
   s <- cox_baseline(fit)
   expect_equal(sum(s), 1, tolerance = 1e-12)
   expect_true(all(s > 0))
@@ -387,7 +397,7 @@ test_that("cox() frailty models come out of the Laplace approximation", {
              data = dd)
   sd_hat <- sqrt(as.numeric(varcorr_matrices(fit)[[1L]]))
   expect_equal(sd_hat, 0.8, tolerance = 0.3)
-  expect_equal(unname(fixef(fit)$mu["x"]), 0.7, tolerance = 0.2)
+  expect_equal(unname(fixef_by_dpar(fit)$mu["x"]), 0.7, tolerance = 0.2)
   # the frailty buys likelihood over the same model without it. ML puts
   # two of this baseline's five weights on the simplex boundary, so the
   # Hessian is singular in their softmax directions and the optimizer
@@ -404,7 +414,7 @@ test_that("cox() frailty models come out of the Laplace approximation", {
   ref <- survival::coxph(
     survival::Surv(time, ev) ~ x + frailty(g, distribution = "gaussian"),
     data = dd)
-  expect_equal(unname(fixef(fit)$mu["x"]), unname(coef(ref)["x"]),
+  expect_equal(unname(fixef_by_dpar(fit)$mu["x"]), unname(coef(ref)["x"]),
                tolerance = 0.1)
 })
 
@@ -424,10 +434,10 @@ test_that("cox() handles left and interval censoring, and refuses a mean", {
 
   fit <- frm(bf(time | cens(cens) ~ x), family = cox(), data = dd)
   expect_error(fitted(fit), "no mean on the response scale")
-  expect_error(predict(fit, type = "response"), "no mean on the response")
+  expect_error(frm_linpred(fit, type = "response"), "no mean on the response")
   expect_error(simulate(fit), "has no simulator")
   # the log hazard ratio is still there
-  expect_length(predict(fit, type = "link"), nrow(dd))
+  expect_length(frm_linpred(fit, type = "link"), nrow(dd))
 })
 
 test_that("cox() validation", {

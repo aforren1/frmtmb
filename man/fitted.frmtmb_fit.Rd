@@ -11,7 +11,15 @@
   scale = c("response", "linear"),
   resp = NULL,
   dpar = NULL,
-  ...
+  nlpar = NULL,
+  ndraws = NULL,
+  draw_ids = NULL,
+  sort = FALSE,
+  summary = TRUE,
+  robust = FALSE,
+  probs = c(0.025, 0.975),
+  ...,
+  allow_new_levels = FALSE
 )
 }
 \arguments{
@@ -35,38 +43,71 @@ first).}
 \item{dpar}{Which distributional parameter to report instead of the
 mean.}
 
+\item{nlpar}{brms's name for a non-linear parameter, which is a
+distributional parameter here: a synonym for \code{dpar}, and giving
+both is an error.}
+
+\item{ndraws, draw_ids, sort, summary, robust}{brms's arguments, in
+brms's positions so that a positional brms call asks the same
+question. Each needs posterior draws, and a maximum-likelihood fit
+has none, so each is refused by name with the reason and with the
+place it does work: \code{frmtmb.sample}'s \code{posterior_epred()}. The
+default of each is accepted and changes nothing.}
+
+\item{probs}{Probabilities of the two quantile columns. brms takes
+the posterior quantiles there; here they are the ends of the Wald
+interval at those probabilities.}
+
 \item{...}{Refused. An argument this method does not have is an
 error naming it, because a swallowed \code{re_formula} returned the
 conditional fit and said nothing.}
+
+\item{allow_new_levels}{Predict unseen grouping-factor levels at the
+population level instead of erroring, as in
+\code{\link[=frm_linpred]{frm_linpred()}}.}
 }
 \value{
-A numeric vector of expected responses; for an ordinal family
-(\code{cumulative()}, \code{sratio()}, \code{cratio()}, \code{acat()}) an \verb{n x K} matrix
-of category probabilities.
+An \verb{n x 4} matrix with the columns \code{Estimate}, \code{Est.Error}
+and one per entry of \code{probs}. For an ordinal or categorical family
+an \verb{n x 4 x K} array, the third dimension named \code{P(Y = k)}, which
+is brms's shape. The ROW dimnames are \code{NULL}, as brms's are; the
+data's row names are on \code{frm_linpred()} and \code{model.frame()}.
 }
 \description{
-The modelled response at the estimates, conditional on the
-random-effect modes. Equal to \code{predict(object, type = "response")} on
-the training data, for every family.
+brms's \code{fitted()}: a summary of the expected response, in the columns
+\code{Estimate}, \code{Est.Error}, \code{Q2.5} and \code{Q97.5}. The estimate is the
+modelled response at the estimates, conditional on the random-effect
+modes, which is \code{frm_linpred(object, type = "response")} on the
+training data for every family.
 }
-\section{Arguments brms has and this does not}{
+\details{
+A maximum-likelihood fit has no draws to summarize, so \code{Est.Error} is
+the delta-method standard error \code{\link[=frm_linpred]{frm_linpred()}} reports for the same
+quantity, and the \code{Q} columns are the Wald interval at those
+probabilities. The interval is around the EXPECTED response and
+carries no observation noise; \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} is the
+predictive interval that does.
 
-\code{fitted.brmsfit()} summarizes posterior draws, so it also takes
-\code{ndraws}, \code{draw_ids}, \code{sort}, \code{summary}, \code{robust} and \code{probs}. A
-maximum likelihood fit has no draws to thin or summarize, so each of
-those is refused by name and the message says where the argument does
-work: \code{frmtmb.sample}'s \code{posterior_epred()}. \code{nlpar} is refused too;
-a non-linear parameter is reached through \code{dpar}.
+A predictor whose standard error this package cannot produce, such
+as a nonlinear body or a structured likelihood, reports \code{NA} in
+\code{Est.Error} and in the \code{Q} columns rather than a number it does not
+have. The estimate is unaffected.
 }
-
 \section{Ordinal responses}{
 
-An ordinal response has no mean, so \code{fitted()} returns the \verb{n x K}
-matrix of category probabilities, with the response's own factor
-levels as column names and rows summing to one - the brms \code{fitted()}
-convention. \code{cs()} terms are honored. The latent linear predictor,
-which is where the coefficients live and where \code{se.fit} is available,
-is \code{predict(object, type = "link")}.
+An ordinal response has no mean, so \code{fitted()} summarizes the \code{K}
+category probabilities, with rows of \code{Estimate} summing to one,
+which is the brms \code{fitted()} convention. \code{cs()} terms are honored.
+The standard error of a category probability is the
+finite-difference delta method
+over the whole outer parameter vector, because the probability
+depends on the thresholds and the \code{cs()} coefficients as well as on
+the linear predictor. That route covers the OUTER parameters only, so
+on a mixed ordinal fit it does not carry the conditional variance of
+the random-effect modes, which the scalar route does: \code{se.fit} reads
+the joint precision and this reads \code{vcov(full = TRUE)}. The estimates
+are unaffected. The latent linear predictor, which is where the
+coefficients live, is \code{frm_linpred(object, type = "link")}.
 }
 
 \examples{
@@ -74,9 +115,13 @@ set.seed(1)
 dd <- data.frame(x = rnorm(100))
 dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x))
 fit <- frm(bf(y ~ x) + poisson(), data = dd)
-max(abs(fitted(fit) - predict(fit, type = "response")))
+head(fitted(fit))
+max(abs(fitted(fit)[, "Estimate"] -
+          frm_linpred(fit, type = "response")))
 }
 \seealso{
-\code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}}, \code{\link[=residuals.frmtmb_fit]{residuals.frmtmb_fit()}},
-\link{frmtmb-scales} for which scale each method reports
+\code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} for the predictive interval,
+\code{\link[=frm_linpred]{frm_linpred()}} for the linear predictor,
+\code{\link[=residuals.frmtmb_fit]{residuals.frmtmb_fit()}}, and \link{frmtmb-scales} for which scale each
+method reports
 }

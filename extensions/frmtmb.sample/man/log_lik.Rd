@@ -18,6 +18,8 @@ log_lik(object, ...)
   combine = TRUE,
   add_point_estimate = FALSE,
   cores = NULL,
+  point_estimate = NULL,
+  ndraws_point_estimate = 1,
   ...
 )
 }
@@ -46,6 +48,10 @@ observation) and \code{add_point_estimate = TRUE} are refused by name;
 \code{combine = FALSE} is accepted on a univariate model, where there is
 nothing to combine; \code{cores} is accepted and unused, because the
 matrix is built in this process.}
+
+\item{point_estimate, ndraws_point_estimate}{brms's arguments:
+collapse the draws to their \code{"mean"} or \code{"median"} first and use
+that one parameter vector, repeated \code{ndraws_point_estimate} times.}
 }
 \value{
 A numeric matrix with one row per draw and one column per

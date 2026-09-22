@@ -17,7 +17,7 @@ test_that("summary, fixef and logLik work", {
   f <- sp_surface_fit()$fit
   expect_s3_class(f, "frmtmb_fit")
   expect_no_error(summary(f))
-  fx <- frmtmb::fixef(f)
+  fx <- frmtmb::fixef_by_dpar(f)
   expect_setequal(names(fx), c("mu", "gamma1", "gamma2"))
   expect_true(is.finite(as.numeric(stats::logLik(f))))
   expect_true(is.finite(stats::AIC(f)))
@@ -28,17 +28,17 @@ test_that("predict returns the spline coefficients, not a mean", {
   skip_if_not_installed("flexsurv")
   o <- sp_surface_fit()
   f <- o$fit
-  p <- stats::predict(f, type = "link")
+  p <- frm_linpred(f, type = "link")
   expect_length(p, nrow(o$dat))
   expect_true(all(is.finite(p)))
   # every gamma is reachable by name
   for (dp in c("mu", "gamma1", "gamma2")) {
-    v <- stats::predict(f, type = "link", dpar = dp)
+    v <- frm_linpred(f, type = "link", dpar = dp)
     expect_true(all(is.finite(v)))
   }
   # the response scale has no meaning for this family and says so
   expect_error(stats::fitted(f), "royston_parmar")
-  expect_error(stats::predict(f, type = "response"), "royston_parmar")
+  expect_error(frm_linpred(f, type = "response"), "royston_parmar")
 })
 
 test_that("predict on newdata works and standard errors come with it", {
@@ -46,7 +46,7 @@ test_that("predict on newdata works and standard errors come with it", {
   f <- sp_surface_fit()$fit
   nd <- data.frame(group = factor(c("Good", "Poor"),
                                   levels = c("Good", "Medium", "Poor")))
-  p <- stats::predict(f, newdata = nd, type = "link", se.fit = TRUE)
+  p <- frm_linpred(f, newdata = nd, type = "link", se.fit = TRUE)
   expect_length(p$fit, 2L)
   expect_true(all(p$se.fit > 0))
   # a worse prognosis is a higher log cumulative hazard
@@ -86,8 +86,8 @@ test_that("par_template and set_prior reach the gamma dpars", {
                     family = royston_parmar(df = 2), data = o$dat,
                     prior = frmtmb::set_prior("normal(0, 0.05)", class = "b",
                                               dpar = "mu"))
-  expect_lt(abs(unlist(frmtmb::fixef(f2))[["mu.groupPoor"]]),
-            abs(unlist(frmtmb::fixef(o$fit))[["mu.groupPoor"]]))
+  expect_lt(abs(unlist(frmtmb::fixef_by_dpar(f2))[["mu.groupPoor"]]),
+            abs(unlist(frmtmb::fixef_by_dpar(o$fit))[["mu.groupPoor"]]))
 })
 
 test_that("a smooth reaches a spline coefficient", {

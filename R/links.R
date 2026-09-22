@@ -161,7 +161,7 @@
 #'
 #' Wherever a link is taken, a list is taken instead of a name. It must
 #' carry `name`, `linkfun`, `linkinv` and `mu_eta`, the derivative of
-#' `linkinv`, which `predict(se.fit = TRUE)` and every delta-method
+#' `linkinv`, which `frm_linpred(se.fit = TRUE)` and every delta-method
 #' interval read. `logit_eta` and `log_eta` are optional; supply one
 #' only if it is exact.
 #'
@@ -180,7 +180,8 @@
 #' d$y <- rbinom(80, 1, pnorm(0.4 + 0.8 * d$x))
 #'
 #' # the mean on a probit rather than a logit
-#' fixef(frm(bf(y ~ x), family = bernoulli(link = "probit"), data = d))$mu
+#' fixef_by_dpar(frm(bf(y ~ x), family = bernoulli(link = "probit"),
+#'                   data = d))$mu
 #'
 #' # a link on a parameter that is not the mean
 #' d$z <- rnorm(80, 1 + d$x, exp(0.2 + 0.3 * d$x))
@@ -446,7 +447,7 @@ link_required_fields <- c("name", "linkfun", "linkinv", "mu_eta")
 #' resolved link list passes through, after the four required fields are
 #' checked: a custom link used to be accepted untouched, and one missing
 #' `mu_eta` fit, summarized and predicted happily before failing inside
-#' `predict(se.fit = TRUE)`, a call site with nothing to say about the
+#' `frm_linpred(se.fit = TRUE)`, a call site with nothing to say about the
 #' family that caused it. `dpar` names that family slot when there is
 #' one. An unknown name errors and lists the available links.
 #'
@@ -460,7 +461,7 @@ get_link <- function(name, dpar = NULL, family = NULL) {
       frm_stop("The custom link", where, " has no ",
                paste0("`", absent, "`", collapse = ", "),
                ". A link object needs name, linkfun, linkinv and mu_eta ",
-               "(the derivative of linkinv, which predict(se.fit = TRUE) ",
+               "(the derivative of linkinv, which frm_linpred(se.fit = TRUE) ",
                "and every delta-method interval read)", call. = FALSE)
     }
     bad <- Filter(function(f) !is.function(name[[f]]),

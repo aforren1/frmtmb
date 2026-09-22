@@ -68,7 +68,7 @@ test_that("a family with no ndt_group carries one bound, in the link", {
   expect_identical(fam[["links"]][["ndt"]][["name"]], "scaled_logit")
   # `ndt` is a TIME on the response scale, so the two agree
   p <- as.numeric(suppressWarnings(
-    stats::predict(fit, dpar = "ndt", type = "response")))
+    frm_linpred(fit, dpar = "ndt", type = "response")))
   expect_equal(as.numeric(suppressWarnings(frmtmb.eam::ndt_time(fit))), p)
   expect_true(all(p < min(s$rt)))
   # no per-row bound is added to the addition-term values at all
@@ -96,10 +96,10 @@ test_that("ndt_group makes the bound each group's own fastest response", {
   fl <- fit$frame$aterm_values[["rt"]][["ndt_floor"]]
   expect_length(fl, nrow(s))
   expect_equal(fl, own[as.integer(s$grp)])
-  # predict() reports the FRACTION; ndt_time() reports the time
+  # frm_linpred() reports the FRACTION; ndt_time() reports the time
   one <- rlddm_one_row_per(s)
   fr <- as.numeric(suppressWarnings(
-    stats::predict(fit, newdata = one, dpar = "ndt", type = "response")))
+    frm_linpred(fit, newdata = one, dpar = "ndt", type = "response")))
   tm <- as.numeric(suppressWarnings(frmtmb.eam::ndt_time(fit, newdata = one)))
   expect_true(all(fr > 0 & fr < 1))
   expect_equal(tm, fr * own)
@@ -126,7 +126,7 @@ test_that("the per-group bound fits a group the global bound cannot", {
                 bias = 0.5),
              family = rlddm(subject = id, trial = trial), data = s)
   hat_g <- as.numeric(suppressWarnings(
-    stats::predict(glob, newdata = one, dpar = "ndt", type = "response")))
+    frm_linpred(glob, newdata = one, dpar = "ndt", type = "response")))
   hat_p <- as.numeric(suppressWarnings(
     frmtmb.eam::ndt_time(grp, newdata = one)))
   err_g <- abs(hat_g - truth) / truth

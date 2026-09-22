@@ -106,13 +106,13 @@ setup	frmtmb	standata:743		FALSE	FALSE	object 'bform' not found		FALSE
 assert	frmtmb	standata:744	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: object 'bform' not found		FALSE
 assert	frmtmb	standata:745	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: object 'bform' not found		FALSE
 setup	frmtmb	standata:926		TRUE	FALSE			TRUE
-setup	frmtmb	standata:927		FALSE	FALSE	'.' in formula and no 'data' argument		FALSE
-assert	frmtmb	standata:928	defect	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: '.' in formula and no 'data' argument		FALSE
+setup	frmtmb	standata:927		FALSE	FALSE	A formula with `.` is not supported: frmtmb does not expand `.` into the columns of `data`. Write the predictors out, e.g. y ~ x1 + x2		FALSE
+assert	frmtmb	standata:928	defect	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: A formula with `.` is not supported: frmtmb does not expand `.` into the columns of `data`. Write the predictors out, e.g. y ~ x1 + x2		FALSE
 setup	frmtmb	standata:969		TRUE	FALSE			TRUE
-assert	frmtmb	standata:970	cannot transfer	FALSE	TRUE	ERROR: object 'intercept' not found		FALSE
-assert	frmtmb	standata:974	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: ERROR: object 'intercept' not found		FALSE
-setup	frmtmb	standata:975		FALSE	FALSE	object 'Intercept' not found		FALSE
-assert	frmtmb	standata:976	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: object 'Intercept' not found		FALSE
+assert	frmtmb	standata:970	cannot transfer	FALSE	FALSE	ERROR: The model uses `intercept`, which is not a column of `data` and not an object that R finds from the formula. Add the column to `data` or correct the name		FALSE
+assert	frmtmb	standata:974	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: ERROR: The model uses `intercept`, which is not a column of `data` and not an object that R finds from the formula. Add the column to `data` or correct the name		FALSE
+setup	frmtmb	standata:975		FALSE	FALSE	The model uses `Intercept`, which is not a column of `data` and not an object that R finds from the formula. Add the column to `data` or correct the name		FALSE
+assert	frmtmb	standata:976	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: The model uses `Intercept`, which is not a column of `data` and not an object that R finds from the formula. Add the column to `data` or correct the name		FALSE
 setup	frmtmb	standata:1045		TRUE	FALSE			TRUE
 setup	frmtmb	standata:1046		FALSE	FALSE	Addition term `rate()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()		FALSE
 assert	frmtmb	standata:1047	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: Addition term `rate()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own 		FALSE

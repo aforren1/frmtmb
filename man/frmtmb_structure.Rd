@@ -92,7 +92,7 @@ per-OBSERVATION quantity does not exist. Ignored when \code{loglik} is
 
 \item{fitted_mean, fitted_var}{\verb{function(fit, block)} giving the
 conditional mean and variance of each row GIVEN the whole observed
-response, for \code{\link[=fitted]{fitted()}}, \code{predict(type = "response")} on the
+response, for \code{\link[=fitted]{fitted()}}, \code{frm_linpred(type = "response")} on the
 training data, and pearson residuals. \code{NULL} means "use the rowwise
 family mean", which is what a group-level mixture wants. A family
 with no mean supplies a function that stops. Both run at the
@@ -263,7 +263,7 @@ family that keeps its rowwise likelihood), every name defaults to
 \item{\code{quadrature}}{\verb{quadrature =} other than the Laplace default.}
 \item{\code{profile}}{\code{frmtmb_control(profile = TRUE)}.}
 \item{\code{newdata_response}}{\code{predict(newdata =, type = "response")}.}
-\item{\code{se_fit_response}}{\code{predict(se.fit = TRUE, type = "response")}.}
+\item{\code{se_fit_response}}{\code{frm_linpred(se.fit = TRUE, type = "response")}.}
 \item{\code{re_form}}{\verb{re_formula =} in \code{predict()} and \code{simulate()}.}
 \item{\code{conditional_effects}}{\code{\link[=conditional_effects]{conditional_effects()}}.}
 \item{\code{osa}}{\code{residuals(type = "osa")}.}

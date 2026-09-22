@@ -201,7 +201,8 @@ test_that("mo() codes match brms Xmo and the simplex dimension matches Jmo", {
   dd$oinc <- factor(dd$inc, ordered = TRUE)
   sd <- brms_standata(brms::bf(yg ~ mo(oinc)), data = dd, family = gaussian())
   fr <- frm(bf(yg ~ mo(oinc)) + gaussian(), data = dd, dry_run = "frame")
-  expect_vector_equal(fr$linpreds[["yg.mu"]]$mo[[1]]$codes, sd$Xmo_1, tol = 1e-12)
+  expect_vector_equal(fr$linpreds[["yg.mu"]]$mo[[1]]$codes, sd$Xmo_1,
+                      tol = 1e-12)
 })
 
 test_that("exact gp() matches brms's unique-position grouping", {
@@ -467,7 +468,8 @@ test_that("brms get_prior agrees on which special terms exist", {
   expect_length(frm(bf(yg ~ mo(inc) + z) + gaussian(), data = dd,
                     dry_run = "frame")$linpreds[["yg.mu"]]$mo, 1)
 
-  expect_true(all(c("sdgp", "lscale") %in% classes(brms::bf(yg ~ gp(x, k = 8)))))
+  expect_true(all(c("sdgp", "lscale") %in% classes(brms::bf(yg ~ gp(x,
+                                                                    k = 8)))))
   expect_length(frm(bf(yg ~ gp(x, k = 8)) + gaussian(), data = dd,
                     dry_run = "frame")$linpreds[["yg.mu"]]$gps, 1)
 
@@ -524,7 +526,7 @@ test_that("distributional gaussian ML matches the brms posterior mode", {
                           as_vector = TRUE, seed = 1)
 
   fit <- frm(bf(y ~ x + z, sigma ~ x) + gaussian(), data = dd)
-  fe <- fixef(fit)
+  fe <- fixef_by_dpar(fit)
   expect_vector_equal(op$par[["b_Intercept"]], fe$mu[["(Intercept)"]],
                       tol = 1e-4)
   expect_vector_equal(op$par[["b[1]"]], fe$mu[["x"]], tol = 1e-4)
@@ -555,7 +557,7 @@ test_that("mo() ML matches brms's monotonic likelihood (vignette model)", {
   sf <- rstan::sampling(mod, data = sdat, chains = 0)
 
   fit <- frm(bf(y ~ mo(inc) + z) + gaussian(), data = dm)
-  fe <- fixef(fit)$mu
+  fe <- fixef_by_dpar(fit)$mu
   simplex <- exp(c(0, fit$estimates$zeta1))
   simplex <- simplex / sum(simplex)
   # brms centers X but not Xmo, so only the intercept needs translating
@@ -564,7 +566,7 @@ test_that("mo() ML matches brms's monotonic likelihood (vignette model)", {
     Intercept = as.numeric(fe[["(Intercept)"]] + mean(dm$z) * fe[["z"]]),
     bsp = array(fe[["moinc"]], 1),
     simo_1 = simplex,
-    sigma = exp(fixef(fit)$sigma[[1]])
+    sigma = exp(fixef_by_dpar(fit)$sigma[[1]])
   )
   lp <- rstan::log_prob(sf, rstan::unconstrain_pars(sf, bpars),
                         adjust_transform = FALSE, gradient = FALSE)

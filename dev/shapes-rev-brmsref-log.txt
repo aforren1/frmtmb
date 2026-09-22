@@ -1,0 +1,16 @@
+===  gaussian  ===
+  elapsed  68.9  s
+===  binomial  ===
+  elapsed  65.6  s
+===  mixed  ===
+  elapsed  68.3  s
+===  ordinal  ===
+  elapsed  59.3  s
+===  distreg  ===
+  elapsed  74.2  s
+===  multivar  ===
+Setting 'rescor' to TRUE by default for this model
+  elapsed  91  s
+Warning message:
+In the future, 'rescor' will be set to FALSE by default for all models. It is thus recommended to explicitely set 'rescor' via 'set_rescor' instead of using the default. 
+wrote dev/shapes-rev-brmsref.rds with  6  models

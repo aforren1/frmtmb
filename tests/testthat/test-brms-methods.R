@@ -2,7 +2,7 @@
 #
 # The log-density tier in test-brms-likelihood.R proves that frmtmb's
 # objective is the Stan program's log density at a point. It says
-# nothing about fitted(), predict(), ranef(), conditional_effects() and
+# nothing about fitted(), frm_linpred(), ranef(), conditional_effects() and
 # the rest, and until this file nothing in the repository compared any
 # of them against a brms fit: every other test that mentions brms beside
 # a method is calling frmtmb's method next to a brms FORMULA object.
@@ -44,7 +44,7 @@ test_that("the mechanism: brms draws ARE frmtmb's estimates", {
 
   # The two claims the plan asks for before any comparison runs.
   pe <- brms::posterior_epred(s$brmsfit)
-  expect_exact_num(pe[1, ], fitted(s$fit),
+  expect_exact_num(pe[1, ], fitted(s$fit)[, "Estimate"],
                    label = "posterior_epred vs fitted, row 1")
 
   ll <- brms::log_lik(s$brmsfit)
@@ -183,22 +183,23 @@ test_that("posterior_epred is frmtmb's fitted() on the response scale", {
     s <- brms_shape(nm)
     pe <- brms::posterior_epred(s$brmsfit)
     b <- if (length(dim(pe)) == 3L) pe[1, , ] else pe[1, ]
-    expect_exact_num(b, as.matrix(fitted(s$fit)),
+    # both packages' fitted() are brms's summary: n x 4, or n x 4 x K
+    # on a category-valued response, so the Estimate layer is read the
+    # same way on each side
+    est_of <- function(x) {
+      if (length(dim(x)) == 3L) x[, "Estimate", ] else x[, "Estimate"]
+    }
+    ff <- est_of(fitted(s$fit))
+    expect_exact_num(b, as.matrix(ff),
                      label = paste("posterior_epred vs fitted,", nm))
     # brms's own fitted() is the summary of the same quantity, so its
     # Estimate column has to land on the same numbers
-    bf <- fitted(s$brmsfit)
-    est <- if (length(dim(bf)) == 3L) {
-      bf[, "Estimate", ]
-    } else {
-      bf[, "Estimate"]
-    }
-    expect_exact_num(est, as.matrix(fitted(s$fit)),
+    expect_exact_num(est_of(fitted(s$brmsfit)), as.matrix(ff),
                      label = paste("brms fitted Estimate vs fitted,", nm))
   }
 })
 
-test_that("posterior_linpred is frmtmb's predict(type = 'link')", {
+test_that("posterior_linpred is frmtmb's frm_linpred(type = 'link')", {
   skip_unless_brms_fit()
   skip_if_not_installed("lme4")
   skip_if_not_installed("MASS")
@@ -207,7 +208,7 @@ test_that("posterior_linpred is frmtmb's predict(type = 'link')", {
     s <- brms_shape(nm)
     pl <- brms::posterior_linpred(s$brmsfit)
     b <- if (length(dim(pl)) == 3L) pl[1, , ] else pl[1, ]
-    expect_exact_num(b, as.matrix(predict(s$fit, type = "link")),
+    expect_exact_num(b, as.matrix(frm_linpred(s$fit, type = "link")),
                      label = paste("posterior_linpred vs link,", nm))
   }
 })
@@ -219,24 +220,24 @@ test_that("a multi-column linear predictor is one vector to frmtmb", {
   # than one column per observation, as a cs() term's thresholds and a
   # categorical family's K - 1 categories both do, brms's
   # posterior_linpred() returns draws x N x columns while frmtmb's
-  # predict(type = "link") returns the N-vector of the mu predictor
-  # alone. The extra columns are reachable through predict(dpar = ) for
+  # frm_linpred(type = "link") returns the N-vector of the mu predictor
+  # alone. The extra columns are reachable through frm_linpred(dpar = ) for
   # the categorical case and are not reachable at all for cs().
   s <- brms_shape("r13")
   pl <- brms::posterior_linpred(s$brmsfit)
   expect_identical(dim(pl), c(10L, 300L, 2L))
-  expect_length(as.numeric(predict(s$fit, type = "link")), 300L)
+  expect_length(as.numeric(frm_linpred(s$fit, type = "link")), 300L)
   # the columns ARE frmtmb's per-dpar link predictions
   for (k in seq_len(2L)) {
     dp <- paste0("mu", k + 1L)
-    expect_exact_num(pl[1, , k], predict(s$fit, type = "link", dpar = dp),
+    expect_exact_num(pl[1, , k], frm_linpred(s$fit, type = "link", dpar = dp),
                      label = paste("categorical linpred column", dp))
   }
 
   s2 <- brms_shape("r12e")
   expect_identical(dim(brms::posterior_linpred(s2$brmsfit)),
                    c(10L, 300L, 2L))
-  expect_length(as.numeric(predict(s2$fit, type = "link")), 300L)
+  expect_length(as.numeric(frm_linpred(s2$fit, type = "link")), 300L)
 })
 
 test_that("transform = TRUE is the inverse link, not always the mean", {
@@ -245,7 +246,7 @@ test_that("transform = TRUE is the inverse link, not always the mean", {
   skip_if_not_installed("MASS")
 
   # brms's posterior_linpred(transform = TRUE) applies the mu link's
-  # inverse and stops there. frmtmb's predict(type = "response") is the
+  # inverse and stops there. frmtmb's frm_linpred(type = "response") is the
   # MEAN. For most families those are the same number, and where they
   # are not, the difference is the family's own definition rather than
   # a disagreement: trials(n) multiplies by n, zero inflation
@@ -254,7 +255,7 @@ test_that("transform = TRUE is the inverse link, not always the mean", {
     s <- brms_shape(nm)
     plr <- brms::posterior_linpred(s$brmsfit, transform = TRUE)
     br <- if (length(dim(plr)) == 3L) plr[1, , ] else plr[1, ]
-    expect_exact_num(br, as.matrix(predict(s$fit, type = "response")),
+    expect_exact_num(br, as.matrix(frm_linpred(s$fit, type = "response")),
                      label = paste("linpred(transform) vs response,", nm))
   }
 
@@ -262,7 +263,7 @@ test_that("transform = TRUE is the inverse link, not always the mean", {
   # frmtmb's response scale is the expected COUNT, so the ratio is n
   s <- brms_shape("r15")
   p <- brms::posterior_linpred(s$brmsfit, transform = TRUE)[1, ]
-  expect_exact_num(p * s$data$n, predict(s$fit, type = "response"),
+  expect_exact_num(p * s$data$n, frm_linpred(s$fit, type = "response"),
                    label = "binomial response scale is trials * p")
 })
 
@@ -276,7 +277,7 @@ test_that("each dpar's epred is frmtmb's response-scale prediction", {
     for (dp in brms_dpars_of(s)) {
       pe <- brms::posterior_epred(s$brmsfit, dpar = dp)
       b <- if (length(dim(pe)) == 3L) pe[1, , ] else pe[1, ]
-      expect_exact_num(b, as.matrix(predict(s$fit, type = "response",
+      expect_exact_num(b, as.matrix(frm_linpred(s$fit, type = "response",
                                             dpar = dp)),
                        label = paste0("epred dpar=", dp, ", ", nm))
     }
@@ -294,7 +295,7 @@ test_that("a dpar's linpred agrees where the dpar has a predictor", {
       if (brms_dpar_is_scalar(s, dp)) next
       pl <- brms::posterior_linpred(s$brmsfit, dpar = dp)
       bl <- if (length(dim(pl)) == 3L) pl[1, , ] else pl[1, ]
-      expect_exact_num(bl, as.matrix(predict(s$fit, type = "link",
+      expect_exact_num(bl, as.matrix(frm_linpred(s$fit, type = "link",
                                              dpar = dp)),
                        label = paste0("linpred dpar=", dp, ", ", nm))
     }
@@ -315,8 +316,8 @@ test_that("se() leaves a residual sigma both packages report as absent", {
   expect_true(all(brms::posterior_epred(s$brmsfit, dpar = "sigma") == 0))
   # the coefficient is still the mapped-out link-scale zero: the repair
   # is at the reporting layer, not in the fit
-  expect_identical(unname(fixef(s$fit)$sigma[["(Intercept)"]]), 0)
-  expect_exact_num(predict(s$fit, type = "response", dpar = "sigma"),
+  expect_identical(unname(fixef_by_dpar(s$fit)$sigma[["(Intercept)"]]), 0)
+  expect_exact_num(frm_linpred(s$fit, type = "response", dpar = "sigma"),
                    rep(0, nrow(s$data)),
                    label = "frmtmb reports the unused sigma as 0")
   expect_identical(unname(sigma(s$fit)), 0)
@@ -337,8 +338,8 @@ test_that("a mixture's theta is the softmax on the response scale", {
   s <- brms_shape("r17")
   expect_identical(family(s$fit)$links$theta1$name, "identity")
 
-  eta <- as.numeric(predict(s$fit, type = "link", dpar = "theta1"))
-  rv <- as.numeric(predict(s$fit, type = "response", dpar = "theta1"))
+  eta <- as.numeric(frm_linpred(s$fit, type = "link", dpar = "theta1"))
+  rv <- as.numeric(frm_linpred(s$fit, type = "response", dpar = "theta1"))
   be <- brms::posterior_epred(s$brmsfit, dpar = "theta1")[1, ]
   expect_exact_num(rv, be, label = "frmtmb theta1 IS brms's theta1")
   expect_exact_num(be, plogis(eta), label = "both are softmax(eta)")
@@ -361,7 +362,7 @@ test_that("a mixture's theta is the softmax on the response scale", {
 
   # frmtmb refuses theta2 by name, listing what it has; brms answers
   # with the reference component's fixed zero predictor
-  expect_error(predict(s$fit, type = "response", dpar = "theta2"),
+  expect_error(frm_linpred(s$fit, type = "response", dpar = "theta2"),
                "Unknown dpar")
   expect_true(all(brms::posterior_epred(s$brmsfit, dpar = "theta2") == 0))
 })
@@ -398,7 +399,7 @@ test_that("a dpar with no predictor puts linpred on different scales", {
   # DIVERGENCE, and a narrow one. brms declares an unmodeled dpar as a
   # scalar on its NATURAL scale, so posterior_linpred(dpar = ) hands
   # back that scalar: there is no linear predictor for it to be the link
-  # scale of. frmtmb's predict(type = "link", dpar = ) returns the link
+  # scale of. frmtmb's frm_linpred(type = "link", dpar = ) returns the link
   # scale for every dpar alike, so it returns log(sigma).
   #
   # posterior_epred(dpar = ) agrees exactly on both kinds of dpar, so
@@ -407,18 +408,18 @@ test_that("a dpar with no predictor puts linpred on different scales", {
   expect_true(brms_dpar_is_scalar(s, "sigma"))
 
   nat <- brms::posterior_linpred(s$brmsfit, dpar = "sigma")[1, ]
-  expect_exact_num(nat, predict(s$fit, type = "response", dpar = "sigma"),
+  expect_exact_num(nat, frm_linpred(s$fit, type = "response", dpar = "sigma"),
                    label = "brms linpred of a scalar dpar is its value")
-  expect_exact_num(log(nat), predict(s$fit, type = "link", dpar = "sigma"),
+  expect_exact_num(log(nat), frm_linpred(s$fit, type = "link", dpar = "sigma"),
                    label = "frmtmb link of a scalar dpar is its log")
-  expect_gt(max(abs(nat - as.numeric(predict(s$fit, type = "link",
+  expect_gt(max(abs(nat - as.numeric(frm_linpred(s$fit, type = "link",
                                              dpar = "sigma")))), 0.1)
 
   # and where the dpar IS modeled the two spellings coincide
   s1 <- brms_shape("r1")
   expect_false(brms_dpar_is_scalar(s1, "sigma"))
   expect_exact_num(brms::posterior_linpred(s1$brmsfit, dpar = "sigma")[1, ],
-                   predict(s1$fit, type = "link", dpar = "sigma"),
+                   frm_linpred(s1$fit, type = "link", dpar = "sigma"),
                    label = "linpred of a modeled dpar")
 })
 
@@ -505,8 +506,9 @@ test_that("ranef and coef key their lists the same way, as brms does", {
   expect_identical(dimnames(coef(s$brmsfit)$Subject)[[3]],
                    c("Intercept", "Days", "sigma_Intercept",
                      "sigma_Days"))
+  # frmtmb's two carry brms's names since the shapes lane
   expect_identical(colnames(coef(s$fit)$Subject),
-                   c("(Intercept)", "Days"))
+                   c("Intercept", "Days"))
   const <- coef(s$brmsfit)$Subject[, "Estimate", "sigma_Intercept"]
   expect_lt(diff(range(const)), 1e-12)
 })
@@ -529,11 +531,12 @@ test_that("coef() is the same generic for two different contracts", {
       # a GLM-style fit: the mu vector, as stats::coef() gives it
       expect_type(got, "double")
       expect_null(dim(got))
-      expect_exact_num(got, fixef(s$fit)$mu, label = "coef() is fixef mu")
+      expect_exact_num(got, fixef_by_dpar(s$fit)$mu,
+                       label = "coef() is fixef mu")
     } else if (identical(three[[nm]], "list")) {
       # a second modeled dpar: the whole fixef() list
       expect_type(got, "list")
-      expect_setequal(names(got), names(fixef(s$fit)))
+      expect_setequal(names(got), names(fixef_by_dpar(s$fit)))
     } else {
       # random effects present: brms's own quantity, per group
       expect_type(got, "list")
@@ -594,7 +597,8 @@ test_that("brms's ordinary residual is frmtmb's response residual", {
     rb <- suppressWarnings(residuals(s$brmsfit, method = "posterior_epred",
                                      type = "ordinary", summary = FALSE))
     b <- if (length(dim(rb)) == 3L) rb[1, , ] else rb[1, ]
-    expect_exact_num(b, as.matrix(residuals(s$fit, type = "response")),
+    expect_exact_num(b, as.matrix(residuals(s$fit,
+                                            type = "response")[, "Estimate"]),
                      label = paste("ordinary vs response residual,", nm))
   }
 })
@@ -611,10 +615,10 @@ test_that("the pearson residuals divide by different quantities", {
   s <- brms_shape("r1")
   ord <- residuals(s$brmsfit, method = "posterior_epred",
                    type = "ordinary", summary = FALSE)[1, ]
-  rf <- as.numeric(residuals(s$fit, type = "pearson"))
+  rf <- as.numeric(residuals(s$fit, type = "pearson")[, "Estimate"])
 
   # frmtmb's denominator IS the model's sigma, to the last bit
-  sig <- as.numeric(predict(s$fit, type = "response", dpar = "sigma"))
+  sig <- as.numeric(frm_linpred(s$fit, type = "response", dpar = "sigma"))
   expect_exact_num(rf, ord / sig, label = "frmtmb pearson denominator")
 
   # brms's is not, at any draw count a test can afford, and the gap
@@ -633,25 +637,26 @@ test_that("the pearson residuals divide by different quantities", {
 })
 
 # ---------------------------------------------------------------------
-# predict(): the same word for two different quantities
+# frm_linpred(): the same word for two different quantities
 # ---------------------------------------------------------------------
 
-test_that("predict() is not the same estimand in the two packages", {
+test_that("frm_linpred() is fitted(), not brms's predict()", {
   skip_unless_brms_fit()
 
-  # DIVERGENCE. brms's predict() summarizes posterior_predict(), so it
-  # is a DRAW from the response distribution and its point column is a
-  # Monte Carlo mean. frmtmb's predict(type = "response") is the
-  # conditional mean itself, which is brms's fitted(). A ported script
-  # that calls predict(fit) gets frmtmb's fitted() semantics and loses
-  # the predictive spread. See dev/brms-methods-tests.md.
+  # brms's predict() summarizes posterior_predict(), so it is a DRAW
+  # from the response distribution and its point column is a Monte Carlo
+  # mean. frmtmb's predict() matches that since 2.6d; its
+  # frm_linpred(type = "response") is the conditional mean itself, which
+  # is brms's fitted(). A script that wants the old frmtmb predict()
+  # calls frm_linpred(). See dev/brms-methods-tests.md.
   s <- brms_shape("r1")
 
-  # what frmtmb's predict() actually is
-  expect_exact_num(predict(s$fit, type = "response"), fitted(s$fit),
-                   label = "frmtmb predict(response) is fitted()")
-  expect_exact_num(fitted(s$brmsfit)[, "Estimate"], fitted(s$fit),
-                   label = "brms fitted() is frmtmb's predict(response)")
+  # what frmtmb's frm_linpred() actually is
+  expect_exact_num(frm_linpred(s$fit, type = "response"),
+                   fitted(s$fit)[, "Estimate"],
+                   label = "frmtmb frm_linpred(response) is fitted()")
+  expect_exact_num(fitted(s$brmsfit)[, "Estimate"], fitted(s$fit)[, "Estimate"],
+                   label = "brms fitted() is frmtmb's frm_linpred(response)")
 
   # and what brms's predict() is: stochastic, so two calls differ
   set.seed(1)
@@ -661,16 +666,16 @@ test_that("predict() is not the same estimand in the two packages", {
   # the same estimand underneath, reached only as the draws grow
   many <- brms_fixed_cached_n(s, 2000)
   gap_many <- max(abs(colMeans(brms::posterior_predict(many)) -
-                        as.numeric(fitted(s$fit))))
+                        as.numeric(fitted(s$fit)[, "Estimate"])))
   gap_few <- max(abs(colMeans(brms::posterior_predict(s$brmsfit)) -
-                       as.numeric(fitted(s$fit))))
+                       as.numeric(fitted(s$fit)[, "Estimate"])))
   expect_lt(gap_many, gap_few)
 
   # the containers differ too: brms returns a summary matrix, frmtmb a
   # bare vector, so nothing downstream can read a column by name
   expect_identical(colnames(predict(s$brmsfit)),
                    c("Estimate", "Est.Error", "Q2.5", "Q97.5"))
-  expect_null(dim(predict(s$fit, type = "response")))
+  expect_null(dim(frm_linpred(s$fit, type = "response")))
 })
 
 # ---------------------------------------------------------------------
@@ -710,7 +715,7 @@ test_that("conditional_effects draws the expected response, zero-inflated", {
 
   # WAS finding 1b, the defect this tier was built to catch. The
   # method = "epred", band = "wald" branch took its point estimate as
-  # lp$link$linkinv(predict(type = "link")$fit), the inverse link of the
+  # lp$link$linkinv(frm_linpred(type = "link")$fit), the inverse link of the
   # MU predictor, which is the expected response only for a family
   # whose mean is that. On a zero-inflated fit it plotted exp(eta)
   # where the mean is (1 - zi) * exp(eta): 15.2% high at the first grid
@@ -738,20 +743,20 @@ test_that("conditional_effects draws the expected response, zero-inflated", {
     # far end of the grid, so the fix is not a rounding
     mu <- brms::posterior_linpred(s$brmsfit, newdata = nd,
                                   transform = TRUE, re_formula = NA)[1, ]
-    expect_exact_num(mu, predict(s$fit, newdata = nd,
+    expect_exact_num(mu, frm_linpred(s$fit, newdata = nd,
                                  type = "conditional", re_formula = ~ 0),
                      label = paste("exp(eta) is type=conditional,", nm))
     expect_gt(max(mu / cf$estimate__ - 1), 0.15)
 
     # the routes that always agreed still do
-    expect_exact_num(predict(s$fit, newdata = nd, type = "response",
+    expect_exact_num(frm_linpred(s$fit, newdata = nd, type = "response",
                              re_formula = ~ 0), ep,
-                     label = paste("predict(response) is epred,", nm))
+                     label = paste("frm_linpred(response) is epred,", nm))
     cfp <- suppressWarnings(conditional_effects(s$fit,
                                                 method = "predict"))$x
     expect_exact_num(cfp$estimate__, ep,
                      label = paste("ce method=predict is epred,", nm))
-    expect_exact_num(fitted(s$fit),
+    expect_exact_num(fitted(s$fit)[, "Estimate"],
                      brms::posterior_epred(s$brmsfit)[1, ],
                      label = paste("frmtmb fitted() is epred,", nm))
 
@@ -797,7 +802,7 @@ test_that("a nonlinear predictor is refused a wald band", {
 
   # DIVERGENCE. brms plots the nonlinear model with no special
   # argument. frmtmb refuses, because its band is a delta-method
-  # interval and predict() has no standard error for a nonlinear
+  # interval and frm_linpred() has no standard error for a nonlinear
   # predictor, and it names the three ways out. The refusal is
   # deliberate and its message is good; what it costs is that the
   # brms call does not port.
@@ -835,8 +840,8 @@ test_that("the hurdle families get the expected response too", {
 
   ce <- suppressWarnings(conditional_effects(fh))$x
   nd <- data.frame(x = ce$x)
-  epred <- as.numeric(predict(fh, newdata = nd, type = "response"))
-  cond <- as.numeric(predict(fh, newdata = nd, type = "conditional"))
+  epred <- as.numeric(frm_linpred(fh, newdata = nd, type = "response"))
+  cond <- as.numeric(frm_linpred(fh, newdata = nd, type = "conditional"))
 
   # the curve IS the expected response, exactly
   expect_exact_num(ce$estimate__, epred, label = "hurdle ce is epred")
@@ -846,8 +851,8 @@ test_that("the hurdle families get the expected response too", {
   expect_lt(min(ratio), 0.9)
   expect_gt(max(ratio), 3)
 
-  expect_exact_num(fitted(fh), predict(fh, type = "response"),
-                   label = "hurdle fitted() is predict(response)")
+  expect_exact_num(fitted(fh)[, "Estimate"], frm_linpred(fh, type = "response"),
+                   label = "hurdle fitted() is frm_linpred(response)")
 
   # method = "predict" reaches the same mean up to Monte Carlo error,
   # which is the independent check on the analytic one
@@ -859,7 +864,7 @@ test_that("the hurdle families get the expected response too", {
 test_that("an unknown argument is named against conditional_effects()", {
   # Also frmtmb alone. The warning used to come from the
   # method = "epred", band = "wald" branch forwarding its dots to
-  # predict(), so it named a function the user had not called - and the
+  # frm_linpred(), so it named a function the user had not called - and the
   # ordinal and categorical branches, which do not forward, discarded
   # unknown arguments in complete silence. conditional_effects() now
   # checks its own dots, before any branch.
@@ -875,7 +880,7 @@ test_that("an unknown argument is named against conditional_effects()", {
   dd$y <- 1 + 0.8 * dd$x - 0.4 * dd$z + rnorm(n)
   fg <- frm(frmtmb::bf(y ~ x + z) + gaussian(), data = dd)
 
-  # an ERROR per call now, not a warning per internal predict() call: a
+  # an ERROR per call now, not a warning per internal frm_linpred() call: a
   # warning still returned a curve, so the ignored argument left no
   # record in anything the caller kept
   expect_error(conditional_effects(fg, nosucharg = 1),
@@ -900,7 +905,7 @@ test_that("an unknown argument is named against conditional_effects()", {
   expect_identical(nrow(conditional_effects(fo, categorical = FALSE)$x),
                    100L)
 
-  # allow_new_levels is a real argument of the predict() underneath and
+  # allow_new_levels is a real argument of the frm_linpred() underneath and
   # is passed through rather than reported
   expect_silent(conditional_effects(fg, allow_new_levels = TRUE))
 })
@@ -1015,7 +1020,7 @@ test_that("conditional_effects(int_conditions =) conditions the effect", {
   skip_unless_brms_fit()
 
   # WAS finding 3. int_conditions was not an argument at all: it landed
-  # in ... , reached predict() through the dots, and was reported there
+  # in ... , reached frm_linpred() through the dots, and was reported there
   # as an unknown argument to a function the user had not called, while
   # the grid it was supposed to set came back unchanged. It is how
   # brms's own vignettes pick the levels of a moderator.
@@ -1274,11 +1279,11 @@ test_that("re_formula: prediction agrees, and so does the population curve", {
 
   # the prediction surface agrees on BOTH settings
   expect_exact_num(brms::posterior_epred(s$brmsfit, re_formula = NA)[1, ],
-                   predict(s$fit, type = "response", re_formula = ~ 0),
+                   frm_linpred(s$fit, type = "response", re_formula = ~ 0),
                    label = "epred re_formula = NA")
   expect_exact_num(brms::posterior_epred(s$brmsfit,
                                          re_formula = NULL)[1, ],
-                   predict(s$fit, type = "response", re_formula = NULL),
+                   frm_linpred(s$fit, type = "response", re_formula = NULL),
                    label = "epred re_formula = NULL")
 
   # and so does conditional_effects at the default re_formula = NA
@@ -1320,7 +1325,7 @@ test_that("re_formula: prediction agrees, and so does the population curve", {
 
   # an OBSERVED group is conditions = , which says which one in the
   # frame and reproduces that level exactly
-  fe <- fixef(s$fit)$mu
+  fe <- fixef_by_dpar(s$fit)$mu
   re <- ranef(s$fit)[["Subject"]]
   lvl1 <- rownames(re)[1]
   cg <- suppressWarnings(conditional_effects(
@@ -1328,7 +1333,7 @@ test_that("re_formula: prediction agrees, and so does the population curve", {
     conditions = list(Subject = lvl1)))$Days
   expect_identical(unique(as.character(cg$Subject)), lvl1)
   expect_exact_num(cg$estimate__,
-                   fe[["(Intercept)"]] + re[lvl1, "(Intercept)"] +
+                   fe[["(Intercept)"]] + re[lvl1, "Intercept"] +
                      (fe[["Days"]] + re[lvl1, "Days"]) * cg$Days,
                    label = "ce conditions = names the group exactly")
   expect_gt(max(abs(cg$estimate__ - cfn$estimate__)), 1)
@@ -1338,16 +1343,16 @@ test_that("an unknown argument is reported against the function called", {
   skip_unless_brms_fit()
   skip_if_not_installed("lme4")
 
-  # predict() now takes brms's re_formula itself, and an argument it
+  # frm_linpred() now takes brms's re_formula itself, and an argument it
   # does not have is an ERROR naming it rather than a warning: a
   # warning let `re_formula` change nothing and still return a number.
   s <- brms_shape("rC0")
-  expect_silent(predict(s$fit, type = "response", re_formula = NULL))
-  expect_error(predict(s$fit, type = "response", re_frmula = NULL),
+  expect_silent(frm_linpred(s$fit, type = "response", re_formula = NULL))
+  expect_error(frm_linpred(s$fit, type = "response", re_frmula = NULL),
                "re_frmula")
 
   # conditional_effects() used to forward its dots to that same
-  # predict(), so an argument IT did not know was reported against a
+  # frm_linpred(), so an argument IT did not know was reported against a
   # function the user had not called - and only on the branches that
   # forward. It checks its own dots now, and int_conditions is one of
   # its arguments rather than an unknown one.
@@ -1371,7 +1376,10 @@ test_that("hypothesis returns brms's object", {
   hf <- hypothesis(s$fit, c("x = 0", "x > z"))
 
   expect_s3_class(hb, "brmshypothesis")
-  expect_s3_class(hf, "brmshypothesis")
+  # the SHAPE is brms's and the class is frmtmb's: a frmtmb object
+  # must not answer is(x, "<brms class>") TRUE (rule 2)
+  expect_s3_class(hf, "frmtmb_hypothesis")
+  expect_false(inherits(hf, "brmshypothesis"))
   expect_identical(names(hf), names(hb))
   expect_identical(names(hf$hypothesis), names(hb$hypothesis))
   expect_identical(names(hf$samples), names(hb$samples))
@@ -1460,13 +1468,13 @@ test_that("newdata: both agree on the values and on what is refused", {
   )
   for (cs in names(cases)) {
     pe <- brms::posterior_epred(s$brmsfit, newdata = cases[[cs]])
-    fp <- predict(s$fit, newdata = cases[[cs]], type = "response")
+    fp <- frm_linpred(s$fit, newdata = cases[[cs]], type = "response")
     expect_exact_num(pe[1, ], fp, label = paste("newdata", cs))
   }
   # a column the model needs is refused by both, in different words
   drop <- dd[1:5, setdiff(names(dd), "z"), drop = FALSE]
   expect_error(brms::posterior_epred(s$brmsfit, newdata = drop))
-  expect_error(predict(s$fit, newdata = drop, type = "response"),
+  expect_error(frm_linpred(s$fit, newdata = drop, type = "response"),
                "Variable 'z' missing from newdata", class = "frmtmb_error")
 })
 
@@ -1480,14 +1488,14 @@ test_that("newdata: dropping a factor level, and adding one", {
   nd <- droplevels(subset(s$data, f != "c"))[1:6, ]
   expect_identical(levels(nd$f), c("a", "b"))
   expect_exact_num(brms::posterior_epred(s$brmsfit, newdata = nd)[1, ],
-                   predict(s$fit, newdata = nd, type = "response"),
+                   frm_linpred(s$fit, newdata = nd, type = "response"),
                    label = "newdata with a level dropped")
 
   # a character column where the fit saw a factor is accepted by both
   ndc <- nd
   ndc$f <- as.character(ndc$f)
   expect_exact_num(brms::posterior_epred(s$brmsfit, newdata = ndc)[1, ],
-                   predict(s$fit, newdata = ndc, type = "response"),
+                   frm_linpred(s$fit, newdata = ndc, type = "response"),
                    label = "newdata with a character column")
 
   # a level the fit never saw is refused by both, in different words
@@ -1495,7 +1503,7 @@ test_that("newdata: dropping a factor level, and adding one", {
   levels(ndn$f) <- c("a", "zz")
   expect_error(brms::posterior_epred(s$brmsfit, newdata = ndn),
                "New factor levels are not allowed")
-  expect_error(predict(s$fit, newdata = ndn, type = "response"),
+  expect_error(frm_linpred(s$fit, newdata = ndn, type = "response"),
                "a level of `f` that the fit did not see: 'zz'",
                class = "frmtmb_error")
 })

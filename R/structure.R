@@ -189,7 +189,7 @@ refusal_flag <- function(nm) sub("\\..*$", "", nm)
 #'   \item{`quadrature`}{`quadrature =` other than the Laplace default.}
 #'   \item{`profile`}{`frmtmb_control(profile = TRUE)`.}
 #'   \item{`newdata_response`}{`predict(newdata =, type = "response")`.}
-#'   \item{`se_fit_response`}{`predict(se.fit = TRUE, type =
+#'   \item{`se_fit_response`}{`frm_linpred(se.fit = TRUE, type =
 #'     "response")`.}
 #'   \item{`re_form`}{`re_formula =` in `predict()` and `simulate()`.}
 #'   \item{`conditional_effects`}{[conditional_effects()].}
@@ -282,7 +282,7 @@ refusal_flag <- function(nm) sub("\\..*$", "", nm)
 #'   `NULL`.
 #' @param fitted_mean,fitted_var `function(fit, block)` giving the
 #'   conditional mean and variance of each row GIVEN the whole observed
-#'   response, for [fitted()], `predict(type = "response")` on the
+#'   response, for [fitted()], `frm_linpred(type = "response")` on the
 #'   training data, and pearson residuals. `NULL` means "use the rowwise
 #'   family mean", which is what a group-level mixture wants. A family
 #'   with no mean supplies a function that stops. Both run at the

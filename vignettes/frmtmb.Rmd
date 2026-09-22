@@ -33,17 +33,19 @@ fit <- frm(bf(Reaction ~ Days + (Days | Subject)), family = gaussian(),
 summary(fit)
 ```
 
-The usual methods work: `fixef()`, `ranef()`, `VarCorr()`, `predict()`
-(with `newdata`, `se.fit`, and `re_formula`), `confint()` (Wald, profile,
-or likelihood-root), `simulate()`, `anova()` for likelihood-ratio
-tests, and `emmeans` for marginal means.
+The usual methods work: `fixef()`, `ranef()`, `VarCorr()`, `fitted()`
+and `predict()` (brms's summary matrices, the second with observation
+noise in it), `frm_linpred()` (the linear predictor, with `newdata`,
+`se.fit` and `re_formula`), `confint()` (Wald, profile, or
+likelihood-root), `simulate()`, `anova()` for likelihood-ratio tests,
+and `emmeans` for marginal means.
 
 `fitted()` gives the fit its own picture. One panel per subject shows
 what the random slopes bought: the lines share a population trend, but
 each subject keeps its own intercept and its own slope.
 
 ```{r sleep-fig, eval = has_lme4 && has_tinyplot, fig.width = 7, fig.height = 5, fig.alt = "Eighteen small panels, one for each subject of the sleep deprivation study. Gray points are the observed reaction times against days of sleep deprivation. A red line in each panel is the fitted value for that subject. Most lines rise, and their slopes differ from panel to panel. One subject has a flat line."}
-sleepstudy$yhat <- fitted(fit)
+sleepstudy$yhat <- fitted(fit)[, "Estimate"]
 tinyplot::tinyplot(Reaction ~ Days, data = sleepstudy, facet = ~Subject,
                    type = "p", pch = 16, cex = 0.7, col = "gray40",
                    theme = "clean2", facet.args = list(nrow = 3))
@@ -64,7 +66,7 @@ predictor grammar, including random effects and smooths:
 fit2 <- frm(bf(Reaction ~ Days + (Days | Subject),
                sigma ~ Days), family = gaussian(),
             data = sleepstudy)
-fixef(fit2)$sigma
+fixef_by_dpar(fit2)$sigma
 ```
 
 The coefficient on `Days` is positive, so the model says that reaction
@@ -73,8 +75,9 @@ residual standard deviation with the standard deviation of the
 residuals on each day.
 
 ```{r sigma-fig, eval = has_lme4 && has_tinyplot, fig.width = 6, fig.height = 4, fig.alt = "Scatter plot of residual standard deviation against days of sleep deprivation. Ten gray points are the observed standard deviations, one for each day. A red curve is the fitted residual standard deviation. Both rise from about 17 on day zero to about 36 on day nine."}
-day_sd <- as.numeric(tapply(residuals(fit2), sleepstudy$Days, sd))
-sig <- as.numeric(predict(fit2, dpar = "sigma", type = "response",
+day_sd <- as.numeric(tapply(residuals(fit2)[, "Estimate"],
+                            sleepstudy$Days, sd))
+sig <- as.numeric(frm_linpred(fit2, dpar = "sigma", type = "response",
                           newdata = data.frame(Days = 0:9,
                                                Subject = "308")))
 tinyplot::tinyplot(x = 0:9, y = day_sd, type = "p", pch = 16,
@@ -260,7 +263,7 @@ some cost in optimizer robustness.
 
 Because `esicar` constrains exactly, `con_sd` changes nothing it
 reports. The likelihood, the estimates, `sd(car)`, the standard errors
-from `predict(se.fit = TRUE)` and the conditional standard deviations
+from `frm_linpred(se.fit = TRUE)` and the conditional standard deviations
 from `ranef(condVar = TRUE)` are all invariant to it.
 
 The standard errors were not, through 0.52.0. The delta method paired
@@ -321,7 +324,7 @@ set.seed(3)
 dm <- data.frame(inc = sample(0:3, 300, TRUE), z = rnorm(300))
 dm$y <- 1 + c(0, 1, 1.6, 2)[dm$inc + 1] + 0.3 * dm$z + rnorm(300)
 fmo <- frm(bf(y ~ mo(inc) + z), family = gaussian(), data = dm)
-predict(fmo, newdata = data.frame(inc = 0:3, z = 0))
+frm_linpred(fmo, newdata = data.frame(inc = 0:3, z = 0))
 ```
 
 ## Mixtures

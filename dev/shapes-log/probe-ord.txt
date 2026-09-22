@@ -1,0 +1,45 @@
+== names(par_template)
+[1] "beta"    "b"       "theta"   "tau_raw" "bcs2"   
+== lengths
+   beta       b   theta tau_raw    bcs2 
+      1      16       2       3       3 
+== names(estimates)
+[1] "beta"    "b"       "theta"   "tau_raw" "bcs2"   
+== estimates
+$beta
+         x1 
+-0.07051165 
+
+$theta
+[1] -10.86179 -10.14160
+
+$tau_raw
+[1] -1.4423264 -1.0675768  0.3698851
+
+$bcs2
+[1] 0.48806119 0.08733998 0.08217190
+
+== extra_names
+[1] "tau_raw" "bcs2"   
+== confint rows
+[1] "x1"        "theta_1"   "theta_2"   "tau_raw_1" "tau_raw_2" "tau_raw_3"
+[7] "bcs2_1"    "bcs2_2"    "bcs2_3"   
+== outer_par_names
+[1] "x1"        "theta_1"   "theta_2"   "tau_raw_1" "tau_raw_2" "tau_raw_3"
+[7] "bcs2_1"    "bcs2_2"    "bcs2_3"   
+== rownames(cov.fixed)
+[1] "beta"    "theta"   "theta"   "tau_raw" "tau_raw" "tau_raw" "bcs2"   
+[8] "bcs2"    "bcs2"   
+== linpreds
+ key: rating mu  par: beta  cols: x1  cs: 1 
+   cs term: label=csx2 par=bcs2
+== fitted(f4) dim
+[1] 40  4
+== ordinal_ncat
+[1] 4
+== a cumulative fit with no cs, for the simple case
+[1] "beta"    "tau_raw"
+[1] -2.357997  0.480542
+[1] "b_x"
+[1] "x"         "tau_raw_1" "tau_raw_2"
+[1] "x"         "tau_raw_1" "tau_raw_2"

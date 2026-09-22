@@ -28,6 +28,27 @@
 #
 # `[[ ]]`, NEVER `$`, on the fit: see the header of hmm.R.
 
+#' The covariance whose rows the `confint()` table can be matched
+#' against, which is the one over the INTERNAL names.
+#'
+#' `stats::vcov()` on a frmtmb fit is brms's population-level block
+#' since frmtmb's item 2.6f: it names its rows brms's way and drops an
+#' intercept-only distributional parameter, so the name intersection in
+#' `hmm_starts_scale()` would be empty and that check would fall back
+#' without saying why. Anything else, such as the stub the guard in
+#' `tests/testthat/test-hmm-starts.R` builds, goes through the
+#' generic, which is the same arithmetic on an object that is not a
+#' frmtmb fit.
+#'
+#' @noRd
+hmm_scale_vcov <- function(fit) {
+  if (inherits(fit, "frmtmb_fit")) {
+    frmtmb::vcov_estimated(fit)
+  } else {
+    stats::vcov(fit)
+  }
+}
+
 #' The per-parameter perturbation scale, and the label that says where
 #' it came from.
 #'
@@ -78,7 +99,7 @@ hmm_starts_scale <- function(fit) {
   s <- (as.numeric(ci[, "upr"]) - as.numeric(ci[, "lwr"])) /
     (2 * stats::qnorm(0.975))
   nm <- rownames(ci)
-  v <- tryCatch(suppressWarnings(sqrt(diag(stats::vcov(fit)))),
+  v <- tryCatch(suppressWarnings(sqrt(diag(hmm_scale_vcov(fit)))),
                 error = function(e) NULL)
   if (is.null(v) || !length(v) || is.null(names(v))) return(fallback)
   shared <- intersect(names(v), nm %||% character(0))

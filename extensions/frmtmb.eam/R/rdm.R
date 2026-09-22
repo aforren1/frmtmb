@@ -114,7 +114,7 @@
 #' subject deviation, and the bound becomes that subject's own fastest
 #' response. A per-row bound cannot live in a link, so under a grouping
 #' `ndt` is a FRACTION of the row's bound and the density multiplies:
-#' `predict(dpar = "ndt", type = "response")` then reports the fraction
+#' `frm_linpred(dpar = "ndt", type = "response")` then reports the fraction
 #' and [ndt_time()] reports the time either way. A single bound is the
 #' global fastest response, and a subject whose non-decision time is
 #' above it cannot be represented at any value of the random effect;
@@ -282,7 +282,7 @@ rdm <- function(n, max_ndt = NULL) {
     # A refusing mean rather than no mean at all. With the slot empty,
     # frmtmb falls back to "the first primary dpar on the response
     # scale is the mean", and for this family that is a DRIFT RATE:
-    # predict(type = "response") returned 3.51 for a data set whose
+    # frm_linpred(type = "response") returned 3.51 for a data set whose
     # response times average 0.36, and residuals(type = "response")
     # came back empty rather than refusing. A number that is not the
     # quantity it is labelled with is worse than an error.
@@ -291,8 +291,8 @@ rdm <- function(n, max_ndt = NULL) {
                "mean of the winning accumulator's arrival is an ",
                "expectation over the minimum of several inverse-Gaussian ",
                "first passages and has no closed form, so fitted(), ",
-               "predict(type = \"response\") and residuals(type = ",
-               "\"response\") are all unavailable. predict(type = \"link\") ",
+               "frm_linpred(type = \"response\") and residuals(type = ",
+               "\"response\") are all unavailable. frm_linpred(type = \"link\") ",
                "gives the drift rates, thresholds and non-decision time ",
                "the fit actually estimated.", call. = FALSE)
     }),

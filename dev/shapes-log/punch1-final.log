@@ -1,0 +1,455 @@
+== frmtmb 154 files ==
+frmtmb RESULT test-aliased-grouping.R pass=33 fail=0 err=0 skip=0
+frmtmb RESULT test-api-spellings.R pass=36 fail=0 err=0 skip=0
+frmtmb RESULT test-arg-refusal.R pass=123 fail=0 err=0 skip=0
+frmtmb RESULT test-autocor.R pass=191 fail=0 err=0 skip=0
+frmtmb RESULT test-autoscale.R pass=46 fail=0 err=0 skip=0
+frmtmb RESULT test-backlog.R pass=35 fail=0 err=0 skip=0
+frmtmb RESULT test-bcm-bart.R pass=8 fail=0 err=0 skip=1
+frmtmb RESULT test-bcm-binomial.R pass=17 fail=0 err=0 skip=6
+frmtmb RESULT test-bcm-data-analysis.R pass=20 fail=0 err=0 skip=6
+frmtmb RESULT test-bcm-esp.R pass=5 fail=0 err=0 skip=2
+frmtmb RESULT test-bcm-gaussian.R pass=11 fail=0 err=0 skip=3
+frmtmb RESULT test-bcm-gcm.R pass=9 fail=0 err=0 skip=2
+frmtmb RESULT test-bcm-latent-mixtures.R pass=30 fail=0 err=0 skip=5
+frmtmb RESULT test-bcm-model-selection.R pass=13 fail=0 err=0 skip=3
+frmtmb RESULT test-bcm-mpt.R pass=15 fail=0 err=0 skip=2
+frmtmb RESULT test-bcm-psychophysics.R pass=7 fail=0 err=0 skip=2
+frmtmb RESULT test-bcm-retention.R pass=15 fail=0 err=0 skip=3
+frmtmb RESULT test-bcm-signal-detection.R pass=6 fail=0 err=0 skip=3
+frmtmb RESULT test-bcm-simple.R pass=8 fail=0 err=0 skip=1
+frmtmb RESULT test-boot.R pass=49 fail=0 err=0 skip=0
+frmtmb RESULT test-bracket-access.R pass=33 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-agreement.R pass=168 fail=0 err=0 skip=2
+frmtmb RESULT test-brms-families.R pass=986 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-formula-priors.R pass=208 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-likelihood.R pass=20 fail=0 err=0 skip=32
+frmtmb RESULT test-brms-methods.R pass=16 fail=0 err=0 skip=45
+frmtmb RESULT test-brms-names.R pass=138 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-port.R pass=21 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-priors.R pass=0 fail=0 err=0 skip=12
+frmtmb RESULT test-brms-shapes.R pass=72 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-shapes-punch.R pass=55 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-brm.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-brmsfit-helpers.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-brmsformula.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-brmsterms.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-data-helpers.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-emmeans.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-families.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-methods.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-priors.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-standata.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-car-spde.R pass=136 fail=0 err=0 skip=0
+frmtmb RESULT test-case-studies.R pass=30 fail=0 err=0 skip=0
+frmtmb RESULT test-ce-bands.R pass=167 fail=0 err=0 skip=0
+frmtmb RESULT test-ce-facets.R pass=92 fail=0 err=0 skip=0
+frmtmb RESULT test-cens-lccdf.R pass=27 fail=0 err=0 skip=0
+frmtmb RESULT test-cens-trunc.R pass=69 fail=0 err=0 skip=0
+frmtmb RESULT test-ci-siblings.R pass=11 fail=0 err=0 skip=0
+frmtmb RESULT test-compat.R pass=573 fail=0 err=0 skip=0
+frmtmb RESULT test-compat-register.R pass=103 fail=0 err=0 skip=0
+frmtmb RESULT test-conditions.R pass=150 fail=0 err=0 skip=0
+frmtmb RESULT test-conditions-census.R pass=11 fail=0 err=0 skip=0
+frmtmb RESULT test-confint-anova.R pass=35 fail=0 err=0 skip=0
+frmtmb RESULT test-core-boundary.R pass=4 fail=0 err=0 skip=0
+frmtmb RESULT test-covstruct.R pass=7 fail=0 err=0 skip=0
+frmtmb RESULT test-custom-family.R pass=126 fail=0 err=0 skip=0
+frmtmb RESULT test-data2.R pass=30 fail=0 err=0 skip=0
+frmtmb RESULT test-dates.R pass=13 fail=0 err=0 skip=0
+frmtmb RESULT test-diagnostics-ux.R pass=127 fail=0 err=0 skip=0
+frmtmb RESULT test-distributional.R pass=28 fail=0 err=0 skip=0
+frmtmb RESULT test-dpar-eta-api.R pass=123 fail=0 err=0 skip=0
+frmtmb RESULT test-dry-run.R pass=23 fail=0 err=0 skip=0
+frmtmb RESULT test-edgecases.R pass=64 fail=0 err=0 skip=0
+frmtmb RESULT test-effects.R pass=54 fail=0 err=0 skip=0
+frmtmb RESULT test-famgaps.R pass=100 fail=0 err=0 skip=0
+frmtmb RESULT test-families.R pass=228 fail=0 err=0 skip=0
+frmtmb RESULT test-fit-end-hook.R pass=18 fail=0 err=0 skip=0
+frmtmb RESULT test-frame.R pass=22 fail=0 err=0 skip=0
+frmtmb RESULT test-functional.R pass=3 fail=0 err=0 skip=0
+frmtmb RESULT test-fuzz.R pass=0 fail=0 err=0 skip=1
+frmtmb RESULT test-generic-collision.R pass=56 fail=0 err=0 skip=0
+frmtmb RESULT test-get-prior-route.R pass=76 fail=0 err=0 skip=0
+frmtmb RESULT test-glmm-binomial.R pass=10 fail=0 err=0 skip=0
+frmtmb RESULT test-glmm-gaussian.R pass=17 fail=0 err=0 skip=0
+frmtmb RESULT test-glmm-poisson.R pass=12 fail=0 err=0 skip=0
+frmtmb RESULT test-gp-multidim.R pass=42 fail=0 err=0 skip=0
+frmtmb RESULT test-habit-prep.R pass=16 fail=0 err=0 skip=0
+frmtmb RESULT test-id-kron.R pass=60 fail=0 err=0 skip=0
+frmtmb RESULT test-importance.R pass=226 fail=0 err=0 skip=0
+frmtmb RESULT test-influence-plot.R pass=21 fail=0 err=0 skip=0
+frmtmb RESULT test-input-validation.R pass=43 fail=0 err=0 skip=0
+frmtmb RESULT test-interop.R pass=45 fail=0 err=0 skip=0
+frmtmb RESULT test-lkj.R pass=212 fail=0 err=0 skip=0
+frmtmb RESULT test-map.R pass=7 fail=0 err=0 skip=0
+frmtmb RESULT test-mean-fn.R pass=4 fail=0 err=0 skip=0
+frmtmb RESULT test-message-uniqueness.R pass=6 fail=0 err=0 skip=0
+frmtmb RESULT test-method-residue.R pass=64 fail=0 err=0 skip=0
+frmtmb RESULT test-methods.R pass=64 fail=0 err=0 skip=0
+frmtmb RESULT test-methods-audit.R pass=58 fail=0 err=0 skip=0
+frmtmb RESULT test-mixture-start.R pass=5 fail=0 err=0 skip=0
+frmtmb RESULT test-mm.R pass=116 fail=0 err=0 skip=0
+frmtmb RESULT test-mo-terms.R pass=74 fail=0 err=0 skip=0
+frmtmb RESULT test-multinomial.R pass=17 fail=0 err=0 skip=0
+frmtmb RESULT test-multiple-pooling.R pass=33 fail=0 err=0 skip=0
+frmtmb RESULT test-multivariate.R pass=23 fail=0 err=0 skip=0
+frmtmb RESULT test-mvn-mixture.R pass=277 fail=0 err=0 skip=0
+frmtmb RESULT test-naming-collisions.R pass=29 fail=0 err=0 skip=0
+frmtmb RESULT test-nl.R pass=44 fail=0 err=0 skip=0
+frmtmb RESULT test-nl-body-vars.R pass=23 fail=0 err=0 skip=0
+frmtmb RESULT test-nlf.R pass=74 fail=0 err=0 skip=0
+frmtmb RESULT test-nl-lexical.R pass=31 fail=0 err=0 skip=0
+frmtmb RESULT test-nl-rtmb-scope.R pass=103 fail=0 err=0 skip=0
+frmtmb RESULT test-numerical-robustness.R pass=679 fail=0 err=0 skip=0
+frmtmb RESULT test-open-issues.R pass=43 fail=0 err=0 skip=0
+frmtmb RESULT test-ordinal.R pass=109 fail=0 err=0 skip=0
+frmtmb RESULT test-ordinal-fitted.R pass=91 fail=0 err=0 skip=0
+frmtmb RESULT test-osa-inference.R pass=34 fail=0 err=0 skip=0
+frmtmb RESULT test-parse.R pass=43 fail=0 err=0 skip=0
+frmtmb RESULT test-par-template.R pass=51 fail=0 err=0 skip=0
+frmtmb RESULT test-perf.R pass=3 fail=0 err=0 skip=0
+frmtmb RESULT test-pooled-anova.R pass=64 fail=0 err=0 skip=0
+frmtmb RESULT test-portability.R pass=95 fail=0 err=0 skip=0
+frmtmb RESULT test-predict-lp-basis.R pass=30 fail=0 err=0 skip=0
+frmtmb RESULT test-predict-newdata.R pass=12 fail=0 err=0 skip=0
+frmtmb RESULT test-prior-compat.R pass=194 fail=0 err=0 skip=0
+frmtmb RESULT test-priors-autocor-classes.R pass=62 fail=0 err=0 skip=0
+frmtmb RESULT test-priors-bounds-grcov.R pass=50 fail=0 err=0 skip=0
+frmtmb RESULT test-ps.R pass=71 fail=0 err=0 skip=0
+frmtmb RESULT test-quadrature-defects.R pass=59 fail=0 err=0 skip=0
+frmtmb RESULT test-reml-nongaussian.R pass=9 fail=0 err=0 skip=0
+frmtmb RESULT test-review-fixes.R pass=18 fail=0 err=0 skip=0
+frmtmb RESULT test-review-v25.R pass=60 fail=0 err=0 skip=0
+frmtmb RESULT test-review-v28.R pass=74 fail=0 err=0 skip=0
+frmtmb RESULT test-review-v29.R pass=137 fail=0 err=0 skip=0
+frmtmb RESULT test-rl-example.R pass=96 fail=0 err=0 skip=2
+frmtmb RESULT test-sandwich.R pass=58 fail=0 err=0 skip=0
+  method    from    
+  bread.mlm sandwich
+frmtmb RESULT test-scale-contract.R pass=37 fail=0 err=0 skip=0
+frmtmb RESULT test-setprior.R pass=27 fail=0 err=0 skip=0
+frmtmb RESULT test-simulate-density.R pass=435 fail=0 err=0 skip=0
+frmtmb RESULT test-simulate-ergonomics.R pass=50 fail=0 err=0 skip=0
+frmtmb RESULT test-smooth-population.R pass=33 fail=0 err=0 skip=0
+frmtmb RESULT test-smooths.R pass=27 fail=0 err=0 skip=0
+frmtmb RESULT test-sparsear1.R pass=24 fail=0 err=0 skip=0
+frmtmb RESULT test-sparsex.R pass=64 fail=0 err=0 skip=0
+frmtmb RESULT test-spectral.R pass=113 fail=0 err=0 skip=0
+frmtmb RESULT test-structure.R pass=135 fail=0 err=0 skip=0
+frmtmb RESULT test-sugar.R pass=45 fail=0 err=0 skip=0
+frmtmb RESULT test-tabular-inputs.R pass=9 fail=0 err=0 skip=0
+frmtmb RESULT test-tmb-examples.R pass=28 fail=0 err=0 skip=0
+frmtmb RESULT test-tre.R pass=102 fail=0 err=0 skip=0
+frmtmb RESULT test-trunc-postfit.R pass=35 fail=0 err=0 skip=0
+frmtmb RESULT test-unpinned-seams.R pass=23 fail=0 err=0 skip=1
+frmtmb RESULT test-v07.R pass=25 fail=0 err=0 skip=0
+frmtmb RESULT test-v11.R pass=22 fail=0 err=0 skip=0
+frmtmb RESULT test-v12.R pass=26 fail=0 err=0 skip=0
+frmtmb RESULT test-v14.R pass=81 fail=0 err=0 skip=0
+frmtmb RESULT test-v15.R pass=41 fail=0 err=0 skip=0
+frmtmb RESULT test-v16.R pass=24 fail=0 err=0 skip=0
+frmtmb RESULT test-v17.R pass=35 fail=0 err=0 skip=0
+frmtmb RESULT test-v18.R pass=27 fail=0 err=0 skip=0
+frmtmb RESULT test-v19.R pass=23 fail=0 err=0 skip=0
+frmtmb RESULT test-verbose.R pass=40 fail=0 err=0 skip=0
+frmtmb RESULT test-vignette-wiener.R pass=21 fail=0 err=0 skip=0
+frmtmb RESULT test-zi.R pass=11 fail=0 err=0 skip=0
+== frmtmb END ==
+== frmtmb.eam 26 files ==
+frmtmb.eam RESULT test-bracket-access.R pass=1 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-brms-parity.R pass=18 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-conditions.R pass=8 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-conditions-census.R pass=11 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-defects.R pass=59 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-density.R pass=132 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-extension-api.R pass=14 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-family.R pass=51 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-gddm-conditions.R pass=58 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-gddm-family.R pass=77 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-gddm-gradients.R pass=22 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-gddm-recovery.R pass=28 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-gddm-reference.R pass=166 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-gddm-solver.R pass=94 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-lba.R pass=109 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-message-uniqueness.R pass=4 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-moments.R pass=29 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-ndt-bound.R pass=79 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-ndt-seam.R pass=83 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-rdm-gng.R pass=221 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-sampling.R pass=97 fail=0 err=0 skip=0
+  Intercept          student_t(3, 0.6, 2.5)
+  b                  (flat), as brms leaves slopes
+frmtmb.eam RESULT test-scale.R pass=0 fail=0 err=0 skip=3
+frmtmb.eam RESULT test-simulate-density.R pass=69 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-surface.R pass=50 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-units.R pass=32 fail=0 err=0 skip=0
+frmtmb.eam RESULT test-variability.R pass=140 fail=0 err=0 skip=0
+== frmtmb.eam END ==
+== frmtmb.sample 29 files ==
+frmtmb.sample RESULT test-bracket-access.R pass=1 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-brms-output.R pass=21 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-brms-pins.R pass=334 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-brms-shapes-draws.R pass=27 fail=0 err=0 skip=0
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+frmtmb.sample RESULT test-brms-suite-brmsformula.R pass=0 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-brms-suite-brmsterms.R pass=0 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-brms-suite-families.R pass=0 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-brms-suite-helper-copy.R pass=0 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-brms-suite-methods.R pass=0 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-compat-preflight.R pass=81 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-conditional-effects-draws.R pass=61 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-conditions.R pass=6 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-conditions-census.R pass=11 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-draws-methods.R pass=143 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-draws-spellings.R pass=87 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-evidence-ratio.R pass=33 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-generic-collision.R pass=58 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-loo.R pass=74 fail=0 err=0 skip=1
+frmtmb.sample RESULT test-message-uniqueness.R pass=6 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-parallel-chains.R pass=4 fail=0 err=0 skip=0
+  Intercept          student_t(3, 1.1, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+  Intercept          student_t(3, 288.7, 59.3)
+  sigma              student_t(3, 0, 59.3)  [natural scale]
+  sd                 student_t(3, 0, 59.3)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+frmtmb.sample RESULT test-prior-route.R pass=9 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-prior-update.R pass=7 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-reparam.R pass=292 fail=0 err=0 skip=0
+  Intercept          student_t(3, 1.7, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+  Intercept          student_t(3, -0.4, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+frmtmb.sample RESULT test-sample-direct.R pass=139 fail=0 err=0 skip=0
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+  1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which frm_sample() supplies by default unless prior = "flat" turned it off
+frmtmb.sample RESULT test-sampling-ported.R pass=206 fail=0 err=0 skip=1
+  Intercept          student_t(3, 0.7, 2.5)
+  b                  (flat), as brms leaves slopes
+  Intercept          student_t(3, 0.6, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+  Intercept          student_t(3, 0.6, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+  Intercept          student_t(3, 0.6, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+  b                  (flat), as brms leaves slopes
+  no defaults for this family's thresholds (brms priors them as its Intercept class) - see ?frm_sample
+  Intercept          student_t(3, 0.3, 2.5)
+  b                  (flat), as brms leaves slopes
+  Intercept          student_t(3, 0.7, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+  Intercept          student_t(3, 1, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+  Intercept          student_t(3, 1.2, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+  Intercept          student_t(3, 0, 2.5)
+  b                  (flat), as brms leaves slopes
+  Intercept          student_t(3, 0.9, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+  Intercept          student_t(3, 1.2, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+  b                  (flat), as brms leaves slopes
+  no defaults for this family's thresholds (brms priors them as its Intercept class) - see ?frm_sample
+  Intercept          student_t(3, 0.7, 2.5)
+  b                  (flat), as brms leaves slopes
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+  1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which frm_sample() supplies by default unless prior = "flat" turned it off
+  b                  (flat), as brms leaves slopes
+  nonlinear parameters stay flat: guess, thr (brms leaves them flat too, as class b; set_prior(nlpar = ) writes them) - see ?frm_sample
+  Intercept          student_t(3, 0.1, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+frmtmb.sample RESULT test-scale.R pass=0 fail=0 err=0 skip=1
+frmtmb.sample RESULT test-simulators.R pass=50 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-stan-control.R pass=54 fail=0 err=0 skip=0
+frmtmb.sample RESULT test-tmbstan-build-guard.R pass=24 fail=0 err=0 skip=0
+== frmtmb.sample END ==
+== frmtmb.coupling 9 files ==
+frmtmb.coupling RESULT test-bracket-access.R pass=1 fail=0 err=0 skip=0
+frmtmb.coupling RESULT test-coherence.R pass=61 fail=0 err=0 skip=0
+frmtmb.coupling RESULT test-conditions.R pass=5 fail=0 err=0 skip=0
+frmtmb.coupling RESULT test-conditions-census.R pass=11 fail=0 err=0 skip=0
+frmtmb.coupling RESULT test-cross-spectrum.R pass=96 fail=0 err=0 skip=0
+frmtmb.coupling RESULT test-cross-wishart.R pass=211 fail=0 err=0 skip=0
+frmtmb.coupling RESULT test-message-uniqueness.R pass=4 fail=0 err=0 skip=0
+frmtmb.coupling RESULT test-scale.R pass=0 fail=0 err=0 skip=5
+frmtmb.coupling RESULT test-surface.R pass=58 fail=0 err=0 skip=0
+== frmtmb.coupling END ==
+== frmtmb.spline 14 files ==
+frmtmb.spline RESULT test-bracket-access.R pass=1 fail=0 err=0 skip=0
+frmtmb.spline RESULT test-conditions.R pass=5 fail=0 err=0 skip=0
+frmtmb.spline RESULT test-conditions-census.R pass=11 fail=0 err=0 skip=0
+frmtmb.spline RESULT test-curve.R pass=62 fail=0 err=0 skip=0
+frmtmb.spline RESULT test-deriv.R pass=38 fail=0 err=0 skip=0
+frmtmb.spline RESULT test-difference.R pass=58 fail=1 err=0 skip=0
+  [FAIL] the difference variance is core's vcov(), where core has one
+      Expected `cv$.estimate` to equal `as.numeric(D %*% stats::coef(fit)[keep])`.
+      Differences:
+        `actual`: -0.8 -0.7 -0.6
+      `expected`:   NA   NA   NA
+      
+frmtmb.spline RESULT test-frailty.R pass=28 fail=0 err=0 skip=0
+frmtmb.spline RESULT test-gratia.R pass=13 fail=0 err=0 skip=0
+frmtmb.spline RESULT test-message-uniqueness.R pass=4 fail=0 err=0 skip=0
+frmtmb.spline RESULT test-royston-parmar.R pass=67 fail=0 err=0 skip=0
+frmtmb.spline RESULT test-rp-floored.R pass=42 fail=0 err=0 skip=0
+frmtmb.spline RESULT test-scale.R pass=0 fail=0 err=0 skip=1
+frmtmb.spline RESULT test-span.R pass=73 fail=0 err=0 skip=0
+frmtmb.spline RESULT test-surface.R pass=47 fail=0 err=0 skip=0
+== frmtmb.spline END ==
+== frmtmb.learn 14 files ==
+frmtmb.learn RESULT test-bracket-access.R pass=1 fail=0 err=0 skip=0
+frmtmb.learn RESULT test-clean-session.R pass=4 fail=0 err=0 skip=0
+frmtmb.learn RESULT test-conditions.R pass=8 fail=0 err=0 skip=0
+frmtmb.learn RESULT test-conditions-census.R pass=11 fail=0 err=0 skip=0
+frmtmb.learn RESULT test-counterfactual.R pass=70 fail=0 err=0 skip=0
+frmtmb.learn RESULT test-engine.R pass=19 fail=0 err=0 skip=0
+frmtmb.learn RESULT test-factorization.R pass=35 fail=0 err=0 skip=0
+frmtmb.learn RESULT test-families.R pass=45 fail=0 err=0 skip=0
+frmtmb.learn RESULT test-message-uniqueness.R pass=4 fail=0 err=0 skip=0
+frmtmb.learn RESULT test-reference.R pass=12 fail=0 err=0 skip=0
+frmtmb.learn RESULT test-rlddm-ndt.R pass=53 fail=0 err=0 skip=0
+frmtmb.learn RESULT test-scale.R pass=0 fail=0 err=0 skip=2
+frmtmb.learn RESULT test-stan-identity.R pass=0 fail=0 err=0 skip=11
+frmtmb.learn RESULT test-surface.R pass=146 fail=0 err=0 skip=0
+== frmtmb.learn END ==
+== frmtmb.latent 9 files ==
+frmtmb.latent RESULT test-bracket-access.R pass=1 fail=0 err=0 skip=0
+frmtmb.latent RESULT test-conditions.R pass=6 fail=0 err=0 skip=0
+frmtmb.latent RESULT test-conditions-census.R pass=11 fail=0 err=0 skip=0
+frmtmb.latent RESULT test-hmm.R pass=118 fail=0 err=0 skip=0
+frmtmb.latent RESULT test-hmm-starts.R pass=84 fail=0 err=0 skip=0
+frmtmb.latent RESULT test-lca.R pass=105 fail=0 err=0 skip=0
+frmtmb.latent RESULT test-message-uniqueness.R pass=4 fail=0 err=0 skip=0
+frmtmb.latent RESULT test-scale.R pass=0 fail=0 err=0 skip=2
+frmtmb.latent RESULT test-structure-latent.R pass=20 fail=0 err=0 skip=0
+== frmtmb.latent END ==
+== frmtmb.ode 10 files ==
+frmtmb.ode RESULT test-bracket-access.R pass=1 fail=0 err=0 skip=0
+frmtmb.ode RESULT test-compat.R pass=15 fail=0 err=0 skip=0
+frmtmb.ode RESULT test-conditions.R pass=6 fail=0 err=0 skip=0
+frmtmb.ode RESULT test-conditions-census.R pass=11 fail=0 err=0 skip=0
+frmtmb.ode RESULT test-lincmt.R pass=65 fail=0 err=0 skip=0
+frmtmb.ode RESULT test-ode.R pass=72 fail=0 err=0 skip=0
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+     It will not be issued again for this problem.
+      taken on this call before reaching TOUT     
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+     It will not be issued again for this problem.
+      taken on this call before reaching TOUT     
+frmtmb.ode RESULT test-ode-events.R pass=142 fail=0 err=0 skip=0
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+     It will not be issued again for this problem.
+      taken on this call before reaching TOUT     
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+      such that in the machine, T + H = T on the next step  
+     (H = step size). Solver will continue anyway.
+     It will not be issued again for this problem.
+      taken on this call before reaching TOUT     
+frmtmb.ode RESULT test-ode-nlf.R pass=4 fail=0 err=0 skip=0
+frmtmb.ode RESULT test-ode-tv.R pass=27 fail=0 err=0 skip=0
+frmtmb.ode RESULT test-scale.R pass=0 fail=0 err=0 skip=1
+== frmtmb.ode END ==
+RAN 265 of 265 files

@@ -62,7 +62,7 @@ range at \code{order = 1} and \code{1e-4} of it at \code{order = 2}.}
 
 \item{seed}{Seed for the simulation, for a reproducible band.}
 
-\item{tol}{Largest relative disagreement with \code{predict(se.fit = TRUE)}
+\item{tol}{Largest relative disagreement with \code{frm_linpred(se.fit = TRUE)}
 the assembled covariance may show before the call refuses.}
 }
 \value{

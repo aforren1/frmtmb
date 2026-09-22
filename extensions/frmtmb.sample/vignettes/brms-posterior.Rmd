@@ -119,9 +119,10 @@ quantities rather than model parameters.
 ## The method surface ports
 
 The post-processing generics are brms's own, on a `frmtmb_draws`
-object, and they return brms's objects: the summary matrices and
-arrays, the raw draws at `summary = FALSE`, and brms's
-`brmshypothesis` list. So most ported code runs unchanged: `fixef()`,
+object, and they return brms's SHAPES: the summary matrices and
+arrays, the raw draws at `summary = FALSE`, and the same list
+`hypothesis()` gives, under frmtmb's own class rather than brms's
+`brmshypothesis`. So most ported code runs unchanged: `fixef()`,
 `ranef()`,
 `VarCorr()`, `posterior_epred()`, `posterior_predict()`,
 `posterior_linpred()`, `log_lik()`, `loo()`, `waic()`, `bayes_R2()`,

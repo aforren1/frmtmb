@@ -381,7 +381,7 @@ test_that("with no owner usable, it loads and its generics are bare", {
     "msg <- function(e) tryCatch({ e; 'no error' },",
     "  error = function(c) conditionMessage(c))",
     "cat('STANCODE:', grepl('no Stan program', msg(stancode(fd))), '\\n')",
-    "cat('PSAMPLES:', grepl('as_draws(x)', msg(posterior_samples(fd)),",
+    "cat('PSAMPLES:', grepl('upgrade path', msg(restructure(fd)),",
     "    fixed = TRUE), '\\n')",
     "cat('BRIDGE:', grepl('integral of the likelihood',",
     "    msg(bridge_sampler(fd))), '\\n')",

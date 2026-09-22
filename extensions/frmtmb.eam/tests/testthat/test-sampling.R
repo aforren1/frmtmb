@@ -31,7 +31,7 @@ test_that("frm_sample runs a short chain on a wiener model", {
                                    refresh = 0)
   expect_true(!is.null(smp))
   # the sampled posterior sits around the mode the optimizer found
-  fx <- unlist(fixef(fit))
+  fx <- unlist(fixef_by_dpar(fit))
   su <- summary(smp)
   expect_true(is.finite(fx[["mu.(Intercept)"]]))
   expect_true(nrow(as.data.frame(su)) > 0 || length(su) > 0)

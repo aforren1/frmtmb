@@ -324,11 +324,14 @@ test_that("the car post-fit surface answers", {
   expect_true(all(cv$lwr < cv$estimate & cv$estimate < cv$upr))
   # in-sample and newdata prediction see the same design
   rows <- c(1L, 10L, nrow(s$d))
-  p_in <- predict(fit, se.fit = TRUE)
-  p_nd <- predict(fit, newdata = s$d[rows, ], se.fit = TRUE)
+  p_in <- frm_linpred(fit, se.fit = TRUE)
+  p_nd <- frm_linpred(fit, newdata = s$d[rows, ], se.fit = TRUE)
   expect_vector_equal(p_nd$fit, p_in$fit[rows], tol = 1e-10)
   expect_vector_equal(p_nd$se.fit, p_in$se.fit[rows], tol = 1e-8)
-  expect_equal(ngrps(fit)[["loc"]], s$n)
+  # a car() block is not a brms grouping factor, so ngrps() has no
+  # entry for it since item 2.6f; the level count is the block's
+  expect_null(ngrps(fit))
+  expect_equal(fit$frame[["re_blocks"]][[1L]][["n_levels"]], s$n)
   set.seed(1)
   expect_equal(dim(simulate(fit, nsim = 2)), c(nrow(s$d), 2L))
   set.seed(1)
@@ -336,8 +339,8 @@ test_that("the car post-fit surface answers", {
   # a location the fit never saw has no structure to borrow
   nd <- s$d[1:3, ]
   nd$loc <- factor("ZZ", levels = c(levels(s$d$loc), "ZZ"))
-  expect_error(predict(fit, newdata = nd), "New levels")
-  expect_silent(predict(fit, newdata = nd, allow_new_levels = TRUE))
+  expect_error(frm_linpred(fit, newdata = nd), "New levels")
+  expect_silent(frm_linpred(fit, newdata = nd, allow_new_levels = TRUE))
 })
 
 test_that("the esicar post-fit surface reads the FULL field", {
@@ -358,8 +361,8 @@ test_that("the esicar post-fit surface reads the FULL field", {
   # in-sample and newdata prediction see the same design, standard
   # errors included
   rows <- c(1L, 10L, nrow(s$d))
-  p_in <- predict(fit, se.fit = TRUE)
-  p_nd <- predict(fit, newdata = s$d[rows, ], se.fit = TRUE)
+  p_in <- frm_linpred(fit, se.fit = TRUE)
+  p_nd <- frm_linpred(fit, newdata = s$d[rows, ], se.fit = TRUE)
   expect_vector_equal(p_nd$fit, p_in$fit[rows], tol = 1e-10)
   expect_vector_equal(p_nd$se.fit, p_in$se.fit[rows], tol = 1e-8)
   # a draw is Nloc long and its field is on the constraint again
@@ -473,7 +476,7 @@ test_that("esicar constrains a disconnected graph PER COMPONENT", {
   pos <- c(which(rownames(jc$V) == "beta"), which(rownames(jc$V) == "b"))
   A <- cbind(stats::model.matrix(~x, d),
              stats::model.matrix(~ loc - 1, d) %*% Pd)
-  expect_vector_equal(predict(fit, se.fit = TRUE)$se.fit,
+  expect_vector_equal(frm_linpred(fit, se.fit = TRUE)$se.fit,
                       sqrt(rowSums((A %*% jc$V[pos, pos]) * A)),
                       tol = 1e-12)
 })
@@ -549,9 +552,9 @@ test_that("con_sd leaves the esicar fit AND its standard errors alone", {
   expect_equal(unname(varcorr_matrices(f3)[[1]][1, 1]),
                exp(2 * f3$estimates$theta[1]))
   # what it no longer touches
-  se2 <- predict(f2, se.fit = TRUE)$se.fit
-  se3 <- predict(f3, se.fit = TRUE)$se.fit
-  se4 <- predict(f4, se.fit = TRUE)$se.fit
+  se2 <- frm_linpred(f2, se.fit = TRUE)$se.fit
+  se3 <- frm_linpred(f3, se.fit = TRUE)$se.fit
+  se4 <- frm_linpred(f4, se.fit = TRUE)$se.fit
   expect_lt(max(abs(se3^2 - se4^2)), 1e-10)
   expect_lt(max(abs(se2^2 - se3^2)), 1e-10)
   expect_lt(max(abs(se3 / se4 - 1)), 1e-9)
@@ -567,7 +570,7 @@ test_that("con_sd leaves the esicar fit AND its standard errors alone", {
 test_that("the esicar delta method is Z P V P' Z', not Z V Z'", {
   # The exact Jacobian, checked against a rebuild that shares no code
   # with it: P is built here from W, and V comes from the EXPORTED
-  # frm_joint_cov() rather than from anything predict() computed.
+  # frm_joint_cov() rather than from anything frm_linpred() computed.
   #
   # The second half is what makes this a test of the Jacobian rather
   # than of arithmetic: the same rebuild with dc/db = I, which is what
@@ -584,7 +587,7 @@ test_that("the esicar delta method is Z P V P' Z', not Z V Z'", {
   V <- jc$V[pos, pos]
   A <- cbind(s$X, s$Z %*% P)
   se_ref <- sqrt(rowSums((A %*% V) * A))
-  se <- predict(fit, se.fit = TRUE)$se.fit
+  se <- frm_linpred(fit, se.fit = TRUE)$se.fit
   expect_vector_equal(se, se_ref, tol = 1e-12)
   A0 <- cbind(s$X, s$Z)
   se_id <- sqrt(rowSums((A0 %*% V) * A0))
@@ -771,8 +774,8 @@ test_that("spde matches a dense direct ML on a 1-D chain", {
                c("range(spde)", "sd(spde)"))
   expect_equal(colnames(varcorr_matrices(fit)[[1]]), "sd(spde)")
   rows <- c(2L, 40L, 100L)
-  expect_vector_equal(predict(fit, newdata = d[rows, ], se.fit = TRUE)$fit,
-                      predict(fit, se.fit = TRUE)$fit[rows], tol = 1e-10)
+  expect_vector_equal(frm_linpred(fit, newdata = d[rows, ], se.fit = TRUE)$fit,
+                      frm_linpred(fit, se.fit = TRUE)$fit[rows], tol = 1e-10)
   set.seed(1)
   expect_length(frmtmb:::draw_b(fit), nn)
 })

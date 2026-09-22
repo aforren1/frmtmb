@@ -187,7 +187,7 @@ test_that("the structural accessors work on formula-route draws", {
   # these read structure only, so the "no maximum-likelihood estimate"
   # refusal must not fire on them
   expect_equal(stats::nobs(ds), 50L)
-  expect_equal(ngrps(ds), c(g = 5L))
+  expect_equal(ngrps(ds), list(g = 5L))
   expect_equal(stats::family(ds)$family, "gaussian")
 })
 
@@ -206,7 +206,9 @@ test_that("coef() is fixef broadcast plus each group's own draws", {
   # intercept), which is the fit-side coef() computed per draw
   idx <- frmtmb.sample:::draws_par_index(cs$ds$fit)
   per <- vapply(seq_len(ndraws(cs$ds)), function(i) {
-    coef(frmtmb.sample:::draws_fit_at(cs$ds, i, idx))$g[["(Intercept)"]]
+    # coef() names its columns as brms names them since punch round 1,
+    # which is what dimnames(cf$g)[[3]] above already says
+    coef(frmtmb.sample:::draws_fit_at(cs$ds, i, idx))$g[["Intercept"]]
   }, numeric(6L))
   expect_equal(unname(cf$g[, "Estimate", "Intercept"]),
                unname(rowMeans(per)), tolerance = 1e-12)
@@ -419,9 +421,10 @@ test_that("the brms-only methods refuse with a reason and a replacement", {
   expect_error(standata(fd), "Stan data list")
   expect_error(expose_functions(fd), "already plain R")
   expect_error(restructure(fd), "upgrade path")
-  expect_error(posterior_samples(fd), "as_draws\\(x\\)")
-  expect_error(nsamples(fd), "ndraws\\(x\\)")
-  expect_error(parnames(fd), "variables\\(x\\)")
+  # posterior_samples(), nsamples() and parnames() left this list at
+  # item 2.6f: brms keeps all three live with a deprecation warning and
+  # so does this package now. Their behavior is asserted in
+  # test-brms-shapes-draws.R, on draws that exist.
 })
 
 test_that("the matrix-response guards name the function that hit them", {

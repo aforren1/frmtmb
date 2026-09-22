@@ -1,6 +1,6 @@
 # frm_joint_cov() and frm_lp_basis(): the two exported seams of
 # dev/spline-seam-proposal.md, Parts 1a and 1b. The property that
-# matters is that predict(se.fit = TRUE) IS a consumer of the seam, so
+# matters is that frm_linpred(se.fit = TRUE) IS a consumer of the seam, so
 # the two can never report different numbers.
 
 sp_fit <- function() {
@@ -24,14 +24,14 @@ test_that("frm_joint_cov() spans beta, b and theta and labels every row", {
   expect_error(frm_joint_cov(list()), "needs a model fitted by frm")
 })
 
-test_that("frm_lp_basis() reproduces predict(se.fit = TRUE) exactly", {
+test_that("frm_lp_basis() reproduces frm_linpred(se.fit = TRUE) exactly", {
   skip_on_cran()
   o <- sp_fit()
   nd <- data.frame(x = seq(-2, 2, length.out = 12),
                    g = factor(1, levels = levels(o$d$g)))
   for (rf in list(NA, NULL)) {
     lb <- frm_lp_basis(o$fit, newdata = nd, re_formula = rf)
-    pr <- predict(o$fit, newdata = nd, re_formula = rf, se.fit = TRUE)
+    pr <- frm_linpred(o$fit, newdata = nd, re_formula = rf, se.fit = TRUE)
     expect_equal(lb$eta, pr$fit)
     se <- sqrt(rowSums((lb$A %*% lb$V) * lb$A) + lb$extra_var)
     expect_equal(se, pr$se.fit, tolerance = 1e-12)
@@ -39,11 +39,11 @@ test_that("frm_lp_basis() reproduces predict(se.fit = TRUE) exactly", {
     expect_identical(length(lb$coef_names), ncol(lb$A))
     expect_identical(dim(lb$V), c(ncol(lb$A), ncol(lb$A)))
   }
-  # the whole grid covariance, which predict() reduces to its diagonal
+  # the whole grid covariance, which frm_linpred() reduces to its diagonal
   lb <- frm_lp_basis(o$fit, newdata = nd, re_formula = NA)
   Sigma <- lb$A %*% lb$V %*% t(lb$A)
   expect_equal(sqrt(diag(Sigma)),
-               predict(o$fit, newdata = nd, re_formula = NA,
+               frm_linpred(o$fit, newdata = nd, re_formula = NA,
                        se.fit = TRUE)$se.fit,
                tolerance = 1e-12)
   expect_true(isSymmetric(unname(Sigma), tol = 1e-10))
@@ -56,7 +56,7 @@ test_that("frm_lp_basis() works in sample and on a distributional dpar", {
   dd$y <- rnorm(120, 1 + 2 * dd$x, exp(-0.5 + 0.3 * dd$x))
   fit <- frm(bf(y ~ x, sigma ~ x), dd, gaussian())
   lb <- frm_lp_basis(fit, dpar = "sigma")
-  pr <- predict(fit, dpar = "sigma", se.fit = TRUE)
+  pr <- frm_linpred(fit, dpar = "sigma", se.fit = TRUE)
   expect_equal(unname(lb$eta), unname(pr$fit))
   expect_equal(unname(sqrt(rowSums((lb$A %*% lb$V) * lb$A))),
                unname(pr$se.fit), tolerance = 1e-12)
@@ -75,7 +75,7 @@ test_that("frm_lp_basis() gives a nonlinear body an exact Jacobian", {
   nd <- data.frame(t = seq(0, 3, length.out = 7),
                    id = factor(1, levels = levels(d3$id)))
   lb <- frm_lp_basis(fit, newdata = nd, re_formula = NA)
-  expect_equal(lb$eta, unname(predict(fit, newdata = nd, re_formula = NA)))
+  expect_equal(lb$eta, unname(frm_linpred(fit, newdata = nd, re_formula = NA)))
 
   # A is d eta / d coef; check every column against a central difference
   jc <- frm_joint_cov(fit)
@@ -89,14 +89,14 @@ test_that("frm_lp_basis() gives a nonlinear body an exact Jacobian", {
       fp$estimates[[comp[pos]]][idx[pos]] + h
     fm <- fit; fm$estimates[[comp[pos]]][idx[pos]] <-
       fm$estimates[[comp[pos]]][idx[pos]] - h
-    fd <- (predict(fp, newdata = nd, re_formula = NA) -
-             predict(fm, newdata = nd, re_formula = NA)) / (2 * h)
+    fd <- (frm_linpred(fp, newdata = nd, re_formula = NA) -
+             frm_linpred(fm, newdata = nd, re_formula = NA)) / (2 * h)
     worst <- max(worst, max(abs(fd - lb$A[, k])))
   }
   expect_lt(worst, 1e-6)
 
   # se.fit stays refused for a nonlinear predictor; this is the route
-  expect_error(predict(fit, se.fit = TRUE), "nonlinear predictor")
+  expect_error(frm_linpred(fit, se.fit = TRUE), "nonlinear predictor")
   expect_error(frm_lp_basis(fit, newdata = nd, allow_new_levels = TRUE),
                "allow_new_levels")
 })

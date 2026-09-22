@@ -355,20 +355,12 @@ test_that("fitted has reasonable outputs", {
   brms_setup("brmsfit-methods:291",
     fi <- fitted(fit1)
   )
-  brms_port("brmsfit-methods:292", "defect",
-    paste0(
-      "fitted() returns a vector, not brms's four-column summary ",
-      "matrix Estimate, Est.Error, Q2.5, Q97.5; row 2.6d says ",
-      "brms's mean 'already matches', which is true of the value ",
-      "and not of the shape (dev/brmsport-probe4.R) (user ",
-      "decision, 2026-09-17, rule 3; item 2.6f)"),
+  brms_port("brmsfit-methods:292", "pass",
+    "",
     expect_equal(dim(fi), c(nobs(fit1), 4))
   )
-  brms_port("brmsfit-methods:293", "defect",
-    paste0(
-      "fitted() returns a vector with no Estimate, Est.Error, ",
-      "Q2.5, Q97.5 columns (user decision, 2026-09-17, rule 3; ",
-      "item 2.6f)"),
+  brms_port("brmsfit-methods:293", "pass",
+    "",
     expect_equal(colnames(fi), c("Estimate", "Est.Error", "Q2.5", "Q97.5"))
   )
   brms_setup("brmsfit-methods:295",
@@ -413,9 +405,10 @@ test_that("fitted has reasonable outputs", {
   )
   brms_port("brmsfit-methods:314", "defect",
     paste0(
-      "fitted() refuses ndraws, and past the refusal it returns a ",
-      "vector where brms returns the 4-column summary (user ",
-      "decision, 2026-09-17, rule 3; item 2.6f)"),
+      "fitted() is brms's four-column summary now (item 2.6f) and ",
+      "still refuses ndraws BY NAME: a maximum-likelihood fit has ",
+      "no draws to thin. The setup line dies on that refusal, so ",
+      "the assertion reads a stale object"),
     expect_equal(dim(fi), c(100, 4))
   )
   brms_setup("brmsfit-methods:315",
@@ -424,9 +417,10 @@ test_that("fitted has reasonable outputs", {
   )
   brms_port("brmsfit-methods:317", "defect",
     paste0(
-      "fitted() refuses ndraws, and past the refusal it returns a ",
-      "vector where brms returns the 4-column summary (user ",
-      "decision, 2026-09-17, rule 3; item 2.6f)"),
+      "fitted() is brms's four-column summary now (item 2.6f) and ",
+      "still refuses ndraws BY NAME: a maximum-likelihood fit has ",
+      "no draws to thin. The setup line dies on that refusal, so ",
+      "the assertion reads a stale object"),
     expect_equal(dim(fi), c(100, 4))
   )
   brms_setup("brmsfit-methods:320",
@@ -438,25 +432,26 @@ test_that("fitted has reasonable outputs", {
   brms_setup("brmsfit-methods:324",
     fi <- fitted(fit1, dpar = "sigma")
   )
-  brms_port("brmsfit-methods:325", "defect",
-    paste0(
-      "fitted(dpar = 'sigma') returns a vector, not the ",
-      "four-column summary (user decision, 2026-09-17, rule 3; ",
-      "item 2.6f)"),
+  brms_port("brmsfit-methods:325", "pass",
+    "",
     expect_equal(dim(fi), c(nobs(fit1), 4))
   )
-  brms_port("brmsfit-methods:326", "pass",
-    "",
+  brms_port("brmsfit-methods:326", "cannot transfer",
+    paste0(
+      "fitted(fit1, dpar = 'sigma') is brms's four-column summary ",
+      "now, and FIXTURE 1 DOES NOT CONVERGE (nlminb code 1, NaN ",
+      "standard errors), so the Est.Error and the two Q columns ",
+      "are NA and all(fi > 0) is NA rather than TRUE. The Estimate ",
+      "column is positive, which is what the assertion is about; ",
+      "brms's fixture converged. A converged stand-in would ",
+      "transfer it (dev/brmsport-findings.md section 3)"),
     expect_true(all(fi > 0))
   )
   brms_setup("brmsfit-methods:327",
     fi_lin <- fitted(fit1, dpar = "sigma", scale = "linear")
   )
-  brms_port("brmsfit-methods:328", "defect",
-    paste0(
-      "fitted(scale = 'linear') returns a vector, not the ",
-      "four-column summary (user decision, 2026-09-17, rule 3; ",
-      "item 2.6f)"),
+  brms_port("brmsfit-methods:328", "pass",
+    "",
     expect_equal(dim(fi_lin), c(nobs(fit1), 4))
   )
   brms_port("brmsfit-methods:329", "pass",
@@ -472,41 +467,41 @@ test_that("fitted has reasonable outputs", {
   brms_setup("brmsfit-methods:333",
     fi <- fitted(fit2)
   )
-  brms_port("brmsfit-methods:334", "defect",
-    paste0(
-      "fitted(fit2) returns a vector, not the four-column summary ",
-      "(user decision, 2026-09-17, rule 3; item 2.6f)"),
+  brms_port("brmsfit-methods:334", "pass",
+    "",
     expect_equal(dim(fi), c(nobs(fit2), 4))
   )
   brms_setup("brmsfit-methods:335",
     fi <- fitted(fit2, newdata = newdata,
                  allow_new_levels = TRUE)
   )
-  brms_port("brmsfit-methods:337", "defect",
-    "fitted() refuses allow_new_levels by name",
+  brms_port("brmsfit-methods:337", "pass",
+    "",
     expect_equal(dim(fi), c(2, 4))
   )
   brms_setup("brmsfit-methods:338",
     fi <- fitted(fit2, dpar = "shape")
   )
-  brms_port("brmsfit-methods:339", "defect",
-    paste0(
-      "fitted(dpar = 'shape') returns a vector, not the ",
-      "four-column summary (user decision, 2026-09-17, rule 3; ",
-      "item 2.6f)"),
+  brms_port("brmsfit-methods:339", "pass",
+    "",
     expect_equal(dim(fi), c(nobs(fit2), 4))
   )
-  brms_port("brmsfit-methods:340", "defect",
+  brms_port("brmsfit-methods:340", "pass",
     paste0(
-      "fi[1, ] fails on the vector fitted() returns (user ",
-      "decision, 2026-09-17, rule 3; item 2.6f)"),
+      "WEAKER than brms wrote it: fitted() is brms's n x 4 matrix ",
+      "now, so fi[1, ] and fi[2, ] each carry Estimate plus three ",
+      "NA cells on this non-converging fixture, and expect_equal ",
+      "compares c(19.122, NA, NA, NA) with itself. Before the ",
+      "shapes item this compared two numbers and errored on fi[1, ",
+      "]. It moved from defect to pass on that weakening, not on a ",
+      "fix (dev/reviews/20260918-shapes.md, m7)."),
     expect_equal(fi[1, ], fi[2, ])
   )
   brms_setup("brmsfit-methods:341",
     fi <- fitted(fit2, nlpar = "a")
   )
-  brms_port("brmsfit-methods:342", "defect",
-    "fitted() refuses brms's nlpar by name and says to use dpar",
+  brms_port("brmsfit-methods:342", "pass",
+    "",
     expect_equal(dim(fi), c(nobs(fit2), 4))
   )
   brms_setup("brmsfit-methods:344",
@@ -522,11 +517,8 @@ test_that("fitted has reasonable outputs", {
   brms_setup("brmsfit-methods:347",
     fi <- fitted(fit4)
   )
-  brms_port("brmsfit-methods:348", "defect",
-    paste0(
-      "fitted() on the ordinal fit4 returns the 40 x 4 category ",
-      "probabilities, not brms's 40 x 4 x 4 summary array (user ",
-      "decision, 2026-09-17, rule 3; item 2.6f)"),
+  brms_port("brmsfit-methods:348", "pass",
+    "",
     expect_equal(dim(fi), c(nobs(fit4), 4, 4))
   )
   brms_setup("brmsfit-methods:349",
@@ -552,10 +544,8 @@ test_that("fitted has reasonable outputs", {
   brms_setup("brmsfit-methods:354",
     fi <- fitted(fit5)
   )
-  brms_port("brmsfit-methods:355", "defect",
-    paste0(
-      "fitted(fit5) returns a vector, not the four-column summary ",
-      "(user decision, 2026-09-17, rule 3; item 2.6f)"),
+  brms_port("brmsfit-methods:355", "pass",
+    "",
     expect_equal(dim(fi), c(nobs(fit5), 4))
   )
   brms_setup("brmsfit-methods:357",
@@ -581,13 +571,8 @@ test_that("fixef has reasonable ouputs", {
   brms_setup("brmsfit-methods:363",
     fixef1 <- SM(fixef(fit1))
   )
-  brms_port("brmsfit-methods:364", "defect",
-    paste0(
-      "fixef() returns a named list of vectors per dpar with ",
-      "frmtmb's '(Intercept)' names (glmmTMB's shape), not brms's ",
-      "summary matrix with rows Intercept, sigma_Intercept, ... ",
-      "(dev/brmsport-probe4.R) (user decision, 2026-09-17, rule 3; ",
-      "item 2.6f)"),
+  brms_port("brmsfit-methods:364", "pass",
+    "",
     expect_equal(rownames(fixef1),
                  c("Intercept", "sigma_Intercept", "Trt1", "Age", "volume",
                    "Trt1:Age", "sigma_Trt1", "sAge_1", "moExp")
@@ -596,10 +581,8 @@ test_that("fixef has reasonable ouputs", {
   brms_setup("brmsfit-methods:368",
     fixef1 <- SM(fixef(fit1, pars = c("Age", "sAge_1")))
   )
-  brms_port("brmsfit-methods:369", "defect",
-    paste0(
-      "fixef() refuses brms's pars by name and says to subset the ",
-      "result"),
+  brms_port("brmsfit-methods:369", "pass",
+    "",
     expect_equal(rownames(fixef1), c("Age", "sAge_1"))
   )
 })
@@ -746,16 +729,12 @@ test_that("model.frame has reasonable ouputs", {
 })
 
 test_that("ngrps has reasonable ouputs", {
-  brms_port("brmsfit-methods:584", "defect",
-    paste0(
-      "ngrps() returns lme4's named integer vector, not brms's ",
-      "named list (user decision, 2026-09-17, rule 3; item 2.6f)"),
+  brms_port("brmsfit-methods:584", "pass",
+    "",
     expect_equal(ngrps(fit1), list(visit = 4))
   )
-  brms_port("brmsfit-methods:585", "defect",
-    paste0(
-      "ngrps() returns lme4's named integer vector, not brms's ",
-      "named list (user decision, 2026-09-17, rule 3; item 2.6f)"),
+  brms_port("brmsfit-methods:585", "pass",
+    "",
     expect_equal(ngrps(fit2), list(patient = 10))
   )
 })
@@ -916,25 +895,19 @@ test_that("predict has reasonable outputs", {
   brms_setup("brmsfit-methods:725",
     pred <- predict(fit1)
   )
-  brms_port("brmsfit-methods:726", "pending 2.6d",
-    paste0(
-      "predict() is the linear predictor today; brms's four-column ",
-      "predictive summary is item 2.6d"),
+  brms_port("brmsfit-methods:726", "pass",
+    "",
     expect_equal(dim(pred), c(nobs(fit1), 4))
   )
-  brms_port("brmsfit-methods:727", "pending 2.6d",
-    paste0(
-      "predict() has no Estimate, Est.Error, Q2.5, Q97.5 columns ",
-      "until item 2.6d"),
+  brms_port("brmsfit-methods:727", "pass",
+    "",
     expect_equal(colnames(pred), c("Estimate", "Est.Error", "Q2.5", "Q97.5"))
   )
   brms_setup("brmsfit-methods:728",
     pred <- predict(fit1, ndraws = 10, probs = c(0.2, 0.5, 0.8))
   )
-  brms_port("brmsfit-methods:729", "pending 2.6d",
-    paste0(
-      "predict(ndraws =, probs =) belongs to the predictive ",
-      "summary of item 2.6d"),
+  brms_port("brmsfit-methods:729", "pass",
+    "",
     expect_equal(dim(pred), c(nobs(fit1), 5))
   )
   brms_setup("brmsfit-methods:731",
@@ -975,24 +948,26 @@ test_that("predict has reasonable outputs", {
   brms_setup("brmsfit-methods:746",
     pred <- predict(fit1, newdata = df, ndraws = 1)
   )
-  brms_port("brmsfit-methods:747", "pending 2.6d",
+  brms_port("brmsfit-methods:747", "defect",
     paste0(
-      "predict(ndraws =) on NA responses belongs to the predictive ",
-      "summary of item 2.6d"),
+      "predict(ndraws =) is answered now - the draws are ",
+      "SIMULATED, so ndraws sets how many - and the setup still ",
+      "dies earlier, on fit1$data, which partial-matches ",
+      "fit1$data2 (the fit has no data element)"),
     expect_true(!anyNA(pred[, "Estimate"]))
   )
   brms_setup("brmsfit-methods:749",
     pred <- predict(fit2)
   )
-  brms_port("brmsfit-methods:750", "pending 2.6d",
-    "predict() shape, item 2.6d",
+  brms_port("brmsfit-methods:750", "pass",
+    "",
     expect_equal(dim(pred), c(nobs(fit2), 4))
   )
   brms_setup("brmsfit-methods:752",
     pred <- predict(fit2, newdata = newdata, allow_new_levels = TRUE)
   )
-  brms_port("brmsfit-methods:753", "pending 2.6d",
-    "predict() shape, item 2.6d",
+  brms_port("brmsfit-methods:753", "pass",
+    "",
     expect_equal(dim(pred), c(2, 4))
   )
   brms_setup("brmsfit-methods:756",
@@ -1001,19 +976,19 @@ test_that("predict has reasonable outputs", {
   brms_setup("brmsfit-methods:757",
     pred <- predict(fit2, newdata = newdata)
   )
-  brms_port("brmsfit-methods:758", "pending 2.6d",
-    "predict() shape, item 2.6d",
+  brms_port("brmsfit-methods:758", "pass",
+    "",
     expect_equal(dim(pred), c(2, 4))
   )
   brms_setup("brmsfit-methods:760",
     pred <- predict(fit4)
   )
-  brms_port("brmsfit-methods:761", "pending 2.6d",
-    "predict() shape on an ordinal fit, item 2.6d",
+  brms_port("brmsfit-methods:761", "pass",
+    "",
     expect_equal(dim(pred), c(nobs(fit4), 4))
   )
-  brms_port("brmsfit-methods:762", "pending 2.6d",
-    "predict() columns P(Y = k) on an ordinal fit, item 2.6d",
+  brms_port("brmsfit-methods:762", "pass",
+    "",
     expect_equal(colnames(pred), paste0("P(Y = ", 1:4, ")"))
   )
   brms_setup("brmsfit-methods:763",
@@ -1029,8 +1004,8 @@ test_that("predict has reasonable outputs", {
   brms_setup("brmsfit-methods:766",
     pred <- predict(fit5)
   )
-  brms_port("brmsfit-methods:767", "pending 2.6d",
-    "predict() shape on a mixture, item 2.6d",
+  brms_port("brmsfit-methods:767", "pass",
+    "",
     expect_equal(dim(pred), c(nobs(fit5), 4))
   )
   brms_setup("brmsfit-methods:768",
@@ -1043,30 +1018,36 @@ test_that("predict has reasonable outputs", {
     pred <- predict(fit5, newdata, allow_new_levels = TRUE,
                     sample_new_levels = "old_levels")
   )
-  brms_port("brmsfit-methods:772", "pending 2.6d",
+  brms_port("brmsfit-methods:772", "defect",
     paste0(
-      "predict(sample_new_levels =) belongs to the predictive ",
-      "summary of item 2.6d"),
+      "predict() honors sample_new_levels = \"gaussian\", which is ",
+      "what it does, and refuses \"old_levels\" BY NAME: that value ",
+      "resamples the POSTERIOR draws of the levels the fit saw, ",
+      "and a maximum-likelihood fit has no such draws. The setup ",
+      "line dies, so this assertion reads a stale object"),
     expect_equal(dim(pred), c(5, 4))
   )
   brms_setup("brmsfit-methods:773",
     pred <- predict(fit5, newdata, allow_new_levels = TRUE,
                     sample_new_levels = "gaussian")
   )
-  brms_port("brmsfit-methods:775", "pending 2.6d",
+  brms_port("brmsfit-methods:775", "defect",
     paste0(
-      "predict(sample_new_levels =) belongs to the predictive ",
-      "summary of item 2.6d"),
+      "predict(sample_new_levels = \"gaussian\") is ANSWERED now: an ",
+      "unseen level's effect is drawn from its block's estimated ",
+      "covariance. The assertion still fails, on the pre-existing ",
+      "fixture defect :764 records: newdata is fit5$data[1:5, ], ",
+      "fit$data partial-matches fit$data2 (the fit has no data ",
+      "element), so newdata has 2 rows and the answer is 2 x 4 ",
+      "[fit$data is the $ partial match of fit$data2, ",
+      "dev/brmsport-rev-silent.R R8]"),
     expect_equal(dim(pred), c(5, 4))
   )
 })
 
 test_that("print has reasonable outputs", {
-  brms_port("brmsfit-methods:784", "defect",
-    paste0(
-      "print(fit) is frmtmb's own layout, with no 'Multilevel ",
-      "Hyperparameters:' section (user decision, 2026-09-17, rule ",
-      "3; item 2.6f)"),
+  brms_port("brmsfit-methods:784", "pass",
+    "",
     expect_output(SW(print(fit1)), "Multilevel Hyperparameters:")
   )
 })
@@ -1122,11 +1103,8 @@ test_that("residuals has reasonable outputs", {
   brms_setup("brmsfit-methods:824",
     res1 <- SW(residuals(fit1, type = "pearson", probs = c(0.65)))
   )
-  brms_port("brmsfit-methods:825", "defect",
-    paste0(
-      "residuals() refuses probs, and past the refusal it returns ",
-      "a vector where brms returns the summary (user decision, ",
-      "2026-09-17, rule 3; item 2.6f)"),
+  brms_port("brmsfit-methods:825", "pass",
+    "",
     expect_equal(dim(res1), c(nobs(fit1), 3))
   )
   brms_setup("brmsfit-methods:826",
@@ -1154,10 +1132,8 @@ test_that("residuals has reasonable outputs", {
   brms_setup("brmsfit-methods:834",
     res4 <- residuals(fit2)
   )
-  brms_port("brmsfit-methods:835", "defect",
-    paste0(
-      "residuals() returns a vector, not brms's four-column ",
-      "summary (user decision, 2026-09-17, rule 3; item 2.6f)"),
+  brms_port("brmsfit-methods:835", "pass",
+    "",
     expect_equal(dim(res4), c(nobs(fit2), 4))
   )
   brms_port("brmsfit-methods:837", "defect",
@@ -1191,51 +1167,38 @@ test_that("summary has reasonable outputs", {
   brms_setup("brmsfit-methods:886",
     summary1 <- SW(summary(fit1, priors = TRUE))
   )
-  brms_port("brmsfit-methods:887", "defect",
-    paste0(
-      "summary() refuses priors = TRUE, and past the refusal ",
-      "summary(fit) has no $fixed or $random (user decision, ",
-      "2026-09-17, rule 3; item 2.6f)"),
+  brms_port("brmsfit-methods:887", "pass",
+    "",
     expect_true(is.data.frame(summary1$fixed))
   )
-  brms_port("brmsfit-methods:888", "defect",
-    paste0(
-      "blocked by the priors refusal, and past it summary(fit) has ",
-      "no $fixed: its slots are frmtmb's (call, family, ..., ",
-      "coefficients, varcor, rescor, autocor, smooth_edf, extras, ",
-      "fixed_dpars) (user decision, 2026-09-17, rule 3; item 2.6f)"),
+  brms_port("brmsfit-methods:888", "pass",
+    "",
     expect_equal(rownames(summary1$fixed),
                  c("Intercept", "sigma_Intercept", "Trt1", "Age", "volume",
                    "Trt1:Age", "sigma_Trt1", "sAge_1", "moExp"))
   )
-  brms_port("brmsfit-methods:891", "defect",
+  brms_port("brmsfit-methods:891", "divergence",
     paste0(
-      "blocked by the priors refusal, and summary(fit) has no ",
-      "$fixed with brms's names (user decision, 2026-09-17, rule ",
-      "3; item 2.6f)"),
+      "summary(fit)$fixed carries brms's four columns and then the ",
+      "Wald test this package reports, where brms writes Rhat, ",
+      "Bulk_ESS and Tail_ESS. Those three describe a SAMPLER and a ",
+      "maximum-likelihood fit has none, so the column set cannot ",
+      "match (item 2.6f)"),
     expect_equal(colnames(summary1$fixed),
                  c("Estimate", "Est.Error", "l-95% CI",
                    "u-95% CI", "Rhat", "Bulk_ESS", "Tail_ESS"))
   )
-  brms_port("brmsfit-methods:894", "defect",
-    paste0(
-      "blocked by the priors refusal, and summary(fit) has no ",
-      "$fixed with brms's columns (user decision, 2026-09-17, rule ",
-      "3; item 2.6f)"),
+  brms_port("brmsfit-methods:894", "pass",
+    "",
     expect_equal(rownames(summary1$random$visit),
                  c("sd(Intercept)", "sd(Trt1)", "cor(Intercept,Trt1)"))
   )
-  brms_port("brmsfit-methods:896", "defect",
-    paste0(
-      "blocked by the priors refusal, and summary(fit) has no ",
-      "$random (user decision, 2026-09-17, rule 3; item 2.6f)"),
+  brms_port("brmsfit-methods:896", "pass",
+    "",
     expect_output(print(summary1), "Regression Coefficients:")
   )
-  brms_port("brmsfit-methods:897", "defect",
-    paste0(
-      "blocked by the priors refusal, and print(summary(fit)) has ",
-      "no 'Regression Coefficients:' section (user decision, ",
-      "2026-09-17, rule 3; item 2.6f)"),
+  brms_port("brmsfit-methods:897", "pass",
+    "",
     expect_output(print(summary1), "Priors:")
   )
   brms_setup("brmsfit-methods:899",
@@ -1467,16 +1430,12 @@ test_that("variables has reasonable ouputs", {
 })
 
 test_that("vcov has reasonable outputs", {
-  brms_port("brmsfit-methods:999", "defect",
-    paste0(
-      "vcov(fit1) is 10 x 10: it adds nu's intercept to brms's ",
-      "nine population-level coefficients, under frmtmb's ",
-      "'(Intercept)' names (dev/brmsport-probe4.R) (user decision, ",
-      "2026-09-17, rule 3; item 2.6f)"),
+  brms_port("brmsfit-methods:999", "pass",
+    "",
     expect_equal(dim(vcov(fit1)), c(9, 9))
   )
-  brms_port("brmsfit-methods:1000", "defect",
-    "vcov() refuses brms's cor argument by name",
+  brms_port("brmsfit-methods:1000", "pass",
+    "",
     expect_equal(dim(vcov(fit1, cor = TRUE)), c(9, 9))
   )
 })

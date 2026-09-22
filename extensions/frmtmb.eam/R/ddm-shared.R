@@ -604,7 +604,7 @@ ddm_ndt_finalize <- function(fam, y, aterms, max_ndt, what,
 
 #' The non-decision time, in the response's own units
 #'
-#' Without `ndt_group()` this is `predict(fit, dpar = "ndt", type =
+#' Without `ndt_group()` this is `frm_linpred(fit, dpar = "ndt", type =
 #' "response")`, which already reports a time. With `ndt_group()` the
 #' `ndt` link is a plain logit on a FRACTION of the row's own bound, so
 #' `predict()` reports that fraction and this multiplies it back out.
@@ -639,7 +639,7 @@ ddm_ndt_finalize <- function(fam, y, aterms, max_ndt, what,
 #' fit <- frm(bf(rt | dec(upper) ~ 1, bs ~ 1, ndt ~ 1, bias = 0.5),
 #'            family = wiener(), data = d)
 #' # with no ndt_group() the two agree: `ndt` is already a time
-#' head(predict(fit, dpar = "ndt", type = "response"), 3)
+#' head(frmtmb::frm_linpred(fit, dpar = "ndt", type = "response"), 3)
 #' head(ndt_time(fit), 3)
 #' @export
 ndt_time <- function(object, newdata = NULL, ...) {
@@ -650,11 +650,11 @@ ndt_time <- function(object, newdata = NULL, ...) {
     frm_stop("ndt_time(): a ", fam[["family"]], " model does not estimate ",
              "the non-decision time against a bound this can rescale. ",
              "ndt_time() reports for wiener(), lba(), rdm() and ",
-             "wiener_gng(); on a gddm() fit predict(dpar = \"ndt\", type = ",
+             "wiener_gng(); on a gddm() fit frm_linpred(dpar = \"ndt\", type = ",
              "\"response\") already gives the time.", call. = FALSE)
   }
-  out <- stats::predict(object, newdata = newdata, dpar = "ndt",
-                        type = "response", ...)
+  out <- frmtmb::frm_linpred(object, newdata = newdata, dpar = "ndt",
+                             type = "response", ...)
   if (is.null(bd[["floors"]])) return(as.numeric(out))
   scale <- ddm_ndt_scaler(bd[["floors"]], "ndt_time()")
   fl <- if (is.null(newdata)) {

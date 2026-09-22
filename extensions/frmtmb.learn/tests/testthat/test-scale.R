@@ -156,7 +156,7 @@ learn_scale_run <- function(row, form, fam, d, truth_key, truth_value,
   mem <- scale_mem_peak_mb()
 
   ci <- suppressWarnings(stats::confint(fit))
-  b <- unlist(fixef(fit))
+  b <- unlist(fixef_by_dpar(fit))
   vc <- varcorr_matrices(fit)
   sds <- sqrt(diag(vc[[1L]]))
   # the whole correlated block, by name, because the question this row
@@ -205,7 +205,7 @@ learn_rlddm_extra <- function(fit, d) {
   lo <- which(abs(cr) == max(abs(cr[lower.tri(cr)])), arr.ind = TRUE)
   cor_pair <- paste(rownames(cr)[lo[1L, 1L]], "vs",
                     colnames(cr)[lo[1L, 2L]])
-  nd <- suppressWarnings(stats::predict(
+  nd <- suppressWarnings(frm_linpred(
     fit, newdata = one[1L, , drop = FALSE], dpar = "ndt",
     type = "response", re_formula = NA, se.fit = TRUE))
   pop <- as.numeric(nd$fit[1L]) * fl

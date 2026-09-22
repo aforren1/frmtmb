@@ -18,7 +18,7 @@ test_that("brms_overview: kidney lognormal with censoring ports verbatim", {
         data = kidney, family = lognormal())
   )
 
-  fx <- fixef(fit1)$mu
+  fx <- fixef_by_dpar(fit1)$mu
   expect_equal(unname(fx[["(Intercept)"]]), 2.6807, tolerance = 1e-3)
   expect_equal(unname(fx[["sexfemale"]]), 2.4730, tolerance = 1e-3)
   expect_equal(as.numeric(sigma(fit1)), 1.1209, tolerance = 1e-3)
@@ -36,7 +36,7 @@ test_that("brms_overview: inhaler ordinal ports once the family is called", {
   fit3 <- frm(rating ~ treat + period + carry + (1 | subject),
               data = inhaler, family = cumulative())
 
-  fx <- fixef(fit3)$mu
+  fx <- fixef_by_dpar(fit3)$mu
   expect_named(fx, c("treat", "period", "carry"))
   expect_equal(unname(fx[["treat"]]), -0.9978, tolerance = 1e-3)
   expect_equal(as.numeric(logLik(fit3)), -448.29, tolerance = 1e-3)
@@ -53,11 +53,11 @@ test_that("brms_nonlinear: the loss growth curve ports with start values", {
                   data = loss, family = gaussian(),
                   start = list(beta = c(5000, 1, 45)))
 
-  expect_equal(unname(fixef(fit_loss)$ult[["(Intercept)"]]), 5292.5,
+  expect_equal(unname(fixef_by_dpar(fit_loss)$ult[["(Intercept)"]]), 5292.5,
                tolerance = 1e-3)
-  expect_equal(unname(fixef(fit_loss)$omega[["(Intercept)"]]), 1.3370,
+  expect_equal(unname(fixef_by_dpar(fit_loss)$omega[["(Intercept)"]]), 1.3370,
                tolerance = 1e-3)
-  expect_equal(unname(fixef(fit_loss)$theta[["(Intercept)"]]), 45.899,
+  expect_equal(unname(fixef_by_dpar(fit_loss)$theta[["(Intercept)"]]), 45.899,
                tolerance = 1e-3)
 })
 
@@ -69,7 +69,7 @@ test_that("brms_customfamilies: cbpp binomial with trials() ports verbatim", {
   fit1 <- frm(incidence | trials(size) ~ period + (1 | herd),
               data = cbpp, family = binomial())
 
-  fx <- fixef(fit1)$mu
+  fx <- fixef_by_dpar(fit1)$mu
   expect_equal(unname(fx[["(Intercept)"]]), -1.3985, tolerance = 1e-3)
   expect_true(all(fx[c("period2", "period3", "period4")] < 0))
 })
@@ -84,14 +84,18 @@ test_that("brms_distreg: a sigma submodel and its hypothesis port verbatim", {
   fit1 <- frm(bf(symptom_post ~ group, sigma ~ group), data = dat1,
               family = gaussian())
 
-  expect_named(fixef(fit1), c("mu", "sigma"))
+  expect_named(fixef_by_dpar(fit1), c("mu", "sigma"))
+  expect_identical(rownames(fixef(fit1)),
+                   c("Intercept", "sigma_Intercept", "grouptreat",
+                     "sigma_grouptreat"))
   # the vignette's own two-sided hypotheses, unchanged
   hyp <- hypothesis(fit1, c("exp(sigma_Intercept) = 0",
                             "exp(sigma_Intercept + sigma_grouptreat) = 0"))
   expect_equal(nrow(hyp$hypothesis), 2L)
-  expect_s3_class(hyp, "brmshypothesis")
+  expect_s3_class(hyp, "frmtmb_hypothesis")
+  expect_false(inherits(hyp, "brmshypothesis"))
   # the treated group is the more variable one, as simulated
-  expect_gt(unname(fixef(fit1)$sigma[["grouptreat"]]), 0)
+  expect_gt(unname(fixef_by_dpar(fit1)$sigma[["grouptreat"]]), 0)
 })
 
 test_that("brms_monotonic: mo() and its interaction port once a family is given", {
@@ -110,7 +114,7 @@ test_that("brms_monotonic: mo() and its interaction port once a family is given"
 
   # brms's mo() coefficient is the average step, so three steps span the
   # simulated 30 -> 75 range; the vignette prints moincome = 15.73
-  b <- unname(fixef(fit1)$mu[["moincome"]])
+  b <- unname(fixef_by_dpar(fit1)$mu[["moincome"]])
   expect_equal(3 * b, 45, tolerance = 0.1)
   expect_s3_class(conditional_effects(fit5, "income:age"),
                   "frmtmb_conditional_effects")

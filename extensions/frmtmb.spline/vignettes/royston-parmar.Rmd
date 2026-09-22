@@ -66,7 +66,7 @@ on it. Because `gamma0` shifts the whole log cumulative hazard, those
 are LOG HAZARD RATIOS: the model is proportional hazards.
 
 ```{r hr}
-exp(unlist(fixef(fit)$mu)[-1])
+exp(unlist(fixef_by_dpar(fit)$mu)[-1])
 ```
 
 `gamma1` and upward are the other spline coefficients, and together with
@@ -104,7 +104,7 @@ c(flexsurv = fs$loglik, frmtmb = as.numeric(logLik(fit)))
 ## Read the baseline off
 
 Every spline coefficient is a distributional parameter, so
-`predict(type = "link", dpar = )` reaches each of them and the fitted
+`frm_linpred(type = "link", dpar = )` reaches each of them and the fitted
 baseline is the basis times those coefficients. There is no penalized
 smooth in this model, so `frm_curve()` has no random-effect block to
 read and refuses; add an `s()` term and it applies here as it does
@@ -115,7 +115,7 @@ tg <- exp(seq(log(0.3), log(max(bc$recyrs)), length.out = 60))
 nd <- data.frame(recyrs = tg,
                  group = factor("Good", levels = levels(bc$group)))
 lp <- lapply(c("mu", "gamma1", "gamma2", "gamma3"), function(dp) {
-  predict(fit, newdata = nd, type = "link", dpar = dp)
+  frm_linpred(fit, newdata = nd, type = "link", dpar = dp)
 })
 kn <- environment(family(fit)[["lpdf"]])$allknots
 x <- log(tg)
@@ -145,7 +145,7 @@ surv_of <- function(g) {
   ndg <- data.frame(recyrs = tg,
                     group = factor(g, levels = levels(bc$group)))
   lps <- lapply(c("mu", "gamma1", "gamma2", "gamma3"), function(dp) {
-    as.numeric(predict(fit, newdata = ndg, type = "link", dpar = dp))
+    as.numeric(frm_linpred(fit, newdata = ndg, type = "link", dpar = dp))
   })
   exp(-exp(Reduce(`+`, Map(`*`, bas, lps))))
 }
@@ -198,7 +198,7 @@ for what each one estimates and what each one was measured to recover.
 
 ## What this family will not do
 
-`fitted()` and `predict(type = "response")` refuse, and say why. The
+`fitted()` and `frm_linpred(type = "response")` refuse, and say why. The
 mean of a survival time under this model is an integral of the fitted
 survival function with no closed form, and the censored rows do not
 identify its upper tail. `mu` is a spline coefficient, not a fitted

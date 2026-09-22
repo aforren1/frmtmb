@@ -13,7 +13,8 @@ test_that("a bounded-mean mixture starts from the proportion, clamped", {
   fit <- suppressWarnings(
     frm(bf(k | trials(n) ~ 1), family = mixture(beta_binomial, beta_binomial),
         data = d))
-  mu <- sort(plogis(c(unname(fixef(fit)$mu1), unname(fixef(fit)$mu2))))
+  mu <- sort(plogis(c(unname(fixef_by_dpar(fit)$mu1),
+                      unname(fixef_by_dpar(fit)$mu2))))
   expect_lt(mu[1], 0.7)
   expect_gt(mu[2], 0.9)
   # the degenerate start reached -64.26; the separated optimum is -58.71
@@ -25,7 +26,8 @@ test_that("an unbounded-mean mixture keeps its quantile start", {
   d <- data.frame(y = c(rep(0L, 30), rpois(30, 8)))
   fit <- suppressWarnings(
     frm(bf(y ~ 1), family = mixture(poisson, poisson), data = d))
-  mu <- sort(exp(c(unname(fixef(fit)$mu1), unname(fixef(fit)$mu2))))
+  mu <- sort(exp(c(unname(fixef_by_dpar(fit)$mu1),
+                   unname(fixef_by_dpar(fit)$mu2))))
   expect_lt(mu[1], 1)
   expect_gt(mu[2], 6)
 })

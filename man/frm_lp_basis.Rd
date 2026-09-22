@@ -33,7 +33,7 @@ allowed.}
 A list with
 \describe{
 \item{\code{eta}}{the linear predictor, exactly
-\code{predict(type = "link")}.}
+\code{frm_linpred(type = "link")}.}
 \item{\code{A}}{\verb{n x p}; \verb{d eta / d coef}.}
 \item{\code{coef_pos}}{length \code{p}; the rows of \code{V} the columns of \code{A}
 belong to, in \code{V}'s own order.}
@@ -47,10 +47,10 @@ level's marginal variance are not.}
 rank-deficient design could not identify.}
 }
 \code{var(eta)} is \code{rowSums((A \%*\% V) * A) + extra_var}, and
-\code{predict(se.fit = TRUE)} is written that way.
+\code{frm_linpred(se.fit = TRUE)} is written that way.
 }
 \description{
-\code{predict(se.fit = TRUE)} builds a matrix \code{A} with one row per
+\code{frm_linpred(se.fit = TRUE)} builds a matrix \code{A} with one row per
 prediction and one column per contributing coefficient, forms
 \verb{A V A'} and keeps only its diagonal. Every delta-method quantity
 over a fitted curve needs the whole thing: a contrast between two
@@ -69,7 +69,7 @@ For a nonlinear predictor \code{A} is a JACOBIAN rather than a design, and
 it is computed by taping the body against the coefficients it reaches
 through. That includes a \code{\link[=ps]{ps()}} block, whose coefficients enter the
 body through a spline evaluated at an argument the parameters move.
-\code{predict(se.fit = TRUE)} stays refused for a nonlinear predictor;
+\code{frm_linpred(se.fit = TRUE)} stays refused for a nonlinear predictor;
 this is the route.
 
 The Jacobian is exact, and the delta method built on it is still a
@@ -98,11 +98,12 @@ lb <- frm_lp_basis(fit, newdata = nd, re_formula = NA)
 str(lb$A)
 lb$coef_names
 
-# the covariance of the WHOLE grid, which predict() reduces to its
+# the covariance of the WHOLE grid, which frm_linpred() reduces to
 # diagonal
 Sigma <- lb$A \%*\% lb$V \%*\% t(lb$A)
 all.equal(sqrt(diag(Sigma)),
-          predict(fit, newdata = nd, re_formula = NA, se.fit = TRUE)$se.fit)
+          frm_linpred(fit, newdata = nd, re_formula = NA,
+                      se.fit = TRUE)$se.fit)
 }
 \seealso{
 \code{\link[=frm_joint_cov]{frm_joint_cov()}} for the covariance alone,

@@ -1,0 +1,14 @@
+Error : REML likelihoods are comparable only between fits whose fixed-effect designs span the same column space; these do not. Pass refit = TRUE (or refit with REML = FALSE) to compare fixed effects, or hold the fixed effects fixed to compare random-effect structures
+Error : as_draws_df() needs posterior draws and a frmtmb_fit has none: frm() is maximum likelihood, so it carries one parameter vector rather than chains. Install frmtmb.sample and sample first, with as_draws_df(frmtmb.sample::frm_sample(fit)); for the point estimates and their covariance use fixef(), vcov() or confint() on the fit itself
+Error : as_draws() needs draws, and a frm_multiple() result has none: it is m maximum-likelihood fits pooled by Rubin's rules, with no chains. Read the pooled tables from `x$pooled` and `x$pooled_varcorr` or test with hypothesis(), and use frm_sample() on one imputation's fit (`x$fits[[1]]`) for draws
+Error : bayes_R2() is computed per posterior draw and this is a maximum-likelihood fit. Install frmtmb.sample and sample first: bayes_R2(frm_sample(fit))
+Error : Failed to tape the lpdf: Invalid argument to 'advector' (lost class attribute?). Typical cause: base matrix()/c() stripping the advector class, or branching on parameter values
+Error in UseMethod("ndraws") : 
+  no applicable method for 'ndraws' applied to an object of class "frmtmb_multiple"
+Error : expose_functions() has no Stan program to read on a frmtmb fit: a custom family's lpdf is the plain R function handed to custom_family(), callable as it is
+Error : New levels in grouping factor `g`: new. Use allow_new_levels = TRUE to predict them at the population level
+Error : A family object has no field `link_p`. `$` would have partial-matched `link_phi`, and it does not do that on a family: write `$link_phi` if that is the field you mean
+Error : loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the likelihood over draws. Sample first, with frmtmb.sample::loo(frmtmb.sample::frm_sample(fit)) once that package is installed, or compare maximum-likelihood fits with AIC() or BIC()
+Error : posterior_summary() needs posterior draws and a frmtmb_fit has none: frm() is maximum likelihood, so it carries one parameter vector rather than chains. Install frmtmb.sample and sample first, with posterior_summary(frmtmb.sample::frm_sample(fit)); for the point estimates and their covariance use fixef(), vcov() or confint() on the fit itself
+Error : Prior target not found (class=b, coef=w)
+== frmtmb (lane) Rd pages: 100  with examples: 98  errors: 0

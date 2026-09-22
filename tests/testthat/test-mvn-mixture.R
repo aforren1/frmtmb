@@ -56,10 +56,10 @@ test_that("mixture_mvn matches direct ML", {
 
   # fitted() is the n x D mixture-mean matrix; its column means equal
   # the response column means at the gaussian-mixture ML optimum
-  fv <- fitted(fit)
+  fv <- fitted(fit)[, "Estimate", ]
   expect_equal(dim(fv), dim(Y))
   expect_vector_equal(colMeans(fv), colMeans(Y), tol = 1e-4)
-  expect_equal(dim(residuals(fit)), dim(Y))
+  expect_equal(dim(residuals(fit)[, "Estimate", ]), dim(Y))
 })
 
 test_that("mixture_mvn recovers the faithful clusters", {
@@ -68,7 +68,7 @@ test_that("mixture_mvn recovers the faithful clusters", {
   dd$Y <- Y
   fit <- frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dd)
 
-  fx <- fixef(fit)
+  fx <- fixef_by_dpar(fit)
   m <- rbind(c(fx$mu1d1, fx$mu1d2), c(fx$mu2d1, fx$mu2d2))
   m <- m[order(m[, 1]), ]   # label-swap invariant: order by eruptions
   # reference means from the standard 2-cluster EM solution
@@ -100,7 +100,7 @@ test_that("mixture_mvn class means can depend on covariates", {
   f_0 <- frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dd)
   expect_gt(as.numeric(logLik(f_x)), as.numeric(logLik(f_0)) + 20)
   # both classes share the true slopes (loose recovery)
-  fx <- fixef(f_x)
+  fx <- fixef_by_dpar(f_x)
   for (nm in c("mu1d1", "mu2d1")) {
     expect_lt(abs(fx[[nm]][["x"]] - 1.2), 0.3)
   }
@@ -117,7 +117,7 @@ test_that("mixture_mvn dpar overrides and covariate gating work", {
   # per-class per-dimension override
   f_ov <- frm(bf(Y ~ x, mu2d1 ~ 1) + mixture_mvn(K = 2, D = 2),
               data = dd)
-  fx <- fixef(f_ov)
+  fx <- fixef_by_dpar(f_ov)
   expect_named(fx$mu1d1, c("(Intercept)", "x"))
   expect_named(fx$mu2d1, "(Intercept)")
 
@@ -125,7 +125,7 @@ test_that("mixture_mvn dpar overrides and covariate gating work", {
   f_gate <- frm(bf(Y ~ 1, theta1 ~ x) + mixture_mvn(K = 2, D = 2),
                 data = dd)
   f_flat <- frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dd)
-  expect_named(fixef(f_gate)$theta1, c("(Intercept)", "x"))
+  expect_named(fixef_by_dpar(f_gate)$theta1, c("(Intercept)", "x"))
   expect_gte(as.numeric(logLik(f_gate)),
              as.numeric(logLik(f_flat)) - 1e-6)
 })
@@ -286,7 +286,7 @@ test_that("mixture_mvn class means take covariates under every model", {
     f_0 <- frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2, model = m),
                data = dd, control = ctl)
     expect_gt(as.numeric(logLik(f_x)), as.numeric(logLik(f_0)) + 20)
-    fx <- fixef(f_x)
+    fx <- fixef_by_dpar(f_x)
     for (nm in c("mu1d1", "mu2d1")) {
       expect_lt(abs(fx[[nm]][["x"]] - 1.2), 0.3)
     }
@@ -346,7 +346,7 @@ expect_mclust_agreement <- function(Y, K, D) {
     expect_lt(abs(as.numeric(logLik(fit)) - as.numeric(mc$loglik)), 1e-4)
 
     # label order is arbitrary in both fits; sort by the first mean
-    fx <- fixef(fit)
+    fx <- fixef_by_dpar(fit)
     ourM <- t(vapply(seq_len(K), function(k) {
       vapply(seq_len(D), function(j) {
         unname(fx[[paste0("mu", k, "d", j)]])

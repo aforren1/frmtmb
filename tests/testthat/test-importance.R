@@ -120,7 +120,7 @@ test_that("the probe design lands on GLMMadaptive within its MCSE", {
   expect_lt(abs(fi$opt$objective - ref_nll), 3 * mcse)
   # the intercept, against its own standard error
   se_int <- sqrt(diag(vcov(fi)))[[1L]]
-  expect_lt(abs(fixef(fi)$mu[[1L]] - ref_fix[[1L]]), 0.5 * se_int)
+  expect_lt(abs(fixef_by_dpar(fi)$mu[[1L]] - ref_fix[[1L]]), 0.5 * se_int)
   # the Laplace fit it corrects is genuinely biased: it misses the
   # reference log-likelihood by more than a unit, far outside the MCSE
   expect_gt(abs(fl$opt$objective - ref_nll), 1)
@@ -149,7 +149,7 @@ test_that("scalar intercept agrees with quadrature and glmer(nAGQ = 25)", {
             3 * mcse)
   expect_lt(abs(as.numeric(logLik(fi)) - as.numeric(logLik(fq))),
             3 * mcse)
-  expect_lt(max(abs(fixef(fi)$mu - lme4::fixef(ref))), 0.05)
+  expect_lt(max(abs(fixef_by_dpar(fi)$mu - lme4::fixef(ref))), 0.05)
   sd_i <- sqrt(varcorr_matrices(fi)[[1L]][1, 1])
   sd_r <- as.numeric(attr(lme4::VarCorr(ref)$g, "stddev"))[1L]
   expect_lt(abs(sd_i - sd_r), 0.05)
@@ -1140,7 +1140,8 @@ test_that("a declared factorization is corrected, and gaussian() agrees", {
     # pieces instead of through row_lpdf()
     expect_equal(as.numeric(logLik(fit)), as.numeric(logLik(ref)),
                  tolerance = 1e-6)
-    expect_equal(unlist(fixef(fit)), unlist(fixef(ref)), tolerance = 1e-5)
+    expect_equal(unlist(fixef_by_dpar(fit)), unlist(fixef_by_dpar(ref)),
+                 tolerance = 1e-5)
     expect_equal(fit$importance$mcse, ref$importance$mcse, tolerance = 1e-6)
   }
 })

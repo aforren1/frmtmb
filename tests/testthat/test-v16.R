@@ -43,17 +43,17 @@ test_that("rr() matches glmmTMB and nests us() at full rank", {
   expect_loglik_equal(fr, fu, tol = 1e-4)
 
   # methods run through the coefficient-space expansion
-  expect_length(fitted(fit), nrow(dd))
-  expect_equal(unname(predict(fit, newdata = dd[1:6, ],
+  expect_length(fitted(fit)[, "Estimate"], nrow(dd))
+  expect_equal(unname(frm_linpred(fit, newdata = dd[1:6, ],
                               type = "response")),
-               unname(fitted(fit)[1:6]), tolerance = 1e-10)
+               unname(fitted(fit)[, "Estimate"][1:6]), tolerance = 1e-10)
   r <- ranef(fit)
   expect_equal(dim(r[[1]]), c(60L, 6L))
   expect_equal(nrow(as.data.frame(varcorr_matrices(fit))), 6L + 15L)
   s <- simulate(fit, nsim = 2, re_formula = NA)
   expect_equal(nrow(s), nrow(dd))
   # se.fit works since v0.17 (loadings Jacobian)
-  ps <- predict(fit, se.fit = TRUE)
+  ps <- frm_linpred(fit, se.fit = TRUE)
   expect_true(all(is.finite(ps$se.fit)))
   expect_error(frm(bf(y ~ 1 + rr(spp + 0 | site, d = 9)) + poisson(),
                    data = dd), "must not exceed")
@@ -89,9 +89,9 @@ test_that("mi() matches the closed-form marginal likelihood", {
                      method = "BFGS",
                      control = list(reltol = 1e-13, maxit = 5000))
   expect_lt(abs(as.numeric(logLik(fit)) + op$value), 1e-6)
-  expect_equal(unname(fixef(fit)$y_mu[c("(Intercept)", "mix", "z")]),
+  expect_equal(unname(fixef_by_dpar(fit)$y_mu[c("(Intercept)", "mix", "z")]),
                op$par[1:3], tolerance = 1e-4)
-  expect_equal(unname(fixef(fit)$x_mu), op$par[4:5], tolerance = 1e-4)
+  expect_equal(unname(fixef_by_dpar(fit)$x_mu), op$par[4:5], tolerance = 1e-4)
 
   # imputations track the truth (x | y, z posterior modes)
   expect_gt(cor(fit$estimates$miss, x[mis]), 0.5)
@@ -105,10 +105,10 @@ test_that("mi() matches the closed-form marginal likelihood", {
   expect_gt(s_mi, s_full)
 
   # predict: in-sample and newdata (which must be complete)
-  expect_length(predict(fit, resp = "y"), n)
-  expect_length(predict(fit, newdata = data.frame(x = 0.5, z = 0),
+  expect_length(frm_linpred(fit, resp = "y"), n)
+  expect_length(frm_linpred(fit, newdata = data.frame(x = 0.5, z = 0),
                         resp = "y"), 1L)
-  expect_error(predict(fit, newdata = data.frame(x = NA_real_, z = 0),
+  expect_error(frm_linpred(fit, newdata = data.frame(x = NA_real_, z = 0),
                        resp = "y"), "complete")
 })
 
@@ -147,5 +147,5 @@ test_that("mi() degenerates and guards correctly", {
   # mi() interactions work since v0.18
   fint <- frm(bf(y ~ mi(x) * z) + gaussian() +
                 bf(x | mi() ~ z) + gaussian(), data = d2)
-  expect_true(all(c("mix", "mix:z") %in% names(fixef(fint)$y_mu)))
+  expect_true(all(c("mix", "mix:z") %in% names(fixef_by_dpar(fint)$y_mu)))
 })

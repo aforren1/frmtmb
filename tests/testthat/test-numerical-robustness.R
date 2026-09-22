@@ -204,7 +204,7 @@ test_that("the eta-scale pass-through does not change a fit", {
   d$yb <- stats::rbinom(n, 1, stats::plogis(0.4 + 0.9 * d$x))
   fit <- frm(bf(yb ~ x + (1 | g)), family = bernoulli(), data = d)
   ref <- lme4::glmer(yb ~ x + (1 | g), d, family = stats::binomial())
-  expect_lt(max(abs(fixef(fit)$mu - lme4::fixef(ref))), 1e-3)
+  expect_lt(max(abs(fixef_by_dpar(fit)$mu - lme4::fixef(ref))), 1e-3)
   expect_lt(abs(as.numeric(stats::logLik(fit)) -
                   as.numeric(stats::logLik(ref))), 1e-4)
 })
@@ -215,10 +215,10 @@ test_that("separation is fitted instead of crashing", {
   # back with numbers.
   d <- data.frame(x = c(-3, -2, -1, 1, 2, 3), y = c(0, 0, 0, 1, 1, 1))
   fit <- suppressWarnings(frm(bf(y ~ x), family = bernoulli(), data = d))
-  expect_true(all(is.finite(fixef(fit)$mu)))
+  expect_true(all(is.finite(fixef_by_dpar(fit)$mu)))
   expect_true(is.finite(as.numeric(stats::logLik(fit))))
   # the fitted slope is large, and the log-likelihood is essentially 0
-  expect_gt(fixef(fit)$mu[["x"]], 5)
+  expect_gt(fixef_by_dpar(fit)$mu[["x"]], 5)
   expect_lt(abs(as.numeric(stats::logLik(fit))), 1e-3)
 })
 
@@ -258,7 +258,7 @@ test_that("huber() estimates match Huber's own estimating equations", {
   k <- 1.345
   fit <- suppressWarnings(frm(bf(y ~ x + z), family = huber(), data = d))
   X <- stats::model.matrix(~ x + z, d)
-  u <- (d$y - as.vector(X %*% fixef(fit)$mu)) / sigma(fit)
+  u <- (d$y - as.vector(X %*% fixef_by_dpar(fit)$mu)) / sigma(fit)
   psi <- pmin(pmax(u, -k), k)
   # the score of the Huber log-likelihood, derived by hand: rho' is the
   # clamped residual, and d/d log sigma gives sum(u psi(u)) = n
@@ -280,7 +280,7 @@ test_that("huber() estimates match Huber's own estimating equations", {
   # sharp statement is that our objective is no worse than the
   # reference's, not that the coordinates agree to 1e-8
   expect_lt(-as.numeric(stats::logLik(fit)) - ref$objective, 1e-8)
-  expect_lt(max(abs(fixef(fit)$mu - ref$par[1:3])), 1e-4)
+  expect_lt(max(abs(fixef_by_dpar(fit)$mu - ref$par[1:3])), 1e-4)
   expect_lt(abs(sigma(fit) - exp(ref$par[4])), 1e-4)
 })
 
@@ -295,12 +295,12 @@ test_that("huber() tracks MASS::rlm, and the gap is the scale", {
   # rlm holds the scale at a MAD-type estimate and iterates the
   # location; huber() estimates sigma by ML jointly with mu, so the
   # coefficients agree only to about 1e-2
-  expect_lt(max(abs(fixef(fit)$mu - stats::coef(rl))), 2e-2)
+  expect_lt(max(abs(fixef_by_dpar(fit)$mu - stats::coef(rl))), 2e-2)
   # hold sigma where rlm holds it and the two estimators coincide,
   # which is what says the difference is entirely the scale
   fixed <- suppressWarnings(
     frm(bf(y ~ x + z, sigma = rl$s), family = huber(), data = d))
-  expect_lt(max(abs(fixef(fixed)$mu - stats::coef(rl))), 1e-4)
+  expect_lt(max(abs(fixef_by_dpar(fixed)$mu - stats::coef(rl))), 1e-4)
 })
 
 test_that("huber() collapses to gaussian() as k grows", {
@@ -309,7 +309,7 @@ test_that("huber() collapses to gaussian() as k grows", {
   d$y <- 2 - 0.6 * d$x + stats::rnorm(150)
   g <- frm(bf(y ~ x), family = gaussian(), data = d)
   h <- suppressWarnings(frm(bf(y ~ x), family = huber(k = 20), data = d))
-  expect_lt(max(abs(fixef(h)$mu - fixef(g)$mu)), 1e-4)
+  expect_lt(max(abs(fixef_by_dpar(h)$mu - fixef_by_dpar(g)$mu)), 1e-4)
   expect_lt(abs(sigma(h) - sigma(g)), 1e-4)
   expect_lt(abs(as.numeric(stats::logLik(h)) -
                   as.numeric(stats::logLik(g))), 1e-6)
@@ -326,8 +326,9 @@ test_that("huber() bounds the influence of an outlier", {
   gdirty <- frm(bf(y ~ x), family = gaussian(), data = d2)
   gclean <- frm(bf(y ~ x), family = gaussian(), data = d)
   # the gaussian slope moves several times as far as the huber one
-  expect_lt(abs(fixef(dirty)$mu[["x"]] - fixef(clean)$mu[["x"]]),
-            abs(fixef(gdirty)$mu[["x"]] - fixef(gclean)$mu[["x"]]))
+  bx <- function(f) fixef_by_dpar(f)$mu[["x"]]
+  expect_lt(abs(bx(dirty) - bx(clean)),
+            abs(bx(gdirty) - bx(gclean)))
 })
 
 test_that("huber()'s simulator draws from huber()'s density", {
@@ -348,10 +349,10 @@ test_that("huber() plumbs through the fit methods", {
   d <- data.frame(x = stats::rnorm(80))
   d$y <- 2 - 0.6 * d$x + stats::rnorm(80)
   fit <- suppressWarnings(frm(bf(y ~ x), family = huber(), data = d))
-  expect_equal(unname(fitted(fit)),
-               unname(predict(fit, type = "response")))
-  expect_true(all(is.finite(residuals(fit, type = "pearson"))))
-  expect_true(all(is.finite(residuals(fit, type = "deviance"))))
+  expect_equal(unname(fitted(fit)[, "Estimate"]),
+               unname(frm_linpred(fit, type = "response")))
+  expect_true(all(is.finite(residuals(fit, type = "pearson")[, "Estimate"])))
+  expect_true(all(is.finite(residuals(fit, type = "deviance")[, "Estimate"])))
   expect_length(simulate(fit)[[1]], 80)
   expect_identical(family(fit)$family, "huber")
   # k is a constant of the family, not a dpar
@@ -423,7 +424,7 @@ test_that("every registry field tapes with a finite value and gradient", {
   }
 })
 
-test_that("mu_eta is the derivative predict(se.fit) thinks it is", {
+test_that("mu_eta is the derivative frm_linpred(se.fit) thinks it is", {
   skip_if_not_installed("numDeriv")
   for (nm in NEW_LINKS) {
     lk <- frmtmb:::frmtmb_links[[nm]]
@@ -616,7 +617,7 @@ test_that("the new links fit a GLM and match stats::glm", {
                                 data = d, control = ctl))
     g <- stats::glm(cbind(y, nt - y) ~ x + z, data = d,
                     family = stats::binomial(link = lk), control = gctl)
-    expect_lt(max(abs(fixef(fit)$mu - stats::coef(g))), 1e-6)
+    expect_lt(max(abs(fixef_by_dpar(fit)$mu - stats::coef(g))), 1e-6)
     expect_lt(abs(as.numeric(stats::logLik(fit)) -
                     as.numeric(stats::logLik(g))), 1e-6)
   }
@@ -627,9 +628,9 @@ test_that("the new links fit a GLM and match stats::glm", {
   fp <- suppressWarnings(frm(bf(yp ~ x),
                              family = stats::poisson(link = "sqrt"),
                              data = d, control = ctl))
-  gp <- stats::glm(yp ~ x, data = d, start = fixef(fp)$mu,
+  gp <- stats::glm(yp ~ x, data = d, start = fixef_by_dpar(fp)$mu,
                    family = stats::poisson(link = "sqrt"), control = gctl)
-  expect_lt(max(abs(fixef(fp)$mu - stats::coef(gp))), 1e-6)
+  expect_lt(max(abs(fixef_by_dpar(fp)$mu - stats::coef(gp))), 1e-6)
 
   # `1/mu^2` is the inverse Gaussian canonical link and stats spells it
   # the same way brms does, so this one comparison is available. The
@@ -644,11 +645,11 @@ test_that("the new links fit a GLM and match stats::glm", {
   expect_identical(family(fi)$links$mu$name, "1/mu^2")
   gi <- suppressWarnings(stats::glm(
     yi ~ x, data = d, family = stats::inverse.gaussian(),
-    start = fixef(fi)$mu, control = gctl))
-  expect_lt(max(abs(fixef(fi)$mu - stats::coef(gi))), 1e-6)
+    start = fixef_by_dpar(fi)$mu, control = gctl))
+  expect_lt(max(abs(fixef_by_dpar(fi)$mu - stats::coef(gi))), 1e-6)
 })
 
-test_that("predict(se.fit) is the delta method through every new link", {
+test_that("frm_linpred(se.fit) is the delta method through every new link", {
   skip_if_not_installed("numDeriv")
   set.seed(77)
   n <- 300
@@ -658,8 +659,8 @@ test_that("predict(se.fit) is the delta method through every new link", {
   for (lk in c("probit", "probit_approx", "cauchit", "softit")) {
     fit <- suppressWarnings(frm(bf(y ~ x), family = bernoulli(lk),
                                 data = d))
-    pl <- stats::predict(fit, newdata = nd, type = "link", se.fit = TRUE)
-    pr <- stats::predict(fit, newdata = nd, type = "response",
+    pl <- frm_linpred(fit, newdata = nd, type = "link", se.fit = TRUE)
+    pr <- frm_linpred(fit, newdata = nd, type = "response",
                          se.fit = TRUE)
     lo <- frmtmb:::frmtmb_links[[lk]]
     dn <- vapply(pl$fit, function(z) numDeriv::grad(lo$linkinv, z), 0)
@@ -686,13 +687,13 @@ test_that("the links stats::make.link rejects still reach frmtmb", {
     fit <- suppressWarnings(frm(bf(y ~ x), family = bernoulli(lk),
                                 data = d))
     expect_identical(family(fit)$links$mu$name, lk)
-    expect_true(all(is.finite(fixef(fit)$mu)))
+    expect_true(all(is.finite(fixef_by_dpar(fit)$mu)))
   }
   d$yw <- stats::rweibull(n, 2, exp(0.5 + 0.3 * d$x))
   for (lk in c("softplus", "squareplus")) {
     fit <- suppressWarnings(frm(bf(yw ~ x), family = weibull(lk), data = d))
     expect_identical(family(fit)$links$mu$name, lk)
-    expect_true(all(is.finite(fixef(fit)$mu)))
+    expect_true(all(is.finite(fixef_by_dpar(fit)$mu)))
   }
 })
 
@@ -852,14 +853,14 @@ test_that("ce_band_ends orders, refuses a pole and keeps the sides", {
   expect_equal(b6$upper, 1 / sqrt(c(1, 4)))
 })
 
-test_that("predict(se.fit) reports a standard error, not an interval", {
-  # H1 is a band defect and predict() has no band: it returns
+test_that("frm_linpred(se.fit) reports a standard error, not an interval", {
+  # H1 is a band defect and frm_linpred() has no band: it returns
   # |mu_eta| * se_eta, which is non-negative by construction and has no
   # endpoints to order. Asserted so the claim is measured, not assumed.
   for (lk in c("1/mu^2", "inverse")) {
     cs <- band_case(lk)
     nd <- data.frame(x = c(-1.5, -0.4, 0.6, 2))
-    p <- stats::predict(cs$fit, newdata = nd, type = "response",
+    p <- frm_linpred(cs$fit, newdata = nd, type = "response",
                         se.fit = TRUE)
     expect_named(p, c("fit", "se.fit"))
     expect_true(all(is.finite(p$se.fit)))

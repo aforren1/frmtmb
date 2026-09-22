@@ -198,7 +198,7 @@ test_that("a bare events table in a formula is the inline table", {
   f_inl <- frm(form_inl + gaussian(), data = d, start = st)
   expect_equal(as.numeric(logLik(f_sym)), as.numeric(logLik(f_inl)),
                tolerance = 1e-12)
-  expect_equal(unlist(fixef(f_sym)), unlist(fixef(f_inl)),
+  expect_equal(unlist(fixef_by_dpar(f_sym)), unlist(fixef_by_dpar(f_inl)),
                tolerance = 1e-12)
 })
 
@@ -1053,7 +1053,7 @@ test_that("a steady-state population fit recovers the truth", {
                                           ss = TRUE)),
        lk ~ 1 + (1 | id), nl = TRUE) + gaussian(),
     data = d, start = list(beta = log(0.25)))
-  fx <- unlist(fixef(fit))
+  fx <- unlist(fixef_by_dpar(fit))
   expect_equal(unname(fx[["lk.(Intercept)"]]), log(0.2), tolerance = 0.15)
   expect_lt(unname(exp(fx[["sigma.(Intercept)"]])), 1.5)
 })
@@ -1195,7 +1195,7 @@ test_that("a repeated-dosing population fit recovers the truth", {
     data = d, start = list(beta = c(0, log(0.25), log(8))))
 
   expect_s3_class(fit, "frmtmb_fit")
-  fx <- unlist(fixef(fit))
+  fx <- unlist(fixef_by_dpar(fit))
   expect_equal(unname(fx[["lka.(Intercept)"]]), 0, tolerance = 0.4)
   expect_equal(unname(fx[["lke.(Intercept)"]]), log(0.2), tolerance = 0.3)
   expect_equal(unname(fx[["lV.(Intercept)"]]), log(10), tolerance = 0.3)
@@ -1203,7 +1203,7 @@ test_that("a repeated-dosing population fit recovers the truth", {
                tolerance = 0.1)
 
   # the fitted curve is the multi-dose curve, not the single-dose one
-  pr <- stats::predict(fit)
+  pr <- frm_linpred(fit)
   single <- pk_analytic2(d$time, exp(fx[["lka.(Intercept)"]]),
                         exp(fx[["lke.(Intercept)"]]),
                         exp(fx[["lV.(Intercept)"]]), 100)

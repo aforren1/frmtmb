@@ -1,8 +1,8 @@
 # Closing the ordinal prediction surface (v0.32): fitted() returns the
-# category-probability matrix predict(type = "response") returns, and
+# category-probability matrix frm_linpred(type = "response") returns, and
 # every consumer that needed one number per row now says which number it
 # uses. Before this, fitted() stayed on the latent predictor, which
-# broke the predict(type = "response") == fitted() invariant, made
+# broke the frm_linpred(type = "response") == fitted() invariant, made
 # plot(fit) and residuals() report latent-scale quantities without
 # saying so, and left dharma_residuals() and conditional_effects()
 # refusing or plotting the wrong scale.
@@ -23,25 +23,33 @@ ordfit_data <- function(seed, n = 250, tau = c(-0.8, 0.6), beta = 0.9,
   dd
 }
 
-## fitted() == predict(type = "response") ------------------------------
+## fitted() == frm_linpred(type = "response") ------------------------------
 
 test_that("fitted() is the category matrix on all four ordinal families", {
   dd <- ordfit_data(101)
   for (fam in list(cumulative(), sratio(), cratio(), acat())) {
     fit <- frm(bf(y ~ x) + fam, data = dd)
-    ft <- fitted(fit)
+    ft <- fitted(fit)[, "Estimate", ]
     expect_true(is.matrix(ft), info = fam$family)
     expect_equal(dim(ft), c(nrow(dd), 3L), info = fam$family)
-    expect_equal(colnames(ft), levels(dd$y), info = fam$family)
-    expect_equal(rownames(ft), rownames(dd), info = fam$family)
+    # brms's dimnames on fitted(); frm_linpred() keeps the response's
+    # own level names, which is frmtmb's own spelling
+    expect_equal(colnames(ft), paste0("P(Y = ", levels(dd$y), ")"),
+                 info = fam$family)
+    # brms leaves the ROW dimnames of its summary array NULL, whatever
+    # the data's row names are: posterior_summary() names the rows
+    # after the draws matrix's columns, which are unnamed
+    expect_true(is.null(rownames(ft)), info = fam$family)
     expect_equal(unname(rowSums(ft)), rep(1, nrow(dd)),
                  tolerance = 1e-12, info = fam$family)
     expect_true(all(ft > 0 & ft < 1), info = fam$family)
     # the invariant the v0.31 note carved an exception out of
-    expect_identical(ft, predict(fit, type = "response"),
-                     info = fam$family)
+    expect_equal(unname(ft), unname(frm_linpred(fit, type = "response")),
+                 info = fam$family)
+    expect_equal(colnames(frm_linpred(fit, type = "response")),
+                 levels(dd$y), info = fam$family)
     # the latent predictor is still reachable, by name
-    expect_true(is.numeric(predict(fit, type = "link")),
+    expect_true(is.numeric(frm_linpred(fit, type = "link")),
                 info = fam$family)
   }
 })
@@ -49,8 +57,8 @@ test_that("fitted() is the category matrix on all four ordinal families", {
 test_that("fitted() honors cs() and pads under na.exclude", {
   dd <- ordfit_data(102)
   fit <- frm(bf(y ~ x + cs(z)) + sratio(), data = dd)
-  ft <- fitted(fit)
-  expect_identical(ft, predict(fit, type = "response"))
+  ft <- fitted(fit)[, "Estimate", ]
+  expect_equal(unname(ft), unname(frm_linpred(fit, type = "response")))
   expect_equal(unname(rowSums(ft)), rep(1, nrow(dd)), tolerance = 1e-12)
   # cs() really moves the answer: the column is not constant in z
   expect_gt(stats::sd(ft[, 1]), 0.02)
@@ -59,11 +67,11 @@ test_that("fitted() honors cs() and pads under na.exclude", {
   dna$x[c(4L, 30L)] <- NA
   fna <- frm(bf(y ~ x) + cumulative(), data = dna,
              na.action = stats::na.exclude)
-  fn <- fitted(fna)
+  fn <- fitted(fna)[, "Estimate", ]
   expect_equal(dim(fn), c(nrow(dna), 3L))
   expect_true(all(is.na(fn[c(4L, 30L), ])))
   expect_false(anyNA(fn[-c(4L, 30L), ]))
-  expect_identical(fn, predict(fna, type = "response"))
+  expect_equal(unname(fn), unname(frm_linpred(fna, type = "response")))
 })
 
 ## residuals -----------------------------------------------------------
@@ -71,21 +79,23 @@ test_that("fitted() honors cs() and pads under na.exclude", {
 test_that("ordinal residuals score the categories by their own codes", {
   dd <- ordfit_data(103)
   fit <- frm(bf(y ~ x) + cumulative(), data = dd)
-  P <- fitted(fit)
+  P <- fitted(fit)[, "Estimate", ]
   k <- seq_len(ncol(P))
   m <- as.numeric(P %*% k)
   v <- as.numeric(P %*% (k^2)) - m^2
   yc <- as.integer(dd$y)
 
-  expect_equal(as.numeric(residuals(fit)), yc - m, tolerance = 1e-12)
-  expect_equal(as.numeric(residuals(fit, type = "pearson")),
+  expect_equal(as.numeric(residuals(fit)[, "Estimate"]), yc - m,
+               tolerance = 1e-12)
+  expect_equal(as.numeric(residuals(fit, type = "pearson")[, "Estimate"]),
                (yc - m) / sqrt(v), tolerance = 1e-12)
   # a residual on a score, not on the latent scale: the old path
   # returned y - eta, which is a different number entirely
-  expect_false(isTRUE(all.equal(as.numeric(residuals(fit)),
-                                yc - as.numeric(predict(fit)))))
+  expect_false(isTRUE(all.equal(as.numeric(residuals(fit)[, "Estimate"]),
+                                yc - as.numeric(frm_linpred(fit)))))
   # pearson residuals are standardized, so their spread is about 1
-  expect_lt(abs(stats::sd(residuals(fit, type = "pearson")) - 1), 0.2)
+  expect_lt(abs(stats::sd(residuals(fit, type = "pearson")[, "Estimate"]) - 1),
+            0.2)
   # the order-only residuals stay available and stay refused where they
   # were refused
   expect_true(is.numeric(residuals(fit, type = "osa")))
@@ -117,7 +127,7 @@ test_that("dharma_residuals() runs and calibrates on an ordinal fit", {
   fpr <- res$fittedPredictedResponse
   expect_true(all(fpr > 1 & fpr < 3))
   expect_equal(as.numeric(fpr),
-               as.numeric(fitted(fit) %*% seq_len(3)),
+               as.numeric(fitted(fit)[, "Estimate", ] %*% seq_len(3)),
                tolerance = 1e-12)
   # a correctly specified model: the uniformity test must not reject
   u <- DHARMa::testUniformity(res, plot = FALSE)
@@ -145,10 +155,10 @@ test_that("conditional_effects() draws one curve per ordinal category", {
   expect_equal(levels(df$cats__), levels(dd$y))
   expect_equal(nrow(df), 20L * 3L)
 
-  # the curves are the category probabilities predict() gives on the
+  # the curves are the category probabilities frm_linpred() gives on the
   # same grid, and they sum to one at every grid point
   grid <- unique(df$x)
-  P <- predict(fit, newdata = data.frame(x = grid), type = "response")
+  P <- frm_linpred(fit, newdata = data.frame(x = grid), type = "response")
   expect_equal(df$estimate__, as.numeric(P), tolerance = 1e-10)
   s <- as.numeric(tapply(df$estimate__, df$x, sum))
   expect_equal(s, rep(1, 20L), tolerance = 1e-10)
@@ -172,7 +182,7 @@ test_that("the ordinal effect standard errors include the thresholds", {
   nd <- data.frame(x = c(-1, 0, 1.5), z = c(0.5, 0, -1))
   ed <- frmtmb:::lp_eta_design(fit, lp, nd, FALSE, FALSE)
   ps <- frmtmb:::ord_prob_se(fit, rspec, lp, ed, nd, FALSE)
-  expect_equal(ps$P, predict(fit, newdata = nd, type = "response"),
+  expect_equal(ps$P, frm_linpred(fit, newdata = nd, type = "response"),
                tolerance = 1e-12, ignore_attr = TRUE)
 
   # reference: a full numeric Jacobian of the probabilities with
@@ -211,7 +221,7 @@ test_that("conditional_effects() keeps the latent route and refuses draws", {
   ce <- conditional_effects(fit, dpar = "mu", resolution = 10L)
   expect_false("cats__" %in% names(ce[["x"]]))
   expect_equal(ce[["x"]]$estimate__,
-               predict(fit, newdata = data.frame(x = ce[["x"]]$x),
+               frm_linpred(fit, newdata = data.frame(x = ce[["x"]]$x),
                        type = "link"),
                tolerance = 1e-10, ignore_attr = TRUE)
   # a prediction interval on a probability curve is not a thing
@@ -276,7 +286,7 @@ test_that("emmeans works on the latent scale of an ordinal fit", {
   expect_true(all(is.finite(s$emmean)))
   # the contrast is the fixed-effect difference, on the latent scale
   ct <- data.frame(summary(pairs(em)))
-  expect_equal(ct$estimate[1], -unname(fixef(fit)$mu["fb"]),
+  expect_equal(ct$estimate[1], -unname(fixef_by_dpar(fit)$mu["fb"]),
                tolerance = 1e-6)
 })
 
@@ -288,7 +298,7 @@ test_that("insight accessors survive the ordinal fitted() change", {
   gp <- insight::get_predicted(fit)
   # insight stays on the latent predictor, the clm-like convention
   expect_equal(length(as.numeric(gp)), nrow(dd))
-  expect_equal(as.numeric(gp), unname(predict(fit, type = "link")),
+  expect_equal(as.numeric(gp), unname(frm_linpred(fit, type = "link")),
                tolerance = 1e-8)
   expect_s3_class(insight::get_parameters(fit), "data.frame")
 })

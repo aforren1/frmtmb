@@ -161,16 +161,17 @@
 #' So where a group can have no events, check it yourself, in two lines:
 #'
 #' ```
-#' slope <- fixef(fit)$gamma1[["(Intercept)"]] +
-#'   ranef(fit)[["centre"]][, "time.gamma1:(Intercept)"]
+#' slope <- fixef_by_dpar(fit)$gamma1[["(Intercept)"]] +
+#'   ranef(fit)[["centre"]][, "gamma1_Intercept"]
 #' rownames(ranef(fit)[["centre"]])[slope <= 0]
 #' ```
 #'
 #' and confirm that comes back empty. Name the column: under the paired
-#' spelling recommended below, that grouping carries TWO of them, and
-#' the `mu` one is the frailty deviation, which says nothing about
-#' monotonicity. With a block on `gamma1` alone there is one column and
-#' `[, 1]` will do.
+#' spelling recommended below, that grouping carries TWO of them,
+#' `Intercept` and `gamma1_Intercept` (brms's names, which [frmtmb::ranef()]
+#' uses), and the `Intercept` one is the frailty deviation on `mu`,
+#' which says nothing about monotonicity. With a block on `gamma1`
+#' alone there is one column and `[, 1]` will do.
 #'
 #' Those two lines are the `df = 1` FORM, and they are exact only
 #' there, because `d(eta)/d(log t)` is `gamma_1 + u` and nothing else.
@@ -283,7 +284,7 @@
 #' dd$t <- pmin(dd$t, 3)
 #' fit <- frmtmb::frm(frmtmb::bf(t | cens(censored) ~ trt),
 #'                    family = royston_parmar(df = 2), data = dd)
-#' frmtmb::fixef(fit)$mu
+#' frmtmb::fixef_by_dpar(fit)$mu
 #' @export
 royston_parmar <- function(df = 3, knots = NULL, bknots = NULL,
                            scale = c("hazard", "odds", "normal")) {
@@ -419,7 +420,7 @@ sp_rp_family <- function(cfg, allknots) {
                  "response scale here. mu is gamma0, the intercept of a ",
                  "spline in log time, not a fitted value, and the mean ",
                  "survival time is an integral over a tail the censored ",
-                 "rows do not identify. predict(type = \"link\", dpar = ) ",
+                 "rows do not identify. frm_linpred(type = \"link\", dpar = ) ",
                  "gives any spline coefficient, and frm_curve() reads the ",
                  "fitted log cumulative hazard off with a band",
                  call. = FALSE)

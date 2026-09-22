@@ -199,11 +199,14 @@ has not written.
   is a fit; edit the result and hand it back as `start =`. brms has no
   counterpart to it, and needs none: `brm(init =)` takes Stan program
   names and brms initializes at random in a bounded range instead.
-- Posterior summaries become ML estimates: `fixef()` returns point
-  estimates, `confint()` gives Wald or profile intervals, `anova()`
+- Posterior summaries become ML estimates: `fixef()` returns brms's
+  summary matrix with a standard error and a Wald interval in it,
+  `confint()` gives Wald or profile intervals, `anova()`
   gives likelihood-ratio tests, and `AIC()`/`BIC()` replace `loo()`.
-- `posterior_predict()` becomes `simulate()`; `posterior_epred()` over
-  `newdata` becomes `predict(newdata, type = "response")`. On a
+- `posterior_predict()` becomes `simulate()`, or `predict()`, which
+  summarizes the same draws; `posterior_epred()` over `newdata`
+  becomes `fitted(newdata = )`, or `frm_linpred(newdata = ,
+  type = "response")` for the bare vector. On a
   `cens()` response both draw the LATENT uncensored value, as brms
   does; `simulate(censored = TRUE)` applies the censoring mechanism
   instead.
@@ -526,30 +529,67 @@ the SHAPE of what a standard generic returns:
   brms fills from draws; `fixef()`, `ranef()` and `coef()` take brms's
   `summary`, `robust` and `probs` in brms's positions and refuse
   `summary = FALSE` by name, because a fit has no draws to return.
-- stats-origin generics return stats-shaped values, not brms-shaped
-  ones: `predict()` returns a vector (with `se.fit = TRUE`, a list),
-  not a draws matrix with `Estimate`/`Q2.5` columns; `fitted()` and
-  `residuals()` return vectors; `confint()` takes `level =`, not
-  `probs =`. Their ARGUMENT names are brms's: `predict()`,
-  `fitted()` and `simulate()` take `re_formula` and
+- `predict()`, `fitted()` and `residuals()` return brms's summary
+  matrix: the columns `Estimate`, `Est.Error`, `Q2.5` and `Q97.5`, one
+  row per observation. A maximum-likelihood fit has no draws, so
+  `Est.Error` is a standard error and the `Q` columns are a Wald
+  interval, except on `predict()`, whose draws are SIMULATED and whose
+  `Q` columns are the simulation's own quantiles. An ordinal or
+  categorical response gives brms's `n` by 4 by `K` array from
+  `fitted()` and brms's `P(Y = k)` proportions from `predict()`.
+  `confint()` still takes `level =` rather than `probs =`.
+- **A matrix is not a vector, and every scalar summary of it changes.**
+  This is brms fidelity, not a defect, and it is the one change in
+  this list that gives a WRONG NUMBER rather than an error. brms's
+  `residuals()` is a matrix, so `mean(residuals(fit))` averages four
+  columns and not one. Measured on `y ~ x + f`, n = 150:
+
+  | expression | before | now |
+  |---|---|---|
+  | `mean(residuals(fit))` | -2.894331e-06 | 0.03897951 |
+  | `sd(residuals(fit))` | 0.9701508 | 0.8689341 |
+  | `sum(residuals(fit)^2)` | 140.2377 | 453.1844 |
+  | `length(qqnorm(residuals(fit))$x)` | 150 | 600 |
+
+  The residual vector is `residuals(fit)[, "Estimate"]`, and the same
+  holds for `fitted()` and `predict()`. Code written against brms
+  already does this; code written against frmtmb before the move does
+  not. `insight::get_residuals(fit)` returns the vector, as it does
+  for a `brmsfit`.
+- **`predict()` is the PREDICTIVE distribution, not the linear
+  predictor.** This is the one call whose meaning moved. brms's
+  `predict()` summarizes the posterior predictive distribution with
+  observation noise in it, and frmtmb's now does the same, by
+  simulating from the fit: each replicate draws the parameters from
+  their asymptotic normal law and then a response from the family's
+  own simulator. The LINEAR PREDICTOR, which `predict()` returned
+  before, is `frm_linpred()`, with the same arguments it always had:
+  `frm_linpred(fit, type = "link")` is the old `predict(fit)` and
+  `frm_linpred(fit, se.fit = TRUE)` the old standard errors. A ported
+  script that passes `type` or `se.fit` to `predict()` is refused by
+  name and told where each one went, so the scale cannot change in
+  silence.
+- Their ARGUMENT names are brms's: `predict()`, `fitted()`,
+  `frm_linpred()` and `simulate()` take `re_formula` and
   `allow_new_levels`, and lme4's `re.form` and `allow.new.levels` are
   refused with the replacement named in the message. An argument none
-  of them has is an error rather than a silently ignored name. The
-  exception to the shape rule is an ordinal family, where `fitted()`
-  follows brms and returns the `n` by `K` matrix of category
-  probabilities named by the response levels, exactly as
-  `predict(type = "response")` does; the latent linear predictor is
-  `predict(type = "link")`.
-- **The name transfers; the SCALE does not.** `predict()` takes brms's
-  `re_formula` now, but it still defaults to the LINK scale where the
-  brms call it replaces returns the response scale. A ported
-  `predict(fit, re_formula = NA)` is therefore accepted in silence and
-  answers on a different scale: on a poisson fit the two differ by the
-  inverse link, 0.114223 against 1.121002. Ask for `type = "response"`,
-  or use `fitted()`, which is on the response scale by default. Before
-  the rename that same call warned that it was ignoring an unknown
-  argument, so the warning that used to flag the port is gone while the
-  scale difference is not.
+  of them has is an error rather than a silently ignored name.
+- `fixef()` is brms's summary matrix too, with brms's row names
+  (`Intercept`, `sigma_Intercept`), and `vcov()` covers exactly those
+  rows. The per-predictor list `fixef()` used to return is
+  `fixef_by_dpar()`, and `fixef(flatten = TRUE)` is one vector of
+  estimates in `confint()`'s spelling. `ngrps()` is brms's named list.
+  `summary()` carries brms's `$fixed`, `$random`, `$spec_pars` and
+  `$cor_pars` slots and prints brms's section headings, and brms's
+  EMPTY shapes with them: `$random` is `NULL` when the model has no
+  grouping factors, and `$spec_pars` and `$cor_pars` are frames with
+  no rows when there is nothing to report. On an ordinal fit the
+  thresholds are `fixef()` rows named `Intercept[1]`, `Intercept[2]`,
+  and `vcov()` covers them, as they are in brms.
+- `coef()` and `ranef()` name their coefficients as brms names them,
+  `Intercept` and not `(Intercept)`, so that anything pairing `coef()` with `vcov()`
+  by name, `lmtest::coeftest()` among them, keeps every row. The
+  design-column spelling is `fixef_by_dpar()`.
 - `conditional_effects()` on an ordinal fit draws one probability
   curve per response category, which is what brms draws under
   `categorical = TRUE`, and keys the effect `"x:cats__"` as brms does
@@ -558,6 +598,12 @@ the SHAPE of what a standard generic returns:
   asks for that summary, the expected category number.
 - `coef()` is the per-group convention shared by all three packages:
   fixed effects plus conditional modes per grouping level.
+- `predict(allow_new_levels = TRUE)` draws an unseen level's effect
+  from its block's estimated covariance, which is brms's
+  `sample_new_levels = "gaussian"`, so the interval at an unseen level
+  is wider than at a known one. brms's `"uncertainty"` and
+  `"old_levels"` resample the draws of the levels that were seen, and
+  a maximum-likelihood fit has none, so both are refused by name.
 - `plot(fit)` draws residual diagnostics, not MCMC traces; for
   simulation-based residual checks use `dharma_residuals()`.
 

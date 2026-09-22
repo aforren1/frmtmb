@@ -247,13 +247,18 @@ dfbeta.frmtmb_influence <- function(model, ...) {
 #' @export
 dfbetas.frmtmb_influence <- function(model, ...) {
   frm_check_dots(...)
-  sweep(dfbeta(model), 2, sqrt(diag(vcov(model$fit))), `/`)
+  # dfbeta()'s columns are get_coef()'s vector, which is every
+  # estimated coefficient plus an ordinal fit's thresholds, not brms's
+  # population-level block. interop_vcov() is the covariance of that
+  # exact vector; vcov_estimated() is one block of it, and dividing by
+  # a shorter vector recycles rather than erroring
+  sweep(dfbeta(model), 2, sqrt(diag(interop_vcov(model$fit))), `/`)
 }
 
 #' @export
 cooks.distance.frmtmb_influence <- function(model, ...) {
   frm_check_dots(...)
-  V <- vcov(model$fit)
+  V <- interop_vcov(model$fit)
   p <- ncol(V)
   Vi <- solve(V)
   d <- sweep(model$fixed, 2, model$fixed_full)

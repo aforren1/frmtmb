@@ -113,7 +113,8 @@ test_that("the survival function keeps its digits where 1 - plba_norm loses them
   expect_lt(max(abs(mine - quad) / quad), 1e-9)
 })
 
-test_that("the race matches rtdists n1PDF for two, three and four accumulators", {
+test_that("the race matches rtdists n1PDF for two, three and four accumulators",
+          {
   skip_if_not_installed("rtdists")
   set.seed(7)
   A <- 0.7; k <- 0.6; s <- 1; b <- A + k
@@ -140,7 +141,7 @@ test_that("the family's log-density is the race, through a fitted object", {
   dat <- lba_simulate(150, v = c(2.2, 1.4, 0.8), A = 0.5, k = 0.4, ndt = 0.2)
   fit <- frm(bf(rt | vint(choice) ~ 1), family = lba(3), data = dat)
   ll <- as.numeric(logLik(fit))
-  e <- fixef(fit)
+  e <- fixef_by_dpar(fit)
   A <- exp(e$A[[1]]); k <- exp(e$k[[1]])
   ndt <- stats::family(fit)$links$ndt$linkinv(e$ndt[[1]])
   vv <- c(e$v1[[1]], e$v2[[1]], e$v3[[1]])
@@ -300,7 +301,7 @@ test_that("a decision time at or below zero gives a wall, not a NaN", {
   lp <- race(c(-1, 0, 1e-9, 0.4), c(1, 1, 2, 2), law, pars)
   expect_true(all(is.finite(lp)))
   expect_true(all(lp[1:3] < -100))
-  # predict() on new data faster than anything in the training set holds
+  # frm_linpred() on new data faster than anything in the training set holds
   # the training bound, so the row can land there and must not take the
   # whole prediction with it
   set.seed(17)
@@ -309,7 +310,7 @@ test_that("a decision time at or below zero gives a wall, not a NaN", {
   nd <- d[1:5, ]
   nd$rt <- min(d$rt) / 4
   expect_true(all(is.finite(logLik(fit))))
-  expect_silent(p <- predict(fit, newdata = nd, type = "link"))
+  expect_silent(p <- frm_linpred(fit, newdata = nd, type = "link"))
 })
 
 # ------------------------------------------------------------------ (d)
@@ -333,7 +334,7 @@ test_that("three accumulators and a covariate on one drift recover", {
     f <- try(frm(bf(rt | vint(choice) ~ 1, v2 ~ x), family = lba(3),
                  data = d), silent = TRUE)
     if (inherits(f, "try-error")) next
-    e <- fixef(f)
+    e <- fixef_by_dpar(f)
     est[r, ] <- c(e$v1[[1]], e$v2[[1]], e$v2[[2]], e$v3[[1]])
   }
   ok <- stats::complete.cases(est)
@@ -356,7 +357,7 @@ test_that("a covariate on one drift moves that drift and not the others", {
   d <- lba_simulate(N, v = V, A = 0.5, k = 0.4, ndt = 0.2)
   d$x <- x
   fit <- frm(bf(rt | vint(choice) ~ x), family = lba(3), data = d)
-  e <- fixef(fit)
+  e <- fixef_by_dpar(fit)
   # every drift got its own copy of the formula; only the second should
   # have found a slope, which is the capability the family exists for
   expect_gt(e$v2[["x"]], 0.8)
@@ -454,7 +455,8 @@ test_that("a non-positive response time is refused", {
                "strictly positive, finite")
 })
 
-test_that("a missing choice indicator is refused rather than silently dropped", {
+test_that("a missing choice indicator is refused rather than silently dropped",
+          {
   set.seed(10)
   d <- lba_simulate(50, v = c(2, 1, 0.8), A = 0.5, k = 0.4, ndt = 0.2)
   # declared through required_aterms, so the refusal comes from frmtmb and
@@ -515,7 +517,7 @@ test_that("the non-decision-time link is derived from the response", {
   # the link cannot reach its own bound at any finite linear predictor,
   # so the non-decision time stays strictly below the fastest response
   expect_lt(lk$linkinv(1e4), min(d$rt) + 1e-12)
-  expect_lt(lk$linkinv(fixef(fit)$ndt[[1]]), min(d$rt))
+  expect_lt(lk$linkinv(fixef_by_dpar(fit)$ndt[[1]]), min(d$rt))
 })
 
 test_that("simulate() redraws times holding each row's observed choice", {
@@ -544,7 +546,7 @@ test_that("the untruncated convention is a different model, not a rescaling", {
   expect_false(isTRUE(all.equal(as.numeric(logLik(ft)),
                                 as.numeric(logLik(fu)), tolerance = 1e-4)))
   # and the untruncated fit agrees with rtdists's own posdrift = FALSE
-  e <- fixef(fu)
+  e <- fixef_by_dpar(fu)
   A <- exp(e$A[[1]]); k <- exp(e$k[[1]])
   ndt <- stats::family(fu)$links$ndt$linkinv(e$ndt[[1]])
   vv <- c(e$v1[[1]], e$v2[[1]])

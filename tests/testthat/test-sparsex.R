@@ -41,7 +41,8 @@ test_that("sparse_x reproduces the dense fit for a many-level factor", {
                as.numeric(f_d$opt$objective), tolerance = 1e-10)
   expect_loglik_equal(f_s, f_d, tol = 1e-8)
   # independent optimizer runs stop within trajectory noise of each other
-  expect_vector_equal(unlist(fixef(f_s)), unlist(fixef(f_d)), tol = 1e-5)
+  expect_vector_equal(unlist(fixef_by_dpar(f_s)), unlist(fixef_by_dpar(f_d)),
+                      tol = 1e-5)
 
   # polishing the sparse fit from the dense optimum lands on the
   # identical solution: the sparse objective has the same optimum
@@ -51,18 +52,19 @@ test_that("sparse_x reproduces the dense fit for a many-level factor", {
   f_w <- suppressWarnings(frm(form, data = dd, control = ctl(TRUE),
                               start = st))
   expect_loglik_equal(f_w, f_d, tol = 1e-8)
-  expect_vector_equal(unlist(fixef(f_w)), unlist(fixef(f_d)), tol = 1e-8)
+  expect_vector_equal(unlist(fixef_by_dpar(f_w)), unlist(fixef_by_dpar(f_d)),
+                      tol = 1e-8)
   expect_vector_equal(diag(vcov(f_w)), diag(vcov(f_d)), tol = 1e-8)
 
   # method surface: predict/se.fit (in-sample and newdata), summary,
   # confint, model.matrix
-  p_d <- predict(f_d, se.fit = TRUE)
-  p_w <- predict(f_w, se.fit = TRUE)
+  p_d <- frm_linpred(f_d, se.fit = TRUE)
+  p_w <- frm_linpred(f_w, se.fit = TRUE)
   expect_vector_equal(p_w$fit, p_d$fit, tol = 1e-8)
   expect_vector_equal(p_w$se.fit, p_d$se.fit, tol = 1e-8)
   nd <- dd[seq_len(40), ]
-  pn_d <- predict(f_d, newdata = nd, se.fit = TRUE)
-  pn_w <- predict(f_w, newdata = nd, se.fit = TRUE)
+  pn_d <- frm_linpred(f_d, newdata = nd, se.fit = TRUE)
+  pn_w <- frm_linpred(f_w, newdata = nd, se.fit = TRUE)
   expect_vector_equal(pn_w$fit, pn_d$fit, tol = 1e-8)
   expect_vector_equal(pn_w$se.fit, pn_d$se.fit, tol = 1e-8)
   expect_identical(rownames(summary(f_w)$coefficients$mu),
@@ -85,10 +87,11 @@ test_that("sparse_x is exact for a distributional (sigma ~ x) model", {
   f_s <- frm(form, data = dd, control = ctl(TRUE))
   expect_s4_class(f_s$frame$linpreds[["y.sigma"]]$X, "dgCMatrix")
   expect_loglik_equal(f_s, f_d, tol = 1e-8)
-  expect_vector_equal(unlist(fixef(f_s)), unlist(fixef(f_d)), tol = 1e-8)
+  expect_vector_equal(unlist(fixef_by_dpar(f_s)), unlist(fixef_by_dpar(f_d)),
+                      tol = 1e-8)
   expect_vector_equal(diag(vcov(f_s)), diag(vcov(f_d)), tol = 1e-8)
-  ps_d <- predict(f_d, dpar = "sigma", se.fit = TRUE)
-  ps_s <- predict(f_s, dpar = "sigma", se.fit = TRUE)
+  ps_d <- frm_linpred(f_d, dpar = "sigma", se.fit = TRUE)
+  ps_s <- frm_linpred(f_s, dpar = "sigma", se.fit = TRUE)
   expect_vector_equal(ps_s$fit, ps_d$fit, tol = 1e-8)
   expect_vector_equal(ps_s$se.fit, ps_d$se.fit, tol = 1e-8)
 })
@@ -105,14 +108,15 @@ test_that("sparse_x is exact for mo() terms (patched zero columns)", {
   f_s <- suppressWarnings(
     frm(form, data = dd, control = frmtmb_control(sparse_x = TRUE)))
   expect_loglik_equal(f_s, f_d, tol = 1e-8)
-  expect_vector_equal(unlist(fixef(f_s)), unlist(fixef(f_d)), tol = 1e-8)
-  p_d <- predict(f_d, se.fit = TRUE)
-  p_s <- predict(f_s, se.fit = TRUE)
+  expect_vector_equal(unlist(fixef_by_dpar(f_s)), unlist(fixef_by_dpar(f_d)),
+                      tol = 1e-8)
+  p_d <- frm_linpred(f_d, se.fit = TRUE)
+  p_s <- frm_linpred(f_s, se.fit = TRUE)
   expect_vector_equal(p_s$fit, p_d$fit, tol = 1e-8)
   expect_vector_equal(p_s$se.fit, p_d$se.fit, tol = 1e-8)
   nd <- dd[seq_len(20), ]
-  pn_d <- predict(f_d, newdata = nd, se.fit = TRUE)
-  pn_s <- predict(f_s, newdata = nd, se.fit = TRUE)
+  pn_d <- frm_linpred(f_d, newdata = nd, se.fit = TRUE)
+  pn_s <- frm_linpred(f_s, newdata = nd, se.fit = TRUE)
   expect_vector_equal(pn_s$fit, pn_d$fit, tol = 1e-8)
   expect_vector_equal(pn_s$se.fit, pn_d$se.fit, tol = 1e-8)
 })
@@ -130,7 +134,8 @@ test_that("sparse_x drops the same rank-deficient columns as dense", {
     "dropping column\\(s\\): x2")
   expect_identical(colnames(f_s$frame$linpreds[["y.mu"]]$X),
                    colnames(f_d$frame$linpreds[["y.mu"]]$X))
-  expect_vector_equal(unlist(fixef(f_s)), unlist(fixef(f_d)), tol = 1e-8)
+  expect_vector_equal(unlist(fixef_by_dpar(f_s)), unlist(fixef_by_dpar(f_d)),
+                      tol = 1e-8)
 })
 
 test_that("sparse_x keeps dense naming, smooths, and NA semantics", {
@@ -144,7 +149,7 @@ test_that("sparse_x keeps dense naming, smooths, and NA semantics", {
   # matrix-valued terms keep the dense poly(x, 2)k names
   f_p <- frm(bf(y ~ poly(x, 2) + (1 | g)) + gaussian(), data = dd,
              control = frmtmb_control(sparse_x = TRUE))
-  expect_identical(names(fixef(f_p)$mu),
+  expect_identical(names(fixef_by_dpar(f_p)$mu),
                    c("(Intercept)", "poly(x, 2)1", "poly(x, 2)2"))
 
   # smooth null-space columns cbind onto the sparse X; ML and REML
@@ -152,27 +157,29 @@ test_that("sparse_x keeps dense naming, smooths, and NA semantics", {
   f_d <- frm(form, data = dd)
   f_s <- frm(form, data = dd, control = frmtmb_control(sparse_x = TRUE))
   expect_loglik_equal(f_s, f_d, tol = 1e-8)
-  expect_vector_equal(unlist(fixef(f_s)), unlist(fixef(f_d)), tol = 1e-8)
+  expect_vector_equal(unlist(fixef_by_dpar(f_s)), unlist(fixef_by_dpar(f_d)),
+                      tol = 1e-8)
   nd <- data.frame(x = seq(-2, 2, length.out = 25),
                    f = factor("c", levels = letters[1:8]),
                    g = factor(1, levels = levels(dd$g)))
-  p_d <- predict(f_d, newdata = nd, se.fit = TRUE, re_formula = NA)
-  p_s <- predict(f_s, newdata = nd, se.fit = TRUE, re_formula = NA)
+  p_d <- frm_linpred(f_d, newdata = nd, se.fit = TRUE, re_formula = NA)
+  p_s <- frm_linpred(f_s, newdata = nd, se.fit = TRUE, re_formula = NA)
   expect_vector_equal(p_s$fit, p_d$fit, tol = 1e-8)
   expect_vector_equal(p_s$se.fit, p_d$se.fit, tol = 1e-8)
   r_d <- frm(form, data = dd, REML = TRUE)
   r_s <- frm(form, data = dd, REML = TRUE,
              control = frmtmb_control(sparse_x = TRUE))
   expect_loglik_equal(r_s, r_d, tol = 1e-8)
-  expect_vector_equal(unlist(fixef(r_s)), unlist(fixef(r_d)), tol = 1e-8)
+  expect_vector_equal(unlist(fixef_by_dpar(r_s)), unlist(fixef_by_dpar(r_d)),
+                      tol = 1e-8)
 
   # NA factor levels in newdata propagate to NA predictions (the sparse
   # builder zeroes NA factor rows, so those frames fall back to dense)
   ndna <- data.frame(x = c(0, 0.5), f = factor(c("a", NA),
                                                levels = letters[1:8]),
                      g = factor(c(1, 2), levels = levels(dd$g)))
-  pna_d <- predict(f_d, newdata = ndna, re_formula = NA)
-  pna_s <- predict(f_s, newdata = ndna, re_formula = NA)
+  pna_d <- frm_linpred(f_d, newdata = ndna, re_formula = NA)
+  pna_s <- frm_linpred(f_s, newdata = ndna, re_formula = NA)
   expect_identical(is.na(pna_s), is.na(pna_d))
   expect_true(is.na(pna_s[2]))
   expect_equal(pna_s[1], pna_d[1], tolerance = 1e-8)

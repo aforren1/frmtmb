@@ -301,7 +301,8 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
 - Diagnostics include one-step-ahead residuals calibrated for
   censored, truncated, and ordinal responses, deviance residuals
   across the GLM families, and response-scale `se.fit` for every
-  family through the joint delta method. DHARMa, `pp_check()`,
+  family through the joint delta method, which is what fills brms's
+  `Est.Error` column on `fitted()` and `residuals()`. DHARMa, `pp_check()`,
   `plot()`, and `conditional_effects()` are supported. Hooks for
   emmeans, marginaleffects, and insight/easystats are registered.
 
@@ -312,9 +313,14 @@ frmtmb is maturing. The package is not yet on CRAN.
 - **The model grammar is stable.** It follows brms, so it changes
   only when brms changes. Formulas that fit today will fit in later
   versions.
-- **The fitted-object API is stable.** `frm()`, the accessor methods
-  (`coef()`, `confint()`, `vcov()`, `predict()`, and the rest), and
-  the family constructors keep their current behavior.
+- **The fitted-object API is stable, with one exception in flight.**
+  `frm()`, the accessor methods (`coef()`, `confint()`, `vcov()`,
+  `predict()`, and the rest) and the family constructors keep their
+  current behavior. The exception is the move to brms's RETURN SHAPES:
+  `predict()` is brms's predictive summary and the linear predictor it
+  used to return is `frm_linpred()`; `fitted()`, `residuals()`,
+  `fixef()`, `vcov()`, `ngrps()` and `summary()` return brms's shapes.
+  `NEWS.md` says what breaks and what replaces each one.
 - **The extension interface is public and versioned.**
   `frmtmb_family()`, `frmtmb_structure()` and the registration
   functions are documented as one contract, and the companion

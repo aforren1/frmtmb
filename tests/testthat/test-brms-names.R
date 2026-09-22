@@ -164,7 +164,8 @@ test_that("hypothesis() returns brms's object, with frequentist content", {
   dd <- bn_data()
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
   h <- hypothesis(fit, c("x = 0.5", "x > 0", two = "Intercept < 2"))
-  expect_s3_class(h, "brmshypothesis")
+  expect_s3_class(h, "frmtmb_hypothesis")
+  expect_false(inherits(h, "brmshypothesis"))
   expect_named(h, c("hypothesis", "samples", "prior_samples", "class",
                     "alpha"))
   hs <- h$hypothesis
@@ -173,7 +174,7 @@ test_that("hypothesis() returns brms's object, with frequentist content", {
   # brms's labels, and a name on the vector replaces one
   expect_identical(hs$Hypothesis, c("(x)-(0.5) = 0", "(x) > 0", "two"))
   expect_identical(h$class, "b")
-  est <- unname(fixef(fit)$mu[["x"]])
+  est <- unname(fixef_by_dpar(fit)$mu[["x"]])
   se <- unname(sqrt(vcov(fit)["x", "x"]))
   bn_exact(hs$Estimate[1:2], c(est - 0.5, est))
   bn_fd(hs$Est.Error[2], se)
@@ -236,7 +237,7 @@ test_that("hypothesis() reads x:fe as brms does, not as R's `:`", {
   d$y <- 1 + 0.3 * d$x + 0.8 * (d$f == "e") + 1.0 * d$x * (d$f == "e") +
     stats::rnorm(n)
   fit <- frm(bf(y ~ x * f) + gaussian(), data = d)
-  fe <- fixef(fit)$mu
+  fe <- fixef_by_dpar(fit)$mu
   expect_lt(abs(fe[["x"]] - fe[["x:fe"]]), 1)
   expect_true("b_x:fe" %in% variables(fit))
   h <- hypothesis(fit, c("x:fe > 0", "x:fe - x = 0"))$hypothesis
@@ -274,7 +275,7 @@ test_that("names pass through brms's renaming", {
   expect_true("r_g:h[1_p,Intercept]" %in% lab)
   expect_false(anyDuplicated(lab) > 0L)
   bn_exact(hypothesis(fit, "IxE2 + fcMd = 0")$hypothesis$Estimate,
-           sum(fixef(fit)$mu[c("I(x^2)", "fc-d")]))
+           sum(fixef_by_dpar(fit)$mu[c("I(x^2)", "fc-d")]))
 
   # make_stan_names(): a response loses its _ and .
   dd$y_a <- dd$y
@@ -314,9 +315,9 @@ test_that("name collisions: refused or suffixed, as brms does each", {
   expect_false(anyDuplicated(v) > 0L)
   expect_false(anyDuplicated(brms_par_labels(fit)) > 0L)
   bn_exact(hypothesis(fit, "sigma_z = 0")$hypothesis$Estimate,
-           fixef(fit)$mu[["sigma_z"]])
+           fixef_by_dpar(fit)$mu[["sigma_z"]])
   bn_exact(hypothesis(fit, "sigma_z__1 = 0")$hypothesis$Estimate,
-           fixef(fit)$sigma[["z"]])
+           fixef_by_dpar(fit)$sigma[["z"]])
   # brms: "Duplicated group-level effects are not allowed" when two terms
   # share a coefficient, and the copy of the grouping column is the way
   # to fit both. Not an exact twin such as (1 | g) + (1 | g): brms 2.23.0

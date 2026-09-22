@@ -49,6 +49,15 @@ man <- do.call(rbind, lapply(
   na.strings = NULL))
 own <- utils::read.delim("dev/brmsport-verdicts-own.tsv", quote = "",
                          colClasses = "character", na.strings = NULL)
+# A pass that is WEAKER than the assertion brms wrote. It still holds,
+# so it is not a defect and no verdict can be given for it, but a
+# reader has to be told: `brmsfit-methods:340` compares
+# `c(19.122, NA, NA, NA)` with itself now, 3 of its 4 cells NA on both
+# sides, where before the shapes item it compared two numbers. Without
+# this file such a row moves from defect to pass and reads like a fix.
+notes <- utils::read.delim("dev/brmsport-notes.tsv", quote = "",
+                           colClasses = "character", na.strings = NULL)
+stopifnot(!anyDuplicated(notes[c("id", "pkg")]), all(nzchar(notes$note)))
 stopifnot(!anyDuplicated(own[c("id", "pkg")]),
           !any(paste(own$id) %in% paste(man$id)))
 stopifnot(!anyDuplicated(man[c("id", "pkg")]),
@@ -130,9 +139,11 @@ for (i in seq_len(nrow(led))) {
         problems <- c(problems, sprintf(
           "HOLDS but has manual verdict '%s': %s in %s", m$verdict, id, p))
       }
-      v <- data.frame(id = id, pkg = p, verdict = "pass", reason = "")
+      nt <- notes[notes$id == id & notes$pkg %in% c(p, "*"), ]
+      v <- data.frame(id = id, pkg = p, verdict = "pass",
+                      reason = if (nrow(nt)) nt$note[1L] else "")
       out_v[[length(out_v) + 1L]] <- v
-      cls <- ""
+      cls <- if (nrow(nt)) "weak-pass" else ""
     } else {
       if (!nrow(m)) {
         problems <- c(problems, sprintf("UNCLASSIFIED %s in %s: %s", id, p,

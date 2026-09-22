@@ -57,7 +57,7 @@
 #'   the machine-independent part of run time, and its wall clock at a
 #'   larger n is checked as well with slack.
 #' @srrstats {RE7.2} Output objects retain the row names of the input.
-#'   `fitted()`, `residuals()`, `predict()`, `predict(newdata =)`, and
+#'   `fitted()`, `residuals()`, `frm_linpred()`, `frm_linpred(newdata =)`, and
 #'   `model.frame()` all carry the data frame's row names, including
 #'   after `na.action` has removed rows, where the surviving names stay
 #'   in place.
@@ -82,15 +82,15 @@ test_that("data-dependent bases are frozen at fit time (glmmTMB#402)", {
   m2 <- frm(bf(y ~ poly(x, 2, raw = TRUE) + (1 | g)) + gaussian(),
             data = dd)
   nd <- data.frame(x = c(0, 2.5, 9), g = factor(1, levels = levels(dd$g)))
-  expect_equal(predict(m1, newdata = nd, re_formula = NA),
-               predict(m2, newdata = nd, re_formula = NA), tolerance = 1e-6)
+  expect_equal(frm_linpred(m1, newdata = nd, re_formula = NA),
+               frm_linpred(m2, newdata = nd, re_formula = NA), tolerance = 1e-6)
   # single-row newdata is the killer case (brms#494)
-  p1 <- predict(m1, newdata = nd[2, , drop = FALSE], re_formula = NA)
-  expect_equal(p1, predict(m1, newdata = nd, re_formula = NA)[2],
+  p1 <- frm_linpred(m1, newdata = nd[2, , drop = FALSE], re_formula = NA)
+  expect_equal(p1, frm_linpred(m1, newdata = nd, re_formula = NA)[2],
                tolerance = 1e-8)
   # scale() in the formula round-trips through prediction
   m3 <- frm(bf(y ~ scale(x) + (1 | g)) + gaussian(), data = dd)
-  expect_equal(predict(m3, newdata = dd), predict(m3), tolerance = 1e-8)
+  expect_equal(frm_linpred(m3, newdata = dd), frm_linpred(m3), tolerance = 1e-8)
 })
 
 test_that("rank-deficient designs drop aliased columns (lme4#144)", {
@@ -105,7 +105,7 @@ test_that("rank-deficient designs drop aliased columns (lme4#144)", {
   m0 <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
   expect_lt(abs(as.numeric(logLik(m)) - as.numeric(logLik(m0))), 1e-6)
   # prediction from the rank-reduced fit works and matches
-  expect_equal(predict(m, newdata = dd), predict(m0, newdata = dd),
+  expect_equal(frm_linpred(m, newdata = dd), frm_linpred(m0, newdata = dd),
                tolerance = 1e-6)
 })
 
@@ -115,7 +115,7 @@ test_that("matrix-attribute responses and offsets are handled (glmmTMB#937/#773)
   dd$y <- rnorm(60, 1 + 0.5 * dd$x, 1)
   dd$ys <- scale(dd$y)                    # n x 1 matrix with attributes
   m <- frm(bf(ys ~ x + (1 | g)) + gaussian(), data = dd)
-  expect_length(fitted(m), 60)
+  expect_length(fitted(m)[, "Estimate"], 60)
 })
 
 test_that("row-permutation and relevel invariance for covariance structures (brms#1747)", {
@@ -167,7 +167,7 @@ test_that("trials() validation catches the brms error taxonomy", {
   # constant literal trials work
   dd3 <- data.frame(y = rbinom(50, 10, 0.4), x = rnorm(50))
   fit <- frm(bf(y | trials(10) ~ x) + binomial(), data = dd3)
-  expect_length(fitted(fit), 50)
+  expect_length(fitted(fit)[, "Estimate"], 50)
 })
 
 test_that("response-scale equivariance under rescaling", {
@@ -178,7 +178,8 @@ test_that("response-scale equivariance under rescaling", {
   s <- 1000
   dd$ys <- dd$y * s
   m1 <- frm(bf(ys ~ x + (1 | g)) + gaussian(), data = dd)
-  expect_vector_equal(fixef(m1)$mu, fixef(m0)$mu * s, tol = 1e-2)
+  expect_vector_equal(fixef_by_dpar(m1)$mu, fixef_by_dpar(m0)$mu * s,
+                      tol = 1e-2)
   expect_lt(abs(as.numeric(logLik(m1)) -
                   (as.numeric(logLik(m0)) - 100 * log(s))), 1e-4)
 })
@@ -191,11 +192,11 @@ test_that("NA handling: rows dropped consistently, Inf rejected upstream", {
   dd$g[4] <- NA
   m <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
   expect_identical(stats::nobs(m), 46L)
-  expect_length(fitted(m), 46)
+  expect_length(fitted(m)[, "Estimate"], 46)
   # NA rows in newdata propagate NA predictions, not errors
   nd <- dd[1:6, ]
   nd$x[2] <- NA
-  p <- predict(m, newdata = nd, re_formula = NA)
+  p <- frm_linpred(m, newdata = nd, re_formula = NA)
   expect_false(is.na(p[1]))   # NA was only in y/g, x is fine
   expect_true(is.na(p[2]))    # NA predictor rows come back NA
 })
@@ -265,7 +266,7 @@ test_that("all-NA and all-identical columns are handled (G5.8c)", {
   )
   m0 <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
   expect_lt(abs(as.numeric(logLik(m)) - as.numeric(logLik(m0))), 1e-6)
-  expect_false(anyNA(fixef(m)$mu))
+  expect_false(anyNA(fixef_by_dpar(m)$mu))
 
   # an all-identical response has no scale to estimate; the variance
   # parameters run to the boundary rather than returning nonsense
@@ -302,7 +303,7 @@ test_that("p > n drops the unidentified columns (G5.8d)", {
   expect_match(paste(msg, collapse = ""), "v20")
   # the design cannot support more than n columns; what survives is
   # estimable and finite, never NA-padded the way lm() does it
-  b <- fixef(m)$mu
+  b <- fixef_by_dpar(m)$mu
   expect_lte(length(b), n)
   expect_true(all(is.finite(b)))
   expect_identical(stats::nobs(m), n)
@@ -324,7 +325,8 @@ test_that("eps-scale noise moves the estimates by O(noise) (G5.9, G5.9a)", {
   # scale is O(1), so a shift of order eps must stay of order eps
   expect_lt(max(abs(m1$opt$par - m0$opt$par)), 1e3 * eps)
   expect_lt(abs(as.numeric(logLik(m1)) - as.numeric(logLik(m0))), 1e-4)
-  expect_vector_equal(fitted(m1), fitted(m0), tol = 1e3 * eps)
+  expect_vector_equal(fitted(m1)[, "Estimate"], fitted(m0)[, "Estimate"],
+                      tol = 1e3 * eps)
 
   # and the movement is proportional: noise a thousand times larger
   # moves the estimates measurably more than the eps-scale noise
@@ -345,8 +347,8 @@ test_that("a noiseless exact fit succeeds (RE7.1)", {
   dd$y <- 1 + 0.5 * dd$x - 0.25 * dd$z      # no residual term at all
   m <- frm(bf(y ~ x + z, sigma = 1) + gaussian(), data = dd)
   expect_identical(m$opt$convergence, 0L)
-  expect_vector_equal(fixef(m)$mu, c(1, 0.5, -0.25), tol = 1e-4)
-  expect_lt(max(abs(stats::residuals(m))), 1e-4)
+  expect_vector_equal(fixef_by_dpar(m)$mu, c(1, 0.5, -0.25), tol = 1e-4)
+  expect_lt(max(abs(stats::residuals(m)[, "Estimate"])), 1e-4)
   expect_true(all(is.finite(stats::vcov(m))))
 })
 
@@ -391,7 +393,7 @@ test_that("a noiseless fit costs no more than the noisy one (RE7.1a)", {
   expect_lt(t_exact, 1.5 * t_noisy + 0.25)
 })
 
-test_that("row names survive into fitted, residuals and predict (RE7.2)", {
+test_that("row names survive into the labelled accessors (RE7.2)", {
   set.seed(167)
   dd <- data.frame(x = rnorm(40), g = factor(rep(1:4, 10)))
   dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
@@ -399,17 +401,28 @@ test_that("row names survive into fitted, residuals and predict (RE7.2)", {
   rownames(dd) <- rn
   m <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 
-  expect_identical(names(stats::fitted(m)), rn)
-  expect_identical(names(stats::residuals(m)), rn)
-  expect_identical(names(stats::predict(m)), rn)
+  # frm_linpred() and model.frame() are where the input labels live.
+  # fitted(), residuals() and predict() are brms's summary matrices and
+  # brms leaves their ROW dimnames NULL: posterior_summary() names the
+  # rows after the draws matrix's columns, which are unnamed, so it
+  # does so whatever the data's row names are. Asserted BOTH ways here,
+  # because a matrix that grew row names again would be the divergence.
+  expect_identical(names(frm_linpred(m)), rn)
   expect_identical(rownames(stats::model.frame(m)), rn)
-  # newdata carries its own row names through
+  expect_null(rownames(stats::fitted(m)))
+  expect_null(rownames(stats::residuals(m)))
+  expect_null(rownames(stats::predict(m, ndraws = 20)))
+  # newdata carries its own row names through the labelled accessor
   nd <- dd[c(5, 1, 9), ]
-  expect_identical(names(stats::predict(m, newdata = nd)),
+  expect_identical(names(frm_linpred(m, newdata = nd)),
                    c("case5", "case1", "case9"))
-  # rows dropped for missingness leave the surviving names in place
+  expect_identical(nrow(stats::predict(m, newdata = nd, ndraws = 20)), 3L)
+  # rows dropped for missingness leave the surviving names in place,
+  # and the row COUNT of the summary matrices follows them
   dd2 <- dd
   dd2$y[3] <- NA
   m2 <- suppressMessages(frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd2))
-  expect_identical(names(stats::fitted(m2)), rn[-3])
+  expect_identical(names(frm_linpred(m2)), rn[-3])
+  expect_identical(rownames(stats::model.frame(m2)), rn[-3])
+  expect_identical(nrow(stats::fitted(m2)), 39L)
 })

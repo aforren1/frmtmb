@@ -597,7 +597,7 @@ gng_family <- function(cfg, delta) {
     # A refusing mean rather than no mean at all, for the reason rdm()
     # gives and with a sharper version of it here: this family's primary
     # dpar IS called `mu`, so with the slot empty frmtmb returned the
-    # DRIFT RATE from fitted() and predict(type = "response"), a
+    # DRIFT RATE from fitted() and frm_linpred(type = "response"), a
     # constant 1.05 for data whose go response times average 0.6. The
     # refusal is also the honest answer, not merely a safer one; see
     # below.
@@ -606,9 +606,9 @@ gng_family <- function(cfg, delta) {
                "go/no-go trial produces a PAIR, whether a response ",
                "happened and when, and no single number summarizes it: the ",
                "no-go trials have no response time to average at all. ",
-               "fitted(), predict(type = \"response\") and residuals(type ",
+               "fitted(), frm_linpred(type = \"response\") and residuals(type ",
                "= \"response\") are unavailable for that reason rather ",
-               "than for want of an integral. predict(type = \"link\") ",
+               "than for want of an integral. frm_linpred(type = \"link\") ",
                "gives the drift, boundary separation, non-decision time ",
                "and bias the fit estimated.", call. = FALSE)
     }),

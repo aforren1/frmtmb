@@ -9,7 +9,7 @@ test_that("sleepstudy LMM matches lmer and glmmTMB (ML)", {
   ref_lmer <- lme4::lmer(Reaction ~ Days + (Days | Subject), sleepstudy,
                          REML = FALSE)
   expect_loglik_equal(fit, ref_lmer, tol = 1e-6)
-  expect_vector_equal(fixef(fit)$mu, lme4::fixef(ref_lmer), tol = 1e-4)
+  expect_vector_equal(fixef_by_dpar(fit)$mu, lme4::fixef(ref_lmer), tol = 1e-4)
 
   ref_tmb <- glmmTMB::glmmTMB(Reaction ~ Days + (Days | Subject),
                               sleepstudy, REML = FALSE)
@@ -33,7 +33,7 @@ test_that("sleepstudy REML matches lmer REML", {
   ref <- lme4::lmer(Reaction ~ Days + (Days | Subject), sleepstudy,
                     REML = TRUE)
   expect_loglik_equal(fit, ref, tol = 1e-6)
-  expect_vector_equal(fixef(fit)$mu, lme4::fixef(ref), tol = 1e-4)
+  expect_vector_equal(fixef_by_dpar(fit)$mu, lme4::fixef(ref), tol = 1e-4)
   # REML fixed-effect SEs
   se_f <- summary(fit)$coefficients$mu[, "Std. Error"]
   se_l <- coef(summary(ref))[, "Std. Error"]
@@ -60,5 +60,5 @@ test_that("linear model without random effects matches lm", {
   # a 1e-5 coefficient displacement costs ~1e-9 logLik here, below any
   # optimizer stopping rule, so the likelihood gate above is the sharp
   # one and the coefficient gate allows the flat-region slack
-  expect_vector_equal(fixef(fit)$mu, coef(ref), tol = 5e-5)
+  expect_vector_equal(fixef_by_dpar(fit)$mu, coef(ref), tol = 5e-5)
 })

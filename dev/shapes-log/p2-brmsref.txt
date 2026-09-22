@@ -1,0 +1,47 @@
+== cumulative 
+== acat 
+Warning message:
+Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+List of 4
+ $ cumulative:List of 4
+  ..$ coef_names : chr [1:3] "Intercept[1]" "Intercept[2]" "x"
+  ..$ ranef_names: chr "Intercept"
+  ..$ tau_minus_r: num 0
+  ..$ r_minus_tau: num 4.65
+ $ acat      :List of 4
+  ..$ coef_names : chr [1:3] "Intercept[1]" "Intercept[2]" "x"
+  ..$ ranef_names: chr "Intercept"
+  ..$ tau_minus_r: num 5.34
+  ..$ r_minus_tau: num 0
+ $ mv        :List of 6
+  ..$ rescor     :'data.frame':	1 obs. of  7 variables:
+  .. ..$ Estimate : num 0.725
+  .. ..$ Est.Error: num 0.039
+  .. ..$ l-95% CI : num 0.644
+  .. ..$ u-95% CI : num 0.798
+  .. ..$ Rhat     : num 1
+  .. ..$ Bulk_ESS : num 667
+  .. ..$ Tail_ESS : num 674
+  .. ..- attr(*, "num_args")= list()
+  ..$ pp_dim     : int [1:3] 1000 150 2
+  ..$ pp_dimnames:List of 3
+  .. ..$ : NULL
+  .. ..$ : NULL
+  .. ..$ : chr [1:2] "y1" "y2"
+  ..$ pr_dim     : int [1:3] 1000 150 2
+  ..$ pr_dimnames:List of 3
+  .. ..$ : NULL
+  .. ..$ : NULL
+  .. ..$ : chr [1:2] "y1" "y2"
+  ..$ draw_cor   : num 0.724
+ $ uni       :List of 4
+  ..$ pp_dimnames:List of 2
+  .. ..$ : NULL
+  .. ..$ : NULL
+  ..$ pr_dimnames:List of 2
+  .. ..$ : NULL
+  .. ..$ : NULL
+  ..$ ranef_names: chr "Intercept"
+  ..$ coef_names : chr [1:2] "Intercept" "x"

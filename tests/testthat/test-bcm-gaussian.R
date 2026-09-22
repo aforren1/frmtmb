@@ -81,8 +81,8 @@ test_that("Gaussian is an intercept-only normal", {
   fit <- frm(x ~ 1, data = d)
   # frmtmb maximizes the likelihood, so sigma is the ML (divide by n)
   # estimate rather than the sample standard deviation
-  expect_equal(unname(fixef(fit)$mu), mean(d$x), tolerance = 1e-6)
-  expect_equal(unname(exp(fixef(fit)$sigma)),
+  expect_equal(unname(fixef_by_dpar(fit)$mu), mean(d$x), tolerance = 1e-6)
+  expect_equal(unname(exp(fixef_by_dpar(fit)$sigma)),
                sqrt(mean((d$x - mean(d$x))^2)), tolerance = 1e-6)
 })
 
@@ -98,8 +98,8 @@ test_that("Gaussian matches its Stan program", {
     bcm_gaussian_code(),
     data = list(n = 4L, x = d$x),
     fit = fit,
-    pars = function(f) list(mu = unname(fixef(f)$mu),
-                            sigma = unname(exp(fixef(f)$sigma))),
+    pars = function(f) list(mu = unname(fixef_by_dpar(f)$mu),
+                            sigma = unname(exp(fixef_by_dpar(f)$sigma))),
     # the only prior frmtmb does not carry is the uniform on sigma,
     # whose log density is -log(10) everywhere inside the interval
     const = -log(10))
@@ -147,11 +147,11 @@ test_that("Seven Scientists fits as a MAP model", {
              prior = set_prior("normal(0, 1)", class = "b", dpar = "sigma"))
   # the book's point: the first scientist is discounted, so the estimate
   # sits with the other six rather than at the mean of all seven
-  expect_gt(unname(fixef(fit)$mu), 5)
-  expect_lt(unname(fixef(fit)$mu), 11)
-  expect_lt(unname(fixef(fit)$mu), mean(d$x) + 20)
+  expect_gt(unname(fixef_by_dpar(fit)$mu), 5)
+  expect_lt(unname(fixef_by_dpar(fit)$mu), 11)
+  expect_lt(unname(fixef_by_dpar(fit)$mu), mean(d$x) + 20)
   # and that scientist's own standard deviation is the largest
-  s <- exp(unname(fixef(fit)$sigma))
+  s <- exp(unname(fixef_by_dpar(fit)$sigma))
   expect_equal(which.max(s), 1L)
 })
 
@@ -164,8 +164,8 @@ test_that("Seven Scientists matches its Stan program", {
     bcm_seven_code(),
     data = list(n = 7L, x = d$x, tau = 1),
     fit = fit,
-    pars = function(f) list(mu = unname(fixef(f)$mu),
-                            logsigma = unname(fixef(f)$sigma)),
+    pars = function(f) list(mu = unname(fixef_by_dpar(f)$mu),
+                            logsigma = unname(fixef_by_dpar(f)$sigma)),
     # both programs carry the same normal(0, 1) on the log standard
     # deviations, so there is nothing left over
     const = 0)
@@ -190,8 +190,8 @@ bcm_iq_data <- function() {
 test_that("IQ is one mean per person with a common sigma", {
   d <- bcm_iq_data()
   fit <- frm(y ~ 0 + person, data = d)
-  expect_equal(unname(fixef(fit)$mu), c(95, 110, 155), tolerance = 1e-6)
-  expect_equal(unname(exp(fixef(fit)$sigma)),
+  expect_equal(unname(fixef_by_dpar(fit)$mu), c(95, 110, 155), tolerance = 1e-6)
+  expect_equal(unname(exp(fixef_by_dpar(fit)$sigma)),
                sqrt(mean((d$y - rep(c(95, 110, 155), each = 3))^2)),
                tolerance = 1e-6)
 })
@@ -205,7 +205,7 @@ test_that("IQ matches its Stan program", {
     data = list(n = 3L, m = 3L, x = bcm_iq_matrix()),
     fit = fit,
     pars = function(f) list(mu = frm_b(f),
-                            sigma = unname(exp(fixef(f)$sigma))),
+                            sigma = unname(exp(fixef_by_dpar(f)$sigma))),
     # Stan's `<lower, upper>` declarations are uniform priors that
     # frmtmb does not carry. Three means on (0, 300) and one standard
     # deviation on (0, 100) put a flat -3 log(300) - log(100) into every

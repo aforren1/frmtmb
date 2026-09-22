@@ -340,20 +340,20 @@ print.frmtmb_feature <- function(x, ...) {
   cat("<frmtmb curve feature> ", attr(x, "type"), ", ", nrow(x),
       " found, level ", attr(x, "level"), "\n", sep = "")
   if (nrow(x)) {
-    # a nonlinear predictor has no predict(se.fit = TRUE) to compare
+    # a nonlinear predictor has no frm_linpred(se.fit = TRUE) to compare
     # against, so cov_rel_error is NA and neither sentence below is
     # true: "checked to NA relative" reads as a check that ran
     if (!length(ck$cov_rel_error) || is.na(ck$cov_rel_error)) {
-      cat("  covariance NOT checked: predict(se.fit = TRUE) is refused",
+      cat("  covariance NOT checked: frm_linpred(se.fit = TRUE) is refused",
           " for a nonlinear predictor, so there is no second route to",
           " compare against\n", sep = "")
     } else if (isTRUE(ck$contrast)) {
-      cat("  each grid checked against predict(se.fit = TRUE) to ",
+      cat("  each grid checked against frm_linpred(se.fit = TRUE) to ",
           format(ck$cov_rel_error, digits = 3),
           " relative; the difference itself has no second route\n",
           sep = "")
     } else {
-      cat("  covariance checked against predict(se.fit = TRUE) to ",
+      cat("  covariance checked against frm_linpred(se.fit = TRUE) to ",
           format(ck$cov_rel_error, digits = 3), " relative\n", sep = "")
     }
     print(as.data.frame(x))

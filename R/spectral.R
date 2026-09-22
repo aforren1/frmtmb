@@ -626,8 +626,8 @@ frm_series_draw <- function(object, nsim = 1, seed = NULL, newdata = NULL,
     frm_stop("frm_series_draw(freq =) must be one column name or the ",
              "frequencies themselves", call. = FALSE)
   }
-  s <- as.numeric(stats::predict(object, newdata = newdata,
-                                 type = "response", ...))
+  s <- as.numeric(frm_linpred(object, newdata = newdata,
+                              type = "response", ...))
   if (length(s) != length(f)) {
     frm_stop("frm_series_draw(): ", length(s), " fitted values for ",
              length(f), " frequencies", call. = FALSE)

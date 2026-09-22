@@ -116,21 +116,21 @@ The typical subject's constants come back on the natural scale, and the
 derived quantities a pharmacokineticist reads off them follow:
 
 ```{r, eval = has_ode}
-ka <- exp(fixef(fit)$lka); ke <- exp(fixef(fit)$lke)
-V <- exp(fixef(fit)$lV)
+ka <- exp(fixef_by_dpar(fit)$lka); ke <- exp(fixef_by_dpar(fit)$lke)
+V <- exp(fixef_by_dpar(fit)$lV)
 c(ka = ka, ke = ke, V = V,
   half_life = log(2) / ke,       # hours
   clearance = ke * V)            # L/h per kg of body weight
 ```
 
-Everything downstream works as usual: `predict()` on new times,
+Everything downstream works as usual: `frm_linpred()` on new times,
 `ranef()` for the subject deviations, `confint()`, `simulate()`,
 `REML = TRUE`.
 
 ```{r, eval = has_ode}
 nd <- data.frame(Subject = factor("1", levels = levels(d$Subject)),
                  Time = seq(0, 25, length.out = 5), Dose = 4.02)
-predict(fit, newdata = nd)
+frm_linpred(fit, newdata = nd)
 ```
 
 The same call on a dense time grid draws the fitted curve for every
@@ -144,7 +144,7 @@ grid <- do.call(rbind, lapply(split(d, d$Subject), function(s) {
              Time = seq(0, max(d$Time), length.out = 100),
              Dose = s$Dose[1])
 }))
-grid$conc <- predict(fit, newdata = grid)
+grid$conc <- frm_linpred(fit, newdata = grid)
 
 tinyplot::tinyplot(conc ~ Time | Subject, data = d, pch = 16, cex = 0.7,
                    legend = FALSE, xlab = "Time (h)",
@@ -305,7 +305,7 @@ dose_fit <- frm(
      lka ~ 1 + (1 | id), lke ~ 1 + (1 | id), lV ~ 1, nl = TRUE) +
     gaussian(),
   data = dd, start = list(beta = c(0, log(0.25), log(8))))
-unlist(fixef(dose_fit))
+unlist(fixef_by_dpar(dose_fit))
 ```
 
 The truth is `lka = 0`, `lke = -1.61` and `lV = 2.30`, with a residual
@@ -319,7 +319,7 @@ sub$id <- droplevels(sub$id)
 gr <- do.call(rbind, lapply(show, function(s)
   data.frame(id = factor(s, levels = levels(dd$id)),
              time = seq(0, 40, length.out = 200))))
-gr$conc <- predict(dose_fit, newdata = gr)
+gr$conc <- frm_linpred(dose_fit, newdata = gr)
 gr$id <- droplevels(gr$id)
 
 tinyplot::tinyplot(conc ~ time | id, data = sub, pch = 16,
@@ -458,8 +458,9 @@ so by name when a state is not contracting between cycles at all, which
 means no `n_ss` settles it. Read that number as a DETECTOR rather than
 a measurement: it comes from the same geometric model the correction
 does, so where the model is poor it is poor with it. During a fit the
-comparison cannot run at all, so read the warning from a `predict()` or
-a direct call. `ss_extrapolate = FALSE` restores the truncated run-in
+comparison cannot run at all, so read the warning from a
+`frm_linpred()` or a direct call. `ss_extrapolate = FALSE` restores
+the truncated run-in
 bit for bit.
 
 Raising `n_ss` a long way has its own limit. The cycles are chained
@@ -558,7 +559,7 @@ tv_fit <- frm(
                     group = id, output = 1L),
      lk ~ 1 + phase + (1 | id), nl = TRUE) + gaussian(),
   data = dv, start = list(beta = c(log(0.2), 0)))
-unlist(fixef(tv_fit))
+unlist(fixef_by_dpar(tv_fit))
 ```
 
 `lk` is a linear predictor that varies within a subject, which `parms`
@@ -791,9 +792,9 @@ estimated observation times and estimated `tv` change points are not
 supported. They decide where the solve is split, and that is settled
 before the tape is built.
 
-`predict(se.fit = TRUE)` is not available for any nonlinear predictor,
+`frm_linpred(se.fit = TRUE)` is not available for any nonlinear predictor,
 `frm_ode()` included. Ask for a nonlinear parameter instead, with
-`predict(dpar = "lka")`.
+`frm_linpred(dpar = "lka")`.
 
 ## Failed solves
 
@@ -818,8 +819,9 @@ caught on the tape: an integrator that gives up and returns fewer time
 points than it was asked for, and an R error raised by your derivative
 function.
 
-**Everywhere else every check applies.** `predict()`, `simulate()`,
-`residuals()`, a direct call to `frm_ode()`, and a fit whose `init` and
+**Everywhere else every check applies.** `frm_linpred()`,
+`simulate()`, `residuals()`, a direct call to `frm_ode()`, and a fit
+whose `init` and
 `parms` contain no estimated parameter are ordinary numeric arithmetic.
 There a failed solve is detected, and by default its rows are filled
 with `penalty`.
@@ -828,7 +830,7 @@ A penalty is never written silently. `frm_ode()` warns and names the
 groups, and `frm_ode_failures()` reads the record back afterwards:
 
 ```{r, eval = FALSE}
-p <- predict(fit, newdata = nd)
+p <- frm_linpred(fit, newdata = nd)
 #> Warning: frm_ode(): the solve failed for 1 of 3 groups (2). Their rows
 #> hold penalty = 1e+06, not a solution. ...
 

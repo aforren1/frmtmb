@@ -119,15 +119,15 @@ test_that("Retention_1 is a nonlinear binomial with an identity link", {
   fit <- frm(bcm_retention1_formula(),
              family = binomial(link = "identity"), data = d,
              start = bcm_retention_start(1L))
-  a <- plogis(unname(fixef(fit)$la))
-  b <- plogis(unname(fixef(fit)$lb))
+  a <- plogis(unname(fixef_by_dpar(fit)$la))
+  b <- plogis(unname(fixef_by_dpar(fit)$lb))
   # forgetting, and a floor the curve does not fall through
   expect_gt(a, 0)
   expect_gt(b, 0)
   expect_lt(b, 1)
   # every fitted retention rate is a probability, which is what the cap
   # is there to guarantee
-  expect_lte(max(fitted(fit) / d$n), 1 + 1e-8)
+  expect_lte(max(fitted(fit)[, "Estimate"] / d$n), 1 + 1e-8)
 })
 
 test_that("Retention_1 matches its Stan program", {
@@ -141,8 +141,8 @@ test_that("Retention_1 matches its Stan program", {
     bcm_retention_code(1L),
     data = bcm_retention_stan_data(d),
     fit = fit,
-    pars = function(f) list(alpha = plogis(unname(fixef(f)$la)),
-                            beta = plogis(unname(fixef(f)$lb))),
+    pars = function(f) list(alpha = plogis(unname(fixef_by_dpar(f)$la)),
+                            beta = plogis(unname(fixef_by_dpar(f)$lb))),
     # beta(1, 1) on each rate is the uniform density on the unit
     # interval, whose log is zero
     const = 0)
@@ -163,13 +163,13 @@ test_that("Retention_2 gives every subject its own pair", {
   fit <- frm(bcm_retention2_formula(),
              family = binomial(link = "identity"), data = d,
              start = bcm_retention_start(2L))
-  expect_length(fixef(fit)$la, 3L)
-  expect_length(fixef(fit)$lb, 3L)
+  expect_length(fixef_by_dpar(fit)$la, 3L)
+  expect_length(fixef_by_dpar(fit)$lb, 3L)
   # the book's point: the three subjects differ, and the third forgets
   # fastest
-  a <- plogis(unname(fixef(fit)$la))
+  a <- plogis(unname(fixef_by_dpar(fit)$la))
   expect_equal(which.max(a), 3L)
-  expect_lte(max(fitted(fit) / d$n), 1 + 1e-8)
+  expect_lte(max(fitted(fit)[, "Estimate"] / d$n), 1 + 1e-8)
 })
 
 test_that("Retention_2 matches its Stan program", {
@@ -211,10 +211,10 @@ test_that("Retention_3 gives the subjects a group distribution", {
   expect_true(is.finite(frm_sd_term(fit, "la: 1 | id")))
   expect_true(is.finite(frm_sd_term(fit, "lb: 1 | id")))
   expect_equal(length(frm_u_term(fit, "la: 1 | id")), 3L)
-  expect_lte(max(fitted(fit) / d$n), 1 + 1e-8)
+  expect_lte(max(fitted(fit)[, "Estimate"] / d$n), 1 + 1e-8)
   # and the fitted curve still falls with the lag, for every subject
   for (s in levels(d$id)) {
-    p <- fitted(fit)[d$id == s] / 18
+    p <- fitted(fit)[, "Estimate"][d$id == s] / 18
     expect_lte(p[length(p)], p[1] + 1e-8)
   }
 })
@@ -231,11 +231,14 @@ test_that("Retention_3 matches its Stan program", {
     data = bcm_retention_stan_data(d),
     fit = fit,
     pars = function(f) {
-      list(alphamu = unname(fixef(f)$la), betamu = unname(fixef(f)$lb),
+      list(alphamu = unname(fixef_by_dpar(f)$la),
+           betamu = unname(fixef_by_dpar(f)$lb),
            alphasigma = frm_sd_term(f, "la: 1 | id"),
            betasigma = frm_sd_term(f, "lb: 1 | id"),
-           alphalogit = unname(fixef(f)$la) + frm_u_term(f, "la: 1 | id"),
-           betalogit = unname(fixef(f)$lb) + frm_u_term(f, "lb: 1 | id"))
+           alphalogit = unname(fixef_by_dpar(f)$la) + frm_u_term(f,
+                                                                 "la: 1 | id"),
+           betalogit = unname(fixef_by_dpar(f)$lb) + frm_u_term(f,
+                                                                "lb: 1 | id"))
     },
     inner = c("alphalogit", "betalogit"),
     const = 0)

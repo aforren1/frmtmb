@@ -16,12 +16,15 @@ test_that("accessor methods are consistent", {
   expect_s3_class(logLik(fit), "logLik")
   expect_identical(attr(logLik(fit), "df"), length(fit$opt$par))
 
-  fe <- fixef(fit)
+  fe <- fixef_by_dpar(fit)
   expect_named(fe, c("mu", "sigma"))
   expect_named(fe$mu, c("(Intercept)", "Days"))
 
   V <- vcov(fit)
-  expect_identical(dim(V), c(3L, 3L))
+  # brms's population-level block since item 2.6f: sigma has no formula
+  # here, so it is a distributional parameter and not a coefficient
+  expect_identical(dim(V), c(2L, 2L))
+  expect_identical(rownames(V), c("Intercept", "Days"))
   expect_true(isSymmetric(V, tol = 1e-8))
   expect_true(all(diag(V) > 0))
 
@@ -45,28 +48,32 @@ test_that("predict/fitted/residuals invariants hold", {
   skip_if(is.null(fit_sleep))
   fit <- fit_sleep
 
-  mu <- predict(fit, type = "response")
+  mu <- frm_linpred(fit, type = "response")
   expect_length(mu, stats::nobs(fit))
-  expect_identical(mu, fitted(fit))
-  expect_identical(predict(fit, type = "link"), mu)  # identity link
+  # brms leaves the summary matrix's row dimnames NULL, so the
+  # Estimate column is unnamed where frm_linpred() keeps the data's
+  # row names; the values are the same numbers
+  expect_identical(unname(mu), unname(fitted(fit)[, "Estimate"]))
+  expect_identical(frm_linpred(fit, type = "link"), mu)  # identity link
 
-  sig <- predict(fit, type = "response", dpar = "sigma")
+  sig <- frm_linpred(fit, type = "response", dpar = "sigma")
   expect_true(all(sig > 0))
   expect_lt(stats::sd(sig), 1e-10)  # intercept-only sigma is constant
 
-  r <- residuals(fit)
-  expect_equal(r, fit$frame$y$Reaction - fitted(fit))
-  rp <- residuals(fit, type = "pearson")
-  expect_equal(rp, r / sig, tolerance = 1e-10)
+  r <- residuals(fit)[, "Estimate"]
+  expect_equal(r, fit$frame$y$Reaction - fitted(fit)[, "Estimate"])
+  rp <- residuals(fit, type = "pearson")[, "Estimate"]
+  expect_equal(unname(rp), unname(r / sig), tolerance = 1e-10)
 })
 
 test_that("print and summary run without error", {
   skip_if(is.null(fit_sleep))
-  expect_output(print(fit_sleep), "frmtmb fit")
+  expect_output(print(fit_sleep), "Regression Coefficients:")
   s <- summary(fit_sleep)
   expect_s3_class(s, "summary.frmtmb_fit")
-  expect_output(print(s), "Coefficients")
+  expect_output(print(s), "Multilevel Hyperparameters:")
   expect_named(s$coefficients, c("mu", "sigma"))
+  expect_identical(rownames(s$fixed), c("Intercept", "Days"))
 })
 
 test_that("start values are validated", {
@@ -100,7 +107,8 @@ ranef_multi_fit <- function() {
       family = exponential(link = "log"), data = d)
 }
 
-test_that("blocks sharing a grouping factor are addressed by their term label", {
+test_that("blocks sharing a grouping factor are addressed by their term label",
+          {
   fit <- ranef_multi_fit()
   re <- ranef(fit)
   expect_named(re, c("id", "id"))

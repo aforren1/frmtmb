@@ -411,7 +411,7 @@ test_that("row C: class sd is brms's placement, up to log(2)", {
   # mean(Days) is 4.5.
   i_ic <- which(r$rows$class == "Intercept" & nzchar(r$rows$prior))
   hi <- bp_hyper(r$rows$prior[[i_ic]])
-  raw <- fixef(r$fit$hon)$mu[["(Intercept)"]]
+  raw <- fixef_by_dpar(r$fit$hon)$mu[["(Intercept)"]]
   centered <- as.numeric(r$hon$pars[["Intercept"]])
   expect_gt(abs(raw - centered), 1)
   expect_true(ent$centered[ent$comp == "beta"])
@@ -563,8 +563,8 @@ test_that("S7: the centering no longer biases a regression slope", {
   }
   u <- rstan::unconstrain_pars(r$sf$hon, r$hon$pars)
   brms_mode <- mode_T(r$sf$hon, u)
-  mle_days <- fixef(r$fit0)$mu[["Days"]]
-  frm_days <- fixef(r$fit$hon)$mu[["Days"]]
+  mle_days <- fixef_by_dpar(r$fit0)$mu[["Days"]]
+  frm_days <- fixef_by_dpar(r$fit$hon)$mu[["Days"]]
   se_days <- summary(r$fit0)$coefficients$mu["Days", 2]
 
   # brms's prior does not move the slope: the intercept it constrains
@@ -581,7 +581,7 @@ test_that("S7: the centering no longer biases a regression slope", {
 
   # the identity behind it: the argument the density reads is the raw
   # intercept plus mean(Days) times the slope
-  raw <- fixef(r$fit$hon)$mu[["(Intercept)"]]
+  raw <- fixef_by_dpar(r$fit$hon)$mu[["(Intercept)"]]
   centered <- as.numeric(r$hon$pars[["Intercept"]])
   expect_equal(raw + mean(sleepstudy$Days) * frm_days, centered,
                tolerance = 1e-6)
@@ -621,7 +621,7 @@ test_that("row 12: brms's ordinal threshold prior lands on tau_raw", {
   # which is the frmtmb threshold vector minus mean(X) times the slope
   raw <- r$fit$hon$estimates[["tau_raw"]]
   tau <- c(raw[1], raw[1] + cumsum(exp(raw[-1])))
-  slope <- fixef(r$fit$hon)$mu[["x"]]
+  slope <- fixef_by_dpar(r$fit$hon)$mu[["x"]]
   expect_equal(tau - mean(do$x) * slope,
                as.numeric(r$hon$pars[["Intercept"]]), tolerance = 1e-6)
 

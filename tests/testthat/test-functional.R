@@ -22,13 +22,13 @@ test_that("function-on-scalar regression matches mgcv", {
                    data = dd, method = "ML")
   expect_lt(abs(as.numeric(logLik(fit)) - (-as.numeric(ref$gcv.ubre))),
             1e-3)
-  expect_lt(max(abs(fitted(fit) - fitted(ref))), 0.05)
+  expect_lt(max(abs(fitted(fit)[, "Estimate"] - fitted(ref))), 0.05)
 
   # the estimated coefficient function beta1(t) = d eta / d x at fixed t:
   # predict at x = 1 minus x = 0, population level
   nd1 <- data.frame(t = tt, x = 1, id = factor(1, levels = levels(dd$id)))
   nd0 <- data.frame(t = tt, x = 0, id = factor(1, levels = levels(dd$id)))
-  beta1_hat <- predict(fit, newdata = nd1, re_formula = NA) -
-    predict(fit, newdata = nd0, re_formula = NA)
+  beta1_hat <- frm_linpred(fit, newdata = nd1, re_formula = NA) -
+    frm_linpred(fit, newdata = nd0, re_formula = NA)
   expect_lt(max(abs(beta1_hat - f1(tt))), 0.25)
 })

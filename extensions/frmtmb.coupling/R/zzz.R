@@ -69,7 +69,7 @@ cp_compat_rules <- function() {
 
   ## ---- the extractors ---------------------------------------------
   r("frm_coherence", "predict", "works",
-    "It IS predict(type = \"link\", se.fit = TRUE) on the coh dpar, with the interval formed on the logit scale and pushed through plogis so that it cannot leave (0, 1). frm_phase() is the same call on phase, where no transform is needed and none is applied.")
+    "It IS frm_linpred(type = \"link\", se.fit = TRUE) on the coh dpar, with the interval formed on the logit scale and pushed through plogis so that it cannot leave (0, 1). frm_phase() is the same call on phase, where no transform is needed and none is applied.")
   r("frm_coherence", "smooth", "works",
     "re_formula is passed through, so re_formula = NULL gives the per-group coherence with its shrinkage and re_formula = NA gives the population one. Measured coverage of the population interval over 150 replicates: 0.912 at 4 segments per subject.")
   r("frm_coherence", "s()", "works",

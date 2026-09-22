@@ -34,7 +34,8 @@ test_that("linreg: gaussian regression matches the TMB example", {
 
   fit <- frm(bf(Y ~ x), family = gaussian(), data = dd)
   expect_lt(abs(as.numeric(logLik(fit)) - (-opt$objective)), 1e-6)
-  expect_vector_equal(unname(fixef(fit)$mu), unname(opt$par[c("a", "b")]),
+  expect_vector_equal(unname(fixef_by_dpar(fit)$mu), unname(opt$par[c("a",
+                                                                      "b")]),
                       tol = 1e-5)
 })
 
@@ -66,7 +67,8 @@ test_that("tweedie: the three-parameter Tweedie matches", {
   shape <- (2 - pw) / (pw - 1)
   scale <- phi * (pw - 1) * mu^(pw - 1)
   N <- rpois(n, lambda)
-  y <- vapply(N, function(k) if (k == 0) 0 else sum(rgamma(k, shape, scale = scale)),
+  y <- vapply(N, function(k) if (k == 0) 0 else sum(rgamma(k, shape,
+                                                           scale = scale)),
               numeric(1))
   dd <- data.frame(y = y)
 
@@ -379,7 +381,7 @@ test_that("orange_big: logistic growth with a random asymptote", {
         family = gaussian(), data = dd,
         start = list(beta = c(192, 726, 356))))
   expect_lt(abs(as.numeric(logLik(fit)) - (-opt$objective)), 1e-5)
-  expect_lt(abs(fixef(fit)$a0[[1]] - (192 + opt$par[1])), 1e-3)
+  expect_lt(abs(fixef_by_dpar(fit)$a0[[1]] - (192 + opt$par[1])), 1e-3)
 })
 
 test_that("socatt: cumulative logit with a random intercept", {

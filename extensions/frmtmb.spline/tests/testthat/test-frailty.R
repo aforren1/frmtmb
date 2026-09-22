@@ -154,7 +154,7 @@ fr_exact_ll <- function(time, event, xb, cluster, knots, gam, sd_b) {
 fr_sd <- function(fit) sqrt(frmtmb::varcorr_matrices(fit)[[1L]][1L, 1L])
 
 fr_gam <- function(fit, df) {
-  fx <- frmtmb::fixef(fit)
+  fx <- frmtmb::fixef_by_dpar(fit)
   c(unname(fx$mu[["(Intercept)"]]),
     vapply(paste0("gamma", seq_len(df)),
            function(p) unname(fx[[p]][["(Intercept)"]]), numeric(1)))
@@ -201,7 +201,7 @@ test_that("the frailty is the model rstpm2 fits, in another basis", {
   ## THE ESTIMATES, each difference relative to the run's own standard
   ## error. Measured at this seed: 1.9e-04 of a standard error on the
   ## treatment coefficient.
-  beta_f <- unname(frmtmb::fixef(fit)$mu[["trt"]])
+  beta_f <- unname(frmtmb::fixef_by_dpar(fit)$mu[["trt"]])
   beta_r <- unname(cf[["trt"]])
   se_b <- summary(fit)[["coefficients"]][["mu"]]["trt", 2L]
   expect_lt(abs(beta_f - beta_r), 0.05 * se_b)
@@ -254,7 +254,7 @@ test_that("the Laplace optimum is an optimum of the exact likelihood", {
     frmtmb::bf(time | cens(censored) ~ trt + (1 | centre)),
     family = royston_parmar(knots = kn$ik, bknots = kn$bk), data = d,
     se = TRUE)
-  beta <- unname(frmtmb::fixef(fit)$mu[["trt"]])
+  beta <- unname(frmtmb::fixef_by_dpar(fit)$mu[["trt"]])
   sd_b <- fr_sd(fit)
   gam <- fr_gam(fit, 2L)
   se_b <- summary(fit)[["coefficients"]][["mu"]]["trt", 2L]
@@ -300,10 +300,11 @@ test_that("a random effect on gamma1 is a per-centre shape, and it recovers", {
   ## It has to beat the pooled fit at the thing it exists to estimate,
   ## which is the per-centre shape. Measured at this seed: 0.134
   ## against 0.236, a factor of 1.76.
-  g1 <- unname(frmtmb::fixef(on)$gamma1[["(Intercept)"]])
+  g1 <- unname(frmtmb::fixef_by_dpar(on)$gamma1[["(Intercept)"]])
   sh_hat <- g1 + as.numeric(frmtmb::ranef(on)[["centre"]])
   err_on <- mean(abs(sh_hat - tr$shape))
-  err_off <- mean(abs(unname(frmtmb::fixef(off)$gamma1[["(Intercept)"]]) -
+  g1_off <- unname(frmtmb::fixef_by_dpar(off)$gamma1[["(Intercept)"]])
+  err_off <- mean(abs(g1_off -
                         tr$shape))
   expect_lt(err_on, err_off)
   ## and the DEVIATIONS have to be what does it. Beating the pooled fit

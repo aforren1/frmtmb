@@ -20,7 +20,7 @@ Returns the estimated \code{sigma} distributional parameter on the
 response scale when it is constant across observations
 (intercept-only or fixed). When \code{sigma} is modeled with covariates
 the scalar summary does not exist; the method warns and returns \code{NA}
-(use \code{predict(dpar = "sigma")} for the per-observation values).
+(use \code{frm_linpred(dpar = "sigma")} for the per-observation values).
 Families without a \code{sigma} parameter return 1, following glmmTMB.
 }
 \examples{
@@ -32,8 +32,8 @@ fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 # the residual SD, on the response scale
 sigma(fit)
 # which is what the standardized residuals divide by
-max(abs(residuals(fit, type = "pearson") -
-          residuals(fit) / sigma(fit)))
+max(abs(residuals(fit, type = "pearson")[, "Estimate"] -
+          residuals(fit)[, "Estimate"] / sigma(fit)))
 
 # a poisson fit has no dispersion parameter, so sigma() is 1
 dd$cnt <- rpois(100, exp(0.5 + 0.3 * dd$x))

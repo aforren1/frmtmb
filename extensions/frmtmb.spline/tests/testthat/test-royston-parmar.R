@@ -79,7 +79,7 @@ test_that("the two optima agree, and frmtmb's is never the worse", {
       data = bc)
     expect_gte(as.numeric(stats::logLik(fit)) - fs$loglik, -1e-6)
     expect_equal(as.numeric(stats::logLik(fit)), fs$loglik, tolerance = 1e-6)
-    expect_equal(unname(unlist(frmtmb::fixef(fit))),
+    expect_equal(unname(unlist(frmtmb::fixef_by_dpar(fit))),
                  unname(sp_fs_par(fs)), tolerance = 1e-2)
   }
 })
@@ -147,8 +147,8 @@ test_that("weights and truncation behave as the compat table claims", {
     family = royston_parmar(df = 2), data = bc)
   expect_s3_class(ftr, "frmtmb_fit")
   expect_true(is.finite(as.numeric(stats::logLik(ftr))))
-  expect_equal(unlist(frmtmb::fixef(ftr))[["mu.groupPoor"]],
-               unlist(frmtmb::fixef(base))[["mu.groupPoor"]],
+  expect_equal(unlist(frmtmb::fixef_by_dpar(ftr))[["mu.groupPoor"]],
+               unlist(frmtmb::fixef_by_dpar(base))[["mu.groupPoor"]],
                tolerance = 0.05)
 })
 
@@ -168,10 +168,11 @@ test_that("simulate draws from the density it scores", {
   d2$censored <- 0
   kn <- environment(stats::family(fit)[["lpdf"]])$allknots
   f2 <- frmtmb::frm(frmtmb::bf(recyrs ~ group),
-                    family = royston_parmar(knots = kn[2], bknots = kn[c(1, 3)]),
+                    family = royston_parmar(knots = kn[2], bknots = kn[c(1,
+                                                                         3)]),
                     data = d2)
-  expect_equal(unlist(frmtmb::fixef(f2))[["mu.groupPoor"]],
-               unlist(frmtmb::fixef(fit))[["mu.groupPoor"]],
+  expect_equal(unlist(frmtmb::fixef_by_dpar(f2))[["mu.groupPoor"]],
+               unlist(frmtmb::fixef_by_dpar(fit))[["mu.groupPoor"]],
                tolerance = 0.35)
 })
 

@@ -21,7 +21,7 @@ ln_small <- function(ns = 6L, nt = 30L, seed = 61L, sd_u = 0) {
 # the two parameters on their natural scales, for the longhand
 # reference below
 ln_nat_alpha_tau <- function(fit) {
-  b <- unlist(frmtmb::fixef(fit))
+  b <- unlist(frmtmb::fixef_by_dpar(fit))
   fam <- frmtmb::single_response(fit, "a fit")$family
   c(alpha = fam$links$alpha$linkinv(b[["alpha.(Intercept)"]]),
     tau = fam$links$tau$linkinv(b[["tau.(Intercept)"]]))

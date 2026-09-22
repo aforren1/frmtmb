@@ -143,7 +143,7 @@ as it has always been. Write
 subject deviation, and the bound becomes that subject's own fastest
 response. A per-row bound cannot live in a link, so under a grouping
 \code{ndt} is a FRACTION of the row's bound and the density multiplies:
-\code{predict(dpar = "ndt", type = "response")} then reports the fraction
+\code{frm_linpred(dpar = "ndt", type = "response")} then reports the fraction
 and \code{\link[=ndt_time]{ndt_time()}} reports the time either way. A single bound is the
 global fastest response, and a subject whose non-decision time is
 above it cannot be represented at any value of the random effect;

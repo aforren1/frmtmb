@@ -14,9 +14,9 @@
 #'   undefined values are explicitly tested for their absence. These
 #'   tests sweep the whole post-fit surface after a quadrature fit,
 #'   asserting `anyNA()` is false for the conditional modes, `fitted()`,
-#'   `ranef()`, `predict()` on new data, and `residuals()`, and that the
+#'   `ranef()`, `frm_linpred()` on new data, and `residuals()`, and that the
 #'   log-likelihood is finite. The same assertion appears for
-#'   `predict(se.fit = TRUE)` in `test-autoscale.R`,
+#'   `frm_linpred(se.fit = TRUE)` in `test-autoscale.R`,
 #'   `test-gp-multidim.R`, `test-review-v25.R`, and
 #'   `test-method-residue.R`, for one-step-ahead residuals across
 #'   families in `test-osa-inference.R`, and for Cook's distance in
@@ -54,10 +54,10 @@ test_that("quadrature reports every conditional mode, not just the first", {
   # an outer value into the twentieth
   expect_false(anyNA(fq$estimates$b))
   expect_equal(length(fq$estimates$b), ng)
-  expect_false(anyNA(fitted(fq)))
+  expect_false(anyNA(fitted(fq)[, "Estimate"]))
   expect_false(anyNA(unlist(ranef(fq))))
-  expect_false(anyNA(predict(fq, newdata = d)))
-  expect_false(anyNA(residuals(fq)))
+  expect_false(anyNA(frm_linpred(fq, newdata = d)))
+  expect_false(anyNA(residuals(fq)[, "Estimate"]))
 
   # Gauss-Kronrod and Laplace agree exactly for a gaussian response, so
   # the modes must agree too
@@ -112,7 +112,7 @@ test_that("quadrature survives non-gaussian families and nested blocks", {
       expect_s3_class(fit, "frmtmb_fit")
       expect_true(is.finite(as.numeric(logLik(fit))), label = lab)
       expect_false(anyNA(fit$estimates$b))
-      expect_false(anyNA(fitted(fit)))
+      expect_false(anyNA(fitted(fit)[, "Estimate"]))
       expect_lt(max(abs(fit$obj$gr(fit$opt$par))), 1e-2)
     }
   }

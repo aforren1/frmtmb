@@ -55,7 +55,7 @@ which keeps their coverage under any monotone link.}
 
 \item{seed}{Seed for the simulation, for a reproducible band.}
 
-\item{tol}{Largest relative disagreement with \code{predict(se.fit = TRUE)}
+\item{tol}{Largest relative disagreement with \code{frm_linpred(se.fit = TRUE)}
 the assembled covariance may show before the call refuses.}
 }
 \value{
@@ -92,7 +92,7 @@ A penalized smooth's wiggly part is a random-effect block in the
 fitted objective even when the smooth is a population term, so the
 covariance of a curve needs the joint covariance of the fixed AND
 random coefficients. frmtmb exports no route to it: \code{vcov(full = TRUE)} returns the outer parameter vector, which excludes \code{b} under
-both of its branches, and \code{predict(se.fit = TRUE)} forms the grid
+both of its branches, and \code{frm_linpred(se.fit = TRUE)} forms the grid
 covariance internally and returns only its diagonal.
 
 So this function rebuilds it. The linear predictor is LINEAR in the
@@ -103,7 +103,7 @@ joint precision matrix.
 
 Neither piece was handed over by an exported function, so neither is
 trusted. Every call recomputes \code{sqrt(diag(Sigma))} and compares it
-with \code{predict(se.fit = TRUE)}, and refuses when the two disagree by
+with \code{frm_linpred(se.fit = TRUE)}, and refuses when the two disagree by
 more than \code{tol}. The measured agreement is in the \code{"check"} attribute
 and is reported by \code{print()}. On the package's own test models it is
 at the tenth significant figure or better.
@@ -128,11 +128,11 @@ verifies has changed from "the reconstruction reproduced core's
 number" to "the seam is being read correctly".
 
 The check itself stays. Every call recomputes \code{sqrt(diag(Sigma))} and
-compares it with \code{predict(se.fit = TRUE)}, and refuses when the two
+compares it with \code{frm_linpred(se.fit = TRUE)}, and refuses when the two
 disagree by more than \code{tol}. The measured agreement is in the
 \code{"check"} attribute and is reported by \code{print()}.
 
-The one case with nothing to check against is a nonlinear (\code{nl = TRUE}) body: \code{predict(se.fit = TRUE)} is refused there, so
+The one case with nothing to check against is a nonlinear (\code{nl = TRUE}) body: \code{frm_linpred(se.fit = TRUE)} is refused there, so
 \code{frm_lp_basis()} is the only route to the number and \code{cov_rel_error}
 is \code{NA}. \code{print()} says so rather than reporting a check that never
 ran.
@@ -141,7 +141,7 @@ ran.
 \section{Cost}{
 
 What this call costs is dominated by ONE thing: the single
-\code{predict(se.fit = TRUE)} check call, inside which core inverts the
+\code{frm_linpred(se.fit = TRUE)} check call, inside which core inverts the
 fit's joint precision matrix over EVERY coefficient, including the
 ones this curve does not touch. Measured at \code{re_formula = NA} on a
 20-point grid, one process each:
@@ -194,7 +194,7 @@ variance is not coefficient uncertainty. See the next section.
 }
 
 The covariance check also means less here, and \code{print()} says so.
-\code{predict(se.fit = TRUE)} returns a marginal standard error per row
+\code{frm_linpred(se.fit = TRUE)} returns a marginal standard error per row
 and never the covariance between the grids, so the check runs on each
 half and \code{cov_rel_error} is the worse of the two: what it licenses is
 that both designs were read correctly.

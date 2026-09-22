@@ -76,7 +76,7 @@ frm_phase <- function(fit, newdata = NULL, re_formula = NULL,
 
 #' The one route both extractors take.
 #'
-#' Everything is read through predict(se.fit = TRUE), which is a
+#' Everything is read through frm_linpred(se.fit = TRUE), which is a
 #' documented seam, rather than by reassembling a design from the fit's
 #' internals. That is why re_formula and allow_new_levels work here at all:
 #' they are predict()'s, passed through.
@@ -91,9 +91,13 @@ cp_link_se <- function(fit, dpar, newdata, re_formula, level,
     frm_stop("`level` must be one number strictly between 0 and 1.",
              call. = FALSE)
   }
-  p <- stats::predict(fit, newdata = newdata, type = "link", dpar = dpar,
-                      re_formula = re_formula, se.fit = TRUE,
-                      allow_new_levels = allow_new_levels)
+  # frm_linpred(), not predict(): predict() is brms's predictive
+  # summary in frmtmb's development version, and the linear predictor
+  # moved there
+  p <- frmtmb::frm_linpred(fit, newdata = newdata, type = "link",
+                           dpar = dpar, re_formula = re_formula,
+                           se.fit = TRUE,
+                           allow_new_levels = allow_new_levels)
   if (!is.list(p) || is.null(p$se.fit)) {
     frm_stop("predict() returned no standard error for `", dpar,
              "`, so no interval can be formed. This happens when the fit did ",
@@ -177,9 +181,10 @@ frm_cross_simulate <- function(fit, nsim = 1L, seed = NULL,
   cp_require_family(fit, "frm_cross_simulate()")
   nsim <- cp_count(nsim, "nsim")
   if (!is.null(seed)) set.seed(seed)
-  get <- function(dp) as.numeric(stats::predict(fit, newdata = newdata,
-                                                type = "link", dpar = dp,
-                                                re_formula = re_formula))
+  get <- function(dp) {
+    as.numeric(frmtmb::frm_linpred(fit, newdata = newdata, type = "link",
+                                   dpar = dp, re_formula = re_formula))
+  }
   s11 <- exp(get("mu")); s22 <- exp(get("pow2"))
   ch <- stats::plogis(get("coh")); ph <- get("phase")
   dat <- if (is.null(newdata)) fit$frame[["data"]] else newdata

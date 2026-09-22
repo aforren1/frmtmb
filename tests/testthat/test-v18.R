@@ -28,7 +28,7 @@ test_that("mo() interactions get their own simplex and match direct ML", {
                      nll, method = "BFGS",
                      control = list(reltol = 1e-13, maxit = 5000))
   expect_lt(abs(as.numeric(logLik(fit)) + op$value), 1e-6)
-  expect_setequal(names(fixef(fit)$mu),
+  expect_setequal(names(fixef_by_dpar(fit)$mu),
                   c("(Intercept)", "z", "moinc", "moinc:z"))
   # one simplex per term, never shared between the two
   expect_length(grep("^zeta", names(fit$frame$par_template)), 2L)
@@ -48,7 +48,7 @@ test_that("mo() interactions get their own simplex and match direct ML", {
                             control = list(reltol = 1e-13, maxit = 5000))
   expect_gt(as.numeric(logLik(fit)), -op_shared$value)
 
-  expect_true(is.finite(predict(fit, newdata = data.frame(inc = 2,
+  expect_true(is.finite(frm_linpred(fit, newdata = data.frame(inc = 2,
                                                           z = 1))))
 })
 
@@ -81,7 +81,7 @@ test_that("mi() interactions stay linear-gaussian exact", {
                      nll, method = "BFGS",
                      control = list(reltol = 1e-13, maxit = 5000))
   expect_lt(abs(as.numeric(logLik(fit)) + op$value), 1e-6)
-  expect_true("mix:z" %in% names(fixef(fit)$y_mu))
+  expect_true("mix:z" %in% names(fixef_by_dpar(fit)$y_mu))
 })
 
 test_that("exact gp() matches direct GP marginal ML", {
@@ -111,9 +111,9 @@ test_that("exact gp() matches direct GP marginal ML", {
 
   # observed-position prediction works; unseen positions krige
   # (closed-form validation in test-gp-multidim.R)
-  expect_equal(unname(predict(fg, newdata = dg[1:5, ])),
-               unname(fitted(fg)[1:5]), tolerance = 1e-10)
-  p_new <- predict(fg, newdata = data.frame(x = 0.05), se.fit = TRUE)
+  expect_equal(unname(frm_linpred(fg, newdata = dg[1:5, ])),
+               unname(fitted(fg)[, "Estimate"][1:5]), tolerance = 1e-10)
+  p_new <- frm_linpred(fg, newdata = data.frame(x = 0.05), se.fit = TRUE)
   expect_true(is.finite(p_new$fit) && is.finite(p_new$se.fit))
   cv <- confint_varcorr(fg)
   expect_setequal(cv$term, c("sd(gp)", "range(gp)"))
@@ -127,16 +127,17 @@ test_that("exact gp() matches direct GP marginal ML", {
                tolerance = 1e-12)
   expect_lt(abs(as.numeric(logLik(fh)) - as.numeric(logLik(fg))), 5e-3)
   nd <- data.frame(x = seq(0.5, 9.5, by = 0.5))
-  ph <- predict(fh, newdata = nd, se.fit = TRUE)
+  ph <- frm_linpred(fh, newdata = nd, se.fit = TRUE)
   expect_true(all(is.finite(ph$fit)) && all(is.finite(ph$se.fit)))
   # curves agree where both are defined
-  p_e <- predict(fg, newdata = data.frame(x = pos))
-  p_h <- predict(fh, newdata = data.frame(x = pos))
+  p_e <- frm_linpred(fg, newdata = data.frame(x = pos))
+  p_h <- frm_linpred(fh, newdata = data.frame(x = pos))
   expect_lt(max(abs(p_e - p_h)), 0.01)
 
   # newdata rebuilds the basis from the stored scaling, so in-sample rows
   # reproduce the fitted values exactly
-  expect_equal(unname(predict(fh, newdata = dg)), unname(fitted(fh)),
+  expect_equal(unname(frm_linpred(fh, newdata = dg)),
+               unname(fitted(fh)[, "Estimate"]),
                tolerance = 1e-12)
 
   # the lengthscale is estimated on the rescaled inputs but reported in

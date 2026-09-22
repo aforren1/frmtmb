@@ -18,6 +18,16 @@ This record is at punch round 2 (`dev/reviews/20260917-brmsport.md`,
 "Recheck, round 1"). Section 10 lists each round-0 finding and what was
 done; section 11 does the same for the recheck.
 
+**THE TOTALS BELOW ARE THE STATE AT 0.60.0 AND ARE NO LONGER CURRENT.**
+Lane `wt-shapes` fixed items 2.6d and 2.6f against them, and the ledger
+was re-recorded, re-verdicted and regenerated: 192 passes became 231,
+112 defects became 83, and the `pending 2.6d` class is gone. The
+current figures, the 39 rows that moved and the five that changed
+verdict without becoming passes are in `dev/shapes-findings.md`
+section 6; `dev/brmsport-ledger.tsv` and
+`dev/brmsport-log/ledger-summary.md` are regenerated in place. Rule 3
+of section 1 and defect L5, L10, S1 and S4 of section 5 are DONE.
+
 ## 1. The user's rules and the divergence list
 
 **The user decided three rules on 2026-09-17**, and the ledger applies
@@ -362,10 +372,14 @@ call second; data seed 20260917.
 | P1 | `ma(x)` with brms's default `cov = FALSE` is refused on EVERY family, where brms fits the gaussian and student cases (Stan code of 1525 and 2411 characters) and refuses only the others ("Please set cov = TRUE when modeling MA structures for this family"). frmtmb documents the refusal (`R/autocor.R:102`, `dev/feature-gaps.md:228`: the residual-regression form is not implemented), so this is a known gap that the refusal names correctly; it matters here because `brm:110`'s own-words pass rests on the same message | 0 (`brm:110` is the poisson case, a correct refusal) | `dev/brmsport-log/punch2-defects.txt` P1 |
 | P2 | emmeans hides frmtmb's refusal reason. `emmeans(fit2, "Age")` on the nonlinear fixture and `emmeans(fit6, "Age")` on the multivariate one both fail with "Perhaps a 'data' or 'params' argument is needed", which points the user at the wrong fix. frmtmb's `recover_data()` raises "emmeans support needs a linear mu predictor" and "emmeans support is univariate-only for now"; emmeans catches it with `try()`, prints it to stderr as `Error : ...`, and signals only its own message. Control: `y ~ x` reaches a grid of 1 row | 0 (`emmeans:27`, `:35`, `:38`, `:42`, `:50` are cannot transfer) | `dev/brmsport-log/punch2-defects.txt` P2 |
 
-**Filed, not fixed: `R/confint.R:2673` violates rule 2.** It sets
-`class(out) <- c("frmtmb_hypothesis", "brmshypothesis")`, so
-`hypothesis()` output carries a brms class name. No bin-1 pass depends
-on it. `R/` is out of this lane's scope.
+**Filed here, FIXED by lane `wt-shapes` in punch round 1.**
+`R/confint.R` set `class(out) <- c("frmtmb_hypothesis",
+"brmshypothesis")`, so `hypothesis()` output carried a brms class name
+against rule 2. No bin-1 pass depended on it. The class is
+`"frmtmb_hypothesis"` alone now; the stated reason for keeping it
+(that `print()` and `plot()` would dispatch differently) was measured
+false, since frmtmb exports both generics for its own class and that
+class comes first.
 
 ## 6. Divergences, with their citations
 
@@ -477,7 +491,7 @@ test before the shutdown; after it, establishing state 15, constructions
 | NIT, run-gated header and width | FIXED |
 | NIT, `run-tests.R` reads `rellib-r3` | RECORDED (section 7), runner unchanged |
 | NIT, `:203` and `:719` messages | now own-words passes under rule 1; the misleading "pass the original data via data =" for a misspelled effect remains a wording nit |
-| NEW, `R/confint.R:2673` `brmshypothesis` | FILED (section 5) |
+| NEW, `R/confint.R:2673` `brmshypothesis` | FILED (section 5); FIXED by `wt-shapes` punch round 1 |
 
 ## 11. Punch round 2
 

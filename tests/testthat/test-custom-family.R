@@ -22,9 +22,11 @@ test_that("a hand-written custom family matches the built-in", {
   fit_b <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
   expect_lt(abs(as.numeric(logLik(fit_c)) - as.numeric(logLik(fit_b))),
             1e-8)
-  expect_vector_equal(fixef(fit_c)$mu, fixef(fit_b)$mu, tol = 1e-6)
+  expect_vector_equal(fixef_by_dpar(fit_c)$mu, fixef_by_dpar(fit_b)$mu,
+                      tol = 1e-6)
   # the whole post-processing stack works on the custom family
-  expect_equal(fitted(fit_c), fitted(fit_b), tolerance = 1e-6)
+  expect_equal(fitted(fit_c)[, "Estimate"], fitted(fit_b)[, "Estimate"],
+               tolerance = 1e-6)
   s <- simulate(fit_c, nsim = 1, seed = 1)
   expect_true(all(s$sim_1 >= 0))
 })
@@ -81,8 +83,8 @@ test_that("a custom lpdf needs no ADoverload boilerplate of its own", {
   ref <- frm(bf(y ~ x), family = gaussian(), data = dd)
   expect_equal(as.numeric(logLik(fc)), as.numeric(logLik(ref)),
                tolerance = 1e-6)
-  expect_equal(unname(unlist(fixef(fc)$mu)),
-               unname(unlist(fixef(ref)$mu)), tolerance = 1e-4)
+  expect_equal(unname(unlist(fixef_by_dpar(fc)$mu)),
+               unname(unlist(fixef_by_dpar(ref)$mu)), tolerance = 1e-4)
 })
 
 # --- the extension API's hardening (frmtmb.eam findings 2, 3, 5) ------
@@ -404,10 +406,10 @@ test_that("family_finalize derives a link from the response", {
   dd <- data.frame(x = stats::rnorm(200))
   dd$y <- 0.3 + stats::rexp(200, 1 / exp(0.2 + 0.3 * dd$x))
   fit <- frm(bf(y ~ x) + shifted(), data = dd)
-  # the finalized link is what the fit reports and what predict() uses,
+  # the finalized link is what the fit reports and what frm_linpred() uses,
   # not the "log" the family was constructed with
   expect_identical(family(fit)$links$ndt$name, "ndt_bounded")
-  ndt <- unname(predict(fit, type = "response", dpar = "ndt")[1])
+  ndt <- unname(frm_linpred(fit, type = "response", dpar = "ndt")[1])
   expect_lt(ndt, min(dd$y))
   expect_gt(ndt, 0)
   expect_true(is.finite(as.numeric(logLik(fit))))
@@ -438,7 +440,7 @@ test_that("family_finalize is not a function", {
 })
 
 test_that("a custom link object is validated at family construction", {
-  # the old failure was inside predict(se.fit = TRUE), far from the
+  # the old failure was inside frm_linpred(se.fit = TRUE), far from the
   # family that caused it
   half <- list(name = "half", linkfun = function(mu) mu,
                linkinv = function(eta) eta)
@@ -521,7 +523,7 @@ test_that("a family that declares se() is given it", {
     fit <- frm(bf(v | se(s) ~ 1) + se_reader(how), data = d)
     # the known-variance mean is the inverse-variance weighted one
     w <- 1 / d$s^2
-    expect_equal(unname(fixef(fit)$mu), sum(w * d$v) / sum(w),
+    expect_equal(unname(fixef_by_dpar(fit)$mu), sum(w * d$v) / sum(w),
                  tolerance = 1e-8, label = how)
     expect_equal(as.numeric(logLik(fit)),
                  sum(stats::dnorm(d$v, sum(w * d$v) / sum(w), d$s,
@@ -637,7 +639,7 @@ test_that("each way out of the unmappable scale actually works", {
   f3 <- frm(bf(y | se(sev, sigma = TRUE) ~ x) + se_scale_fam("tau"),
             data = dq)
   expect_true(all(is.finite(sqrt(diag(vcov(f3))))))
-  expect_equal(exp(unname(fixef(f3)$tau)), 0.9, tolerance = 0.05)
+  expect_equal(exp(unname(fixef_by_dpar(f3)$tau)), 0.9, tolerance = 0.05)
   # and it is the same model as the one whose scale is named sigma
   f4 <- frm(bf(y | se(sev, sigma = TRUE) ~ x) + se_scale_fam("sigma"),
             data = dq)
@@ -660,7 +662,7 @@ test_that("the built-in se() families are untouched by the scale rule", {
   expect_true(all(is.finite(sqrt(diag(vcov(fg))))))
   # student keeps nu free alongside a known se, as it always has
   fs <- frm(bf(y | se(sev) ~ x) + student(), data = d)
-  expect_true("nu" %in% names(fixef(fs)))
+  expect_true("nu" %in% names(fixef_by_dpar(fs)))
   expect_true(all(is.finite(sqrt(diag(vcov(fg))))))
   # sigma = TRUE keeps the estimated scale
   fq <- frm(y | se(sev, sigma = TRUE) ~ x, data = d)
@@ -718,11 +720,13 @@ skew_se_data <- function(seed = 11, n = 400, alpha = 3) {
 test_that("se_dpar = NA accepts a family whose other dpar is a shape", {
   d <- skew_se_data()
   fit <- frm(bf(y | se(sev) ~ x) + skew_se_fam(), data = d)
-  se <- sqrt(diag(vcov(fit)))
+  # vcov_estimated(): alpha has no formula, so it is a distributional
+  # parameter and not one of brms's population-level coefficients
+  se <- sqrt(diag(vcov_estimated(fit)))
   expect_true(all(is.finite(se)))
   # the shape is estimated, not frozen: within four of its own
   # standard errors of the value the data were drawn at
-  a_hat <- unname(fixef(fit)$alpha)
+  a_hat <- unname(fixef_by_dpar(fit)$alpha)
   a_se <- se[[grep("alpha", names(se))[[1]]]]
   expect_lt(abs(a_hat - 3), 4 * a_se)
   # and it buys likelihood over the same family with the shape pinned
@@ -750,10 +754,10 @@ test_that("se_dpar names the dpar the core maps out", {
   f2 <- frm(bf(y | se(sev) ~ x) + se_scale_fam("sigma"), data = d)
   expect_equal(as.numeric(logLik(f1)), as.numeric(logLik(f2)),
                tolerance = 1e-10)
-  expect_equal(unname(fixef(f1)$mu), unname(fixef(f2)$mu),
+  expect_equal(unname(fixef_by_dpar(f1)$mu), unname(fixef_by_dpar(f2)$mu),
                tolerance = 1e-8)
   # and the mapped-out dpar reports as the zero it is, as `sigma` does
-  expect_true(all(predict(f1, dpar = "tau", type = "response") == 0))
+  expect_true(all(frm_linpred(f1, dpar = "tau", type = "response") == 0))
 })
 
 test_that("frmtmb_family(se_dpar =) is checked at construction", {

@@ -78,9 +78,9 @@ test_that("mo()/mi() interaction multipliers must be numeric (brms#1828)", {
 
   # numeric and logical multipliers keep working
   fit <- frm(bf(ls ~ mo(income) * z) + gaussian(), data = dat)
-  expect_true("moincome:z" %in% names(fixef(fit)$mu))
+  expect_true("moincome:z" %in% names(fixef_by_dpar(fit)$mu))
   fit_l <- frm(bf(ls ~ mo(income) * xl) + gaussian(), data = dat)
-  expect_true("moincome:xl" %in% names(fixef(fit_l)$mu))
+  expect_true("moincome:xl" %in% names(fixef_by_dpar(fit_l)$mu))
 })
 
 test_that("anova() rejects fits with different numbers of observations (lme4#622)", {
@@ -111,7 +111,7 @@ test_that("zero prior weights equal subsetting (lme4#880)", {
   # criterion there keeps a contribution from the zero-weight rows
   expect_equal(as.numeric(logLik(wt)), as.numeric(logLik(sub)),
                tolerance = 1e-6)
-  expect_equal(unname(fixef(wt)$mu), unname(fixef(sub)$mu),
+  expect_equal(unname(fixef_by_dpar(wt)$mu), unname(fixef_by_dpar(sub)$mu),
                tolerance = 1e-6)
   expect_equal(varcorr_matrices(wt)[[1]][1, 1],
                varcorr_matrices(sub)[[1]][1, 1],
@@ -137,8 +137,8 @@ test_that("grouping levels match across numeric and character newdata (lme4#616)
   fit <- frm(bf(y ~ (1 | state)) + bernoulli(), data = fd)
   # lme4 silently returns the wrong level's BLUP when newdata restates
   # an integer grouping variable as character
-  expect_equal(predict(fit, newdata = fd),
-               predict(fit, newdata = transform(fd,
+  expect_equal(frm_linpred(fit, newdata = fd),
+               frm_linpred(fit, newdata = transform(fd,
                                                 state = as.character(state))),
                tolerance = 1e-10)
 })
@@ -152,9 +152,9 @@ test_that("REML predictions agree with fixef (glmmTMB#1143, #983)", {
   for (reml in c(FALSE, TRUE)) {
     fit <- frm(bf(count ~ 0 + cat + (1 | year)) + poisson(), data = td,
                REML = reml)
-    pr <- predict(fit, newdata = data.frame(cat = "cat1"), re_formula = NA,
+    pr <- frm_linpred(fit, newdata = data.frame(cat = "cat1"), re_formula = NA,
                   type = "link", allow_new_levels = TRUE)
-    expect_equal(unname(pr), unname(fixef(fit)$mu[1]), tolerance = 1e-8)
+    expect_equal(unname(pr), unname(fixef_by_dpar(fit)$mu[1]), tolerance = 1e-8)
   }
 })
 
@@ -176,7 +176,7 @@ test_that("discrete truncation normalizes with F(lb - 1) (brms#1903, #1923)", {
   y <- y[y >= 2 & y <= 6][1:400]
   fit <- frm(bf(y | trunc(lb = 2, ub = 6) ~ 1) + poisson(),
              data = data.frame(y = y))
-  mu <- exp(fixef(fit)$mu[[1]])
+  mu <- exp(fixef_by_dpar(fit)$mu[[1]])
   # the inclusive lower bound must keep its mass: P(2 <= Y <= 6) uses
   # ppois(1), not ppois(2)
   ll_ok <- sum(dpois(y, mu, log = TRUE)) -
@@ -195,8 +195,9 @@ test_that("nonlinear fixed-effect SEs match nlme, not nlmer (lme4#819, #164)", {
   # nlmer reports about 0.0063/0.0065/0.0065 here - two orders of
   # magnitude too small; nlme gets 0.629/0.458/0.290
   expect_equal(unname(se), c(0.629, 0.458, 0.290), tolerance = 0.05)
-  # nlmer's predict() errors as soon as newdata is supplied (lme4#164)
-  expect_equal(predict(fit, newdata = Soy), predict(fit), tolerance = 1e-8)
+  # nlmer's frm_linpred() errors as soon as newdata is supplied (lme4#164)
+  expect_equal(frm_linpred(fit, newdata = Soy), frm_linpred(fit),
+               tolerance = 1e-8)
 })
 
 test_that("ar1() warns on gapped integer levels (glmmTMB#1278)", {
@@ -293,6 +294,6 @@ test_that("tensor-product smooths are supported or refused clearly (glmmTMB#1082
                "not supported")
   fit <- frm(bf(y ~ t2(x, z)) + gaussian(), data = dd)
   ref <- mgcv::gam(y ~ t2(x, z), data = dd, method = "ML")
-  expect_equal(as.numeric(fitted(fit)), as.numeric(fitted(ref)),
+  expect_equal(as.numeric(fitted(fit)[, "Estimate"]), as.numeric(fitted(ref)),
                tolerance = 1e-4)
 })

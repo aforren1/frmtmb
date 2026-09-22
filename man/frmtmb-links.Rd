@@ -182,7 +182,7 @@ field is put on the robust form of its density automatically:
 
 Wherever a link is taken, a list is taken instead of a name. It must
 carry \code{name}, \code{linkfun}, \code{linkinv} and \code{mu_eta}, the derivative of
-\code{linkinv}, which \code{predict(se.fit = TRUE)} and every delta-method
+\code{linkinv}, which \code{frm_linpred(se.fit = TRUE)} and every delta-method
 interval read. \code{logit_eta} and \code{log_eta} are optional; supply one
 only if it is exact.
 }
@@ -193,7 +193,8 @@ d <- data.frame(x = rnorm(80))
 d$y <- rbinom(80, 1, pnorm(0.4 + 0.8 * d$x))
 
 # the mean on a probit rather than a logit
-fixef(frm(bf(y ~ x), family = bernoulli(link = "probit"), data = d))$mu
+fixef_by_dpar(frm(bf(y ~ x), family = bernoulli(link = "probit"),
+                  data = d))$mu
 
 # a link on a parameter that is not the mean
 d$z <- rnorm(80, 1 + d$x, exp(0.2 + 0.3 * d$x))

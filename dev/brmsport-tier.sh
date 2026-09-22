@@ -2,7 +2,8 @@
 # Run the generated brms-suite tier as the gated tier runs it (verdicts
 # asserted), one R process per file, against the lane's private library.
 # Output: dev/brmsport-log/tier-<pkg>-<topic>.txt and a summary on stdout.
-cd /c/Users/adf44/source/r/frmtmb-wt-brmsport || exit 1
+# the tree is the caller's: run from the worktree root
+[ -f dev/brmsport-run.R ] || { echo "run me from the worktree root"; exit 1; }
 R="/c/Program Files/R/R-4.6.1/bin/Rscript.exe"
 export PATH="/c/rtools45/usr/bin:/c/rtools45/x86_64-w64-mingw32.static.posix/bin:$PATH"
 n=0; ok=0

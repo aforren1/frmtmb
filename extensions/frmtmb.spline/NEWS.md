@@ -1,3 +1,14 @@
+# frmtmb.spline (development version)
+
+* `frm_curve()`'s transform check, `sp_predict_eta()`, the covariance
+  cross-check and the Royston-Parmar monotonicity check read
+  `frmtmb::frm_linpred()` rather than `predict()`, which is brms's
+  predictive summary in frmtmb's development version and has no `type`
+  or `se.fit`. Every refusal and every printed check line names
+  `frm_linpred(se.fit = TRUE)` for the same reason, including
+  `frm_curve_feature()`'s. The `frmtmb (>= 0.60.0)` floor must move to
+  the release that exports `frm_linpred()`.
+
 # frmtmb.spline 0.6.0
 
 * Requires frmtmb 0.60.0, for `frm_stop()` and the other condition helpers.

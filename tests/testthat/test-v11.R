@@ -176,7 +176,7 @@ test_that("scalar-on-function regression matches mgcv exactly", {
   ref <- mgcv::gam(y ~ s(Tmat, by = Lmat), data = dd, method = "ML")
   expect_lt(abs(as.numeric(logLik(fit)) - (-as.numeric(ref$gcv.ubre))),
             1e-4)
-  expect_lt(max(abs(fitted(fit) - fitted(ref))), 1e-4)
+  expect_lt(max(abs(fitted(fit)[, "Estimate"] - fitted(ref))), 1e-4)
 })
 
 test_that("quadrature = TRUE matches glmer(nAGQ = 25)", {
@@ -194,7 +194,7 @@ test_that("quadrature = TRUE matches glmer(nAGQ = 25)", {
   ref <- lme4::glmer(y ~ x + (1 | g), dd, family = binomial, nAGQ = 25)
   expect_lt(abs(as.numeric(logLik(fit_gk)) - as.numeric(logLik(ref))),
             1e-4)
-  expect_vector_equal(fixef(fit_gk)$mu, lme4::fixef(ref), tol = 1e-3)
+  expect_vector_equal(fixef_by_dpar(fit_gk)$mu, lme4::fixef(ref), tol = 1e-3)
   vc <- sqrt(varcorr_matrices(fit_gk)[[1]][1, 1])
   sd_ref <- as.numeric(attr(lme4::VarCorr(ref)$g, "stddev"))[1]
   expect_lt(abs(vc - sd_ref), 1e-3)
@@ -210,7 +210,7 @@ test_that("quadrature = TRUE matches glmer(nAGQ = 25)", {
                                     family = binomial(), nAGQ = 25)
     expect_lt(abs(as.numeric(logLik(fit_gk)) - as.numeric(logLik(ga))),
               1e-3)
-    expect_vector_equal(fixef(fit_gk)$mu,
+    expect_vector_equal(fixef_by_dpar(fit_gk)$mu,
                         unname(GLMMadaptive::fixef(ga)), tol = 1e-2)
   }
 

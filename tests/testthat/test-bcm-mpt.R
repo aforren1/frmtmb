@@ -161,8 +161,9 @@ test_that("MPT_2 to MPT_5 are one hierarchical fit", {
   # a number the case study plots
   expect_true(all(abs(rho[upper.tri(rho)]) <= 1))
   # the group means are the book's muc, mur, muu after the probit
-  mu <- pnorm(c(unname(fixef(fit)[["c"]]), unname(fixef(fit)[["r"]]),
-                unname(fixef(fit)[["u"]])))
+  mu <- pnorm(c(unname(fixef_by_dpar(fit)[["c"]]),
+                unname(fixef_by_dpar(fit)[["r"]]),
+                unname(fixef_by_dpar(fit)[["u"]])))
   expect_true(all(mu > 0 & mu < 1))
   expect_equal(nrow(ranef(fit)[[1L]]), 21L)
   # the random effects are POOLED and not saturated: three latent traits
@@ -235,9 +236,9 @@ test_that("MPT_2 to MPT_5 match their Stan program", {
                 L = frm_chol(fit)),
     fit = fit,
     pars = function(f) {
-      list(muchat = unname(fixef(f)[["c"]]),
-           murhat = unname(fixef(f)[["r"]]),
-           muuhat = unname(fixef(f)[["u"]]),
+      list(muchat = unname(fixef_by_dpar(f)[["c"]]),
+           murhat = unname(fixef_by_dpar(f)[["r"]]),
+           muuhat = unname(fixef_by_dpar(f)[["u"]]),
            delta = frm_u(f))
     },
     inner = "delta",

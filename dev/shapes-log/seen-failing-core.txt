@@ -1,0 +1,20 @@
+﻿  [ERROR] fixef() is brms's summary matrix, in brms's row order
+  [ERROR] fixef() takes brms's pars and probs
+  [FAIL] vcov() covers brms's population-level coefficients only
+  [ERROR] vcov() takes brms's correlation and pars
+  [FAIL] ngrps() is brms's named list
+  [ERROR] fitted() is brms's four-column summary
+  [ERROR] fitted() on an ordinal fit is brms's n x 4 x K array
+  [ERROR] fitted() takes nlpar and allow_new_levels
+  [ERROR] residuals() is brms's four-column summary
+  [FAIL] summary() carries brms's fixed and random slots
+  [ERROR] summary(priors = TRUE) prints the priors, as brms does
+  [FAIL] print() of a fit uses brms's section headings
+  [ERROR] variables() lists an ordinal fit's thresholds and cs terms
+  [ERROR] predict() is brms's predictive summary
+  [ERROR] predict(summary = FALSE) gives the simulated draws
+  [ERROR] predict() on an ordinal fit gives brms's P(Y = k) columns
+  [FAIL] predict() refuses the retired glmmTMB type vocabulary
+  [ERROR] frm_linpred() is the old predict(), unchanged
+  [ERROR] predict() covers at close to the nominal rate
+RESULT test-brms-shapes.R pass=7 fail=25 err=14 skip=0

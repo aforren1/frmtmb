@@ -116,7 +116,7 @@ check_custom_family <- function(family, y, dpars, aterms = list(),
 #' no intercept and the marginal means are the latent predictor without
 #' a threshold offset. Contrasts are unaffected by that offset;
 #' category probabilities are a different question, answered by
-#' `predict(type = "response")` and `conditional_effects()`.
+#' `frm_linpred(type = "response")` and `conditional_effects()`.
 #'
 #' @noRd
 emm_mu_linpred <- function(object) {
@@ -136,6 +136,71 @@ emm_mu_linpred <- function(object) {
 # conditional on the estimated random-effect modes (the glmmTMB/lmer
 # convention for delta-method slopes).
 
+#' The parameter vector every delta-method seam perturbs, and its
+#' names.
+#'
+#' It is every estimated coefficient plus the parameters an ordinal fit
+#' keeps outside `beta` and `betad`: the thresholds and the `cs()`
+#' coefficients, on their INTERNAL scale and under `confint()`'s names
+#' (`tau_raw_1`, `bcs1_1`).
+#'
+#' They have to be here. marginaleffects builds its Jacobian by
+#' perturbing `get_coef()` one entry at a time and re-predicting, so a
+#' parameter the vector leaves out contributes nothing to the standard
+#' error, and an ordinal prediction depends on the thresholds. Measured
+#' on `bf(ord ~ x) + cumulative()`, `avg_slopes()` reported 0.00029 for
+#' the middle category where `MASS::polr` reports 0.02016, a factor of
+#' 69, on a point estimate that agreed to five decimals
+#' (`dev/shapes-rev-ordse.R`).
+#'
+#' @noRd
+interop_coef_names <- function(model) {
+  nm <- estimated_coef_names(model)
+  tpl <- model$frame[["par_template"]]
+  for (cp in ord_extra_comps(model)) {
+    v <- names(tpl[[cp]])
+    if (is.null(v)) v <- paste0(cp, "_", seq_along(tpl[[cp]]))
+    nm <- c(nm, v)
+  }
+  nm
+}
+
+#' @noRd
+interop_coef_vector <- function(model) {
+  est <- model$estimates
+  bd <- est[["betad"]]
+  if (length(model$frame[["betad_fixed_idx"]])) {
+    bd <- bd[-model$frame[["betad_fixed_idx"]]]
+  }
+  v <- c(est[["beta"]], bd)
+  for (cp in ord_extra_comps(model)) v <- c(v, as.numeric(est[[cp]]))
+  stats::setNames(unname(v), interop_coef_names(model))
+}
+
+#' The covariance of `interop_coef_vector()`.
+#'
+#' `vcov_estimated()` when there is nothing outside the coefficients,
+#' so the matrix every other fit gets is unchanged, bit for bit.
+#' Otherwise the joint matrix `hypothesis()` already assembles, cut
+#' down to these rows and put in this order.
+#'
+#' @noRd
+interop_vcov <- function(model) {
+  cps <- ord_extra_comps(model)
+  V0 <- vcov_estimated(model)
+  if (!length(cps)) return(V0)
+  pc <- tryCatch(suppressWarnings(hyp_par_cov(model)),
+                 error = function(e) NULL)
+  nm <- interop_coef_names(model)
+  if (is.null(pc)) return(V0)
+  ord <- unlist(lapply(c("beta", "betad", cps),
+                       function(cp) which(pc$comp == cp)))
+  if (length(ord) != length(nm)) return(V0)
+  V <- as.matrix(pc$V[ord, ord, drop = FALSE])
+  dimnames(V) <- list(nm, nm)
+  V
+}
+
 #' @exportS3Method marginaleffects::get_coef
 get_coef.frmtmb_fit <- function(model, ...) {
   # Exempt: marginaleffects reaches this through its numderiv machinery
@@ -144,12 +209,7 @@ get_coef.frmtmb_fit <- function(model, ...) {
   # rather than written out. Guarding it broke avg_slopes(), slopes(),
   # avg_comparisons() and hypotheses(); dev/argspell-interop-log.txt has
   # the run. A count of zero written call sites is not evidence here.
-  est <- model$estimates
-  bd <- est[["betad"]]
-  if (length(model$frame[["betad_fixed_idx"]])) {
-    bd <- bd[-model$frame[["betad_fixed_idx"]]]
-  }
-  stats::setNames(c(est[["beta"]], bd), estimated_coef_names(model))
+  interop_coef_vector(model)
 }
 
 #' @exportS3Method marginaleffects::set_coef
@@ -163,23 +223,38 @@ set_coef.frmtmb_fit <- function(model, coefs, ...) {
   tpl <- model$frame[["par_template"]]
   nb <- length(tpl[["beta"]])
   model$estimates[["beta"]][] <- coefs[seq_len(nb)]
+  off <- nb
   if (!is.null(tpl[["betad"]])) {
     keep <- setdiff(seq_along(tpl[["betad"]]), model$frame[["betad_fixed_idx"]])
     model$estimates[["betad"]][keep] <- coefs[nb + seq_along(keep)]
+    off <- off + length(keep)
+  }
+  # the ordinal extras, in interop_coef_vector() order; without these
+  # a perturbation of a threshold never reached the prediction
+  for (cp in ord_extra_comps(model)) {
+    k <- length(model$estimates[[cp]])
+    model$estimates[[cp]][] <- coefs[off + seq_len(k)]
+    off <- off + k
   }
   model
 }
 
 #' @exportS3Method marginaleffects::get_vcov
 get_vcov.frmtmb_fit <- function(model, ...) {
-  vcov(model)
+  # NOT vcov(model): that is brms's population-level block since item
+  # 2.6f, and it has neither the rows nor the names of get_coef(), which
+  # is the vector marginaleffects perturbs. A covariance one row short
+  # of the coefficient vector is the wrong matrix, not a differently
+  # named one; the standard errors of avg_slopes() moved measurably
+  # when the two disagreed (dev/shapes-log/interop-lane.txt).
+  interop_vcov(model)
 }
 
 #' @exportS3Method marginaleffects::get_predict
 get_predict.frmtmb_fit <- function(model, newdata, type = "response",
                                    ...) {
   type <- if (identical(type, "link")) "link" else "response"
-  p <- predict(model, newdata = newdata, type = type)
+  p <- frm_linpred(model, newdata = newdata, type = type)
   if (is.matrix(p)) {
     # A categorical outcome predicts a DISTRIBUTION per row (an ordinal
     # family's K category probabilities, a multinomial's D cell means),
@@ -229,7 +304,9 @@ emm_basis.frmtmb_fit <- function(object, trms, xlev, grid, ...) {
   }
   idx <- lp[["idx"]][seq_len(lp[["n_param_cols"]])]
   bhat <- object$estimates[[lp[["par"]]]][idx]
-  V <- vcov(object)[idx, idx, drop = FALSE]
+  # vcov_estimated(), not vcov(): `idx` indexes the estimated
+  # coefficient vector, and vcov() is brms's population-level block
+  V <- vcov_estimated(object)[idx, idx, drop = FALSE]
   list(X = X, bhat = bhat, nbasis = matrix(NA), V = V,
        dffun = function(k, dfargs) Inf, dfargs = list(), misc = list())
 }

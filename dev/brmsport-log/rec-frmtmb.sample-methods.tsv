@@ -49,9 +49,9 @@ assert	frmtmb.sample	brmsfit-methods:107	cannot transfer	FALSE	FALSE	ERROR: as.m
 assert	frmtmb.sample	brmsfit-methods:578	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:579	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:580	pass	TRUE	FALSE			TRUE
-assert	frmtmb.sample	brmsfit-methods:593	defect	FALSE	FALSE	ERROR: nsamples() is the deprecated brms spelling. Use ndraws(x) for the pooled draw count, niterations(x) for the per-chain count		FALSE
-assert	frmtmb.sample	brmsfit-methods:594	defect	FALSE	FALSE	ERROR: nsamples() is the deprecated brms spelling. Use ndraws(x) for the pooled draw count, niterations(x) for the per-chain count		FALSE
-assert	frmtmb.sample	brmsfit-methods:595	defect	FALSE	FALSE	ERROR: nsamples() is the deprecated brms spelling. Use ndraws(x) for the pooled draw count, niterations(x) for the per-chain count		FALSE
+assert	frmtmb.sample	brmsfit-methods:593	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:594	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:595	defect	FALSE	FALSE	ERROR: nsamples(incl_warmup = TRUE) has nothing to count: frm_sample() discards the warmup rather than storing it, so the object carries post-warmup draws only. ndraws(x) is that count		FALSE
 assert	frmtmb.sample	brmsfit-methods:599	pass	TRUE	FALSE			TRUE
 setup	frmtmb.sample	brmsfit-methods:617		TRUE	FALSE			TRUE
 setup	frmtmb.sample	brmsfit-methods:618		FALSE	FALSE	could not find function "posterior_average"		FALSE
@@ -61,10 +61,10 @@ setup	frmtmb.sample	brmsfit-methods:622		TRUE	FALSE			TRUE
 setup	frmtmb.sample	brmsfit-methods:623		FALSE	FALSE	NOT RUN: the setup line reaches brms's own namespace		FALSE
 assert	frmtmb.sample	brmsfit-methods:627	cannot transfer	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: NOT RUN: the setup line reaches brms's own namespace		FALSE
 assert	frmtmb.sample	brmsfit-methods:628	cannot transfer	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: NOT RUN: the setup line reaches brms's own namespace		FALSE
-setup	frmtmb.sample	brmsfit-methods:632		FALSE	FALSE	posterior_samples() is the deprecated brms spelling. Use as_draws(x) for a posterior draws_matrix, as.matrix(x) for a plain matrix, or as.data.frame(x)		FALSE
-assert	frmtmb.sample	brmsfit-methods:633	defect	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: posterior_samples() is the deprecated brms spelling. Use as_draws(x) for a posterior draws_matrix, as.matrix(x) for a plain matrix, or as.data.frame(x)		FALSE
-assert	frmtmb.sample	brmsfit-methods:634	defect	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: posterior_samples() is the deprecated brms spelling. Use as_draws(x) for a posterior draws_matrix, as.matrix(x) for a plain matrix, or as.data.frame(x)		FALSE
-assert	frmtmb.sample	brmsfit-methods:635	defect	FALSE	FALSE	ERROR: posterior_samples() is the deprecated brms spelling. Use as_draws(x) for a posterior draws_matrix, as.matrix(x) for a plain matrix, or as.data.frame(x)		FALSE
+setup	frmtmb.sample	brmsfit-methods:632		TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:633	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:634	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:635	defect	FALSE	FALSE	Expected `names(SW(posterior_samples(fit1, pars = "^b_")))` to equal `c(...)`. Differences:     actual              | expected                [1] "b_Intercept"       | "b_Intercept"       [1] [2] "b_Trt1"            - "b_sigma_Intercept" [2] [3] "b_Age"             - "b_Trt1"            [3] [4] "b_volume"          - "b_Age"             [4] [5] "b_Trt1:Age"        - "b_volume"          [5] [6] "b_s		FALSE
 setup	frmtmb.sample	brmsfit-methods:640		FALSE	FALSE	cannot coerce class '"frmtmb_fit"' to a data.frame		FALSE
 assert	frmtmb.sample	brmsfit-methods:641	cannot transfer	FALSE	TRUE	STALE: reads 'draws', whose last assignment failed: cannot coerce class '"frmtmb_fit"' to a data.frame		FALSE
 setup	frmtmb.sample	brmsfit-methods:645		TRUE	FALSE			TRUE
@@ -74,8 +74,8 @@ assert	frmtmb.sample	brmsfit-methods:655	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:660	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:708	pass	TRUE	FALSE			TRUE
 setup	frmtmb.sample	brmsfit-methods:711		TRUE	FALSE			TRUE
-assert	frmtmb.sample	brmsfit-methods:713	defect	FALSE	FALSE	Expected `nrow(pe)` to equal 2. Differences:   `actual`: 25.0 `expected`:  2.0 		FALSE
-assert	frmtmb.sample	brmsfit-methods:714	defect	FALSE	FALSE	Expected `all(pe[1, ] == pe[2, ])` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
+assert	frmtmb.sample	brmsfit-methods:713	pass	TRUE	FALSE			TRUE
+assert	frmtmb.sample	brmsfit-methods:714	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:718	pass	TRUE	FALSE			TRUE
 assert	frmtmb.sample	brmsfit-methods:719	own	TRUE	FALSE		mixture_probs() needs a mixture() family fit	FALSE
 assert	frmtmb.sample	brmsfit-methods:779	pass	TRUE	FALSE			TRUE

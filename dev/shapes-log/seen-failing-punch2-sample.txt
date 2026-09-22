@@ -1,0 +1,68 @@
+brms-shapes-draws: frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+WW...........................frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  b                  (flat), as brms leaves slopes
+  no defaults for this family's thresholds (brms priors them as its Intercept class) - see ?frm_sample
+WW12345
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+1. fitted() on draws summarizes posterior_epred() ('test-brms-shapes-draws.R:28:3') - Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+
+2. fitted() on draws summarizes posterior_epred() ('test-brms-shapes-draws.R:28:3') - Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+
+3. fixef() on ordinal draws has the thresholds, in brms's order ('test-brms-shapes-draws.R:115:3') - Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+
+4. fixef() on ordinal draws has the thresholds, in brms's order ('test-brms-shapes-draws.R:115:3') - Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-brms-shapes-draws.R:119:3'): fixef() on ordinal draws has t
+Expected `rownames(fe)` to equal `rownames(fixef(fit))`.
+Differences:
+`actual`:   "x"                              
+`expected`: "Intercept[1]" "Intercept[2]" "x"
+
+
+── 2. Failure ('test-brms-shapes-draws.R:120:3'): fixef() on ordinal draws has t
+Expected `rownames(fe)` to equal `c("Intercept[1]", "Intercept[2]", "x")`.
+Differences:
+`actual`:   "x"                              
+`expected`: "Intercept[1]" "Intercept[2]" "x"
+
+
+── 3. Error ('test-brms-shapes-draws.R:122:3'): fixef() on ordinal draws has the
+<subscriptOutOfBoundsError/error/condition>
+Error in `fe["Intercept[2]", "Estimate"]`: subscript out of bounds
+Backtrace:
+    ▆
+ 1. └─testthat::expect_gt(...) at test-brms-shapes-draws.R:122:3
+ 2.   └─testthat::quasi_label(enquo(object), label)
+ 3.     └─rlang::eval_bare(expr, quo_get_env(quo))
+
+── 4. Failure ('test-brms-shapes-draws.R:139:5'): allow_new_levels on draws is r
+Expected `is.character(err)` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+posterior_predict
+
+── 5. Error ('test-brms-shapes-draws.R:140:5'): allow_new_levels on draws is ref
+Error in `expect_match(err, "not implemented for frmtmb_draws", info = fn)`: `object` must be a character vector, not a double matrix.
+Backtrace:
+    ▆
+ 1. └─testthat::expect_match(object = err) at test-brms-shapes-draws.R:140:5
+ 2.   └─testthat:::check_character(object)
+ 3.     └─testthat:::stop_input_type(...)
+ 4.       └─rlang::abort(message, ..., call = call, arg = arg)
+
+══ DONE ════════════════════════════════════════════════════════════════════════

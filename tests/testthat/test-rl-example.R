@@ -33,8 +33,9 @@ rl_reference <- function(fit, data) {
   u <- ranef(fit)[[1L]]
   sid <- match(as.character(data$id), rownames(u))
   xa <- unname(stats::model.matrix(~ condition, data))
-  a <- stats::plogis(as.vector(xa %*% unname(fixef(fit)$alpha)) + u[sid, 1L])
-  b <- exp(unname(fixef(fit)$beta)[[1L]] + u[sid, 2L])
+  a <- stats::plogis(as.vector(xa %*% unname(fixef_by_dpar(fit)$alpha)) + u[sid,
+                                                                            1L])
+  b <- exp(unname(fixef_by_dpar(fit)$beta)[[1L]] + u[sid, 2L])
   ll <- 0
   for (s in unique(sid)) {
     r <- which(sid == s)
@@ -116,7 +117,7 @@ test_that("the taped recursion equals an independent scalar reference", {
 test_that("fitted() is the per-trial choice probability", {
   skip_unless_rl()
   fx <- rl_fixture(drop = TRUE)
-  p <- fitted(fx$fit)
+  p <- fitted(fx$fit)[, "Estimate"]
   expect_length(p, nrow(fx$data))
   expect_true(all(p > 0 & p < 1))
   # the data log-likelihood the reference computes is the one these
@@ -124,12 +125,12 @@ test_that("fitted() is the per-trial choice probability", {
   ref <- rl_reference(fx$fit, fx$data)
   expect_equal(sum(stats::dbinom(fx$data$choice, 1L, p, log = TRUE)),
                ref$data, tolerance = 1e-8)
-  expect_equal(unname(predict(fx$fit, type = "response")), unname(p),
+  expect_equal(unname(frm_linpred(fx$fit, type = "response")), unname(p),
                tolerance = 1e-10)
-  expect_equal(unname(residuals(fx$fit, type = "response")),
+  expect_equal(unname(residuals(fx$fit, type = "response")[, "Estimate"]),
                fx$data$choice - unname(p), tolerance = 1e-10)
   # pearson divides by the binomial variance of that probability
-  expect_equal(unname(residuals(fx$fit, type = "pearson")),
+  expect_equal(unname(residuals(fx$fit, type = "pearson")[, "Estimate"]),
                (fx$data$choice - unname(p)) / sqrt(p * (1 - p)),
                tolerance = 1e-8)
 })
@@ -160,7 +161,7 @@ test_that("a rw_delta() fit refuses what its structure declares", {
   # deviance residuals are NOT refused any more: the family declares
   # its per-trial factors, and a Bernoulli factor saturates at zero,
   # so the unit deviance is defined. Their own test is below.
-  expect_error(predict(fx$fit, newdata = fx$data, type = "response"),
+  expect_error(frm_linpred(fx$fit, newdata = fx$data, type = "response"),
                "carries no block to replay")
   expect_error(
     frm(rl_bform, family = rl_family(), data = fx$data, REML = TRUE),
@@ -271,7 +272,7 @@ test_that("the pieces add up to the total, at three granularities", {
   expect_equal(as.numeric(tapply(as.numeric(rw), blk[["group"]], sum)),
                as.numeric(gp), tolerance = 1e-12)
   # and the per-row values are the log-densities fitted() implies
-  expect_equal(sum(stats::dbinom(fx$data$choice, 1L, fitted(fit),
+  expect_equal(sum(stats::dbinom(fx$data$choice, 1L, fitted(fit)[, "Estimate"],
                                  log = TRUE)),
                sum(rw), tolerance = 1e-8)
 })
@@ -304,8 +305,8 @@ test_that("the slots honor the stacking the correction imposes", {
 test_that("deviance residuals are the per-trial factors", {
   skip_unless_rl()
   fx <- rl_fixture()
-  d <- residuals(fx$fit, type = "deviance")
-  p <- fitted(fx$fit)
+  d <- residuals(fx$fit, type = "deviance")[, "Estimate"]
+  p <- fitted(fx$fit)[, "Estimate"]
   expect_length(d, nrow(fx$data))
   # a Bernoulli trial's saturated log-density is zero, so the unit
   # deviance is -2 log p and the residuals square to the total

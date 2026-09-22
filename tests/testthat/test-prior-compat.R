@@ -75,7 +75,8 @@ test_that("prior() is frmtmb's only when frmtmb's is the one in scope", {
 
 # ---- set_prior(nlpar =) ----------------------------------------------
 
-test_that("class b with nlpar covers the parameter's whole coefficient vector", {
+test_that("class b with nlpar covers the parameter's whole coefficient vector",
+          {
   dd <- loss_data()
   fit <- frm(loss_form(), data = dd, start = loss_start)
 
@@ -260,7 +261,7 @@ test_that("prior = takes the same specification at every entry point", {
   a <- frm(loss_form(), data = dd, start = loss_start, prior = pl)
   b <- frm(loss_form(), data = dd, start = loss_start,
            prior = set_prior("normal(5000, 1000)", nlpar = "ult"))
-  expect_equal(fixef(a)$ult, fixef(b)$ult)
+  expect_equal(fixef_by_dpar(a)$ult, fixef_by_dpar(b)$ult)
   expect_equal(unclass(prior_summary(a)), unclass(prior_summary(b)))
 
   # no argument means no priors, plain ML, and the field the fit
@@ -303,9 +304,10 @@ test_that("the loss model takes the vignette's priors and they bind", {
   # the vignette's own priors are weak next to 100 observations, so
   # what they must do is move the estimate toward their location and
   # leave the fit recognizable
-  expect_lt(abs(fixef(map)$ult[[1L]] - 5000),
-            abs(fixef(ml)$ult[[1L]] - 5000))
-  expect_lt(abs(fixef(map)$ult[[1L]] - fixef(ml)$ult[[1L]]), 200)
+  expect_lt(abs(fixef_by_dpar(map)$ult[[1L]] - 5000),
+            abs(fixef_by_dpar(ml)$ult[[1L]] - 5000))
+  expect_lt(abs(fixef_by_dpar(map)$ult[[1L]] - fixef_by_dpar(ml)$ult[[1L]]),
+            200)
 
   # a TIGHT prior in the same spelling proves the density is really on
   # ult and not merely accepted: the estimate follows it
@@ -313,14 +315,15 @@ test_that("the loss model takes the vignette's priors and they bind", {
                prior = c(prior(normal(4000, 40), nlpar = "ult"),
                          prior(normal(1, 2), nlpar = "omega"),
                          prior(normal(45, 10), nlpar = "theta")))
-  expect_lt(abs(fixef(tight)$ult[[1L]] - 4000), 250)
-  expect_lt(fixef(tight)$ult[[1L]], fixef(ml)$ult[[1L]])
+  expect_lt(abs(fixef_by_dpar(tight)$ult[[1L]] - 4000), 250)
+  expect_lt(fixef_by_dpar(tight)$ult[[1L]], fixef_by_dpar(ml)$ult[[1L]])
 
   # the penalized objective is the likelihood plus these three
   # densities, evaluated at the MAP solution
-  nlp <- -sum(stats::dnorm(fixef(map)$ult[[1L]], 5000, 1000, log = TRUE),
-              stats::dnorm(fixef(map)$omega[[1L]], 1, 2, log = TRUE),
-              stats::dnorm(fixef(map)$theta[[1L]], 45, 10, log = TRUE))
+  nlp <- -sum(stats::dnorm(fixef_by_dpar(map)$ult[[1L]], 5000, 1000,
+                           log = TRUE),
+              stats::dnorm(fixef_by_dpar(map)$omega[[1L]], 1, 2, log = TRUE),
+              stats::dnorm(fixef_by_dpar(map)$theta[[1L]], 45, 10, log = TRUE))
   raw <- ml$obj$fn(map$opt$par)
   expect_lt(abs((-as.numeric(logLik(map))) - (raw + nlp)), 1e-6)
 
@@ -335,9 +338,9 @@ test_that("the loss model takes the vignette's priors and they bind", {
   strs <- set_prior("normal(5000, 1000)", nlpar = "ult") +
     set_prior("normal(1, 2)", nlpar = "omega") +
     set_prior("normal(45, 10)", nlpar = "theta")
-  expect_equal(fixef(frm(form, data = dd, start = loss_start,
-                         prior = strs))$ult,
-               fixef(map)$ult)
+  expect_equal(fixef_by_dpar(frm(form, data = dd, start = loss_start,
+                                 prior = strs))$ult,
+               fixef_by_dpar(map)$ult)
 })
 
 
@@ -404,10 +407,12 @@ test_that("a brmsprior object is translated rather than refused", {
              prior = c(prior(normal(5000, 1000), nlpar = "ult"),
                        prior(normal(1, 2), nlpar = "omega"),
                        prior(normal(45, 10), nlpar = "theta")))
-  expect_equal(fixef(map)$ult, fixef(own)$ult)
+  expect_equal(fixef_by_dpar(map)$ult, fixef_by_dpar(own)$ult)
   # ... and through `priors =` as well, which is the same setting
-  expect_equal(fixef(frm(loss_form(), data = dd, start = loss_start,
-                         prior = bp))$ult, fixef(own)$ult)
+  expect_equal(fixef_by_dpar(frm(loss_form(), data = dd,
+                                 start = loss_start,
+                                 prior = bp))$ult,
+               fixef_by_dpar(own)$ult)
 })
 
 test_that("brms prior rows frmtmb cannot mean are refused by name", {

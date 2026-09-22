@@ -24,7 +24,7 @@ A named list of data frames, one per grouping factor, each
 with one row per group level and one column per coefficient. When
 random effects appear in more than one linear predictor, the list is
 nested one level deeper, keyed as in \code{\link[=fixef]{fixef()}}. A fit without random
-effects returns the \code{\link[=fixef]{fixef()}} value instead.
+effects returns the per-predictor coefficient vectors instead.
 }
 \description{
 Follows the lme4/glmmTMB/brms convention: for each random-effect
@@ -36,8 +36,15 @@ matching columns. Use \code{\link[=fixef]{fixef()}} for the fixed effects alone.
 The result is a list of data frames keyed by grouping factor. When
 random effects appear in more than one dpar (or response), an outer
 layer keyed like \code{\link[=fixef]{fixef()}} is added. Smooth terms are excluded. A fit
-without random effects returns \code{\link[=fixef]{fixef()}} (the single coefficient
-vector when there is one linear predictor).
+without random effects returns the coefficient vector of the location
+predictor (when there is one linear predictor), or one vector per
+predictor.
+
+The coefficients are named as brms names them, which is how
+\code{\link[=fixef]{fixef()}} and \code{\link[=vcov]{vcov()}} name their rows: \code{Intercept}, not
+\code{(Intercept)}. Anything that pairs \code{coef()} with \code{vcov()} by name,
+\code{lmtest::coeftest()} among them, needs the two to agree. Use
+\code{\link[=fixef_by_dpar]{fixef_by_dpar()}} for the design-column spelling.
 }
 \examples{
 set.seed(1)
@@ -47,11 +54,13 @@ fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 
 # one row per group: the fixed effects with the modes added in
 head(coef(fit)$g)
-# which is fixef() plus ranef(), the lme4 identity
-all.equal(coef(fit)$g[["(Intercept)"]],
-          fixef(fit)$mu[["(Intercept)"]] + ranef(fit)$g[, 1],
+# which is fixef() plus ranef(), the lme4 identity, under the same
+# names fixef() and vcov() use
+all.equal(coef(fit)$g[["Intercept"]],
+          fixef(fit)["Intercept", "Estimate"] + ranef(fit)$g[, 1],
           check.attributes = FALSE)
 
-# without random effects there are no groups, so coef() is fixef()
+# without random effects there are no groups, so coef() is the
+# coefficient vector of the location predictor
 coef(frm(bf(y ~ x) + gaussian(), data = dd))
 }

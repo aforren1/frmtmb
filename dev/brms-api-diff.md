@@ -4,6 +4,34 @@ Every frmtmb export that shares a name with a brms export, with its
 formals diffed against brms's. Written for the release that finishes
 the naming rule v0.40.1 started.
 
+**Stale in places since items 2.6d and 2.6f** (lane `wt-shapes`,
+2026-09-18). The rows below that describe `predict.frmtmb_fit`,
+`fitted.frmtmb_fit`, `residuals.frmtmb_fit`, `fixef`, `vcov`, `ngrps`
+and `summary` were written when each returned an lme4 or glmmTMB shape.
+What changed, and `dev/shapes-findings.md` has the whole of it:
+
+- `predict()` is brms's predictive summary and has brms's formals. The
+  linear predictor and the glmmTMB `type` vocabulary moved to
+  `frm_linpred()`, which is a frmtmb name and is not in this diff.
+- `fitted()`, `residuals()`, `fixef()` and `summary()` take more of
+  brms's arguments than the rows say: `probs` and `nlpar` on
+  `fitted()`, `probs` on `residuals()`, `pars` and `probs` on
+  `fixef()`, `priors` and `prob` on `summary()`, `correlation` and
+  `pars` on `vcov()`. Each was in the "refused by name" column.
+- `predict()` also HONORS `sample_new_levels = "gaussian"`, which the
+  rows below list as refused: an unseen level's effect is drawn from
+  its block's estimated covariance, once per replicate.
+  `"uncertainty"` and `"old_levels"` stay refused, since both resample
+  posterior draws of the levels the fit saw.
+- `coef()` names its coefficients as brms names them (`Intercept`),
+  which is what `fixef()` and `vcov()` say, and `hypothesis()` returns
+  class `"frmtmb_hypothesis"` alone rather than carrying brms's
+  `brmshypothesis` with it.
+- **The section "The fit surface keeps lme4's `re.form`" is obsolete**
+  for these methods: the fit surface speaks brms's names alone, which
+  is what the 0.57.0 rename settled, and this page already records
+  that under (b).
+
 ## The rule
 
 A brms-NAMED function speaks brms's argument names. frmtmb's own fit

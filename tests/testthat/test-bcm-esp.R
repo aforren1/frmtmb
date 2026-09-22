@@ -47,9 +47,9 @@ test_that("OptionalStopping matches Correlation_1's Stan program", {
     data = list(n = nrow(d), x = cbind(d$N, d$E)),
     fit = fit,
     pars = function(f) {
-      list(mu = c(unname(fixef(f)$N_mu), unname(fixef(f)$E_mu)),
-           sigma = c(unname(exp(fixef(f)$N_sigma)),
-                     unname(exp(fixef(f)$E_sigma))),
+      list(mu = c(unname(fixef_by_dpar(f)$N_mu), unname(fixef_by_dpar(f)$E_mu)),
+           sigma = c(unname(exp(fixef_by_dpar(f)$N_sigma)),
+                     unname(exp(fixef_by_dpar(f)$E_sigma))),
            r = rescor_matrix(f)[1, 2])
     },
     const = 0)
@@ -152,7 +152,7 @@ test_that("Extraversion matches its Stan program", {
     fit = fit,
     pars = function(f) {
       vc <- unname(varcorr_matrices(f)[[1L]])
-      mu <- c(unname(fixef(f)$k_mu), unname(fixef(f)$xs_mu))
+      mu <- c(unname(fixef_by_dpar(f)$k_mu), unname(fixef_by_dpar(f)$xs_mu))
       u <- frm_u(f)
       list(mu = mu, sigma = sqrt(diag(vc)),
            r = stats::cov2cor(vc)[1, 2],

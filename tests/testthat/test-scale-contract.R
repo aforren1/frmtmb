@@ -1,7 +1,7 @@
 # The scale contract, asserted THROUGH THE GENERICS.
 #
 # Nothing in a fitted model's output says which scale a number is on,
-# and two of them silently disagree with brms: `predict()` returns the
+# and two of them silently disagree with brms: `frm_linpred()` returns the
 # linear predictor where brms returns the predictive mean, and
 # `summary()` prints `sigma` on its log link where brms prints the
 # back-transformed value.  `?frmtmb-scales` writes the contract down;
@@ -37,32 +37,32 @@ scale_fits <- local({
   }
 })
 
-test_that("predict() reports the LINK scale and nothing else", {
+test_that("frm_linpred() reports the LINK scale and nothing else", {
   f <- scale_fits()$ln
-  expect_identical(predict(f), predict(f, type = "link"))
+  expect_identical(frm_linpred(f), frm_linpred(f, type = "link"))
   # the inverse: the response scale is a different number entirely, by
   # a factor the fit itself supplies
-  expect_false(isTRUE(all.equal(predict(f), fitted(f))))
-  ratio <- stats::median(fitted(f) / predict(f))
+  expect_false(isTRUE(all.equal(frm_linpred(f), fitted(f)[, "Estimate"])))
+  ratio <- stats::median(fitted(f)[, "Estimate"] / frm_linpred(f))
   expect_gt(ratio, 100)
 })
 
-test_that("predict(type = 'response') and fitted() are the same call", {
+test_that("frm_linpred(type = 'response') and fitted() are the same call", {
   f <- scale_fits()$ln
   # an identity: fitted() delegates to the same family mean, so the
   # yardstick is machine epsilon, not a fitted tolerance
-  a <- predict(f, type = "response")
-  b <- fitted(f)
+  a <- frm_linpred(f, type = "response")
+  b <- fitted(f)[, "Estimate"]
   expect_lte(max(abs(a - b)), 4 * .Machine$double.eps * max(abs(b)))
 })
 
 test_that("fitted() on a lognormal is the MEAN, not the median", {
   f <- scale_fits()$ln
-  mu <- predict(f, type = "link")
+  mu <- frm_linpred(f, type = "link")
   sg <- sigma(f)
   # identity check first, at full precision
-  expect_lte(max(abs(fitted(f) - exp(mu + sg^2 / 2))),
-             8 * .Machine$double.eps * max(fitted(f)))
+  expect_lte(max(abs(fitted(f)[, "Estimate"] - exp(mu + sg^2 / 2))),
+             8 * .Machine$double.eps * max(fitted(f)[, "Estimate"]))
   # then the discrimination. The prediction's own standard error
   # cannot do it: measured on this design the mean and the median
   # sit 0.9134 of one apart. The quantity that separates them is
@@ -79,40 +79,40 @@ test_that("fitted() on a lognormal is the MEAN, not the median", {
   # the size of the discrepancy. It still discriminates, which is
   # the job: under mutant M1 the ratio is exactly 1 and the
   # statistic is 0.
-  ratio <- stats::median(fitted(f) / exp(mu))
+  ratio <- stats::median(fitted(f)[, "Estimate"] / exp(mu))
   se_ls <- summary(f)$coefficients$sigma[1, 2]
   se_ratio <- exp(sg^2 / 2) * sg^2 * se_ls
   expect_gt((ratio - 1) / se_ratio, 5)
   # the inverse: the median does NOT satisfy the identity
-  expect_false(isTRUE(all.equal(fitted(f), exp(mu))))
+  expect_false(isTRUE(all.equal(fitted(f)[, "Estimate"], exp(mu))))
 })
 
 test_that("residuals() default is on the RESPONSE scale", {
   fits <- scale_fits()
   f <- fits$ln
   y <- fits$dd$y
-  expect_lte(max(abs(residuals(f) + fitted(f) - y)),
+  expect_lte(max(abs(residuals(f)[, "Estimate"] + fitted(f)[, "Estimate"] - y)),
              8 * .Machine$double.eps * max(abs(y)))
   # the inverse: the residual is not formed on the link scale
-  expect_false(isTRUE(all.equal(residuals(f),
-                                log(y) - predict(f, type = "link"))))
+  expect_false(isTRUE(all.equal(residuals(f)[, "Estimate"],
+                                log(y) - frm_linpred(f, type = "link"))))
 })
 
 test_that("residuals(type = 'pearson') is unitless", {
   fits <- scale_fits()
   f <- fits$ln
-  r <- residuals(f, type = "pearson")
+  r <- residuals(f, type = "pearson")[, "Estimate"]
   n <- length(r)
   # the sampling error of a standard deviation over n draws is about
   # 1/sqrt(2n); six of those is the bound, and it comes from n
   expect_lt(abs(stats::sd(r) - 1), 6 / sqrt(2 * n))
   # the inverse: the response-scale residual is nowhere near unit SD
-  expect_gt(stats::sd(residuals(f)), 100)
+  expect_gt(stats::sd(residuals(f)[, "Estimate"]), 100)
 })
 
 test_that("summary() and fixef() report every dpar on its own LINK", {
   f <- scale_fits()$ln
-  cf <- fixef(f)
+  cf <- fixef_by_dpar(f)
   s <- summary(f)
   # summary() does not back-transform: it prints what fixef() holds
   expect_equal(s$coefficients$sigma[1, 1], cf$sigma[["(Intercept)"]])
@@ -133,12 +133,12 @@ test_that("the LINK scale is the log scale, proved by the twin fit", {
   ln <- fits$ln
   gs <- fits$gs
   se_int <- summary(gs)$coefficients$mu[1, 2]
-  expect_lt(abs(fixef(ln)$mu[["(Intercept)"]] -
-                  fixef(gs)$mu[["(Intercept)"]]) / se_int, 0.01)
+  expect_lt(abs(fixef_by_dpar(ln)$mu[["(Intercept)"]] -
+                  fixef_by_dpar(gs)$mu[["(Intercept)"]]) / se_int, 0.01)
   # the linear predictor itself, row by row
-  a <- predict(ln, type = "link")
-  b <- predict(gs, type = "link")
-  s <- predict(gs, type = "link", se.fit = TRUE)$se.fit
+  a <- frm_linpred(ln, type = "link")
+  b <- frm_linpred(gs, type = "link")
+  s <- frm_linpred(gs, type = "link", se.fit = TRUE)$se.fit
   expect_lt(max(abs(a - b)) / stats::median(s), 0.01)
   # and the random-effect covariance, which VarCorr() reports on that
   # same link scale
@@ -165,21 +165,21 @@ test_that("simulate() draws on the RESPONSE scale", {
   expect_gt(stats::median(sim), 100)
 })
 
-test_that("a log-link count fit puts predict() and fitted() an exp apart", {
+test_that("a log-link count fit puts frm_linpred() and fitted() an exp apart", {
   set.seed(11)
   dd <- data.frame(x = stats::rnorm(300))
   dd$cnt <- stats::rpois(300, exp(0.5 + 0.4 * dd$x))
   f <- frm(bf(cnt ~ x) + poisson(), data = dd)
-  expect_lte(max(abs(fitted(f) - exp(predict(f)))),
-             8 * .Machine$double.eps * max(fitted(f)))
-  expect_false(isTRUE(all.equal(fitted(f), predict(f))))
+  expect_lte(max(abs(fitted(f)[, "Estimate"] - exp(frm_linpred(f)))),
+             8 * .Machine$double.eps * max(fitted(f)[, "Estimate"]))
+  expect_false(isTRUE(all.equal(fitted(f)[, "Estimate"], frm_linpred(f))))
   # a family with no dispersion parameter reports sigma() as 1 exactly
   expect_identical(sigma(f), 1)
 })
 
 test_that("conditional_effects() is on the RESPONSE scale", {
   # The row that matters most and was missing from the page: it is
-  # the one method whose scale is the OPPOSITE of predict()'s
+  # the one method whose scale is the OPPOSITE of frm_linpred()'s
   # default, so a porter who plots both sees three orders of
   # magnitude between them and no document explaining it.
   f <- scale_fits()$ln
@@ -188,11 +188,11 @@ test_that("conditional_effects() is on the RESPONSE scale", {
   expect_true(all(est > 0))
   # it lives inside the range fitted() covers, not near the linear
   # predictor, and the yardstick is the fit's own fitted values
-  fv <- fitted(f)
+  fv <- fitted(f)[, "Estimate"]
   expect_gt(min(est), min(fv) / 2)
   expect_lt(max(est), max(fv) * 2)
   # the inverse: it is nowhere near the link scale
-  expect_gt(stats::median(est) / stats::median(predict(f)), 100)
+  expect_gt(stats::median(est) / stats::median(frm_linpred(f)), 100)
 })
 
 test_that("the lognormal identity holds only for a constant sigma", {
@@ -204,10 +204,13 @@ test_that("the lognormal identity holds only for a constant sigma", {
   f2 <- frm(bf(y ~ x + (1 | g), sigma ~ x) + lognormal(), data = dd)
   expect_warning(s <- sigma(f2), "varies by observation")
   expect_true(is.na(s))
-  mu <- predict(f2, type = "link")
-  sv <- predict(f2, dpar = "sigma", type = "response")
+  mu <- frm_linpred(f2, type = "link")
+  sv <- frm_linpred(f2, dpar = "sigma", type = "response")
   # the per-row sigma reproduces fitted() exactly; the scalar cannot
-  expect_identical(fitted(f2), exp(mu + sv^2 / 2))
+  # fitted() is brms's summary matrix, whose row dimnames are NULL;
+  # the identity is between the numbers
+  expect_identical(unname(fitted(f2)[, "Estimate"]),
+                   unname(exp(mu + sv^2 / 2)))
   expect_true(all(is.na(exp(mu + s^2 / 2))))
 })
 
@@ -227,9 +230,9 @@ test_that("the lognormal identity fails under truncation", {
   d3 <- dd[dd$y > lb, ]
   f3 <- frm(bf(y | trunc(lb = 2000) ~ x + (1 | g)) + lognormal(),
             data = d3)
-  mu <- predict(f3, type = "link")
+  mu <- frm_linpred(f3, type = "link")
   s <- sigma(f3)
-  fv <- fitted(f3)
+  fv <- fitted(f3)[, "Estimate"]
   naive <- exp(mu + s^2 / 2)
   a <- (log(lb) - mu) / s
   closed <- 1 - stats::pnorm(-a) / stats::pnorm(s - a)
@@ -241,6 +244,7 @@ test_that("the lognormal identity fails under truncation", {
   expect_true(all(fv > lb))
   # and the untruncated fit on the same design still holds it exactly
   ln <- fits$ln
-  expect_identical(fitted(ln),
-                   exp(predict(ln, type = "link") + sigma(ln)^2 / 2))
+  expect_identical(unname(fitted(ln)[, "Estimate"]),
+                   unname(exp(frm_linpred(ln, type = "link") +
+                                sigma(ln)^2 / 2)))
 })

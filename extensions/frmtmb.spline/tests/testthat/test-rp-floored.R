@@ -33,7 +33,7 @@ sp_exact_ll <- function(fit, d) {
   fam <- stats::family(fit)
   kn <- sp_rp_knots_of(fam)
   dp <- lapply(fam[["dpars"]],
-               function(p) as.numeric(stats::predict(fit, type = "link",
+               function(p) as.numeric(frm_linpred(fit, type = "link",
                                                      dpar = p)))
   x <- log(d$t)
   eta <- sp_rp_eta(sp_rp_basis(kn, x), dp)
@@ -87,7 +87,7 @@ test_that("fitted() still refuses, and the count is named for what it is", {
   # coefficient rather than a fitted value. An exact likelihood does not
   # give the model a mean it never had.
   expect_error(stats::fitted(fit), "no mean on the response scale")
-  expect_error(stats::predict(fit, type = "response"),
+  expect_error(frm_linpred(fit, type = "response"),
                "no mean on the response scale")
 
   r <- rp_floored(fit, action = "report")

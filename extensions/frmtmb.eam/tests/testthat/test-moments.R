@@ -1,6 +1,6 @@
 ## The closed-form boundary probability and conditional mean decision
 ## time, against quadrature of RWiener's density. These are what
-## fitted(), predict(type = "response") and residuals(type = "response")
+## fitted(), frm_linpred(type = "response") and residuals(type = "response")
 ## return, so a wrong constant here is a wrong fitted value.
 
 qparts <- function(v, a, w, up) {

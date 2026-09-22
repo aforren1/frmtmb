@@ -17,3 +17,4 @@
 ^CRAN-SUBMISSION$
 ^Rplots\.pdf$
 ^data-raw$
+^vignettes/figure$

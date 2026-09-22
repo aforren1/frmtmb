@@ -280,7 +280,7 @@ Post-fit, \code{\link[=lca_probs]{lca_probs()}} gives posterior class-membership
 probabilities per subject (with the relative-entropy classification
 diagnostic attached), \code{\link[=lca_profiles]{lca_profiles()}} gives the item profile table,
 and \code{simulate()} draws a class per subject and then its items.
-\code{fitted()}, \code{predict(type = "response")} and \code{residuals()} are
+\code{fitted()}, \code{frm_linpred(type = "response")} and \code{residuals()} are
 refused: the response is a matrix of nominal codes, so an "expected
 item code" would be an average of arbitrary labels. Read
 \code{\link[=lca_probs]{lca_probs()}} and \code{\link[=lca_profiles]{lca_profiles()}} instead. \code{predict()} itself

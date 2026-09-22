@@ -233,7 +233,7 @@ test_that("the full DDM recovers what it was simulated from", {
                         sv = 1.0, st = 0.10)
     fit <- frm(bf(rt | dec(upper) ~ 1, bias = 0.5),
                family = wiener(variability = c("sv", "st")), data = dat)
-    e <- unlist(fixef(fit))
+    e <- unlist(fixef_by_dpar(fit))
     ub <- min(dat$rt)
     est[r, ] <- c(e[["mu.(Intercept)"]],
                   exp(e[["bs.(Intercept)"]]),
@@ -323,7 +323,7 @@ test_that("a fixed variability parameter is a plain fixed dpar", {
   # not something the variability code has to know about
   fit <- frm(bf(rt | dec(upper) ~ 1, bias = 0.5, sv = 0.8),
              family = wiener(variability = "sv"), data = dat)
-  e <- unlist(fixef(fit))
+  e <- unlist(fixef_by_dpar(fit))
   expect_equal(unname(e[["sv.(Intercept)"]]), log(0.8), tolerance = 1e-10)
   expect_true(is.finite(as.numeric(logLik(fit))))
 })
@@ -407,7 +407,7 @@ test_that("fitted() on a variability fit uses the variability mean", {
   dat <- ddm_simulate(500, mu = 1.0, bs = 1.4, ndt = 0.28, sv = 1.0)
   fit <- frm(bf(rt | dec(upper) ~ 1, bias = 0.5),
              family = wiener(variability = "sv"), data = dat)
-  ft <- fitted(fit)
+  ft <- fitted(fit)[, "Estimate"]
   expect_true(all(is.finite(ft)))
   expect_true(all(ft > 0))
   # the two boundaries get different means, which is the conditioning

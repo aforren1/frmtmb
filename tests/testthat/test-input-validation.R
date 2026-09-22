@@ -36,8 +36,8 @@ test_that("flags must be TRUE or FALSE, refused by name", {
   expect_error(frmtmb_control(sparse_x = "auto"), "`sparse_x` must be")
   expect_error(frm(bf(y ~ x), data = cs$dd, REML = "yes"),
                "`REML` must be TRUE")
-  expect_error(predict(cs$fit, se.fit = "yes"), "`se.fit` must be TRUE")
-  expect_error(predict(cs$fit, allow_new_levels = NA),
+  expect_error(frm_linpred(cs$fit, se.fit = "yes"), "`se.fit` must be TRUE")
+  expect_error(frm_linpred(cs$fit, allow_new_levels = NA),
                "`allow_new_levels` must be TRUE")
   expect_error(ranef(cs$fit, condVar = 1), "`condVar` must be TRUE")
   expect_error(diagnose(cs$fit, quiet = "sh"), "`quiet` must be TRUE")
@@ -107,15 +107,15 @@ test_that("the bespoke refusals name their argument and contract", {
   # a non-link value is refused quoting what was written, as brms does
   expect_error(bernoulli(link = 1L),
                "'1L' is not a supported link for family 'bernoulli'")
-  expect_error(predict(cs$fit, newdata = "nope"), "`newdata`")
-  expect_error(predict(cs$fit, re_formula = "oops"), "`re_formula`")
+  expect_error(frm_linpred(cs$fit, newdata = "nope"), "`newdata`")
+  expect_error(frm_linpred(cs$fit, re_formula = "oops"), "`re_formula`")
   expect_error(confint(cs$fit, parm = 1i), "`parm`")
 })
 
 test_that("correct calls are untouched by the validation layer", {
   cs <- iv_fit()
   expect_s3_class(bf(y ~ x, nl = FALSE), "frmtmb_formula")
-  p <- predict(cs$fit, se.fit = TRUE)
+  p <- frm_linpred(cs$fit, se.fit = TRUE)
   expect_true(all(is.finite(p$se.fit)))
   expect_identical(nrow(confint(cs$fit, level = 0.95)) > 0, TRUE)
   s <- simulate(cs$fit, nsim = 3L)

@@ -73,7 +73,7 @@ test_that("an hmm() draw walks the chain from every entry point", {
     frmtmb.latent::hmm(K = 2, gaussian(), time = t, group = id)
   fit <- frm(form, data = dd)
 
-  e <- unlist(fixef(fit))
+  e <- unlist(fixef_by_dpar(fit))
   mu <- c(e[["mu1.(Intercept)"]], e[["mu2.(Intercept)"]])
   sg <- exp(c(e[["sigma1.(Intercept)"]], e[["sigma2.(Intercept)"]]))
   G <- rbind(c(1, exp(e[["tr12.(Intercept)"]])),
@@ -219,7 +219,7 @@ test_that("an autocor residual is one group draw on every path", {
   phi <- unname(frmtmb:::autocor_natural(fit$estimates$thetaac[ac$theta_idx],
                                 ac))[1L]
   lag1 <- function(y) {
-    r <- matrix(y - as.vector(fitted(fit)), nrow = K)
+    r <- matrix(y - as.vector(fitted(fit)[, "Estimate"]), nrow = K)
     mean(vapply(seq_len(K - 1L), function(k) {
       stats::cor(r[k, ], r[k + 1L, ])
     }, numeric(1)))

@@ -33,6 +33,35 @@ draws_base_fit <- function(x) {
   fit
 }
 
+#' brms's `point_estimate`: the draws collapsed to their mean or median,
+#' one parameter vector, repeated `ndraws_point_estimate` times.
+#'
+#' It is a PARAMETER-space operation, as in brms, not a summary of the
+#' output: every predictive method then runs once at that one vector.
+#' It was accepted and ignored before, so `posterior_epred(ds,
+#' point_estimate = "median", ndraws_point_estimate = 2)` returned all
+#' 25 draws where brms returns 2 (defect S1 of
+#' dev/brmsport-findings.md).
+#'
+#' @noRd
+draws_at_point_estimate <- function(x, point_estimate,
+                                    ndraws_point_estimate = 1) {
+  if (is.null(point_estimate)) return(x)
+  pe <- frm_match_arg(point_estimate, c("mean", "median"))
+  n <- ndraws_point_estimate
+  if (!is.numeric(n) || length(n) != 1L || is.na(n) || n < 1 ||
+      n != round(n)) {
+    frm_stop("`ndraws_point_estimate` must be one whole number of at ",
+             "least 1", call. = FALSE)
+  }
+  f <- if (identical(pe, "mean")) mean else stats::median
+  v <- apply(x$draws, 2L, f)
+  x$draws <- matrix(rep(v, each = as.integer(n)), as.integer(n),
+                    ncol(x$draws),
+                    dimnames = list(NULL, colnames(x$draws)))
+  x
+}
+
 #' The originating fit with its estimates replaced by one draw. The draw
 #' IS a parameter vector, so the object is a legitimate fit from here on
 #' even when the draws came from a formula with no ML mode behind it.
@@ -152,10 +181,55 @@ fixef.frmtmb_draws <- function(object, summary = TRUE, robust = FALSE,
     pars <- as.character(pars)
     fpars <- fpars[sub("^[^_]+_", "", fpars) %in% pars]
   }
-  if (!length(fpars)) return(NULL)
-  out <- as.matrix(object, variable = fpars)
-  colnames(out) <- gsub(draws_fixef_regex, "", fpars)
+  thr <- draws_fixef_ordinal(object, all_pars)
+  if (!is.null(thr)) {
+    out <- thr
+    if (!is.null(pars)) out <- out[, colnames(out) %in% pars, drop = FALSE]
+    if (!ncol(out)) return(NULL)
+  } else {
+    if (!length(fpars)) return(NULL)
+    out <- as.matrix(object, variable = fpars)
+    colnames(out) <- gsub(draws_fixef_regex, "", fpars)
+  }
   if (summary) out <- posterior_summary(out, probs, robust)
+  out
+}
+
+#' An ordinal fit's population-level draws in brms's rows and order:
+#' `Intercept[1]`, `Intercept[2]`, the coefficients, then `cs()` terms.
+#'
+#' The sampler stores the thresholds on the internal scale (`tau_raw`,
+#' the first threshold and log increments for cumulative and sratio), so
+#' the `b_` regex found only the slopes and `fixef(ds)` reported `x`
+#' where the fit's `fixef()` and brms report three rows. Each draw is
+#' mapped through the map the family declares, the same map the fit's
+#' rows use. `NULL` when the fit has nothing outside the coefficients,
+#' or when a column the rows need is not in the draws.
+#'
+#' @noRd
+draws_fixef_ordinal <- function(object, all_pars) {
+  fit <- draws_base_fit(object)
+  rows <- brms_fixef_rows(fit)
+  if (!length(rows$extra)) return(NULL)
+  tab <- brms_coef_table(fit)
+  need <- unique(c(tab$brms[rows$idx[!is.na(rows$idx)]],
+                   unlist(lapply(rows$extra, function(e) {
+                     paste0(e$comp, "_", seq_along(e$raw))
+                   }))))
+  if (!all(need %in% all_pars)) return(NULL)
+  m <- as.matrix(object, variable = need)
+  out <- matrix(NA_real_, nrow(m), length(rows$names),
+                dimnames = list(NULL, rows$names))
+  co <- !is.na(rows$idx)
+  out[, co] <- m[, tab$brms[rows$idx[co]], drop = FALSE]
+  for (b in seq_along(rows$extra)) {
+    e <- rows$extra[[b]]
+    raw <- m[, paste0(e$comp, "_", seq_along(e$raw)), drop = FALSE]
+    vals <- matrix(apply(raw, 1L, e$map), ncol = length(e$raw),
+                   byrow = TRUE)
+    at <- which(rows$blk == b)
+    out[, at] <- vals[, rows$pos[at], drop = FALSE]
+  }
   out
 }
 
@@ -369,13 +443,13 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
 #'
 #' @section Categorical outcomes:
 #' An ordinal family predicts a DISTRIBUTION per observation, not one
-#' number: each draw's `predict(type = "response")` is an `n x K`
+#' number: each draw's `frm_linpred(type = "response")` is an `n x K`
 #' matrix of category probabilities. Those stack into a 3-D
 #' `draws x observations x categories` array. `dimnames` are
 #' `list(NULL, <observation names or NULL>, <category levels>)`, so
 #' `ep[, , "high"]` is the draws-by-observations matrix for one
 #' category and `ep[k, , ]` is draw `k`'s own `n x K` prediction, the
-#' matrix `predict(type = "response")` returns. Every `ep[k, i, ]`
+#' matrix `frm_linpred(type = "response")` returns. Every `ep[k, i, ]`
 #' sums to 1 for an ordinal family.
 #'
 #' This is brms's convention: `?brms::posterior_epred.brmsfit`
@@ -456,6 +530,17 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
 #' @param ndraws Number of draws to use (default: all).
 #' @param draw_ids The draws to use, by row index, instead of the
 #'   evenly spaced subsample `ndraws` takes. Give one or the other.
+#' @param sort brms's argument. Rows come back in the order of the data
+#'   here, always, so `sort = TRUE` is refused by name.
+#' @param ntrys,cores brms's arguments, carried so that a positional
+#'   brms call lands where brms lands it. Both are refused by name: the
+#'   rejection limit of a `trunc()`ed draw is the family simulator's
+#'   own, and the draws are replayed in one process.
+#' @param point_estimate,ndraws_point_estimate brms's arguments, which
+#'   collapse the draws to their `"mean"` or `"median"` FIRST and run
+#'   the method once at that one parameter vector, repeated
+#'   `ndraws_point_estimate` times. It is a parameter-space operation
+#'   and not a summary of the output, as in brms.
 #' @param nlpar The parameter an `nlf()` body names. brms keeps it
 #'   apart from `dpar`; frmtmb asks for either by the `dpar` name, so
 #'   this is the same setting and the slot is here for brms's position.
@@ -508,8 +593,14 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
                                          re.form = arg_unset(),
                                          resp = NULL, dpar = NULL,
                                          nlpar = NULL, ndraws = NULL,
-                                         draw_ids = NULL, ...) {
+                                         draw_ids = NULL, sort = FALSE,
+                                         point_estimate = NULL,
+                                         ndraws_point_estimate = 1, ...) {
   re_form <- re_form_arg(re_formula, re.form, "posterior_epred()")
+  draws_refuse_new_levels(object, newdata, list(...), "posterior_epred()")
+  draws_refuse_sort(sort, "posterior_epred()")
+  object <- draws_at_point_estimate(object, point_estimate,
+                                    ndraws_point_estimate)
   dpar <- draws_dpar_arg(dpar, nlpar, "posterior_epred()")
   idx <- draws_par_index(object$fit)
   rows <- draws_subsample(object, ndraws, draw_ids)
@@ -517,8 +608,11 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
   cat_out <- FALSE
   for (k in seq_along(rows)) {
     sh <- draws_fit_at(object, rows[k], idx)
-    p <- predict(sh, newdata = newdata, resp = resp, dpar = dpar,
-                 re_formula = re_form, type = "response")
+    # frm_linpred(), not predict(): predict() is brms's predictive
+    # summary in frmtmb's development version, and what one draw
+    # contributes here is the expected response at its parameters
+    p <- frm_linpred(sh, newdata = newdata, resp = resp, dpar = dpar,
+                     re_formula = re_form, type = "response")
     if (is.null(out)) {
       # A categorical outcome predicts a matrix per draw (an ordinal
       # family's n x K category probabilities), so the draws stack into
@@ -563,14 +657,20 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
                                            nlpar = NULL,
                                            incl_thres = NULL,
                                            ndraws = NULL,
-                                           draw_ids = NULL, ...) {
+                                           draw_ids = NULL, sort = FALSE,
+                                           point_estimate = NULL,
+                                           ndraws_point_estimate = 1, ...) {
   re_form <- re_form_arg(re_formula, re.form, "posterior_linpred()")
+  draws_refuse_new_levels(object, newdata, list(...), "posterior_linpred()")
+  draws_refuse_sort(sort, "posterior_linpred()")
+  object <- draws_at_point_estimate(object, point_estimate,
+                                    ndraws_point_estimate)
   dpar <- draws_dpar_arg(dpar, nlpar, "posterior_linpred()")
   if (!is.null(incl_thres) && !identical(incl_thres, FALSE)) {
     frm_stop("posterior_linpred(incl_thres = TRUE) subtracts an ordinal ",
              "family's thresholds from the linear predictor, which brms ",
              "supports for cumulative families alone. frmtmb keeps the ",
-             "thresholds out of the predictor: predict(type = \"link\") ",
+             "thresholds out of the predictor: frm_linpred(type = \"link\") ",
              "and this function return the latent predictor itself, and ",
              "the thresholds are coefficients you can read off ",
              "posterior_summary()", call. = FALSE)
@@ -586,9 +686,9 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
   out <- NULL
   for (k in seq_along(rows)) {
     sh <- draws_fit_at(object, rows[k], idx)
-    p <- predict(sh, newdata = newdata, resp = resp, dpar = dpar,
-                 re_formula = re_form,
-                 type = if (transform) "response" else "link")
+    p <- frm_linpred(sh, newdata = newdata, resp = resp, dpar = dpar,
+                     re_formula = re_form,
+                     type = if (transform) "response" else "link")
     if (is.null(out)) out <- matrix(NA_real_, length(rows), length(p))
     out[k, ] <- p
   }
@@ -641,8 +741,16 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
                                            resp = NULL,
                                            negative_rt = FALSE,
                                            ndraws = NULL,
-                                           draw_ids = NULL, ...) {
+                                           draw_ids = NULL, sort = FALSE,
+                                           ntrys = NULL, cores = NULL,
+                                           point_estimate = NULL,
+                                           ndraws_point_estimate = 1, ...) {
   re_form <- re_form_arg(re_formula, re.form, "posterior_predict()")
+  draws_refuse_new_levels(object, newdata, list(...), "posterior_predict()")
+  draws_refuse_sort(sort, "posterior_predict()")
+  draws_refuse_ntrys_cores(ntrys, cores, "posterior_predict()")
+  object <- draws_at_point_estimate(object, point_estimate,
+                                    ndraws_point_estimate)
   check_flag(negative_rt, "negative_rt")
   if (negative_rt) {
     frm_stop("posterior_predict(negative_rt = TRUE) is brms's sign ",
@@ -705,10 +813,10 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
     } else {
       dpv <- list()
       for (dnm in names(rspec$dpars)) {
-        dpv[[dnm]] <- as.vector(predict(sh, newdata = newdata,
-                                        dpar = dnm, resp = resp,
-                                        re_formula = re_form,
-                                        type = "response"))
+        dpv[[dnm]] <- as.vector(frm_linpred(sh, newdata = newdata,
+                                            dpar = dnm, resp = resp,
+                                            re_formula = re_form,
+                                            type = "response"))
       }
       dpv
     }
@@ -1941,7 +2049,7 @@ draws_refuse_newdata <- function(newdata, re_formula, re.form, what,
 #' the vignette-port audit measured most of its post-processing failures
 #' as.
 #'
-#' @param object,x,pars,... Ignored; these functions always stop.
+#' @param object,x,... Ignored; these functions always stop.
 #' @return These functions never return; they signal an error.
 #' @examples
 #' \donttest{
@@ -1955,7 +2063,7 @@ draws_refuse_newdata <- function(newdata, re_formula, re.form, what,
 #'   ds <- frm_sample(fit, chains = 1, iter = 400, refresh = 0)
 #'   # each refusal names its reason and the replacement
 #'   try(stancode(ds))
-#'   try(nsamples(ds))
+#'   try(standata(ds))
 #' }
 #' }
 #' @name frmtmb-draws-refusals
@@ -2036,44 +2144,346 @@ restructure.frmtmb_draws <- function(x, ...) {
            call. = FALSE)
 }
 
-#' @rdname frmtmb-draws-refusals
+# brms's deprecated draws accessors (item 2.6f).
+#
+# These three were refused as "the deprecated brms spelling". brms keeps
+# all three LIVE, with a deprecation warning, and the user's rule of
+# 2026-09-15 is that frmtmb.sample matches brms. A refusal is not a
+# deprecation warning: a ported script stops at it. So each one now
+# does what brms's does and warns the way brms's warns.
+
+#' Deprecated brms draws accessors
+#'
+#' @description
+#' `posterior_samples()`, `nsamples()` and `parnames()` are brms
+#' spellings that brms itself deprecated and still answers. Each warns
+#' and then does what brms's does, so a ported script runs.
+#'
+#' * `posterior_samples(x)` is `as.data.frame(x)`; `pars` is a regular
+#'   expression unless `fixed = TRUE`, as in brms.
+#' * `nsamples(x)` is [ndraws()].
+#' * `parnames(x)` is [variables()].
+#'
+#' Use `as_draws(x)` for a posterior draws object, `as.data.frame(x)`,
+#' [ndraws()] and [variables()] in new code.
+#'
+#' @param x,object A `frmtmb_draws`.
+#' @param pars Variable names. A regular expression unless
+#'   `fixed = TRUE`; `NA` (the default) takes all of them.
+#' @param fixed If `TRUE`, `pars` names variables exactly.
+#' @param add_chain If `TRUE`, add the `chain` and `iter` columns brms
+#'   adds.
+#' @param subset Draw indices to keep.
+#' @param as.matrix,as.array Return a matrix or a
+#'   draws-by-chains-by-variables array instead of a data frame.
+#' @param incl_warmup Refused: `frm_sample()` discards the warmup, so
+#'   there is no warmup draw to count.
+#' @param ... Refused: an argument the method does not have is an error
+#'   naming it.
+#' @return A data frame (or matrix, or array) of draws for
+#'   `posterior_samples()`, one integer for `nsamples()`, and a
+#'   character vector for `parnames()`.
+#' @name frmtmb-draws-deprecated
+NULL
+
+#' @rdname frmtmb-draws-deprecated
 #' @export
 posterior_samples <- function(x, pars = NA, ...) {
   UseMethod("posterior_samples")
 }
 
-#' @rdname frmtmb-draws-refusals
+#' @rdname frmtmb-draws-deprecated
 #' @exportS3Method brms::posterior_samples
 #' @rawNamespace S3method(gratia::posterior_samples,frmtmb_draws)
 #' @export
-posterior_samples.frmtmb_draws <- function(x, pars = NA, ...) {
-  frm_stop("posterior_samples() is the deprecated brms spelling. Use ",
-           "as_draws(x) for a posterior draws_matrix, as.matrix(x) for a ",
-           "plain matrix, or as.data.frame(x)", call. = FALSE)
+posterior_samples.frmtmb_draws <- function(x, pars = NA, fixed = FALSE,
+                                           add_chain = FALSE, subset = NULL,
+                                           as.matrix = FALSE,
+                                           as.array = FALSE, ...) {
+  frm_check_dots(...)
+  check_flag(fixed, "fixed")
+  check_flag(add_chain, "add_chain")
+  check_flag(as.matrix, "as.matrix")
+  check_flag(as.array, "as.array")
+  frm_warning("Method 'posterior_samples' is deprecated. Please see ",
+              "?as_draws for recommended alternatives.", call. = FALSE)
+  if (as.matrix && as.array) {
+    frm_stop("posterior_samples(): 'as.matrix' and 'as.array' cannot both ",
+             "be TRUE", call. = FALSE)
+  }
+  # `pars` here is a regular expression by default, which is brms's rule
+  # and NOT the `variable` argument's: as.data.frame(pars = ) would warn
+  # about a deprecated alias of its own and match exactly
+  variable <- if (anyNA(pars)) NULL else pars
+  out <- if (as.matrix) {
+    as.matrix(x, variable = variable, regex = !fixed, draw = subset)
+  } else if (as.array) {
+    as.array(x, variable = variable, regex = !fixed, draw = subset)
+  } else {
+    as.data.frame(x, variable = variable, regex = !fixed, draw = subset)
+  }
+  if (add_chain && !as.array) {
+    nc <- nchains(x)
+    ni <- nrow(as.matrix(out)) %/% max(nc, 1L)
+    out <- as.data.frame(out)
+    out$chain <- factor(rep(seq_len(nc), each = ni))
+    out$iter <- rep(seq_len(ni), nc)
+  }
+  out
 }
 
-#' @rdname frmtmb-draws-refusals
+#' @rdname frmtmb-draws-deprecated
 #' @export
 nsamples <- function(object, ...) UseMethod("nsamples")
 
-#' @rdname frmtmb-draws-refusals
+#' @rdname frmtmb-draws-deprecated
 #' @exportS3Method rstantools::nsamples
 #' @export
-nsamples.frmtmb_draws <- function(object, ...) {
-  frm_stop("nsamples() is the deprecated brms spelling. Use ndraws(x) for ",
-           "the pooled draw count, niterations(x) for the per-chain count",
-           call. = FALSE)
+nsamples.frmtmb_draws <- function(object, subset = NULL,
+                                  incl_warmup = FALSE, ...) {
+  frm_check_dots(...)
+  check_flag(incl_warmup, "incl_warmup")
+  frm_warning("'nsamples.frmtmb_draws' is deprecated. Please use 'ndraws' ",
+              "instead.", call. = FALSE)
+  if (incl_warmup) {
+    frm_stop("nsamples(incl_warmup = TRUE) has nothing to count: ",
+             "frm_sample() discards the warmup rather than storing it, so ",
+             "the object carries post-warmup draws only. ndraws(x) is that ",
+             "count", call. = FALSE)
+  }
+  if (!is.null(subset)) return(length(subset))
+  ndraws(object)
 }
 
-#' @rdname frmtmb-draws-refusals
+#' @rdname frmtmb-draws-deprecated
 #' @export
 parnames <- function(x, ...) UseMethod("parnames")
 
-#' @rdname frmtmb-draws-refusals
+#' @rdname frmtmb-draws-deprecated
 #' @exportS3Method brms::parnames
 #' @export
 parnames.frmtmb_draws <- function(x, ...) {
-  frm_stop("parnames() is the deprecated brms spelling. Use variables(x), ",
-           "which lists the same names in brms's spelling (b_Intercept)",
-           call. = FALSE)
+  frm_check_dots(...)
+  frm_warning("'parnames' is deprecated. Please use 'variables' instead.",
+              call. = FALSE)
+  variables(x)
+}
+
+
+# ---- brms's summarizing post-processing methods ----------------------
+#
+# brms's fitted(), predict() and residuals() on a fit are summaries of
+# posterior_epred(), posterior_predict() and predictive_error(). Without
+# them `fitted(ds)` reached stats::fitted.default(), which reads
+# `object$fitted.values` and returns NULL: a wrong answer with nothing
+# said (defect S4 of dev/brmsport-findings.md).
+
+#' Summaries of the posterior predictive quantities
+#'
+#' @description
+#' brms's three summarizing methods, each a summary of the draws method
+#' beside it:
+#'
+#' * `fitted()` summarizes [posterior_epred()] (or
+#'   [posterior_linpred()] under `scale = "linear"`);
+#' * `predict()` summarizes [posterior_predict()];
+#' * `residuals()` summarizes [predictive_error()].
+#'
+#' `summary = FALSE` returns the draws themselves, which is what the
+#' method it wraps returns.
+#'
+#' @param object A `frmtmb_draws` from `frm_sample()`.
+#' @param newdata,re_formula,resp,dpar,nlpar,ndraws,draw_ids Passed to
+#'   the draws method, where they are documented.
+#' @param scale `"response"` for the expected response, `"linear"` for
+#'   the linear predictor.
+#' @param transform Applied to the draws before they are summarized.
+#' @param negative_rt,ntrys,cores,sort brms's remaining arguments,
+#'   carried so that a positional brms call asks the same question; each
+#'   is passed on or refused by the method it belongs to.
+#' @param type For `residuals()`, `"ordinary"` (brms's name for the raw
+#'   error) or `"pearson"`.
+#' @param method For `residuals()`, which predictive distribution the
+#'   error is taken against.
+#' @param summary If `FALSE`, the draws instead of their summary.
+#' @param robust If `TRUE`, the median and MAD instead of the mean and
+#'   standard deviation.
+#' @param probs Probabilities of the quantile columns.
+#' @param ... Passed to the draws method, which is where brms's
+#'   `point_estimate` and `ndraws_point_estimate` are answered.
+#' @return With `summary = TRUE` an observations-by-four matrix, or an
+#'   observations-by-four-by-K array for a category distribution. With
+#'   `summary = FALSE` the draws.
+#' @name frmtmb-draws-summaries
+NULL
+
+#' @rdname frmtmb-draws-summaries
+#' @export
+fitted.frmtmb_draws <- function(object, newdata = NULL,
+                                re_formula = arg_unset(),
+                                scale = c("response", "linear"),
+                                resp = NULL, dpar = NULL, nlpar = NULL,
+                                ndraws = NULL, draw_ids = NULL,
+                                sort = FALSE, summary = TRUE,
+                                robust = FALSE, probs = c(0.025, 0.975),
+                                ...) {
+  scale <- frm_match_arg(scale)
+  draws_refuse_sort(sort, "fitted()")
+  # checked here as well as in posterior_epred(), so a refusal names the
+  # function the caller called
+  draws_refuse_new_levels(object, newdata, list(...), "fitted()")
+  out <- if (identical(scale, "response")) {
+    posterior_epred(object, newdata = newdata, re_formula = re_formula,
+                    resp = resp, dpar = dpar, nlpar = nlpar,
+                    ndraws = ndraws, draw_ids = draw_ids, ...)
+  } else {
+    posterior_linpred(object, newdata = newdata, re_formula = re_formula,
+                      resp = resp, dpar = dpar, nlpar = nlpar,
+                      ndraws = ndraws, draw_ids = draw_ids, ...)
+  }
+  draws_summarize_or_not(out, summary, probs, robust)
+}
+
+#' @rdname frmtmb-draws-summaries
+#' @export
+predict.frmtmb_draws <- function(object, newdata = NULL,
+                                 re_formula = arg_unset(),
+                                 transform = NULL, resp = NULL,
+                                 negative_rt = FALSE, ndraws = NULL,
+                                 draw_ids = NULL, sort = FALSE,
+                                 ntrys = NULL, cores = NULL,
+                                 summary = TRUE, robust = FALSE,
+                                 probs = c(0.025, 0.975), ...) {
+  draws_refuse_sort(sort, "predict()")
+  draws_refuse_ntrys_cores(ntrys, cores, "predict()")
+  draws_refuse_new_levels(object, newdata, list(...), "predict()")
+  out <- posterior_predict(object, newdata = newdata,
+                           re_formula = re_formula, transform = transform,
+                           resp = resp, negative_rt = negative_rt,
+                           ndraws = ndraws, draw_ids = draw_ids, ...)
+  if (!summary) return(out)
+  # a category-valued response has no mean to summarize, so brms reports
+  # the simulated proportion of each category, the same shape the fit
+  # method returns
+  fit <- draws_base_fit(object)
+  rspec <- fit$spec$responses[[resp %||% names(fit$spec$responses)[1L]]]
+  if (fam_is_category_valued(rspec$family)) {
+    return(predict_category_props(fit, rspec, out))
+  }
+  draws_summarize_or_not(out, summary, probs, robust)
+}
+
+#' @rdname frmtmb-draws-summaries
+#' @export
+residuals.frmtmb_draws <- function(object, newdata = NULL,
+                                   re_formula = arg_unset(),
+                                   method = "posterior_predict",
+                                   type = c("ordinary", "pearson"),
+                                   resp = NULL, ndraws = NULL,
+                                   draw_ids = NULL, sort = FALSE,
+                                   summary = TRUE, robust = FALSE,
+                                   probs = c(0.025, 0.975), ...) {
+  type <- frm_match_arg(type)
+  draws_refuse_sort(sort, "residuals()")
+  draws_refuse_new_levels(object, newdata, list(...), "residuals()")
+  out <- predictive_error(object, newdata = newdata,
+                          re_formula = re_formula, method = method,
+                          resp = resp, ndraws = ndraws,
+                          draw_ids = draw_ids, ...)
+  if (identical(type, "pearson")) {
+    # brms divides the error draws by the predictive standard deviation
+    # of the same draws, which is what makes it a Pearson residual
+    pp <- posterior_predict(object, newdata = newdata,
+                            re_formula = re_formula, resp = resp,
+                            ndraws = ndraws, draw_ids = draw_ids, ...)
+    sdv <- apply(pp, 2L, stats::sd)
+    out <- sweep(out, 2L, sdv, "/")
+  }
+  draws_summarize_or_not(out, summary, probs, robust)
+}
+
+#' brms's `ntrys` and `cores`, carried so that a positional brms call
+#' lands where brms lands it and refused with the reason.
+#'
+#' @noRd
+draws_refuse_ntrys_cores <- function(ntrys, cores, what) {
+  if (!is.null(ntrys)) {
+    frm_stop(what, " cannot honor `ntrys` yet: the rejection limit of a ",
+             "trunc()ed draw is the family simulator's own", call. = FALSE)
+  }
+  if (!is.null(cores)) {
+    frm_stop(what, " cannot honor `cores`: the draws are replayed in one ",
+             "process. Lower `ndraws` if a call is too slow", call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' @noRd
+draws_refuse_sort <- function(sort, what) {
+  check_flag(sort, "sort")
+  if (sort) {
+    frm_stop(what, " cannot honor sort = TRUE: rows come back in the order ",
+             "of the data, always", call. = FALSE)
+  }
+  invisible(NULL)
+}
+
+#' @noRd
+draws_summarize_or_not <- function(out, summary, probs, robust) {
+  check_flag(summary, "summary")
+  check_flag(robust, "robust")
+  if (!summary) return(out)
+  posterior_summary(out, probs = probs, robust = robust)
+}
+
+#' Refuse an unseen grouping level on draws, with a message that is true,
+#' and ONLY when the call asks for one.
+#'
+#' brms answers `allow_new_levels = TRUE` on draws by drawing a new
+#' level's effect per posterior draw (`sample_new_levels = "gaussian"`)
+#' or by resampling the draws of the levels it saw (the default,
+#' `"uncertainty"`); neither is built for `frmtmb_draws`. Before this the
+#' argument vanished into `...` and the design builder refused an unseen
+#' level with "Use allow_new_levels = TRUE", which the caller had just
+#' done.
+#'
+#' A refusal on the argument's mere PRESENCE is too wide:
+#' `allow_new_levels = FALSE` is brms's default, and `TRUE` with no
+#' `newdata`, or with only levels the fit saw, changes nothing in brms
+#' either. Those answer, as they did before. What is refused is `TRUE`
+#' together with a `newdata` that holds a level the fit did not see,
+#' which is decided by asking the fit: the rows build without the flag,
+#' or build only with it.
+#'
+#' @noRd
+draws_refuse_new_levels <- function(object, newdata, dots, fn) {
+  anl <- dots[["allow_new_levels"]] %||% dots[["allow.new.levels"]]
+  if (!isTRUE(anl) || is.null(newdata)) return(invisible(NULL))
+  if (!draws_has_unseen_level(draws_base_fit(object), newdata)) {
+    return(invisible(NULL))
+  }
+  frm_stop(fn, " on draws cannot predict a grouping level the fit did not ",
+           "see: brms draws that level's effect from each posterior draw ",
+           "or resamples the levels it saw, and neither is implemented ",
+           "for frmtmb_draws yet. predict(fit, allow_new_levels = TRUE) on ",
+           "the maximum-likelihood fit draws it, and re_formula = NA ",
+           "predicts at the population level", call. = FALSE)
+}
+
+#' Whether `newdata` holds a grouping level the fit did not see: its
+#' rows fail to build as they are and build once unseen levels are
+#' allowed. A failure both ways is some other fault, left to the call
+#' itself to report.
+#'
+#' @noRd
+draws_has_unseen_level <- function(fit, newdata) {
+  known <- tryCatch({
+    frm_linpred(fit, newdata = newdata)
+    TRUE
+  }, error = function(e) FALSE)
+  if (known) return(FALSE)
+  tryCatch({
+    frm_linpred(fit, newdata = newdata, allow_new_levels = TRUE)
+    TRUE
+  }, error = function(e) FALSE)
 }

@@ -30,8 +30,8 @@ test_that("multinomial matrix response matches a hand-rolled reference", {
   opt <- nlminb(obj$par, obj$fn, obj$gr)
   expect_lt(abs(as.numeric(logLik(fit)) - (-opt$objective)), 1e-6)
   est <- opt$par
-  expect_vector_equal(fixef(fit)$mu2, est[1:2], tol = 1e-4)
-  expect_vector_equal(fixef(fit)$mu3, est[3:4], tol = 1e-4)
+  expect_vector_equal(fixef_by_dpar(fit)$mu2, est[1:2], tol = 1e-4)
+  expect_vector_equal(fixef_by_dpar(fit)$mu3, est[3:4], tol = 1e-4)
 })
 
 test_that("multinomial matches nnet::multinom", {
@@ -45,16 +45,16 @@ test_that("multinomial matches nnet::multinom", {
   expect_lt(abs((as.numeric(logLik(fit)) - const) -
                   as.numeric(logLik(ref))), 1e-3)
   cf <- coef(ref)
-  expect_vector_equal(fixef(fit)$mu2, cf[1, ], tol = 1e-2)
-  expect_vector_equal(fixef(fit)$mu3, cf[2, ], tol = 1e-2)
+  expect_vector_equal(fixef_by_dpar(fit)$mu2, cf[1, ], tol = 1e-2)
+  expect_vector_equal(fixef_by_dpar(fit)$mu3, cf[2, ], tol = 1e-2)
 })
 
 test_that("per-category dpar formulas can be overridden", {
   dd <- sim_multinom_data(seed = 83)
   dd$z <- rnorm(nrow(dd))
   fit <- frm(bf(Y | trials(n) ~ x, mu3 ~ z) + multinomial(K = 3), data = dd)
-  expect_named(fixef(fit)$mu2, c("(Intercept)", "x"))
-  expect_named(fixef(fit)$mu3, c("(Intercept)", "z"))
+  expect_named(fixef_by_dpar(fit)$mu2, c("(Intercept)", "x"))
+  expect_named(fixef_by_dpar(fit)$mu3, c("(Intercept)", "z"))
 })
 
 test_that("multinomial validation", {
@@ -71,7 +71,7 @@ test_that("multinomial validation", {
                "Number of trials does not match the number of events.",
                fixed = TRUE)
   expect_error(multinomial(), "number of categories")
-  # fitted() delegates to predict(type = "response") now, so the refusal
+  # fitted() delegates to frm_linpred(type = "response") now, so the refusal
   # is the FAMILY's own and says why rather than only that it refused
   expect_error(fitted(frm(bf(Y | trials(n) ~ x) + multinomial(K = 3),
                           data = dd)),

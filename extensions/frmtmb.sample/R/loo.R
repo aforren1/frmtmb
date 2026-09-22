@@ -241,6 +241,9 @@ draws_row_loglik <- function(fit, resp) {
 #'   `combine = FALSE` is accepted on a univariate model, where there is
 #'   nothing to combine; `cores` is accepted and unused, because the
 #'   matrix is built in this process.
+#' @param point_estimate,ndraws_point_estimate brms's arguments:
+#'   collapse the draws to their `"mean"` or `"median"` first and use
+#'   that one parameter vector, repeated `ndraws_point_estimate` times.
 #' @param ... Refused: an argument the method does not have is an
 #'   error naming it, rather than silently changing nothing.
 #' @return A numeric matrix with one row per draw and one column per
@@ -282,7 +285,10 @@ log_lik.frmtmb_draws <- function(object, newdata = NULL,
                                  draw_ids = NULL, pointwise = FALSE,
                                  combine = TRUE,
                                  add_point_estimate = FALSE,
-                                 cores = NULL, ...) {
+                                 cores = NULL, point_estimate = NULL,
+                                 ndraws_point_estimate = 1, ...) {
+  object <- draws_at_point_estimate(object, point_estimate,
+                                    ndraws_point_estimate)
   # brms's remaining slots, so a positional brms call is answered or
   # refused rather than landing in `...`, where log_lik(ds, NULL, NULL,
   # NULL, NULL, NULL, TRUE) used to return the matrix brms would not

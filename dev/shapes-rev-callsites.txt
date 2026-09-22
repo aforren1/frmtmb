@@ -1,0 +1,24 @@
+total call sites: 14 
+
+======== predict (1) ========
+  R/insight.R                                          stats::predict(x, newdata = data, probs = c(a, 1 - a))
+
+======== fixef (4) ========
+  R/allfit.R                                           fixef(f, flatten = TRUE)
+  R/allfit.R                                           fixef(x$fits[ok][[1L]], flatten = TRUE)
+  R/bootstrap.R                                        fixef(f, flatten = TRUE)
+  extensions/frmtmb.sample/R/methods-draws.R           fixef(object, summary = FALSE)
+
+======== vcov (6) ========
+  R/brms-shapes.R                                      vcov(fit, full = TRUE)
+  R/methods-fit.R                                      vcov(object, full = TRUE)
+  R/methods-fit.R                                      vcov(object)
+  R/predict-brms.R                                     vcov(object, full = TRUE)
+  R/sandwich.R                                         vcov(object, full = TRUE)
+  extensions/frmtmb.latent/R/hmm-starts.R              stats::vcov(fit)
+
+======== ngrps (3) ========
+  R/methods-fit.R                                      ngrps(object)
+  R/methods-fit.R                                      ngrps(object)
+  extensions/frmtmb.sample/R/methods-draws.R           ngrps(draws_base_fit(object))
+

@@ -78,8 +78,8 @@ test_that("Correlation_1 is a bivariate normal with rescor", {
   # is the frequentist point estimate the book plots as a dashed line
   expect_equal(rescor_matrix(fit)[1, 2],
                stats::cor(d$x1, d$x2), tolerance = 1e-5)
-  expect_equal(unname(fixef(fit)$x1_mu), mean(d$x1), tolerance = 1e-6)
-  expect_equal(unname(fixef(fit)$x2_mu), mean(d$x2), tolerance = 1e-6)
+  expect_equal(unname(fixef_by_dpar(fit)$x1_mu), mean(d$x1), tolerance = 1e-6)
+  expect_equal(unname(fixef_by_dpar(fit)$x2_mu), mean(d$x2), tolerance = 1e-6)
 })
 
 test_that("Correlation_1 matches its Stan program", {
@@ -91,9 +91,10 @@ test_that("Correlation_1 matches its Stan program", {
     data = list(n = nrow(d), x = bcm_corr_matrix()),
     fit = fit,
     pars = function(f) {
-      list(mu = c(unname(fixef(f)$x1_mu), unname(fixef(f)$x2_mu)),
-           sigma = c(unname(exp(fixef(f)$x1_sigma)),
-                     unname(exp(fixef(f)$x2_sigma))),
+      list(mu = c(unname(fixef_by_dpar(f)$x1_mu),
+                  unname(fixef_by_dpar(f)$x2_mu)),
+           sigma = c(unname(exp(fixef_by_dpar(f)$x1_sigma)),
+                     unname(exp(fixef_by_dpar(f)$x2_sigma))),
            r = rescor_matrix(f)[1, 2])
     },
     const = 0)
@@ -145,7 +146,7 @@ test_that("Correlation_2 matches its Stan program", {
     fit = fit,
     pars = function(f) {
       vc <- unname(varcorr_matrices(f)[[1L]])
-      mu <- c(unname(fixef(f)$x1_mu), unname(fixef(f)$x2_mu))
+      mu <- c(unname(fixef_by_dpar(f)$x1_mu), unname(fixef_by_dpar(f)$x2_mu))
       u <- frm_u(f)
       list(mu = mu, sigma = sqrt(diag(vc)),
            r = stats::cov2cor(vc)[1, 2],
@@ -416,7 +417,7 @@ test_that("ChaSaSoon is a band of counts with a repeat count", {
   d <- bcm_chasasoon_data()
   fit <- frm(bcm_chasasoon_formula(), family = bcm_binomial_cdf(),
              data = d)
-  theta <- plogis(unname(fixef(fit)$mu))
+  theta <- plogis(unname(fixef_by_dpar(fit)$mu))
   # the book's answer is about 0.34: well below the 30/50 of the one
   # success, and above the 0.25 a random guesser would score
   expect_gt(theta, 0.25)
@@ -454,7 +455,7 @@ test_that("ChaSaSoon's band is the inclusive interval, by hand", {
   d <- bcm_chasasoon_data()
   fit <- frm(bcm_chasasoon_formula(), family = bcm_binomial_cdf(),
              data = d)
-  th <- plogis(unname(fixef(fit)$mu))
+  th <- plogis(unname(fixef_by_dpar(fit)$mu))
   hand <- stats::dbinom(30, 50, th, log = TRUE) +
     949 * log(stats::pbinom(25, 50, th) - stats::pbinom(14, 50, th))
   expect_equal(as.numeric(logLik(fit)), hand, tolerance = 1e-10)
@@ -470,7 +471,7 @@ test_that("ChaSaSoon matches its Stan program", {
     bcm_chasasoon_code(),
     data = list(nfails = 949L, n = 50L, z = 30L),
     fit = fit,
-    pars = function(f) list(theta = plogis(unname(fixef(f)$mu))),
+    pars = function(f) list(theta = plogis(unname(fixef_by_dpar(f)$mu))),
     # the original's <lower=.25, upper=1> is a uniform prior Stan does
     # not add to the target, and the estimate is inside it
     const = 0)

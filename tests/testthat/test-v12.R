@@ -28,12 +28,13 @@ test_that("function-on-function regression matches mgcv exactly", {
                    method = "ML")
   expect_lt(abs(as.numeric(logLik(fit)) - (-as.numeric(ref$gcv.ubre))),
             1e-3)
-  expect_lt(max(abs(fitted(fit) - fitted(ref))), 1e-4)
+  expect_lt(max(abs(fitted(fit)[, "Estimate"] - fitted(ref))), 1e-4)
   # matrix-covariate t2 rebuilds its basis on newdata like any other
-  expect_equal(predict(fit, newdata = dd), predict(fit), tolerance = 1e-10)
+  expect_equal(frm_linpred(fit, newdata = dd), frm_linpred(fit),
+               tolerance = 1e-10)
   sub <- dd[c(1, 5, 40, 200, 700), ]
-  p <- predict(fit, newdata = sub, se.fit = TRUE)
-  expect_lt(max(abs(p$fit - predict(fit)[c(1, 5, 40, 200, 700)])), 1e-10)
+  p <- frm_linpred(fit, newdata = sub, se.fit = TRUE)
+  expect_lt(max(abs(p$fit - frm_linpred(fit)[c(1, 5, 40, 200, 700)])), 1e-10)
   expect_true(all(is.finite(p$se.fit)))
 })
 
@@ -58,7 +59,7 @@ test_that("af-style nonlinear functional terms fit (surfaces match mgcv)", {
   # two optimizers land on nearby local modes; the fitted surfaces agree
   expect_lt(abs(as.numeric(logLik(fit)) - (-as.numeric(ref$gcv.ubre))),
             0.5)
-  expect_lt(max(abs(fitted(fit) - fitted(ref))), 0.1)
+  expect_lt(max(abs(fitted(fit)[, "Estimate"] - fitted(ref))), 0.1)
 })
 
 test_that("gr(prec=) matches gr(cov=) with the inverse matrix", {
@@ -84,7 +85,7 @@ test_that("gr(prec=) matches gr(cov=) with the inverse matrix", {
   fp <- frm(bf(y ~ x + (1 | gr(g, prec = Q))) + gaussian(), data = dd)
   fc <- frm(bf(y ~ x + (1 | gr(g, cov = A))) + gaussian(), data = dd)
   expect_lt(abs(as.numeric(logLik(fp)) - as.numeric(logLik(fc))), 1e-6)
-  expect_vector_equal(fixef(fp)$mu, fixef(fc)$mu, tol = 1e-5)
+  expect_vector_equal(fixef_by_dpar(fp)$mu, fixef_by_dpar(fc)$mu, tol = 1e-5)
   # marginal draws respect the precision structure
   set.seed(1)
   b1 <- frmtmb:::draw_b(fp)
@@ -119,13 +120,13 @@ test_that("gr(prec=) takes correlated slopes", {
   fc <- frm(bf(y ~ x + (1 + x | gr(g, cov = A))) + gaussian(), data = dd)
   expect_lt(abs(as.numeric(logLik(fp)) - as.numeric(logLik(fc))), 1e-8)
   expect_vector_equal(fp$estimates$theta, fc$estimates$theta, tol = 1e-8)
-  expect_vector_equal(fixef(fp)$mu, fixef(fc)$mu, tol = 1e-8)
+  expect_vector_equal(fixef_by_dpar(fp)$mu, fixef_by_dpar(fc)$mu, tol = 1e-8)
   expect_vector_equal(varcorr_matrices(fp)[[1]], varcorr_matrices(fc)[[1]],
                       tol = 1e-8)
   expect_vector_equal(ranef(fp)[[1]], ranef(fc)[[1]], tol = 1e-8)
   nd <- dd[c(1L, 30L, 90L), ]
-  expect_vector_equal(predict(fp, newdata = nd, se.fit = TRUE)$se.fit,
-                      predict(fc, newdata = nd, se.fit = TRUE)$se.fit,
+  expect_vector_equal(frm_linpred(fp, newdata = nd, se.fit = TRUE)$se.fit,
+                      frm_linpred(fc, newdata = nd, se.fit = TRUE)$se.fit,
                       tol = 1e-8)
   set.seed(1)
   expect_length(frmtmb:::draw_b(fp), 2 * ng)
@@ -139,9 +140,9 @@ test_that("new levels add the block variance to prediction SEs", {
   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 
   nd <- data.frame(x = 0, g = factor("NEW"))
-  p_new <- predict(fit, newdata = nd, se.fit = TRUE,
+  p_new <- frm_linpred(fit, newdata = nd, se.fit = TRUE,
                    allow_new_levels = TRUE)
-  p_pop <- predict(fit, newdata = data.frame(x = 0), re_formula = NA,
+  p_pop <- frm_linpred(fit, newdata = data.frame(x = 0), re_formula = NA,
                    se.fit = TRUE)
   # same point prediction, inflated uncertainty
   expect_equal(p_new$fit, p_pop$fit, tolerance = 1e-8)
@@ -150,6 +151,6 @@ test_that("new levels add the block variance to prediction SEs", {
 
   # known levels are unaffected
   nd2 <- data.frame(x = 0, g = factor("3", levels = levels(dd$g)))
-  p_known <- predict(fit, newdata = nd2, se.fit = TRUE)
+  p_known <- frm_linpred(fit, newdata = nd2, se.fit = TRUE)
   expect_lt(p_known$se.fit, p_new$se.fit)
 })

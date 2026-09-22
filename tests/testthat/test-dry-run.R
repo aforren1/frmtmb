@@ -51,8 +51,9 @@ test_that("methods needing an ML quantity refuse on an unfitted object", {
                  function() stats::confint(uf), function() stats::logLik(uf),
                  function() stats::AIC(uf), function() fixef(uf),
                  function() ranef(uf), function() VarCorr(uf),
-                 function() stats::predict(uf), function() stats::fitted(uf),
-                 function() stats::residuals(uf),
+                 function() frm_linpred(uf),
+                 function() stats::fitted(uf)[, "Estimate"],
+                 function() stats::residuals(uf)[, "Estimate"],
                  function() stats::simulate(uf), function() print(uf))) {
     expect_error(f(), "needs a fitted model")
   }

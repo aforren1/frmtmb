@@ -85,7 +85,7 @@ of one vector and not others is refused.}
 
 \item{se}{If \code{TRUE}, run \code{\link[RTMB:sdreport]{RTMB::sdreport()}} at fit time. The default
 (\code{FALSE}) defers it until standard errors are first needed
-(\code{summary}, \code{vcov}, \code{confint}, \code{predict(se.fit = TRUE)}), which cuts
+(\code{summary}, \code{vcov}, \code{confint}, \code{frm_linpred(se.fit = TRUE)}), which cuts
 roughly a quarter off fit time in fit-and-predict or bootstrap
 loops. The deferred report is cached, so nothing is computed twice.}
 

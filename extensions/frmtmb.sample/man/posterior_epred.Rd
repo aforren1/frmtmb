@@ -21,6 +21,9 @@ posterior_epred(object, ...)
   nlpar = NULL,
   ndraws = NULL,
   draw_ids = NULL,
+  sort = FALSE,
+  point_estimate = NULL,
+  ndraws_point_estimate = 1,
   ...
 )
 
@@ -38,6 +41,9 @@ posterior_linpred(object, transform = FALSE, ...)
   incl_thres = NULL,
   ndraws = NULL,
   draw_ids = NULL,
+  sort = FALSE,
+  point_estimate = NULL,
+  ndraws_point_estimate = 1,
   ...
 )
 
@@ -53,6 +59,11 @@ posterior_predict(object, ...)
   negative_rt = FALSE,
   ndraws = NULL,
   draw_ids = NULL,
+  sort = FALSE,
+  ntrys = NULL,
+  cores = NULL,
+  point_estimate = NULL,
+  ndraws_point_estimate = 1,
   ...
 )
 }
@@ -86,6 +97,15 @@ this is the same setting and the slot is here for brms's position.}
 \item{draw_ids}{The draws to use, by row index, instead of the
 evenly spaced subsample \code{ndraws} takes. Give one or the other.}
 
+\item{sort}{brms's argument. Rows come back in the order of the data
+here, always, so \code{sort = TRUE} is refused by name.}
+
+\item{point_estimate, ndraws_point_estimate}{brms's arguments, which
+collapse the draws to their \code{"mean"} or \code{"median"} FIRST and run
+the method once at that one parameter vector, repeated
+\code{ndraws_point_estimate} times. It is a parameter-space operation
+and not a summary of the output, as in brms.}
+
 \item{transform}{For \code{posterior_linpred()}: if \code{TRUE}, apply the
 inverse link (the value of the \code{mu} dpar on its natural scale,
 brms's convention; unlike \code{posterior_epred()} this is not the
@@ -97,6 +117,11 @@ returns the latent predictor itself.}
 
 \item{negative_rt}{For \code{posterior_predict()}: refused. It is brms's
 sign convention for its own wiener family.}
+
+\item{ntrys, cores}{brms's arguments, carried so that a positional
+brms call lands where brms lands it. Both are refused by name: the
+rejection limit of a \code{trunc()}ed draw is the family simulator's
+own, and the draws are replayed in one process.}
 }
 \value{
 A draws-by-observations matrix; for a categorical outcome
@@ -114,13 +139,13 @@ spellings}).
 \section{Categorical outcomes}{
 
 An ordinal family predicts a DISTRIBUTION per observation, not one
-number: each draw's \code{predict(type = "response")} is an \verb{n x K}
+number: each draw's \code{frm_linpred(type = "response")} is an \verb{n x K}
 matrix of category probabilities. Those stack into a 3-D
 \verb{draws x observations x categories} array. \code{dimnames} are
 \verb{list(NULL, <observation names or NULL>, <category levels>)}, so
 \code{ep[, , "high"]} is the draws-by-observations matrix for one
 category and \code{ep[k, , ]} is draw \code{k}'s own \verb{n x K} prediction, the
-matrix \code{predict(type = "response")} returns. Every \code{ep[k, i, ]}
+matrix \code{frm_linpred(type = "response")} returns. Every \code{ep[k, i, ]}
 sums to 1 for an ordinal family.
 
 This is brms's convention: \code{?brms::posterior_epred.brmsfit}

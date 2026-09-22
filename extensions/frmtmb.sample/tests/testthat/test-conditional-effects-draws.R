@@ -325,7 +325,7 @@ test_that("a mixture draws curve is the mixture mean", {
     expect_lt(rel_gap(cd$x$estimate__, cf$x$estimate__), 0.12)
     # the explicit non-mu dpar path was already right and must stay so:
     # dpar_report_hook() softmax reporting lives inside
-    # predict(type = "response", dpar = )
+    # frm_linpred(type = "response", dpar = )
     tf <- conditional_effects(cs$fit, effects = "x", resolution = 5,
                               dpar = "theta1")
     td <- conditional_effects(cs$ds, effects = "x", resolution = 5,

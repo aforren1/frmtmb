@@ -95,7 +95,7 @@ dharma_residuals <- function(fit, nsim = 250, re_formula = NULL,
     # the ranks of the simulated draws alone.
     ord_cat_moments(fit, rspec)$mean
   } else {
-    as.vector(stats::na.omit(fitted(fit)))
+    as.vector(stats::na.omit(fitted_point(fit)))
   }
   DHARMa::createDHARMa(
     simulatedResponse = sims,

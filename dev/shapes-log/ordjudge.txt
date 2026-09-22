@@ -1,0 +1,24 @@
+frmtmb fixef()
+              Estimate Est.Error      Q2.5     Q97.5
+Intercept[1] -2.389484  0.329612 -3.035512 -1.743455
+Intercept[2] -0.216702  0.228247 -0.664058  0.230653
+x             1.701856  0.278061  1.156868  2.246845
+
+MASS::polr
+        Value Std. Error
+x    1.701719   0.278049
+1|2 -2.389310   0.329600
+2|3 -0.216763   0.228243
+
+frmtmb against polr
+          row polr_row    frm_est  polr_est    frm_se   polr_se      est_diff
+ Intercept[1]      1|2 -2.3894838 -2.389310 0.3296123 0.3295998 -1.739210e-04
+ Intercept[2]      2|3 -0.2167022 -0.216763 0.2282469 0.2282429  6.078036e-05
+            x        x  1.7018563  1.701719 0.2780606 0.2780486  1.372890e-04
+ se_ratio
+ 1.000038
+ 1.000017
+ 1.000043
+
+max |se ratio - 1| = 4.3e-05   max |est diff| = 0.000174 
+AGREES with polr

@@ -118,7 +118,7 @@ test_that("the ode scale row fits and reports its cost", {
   g1 <- scale_grad(fit$obj, fit$opt$par)
   mem <- scale_mem_peak_mb()
 
-  b <- unlist(fixef(fit))
+  b <- unlist(fixef_by_dpar(fit))
   ci <- suppressWarnings(stats::confint(fit))
   j <- grep("lke", rownames(ci), fixed = TRUE)
   i_ke <- if (length(j)) as.numeric(ci[j[1L], 1:2]) else c(NA, NA)

@@ -140,7 +140,7 @@ test_that("Geurts is a hierarchical probit rate comparison", {
   d <- bcm_geurts_data()
   fit <- frm(k | trials(n) ~ group + (1 | id),
              family = binomial(link = "probit"), data = d)
-  b <- fixef(fit)$mu
+  b <- fixef_by_dpar(fit)$mu
   sd_id <- sqrt(unname(varcorr_matrices(fit)[[1L]])[1, 1])
   delta <- unname(b["groupadhd"]) / sd_id
   # the chapter's conclusion is that the two groups barely differ, and
@@ -169,7 +169,7 @@ test_that("Geurts matches its Stan program", {
                 subj = as.integer(d$id)),
     fit = fit,
     pars = function(f) {
-      b <- fixef(f)$mu
+      b <- fixef_by_dpar(f)$mu
       list(mu = unname(b["(Intercept)"]),
            alpha = unname(b["groupadhd"]),
            sigma = frm_sd_term(f, "1 | id"),
@@ -205,7 +205,7 @@ test_that("Zeelenberg is a within-subject probit rate comparison", {
   d <- bcm_zeelenberg_data()
   fit <- frm(s | trials(n) ~ both + (1 + both || id),
              family = binomial(link = "probit"), data = d)
-  b <- fixef(fit)$mu
+  b <- fixef_by_dpar(fit)$mu
   sd_both <- frm_sd_term(fit, "0 + both | id")
   delta <- unname(b["both"]) / sd_both
   # studying both words helps, which is the direction the chapter's
@@ -238,8 +238,8 @@ bcm_onesample_data <- function() {
 test_that("OneSample's delta is the standardized mean", {
   d <- bcm_onesample_data()
   fit <- frm(x ~ 1, data = d)
-  mu <- unname(fixef(fit)$mu)
-  sigma <- unname(exp(fixef(fit)$sigma))
+  mu <- unname(fixef_by_dpar(fit)$mu)
+  sigma <- unname(exp(fixef_by_dpar(fit)$sigma))
   # the book writes mu = delta * sigma, which is a reparameterization
   # and not a different model, so delta reads straight off the fit
   delta <- mu / sigma
@@ -283,8 +283,8 @@ bcm_twosample_code <- function() {
 test_that("TwoSample's delta is the standardized group difference", {
   d <- bcm_twosample_data()
   fit <- frm(v ~ g, data = d)
-  b <- fixef(fit)$mu
-  sigma <- unname(exp(fixef(fit)$sigma))
+  b <- fixef_by_dpar(fit)$mu
+  sigma <- unname(exp(fixef_by_dpar(fit)$sigma))
   delta <- -unname(b["gy"]) / sigma
   # the first group scores higher, by more than one standard deviation
   expect_gt(delta, 1)
@@ -300,8 +300,8 @@ test_that("TwoSample matches its Stan program", {
                 x = d$v[d$g == "x"], y = d$v[d$g == "y"]),
     fit = fit,
     pars = function(f) {
-      b <- fixef(f)$mu
-      sigma <- unname(exp(fixef(f)$sigma))
+      b <- fixef_by_dpar(f)$mu
+      sigma <- unname(exp(fixef_by_dpar(f)$sigma))
       # Stan's mu is the grand mean and alpha the difference; frmtmb's
       # intercept is the first group's mean and `gy` the difference the
       # other way round

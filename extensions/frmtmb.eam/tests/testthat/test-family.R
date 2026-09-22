@@ -38,7 +38,7 @@ test_that("a two-condition fit recovers the generating parameters", {
   dat$cond <- cond
   fit <- frm(bf(rt | vint(upper) ~ cond, bias = 0.5),
              family = wiener(), data = dat)
-  e <- unlist(fixef(fit))
+  e <- unlist(fixef_by_dpar(fit))
   ub <- min(dat$rt)
   ndt_hat <- ub / (1 + exp(-e[["ndt.(Intercept)"]]))
 
@@ -71,7 +71,7 @@ test_that("the non-decision-time bound is found from the data", {
   # no max_ndt argument: valid_y fills it in from min(rt)
   fit <- frm(bf(rt | vint(upper) ~ 1, bias = 0.5), family = wiener(),
              data = dat)
-  e <- unlist(fixef(fit))
+  e <- unlist(fixef_by_dpar(fit))
   ndt_hat <- min(dat$rt) / (1 + exp(-e[["ndt.(Intercept)"]]))
   expect_lt(ndt_hat, min(dat$rt))
   expect_equal(ndt_hat, 0.25, tolerance = 0.05)

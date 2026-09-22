@@ -141,12 +141,13 @@ test_that("a whittle fit recovers an AR(1) that arima() agrees with", {
                 ls ~ 1, z ~ 1, nl = TRUE),
              family = whittle(), data = pg)
   ref <- stats::arima(y, order = c(1, 0, 0), method = "ML")
-  expect_equal(tanh(fixef(fit)[["z"]][[1L]]), unname(ref$coef[["ar1"]]),
+  expect_equal(tanh(fixef_by_dpar(fit)[["z"]][[1L]]), unname(ref$coef[["ar1"]]),
                tolerance = 0.02)
   se <- sqrt(diag(vcov(fit)))
   expect_equal(unname(se[[2L]]), sqrt(ref$var.coef[1L, 1L]), tolerance = 0.05)
   # the innovation variance is the exponentiated intercept
-  expect_equal(exp(fixef(fit)[["ls"]][[1L]]), ref$sigma2, tolerance = 0.05)
+  expect_equal(exp(fixef_by_dpar(fit)[["ls"]][[1L]]), ref$sigma2,
+               tolerance = 0.05)
 })
 
 test_that("whittle(tapers = k) fixes the shape rather than estimating it", {
@@ -154,15 +155,15 @@ test_that("whittle(tapers = k) fixes the shape rather than estimating it", {
   pg <- frm_periodogram(y, segments = 4)
   fit <- frm(bf(pgram ~ freq), family = whittle(tapers = 4), data = pg)
   free <- frm(bf(pgram ~ freq), family = Gamma(link = "log"), data = pg)
-  expect_equal(fixef(fit)[["shape"]][[1L]], log(4))
+  expect_equal(fixef_by_dpar(fit)[["shape"]][[1L]], log(4))
   expect_identical(as.character(fit$frame[["map"]][["betad"]]), NA_character_)
   expect_identical(length(fit$obj$par) + 1L, length(free$obj$par))
-  expect_equal(unname(predict(fit, type = "disp")[1L]), 4)
+  expect_equal(unname(frm_linpred(fit, type = "disp")[1L]), 4)
   # the mean model is a Gamma GLM with the dispersion held at 1 / k, so
   # glm() with the same link is the reference for the coefficients
   ref <- stats::glm(pgram ~ freq, family = stats::Gamma(link = "log"),
                     data = pg)
-  expect_equal(unname(fixef(fit)[["mu"]]), unname(stats::coef(ref)),
+  expect_equal(unname(fixef_by_dpar(fit)[["mu"]]), unname(stats::coef(ref)),
                tolerance = 1e-4)
   expect_equal(as.numeric(logLik(fit)),
                sum(stats::dgamma(pg$pgram, shape = 4,
@@ -173,7 +174,7 @@ test_that("whittle(tapers = k) fixes the shape rather than estimating it", {
   # the family's value is a default: an explicit one in bf() still wins
   user <- frm(bf(pgram ~ freq, shape = 2), family = whittle(tapers = 4),
               data = pg)
-  expect_equal(fixef(user)[["shape"]][[1L]], log(2))
+  expect_equal(fixef_by_dpar(user)[["shape"]][[1L]], log(2))
 })
 
 test_that("whittle refuses a response that cannot be a periodogram", {
@@ -232,7 +233,8 @@ test_that("frm_series_draw inverts the transform the fit is built on", {
   many <- frm_series_draw(fit, nsim = 200)
   rat <- vapply(seq_len(200), function(i) {
     mean(frm_periodogram(many[, i],
-                         fs = stats::frequency(many))$pgram / fitted(fit))
+                         fs = stats::frequency(many))$pgram /
+                fitted(fit)[, "Estimate"])
   }, 0)
   expect_equal(mean(rat), 1, tolerance = 0.02)
 })
@@ -283,7 +285,7 @@ test_that("leakage-dominated ordinates are refused too", {
   hann <- frm_periodogram(x, fs = fs, taper = "hann")
   hann$logf <- log(hann$freq)
   fit <- frm(bf(pgram ~ logf), family = whittle(), data = hann)
-  expect_equal(-fixef(fit)[["mu"]][[2L]], 3, tolerance = 0.15)
+  expect_equal(-fixef_by_dpar(fit)[["mu"]][[2L]], 3, tolerance = 0.15)
 
   # That fit only happens if the refusal lets a tapered response
   # through, and this seed used to clear the trigger by 28.9%, which is

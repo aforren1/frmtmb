@@ -130,47 +130,18 @@ brms_print_args <- c(
 
 #' @noRd
 brms_summary_args <- c(
-  priors = paste("brms prints the priors it sampled under.",
-                 "prior_summary(object) reports them here"),
-  prob = paste("brms's `prob` sets the width of a posterior interval;",
-               "this table carries standard errors and a Wald test.",
-               "confint(object, level = ) takes the coverage"),
   mc_se = paste("Monte Carlo standard errors describe a sampler, and",
                 "a maximum likelihood fit has none")
 )
 
+# brms's print() of a fit IS its summary, and the two used to disagree
+# here: print() showed the estimates alone while summary() showed the
+# table. One renderer, so a section can only be added once.
 #' @export
 print.frmtmb_fit <- function(x, ...) {
   frm_check_dots(..., .unsupported = brms_print_args)
   require_fitted(x, "print()")
-  if (inherits(x$bform, "frmtmb_mvformula")) {
-    for (f in x$bform$forms) cat("frmtmb fit:", deparse1(f$formula), "\n")
-  } else {
-    cat("frmtmb fit:", deparse1(formula(x)), "\n")
-  }
-  fam_str <- paste(vapply(x$spec$responses,
-                          function(r) r$family[["family"]], ""),
-                   collapse = ", ")
-  cat("Family:", fam_str, "  Method:",
-      paste0(if (x$REML) "REML" else "ML",
-             if (!is.null(x$prior)) " (MAP)"), "\n")
-  cat_family_links(x$spec$responses)
-  ll <- logLik(x)
-  cat("logLik:", format(as.numeric(ll), digits = 6),
-      " AIC:", format(stats::AIC(x), digits = 6),
-      " nobs:", stats::nobs(x), "\n")
-  if (!is.null(x$importance)) {
-    cat(imp_report_line(x$importance), "\n")
-  }
-  cat("\nFixed effects:\n")
-  for (nm in names(fixef(x))) {
-    cat(" ", nm, ":\n", sep = "")
-    print(fixef(x)[[nm]], digits = 4)
-  }
-  if (length(x$frame[["re_blocks"]])) {
-    cat("\nRandom effects:\n")
-    print(varcorr_matrices(x))
-  }
+  print(summary(x))
   invisible(x)
 }
 
@@ -194,9 +165,29 @@ coef_block_key <- function(fit, lp) {
 # the vcov_cluster() page; the variance components keep the
 # model-based standard errors either way.
 #' @export
-summary.frmtmb_fit <- function(object, vcov = NULL, ...) {
+summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
+                               robust = FALSE, mc_se = FALSE, ...,
+                               vcov = NULL) {
   frm_check_dots(..., .unsupported = c(brms_summary_args,
-                                       brms_draws_summary_args))
+                                       brms_draws_summary_args["pars"]))
+  check_flag(priors, "priors")
+  check_flag(robust, "robust")
+  check_flag(mc_se, "mc_se")
+  if (robust) {
+    frm_stop("summary() cannot honor robust = TRUE: brms's robust summary ",
+             "is the median and MAD of the draws, and a maximum-likelihood ",
+             "fit has no draws. Sample with frmtmb.sample::frm_sample() and ",
+             "summarize the draws for that", call. = FALSE)
+  }
+  if (mc_se) {
+    frm_stop("summary() cannot honor mc_se = TRUE: ",
+             brms_summary_args[["mc_se"]], call. = FALSE)
+  }
+  if (!is.numeric(prob) || length(prob) != 1L || is.na(prob) ||
+      prob <= 0 || prob >= 1) {
+    frm_stop("`prob` must be one probability strictly between 0 and 1, ",
+             "not ", arg_desc(prob), call. = FALSE)
+  }
   rdf <- NULL
   if (!is.null(vcov)) {
     # resolve once: `vcov` may be a function of the fit
@@ -230,9 +221,33 @@ summary.frmtmb_fit <- function(object, vcov = NULL, ...) {
          links = family_links_str(object$spec$responses),
          formula = formula(object), nobs = stats::nobs(object),
          ngrps = ngrps(object),
+         data_name = summary_data_name(object),
+         group = names(ngrps(object) %||% list()),
+         # the (MAP) marker says the fit was penalized by a prior, which
+         # is the one thing "ML" would otherwise hide
+         algorithm = paste0(if (object$REML) "REML" else "ML",
+                            if (!is.null(object$prior)) " (MAP)"),
+         prob = prob,
          loglik = logLik(object), AIC = stats::AIC(object),
          BIC = stats::BIC(object), REML = object$REML,
          importance = object$importance,
+         # brms's slots. `fixed` and `random` are what a ported script
+         # indexes; the frmtmb slots below them are unchanged.
+         fixed = summary_fixed_frame(object, ps, rdf, prob),
+         spec_pars = summary_spec_frame(object, prob),
+         cor_pars = summary_cor_pars_frame(object, prob),
+         random = summary_random_list(object, prob),
+         # the FLAG is stored beside the value: a plain ML fit has no
+         # priors, and a summary asked for them still says so rather
+         # than dropping the section
+         priors = priors,
+         # prior_summary() says "no priors" by printing, which belongs
+         # to the summary's own Priors section and not to the middle of
+         # a summary() call
+         prior = if (priors) {
+           utils::capture.output(p <- prior_summary(object))
+           p
+         } else NULL,
          coefficients = coefs, varcor = varcorr_matrices(object),
          rescor = rescor_matrix(object),
          # R-side residual correlation, on the natural scale with the
@@ -275,57 +290,306 @@ summary.frmtmb_fit <- function(object, vcov = NULL, ...) {
   )
 }
 
+#' The name brms prints on its `Data:` line: the expression the fit was
+#' given, not the frame itself.
+#'
+#' @noRd
+summary_data_name <- function(object) {
+  d <- object$call[["data"]]
+  if (is.null(d)) return("")
+  deparse1(d)
+}
+
+#' The two interval column names brms writes at coverage `prob`.
+#'
+#' @noRd
+brms_ci_cols <- function(prob) {
+  p <- format(prob * 100, trim = TRUE, scientific = FALSE,
+              drop0trailing = TRUE)
+  c(paste0("l-", p, "% CI"), paste0("u-", p, "% CI"))
+}
+
+#' brms's `$fixed`: the population-level coefficients, brms's four
+#' columns first, then the Wald test this package reports and brms has
+#' no counterpart for (brms puts `Rhat`, `Bulk_ESS` and `Tail_ESS`
+#' there, and those describe a sampler).
+#'
+#' @noRd
+summary_fixed_frame <- function(object, ps, rdf, prob) {
+  rows <- brms_fixef_rows(object)
+  est <- unname(brms_fixef_values(object, rows))
+  se <- rep(NA_real_, length(rows$names))
+  co <- !is.na(rows$idx)
+  se[co] <- par_est_se_flat(ps, object)[rows$idx[co]]
+  if (any(!co)) {
+    # an ordinal fit's thresholds: their standard error is the delta
+    # method of brms_fixef_extra_vcov(), which is model-based. A
+    # `vcov` argument replaces the COEFFICIENT errors above and has no
+    # threshold block to replace, so those rows keep the model-based
+    # error rather than being dropped from the table.
+    Vx <- tryCatch(suppressWarnings(brms_fixef_extra_vcov(object, rows)),
+                   error = function(e) NULL)
+    if (!is.null(Vx)) se[!co] <- sqrt(diag(Vx))[!co]
+  }
+  z <- est / se
+  q <- if (is.null(rdf)) stats::qnorm(1 - (1 - prob) / 2) else {
+    stats::qt(1 - (1 - prob) / 2, rdf)
+  }
+  out <- data.frame(Estimate = est, `Est.Error` = se,
+                    lo = est - q * se, hi = est + q * se,
+                    stat = z,
+                    p = if (is.null(rdf)) 2 * stats::pnorm(-abs(z)) else {
+                      2 * stats::pt(-abs(z), rdf)
+                    },
+                    check.names = FALSE)
+  names(out) <- c("Estimate", "Est.Error", brms_ci_cols(prob),
+                  if (is.null(rdf)) c("z value", "Pr(>|z|)") else {
+                    c("t value", "Pr(>|t|)")
+                  })
+  rownames(out) <- rows$names
+  out
+}
+
+#' Standard errors of the estimated coefficients in
+#' `brms_coef_table()` order.
+#'
+#' @noRd
+par_est_se_flat <- function(ps, object) {
+  bd <- ps$se[["betad"]]
+  if (length(fx <- object$frame[["betad_fixed_idx"]])) bd <- bd[-fx]
+  unname(c(ps$se[["beta"]], bd))
+}
+
+#' brms's `$spec_pars`: a distributional parameter nobody wrote a
+#' formula for, on its own natural scale.
+#'
+#' The interval is the coefficient's Wald interval mapped through the
+#' link inverse, so it cannot leave the parameter's range; the standard
+#' error is the delta method on the same map. brms reports the posterior
+#' quantiles, which are inside the range for the same reason.
+#'
+#' @noRd
+summary_spec_frame <- function(object, prob) {
+  tab <- brms_coef_table(object)
+  inv <- attr(tab, "linkinv")
+  smp <- attr(tab, "simplex")
+  in_smp <- unlist(lapply(smp, `[[`, "pos"))
+  keep <- setdiff(which(tab$natural), in_smp)
+  V <- tryCatch(suppressWarnings(vcov(object, full = TRUE)),
+                error = function(e) NULL)
+  cf <- fixef_estimated(object)
+  se_in <- if (is.null(V)) rep(NA_real_, length(cf)) else {
+    sqrt(diag(V))[seq_along(cf)]
+  }
+  q <- stats::qnorm(1 - (1 - prob) / 2)
+  est <- err <- lo <- hi <- numeric(0)
+  nm <- character(0)
+  for (i in keep) {
+    f <- inv[[i]]
+    e0 <- f(cf[i])
+    h <- 1e-5 * max(1, abs(cf[i]))
+    d <- (f(cf[i] + h) - f(cf[i] - h)) / (2 * h)
+    est <- c(est, e0)
+    err <- c(err, abs(d) * se_in[i])
+    lo <- c(lo, f(cf[i] - q * se_in[i]))
+    hi <- c(hi, f(cf[i] + q * se_in[i]))
+    nm <- c(nm, tab$brms[i])
+  }
+  for (s in smp %||% list()) {
+    p <- s$to_simplex(cf[s$pos])
+    for (k in seq_along(s$names)) {
+      est <- c(est, p[1L, k])
+      err <- c(err, NA_real_)
+      lo <- c(lo, NA_real_)
+      hi <- c(hi, NA_real_)
+      nm <- c(nm, s$names[k])
+    }
+  }
+  if (!length(nm)) return(summary_empty_block(prob))
+  out <- data.frame(Estimate = est, `Est.Error` = err, lo = lo, hi = hi,
+                    check.names = FALSE)
+  names(out) <- c("Estimate", "Est.Error", brms_ci_cols(prob))
+  rownames(out) <- nm
+  # a simplex is set as a whole, so its interval is not a one-parameter
+  # Wald interval; the estimates are reported and the bounds are NA
+  out
+}
+
+#' brms's `$cor_pars`: the residual correlation structure's own
+#' parameters, on their natural scale under brms's names.
+#'
+#' @noRd
+summary_cor_pars_frame <- function(object, prob) {
+  tr <- autocor_trans_rows(object)
+  if (is.null(tr)) return(summary_empty_block(prob))
+  summary_nat_frame(tr, prob, tr$term)
+}
+
+#' One natural-scale table from transformed-scale rows: the estimate,
+#' its delta-method standard error, and the transformed-scale Wald
+#' interval mapped back.
+#'
+#' @noRd
+summary_nat_frame <- function(tr, prob, rn) {
+  q <- stats::qnorm(1 - (1 - prob) / 2)
+  est <- varcorr_untrans(tr$type, tr$est_t)
+  out <- data.frame(
+    Estimate = est,
+    `Est.Error` = varcorr_nat_deriv(tr$type, tr$est_t) * tr$se_t,
+    lo = varcorr_untrans(tr$type, tr$est_t - q * tr$se_t),
+    hi = varcorr_untrans(tr$type, tr$est_t + q * tr$se_t),
+    check.names = FALSE)
+  names(out) <- c("Estimate", "Est.Error", brms_ci_cols(prob))
+  rownames(out) <- rn
+  out
+}
+
+#' Derivative of `varcorr_untrans()` at the transformed estimate, for
+#' the delta-method standard error on the natural scale.
+#'
+#' @noRd
+varcorr_nat_deriv <- function(type, v) {
+  p <- 1 / (1 + exp(-v))
+  ifelse(type == "raw", 1,
+         ifelse(type == "cor", 1 - tanh(v)^2,
+                ifelse(type == "prop", p * (1 - p), exp(v))))
+}
+
+#' brms's `$random`: one data frame per GROUPING FACTOR, with
+#' `sd(<term>)` and `cor(<t1>,<t2>)` rows under brms's term names.
+#'
+#' `varcorr_trans_rows()` returns the random-effect blocks followed by
+#' the residual correlation rows, which belong in `$cor_pars`; the tail
+#' is dropped by count rather than by label, because a block label and
+#' an autocorrelation label are both user text and could collide.
+#'
+#' @noRd
+summary_random_list <- function(object, prob) {
+  bks <- object$frame[["re_blocks"]]
+  # brms gives NULL, not an empty list, when there is nothing here; a
+  # ported script writes `if (is.null(s$random))` and `list()` is not
+  # NULL (measured, dev/shapes-rev-brmsref.rds)
+  if (!length(bks)) return(NULL)
+  tr <- tryCatch(suppressWarnings(varcorr_trans_rows(object)),
+                 error = function(e) NULL)
+  if (is.null(tr)) return(NULL)
+  acr <- autocor_trans_rows(object)
+  if (!is.null(acr)) tr <- utils::head(tr, nrow(tr) - nrow(acr))
+  out <- list()
+  for (bk in bks) {
+    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "car", "spde")) {
+      next
+    }
+    rows <- which(tr$block == bk[["term_label"]])
+    if (!length(rows)) next
+    tn <- brms_re_rnames(object, bk)
+    lab <- character(length(rows))
+    isd <- tr$type[rows] == "sd"
+    lab[isd] <- paste0("sd(", tn[seq_len(sum(isd))], ")")
+    if (any(!isd)) {
+      pairs <- which(lower.tri(diag(bk[["dim"]])), arr.ind = TRUE)
+      lab[!isd] <- paste0("cor(", tn[pairs[, 2]], ",", tn[pairs[, 1]], ")")
+    }
+    g <- brms_group_name(bk)
+    df <- summary_nat_frame(tr[rows, , drop = FALSE], prob, lab)
+    out[[g]] <- if (is.null(out[[g]])) df else rbind(out[[g]], df)
+  }
+  if (!length(out)) NULL else out
+}
+
+#' The empty version of a brms summary block: brms gives a frame with
+#' its own columns and no rows, not NULL, when a model has no
+#' `spec_pars` or no `cor_pars` (measured, `dev/shapes-rev-brmsref.rds`
+#' shows `$cor_pars` as a 0-row frame on a plain gaussian fit). A
+#' ported script reads `nrow()` on it.
+#'
+#' @noRd
+summary_empty_block <- function(prob) {
+  out <- data.frame(Estimate = numeric(0), `Est.Error` = numeric(0),
+                    lo = numeric(0), hi = numeric(0), check.names = FALSE)
+  names(out) <- c("Estimate", "Est.Error", brms_ci_cols(prob))
+  out
+}
+
+#' Print one of brms's summary blocks, rounded as brms rounds it.
+#'
+#' @noRd
+print_summary_block <- function(df, digits = 2) {
+  d <- as.data.frame(df, check.names = FALSE)
+  for (j in seq_along(d)) {
+    if (is.numeric(d[[j]])) {
+      d[[j]] <- if (grepl("^Pr[(]", names(d)[j])) {
+        format.pval(d[[j]], digits = digits)
+      } else {
+        round(d[[j]], digits)
+      }
+    }
+  }
+  print(d)
+  invisible(NULL)
+}
+
 #' @export
 print.summary.frmtmb_fit <- function(x, ...) {
   frm_check_dots(..., .unsupported = brms_print_args)
-  cat("Family:", x$family[["family"]], "\n")
+  cat(" Family:", x$family[["family"]], "\n")
   cat_family_links(x$links %||% family_link_str(x$family))
   cat("Formula:", deparse1(x$formula), "\n")
-  cat("Method:", if (x$REML) "REML" else "ML",
-      "  nobs:", x$nobs, "\n")
-  if (length(x$ngrps %||% integer(0))) {
-    cat("Groups:", paste(names(x$ngrps), x$ngrps, sep = ", ",
-                         collapse = "; "), "\n")
-  }
-  cat("logLik:", format(as.numeric(x$loglik), digits = 6),
-      " AIC:", format(x$AIC, digits = 6),
-      " BIC:", format(x$BIC, digits = 6), "\n")
+  cat("   Data:", x$data_name,
+      paste0("(Number of observations: ", x$nobs, ")"), "\n")
+  cat(" Method:", x$algorithm,
+      "  logLik:", format(as.numeric(x$loglik), digits = 6),
+      "  AIC:", format(x$AIC, digits = 6),
+      "  BIC:", format(x$BIC, digits = 6), "\n")
   if (!is.null(x$importance)) {
     cat(imp_report_line(x$importance), "\n")
   }
-  if (length(x$varcor)) {
-    cat("\nRandom effects:\n")
-    print(x$varcor)
+  if (length(x$random)) {
+    cat("\nMultilevel Hyperparameters:\n")
+    for (g in names(x$random)) {
+      # $random is keyed by brms's group name and ngrps() by frmtmb's,
+      # which differ where brms's renaming rewrites one; an unmatched
+      # key reports the count as unknown rather than printing nothing
+      n_g <- x$ngrps[[g]] %||% NA_integer_
+      cat("~", g, " (Number of levels: ", n_g, ") \n", sep = "")
+      print_summary_block(x$random[[g]])
+    }
   }
-  if (!is.null(x$rescor)) {
-    cat("\nResidual correlation:\n")
-    print(signif(x$rescor, 4))
-  }
-  if (!is.null(x$autocor)) {
-    cat("\nWithin-group residual correlation: ",
-        attr(x$autocor, "label"), "\n", sep = "")
-    m_ac <- x$autocor
-    attr(m_ac, "label") <- NULL
-    print(signif(m_ac, 4))
+  # an empty block is a 0-row frame now, brms's shape, so the test
+  # is on the rows and not on NULL
+  if (NROW(x$cor_pars)) {
+    cat("\nCorrelation Structures:\n")
+    print_summary_block(x$cor_pars)
   }
   if (!is.null(x$smooth_edf)) {
-    cat("\nSmooth terms (edf of the penalized part):\n")
+    cat("\nSmoothing Spline Hyperparameters (edf of the penalized part):\n")
     print(round(x$smooth_edf, 2))
   }
-  for (nm in names(x$coefficients)) {
-    if (nm %in% names(x$fixed_dpars)) next
-    cat("\nCoefficients (", nm, "):\n", sep = "")
-    stats::printCoefmat(x$coefficients[[nm]], signif.stars = FALSE,
-                        na.print = "-")
+  if (length(x$varcor_special %||% list())) {
+    cat("\nGaussian Process Terms:\n")
+    print_summary_block(x$varcor_special)
+  }
+  cat("\nRegression Coefficients:\n")
+  print_summary_block(x$fixed)
+  if (NROW(x$spec_pars)) {
+    cat("\nFurther Distributional Parameters:\n")
+    print_summary_block(x$spec_pars)
   }
   for (i in seq_along(x$fixed_dpars)) {
     cat("\nFixed dpar: ", names(x$fixed_dpars)[i], " = ",
         x$fixed_dpars[i], "\n", sep = "")
   }
-  for (nm in names(x$extras)) {
-    cat("\nFamily parameters (", nm, ", internal scale):\n", sep = "")
-    stats::printCoefmat(x$extras[[nm]], signif.stars = FALSE,
-                        na.print = "-")
+  if (!is.null(x$rescor)) {
+    cat("\nResidual correlation:\n")
+    print(signif(x$rescor, 4))
+  }
+  if (isTRUE(x$priors)) {
+    cat("\nPriors:\n")
+    if (is.null(x$prior)) {
+      cat("No priors were set (plain maximum likelihood).\n")
+    } else {
+      print(x$prior)
+    }
   }
   invisible(x)
 }
@@ -436,8 +700,13 @@ estimated_coef_names <- function(fit) {
 
 #' Covariance matrix of the fixed-effect estimates
 #'
-#' Covers the estimated coefficients of every linear predictor; dpars
-#' fixed to constants are excluded.
+#' Covers brms's population-level coefficients and names its rows as
+#' brms does (`Intercept`, `sigma_Intercept`, `x`). A distributional
+#' parameter nobody wrote a formula for is not one of them: frmtmb
+#' estimates `sigma` or `nu` as an intercept-only linear predictor,
+#' brms reports it as a parameter of its own, and `summary()` shows it
+#' under `Further Distributional Parameters`. Dpars fixed to constants
+#' are excluded too.
 #'
 #' `full = TRUE` is the joint covariance of the whole outer parameter
 #' vector on its internal scale: the fixed-effect coefficients, the
@@ -462,9 +731,15 @@ estimated_coef_names <- function(fit) {
 #' spelling: `vcov(fit, cluster = ~ g, type = "CR1")`.
 #'
 #' @param object A `frmtmb_fit`.
+#' @param correlation If `TRUE`, the correlation matrix instead, as in
+#'   brms.
+#' @param pars Row and column names to keep, in the order given, as in
+#'   brms.
 #' @param full If `TRUE`, include covariance parameters (`theta`),
 #'   named as in `confint()` (the glmmTMB `vcov(full = TRUE)`
-#'   convention).
+#'   convention). `full = TRUE` keeps the INTERNAL names, because it is
+#'   the matrix a delta-method calculation on `confint()`'s rows needs;
+#'   the default block takes brms's.
 #' @param cluster Optional clustering factor. When given, the result is
 #'   [vcov_cluster()]'s cluster-robust covariance instead of the
 #'   model-based one.
@@ -491,9 +766,10 @@ estimated_coef_names <- function(fit) {
 #' dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
 #' fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 #'
-#' # standard errors of the fixed effects
+#' # standard errors of the fixed effects, which is fixef()'s Est.Error
 #' sqrt(diag(vcov(fit)))
-#' # the covariance parameters join the block on their internal scale
+#' # the covariance parameters join the block on their internal scale,
+#' # under the internal names, which is confint()'s vocabulary
 #' rownames(vcov(fit, full = TRUE))
 #'
 #' # the matrix is what a delta-method calculation needs
@@ -501,15 +777,35 @@ estimated_coef_names <- function(fit) {
 #' a <- c(1, 2)                       # prediction at x = 2, no group
 #' sqrt(drop(t(a) %*% V[1:2, 1:2] %*% a))
 #' @export
-vcov.frmtmb_fit <- function(object, full = FALSE, cluster = NULL,
-                            type = "CR0", ...) {
-  frm_check_dots(..., .unsupported = c(
-    correlation = paste("brms returns the correlation matrix instead;",
-                        "here, cov2cor(vcov(object))"),
-    pars = brms_draws_summary_args[["pars"]]))
-  if (!is.null(cluster)) {
-    return(vcov_cluster(object, cluster, type = type, full = full))
+vcov.frmtmb_fit <- function(object, correlation = FALSE, pars = NULL, ...,
+                            full = FALSE, cluster = NULL, type = "CR0") {
+  frm_check_dots(...)
+  check_flag(correlation, "correlation")
+  V <- if (is.null(cluster)) {
+    vcov_estimated(object, full = full)
+  } else {
+    vcov_cluster(object, cluster, type = type, full = full)
   }
+  if (full) return(V)
+  V <- vcov_brms_block(object, V, model_based = is.null(cluster))
+  if (correlation) V <- stats::cov2cor(V)
+  brms_pars_filter(t(brms_pars_filter(t(V), pars, "vcov()")), pars,
+                   "vcov()")
+}
+
+#' The covariance of EVERY estimated coefficient, under the internal
+#' names of `estimated_coef_names()`.
+#'
+#' This is what `vcov()` returned before item 2.6f moved it to brms's
+#' population-level block. It stayed, because the interop seams need a
+#' covariance that lines up with `get_coef()` and
+#' `insight::get_parameters()`, both of which report every estimated
+#' coefficient: marginaleffects builds a numeric jacobian by perturbing
+#' that vector, so a covariance one row shorter than it is not merely
+#' differently named, it is the wrong matrix.
+#'
+#' @noRd
+vcov_estimated <- function(object, full = FALSE) {
   nm <- estimated_coef_names(object)
   if (!object$REML && !isTRUE(object$control$profile)) {
     V <- sdr_of(object)$cov.fixed
@@ -560,6 +856,52 @@ vcov.frmtmb_fit <- function(object, full = FALSE, cluster = NULL,
   V
 }
 
+#' The population-level sub-block of a coefficient covariance, named as
+#' brms names it.
+#'
+#' brms's `vcov()` covers the coefficients its `fixef()` reports, so a
+#' distributional parameter nobody wrote a formula for is NOT in it: it
+#' is a `spec_par` reported on its own natural scale. frmtmb estimates
+#' such a parameter as an intercept-only linear predictor, which is why
+#' this block used to be one row wider than brms's on the same model.
+#'
+#' @noRd
+vcov_brms_block <- function(object, V, model_based = TRUE) {
+  rows <- brms_fixef_rows(object)
+  if (length(rows$extra)) {
+    # an ordinal fit's thresholds and cs() coefficients are brms
+    # population-level parameters and belong in this matrix, but they
+    # are not rows of V: they come from the joint covariance through a
+    # delta method. A cluster-robust V has no such joint matrix behind
+    # it, so there the block is the coefficient rows it does have and
+    # the omission is said out loud rather than left to be read off a
+    # dimension.
+    if (model_based) {
+      out <- brms_fixef_extra_vcov(object, rows)
+      if (!is.null(out)) {
+        if (!is.null(df <- attr(V, "df"))) attr(out, "df") <- df
+        return(out)
+      }
+      frm_warning("the ordinal thresholds could not be aligned with the ",
+                  "joint covariance; vcov() reports the coefficient rows ",
+                  "only", call. = FALSE)
+    } else {
+      frm_warning("a cluster-robust covariance covers the estimated ",
+                  "coefficients only, so the ordinal threshold rows are ",
+                  "not in it; use vcov(object) for those", call. = FALSE)
+    }
+    rows$names <- rows$names[!is.na(rows$idx)]
+    rows$idx <- rows$idx[!is.na(rows$idx)]
+  }
+  out <- V[rows$idx, rows$idx, drop = FALSE]
+  dimnames(out) <- list(rows$names, rows$names)
+  # a cluster-robust matrix carries its degrees of freedom, which the
+  # coefficient table reads to choose a t reference; subsetting a matrix
+  # drops every attribute but dim and dimnames
+  if (!is.null(df <- attr(V, "df"))) attr(out, "df") <- df
+  out
+}
+
 #' Per-group coefficients (fixed effects plus conditional modes)
 #'
 #' Follows the lme4/glmmTMB/brms convention: for each random-effect
@@ -570,8 +912,15 @@ vcov.frmtmb_fit <- function(object, full = FALSE, cluster = NULL,
 #' The result is a list of data frames keyed by grouping factor. When
 #' random effects appear in more than one dpar (or response), an outer
 #' layer keyed like [fixef()] is added. Smooth terms are excluded. A fit
-#' without random effects returns [fixef()] (the single coefficient
-#' vector when there is one linear predictor).
+#' without random effects returns the coefficient vector of the location
+#' predictor (when there is one linear predictor), or one vector per
+#' predictor.
+#'
+#' The coefficients are named as brms names them, which is how
+#' [fixef()] and [vcov()] name their rows: `Intercept`, not
+#' `(Intercept)`. Anything that pairs `coef()` with `vcov()` by name,
+#' `lmtest::coeftest()` among them, needs the two to agree. Use
+#' [fixef_by_dpar()] for the design-column spelling.
 #'
 #' @param object A `frmtmb_fit`.
 #' @param summary,robust,probs brms's arguments, in brms's
@@ -586,7 +935,7 @@ vcov.frmtmb_fit <- function(object, full = FALSE, cluster = NULL,
 #'   with one row per group level and one column per coefficient. When
 #'   random effects appear in more than one linear predictor, the list is
 #'   nested one level deeper, keyed as in [fixef()]. A fit without random
-#'   effects returns the [fixef()] value instead.
+#'   effects returns the per-predictor coefficient vectors instead.
 #'
 #' @srrstats {RE4.2} Model coefficients are returned by `coef()`, in the
 #'   lme4 and glmmTMB sense of per-group coefficients (fixed effects
@@ -602,12 +951,14 @@ vcov.frmtmb_fit <- function(object, full = FALSE, cluster = NULL,
 #'
 #' # one row per group: the fixed effects with the modes added in
 #' head(coef(fit)$g)
-#' # which is fixef() plus ranef(), the lme4 identity
-#' all.equal(coef(fit)$g[["(Intercept)"]],
-#'           fixef(fit)$mu[["(Intercept)"]] + ranef(fit)$g[, 1],
+#' # which is fixef() plus ranef(), the lme4 identity, under the same
+#' # names fixef() and vcov() use
+#' all.equal(coef(fit)$g[["Intercept"]],
+#'           fixef(fit)["Intercept", "Estimate"] + ranef(fit)$g[, 1],
 #'           check.attributes = FALSE)
 #'
-#' # without random effects there are no groups, so coef() is fixef()
+#' # without random effects there are no groups, so coef() is the
+#' # coefficient vector of the location predictor
 #' coef(frm(bf(y ~ x) + gaussian(), data = dd))
 #' @export
 coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
@@ -617,7 +968,36 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   # a refusal rather than an argument landing nowhere
   fit_refuse_draws_args("coef()", summary = summary, robust = robust,
                         probs = probs)
-  fe <- fixef(object)
+  # brms's coefficient names, the same ones fixef() and vcov() put on
+  # their rows. They used to be the DESIGN COLUMN names, and the split
+  # was not cosmetic: lmtest::coeftest() intersects names(coef()) with
+  # rownames(vcov()), so `(Intercept)` here against `Intercept` there
+  # dropped the intercept row out of a printed significance table with
+  # no warning. brms names both the same way.
+  tab <- brms_coef_table(object)
+  fe <- list()
+  cmap <- list()
+  for (lp in object$frame[["linpreds"]]) {
+    key <- coef_block_key(object, lp)
+    v <- object$estimates[[lp[["par"]]]][lp[["idx"]]]
+    bn <- brms_lp_coef_names(lp, tab)
+    names(v) <- bn
+    fe[[key]] <- v
+    # the conditional modes are keyed by DESIGN column, which is the
+    # vocabulary the random-effect blocks carry, so the columns they
+    # are added to have to be looked up
+    cmap[[key]] <- stats::setNames(bn, colnames(lp[["X"]]))
+  }
+  # an ordinal fit's thresholds and cs() coefficients are population-
+  # level parameters with no design column of their own, and brms's
+  # coef() carries them; without them vcov() had rows coef() did not
+  rows <- brms_fixef_rows(object)
+  for (e in rows$extra) {
+    fe[[e$key]] <- c(fe[[e$key]], stats::setNames(e$values, e$names))
+  }
+  for (k in names(fe)) {
+    fe[[k]] <- fe[[k]][order(match(names(fe[[k]]), rows$names))]
+  }
   cvec <- coef_b(object)
   out <- list()
   for (bk in object$frame[["re_blocks"]]) {
@@ -642,9 +1022,31 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
           optional = TRUE
         )
       }
+      thr <- Filter(function(e) {
+        identical(e$comp, "tau_raw") && identical(e$key, key)
+      }, rows$extra)
       for (j in seq_len(cp$dim)) {
         cn <- cp$cnms[j]
         bv <- bmat[, cp$offset + j]
+        if (length(thr) && identical(cn, "(Intercept)")) {
+          # an ordinal predictor has no intercept column: its intercept
+          # IS the thresholds, so a random intercept moves each of them,
+          # as brms:::coef.brmsfit moves them. The sign is the one the
+          # family's likelihood gives eta against a threshold. That was
+          # a stray `(Intercept)` column holding the mode alone beside
+          # thresholds repeated unchanged across groups.
+          df <- coef_shift_thresholds(df, thr[[1L]]$names, bv,
+                                      brms_lp_family(object, lp))
+          next
+        }
+        # a random-effect column the fixed part does not have (an
+        # `0 + x | g` whose x is not a fixed term) takes the name brms
+        # gives the group-level coefficient
+        if (!is.na(mapped <- cmap[[key]][cn])) {
+          cn <- unname(mapped)
+        } else {
+          cn <- brms_usc(brms_lp_prefix(object, lp), brms_rename(cn))
+        }
         if (cn %in% colnames(df)) {
           df[[cn]] <- df[[cn]] + bv
         } else {
@@ -672,16 +1074,52 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   if (length(out) == 1L) out[[1L]] else out
 }
 
+#' Move an ordinal predictor's thresholds by a group's random intercept,
+#' with brms's sign.
+#'
+#' brms:::coef.brmsfit keys the sign on the family's specials:
+#' `thres_minus_eta` families (cumulative, sratio) evaluate
+#' `threshold - eta`, so the group's threshold is the threshold minus
+#' the group's mode; `eta_minus_thres` families (cratio, acat) evaluate
+#' `eta - threshold`, and brms reports the mode minus the threshold
+#' there. frmtmb's four ordinal likelihoods use the same two forms
+#' (`ord_cat_probs()`). Any other family gets brms's default, the
+#' threshold plus the mode.
+#'
+#' @noRd
+coef_shift_thresholds <- function(df, nms, bv, fam) {
+  f <- fam[["family"]] %||% ""
+  for (nm in nms) {
+    df[[nm]] <- if (f %in% c("cumulative", "sratio")) {
+      df[[nm]] - bv
+    } else if (f %in% c("cratio", "acat")) {
+      bv - df[[nm]]
+    } else {
+      df[[nm]] + bv
+    }
+  }
+  df
+}
+
 #' Extract fixed effects
 #'
-#' Two shapes, and the difference is the NAMES. The default is a list
-#' keyed by distributional parameter, whose entries are named by DESIGN
-#' COLUMN: `fixef(fit)$sigma[["(Intercept)"]]`. `flatten = TRUE` is one
-#' vector in the INTERNAL parameter name, which is what `vcov()`,
-#' `confint()`, `par_template()`, `start` and `newparams` use:
-#' `dpar_column`, with the location parameter's own coefficients left
-#' unprefixed (`x`, not `mu_x`), and the response prefixed ahead of that
-#' in a multivariate fit.
+#' Two shapes, and the difference is the NAMES. The default is brms's
+#' summary matrix: one row per population-level coefficient under
+#' brms's own name (`Intercept`, `sigma_Intercept`, `x`), and the
+#' columns `Estimate`, `Est.Error`, `Q2.5` and `Q97.5`. A
+#' maximum-likelihood fit has no draws, so `Est.Error` is the standard
+#' error and the `Q` columns are the Wald interval at those
+#' probabilities, which is the interval [confint()] reports.
+#' `flatten = TRUE` is one vector of estimates in the INTERNAL parameter
+#' name, which is what `confint()`, `par_template()`, `start` and
+#' `newparams` use: `dpar_column`, with the location parameter's own
+#' coefficients left unprefixed (`x`, not `mu_x`), and the response
+#' prefixed ahead of that in a multivariate fit.
+#'
+#' A distributional parameter nobody wrote a formula for is not a
+#' population-level coefficient in brms and is not a row here: `sigma`
+#' of a plain gaussian fit is reported by `summary()` under
+#' `Further Distributional Parameters`, on its own natural scale.
 #'
 #' `hypothesis()` and `variables()` use a THIRD vocabulary, brms's
 #' parameter names: `b_Intercept`, `b_sigma_Intercept` for a `sigma`
@@ -690,51 +1128,52 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
 #' name, so its default spelling of those is `Intercept` and
 #' `sigma_Intercept`.
 #'
-#' `unlist(fixef(fit))` is none of them. It is base R's composite of a
-#' list KEY and an element name, `mu.x`, and it names no parameter of
-#' the model: the separator differs and the location parameter is named
-#' where the model does not name it. Use `flatten = TRUE` to line
-#' coefficients up with a covariance matrix or a prior.
+#' `unlist(fixef(fit, flatten = TRUE))` is none of them. Use
+#' `flatten = TRUE` to line coefficients up with a prior or with
+#' `confint()`, and the default matrix to read an estimate with its
+#' standard error.
 #'
 #' @param object A `frmtmb_fit`.
-#' @param summary,robust,probs,pars brms's arguments, in brms's
-#'   positions so that a positional brms call asks the same question.
-#'   brms answers `summary = FALSE` with the posterior draws and
-#'   `robust = TRUE` with their median and MAD, and a maximum-likelihood
-#'   fit has no draws, so both are refused by name with the reason. The
-#'   default of each is accepted and changes nothing.
-#' @param flatten If `TRUE`, one named vector in the `vcov()` /
-#'   `confint()` spelling instead of the per-dpar list. Coefficients
-#'   come in linear-predictor order, which need not be `vcov()`'s row
+#' @param summary,robust brms's arguments, in brms's positions so that
+#'   a positional brms call asks the same question. brms answers
+#'   `summary = FALSE` with the posterior draws and `robust = TRUE` with
+#'   their median and MAD, and a maximum-likelihood fit has no draws, so
+#'   both are refused by name with the reason. The default of each is
+#'   accepted and changes nothing.
+#' @param probs Probabilities of the two quantile columns. brms takes
+#'   the posterior quantiles there; here they are the ends of the Wald
+#'   interval at those probabilities.
+#' @param pars Row names to keep, in the order given, as in brms. A name
+#'   the fit does not have is an error listing the ones it does.
+#' @param flatten If `TRUE`, one named vector of ESTIMATES in the
+#'   `confint()` spelling instead of the summary matrix. Coefficients
+#'   come in linear-predictor order, which need not be the matrix's row
 #'   order; index by name. Distributional parameters held at a constant
-#'   are included here and are absent from `vcov()`, which covers the
-#'   ESTIMATED coefficients only - so dividing by a `vcov()` diagonal is
-#'   `NA` for those entries, and
-#'   `intersect(names(cf), rownames(vcov(fit)))` selects the ones a
-#'   standard error exists for.
+#'   are included here and are absent from `vcov()` and from the matrix,
+#'   which cover the ESTIMATED population-level coefficients only.
 #' @param ... Refused: an argument the method does not have is an
 #'   error naming it, rather than silently changing nothing.
-#' @return A named list of coefficient vectors, one per dpar, or with
-#'   `flatten = TRUE` a single named vector.
-#' @seealso [vcov.frmtmb_fit()] and [confint.frmtmb_fit()], which name
-#'   their rows the way `flatten = TRUE` names its entries.
+#' @return A coefficients-by-four matrix, or with `flatten = TRUE` a
+#'   single named vector of estimates.
+#' @seealso [vcov.frmtmb_fit()], which names its rows as this matrix
+#'   does, and [confint.frmtmb_fit()], which names them as
+#'   `flatten = TRUE` names its entries.
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
 #' dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
 #'
-#' # one entry per distributional parameter, each on its link scale
+#' # brms's summary matrix, one row per population-level coefficient
 #' fit <- frm(bf(y ~ x + (1 | g), sigma ~ x) + gaussian(), data = dd)
 #' fixef(fit)
-#' exp(fixef(fit)$sigma[["(Intercept)"]])   # sigma is modeled on the log
+#' exp(fixef(fit)["sigma_Intercept", "Estimate"])  # sigma is on the log
 #'
-#' # flatten to the vector vcov() and confint() name their rows by
+#' # flatten to the vector confint() names its rows by
 #' fixef(fit, flatten = TRUE)
 #' all(names(fixef(fit, flatten = TRUE)) %in% rownames(confint(fit)))
 #'
-#' # so a standard error goes with its coefficient by name
-#' cf <- fixef(fit, flatten = TRUE)
-#' cf / sqrt(diag(vcov(fit))[names(cf)])
+#' # the standard error column is vcov()'s diagonal
+#' all.equal(fixef(fit)[, "Est.Error"], sqrt(diag(vcov(fit))))
 #' @rdname fixef
 #' @aliases fixef
 #' @export
@@ -744,8 +1183,7 @@ fixef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   frm_check_dots(...)
   # brms's positions ahead of `...`: fixef(fit, FALSE) used to set
   # `flatten` and return the default shape, identical() to fixef(fit)
-  fit_refuse_draws_args("fixef()", summary = summary, robust = robust,
-                        probs = probs, pars = pars)
+  fit_refuse_draws_args("fixef()", summary = summary, robust = robust)
   require_fitted(object, "fixef()")
   check_flag(flatten, "flatten")
   est <- object$estimates
@@ -753,12 +1191,74 @@ fixef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   # template builds both), so flatten reads them rather than rebuilding
   # the dpar-prefix rule a second place where it could drift
   if (flatten) {
+    if (!is.null(pars)) {
+      frm_stop("fixef(flatten = TRUE) names its entries in the internal ",
+               "vocabulary, where brms's `pars` names rows of the summary ",
+               "matrix. Subset the vector, or drop flatten", call. = FALSE)
+    }
     out <- numeric(0)
     for (lp in object$frame[["linpreds"]]) {
       out <- c(out, est[[lp[["par"]]]][lp[["idx"]]])
     }
     return(out)
   }
+  rows <- brms_fixef_rows(object)
+  cf <- unname(brms_fixef_values(object, rows))
+  V <- tryCatch(suppressWarnings(vcov(object)), error = function(e) NULL)
+  se <- if (is.null(V)) NULL else unname(sqrt(diag(V))[rows$names])
+  out <- brms_summary_matrix(cf, se, probs, rownames = rows$names)
+  brms_pars_filter(out, pars, "fixef()")
+}
+
+#' The estimated fixed-effect coefficients in `brms_coef_table()` order,
+#' which is `estimated_coef_names()` order.
+#'
+#' @noRd
+fixef_estimated <- function(object) {
+  est <- object$estimates
+  bd <- est[["betad"]]
+  if (length(fx <- object$frame[["betad_fixed_idx"]])) bd <- bd[-fx]
+  unname(c(est[["beta"]], bd))
+}
+
+#' Fixed effects per linear predictor
+#'
+#' The coefficients of each linear predictor, as a named list keyed by
+#' distributional parameter (and by response on a multivariate fit),
+#' each entry named by DESIGN COLUMN: `fixef_by_dpar(fit)$sigma`,
+#' `fixef_by_dpar(fit)$mu[["(Intercept)"]]`.
+#'
+#' This is the shape [fixef()] returned before frmtmb took brms's
+#' summary matrix. It is kept because nothing else has it: `fixef()`
+#' names its rows as brms does and flattens every predictor into one
+#' table, and `fixef(flatten = TRUE)` is one vector in the [confint()]
+#' spelling. A model with several linear predictors (a mixture, a
+#' multivariate response, a nonlinear body) is the case this reads
+#' cleanly.
+#'
+#' It carries ESTIMATES only. For a standard error or an interval use
+#' [fixef()], whose rows are the same coefficients under brms's names.
+#'
+#' @param object A `frmtmb_fit`.
+#' @return A named list of coefficient vectors, one per linear
+#'   predictor.
+#' @seealso [fixef()], [coef.frmtmb_fit()]
+#' @examples
+#' set.seed(1)
+#' dd <- data.frame(x = rnorm(100))
+#' dd$y <- rnorm(100, 1 + 0.5 * dd$x, exp(0.2 + 0.1 * dd$x))
+#' fit <- frm(bf(y ~ x, sigma ~ x) + gaussian(), data = dd)
+#'
+#' # one entry per distributional parameter, named by design column
+#' fixef_by_dpar(fit)
+#' exp(fixef_by_dpar(fit)$sigma[["(Intercept)"]])
+#'
+#' # the same coefficients under brms's names, with their errors
+#' fixef(fit)
+#' @export
+fixef_by_dpar <- function(object) {
+  require_fitted(object, "fixef_by_dpar()")
+  est <- object$estimates
   out <- list()
   for (lp in object$frame[["linpreds"]]) {
     v <- est[[lp[["par"]]]][lp[["idx"]]]
@@ -851,7 +1351,16 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   out <- list()
   for (bk in object$frame[["re_blocks"]]) {
     M <- t(matrix(cvec[bk[["c_idx"]]], nrow = bk[["dim"]]))
-    dimnames(M) <- list(bk[["levels"]], bk[["cnms"]])
+    # brms's coefficient names, which is what coef() puts on the same
+    # columns: `Intercept`, not `(Intercept)`, and `sigma_Intercept` for
+    # a block on sigma. A block brms has no r_ for (a reduced-rank
+    # factor, a smooth basis) keeps the names it carries.
+    rn <- bk[["cnms"]]
+    if (brms_block_has_r(bk)) {
+      bn <- tryCatch(brms_re_rnames(object, bk), error = function(e) NULL)
+      if (length(bn) == length(rn)) rn <- bn
+    }
+    dimnames(M) <- list(bk[["levels"]], rn)
     if (!is.null(cvr)) {
       # rr factors live in a different space than the displayed
       # coefficients; no conditional SDs for those blocks. An esicar

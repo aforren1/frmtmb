@@ -33,7 +33,7 @@ test_that("boot bands are percentiles of one shared bootstrap", {
   bsm <- frm_bootstrap(
     fit,
     FUN = function(f) {
-      as.vector(predict(f, newdata = grid, type = "response", dpar = "mu",
+      as.vector(frm_linpred(f, newdata = grid, type = "response", dpar = "mu",
                         resp = "y", re_formula = NA))
     },
     nsim = 25, seed = 11
@@ -79,7 +79,7 @@ test_that("boot bands on a mixed model match a hand-run bootstrap", {
   bsm <- frm_bootstrap(
     fs,
     FUN = function(f) {
-      as.vector(predict(f, newdata = grid, type = "response", dpar = "mu",
+      as.vector(frm_linpred(f, newdata = grid, type = "response", dpar = "mu",
                         resp = "Reaction", re_formula = NA))
     },
     nsim = 20, seed = 3
@@ -416,7 +416,7 @@ test_that("a nonlinear fit finds the covariates of its nl body", {
   on.exit(grDevices::dev.off(), add = TRUE)
   expect_no_error(plot(ce, ask = FALSE, points = TRUE))
   # a nonlinear predictor has no delta-method se, so the other bands say
-  # so instead of failing somewhere inside predict()
+  # so instead of failing somewhere inside frm_linpred()
   expect_error(conditional_effects(fnl, resolution = 5),
                "cannot put a wald band on a nonlinear predictor")
   expect_error(

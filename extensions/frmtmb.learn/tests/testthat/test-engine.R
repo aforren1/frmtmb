@@ -37,7 +37,7 @@ test_that("the recursion equals the model written out longhand", {
   fit <- frmtmb::frm(
     frmtmb::bf(choice | reward(pay1, pay2) ~ 1, tau ~ 1),
     family = bandit2arm_delta(subject = id, trial = trial), data = d)
-  fx <- unlist(frmtmb::fixef(fit))
+  fx <- unlist(frmtmb::fixef_by_dpar(fit))
   ref <- ln_ref_delta(d, stats::plogis(fx[["alpha.(Intercept)"]]),
                       exp(fx[["tau.(Intercept)"]]))
   expect_equal(ref, as.numeric(stats::logLik(fit)), tolerance = 1e-10)
@@ -74,7 +74,7 @@ test_that("padding is inert: an unbalanced design scores its own rows", {
   fit <- frmtmb::frm(
     frmtmb::bf(choice | reward(pay1, pay2) ~ 1, tau ~ 1),
     family = bandit2arm_delta(subject = id, trial = trial), data = du)
-  fx <- unlist(frmtmb::fixef(fit))
+  fx <- unlist(frmtmb::fixef_by_dpar(fit))
   ref <- ln_ref_delta(droplevels(du), stats::plogis(fx[["alpha.(Intercept)"]]),
                       exp(fx[["tau.(Intercept)"]]))
   expect_equal(ref, as.numeric(stats::logLik(fit)), tolerance = 1e-10)
@@ -133,7 +133,7 @@ test_that("the trace records the value the choice was made on", {
   expect_true(all(first$q1 == 0 & first$q2 == 0))
   expect_true(all(abs(first$p - 0.5) < 1e-12))
   # and the recorded probability reproduces the recorded values
-  tau <- exp(unlist(frmtmb::fixef(fit))[["tau.(Intercept)"]])
+  tau <- exp(unlist(frmtmb::fixef_by_dpar(fit))[["tau.(Intercept)"]])
   pk <- ifelse(d$choice == 1,
                stats::plogis(tau * (tr$q1 - tr$q2)),
                stats::plogis(tau * (tr$q2 - tr$q1)))

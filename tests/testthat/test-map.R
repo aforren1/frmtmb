@@ -10,9 +10,9 @@ test_that("MAP priors shrink estimates and penalize the objective", {
              prior = set_prior("normal(0, 0.1)", class = "b"))
 
   # slope shrunk toward zero, ML untouched
-  expect_lt(abs(fixef(map)$mu[["x"]]), abs(fixef(ml)$mu[["x"]]))
+  expect_lt(abs(fixef_by_dpar(map)$mu[["x"]]), abs(fixef_by_dpar(ml)$mu[["x"]]))
   # penalized objective identity at the MAP solution
-  nlp <- -stats::dnorm(fixef(map)$mu[["x"]], 0, 0.1, log = TRUE)
+  nlp <- -stats::dnorm(fixef_by_dpar(map)$mu[["x"]], 0, 0.1, log = TRUE)
   raw_nll <- ml$obj$fn(map$opt$par)
   expect_lt(abs((-as.numeric(logLik(map))) - (raw_nll + nlp)), 1e-6)
   expect_output(print(map), "MAP")
@@ -20,7 +20,7 @@ test_that("MAP priors shrink estimates and penalize the objective", {
   # near-flat priors reproduce ML
   map2 <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
               prior = set_prior("normal(0, 1000)", class = "b"))
-  expect_vector_equal(fixef(map2)$mu, fixef(ml)$mu, tol = 1e-3)
+  expect_vector_equal(fixef_by_dpar(map2)$mu, fixef_by_dpar(ml)$mu, tol = 1e-3)
 })
 
 test_that("an sd prior regularizes a singular variance component", {

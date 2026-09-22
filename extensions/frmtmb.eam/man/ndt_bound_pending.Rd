@@ -36,7 +36,7 @@ SETTLED bound passes a check against a placeholder and reaches the
 objective as \code{NaN}.
 \item \verb{max_ndt = <a number>} gives a SETTLED bound, and the family scores
 outside \code{frm()}: \code{ndt} is a time measured against that bound,
-\code{predict(dpar = "ndt", type = "response")} reports seconds, and a
+\code{frm_linpred(dpar = "ndt", type = "response")} reports seconds, and a
 pinned constant means what it says.
 }
 

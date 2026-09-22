@@ -252,10 +252,12 @@ test_that("user-reachable refusals once left to base R are frmtmb_error", {
   dl <- d
   dl$lc <- replicate(40, list(1:2), simplify = FALSE)
   cases <- list(
-    predict_type = list(quote(predict(fit, type = "bogus")),
+    predict_type = list(quote(frm_linpred(fit, type = "bogus")),
                         "`type` must be one of \"link\""),
-    fitted_scale = list(quote(fitted(fit, scale = "bogus")), "`scale`"),
-    residuals_type = list(quote(residuals(fit, type = "bogus")), "`type`"),
+    fitted_scale = list(quote(fitted(fit, scale = "bogus")[, "Estimate"]),
+                        "`scale`"),
+    residuals_type = list(quote(residuals(fit, type = "bogus")[, "Estimate"]),
+                          "`type`"),
     confint_method = list(quote(confint(fit, method = "bogus")),
                           "`method`"),
     drop1_test = list(quote(drop1(fit, test = "bogus")), "`test`"),
@@ -321,10 +323,10 @@ test_that("user-reachable refusals once left to base R are frmtmb_error", {
                                "vcov_cluster[(][)] needs"),
     register_prior_defaults = list(
       quote(frmtmb:::frmtmb_register_prior_defaults(1)), "needs a function"),
-    predict_missing_column = list(quote(predict(fit,
+    predict_missing_column = list(quote(frm_linpred(fit,
                                                 newdata = d[, c("y", "g")])),
                                   "Variable 'x' missing from newdata"),
-    predict_new_level = list(quote(predict(fitf, newdata = transform(
+    predict_new_level = list(quote(frm_linpred(fitf, newdata = transform(
       d[1:4, ], f = factor(c("a", "zz", "a", "b"))))),
       "a level of `f` that the fit did not see: 'zz'"),
     frm_unknown_variable = list(quote(frm(y ~ nope, data = d)),
@@ -349,7 +351,7 @@ test_that("user-reachable refusals once left to base R are frmtmb_error", {
   expect_identical(n, length(cases))
   # a newdata that lacks nothing and has no new level still predicts,
   # which is the case a refusal must not fire on
-  expect_no_error(predict(fitf, newdata = d[1:4, ]))
+  expect_no_error(frm_linpred(fitf, newdata = d[1:4, ]))
 })
 
 test_that("the frame check searches an environment data as model.frame()", {

@@ -80,13 +80,14 @@ test_that("max_ndt above min(rt) is refused alone and allowed in a mixture", {
   expect_true(is.finite(as.numeric(logLik(fit))))
   # the point of the exercise: the non-decision time is free to sit
   # above the fastest response time, which a bare fit cannot do
-  e <- unlist(fixef(fit))
+  e <- unlist(fixef_by_dpar(fit))
   ndt <- 0.4 / (1 + exp(-e[["ndt1.(Intercept)"]]))
   expect_gt(ndt, min(dat$rt))
 
   # every row still has a likelihood, because the contaminant carries
   # the ones the Wiener component gives zero
-  expect_true(all(is.finite(stats::residuals(fit, type = "response"))))
+  expect_true(all(is.finite(stats::residuals(fit,
+                                             type = "response")[, "Estimate"])))
 })
 
 test_that("an unreachable row is a clean zero, not a NaN gradient", {
@@ -273,9 +274,9 @@ test_that("a mixture survives a negative-span row end to end", {
                               lognormal()),
              data = dat)
   expect_true(is.finite(as.numeric(logLik(fit))))
-  expect_true(all(is.finite(unlist(fixef(fit)))))
+  expect_true(all(is.finite(unlist(fixef_by_dpar(fit)))))
 
-  e <- unlist(fixef(fit))
+  e <- unlist(fixef_by_dpar(fit))
   ndt <- 0.4 / (1 + exp(-e[["ndt1.(Intercept)"]]))
   st <- 0.8 / (1 + exp(-e[["st1.(Intercept)"]]))
   # the non-decision time settled above the fastest response times,

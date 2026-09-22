@@ -407,7 +407,7 @@ test_that("the simulated first moment matches the fitted matrix", {
   sims <- frm_cross_simulate(fit, nsim = 4000L, seed = 5, newdata = d[1, ])
   m <- rowMeans(vapply(sims, function(z)
     c(z$w11, z$w22, z$w12r, z$w12i), numeric(4)))
-  e <- vapply(frmtmb::fixef(fit), function(z) z[["(Intercept)"]], 0)
+  e <- vapply(frmtmb::fixef_by_dpar(fit), function(z) z[["(Intercept)"]], 0)
   s11 <- exp(e[["mu"]]); s22 <- exp(e[["pow2"]])
   ch <- stats::plogis(e[["coh"]]); ph <- e[["phase"]]
   tgt <- 16 * c(s11, s22, sqrt(ch * s11 * s22) * cos(ph),

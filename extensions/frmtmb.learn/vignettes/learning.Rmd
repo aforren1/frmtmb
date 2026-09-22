@@ -79,7 +79,7 @@ ci[grepl("after_reversalafter", rownames(ci)), , drop = FALSE]
 On the probability scale, the fitted learning rate before and after:
 
 ```{r scale}
-b <- unlist(fixef(fit))
+b <- unlist(fixef_by_dpar(fit))
 c(before = stats::plogis(b[["alpha.(Intercept)"]]),
   after  = stats::plogis(b[["alpha.(Intercept)"]] +
                            b[["alpha.after_reversalafter"]]))
@@ -143,7 +143,7 @@ These families declare no mean on the response scale. The response is
 the option a subject took, coded 1 to K, and it is nominal: arm 2 is not
 twice arm 1, and the Iowa gambling task's four decks have no order at
 all. Core forms a residual as `y - mean`, so a mean declared here would
-make `fitted()`, `predict(type = "response")` and every residual return
+make `fitted()`, `frm_linpred(type = "response")` and every residual return
 arithmetic on a category code.
 
 ```{r refuse-fitted, error = TRUE}
@@ -256,7 +256,7 @@ the parameter most of the clinical literature is about:
 fit2 <- frm(bf(choice | reward(pay1, pay2) ~ 1, Apun ~ 1, tau ~ 1),
             family = bandit2arm_dual(subject = id, trial = trial),
             data = d)
-b2 <- unlist(fixef(fit2))
+b2 <- unlist(fixef_by_dpar(fit2))
 c(rate_after_reward = stats::plogis(b2[["Arew.(Intercept)"]]),
   rate_after_loss   = stats::plogis(b2[["Apun.(Intercept)"]]))
 ```

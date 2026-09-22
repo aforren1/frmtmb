@@ -55,7 +55,7 @@ default of \code{\link[=frm_curve_deriv]{frm_curve_deriv()}}.}
 
 \item{maxit}{Newton iterations allowed per root.}
 
-\item{tol}{Largest relative disagreement with \code{predict(se.fit = TRUE)}
+\item{tol}{Largest relative disagreement with \code{frm_linpred(se.fit = TRUE)}
 the assembled covariance may show before the call refuses.}
 }
 \value{

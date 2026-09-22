@@ -1,3 +1,251 @@
+# frmtmb (development version)
+
+* **BREAKING: `predict()` is brms's `predict()`** (item 2.6d). It
+  returns a summary of the PREDICTIVE distribution of the response,
+  with observation noise in it, in the columns `Estimate`,
+  `Est.Error`, `Q2.5` and `Q97.5`. It used to return the LINEAR
+  PREDICTOR, glmmTMB's convention, and on a lognormal fit the two
+  differ by about 8 against about 6,700.
+
+  **What replaces it: `frm_linpred()`**, which is the old
+  `predict.frmtmb_fit()` unchanged, under a name that says what it
+  gives back. Every argument is the same:
+  `frm_linpred(fit, type = "link")` is the old `predict(fit)`,
+  `frm_linpred(fit, type = "response")` the old response scale,
+  and `se.fit`, `dpar`, `resp`, `re_formula`, `allow_new_levels` and
+  the glmmTMB aliases `conditional`, `zprob`, `zlink` and `disp` all
+  behave as they did.
+
+  `predict()` refuses `type`, `se.fit`, `dpar` and `scale` BY NAME and
+  the message says where each one went, so a ported script stops
+  rather than changing scale in silence.
+
+  How the draws are made, since a maximum-likelihood fit has no
+  posterior: each replicate draws the outer parameter vector from
+  `N(theta_hat, vcov(fit, full = TRUE))` and then a response from the
+  family's own simulator, the one `simulate()` uses.
+  `param_uncertainty = FALSE` drops the parameter draw and simulates
+  at the estimates alone. The random effects of a level the fit SAW
+  stay at their conditional modes, as everywhere else in this package,
+  so their own conditional variance is NOT in the interval;
+  `?predict.frmtmb_fit` says so and `dev/shapes-findings.md` reports
+  the measured coverage of each arm. `ndraws` sets the number of
+  replicates (default 1000), `summary = FALSE` returns them, and
+  `robust`, `probs` and `transform` are brms's and are answered.
+  `draw_ids`, `cores` and `sort = TRUE` are refused by name.
+
+  A level the fit did NOT see is drawn, not held at zero:
+  `allow_new_levels = TRUE` takes that level's effect from its
+  block's own estimated covariance, once per replicate at that
+  replicate's parameters, which is brms's
+  `sample_new_levels = "gaussian"`. That value of the argument is
+  therefore ACCEPTED; `"uncertainty"` and `"old_levels"` resample the
+  posterior draws of the levels that were seen and are refused by
+  name. Measured out of sample at unseen levels, the interval used to
+  cover 0.8618 against a nominal 0.95 and its `Est.Error` was
+  bit-identical to a known level's. Each DISTINCT unseen level draws
+  its own effect, and rows in the same unseen level share one, which
+  is what makes `summary = FALSE` right for a mean, a contrast or a
+  sum over new groups.
+
+  On a MULTIVARIATE fit `predict()` returns brms's
+  `nrow x 4 x nresp` array with the responses named on the third
+  dimension, and `summary = FALSE` the `ndraws x nrow x nresp` array.
+  It used to answer for the FIRST response only, in an `nrow x 4`
+  matrix, with nothing said. `resp =` is a filter on that array.
+  Every response is drawn at the same parameter draw, and under
+  `set_rescor(TRUE)` the responses are drawn from their joint
+  multivariate normal law, as brms draws them, so the draws carry the
+  estimated residual correlation.
+
+  `predict(summary = FALSE)` names neither the draws nor the rows,
+  which is what brms's `predict(summary = FALSE)` and
+  `posterior_predict()` return (`list(NULL, NULL)`, and the responses
+  on the third margin of a multivariate fit).
+
+  `predict(ndraws = 2.5)` is an error. The count check ran after
+  `as.integer()`, so a fraction was accepted and silently truncated.
+
+  A simulated parameter draw that makes a distributional parameter
+  non-finite for a ROW makes that one cell NA, instead of failing the
+  whole call in the family simulator; the warning names the rows and
+  how many replicates each lost, and each row is summarized over the
+  replicates it has. No row is summarized over a subset of parameter
+  draws that another row's overflow selected: the parameter draws and
+  one seed per replicate are taken up front, and a masked cell takes
+  nothing from its neighbours. The rows of one replicate still share
+  one random stream, so a row's Monte Carlo draws shift with the rows
+  simulated before it. It happens where a parameter the draw law covers
+  is barely identified: `vcov(object, full = TRUE)` has its variance,
+  and `param_uncertainty = FALSE` simulates at the estimates alone.
+  Every cell of a response non-finite is an error.
+
+* **BREAKING: `fitted()`, `residuals()`, `fixef()`, `vcov()`,
+  `ngrps()` and `summary()` return brms's shapes** (item 2.6f).
+
+  - `fitted()` and `residuals()` return an `n` by 4 matrix with the
+    columns `Estimate`, `Est.Error`, `Q2.5` and `Q97.5`, where they
+    returned a vector. `Est.Error` is the delta-method standard error
+    and the `Q` columns are the Wald interval at `probs`, because
+    there are no draws to take a quantile of. `fitted()` on an ordinal
+    or categorical fit returns brms's `n` by 4 by `K` array, the
+    third dimension named `P(Y = k)`; the category probabilities carry
+    a standard error for the first time, by the finite-difference
+    delta method over the whole outer parameter vector. The old value
+    is the `Estimate` column, and `frm_linpred(fit, type = "response")`
+    is the same numbers as a plain vector.
+  - `fitted()` now takes `probs`, `nlpar` (a synonym for `dpar`) and
+    `allow_new_levels`; `ndraws`, `draw_ids`, `sort`, `summary` and
+    `robust` are still refused by name.
+  - `residuals()` accepts brms's `"ordinary"` as a spelling of
+    `type = "response"`, and takes `probs`. Its `type` stays in the
+    second position, which is NOT brms's (brms has `newdata` there).
+  - `fixef()` returns brms's summary matrix, one row per
+    population-level coefficient under brms's own name (`Intercept`,
+    `sigma_Intercept`, `Trt1`) and in brms's order, which puts every
+    predictor's intercept first. It takes brms's `pars` and `probs`.
+    `fixef(flatten = TRUE)` is unchanged and is the vector of
+    estimates in `confint()`'s spelling. **The per-dpar list
+    `fixef()` used to return is `fixef_by_dpar()`**, a new export.
+  - `fixef()`, `vcov()` and `summary()$fixed` carry an ordinal fit's
+    THRESHOLDS and its `cs()` coefficients, which they left out
+    entirely. On `bf(ord ~ x) + cumulative()` they are the rows
+    `Intercept[1]`, `Intercept[2]`, `x` and a 3 by 3 covariance,
+    which is what brms gives on the same model; the lane gave `x` and
+    1 by 1, and `print(fit)` showed a one-row coefficient block. The
+    threshold `Est.Error` is the delta method over the joint
+    covariance, because the family may estimate increments rather
+    than the thresholds themselves. A `cs(z)` term adds `z[1]`,
+    `z[2]` after the `b` block, as in brms.
+  - `vcov()` covers exactly the rows `fixef()` reports and names them
+    the same way. It used to be one row wider: a distributional
+    parameter nobody wrote a formula for, such as `sigma` or `nu`, is
+    an intercept-only linear predictor here and is not a
+    population-level coefficient in brms. It is in `summary()`'s
+    `Further Distributional Parameters` block instead, on its own
+    natural scale. `vcov()` now takes brms's `correlation` and
+    `pars`, and `full`, `cluster` and `type` moved after `...`, so
+    they must be named. `vcov(full = TRUE)` is unchanged and keeps the
+    INTERNAL names, because it is the matrix a delta method on
+    `confint()`'s rows needs.
+  - `ngrps()` returns brms's named LIST, and `NULL` for a fit with no
+    grouping factor. A smooth, `gp()`, `hsgp()`, `car()` or `spde()`
+    block is no longer counted: those are random-effect blocks here
+    and are not grouping factors in brms.
+  - `summary()` carries brms's `$fixed`, `$random`, `$spec_pars` and
+    `$cor_pars` slots beside the ones it had, and `print()` uses
+    brms's section headings (`Multilevel Hyperparameters:`,
+    `Regression Coefficients:`, `Further Distributional Parameters:`).
+    `$fixed` carries brms's four columns first and then the Wald test
+    this package reports, where brms writes `Rhat` and the two `ESS`
+    columns. `summary()` now takes brms's `priors` and `prob`, and
+    `robust` and `mc_se` are refused by name; `vcov` moved after `...`
+    and must be named.
+  - `summary()`'s EMPTY slots take brms's empty shapes: `$random` is
+    `NULL` where it was `list()`, and `$spec_pars` and `$cor_pars`
+    are frames with no rows where they were `NULL`.
+  - `fitted()`, `residuals()` and `predict()` leave their row
+    dimnames `NULL`, as brms does. They carried the data's row names,
+    and under `na.action = na.omit` those names were the way to line a
+    result up with the rows of the data that survived; that way is
+    GONE, as it is in brms. `frm_linpred()` and `model.frame()` still
+    carry them, and the row count of each summary matrix follows the
+    surviving rows.
+  - An ordinal `fitted()` cannot report a probability outside
+    `[0, 1]`. The `Q` columns are a Wald interval, which is
+    unbounded; 15 of 450 bounds were below 0 and 5 above 1 on a
+    three-category fit. They are held inside the range now, so a
+    clamped bound is a sign that the normal approximation is poor
+    there rather than a probability of -0.0055.
+  - `print(fit)` prints the summary, as brms's does.
+
+* **`coef()` on a mixed ORDINAL fit moves the thresholds by each
+  group's random intercept, as brms's does.** For `cumulative()` and
+  `sratio()` the group's `Intercept[k]` is the threshold minus the
+  group's mode, and for `cratio()` and `acat()` it is the mode minus
+  the threshold, brms's two sign conventions. brms's own `coef()` on a
+  cumulative and an acat fit reproduces exactly those formulas, draw
+  by draw (`dev/shapes-p2-brmsref.R`). It used to repeat the
+  thresholds unchanged in every group beside a stray `(Intercept)`
+  column holding the mode alone.
+
+* **BREAKING: `ranef()` names its columns as brms does**, `Intercept`
+  and `sigma_Intercept`, which is what `coef()` and brms's `ranef()`
+  say. Code reading `ranef(fit)$g[, "(Intercept)"]` must read
+  `"Intercept"`.
+
+* **BREAKING: `coef()` names its coefficients as brms names them**,
+  `Intercept` and not `(Intercept)`, which is what `fixef()` and
+  `vcov()` now say. `lmtest::coeftest()` keeps only the rows both
+  `coef()` and `vcov()` name, so the split dropped the intercept row
+  out of a printed significance table with no warning. An ordinal
+  fit's thresholds are `coef()` entries too, for the same reason.
+  `fixef_by_dpar()` is the design-column spelling.
+
+* **BREAKING: `hypothesis()` no longer returns an object of class
+  `brmshypothesis`.** The class is `"frmtmb_hypothesis"` alone. The
+  SHAPE is unchanged and so is every element; what stops working is
+  `is(x, "brmshypothesis")` and `inherits(x, "brmshypothesis")` in a
+  ported script. frmtmb owns `print()` and `plot()` for its own class,
+  so neither changes, and a frmtmb object carrying a brms class name
+  was the one thing the class rule forbids.
+
+* **`variables()` lists an ordinal fit's thresholds and its `cs()`
+  coefficients**, which it dropped: on a `sratio()` fit with a `cs()`
+  term it listed 3 of 9 parameters, on every ordinal family. They are
+  brms's `b_Intercept[k]` and `bcs_<term>[k]`, and `hypothesis()`
+  reaches them too. The thresholds are reported on the model's own
+  scale, not the internal (first threshold, log increments)
+  parameterization that `cumulative()` and `sratio()` estimate; the
+  family declares the map in `post$ord_thresholds`.
+
+* `insight::get_predicted()` has a method of its own. Its default
+  calls `predict(x, type = )`, which `predict()` no longer has, and it
+  WARNS and returns `NULL` rather than erroring, so every prediction
+  was silently lost. The method also carries standard errors, which
+  the default never had: `get_predicted(fit)` used to report `NA` in
+  every CI column. `predict = "prediction"` is `predict()`'s
+  predictive interval and `"link"` the linear predictor.
+
+* `insight::get_residuals()` has a method of its own, insight's
+  `brmsfit` body. `residuals()` is brms's `n` by 4 matrix now, and
+  insight's default returns whatever `residuals()` gives, so
+  `get_residuals(fit)` began returning 600 numbers where its contract
+  is one per observation. It is the `Estimate` column again, with the
+  whole matrix on a `"full"` attribute and insight's own
+  `insight_residuals` class, which the default never set either.
+
+* `marginaleffects::get_coef()`, `set_coef()` and `get_vcov()`, and
+  `insight::get_parameters()` and `get_varcov()`, read every
+  ESTIMATED coefficient rather than `vcov()`'s brms block, because
+  each is paired with a coefficient vector that has the extra rows.
+  Without this the standard errors of `avg_slopes()` moved and some
+  became `NA`.
+
+  They also carry an ordinal fit's THRESHOLDS and `cs()`
+  coefficients: on their internal scale under `confint()`'s names
+  (`tau_raw_1`) for marginaleffects, which perturbs and writes the
+  vector back, and on the model's own scale under `fixef()`'s names
+  (`Intercept[1]`), with the delta-method covariance, for insight,
+  which only reads it. marginaleffects builds its Jacobian by perturbing
+  `get_coef()` one entry at a time, so a parameter the vector left
+  out contributed nothing: `avg_slopes()` on `bf(ord ~ x) +
+  cumulative()` reported 0.00029 for the middle category where
+  `MASS::polr` reports 0.02016, a factor of 69, on a point estimate
+  that agreed to five decimals. All three categories now agree with
+  `polr` to five decimals. This defect predates the shapes work.
+
+* `sim_context()` takes `max_iter`, the rejection limit a `trunc()`ed
+  draw needs, which `predict()` exposes as brms's `ntrys`.
+
+* No dependency floor moves for any of this. `insight`,
+  `marginaleffects`, `emmeans` and `MASS` are all in Suggests already
+  and none of the methods added here needs a newer one:
+  `insight::get_residuals` and `insight::get_predicted` are generics
+  insight has had since 0.9, and `marginaleffects`'s four extension
+  generics are unchanged. `lmtest` is used by `dev/shapes-interop.R`
+  and by nothing in the package.
+
 # frmtmb 0.60.0
 
 * `tmbstan (>= 1.2.1)` in Suggests. tmbstan 1.2.1 is the first build that

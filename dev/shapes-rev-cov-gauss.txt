@@ -1,0 +1,12 @@
+design: gauss  replicates: 220  failed fits: 0 
+n: 60  new points: 10  ndraws: 1000  SEED0: 771000 
+distinct seeds used: 660 of 660 set.seed calls
+script: dev/shapes-rev-cov.R
+
+joint                 2071 of  2200 = 0.9414  (0.9307, 0.9508) binomial; replicate mean 0.9414 se 0.0051  z=-1.71
+plugin                2055 of  2200 = 0.9341  (0.9229, 0.9441) binomial; replicate mean 0.9341 se 0.0055  z=-2.90
+exact                 2079 of  2200 = 0.9450  (0.9346, 0.9542) binomial; replicate mean 0.9450 se 0.0048  z=-1.03
+
+side measurements (column means over 20 rows)
+ratio_plugin_sd_over_sigma              fitted_se_max 
+                   0.04354                    0.22335 

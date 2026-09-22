@@ -1,0 +1,20 @@
+== A. unseen levels, param_uncertainty = FALSE, 4000 draws
+        [,1]    [,2]    [,3]    [,4]    [,5]
+[1,]  1.0000 -0.0070  0.0358  0.0094  0.0111
+[2,] -0.0070  1.0000  0.0042  0.0099 -0.0124
+[3,]  0.0358  0.0042  1.0000 -0.0037  0.0017
+[4,]  0.0094  0.0099 -0.0037  1.0000  0.3798
+[5,]  0.0111 -0.0124  0.0017  0.3798  1.0000
+tau^2/(tau^2+sigma^2) = 0.3645 
+
+== B. poisson row alone and beside an overflowing row, 400 draws
+warning: predict(): a simulated parameter draw was not finite for row 2 (202 of 400). Those cells are NA and each row is summarized over the replicates it has; the other rows are not affected. A parameter the draw law covers is barely identified, and vcov(object, full = TRUE) has its variance. param_uncertainty = FALSE simulates at the estimates alone 
+       Estimate Est.Error Q2.5  Q97.5
+alone     12.37  4.343993    5 21.025
+beside    12.37  4.343993    5 21.025
+identical: TRUE 
+
+== C. rescor draws, 3000 draws
+param_uncertainty = FALSE  mean within-row draw correlation 0.5896 
+param_uncertainty = TRUE  mean within-row draw correlation 0.5852 
+estimated rescor 0.5882 

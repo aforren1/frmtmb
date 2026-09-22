@@ -259,7 +259,49 @@ brms_coef_table <- function(fit) {
   attr(tab, "linkinv") <- c(inv$beta, inv$betad[keep_d])
   attr(tab, "linkfun") <- c(fun$beta, fun$betad[keep_d])
   attr(tab, "simplex") <- groups
+  # where a linear predictor's own coefficients sit in this table: a
+  # `beta` index is its own row, and a `betad` index has to skip the
+  # rows a fixed betad dropped. coef() needs the map to name its
+  # columns as brms does, and rebuilding it at the call site is what
+  # would drift.
+  attr(tab, "n_beta") <- n_beta
+  attr(tab, "keep_d") <- keep_d
   tab
+}
+
+#' The table rows of one linear predictor's design columns, in design
+#' column order, `NA` where the table has no row for it.
+#'
+#' @noRd
+brms_lp_rows <- function(lp, tab) {
+  idx <- lp[["idx"]]
+  if (identical(lp[["par"]], "beta")) return(as.integer(idx))
+  if (identical(lp[["par"]], "betad")) {
+    return(attr(tab, "n_beta") + match(idx, attr(tab, "keep_d")))
+  }
+  rep(NA_integer_, length(idx))
+}
+
+#' brms's names for one linear predictor's design columns, the class
+#' prefix (`b_`, `bs_`, `bsp_`, `bcs_`) dropped so that they read as
+#' `fixef()` and `vcov()` name their rows.
+#'
+#' The design column name is kept where the table has no row for it,
+#' which is a coefficient held fixed, and where the row is a NATURAL
+#' one: brms calls that a spec_par and reports it on its own scale, so
+#' putting `sigma` on a coefficient that is log sigma would name a
+#' value that is not the one under the name. Only the rows `fixef()`
+#' and `vcov()` actually carry are renamed, which is the pairing that
+#' has to agree.
+#'
+#' @noRd
+brms_lp_coef_names <- function(lp, tab) {
+  cn <- colnames(lp[["X"]])
+  r <- brms_lp_rows(lp, tab)
+  out <- cn
+  ok <- !is.na(r) & !tab$natural[r]
+  out[ok] <- sub("^(b|bs|bsp|bcs)_", "", tab$brms[r[ok]])
+  out
 }
 
 #' brms names of the estimated coefficients, parallel to

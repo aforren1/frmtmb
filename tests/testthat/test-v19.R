@@ -46,7 +46,7 @@ test_that("latent classes with class-specific intercept REs work", {
   # Laplace approximates the class-mixture integrand: a small,
   # documented bias against the exact marginal
   expect_lt(abs(as.numeric(logLik(fit)) + op$value), 0.5)
-  mus <- sort(c(fixef(fit)$mu1[[1]], fixef(fit)$mu2[[1]]))
+  mus <- sort(c(fixef_by_dpar(fit)$mu1[[1]], fixef_by_dpar(fit)$mu2[[1]]))
   expect_equal(mus, sort(op$par[1:2]), tolerance = 0.05)
 
   # empirical-Bayes classification and simulation both work

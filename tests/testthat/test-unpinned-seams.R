@@ -48,7 +48,8 @@ test_that("method = 'predict' refuses a family that draws the response whole", {
   expect_true(all(ce$x$estimate__ > 0 & ce$x$estimate__ < 1))
 })
 
-test_that("a finalized family reaches the spec par_template and get_prior read", {
+test_that("a finalized family reaches the spec par_template and get_prior read",
+          {
   skip_on_cran()
 
   # R/par-template.R and R/priors.R both call
@@ -127,7 +128,7 @@ test_that("a reported dpar scale survives the rows na.action dropped", {
   skip_on_cran()
 
   # A mixture's mixing weight reports on the softmax scale, which is a
-  # function of ALL the dpars and so is read through predict() rather
+  # function of ALL the dpars and so is read through frm_linpred() rather
   # than from this predictor's own eta. Those reads go through the same
   # na.action bookkeeping as any other prediction, and the value has to
   # come back on the same rows as the standard error it is paired with:
@@ -145,8 +146,8 @@ test_that("a reported dpar scale survives the rows na.action dropped", {
         data = dx))
   expect_identical(fit$frame$n_obs, 297L)
 
-  rv <- as.numeric(predict(fit, type = "response", dpar = "theta1"))
-  eta <- as.numeric(predict(fit, type = "link", dpar = "theta1"))
+  rv <- as.numeric(frm_linpred(fit, type = "response", dpar = "theta1"))
+  eta <- as.numeric(frm_linpred(fit, type = "link", dpar = "theta1"))
   # one value per FITTED row, as every other prediction gives, and not
   # one per row of the data frame the rows were dropped from
   expect_length(rv, 297L)
@@ -155,8 +156,8 @@ test_that("a reported dpar scale survives the rows na.action dropped", {
   expect_true(all(rv > 0 & rv < 1))
   expect_equal(rv, stats::plogis(eta), tolerance = 1e-12)
 
-  se <- predict(fit, type = "response", dpar = "theta1", se.fit = TRUE)
-  el <- predict(fit, type = "link", dpar = "theta1", se.fit = TRUE)
+  se <- frm_linpred(fit, type = "response", dpar = "theta1", se.fit = TRUE)
+  el <- frm_linpred(fit, type = "link", dpar = "theta1", se.fit = TRUE)
   expect_length(se$fit, 297L)
   expect_length(se$se.fit, 297L)
   # the delta method through the softmax: dp/deta = p (1 - p)
@@ -190,8 +191,8 @@ test_that("a mixing weight's response-scale SE is the one-predictor rule", {
   fit <- frm(bf(y ~ 1, theta1 ~ x, theta2 ~ x) +
                mixture(gaussian(), gaussian(), gaussian()), data = d)
 
-  eta <- cbind(as.numeric(predict(fit, type = "link", dpar = "theta1")),
-               as.numeric(predict(fit, type = "link", dpar = "theta2")))
+  eta <- cbind(as.numeric(frm_linpred(fit, type = "link", dpar = "theta1")),
+               as.numeric(frm_linpred(fit, type = "link", dpar = "theta2")))
   den2 <- 1 + exp(eta[, 1]) + exp(eta[, 2])
   p1 <- exp(eta[, 1]) / den2
   p2 <- exp(eta[, 2]) / den2
@@ -200,7 +201,7 @@ test_that("a mixing weight's response-scale SE is the one-predictor rule", {
   cn <- c("theta1_(Intercept)", "theta1_x", "theta2_(Intercept)", "theta2_x")
   skip_if_not(all(cn %in% rownames(V)))
 
-  rep_se <- as.numeric(predict(fit, type = "response", dpar = "theta1",
+  rep_se <- as.numeric(frm_linpred(fit, type = "response", dpar = "theta1",
                                se.fit = TRUE)$se.fit)
   # the one-predictor rule, by hand: it IS what is reported
   Gown <- p1 * (1 - p1) * X
@@ -228,9 +229,9 @@ test_that("a mixing weight's response-scale SE is the one-predictor rule", {
                  stats::rnorm(400, 2, 0.9))
   f2 <- frm(bf(y ~ 1, theta1 ~ x) + mixture(gaussian(), gaussian()),
             data = d2)
-  r2 <- as.numeric(predict(f2, type = "response", dpar = "theta1",
+  r2 <- as.numeric(frm_linpred(f2, type = "response", dpar = "theta1",
                            se.fit = TRUE)$se.fit)
-  q <- as.numeric(predict(f2, type = "response", dpar = "theta1"))
+  q <- as.numeric(frm_linpred(f2, type = "response", dpar = "theta1"))
   V2 <- vcov(f2)
   c2 <- c("theta1_(Intercept)", "theta1_x")
   skip_if_not(all(c2 %in% rownames(V2)))

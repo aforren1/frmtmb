@@ -195,7 +195,7 @@ brms_Xc_cols <- function(sdat, sfx) {
 # which is the identity for a univariate fit and turns "sigma_y1" into
 # frmtmb's "y1_sigma" for a multivariate one.
 brms_fe_of <- function(fit, sfx) {
-  fe <- fixef(fit)
+  fe <- fixef_by_dpar(fit)
   key <- brms_lp_parts(fit, sfx)$frm
   if (is.null(fe[[key]])) {
     stop("frmtmb fit has no linear predictor named ", key)
@@ -304,7 +304,16 @@ brms_ord_thresholds <- function(fit) {
 # block merged across dpars or responses prefixes them, as in
 # "y.sigma:(Intercept)", because the same coefficient name then appears
 # once per linear predictor.
-brms_frm_coef <- function(cols, coef, dpar, resp = "") {
+brms_frm_coef <- function(cols, coef, dpar, resp = "", nlpar = "") {
+  # ranef() names its columns as brms does since the shapes lane:
+  # <resp>_<dpar or nlpar>_<coef>, the mu dpar and an empty response
+  # left out, which is brms's own column name for this coefficient
+  if (is.na(nlpar)) nlpar <- ""
+  pre <- if (nzchar(nlpar)) nlpar else if (nzchar(dpar) && dpar != "mu") dpar
+  bname <- paste(c(if (nzchar(resp)) resp, pre, coef), collapse = "_")
+  if (bname %in% cols) {
+    return(bname)
+  }
   want <- brms_coef_to_frm(coef)
   suffix <- paste0(if (nzchar(dpar)) dpar else "mu", ":", want)
   if (nzchar(resp)) {
@@ -354,7 +363,7 @@ brms_group_pars <- function(fit, sdat, rtab, i) {
   }
   sigma <- as.matrix(Reduce(brms_blockdiag, blocks[keep]))
   want <- mapply(brms_frm_coef, coef = info$coefs, dpar = info$dpars,
-                 resp = info$resps,
+                 resp = info$resps, nlpar = info$nlpars,
                  MoreArgs = list(cols = colnames(sigma)),
                  USE.NAMES = FALSE)
   sigma <- sigma[want, want, drop = FALSE]
@@ -364,7 +373,7 @@ brms_group_pars <- function(fit, sdat, rtab, i) {
   lmat[upper.tri(lmat)] <- 0
   r <- brms_ranef_block(fit, info$group)
   rwant <- mapply(brms_frm_coef, coef = info$coefs, dpar = info$dpars,
-                  resp = info$resps,
+                  resp = info$resps, nlpar = info$nlpars,
                   MoreArgs = list(cols = colnames(r)), USE.NAMES = FALSE)
   r <- r[info$labels, rwant, drop = FALSE]
   z <- solve(diag(sd, nrow = length(sd)) %*% lmat, t(r))

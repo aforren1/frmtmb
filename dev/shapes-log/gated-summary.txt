@@ -1,0 +1,8 @@
+exit=0 brms-methods
+RESULT test-brms-methods.R pass=954 fail=0 err=0 skip=0
+exit=0 brms-likelihood
+RESULT test-brms-likelihood.R pass=404 fail=0 err=0 skip=0
+exit=0 brms-agreement
+RESULT test-brms-agreement.R pass=187 fail=0 err=0 skip=0
+exit=0 brms-priors
+RESULT test-brms-priors.R pass=103 fail=0 err=0 skip=0

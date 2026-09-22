@@ -1,0 +1,17 @@
+﻿Rscript : frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+At line:1 char:516
++ ... wt-shapes"; Rscript dev/shapes-run-base.R frmtmb.sample extensions/fr ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (frm_sample(): d...flat" opts out):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+  [FAIL] fitted() on draws summarizes posterior_epred()
+  [ERROR] predict() and residuals() on draws are brms's summaries
+  [ERROR] point_estimate collapses the draws, as in brms
+  [ERROR] nsamples() is brms's, with brms's deprecation warning
+  [ERROR] posterior_samples() is brms's, with brms's warning
+  [ERROR] parnames() is variables(), with brms's warning
+RESULT test-brms-shapes-draws.R pass=0 fail=9 err=5 skip=0

@@ -162,10 +162,13 @@ test_that("an spde mesh node the data never visits keeps its column", {
   re <- ranef(f)[[1]]
   expect_equal(nrow(re), s$nn)
   expect_equal(rownames(re), as.character(seq_len(s$nn)))
-  expect_equal(ngrps(f)[[1]], s$nn)
+  # an spde block is not a brms grouping factor, so ngrps() has no
+  # entry for it since item 2.6f
+  expect_null(ngrps(f))
+  expect_equal(f$frame[["re_blocks"]][[1L]][["n_levels"]], s$nn)
   rows <- c(1L, 20L, nrow(d))
-  expect_vector_equal(predict(f, newdata = d[rows, ]),
-                      predict(f)[rows], tol = 1e-10)
+  expect_vector_equal(frm_linpred(f, newdata = d[rows, ]),
+                      frm_linpred(f)[rows], tol = 1e-10)
 })
 
 test_that("the spde finite-element matrices must agree on the mesh size", {

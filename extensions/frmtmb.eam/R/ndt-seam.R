@@ -141,7 +141,7 @@ ndt_bound <- function(y, aterms = list(), max_ndt = NULL,
 #'   objective as `NaN`.
 #' * `max_ndt = <a number>` gives a SETTLED bound, and the family scores
 #'   outside `frm()`: `ndt` is a time measured against that bound,
-#'   `predict(dpar = "ndt", type = "response")` reports seconds, and a
+#'   `frm_linpred(dpar = "ndt", type = "response")` reports seconds, and a
 #'   pinned constant means what it says.
 #'
 #' The second is what a package reaching into another family's density

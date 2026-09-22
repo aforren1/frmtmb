@@ -1450,17 +1450,17 @@ compat_hand_rules_tbl <- function() {
   ## frm_lp_basis(): the same rows frm_curve() has, because they are the
   ## same rows. The two that are worth naming are rr and gp.
   r("frm_lp_basis", "s()", "works",
-    "The case the seam exists for: a penalized smooth's wiggly part is a random-effect block, so A spans b and V is the joint covariance. Verified against predict(se.fit = TRUE) at 2.8e-17 relative on a s(x, k = 8) + (1 | g) fit at both re_formula = NA and re_formula = NULL.")
+    "The case the seam exists for: a penalized smooth's wiggly part is a random-effect block, so A spans b and V is the joint covariance. Verified against frm_linpred(se.fit = TRUE) at 2.8e-17 relative on a s(x, k = 8) + (1 | g) fit at both re_formula = NA and re_formula = NULL.")
   r("frm_lp_basis", "smooth", "works",
     "The same thing named as a covariance structure rather than as a formula term.")
   r("frm_lp_basis", "nl", "works",
-    "A is a JACOBIAN rather than a design, taped from the body against the coefficients it reaches through. predict(se.fit = TRUE) stays refused for a nonlinear predictor and this is the route. Verified against a central difference of predict() at 4.5e-10, which is the finite difference's own error.")
+    "A is a JACOBIAN rather than a design, taped from the body against the coefficients it reaches through. frm_linpred(se.fit = TRUE) stays refused for a nonlinear predictor and this is the route. Verified against a central difference of predict() at 4.5e-10, which is the finite difference's own error.")
   r("frm_lp_basis", "rr", "works",
     "A reduced-rank block's loadings live in theta, so a design over (beta, b) alone is incomplete. A carries the loading columns through rr_jacobians() and coef_pos names their theta rows, so a caller gets the whole delta method rather than discovering a piece is absent.")
   r("frm_lp_basis", "gp", "works",
     "An exact gp() at an unseen position contributes a kriging variance that is not coefficient uncertainty at all. It is returned in extra_var, separately, rather than folded into A V A'.")
   r("frm_lp_basis", "predict", "works",
-    "predict(se.fit = TRUE) is written as a consumer of it, which is the test that the shape is right: var(eta) is rowSums((A %*% V) * A) + extra_var.")
+    "frm_linpred(se.fit = TRUE) is written as a consumer of it, which is the test that the shape is right: var(eta) is rowSums((A %*% V) * A) + extra_var.")
   r("nl", "kind:covstruct", "works",
     "A nonlinear parameter may carry its own random effects.")
 
@@ -1612,7 +1612,7 @@ compat_hand_rules_tbl <- function() {
   r("emmeans", "nl", "refused",
     "Refused: emmeans support needs a linear mu predictor.")
   r("emmeans", "group:ordinal", "conditional",
-    "Works on the LATENT linear predictor, emmeans's mode = \"latent\" convention for clm-like models: the intercept is dropped there (the K-1 thresholds take its place), so contrasts are on the latent scale and absolute means carry no threshold offset. For category probabilities use predict(fit, type = \"response\") or conditional_effects(), which are on a different scale from these means.")
+    "Works on the LATENT linear predictor, emmeans's mode = \"latent\" convention for clm-like models: the intercept is dropped there (the K-1 thresholds take its place), so contrasts are on the latent scale and absolute means carry no threshold offset. For category probabilities use frm_linpred(fit, type = \"response\") or conditional_effects(), which are on a different scale from these means.")
   r("confint_profile", "kind:mode", "untested", "")
   r("hypothesis_profile", "kind:mode", "untested", "")
   r("predict", "kind:family", "conditional",
@@ -1620,19 +1620,19 @@ compat_hand_rules_tbl <- function() {
   r("predict", "group:ordinal", "conditional",
     "type = \"response\" returns an n x K matrix of category probabilities (rows summing to 1, columns named by the response's own levels), not a vector: an ordinal response has no mean. It equals fitted(). cs() terms are honored and re-evaluated on newdata. type = \"link\" gives the latent predictor, which is where se.fit is available; se.fit is refused on the response scale.")
   r("predict", "categorical", "conditional",
-    "type = \"response\" returns an n x K matrix of category probabilities, columns named by the response's own levels and rows summing to 1, exactly as for the ordinal families; it equals fitted(). se.fit is refused there. Each category's latent predictor is predict(type = \"link\", dpar = \"mu<Level>\"), which is where se.fit works.")
+    "type = \"response\" returns an n x K matrix of category probabilities, columns named by the response's own levels and rows summing to 1, exactly as for the ordinal families; it equals fitted(). se.fit is refused there. Each category's latent predictor is frm_linpred(type = \"link\", dpar = \"mu<Level>\"), which is where se.fit works.")
   r("predict", "cox", "conditional",
     "type = \"response\" and fitted() are refused: a survival time has no mean the censored rows identify. type = \"link\" gives the log hazard ratio, and cox_baseline() the fitted baseline weights.")
   r("fitted", "kind:family", "conditional",
     "Needs a family with a mean function.")
   r("fitted", "categorical", "conditional",
-    "Returns the n x K matrix of category probabilities, not a vector: a nominal response has no mean, so the modelled response is the category distribution. The predict(type = \"response\") == fitted() identity holds.")
+    "Returns the n x K matrix of category probabilities, not a vector: a nominal response has no mean, so the modelled response is the category distribution. The frm_linpred(type = \"response\") == fitted() identity holds.")
   r("fitted", "cox", "refused",
-    "Refused: a survival time has no mean on the response scale here. Use predict(type = \"link\") for the log hazard ratio.")
+    "Refused: a survival time has no mean on the response scale here. Use frm_linpred(type = \"link\") for the log hazard ratio.")
   r("fitted", "von_mises", "conditional",
     "Returns the mean DIRECTION in radians on (-pi, pi], which is what brms's posterior_epred() reports for this family; a circular response has no arithmetic mean.")
   r("fitted", "group:ordinal", "conditional",
-    "Returns the same n x K matrix of category probabilities predict(type = \"response\") returns, not a vector: an ordinal response has no mean, so the modelled response is the category distribution. The predict(type = \"response\") == fitted() identity holds. The latent linear predictor is predict(fit, type = \"link\"), which is also what emmeans and insight see.")
+    "Returns the same n x K matrix of category probabilities frm_linpred(type = \"response\") returns, not a vector: an ordinal response has no mean, so the modelled response is the category distribution. The frm_linpred(type = \"response\") == fitted() identity holds. The latent linear predictor is frm_linpred(fit, type = \"link\"), which is also what emmeans and insight see.")
   r("residuals", "group:ordinal", "conditional",
     "\"response\" and \"pearson\" score the categories by the same codes 1..K the likelihood uses: y - sum_k k * P(y = k), standardized by that distribution's own sd. That is a residual on a SCORE, not on the ordinal scale; \"osa\" and dharma_residuals() use only the order. \"deviance\" is refused, as for every family without a standard unit deviance.")
 

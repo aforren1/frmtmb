@@ -77,7 +77,8 @@ then the cluster-robust one, and a matrix carrying reference
 degrees of freedom switches the test to a \code{t} reference.}
 }
 \value{
-A \code{brmshypothesis}-shaped list; see \emph{The returned object}.
+A \code{frmtmb_hypothesis} list in brms's shape; see
+\emph{The returned object}.
 \code{plot()} shows the bootstrap distribution, the profile curve, or
 the implied Wald normal density, one panel per hypothesis.
 }
@@ -91,7 +92,12 @@ which is tested against 0 here.
 }
 \section{The returned object}{
 
-brms's shape: a list of class \code{c("frmtmb_hypothesis", "brmshypothesis")} with the elements brms has, in brms's order.
+brms's SHAPE under frmtmb's own class: a list of class
+\code{"frmtmb_hypothesis"} with the elements brms has, in brms's order.
+It does not carry brms's \code{brmshypothesis} class. frmtmb owns
+\code{print()} and \code{plot()} for its own class and a frmtmb fit is not a
+brms fit, so \code{is(x, "brmshypothesis")} in a ported script is a
+rule-2 divergence like the other seventeen the port ledger records.
 \itemize{
 \item \code{hypothesis}: a data frame with brms's eight columns, one row per
 hypothesis. On a maximum-likelihood fit they mean:

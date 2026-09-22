@@ -6,8 +6,10 @@
 # Every block below MUST report exactly the failures named in its
 # label; the script stops otherwise. The gate is checked last, in a
 # child process with FRMTMB_BRMS_FIT_TESTS unset.
-.libPaths(c("C:/Users/adf44/source/r/brmsport-lib",
-            "C:/Users/adf44/source/r/pinlib",
+# the LANE's library, from the environment, so this is not tied to the
+# worktree it was written in; the StanHeaders pin is gone (2026-09-17)
+.libPaths(c(Sys.getenv("FRMTMB_PORT_LIB",
+                       "C:/Users/adf44/source/r/shapes-lib"),
             "C:/Users/adf44/AppData/Local/R/win-library/4.6"))
 suppressPackageStartupMessages({
   library(testthat)

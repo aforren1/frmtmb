@@ -1,0 +1,76 @@
+brms-shapes-punch: .....12.3..................4.56.7.89abc.defghij.
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-brms-shapes-punch.R:66:3'): predict(allow_new_levels = TRUE
+Expected `fresh` > `known * 1.15`.
+Actual comparison: 1.00 <= 1.18
+Difference: -0.19 <= 0
+
+── 2. Failure ('test-brms-shapes-punch.R:72:3'): predict(allow_new_levels = TRUE
+Expected `fresh` to equal `sqrt(sig2 + tau2)`.
+Differences:
+  `actual`: 1.00
+`expected`: 1.38
+
+
+── 3. Error ('test-brms-shapes-punch.R:80:3'): predict() takes brms's sample_new
+<frmtmb_error/error/condition>
+Error: predict() cannot honor `sample_new_levels`: brms draws a fresh group effect for an unseen level, and an unseen level is predicted at the POPULATION level here, with allow_new_levels = TRUE. frm_linpred(se.fit = TRUE) does add the block's marginal variance to the standard error there
+Backtrace:
+    ▆
+ 1. ├─stats::predict(...) at test-brms-shapes-punch.R:80:3
+ 2. └─frmtmb:::predict.frmtmb_fit(...)
+ 3.   └─frmtmb::frm_stop(...)
+
+── 4. Failure ('test-brms-shapes-punch.R:159:3'): coef() uses brms's names, so c
+Expected `names(coef(ordf))` to equal `rownames(vcov(ordf))`.
+Differences:
+`actual`:   "x"                              
+`expected`: "Intercept[1]" "Intercept[2]" "x"
+
+
+── 5. Failure ('test-brms-shapes-punch.R:172:3'): predict() on a multivariate fi
+Expected `length(dim(pr))` to equal 3L.
+Differences:
+  `actual`: 2
+`expected`: 3
+
+
+── 6. Failure ('test-brms-shapes-punch.R:173:3'): predict() on a multivariate fi
+Expected `dim(pr)[2:3]` to equal `c(4L, 2L)`.
+Differences:
+  `actual`: 4 NA
+`expected`: 4  2
+
+
+── 7. Error ('test-brms-shapes-punch.R:176:3'): predict() on a multivariate fit 
+<subscriptOutOfBoundsError/error/condition>
+Error in `dimnames(pr)[[3L]]`: subscript out of bounds
+Backtrace:
+    ▆
+ 1. └─testthat::expect_equal(dimnames(pr)[[3L]], c("y", "y2")) at test-brms-shapes-punch.R:176:3
+ 2.   └─testthat::quasi_label(enquo(object), label)
+ 3.     └─rlang::eval_bare(expr, quo_get_env(quo))
+
+── 8. Failure ('test-brms-shapes-punch.R:195:3'): an ordinal fitted() cannot rep
+Expected `min(q)` >= 0.
+Actual comparison: -0.0055 < 0.0000
+Difference: -0.0055 < 0
+
+── 9. Failure ('test-brms-shapes-punch.R:196:3'): an ordinal fitted() cannot rep
+Expected `max(q)` <= 1.
+Actual comparison: 1.0058 > 1.0000
+Difference: 0.0058 > 0
+
+── 10. Failure ('test-brms-shapes-punch.R:202:3'): empty summary blocks take brm
+Expected `s$random` to be NULL.
+Differences:
+`actual` is a list
+`expected` is NULL
+
+  ... and 9 more
+
+
+Maximum number of 10 failures reached, some test results may be missing.
+
+══ DONE ════════════════════════════════════════════════════════════════════════

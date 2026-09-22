@@ -224,7 +224,7 @@ VarCorr(fit)
 Compare with the simulated values:
 
 ```{r truth}
-rbind(estimate = c(unlist(fixef(fit)),
+rbind(estimate = c(unlist(fixef_by_dpar(fit)),
                    sd_alpha = VarCorr(fit)$id$sd[1, "Estimate"],
                    sd_beta = VarCorr(fit)$id$sd[2, "Estimate"]),
       truth = c(rl_truth$b_alpha_Intercept, rl_truth$b_alpha_conditiontrt,
@@ -240,7 +240,7 @@ Everything downstream of the fit works because the structure said it
 does. The fitted values are per-trial choice probabilities:
 
 ```{r fitted}
-p <- fitted(fit)
+p <- fitted(fit)[, "Estimate"]
 summary(p)
 # the model's mean predicted choice rate against the observed one
 c(predicted = mean(p), observed = mean(dd$choice))
@@ -258,8 +258,8 @@ compare.
 u <- ranef(fit)[[1]]
 sid <- match(as.character(dd$id), rownames(u))
 xa <- model.matrix(~ condition, dd)
-alpha <- plogis(as.vector(xa %*% unname(fixef(fit)$alpha)) + u[sid, 1])
-beta <- exp(unname(fixef(fit)$beta)[[1]] + u[sid, 2])
+alpha <- plogis(as.vector(xa %*% unname(fixef_by_dpar(fit)$alpha)) + u[sid, 1])
+beta <- exp(unname(fixef_by_dpar(fit)$beta)[[1]] + u[sid, 2])
 
 ll <- 0
 for (s in unique(sid)) {
@@ -553,7 +553,7 @@ be SUBJECTS rather than trials, because `unit` says a trial cannot
 honestly be left out. Nothing here exercises that path, because these
 are maximum-likelihood fits and an elpd is a posterior quantity.
 
-**Newdata.** `predict(type = "response")` on new data would need a
+**Newdata.** `frm_linpred(type = "response")` on new data would need a
 block built without a response, and the protocol defers that case on
 purpose. For this family the meaning is clear enough (replay the new
 subject's payoff schedule against the fitted parameters), so a built-in

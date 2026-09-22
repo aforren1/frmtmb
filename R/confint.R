@@ -1967,14 +1967,49 @@ hyp_vals_only <- function(fit) {
   est <- fit$estimates
   bd <- est[["betad"]]
   if (length(fx <- fit$frame[["betad_fixed_idx"]])) bd <- bd[-fx]
-  list(
-    vals = c(est[["beta"]], bd,
-       est[["theta"]], est[["thetaac"]], est[["thetar"]]),
-    comp = c(rep("beta", length(est[["beta"]])), rep("betad", length(bd)),
-             rep("theta", length(est[["theta"]])),
-             rep("thetaac", length(est[["thetaac"]])),
-             rep("thetar", length(est[["thetar"]])))
-  )
+  vals <- c(est[["beta"]], bd,
+            est[["theta"]], est[["thetaac"]], est[["thetar"]])
+  comp <- c(rep("beta", length(est[["beta"]])), rep("betad", length(bd)),
+            rep("theta", length(est[["theta"]])),
+            rep("thetaac", length(est[["thetaac"]])),
+            rep("thetar", length(est[["thetar"]])))
+  # the ordinal thresholds and the category-specific coefficients: brms
+  # reports both as parameters, and without them variables() listed 3 of
+  # 9 names on an ordinal fit and hypothesis() could not reach a
+  # threshold at all
+  for (cp in ord_extra_comps(fit)) {
+    v <- est[[cp]]
+    vals <- c(vals, v)
+    comp <- c(comp, rep(cp, length(v)))
+  }
+  list(vals = vals, comp = comp)
+}
+
+#' The parameter-template components that hold an ordinal fit's
+#' thresholds and its `cs()` coefficients.
+#'
+#' They are `extra_names` components rather than coefficients, so the
+#' coefficient machinery never saw them. They are parameters all the
+#' same, and brms names them `b_Intercept[k]` and `bcs_<term>[k]`.
+#'
+#' @noRd
+ord_extra_comps <- function(fit) {
+  tpl <- fit$frame[["par_template"]]
+  out <- character(0)
+  if (length(tpl[["tau_raw"]])) out <- "tau_raw"
+  for (lp in fit$frame[["linpreds"]]) {
+    for (ct in lp[["cs"]] %||% list()) out <- c(out, ct[["par"]])
+  }
+  intersect(unique(out), names(tpl))
+}
+
+#' The thresholds themselves, from the internal vector, through the map
+#' the family declares.
+#'
+#' @noRd
+ord_threshold_values <- function(fam, raw) {
+  f <- fam[["post"]][["ord_thresholds"]]
+  if (is.null(f)) raw else f(raw)
 }
 
 #' Values plus joint covariance of (beta, estimated betad, theta,
@@ -1985,7 +2020,8 @@ hyp_vals_only <- function(fit) {
 #'
 #' @noRd
 hyp_par_cov <- function(fit) {
-  comps <- c("beta", "betad", "theta", "thetaac", "thetar")
+  comps <- c("beta", "betad", "theta", "thetaac", "thetar",
+             ord_extra_comps(fit))
   if (!fit$REML && !isTRUE(fit$control$profile)) {
     sdr <- sdr_of(fit)
     V <- sdr$cov.fixed
@@ -2105,6 +2141,8 @@ hyp_env_vals <- function(fit, vals, comp) {
     for (j in seq_along(nat)) put(names(nat)[j], nat[j])
   }
 
+  hyp_put_ordinal(fit, vals, comp, put)
+
   thr <- vals[comp == "thetar"]
   if (isTRUE(fit$spec$rescor) && length(thr)) {
     rs <- brms_stan_name(names(fit$spec$responses))
@@ -2116,6 +2154,48 @@ hyp_env_vals <- function(fit, vals, comp) {
     }
   }
   env
+}
+
+#' brms's names for an ordinal fit's thresholds and `cs()`
+#' coefficients: `b_Intercept[k]` for the threshold and
+#' `bcs_<term>[k]` for the category-specific coefficient, each prefixed
+#' by the predictor the way every other coefficient name is.
+#'
+#' The thresholds of a model with more than one ordinal response are
+#' NOT named: one template component holds them all and nothing here
+#' says which belongs to which response, so naming them would be a
+#' guess. The `cs()` coefficients are per predictor and are named
+#' whatever the model looks like.
+#'
+#' @noRd
+hyp_put_ordinal <- function(fit, vals, comp, put) {
+  raw <- vals[comp == "tau_raw"]
+  if (length(raw)) {
+    ord_lps <- Filter(function(lp) {
+      identical(brms_lp_family(fit, lp)[["type"]], "ordinal") &&
+        identical(lp[["dpar"]], "mu")
+    }, fit$frame[["linpreds"]])
+    if (length(ord_lps) == 1L) {
+      lp <- ord_lps[[1L]]
+      th <- ord_threshold_values(brms_lp_family(fit, lp), raw)
+      pre <- brms_lp_prefix(fit, lp)
+      for (k in seq_along(th)) {
+        put(paste0("b_", brms_usc(pre, "Intercept"), "[", k, "]"), th[k])
+      }
+    }
+  }
+  for (lp in fit$frame[["linpreds"]]) {
+    for (ct in lp[["cs"]] %||% list()) {
+      v <- vals[comp == ct[["par"]]]
+      if (!length(v)) next
+      lab <- brms_rename(sub("^cs", "", ct[["label"]]))
+      pre <- brms_lp_prefix(fit, lp)
+      for (k in seq_along(v)) {
+        put(paste0("bcs_", brms_usc(pre, lab), "[", k, "]"), v[k])
+      }
+    }
+  }
+  invisible(NULL)
 }
 
 #' Split one hypothesis string the way `brms:::eval_hypothesis()` does:
@@ -2359,8 +2439,12 @@ hyp_fd_grad <- function(f, v) {
 #' which is tested against 0 here.
 #'
 #' @section The returned object:
-#' brms's shape: a list of class `c("frmtmb_hypothesis",
-#' "brmshypothesis")` with the elements brms has, in brms's order.
+#' brms's SHAPE under frmtmb's own class: a list of class
+#' `"frmtmb_hypothesis"` with the elements brms has, in brms's order.
+#' It does not carry brms's `brmshypothesis` class. frmtmb owns
+#' `print()` and `plot()` for its own class and a frmtmb fit is not a
+#' brms fit, so `is(x, "brmshypothesis")` in a ported script is a
+#' rule-2 divergence like the other seventeen the port ledger records.
 #'
 #' - `hypothesis`: a data frame with brms's eight columns, one row per
 #'   hypothesis. On a maximum-likelihood fit they mean:
@@ -2555,7 +2639,8 @@ hyp_fd_grad <- function(f, v) {
 #'   `parm.range`) and to [frm_bootstrap()] for `method = "boot"`
 #'   (e.g. `re_formula = NULL` for a conditional bootstrap). Refused for
 #'   `"wald"`.
-#' @return A `brmshypothesis`-shaped list; see *The returned object*.
+#' @return A `frmtmb_hypothesis` list in brms's shape; see
+#'   *The returned object*.
 #'   `plot()` shows the bootstrap distribution, the profile curve, or
 #'   the implied Wald normal density, one panel per hypothesis.
 #' @examples
@@ -2655,7 +2740,7 @@ hyp_labels <- function(hypothesis) {
   }, "")
 }
 
-#' brms's hypothesis result, `brmshypothesis`-shaped: a list with the
+#' brms's hypothesis result, in brms's shape: a list with the
 #' eight-column `hypothesis` frame, `samples`, `prior_samples`, `class`
 #' and `alpha`, in brms's order (`brms:::combine_hlist()`). Anything a
 #' method knows beyond brms's columns rides on attributes, so the list
@@ -2684,7 +2769,15 @@ hyp_brms_result <- function(labels, estimate, error, lower, upper,
               class = hyp_class_label(prefix), alpha = alpha)
   for (nm in names(attrs)) attr(out, nm) <- attrs[[nm]]
   attr(out, "direction") <- dir
-  class(out) <- c("frmtmb_hypothesis", "brmshypothesis")
+  # NOT brms's class as well. The stated reason for carrying it was
+  # that print() and plot() would dispatch differently without it, and
+  # that was measured false: frmtmb exports both generics for
+  # frmtmb_hypothesis, which comes first, so stripping brmshypothesis
+  # leaves the printed output identical and plot() working
+  # (dev/reviews/20260918-shapes.md). What a frmtmb object must not do
+  # is answer is(x, "<brms class>") TRUE, which is the rule the port
+  # ledger cites eighteen times.
+  class(out) <- "frmtmb_hypothesis"
   out
 }
 

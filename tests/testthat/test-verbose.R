@@ -42,7 +42,7 @@ test_that("verbose does not change the fit", {
   )
   expect_equal(as.numeric(logLik(f1)), as.numeric(logLik(f0)))
   expect_equal(as.numeric(logLik(f2)), as.numeric(logLik(f0)))
-  expect_equal(unlist(fixef(f1)), unlist(fixef(f0)))
+  expect_equal(unlist(fixef_by_dpar(f1)), unlist(fixef_by_dpar(f0)))
 })
 
 test_that("control$verbose wins over frm(verbose =)", {

@@ -1,0 +1,7 @@
+design: pois  replicates: 220  failed fits: 0 
+n: 60  new points per replicate: 10  ndraws: 1000  seed0: 20260917  allow_new_levels: FALSE 
+script: dev/shapes-coverage.R
+
+joint     2165 of  2200 = 0.9841  (0.9779, 0.9889) binomial; replicate mean 0.9841 se 0.0027  median width 4.6025  non-finite widths 0 of 220
+plugin    2160 of  2200 = 0.9818  (0.9753, 0.9870) binomial; replicate mean 0.9818 se 0.0029  median width 4.5000  non-finite widths 0 of 220
+wald       540 of  2200 = 0.2455  (0.2276, 0.2640) binomial; replicate mean 0.2455 se 0.0084  median width 0.8811  non-finite widths 0 of 220

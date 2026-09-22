@@ -201,8 +201,8 @@ test_that("frmtmb loads and works with every optional owner unloadable", {
     "dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))",
     "dd$y <- rnorm(60, 1 + 0.5 * dd$x, 1)",
     "fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)",
-    "cat('FIXEF:', paste(names(fixef(fit)), collapse = ','), '\\n')",
-    "cat('NGRPS:', ngrps(fit), '\\n')",
+    "cat('FIXEF:', paste(names(fixef_by_dpar(fit)), collapse = ','), '\\n')",
+    "cat('NGRPS:', unlist(ngrps(fit)), '\\n')",
     "cat('VARCORR:', length(VarCorr(fit)), '\\n')",
     "cat('REFIT:', class(refit(fit, dd$y))[1], '\\n')",
     "cat('CHILDOK\\n')"))

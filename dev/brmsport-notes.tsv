@@ -1,0 +1,2 @@
+id	pkg	note
+brmsfit-methods:340	*	WEAKER than brms wrote it: fitted() is brms's n x 4 matrix now, so fi[1, ] and fi[2, ] each carry Estimate plus three NA cells on this non-converging fixture, and expect_equal compares c(19.122, NA, NA, NA) with itself. Before the shapes item this compared two numbers and errored on fi[1, ]. It moved from defect to pass on that weakening, not on a fix (dev/reviews/20260918-shapes.md, m7).

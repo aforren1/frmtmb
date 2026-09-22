@@ -138,7 +138,7 @@ NULL
 #'   regression models to observed data; there is no time index, no
 #'   forecast horizon, and no extrapolation beyond the predictor space
 #'   that a horizon could parameterize. Prediction uncertainty away from
-#'   the observed data is still reported: `predict(se.fit = TRUE)` adds
+#'   the observed data is still reported: `frm_linpred(se.fit = TRUE)` adds
 #'   the marginal variance of unseen grouping levels and the kriging
 #'   variance of a Gaussian process.
 #' @srrstatsNA {RE6.3} Follows from RE4.15. There is no forecast, so a

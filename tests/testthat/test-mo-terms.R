@@ -152,12 +152,12 @@ test_that("mo() and mi() two-way interactions still fit together", {
   # mo(inc) | mi(x) | mo(inc):z | mi(x):z where this reports
   # moinc | moinc:z | mix:z | mix. Nothing asserts that today (no tier
   # row uses mi()), which is why the mi() list is left unsorted.
-  expect_setequal(names(fixef(fit)$y_mu),
+  expect_setequal(names(fixef_by_dpar(fit)$y_mu),
                   c("(Intercept)", "z", "moinc", "moinc:z", "mix",
                     "mix:z"))
   expect_true(is.finite(as.numeric(logLik(fit))))
   nd <- data.frame(inc = 0:3, z = 0, x = 0)
-  expect_true(all(is.finite(predict(fit, newdata = nd, resp = "y"))))
+  expect_true(all(is.finite(frm_linpred(fit, newdata = nd, resp = "y"))))
 })
 
 test_that("the tier translates an ordinal fit, whose zetas start at 2", {

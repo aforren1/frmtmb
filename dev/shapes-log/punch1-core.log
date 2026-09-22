@@ -1,0 +1,274 @@
+== frmtmb 154 files ==
+frmtmb RESULT test-aliased-grouping.R pass=33 fail=0 err=0 skip=0
+frmtmb RESULT test-api-spellings.R pass=36 fail=0 err=0 skip=0
+frmtmb RESULT test-arg-refusal.R pass=123 fail=0 err=0 skip=0
+frmtmb RESULT test-autocor.R pass=191 fail=0 err=0 skip=0
+frmtmb RESULT test-autoscale.R pass=46 fail=0 err=0 skip=0
+frmtmb RESULT test-backlog.R pass=35 fail=0 err=0 skip=0
+frmtmb RESULT test-bcm-bart.R pass=8 fail=0 err=0 skip=1
+frmtmb RESULT test-bcm-binomial.R pass=17 fail=0 err=0 skip=6
+frmtmb RESULT test-bcm-data-analysis.R pass=20 fail=0 err=0 skip=6
+frmtmb RESULT test-bcm-esp.R pass=5 fail=0 err=0 skip=2
+frmtmb RESULT test-bcm-gaussian.R pass=11 fail=0 err=0 skip=3
+frmtmb RESULT test-bcm-gcm.R pass=9 fail=0 err=0 skip=2
+frmtmb RESULT test-bcm-latent-mixtures.R pass=30 fail=0 err=0 skip=5
+frmtmb RESULT test-bcm-model-selection.R pass=13 fail=0 err=0 skip=3
+frmtmb RESULT test-bcm-mpt.R pass=15 fail=0 err=0 skip=2
+frmtmb RESULT test-bcm-psychophysics.R pass=7 fail=0 err=0 skip=2
+frmtmb RESULT test-bcm-retention.R pass=15 fail=0 err=0 skip=3
+frmtmb RESULT test-bcm-signal-detection.R pass=6 fail=0 err=0 skip=3
+frmtmb RESULT test-bcm-simple.R pass=8 fail=0 err=0 skip=1
+frmtmb RESULT test-boot.R pass=49 fail=0 err=0 skip=0
+frmtmb RESULT test-bracket-access.R pass=33 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-agreement.R pass=168 fail=0 err=0 skip=2
+frmtmb RESULT test-brms-families.R pass=986 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-formula-priors.R pass=208 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-likelihood.R pass=20 fail=0 err=0 skip=32
+frmtmb RESULT test-brms-methods.R pass=16 fail=0 err=0 skip=45
+frmtmb RESULT test-brms-names.R pass=138 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-port.R pass=21 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-priors.R pass=0 fail=0 err=0 skip=12
+frmtmb RESULT test-brms-shapes.R pass=72 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-shapes-punch.R pass=52 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-brm.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-brmsfit-helpers.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-brmsformula.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-brmsterms.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-data-helpers.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-emmeans.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-families.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-methods.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-priors.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-brms-suite-standata.R pass=0 fail=0 err=0 skip=0
+frmtmb RESULT test-car-spde.R pass=136 fail=0 err=0 skip=0
+frmtmb RESULT test-case-studies.R pass=30 fail=0 err=0 skip=0
+frmtmb RESULT test-ce-bands.R pass=167 fail=0 err=0 skip=0
+frmtmb RESULT test-ce-facets.R pass=92 fail=0 err=0 skip=0
+frmtmb RESULT test-cens-lccdf.R pass=27 fail=0 err=0 skip=0
+frmtmb RESULT test-cens-trunc.R pass=69 fail=0 err=0 skip=0
+frmtmb RESULT test-ci-siblings.R pass=11 fail=0 err=0 skip=0
+frmtmb RESULT test-compat.R pass=573 fail=0 err=0 skip=0
+frmtmb RESULT test-compat-register.R pass=103 fail=0 err=0 skip=0
+frmtmb RESULT test-conditions.R pass=150 fail=0 err=0 skip=0
+frmtmb RESULT test-conditions-census.R pass=11 fail=0 err=0 skip=0
+frmtmb RESULT test-confint-anova.R pass=35 fail=0 err=0 skip=0
+frmtmb RESULT test-core-boundary.R pass=4 fail=0 err=0 skip=0
+frmtmb RESULT test-covstruct.R pass=7 fail=0 err=0 skip=0
+frmtmb RESULT test-custom-family.R pass=126 fail=0 err=0 skip=0
+frmtmb RESULT test-data2.R pass=30 fail=0 err=0 skip=0
+frmtmb RESULT test-dates.R pass=13 fail=0 err=0 skip=0
+frmtmb RESULT test-diagnostics-ux.R pass=127 fail=0 err=0 skip=0
+frmtmb RESULT test-distributional.R pass=28 fail=0 err=0 skip=0
+frmtmb RESULT test-dpar-eta-api.R pass=123 fail=0 err=0 skip=0
+frmtmb RESULT test-dry-run.R pass=23 fail=0 err=0 skip=0
+frmtmb RESULT test-edgecases.R pass=57 fail=5 err=0 skip=0
+  [FAIL] row names survive into fitted, residuals and predict (RE7.2)
+      Expected `names(stats::fitted(m)[, "Estimate"])` to be identical to `rn`.
+      Differences:
+      `actual` is NULL
+      `expected` is a character vector ('case1', 'case2', 'case3', 'case4', 'case5', ...)
+      
+      Expected `names(stats::residuals(m)[, "Estimate"])` to be identical to `rn`.
+      Differences:
+      `actual` is NULL
+      `expected` is a character vector ('case1', 'case2', 'case3', 'case4', 'case5', ...)
+      
+      Expected `rownames(stats::predict(m, ndraws = 20))` to be identical to `rn`.
+      Differences:
+      `actual` is NULL
+      `expected` is a character vector ('case1', 'case2', 'case3', 'case4', 'case5', ...)
+      
+      Expected `rownames(stats::predict(m, newdata = nd, ndraws = 20))` to be identical to `c("case5", "case1", "case9")`.
+      Differences:
+      `actual` is NULL
+      `expected` is a character vector ('case5', 'case1', 'case9')
+      
+      Expected `names(stats::fitted(m2)[, "Estimate"])` to be identical to `rn[-3]`.
+      Differences:
+      `actual` is NULL
+      `expected` is a character vector ('case1', 'case2', 'case4', 'case5', 'case6', ...)
+      
+frmtmb RESULT test-effects.R pass=54 fail=0 err=0 skip=0
+frmtmb RESULT test-famgaps.R pass=100 fail=0 err=0 skip=0
+frmtmb RESULT test-families.R pass=228 fail=0 err=0 skip=0
+frmtmb RESULT test-fit-end-hook.R pass=18 fail=0 err=0 skip=0
+frmtmb RESULT test-frame.R pass=22 fail=0 err=0 skip=0
+frmtmb RESULT test-functional.R pass=3 fail=0 err=0 skip=0
+frmtmb RESULT test-fuzz.R pass=0 fail=0 err=0 skip=1
+frmtmb RESULT test-generic-collision.R pass=56 fail=0 err=0 skip=0
+frmtmb RESULT test-get-prior-route.R pass=76 fail=0 err=0 skip=0
+frmtmb RESULT test-glmm-binomial.R pass=10 fail=0 err=0 skip=0
+frmtmb RESULT test-glmm-gaussian.R pass=17 fail=0 err=0 skip=0
+frmtmb RESULT test-glmm-poisson.R pass=12 fail=0 err=0 skip=0
+frmtmb RESULT test-gp-multidim.R pass=42 fail=0 err=0 skip=0
+frmtmb RESULT test-habit-prep.R pass=16 fail=0 err=0 skip=0
+frmtmb RESULT test-id-kron.R pass=60 fail=0 err=0 skip=0
+frmtmb RESULT test-importance.R pass=226 fail=0 err=0 skip=0
+frmtmb RESULT test-influence-plot.R pass=21 fail=0 err=0 skip=0
+frmtmb RESULT test-input-validation.R pass=43 fail=0 err=0 skip=0
+frmtmb RESULT test-interop.R pass=45 fail=0 err=0 skip=0
+frmtmb RESULT test-lkj.R pass=212 fail=0 err=0 skip=0
+frmtmb RESULT test-map.R pass=7 fail=0 err=0 skip=0
+frmtmb RESULT test-mean-fn.R pass=4 fail=0 err=0 skip=0
+frmtmb RESULT test-message-uniqueness.R pass=6 fail=0 err=0 skip=0
+frmtmb RESULT test-method-residue.R pass=64 fail=0 err=0 skip=0
+frmtmb RESULT test-methods.R pass=62 fail=2 err=0 skip=0
+  [FAIL] predict/fitted/residuals invariants hold
+      Expected `mu` to be identical to `fitted(fit)[, "Estimate"]`.
+      Differences:
+      `names(actual)` is a character vector ('1', '2', '3', '4', '5', ...)
+      `names(expected)` is absent
+      
+      Expected `rp` to equal `r/sig`.
+      Differences:
+      `names(actual)` is absent
+      `names(expected)` is a character vector ('1', '2', '3', '4', '5', ...)
+      
+frmtmb RESULT test-methods-audit.R pass=55 fail=3 err=0 skip=0
+  [FAIL] predict type = 'response' is the expected response (zi)
+      Expected `frm_linpred(fit, type = "response")` to equal `fitted(fit)[, "Estimate"]`.
+      Differences:
+      `names(actual)` is a character vector ('1', '2', '3', '4', '5', ...)
+      `names(expected)` is absent
+      
+  [FAIL] predict type aliases and spellings on gaussian fits
+      Expected `frm_linpred(fit, type = "response")` to equal `fitted(fit)[, "Estimate"]`.
+      Differences:
+      `names(actual)` is a character vector ('1', '2', '3', '4', '5', ...)
+      `names(expected)` is absent
+      
+  [FAIL] predict type = 'response' scales binomial means by trials
+      Expected `frm_linpred(fit, type = "response")` to equal `fitted(fit)[, "Estimate"]`.
+      Differences:
+      `names(actual)` is a character vector ('1', '2', '3', '4', '5', ...)
+      `names(expected)` is absent
+      
+frmtmb RESULT test-mixture-start.R pass=5 fail=0 err=0 skip=0
+frmtmb RESULT test-mm.R pass=116 fail=0 err=0 skip=0
+frmtmb RESULT test-mo-terms.R pass=74 fail=0 err=0 skip=0
+frmtmb RESULT test-multinomial.R pass=17 fail=0 err=0 skip=0
+frmtmb RESULT test-multiple-pooling.R pass=33 fail=0 err=0 skip=0
+frmtmb RESULT test-multivariate.R pass=23 fail=0 err=0 skip=0
+frmtmb RESULT test-mvn-mixture.R pass=277 fail=0 err=0 skip=0
+frmtmb RESULT test-naming-collisions.R pass=29 fail=0 err=0 skip=0
+frmtmb RESULT test-nl.R pass=43 fail=1 err=0 skip=0
+  [FAIL] nl prediction and post-processing
+      Expected `fitted(fit)[, "Estimate"]` to equal `frm_linpred(fit, type = "response")`.
+      Differences:
+      `names(actual)` is absent
+      `names(expected)` is a character vector ('1', '2', '3', '4', '5', ...)
+      
+frmtmb RESULT test-nl-body-vars.R pass=23 fail=0 err=0 skip=0
+frmtmb RESULT test-nlf.R pass=73 fail=1 err=0 skip=0
+  [FAIL] post-processing follows the nonlinear parameter a body names
+      Expected `fitted(fit)[, "Estimate"]` to equal `frm_linpred(fit, type = "response")`.
+      Differences:
+      `names(actual)` is absent
+      `names(expected)` is a character vector ('1', '2', '3', '4', '5', ...)
+      
+frmtmb RESULT test-nl-lexical.R pass=31 fail=0 err=0 skip=0
+frmtmb RESULT test-nl-rtmb-scope.R pass=103 fail=0 err=0 skip=0
+frmtmb RESULT test-numerical-robustness.R pass=679 fail=0 err=0 skip=0
+frmtmb RESULT test-open-issues.R pass=43 fail=0 err=0 skip=0
+frmtmb RESULT test-ordinal.R pass=109 fail=0 err=0 skip=0
+frmtmb RESULT test-ordinal-fitted.R pass=87 fail=4 err=0 skip=0
+  [FAIL] fitted() is the category matrix on all four ordinal families
+      Expected `rownames(ft)` to equal `rownames(dd)`.
+      Differences:
+      `actual` is NULL
+      `expected` is a character vector ('1', '2', '3', '4', '5', ...)
+      
+      cumulative
+      Expected `rownames(ft)` to equal `rownames(dd)`.
+      Differences:
+      `actual` is NULL
+      `expected` is a character vector ('1', '2', '3', '4', '5', ...)
+      
+      sratio
+      Expected `rownames(ft)` to equal `rownames(dd)`.
+      Differences:
+      `actual` is NULL
+      `expected` is a character vector ('1', '2', '3', '4', '5', ...)
+      
+      cratio
+      Expected `rownames(ft)` to equal `rownames(dd)`.
+      Differences:
+      `actual` is NULL
+      `expected` is a character vector ('1', '2', '3', '4', '5', ...)
+      
+      acat
+frmtmb RESULT test-osa-inference.R pass=34 fail=0 err=0 skip=0
+frmtmb RESULT test-parse.R pass=43 fail=0 err=0 skip=0
+frmtmb RESULT test-par-template.R pass=51 fail=0 err=0 skip=0
+frmtmb RESULT test-perf.R pass=3 fail=0 err=0 skip=0
+frmtmb RESULT test-pooled-anova.R pass=64 fail=0 err=0 skip=0
+frmtmb RESULT test-portability.R pass=95 fail=0 err=0 skip=0
+frmtmb RESULT test-predict-lp-basis.R pass=30 fail=0 err=0 skip=0
+frmtmb RESULT test-predict-newdata.R pass=12 fail=0 err=0 skip=0
+frmtmb RESULT test-prior-compat.R pass=194 fail=0 err=0 skip=0
+frmtmb RESULT test-priors-autocor-classes.R pass=62 fail=0 err=0 skip=0
+frmtmb RESULT test-priors-bounds-grcov.R pass=50 fail=0 err=0 skip=0
+frmtmb RESULT test-ps.R pass=71 fail=0 err=0 skip=0
+frmtmb RESULT test-quadrature-defects.R pass=59 fail=0 err=0 skip=0
+frmtmb RESULT test-reml-nongaussian.R pass=9 fail=0 err=0 skip=0
+frmtmb RESULT test-review-fixes.R pass=18 fail=0 err=0 skip=0
+frmtmb RESULT test-review-v25.R pass=60 fail=0 err=0 skip=0
+frmtmb RESULT test-review-v28.R pass=74 fail=0 err=0 skip=0
+frmtmb RESULT test-review-v29.R pass=137 fail=0 err=0 skip=0
+frmtmb RESULT test-rl-example.R pass=96 fail=0 err=0 skip=2
+frmtmb RESULT test-sandwich.R pass=58 fail=0 err=0 skip=0
+  method    from    
+  bread.mlm sandwich
+frmtmb RESULT test-scale-contract.R pass=35 fail=2 err=0 skip=0
+  [FAIL] the lognormal identity holds only for a constant sigma
+      Expected `fitted(f2)[, "Estimate"]` to be identical to `exp(mu + sv^2/2)`.
+      Differences:
+      `names(actual)` is absent
+      `names(expected)` is a character vector ('1', '2', '3', '4', '5', ...)
+      
+  [FAIL] the lognormal identity fails under truncation
+      Expected `fitted(ln)[, "Estimate"]` to be identical to `exp(frm_linpred(ln, type = "link") + sigma(ln)^2/2)`.
+      Differences:
+      `names(actual)` is absent
+      `names(expected)` is a character vector ('1', '2', '3', '4', '5', ...)
+      
+frmtmb RESULT test-setprior.R pass=27 fail=0 err=0 skip=0
+frmtmb RESULT test-simulate-density.R pass=435 fail=0 err=0 skip=0
+frmtmb RESULT test-simulate-ergonomics.R pass=50 fail=0 err=0 skip=0
+frmtmb RESULT test-smooth-population.R pass=33 fail=0 err=0 skip=0
+frmtmb RESULT test-smooths.R pass=27 fail=0 err=0 skip=0
+frmtmb RESULT test-sparsear1.R pass=24 fail=0 err=0 skip=0
+frmtmb RESULT test-sparsex.R pass=64 fail=0 err=0 skip=0
+frmtmb RESULT test-spectral.R pass=113 fail=0 err=0 skip=0
+frmtmb RESULT test-structure.R pass=135 fail=0 err=0 skip=0
+  [FAIL] coef falls back to fixef without random effects
+      Expected `cc` to equal `fixef_by_dpar(fit)$mu`.
+      Differences:
+      `names(actual)`:   "Intercept"   "x"
+      `names(expected)`: "(Intercept)" "x"
+      
+  [FAIL] two terms on one factor share a coef frame
+      Expected `colnames(cc$g)` to equal `c("(Intercept)", "x")`.
+      Differences:
+      `actual`:   "Intercept"   "x"
+      `expected`: "(Intercept)" "x"
+      
+frmtmb RESULT test-tabular-inputs.R pass=9 fail=0 err=0 skip=0
+frmtmb RESULT test-tmb-examples.R pass=28 fail=0 err=0 skip=0
+frmtmb RESULT test-tre.R pass=102 fail=0 err=0 skip=0
+frmtmb RESULT test-trunc-postfit.R pass=35 fail=0 err=0 skip=0
+frmtmb RESULT test-unpinned-seams.R pass=23 fail=0 err=0 skip=1
+frmtmb RESULT test-v07.R pass=25 fail=0 err=0 skip=0
+frmtmb RESULT test-v11.R pass=22 fail=0 err=0 skip=0
+frmtmb RESULT test-v12.R pass=26 fail=0 err=0 skip=0
+frmtmb RESULT test-v14.R pass=81 fail=0 err=0 skip=0
+frmtmb RESULT test-v15.R pass=41 fail=0 err=0 skip=0
+frmtmb RESULT test-v16.R pass=24 fail=0 err=0 skip=0
+frmtmb RESULT test-v17.R pass=35 fail=0 err=0 skip=0
+frmtmb RESULT test-v18.R pass=27 fail=0 err=0 skip=0
+frmtmb RESULT test-v19.R pass=23 fail=0 err=0 skip=0
+frmtmb RESULT test-verbose.R pass=40 fail=0 err=0 skip=0
+frmtmb RESULT test-vignette-wiener.R pass=21 fail=0 err=0 skip=0
+frmtmb RESULT test-zi.R pass=11 fail=0 err=0 skip=0
+== frmtmb END ==
+RAN 154 of 154 files

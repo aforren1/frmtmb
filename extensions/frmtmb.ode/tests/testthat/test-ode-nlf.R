@@ -36,7 +36,7 @@ test_that("frm_ode() composes inside an nlf() body", {
                 data = d, start = st)
   expect_equal(as.numeric(logLik(vianlf)), as.numeric(logLik(direct)),
                tolerance = 1e-10)
-  expect_equal(predict(vianlf), predict(direct), tolerance = 1e-10)
+  expect_equal(frm_linpred(vianlf), frm_linpred(direct), tolerance = 1e-10)
 
   # the within-group constancy check reads every body, not just mu's
   d$phase <- factor(ifelse(d$time <= 2, "early", "late"))

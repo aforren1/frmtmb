@@ -303,16 +303,16 @@ ln_check_spec <- function(nm, resp, spec, av) {
 ln_refusals <- function(nm, nominal = TRUE) {
   list(
     newdata_response = paste0(
-      "predict(type = 'response') on a ", nm, "() fit is not available ",
+      "frm_linpred(type = 'response') on a ", nm, "() fit is not available ",
       "for newdata: a trial's choice probability is conditional on the ",
       "outcomes and choices of every earlier trial of the same subject, ",
       "and newdata carries no block to replay. On new data, ask for ",
-      "predict(type = 'link', dpar = ) for a learning parameter"),
+      "frm_linpred(type = 'link', dpar = ) for a learning parameter"),
     conditional_effects = paste0(
       "conditional_effects() is not available for a ", nm, "() fit: the ",
       "expected response is a choice probability that depends on a whole ",
       "trial history, which the synthetic grid this function builds does ",
-      "not have. Plot a learning parameter itself with predict(dpar = )"),
+      "not have. Plot a learning parameter itself with frm_linpred(dpar = )"),
     osa = paste0(
       "residuals(type = 'osa') is not available for a ", nm, "() fit: ",
       "the tape holds the recursion over each whole sequence with no ",
@@ -437,7 +437,7 @@ ln_structure <- function(nm, spec, sim = TRUE, refusals = list(),
     # not twice arm 1 and the four decks of the Iowa gambling task have
     # no order at all. So there is no number `mu` for which `y - mu` is
     # a residual, and any `fitted_mean` this family supplied would make
-    # fitted(), predict(type = "response") and residuals() return
+    # fitted(), frm_linpred(type = "response") and residuals() return
     # arithmetic on a category code. core::cox() and
     # frmtmb.spline::royston_parmar() decline to invent a mean for the
     # same kind of reason.

@@ -1,7 +1,8 @@
 #!/bin/sh
 # Record every generated brms-suite file, one R process each, into
 # dev/brmsport-log/rec-<pkg>-<topic>.tsv. Usage: sh dev/brmsport-record.sh [topic ...]
-cd /c/Users/adf44/source/r/frmtmb-wt-brmsport || exit 1
+# the tree is the caller's: run from the worktree root
+[ -f dev/brmsport-run.R ] || { echo "run me from the worktree root"; exit 1; }
 R="/c/Program Files/R/R-4.6.1/bin/Rscript.exe"
 export PATH="/c/rtools45/usr/bin:/c/rtools45/x86_64-w64-mingw32.static.posix/bin:$PATH"
 mkdir -p dev/brmsport-log

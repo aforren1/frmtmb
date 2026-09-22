@@ -566,7 +566,7 @@ ce_cats_display <- function(rspec, dpar) {
 #' always the dpar it labels the display with.
 #'
 #' `NULL` means the expected response, which is what
-#' `predict(type = "response")` returns with no `dpar =` and what
+#' `frm_linpred(type = "response")` returns with no `dpar =` and what
 #' `method = "epred"` has always been documented to draw. It is the
 #' answer whenever no dpar was named and the family's mean is not the
 #' inverse link of `mu` - a zero-inflated or hurdle family, a mixture -
@@ -650,13 +650,13 @@ ce_build_nd <- function(base, ev, v1, v2, cset, n, n2,
 ce_boot_one <- function(fit, nd, categorical, resp, dpar,
                         re_form = NA, allow_new_levels = FALSE) {
   p <- if (categorical) {
-    predict(fit, newdata = nd, type = "response", resp = resp,
-            re_formula = re_form,
-            allow_new_levels = allow_new_levels)
+    frm_linpred(fit, newdata = nd, type = "response", resp = resp,
+                re_formula = re_form,
+                allow_new_levels = allow_new_levels)
   } else {
-    predict(fit, newdata = nd, type = "response", dpar = dpar,
-            resp = resp, re_formula = re_form,
-            allow_new_levels = allow_new_levels)
+    frm_linpred(fit, newdata = nd, type = "response", dpar = dpar,
+                resp = resp, re_formula = re_form,
+                allow_new_levels = allow_new_levels)
   }
   as.vector(p)
 }
@@ -1790,7 +1790,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   # the display quantity when no dpar is named and the family's mean is
   # not the inverse link of mu: the EXPECTED RESPONSE, which is what
   # method = "epred" has always been documented to draw and what
-  # fitted() and predict(type = "response") return. Taking the estimate
+  # fitted() and frm_linpred(type = "response") return. Taking the estimate
   # from the mu predictor alone plotted (1 - zi) times too little on a
   # zero-inflated fit and a sign-changing error on a hurdle one.
   pred_dpar <- ce_pred_dpar(rspec, dpar, dpar_given, categorical,
@@ -1897,8 +1897,8 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         # a nominal family has no thresholds, so the ordinal delta
         # method does not apply; under band = "boot" (the only band
         # allowed here) the draws supply the se and the bounds
-        P <- predict(x, newdata = nd, type = "response", resp = resp,
-                     re_formula = re_formula, allow_new_levels = anl)
+        P <- frm_linpred(x, newdata = nd, type = "response", resp = resp,
+                         re_formula = re_formula, allow_new_levels = anl)
         ps <- list(P = P, se = matrix(NA_real_, nrow(P), ncol(P)))
       }
       cats <- colnames(ps$P)
@@ -1937,12 +1937,12 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         # standard error here, so the delta method is not asked for:
         # that is what lets a nonlinear predictor, which has no
         # analytic se, reach a band at all
-        df$estimate__ <- as.vector(predict(x, newdata = nd,
-                                           type = "response",
-                                           dpar = pred_dpar,
-                                           resp = resp,
-                                           re_formula = re_formula,
-                                           allow_new_levels = anl))
+        df$estimate__ <- as.vector(frm_linpred(x, newdata = nd,
+                                               type = "response",
+                                               dpar = pred_dpar,
+                                               resp = resp,
+                                               re_formula = re_formula,
+                                               allow_new_levels = anl))
         df$se__ <- NA_real_
         df$lower__ <- NA_real_
         df$upper__ <- NA_real_
@@ -1959,10 +1959,10 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         # error: for the mean the delta method runs over every dpar's
         # linear predictor jointly (predict_mean_se()), so the
         # cross-dpar covariances are in the band rather than dropped
-        p <- predict(x, newdata = nd, type = "response", dpar = pred_dpar,
-                     resp = resp, re_formula = re_formula,
-                     se.fit = TRUE,
-                     allow_new_levels = anl)
+        p <- frm_linpred(x, newdata = nd, type = "response",
+                         dpar = pred_dpar, resp = resp,
+                         re_formula = re_formula, se.fit = TRUE,
+                         allow_new_levels = anl)
         # a reported probability gets a logit band, which cannot leave
         # (0, 1); anything else keeps the predictor's own link
         bl <- if (!is.null(hook) && all(is.finite(p$fit)) &&
@@ -1983,10 +1983,9 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         bfail <- bfail + c(be$outside, length(be$lower))
         blink <- blink %||% bl[["name"]]
       } else {
-        p <- predict(x, newdata = nd, type = "link", dpar = dpar,
-                     resp = resp, re_formula = re_formula,
-                     se.fit = TRUE,
-                     allow_new_levels = anl)
+        p <- frm_linpred(x, newdata = nd, type = "link", dpar = dpar,
+                         resp = resp, re_formula = re_formula,
+                         se.fit = TRUE, allow_new_levels = anl)
         df$estimate__ <- lp[["link"]]$linkinv(p$fit)
         df$se__ <- p$se.fit
         be <- ce_band_ends(lp[["link"]]$linkinv, p$fit - z * p$se.fit,
@@ -2387,7 +2386,9 @@ ce_draw_panel <- function(df, xv, grp, grp_title, ylab, ylim,
 #' @export
 plot.frmtmb_fit <- function(x, which = 1:2, ask = NULL, ...) {
   frm_check_dots(...)
-  r <- residuals(x, type = "pearson")
+  # the values, not brms's summary matrix: a scatter plot needs one
+  # number per row
+  r <- residual_values(x, type = "pearson")
   ask <- ask %||% (length(which) > 1L && grDevices::dev.interactive())
   if (ask) {
     oask <- grDevices::devAskNewPage(TRUE)
@@ -2402,7 +2403,7 @@ plot.frmtmb_fit <- function(x, which = 1:2, ask = NULL, ...) {
     ft <- if (ordinal) {
       napred(x, ord_cat_moments(x, rspec)$mean)
     } else {
-      fitted(x)
+      fitted_point(x)
     }
     graphics::plot(ft, r,
                    xlab = if (ordinal) "Expected category" else

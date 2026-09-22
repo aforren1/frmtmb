@@ -18,7 +18,7 @@ assert	frmtmb	families:20	cannot transfer	FALSE	TRUE	VACUOUS: could not find fun
 assert	frmtmb	families:21	pass	TRUE	FALSE			TRUE
 assert	frmtmb	families:22	pass	TRUE	FALSE		'sqrt' is not a supported link for family 'hurdle_gamma'. Supported links are: 'log', 'identity', 'inverse', 'softplus', 'squareplus'. See ?`frmtmb-links`	TRUE
 assert	frmtmb	families:23	pass	TRUE	FALSE			TRUE
-assert	frmtmb	families:24	pass	TRUE	FALSE		The custom link of dpar 'mu' given to zero_inflated_poisson() has no `name`, `linkfun`, `linkinv`, `mu_eta`. A link object needs name, linkfun, linkinv and mu_eta (the derivative of linkinv, which predict(se.fit = TRUE) and every delta-method interval read)	TRUE
+assert	frmtmb	families:24	pass	TRUE	FALSE		The custom link of dpar 'mu' given to zero_inflated_poisson() has no `name`, `linkfun`, `linkinv`, `mu_eta`. A link object needs name, linkfun, linkinv and mu_eta (the derivative of linkinv, which frm_linpred(se.fit = TRUE) and every delta-method interval read)	TRUE
 assert	frmtmb	families:25	pass	TRUE	FALSE			TRUE
 assert	frmtmb	families:26	pass	TRUE	FALSE		'logit' is not a supported link for family 'zero_inflated_negbinomial'. Supported links are: 'log', 'identity', 'sqrt', 'softplus', 'squareplus'. See ?`frmtmb-links`	TRUE
 assert	frmtmb	families:28	pass	TRUE	FALSE			TRUE

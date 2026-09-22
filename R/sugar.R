@@ -26,7 +26,7 @@ find_linpred <- function(object, resp = NULL, dpar = "mu") {
 #' response scale when it is constant across observations
 #' (intercept-only or fixed). When `sigma` is modeled with covariates
 #' the scalar summary does not exist; the method warns and returns `NA`
-#' (use `predict(dpar = "sigma")` for the per-observation values).
+#' (use `frm_linpred(dpar = "sigma")` for the per-observation values).
 #' Families without a `sigma` parameter return 1, following glmmTMB.
 #'
 #' @param object A `frmtmb_fit`.
@@ -42,8 +42,8 @@ find_linpred <- function(object, resp = NULL, dpar = "mu") {
 #' # the residual SD, on the response scale
 #' sigma(fit)
 #' # which is what the standardized residuals divide by
-#' max(abs(residuals(fit, type = "pearson") -
-#'           residuals(fit) / sigma(fit)))
+#' max(abs(residuals(fit, type = "pearson")[, "Estimate"] -
+#'           residuals(fit)[, "Estimate"] / sigma(fit)))
 #'
 #' # a poisson fit has no dispersion parameter, so sigma() is 1
 #' dd$cnt <- rpois(100, exp(0.5 + 0.3 * dd$x))
@@ -69,7 +69,7 @@ sigma.frmtmb_fit <- function(object, ...) {
       return(lp[["link"]]$linkinv(object$estimates[[lp[["par"]]]][lp[["idx"]]]))
     }
     frm_warning("sigma varies by observation; returning NA ",
-                "(use predict(dpar = \"sigma\"))", call. = FALSE)
+                "(use frm_linpred(dpar = \"sigma\"))", call. = FALSE)
     NA_real_
   }, numeric(1))
   if (length(out) == 1L) unname(out) else out
@@ -130,7 +130,11 @@ extractAIC.frmtmb_fit <- function(fit, scale = 0, k = 2, ...) {
 #' @param object A `frmtmb_fit`.
 #' @param ... Refused: an argument the method does not have is an
 #'   error naming it, rather than silently changing nothing.
-#' @return A named integer vector (smooth terms are excluded).
+#' @return brms's named list, one integer per grouping factor, or `NULL`
+#'   for a fit with no grouping factor. Smooth, Gaussian-process, CAR
+#'   and SPDE blocks are random-effect blocks here and are not grouping
+#'   factors in brms, so they are excluded; their parameters are in
+#'   [VarCorr()] and [confint_varcorr()].
 #' @examples
 #' set.seed(1)
 #' dd <- data.frame(x = rnorm(100),
@@ -153,11 +157,17 @@ ngrps <- function(object, ...) UseMethod("ngrps")
 #' @export
 ngrps.frmtmb_fit <- function(object, ...) {
   frm_check_dots(...)
-  bks <- Filter(function(bk) bk[["covstruct"]] != "smooth",
-                object$frame[["re_blocks"]])
+  # brms counts the levels of a GROUPING FACTOR. A smooth, a Gaussian
+  # process, a CAR or an SPDE block is a random-effect block here and is
+  # not a grouping factor there, which is why the gp() fixture used to
+  # report a group of one level that brms has no entry for at all.
+  bks <- Filter(function(bk) {
+    !bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "car", "spde")
+  }, object$frame[["re_blocks"]])
+  if (!length(bks)) return(NULL)
   ng <- vapply(bks, `[[`, 0L, "n_levels")
   names(ng) <- vapply(bks, `[[`, "", "group_name")
-  ng[!duplicated(names(ng))]
+  as.list(ng[!duplicated(names(ng))])
 }
 
 #' Priors used in a fit

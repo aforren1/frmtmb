@@ -71,7 +71,7 @@ fhmm <- frm(bf(logstep ~ 1),
             family = hmm(K = 2, gaussian(), time = step, group = track,
                          init = "stationary"),
             data = mv)
-e <- unlist(fixef(fhmm))
+e <- unlist(fixef_by_dpar(fhmm))
 rbind(estimated = c(exp(e[["sigma1.(Intercept)"]]), e[["mu1.(Intercept)"]],
                     e[["mu2.(Intercept)"]], exp(e[["sigma2.(Intercept)"]])),
       simulated = c(0.45, 1.4, 3.1, 0.55))[, c(2, 1, 3, 4)] |>
@@ -200,7 +200,7 @@ residuals(fhmm, type = "deviance")
 covariate grid. Under an HMM the expected response weights the state
 means by the posterior occupancies, and those depend on the observed
 responses of a whole sequence, so they do not exist on a grid. Plot one
-state's own predictor with `predict(dpar = "mu2")`, or the occupancies
+state's own predictor with `frm_linpred(dpar = "mu2")`, or the occupancies
 from `hmm_probs()`.
 
 `residuals(type = "deviance")`, and frmtmb.sample's `log_lik()` and

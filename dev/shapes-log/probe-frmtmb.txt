@@ -1,0 +1,191 @@
+
+== fitted(fit1)
+dim:   len: 40  class: numeric 
+       1        2        3 
+19.67553 18.47256 18.90588 
+
+== fitted(fit4)
+dim: 40 x 4  len: 160  class: matrix,array 
+          1        2         3         4
+1 0.1889249 0.211853 0.3600092 0.2392129
+2 0.3662325 0.181588 0.2842280 0.1679515
+
+== residuals(fit2)
+dim:   len: 40  class: numeric 
+
+== predict(fit1)
+dim:   len: 40  class: numeric 
+
+== predict(fit4)
+dim:   len: 40  class: numeric 
+NULL
+
+== fixef(fit1)
+List of 3
+ $ mu   : Named num [1:7] 20.458 -2.532 -0.467 -0.398 -0.627 ...
+  ..- attr(*, "names")= chr [1:7] "(Intercept)" "Trt1" "Age" "volume" ...
+ $ sigma: Named num [1:2] 1.002 0.101
+  ..- attr(*, "names")= chr [1:2] "(Intercept)" "Trt1"
+ $ nu   : Named num 0.843
+  ..- attr(*, "names")= chr "(Intercept)"
+
+== fixef(fit1, flatten = TRUE)
+ [1] "(Intercept)"       "Trt1"              "Age"              
+ [4] "volume"            "Trt1:Age"          "s(Age).fx1"       
+ [7] "moExp"             "sigma_(Intercept)" "sigma_Trt1"       
+[10] "nu_(Intercept)"   
+
+== variables(fit1)
+ [1] "b_Intercept"                "b_Trt1"                    
+ [3] "b_Age"                      "b_volume"                  
+ [5] "b_Trt1:Age"                 "bs_sAge_1"                 
+ [7] "bsp_moExp"                  "b_sigma_Intercept"         
+ [9] "b_sigma_Trt1"               "sd_visit__Intercept"       
+[11] "sd_visit__Trt1"             "cor_visit__Intercept__Trt1"
+[13] "sds_sAge_1"                 "nu"                        
+[15] "ar[1]"                      "ma[1]"                     
+
+== variables(fit4)
+[1] "b_x1"                  "sd_subject__Intercept" "sd_subject__x2"       
+
+== ngrps(fit1)
+ Named int 4
+ - attr(*, "names")= chr "visit"
+
+== ngrps(fit6)
+ Named int 1
+ - attr(*, "names")= chr "gp(Age)"
+
+== vcov(fit1)
+  [warning] Some standard errors are not finite, so vcov() and summary() report NaN: the covariance could not be recovered from the Hessian. The likelihood is FLAT in 3 directions: zeta1_1, zeta1_2, zeta1_3 - zero gradient and an empty Hessian row, so those parameters are not identified AT THIS POINT rather than over-parameterized: moving them does not change the likelihood at all. diagnose() names the offending parameters; see the 'Convergence problems' section of vignette('diagnostics')
+dim: 10 x 10  len: 100  class: matrix,array 
+ [1] "(Intercept)"       "Trt1"              "Age"              
+ [4] "volume"            "Trt1:Age"          "s(Age).fx1"       
+ [7] "moExp"             "sigma_(Intercept)" "sigma_Trt1"       
+[10] "nu_(Intercept)"   
+
+== vcov(fit1, full = TRUE) rows
+ [1] "(Intercept)"       "Trt1"              "Age"              
+ [4] "volume"            "Trt1:Age"          "s(Age).fx1"       
+ [7] "moExp"             "sigma_(Intercept)" "sigma_Trt1"       
+[10] "nu_(Intercept)"    "theta_1"           "theta_2"          
+[13] "theta_3"           "theta_4"           "thetaac_1"        
+[16] "thetaac_2"         "zeta1_1"           "zeta1_2"          
+[19] "zeta1_3"          
+
+== confint(fit1) rows
+ [1] "(Intercept)"       "Trt1"              "Age"              
+ [4] "volume"            "Trt1:Age"          "s(Age).fx1"       
+ [7] "moExp"             "sigma_(Intercept)" "sigma_Trt1"       
+[10] "nu_(Intercept)"    "theta_1"           "theta_2"          
+[13] "theta_3"           "theta_4"           "thetaac_1"        
+[16] "thetaac_2"         "zeta1_1"           "zeta1_2"          
+[19] "zeta1_3"          
+
+== summary(fit1) names
+ [1] "call"         "family"       "links"        "formula"      "nobs"        
+ [6] "ngrps"        "loglik"       "AIC"          "BIC"          "REML"        
+[11] "importance"   "coefficients" "varcor"       "rescor"       "autocor"     
+[16] "smooth_edf"   "extras"       "fixed_dpars" 
+
+== nobs
+[1] 40 40 40 40
+
+== brms_coef_table(fit1)
+            internal              brms natural  dpar
+1        (Intercept)       b_Intercept   FALSE    mu
+2               Trt1            b_Trt1   FALSE    mu
+3                Age             b_Age   FALSE    mu
+4             volume          b_volume   FALSE    mu
+5           Trt1:Age        b_Trt1:Age   FALSE    mu
+6         s(Age).fx1         bs_sAge_1   FALSE    mu
+7              moExp         bsp_moExp   FALSE    mu
+8  sigma_(Intercept) b_sigma_Intercept   FALSE sigma
+9         sigma_Trt1      b_sigma_Trt1   FALSE sigma
+10    nu_(Intercept)                nu    TRUE    nu
+
+== brms_coef_table(fit4)
+  internal brms natural dpar
+1       x1 b_x1   FALSE   mu
+
+== estimated_coef_names(fit1)
+ [1] "(Intercept)"       "Trt1"              "Age"              
+ [4] "volume"            "Trt1:Age"          "s(Age).fx1"       
+ [7] "moExp"             "sigma_(Intercept)" "sigma_Trt1"       
+[10] "nu_(Intercept)"   
+
+== re_blocks fit1
+ block: 1 + Trt | visit  group: visit  dim: 2  levels: 4  covstruct: us 
+ block: s(Age)  group: s(Age)  dim: 8  levels: 1  covstruct: smooth 
+
+== varcorr_matrices(fit1)
+  1 + Trt | visit 
+        Name Std.Dev. (Intercept)
+ (Intercept)   3.2510            
+        Trt1   4.8221          -1
+  s(Age) 
+       Name    Std.Dev.
+ sd(wiggle) 7.5694e-155
+
+== varcorr_matrices(fit6)
+  volume gp(Age) 
+   Name  Std.Dev.
+ sd(gp) 0.0036554
+
+== print(summary(fit6))
+Family: 
+ Links: volume: mu = identity; sigma = log; count: mu = log
+
+Formula: volume ~ Trt + gp(Age) 
+Method: ML   nobs: 40 
+Groups: gp(Age), 1 
+logLik: -177.247  AIC: 370.495  BIC: 384.006 
+
+Random effects:
+  volume gp(Age) 
+   Name  Std.Dev.
+ sd(gp) 0.0036554
+
+Coefficients (volume_mu):
+            Estimate Std. Error z value Pr(>|z|)
+(Intercept)  0.41141    0.23350  1.7619  0.07808
+Trt1        -0.40618    0.34805 -1.1670  0.24321
+
+Coefficients (volume_sigma):
+            Estimate Std. Error z value Pr(>|z|)
+(Intercept) 0.090865   0.111852  0.8124   0.4166
+
+Coefficients (count_mu):
+             Estimate Std. Error z value Pr(>|z|)
+(Intercept)  2.995273   0.049740 60.2186   <2e-16
+Trt1        -0.055365   0.072907 -0.7594   0.4476
+Age          0.018639   0.037024  0.5034   0.6147
+
+== print(fit1)
+frmtmb fit: count ~ Trt * Age + mo(Exp) + s(Age) + volume + offset(Age) + (1 + Trt | visit) + arma(visit, patient, cov = TRUE) 
+Family: student   Method: ML 
+ Links: mu = identity; sigma = log; nu = logm1
+
+logLik: -110.264  AIC: 258.528  nobs: 40 
+
+Fixed effects:
+ mu:
+(Intercept)        Trt1         Age      volume    Trt1:Age  s(Age).fx1 
+    20.4582     -2.5323     -0.4672     -0.3975     -0.6272      0.6955 
+      moExp 
+    -0.2646 
+ sigma:
+(Intercept)        Trt1 
+     1.0020      0.1014 
+ nu:
+(Intercept) 
+     0.8428 
+
+Random effects:
+  1 + Trt | visit 
+        Name Std.Dev. (Intercept)
+ (Intercept)   3.2510            
+        Trt1   4.8221          -1
+  s(Age) 
+       Name    Std.Dev.
+ sd(wiggle) 7.5694e-155

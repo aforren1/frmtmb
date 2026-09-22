@@ -265,7 +265,7 @@ rdm_gng_compat_rules <- function() {
   r("rdm", "simulate", "works",
     "The family supplies a sim slot that races the accumulators from inverse-Gaussian draws and returns the winner's time, conditioned on each row's observed vint() winner by rejection. rdm_simulate() is the unconditional joint draw of choice and time.")
   r("rdm", "fitted", "refused",
-    "The family declares a post$mean_fn that stops, because the mean of the winning accumulator's arrival is an expectation over the minimum of several inverse-Gaussian first passages and has no closed form. The refusal is deliberate and replaced a silent wrong answer: with that slot empty frmtmb returns the first primary dpar on the response scale, which here is a DRIFT RATE, and predict(type = \"response\") gave 3.51 for data whose response times average 0.36.")
+    "The family declares a post$mean_fn that stops, because the mean of the winning accumulator's arrival is an expectation over the minimum of several inverse-Gaussian first passages and has no closed form. The refusal is deliberate and replaced a silent wrong answer: with that slot empty frmtmb returns the first primary dpar on the response scale, which here is a DRIFT RATE, and frm_linpred(type = \"response\") gave 3.51 for data whose response times average 0.36.")
   r("rdm", "predict", "conditional",
     "type = \"link\" works, on the training data and on newdata. type = \"response\" is refused with the same message fitted() gives. Note what is NOT true: vint() is not mandatory on newdata for a link-scale prediction, because no linear predictor reads it.")
   r("rdm", "residuals", "refused",

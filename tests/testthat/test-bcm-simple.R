@@ -169,7 +169,7 @@ test_that("SIMPLE_1 produces a serial position curve", {
     frm(bf(k | trials(n) ~ 0 + set, s ~ 0 + set, t ~ 0 + set),
         family = bcm_simple_family(), data = d,
         start = bcm_simple_start(d), control = bcm_simple_control()))
-  th <- fitted(fit) / d$n
+  th <- fitted(fit)[, "Estimate"] / d$n
   # every recall probability is a probability, which is what the cap is
   # there to guarantee
   expect_lte(max(th), 1 + 1e-8)
@@ -232,6 +232,6 @@ test_that("SIMPLE_2 makes the threshold a function of list length", {
   tt <- as.numeric(eval_dpars(fit)[["k"]][["t"]])
   expect_true(all(tt > 0 & tt < 1))
   # longer lists lower the threshold, which is the case study's finding
-  expect_lt(unname(fixef(fit)[["t"]]["ll"]), 0)
-  expect_lte(max(fitted(fit) / d$n), 1 + 1e-8)
+  expect_lt(unname(fixef_by_dpar(fit)[["t"]]["ll"]), 0)
+  expect_lte(max(fitted(fit)[, "Estimate"] / d$n), 1 + 1e-8)
 })

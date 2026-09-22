@@ -103,7 +103,7 @@ bcm_bart_code <- function() {
 # The book's two parameters, from the two regression coefficients.
 bcm_bart_pars <- function(fit, p = 0.15, dpar = "mu",
                           icept = "(Intercept)", slope = "k") {
-  b <- fixef(fit)[[dpar]]
+  b <- fixef_by_dpar(fit)[[dpar]]
   beta <- unname(b[slope])
   omega <- -unname(b[icept]) / beta
   list(beta = beta, omega = omega, gplus = -omega * log1p(-p))

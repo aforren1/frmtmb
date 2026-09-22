@@ -82,7 +82,7 @@ sim_hmm <- function(N, Tl, G, mu, sigma, seed) {
 
 # the state-suffixed intercepts of a fit, as a flat named vector
 icpt <- function(fit) {
-  e <- unlist(fixef(fit))
+  e <- unlist(fixef_by_dpar(fit))
   stats::setNames(unname(e), sub("\\.\\(Intercept\\)$", "", names(e)))
 }
 
@@ -134,7 +134,7 @@ test_that("the family= and + spellings give the same fit", {
   fp <- frm(bf(y ~ 1) + hmm(K = 2, gaussian(), time = t, group = id),
             data = dd)
   expect_equal(as.numeric(logLik(fa)), as.numeric(logLik(fp)))
-  expect_equal(unlist(fixef(fa)), unlist(fixef(fp)))
+  expect_equal(unlist(fixef_by_dpar(fa)), unlist(fixef_by_dpar(fp)))
   # a one-sided formula is accepted for time/group as well
   ff <- frm(bf(y ~ 1),
             family = hmm(K = 2, gaussian(), time = ~t, group = ~id),
@@ -201,7 +201,7 @@ test_that("covariate transitions match a numeric forward and depmixS4", {
   fit <- frm(bf(y ~ 1),
              family = hmm(K = 2, gaussian(), time = t, group = id,
                           init = "estimated", trans = ~x), data = dd)
-  e <- unlist(fixef(fit))
+  e <- unlist(fixef_by_dpar(fit))
   mu <- c(e[["mu1.(Intercept)"]], e[["mu2.(Intercept)"]])
   sg <- exp(c(e[["sigma1.(Intercept)"]], e[["sigma2.(Intercept)"]]))
   # the covariate at row r drives the step OUT of r (depmixS4's rule)
@@ -420,7 +420,7 @@ test_that("categorical emissions take transition covariates too", {
                      init = "estimated", trans = ~x), data = dd))
   expect_true(is.finite(as.numeric(logLik(fit))))
   # every transition cell picked up the default predictor
-  expect_true(all(c("tr12.x", "tr22.x") %in% names(unlist(fixef(fit)))))
+  expect_true(all(c("tr12.x", "tr22.x") %in% names(unlist(fixef_by_dpar(fit)))))
 })
 
 ## ---- stage 4: random effects -------------------------------------------
@@ -646,7 +646,7 @@ test_that("hmm_probs() and hmm_viterbi() match a per-sequence reference", {
   fit <- frm(bf(y ~ 1),
              family = hmm(K = 2, gaussian(), time = t, group = id,
                           init = "estimated", trans = ~x), data = dd)
-  e <- unlist(fixef(fit))
+  e <- unlist(fixef_by_dpar(fit))
   mu <- c(e[["mu1.(Intercept)"]], e[["mu2.(Intercept)"]])
   sg <- exp(c(e[["sigma1.(Intercept)"]], e[["sigma2.(Intercept)"]]))
   lGof <- function(r) {
@@ -683,22 +683,22 @@ test_that("fitted() is the occupancy-weighted mean, not state 1's", {
                           init = "estimated"), data = dd)
   e <- icpt(fit)
   P <- hmm_probs(fit)
-  expect_equal(as.numeric(fitted(fit)),
+  expect_equal(as.numeric(fitted(fit)[, "Estimate"]),
                as.numeric(P %*% c(e[["mu1"]], e[["mu2"]])),
                tolerance = 1e-10)
   # rung 1's failure mode: a constant fitted value at state 1's mean
-  expect_gt(stats::sd(fitted(fit)), 1)
-  expect_gt(stats::cor(fitted(fit), dd$y), 0.85)
-  expect_equal(as.numeric(predict(fit, type = "response")),
-               as.numeric(fitted(fit)))
-  expect_equal(as.numeric(residuals(fit)),
-               as.numeric(dd$y - fitted(fit)), tolerance = 1e-10)
+  expect_gt(stats::sd(fitted(fit)[, "Estimate"]), 1)
+  expect_gt(stats::cor(fitted(fit)[, "Estimate"], dd$y), 0.85)
+  expect_equal(as.numeric(frm_linpred(fit, type = "response")),
+               as.numeric(fitted(fit)[, "Estimate"]))
+  expect_equal(as.numeric(residuals(fit)[, "Estimate"]),
+               as.numeric(dd$y - fitted(fit)[, "Estimate"]), tolerance = 1e-10)
   # pearson divides by the total (between + within state) variance
-  rp <- residuals(fit, type = "pearson")
+  rp <- residuals(fit, type = "pearson")[, "Estimate"]
   expect_equal(length(rp), nrow(dd))
   expect_lt(abs(stats::sd(rp) - 1), 0.25)
   # a state's own predictor stays reachable
-  expect_equal(unique(round(as.numeric(predict(fit, dpar = "mu2")), 8)),
+  expect_equal(unique(round(as.numeric(frm_linpred(fit, dpar = "mu2")), 8)),
                round(e[["mu2"]], 8))
 })
 
@@ -747,7 +747,7 @@ test_that("a missing response is masked, not dropped", {
   expect_equal(ll, as.numeric(logLik(fit)), tolerance = 1e-9)
   # no residual where there is no observation, but the state is still
   # inferred from the neighbours
-  expect_true(all(is.na(residuals(fit)[ms])))
+  expect_true(all(is.na(residuals(fit)[, "Estimate"][ms])))
   expect_true(all(is.finite(hmm_probs(fit)[ms, ])))
   # dropping the rows instead gives a DIFFERENT (biased) fit
   f2 <- frm(bf(y_na ~ 1),
@@ -807,9 +807,9 @@ test_that("post-fit methods that cannot be right refuse instead", {
   fit <- frm(bf(y ~ 1),
              family = hmm(K = 2, gaussian(), time = t, group = id),
              data = dd)
-  expect_error(predict(fit, type = "response", se.fit = TRUE),
+  expect_error(frm_linpred(fit, type = "response", se.fit = TRUE),
                "se.fit is not supported on the response scale for an hmm")
-  expect_error(predict(fit, type = "response", newdata = dd),
+  expect_error(frm_linpred(fit, type = "response", newdata = dd),
                "not available for newdata")
   expect_error(residuals(fit, type = "osa"), "not available for an hmm")
   expect_error(residuals(fit, type = "deviance"), "no per-row likelihood")
@@ -873,7 +873,7 @@ test_that("time and group default to row order and one sequence", {
   expect_equal(unname(rowSums(P)), rep(1, nrow(dd)), tolerance = 1e-12)
   expect_length(hmm_viterbi(f1), nrow(dd))
   expect_true(all(hmm_viterbi(f1) %in% 1:2))
-  expect_length(fitted(f1), nrow(dd))
+  expect_length(fitted(f1)[, "Estimate"], nrow(dd))
   expect_equal(dim(simulate(f1, nsim = 1, seed = 3)), c(nrow(dd), 1L))
   # against the per-sequence reference
   e <- icpt(f1)

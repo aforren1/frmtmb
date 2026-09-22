@@ -5,7 +5,7 @@
 ##
 ## What the row decides: the memoized joint-precision solve was 6.9 s at
 ## 8006 random coefficients in the docs, so what is unmeasured is the
-## FEATURE SEARCH, which calls predict() once per Newton step. Both the
+## FEATURE SEARCH, which calls frm_linpred() once per Newton step. Both the
 ## curve and the feature are timed separately from the fit here.
 ##
 ## The plan's spline row names only the curves design, so the Royston
