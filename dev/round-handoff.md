@@ -48,6 +48,15 @@ to run the release tiers, not its own subset.
 
 ## What is next, in order
 
+**One lane, next: `predict()` and `fitted()` carry the group effects'
+uncertainty at a level the fit saw** (user decision, 2026-09-22: match
+brms), with the partial-`re_formula` defect below, because a partial
+`re_formula` must add only its own terms' variance. Draw each
+replicate's group effects jointly from their conditional law, not a
+per-row variance, or `summary = FALSE` is wrong across rows of one group
+(the shared-new-level-draw lesson). The lane states which coverage the
+interval claims and measures that one (`dev/test-backlog.md`).
+
 **Silent first.**
 - A partial `re_formula` is accepted and not honored, with nothing said
   (`dev/adefects-findings.md` section 11, item 7), and
@@ -60,9 +69,7 @@ grouped type, and `type = "violin"`; `fitted()` on a multivariate fit
 refuses while `predict()` answers; on draws, an unseen level without
 the flag gets a hint that leads to a refusal (`dev/test-backlog.md`).
 
-**Decisions for the user, filed:** `Var(b|y)` at levels the fit saw is
-left out of `predict()`'s interval, where brms's draws carry it
-(`dev/test-backlog.md`); new levels on draws are refused rather than
+**Open for the user:** new levels on draws are refused rather than
 drawn per posterior draw.
 
 **Filed during 2.6c and not fixed**, details in each lane's findings:

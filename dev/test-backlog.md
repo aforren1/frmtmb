@@ -60,7 +60,13 @@ to do, and every closure carries the measurement that closed it.
 
 ## Open - high priority
 
-- DECISION NEEDED: should `predict()` carry `Var(b | y)` at a grouping
+- DECIDED 2026-09-22 (user): match brms. `predict()` AND `fitted()` carry
+  the group effects' uncertainty at a level the fit saw; `re_formula = NA`
+  adds none, and a partial `re_formula` adds only its own terms, so this
+  goes in one lane with the silent partial-`re_formula` defect. The lane
+  must state which coverage the interval claims (conditional on each
+  group's true effect, or averaged over groups) and measure that one.
+  The record as filed: should `predict()` carry `Var(b | y)` at a grouping
   level the fit saw? Today it draws conditional on the modes, so its
   interval at a known level of a mixed fit is narrow: 0.9445 out of
   sample on `dev/shapes-coverage.R`'s mixed design, 0.9336 on the
