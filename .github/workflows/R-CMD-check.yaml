@@ -29,6 +29,17 @@ jobs:
           r-version: ${{ matrix.config.r }}
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
+      # The macos-latest image moved to macos-26-arm64 (2026-09-07), which
+      # ships no OpenMP runtime. CRAN's TMB binary is built against one, so
+      # TMB.so failed to load ("symbol not found in flat namespace
+      # '___kmpc_for_static_fini'") and every vignette died at 0.61.0. This
+      # is CRAN's own runtime; 19.1.5 is the build for the image's Apple
+      # clang 1700.x (mac.r-project.org/openmp).
+      - name: OpenMP runtime for the CRAN TMB binary
+        if: runner.os == 'macOS'
+        run: |
+          curl -sSLO https://mac.r-project.org/openmp/openmp-19.1.5-darwin20-Release.tar.gz
+          sudo tar fvxz openmp-19.1.5-darwin20-Release.tar.gz -C /
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: any::rcmdcheck
