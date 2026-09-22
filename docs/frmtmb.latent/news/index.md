@@ -1,5 +1,17 @@
 # Changelog
 
+## frmtmb.latent 0.5.0
+
+- [`hmm_starts()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_starts.md)’s
+  scale check reads
+  [`frmtmb::vcov_estimated()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html)
+  rather than [`stats::vcov()`](https://rdrr.io/r/stats/vcov.html) on a
+  frmtmb fit. [`vcov()`](https://rdrr.io/r/stats/vcov.html) is brms’s
+  population-level block in frmtmb 0.61.0: it names its rows brms’s way
+  and drops an intercept-only distributional parameter, so the check’s
+  name intersection would have been empty and it would have fallen back
+  to a unit scale without saying why. Requires frmtmb 0.61.0.
+
 ## frmtmb.latent 0.4.0
 
 - Requires frmtmb 0.60.0, for `frm_stop()` and the other condition

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.learn</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -345,14 +345,10 @@ columns the formula names.</p></li>
 <span class="r-in"><span>  <span class="fu">frmtmb</span><span class="fu">::</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">choice</span> <span class="op">|</span> <span class="fu">reward</span><span class="op">(</span><span class="va">pay1</span>, <span class="va">pay2</span><span class="op">)</span> <span class="op">~</span> <span class="va">after_reversal</span>, <span class="va">tau</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  family <span class="op">=</span> <span class="fu"><a href="bandit2arm_delta.html">bandit2arm_delta</a></span><span class="op">(</span>subject <span class="op">=</span> <span class="va">id</span>, trial <span class="op">=</span> <span class="va">trial</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">frmtmb</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/nlme/man/fixed.effects.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $alpha</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         (Intercept) after_reversalafter </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          -0.9385871           0.1404640 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $tau</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    1.118225 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                             Estimate Est.Error       Q2.5      Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> alpha_Intercept           -0.9385871 0.3352872 -1.5957379 -0.2814362</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> tau_Intercept              1.1182248 0.1260055  0.8712585  1.3651912</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> alpha_after_reversalafter  0.1404640 0.3764248 -0.5973150  0.8782431</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

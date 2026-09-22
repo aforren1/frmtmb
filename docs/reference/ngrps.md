@@ -24,7 +24,13 @@ ngrps(object, ...)
 
 ## Value
 
-A named integer vector (smooth terms are excluded).
+brms's named list, one integer per grouping factor, or `NULL` for a fit
+with no grouping factor. Smooth, Gaussian-process, CAR and SPDE blocks
+are random-effect blocks here and are not grouping factors in brms, so
+they are excluded; their parameters are in
+[`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md)
+and
+[`confint_varcorr()`](https://aforren1.github.io/frmtmb/reference/confint_varcorr.md).
 
 ## Examples
 
@@ -38,8 +44,12 @@ fit <- frm(bf(y ~ x + (1 | g) + (1 | h)) + gaussian(), data = dd)
 
 # one count per distinct grouping factor
 ngrps(fit)
-#>  g  h 
-#> 10  4 
+#> $g
+#> [1] 10
+#> 
+#> $h
+#> [1] 4
+#> 
 # the count that decides whether a variance component is trustworthy,
 # and the unit influence() deletes when given `groups`
 ngrps(fit)[["h"]]

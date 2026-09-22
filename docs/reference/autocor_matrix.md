@@ -6,7 +6,7 @@ The correlation matrix `R` of the
 covariance of a group is `D R D` restricted to the time points that
 group has, with `D` the diagonal matrix of that group's `sigma` values,
 so `R` plus [`sigma()`](https://rdrr.io/r/stats/sigma.html) (or
-`predict(dpar = "sigma")`) describes the whole residual structure.
+`frm_linpred(dpar = "sigma")`) describes the whole residual structure.
 
 ## Usage
 

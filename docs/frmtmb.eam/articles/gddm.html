@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -228,42 +228,30 @@ a condition, but it cannot check the rest.</p>
 <span>                         control <span class="op">=</span> <span class="va">ctl</span><span class="op">)</span>,</span>
 <span>           data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Family: gddm </span></span>
+<span><span class="co">#&gt;  Family: gddm </span></span>
 <span><span class="co">#&gt;  Links: mu = identity; alpha = log; leak = identity; bs = log; tau = log;</span></span>
 <span><span class="co">#&gt;         bias = logit; ndt = scaled_logit(0, 0.3267)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Formula: rt | vint(upper, cond) + vreal(coh) ~ 1 </span></span>
-<span><span class="co">#&gt; Method: ML   nobs: 900 </span></span>
-<span><span class="co">#&gt; logLik: 46.4345  AIC: -80.869  BIC: -52.0547 </span></span>
+<span><span class="co">#&gt;    Data: dat (Number of observations: 900) </span></span>
+<span><span class="co">#&gt;  Method: ML   logLik: 46.4345   AIC: -80.869   BIC: -52.0547 </span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (mu):</span></span>
-<span><span class="co">#&gt;             Estimate Std. Error z value  Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept)  5.68217    0.23468  24.213 &lt; 2.2e-16</span></span>
+<span><span class="co">#&gt; Regression Coefficients:</span></span>
+<span><span class="co">#&gt;           Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; Intercept     5.68      0.23     5.22     6.14   24.21   &lt;2e-16</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (alpha):</span></span>
-<span><span class="co">#&gt;              Estimate Std. Error z value  Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -0.241312   0.045766 -5.2727 1.344e-07</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (leak):</span></span>
-<span><span class="co">#&gt;             Estimate Std. Error z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept)  0.73064    0.64611  1.1308   0.2581</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (bs):</span></span>
-<span><span class="co">#&gt;             Estimate Std. Error z value  Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept)  1.12107    0.14576  7.6912 1.457e-14</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (tau):</span></span>
-<span><span class="co">#&gt;             Estimate Std. Error z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept)  0.22077    0.09642  2.2897  0.02204</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (ndt):</span></span>
-<span><span class="co">#&gt;             Estimate Std. Error z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept)  1.03885    0.35519  2.9248 0.003447</span></span>
+<span><span class="co">#&gt; Further Distributional Parameters:</span></span>
+<span><span class="co">#&gt;       Estimate Est.Error l-95% CI u-95% CI</span></span>
+<span><span class="co">#&gt; alpha     0.79      0.04     0.72     0.86</span></span>
+<span><span class="co">#&gt; leak      0.73      0.65    -0.54     2.00</span></span>
+<span><span class="co">#&gt; bs        3.07      0.45     2.31     4.08</span></span>
+<span><span class="co">#&gt; tau       1.25      0.12     1.03     1.51</span></span>
+<span><span class="co">#&gt; ndt       0.24      0.02     0.19     0.28</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Fixed dpar: bias = 0.5</span></span></code></pre></div>
 <p>The estimates come back on the link scale, so put them back:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">fixef_by_dpar</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  truth <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>mu <span class="op">=</span> <span class="fl">6</span>, alpha <span class="op">=</span> <span class="fl">0.8</span>, leak <span class="op">=</span> <span class="fl">1</span>, bs <span class="op">=</span> <span class="fl">3</span>, tau <span class="op">=</span> <span class="fl">1.2</span>, ndt <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span>,</span>
 <span>  estimate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>

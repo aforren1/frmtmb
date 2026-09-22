@@ -382,24 +382,9 @@ fit <- frm(
     gaussian(),
   data = dd, start = list(beta = c(0, log(0.25), log(8))))
 fixef(fit)
-#> $lka
-#> (Intercept) 
-#>  -0.2014589 
-#> 
-#> $lke
-#> (Intercept) 
-#>   -1.743725 
-#> 
-#> $lV
-#> (Intercept) 
-#>    2.298439 
-#> 
-#> $mu
-#> numeric(0)
-#> 
-#> $sigma
-#> (Intercept) 
-#>   -1.293759 
-#> 
+#>                 Estimate  Est.Error       Q2.5       Q97.5
+#> lka_Intercept -0.2014589 0.13520979 -0.4664652  0.06354744
+#> lke_Intercept -1.7437250 0.06551336 -1.8721288 -1.61532116
+#> lV_Intercept   2.2984394 0.03356308  2.2326570  2.36422183
 # }
 ```

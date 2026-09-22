@@ -190,23 +190,24 @@ VarCorr(fit_n)
 # heavier tails, at the cost of a fixed nu
 frm(bf(y ~ x + (1 | gr(g, dist = "student", dist_nu = 3))),
     family = gaussian(), data = d)
-#> frmtmb fit: y ~ x + (1 | gr(g, dist = "student", dist_nu = 3)) 
-#> Family: gaussian   Method: ML 
+#>  Family: gaussian 
 #>  Links: mu = identity; sigma = log
 #> 
-#> logLik: -384.804  AIC: 777.607  nobs: 240 
+#> Formula: y ~ x + (1 | gr(g, dist = "student", dist_nu = 3)) 
+#>    Data: d (Number of observations: 240) 
+#>  Method: ML   logLik: -384.804   AIC: 777.607   BIC: 791.53 
 #> 
-#> Fixed effects:
-#>  mu:
-#> (Intercept)           x 
-#>      1.2809      0.6492 
-#>  sigma:
-#> (Intercept) 
-#>     0.07106 
+#> Multilevel Hyperparameters:
+#> ~g (Number of levels: 20) 
+#>               Estimate Est.Error l-95% CI u-95% CI
+#> sd(Intercept)     0.67      0.18     0.39     1.14
 #> 
-#> Random effects:
-#>   1 | g 
-#>         Name   Scale Std.Dev.
-#>  (Intercept) 0.66974     1.16
-#>    Student-t latent, nu = 3 (fixed); the stored matrix is the scale
+#> Regression Coefficients:
+#>           Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept     1.28      0.20      0.9     1.66    6.56  5.5e-11
+#> x             0.65      0.08      0.5     0.80    8.56  < 2e-16
+#> 
+#> Further Distributional Parameters:
+#>       Estimate Est.Error l-95% CI u-95% CI
+#> sigma     1.07      0.05     0.98     1.18
 ```

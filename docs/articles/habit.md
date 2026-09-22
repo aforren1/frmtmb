@@ -203,7 +203,7 @@ One participant, to show the shape of a single fit:
 
 one <- droplevels(subset(dat, group == "20day" & participant == "e2-01"))
 fit_one <- frm(habit_model, data = one, start = start_habit)
-unlist(fixef(fit_one))
+unlist(fixef_by_dpar(fit_one))
 #>  muA.(Intercept) lsgA.(Intercept)  muB.(Intercept) lsgB.(Intercept) 
 #>        0.3173808       -6.7284629        0.4028061       -1.9174794 
 #>  lqB.(Intercept)  lqI.(Intercept) 
@@ -300,7 +300,7 @@ The twenty-day group, fit here:
 
 d20 <- droplevels(subset(dat, group == "20day"))
 fit_20 <- suppressWarnings(frm(habit_hier, data = d20, start = start_habit))
-unlist(fixef(fit_20))
+unlist(fixef_by_dpar(fit_20))
 #>  muA.(Intercept)  muB.(Intercept) lsgA.(Intercept) lsgB.(Intercept) 
 #>       0.40444680       0.51971184      -2.51584125      -2.05038254 
 #>  lqB.(Intercept)  lqI.(Intercept) 
@@ -455,7 +455,7 @@ parameters:
 grid <- seq(0.01, 1.2, by = 0.02)
 
 habit_curve <- function(f) {
-  p <- lapply(fixef(f), unname)
+  p <- lapply(fixef_by_dpar(f), unname)
   PhiA <- pnorm((grid - p$muA) / exp(p$lsgA))
   PhiB <- pnorm((grid - p$muB) / exp(p$lsgB))
   qB <- 0.5 + 0.4999 / (1 + exp(-p$lqB))

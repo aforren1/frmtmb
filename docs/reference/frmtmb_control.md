@@ -215,48 +215,52 @@ fit$opt$convergence
 # optimum until it is met
 frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
     control = frmtmb_control(grad_tol = 1e-4, restarts = 3))
-#> frmtmb fit: y ~ x + (1 | g) 
-#> Family: gaussian   Method: ML 
+#>  Family: gaussian 
 #>  Links: mu = identity; sigma = log
 #> 
-#> logLik: -296.63  AIC: 601.26  nobs: 200 
+#> Formula: y ~ x + (1 | g) 
+#>    Data: dd (Number of observations: 200) 
+#>  Method: ML   logLik: -296.63   AIC: 601.26   BIC: 614.454 
 #> 
-#> Fixed effects:
-#>  mu:
-#> (Intercept)           x 
-#>      1.4416      0.5196 
-#>  sigma:
-#> (Intercept) 
-#>    -0.01237 
+#> Multilevel Hyperparameters:
+#> ~g (Number of levels: 10) 
+#>               Estimate Est.Error l-95% CI u-95% CI
+#> sd(Intercept)        1      0.23     0.63     1.58
 #> 
-#> Random effects:
-#>   1 | g 
-#>         Name Std.Dev.
-#>  (Intercept)  0.99749
+#> Regression Coefficients:
+#>           Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept     1.44      0.32     0.81     2.07    4.46  8.1e-06
+#> x             0.52      0.08     0.37     0.67    6.74  1.6e-11
+#> 
+#> Further Distributional Parameters:
+#>       Estimate Est.Error l-95% CI u-95% CI
+#> sigma     0.99      0.05     0.89     1.09
 
 # badly scaled predictors: fit an internally standardized copy first,
 # then warm-start the reported fit from it
 dd$xbig <- dd$x * 1e5
 frm(bf(y ~ xbig + (1 | g)) + gaussian(), data = dd,
     control = frmtmb_control(autoscale = TRUE))
-#> frmtmb fit: y ~ xbig + (1 | g) 
-#> Family: gaussian   Method: ML 
+#>  Family: gaussian 
 #>  Links: mu = identity; sigma = log
 #> 
-#> logLik: -296.63  AIC: 601.26  nobs: 200 
+#> Formula: y ~ xbig + (1 | g) 
+#>    Data: dd (Number of observations: 200) 
+#>  Method: ML   logLik: -296.63   AIC: 601.26   BIC: 614.454 
 #> 
-#> Fixed effects:
-#>  mu:
-#> (Intercept)        xbig 
-#>   1.442e+00   5.196e-06 
-#>  sigma:
-#> (Intercept) 
-#>    -0.01237 
+#> Multilevel Hyperparameters:
+#> ~g (Number of levels: 10) 
+#>               Estimate Est.Error l-95% CI u-95% CI
+#> sd(Intercept)        1      0.23     0.63     1.58
 #> 
-#> Random effects:
-#>   1 | g 
-#>         Name Std.Dev.
-#>  (Intercept)  0.99749
+#> Regression Coefficients:
+#>           Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept     1.44      0.32     0.81     2.07    4.46  8.1e-06
+#> xbig          0.00      0.00     0.00     0.00    6.74  1.6e-11
+#> 
+#> Further Distributional Parameters:
+#>       Estimate Est.Error l-95% CI u-95% CI
+#> sigma     0.99      0.05     0.89     1.09
 
 # the object is a plain list, so it can be built once and reused
 ctrl <- frmtmb_control(check_nlev_1 = "ignore")

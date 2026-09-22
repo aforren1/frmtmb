@@ -68,13 +68,10 @@ fit <- frm(bf(choice | reward(pay1, pay2) ~ after_reversal + (1 | id),
            family = bandit2arm_delta(subject = id, trial = trial),
            data = d)
 fixef(fit)
-#> $alpha
-#>         (Intercept) after_reversalafter 
-#>          -0.4863953           0.5056686 
-#> 
-#> $tau
-#> (Intercept) 
-#>     1.02737
+#>                             Estimate  Est.Error        Q2.5       Q97.5
+#> alpha_Intercept           -0.4863953 0.21718724 -0.91207450 -0.06071618
+#> tau_Intercept              1.0273705 0.06592057  0.89816855  1.15657243
+#> alpha_after_reversalafter  0.5056686 0.29412731 -0.07081031  1.08214757
 ```
 
 The second coefficient is the thing the study is about, and it has an
@@ -92,7 +89,7 @@ On the probability scale, the fitted learning rate before and after:
 
 ``` r
 
-b <- unlist(fixef(fit))
+b <- unlist(fixef_by_dpar(fit))
 c(before = stats::plogis(b[["alpha.(Intercept)"]]),
   after  = stats::plogis(b[["alpha.(Intercept)"]] +
                            b[["alpha.after_reversalafter"]]))
@@ -174,14 +171,14 @@ the option a subject took, coded 1 to K, and it is nominal: arm 2 is not
 twice arm 1, and the Iowa gambling task’s four decks have no order at
 all. Core forms a residual as `y - mean`, so a mean declared here would
 make [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
-`predict(type = "response")` and every residual return arithmetic on a
-category code.
+`frm_linpred(type = "response")` and every residual return arithmetic on
+a category code.
 
 ``` r
 
 fitted(fit)
 #> Error:
-#> ! family 'bandit2arm_delta' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted() and predict(type = "response") have nothing to return. Ask for type = "link" or a dpar by name.
+#> ! family 'bandit2arm_delta' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted() and frm_linpred(type = "response") have nothing to return. Ask for type = "link" or a dpar by name.
 ```
 
 [`frm_value_trace()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_value_trace.md)
@@ -323,7 +320,7 @@ the parameter most of the clinical literature is about:
 fit2 <- frm(bf(choice | reward(pay1, pay2) ~ 1, Apun ~ 1, tau ~ 1),
             family = bandit2arm_dual(subject = id, trial = trial),
             data = d)
-b2 <- unlist(fixef(fit2))
+b2 <- unlist(fixef_by_dpar(fit2))
 c(rate_after_reward = stats::plogis(b2[["Arew.(Intercept)"]]),
   rate_after_loss   = stats::plogis(b2[["Apun.(Intercept)"]]))
 #> rate_after_reward   rate_after_loss 

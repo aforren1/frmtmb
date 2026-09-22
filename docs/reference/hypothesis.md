@@ -3,9 +3,10 @@
 The frequentist analog of brms's `hypothesis()`: evaluates expressions
 of the model parameters at the estimates and tests them against zero. A
 hypothesis is `"lhs = rhs"`, e.g. `"x1 - x2 = 0"` or
-`"exp(Intercept) = 1"`, brms's directional `"lhs > rhs"` /
-`"lhs < rhs"`, or a bare `"expr"`, which brms does not accept and which
-is tested against 0 here.
+`"exp(Intercept) = 1"`, or brms's directional `"lhs > rhs"` /
+`"lhs < rhs"`. Every hypothesis states a relation: a string with no `=`,
+`<` or `>` is refused, as it is in brms, so write `"x1 = 0"` rather than
+`"x1"`.
 
 ## Usage
 
@@ -109,15 +110,21 @@ hypothesis(
 
 ## Value
 
-A `brmshypothesis`-shaped list; see *The returned object*.
+A `frmtmb_hypothesis` list in brms's shape; see *The returned object*.
 [`plot()`](https://rdrr.io/r/graphics/plot.default.html) shows the
 bootstrap distribution, the profile curve, or the implied Wald normal
 density, one panel per hypothesis.
 
 ## The returned object
 
-brms's shape: a list of class `c("frmtmb_hypothesis", "brmshypothesis")`
-with the elements brms has, in brms's order.
+brms's SHAPE under frmtmb's own class: a list of class
+`"frmtmb_hypothesis"` with the elements brms has, in brms's order. It
+does not carry brms's `brmshypothesis` class. frmtmb owns
+[`print()`](https://rdrr.io/r/base/print.html) and
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) for its own
+class and a frmtmb fit is not a brms fit, so `is(x, "brmshypothesis")`
+in a ported script is a rule-2 divergence like the other seventeen the
+port ledger records.
 
 - `hypothesis`: a data frame with brms's eight columns, one row per
   hypothesis. On a maximum-likelihood fit they mean:

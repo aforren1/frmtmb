@@ -11,7 +11,7 @@ method, so that a ported script can be read without guessing."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -91,26 +91,27 @@ quantile residual, which has no units by construction.</p></li>
     <div class="section level2">
     <h2 id="what-each-method-returns">What each method returns<a class="anchor" aria-label="anchor" href="#what-each-method-returns"></a></h2>
 
-<table class="table table"><tr><td>method</td><td>returns</td><td>scale</td></tr><tr><td><code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, default</td><td>the <code>mu</code> linear predictor</td><td>link</td></tr><tr><td><code>predict(type = "link")</code></td><td>the same</td><td>link</td></tr><tr><td><code>predict(type = "response")</code></td><td>the conditional mean</td><td>response</td></tr><tr><td><code>predict(dpar = "sigma")</code></td><td>that predictor</td><td>link; <code>type = "response"</code> gives response</td></tr><tr><td><code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code></td><td>the conditional mean</td><td>response</td></tr><tr><td><code><a href="conditional_effects.html">conditional_effects()</a></code></td><td><code>estimate__</code> and its band</td><td>response</td></tr><tr><td><code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code>, default</td><td>observed minus <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code></td><td>response</td></tr><tr><td><code>residuals(type = "pearson")</code></td><td>that, over the conditional SD</td><td>unitless</td></tr><tr><td><code>residuals(type = "deviance")</code></td><td>signed root unit deviance</td><td>unitless</td></tr><tr><td><code>residuals(type = "osa")</code></td><td>one-step-ahead quantile residual</td><td>unitless</td></tr><tr><td><code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code></td><td>draws of the outcome</td><td>response</td></tr><tr><td><code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code>, <code><a href="fixef.html">fixef()</a></code>, <code><a href="ranef.html">ranef()</a></code></td><td>coefficients, modes</td><td>link, per dpar</td></tr><tr><td><code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code>, <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code></td><td>the same</td><td>link, per dpar</td></tr><tr><td><code><a href="VarCorr.html">VarCorr()</a></code></td><td>SDs and correlations of a predictor</td><td>link, per dpar</td></tr><tr><td><code><a href="https://rdrr.io/r/stats/sigma.html" class="external-link">sigma()</a></code></td><td>the residual SD, <code>NA</code> if it varies by row</td><td>response</td></tr><tr><td><code><a href="hypothesis.html">hypothesis()</a></code></td><td><code>Estimate</code> and its interval</td><td>link, per dpar</td></tr><tr><td><code><a href="posterior_summary.html">posterior_summary()</a></code></td><td>a summary of a draws MATRIX</td><td>that matrix's own</td></tr><tr><td><code><a href="pp_check.html">pp_check()</a></code></td><td>the outcome against replicates</td><td>response</td></tr><tr><td><code><a href="bayes_R2.html">bayes_R2()</a></code></td><td>refuses on a <code>frmtmb_fit</code></td><td>neither</td></tr><tr><td><code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code>, <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code>, <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC()</a></code></td><td>the fitted likelihood</td><td>the data's own</td></tr></table></div>
+<table class="table table"><tr><td>method</td><td>returns</td><td>scale</td></tr><tr><td><code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code></td><td>a summary of the PREDICTIVE distribution</td><td>response</td></tr><tr><td><code><a href="frm_linpred.html">frm_linpred()</a></code>, default</td><td>the <code>mu</code> linear predictor</td><td>link</td></tr><tr><td><code>frm_linpred(type = "response")</code></td><td>the conditional mean</td><td>response</td></tr><tr><td><code>frm_linpred(dpar = "sigma")</code></td><td>that predictor</td><td>link; <code>"response"</code> gives response</td></tr><tr><td><code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code></td><td>a summary of the conditional mean</td><td>response</td></tr><tr><td><code><a href="conditional_effects.html">conditional_effects()</a></code></td><td><code>estimate__</code> and its band</td><td>response</td></tr><tr><td><code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code>, default</td><td>observed minus <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code></td><td>response</td></tr><tr><td><code>residuals(type = "pearson")</code></td><td>that, over the conditional SD</td><td>unitless</td></tr><tr><td><code>residuals(type = "deviance")</code></td><td>signed root unit deviance</td><td>unitless</td></tr><tr><td><code>residuals(type = "osa")</code></td><td>one-step-ahead quantile residual</td><td>unitless</td></tr><tr><td><code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code></td><td>draws of the outcome</td><td>response</td></tr><tr><td><code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code>, <code><a href="fixef.html">fixef()</a></code>, <code><a href="ranef.html">ranef()</a></code></td><td>coefficients, modes</td><td>link, per dpar</td></tr><tr><td><code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code>, <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code></td><td>the same</td><td>link, per dpar</td></tr><tr><td><code><a href="VarCorr.html">VarCorr()</a></code></td><td>SDs and correlations of a predictor</td><td>link, per dpar</td></tr><tr><td><code><a href="https://rdrr.io/r/stats/sigma.html" class="external-link">sigma()</a></code></td><td>the residual SD, <code>NA</code> if it varies by row</td><td>response</td></tr><tr><td><code><a href="hypothesis.html">hypothesis()</a></code></td><td><code>Estimate</code> and its interval</td><td>link, per dpar</td></tr><tr><td><code><a href="posterior_summary.html">posterior_summary()</a></code></td><td>a summary of a draws MATRIX</td><td>that matrix's own</td></tr><tr><td><code><a href="pp_check.html">pp_check()</a></code></td><td>the outcome against replicates</td><td>response</td></tr><tr><td><code><a href="bayes_R2.html">bayes_R2()</a></code></td><td>refuses on a <code>frmtmb_fit</code></td><td>neither</td></tr><tr><td><code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code>, <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code>, <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC()</a></code></td><td>the fitted likelihood</td><td>the data's own</td></tr></table></div>
     <div class="section level2">
-    <h2 id="the-two-places-this-differs-from-brms">The two places this differs from brms<a class="anchor" aria-label="anchor" href="#the-two-places-this-differs-from-brms"></a></h2>
+    <h2 id="where-this-differs-from-brms">Where this differs from brms<a class="anchor" aria-label="anchor" href="#where-this-differs-from-brms"></a></h2>
 
 
 
-<p><code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> is the first. brms returns posterior predictive draws
-summarized on the RESPONSE scale; frmtmb returns the LINEAR
-PREDICTOR, because it has one parameter vector rather than a
-posterior and the linear predictor is the quantity an ML fit
-actually estimates. On a lognormal fit that is the difference
-between about 8 and about 6,700. Ask for <code>type = "response"</code>, or
-call <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>, to get the quantity brms's <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> reports.
-Measured with <code>dev/generics-scale.R</code> and
+<p><code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> used to be the first, and is no longer: since item 2.6d
+it is brms's, a summary of the predictive distribution on the
+response scale. The LINEAR PREDICTOR, which is what it returned
+before and what the glmmTMB <code>type</code> vocabulary reaches, moved to
+<code><a href="frm_linpred.html">frm_linpred()</a></code> unchanged. On a lognormal fit the two differ by
+about 8 against about 6,700, which is why they could not share a
+name. Measured with <code>dev/generics-scale.R</code> and
 <code>dev/generics-scale-brms.R</code>.</p>
-<p><code>sigma</code> is the second. <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> and <code><a href="fixef.html">fixef()</a></code> report every
-coefficient on its own link, so a <code>sigma</code> with the default log link
-is printed as <code>log(sigma)</code> and can be negative. brms samples <code>sigma</code>
-itself and prints it on the response scale. <code><a href="https://rdrr.io/r/stats/sigma.html" class="external-link">sigma()</a></code> here
-back-transforms and gives brms's number.</p>
+<p><code>sigma</code> is the one that remains. <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>'s
+<code>Regression Coefficients</code> block and <code><a href="fixef.html">fixef()</a></code> report every
+coefficient on its own link, so a <code>sigma</code> WITH A FORMULA and the
+default log link is reported as <code>log(sigma)</code> and can be negative.
+A <code>sigma</code> nobody wrote a formula for is not a coefficient at all: it
+is in <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>'s <code>Further Distributional Parameters</code> block on its
+own response scale, as in brms, and <code><a href="https://rdrr.io/r/stats/sigma.html" class="external-link">sigma()</a></code> returns that number.</p>
     </div>
     <div class="section level2">
     <h2 id="what-agrees-with-brms-without-any-conversion">What agrees with brms without any conversion<a class="anchor" aria-label="anchor" href="#what-agrees-with-brms-without-any-conversion"></a></h2>
@@ -128,8 +129,9 @@ script sees. <strong>Both conditions are load-bearing</strong>, and neither is
 obvious from the formula:</p><ul><li><p>With a distributional sigma (<code>bf(y ~ x, sigma ~ x)</code>), <code><a href="https://rdrr.io/r/stats/sigma.html" class="external-link">sigma()</a></code>
 returns <code>NA</code> with a warning, because there is no one number to
 return, and the formula gives <code>NA</code> with it. Use
-<code>predict(dpar = "sigma", type = "response")</code>, which reproduces
-<code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> exactly (<code><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical()</a></code> is <code>TRUE</code>).</p></li>
+<code>frm_linpred(dpar = "sigma", type = "response")</code>, which reproduces
+<code>fitted(dpar = "sigma")[, "Estimate"]</code> exactly (<code><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical()</a></code> is
+<code>TRUE</code>).</p></li>
 <li><p>Under truncation, <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> is the TRUNCATED mean and the
 formula answers a different question. With a lower bound <code>lb</code>,
 the truncated mean is <code>exp(mu + sigma^2 / 2) * pnorm(sigma - a) / pnorm(-a)</code> with <code>a = (log(lb) - mu) / sigma</code>, so the naive
@@ -152,7 +154,8 @@ last digit.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="predict.frmtmb_fit.html">predict.frmtmb_fit()</a></code>, <code><a href="fitted.frmtmb_fit.html">fitted.frmtmb_fit()</a></code>,
+    <div class="dont-index"><p><code><a href="predict.frmtmb_fit.html">predict.frmtmb_fit()</a></code>, <code><a href="frm_linpred.html">frm_linpred()</a></code>,
+<code><a href="fitted.frmtmb_fit.html">fitted.frmtmb_fit()</a></code>,
 <code><a href="residuals.frmtmb_fit.html">residuals.frmtmb_fit()</a></code>, <code><a href="sigma.frmtmb_fit.html">sigma.frmtmb_fit()</a></code>, <code><a href="fixef.html">fixef()</a></code>,
 <code><a href="VarCorr.html">VarCorr()</a></code>, <code><a href="confint.frmtmb_fit.html">confint.frmtmb_fit()</a></code></p></div>
     </div>
@@ -165,22 +168,39 @@ last digit.</p>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="frmtmb-families.html">lognormal</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Large maximum absolute gradient at the optimum (0.00143); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># the default is the linear predictor, not the outcome</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># predict() summarizes the predictive distribution; frm_linpred()</span></span></span>
+<span class="r-in"><span><span class="co"># is the linear predictor and fitted() the expected response</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, ndraws <span class="op">=</span> <span class="fl">200</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      Estimate Est.Error      Q2.5    Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 3832.295 1535.2672 1715.7373 7631.886</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 2162.523  931.8451 1051.5997 4591.016</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 3580.354 1627.6969 1459.8562 7605.899</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [4,] 3114.909 1282.5714 1335.0573 6272.218</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [5,] 2405.242  946.9341  979.7062 4669.090</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [6,] 1219.641  509.4481  512.4532 2496.949</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="frm_linpred.html">frm_linpred</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>        1        2        3        4        5        6 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 8.214703 7.569772 8.061015 7.970745 7.736237 6.990888 </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        1        2        3        4        5        6 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3984.808 2090.824 3417.128 3122.179 2469.517 1171.955 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      Estimate Est.Error     Q2.5    Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 3984.808 126.97321 3735.945 4233.671</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 2090.824  87.35777 1919.606 2262.042</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 3417.128  98.16207 3224.734 3609.522</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [4,] 3122.179  89.39280 2946.972 3297.386</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [5,] 2469.517  84.57853 2303.746 2635.288</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [6,] 1171.955  89.39567  996.743 1347.168</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># and the two are related by the family's own mean</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/sigma.html" class="external-link">sigma</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># the last two are related by the family's own mean</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="frm_linpred.html">frm_linpred</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/sigma.html" class="external-link">sigma</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span> <span class="op">-</span></span></span>
+<span class="r-in"><span>       <span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[</span>, <span class="st">"Estimate"</span><span class="op">]</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1 2 3 4 5 6 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 0 0 0 0 0 0 </span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># sigma is printed on its log link and back-transformed by sigma()</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">coefficients</span><span class="op">$</span><span class="va">sigma</span><span class="op">[</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">]</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] -0.944966</span>
+<span class="r-in"><span><span class="co"># a sigma nobody wrote a formula for is a distributional parameter</span></span></span>
+<span class="r-in"><span><span class="co"># on its own scale, not a coefficient on its link</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">spec_pars</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        Estimate  Est.Error  l-95% CI  u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma 0.3886928 0.01943464 0.3524085 0.4287129</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/sigma.html" class="external-link">sigma</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.3886928</span>
 </code></pre></div>

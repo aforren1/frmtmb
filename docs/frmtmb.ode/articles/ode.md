@@ -106,40 +106,28 @@ form <- bf(
 fit <- frm(form + gaussian(), data = d, se = TRUE,
            start = list(beta = c(0.5, log(0.08), log(0.5))))
 summary(fit)
-#> Family: gaussian 
+#>  Family: gaussian 
 #>  Links: mu = identity; sigma = log
 #> 
 #> Formula: conc ~ frm_ode(pk_dyn, init = list(Dose, 0), times = Time, parms = list(exp(lka), exp(lke), exp(lV)), group = Subject, states = c("depot", "central"), output = "central") 
-#> Method: ML   nobs: 132 
-#> Groups: Subject, 12 
-#> logLik: -191.192  AIC: 394.384  BIC: 411.68 
+#>    Data: d (Number of observations: 132) 
+#>  Method: ML   logLik: -191.192   AIC: 394.384   BIC: 411.68 
 #> 
-#> Random effects:
-#>   lka: 1 | Subject 
-#>         Name Std.Dev.
-#>  (Intercept)  0.68534
-#>   lke: 1 | Subject 
-#>         Name Std.Dev.
-#>  (Intercept)  0.35835
+#> Multilevel Hyperparameters:
+#> ~Subject (Number of levels: 12) 
+#>                   Estimate Est.Error l-95% CI u-95% CI
+#> sd(lka_Intercept)     0.69      0.16     0.43     1.09
+#> sd(lke_Intercept)     0.36      0.08     0.23     0.56
 #> 
-#> Coefficients (lka):
-#>             Estimate Std. Error z value Pr(>|z|)
-#> (Intercept)  0.37847    0.20822  1.8177  0.06911
+#> Regression Coefficients:
+#>               Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> lka_Intercept     0.38      0.21    -0.03     0.79    1.82    0.069
+#> lke_Intercept    -2.37      0.12    -2.61    -2.14  -19.97   <2e-16
+#> lV_Intercept     -0.82      0.03    -0.87    -0.77  -30.82   <2e-16
 #> 
-#> Coefficients (lke):
-#>             Estimate Std. Error z value  Pr(>|z|)
-#> (Intercept) -2.37288    0.11884 -19.968 < 2.2e-16
-#> 
-#> Coefficients (lV):
-#>              Estimate Std. Error z value  Pr(>|z|)
-#> (Intercept) -0.821161   0.026642 -30.822 < 2.2e-16
-#> 
-#> Coefficients (mu):
-#>      Estimate Std. Error z value Pr(>|z|)
-#> 
-#> Coefficients (sigma):
-#>              Estimate Std. Error z value  Pr(>|z|)
-#> (Intercept) -0.229063   0.068604 -3.3389 0.0008411
+#> Further Distributional Parameters:
+#>       Estimate Est.Error l-95% CI u-95% CI
+#> sigma      0.8      0.05      0.7     0.91
 ```
 
 The typical subject’s constants come back on the natural scale, and the
@@ -147,19 +135,18 @@ derived quantities a pharmacokineticist reads off them follow:
 
 ``` r
 
-ka <- exp(fixef(fit)$lka); ke <- exp(fixef(fit)$lke)
-V <- exp(fixef(fit)$lV)
+ka <- exp(fixef_by_dpar(fit)$lka); ke <- exp(fixef_by_dpar(fit)$lke)
+V <- exp(fixef_by_dpar(fit)$lV)
 c(ka = ka, ke = ke, V = V,
   half_life = log(2) / ke,       # hours
   clearance = ke * V)            # L/h per kg of body weight
 #>        ka.(Intercept)        ke.(Intercept)         V.(Intercept) 
-#>            1.46004473            0.09321157            0.43992080 
+#>            1.46004472            0.09321157            0.43992080 
 #> half_life.(Intercept) clearance.(Intercept) 
-#>            7.43627852            0.04100571
+#>            7.43627865            0.04100571
 ```
 
-Everything downstream works as usual:
-[`predict()`](https://rdrr.io/r/stats/predict.html) on new times,
+Everything downstream works as usual: `frm_linpred()` on new times,
 `ranef()` for the subject deviations,
 [`confint()`](https://rdrr.io/r/stats/confint.html),
 [`simulate()`](https://rdrr.io/r/stats/simulate.html), `REML = TRUE`.
@@ -168,7 +155,7 @@ Everything downstream works as usual:
 
 nd <- data.frame(Subject = factor("1", levels = levels(d$Subject)),
                  Time = seq(0, 25, length.out = 5), Dose = 4.02)
-predict(fit, newdata = nd)
+frm_linpred(fit, newdata = nd)
 #> [1] 0.000000 7.257109 5.663743 4.420213 3.449711
 ```
 
@@ -184,7 +171,7 @@ grid <- do.call(rbind, lapply(split(d, d$Subject), function(s) {
              Time = seq(0, max(d$Time), length.out = 100),
              Dose = s$Dose[1])
 }))
-grid$conc <- predict(fit, newdata = grid)
+grid$conc <- frm_linpred(fit, newdata = grid)
 
 tinyplot::tinyplot(conc ~ Time | Subject, data = d, pch = 16, cex = 0.7,
                    legend = FALSE, xlab = "Time (h)",
@@ -372,7 +359,7 @@ dose_fit <- frm(
      lka ~ 1 + (1 | id), lke ~ 1 + (1 | id), lV ~ 1, nl = TRUE) +
     gaussian(),
   data = dd, start = list(beta = c(0, log(0.25), log(8))))
-unlist(fixef(dose_fit))
+unlist(fixef_by_dpar(dose_fit))
 #>   lka.(Intercept)   lke.(Intercept)    lV.(Intercept) sigma.(Intercept) 
 #>        0.04225596       -1.44209990        2.28231919       -1.30575528
 ```
@@ -389,7 +376,7 @@ sub$id <- droplevels(sub$id)
 gr <- do.call(rbind, lapply(show, function(s)
   data.frame(id = factor(s, levels = levels(dd$id)),
              time = seq(0, 40, length.out = 200))))
-gr$conc <- predict(dose_fit, newdata = gr)
+gr$conc <- frm_linpred(dose_fit, newdata = gr)
 gr$id <- droplevels(gr$id)
 
 tinyplot::tinyplot(conc ~ time | id, data = sub, pch = 16,
@@ -542,8 +529,7 @@ not contracting between cycles at all, which means no `n_ss` settles it.
 Read that number as a DETECTOR rather than a measurement: it comes from
 the same geometric model the correction does, so where the model is poor
 it is poor with it. During a fit the comparison cannot run at all, so
-read the warning from a
-[`predict()`](https://rdrr.io/r/stats/predict.html) or a direct call.
+read the warning from a `frm_linpred()` or a direct call.
 `ss_extrapolate = FALSE` restores the truncated run-in bit for bit.
 
 Raising `n_ss` a long way has its own limit. The cycles are chained
@@ -647,7 +633,7 @@ tv_fit <- frm(
                     group = id, output = 1L),
      lk ~ 1 + phase + (1 | id), nl = TRUE) + gaussian(),
   data = dv, start = list(beta = c(log(0.2), 0)))
-unlist(fixef(tv_fit))
+unlist(fixef_by_dpar(tv_fit))
 #>    lk.(Intercept)      lk.phaselate sigma.(Intercept) 
 #>       -1.78812648        0.75055986       -0.08544209
 ```
@@ -906,10 +892,11 @@ estimated observation times and estimated `tv` change points are not
 supported. They decide where the solve is split, and that is settled
 before the tape is built.
 
-`predict(se.fit = TRUE)` is not available for any nonlinear predictor,
+`frm_linpred(se.fit = TRUE)` is not available for any nonlinear
+predictor,
 [`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)
 included. Ask for a nonlinear parameter instead, with
-`predict(dpar = "lka")`.
+`frm_linpred(dpar = "lka")`.
 
 ## Failed solves
 
@@ -933,8 +920,7 @@ caught on the tape: an integrator that gives up and returns fewer time
 points than it was asked for, and an R error raised by your derivative
 function.
 
-**Everywhere else every check applies.**
-[`predict()`](https://rdrr.io/r/stats/predict.html),
+**Everywhere else every check applies.** `frm_linpred()`,
 [`simulate()`](https://rdrr.io/r/stats/simulate.html),
 [`residuals()`](https://rdrr.io/r/stats/residuals.html), a direct call
 to
@@ -951,7 +937,7 @@ reads the record back afterwards:
 
 ``` r
 
-p <- predict(fit, newdata = nd)
+p <- frm_linpred(fit, newdata = nd)
 #> Warning: frm_ode(): the solve failed for 1 of 3 groups (2). Their rows
 #> hold penalty = 1e+06, not a solution. ...
 

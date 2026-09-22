@@ -138,8 +138,8 @@ fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
            REML = FALSE)
 
 sqrt(diag(vcov(fit)))                          # model-based
-#>       (Intercept)                 x sigma_(Intercept) 
-#>        0.10787700        0.11225600        0.04564353 
+#> Intercept         x 
+#>  0.107877  0.112256 
 sqrt(diag(vcov_cluster(fit, ~ g, "CR1")))      # cluster-robust
 #>       (Intercept)                 x sigma_(Intercept) 
 #>        0.09237769        0.12179568        0.08048348 

@@ -51,9 +51,11 @@ is this closure plus `neg_log_prior_fn()`'s.
 log-density composition the objective itself runs, with `cens()` and
 [`trunc()`](https://rdrr.io/r/base/Round.html) folded in; it runs on
 numeric dpar values as readily as on the tape, which is what makes a
-pointwise `log_lik()` reproduce the fitted density exactly instead of
-approximating it. `with_cs_offsets(fit, rspec, dpv)` takes one response
-spec from `fit$spec$responses` and the dpar-value list
+pointwise
+[`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md)
+reproduce the fitted density exactly instead of approximating it.
+`with_cs_offsets(fit, rspec, dpv)` takes one response spec from
+`fit$spec$responses` and the dpar-value list
 [`eval_dpars()`](https://aforren1.github.io/frmtmb/reference/frmtmb-extension-api.md)
 returns for that response, and gives back the same list with the
 category-specific (`cs()`) offsets applied; on a model without `cs()`
@@ -82,6 +84,30 @@ specification addresses, and `spec_spelling()` gives back the class and
 dpar it was WRITTEN with, which for a density on a distributional
 parameter itself is that parameter's own class rather than the intercept
 slot the resolver assigns to.
+
+`vcov_estimated(fit)` is the covariance of EVERY estimated coefficient
+under the internal names, which is what pairs with
+`estimated_coef_names()`; [`vcov()`](https://rdrr.io/r/stats/vcov.html)
+itself covers brms's population-level block and leaves out an
+intercept-only distributional parameter. It does NOT cover an ordinal
+fit's thresholds or its `cs()` coefficients, which live outside `beta`
+and `betad`: the interop seams pair with a longer vector that has them,
+and `vcov(fit, full = TRUE)` is where they are under
+[`confint()`](https://rdrr.io/r/stats/confint.html)'s names.
+
+`fam_is_category_valued(fam)` says whether a response is a set of
+categories, so that a predictive summary is a set of proportions rather
+than a mean, and `predict_category_props(fit, rspec, draws)` builds
+brms's `P(Y = k)` matrix from a matrix of simulated or sampled
+responses. `brms_summary_matrix()`, `brms_summary_array()`,
+`brms_summarize_draws()` and `brms_prob_cols()` build brms's `Estimate`
+/ `Est.Error` / `Q` columns from a point estimate with a standard error,
+or from draws. `brms_fixef_rows(fit)` gives brms's population-level rows
+in brms's order: which coefficient-table rows they are, and the ordinal
+thresholds and `cs()` coefficients that are not, each with the map from
+the internal vector to the reported value, so a draws object can report
+the same rows
+[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) does.
 
 `frmtmb_register_prior_defaults()` is the other direction: it lets a
 package tell
@@ -179,7 +205,7 @@ is the tail probability of a directional claim.
 and `group` arguments. `hyp_labels()` writes brms's `Hypothesis` label
 for each string, `hyp_samples_frame(m, k)` lays a draws matrix out as
 brms's `samples` frame (`H1`, `H2`, ...), and `hyp_brms_result()`
-assembles the `brmshypothesis`-shaped list every
+assembles the brms-shaped list every
 [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
 method returns, so no method builds that shape on its own.
 

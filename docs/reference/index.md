@@ -200,6 +200,8 @@
   [`LOO()`](https://aforren1.github.io/frmtmb/reference/loo.md)
   [`WAIC()`](https://aforren1.github.io/frmtmb/reference/loo.md) :
   Approximate leave-one-out cross-validation
+- [`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md)
+  : Pointwise log-likelihood
 - [`bayes_R2()`](https://aforren1.github.io/frmtmb/reference/bayes_R2.md)
   : Bayesian R-squared
 - [`posterior_summary()`](https://aforren1.github.io/frmtmb/reference/posterior_summary.md)
@@ -290,6 +292,14 @@
   [`re_form_arg`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`frm_install_generics`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`frm_check_dots`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`vcov_estimated`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`fam_is_category_valued`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`predict_category_props`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`brms_summary_matrix`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`brms_summary_array`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`brms_summarize_draws`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`brms_prob_cols`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`brms_fixef_rows`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   : Core internals for a sampling extension
 - [`influence(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)
   [`cooks.distance(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/influence.frmtmb_fit.md)
@@ -333,6 +343,8 @@
 
 - [`predict(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md)
   : Predictions from a frmtmb fit
+- [`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md)
+  : Predictions from a frmtmb fit
 - [`fitted(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/fitted.frmtmb_fit.md)
   : Fitted values
 - [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
@@ -347,6 +359,8 @@
   : Per-group coefficients (fixed effects plus conditional modes)
 - [`fixef(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/fixef.md)
   : Extract fixed effects
+- [`fixef_by_dpar()`](https://aforren1.github.io/frmtmb/reference/fixef_by_dpar.md)
+  : Fixed effects per linear predictor
 - [`ranef(`*`<frmtmb_fit>`*`)`](https://aforren1.github.io/frmtmb/reference/ranef.md)
   : Extract random-effect modes
 - [`ngrps()`](https://aforren1.github.io/frmtmb/reference/ngrps.md) :

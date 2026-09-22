@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -271,48 +271,52 @@ of lines; <code><a href="refit.html">refit()</a></code> and <code><a href="frm_m
 <span class="r-in"><span><span class="co"># optimum until it is met</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span>,</span></span>
 <span class="r-in"><span>    control <span class="op">=</span> <span class="fu">frmtmb_control</span><span class="op">(</span>grad_tol <span class="op">=</span> <span class="fl">1e-4</span>, restarts <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: y ~ x + (1 | g) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Family: gaussian   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Family: gaussian </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mu = identity; sigma = log</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -296.63  AIC: 601.26  nobs: 200 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Formula: y ~ x + (1 | g) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Data: dd (Number of observations: 200) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Method: ML   logLik: -296.63   AIC: 601.26   BIC: 614.454 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mu:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      1.4416      0.5196 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  sigma:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    -0.01237 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Multilevel Hyperparameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ~g (Number of levels: 10) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sd(Intercept)        1      0.23     0.63     1.58</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Random effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1 | g </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         Name Std.Dev.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  (Intercept)  0.99749</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Regression Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept     1.44      0.32     0.81     2.07    4.46  8.1e-06</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x             0.52      0.08     0.37     0.67    6.74  1.6e-11</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Further Distributional Parameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma     0.99      0.05     0.89     1.09</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># badly scaled predictors: fit an internally standardized copy first,</span></span></span>
 <span class="r-in"><span><span class="co"># then warm-start the reported fit from it</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">xbig</span> <span class="op">&lt;-</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span> <span class="op">*</span> <span class="fl">1e5</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">xbig</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span>,</span></span>
 <span class="r-in"><span>    control <span class="op">=</span> <span class="fu">frmtmb_control</span><span class="op">(</span>autoscale <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: y ~ xbig + (1 | g) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Family: gaussian   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Family: gaussian </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mu = identity; sigma = log</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -296.63  AIC: 601.26  nobs: 200 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Formula: y ~ xbig + (1 | g) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Data: dd (Number of observations: 200) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Method: ML   logLik: -296.63   AIC: 601.26   BIC: 614.454 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mu:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)        xbig </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1.442e+00   5.196e-06 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  sigma:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    -0.01237 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Multilevel Hyperparameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ~g (Number of levels: 10) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sd(Intercept)        1      0.23     0.63     1.58</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Random effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1 | g </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         Name Std.Dev.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  (Intercept)  0.99749</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Regression Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept     1.44      0.32     0.81     2.07    4.46  8.1e-06</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> xbig          0.00      0.00     0.00     0.00    6.74  1.6e-11</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Further Distributional Parameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma     0.99      0.05     0.89     1.09</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># the object is a plain list, so it can be built once and reused</span></span></span>
 <span class="r-in"><span><span class="va">ctrl</span> <span class="op">&lt;-</span> <span class="fu">frmtmb_control</span><span class="op">(</span>check_nlev_1 <span class="op">=</span> <span class="st">"ignore"</span><span class="op">)</span></span></span>

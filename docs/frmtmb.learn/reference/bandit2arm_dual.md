@@ -126,16 +126,8 @@ fit <- frmtmb::frm(
   frmtmb::bf(choice | reward(pay1, pay2) ~ 1, Apun ~ 1, tau ~ 1),
   family = bandit2arm_dual(subject = id, trial = trial), data = d)
 frmtmb::fixef(fit)
-#> $Arew
-#> (Intercept) 
-#>   0.8827643 
-#> 
-#> $Apun
-#> (Intercept) 
-#>   -1.837557 
-#> 
-#> $tau
-#> (Intercept) 
-#>   0.9807577 
-#> 
+#>                  Estimate Est.Error       Q2.5      Q97.5
+#> Arew_Intercept  0.8827643 0.6520973 -0.3953229  2.1608515
+#> Apun_Intercept -1.8375575 0.4692495 -2.7572696 -0.9178454
+#> tau_Intercept   0.9807577 0.1207820  0.7440294  1.2174860
 ```

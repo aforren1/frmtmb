@@ -123,16 +123,8 @@ fit <- frmtmb::frm(
   frmtmb::bf(choice | reward(pay1, pay2) ~ 1, bias ~ 1, tau ~ 1),
   family = prl_fictitious(subject = id, trial = trial), data = d)
 frmtmb::fixef(fit)
-#> $alpha
-#> (Intercept) 
-#>  -0.8286018 
-#> 
-#> $bias
-#> (Intercept) 
-#> -0.08634232 
-#> 
-#> $tau
-#> (Intercept) 
-#>   0.8673196 
-#> 
+#>                    Estimate Est.Error       Q2.5      Q97.5
+#> alpha_Intercept -0.82860182 0.1761767 -1.1739018 -0.4833018
+#> bias_Intercept  -0.08634232 0.1780947 -0.4354015  0.2627169
+#> tau_Intercept    0.86731958 0.1481338  0.5769827  1.1576565
 ```

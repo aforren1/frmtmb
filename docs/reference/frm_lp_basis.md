@@ -1,12 +1,12 @@
 # The design of a linear predictor over the coefficient vector
 
-`predict(se.fit = TRUE)` builds a matrix `A` with one row per prediction
-and one column per contributing coefficient, forms `A V A'` and keeps
-only its diagonal. Every delta-method quantity over a fitted curve needs
-the whole thing: a contrast between two grids, an average marginal
-effect with a correct standard error, a simultaneous band, a derivative,
-the time of a peak. This returns the pieces so that an extension does
-not have to rebuild `A` by perturbation, one
+`frm_linpred(se.fit = TRUE)` builds a matrix `A` with one row per
+prediction and one column per contributing coefficient, forms `A V A'`
+and keeps only its diagonal. Every delta-method quantity over a fitted
+curve needs the whole thing: a contrast between two grids, an average
+marginal effect with a correct standard error, a simultaneous band, a
+derivative, the time of a peak. This returns the pieces so that an
+extension does not have to rebuild `A` by perturbation, one
 [`predict()`](https://rdrr.io/r/stats/predict.html) call per
 coefficient.
 
@@ -54,7 +54,7 @@ A list with
 
 - `eta`:
 
-  the linear predictor, exactly `predict(type = "link")`.
+  the linear predictor, exactly `frm_linpred(type = "link")`.
 
 - `A`:
 
@@ -87,7 +87,7 @@ A list with
   could not identify.
 
 `var(eta)` is `rowSums((A %*% V) * A) + extra_var`, and
-`predict(se.fit = TRUE)` is written that way.
+`frm_linpred(se.fit = TRUE)` is written that way.
 
 ## Details
 
@@ -102,7 +102,7 @@ is computed by taping the body against the coefficients it reaches
 through. That includes a
 [`ps()`](https://aforren1.github.io/frmtmb/reference/ps.md) block, whose
 coefficients enter the body through a spline evaluated at an argument
-the parameters move. `predict(se.fit = TRUE)` stays refused for a
+the parameters move. `frm_linpred(se.fit = TRUE)` stays refused for a
 nonlinear predictor; this is the route.
 
 The Jacobian is exact, and the delta method built on it is still a
@@ -142,10 +142,11 @@ str(lb$A)
 lb$coef_names
 #> [1] "beta.(Intercept)" "beta.x"          
 
-# the covariance of the WHOLE grid, which predict() reduces to its
+# the covariance of the WHOLE grid, which frm_linpred() reduces to
 # diagonal
 Sigma <- lb$A %*% lb$V %*% t(lb$A)
 all.equal(sqrt(diag(Sigma)),
-          predict(fit, newdata = nd, re_formula = NA, se.fit = TRUE)$se.fit)
+          frm_linpred(fit, newdata = nd, re_formula = NA,
+                      se.fit = TRUE)$se.fit)
 #> [1] TRUE
 ```

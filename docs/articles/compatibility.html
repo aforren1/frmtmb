@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -2219,11 +2219,11 @@ linear.</td>
 <td align="left">cumulative + fitted; sratio + fitted; cratio + fitted;
 acat + fitted</td>
 <td align="left">Returns the same n x K matrix of category probabilities
-predict(type = “response”) returns, not a vector: an ordinal response
-has no mean, so the modelled response is the category distribution. The
-predict(type = “response”) == fitted() identity holds. The latent linear
-predictor is predict(fit, type = “link”), which is also what emmeans and
-insight see.</td>
+frm_linpred(type = “response”) returns, not a vector: an ordinal
+response has no mean, so the modelled response is the category
+distribution. The frm_linpred(type = “response”) == fitted() identity
+holds. The latent linear predictor is frm_linpred(fit, type = “link”),
+which is also what emmeans and insight see.</td>
 </tr>
 <tr class="odd">
 <td align="left">~</td>
@@ -2255,7 +2255,7 @@ emmeans; acat + emmeans</td>
 “latent” convention for clm-like models: the intercept is dropped there
 (the K-1 thresholds take its place), so contrasts are on the latent
 scale and absolute means carry no threshold offset. For category
-probabilities use predict(fit, type = “response”) or
+probabilities use frm_linpred(fit, type = “response”) or
 conditional_effects(), which are on a different scale from these
 means.</td>
 </tr>
@@ -2264,8 +2264,8 @@ means.</td>
 <td align="left">categorical + fitted</td>
 <td align="left">Returns the n x K matrix of category probabilities, not
 a vector: a nominal response has no mean, so the modelled response is
-the category distribution. The predict(type = “response”) == fitted()
-identity holds.</td>
+the category distribution. The frm_linpred(type = “response”) ==
+fitted() identity holds.</td>
 </tr>
 <tr class="odd">
 <td align="left">~</td>
@@ -2274,7 +2274,7 @@ identity holds.</td>
 probabilities, columns named by the response’s own levels and rows
 summing to 1, exactly as for the ordinal families; it equals fitted().
 se.fit is refused there. Each category’s latent predictor is
-predict(type = “link”, dpar = “mu<level>”), which is where se.fit
+frm_linpred(type = “link”, dpar = “mu<level>”), which is where se.fit
 works.</level>
 </td>
 </tr>
@@ -2322,7 +2322,8 @@ line.</td>
 <td align="left">x</td>
 <td align="left">cox + fitted</td>
 <td align="left">Refused: a survival time has no mean on the response
-scale here. Use predict(type = “link”) for the log hazard ratio.</td>
+scale here. Use frm_linpred(type = “link”) for the log hazard
+ratio.</td>
 </tr>
 <tr class="odd">
 <td align="left">x</td>
@@ -3411,12 +3412,12 @@ supported.</td>
 </h3>
 <p>Several post-fit methods are univariate-only. A multivariate fit
 predicts one response at a time, through
-<code>predict(fit, resp = )</code>, and refuses <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>,
-<code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> and <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code>. The inference
-surface is not univariate-only: <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>,
-<code><a href="../reference/hypothesis.html">hypothesis()</a></code> and <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code>
-read the outer parameter vector, which a multivariate fit has like any
-other.</p>
+<code>frm_linpred(fit, resp = )</code>, and refuses
+<code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>, <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> and
+<code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code>. The inference surface is not univariate-only:
+<code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, <code><a href="../reference/hypothesis.html">hypothesis()</a></code> and
+<code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> read the outer parameter
+vector, which a multivariate fit has like any other.</p>
 <table class="table">
 <colgroup>
 <col width="11%">

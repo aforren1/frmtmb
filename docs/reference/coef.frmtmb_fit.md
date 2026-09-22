@@ -40,8 +40,7 @@ per group level and one column per coefficient. When random effects
 appear in more than one linear predictor, the list is nested one level
 deeper, keyed as in
 [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md). A fit
-without random effects returns the
-[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) value
+without random effects returns the per-predictor coefficient vectors
 instead.
 
 ## Details
@@ -51,8 +50,19 @@ random effects appear in more than one dpar (or response), an outer
 layer keyed like
 [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) is
 added. Smooth terms are excluded. A fit without random effects returns
-[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) (the
-single coefficient vector when there is one linear predictor).
+the coefficient vector of the location predictor (when there is one
+linear predictor), or one vector per predictor.
+
+The coefficients are named as brms names them, which is how
+[`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) and
+[`vcov()`](https://rdrr.io/r/stats/vcov.html) name their rows:
+`Intercept`, not `(Intercept)`. Anything that pairs
+[`coef()`](https://rdrr.io/r/stats/coef.html) with
+[`vcov()`](https://rdrr.io/r/stats/vcov.html) by name,
+[`lmtest::coeftest()`](https://rdrr.io/pkg/lmtest/man/coeftest.html)
+among them, needs the two to agree. Use
+[`fixef_by_dpar()`](https://aforren1.github.io/frmtmb/reference/fixef_by_dpar.md)
+for the design-column spelling.
 
 ## Examples
 
@@ -64,21 +74,23 @@ fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 
 # one row per group: the fixed effects with the modes added in
 head(coef(fit)$g)
-#>   (Intercept)         x
+#>     Intercept         x
 #> 1  0.44665008 0.6706869
 #> 2  1.43337233 0.6706869
 #> 3  0.54268306 0.6706869
 #> 4  0.87303571 0.6706869
 #> 5 -0.02536969 0.6706869
 #> 6  2.28544238 0.6706869
-# which is fixef() plus ranef(), the lme4 identity
-all.equal(coef(fit)$g[["(Intercept)"]],
-          fixef(fit)$mu[["(Intercept)"]] + ranef(fit)$g[, 1],
+# which is fixef() plus ranef(), the lme4 identity, under the same
+# names fixef() and vcov() use
+all.equal(coef(fit)$g[["Intercept"]],
+          fixef(fit)["Intercept", "Estimate"] + ranef(fit)$g[, 1],
           check.attributes = FALSE)
 #> [1] TRUE
 
-# without random effects there are no groups, so coef() is fixef()
+# without random effects there are no groups, so coef() is the
+# coefficient vector of the location predictor
 coef(frm(bf(y ~ x) + gaussian(), data = dd))
-#> (Intercept)           x 
-#>   1.2457711   0.6136201 
+#> Intercept         x 
+#> 1.2457711 0.6136201 
 ```

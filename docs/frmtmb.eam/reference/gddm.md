@@ -186,25 +186,7 @@ fit <- frm(bf(rt | vint(upper, cond) ~ 1, bias = 0.5),
            family = gddm(bound = gddm_bound_exponential(), control = ctl),
            data = dat)
 fixef(fit)
-#> $mu
-#> (Intercept) 
-#>    2.339251 
-#> 
-#> $bs
-#> (Intercept) 
-#>    1.273025 
-#> 
-#> $tau
-#> (Intercept) 
-#>  -0.2133438 
-#> 
-#> $bias
-#> (Intercept) 
-#>           0 
-#> 
-#> $ndt
-#> (Intercept) 
-#>   0.4489101 
-#> 
+#>           Estimate Est.Error     Q2.5    Q97.5
+#> Intercept 2.339251  0.142036 2.060865 2.617636
 # }
 ```

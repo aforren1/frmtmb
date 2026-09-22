@@ -97,7 +97,7 @@ frm_curve_deriv(
 
 - tol:
 
-  Largest relative disagreement with `predict(se.fit = TRUE)` the
+  Largest relative disagreement with `frm_linpred(se.fit = TRUE)` the
   assembled covariance may show before the call refuses.
 
 ## Value

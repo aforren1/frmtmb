@@ -1,5 +1,14 @@
 # Changelog
 
+## frmtmb.eam 0.10.0
+
+- [`ndt_time()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.md)
+  reads
+  [`frmtmb::frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.html)
+  rather than [`predict()`](https://rdrr.io/r/stats/predict.html), which
+  is brms’s predictive summary in frmtmb 0.61.0 and has no `dpar` or
+  `type`. Requires frmtmb 0.61.0.
+
 ## frmtmb.eam 0.9.0
 
 - Requires frmtmb 0.60.0, for `frm_stop()` and the other condition

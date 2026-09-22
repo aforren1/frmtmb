@@ -13,7 +13,7 @@ bandit2arm_delta()'s exactly:"></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.learn</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -189,7 +189,7 @@ positive definite and four <code>NaN</code> standard errors.</p>
 <span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>    <span class="at">family =</span> <span class="fu">rlddm</span>(<span class="at">subject =</span> id, <span class="at">trial =</span> trial), <span class="at">data =</span> d)</span></code></pre><p></p></div>
 <p>With it, each row's bound is its own group's fastest response, <code>ndt</code>
 is a FRACTION of that bound on a plain logit, and the density
-multiplies it back out. <code>predict(dpar = "ndt", type = "response")</code>
+multiplies it back out. <code>frm_linpred(dpar = "ndt", type = "response")</code>
 then reports the fraction, and <code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.html" class="external-link">frmtmb.eam::ndt_time()</a></code> reports the
 non-decision time in seconds whichever parameterization a fit is in.
 Without it nothing about the family moved.</p>
@@ -359,26 +359,12 @@ softmax, <code><a href="https://aforren1.github.io/frmtmb/frmtmb.eam/reference/w
 <span class="r-in"><span>             <span class="va">drift</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">bs</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">ndt</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">bias</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  family <span class="op">=</span> <span class="fu">rlddm</span><span class="op">(</span>subject <span class="op">=</span> <span class="va">id</span>, trial <span class="op">=</span> <span class="va">trial</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">s</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">frmtmb</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/nlme/man/fixed.effects.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $alpha</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  -0.1298849 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $drift</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    3.003392 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $bs</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   0.4032789 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $ndt</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    1.303546 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $bias</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  0.05694329 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                    Estimate  Est.Error       Q2.5     Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> alpha_Intercept -0.12988490 0.23329043 -0.5871257 0.3273559</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> drift_Intercept  3.00339160 0.24136430  2.5303263 3.4764569</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> bs_Intercept     0.40327886 0.04090684  0.3231029 0.4834548</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ndt_Intercept    1.30354587 0.20156860  0.9084787 1.6986131</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> bias_Intercept   0.05694329 0.08646528 -0.1125255 0.2264121</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="frm_value_trace.html">frm_value_trace</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   subject trial        q1 q2   drift_t         pe       dens</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1       1     1 0.0000000  0  0.000000  0.0000000 0.76659084</span>

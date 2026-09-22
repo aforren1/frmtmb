@@ -83,7 +83,7 @@ frm_curve(
 
 - tol:
 
-  Largest relative disagreement with `predict(se.fit = TRUE)` the
+  Largest relative disagreement with `frm_linpred(se.fit = TRUE)` the
   assembled covariance may show before the call refuses.
 
 ## Value
@@ -118,7 +118,7 @@ objective even when the smooth is a population term, so the covariance
 of a curve needs the joint covariance of the fixed AND random
 coefficients. frmtmb exports no route to it: `vcov(full = TRUE)` returns
 the outer parameter vector, which excludes `b` under both of its
-branches, and `predict(se.fit = TRUE)` forms the grid covariance
+branches, and `frm_linpred(se.fit = TRUE)` forms the grid covariance
 internally and returns only its diagonal.
 
 So this function rebuilds it. The linear predictor is LINEAR in the
@@ -129,8 +129,8 @@ joint precision matrix.
 
 Neither piece was handed over by an exported function, so neither is
 trusted. Every call recomputes `sqrt(diag(Sigma))` and compares it with
-`predict(se.fit = TRUE)`, and refuses when the two disagree by more than
-`tol`. The measured agreement is in the `"check"` attribute and is
+`frm_linpred(se.fit = TRUE)`, and refuses when the two disagree by more
+than `tol`. The measured agreement is in the `"check"` attribute and is
 reported by [`print()`](https://rdrr.io/r/base/print.html). On the
 package's own test models it is at the tenth significant figure or
 better.
@@ -156,24 +156,24 @@ changed from "the reconstruction reproduced core's number" to "the seam
 is being read correctly".
 
 The check itself stays. Every call recomputes `sqrt(diag(Sigma))` and
-compares it with `predict(se.fit = TRUE)`, and refuses when the two
+compares it with `frm_linpred(se.fit = TRUE)`, and refuses when the two
 disagree by more than `tol`. The measured agreement is in the `"check"`
 attribute and is reported by
 [`print()`](https://rdrr.io/r/base/print.html).
 
 The one case with nothing to check against is a nonlinear (`nl = TRUE`)
-body: `predict(se.fit = TRUE)` is refused there, so `frm_lp_basis()` is
-the only route to the number and `cov_rel_error` is `NA`.
+body: `frm_linpred(se.fit = TRUE)` is refused there, so `frm_lp_basis()`
+is the only route to the number and `cov_rel_error` is `NA`.
 [`print()`](https://rdrr.io/r/base/print.html) says so rather than
 reporting a check that never ran.
 
 ## Cost
 
 What this call costs is dominated by ONE thing: the single
-`predict(se.fit = TRUE)` check call, inside which core inverts the fit's
-joint precision matrix over EVERY coefficient, including the ones this
-curve does not touch. Measured at `re_formula = NA` on a 20-point grid,
-one process each:
+`frm_linpred(se.fit = TRUE)` check call, inside which core inverts the
+fit's joint precision matrix over EVERY coefficient, including the ones
+this curve does not touch. Measured at `re_formula = NA` on a 20-point
+grid, one process each:
 
 - `s(x, k = 10)`, 8 random coefficients: 0.29 s.
 
@@ -223,10 +223,10 @@ What the difference path cannot do, and refuses by name:
 
 The covariance check also means less here, and
 [`print()`](https://rdrr.io/r/base/print.html) says so.
-`predict(se.fit = TRUE)` returns a marginal standard error per row and
-never the covariance between the grids, so the check runs on each half
-and `cov_rel_error` is the worse of the two: what it licenses is that
-both designs were read correctly.
+`frm_linpred(se.fit = TRUE)` returns a marginal standard error per row
+and never the covariance between the grids, so the check runs on each
+half and `cov_rel_error` is the worse of the two: what it licenses is
+that both designs were read correctly.
 
 ## An exact `gp()` under a difference
 
@@ -310,12 +310,12 @@ cv <- frm_curve(fit, newdata = data.frame(x = seq(0, 1, length.out = 25)),
 head(cv[, c("x", ".estimate", ".se", ".lower_ci", ".lower_sim")])
 #> <frmtmb curve> , 6 grid points, level 
 #>   critical value: pointwise NULL
-#>   covariance NOT checked: predict(se.fit = TRUE) is refused for a nonlinear predictor, so there is no second route to compare against
+#>   covariance NOT checked: frm_linpred(se.fit = TRUE) is refused for a nonlinear predictor, so there is no second route to compare against
 #>            x .estimate        .se  .lower_ci  .lower_sim
-#> 1 0.00000000 0.1320147 0.15875291 -0.1791353 -0.33430711
-#> 2 0.04166667 0.3413067 0.11074391  0.1242526  0.01600684
-#> 3 0.08333333 0.5478148 0.07848158  0.3939938  0.31728253
-#> 4 0.12500000 0.7472177 0.06874628  0.6124775  0.54528198
-#> 5 0.16666667 0.9386514 0.06827917  0.8048267  0.73808771
-#> 6 0.20833333 1.1261965 0.06628101  0.9962881  0.93150224
+#> 1 0.00000000 0.1320147 0.15875291 -0.1791353 -0.33304780
+#> 2 0.04166667 0.3413067 0.11074391  0.1242526  0.01688532
+#> 3 0.08333333 0.5478148 0.07848158  0.3939938  0.31790509
+#> 4 0.12500000 0.7472177 0.06874628  0.6124775  0.54582731
+#> 5 0.16666667 0.9386514 0.06827917  0.8048267  0.73862934
+#> 6 0.20833333 1.1261965 0.06628101  0.9962881  0.93202802
 ```

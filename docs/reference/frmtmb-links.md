@@ -187,7 +187,7 @@ on `dnbinom_robust()`.
 
 Wherever a link is taken, a list is taken instead of a name. It must
 carry `name`, `linkfun`, `linkinv` and `mu_eta`, the derivative of
-`linkinv`, which `predict(se.fit = TRUE)` and every delta-method
+`linkinv`, which `frm_linpred(se.fit = TRUE)` and every delta-method
 interval read. `logit_eta` and `log_eta` are optional; supply one only
 if it is exact.
 
@@ -206,27 +206,29 @@ d <- data.frame(x = rnorm(80))
 d$y <- rbinom(80, 1, pnorm(0.4 + 0.8 * d$x))
 
 # the mean on a probit rather than a logit
-fixef(frm(bf(y ~ x), family = bernoulli(link = "probit"), data = d))$mu
+fixef_by_dpar(frm(bf(y ~ x), family = bernoulli(link = "probit"),
+                  data = d))$mu
 #> (Intercept)           x 
 #>   0.2330309   1.0758635 
 
 # a link on a parameter that is not the mean
 d$z <- rnorm(80, 1 + d$x, exp(0.2 + 0.3 * d$x))
 frm(bf(z ~ x, sigma ~ x), family = student(link_sigma = "log"), data = d)
-#> frmtmb fit: z ~ x 
-#> Family: student   Method: ML 
+#>  Family: student 
 #>  Links: mu = identity; sigma = log; nu = logm1
 #> 
-#> logLik: -129.955  AIC: 269.909  nobs: 80 
+#> Formula: z ~ x 
+#>    Data: d (Number of observations: 80) 
+#>  Method: ML   logLik: -129.955   AIC: 269.909   BIC: 281.82 
 #> 
-#> Fixed effects:
-#>  mu:
-#> (Intercept)           x 
-#>      0.8850      0.8299 
-#>  sigma:
-#> (Intercept)           x 
-#>      0.1874      0.1708 
-#>  nu:
-#> (Intercept) 
-#>       19.63 
+#> Regression Coefficients:
+#>                 Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept           0.88      0.14     0.62     1.15    6.46  1.0e-10
+#> sigma_Intercept     0.19      0.08     0.03     0.34    2.35    0.019
+#> x                   0.83      0.16     0.51     1.15    5.08  3.9e-07
+#> sigma_x             0.17      0.10    -0.02     0.36    1.74    0.082
+#> 
+#> Further Distributional Parameters:
+#>     Estimate    Est.Error l-95% CI u-95% CI
+#> nu 334785501 2.604625e+12        1      Inf
 ```

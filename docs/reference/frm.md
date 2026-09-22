@@ -109,9 +109,9 @@ frm(
 
   If `TRUE`, run `RTMB::sdreport()` at fit time. The default (`FALSE`)
   defers it until standard errors are first needed (`summary`, `vcov`,
-  `confint`, `predict(se.fit = TRUE)`), which cuts roughly a quarter off
-  fit time in fit-and-predict or bootstrap loops. The deferred report is
-  cached, so nothing is computed twice.
+  `confint`, `frm_linpred(se.fit = TRUE)`), which cuts roughly a quarter
+  off fit time in fit-and-predict or bootstrap loops. The deferred
+  report is cached, so nothing is computed twice.
 
 - na.action:
 
@@ -289,7 +289,25 @@ frm(
 
 ## Value
 
-An object of class `frmtmb_fit`.
+An object of class `frmtmb_fit`. It is a list, and two of its elements
+are read directly often enough to name here. `fit$data2` is the `data2`
+list of known matrices. `fit$data` is the MODEL FRAME, the object
+[`model.frame()`](https://rdrr.io/r/stats/model.frame.html) returns: one
+column per term the formula names, under the term's own spelling, so a
+model with `offset(Age)` carries a literal `offset(Age)` column and a
+data column no term uses is absent. brms keeps its VALIDATED RAW DATA
+under the same name, so `names(fit$data)` and `ncol(fit$data)` differ
+from brms on any model with a transformed term, and `newdata = fit$data`
+is not the brms idiom it looks like. The element exists because
+brms-shaped code reads `fit$data` and used to reach the `data2` list
+through `$`'s partial matching; the model frame is the object this
+package already had. It is the same object in memory that
+`fit$frame[["data_frame"]]` holds, but R's serializer does not
+deduplicate a shared value, so a SAVED fit carries the frame twice: 5.3%
+more raw bytes and 14.0% more gzipped on a 20,000-row fit, 0.16% and
+1.49% on a 240-row one (`dev/adefects-log/p1-dollar.txt`). Everything
+else the fit carries has an accessor, and the accessor is the supported
+route.
 
 ## What a nonlinear body sees
 
@@ -418,36 +436,30 @@ dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
 dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.5)[dd$g], 1)
 fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 summary(fit)
-#> Family: gaussian 
+#>  Family: gaussian 
 #>  Links: mu = identity; sigma = log
 #> 
 #> Formula: y ~ x + (1 | g) 
-#> Method: ML   nobs: 100 
-#> Groups: g, 10 
-#> logLik: -145.746  AIC: 299.492  BIC: 309.913 
+#>    Data: dd (Number of observations: 100) 
+#>  Method: ML   logLik: -145.746   AIC: 299.492   BIC: 309.913 
 #> 
-#> Random effects:
-#>   1 | g 
-#>         Name Std.Dev.
-#>  (Intercept)  0.55725
+#> Multilevel Hyperparameters:
+#> ~g (Number of levels: 10) 
+#>               Estimate Est.Error l-95% CI u-95% CI
+#> sd(Intercept)     0.56      0.16     0.31     0.99
 #> 
-#> Coefficients (mu):
-#>             Estimate Std. Error z value  Pr(>|z|)
-#> (Intercept)  1.13568    0.20133  5.6410 1.691e-08
-#> x            0.66736    0.11269  5.9222 3.176e-09
+#> Regression Coefficients:
+#>           Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept     1.14      0.20     0.74     1.53    5.64  1.7e-08
+#> x             0.67      0.11     0.45     0.89    5.92  3.2e-09
 #> 
-#> Coefficients (sigma):
-#>              Estimate Std. Error z value Pr(>|z|)
-#> (Intercept) -0.034743   0.074545 -0.4661   0.6412
+#> Further Distributional Parameters:
+#>       Estimate Est.Error l-95% CI u-95% CI
+#> sigma     0.97      0.07     0.83     1.12
 fixef(fit)
-#> $mu
-#> (Intercept)           x 
-#>   1.1356757   0.6673571 
-#> 
-#> $sigma
-#> (Intercept) 
-#> -0.03474316 
-#> 
+#>            Estimate Est.Error      Q2.5     Q97.5
+#> Intercept 1.1356757 0.2013266 0.7410828 1.5302687
+#> x         0.6673571 0.1126869 0.4464948 0.8882195
 VarCorr(fit)
 #> $g
 #> $g$sd
@@ -493,40 +505,16 @@ st
 st$beta[["asym_(Intercept)"]] <- 5
 st$beta[["lrc_(Intercept)"]] <- 1
 fixef(frm(nf, data = nd, start = st))
-#> $asym
-#> (Intercept) 
-#>    7.955791 
-#> 
-#> $lrc
-#> (Intercept) 
-#>    2.942713 
-#> 
-#> $mu
-#> numeric(0)
-#> 
-#> $sigma
-#> (Intercept) 
-#>   -1.204505 
-#> 
+#>                Estimate  Est.Error     Q2.5    Q97.5
+#> asym_Intercept 7.955791 0.08151862 7.796018 8.115565
+#> lrc_Intercept  2.942713 0.08735253 2.771505 3.113920
 
 # or let a located prior place the same starts, brms-style
 fixef(frm(nf, data = nd,
           prior = prior(normal(5, 5), nlpar = "asym") +
             prior(normal(1, 5), nlpar = "lrc")))
 #> Nonlinear starting values placed at the prior locations: asym_(Intercept) = 5, lrc_(Intercept) = 1. Give `start` to choose your own.
-#> $asym
-#> (Intercept) 
-#>    7.954524 
-#> 
-#> $lrc
-#> (Intercept) 
-#>    2.941385 
-#> 
-#> $mu
-#> numeric(0)
-#> 
-#> $sigma
-#> (Intercept) 
-#>   -1.204503 
-#> 
+#>                Estimate  Est.Error     Q2.5    Q97.5
+#> asym_Intercept 7.954524 0.08143384 7.794916 8.114131
+#> lrc_Intercept  2.941385 0.08725620 2.770366 3.112404
 ```

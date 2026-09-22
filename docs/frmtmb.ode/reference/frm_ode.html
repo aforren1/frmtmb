@@ -21,7 +21,7 @@ solver's adjoint."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.ode</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -614,9 +614,9 @@ the segment to depend on <code>t</code>.</p>
 <p>Estimated event times, lag times, inter-dose intervals and <code>tv</code>
 change points are not supported: they decide where the solve is
 split, which is settled before the tape is built.</p>
-<p><code>predict(se.fit = TRUE)</code> is not available for a nonlinear predictor,
+<p><code>frm_linpred(se.fit = TRUE)</code> is not available for a nonlinear predictor,
 including one containing <code>frm_ode()</code>; request a nonlinear parameter
-with <code>predict(dpar = )</code> instead.</p>
+with <code>frm_linpred(dpar = )</code> instead.</p>
     </div>
     <div class="section level2">
     <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a></h2>

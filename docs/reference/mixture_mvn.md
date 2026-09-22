@@ -86,26 +86,11 @@ dd <- data.frame(row = seq_len(nrow(Y)))
 dd$Y <- Y
 fit <- frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dd)
 fixef(fit)
-#> $mu1d1
-#> (Intercept) 
-#>  0.08342536 
-#> 
-#> $mu1d2
-#> (Intercept) 
-#>   0.1339542 
-#> 
-#> $mu2d1
-#> (Intercept) 
-#>    4.111133 
-#> 
-#> $mu2d2
-#> (Intercept) 
-#>     4.11396 
-#> 
-#> $theta1
-#>  (Intercept) 
-#> 0.0008996756 
-#> 
+#>                   Estimate Est.Error       Q2.5     Q97.5
+#> mu1d1_Intercept 0.08342536 0.1662316 -0.2423826 0.4092333
+#> mu1d2_Intercept 0.13395425 0.1434356 -0.1471744 0.4150829
+#> mu2d1_Intercept 4.11113311 0.1724837  3.7730712 4.4491950
+#> mu2d2_Intercept 4.11395998 0.1584580  3.8033881 4.4245319
 head(mixture_probs(fit))
 #>         class1       class2
 #> [1,] 0.9999999 9.151779e-08
@@ -116,27 +101,23 @@ head(mixture_probs(fit))
 #> [6,] 1.0000000 2.427070e-12
 # a shared spherical covariance (mclust's EII, k-means-like)
 frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2, model = "EII"), data = dd)
-#> frmtmb fit: Y ~ 1 
-#> Family: mixture_mvn(K = 2, D = 2, model = "EII")   Method: ML 
+#>  Family: mixture_mvn(K = 2, D = 2, model = "EII") 
 #>  Links: mu1d1 = identity; mu1d2 = identity; mu2d1 = identity; mu2d2 = identity;
 #>         theta1 = identity
 #> 
-#> logLik: -196.172  AIC: 404.344  nobs: 60 
+#> Formula: Y ~ 1 
+#>    Data: dd (Number of observations: 60) 
+#>  Method: ML   logLik: -196.172   AIC: 404.344   BIC: 416.91 
 #> 
-#> Fixed effects:
-#>  mu1d1:
-#> (Intercept) 
-#>     0.08437 
-#>  mu1d2:
-#> (Intercept) 
-#>      0.1351 
-#>  mu2d1:
-#> (Intercept) 
-#>       4.112 
-#>  mu2d2:
-#> (Intercept) 
-#>       4.115 
-#>  theta1:
-#> (Intercept) 
-#>    0.001796 
+#> Regression Coefficients:
+#>                 Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> mu1d1_Intercept     0.08      0.16    -0.23     0.40    0.52      0.6
+#> mu1d2_Intercept     0.14      0.16    -0.18     0.45    0.84      0.4
+#> mu2d1_Intercept     4.11      0.16     3.80     4.43   25.57   <2e-16
+#> mu2d2_Intercept     4.11      0.16     3.80     4.43   25.62   <2e-16
+#> 
+#> Further Distributional Parameters:
+#>        Estimate Est.Error l-95% CI u-95% CI
+#> theta1      0.5        NA       NA       NA
+#> theta2      0.5        NA       NA       NA
 ```

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -431,16 +431,19 @@ before there is a fit; edit the result and hand it back as
 at random in a bounded range instead.</p>
 </li>
 <li><p>Posterior summaries become ML estimates: <code><a href="../reference/fixef.html">fixef()</a></code>
-returns point estimates, <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> gives Wald or profile
-intervals, <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> gives likelihood-ratio tests, and
+returns brms’s summary matrix with a standard error and a Wald interval
+in it, <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> gives Wald or profile intervals,
+<code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> gives likelihood-ratio tests, and
 <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code>/<code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">BIC()</a></code> replace
 <code><a href="../reference/loo.html">loo()</a></code>.</p></li>
-<li><p><code>posterior_predict()</code> becomes <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>;
+<li><p><code>posterior_predict()</code> becomes <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>,
+or <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, which summarizes the same draws;
 <code>posterior_epred()</code> over <code>newdata</code> becomes
-<code>predict(newdata, type = "response")</code>. On a
-<code>cens()</code> response both draw the LATENT uncensored value, as
-brms does; <code>simulate(censored = TRUE)</code> applies the censoring
-mechanism instead.</p></li>
+<code>fitted(newdata = )</code>, or
+<code>frm_linpred(newdata = , type = "response")</code> for the bare
+vector. On a <code>cens()</code> response both draw the LATENT
+uncensored value, as brms does; <code>simulate(censored = TRUE)</code>
+applies the censoring mechanism instead.</p></li>
 <li><p><code>sample_prior = "only"</code> plus
 <code>posterior_predict()</code> becomes
 <code>frm_simulate(formula, data, prior = set_prior(...))</code>, which
@@ -673,8 +676,15 @@ writes them, in the model formula, and mean what brms means under
 <code>cov = TRUE</code>: the residuals of one group become a single
 correlated draw, <code>y_g ~ N(mu_g, D R D)</code> with <code>D</code>
 the diagonal of that group’s <code>sigma</code> values.
-<code>?frmtmb-autocor</code> has the full page; four things matter when
+<code>?frmtmb-autocor</code> has the full page; five things matter when
 porting.</p>
+<p><strong>The term grammar is brms’s.</strong> <code>time</code> is ONE
+variable name, or absent for the row’s position within its group, and
+<code>gr</code> is variable names crossed with <code>:</code>. An
+expression in either position is refused rather than evaluated, exactly
+as brms refuses it: <code>ar(x + t, g)</code> would index the
+correlation by the sum, and <code>gr = g1/g2</code> would group the
+residual by the quotient. Compute the column first and name it.</p>
 <p><strong><code>cov = TRUE</code> is required for <code><a href="https://rdrr.io/r/stats/ar.html" class="external-link">ar()</a></code>,
 <code>ma()</code> and <code>arma()</code>.</strong> brms defaults to
 <code>cov = FALSE</code>, which is a different likelihood - a residual
@@ -821,7 +831,7 @@ lme4 or glmmTMB and brms disagree on a name, brms decides; the lme4 name
 is dropped and refused, not kept as an alias. What still follows stats
 is the SHAPE of what a standard generic returns:</p>
 <ul>
-<li>brms-origin, same names and argument spellings:
+<li><p>brms-origin, same names and argument spellings:
 <code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> (includes what
 <code>conditional_smooths()</code> covers), <code><a href="../reference/hypothesis.html">hypothesis()</a></code> (a
 delta-method Wald test here), <code><a href="../reference/pp_check.html">pp_check()</a></code> (simulate-based,
@@ -836,51 +846,125 @@ fills from draws; <code><a href="../reference/fixef.html">fixef()</a></code>, <c
 <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> take brms’s <code>summary</code>,
 <code>robust</code> and <code>probs</code> in brms’s positions and
 refuse <code>summary = FALSE</code> by name, because a fit has no draws
-to return.</li>
-<li>stats-origin generics return stats-shaped values, not brms-shaped
-ones: <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> returns a vector (with
-<code>se.fit = TRUE</code>, a list), not a draws matrix with
-<code>Estimate</code>/<code>Q2.5</code> columns; <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>
-and <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> return vectors; <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>
-takes <code>level =</code>, not <code>probs =</code>. Their ARGUMENT
-names are brms’s: <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and
+to return. <code><a href="../reference/hypothesis.html">hypothesis()</a></code> reads brms’s grammar too: every
+hypothesis states a relation, so write <code>"x = 0"</code> and not
+<code>"x"</code>.</p></li>
+<li><p><code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and
+<code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> return brms’s summary matrix: the columns
+<code>Estimate</code>, <code>Est.Error</code>, <code>Q2.5</code> and
+<code>Q97.5</code>, one row per observation. A maximum-likelihood fit
+has no draws, so <code>Est.Error</code> is a standard error and the
+<code>Q</code> columns are a Wald interval, except on
+<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, whose draws are SIMULATED and whose
+<code>Q</code> columns are the simulation’s own quantiles. An ordinal or
+categorical response gives brms’s <code>n</code> by 4 by <code>K</code>
+array from <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and brms’s <code>P(Y = k)</code>
+proportions from <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>. <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> still
+takes <code>level =</code> rather than <code>probs =</code>.</p></li>
+<li>
+<p><strong>A matrix is not a vector, and every scalar summary of it
+changes.</strong> This is brms fidelity, not a defect, and it is the one
+change in this list that gives a WRONG NUMBER rather than an error.
+brms’s <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> is a matrix, so
+<code>mean(residuals(fit))</code> averages four columns and not one.
+Measured on <code>y ~ x + f</code>, n = 150:</p>
+<table class="table">
+<thead><tr class="header">
+<th>expression</th>
+<th>before</th>
+<th>now</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>mean(residuals(fit))</code></td>
+<td>-2.894331e-06</td>
+<td>0.03897951</td>
+</tr>
+<tr class="even">
+<td><code>sd(residuals(fit))</code></td>
+<td>0.9701508</td>
+<td>0.8689341</td>
+</tr>
+<tr class="odd">
+<td><code>sum(residuals(fit)^2)</code></td>
+<td>140.2377</td>
+<td>453.1844</td>
+</tr>
+<tr class="even">
+<td><code>length(qqnorm(residuals(fit))$x)</code></td>
+<td>150</td>
+<td>600</td>
+</tr>
+</tbody>
+</table>
+<p>The residual vector is <code>residuals(fit)[, "Estimate"]</code>, and
+the same holds for <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>.
+Code written against brms already does this; code written against frmtmb
+before the move does not. <code>insight::get_residuals(fit)</code>
+returns the vector, as it does for a <code>brmsfit</code>.</p>
+</li>
+<li><p><strong><code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> is the PREDICTIVE distribution,
+not the linear predictor.</strong> This is the one call whose meaning
+moved. brms’s <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> summarizes the posterior predictive
+distribution with observation noise in it, and frmtmb’s now does the
+same, by simulating from the fit: each replicate draws the parameters
+from their asymptotic normal law and then a response from the family’s
+own simulator. The LINEAR PREDICTOR, which <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>
+returned before, is <code><a href="../reference/frm_linpred.html">frm_linpred()</a></code>, with the same arguments
+it always had: <code>frm_linpred(fit, type = "link")</code> is the old
+<code>predict(fit)</code> and
+<code>frm_linpred(fit, se.fit = TRUE)</code> the old standard errors. A
+ported script that passes <code>type</code> or <code>se.fit</code> to
+<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> is refused by name and told where each one went,
+so the scale cannot change in silence.</p></li>
+<li><p>Their ARGUMENT names are brms’s: <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>,
+<code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>, <code><a href="../reference/frm_linpred.html">frm_linpred()</a></code> and
 <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> take <code>re_formula</code> and
 <code>allow_new_levels</code>, and lme4’s <code>re.form</code> and
 <code>allow.new.levels</code> are refused with the replacement named in
 the message. An argument none of them has is an error rather than a
-silently ignored name. The exception to the shape rule is an ordinal
-family, where <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> follows brms and returns the
-<code>n</code> by <code>K</code> matrix of category probabilities named
-by the response levels, exactly as
-<code>predict(type = "response")</code> does; the latent linear
-predictor is <code>predict(type = "link")</code>.</li>
-<li>
-<strong>The name transfers; the SCALE does not.</strong>
-<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> takes brms’s <code>re_formula</code> now, but it
-still defaults to the LINK scale where the brms call it replaces returns
-the response scale. A ported <code>predict(fit, re_formula = NA)</code>
-is therefore accepted in silence and answers on a different scale: on a
-poisson fit the two differ by the inverse link, 0.114223 against
-1.121002. Ask for <code>type = "response"</code>, or use
-<code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>, which is on the response scale by default. Before
-the rename that same call warned that it was ignoring an unknown
-argument, so the warning that used to flag the port is gone while the
-scale difference is not.</li>
-<li>
-<code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> on an ordinal fit draws one
+silently ignored name.</p></li>
+<li><p><code><a href="../reference/fixef.html">fixef()</a></code> is brms’s summary matrix too, with brms’s
+row names (<code>Intercept</code>, <code>sigma_Intercept</code>), and
+<code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code> covers exactly those rows. The per-predictor list
+<code><a href="../reference/fixef.html">fixef()</a></code> used to return is <code><a href="../reference/fixef_by_dpar.html">fixef_by_dpar()</a></code>, and
+<code>fixef(flatten = TRUE)</code> is one vector of estimates in
+<code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>’s spelling. <code><a href="../reference/ngrps.html">ngrps()</a></code> is brms’s named
+list. <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> carries brms’s <code>$fixed</code>,
+<code>$random</code>, <code>$spec_pars</code> and <code>$cor_pars</code>
+slots and prints brms’s section headings, and brms’s EMPTY shapes with
+them: <code>$random</code> is <code>NULL</code> when the model has no
+grouping factors, and <code>$spec_pars</code> and <code>$cor_pars</code>
+are frames with no rows when there is nothing to report. On an ordinal
+fit the thresholds are <code><a href="../reference/fixef.html">fixef()</a></code> rows named
+<code>Intercept[1]</code>, <code>Intercept[2]</code>, and
+<code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code> covers them, as they are in brms.</p></li>
+<li><p><code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> and <code><a href="../reference/ranef.html">ranef()</a></code> name their
+coefficients as brms names them, <code>Intercept</code> and not
+<code>(Intercept)</code>, so that anything pairing <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code>
+with <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code> by name, <code><a href="https://rdrr.io/pkg/lmtest/man/coeftest.html" class="external-link">lmtest::coeftest()</a></code> among
+them, keeps every row. The design-column spelling is
+<code><a href="../reference/fixef_by_dpar.html">fixef_by_dpar()</a></code>.</p></li>
+<li><p><code><a href="../reference/conditional_effects.html">conditional_effects()</a></code> on an ordinal fit draws one
 probability curve per response category, which is what brms draws under
 <code>categorical = TRUE</code>, and keys the effect
 <code>"x:cats__"</code> as brms does there. It is the default here
 because brms’s own default warns that it is treating an ordered factor
 as continuous; <code>categorical = FALSE</code> asks for that summary,
-the expected category number.</li>
-<li>
-<code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> is the per-group convention shared by all three
-packages: fixed effects plus conditional modes per grouping level.</li>
-<li>
-<code>plot(fit)</code> draws residual diagnostics, not MCMC traces;
-for simulation-based residual checks use
-<code><a href="../reference/dharma_residuals.html">dharma_residuals()</a></code>.</li>
+the expected category number.</p></li>
+<li><p><code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> is the per-group convention shared by all
+three packages: fixed effects plus conditional modes per grouping
+level.</p></li>
+<li><p><code>predict(allow_new_levels = TRUE)</code> draws an unseen
+level’s effect from its block’s estimated covariance, which is brms’s
+<code>sample_new_levels = "gaussian"</code>, so the interval at an
+unseen level is wider than at a known one. brms’s
+<code>"uncertainty"</code> and <code>"old_levels"</code> resample the
+draws of the levels that were seen, and a maximum-likelihood fit has
+none, so both are refused by name.</p></li>
+<li><p><code>plot(fit)</code> draws residual diagnostics, not MCMC
+traces; for simulation-based residual checks use
+<code><a href="../reference/dharma_residuals.html">dharma_residuals()</a></code>.</p></li>
 </ul>
 </div>
 <div class="section level2">

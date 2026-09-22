@@ -94,17 +94,17 @@ d <- data.frame(x = rnorm(60))
 d$y <- rnorm(60, 1 + d$x, exp(0.3 * d$x))
 frm(bf(y ~ x, sigma ~ x),
     family = brmsfamily("gaussian", link_sigma = "softplus"), data = d)
-#> frmtmb fit: y ~ x 
-#> Family: gaussian   Method: ML 
+#>  Family: gaussian 
 #>  Links: mu = identity; sigma = softplus
 #> 
-#> logLik: -92.517  AIC: 193.034  nobs: 60 
+#> Formula: y ~ x 
+#>    Data: d (Number of observations: 60) 
+#>  Method: ML   logLik: -92.517   AIC: 193.034   BIC: 201.411 
 #> 
-#> Fixed effects:
-#>  mu:
-#> (Intercept)           x 
-#>      0.9444      0.9301 
-#>  sigma:
-#> (Intercept)           x 
-#>      0.7351      0.4798 
+#> Regression Coefficients:
+#>                 Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept           0.94      0.15     0.64     1.25    6.15  7.8e-10
+#> sigma_Intercept     0.74      0.16     0.43     1.04    4.73  2.2e-06
+#> x                   0.93      0.12     0.70     1.16    7.77  8.0e-15
+#> sigma_x             0.48      0.13     0.22     0.74    3.56  0.00037
 ```

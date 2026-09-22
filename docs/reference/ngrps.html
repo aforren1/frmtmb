@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -89,7 +89,11 @@ error naming it, rather than silently changing nothing.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A named integer vector (smooth terms are excluded).</p>
+    <p>brms's named list, one integer per grouping factor, or <code>NULL</code>
+for a fit with no grouping factor. Smooth, Gaussian-process, CAR
+and SPDE blocks are random-effect blocks here and are not grouping
+factors in brms, so they are excluded; their parameters are in
+<code><a href="VarCorr.html">VarCorr()</a></code> and <code><a href="confint_varcorr.html">confint_varcorr()</a></code>.</p>
     </div>
 
     <div class="section level2">
@@ -103,8 +107,12 @@ error naming it, rather than silently changing nothing.</p></dd>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># one count per distinct grouping factor</span></span></span>
 <span class="r-in"><span><span class="fu">ngrps</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  g  h </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10  4 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $g</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 10</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $h</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="co"># the count that decides whether a variance component is trustworthy,</span></span></span>
 <span class="r-in"><span><span class="co"># and the unit influence() deletes when given `groups`</span></span></span>
 <span class="r-in"><span><span class="fu">ngrps</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[[</span><span class="st">"h"</span><span class="op">]</span><span class="op">]</span></span></span>

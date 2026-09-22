@@ -71,22 +71,11 @@ dd$y2 <- 2 - 0.3 * dd$x + u[dd$g, 2] + e + rnorm(n, 0, 0.5)
 # each response keeps its own formula and family
 fit <- frm(mvbf(bf(y1 ~ x), bf(y2 ~ x)) + gaussian(), data = dd)
 fixef(fit)
-#> $y1_mu
-#> (Intercept)           x 
-#>   1.0775542   0.5517536 
-#> 
-#> $y1_sigma
-#> (Intercept) 
-#>   0.2721586 
-#> 
-#> $y2_mu
-#> (Intercept)           x 
-#>   2.0235294  -0.2793594 
-#> 
-#> $y2_sigma
-#> (Intercept) 
-#>   0.2223223 
-#> 
+#>                Estimate  Est.Error       Q2.5      Q97.5
+#> y1_Intercept  1.0775542 0.10391095  0.8738925  1.2812159
+#> y2_Intercept  2.0235294 0.09885933  1.8297687  2.2172901
+#> y1_x          0.5517536 0.09447715  0.3665817  0.7369254
+#> y2_x         -0.2793594 0.08988416 -0.4555292 -0.1031897
 
 # rescor estimates the correlation of the residuals
 fit_rc <- frm(mvbf(bf(y1 ~ x), bf(y2 ~ x), rescor = TRUE) + gaussian(),

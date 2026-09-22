@@ -15,7 +15,7 @@ reversal learning. hBayesDM calls it prl_fictitious."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.learn</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -173,18 +173,10 @@ Cortex</em> 19, 483-495.</p>
 <span class="r-in"><span>  <span class="fu">frmtmb</span><span class="fu">::</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">choice</span> <span class="op">|</span> <span class="fu">reward</span><span class="op">(</span><span class="va">pay1</span>, <span class="va">pay2</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">bias</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">tau</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  family <span class="op">=</span> <span class="fu">prl_fictitious</span><span class="op">(</span>subject <span class="op">=</span> <span class="va">id</span>, trial <span class="op">=</span> <span class="va">trial</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">frmtmb</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/nlme/man/fixed.effects.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $alpha</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  -0.8286018 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $bias</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> -0.08634232 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $tau</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   0.8673196 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                    Estimate Est.Error       Q2.5      Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> alpha_Intercept -0.82860182 0.1761767 -1.1739018 -0.4833018</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> bias_Intercept  -0.08634232 0.1780947 -0.4354015  0.2627169</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> tau_Intercept    0.86731958 0.1481338  0.5769827  1.1576565</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

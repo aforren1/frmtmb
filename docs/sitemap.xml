@@ -164,10 +164,13 @@
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-structure.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/expose_functions.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/family.frmtmb_draws.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/fitted.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/fixef.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/formula.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-deprecated.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-refusals.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-summaries.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-loo-refusals.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb.sample-package.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb.sample.html</loc></url>
@@ -228,6 +231,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/pp_check.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/pp_mixture.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/pp_mixture.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/predict.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/predictive_error.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/predictive_error.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/predictive_interval.frmtmb_draws.html</loc></url>
@@ -240,12 +244,14 @@
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/reexports.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/reloo.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/reloo.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/residuals.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/restructure.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/restructure.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/rhat.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/rhat.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-as_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-bayes_R2.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-log_lik.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-loo.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-posterior_summary.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/frmtmb.sample/reference/set_prior.html</loc></url>
@@ -323,6 +329,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/fitted.frmtmb_fit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/fixef.frmtmb_fit.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/fixef.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/fixef_by_dpar.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/formula.frmtmb_draws.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frmtmb-autocor.html</loc></url>
@@ -357,6 +364,7 @@
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_family.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_hazard_reads.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_joint_cov.html</loc></url>
+<url><loc>https://aforren1.github.io/frmtmb/reference/frm_linpred.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_lp_basis.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_multiple.html</loc></url>
 <url><loc>https://aforren1.github.io/frmtmb/reference/frm_ode.html</loc></url>

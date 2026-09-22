@@ -15,7 +15,7 @@ latent, because the t's tail can hold it."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -256,25 +256,26 @@ interval, so it is not the right quantile far into the tail. Use
 <span class="r-in"><span><span class="co"># heavier tails, at the cost of a fixed nu</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="fu">gr</span><span class="op">(</span><span class="va">g</span>, dist <span class="op">=</span> <span class="st">"student"</span>, dist_nu <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>    family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: y ~ x + (1 | gr(g, dist = "student", dist_nu = 3)) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Family: gaussian   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Family: gaussian </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mu = identity; sigma = log</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -384.804  AIC: 777.607  nobs: 240 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Formula: y ~ x + (1 | gr(g, dist = "student", dist_nu = 3)) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Data: d (Number of observations: 240) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Method: ML   logLik: -384.804   AIC: 777.607   BIC: 791.53 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mu:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      1.2809      0.6492 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  sigma:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     0.07106 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Multilevel Hyperparameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ~g (Number of levels: 20) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sd(Intercept)     0.67      0.18     0.39     1.14</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Random effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1 | g </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         Name   Scale Std.Dev.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  (Intercept) 0.66974     1.16</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Student-t latent, nu = 3 (fixed); the stored matrix is the scale</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Regression Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept     1.28      0.20      0.9     1.66    6.56  5.5e-11</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x             0.65      0.08      0.5     0.80    8.56  &lt; 2e-16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Further Distributional Parameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma     1.07      0.05     0.98     1.18</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -91,10 +91,24 @@
 
         <dt>
 
-          <code><a href="frmtmb-draws-refusals.html">stancode()</a></code> <code><a href="frmtmb-draws-refusals.html">standata()</a></code> <code><a href="frmtmb-draws-refusals.html">expose_functions(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="frmtmb-draws-refusals.html">plot(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="frmtmb-draws-refusals.html">update(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="frmtmb-draws-refusals.html">restructure()</a></code> <code><a href="frmtmb-draws-refusals.html">posterior_samples()</a></code> <code><a href="frmtmb-draws-refusals.html">nsamples()</a></code> <code><a href="frmtmb-draws-refusals.html">parnames()</a></code>
+          <code><a href="frmtmb-draws-deprecated.html">posterior_samples()</a></code> <code><a href="frmtmb-draws-deprecated.html">nsamples()</a></code> <code><a href="frmtmb-draws-deprecated.html">parnames()</a></code>
+
+        </dt>
+        <dd>Deprecated brms draws accessors</dd>
+
+        <dt>
+
+          <code><a href="frmtmb-draws-refusals.html">stancode()</a></code> <code><a href="frmtmb-draws-refusals.html">standata()</a></code> <code><a href="frmtmb-draws-refusals.html">expose_functions(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="frmtmb-draws-refusals.html">plot(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="frmtmb-draws-refusals.html">update(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="frmtmb-draws-refusals.html">restructure()</a></code>
 
         </dt>
         <dd>Methods a ported brms script may call that frmtmb does not have</dd>
+
+        <dt>
+
+          <code><a href="frmtmb-draws-summaries.html">fitted(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="frmtmb-draws-summaries.html">predict(<i>&lt;frmtmb_draws&gt;</i>)</a></code> <code><a href="frmtmb-draws-summaries.html">residuals(<i>&lt;frmtmb_draws&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Summaries of the posterior predictive quantities</dd>
 
         <dt>
 
@@ -109,13 +123,6 @@
 
         </dt>
         <dd>Sample a model with NUTS</dd>
-
-        <dt>
-
-          <code><a href="log_lik.html">log_lik()</a></code>
-
-        </dt>
-        <dd>Pointwise log-likelihood of posterior draws</dd>
 
         <dt>
 
@@ -144,6 +151,13 @@
 
         </dt>
         <dd>Bayesian R-squared</dd>
+
+        <dt>
+
+          <code><a href="sample-log_lik.html">log_lik(<i>&lt;frmtmb_draws&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Pointwise log-likelihood of posterior draws</dd>
 
         <dt>
 

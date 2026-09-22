@@ -179,37 +179,25 @@ fit <- frm(bf(rt | vint(upper, cond) + vreal(coh) ~ 1, bias = 0.5),
                          control = ctl),
            data = dat)
 summary(fit)
-#> Family: gddm 
+#>  Family: gddm 
 #>  Links: mu = identity; alpha = log; leak = identity; bs = log; tau = log;
 #>         bias = logit; ndt = scaled_logit(0, 0.3267)
 #> 
 #> Formula: rt | vint(upper, cond) + vreal(coh) ~ 1 
-#> Method: ML   nobs: 900 
-#> logLik: 46.4345  AIC: -80.869  BIC: -52.0547 
+#>    Data: dat (Number of observations: 900) 
+#>  Method: ML   logLik: 46.4345   AIC: -80.869   BIC: -52.0547 
 #> 
-#> Coefficients (mu):
-#>             Estimate Std. Error z value  Pr(>|z|)
-#> (Intercept)  5.68217    0.23468  24.213 < 2.2e-16
+#> Regression Coefficients:
+#>           Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept     5.68      0.23     5.22     6.14   24.21   <2e-16
 #> 
-#> Coefficients (alpha):
-#>              Estimate Std. Error z value  Pr(>|z|)
-#> (Intercept) -0.241312   0.045766 -5.2727 1.344e-07
-#> 
-#> Coefficients (leak):
-#>             Estimate Std. Error z value Pr(>|z|)
-#> (Intercept)  0.73064    0.64611  1.1308   0.2581
-#> 
-#> Coefficients (bs):
-#>             Estimate Std. Error z value  Pr(>|z|)
-#> (Intercept)  1.12107    0.14576  7.6912 1.457e-14
-#> 
-#> Coefficients (tau):
-#>             Estimate Std. Error z value Pr(>|z|)
-#> (Intercept)  0.22077    0.09642  2.2897  0.02204
-#> 
-#> Coefficients (ndt):
-#>             Estimate Std. Error z value Pr(>|z|)
-#> (Intercept)  1.03885    0.35519  2.9248 0.003447
+#> Further Distributional Parameters:
+#>       Estimate Est.Error l-95% CI u-95% CI
+#> alpha     0.79      0.04     0.72     0.86
+#> leak      0.73      0.65    -0.54     2.00
+#> bs        3.07      0.45     2.31     4.08
+#> tau       1.25      0.12     1.03     1.51
+#> ndt       0.24      0.02     0.19     0.28
 #> 
 #> Fixed dpar: bias = 0.5
 ```
@@ -218,7 +206,7 @@ The estimates come back on the link scale, so put them back:
 
 ``` r
 
-e <- unlist(fixef(fit))
+e <- unlist(fixef_by_dpar(fit))
 data.frame(
   truth = c(mu = 6, alpha = 0.8, leak = 1, bs = 3, tau = 1.2, ndt = 0.25),
   estimate = round(c(

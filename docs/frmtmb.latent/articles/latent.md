@@ -54,7 +54,7 @@ fhmm <- frm(bf(logstep ~ 1),
             family = hmm(K = 2, gaussian(), time = step, group = track,
                          init = "stationary"),
             data = mv)
-e <- unlist(fixef(fhmm))
+e <- unlist(fixef_by_dpar(fhmm))
 rbind(estimated = c(exp(e[["sigma1.(Intercept)"]]), e[["mu1.(Intercept)"]],
                     e[["mu2.(Intercept)"]], exp(e[["sigma2.(Intercept)"]])),
       simulated = c(0.45, 1.4, 3.1, 0.55))[, c(2, 1, 3, 4)] |>
@@ -120,7 +120,7 @@ hm$fit(silent = TRUE)
 c(frmtmb = as.numeric(logLik(fhmm)), hmmTMB = hm$llk(),
   difference = as.numeric(logLik(fhmm)) - hm$llk())
 #>        frmtmb        hmmTMB    difference 
-#> -6.858536e+02 -6.858536e+02 -5.921947e-10
+#> -6.858536e+02 -6.858536e+02 -5.919674e-10
 ```
 
 ``` r
@@ -160,7 +160,7 @@ sink()
 c(frmtmb = as.numeric(logLik(fest)), depmixS4 = best,
   difference = as.numeric(logLik(fest)) - best)
 #>        frmtmb      depmixS4    difference 
-#> -6.821394e+02 -6.821394e+02 -9.678115e-08
+#> -6.821394e+02 -6.821394e+02 -9.678104e-08
 ```
 
 ``` r
@@ -209,7 +209,7 @@ has a reason that a workaround would hide.
 
 conditional_effects(fhmm)
 #> Error:
-#> ! conditional_effects() is not available for an hmm() fit: the expected response weights the state means by posterior state occupancies, which depend on the observed responses of a whole sequence and are therefore undefined on the synthetic grid this function builds. Plot one state's own predictor from predict(dpar = "mu2"), or the occupancies from hmm_probs()
+#> ! conditional_effects() is not available for an hmm() fit: the expected response weights the state means by posterior state occupancies, which depend on the observed responses of a whole sequence and are therefore undefined on the synthetic grid this function builds. Plot one state's own predictor from frm_linpred(dpar = "mu2"), or the occupancies from hmm_probs()
 residuals(fhmm, type = "deviance")
 #> Error:
 #> ! residuals(type = "deviance") is not available for an hmm() fit: the unit deviance compares a row's likelihood with its saturated fit, and an HMM has no per-row likelihood to saturate. Use type = "response" or type = "pearson"
@@ -219,8 +219,8 @@ residuals(fhmm, type = "deviance")
 covariate grid. Under an HMM the expected response weights the state
 means by the posterior occupancies, and those depend on the observed
 responses of a whole sequence, so they do not exist on a grid. Plot one
-state’s own predictor with `predict(dpar = "mu2")`, or the occupancies
-from
+state’s own predictor with `frm_linpred(dpar = "mu2")`, or the
+occupancies from
 [`hmm_probs()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_probs.md).
 
 `residuals(type = "deviance")`, and frmtmb.sample’s `log_lik()` and
@@ -273,16 +273,16 @@ head(Y, 3)
 
 flca <- frm(bf(Y ~ 1), family = lca(K = 2), data = dc)
 flca
-#> frmtmb fit: Y ~ 1 
-#> Family: lca(K = 2)   Method: ML 
+#>  Family: lca(K = 2) 
 #>  Links: theta1 = identity
 #> 
-#> logLik: -813.028  AIC: 1656.06  nobs: 250 
+#> Formula: Y ~ 1 
+#>    Data: dc (Number of observations: 250) 
+#>  Method: ML   logLik: -813.028   AIC: 1656.06   BIC: 1708.88 
 #> 
-#> Fixed effects:
-#>  theta1:
-#> (Intercept) 
-#>     0.01131
+#> Regression Coefficients:
+#>                  Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> theta1_Intercept     0.01      0.13    -0.24     0.26    0.09     0.93
 ```
 
 The item profiles are what the classes mean. Each block is one rater:

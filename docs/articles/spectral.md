@@ -70,8 +70,8 @@ pg$w <- 2 * pi * pg$freq / 256          # angular frequency
 fit_ar <- frm(bf(pgram ~ ls - log(1 - 2 * tanh(z) * cos(w) + tanh(z)^2),
                  ls ~ 1, z ~ 1, nl = TRUE),
               family = whittle(), data = pg)
-c(phi = tanh(fixef(fit_ar)[["z"]][[1]]),
-  sigma2 = exp(fixef(fit_ar)[["ls"]][[1]]) * 256)
+c(phi = tanh(fixef_by_dpar(fit_ar)[["z"]][[1]]),
+  sigma2 = exp(fixef_by_dpar(fit_ar)[["ls"]][[1]]) * 256)
 #>       phi    sigma2 
 #> 0.7078518 0.9981966
 ```
@@ -151,9 +151,9 @@ names(pgs)[names(pgs) == "series"] <- "id"
 fit_h <- frm(bf(pgram ~ logf + (1 + logf | id)), family = whittle(),
              data = pgs)
 fixef(fit_h)
-#> $mu
-#> (Intercept)        logf 
-#>    2.267599   -1.292537
+#>            Estimate  Est.Error      Q2.5     Q97.5
+#> Intercept  2.267599 0.05376660  2.162219  2.372980
+#> logf      -1.292537 0.06368704 -1.417362 -1.167713
 ```
 
 These series are built ON the Fourier grid, so their periodogram has no
@@ -166,7 +166,7 @@ subject’s own exponent is that plus their random slope, shrunk:
 
 ``` r
 
-chi_hat <- -(fixef(fit_h)[["mu"]][["logf"]] + ranef(fit_h)$id[, "logf"])
+chi_hat <- -(fixef_by_dpar(fit_h)[["mu"]][["logf"]] + ranef(fit_h)$id[, "logf"])
 c(cor = cor(chi_hat, chi_true), max_error = max(abs(chi_hat - chi_true)))
 #>        cor  max_error 
 #> 0.99740112 0.03292811
@@ -194,7 +194,8 @@ steep <- synth(10 * f_long^(-3), fs)[1:1023]      # exponent 3, then CUT
 exponent <- function(taper) {
   d <- frm_periodogram(steep, fs = fs, taper = taper)
   d$logf <- log(d$freq)
-  -fixef(frm(bf(pgram ~ logf), family = whittle(), data = d))[["mu"]][[2]]
+  -fixef_by_dpar(frm(bf(pgram ~ logf), family = whittle(),
+                     data = d))[["mu"]][[2]]
 }
 exponent("none")
 #> Error:
@@ -328,8 +329,8 @@ aperiodic part alone first and start the full model from it:
 ``` r
 
 ap <- frm(bf(pgram ~ logf), family = whittle(tapers = 8), data = pk)
-st <- c(off_Intercept = fixef(ap)[["mu"]][[1]],
-        chi_Intercept = -fixef(ap)[["mu"]][[2]],
+st <- c(off_Intercept = fixef_by_dpar(ap)[["mu"]][[1]],
+        chi_Intercept = -fixef_by_dpar(ap)[["mu"]][[2]],
         la_Intercept = 0, cf_Intercept = 10, lbw_Intercept = log(2))
 
 peak <- function(cf0) {
@@ -340,10 +341,10 @@ peak <- function(cf0) {
       family = whittle(tapers = 8), data = pk, start = list(beta = st))
 }
 fit_pk <- peak(10)
-round(c(centre = fixef(fit_pk)[["cf"]][[1]],
-        exponent = fixef(fit_pk)[["chi"]][[1]],
-        width = exp(fixef(fit_pk)[["lbw"]][[1]]),
-        height = exp(fixef(fit_pk)[["la"]][[1]])), 3)
+round(c(centre = fixef_by_dpar(fit_pk)[["cf"]][[1]],
+        exponent = fixef_by_dpar(fit_pk)[["chi"]][[1]],
+        width = exp(fixef_by_dpar(fit_pk)[["lbw"]][[1]]),
+        height = exp(fixef_by_dpar(fit_pk)[["la"]][[1]])), 3)
 #>   centre exponent    width   height 
 #>     9.96     1.40     1.44     1.12
 ```
@@ -358,8 +359,8 @@ everywhere the data lives, so the optimizer has nothing to follow.
 ``` r
 
 fit_bad <- peak(30)
-c(centre = round(fixef(fit_bad)[["cf"]][[1]], 2),
-  se = suppressWarnings(sqrt(diag(vcov(fit_bad)))[["cf_(Intercept)"]]),
+c(centre = round(fixef_by_dpar(fit_bad)[["cf"]][[1]], 2),
+  se = suppressWarnings(sqrt(diag(vcov(fit_bad)))[["cf_Intercept"]]),
   logLik = round(as.numeric(logLik(fit_bad)), 1),
   good_logLik = round(as.numeric(logLik(fit_pk)), 1))
 #>      centre          se      logLik good_logLik 
@@ -460,12 +461,13 @@ is what was fitted.
 
 ``` r
 
-head(fitted(fit_s), 3)      # the fitted spectral density, per Hz
-#>          1          2          3 
-#> 0.04639334 0.04581062 0.04523522
+head(fitted(fit_s)[, "Estimate"], 3)   # the fitted density, per Hz
+#> [1] 0.04639334 0.04581062 0.04523522
 head(residuals(fit_s), 3)   # ordinate minus that density
-#>            1            2            3 
-#> -0.033526146 -0.002494575 -0.013672748
+#>          Estimate   Est.Error        Q2.5        Q97.5
+#> [1,] -0.033526146 0.008031314 -0.04926723 -0.017785059
+#> [2,] -0.002494575 0.007818688 -0.01781892  0.012829772
+#> [3,] -0.013672748 0.007611395 -0.02859081  0.001245313
 ```
 
 [`simulate()`](https://rdrr.io/r/stats/simulate.html) is refused by name
@@ -482,7 +484,7 @@ are not in a periodogram. Draw ordinates in the open instead -
 
 ``` r
 
-sim_ord <- rexp(nobs(fit_s), 1 / fitted(fit_s))
+sim_ord <- rexp(nobs(fit_s), 1 / fitted(fit_s)[, "Estimate"])
 ```
 
 - and when a series really is what is wanted, ask for one:

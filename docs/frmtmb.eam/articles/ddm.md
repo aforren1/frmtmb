@@ -111,25 +111,22 @@ usual choice when nothing in the design would bias it.
 fit <- frm(bf(rt | vint(upper) ~ lex, bias = 0.5),
            family = wiener(), data = dat)
 summary(fit)
-#> Family: wiener 
+#>  Family: wiener 
 #>  Links: mu = identity; bs = log; ndt = scaled_logit; bias = logit
 #> 
 #> Formula: rt | vint(upper) ~ lex 
-#> Method: ML   nobs: 1200 
-#> logLik: -799.08  AIC: 1606.16  BIC: 1626.52 
+#>    Data: dat (Number of observations: 1200) 
+#>  Method: ML   logLik: -799.08   AIC: 1606.16   BIC: 1626.52 
 #> 
-#> Coefficients (mu):
-#>             Estimate Std. Error z value  Pr(>|z|)
-#> (Intercept) 0.256576   0.054434  4.7135 2.435e-06
-#> lexword     1.046222   0.084275 12.4144 < 2.2e-16
+#> Regression Coefficients:
+#>           Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept     0.26      0.05     0.15     0.36    4.71  2.4e-06
+#> lexword       1.05      0.08     0.88     1.21   12.41  < 2e-16
 #> 
-#> Coefficients (bs):
-#>             Estimate Std. Error z value  Pr(>|z|)
-#> (Intercept) 0.404003   0.014818  27.265 < 2.2e-16
-#> 
-#> Coefficients (ndt):
-#>             Estimate Std. Error z value  Pr(>|z|)
-#> (Intercept)  2.04596    0.11509  17.777 < 2.2e-16
+#> Further Distributional Parameters:
+#>     Estimate Est.Error l-95% CI u-95% CI
+#> bs       1.5      0.02     1.45     1.54
+#> ndt      0.3      0.00     0.29     0.31
 #> 
 #> Fixed dpar: bias = 0.5
 ```
@@ -142,7 +139,7 @@ the support:
 
 ``` r
 
-e <- unlist(fixef(fit))
+e <- unlist(fixef_by_dpar(fit))
 c(drift_nonword = e[["mu.(Intercept)"]],
   drift_word_gain = e[["mu.lexword"]],
   boundary = exp(e[["bs.(Intercept)"]]),
@@ -173,20 +170,19 @@ lk$linkinv(c(-10, -2, 0, 2, 10))   # always strictly inside (0, 0.4)
 #> [1] 1.815915e-05 4.768117e-02 2.000000e-01 3.523188e-01 3.999818e-01
 ```
 
-Pass `max_ndt` explicitly when you intend to
-[`predict()`](https://rdrr.io/r/stats/predict.html) on new data whose
+Pass `max_ndt` explicitly when you intend to predict on new data whose
 fastest response differs from the training set’s.
 
 ## Predictions
 
 [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
-`predict(type = "response")` give the mean response time, conditional on
-the boundary that row ended at, in closed form.
+`frm_linpred(type = "response")` give the mean response time,
+conditional on the boundary that row ended at, in closed form.
 
 ``` r
 
 nd <- data.frame(lex = factor(c("nonword", "word")), upper = c(1, 1))
-predict(fit, newdata = nd, type = "response")
+frm_linpred(fit, newdata = nd, type = "response")
 #> [1] 0.8532160 0.7309745
 ```
 
@@ -204,9 +200,9 @@ average time whichever way they go. Free the bias and the two separate:
 set.seed(7)
 d2 <- ddm_simulate(900, mu = 0.7, bs = 1.4, ndt = 0.25, bias = 0.35)
 f2 <- frm(bf(rt | vint(upper) ~ 1), family = wiener(), data = d2)
-c(pred_upper = predict(f2, newdata = data.frame(upper = 1),
+c(pred_upper = frm_linpred(f2, newdata = data.frame(upper = 1),
                        type = "response"),
-  pred_lower = predict(f2, newdata = data.frame(upper = 0),
+  pred_lower = frm_linpred(f2, newdata = data.frame(upper = 0),
                        type = "response"),
   obs_upper = mean(d2$rt[d2$upper == 1]),
   obs_lower = mean(d2$rt[d2$upper == 0]))
@@ -359,7 +355,7 @@ full <- ddm_simulate(600, mu = 1.2, bs = 1.5, ndt = 0.30,
                      sv = 1.0, st = 0.10)
 ffit <- frm(bf(rt | dec(upper) ~ 1, bias = 0.5),
             family = wiener(variability = c("sv", "st")), data = full)
-e <- unlist(fixef(ffit))
+e <- unlist(fixef_by_dpar(ffit))
 ub <- min(full$rt)
 c(mu  = e[["mu.(Intercept)"]],
   bs  = exp(e[["bs.(Intercept)"]]),
@@ -584,29 +580,13 @@ counting from one.
 
 fit3 <- frm(bf(rt | vint(choice) ~ cue), family = lba(3), data = dat3)
 fixef(fit3)
-#> $v1
-#> (Intercept)         cue 
-#>  2.33038268  0.01772203 
-#> 
-#> $v2
-#> (Intercept)         cue 
-#>    1.464786    1.039147 
-#> 
-#> $v3
-#> (Intercept)         cue 
-#>   0.7283536  -0.1080327 
-#> 
-#> $A
-#> (Intercept) 
-#>    -0.87533 
-#> 
-#> $k
-#> (Intercept) 
-#>  -0.8251791 
-#> 
-#> $ndt
-#> (Intercept) 
-#>   0.8213659
+#>                 Estimate  Est.Error       Q2.5      Q97.5
+#> v1_Intercept  2.33038268 0.13662858  2.0625956 2.59816978
+#> v2_Intercept  1.46478574 0.15859272  1.1539497 1.77562177
+#> v3_Intercept  0.72835357 0.18355264  0.3685970 1.08811013
+#> v1_cue        0.01772203 0.03529913 -0.0514630 0.08690705
+#> v2_cue        1.03914697 0.07598319  0.8902226 1.18807130
+#> v3_cue       -0.10803273 0.06916946 -0.2436024 0.02753691
 ```
 
 Every drift is a primary parameter, so the main formula went to all
@@ -617,7 +597,7 @@ alternative and not the others.
 
 ``` r
 
-vapply(c("v1", "v2", "v3"), function(p) fixef(fit3)[[p]][["cue"]],
+vapply(c("v1", "v2", "v3"), function(p) fixef_by_dpar(fit3)[[p]][["cue"]],
        numeric(1))
 #>          v1          v2          v3 
 #>  0.01772203  1.03914697 -0.10803273
@@ -641,7 +621,7 @@ also uses, so read them through the link:
 
 ``` r
 
-e <- fixef(fit3b)
+e <- fixef_by_dpar(fit3b)
 lk <- family(fit3b)$links$ndt
 c(A = exp(e$A[[1]]), k = exp(e$k[[1]]), ndt = lk$linkinv(e$ndt[[1]]),
   truth_A = 0.5, truth_k = 0.4, truth_ndt = 0.2)
@@ -752,29 +732,10 @@ whole number from 1, exactly as it does for
 
 fit_r <- frm(bf(rt | vint(choice) ~ 1), family = rdm(3), data = dat_r)
 fixef(fit_r)
-#> $v1
-#> (Intercept) 
-#>    1.060211 
-#> 
-#> $v2
-#> (Intercept) 
-#>   0.6941788 
-#> 
-#> $v3
-#> (Intercept) 
-#>   0.3429365 
-#> 
-#> $A
-#> (Intercept) 
-#>   -8.566915 
-#> 
-#> $k
-#> (Intercept) 
-#>  -0.2735181 
-#> 
-#> $ndt
-#> (Intercept) 
-#>    1.685985
+#>               Estimate  Est.Error      Q2.5     Q97.5
+#> v1_Intercept 1.0602106 0.04514691 0.9717243 1.1486969
+#> v2_Intercept 0.6941788 0.06996512 0.5570497 0.8313079
+#> v3_Intercept 0.3429365 0.10710275 0.1330190 0.5528540
 ```
 
 Every parameter of this family has a log link, including the drifts,
@@ -787,7 +748,7 @@ the estimates come back on the log scale:
 
 ``` r
 
-e <- fixef(fit_r)
+e <- fixef_by_dpar(fit_r)
 round(c(v1 = exp(e$v1[[1]]), v2 = exp(e$v2[[1]]), v3 = exp(e$v3[[1]]),
         A = exp(e$A[[1]]), k = exp(e$k[[1]]),
         ndt = family(fit_r)$links$ndt$linkinv(e$ndt[[1]])), 3)
@@ -809,7 +770,8 @@ V <- cbind(3.0, 2.0 * exp(0.5 * x), 1.2)
 dat_x <- rdm_simulate(2000, v = V, A = 0.5, k = 0.5, ndt = 0.2)
 dat_x$x <- x
 fit_x <- frm(bf(rt | vint(choice) ~ x), family = rdm(3), data = dat_x)
-round(sapply(fixef(fit_x)[c("v1", "v2", "v3")], function(z) z[["x"]]), 3)
+round(sapply(fixef_by_dpar(fit_x)[c("v1", "v2", "v3")],
+             function(z) z[["x"]]), 3)
 #>     v1     v2     v3 
 #>  0.010  0.489 -0.013
 ```
@@ -925,7 +887,7 @@ deadline goes on the family when every trial shares it:
 
 fit_g <- frm(bf(rt | dec(responded) ~ 1, bias = 0.5),
              family = wiener_gng(deadline = 1.5), data = dat_g)
-e <- fixef(fit_g)
+e <- fixef_by_dpar(fit_g)
 round(c(mu = e$mu[[1]], bs = exp(e$bs[[1]]),
         ndt = family(fit_g)$links$ndt$linkinv(e$ndt[[1]])), 3)
 #>    mu    bs   ndt 
@@ -956,7 +918,7 @@ tapply(dat_v$responded, td, mean)
 #> 0.6306667 0.7613333
 fit_v <- frm(bf(rt | dec(responded) + vreal(deadline) ~ 1, bias = 0.5),
              family = wiener_gng(), data = dat_v)
-round(fixef(fit_v)$mu[[1]], 3)
+round(fixef_by_dpar(fit_v)$mu[[1]], 3)
 #> [1] 0.884
 ```
 
@@ -1138,7 +1100,7 @@ Neither family reports a fitted mean:
 
 fitted(fit_g)
 #> Error:
-#> ! wiener_gng: this family has no mean response to report. A go/no-go trial produces a PAIR, whether a response happened and when, and no single number summarizes it: the no-go trials have no response time to average at all. fitted(), predict(type = "response") and residuals(type = "response") are unavailable for that reason rather than for want of an integral. predict(type = "link") gives the drift, boundary separation, non-decision time and bias the fit estimated.
+#> ! wiener_gng: this family has no mean response to report. A go/no-go trial produces a PAIR, whether a response happened and when, and no single number summarizes it: the no-go trials have no response time to average at all. fitted(), frm_linpred(type = "response") and residuals(type = "response") are unavailable for that reason rather than for want of an integral. frm_linpred(type = "link") gives the drift, boundary separation, non-decision time and bias the fit estimated.
 ```
 
 For
@@ -1149,7 +1111,7 @@ first passages. For
 [`wiener_gng()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_gng.md)
 it is a statement about the model. A go/no-go trial produces a PAIR,
 whether a response happened and when, and the no-go rows have no
-response time to average at all. `predict(type = "link")` gives the
+response time to average at all. `frm_linpred(type = "link")` gives the
 parameters the fit actually estimated, which is what to read instead.
 
 ## References

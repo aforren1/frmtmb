@@ -11,7 +11,7 @@ from 'stats' are accepted directly by frm() and +."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -248,10 +248,10 @@ another entry point) needs them stated: <code>categorical(levels = c("a", "b", "
 <code>1..K</code>, which names the dpars <code>mu2 ... muK</code>. A character or logical
 response is coerced to a factor with a message naming the level
 order, because that order is the model.</p>
-<p><code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code>predict(type = "response")</code> return the <code>n x K</code> matrix
+<p><code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code>frm_linpred(type = "response")</code> return the <code>n x K</code> matrix
 of category probabilities, columns named by the response's own
 levels and rows summing to one - the same convention the ordinal
-families follow. <code>predict(type = "link")</code> and <code>predict(dpar =)</code> give
+families follow. <code>frm_linpred(type = "link")</code> and <code>frm_linpred(dpar =)</code> give
 the per-category latent predictors, which is where <code>se.fit</code> lives.
 <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> draws factor levels. The same likelihood is available on
 a count-matrix response as <code>multinomial(K)</code>, and a one-hot matrix
@@ -265,7 +265,7 @@ gives an identical log-likelihood.</p>
 the mean direction and takes the <code>tan_half</code> link, which maps the
 whole line onto that interval; <code>kappa</code> is the concentration and takes
 a log link, with <code>kappa = 0</code> the uniform distribution on the circle.
-Both are brms's choices. <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code>predict(type = "response")</code>
+Both are brms's choices. <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code>frm_linpred(type = "response")</code>
 report the mean direction. The normalizing constant needs
 <code>log I0(kappa)</code>, which RTMB differentiates exactly through its own
 <code>besselI</code> method, so nothing here is a series approximation.
@@ -298,8 +298,8 @@ out.</p>
 <p>The baseline is semiparametric only in spirit - it has <code>df</code>
 parameters, not one per event time - so coefficients agree with
 <code>coxph()</code> closely rather than exactly. A survival response has no
-mean, so <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code>predict(type = "response")</code> are refused;
-<code>predict(type = "link")</code> gives the log hazard ratio. <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> is
+mean, so <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code>frm_linpred(type = "response")</code> are refused;
+<code>frm_linpred(type = "link")</code> gives the log hazard ratio. <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> is
 not available.</p>
 <p>Maximum likelihood often puts one or more baseline weights ON the
 simplex boundary, at exactly zero. Their softmax coordinates then run
@@ -437,82 +437,76 @@ rather than by substituting a distribution function.</p>
 <span class="r-in"><span><span class="co"># heavier tails than gaussian(), with an estimated df</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fl">1</span> <span class="op">+</span> <span class="fl">0.8</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/TDist.html" class="external-link">rt</a></span><span class="op">(</span><span class="va">n</span>, df <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu">student</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $mu</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   0.9572315   0.8342757 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $sigma</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  -0.2075767 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $nu</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   0.4055075 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            Estimate  Est.Error      Q2.5    Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept 0.9572315 0.09371241 0.7735586 1.140904</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x         0.8342757 0.10463054 0.6292036 1.039348</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># counts with more spread than poisson() allows</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">cnt</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/NegBinomial.html" class="external-link">rnbinom</a></span><span class="op">(</span><span class="va">n</span>, mu <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fl">0.5</span> <span class="op">+</span> <span class="fl">0.4</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">cnt</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu">negbinomial</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="fixef_by_dpar.html">fixef_by_dpar</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   0.3690288   0.3371061 </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># a zero-inflated count: the zi dpar gets its own predictor</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">zi</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">0.3</span>, <span class="fl">0</span>, <span class="va">dd</span><span class="op">$</span><span class="va">cnt</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">zi</span> <span class="op">~</span> <span class="va">x</span>, <span class="va">zi</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span> <span class="fu">zero_inflated_poisson</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: zi ~ x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Family: zero_inflated_poisson   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Family: zero_inflated_poisson </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mu = log; zi = logit</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -173.275  AIC: 352.55  nobs: 120 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Formula: zi ~ x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Data: dd (Number of observations: 120) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Method: ML   logLik: -173.275   AIC: 352.55   BIC: 360.913 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mu:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      0.6070      0.2271 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  zi:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     -0.3201 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Regression Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>              Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept        0.61      0.12     0.38     0.84    5.20    2e-07</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> zi_Intercept    -0.32      0.24    -0.80     0.16   -1.31    0.190</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x                0.23      0.11     0.02     0.44    2.13    0.033</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># an ordered response: level order is the category order</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">grade</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cut.html" class="external-link">cut</a></span><span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fl">0.8</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">rlogis</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>, <span class="fl">3</span>,</span></span>
 <span class="r-in"><span>                labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"low"</span>, <span class="st">"mid"</span>, <span class="st">"high"</span><span class="op">)</span>, ordered_result <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">grade</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu">cumulative</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: grade ~ x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Family: cumulative   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Family: cumulative </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Links: cdf = logit</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -81.675  AIC: 169.35  nobs: 120 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Formula: grade ~ x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Data: dd (Number of observations: 120) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Method: ML   logLik: -81.675   AIC: 169.35   BIC: 177.713 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mu:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1.108 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Regression Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>              Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept[1]    -0.88      0.22    -1.32    -0.45   -4.01  6.0e-05</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept[2]     3.68      0.51     2.69     4.68    7.26  3.9e-13</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x                1.11      0.26     0.61     1.61    4.33  1.5e-05</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># a proportion in (0, 1)</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">plogis</a></span><span class="op">(</span><span class="fl">0.2</span> <span class="op">+</span> <span class="fl">0.6</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span>, <span class="fl">0</span>, <span class="fl">0.3</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">p</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu">Beta</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: p ~ x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Family: beta   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Family: beta </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mu = logit; phi = log</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> logLik: 154.805  AIC: -303.61  nobs: 120 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Formula: p ~ x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Data: dd (Number of observations: 120) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Method: ML   logLik: 154.805   AIC: -303.61   BIC: -295.247 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mu:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      0.2133      0.5771 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  phi:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       3.921 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Regression Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept     0.21      0.03     0.16     0.27    8.07  7.1e-16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x             0.58      0.03     0.52     0.64   19.06  &lt; 2e-16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Further Distributional Parameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> phi    50.46      6.45    39.27    64.83</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># bounded influence: a few wild points barely move the slope</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">rob</span> <span class="op">&lt;-</span> <span class="fl">1</span> <span class="op">+</span> <span class="fl">0.8</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">rob</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">dd</span><span class="op">$</span><span class="va">rob</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span> <span class="op">+</span> <span class="fl">30</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">rob</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">huber</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="fixef_by_dpar.html">fixef_by_dpar</a></span><span class="op">(</span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">rob</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">huber</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   1.1663906   0.8551163 </span>
-<span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">rob</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="fixef_by_dpar.html">fixef_by_dpar</a></span><span class="op">(</span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">rob</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    2.231839    1.490395 </span>
 <span class="r-in"><span></span></span>
@@ -521,53 +515,78 @@ rather than by substituting a distribution function.</p>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">pick</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ale"</span>, <span class="st">"stout"</span>, <span class="st">"lager"</span><span class="op">)</span>, <span class="va">n</span>, <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">cat_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">pick</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">categorical</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="va">cat_fit</span><span class="op">)</span>                     <span class="co"># mulager and mustout; ale is the</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $mulager</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  0.28202930 -0.08958449 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $mustout</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   0.5645427  -0.4373896 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                      Estimate Est.Error       Q2.5      Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mulager_Intercept  0.28202930 0.2503092 -0.2085678 0.77262640</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mustout_Intercept  0.56454273 0.2363012  0.1014009 1.02768452</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mulager_x         -0.08958449 0.2669129 -0.6127242 0.43355526</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mustout_x         -0.43738957 0.2601125 -0.9472007 0.07242157</span>
 <span class="r-in"><span>                                   <span class="co"># reference</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">cat_fit</span><span class="op">)</span><span class="op">)</span>              <span class="co"># n x K category probabilities</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         ale     lager     stout</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 0.2564172 0.3334248 0.4101580</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 0.2163825 0.3011704 0.4824471</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 0.2928210 0.3584389 0.3487401</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 0.2768567 0.3479778 0.3751655</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 0.3327697 0.3810589 0.2861714</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 0.2819019 0.3513701 0.3667279</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> , , P(Y = ale)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Estimate  Est.Error      Q2.5     Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 0.2564172 0.04058006 0.1768818 0.3359527</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 0.2163825 0.04641332 0.1254141 0.3073510</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 0.2928210 0.05531228 0.1844109 0.4012311</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [4,] 0.2768567 0.04647044 0.1857763 0.3679371</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [5,] 0.3327697 0.08839368 0.1595213 0.5060181</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [6,] 0.2819019 0.04890836 0.1860433 0.3777606</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> , , P(Y = lager)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Estimate  Est.Error      Q2.5     Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 0.3334248 0.04389351 0.2473951 0.4194545</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 0.3011704 0.05134162 0.2005426 0.4017981</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 0.3584389 0.05855308 0.2436769 0.4732008</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [4,] 0.3479778 0.04992207 0.2501324 0.4458233</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [5,] 0.3810589 0.08940322 0.2058318 0.5562860</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [6,] 0.3513701 0.05233584 0.2487938 0.4539465</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> , , P(Y = stout)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Estimate  Est.Error      Q2.5     Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] 0.4101580 0.04632187 0.3193688 0.5009472</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] 0.4824471 0.05570475 0.3732678 0.5916264</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] 0.3487401 0.05923470 0.2326422 0.4648380</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [4,] 0.3751655 0.05205583 0.2731379 0.4771930</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [5,] 0.2861714 0.07905345 0.1312295 0.4411134</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [6,] 0.3667279 0.05416057 0.2605751 0.4728807</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># one category may take its own predictor</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">w</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">pick</span> <span class="op">~</span> <span class="va">x</span>, <span class="va">mustout</span> <span class="op">~</span> <span class="va">w</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">categorical</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: pick ~ x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Family: categorical   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Family: categorical </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mulager = identity; mustout = identity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -128.572  AIC: 265.145  nobs: 120 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Formula: pick ~ x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Data: dd (Number of observations: 120) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Method: ML   logLik: -128.572   AIC: 265.145   BIC: 276.295 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mulager:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      0.2429      0.1853 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mustout:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           w </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       0.515       0.101 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Regression Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                   Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mulager_Intercept     0.24      0.24    -0.24     0.72    0.99    0.321</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mustout_Intercept     0.51      0.23     0.06     0.97    2.22    0.027</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mulager_x             0.19      0.21    -0.24     0.61    0.86    0.388</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mustout_w             0.10      0.19    -0.28     0.48    0.52    0.600</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># an angle: mu is the mean direction, kappa the concentration</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">angle</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">atan2</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">sin</a></span><span class="op">(</span><span class="fl">0.5</span> <span class="op">+</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">cos</a></span><span class="op">(</span><span class="fl">0.5</span> <span class="op">+</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">vm_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">angle</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">von_mises</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">vm_fit</span><span class="op">)</span><span class="op">)</span>               <span class="co"># the mean direction, in radians</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           1           2           3           4           5           6 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  0.82530547 -0.05745388  1.41150621  1.18172554  1.83731815  1.25871540 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         Estimate  Est.Error        Q2.5       Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1,]  0.82530547 0.01603449  0.79387845  0.85673250</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] -0.05745388 0.01824795 -0.09321921 -0.02168855</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [3,]  1.41150621 0.01768376  1.37684668  1.44616573</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [4,]  1.18172554 0.01719206  1.14802971  1.21542136</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [5,]  1.83731815 0.01706177  1.80387769  1.87075861</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [6,]  1.25871540 0.01740168  1.22460872  1.29282207</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># proportional hazards with a spline baseline; (1 | g) is a frailty</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Exponential.html" class="external-link">rexp</a></span><span class="op">(</span><span class="va">n</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="fl">0.5</span> <span class="op">+</span> <span class="fl">0.7</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="va">n</span>, <span class="fl">1</span>, <span class="fl">0.3</span><span class="op">)</span>        <span class="co"># 1 = right censored</span></span></span>
 <span class="r-in"><span><span class="va">cox_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">time</span> <span class="op">|</span> <span class="fu">cens</span><span class="op">(</span><span class="va">out</span><span class="op">)</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">cox</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="va">cox_fit</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span>                  <span class="co"># log hazard ratios</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="fixef_by_dpar.html">fixef_by_dpar</a></span><span class="op">(</span><span class="va">cox_fit</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span>                  <span class="co"># log hazard ratios</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   2.1265524   0.7045597 </span>
 <span class="r-in"><span><span class="fu"><a href="cox_baseline.html">cox_baseline</a></span><span class="op">(</span><span class="va">cox_fit</span><span class="op">)</span>              <span class="co"># the baseline hazard weights</span></span></span>

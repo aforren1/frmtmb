@@ -4,7 +4,7 @@
 keeps its own distributional parameters, suffixed by the component index
 (`mu1`, `sigma1`, `mu2`, ...), and the mixing A mixing weight's RESPONSE
 scale is the softmax over the component predictors, so
-`predict(type = "response", dpar = "theta1")` is a probability while
+`frm_linpred(type = "response", dpar = "theta1")` is a probability while
 `type = "link"` stays the predictor the density works on. Under
 `se.fit = TRUE` that probability's standard error is the delta method
 through its OWN predictor, `p (1 - p)` times the predictor's standard
@@ -81,26 +81,9 @@ dd <- data.frame(y = c(rnorm(80, 0, 1), rnorm(80, 5, 1)),
 fit <- frm(bf(y ~ 1) + mixture(gaussian(), gaussian()), data = dd)
 # one mu and sigma per component, plus the mixing weight theta1
 fixef(fit)
-#> $mu1
-#>  (Intercept) 
-#> -0.002346141 
-#> 
-#> $sigma1
-#> (Intercept) 
-#>  -0.1298411 
-#> 
-#> $mu2
-#> (Intercept) 
-#>    4.999987 
-#> 
-#> $sigma2
-#> (Intercept) 
-#>  0.01009985 
-#> 
-#> $theta1
-#> (Intercept) 
-#> 0.004758874 
-#> 
+#>                   Estimate  Est.Error       Q2.5     Q97.5
+#> mu1_Intercept -0.002346141 0.09962412 -0.1976058 0.1929135
+#> mu2_Intercept  4.999986512 0.11450977  4.7755515 5.2244215
 # posterior class probability per observation
 head(mixture_probs(fit))
 #>         class1       class2
@@ -113,29 +96,25 @@ head(mixture_probs(fit))
 
 # the mixing weight can take its own predictor
 frm(bf(y ~ 1, theta1 ~ x) + mixture(gaussian(), gaussian()), data = dd)
-#> frmtmb fit: y ~ 1 
-#> Family: mixture(gaussian, gaussian)   Method: ML 
+#>  Family: mixture(gaussian, gaussian) 
 #>  Links: mu1 = identity; sigma1 = log; mu2 = identity; sigma2 = log;
 #>         theta1 = identity
 #> 
-#> logLik: -327.164  AIC: 666.328  nobs: 160 
+#> Formula: y ~ 1 
+#>    Data: dd (Number of observations: 160) 
+#>  Method: ML   logLik: -327.164   AIC: 666.328   BIC: 684.779 
 #> 
-#> Fixed effects:
-#>  mu1:
-#> (Intercept) 
-#>   -0.002575 
-#>  sigma1:
-#> (Intercept) 
-#>     -0.1302 
-#>  mu2:
-#> (Intercept) 
-#>           5 
-#>  sigma2:
-#> (Intercept) 
-#>     0.01038 
-#>  theta1:
-#> (Intercept)           x 
-#>     0.01004    -0.07069 
+#> Regression Coefficients:
+#>                  Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> mu1_Intercept        0.00      0.10    -0.20     0.19   -0.03     0.98
+#> mu2_Intercept        5.00      0.11     4.78     5.22   43.65   <2e-16
+#> theta1_Intercept     0.01      0.16    -0.30     0.32    0.06     0.95
+#> theta1_x            -0.07      0.15    -0.36     0.22   -0.47     0.64
+#> 
+#> Further Distributional Parameters:
+#>        Estimate Est.Error l-95% CI u-95% CI
+#> sigma1     0.88      0.07     0.75     1.03
+#> sigma2     1.01      0.08     0.86     1.19
 
 # \donttest{
 # latent classes: every observation of a group shares one class

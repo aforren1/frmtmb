@@ -299,19 +299,19 @@ value.
 | ~ | gaussian + residuals; gaussian + confint_profile; gaussian + hypothesis_profile; gaussian + frm_lp_basis; student + residuals; and 134 more | Depends on which post-fit ingredients the family supplies (CDF, simulator, variance function). |
 | ~ | gaussian + residuals_osa; student + residuals_osa; lognormal + residuals_osa; shifted_lognormal + residuals_osa; skew_normal + residuals_osa; and 25 more | One-step-ahead residuals need the family to register its observation through OBS(). |
 | ~ | gaussian + emmeans; student + emmeans; lognormal + emmeans; shifted_lognormal + emmeans; skew_normal + emmeans; and 27 more | Univariate fits only, and the mu predictor must be linear. |
-| ~ | cumulative + fitted; sratio + fitted; cratio + fitted; acat + fitted | Returns the same n x K matrix of category probabilities predict(type = “response”) returns, not a vector: an ordinal response has no mean, so the modelled response is the category distribution. The predict(type = “response”) == fitted() identity holds. The latent linear predictor is predict(fit, type = “link”), which is also what emmeans and insight see. |
+| ~ | cumulative + fitted; sratio + fitted; cratio + fitted; acat + fitted | Returns the same n x K matrix of category probabilities frm_linpred(type = “response”) returns, not a vector: an ordinal response has no mean, so the modelled response is the category distribution. The frm_linpred(type = “response”) == fitted() identity holds. The latent linear predictor is frm_linpred(fit, type = “link”), which is also what emmeans and insight see. |
 | ~ | cumulative + predict; sratio + predict; cratio + predict; acat + predict | type = “response” returns an n x K matrix of category probabilities (rows summing to 1, columns named by the response’s own levels), not a vector: an ordinal response has no mean. It equals fitted(). cs() terms are honored and re-evaluated on newdata. type = “link” gives the latent predictor, which is where se.fit is available; se.fit is refused on the response scale. |
 | ~ | cumulative + residuals; sratio + residuals; cratio + residuals; acat + residuals | “response” and “pearson” score the categories by the same codes 1..K the likelihood uses: y - sum_k k \* P(y = k), standardized by that distribution’s own sd. That is a residual on a SCORE, not on the ordinal scale; “osa” and dharma_residuals() use only the order. “deviance” is refused, as for every family without a standard unit deviance. |
-| ~ | cumulative + emmeans; sratio + emmeans; cratio + emmeans; acat + emmeans | Works on the LATENT linear predictor, emmeans’s mode = “latent” convention for clm-like models: the intercept is dropped there (the K-1 thresholds take its place), so contrasts are on the latent scale and absolute means carry no threshold offset. For category probabilities use predict(fit, type = “response”) or conditional_effects(), which are on a different scale from these means. |
-| ~ | categorical + fitted | Returns the n x K matrix of category probabilities, not a vector: a nominal response has no mean, so the modelled response is the category distribution. The predict(type = “response”) == fitted() identity holds. |
-| ~ | categorical + predict | type = “response” returns an n x K matrix of category probabilities, columns named by the response’s own levels and rows summing to 1, exactly as for the ordinal families; it equals fitted(). se.fit is refused there. Each category’s latent predictor is predict(type = “link”, dpar = “mu”), which is where se.fit works. |
+| ~ | cumulative + emmeans; sratio + emmeans; cratio + emmeans; acat + emmeans | Works on the LATENT linear predictor, emmeans’s mode = “latent” convention for clm-like models: the intercept is dropped there (the K-1 thresholds take its place), so contrasts are on the latent scale and absolute means carry no threshold offset. For category probabilities use frm_linpred(fit, type = “response”) or conditional_effects(), which are on a different scale from these means. |
+| ~ | categorical + fitted | Returns the n x K matrix of category probabilities, not a vector: a nominal response has no mean, so the modelled response is the category distribution. The frm_linpred(type = “response”) == fitted() identity holds. |
+| ~ | categorical + predict | type = “response” returns an n x K matrix of category probabilities, columns named by the response’s own levels and rows summing to 1, exactly as for the ordinal families; it equals fitted(). se.fit is refused there. Each category’s latent predictor is frm_linpred(type = “link”, dpar = “mu”), which is where se.fit works. |
 | ~ | von_mises + fitted | Returns the mean DIRECTION in radians on (-pi, pi\], which is what brms’s posterior_epred() reports for this family; a circular response has no arithmetic mean. |
 | ~ | cox + predict | type = “response” and fitted() are refused: a survival time has no mean the censored rows identify. type = “link” gives the log hazard ratio, and cox_baseline() the fitted baseline weights. |
 | x | tweedie + simulate; compois + simulate; hurdle_poisson + simulate | Refused: this family has no simulator yet. |
 | x | categorical + residuals | Refused: the categories carry no order, so no residual has a scale to live on. Compare fitted(fit), the n x K category probabilities, against the observed categories instead. |
 | x | categorical + residuals_osa | Refused with residuals() as a whole: a one-step-ahead residual is a CDF value, and a nominal response has no CDF. |
 | x | von_mises + residuals_osa | Refused upstream: RTMBdist::dvm() rejects the osa observation object, because a wrapped support has no one-step CDF on the line. |
-| x | cox + fitted | Refused: a survival time has no mean on the response scale here. Use predict(type = “link”) for the log hazard ratio. |
+| x | cox + fitted | Refused: a survival time has no mean on the response scale here. Use frm_linpred(type = “link”) for the log hazard ratio. |
 | x | cox + simulate | Refused: drawing a survival time means inverting the cumulative baseline hazard, which this family does not carry a quantile function for. simulate(), posterior_predict() and frm_simulate() each say so in their own words and then repeat the family’s reason. |
 
 ## Estimation modes
@@ -449,8 +449,8 @@ one-dimensional `us`, `diag`, or `homdiag` term.
 ### Structures and post-fit methods
 
 Several post-fit methods are univariate-only. A multivariate fit
-predicts one response at a time, through `predict(fit, resp = )`, and
-refuses [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+predicts one response at a time, through `frm_linpred(fit, resp = )`,
+and refuses [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
 [`simulate()`](https://rdrr.io/r/stats/simulate.html) and
 [`residuals()`](https://rdrr.io/r/stats/residuals.html). The inference
 surface is not univariate-only:

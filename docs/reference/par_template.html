@@ -21,7 +21,7 @@ set_prior()'s coef takes for a raw covariance parameter
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -240,19 +240,21 @@ addressing vocabulary, <code><a href="frm_simulate.html">frm_simulate()</a></cod
 <span class="r-in"><span><span class="va">st</span> <span class="op">&lt;-</span> <span class="fu">par_template</span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">st</span><span class="op">$</span><span class="va">beta</span><span class="op">[</span><span class="st">"x"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">2</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">dd</span>, start <span class="op">=</span> <span class="va">st</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: y ~ x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Family: gaussian   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Family: gaussian </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mu = identity; sigma = log</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -38.8663  AIC: 83.7327  nobs: 30 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Formula: y ~ x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Data: dd (Number of observations: 30) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Method: ML   logLik: -38.8663   AIC: 83.7327   BIC: 87.9363 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mu:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      0.9123      2.4075 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  sigma:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     -0.1234 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Regression Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept     0.91      0.16     0.60     1.23    5.65  1.6e-08</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x             2.41      0.16     2.09     2.72   15.02  &lt; 2e-16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Further Distributional Parameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma     0.88      0.11     0.69     1.14</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

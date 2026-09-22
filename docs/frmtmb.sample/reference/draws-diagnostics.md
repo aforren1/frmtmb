@@ -182,8 +182,8 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
 #>      b_Intercept              b_x            sigma r_g[1,Intercept] 
-#>         1.014249         1.010188         1.003701         1.012647 
+#>        1.0074392        0.9977798        1.0067763        1.0137461 
 #> r_g[2,Intercept] r_g[3,Intercept] 
-#>         1.006744         1.004775 
+#>        1.0213443        1.0129258 
 # }
 ```

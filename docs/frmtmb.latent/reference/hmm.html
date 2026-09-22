@@ -19,7 +19,7 @@ predictors compose with it unchanged."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.latent</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -184,7 +184,7 @@ agree to 1e-11 relative (<code>dev/latent-2p3-hmmtmb-probe4.R</code>).</p>
 the smoothed state probability and therefore a backward pass over the
 whole sequence. <code><a href="hmm_probs.html">hmm_probs()</a></code> returns those probabilities and
 <code><a href="hmm_viterbi.html">hmm_viterbi()</a></code> the maximum-a-posteriori state path; <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>,
-<code>predict(type = "response")</code> and <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> all route through
+<code>frm_linpred(type = "response")</code> and <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> all route through
 <code><a href="hmm_probs.html">hmm_probs()</a></code>, so they report the occupancy-weighted mean rather than
 any single state's.</p>
     </div>
@@ -327,7 +327,7 @@ PRODUCT of per-row densities, and the forward algorithm is not one.</p>
 location coefficients, which matches no standard definition),
 <code>quadrature</code>, <code>frmtmb_control(profile = TRUE)</code>, <code><a href="https://rdrr.io/r/stats/weights.html" class="external-link">weights()</a></code>, <code>cens()</code>,
 <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>, <code>se()</code> and <code>mi()</code> on the response, multivariate models and
-<code>rescor</code>, <code>residuals(type = "osa")</code>, <code>predict(se.fit = TRUE)</code> on the
+<code>rescor</code>, <code>residuals(type = "osa")</code>, <code>frm_linpred(se.fit = TRUE)</code> on the
 response scale, and <code>conditional_effects()</code>. A grouping in which every
 sequence has length 1 is refused too: the chain is then unidentified
 and the model is a <code><a href="https://aforren1.github.io/frmtmb/reference/mixture.html" class="external-link">frmtmb::mixture()</a></code>.</p>
@@ -354,30 +354,11 @@ and the model is a <code><a href="https://aforren1.github.io/frmtmb/reference/mi
 <span class="r-in"><span>           family <span class="op">=</span> <span class="fu">hmm</span><span class="op">(</span>K <span class="op">=</span> <span class="fl">2</span>, <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, time <span class="op">=</span> <span class="va">t</span>, group <span class="op">=</span> <span class="va">id</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>           data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $mu1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> -0.01572669 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $sigma1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  -0.5834065 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $mu2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    3.053871 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $sigma2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  -0.5550471 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $tr12</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   -2.274024 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $tr22</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    1.117463 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                   Estimate  Est.Error        Q2.5       Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mu1_Intercept  -0.01572669 0.02991719 -0.07436331  0.04290993</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mu2_Intercept   3.05387119 0.04762266  2.96053248  3.14720990</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> tr12_Intercept -2.27402375 0.18066843 -2.62812738 -1.91992013</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> tr22_Intercept  1.11746311 0.18472127  0.75541608  1.47951014</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># smoothed state probabilities and the MAP path</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="hmm_probs.html">hmm_probs</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span></span>
@@ -392,7 +373,7 @@ and the model is a <code><a href="https://aforren1.github.io/frmtmb/reference/mi
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># fitted() is the occupancy-weighted mean, not state 1's</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, <span class="va">dd</span><span class="op">$</span><span class="va">y</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[</span>, <span class="st">"Estimate"</span><span class="op">]</span>, <span class="va">dd</span><span class="op">$</span><span class="va">y</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.9299445</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
@@ -400,37 +381,30 @@ and the model is a <code><a href="https://aforren1.github.io/frmtmb/reference/mi
 <span class="r-in"><span><span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">mu2</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>    family <span class="op">=</span> <span class="fu">hmm</span><span class="op">(</span>K <span class="op">=</span> <span class="fl">2</span>, <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, time <span class="op">=</span> <span class="va">t</span>, group <span class="op">=</span> <span class="va">id</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>    data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: y ~ 1 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Family: hmm(2, gaussian)   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Family: hmm(2, gaussian) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mu1 = identity; sigma1 = log; mu2 = identity; sigma2 = log;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         tr12 = identity; tr22 = identity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -617.932  AIC: 1249.86  nobs: 500 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Formula: y ~ 1 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Data: dd (Number of observations: 500) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Method: ML   logLik: -617.932   AIC: 1249.86   BIC: 1279.37 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mu1:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    -0.01573 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  sigma1:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     -0.5834 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mu2:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       3.054 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  sigma2:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      -0.555 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  tr12:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      -2.274 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  tr22:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       1.117 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Multilevel Hyperparameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ~id (Number of levels: 20) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                   Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sd(mu2_Intercept)        0      0.13        0      Inf</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Random effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   mu2: 1 | id </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         Name  Std.Dev.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  (Intercept) 7.362e-05</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Regression Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mu1_Intercept     -0.02      0.03    -0.07     0.04   -0.53      0.6</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mu2_Intercept      3.05      0.05     2.96     3.15   64.13  &lt; 2e-16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> tr12_Intercept    -2.27      0.18    -2.63    -1.92  -12.59  &lt; 2e-16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> tr22_Intercept     1.12      0.18     0.76     1.48    6.05  1.5e-09</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Further Distributional Parameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma1     0.56      0.02     0.52     0.60</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma2     0.57      0.03     0.51     0.65</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># covariate-dependent transitions: trans = sets every cell's default</span></span></span>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">dd</span><span class="op">)</span><span class="op">)</span></span></span>
@@ -438,32 +412,27 @@ and the model is a <code><a href="https://aforren1.github.io/frmtmb/reference/mi
 <span class="r-in"><span>    family <span class="op">=</span> <span class="fu">hmm</span><span class="op">(</span>K <span class="op">=</span> <span class="fl">2</span>, <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, time <span class="op">=</span> <span class="va">t</span>, group <span class="op">=</span> <span class="va">id</span>,</span></span>
 <span class="r-in"><span>                 init <span class="op">=</span> <span class="st">"estimated"</span>, trans <span class="op">=</span> <span class="op">~</span><span class="va">x</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>    data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: y ~ 1 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Family: hmm(2, gaussian)   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Family: hmm(2, gaussian) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mu1 = identity; sigma1 = log; mu2 = identity; sigma2 = log;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         tr12 = identity; tr22 = identity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -610.619  AIC: 1239.24  nobs: 500 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Formula: y ~ 1 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Data: dd (Number of observations: 500) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Method: ML   logLik: -610.619   AIC: 1239.24   BIC: 1277.17 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mu1:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    -0.01582 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  sigma1:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     -0.5836 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mu2:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       3.054 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  sigma2:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     -0.5546 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  tr12:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    -2.10651     0.08341 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  tr22:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     1.29178    -0.05649 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Regression Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mu1_Intercept     -0.02      0.03    -0.07     0.04   -0.53     0.60</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mu2_Intercept      3.05      0.05     2.96     3.15   64.07  &lt; 2e-16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> tr12_Intercept    -2.11      0.18    -2.45    -1.76  -11.93  &lt; 2e-16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> tr22_Intercept     1.29      0.21     0.88     1.70    6.18  6.5e-10</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> tr12_x             0.08      0.18    -0.28     0.44    0.45     0.65</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> tr22_x            -0.06      0.19    -0.43     0.31   -0.30     0.77</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Further Distributional Parameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma1     0.56      0.02     0.52     0.60</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma2     0.57      0.03     0.51     0.65</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

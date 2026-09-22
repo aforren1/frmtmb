@@ -37,16 +37,21 @@ posterior predictive checks, and conversion to the 'posterior' and
   [`getCall(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-structure.md)
   [`coef(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-structure.md)
   : Model structure behind a set of draws
+- [`posterior_samples()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-deprecated.md)
+  [`nsamples()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-deprecated.md)
+  [`parnames()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-deprecated.md)
+  : Deprecated brms draws accessors
 - [`stancode()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-refusals.md)
   [`standata()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-refusals.md)
   [`expose_functions(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-refusals.md)
   [`plot(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-refusals.md)
   [`update(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-refusals.md)
   [`restructure()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-refusals.md)
-  [`posterior_samples()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-refusals.md)
-  [`nsamples()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-refusals.md)
-  [`parnames()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-refusals.md)
   : Methods a ported brms script may call that frmtmb does not have
+- [`fitted(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-summaries.md)
+  [`predict(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-summaries.md)
+  [`residuals(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-summaries.md)
+  : Summaries of the posterior predictive quantities
 - [`loo_moment_match()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-loo-refusals.md)
   [`loo_subsample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-loo-refusals.md)
   [`reloo()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-loo-refusals.md)
@@ -57,8 +62,6 @@ posterior predictive checks, and conversion to the 'posterior' and
   : Refusals for the refit-based and marginal-likelihood brmsfit methods
 - [`frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.md)
   : Sample a model with NUTS
-- [`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md)
-  : Pointwise log-likelihood of posterior draws
 - [`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md)
   [`posterior_linpred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md)
   [`posterior_predict()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md)
@@ -78,6 +81,8 @@ posterior predictive checks, and conversion to the 'posterior' and
   : Convert draws to a posterior draws object
 - [`bayes_R2(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-bayes_R2.md)
   : Bayesian R-squared
+- [`log_lik(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-log_lik.md)
+  : Pointwise log-likelihood of posterior draws
 - [`loo(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-loo.md)
   [`waic(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-loo.md)
   [`loo_compare(`*`<frmtmb_draws>`*`)`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-loo.md)

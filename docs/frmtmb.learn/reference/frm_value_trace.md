@@ -55,7 +55,7 @@ these families rather than supplementing it. They decline to declare a
 mean on the response scale, because the response is a nominal option
 code and `y - mu` would be arithmetic on a category, so
 [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
-`predict(type = "response")` refuse. Everything a mean would have
+`frm_linpred(type = "response")` refuse. Everything a mean would have
 carried is in this table, with more beside it.
 
 ## See also

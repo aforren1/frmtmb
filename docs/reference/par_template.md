@@ -178,17 +178,19 @@ par_template(fit)
 st <- par_template(bf(y ~ x) + gaussian(), data = dd)
 st$beta["x"] <- 2
 frm(bf(y ~ x) + gaussian(), dd, start = st)
-#> frmtmb fit: y ~ x 
-#> Family: gaussian   Method: ML 
+#>  Family: gaussian 
 #>  Links: mu = identity; sigma = log
 #> 
-#> logLik: -38.8663  AIC: 83.7327  nobs: 30 
+#> Formula: y ~ x 
+#>    Data: dd (Number of observations: 30) 
+#>  Method: ML   logLik: -38.8663   AIC: 83.7327   BIC: 87.9363 
 #> 
-#> Fixed effects:
-#>  mu:
-#> (Intercept)           x 
-#>      0.9123      2.4075 
-#>  sigma:
-#> (Intercept) 
-#>     -0.1234 
+#> Regression Coefficients:
+#>           Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept     0.91      0.16     0.60     1.23    5.65  1.6e-08
+#> x             2.41      0.16     2.09     2.72   15.02  < 2e-16
+#> 
+#> Further Distributional Parameters:
+#>       Estimate Est.Error l-95% CI u-95% CI
+#> sigma     0.88      0.11     0.69     1.14
 ```

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -658,13 +658,10 @@ to score.</p>
 <span>           family <span class="op">=</span> <span class="fu">rw_delta</span><span class="op">(</span>subject <span class="op">=</span> <span class="va">id</span>, trial <span class="op">=</span> <span class="va">trial</span><span class="op">)</span>,</span>
 <span>           data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt; $alpha</span></span>
-<span><span class="co">#&gt;  (Intercept) conditiontrt </span></span>
-<span><span class="co">#&gt;   -0.7919201    1.1220594 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $beta</span></span>
-<span><span class="co">#&gt; (Intercept) </span></span>
-<span><span class="co">#&gt;    1.058637</span></span></code></pre></div>
+<span><span class="co">#&gt;                      Estimate  Est.Error       Q2.5     Q97.5</span></span>
+<span><span class="co">#&gt; alpha_Intercept    -0.7919201 0.21949895 -1.2221301 -0.361710</span></span>
+<span><span class="co">#&gt; beta_Intercept      1.0586371 0.08594413  0.8901897  1.227084</span></span>
+<span><span class="co">#&gt; alpha_conditiontrt  1.1220594 0.30016589  0.5337451  1.710374</span></span></code></pre></div>
 <p>The main right-hand side is the LEARNING RATE’s predictor, because
 the family declared <code>primary_dpars = "alpha"</code>. The
 <code>| p |</code> in both terms correlates each subject’s learning rate
@@ -706,7 +703,7 @@ parameterization for these models.</p>
 <span><span class="co">#&gt; beta_Intercept   0.143900424 0.06202550  0.02233267 0.2654682</span></span></code></pre></div>
 <p>Compare with the simulated values:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>estimate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="../reference/fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span>,</span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span>estimate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="../reference/fixef_by_dpar.html">fixef_by_dpar</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                   sd_alpha <span class="op">=</span> <span class="fu"><a href="../reference/VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">id</span><span class="op">$</span><span class="va">sd</span><span class="op">[</span><span class="fl">1</span>, <span class="st">"Estimate"</span><span class="op">]</span>,</span>
 <span>                   sd_beta <span class="op">=</span> <span class="fu"><a href="../reference/VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">id</span><span class="op">$</span><span class="va">sd</span><span class="op">[</span><span class="fl">2</span>, <span class="st">"Estimate"</span><span class="op">]</span><span class="op">)</span>,</span>
 <span>      truth <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">rl_truth</span><span class="op">$</span><span class="va">b_alpha_Intercept</span>, <span class="va">rl_truth</span><span class="op">$</span><span class="va">b_alpha_conditiontrt</span>,</span>
@@ -724,7 +721,7 @@ not as bias. The recovery study below is the systematic version.</p>
 <p>Everything downstream of the fit works because the structure said it
 does. The fitted values are per-trial choice probabilities:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[</span>, <span class="st">"Estimate"</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">p</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
 <span><span class="co">#&gt; 0.02198 0.59464 0.76165 0.72271 0.89176 0.99444</span></span>
@@ -745,8 +742,8 @@ compare.</p>
 <code class="sourceCode R"><span><span class="va">u</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ranef.html">ranef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="va">sid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">dd</span><span class="op">$</span><span class="va">id</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">u</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">xa</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/model.matrix.html" class="external-link">model.matrix</a></span><span class="op">(</span><span class="op">~</span> <span class="va">condition</span>, <span class="va">dd</span><span class="op">)</span></span>
-<span><span class="va">alpha</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">plogis</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="va">xa</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="fu"><a href="../reference/fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">alpha</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="va">u</span><span class="op">[</span><span class="va">sid</span>, <span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="va">beta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="fu"><a href="../reference/fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">beta</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span> <span class="op">+</span> <span class="va">u</span><span class="op">[</span><span class="va">sid</span>, <span class="fl">2</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">alpha</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">plogis</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="va">xa</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="fu"><a href="../reference/fixef_by_dpar.html">fixef_by_dpar</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">alpha</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="va">u</span><span class="op">[</span><span class="va">sid</span>, <span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">beta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unname.html" class="external-link">unname</a></span><span class="op">(</span><span class="fu"><a href="../reference/fixef_by_dpar.html">fixef_by_dpar</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">beta</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span> <span class="op">+</span> <span class="va">u</span><span class="op">[</span><span class="va">sid</span>, <span class="fl">2</span><span class="op">]</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">ll</span> <span class="op">&lt;-</span> <span class="fl">0</span></span>
 <span><span class="kw">for</span> <span class="op">(</span><span class="va">s</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">sid</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
@@ -1280,11 +1277,11 @@ columns would be SUBJECTS rather than trials, because <code>unit</code>
 says a trial cannot honestly be left out. Nothing here exercises that
 path, because these are maximum-likelihood fits and an elpd is a
 posterior quantity.</p>
-<p><strong>Newdata.</strong> <code>predict(type = "response")</code> on
-new data would need a block built without a response, and the protocol
-defers that case on purpose. For this family the meaning is clear enough
-(replay the new subject’s payoff schedule against the fitted
-parameters), so a built-in version would be worth the work.</p>
+<p><strong>Newdata.</strong> <code>frm_linpred(type = "response")</code>
+on new data would need a block built without a response, and the
+protocol defers that case on purpose. For this family the meaning is
+clear enough (replay the new subject’s payoff schedule against the
+fitted parameters), so a built-in version would be worth the work.</p>
 <p><strong>More of the literature.</strong> A real package would carry
 the family of models this one is the simplest member of: separate
 learning rates for gains and losses, a decay term, more than two arms.

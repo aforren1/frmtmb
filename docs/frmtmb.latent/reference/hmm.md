@@ -126,7 +126,7 @@ returns those probabilities and
 [`hmm_viterbi()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_viterbi.md)
 the maximum-a-posteriori state path;
 [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
-`predict(type = "response")` and
+`frm_linpred(type = "response")` and
 [`residuals()`](https://rdrr.io/r/stats/residuals.html) all route
 through
 [`hmm_probs()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm_probs.md),
@@ -275,7 +275,7 @@ location coefficients, which matches no standard definition),
 [`weights()`](https://rdrr.io/r/stats/weights.html), `cens()`,
 [`trunc()`](https://rdrr.io/r/base/Round.html), `se()` and `mi()` on the
 response, multivariate models and `rescor`, `residuals(type = "osa")`,
-`predict(se.fit = TRUE)` on the response scale, and
+`frm_linpred(se.fit = TRUE)` on the response scale, and
 `conditional_effects()`. A grouping in which every sequence has length 1
 is refused too: the chain is then unidentified and the model is a
 [`frmtmb::mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html).
@@ -304,30 +304,11 @@ fit <- frm(bf(y ~ 1),
            family = hmm(K = 2, gaussian(), time = t, group = id),
            data = dd)
 fixef(fit)
-#> $mu1
-#> (Intercept) 
-#> -0.01572669 
-#> 
-#> $sigma1
-#> (Intercept) 
-#>  -0.5834065 
-#> 
-#> $mu2
-#> (Intercept) 
-#>    3.053871 
-#> 
-#> $sigma2
-#> (Intercept) 
-#>  -0.5550471 
-#> 
-#> $tr12
-#> (Intercept) 
-#>   -2.274024 
-#> 
-#> $tr22
-#> (Intercept) 
-#>    1.117463 
-#> 
+#>                   Estimate  Est.Error        Q2.5       Q97.5
+#> mu1_Intercept  -0.01572669 0.02991719 -0.07436331  0.04290993
+#> mu2_Intercept   3.05387119 0.04762266  2.96053248  3.14720990
+#> tr12_Intercept -2.27402375 0.18066843 -2.62812738 -1.91992013
+#> tr22_Intercept  1.11746311 0.18472127  0.75541608  1.47951014
 
 # smoothed state probabilities and the MAP path
 head(hmm_probs(fit))
@@ -342,7 +323,7 @@ mean(hmm_viterbi(fit) == dd$state)
 #> [1] 1
 
 # fitted() is the occupancy-weighted mean, not state 1's
-cor(fitted(fit), dd$y)
+cor(fitted(fit)[, "Estimate"], dd$y)
 #> [1] 0.9299445
 
 # \donttest{
@@ -350,37 +331,30 @@ cor(fitted(fit), dd$y)
 frm(bf(y ~ 1, mu2 ~ 1 + (1 | id)),
     family = hmm(K = 2, gaussian(), time = t, group = id),
     data = dd)
-#> frmtmb fit: y ~ 1 
-#> Family: hmm(2, gaussian)   Method: ML 
+#>  Family: hmm(2, gaussian) 
 #>  Links: mu1 = identity; sigma1 = log; mu2 = identity; sigma2 = log;
 #>         tr12 = identity; tr22 = identity
 #> 
-#> logLik: -617.932  AIC: 1249.86  nobs: 500 
+#> Formula: y ~ 1 
+#>    Data: dd (Number of observations: 500) 
+#>  Method: ML   logLik: -617.932   AIC: 1249.86   BIC: 1279.37 
 #> 
-#> Fixed effects:
-#>  mu1:
-#> (Intercept) 
-#>    -0.01573 
-#>  sigma1:
-#> (Intercept) 
-#>     -0.5834 
-#>  mu2:
-#> (Intercept) 
-#>       3.054 
-#>  sigma2:
-#> (Intercept) 
-#>      -0.555 
-#>  tr12:
-#> (Intercept) 
-#>      -2.274 
-#>  tr22:
-#> (Intercept) 
-#>       1.117 
+#> Multilevel Hyperparameters:
+#> ~id (Number of levels: 20) 
+#>                   Estimate Est.Error l-95% CI u-95% CI
+#> sd(mu2_Intercept)        0      0.13        0      Inf
 #> 
-#> Random effects:
-#>   mu2: 1 | id 
-#>         Name  Std.Dev.
-#>  (Intercept) 7.362e-05
+#> Regression Coefficients:
+#>                Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> mu1_Intercept     -0.02      0.03    -0.07     0.04   -0.53      0.6
+#> mu2_Intercept      3.05      0.05     2.96     3.15   64.13  < 2e-16
+#> tr12_Intercept    -2.27      0.18    -2.63    -1.92  -12.59  < 2e-16
+#> tr22_Intercept     1.12      0.18     0.76     1.48    6.05  1.5e-09
+#> 
+#> Further Distributional Parameters:
+#>        Estimate Est.Error l-95% CI u-95% CI
+#> sigma1     0.56      0.02     0.52     0.60
+#> sigma2     0.57      0.03     0.51     0.65
 
 # covariate-dependent transitions: trans = sets every cell's default
 dd$x <- rnorm(nrow(dd))
@@ -388,31 +362,26 @@ frm(bf(y ~ 1),
     family = hmm(K = 2, gaussian(), time = t, group = id,
                  init = "estimated", trans = ~x),
     data = dd)
-#> frmtmb fit: y ~ 1 
-#> Family: hmm(2, gaussian)   Method: ML 
+#>  Family: hmm(2, gaussian) 
 #>  Links: mu1 = identity; sigma1 = log; mu2 = identity; sigma2 = log;
 #>         tr12 = identity; tr22 = identity
 #> 
-#> logLik: -610.619  AIC: 1239.24  nobs: 500 
+#> Formula: y ~ 1 
+#>    Data: dd (Number of observations: 500) 
+#>  Method: ML   logLik: -610.619   AIC: 1239.24   BIC: 1277.17 
 #> 
-#> Fixed effects:
-#>  mu1:
-#> (Intercept) 
-#>    -0.01582 
-#>  sigma1:
-#> (Intercept) 
-#>     -0.5836 
-#>  mu2:
-#> (Intercept) 
-#>       3.054 
-#>  sigma2:
-#> (Intercept) 
-#>     -0.5546 
-#>  tr12:
-#> (Intercept)           x 
-#>    -2.10651     0.08341 
-#>  tr22:
-#> (Intercept)           x 
-#>     1.29178    -0.05649 
+#> Regression Coefficients:
+#>                Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> mu1_Intercept     -0.02      0.03    -0.07     0.04   -0.53     0.60
+#> mu2_Intercept      3.05      0.05     2.96     3.15   64.07  < 2e-16
+#> tr12_Intercept    -2.11      0.18    -2.45    -1.76  -11.93  < 2e-16
+#> tr22_Intercept     1.29      0.21     0.88     1.70    6.18  6.5e-10
+#> tr12_x             0.08      0.18    -0.28     0.44    0.45     0.65
+#> tr22_x            -0.06      0.19    -0.43     0.31   -0.30     0.77
+#> 
+#> Further Distributional Parameters:
+#>        Estimate Est.Error l-95% CI u-95% CI
+#> sigma1     0.56      0.02     0.52     0.60
+#> sigma2     0.57      0.03     0.51     0.65
 # }
 ```

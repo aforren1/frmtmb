@@ -89,22 +89,22 @@ grid <- data.frame(t = seq(0, 1, length.out = 80))
 cv <- frm_curve(fit, newdata = grid, re_formula = NA, nsim = 20000, seed = 1)
 cv
 #> <frmtmb curve> value, 80 grid points, level 0.95
-#>   critical value: pointwise 1.96, simultaneous 2.7215 (mcse 0.012)
-#>   covariance checked against predict(se.fit = TRUE) to 2.22e-16 relative
+#>   critical value: pointwise 1.96, simultaneous 2.7107 (mcse 0.011)
+#>   covariance checked against frm_linpred(se.fit = TRUE) to 2.22e-16 relative
 #>            t  .estimate        .se    .crit   .lower_ci .upper_ci .crit_sim
-#> 1 0.00000000 0.01721029 0.05442608 1.959964 -0.08946286 0.1238834  2.721471
-#> 2 0.01265823 0.01809867 0.05096266 1.959964 -0.08178630 0.1179836  2.721471
-#> 3 0.02531646 0.01926231 0.04757044 1.959964 -0.07397404 0.1124987  2.721471
-#> 4 0.03797468 0.02097641 0.04425974 1.959964 -0.06577109 0.1077239  2.721471
-#> 5 0.05063291 0.02350881 0.04103768 1.959964 -0.05692357 0.1039412  2.721471
-#> 6 0.06329114 0.02711400 0.03791211 1.959964 -0.04719236 0.1014204  2.721471
+#> 1 0.00000000 0.01721029 0.05442608 1.959964 -0.08946286 0.1238834  2.710666
+#> 2 0.01265823 0.01809867 0.05096266 1.959964 -0.08178630 0.1179836  2.710666
+#> 3 0.02531646 0.01926231 0.04757044 1.959964 -0.07397404 0.1124987  2.710666
+#> 4 0.03797468 0.02097641 0.04425974 1.959964 -0.06577109 0.1077239  2.710666
+#> 5 0.05063291 0.02350881 0.04103768 1.959964 -0.05692357 0.1039412  2.710666
+#> 6 0.06329114 0.02711400 0.03791211 1.959964 -0.04719236 0.1014204  2.710666
 #>    .lower_sim .upper_sim
-#> 1 -0.13090873  0.1653293
-#> 2 -0.12059475  0.1567921
-#> 3 -0.11019929  0.1487239
-#> 4 -0.09947521  0.1414280
-#> 5 -0.08817407  0.1351917
-#> 6 -0.07606271  0.1302907
+#> 1 -0.13032063  0.1647412
+#> 2 -0.12004407  0.1562414
+#> 3 -0.10968527  0.1482099
+#> 4 -0.09899696  0.1409498
+#> 5 -0.08773063  0.1347482
+#> 6 -0.07565305  0.1298811
 #>   ... 74 more rows
 ```
 
@@ -125,7 +125,7 @@ correction, and here it is about 2.7 rather than 1.96:
 c(pointwise = cv$.crit[1], simultaneous = cv$.crit_sim[1],
   ratio = cv$.crit_sim[1] / cv$.crit[1])
 #>    pointwise simultaneous        ratio 
-#>     1.959964     2.721471     1.388531
+#>     1.959964     2.710666     1.383018
 ```
 
 The simultaneous critical value is simulated, so it comes with its own
@@ -135,13 +135,13 @@ from someone else’s 2.70:
 ``` r
 
 attr(cv, "check")$crit_mcse
-#> [1] 0.01239826
+#> [1] 0.01125959
 ```
 
 The `"check"` attribute carries one more number, and it is the one that
 licenses everything above. frmtmb exports no route to the joint
 covariance of a grid prediction, so this package rebuilds it and then
-checks its own answer against `predict(se.fit = TRUE)`, which is
+checks its own answer against `frm_linpred(se.fit = TRUE)`, which is
 exported. The two agree to about twelve significant figures:
 
 ``` r
@@ -152,11 +152,10 @@ attr(cv, "check")$cov_rel_error
 
 If they ever did not,
 [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
-would refuse rather than report a band. The count of
-[`predict()`](https://rdrr.io/r/stats/predict.html) calls the rebuild
-cost is there too, and it is small: at `re_formula = NA` the per-subject
-coefficients contribute nothing and are skipped in blocks rather than
-one at a time.
+would refuse rather than report a band. The count of `frm_linpred()`
+calls the rebuild cost is there too, and it is small: at
+`re_formula = NA` the per-subject coefficients contribute nothing and
+are skipped in blocks rather than one at a time.
 
 ``` r
 
@@ -295,7 +294,7 @@ pk <- frm_curve_feature(fit, var = "t", type = "maximum", newdata = g2,
                         re_formula = NA)
 pk
 #> <frmtmb curve feature> maximum, 1 found, level 0.95
-#>   covariance checked against predict(se.fit = TRUE) to 0 relative
+#>   covariance checked against frm_linpred(se.fit = TRUE) to 2.22e-16 relative
 #>   .feature .var .estimate         .se .lower_ci .upper_ci   .value  .value_se
 #> 1  maximum    t  0.513161 0.003104161  0.507077 0.5192451 1.012546 0.03321659
 ```
@@ -316,7 +315,7 @@ threshold the profile passes twice gives two rows:
 frm_curve_feature(fit, var = "t", type = "crossing", at = 0.2,
                   newdata = g2, re_formula = NA)
 #> <frmtmb curve feature> crossing, 2 found, level 0.95
-#>   covariance checked against predict(se.fit = TRUE) to 2.22e-16 relative
+#>   covariance checked against frm_linpred(se.fit = TRUE) to 0 relative
 #>   .feature .var .estimate         .se .lower_ci .upper_ci .value  .value_se
 #> 1 crossing    t 0.2150498 0.008193858 0.1989901 0.2311095    0.2 0.01710815
 #> 2 crossing    t 0.8101015 0.008411763 0.7936148 0.8265883    0.2 0.01828822
@@ -336,7 +335,7 @@ pk3 <- frm_curve_feature(fit, var = "t", type = "maximum", newdata = gs,
                          re_formula = NULL)
 pk3[, c(".estimate", ".se", ".value", ".value_se")]
 #> <frmtmb curve feature> , 1 found, level 
-#>   covariance NOT checked: predict(se.fit = TRUE) is refused for a nonlinear predictor, so there is no second route to compare against
+#>   covariance NOT checked: frm_linpred(se.fit = TRUE) is refused for a nonlinear predictor, so there is no second route to compare against
 #>   .estimate         .se   .value   .value_se
 #> 1 0.5388005 0.001575399 1.077853 0.007287812
 ```

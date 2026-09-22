@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -179,25 +179,22 @@ it.</p>
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">upper</span><span class="op">)</span> <span class="op">~</span> <span class="va">lex</span>, bias <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
 <span>           family <span class="op">=</span> <span class="fu"><a href="../reference/wiener.html">wiener</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Family: wiener </span></span>
+<span><span class="co">#&gt;  Family: wiener </span></span>
 <span><span class="co">#&gt;  Links: mu = identity; bs = log; ndt = scaled_logit; bias = logit</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Formula: rt | vint(upper) ~ lex </span></span>
-<span><span class="co">#&gt; Method: ML   nobs: 1200 </span></span>
-<span><span class="co">#&gt; logLik: -799.08  AIC: 1606.16  BIC: 1626.52 </span></span>
+<span><span class="co">#&gt;    Data: dat (Number of observations: 1200) </span></span>
+<span><span class="co">#&gt;  Method: ML   logLik: -799.08   AIC: 1606.16   BIC: 1626.52 </span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (mu):</span></span>
-<span><span class="co">#&gt;             Estimate Std. Error z value  Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) 0.256576   0.054434  4.7135 2.435e-06</span></span>
-<span><span class="co">#&gt; lexword     1.046222   0.084275 12.4144 &lt; 2.2e-16</span></span>
+<span><span class="co">#&gt; Regression Coefficients:</span></span>
+<span><span class="co">#&gt;           Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; Intercept     0.26      0.05     0.15     0.36    4.71  2.4e-06</span></span>
+<span><span class="co">#&gt; lexword       1.05      0.08     0.88     1.21   12.41  &lt; 2e-16</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (bs):</span></span>
-<span><span class="co">#&gt;             Estimate Std. Error z value  Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) 0.404003   0.014818  27.265 &lt; 2.2e-16</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (ndt):</span></span>
-<span><span class="co">#&gt;             Estimate Std. Error z value  Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept)  2.04596    0.11509  17.777 &lt; 2.2e-16</span></span>
+<span><span class="co">#&gt; Further Distributional Parameters:</span></span>
+<span><span class="co">#&gt;     Estimate Est.Error l-95% CI u-95% CI</span></span>
+<span><span class="co">#&gt; bs       1.5      0.02     1.45     1.54</span></span>
+<span><span class="co">#&gt; ndt      0.3      0.00     0.29     0.31</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Fixed dpar: bias = 0.5</span></span></code></pre></div>
 <p>Read the coefficients on their own scales. Drift is on the identity
@@ -206,7 +203,7 @@ rate directly. Boundary separation is on the log scale. The non-decision
 time is on a logit scaled onto <code>(0, min(rt))</code>, which is what
 keeps it inside the support:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">fixef_by_dpar</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>drift_nonword <span class="op">=</span> <span class="va">e</span><span class="op">[[</span><span class="st">"mu.(Intercept)"</span><span class="op">]</span><span class="op">]</span>,</span>
 <span>  drift_word_gain <span class="op">=</span> <span class="va">e</span><span class="op">[[</span><span class="st">"mu.lexword"</span><span class="op">]</span><span class="op">]</span>,</span>
 <span>  boundary <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">[[</span><span class="st">"bs.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
@@ -233,19 +230,18 @@ no finite linear predictor can violate it.</p>
 <code class="sourceCode R"><span><span class="va">lk</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/wiener.html">wiener</a></span><span class="op">(</span>max_ndt <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span><span class="op">$</span><span class="va">links</span><span class="op">[[</span><span class="st">"ndt"</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="va">lk</span><span class="op">$</span><span class="fu">linkinv</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">10</span>, <span class="op">-</span><span class="fl">2</span>, <span class="fl">0</span>, <span class="fl">2</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span>   <span class="co"># always strictly inside (0, 0.4)</span></span>
 <span><span class="co">#&gt; [1] 1.815915e-05 4.768117e-02 2.000000e-01 3.523188e-01 3.999818e-01</span></span></code></pre></div>
-<p>Pass <code>max_ndt</code> explicitly when you intend to
-<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> on new data whose fastest response differs from
-the training set’s.</p>
+<p>Pass <code>max_ndt</code> explicitly when you intend to predict on
+new data whose fastest response differs from the training set’s.</p>
 </div>
 <div class="section level2">
 <h2 id="predictions">Predictions<a class="anchor" aria-label="anchor" href="#predictions"></a>
 </h2>
-<p><code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code>predict(type = "response")</code>
+<p><code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code>frm_linpred(type = "response")</code>
 give the mean response time, conditional on the boundary that row ended
 at, in closed form.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>lex <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"nonword"</span>, <span class="st">"word"</span><span class="op">)</span><span class="op">)</span>, upper <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">nd</span>, type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span></span>
+<span><span class="fu">frm_linpred</span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">nd</span>, type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 0.8532160 0.7309745</span></span></code></pre></div>
 <p><code>vint()</code> is required on <code>newdata</code> as well;
 there is no default boundary, because the conditional mean genuinely
@@ -260,9 +256,9 @@ Free the bias and the two separate:</p>
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">7</span><span class="op">)</span></span>
 <span><span class="va">d2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ddm_simulate.html">ddm_simulate</a></span><span class="op">(</span><span class="fl">900</span>, mu <span class="op">=</span> <span class="fl">0.7</span>, bs <span class="op">=</span> <span class="fl">1.4</span>, ndt <span class="op">=</span> <span class="fl">0.25</span>, bias <span class="op">=</span> <span class="fl">0.35</span><span class="op">)</span></span>
 <span><span class="va">f2</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">upper</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="../reference/wiener.html">wiener</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d2</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>pred_upper <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">f2</span>, newdata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>upper <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>pred_upper <span class="op">=</span> <span class="fu">frm_linpred</span><span class="op">(</span><span class="va">f2</span>, newdata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>upper <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>                       type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span>,</span>
-<span>  pred_lower <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">f2</span>, newdata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>upper <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span>
+<span>  pred_lower <span class="op">=</span> <span class="fu">frm_linpred</span><span class="op">(</span><span class="va">f2</span>, newdata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>upper <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span>
 <span>                       type <span class="op">=</span> <span class="st">"response"</span><span class="op">)</span>,</span>
 <span>  obs_upper <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">d2</span><span class="op">$</span><span class="va">rt</span><span class="op">[</span><span class="va">d2</span><span class="op">$</span><span class="va">upper</span> <span class="op">==</span> <span class="fl">1</span><span class="op">]</span><span class="op">)</span>,</span>
 <span>  obs_lower <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">d2</span><span class="op">$</span><span class="va">rt</span><span class="op">[</span><span class="va">d2</span><span class="op">$</span><span class="va">upper</span> <span class="op">==</span> <span class="fl">0</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
@@ -416,7 +412,7 @@ other:</p>
 <span>                     sv <span class="op">=</span> <span class="fl">1.0</span>, st <span class="op">=</span> <span class="fl">0.10</span><span class="op">)</span></span>
 <span><span class="va">ffit</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">dec</span><span class="op">(</span><span class="va">upper</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>, bias <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
 <span>            family <span class="op">=</span> <span class="fu"><a href="../reference/wiener.html">wiener</a></span><span class="op">(</span>variability <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"sv"</span>, <span class="st">"st"</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">full</span><span class="op">)</span></span>
-<span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">ffit</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">fixef_by_dpar</span><span class="op">(</span><span class="va">ffit</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">ub</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">full</span><span class="op">$</span><span class="va">rt</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>mu  <span class="op">=</span> <span class="va">e</span><span class="op">[[</span><span class="st">"mu.(Intercept)"</span><span class="op">]</span><span class="op">]</span>,</span>
 <span>  bs  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">[[</span><span class="st">"bs.(Intercept)"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
@@ -620,36 +616,20 @@ that responded, counting from one.</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit3</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">choice</span><span class="op">)</span> <span class="op">~</span> <span class="va">cue</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="../reference/lba.html">lba</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat3</span><span class="op">)</span></span>
 <span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit3</span><span class="op">)</span></span>
-<span><span class="co">#&gt; $v1</span></span>
-<span><span class="co">#&gt; (Intercept)         cue </span></span>
-<span><span class="co">#&gt;  2.33038268  0.01772203 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $v2</span></span>
-<span><span class="co">#&gt; (Intercept)         cue </span></span>
-<span><span class="co">#&gt;    1.464786    1.039147 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $v3</span></span>
-<span><span class="co">#&gt; (Intercept)         cue </span></span>
-<span><span class="co">#&gt;   0.7283536  -0.1080327 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $A</span></span>
-<span><span class="co">#&gt; (Intercept) </span></span>
-<span><span class="co">#&gt;    -0.87533 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $k</span></span>
-<span><span class="co">#&gt; (Intercept) </span></span>
-<span><span class="co">#&gt;  -0.8251791 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $ndt</span></span>
-<span><span class="co">#&gt; (Intercept) </span></span>
-<span><span class="co">#&gt;   0.8213659</span></span></code></pre></div>
+<span><span class="co">#&gt;                 Estimate  Est.Error       Q2.5      Q97.5</span></span>
+<span><span class="co">#&gt; v1_Intercept  2.33038268 0.13662858  2.0625956 2.59816978</span></span>
+<span><span class="co">#&gt; v2_Intercept  1.46478574 0.15859272  1.1539497 1.77562177</span></span>
+<span><span class="co">#&gt; v3_Intercept  0.72835357 0.18355264  0.3685970 1.08811013</span></span>
+<span><span class="co">#&gt; v1_cue        0.01772203 0.03529913 -0.0514630 0.08690705</span></span>
+<span><span class="co">#&gt; v2_cue        1.03914697 0.07598319  0.8902226 1.18807130</span></span>
+<span><span class="co">#&gt; v3_cue       -0.10803273 0.06916946 -0.2436024 0.02753691</span></span></code></pre></div>
 <p>Every drift is a primary parameter, so the main formula went to all
 three and each got its own coefficients. That is what makes the answer
 readable: the cue slope is near its true 1.1 on <code>v2</code> and near
 zero on <code>v1</code> and <code>v3</code>, which is the model
 recovering that the cue moved one alternative and not the others.</p>
 <div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"v1"</span>, <span class="st">"v2"</span>, <span class="st">"v3"</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">p</span><span class="op">)</span> <span class="fu">fixef</span><span class="op">(</span><span class="va">fit3</span><span class="op">)</span><span class="op">[[</span><span class="va">p</span><span class="op">]</span><span class="op">]</span><span class="op">[[</span><span class="st">"cue"</span><span class="op">]</span><span class="op">]</span>,</span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"v1"</span>, <span class="st">"v2"</span>, <span class="st">"v3"</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">p</span><span class="op">)</span> <span class="fu">fixef_by_dpar</span><span class="op">(</span><span class="va">fit3</span><span class="op">)</span><span class="op">[[</span><span class="va">p</span><span class="op">]</span><span class="op">]</span><span class="op">[[</span><span class="st">"cue"</span><span class="op">]</span><span class="op">]</span>,</span>
 <span>       <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;          v1          v2          v3 </span></span>
 <span><span class="co">#&gt;  0.01772203  1.03914697 -0.10803273</span></span></code></pre></div>
@@ -666,7 +646,7 @@ from. <code>A</code> and <code>k</code> carry log links and
 <code>ndt</code> the bounded link the Wiener family also uses, so read
 them through the link:</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu">fixef</span><span class="op">(</span><span class="va">fit3b</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu">fixef_by_dpar</span><span class="op">(</span><span class="va">fit3b</span><span class="op">)</span></span>
 <span><span class="va">lk</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">family</a></span><span class="op">(</span><span class="va">fit3b</span><span class="op">)</span><span class="op">$</span><span class="va">links</span><span class="op">$</span><span class="va">ndt</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>A <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">A</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>, k <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">k</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>, ndt <span class="op">=</span> <span class="va">lk</span><span class="op">$</span><span class="fu">linkinv</span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">ndt</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
 <span>  truth_A <span class="op">=</span> <span class="fl">0.5</span>, truth_k <span class="op">=</span> <span class="fl">0.4</span>, truth_ndt <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span></span>
@@ -762,29 +742,10 @@ wins, wins fastest. The choice reaches the family through
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_r</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">choice</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="../reference/rdm.html">rdm</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat_r</span><span class="op">)</span></span>
 <span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit_r</span><span class="op">)</span></span>
-<span><span class="co">#&gt; $v1</span></span>
-<span><span class="co">#&gt; (Intercept) </span></span>
-<span><span class="co">#&gt;    1.060211 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $v2</span></span>
-<span><span class="co">#&gt; (Intercept) </span></span>
-<span><span class="co">#&gt;   0.6941788 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $v3</span></span>
-<span><span class="co">#&gt; (Intercept) </span></span>
-<span><span class="co">#&gt;   0.3429365 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $A</span></span>
-<span><span class="co">#&gt; (Intercept) </span></span>
-<span><span class="co">#&gt;   -8.566915 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $k</span></span>
-<span><span class="co">#&gt; (Intercept) </span></span>
-<span><span class="co">#&gt;  -0.2735181 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $ndt</span></span>
-<span><span class="co">#&gt; (Intercept) </span></span>
-<span><span class="co">#&gt;    1.685985</span></span></code></pre></div>
+<span><span class="co">#&gt;               Estimate  Est.Error      Q2.5     Q97.5</span></span>
+<span><span class="co">#&gt; v1_Intercept 1.0602106 0.04514691 0.9717243 1.1486969</span></span>
+<span><span class="co">#&gt; v2_Intercept 0.6941788 0.06996512 0.5570497 0.8313079</span></span>
+<span><span class="co">#&gt; v3_Intercept 0.3429365 0.10710275 0.1330190 0.5528540</span></span></code></pre></div>
 <p>Every parameter of this family has a log link, including the drifts,
 which is the one place it parts company with <code><a href="../reference/lba.html">lba()</a></code>. An LBA
 drift is the MEAN of a normal drawn per trial and may be negative; a
@@ -792,7 +753,7 @@ racing diffusion drift is the rate itself, and an accumulator with a
 rate of zero never reaches the threshold at all. So the estimates come
 back on the log scale:</p>
 <div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu">fixef</span><span class="op">(</span><span class="va">fit_r</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu">fixef_by_dpar</span><span class="op">(</span><span class="va">fit_r</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>v1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">v1</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>, v2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">v2</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>, v3 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">v3</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
 <span>        A <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">A</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>, k <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">k</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
 <span>        ndt <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">family</a></span><span class="op">(</span><span class="va">fit_r</span><span class="op">)</span><span class="op">$</span><span class="va">links</span><span class="op">$</span><span class="va">ndt</span><span class="op">$</span><span class="fu">linkinv</span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">ndt</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
@@ -811,7 +772,8 @@ diffusion:</p>
 <span><span class="va">dat_x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rdm_simulate.html">rdm_simulate</a></span><span class="op">(</span><span class="fl">2000</span>, v <span class="op">=</span> <span class="va">V</span>, A <span class="op">=</span> <span class="fl">0.5</span>, k <span class="op">=</span> <span class="fl">0.5</span>, ndt <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span></span>
 <span><span class="va">dat_x</span><span class="op">$</span><span class="va">x</span> <span class="op">&lt;-</span> <span class="va">x</span></span>
 <span><span class="va">fit_x</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">choice</span><span class="op">)</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="../reference/rdm.html">rdm</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat_x</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit_x</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"v1"</span>, <span class="st">"v2"</span>, <span class="st">"v3"</span><span class="op">)</span><span class="op">]</span>, <span class="kw">function</span><span class="op">(</span><span class="va">z</span><span class="op">)</span> <span class="va">z</span><span class="op">[[</span><span class="st">"x"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="fu">fixef_by_dpar</span><span class="op">(</span><span class="va">fit_x</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"v1"</span>, <span class="st">"v2"</span>, <span class="st">"v3"</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>             <span class="kw">function</span><span class="op">(</span><span class="va">z</span><span class="op">)</span> <span class="va">z</span><span class="op">[[</span><span class="st">"x"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt;     v1     v2     v3 </span></span>
 <span><span class="co">#&gt;  0.010  0.489 -0.013</span></span></code></pre></div>
 <p>Only the second slope is near the 0.5 that was simulated.</p>
@@ -950,7 +912,7 @@ and the deadline goes on the family when every trial shares it:</p>
 <div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_g</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">dec</span><span class="op">(</span><span class="va">responded</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>, bias <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
 <span>             family <span class="op">=</span> <span class="fu"><a href="../reference/wiener_gng.html">wiener_gng</a></span><span class="op">(</span>deadline <span class="op">=</span> <span class="fl">1.5</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat_g</span><span class="op">)</span></span>
-<span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu">fixef</span><span class="op">(</span><span class="va">fit_g</span><span class="op">)</span></span>
+<span><span class="va">e</span> <span class="op">&lt;-</span> <span class="fu">fixef_by_dpar</span><span class="op">(</span><span class="va">fit_g</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>mu <span class="op">=</span> <span class="va">e</span><span class="op">$</span><span class="va">mu</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>, bs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">bs</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>,</span>
 <span>        ndt <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">family</a></span><span class="op">(</span><span class="va">fit_g</span><span class="op">)</span><span class="op">$</span><span class="va">links</span><span class="op">$</span><span class="va">ndt</span><span class="op">$</span><span class="fu">linkinv</span><span class="op">(</span><span class="va">e</span><span class="op">$</span><span class="va">ndt</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    mu    bs   ndt </span></span>
@@ -976,7 +938,7 @@ parameter’s range.</p>
 <span><span class="co">#&gt; 0.6306667 0.7613333</span></span>
 <span><span class="va">fit_v</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">dec</span><span class="op">(</span><span class="va">responded</span><span class="op">)</span> <span class="op">+</span> <span class="fu">vreal</span><span class="op">(</span><span class="va">deadline</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>, bias <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
 <span>             family <span class="op">=</span> <span class="fu"><a href="../reference/wiener_gng.html">wiener_gng</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat_v</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit_v</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu">fixef_by_dpar</span><span class="op">(</span><span class="va">fit_v</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 0.884</span></span></code></pre></div>
 <p>The longer deadline collects more responses, as it must, and the
 drift is recovered from both together.</p>
@@ -1137,13 +1099,13 @@ brms.</p>
 <div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit_g</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> wiener_gng: this family has no mean response to report. A go/no-go trial produces a PAIR, whether a response happened and when, and no single number summarizes it: the no-go trials have no response time to average at all. fitted(), predict(type = "response") and residuals(type = "response") are unavailable for that reason rather than for want of an integral. predict(type = "link") gives the drift, boundary separation, non-decision time and bias the fit estimated.</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> wiener_gng: this family has no mean response to report. A go/no-go trial produces a PAIR, whether a response happened and when, and no single number summarizes it: the no-go trials have no response time to average at all. fitted(), frm_linpred(type = "response") and residuals(type = "response") are unavailable for that reason rather than for want of an integral. frm_linpred(type = "link") gives the drift, boundary separation, non-decision time and bias the fit estimated.</span></span></code></pre></div>
 <p>For <code><a href="../reference/rdm.html">rdm()</a></code> that is a missing integral: the mean of the
 winning accumulator’s arrival is an expectation over the minimum of
 several inverse-Gaussian first passages. For <code><a href="../reference/wiener_gng.html">wiener_gng()</a></code>
 it is a statement about the model. A go/no-go trial produces a PAIR,
 whether a response happened and when, and the no-go rows have no
-response time to average at all. <code>predict(type = "link")</code>
+response time to average at all. <code>frm_linpred(type = "link")</code>
 gives the parameters the fit actually estimated, which is what to read
 instead.</p>
 </div>

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -108,31 +108,33 @@ no compilation at run time.</p>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">Reaction</span> <span class="op">~</span> <span class="va">Days</span> <span class="op">+</span> <span class="op">(</span><span class="va">Days</span> <span class="op">|</span> <span class="va">Subject</span><span class="op">)</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>           data <span class="op">=</span> <span class="va">sleepstudy</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Family: gaussian </span></span>
+<span><span class="co">#&gt;  Family: gaussian </span></span>
 <span><span class="co">#&gt;  Links: mu = identity; sigma = log</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Formula: Reaction ~ Days + (Days | Subject) </span></span>
-<span><span class="co">#&gt; Method: ML   nobs: 180 </span></span>
-<span><span class="co">#&gt; Groups: Subject, 18 </span></span>
-<span><span class="co">#&gt; logLik: -875.97  AIC: 1763.94  BIC: 1783.1 </span></span>
+<span><span class="co">#&gt;    Data: sleepstudy (Number of observations: 180) </span></span>
+<span><span class="co">#&gt;  Method: ML   logLik: -875.97   AIC: 1763.94   BIC: 1783.1 </span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Random effects:</span></span>
-<span><span class="co">#&gt;   Days | Subject </span></span>
-<span><span class="co">#&gt;         Name Std.Dev. (Intercept)</span></span>
-<span><span class="co">#&gt;  (Intercept)  23.7800            </span></span>
-<span><span class="co">#&gt;         Days   5.7168      0.0813</span></span>
+<span><span class="co">#&gt; Multilevel Hyperparameters:</span></span>
+<span><span class="co">#&gt; ~Subject (Number of levels: 18) </span></span>
+<span><span class="co">#&gt;                     Estimate Est.Error l-95% CI u-95% CI</span></span>
+<span><span class="co">#&gt; sd(Intercept)          23.78      5.58    15.02    37.66</span></span>
+<span><span class="co">#&gt; sd(Days)                5.72      1.19     3.81     8.59</span></span>
+<span><span class="co">#&gt; cor(Intercept,Days)     0.08      0.32    -0.51     0.62</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (mu):</span></span>
-<span><span class="co">#&gt;             Estimate Std. Error z value  Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) 251.4052     6.6323 37.9064 &lt; 2.2e-16</span></span>
-<span><span class="co">#&gt; Days         10.4673     1.5022  6.9678  3.22e-12</span></span>
+<span><span class="co">#&gt; Regression Coefficients:</span></span>
+<span><span class="co">#&gt;           Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; Intercept   251.41      6.63   238.41   264.40   37.91  &lt; 2e-16</span></span>
+<span><span class="co">#&gt; Days         10.47      1.50     7.52    13.41    6.97  3.2e-12</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (sigma):</span></span>
-<span><span class="co">#&gt;             Estimate Std. Error z value  Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) 3.242273   0.058926  55.023 &lt; 2.2e-16</span></span></code></pre></div>
+<span><span class="co">#&gt; Further Distributional Parameters:</span></span>
+<span><span class="co">#&gt;       Estimate Est.Error l-95% CI u-95% CI</span></span>
+<span><span class="co">#&gt; sigma    25.59      1.51     22.8    28.72</span></span></code></pre></div>
 <p>The usual methods work: <code><a href="../reference/fixef.html">fixef()</a></code>, <code><a href="../reference/ranef.html">ranef()</a></code>,
-<code><a href="../reference/VarCorr.html">VarCorr()</a></code>, <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> (with
-<code>newdata</code>, <code>se.fit</code>, and <code>re_formula</code>),
+<code><a href="../reference/VarCorr.html">VarCorr()</a></code>, <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>
+(brms’s summary matrices, the second with observation noise in it),
+<code><a href="../reference/frm_linpred.html">frm_linpred()</a></code> (the linear predictor, with
+<code>newdata</code>, <code>se.fit</code> and <code>re_formula</code>),
 <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> (Wald, profile, or likelihood-root),
 <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>, <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> for likelihood-ratio
 tests, and <code>emmeans</code> for marginal means.</p>
@@ -141,7 +143,7 @@ subject shows what the random slopes bought: the lines share a
 population trend, but each subject keeps its own intercept and its own
 slope.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sleepstudy</span><span class="op">$</span><span class="va">yhat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">sleepstudy</span><span class="op">$</span><span class="va">yhat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[</span>, <span class="st">"Estimate"</span><span class="op">]</span></span>
 <span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot.html" class="external-link">tinyplot</a></span><span class="op">(</span><span class="va">Reaction</span> <span class="op">~</span> <span class="va">Days</span>, data <span class="op">=</span> <span class="va">sleepstudy</span>, facet <span class="op">=</span> <span class="op">~</span><span class="va">Subject</span>,</span>
 <span>                   type <span class="op">=</span> <span class="st">"p"</span>, pch <span class="op">=</span> <span class="fl">16</span>, cex <span class="op">=</span> <span class="fl">0.7</span>, col <span class="op">=</span> <span class="st">"gray40"</span>,</span>
 <span>                   theme <span class="op">=</span> <span class="st">"clean2"</span>, facet.args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>nrow <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span>
@@ -160,7 +162,7 @@ predictor grammar, including random effects and smooths:</p>
 <code class="sourceCode R"><span><span class="va">fit2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">Reaction</span> <span class="op">~</span> <span class="va">Days</span> <span class="op">+</span> <span class="op">(</span><span class="va">Days</span> <span class="op">|</span> <span class="va">Subject</span><span class="op">)</span>,</span>
 <span>               <span class="va">sigma</span> <span class="op">~</span> <span class="va">Days</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>            data <span class="op">=</span> <span class="va">sleepstudy</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit2</span><span class="op">)</span><span class="op">$</span><span class="va">sigma</span></span>
+<span><span class="fu"><a href="../reference/fixef_by_dpar.html">fixef_by_dpar</a></span><span class="op">(</span><span class="va">fit2</span><span class="op">)</span><span class="op">$</span><span class="va">sigma</span></span>
 <span><span class="co">#&gt; (Intercept)        Days </span></span>
 <span><span class="co">#&gt;  2.81184862  0.08463401</span></span></code></pre></div>
 <p>The coefficient on <code>Days</code> is positive, so the model says
@@ -168,8 +170,9 @@ that reaction times scatter more widely late in the study. Compare the
 fitted residual standard deviation with the standard deviation of the
 residuals on each day.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">day_sd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals</a></span><span class="op">(</span><span class="va">fit2</span><span class="op">)</span>, <span class="va">sleepstudy</span><span class="op">$</span><span class="va">Days</span>, <span class="va">sd</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">sig</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit2</span>, dpar <span class="op">=</span> <span class="st">"sigma"</span>, type <span class="op">=</span> <span class="st">"response"</span>,</span>
+<code class="sourceCode R"><span><span class="va">day_sd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals</a></span><span class="op">(</span><span class="va">fit2</span><span class="op">)</span><span class="op">[</span>, <span class="st">"Estimate"</span><span class="op">]</span>,</span>
+<span>                            <span class="va">sleepstudy</span><span class="op">$</span><span class="va">Days</span>, <span class="va">sd</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">sig</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="../reference/frm_linpred.html">frm_linpred</a></span><span class="op">(</span><span class="va">fit2</span>, dpar <span class="op">=</span> <span class="st">"sigma"</span>, type <span class="op">=</span> <span class="st">"response"</span>,</span>
 <span>                          newdata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>Days <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">9</span>,</span>
 <span>                                               Subject <span class="op">=</span> <span class="st">"308"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot.html" class="external-link">tinyplot</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">9</span>, y <span class="op">=</span> <span class="va">day_sd</span>, type <span class="op">=</span> <span class="st">"p"</span>, pch <span class="op">=</span> <span class="fl">16</span>,</span>
@@ -385,7 +388,7 @@ cost in optimizer robustness.</p>
 <p>Because <code>esicar</code> constrains exactly, <code>con_sd</code>
 changes nothing it reports. The likelihood, the estimates,
 <code>sd(car)</code>, the standard errors from
-<code>predict(se.fit = TRUE)</code> and the conditional standard
+<code>frm_linpred(se.fit = TRUE)</code> and the conditional standard
 deviations from <code>ranef(condVar = TRUE)</code> are all invariant to
 it.</p>
 <p>The standard errors were not, through 0.52.0. The delta method paired
@@ -445,7 +448,7 @@ not supported yet.</p>
 <span><span class="va">dm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>inc <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">3</span>, <span class="fl">300</span>, <span class="cn">TRUE</span><span class="op">)</span>, z <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">300</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">dm</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">1.6</span>, <span class="fl">2</span><span class="op">)</span><span class="op">[</span><span class="va">dm</span><span class="op">$</span><span class="va">inc</span> <span class="op">+</span> <span class="fl">1</span><span class="op">]</span> <span class="op">+</span> <span class="fl">0.3</span> <span class="op">*</span> <span class="va">dm</span><span class="op">$</span><span class="va">z</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">300</span><span class="op">)</span></span>
 <span><span class="va">fmo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="fu">mo</span><span class="op">(</span><span class="va">inc</span><span class="op">)</span> <span class="op">+</span> <span class="va">z</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dm</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fmo</span>, newdata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>inc <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">3</span>, z <span class="op">=</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/frm_linpred.html">frm_linpred</a></span><span class="op">(</span><span class="va">fmo</span>, newdata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>inc <span class="op">=</span> <span class="fl">0</span><span class="op">:</span><span class="fl">3</span>, z <span class="op">=</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;         1         2         3         4 </span></span>
 <span><span class="co">#&gt; 0.9227861 1.8599425 2.5575740 2.9094146</span></span></code></pre></div>
 </div>

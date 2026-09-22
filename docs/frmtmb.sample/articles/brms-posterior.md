@@ -127,16 +127,18 @@ parameters.
 ## The method surface ports
 
 The post-processing generics are brms’s own, on a `frmtmb_draws` object,
-and they return brms’s objects: the summary matrices and arrays, the raw
-draws at `summary = FALSE`, and brms’s `brmshypothesis` list. So most
-ported code runs unchanged:
+and they return brms’s SHAPES: the summary matrices and arrays, the raw
+draws at `summary = FALSE`, and the same list
+[`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)
+gives, under frmtmb’s own class rather than brms’s `brmshypothesis`. So
+most ported code runs unchanged:
 [`fixef()`](https://rdrr.io/pkg/nlme/man/fixed.effects.html),
 [`ranef()`](https://rdrr.io/pkg/nlme/man/random.effects.html),
 [`VarCorr()`](https://rdrr.io/pkg/nlme/man/VarCorr.html),
 [`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
 [`posterior_predict()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
 [`posterior_linpred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
-[`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md),
+[`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html),
 [`loo()`](https://mc-stan.org/loo/reference/loo.html),
 [`waic()`](https://mc-stan.org/loo/reference/waic.html),
 [`bayes_R2()`](https://mc-stan.org/rstantools/reference/bayes_R2.html),

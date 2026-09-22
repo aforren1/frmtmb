@@ -1,0 +1,190 @@
+# Pointwise log-likelihood of posterior draws
+
+The `ndraws x nobs` matrix of per-observation log-densities, each row
+evaluated at one draw's own parameter vector. Every leave-one-out and
+information-criterion quantity in this package is a function of this
+matrix, and
+[`frmtmb::loo()`](https://aforren1.github.io/frmtmb/reference/loo.html),
+[`frmtmb::waic()`](https://aforren1.github.io/frmtmb/reference/loo.html)
+and [`loo::psis()`](https://mc-stan.org/loo/reference/psis.html) take it
+directly.
+
+## Usage
+
+``` r
+# S3 method for class 'frmtmb_draws'
+log_lik(
+  object,
+  newdata = NULL,
+  re_formula = arg_unset(),
+  resp = NULL,
+  ndraws = NULL,
+  draw_ids = NULL,
+  pointwise = FALSE,
+  combine = TRUE,
+  add_point_estimate = FALSE,
+  cores = NULL,
+  point_estimate = NULL,
+  ndraws_point_estimate = 1,
+  ...
+)
+```
+
+## Arguments
+
+- object:
+
+  A `frmtmb_draws` from
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.md).
+
+- newdata, re_formula:
+
+  Accepted in brms's own second and third positions and refused: see
+  *What is conditioned on*. The refusal names the reason and the
+  replacement.
+
+- resp:
+
+  For a multivariate model without `rescor`, the response whose
+  contribution to report; the default sums over responses.
+
+- ndraws:
+
+  Number of draws to use, evenly spaced through the matrix (default: all
+  of them).
+
+- draw_ids:
+
+  The draws to use, by row index, instead of the evenly spaced subsample
+  `ndraws` takes. Give one or the other.
+
+- pointwise, combine, add_point_estimate, cores:
+
+  brms's slots, in brms's positions. `pointwise = TRUE` (brms's function
+  of one observation) and `add_point_estimate = TRUE` are refused by
+  name; `combine = FALSE` is accepted on a univariate model, where there
+  is nothing to combine; `cores` is accepted and unused, because the
+  matrix is built in this process.
+
+- point_estimate, ndraws_point_estimate:
+
+  brms's arguments: collapse the draws to their `"mean"` or `"median"`
+  first and use that one parameter vector, repeated
+  `ndraws_point_estimate` times.
+
+- ...:
+
+  Refused: an argument the method does not have is an error naming it,
+  rather than silently changing nothing.
+
+## Value
+
+A numeric matrix with one row per draw and one column per observation
+(the rows the model was fitted on).
+
+## What is conditioned on
+
+The density is CONDITIONAL on the draw's own group-level values:
+[`frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.md)
+samples `b` alongside everything else, so each row of the draws matrix
+is a complete parameter vector and no integration is left to do. This is
+exactly brms's convention, where the Stan model also samples the
+group-level parameters. The consequence is worth stating plainly:
+[`loo()`](https://mc-stan.org/loo/reference/loo.html) on such a matrix
+is leave-one-OBSERVATION-out with the groups held fixed, not
+leave-one-group-out, and for a model with few observations per group the
+two differ.
+
+Addition terms enter exactly as they enter the fitted objective, because
+they enter through the same code: `cens()` replaces a row's density by
+the matching CDF difference,
+[`trunc()`](https://rdrr.io/r/base/Round.html) divides by the window
+mass, [`weights()`](https://rdrr.io/r/stats/weights.html) multiplies the
+row's contribution, and `trials()` is the family's own argument. brms
+composes them in the same order (`log_lik_censor()`,
+`log_lik_truncate()`, `log_lik_weight()`).
+
+## Multivariate models
+
+With `set_rescor(TRUE)` a column is the joint density of the row's
+response VECTOR, so the matrix keeps one column per observation. Without
+`rescor`, the responses are independent given the predictors and the
+default sums their log-densities per row; pass `resp` to get one
+response's contribution alone.
+
+## Likelihoods with no per-observation column
+
+A model whose smallest independent unit is a group has no
+per-observation column to leave out, and this refuses rather than
+inventing one: R-side residual correlation
+([frmtmb::frmtmb-autocor](https://aforren1.github.io/frmtmb/reference/frmtmb-autocor.html)),
+a
+[`frmtmb.latent::hmm()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/hmm.html)
+sequence, and a group-level mixture (`mixture(groups = )`). An
+[`frmtmb.latent::lca()`](https://aforren1.github.io/frmtmb/frmtmb.latent/reference/lca.html)
+subject is one row, so its column is well defined and is not refused.
+In-model imputation (`mi()`, `me()`) is refused for the same kind of
+reason: a latent value is a parameter, not an observation. Use
+[`AIC()`](https://rdrr.io/r/stats/AIC.html) on the maximum-likelihood
+fits or
+[`frmtmb::frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.html)
+for those.
+
+A family that declares how its likelihood factorizes
+(`frmtmb::frmtmb_structure(loglik_group = )` or `(loglik_row = )`) is
+not in that position and is not refused. Its columns are the pieces it
+declares, at the COARSEST granularity it gives: a family that groups its
+likelihood is saying that its rows are not independently droppable,
+which is exactly the question a leave-one-out column asks. The matrix
+then carries `attr(x, "unit")` naming what a column is.
+[`loo::loo.matrix()`](https://mc-stan.org/loo/reference/loo.html) never
+sees that attribute and its printout says only "Computed from N by K
+log-likelihood matrix", which reads exactly like a per-observation one,
+so [`loo()`](https://mc-stan.org/loo/reference/loo.html),
+[`waic()`](https://mc-stan.org/loo/reference/waic.html) and
+[`psis()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-loo.md)
+emit a message naming the unit and the column count when they are handed
+such a matrix. The elpd is then leave-one-UNIT-out, and the number
+itself carries no mark of that.
+
+## See also
+
+[`frmtmb::loo()`](https://aforren1.github.io/frmtmb/reference/loo.html),
+[`frmtmb::waic()`](https://aforren1.github.io/frmtmb/reference/loo.html),
+[`frmtmb::bayes_R2()`](https://aforren1.github.io/frmtmb/reference/bayes_R2.html)
+
+## Examples
+
+``` r
+# \donttest{
+if (requireNamespace("tmbstan", quietly = TRUE) &&
+    requireNamespace("rstan", quietly = TRUE) &&
+    !frmtmb.sample:::tmbstan_build_broken()) {
+  set.seed(9)
+  dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
+  dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
+  fit <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd)
+  ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0)
+
+  ll <- log_lik(ds)
+  dim(ll)
+  # the column means are the per-observation expected log-densities
+  head(colMeans(ll))
+}
+#> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+#>   Intercept          student_t(3, 0.8, 2.5)
+#>   sigma              student_t(3, 0, 2.5)  [natural scale]
+#>   sd                 student_t(3, 0, 2.5)  [natural sd scale]
+#>   b                  (flat), as brms leaves slopes
+#> Warning: The largest R-hat is 1.09, indicating chains have not mixed.
+#> Running the chains for more iterations may help. See
+#> https://mc-stan.org/misc/warnings.html#r-hat
+#> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+#> Running the chains for more iterations may help. See
+#> https://mc-stan.org/misc/warnings.html#bulk-ess
+#> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+#> Running the chains for more iterations may help. See
+#> https://mc-stan.org/misc/warnings.html#tail-ess
+#> [1] -0.8830592 -2.1166335 -1.2627876 -2.6183643 -0.8877249 -3.1346528
+# }
+```

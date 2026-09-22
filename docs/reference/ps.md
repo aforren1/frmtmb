@@ -121,7 +121,7 @@ basis functions needs a different basis, not a looser tolerance.
 re-evaluated at the new data or at the drawn coefficients, and the
 frozen basis is evaluated at whatever argument comes out.
 
-`predict(se.fit = TRUE)` stays refused for a nonlinear predictor.
+`frm_linpred(se.fit = TRUE)` stays refused for a nonlinear predictor.
 [`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.md)
 is the route: it tapes the body and returns `d eta / d coef` as a
 Jacobian, which is what a delta method over a warped curve needs.
@@ -169,18 +169,7 @@ fit <- frm(bf(y ~ lev + ps(t + shift, k = 8),
            data = d)
 #> Warning: 2 of 320 fitted values of t + shift fall outside the knot span of ps(t + shift, k = 8) [-0.1, 1.1], where the basis is exactly zero and its gradient with it. Refit with a larger pad =
 fixef(fit)
-#> $lev
-#> (Intercept) 
-#>    2.002918 
-#> 
-#> $shift
-#> numeric(0)
-#> 
-#> $mu
-#> numeric(0)
-#> 
-#> $sigma
-#> (Intercept) 
-#>   -2.310741 
-#> 
+#>                    Estimate Est.Error      Q2.5     Q97.5
+#> lev_Intercept      2.002918 0.1003904  1.806156  2.199679
+#> pstPshiftkEQ8.fx1 -1.993027 0.4793116 -2.932460 -1.053593
 ```

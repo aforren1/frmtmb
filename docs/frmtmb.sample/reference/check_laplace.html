@@ -17,7 +17,7 @@ components with few groups)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -151,19 +151,17 @@ approximation section of <code><a href="https://aforren1.github.io/frmtmb/refere
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which frm_sample() supplies by default unless prior = "flat" turned it off</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>The largest R-hat is 1.08, indicating chains have not mixed.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> Running the chains for more iterations may help. See</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#r-hat</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> Running the chains for more iterations may help. See</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#bulk-ess</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> Running the chains for more iterations may help. See</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#tail-ess</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> check_laplace(): the chain mixed too poorly to judge the approximation (bulk ESS under 100 for b_Intercept, theta_1). Rerun with more iterations before reading z_shift or sd_ratio</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] parameter ml        post_mean wald_se   post_sd   z_shift   sd_ratio </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [8] ess_bulk </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;0 rows&gt; (or 0-length row.names)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> check_laplace(): the chain mixed too poorly to judge the approximation (bulk ESS under 100 for theta_1). Rerun with more iterations before reading z_shift or sd_ratio</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   parameter         ml post_mean   wald_se   post_sd  z_shift  sd_ratio</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3   theta_1 0.09859697 0.2022925 0.3522135 0.3425834 0.302687 0.9726583</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ess_bulk</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 44.21178</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

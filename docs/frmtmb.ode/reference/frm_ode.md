@@ -615,9 +615,9 @@ Estimated event times, lag times, inter-dose intervals and `tv` change
 points are not supported: they decide where the solve is split, which is
 settled before the tape is built.
 
-`predict(se.fit = TRUE)` is not available for a nonlinear predictor,
+`frm_linpred(se.fit = TRUE)` is not available for a nonlinear predictor,
 including one containing `frm_ode()`; request a nonlinear parameter with
-`predict(dpar = )` instead.
+`frm_linpred(dpar = )` instead.
 
 ## Installation
 

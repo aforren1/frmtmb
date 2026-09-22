@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -167,7 +167,7 @@ of one vector and not others is refused.</p></dd>
 <dt id="arg-se">se<a class="anchor" aria-label="anchor" href="#arg-se"></a></dt>
 <dd><p>If <code>TRUE</code>, run <code>RTMB::sdreport()</code> at fit time. The default
 (<code>FALSE</code>) defers it until standard errors are first needed
-(<code>summary</code>, <code>vcov</code>, <code>confint</code>, <code>predict(se.fit = TRUE)</code>), which cuts
+(<code>summary</code>, <code>vcov</code>, <code>confint</code>, <code>frm_linpred(se.fit = TRUE)</code>), which cuts
 roughly a quarter off fit time in fit-and-predict or bootstrap
 loops. The deferred report is cached, so nothing is computed twice.</p></dd>
 
@@ -319,7 +319,25 @@ are given. See <code><a href="frmtmb_control.html">frmtmb_control()</a></code> f
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>frmtmb_fit</code>.</p>
+    <p>An object of class <code>frmtmb_fit</code>. It is a list, and two of its
+elements are read directly often enough to name here. <code>fit$data2</code>
+is the <code>data2</code> list of known matrices. <code>fit$data</code> is the MODEL
+FRAME, the object <code><a href="https://rdrr.io/r/stats/model.frame.html" class="external-link">model.frame()</a></code> returns: one column per term the
+formula names, under the term's own spelling, so a model with
+<code>offset(Age)</code> carries a literal <code>offset(Age)</code> column and a data
+column no term uses is absent. brms keeps its VALIDATED RAW DATA
+under the same name, so <code>names(fit$data)</code> and <code>ncol(fit$data)</code>
+differ from brms on any model with a transformed term, and
+<code>newdata = fit$data</code> is not the brms idiom it looks like. The
+element exists because brms-shaped code reads <code>fit$data</code> and used
+to reach the <code>data2</code> list through <code>$</code>'s partial matching; the model
+frame is the object this package already had. It is the same object
+in memory that <code>fit$frame[["data_frame"]]</code> holds, but R's
+serializer does not deduplicate a shared value, so a SAVED fit
+carries the frame twice: 5.3% more raw bytes and 14.0% more gzipped
+on a 20,000-row fit, 0.16% and 1.49% on a 240-row one
+(<code>dev/adefects-log/p1-dollar.txt</code>). Everything else the fit carries
+has an accessor, and the accessor is the supported route.</p>
     </div>
     <div class="section level2">
     <h2 id="what-a-nonlinear-body-sees">What a nonlinear body sees<a class="anchor" aria-label="anchor" href="#what-a-nonlinear-body-sees"></a></h2>
@@ -427,36 +445,30 @@ Wald standard error. <code><a href="../articles/diagnostics.html">vignette("diag
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">1</span> <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="va">dd</span><span class="op">$</span><span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">0</span>, <span class="fl">0.5</span><span class="op">)</span><span class="op">[</span><span class="va">dd</span><span class="op">$</span><span class="va">g</span><span class="op">]</span>, <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Family: gaussian </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Family: gaussian </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mu = identity; sigma = log</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Formula: y ~ x + (1 | g) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Method: ML   nobs: 100 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Groups: g, 10 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -145.746  AIC: 299.492  BIC: 309.913 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Data: dd (Number of observations: 100) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Method: ML   logLik: -145.746   AIC: 299.492   BIC: 309.913 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Random effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1 | g </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         Name Std.Dev.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  (Intercept)  0.55725</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Multilevel Hyperparameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ~g (Number of levels: 10) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sd(Intercept)     0.56      0.16     0.31     0.99</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients (mu):</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>             Estimate Std. Error z value  Pr(&gt;|z|)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)  1.13568    0.20133  5.6410 1.691e-08</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x            0.66736    0.11269  5.9222 3.176e-09</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Regression Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept     1.14      0.20     0.74     1.53    5.64  1.7e-08</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x             0.67      0.11     0.45     0.89    5.92  3.2e-09</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients (sigma):</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              Estimate Std. Error z value Pr(&gt;|z|)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) -0.034743   0.074545 -0.4661   0.6412</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Further Distributional Parameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma     0.97      0.07     0.83     1.12</span>
 <span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $mu</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1.1356757   0.6673571 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $sigma</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> -0.03474316 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            Estimate Est.Error      Q2.5     Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept 1.1356757 0.2013266 0.7410828 1.5302687</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x         0.6673571 0.1126869 0.4464948 0.8882195</span>
 <span class="r-in"><span><span class="fu"><a href="VarCorr.html">VarCorr</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $g</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $g$sd</span>
@@ -502,42 +514,18 @@ Wald standard error. <code><a href="../articles/diagnostics.html">vignette("diag
 <span class="r-in"><span><span class="va">st</span><span class="op">$</span><span class="va">beta</span><span class="op">[[</span><span class="st">"asym_(Intercept)"</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">5</span></span></span>
 <span class="r-in"><span><span class="va">st</span><span class="op">$</span><span class="va">beta</span><span class="op">[[</span><span class="st">"lrc_(Intercept)"</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">1</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="fu">frm</span><span class="op">(</span><span class="va">nf</span>, data <span class="op">=</span> <span class="va">nd</span>, start <span class="op">=</span> <span class="va">st</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $asym</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    7.955791 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $lrc</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    2.942713 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $mu</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> numeric(0)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $sigma</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   -1.204505 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                Estimate  Est.Error     Q2.5    Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> asym_Intercept 7.955791 0.08151862 7.796018 8.115565</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> lrc_Intercept  2.942713 0.08735253 2.771505 3.113920</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># or let a located prior place the same starts, brms-style</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="fu">frm</span><span class="op">(</span><span class="va">nf</span>, data <span class="op">=</span> <span class="va">nd</span>,</span></span>
 <span class="r-in"><span>          prior <span class="op">=</span> <span class="fu"><a href="prior.html">prior</a></span><span class="op">(</span><span class="fu">normal</span><span class="op">(</span><span class="fl">5</span>, <span class="fl">5</span><span class="op">)</span>, nlpar <span class="op">=</span> <span class="st">"asym"</span><span class="op">)</span> <span class="op">+</span></span></span>
 <span class="r-in"><span>            <span class="fu"><a href="prior.html">prior</a></span><span class="op">(</span><span class="fu">normal</span><span class="op">(</span><span class="fl">1</span>, <span class="fl">5</span><span class="op">)</span>, nlpar <span class="op">=</span> <span class="st">"lrc"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Nonlinear starting values placed at the prior locations: asym_(Intercept) = 5, lrc_(Intercept) = 1. Give `start` to choose your own.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $asym</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    7.954524 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $lrc</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    2.941385 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $mu</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> numeric(0)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $sigma</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   -1.204503 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                Estimate  Est.Error     Q2.5    Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> asym_Intercept 7.954524 0.08143384 7.794916 8.114131</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> lrc_Intercept  2.941385 0.08725620 2.770366 3.112404</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

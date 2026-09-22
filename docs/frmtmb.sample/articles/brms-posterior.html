@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -234,13 +234,14 @@ parameters.</p>
 <h2 id="the-method-surface-ports">The method surface ports<a class="anchor" aria-label="anchor" href="#the-method-surface-ports"></a>
 </h2>
 <p>The post-processing generics are brms’s own, on a
-<code>frmtmb_draws</code> object, and they return brms’s objects: the
+<code>frmtmb_draws</code> object, and they return brms’s SHAPES: the
 summary matrices and arrays, the raw draws at
-<code>summary = FALSE</code>, and brms’s <code>brmshypothesis</code>
-list. So most ported code runs unchanged: <code><a href="https://rdrr.io/pkg/nlme/man/fixed.effects.html" class="external-link">fixef()</a></code>,
-<code><a href="https://rdrr.io/pkg/nlme/man/random.effects.html" class="external-link">ranef()</a></code>, <code><a href="https://rdrr.io/pkg/nlme/man/VarCorr.html" class="external-link">VarCorr()</a></code>,
+<code>summary = FALSE</code>, and the same list
+<code><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis()</a></code> gives, under frmtmb’s own class rather than
+brms’s <code>brmshypothesis</code>. So most ported code runs unchanged:
+<code><a href="https://rdrr.io/pkg/nlme/man/fixed.effects.html" class="external-link">fixef()</a></code>, <code><a href="https://rdrr.io/pkg/nlme/man/random.effects.html" class="external-link">ranef()</a></code>, <code><a href="https://rdrr.io/pkg/nlme/man/VarCorr.html" class="external-link">VarCorr()</a></code>,
 <code><a href="../reference/posterior_epred.html">posterior_epred()</a></code>, <code><a href="../reference/posterior_epred.html">posterior_predict()</a></code>,
-<code><a href="../reference/posterior_epred.html">posterior_linpred()</a></code>, <code><a href="../reference/log_lik.html">log_lik()</a></code>,
+<code><a href="../reference/posterior_epred.html">posterior_linpred()</a></code>, <code><a href="https://mc-stan.org/rstantools/reference/log_lik.html" class="external-link">log_lik()</a></code>,
 <code><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo()</a></code>, <code><a href="https://mc-stan.org/loo/reference/waic.html" class="external-link">waic()</a></code>, <code><a href="https://mc-stan.org/rstantools/reference/bayes_R2.html" class="external-link">bayes_R2()</a></code>,
 <code><a href="https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html" class="external-link">hypothesis()</a></code>, <code><a href="https://paulbuerkner.com/brms/reference/conditional_effects.brmsfit.html" class="external-link">conditional_effects()</a></code>,
 <code><a href="https://mc-stan.org/bayesplot/reference/pp_check.html" class="external-link">pp_check()</a></code>, <code><a href="../reference/draws-diagnostics.html">mcmc_plot()</a></code>,

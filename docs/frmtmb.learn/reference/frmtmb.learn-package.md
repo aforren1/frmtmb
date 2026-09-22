@@ -429,12 +429,8 @@ fit <- frmtmb::frm(
   frmtmb::bf(choice | reward(pay1, pay2) ~ after_reversal, tau ~ 1),
   family = bandit2arm_delta(subject = id, trial = trial), data = d)
 frmtmb::fixef(fit)
-#> $alpha
-#>         (Intercept) after_reversalafter 
-#>          -0.9385871           0.1404640 
-#> 
-#> $tau
-#> (Intercept) 
-#>    1.118225 
-#> 
+#>                             Estimate Est.Error       Q2.5      Q97.5
+#> alpha_Intercept           -0.9385871 0.3352872 -1.5957379 -0.2814362
+#> tau_Intercept              1.1182248 0.1260055  0.8712585  1.3651912
+#> alpha_after_reversalafter  0.1404640 0.3764248 -0.5973150  0.8782431
 ```

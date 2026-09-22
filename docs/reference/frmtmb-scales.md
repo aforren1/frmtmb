@@ -28,11 +28,11 @@ The three scales are:
 |  |  |  |
 |----|----|----|
 | method | returns | scale |
-| [`predict()`](https://rdrr.io/r/stats/predict.html), default | the `mu` linear predictor | link |
-| `predict(type = "link")` | the same | link |
-| `predict(type = "response")` | the conditional mean | response |
-| `predict(dpar = "sigma")` | that predictor | link; `type = "response"` gives response |
-| [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) | the conditional mean | response |
+| [`predict()`](https://rdrr.io/r/stats/predict.html) | a summary of the PREDICTIVE distribution | response |
+| [`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md), default | the `mu` linear predictor | link |
+| `frm_linpred(type = "response")` | the conditional mean | response |
+| `frm_linpred(dpar = "sigma")` | that predictor | link; `"response"` gives response |
+| [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) | a summary of the conditional mean | response |
 | [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md) | `estimate__` and its band | response |
 | [`residuals()`](https://rdrr.io/r/stats/residuals.html), default | observed minus [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) | response |
 | `residuals(type = "pearson")` | that, over the conditional SD | unitless |
@@ -49,27 +49,29 @@ The three scales are:
 | [`bayes_R2()`](https://aforren1.github.io/frmtmb/reference/bayes_R2.md) | refuses on a `frmtmb_fit` | neither |
 | [`logLik()`](https://rdrr.io/r/stats/logLik.html), [`AIC()`](https://rdrr.io/r/stats/AIC.html), [`BIC()`](https://rdrr.io/r/stats/AIC.html) | the fitted likelihood | the data's own |
 
-## The two places this differs from brms
+## Where this differs from brms
 
-[`predict()`](https://rdrr.io/r/stats/predict.html) is the first. brms
-returns posterior predictive draws summarized on the RESPONSE scale;
-frmtmb returns the LINEAR PREDICTOR, because it has one parameter vector
-rather than a posterior and the linear predictor is the quantity an ML
-fit actually estimates. On a lognormal fit that is the difference
-between about 8 and about 6,700. Ask for `type = "response"`, or call
-[`fitted()`](https://rdrr.io/r/stats/fitted.values.html), to get the
-quantity brms's [`fitted()`](https://rdrr.io/r/stats/fitted.values.html)
-reports. Measured with `dev/generics-scale.R` and
-`dev/generics-scale-brms.R`.
+[`predict()`](https://rdrr.io/r/stats/predict.html) used to be the
+first, and is no longer: since item 2.6d it is brms's, a summary of the
+predictive distribution on the response scale. The LINEAR PREDICTOR,
+which is what it returned before and what the glmmTMB `type` vocabulary
+reaches, moved to
+[`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md)
+unchanged. On a lognormal fit the two differ by about 8 against about
+6,700, which is why they could not share a name. Measured with
+`dev/generics-scale.R` and `dev/generics-scale-brms.R`.
 
-`sigma` is the second.
-[`summary()`](https://rdrr.io/r/base/summary.html) and
+`sigma` is the one that remains.
+[`summary()`](https://rdrr.io/r/base/summary.html)'s
+`Regression Coefficients` block and
 [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) report
-every coefficient on its own link, so a `sigma` with the default log
-link is printed as `log(sigma)` and can be negative. brms samples
-`sigma` itself and prints it on the response scale.
-[`sigma()`](https://rdrr.io/r/stats/sigma.html) here back-transforms and
-gives brms's number.
+every coefficient on its own link, so a `sigma` WITH A FORMULA and the
+default log link is reported as `log(sigma)` and can be negative. A
+`sigma` nobody wrote a formula for is not a coefficient at all: it is in
+[`summary()`](https://rdrr.io/r/base/summary.html)'s
+`Further Distributional Parameters` block on its own response scale, as
+in brms, and [`sigma()`](https://rdrr.io/r/stats/sigma.html) returns
+that number.
 
 ## What agrees with brms without any conversion
 
@@ -91,9 +93,9 @@ are load-bearing**, and neither is obvious from the formula:
 - With a distributional sigma (`bf(y ~ x, sigma ~ x)`),
   [`sigma()`](https://rdrr.io/r/stats/sigma.html) returns `NA` with a
   warning, because there is no one number to return, and the formula
-  gives `NA` with it. Use `predict(dpar = "sigma", type = "response")`,
-  which reproduces
-  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) exactly
+  gives `NA` with it. Use
+  `frm_linpred(dpar = "sigma", type = "response")`, which reproduces
+  `fitted(dpar = "sigma")[, "Estimate"]` exactly
   ([`identical()`](https://rdrr.io/r/base/identical.html) is `TRUE`).
 
 - Under truncation,
@@ -126,6 +128,7 @@ are deterministic and repeat to the last digit.
 ## See also
 
 [`predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md),
+[`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md),
 [`fitted.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/fitted.frmtmb_fit.md),
 [`residuals.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/residuals.frmtmb_fit.md),
 [`sigma.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/sigma.frmtmb_fit.md),
@@ -142,22 +145,39 @@ dd$y <- exp(rnorm(200, 8 + 0.4 * dd$x, 0.4))
 fit <- frm(bf(y ~ x) + lognormal(), data = dd)
 #> Warning: Large maximum absolute gradient at the optimum (0.00143); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
 
-# the default is the linear predictor, not the outcome
-head(predict(fit))
+# predict() summarizes the predictive distribution; frm_linpred()
+# is the linear predictor and fitted() the expected response
+head(predict(fit, ndraws = 200))
+#>      Estimate Est.Error      Q2.5    Q97.5
+#> [1,] 3832.295 1535.2672 1715.7373 7631.886
+#> [2,] 2162.523  931.8451 1051.5997 4591.016
+#> [3,] 3580.354 1627.6969 1459.8562 7605.899
+#> [4,] 3114.909 1282.5714 1335.0573 6272.218
+#> [5,] 2405.242  946.9341  979.7062 4669.090
+#> [6,] 1219.641  509.4481  512.4532 2496.949
+head(frm_linpred(fit))
 #>        1        2        3        4        5        6 
 #> 8.214703 7.569772 8.061015 7.970745 7.736237 6.990888 
 head(fitted(fit))
-#>        1        2        3        4        5        6 
-#> 3984.808 2090.824 3417.128 3122.179 2469.517 1171.955 
+#>      Estimate Est.Error     Q2.5    Q97.5
+#> [1,] 3984.808 126.97321 3735.945 4233.671
+#> [2,] 2090.824  87.35777 1919.606 2262.042
+#> [3,] 3417.128  98.16207 3224.734 3609.522
+#> [4,] 3122.179  89.39280 2946.972 3297.386
+#> [5,] 2469.517  84.57853 2303.746 2635.288
+#> [6,] 1171.955  89.39567  996.743 1347.168
 
-# and the two are related by the family's own mean
-head(exp(predict(fit) + sigma(fit)^2 / 2) - fitted(fit))
+# the last two are related by the family's own mean
+head(exp(frm_linpred(fit) + sigma(fit)^2 / 2) -
+       fitted(fit)[, "Estimate"])
 #> 1 2 3 4 5 6 
 #> 0 0 0 0 0 0 
 
-# sigma is printed on its log link and back-transformed by sigma()
-summary(fit)$coefficients$sigma[1, 1]
-#> [1] -0.944966
+# a sigma nobody wrote a formula for is a distributional parameter
+# on its own scale, not a coefficient on its link
+summary(fit)$spec_pars
+#>        Estimate  Est.Error  l-95% CI  u-95% CI
+#> sigma 0.3886928 0.01943464 0.3524085 0.4287129
 sigma(fit)
 #> [1] 0.3886928
 ```

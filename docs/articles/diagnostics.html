@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -195,7 +195,7 @@ regardless of family, and remain valid under correlated observations,
 where pearson residuals mislead.</li>
 </ul>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"osa"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"osa"</span><span class="op">)</span><span class="op">[</span>, <span class="st">"Estimate"</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/stats/qqnorm.html" class="external-link">qqnorm</a></span><span class="op">(</span><span class="va">r</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
 <p><img src="diagnostics_files/figure-html/osa-qq-1.png" class="r-plt" alt="Normal quantile-quantile plot of the one-step-ahead residuals. The points follow the identity line over most of the range, with small departures in the tails." width="576"></p>
 <p>Simulation-based residuals through DHARMa cover the same ground with
@@ -364,23 +364,25 @@ default) turns it off:</p>
 says so, and says how far it can be trusted:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">imp</span></span>
-<span><span class="co">#&gt; frmtmb fit: y ~ x + (x | g) </span></span>
-<span><span class="co">#&gt; Family: bernoulli   Method: ML </span></span>
+<span><span class="co">#&gt;  Family: bernoulli </span></span>
 <span><span class="co">#&gt;  Links: mu = logit</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; logLik: -118.439  AIC: 246.878  nobs: 200 </span></span>
+<span><span class="co">#&gt; Formula: y ~ x + (x | g) </span></span>
+<span><span class="co">#&gt;    Data: bd (Number of observations: 200) </span></span>
+<span><span class="co">#&gt;  Method: ML   logLik: -118.439   AIC: 246.878   BIC: 263.37 </span></span>
 <span><span class="co">#&gt; Marginal likelihood: importance-corrected, 500 draws per group in 4 rounds (MCSE 0.11, min ESS 0.64 of 1) </span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Fixed effects:</span></span>
-<span><span class="co">#&gt;  mu:</span></span>
-<span><span class="co">#&gt; (Intercept)           x </span></span>
-<span><span class="co">#&gt;      -0.754       1.131 </span></span>
+<span><span class="co">#&gt; Multilevel Hyperparameters:</span></span>
+<span><span class="co">#&gt; ~g (Number of levels: 40) </span></span>
+<span><span class="co">#&gt;                  Estimate Est.Error l-95% CI u-95% CI</span></span>
+<span><span class="co">#&gt; sd(Intercept)        1.06      0.34     0.57     1.97</span></span>
+<span><span class="co">#&gt; sd(x)                2.32      0.56     1.44     3.72</span></span>
+<span><span class="co">#&gt; cor(Intercept,x)    -0.04      0.38    -0.65     0.61</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Random effects:</span></span>
-<span><span class="co">#&gt;   x | g </span></span>
-<span><span class="co">#&gt;         Name Std.Dev. (Intercept)</span></span>
-<span><span class="co">#&gt;  (Intercept)   1.0596            </span></span>
-<span><span class="co">#&gt;            x   2.3157     -0.0377</span></span></code></pre></div>
+<span><span class="co">#&gt; Regression Coefficients:</span></span>
+<span><span class="co">#&gt;           Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; Intercept    -0.75      0.29    -1.32    -0.19   -2.61   0.0089</span></span>
+<span><span class="co">#&gt; x             1.13      0.48     0.18     2.08    2.34   0.0192</span></span></code></pre></div>
 <p>Note what this model is. The random effect is a correlated intercept
 and slope, so the per-group integral is two-dimensional.
 <code>quadrature = TRUE</code> cannot marginalize it at all: the

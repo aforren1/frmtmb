@@ -15,7 +15,7 @@ marginal likelihood at the optimum (that is, vcov(object, full = TRUE)) and s_g 
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -195,8 +195,8 @@ for the cases this refuses.</p></div>
 <span class="r-in"><span>           REML <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/diag.html" class="external-link">diag</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>                          <span class="co"># model-based</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       (Intercept)                 x sigma_(Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        0.10787700        0.11225600        0.04564353 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept         x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  0.107877  0.112256 </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/diag.html" class="external-link">diag</a></span><span class="op">(</span><span class="fu">vcov_cluster</span><span class="op">(</span><span class="va">fit</span>, <span class="op">~</span> <span class="va">g</span>, <span class="st">"CR1"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>      <span class="co"># cluster-robust</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       (Intercept)                 x sigma_(Intercept) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>        0.09237769        0.12179568        0.08048348 </span>

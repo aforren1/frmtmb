@@ -15,7 +15,7 @@ family, with the periodogram-specific refusals attached."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -212,27 +212,26 @@ is safe. Tapering reduces that bias and correlates the rows.</p>
 <span class="r-in"><span><span class="co"># by the same Laplace marginal likelihood as any other smooth</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">pgram</span> <span class="op">~</span> <span class="fu">s</span><span class="op">(</span><span class="va">freq</span>, k <span class="op">=</span> <span class="fl">8</span><span class="op">)</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">whittle</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">pg</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $mu</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) s(freq).fx1 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  0.02596863 -0.82825927 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>              Estimate  Est.Error        Q2.5      Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept  0.02596863 0.06279847 -0.09711411  0.1490514</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sfreq_1   -0.82825927 0.26107404 -1.33995499 -0.3165636</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># an averaged periodogram needs the shape it was averaged with</span></span></span>
 <span class="r-in"><span><span class="va">pg4</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm_periodogram.html">frm_periodogram</a></span><span class="op">(</span><span class="va">y</span>, segments <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">pgram</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">freq</span><span class="op">)</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">whittle</span><span class="op">(</span>tapers <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">pg4</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: pgram ~ log(freq) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Family: whittle   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Family: whittle </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mu = log; shape = log</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -43.121  AIC: 90.242  nobs: 63 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Formula: pgram ~ log(freq) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Data: pg4 (Number of observations: 63) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Method: ML   logLik: -43.121   AIC: 90.242   BIC: 94.5283 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mu:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)   log(freq) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     -1.5726     -0.9801 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  shape:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       1.386 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Regression Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept    -1.57      0.15    -1.86    -1.28  -10.62   &lt;2e-16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> logfreq      -0.98      0.08    -1.14    -0.82  -12.15   &lt;2e-16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed dpar: shape = 4</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

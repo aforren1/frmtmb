@@ -248,7 +248,7 @@ the same quantity in the same order under the same names as
 `reparameterize = FALSE` gives, and every method downstream
 ([`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
 [`frmtmb::ranef()`](https://rdrr.io/pkg/nlme/man/random.effects.html),
-[`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md),
+[`frmtmb::log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.html),
 [`frmtmb::loo()`](https://aforren1.github.io/frmtmb/reference/loo.html),
 [`frmtmb::conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.html),
 [`frmtmb::hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.html))
@@ -548,6 +548,9 @@ prior_summary(ds3)
 #>   sigma              student_t(3, 0, 2.5)  [natural scale]
 #>   sd                 student_t(3, 0, 2.5)  [natural sd scale]
 #>   b                  (flat), as brms leaves slopes
+#> Warning: The largest R-hat is 1.08, indicating chains have not mixed.
+#> Running the chains for more iterations may help. See
+#> https://mc-stan.org/misc/warnings.html#r-hat
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#bulk-ess
@@ -558,9 +561,6 @@ prior_summary(ds3)
 #>   Intercept          student_t(3, 1, 2.5)
 #>   sigma              student_t(3, 0, 2.5)  [natural scale]
 #>   b                  (flat), as brms leaves slopes
-#> Warning: The largest R-hat is 1.05, indicating chains have not mixed.
-#> Running the chains for more iterations may help. See
-#> https://mc-stan.org/misc/warnings.html#r-hat
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#bulk-ess

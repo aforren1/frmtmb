@@ -23,7 +23,7 @@ arguments the way the user-facing surface does."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -130,7 +130,7 @@ random-effect blocks to build in their non-centered form
 <p><code>row_lpdf(fam, y, yobs, dpars, aterms, extra)</code> is the per-row
 log-density composition the objective itself runs, with <code>cens()</code> and
 <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> folded in; it runs on numeric dpar values as readily as on
-the tape, which is what makes a pointwise <code>log_lik()</code> reproduce the
+the tape, which is what makes a pointwise <code><a href="log_lik.html">log_lik()</a></code> reproduce the
 fitted density exactly instead of approximating it.
 <code>with_cs_offsets(fit, rspec, dpv)</code> takes one response spec from
 <code>fit$spec$responses</code> and the dpar-value list <code><a href="frmtmb-extension-api.html">eval_dpars()</a></code> returns
@@ -159,6 +159,27 @@ one specification addresses, and <code>spec_spelling()</code> gives back the
 class and dpar it was WRITTEN with, which for a density on a
 distributional parameter itself is that parameter's own class rather
 than the intercept slot the resolver assigns to.</p>
+<p><code>vcov_estimated(fit)</code> is the covariance of EVERY estimated
+coefficient under the internal names, which is what pairs with
+<code>estimated_coef_names()</code>; <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code> itself covers brms's
+population-level block and leaves out an intercept-only
+distributional parameter. It does NOT cover an ordinal fit's
+thresholds or its <code>cs()</code> coefficients, which live outside <code>beta</code>
+and <code>betad</code>: the interop seams pair with a longer vector that has
+them, and <code>vcov(fit, full = TRUE)</code> is where they are under
+<code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>'s names.</p>
+<p><code>fam_is_category_valued(fam)</code> says whether a response is a set of
+categories, so that a predictive summary is a set of proportions
+rather than a mean, and <code>predict_category_props(fit, rspec, draws)</code>
+builds brms's <code>P(Y = k)</code> matrix from a matrix of simulated or
+sampled responses. <code>brms_summary_matrix()</code>, <code>brms_summary_array()</code>,
+<code>brms_summarize_draws()</code> and <code>brms_prob_cols()</code> build brms's
+<code>Estimate</code> / <code>Est.Error</code> / <code>Q</code> columns from a point estimate with a
+standard error, or from draws. <code>brms_fixef_rows(fit)</code> gives brms's
+population-level rows in brms's order: which coefficient-table rows
+they are, and the ordinal thresholds and <code>cs()</code> coefficients that are
+not, each with the map from the internal vector to the reported value,
+so a draws object can report the same rows <code><a href="fixef.html">fixef()</a></code> does.</p>
 <p><code>frmtmb_register_prior_defaults()</code> is the other direction: it lets a
 package tell <code><a href="default_prior.html">get_prior()</a></code> what defaults it would apply.
 <code><a href="default_prior.html">get_prior()</a></code> reads the registry under <code>route = "sample"</code> ONLY, and
@@ -260,7 +281,7 @@ once, then per vector swaps the estimates in and calls
 <code>class</code> and <code>group</code> arguments. <code>hyp_labels()</code> writes brms's
 <code>Hypothesis</code> label for each string, <code>hyp_samples_frame(m, k)</code> lays a
 draws matrix out as brms's <code>samples</code> frame (<code>H1</code>, <code>H2</code>, ...), and
-<code>hyp_brms_result()</code> assembles the <code>brmshypothesis</code>-shaped list every
+<code>hyp_brms_result()</code> assembles the brms-shaped list every
 <code><a href="hypothesis.html">hypothesis()</a></code> method returns, so no method builds that shape on its
 own.</p>
     </div>

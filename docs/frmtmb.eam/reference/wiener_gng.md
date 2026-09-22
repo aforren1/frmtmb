@@ -471,20 +471,6 @@ mean(dat$responded)
 fit <- frm(bf(rt | dec(responded) ~ 1, bias = 0.5),
            family = wiener_gng(deadline = 1.5), data = dat)
 fixef(fit)
-#> $mu
-#> (Intercept) 
-#>   0.8922841 
-#> 
-#> $bs
-#> (Intercept) 
-#>    0.341704 
-#> 
-#> $ndt
-#> (Intercept) 
-#>    1.706139 
-#> 
-#> $bias
-#> (Intercept) 
-#>           0 
-#> 
+#>            Estimate  Est.Error     Q2.5    Q97.5
+#> Intercept 0.8922841 0.06564924 0.763614 1.020954
 ```

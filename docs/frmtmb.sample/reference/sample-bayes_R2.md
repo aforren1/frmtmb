@@ -77,7 +77,7 @@ posterior draws.
 
 ## See also
 
-[`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md),
+[`frmtmb::log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.html),
 [`frmtmb::loo()`](https://aforren1.github.io/frmtmb/reference/loo.html)
 
 ## Examples
@@ -107,6 +107,6 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
 #>       10%       90% 
-#> 0.2039201 0.4204364 
+#> 0.2041248 0.4147706 
 # }
 ```

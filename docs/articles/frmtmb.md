@@ -15,36 +15,39 @@ data(sleepstudy, package = "lme4")
 fit <- frm(bf(Reaction ~ Days + (Days | Subject)), family = gaussian(),
            data = sleepstudy)
 summary(fit)
-#> Family: gaussian 
+#>  Family: gaussian 
 #>  Links: mu = identity; sigma = log
 #> 
 #> Formula: Reaction ~ Days + (Days | Subject) 
-#> Method: ML   nobs: 180 
-#> Groups: Subject, 18 
-#> logLik: -875.97  AIC: 1763.94  BIC: 1783.1 
+#>    Data: sleepstudy (Number of observations: 180) 
+#>  Method: ML   logLik: -875.97   AIC: 1763.94   BIC: 1783.1 
 #> 
-#> Random effects:
-#>   Days | Subject 
-#>         Name Std.Dev. (Intercept)
-#>  (Intercept)  23.7800            
-#>         Days   5.7168      0.0813
+#> Multilevel Hyperparameters:
+#> ~Subject (Number of levels: 18) 
+#>                     Estimate Est.Error l-95% CI u-95% CI
+#> sd(Intercept)          23.78      5.58    15.02    37.66
+#> sd(Days)                5.72      1.19     3.81     8.59
+#> cor(Intercept,Days)     0.08      0.32    -0.51     0.62
 #> 
-#> Coefficients (mu):
-#>             Estimate Std. Error z value  Pr(>|z|)
-#> (Intercept) 251.4052     6.6323 37.9064 < 2.2e-16
-#> Days         10.4673     1.5022  6.9678  3.22e-12
+#> Regression Coefficients:
+#>           Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept   251.41      6.63   238.41   264.40   37.91  < 2e-16
+#> Days         10.47      1.50     7.52    13.41    6.97  3.2e-12
 #> 
-#> Coefficients (sigma):
-#>             Estimate Std. Error z value  Pr(>|z|)
-#> (Intercept) 3.242273   0.058926  55.023 < 2.2e-16
+#> Further Distributional Parameters:
+#>       Estimate Est.Error l-95% CI u-95% CI
+#> sigma    25.59      1.51     22.8    28.72
 ```
 
 The usual methods work:
 [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md),
 [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md),
 [`VarCorr()`](https://aforren1.github.io/frmtmb/reference/VarCorr.md),
-[`predict()`](https://rdrr.io/r/stats/predict.html) (with `newdata`,
-`se.fit`, and `re_formula`),
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+[`predict()`](https://rdrr.io/r/stats/predict.html) (brms’s summary
+matrices, the second with observation noise in it),
+[`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md)
+(the linear predictor, with `newdata`, `se.fit` and `re_formula`),
 [`confint()`](https://rdrr.io/r/stats/confint.html) (Wald, profile, or
 likelihood-root), [`simulate()`](https://rdrr.io/r/stats/simulate.html),
 [`anova()`](https://rdrr.io/r/stats/anova.html) for likelihood-ratio
@@ -57,7 +60,7 @@ own intercept and its own slope.
 
 ``` r
 
-sleepstudy$yhat <- fitted(fit)
+sleepstudy$yhat <- fitted(fit)[, "Estimate"]
 tinyplot::tinyplot(Reaction ~ Days, data = sleepstudy, facet = ~Subject,
                    type = "p", pch = 16, cex = 0.7, col = "gray40",
                    theme = "clean2", facet.args = list(nrow = 3))
@@ -85,7 +88,7 @@ predictor grammar, including random effects and smooths:
 fit2 <- frm(bf(Reaction ~ Days + (Days | Subject),
                sigma ~ Days), family = gaussian(),
             data = sleepstudy)
-fixef(fit2)$sigma
+fixef_by_dpar(fit2)$sigma
 #> (Intercept)        Days 
 #>  2.81184862  0.08463401
 ```
@@ -97,8 +100,9 @@ day.
 
 ``` r
 
-day_sd <- as.numeric(tapply(residuals(fit2), sleepstudy$Days, sd))
-sig <- as.numeric(predict(fit2, dpar = "sigma", type = "response",
+day_sd <- as.numeric(tapply(residuals(fit2)[, "Estimate"],
+                            sleepstudy$Days, sd))
+sig <- as.numeric(frm_linpred(fit2, dpar = "sigma", type = "response",
                           newdata = data.frame(Days = 0:9,
                                                Subject = "308")))
 tinyplot::tinyplot(x = 0:9, y = day_sd, type = "p", pch = 16,
@@ -309,8 +313,8 @@ more digits, at some cost in optimizer robustness.
 
 Because `esicar` constrains exactly, `con_sd` changes nothing it
 reports. The likelihood, the estimates, `sd(car)`, the standard errors
-from `predict(se.fit = TRUE)` and the conditional standard deviations
-from `ranef(condVar = TRUE)` are all invariant to it.
+from `frm_linpred(se.fit = TRUE)` and the conditional standard
+deviations from `ranef(condVar = TRUE)` are all invariant to it.
 
 The standard errors were not, through 0.52.0. The delta method paired
 the design columns with the parameters through an identity Jacobian,
@@ -375,7 +379,7 @@ set.seed(3)
 dm <- data.frame(inc = sample(0:3, 300, TRUE), z = rnorm(300))
 dm$y <- 1 + c(0, 1, 1.6, 2)[dm$inc + 1] + 0.3 * dm$z + rnorm(300)
 fmo <- frm(bf(y ~ mo(inc) + z), family = gaussian(), data = dm)
-predict(fmo, newdata = data.frame(inc = 0:3, z = 0))
+frm_linpred(fmo, newdata = data.frame(inc = 0:3, z = 0))
 #>         1         2         3         4 
 #> 0.9227861 1.8599425 2.5575740 2.9094146
 ```

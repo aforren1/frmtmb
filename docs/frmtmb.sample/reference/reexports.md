@@ -17,6 +17,7 @@ to see their documentation.
   [`fixef`](https://rdrr.io/pkg/nlme/man/fixed.effects.html),
   [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.html),
   [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.html),
+  [`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.html),
   [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.html),
   [`LOO()`](https://aforren1.github.io/frmtmb/reference/loo.html),
   [`loo_compare()`](https://aforren1.github.io/frmtmb/reference/loo.html),

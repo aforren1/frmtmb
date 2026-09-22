@@ -135,31 +135,30 @@ d$y <- 1 + 0.5 * d$x +
 fit <- frm(bf(y ~ x + (1 | mm(school1, school2))) + gaussian(),
            data = d)
 summary(fit)
-#> Family: gaussian 
+#>  Family: gaussian 
 #>  Links: mu = identity; sigma = log
 #> 
 #> Formula: y ~ x + (1 | mm(school1, school2)) 
-#> Method: ML   nobs: 200 
-#> Groups: mm(school1, school2), 12 
-#> logLik: -172.632  AIC: 353.264  BIC: 366.457 
+#>    Data: d (Number of observations: 200) 
+#>  Method: ML   logLik: -172.632   AIC: 353.264   BIC: 366.457 
 #> 
-#> Random effects:
-#>   1 | mm(school1, school2) 
-#>         Name Std.Dev.
-#>  (Intercept)  0.92491
+#> Multilevel Hyperparameters:
+#> ~mmschool1school2 (Number of levels: NA) 
+#>               Estimate Est.Error l-95% CI u-95% CI
+#> sd(Intercept)     0.92       0.2     0.61     1.41
 #> 
-#> Coefficients (mu):
-#>             Estimate Std. Error z value  Pr(>|z|)
-#> (Intercept) 0.696447   0.270091  2.5786  0.009921
-#> x           0.494486   0.041424 11.9372 < 2.2e-16
+#> Regression Coefficients:
+#>           Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept     0.70      0.27     0.17     1.23    2.58   0.0099
+#> x             0.49      0.04     0.41     0.58   11.94   <2e-16
 #> 
-#> Coefficients (sigma):
-#>              Estimate Std. Error z value  Pr(>|z|)
-#> (Intercept) -0.652812   0.051576 -12.657 < 2.2e-16
+#> Further Distributional Parameters:
+#>       Estimate Est.Error l-95% CI u-95% CI
+#> sigma     0.52      0.03     0.47     0.58
 # one coefficient per pooled school level
 ranef(fit)
 #> $mm(school1, school2)   (1 | mm(school1, school2))
-#>   (Intercept)
+#>     Intercept
 #> a  0.18370669
 #> b -0.02184145
 #> c -0.74232816
@@ -178,22 +177,24 @@ ranef(fit)
 frm(bf(y ~ x + (1 | mm(school1, school2,
                        weights = cbind(share1, share2)))) + gaussian(),
     data = d)
-#> frmtmb fit: y ~ x + (1 | mm(school1, school2, weights = cbind(share1, share2))) 
-#> Family: gaussian   Method: ML 
+#>  Family: gaussian 
 #>  Links: mu = identity; sigma = log
 #> 
-#> logLik: -208.589  AIC: 425.179  nobs: 200 
+#> Formula: y ~ x + (1 | mm(school1, school2, weights = cbind(share1, share2))) 
+#>    Data: d (Number of observations: 200) 
+#>  Method: ML   logLik: -208.589   AIC: 425.179   BIC: 438.372 
 #> 
-#> Fixed effects:
-#>  mu:
-#> (Intercept)           x 
-#>      0.6553      0.4746 
-#>  sigma:
-#> (Intercept) 
-#>     -0.4667 
+#> Multilevel Hyperparameters:
+#> ~mmschool1school2weightsEQcbindshare1share2 (Number of levels: NA) 
+#>               Estimate Est.Error l-95% CI u-95% CI
+#> sd(Intercept)     0.96      0.23      0.6     1.52
 #> 
-#> Random effects:
-#>   1 | mm(school1, school2, weights = cbind(share1, share2)) 
-#>         Name Std.Dev.
-#>  (Intercept)  0.95985
+#> Regression Coefficients:
+#>           Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept     0.66      0.28     0.10     1.21    2.30    0.021
+#> x             0.47      0.05     0.38     0.57    9.39   <2e-16
+#> 
+#> Further Distributional Parameters:
+#>       Estimate Est.Error l-95% CI u-95% CI
+#> sigma     0.63      0.03     0.57     0.69
 ```

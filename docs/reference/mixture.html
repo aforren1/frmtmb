@@ -3,7 +3,7 @@
 component keeps its own distributional parameters, suffixed by the
 component index (mu1, sigma1, mu2, ...), and the mixing
 A mixing weight's RESPONSE scale is the softmax over the component
-predictors, so predict(type = &quot;response&quot;, dpar = &quot;theta1&quot;) is a
+predictors, so frm_linpred(type = &quot;response&quot;, dpar = &quot;theta1&quot;) is a
 probability while type = &quot;link&quot; stays the predictor the density
 works on. Under se.fit = TRUE that probability's standard error is
 the delta method through its OWN predictor, p (1 - p) times the
@@ -15,7 +15,7 @@ method on a three-component fit, never narrower."><meta property="og:description
 component keeps its own distributional parameters, suffixed by the
 component index (mu1, sigma1, mu2, ...), and the mixing
 A mixing weight's RESPONSE scale is the softmax over the component
-predictors, so predict(type = &quot;response&quot;, dpar = &quot;theta1&quot;) is a
+predictors, so frm_linpred(type = &quot;response&quot;, dpar = &quot;theta1&quot;) is a
 probability while type = &quot;link&quot; stays the predictor the density
 works on. Under se.fit = TRUE that probability's standard error is
 the delta method through its OWN predictor, p (1 - p) times the
@@ -31,7 +31,7 @@ method on a three-component fit, never narrower."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -91,7 +91,7 @@ method on a three-component fit, never narrower."></head><body>
 component keeps its own distributional parameters, suffixed by the
 component index (<code>mu1</code>, <code>sigma1</code>, <code>mu2</code>, ...), and the mixing
 A mixing weight's RESPONSE scale is the softmax over the component
-predictors, so <code>predict(type = "response", dpar = "theta1")</code> is a
+predictors, so <code>frm_linpred(type = "response", dpar = "theta1")</code> is a
 probability while <code>type = "link"</code> stays the predictor the density
 works on. Under <code>se.fit = TRUE</code> that probability's standard error is
 the delta method through its OWN predictor, <code>p (1 - p)</code> times the
@@ -169,26 +169,9 @@ ordinary mixtures), conditional on the random-effect modes.</p>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span> <span class="fu">mixture</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="co"># one mu and sigma per component, plus the mixing weight theta1</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $mu1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> -0.002346141 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $sigma1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  -0.1298411 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $mu2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    4.999987 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $sigma2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  0.01009985 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $theta1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 0.004758874 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                   Estimate  Est.Error       Q2.5     Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mu1_Intercept -0.002346141 0.09962412 -0.1976058 0.1929135</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mu2_Intercept  4.999986512 0.11450977  4.7755515 5.2244215</span>
 <span class="r-in"><span><span class="co"># posterior class probability per observation</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="mixture_probs.html">mixture_probs</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         class1       class2</span>
@@ -201,29 +184,25 @@ ordinary mixtures), conditional on the random-effect modes.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># the mixing weight can take its own predictor</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="fl">1</span>, <span class="va">theta1</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu">mixture</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: y ~ 1 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Family: mixture(gaussian, gaussian)   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Family: mixture(gaussian, gaussian) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mu1 = identity; sigma1 = log; mu2 = identity; sigma2 = log;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         theta1 = identity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -327.164  AIC: 666.328  nobs: 160 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Formula: y ~ 1 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Data: dd (Number of observations: 160) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Method: ML   logLik: -327.164   AIC: 666.328   BIC: 684.779 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mu1:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   -0.002575 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  sigma1:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     -0.1302 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mu2:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           5 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  sigma2:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     0.01038 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  theta1:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     0.01004    -0.07069 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Regression Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mu1_Intercept        0.00      0.10    -0.20     0.19   -0.03     0.98</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mu2_Intercept        5.00      0.11     4.78     5.22   43.65   &lt;2e-16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> theta1_Intercept     0.01      0.16    -0.30     0.32    0.06     0.95</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> theta1_x            -0.07      0.15    -0.36     0.22   -0.47     0.64</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Further Distributional Parameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma1     0.88      0.07     0.75     1.03</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma2     1.01      0.08     0.86     1.19</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="co"># latent classes: every observation of a group shares one class</span></span></span>

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -144,17 +144,17 @@ addressed by the factor name as before.</p>
 <span class="r-in"><span><span class="co"># one matrix per random-effect term, levels by coefficients</span></span></span>
 <span class="r-in"><span><span class="fu">ranef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $g   (1 | g)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    (Intercept)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1   -0.7929115</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2    0.1938107</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3   -0.6968785</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4   -0.3665259</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5   -1.2649313</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6    1.0458808</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 7    0.8996844</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 8    0.2424397</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 9   -0.2011950</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10   0.9405886</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Intercept</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1  -0.7929115</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2   0.1938107</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3  -0.6968785</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4  -0.3665259</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5  -1.2649313</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6   1.0458808</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7   0.8996844</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8   0.2424397</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9  -0.2011950</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10  0.9405886</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="fu">ranef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">g</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="op">]</span>                 <span class="co"># keyed by the grouping factor</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>          1          2          3 </span>
@@ -168,13 +168,13 @@ addressed by the factor name as before.</p>
 <span class="r-in"><span><span class="co"># condVar adds the conditional SDs a caterpillar plot needs</span></span></span>
 <span class="r-in"><span><span class="va">re</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu">ranef</span><span class="op">(</span><span class="va">fit</span>, condVar <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">re</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     grp        term level    condval    condsd</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 1 | g (Intercept)     1 -0.7929115 0.3795333</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 1 | g (Intercept)     2  0.1938107 0.3736784</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3 1 | g (Intercept)     3 -0.6968785 0.3773146</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4 1 | g (Intercept)     4 -0.3665259 0.3788799</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5 1 | g (Intercept)     5 -1.2649313 0.3829424</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6 1 | g (Intercept)     6  1.0458808 0.3798946</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     grp      term level    condval    condsd</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 1 | g Intercept     1 -0.7929115 0.3795333</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 1 | g Intercept     2  0.1938107 0.3736784</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 1 | g Intercept     3 -0.6968785 0.3773146</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 1 | g Intercept     4 -0.3665259 0.3788799</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 1 | g Intercept     5 -1.2649313 0.3829424</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 1 | g Intercept     6  1.0458808 0.3798946</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">re</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="va">re</span><span class="op">$</span><span class="va">condval</span><span class="op">)</span>, <span class="op">]</span>,</span></span>
 <span class="r-in"><span>     <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">condval</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">condval</span><span class="op">)</span>, pch <span class="op">=</span> <span class="fl">16</span>,</span></span>
 <span class="r-in"><span>          xlim <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/range.html" class="external-link">range</a></span><span class="op">(</span><span class="va">condval</span> <span class="op">-</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">condsd</span>, <span class="va">condval</span> <span class="op">+</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">condsd</span><span class="op">)</span>,</span></span>

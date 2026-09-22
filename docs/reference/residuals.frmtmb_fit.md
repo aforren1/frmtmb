@@ -11,9 +11,15 @@ correlated observations where pearson residuals mislead.
 # S3 method for class 'frmtmb_fit'
 residuals(
   object,
-  type = c("response", "pearson", "deviance", "osa"),
+  type = c("response", "ordinary", "pearson", "deviance", "osa"),
   osa_method = NULL,
-  ...
+  ...,
+  ndraws = NULL,
+  draw_ids = NULL,
+  sort = FALSE,
+  summary = TRUE,
+  robust = FALSE,
+  probs = c(0.025, 0.975)
 )
 ```
 
@@ -25,7 +31,11 @@ residuals(
 
 - type:
 
-  `"response"`, `"pearson"`, `"deviance"`, or `"osa"`.
+  `"response"` (brms spells the same thing `"ordinary"`, and both are
+  accepted), `"pearson"`, `"deviance"`, or `"osa"`. brms's
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) takes
+  `newdata` in this position; this one has always taken `type` there,
+  and `newdata` is refused by name.
 
 - osa_method:
 
@@ -48,9 +58,24 @@ residuals(
   `ndraws`, `draw_ids`, `sort`, `summary`, `robust`, `probs`) are
   refused with the reason rather than reported as unknown names.
 
+- ndraws, draw_ids, sort, summary, robust:
+
+  brms's arguments. Each needs posterior draws and a maximum-likelihood
+  fit has none, so each is refused by name with the reason. The default
+  of each is accepted and changes nothing.
+
+- probs:
+
+  Probabilities of the two quantile columns, the ends of the Wald
+  interval at those probabilities.
+
 ## Value
 
-A numeric vector, `NA` on censored rows.
+brms's summary matrix: `n` rows with `NULL` dimnames, as brms's are, and
+the columns `Estimate`, `Est.Error` and one per entry of `probs`, `NA`
+on censored rows. The observed response is fixed, so `Est.Error` is the
+standard error of the fitted value; a `"deviance"` or `"osa"` residual
+has none and reports `NA` there.
 
 ## Details
 
@@ -170,17 +195,28 @@ fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
 
 # raw and variance-standardized residuals
 head(residuals(fit))
-#>          1          2          3          4          5          6 
-#> -0.4940281 -0.9276322 -0.7935414  0.3403558  2.0031268  0.4382665 
+#>        Estimate Est.Error       Q2.5      Q97.5
+#> [1,] -0.4940281 0.1731106 -0.8333187 -0.1547376
+#> [2,] -0.9276322 0.2799946 -1.4764116 -0.3788528
+#> [3,] -0.7935414 0.2259217 -1.2363398 -0.3507429
+#> [4,]  0.3403558 0.7525356 -1.1345869  1.8152986
+#> [5,]  2.0031268 0.2886996  1.4372859  2.5689676
+#> [6,]  0.4382665 0.4892102 -0.5205679  1.3971010
 head(residuals(fit, type = "pearson"))
-#>          1          2          3          4          5          6 
-#> -0.7028714 -0.9631367 -0.8908094  0.2086995  2.0062658  0.2738239 
+#>        Estimate Est.Error       Q2.5      Q97.5
+#> [1,] -0.7028714 0.2462906 -1.1855920 -0.2201507
+#> [2,] -0.9631367 0.2907112 -1.5329202 -0.3933531
+#> [3,] -0.8908094 0.2536140 -1.3878837 -0.3937351
+#> [4,]  0.2086995 0.4614401 -0.6957064  1.1131054
+#> [5,]  2.0062658 0.2891520  1.4395383  2.5729933
+#> [6,]  0.2738239 0.3056529 -0.3252448  0.8728926
 # the usual overdispersion check for a poisson fit
-sum(residuals(fit, type = "pearson")^2) / df.residual(fit)
+pr <- residuals(fit, type = "pearson")[, "Estimate"]
+sum(pr^2) / df.residual(fit)
 #> [1] 0.9176762
 
 # one-step-ahead quantile residuals are standard normal under a
 # correctly specified model, whatever the family
-r <- residuals(fit, type = "osa")
+r <- residuals(fit, type = "osa")[, "Estimate"]
 qqnorm(r); qqline(r)
 ```

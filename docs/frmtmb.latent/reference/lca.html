@@ -13,7 +13,7 @@ items conditionally independent given the class,"></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.latent</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -323,7 +323,7 @@ better dropped.</p>
 probabilities per subject (with the relative-entropy classification
 diagnostic attached), <code><a href="lca_profiles.html">lca_profiles()</a></code> gives the item profile table,
 and <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> draws a class per subject and then its items.
-<code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>, <code>predict(type = "response")</code> and <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> are
+<code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>, <code>frm_linpred(type = "response")</code> and <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code> are
 refused: the response is a matrix of nominal codes, so an "expected
 item code" would be an average of arbitrary labels. Read
 <code><a href="lca_probs.html">lca_probs()</a></code> and <code><a href="lca_profiles.html">lca_profiles()</a></code> instead. <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> itself
@@ -405,16 +405,17 @@ clustering of a numeric matrix.</p></div>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># latent class regression: covariates gate class membership</span></span></span>
 <span class="r-in"><span><span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">Y</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">lca</span><span class="op">(</span>K <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: Y ~ x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Family: lca(K = 2)   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Family: lca(K = 2) </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Links: theta1 = identity</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -697.815  AIC: 1415.63  nobs: 300 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Formula: Y ~ x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Data: dd (Number of observations: 300) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Method: ML   logLik: -697.815   AIC: 1415.63   BIC: 1452.67 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  theta1:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    -0.91700     0.04477 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Regression Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> theta1_Intercept    -0.92      0.16    -1.23    -0.60   -5.71  1.1e-08</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> theta1_x             0.04      0.13    -0.22     0.31    0.33     0.74</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

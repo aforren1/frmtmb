@@ -135,8 +135,7 @@ pp_check(ds, type = "stat", stat = "sd")
 [`loo()`](https://mc-stan.org/loo/reference/loo.html) is the real
 leave-one-out here, not the [`AIC()`](https://rdrr.io/r/stats/AIC.html)
 substitute core offers. It runs Pareto-smoothed importance sampling on
-the
-[`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md)
+the [`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html)
 matrix and returns the loo package’s own object, so
 [`print()`](https://rdrr.io/r/base/print.html) and
 [`loo::pareto_k_table()`](https://mc-stan.org/loo/reference/pareto-k-diagnostic.html)

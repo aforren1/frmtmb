@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -412,14 +412,20 @@ silent, 1 stage progress, 2 optimizer trace. An explicit
 <code>profile</code>, <code>sparse_x</code>, <code>autoscale</code>,
 <code>check_nlev_1</code>, <code>check_olre</code> and
 <code>verbose</code>.</p>
-<p><code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> takes <code>newdata</code> (a data frame),
-<code>type</code>, <code>dpar</code>, <code>resp</code>,
-<code>re_formula</code>, <code>se.fit</code> and
-<code>allow_new_levels</code>. Every name is brms’s: where brms and lme4
-or glmmTMB disagree, brms decides. An argument that is not in that list
-is an ERROR naming it. The lme4 spellings <code>re.form</code> and
-<code>allow.new.levels</code> were live until the rename and are refused
-by name, with the replacement in the message.</p>
+<p><code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> is brms’s predictive summary and takes
+<code>newdata</code> (a data frame), <code>re_formula</code>,
+<code>transform</code>, <code>resp</code>, <code>ndraws</code>,
+<code>summary</code>, <code>robust</code>, <code>probs</code> and
+<code>allow_new_levels</code>. <code><a href="../reference/frm_linpred.html">frm_linpred()</a></code> is the linear
+predictor and takes <code>newdata</code>, <code>type</code>,
+<code>dpar</code>, <code>resp</code>, <code>re_formula</code>,
+<code>se.fit</code> and <code>allow_new_levels</code>. Every name is
+brms’s: where brms and lme4 or glmmTMB disagree, brms decides. An
+argument that is not in the list is an ERROR naming it, and
+<code>predict(type =)</code> and <code>predict(se.fit =)</code> are
+refused with <code><a href="../reference/frm_linpred.html">frm_linpred()</a></code> named in the message. The lme4
+spellings <code>re.form</code> and <code>allow.new.levels</code> were
+live until the rename and are refused by name too.</p>
 </div>
 <div class="section level2">
 <h2 id="predictor-classes">Predictor classes<a class="anchor" aria-label="anchor" href="#predictor-classes"></a>
@@ -620,7 +626,7 @@ column or if you want the epoch origin.</p>
 <p>All character options are matched with <code><a href="https://rdrr.io/r/base/match.arg.html" class="external-link">match.arg()</a></code>, so
 matching is case sensitive and accepts unambiguous prefixes.
 <code>"response"</code> and <code>"resp"</code> both work for
-<code>predict(type =)</code>; <code>"Response"</code> does not.</p>
+<code>frm_linpred(type =)</code>; <code>"Response"</code> does not.</p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -634,7 +640,7 @@ matching is case sensitive and accepts unambiguous prefixes.
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td><code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code></td>
+<td><code><a href="../reference/frm_linpred.html">frm_linpred()</a></code></td>
 <td><code>type</code></td>
 <td>
 <code>"link"</code>, <code>"response"</code>,
@@ -646,8 +652,8 @@ matching is case sensitive and accepts unambiguous prefixes.
 <td><code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code></td>
 <td><code>type</code></td>
 <td>
-<code>"response"</code>, <code>"pearson"</code>,
-<code>"deviance"</code>, <code>"osa"</code>
+<code>"response"</code> (brms’s <code>"ordinary"</code>),
+<code>"pearson"</code>, <code>"deviance"</code>, <code>"osa"</code>
 </td>
 </tr>
 <tr class="odd">
@@ -763,9 +769,9 @@ The rules below say what happens where two of them do meet.</p>
 <p><strong>Columns and coefficients never collide.</strong> A
 coefficient is stored under its dpar prefix, so a covariate named
 <code>sigma</code> in the mean is <code>sigma</code> in
-<code>fixef(fit)$mu</code> while the residual standard deviation is
-<code>(Intercept)</code> in <code>fixef(fit)$sigma</code>. Both fit, and
-neither reads the other.</p>
+<code>fixef_by_dpar(fit)$mu</code> while the residual standard deviation
+is <code>(Intercept)</code> in <code>fixef_by_dpar(fit)$sigma</code>.
+Both fit, and neither reads the other.</p>
 <p><strong>A nonlinear parameter may not also be a column.</strong>
 <code>bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE)</code> on data
 that has a column <code>a</code> is refused: the body would use the
@@ -866,9 +872,9 @@ positions.</li>
 </ul>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="../reference/bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">g</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "obs1" "obs2" "obs3"</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; NULL</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/frm_linpred.html">frm_linpred</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "obs1" "obs2" "obs3"</span></span></code></pre></div>
 </div>
 <div class="section level3">

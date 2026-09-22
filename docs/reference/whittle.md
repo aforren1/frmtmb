@@ -144,25 +144,24 @@ pg <- frm_periodogram(y)
 # by the same Laplace marginal likelihood as any other smooth
 fit <- frm(bf(pgram ~ s(freq, k = 8)), family = whittle(), data = pg)
 fixef(fit)
-#> $mu
-#> (Intercept) s(freq).fx1 
-#>  0.02596863 -0.82825927 
-#> 
+#>              Estimate  Est.Error        Q2.5      Q97.5
+#> Intercept  0.02596863 0.06279847 -0.09711411  0.1490514
+#> sfreq_1   -0.82825927 0.26107404 -1.33995499 -0.3165636
 
 # an averaged periodogram needs the shape it was averaged with
 pg4 <- frm_periodogram(y, segments = 4)
 frm(bf(pgram ~ log(freq)), family = whittle(tapers = 4), data = pg4)
-#> frmtmb fit: pgram ~ log(freq) 
-#> Family: whittle   Method: ML 
+#>  Family: whittle 
 #>  Links: mu = log; shape = log
 #> 
-#> logLik: -43.121  AIC: 90.242  nobs: 63 
+#> Formula: pgram ~ log(freq) 
+#>    Data: pg4 (Number of observations: 63) 
+#>  Method: ML   logLik: -43.121   AIC: 90.242   BIC: 94.5283 
 #> 
-#> Fixed effects:
-#>  mu:
-#> (Intercept)   log(freq) 
-#>     -1.5726     -0.9801 
-#>  shape:
-#> (Intercept) 
-#>       1.386 
+#> Regression Coefficients:
+#>           Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept    -1.57      0.15    -1.86    -1.28  -10.62   <2e-16
+#> logfreq      -0.98      0.08    -1.14    -0.82  -12.15   <2e-16
+#> 
+#> Fixed dpar: shape = 4
 ```

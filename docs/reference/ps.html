@@ -15,7 +15,7 @@ it, exponentiate it, or pass it on."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -189,7 +189,7 @@ truncated powers cancels terms of order <code>(range / spacing)^degree</code>.
 <p><code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> and <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> work: the body is re-evaluated at the new
 data or at the drawn coefficients, and the frozen basis is evaluated
 at whatever argument comes out.</p>
-<p><code>predict(se.fit = TRUE)</code> stays refused for a nonlinear predictor.
+<p><code>frm_linpred(se.fit = TRUE)</code> stays refused for a nonlinear predictor.
 <code><a href="frm_lp_basis.html">frm_lp_basis()</a></code> is the route: it tapes the body and returns
 <code>d eta / d coef</code> as a Jacobian, which is what a delta method over a
 warped curve needs.</p>
@@ -230,20 +230,9 @@ block builds, <a href="frmtmb-extension-api.html">frmtmb-extension-api</a></p></
 <span class="r-in"><span>           data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>2 of 320 fitted values of t + shift fall outside the knot span of ps(t + shift, k = 8) [-0.1, 1.1], where the basis is exactly zero and its gradient with it. Refit with a larger pad =</span>
 <span class="r-in"><span><span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $lev</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    2.002918 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $shift</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> numeric(0)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $mu</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> numeric(0)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $sigma</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   -2.310741 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                    Estimate Est.Error      Q2.5     Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> lev_Intercept      2.002918 0.1003904  1.806156  2.199679</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> pstPshiftkEQ8.fx1 -1.993027 0.4793116 -2.932460 -1.053593</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

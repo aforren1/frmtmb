@@ -160,7 +160,7 @@ has always been. Write `rt | vint(choice) + ndt_group(subject) ~ ...`
 when `ndt` carries a subject deviation, and the bound becomes that
 subject's own fastest response. A per-row bound cannot live in a link,
 so under a grouping `ndt` is a FRACTION of the row's bound and the
-density multiplies: `predict(dpar = "ndt", type = "response")` then
+density multiplies: `frm_linpred(dpar = "ndt", type = "response")` then
 reports the fraction and
 [`ndt_time()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.md)
 reports the time either way. A single bound is the global fastest
@@ -276,28 +276,8 @@ dat <- rdm_simulate(400, v = c(3.0, 2.0, 1.2), A = 0.5, k = 0.5,
                     ndt = 0.2)
 fit <- frm(bf(rt | vint(choice) ~ 1), family = rdm(3), data = dat)
 fixef(fit)
-#> $v1
-#> (Intercept) 
-#>    1.054443 
-#> 
-#> $v2
-#> (Intercept) 
-#>   0.5458444 
-#> 
-#> $v3
-#> (Intercept) 
-#> -0.09667655 
-#> 
-#> $A
-#> (Intercept) 
-#>  -0.8922818 
-#> 
-#> $k
-#> (Intercept) 
-#>  -0.7532663 
-#> 
-#> $ndt
-#> (Intercept) 
-#>    2.203433 
-#> 
+#>                 Estimate Est.Error       Q2.5     Q97.5
+#> v1_Intercept  1.05444255 0.1178023  0.8235542 1.2853309
+#> v2_Intercept  0.54584441 0.1707863  0.2111094 0.8805794
+#> v3_Intercept -0.09667655 0.3166363 -0.7172723 0.5239192
 ```

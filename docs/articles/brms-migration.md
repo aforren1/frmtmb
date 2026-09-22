@@ -229,19 +229,22 @@ not written.
 
 - Posterior summaries become ML estimates:
   [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md)
-  returns point estimates,
-  [`confint()`](https://rdrr.io/r/stats/confint.html) gives Wald or
-  profile intervals, [`anova()`](https://rdrr.io/r/stats/anova.html)
-  gives likelihood-ratio tests, and
+  returns brms’s summary matrix with a standard error and a Wald
+  interval in it, [`confint()`](https://rdrr.io/r/stats/confint.html)
+  gives Wald or profile intervals,
+  [`anova()`](https://rdrr.io/r/stats/anova.html) gives likelihood-ratio
+  tests, and
   [`AIC()`](https://rdrr.io/r/stats/AIC.html)/[`BIC()`](https://rdrr.io/r/stats/AIC.html)
   replace [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md).
 
 - `posterior_predict()` becomes
-  [`simulate()`](https://rdrr.io/r/stats/simulate.html);
-  `posterior_epred()` over `newdata` becomes
-  `predict(newdata, type = "response")`. On a `cens()` response both
-  draw the LATENT uncensored value, as brms does;
-  `simulate(censored = TRUE)` applies the censoring mechanism instead.
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html), or
+  [`predict()`](https://rdrr.io/r/stats/predict.html), which summarizes
+  the same draws; `posterior_epred()` over `newdata` becomes
+  `fitted(newdata = )`, or `frm_linpred(newdata = , type = "response")`
+  for the bare vector. On a `cens()` response both draw the LATENT
+  uncensored value, as brms does; `simulate(censored = TRUE)` applies
+  the censoring mechanism instead.
 
 - `sample_prior = "only"` plus `posterior_predict()` becomes
   `frm_simulate(formula, data, prior = set_prior(...))`, which draws a
@@ -463,7 +466,14 @@ and `unstr()` are written where brms writes them, in the model formula,
 and mean what brms means under `cov = TRUE`: the residuals of one group
 become a single correlated draw, `y_g ~ N(mu_g, D R D)` with `D` the
 diagonal of that group’s `sigma` values. `?frmtmb-autocor` has the full
-page; four things matter when porting.
+page; five things matter when porting.
+
+**The term grammar is brms’s.** `time` is ONE variable name, or absent
+for the row’s position within its group, and `gr` is variable names
+crossed with `:`. An expression in either position is refused rather
+than evaluated, exactly as brms refuses it: `ar(x + t, g)` would index
+the correlation by the sum, and `gr = g1/g2` would group the residual by
+the quotient. Compute the column first and name it.
 
 **`cov = TRUE` is required for
 [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()` and `arma()`.** brms
@@ -630,37 +640,106 @@ what a standard generic returns:
   [`coef()`](https://rdrr.io/r/stats/coef.html) take brms’s `summary`,
   `robust` and `probs` in brms’s positions and refuse `summary = FALSE`
   by name, because a fit has no draws to return.
-- stats-origin generics return stats-shaped values, not brms-shaped
-  ones: [`predict()`](https://rdrr.io/r/stats/predict.html) returns a
-  vector (with `se.fit = TRUE`, a list), not a draws matrix with
-  `Estimate`/`Q2.5` columns;
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  reads brms’s grammar too: every hypothesis states a relation, so write
+  `"x = 0"` and not `"x"`.
+
+- [`predict()`](https://rdrr.io/r/stats/predict.html),
   [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
-  [`residuals()`](https://rdrr.io/r/stats/residuals.html) return
-  vectors; [`confint()`](https://rdrr.io/r/stats/confint.html) takes
-  `level =`, not `probs =`. Their ARGUMENT names are brms’s:
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) return brms’s
+  summary matrix: the columns `Estimate`, `Est.Error`, `Q2.5` and
+  `Q97.5`, one row per observation. A maximum-likelihood fit has no
+  draws, so `Est.Error` is a standard error and the `Q` columns are a
+  Wald interval, except on
+  [`predict()`](https://rdrr.io/r/stats/predict.html), whose draws are
+  SIMULATED and whose `Q` columns are the simulation’s own quantiles. An
+  ordinal or categorical response gives brms’s `n` by 4 by `K` array
+  from [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+  brms’s `P(Y = k)` proportions from
+  [`predict()`](https://rdrr.io/r/stats/predict.html).
+  [`confint()`](https://rdrr.io/r/stats/confint.html) still takes
+  `level =` rather than `probs =`.
+
+- **A matrix is not a vector, and every scalar summary of it changes.**
+  This is brms fidelity, not a defect, and it is the one change in this
+  list that gives a WRONG NUMBER rather than an error. brms’s
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) is a matrix,
+  so `mean(residuals(fit))` averages four columns and not one. Measured
+  on `y ~ x + f`, n = 150:
+
+  | expression                         | before        | now        |
+  |------------------------------------|---------------|------------|
+  | `mean(residuals(fit))`             | -2.894331e-06 | 0.03897951 |
+  | `sd(residuals(fit))`               | 0.9701508     | 0.8689341  |
+  | `sum(residuals(fit)^2)`            | 140.2377      | 453.1844   |
+  | `length(qqnorm(residuals(fit))$x)` | 150           | 600        |
+
+  The residual vector is `residuals(fit)[, "Estimate"]`, and the same
+  holds for [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+  [`predict()`](https://rdrr.io/r/stats/predict.html). Code written
+  against brms already does this; code written against frmtmb before the
+  move does not. `insight::get_residuals(fit)` returns the vector, as it
+  does for a `brmsfit`.
+
+- **[`predict()`](https://rdrr.io/r/stats/predict.html) is the
+  PREDICTIVE distribution, not the linear predictor.** This is the one
+  call whose meaning moved. brms’s
+  [`predict()`](https://rdrr.io/r/stats/predict.html) summarizes the
+  posterior predictive distribution with observation noise in it, and
+  frmtmb’s now does the same, by simulating from the fit: each replicate
+  draws the parameters from their asymptotic normal law and then a
+  response from the family’s own simulator. The LINEAR PREDICTOR, which
+  [`predict()`](https://rdrr.io/r/stats/predict.html) returned before,
+  is
+  [`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md),
+  with the same arguments it always had:
+  `frm_linpred(fit, type = "link")` is the old `predict(fit)` and
+  `frm_linpred(fit, se.fit = TRUE)` the old standard errors. A ported
+  script that passes `type` or `se.fit` to
+  [`predict()`](https://rdrr.io/r/stats/predict.html) is refused by name
+  and told where each one went, so the scale cannot change in silence.
+
+- Their ARGUMENT names are brms’s:
   [`predict()`](https://rdrr.io/r/stats/predict.html),
-  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
-  [`simulate()`](https://rdrr.io/r/stats/simulate.html) take
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  [`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md)
+  and [`simulate()`](https://rdrr.io/r/stats/simulate.html) take
   `re_formula` and `allow_new_levels`, and lme4’s `re.form` and
   `allow.new.levels` are refused with the replacement named in the
   message. An argument none of them has is an error rather than a
-  silently ignored name. The exception to the shape rule is an ordinal
-  family, where [`fitted()`](https://rdrr.io/r/stats/fitted.values.html)
-  follows brms and returns the `n` by `K` matrix of category
-  probabilities named by the response levels, exactly as
-  `predict(type = "response")` does; the latent linear predictor is
-  `predict(type = "link")`.
-- **The name transfers; the SCALE does not.**
-  [`predict()`](https://rdrr.io/r/stats/predict.html) takes brms’s
-  `re_formula` now, but it still defaults to the LINK scale where the
-  brms call it replaces returns the response scale. A ported
-  `predict(fit, re_formula = NA)` is therefore accepted in silence and
-  answers on a different scale: on a poisson fit the two differ by the
-  inverse link, 0.114223 against 1.121002. Ask for `type = "response"`,
-  or use [`fitted()`](https://rdrr.io/r/stats/fitted.values.html), which
-  is on the response scale by default. Before the rename that same call
-  warned that it was ignoring an unknown argument, so the warning that
-  used to flag the port is gone while the scale difference is not.
+  silently ignored name.
+
+- [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) is
+  brms’s summary matrix too, with brms’s row names (`Intercept`,
+  `sigma_Intercept`), and [`vcov()`](https://rdrr.io/r/stats/vcov.html)
+  covers exactly those rows. The per-predictor list
+  [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) used
+  to return is
+  [`fixef_by_dpar()`](https://aforren1.github.io/frmtmb/reference/fixef_by_dpar.md),
+  and `fixef(flatten = TRUE)` is one vector of estimates in
+  [`confint()`](https://rdrr.io/r/stats/confint.html)’s spelling.
+  [`ngrps()`](https://aforren1.github.io/frmtmb/reference/ngrps.md) is
+  brms’s named list. [`summary()`](https://rdrr.io/r/base/summary.html)
+  carries brms’s `$fixed`, `$random`, `$spec_pars` and `$cor_pars` slots
+  and prints brms’s section headings, and brms’s EMPTY shapes with them:
+  `$random` is `NULL` when the model has no grouping factors, and
+  `$spec_pars` and `$cor_pars` are frames with no rows when there is
+  nothing to report. On an ordinal fit the thresholds are
+  [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) rows
+  named `Intercept[1]`, `Intercept[2]`, and
+  [`vcov()`](https://rdrr.io/r/stats/vcov.html) covers them, as they are
+  in brms.
+
+- [`coef()`](https://rdrr.io/r/stats/coef.html) and
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md) name
+  their coefficients as brms names them, `Intercept` and not
+  `(Intercept)`, so that anything pairing
+  [`coef()`](https://rdrr.io/r/stats/coef.html) with
+  [`vcov()`](https://rdrr.io/r/stats/vcov.html) by name,
+  [`lmtest::coeftest()`](https://rdrr.io/pkg/lmtest/man/coeftest.html)
+  among them, keeps every row. The design-column spelling is
+  [`fixef_by_dpar()`](https://aforren1.github.io/frmtmb/reference/fixef_by_dpar.md).
+
 - [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
   on an ordinal fit draws one probability curve per response category,
   which is what brms draws under `categorical = TRUE`, and keys the
@@ -668,9 +747,18 @@ what a standard generic returns:
   brms’s own default warns that it is treating an ordered factor as
   continuous; `categorical = FALSE` asks for that summary, the expected
   category number.
+
 - [`coef()`](https://rdrr.io/r/stats/coef.html) is the per-group
   convention shared by all three packages: fixed effects plus
   conditional modes per grouping level.
+
+- `predict(allow_new_levels = TRUE)` draws an unseen level’s effect from
+  its block’s estimated covariance, which is brms’s
+  `sample_new_levels = "gaussian"`, so the interval at an unseen level
+  is wider than at a known one. brms’s `"uncertainty"` and
+  `"old_levels"` resample the draws of the levels that were seen, and a
+  maximum-likelihood fit has none, so both are refused by name.
+
 - `plot(fit)` draws residual diagnostics, not MCMC traces; for
   simulation-based residual checks use
   [`dharma_residuals()`](https://aforren1.github.io/frmtmb/reference/dharma_residuals.md).

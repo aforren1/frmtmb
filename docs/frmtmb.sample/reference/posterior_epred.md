@@ -22,6 +22,9 @@ posterior_epred(
   nlpar = NULL,
   ndraws = NULL,
   draw_ids = NULL,
+  sort = FALSE,
+  point_estimate = NULL,
+  ndraws_point_estimate = 1,
   ...
 )
 
@@ -40,6 +43,9 @@ posterior_linpred(
   incl_thres = NULL,
   ndraws = NULL,
   draw_ids = NULL,
+  sort = FALSE,
+  point_estimate = NULL,
+  ndraws_point_estimate = 1,
   ...
 )
 
@@ -56,6 +62,11 @@ posterior_predict(
   negative_rt = FALSE,
   ndraws = NULL,
   draw_ids = NULL,
+  sort = FALSE,
+  ntrys = NULL,
+  cores = NULL,
+  point_estimate = NULL,
+  ndraws_point_estimate = 1,
   ...
 )
 ```
@@ -69,7 +80,17 @@ posterior_predict(
 
 - ...:
 
-  Unused.
+  Refused: an argument the method does not have is an error naming it,
+  rather than a silently ignored name. The exceptions are brms's
+  `allow_new_levels` (and `allow.new.levels`) and `sample_new_levels`.
+  `allow_new_levels = FALSE`, and `TRUE` with levels the fit saw, answer
+  as the call without it does. `TRUE` with a level the fit did not see,
+  including a `newdata` that leaves the grouping column out, is refused:
+  brms draws that level's effect from each posterior draw, which is not
+  built here, and predicting it at the population level would drop the
+  group variance from every draw.
+  [`frmtmb::predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.html)
+  predicts unseen levels from the maximum-likelihood fit.
 
 - newdata, resp:
 
@@ -110,6 +131,18 @@ posterior_predict(
   The draws to use, by row index, instead of the evenly spaced subsample
   `ndraws` takes. Give one or the other.
 
+- sort:
+
+  brms's argument. Rows come back in the order of the data here, always,
+  so `sort = TRUE` is refused by name.
+
+- point_estimate, ndraws_point_estimate:
+
+  brms's arguments, which collapse the draws to their `"mean"` or
+  `"median"` FIRST and run the method once at that one parameter vector,
+  repeated `ndraws_point_estimate` times. It is a parameter-space
+  operation and not a summary of the output, as in brms.
+
 - transform:
 
   For `posterior_linpred()`: if `TRUE`, apply the inverse link (the
@@ -128,6 +161,13 @@ posterior_predict(
   For `posterior_predict()`: refused. It is brms's sign convention for
   its own wiener family.
 
+- ntrys, cores:
+
+  brms's arguments, carried so that a positional brms call lands where
+  brms lands it. Both are refused by name: the rejection limit of a
+  [`trunc()`](https://rdrr.io/r/base/Round.html)ed draw is the family
+  simulator's own, and the draws are replayed in one process.
+
 ## Value
 
 A draws-by-observations matrix; for a categorical outcome
@@ -137,14 +177,14 @@ A draws-by-observations matrix; for a categorical outcome
 ## Categorical outcomes
 
 An ordinal family predicts a DISTRIBUTION per observation, not one
-number: each draw's `predict(type = "response")` is an `n x K` matrix of
-category probabilities. Those stack into a 3-D
+number: each draw's `frm_linpred(type = "response")` is an `n x K`
+matrix of category probabilities. Those stack into a 3-D
 `draws x observations x categories` array. `dimnames` are
 `list(NULL, <observation names or NULL>, <category levels>)`, so
 `ep[, , "high"]` is the draws-by-observations matrix for one category
 and `ep[k, , ]` is draw `k`'s own `n x K` prediction, the matrix
-`predict(type = "response")` returns. Every `ep[k, i, ]` sums to 1 for
-an ordinal family.
+`frm_linpred(type = "response")` returns. Every `ep[k, i, ]` sums to 1
+for an ordinal family.
 
 This is brms's convention:
 [`?brms::posterior_epred.brmsfit`](https://paulbuerkner.com/brms/reference/posterior_epred.brmsfit.html)

@@ -17,7 +17,7 @@ with frmtmb_family(structure = )."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -194,7 +194,7 @@ per-OBSERVATION quantity does not exist. Ignored when <code>loglik</code> is
 <dt id="arg-fitted-mean-fitted-var">fitted_mean, fitted_var<a class="anchor" aria-label="anchor" href="#arg-fitted-mean-fitted-var"></a></dt>
 <dd><p><code>function(fit, block)</code> giving the
 conditional mean and variance of each row GIVEN the whole observed
-response, for <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>, <code>predict(type = "response")</code> on the
+response, for <code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code>, <code>frm_linpred(type = "response")</code> on the
 training data, and pearson residuals. <code>NULL</code> means "use the rowwise
 family mean", which is what a group-level mixture wants. A family
 with no mean supplies a function that stops. Both run at the
@@ -381,7 +381,7 @@ family that keeps its rowwise likelihood), every name defaults to
 <dd><p><code>predict(newdata =, type = "response")</code>.</p></dd>
 
 <dt><code>se_fit_response</code></dt>
-<dd><p><code>predict(se.fit = TRUE, type = "response")</code>.</p></dd>
+<dd><p><code>frm_linpred(se.fit = TRUE, type = "response")</code>.</p></dd>
 
 <dt><code>re_form</code></dt>
 <dd><p><code>re_formula =</code> in <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> and <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>.</p></dd>

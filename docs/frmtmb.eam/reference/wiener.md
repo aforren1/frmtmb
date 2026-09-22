@@ -145,8 +145,8 @@ the constraint structural instead, and it does so in one of two ways.
 **Without `ndt_group()`, `ndt` is a TIME**, on a logit scaled onto
 `(0, ub)` with `ub` the fastest response in the whole data set, or
 `max_ndt` when you give one. This is the parameterization the family has
-always had. `predict(dpar = "ndt", type = "response")` reports seconds,
-a `prior(class = "ndt")` is a density on those seconds, and a
+always had. `frm_linpred(dpar = "ndt", type = "response")` reports
+seconds, a `prior(class = "ndt")` is a density on those seconds, and a
 `bf(ndt = 0.2)` constant is 0.2 seconds.
 
 **With `ndt_group()`, `ndt` is a FRACTION of the row's own bound**, on a
@@ -160,8 +160,8 @@ the fastest response of the row's group. Write
 and each subject's non-decision time is bounded by its own fastest
 response. That is what a random effect on `ndt` needs; the next section
 is what one global bound does to it. The price is that `ndt` is on a
-different scale: `predict(dpar = "ndt", type = "response")` reports the
-fraction, and
+different scale: `frm_linpred(dpar = "ndt", type = "response")` reports
+the fraction, and
 [`ndt_time()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.md)
 reports the time for either parameterization. A `prior(class = "ndt")`
 and a `bf(ndt = )` constant are fractions under a grouping too.
@@ -431,20 +431,6 @@ dat <- ddm_simulate(300, mu = 0.8, bs = 1.4, ndt = 0.3, bias = 0.5)
 fit <- frm(bf(rt | dec(upper) ~ 1, bias = 0.5),
            family = wiener(), data = dat)
 fixef(fit)
-#> $mu
-#> (Intercept) 
-#>   0.6956708 
-#> 
-#> $bs
-#> (Intercept) 
-#>   0.3349967 
-#> 
-#> $ndt
-#> (Intercept) 
-#>    1.935868 
-#> 
-#> $bias
-#> (Intercept) 
-#>           0 
-#> 
+#>            Estimate  Est.Error     Q2.5     Q97.5
+#> Intercept 0.6956708 0.08770048 0.523781 0.8675606
 ```

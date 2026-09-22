@@ -1,0 +1,303 @@
+# Predictions from a frmtmb fit
+
+Predictions from a frmtmb fit
+
+## Usage
+
+``` r
+frm_linpred(
+  object,
+  newdata = NULL,
+  type = c("link", "response", "conditional", "zprob", "zlink", "disp"),
+  dpar = NULL,
+  resp = NULL,
+  re_formula = NULL,
+  se.fit = FALSE,
+  allow_new_levels = FALSE,
+  ...
+)
+```
+
+## Arguments
+
+- object:
+
+  A `frmtmb_fit`.
+
+- newdata:
+
+  Optional data frame to predict on. Defaults to the training data.
+
+- type:
+
+  `"link"` for the linear predictor, `"response"` for the expected
+  response (which equals
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) on the
+  training data; for zero-inflated, hurdle, and similar families this is
+  the response mean, not the `mu` dpar). When `dpar` is given,
+  `"response"` is that dpar on its natural scale. The glmmTMB spellings
+  `"conditional"` (the `mu` dpar on its natural scale),
+  `"zprob"`/`"zlink"` (the zero-inflation/hurdle probability on the
+  response/link scale), and `"disp"` (the dispersion dpar) are accepted
+  as aliases.
+
+- dpar:
+
+  Which distributional parameter to predict; defaults to the family's
+  first location parameter (`"mu"` for most families).
+
+- resp:
+
+  For multivariate fits: which response to predict (defaults to the
+  first).
+
+- re_formula:
+
+  `NULL` (default) includes random effects; `NA` or `~0` gives
+  population-level predictions. See *What `re_formula = NA` drops* for
+  what that means when the model has smooths.
+
+- se.fit:
+
+  If `TRUE`, return a list with elements `fit` and `se.fit`
+  (delta-method standard errors accounting for fixed-effect and
+  random-effect uncertainty). Exact `gp()` terms predict unseen
+  positions by kriging: the conditional mean at the fitted kernel, with
+  the GP conditional variance added to the standard errors.
+
+- allow_new_levels:
+
+  Predict unseen grouping-factor levels at the population level instead
+  of erroring. A factor-smooth term (`bs = "fs"`) follows the same rule:
+  a level it never saw contributes nothing, which leaves the population
+  curve.
+
+  It also makes the grouping COLUMN optional, as it does in brms
+  (`validate_newdata()`: "grouping factors do not need to be specified
+  by the user if new levels are allowed"). A column `newdata` does not
+  carry is filled with `NA`, so every row is an unseen level. Without
+  `allow_new_levels` a missing grouping column is refused by name, and
+  the refusal offers this argument and `re_formula = NA`, which drops
+  the random effects instead.
+
+- ...:
+
+  Refused. An argument this method does not have is an error naming it,
+  and the two lme4 spellings that were live in 0.57.0 (`re.form`,
+  `allow.new.levels`) are refused by name with the brms spelling that
+  replaced them.
+
+## Value
+
+A numeric vector, or a list when `se.fit = TRUE`. For an ordinal family
+with `type = "response"`, an `n x K` matrix of category probabilities.
+
+## Details
+
+When the fixed-effect design was rank deficient, the aliased columns
+were dropped at fit time and some coefficient combinations are not
+estimable. Rows of `newdata` that load on a dropped direction get `NA`
+(and `NA` standard errors), with one warning naming the dropped columns;
+every other row is unaffected. The test is the one
+[`stats::predict.lm()`](https://rdrr.io/r/stats/predict.lm.html) uses: a
+row is non-estimable when it is not orthogonal to the null space of the
+fitted design, up to a relative tolerance of `1e-8`. Two limits follow.
+It is a numerical test, so near-aliased designs sit on a threshold
+rather than a clean yes/no. And it covers the parametric fixed-effect
+block only: smooth null-space, `gp()`, `mo()` and `mi()` columns are
+appended after the rank check and are never dropped.
+
+## Truncated responses
+
+For a response with [`trunc()`](https://rdrr.io/r/base/Round.html)
+bounds, `type = "response"` (and
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html)) report the
+truncated mean `E[Y | lb <= Y <= ub]`, matching the likelihood the model
+was fitted with. Predictions of a distributional parameter
+(`type = "link"`, `dpar = `, or `type = "conditional"`) stay
+**untruncated**: they are statements about the latent parameter, not
+about the observed, truncated response. Bounds are re-evaluated on
+`newdata` the same way `trials()` and `se()` are: a literal bound
+carries over unchanged, and a bound given as a variable must be a column
+of `newdata` of the right length.
+
+## Ordinal responses
+
+[`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+[`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+[`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+and
+[`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+have no mean on the response scale, so `type = "response"` (and its
+alias `type = "conditional"`) returns an `n x K` matrix of category
+probabilities instead of a vector - the brms
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html) convention -
+with the response's own factor levels as column names. The rows sum to
+one. `cs()` category-specific terms are honored: they enter each
+threshold separately and are re-evaluated on `newdata`.
+
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html) returns the
+same matrix, so the usual `frm_linpred(type = "response") == fitted()`
+identity holds here too.
+
+`type = "link"` (the default) and `dpar = "mu"` still give the latent
+linear predictor, which is where the fixed-effect coefficients live and
+where `se.fit` is available. `se.fit` on the response scale is refused:
+the prediction is a K-vector per row, not one number. `emmeans` and
+[`insight::get_predicted()`](https://easystats.github.io/insight/reference/get_predicted.html)
+stay on that latent scale, which is the `mode = "latent"` convention for
+`clm`-like models.
+
+`type = "conditional"` is glmmTMB's name for the conditional MEAN, so it
+gives the category probabilities here too rather than the linear
+predictor: an ordinal response has no mean, and answering a question
+about a mean with a latent predictor is the confusion this section
+exists to remove. Ask for the predictor by name (`type = "link"`, or
+`dpar = "mu"`) when that is what you want.
+
+## What `re_formula = NA` drops
+
+`re_formula = NA` (equivalently `~0`) asks for the POPULATION-level
+prediction. Every `(x | g)` block is dropped, and so is any smooth whose
+basis gives each level of a grouping factor its own curve. Everything
+else stays.
+
+Dropped:
+
+- `(1 | g)`, `(x | g)`, and the structured spellings of them (`gr()`,
+  `cs()`, [`ar()`](https://rdrr.io/r/stats/ar.html), `mm()`, `car()`,
+  `spde()`, ...).
+
+- `s(t, g, bs = "fs")`, the factor-smooth interaction: one curve per
+  level of `g`, so the curves ARE the group deviations.
+
+- `s(g, bs = "re")` and `s(x, g, bs = "re")`, which are a random
+  intercept and a random slope written as a smooth.
+
+- `t2(t, g, bs = c("cr", "re"))` and any other tensor product with an
+  `re` margin, which is the same random smooth in a different spelling.
+
+Kept:
+
+- `s(t)`, `s(t, by = x)`, `te()`, `t2()`, and every other population
+  smooth. A smooth's wiggly part is stored as a random-effect block
+  because that is how a penalty is written as a mixed model, but the
+  term is a population effect and the population prediction is the
+  fitted curve, not the null-space line through it.
+
+- `gp()` and `hsgp()` terms.
+
+The test is what the basis MEANS, not the `bs` string: `bs = "sz"` names
+a factor the way `bs = "fs"` does, but writes the level curves as
+contrasts against a reference level, which is mgcv's spelling for a
+factor whose levels are fixed effects, so it would count as
+population-level. (`sz` has no random-effect representation, so it is
+not fittable here at all; the classification is stated for
+completeness.)
+
+The result is `mgcv::predict.gam(exclude = )` on the factor-smooth term,
+and `tests/testthat/test-smooth-population.R` asserts the two agree to
+1e-6 on a shared fit.
+
+This deliberately follows mgcv rather than brms: brms stores every
+smooth's wiggly part as population parameters, so its `re_formula = NA`
+KEEPS factor-smooth curves. A ported brms call with a `bs = "fs"` term
+therefore returns different numbers here, on purpose: the retained
+per-level curve is not a population quantity, and mgcv, the authority
+frmtmb's smooth estimation already follows, drops it too.
+
+A dropped factor-smooth term needs nothing from `newdata`, so the
+grouping column may be left out entirely when `re_formula = NA`. It is
+required for a conditional prediction, and its absence is reported by
+name rather than by an mgcv internal message.
+
+[`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
+draws its curves at the population level, so it follows this rule too:
+on a model with a factor-smooth term the displayed curve is the
+population smooth, and the grouping factor is not offered as an effect
+to plot.
+
+## Standard errors of the expected response
+
+For a family whose mean is the `mu` dpar, `se.fit` on A dpar whose
+response scale is not its own link inverse, such as a
+[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+mixing weight reporting the softmax, takes the delta method through that
+transform with respect to its OWN predictor. That is exact for a
+two-component mixture and conservative for three or more; see
+[`?mixture`](https://aforren1.github.io/frmtmb/reference/mixture.md).
+
+`type = "response"` is the usual one-predictor delta method:
+`|dmu/deta| * se(eta)`.
+
+When the mean is a function of several dpars (zero-inflated and hurdle
+families, `lognormal`, a `trials()` binomial, or any
+[`trunc()`](https://rdrr.io/r/base/Round.html)ed response), the delta
+method runs jointly over every dpar's linear predictor: `se^2 = g' V g`,
+where row `i` of `g` stacks `dm_i/deta_k` times the design row of
+predictor `k`, and `V` is the joint covariance of all the coefficients
+([`vcov()`](https://rdrr.io/r/stats/vcov.html)'s `jointPrecision` block,
+so the cross-predictor covariances and the shared random-effect block
+are included). The gradients `dm/deta_k` are central differences of the
+family mean, taken one predictor at a time with a relative step.
+
+Random effects enter conditional on their modes, the same convention
+`se.fit` uses for the linear predictor. Unseen grouping levels
+(`allow_new_levels = TRUE`) add their block's marginal variance,
+propagated through the same gradients.
+
+## See also
+
+[`fitted.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/fitted.frmtmb_fit.md)
+for the same expected response in brms's four-column shape,
+[`predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md)
+for the predictive summary, and
+[frmtmb-scales](https://aforren1.github.io/frmtmb/reference/frmtmb-scales.md),
+which states which scale every method reports. The default here is the
+LINK scale.
+
+## Examples
+
+``` r
+set.seed(1)
+dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
+fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+
+# the link scale by default; "response" is what fitted() estimates
+head(frm_linpred(fit))
+#>            1            2            3            4            5            6 
+#> -0.705162793 -0.075119938 -0.231249581  0.978192337 -0.003131653  0.940684161 
+max(abs(frm_linpred(fit, type = "response") -
+          fitted(fit)[, "Estimate"]))
+#> [1] 0
+
+# re_formula = NA drops the random effects: the population prediction
+nd <- data.frame(x = c(-1, 0, 1), g = factor(1, levels = levels(dd$g)))
+frm_linpred(fit, newdata = nd, re_formula = NA, type = "response")
+#>         1         2         3 
+#> 0.9340309 1.3398092 1.9218728 
+
+# delta-method standard errors, on whichever scale was asked for
+p <- frm_linpred(fit, newdata = nd, se.fit = TRUE)
+cbind(fit = p$fit, se = p$se.fit)
+#>          fit        se
+#> 1 -0.8399281 0.3626996
+#> 2 -0.4791552 0.3357936
+#> 3 -0.1183823 0.3299798
+
+# a level the fit never saw errors unless it is allowed explicitly,
+# in which case it is predicted at the population level
+nd_new <- data.frame(x = 0, g = factor("new"))
+try(frm_linpred(fit, newdata = nd_new))
+#> Error : New levels in grouping factor `g`: new. Use allow_new_levels = TRUE to predict them at the population level
+frm_linpred(fit, newdata = nd_new, allow_new_levels = TRUE)
+#>         1 
+#> 0.2925272 
+
+# a distributional parameter instead of the mean
+fit2 <- frm(bf(y ~ x, sigma ~ x) + gaussian(), data = dd)
+head(frm_linpred(fit2, dpar = "sigma", type = "response"))
+#>        1        2        3        4        5        6 
+#> 1.511247 1.889479 1.426552 2.788566 1.967020 1.432528 
+```

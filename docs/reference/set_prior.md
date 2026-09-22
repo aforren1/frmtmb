@@ -429,11 +429,11 @@ pr
 
 # the priors penalize the likelihood: the fit is a MAP estimate
 fit <- frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd, prior = pr)
-fixef(fit)$mu
+fixef_by_dpar(fit)$mu
 #> (Intercept)           x           z 
 #>  1.43922922  0.56382992  0.05323151 
 # the tight prior on z shrinks it toward zero
-fixef(frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd))$mu
+fixef_by_dpar(frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd))$mu
 #> (Intercept)           x           z 
 #>  1.43901021  0.57150937  0.06947063 
 

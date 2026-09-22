@@ -139,8 +139,8 @@ definite and four `NaN` standard errors.
 
 With it, each row's bound is its own group's fastest response, `ndt` is
 a FRACTION of that bound on a plain logit, and the density multiplies it
-back out. `predict(dpar = "ndt", type = "response")` then reports the
-fraction, and
+back out. `frm_linpred(dpar = "ndt", type = "response")` then reports
+the fraction, and
 [`frmtmb.eam::ndt_time()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.html)
 reports the non-decision time in seconds whichever parameterization a
 fit is in. Without it nothing about the family moved.
@@ -333,26 +333,12 @@ fit <- frmtmb::frm(
              drift ~ 1, bs ~ 1, ndt ~ 1, bias ~ 1),
   family = rlddm(subject = id, trial = trial), data = s[[1]])
 frmtmb::fixef(fit)
-#> $alpha
-#> (Intercept) 
-#>  -0.1298849 
-#> 
-#> $drift
-#> (Intercept) 
-#>    3.003392 
-#> 
-#> $bs
-#> (Intercept) 
-#>   0.4032789 
-#> 
-#> $ndt
-#> (Intercept) 
-#>    1.303546 
-#> 
-#> $bias
-#> (Intercept) 
-#>  0.05694329 
-#> 
+#>                    Estimate  Est.Error       Q2.5     Q97.5
+#> alpha_Intercept -0.12988490 0.23329043 -0.5871257 0.3273559
+#> drift_Intercept  3.00339160 0.24136430  2.5303263 3.4764569
+#> bs_Intercept     0.40327886 0.04090684  0.3231029 0.4834548
+#> ndt_Intercept    1.30354587 0.20156860  0.9084787 1.6986131
+#> bias_Intercept   0.05694329 0.08646528 -0.1125255 0.2264121
 head(frm_value_trace(fit))
 #>   subject trial        q1 q2   drift_t         pe       dens
 #> 1       1     1 0.0000000  0  0.000000  0.0000000 0.76659084

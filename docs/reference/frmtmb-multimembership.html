@@ -17,7 +17,7 @@ of a random slope over it. Both spellings follow brms."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -210,31 +210,30 @@ their fitted effects.</p>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="fu">mm</span><span class="op">(</span><span class="va">school1</span>, <span class="va">school2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>           data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Family: gaussian </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Family: gaussian </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mu = identity; sigma = log</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Formula: y ~ x + (1 | mm(school1, school2)) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Method: ML   nobs: 200 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Groups: mm(school1, school2), 12 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -172.632  AIC: 353.264  BIC: 366.457 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Data: d (Number of observations: 200) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Method: ML   logLik: -172.632   AIC: 353.264   BIC: 366.457 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Random effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1 | mm(school1, school2) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         Name Std.Dev.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  (Intercept)  0.92491</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Multilevel Hyperparameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ~mmschool1school2 (Number of levels: NA) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sd(Intercept)     0.92       0.2     0.61     1.41</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients (mu):</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>             Estimate Std. Error z value  Pr(&gt;|z|)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) 0.696447   0.270091  2.5786  0.009921</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> x           0.494486   0.041424 11.9372 &lt; 2.2e-16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Regression Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept     0.70      0.27     0.17     1.23    2.58   0.0099</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x             0.49      0.04     0.41     0.58   11.94   &lt;2e-16</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients (sigma):</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              Estimate Std. Error z value  Pr(&gt;|z|)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) -0.652812   0.051576 -12.657 &lt; 2.2e-16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Further Distributional Parameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma     0.52      0.03     0.47     0.58</span>
 <span class="r-in"><span><span class="co"># one coefficient per pooled school level</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="ranef.html">ranef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $mm(school1, school2)   (1 | mm(school1, school2))</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   (Intercept)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Intercept</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> a  0.18370669</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> b -0.02184145</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> c -0.74232816</span>
@@ -253,24 +252,26 @@ their fitted effects.</p>
 <span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="fu">mm</span><span class="op">(</span><span class="va">school1</span>, <span class="va">school2</span>,</span></span>
 <span class="r-in"><span>                       weights <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">share1</span>, <span class="va">share2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>    data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: y ~ x + (1 | mm(school1, school2, weights = cbind(share1, share2))) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Family: gaussian   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Family: gaussian </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mu = identity; sigma = log</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -208.589  AIC: 425.179  nobs: 200 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Formula: y ~ x + (1 | mm(school1, school2, weights = cbind(share1, share2))) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Data: d (Number of observations: 200) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Method: ML   logLik: -208.589   AIC: 425.179   BIC: 438.372 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mu:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      0.6553      0.4746 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  sigma:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     -0.4667 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Multilevel Hyperparameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ~mmschool1school2weightsEQcbindshare1share2 (Number of levels: NA) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sd(Intercept)     0.96      0.23      0.6     1.52</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Random effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1 | mm(school1, school2, weights = cbind(share1, share2)) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         Name Std.Dev.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  (Intercept)  0.95985</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Regression Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept     0.66      0.28     0.10     1.21    2.30    0.021</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x             0.47      0.05     0.38     0.57    9.39   &lt;2e-16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Further Distributional Parameters:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       Estimate Est.Error l-95% CI u-95% CI</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma     0.63      0.03     0.57     0.69</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

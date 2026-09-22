@@ -17,7 +17,7 @@ spellings)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -80,6 +80,9 @@ spellings</em>).</p>
 <span>  nlpar <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  ndraws <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  draw_ids <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  sort <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  point_estimate <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  ndraws_point_estimate <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -98,6 +101,9 @@ spellings</em>).</p>
 <span>  incl_thres <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  ndraws <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  draw_ids <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  sort <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  point_estimate <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  ndraws_point_estimate <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -114,6 +120,11 @@ spellings</em>).</p>
 <span>  negative_rt <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  ndraws <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  draw_ids <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  sort <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  ntrys <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  cores <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  point_estimate <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  ndraws_point_estimate <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -127,7 +138,17 @@ spellings</em>).</p>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Unused.</p></dd>
+<dd><p>Refused: an argument the method does not have is an error
+naming it, rather than a silently ignored name. The exceptions are
+brms's <code>allow_new_levels</code> (and <code>allow.new.levels</code>) and
+<code>sample_new_levels</code>. <code>allow_new_levels = FALSE</code>, and <code>TRUE</code> with
+levels the fit saw, answer as the call without it does. <code>TRUE</code>
+with a level the fit did not see, including a <code>newdata</code> that leaves
+the grouping column out, is refused: brms draws that level's
+effect from each posterior draw, which is not built here, and
+predicting it at the population level would drop the group
+variance from every draw. <code><a href="https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.html" class="external-link">frmtmb::predict.frmtmb_fit()</a></code> predicts
+unseen levels from the maximum-likelihood fit.</p></dd>
 
 
 <dt id="arg-newdata-resp">newdata, resp<a class="anchor" aria-label="anchor" href="#arg-newdata-resp"></a></dt>
@@ -169,6 +190,19 @@ this is the same setting and the slot is here for brms's position.</p></dd>
 evenly spaced subsample <code>ndraws</code> takes. Give one or the other.</p></dd>
 
 
+<dt id="arg-sort">sort<a class="anchor" aria-label="anchor" href="#arg-sort"></a></dt>
+<dd><p>brms's argument. Rows come back in the order of the data
+here, always, so <code>sort = TRUE</code> is refused by name.</p></dd>
+
+
+<dt id="arg-point-estimate-ndraws-point-estimate">point_estimate, ndraws_point_estimate<a class="anchor" aria-label="anchor" href="#arg-point-estimate-ndraws-point-estimate"></a></dt>
+<dd><p>brms's arguments, which
+collapse the draws to their <code>"mean"</code> or <code>"median"</code> FIRST and run
+the method once at that one parameter vector, repeated
+<code>ndraws_point_estimate</code> times. It is a parameter-space operation
+and not a summary of the output, as in brms.</p></dd>
+
+
 <dt id="arg-transform">transform<a class="anchor" aria-label="anchor" href="#arg-transform"></a></dt>
 <dd><p>For <code>posterior_linpred()</code>: if <code>TRUE</code>, apply the
 inverse link (the value of the <code>mu</code> dpar on its natural scale,
@@ -186,6 +220,13 @@ returns the latent predictor itself.</p></dd>
 <dd><p>For <code>posterior_predict()</code>: refused. It is brms's
 sign convention for its own wiener family.</p></dd>
 
+
+<dt id="arg-ntrys-cores">ntrys, cores<a class="anchor" aria-label="anchor" href="#arg-ntrys-cores"></a></dt>
+<dd><p>brms's arguments, carried so that a positional
+brms call lands where brms lands it. Both are refused by name: the
+rejection limit of a <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code>ed draw is the family simulator's
+own, and the draws are replayed in one process.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -198,13 +239,13 @@ array (see the section below).</p>
 
 
 <p>An ordinal family predicts a DISTRIBUTION per observation, not one
-number: each draw's <code>predict(type = "response")</code> is an <code>n x K</code>
+number: each draw's <code>frm_linpred(type = "response")</code> is an <code>n x K</code>
 matrix of category probabilities. Those stack into a 3-D
 <code>draws x observations x categories</code> array. <code>dimnames</code> are
 <code>list(NULL, &lt;observation names or NULL&gt;, &lt;category levels&gt;)</code>, so
 <code>ep[, , "high"]</code> is the draws-by-observations matrix for one
 category and <code>ep[k, , ]</code> is draw <code>k</code>'s own <code>n x K</code> prediction, the
-matrix <code>predict(type = "response")</code> returns. Every <code>ep[k, i, ]</code>
+matrix <code>frm_linpred(type = "response")</code> returns. Every <code>ep[k, i, ]</code>
 sums to 1 for an ordinal family.</p>
 <p>This is brms's convention: <code><a href="https://paulbuerkner.com/brms/reference/posterior_epred.brmsfit.html" class="external-link">?brms::posterior_epred.brmsfit</a></code>
 documents "an S x N x C array" for categorical and ordinal models

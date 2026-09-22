@@ -17,7 +17,7 @@ as.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -89,29 +89,14 @@ as.</p>
 <span><span class="fu">restructure</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu">restructure</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu">posterior_samples</span><span class="op">(</span><span class="va">x</span>, pars <span class="op">=</span> <span class="cn">NA</span>, <span class="va">...</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu">posterior_samples</span><span class="op">(</span><span class="va">x</span>, pars <span class="op">=</span> <span class="cn">NA</span>, <span class="va">...</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu">nsamples</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu">nsamples</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu">parnames</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># S3 method for class 'frmtmb_draws'</span></span>
-<span><span class="fu">parnames</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">restructure</span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-object-x-pars-">object, x, pars, ...<a class="anchor" aria-label="anchor" href="#arg-object-x-pars-"></a></dt>
+<dl><dt id="arg-object-x-">object, x, ...<a class="anchor" aria-label="anchor" href="#arg-object-x-"></a></dt>
 <dd><p>Ignored; these functions always stop.</p></dd>
 
 </dl></div>
@@ -133,17 +118,14 @@ as.</p>
 <span class="r-in"><span>  <span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="frm_sample.html">frm_sample</a></span><span class="op">(</span><span class="va">fit</span>, chains <span class="op">=</span> <span class="fl">1</span>, iter <span class="op">=</span> <span class="fl">400</span>, refresh <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="co"># each refusal names its reason and the replacement</span></span></span>
 <span class="r-in"><span>  <span class="kw"><a href="https://rdrr.io/r/base/try.html" class="external-link">try</a></span><span class="op">(</span><span class="fu">stancode</span><span class="op">(</span><span class="va">ds</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="kw"><a href="https://rdrr.io/r/base/try.html" class="external-link">try</a></span><span class="op">(</span><span class="fu">nsamples</span><span class="op">(</span><span class="va">ds</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="kw"><a href="https://rdrr.io/r/base/try.html" class="external-link">try</a></span><span class="op">(</span><span class="fu">standata</span><span class="op">(</span><span class="va">ds</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Intercept          student_t(3, 1.1, 2.5)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   sigma              student_t(3, 0, 2.5)  [natural scale]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   b                  (flat), as brms leaves slopes</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> Running the chains for more iterations may help. See</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> https://mc-stan.org/misc/warnings.html#bulk-ess</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Error : stancode() has no meaning for frmtmb: there is no Stan program. The model is an R closure built by build_objective() from the assembled frame and differentiated by RTMB, and the closure IS the source: print `ds$fit$obj$fn` for the evaluator and `ds$fit$frame` for everything baked into it</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Error : nsamples() is the deprecated brms spelling. Use ndraws(x) for the pooled draw count, niterations(x) for the per-chain count</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Error : standata() has no meaning for frmtmb: nothing is exported to a Stan data list. The assembled frame `ds$fit$frame` holds the same content (the response, the design matrices, the sparse Z, the addition terms), and model.matrix(), getME() and model.frame() read the pieces of it individually</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

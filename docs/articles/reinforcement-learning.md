@@ -603,13 +603,10 @@ fit <- frm(bf(choice | reward(pay1, pay2) ~ condition + (1 | p | id),
            family = rw_delta(subject = id, trial = trial),
            data = dd)
 fixef(fit)
-#> $alpha
-#>  (Intercept) conditiontrt 
-#>   -0.7919201    1.1220594 
-#> 
-#> $beta
-#> (Intercept) 
-#>    1.058637
+#>                      Estimate  Est.Error       Q2.5     Q97.5
+#> alpha_Intercept    -0.7919201 0.21949895 -1.2221301 -0.361710
+#> beta_Intercept      1.0586371 0.08594413  0.8901897  1.227084
+#> alpha_conditiontrt  1.1220594 0.30016589  0.5337451  1.710374
 ```
 
 The main right-hand side is the LEARNING RATE’s predictor, because the
@@ -658,7 +655,7 @@ Compare with the simulated values:
 
 ``` r
 
-rbind(estimate = c(unlist(fixef(fit)),
+rbind(estimate = c(unlist(fixef_by_dpar(fit)),
                    sd_alpha = VarCorr(fit)$id$sd[1, "Estimate"],
                    sd_beta = VarCorr(fit)$id$sd[2, "Estimate"]),
       truth = c(rl_truth$b_alpha_Intercept, rl_truth$b_alpha_conditiontrt,
@@ -681,7 +678,7 @@ does. The fitted values are per-trial choice probabilities:
 
 ``` r
 
-p <- fitted(fit)
+p <- fitted(fit)[, "Estimate"]
 summary(p)
 #>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 #> 0.02198 0.59464 0.76165 0.72271 0.89176 0.99444
@@ -704,8 +701,8 @@ compare.
 u <- ranef(fit)[[1]]
 sid <- match(as.character(dd$id), rownames(u))
 xa <- model.matrix(~ condition, dd)
-alpha <- plogis(as.vector(xa %*% unname(fixef(fit)$alpha)) + u[sid, 1])
-beta <- exp(unname(fixef(fit)$beta)[[1]] + u[sid, 2])
+alpha <- plogis(as.vector(xa %*% unname(fixef_by_dpar(fit)$alpha)) + u[sid, 1])
+beta <- exp(unname(fixef_by_dpar(fit)$beta)[[1]] + u[sid, 2])
 
 ll <- 0
 for (s in unique(sid)) {
@@ -1012,11 +1009,11 @@ slots, and their columns would be SUBJECTS rather than trials, because
 that path, because these are maximum-likelihood fits and an elpd is a
 posterior quantity.
 
-**Newdata.** `predict(type = "response")` on new data would need a block
-built without a response, and the protocol defers that case on purpose.
-For this family the meaning is clear enough (replay the new subject’s
-payoff schedule against the fitted parameters), so a built-in version
-would be worth the work.
+**Newdata.** `frm_linpred(type = "response")` on new data would need a
+block built without a response, and the protocol defers that case on
+purpose. For this family the meaning is clear enough (replay the new
+subject’s payoff schedule against the fitted parameters), so a built-in
+version would be worth the work.
 
 **More of the literature.** A real package would carry the family of
 models this one is the simplest member of: separate learning rates for

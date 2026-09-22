@@ -32,26 +32,11 @@ restructure(x, ...)
 
 # S3 method for class 'frmtmb_draws'
 restructure(x, ...)
-
-posterior_samples(x, pars = NA, ...)
-
-# S3 method for class 'frmtmb_draws'
-posterior_samples(x, pars = NA, ...)
-
-nsamples(object, ...)
-
-# S3 method for class 'frmtmb_draws'
-nsamples(object, ...)
-
-parnames(x, ...)
-
-# S3 method for class 'frmtmb_draws'
-parnames(x, ...)
 ```
 
 ## Arguments
 
-- object, x, pars, ...:
+- object, x, ...:
 
   Ignored; these functions always stop.
 
@@ -73,16 +58,13 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
   ds <- frm_sample(fit, chains = 1, iter = 400, refresh = 0)
   # each refusal names its reason and the replacement
   try(stancode(ds))
-  try(nsamples(ds))
+  try(standata(ds))
 }
 #> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
 #>   Intercept          student_t(3, 1.1, 2.5)
 #>   sigma              student_t(3, 0, 2.5)  [natural scale]
 #>   b                  (flat), as brms leaves slopes
-#> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
-#> Running the chains for more iterations may help. See
-#> https://mc-stan.org/misc/warnings.html#bulk-ess
 #> Error : stancode() has no meaning for frmtmb: there is no Stan program. The model is an R closure built by build_objective() from the assembled frame and differentiated by RTMB, and the closure IS the source: print `ds$fit$obj$fn` for the evaluator and `ds$fit$frame` for everything baked into it
-#> Error : nsamples() is the deprecated brms spelling. Use ndraws(x) for the pooled draw count, niterations(x) for the per-chain count
+#> Error : standata() has no meaning for frmtmb: nothing is exported to a Stan data list. The assembled frame `ds$fit$frame` holds the same content (the response, the design matrices, the sparse Z, the addition terms), and model.matrix(), getME() and model.frame() read the pieces of it individually
 # }
 ```

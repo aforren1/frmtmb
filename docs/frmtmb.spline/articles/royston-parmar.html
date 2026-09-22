@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -118,27 +118,16 @@ times, which needs the response, so they are chosen when
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">recyrs</span> <span class="op">|</span> <span class="fu">cens</span><span class="op">(</span><span class="va">censored</span><span class="op">)</span> <span class="op">~</span> <span class="va">group</span><span class="op">)</span>,</span>
 <span>           family <span class="op">=</span> <span class="fu"><a href="../reference/royston_parmar.html">royston_parmar</a></span><span class="op">(</span>df <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">bc</span><span class="op">)</span></span>
 <span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt; $mu</span></span>
-<span><span class="co">#&gt; (Intercept) groupMedium   groupPoor </span></span>
-<span><span class="co">#&gt;  -2.7467993   0.8342391   1.6117459 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $gamma1</span></span>
-<span><span class="co">#&gt; (Intercept) </span></span>
-<span><span class="co">#&gt;    3.468767 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $gamma2</span></span>
-<span><span class="co">#&gt; (Intercept) </span></span>
-<span><span class="co">#&gt;   0.5679955 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $gamma3</span></span>
-<span><span class="co">#&gt; (Intercept) </span></span>
-<span><span class="co">#&gt;  -0.3577181</span></span></code></pre></div>
+<span><span class="co">#&gt;               Estimate Est.Error       Q2.5     Q97.5</span></span>
+<span><span class="co">#&gt; Intercept   -2.7467993 0.2506274 -3.2380199 -2.255579</span></span>
+<span><span class="co">#&gt; groupMedium  0.8342391 0.1712826  0.4985314  1.169947</span></span>
+<span><span class="co">#&gt; groupPoor    1.6117459 0.1642932  1.2897372  1.933755</span></span></code></pre></div>
 <p><code>mu</code> is <code>gamma0</code>, the spline intercept, and the
 <code>group</code> coefficients sit on it. Because <code>gamma0</code>
 shifts the whole log cumulative hazard, those are LOG HAZARD RATIOS: the
 model is proportional hazards.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span><span class="op">)</span><span class="op">[</span><span class="op">-</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">fixef_by_dpar</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span><span class="op">)</span><span class="op">[</span><span class="op">-</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt; groupMedium   groupPoor </span></span>
 <span><span class="co">#&gt;    2.303061    5.011553</span></span></code></pre></div>
 <p><code>gamma1</code> and upward are the other spline coefficients, and
@@ -178,9 +167,9 @@ and <code>df</code> counts them plus one.</p>
 <h2 id="read-the-baseline-off">Read the baseline off<a class="anchor" aria-label="anchor" href="#read-the-baseline-off"></a>
 </h2>
 <p>Every spline coefficient is a distributional parameter, so
-<code>predict(type = "link", dpar = )</code> reaches each of them and
-the fitted baseline is the basis times those coefficients. There is no
-penalized smooth in this model, so <code><a href="../reference/frm_curve.html">frm_curve()</a></code> has no
+<code>frm_linpred(type = "link", dpar = )</code> reaches each of them
+and the fitted baseline is the basis times those coefficients. There is
+no penalized smooth in this model, so <code><a href="../reference/frm_curve.html">frm_curve()</a></code> has no
 random-effect block to read and refuses; add an <code>s()</code> term
 and it applies here as it does anywhere else.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
@@ -188,7 +177,7 @@ and it applies here as it does anywhere else.</p>
 <span><span class="va">nd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>recyrs <span class="op">=</span> <span class="va">tg</span>,</span>
 <span>                 group <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="st">"Good"</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">bc</span><span class="op">$</span><span class="va">group</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">lp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"mu"</span>, <span class="st">"gamma1"</span>, <span class="st">"gamma2"</span>, <span class="st">"gamma3"</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">dp</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">nd</span>, type <span class="op">=</span> <span class="st">"link"</span>, dpar <span class="op">=</span> <span class="va">dp</span><span class="op">)</span></span>
+<span>  <span class="fu">frm_linpred</span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">nd</span>, type <span class="op">=</span> <span class="st">"link"</span>, dpar <span class="op">=</span> <span class="va">dp</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span></span>
 <span><span class="va">kn</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">environment</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">family</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[[</span><span class="st">"lpdf"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">$</span><span class="va">allknots</span></span>
 <span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">tg</span><span class="op">)</span></span>
@@ -221,7 +210,7 @@ and it applies here as it does anywhere else.</p>
 <span>  <span class="va">ndg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>recyrs <span class="op">=</span> <span class="va">tg</span>,</span>
 <span>                    group <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">g</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">bc</span><span class="op">$</span><span class="va">group</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="va">lps</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"mu"</span>, <span class="st">"gamma1"</span>, <span class="st">"gamma2"</span>, <span class="st">"gamma3"</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">dp</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">ndg</span>, type <span class="op">=</span> <span class="st">"link"</span>, dpar <span class="op">=</span> <span class="va">dp</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu">frm_linpred</span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">ndg</span>, type <span class="op">=</span> <span class="st">"link"</span>, dpar <span class="op">=</span> <span class="va">dp</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">}</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Reduce</a></span><span class="op">(</span><span class="va">`+`</span>, <span class="fu"><a href="https://rdrr.io/r/base/funprog.html" class="external-link">Map</a></span><span class="op">(</span><span class="va">`*`</span>, <span class="va">bas</span>, <span class="va">lps</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
@@ -277,7 +266,7 @@ what each one was measured to recover.</p>
 <div class="section level2">
 <h2 id="what-this-family-will-not-do">What this family will not do<a class="anchor" aria-label="anchor" href="#what-this-family-will-not-do"></a>
 </h2>
-<p><code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code>predict(type = "response")</code>
+<p><code><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted()</a></code> and <code>frm_linpred(type = "response")</code>
 refuse, and say why. The mean of a survival time under this model is an
 integral of the fitted survival function with no closed form, and the
 censored rows do not identify its upper tail. <code>mu</code> is a
@@ -286,7 +275,7 @@ it pass for one:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;">:</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> royston_parmar: a survival time has no mean on the response scale here. mu is gamma0, the intercept of a spline in log time, not a fitted value, and the mean survival time is an integral over a tail the censored rows do not identify. predict(type = "link", dpar = ) gives any spline coefficient, and frm_curve() reads the fitted log cumulative hazard off with a band</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> royston_parmar: a survival time has no mean on the response scale here. mu is gamma0, the intercept of a spline in log time, not a fitted value, and the mean survival time is an integral over a tail the censored rows do not identify. frm_linpred(type = "link", dpar = ) gives any spline coefficient, and frm_curve() reads the fitted log cumulative hazard off with a band</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="the-check-you-must-run">The check you must run<a class="anchor" aria-label="anchor" href="#the-check-you-must-run"></a>

@@ -4,7 +4,7 @@
 Pareto-smoothed importance-sampling LOO and
 [`waic()`](https://mc-stan.org/loo/reference/waic.html) the widely
 applicable information criterion, both on the
-[`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md)
+[`frmtmb::log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.html)
 matrix, by handing it to
 [`loo::loo.matrix()`](https://mc-stan.org/loo/reference/loo.html) and
 [`loo::waic.matrix()`](https://mc-stan.org/loo/reference/waic.html)
@@ -62,7 +62,7 @@ WAIC(x, ...)
 - ndraws, resp:
 
   Passed to
-  [`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md).
+  [`frmtmb::log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.html).
 
 - ...:
 
@@ -90,7 +90,7 @@ WAIC(x, ...)
 
   For `psis()`, accepted in brms's own second position and refused,
   because
-  [`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md)
+  [`frmtmb::log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.html)
   does not take it.
 
 - model_name:
@@ -134,7 +134,7 @@ estimate is the one loo computes without an autocorrelation correction.
 
 ## See also
 
-[`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md),
+[`frmtmb::log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.html),
 [`frmtmb::bayes_R2()`](https://aforren1.github.io/frmtmb/reference/bayes_R2.html)
 
 ## Examples
@@ -180,9 +180,11 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
 #> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
-#>   model elpd_diff se_diff p_worse diag_diff diag_elpd
-#>  model1       0.0     0.0      NA                    
-#>  model2      -5.8     2.9    0.98   N < 100          
+#> Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
+#> Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
+#>   model elpd_diff se_diff p_worse diag_diff       diag_elpd
+#>  model1       0.0     0.0      NA                          
+#>  model2      -5.3     2.8    0.97   N < 100 2 k_psis > 0.58
 #> 
 #> Diagnostic flags present.
 #> See ?`loo-glossary` (sections `diag_diff` and `diag_elpd`)

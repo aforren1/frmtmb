@@ -15,7 +15,7 @@ dec() addition term."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -198,7 +198,7 @@ of two ways.</p>
 <p><strong>Without <code>ndt_group()</code>, <code>ndt</code> is a TIME</strong>, on a logit scaled onto
 <code>(0, ub)</code> with <code>ub</code> the fastest response in the whole data set, or
 <code>max_ndt</code> when you give one. This is the parameterization the family
-has always had. <code>predict(dpar = "ndt", type = "response")</code> reports
+has always had. <code>frm_linpred(dpar = "ndt", type = "response")</code> reports
 seconds, a <code>prior(class = "ndt")</code> is a density on those seconds, and
 a <code>bf(ndt = 0.2)</code> constant is 0.2 seconds.</p>
 <p><strong>With <code>ndt_group()</code>, <code>ndt</code> is a FRACTION of the row's own bound</strong>,
@@ -210,7 +210,7 @@ bound is the fastest response of the row's group. Write</p>
 <p>and each subject's non-decision time is bounded by its own fastest
 response. That is what a random effect on <code>ndt</code> needs; the next
 section is what one global bound does to it. The price is that <code>ndt</code>
-is on a different scale: <code>predict(dpar = "ndt", type = "response")</code>
+is on a different scale: <code>frm_linpred(dpar = "ndt", type = "response")</code>
 reports the fraction, and <code><a href="ndt_time.html">ndt_time()</a></code> reports the time for either
 parameterization. A <code>prior(class = "ndt")</code> and a <code>bf(ndt = )</code>
 constant are fractions under a grouping too.</p>
@@ -466,22 +466,8 @@ times and parameter variability. <em>Psychonomic Bulletin &amp; Review</em>,
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">dec</span><span class="op">(</span><span class="va">upper</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>, bias <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>           family <span class="op">=</span> <span class="fu">wiener</span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $mu</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   0.6956708 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $bs</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   0.3349967 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $ndt</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    1.935868 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $bias</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           0 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>            Estimate  Est.Error     Q2.5     Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept 0.6956708 0.08770048 0.523781 0.8675606</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

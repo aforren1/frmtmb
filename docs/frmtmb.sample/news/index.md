@@ -1,5 +1,131 @@
 # Changelog
 
+## frmtmb.sample 0.9.0
+
+- **[`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html)
+  is frmtmb’s generic now, re-exported here**, rather than a second
+  generic of the same name defined in this package. frmtmb owns the name
+  because it has a method for it: `log_lik(fit)` on a maximum-likelihood
+  fit refuses and names the route to draws, as
+  [`loo()`](https://mc-stan.org/loo/reference/loo.html) and
+  [`waic()`](https://mc-stan.org/loo/reference/waic.html) do, where it
+  used to be “could not find function”. `log_lik(draws)` is unchanged,
+  and the `frmtmb_draws` method is still registered on rstantools’
+  generic as well. The method page is
+  [`?log_lik.frmtmb_draws`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-log_lik.md);
+  [`?frmtmb::log_lik`](https://aforren1.github.io/frmtmb/reference/log_lik.html)
+  documents the generic.
+
+- [`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md)
+  and
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md)
+  on draws refuse every name in `...` they do not read, where they used
+  to ignore it, as the other methods here already do. The new-level
+  arguments pass through to the refusal described below.
+
+- Requires frmtmb 0.61.0, for
+  [`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html),
+  [`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.html),
+  [`fixef_by_dpar()`](https://aforren1.github.io/frmtmb/reference/fixef_by_dpar.html),
+  [`brms_fixef_rows()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html)
+  and the brms shape helpers.
+
+- **[`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  [`predict()`](https://rdrr.io/r/stats/predict.html) and
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) on draws
+  exist** (item 2.6f). They are brms’s three summarizing methods, each a
+  summary of the draws method beside it:
+  [`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md)
+  and
+  [`predictive_error()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-posterior_summary.md).
+  Before this there was no method at all, so `fitted(ds)` reached
+  [`stats::fitted.default()`](https://rdrr.io/r/stats/fitted.values.html),
+  read `ds$fitted.values` and returned `NULL`, a wrong answer with
+  nothing said. `summary = FALSE` gives the draws, `robust` and `probs`
+  are brms’s, and [`predict()`](https://rdrr.io/r/stats/predict.html) on
+  an ordinal or categorical response returns brms’s `P(Y = k)`
+  proportions.
+
+- **BREAKING:
+  [`nsamples()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-deprecated.md),
+  [`posterior_samples()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-deprecated.md)
+  and
+  [`parnames()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-deprecated.md)
+  answer instead of refusing.** All three were refused as “the
+  deprecated brms spelling”. brms keeps all three live with a
+  deprecation warning, and the refusal stopped a ported script dead
+  where brms’s warning does not. Each now does what brms’s does and
+  warns as brms warns:
+
+  - `posterior_samples(x)` is `as.data.frame(x)`, with brms’s `pars` (a
+    regular expression unless `fixed = TRUE`), `add_chain`, `subset`,
+    `as.matrix` and `as.array`;
+  - `nsamples(x)` is `ndraws(x)`, with brms’s `subset`;
+  - `parnames(x)` is `variables(x)`.
+
+  `nsamples(incl_warmup = TRUE)` is still refused:
+  [`frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.md)
+  discards the warmup rather than storing it, so there is nothing to
+  count.
+
+- **[`fixef()`](https://rdrr.io/pkg/nlme/man/fixed.effects.html) on an
+  ordinal draws object reports the thresholds**, `Intercept[1]`,
+  `Intercept[2]`, then the coefficients and any `cs()` terms, in brms’s
+  order and on the model’s own scale, which is what the fit’s
+  [`fixef()`](https://rdrr.io/pkg/nlme/man/fixed.effects.html) reports.
+  It reported the slopes alone, because the sampler stores the
+  thresholds as `tau_raw`.
+
+- [`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
+  [`posterior_linpred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  [`predict()`](https://rdrr.io/r/stats/predict.html) and
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) on draws
+  refuse `allow_new_levels = TRUE` when `newdata` holds a grouping level
+  the fit did not see, with a message that names the function called and
+  says why. That case used to fail in the design builder with “Use
+  allow_new_levels = TRUE”, which the caller had just done. Predicting
+  an unseen level from draws is not implemented;
+  `predict(fit, allow_new_levels = TRUE)` on the maximum-likelihood fit
+  does it. Every other use answers as before:
+  `allow_new_levels = FALSE`, brms’s default, and `TRUE` with no
+  `newdata` or with levels the fit saw.
+
+- **BREAKING:
+  [`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)
+  on draws no longer returns an object of class `brmshypothesis`.** The
+  class is `"frmtmb_hypothesis"` alone; the shape and every element are
+  unchanged, and what stops working is `is(x, "brmshypothesis")` and
+  `inherits(x, "brmshypothesis")` in a ported script. frmtmb owns
+  [`print()`](https://rdrr.io/r/base/print.html) and
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) for its own
+  class, so neither changes.
+
+- **`point_estimate` and `ndraws_point_estimate` are honored** by
+  [`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
+  [`posterior_linpred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md)
+  and
+  [`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html).
+  They were accepted and ignored, so
+  `posterior_epred(ds, point_estimate = "median", ndraws_point_estimate = 2)`
+  returned all 25 draws where brms returns
+
+  2.  As in brms it is a PARAMETER-space operation: the draws are
+      collapsed to their mean or median first and the method runs once
+      at that one vector, repeated `ndraws_point_estimate` times.
+
+- [`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
+  [`posterior_linpred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md)
+  and
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md)
+  build each draw’s prediction with
+  [`frmtmb::frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.html)
+  rather than [`predict()`](https://rdrr.io/r/stats/predict.html), which
+  is brms’s predictive summary in frmtmb 0.61.0.
+
 ## frmtmb.sample 0.8.0
 
 - Requires frmtmb 0.60.0, for
@@ -185,7 +311,7 @@
 - [`pp_check()`](https://mc-stan.org/bayesplot/reference/pp_check.html)
   takes brms’s `prefix`, `group`, `x`, `newdata`, `resp` and `draw_ids`,
   and brms’s default draw count with brms’s message.
-  [`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md)
+  [`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html)
   takes brms’s `pointwise`, `combine`, `add_point_estimate` and `cores`,
   and refuses an argument it does not have, which it used to accept and
   ignore.
@@ -297,7 +423,7 @@
 
 - New along the way, because brms puts them in those positions:
   `draw_ids` on the predictive methods, on
-  [`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md)
+  [`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html)
   and on
   [`pp_mixture()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/pp_mixture.md)
   names the draws to use by row index; `dpar` on
@@ -355,7 +481,7 @@
 - **frmtmb.sample no longer breaks brms, rstantools, loo,
   bridgesampling, bayesplot, posterior, coda or gratia.** This package
   defined its own generic for 28 names those packages own, such as
-  [`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md),
+  [`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html),
   [`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
   [`psis()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-loo.md),
   [`rhat()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
@@ -369,7 +495,7 @@
   previous release: all 28 lost after brms, all 28 with brms only
   loaded, all 28 inside a package that imports frmtmb.sample, and every
   gratia method for
-  [`posterior_samples()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-refusals.md)
+  [`posterior_samples()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-deprecated.md)
   after gratia. It is now 0 in each of those orders. The package now
   calls
   [`frmtmb::frm_install_generics()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html)
@@ -381,7 +507,7 @@
   [`rhat()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
   on draws went to posterior’s `rhat.default`; with gratia loaded after
   it,
-  [`posterior_samples()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-refusals.md)
+  [`posterior_samples()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-deprecated.md)
   went to gratia’s. Both are now also registered on those owners’
   generics.
 
@@ -398,7 +524,7 @@
   Two only GAIN arguments and break nothing:
   [`post_prob()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-loo-refusals.md)
   gains `prior_prob` and `model_names` from bridgesampling, and
-  [`posterior_samples()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-refusals.md)
+  [`posterior_samples()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-deprecated.md)
   gains `pars` from brms.
   [`posterior_linpred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md)’s
   generic gains `transform`, which its method already had.
@@ -407,14 +533,14 @@
   formals.**
 
 - While brms is loaded,
-  [`parnames()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-refusals.md)
+  [`parnames()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-deprecated.md)
   and
-  [`posterior_samples()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-refusals.md)
+  [`posterior_samples()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-deprecated.md)
   on draws give brms’s own deprecation warning before this package’s
   refusal, because the generic that runs is brms’s.
 
 - `gratia (>= 0.9.0)` joins Suggests, the first gratia with
-  [`posterior_samples()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-refusals.md),
+  [`posterior_samples()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frmtmb-draws-deprecated.md),
   and `posterior` gains the floor `(>= 1.0.0)`, whose
   [`rhat()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/draws-diagnostics.md)
   this package now registers a method on. As in frmtmb, a partial
@@ -746,7 +872,7 @@ leaves out. Requires frmtmb 0.53.0 for the seam exports.
   the intercept (whose prior is about the intercept at the predictor
   means, not about the coefficient) refuses for its own stated reason.
 
-- [`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md),
+- [`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html),
   [`loo()`](https://mc-stan.org/loo/reference/loo.html) and
   [`waic()`](https://mc-stan.org/loo/reference/waic.html) accept a
   structured family that declares how its likelihood factorizes
@@ -845,7 +971,7 @@ First release, extracted from frmtmb 0.46.0.
 - The full posterior method surface on core’s generics and on the brms,
   loo, posterior, bayesplot, rstantools, coda and bridgesampling
   generics:
-  [`log_lik()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/log_lik.md),
+  [`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html),
   [`loo()`](https://mc-stan.org/loo/reference/loo.html),
   [`waic()`](https://mc-stan.org/loo/reference/waic.html),
   [`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),

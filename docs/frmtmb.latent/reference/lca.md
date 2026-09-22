@@ -275,7 +275,7 @@ gives the item profile table, and
 [`simulate()`](https://rdrr.io/r/stats/simulate.html) draws a class per
 subject and then its items.
 [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
-`predict(type = "response")` and
+`frm_linpred(type = "response")` and
 [`residuals()`](https://rdrr.io/r/stats/residuals.html) are refused: the
 response is a matrix of nominal codes, so an "expected item code" would
 be an average of arbitrary labels. Read
@@ -370,14 +370,15 @@ head(lca_probs(fit))
 
 # latent class regression: covariates gate class membership
 frm(bf(Y ~ x), family = lca(K = 2), data = dd)
-#> frmtmb fit: Y ~ x 
-#> Family: lca(K = 2)   Method: ML 
+#>  Family: lca(K = 2) 
 #>  Links: theta1 = identity
 #> 
-#> logLik: -697.815  AIC: 1415.63  nobs: 300 
+#> Formula: Y ~ x 
+#>    Data: dd (Number of observations: 300) 
+#>  Method: ML   logLik: -697.815   AIC: 1415.63   BIC: 1452.67 
 #> 
-#> Fixed effects:
-#>  theta1:
-#> (Intercept)           x 
-#>    -0.91700     0.04477 
+#> Regression Coefficients:
+#>                  Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> theta1_Intercept    -0.92      0.16    -1.23    -0.60   -5.71  1.1e-08
+#> theta1_x             0.04      0.13    -0.22     0.31    0.33     0.74
 ```

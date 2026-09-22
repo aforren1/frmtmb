@@ -17,7 +17,7 @@ the same number."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -256,14 +256,15 @@ centre's fitted survival RISES with time rather than falling: 4.2e-50
 at <code>t = 1e-12</code> against 0.774 at <code>t = 2.8</code>. A survival function that
 increases is not one.</p>
 <p>So where a group can have no events, check it yourself, in two lines:</p>
-<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>slope <span class="ot">&lt;-</span> <span class="fu">fixef</span>(fit)<span class="sc">$</span>gamma1[[<span class="st">"(Intercept)"</span>]] <span class="sc">+</span></span>
-<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>  <span class="fu">ranef</span>(fit)[[<span class="st">"centre"</span>]][, <span class="st">"time.gamma1:(Intercept)"</span>]</span>
+<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>slope <span class="ot">&lt;-</span> <span class="fu">fixef_by_dpar</span>(fit)<span class="sc">$</span>gamma1[[<span class="st">"(Intercept)"</span>]] <span class="sc">+</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>  <span class="fu">ranef</span>(fit)[[<span class="st">"centre"</span>]][, <span class="st">"gamma1_Intercept"</span>]</span>
 <span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">rownames</span>(<span class="fu">ranef</span>(fit)[[<span class="st">"centre"</span>]])[slope <span class="sc">&lt;=</span> <span class="dv">0</span>]</span></code></pre><p></p></div>
 <p>and confirm that comes back empty. Name the column: under the paired
-spelling recommended below, that grouping carries TWO of them, and
-the <code>mu</code> one is the frailty deviation, which says nothing about
-monotonicity. With a block on <code>gamma1</code> alone there is one column and
-<code>[, 1]</code> will do.</p>
+spelling recommended below, that grouping carries TWO of them,
+<code>Intercept</code> and <code>gamma1_Intercept</code> (brms's names, which <code><a href="https://rdrr.io/pkg/nlme/man/random.effects.html" class="external-link">frmtmb::ranef()</a></code>
+uses), and the <code>Intercept</code> one is the frailty deviation on <code>mu</code>,
+which says nothing about monotonicity. With a block on <code>gamma1</code>
+alone there is one column and <code>[, 1]</code> will do.</p>
 <p>Those two lines are the <code>df = 1</code> FORM, and they are exact only
 there, because <code>d(eta)/d(log t)</code> is <code>gamma_1 + u</code> and nothing else.
 Above <code>df = 1</code> the derivative carries the interior coefficients too,
@@ -354,7 +355,7 @@ hazard off with a band.</p></div>
 <span class="r-in"><span><span class="va">dd</span><span class="op">$</span><span class="va">t</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmin</a></span><span class="op">(</span><span class="va">dd</span><span class="op">$</span><span class="va">t</span>, <span class="fl">3</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">frmtmb</span><span class="fu">::</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/frm.html" class="external-link">frm</a></span><span class="op">(</span><span class="fu">frmtmb</span><span class="fu">::</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/bf.html" class="external-link">bf</a></span><span class="op">(</span><span class="va">t</span> <span class="op">|</span> <span class="fu">cens</span><span class="op">(</span><span class="va">censored</span><span class="op">)</span> <span class="op">~</span> <span class="va">trt</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                   family <span class="op">=</span> <span class="fu">royston_parmar</span><span class="op">(</span>df <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">frmtmb</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/nlme/man/fixed.effects.html" class="external-link">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span></span></span>
+<span class="r-in"><span><span class="fu">frmtmb</span><span class="fu">::</span><span class="fu"><a href="https://aforren1.github.io/frmtmb/reference/fixef_by_dpar.html" class="external-link">fixef_by_dpar</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)         trt </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  -1.7692803   0.6424672 </span>
 </code></pre></div>

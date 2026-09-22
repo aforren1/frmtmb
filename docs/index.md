@@ -343,7 +343,9 @@ Pre-release. The goal is a CRAN release. Validation has three layers:
 - Diagnostics include one-step-ahead residuals calibrated for censored,
   truncated, and ordinal responses, deviance residuals across the GLM
   families, and response-scale `se.fit` for every family through the
-  joint delta method. DHARMa,
+  joint delta method, which is what fills brms’s `Est.Error` column on
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html). DHARMa,
   [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md),
   [`plot()`](https://rdrr.io/r/graphics/plot.default.html), and
   [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
@@ -356,13 +358,24 @@ frmtmb is maturing. The package is not yet on CRAN.
 
 - **The model grammar is stable.** It follows brms, so it changes only
   when brms changes. Formulas that fit today will fit in later versions.
-- **The fitted-object API is stable.**
+- **The fitted-object API is stable, with one exception in flight.**
   [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md), the
   accessor methods ([`coef()`](https://rdrr.io/r/stats/coef.html),
   [`confint()`](https://rdrr.io/r/stats/confint.html),
   [`vcov()`](https://rdrr.io/r/stats/vcov.html),
-  [`predict()`](https://rdrr.io/r/stats/predict.html), and the rest),
-  and the family constructors keep their current behavior.
+  [`predict()`](https://rdrr.io/r/stats/predict.html), and the rest) and
+  the family constructors keep their current behavior. The exception is
+  the move to brms’s RETURN SHAPES:
+  [`predict()`](https://rdrr.io/r/stats/predict.html) is brms’s
+  predictive summary and the linear predictor it used to return is
+  [`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md);
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html),
+  [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md),
+  [`vcov()`](https://rdrr.io/r/stats/vcov.html),
+  [`ngrps()`](https://aforren1.github.io/frmtmb/reference/ngrps.md) and
+  [`summary()`](https://rdrr.io/r/base/summary.html) return brms’s
+  shapes. `NEWS.md` says what breaks and what replaces each one.
 - **The extension interface is public and versioned.**
   [`frmtmb_family()`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md),
   [`frmtmb_structure()`](https://aforren1.github.io/frmtmb/reference/frmtmb_structure.md)

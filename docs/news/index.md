@@ -1,5 +1,391 @@
 # Changelog
 
+## frmtmb 0.61.0
+
+The silent wrong answers brms’s own ported test suite found (item 2.6f,
+lane `wt-adefects`). Each one is a case where frmtmb returned a number
+where brms refuses, or returned the wrong number with nothing said.
+`dev/adefects-findings.md` has the construction and the before-and-after
+figure for every item.
+
+- **BREAKING: [`ar()`](https://rdrr.io/r/stats/ar.html), `ma()`,
+  `arma()`, `cosy()` and `unstr()` take ONE VARIABLE NAME as the time
+  index.** An expression was evaluated against the model frame and its
+  values became the time points, so `ar(x + t, g, cov = TRUE)` fitted a
+  different likelihood and said nothing: log-likelihood -30.33421
+  against -30.88513 for `ar(t, g, cov = TRUE)` on the same 24 rows. brms
+  refuses the same call (“Cannot coerce ‘x + t’ to a single variable
+  name”). Compute the column first and name it. `time = NA` and an
+  omitted `time` are unchanged.
+
+- **BREAKING: `gr =` takes variable names crossed by `:` and nothing
+  else**, which is brms’s grammar (“It may contain only variable names
+  combined by the symbol ‘:’”). Two things change.
+
+  `gr = a:b` now CROSSES the two variables instead of being evaluated.
+  R’s `:` is the interaction for two factors but the sequence operator
+  for anything else, so on numeric group codes `gr = g1:g2` used to
+  produce a length-one vector; it now groups by the pair, as it already
+  did for factors and as it does in brms.
+
+  Every other operator is refused. `gr = g1/g2` on numeric codes used to
+  group the residual by the QUOTIENT, merging the series (1, 1) and (2,
+  2), for a log-likelihood of -30.87554 against -30.88513 with nothing
+  said. `gr = g1 + g2`, `gr = g1 * g2`, `gr = factor(g)` and
+  `gr = interaction(g1, g2)` are refused too; the last two worked before
+  and now need the column computed first, which is what brms asks for.
+
+- **BREAKING: a hypothesis must state a relation.**
+  `hypothesis(fit, "Age")` used to be answered as the row of
+  `"Age = 0"`. brms refuses it, “Every hypothesis must be of the form
+  ‘left (= OR \< OR \>) right’”, and so does frmtmb now. Write
+  `"Age = 0"`, `"x1 - x2 = 0"` or a directional `"x > 0"`. The bare
+  spelling was documented as an extension; it is gone, and 48 call sites
+  in this repository’s own suites were rewritten.
+
+- **A fit carries its model frame as `fit$data`**, which is what brms
+  keeps there. A `frmtmb_fit` had no `data` element, so `fit$data`
+  partial-matched `fit$data2` and brms-shaped code read the `data2` list
+  (a covariance matrix, or an empty list) with no error. It is the same
+  object [`model.frame()`](https://rdrr.io/r/stats/model.frame.html)
+  already returned, so it costs no memory.
+
+- **`predict(newdata = )` may omit a grouping column when
+  `allow_new_levels = TRUE`**, which is brms’s rule (“grouping factors
+  do not need to be specified by the user if new levels are allowed”).
+  The column is filled with `NA`, so every row is an unseen level: the
+  population value, plus that block’s variance in an interval. It used
+  to stop at base R’s “object ‘g’ not found”. Without `allow_new_levels`
+  the call is still refused, now by a classed error naming the column
+  and the two arguments that answer it.
+
+- **[`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md)
+  on a maximum-likelihood fit says to sample**, the way
+  [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md) and
+  [`waic()`](https://aforren1.github.io/frmtmb/reference/loo.md) already
+  did. frmtmb defines the generic and the `frmtmb_fit` method, and
+  registers it on rstantools’ generic; `frmtmb.sample` re-exports it
+  rather than defining a second one. It used to be “could not find
+  function”.
+
+- **BREAKING: [`predict()`](https://rdrr.io/r/stats/predict.html) is
+  brms’s [`predict()`](https://rdrr.io/r/stats/predict.html)** (item
+  2.6d). It returns a summary of the PREDICTIVE distribution of the
+  response, with observation noise in it, in the columns `Estimate`,
+  `Est.Error`, `Q2.5` and `Q97.5`. It used to return the LINEAR
+  PREDICTOR, glmmTMB’s convention, and on a lognormal fit the two differ
+  by about 8 against about 6,700.
+
+  **What replaces it:
+  [`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md)**,
+  which is the old
+  [`predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md)
+  unchanged, under a name that says what it gives back. Every argument
+  is the same: `frm_linpred(fit, type = "link")` is the old
+  `predict(fit)`, `frm_linpred(fit, type = "response")` the old response
+  scale, and `se.fit`, `dpar`, `resp`, `re_formula`, `allow_new_levels`
+  and the glmmTMB aliases `conditional`, `zprob`, `zlink` and `disp` all
+  behave as they did.
+
+  [`predict()`](https://rdrr.io/r/stats/predict.html) refuses `type`,
+  `se.fit`, `dpar` and `scale` BY NAME and the message says where each
+  one went, so a ported script stops rather than changing scale in
+  silence.
+
+  How the draws are made, since a maximum-likelihood fit has no
+  posterior: each replicate draws the outer parameter vector from
+  `N(theta_hat, vcov(fit, full = TRUE))` and then a response from the
+  family’s own simulator, the one
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) uses.
+  `param_uncertainty = FALSE` drops the parameter draw and simulates at
+  the estimates alone. The random effects of a level the fit SAW stay at
+  their conditional modes, as everywhere else in this package, so their
+  own conditional variance is NOT in the interval;
+  [`?predict.frmtmb_fit`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md)
+  says so and `dev/shapes-findings.md` reports the measured coverage of
+  each arm. `ndraws` sets the number of replicates (default 1000),
+  `summary = FALSE` returns them, and `robust`, `probs` and `transform`
+  are brms’s and are answered. `draw_ids`, `cores` and `sort = TRUE` are
+  refused by name.
+
+  A level the fit did NOT see is drawn, not held at zero:
+  `allow_new_levels = TRUE` takes that level’s effect from its block’s
+  own estimated covariance, once per replicate at that replicate’s
+  parameters, which is brms’s `sample_new_levels = "gaussian"`. That
+  value of the argument is therefore ACCEPTED; `"uncertainty"` and
+  `"old_levels"` resample the posterior draws of the levels that were
+  seen and are refused by name. Measured out of sample at unseen levels,
+  the interval used to cover 0.8618 against a nominal 0.95 and its
+  `Est.Error` was bit-identical to a known level’s. Each DISTINCT unseen
+  level draws its own effect, and rows in the same unseen level share
+  one, which is what makes `summary = FALSE` right for a mean, a
+  contrast or a sum over new groups.
+
+  On a MULTIVARIATE fit
+  [`predict()`](https://rdrr.io/r/stats/predict.html) returns brms’s
+  `nrow x 4 x nresp` array with the responses named on the third
+  dimension, and `summary = FALSE` the `ndraws x nrow x nresp` array. It
+  used to answer for the FIRST response only, in an `nrow x 4` matrix,
+  with nothing said. `resp =` is a filter on that array. Every response
+  is drawn at the same parameter draw, and under `set_rescor(TRUE)` the
+  responses are drawn from their joint multivariate normal law, as brms
+  draws them, so the draws carry the estimated residual correlation.
+
+  `predict(summary = FALSE)` names neither the draws nor the rows, which
+  is what brms’s `predict(summary = FALSE)` and `posterior_predict()`
+  return (`list(NULL, NULL)`, and the responses on the third margin of a
+  multivariate fit).
+
+  `predict(ndraws = 2.5)` is an error. The count check ran after
+  [`as.integer()`](https://rdrr.io/r/base/integer.html), so a fraction
+  was accepted and silently truncated.
+
+  A simulated parameter draw that makes a distributional parameter
+  non-finite for a ROW makes that one cell NA, instead of failing the
+  whole call in the family simulator; the warning names the rows and how
+  many replicates each lost, and each row is summarized over the
+  replicates it has. No row is summarized over a subset of parameter
+  draws that another row’s overflow selected: the parameter draws and
+  one seed per replicate are taken up front, and a masked cell takes
+  nothing from its neighbours. The rows of one replicate still share one
+  random stream, so a row’s Monte Carlo draws shift with the rows
+  simulated before it. It happens where a parameter the draw law covers
+  is barely identified: `vcov(object, full = TRUE)` has its variance,
+  and `param_uncertainty = FALSE` simulates at the estimates alone.
+  Every cell of a response non-finite is an error.
+
+- **BREAKING: [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html),
+  [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md),
+  [`vcov()`](https://rdrr.io/r/stats/vcov.html),
+  [`ngrps()`](https://aforren1.github.io/frmtmb/reference/ngrps.md) and
+  [`summary()`](https://rdrr.io/r/base/summary.html) return brms’s
+  shapes** (item 2.6f).
+
+  - [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+    [`residuals()`](https://rdrr.io/r/stats/residuals.html) return an
+    `n` by 4 matrix with the columns `Estimate`, `Est.Error`, `Q2.5` and
+    `Q97.5`, where they returned a vector. `Est.Error` is the
+    delta-method standard error and the `Q` columns are the Wald
+    interval at `probs`, because there are no draws to take a quantile
+    of. [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) on an
+    ordinal or categorical fit returns brms’s `n` by 4 by `K` array, the
+    third dimension named `P(Y = k)`; the category probabilities carry a
+    standard error for the first time, by the finite-difference delta
+    method over the whole outer parameter vector. The old value is the
+    `Estimate` column, and `frm_linpred(fit, type = "response")` is the
+    same numbers as a plain vector.
+  - [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) now takes
+    `probs`, `nlpar` (a synonym for `dpar`) and `allow_new_levels`;
+    `ndraws`, `draw_ids`, `sort`, `summary` and `robust` are still
+    refused by name.
+  - [`residuals()`](https://rdrr.io/r/stats/residuals.html) accepts
+    brms’s `"ordinary"` as a spelling of `type = "response"`, and takes
+    `probs`. Its `type` stays in the second position, which is NOT
+    brms’s (brms has `newdata` there).
+  - [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md)
+    returns brms’s summary matrix, one row per population-level
+    coefficient under brms’s own name (`Intercept`, `sigma_Intercept`,
+    `Trt1`) and in brms’s order, which puts every predictor’s intercept
+    first. It takes brms’s `pars` and `probs`. `fixef(flatten = TRUE)`
+    is unchanged and is the vector of estimates in
+    [`confint()`](https://rdrr.io/r/stats/confint.html)’s spelling.
+    **The per-dpar list
+    [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md)
+    used to return is
+    [`fixef_by_dpar()`](https://aforren1.github.io/frmtmb/reference/fixef_by_dpar.md)**,
+    a new export.
+  - [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md),
+    [`vcov()`](https://rdrr.io/r/stats/vcov.html) and `summary()$fixed`
+    carry an ordinal fit’s THRESHOLDS and its `cs()` coefficients, which
+    they left out entirely. On `bf(ord ~ x) + cumulative()` they are the
+    rows `Intercept[1]`, `Intercept[2]`, `x` and a 3 by 3 covariance,
+    which is what brms gives on the same model; the lane gave `x` and 1
+    by 1, and `print(fit)` showed a one-row coefficient block. The
+    threshold `Est.Error` is the delta method over the joint covariance,
+    because the family may estimate increments rather than the
+    thresholds themselves. A `cs(z)` term adds `z[1]`, `z[2]` after the
+    `b` block, as in brms.
+  - [`vcov()`](https://rdrr.io/r/stats/vcov.html) covers exactly the
+    rows
+    [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md)
+    reports and names them the same way. It used to be one row wider: a
+    distributional parameter nobody wrote a formula for, such as `sigma`
+    or `nu`, is an intercept-only linear predictor here and is not a
+    population-level coefficient in brms. It is in
+    [`summary()`](https://rdrr.io/r/base/summary.html)’s
+    `Further Distributional Parameters` block instead, on its own
+    natural scale. [`vcov()`](https://rdrr.io/r/stats/vcov.html) now
+    takes brms’s `correlation` and `pars`, and `full`, `cluster` and
+    `type` moved after `...`, so they must be named. `vcov(full = TRUE)`
+    is unchanged and keeps the INTERNAL names, because it is the matrix
+    a delta method on
+    [`confint()`](https://rdrr.io/r/stats/confint.html)’s rows needs.
+  - [`ngrps()`](https://aforren1.github.io/frmtmb/reference/ngrps.md)
+    returns brms’s named LIST, and `NULL` for a fit with no grouping
+    factor. A smooth, `gp()`, `hsgp()`, `car()` or `spde()` block is no
+    longer counted: those are random-effect blocks here and are not
+    grouping factors in brms.
+  - [`summary()`](https://rdrr.io/r/base/summary.html) carries brms’s
+    `$fixed`, `$random`, `$spec_pars` and `$cor_pars` slots beside the
+    ones it had, and [`print()`](https://rdrr.io/r/base/print.html) uses
+    brms’s section headings (`Multilevel Hyperparameters:`,
+    `Regression Coefficients:`, `Further Distributional Parameters:`).
+    `$fixed` carries brms’s four columns first and then the Wald test
+    this package reports, where brms writes `Rhat` and the two `ESS`
+    columns. [`summary()`](https://rdrr.io/r/base/summary.html) now
+    takes brms’s `priors` and `prob`, and `robust` and `mc_se` are
+    refused by name; `vcov` moved after `...` and must be named.
+  - [`summary()`](https://rdrr.io/r/base/summary.html)’s EMPTY slots
+    take brms’s empty shapes: `$random` is `NULL` where it was
+    [`list()`](https://rdrr.io/r/base/list.html), and `$spec_pars` and
+    `$cor_pars` are frames with no rows where they were `NULL`.
+  - [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+    [`residuals()`](https://rdrr.io/r/stats/residuals.html) and
+    [`predict()`](https://rdrr.io/r/stats/predict.html) leave their row
+    dimnames `NULL`, as brms does. They carried the data’s row names,
+    and under `na.action = na.omit` those names were the way to line a
+    result up with the rows of the data that survived; that way is GONE,
+    as it is in brms.
+    [`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md)
+    and [`model.frame()`](https://rdrr.io/r/stats/model.frame.html)
+    still carry them, and the row count of each summary matrix follows
+    the surviving rows.
+  - An ordinal [`fitted()`](https://rdrr.io/r/stats/fitted.values.html)
+    cannot report a probability outside `[0, 1]`. The `Q` columns are a
+    Wald interval, which is unbounded; 15 of 450 bounds were below 0 and
+    5 above 1 on a three-category fit. They are held inside the range
+    now, so a clamped bound is a sign that the normal approximation is
+    poor there rather than a probability of -0.0055.
+  - `print(fit)` prints the summary, as brms’s does.
+
+- **[`coef()`](https://rdrr.io/r/stats/coef.html) on a mixed ORDINAL fit
+  moves the thresholds by each group’s random intercept, as brms’s
+  does.** For
+  [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  and
+  [`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  the group’s `Intercept[k]` is the threshold minus the group’s mode,
+  and for
+  [`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  and
+  [`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  it is the mode minus the threshold, brms’s two sign conventions.
+  brms’s own [`coef()`](https://rdrr.io/r/stats/coef.html) on a
+  cumulative and an acat fit reproduces exactly those formulas, draw by
+  draw (`dev/shapes-p2-brmsref.R`). It used to repeat the thresholds
+  unchanged in every group beside a stray `(Intercept)` column holding
+  the mode alone.
+
+- **BREAKING:
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md)
+  names its columns as brms does**, `Intercept` and `sigma_Intercept`,
+  which is what [`coef()`](https://rdrr.io/r/stats/coef.html) and brms’s
+  [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md) say.
+  Code reading `ranef(fit)$g[, "(Intercept)"]` must read `"Intercept"`.
+
+- **BREAKING: [`coef()`](https://rdrr.io/r/stats/coef.html) names its
+  coefficients as brms names them**, `Intercept` and not `(Intercept)`,
+  which is what
+  [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md) and
+  [`vcov()`](https://rdrr.io/r/stats/vcov.html) now say.
+  [`lmtest::coeftest()`](https://rdrr.io/pkg/lmtest/man/coeftest.html)
+  keeps only the rows both [`coef()`](https://rdrr.io/r/stats/coef.html)
+  and [`vcov()`](https://rdrr.io/r/stats/vcov.html) name, so the split
+  dropped the intercept row out of a printed significance table with no
+  warning. An ordinal fit’s thresholds are
+  [`coef()`](https://rdrr.io/r/stats/coef.html) entries too, for the
+  same reason.
+  [`fixef_by_dpar()`](https://aforren1.github.io/frmtmb/reference/fixef_by_dpar.md)
+  is the design-column spelling.
+
+- **BREAKING:
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  no longer returns an object of class `brmshypothesis`.** The class is
+  `"frmtmb_hypothesis"` alone. The SHAPE is unchanged and so is every
+  element; what stops working is `is(x, "brmshypothesis")` and
+  `inherits(x, "brmshypothesis")` in a ported script. frmtmb owns
+  [`print()`](https://rdrr.io/r/base/print.html) and
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) for its own
+  class, so neither changes, and a frmtmb object carrying a brms class
+  name was the one thing the class rule forbids.
+
+- **[`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md)
+  lists an ordinal fit’s thresholds and its `cs()` coefficients**, which
+  it dropped: on a
+  [`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  fit with a `cs()` term it listed 3 of 9 parameters, on every ordinal
+  family. They are brms’s `b_Intercept[k]` and `bcs_<term>[k]`, and
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md)
+  reaches them too. The thresholds are reported on the model’s own
+  scale, not the internal (first threshold, log increments)
+  parameterization that
+  [`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  and
+  [`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  estimate; the family declares the map in `post$ord_thresholds`.
+
+- [`insight::get_predicted()`](https://easystats.github.io/insight/reference/get_predicted.html)
+  has a method of its own. Its default calls `predict(x, type = )`,
+  which [`predict()`](https://rdrr.io/r/stats/predict.html) no longer
+  has, and it WARNS and returns `NULL` rather than erroring, so every
+  prediction was silently lost. The method also carries standard errors,
+  which the default never had: `get_predicted(fit)` used to report `NA`
+  in every CI column. `predict = "prediction"` is
+  [`predict()`](https://rdrr.io/r/stats/predict.html)’s predictive
+  interval and `"link"` the linear predictor.
+
+- [`insight::get_residuals()`](https://easystats.github.io/insight/reference/get_residuals.html)
+  has a method of its own, insight’s `brmsfit` body.
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) is brms’s `n`
+  by 4 matrix now, and insight’s default returns whatever
+  [`residuals()`](https://rdrr.io/r/stats/residuals.html) gives, so
+  `get_residuals(fit)` began returning 600 numbers where its contract is
+  one per observation. It is the `Estimate` column again, with the whole
+  matrix on a `"full"` attribute and insight’s own `insight_residuals`
+  class, which the default never set either.
+
+- [`marginaleffects::get_coef()`](https://rdrr.io/pkg/marginaleffects/man/get_coef.html),
+  `set_coef()` and `get_vcov()`, and
+  [`insight::get_parameters()`](https://easystats.github.io/insight/reference/get_parameters.html)
+  and `get_varcov()`, read every ESTIMATED coefficient rather than
+  [`vcov()`](https://rdrr.io/r/stats/vcov.html)’s brms block, because
+  each is paired with a coefficient vector that has the extra rows.
+  Without this the standard errors of `avg_slopes()` moved and some
+  became `NA`.
+
+  They also carry an ordinal fit’s THRESHOLDS and `cs()` coefficients:
+  on their internal scale under
+  [`confint()`](https://rdrr.io/r/stats/confint.html)’s names
+  (`tau_raw_1`) for marginaleffects, which perturbs and writes the
+  vector back, and on the model’s own scale under
+  [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md)’s
+  names (`Intercept[1]`), with the delta-method covariance, for insight,
+  which only reads it. marginaleffects builds its Jacobian by perturbing
+  `get_coef()` one entry at a time, so a parameter the vector left out
+  contributed nothing: `avg_slopes()` on `bf(ord ~ x) + cumulative()`
+  reported 0.00029 for the middle category where
+  [`MASS::polr`](https://rdrr.io/pkg/MASS/man/polr.html) reports
+  0.02016, a factor of 69, on a point estimate that agreed to five
+  decimals. All three categories now agree with `polr` to five decimals.
+  This defect predates the shapes work.
+
+- [`sim_context()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  takes `max_iter`, the rejection limit a
+  [`trunc()`](https://rdrr.io/r/base/Round.html)ed draw needs, which
+  [`predict()`](https://rdrr.io/r/stats/predict.html) exposes as brms’s
+  `ntrys`.
+
+- No dependency floor moves for any of this. `insight`,
+  `marginaleffects`, `emmeans` and `MASS` are all in Suggests already
+  and none of the methods added here needs a newer one:
+  [`insight::get_residuals`](https://easystats.github.io/insight/reference/get_residuals.html)
+  and
+  [`insight::get_predicted`](https://easystats.github.io/insight/reference/get_predicted.html)
+  are generics insight has had since 0.9, and `marginaleffects`’s four
+  extension generics are unchanged. `lmtest` is used by
+  `dev/shapes-interop.R` and by nothing in the package.
+
 ## frmtmb 0.60.0
 
 - `tmbstan (>= 1.2.1)` in Suggests. tmbstan 1.2.1 is the first build
@@ -2775,7 +3161,8 @@ addition terms.
   frmtmb’s estimates, by feeding the log-density tier’s translated
   parameter list to Stan’s `Fixed_param` algorithm, so brms’s posterior
   mean is a point estimate and the comparison is exact rather than
-  toleranced. `posterior_epred()`, `posterior_linpred()`, `log_lik()`
+  toleranced. `posterior_epred()`, `posterior_linpred()`,
+  [`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md)
   per row,
   [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md),
   [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md),
@@ -3252,7 +3639,8 @@ companion packages in this repository.
 
 - The sampling surface moved to the companion package `frmtmb.sample`:
   `frm_sample()`, `as_tmbstan()`, `check_laplace()`, and every
-  `frmtmb_draws` method, including `log_lik()`,
+  `frmtmb_draws` method, including
+  [`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md),
   [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md),
   `posterior_epred()` and
   [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md)
@@ -3914,7 +4302,8 @@ and circular.
   random-effect block whose every parameter is a standard deviation
   carrying a prior is sampled non-centered, `b = L(theta) z`, and mapped
   back per draw. The draws matrix is unchanged in every respect (same
-  `b[i]` columns, same names, same order), so `log_lik()`,
+  `b[i]` columns, same names, same order), so
+  [`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md),
   [`loo()`](https://aforren1.github.io/frmtmb/reference/loo.md),
   `posterior_epred()`,
   [`ranef()`](https://aforren1.github.io/frmtmb/reference/ranef.md),
@@ -3978,7 +4367,8 @@ for upstream.
 
 ### Leave-one-out cross-validation
 
-- `log_lik()` on `frm_sample()` draws gives the ndraws x nobs matrix of
+- [`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md)
+  on `frm_sample()` draws gives the ndraws x nobs matrix of
   per-observation log-densities, each row at that draw’s own parameter
   vector and conditional on its own group-level values, brms’s
   convention (tmbstan samples the random effects too). Addition terms
@@ -4058,9 +4448,9 @@ for upstream.
   [`conditional_effects()`](https://aforren1.github.io/frmtmb/reference/conditional_effects.md),
   [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md),
   [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md),
-  `log_lik()`, `posterior_epred()` and forty-odd others resolve
-  regardless of attach order. Verified against the full surface with
-  brms attached.
+  [`log_lik()`](https://aforren1.github.io/frmtmb/reference/log_lik.md),
+  `posterior_epred()` and forty-odd others resolve regardless of attach
+  order. Verified against the full surface with brms attached.
 - [`bf()`](https://aforren1.github.io/frmtmb/reference/bf.md) is a plain
   function and IS masked by
   [`library(brms)`](https://github.com/paul-buerkner/brms); a brms-built

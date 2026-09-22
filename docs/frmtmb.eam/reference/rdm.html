@@ -17,7 +17,7 @@ observed time is its arrival time plus a non-decision time."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -197,7 +197,7 @@ as it has always been. Write
 subject deviation, and the bound becomes that subject's own fastest
 response. A per-row bound cannot live in a link, so under a grouping
 <code>ndt</code> is a FRACTION of the row's bound and the density multiplies:
-<code>predict(dpar = "ndt", type = "response")</code> then reports the fraction
+<code>frm_linpred(dpar = "ndt", type = "response")</code> then reports the fraction
 and <code><a href="ndt_time.html">ndt_time()</a></code> reports the time either way. A single bound is the
 global fastest response, and a subject whose non-decision time is
 above it cannot be represented at any value of the random effect;
@@ -299,30 +299,10 @@ two-choice diffusion.</p></div>
 <span class="r-in"><span>                    ndt <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="fu">bf</span><span class="op">(</span><span class="va">rt</span> <span class="op">|</span> <span class="fu">vint</span><span class="op">(</span><span class="va">choice</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span><span class="op">)</span>, family <span class="op">=</span> <span class="fu">rdm</span><span class="op">(</span><span class="fl">3</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $v1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    1.054443 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $v2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   0.5458444 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $v3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> -0.09667655 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $A</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  -0.8922818 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $k</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  -0.7532663 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $ndt</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    2.203433 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 Estimate Est.Error       Q2.5     Q97.5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> v1_Intercept  1.05444255 0.1178023  0.8235542 1.2853309</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> v2_Intercept  0.54584441 0.1707863  0.2111094 0.8805794</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> v3_Intercept -0.09667655 0.3166363 -0.7172723 0.5239192</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

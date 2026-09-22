@@ -119,7 +119,7 @@ frmtmb_structure(
   `function(fit, block)` giving the conditional mean and variance of
   each row GIVEN the whole observed response, for
   [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
-  `predict(type = "response")` on the training data, and pearson
+  `frm_linpred(type = "response")` on the training data, and pearson
   residuals. `NULL` means "use the rowwise family mean", which is what a
   group-level mixture wants. A family with no mean supplies a function
   that stops. Both run at the estimates, outside the tape.
@@ -322,7 +322,7 @@ family names only what it refuses:
 
 - `se_fit_response`:
 
-  `predict(se.fit = TRUE, type = "response")`.
+  `frm_linpred(se.fit = TRUE, type = "response")`.
 
 - `re_form`:
 

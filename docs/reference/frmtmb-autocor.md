@@ -74,13 +74,30 @@ and the second is `gr`: write `cosy(gr = subj)`, not `cosy(subj)`.
 
 - `time`:
 
-  The variable whose levels index the correlation. Omit it (brms's
-  `time = NA`) to use each row's position within its group.
+  ONE variable name, whose levels index the correlation. Omit it (brms's
+  `time = NA`) to use each row's position within its group. An
+  expression is refused rather than evaluated, as it is in brms: the
+  distinct values of the index are the time points and the distance
+  between them is the lag, so `ar(x + t, g)` would be indexed by the
+  sum. Compute the column first and name it.
 
 - `gr`:
 
-  The grouping variable the residual factorizes over. Omit it to treat
-  the whole data set as one series.
+  The grouping variable the residual factorizes over, or several crossed
+  with `:`. Omit it to treat the whole data set as one series.
+  `gr = a:b` crosses the two, on numeric codes as well as on factors;
+  every other operator is refused rather than evaluated, again as in
+  brms ("It may contain only variable names combined by the symbol
+  ':'"), because `gr = a/b` would otherwise group by the quotient.
+  `gr = factor(g)` and `gr = interaction(a, b)` are refused for the same
+  reason: the grouping variable is made a factor here anyway, so write
+  `gr = g` and `gr = a:b`. The crossing PASTES the levels with an
+  underscore, as brms's `combine_groups()` does, so it is not injective:
+  levels `("x_1", "2")` and `("x", "1_2")` both become `"x_1_2"` and
+  share one series, where
+  [`interaction()`](https://rdrr.io/r/base/interaction.html) would keep
+  them apart. brms merges them too; make the column yourself if the
+  labels can collide.
 
 - `p`, `q`:
 
@@ -202,25 +219,25 @@ d$y <- 1 + 0.5 * d$x + e
 fit <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(),
            data = d)
 summary(fit)
-#> Family: gaussian 
+#>  Family: gaussian 
 #>  Links: mu = identity; sigma = log
 #> 
 #> Formula: y ~ x + ar(week, subj, cov = TRUE) 
-#> Method: ML   nobs: 150 
-#> logLik: -214.257  AIC: 436.514  BIC: 448.556 
+#>    Data: d (Number of observations: 150) 
+#>  Method: ML   logLik: -214.257   AIC: 436.514   BIC: 448.556 
 #> 
-#> Within-group residual correlation: ar(week, subj, cov = TRUE)
-#>       Estimate  2.5 % 97.5 %
-#> ar[1]   0.5226 0.3675 0.6494
+#> Correlation Structures:
+#>       Estimate Est.Error l-95% CI u-95% CI
+#> ar[1]     0.52      0.07     0.37     0.65
 #> 
-#> Coefficients (mu):
-#>             Estimate Std. Error z value  Pr(>|z|)
-#> (Intercept)  1.10730    0.13956  7.9343 2.116e-15
-#> x            0.45411    0.08061  5.6334 1.767e-08
+#> Regression Coefficients:
+#>           Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept     1.11      0.14     0.83     1.38    7.93  2.1e-15
+#> x             0.45      0.08     0.30     0.61    5.63  1.8e-08
 #> 
-#> Coefficients (sigma):
-#>             Estimate Std. Error z value Pr(>|z|)
-#> (Intercept) 0.137029   0.071079  1.9278  0.05387
+#> Further Distributional Parameters:
+#>       Estimate Est.Error l-95% CI u-95% CI
+#> sigma     1.15      0.08        1     1.32
 autocor_matrix(fit)
 #>            1         2         3         4          5
 #> 1 1.00000000 0.5225995 0.2731103 0.1427273 0.07458923
@@ -232,53 +249,80 @@ autocor_matrix(fit)
 # compound symmetry, and the unstructured correlation over the five
 # weeks
 frm(bf(y ~ x + cosy(week, subj)) + gaussian(), data = d)
-#> frmtmb fit: y ~ x + cosy(week, subj) 
-#> Family: gaussian   Method: ML 
+#>  Family: gaussian 
 #>  Links: mu = identity; sigma = log
 #> 
-#> logLik: -220.426  AIC: 448.852  nobs: 150 
+#> Formula: y ~ x + cosy(week, subj) 
+#>    Data: d (Number of observations: 150) 
+#>  Method: ML   logLik: -220.426   AIC: 448.852   BIC: 460.894 
 #> 
-#> Fixed effects:
-#>  mu:
-#> (Intercept)           x 
-#>      1.0901      0.4085 
-#>  sigma:
-#> (Intercept) 
-#>      0.1398 
+#> Correlation Structures:
+#>      Estimate Est.Error l-95% CI u-95% CI
+#> cosy     0.36      0.09     0.17     0.52
+#> 
+#> Regression Coefficients:
+#>           Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept     1.09      0.15     0.80     1.38    7.43  1.1e-13
+#> x             0.41      0.09     0.23     0.59    4.52  6.2e-06
+#> 
+#> Further Distributional Parameters:
+#>       Estimate Est.Error l-95% CI u-95% CI
+#> sigma     1.15      0.08        1     1.32
 frm(bf(y ~ x + unstr(week, subj)) + gaussian(), data = d)
-#> frmtmb fit: y ~ x + unstr(week, subj) 
-#> Family: gaussian   Method: ML 
+#>  Family: gaussian 
 #>  Links: mu = identity; sigma = log
 #> 
-#> logLik: -213.317  AIC: 452.634  nobs: 150 
+#> Formula: y ~ x + unstr(week, subj) 
+#>    Data: d (Number of observations: 150) 
+#>  Method: ML   logLik: -213.317   AIC: 452.634   BIC: 491.773 
 #> 
-#> Fixed effects:
-#>  mu:
-#> (Intercept)           x 
-#>      1.1178      0.4386 
-#>  sigma:
-#> (Intercept) 
-#>      0.1371 
+#> Correlation Structures:
+#>               Estimate Est.Error l-95% CI u-95% CI
+#> cortime__1__2     0.44      0.14     0.14     0.67
+#> cortime__1__3     0.28      0.16    -0.05     0.56
+#> cortime__1__4     0.24      0.18    -0.12     0.55
+#> cortime__1__5     0.10      0.19    -0.26     0.44
+#> cortime__2__3     0.61      0.10     0.36     0.77
+#> cortime__2__4     0.38      0.16     0.04     0.64
+#> cortime__2__5     0.14      0.18    -0.21     0.46
+#> cortime__3__4     0.55      0.12     0.28     0.75
+#> cortime__3__5     0.31      0.16    -0.02     0.58
+#> cortime__4__5     0.49      0.14     0.17     0.71
+#> 
+#> Regression Coefficients:
+#>           Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept     1.12      0.14     0.84     1.40    7.82  5.2e-15
+#> x             0.44      0.09     0.26     0.61    4.94  7.8e-07
+#> 
+#> Further Distributional Parameters:
+#>       Estimate Est.Error l-95% CI u-95% CI
+#> sigma     1.15      0.08        1     1.32
 
 # a random intercept alongside the correlated residual is allowed
 frm(bf(y ~ x + (1 | subj) + ar(week, subj, cov = TRUE)) + gaussian(),
     data = d)
-#> frmtmb fit: y ~ x + (1 | subj) + ar(week, subj, cov = TRUE) 
-#> Family: gaussian   Method: ML 
+#>  Family: gaussian 
 #>  Links: mu = identity; sigma = log
 #> 
-#> logLik: -214.232  AIC: 438.465  nobs: 150 
+#> Formula: y ~ x + (1 | subj) + ar(week, subj, cov = TRUE) 
+#>    Data: d (Number of observations: 150) 
+#>  Method: ML   logLik: -214.232   AIC: 438.465   BIC: 453.518 
 #> 
-#> Fixed effects:
-#>  mu:
-#> (Intercept)           x 
-#>      1.1060      0.4518 
-#>  sigma:
-#> (Intercept) 
-#>       0.109 
+#> Multilevel Hyperparameters:
+#> ~subj (Number of levels: 30) 
+#>               Estimate Est.Error l-95% CI u-95% CI
+#> sd(Intercept)     0.27      0.58        0    18.55
 #> 
-#> Random effects:
-#>   1 | subj 
-#>         Name Std.Dev.
-#>  (Intercept)  0.26669
+#> Correlation Structures:
+#>       Estimate Est.Error l-95% CI u-95% CI
+#> ar[1]     0.49      0.14     0.17     0.73
+#> 
+#> Regression Coefficients:
+#>           Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept     1.11      0.14     0.83     1.38    7.81  5.7e-15
+#> x             0.45      0.08     0.29     0.61    5.54  3.0e-08
+#> 
+#> Further Distributional Parameters:
+#>       Estimate Est.Error l-95% CI u-95% CI
+#> sigma     1.12      0.16     0.85     1.47
 ```

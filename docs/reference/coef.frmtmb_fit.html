@@ -13,7 +13,7 @@ matching columns. Use fixef() for the fixed effects alone."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -109,15 +109,21 @@ error naming it, rather than silently changing nothing.</p></dd>
 with one row per group level and one column per coefficient. When
 random effects appear in more than one linear predictor, the list is
 nested one level deeper, keyed as in <code><a href="fixef.html">fixef()</a></code>. A fit without random
-effects returns the <code><a href="fixef.html">fixef()</a></code> value instead.</p>
+effects returns the per-predictor coefficient vectors instead.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The result is a list of data frames keyed by grouping factor. When
 random effects appear in more than one dpar (or response), an outer
 layer keyed like <code><a href="fixef.html">fixef()</a></code> is added. Smooth terms are excluded. A fit
-without random effects returns <code><a href="fixef.html">fixef()</a></code> (the single coefficient
-vector when there is one linear predictor).</p>
+without random effects returns the coefficient vector of the location
+predictor (when there is one linear predictor), or one vector per
+predictor.</p>
+<p>The coefficients are named as brms names them, which is how
+<code><a href="fixef.html">fixef()</a></code> and <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code> name their rows: <code>Intercept</code>, not
+<code>(Intercept)</code>. Anything that pairs <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> with <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code> by name,
+<code><a href="https://rdrr.io/pkg/lmtest/man/coeftest.html" class="external-link">lmtest::coeftest()</a></code> among them, needs the two to agree. Use
+<code><a href="fixef_by_dpar.html">fixef_by_dpar()</a></code> for the design-column spelling.</p>
     </div>
 
     <div class="section level2">
@@ -129,23 +135,25 @@ vector when there is one linear predictor).</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># one row per group: the fixed effects with the modes added in</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">g</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   (Intercept)         x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     Intercept         x</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1  0.44665008 0.6706869</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2  1.43337233 0.6706869</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3  0.54268306 0.6706869</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4  0.87303571 0.6706869</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5 -0.02536969 0.6706869</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6  2.28544238 0.6706869</span>
-<span class="r-in"><span><span class="co"># which is fixef() plus ranef(), the lme4 identity</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">g</span><span class="op">[[</span><span class="st">"(Intercept)"</span><span class="op">]</span><span class="op">]</span>,</span></span>
-<span class="r-in"><span>          <span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">mu</span><span class="op">[[</span><span class="st">"(Intercept)"</span><span class="op">]</span><span class="op">]</span> <span class="op">+</span> <span class="fu"><a href="ranef.html">ranef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">g</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span><span class="co"># which is fixef() plus ranef(), the lme4 identity, under the same</span></span></span>
+<span class="r-in"><span><span class="co"># names fixef() and vcov() use</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">g</span><span class="op">[[</span><span class="st">"Intercept"</span><span class="op">]</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>          <span class="fu"><a href="fixef.html">fixef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">[</span><span class="st">"Intercept"</span>, <span class="st">"Estimate"</span><span class="op">]</span> <span class="op">+</span> <span class="fu"><a href="ranef.html">ranef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">g</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span>,</span></span>
 <span class="r-in"><span>          check.attributes <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># without random effects there are no groups, so coef() is fixef()</span></span></span>
+<span class="r-in"><span><span class="co"># without random effects there are no groups, so coef() is the</span></span></span>
+<span class="r-in"><span><span class="co"># coefficient vector of the location predictor</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dd</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   1.2457711   0.6136201 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept         x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1.2457711 0.6136201 </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

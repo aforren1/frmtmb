@@ -1,5 +1,14 @@
 # Changelog
 
+## frmtmb.ode 0.6.0
+
+- Documentation only: the vignette and the compatibility notes name
+  `frm_linpred()` where they named
+  [`predict()`](https://rdrr.io/r/stats/predict.html). frmtmb’s
+  [`predict()`](https://rdrr.io/r/stats/predict.html) is brms’s
+  predictive summary in frmtmb 0.61.0 and the linear predictor moved to
+  `frm_linpred()`.
+
 ## frmtmb.ode 0.5.0
 
 - Requires frmtmb 0.60.0, for `frm_stop()` and the other condition

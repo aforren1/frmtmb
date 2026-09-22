@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.latent</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +43,11 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.latent/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.5.0" id="frmtmblatent-050">frmtmb.latent 0.5.0<a class="anchor" aria-label="anchor" href="#frmtmblatent-050"></a></h2>
+<ul><li>
+<code><a href="../reference/hmm_starts.html">hmm_starts()</a></code>’s scale check reads <code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html" class="external-link">frmtmb::vcov_estimated()</a></code> rather than <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">stats::vcov()</a></code> on a frmtmb fit. <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code> is brms’s population-level block in frmtmb 0.61.0: it names its rows brms’s way and drops an intercept-only distributional parameter, so the check’s name intersection would have been empty and it would have fallen back to a unit scale without saying why. Requires frmtmb 0.61.0.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.0" id="frmtmblatent-040">frmtmb.latent 0.4.0<a class="anchor" aria-label="anchor" href="#frmtmblatent-040"></a></h2>
 <ul><li><p>Requires frmtmb 0.60.0, for <code>frm_stop()</code> and the other condition helpers.</p></li>

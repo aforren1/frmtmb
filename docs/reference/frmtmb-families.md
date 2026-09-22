@@ -192,11 +192,11 @@ character or logical response is coerced to a factor with a message
 naming the level order, because that order is the model.
 
 [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
-`predict(type = "response")` return the `n x K` matrix of category
+`frm_linpred(type = "response")` return the `n x K` matrix of category
 probabilities, columns named by the response's own levels and rows
 summing to one - the same convention the ordinal families follow.
-`predict(type = "link")` and `predict(dpar =)` give the per-category
-latent predictors, which is where `se.fit` lives.
+`frm_linpred(type = "link")` and `frm_linpred(dpar =)` give the
+per-category latent predictors, which is where `se.fit` lives.
 [`simulate()`](https://rdrr.io/r/stats/simulate.html) draws factor
 levels. The same likelihood is available on a count-matrix response as
 `multinomial(K)`, and a one-hot matrix gives an identical
@@ -209,9 +209,9 @@ mean direction and takes the `tan_half` link, which maps the whole line
 onto that interval; `kappa` is the concentration and takes a log link,
 with `kappa = 0` the uniform distribution on the circle. Both are brms's
 choices. [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
-`predict(type = "response")` report the mean direction. The normalizing
-constant needs `log I0(kappa)`, which RTMB differentiates exactly
-through its own `besselI` method, so nothing here is a series
+`frm_linpred(type = "response")` report the mean direction. The
+normalizing constant needs `log I0(kappa)`, which RTMB differentiates
+exactly through its own `besselI` method, so nothing here is a series
 approximation. Residuals are differences of angles and are NOT wrapped,
 so read [`residuals()`](https://rdrr.io/r/stats/residuals.html) on a von
 Mises fit with that in mind.
@@ -244,8 +244,8 @@ The baseline is semiparametric only in spirit - it has `df` parameters,
 not one per event time - so coefficients agree with `coxph()` closely
 rather than exactly. A survival response has no mean, so
 [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
-`predict(type = "response")` are refused; `predict(type = "link")` gives
-the log hazard ratio.
+`frm_linpred(type = "response")` are refused;
+`frm_linpred(type = "link")` gives the log hazard ratio.
 [`simulate()`](https://rdrr.io/r/stats/simulate.html) is not available.
 
 Maximum likelihood often puts one or more baseline weights ON the
@@ -406,82 +406,76 @@ dd <- data.frame(x = rnorm(n))
 # heavier tails than gaussian(), with an estimated df
 dd$y <- 1 + 0.8 * dd$x + rt(n, df = 4)
 fixef(frm(bf(y ~ x) + student(), data = dd))
-#> $mu
-#> (Intercept)           x 
-#>   0.9572315   0.8342757 
-#> 
-#> $sigma
-#> (Intercept) 
-#>  -0.2075767 
-#> 
-#> $nu
-#> (Intercept) 
-#>   0.4055075 
-#> 
+#>            Estimate  Est.Error      Q2.5    Q97.5
+#> Intercept 0.9572315 0.09371241 0.7735586 1.140904
+#> x         0.8342757 0.10463054 0.6292036 1.039348
 
 # counts with more spread than poisson() allows
 dd$cnt <- rnbinom(n, mu = exp(0.5 + 0.4 * dd$x), size = 2)
 fit <- frm(bf(cnt ~ x) + negbinomial(), data = dd)
-fixef(fit)$mu
+fixef_by_dpar(fit)$mu
 #> (Intercept)           x 
 #>   0.3690288   0.3371061 
 
 # a zero-inflated count: the zi dpar gets its own predictor
 dd$zi <- ifelse(runif(n) < 0.3, 0, dd$cnt)
 frm(bf(zi ~ x, zi ~ 1) + zero_inflated_poisson(), data = dd)
-#> frmtmb fit: zi ~ x 
-#> Family: zero_inflated_poisson   Method: ML 
+#>  Family: zero_inflated_poisson 
 #>  Links: mu = log; zi = logit
 #> 
-#> logLik: -173.275  AIC: 352.55  nobs: 120 
+#> Formula: zi ~ x 
+#>    Data: dd (Number of observations: 120) 
+#>  Method: ML   logLik: -173.275   AIC: 352.55   BIC: 360.913 
 #> 
-#> Fixed effects:
-#>  mu:
-#> (Intercept)           x 
-#>      0.6070      0.2271 
-#>  zi:
-#> (Intercept) 
-#>     -0.3201 
+#> Regression Coefficients:
+#>              Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept        0.61      0.12     0.38     0.84    5.20    2e-07
+#> zi_Intercept    -0.32      0.24    -0.80     0.16   -1.31    0.190
+#> x                0.23      0.11     0.02     0.44    2.13    0.033
 
 # an ordered response: level order is the category order
 dd$grade <- cut(1 + 0.8 * dd$x + rlogis(n), 3,
                 labels = c("low", "mid", "high"), ordered_result = TRUE)
 frm(bf(grade ~ x) + cumulative(), data = dd)
-#> frmtmb fit: grade ~ x 
-#> Family: cumulative   Method: ML 
+#>  Family: cumulative 
 #>  Links: cdf = logit
 #> 
-#> logLik: -81.675  AIC: 169.35  nobs: 120 
+#> Formula: grade ~ x 
+#>    Data: dd (Number of observations: 120) 
+#>  Method: ML   logLik: -81.675   AIC: 169.35   BIC: 177.713 
 #> 
-#> Fixed effects:
-#>  mu:
-#>     x 
-#> 1.108 
+#> Regression Coefficients:
+#>              Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept[1]    -0.88      0.22    -1.32    -0.45   -4.01  6.0e-05
+#> Intercept[2]     3.68      0.51     2.69     4.68    7.26  3.9e-13
+#> x                1.11      0.26     0.61     1.61    4.33  1.5e-05
 
 # a proportion in (0, 1)
 dd$p <- plogis(0.2 + 0.6 * dd$x + rnorm(n, 0, 0.3))
 frm(bf(p ~ x) + Beta(), data = dd)
-#> frmtmb fit: p ~ x 
-#> Family: beta   Method: ML 
+#>  Family: beta 
 #>  Links: mu = logit; phi = log
 #> 
-#> logLik: 154.805  AIC: -303.61  nobs: 120 
+#> Formula: p ~ x 
+#>    Data: dd (Number of observations: 120) 
+#>  Method: ML   logLik: 154.805   AIC: -303.61   BIC: -295.247 
 #> 
-#> Fixed effects:
-#>  mu:
-#> (Intercept)           x 
-#>      0.2133      0.5771 
-#>  phi:
-#> (Intercept) 
-#>       3.921 
+#> Regression Coefficients:
+#>           Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept     0.21      0.03     0.16     0.27    8.07  7.1e-16
+#> x             0.58      0.03     0.52     0.64   19.06  < 2e-16
+#> 
+#> Further Distributional Parameters:
+#>     Estimate Est.Error l-95% CI u-95% CI
+#> phi    50.46      6.45    39.27    64.83
 
 # bounded influence: a few wild points barely move the slope
 dd$rob <- 1 + 0.8 * dd$x + rnorm(n)
 dd$rob[1:5] <- dd$rob[1:5] + 30
-fixef(frm(bf(rob ~ x), family = huber(), data = dd))$mu
+fixef_by_dpar(frm(bf(rob ~ x), family = huber(), data = dd))$mu
 #> (Intercept)           x 
 #>   1.1663906   0.8551163 
-fixef(frm(bf(rob ~ x), family = gaussian(), data = dd))$mu
+fixef_by_dpar(frm(bf(rob ~ x), family = gaussian(), data = dd))$mu
 #> (Intercept)           x 
 #>    2.231839    1.490395 
 
@@ -490,53 +484,78 @@ fixef(frm(bf(rob ~ x), family = gaussian(), data = dd))$mu
 dd$pick <- factor(sample(c("ale", "stout", "lager"), n, TRUE))
 cat_fit <- frm(bf(pick ~ x), family = categorical(), data = dd)
 fixef(cat_fit)                     # mulager and mustout; ale is the
-#> $mulager
-#> (Intercept)           x 
-#>  0.28202930 -0.08958449 
-#> 
-#> $mustout
-#> (Intercept)           x 
-#>   0.5645427  -0.4373896 
-#> 
+#>                      Estimate Est.Error       Q2.5      Q97.5
+#> mulager_Intercept  0.28202930 0.2503092 -0.2085678 0.77262640
+#> mustout_Intercept  0.56454273 0.2363012  0.1014009 1.02768452
+#> mulager_x         -0.08958449 0.2669129 -0.6127242 0.43355526
+#> mustout_x         -0.43738957 0.2601125 -0.9472007 0.07242157
                                    # reference
 head(fitted(cat_fit))              # n x K category probabilities
-#>         ale     lager     stout
-#> 1 0.2564172 0.3334248 0.4101580
-#> 2 0.2163825 0.3011704 0.4824471
-#> 3 0.2928210 0.3584389 0.3487401
-#> 4 0.2768567 0.3479778 0.3751655
-#> 5 0.3327697 0.3810589 0.2861714
-#> 6 0.2819019 0.3513701 0.3667279
+#> , , P(Y = ale)
+#> 
+#>       Estimate  Est.Error      Q2.5     Q97.5
+#> [1,] 0.2564172 0.04058006 0.1768818 0.3359527
+#> [2,] 0.2163825 0.04641332 0.1254141 0.3073510
+#> [3,] 0.2928210 0.05531228 0.1844109 0.4012311
+#> [4,] 0.2768567 0.04647044 0.1857763 0.3679371
+#> [5,] 0.3327697 0.08839368 0.1595213 0.5060181
+#> [6,] 0.2819019 0.04890836 0.1860433 0.3777606
+#> 
+#> , , P(Y = lager)
+#> 
+#>       Estimate  Est.Error      Q2.5     Q97.5
+#> [1,] 0.3334248 0.04389351 0.2473951 0.4194545
+#> [2,] 0.3011704 0.05134162 0.2005426 0.4017981
+#> [3,] 0.3584389 0.05855308 0.2436769 0.4732008
+#> [4,] 0.3479778 0.04992207 0.2501324 0.4458233
+#> [5,] 0.3810589 0.08940322 0.2058318 0.5562860
+#> [6,] 0.3513701 0.05233584 0.2487938 0.4539465
+#> 
+#> , , P(Y = stout)
+#> 
+#>       Estimate  Est.Error      Q2.5     Q97.5
+#> [1,] 0.4101580 0.04632187 0.3193688 0.5009472
+#> [2,] 0.4824471 0.05570475 0.3732678 0.5916264
+#> [3,] 0.3487401 0.05923470 0.2326422 0.4648380
+#> [4,] 0.3751655 0.05205583 0.2731379 0.4771930
+#> [5,] 0.2861714 0.07905345 0.1312295 0.4411134
+#> [6,] 0.3667279 0.05416057 0.2605751 0.4728807
+#> 
 
 # one category may take its own predictor
 dd$w <- rnorm(n)
 frm(bf(pick ~ x, mustout ~ w), family = categorical(), data = dd)
-#> frmtmb fit: pick ~ x 
-#> Family: categorical   Method: ML 
+#>  Family: categorical 
 #>  Links: mulager = identity; mustout = identity
 #> 
-#> logLik: -128.572  AIC: 265.145  nobs: 120 
+#> Formula: pick ~ x 
+#>    Data: dd (Number of observations: 120) 
+#>  Method: ML   logLik: -128.572   AIC: 265.145   BIC: 276.295 
 #> 
-#> Fixed effects:
-#>  mulager:
-#> (Intercept)           x 
-#>      0.2429      0.1853 
-#>  mustout:
-#> (Intercept)           w 
-#>       0.515       0.101 
+#> Regression Coefficients:
+#>                   Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> mulager_Intercept     0.24      0.24    -0.24     0.72    0.99    0.321
+#> mustout_Intercept     0.51      0.23     0.06     0.97    2.22    0.027
+#> mulager_x             0.19      0.21    -0.24     0.61    0.86    0.388
+#> mustout_w             0.10      0.19    -0.28     0.48    0.52    0.600
 
 # an angle: mu is the mean direction, kappa the concentration
 dd$angle <- atan2(sin(0.5 + dd$x), cos(0.5 + dd$x))
 vm_fit <- frm(bf(angle ~ x), family = von_mises(), data = dd)
 head(fitted(vm_fit))               # the mean direction, in radians
-#>           1           2           3           4           5           6 
-#>  0.82530547 -0.05745388  1.41150621  1.18172554  1.83731815  1.25871540 
+#>         Estimate  Est.Error        Q2.5       Q97.5
+#> [1,]  0.82530547 0.01603449  0.79387845  0.85673250
+#> [2,] -0.05745388 0.01824795 -0.09321921 -0.02168855
+#> [3,]  1.41150621 0.01768376  1.37684668  1.44616573
+#> [4,]  1.18172554 0.01719206  1.14802971  1.21542136
+#> [5,]  1.83731815 0.01706177  1.80387769  1.87075861
+#> [6,]  1.25871540 0.01740168  1.22460872  1.29282207
 
 # proportional hazards with a spline baseline; (1 | g) is a frailty
 dd$time <- rexp(n, exp(-0.5 + 0.7 * dd$x))
 dd$out <- rbinom(n, 1, 0.3)        # 1 = right censored
 cox_fit <- frm(bf(time | cens(out) ~ x), family = cox(), data = dd)
-fixef(cox_fit)$mu                  # log hazard ratios
+fixef_by_dpar(cox_fit)$mu                  # log hazard ratios
 #> (Intercept)           x 
 #>   2.1265524   0.7045597 
 cox_baseline(cox_fit)              # the baseline hazard weights

@@ -17,7 +17,7 @@ declare."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -100,7 +100,7 @@ SETTLED bound passes a check against a placeholder and reaches the
 objective as <code>NaN</code>.</p></li>
 <li><p><code>max_ndt = &lt;a number&gt;</code> gives a SETTLED bound, and the family scores
 outside <code>frm()</code>: <code>ndt</code> is a time measured against that bound,
-<code>predict(dpar = "ndt", type = "response")</code> reports seconds, and a
+<code>frm_linpred(dpar = "ndt", type = "response")</code> reports seconds, and a
 pinned constant means what it says.</p></li>
 </ul><p>The second is what a package reaching into another family's density
 slot needs, and it is what <code><a href="wiener.html">wiener()</a></code>, <code><a href="lba.html">lba()</a></code>, <code><a href="rdm.html">rdm()</a></code> and

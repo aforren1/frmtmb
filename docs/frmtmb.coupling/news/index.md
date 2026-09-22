@@ -1,5 +1,20 @@
 # Changelog
 
+## frmtmb.coupling 0.5.0
+
+- [`frm_coherence()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frm_coherence.md)
+  and
+  [`frm_phase()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frm_coherence.md)
+  read
+  [`frmtmb::frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.html)
+  rather than [`predict()`](https://rdrr.io/r/stats/predict.html).
+  frmtmb’s [`predict()`](https://rdrr.io/r/stats/predict.html) is brms’s
+  predictive summary in frmtmb 0.61.0 and has no `type` or `se.fit`;
+  `frm_linpred()` is the old function under a name that says what it
+  returns. Nothing in this package’s own surface changes: the interval
+  is still `type = "link", se.fit = TRUE` on the `coh` dpar, pushed
+  through `plogis`. Requires frmtmb 0.61.0.
+
 ## frmtmb.coupling 0.4.0
 
 - Requires frmtmb 0.60.0, for `frm_stop()` and the other condition

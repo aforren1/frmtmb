@@ -52,21 +52,10 @@ response, so they are chosen when `frm()` assembles the model frame.
 fit <- frm(bf(recyrs | cens(censored) ~ group),
            family = royston_parmar(df = 3), data = bc)
 fixef(fit)
-#> $mu
-#> (Intercept) groupMedium   groupPoor 
-#>  -2.7467993   0.8342391   1.6117459 
-#> 
-#> $gamma1
-#> (Intercept) 
-#>    3.468767 
-#> 
-#> $gamma2
-#> (Intercept) 
-#>   0.5679955 
-#> 
-#> $gamma3
-#> (Intercept) 
-#>  -0.3577181
+#>               Estimate Est.Error       Q2.5     Q97.5
+#> Intercept   -2.7467993 0.2506274 -3.2380199 -2.255579
+#> groupMedium  0.8342391 0.1712826  0.4985314  1.169947
+#> groupPoor    1.6117459 0.1642932  1.2897372  1.933755
 ```
 
 `mu` is `gamma0`, the spline intercept, and the `group` coefficients sit
@@ -75,7 +64,7 @@ are LOG HAZARD RATIOS: the model is proportional hazards.
 
 ``` r
 
-exp(unlist(fixef(fit)$mu)[-1])
+exp(unlist(fixef_by_dpar(fit)$mu)[-1])
 #> groupMedium   groupPoor 
 #>    2.303061    5.011553
 ```
@@ -121,9 +110,9 @@ c(flexsurv = fs$loglik, frmtmb = as.numeric(logLik(fit)))
 ## Read the baseline off
 
 Every spline coefficient is a distributional parameter, so
-`predict(type = "link", dpar = )` reaches each of them and the fitted
-baseline is the basis times those coefficients. There is no penalized
-smooth in this model, so
+`frm_linpred(type = "link", dpar = )` reaches each of them and the
+fitted baseline is the basis times those coefficients. There is no
+penalized smooth in this model, so
 [`frm_curve()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/frm_curve.md)
 has no random-effect block to read and refuses; add an `s()` term and it
 applies here as it does anywhere else.
@@ -134,7 +123,7 @@ tg <- exp(seq(log(0.3), log(max(bc$recyrs)), length.out = 60))
 nd <- data.frame(recyrs = tg,
                  group = factor("Good", levels = levels(bc$group)))
 lp <- lapply(c("mu", "gamma1", "gamma2", "gamma3"), function(dp) {
-  predict(fit, newdata = nd, type = "link", dpar = dp)
+  frm_linpred(fit, newdata = nd, type = "link", dpar = dp)
 })
 kn <- environment(family(fit)[["lpdf"]])$allknots
 x <- log(tg)
@@ -170,7 +159,7 @@ surv_of <- function(g) {
   ndg <- data.frame(recyrs = tg,
                     group = factor(g, levels = levels(bc$group)))
   lps <- lapply(c("mu", "gamma1", "gamma2", "gamma3"), function(dp) {
-    as.numeric(predict(fit, newdata = ndg, type = "link", dpar = dp))
+    as.numeric(frm_linpred(fit, newdata = ndg, type = "link", dpar = dp))
   })
   exp(-exp(Reduce(`+`, Map(`*`, bas, lps))))
 }
@@ -235,17 +224,17 @@ estimates and what each one was measured to recover.
 ## What this family will not do
 
 [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
-`predict(type = "response")` refuse, and say why. The mean of a survival
-time under this model is an integral of the fitted survival function
-with no closed form, and the censored rows do not identify its upper
-tail. `mu` is a spline coefficient, not a fitted value, and the identity
-link would let it pass for one:
+`frm_linpred(type = "response")` refuse, and say why. The mean of a
+survival time under this model is an integral of the fitted survival
+function with no closed form, and the censored rows do not identify its
+upper tail. `mu` is a spline coefficient, not a fitted value, and the
+identity link would let it pass for one:
 
 ``` r
 
 fitted(fit)
 #> Error:
-#> ! royston_parmar: a survival time has no mean on the response scale here. mu is gamma0, the intercept of a spline in log time, not a fitted value, and the mean survival time is an integral over a tail the censored rows do not identify. predict(type = "link", dpar = ) gives any spline coefficient, and frm_curve() reads the fitted log cumulative hazard off with a band
+#> ! royston_parmar: a survival time has no mean on the response scale here. mu is gamma0, the intercept of a spline in log time, not a fitted value, and the mean survival time is an integral over a tail the censored rows do not identify. frm_linpred(type = "link", dpar = ) gives any spline coefficient, and frm_curve() reads the fitted log cumulative hazard off with a band
 ```
 
 ## The check you must run

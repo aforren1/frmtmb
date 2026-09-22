@@ -93,7 +93,7 @@ Three residual types, in increasing order of statistical care:
 
 ``` r
 
-r <- residuals(fit, type = "osa")
+r <- residuals(fit, type = "osa")[, "Estimate"]
 qqnorm(r); abline(0, 1)
 ```
 
@@ -313,23 +313,25 @@ it can be trusted:
 ``` r
 
 imp
-#> frmtmb fit: y ~ x + (x | g) 
-#> Family: bernoulli   Method: ML 
+#>  Family: bernoulli 
 #>  Links: mu = logit
 #> 
-#> logLik: -118.439  AIC: 246.878  nobs: 200 
+#> Formula: y ~ x + (x | g) 
+#>    Data: bd (Number of observations: 200) 
+#>  Method: ML   logLik: -118.439   AIC: 246.878   BIC: 263.37 
 #> Marginal likelihood: importance-corrected, 500 draws per group in 4 rounds (MCSE 0.11, min ESS 0.64 of 1) 
 #> 
-#> Fixed effects:
-#>  mu:
-#> (Intercept)           x 
-#>      -0.754       1.131 
+#> Multilevel Hyperparameters:
+#> ~g (Number of levels: 40) 
+#>                  Estimate Est.Error l-95% CI u-95% CI
+#> sd(Intercept)        1.06      0.34     0.57     1.97
+#> sd(x)                2.32      0.56     1.44     3.72
+#> cor(Intercept,x)    -0.04      0.38    -0.65     0.61
 #> 
-#> Random effects:
-#>   x | g 
-#>         Name Std.Dev. (Intercept)
-#>  (Intercept)   1.0596            
-#>            x   2.3157     -0.0377
+#> Regression Coefficients:
+#>           Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+#> Intercept    -0.75      0.29    -1.32    -0.19   -2.61   0.0089
+#> x             1.13      0.48     0.18     2.08    2.34   0.0192
 ```
 
 Note what this model is. The random effect is a correlated intercept and

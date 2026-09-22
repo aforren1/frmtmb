@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.ode</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -163,60 +163,48 @@ say how each constant varies between subjects.</p>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">frm</span><span class="op">(</span><span class="va">form</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span>, se <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>           start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">0.08</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">0.5</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Family: gaussian </span></span>
+<span><span class="co">#&gt;  Family: gaussian </span></span>
 <span><span class="co">#&gt;  Links: mu = identity; sigma = log</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Formula: conc ~ frm_ode(pk_dyn, init = list(Dose, 0), times = Time, parms = list(exp(lka), exp(lke), exp(lV)), group = Subject, states = c("depot", "central"), output = "central") </span></span>
-<span><span class="co">#&gt; Method: ML   nobs: 132 </span></span>
-<span><span class="co">#&gt; Groups: Subject, 12 </span></span>
-<span><span class="co">#&gt; logLik: -191.192  AIC: 394.384  BIC: 411.68 </span></span>
+<span><span class="co">#&gt;    Data: d (Number of observations: 132) </span></span>
+<span><span class="co">#&gt;  Method: ML   logLik: -191.192   AIC: 394.384   BIC: 411.68 </span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Random effects:</span></span>
-<span><span class="co">#&gt;   lka: 1 | Subject </span></span>
-<span><span class="co">#&gt;         Name Std.Dev.</span></span>
-<span><span class="co">#&gt;  (Intercept)  0.68534</span></span>
-<span><span class="co">#&gt;   lke: 1 | Subject </span></span>
-<span><span class="co">#&gt;         Name Std.Dev.</span></span>
-<span><span class="co">#&gt;  (Intercept)  0.35835</span></span>
+<span><span class="co">#&gt; Multilevel Hyperparameters:</span></span>
+<span><span class="co">#&gt; ~Subject (Number of levels: 12) </span></span>
+<span><span class="co">#&gt;                   Estimate Est.Error l-95% CI u-95% CI</span></span>
+<span><span class="co">#&gt; sd(lka_Intercept)     0.69      0.16     0.43     1.09</span></span>
+<span><span class="co">#&gt; sd(lke_Intercept)     0.36      0.08     0.23     0.56</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (lka):</span></span>
-<span><span class="co">#&gt;             Estimate Std. Error z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept)  0.37847    0.20822  1.8177  0.06911</span></span>
+<span><span class="co">#&gt; Regression Coefficients:</span></span>
+<span><span class="co">#&gt;               Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; lka_Intercept     0.38      0.21    -0.03     0.79    1.82    0.069</span></span>
+<span><span class="co">#&gt; lke_Intercept    -2.37      0.12    -2.61    -2.14  -19.97   &lt;2e-16</span></span>
+<span><span class="co">#&gt; lV_Intercept     -0.82      0.03    -0.87    -0.77  -30.82   &lt;2e-16</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (lke):</span></span>
-<span><span class="co">#&gt;             Estimate Std. Error z value  Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -2.37288    0.11884 -19.968 &lt; 2.2e-16</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (lV):</span></span>
-<span><span class="co">#&gt;              Estimate Std. Error z value  Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -0.821161   0.026642 -30.822 &lt; 2.2e-16</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (mu):</span></span>
-<span><span class="co">#&gt;      Estimate Std. Error z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (sigma):</span></span>
-<span><span class="co">#&gt;              Estimate Std. Error z value  Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept) -0.229063   0.068604 -3.3389 0.0008411</span></span></code></pre></div>
+<span><span class="co">#&gt; Further Distributional Parameters:</span></span>
+<span><span class="co">#&gt;       Estimate Est.Error l-95% CI u-95% CI</span></span>
+<span><span class="co">#&gt; sigma      0.8      0.05      0.7     0.91</span></span></code></pre></div>
 <p>The typical subject’s constants come back on the natural scale, and
 the derived quantities a pharmacokineticist reads off them follow:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ka</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">lka</span><span class="op">)</span>; <span class="va">ke</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">lke</span><span class="op">)</span></span>
-<span><span class="va">V</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">lV</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">ka</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu">fixef_by_dpar</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">lka</span><span class="op">)</span>; <span class="va">ke</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu">fixef_by_dpar</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">lke</span><span class="op">)</span></span>
+<span><span class="va">V</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu">fixef_by_dpar</span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">$</span><span class="va">lV</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>ka <span class="op">=</span> <span class="va">ka</span>, ke <span class="op">=</span> <span class="va">ke</span>, V <span class="op">=</span> <span class="va">V</span>,</span>
 <span>  half_life <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span> <span class="op">/</span> <span class="va">ke</span>,       <span class="co"># hours</span></span>
 <span>  clearance <span class="op">=</span> <span class="va">ke</span> <span class="op">*</span> <span class="va">V</span><span class="op">)</span>            <span class="co"># L/h per kg of body weight</span></span>
 <span><span class="co">#&gt;        ka.(Intercept)        ke.(Intercept)         V.(Intercept) </span></span>
-<span><span class="co">#&gt;            1.46004473            0.09321157            0.43992080 </span></span>
+<span><span class="co">#&gt;            1.46004472            0.09321157            0.43992080 </span></span>
 <span><span class="co">#&gt; half_life.(Intercept) clearance.(Intercept) </span></span>
-<span><span class="co">#&gt;            7.43627852            0.04100571</span></span></code></pre></div>
-<p>Everything downstream works as usual: <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> on new
-times, <code>ranef()</code> for the subject deviations,
+<span><span class="co">#&gt;            7.43627865            0.04100571</span></span></code></pre></div>
+<p>Everything downstream works as usual: <code>frm_linpred()</code> on
+new times, <code>ranef()</code> for the subject deviations,
 <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code>, <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>,
 <code>REML = TRUE</code>.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>Subject <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="st">"1"</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">Subject</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                 Time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">25</span>, length.out <span class="op">=</span> <span class="fl">5</span><span class="op">)</span>, Dose <span class="op">=</span> <span class="fl">4.02</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">nd</span><span class="op">)</span></span>
+<span><span class="fu">frm_linpred</span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">nd</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 0.000000 7.257109 5.663743 4.420213 3.449711</span></span></code></pre></div>
 <p>The same call on a dense time grid draws the fitted curve for every
 subject over that subject’s own observations. Each curve carries that
@@ -228,7 +216,7 @@ shape.</p>
 <span>             Time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">Time</span><span class="op">)</span>, length.out <span class="op">=</span> <span class="fl">100</span><span class="op">)</span>,</span>
 <span>             Dose <span class="op">=</span> <span class="va">s</span><span class="op">$</span><span class="va">Dose</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">grid</span><span class="op">$</span><span class="va">conc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">grid</span><span class="op">)</span></span>
+<span><span class="va">grid</span><span class="op">$</span><span class="va">conc</span> <span class="op">&lt;-</span> <span class="fu">frm_linpred</span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">grid</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot.html" class="external-link">tinyplot</a></span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="va">Time</span> <span class="op">|</span> <span class="va">Subject</span>, data <span class="op">=</span> <span class="va">d</span>, pch <span class="op">=</span> <span class="fl">16</span>, cex <span class="op">=</span> <span class="fl">0.7</span>,</span>
 <span>                   legend <span class="op">=</span> <span class="cn">FALSE</span>, xlab <span class="op">=</span> <span class="st">"Time (h)"</span>,</span>
@@ -442,7 +430,7 @@ three doses twelve hours apart, with between-subject variability on
 <span>     <span class="va">lka</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span>, <span class="va">lke</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span>, <span class="va">lV</span> <span class="op">~</span> <span class="fl">1</span>, nl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">dd</span>, start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">0.25</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">8</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">dose_fit</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">fixef_by_dpar</span><span class="op">(</span><span class="va">dose_fit</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   lka.(Intercept)   lke.(Intercept)    lV.(Intercept) sigma.(Intercept) </span></span>
 <span><span class="co">#&gt;        0.04225596       -1.44209990        2.28231919       -1.30575528</span></span></code></pre></div>
 <p>The truth is <code>lka = 0</code>, <code>lke = -1.61</code> and
@@ -456,7 +444,7 @@ on.</p>
 <span><span class="va">gr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">show</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">s</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">dd</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>             time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">40</span>, length.out <span class="op">=</span> <span class="fl">200</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">gr</span><span class="op">$</span><span class="va">conc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">dose_fit</span>, newdata <span class="op">=</span> <span class="va">gr</span><span class="op">)</span></span>
+<span><span class="va">gr</span><span class="op">$</span><span class="va">conc</span> <span class="op">&lt;-</span> <span class="fu">frm_linpred</span><span class="op">(</span><span class="va">dose_fit</span>, newdata <span class="op">=</span> <span class="va">gr</span><span class="op">)</span></span>
 <span><span class="va">gr</span><span class="op">$</span><span class="va">id</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/droplevels.html" class="external-link">droplevels</a></span><span class="op">(</span><span class="va">gr</span><span class="op">$</span><span class="va">id</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">tinyplot</span><span class="fu">::</span><span class="fu"><a href="https://grantmcdermott.com/tinyplot/man/tinyplot.html" class="external-link">tinyplot</a></span><span class="op">(</span><span class="va">conc</span> <span class="op">~</span> <span class="va">time</span> <span class="op">|</span> <span class="va">id</span>, data <span class="op">=</span> <span class="va">sub</span>, pch <span class="op">=</span> <span class="fl">16</span>,</span>
@@ -592,9 +580,9 @@ contracting between cycles at all, which means no <code>n_ss</code>
 settles it. Read that number as a DETECTOR rather than a measurement: it
 comes from the same geometric model the correction does, so where the
 model is poor it is poor with it. During a fit the comparison cannot run
-at all, so read the warning from a <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> or a direct
-call. <code>ss_extrapolate = FALSE</code> restores the truncated run-in
-bit for bit.</p>
+at all, so read the warning from a <code>frm_linpred()</code> or a
+direct call. <code>ss_extrapolate = FALSE</code> restores the truncated
+run-in bit for bit.</p>
 <p>Raising <code>n_ss</code> a long way has its own limit. The cycles
 are chained solves, so the integrator’s error accumulates over all of
 them: at the default tolerances and <code>n_ss</code> = 1000 it
@@ -691,7 +679,7 @@ to compare, because RTMB refuses comparison on AD types, so
 <span>                    group <span class="op">=</span> <span class="va">id</span>, output <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span>,</span>
 <span>     <span class="va">lk</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">+</span> <span class="va">phase</span> <span class="op">+</span> <span class="op">(</span><span class="fl">1</span> <span class="op">|</span> <span class="va">id</span><span class="op">)</span>, nl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/family.html" class="external-link">gaussian</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">dv</span>, start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">0.2</span><span class="op">)</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">fixef</span><span class="op">(</span><span class="va">tv_fit</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu">fixef_by_dpar</span><span class="op">(</span><span class="va">tv_fit</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    lk.(Intercept)      lk.phaselate sigma.(Intercept) </span></span>
 <span><span class="co">#&gt;       -1.78812648        0.75055986       -0.08544209</span></span></code></pre></div>
 <p><code>lk</code> is a linear predictor that varies within a subject,
@@ -955,10 +943,10 @@ value inside a segment would have to depend on <code>t</code>.</p>
 inter-dose intervals, estimated observation times and estimated
 <code>tv</code> change points are not supported. They decide where the
 solve is split, and that is settled before the tape is built.</p>
-<p><code>predict(se.fit = TRUE)</code> is not available for any
+<p><code>frm_linpred(se.fit = TRUE)</code> is not available for any
 nonlinear predictor, <code><a href="../reference/frm_ode.html">frm_ode()</a></code> included. Ask for a
 nonlinear parameter instead, with
-<code>predict(dpar = "lka")</code>.</p>
+<code>frm_linpred(dpar = "lka")</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="failed-solves">Failed solves<a class="anchor" aria-label="anchor" href="#failed-solves"></a>
@@ -980,7 +968,7 @@ failures are still caught on the tape: an integrator that gives up and
 returns fewer time points than it was asked for, and an R error raised
 by your derivative function.</p>
 <p><strong>Everywhere else every check applies.</strong>
-<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>,
+<code>frm_linpred()</code>, <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code>,
 <code><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals()</a></code>, a direct call to <code><a href="../reference/frm_ode.html">frm_ode()</a></code>, and a
 fit whose <code>init</code> and <code>parms</code> contain no estimated
 parameter are ordinary numeric arithmetic. There a failed solve is
@@ -990,7 +978,7 @@ detected, and by default its rows are filled with
 names the groups, and <code><a href="../reference/frm_ode_failures.html">frm_ode_failures()</a></code> reads the record
 back afterwards:</p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">nd</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu">frm_linpred</span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">nd</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Warning: frm_ode(): the solve failed for 1 of 3 groups (2). Their rows</span></span>
 <span><span class="co">#&gt; hold penalty = 1e+06, not a solution. ...</span></span>
 <span></span>

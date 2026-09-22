@@ -210,13 +210,19 @@ takes `optimizer` (`"nlminb"`, `"optim"`, or a function), `optCtrl`,
 `restarts`, `grad_tol`, `profile`, `sparse_x`, `autoscale`,
 `check_nlev_1`, `check_olre` and `verbose`.
 
-[`predict()`](https://rdrr.io/r/stats/predict.html) takes `newdata` (a
-data frame), `type`, `dpar`, `resp`, `re_formula`, `se.fit` and
-`allow_new_levels`. Every name is brms’s: where brms and lme4 or glmmTMB
-disagree, brms decides. An argument that is not in that list is an ERROR
-naming it. The lme4 spellings `re.form` and `allow.new.levels` were live
-until the rename and are refused by name, with the replacement in the
-message.
+[`predict()`](https://rdrr.io/r/stats/predict.html) is brms’s predictive
+summary and takes `newdata` (a data frame), `re_formula`, `transform`,
+`resp`, `ndraws`, `summary`, `robust`, `probs` and `allow_new_levels`.
+[`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md)
+is the linear predictor and takes `newdata`, `type`, `dpar`, `resp`,
+`re_formula`, `se.fit` and `allow_new_levels`. Every name is brms’s:
+where brms and lme4 or glmmTMB disagree, brms decides. An argument that
+is not in the list is an ERROR naming it, and `predict(type =)` and
+`predict(se.fit =)` are refused with
+[`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md)
+named in the message. The lme4 spellings `re.form` and
+`allow.new.levels` were live until the rename and are refused by name
+too.
 
 ## Predictor classes
 
@@ -308,12 +314,12 @@ once you have centered the column or if you want the epoch origin.
 All character options are matched with
 [`match.arg()`](https://rdrr.io/r/base/match.arg.html), so matching is
 case sensitive and accepts unambiguous prefixes. `"response"` and
-`"resp"` both work for `predict(type =)`; `"Response"` does not.
+`"resp"` both work for `frm_linpred(type =)`; `"Response"` does not.
 
 | Function | Argument | Values |
 |----|----|----|
-| [`predict()`](https://rdrr.io/r/stats/predict.html) | `type` | `"link"`, `"response"`, `"conditional"`, `"zprob"`, `"zlink"`, `"disp"` |
-| [`residuals()`](https://rdrr.io/r/stats/residuals.html) | `type` | `"response"`, `"pearson"`, `"deviance"`, `"osa"` |
+| [`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md) | `type` | `"link"`, `"response"`, `"conditional"`, `"zprob"`, `"zlink"`, `"disp"` |
+| [`residuals()`](https://rdrr.io/r/stats/residuals.html) | `type` | `"response"` (brms’s `"ordinary"`), `"pearson"`, `"deviance"`, `"osa"` |
 | [`confint()`](https://rdrr.io/r/stats/confint.html) | `method` | `"wald"`, `"Wald"`, `"profile"`, `"uniroot"`, `"boot"` |
 | [`drop1()`](https://rdrr.io/r/stats/add1.html) | `test` | `"none"`, `"Chisq"` |
 | [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md) | `method` | `"wald"`, `"profile"`, `"boot"` |
@@ -354,9 +360,9 @@ name at all. The rules below say what happens where two of them do meet.
 
 **Columns and coefficients never collide.** A coefficient is stored
 under its dpar prefix, so a covariate named `sigma` in the mean is
-`sigma` in `fixef(fit)$mu` while the residual standard deviation is
-`(Intercept)` in `fixef(fit)$sigma`. Both fit, and neither reads the
-other.
+`sigma` in `fixef_by_dpar(fit)$mu` while the residual standard deviation
+is `(Intercept)` in `fixef_by_dpar(fit)$sigma`. Both fit, and neither
+reads the other.
 
 **A nonlinear parameter may not also be a column.**
 `bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1, nl = TRUE)` on data that has a
@@ -463,9 +469,9 @@ of the grouping column.
 ``` r
 
 fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = d)
-head(names(fitted(fit)), 3)
-#> [1] "obs1" "obs2" "obs3"
-head(names(predict(fit)), 3)
+head(rownames(fitted(fit)), 3)
+#> NULL
+head(names(frm_linpred(fit)), 3)
 #> [1] "obs1" "obs2" "obs3"
 ```
 

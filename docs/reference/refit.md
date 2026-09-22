@@ -50,12 +50,7 @@ fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
 ysim <- simulate(fit, nsim = 1, re_formula = NA)[[1]]
 rf <- refit(fit, ysim)
 fixef(rf)
-#> $mu
-#> (Intercept)           x 
-#>   0.9330103   0.5717605 
-#> 
-#> $sigma
-#> (Intercept) 
-#>  0.07467955 
-#> 
+#>            Estimate Est.Error      Q2.5     Q97.5
+#> Intercept 0.9330103 0.2342002 0.4739864 1.3920342
+#> x         0.5717605 0.1101704 0.3558305 0.7876906
 ```

@@ -13,7 +13,7 @@ family's other distributional parameters."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.60.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -157,19 +157,19 @@ which, <a href="frmtmb-families.html">frmtmb-families</a> for the constructors.<
 <span class="r-in"><span><span class="va">d</span><span class="op">$</span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">60</span>, <span class="fl">1</span> <span class="op">+</span> <span class="va">d</span><span class="op">$</span><span class="va">x</span>, <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fl">0.3</span> <span class="op">*</span> <span class="va">d</span><span class="op">$</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="frm.html">frm</a></span><span class="op">(</span><span class="fu"><a href="bf.html">bf</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, <span class="va">sigma</span> <span class="op">~</span> <span class="va">x</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>    family <span class="op">=</span> <span class="fu">brmsfamily</span><span class="op">(</span><span class="st">"gaussian"</span>, link_sigma <span class="op">=</span> <span class="st">"softplus"</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">d</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> frmtmb fit: y ~ x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Family: gaussian   Method: ML </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Family: gaussian </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  Links: mu = identity; sigma = softplus</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> logLik: -92.517  AIC: 193.034  nobs: 60 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Formula: y ~ x </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Data: d (Number of observations: 60) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Method: ML   logLik: -92.517   AIC: 193.034   BIC: 201.411 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Fixed effects:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  mu:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      0.9444      0.9301 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  sigma:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept)           x </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      0.7351      0.4798 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Regression Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 Estimate Est.Error l-95% CI u-95% CI z value Pr(&gt;|z|)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Intercept           0.94      0.15     0.64     1.25    6.15  7.8e-10</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma_Intercept     0.74      0.16     0.43     1.04    4.73  2.2e-06</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> x                   0.93      0.12     0.70     1.16    7.77  8.0e-15</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> sigma_x             0.48      0.13     0.22     0.74    3.56  0.00037</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -159,7 +159,7 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
 #> Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
 #> Running the chains for more iterations may help. See
 #> https://mc-stan.org/misc/warnings.html#tail-ess
-#>            Estimate Est.Error       Q2.5    Q97.5
-#> Intercept 0.3677589 0.2792422 0.02512589 1.068053
+#>            Estimate Est.Error       Q2.5   Q97.5
+#> Intercept 0.3661108 0.2621795 0.01226208 1.06828
 # }
 ```

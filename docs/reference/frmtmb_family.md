@@ -588,8 +588,7 @@ fam <- custom_family(
 )
 fit <- frm(bf(y | vint(size) ~ x) + fam, data = dd)
 fixef(fit)
-#> $mu
-#> (Intercept)           x 
-#> -0.58378094 -0.02406052 
-#> 
+#>              Estimate  Est.Error       Q2.5      Q97.5
+#> Intercept -0.58378094 0.09329315 -0.7666322 -0.4009297
+#> x         -0.02406052 0.08624635 -0.1931003  0.1449792
 ```

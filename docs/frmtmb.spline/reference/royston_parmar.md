@@ -211,15 +211,17 @@ A survival function that increases is not one.
 
 So where a group can have no events, check it yourself, in two lines:
 
-    slope <- fixef(fit)$gamma1[["(Intercept)"]] +
-      ranef(fit)[["centre"]][, "time.gamma1:(Intercept)"]
+    slope <- fixef_by_dpar(fit)$gamma1[["(Intercept)"]] +
+      ranef(fit)[["centre"]][, "gamma1_Intercept"]
     rownames(ranef(fit)[["centre"]])[slope <= 0]
 
 and confirm that comes back empty. Name the column: under the paired
-spelling recommended below, that grouping carries TWO of them, and the
-`mu` one is the frailty deviation, which says nothing about
-monotonicity. With a block on `gamma1` alone there is one column and
-`[, 1]` will do.
+spelling recommended below, that grouping carries TWO of them,
+`Intercept` and `gamma1_Intercept` (brms's names, which
+[`frmtmb::ranef()`](https://rdrr.io/pkg/nlme/man/random.effects.html)
+uses), and the `Intercept` one is the frailty deviation on `mu`, which
+says nothing about monotonicity. With a block on `gamma1` alone there is
+one column and `[, 1]` will do.
 
 Those two lines are the `df = 1` FORM, and they are exact only there,
 because `d(eta)/d(log t)` is `gamma_1 + u` and nothing else. Above
@@ -327,7 +329,7 @@ dd$censored <- as.integer(dd$t > 3)
 dd$t <- pmin(dd$t, 3)
 fit <- frmtmb::frm(frmtmb::bf(t | cens(censored) ~ trt),
                    family = royston_parmar(df = 2), data = dd)
-frmtmb::fixef(fit)$mu
+frmtmb::fixef_by_dpar(fit)$mu
 #> (Intercept)         trt 
 #>  -1.7692803   0.6424672 
 ```

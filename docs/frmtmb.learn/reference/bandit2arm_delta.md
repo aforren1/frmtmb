@@ -164,14 +164,9 @@ fit <- frmtmb::frm(frmtmb::bf(choice | reward(pay1, pay2) ~ 1,
                    family = bandit2arm_delta(subject = id,
                                              trial = trial), data = d)
 frmtmb::fixef(fit)
-#> $alpha
-#> (Intercept) 
-#>  -0.6021218 
-#> 
-#> $tau
-#> (Intercept) 
-#>    1.188803 
-#> 
+#>                   Estimate Est.Error       Q2.5       Q97.5
+#> alpha_Intercept -0.6021218 0.2883862 -1.1673484 -0.03689529
+#> tau_Intercept    1.1888028 0.1101175  0.9729765  1.40462902
 head(frm_value_trace(fit))
 #>   subject trial        q1 q2         pe         p
 #> 1       1     1 0.0000000  0  1.0000000 0.5000000
