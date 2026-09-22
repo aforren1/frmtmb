@@ -83,8 +83,16 @@ frmtmb_ad_overload <- function(f) {
 #' is there for anyone who wants the AD-capable one.
 #'
 #' @noRd
+#' `atan2` arrived with RTMB 2.0 and is shadowed although this machine's
+#' RTMB 1.9 does not export it: `nl_shadow_fun()` skips a name the
+#' installed RTMB lacks, so listing it early is free, and CI's R-devel
+#' already has 2.0. It is transparent by construction rather than by
+#' probe: RTMB defines it as an S4 generic with methods for `advector`
+#' signatures only, so numeric arguments reach `base::atan2()` itself.
+#'
+#' @noRd
 nl_rtmb_shadow <- c(
-  "apply", "besselI", "besselJ", "besselK", "besselY", "colSums",
+  "apply", "atan2", "besselI", "besselJ", "besselK", "besselY", "colSums",
   "cov2cor", "dbeta", "dbinom", "dcauchy", "dchisq", "dexp", "df",
   "dgamma", "diag", "dlnorm", "dlogis", "dmultinom", "dnbinom",
   "dnorm", "dpois", "dt", "dweibull", "eigen", "fft", "findInterval",

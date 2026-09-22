@@ -291,12 +291,17 @@ test_that("raising adapt_delta shortens the step and removes
   # Both assertions compare the two arms of the SAME runs, so neither
   # carries a threshold read off another machine. The step size is the
   # mechanism (adapt_delta is a target acceptance rate, and a higher
-  # target is met with a shorter step) and holds per seed; the
-  # divergence count is the consequence, is heavy-tailed across seeds,
-  # and so is summed over the eight.
-  for (i in seq_along(seeds)) {
-    expect_lt(hi[[i]]$step, lo[[i]]$step)
-  }
+  # target is met with a shorter step), but it does NOT hold per seed:
+  # over 40 seeds the high arm's step was shorter in 40 under RTMB 1.9
+  # and 38 under RTMB 2.0 (worst ratio 2.29), whose last-bit changes
+  # alone send a chain down a different path. A per-seed assertion
+  # passed here by luck and broke on that upgrade. The median ratio,
+  # 0.29 (2.0) and 0.31 (1.9) over the 40, carries the
+  # claim with margin. The divergence count is the consequence, is
+  # heavy-tailed across seeds, and so is summed over the eight.
+  ratio <- vapply(seq_along(seeds),
+                  function(i) hi[[i]]$step / lo[[i]]$step, 0)
+  expect_lt(stats::median(ratio), 1)
   n_lo <- sum(vapply(lo, function(z) z$div, 0))
   n_hi <- sum(vapply(hi, function(z) z$div, 0))
   # the low arm still diverging is a property of the CONSTRUCTION: if

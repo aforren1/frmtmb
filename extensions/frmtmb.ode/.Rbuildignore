@@ -4,3 +4,4 @@
 ^.*\.Rproj$
 ^dev$
 ^_pkgdown\.yml$
+^vignettes/figure$

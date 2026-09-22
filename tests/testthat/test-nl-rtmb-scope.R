@@ -36,10 +36,20 @@ test_that("the shadow set is the RTMB/base/stats collision, less qchisq", {
                             c(ls(baseenv()),
                               getNamespaceExports("stats"))))
   shipped <- frmtmb:::nl_rtmb_shadow
-  # a name RTMB stopped exporting would be shadowed to nothing, and a
-  # new colliding export would silently stay lexical: both are changes
-  # to the promise, so both fail here rather than in a user's formula
-  expect_setequal(shipped, setdiff(collide, "qchisq"))
+  exported <- getNamespaceExports("RTMB")
+  # A new colliding export would silently stay lexical in a body, so a
+  # name this RTMB collides on and the package does not ship FAILS.
+  expect_setequal(setdiff(setdiff(collide, "qchisq"), shipped),
+                  character())
+  # The other direction cannot be an equality: the set is shipped for
+  # the RTMB the USER has, and this machine's 1.9 predates `atan2`,
+  # which 2.0 exports and CI's R-devel installs. A shipped name is
+  # therefore allowed to be one the installed RTMB does not export, and
+  # `nl_shadow_fun()` skips it at run time; a shipped name that IS
+  # exported must be one of the collisions.
+  extra <- setdiff(shipped, collide)
+  expect_setequal(intersect(extra, exported), character())
+  for (nm in extra) expect_null(frmtmb:::nl_shadow_fun(nm))
   expect_false("qchisq" %in% shipped)
   expect_true(all(c("pnorm", "qnorm", "dnorm", "dgamma", "pgamma",
                     "qgamma", "dbeta", "pbeta", "dbinom", "dpois",
@@ -48,6 +58,11 @@ test_that("the shadow set is the RTMB/base/stats collision, less qchisq", {
 })
 
 test_that("every shadowed name is numerically transparent", {
+  # a name the installed RTMB does not export has nothing to probe;
+  # `nl_shadow_fun()` returns NULL for it and the body keeps its
+  # lexical meaning
+  skip_if_not(all(frmtmb:::nl_rtmb_shadow %in% getNamespaceExports("RTMB")),
+              "this RTMB does not export every shadowed name")
   # the numeric paths - simulate(), predict(), the plain-numeric
   # objective - re-run the same body off the tape. A shadowed name that
   # returned a different number there would split the two paths without
@@ -98,6 +113,9 @@ test_that("every shadowed name is numerically transparent", {
     dmultinom = function(f) list(f(c(2, 3, 5), prob = c(0.2, 0.3, 0.5)),
                                  f(c(2, 3, 5), prob = c(0.2, 0.3, 0.5),
                                    log = TRUE)),
+    # all four quadrants, both axes, and the recycled scalar either side
+    atan2 = function(f) list(f(q, 1.3), f(-1, q), f(q, rev(q)),
+                             f(c(0, 0, 1, -1), c(1, -1, 0, 0))),
     besselK = function(f) list(f(xp, 0.5), f(xp, 1.5), f(xp, 0.5, TRUE)),
     besselI = function(f) list(f(xp, 0.5), f(xp, 1.5)),
     besselJ = function(f) list(f(xp, 0.5), f(xp, 1.5)),

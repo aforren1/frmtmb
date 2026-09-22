@@ -537,37 +537,34 @@ test_that("user priors override the defaults per class", {
 })
 
 test_that("defaults tame a variance component flat priors cannot", {
-  skip_sampler()
-  withr::local_options(mc.cores = 1)
-  set.seed(101)
   # three groups and no group-level signal: nothing stops a flat prior
   # on the log standard deviation running off toward minus infinity
+  set.seed(101)
   dd <- data.frame(g = factor(rep(1:3, each = 8L)))
   dd$y <- stats::rnorm(nrow(dd), 0, 1)
-  form <- bf(y ~ 1 + (1 | g)) + gaussian()
-
-  flat <- suppressWarnings(suppressMessages(
-    frm_sample(form, data = dd, prior = "flat", chains = 1, iter = 1200,
-               refresh = 0, seed = 4)))
-  def <- suppressWarnings(suppressMessages(
-    frm_sample(form, data = dd, chains = 1, iter = 1200, refresh = 0,
-               seed = 4)))
-  f <- flat$draws[, "theta_1"]
-  d <- def$draws[, "theta_1"]
-  # The flat chain visits log sd values the half-t simply does not, and
-  # the gap is measured in the half-t chain's OWN spread rather than
-  # against a fixed log sd. With three groups the posterior tail under
-  # the half-t is genuinely long, and how far into it a chain gets is a
-  # property of the sampler: the non-centered default reaches -3.7 where
-  # the centered one stopped at -2.4, so a fixed floor would be testing
-  # the parameterization instead of the prior.
-  skip_if_not(sampler_gates_on(), "chain-agreement gates are off")
-  expect_lt(stats::quantile(f, 0.025), -3.5)
-  expect_gt((stats::quantile(d, 0.025) - stats::quantile(f, 0.025)) /
-              stats::sd(d), 0.5)
-  expect_gt(stats::sd(f) / stats::sd(d), 1.3)
-  # and it mixes worse for it
-  expect_gt(min(summary(def)[, "Bulk_ESS"]), min(summary(flat)[, "Bulk_ESS"]))
+  fit <- frm(bf(y ~ 1 + (1 | g)) + gaussian(), data = dd)
+  flat <- frmtmb.sample:::prior_augmented_obj(fit, list())
+  defs <- frmtmb.sample:::default_priors_for(fit)
+  def <- frmtmb.sample:::prior_augmented_obj(
+    fit, frmtmb::resolve_prior_input(fit, defs)$entries)
+  # Read off the sampled density itself, not off a chain. This test
+  # used to compare one flat and one default chain, and over 40 seeds
+  # its thresholds held in 11 to 22 of them under RTMB 1.9 and 2.0
+  # alike: it passed on seed 4's luck and failed when RTMB 2.0's
+  # last-bit changes moved that chain. The claim is about the tail of
+  # the density, which is exact and seed-free.
+  p <- fit$obj$par
+  at <- function(obj, th) {
+    p[which(names(p) == "theta")[1L]] <- th
+    as.numeric(obj$fn(p))
+  }
+  # flat: the negative log posterior levels off as the log sd falls, so
+  # the density does not decay and its integral over that tail diverges
+  expect_lt(abs(at(flat, -40) - at(flat, -20)), 1e-8)
+  # default: a half-t with finite density at sd = 0, carried to the log
+  # scale by its Jacobian, rises by exactly one unit per unit of log sd,
+  # an integrable exponential tail
+  expect_equal(at(def, -40) - at(def, -20), 20, tolerance = 1e-8)
 })
 
 test_that("the formula route validates its own arguments", {
