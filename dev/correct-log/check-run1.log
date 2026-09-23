@@ -1,0 +1,241 @@
+===== CHECK C:/Users/adf44/source/r/frmtmb-wt-correct =====
+* checking for file 'C:/Users/adf44/source/r/frmtmb-wt-correct/DESCRIPTION' ... OK
+* preparing 'frmtmb':
+* checking DESCRIPTION meta-information ... OK
+* installing the package (it is needed to build vignettes)
+* creating vignettes ... OK
+* checking for LF line-endings in source and make files and shell scripts
+* checking for empty or unneeded directories
+Removed empty directory 'frmtmb/tests/testthat/_snaps'
+* building 'frmtmb_0.61.0.tar.gz'
+R.exe : 
+At C:\Users\adf44\source\r\frmtmb-wt-correct\dev\correct-run-check.ps1:52 char:3
++   & $R CMD build $p 2>&1 | Out-File -FilePath $LOG -Append -Encoding  ...
++   ~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+* using log directory 'C:/Users/adf44/source/r/correct-check/frmtmb.Rcheck'
+* using R version 4.6.1 (2026-06-24 ucrt)
+* using platform: x86_64-w64-mingw32
+* R was compiled by
+    gcc.exe (GCC) 14.3.0
+    GNU Fortran (GCC) 14.3.0
+* running under: Windows 11 x64 (build 26200)
+* using session charset: UTF-8
+* current time: 2026-09-22 18:11:56 UTC
+* using option '--as-cran'
+* checking for file 'frmtmb/DESCRIPTION' ... OK
+* this is package 'frmtmb' version '0.61.0'
+* package encoding: UTF-8
+* checking CRAN incoming feasibility ... OK
+* checking package namespace information ... OK
+* checking package dependencies ... OK
+* checking if this is a source package ... OK
+* checking if there is a namespace ... OK
+* checking for executable files ... OK
+* checking for hidden files and directories ... OK
+* checking for portable file names ... OK
+* checking whether package 'frmtmb' can be installed ... [28s] OK
+* checking installed package size ... OK
+* checking package directory ... OK
+* checking for future file timestamps ... OK
+* checking 'build' directory ... OK
+* checking DESCRIPTION meta-information ... OK
+* checking top-level files ... OK
+* checking for left-over files ... OK
+* checking index information ... OK
+* checking package subdirectories ... OK
+* checking code files for non-ASCII characters ... OK
+* checking R files for syntax errors ... OK
+* checking whether the package can be loaded ... OK
+* checking whether the package can be loaded with stated dependencies ... OK
+* checking whether the package can be unloaded cleanly ... OK
+* checking whether the namespace can be loaded with stated dependencies ... OK
+* checking whether the namespace can be unloaded cleanly ... OK
+* checking loading without being on the library search path ... OK
+* checking whether startup messages can be suppressed ... OK
+* checking use of S3 registration ... OK
+* checking dependencies in R code ... OK
+* checking S3 generic/method consistency ... OK
+* checking replacement functions ... OK
+* checking foreign function calls ... OK
+* checking R code for possible problems ... [57s] OK
+* checking Rd files ... OK
+* checking Rd metadata ... OK
+* checking Rd line widths ... OK
+* checking Rd cross-references ... OK
+* checking for missing documentation entries ... OK
+* checking for code/documentation mismatches ... OK
+* checking Rd \usage sections ... OK
+* checking Rd contents ... OK
+* checking for unstated dependencies in examples ... OK
+* checking contents of 'data' directory ... OK
+* checking data for non-ASCII characters ... OK
+* checking LazyData ... OK
+* checking data for ASCII and uncompressed saves ... OK
+* checking installed files from 'inst/doc' ... OK
+* checking files in 'vignettes' ... OK
+* checking examples ... [44s] OK
+* checking examples with --run-donttest ... [39s] OK
+* checking for unstated dependencies in 'tests' ... WARNING
+'library' or 'require' call not declared from: 'ggfortify'
+* checking tests ...
+  Running 'testthat.R' [22m]
+ [22m] ERROR
+Running the tests in 'tests/testthat.R' failed.
+Last 13 lines of output:
+  <frmtmb_error/error/condition>
+  Error: No random-effect SDs match class=sd, group=g. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification without one of these names none of the others. This model's standard deviations take: (nlpar = "a"); (nlpar = "b")
+  Backtrace:
+      ▆
+   1. └─frmtmb (local) th_of(set_prior("exponential(1)", class = "sd", group = "g")) at test-prior-compat.R:160:3
+   2.   ├─base::sort(...) at test-prior-compat.R:157:5
+   3.   ├─base::vapply(...)
+   4.   └─frmtmb:::resolve_prior_input(fit, pl)
+   5.     └─frmtmb:::resolve_priorlist(fit, prior)
+   6.       └─frmtmb::frm_stop(...)
+  
+  [ FAIL 1 | WARN 16 | SKIP 156 | PASS 10674 ]
+  Error:
+  ! Test failures.
+  Execution halted
+* checking for unstated dependencies in vignettes ... OK
+* checking package vignettes ... OK
+* checking re-building of vignette outputs ... [17m] OK
+* checking PDF version of manual ... [12s] OK
+* checking HTML version of manual ... [54s] NOTE
+Skipping checking math rendering: package 'V8' unavailable
+* checking for non-standard things in the check directory ... OK
+* checking for detritus in the temp directory ... OK
+* DONE
+R.exe : 
+At C:\Users\adf44\source\r\frmtmb-wt-correct\dev\correct-run-check.ps1:55 char:5
++     & $R CMD check --as-cran $tgz.FullName 2>&1 | Out-File -FilePath  ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Status: 1 ERROR, 1 WARNING, 1 NOTE
+See
+  'C:/Users/adf44/source/r/correct-check/frmtmb.Rcheck/00check.log'
+for details.
+
+===== CHECK C:/Users/adf44/source/r/frmtmb-wt-correct/extensions/frmtmb.sample =====
+* checking for file 'C:/Users/adf44/source/r/frmtmb-wt-correct/extensions/frmtmb.sample/DESCRIPTION' ... OK
+* preparing 'frmtmb.sample':
+* checking DESCRIPTION meta-information ... OK
+* installing the package (it is needed to build vignettes)
+* creating vignettes ... OK
+* checking for LF line-endings in source and make files and shell scripts
+* checking for empty or unneeded directories
+Removed empty directory 'frmtmb.sample/tests/testthat/_snaps'
+* building 'frmtmb.sample_0.9.0.tar.gz'
+R.exe : 
+At C:\Users\adf44\source\r\frmtmb-wt-correct\dev\correct-run-check.ps1:52 char:3
++   & $R CMD build $p 2>&1 | Out-File -FilePath $LOG -Append -Encoding  ...
++   ~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+* using log directory 'C:/Users/adf44/source/r/correct-check/frmtmb.sample.Rcheck'
+* using R version 4.6.1 (2026-06-24 ucrt)
+* using platform: x86_64-w64-mingw32
+* R was compiled by
+    gcc.exe (GCC) 14.3.0
+    GNU Fortran (GCC) 14.3.0
+* running under: Windows 11 x64 (build 26200)
+* using session charset: UTF-8
+* current time: 2026-09-22 18:57:17 UTC
+* using option '--as-cran'
+* checking for file 'frmtmb.sample/DESCRIPTION' ... OK
+* this is package 'frmtmb.sample' version '0.9.0'
+* package encoding: UTF-8
+* checking CRAN incoming feasibility ... OK
+* checking package namespace information ... OK
+* checking package dependencies ... OK
+* checking if this is a source package ... OK
+* checking if there is a namespace ... OK
+* checking for executable files ... OK
+* checking for hidden files and directories ... OK
+* checking for portable file names ... OK
+* checking whether package 'frmtmb.sample' can be installed ... [11s] OK
+* checking installed package size ... OK
+* checking package directory ... OK
+* checking for future file timestamps ... OK
+* checking 'build' directory ... OK
+* checking DESCRIPTION meta-information ... OK
+* checking top-level files ... OK
+* checking for left-over files ... OK
+* checking index information ... OK
+* checking package subdirectories ... OK
+* checking code files for non-ASCII characters ... OK
+* checking R files for syntax errors ... OK
+* checking whether the package can be loaded ... OK
+* checking whether the package can be loaded with stated dependencies ... OK
+* checking whether the package can be unloaded cleanly ... OK
+* checking whether the namespace can be loaded with stated dependencies ... OK
+* checking whether the namespace can be unloaded cleanly ... OK
+* checking loading without being on the library search path ... OK
+* checking whether startup messages can be suppressed ... OK
+* checking use of S3 registration ... OK
+* checking dependencies in R code ... OK
+* checking S3 generic/method consistency ... OK
+* checking replacement functions ... OK
+* checking foreign function calls ... OK
+* checking R code for possible problems ... [16s] OK
+* checking Rd files ... OK
+* checking Rd metadata ... OK
+* checking Rd line widths ... OK
+* checking Rd cross-references ... OK
+* checking for missing documentation entries ... OK
+* checking for code/documentation mismatches ... OK
+* checking Rd \usage sections ... OK
+* checking Rd contents ... OK
+* checking for unstated dependencies in examples ... OK
+* checking installed files from 'inst/doc' ... OK
+* checking files in 'vignettes' ... OK
+* checking examples ... OK
+* checking examples with --run-donttest ... [58s] OK
+* checking for unstated dependencies in 'tests' ... OK
+* checking tests ...
+  Running 'testthat.R' [529s]
+ [529s] ERROR
+Running the tests in 'tests/testthat.R' failed.
+Last 13 lines of output:
+   3.   └─frmtmb.sample:::er_evidence(...)
+   4.     └─frmtmb::frm_warning(...)
+  
+  ══ Failed tests ════════════════════════════════════════════════════════════════
+  ── Failure ('test-sampling-ported.R:291:3'): the loss model samples with the vignette's priors ──
+  Expected `"sd//" %in% spelled` to be TRUE.
+  Differences:
+  `actual`:   FALSE
+  `expected`: TRUE 
+  
+  
+  [ FAIL 1 | WARN 15 | SKIP 11 | PASS 1787 ]
+  Error:
+  ! Test failures.
+  Execution halted
+* checking for unstated dependencies in vignettes ... OK
+* checking package vignettes ... OK
+* checking re-building of vignette outputs ... [10s] OK
+* checking PDF version of manual ... OK
+* checking HTML version of manual ... OK
+* checking for non-standard things in the check directory ... OK
+* checking for detritus in the temp directory ... OK
+* DONE
+R.exe : 
+At C:\Users\adf44\source\r\frmtmb-wt-correct\dev\correct-run-check.ps1:55 char:5
++     & $R CMD check --as-cran $tgz.FullName 2>&1 | Out-File -FilePath  ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Status: 1 ERROR
+See
+  'C:/Users/adf44/source/r/correct-check/frmtmb.sample.Rcheck/00check.log'
+for details.
+
+CHECKED 2 of 2

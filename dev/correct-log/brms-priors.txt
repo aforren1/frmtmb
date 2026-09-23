@@ -1,0 +1,114 @@
+brms 2.23.0  bayesplot 1.16.0 
+
+== item 3: sd prior scope ==
+  vector<lower=0>[M_1] sd_1;  // group-level standard deviations
+  vector<lower=0>[M_2] sd_2;  // group-level standard deviations
+  real lprior = 0;
+  r_1_1 = (sd_1[1] * (z_1[1]));
+  r_2_phi_1 = (sd_2[1] * (z_2[1]));
+  lprior += student_t_lpdf(Intercept | 3, 0, 2.5);
+  lprior += student_t_lpdf(Intercept_phi | 3, 0, 2.5);
+  lprior += normal_lpdf(sd_1 | 0, 5)
+  lprior += student_t_lpdf(sd_2 | 3, 0, 2.5)
+  target += lprior;
+                prior class      coef group dpar  source
+ student_t(3, 0, 2.5)    sd                      default
+ student_t(3, 0, 2.5)    sd                  phi default
+         normal(0, 5)    sd               g         user
+               (flat)    sd Intercept     g      default
+               (flat)    sd               g  phi default
+               (flat)    sd Intercept     g  phi default
+-- class sd, no group, no dpar --
+  real lprior = 0;
+  lprior += student_t_lpdf(Intercept | 3, 0, 2.5);
+  lprior += student_t_lpdf(Intercept_phi | 3, 0, 2.5);
+  lprior += normal_lpdf(sd_1 | 0, 5)
+  lprior += student_t_lpdf(sd_2 | 3, 0, 2.5)
+    target += beta_lpdf(Y | mu .* phi, (1 - mu) .* phi);
+  target += lprior;
+  target += std_normal_lpdf(z_1[1]);
+  target += std_normal_lpdf(z_2[1]);
+-- class sd, group g, coef Intercept, no dpar --
+  real lprior = 0;
+  lprior += student_t_lpdf(Intercept | 3, 0, 2.5);
+  lprior += student_t_lpdf(Intercept_phi | 3, 0, 2.5);
+  lprior += normal_lpdf(sd_1[1] | 0, 5)
+  lprior += student_t_lpdf(sd_2 | 3, 0, 2.5)
+  target += lprior;
+
+-- multivariate: sd group = g, no resp --
+class sd        coef    group g  resp    : ERROR: The following priors do not correspond to any model parameter:  sd_g ~ normal(0, 5) Function 'default_prior' might be helpful to you. 
+class sd        coef    group    resp    : ERROR: The following priors do not correspond to any model parameter:  sd ~ normal(0, 5) Function 'default_prior' might be helpful to you. 
+class sd        coef    group g  resp y1 : lprior += normal_lpdf(sd_1 | 0, 5) | target += std_normal_lpdf(z_1[1]); | target += std_normal_lpdf(z_2[1]); 
+class b         coef    group    resp    : ERROR: The following priors do not correspond to any model parameter:  b ~ normal(0, 5) Function 'default_prior' might be helpful to you. 
+class b         coef x  group    resp    : ERROR: The following priors do not correspond to any model parameter:  b_x ~ normal(0, 5) Function 'default_prior' might be helpful to you. 
+class Intercept coef    group    resp    : ERROR: The following priors do not correspond to any model parameter:  Intercept ~ normal(0, 5) Function 'default_prior' might be helpful to you. 
+class sigma     coef    group    resp    : ERROR: The following priors do not correspond to any model parameter:  sigma ~ normal(0, 5) Function 'default_prior' might be helpful to you. 
+
+== item 4: default priors ==
+                    prior     class      coef group resp dpar nlpar lb ub
+1                  lkj(1)       cor                                      
+2                               cor               g                      
+3                  lkj(1)    rescor                                      
+4                                 b                   y1                 
+5                                 b         x         y1                 
+6  student_t(3, 0.3, 2.5) Intercept                   y1                 
+7    student_t(3, 0, 2.5)        sd                   y1             0   
+8                                sd               g   y1                 
+9                                sd Intercept     g   y1                 
+10                               sd         x     g   y1                 
+11   student_t(3, 0, 2.5)     sigma                   y1             0   
+12                                b                   y2                 
+13                                b         x         y2                 
+14   student_t(3, 2, 2.5) Intercept                   y2                 
+15   student_t(3, 0, 2.5)        sd                   y2             0   
+16                               sd               g   y2                 
+17                               sd Intercept     g   y2                 
+18                               sd         x     g   y2                 
+19   student_t(3, 0, 2.5)     sigma                   y2             0   
+    source
+1  default
+2  default
+3  default
+4  default
+5  default
+6  default
+7  default
+8  default
+9  default
+10 default
+11 default
+12 default
+13 default
+14 default
+15 default
+16 default
+17 default
+18 default
+19 default
+                  prior     class coef resp dpar
+1 student_t(3, -8, 2.5) Intercept               
+2  student_t(3, 0, 2.5)     sigma               
+                                prior     class coef dpar
+1                                             b          
+2                                             b    x     
+3 student_t(3, 1.78834576782975, 2.5) Intercept          
+4                student_t(3, 0, 2.5)     sigma          
+                                prior     class coef  dpar
+1                                             b           
+2                                             b    x      
+3 student_t(3, 1.78834576782975, 2.5) Intercept           
+4                                             b      sigma
+5                                             b    z sigma
+6                student_t(3, 0, 2.5) Intercept      sigma
+                                  prior     class coef dpar
+1                                               b          
+2                                               b    x     
+3 student_t(3, -0.900791310755016, 2.5) Intercept          
+                                prior     class coef  dpar
+1                                             b           
+2                                             b    x      
+3 student_t(3, 1.78834576782975, 2.5) Intercept           
+4                                             b      sigma
+5                                             b    z sigma
+6                student_t(3, 0, 2.5) Intercept      sigma

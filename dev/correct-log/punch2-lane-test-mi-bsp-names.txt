@@ -1,0 +1,15 @@
+arm lane frmtmb 0.61.0 from C:/Users/adf44/source/r/correct2-lib 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | mi-bsp-names                                                   
+⠋ |          1 | mi-bsp-names                                                   
+⠸ |          4 | mi-bsp-names                                                   
+⠇ |          9 | mi-bsp-names                                                   
+⠋ |         11 | mi-bsp-names                                                   
+✔ |         11 | mi-bsp-names [1.5s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 1.5 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 11 ]
+RESULT test-mi-bsp-names.R pass=11 fail=0 err=0 skip=0

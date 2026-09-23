@@ -568,6 +568,17 @@ family_link_secondary <- function(x) {
   out
 }
 
+#' brms's `is_polytomous()`, for the families this package has: the
+#' response is a category (ordinal, categorical) or a vector of counts
+#' over categories (multinomial). brms refuses a predictive error and
+#' `pp_check(type = "error_binned")` for every one of them.
+#'
+#' @noRd
+fam_is_polytomous <- function(fam) {
+  isTRUE(fam[["type"]] %in% c("ordinal", "categorical")) ||
+    identical(fam[["family"]], "multinomial")
+}
+
 #' @noRd
 family_joint_link <- function(x) {
   identical(.subset2(x, "type"), "categorical") ||
@@ -3741,6 +3752,19 @@ mixture_mu_start <- function(y, aterms, p, bounded) {
 #' `mixture(fam1, fam2, ...)` builds a K-component mixture: each
 #' component keeps its own distributional parameters, suffixed by the
 #' component index (`mu1`, `sigma1`, `mu2`, ...), and the mixing
+#' proportions come from `theta1 ... theta{K-1}` (multinomial logit
+#' against the last component, each with its own linear predictor, so
+#' mixing weights may depend on covariates). The main model formula
+#' applies to every component mean; override per component with
+#' `bf(y ~ x, mu2 ~ 1)`.
+#'
+#' A formula for a mixing weight follows brms's rule. Write one for all
+#' of `theta1 ... thetaK` but one, and the one left out is the reference
+#' component, whose linear predictor is 0: `bf(y ~ 1, theta2 ~ x)` on
+#' two components makes component 1 the reference, so `theta2`'s
+#' coefficients are the log odds of component 2 against component 1.
+#' A formula for fewer of them is refused, as brms refuses it.
+#'
 #' A mixing weight's RESPONSE scale is the softmax over the component
 #' predictors, so `frm_linpred(type = "response", dpar = "theta1")` is a
 #' probability while `type = "link"` stays the predictor the density
@@ -3751,12 +3775,6 @@ mixture_mu_start <- function(y, aterms, p, bounded) {
 #' predictors, and those terms are dropped, so the standard error is
 #' CONSERVATIVE: measured 5.5% to 26.1% wider than the joint delta
 #' method on a three-component fit, never narrower.
-#'
-#' proportions come from `theta1 ... theta{K-1}` (multinomial-logit
-#' against the last component, each with its own linear predictor - so
-#' mixing weights may depend on covariates). The main model formula
-#' applies to every component mean; override per component with
-#' `bf(y ~ x, mu2 ~ 1)`.
 #'
 #' The likelihood is a parameter-branch-free logsumexp, so Laplace
 #' machinery is untouched; the usual finite-mixture ML caveats apply
@@ -3845,7 +3863,54 @@ mixture <- function(..., groups = NULL) {
       frm_stop("mixture() components need a 'mu' parameter", call. = FALSE)
     }
   }
+  mixture_build(comps, groups, ref = K)
+}
 
+#' The mixture family a formula's written thetas call for.
+#'
+#' brms predicts the mixing weights only when a formula is written for
+#' all of them but one, and the one left unwritten is the reference
+#' whose linear predictor is 0 (`stan_mixture()`'s `missing_id`,
+#' measured on brms 2.23.0 in dev/correct-log/brms-theta.txt). So
+#' `theta2 ~ x` on two components makes component 1 the reference, and
+#' `theta1 ~ x` on three is refused. Without a written theta the family
+#' is returned unchanged, against its last component, where brms's
+#' simplex `theta1 ... thetaK` is read off it (`brms_coef_table()`).
+#'
+#' @noRd
+mixture_theta_reference <- function(fam, written) {
+  rebuild <- fam[["mix_rebuild"]]
+  if (!is.function(rebuild)) return(fam)
+  K <- fam[["mix"]][["K"]]
+  th <- grep("^theta[0-9]+$", written, value = TRUE)
+  if (!length(th)) return(fam)
+  ids <- unique(as.integer(sub("^theta", "", th)))
+  # a theta past K is not this family's, and the dpar check names it
+  if (any(ids < 1L | ids > K)) return(fam)
+  if (length(ids) != K - 1L) {
+    frm_stop("Can only predict all but one mixing proportion: a mixture of ",
+             K, " components takes a formula for ", K - 1L, " of theta1 ",
+             "... theta", K, ", and the one left out is the reference ",
+             "whose linear predictor is 0, as in brms. This formula has ",
+             paste(sort(th), collapse = ", "), call. = FALSE)
+  }
+  ref <- setdiff(seq_len(K), ids)
+  if (identical(ref, fam[["mix"]][["ref"]])) return(fam)
+  rebuild(ref)
+}
+
+#' A mixture family whose mixing weights are the multinomial logit
+#' against component `ref`: `theta<k>` for every `k` but `ref`, and
+#' `ref`'s own log ratio held at 0.
+#'
+#' `mixture()` builds it against the last component. A formula written
+#' for every theta but one moves the reference to that one, which is
+#' brms's rule (`mixture_theta_reference()`), and the family is rebuilt
+#' through `mix_rebuild` with the same components.
+#'
+#' @noRd
+mixture_build <- function(comps, groups, ref) {
+  K <- length(comps)
   dpars <- character(0)
   links <- list()
   for (k in seq_len(K)) {
@@ -3855,7 +3920,8 @@ mixture <- function(..., groups = NULL) {
       links[[nm]] <- comps[[k]]$links[[dp]]
     }
   }
-  for (k in seq_len(K - 1L)) {
+  theta_ids <- setdiff(seq_len(K), ref)
+  for (k in theta_ids) {
     nm <- paste0("theta", k)
     dpars <- c(dpars, nm)
     links[[nm]] <- "identity"
@@ -3867,12 +3933,12 @@ mixture <- function(..., groups = NULL) {
       comps[[k]]$dpars
     )
   }
-  # log mixing weights: multinomial logit, last component reference
+  # log mixing weights: multinomial logit against the reference
+  # component, one list entry per component in component order
   log_pi <- function(dpars_all) {
-    Ts <- lapply(seq_len(K - 1L), function(k) {
-      dpars_all[[paste0("theta", k)]]
-    })
-    Ts[[K]] <- 0 * dpars_all$mu1
+    Ts <- vector("list", K)
+    for (k in theta_ids) Ts[[k]] <- dpars_all[[paste0("theta", k)]]
+    Ts[[ref]] <- 0 * dpars_all$mu1
     lse <- Ts[[1L]]
     for (k in seq.int(2L, K)) lse <- RTMB::logspace_add(lse, Ts[[k]])
     lapply(Ts, function(t_) t_ - lse)
@@ -3961,7 +4027,7 @@ mixture <- function(..., groups = NULL) {
       # every consumer that feeds dpar values to lpdf(), sim() or
       # mean_fn() reads them through dpars_natural().
       dpar_response = list(
-        dpars = paste0("theta", seq_len(K - 1L)),
+        dpars = paste0("theta", theta_ids),
         value = function(dpars, dnm) {
           exp(log_pi(dpars)[[as.integer(sub("^theta", "", dnm))]])
         },
@@ -4015,8 +4081,12 @@ mixture <- function(..., groups = NULL) {
       }
       sk(dpars_k, aterms, n)
     },
-    log_pi = log_pi
+    log_pi = log_pi,
+    ref = ref
   )
+  # the same components against another reference, for a formula that
+  # leaves a different theta unwritten (mixture_theta_reference())
+  fam[["mix_rebuild"]] <- function(r) mixture_build(comps, groups, r)
   if (is.null(groups)) {
     # A rowwise mixture still refuses the two fitting options that
     # expand about a single inner mode, and that refusal is a property

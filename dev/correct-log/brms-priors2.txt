@@ -1,0 +1,51 @@
+brms 2.23.0  bayesplot 1.16.0 
+
+== item 3: sd prior scope, nonlinear and cor ==
+nl class sd group    nlpar   : ERROR: The following priors do not correspond to any model parameter:  sd ~ normal(0, 5) Function 'default_prior' might be helpful to you. 
+nl class sd group g  nlpar   : ERROR: The following priors do not correspond to any model parameter:  sd_g ~ normal(0, 5) Function 'default_prior' might be helpful to you. 
+nl class sd group    nlpar a : lprior += normal_lpdf(sd_1 | 0, 5) 
+                 prior class      coef group dpar nlpar
+1 student_t(3, 0, 2.5) sigma                           
+2                          b                          a
+3                          b Intercept                a
+4 student_t(3, 0, 2.5)    sd                          a
+5                         sd               g          a
+6                         sd Intercept     g          a
+7                          b                          b
+8                          b Intercept                b
+Beta class cor group    dpar    : lprior += lkj_corr_cholesky_lpdf(L_1 | 2); | lprior += lkj_corr_cholesky_lpdf(L_2 | 2); 
+Beta class cor group g  dpar    : lprior += lkj_corr_cholesky_lpdf(L_1 | 2); | lprior += lkj_corr_cholesky_lpdf(L_2 | 2); 
+Beta class cor group    dpar phi: ERROR: The following priors do not correspond to any model parameter:  L_phi ~ lkj(2) Function 'default_prior' might be helpful to you. 
+                  prior     class      coef group dpar
+1                               b                     
+2                               b         x           
+3                lkj(1)       cor                     
+4                             cor               g     
+5  student_t(3, 0, 2.5) Intercept                     
+6  student_t(3, 0, 2.5)        sd                     
+7                              sd               g     
+8                              sd Intercept     g     
+9                              sd         x     g     
+10 student_t(3, 0, 2.5) Intercept                  phi
+11 student_t(3, 0, 2.5)        sd                  phi
+12                             sd               g  phi
+13                             sd Intercept     g  phi
+14                             sd        x2     g  phi
+
+-- (1 | q | g) across mu and sigma --
+q class sd group    dpar      : lprior += normal_lpdf(sd_1[1] | 0, 5) | lprior += student_t_lpdf(sd_1[2] | 3, 0, 2.5) 
+q class sd group g  dpar      : lprior += normal_lpdf(sd_1 | 0, 5) 
+q class sd group    dpar sigma: lprior += student_t_lpdf(sd_1[1] | 3, 0, 2.5) | lprior += normal_lpdf(sd_1[2] | 0, 5) 
+                    prior     class      coef group  dpar
+1                                 b                      
+2                                 b         x            
+3                  lkj(1)       cor                      
+4                               cor               g      
+5  student_t(3, 0.4, 2.5) Intercept                      
+6    student_t(3, 0, 2.5)        sd                      
+7                                sd               g      
+8                                sd Intercept     g      
+9    student_t(3, 0, 2.5) Intercept                 sigma
+10   student_t(3, 0, 2.5)        sd                 sigma
+11                               sd               g sigma
+12                               sd Intercept     g sigma

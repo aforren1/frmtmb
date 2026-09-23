@@ -1634,7 +1634,7 @@ compat_hand_rules_tbl <- function() {
   r("fitted", "group:ordinal", "conditional",
     "Returns the same n x K matrix of category probabilities frm_linpred(type = \"response\") returns, not a vector: an ordinal response has no mean, so the modelled response is the category distribution. The frm_linpred(type = \"response\") == fitted() identity holds. The latent linear predictor is frm_linpred(fit, type = \"link\"), which is also what emmeans and insight see.")
   r("residuals", "group:ordinal", "conditional",
-    "\"response\" and \"pearson\" score the categories by the same codes 1..K the likelihood uses: y - sum_k k * P(y = k), standardized by that distribution's own sd. That is a residual on a SCORE, not on the ordinal scale; \"osa\" and dharma_residuals() use only the order. \"deviance\" is refused, as for every family without a standard unit deviance.")
+    "\"response\" (\"ordinary\") and \"pearson\" are refused, as brms refuses predictive errors for every ordinal family: a category has no scale for y - E[Y] to be read on. \"osa\" gives randomized quantile residuals that use only the order, and dharma_residuals() is the simulation-based check. \"deviance\" is refused, as for every family without a standard unit deviance.")
 
   ## R-side residual correlation -----------------------------------------------
   # Everything refused here is refused for one reason: the likelihood

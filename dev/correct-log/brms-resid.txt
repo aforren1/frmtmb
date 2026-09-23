@@ -1,0 +1,41 @@
+brms 2.23.0  bayesplot 1.16.0 
+
+== item 1: residuals() by family ==
+cumulative   residuals(type = "ordinary") ERROR: Predictive errors are not defined for ordinal or categorical models.
+cumulative   residuals(type = "pearson") ERROR: Predictive errors are not defined for ordinal or categorical models.
+cumulative   predictive_error(method = posterior_predict) ERROR: Predictive errors are not defined for ordinal or categorical models.
+cumulative   predictive_error(method = posterior_epred) ERROR: Predictive errors are not defined for ordinal or categorical models.
+cumulative   pp_check(type = "error_binned") ERROR: Type 'error_binned' is not available for polytomous models.
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+cumulative   pp_check(type = "error_hist") OK
+sratio       residuals(type = "ordinary") ERROR: Predictive errors are not defined for ordinal or categorical models.
+sratio       residuals(type = "pearson") ERROR: Predictive errors are not defined for ordinal or categorical models.
+sratio       predictive_error(method = posterior_predict) ERROR: Predictive errors are not defined for ordinal or categorical models.
+sratio       predictive_error(method = posterior_epred) ERROR: Predictive errors are not defined for ordinal or categorical models.
+sratio       pp_check(type = "error_binned") ERROR: Type 'error_binned' is not available for polytomous models.
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+sratio       pp_check(type = "error_hist") OK
+categorical  residuals(type = "ordinary") ERROR: Predictive errors are not defined for ordinal or categorical models.
+categorical  residuals(type = "pearson") ERROR: Predictive errors are not defined for ordinal or categorical models.
+categorical  predictive_error(method = posterior_predict) ERROR: Predictive errors are not defined for ordinal or categorical models.
+categorical  predictive_error(method = posterior_epred) ERROR: Predictive errors are not defined for ordinal or categorical models.
+categorical  pp_check(type = "error_binned") ERROR: Type 'error_binned' is not available for polytomous models.
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+categorical  pp_check(type = "error_hist") OK
+gaussian     residuals(type = "ordinary") OK
+gaussian     residuals(type = "pearson") OK
+gaussian     predictive_error(method = posterior_predict) OK
+gaussian     predictive_error(method = posterior_epred) OK
+gaussian     pp_check(type = "error_binned") OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+gaussian     pp_check(type = "error_hist") OK
+multinomial  residuals(type = "ordinary") ERROR: Predictive errors are not defined for ordinal or categorical models.
+multinomial  residuals(type = "pearson") ERROR: Predictive errors are not defined for ordinal or categorical models.
+multinomial  predictive_error(method = posterior_predict) ERROR: Predictive errors are not defined for ordinal or categorical models.
+multinomial  predictive_error(method = posterior_epred) ERROR: Predictive errors are not defined for ordinal or categorical models.
+multinomial  pp_check(type = "error_binned") ERROR: 'pp_check' is not implemented for this family.
+multinomial  pp_check(type = "error_hist") ERROR: 'pp_check' is not implemented for this family.
+Error: unexpected symbol in:
+"                                        group = "g", ndraws = 5))), "\n")
+  nd"
+Execution halted

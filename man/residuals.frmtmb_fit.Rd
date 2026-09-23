@@ -88,24 +88,22 @@ values; \code{simulate(censored = TRUE)} makes them comparable, but the
 resulting point mass at each censoring point is not a distribution
 DHARMa's rank transform can use.
 }
-\section{Ordinal responses}{
+\section{Ordinal and other category responses}{
 
-An ordinal response has no mean, so \code{"response"} and \code{"pearson"}
-score the categories by the integer codes \verb{1..K} the likelihood
-itself uses: \code{"response"} is \code{y - E[Y]} with
-\verb{E[Y] = sum_k k * P(y = k)} taken from \code{\link[=fitted]{fitted()}}'s category
-probabilities, and \code{"pearson"} divides by the standard deviation of
-that same distribution. This is the frequentist point-estimate form
-of what brms's \code{residuals()} reports on an ordinal fit (there, the
-observed category minus a drawn one). It is a residual on a SCORE,
-not on the ordinal scale, so read it for gross lack of fit and
-pattern, not as a calibrated quantity: \code{"osa"} and
-\code{\link[=dharma_residuals]{dharma_residuals()}} give residuals that use only the order.
+\code{"response"} (\code{"ordinary"}) and \code{"pearson"} are refused for an
+ordinal family (\code{cumulative()}, \code{sratio()}, \code{cratio()}, \code{acat()}), a
+\code{categorical()} family and a \code{multinomial()} family. brms refuses
+the same two types for the same families ("Predictive errors are not
+defined for ordinal or categorical models"): the response is a
+category or a vector of counts over categories, so \code{y - E[Y]} has no
+scale to be read on.
+
+On an ordinal fit, \code{"osa"} gives a residual that uses only the
+order. It uses \code{"oneStepGeneric"} over the discrete support \verb{1..K},
+which makes the residuals randomized quantile residuals.
+\code{\link[=dharma_residuals]{dharma_residuals()}} is the simulation-based alternative.
 \code{"deviance"} is refused, as it is for every family without a
 standard unit deviance.
-
-\code{"osa"} uses \code{"oneStepGeneric"} over the discrete support \verb{1..K},
-which makes the residuals randomized quantile residuals.
 }
 
 \section{Deviance residuals}{

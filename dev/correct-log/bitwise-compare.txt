@@ -1,0 +1,134 @@
+gaussian ML                        vcov       identical
+gaussian ML                        fixef      identical
+gaussian ML                        logLik     identical
+gaussian ML                        summary    identical
+gaussian ML                        predict    identical
+gaussian REML                      vcov       identical
+gaussian REML                      fixef      identical
+gaussian REML                      logLik     identical
+gaussian REML                      summary    identical
+gaussian REML                      predict    identical
+gaussian profile                   vcov       identical
+gaussian profile                   fixef      identical
+gaussian profile                   logLik     identical
+gaussian profile                   summary    identical
+gaussian profile                   predict    identical
+poisson ML                         vcov       identical
+poisson ML                         fixef      identical
+poisson ML                         logLik     identical
+poisson ML                         summary    identical
+poisson ML                         predict    identical
+poisson REML                       vcov       identical
+poisson REML                       fixef      identical
+poisson REML                       logLik     identical
+poisson REML                       summary    identical
+poisson REML                       predict    identical
+poisson profile                    vcov       identical
+poisson profile                    fixef      identical
+poisson profile                    logLik     identical
+poisson profile                    summary    identical
+poisson profile                    predict    identical
+distributional ML                  vcov       identical
+distributional ML                  fixef      identical
+distributional ML                  logLik     identical
+distributional ML                  summary    identical
+distributional ML                  predict    identical
+distributional REML                vcov       identical
+distributional REML                fixef      identical
+distributional REML                logLik     identical
+distributional REML                summary    identical
+distributional REML                predict    identical
+distributional profile             vcov       identical
+distributional profile             fixef      identical
+distributional profile             logLik     identical
+distributional profile             summary    identical
+distributional profile             predict    identical
+mixed ML                           vcov       identical
+mixed ML                           fixef      identical
+mixed ML                           logLik     identical
+mixed ML                           summary    identical
+mixed ML                           predict    identical
+mixed REML                         vcov       identical
+mixed REML                         fixef      identical
+mixed REML                         logLik     identical
+mixed REML                         summary    identical
+mixed REML                         predict    identical
+mixed profile                      vcov       identical
+mixed profile                      fixef      identical
+mixed profile                      logLik     identical
+mixed profile                      summary    identical
+mixed profile                      predict    identical
+mixed_poisson ML                   vcov       identical
+mixed_poisson ML                   fixef      identical
+mixed_poisson ML                   logLik     identical
+mixed_poisson ML                   summary    identical
+mixed_poisson ML                   predict    identical
+mixed_poisson REML                 vcov       identical
+mixed_poisson REML                 fixef      identical
+mixed_poisson REML                 logLik     identical
+mixed_poisson REML                 summary    identical
+mixed_poisson REML                 predict    identical
+mixed_poisson profile              vcov       identical
+mixed_poisson profile              fixef      identical
+mixed_poisson profile              logLik     identical
+mixed_poisson profile              summary    identical
+mixed_poisson profile              predict    identical
+dist_mixed ML                      vcov       identical
+dist_mixed ML                      fixef      identical
+dist_mixed ML                      logLik     identical
+dist_mixed ML                      summary    identical
+dist_mixed ML                      predict    identical
+dist_mixed REML                    vcov       identical
+dist_mixed REML                    fixef      identical
+dist_mixed REML                    logLik     identical
+dist_mixed REML                    summary    identical
+dist_mixed REML                    predict    identical
+dist_mixed profile                 vcov       identical
+dist_mixed profile                 fixef      identical
+dist_mixed profile                 logLik     identical
+dist_mixed profile                 summary    identical
+dist_mixed profile                 predict    identical
+mixture                            vcov       identical
+mixture                            fixef      identical
+mixture                            logLik     identical
+mixture                            summary    DIFFERS
+    component family     all.equal: 916 differences
+    component formula    all.equal: TRUE (an environment pointer)
+mixture                            variables  identical
+mixture                            residuals  identical
+mixture_theta1                     vcov       identical
+mixture_theta1                     fixef      identical
+mixture_theta1                     logLik     identical
+mixture_theta1                     summary    DIFFERS
+    component family     all.equal: 916 differences
+    component formula    all.equal: TRUE (an environment pointer)
+mixture_theta1                     variables  identical
+mixture_theta1                     residuals  identical
+mo                                 vcov       identical
+mo                                 fixef      identical
+mo                                 logLik     identical
+mo                                 summary    DIFFERS
+    component formula    all.equal: TRUE (an environment pointer)
+mo                                 variables  identical
+mo                                 residuals  identical
+ordinal                            vcov       identical
+ordinal                            fixef      identical
+ordinal                            logLik     identical
+ordinal                            summary    DIFFERS
+    component formula    all.equal: TRUE (an environment pointer)
+ordinal                            variables  identical
+ordinal                            osa        identical
+ordinal                            fitted     identical
+map_sd                             vcov       identical
+map_sd                             fixef      identical
+map_sd                             logLik     identical
+map_sd                             summary    DIFFERS
+    component formula    all.equal: TRUE (an environment pointer)
+map_sd                             variables  identical
+map_sd                             residuals  identical
+sample defaults gaussian           nlp        identical
+sample defaults mixed              nlp        identical
+sample defaults mixed_poisson      nlp        identical
+sample defaults dist_mixed         nlp        identical
+sample defaults sigma_re           nlp        identical
+identical: 121 of 126 

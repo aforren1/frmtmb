@@ -147,7 +147,8 @@ brms_simplex_maps <- function(K) {
 #' is `sigma`, `shape`, `nu` or, on a multivariate model, `sigma_ya`, as
 #' in brms. Any other coefficient is `b_<prefix>_<column>`, a
 #' smooth's unpenalized column is `bs_<prefix>_<label>_<k>`, and a
-#' monotonic term's scale is `bsp_<prefix>_mo<x>`. A name brms
+#' monotonic term's scale is `bsp_<prefix>_mo<x>`, as is a missing-value
+#' predictor's coefficient, `bsp_<prefix>_mi<x>`. A name brms
 #' would give twice across predictors takes brms's `__1` suffix
 #' (`repair_stanfit()`); within one predictor the model is refused when
 #' it is assembled, as brms refuses it.
@@ -209,8 +210,14 @@ brms_coef_table <- function(fit) {
     out <- paste0("b_", brms_usc(pre, brms_rename(cn)))
     mo <- vapply(lp[["mo"]] %||% list(), function(e) as.integer(e[["col"]]),
                  1L)
-    if (length(mo)) {
-      out[mo] <- paste0("bsp_", brms_usc(pre, brms_rename(cn[mo])))
+    # brms holds mo() and mi() coefficients in one special-term vector,
+    # `bsp`, so a mi() term is `bsp_` there as well (brms 2.23.0,
+    # dev/correct-log/brms-mi.txt)
+    mi <- vapply(lp[["mi"]] %||% list(), function(e) as.integer(e[["col"]]),
+                 1L)
+    sp <- c(mo, mi)
+    if (length(sp)) {
+      out[sp] <- paste0("bsp_", brms_usc(pre, brms_rename(cn[sp])))
     }
     fx <- grepl("[.]fx[0-9]+$", cn)
     if (any(fx)) {

@@ -1,0 +1,10 @@
+* installing *source* package 'frmtmb' ...
+** this is package 'frmtmb' version '0.61.0'
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+* DONE (frmtmb)

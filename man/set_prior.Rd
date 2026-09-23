@@ -67,7 +67,17 @@ vector; see Ordinal thresholds.
 \item \code{"sd"}: random-effect standard deviations (and smoothing SDs), on
 the NATURAL sd scale with the log-Jacobian applied, so
 \code{set_prior("exponential(1)", class = "sd")} means what it says;
-narrow with \code{group}.
+narrow with \code{group}. As in brms, \code{resp}, \code{dpar} and \code{nlpar} select
+the standard deviations of that response, distributional parameter
+and nonlinear parameter only, and leaving one empty selects the
+empty one: with no \code{dpar} the specification reaches the location
+parameter's blocks and not a \code{phi ~ (1 | g)} block, and in a
+multivariate model a specification with no \code{resp} reaches nothing
+and is refused. A block that spans several predictors,
+\code{(1 | q | g)} in both \code{mu} and \code{sigma}, is the one exception, as it
+is in brms: there a specification that leaves a field empty reaches
+every standard deviation of the block, and a more specific one
+takes over its own.
 \item \code{"cor"}: the CORRELATION of a random-effect block, as a whole.
 \code{lkj(eta)} only, and it addresses a BLOCK the way class \code{"sd"}
 does, by \code{group}; \code{set_prior("lkj(2)", class = "cor")} covers every

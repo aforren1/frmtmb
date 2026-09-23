@@ -66,7 +66,10 @@ variance-parameter set, exactly as a \code{varExp()} coefficient does
 in \code{nlme::gls(method = "REML")}, and the two agree to optimizer
 precision for gaussian models. Random effects appearing in a
 distributional parameter's own formula are integrated like any
-other latent.}
+other latent. \code{mgcv}'s \code{method = "REML"} for a location-scale
+family such as \code{gaulss()} integrates the coefficients of every
+linear predictor, so for a smooth in \code{sigma} the two REML criteria
+are different and give different curves and smoothing parameters.}
 
 \item{start}{Optional named list of starting values, one entry per
 parameter component (\code{beta}, \code{betad}, \code{theta}, ...).

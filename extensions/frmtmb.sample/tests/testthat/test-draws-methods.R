@@ -444,7 +444,36 @@ test_that("the matrix-response guards name the function that hit them", {
     frm_sample(fit, chains = 1, iter = 200, refresh = 0, seed = 2)))
   expect_error(predictive_interval(ds, ndraws = 5),
                "one predicted number per")
-  expect_error(predictive_error(ds, ndraws = 5), "vector response")
+  # a multinomial response meets the polytomous refusal first, which
+  # brms raises for the same model; the "vector response" guard is
+  # what a matrix response that is NOT polytomous still meets
+  expect_error(predictive_error(ds, ndraws = 5),
+               "not defined for the", class = "frmtmb_error")
+})
+
+test_that("a category response refuses a predictive error, as in brms", {
+  # brms refuses predictive_error() and residuals() for every
+  # polytomous family, whatever the method
+  # (dev/correct-log/brms-resid.txt)
+  skip_sampler()
+  set.seed(17)
+  n <- 120
+  dd <- data.frame(x = stats::rnorm(n))
+  dd$y <- factor(cut(0.8 * dd$x + stats::rlogis(n),
+                     c(-Inf, -0.5, 0.7, Inf), labels = FALSE),
+                 ordered = TRUE)
+  fit <- frm(bf(y ~ x), family = cumulative(), data = dd)
+  ds <- suppressWarnings(suppressMessages(
+    frm_sample(fit, chains = 1, iter = 200, refresh = 0, seed = 3)))
+  for (m in c("posterior_predict", "posterior_epred")) {
+    expect_error(predictive_error(ds, method = m, ndraws = 5),
+                 "not defined for the", class = "frmtmb_error",
+                 info = m)
+  }
+  expect_error(residuals(ds, ndraws = 5), "not defined for the",
+               class = "frmtmb_error")
+  # what the draws still answer for an ordinal model
+  expect_true(is.array(posterior_epred(ds, ndraws = 5)))
 })
 
 ## ---- conditional_effects --------------------------------------------

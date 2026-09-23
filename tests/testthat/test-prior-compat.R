@@ -157,8 +157,14 @@ test_that("nlpar separates two blocks on the SAME grouping factor", {
     sort(vapply(frmtmb:::resolve_prior_input(fit, pl)$entries,
                 function(e) as.numeric(e$idx), 0))
   }
-  both <- th_of(set_prior("exponential(1)", class = "sd", group = "g"))
-  expect_length(both, 2L)
+  # `group = "g"` with no nlpar names NEITHER of them, as in brms: its
+  # class "sd" rows are keyed by the nonlinear parameter, and a row
+  # without one does not exist here, so brms answers "The following
+  # priors do not correspond to any model parameter: sd_g ~ normal(0, 5)"
+  # (dev/correct-log/brms-priors2.txt)
+  expect_error(th_of(set_prior("exponential(1)", class = "sd",
+                               group = "g")),
+               "No random-effect SDs match", class = "frmtmb_error")
   only_a <- th_of(set_prior("exponential(1)", class = "sd",
                             nlpar = "a"))
   only_b <- th_of(set_prior("exponential(1)", class = "sd",
@@ -166,7 +172,7 @@ test_that("nlpar separates two blocks on the SAME grouping factor", {
   expect_length(only_a, 1L)
   expect_length(only_b, 1L)
   expect_false(identical(only_a, only_b))
-  expect_setequal(c(only_a, only_b), both)
+  expect_length(unique(c(only_a, only_b)), 2L)
 
   # get_prior() lists the two blocks apart on the same grounds
   gp <- get_prior(fit)

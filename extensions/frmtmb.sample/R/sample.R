@@ -940,16 +940,24 @@ sample_assemble <- function(formula, data, family, data2, start,
 # transformed by the mu link:
 #
 #   b (slopes)      flat, as brms leaves them
-#   Intercept       student_t(3, round(median(y*), 1), s)
-#   sd              student_t(3, 0, s) on the natural sd scale
+#   Intercept       student_t(3, round(median(y*), 1) - mean(offset), s),
+#                   the offset being the predictor's own; brms takes it
+#                   off only where y* was transformed at all
+#   sd              student_t(3, 0, s) on the natural sd scale, written
+#                   once per response, distributional parameter and
+#                   nonlinear parameter, which is how brms keys its sd
+#                   rows and how frmtmb resolves class "sd"
 #   cor             lkj(1), uniform over correlation matrices, carried
 #                   onto frmtmb's own correlation parameters with the
 #                   Jacobian of that map (see R/priors.R)
+#   rescor          lkj(1) on the residual correlation of
+#                   set_rescor(TRUE)
 #   sigma           student_t(3, 0, s) on the natural scale, when sigma
 #                   is intercept-only; student_t(3, 0, 2.5) on the LOG
 #                   scale when sigma carries its own predictor (brms
 #                   makes the same distinction)
-#   where s = max(2.5, round(mad(y*), 1))
+#   where s = max(2.5, round(mad(y*), 1)), and a multivariate model reads
+#   y* and s off each response for that response's rows
 #
 # The transform is `brms:::def_scale_prior.brmsterms()`, followed line
 # for line rather than approximated:
@@ -981,9 +989,8 @@ sample_assemble <- function(formula, data, family, data2, start,
 # priors them as its Intercept class; frmtmb keeps them in the `thres`
 # extra-parameter vector, which set_prior() cannot address), the
 # shape/phi/nu-style dispersion parameters (brms uses gamma and
-# inverse-gamma densities that set_prior() does not carry), NONLINEAR
-# parameters (class "b" in brms, which brms leaves flat), and
-# multivariate models (the default scales are read off one response).
+# inverse-gamma densities that set_prior() does not carry), and
+# NONLINEAR parameters (class "b" in brms, which brms leaves flat).
 
 # Families whose response is on the log scale inside the density even
 # though the mu link is spelled identity; brms's `has_logscale()`.
@@ -992,9 +999,12 @@ logscale_families <- c("lognormal", "shifted_lognormal",
 
 #' brms's `def_scale_prior()` location and scale for one response.
 #'
+#' The location is the INTERCEPT's, before any offset: brms then takes
+#' the mean offset of the predictor the intercept belongs to away from
+#' it (`default_intercept_location()`).
+#'
 #' @noRd
-default_prior_scale <- function(fit) {
-  rspec <- fit$spec$responses[[1L]]
+default_prior_scale <- function(fit, rspec = fit$spec$responses[[1L]]) {
   fam <- rspec$family
   y <- fit$frame[["y"]][[rspec$resp_name]]
   link <- if (fam[["family"]] %in% logscale_families) "log" else {
@@ -1023,58 +1033,112 @@ default_prior_scale <- function(fit) {
        link = link, centered = TRUE)
 }
 
+#' brms's default location for one predictor's intercept: the
+#' response's location less the predictor's mean offset. brms's
+#' `def_scale_prior()` subtracts it because an offset moves the
+#' intercept by that much (`y ~ 1 + offset(o)` with `y` near 2 and `o` of
+#' 10 puts the intercept near -8), and only where the response was
+#' transformed at all: a logit-link model keeps location 0.
+#'
+#' @noRd
+default_intercept_location <- function(ps, lp) {
+  off <- lp[["offset"]]
+  if (!isTRUE(ps$centered) || !length(off)) return(ps$location)
+  m <- mean(off)
+  if (is.finite(m)) ps$location - m else ps$location
+}
+
 #' A `set_prior()` spec whose distribution sits on `exp(coefficient)`
 #' rather than on the coefficient, with the class `"sd"` log-Jacobian.
 #'
 #' @noRd
-natural_dpar_prior <- function(dist, dpar) {
-  spec <- unclass(set_prior(dist, class = "Intercept", dpar = dpar))
+natural_dpar_prior <- function(dist, dpar, resp = "") {
+  spec <- unclass(set_prior(dist, class = "Intercept", dpar = dpar,
+                            resp = resp))
   spec[[1L]]$natural <- TRUE
   structure(spec, class = "frmtmb_priorlist")
+}
+
+#' The prefixes brms keys its class `"sd"` rows by, one per standard
+#' deviation a block carries: response (multivariate only),
+#' distributional parameter (`""` for the location ones) and nonlinear
+#' parameter. frmtmb resolves a class `"sd"` specification by the same
+#' prefix, so a default has to be written once per prefix to reach
+#' every standard deviation, as brms writes one per row.
+#'
+#' @noRd
+default_sd_prefixes <- function(fit) {
+  multi <- length(fit$spec$responses) > 1L
+  out <- list()
+  for (bk in fit$frame[["re_blocks"]]) {
+    if (!length(block_sd_idx(bk))) next
+    for (cp in bk[["components"]] %||% list()) {
+      lp <- fit$frame[["linpreds"]][[cp[["lp_key"]] %||% ""]]
+      if (is.null(lp)) next
+      rspec <- fit$spec$responses[[lp[["resp"]]]]
+      nl <- rspec$nlpars %||% character(0)
+      dp <- lp[["dpar"]]
+      key <- c(resp = if (multi) lp[["resp"]] else "",
+               dpar = if (dp %in% c(rspec$primary_dpars, nl)) "" else dp,
+               nlpar = if (dp %in% nl) dp else "")
+      out[[paste(key, collapse = "|")]] <- c(key, rname = lp[["resp"]])
+    }
+  }
+  unname(out)
 }
 
 #' brms's default priors for the model this object holds, as a
 #' `frmtmb_priorlist`, or `NULL` when the model has no slot they cover.
 #'
+#' A multivariate model takes each response's defaults from that
+#' response, with `resp` set, as brms's rows do; `cor` and `rescor` are
+#' class-wide.
+#'
 #' @noRd
 default_priors_for <- function(fit) {
-  if (length(fit$spec$responses) > 1L) return(NULL)
-  rspec <- fit$spec$responses[[1L]]
-  ps <- default_prior_scale(fit)
+  multi <- length(fit$spec$responses) > 1L
   pl <- NULL
   add <- function(p) pl <<- if (is.null(pl)) p else pl + p
   st <- function(loc, scl) {
-    sprintf("student_t(3, %s, %s)", format(loc), format(scl))
+    sprintf("student_t(3, %s, %s)", as.character(loc), as.character(scl))
   }
+  scales <- lapply(fit$spec$responses, function(rs) {
+    default_prior_scale(fit, rs)
+  })
 
-  nlpars <- rspec$nlpars %||% character(0)
   for (lp in fit$frame[["linpreds"]]) {
     if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]])) next
     if (!"(Intercept)" %in% colnames(lp[["X"]])) next
+    rspec <- fit$spec$responses[[lp[["resp"]]]]
+    ps <- scales[[lp[["resp"]]]]
+    rs <- if (multi) lp[["resp"]] else ""
     # a NONLINEAR parameter's coefficients are class "b" in brms, and
     # brms leaves class "b" flat: the response's median and mad say
     # nothing about a rate or a shape sitting inside a nonlinear body,
     # so a default there would be an invented prior rather than brms's
-    if (lp[["dpar"]] %in% nlpars) next
+    if (lp[["dpar"]] %in% (rspec$nlpars %||% character(0))) next
     if (lp[["dpar"]] %in% rspec$primary_dpars) {
-      add(set_prior(st(ps$location, ps$scale), class = "Intercept"))
+      add(set_prior(st(default_intercept_location(ps, lp), ps$scale),
+                    class = "Intercept", resp = rs))
     } else if (identical(lp[["dpar"]], "sigma") &&
                  identical(lp[["link"]]$name, "log")) {
       # brms scales the prior on sigma itself by the response's mad
       # only when sigma is a single number; with a predictor the
       # intercept gets the plain student_t(3, 0, 2.5) on the log scale
       if (ncol(lp[["X"]]) == 1L && is.null(lp[["Z"]])) {
-        add(natural_dpar_prior(st(0, ps$scale), "sigma"))
+        add(natural_dpar_prior(st(0, ps$scale), "sigma", resp = rs))
       } else {
-        add(set_prior(st(0, 2.5), class = "Intercept", dpar = "sigma"))
+        add(set_prior(st(0, 2.5), class = "Intercept", dpar = "sigma",
+                      resp = rs))
       }
     }
   }
 
-  has_sd <- any(vapply(fit$frame[["re_blocks"]], function(bk) {
-    length(block_sd_idx(bk)) > 0L
-  }, TRUE))
-  if (has_sd) add(set_prior(st(0, ps$scale), class = "sd"))
+  for (k in default_sd_prefixes(fit)) {
+    add(set_prior(st(0, scales[[k[["rname"]]]]$scale), class = "sd",
+                  resp = k[["resp"]], dpar = k[["dpar"]],
+                  nlpar = k[["nlpar"]]))
+  }
   # lkj(1), brms's own default: uniform over correlation matrices. Only
   # when some block's correlation HAS an LKJ density, so that a model
   # whose only correlated block is a toep() does not fail on a default
@@ -1083,6 +1147,10 @@ default_priors_for <- function(fit) {
     identical(block_cor_prior(bk), "lkj")
   }, TRUE))
   if (has_cor) add(set_prior("lkj(1)", class = "cor"))
+  # brms's lkj(1) on the residual correlation of set_rescor(TRUE)
+  if (length(fit$frame[["par_template"]][["thetar"]] %||% numeric(0))) {
+    add(set_prior("lkj(1)", class = "rescor"))
+  }
   pl
 }
 
@@ -1092,33 +1160,33 @@ default_priors_for <- function(fit) {
 #'
 #' @noRd
 default_prior_notes <- function(fit) {
-  if (length(fit$spec$responses) > 1L) {
-    return(paste("multivariate model: no defaults, because the default",
-                 "scales are read off ONE response; write them with",
-                 "set_prior(resp = )"))
-  }
-  rspec <- fit$spec$responses[[1L]]
+  multi <- length(fit$spec$responses) > 1L
   notes <- character(0)
-  nlp <- rspec$nlpars %||% character(0)
-  if (length(nlp)) {
-    notes <- c(notes, paste0("nonlinear parameters stay flat: ",
-                             paste(nlp, collapse = ", "),
-                             " (brms leaves them flat too, as class b; ",
-                             "set_prior(nlpar = ) writes them)"))
-  }
-  if (identical(rspec$family[["type"]], "ordinal")) {
-    notes <- c(notes, paste("no defaults for this family's thresholds",
-                            "(brms priors them as its Intercept class)"))
-  }
-  # dispersion dpars brms gives a gamma or inverse-gamma default, which
-  # set_prior() cannot express
-  disp <- setdiff(intersect(names(rspec$dpars %||% list()),
-                            c("shape", "phi", "nu")),
-                  rspec$primary_dpars)
-  if (length(disp)) {
-    notes <- c(notes, paste0("no defaults for ",
-                             paste(disp, collapse = ", "),
-                             " (brms uses gamma / inverse-gamma)"))
+  for (rspec in fit$spec$responses) {
+    # a multivariate model says which response each note is about
+    of <- if (multi) paste0(" of response ", rspec$resp_name) else ""
+    nlp <- rspec$nlpars %||% character(0)
+    if (length(nlp)) {
+      notes <- c(notes, paste0("nonlinear parameters", of, " stay flat: ",
+                               paste(nlp, collapse = ", "),
+                               " (brms leaves them flat too, as class b; ",
+                               "set_prior(nlpar = ) writes them)"))
+    }
+    if (identical(rspec$family[["type"]], "ordinal")) {
+      notes <- c(notes, paste0("no defaults for this family's thresholds",
+                               of, " (brms priors them as its Intercept ",
+                               "class)"))
+    }
+    # dispersion dpars brms gives a gamma or inverse-gamma default, which
+    # set_prior() cannot express
+    disp <- setdiff(intersect(names(rspec$dpars %||% list()),
+                              c("shape", "phi", "nu")),
+                    rspec$primary_dpars)
+    if (length(disp)) {
+      notes <- c(notes, paste0("no defaults for ",
+                               paste(disp, collapse = ", "), of,
+                               " (brms uses gamma / inverse-gamma)"))
+    }
   }
   # correlations get lkj(1), brms's own default, wherever a density
   # exists for the block's parameterization; what is left is named
@@ -1534,11 +1602,29 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #' | class | default | scale |
 #' |---|---|---|
 #' | `b` (slopes) | flat | - |
-#' | `Intercept` | `student_t(3, round(median(y*), 1), s)` | link |
+#' | `Intercept` | `student_t(3, round(median(y*), 1) - m, s)` | link |
 #' | `sd` | `student_t(3, 0, s)` | natural sd, log-Jacobian applied |
 #' | `cor` | `lkj(1)` | correlation matrix, Jacobian applied |
+#' | `rescor` | `lkj(1)` | correlation matrix, Jacobian applied |
 #' | `sigma` (intercept only) | `student_t(3, 0, s)` | natural |
 #' | `sigma` (with a predictor) | `student_t(3, 0, 2.5)` | log |
+#'
+#' `m` is the mean of the predictor's `offset()`, 0 without one. brms
+#' takes it off because an offset moves the intercept by that much, and
+#' only under the links below that transform the response; under any
+#' other link the location stays 0.
+#'
+#' The `sd` default is written once per response, distributional
+#' parameter and nonlinear parameter that has a random-effect standard
+#' deviation, as brms writes one row for each. A class `"sd"`
+#' specification reaches only its own response, distributional
+#' parameter and nonlinear parameter (see [frmtmb::set_prior()]), so a
+#' `set_prior(class = "sd")` of your own replaces the location
+#' parameter's default and leaves, for example, a `phi` block's default
+#' in place, as in brms.
+#'
+#' A multivariate model reads `y*` and `s` off each response for that
+#' response's rows, which are written with `resp`, as brms's are.
 #'
 #' The link is transformed only for `identity`, `log`, `inverse`,
 #' `sqrt` and `1/mu^2` - brms's own list - with a log-scale family
@@ -1583,10 +1669,6 @@ sample_resolve_priors <- function(fit, prior, base = NULL,
 #'   nothing about a rate or a shape sitting inside a nonlinear body.
 #'   Write them with `set_prior(nlpar = )`, as the brms nonlinear
 #'   vignette does.
-#' - MULTIVARIATE models get no defaults at all: the default location
-#'   and scale are read off ONE response, and frmtmb does not read them
-#'   per response. `set_prior(resp = )` addresses one response, so
-#'   they can be written by hand.
 #'
 #' *Overriding and opting out.* A `set_prior()` specification takes over
 #' the classes it names and leaves the other defaults in place, which is

@@ -1,0 +1,106 @@
+arm lane frmtmb 0.61.0 from C:/Users/adf44/source/r/correct2-lib 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | pp-check-types                                                 
+⠋ |          1 | pp-check-types                                                 
+⠙ |          2 | pp-check-types                                                 
+⠸ |          4 | pp-check-types                                                 
+⠇ |          9 | pp-check-types                                                 
+⠏ |         10 | pp-check-types                                                 
+⠋ |         11 | pp-check-types                                                 
+⠙ |         12 | pp-check-types                                                 
+⠸ |         14 | pp-check-types                                                 
+⠴ |         16 | pp-check-types                                                 
+⠦ |         17 | pp-check-types                                                 
+⠇ |         19 | pp-check-types                                                 
+⠏ |         20 | pp-check-types                                                 
+⠙ |         22 | pp-check-types                                                 
+⠹ |         23 | pp-check-types                                                 
+⠸ |         24 | pp-check-types                                                 
+⠼ |         25 | pp-check-types                                                 
+⠴ |         26 | pp-check-types                                                 
+⠴ |         36 | pp-check-types                                                 
+⠦ |         37 | pp-check-types                                                 
+⠧ |         38 | pp-check-types                                                 
+⠇ |         39 | pp-check-types                                                 
+⠹ |         43 | pp-check-types                                                 
+⠸ |         44 | pp-check-types                                                 
+⠼ |         45 | pp-check-types                                                 
+⠦ |         47 | pp-check-types                                                 
+⠧ |         48 | pp-check-types                                                 
+⠇ |         49 | pp-check-types                                                 
+⠏ |         50 | pp-check-types                                                 
+⠋ |         51 | pp-check-types                                                 
+⠙ |         52 | pp-check-types                                                 
+⠼ |         55 | pp-check-types                                                 
+⠧ |         58 | pp-check-types                                                 
+⠏ |         60 | pp-check-types                                                 
+⠋ |         61 | pp-check-types                                                 
+⠹ |         63 | pp-check-types                                                 
+⠸ |         64 | pp-check-types                                                 
+⠼ |         65 | pp-check-types                                                 
+⠴ |         66 | pp-check-types                                                 
+⠧ |         68 | pp-check-types                                                 
+⠇ |         69 | pp-check-types                                                 
+⠋ |         71 | pp-check-types                                                 
+⠙ |         72 | pp-check-types                                                 
+⠹ |         73 | pp-check-types                                                 
+⠸ |         74 | pp-check-types                                                 
+⠼ |         75 | pp-check-types                                                 
+⠼ |         85 | pp-check-types                                                 
+⠴ |         86 | pp-check-types                                                 
+⠦ |         87 | pp-check-types                                                 
+⠧ |         88 | pp-check-types                                                 
+⠏ |         90 | pp-check-types                                                 
+⠙ |         92 | pp-check-types                                                 
+⠹ |         93 | pp-check-types                                                 
+⠼ |         95 | pp-check-types                                                 
+⠦ |         97 | pp-check-types                                                 
+⠧ |         98 | pp-check-types                                                 
+⠇ |         99 | pp-check-types                                                 
+⠏ |        100 | pp-check-types                                                 
+⠋ |        101 | pp-check-types                                                 
+⠹ |        103 | pp-check-types                                                 
+⠸ |        104 | pp-check-types                                                 
+⠦ |        107 | pp-check-types                                                 
+⠇ |        109 | pp-check-types                                                 
+⠏ |        110 | pp-check-types                                                 
+⠋ |        111 | pp-check-types                                                 
+⠙ |        112 | pp-check-types                                                 
+⠸ |        114 | pp-check-types                                                 
+⠼ |        115 | pp-check-types                                                 
+⠦ |        117 | pp-check-types                                                 
+⠧ |        118 | pp-check-types                                                 
+⠏ |        120 | pp-check-types                                                 
+⠋ |        121 | pp-check-types                                                 
+⠙ |        122 | pp-check-types                                                 
+⠹ |        123 | pp-check-types                                                 
+⠸ |        124 | pp-check-types                                                 
+⠹ |        133 | pp-check-types                                                 
+⠸ |        134 | pp-check-types                                                 
+⠼ |        135 | pp-check-types                                                 
+⠴ |        136 | pp-check-types                                                 
+⠦ |        137 | pp-check-types                                                 
+⠇ |        139 | pp-check-types                                                 
+⠋ |        141 | pp-check-types                                                 
+⠙ |        142 | pp-check-types                                                 
+⠹ |        143 | pp-check-types                                                 
+⠼ |        145 | pp-check-types                                                 
+⠴ |        146 | pp-check-types                                                 
+⠦ |        147 | pp-check-types                                                 
+⠧ |        148 | pp-check-types                                                 Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+
+⠋ |        151 | pp-check-types                                                 
+⠧ |        158 | pp-check-types                                                 
+⠹ |        163 | pp-check-types                                                 
+⠧ |        168 | pp-check-types                                                 
+⠙ |        172 | pp-check-types                                                 
+⠇ |        179 | pp-check-types                                                 
+⠹ |        183 | pp-check-types                                                 
+✔ |        183 | pp-check-types [21.3s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 21.3 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 183 ]
+RESULT test-pp-check-types.R pass=183 fail=0 err=0 skip=0

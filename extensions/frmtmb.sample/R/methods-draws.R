@@ -914,8 +914,16 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
   }
   fun <- draws_bayesplot_fun(paste0(prefix, "_", type), "pp_check(type =)")
   fit <- draws_base_fit(object)
-  rspec <- if (is.null(resp)) single_response(fit, "pp_check()") else
+  # `resp` is IGNORED on a model with one response, as brms ignores it
+  # (validate_resp() returns NULL there) and as the fit method does
+  # since punch round 1; on several responses it selects one, and a
+  # name none of them has is refused
+  multi <- length(fit$spec$responses) > 1L
+  rspec <- if (is.null(resp) || !multi) {
+    single_response(fit, "pp_check()")
+  } else {
     fit$spec$responses[[resp]]
+  }
   if (is.null(rspec)) {
     frm_stop("pp_check(resp = \"", resp, "\") names no response of this ",
              "model; it has ", paste(names(fit$spec$responses),
@@ -957,6 +965,19 @@ pp_check.frmtmb_draws <- function(object, type, ndraws = NULL,
       ndraws <- 10
       frm_message("Using 10 posterior draws for ppc type '", type,
                   "' by default.")
+    }
+  }
+  if (identical(type, "error_binned")) {
+    # the same refusal the fit method gives, in the same words: brms
+    # refuses this type for every polytomous family, and two methods
+    # should not describe one case two ways (punch round 1, minor 3)
+    fam <- rspec$family
+    if (isTRUE(fam[["type"]] %in% c("ordinal", "categorical")) ||
+          identical(fam[["family"]], "multinomial")) {
+      frm_stop("Type 'error_binned' is not available for polytomous ",
+               "models: the '", fam[["family"]], "' response is a ",
+               "category, and a binned error needs a numeric one, as in ",
+               "brms", call. = FALSE)
     }
   }
   pred <- if (identical(type, "error_binned")) posterior_epred else
@@ -1442,6 +1463,18 @@ predictive_error.frmtmb_draws <- function(object, newdata = NULL,
                           c("posterior_predict", "posterior_epred"))
   fit <- draws_base_fit(object)
   resp <- resp %||% names(fit$spec$responses)[1L]
+  # brms refuses a predictive error, and so residuals(), for every
+  # polytomous family whatever the method (its is_polytomous(); brms
+  # 2.23.0, dev/correct-log/brms-resid.txt). The same families as
+  # frmtmb's residuals() refuses: a category or counts over categories
+  fam <- fit$spec$responses[[resp]]$family
+  if (isTRUE(fam[["type"]] %in% c("ordinal", "categorical")) ||
+        identical(fam[["family"]], "multinomial")) {
+    frm_stop("predictive_error() and residuals() are not defined for the ",
+             "'", fam[["family"]], "' family, as in brms: the response is ",
+             "a category or a set of counts over categories, so y - yrep ",
+             "has no scale to be read on", call. = FALSE)
+  }
   y <- draws_response_values(fit, resp, newdata, "predictive_error()")
   if (is.matrix(y)) {
     frm_stop("predictive_error() needs a vector response; this one is a ",

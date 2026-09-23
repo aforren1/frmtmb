@@ -1,0 +1,46 @@
+arm base frmtmb 0.61.0 from C:/Users/adf44/source/r/rellib-r3 
+
+== item 1: residuals() by family ==
+cumulative   residuals(type = "response") OK
+cumulative   residuals(type = "ordinary") OK
+cumulative   residuals(type = "pearson" ) OK
+cumulative   residuals(type = "deviance") ERROR [frmtmb_error]: residuals(type = "deviance") is not available for family 'cumulative': it has no standard unit deviance. Families with one: bernoulli, beta, Beta, binomial, exponential, Gamma, gaussian, geometric, huber, inverse.gaussian, nbinom1, nbinom2, negbinomial, poisson, tweedie. Use ty
+cumulative   residuals(type = "osa"     ) OK
+cumulative   pp_check(type = "error_binned") OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+cumulative   pp_check(type = "error_hist") OK
+cumulative   plot() OK
+sratio       residuals(type = "response") OK
+sratio       residuals(type = "ordinary") OK
+sratio       residuals(type = "pearson" ) OK
+sratio       residuals(type = "deviance") ERROR [frmtmb_error]: residuals(type = "deviance") is not available for family 'sratio': it has no standard unit deviance. Families with one: bernoulli, beta, Beta, binomial, exponential, Gamma, gaussian, geometric, huber, inverse.gaussian, nbinom1, nbinom2, negbinomial, poisson, tweedie. Use type =
+sratio       residuals(type = "osa"     ) OK
+sratio       pp_check(type = "error_binned") OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+sratio       pp_check(type = "error_hist") OK
+sratio       plot() OK
+categorical  residuals(type = "response") ERROR [frmtmb_error]: residuals() is not defined for a categorical family: the categories carry no order, so a residual has no scale to live on. Compare fitted(fit) (the n x K category probabilities) against the observed categories instead
+categorical  residuals(type = "ordinary") ERROR [frmtmb_error]: residuals() is not defined for a categorical family: the categories carry no order, so a residual has no scale to live on. Compare fitted(fit) (the n x K category probabilities) against the observed categories instead
+categorical  residuals(type = "pearson" ) ERROR [frmtmb_error]: residuals() is not defined for a categorical family: the categories carry no order, so a residual has no scale to live on. Compare fitted(fit) (the n x K category probabilities) against the observed categories instead
+categorical  residuals(type = "deviance") ERROR [frmtmb_error]: residuals() is not defined for a categorical family: the categories carry no order, so a residual has no scale to live on. Compare fitted(fit) (the n x K category probabilities) against the observed categories instead
+categorical  residuals(type = "osa"     ) ERROR [frmtmb_error]: residuals() is not defined for a categorical family: the categories carry no order, so a residual has no scale to live on. Compare fitted(fit) (the n x K category probabilities) against the observed categories instead
+categorical  pp_check(type = "error_binned") ERROR [simpleError]: is.numeric(predictions) is not TRUE
+categorical  pp_check(type = "error_hist") ERROR [simpleError]: is.numeric(predictions) is not TRUE
+categorical  plot() ERROR [frmtmb_error]: residuals() is not defined for a categorical family: the categories carry no order, so a residual has no scale to live on. Compare fitted(fit) (the n x K category probabilities) against the observed categories instead
+gaussian     residuals(type = "response") OK
+gaussian     residuals(type = "ordinary") OK
+gaussian     residuals(type = "pearson" ) OK
+gaussian     residuals(type = "deviance") OK
+gaussian     residuals(type = "osa"     ) OK
+gaussian     pp_check(type = "error_binned") OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+gaussian     pp_check(type = "error_hist") OK
+gaussian     plot() OK
+multinomial  residuals(type = "response") ERROR [frmtmb_error]: family 'multinomial' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted() and frm_linpred(type = "response") have nothing to return. Ask for type = "link" or a dpar by name.
+multinomial  residuals(type = "ordinary") ERROR [frmtmb_error]: family 'multinomial' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted() and frm_linpred(type = "response") have nothing to return. Ask for type = "link" or a dpar by name.
+multinomial  residuals(type = "pearson" ) ERROR [frmtmb_error]: family 'multinomial' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted() and frm_linpred(type = "response") have nothing to return. Ask for type = "link" or a dpar by name.
+multinomial  residuals(type = "deviance") ERROR [frmtmb_error]: residuals(type = "deviance") is not available for family 'multinomial': it has no standard unit deviance. Families with one: bernoulli, beta, Beta, binomial, exponential, Gamma, gaussian, geometric, huber, inverse.gaussian, nbinom1, nbinom2, negbinomial, poisson, tweedie. Use t
+multinomial  residuals(type = "osa"     ) ERROR [simpleError]: 'observation.name' must be in data component
+multinomial  pp_check(type = "error_binned") ERROR [frmtmb_error]: pp_check() on a fit supports vector responses
+multinomial  pp_check(type = "error_hist") ERROR [frmtmb_error]: pp_check() on a fit supports vector responses
+multinomial  plot() ERROR [frmtmb_error]: family 'multinomial' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted() and frm_linpred(type = "response") have nothing to return. Ask for type = "link" or a dpar by name.

@@ -578,9 +578,10 @@ brms_exclusions <- function() {
     c("brms_meanlink_shapes", "r12e", "14", "P"),
     c("brms_meanlink_shapes", "r13", "14", "P"),
     c("brms_meanlink_shapes", "r17", "14", "P"),
-    # residuals: a nominal response has no y - E[Y] to form, and the
-    # ordinal families score the categories, which brms does not, so
-    # there is no shared definition to compare rather than a defect
+    # residuals: brms refuses both of its residual types on every
+    # polytomous family and frmtmb refuses them too, which
+    # test-brms-methods.R asserts on these same shapes, so there is no
+    # value to compare
     c("brms_resid_shapes", "r13", "omissions", "P"),
     c("brms_resid_shapes", "r12a", "omissions", "P"),
     c("brms_resid_shapes", "r12b", "omissions", "P"),

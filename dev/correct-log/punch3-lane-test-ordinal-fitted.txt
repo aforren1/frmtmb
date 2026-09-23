@@ -1,0 +1,31 @@
+arm lane frmtmb 0.61.0 from C:/Users/adf44/source/r/correct2-lib 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ordinal-fitted                                                 
+⠋ |          1 | ordinal-fitted                                                 
+⠏ |         10 | ordinal-fitted                                                 
+⠹ |         23 | ordinal-fitted                                                 
+⠴ |         36 | ordinal-fitted                                                 2 rows removed because of missing values (na.action)
+
+⠏ |         40 | ordinal-fitted                                                 
+⠋ |         51 | ordinal-fitted                                                 
+⠏ |         60 | ordinal-fitted                                                 
+⠇ |         69 | ordinal-fitted                                                 
+⠧ |         78 | ordinal-fitted                                                 
+⠼ |         85 | ordinal-fitted                                                 
+⠇ |         89 | ordinal-fitted                                                 
+⠏ |         90 | ordinal-fitted                                                 
+⠼ |         95 | ordinal-fitted                                                 
+⠴ |        106 | ordinal-fitted                                                 
+⠦ |        107 | ordinal-fitted                                                 
+⠦ |        117 | ordinal-fitted                                                 
+⠧ |        118 | ordinal-fitted                                                 
+⠹ |        123 | ordinal-fitted                                                 
+⠦ |        127 | ordinal-fitted                                                 
+✔ |        129 | ordinal-fitted [3.6s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 3.6 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 129 ]
+RESULT test-ordinal-fitted.R pass=129 fail=0 err=0 skip=0

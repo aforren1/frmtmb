@@ -15,6 +15,6 @@
 ^CODE_OF_CONDUCT\.md$
 ^codemeta\.json$
 ^CRAN-SUBMISSION$
-^Rplots\.pdf$
+Rplots\.pdf$
 ^data-raw$
 ^vignettes/figure$

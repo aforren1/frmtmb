@@ -158,3 +158,59 @@ test_that("te() errors with guidance; smooth predictions round-trip", {
                     se.fit = TRUE)$se.fit,
             max(p$se.fit))
 })
+
+test_that("REML on a location-scale smooth differs from mgcv's by design", {
+  # A MEASUREMENT, not an agreement. frmtmb's REML = TRUE integrates the
+  # mu coefficients and keeps sigma's outer (the double-GLM REML), while
+  # mgcv's REML for gaulss() integrates the coefficients of both
+  # predictors, so the two criteria put the sigma smooth in different
+  # places. ?frm says so under REML. Seeds 44 to 48 of
+  # dev/correct-reml-mgcv.R (dev/correct-log/reml-mgcv-lane.txt), as
+  # log(frmtmb lambda) - log(mgcv sp), lambda = 1 / sd^2:
+  #   mu smooth:    ML 0.129 to 0.262, REML -0.011 to -0.005
+  #   sigma smooth: ML 0.138 to 0.165, REML 0.142 to 0.170
+  # REML closes the mu smooth's gap and leaves the sigma smooth's where
+  # ML left it, which is the difference in what each integrates.
+  set.seed(44)
+  n <- 500
+  dd <- data.frame(x = runif(n), z = runif(n))
+  dd$y <- rnorm(n, sin(3 * dd$x), exp(0.8 * cos(5 * dd$z) - 0.5))
+  gap <- function(method) {
+    fit <- frm(bf(y ~ s(x), sigma ~ s(z)) + gaussian(), data = dd,
+               REML = identical(method, "REML"))
+    ref <- mgcv::gam(list(y ~ s(x), ~ s(z)), data = dd,
+                     family = mgcv::gaulss(b = 0), method = method)
+    lam <- vapply(fit$frame$re_blocks, function(b) {
+      exp(-2 * fit$estimates$theta[b$theta_idx])
+    }, 1)
+    dp <- vapply(fit$frame$re_blocks, `[[`, "", "dpar")
+    mu_g <- fitted(ref)[, 1]
+    sg_g <- 1 / fitted(ref)[, 2]
+    lam <- unname(lam)
+    c(sp_mu = abs(log(lam[dp == "mu"]) - log(unname(ref$sp[1]))),
+      sp_sigma = abs(log(lam[dp == "sigma"]) - log(unname(ref$sp[2]))),
+      curve_mu = max(abs(as.numeric(frm_linpred(fit, type = "response")) -
+                           mu_g)) / diff(range(mu_g)),
+      curve_sigma = max(abs(as.numeric(frm_linpred(
+        fit, dpar = "sigma", type = "response")) - sg_g)) /
+        diff(range(sg_g)))
+  }
+  ml <- gap("ML")
+  reml <- gap("REML")
+  # the sigma smooth's gap under REML is the ML one: measured ratio
+  # 1.026 to 1.037 over the five seeds
+  expect_gt(reml[["sp_sigma"]] / ml[["sp_sigma"]], 0.8)
+  expect_lt(reml[["sp_sigma"]] / ml[["sp_sigma"]], 1.25)
+  # and it is the larger one by far: measured 13.2 to 28.6 times the mu
+  # smooth's REML gap
+  expect_gt(reml[["sp_sigma"]] / reml[["sp_mu"]], 10)
+  # the mu smooth is where the criteria agree: REML closes most of its
+  # ML gap (measured 22 to 28 times smaller, and the curve gap 6.7 to
+  # 21 times smaller) ...
+  expect_lt(reml[["sp_mu"]] / ml[["sp_mu"]], 0.2)
+  expect_lt(reml[["curve_mu"]] / ml[["curve_mu"]], 0.2)
+  # ... and the sigma curve under REML is further from mgcv's than the mu
+  # curve, measured 23.5 to 65.5 times further relative to each curve's
+  # range
+  expect_gt(reml[["curve_sigma"]] / reml[["curve_mu"]], 10)
+})

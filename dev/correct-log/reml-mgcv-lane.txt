@@ -1,0 +1,11 @@
+frmtmb 0.61.0 mgcv 1.9.4 
+seed 44  ML:   mu 0.0053 sigma 0.01812 logsp x 0.1561 z 0.14
+seed 44  REML: mu 0.0004611 sigma 0.02081 logsp x -0.005634 z 0.1437
+seed 45  ML:   mu 0.003918 sigma 0.011 logsp x 0.1379 z 0.1492
+seed 45  REML: mu 0.0005527 sigma 0.013 logsp x -0.005373 z 0.1535
+seed 46  ML:   mu 0.009495 sigma 0.02225 logsp x 0.262 z 0.1379
+seed 46  REML: mu 0.0004505 sigma 0.02452 logsp x -0.01075 z 0.1418
+seed 47  ML:   mu 0.003107 sigma 0.02606 logsp x 0.1286 z 0.1426
+seed 47  REML: mu 0.0004662 sigma 0.02927 logsp x -0.005843 z 0.1479
+seed 48  ML:   mu 0.004903 sigma 0.01652 logsp x 0.1565 z 0.1654
+seed 48  REML: mu 0.0002923 sigma 0.01914 logsp x -0.006277 z 0.1702

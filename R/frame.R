@@ -203,7 +203,9 @@ check_special_mult <- function(mult, expr, fn) {
 #' always the first mo() written. Our parser keeps the written order and
 #' emits mo(x):z ahead of the mo(x) that `mo(x) * z` implies, so the mo
 #' list is re-sorted before the frame hands out simplexes; otherwise
-#' zeta<j> and brms's simo_<j> would name different terms.
+#' zeta<j> and brms's simo_<j> would name different terms. mi() terms
+#' are sorted by the same call, for the same reason one step later: it is
+#' the order their coefficients are numbered and reported in.
 #'
 #' Sorting by interaction order alone reproduces terms(): order() is
 #' stable, so terms of equal order keep the order they were written in,
@@ -2438,7 +2440,11 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       # as with mo); the values are observed-or-latent, supplied by the
       # objective and the numeric prediction paths
       mi_info <- list()
-      for (ent in dp[["miterms"]] %||% list()) {
+      # brms enumerates mi() terms in terms() order too, so `mi(x) * z`
+      # gives the main effect a column before its interaction and
+      # `variables()` reads bsp_<resp>_mi<x> before bsp_<resp>_mi<x>:z,
+      # which is brms's order (punch round 1, minor 4)
+      for (ent in mo_terms_in_brms_order(dp[["miterms"]] %||% list())) {
         vn <- deparse1(ent$expr)
         tgt <- spec$responses[[vn]]
         if (is.null(tgt) || !isTRUE(tgt$aterms[["mi"]])) {

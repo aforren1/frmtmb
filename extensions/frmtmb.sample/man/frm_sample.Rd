@@ -297,13 +297,31 @@ priors, read off \code{brms::default_prior()} on matched models. Write
 \verb{s = max(2.5, round(mad(y*), 1))}:\tabular{lll}{
    class \tab default \tab scale \cr
    \code{b} (slopes) \tab flat \tab - \cr
-   \code{Intercept} \tab \verb{student_t(3, round(median(y*), 1), s)} \tab link \cr
+   \code{Intercept} \tab \verb{student_t(3, round(median(y*), 1) - m, s)} \tab link \cr
    \code{sd} \tab \code{student_t(3, 0, s)} \tab natural sd, log-Jacobian applied \cr
    \code{cor} \tab \code{lkj(1)} \tab correlation matrix, Jacobian applied \cr
+   \code{rescor} \tab \code{lkj(1)} \tab correlation matrix, Jacobian applied \cr
    \code{sigma} (intercept only) \tab \code{student_t(3, 0, s)} \tab natural \cr
    \code{sigma} (with a predictor) \tab \code{student_t(3, 0, 2.5)} \tab log \cr
 }
 
+
+\code{m} is the mean of the predictor's \code{offset()}, 0 without one. brms
+takes it off because an offset moves the intercept by that much, and
+only under the links below that transform the response; under any
+other link the location stays 0.
+
+The \code{sd} default is written once per response, distributional
+parameter and nonlinear parameter that has a random-effect standard
+deviation, as brms writes one row for each. A class \code{"sd"}
+specification reaches only its own response, distributional
+parameter and nonlinear parameter (see \code{\link[frmtmb:set_prior]{frmtmb::set_prior()}}), so a
+\code{set_prior(class = "sd")} of your own replaces the location
+parameter's default and leaves, for example, a \code{phi} block's default
+in place, as in brms.
+
+A multivariate model reads \verb{y*} and \code{s} off each response for that
+response's rows, which are written with \code{resp}, as brms's are.
 
 The link is transformed only for \code{identity}, \code{log}, \code{inverse},
 \code{sqrt} and \code{1/mu^2} - brms's own list - with a log-scale family
@@ -349,10 +367,6 @@ coefficients are class \code{b}, and the response's median and mad say
 nothing about a rate or a shape sitting inside a nonlinear body.
 Write them with \code{set_prior(nlpar = )}, as the brms nonlinear
 vignette does.
-\item MULTIVARIATE models get no defaults at all: the default location
-and scale are read off ONE response, and frmtmb does not read them
-per response. \code{set_prior(resp = )} addresses one response, so
-they can be written by hand.
 }
 
 \emph{Overriding and opting out.} A \code{set_prior()} specification takes over

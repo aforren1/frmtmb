@@ -1,0 +1,17 @@
+arm base frmtmb 0.61.0 from C:/Users/adf44/source/r/rellib-r3 
+
+== minor 6: does the refusal quote the caller's type? ==
+response     answers, first 3: 0.9457 -0.2 0.312
+ordinary     answers, first 3: 0.9457 -0.2 0.312
+pearson      answers, first 3: 1.134 -0.2443 0.3925
+
+== minor 2: is `resp` a formal at all, and what does it do? ==
+formals of pp_check.frmtmb_fit: object type ndraws re_formula ... 
+dens_overlay, resp = "w"                   WARNING: The following arguments were unrecognized and ignored: resp
+dens_overlay, resp = "w"                   OK
+
+== minor 8: does bayesplot get the COLUMN, and does it warn? ==
+dens_overlay, group = g                    WARNING: The following arguments were unrecognized and ignored: group
+dens_overlay, group = g                    OK
+dens_overlay, group = nosuch               WARNING: The following arguments were unrecognized and ignored: group
+dens_overlay, group = nosuch               OK

@@ -760,8 +760,12 @@ test_that("pp_check has reasonable outputs", {
     "",
     expect_ggplot(pp_check(fit1))
   )
-  brms_port("brmsfit-methods:675", "pass",
-    "",
+  brms_port("brmsfit-methods:675", "defect",
+    paste0(
+      "pp_check(newdata = ) is refused: simulate() takes no ",
+      "newdata, so the fit method can only simulate its own rows. ",
+      "It used to swallow the argument in its dots and plot the ",
+      "fitted rows instead (lane wt-correct)"),
     expect_ggplot(pp_check(fit1, newdata = fit1$data[1:10, ]))
   )
   brms_port("brmsfit-methods:676", "pass",
@@ -775,11 +779,8 @@ test_that("pp_check has reasonable outputs", {
   brms_setup("brmsfit-methods:678",
     pp <- pp_check(fit1, "ribbon_grouped", group = "visit", x = "Age")
   )
-  brms_port("brmsfit-methods:679", "defect",
-    paste0(
-      "pp_check() passes x = 'Age' to bayesplot as the string, ",
-      "which stops with 'is.numeric(x) is not TRUE'; brms reads x ",
-      "and group as data variable names"),
+  brms_port("brmsfit-methods:679", "pass",
+    "",
     expect_ggplot(pp)
   )
   brms_setup("brmsfit-methods:680",
@@ -788,13 +789,12 @@ test_that("pp_check has reasonable outputs", {
   )
   brms_port("brmsfit-methods:682", "defect",
     paste0(
-      "the assignment above it fails: pp_check(group = ) hands ",
-      "bayesplot the group NAME rather than the column, so every ",
-      "ppc_*_grouped type dies on bayesplot's 'length(group) must ",
-      "be equal to the number of observations'. Measured with and ",
-      "without newdata, and on a plain y ~ x + (1 | g) fit as well ",
-      "as on fixture 1 (dev/adefects-findings.md, found and not ",
-      "fixed 1). Was fit-data"),
+      "the assignment above it fails, so `pp` is not bound: that ",
+      "call passes newdata, which pp_check() on a fit refuses ",
+      "because simulate() takes no newdata (brmsfit-methods:675). ",
+      "The grouped types themselves work since lane wt-correct; ",
+      "the group name is resolved against the model frame as brms ",
+      "resolves it"),
     expect_ggplot(pp)
   )
   brms_setup("brmsfit-methods:684",
@@ -815,41 +815,25 @@ test_that("pp_check has reasonable outputs", {
     "",
     expect_ggplot(pp_check(fit3))
   )
-  brms_port("brmsfit-methods:694", "defect",
-    paste0(
-      "pp_check() passes x = 'Age' to bayesplot as the string (see ",
-      "brmsfit-methods:679)"),
+  brms_port("brmsfit-methods:694", "pass",
+    "",
     expect_ggplot(pp_check(fit2, "ribbon", x = "Age"))
   )
-  brms_port("brmsfit-methods:695", "defect",
-    paste0(
-      "pp_check() passes x = 'x' to bayesplot unchecked, so the ",
-      "refusal is bayesplot's 'is.numeric(x) is not TRUE', not ",
-      "'Variable x could not be found in the data'"),
+  brms_port("brmsfit-methods:695", "pass",
+    "",
     expect_error(pp_check(fit2, "ribbon", x = "x"),
                  "Variable 'x' could not be found in the data")
   )
-  brms_port("brmsfit-methods:697", "defect",
-    paste0(
-      "an unknown type dies with R's object 'ppc_wrong_type' not ",
-      "found from the bayesplot lookup, not a refusal naming the ",
-      "valid types"),
+  brms_port("brmsfit-methods:697", "pass",
+    "",
     expect_error(pp_check(fit1, "wrong_type"))
   )
-  brms_port("brmsfit-methods:698", "defect",
-    paste0(
-      "pp_check(fit2, 'violin_grouped') dies with R's 'argument ",
-      "group is missing, with no default'; brms refuses by design ",
-      "('Argument group is required'); brms's regex 'group' ",
-      "matched the internal error, which the harness now rejects"),
+  brms_port("brmsfit-methods:698", "pass",
+    "",
     expect_error(pp_check(fit2, "violin_grouped"), "group")
   )
-  brms_port("brmsfit-methods:699", "defect",
-    paste0(
-      "pp_check() passes group = 'g' to bayesplot unchecked, so ",
-      "the refusal is bayesplot's 'length(group) must be equal to ",
-      "the number of observations', not 'Variable g could not be ",
-      "found in the data'"),
+  brms_port("brmsfit-methods:699", "pass",
+    "",
     expect_error(pp_check(fit1, "stat_grouped", group = "g"),
                  "Variable 'g' could not be found in the data")
   )
@@ -861,12 +845,8 @@ test_that("pp_check has reasonable outputs", {
     "",
     expect_ggplot(pp_check(fit5))
   )
-  brms_port("brmsfit-methods:703", "defect",
-    paste0(
-      "pp_check(type = 'error_binned') on the ordinal fit4 returns ",
-      "a plot of category-code errors; brms refuses because ",
-      "predictive errors are not defined for ordinal models ",
-      "(dev/brmsport-probe4.R)"),
+  brms_port("brmsfit-methods:703", "pass",
+    "",
     expect_error(pp_check(fit4, "error_binned"),
                  "Type 'error_binned' is not available")
   )
@@ -1106,12 +1086,14 @@ test_that("residuals has reasonable outputs", {
     "",
     expect_equal(dim(res4), c(nobs(fit2), 4))
   )
-  brms_port("brmsfit-methods:837", "defect",
+  brms_port_own("brmsfit-methods:837",
+    "not defined for the .sratio. family, as in brms",
     paste0(
-      "residuals() on the ordinal fit4 returns the response code ",
-      "minus the expected score, y - sum(k P(Y = k)), identical at ",
-      "relative 0; brms refuses because predictive errors are not ",
-      "defined for ordinal models (dev/brmsport-defects.R S7)"),
+      "brms: Predictive errors are not defined for ordinal or ",
+      "categorical models. frmtmb refuses the same call for the ",
+      "same reason since lane wt-correct closed item 1 ",
+      "(dev/correct-findings.md section 1); the row was a defect ",
+      "while this package answered"),
     expect_error(residuals(fit4), "Predictive errors are not defined")
   )
   brms_setup("brmsfit-methods:839",

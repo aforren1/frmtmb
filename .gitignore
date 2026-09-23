@@ -20,3 +20,6 @@ figure/
 
 # a vendored copy of brms's own source, fetched for Phase 2.6
 dev/brms-suite/
+
+# lane wt-correct: brms fits its probes cache
+dev/correct-brmsfits/

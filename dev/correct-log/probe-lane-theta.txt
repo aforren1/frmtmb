@@ -1,0 +1,50 @@
+arm lane frmtmb 0.61.0 from C:/Users/adf44/source/r/correct-lib 
+
+== item 6: a written theta formula's reference component ==
+-- K2 theta1 ~ x --
+   prior     class coef   dpar
+4 (flat) Intercept      theta1
+5 (flat)         b      theta1
+6 (flat)         b    x theta1
+OK 
+-- K2 theta2 ~ x --
+   prior     class coef   dpar
+4 (flat) Intercept      theta2
+5 (flat)         b      theta2
+6 (flat)         b    x theta2
+OK 
+-- K3 theta1 ~ x --
+ERROR: Can only predict all but one mixing proportion: a mixture of 3 components takes a formula for 2 of theta1 ... theta3, and the one left out is the reference whose linear predictor is 0, as in brms. This formula has theta1 
+-- K3 theta2,3 ~ x --
+    prior     class coef   dpar
+5  (flat) Intercept      theta2
+6  (flat)         b      theta2
+7  (flat)         b    x theta2
+8  (flat) Intercept      theta3
+9  (flat)         b      theta3
+10 (flat)         b    x theta3
+OK 
+-- K3 theta1,2 ~ x --
+    prior     class coef   dpar
+5  (flat) Intercept      theta1
+6  (flat)         b      theta1
+7  (flat)         b    x theta1
+8  (flat) Intercept      theta2
+9  (flat)         b      theta2
+10 (flat)         b    x theta2
+OK 
+-- K2 theta1 ~ x, theta2 ~ x --
+ERROR: Can only predict all but one mixing proportion: a mixture of 2 components takes a formula for 1 of theta1 ... theta2, and the one left out is the reference whose linear predictor is 0, as in brms. This formula has theta1, theta2 
+                   Estimate  Est.Error       Q2.5        Q97.5
+mu1_Intercept    -0.9817765 0.05229594 -1.0842746 -0.879278329
+mu2_Intercept     1.9834526 0.06401712  1.8579814  2.108923893
+theta2_Intercept -0.2198151 0.11600112 -0.4471731  0.007542944
+theta2_x          0.7886597 0.12097966  0.5515439  1.025775473
+theta1 at x = 0, 1: ERROR [frmtmb_error]: Unknown dpar: 'theta1' for response 'y'. Available: mu1, sigma1, mu2, sigma2, theta2 
+[1] 0.4452664 0.6384965
+theta2 at x = 0, 1: OK 
+                   Estimate  Est.Error         Q2.5      Q97.5
+mu1_Intercept    -0.9817765 0.05229594 -1.084274637 -0.8792783
+mu2_Intercept     1.9834526 0.06401712  1.857981386  2.1089239
+theta1_Intercept  0.2198151 0.11600112 -0.007542944  0.4471731
+theta1_x         -0.7886597 0.12097966 -1.025775473 -0.5515439

@@ -7,7 +7,18 @@
 \usage{
 pp_check(object, ...)
 
-\method{pp_check}{frmtmb_fit}(object, type = "dens_overlay", ndraws = 10, re_formula = NA, ...)
+\method{pp_check}{frmtmb_fit}(
+  object,
+  type = "dens_overlay",
+  ndraws = 10,
+  prefix = c("ppc", "ppd"),
+  group = NULL,
+  x = NULL,
+  newdata = NULL,
+  resp = NULL,
+  ...,
+  re_formula = NA
+)
 }
 \arguments{
 \item{object}{A \code{frmtmb_fit} for a univariate model.}
@@ -15,9 +26,30 @@ pp_check(object, ...)
 \item{...}{Passed to the \verb{ppc_*} function.}
 
 \item{type}{The bayesplot check, i.e. the part after \code{ppc_}
-(\code{"dens_overlay"}, \code{"hist"}, \code{"stat"}, \code{"scatter_avg"}, ...).}
+(\code{"dens_overlay"}, \code{"hist"}, \code{"stat"}, \code{"stat_grouped"},
+\code{"scatter_avg"}, ...). With \code{prefix = "ppc"} a name that
+\code{bayesplot::available_ppc()} does not list is refused, as brms
+refuses it.}
 
 \item{ndraws}{Number of simulated response vectors.}
+
+\item{prefix}{\code{"ppc"} (the default) plots the observed response
+against the simulated ones; \code{"ppd"} plots the simulated ones alone,
+through bayesplot's \verb{ppd_*} function of the same name.}
+
+\item{group}{The name of a model variable to stratify by, for the
+\verb{*_grouped} types, which need it. The name is looked up in the
+model frame, as brms looks it up in the model's data, so a column
+the model does not use is refused.}
+
+\item{x}{The name of a model variable for the types that take an \code{x}
+(\code{"intervals"}, \code{"ribbon"}, \code{"error_scatter_avg_vs_x"}, ...),
+looked up as \code{group} is.}
+
+\item{newdata, resp}{brms's arguments. A fit simulates only its own
+rows, so a \code{newdata} is refused. \code{resp} is accepted and ignored,
+which is what brms does with it on a model that has one response;
+a multivariate fit is refused before \code{resp} could select one.}
 
 \item{re_formula}{The random-effect switch, in brms's spelling
 (\code{pp_check()} is a brms function). On a fit it is passed to
@@ -38,6 +70,16 @@ simulated from the fitted model (marginally over the random effects)
 and handed to the corresponding bayesplot \verb{ppc_*} function
 (bayesplot must be installed, but not necessarily attached).
 }
+\section{Types a fit cannot draw}{
+
+The \verb{loo_*} types weight posterior draws by Pareto-smoothed importance
+sampling, and a maximum-likelihood fit has no posterior draws, so
+they are refused on a fit. \code{pp_check()} on the draws of
+\code{frmtmb.sample::frm_sample()} is the route to them.
+\code{"error_binned"} is refused on an ordinal, categorical or multinomial
+fit, as brms refuses it.
+}
+
 \examples{
 if (requireNamespace("bayesplot", quietly = TRUE)) {
   set.seed(1)

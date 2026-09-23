@@ -2479,13 +2479,39 @@ pp_check_retired <- c(
                   "while WARNING that it ignored it. Warn-then-honor is",
                   "the failure this refusal exists to stop, so the",
                   "spelling is refused here rather than copied. Pass",
-                  "re_formula =")
+                  "re_formula ="),
+  draw_ids = paste("a fit simulates `ndraws` fresh replicates from its",
+                   "estimate, so there are no posterior draws to choose.",
+                   "Sample with frmtmb.sample::frm_sample() and call",
+                   "pp_check() on the draws"),
+  nsamples = paste("brms's retired spelling of `ndraws`, which is the",
+                   "number of simulated replicates here"),
+  subset = paste("brms's retired spelling of `draw_ids`: a fit",
+                 "simulates `ndraws` fresh replicates from its estimate,",
+                 "so there are no posterior draws to choose")
 )
 
 #' @rdname pp_check
 #' @param type The bayesplot check, i.e. the part after `ppc_`
-#'   (`"dens_overlay"`, `"hist"`, `"stat"`, `"scatter_avg"`, ...).
+#'   (`"dens_overlay"`, `"hist"`, `"stat"`, `"stat_grouped"`,
+#'   `"scatter_avg"`, ...). With `prefix = "ppc"` a name that
+#'   `bayesplot::available_ppc()` does not list is refused, as brms
+#'   refuses it.
 #' @param ndraws Number of simulated response vectors.
+#' @param prefix `"ppc"` (the default) plots the observed response
+#'   against the simulated ones; `"ppd"` plots the simulated ones alone,
+#'   through bayesplot's `ppd_*` function of the same name.
+#' @param group The name of a model variable to stratify by, for the
+#'   `*_grouped` types, which need it. The name is looked up in the
+#'   model frame, as brms looks it up in the model's data, so a column
+#'   the model does not use is refused.
+#' @param x The name of a model variable for the types that take an `x`
+#'   (`"intervals"`, `"ribbon"`, `"error_scatter_avg_vs_x"`, ...),
+#'   looked up as `group` is.
+#' @param newdata,resp brms's arguments. A fit simulates only its own
+#'   rows, so a `newdata` is refused. `resp` is accepted and ignored,
+#'   which is what brms does with it on a model that has one response;
+#'   a multivariate fit is refused before `resp` could select one.
 #' @param re_formula The random-effect switch, in brms's spelling
 #'   (`pp_check()` is a brms function). On a fit it is passed to
 #'   [simulate()] and defaults to `NA`, which simulates new random
@@ -2494,37 +2520,160 @@ pp_check_retired <- c(
 #'   `re.form` is refused. brms honors it on `pp_check()` and warns that
 #'   it ignored it, which is a leak through its dots rather than a
 #'   decision to copy.
+#' @section Types a fit cannot draw:
+#' The `loo_*` types weight posterior draws by Pareto-smoothed importance
+#' sampling, and a maximum-likelihood fit has no posterior draws, so
+#' they are refused on a fit. `pp_check()` on the draws of
+#' `frmtmb.sample::frm_sample()` is the route to them.
+#' `"error_binned"` is refused on an ordinal, categorical or multinomial
+#' fit, as brms refuses it.
 #' @exportS3Method bayesplot::pp_check
 #' @export
 pp_check.frmtmb_fit <- function(object, type = "dens_overlay",
-                                ndraws = 10,
-                                re_formula = NA, ...) {
-  # bayesplot's ppc_* function takes dots of its own, so an unknown
-  # name there is its business. The retired lme4 spelling is not: it
-  # named a real setting until the rename, so it is refused here
-  # rather than passed on to be ignored.
+                                ndraws = 10, prefix = c("ppc", "ppd"),
+                                group = NULL, x = NULL, newdata = NULL,
+                                resp = NULL, ..., re_formula = NA) {
+  # brms:::pp_check.brmsfit's slots in its order, so a positional brms
+  # call lands where brms lands it; `re_formula` used to sit where brms
+  # has `prefix`.
+  #
+  # bayesplot's function takes dots of its own, so an unknown name there
+  # is its business. The retired spellings are not: each named a setting
+  # a caller expects to be honored, so each is refused here rather than
+  # passed on to be ignored.
   frm_check_dots(..., .allow = TRUE, .unsupported = pp_check_retired)
-  # NA, not NULL: a fit has ONE estimate of the random effects, so
-  # conditioning on it would compare the data against draws that already
-  # know each group's deviation. New levels per replicate are what makes
-  # this the frequentist analog of the posterior predictive check.
-  re_form <- re_formula
+  prefix <- frm_match_arg(prefix)
+  if (!is.character(type) || length(type) != 1L || is.na(type)) {
+    frm_stop("pp_check(): `type` must be a single string", call. = FALSE)
+  }
+  fun <- pp_check_fun(prefix, type)
+  if (!is.null(newdata)) {
+    frm_stop("pp_check() on a fit simulates the fitted rows only: ",
+             "simulate() takes no newdata, so a newdata cannot be ",
+             "honored. Sample with frmtmb.sample::frm_sample() and call ",
+             "pp_check(newdata = ) on the draws", call. = FALSE)
+  }
+  # `resp` is carried so that a positional brms call lands where brms
+  # lands it, and it is IGNORED here for the same reason brms ignores it:
+  # brms's validate_resp() returns NULL for a model with one response, so
+  # brms plots whatever `resp` says, including a name the model does not
+  # have (measured, dev/correct-log/brms-ppcheck.txt). A multivariate fit
+  # is refused by single_response() below, before `resp` could select.
   rspec <- single_response(object, "pp_check()")
+  fargs <- names(formals(fun))
+  if (any(c("lw", "psis_object") %in% fargs)) {
+    frm_stop("pp_check(type = \"", type, "\") weights posterior draws by ",
+             "Pareto-smoothed importance sampling, and a maximum-likelihood ",
+             "fit has no posterior draws. Sample with ",
+             "frmtmb.sample::frm_sample() and call pp_check() on the draws",
+             call. = FALSE)
+  }
+  if (identical(type, "error_binned") && fam_is_polytomous(rspec$family)) {
+    frm_stop("Type 'error_binned' is not available for polytomous models: ",
+             "the '", rspec$family[["family"]], "' response is a category, ",
+             "and a binned error needs a numeric one, as in brms",
+             call. = FALSE)
+  }
   y <- object$frame[["y"]][[1L]]
   if (is.matrix(y)) {
     frm_stop("pp_check() on a fit supports vector responses", call. = FALSE)
   }
+  # brms reads `group` and `x` off the model's data, not off the call:
+  # bayesplot wants one value per observation, and a name is one string.
+  # As in brms, a name is looked up only for a type that takes it.
+  for (v in list(group, x)) {
+    if (!is.null(v) && (!is.character(v) || length(v) != 1L || is.na(v))) {
+      frm_stop("pp_check(): `group` and `x` each name one variable, as a ",
+               "single string", call. = FALSE)
+    }
+  }
+  if ("group" %in% fargs && is.null(group)) {
+    frm_stop("Argument 'group' is required for ppc type '", type, "'.",
+             call. = FALSE)
+  }
+  mf <- if (!is.null(group) || !is.null(x)) stats::model.frame(object)
+  # brms looks the name UP only for a type that takes it, and hands
+  # bayesplot whatever `data[[name]]` gives whatever the type: for a type
+  # with no such argument that is the column when the name resolves, and
+  # bayesplot then warns "unrecognized and ignored". Both halves are
+  # copied, the warning included.
+  for (v in c(if ("group" %in% fargs) group, if ("x" %in% fargs) x)) {
+    if (!v %in% names(mf)) {
+      frm_stop("Variable '", v, "' could not be found in the data.",
+               call. = FALSE)
+    }
+  }
+  # brms is ASYMMETRIC here, and the asymmetry is copied rather than
+  # tidied: it writes `ppc_args$group <- data[[group]]` and
+  # `ppc_args$x <- as.numeric(data[[x]])`, so a name the data does not
+  # carry gives NULL for `group`, which drops out of the argument list
+  # and warns nothing, and `numeric(0)` for `x`, which STAYS and makes
+  # bayesplot warn. Measured, not read off the source:
+  # dev/correct-log/punch3-brms-xarg.txt.
+  use <- c(group = !is.null(group) && group %in% names(mf),
+           x = !is.null(x))
+  # NA, not NULL: a fit has ONE estimate of the random effects, so
+  # conditioning on it would compare the data against draws that already
+  # know each group's deviation. New levels per replicate are what makes
+  # this the frequentist analog of the posterior predictive check.
   sims <- na_unpad(object, simulate(object, nsim = ndraws,
-                                    re_formula = re_form))
-  # ordinal draws come back as ordered factors carrying the response's
-  # levels; bayesplot compares them with y, which is the 1..K codes
-  yrep <- if (identical(rspec$family[["type"]], "ordinal")) {
+                                    re_formula = re_formula))
+  # ordinal and categorical draws come back as factors carrying the
+  # response's levels; bayesplot compares them with y, which is the
+  # 1..K codes the likelihood uses
+  yrep <- if (isTRUE(rspec$family[["type"]] %in% c("ordinal",
+                                                     "categorical"))) {
     matrix(unlist(lapply(sims, as.integer), use.names = FALSE),
            nrow = nrow(sims))
   } else {
     as.matrix(sims)
   }
   yrep <- t(yrep)
-  fun <- get(paste0("ppc_", type), envir = asNamespace("bayesplot"))
-  fun(as.numeric(y), yrep, ...)
+  args <- if (identical(prefix, "ppc")) {
+    list(y = as.numeric(y), yrep = yrep)
+  } else {
+    list(ypred = yrep)
+  }
+  if (any(use) && nrow(mf) != ncol(yrep)) {
+    frm_stop("pp_check(): the model frame has ", nrow(mf), " rows and the ",
+             "fit simulates ", ncol(yrep), ", so `group` and `x` cannot be ",
+             "matched to the observations", call. = FALSE)
+  }
+  if (use[["group"]]) args$group <- mf[[group]]
+  if (use[["x"]]) {
+    xv <- mf[[x]]
+    args$x <- if (is.factor(xv) || is.character(xv) || is.logical(xv)) {
+      xv
+    } else {
+      as.numeric(xv)
+    }
+  }
+  do.call(fun, c(args, list(...)))
+}
+
+#' The bayesplot function a `pp_check()` type names, or a refusal.
+#'
+#' brms checks a `ppc` type against `bayesplot::available_ppc()` and
+#' refuses anything else with the list of valid types. Pasting the name
+#' and calling `get()` instead reported "object 'ppc_violin' not found",
+#' which names neither the argument nor what it can be.
+#'
+#' @noRd
+pp_check_fun <- function(prefix, type) {
+  if (!requireNamespace("bayesplot", quietly = TRUE)) {
+    frm_stop("pp_check() needs the 'bayesplot' package", call. = FALSE)
+  }
+  ns <- asNamespace("bayesplot")
+  nm <- paste0(prefix, "_", type)
+  valid <- if (identical(prefix, "ppc")) {
+    sub("^ppc_", "", as.character(bayesplot::available_ppc("")))
+  } else {
+    sub("^ppd_", "", as.character(bayesplot::available_ppd("")))
+  }
+  if (!type %in% valid || !exists(nm, envir = ns, inherits = FALSE)) {
+    frm_stop("Type '", type, "' is not a valid ", prefix, " type. Valid ",
+             "types are: ", paste0("'", valid, "'", collapse = ", "),
+             call. = FALSE)
+  }
+  get(nm, envir = ns)
 }

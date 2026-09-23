@@ -1,0 +1,73 @@
+arm base frmtmb 0.61.0 from C:/Users/adf44/source/r/rellib-r3 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | prior-sd-scope                                                 
+⠋ |          1 | prior-sd-scope                                                 
+⠹ | 1        2 | prior-sd-scope                                                 
+⠦ | 2        5 | prior-sd-scope                                                 
+⠏ | 4        6 | prior-sd-scope                                                 
+⠴ | 7        9 | prior-sd-scope                                                 
+⠧ | 9        9 | prior-sd-scope                                                 
+✖ | 11       13 | prior-sd-scope [2.1s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-prior-sd-scope.R:44:3'): a class sd prior with no dpar stays on the location blocks
+Expected `sds_reached(fit, set_prior("normal(0, 5)", class = "sd", group = "g"))` to be identical to `mu_th`.
+Differences:
+  `actual`: 1 2
+`expected`: 1  
+
+
+Failure ('test-prior-sd-scope.R:46:3'): a class sd prior with no dpar stays on the location blocks
+Expected `sds_reached(fit, set_prior("normal(0, 5)", class = "sd"))` to be identical to `mu_th`.
+Differences:
+  `actual`: 1 2
+`expected`: 1  
+
+
+Failure ('test-prior-sd-scope.R:61:3'): a class sd prior with no dpar stays on the location blocks
+Expected `sd$prior[sd$group == "g" & sd$dpar == "phi"]` to be identical to "(flat)".
+Differences:
+`actual`:   "normal(0, 5)"
+`expected`: "(flat)"      
+
+
+Failure ('test-prior-sd-scope.R:62:3'): a class sd prior with no dpar stays on the location blocks
+Expected `sort(sd$dpar[sd$group == ""])` to be identical to `c("", "phi")`.
+Differences:
+`actual`:   ""      
+`expected`: "" "phi"
+
+
+Failure ('test-prior-sd-scope.R:83:3'): a block across mu and sigma follows brms's per-prefix rule
+Expected `sds_reached(fit, set_prior("normal(0, 5)", class = "sd", dpar = "sigma"))` to be identical to `sd_th[2]`.
+Differences:
+  `actual`: 1 2
+`expected`:   2
+
+
+Failure ('test-prior-sd-scope.R:90:3'): a block across mu and sigma follows brms's per-prefix rule
+Expected `sc[ix == sd_th[1]]` to be identical to 5.
+Differences:
+  `actual`: 2.0
+`expected`: 5.0
+
+
+Failure ('test-prior-sd-scope.R:102:3'): a multivariate sd prior needs its response, as in brms
+Expected `sds_reached(fit, set_prior("normal(0, 5)", class = "sd", group = "g"))` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-sd-scope.R:105:3'): a multivariate sd prior needs its response, as in brms
+Expected `sds_reached(fit, set_prior("normal(0, 5)", class = "sd"))` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-sd-scope.R:107:3'): a multivariate sd prior needs its response, as in brms
+Expected `frm(...)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-sd-scope.R:129:3'): a nonlinear parameter's sd prior needs its nlpar, as in brms
+Expected `sds_reached(fit, set_prior("normal(0, 5)", class = "sd"))` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-sd-scope.R:131:3'): a nonlinear parameter's sd prior needs its nlpar, as in brms
+Expected `sds_reached(fit, set_prior("normal(0, 5)", class = "sd", group = "g"))` to throw a error with class <frmtmb_error>.
+────────────────────────────────────────────────────────────────────────────────
+
+Maximum number of failures exceeded; quitting.
+ℹ Increase this number with (e.g.) `testthat::set_max_fails(Inf)` 
+RESULT test-prior-sd-scope.R pass=13 fail=11 err=0 skip=0

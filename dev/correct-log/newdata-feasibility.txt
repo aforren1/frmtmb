@@ -1,0 +1,25 @@
+== the pieces the fit method would need ==
+  frm_linpred          exported
+  aterms_for_newdata   exported
+  sim_context          exported
+  sim_draw             exported
+  sim_is_structured    exported
+  fit_extras           exported
+  has_trunc            exported
+
+== a draw at newdata, outside the package ==
+yrep is 10 draws x 12 rows; y has 12 
+ported :675, expect_ggplot(pp_check(fit, newdata = 10 rows)): TRUE 
+ported :682, violin_grouped with group read off newdata: TRUE 
+
+== where it would refuse ==
+group-level mixture: structured draw: the structure indexes the fitted rows 
+trunc(lb = 0) at newdata, all draws above the bound: TRUE 
+
+== the one piece that is not a copy: re_formula = NA ==
+sd of one row's draws: population 1.050, fresh b 1.103, fitted rows 1.086
+the model: sigma 1.048, sd(g) 0.379
+mean within-group correlation over 6 row pairs: population -0.013, fresh b 0.105, sd_g^2/(sd_g^2+sigma^2) = 0.116
+
+== what calls simulate() today ==
+  R/bootstrap.R frm_bootstrap(), R/conditional-effects.R pp_check(), R/diagnostics.R dharma_residuals()

@@ -1,0 +1,16 @@
+brms 2.23.0  bayesplot 1.16.0 
+fit: y ~ x + (1 | g)  data cols: y x g 
+
+== dens_overlay: no group formal, no x formal ==
+ppc_dens_overlay formals: y yrep ... size alpha trim bw adjust kernel bounds n_dens 
+group = g      (name IS in the data)           WARNING: The following arguments were unrecognized and ignored: group
+group = g      (name IS in the data)           OK
+group = nosuch (name is NOT in the data)       OK
+x = x          (name IS in the data)           WARNING: The following arguments were unrecognized and ignored: x
+x = x          (name IS in the data)           OK
+x = nosuch     (name is NOT in the data)       WARNING: The following arguments were unrecognized and ignored: x
+x = nosuch     (name is NOT in the data)       OK
+
+== controls: a type that takes the argument ==
+stat_grouped, group = nosuch                   ERROR: Variable 'nosuch' could not be found in the data.
+intervals, x = nosuch                          ERROR: Variable 'nosuch' could not be found in the data.

@@ -1,0 +1,195 @@
+arm base frmtmb 0.61.0 from C:/Users/adf44/source/r/rellib-r3 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | ordinal-fitted                                                 
+⠋ |          1 | ordinal-fitted                                                 
+⠇ |          9 | ordinal-fitted                                                 
+⠏ |         10 | ordinal-fitted                                                 
+⠹ |         23 | ordinal-fitted                                                 
+⠦ |         37 | ordinal-fitted                                                 2 rows removed because of missing values (na.action)
+
+⠼ | 2       43 | ordinal-fitted                                                 
+⠙ | 7       45 | ordinal-fitted                                                 
+⠏ | 14       46 | ordinal-fitted                                                
+⠇ | 21       48 | ordinal-fitted                                                
+⠧ | 28       50 | ordinal-fitted                                                
+⠹ | 30       53 | ordinal-fitted                                                
+⠼ | 31       54 | ordinal-fitted                                                
+⠦ | 31       56 | ordinal-fitted                                                
+⠙ | 31       61 | ordinal-fitted                                                
+⠇ | 31       68 | ordinal-fitted                                                
+⠸ | 31       73 | ordinal-fitted                                                
+⠏ | 31       79 | ordinal-fitted                                                
+⠼ | 31       84 | ordinal-fitted                                                
+⠦ | 31       86 | ordinal-fitted                                                
+⠙ | 31       91 | ordinal-fitted                                                
+⠸ | 31       93 | ordinal-fitted                                                
+✖ | 31       95 | ordinal-fitted [4.3s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-ordinal-fitted.R:88:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+cumulative response
+
+Failure ('test-ordinal-fitted.R:92:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+cumulative response
+
+Failure ('test-ordinal-fitted.R:88:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+cumulative ordinary
+
+Failure ('test-ordinal-fitted.R:92:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+cumulative ordinary
+
+Failure ('test-ordinal-fitted.R:88:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+cumulative pearson
+
+Failure ('test-ordinal-fitted.R:92:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+cumulative pearson
+
+Failure ('test-ordinal-fitted.R:97:5'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit)` to throw a error with class <frmtmb_error>.
+cumulative
+
+Failure ('test-ordinal-fitted.R:88:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+sratio response
+
+Failure ('test-ordinal-fitted.R:92:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+sratio response
+
+Failure ('test-ordinal-fitted.R:88:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+sratio ordinary
+
+Failure ('test-ordinal-fitted.R:92:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+sratio ordinary
+
+Failure ('test-ordinal-fitted.R:88:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+sratio pearson
+
+Failure ('test-ordinal-fitted.R:92:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+sratio pearson
+
+Failure ('test-ordinal-fitted.R:97:5'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit)` to throw a error with class <frmtmb_error>.
+sratio
+
+Failure ('test-ordinal-fitted.R:88:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+cratio response
+
+Failure ('test-ordinal-fitted.R:92:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+cratio response
+
+Failure ('test-ordinal-fitted.R:88:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+cratio ordinary
+
+Failure ('test-ordinal-fitted.R:92:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+cratio ordinary
+
+Failure ('test-ordinal-fitted.R:88:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+cratio pearson
+
+Failure ('test-ordinal-fitted.R:92:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+cratio pearson
+
+Failure ('test-ordinal-fitted.R:97:5'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit)` to throw a error with class <frmtmb_error>.
+cratio
+
+Failure ('test-ordinal-fitted.R:88:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+acat response
+
+Failure ('test-ordinal-fitted.R:92:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+acat response
+
+Failure ('test-ordinal-fitted.R:88:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+acat ordinary
+
+Failure ('test-ordinal-fitted.R:92:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+acat ordinary
+
+Failure ('test-ordinal-fitted.R:88:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+acat pearson
+
+Failure ('test-ordinal-fitted.R:92:7'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit, type = ty)` to throw a error with class <frmtmb_error>.
+acat pearson
+
+Failure ('test-ordinal-fitted.R:97:5'): brms's residual types are refused on every ordinal family
+Expected `residuals(fit)` to throw a error with class <frmtmb_error>.
+acat
+
+Error ('test-ordinal-fitted.R:136:7'): a multinomial fit refuses residuals(type = "response")
+<frmtmb_error/error/condition>
+Error: family 'multinomial' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted() and frm_linpred(type = "response") have nothing to return. Ask for type = "link" or a dpar by name.
+Backtrace:
+     ▆
+  1. ├─testthat::expect_error(...) at test-ordinal-fitted.R:136:7
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. ├─stats::residuals(fit, type = ty)
+  8. └─frmtmb:::residuals.frmtmb_fit(fit, type = ty)
+  9.   └─frmtmb:::residual_values(...)
+ 10.     └─frmtmb::response_mean(fam, dp, av)
+ 11.       └─frmtmb::frm_stop(...)
+
+Error ('test-ordinal-fitted.R:136:7'): a multinomial fit refuses residuals(type = "ordinary")
+<frmtmb_error/error/condition>
+Error: family 'multinomial' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted() and frm_linpred(type = "response") have nothing to return. Ask for type = "link" or a dpar by name.
+Backtrace:
+     ▆
+  1. ├─testthat::expect_error(...) at test-ordinal-fitted.R:136:7
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. ├─stats::residuals(fit, type = ty)
+  8. └─frmtmb:::residuals.frmtmb_fit(fit, type = ty)
+  9.   └─frmtmb:::residual_values(...)
+ 10.     └─frmtmb::response_mean(fam, dp, av)
+ 11.       └─frmtmb::frm_stop(...)
+
+Error ('test-ordinal-fitted.R:136:7'): a multinomial fit refuses residuals(type = "pearson")
+<frmtmb_error/error/condition>
+Error: family 'multinomial' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted() and frm_linpred(type = "response") have nothing to return. Ask for type = "link" or a dpar by name.
+Backtrace:
+     ▆
+  1. ├─testthat::expect_error(...) at test-ordinal-fitted.R:136:7
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. ├─stats::residuals(fit, type = ty)
+  8. └─frmtmb:::residuals.frmtmb_fit(fit, type = ty)
+  9.   └─frmtmb:::residual_values(...)
+ 10.     └─frmtmb::response_mean(fam, dp, av)
+ 11.       └─frmtmb::frm_stop(...)
+────────────────────────────────────────────────────────────────────────────────
+
+Maximum number of failures exceeded; quitting.
+ℹ Increase this number with (e.g.) `testthat::set_max_fails(Inf)` 
+RESULT test-ordinal-fitted.R pass=95 fail=28 err=3 skip=0

@@ -1,0 +1,97 @@
+brms 2.23.0  bayesplot 1.16.0 
+
+== item 2: pp_check(), every type bayesplot exposes ==
+bars                         ERROR: ppc_bars expects 'y' to be discrete.
+bars_grouped                 ERROR: ppc_bars expects 'y' to be discrete.
+boxplot                      OK
+calibration                  ERROR: Values of 'y' must be 0 or 1.
+calibration_grouped          ERROR: Values of 'y' must be 0 or 1.
+calibration_overlay          ERROR: Values of 'y' must be 0 or 1.
+calibration_overlay_grouped  ERROR: Values of 'y' must be 0 or 1.
+dens                         OK
+dens_overlay                 OK
+dens_overlay_grouped         OK
+dots                         OK
+ecdf_overlay                 OK
+ecdf_overlay_grouped         OK
+error_binned                 OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+error_hist                   OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+error_hist_grouped           OK
+error_scatter                OK
+error_scatter_avg            OK
+error_scatter_avg_grouped    OK
+error_scatter_avg_vs_x       OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+freqpoly                     OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+freqpoly_grouped             OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+hist                         OK
+intervals                    OK
+intervals_grouped            OK
+km_overlay                   ERROR: Please install the ggfortify package to use this function.
+km_overlay_grouped           ERROR: Please install the ggfortify package to use this function.
+loo_calibration              ERROR: Values of 'y' must be 0 or 1.
+loo_calibration_grouped      ERROR: Values of 'y' must be 0 or 1.
+loo_intervals                OK
+Some PIT values larger than 1! Largest:  1 
+Rounding PIT > 1 to 1.loo_pit_ecdf                 OK
+Some PIT values larger than 1! Largest:  1 
+Rounding PIT > 1 to 1.loo_pit_overlay              OK
+Some PIT values larger than 1! Largest:  1 
+Rounding PIT > 1 to 1.loo_pit_qq                   OK
+loo_ribbon                   OK
+pit_ecdf                     OK
+pit_ecdf_grouped             OK
+ribbon                       OK
+ribbon_grouped               OK
+rootogram                    ERROR: ppc_rootogram expects counts as inputs to 'y'.
+rootogram_grouped            ERROR: ppc_rootogram expects counts as inputs to 'y'.
+scatter                      OK
+scatter_avg                  OK
+scatter_avg_grouped          OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+stat                         OK
+stat_2d                      OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+stat_freqpoly                OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+stat_freqpoly_grouped        OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+stat_grouped                 OK
+violin_grouped               OK
+
+-- refusals --
+violin: ERROR: Type 'violin' is not a valid ppc type. Valid types are: 'bars', 'bars_grouped', 'boxplot', 'calibration', 'calibration_grouped', 'calibration_overlay', 'calibration_overlay_grouped', 'dens', 'dens_overlay', 'dens_overlay_grouped', 'dots', 'ecdf_overlay', 'ecdf_overlay_grouped', 'error_binned', 'error_hist', 'error_hist_grouped', 'error_scatter', 'error_scatter_avg', 'error_scatter_avg_grouped', 'error_scatter_avg_vs_x', 'freqpoly', 'freqpoly_grouped', 'hist', 'intervals', 'intervals_grouped', 'km_overlay', 'km_overlay_grouped', 'loo_calibration', 'loo_calibration_grouped', 'loo_intervals', 'loo_pit_ecdf', 'loo_pit_overlay', 'loo_pit_qq', 'loo_ribbon', 'pit_ecdf', 'pit_ecdf_grouped', 'ribbon', 'ribbon_grouped', 'rootogram', 'rootogram_grouped', 'scatter', 'scatter_avg', 'scatter_avg_grouped', 'stat', 'stat_2d', 'stat_freqpoly', 'stat_freqpoly_grouped', 'stat_grouped', 'violin_grouped' 
+stat_grouped, no group: ERROR: Argument 'group' is required for ppc type 'stat_grouped'. 
+stat_grouped, group = nosuch: ERROR: Variable 'nosuch' could not be found in the data. 
+stat_grouped, group = z (in data, not in model): ERROR: Variable 'z' could not be found in the data. 
+intervals, x = z (in data, not in model): ERROR: Variable 'z' could not be found in the data. 
+stat_grouped, group = c('g','g'): ERROR: Cannot coerce 'group' to a single character value. 
+dens_overlay, group = g (ignored?): OK 
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+stat_grouped, newdata 12 rows: OK 
+stat_grouped group column in plot data equals d$g: FALSE 
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+  count            x         xmin        xmax density ncount ndensity
+1     1 -0.008614047 -0.026678316 0.009450222 5.53579      1        1
+2     0  0.027514492  0.009450222 0.045578761 0.00000      0        0
+3     0  0.063643030  0.045578761 0.081707299 0.00000      0        0
+  flipped_aes    fill PANEL group y ymin ymax  colour linewidth linetype alpha
+1       FALSE #d1e1ec     1     1 1    0    1 #b3cde0      0.25        1    NA
+2       FALSE #d1e1ec     1     1 0    0    0 #b3cde0      0.25        1    NA
+3       FALSE #d1e1ec     1     1 0    0    0 #b3cde0      0.25        1    NA
+  width
+1   0.9
+2   0.9
+3   0.9
+Warning messages:
+1: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+2: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+3: The following arguments were unrecognized and ignored: group 

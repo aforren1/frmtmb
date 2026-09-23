@@ -91,11 +91,11 @@ assert	frmtmb	brmsfit-methods:340	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:341		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:342	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:344		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:345	defect	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:345	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:347		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:348	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:349		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:350	defect	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:350	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:351		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:352	defect	FALSE	FALSE	Expected `dim(fi)` to equal `c(1, 4, 3)`. Differences:   `actual`: 1 4   `expected`: 1 4 3 		FALSE
 setup	frmtmb	brmsfit-methods:354		TRUE	FALSE			TRUE
@@ -140,25 +140,25 @@ assert	frmtmb	brmsfit-methods:605	cannot transfer	FALSE	FALSE	ERROR: plot() has 
 assert	frmtmb	brmsfit-methods:606	cannot transfer	FALSE	FALSE	ERROR: plot() has no argument `variable` (and 2 more: regex, plot). It takes: x, which, ask		FALSE
 assert	frmtmb	brmsfit-methods:607	cannot transfer	FALSE	TRUE	VACUOUS: plot() has no argument `variable`. It takes: x, which, ask	plot() has no argument `variable`. It takes: x, which, ask	TRUE
 assert	frmtmb	brmsfit-methods:674	pass	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:675	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:675	defect	FALSE	FALSE	ERROR: pp_check() on a fit simulates the fitted rows only: simulate() takes no newdata, so a newdata cannot be honored. Sample with frmtmb.sample::frm_sample() and call pp_check(newdata = ) on the draws		FALSE
 assert	frmtmb	brmsfit-methods:676	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:677	pass	TRUE	FALSE			TRUE
-setup	frmtmb	brmsfit-methods:678		FALSE	FALSE	is.numeric(x) is not TRUE		FALSE
-assert	frmtmb	brmsfit-methods:679	defect	FALSE	TRUE	STALE: reads 'pp', whose last assignment failed: is.numeric(x) is not TRUE		FALSE
-setup	frmtmb	brmsfit-methods:680		FALSE	FALSE	length(group) must be equal to the number of observations.		FALSE
-assert	frmtmb	brmsfit-methods:682	defect	FALSE	TRUE	STALE: reads 'pp', whose last assignment failed: length(group) must be equal to the number of observations.		FALSE
-setup	frmtmb	brmsfit-methods:684		FALSE	FALSE	One of 'lw' and 'psis_object' must be specified.		FALSE
-assert	frmtmb	brmsfit-methods:685	defect	FALSE	TRUE	STALE: reads 'pp', whose last assignment failed: One of 'lw' and 'psis_object' must be specified.		FALSE
+setup	frmtmb	brmsfit-methods:678		TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:679	pass	TRUE	FALSE			TRUE
+setup	frmtmb	brmsfit-methods:680		FALSE	FALSE	pp_check() on a fit simulates the fitted rows only: simulate() takes no newdata, so a newdata cannot be honored. Sample with frmtmb.sample::frm_sample() and call pp_check(newdata = ) on the draws		FALSE
+assert	frmtmb	brmsfit-methods:682	defect	FALSE	TRUE	STALE: reads 'pp', whose last assignment failed: pp_check() on a fit simulates the fitted rows only: simulate() takes no newdata, so a newdata cannot be honored. Sample with frmtmb.sample::frm_sample() and call pp_check(newdata = ) on the draws		TRUE
+setup	frmtmb	brmsfit-methods:684		FALSE	FALSE	pp_check(type = "loo_pit_qq") weights posterior draws by Pareto-smoothed importance sampling, and a maximum-likelihood fit has no posterior draws. Sample with frmtmb.sample::frm_sample() and call pp_check() on the draws		FALSE
+assert	frmtmb	brmsfit-methods:685	defect	FALSE	TRUE	STALE: reads 'pp', whose last assignment failed: pp_check(type = "loo_pit_qq") weights posterior draws by Pareto-smoothed importance sampling, and a maximum-likelihood fit has no posterior draws. Sample with frmtmb.sample::frm_sample() and call pp_check() on the draws		TRUE
 assert	frmtmb	brmsfit-methods:688	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:693	pass	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:694	defect	FALSE	FALSE	ERROR: is.numeric(x) is not TRUE		FALSE
-assert	frmtmb	brmsfit-methods:695	defect	FALSE	FALSE	ERROR: is.numeric(x) is not TRUE		FALSE
-assert	frmtmb	brmsfit-methods:697	defect	FALSE	TRUE	VACUOUS: object 'ppc_wrong_type' not found	object 'ppc_wrong_type' not found	TRUE
-assert	frmtmb	brmsfit-methods:698	defect	FALSE	TRUE	VACUOUS: argument "group" is missing, with no default	argument "group" is missing, with no default	TRUE
-assert	frmtmb	brmsfit-methods:699	defect	FALSE	FALSE	ERROR: length(group) must be equal to the number of observations.		FALSE
+assert	frmtmb	brmsfit-methods:694	pass	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:695	pass	TRUE	FALSE		Variable 'x' could not be found in the data.	TRUE
+assert	frmtmb	brmsfit-methods:697	pass	TRUE	FALSE		Type 'wrong_type' is not a valid ppc type. Valid types are: 'bars', 'bars_grouped', 'boxplot', 'calibration', 'calibration_grouped', 'calibration_overlay', 'calibration_overlay_grouped', 'dens', 'dens_overlay', 'dens_overlay_grouped', 'dots', 'ecdf_overlay', 'ecdf_overlay_grouped', 'error_binned', 'error_hist', 'error_hist_grouped', 'error_scatter', 'error_scatter_avg', 'error_scatter_avg_grouped'	TRUE
+assert	frmtmb	brmsfit-methods:698	pass	TRUE	FALSE		Argument 'group' is required for ppc type 'violin_grouped'.	TRUE
+assert	frmtmb	brmsfit-methods:699	pass	TRUE	FALSE		Variable 'g' could not be found in the data.	TRUE
 assert	frmtmb	brmsfit-methods:701	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:702	pass	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:703	defect	FALSE	FALSE	Expected `pp_check(fit4, "error_binned")` to throw a error.		FALSE
+assert	frmtmb	brmsfit-methods:703	pass	TRUE	FALSE		Type 'error_binned' is not available for polytomous models: the 'sratio' response is a category, and a binned error needs a numeric one, as in brms	TRUE
 setup	frmtmb	brmsfit-methods:725		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:726	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:727	pass	TRUE	FALSE			TRUE
@@ -185,7 +185,7 @@ setup	frmtmb	brmsfit-methods:760		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:761	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:762	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:763		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:764	pending 2.6d	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:764	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:766		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:767	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:768		TRUE	FALSE			TRUE
@@ -193,7 +193,7 @@ setup	frmtmb	brmsfit-methods:769		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:770		FALSE	FALSE	predict() honors sample_new_levels = "gaussian" only. An unseen level's effect is drawn from its block's own estimated covariance, which is what brms's "gaussian" does. "uncertainty" and "old_levels" resample the POSTERIOR draws of the levels that were seen, and a maximum-likelihood fit has no such draws		FALSE
 assert	frmtmb	brmsfit-methods:772	defect	FALSE	TRUE	STALE: reads 'pred', whose last assignment failed: predict() honors sample_new_levels = "gaussian" only. An unseen level's effect is drawn from its block's own estimated covariance, which is what brms's "gaussian" does. "uncertainty" and "old_levels" resample the POSTERIOR draws of the levels that were seen, and a maximum-likelihood fit has no such draws		FALSE
 setup	frmtmb	brmsfit-methods:773		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:775	defect	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:775	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:784	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:806	divergence	FALSE	FALSE	Expected `is(prior_summary(fit1), "brmsprior")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:810		TRUE	FALSE			TRUE
@@ -214,7 +214,7 @@ setup	frmtmb	brmsfit-methods:831		FALSE	FALSE	residuals() cannot honor `newdata`
 assert	frmtmb	brmsfit-methods:832	defect	FALSE	TRUE	STALE: reads 'res3', whose last assignment failed: residuals() cannot honor `newdata`: a residual needs the observed response, and residuals() here reads the fitted rows only. Compute it yourself from predict(newdata = )		FALSE
 setup	frmtmb	brmsfit-methods:834		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:835	pass	TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:837	defect	FALSE	FALSE	Expected `residuals(fit4)` to throw a error.		FALSE
+assert	frmtmb	brmsfit-methods:837	own	TRUE	FALSE		residuals(type = "response") is not defined for the 'sratio' family, as in brms: the response is a category or a set of counts over categories, so y - E[Y] has no scale to be read on. On an ordinal fit, type = "osa" gives randomized quantile residuals that use only the order, and dharma_residuals() is the simulation-based check	FALSE
 setup	frmtmb	brmsfit-methods:839		FALSE	FALSE	residuals() is not supported yet for multivariate fits		FALSE
 assert	frmtmb	brmsfit-methods:840	defect	FALSE	TRUE	STALE: reads 'res6', whose last assignment failed: residuals() is not supported yet for multivariate fits		FALSE
 assert	frmtmb	brmsfit-methods:841	defect	FALSE	TRUE	STALE: reads 'res6', whose last assignment failed: residuals() is not supported yet for multivariate fits		FALSE
