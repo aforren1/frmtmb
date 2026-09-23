@@ -95,6 +95,71 @@ rather than a wrong record.
 The `frmtmb` packages themselves are excluded above because they are
 installed from a checkout, not from a repository.
 
+## Where the disk actually goes, measured 2026-09-23
+
+Seven losses have been tied to the low-disk condition without anyone
+naming what produces it. Lane `wt-reunc` measured it while free space
+fell to 4.15 GB mid-round:
+
+| tree | size |
+|---|---|
+| `%LOCALAPPDATA%/Temp` | **26.37 GB** |
+| all of `source/r` | 2.29 GB |
+| the R library tree | 1.79 GB |
+
+There were NO `Rtmp*` directories at all, so this is not R's doing. The
+consumers are `Temp/1` at 13.57 GB, which is agent session state, plus
+`s3h2g10b` 4.6 GB, `lmdzeox4` 2.27 GB and `DiagOutputDir` 1.02 GB. All
+`claude` session temp is 8.45 GB, of which that lane's own session was
+53.5 MB: this accumulates across sessions rather than within one run.
+Nothing was deleted, because live processes and other sessions hold
+state there and one wrong `Remove-Item` is the failure mode this project
+keeps paying for. Recorded for whoever decides what to do about it.
+
+A second scan the next day, at 10 GB free, broke `Temp/1` down further:
+14 GB in total, of which **7.9 GB is `Temp/1/claude`**, the scratchpad
+tree shared by every session on this box, plus several dozen abandoned
+`Rtmp*` directories at about 110 MB each. The `*-check` trees under
+`source/r` are NOT the cause: the largest is 33 MB. So the standing
+consumer is accumulated session scratchpad and R session temp litter,
+which no single lane owns and no lane can safely clear, because live
+processes and other sessions hold state in both.
+
+## The seventh loss, 2026-09-22, and the first with a named mechanism
+
+Between 217 and 223 of 410 package directories in
+`%LOCALAPPDATA%/R/win-library/4.6` went hollow, found independently by two
+lanes. `wt-reunc` counted 217 (134 at 17:06, 83 at 17:07); `wt-skewinit`
+counted 223 over 17:05:29 to 17:07:06, hollowed ALPHABETICALLY from
+`abind`, which is the shape of a sweep rather than of an install. The two
+counts differ because each sampled at a different moment of the sweep.
+The evidence, collected before any restore:
+
+- nothing outside `%LOCALAPPDATA%` was touched: `rellib-r3` 8 of 8, the
+  lane's own library 2 of 2, `pinlib` intact;
+- no `00LOCK` anywhere, so it is not an interrupted install (the shape of
+  the fifth loss);
+- the canary SURVIVED;
+- no R process of that lane was running: its last tier log was 16:29:56;
+- free space was 38 GB of about 951 GB, which is 4 percent.
+
+**Storage Sense is on and set to run when free space is low.** Read at
+18:40 the same day from
+`HKCU:SOFTWARE/Microsoft/Windows/CurrentVersion/StorageSense/Parameters/StoragePolicy`:
+`01 = 1` (enabled), `2048 = 0` (run when disk space is low), `04 = 1`
+(clean temporary files), `128 = 30` and `256 = 30`. The disk crossed the
+low-space threshold, and the loss followed within the window. That is the
+first mechanism with a named agent and a setting to point at, rather than
+a correlation. `wt-skewinit` also recorded that the scheduled task
+`SilentCleanup` last ran at 18:26:12 the same day, result 0.
+
+Two remedies, neither applied without the user: turn Storage Sense off
+(or stop it running on low space), and keep the disk above the
+threshold. The durable fix is still the one the user declined on
+2026-09-09, moving the library out of `%LOCALAPPDATA%`. Restored the same
+evening by another session, 223 hollow to 0; verified afterwards by
+FITTING, not by counting files: gaussian `(1 | g)` logLik -292.288298118.
+
 ## The sixth loss, 2026-09-17, and the first one with a dated trigger
 
 136 of 401 packages in the user library went hollow, and `frmtmb` in

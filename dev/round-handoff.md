@@ -93,6 +93,49 @@ it** (`dev/brms-suite-audit.md` section 9). Quote any "passes brms's
 suite" fraction against 823, bins 1 and 2, never 2,011. Today bin 1 is
 243 of 494.
 
+## Decisions the user made on 2026-09-23, for the four-lane round
+
+- **The tiebreaker, refined:** match brms, UNLESS it is clearly obvious
+  that brms should be doing it the other way.
+- **`re_formula = ~(1 | nosuch)` stays REFUSED**, against brms, which drops
+  an unmatched term silently: a user who names a term meant something by
+  it. The same reading governs `~(1 | a/b)` on a fit that has `a` but not
+  `a:b`, where brms keeps the half it recognizes.
+- **A partial `re_formula` stays REFUSED on a fit with a factor-smooth
+  term** (user, 2026-09-23). `NA` drops the smooth and `NULL` keeps it, and
+  a partial formula cannot say which, so frmtmb refuses rather than guess;
+  brms would keep the smooth. Same principle as the `~(1 | nosuch)`
+  decision: naming some terms and not others must not silently answer a
+  different question. This is the second departure from brms in the same
+  argument, and both go the same way.
+- **Prefix-less `b`, `Intercept` and `sigma` priors in a multivariate model
+  are refused**, as brms refuses them. This is wider than the `sd` half the
+  correctness lane took, and it breaks more call sites; it is a lane of its
+  own.
+- **`param_uncertainty` is renamed `propagate_error`** (user, 2026-09-23),
+  defaulting to `TRUE`, so `predict(fit, propagate_error = FALSE)` holds
+  the parameters AND the group effects at their estimates. The name states
+  the axis: `re_formula` chooses WHICH terms are in the prediction, and
+  this chooses whether the error in the estimates is propagated into the
+  interval. Neither can express the other, which is why both exist: only
+  this one can say "include the group effect but treat it as known", and
+  only `re_formula` can say "predict for an average group". brms needs no
+  such argument because its draws always carry both. Spelled out, not
+  `propagate_err`: 191 documented argument names in core contain no
+  clipped word. `plug_in` and `incl_uncertainty` were considered and
+  rejected, the first as jargon that reads backwards, the second because
+  it reads as "which things are included". The old name goes outright
+  rather than deprecated. It is a `predict()` argument only; `fitted()`
+  and `frm_linpred()` do not take it.
+- **Build `simulate(newdata = )`** and let `pp_check()` pass it through, so
+  `pp_check(newdata = )` answers as brms does instead of being refused. Two
+  ported rows go to passes. That lane owns `simulate()`'s argument surface,
+  and it BRINGS `simulate()` INTO LINE with `predict()` (user decision,
+  2026-09-23): `~1` means no group effects, and a partial formula is honored.
+- **Versions at this consolidation:** frmtmb 0.62.0, frmtmb.sample 0.10.0,
+  a bump on every extension that changed, and every extension floor moved
+  to frmtmb 0.62.0.
+
 **Settled, do not reopen:**
 - The non-generic name collisions with brms stay, because `::` is
   sufficient in both load orders.

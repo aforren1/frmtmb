@@ -107,6 +107,13 @@ it names the exact version rather than a date that has to be looked up.
   with `New-Object System.Collections.ArrayList` and `[void]$x.Add(...)`.
 - `$_.Name` inside `ForEach-Object` piped to an external command does
   not reach the child. Use `foreach ($f in $files) { $nm = $f.Name ... }`.
+- Do NOT `tail -f` a log a PowerShell driver is writing. On Windows that
+  blocks `Add-Content`, so every write throws an IOException. The drivers
+  run with `$ErrorActionPreference = "Continue"` around the R calls, and
+  their `$ran` counter increments on the RESULT line rather than on the
+  write, so the run finishes and reports `SUITE ran 272 of 272` over a log
+  holding 17 of them. The count was right and the evidence was gone. Found
+  by lane wt-reunc, 2026-09-23, at the cost of one full suite run.
 - Prefix every scratch file and log with your lane name.
 
 ## House style, which the reviewer will check
