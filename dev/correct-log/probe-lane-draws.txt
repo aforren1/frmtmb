@@ -1,0 +1,50 @@
+bars                         ERROR [rlang_error]: ppc_bars expects 'y' to be discrete.
+bars_grouped                 ERROR [rlang_error]: ppc_bars expects 'y' to be discrete.
+boxplot                      OK
+calibration                  ERROR [rlang_error]: Values of 'y' must be 0 or 1.
+calibration_grouped          ERROR [rlang_error]: Values of 'y' must be 0 or 1.
+calibration_overlay          ERROR [rlang_error]: Values of 'y' must be 0 or 1.
+calibration_overlay_grouped  ERROR [rlang_error]: Values of 'y' must be 0 or 1.
+dens                         OK
+dens_overlay                 OK
+dens_overlay_grouped         OK
+dots                         OK
+ecdf_overlay                 OK
+ecdf_overlay_grouped         OK
+error_binned                 OK
+error_hist                   OK
+error_hist_grouped           OK
+error_scatter                OK
+error_scatter_avg            OK
+error_scatter_avg_grouped    OK
+error_scatter_avg_vs_x       OK
+freqpoly                     OK
+freqpoly_grouped             OK
+hist                         OK
+intervals                    OK
+intervals_grouped            OK
+km_overlay                   ERROR [rlang_error]: Please install the ggfortify package to use this function.
+km_overlay_grouped           ERROR [rlang_error]: Please install the ggfortify package to use this function.
+loo_calibration              ERROR [rlang_error]: One of 'lw' and 'psis_object' must be specified.
+loo_calibration_grouped      ERROR [rlang_error]: One of 'lw' and 'psis_object' must be specified.
+loo_intervals                ERROR [getvarError]: argument "psis_object" is missing, with no default
+loo_pit_ecdf                 ERROR [rlang_error]: One of 'lw' and 'psis_object' must be specified.
+loo_pit_overlay              ERROR [rlang_error]: One of 'lw' and 'psis_object' must be specified.
+loo_pit_qq                   ERROR [rlang_error]: One of 'lw' and 'psis_object' must be specified.
+loo_ribbon                   ERROR [getvarError]: argument "psis_object" is missing, with no default
+pit_ecdf                     OK
+pit_ecdf_grouped             OK
+ribbon                       OK
+ribbon_grouped               OK
+rootogram                    ERROR [rlang_error]: ppc_rootogram expects counts as inputs to 'y'.
+rootogram_grouped            ERROR [rlang_error]: ppc_rootogram expects counts as inputs to 'y'.
+scatter                      OK
+scatter_avg                  OK
+scatter_avg_grouped          OK
+stat                         OK
+stat_2d                      OK
+stat_freqpoly                OK
+stat_freqpoly_grouped        OK
+stat_grouped                 OK
+violin_grouped               OK
+violin: pp_check(type =) asks for bayesplot::ppc_violin(), which does not exist. The argument is the function name without its 'mcmc_' prefix, for example "intervals", "trace", "areas" or "hist" 

@@ -1,0 +1,181 @@
+arm base frmtmb.sample 0.9.0 from C:/Users/adf44/source/r/rellib-r3 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | default-priors-brms                                            
+⠋ | 1        0 | default-priors-brms                                            
+⠴ | 5        1 | default-priors-brms                                            
+⠦ | 6        1 | default-priors-brms                                            
+⠏ | 7        3 | default-priors-brms                                            No priors were used (flat improper priors on the outer parameters).
+
+⠹ | 9        4 | default-priors-brms                                            
+✖ | 9        4 | default-priors-brms [2.9s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-default-priors-brms.R:32:3'): a multivariate model gets brms's rows, rescor lkj(1) included
+Expected `r[names(want)]` to be identical to `want`.
+Differences:
+    names(actual)     | names(expected)      
+[2] "cor||||"         | "cor||||"         [2]
+[3] "Intercept|||y1|" | "Intercept|||y1|" [3]
+[4] "Intercept|||y2|" | "Intercept|||y2|" [4]
+[5] NA                - "sd|||y1|"        [5]
+[6] NA                - "sd|||y2|"        [6]
+[7] "sigma|||y1|"     | "sigma|||y1|"     [7]
+[8] "sigma|||y2|"     | "sigma|||y2|"     [8]
+[9] "b|||y1|"         | "b|||y1|"         [9]
+
+     actual   | expected                     
+ [1] "(flat)" - "lkj(1)"                 [1] 
+ [2] "(flat)" - "lkj(1)"                 [2] 
+ [3] "(flat)" - "student_t(3, 0.3, 2.5)" [3] 
+ [4] "(flat)" - "student_t(3, 2, 2.5)"   [4] 
+ [5] NA       - "student_t(3, 0, 2.5)"   [5] 
+ [6] NA       - "student_t(3, 0, 2.5)"   [6] 
+ [7] "(flat)" - "student_t(3, 0, 2.5)"   [7] 
+ [8] "(flat)" - "student_t(3, 0, 2.5)"   [8] 
+ [9] "(flat)" | "(flat)"                 [9] 
+[10] "(flat)" | "(flat)"                 [10]
+
+
+Failure ('test-default-priors-brms.R:40:3'): the intercept location takes the mean offset off, as in brms
+Expected `r[["Intercept||||"]]` to be identical to "student_t(3, -8, 2.5)".
+Differences:
+`actual`:   "student_t(3, 2, 2.5)" 
+`expected`: "student_t(3, -8, 2.5)"
+
+
+Failure ('test-default-priors-brms.R:48:3'): the intercept location takes the mean offset off, as in brms
+Expected `r[["Intercept||||"]]` to be identical to "student_t(3, 1.78834576782975, 2.5)".
+Differences:
+`actual`:   "student_t(3, 4.8, 2.5)"             
+`expected`: "student_t(3, 1.78834576782975, 2.5)"
+
+
+Failure ('test-default-priors-brms.R:60:3'): the intercept location takes the mean offset off, as in brms
+Expected `r[["Intercept||||"]]` to be identical to "student_t(3, -0.900791310755016, 2.5)".
+Differences:
+`actual`:   "student_t(3, 2.2, 2.5)"               
+`expected`: "student_t(3, -0.900791310755016, 2.5)"
+
+
+Failure ('test-default-priors-brms.R:68:3'): the intercept location takes the mean offset off, as in brms
+Expected `s$dist$location` to be identical to `as.numeric(as.character(round(stats::median(d$y), 1) - mean(d$o)))`.
+Differences:
+  `actual`: 4.8
+`expected`: 1.8
+
+
+Failure ('test-default-priors-brms.R:87:3'): the sd default is written once per prefix
+Expected `vapply(sdp, `[[`, "", "dpar")` to have the same values as `c("", "phi")`.
+Actual: ""
+Expected: "", "phi"
+Absent: "phi"
+
+Error ('test-default-priors-brms.R:91:3'): the sd default is written once per prefix
+<subscriptOutOfBoundsError/error/condition>
+Error in `r[["sd||||phi"]]`: subscript out of bounds
+Backtrace:
+    ▆
+ 1. └─testthat::expect_identical(r[["sd||||phi"]], "student_t(3, 0, 2.5)") at test-default-priors-brms.R:91:3
+ 2.   └─testthat::quasi_label(enquo(object), label)
+ 3.     └─rlang::eval_bare(expr, quo_get_env(quo))
+
+Failure ('test-default-priors-brms.R:113:3'): a user sd prior reaches the location block only
+Expected `kinds` to have the same values as `c("normal", "t")`.
+Actual: "normal", "normal"
+Expected: "normal", "t"
+Absent: "t"
+
+Error ('test-default-priors-brms.R:129:3'): prior_summary() of sampled multivariate draws lists brms's rows
+Error in `names(object) <- nm`: attempt to set an attribute on NULL
+Backtrace:
+    ▆
+ 1. └─stats::setNames(ps$prior, key) at test-default-priors-brms.R:129:3
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 3.0 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-default-priors-brms.R:32:3'): a multivariate model gets brms's rows, rescor lkj(1) included
+Expected `r[names(want)]` to be identical to `want`.
+Differences:
+    names(actual)     | names(expected)      
+[2] "cor||||"         | "cor||||"         [2]
+[3] "Intercept|||y1|" | "Intercept|||y1|" [3]
+[4] "Intercept|||y2|" | "Intercept|||y2|" [4]
+[5] NA                - "sd|||y1|"        [5]
+[6] NA                - "sd|||y2|"        [6]
+[7] "sigma|||y1|"     | "sigma|||y1|"     [7]
+[8] "sigma|||y2|"     | "sigma|||y2|"     [8]
+[9] "b|||y1|"         | "b|||y1|"         [9]
+
+     actual   | expected                     
+ [1] "(flat)" - "lkj(1)"                 [1] 
+ [2] "(flat)" - "lkj(1)"                 [2] 
+ [3] "(flat)" - "student_t(3, 0.3, 2.5)" [3] 
+ [4] "(flat)" - "student_t(3, 2, 2.5)"   [4] 
+ [5] NA       - "student_t(3, 0, 2.5)"   [5] 
+ [6] NA       - "student_t(3, 0, 2.5)"   [6] 
+ [7] "(flat)" - "student_t(3, 0, 2.5)"   [7] 
+ [8] "(flat)" - "student_t(3, 0, 2.5)"   [8] 
+ [9] "(flat)" | "(flat)"                 [9] 
+[10] "(flat)" | "(flat)"                 [10]
+
+
+Failure ('test-default-priors-brms.R:40:3'): the intercept location takes the mean offset off, as in brms
+Expected `r[["Intercept||||"]]` to be identical to "student_t(3, -8, 2.5)".
+Differences:
+`actual`:   "student_t(3, 2, 2.5)" 
+`expected`: "student_t(3, -8, 2.5)"
+
+
+Failure ('test-default-priors-brms.R:48:3'): the intercept location takes the mean offset off, as in brms
+Expected `r[["Intercept||||"]]` to be identical to "student_t(3, 1.78834576782975, 2.5)".
+Differences:
+`actual`:   "student_t(3, 4.8, 2.5)"             
+`expected`: "student_t(3, 1.78834576782975, 2.5)"
+
+
+Failure ('test-default-priors-brms.R:60:3'): the intercept location takes the mean offset off, as in brms
+Expected `r[["Intercept||||"]]` to be identical to "student_t(3, -0.900791310755016, 2.5)".
+Differences:
+`actual`:   "student_t(3, 2.2, 2.5)"               
+`expected`: "student_t(3, -0.900791310755016, 2.5)"
+
+
+Failure ('test-default-priors-brms.R:68:3'): the intercept location takes the mean offset off, as in brms
+Expected `s$dist$location` to be identical to `as.numeric(as.character(round(stats::median(d$y), 1) - mean(d$o)))`.
+Differences:
+  `actual`: 4.8
+`expected`: 1.8
+
+
+Failure ('test-default-priors-brms.R:87:3'): the sd default is written once per prefix
+Expected `vapply(sdp, `[[`, "", "dpar")` to have the same values as `c("", "phi")`.
+Actual: ""
+Expected: "", "phi"
+Absent: "phi"
+
+Error ('test-default-priors-brms.R:91:3'): the sd default is written once per prefix
+<subscriptOutOfBoundsError/error/condition>
+Error in `r[["sd||||phi"]]`: subscript out of bounds
+Backtrace:
+    ▆
+ 1. └─testthat::expect_identical(r[["sd||||phi"]], "student_t(3, 0, 2.5)") at test-default-priors-brms.R:91:3
+ 2.   └─testthat::quasi_label(enquo(object), label)
+ 3.     └─rlang::eval_bare(expr, quo_get_env(quo))
+
+Failure ('test-default-priors-brms.R:113:3'): a user sd prior reaches the location block only
+Expected `kinds` to have the same values as `c("normal", "t")`.
+Actual: "normal", "normal"
+Expected: "normal", "t"
+Absent: "t"
+
+Error ('test-default-priors-brms.R:129:3'): prior_summary() of sampled multivariate draws lists brms's rows
+Error in `names(object) <- nm`: attempt to set an attribute on NULL
+Backtrace:
+    ▆
+ 1. └─stats::setNames(ps$prior, key) at test-default-priors-brms.R:129:3
+
+[ FAIL 9 | WARN 0 | SKIP 0 | PASS 4 ]
+RESULT test-default-priors-brms.R pass=4 fail=7 err=2 skip=0

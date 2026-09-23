@@ -57,7 +57,10 @@
 #'   in `nlme::gls(method = "REML")`, and the two agree to optimizer
 #'   precision for gaussian models. Random effects appearing in a
 #'   distributional parameter's own formula are integrated like any
-#'   other latent.
+#'   other latent. `mgcv`'s `method = "REML"` for a location-scale
+#'   family such as `gaulss()` integrates the coefficients of every
+#'   linear predictor, so for a smooth in `sigma` the two REML criteria
+#'   are different and give different curves and smoothing parameters.
 #' @param start Optional named list of starting values, one entry per
 #'   parameter component (`beta`, `betad`, `theta`, ...).
 #'   [par_template()] returns that list already filled with the

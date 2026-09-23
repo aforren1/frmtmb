@@ -1,0 +1,97 @@
+arm lane frmtmb 0.61.0 from C:/Users/adf44/source/r/correct-lib 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | brms-likelihood                                                
+⠋ |          1 | brms-likelihood                                                
+⠏ |         10 | brms-likelihood                                                
+⠙ |         12 | brms-likelihood                                                
+⠼ |         25 | brms-likelihood                                                
+⠋ |         41 | brms-likelihood                                                
+⠙ |         42 | brms-likelihood                                                
+⠸ |         44 | brms-likelihood                                                
+⠴ |         46 | brms-likelihood                                                
+⠧ |         48 | brms-likelihood                                                
+⠙ |         52 | brms-likelihood                                                
+⠸ |         54 | brms-likelihood                                                
+⠴ |         56 | brms-likelihood                                                
+⠧ |         58 | brms-likelihood                                                
+⠏ |         60 | brms-likelihood                                                
+⠙ |         62 | brms-likelihood                                                
+⠸ |         64 | brms-likelihood                                                
+⠴ |         66 | brms-likelihood                                                
+⠧ |         68 | brms-likelihood                                                
+⠏ |         70 | brms-likelihood                                                
+⠙ |         72 | brms-likelihood                                                
+⠸ |         74 | brms-likelihood                                                
+⠴ |         76 | brms-likelihood                                                
+⠧ |         78 | brms-likelihood                                                
+⠏ |         80 | brms-likelihood                                                
+⠙ |         82 | brms-likelihood                                                
+⠸ |         84 | brms-likelihood                                                
+⠴ |         86 | brms-likelihood                                                
+⠧ |         88 | brms-likelihood                                                
+⠏ |         90 | brms-likelihood                                                
+⠙ |         92 | brms-likelihood                                                
+⠸ |         94 | brms-likelihood                                                
+⠴ |         96 | brms-likelihood                                                Setting order = 'mu' for mixtures of the same family.
+
+⠇ |         99 | brms-likelihood                                                Setting order = 'mu' for mixtures of the same family.
+
+⠋ |        101 | brms-likelihood                                                
+⠹ |        103 | brms-likelihood                                                
+⠴ |        106 | brms-likelihood                                                
+⠇ |        109 | brms-likelihood                                                
+⠙ |        112 | brms-likelihood                                                
+⠏ |        130 | brms-likelihood                                                
+⠹ |        133 | brms-likelihood                                                
+⠼ |        135 | brms-likelihood                                                
+⠇ |        149 | brms-likelihood                                                
+⠏ |        160 | brms-likelihood                                                
+⠹ |        163 | brms-likelihood                                                
+⠏ |        180 | brms-likelihood                                                
+⠧ |        188 | brms-likelihood                                                
+⠋ |        191 | brms-likelihood                                                
+⠴ |        206 | brms-likelihood                                                
+⠇ |        209 | brms-likelihood                                                
+⠦ |        227 | brms-likelihood                                                
+⠏ |        230 | brms-likelihood                                                
+⠹ |        233 | brms-likelihood                                                
+⠋ |        251 | brms-likelihood                                                
+⠼ |        255 | brms-likelihood                                                
+⠧ |        258 | brms-likelihood                                                
+⠹ |        273 | brms-likelihood                                                
+⠴ |        276 | brms-likelihood                                                
+⠸ |        284 | brms-likelihood                                                
+⠼ |        295 | brms-likelihood                                                
+⠦ |        297 | brms-likelihood                                                
+⠏ |        300 | brms-likelihood                                                
+⠙ |        302 | brms-likelihood                                                
+⠙ |        312 | brms-likelihood                                                
+⠼ |        315 | brms-likelihood                                                
+⠦ |        317 | brms-likelihood                                                
+⠧ |        328 | brms-likelihood                                                
+⠸ |        334 | brms-likelihood                                                
+⠦ |        337 | brms-likelihood                                                
+⠏ |        350 | brms-likelihood                                                
+⠹ |        353 | brms-likelihood                                                
+⠋ |        371 | brms-likelihood                                                
+⠦ |        377 | brms-likelihood                                                
+⠏ |        380 | brms-likelihood                                                
+⠹ |        383 | brms-likelihood                                                
+⠸ |        384 | brms-likelihood                                                
+⠴ |        386 | brms-likelihood                                                
+⠧ |        388 | brms-likelihood                                                
+⠏ |        390 | brms-likelihood                                                
+⠙ |        392 | brms-likelihood                                                
+⠸ |        394 | brms-likelihood                                                
+⠴ |        396 | brms-likelihood                                                
+⠧ |        398 | brms-likelihood                                                
+⠏ |        400 | brms-likelihood                                                
+⠙ |        402 | brms-likelihood                                                
+✔ |        406 | brms-likelihood [268.4s]
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 268.4 s
+
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 406 ]
+RESULT test-brms-likelihood.R pass=406 fail=0 err=0 skip=0

@@ -163,22 +163,22 @@ brmsfit-methods:650	frmtmb.sample	pass
 brmsfit-methods:655	frmtmb.sample	pass	
 brmsfit-methods:660	frmtmb.sample	pass	
 brmsfit-methods:674	frmtmb	pass	
-brmsfit-methods:675	frmtmb	pass	
+brmsfit-methods:675	frmtmb	defect	pp_check(newdata = ) is refused: simulate() takes no newdata, so the fit method can only simulate its own rows. It used to swallow the argument in its dots and plot the fitted rows instead (lane wt-correct)
 brmsfit-methods:676	frmtmb	pass	
 brmsfit-methods:677	frmtmb	pass	
-brmsfit-methods:679	frmtmb	defect	pp_check() passes x = 'Age' to bayesplot as the string, which stops with 'is.numeric(x) is not TRUE'; brms reads x and group as data variable names
-brmsfit-methods:682	frmtmb	defect	the assignment above it fails: pp_check(group = ) hands bayesplot the group NAME rather than the column, so every ppc_*_grouped type dies on bayesplot's 'length(group) must be equal to the number of observations'. Measured with and without newdata, and on a plain y ~ x + (1 | g) fit as well as on fixture 1 (dev/adefects-findings.md, found and not fixed 1). Was fit-data
+brmsfit-methods:679	frmtmb	pass	
+brmsfit-methods:682	frmtmb	defect	the assignment above it fails, so `pp` is not bound: that call passes newdata, which pp_check() on a fit refuses because simulate() takes no newdata (brmsfit-methods:675). The grouped types themselves work since lane wt-correct; the group name is resolved against the model frame as brms resolves it
 brmsfit-methods:685	frmtmb	defect	pp_check(type = 'loo_pit_qq') is given no lw or psis_object (dev/brmsnames-findings.md not fixed 8)
 brmsfit-methods:688	frmtmb	pass	
 brmsfit-methods:693	frmtmb	pass	
-brmsfit-methods:694	frmtmb	defect	pp_check() passes x = 'Age' to bayesplot as the string (see brmsfit-methods:679)
-brmsfit-methods:695	frmtmb	defect	pp_check() passes x = 'x' to bayesplot unchecked, so the refusal is bayesplot's 'is.numeric(x) is not TRUE', not 'Variable x could not be found in the data'
-brmsfit-methods:697	frmtmb	defect	an unknown type dies with R's object 'ppc_wrong_type' not found from the bayesplot lookup, not a refusal naming the valid types
-brmsfit-methods:698	frmtmb	defect	pp_check(fit2, 'violin_grouped') dies with R's 'argument group is missing, with no default'; brms refuses by design ('Argument group is required'); brms's regex 'group' matched the internal error, which the harness now rejects
-brmsfit-methods:699	frmtmb	defect	pp_check() passes group = 'g' to bayesplot unchecked, so the refusal is bayesplot's 'length(group) must be equal to the number of observations', not 'Variable g could not be found in the data'
+brmsfit-methods:694	frmtmb	pass	
+brmsfit-methods:695	frmtmb	pass	
+brmsfit-methods:697	frmtmb	pass	
+brmsfit-methods:698	frmtmb	pass	
+brmsfit-methods:699	frmtmb	pass	
 brmsfit-methods:701	frmtmb	pass	
 brmsfit-methods:702	frmtmb	pass	
-brmsfit-methods:703	frmtmb	defect	pp_check(type = 'error_binned') on the ordinal fit4 returns a plot of category-code errors; brms refuses because predictive errors are not defined for ordinal models (dev/brmsport-probe4.R)
+brmsfit-methods:703	frmtmb	pass	
 brmsfit-methods:708	frmtmb.sample	pass	
 brmsfit-methods:713	frmtmb.sample	pass	
 brmsfit-methods:714	frmtmb.sample	pass	
@@ -214,7 +214,7 @@ brmsfit-methods:825	frmtmb	pass
 brmsfit-methods:828	frmtmb	defect	residuals(newdata =) is refused by name, though newdata carries the response brms reads
 brmsfit-methods:832	frmtmb	defect	residuals(newdata =) is refused by name
 brmsfit-methods:835	frmtmb	pass	
-brmsfit-methods:837	frmtmb	defect	residuals() on the ordinal fit4 returns the response code minus the expected score, y - sum(k P(Y = k)), identical at relative 0; brms refuses because predictive errors are not defined for ordinal models (dev/brmsport-defects.R S7)
+brmsfit-methods:837	frmtmb	pass	frmtmb's own words: not defined for the .sratio. family, as in brms | brms: Predictive errors are not defined for ordinal or categorical models. frmtmb refuses the same call for the same reason since lane wt-correct closed item 1 (dev/correct-findings.md section 1); the row was a defect while this package answered
 brmsfit-methods:840	frmtmb	defect	residuals() exists and refuses the multivariate fit6 as 'not supported yet'; brms answers (user decision, 2026-09-17, rule 3; item 2.6f)
 brmsfit-methods:841	frmtmb	defect	residuals() exists and refuses the multivariate fit6 as 'not supported yet'; brms answers (user decision, 2026-09-17, rule 3; item 2.6f)
 brmsfit-methods:887	frmtmb	pass	

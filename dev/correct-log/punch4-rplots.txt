@@ -1,0 +1,33 @@
+CORRECT_LIB=C:/Users/adf44/source/r/correct2-lib
+clean   test-adefects.R  RESULT test-adefects.R pass=20 fail=0 err=0 skip=0
+clean   test-bracket-access.R  RESULT test-bracket-access.R pass=1 fail=0 err=0 skip=0
+clean   test-brms-output.R  RESULT test-brms-output.R pass=21 fail=0 err=0 skip=0
+clean   test-brms-pins.R  RESULT test-brms-pins.R pass=334 fail=0 err=0 skip=0
+clean   test-brms-shapes-draws.R  RESULT test-brms-shapes-draws.R pass=61 fail=0 err=0 skip=0
+clean   test-brms-suite-brmsformula.R  RESULT test-brms-suite-brmsformula.R pass=16 fail=0 err=0 skip=0
+clean   test-brms-suite-brmsterms.R  RESULT test-brms-suite-brmsterms.R pass=4 fail=0 err=0 skip=0
+clean   test-brms-suite-families.R  RESULT test-brms-suite-families.R pass=84 fail=0 err=0 skip=0
+clean   test-brms-suite-helper-copy.R  RESULT test-brms-suite-helper-copy.R pass=33 fail=0 err=0 skip=0
+DRAWS   test-brms-suite-methods.R  RESULT test-brms-suite-methods.R pass=61 fail=0 err=0 skip=0
+clean   test-compat-preflight.R  RESULT test-compat-preflight.R pass=81 fail=0 err=0 skip=0
+clean   test-conditional-effects-draws.R  RESULT test-conditional-effects-draws.R pass=61 fail=0 err=0 skip=0
+clean   test-conditions.R  RESULT test-conditions.R pass=6 fail=0 err=0 skip=0
+clean   test-conditions-census.R  RESULT test-conditions-census.R pass=11 fail=0 err=0 skip=0
+clean   test-default-priors-brms.R  RESULT test-default-priors-brms.R pass=15 fail=0 err=0 skip=0
+DRAWS   test-draws-methods.R  RESULT test-draws-methods.R pass=147 fail=0 err=0 skip=0
+clean   test-draws-spellings.R  RESULT test-draws-spellings.R pass=97 fail=0 err=0 skip=0
+clean   test-evidence-ratio.R  RESULT test-evidence-ratio.R pass=33 fail=0 err=0 skip=0
+clean   test-generic-collision.R  RESULT test-generic-collision.R pass=58 fail=0 err=0 skip=0
+clean   test-loo.R  RESULT test-loo.R pass=79 fail=0 err=0 skip=0
+clean   test-message-uniqueness.R  RESULT test-message-uniqueness.R pass=6 fail=0 err=0 skip=0
+clean   test-parallel-chains.R  RESULT test-parallel-chains.R pass=4 fail=0 err=0 skip=0
+clean   test-prior-route.R  RESULT test-prior-route.R pass=9 fail=0 err=0 skip=0
+clean   test-prior-update.R  RESULT test-prior-update.R pass=7 fail=0 err=0 skip=0
+clean   test-reparam.R  RESULT test-reparam.R pass=292 fail=0 err=0 skip=0
+clean   test-sample-direct.R  RESULT test-sample-direct.R pass=137 fail=0 err=0 skip=0
+clean   test-sampling-ported.R  RESULT test-sampling-ported.R pass=213 fail=0 err=0 skip=0
+clean   test-scale.R  RESULT test-scale.R pass=0 fail=0 err=0 skip=1
+clean   test-simulators.R  RESULT test-simulators.R pass=50 fail=0 err=0 skip=0
+clean   test-stan-control.R  RESULT test-stan-control.R pass=47 fail=0 err=0 skip=0
+clean   test-tmbstan-build-guard.R  RESULT test-tmbstan-build-guard.R pass=24 fail=0 err=0 skip=0
+FILES 31 DRAWS 2

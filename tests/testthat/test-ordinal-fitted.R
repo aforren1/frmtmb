@@ -76,31 +76,71 @@ test_that("fitted() honors cs() and pads under na.exclude", {
 
 ## residuals -----------------------------------------------------------
 
-test_that("ordinal residuals score the categories by their own codes", {
+test_that("brms's residual types are refused on every ordinal family", {
+  # brms 2.23.0 refuses residuals(type = "ordinary") and "pearson" on
+  # every polytomous family, before it looks at the type
+  # (dev/correct-log/brms-resid.txt). Through 0.61.0 this package answered
+  # with a residual on the category codes, y - sum_k k P(Y = k).
   dd <- ordfit_data(103)
-  fit <- frm(bf(y ~ x) + cumulative(), data = dd)
-  P <- fitted(fit)[, "Estimate", ]
-  k <- seq_len(ncol(P))
-  m <- as.numeric(P %*% k)
-  v <- as.numeric(P %*% (k^2)) - m^2
-  yc <- as.integer(dd$y)
-
-  expect_equal(as.numeric(residuals(fit)[, "Estimate"]), yc - m,
-               tolerance = 1e-12)
-  expect_equal(as.numeric(residuals(fit, type = "pearson")[, "Estimate"]),
-               (yc - m) / sqrt(v), tolerance = 1e-12)
-  # a residual on a score, not on the latent scale: the old path
-  # returned y - eta, which is a different number entirely
-  expect_false(isTRUE(all.equal(as.numeric(residuals(fit)[, "Estimate"]),
-                                yc - as.numeric(frm_linpred(fit)))))
-  # pearson residuals are standardized, so their spread is about 1
-  expect_lt(abs(stats::sd(residuals(fit, type = "pearson")[, "Estimate"]) - 1),
-            0.2)
-  # the order-only residuals stay available and stay refused where they
-  # were refused
-  expect_true(is.numeric(residuals(fit, type = "osa")))
-  expect_error(residuals(fit, type = "deviance"), "cumulative")
+  for (fam in list(cumulative(), sratio(), cratio(), acat())) {
+    fit <- frm(bf(y ~ x) + fam, data = dd)
+    for (ty in c("response", "ordinary", "pearson")) {
+      expect_error(residuals(fit, type = ty), "not defined for the",
+                   class = "frmtmb_error", info = paste(fam$family, ty))
+      # the refusal names the type the CALLER wrote, not the type it
+      # was folded into: "ordinary" used to come back as "response"
+      expect_error(residuals(fit, type = ty),
+                   paste0("residuals[(]type = .", ty, ".[)]"),
+                   class = "frmtmb_error", info = paste(fam$family, ty))
+    }
+    # the default type is brms's "ordinary", so a bare call is refused
+    expect_error(residuals(fit), class = "frmtmb_error", info = fam$family)
+    # the order-only residual has no brms counterpart and stays
+    expect_true(is.numeric(residuals(fit, type = "osa")[, "Estimate"]),
+                info = fam$family)
+    expect_error(residuals(fit, type = "deviance"), fam$family,
+                 info = fam$family)
+  }
+  # the refusal is for the family, not for every fit of this data: the
+  # same rows with a numeric response still answer
+  dn <- dd
+  dn$y <- as.numeric(dd$y)
+  fn <- frm(bf(y ~ x) + gaussian(), data = dn)
+  expect_true(is.numeric(residuals(fn)[, "Estimate"]))
+  expect_true(is.numeric(residuals(fn, type = "pearson")[, "Estimate"]))
 })
+
+ordfit_multinom <- function() {
+  set.seed(105)
+  n <- 80
+  dm <- data.frame(x = stats::rnorm(n), n = 15L)
+  p <- cbind(1, exp(0.3 + 0.5 * dm$x), exp(-0.2 - 0.4 * dm$x))
+  p <- p / rowSums(p)
+  dm$Y <- t(vapply(seq_len(n), function(i) {
+    as.vector(stats::rmultinom(1, 15, p[i, ]))
+  }, numeric(3)))
+  dm
+}
+
+# One TYPE per block. In one block these ran against 0.61.0 only as far
+# as the first type: there a multinomial fit refuses with a message of
+# its own and not as a frmtmb_error, testthat ends the block at that
+# error, and the other two types were never reached on the base arm.
+for (ofm_ty in c("response", "ordinary", "pearson")) {
+  local({
+    ty <- ofm_ty
+    test_that(paste0("a multinomial fit refuses residuals(type = \"", ty,
+                     "\")"), {
+      fit <- frm(bf(Y | trials(n) ~ x) + multinomial(K = 3),
+                 data = ordfit_multinom())
+      expect_error(residuals(fit, type = ty), "not defined for the",
+                   class = "frmtmb_error", info = ty)
+      expect_error(residuals(fit, type = ty),
+                   paste0("residuals[(]type = .", ty, ".[)]"),
+                   class = "frmtmb_error", info = ty)
+    })
+  })
+}
 
 ## plot ----------------------------------------------------------------
 

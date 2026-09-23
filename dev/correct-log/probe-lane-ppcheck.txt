@@ -1,0 +1,70 @@
+arm lane frmtmb 0.61.0 from C:/Users/adf44/source/r/correct-lib 
+
+== item 2: pp_check(), every type bayesplot exposes ==
+bars                         ERROR [rlang_error]: ppc_bars expects 'y' to be discrete.
+bars_grouped                 ERROR [rlang_error]: ppc_bars expects 'y' to be discrete.
+boxplot                      OK
+calibration                  ERROR [rlang_error]: Values of 'y' must be 0 or 1.
+calibration_grouped          ERROR [rlang_error]: Values of 'y' must be 0 or 1.
+calibration_overlay          ERROR [rlang_error]: Values of 'y' must be 0 or 1.
+calibration_overlay_grouped  ERROR [rlang_error]: Values of 'y' must be 0 or 1.
+dens                         OK
+dens_overlay                 OK
+dens_overlay_grouped         OK
+dots                         OK
+ecdf_overlay                 OK
+ecdf_overlay_grouped         OK
+error_binned                 OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+error_hist                   OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+error_hist_grouped           OK
+error_scatter                OK
+error_scatter_avg            OK
+error_scatter_avg_grouped    OK
+error_scatter_avg_vs_x       OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+freqpoly                     OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+freqpoly_grouped             OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+hist                         OK
+intervals                    OK
+intervals_grouped            OK
+km_overlay                   ERROR [rlang_error]: Please install the ggfortify package to use this function.
+km_overlay_grouped           ERROR [rlang_error]: Please install the ggfortify package to use this function.
+loo_calibration              ERROR [frmtmb_error]: pp_check(type = "loo_calibration") weights posterior draws by Pareto-smoothed importance sampling, and a maximum-likelihood fit has no posterior draws. Sample with frmtmb.sample::frm_sample() and call pp_check() on the draws
+loo_calibration_grouped      ERROR [frmtmb_error]: pp_check(type = "loo_calibration_grouped") weights posterior draws by Pareto-smoothed importance sampling, and a maximum-likelihood fit has no posterior draws. Sample with frmtmb.sample::frm_sample() and call pp_check() on the draws
+loo_intervals                ERROR [frmtmb_error]: pp_check(type = "loo_intervals") weights posterior draws by Pareto-smoothed importance sampling, and a maximum-likelihood fit has no posterior draws. Sample with frmtmb.sample::frm_sample() and call pp_check() on the draws
+loo_pit_ecdf                 ERROR [frmtmb_error]: pp_check(type = "loo_pit_ecdf") weights posterior draws by Pareto-smoothed importance sampling, and a maximum-likelihood fit has no posterior draws. Sample with frmtmb.sample::frm_sample() and call pp_check() on the draws
+loo_pit_overlay              ERROR [frmtmb_error]: pp_check(type = "loo_pit_overlay") weights posterior draws by Pareto-smoothed importance sampling, and a maximum-likelihood fit has no posterior draws. Sample with frmtmb.sample::frm_sample() and call pp_check() on the draws
+loo_pit_qq                   ERROR [frmtmb_error]: pp_check(type = "loo_pit_qq") weights posterior draws by Pareto-smoothed importance sampling, and a maximum-likelihood fit has no posterior draws. Sample with frmtmb.sample::frm_sample() and call pp_check() on the draws
+loo_ribbon                   ERROR [frmtmb_error]: pp_check(type = "loo_ribbon") weights posterior draws by Pareto-smoothed importance sampling, and a maximum-likelihood fit has no posterior draws. Sample with frmtmb.sample::frm_sample() and call pp_check() on the draws
+pit_ecdf                     OK
+pit_ecdf_grouped             OK
+ribbon                       OK
+ribbon_grouped               OK
+rootogram                    ERROR [rlang_error]: ppc_rootogram expects counts as inputs to 'y'.
+rootogram_grouped            ERROR [rlang_error]: ppc_rootogram expects counts as inputs to 'y'.
+scatter                      OK
+scatter_avg                  OK
+scatter_avg_grouped          OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+stat                         OK
+stat_2d                      OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+stat_freqpoly                OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+stat_freqpoly_grouped        OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+stat_grouped                 OK
+violin_grouped               OK
+
+-- refusals --
+violin: ERROR [frmtmb_error]: Type 'violin' is not a valid ppc type. Valid types are: 'bars', 'bars_grouped', 'boxplot', 'calibration', 'calibration_grouped', 'calibration_overlay', 'calibration_overlay_grouped', 'dens', 'dens_overlay', 'dens_overlay_grouped', 'dots', 'ecdf_overlay', 'ecdf_overlay_grouped', 
+stat_grouped, no group: ERROR [frmtmb_error]: Argument 'group' is required for ppc type 'stat_grouped'. 
+stat_grouped, group = nosuch: ERROR [frmtmb_error]: Variable 'nosuch' could not be found in the data. 
+stat_grouped, group = z (in data, not in model): ERROR [frmtmb_error]: Variable 'z' could not be found in the data. 
+intervals, x = z (in data, not in model): ERROR [frmtmb_error]: Variable 'z' could not be found in the data. 
+stat_grouped, group = c('g','g'): ERROR [frmtmb_error]: pp_check(): `group` and `x` each name one variable, as a single string 
+dens_overlay, group = g: OK 

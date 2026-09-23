@@ -137,7 +137,16 @@ to do, and every closure carries the measurement that closed it.
 
 ## Open - medium
 
-- REML against mgcv on a location-scale smooth (filed 2026-09-22).
+- DONE 2026-09-22 (lane `wt-correct`, `dev/correct-findings.md`
+  section 7). `?frm` says it under `REML`, and `test-smooths.R`
+  measures it: over seeds 44 to 48, `log(1 / sd^2) - log(sp)` is
+  -0.011 to -0.005 for the `mu` smooth under REML against 0.129 to
+  0.262 under ML, while the `sigma` smooth's stays where ML left it
+  (0.142 to 0.170 against 0.138 to 0.165, ratio 1.026 to 1.037). The
+  test pins those RATIOS. A first design put the `sigma` smooth on its
+  boundary in both packages, where the difference measures nothing;
+  the recorded one has both smooths interior. The entry as filed:
+  REML against mgcv on a location-scale smooth (filed 2026-09-22).
   frmtmb's `REML = TRUE` integrates the `mu` coefficients and keeps the
   distributional coefficients outer, which is the double-GLM REML
   (Smyth and Verbyla; `nlme` varFunc; pinned against

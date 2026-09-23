@@ -590,7 +590,11 @@ and its copy will conflict with this one.
 accepted, not honored, and nothing is said; the review found it and it
 is the only SILENT one in this list. The rest are loud.
 
-1. **`pp_check(fit, type = "<any>_grouped", group = )` is broken for
+1. **FIXED 2026-09-22 by lane `wt-correct`** (`dev/correct-findings.md`
+   section 2): `group` and `x` are resolved against the model frame, as
+   brms resolves them, and every type `bayesplot::available_ppc()`
+   lists is tested against what brms does with it. As filed:
+   **`pp_check(fit, type = "<any>_grouped", group = )` is broken for
    every grouped type.** `pp_check.frmtmb_fit()` passes `...` straight
    to bayesplot's `ppc_*`, so `group = "g"` arrives as a length-one
    CHARACTER STRING where bayesplot wants one value per observation;
@@ -665,7 +669,9 @@ is the only SILENT one in this list. The rest are loud.
    `pp_check.frmtmb_fit()` builds the function name by pasting
    `"ppc_"` onto `type` without checking that the result exists. Loud,
    like item 1, and the same family as `brmsfit-methods:697`, already a
-   defect of class `internal-error`.
+   defect of class `internal-error`. **FIXED 2026-09-22 by lane
+   `wt-correct`**: a type that `bayesplot::available_ppc()` does not
+   list is refused with the list of valid types, as brms refuses it.
 
 ## 12. What needs the user
 

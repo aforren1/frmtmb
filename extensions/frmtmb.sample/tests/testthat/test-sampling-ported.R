@@ -288,7 +288,10 @@ test_that("the loss model samples with the vignette's priors", {
     paste0(s$class, "/", s$nlpar, "/", s$dpar)
   }, "")
   expect_true(all(c("b/ult/", "b/omega/", "b/theta/") %in% spelled))
-  expect_true("sd//" %in% spelled)
+  # the sd default carries the nonlinear parameter whose block it is
+  # about, as brms writes one sd row per nonlinear parameter
+  # (dev/correct-log/brms-priors2.txt)
+  expect_true("sd/ult/" %in% spelled)
 
   # the disclosure says the nonlinear parameters would otherwise be
   # flat, which is what brms does with them too

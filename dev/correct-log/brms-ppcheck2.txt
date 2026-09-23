@@ -1,0 +1,153 @@
+brms 2.23.0  bayesplot 1.16.0 
+
+== item 2: pp_check() on discrete responses ==
+poisson    bars                         OK
+poisson    bars_grouped                 OK
+poisson    boxplot                      OK
+poisson    calibration                  ERROR: Values of 'y' must be 0 or 1.
+poisson    calibration_grouped          ERROR: Values of 'y' must be 0 or 1.
+poisson    calibration_overlay          ERROR: Values of 'y' must be 0 or 1.
+poisson    calibration_overlay_grouped  ERROR: Values of 'y' must be 0 or 1.
+poisson    dens                         OK
+poisson    dens_overlay                 OK
+poisson    dens_overlay_grouped         OK
+poisson    dots                         OK
+poisson    ecdf_overlay                 OK
+poisson    ecdf_overlay_grouped         OK
+poisson    error_binned                 OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+poisson    error_hist                   OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+poisson    error_hist_grouped           OK
+poisson    error_scatter                OK
+poisson    error_scatter_avg            OK
+poisson    error_scatter_avg_grouped    OK
+poisson    error_scatter_avg_vs_x       OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+poisson    freqpoly                     OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+poisson    freqpoly_grouped             OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+poisson    hist                         OK
+poisson    intervals                    OK
+poisson    intervals_grouped            OK
+poisson    km_overlay                   ERROR: Please install the ggfortify package to use this function.
+poisson    km_overlay_grouped           ERROR: Please install the ggfortify package to use this function.
+poisson    loo_calibration              ERROR: Values of 'y' must be 0 or 1.
+poisson    loo_calibration_grouped      ERROR: Values of 'y' must be 0 or 1.
+poisson    loo_intervals                OK
+Some PIT values larger than 1! Largest:  1 
+Rounding PIT > 1 to 1.poisson    loo_pit_ecdf                 OK
+Some PIT values larger than 1! Largest:  1 
+Rounding PIT > 1 to 1.poisson    loo_pit_overlay              OK
+Some PIT values larger than 1! Largest:  1 
+Rounding PIT > 1 to 1.poisson    loo_pit_qq                   OK
+poisson    loo_ribbon                   OK
+poisson    pit_ecdf                     OK
+poisson    pit_ecdf_grouped             OK
+poisson    ribbon                       OK
+poisson    ribbon_grouped               OK
+poisson    rootogram                    OK
+poisson    rootogram_grouped            OK
+poisson    scatter                      OK
+poisson    scatter_avg                  OK
+poisson    scatter_avg_grouped          OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+poisson    stat                         OK
+poisson    stat_2d                      OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+poisson    stat_freqpoly                OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+poisson    stat_freqpoly_grouped        OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+poisson    stat_grouped                 OK
+poisson    violin_grouped               OK
+bernoulli  bars                         OK
+bernoulli  bars_grouped                 OK
+bernoulli  boxplot                      OK
+bernoulli  calibration                  OK
+bernoulli  calibration_grouped          OK
+bernoulli  calibration_overlay          ERROR: argument "prep" is missing, with no default
+bernoulli  calibration_overlay_grouped  ERROR: argument "prep" is missing, with no default
+bernoulli  dens                         OK
+bernoulli  dens_overlay                 OK
+bernoulli  dens_overlay_grouped         OK
+bernoulli  dots                         OK
+bernoulli  ecdf_overlay                 OK
+bernoulli  ecdf_overlay_grouped         OK
+bernoulli  error_binned                 OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+bernoulli  error_hist                   OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+bernoulli  error_hist_grouped           OK
+bernoulli  error_scatter                OK
+bernoulli  error_scatter_avg            OK
+bernoulli  error_scatter_avg_grouped    OK
+bernoulli  error_scatter_avg_vs_x       OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+bernoulli  freqpoly                     OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+bernoulli  freqpoly_grouped             OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+bernoulli  hist                         OK
+bernoulli  intervals                    OK
+bernoulli  intervals_grouped            OK
+bernoulli  km_overlay                   ERROR: Please install the ggfortify package to use this function.
+bernoulli  km_overlay_grouped           ERROR: Please install the ggfortify package to use this function.
+bernoulli  loo_calibration              OK
+bernoulli  loo_calibration_grouped      OK
+bernoulli  loo_intervals                OK
+bernoulli  loo_pit_ecdf                 OK
+bernoulli  loo_pit_overlay              OK
+bernoulli  loo_pit_qq                   OK
+bernoulli  loo_ribbon                   OK
+bernoulli  pit_ecdf                     OK
+bernoulli  pit_ecdf_grouped             OK
+bernoulli  ribbon                       OK
+bernoulli  ribbon_grouped               OK
+bernoulli  rootogram                    OK
+bernoulli  rootogram_grouped            OK
+bernoulli  scatter                      OK
+bernoulli  scatter_avg                  OK
+bernoulli  scatter_avg_grouped          OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+bernoulli  stat                         OK
+bernoulli  stat_2d                      OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+bernoulli  stat_freqpoly                OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+bernoulli  stat_freqpoly_grouped        OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+bernoulli  stat_grouped                 OK
+bernoulli  violin_grouped               OK
+
+-- prefix ppd --
+ppd dens_overlay             OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+ppd stat_grouped             OK
+ppd intervals                OK
+Error in get(paste0("ppd_", t), ns) : 
+  object 'ppd_violin_grouped' not found
+Calls: formals -> get
+In addition: Warning messages:
+1: There were 1 divergent transitions after warmup. See
+https://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+to find out why this is a problem and how to eliminate them. 
+2: Examine the pairs() plot to diagnose sampling problems
+ 
+3: The largest R-hat is 1.08, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat 
+4: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+5: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+6: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+7: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+Execution halted

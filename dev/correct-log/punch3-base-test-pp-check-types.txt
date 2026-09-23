@@ -1,0 +1,919 @@
+arm base frmtmb 0.61.0 from C:/Users/adf44/source/r/rellib-r3 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | pp-check-types                                                 
+⠋ |          1 | pp-check-types                                                 
+⠙ |          2 | pp-check-types                                                 
+⠸ |          4 | pp-check-types                                                 
+⠇ |          9 | pp-check-types                                                 
+⠏ |         10 | pp-check-types                                                 
+⠋ | 1       10 | pp-check-types                                                 
+⠙ | 1       11 | pp-check-types                                                 
+⠹ | 1       12 | pp-check-types                                                 
+⠴ | 3       13 | pp-check-types                                                 
+⠧ | 4       14 | pp-check-types                                                 
+⠙ | 7       15 | pp-check-types                                                 
+⠸ | 8       16 | pp-check-types                                                 
+⠧ | 10       18 | pp-check-types                                                
+⠙ | 14       18 | pp-check-types                                                
+⠴ | 17       19 | pp-check-types                                                
+⠙ | 20       22 | pp-check-types                                                
+⠼ | 21       24 | pp-check-types                                                
+⠦ | 21       26 | pp-check-types                                                
+⠋ | 24       27 | pp-check-types                                                
+⠹ | 25       28 | pp-check-types                                                
+⠧ | 25       33 | pp-check-types                                                
+⠇ | 25       34 | pp-check-types                                                
+⠋ | 26       35 | pp-check-types                                                
+⠙ | 26       36 | pp-check-types                                                
+⠼ | 28       37 | pp-check-types                                                
+⠦ | 29       38 | pp-check-types                                                
+⠋ | 32       39 | pp-check-types                                                
+⠹ | 33       40 | pp-check-types                                                
+⠇ | 37       42 | pp-check-types                                                
+⠸ | 42       42 | pp-check-types                                                
+⠴ | 43       43 | pp-check-types                                                
+⠇ | 45       44 | pp-check-types                                                
+⠋ | 46       45 | pp-check-types                                                
+⠸ | 47       47 | pp-check-types                                                
+⠴ | 47       49 | pp-check-types                                                
+⠇ | 50       49 | pp-check-types                                                
+⠏ | 50       50 | pp-check-types                                                
+⠙ | 51       51 | pp-check-types                                                
+⠹ | 51       52 | pp-check-types                                                
+⠼ | 53       52 | pp-check-types                                                
+⠦ | 53       54 | pp-check-types                                                
+⠧ | 53       55 | pp-check-types                                                
+⠏ | 54       56 | pp-check-types                                                
+⠋ | 54       57 | pp-check-types                                                
+⠸ | 56       58 | pp-check-types                                                
+⠴ | 57       59 | pp-check-types                                                
+⠏ | 60       60 | pp-check-types                                                
+⠙ | 61       61 | pp-check-types                                                
+⠧ | 65       63 | pp-check-types                                                
+⠸ | 70       64 | pp-check-types                                                
+⠧ | 73       65 | pp-check-types                                                
+⠋ | 74       67 | pp-check-types                                                
+⠹ | 75       68 | pp-check-types                                                
+⠼ | 75       70 | pp-check-types                                                
+⠧ | 78       70 | pp-check-types                                                Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+
+⠏ | 79       71 | pp-check-types                                                Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+
+⠸ | 82 1     71 | pp-check-types                                                Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+
+⠦ | 85 1     71 | pp-check-types                                                Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+
+⠙ | 88 3     71 | pp-check-types                                                
+⠸ | 90 3     71 | pp-check-types                                                
+⠧ | 91 3     74 | pp-check-types                                                
+⠋ | 91 4     76 | pp-check-types                                                
+⠴ | 94 5     77 | pp-check-types                                                
+✖ | 95 5     78 | pp-check-types [12.5s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+y dens_overlay_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+y ecdf_overlay_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+y error_binned
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+y error_hist_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+y error_scatter_avg
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+y error_scatter_avg_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+y error_scatter_avg_vs_x
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+y freqpoly_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+y intervals
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+y intervals_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+y loo_calibration
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+y loo_calibration_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+y loo_intervals
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+y loo_pit_ecdf
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+y loo_pit_overlay
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+y loo_pit_qq
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+y loo_ribbon
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+y pit_ecdf_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+y ribbon
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+y ribbon_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+y scatter_avg_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+y stat_freqpoly_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+y stat_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+y violin_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt bars_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt dens_overlay_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt ecdf_overlay_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt error_binned
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt error_hist_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt error_scatter_avg
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt error_scatter_avg_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt error_scatter_avg_vs_x
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt freqpoly_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt intervals
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt intervals_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+cnt loo_calibration
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+cnt loo_calibration_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+cnt loo_intervals
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+cnt loo_pit_ecdf
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+cnt loo_pit_overlay
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+cnt loo_pit_qq
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+cnt loo_ribbon
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt pit_ecdf_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt ribbon
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt ribbon_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt rootogram_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt scatter_avg_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt stat_freqpoly_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt stat_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+cnt violin_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin bars_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin calibration_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "ok"       
+`expected`: "bayesplot"
+
+bin calibration_overlay
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin dens_overlay_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin ecdf_overlay_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin error_binned
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin error_hist_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin error_scatter_avg
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin error_scatter_avg_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin error_scatter_avg_vs_x
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin freqpoly_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin intervals
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin intervals_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+bin loo_calibration
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+bin loo_calibration_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+bin loo_intervals
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+bin loo_pit_ecdf
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+bin loo_pit_overlay
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+bin loo_pit_qq
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "loo"      
+
+bin loo_ribbon
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin pit_ecdf_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin ribbon
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin ribbon_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin rootogram_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin scatter_avg_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin stat_freqpoly_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin stat_grouped
+
+Failure ('test-pp-check-types.R:111:7'): every bayesplot ppc type does on a fit what it does in brms
+Expected `got` to be identical to `want`.
+Differences:
+`actual`:   "bayesplot"
+`expected`: "ok"       
+
+bin violin_grouped
+
+Error ('test-pp-check-types.R:126:3'): a grouped type panels by the model's own variable
+Error in `validate_group(group, length(y))`: length(group) must be equal to the number of observations.
+Backtrace:
+    ▆
+ 1. ├─bayesplot::pp_check(...) at test-pp-check-types.R:126:3
+ 2. └─frmtmb:::pp_check.frmtmb_fit(...)
+ 3.   ├─bayesplot (local) fun(as.numeric(y), yrep, ...)
+ 4.   │ └─base::eval(ungroup_call("ppc_stat", call), parent.frame())
+ 5.   │   └─base::eval(ungroup_call("ppc_stat", call), parent.frame())
+ 6.   └─bayesplot::ppc_stat(...)
+ 7.     └─bayesplot::ppc_stat_data(...)
+ 8.       └─bayesplot:::validate_group(group, length(y))
+ 9.         └─rlang::abort("length(group) must be equal to the number of observations.")
+
+Error ('test-pp-check-types.R:135:3'): a grouped type keeps the observations in row order
+Error in `validate_group(group, N)`: length(group) must be equal to the number of observations.
+Backtrace:
+    ▆
+ 1. ├─bayesplot::pp_check(...) at test-pp-check-types.R:135:3
+ 2. └─frmtmb:::pp_check.frmtmb_fit(...)
+ 3.   └─bayesplot (local) fun(as.numeric(y), yrep, ...)
+ 4.     └─bayesplot::ppc_data(y, yrep, group)
+ 5.       └─bayesplot:::validate_group(group, N)
+ 6.         └─rlang::abort("length(group) must be equal to the number of observations.")
+
+Error ('test-pp-check-types.R:146:3'): an x variable arrives as the model's values, in row order
+Error in `validate_x(x, y)`: is.numeric(x) is not TRUE
+Backtrace:
+    ▆
+ 1. ├─bayesplot::pp_check(fit, type = "intervals", x = "x", ndraws = 10) at test-pp-check-types.R:146:3
+ 2. └─frmtmb:::pp_check.frmtmb_fit(...)
+ 3.   └─bayesplot (local) fun(as.numeric(y), yrep, ...)
+ 4.     └─bayesplot::ppc_intervals_data(...)
+ 5.       └─bayesplot:::validate_x(x, y)
+ 6.         └─base::stopifnot(is.numeric(x))
+
+Error ('test-pp-check-types.R:194:9'): pp_check() refuses a type bayesplot does not have
+Error in `get(paste0("ppc_", type), envir = asNamespace("bayesplot"))`: object 'ppc_violin' not found
+Backtrace:
+    ▆
+ 1. ├─bayesplot::pp_check(fit, type = "violin")
+ 2. └─frmtmb:::pp_check.frmtmb_fit(fit, type = "violin")
+ 3.   └─base::get(paste0("ppc_", type), envir = asNamespace("bayesplot"))
+
+Warning ('test-pp-check-types.R:194:9'): pp_check() refuses a grouped type called without a group
+The following arguments were unrecognized and ignored: called_from_internal
+Backtrace:
+    ▆
+ 1. ├─bayesplot::pp_check(fit, type = "stat_grouped")
+ 2. └─frmtmb:::pp_check.frmtmb_fit(fit, type = "stat_grouped")
+ 3.   ├─bayesplot (local) fun(as.numeric(y), yrep, ...)
+ 4.   │ └─base::eval(ungroup_call("ppc_stat", call), parent.frame())
+ 5.   │   └─base::eval(ungroup_call("ppc_stat", call), parent.frame())
+ 6.   └─bayesplot::ppc_stat(y = as.numeric(y), yrep = yrep, called_from_internal = TRUE)
+ 7.     └─bayesplot:::check_ignored_arguments(...)
+
+Failure ('test-pp-check-types.R:194:9'): pp_check() refuses a grouped type called without a group
+Expected `eval(case$call)` to throw a error with class <frmtmb_error>.
+Argument 'group' is required
+
+Error ('test-pp-check-types.R:194:9'): pp_check() refuses a group name the data does not carry
+Error in `validate_group(group, length(y))`: length(group) must be equal to the number of observations.
+Backtrace:
+    ▆
+ 1. ├─bayesplot::pp_check(fit, type = "stat_grouped", group = "nosuch")
+ 2. └─frmtmb:::pp_check.frmtmb_fit(fit, type = "stat_grouped", group = "nosuch")
+ 3.   ├─bayesplot (local) fun(as.numeric(y), yrep, ...)
+ 4.   │ └─base::eval(ungroup_call("ppc_stat", call), parent.frame())
+ 5.   │   └─base::eval(ungroup_call("ppc_stat", call), parent.frame())
+ 6.   └─bayesplot::ppc_stat(...)
+ 7.     └─bayesplot::ppc_stat_data(...)
+ 8.       └─bayesplot:::validate_group(group, length(y))
+ 9.         └─rlang::abort("length(group) must be equal to the number of observations.")
+
+Error ('test-pp-check-types.R:194:9'): pp_check() refuses a group naming a variable the model does not use
+Error in `validate_group(group, length(y))`: length(group) must be equal to the number of observations.
+Backtrace:
+    ▆
+ 1. ├─bayesplot::pp_check(fit, type = "stat_grouped", group = "z")
+ 2. └─frmtmb:::pp_check.frmtmb_fit(fit, type = "stat_grouped", group = "z")
+ 3.   ├─bayesplot (local) fun(as.numeric(y), yrep, ...)
+ 4.   │ └─base::eval(ungroup_call("ppc_stat", call), parent.frame())
+ 5.   │   └─base::eval(ungroup_call("ppc_stat", call), parent.frame())
+ 6.   └─bayesplot::ppc_stat(...)
+ 7.     └─bayesplot::ppc_stat_data(...)
+ 8.       └─bayesplot:::validate_group(group, length(y))
+ 9.         └─rlang::abort("length(group) must be equal to the number of observations.")
+
+Error ('test-pp-check-types.R:194:9'): pp_check() refuses an x naming a variable the model does not use
+Error in `validate_x(x, y)`: is.numeric(x) is not TRUE
+Backtrace:
+    ▆
+ 1. ├─bayesplot::pp_check(fit, type = "intervals", x = "z")
+ 2. └─frmtmb:::pp_check.frmtmb_fit(fit, type = "intervals", x = "z")
+ 3.   └─bayesplot (local) fun(as.numeric(y), yrep, ...)
+ 4.     └─bayesplot::ppc_intervals_data(...)
+ 5.       └─bayesplot:::validate_x(x, y)
+ 6.         └─base::stopifnot(is.numeric(x))
+
+Error ('test-pp-check-types.R:194:9'): pp_check() refuses a group that is not one string
+Error in `validate_group(group, length(y))`: length(group) must be equal to the number of observations.
+Backtrace:
+    ▆
+ 1. ├─bayesplot::pp_check(...)
+ 2. └─frmtmb:::pp_check.frmtmb_fit(...)
+ 3.   ├─bayesplot (local) fun(as.numeric(y), yrep, ...)
+ 4.   │ └─base::eval(ungroup_call("ppc_stat", call), parent.frame())
+ 5.   │   └─base::eval(ungroup_call("ppc_stat", call), parent.frame())
+ 6.   └─bayesplot::ppc_stat(...)
+ 7.     └─bayesplot::ppc_stat_data(...)
+ 8.       └─bayesplot:::validate_group(group, length(y))
+ 9.         └─rlang::abort("length(group) must be equal to the number of observations.")
+
+Warning ('test-pp-check-types.R:194:9'): pp_check() refuses newdata, which simulate() cannot honor
+The following arguments were unrecognized and ignored: newdata
+Backtrace:
+    ▆
+ 1. ├─bayesplot::pp_check(fit, type = "dens_overlay", newdata = ppt_data())
+ 2. └─frmtmb:::pp_check.frmtmb_fit(fit, type = "dens_overlay", newdata = ppt_data())
+ 3.   └─bayesplot (local) fun(as.numeric(y), yrep, ...)
+ 4.     └─bayesplot:::check_ignored_arguments(...)
+
+Failure ('test-pp-check-types.R:194:9'): pp_check() refuses newdata, which simulate() cannot honor
+Expected `eval(case$call)` to throw a error with class <frmtmb_error>.
+newdata
+
+Warning ('test-pp-check-types.R:194:9'): pp_check() refuses draw_ids, which a maximum-likelihood fit has none of
+The following arguments were unrecognized and ignored: draw_ids
+Backtrace:
+    ▆
+ 1. ├─bayesplot::pp_check(fit, ndraws = 5, draw_ids = 1:3)
+ 2. └─frmtmb:::pp_check.frmtmb_fit(fit, ndraws = 5, draw_ids = 1:3)
+ 3.   └─bayesplot (local) fun(as.numeric(y), yrep, ...)
+ 4.     └─bayesplot:::check_ignored_arguments(...)
+
+Failure ('test-pp-check-types.R:194:9'): pp_check() refuses draw_ids, which a maximum-likelihood fit has none of
+Expected `eval(case$call)` to throw a error with class <frmtmb_error>.
+draw_ids
+
+Failure ('test-pp-check-types.R:217:3'): pp_check() passes `resp` and an unused `group` as brms does
+Expected `suppressMessages(...)` not to throw any warnings.
+Actually got a <rlang_warning> with message:
+  The following arguments were unrecognized and ignored: resp
+
+Failure ('test-pp-check-types.R:227:3'): pp_check() passes `resp` and an unused `group` as brms does
+Expected `suppressMessages(...)` to run silently.
+Actual noise: warnings.
+
+Warning ('test-pp-check-types.R:251:5'): prefix = "ppd" plots the simulated responses alone
+The following arguments were unrecognized and ignored: prefix
+Backtrace:
+    ▆
+ 1. ├─base::suppressMessages(do.call(pp_check, args)) at test-pp-check-types.R:251:5
+ 2. │ └─base::withCallingHandlers(...)
+ 3. ├─base::do.call(pp_check, args)
+ 4. ├─bayesplot (local) `<fn>`(`<frmtmb_f>`, type = "dens_overlay", ndraws = 10, prefix = "ppd")
+ 5. └─frmtmb:::pp_check.frmtmb_fit(...)
+ 6.   └─bayesplot (local) fun(as.numeric(y), yrep, ...)
+ 7.     └─bayesplot:::check_ignored_arguments(...)
+
+Failure ('test-pp-check-types.R:255:5'): prefix = "ppd" plots the simulated responses alone
+Expected `any(c("is_y", "y_obs") %in% names(pd))` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+dens_overlay
+
+Warning ('test-pp-check-types.R:251:5'): prefix = "ppd" plots the simulated responses alone
+The following arguments were unrecognized and ignored: prefix
+Backtrace:
+    ▆
+ 1. ├─base::suppressMessages(do.call(pp_check, args)) at test-pp-check-types.R:251:5
+ 2. │ └─base::withCallingHandlers(...)
+ 3. ├─base::do.call(pp_check, args)
+ 4. ├─bayesplot (local) `<fn>`(...)
+ 5. └─frmtmb:::pp_check.frmtmb_fit(...)
+ 6.   └─bayesplot (local) fun(as.numeric(y), yrep, ...)
+ 7.     └─bayesplot:::check_ignored_arguments(...)
+
+Error ('test-pp-check-types.R:251:5'): prefix = "ppd" plots the simulated responses alone
+Error in `validate_group(group, length(y))`: length(group) must be equal to the number of observations.
+Backtrace:
+     ▆
+  1. ├─base::suppressMessages(do.call(pp_check, args)) at test-pp-check-types.R:251:5
+  2. │ └─base::withCallingHandlers(...)
+  3. ├─base::do.call(pp_check, args)
+  4. ├─bayesplot (local) `<fn>`(...)
+  5. └─frmtmb:::pp_check.frmtmb_fit(...)
+  6.   ├─bayesplot (local) fun(as.numeric(y), yrep, ...)
+  7.   │ └─base::eval(ungroup_call("ppc_stat", call), parent.frame())
+  8.   │   └─base::eval(ungroup_call("ppc_stat", call), parent.frame())
+  9.   └─bayesplot::ppc_stat(...)
+ 10.     └─bayesplot::ppc_stat_data(...)
+ 11.       └─bayesplot:::validate_group(group, length(y))
+ 12.         └─rlang::abort("length(group) must be equal to the number of observations.")
+
+Failure ('test-pp-check-types.R:273:5'): error_binned is refused on a category response, as in brms
+Expected `pp_check(f, type = "error_binned", ndraws = 5)` to throw a error with class <frmtmb_error>.
+
+Error ('test-pp-check-types.R:273:5'): error_binned is refused on a category response, as in brms
+Error in `validate_predictions(yrep, length(y))`: is.numeric(predictions) is not TRUE
+Backtrace:
+     ▆
+  1. ├─testthat::expect_error(...) at test-pp-check-types.R:273:5
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. ├─bayesplot::pp_check(f, type = "error_binned", ndraws = 5)
+  8. └─frmtmb:::pp_check.frmtmb_fit(f, type = "error_binned", ndraws = 5)
+  9.   └─bayesplot (local) fun(as.numeric(y), yrep, ...)
+ 10.     └─bayesplot:::ppc_error_binnned_data(y, yrep, x = x, bins = bins)
+ 11.       └─bayesplot:::validate_predictions(yrep, length(y))
+ 12.         └─base::stopifnot(is.matrix(predictions), is.numeric(predictions))
+────────────────────────────────────────────────────────────────────────────────
+
+Maximum number of failures exceeded; quitting.
+ℹ Increase this number with (e.g.) `testthat::set_max_fails(Inf)` 
+RESULT test-pp-check-types.R pass=78 fail=85 err=10 skip=0

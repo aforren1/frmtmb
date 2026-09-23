@@ -1,0 +1,75 @@
+brms 2.23.0  bayesplot 1.16.0 
+
+== item 5: mi() names ==
+                 prior     class coef resp
+1                              b        xm
+2                              b    z   xm
+3 student_t(3, 0, 2.5) Intercept        xm
+4 student_t(3, 0, 2.5)     sigma        xm
+5                              b         y
+6                              b mixm    y
+7                              b    z    y
+8 student_t(3, 1, 2.5) Intercept         y
+9 student_t(3, 0, 2.5)     sigma         y
+variables: b_y_Intercept b_xm_Intercept b_y_z b_xm_z bsp_y_mixm sigma_y sigma_xm Intercept_y Intercept_xm 
+                Estimate Est.Error       Q2.5      Q97.5
+y_Intercept   0.88450155 0.1096466  0.6816990 1.09293076
+xm_Intercept  0.02216737 0.1084366 -0.1845019 0.25232781
+y_z          -0.14143208 0.1242524 -0.3753735 0.08661386
+xm_z          0.46972653 0.1226060  0.2371239 0.71623611
+y_mixm        0.68095039 0.1090087  0.4465436 0.88634558
+                prior     class coef group resp dpar nlpar lb ub tag
+               (flat)         b              xm                     
+               (flat)         b    z         xm                     
+               (flat)         b               y                     
+               (flat)         b mixm          y                     
+               (flat)         b    z          y                     
+ student_t(3, 0, 2.5) Intercept              xm                     
+ student_t(3, 1, 2.5) Intercept               y                     
+ student_t(3, 0, 2.5)     sigma              xm             0       
+ student_t(3, 0, 2.5)     sigma               y             0       
+       source
+      default
+ (vectorized)
+      default
+ (vectorized)
+ (vectorized)
+      default
+      default
+      default
+      default
+[1] "y_Intercept"  "xm_Intercept" "y_z"          "xm_z"         "y_mixm"      
+variables (interaction): b_y_Intercept b_xm_Intercept b_y_z b_xm_z bsp_y_mixm bsp_y_mixm:z 
+                Estimate Est.Error       Q2.5     Q97.5
+y_Intercept   0.91108005 0.1192721  0.7019921 1.1486013
+xm_Intercept  0.02154685 0.1134814 -0.2069234 0.2357738
+y_z          -0.12440840 0.1356891 -0.4054211 0.1301276
+xm_z          0.46693496 0.1157498  0.2572763 0.7192864
+y_mixm        0.67272933 0.1137742  0.4451212 0.8742064
+y_mixm:z     -0.08118975 0.1208305 -0.3150968 0.1537091
+                  prior     class   coef resp
+1                               b          xm
+2                               b      z   xm
+3  student_t(3, 0, 2.5) Intercept          xm
+4  student_t(3, 0, 2.5)     sigma          xm
+5                               b           y
+6                               b   mixm    y
+7                               b mixm:z    y
+8                               b      z    y
+9  student_t(3, 1, 2.5) Intercept           y
+10 student_t(3, 0, 2.5)     sigma           y
+hypothesis on bsp name: ERROR: Some parameters cannot be found in the model:  'b_y_mixm' 
+posterior_summary rows: b_y_Intercept b_xm_Intercept b_y_z b_xm_z bsp_y_mixm 
+Warning messages:
+1: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+2: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+3: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+4: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 

@@ -3,3 +3,6 @@
 ^\.Rproj\.user$
 ^_pkgdown\.yml$
 ^vignettes/figure$
+# a test that draws leaves this anywhere it ran; ^...$ would anchor it
+# at the package root and tests/testthat/ is where it actually lands
+Rplots\.pdf$

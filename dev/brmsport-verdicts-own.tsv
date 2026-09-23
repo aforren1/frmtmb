@@ -29,3 +29,4 @@ standata:179	frmtmb	se[(][)] values must be positive	brms: Standard errors must 
 standata:181	frmtmb	weights[(][)] must be non-negative	brms: Weights must be non-negative
 standata:184	frmtmb	binomial: response must be integer counts in [[]0, trials[]]	brms: Number of trials is smaller than the number of events
 standata:726	frmtmb	not available for family 'gaussian': bias	brms: Invalid fixed parameters: 'bias'
+brmsfit-methods:837	frmtmb	not defined for the .sratio. family, as in brms	brms: Predictive errors are not defined for ordinal or categorical models. frmtmb refuses the same call for the same reason since lane wt-correct closed item 1 (dev/correct-findings.md section 1); the row was a defect while this package answered

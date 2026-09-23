@@ -49,6 +49,90 @@
   point and where to restart from when a fit reaches one. See
   `?frmtmb_family`.
 
+Seven places where frmtmb answered differently from brms 2.23.0 on the
+same model (lane `wt-correct`; `dev/correct-findings.md` has each
+construction and its brms measurement).
+
+* **BREAKING: `residuals()` refuses `type = "response"` (brms's
+  `"ordinary"`, also the default) and `type = "pearson"` on an ordinal
+  (`cumulative()`, `sratio()`, `cratio()`, `acat()`) or `multinomial()`
+  fit**, as brms refuses them ("Predictive errors are not defined for
+  ordinal or categorical models"). Until now an ordinal fit returned a
+  residual on the category codes, `y - sum_k k P(Y = k)`, which brms
+  does not define. `type = "osa"` still works on an ordinal fit and
+  uses only the order. `plot(fit)` is unchanged.
+
+* **`pp_check()` on a fit works for every `*_grouped` type and takes
+  `x`.** `group = "g"` and `x = "x"` reached bayesplot as one string, so
+  every grouped type and every type with an `x` failed. Both names are
+  now looked up in the model frame, as brms looks them up, and a name
+  the model does not use is refused. Every type
+  `bayesplot::available_ppc()` lists (49 in bayesplot 1.16.0) now does
+  on a fit what it does in brms, except the `loo_*` types, which need
+  posterior draws and are refused with the reason.
+
+* **BREAKING: `pp_check()` on a fit takes brms's arguments in brms's
+  order**: `type`, `ndraws`, `prefix`, `group`, `x`, `newdata`, `resp`,
+  with `re_formula` after the dots. A positional fourth argument used to
+  be `re_formula` and is now `prefix`. `prefix = "ppd"` plots the
+  simulated responses alone. A type that is not a ppc type, such as
+  `"violin"`, is refused with the list of valid types instead of
+  "object 'ppc_violin' not found". `type = "error_binned"` is refused on
+  an ordinal, categorical or multinomial fit, as in brms. `newdata`,
+  `draw_ids`, `nsamples` and `subset` are refused with the reason. On a
+  categorical fit the simulated categories reach bayesplot as their
+  codes, so `"bars"` and `"error_hist"` work there.
+
+* `pp_check()` on a fit follows brms on two smaller points as well.
+  `resp` is accepted and ignored on a model with one response, which is
+  what brms does with it there. And a `group` or `x` given for a type
+  that has no such argument reaches bayesplot, so bayesplot warns
+  "unrecognized and ignored" exactly where brms makes it warn. brms is
+  asymmetric about a name its data does not carry, and the asymmetry is
+  copied: such a `group` is dropped and warns nothing, while such an
+  `x` becomes `numeric(0)`, stays, and warns.
+
+* **BREAKING: a class `"sd"` prior reaches only its own response,
+  distributional parameter and nonlinear parameter**, which is how brms
+  scopes it. `set_prior("normal(0, 5)", class = "sd", group = "g")` on
+  `bf(y ~ x + (1 | g), phi ~ (1 | g))` put the prior on the `phi` block
+  too, where brms leaves that block at its own default. In a
+  multivariate model a class `"sd"` prior with no `resp`, and in a
+  nonlinear model one with no `nlpar`, used to reach every block; both
+  are now refused, as brms refuses them, and the message lists the
+  prefixes the model has. A block that spans several predictors,
+  `(1 | q | g)` in `mu` and `sigma`, keeps brms's own rule: there a
+  specification with a field left empty reaches the whole block. A fit
+  with such a prior changes its estimate; `default_prior()` lists one
+  class-wide `"sd"` row per prefix. This covers a SMOOTH's smoothing
+  standard deviation as well, which class `"sd"` also addresses here: on
+  `bf(y ~ s(x), sigma ~ s(z))` a bare class `"sd"` prior reached both
+  smooths and now reaches the `mu` one only, and `default_prior()` grows
+  a `dpar = "sigma"` row for the other. brms keys its `sds` rows by the
+  same prefix.
+
+* **BREAKING: a `mi()` coefficient is named `bsp_<resp>_mi<x>`**, as in
+  brms, where it was `b_<resp>_mi<x>`. This changes `variables()`,
+  draws, and `hypothesis()`: the bare `"y_mixm > 0"` is refused as brms
+  refuses it; write `hypothesis(fit, "bsp_y_mixm > 0", class = NULL)`.
+  `fixef()`, `vcov()` and `summary()` keep the name `y_mixm` and now
+  list it after every ordinary coefficient, in brms's order, with a
+  `mi(x) * z` main effect ahead of its interaction.
+
+* **BREAKING: a mixture's reference component is the one whose theta
+  has no formula**, as in brms. `bf(y ~ 1, theta2 ~ x)` on two
+  components used to be refused; it now fits with component 1 as the
+  reference, so `theta2`'s coefficients are the log odds of component 2
+  against component 1. A formula for fewer than `K - 1` of the thetas
+  is refused ("Can only predict all but one mixing proportion"), where
+  `theta1 ~ x` on three components used to fit with an intercept-only
+  `theta2`.
+
+* `?frm` now says, under `REML`, that mgcv's `method = "REML"` for a
+  location-scale family integrates the coefficients of every linear
+  predictor, so the two REML criteria differ for a smooth in `sigma`.
+  `test-smooths.R` measures the gap.
+
 # frmtmb 0.61.0
 
 The silent wrong answers brms's own ported test suite found

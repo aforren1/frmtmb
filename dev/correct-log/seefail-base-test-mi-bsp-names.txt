@@ -1,0 +1,122 @@
+arm base frmtmb 0.61.0 from C:/Users/adf44/source/r/rellib-r3 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | mi-bsp-names                                                   
+⠋ | 1        0 | mi-bsp-names                                                   
+⠹ | 3        0 | mi-bsp-names                                                   
+⠸ | 3        1 | mi-bsp-names                                                   
+⠧ | 6        2 | mi-bsp-names                                                   
+⠇ | 7        2 | mi-bsp-names                                                   
+✖ | 7        2 | mi-bsp-names [2.0s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-mi-bsp-names.R:28:3'): a mi() coefficient is bsp_, as in brms
+Expected `"bsp_y_mixm" %in% v` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Failure ('test-mi-bsp-names.R:29:3'): a mi() coefficient is bsp_, as in brms
+Expected `"b_y_mixm" %in% v` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+
+Failure ('test-mi-bsp-names.R:30:3'): a mi() coefficient is bsp_, as in brms
+Expected `rownames(fixef(fit))` to be identical to `c("y_Intercept", "xm_Intercept", "y_z", "xm_z", "y_mixm")`.
+Differences:
+`actual`:   "y_Intercept" "xm_Intercept" "y_z" "y_mixm" "xm_z"  
+`expected`: "y_Intercept" "xm_Intercept" "y_z" "xm_z"   "y_mixm"
+
+
+Failure ('test-mi-bsp-names.R:36:3'): a mi() coefficient is bsp_, as in brms
+Expected `hypothesis(fit, "y_mixm > 0")` to throw a error with class <frmtmb_error>.
+
+Error ('test-mi-bsp-names.R:38:3'): a mi() coefficient is bsp_, as in brms
+<frmtmb_error/error/condition>
+Error: Some parameters cannot be found in the model: 
+'bsp_y_mixm'
+variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL
+Backtrace:
+    ▆
+ 1. ├─frmtmb::hypothesis(fit, "bsp_y_mixm > 0", class = NULL) at test-mi-bsp-names.R:38:3
+ 2. └─frmtmb:::hypothesis.frmtmb_fit(fit, "bsp_y_mixm > 0", class = NULL)
+ 3.   └─frmtmb::hyp_parse_all(hypothesis, known, class, group)
+ 4.     └─base::lapply(...)
+ 5.       └─frmtmb (local) FUN(X[[i]], ...)
+ 6.         └─frmtmb::frm_stop(...)
+
+Failure ('test-mi-bsp-names.R:51:3'): a mi() interaction lists its main effect first, as in brms
+Expected `all(c("bsp_y_mixm", "bsp_y_mixm:z") %in% variables(fit))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Failure ('test-mi-bsp-names.R:52:3'): a mi() interaction lists its main effect first, as in brms
+Expected `rownames(fixef(fit))` to be identical to `c("y_Intercept", "xm_Intercept", "y_z", "xm_z", "y_mixm", "y_mixm:z")`.
+Differences:
+`actual`:   "y_Intercept" "xm_Intercept" "y_z" "y_mixm:z" "y_mixm" "xm_z"    
+`expected`: "y_Intercept" "xm_Intercept" "y_z" "xm_z"     "y_mixm" "y_mixm:z"
+
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 2.2 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-mi-bsp-names.R:28:3'): a mi() coefficient is bsp_, as in brms
+Expected `"bsp_y_mixm" %in% v` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Failure ('test-mi-bsp-names.R:29:3'): a mi() coefficient is bsp_, as in brms
+Expected `"b_y_mixm" %in% v` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+
+Failure ('test-mi-bsp-names.R:30:3'): a mi() coefficient is bsp_, as in brms
+Expected `rownames(fixef(fit))` to be identical to `c("y_Intercept", "xm_Intercept", "y_z", "xm_z", "y_mixm")`.
+Differences:
+`actual`:   "y_Intercept" "xm_Intercept" "y_z" "y_mixm" "xm_z"  
+`expected`: "y_Intercept" "xm_Intercept" "y_z" "xm_z"   "y_mixm"
+
+
+Failure ('test-mi-bsp-names.R:36:3'): a mi() coefficient is bsp_, as in brms
+Expected `hypothesis(fit, "y_mixm > 0")` to throw a error with class <frmtmb_error>.
+
+Error ('test-mi-bsp-names.R:38:3'): a mi() coefficient is bsp_, as in brms
+<frmtmb_error/error/condition>
+Error: Some parameters cannot be found in the model: 
+'bsp_y_mixm'
+variables() lists every name; brms's default class = "b" puts b_ before each name, so a name such as sigma or sd_<group>__<coef> needs class = NULL
+Backtrace:
+    ▆
+ 1. ├─frmtmb::hypothesis(fit, "bsp_y_mixm > 0", class = NULL) at test-mi-bsp-names.R:38:3
+ 2. └─frmtmb:::hypothesis.frmtmb_fit(fit, "bsp_y_mixm > 0", class = NULL)
+ 3.   └─frmtmb::hyp_parse_all(hypothesis, known, class, group)
+ 4.     └─base::lapply(...)
+ 5.       └─frmtmb (local) FUN(X[[i]], ...)
+ 6.         └─frmtmb::frm_stop(...)
+
+Failure ('test-mi-bsp-names.R:51:3'): a mi() interaction lists its main effect first, as in brms
+Expected `all(c("bsp_y_mixm", "bsp_y_mixm:z") %in% variables(fit))` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+
+Failure ('test-mi-bsp-names.R:52:3'): a mi() interaction lists its main effect first, as in brms
+Expected `rownames(fixef(fit))` to be identical to `c("y_Intercept", "xm_Intercept", "y_z", "xm_z", "y_mixm", "y_mixm:z")`.
+Differences:
+`actual`:   "y_Intercept" "xm_Intercept" "y_z" "y_mixm:z" "y_mixm" "xm_z"    
+`expected`: "y_Intercept" "xm_Intercept" "y_z" "xm_z"     "y_mixm" "y_mixm:z"
+
+
+[ FAIL 7 | WARN 0 | SKIP 0 | PASS 2 ]
+RESULT test-mi-bsp-names.R pass=2 fail=6 err=1 skip=0

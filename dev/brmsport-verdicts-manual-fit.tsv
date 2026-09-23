@@ -46,14 +46,8 @@ brmsfit-methods:604	frmtmb	cannot transfer	mcmc	brms's plot() of a fit draws pos
 brmsfit-methods:605	frmtmb	cannot transfer	mcmc	brms's plot() of a fit plots posterior draws (see brmsfit-methods:604)
 brmsfit-methods:606	frmtmb	cannot transfer	mcmc	brms's plot() of a fit plots posterior draws (see brmsfit-methods:604)
 brmsfit-methods:607	frmtmb	cannot transfer	mcmc	the expect_error is met only by plot() refusing the argument name variable, not by the missing variable brms refuses
-brmsfit-methods:679	frmtmb	defect	argument	pp_check() passes x = 'Age' to bayesplot as the string, which stops with 'is.numeric(x) is not TRUE'; brms reads x and group as data variable names
-brmsfit-methods:682	frmtmb	defect	internal-error	the assignment above it fails: pp_check(group = ) hands bayesplot the group NAME rather than the column, so every ppc_*_grouped type dies on bayesplot's 'length(group) must be equal to the number of observations'. Measured with and without newdata, and on a plain y ~ x + (1 | g) fit as well as on fixture 1 (dev/adefects-findings.md, found and not fixed 1). Was fit-data
+brmsfit-methods:682	frmtmb	defect	refuses-accepted	the assignment above it fails, so `pp` is not bound: that call passes newdata, which pp_check() on a fit refuses because simulate() takes no newdata (brmsfit-methods:675). The grouped types themselves work since lane wt-correct; the group name is resolved against the model frame as brms resolves it
 brmsfit-methods:685	frmtmb	defect	filed	pp_check(type = 'loo_pit_qq') is given no lw or psis_object (dev/brmsnames-findings.md not fixed 8)
-brmsfit-methods:694	frmtmb	defect	argument	pp_check() passes x = 'Age' to bayesplot as the string (see brmsfit-methods:679)
-brmsfit-methods:695	frmtmb	defect	argument	pp_check() passes x = 'x' to bayesplot unchecked, so the refusal is bayesplot's 'is.numeric(x) is not TRUE', not 'Variable x could not be found in the data'
-brmsfit-methods:697	frmtmb	defect	internal-error	an unknown type dies with R's object 'ppc_wrong_type' not found from the bayesplot lookup, not a refusal naming the valid types
-brmsfit-methods:699	frmtmb	defect	argument	pp_check() passes group = 'g' to bayesplot unchecked, so the refusal is bayesplot's 'length(group) must be equal to the number of observations', not 'Variable g could not be found in the data'
-brmsfit-methods:703	frmtmb	defect	accepts-refused	pp_check(type = 'error_binned') on the ordinal fit4 returns a plot of category-code errors; brms refuses because predictive errors are not defined for ordinal models (dev/brmsport-probe4.R)
 brmsfit-methods:737	frmtmb	defect	refuses-accepted	newdata with the numeric codes of the factor Trt dies with 'contrasts apply only to factors' (as brmsfit-methods:301); the shape after it is item 2.6d
 brmsfit-methods:741	frmtmb	defect	refuses-accepted	newdata with the numeric codes of the factor Trt dies with 'contrasts apply only to factors' (as brmsfit-methods:301)
 brmsfit-methods:747	frmtmb	defect	argument	predict(ndraws =) is answered now - the draws are SIMULATED, so ndraws sets how many - and the setup still dies earlier, on fit1$data, which partial-matches fit1$data2 (the fit has no data element)
@@ -65,7 +59,6 @@ brmsfit-methods:817	frmtmb	defect	argument	ranef() refuses brms's groups by name
 brmsfit-methods:820	frmtmb	divergence	no-draws	ranef(summary = FALSE) is refused by name on a fit (D3)
 brmsfit-methods:828	frmtmb	defect	argument	residuals(newdata =) is refused by name, though newdata carries the response brms reads
 brmsfit-methods:832	frmtmb	defect	argument	residuals(newdata =) is refused by name
-brmsfit-methods:837	frmtmb	defect	accepts-refused	residuals() on the ordinal fit4 returns the response code minus the expected score, y - sum(k P(Y = k)), identical at relative 0; brms refuses because predictive errors are not defined for ordinal models (dev/brmsport-defects.R S7)
 brmsfit-methods:840	frmtmb	defect	refuses-accepted	residuals() exists and refuses the multivariate fit6 as 'not supported yet'; brms answers (user decision, 2026-09-17, rule 3; item 2.6f)
 brmsfit-methods:841	frmtmb	defect	refuses-accepted	residuals() exists and refuses the multivariate fit6 as 'not supported yet'; brms answers (user decision, 2026-09-17, rule 3; item 2.6f)
 brmsfit-methods:891	frmtmb	divergence	no-draws	summary(fit)$fixed carries brms's four columns and then the Wald test this package reports, where brms writes Rhat, Bulk_ESS and Tail_ESS. Those three describe a SAMPLER and a maximum-likelihood fit has none, so the column set cannot match (item 2.6f)
@@ -123,5 +116,5 @@ data-helpers:22	frmtmb	cannot transfer	brms-internal	reads brms:::validate_data(
 data-helpers:26	frmtmb	cannot transfer	brms-internal	reads brms:::validate_data() and brms's internal brmsterms()
 data-helpers:27	frmtmb	cannot transfer	brms-internal	reads brms:::validate_data() and brms's internal brmsterms()
 brmsfit-methods:394	frmtmb	divergence	hollow	holds only as is.numeric(NA_real_): Evid.Ratio is NA on a fit (D4, dev/brmsnames-findings.md 'The hypothesis() object'), where brms reports a number. Marked by hand, because a rule cannot tell this NA from an NA that is the right answer
-brmsfit-methods:698	frmtmb	defect	internal-error	pp_check(fit2, 'violin_grouped') dies with R's 'argument group is missing, with no default'; brms refuses by design ('Argument group is required'); brms's regex 'group' matched the internal error, which the harness now rejects
 brmsfit-methods:326	frmtmb	cannot transfer	fixture	fitted(fit1, dpar = 'sigma') is brms's four-column summary now, and FIXTURE 1 DOES NOT CONVERGE (nlminb code 1, NaN standard errors), so the Est.Error and the two Q columns are NA and all(fi > 0) is NA rather than TRUE. The Estimate column is positive, which is what the assertion is about; brms's fixture converged. A converged stand-in would transfer it (dev/brmsport-findings.md section 3)
+brmsfit-methods:675	frmtmb	defect	refuses-accepted	pp_check(newdata = ) is refused: simulate() takes no newdata, so the fit method can only simulate its own rows. It used to swallow the argument in its dots and plot the fitted rows instead (lane wt-correct)

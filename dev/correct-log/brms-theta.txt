@@ -1,0 +1,170 @@
+brms 2.23.0  bayesplot 1.16.0 
+
+== item 6: a written theta formula's reference component ==
+Setting order = 'mu' for mixtures of the same family.
+Setting order = 'mu' for mixtures of the same family.
+-- K2 theta1 ~ x --
+  int<lower=1> K_theta1;  // number of population-level effects
+  matrix[N, K_theta1] X_theta1;  // population-level design matrix
+  int<lower=1> Kc_theta1;  // number of population-level effects after centering
+  matrix[N, Kc_theta1] Xc_theta1;  // centered version of X_theta1 without an intercept
+  vector[Kc_theta1] means_X_theta1;  // column means of X_theta1 before centering
+  for (i in 2:K_theta1) {
+    means_X_theta1[i - 1] = mean(X_theta1[, i]);
+    Xc_theta1[, i - 1] = X_theta1[, i] - means_X_theta1[i - 1];
+  vector[Kc_theta1] b_theta1;  // regression coefficients
+  real Intercept_theta1;  // temporary intercept for centered predictors
+  lprior += logistic_lpdf(Intercept_theta1 | 0, 1);
+    vector[N] theta1 = rep_vector(0.0, N);
+    vector[N] theta2 = rep_vector(0.0, N);
+    real log_sum_exp_theta;
+    theta1 += Intercept_theta1 + Xc_theta1 * b_theta1;
+      // scale theta to become a probability vector
+      log_sum_exp_theta = log(exp(theta1[n]) + exp(theta2[n]));
+      theta1[n] = theta1[n] - log_sum_exp_theta;
+      theta2[n] = theta2[n] - log_sum_exp_theta;
+      ps[1] = theta1[n] + normal_lpdf(Y[n] | mu1[n], sigma1);
+      ps[2] = theta2[n] + normal_lpdf(Y[n] | mu2[n], sigma2);
+  real b_theta1_Intercept = Intercept_theta1 - dot_product(means_X_theta1, b_theta1);
+           prior     class coef   dpar
+3 logistic(0, 1)    theta2            
+6                        b      theta1
+7                        b    x theta1
+8 logistic(0, 1) Intercept      theta1
+OK 
+-- K2 theta2 ~ x --
+  int<lower=1> K_theta2;  // number of population-level effects
+  matrix[N, K_theta2] X_theta2;  // population-level design matrix
+  int<lower=1> Kc_theta2;  // number of population-level effects after centering
+  matrix[N, Kc_theta2] Xc_theta2;  // centered version of X_theta2 without an intercept
+  vector[Kc_theta2] means_X_theta2;  // column means of X_theta2 before centering
+  for (i in 2:K_theta2) {
+    means_X_theta2[i - 1] = mean(X_theta2[, i]);
+    Xc_theta2[, i - 1] = X_theta2[, i] - means_X_theta2[i - 1];
+  vector[Kc_theta2] b_theta2;  // regression coefficients
+  real Intercept_theta2;  // temporary intercept for centered predictors
+  lprior += logistic_lpdf(Intercept_theta2 | 0, 1);
+    vector[N] theta2 = rep_vector(0.0, N);
+    vector[N] theta1 = rep_vector(0.0, N);
+    real log_sum_exp_theta;
+    theta2 += Intercept_theta2 + Xc_theta2 * b_theta2;
+      // scale theta to become a probability vector
+      log_sum_exp_theta = log(exp(theta1[n]) + exp(theta2[n]));
+      theta1[n] = theta1[n] - log_sum_exp_theta;
+      theta2[n] = theta2[n] - log_sum_exp_theta;
+      ps[1] = theta1[n] + normal_lpdf(Y[n] | mu1[n], sigma1);
+      ps[2] = theta2[n] + normal_lpdf(Y[n] | mu2[n], sigma2);
+  real b_theta2_Intercept = Intercept_theta2 - dot_product(means_X_theta2, b_theta2);
+           prior     class coef   dpar
+3 logistic(0, 1)    theta1            
+6                        b      theta2
+7                        b    x theta2
+8 logistic(0, 1) Intercept      theta2
+OK 
+-- K3 theta1 ~ x --
+ERROR: Can only predict all but one mixing proportion. 
+-- K3 theta2,3 ~ x --
+  int<lower=1> K_theta2;  // number of population-level effects
+  matrix[N, K_theta2] X_theta2;  // population-level design matrix
+  int<lower=1> Kc_theta2;  // number of population-level effects after centering
+  int<lower=1> K_theta3;  // number of population-level effects
+  matrix[N, K_theta3] X_theta3;  // population-level design matrix
+  int<lower=1> Kc_theta3;  // number of population-level effects after centering
+  matrix[N, Kc_theta2] Xc_theta2;  // centered version of X_theta2 without an intercept
+  vector[Kc_theta2] means_X_theta2;  // column means of X_theta2 before centering
+  matrix[N, Kc_theta3] Xc_theta3;  // centered version of X_theta3 without an intercept
+  vector[Kc_theta3] means_X_theta3;  // column means of X_theta3 before centering
+  for (i in 2:K_theta2) {
+    means_X_theta2[i - 1] = mean(X_theta2[, i]);
+    Xc_theta2[, i - 1] = X_theta2[, i] - means_X_theta2[i - 1];
+  for (i in 2:K_theta3) {
+    means_X_theta3[i - 1] = mean(X_theta3[, i]);
+    Xc_theta3[, i - 1] = X_theta3[, i] - means_X_theta3[i - 1];
+  vector[Kc_theta2] b_theta2;  // regression coefficients
+  real Intercept_theta2;  // temporary intercept for centered predictors
+  vector[Kc_theta3] b_theta3;  // regression coefficients
+  real Intercept_theta3;  // temporary intercept for centered predictors
+  lprior += logistic_lpdf(Intercept_theta2 | 0, 1);
+  lprior += logistic_lpdf(Intercept_theta3 | 0, 1);
+    vector[N] theta2 = rep_vector(0.0, N);
+    vector[N] theta3 = rep_vector(0.0, N);
+    vector[N] theta1 = rep_vector(0.0, N);
+    real log_sum_exp_theta;
+    theta2 += Intercept_theta2 + Xc_theta2 * b_theta2;
+    theta3 += Intercept_theta3 + Xc_theta3 * b_theta3;
+      // scale theta to become a probability vector
+      log_sum_exp_theta = log(exp(theta1[n]) + exp(theta2[n]) + exp(theta3[n]));
+      theta1[n] = theta1[n] - log_sum_exp_theta;
+      theta2[n] = theta2[n] - log_sum_exp_theta;
+      theta3[n] = theta3[n] - log_sum_exp_theta;
+      ps[1] = theta1[n] + normal_lpdf(Y[n] | mu1[n], sigma1);
+      ps[2] = theta2[n] + normal_lpdf(Y[n] | mu2[n], sigma2);
+      ps[3] = theta3[n] + normal_lpdf(Y[n] | mu3[n], sigma3);
+  real b_theta2_Intercept = Intercept_theta2 - dot_product(means_X_theta2, b_theta2);
+  real b_theta3_Intercept = Intercept_theta3 - dot_product(means_X_theta3, b_theta3);
+            prior     class coef   dpar
+4  logistic(0, 1)    theta1            
+8                         b      theta2
+9                         b    x theta2
+10 logistic(0, 1) Intercept      theta2
+11                        b      theta3
+12                        b    x theta3
+13 logistic(0, 1) Intercept      theta3
+OK 
+-- K3 theta1,2 ~ x --
+  int<lower=1> K_theta1;  // number of population-level effects
+  matrix[N, K_theta1] X_theta1;  // population-level design matrix
+  int<lower=1> Kc_theta1;  // number of population-level effects after centering
+  int<lower=1> K_theta2;  // number of population-level effects
+  matrix[N, K_theta2] X_theta2;  // population-level design matrix
+  int<lower=1> Kc_theta2;  // number of population-level effects after centering
+  matrix[N, Kc_theta1] Xc_theta1;  // centered version of X_theta1 without an intercept
+  vector[Kc_theta1] means_X_theta1;  // column means of X_theta1 before centering
+  matrix[N, Kc_theta2] Xc_theta2;  // centered version of X_theta2 without an intercept
+  vector[Kc_theta2] means_X_theta2;  // column means of X_theta2 before centering
+  for (i in 2:K_theta1) {
+    means_X_theta1[i - 1] = mean(X_theta1[, i]);
+    Xc_theta1[, i - 1] = X_theta1[, i] - means_X_theta1[i - 1];
+  for (i in 2:K_theta2) {
+    means_X_theta2[i - 1] = mean(X_theta2[, i]);
+    Xc_theta2[, i - 1] = X_theta2[, i] - means_X_theta2[i - 1];
+  vector[Kc_theta1] b_theta1;  // regression coefficients
+  real Intercept_theta1;  // temporary intercept for centered predictors
+  vector[Kc_theta2] b_theta2;  // regression coefficients
+  real Intercept_theta2;  // temporary intercept for centered predictors
+  lprior += logistic_lpdf(Intercept_theta1 | 0, 1);
+  lprior += logistic_lpdf(Intercept_theta2 | 0, 1);
+    vector[N] theta1 = rep_vector(0.0, N);
+    vector[N] theta2 = rep_vector(0.0, N);
+    vector[N] theta3 = rep_vector(0.0, N);
+    real log_sum_exp_theta;
+    theta1 += Intercept_theta1 + Xc_theta1 * b_theta1;
+    theta2 += Intercept_theta2 + Xc_theta2 * b_theta2;
+      // scale theta to become a probability vector
+      log_sum_exp_theta = log(exp(theta1[n]) + exp(theta2[n]) + exp(theta3[n]));
+      theta1[n] = theta1[n] - log_sum_exp_theta;
+      theta2[n] = theta2[n] - log_sum_exp_theta;
+      theta3[n] = theta3[n] - log_sum_exp_theta;
+      ps[1] = theta1[n] + normal_lpdf(Y[n] | mu1[n], sigma1);
+      ps[2] = theta2[n] + normal_lpdf(Y[n] | mu2[n], sigma2);
+      ps[3] = theta3[n] + normal_lpdf(Y[n] | mu3[n], sigma3);
+  real b_theta1_Intercept = Intercept_theta1 - dot_product(means_X_theta1, b_theta1);
+  real b_theta2_Intercept = Intercept_theta2 - dot_product(means_X_theta2, b_theta2);
+            prior     class coef   dpar
+4  logistic(0, 1)    theta3            
+8                         b      theta1
+9                         b    x theta1
+10 logistic(0, 1) Intercept      theta1
+11                        b      theta2
+12                        b    x theta2
+13 logistic(0, 1) Intercept      theta2
+OK 
+-- K2 theta1 ~ x, theta2 ~ x --
+ERROR: Can only predict all but one mixing proportion. 
+                   Estimate  Est.Error       Q2.5       Q97.5
+mu1_Intercept    -0.9815445 0.05097207 -1.0809536 -0.88197004
+mu2_Intercept     1.9734482 0.06819901  1.8479645  2.10811691
+theta2_Intercept -0.2196102 0.12320088 -0.4592459  0.01329304
+theta2_x          0.7992210 0.12055643  0.5532531  1.04714623
+theta2 at x = 0, 1: 0.4455243 0.6400793 
+theta1 at x = 0, 1: 0 0 

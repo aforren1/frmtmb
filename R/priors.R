@@ -26,7 +26,17 @@
 #' - `"sd"`: random-effect standard deviations (and smoothing SDs), on
 #'   the NATURAL sd scale with the log-Jacobian applied, so
 #'   `set_prior("exponential(1)", class = "sd")` means what it says;
-#'   narrow with `group`.
+#'   narrow with `group`. As in brms, `resp`, `dpar` and `nlpar` select
+#'   the standard deviations of that response, distributional parameter
+#'   and nonlinear parameter only, and leaving one empty selects the
+#'   empty one: with no `dpar` the specification reaches the location
+#'   parameter's blocks and not a `phi ~ (1 | g)` block, and in a
+#'   multivariate model a specification with no `resp` reaches nothing
+#'   and is refused. A block that spans several predictors,
+#'   `(1 | q | g)` in both `mu` and `sigma`, is the one exception, as it
+#'   is in brms: there a specification that leaves a field empty reaches
+#'   every standard deviation of the block, and a more specific one
+#'   takes over its own.
 #' - `"cor"`: the CORRELATION of a random-effect block, as a whole.
 #'   `lkj(eta)` only, and it addresses a BLOCK the way class `"sd"`
 #'   does, by `group`; `set_prior("lkj(2)", class = "cor")` covers every
@@ -1549,11 +1559,13 @@ fill_prior_table <- function(tab, pl) {
   bare <- function(v) par_name_bare(v)
   # which rows a specification's resp, dpar and nlpar reach, read the
   # way the resolver reads them: no resp means every response, and a
-  # class sd or cor specification with no dpar or nlpar reaches the
-  # blocks of every predictor
+  # class cor specification with no dpar or nlpar reaches the blocks of
+  # every predictor. A class sd one reaches its own prefix only, as in
+  # brms (sd_spec_reach())
   covers <- function(resp, dpar, nlpar, class, rows) {
-    wide <- class %in% c("sd", "cor")
-    (rows$resp == resp | !nzchar(resp)) &
+    wide <- identical(class, "cor")
+    sd <- identical(class, "sd")
+    (rows$resp == resp | (!sd & !nzchar(resp))) &
       (rows$dpar == dpar | (wide & !nzchar(dpar))) &
       (rows$nlpar == nlpar | (wide & !nzchar(nlpar)))
   }
@@ -1650,12 +1662,12 @@ prior_table <- function(spec, frame, route) {
                   resp = "") {
     # a default speaks for a CLASS, not for one coefficient of it: brms
     # reports the class row and leaves the per-coefficient rows flat, and
-    # a per-coefficient row here would claim a default nothing applies
-    # and a default on sd or cor is written class-wide, so a block of a
-    # distributional parameter's predictor reads the same one
+    # a per-coefficient row here would claim a default nothing applies.
+    # A default on cor is written class-wide, as brms's cor rows carry no
+    # prefix; one on sd is written per prefix, as brms's sd rows are
     d <- if (nzchar(coef)) NULL else
       defs[[prior_slot_key(class,
-                           if (class %in% c("sd", "cor")) "" else dpar,
+                           if (identical(class, "cor")) "" else dpar,
                            nlpar, resp)]]
     # brms's column order, so a table read by position lines up with
     # the one brms returns
@@ -1733,17 +1745,32 @@ prior_table <- function(spec, frame, route) {
                                                                 bk),
                 dpar = block_dpar(spec, frame, bk),
                 resp = if (multi) block_resp(frame, bk) else "")
-    if (length(block_sd_idx(bk))) sd_rows[[length(sd_rows) + 1L]] <- key
+    # brms lists sd rows per prefix, so a block spanning mu and sigma
+    # has a row for each (sd_spec_reach() is the rule the rows describe)
+    sp <- unique(block_sd_prefix(spec, frame, bk)[, c("resp", "dpar",
+                                                      "nlpar")])
+    for (i in seq_len(nrow(sp))) {
+      sd_rows[[length(sd_rows) + 1L]] <- list(
+        group = bk[["group_name"]], nlpar = sp$nlpar[i], dpar = sp$dpar[i],
+        resp = sp$resp[i])
+    }
     if (identical(block_cor_prior(bk), "lkj")) {
       cor_rows[[length(cor_rows) + 1L]] <- key
     }
   }
-  for (cl in c("sd", "cor")) {
-    ks <- if (identical(cl, "sd")) sd_rows else cor_rows
-    if (!length(ks)) next
-    add(cl)
-    for (k in ks) {
-      add(cl, group = k$group, dpar = k$dpar, nlpar = k$nlpar,
+  if (length(sd_rows)) {
+    # the class-wide row, once per prefix
+    for (k in sd_rows) add("sd", dpar = k$dpar, nlpar = k$nlpar,
+                           resp = k$resp)
+    for (k in sd_rows) {
+      add("sd", group = k$group, dpar = k$dpar, nlpar = k$nlpar,
+          resp = k$resp)
+    }
+  }
+  if (length(cor_rows)) {
+    add("cor")
+    for (k in cor_rows) {
+      add("cor", group = k$group, dpar = k$dpar, nlpar = k$nlpar,
           resp = k$resp)
     }
   }
@@ -1864,10 +1891,10 @@ block_resp <- function(frame, bk) {
   if (length(rs) == 1L) rs else ""
 }
 
-#' Whether a class `"sd"` / `"cor"` specification addresses this block.
+#' Whether a class `"cor"` specification addresses this block.
 #' `group` has always narrowed here; `resp`, `dpar` and `nlpar` narrow
-#' the same way, which is what lets a nonlinear model's per-parameter
-#' variance components be priored one at a time.
+#' the same way. Class `"sd"` is resolved per standard deviation by
+#' `sd_spec_reach()` instead.
 #'
 #' @noRd
 block_addressed <- function(spec, frame, bk, s) {
@@ -1884,6 +1911,129 @@ block_addressed <- function(spec, frame, bk, s) {
   }
   if (want_dp && !s$dpar %in% dp) return(FALSE)
   TRUE
+}
+
+#' The prefix brms gives each COLUMN of a block: the response (in a
+#' multivariate model), the distributional parameter (`""` for the
+#' location parameters) and the nonlinear parameter (`""` for none).
+#' brms keys its class `"sd"` prior rows by this prefix.
+#'
+#' One row per column of the block, in column order. A block with no
+#' component record takes the block-level labels for every column.
+#'
+#' @noRd
+block_col_prefix <- function(spec, frame, bk) {
+  multi <- length(spec$responses) > 1L
+  d <- bk[["dim"]] %||% 0L
+  out <- data.frame(resp = rep(if (multi) block_resp(frame, bk) else "", d),
+                    dpar = rep(block_dpar(spec, frame, bk), d),
+                    nlpar = rep(block_nlpar(spec, frame, bk), d),
+                    stringsAsFactors = FALSE)
+  for (cp in bk[["components"]] %||% list()) {
+    lp <- frame[["linpreds"]][[cp[["lp_key"]] %||% ""]]
+    if (is.null(lp) || is.null(cp[["offset"]]) || is.null(cp[["dim"]])) next
+    rspec <- spec$responses[[lp[["resp"]]]]
+    nl <- rspec$nlpars %||% character(0)
+    dp <- lp[["dpar"]]
+    cols <- cp[["offset"]] + seq_len(cp[["dim"]])
+    cols <- cols[cols <= d]
+    out$resp[cols] <- if (multi) lp[["resp"]] else ""
+    out$dpar[cols] <- if (dp %in% c(rspec$primary_dpars, nl)) "" else dp
+    out$nlpar[cols] <- if (dp %in% nl) dp else ""
+  }
+  out
+}
+
+#' The prefix of each standard deviation of a block, one row per entry
+#' of `block_sd_idx()`, which `k` numbers. A structure with one standard
+#' deviation per column takes the column's prefix; one whose standard
+#' deviations are shared across columns takes every prefix its columns
+#' have, one row each under the same `k`.
+#'
+#' @noRd
+block_sd_prefix <- function(spec, frame, bk) {
+  sd_i <- block_sd_idx(bk)
+  cp <- block_col_prefix(spec, frame, bk)
+  if (!length(sd_i)) return(cbind(cp[0L, , drop = FALSE], k = integer(0)))
+  if (length(sd_i) == nrow(cp)) return(cbind(cp, k = seq_along(sd_i)))
+  u <- unique(cp)
+  do.call(rbind, lapply(seq_along(sd_i), function(j) cbind(u, k = j)))
+}
+
+#' Which standard deviations of a block a class `"sd"` specification
+#' reaches, by brms 2.23.0's rule (measured in
+#' dev/correct-log/brms-priors.txt and brms-priors2.txt).
+#'
+#' brms lists class `"sd"` rows per prefix (response, distributional
+#' parameter, nonlinear parameter), and a specification applies where
+#' its prefix EQUALS the standard deviation's: with no `dpar` it is the
+#' location parameter's, not every predictor's; in a multivariate model
+#' with no `resp` it is no response's, and brms refuses it. The one
+#' exception is a block that spans several prefixes, `(1 | q | g)` in
+#' `mu` and `sigma`: brms reads its prior rows per prefix with each
+#' field also matching an empty one, so a specification with fewer
+#' fields reaches every column there, and the more specific one wins,
+#' which the caller's specificity order already arranges.
+#'
+#' Returns a list: `reach`, a logical per entry of `block_sd_idx()`, and
+#' `exact`, whether the specification's own prefix is one this block
+#' has, which is what brms requires for the row to exist at all.
+#'
+#' @noRd
+sd_spec_reach <- function(spec, frame, bk, s) {
+  sp <- block_sd_prefix(spec, frame, bk)
+  n <- length(block_sd_idx(bk))
+  none <- list(reach = logical(n), exact = FALSE)
+  if (!n) return(none)
+  if (nzchar(s$group) && !identical(bk[["group_name"]], s$group)) {
+    return(none)
+  }
+  multi <- length(spec$responses) > 1L
+  want <- c(resp = s$resp %||% "", dpar = s$dpar %||% "",
+            nlpar = s$nlpar %||% "")
+  # a univariate model's prefix has no response, and naming its one
+  # response is naming no response
+  if (!multi && want[["resp"]] %in% names(spec$responses)) {
+    want[["resp"]] <- ""
+  }
+  eq <- sp$resp == want[["resp"]] & sp$dpar == want[["dpar"]] &
+    sp$nlpar == want[["nlpar"]]
+  spans <- nrow(unique(sp[, c("resp", "dpar", "nlpar")])) > 1L
+  fits <- if (spans) {
+    (sp$resp == want[["resp"]] | !nzchar(want[["resp"]])) &
+      (sp$dpar == want[["dpar"]] | !nzchar(want[["dpar"]])) &
+      (sp$nlpar == want[["nlpar"]] | !nzchar(want[["nlpar"]]))
+  } else {
+    eq
+  }
+  reach <- vapply(seq_len(n), function(j) any(fits[sp$k == j]), TRUE)
+  list(reach = reach, exact = any(eq))
+}
+
+#' What a refused class `"sd"` specification could have named: the
+#' prefixes this model's standard deviations carry, as `set_prior()`
+#' arguments.
+#'
+#' @noRd
+sd_prefix_hint <- function(spec, frame) {
+  sp <- unique(do.call(rbind, c(
+    list(data.frame(resp = character(0), dpar = character(0),
+                    nlpar = character(0))),
+    lapply(frame[["re_blocks"]], function(bk) {
+      block_sd_prefix(spec, frame, bk)[, c("resp", "dpar", "nlpar")]
+    }))))
+  if (!NROW(sp)) return("This model has no random-effect standard deviations")
+  lab <- apply(sp, 1L, function(r) {
+    f <- c(if (nzchar(r[["resp"]])) paste0("resp = \"", r[["resp"]], "\""),
+           if (nzchar(r[["dpar"]])) paste0("dpar = \"", r[["dpar"]], "\""),
+           if (nzchar(r[["nlpar"]])) paste0("nlpar = \"", r[["nlpar"]], "\""))
+    if (length(f)) paste(f, collapse = ", ") else "no resp, dpar or nlpar"
+  })
+  paste0("As in brms, class \"sd\" is addressed per response, ",
+         "distributional parameter and nonlinear parameter, and a ",
+         "specification without one of these names none of the others. ",
+         "This model's standard deviations take: ",
+         paste0("(", lab, ")", collapse = "; "))
 }
 
 #' Where a specification was pointing, for the refusals that report a
@@ -2357,10 +2507,15 @@ resolve_priorlist <- function(fit, pl) {
         if (!is.na(s$ub)) upper[tg$name] <- internal_bound(s$ub, pm, "ub")
       }
     } else if (s$class == "sd") {
+      # brms's rule: a row exists only for a prefix some block has, and
+      # it reaches the standard deviations of that prefix (sd_spec_reach)
+      exact <- any(vapply(frame[["re_blocks"]], function(bk) {
+        sd_spec_reach(fit$spec, frame, bk, s)$exact
+      }, TRUE))
       hit <- FALSE
-      for (bk in frame[["re_blocks"]]) {
-        if (!block_addressed(fit$spec, frame, bk, s)) next
+      for (bk in if (exact) frame[["re_blocks"]]) {
         sd_i <- covstruct_registry[[bk[["covstruct"]]]]$sd_idx(bk[["dim"]])
+        sd_i <- sd_i[sd_spec_reach(fit$spec, frame, bk, s)$reach]
         for (k in sd_i) {
           hit <- TRUE
           i <- bk[["theta_idx"]][k]
@@ -2380,8 +2535,8 @@ resolve_priorlist <- function(fit, pl) {
         }
       }
       if (!hit) {
-        frm_stop("No random-effect SDs match ", spec_target(s),
-                 call. = FALSE)
+        frm_stop("No random-effect SDs match ", spec_target(s), ". ",
+                 sd_prefix_hint(fit$spec, frame), call. = FALSE)
       }
     } else if (s$class == "cor") {
       hit <- FALSE

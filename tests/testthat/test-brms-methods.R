@@ -603,6 +603,25 @@ test_that("brms's ordinary residual is frmtmb's response residual", {
   }
 })
 
+test_that("residuals are refused on the shapes brms refuses them on", {
+  skip_unless_brms_fit()
+
+  # the shapes brms_resid_shapes() leaves out, read from the exclusion
+  # table so a shape added there is checked here too
+  shapes <- brms_excluded("brms_resid_shapes")
+  expect_gt(length(shapes), 5L)
+  for (nm in shapes) {
+    s <- brms_shape(nm)
+    for (ty in c("ordinary", "pearson")) {
+      expect_error(suppressWarnings(residuals(s$brmsfit, type = ty)),
+                   "not defined for ordinal or categorical",
+                   info = paste("brms", nm, ty))
+      expect_error(residuals(s$fit, type = ty), class = "frmtmb_error",
+                   info = paste("frmtmb", nm, ty))
+    }
+  }
+})
+
 test_that("the pearson residuals divide by different quantities", {
   skip_unless_brms_fit()
 

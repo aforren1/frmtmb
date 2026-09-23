@@ -1,0 +1,36 @@
+arm base frmtmb 0.61.0 from C:/Users/adf44/source/r/rellib-r3 
+
+== item 6: a written theta formula's reference component ==
+-- K2 theta1 ~ x --
+   prior     class coef   dpar
+4 (flat) Intercept      theta1
+5 (flat)         b      theta1
+6 (flat)         b    x theta1
+OK 
+-- K2 theta2 ~ x --
+ERROR: dpar(s) not available for family 'mixture(gaussian, gaussian)': theta2 (available: sigma1, mu2, sigma2, theta1) 
+-- K3 theta1 ~ x --
+   prior     class coef   dpar
+5 (flat) Intercept      theta1
+6 (flat)         b      theta1
+7 (flat)         b    x theta1
+OK 
+-- K3 theta2,3 ~ x --
+ERROR: dpar(s) not available for family 'mixture(gaussian, gaussian, gaussian)': theta3 (available: sigma1, mu2, sigma2, mu3, sigma3, theta1, theta2) 
+-- K3 theta1,2 ~ x --
+    prior     class coef   dpar
+5  (flat) Intercept      theta1
+6  (flat)         b      theta1
+7  (flat)         b    x theta1
+8  (flat) Intercept      theta2
+9  (flat)         b      theta2
+10 (flat)         b    x theta2
+OK 
+-- K2 theta1 ~ x, theta2 ~ x --
+ERROR: dpar(s) not available for family 'mixture(gaussian, gaussian)': theta2 (available: sigma1, mu2, sigma2, theta1) 
+fit K2 theta2 ~ x: ERROR: dpar(s) not available for family 'mixture(gaussian, gaussian)': theta2 (available: sigma1, mu2, sigma2, theta1) 
+                   Estimate  Est.Error         Q2.5      Q97.5
+mu1_Intercept    -0.9817765 0.05229594 -1.084274637 -0.8792783
+mu2_Intercept     1.9834526 0.06401712  1.857981386  2.1089239
+theta1_Intercept  0.2198151 0.11600112 -0.007542944  0.4471731
+theta1_x         -0.7886597 0.12097966 -1.025775473 -0.5515439

@@ -1,0 +1,11 @@
+arm lane frmtmb 0.61.0 from C:/Users/adf44/source/r/correct2-lib 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | mixture-reference                                              
+⠋ |          1 | mixture-reference                                              
+⠋ |         11 | mixture-reference                                              
+✔ |         12 | mixture-reference
+
+══ Results ═════════════════════════════════════════════════════════════════════
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 12 ]
+RESULT test-mixture-reference.R pass=12 fail=0 err=0 skip=0

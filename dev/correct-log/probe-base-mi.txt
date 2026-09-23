@@ -1,0 +1,43 @@
+arm base frmtmb 0.61.0 from C:/Users/adf44/source/r/rellib-r3 
+
+== item 5: mi() names ==
+   prior     class coef resp
+1 (flat) Intercept         y
+2 (flat)         b         y
+3 (flat)         b    z    y
+4 (flat)         b mixm    y
+5 (flat)     sigma         y
+6 (flat) Intercept        xm
+7 (flat)         b        xm
+8 (flat)         b    z   xm
+9 (flat)     sigma        xm
+variables: b_y_Intercept b_y_z b_y_mixm b_xm_Intercept b_xm_z sigma_y sigma_xm 
+                Estimate Est.Error       Q2.5      Q97.5
+y_Intercept   0.88108145 0.1010003  0.6831245 1.07903841
+xm_Intercept  0.03061462 0.1108051 -0.1865593 0.24778854
+y_z          -0.14717204 0.1232062 -0.3886518 0.09430772
+y_mixm        0.69712818 0.1091052  0.4832859 0.91097043
+xm_z          0.46945903 0.1227890  0.2287971 0.71012101
+[1] "y_Intercept"  "xm_Intercept" "y_z"          "y_mixm"       "xm_z"        
+[1] "y_Intercept"  "xm_Intercept" "y_z"          "y_mixm"       "xm_z"        
+variables (interaction): b_y_Intercept b_y_z b_y_mixm:z b_y_mixm b_xm_Intercept b_xm_z sigma_y sigma_xm 
+                Estimate Est.Error       Q2.5     Q97.5
+y_Intercept   0.91239514 0.1096457  0.6974935 1.1272968
+xm_Intercept  0.03025563 0.1107265 -0.1867644 0.2472756
+y_z          -0.13646841 0.1238816 -0.3792718 0.1063350
+y_mixm:z     -0.08187134 0.1132609 -0.3038586 0.1401159
+y_mixm        0.68204430 0.1108379  0.4648060 0.8992826
+xm_z          0.46729572 0.1226409  0.2269240 0.7076675
+    prior     class   coef resp
+1  (flat) Intercept           y
+2  (flat)         b           y
+3  (flat)         b      z    y
+4  (flat)         b mixm:z    y
+5  (flat)         b   mixm    y
+6  (flat)     sigma           y
+7  (flat) Intercept          xm
+8  (flat)         b          xm
+9  (flat)         b      z   xm
+10 (flat)     sigma          xm
+hypothesis y_mixm > 0: OK 
+prior class b coef mixm resp y: OK 

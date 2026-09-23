@@ -442,7 +442,12 @@ The second session did not trust the record:
 
 Filed, not fixed (neither is a one-line change with a test, because
 each changes which blocks an existing class `sd` prior reaches and so
-changes fits and frmtmb.sample's sampling defaults):
+changes fits and frmtmb.sample's sampling defaults).
+**BOTH FIXED 2026-09-22 by lane `wt-correct`**
+(`dev/correct-findings.md` section 3): a class `sd` specification
+reaches only its own response, distributional parameter and nonlinear
+parameter, and frmtmb.sample writes its `sd` default once per prefix so
+that nothing moves where no user prior is given. As filed:
 
 - **FILED: a class `sd` prior with a group and no dpar reaches every
   predictor's block.** `set_prior("normal(0, 5)", class = "sd",
@@ -632,6 +637,11 @@ lane build: PRIORFORM brms-formula-priors pass 171 fail 0 error 0 skip 0 in 14 s
 <!-- priorform-seefail:end -->
 
 ## 6. Found and NOT fixed
+
+The first two rows are **FIXED 2026-09-22 by lane `wt-correct`**
+(`dev/correct-findings.md` section 4): a multivariate model now takes
+each response's defaults and `lkj(1)` on `rescor`, and the intercept
+location has the mean offset taken off it, as in brms.
 
 - **FILED, frmtmb.sample: rescor default on the sampling route.**
   `default_prior(bf(mvbind(y1, y2) ~ x + (x | ID1 | g)) +

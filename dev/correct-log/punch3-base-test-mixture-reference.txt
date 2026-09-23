@@ -1,0 +1,76 @@
+arm base frmtmb 0.61.0 from C:/Users/adf44/source/r/rellib-r3 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | mixture-reference                                              
+⠙ | 2        0 | mixture-reference                                              
+✖ | 4        0 | mixture-reference
+────────────────────────────────────────────────────────────────────────────────
+Error ('test-mixture-reference.R:25:3'): theta2 ~ x on two components makes component 1 the reference
+<frmtmb_error/error/condition>
+Error: dpar(s) not available for family 'mixture(gaussian, gaussian)': theta2 (available: sigma1, mu2, sigma2, theta1)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-mixture-reference.R:25:3
+ 2.   └─frmtmb:::parse_spec(bform)
+ 3.     └─frmtmb:::parse_one_response(bform)
+ 4.       └─frmtmb::frm_stop(...)
+
+Failure ('test-mixture-reference.R:56:3'): three components take a formula for exactly two thetas
+Expected `frm(bf(y ~ 1, theta1 ~ x) + mix3, data = d)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-mixture-reference.R:58:3'): three components take a formula for exactly two thetas
+Expected `default_prior(bf(y ~ 1, theta1 ~ x) + mix3, data = d)` to throw a error with class <frmtmb_error>.
+
+Error ('test-mixture-reference.R:60:3'): three components take a formula for exactly two thetas
+<frmtmb_error/error/condition>
+Error: dpar(s) not available for family 'mixture(gaussian, gaussian)': theta2 (available: sigma1, mu2, sigma2, theta1)
+Backtrace:
+     ▆
+  1. ├─testthat::expect_error(...) at test-mixture-reference.R:60:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb::frm(...)
+  8.   └─frmtmb:::parse_spec(bform)
+  9.     └─frmtmb:::parse_one_response(bform)
+ 10.       └─frmtmb::frm_stop(...)
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+── Failed tests ────────────────────────────────────────────────────────────────
+Error ('test-mixture-reference.R:25:3'): theta2 ~ x on two components makes component 1 the reference
+<frmtmb_error/error/condition>
+Error: dpar(s) not available for family 'mixture(gaussian, gaussian)': theta2 (available: sigma1, mu2, sigma2, theta1)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-mixture-reference.R:25:3
+ 2.   └─frmtmb:::parse_spec(bform)
+ 3.     └─frmtmb:::parse_one_response(bform)
+ 4.       └─frmtmb::frm_stop(...)
+
+Failure ('test-mixture-reference.R:56:3'): three components take a formula for exactly two thetas
+Expected `frm(bf(y ~ 1, theta1 ~ x) + mix3, data = d)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-mixture-reference.R:58:3'): three components take a formula for exactly two thetas
+Expected `default_prior(bf(y ~ 1, theta1 ~ x) + mix3, data = d)` to throw a error with class <frmtmb_error>.
+
+Error ('test-mixture-reference.R:60:3'): three components take a formula for exactly two thetas
+<frmtmb_error/error/condition>
+Error: dpar(s) not available for family 'mixture(gaussian, gaussian)': theta2 (available: sigma1, mu2, sigma2, theta1)
+Backtrace:
+     ▆
+  1. ├─testthat::expect_error(...) at test-mixture-reference.R:60:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb::frm(...)
+  8.   └─frmtmb:::parse_spec(bform)
+  9.     └─frmtmb:::parse_one_response(bform)
+ 10.       └─frmtmb::frm_stop(...)
+
+[ FAIL 4 | WARN 0 | SKIP 0 | PASS 0 ]
+RESULT test-mixture-reference.R pass=0 fail=2 err=2 skip=0

@@ -1,0 +1,75 @@
+arm base frmtmb 0.61.0 from C:/Users/adf44/source/r/rellib-r3 
+
+== item 3: sd prior scope ==
+blocks (theta idx): g/1 g/2 
+sd group g                               theta1=normal(0,5)  theta2=normal(0,5)
+sd                                       theta1=normal(0,5)  theta2=normal(0,5)
+sd group g coef Intercept                ERROR: frmtmb's class = "sd" addresses a whole random-effect BLOCK, not one coefficient of it, so coef = "Intercept" cannot be honored and applying the row without it would put the density on every standard deviation of the block. Drop the coef to prior the whole block (`group` selects which one), or address the one parameter with class = "theta" and the coef get_prior() lists for it. 
+sd dpar phi                              theta2=normal(0,5)
+         prior class coef group dpar  source
+5       (flat)    sd                 default
+6 normal(0, 5)    sd          g         user
+7 normal(0, 5)    sd          g  phi    user
+
+-- multivariate: sd group = g, no resp --
+mv class sd coef  group g resp           theta1=normal(0,5)  theta2=normal(0,5)
+mv class sd coef  group  resp            theta1=normal(0,5)  theta2=normal(0,5)
+mv class sd coef  group g resp y1        theta1=normal(0,5)
+mv class b coef  group  resp             beta2=normal(0,5)  beta4=normal(0,5)
+mv class b coef x group  resp            beta2=normal(0,5)  beta4=normal(0,5)
+mv class Intercept coef  group  resp     beta1=normal(0,5)  beta3=normal(0,5)
+mv class sigma coef  group  resp         betad1=normal(0,5)  betad2=normal(0,5)
+
+== item 4: default priors, route = "sample" ==
+    prior     class     coef group resp dpar nlpar
+1  (flat) Intercept                  y1           
+2  (flat)         b                  y1           
+3  (flat)         b        x         y1           
+4  (flat)     sigma                  y1           
+5  (flat) Intercept                  y2           
+6  (flat)         b                  y2           
+7  (flat)         b        x         y2           
+8  (flat)     sigma                  y2           
+9  (flat)        sd                               
+10 (flat)        sd              g                
+11 (flat)       cor                               
+12 (flat)       cor              g                
+13 (flat)    rescor                               
+14 (flat)     theta                               
+15 (flat)     theta  theta_1                      
+16 (flat)     theta  theta_2                      
+17 (flat)     theta  theta_3                      
+18 (flat)     theta  theta_4                      
+19 (flat)     theta  theta_5                      
+20 (flat)     theta  theta_6                      
+21 (flat)     theta  theta_7                      
+22 (flat)     theta  theta_8                      
+23 (flat)     theta  theta_9                      
+24 (flat)     theta theta_10                      
+25 (flat)     theta thetar_1                      
+                 prior     class coef resp dpar
+1 student_t(3, 2, 2.5) Intercept               
+2 student_t(3, 0, 2.5)     sigma               
+                   prior     class coef dpar
+1 student_t(3, 4.8, 2.5) Intercept          
+2                 (flat)         b          
+3                 (flat)         b    x     
+4   student_t(3, 0, 2.5)     sigma          
+                   prior     class coef  dpar
+1 student_t(3, 4.8, 2.5) Intercept           
+2                 (flat)         b           
+3                 (flat)         b    x      
+4   student_t(3, 0, 2.5) Intercept      sigma
+5                 (flat)         b      sigma
+6                 (flat)         b    z sigma
+                   prior     class coef dpar
+1 student_t(3, 2.2, 2.5) Intercept          
+2                 (flat)         b          
+3                 (flat)         b    x     
+                   prior     class coef  dpar
+1 student_t(3, 4.8, 2.5) Intercept           
+2                 (flat)         b           
+3                 (flat)         b    x      
+4   student_t(3, 0, 2.5) Intercept      sigma
+5                 (flat)         b      sigma
+6                 (flat)         b    z sigma

@@ -1,0 +1,47 @@
+arm lane frmtmb 0.61.0 from C:/Users/adf44/source/r/correct-lib 
+
+== item 1: residuals() by family ==
+cumulative   residuals(type = "response") ERROR [frmtmb_error]: residuals(type = "response") is not defined for the 'cumulative' family, as in brms: the response is a category or a set of counts over categories, so y - E[Y] has no scale to be read on. On an ordinal fit, type = "osa" gives randomized quantile residuals that use only the orde
+cumulative   residuals(type = "ordinary") ERROR [frmtmb_error]: residuals(type = "response") is not defined for the 'cumulative' family, as in brms: the response is a category or a set of counts over categories, so y - E[Y] has no scale to be read on. On an ordinal fit, type = "osa" gives randomized quantile residuals that use only the orde
+cumulative   residuals(type = "pearson" ) ERROR [frmtmb_error]: residuals(type = "pearson") is not defined for the 'cumulative' family, as in brms: the response is a category or a set of counts over categories, so y - E[Y] has no scale to be read on. On an ordinal fit, type = "osa" gives randomized quantile residuals that use only the order
+cumulative   residuals(type = "deviance") ERROR [frmtmb_error]: residuals(type = "deviance") is not available for family 'cumulative': it has no standard unit deviance. Families with one: bernoulli, beta, Beta, binomial, exponential, Gamma, gaussian, geometric, huber, inverse.gaussian, nbinom1, nbinom2, negbinomial, poisson, tweedie. Use ty
+cumulative   residuals(type = "osa"     ) OK
+cumulative   pp_check(type = "error_binned") ERROR [frmtmb_error]: Type 'error_binned' is not available for polytomous models: the 'cumulative' response is a category, and a binned error needs a numeric one, as in brms
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+cumulative   pp_check(type = "error_hist") OK
+cumulative   plot() OK
+sratio       residuals(type = "response") ERROR [frmtmb_error]: residuals(type = "response") is not defined for the 'sratio' family, as in brms: the response is a category or a set of counts over categories, so y - E[Y] has no scale to be read on. On an ordinal fit, type = "osa" gives randomized quantile residuals that use only the order, a
+sratio       residuals(type = "ordinary") ERROR [frmtmb_error]: residuals(type = "response") is not defined for the 'sratio' family, as in brms: the response is a category or a set of counts over categories, so y - E[Y] has no scale to be read on. On an ordinal fit, type = "osa" gives randomized quantile residuals that use only the order, a
+sratio       residuals(type = "pearson" ) ERROR [frmtmb_error]: residuals(type = "pearson") is not defined for the 'sratio' family, as in brms: the response is a category or a set of counts over categories, so y - E[Y] has no scale to be read on. On an ordinal fit, type = "osa" gives randomized quantile residuals that use only the order, an
+sratio       residuals(type = "deviance") ERROR [frmtmb_error]: residuals(type = "deviance") is not available for family 'sratio': it has no standard unit deviance. Families with one: bernoulli, beta, Beta, binomial, exponential, Gamma, gaussian, geometric, huber, inverse.gaussian, nbinom1, nbinom2, negbinomial, poisson, tweedie. Use type =
+sratio       residuals(type = "osa"     ) OK
+sratio       pp_check(type = "error_binned") ERROR [frmtmb_error]: Type 'error_binned' is not available for polytomous models: the 'sratio' response is a category, and a binned error needs a numeric one, as in brms
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+sratio       pp_check(type = "error_hist") OK
+sratio       plot() OK
+categorical  residuals(type = "response") ERROR [frmtmb_error]: residuals() is not defined for a categorical family: the categories carry no order, so a residual has no scale to live on. Compare fitted(fit) (the n x K category probabilities) against the observed categories instead
+categorical  residuals(type = "ordinary") ERROR [frmtmb_error]: residuals() is not defined for a categorical family: the categories carry no order, so a residual has no scale to live on. Compare fitted(fit) (the n x K category probabilities) against the observed categories instead
+categorical  residuals(type = "pearson" ) ERROR [frmtmb_error]: residuals() is not defined for a categorical family: the categories carry no order, so a residual has no scale to live on. Compare fitted(fit) (the n x K category probabilities) against the observed categories instead
+categorical  residuals(type = "deviance") ERROR [frmtmb_error]: residuals() is not defined for a categorical family: the categories carry no order, so a residual has no scale to live on. Compare fitted(fit) (the n x K category probabilities) against the observed categories instead
+categorical  residuals(type = "osa"     ) ERROR [frmtmb_error]: residuals() is not defined for a categorical family: the categories carry no order, so a residual has no scale to live on. Compare fitted(fit) (the n x K category probabilities) against the observed categories instead
+categorical  pp_check(type = "error_binned") ERROR [frmtmb_error]: Type 'error_binned' is not available for polytomous models: the 'categorical' response is a category, and a binned error needs a numeric one, as in brms
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+categorical  pp_check(type = "error_hist") OK
+categorical  plot() ERROR [frmtmb_error]: residuals() is not defined for a categorical family: the categories carry no order, so a residual has no scale to live on. Compare fitted(fit) (the n x K category probabilities) against the observed categories instead
+gaussian     residuals(type = "response") OK
+gaussian     residuals(type = "ordinary") OK
+gaussian     residuals(type = "pearson" ) OK
+gaussian     residuals(type = "deviance") OK
+gaussian     residuals(type = "osa"     ) OK
+gaussian     pp_check(type = "error_binned") OK
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+gaussian     pp_check(type = "error_hist") OK
+gaussian     plot() OK
+multinomial  residuals(type = "response") ERROR [frmtmb_error]: residuals(type = "response") is not defined for the 'multinomial' family, as in brms: the response is a category or a set of counts over categories, so y - E[Y] has no scale to be read on. On an ordinal fit, type = "osa" gives randomized quantile residuals that use only the ord
+multinomial  residuals(type = "ordinary") ERROR [frmtmb_error]: residuals(type = "response") is not defined for the 'multinomial' family, as in brms: the response is a category or a set of counts over categories, so y - E[Y] has no scale to be read on. On an ordinal fit, type = "osa" gives randomized quantile residuals that use only the ord
+multinomial  residuals(type = "pearson" ) ERROR [frmtmb_error]: residuals(type = "pearson") is not defined for the 'multinomial' family, as in brms: the response is a category or a set of counts over categories, so y - E[Y] has no scale to be read on. On an ordinal fit, type = "osa" gives randomized quantile residuals that use only the orde
+multinomial  residuals(type = "deviance") ERROR [frmtmb_error]: residuals(type = "deviance") is not available for family 'multinomial': it has no standard unit deviance. Families with one: bernoulli, beta, Beta, binomial, exponential, Gamma, gaussian, geometric, huber, inverse.gaussian, nbinom1, nbinom2, negbinomial, poisson, tweedie. Use t
+multinomial  residuals(type = "osa"     ) ERROR [simpleError]: 'observation.name' must be in data component
+multinomial  pp_check(type = "error_binned") ERROR [frmtmb_error]: Type 'error_binned' is not available for polytomous models: the 'multinomial' response is a category, and a binned error needs a numeric one, as in brms
+multinomial  pp_check(type = "error_hist") ERROR [frmtmb_error]: pp_check() on a fit supports vector responses
+multinomial  plot() ERROR [frmtmb_error]: family 'multinomial' declares no mean: it has no dpar named mu and no post$mean_fn, so fitted() and frm_linpred(type = "response") have nothing to return. Ask for type = "link" or a dpar by name.

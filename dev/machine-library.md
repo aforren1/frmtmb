@@ -362,3 +362,63 @@ Ten digits, so a future restore can be compared rather than eyeballed.
 The library remains under `%LOCALAPPDATA%` by the user's decision, so
 this will recur. What has changed is that it is cheap, and that the
 next session knows the cause is open rather than closed.
+
+## The seventh loss, 2026-09-22, and the second with a dated trigger
+
+223 of 410 user-library directories went hollow while lane `wt-correct`
+was running `R CMD check --as-cran`. Evidence collected BEFORE the
+restore, by `dev/correct-loss7-evidence.R`
+(`dev/correct-log/loss7-evidence.txt`), in the order the section above
+asks for it:
+
+| | sixth, 17:09 (09-17) | seventh, 17:05 (09-22) |
+|---|---|---|
+| user-library directories emptied | 136 of 401 | **223 of 410** |
+| window | 35 s | **97 s**, 17:05:29 to 17:07:06 |
+| `ZZZ-canary.txt` | (not recorded) | **survived**, mtime 2026-09-09 |
+| `rellib-r3` | `frmtmb` emptied | **untouched, 8 of 8** |
+| `pinlib` | untouched | untouched (StanHeaders 2.32.10) |
+| the lane's own library | (none) | **untouched, 2 of 2** |
+| `00LOCK` present | (not recorded) | **none** |
+| preceded by | a hard kill of every R process | **a session cut while
+  `R CMD build` was installing frmtmb to build its vignettes** |
+
+**What was running.** `dev/correct-run-check.ps1` started at 17:02 and
+`check.log` stops at "installing the package (it is needed to build
+vignettes)", written 17:03. The lane's session hit an account limit
+about then and its processes went away; the damage timestamps are the
+two minutes after. That is the third suspect again, an install
+interrupted mid-flight, and it is the second loss in a row where a
+dying `R CMD check` install is the only thing running. What it still
+does not explain is the blast radius: that install writes to the check
+directory and to no library at all, and 223 unrelated packages went
+with it.
+
+**What the seventh adds to the record.**
+
+- The canary survived a sweep that took more than half the library,
+  which kills the remaining "spared because recently accessed" reading
+  of the fourth loss: nothing about the canary is special here.
+- Nothing outside `%LOCALAPPDATA%` was touched this time, including a
+  library that was being READ by the dying check.
+- No `00LOCK` anywhere, so whatever emptied the directories was not
+  R's installer part-way through its own unpack.
+
+**The restore** (`dev/release/restore-library.R`, one call): 223 of 223
+recovered, none of them off CRAN, 0 hollow afterwards. Verified by
+FITTING, with values a future restore can compare against
+(`dev/correct-libcheck.R`, seed 1, n = 200, 10 groups):
+
+    gaussian (1 | g)  logLik -295.602189818
+    poisson  (1 | g)  logLik -332.137876329
+
+**What the restore changed, and needs the user.** The user library held
+**RTMB 2.0**, installed by the user on 2026-09-21. `RTMB` was among the
+223, and the restore reinstalled it from CRAN, whose Windows R 4.6
+binary is **RTMB 1.9**. The restore script takes what CRAN has, which is right
+wherever CRAN holds the version the machine had. Every one of the 223
+was on CRAN, and RTMB is the only one this lane knows was ahead of its
+CRAN binary. `frmtmb` itself is
+excluded by the script and was not touched. Reinstalling RTMB 2.0 means
+`install.packages("RTMB", repos = "https://kaskr.r-universe.dev")` into
+the user library, which is the user's call, not a lane's.

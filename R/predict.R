@@ -2708,23 +2708,21 @@ residuals_unsupported <- c(
 #' resulting point mass at each censoring point is not a distribution
 #' DHARMa's rank transform can use.
 #'
-#' @section Ordinal responses:
-#' An ordinal response has no mean, so `"response"` and `"pearson"`
-#' score the categories by the integer codes `1..K` the likelihood
-#' itself uses: `"response"` is `y - E[Y]` with
-#' `E[Y] = sum_k k * P(y = k)` taken from [fitted()]'s category
-#' probabilities, and `"pearson"` divides by the standard deviation of
-#' that same distribution. This is the frequentist point-estimate form
-#' of what brms's `residuals()` reports on an ordinal fit (there, the
-#' observed category minus a drawn one). It is a residual on a SCORE,
-#' not on the ordinal scale, so read it for gross lack of fit and
-#' pattern, not as a calibrated quantity: `"osa"` and
-#' [dharma_residuals()] give residuals that use only the order.
+#' @section Ordinal and other category responses:
+#' `"response"` (`"ordinary"`) and `"pearson"` are refused for an
+#' ordinal family (`cumulative()`, `sratio()`, `cratio()`, `acat()`), a
+#' `categorical()` family and a `multinomial()` family. brms refuses
+#' the same two types for the same families ("Predictive errors are not
+#' defined for ordinal or categorical models"): the response is a
+#' category or a vector of counts over categories, so `y - E[Y]` has no
+#' scale to be read on.
+#'
+#' On an ordinal fit, `"osa"` gives a residual that uses only the
+#' order. It uses `"oneStepGeneric"` over the discrete support `1..K`,
+#' which makes the residuals randomized quantile residuals.
+#' [dharma_residuals()] is the simulation-based alternative.
 #' `"deviance"` is refused, as it is for every family without a
 #' standard unit deviance.
-#'
-#' `"osa"` uses `"oneStepGeneric"` over the discrete support `1..K`,
-#' which makes the residuals randomized quantile residuals.
 #'
 #' @section Deviance residuals:
 #' `"deviance"` returns `sign(y - E[Y]) * sqrt(w * d)`, where the unit
@@ -2853,7 +2851,9 @@ residuals.frmtmb_fit <- function(object, type = c("response", "ordinary",
                                  robust = FALSE, probs = c(0.025, 0.975)) {
   type <- frm_match_arg(type)
   # brms spells the raw residual "ordinary"; this package has always
-  # spelled it "response", and both reach the same branch
+  # spelled it "response", and both reach the same branch. The
+  # spelling the CALLER used is what a refusal has to quote back
+  written <- type
   if (identical(type, "ordinary")) type <- "response"
   fitted_refuse_draws_args("residuals()", ndraws, draw_ids, sort, summary,
                            robust)
@@ -2864,6 +2864,24 @@ residuals.frmtmb_fit <- function(object, type = c("response", "ordinary",
                  .allow = if (identical(type, "osa")) {
                    names(formals(TMB::oneStepPredict))
                  })
+  if (type %in% c("response", "pearson")) {
+    # brms refuses its two residual types for every polytomous family
+    # (brms 2.23.0 .predictive_error(), dev/correct-log/brms-resid.txt).
+    # A categorical fit is left to residual_values(), which refuses
+    # every type there, "osa" included, with its own reason.
+    fam <- single_response(object, "residuals()")$family
+    if (fam_is_polytomous(fam) &&
+          !identical(fam[["type"]], "categorical")) {
+      frm_stop("residuals(type = \"", written, "\") is not defined for ",
+               "the '", fam[["family"]], "' family, as in brms: the ",
+               "response is a category or a set of counts over ",
+               "categories, so ",
+               "y - E[Y] has no scale to be read on. On an ordinal fit, ",
+               "type = \"osa\" gives randomized quantile residuals that ",
+               "use only the order, and dharma_residuals() is the ",
+               "simulation-based check", call. = FALSE)
+    }
+  }
   r <- residual_values(object, type = type, osa_method = osa_method, ...)
   se <- residual_point_se(object, type, r)
   if (is.matrix(r)) {

@@ -204,6 +204,15 @@ brms_fixef_rows <- function(fit) {
   # sorts ahead of that predictor's other intercepts, which is where
   # brms puts it; the tie-break below is what places it
   tie <- rep(0L, length(keep))
+  # brms numbers its special terms in terms() order, every main effect
+  # ahead of every interaction. The frame already sorts mo() columns
+  # that way; a mi(x) * z design keeps mi(x):z ahead of mi(x), so the
+  # interaction order is a tie-break of its own
+  sp_ord <- ifelse(cls == "bsp",
+                   1L + lengths(regmatches(tab$internal[keep],
+                                           gregexpr(":", tab$internal[keep],
+                                                    fixed = TRUE))),
+                   0L)
   for (b in seq_along(ex)) {
     e <- ex[[b]]
     k <- length(e$names)
@@ -215,6 +224,7 @@ brms_fixef_rows <- function(fit) {
     blk <- c(blk, rep(b, k))
     pos <- c(pos, seq_len(k))
     tie <- c(tie, rep(-1L, k))
+    sp_ord <- c(sp_ord, rep(0L, k))
   }
   if (!length(nm)) {
     return(list(idx = integer(0), names = character(0),
@@ -222,7 +232,7 @@ brms_fixef_rows <- function(fit) {
   }
   rank <- match(cls, c("b", "bs", "bsp", "bcs"))
   dpr <- match(dp, unique(dp))
-  ord <- order(rank, !is_int, dpr, tie, seq_along(nm))
+  ord <- order(rank, !is_int, dpr, tie, sp_ord, seq_along(nm))
   list(idx = idx[ord], names = nm[ord], blk = blk[ord], pos = pos[ord],
        extra = ex)
 }

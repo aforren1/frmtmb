@@ -804,6 +804,11 @@ bodies above and measured on brms itself, and the suite was not read.
     `theta1` and `theta2` (`default_prior()` measured); what its
     predicted theta is relative to was not measured, so the
     coefficient's meaning may differ from brms's under the same name.
+    **FIXED 2026-09-22 by lane `wt-correct`** (`dev/correct-findings.md`
+    section 6): brms holds the component WITHOUT a formula at 0, so the
+    reference now follows the formula, and brms's `log_prob()` at
+    frmtmb's estimate agrees for `theta2 ~ x` as it does for
+    `theta1 ~ x` (`test-brms-likelihood.R` row 17b).
 16. **A suffixed `r_` name cannot be written in `hypothesis()`**:
     `r_gd[lvl.1,Intercept]__1` is renamed to one symbol the draws do not
     bind, and the call errors. brms's `find_vars()` stops at `]` in the
@@ -811,6 +816,11 @@ bodies above and measured on brms itself, and the suite was not read.
 17. **`mi()` predictor coefficients stay `b_mix`**; brms names them
     `bsp_mix`. Not changed, because whether the two hold the same
     quantity was not measured, as it was for `mo()`.
+    **FIXED 2026-09-22 by lane `wt-correct`** (`dev/correct-findings.md`
+    section 5): measured on brms (the same estimate under `bsp_y_mixm`,
+    0.681 against frmtmb's 0.697 on seed-108 data, a posterior mean
+    against an ML estimate), renamed, and the `fixef()` rows put the
+    special-term coefficients last, in brms's order.
 18. **`mixture_mvn()`'s weights take the simplex path** through the same
     code as `mixture()`, and no test fits one.
 

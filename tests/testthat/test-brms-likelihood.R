@@ -409,6 +409,25 @@ test_that("row 17: mixture(gaussian, gaussian) with theta1 ~ x", {
                 brms::mixture(gaussian(), gaussian()), dx, fit)
 })
 
+test_that("row 17b: theta2 ~ x makes component 1 the reference, as brms", {
+  skip_unless_brms_fit()
+
+  # brms holds the theta WITHOUT a formula at 0: here theta1, where
+  # frmtmb held the last component at 0 and refused theta2 ~ x until
+  # 0.61.0 (dev/correct-findings.md, item 6). brms's density at frmtmb's
+  # estimate, and its zero gradient there, are what say the two
+  # parameterize the mixing weight the same way.
+  set.seed(37)
+  n <- 400
+  dx <- data.frame(x = rnorm(n))
+  k <- rbinom(n, 1, 0.35)
+  dx$y <- ifelse(k == 1, rnorm(n, 3, 1), rnorm(n, -1, 1))
+  fit <- frm(bf(y ~ 1, theta2 ~ x) + mixture(gaussian(), gaussian()),
+             data = dx)
+  brms_lp_check(brms::bf(y ~ 1, theta2 ~ x),
+                brms::mixture(gaussian(), gaussian()), dx, fit)
+})
+
 test_that("check C: row 7, (1 | q | g) merged across mu and sigma", {
   skip_unless_brms_fit()
   skip_if_not_installed("MASS")

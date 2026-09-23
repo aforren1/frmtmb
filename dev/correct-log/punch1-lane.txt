@@ -1,0 +1,41 @@
+== minor 6: the refusal quotes the caller's type ==
+response     residuals(type = "response") is not defined for the 'cumulative' famil
+ordinary     residuals(type = "ordinary") is not defined for the 'cumulative' famil
+pearson      residuals(type = "pearson") is not defined for the 'cumulative' family
+
+== minor 2: resp on a one-response fit, and minor 8: the warning ==
+resp = "w" plots the same data: TRUE 
+dens_overlay, group = g                    WARNING: The following arguments were unrecognized and ignored: group
+dens_overlay, group = g                    OK
+dens_overlay, group = nosuch               OK
+stat_grouped, group = nosuch               ERROR [frmtmb_error]: Variable 'nosuch' could not be found in the data.
+
+== minor 3: error_binned on ordinal draws and on the fit ==
+fit, error_binned                          ERROR [frmtmb_error]: Type 'error_binned' is not available for polytomous models: the 'cumulative' response is a category, and a binned error needs a numeric one, as in brm
+draws, error_binned                        ERROR [frmtmb_sample_error]: Type 'error_binned' is not available for polytomous models: the 'cumulative' response is a category, and a binned error needs a numeric one, as in brm
+
+== minor 4: variables() order on a mi() interaction ==
+variables: b_y_Intercept b_y_z bsp_y_mixm bsp_y_mixm:z b_xm_Intercept b_xm_z sigma_y sigma_xm 
+fixef rows: y_Intercept xm_Intercept y_z xm_z y_mixm y_mixm:z 
+
+== minor 5: class sd on a location-scale smooth ==
+smooth blocks: mu/1 sigma/2 
+class sd reaches theta: 1 
+class sd dpar sigma reaches theta: 2 
+    prior class coef group  dpar
+7  (flat)    sd                 
+8  (flat)    sd            sigma
+9  (flat)    sd       s(x)      
+10 (flat)    sd       s(z) sigma
+                  prior class coef group  dpar
+7  student_t(3, 0, 2.5)    sd                 
+8  student_t(3, 0, 2.5)    sd            sigma
+9  student_t(3, 0, 2.5)    sd       s(x)      
+10 student_t(3, 0, 2.5)    sd       s(z) sigma
+
+== minor 2, the draws half: resp on a one-response draws object ==
+draws, resp = "w" plots the same data: TRUE 
+
+== minor 1: what a multinomial fit answers, against brms ==
+multinomial, error_binned                  ERROR [frmtmb_error]: Type 'error_binned' is not available for polytomous models: the 'multinomial' response is a category, and a binned error needs a numeric one, as in br
+multinomial, error_hist                    ERROR [frmtmb_error]: pp_check() on a fit supports vector responses

@@ -1640,6 +1640,9 @@ parse_one_response <- function(bform) {
   primaries <- fam[["primary_dpars"]] %||% "mu"
   pforms <- bform$pforms
   pfix <- bform$pfix
+  # a mixture's reference component is the one whose theta has no
+  # formula, as in brms, so the family's theta dpars follow the formula
+  fam <- mixture_theta_reference(fam, names(pforms))
   nlforms <- bform$nlforms %||% list()
   nl_bodies <- lapply(nlforms, reformulas::RHSForm)
   nl_envs <- lapply(nlforms, function(nf) environment(nf) %||% env)

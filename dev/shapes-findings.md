@@ -990,7 +990,10 @@ directory and finds 15 jobs on the tree
   ("Predictive errors are not defined for ordinal models"). That is
   defect S7 of `dev/brmsport-findings.md` and it is a BEHAVIOR question,
   not a shape one; it was not in this lane's brief and the row stays a
-  defect.
+  defect. **CLOSED 2026-09-22 by lane `wt-correct`**
+  (`dev/correct-findings.md` section 1): `"response"`, `"ordinary"` and
+  `"pearson"` are refused for every ordinal and multinomial family, as
+  brms refuses them; `"osa"` still answers.
 
 **Deliberately not changed.**
 
