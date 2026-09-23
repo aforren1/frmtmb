@@ -1,0 +1,31 @@
+﻿frmtmb from C:/Users/adf44/source/r/reunc2-lib/frmtmb 
+predicting level 3, whose effect is 1.622
+
+four corners, 4000 draws, one seed
+                est  width
+NULL / TRUE  2.4417 2.9297
+NULL / FALSE 2.4356 2.5616
+NA / TRUE    0.8093 3.1097
+NA / FALSE   0.8138 2.5616
+
+the two FALSE corners, at full precision
+  width NULL/FALSE 2.5615970090632789
+  width NA/FALSE   2.5615970090632789
+  identical(): TRUE; apart by 0.00 ulp
+  centre difference         1.6217512329993795
+  the group's fitted effect 1.6217512329993797
+  apart by 0.62 ulp
+
+the orderings the argument claims
+  NULL/FALSE narrower than NULL/TRUE: TRUE
+  NA/FALSE narrower than NA/TRUE:     TRUE
+  the two FALSE corners differ in CENTRE (what re_formula does,
+  and propagate_error cannot): TRUE by 1.6218
+  the two NULL corners agree in CENTRE (what propagate_error
+  does, and re_formula cannot): TRUE
+
+noise-only check: NULL/FALSE width 2.5616 against 2 * 1.96 * sigma = 2.6325, ratio 0.9731
+
+the old name is gone, not deprecated
+  predict(param_uncertainty = FALSE): predict() has no argument `param_uncertainty`. It takes: object, newda
+  formals name it: TRUE; old name present: FALSE

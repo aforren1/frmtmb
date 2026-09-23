@@ -1,0 +1,27 @@
+﻿frmtmb from C:/Users/adf44/source/r/reunc2-lib/frmtmb 
+[1] 15  2
+NULL                               max abs diff 4.441e-16
+~(1 + x | g)                       max abs diff 4.441e-16
+~(1 | g)                           max abs diff 0.000e+00
+~(0 + x | g)                       max abs diff 0.000e+00
+~(1 | h)                           max abs diff 0.000e+00
+~(1 | g) + (1 | h)                 max abs diff 4.441e-16
+~1                                 max abs diff 0.000e+00
+full formula identical to NULL     max abs diff 0.000e+00
+identical full: TRUE 
+newdata ~(1 | g), no h column      max abs diff 0.000e+00
+nosuch class: frmtmb_error error 
+   frm_linpred(): the re_formula term (1 | nosuch) matches no group-level term of this fit. A term is kept when its grouping factor is one the fit has and its columns are among that term's columns. The fit's group-level terms are: (1 + x | g), (1 | h). brms drops such a term silently, which turns a misspelled grouping factor into a population-level prediction; use re_formula = NA to ask for that 
+(1+z|g): fitted(): the re_formula term (1 + z | g) matches no group-level term of this fit. A term is kept when its grouping factor is one the fit has and its columns are among that term's columns. The fit's group-level terms are: (1 + x | g), (1 | h). brms drops such a term silently, which turns a misspelled grouping factor into a population-level prediction; use re_formula = NA to ask for that 
+se NULL / (1|g) / NA row1: 0.4344336 0.5192037 0.4456999 
+fitted ~(1|h) estimate             max abs diff 0.000e+00
+       [,1]  [,2]   [,3]   [,4]
+[1,]  1.000 0.002 -0.021 -0.019
+[2,]  0.002 1.000  0.012  0.027
+[3,] -0.021 0.012  1.000  0.023
+[4,] -0.019 0.027  0.023  1.000
+      Estimate Est.Error       Q2.5    Q97.5
+[1,] 0.2931995  1.207734 -2.0791834 2.677662
+[2,] 0.6314084  1.222640 -1.6861206 2.965398
+[3,] 0.8087775  1.207258 -1.4720199 3.267202
+[4,] 1.8266148  1.219202 -0.5549658 4.206701

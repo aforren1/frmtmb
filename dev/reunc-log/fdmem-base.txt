@@ -1,0 +1,15 @@
+﻿frmtmb from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+
+peak Mb over the call, R's own gc() high-water mark
+levels         in    in_full         nd     scalar
+   200      212.4         NA      170.1      231.1
+Rscript.exe : Warning message:
+At line:8 char:1
++ & $R "$ROOT/dev/reunc-fdmem.R" "C:/Users/adf44/source/r/rellib-r3" 2> ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning message::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Large maximum absolute gradient at the optimum (0.00156); the fit may not have converged. diagnose() names the 
+offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+  1000      257.2         NA      172.1      323.5

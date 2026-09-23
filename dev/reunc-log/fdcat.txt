@@ -1,0 +1,12 @@
+﻿frmtmb from C:/Users/adf44/source/r/reunc2-lib/frmtmb 
+
+categorical, 25 levels: kept 50, loaded by the 2 rows 4, batches 2
+  2 newdata rows, bounded+batched    identical TRUE  max ulp 0.0
+  in sample, batched                 identical FALSE max ulp 1.1
+
+two predictors, different grouping factors: kept 30, batches 2
+  in sample, batched                 identical FALSE max ulp 1.3
+  2 newdata rows, bounded+batched    identical FALSE max ulp 0.6
+
+same factor on two predictors: kept 50, batches 2
+  in sample, batched                 identical FALSE max ulp 1.1

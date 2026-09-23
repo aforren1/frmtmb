@@ -1,0 +1,4 @@
+script dev/reunc-condvar.R, seed 1, 4000 replicates of 10 points
+shapes  sigma 1.0 tau 0.7 groups 12: known-parameter coverage of sigma^2 + x'Vx + v_g = 0.9547 (exact PEV interval 0.9500); (x'Vx + v_g) / PEV mean 1.311
+review  sigma 0.8 tau 0.7 groups 12: known-parameter coverage of sigma^2 + x'Vx + v_g = 0.9567 (exact PEV interval 0.9500); (x'Vx + v_g) / PEV mean 1.416
+few4    sigma 1.0 tau 0.7 groups  4: known-parameter coverage of sigma^2 + x'Vx + v_g = 0.9625 (exact PEV interval 0.9500); (x'Vx + v_g) / PEV mean 2.315

@@ -1,0 +1,3 @@
+﻿seed 1: var ratio 1.0038 (z 0.84), same-group cov ratio 0.9938 (z -0.31)
+seed 2: var ratio 0.9981 (z -0.43), same-group cov ratio 0.9977 (z -0.11)
+seed 3: var ratio 0.9966 (z -0.76), same-group cov ratio 0.9745 (z -1.28)

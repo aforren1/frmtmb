@@ -73,7 +73,7 @@ for (r in seq_len(nrep)) {
   sset(s + 2L)
   dp <- tryCatch(suppressWarnings(
     predict(fit, newdata = nd, ndraws = ndraws, summary = FALSE,
-            param_uncertainty = FALSE)), error = function(e) NULL)
+            propagate_error = FALSE)), error = function(e) NULL)
   if (is.null(dj) || is.null(dp)) { fail <- fail + 1L; next }
   qi <- function(D) t(apply(D, 2L, stats::quantile, c(0.025, 0.975),
                             names = FALSE))

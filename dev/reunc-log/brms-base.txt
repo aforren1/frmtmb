@@ -1,0 +1,27 @@
+frmtmb 0.61.0 from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+brms 2.23.0 
+
+1 and 2. brms against its own hand construction, and frmtmb's dropped contribution against brms's
+~(1 | g)             brms vs hand max|d| 0.00e+00 | dropped: brms sd 0.7716, frmtmb sd 0.0000, max|brms - frmtmb| 1.3097, cor NA
+~(0 + x | g)         brms vs hand max|d| 0.00e+00 | dropped: brms sd 1.0576, frmtmb sd 0.0000, max|brms - frmtmb| 2.5992, cor NA
+~(1 + x | g)         brms vs hand max|d| 8.88e-16 | dropped: brms sd 0.7671, frmtmb sd 0.0000, max|brms - frmtmb| 1.2107, cor NA
+~(1 | h)             brms vs hand max|d| 0.00e+00 | dropped: brms sd 0.7393, frmtmb sd 0.0000, max|brms - frmtmb| 1.6993, cor NA
+~(1 | g) + (1 | h)   brms vs hand max|d| 8.88e-16 | dropped: brms sd 0.0785, frmtmb sd 0.0000, max|brms - frmtmb| 0.3108, cor NA
+brms ~(1 | nosuch) identical to re_formula = NA: TRUE 
+frmtmb ~(1 | nosuch): identical to NULL 
+newdata without h, ~(1 | g): brms 0.2549926 1.5980110 1.3095383 
+                              frmtmb newdata has no column `h`, the grouping factor of a random effect. Add it, or say what the prediction should do without it: allow_new_levels = TRUE treats every row as an unseen level (the population value, plus that block's variance in an interval), and re_formula = NA drops the random effects altogether 
+
+3. frmtmb.sample draws
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1.6, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  cor                lkj(1)  [correlation matrix]
+  b                  (flat), as brms leaves slopes
+~(1 | g)             epred vs hand max|d| 2.98e+00 (25 draws) | fitted Est = colMeans(epred) TRUE | predict Est vs colMeans(pp) max|d| 0.00e+00
+~(0 + x | g)         epred vs hand max|d| 3.86e+00 (25 draws) | fitted Est = colMeans(epred) TRUE | predict Est vs colMeans(pp) max|d| 0.00e+00
+~(1 + x | g)         epred vs hand max|d| 2.78e+00 (25 draws) | fitted Est = colMeans(epred) TRUE | predict Est vs colMeans(pp) max|d| 0.00e+00
+~(1 | h)             epred vs hand max|d| 3.44e+00 (25 draws) | fitted Est = colMeans(epred) TRUE | predict Est vs colMeans(pp) max|d| 0.00e+00
+~(1 | g) + (1 | h)   epred vs hand max|d| 1.75e+00 (25 draws) | fitted Est = colMeans(epred) TRUE | predict Est vs colMeans(pp) max|d| 0.00e+00
+draws ~(1 | nosuch): answered 

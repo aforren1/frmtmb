@@ -50,7 +50,7 @@ test_that("each unseen level draws its own effect; one level shares it", {
                    g = factor(c("new1", "new2", "new3", "new4", "new4")))
   set.seed(1)
   d <- predict(fit, newdata = nd, allow_new_levels = TRUE,
-               param_uncertainty = FALSE, ndraws = 4000, summary = FALSE)
+               propagate_error = FALSE, ndraws = 4000, summary = FALSE)
   r <- stats::cor(d)
   # three DISTINCT unseen levels: brms draws an independent effect for
   # each, so their draws are uncorrelated. They used to share one draw
@@ -119,7 +119,7 @@ test_that("predict(summary = FALSE) on a rescor fit draws jointly", {
   rc <- rescor_matrix(fit)[1L, 2L]
   set.seed(3)
   d <- predict(fit, summary = FALSE, ndraws = 3000,
-               param_uncertainty = FALSE)
+               propagate_error = FALSE)
   within <- vapply(seq_len(dim(d)[2L]), function(i) {
     stats::cor(d[, i, 1L], d[, i, 2L])
   }, 0)

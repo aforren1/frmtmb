@@ -1,0 +1,10 @@
+﻿frmtmb from C:/Users/adf44/source/r/reunc2-lib/frmtmb 
+
+factor smooth, 6 levels: kept 30, loaded in sample 30, by 3 newdata rows 15
+  batches in sample: 30; on newdata: 15
+  in sample                    identical FALSE max rel 4.06e-16  max ulp 1.8
+  3 newdata rows               identical FALSE max rel 3.52e-16  max ulp 1.6
+
+smooth plus (1 | h): kept 35, loaded by 3 rows 17
+  in sample                    identical FALSE max rel 5.46e-16  max ulp 2.5
+  3 newdata rows               identical FALSE max rel 2.1e-16  max ulp 0.9

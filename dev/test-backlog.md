@@ -60,7 +60,11 @@ to do, and every closure carries the measurement that closed it.
 
 ## Open - high priority
 
-- DECIDED 2026-09-22 (user): match brms. `predict()` AND `fitted()` carry
+- DONE, lane wt-reunc (`dev/reunc-findings.md`): `predict()` draws the
+  group effects at a known level jointly from their conditional law,
+  `fitted()`'s ordinal and categorical route carries them, and a
+  partial `re_formula` keeps only its own terms. The entry as decided:
+  DECIDED 2026-09-22 (user): match brms. `predict()` AND `fitted()` carry
   the group effects' uncertainty at a level the fit saw; `re_formula = NA`
   adds none, and a partial `re_formula` adds only its own terms, so this
   goes in one lane with the silent partial-`re_formula` defect. The lane
@@ -92,7 +96,12 @@ to do, and every closure carries the measurement that closed it.
   mass far outside the data's range. Not fixed; filed by lane
   wt-shapes.
 
-- `re_formula` naming a grouping factor the model does not have is
+- DONE, lane wt-reunc: such a term is refused now, classed and named.
+  brms does NOT refuse it: `check_re_formula()` drops an unmatched term
+  silently, so `~(1 | nosuch)` there equals `re_formula = NA`
+  (`dev/reunc-log/brms-lane.txt`). frmtmb departs from brms here on
+  purpose; `dev/reunc-findings.md` names it for the user. The entry:
+  `re_formula` naming a grouping factor the model does not have is
   silently treated as `NULL`. Measured by the review of items 2.6d and
   2.6f (`dev/reviews/20260918-shapes.md`, m5): `predict(fit,
   re_formula = ~(1 | nosuch))` returns the CONDITIONAL prediction, bit
@@ -114,6 +123,44 @@ to do, and every closure carries the measurement that closed it.
   exactly doubles the logLik (-347.5174 against -173.7587). What is
   missing is the regression test and the sentence saying so.
   [lme4 priorWeights.R]
+
+- `simulate(re_formula = )` still reads any formula as "condition on
+  every group effect". Its switch is lme4's, `NA` redraws the effects
+  and anything else keeps the modes, so `~0` and a partial formula such
+  as `~ (1 | g)` both simulate conditionally with nothing said. Lane
+  wt-reunc fixed `re_formula` in `predict()`, `fitted()`,
+  `frm_linpred()` and `frm_lp_basis()` and left `simulate()` alone,
+  because brms has no `simulate()` and what a partial formula should
+  MEAN there (redraw the dropped terms, as `NA` does for all of them?)
+  is a decision. `dharma_residuals()` and `pp_check()` on a fit reach
+  it. Filed by lane wt-reunc.
+
+- The uncertainty in the VARIANCE PARAMETERS is not in any interval
+  here. Measured by lane wt-reunc with an exact positive control
+  (`dev/reunc-findings.md` section 3): with sigma and tau known, the
+  prediction interval covers 0.9523 and 0.9513 on two designs; with the
+  fit's own ML estimates in the same formula it covers 0.9403 and
+  0.9337, and `predict()` and `fitted()` sit on those numbers. REML
+  covers better in every arm (0.9437, 0.9380), which is the same cause
+  seen from the other side. `fitted()`'s interval is the one where it
+  shows most: 0.9170 and 0.8977 against the oracle's 0.9480. brms
+  carries this term because its posterior includes tau. Candidates: a
+  t-like widening with the profile curvature of tau, or a bootstrap
+  interval. Filed by lane wt-reunc.
+
+- A quadrature fit's SCALAR standard errors leave out the group-effect
+  term and say nothing. On `y ~ x + (1 | g)` with `bernoulli()` and
+  `quadrature = TRUE`, `fitted()` reports Est.Error 0.09407 and 0.08913
+  at a known level against 0.09340 and 0.09095 at `re_formula = NA`, so
+  the term is missing; a Laplace fit of the same data reports 0.15115
+  against 0.09158. The objective marginalizes the random effects, so
+  the joint covariance of such a fit carries `beta` and `theta` and no
+  `b`, and `lp_delta_A()`'s guard does not fire because the design adds
+  no b columns to pair. Pre-existing in 0.61.0, and more visible since
+  lane wt-reunc made the finite-difference route warn in the same
+  situation. Candidates: warn on the scalar route too, or refuse
+  `fitted()` at a known level on a quadrature fit. Filed by lane
+  wt-reunc, punch round 1.
 
 ### Closed at the 2026-09-07 triage (was: Open - high priority)
 

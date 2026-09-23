@@ -1,0 +1,36 @@
+﻿frmtmb from C:/Users/adf44/source/r/reunc2-lib/frmtmb 
+
+0. the reference is one coefficient at a time, checked
+   esicar: kept 9 effects; re_b_batches() says REFUSED
+   b_batch = NULL equals b_batch = list(): TRUE
+
+1. every car type, in sample and on 3 newdata rows
+fit                      in (rel)   nd (rel)  batches
+icar                     2.36e-16   1.92e-16        1
+icar + (1|h)             2.65e-16   2.65e-16        2
+escar                    3.95e-16   2.02e-16        1
+escar + (1|h)            4.13e-16   3.22e-16        2
+esicar                          0          0  refused
+esicar + (1|h)                  0          0  refused
+
+2. the same four numbers as ulps, where they should be exact
+   icar     in    1.1 ulp, nd    0.9 ulp
+   escar    in    1.8 ulp, nd    0.9 ulp
+   esicar   in    0.0 ulp, nd    0.0 ulp
+
+3. the bound alone, which fails the same way under centering
+   kept 9, bound to 9 (equal means the whole block joins, as it must)
+
+4. the defect, reconstructed: the OLD proxy for 'not positionwise'
+   esicar: model unchanged by the swap TRUE
+     old batches 1, old bound 3 of 9
+     old in 0.583 rel, old nd 0.409 rel; fixed 0.0, 0.0 ulp
+     old/reference in sample: min 0.4170, max 1.0204
+   esicar + (1|h): model unchanged by the swap TRUE
+     old batches 2, old bound 4 of 13
+     old in 0.603 rel, old nd 0.394 rel; fixed 0.0, 0.0 ulp
+     old/reference in sample: min 0.3967, max 1.0171
+
+5. rr, which the old proxy caught only below full rank
+   rank 2: kept 16, batches refused, shipped vs reference 0 rel
+   rank 1: kept 16, batches refused, shipped vs reference 0 rel

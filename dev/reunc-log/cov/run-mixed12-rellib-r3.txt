@@ -1,0 +1,16 @@
+rep 20 of 300, 330 s
+rep 40 of 300, 637 s
+rep 60 of 300, 920 s
+rep 80 of 300, 1204 s
+rep 100 of 300, 1513 s
+rep 120 of 300, 1806 s
+rep 140 of 300, 2153 s
+rep 160 of 300, 2456 s
+rep 180 of 300, 2751 s
+rep 200 of 300, 3027 s
+rep 220 of 300, 3370 s
+rep 240 of 300, 3704 s
+rep 260 of 300, 4033 s
+rep 280 of 300, 4334 s
+rep 300 of 300, 4681 s
+done mixed12 base in 4683.06 s

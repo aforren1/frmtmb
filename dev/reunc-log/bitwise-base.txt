@@ -1,0 +1,2 @@
+﻿frmtmb 0.61.0 from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+wrote C:/Users/adf44/source/r/frmtmb-wt-reunc/dev/reunc-log/bitwise-base.rds with 15 fits

@@ -1,0 +1,529 @@
+
+R version 4.6.1 (2026-06-24 ucrt) -- "Happy Hop"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-w64-mingw32/x64
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(testthat)
+> library(frmtmb)
+> 
+> test_check("frmtmb")
+2 rows removed because of missing values (na.action)
+2 rows removed because of missing values (na.action)
+2 rows removed because of missing values (na.action)
+2 rows removed because of missing values (na.action)
+2 rows removed because of missing values (na.action)
+4 rows removed because of missing values (na.action)
+Note: in most cases the default test statistic 'mean' is too weak to detect anything of interest.
+Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+2 rows removed because of missing values (na.action)
+1 row removed because of missing values (na.action)
+2 rows removed because of missing values (na.action)
+5 rows removed because of missing values (na.action)
+Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+5 rows removed because of missing values (na.action)
+5 rows removed because of missing values (na.action)
+[ FAIL 0 | WARN 16 | SKIP 154 | PASS 10530 ]
+
+══ Skipped tests (154) ═════════════════════════════════════════════════════════
+• dev/ not reachable from the test dir (1): 'test-arg-refusal.R:352:3'
+• frmtmb's own sources are not beside the tests (1): 'test-arg-refusal.R:440:3'
+• not a monorepo checkout (1): 'test-ci-siblings.R:64:3'
+• package sources are not available (installed-package run) (8):
+  'test-bracket-access.R:82:3', 'test-bracket-access.R:109:3',
+  'test-bracket-access.R:203:3', 'test-bracket-access.R:238:3',
+  'test-conditions-census.R:299:3', 'test-core-boundary.R:66:3',
+  'test-core-boundary.R:99:3', 'test-message-uniqueness.R:29:3'
+• set FRMTMB_BRMS_FIT_TESTS=true to run brms fit tests (91):
+  'test-brms-agreement.R:505:3', 'test-brms-agreement.R:542:3',
+  'test-brms-likelihood.R:50:3', 'test-brms-likelihood.R:86:3',
+  'test-brms-likelihood.R:148:3', 'test-brms-likelihood.R:160:3',
+  'test-brms-likelihood.R:173:3', 'test-brms-likelihood.R:184:3',
+  'test-brms-likelihood.R:212:3', 'test-brms-likelihood.R:227:3',
+  'test-brms-likelihood.R:279:3', 'test-brms-likelihood.R:292:3',
+  'test-brms-likelihood.R:310:3', 'test-brms-likelihood.R:321:3',
+  'test-brms-likelihood.R:334:3', 'test-brms-likelihood.R:350:3',
+  'test-brms-likelihood.R:377:3', 'test-brms-likelihood.R:392:3',
+  'test-brms-likelihood.R:413:3', 'test-brms-likelihood.R:436:3',
+  'test-brms-likelihood.R:451:3', 'test-brms-likelihood.R:489:3',
+  'test-brms-likelihood.R:527:3', 'test-brms-likelihood.R:567:3',
+  'test-brms-likelihood.R:615:3', 'test-brms-likelihood.R:675:3',
+  'test-brms-likelihood.R:727:3', 'test-brms-likelihood.R:771:3',
+  'test-brms-likelihood.R:892:3', 'test-brms-likelihood.R:1012:3',
+  'test-brms-likelihood.R:1076:3', 'test-brms-likelihood.R:1175:3',
+  'test-brms-likelihood.R:1190:3', 'test-brms-likelihood.R:1226:3',
+  'test-brms-methods.R:37:3', 'test-brms-methods.R:60:3',
+  'test-brms-methods.R:81:3', 'test-brms-methods.R:119:3',
+  'test-brms-methods.R:178:3', 'test-brms-methods.R:203:3',
+  'test-brms-methods.R:217:3', 'test-brms-methods.R:244:3',
+  'test-brms-methods.R:271:3', 'test-brms-methods.R:288:3',
+  'test-brms-methods.R:306:3', 'test-brms-methods.R:331:3',
+  'test-brms-methods.R:371:3', 'test-brms-methods.R:397:3',
+  'test-brms-methods.R:431:3', 'test-brms-methods.R:450:3',
+  'test-brms-methods.R:481:3', 'test-brms-methods.R:517:3',
+  'test-brms-methods.R:556:3', 'test-brms-methods.R:588:3',
+  'test-brms-methods.R:607:3', 'test-brms-methods.R:644:3',
+  'test-brms-methods.R:686:3', 'test-brms-methods.R:714:3',
+  'test-brms-methods.R:773:3', 'test-brms-methods.R:801:3',
+  'test-brms-methods.R:914:3', 'test-brms-methods.R:945:3',
+  'test-brms-methods.R:995:3', 'test-brms-methods.R:1020:3',
+  'test-brms-methods.R:1061:3', 'test-brms-methods.R:1084:3',
+  'test-brms-methods.R:1109:3', 'test-brms-methods.R:1165:3',
+  'test-brms-methods.R:1195:3', 'test-brms-methods.R:1231:3',
+  'test-brms-methods.R:1243:3', 'test-brms-methods.R:1275:3',
+  'test-brms-methods.R:1343:3', 'test-brms-methods.R:1367:3',
+  'test-brms-methods.R:1401:3', 'test-brms-methods.R:1427:3',
+  'test-brms-methods.R:1445:3', 'test-brms-methods.R:1460:3',
+  'test-brms-methods.R:1482:3', 'test-brms-priors.R:57:3',
+  'test-brms-priors.R:81:3', 'test-brms-priors.R:127:3',
+  'test-brms-priors.R:197:3', 'test-brms-priors.R:270:3',
+  'test-brms-priors.R:333:3', 'test-brms-priors.R:380:3',
+  'test-brms-priors.R:440:3', 'test-brms-priors.R:496:3',
+  'test-brms-priors.R:542:3', 'test-brms-priors.R:598:3',
+  'test-brms-priors.R:651:3'
+• set FRMTMB_BRMS_FIT_TESTS=true to run the Stan tier (41):
+  'test-bcm-bart.R:131:3', 'test-bcm-binomial.R:70:3',
+  'test-bcm-binomial.R:99:3', 'test-bcm-binomial.R:125:3',
+  'test-bcm-binomial.R:163:3', 'test-bcm-binomial.R:193:3',
+  'test-bcm-binomial.R:265:3', 'test-bcm-data-analysis.R:86:3',
+  'test-bcm-data-analysis.R:139:3', 'test-bcm-data-analysis.R:218:3',
+  'test-bcm-data-analysis.R:294:3', 'test-bcm-data-analysis.R:359:3',
+  'test-bcm-data-analysis.R:465:3', 'test-bcm-esp.R:42:3',
+  'test-bcm-esp.R:144:3', 'test-bcm-gaussian.R:90:3',
+  'test-bcm-gaussian.R:159:3', 'test-bcm-gaussian.R:200:3',
+  'test-bcm-gcm.R:121:3', 'test-bcm-gcm.R:179:3',
+  'test-bcm-latent-mixtures.R:108:3', 'test-bcm-latent-mixtures.R:134:3',
+  'test-bcm-latent-mixtures.R:218:3', 'test-bcm-latent-mixtures.R:316:3',
+  'test-bcm-latent-mixtures.R:433:3', 'test-bcm-model-selection.R:63:3',
+  'test-bcm-model-selection.R:159:3', 'test-bcm-model-selection.R:294:3',
+  'test-bcm-mpt.R:127:3', 'test-bcm-mpt.R:227:3',
+  'test-bcm-psychophysics.R:100:3', 'test-bcm-psychophysics.R:148:3',
+  'test-bcm-retention.R:134:3', 'test-bcm-retention.R:176:3',
+  'test-bcm-retention.R:223:3', 'test-bcm-signal-detection.R:181:3',
+  'test-bcm-signal-detection.R:246:3', 'test-bcm-signal-detection.R:271:3',
+  'test-bcm-simple.R:188:3', 'test-rl-example.R:221:3',
+  'test-rl-example.R:234:3'
+• set FRMTMB_BRMS_FIT_TESTS=true to run the brms suite (10):
+  'test-brms-suite-brm.R:6:1', 'test-brms-suite-brmsfit-helpers.R:6:1',
+  'test-brms-suite-brmsformula.R:6:1', 'test-brms-suite-brmsterms.R:6:1',
+  'test-brms-suite-data-helpers.R:6:1', 'test-brms-suite-emmeans.R:6:1',
+  'test-brms-suite-families.R:6:1', 'test-brms-suite-methods.R:6:1',
+  'test-brms-suite-priors.R:6:1', 'test-brms-suite-standata.R:6:1'
+• set FRMTMB_FUZZ=true to run the grammar fuzz tier (1): 'test-fuzz.R:43:3'
+
+══ Warnings ════════════════════════════════════════════════════════════════════
+── Warning ('test-brms-families.R:407:5'): a trial step past a link's domain does not warn; a NaN start does ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(...) at test-brms-families.R:410:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb::frm(y ~ x, d, family = "inverse.gaussian", control = frmtmb_control(optimizer = raw))
+  8.   └─frmtmb:::fit_assembled(...)
+  9.     ├─frmtmb:::fit_error_context(...)
+ 10.     │ ├─base::withCallingHandlers(...)
+ 11.     │ └─base::tryCatch(...)
+ 12.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 13.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 14.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 15.     ├─base::tryCatch(...)
+ 16.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.     └─frmtmb:::optimize_obj(...)
+ 20.       └─frmtmb (local) run(start_par)
+ 21.         ├─base::tryCatch(...)
+ 22.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 23.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 24.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 25.         └─frmtmb:::run_optimizer(...)
+ 26.           └─frmtmb (local) optimizer(par, fn, gr, lower, upper, control)
+ 27.             └─stats::nlminb(...) at test-brms-families.R:407:5
+── Warning ('test-brms-families.R:407:5'): a trial step past a link's domain does not warn; a NaN start does ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(...) at test-brms-families.R:410:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb::frm(y ~ x, d, family = "inverse.gaussian", control = frmtmb_control(optimizer = raw))
+  8.   └─frmtmb:::fit_assembled(...)
+  9.     ├─frmtmb:::fit_error_context(...)
+ 10.     │ ├─base::withCallingHandlers(...)
+ 11.     │ └─base::tryCatch(...)
+ 12.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 13.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 14.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 15.     ├─base::tryCatch(...)
+ 16.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.     └─frmtmb:::optimize_obj(...)
+ 20.       └─frmtmb (local) run(start_par)
+ 21.         ├─base::tryCatch(...)
+ 22.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 23.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 24.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 25.         └─frmtmb:::run_optimizer(...)
+ 26.           └─frmtmb (local) optimizer(par, fn, gr, lower, upper, control)
+ 27.             └─stats::nlminb(...) at test-brms-families.R:407:5
+── Warning ('test-brms-families.R:407:5'): a trial step past a link's domain does not warn; a NaN start does ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(...) at test-brms-families.R:410:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb::frm(y ~ x, d, family = "inverse.gaussian", control = frmtmb_control(optimizer = raw))
+  8.   └─frmtmb:::fit_assembled(...)
+  9.     ├─frmtmb:::fit_error_context(...)
+ 10.     │ ├─base::withCallingHandlers(...)
+ 11.     │ └─base::tryCatch(...)
+ 12.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 13.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 14.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 15.     ├─base::tryCatch(...)
+ 16.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.     └─frmtmb:::optimize_obj(...)
+ 20.       └─frmtmb (local) run(start_par)
+ 21.         ├─base::tryCatch(...)
+ 22.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 23.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 24.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 25.         └─frmtmb:::run_optimizer(...)
+ 26.           └─frmtmb (local) optimizer(par, fn, gr, lower, upper, control)
+ 27.             └─stats::nlminb(...) at test-brms-families.R:407:5
+── Warning ('test-brms-families.R:407:5'): a trial step past a link's domain does not warn; a NaN start does ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(...) at test-brms-families.R:410:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb::frm(y ~ x, d, family = "inverse.gaussian", control = frmtmb_control(optimizer = raw))
+  8.   └─frmtmb:::fit_assembled(...)
+  9.     ├─frmtmb:::fit_error_context(...)
+ 10.     │ ├─base::withCallingHandlers(...)
+ 11.     │ └─base::tryCatch(...)
+ 12.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 13.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 14.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 15.     ├─base::tryCatch(...)
+ 16.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.     └─frmtmb:::optimize_obj(...)
+ 20.       └─frmtmb (local) run(start_par)
+ 21.         ├─base::tryCatch(...)
+ 22.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 23.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 24.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 25.         └─frmtmb:::run_optimizer(...)
+ 26.           └─frmtmb (local) optimizer(par, fn, gr, lower, upper, control)
+ 27.             └─stats::nlminb(...) at test-brms-families.R:407:5
+── Warning ('test-brms-families.R:407:5'): a trial step past a link's domain does not warn; a NaN start does ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(...) at test-brms-families.R:410:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb::frm(y ~ x, d, family = "inverse.gaussian", control = frmtmb_control(optimizer = raw))
+  8.   └─frmtmb:::fit_assembled(...)
+  9.     ├─frmtmb:::fit_error_context(...)
+ 10.     │ ├─base::withCallingHandlers(...)
+ 11.     │ └─base::tryCatch(...)
+ 12.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 13.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 14.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 15.     ├─base::tryCatch(...)
+ 16.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.     └─frmtmb:::optimize_obj(...)
+ 20.       └─frmtmb (local) run(start_par)
+ 21.         ├─base::tryCatch(...)
+ 22.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 23.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 24.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 25.         └─frmtmb:::run_optimizer(...)
+ 26.           └─frmtmb (local) optimizer(par, fn, gr, lower, upper, control)
+ 27.             └─stats::nlminb(...) at test-brms-families.R:407:5
+── Warning ('test-brms-families.R:407:5'): a trial step past a link's domain does not warn; a NaN start does ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(...) at test-brms-families.R:410:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb::frm(y ~ x, d, family = "inverse.gaussian", control = frmtmb_control(optimizer = raw))
+  8.   └─frmtmb:::fit_assembled(...)
+  9.     ├─frmtmb:::fit_error_context(...)
+ 10.     │ ├─base::withCallingHandlers(...)
+ 11.     │ └─base::tryCatch(...)
+ 12.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 13.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 14.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 15.     ├─base::tryCatch(...)
+ 16.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.     └─frmtmb:::optimize_obj(...)
+ 20.       └─frmtmb (local) run(start_par)
+ 21.         ├─base::tryCatch(...)
+ 22.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 23.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 24.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 25.         └─frmtmb:::run_optimizer(...)
+ 26.           └─frmtmb (local) optimizer(par, fn, gr, lower, upper, control)
+ 27.             └─stats::nlminb(...) at test-brms-families.R:407:5
+── Warning ('test-brms-families.R:407:5'): a trial step past a link's domain does not warn; a NaN start does ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(...) at test-brms-families.R:410:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb::frm(y ~ x, d, family = "inverse.gaussian", control = frmtmb_control(optimizer = raw))
+  8.   └─frmtmb:::fit_assembled(...)
+  9.     ├─frmtmb:::fit_error_context(...)
+ 10.     │ ├─base::withCallingHandlers(...)
+ 11.     │ └─base::tryCatch(...)
+ 12.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 13.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 14.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 15.     ├─base::tryCatch(...)
+ 16.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.     └─frmtmb:::optimize_obj(...)
+ 20.       └─frmtmb (local) run(start_par)
+ 21.         ├─base::tryCatch(...)
+ 22.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 23.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 24.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 25.         └─frmtmb:::run_optimizer(...)
+ 26.           └─frmtmb (local) optimizer(par, fn, gr, lower, upper, control)
+ 27.             └─stats::nlminb(...) at test-brms-families.R:407:5
+── Warning ('test-brms-families.R:407:5'): a trial step past a link's domain does not warn; a NaN start does ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(...) at test-brms-families.R:410:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb::frm(y ~ x, d, family = "inverse.gaussian", control = frmtmb_control(optimizer = raw))
+  8.   └─frmtmb:::fit_assembled(...)
+  9.     ├─frmtmb:::fit_error_context(...)
+ 10.     │ ├─base::withCallingHandlers(...)
+ 11.     │ └─base::tryCatch(...)
+ 12.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 13.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 14.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 15.     ├─base::tryCatch(...)
+ 16.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.     └─frmtmb:::optimize_obj(...)
+ 20.       └─frmtmb (local) run(start_par)
+ 21.         ├─base::tryCatch(...)
+ 22.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 23.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 24.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 25.         └─frmtmb:::run_optimizer(...)
+ 26.           └─frmtmb (local) optimizer(par, fn, gr, lower, upper, control)
+ 27.             └─stats::nlminb(...) at test-brms-families.R:407:5
+── Warning ('test-brms-families.R:407:5'): a trial step past a link's domain does not warn; a NaN start does ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(...) at test-brms-families.R:410:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb::frm(y ~ x, d, family = "inverse.gaussian", control = frmtmb_control(optimizer = raw))
+  8.   └─frmtmb:::fit_assembled(...)
+  9.     ├─frmtmb:::fit_error_context(...)
+ 10.     │ ├─base::withCallingHandlers(...)
+ 11.     │ └─base::tryCatch(...)
+ 12.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 13.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 14.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 15.     ├─base::tryCatch(...)
+ 16.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.     └─frmtmb:::optimize_obj(...)
+ 20.       └─frmtmb (local) run(start_par)
+ 21.         ├─base::tryCatch(...)
+ 22.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 23.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 24.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 25.         └─frmtmb:::run_optimizer(...)
+ 26.           └─frmtmb (local) optimizer(par, fn, gr, lower, upper, control)
+ 27.             └─stats::nlminb(...) at test-brms-families.R:407:5
+── Warning ('test-brms-families.R:407:5'): a trial step past a link's domain does not warn; a NaN start does ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(...) at test-brms-families.R:410:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. └─frmtmb::frm(y ~ x, d, family = "inverse.gaussian", control = frmtmb_control(optimizer = raw))
+  8.   └─frmtmb:::fit_assembled(...)
+  9.     ├─frmtmb:::fit_error_context(...)
+ 10.     │ ├─base::withCallingHandlers(...)
+ 11.     │ └─base::tryCatch(...)
+ 12.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 13.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 14.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 15.     ├─base::tryCatch(...)
+ 16.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 17.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 18.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 19.     └─frmtmb:::optimize_obj(...)
+ 20.       └─frmtmb (local) run(start_par)
+ 21.         ├─base::tryCatch(...)
+ 22.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 23.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 24.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 25.         └─frmtmb:::run_optimizer(...)
+ 26.           └─frmtmb (local) optimizer(par, fn, gr, lower, upper, control)
+ 27.             └─stats::nlminb(...) at test-brms-families.R:407:5
+── Warning ('test-brms-families.R:421:3'): a trial step past a link's domain does not warn; a NaN start does ──
+NA/NaN function evaluation
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(...) at test-brms-families.R:421:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. ├─base::try(frm(y ~ x, d, family = broken), silent = TRUE)
+  8. │ └─base::tryCatch(...)
+  9. │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10. │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11. │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12. └─frmtmb::frm(y ~ x, d, family = broken)
+ 13.   └─frmtmb:::fit_assembled(...)
+ 14.     ├─frmtmb:::fit_error_context(...)
+ 15.     │ ├─base::withCallingHandlers(...)
+ 16.     │ └─base::tryCatch(...)
+ 17.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 18.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 19.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 20.     ├─base::tryCatch(...)
+ 21.     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 22.     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 23.     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 24.     └─frmtmb:::optimize_obj(...)
+ 25.       └─frmtmb (local) run(opt$par)
+ 26.         ├─base::tryCatch(...)
+ 27.         │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 28.         │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 29.         │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 30.         └─frmtmb:::run_optimizer(...)
+ 31.           └─stats::nlminb(...)
+── Warning ('test-brms-families.R:421:3'): a trial step past a link's domain does not warn; a NaN start does ──
+Large maximum absolute gradient at the optimum (400); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+     ▆
+  1. ├─testthat::expect_warning(...) at test-brms-families.R:421:3
+  2. │ └─testthat:::expect_condition_matching_(...)
+  3. │   └─testthat:::quasi_capture(...)
+  4. │     ├─testthat (local) .capture(...)
+  5. │     │ └─base::withCallingHandlers(...)
+  6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+  7. ├─base::try(frm(y ~ x, d, family = broken), silent = TRUE)
+  8. │ └─base::tryCatch(...)
+  9. │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10. │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11. │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12. └─frmtmb::frm(y ~ x, d, family = broken)
+ 13.   └─frmtmb:::fit_assembled(...)
+ 14.     └─frmtmb:::check_convergence(fit, control)
+ 15.       └─frmtmb::frm_warning(m, call. = FALSE)
+── Warning ('test-brms-names.R:58:3'): variables() uses brms's names, b_ on every coefficient ──
+Optimizer did not report convergence: singular convergence (7)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(bf(y ~ x + (1 + x | g)) + gaussian(), data = dd) at test-brms-names.R:58:3
+ 2.   └─frmtmb:::fit_assembled(...)
+ 3.     └─frmtmb:::check_convergence(fit, control)
+ 4.       └─frmtmb::frm_warning(m, call. = FALSE)
+── Warning ('test-brms-names.R:68:3'): variables() uses brms's names, b_ on every coefficient ──
+Optimizer did not report convergence: singular convergence (7)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-brms-names.R:68:3
+ 2.   └─frmtmb:::fit_assembled(...)
+ 3.     └─frmtmb:::check_convergence(fit, control)
+ 4.       └─frmtmb::frm_warning(m, call. = FALSE)
+── Warning ('test-brms-names.R:88:3'): VarCorr() is brms's structure, keyed by the grouping factor ──
+Optimizer did not report convergence: singular convergence (7)
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(bf(y ~ x + (1 + x | g)) + gaussian(), data = dd) at test-brms-names.R:88:3
+ 2.   └─frmtmb:::fit_assembled(...)
+ 3.     └─frmtmb:::check_convergence(fit, control)
+ 4.       └─frmtmb::frm_warning(m, call. = FALSE)
+── Warning ('test-nl-rtmb-scope.R:360:3'): a user helper in the formula environment is still found ──
+Large maximum absolute gradient at the optimum (0.00139); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+Backtrace:
+    ▆
+ 1. └─frmtmb::frm(...) at test-nl-rtmb-scope.R:360:3
+ 2.   └─frmtmb:::fit_assembled(...)
+ 3.     └─frmtmb:::check_convergence(fit, control)
+ 4.       └─frmtmb::frm_warning(m, call. = FALSE)
+
+[ FAIL 0 | WARN 16 | SKIP 154 | PASS 10530 ]
+> 
+> proc.time()
+   user  system elapsed 
+1093.21  121.87 1287.76 

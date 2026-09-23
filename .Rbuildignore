@@ -18,3 +18,4 @@
 Rplots\.pdf$
 ^data-raw$
 ^vignettes/figure$
+^tests/testthat/_problems$

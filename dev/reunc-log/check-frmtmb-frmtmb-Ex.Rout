@@ -1,0 +1,4695 @@
+
+R version 4.6.1 (2026-06-24 ucrt) -- "Happy Hop"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-w64-mingw32/x64
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> pkgname <- "frmtmb"
+> source(file.path(R.home("share"), "R", "examples-header.R"))
+> options(warn = 1)
+> options(pager = "console")
+> base::assign(".ExTimings", "frmtmb-Ex.timings", pos = 'CheckExEnv')
+> base::cat("name\tuser\tsystem\telapsed\n", file=base::get(".ExTimings", pos = 'CheckExEnv'))
+> base::assign(".format_ptime",
++ function(x) {
++   if(!is.na(x[4L])) x[1L] <- x[1L] + x[4L]
++   if(!is.na(x[5L])) x[2L] <- x[2L] + x[5L]
++   options(OutDec = '.')
++   format(x[1L:3L], digits = 7L)
++ },
++ pos = 'CheckExEnv')
+> 
+> ### * </HEADER>
+> library('frmtmb')
+> 
+> base::assign(".oldSearch", base::search(), pos = 'CheckExEnv')
+> base::assign(".old_wd", base::getwd(), pos = 'CheckExEnv')
+> cleanEx()
+> nameEx("VarCorr")
+> ### * VarCorr
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: VarCorr.frmtmb_fit
+> ### Title: Extract random-effect standard deviations and correlations
+> ### Aliases: VarCorr.frmtmb_fit VarCorr
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(200), g = factor(rep(1:20, 10)))
+> u <- cbind(rnorm(20, 0, 0.8), rnorm(20, 0, 0.4))
+> dd$y <- rnorm(200, 1 + 0.5 * dd$x + u[dd$g, 1] + u[dd$g, 2] * dd$x, 1)
+> fit <- frm(bf(y ~ x + (x | g)) + gaussian(), data = dd)
+> 
+> vc <- VarCorr(fit)
+> names(vc)                       # "g" and "residual__", as in brms
+[1] "g"          "residual__"
+> vc$g$sd                         # standard deviations
+           Estimate Est.Error      Q2.5     Q97.5
+Intercept 0.8861648 0.1581149 0.5762653 1.1960643
+x         0.4512135 0.1239615 0.2082534 0.6941735
+> vc$g$cor["Intercept", "Estimate", "x"]
+[1] 0.05273605
+> vc$residual__$sd
+  Estimate  Est.Error      Q2.5    Q97.5
+ 0.9641289 0.05388581 0.8585147 1.069743
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("VarCorr", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("anova.frmtmb_fit")
+> ### * anova.frmtmb_fit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: anova.frmtmb_fit
+> ### Title: Likelihood-ratio tests between nested frmtmb fits
+> ### Aliases: anova.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> n <- 200
+> dd <- data.frame(x = rnorm(n), z = rnorm(n), g = factor(rep(1:20, 10)))
+> u <- cbind(rnorm(20, 0, 0.8), rnorm(20, 0, 0.5))
+> dd$y <- rnorm(n, 1 + 0.5 * dd$x + u[dd$g, 1] + u[dd$g, 2] * dd$x, 1)
+> 
+> m0 <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+> m1 <- frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd)
+> anova(m0, m1)
+Likelihood-ratio tests
+Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit
+
+                    Df  logLik    AIC  Chisq Chi Df Pr(>Chisq)
+y ~ x + (1 | g)      4 -334.52 677.04                         
+y ~ x + z + (1 | g)  5 -334.05 678.10 0.9394      1     0.3324
+> 
+> # dropping a variance component puts the null on the boundary, so
+> # this p-value is conservative by up to a factor of two
+> m2 <- frm(bf(y ~ x) + gaussian(), data = dd)
+> anova(m2, m0)
+Likelihood-ratio tests
+Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit
+
+                Df  logLik    AIC  Chisq Chi Df Pr(>Chisq)    
+y ~ x            3 -352.75 711.51                             
+y ~ x + (1 | g)  4 -334.52 677.04 36.468      1  1.552e-09 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+> 
+> # REML fits compare only when the fixed-effect designs agree, which
+> # is the case for a variance-component test
+> r0 <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd, REML = TRUE)
+> r1 <- frm(bf(y ~ x + (x | g)) + gaussian(), data = dd, REML = TRUE)
+> anova(r0, r1)
+Likelihood-ratio tests
+Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit
+
+                Df  logLik    AIC  Chisq Chi Df Pr(>Chisq)    
+y ~ x + (1 | g)  2 -336.69 677.39                             
+y ~ x + (x | g)  4 -325.44 658.87 22.516      2   1.29e-05 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+> # differing designs are refused; refit = TRUE compares ML fits instead
+> rz <- frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd, REML = TRUE)
+> try(anova(r0, rz))
+Error : REML likelihoods are comparable only between fits whose fixed-effect designs span the same column space; these do not. Pass refit = TRUE (or refit with REML = FALSE) to compare fixed effects, or hold the fixed effects fixed to compare random-effect structures
+> anova(r0, rz, refit = TRUE)
+anova(): refitting 2 REML models with ML: y ~ x + (1 | g); y ~ x + z + (1 | g)
+Likelihood-ratio tests
+Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit
+
+                    Df  logLik    AIC  Chisq Chi Df Pr(>Chisq)
+y ~ x + (1 | g)      4 -334.52 677.04                         
+y ~ x + z + (1 | g)  5 -334.05 678.10 0.9394      1     0.3324
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("anova.frmtmb_fit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("anova.frmtmb_multiple")
+> ### * anova.frmtmb_multiple
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: anova.frmtmb_multiple
+> ### Title: Pooled model comparison across imputations (D1, D2, D3)
+> ### Aliases: anova.frmtmb_multiple
+> 
+> ### ** Examples
+> 
+> set.seed(4)
+> n <- 60
+> imps <- lapply(1:4, function(i) {
++   x <- rnorm(n)
++   data.frame(y = rnorm(n, 1 + 0.5 * x), x = x, z = rnorm(n))
++ })
+> m1 <- frm_multiple(bf(y ~ x + z) + gaussian(), data = imps)
+> m0 <- frm_multiple(bf(y ~ x) + gaussian(), data = imps)
+> anova(m1, m0)
+Pooled model comparison over 4 imputations (D3)
+  Model 1: y ~ x + z
+  Model 2: y ~ x
+
+ statistic df1   df2     p   riv
+    0.2167   1 7.978 0.654 1.585
+> anova(m1, m0, method = "D1")
+Pooled model comparison over 4 imputations (D1)
+  Model 1: y ~ x + z
+  Model 2: y ~ x
+
+ statistic df1   df2      p  riv
+    0.3354   1 10.16 0.5751 1.19
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("anova.frmtmb_multiple", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("as.brmsprior")
+> ### * as.brmsprior
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: as.brmsprior
+> ### Title: Transform an object into a prior specification
+> ### Aliases: as.brmsprior
+> 
+> ### ** Examples
+> 
+> as.brmsprior(data.frame(prior = "normal(0,1)", coef = c("a", "b")))
+       prior class coef group resp dpar nlpar   lb   ub source
+ normal(0,1)     b    a                       <NA> <NA>   user
+ normal(0,1)     b    b                       <NA> <NA>   user
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("as.brmsprior", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("as_draws")
+> ### * as_draws
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: as_draws
+> ### Title: Convert to a posterior draws object
+> ### Aliases: as_draws as_draws_matrix as_draws_array as_draws_df
+> ###   as_draws_list as_draws_rvars as_draws.frmtmb_fit
+> ###   as_draws_matrix.frmtmb_fit as_draws_array.frmtmb_fit
+> ###   as_draws_df.frmtmb_fit as_draws_list.frmtmb_fit
+> ###   as_draws_rvars.frmtmb_fit as_draws.frmtmb_multiple
+> 
+> ### ** Examples
+> 
+> # a maximum-likelihood fit carries no draws, and says so by name
+> dd <- data.frame(y = rnorm(40), x = rnorm(40))
+> try(as_draws_df(frm(bf(y ~ x) + gaussian(), data = dd)))
+Error : as_draws_df() needs posterior draws and a frmtmb_fit has none: frm() is maximum likelihood, so it carries one parameter vector rather than chains. Install frmtmb.sample and sample first, with as_draws_df(frmtmb.sample::frm_sample(fit)); for the point estimates and their covariance use fixef(), vcov() or confint() on the fit itself
+> 
+> # frm_multiple() pools estimates rather than carrying draws, so it
+> # answers with the reason rather than a matrix
+> fits <- frm_multiple(bf(y ~ x) + gaussian(), data = list(dd, dd))
+> try(as_draws(fits))
+Error : as_draws() needs draws, and a frm_multiple() result has none: it is m maximum-likelihood fits pooled by Rubin's rules, with no chains. Read the pooled tables from `x$pooled` and `x$pooled_varcorr` or test with hypothesis(), and use frm_sample() on one imputation's fit (`x$fits[[1]]`) for draws
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("as_draws", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("autocor_matrix")
+> ### * autocor_matrix
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: autocor_matrix
+> ### Title: Estimated within-group residual correlation matrix
+> ### Aliases: autocor_matrix
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> d <- expand.grid(week = 1:5, subj = factor(1:25))
+> e <- as.vector(apply(matrix(rnorm(125), 5, 25), 2, function(z) {
++   as.vector(stats::filter(z, 0.6, "recursive"))
++ }))
+> d$x <- rnorm(125)
+> d$y <- 1 + 0.5 * d$x + e
+> fit <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(),
++            data = d)
+> autocor_matrix(fit)
+           1         2         3         4          5
+1 1.00000000 0.5480416 0.3003496 0.1646041 0.09020986
+2 0.54804158 1.0000000 0.5480416 0.3003496 0.16460405
+3 0.30034957 0.5480416 1.0000000 0.5480416 0.30034957
+4 0.16460405 0.3003496 0.5480416 1.0000000 0.54804158
+5 0.09020986 0.1646041 0.3003496 0.5480416 1.00000000
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("autocor_matrix", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("bayes_R2")
+> ### * bayes_R2
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: bayes_R2
+> ### Title: Bayesian R-squared
+> ### Aliases: bayes_R2 bayes_R2.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(40))
+> dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
+> fit <- frm(bf(y ~ x) + gaussian(), data = dd)
+> try(bayes_R2(fit))
+Error : bayes_R2() is computed per posterior draw and this is a maximum-likelihood fit. Install frmtmb.sample and sample first: bayes_R2(frm_sample(fit))
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("bayes_R2", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("bf")
+> ### * bf
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: bf
+> ### Title: Set up a model formula
+> ### Aliases: bf
+> 
+> ### ** Examples
+> 
+> # brms-style model formulas: attach a family with `+`
+> bf(y ~ x + (1 | g)) + gaussian()
+y ~ x + (1 | g)
+Family: gaussian 
+> # distributional parameters get their own formulas or constants
+> bf(y ~ x, sigma ~ x)
+y ~ x
+sigma ~ x 
+> bf(y ~ x, shape = 2) + Gamma()
+y ~ x
+shape = 2 
+Family: Gamma 
+> # nonlinear models declare parameter formulas and nl = TRUE
+> bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1 + (1 | g), nl = TRUE)
+y ~ a * exp(-b * x) (nonlinear)
+a ~ 1 
+b ~ 1 + (1 | g) 
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("bf", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("brmsfamily")
+> ### * brmsfamily
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: brmsfamily
+> ### Title: Build a family by name, with a link for any of its parameters
+> ### Aliases: brmsfamily
+> 
+> ### ** Examples
+> 
+> # sigma on a softplus: gaussian() from 'stats' has no link_sigma
+> brmsfamily("gaussian", link_sigma = "softplus")
+
+Family: gaussian 
+Link function: identity 
+Parameters: mu (identity), sigma (softplus)
+
+> 
+> # a mean link stats::poisson() refuses, and brms's short names
+> brmsfamily("poisson", softplus)$link
+[1] "softplus"
+> brmsfamily("zi_poisson")$link_zi
+[1] "logit"
+> 
+> set.seed(2)
+> d <- data.frame(x = rnorm(60))
+> d$y <- rnorm(60, 1 + d$x, exp(0.3 * d$x))
+> frm(bf(y ~ x, sigma ~ x),
++     family = brmsfamily("gaussian", link_sigma = "softplus"), data = d)
+ Family: gaussian 
+ Links: mu = identity; sigma = softplus
+
+Formula: y ~ x 
+   Data: d (Number of observations: 60) 
+ Method: ML   logLik: -92.517   AIC: 193.034   BIC: 201.411 
+
+Regression Coefficients:
+                Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept           0.94      0.15     0.64     1.25    6.15  7.8e-10
+sigma_Intercept     0.74      0.16     0.43     1.04    4.73  2.2e-06
+x                   0.93      0.12     0.70     1.16    7.77  8.0e-15
+sigma_x             0.48      0.13     0.22     0.74    3.56  0.00037
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("brmsfamily", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("check_custom_family")
+> ### * check_custom_family
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: check_custom_family
+> ### Title: Check a custom family's log-density for AD safety
+> ### Aliases: check_custom_family
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> y <- rpois(50, 3)
+> 
+> # a hand-written poisson: check it before fitting anything with it
+> ok <- custom_family(
++   "my_poisson", dpars = "mu", links = list(mu = "log"),
++   lpdf = function(y, dpars, aterms) {
++     y * log(dpars$mu) - dpars$mu - lgamma(y + 1)
++   },
++   type = "discrete"
++ )
+> check_custom_family(ok, y = y, dpars = list(mu = rep(2.5, 50)))
+> 
+> # base matrix() strips the advector class, so the tape sees constants
+> # and the gradient is silently wrong. The check catches it.
+> bad <- custom_family(
++   "bad", dpars = "mu", links = list(mu = "log"),
++   lpdf = function(y, dpars, aterms) {
++     m <- matrix(dpars$mu, ncol = 1)
++     y * log(m[, 1]) - m[, 1] - lgamma(y + 1)
++   },
++   type = "discrete"
++ )
+> try(check_custom_family(bad, y = y, dpars = list(mu = rep(2.5, 50))))
+Error : Failed to tape the lpdf: Invalid argument to 'advector' (lost class attribute?). Typical cause: base matrix()/c() stripping the advector class, or branching on parameter values
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("check_custom_family", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("cluster_scores")
+> ### * cluster_scores
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: cluster_scores
+> ### Title: Per-cluster score matrix
+> ### Aliases: cluster_scores
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(200), g = factor(rep(1:25, 8)))
+> dd$y <- rnorm(200, 1 + 0.5 * dd$x + rnorm(25, 0, 0.8)[dd$g], 1)
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd, REML = FALSE)
+> 
+> S <- cluster_scores(fit, ~ g)
+> dim(S)
+[1] 25  4
+> # the scores add up to the gradient at the optimum
+> max(abs(colSums(S)))
+[1] 8.139203e-05
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("cluster_scores", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("coef.frmtmb_fit")
+> ### * coef.frmtmb_fit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: coef.frmtmb_fit
+> ### Title: Per-group coefficients (fixed effects plus conditional modes)
+> ### Aliases: coef.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+> dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+> 
+> # one row per group: the fixed effects with the modes added in
+> head(coef(fit)$g)
+    Intercept         x
+1  0.44665008 0.6706869
+2  1.43337233 0.6706869
+3  0.54268306 0.6706869
+4  0.87303571 0.6706869
+5 -0.02536969 0.6706869
+6  2.28544238 0.6706869
+> # which is fixef() plus ranef(), the lme4 identity, under the same
+> # names fixef() and vcov() use
+> all.equal(coef(fit)$g[["Intercept"]],
++           fixef(fit)["Intercept", "Estimate"] + ranef(fit)$g[, 1],
++           check.attributes = FALSE)
+[1] TRUE
+> 
+> # without random effects there are no groups, so coef() is the
+> # coefficient vector of the location predictor
+> coef(frm(bf(y ~ x) + gaussian(), data = dd))
+Intercept         x 
+1.2457711 0.6136201 
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("coef.frmtmb_fit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("conditional_effects")
+> ### * conditional_effects
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: conditional_effects
+> ### Title: Conditional effects of predictors
+> ### Aliases: conditional_effects conditional_effects.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(5)
+> dd <- data.frame(x = rnorm(120), f = factor(rep(c("a", "b"), 60)))
+> dd$y <- rnorm(120, 1 + 0.5 * dd$x + (dd$f == "b"), 1)
+> fit <- frm(bf(y ~ x * f), family = gaussian(), data = dd)
+> ce <- conditional_effects(fit, effects = c("x", "x:f"))
+> plot(ce, ask = FALSE)
+> # prediction intervals instead of epred bands
+> ce_p <- conditional_effects(fit, effects = "x", method = "predict")
+> ## No test: 
+> # a likelihood-profile band: asymmetric, and no quadratic assumption
+> ce_pr <- conditional_effects(fit, effects = "x", band = "profile",
++                              resolution = 20, profile_points = 5)
+> 
+> # a bootstrap band, reused for a second effect without refitting
+> ce_b <- conditional_effects(fit, effects = "x", band = "boot",
++                             boot = 25, seed = 1)
+> ce_b2 <- conditional_effects(fit, effects = "x", band = "boot",
++                              boot = attr(ce_b, "boot"))
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("conditional_effects", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("confint.frmtmb_fit")
+> ### * confint.frmtmb_fit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: confint.frmtmb_fit
+> ### Title: Confidence intervals for frmtmb fits
+> ### Aliases: confint.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+> dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+> 
+> # Wald intervals for every parameter, covariance ones included
+> confint(fit)
+                         lwr       upr         est
+(Intercept)        0.7014216 1.7777016  1.23956159
+x                  0.4486521 0.8927218  0.67068694
+sigma_(Intercept) -0.1808711 0.1113227 -0.03477419
+theta_1           -0.7094981 0.2925625 -0.20846781
+> 
+> # the likelihood profile does not assume a quadratic log-likelihood,
+> # so it is the one to trust for a variance component
+> confint(fit, parm = "theta_1", method = "profile")
+               lwr       upr        est
+theta_1 -0.6835298 0.3479822 -0.2084678
+> 
+> # confint_varcorr() puts the same information on the SD scale
+> confint_varcorr(fit)
+  block        term type  estimate      lwr      upr
+1 1 | g (Intercept)   sd 0.8118272 0.491891 1.339856
+> ## No test: 
+> # a parametric bootstrap, the lme4 confint(method = "boot") analog
+> confint(fit, parm = "x", method = "boot", nsim = 50, seed = 1)
+        lwr       upr       est
+x 0.4314735 0.8223053 0.6706869
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("confint.frmtmb_fit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("confint_varcorr")
+> ### * confint_varcorr
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: confint_varcorr
+> ### Title: Natural-scale confidence intervals for covariance parameters
+> ### Aliases: confint_varcorr
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(200), g = factor(rep(1:20, 10)))
+> u <- cbind(rnorm(20, 0, 0.8), rnorm(20, 0, 0.4))
+> dd$y <- rnorm(200, 1 + 0.5 * dd$x + u[dd$g, 1] + u[dd$g, 2] * dd$x, 1)
+> fit <- frm(bf(y ~ x + (x | g)) + gaussian(), data = dd)
+> 
+> # one row per SD and per correlation, on the scale they are read on
+> confint_varcorr(fit)
+  block               term type   estimate        lwr       upr
+1 x | g        (Intercept)   sd 0.88616477  0.6246517 1.2571614
+2 x | g                  x   sd 0.45121347  0.2633493 0.7730933
+3 x | g cor((Intercept),x)  cor 0.05273605 -0.4893613 0.5654374
+> 
+> # confint() reports the same parameters on their internal scale, so
+> # the bounds there are log-SDs and Fisher-z correlations
+> confint(fit)[grep("^theta", rownames(confint(fit))), ]
+               lwr        upr         est
+theta_1 -0.4705610  0.2288563 -0.12085237
+theta_2 -1.3342739 -0.2573555 -0.79581472
+theta_3 -0.5360151  0.6416342  0.05280954
+> 
+> # a fit with no random effects has no covariance parameters
+> confint_varcorr(frm(bf(y ~ x) + gaussian(), data = dd))
+NULL
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("confint_varcorr", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("cox_baseline")
+> ### * cox_baseline
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: cox_baseline
+> ### Title: The fitted baseline-hazard simplex of a 'cox()' fit.
+> ### Aliases: cox_baseline
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(200))
+> dd$time <- rexp(200, exp(-0.5 + 0.7 * dd$x))
+> fit <- frm(bf(time ~ x), family = cox(), data = dd)
+> cox_baseline(fit)
+        s1         s2         s3         s4         s5 
+0.01712166 0.21161600 0.11189645 0.06392626 0.59543964 
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("cox_baseline", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("default_prior")
+> ### * default_prior
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: default_prior
+> ### Title: Default priors: the slots a prior can target
+> ### Aliases: default_prior get_prior
+> 
+> ### ** Examples
+> 
+> dd <- data.frame(y = rnorm(60), x = rnorm(60),
++                  g = factor(rep(1:6, 10)))
+> # what frm() applies: flat, whatever else is loaded. For what
+> # frm_sample() applies, see "Which route the defaults describe"
+> default_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+route = "fit": the prior defaults frm() applies
+   prior     class    coef group resp dpar nlpar lb ub  source
+1 (flat) Intercept                               NA NA default
+2 (flat)         b                               NA NA default
+3 (flat)         b       x                       NA NA default
+4 (flat)     sigma                               NA NA default
+5 (flat)        sd                               NA NA default
+6 (flat)        sd             g                 NA NA default
+7 (flat)     theta                               NA NA default
+8 (flat)     theta theta_1                       NA NA default
+> # the same table under brms's older name
+> get_prior(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+route = "fit": the prior defaults frm() applies
+   prior     class    coef group resp dpar nlpar lb ub  source
+1 (flat) Intercept                               NA NA default
+2 (flat)         b                               NA NA default
+3 (flat)         b       x                       NA NA default
+4 (flat)     sigma                               NA NA default
+5 (flat)        sd                               NA NA default
+6 (flat)        sd             g                 NA NA default
+7 (flat)     theta                               NA NA default
+8 (flat)     theta theta_1                       NA NA default
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("default_prior", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("dharma_residuals")
+> ### * dharma_residuals
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: dharma_residuals
+> ### Title: DHARMa residual diagnostics
+> ### Aliases: dharma_residuals
+> 
+> ### ** Examples
+> 
+> if (requireNamespace("DHARMa", quietly = TRUE)) {
++   set.seed(1)
++   dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
++   dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
++   fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
++ 
++   # scaled quantile residuals: uniform under a correct model, which
++   # is what Pearson residuals cannot give for a discrete family
++   res <- dharma_residuals(fit, nsim = 100, seed = 1)
++   plot(res)
++   DHARMa::testUniformity(res, plot = FALSE)
++   DHARMa::testDispersion(res, plot = FALSE)
++ }
+
+	DHARMa nonparametric dispersion test via sd of residuals fitted vs.
+	simulated
+
+data:  simulationOutput
+dispersion = 0.99641, p-value = 0.88
+alternative hypothesis: two.sided
+
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("dharma_residuals", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("diagnose")
+> ### * diagnose
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: diagnose
+> ### Title: Convergence diagnostics for a frmtmb fit
+> ### Aliases: diagnose
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+> dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+> diagnose(fit)
+Optimizer convergence code: 0 (relative convergence (4)) 
+Max |gradient|: 0.0002949 at x 
+Hessian positive definite: TRUE 
+No convergence problems detected
+> 
+> # a random effect the data cannot support collapses to the boundary,
+> # which is a valid fit but a warning about the model
+> dd$h <- factor(rep(1:10, each = 10))
+> fit_s <- frm(bf(y ~ x + (1 | g) + (1 | h)) + gaussian(), data = dd)
+> d <- diagnose(fit_s, quiet = TRUE)
+> d$singular
+NULL
+> 
+> # a predictor scaled far from one slows the optimizer down; the
+> # remedy is frmtmb_control(autoscale = TRUE)
+> dd$xbig <- dd$x * 1e5
+> diagnose(frm(bf(xbig ~ 1) + gaussian(), data = dd), quiet = TRUE)$scale
+NULL
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("diagnose", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("draws-dimensions")
+> ### * draws-dimensions
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: draws-dimensions
+> ### Title: Size of a draws object
+> ### Aliases: draws-dimensions ndraws nchains niterations nvariables
+> ###   ndraws.frmtmb_fit nchains.frmtmb_fit niterations.frmtmb_fit
+> ###   nvariables.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> dd <- data.frame(y = rnorm(40), x = rnorm(40))
+> fits <- frm_multiple(bf(y ~ x) + gaussian(), data = list(dd, dd))
+> try(ndraws(fits))
+Error in UseMethod("ndraws") : 
+  no applicable method for 'ndraws' applied to an object of class "frmtmb_multiple"
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("draws-dimensions", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("drop1.frmtmb_fit")
+> ### * drop1.frmtmb_fit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: drop1.frmtmb_fit
+> ### Title: Single-term deletions
+> ### Aliases: drop1.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100), z = rnorm(100),
++                  g = factor(rep(1:10, 10)))
+> dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+> fit <- frm(bf(y ~ x * z + (1 | g)) + gaussian(), data = dd)
+> 
+> # marginality keeps the main effects out of scope while x:z is in it
+> drop1(fit)
+Single term deletions
+
+Model: y ~ x * z + (1 | g)
+
+       Df    AIC
+<none>    313.20
+x:z     1 315.12
+> drop1(fit, test = "Chisq")
+Single term deletions
+
+Model: y ~ x * z + (1 | g)
+
+       Df    AIC    LRT Pr(>Chi)  
+<none>    313.20                  
+x:z     1 315.12 3.9187  0.04775 *
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+> 
+> # name the terms to override the default scope
+> drop1(fit, scope = ~ x + z, test = "Chisq")
+Single term deletions
+
+Model: y ~ x * z + (1 | g)
+
+       Df    AIC     LRT  Pr(>Chi)    
+<none>    313.20                      
+x       1 328.23 17.0327 3.674e-05 ***
+z       1 312.12  0.9277    0.3355    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("drop1.frmtmb_fit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("empty_prior")
+> ### * empty_prior
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: empty_prior
+> ### Title: An empty prior specification
+> ### Aliases: empty_prior
+> 
+> ### ** Examples
+> 
+> pr <- empty_prior()
+> pr <- pr + set_prior("normal(0, 1)", class = "b")
+> pr
+b ~ normal(0, 1)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("empty_prior", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("expose_functions")
+> ### * expose_functions
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: expose_functions
+> ### Title: Expose a model's compiled functions
+> ### Aliases: expose_functions expose_functions.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(40))
+> dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
+> fit <- frm(bf(y ~ x) + gaussian(), data = dd)
+> try(expose_functions(fit))
+Error : expose_functions() has no Stan program to read on a frmtmb fit: a custom family's lpdf is the plain R function handed to custom_family(), callable as it is
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("expose_functions", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("fitted.frmtmb_fit")
+> ### * fitted.frmtmb_fit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: fitted.frmtmb_fit
+> ### Title: Fitted values
+> ### Aliases: fitted.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100))
+> dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x))
+> fit <- frm(bf(y ~ x) + poisson(), data = dd)
+> head(fitted(fit))
+      Estimate Est.Error      Q2.5     Q97.5
+[1,] 0.7751024 0.1130250 0.5535775 0.9966273
+[2,] 1.1849807 0.1126043 0.9642804 1.4056811
+[3,] 0.6946365 0.1132732 0.4726251 0.9166479
+[4,] 2.4828747 0.3477984 1.8012024 3.1645469
+[5,] 1.2791025 0.1161520 1.0514488 1.5067563
+[6,] 0.7001766 0.1132798 0.4781522 0.9222009
+> max(abs(fitted(fit)[, "Estimate"] -
++           frm_linpred(fit, type = "response")))
+[1] 0
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("fitted.frmtmb_fit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("fixef")
+> ### * fixef
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: fixef.frmtmb_fit
+> ### Title: Extract fixed effects
+> ### Aliases: fixef.frmtmb_fit fixef
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+> dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+> 
+> # brms's summary matrix, one row per population-level coefficient
+> fit <- frm(bf(y ~ x + (1 | g), sigma ~ x) + gaussian(), data = dd)
+> fixef(fit)
+                  Estimate  Est.Error       Q2.5      Q97.5
+Intercept        1.2368754 0.25319216  0.7406279 1.73312292
+sigma_Intercept -0.0959919 0.07493873 -0.2428691 0.05088532
+x                0.5943860 0.10979868  0.3791845 0.80958743
+sigma_x          0.2082866 0.07165806  0.0678394 0.34873384
+> exp(fixef(fit)["sigma_Intercept", "Estimate"])  # sigma is on the log
+[1] 0.9084714
+> 
+> # flatten to the vector confint() names its rows by
+> fixef(fit, flatten = TRUE)
+      (Intercept)                 x sigma_(Intercept)           sigma_x 
+        1.2368754         0.5943860        -0.0959919         0.2082866 
+> all(names(fixef(fit, flatten = TRUE)) %in% rownames(confint(fit)))
+[1] TRUE
+> 
+> # the standard error column is vcov()'s diagonal
+> all.equal(fixef(fit)[, "Est.Error"], sqrt(diag(vcov(fit))))
+[1] TRUE
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("fixef", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("fixef_by_dpar")
+> ### * fixef_by_dpar
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: fixef_by_dpar
+> ### Title: Fixed effects per linear predictor
+> ### Aliases: fixef_by_dpar
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100))
+> dd$y <- rnorm(100, 1 + 0.5 * dd$x, exp(0.2 + 0.1 * dd$x))
+> fit <- frm(bf(y ~ x, sigma ~ x) + gaussian(), data = dd)
+> 
+> # one entry per distributional parameter, named by design column
+> fixef_by_dpar(fit)
+$mu
+(Intercept)           x 
+  0.9540016   0.5184273 
+
+$sigma
+(Intercept)           x 
+  0.1515397   0.1026294 
+
+> exp(fixef_by_dpar(fit)$sigma[["(Intercept)"]])
+[1] 1.163624
+> 
+> # the same coefficients under brms's names, with their errors
+> fixef(fit)
+                 Estimate  Est.Error        Q2.5     Q97.5
+Intercept       0.9540016 0.11693512  0.72481294 1.1831902
+sigma_Intercept 0.1515397 0.07154025  0.01132334 0.2917560
+x               0.5184273 0.13753420  0.24886519 0.7879893
+sigma_x         0.1026294 0.09977117 -0.09291848 0.2981773
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("fixef_by_dpar", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frm")
+> ### * frm
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frm
+> ### Title: Fit a model
+> ### Aliases: frm
+> 
+> ### ** Examples
+> 
+> ## Not run: 
+> ##D data(sleepstudy, package = "lme4")
+> ##D fit <- frm(bf(Reaction ~ Days + (Days | Subject)) + gaussian(),
+> ##D               data = sleepstudy)
+> ##D summary(fit)
+> ## End(Not run)
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+> dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.5)[dd$g], 1)
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+> summary(fit)
+ Family: gaussian 
+ Links: mu = identity; sigma = log
+
+Formula: y ~ x + (1 | g) 
+   Data: dd (Number of observations: 100) 
+ Method: ML   logLik: -145.746   AIC: 299.492   BIC: 309.913 
+
+Multilevel Hyperparameters:
+~g (Number of levels: 10) 
+              Estimate Est.Error l-95% CI u-95% CI
+sd(Intercept)     0.56      0.16     0.31     0.99
+
+Regression Coefficients:
+          Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept     1.14      0.20     0.74     1.53    5.64  1.7e-08
+x             0.67      0.11     0.45     0.89    5.92  3.2e-09
+
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI
+sigma     0.97      0.07     0.83     1.12
+> fixef(fit)
+           Estimate Est.Error      Q2.5     Q97.5
+Intercept 1.1356757 0.2013266 0.7410828 1.5302687
+x         0.6673571 0.1126869 0.4464948 0.8882195
+> VarCorr(fit)
+$g
+$g$sd
+           Estimate Est.Error      Q2.5     Q97.5
+Intercept 0.5572534 0.1627123 0.2383431 0.8761636
+
+
+$residual__
+$residual__$sd
+  Estimate  Est.Error      Q2.5   Q97.5
+ 0.9658535 0.07199957 0.8247369 1.10697
+
+
+> 
+> # distributional regression: model sigma too
+> fit2 <- frm(bf(y ~ x + (1 | g), sigma ~ x) + gaussian(), data = dd)
+> anova(fit, fit2)
+Likelihood-ratio tests
+Each test assumes the smaller model is nested in the larger; see ?anova.frmtmb_fit
+
+                           Df  logLik    AIC  Chisq Chi Df Pr(>Chisq)   
+y ~ x + (1 | g)             4 -145.75 299.49                            
+y ~ x + (1 | g), sigma ~ x  5 -141.62 293.23 8.2614      1    0.00405 **
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+> 
+> # a nonlinear model: discover the names, edit, fit. A nonlinear body
+> # is undefined at the zero start, so `start` is not optional here.
+> nd <- data.frame(t = rep(seq(0, 10, length.out = 25), 4))
+> nd$y <- 8 * (1 - exp(-nd$t / 3)) + rnorm(nrow(nd), 0, 0.3)
+> nf <- bf(y ~ asym * (1 - exp(-t / lrc)), asym ~ 1, lrc ~ 1,
++          nl = TRUE) + gaussian()
+> st <- par_template(nf, data = nd)
+> st
+<frmtmb parameter template> starting values
+$beta  (2)
+asym_(Intercept)  lrc_(Intercept) 
+               0                0 
+$betad  (1)
+sigma_(Intercept) 
+        0.7961843 
+Edit and pass back as frm(start = ) or frm_simulate(newparams = ). Parentheses are optional in names you supply.
+> st$beta[["asym_(Intercept)"]] <- 5
+> st$beta[["lrc_(Intercept)"]] <- 1
+> fixef(frm(nf, data = nd, start = st))
+               Estimate  Est.Error     Q2.5    Q97.5
+asym_Intercept 7.955791 0.08151862 7.796018 8.115565
+lrc_Intercept  2.942713 0.08735253 2.771505 3.113920
+> 
+> # or let a located prior place the same starts, brms-style
+> fixef(frm(nf, data = nd,
++           prior = prior(normal(5, 5), nlpar = "asym") +
++             prior(normal(1, 5), nlpar = "lrc")))
+Nonlinear starting values placed at the prior locations: asym_(Intercept) = 5, lrc_(Intercept) = 1. Give `start` to choose your own.
+               Estimate  Est.Error     Q2.5    Q97.5
+asym_Intercept 7.954524 0.08143384 7.794916 8.114131
+lrc_Intercept  2.941385 0.08725620 2.770366 3.112404
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frm", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frm_allfit")
+> ### * frm_allfit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frm_allfit
+> ### Title: Refit a model with every available optimizer
+> ### Aliases: frm_allfit
+> 
+> ### ** Examples
+> 
+> set.seed(6)
+> dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
+> dd$y <- rpois(60, exp(0.3 + 0.4 * dd$x + rnorm(6, 0, 0.4)[dd$g]))
+> fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+> frm_allfit(fit)
+    optimizer    logLik convergence seconds
+       nlminb -100.9269           0    0.02
+        optim -100.9269           0    0.01
+       bobyqa -100.9269           0    0.03
+ nloptr_lbfgs -100.9269           0    0.03
+
+logLik spread: 3.82e-11 
+max fixed-effect spread: 4.27e-07 
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frm_allfit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frm_bootstrap")
+> ### * frm_bootstrap
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frm_bootstrap
+> ### Title: Parametric bootstrap
+> ### Aliases: frm_bootstrap
+> 
+> ### ** Examples
+> 
+> set.seed(3)
+> dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+> dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+> bs <- frm_bootstrap(fit, nsim = 20, seed = 1)
+> bs
+Parametric bootstrap: 20 refits, 0 failed or not converged
+
+                  estimate      bias       se       lwr     upr
+(Intercept)       1.235000 -0.017843 0.137530  0.943890 1.40490
+x                 0.570230  0.028611 0.126600  0.423170 0.88196
+sigma_(Intercept) 0.055309  0.017652 0.086742 -0.071832 0.24671
+> confint(bs)
+                          lwr       upr       est
+(Intercept)        0.94389441 1.4049435 1.2349782
+x                  0.42317128 0.8819600 0.5702318
+sigma_(Intercept) -0.07183161 0.2467123 0.0553095
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frm_bootstrap", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frm_compat")
+> ### * frm_compat
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frm_compat
+> ### Title: Query the feature compatibility registry
+> ### Aliases: frm_compat
+> 
+> ### ** Examples
+> 
+> # one pair
+> frm_compat("rescor", "cens()")
+  feature_a    kind_a feature_b kind_b  status
+1    rescor structure    cens()  aterm refused
+                                                                       note
+1 Refused. This pair was once accepted with the censoring silently dropped.
+> 
+> # everything known about truncation
+> frm_compat("trunc()", status = c("refused", "broken"))
+   feature_a kind_a                 feature_b    kind_b  status
+1    trunc()  aterm                   student    family refused
+2    trunc()  aterm         shifted_lognormal    family refused
+3    trunc()  aterm               skew_normal    family refused
+4    trunc()  aterm                exgaussian    family refused
+5    trunc()  aterm              asym_laplace    family refused
+6    trunc()  aterm                     Gamma    family refused
+7    trunc()  aterm                      beta    family refused
+8    trunc()  aterm                   tweedie    family refused
+9    trunc()  aterm               negbinomial    family refused
+10   trunc()  aterm                   nbinom1    family refused
+11   trunc()  aterm                 geometric    family refused
+12   trunc()  aterm                   compois    family refused
+13   trunc()  aterm                  binomial    family refused
+14   trunc()  aterm                 bernoulli    family refused
+15   trunc()  aterm             beta_binomial    family refused
+16   trunc()  aterm               multinomial    family refused
+17   trunc()  aterm     zero_inflated_poisson    family refused
+18   trunc()  aterm zero_inflated_negbinomial    family refused
+19   trunc()  aterm    zero_inflated_binomial    family refused
+20   trunc()  aterm        zero_inflated_beta    family refused
+21   trunc()  aterm            hurdle_poisson    family refused
+22   trunc()  aterm              hurdle_gamma    family refused
+23   trunc()  aterm          hurdle_lognormal    family refused
+24   trunc()  aterm                cumulative    family refused
+25   trunc()  aterm                    sratio    family refused
+26   trunc()  aterm                    cratio    family refused
+27   trunc()  aterm                      acat    family refused
+28   trunc()  aterm               categorical    family refused
+29   trunc()  aterm                 von_mises    family refused
+30   trunc()  aterm                      mi()     aterm refused
+31   trunc()  aterm                      ar()   autocor refused
+32   trunc()  aterm                      ma()   autocor refused
+33   trunc()  aterm                    arma()   autocor refused
+34   trunc()  aterm                    cosy()   autocor refused
+35   trunc()  aterm                   unstr()   autocor refused
+36   trunc()  aterm                quadrature      mode refused
+37   trunc()  aterm                    rescor structure refused
+38   trunc()  aterm                   mixture structure refused
+39   trunc()  aterm               mixture_mvn structure refused
+40   trunc()  aterm              bar_crossing   grammar refused
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              note
+1                                                                                                                                                                                                                                                                                                                                                                                                                                                                              Refused: trunc() needs a family with an AD log-CDF.
+2                                                                                                                                                                                                                                                                                                                                                                                                                                                                              Refused: trunc() needs a family with an AD log-CDF.
+3                                                                                                                                                                                                                                                                                                                                                                                                                                                                              Refused: trunc() needs a family with an AD log-CDF.
+4                                                                                                                                                                                                                                                                                                                                                                                                                                                                              Refused: trunc() needs a family with an AD log-CDF.
+5                                                                                                                                                                                                                                                                                                                                                                                                                                                                              Refused: trunc() needs a family with an AD log-CDF.
+6                                                                                                                                                                                                                                                                                                                                                                                                                                                                              Refused: trunc() needs a family with an AD log-CDF.
+7                                                                                                                                                                                                                                                                                                                                                                                                                                                                              Refused: trunc() needs a family with an AD log-CDF.
+8                                                                                                                                                                                                                                                                                                                                                                                                                                                                              Refused: trunc() needs a family with an AD log-CDF.
+9                                                                                                                                                                                                                                                                                                                                                                                                                                                                              Refused: trunc() needs a family with an AD log-CDF.
+10                                                                                                                                                                                                                                                                                                                                                                                                                                                                             Refused: trunc() needs a family with an AD log-CDF.
+11                                                                                                                                                                                                                                                                                                                                                                                                                                                                             Refused: trunc() needs a family with an AD log-CDF.
+12                                                                                                                                                                                                                                                                                                                                                                                                                                                                             Refused: trunc() needs a family with an AD log-CDF.
+13                                                                                                                                                                                                                                                                                                                                                                                                                                                                             Refused: trunc() needs a family with an AD log-CDF.
+14                                                                                                                                                                                                                                                                                                                                                                                                                                                                             Refused: trunc() needs a family with an AD log-CDF.
+15                                                                                                                                                                                                                                                                                                                                                                                                                                                                             Refused: trunc() needs a family with an AD log-CDF.
+16                                                                                                                                                                                                                                                                                                                                                                                                                                                                             Refused: trunc() needs a family with an AD log-CDF.
+17                                                                                                                                                                                                                                                                                                                                                                                                                                                                             Refused: trunc() needs a family with an AD log-CDF.
+18                                                                                                                                                                                                                                                                                                                                                                                                                                                                             Refused: trunc() needs a family with an AD log-CDF.
+19                                                                                                                                                                                                                                                                                                                                                                                                                                                                             Refused: trunc() needs a family with an AD log-CDF.
+20                                                                                                                                                                                                                                                                                                                                                                                                                                                                             Refused: trunc() needs a family with an AD log-CDF.
+21                                                                                                                                                                                                                                                                                                                                                                                                                                                                             Refused: trunc() needs a family with an AD log-CDF.
+22                                                                                                                                                                                                                                                                                                                                                                                                                                                                             Refused: trunc() needs a family with an AD log-CDF.
+23                                                                                                                                                                                                                                                                                                                                                                                                                                                                             Refused: trunc() needs a family with an AD log-CDF.
+24                                                                                                                                                                                                                                                                                                                                                                                                                                                          Refused: ordinal families carry no AD log-CDF over the response scale.
+25                                                                                                                                                                                                                                                                                                                                                                                                                                                          Refused: ordinal families carry no AD log-CDF over the response scale.
+26                                                                                                                                                                                                                                                                                                                                                                                                                                                          Refused: ordinal families carry no AD log-CDF over the response scale.
+27                                                                                                                                                                                                                                                                                                                                                                                                                                                          Refused: ordinal families carry no AD log-CDF over the response scale.
+28                                                                                                                                                                                                                                                                                                                                                                                                                                                            Refused for the same reason: no order, no CDF, no truncation window.
+29                                                                                                                                                                                                                                                                                                                                                                                                                                                                             Refused: trunc() needs a family with an AD log-CDF.
+30                                                                                                                                                                                                                                                                                                                                                                                                                                            Refused: mi() cannot be combined with cens(), trunc(), or se() on the same response.
+31                                                                                                                                                                                Refused: the group's density is joint, so there is no per-row contribution for a frequency weight to repeat, a censoring indicator to replace with a tail probability, a truncation bound to renormalize, or a known standard error to add to. brms refuses weights(), cens() and trunc() here with 'Invalid addition arguments for this model'.
+32                                                                                                                                                                                Refused: the group's density is joint, so there is no per-row contribution for a frequency weight to repeat, a censoring indicator to replace with a tail probability, a truncation bound to renormalize, or a known standard error to add to. brms refuses weights(), cens() and trunc() here with 'Invalid addition arguments for this model'.
+33                                                                                                                                                                                Refused: the group's density is joint, so there is no per-row contribution for a frequency weight to repeat, a censoring indicator to replace with a tail probability, a truncation bound to renormalize, or a known standard error to add to. brms refuses weights(), cens() and trunc() here with 'Invalid addition arguments for this model'.
+34                                                                                                                                                                                Refused: the group's density is joint, so there is no per-row contribution for a frequency weight to repeat, a censoring indicator to replace with a tail probability, a truncation bound to renormalize, or a known standard error to add to. brms refuses weights(), cens() and trunc() here with 'Invalid addition arguments for this model'.
+35                                                                                                                                                                                Refused: the group's density is joint, so there is no per-row contribution for a frequency weight to repeat, a censoring indicator to replace with a tail probability, a truncation bound to renormalize, or a known standard error to add to. brms refuses weights(), cens() and trunc() here with 'Invalid addition arguments for this model'.
+36 Refused: the truncation normalizer is log(F(ub) - F(lb)) over plain CDFs, and the Gauss-Kronrod nodes reach random-effect values where that difference underflows to exactly zero while the density is still representable. The integrand is then +Inf and the marginalized objective is -Inf, at the Laplace optimum as well as at the starting values, so the fit used to report logLik = +Inf as converged. Laplace stays near the mode and is unaffected: use quadrature = FALSE, REML, or profile for truncated responses.
+37                                                                                                                                                                                                                                                                                                                                                                                                                                                      Refused. This pair was once accepted with the truncation silently dropped.
+38                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  Refused: mixture() has no CDF.
+39                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              Refused: mixture_mvn() has no CDF.
+40                                                                                                                                                                                                                                                                                                    Refused: a bar term crossed with * or : (as in x * (1 | g)) is not a random-effect specification (lme4#196). Write the crossing inside the bar: (x | g). This spelling was once accepted with the crossing silently dropped.
+> 
+> # the pairs to avoid
+> frm_compat(status = "broken")[, 1:5]
+[1] feature_a kind_a    feature_b kind_b    status   
+<0 rows> (or 0-length row.names)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frm_compat", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frm_compat_features")
+> ### * frm_compat_features
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frm_compat_features
+> ### Title: Feature metadata for the compatibility registry
+> ### Aliases: frm_compat_features
+> 
+> ### ** Examples
+> 
+> head(frm_compat_features())
+               name               key   kind
+1          gaussian          gaussian family
+2           student           student family
+3         lognormal         lognormal family
+4 shifted_lognormal shifted_lognormal family
+5       skew_normal       skew_normal family
+6        exgaussian        exgaussian family
+> table(frm_compat_features()$kind)
+
+    aterm   autocor covstruct    family   grammar    method      mode   special 
+        8         5        24        36         5         9         9         7 
+structure 
+        6 
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frm_compat_features", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frm_compat_rules")
+> ### * frm_compat_rules
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frm_compat_rules
+> ### Title: Compatibility rules, before resolution
+> ### Aliases: frm_compat_rules
+> 
+> ### ** Examples
+> 
+> rules <- frm_compat_rules()
+> nrow(rules)
+[1] 440
+> subset(rules, status == "broken")[, c("feature_a", "feature_b")]
+[1] feature_a feature_b
+<0 rows> (or 0-length row.names)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frm_compat_rules", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frm_hazard_reads")
+> ### * frm_hazard_reads
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frm_hazard_reads
+> ### Title: Find '$' reads of a partial-matching container
+> ### Aliases: frm_hazard_reads
+> 
+> ### ** Examples
+> 
+> # in a package's own test suite:
+> #   expect_identical(frmtmb::frm_hazard_reads("frmtmb.spline"),
+> #                    character(0))
+> frm_hazard_reads("frmtmb")
+character(0)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frm_hazard_reads", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frm_joint_cov")
+> ### * frm_joint_cov
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frm_joint_cov
+> ### Title: The joint covariance of the fixed and random coefficients
+> ### Aliases: frm_joint_cov
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(120), g = factor(rep(1:12, each = 10)))
+> dd$y <- rnorm(120, 1 + 2 * dd$x + rnorm(12, 0, 0.5)[dd$g], 0.4)
+> fit <- frm(bf(y ~ x + (1 | g)), data = dd)
+> jc <- frm_joint_cov(fit)
+> dim(jc$V)
+[1] 16 16
+> table(jc$names)
+
+    b  beta betad theta 
+   12     2     1     1 
+> head(jc$labels)
+[1] "beta.(Intercept)"        "beta.x"                 
+[3] "betad.sigma_(Intercept)" "b.1 | g.1.(Intercept)"  
+[5] "b.1 | g.2.(Intercept)"   "b.1 | g.3.(Intercept)"  
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frm_joint_cov", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frm_linpred")
+> ### * frm_linpred
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frm_linpred
+> ### Title: Predictions from a frmtmb fit
+> ### Aliases: frm_linpred
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+> dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
+> fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+> 
+> # the link scale by default; "response" is what fitted() estimates
+> head(frm_linpred(fit))
+           1            2            3            4            5            6 
+-0.705162793 -0.075119938 -0.231249581  0.978192337 -0.003131653  0.940684161 
+> max(abs(frm_linpred(fit, type = "response") -
++           fitted(fit)[, "Estimate"]))
+[1] 0
+> 
+> # re_formula = NA drops the random effects: the population prediction
+> nd <- data.frame(x = c(-1, 0, 1), g = factor(1, levels = levels(dd$g)))
+> frm_linpred(fit, newdata = nd, re_formula = NA, type = "response")
+        1         2         3 
+0.9340309 1.3398092 1.9218728 
+> 
+> # delta-method standard errors, on whichever scale was asked for
+> p <- frm_linpred(fit, newdata = nd, se.fit = TRUE)
+> cbind(fit = p$fit, se = p$se.fit)
+         fit        se
+1 -0.8399281 0.3626996
+2 -0.4791552 0.3357936
+3 -0.1183823 0.3299798
+> 
+> # a level the fit never saw errors unless it is allowed explicitly,
+> # in which case it is predicted at the population level
+> nd_new <- data.frame(x = 0, g = factor("new"))
+> try(frm_linpred(fit, newdata = nd_new))
+Error : New levels in grouping factor `g`: new. Use allow_new_levels = TRUE to predict them at the population level
+> frm_linpred(fit, newdata = nd_new, allow_new_levels = TRUE)
+        1 
+0.2925272 
+> 
+> # a distributional parameter instead of the mean
+> fit2 <- frm(bf(y ~ x, sigma ~ x) + gaussian(), data = dd)
+> head(frm_linpred(fit2, dpar = "sigma", type = "response"))
+       1        2        3        4        5        6 
+1.511247 1.889479 1.426552 2.788566 1.967020 1.432528 
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frm_linpred", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frm_lp_basis")
+> ### * frm_lp_basis
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frm_lp_basis
+> ### Title: The design of a linear predictor over the coefficient vector
+> ### Aliases: frm_lp_basis
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(120), g = factor(rep(1:12, each = 10)))
+> dd$y <- rnorm(120, 1 + 2 * dd$x + rnorm(12, 0, 0.5)[dd$g], 0.4)
+> fit <- frm(bf(y ~ x + (1 | g)), data = dd)
+> nd <- data.frame(x = c(-1, 0, 1), g = factor(1, levels = levels(dd$g)))
+> lb <- frm_lp_basis(fit, newdata = nd, re_formula = NA)
+> str(lb$A)
+ num [1:3, 1:2] 1 1 1 -1 0 1
+ - attr(*, "dimnames")=List of 2
+  ..$ : chr [1:3] "1" "2" "3"
+  ..$ : chr [1:2] "(Intercept)" "x"
+> lb$coef_names
+[1] "beta.(Intercept)" "beta.x"          
+> 
+> # the covariance of the WHOLE grid, which frm_linpred() reduces to
+> # diagonal
+> Sigma <- lb$A %*% lb$V %*% t(lb$A)
+> all.equal(sqrt(diag(Sigma)),
++           frm_linpred(fit, newdata = nd, re_formula = NA,
++                       se.fit = TRUE)$se.fit)
+[1] TRUE
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frm_lp_basis", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frm_multiple")
+> ### * frm_multiple
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frm_multiple
+> ### Title: Fit a model across multiply imputed datasets
+> ### Aliases: frm_multiple
+> 
+> ### ** Examples
+> 
+> set.seed(8)
+> n <- 80
+> x <- rnorm(n)
+> y <- rnorm(n, 1 + 0.5 * x, 1)
+> x[sample(n, 15)] <- NA
+> imps <- lapply(1:3, function(i) {
++   xi <- x
++   xi[is.na(xi)] <- sample(x[!is.na(x)], sum(is.na(xi)), TRUE)
++   data.frame(y = y, x = xi)
++ })
+> frm_multiple(bf(y ~ x) + gaussian(), data = imps)
+Pooled over 3 imputations (Rubin's rules):
+
+                  estimate     se    df     t         p     fmi
+(Intercept)         0.9240 0.1330 73.93 6.946 1.244e-09 0.01093
+x                   0.3156 0.1496 21.49 2.110 4.674e-02 0.24080
+sigma_(Intercept)   0.1603 0.0803 70.37 1.996 4.980e-02 0.03063
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frm_multiple", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frm_periodogram")
+> ### * frm_periodogram
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frm_periodogram
+> ### Title: Periodogram for a Whittle-likelihood fit
+> ### Aliases: frm_periodogram
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> y <- as.numeric(arima.sim(list(ar = 0.7), 512))
+> pg <- frm_periodogram(y, fs = 256)
+> str(pg)
+'data.frame':	255 obs. of  2 variables:
+ $ freq : num  0.5 1 1.5 2 2.5 3 3.5 4 4.5 5 ...
+ $ pgram: num  0.00444 0.0383 0.00306 0.03211 0.11917 ...
+> 
+> # the ordinates average to the variance, in per-Hz units
+> c(mean(pg$pgram), var(y) / 256)
+[1] 0.007353254 0.007339650
+> 
+> # one call for many series: columns are series
+> pg2 <- frm_periodogram(cbind(a = y, b = rev(y)), fs = 256)
+> table(pg2$series)
+
+  a   b 
+255 255 
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frm_periodogram", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frm_series_draw")
+> ### * frm_series_draw
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frm_series_draw
+> ### Title: Draw a time series from a fitted spectrum
+> ### Aliases: frm_series_draw
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> y <- as.numeric(arima.sim(list(ar = 0.6), 512))
+> pg <- frm_periodogram(y, fs = 128)
+> fit <- frm(bf(pgram ~ s(freq, k = 8)), family = whittle(), data = pg)
+> 
+> # a new series with the same estimated spectrum, not the same series
+> z <- frm_series_draw(fit, nsim = 2, seed = 1)
+> dim(z)
+[1] 511   2
+> stats::frequency(z)
+[1] 127.75
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frm_series_draw", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frm_simulate")
+> ### * frm_simulate
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frm_simulate
+> ### Title: Simulate responses from a formula and parameters
+> ### Aliases: frm_simulate
+> 
+> ### ** Examples
+> 
+> # power analysis: simulate from a design with chosen parameters
+> dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)), y = 0)
+> sims <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
++                      newparams = list(b_Intercept = 1, b_x = 0.5,
++                                       sigma = 0.7,
++                                       sd_g__Intercept = 0.5),
++                      nsim = 3, seed = 1)
+> head(sims)
+      sim_1      sim_2        sim_3
+1 0.7147465  0.2118022  0.496054844
+2 1.7004706  1.1707308  0.292796877
+3 0.5674183 -0.2187310 -0.604586974
+4 2.3815089  3.0879586  1.853023808
+5 2.3877546  1.0922043 -0.151214883
+6 0.4524219  0.2355663  0.001154575
+> # the same thing on the internal scale
+> par_template(bf(y ~ x + (1 | g)) + gaussian(), dd)   # the layout
+<frmtmb parameter template> starting values
+$beta  (2)
+(Intercept)           x 
+          0           0 
+$betad  (1)
+sigma_(Intercept) 
+                0 
+$b  (6)
+b_1 b_2 b_3 b_4 b_5 b_6 
+  0   0   0   0   0   0 
+$theta  (1)
+theta_1 
+      0 
+Edit and pass back as frm(start = ) or frm_simulate(newparams = ). Parentheses are optional in names you supply.
+> sims2 <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
++                       newparams = list(beta = c(1, 0.5),
++                                        betad = log(0.7),
++                                        theta = log(0.5)),
++                       nsim = 3, seed = 1)
+> # prior-predictive draws
+> pp <- frm_simulate(bf(y ~ x + (1 | g)) + gaussian(), dd,
++                    prior = set_prior("normal(0, 1)", class = "b") +
++                      set_prior("normal(0, 2)", class = "Intercept") +
++                      set_prior("exponential(1)", class = "sd") +
++                      set_prior("exponential(1)", class = "sigma"),
++                    nsim = 4, seed = 1)
+> head(attr(pp, "pars"))
+         b_x b_Intercept sd_g__Intercept     sigma
+1 -0.6264538    3.257978       0.1457067 0.1397953
+2  0.4755095   -2.558439       1.5652413 0.8145358
+3  1.1765833   -1.053680       3.3072809 1.4953203
+4 -0.1643758   -0.782804       0.3260219 1.5316271
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frm_simulate", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb-autocor")
+> ### * frmtmb-autocor
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb-autocor
+> ### Title: Within-group residual correlation (R-side autocorrelation)
+> ### Aliases: frmtmb-autocor
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> d <- expand.grid(week = 1:5, subj = factor(1:30))
+> d$x <- rnorm(150)
+> e <- as.vector(vapply(1:30, function(i) {
++   as.vector(stats::filter(rnorm(5), 0.6, "recursive"))
++ }, numeric(5)))
+> d$y <- 1 + 0.5 * d$x + e
+> 
+> fit <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(),
++            data = d)
+> summary(fit)
+ Family: gaussian 
+ Links: mu = identity; sigma = log
+
+Formula: y ~ x + ar(week, subj, cov = TRUE) 
+   Data: d (Number of observations: 150) 
+ Method: ML   logLik: -214.257   AIC: 436.514   BIC: 448.556 
+
+Correlation Structures:
+      Estimate Est.Error l-95% CI u-95% CI
+ar[1]     0.52      0.07     0.37     0.65
+
+Regression Coefficients:
+          Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept     1.11      0.14     0.83     1.38    7.93  2.1e-15
+x             0.45      0.08     0.30     0.61    5.63  1.8e-08
+
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI
+sigma     1.15      0.08        1     1.32
+> autocor_matrix(fit)
+           1         2         3         4          5
+1 1.00000000 0.5225995 0.2731103 0.1427273 0.07458923
+2 0.52259955 1.0000000 0.5225995 0.2731103 0.14272731
+3 0.27311029 0.5225995 1.0000000 0.5225995 0.27311029
+4 0.14272731 0.2731103 0.5225995 1.0000000 0.52259955
+5 0.07458923 0.1427273 0.2731103 0.5225995 1.00000000
+> 
+> # compound symmetry, and the unstructured correlation over the five
+> # weeks
+> frm(bf(y ~ x + cosy(week, subj)) + gaussian(), data = d)
+ Family: gaussian 
+ Links: mu = identity; sigma = log
+
+Formula: y ~ x + cosy(week, subj) 
+   Data: d (Number of observations: 150) 
+ Method: ML   logLik: -220.426   AIC: 448.852   BIC: 460.894 
+
+Correlation Structures:
+     Estimate Est.Error l-95% CI u-95% CI
+cosy     0.36      0.09     0.17     0.52
+
+Regression Coefficients:
+          Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept     1.09      0.15     0.80     1.38    7.43  1.1e-13
+x             0.41      0.09     0.23     0.59    4.52  6.2e-06
+
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI
+sigma     1.15      0.08        1     1.32
+> frm(bf(y ~ x + unstr(week, subj)) + gaussian(), data = d)
+ Family: gaussian 
+ Links: mu = identity; sigma = log
+
+Formula: y ~ x + unstr(week, subj) 
+   Data: d (Number of observations: 150) 
+ Method: ML   logLik: -213.317   AIC: 452.634   BIC: 491.773 
+
+Correlation Structures:
+              Estimate Est.Error l-95% CI u-95% CI
+cortime__1__2     0.44      0.14     0.14     0.67
+cortime__1__3     0.28      0.16    -0.05     0.56
+cortime__1__4     0.24      0.18    -0.12     0.55
+cortime__1__5     0.10      0.19    -0.26     0.44
+cortime__2__3     0.61      0.10     0.36     0.77
+cortime__2__4     0.38      0.16     0.04     0.64
+cortime__2__5     0.14      0.18    -0.21     0.46
+cortime__3__4     0.55      0.12     0.28     0.75
+cortime__3__5     0.31      0.16    -0.02     0.58
+cortime__4__5     0.49      0.14     0.17     0.71
+
+Regression Coefficients:
+          Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept     1.12      0.14     0.84     1.40    7.82  5.2e-15
+x             0.44      0.09     0.26     0.61    4.94  7.8e-07
+
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI
+sigma     1.15      0.08        1     1.32
+> 
+> # a random intercept alongside the correlated residual is allowed
+> frm(bf(y ~ x + (1 | subj) + ar(week, subj, cov = TRUE)) + gaussian(),
++     data = d)
+ Family: gaussian 
+ Links: mu = identity; sigma = log
+
+Formula: y ~ x + (1 | subj) + ar(week, subj, cov = TRUE) 
+   Data: d (Number of observations: 150) 
+ Method: ML   logLik: -214.232   AIC: 438.465   BIC: 453.518 
+
+Multilevel Hyperparameters:
+~subj (Number of levels: 30) 
+              Estimate Est.Error l-95% CI u-95% CI
+sd(Intercept)     0.27      0.58        0    18.55
+
+Correlation Structures:
+      Estimate Est.Error l-95% CI u-95% CI
+ar[1]     0.49      0.14     0.17     0.73
+
+Regression Coefficients:
+          Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept     1.11      0.14     0.83     1.38    7.81  5.7e-15
+x             0.45      0.08     0.29     0.61    5.54  3.0e-08
+
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI
+sigma     1.12      0.16     0.85     1.47
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb-autocor", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb-conditions")
+> ### * frmtmb-conditions
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb-conditions
+> ### Title: Classed conditions
+> ### Aliases: frmtmb-conditions frm_stop frm_warning frm_message
+> ###   frm_match_arg frm_family_package
+> 
+> ### ** Examples
+> 
+> d <- data.frame(y = c(1, 2, 3))
+> e <- tryCatch(frm(y ~ 1, data = d, family = "not_a_family"),
++               frmtmb_error = function(e) e)
+> class(e)
+[1] "frmtmb_error" "error"        "condition"   
+> conditionMessage(e)
+[1] "not_a_family is not a supported family. Supported families are: gaussian, poisson, binomial, Gamma, lognormal, student, negbinomial, nbinom2, nbinom1, beta, Beta, tweedie, compois, zero_inflated_poisson, zero_inflated_negbinomial, hurdle_poisson, multinomial, cumulative, beta_binomial, skew_normal, inverse.gaussian, exgaussian, bernoulli, geometric, exponential, weibull, shifted_lognormal, hurdle_gamma, hurdle_lognormal, zero_inflated_binomial, zero_inflated_beta, asym_laplace, zero_inflated_asym_laplace, huber, sratio, cratio, acat, von_mises, cox, categorical"
+> 
+> f <- function() frm_warning("a warning from f()")
+> w <- tryCatch(f(), frmtmb_warning = function(w) w)
+> class(w)
+[1] "frmtmb_warning" "warning"        "condition"     
+> conditionCall(w)
+f()
+> 
+> g <- function(type = c("response", "link")) frm_match_arg(type)
+> g("resp")
+[1] "response"
+> e <- tryCatch(g("bogus"), frmtmb_error = function(e) e)
+> conditionMessage(e)
+[1] "`type` must be one of \"response\", \"link\", not character \"bogus\""
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb-conditions", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb-extension-api")
+> ### * frmtmb-extension-api
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: response_mean
+> ### Title: The two fitting options every mixture-type family refuses, in
+> ###   its own name.
+> ### Aliases: response_mean mixture_multimodal_refusals mixture_posterior
+> ###   as_frmtmb_family eval_dpars single_response fit_extras dpar_linpred
+> ###   structure_supports_all frmtmb-extension-api frame_block_of
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(50))
+> dd$y <- rnorm(50, 1 + 2 * dd$x, 0.5)
+> fit <- frm(bf(y ~ x) + gaussian(), data = dd)
+> 
+> rspec <- single_response(fit, "my_family_probs()")
+> dp <- eval_dpars(fit)[[rspec$resp_name]]
+> str(dp)
+List of 2
+ $ mu   : Named num [1:50] -0.178 1.424 -0.591 4.215 1.712 ...
+  ..- attr(*, "names")= chr [1:50] "1" "2" "3" "4" ...
+ $ sigma: Named num [1:50] 0.479 0.479 0.479 0.479 0.479 ...
+  ..- attr(*, "names")= chr [1:50] "1" "2" "3" "4" ...
+> head(response_mean(rspec$family, dp, list()))
+         1          2          3          4          5          6 
+-0.1776896  1.4240554 -0.5912754  4.2151815  1.7124624 -0.5613002 
+> fit_extras(fit)                       # NULL: no extra parameters
+NULL
+> head(dpar_linpred(fit$frame, fit$estimates, rspec$resp_name, "mu"))
+         1          2          3          4          5          6 
+-0.1776896  1.4240554 -0.5912754  4.2151815  1.7124624 -0.5613002 
+> as_frmtmb_family(gaussian)
+
+Family: gaussian 
+Link function: identity 
+Parameters: mu (identity), sigma (log)
+
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb-extension-api", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb-families")
+> ### * frmtmb-families
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb-families
+> ### Title: Additional response families
+> ### Aliases: frmtmb-families student lognormal negbinomial nbinom1 Beta
+> ###   tweedie compois zero_inflated_poisson zero_inflated_negbinomial
+> ###   hurdle_poisson multinomial cumulative beta_binomial skew_normal
+> ###   exgaussian bernoulli geometric exponential weibull shifted_lognormal
+> ###   hurdle_gamma hurdle_lognormal zero_inflated_binomial
+> ###   zero_inflated_beta asym_laplace zero_inflated_asym_laplace huber
+> ###   sratio cratio acat von_mises categorical cox
+> 
+> ### ** Examples
+> 
+> set.seed(4)
+> n <- 120
+> dd <- data.frame(x = rnorm(n))
+> 
+> # heavier tails than gaussian(), with an estimated df
+> dd$y <- 1 + 0.8 * dd$x + rt(n, df = 4)
+> fixef(frm(bf(y ~ x) + student(), data = dd))
+           Estimate  Est.Error      Q2.5    Q97.5
+Intercept 0.9572315 0.09371241 0.7735586 1.140904
+x         0.8342757 0.10463054 0.6292036 1.039348
+> 
+> # counts with more spread than poisson() allows
+> dd$cnt <- rnbinom(n, mu = exp(0.5 + 0.4 * dd$x), size = 2)
+> fit <- frm(bf(cnt ~ x) + negbinomial(), data = dd)
+> fixef_by_dpar(fit)$mu
+(Intercept)           x 
+  0.3690288   0.3371061 
+> 
+> # a zero-inflated count: the zi dpar gets its own predictor
+> dd$zi <- ifelse(runif(n) < 0.3, 0, dd$cnt)
+> frm(bf(zi ~ x, zi ~ 1) + zero_inflated_poisson(), data = dd)
+ Family: zero_inflated_poisson 
+ Links: mu = log; zi = logit
+
+Formula: zi ~ x 
+   Data: dd (Number of observations: 120) 
+ Method: ML   logLik: -173.275   AIC: 352.55   BIC: 360.913 
+
+Regression Coefficients:
+             Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept        0.61      0.12     0.38     0.84    5.20    2e-07
+zi_Intercept    -0.32      0.24    -0.80     0.16   -1.31    0.190
+x                0.23      0.11     0.02     0.44    2.13    0.033
+> 
+> # an ordered response: level order is the category order
+> dd$grade <- cut(1 + 0.8 * dd$x + rlogis(n), 3,
++                 labels = c("low", "mid", "high"), ordered_result = TRUE)
+> frm(bf(grade ~ x) + cumulative(), data = dd)
+ Family: cumulative 
+ Links: cdf = logit
+
+Formula: grade ~ x 
+   Data: dd (Number of observations: 120) 
+ Method: ML   logLik: -81.675   AIC: 169.35   BIC: 177.713 
+
+Regression Coefficients:
+             Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept[1]    -0.88      0.22    -1.32    -0.45   -4.01  6.0e-05
+Intercept[2]     3.68      0.51     2.69     4.68    7.26  3.9e-13
+x                1.11      0.26     0.61     1.61    4.33  1.5e-05
+> 
+> # a proportion in (0, 1)
+> dd$p <- plogis(0.2 + 0.6 * dd$x + rnorm(n, 0, 0.3))
+> frm(bf(p ~ x) + Beta(), data = dd)
+ Family: beta 
+ Links: mu = logit; phi = log
+
+Formula: p ~ x 
+   Data: dd (Number of observations: 120) 
+ Method: ML   logLik: 154.805   AIC: -303.61   BIC: -295.247 
+
+Regression Coefficients:
+          Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept     0.21      0.03     0.16     0.27    8.07  7.1e-16
+x             0.58      0.03     0.52     0.64   19.06  < 2e-16
+
+Further Distributional Parameters:
+    Estimate Est.Error l-95% CI u-95% CI
+phi    50.46      6.45    39.27    64.83
+> 
+> # bounded influence: a few wild points barely move the slope
+> dd$rob <- 1 + 0.8 * dd$x + rnorm(n)
+> dd$rob[1:5] <- dd$rob[1:5] + 30
+> fixef_by_dpar(frm(bf(rob ~ x), family = huber(), data = dd))$mu
+(Intercept)           x 
+  1.1663906   0.8551163 
+> fixef_by_dpar(frm(bf(rob ~ x), family = gaussian(), data = dd))$mu
+(Intercept)           x 
+   2.231839    1.490395 
+> 
+> # an unordered factor: one predictor per non-reference category,
+> # named after the level it belongs to
+> dd$pick <- factor(sample(c("ale", "stout", "lager"), n, TRUE))
+> cat_fit <- frm(bf(pick ~ x), family = categorical(), data = dd)
+> fixef(cat_fit)                     # mulager and mustout; ale is the
+                     Estimate Est.Error       Q2.5      Q97.5
+mulager_Intercept  0.28202930 0.2503092 -0.2085678 0.77262640
+mustout_Intercept  0.56454273 0.2363012  0.1014009 1.02768452
+mulager_x         -0.08958449 0.2669129 -0.6127242 0.43355526
+mustout_x         -0.43738957 0.2601125 -0.9472007 0.07242157
+>                                    # reference
+> head(fitted(cat_fit))              # n x K category probabilities
+, , P(Y = ale)
+
+      Estimate  Est.Error      Q2.5     Q97.5
+[1,] 0.2564172 0.04058006 0.1768818 0.3359527
+[2,] 0.2163825 0.04641332 0.1254141 0.3073510
+[3,] 0.2928210 0.05531228 0.1844109 0.4012311
+[4,] 0.2768567 0.04647044 0.1857763 0.3679371
+[5,] 0.3327697 0.08839368 0.1595213 0.5060181
+[6,] 0.2819019 0.04890836 0.1860433 0.3777606
+
+, , P(Y = lager)
+
+      Estimate  Est.Error      Q2.5     Q97.5
+[1,] 0.3334248 0.04389351 0.2473951 0.4194545
+[2,] 0.3011704 0.05134162 0.2005426 0.4017981
+[3,] 0.3584389 0.05855308 0.2436769 0.4732008
+[4,] 0.3479778 0.04992207 0.2501324 0.4458233
+[5,] 0.3810589 0.08940322 0.2058318 0.5562860
+[6,] 0.3513701 0.05233584 0.2487938 0.4539465
+
+, , P(Y = stout)
+
+      Estimate  Est.Error      Q2.5     Q97.5
+[1,] 0.4101580 0.04632187 0.3193688 0.5009472
+[2,] 0.4824471 0.05570475 0.3732678 0.5916264
+[3,] 0.3487401 0.05923470 0.2326422 0.4648380
+[4,] 0.3751655 0.05205583 0.2731379 0.4771930
+[5,] 0.2861714 0.07905345 0.1312295 0.4411134
+[6,] 0.3667279 0.05416057 0.2605751 0.4728807
+
+> 
+> # one category may take its own predictor
+> dd$w <- rnorm(n)
+> frm(bf(pick ~ x, mustout ~ w), family = categorical(), data = dd)
+ Family: categorical 
+ Links: mulager = identity; mustout = identity
+
+Formula: pick ~ x 
+   Data: dd (Number of observations: 120) 
+ Method: ML   logLik: -128.572   AIC: 265.145   BIC: 276.295 
+
+Regression Coefficients:
+                  Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+mulager_Intercept     0.24      0.24    -0.24     0.72    0.99    0.321
+mustout_Intercept     0.51      0.23     0.06     0.97    2.22    0.027
+mulager_x             0.19      0.21    -0.24     0.61    0.86    0.388
+mustout_w             0.10      0.19    -0.28     0.48    0.52    0.600
+> 
+> # an angle: mu is the mean direction, kappa the concentration
+> dd$angle <- atan2(sin(0.5 + dd$x), cos(0.5 + dd$x))
+> vm_fit <- frm(bf(angle ~ x), family = von_mises(), data = dd)
+> head(fitted(vm_fit))               # the mean direction, in radians
+        Estimate  Est.Error        Q2.5       Q97.5
+[1,]  0.82530547 0.01603449  0.79387845  0.85673250
+[2,] -0.05745388 0.01824795 -0.09321921 -0.02168855
+[3,]  1.41150621 0.01768376  1.37684668  1.44616573
+[4,]  1.18172554 0.01719206  1.14802971  1.21542136
+[5,]  1.83731815 0.01706177  1.80387769  1.87075861
+[6,]  1.25871540 0.01740168  1.22460872  1.29282207
+> 
+> # proportional hazards with a spline baseline; (1 | g) is a frailty
+> dd$time <- rexp(n, exp(-0.5 + 0.7 * dd$x))
+> dd$out <- rbinom(n, 1, 0.3)        # 1 = right censored
+> cox_fit <- frm(bf(time | cens(out) ~ x), family = cox(), data = dd)
+> fixef_by_dpar(cox_fit)$mu                  # log hazard ratios
+(Intercept)           x 
+  2.1265524   0.7045597 
+> cox_baseline(cox_fit)              # the baseline hazard weights
+          s1           s2           s3           s4           s5 
+3.668968e-03 1.910337e-01 2.186349e-01 4.645067e-09 5.866624e-01 
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb-families", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb-links")
+> ### * frmtmb-links
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb-links
+> ### Title: Link functions
+> ### Aliases: frmtmb-links
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> d <- data.frame(x = rnorm(80))
+> d$y <- rbinom(80, 1, pnorm(0.4 + 0.8 * d$x))
+> 
+> # the mean on a probit rather than a logit
+> fixef_by_dpar(frm(bf(y ~ x), family = bernoulli(link = "probit"),
++                   data = d))$mu
+(Intercept)           x 
+  0.2330309   1.0758635 
+> 
+> # a link on a parameter that is not the mean
+> d$z <- rnorm(80, 1 + d$x, exp(0.2 + 0.3 * d$x))
+> frm(bf(z ~ x, sigma ~ x), family = student(link_sigma = "log"), data = d)
+ Family: student 
+ Links: mu = identity; sigma = log; nu = logm1
+
+Formula: z ~ x 
+   Data: d (Number of observations: 80) 
+ Method: ML   logLik: -129.955   AIC: 269.909   BIC: 281.82 
+
+Regression Coefficients:
+                Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept           0.88      0.14     0.62     1.15    6.46  1.0e-10
+sigma_Intercept     0.19      0.08     0.03     0.34    2.35    0.019
+x                   0.83      0.16     0.51     1.15    5.08  3.9e-07
+sigma_x             0.17      0.10    -0.02     0.36    1.74    0.082
+
+Further Distributional Parameters:
+    Estimate    Est.Error l-95% CI u-95% CI
+nu 334785501 2.604625e+12        1      Inf
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb-links", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb-multimembership")
+> ### * frmtmb-multimembership
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb-multimembership
+> ### Title: Multi-membership random effects
+> ### Aliases: frmtmb-multimembership
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> n <- 200
+> d <- data.frame(
++   x = rnorm(n),
++   school1 = factor(sample(letters[1:8], n, TRUE)),
++   school2 = factor(sample(letters[5:12], n, TRUE)),
++   share1 = runif(n, 0.5, 1)
++ )
+> d$share2 <- 1 - d$share1
+> u <- rnorm(12, 0, 0.8)
+> names(u) <- letters[1:12]
+> d$y <- 1 + 0.5 * d$x +
++   0.5 * u[as.character(d$school1)] +
++   0.5 * u[as.character(d$school2)] + rnorm(n, 0, 0.5)
+> 
+> # equal membership: each pupil is half of each school
+> fit <- frm(bf(y ~ x + (1 | mm(school1, school2))) + gaussian(),
++            data = d)
+> summary(fit)
+ Family: gaussian 
+ Links: mu = identity; sigma = log
+
+Formula: y ~ x + (1 | mm(school1, school2)) 
+   Data: d (Number of observations: 200) 
+ Method: ML   logLik: -172.632   AIC: 353.264   BIC: 366.457 
+
+Multilevel Hyperparameters:
+~mmschool1school2 (Number of levels: NA) 
+              Estimate Est.Error l-95% CI u-95% CI
+sd(Intercept)     0.92       0.2     0.61     1.41
+
+Regression Coefficients:
+          Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept     0.70      0.27     0.17     1.23    2.58   0.0099
+x             0.49      0.04     0.41     0.58   11.94   <2e-16
+
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI
+sigma     0.52      0.03     0.47     0.58
+> # one coefficient per pooled school level
+> ranef(fit)
+$mm(school1, school2)   (1 | mm(school1, school2))
+    Intercept
+a  0.18370669
+b -0.02184145
+c -0.74232816
+d  0.46518610
+e  0.86556173
+f  1.45758646
+g -0.52474894
+h  0.07022447
+i  1.24095653
+j -0.60886148
+k -1.93404777
+l -0.45139622
+
+> 
+> # the time each pupil spent in each school, as proportions
+> frm(bf(y ~ x + (1 | mm(school1, school2,
++                        weights = cbind(share1, share2)))) + gaussian(),
++     data = d)
+ Family: gaussian 
+ Links: mu = identity; sigma = log
+
+Formula: y ~ x + (1 | mm(school1, school2, weights = cbind(share1, share2))) 
+   Data: d (Number of observations: 200) 
+ Method: ML   logLik: -208.589   AIC: 425.179   BIC: 438.372 
+
+Multilevel Hyperparameters:
+~mmschool1school2weightsEQcbindshare1share2 (Number of levels: NA) 
+              Estimate Est.Error l-95% CI u-95% CI
+sd(Intercept)     0.96      0.23      0.6     1.52
+
+Regression Coefficients:
+          Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept     0.66      0.28     0.10     1.21    2.30    0.021
+x             0.47      0.05     0.38     0.57    9.39   <2e-16
+
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI
+sigma     0.63      0.03     0.57     0.69
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb-multimembership", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb-priors")
+> ### * frmtmb-priors
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb-priors
+> ### Title: Prior objects, addressed by internal parameter name
+> ### Aliases: frmtmb-priors prior_normal prior_t prior_logistic prior_gamma
+> ###   prior_inv_gamma prior_beta prior_lkj
+> 
+> ### ** Examples
+> 
+> # the objects themselves are cheap descriptions
+> prior_normal(0, 2)
+$kind
+[1] "normal"
+
+$location
+[1] 0
+
+$scale
+[1] 2
+
+attr(,"class")
+[1] "frmtmb_prior"
+> prior_t(df = 3, location = 0, scale = 1)
+$kind
+[1] "t"
+
+$df
+[1] 3
+
+$location
+[1] 0
+
+$scale
+[1] 1
+
+attr(,"class")
+[1] "frmtmb_prior"
+> 
+> set.seed(9)
+> dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+> dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+> 
+> # names are internal parameter names, or whole components. theta_1
+> # is a log-SD, so a normal there is a lognormal on the SD.
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
++            prior = list(beta = prior_normal(0, 5),
++                         theta_1 = prior_t(3, 0, 1)))
+> prior_summary(fit)
+$beta
+$kind
+[1] "normal"
+
+$location
+[1] 0
+
+$scale
+[1] 5
+
+attr(,"class")
+[1] "frmtmb_prior"
+
+$theta_1
+$kind
+[1] "t"
+
+$df
+[1] 3
+
+$location
+[1] 0
+
+$scale
+[1] 1
+
+attr(,"class")
+[1] "frmtmb_prior"
+
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb-priors", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb-robust-dpars")
+> ### * frmtmb-robust-dpars
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb-robust-dpars
+> ### Title: Exact distributional parameters for a custom density
+> ### Aliases: frmtmb-robust-dpars dpar_log dpar_log1m dpar_log_complement
+> ###   dpar_complement
+> 
+> ### ** Examples
+> 
+> # a gate at plogis(40), which is exactly 1 in double precision
+> on_tape <- list(zi = stats::plogis(40), .eta_zi = 40)
+> off_tape <- list(zi = stats::plogis(40))
+> 
+> # the value a density needs, and what the subtraction gives instead
+> dpar_log1m(on_tape, "zi", "logit")
+[1] -40
+> log(1 - off_tape$zi)
+[1] -Inf
+> 
+> # off the tape the entry is absent and the plain form comes back
+> dpar_log1m(off_tape, "zi", "logit")
+[1] -Inf
+> 
+> # both terms from one log odds, for a density that needs the pair
+> unlist(dpar_log_complement(on_tape, "zi", "logit"))
+            l           l1m 
+-4.248354e-18 -4.000000e+01 
+> 
+> # the log of a positive dpar, through that dpar's own link
+> dpar_log(list(shape = exp(3), .eta_shape = 3), "shape", "log")
+[1] 3
+> dpar_log(list(shape = log1p(exp(3)), .eta_shape = 3), "shape",
++          "softplus")
+[1] 1.114678
+> 
+> # a density written over the pair rather than over 1 - mu
+> d <- list(mu = stats::plogis(40), .eta_mu = 40)
+> mp <- dpar_complement(d, "mu", "logit")
+> c(p = mp$p, q = mp$q)
+           p            q 
+1.000000e+00 4.248354e-18 
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb-robust-dpars", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb-sampling-api")
+> ### * frmtmb-sampling-api
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb-sampling-api
+> ### Title: Core internals for a sampling extension
+> ### Aliases: frmtmb-sampling-api build_objective row_lpdf with_cs_offsets
+> ###   us_chol_cor expand_b aterms_for_newdata has_trunc as_priorlist
+> ###   check_prior_slots resolve_prior_input neg_log_prior_fn resolve_bounds
+> ###   spec_target spec_spelling frmtmb_register_prior_defaults ncp_eligible
+> ###   ncp_scale_b ncp_unscale_b covstruct_has_chol block_sd_idx
+> ###   block_cor_prior block_n_cor is_student_block sim_can sim_note
+> ###   sim_context sim_draw sim_is_structured par_name_bare outer_par_names
+> ###   estimated_coef_names log_sd_theta_index sdr_of require_fitted
+> ###   hyp_parse_all hyp_vals_only hyp_env_vals hyp_eval hyp_tail_p
+> ###   hyp_class_prefix hyp_labels hyp_samples_frame hyp_brms_result
+> ###   brms_coef_names brms_re_rnames brms_block_has_r brms_coef_table
+> ###   brms_stan_name brms_group_name brms_levels brms_re_parts hyp_eval_in
+> ###   hyp_expr_vars brms_par_labels varcorr_matrices varcorr_layout
+> ###   varcorr_values ce_grids_build ce_boot_one ce_frame ce_finalize
+> ###   ce_cats_display ce_display_kind ce_pred_dpar ce_group_vars
+> ###   ce_new_level_spec ce_boot_grids ce_draw_new_levels ce_structure_check
+> ###   ce_re_formula ce_dots find_linpred arg_unset re_form_arg
+> ###   frm_install_generics frm_check_dots vcov_estimated
+> ###   fam_is_category_valued predict_category_props brms_summary_matrix
+> ###   brms_summary_array brms_summarize_draws brms_prob_cols
+> ###   brms_fixef_rows
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
+> dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+> 
+> # the objective seam: the bare likelihood closure of the frame
+> nll <- build_objective(fit$frame)
+> nll(fit$estimates)
+[1] 19.66275
+> 
+> # a block reader: this one has a diagonal factor and one sd, so it
+> # can be sampled non-centered
+> bk <- fit$frame$re_blocks[[1]]
+> c(eligible = ncp_eligible(bk), n_cor = block_n_cor(bk),
++   cor_prior = block_cor_prior(bk))
+ eligible     n_cor cor_prior 
+   "TRUE"       "0"    "none" 
+> 
+> # parameter labeling, in the two spellings
+> head(outer_par_names(fit))
+[1] "(Intercept)"       "x"                 "sigma_(Intercept)"
+[4] "theta_1"          
+> head(par_name_bare(outer_par_names(fit)))
+[1] "Intercept"       "x"               "sigma_Intercept" "theta_1"        
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb-sampling-api", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb-scales")
+> ### * frmtmb-scales
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb-scales
+> ### Title: Which scale each method reports
+> ### Aliases: frmtmb-scales
+> 
+> ### ** Examples
+> 
+> set.seed(2026)
+> dd <- data.frame(x = rnorm(200))
+> dd$y <- exp(rnorm(200, 8 + 0.4 * dd$x, 0.4))
+> fit <- frm(bf(y ~ x) + lognormal(), data = dd)
+Warning: Large maximum absolute gradient at the optimum (0.00143); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+> 
+> # predict() summarizes the predictive distribution; frm_linpred()
+> # is the linear predictor and fitted() the expected response
+> head(predict(fit, ndraws = 200))
+     Estimate Est.Error      Q2.5    Q97.5
+[1,] 3832.295 1535.2672 1715.7373 7631.886
+[2,] 2162.523  931.8451 1051.5997 4591.016
+[3,] 3580.354 1627.6969 1459.8562 7605.899
+[4,] 3114.909 1282.5714 1335.0573 6272.218
+[5,] 2405.242  946.9341  979.7062 4669.090
+[6,] 1219.641  509.4481  512.4532 2496.949
+> head(frm_linpred(fit))
+       1        2        3        4        5        6 
+8.214703 7.569772 8.061015 7.970745 7.736237 6.990888 
+> head(fitted(fit))
+     Estimate Est.Error     Q2.5    Q97.5
+[1,] 3984.808 126.97321 3735.945 4233.671
+[2,] 2090.824  87.35777 1919.606 2262.042
+[3,] 3417.128  98.16207 3224.734 3609.522
+[4,] 3122.179  89.39280 2946.972 3297.386
+[5,] 2469.517  84.57853 2303.746 2635.288
+[6,] 1171.955  89.39567  996.743 1347.168
+> 
+> # the last two are related by the family's own mean
+> head(exp(frm_linpred(fit) + sigma(fit)^2 / 2) -
++        fitted(fit)[, "Estimate"])
+1 2 3 4 5 6 
+0 0 0 0 0 0 
+> 
+> # a sigma nobody wrote a formula for is a distributional parameter
+> # on its own scale, not a coefficient on its link
+> summary(fit)$spec_pars
+       Estimate  Est.Error  l-95% CI  u-95% CI
+sigma 0.3886928 0.01943464 0.3524085 0.4287129
+> sigma(fit)
+[1] 0.3886928
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb-scales", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb-student-re")
+> ### * frmtmb-student-re
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb-student-re
+> ### Title: Student-t distributed random effects
+> ### Aliases: frmtmb-student-re
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> n <- 12
+> d <- data.frame(x = rnorm(20 * n), g = factor(rep(1:20, each = n)))
+> b <- rnorm(20)
+> b[20] <- b[20] + 6          # one outlying group
+> d$y <- 1 + 0.5 * d$x + b[d$g] + rnorm(20 * n)
+> 
+> fit_t <- frm(bf(y ~ x + (1 | gr(g, dist = "student"))),
++              family = gaussian(), data = d)
+> fit_n <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = d)
+> 
+> # the gaussian latent has to widen to cover the outlying group
+> VarCorr(fit_t)
+$g
+$g$sd
+           Estimate Est.Error     Q2.5    Q97.5
+Intercept 0.8432083 0.2066928 0.438098 1.248319
+
+
+$residual__
+$residual__$sd
+ Estimate  Est.Error      Q2.5    Q97.5
+ 1.074199 0.05103885 0.9741644 1.174233
+
+
+> VarCorr(fit_n)
+$g
+$g$sd
+          Estimate Est.Error     Q2.5    Q97.5
+Intercept 1.500652 0.2475547 1.015454 1.985851
+
+
+$residual__
+$residual__$sd
+ Estimate  Est.Error      Q2.5    Q97.5
+ 1.075971 0.05129669 0.9754312 1.176511
+
+
+> 
+> # heavier tails, at the cost of a fixed nu
+> frm(bf(y ~ x + (1 | gr(g, dist = "student", dist_nu = 3))),
++     family = gaussian(), data = d)
+ Family: gaussian 
+ Links: mu = identity; sigma = log
+
+Formula: y ~ x + (1 | gr(g, dist = "student", dist_nu = 3)) 
+   Data: d (Number of observations: 240) 
+ Method: ML   logLik: -384.804   AIC: 777.607   BIC: 791.53 
+
+Multilevel Hyperparameters:
+~g (Number of levels: 20) 
+              Estimate Est.Error l-95% CI u-95% CI
+sd(Intercept)     0.67      0.18     0.39     1.14
+
+Regression Coefficients:
+          Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept     1.28      0.20      0.9     1.66    6.56  5.5e-11
+x             0.65      0.08      0.5     0.80    8.56  < 2e-16
+
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI
+sigma     1.07      0.05     0.98     1.18
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb-student-re", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb_ad_overload")
+> ### * frmtmb_ad_overload
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb_ad_overload
+> ### Title: Make a user-written function tape-safe
+> ### Aliases: frmtmb_ad_overload
+> 
+> ### ** Examples
+> 
+> dyn <- function(t, y, p) list(c(-p[1] * y[1], p[1] * y[1]))
+> body(frmtmb_ad_overload(dyn))[[2]]
+"c" <- RTMB::ADoverload("c")
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb_ad_overload", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb_control")
+> ### * frmtmb_control
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb_control
+> ### Title: Control parameters for frmtmb fits
+> ### Aliases: frmtmb_control
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> n <- 200
+> dd <- data.frame(x = rnorm(n), g = factor(rep(1:10, 20)))
+> dd$y <- rnorm(n, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+> 
+> # another optimizer, with its own control list
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
++            control = frmtmb_control(optimizer = "optim",
++                                     optCtrl = list(maxit = 500)))
+> fit$opt$convergence
+[1] 0
+> 
+> # a tighter gradient criterion, with restarts from the current
+> # optimum until it is met
+> frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
++     control = frmtmb_control(grad_tol = 1e-4, restarts = 3))
+ Family: gaussian 
+ Links: mu = identity; sigma = log
+
+Formula: y ~ x + (1 | g) 
+   Data: dd (Number of observations: 200) 
+ Method: ML   logLik: -296.63   AIC: 601.26   BIC: 614.454 
+
+Multilevel Hyperparameters:
+~g (Number of levels: 10) 
+              Estimate Est.Error l-95% CI u-95% CI
+sd(Intercept)        1      0.23     0.63     1.58
+
+Regression Coefficients:
+          Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept     1.44      0.32     0.81     2.07    4.46  8.1e-06
+x             0.52      0.08     0.37     0.67    6.74  1.6e-11
+
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI
+sigma     0.99      0.05     0.89     1.09
+> 
+> # badly scaled predictors: fit an internally standardized copy first,
+> # then warm-start the reported fit from it
+> dd$xbig <- dd$x * 1e5
+> frm(bf(y ~ xbig + (1 | g)) + gaussian(), data = dd,
++     control = frmtmb_control(autoscale = TRUE))
+ Family: gaussian 
+ Links: mu = identity; sigma = log
+
+Formula: y ~ xbig + (1 | g) 
+   Data: dd (Number of observations: 200) 
+ Method: ML   logLik: -296.63   AIC: 601.26   BIC: 614.454 
+
+Multilevel Hyperparameters:
+~g (Number of levels: 10) 
+              Estimate Est.Error l-95% CI u-95% CI
+sd(Intercept)        1      0.23     0.63     1.58
+
+Regression Coefficients:
+          Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept     1.44      0.32     0.81     2.07    4.46  8.1e-06
+xbig          0.00      0.00     0.00     0.00    6.74  1.6e-11
+
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI
+sigma     0.99      0.05     0.89     1.09
+> 
+> # the object is a plain list, so it can be built once and reused
+> ctrl <- frmtmb_control(check_nlev_1 = "ignore")
+> ctrl$optimizer
+[1] "nlminb"
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb_control", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb_family-access")
+> ### * frmtmb_family-access
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb_family-access
+> ### Title: Family object field access
+> ### Aliases: frmtmb_family-access $.frmtmb_family
+> ### Keywords: internal
+> 
+> ### ** Examples
+> 
+> fam <- beta_binomial()
+> fam$link
+[1] "logit"
+> fam$link_phi
+[1] "log"
+> try(fam$link_p)   # a prefix of link_phi, refused
+Error : A family object has no field `link_p`. `$` would have partial-matched `link_phi`, and it does not do that on a family: write `$link_phi` if that is the field you mean
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb_family-access", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb_family")
+> ### * frmtmb_family
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb_family
+> ### Title: Define a model family
+> ### Aliases: frmtmb_family custom_family
+> 
+> ### ** Examples
+> 
+> # a custom family is a plain R log-density over taped parameters
+> dd <- data.frame(y = rbinom(100, 5, 0.4),
++                  size = 5, x = rnorm(100))
+> fam <- custom_family(
++   "vbinom", dpars = "mu", links = list(mu = "logit"),
++   lpdf = function(y, dpars, aterms) {
++     RTMB::dbinom(y, aterms$vint1, dpars$mu, log = TRUE)
++   },
++   # the density indexes vint1, so a model without it is refused
++   # rather than fitted against a zero-length log-likelihood
++   required_aterms = "vint1",
++   type = "discrete"
++ )
+> fit <- frm(bf(y | vint(size) ~ x) + fam, data = dd)
+> fixef(fit)
+            Estimate  Est.Error        Q2.5      Q97.5
+Intercept -0.3546902 0.09096201 -0.53297243 -0.1764079
+x          0.1019840 0.09713853 -0.08840399  0.2923720
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb_family", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb_priorlist-columns")
+> ### * frmtmb_priorlist-columns
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb_priorlist-columns
+> ### Title: Column access on a prior specification
+> ### Aliases: frmtmb_priorlist-columns $.frmtmb_priorlist
+> ###   $<-.frmtmb_priorlist
+> 
+> ### ** Examples
+> 
+> pr <- set_prior("normal(0, 2)", class = c("b", "sd"))
+> pr$class
+[1] "b"  "sd"
+> pr$prior[2] <- "exponential(1)"
+> pr
+          prior class coef group resp dpar nlpar   lb   ub source
+   normal(0, 2)     b                            <NA> <NA>   user
+ exponential(1)    sd                            <NA> <NA>   user
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb_priorlist-columns", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb_register_aterm")
+> ### * frmtmb_register_aterm
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb_register_aterm
+> ### Title: Add an addition term from another package
+> ### Aliases: frmtmb_register_aterm
+> 
+> ### ** Examples
+> 
+> # a decision indicator, given as a factor and delivered as 0/1
+> ## Not run: 
+> ##D frmtmb_register_aterm("dec", arity = 1, coerce = function(x) {
+> ##D   as.integer(factor(x)) - 1L
+> ##D })
+> ## End(Not run)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb_register_aterm", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb_register_compat")
+> ### * frmtmb_register_compat
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb_register_compat
+> ### Title: Contribute to the compatibility matrix from another package
+> ### Aliases: frmtmb_register_compat compat_rule_builder compat_aterm_rules
+> 
+> ### ** Examples
+> 
+> # what a contributing package's .onLoad() does
+> contribute <- function() {
++   b <- compat_rule_builder()
++   b$r("wiener", "cens()", "refused",
++       "The family supplies no lcdf, so there is no CDF to censor with.")
++   b$r("wiener", "*", "untested",
++       "Not exercised outside this package's own suite.")
++   b$r("wiener", "hmm", "untested",
++       "Another package's feature, so the rule waits for it.")
++   frmtmb_register_compat(features = c("wiener" = "family"),
++                          rules = b$rules, expects = "hmm")
++ }
+> # the accumulator on its own, which is all a rule set is
+> b <- compat_rule_builder()
+> b$r("dec()", "trials()", "refused", "Different response shapes.")
+> b$rules()
+  feature_a feature_b  status                       note override
+1     dec()  trials() refused Different response shapes.    FALSE
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb_register_compat", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb_register_frame_check")
+> ### * frmtmb_register_frame_check
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb_register_frame_check
+> ### Title: Check an assembled model frame from another package
+> ### Aliases: frmtmb_register_frame_check
+> 
+> ### ** Examples
+> 
+> # the shape of a check: refuse what only the assembled frame shows
+> check_not_constant <- function(spec, frame) {
++   if (length(unique(frame$y)) == 1L) {
++     stop("The response takes one value, so nothing can be estimated.",
++          call. = FALSE)
++   }
++ }
+> 
+> # a registration lasts for the session, so it belongs in the
+> # contributing package's .onLoad(), not in a script
+> ## Not run: 
+> ##D frmtmb_register_frame_check(check_not_constant)
+> ## End(Not run)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb_register_frame_check", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb_structure")
+> ### * frmtmb_structure
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb_structure
+> ### Title: Declare a non-rowwise likelihood to the core
+> ### Aliases: frmtmb_structure
+> 
+> ### ** Examples
+> 
+> # a structure whose likelihood is the rowwise one, written out: the
+> # smallest thing the protocol accepts
+> st <- frmtmb_structure(
++   loglik = function(y, dpars, aterms, weights, block, extra) {
++     sum(weights * RTMB::dnorm(y, dpars$mu, dpars$sigma, log = TRUE))
++   },
++   supports = list(conditional_effects = TRUE)
++ )
+> st
+<frmtmb_structure>
+  slots:    loglik
+  keeps NA: FALSE
+  supports: conditional_effects
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb_structure", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("getME.frmtmb_fit")
+> ### * getME.frmtmb_fit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: getME.frmtmb_fit
+> ### Title: Extract components of a fit, lme4 style
+> ### Aliases: getME.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> if (requireNamespace("lme4", quietly = TRUE)) {
++   set.seed(1)
++   dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
++   dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
++   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
++ 
++   # the designs, for downstream code written against merMod objects
++   dim(lme4::getME(fit, "X"))
++   dim(lme4::getME(fit, "Zt"))
++ 
++   # a vector of names returns a named list
++   str(lme4::getME(fit, c("n_rtrms", "n_rfacs", "sigma")))
++ 
++   # the conditional modes in coefficient space, aligned with Z
++   head(lme4::getME(fit, "b"))
++   # note: "lower" is all -Inf here, because the internal covariance
++   # parameterization is unbounded. Use diagnose() to spot a singular
++   # fit, not theta == lower.
++   lme4::getME(fit, "lower")
++ }
+List of 3
+ $ n_rtrms: int 1
+ $ n_rfacs: int 1
+ $ sigma  : num 0.966
+theta_1 
+   -Inf 
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("getME.frmtmb_fit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("habit_prep")
+> ### * habit_prep
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: habit_prep
+> ### Title: Forced-response habit data from Hardwick et al. (2019)
+> ### Aliases: habit_prep
+> ### Keywords: datasets
+> 
+> ### ** Examples
+> 
+> str(habit_prep)
+'data.frame':	28940 obs. of  10 variables:
+ $ participant : Factor w/ 36 levels "e1-01","e1-02",..: 1 1 1 1 1 1 1 1 1 1 ...
+ $ group       : Factor w/ 3 levels "minimal","4day",..: 1 1 1 1 1 1 1 1 1 1 ...
+ $ subject_code: int  101 101 101 101 101 101 101 101 101 101 ...
+ $ trial       : int  1 2 3 4 5 6 7 8 9 10 ...
+ $ prep_time   : num  1.163 1.178 0.762 0.136 0.823 ...
+ $ remapped    : logi  TRUE TRUE TRUE TRUE FALSE FALSE ...
+ $ stimulus    : int  3 4 3 3 1 2 1 2 4 2 ...
+ $ target_key  : int  2 4 2 2 3 1 3 1 4 1 ...
+ $ response_key: int  2 4 2 1 3 1 4 2 1 1 ...
+ $ response    : Factor w/ 3 levels "correct","habit",..: 1 1 1 3 1 1 3 3 3 1 ...
+> with(subset(habit_prep, remapped), table(group, response))
+         response
+group     correct habit other
+  minimal    3777   616  1094
+  4day       3379  1125   981
+  20day      2149   776   570
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("habit_prep", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("hypothesis")
+> ### * hypothesis
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: hypothesis
+> ### Title: Hypothesis tests on parameter expressions
+> ### Aliases: hypothesis hypothesis.frmtmb_fit hypothesis.frmtmb_multiple
+> 
+> ### ** Examples
+> 
+> set.seed(4)
+> dd <- data.frame(x1 = rnorm(120), x2 = rnorm(120),
++                  g = factor(rep(1:10, 12)))
+> dd$y <- rnorm(120, 1 + 0.6 * dd$x1 + 0.4 * dd$x2 +
++                 rnorm(10, 0, 0.5)[dd$g], 1)
+> fit <- frm(bf(y ~ x1 + x2 + (1 | g)) + gaussian(), data = dd)
+> h <- hypothesis(fit, c("x1 - x2 = 0", "exp(Intercept) = 1"))
+> h
+Hypothesis Tests for class b:
+                Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio
+1              (x1-x2) = 0     0.37      0.13     0.12     0.62         NA
+2 (exp(Intercept))-(1) = 0     1.51      0.48     0.56     2.45         NA
+  Post.Prob Star
+1        NA    *
+2        NA    *
+---
+'CI': 90%-CI for one-sided and 95%-CI for two-sided hypotheses.
+Method: wald. Est.Error is the standard error; Evid.Ratio and
+Post.Prob are NA, because a maximum-likelihood fit has no posterior.
+'*': For one-sided hypotheses, the one-sided test rejects at level 0.05;
+for two-sided hypotheses, the value tested against lies outside the 95%-CI.
+               Hypothesis     z        p
+              (x1-x2) = 0 2.889 0.003859
+ (exp(Intercept))-(1) = 0 3.122 0.001799
+> h$hypothesis$Est.Error
+[1] 0.1280463 0.4829380
+> attr(h, "test")$p
+[1] 0.003859403 0.001799292
+> # brms's directional form: one-sided p, and a 90% interval
+> hypothesis(fit, "x1 > x2")
+Hypothesis Tests for class b:
+     Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob Star
+1 (x1)-(x2) > 0     0.37      0.13     0.16     0.58         NA        NA    *
+---
+'CI': 90%-CI for one-sided and 95%-CI for two-sided hypotheses.
+Method: wald. Est.Error is the standard error; Evid.Ratio and
+Post.Prob are NA, because a maximum-likelihood fit has no posterior.
+'*': For one-sided hypotheses, the one-sided test rejects at level 0.05;
+for two-sided hypotheses, the value tested against lies outside the 95%-CI.
+    Hypothesis     z       p
+ (x1)-(x2) > 0 2.889 0.00193
+> # class/group name the natural-scale random-effect summaries
+> hypothesis(fit, "Intercept > 0", class = "sd", group = "g")
+Hypothesis Tests for class sd_g:
+       Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob
+1 (Intercept) > 0     0.55      0.15      0.3      0.8         NA        NA
+  Star
+1    *
+---
+'CI': 90%-CI for one-sided and 95%-CI for two-sided hypotheses.
+Method: wald. Est.Error is the standard error; Evid.Ratio and
+Post.Prob are NA, because a maximum-likelihood fit has no posterior.
+'*': For one-sided hypotheses, the one-sided test rejects at level 0.05;
+for two-sided hypotheses, the value tested against lies outside the 95%-CI.
+      Hypothesis     z         p
+ (Intercept) > 0 3.614 0.0001508
+> # variance-component expressions need class = NULL, as in brms: an
+> # ICC with bootstrap intervals
+> hypothesis(fit, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0",
++            class = NULL, method = "boot", nsim = 20, seed = 1)
+Hypothesis Tests for class :
+                                           Hypothesis Estimate Est.Error
+1 (sd_g__Intercept^2/(sd_g__Intercept^2+sigma^2)) = 0     0.27      0.12
+  CI.Lower CI.Upper Evid.Ratio Post.Prob Star
+1     0.03     0.42         NA        NA    *
+---
+'CI': 90%-CI for one-sided and 95%-CI for two-sided hypotheses.
+Method: boot (20 bootstrap draws, 0 failed or not converged). Est.Error is the bootstrap SD; Evid.Ratio and
+Post.Prob are NA, because a maximum-likelihood fit has no posterior.
+'*': For one-sided hypotheses, the one-sided test rejects at level 0.05;
+for two-sided hypotheses, the value tested against lies outside the 95%-CI.
+                                          Hypothesis     z       p
+ (sd_g__Intercept^2/(sd_g__Intercept^2+sigma^2)) = 0 2.189 0.09524
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("hypothesis", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("influence.frmtmb_fit")
+> ### * influence.frmtmb_fit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: influence.frmtmb_fit
+> ### Title: Influence measures by case deletion
+> ### Aliases: influence.frmtmb_fit cooks.distance.frmtmb_fit
+> ###   dfbeta.frmtmb_influence dfbetas.frmtmb_influence
+> 
+> ### ** Examples
+> 
+> ## No test: 
+> set.seed(7)
+> dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
+> dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+> infl <- influence(fit, groups = "g")
+> cooks.distance(infl)
+         1          2          3          4          5          6 
+0.04211219 0.49008216 0.04168487 0.12687101 0.02619522 0.18339080 
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("influence.frmtmb_fit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("latent_probs")
+> ### * latent_probs
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: latent_probs
+> ### Title: Posterior probabilities of the latent states
+> ### Aliases: latent_probs
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(y = c(rnorm(80, 0, 1), rnorm(80, 5, 1)))
+> fit <- frm(bf(y ~ 1) + mixture(gaussian(), gaussian()), data = dd)
+> head(latent_probs(fit))
+        class1       class2
+[1,] 0.9999999 7.623679e-08
+[2,] 0.9999948 5.179722e-06
+[3,] 1.0000000 2.623868e-08
+[4,] 0.9888568 1.114321e-02
+[5,] 0.9999888 1.123676e-05
+[6,] 1.0000000 2.833862e-08
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("latent_probs", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("lf")
+> ### * lf
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: lf
+> ### Title: Add parameter formulas to a model formula
+> ### Aliases: lf
+> 
+> ### ** Examples
+> 
+> # the two spellings are the same model
+> bf(y ~ x) + lf(sigma ~ z)
+y ~ x
+sigma ~ z 
+> bf(y ~ x, sigma ~ z)
+y ~ x
+sigma ~ z 
+> 
+> # nonlinear parameter formulas can arrive the same way
+> bf(y ~ a * exp(-b * x), a ~ 1, nl = TRUE) + lf(b ~ 1 + (1 | g))
+y ~ a * exp(-b * x) (nonlinear)
+a ~ 1 
+b ~ 1 + (1 | g) 
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("lf", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("log_lik")
+> ### * log_lik
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: log_lik
+> ### Title: Pointwise log-likelihood
+> ### Aliases: log_lik log_lik.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(40))
+> dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
+> fit <- frm(bf(y ~ x) + gaussian(), data = dd)
+> 
+> # the maximum-likelihood total is available directly
+> logLik(fit)
+'log Lik.' -52.08647 (df=3)
+> # the pointwise posterior matrix needs draws, and says so
+> try(log_lik(fit))
+Error : log_lik() is the pointwise likelihood at every posterior draw, and this is a maximum-likelihood fit with one parameter vector. Sample first, with frmtmb.sample::log_lik(frmtmb.sample::frm_sample(fit)) once that package is installed; logLik() is the maximum-likelihood total already on the fit
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("log_lik", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("loo")
+> ### * loo
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: loo
+> ### Title: Approximate leave-one-out cross-validation
+> ### Aliases: loo loo.frmtmb_fit waic waic.frmtmb_fit loo_compare
+> ###   loo_compare.default LOO LOO.frmtmb_fit WAIC WAIC.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(40))
+> dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
+> fit <- frm(bf(y ~ x) + gaussian(), data = dd)
+> 
+> # the maximum-likelihood comparison is available directly
+> AIC(fit)
+[1] 110.1729
+> # the predictive one needs draws, and says so
+> try(loo(fit))
+Error : loo() is a posterior quantity and this is a maximum-likelihood fit: an elpd averages the likelihood over draws. Sample first, with frmtmb.sample::loo(frmtmb.sample::frm_sample(fit)) once that package is installed, or compare maximum-likelihood fits with AIC() or BIC()
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("loo", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("mixture")
+> ### * mixture
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: mixture
+> ### Title: Finite mixture families
+> ### Aliases: mixture
+> 
+> ### ** Examples
+> 
+> # two well-separated gaussian components
+> set.seed(3)
+> dd <- data.frame(y = c(rnorm(80, 0, 1), rnorm(80, 5, 1)),
++                  x = rnorm(160))
+> fit <- frm(bf(y ~ 1) + mixture(gaussian(), gaussian()), data = dd)
+> # one mu and sigma per component, plus the mixing weight theta1
+> fixef(fit)
+                  Estimate  Est.Error       Q2.5     Q97.5
+mu1_Intercept -0.002346141 0.09962412 -0.1976058 0.1929135
+mu2_Intercept  4.999986512 0.11450977  4.7755515 5.2244215
+> # posterior class probability per observation
+> head(mixture_probs(fit))
+        class1       class2
+[1,] 1.0000000 4.288987e-08
+[2,] 0.9999990 1.000118e-06
+[3,] 0.9999851 1.488386e-05
+[4,] 1.0000000 1.798825e-08
+[5,] 0.9999891 1.087896e-05
+[6,] 0.9999952 4.800314e-06
+> 
+> # the mixing weight can take its own predictor
+> frm(bf(y ~ 1, theta1 ~ x) + mixture(gaussian(), gaussian()), data = dd)
+ Family: mixture(gaussian, gaussian) 
+ Links: mu1 = identity; sigma1 = log; mu2 = identity; sigma2 = log;
+        theta1 = identity
+
+Formula: y ~ 1 
+   Data: dd (Number of observations: 160) 
+ Method: ML   logLik: -327.164   AIC: 666.328   BIC: 684.779 
+
+Regression Coefficients:
+                 Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+mu1_Intercept        0.00      0.10    -0.20     0.19   -0.03     0.98
+mu2_Intercept        5.00      0.11     4.78     5.22   43.65   <2e-16
+theta1_Intercept     0.01      0.16    -0.30     0.32    0.06     0.95
+theta1_x            -0.07      0.15    -0.36     0.22   -0.47     0.64
+
+Further Distributional Parameters:
+       Estimate Est.Error l-95% CI u-95% CI
+sigma1     0.88      0.07     0.75     1.03
+sigma2     1.01      0.08     0.86     1.19
+> 
+> ## No test: 
+> # latent classes: every observation of a group shares one class
+> set.seed(4)
+> n_g <- 40
+> cls <- rep(c(1, 2), each = n_g / 2)
+> dg <- data.frame(g = factor(rep(seq_len(n_g), each = 5)))
+> dg$y <- rnorm(nrow(dg), c(0, 4)[cls[as.integer(dg$g)]], 1)
+> fg <- frm(bf(y ~ 1) + mixture(gaussian(), gaussian(), groups = ~g),
++           data = dg)
+> head(mixture_probs(fg))   # one row per group, not per observation
+  class1       class2
+1      1 1.262122e-12
+2      1 2.820791e-12
+3      1 8.436732e-16
+4      1 7.884398e-16
+5      1 4.031519e-09
+6      1 1.439555e-13
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("mixture", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("mixture_mvn")
+> ### * mixture_mvn
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: mixture_mvn
+> ### Title: Multivariate gaussian mixture family
+> ### Aliases: mixture_mvn
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> Y <- rbind(matrix(rnorm(60, 0), ncol = 2),
++            matrix(rnorm(60, 4), ncol = 2))
+> dd <- data.frame(row = seq_len(nrow(Y)))
+> dd$Y <- Y
+> fit <- frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2), data = dd)
+> fixef(fit)
+                  Estimate Est.Error       Q2.5     Q97.5
+mu1d1_Intercept 0.08342536 0.1662316 -0.2423826 0.4092333
+mu1d2_Intercept 0.13395425 0.1434356 -0.1471744 0.4150829
+mu2d1_Intercept 4.11113311 0.1724837  3.7730712 4.4491950
+mu2d2_Intercept 4.11395998 0.1584580  3.8033881 4.4245319
+> head(mixture_probs(fit))
+        class1       class2
+[1,] 0.9999999 9.151779e-08
+[2,] 1.0000000 1.152650e-09
+[3,] 1.0000000 1.619378e-10
+[4,] 0.9999990 1.000145e-06
+[5,] 1.0000000 3.772682e-12
+[6,] 1.0000000 2.427070e-12
+> # a shared spherical covariance (mclust's EII, k-means-like)
+> frm(bf(Y ~ 1) + mixture_mvn(K = 2, D = 2, model = "EII"), data = dd)
+ Family: mixture_mvn(K = 2, D = 2, model = "EII") 
+ Links: mu1d1 = identity; mu1d2 = identity; mu2d1 = identity; mu2d2 = identity;
+        theta1 = identity
+
+Formula: Y ~ 1 
+   Data: dd (Number of observations: 60) 
+ Method: ML   logLik: -196.172   AIC: 404.344   BIC: 416.91 
+
+Regression Coefficients:
+                Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+mu1d1_Intercept     0.08      0.16    -0.23     0.40    0.52      0.6
+mu1d2_Intercept     0.14      0.16    -0.18     0.45    0.84      0.4
+mu2d1_Intercept     4.11      0.16     3.80     4.43   25.57   <2e-16
+mu2d2_Intercept     4.11      0.16     3.80     4.43   25.62   <2e-16
+
+Further Distributional Parameters:
+       Estimate Est.Error l-95% CI u-95% CI
+theta1      0.5        NA       NA       NA
+theta2      0.5        NA       NA       NA
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("mixture_mvn", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("mixture_probs")
+> ### * mixture_probs
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: mixture_probs
+> ### Title: Posterior class probabilities of a mixture fit
+> ### Aliases: mixture_probs
+> 
+> ### ** Examples
+> 
+> set.seed(3)
+> dd <- data.frame(y = c(rnorm(80, 0, 1), rnorm(80, 5, 1)))
+> fit <- frm(bf(y ~ 1) + mixture(gaussian(), gaussian()), data = dd)
+> 
+> p <- mixture_probs(fit)
+> head(p)
+        class1       class2
+[1,] 1.0000000 4.288987e-08
+[2,] 0.9999990 1.000118e-06
+[3,] 0.9999851 1.488386e-05
+[4,] 1.0000000 1.798825e-08
+[5,] 0.9999891 1.087896e-05
+[6,] 0.9999952 4.800314e-06
+> rowSums(p)[1:3]                    # rows sum to one
+[1] 1 1 1
+> 
+> # the hard assignment, and how well it recovers the truth
+> cl <- max.col(p)
+> table(cl, truth = rep(1:2, each = 80))
+   truth
+cl   1  2
+  1 80  0
+  2  0 80
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("mixture_probs", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("mvbf")
+> ### * mvbf
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: mvbf
+> ### Title: Combine formulas into a multivariate model
+> ### Aliases: mvbf set_rescor
+> 
+> ### ** Examples
+> 
+> set.seed(2)
+> n <- 160
+> dd <- data.frame(x = rnorm(n), g = factor(rep(1:16, 10)))
+> u <- cbind(rnorm(16, 0, 0.8), rnorm(16, 0, 0.8))
+> e <- rnorm(n)                      # a disturbance both responses see
+> dd$y1 <- 1 + 0.5 * dd$x + u[dd$g, 1] + e + rnorm(n, 0, 0.5)
+> dd$y2 <- 2 - 0.3 * dd$x + u[dd$g, 2] + e + rnorm(n, 0, 0.5)
+> 
+> # each response keeps its own formula and family
+> fit <- frm(mvbf(bf(y1 ~ x), bf(y2 ~ x)) + gaussian(), data = dd)
+> fixef(fit)
+               Estimate  Est.Error       Q2.5      Q97.5
+y1_Intercept  1.0775542 0.10391095  0.8738925  1.2812159
+y2_Intercept  2.0235294 0.09885933  1.8297687  2.2172901
+y1_x          0.5517536 0.09447715  0.3665817  0.7369254
+y2_x         -0.2793594 0.08988416 -0.4555292 -0.1031897
+> 
+> # rescor estimates the correlation of the residuals
+> fit_rc <- frm(mvbf(bf(y1 ~ x), bf(y2 ~ x), rescor = TRUE) + gaussian(),
++               data = dd)
+> rescor_matrix(fit_rc)
+          y1        y2
+y1 1.0000000 0.6720766
+y2 0.6720766 1.0000000
+> 
+> # set_rescor() turns it on after the fact, and `+` also combines bf()s
+> mvbf(bf(y1 ~ x), bf(y2 ~ x)) + set_rescor(TRUE)
+y1 ~ x
+y2 ~ x
+rescor: TRUE 
+> bf(y1 ~ x) + bf(y2 ~ x)
+y1 ~ x
+y2 ~ x
+rescor: FALSE 
+> 
+> # |ID| correlates the random effects of the two responses
+> fit_id <- frm(mvbf(bf(y1 ~ x + (1 | p | g)), bf(y2 ~ x + (1 | p | g))) +
++                 gaussian(), data = dd)
+> VarCorr(fit_id)
+$g
+$g$sd
+              Estimate Est.Error      Q2.5    Q97.5
+y1_Intercept 0.8606044 0.1732261 0.5210875 1.200121
+y2_Intercept 0.6111245 0.1438907 0.3291040 0.893145
+
+$g$cor
+, , y1_Intercept
+
+              Estimate Est.Error      Q2.5    Q97.5
+y1_Intercept 1.0000000 0.0000000 1.0000000 1.000000
+y2_Intercept 0.5987236 0.2196369 0.1682431 1.029204
+
+, , y2_Intercept
+
+              Estimate Est.Error      Q2.5    Q97.5
+y1_Intercept 0.5987236 0.2196369 0.1682431 1.029204
+y2_Intercept 1.0000000 0.0000000 1.0000000 1.000000
+
+
+$g$cov
+, , y1_Intercept
+
+              Estimate Est.Error        Q2.5     Q97.5
+y1_Intercept 0.7406399 0.2981582  0.15626049 1.3250193
+y2_Intercept 0.3148905 0.1797248 -0.03736366 0.6671447
+
+, , y2_Intercept
+
+              Estimate Est.Error        Q2.5     Q97.5
+y1_Intercept 0.3148905 0.1797248 -0.03736366 0.6671447
+y2_Intercept 0.3734732 0.1758702  0.02877383 0.7181725
+
+
+
+$residual__
+$residual__$sd
+    Estimate  Est.Error      Q2.5    Q97.5
+y1 0.9987735 0.05886056 0.8834089 1.114138
+y2 1.0927242 0.06440943 0.9664841 1.218964
+
+
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("mvbf", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("ngrps")
+> ### * ngrps
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: ngrps
+> ### Title: Number of levels per random-effect grouping factor
+> ### Aliases: ngrps ngrps.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100),
++                  g = factor(rep(1:10, 10)),
++                  h = factor(rep(1:4, each = 25)))
+> dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+> fit <- frm(bf(y ~ x + (1 | g) + (1 | h)) + gaussian(), data = dd)
+> 
+> # one count per distinct grouping factor
+> ngrps(fit)
+$g
+[1] 10
+
+$h
+[1] 4
+
+> # the count that decides whether a variance component is trustworthy,
+> # and the unit influence() deletes when given `groups`
+> ngrps(fit)[["h"]]
+[1] 4
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("ngrps", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("nlf")
+> ### * nlf
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: nlf
+> ### Title: Add a nonlinear parameter formula to a model formula
+> ### Aliases: nlf
+> 
+> ### ** Examples
+> 
+> # the composed spelling of a nonlinear model
+> bf(y ~ a) + nlf(a ~ exp(b * x)) + lf(b ~ 1)
+y ~ a
+a ~ exp(b * x) (nonlinear)
+b ~ 1 
+> 
+> # a nonlinear sigma with a linear mu
+> bf(y ~ x) + nlf(sigma ~ a + b * z) + lf(a ~ 1, b ~ 1)
+y ~ x
+sigma ~ a + b * z (nonlinear)
+a ~ 1 
+b ~ 1 
+> 
+> # bodies chain: cc feeds a, a feeds mu
+> bf(y ~ a, nl = TRUE) + nlf(a ~ cc * x) + nlf(cc ~ exp(b)) + lf(b ~ 1)
+y ~ a (nonlinear)
+a ~ cc * x (nonlinear)
+cc ~ exp(b) (nonlinear)
+b ~ 1 
+> 
+> # a variance function of the fitted mean: sd = exp(ls) * |mu|^th
+> bf(y ~ x) + nlf(sigma ~ ls + th * log(abs(mu))) + lf(ls ~ 1, th ~ 1)
+y ~ x
+sigma ~ ls + th * log(abs(mu)) (nonlinear)
+ls ~ 1 
+th ~ 1 
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("nlf", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("num_factor")
+> ### * num_factor
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: num_factor
+> ### Title: Factor with numeric-coded levels for coordinate covariance
+> ###   structures
+> ### Aliases: num_factor
+> 
+> ### ** Examples
+> 
+> # unequally spaced observation times, kept as distances
+> num_factor(c(0, 1.5, 4))
+[1] (0)   (1.5) (4)  
+Levels: (0) (1.5) (4)
+> 
+> # planar coordinates for a spatial covariance
+> levels(num_factor(rep(1:3, 3), rep(1:3, each = 3)))
+[1] "(1,1)" "(1,2)" "(1,3)" "(2,1)" "(2,2)" "(2,3)" "(3,1)" "(3,2)" "(3,3)"
+> 
+> # ou() reads the distances out of the level labels; a plain factor
+> # would only give it an ordering
+> set.seed(1)
+> tim <- c(0, 1, 1.5, 3)
+> n_g <- 40
+> S <- 0.9^2 * exp(-1.2 * abs(outer(tim, tim, "-")))
+> u <- matrix(rnorm(n_g * length(tim)), n_g) %*% chol(S)
+> dd <- data.frame(
++   y = 1 + as.vector(t(u)) + rnorm(n_g * length(tim), 0, 0.4),
++   g = factor(rep(seq_len(n_g), each = length(tim))),
++   tim = num_factor(rep(tim, n_g))
++ )
+> fit <- frm(bf(y ~ 1 + ou(tim + 0 | g)) + gaussian(), data = dd)
+> round(VarCorr(fit)$g$cor[, "Estimate", ], 3)
+        tim0  tim1 tim1.5  tim3
+tim0   1.000 0.235  0.114 0.013
+tim1   0.235 1.000  0.485 0.055
+tim1.5 0.114 0.485  1.000 0.114
+tim3   0.013 0.055  0.114 1.000
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("num_factor", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("par_template")
+> ### * par_template
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: par_template
+> ### Title: Parameter names and starting values
+> ### Aliases: par_template par_template.frmtmb_fit par_template.default
+> 
+> ### ** Examples
+> 
+> dd <- data.frame(x = rnorm(30), g = factor(rep(1:5, 6)))
+> dd$y <- 1 + 2 * dd$x + rnorm(30)
+> 
+> # before fitting: the names and the cold starting values
+> par_template(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+<frmtmb parameter template> starting values
+$beta  (2)
+(Intercept)           x 
+   1.297691    0.000000 
+$betad  (1)
+sigma_(Intercept) 
+        0.7165433 
+$b  (5)
+b_1 b_2 b_3 b_4 b_5 
+  0   0   0   0   0 
+$theta  (1)
+theta_1 
+      0 
+Edit and pass back as frm(start = ) or frm_simulate(newparams = ). Parentheses are optional in names you supply.
+> 
+> # after fitting: the same layout, holding the estimates
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), dd)
+> par_template(fit)
+<frmtmb parameter template> estimates
+$beta  (2)
+(Intercept)           x 
+   1.129321    2.041886 
+$betad  (1)
+sigma_(Intercept) 
+       -0.2471453 
+$b  (5)
+          b_1           b_2           b_3           b_4           b_5 
+ 5.167412e-10 -6.978239e-10  1.148698e-10  7.125048e-11 -5.037479e-12 
+$theta  (1)
+ theta_1 
+-11.1854 
+Edit and pass back as frm(start = ) or frm_simulate(newparams = ). Parentheses are optional in names you supply.
+> 
+> # discover, edit, fit
+> st <- par_template(bf(y ~ x) + gaussian(), data = dd)
+> st$beta["x"] <- 2
+> frm(bf(y ~ x) + gaussian(), dd, start = st)
+ Family: gaussian 
+ Links: mu = identity; sigma = log
+
+Formula: y ~ x 
+   Data: dd (Number of observations: 30) 
+ Method: ML   logLik: -35.1538   AIC: 76.3076   BIC: 80.5112 
+
+Regression Coefficients:
+          Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept     1.13      0.14     0.85     1.41    7.89  3.1e-15
+x             2.04      0.16     1.73     2.35   13.01  < 2e-16
+
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI
+sigma     0.78       0.1     0.61     1.01
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("par_template", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("plot.frmtmb_fit")
+> ### * plot.frmtmb_fit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: plot.frmtmb_fit
+> ### Title: Diagnostic plots for a fit
+> ### Aliases: plot.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+> dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+> 
+> # both panels, side by side
+> op <- par(mfrow = c(1, 2))
+> plot(fit, ask = FALSE)
+> par(op)
+> 
+> # just the QQ panel
+> plot(fit, which = 2)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("plot.frmtmb_fit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> graphics::par(get("par.postscript", pos = 'CheckExEnv'))
+> cleanEx()
+> nameEx("plot.frmtmb_influence")
+> ### * plot.frmtmb_influence
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: plot.frmtmb_influence
+> ### Title: Plot case-deletion influence
+> ### Aliases: plot.frmtmb_influence
+> 
+> ### ** Examples
+> 
+> ## No test: 
+> set.seed(7)
+> dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
+> dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
+> fit <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd)
+> infl <- influence(fit, groups = "g")
+> 
+> # Cook's distances only
+> plot(infl, which = 1)
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("plot.frmtmb_influence", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("posterior_summary")
+> ### * posterior_summary
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: posterior_summary
+> ### Title: Summaries and intervals of draws
+> ### Aliases: posterior_summary posterior_summary.default
+> ###   posterior_summary.frmtmb_fit posterior_summary.frmtmb_multiple
+> 
+> ### ** Examples
+> 
+> # any matrix of draws: rows are draws, columns are variables
+> m <- cbind(a = rnorm(500), b = rnorm(500, 2))
+> posterior_summary(m)
+    Estimate Est.Error      Q2.5    Q97.5
+a 0.02264409  1.011928 -1.995029 2.030194
+b 1.95405963  1.057304 -0.242602 4.003819
+> posterior_summary(m, robust = TRUE)
+    Estimate Est.Error      Q2.5    Q97.5
+a -0.0367783 0.9367635 -1.995029 2.030194
+b  1.9787431 1.0924700 -0.242602 4.003819
+> 
+> # a maximum-likelihood fit has no draws to summarize
+> dd <- data.frame(y = rnorm(40), x = rnorm(40))
+> try(posterior_summary(frm(bf(y ~ x) + gaussian(), data = dd)))
+Error : posterior_summary() needs posterior draws and a frmtmb_fit has none: frm() is maximum likelihood, so it carries one parameter vector rather than chains. Install frmtmb.sample and sample first, with posterior_summary(frmtmb.sample::frm_sample(fit)); for the point estimates and their covariance use fixef(), vcov() or confint() on the fit itself
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("posterior_summary", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("pp_check")
+> ### * pp_check
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: pp_check
+> ### Title: Predictive check against simulated responses
+> ### Aliases: pp_check pp_check.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> if (requireNamespace("bayesplot", quietly = TRUE)) {
++   set.seed(1)
++   dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
++   dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
++   fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
++ 
++   # the observed density against draws from the fit
++   pp_check(fit, ndraws = 20)
++ 
++   # any bayesplot ppc_* check, named by its suffix. A statistic the
++   # model was not fitted to is the informative one: here, the share
++   # of zeros, which is how zero inflation shows up.
++   pp_check(fit, type = "stat", stat = function(y) mean(y == 0),
++            ndraws = 50)
++ }
+`stat_bin()` using `bins = 30`. Pick better value `binwidth`.
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("pp_check", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("predict.frmtmb_fit")
+> ### * predict.frmtmb_fit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: predict.frmtmb_fit
+> ### Title: Predictions from a frmtmb fit
+> ### Aliases: predict.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100))
+> dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x))
+> fit <- frm(bf(y ~ x) + poisson(), data = dd)
+> 
+> # the predictive summary: observation noise is in it
+> head(predict(fit, ndraws = 200))
+     Estimate Est.Error Q2.5 Q97.5
+[1,]    0.765 0.8738381    0 3.000
+[2,]    1.270 1.0876650    0 4.000
+[3,]    0.765 0.8445956    0 3.000
+[4,]    2.430 1.6087387    0 6.000
+[5,]    1.235 1.1072057    0 4.000
+[6,]    0.665 0.8099724    0 2.025
+> # against the expected response, which is much tighter
+> head(fitted(fit))
+      Estimate Est.Error      Q2.5     Q97.5
+[1,] 0.7751024 0.1130250 0.5535775 0.9966273
+[2,] 1.1849807 0.1126043 0.9642804 1.4056811
+[3,] 0.6946365 0.1132732 0.4726251 0.9166479
+[4,] 2.4828747 0.3477984 1.8012024 3.1645469
+[5,] 1.2791025 0.1161520 1.0514488 1.5067563
+[6,] 0.7001766 0.1132798 0.4781522 0.9222009
+> 
+> # the draws themselves
+> dim(predict(fit, summary = FALSE, ndraws = 50))
+[1]  50 100
+> 
+> # the linear predictor is frm_linpred() now
+> head(frm_linpred(fit, type = "link"))
+         1          2          3          4          5          6 
+-0.2547601  0.1697265 -0.3643666  0.9094170  0.2461587 -0.3564227 
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("predict.frmtmb_fit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("print.frmtmb_priorlist")
+> ### * print.frmtmb_priorlist
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: print.frmtmb_priorlist
+> ### Title: Print a prior specification
+> ### Aliases: print.frmtmb_priorlist
+> 
+> ### ** Examples
+> 
+> set_prior("normal(0,1)", coef = "x")
+b_x ~ normal(0,1)
+> set_prior("cauchy(0,1)", class = "sd", group = "g")
+sd_g ~ cauchy(0,1)
+> set_prior("normal(0, 2)", class = c("b", "sd"))
+        prior class coef group resp dpar nlpar   lb   ub source
+ normal(0, 2)     b                            <NA> <NA>   user
+ normal(0, 2)    sd                            <NA> <NA>   user
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("print.frmtmb_priorlist", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("prior")
+> ### * prior
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: prior
+> ### Title: Set up priors with brms's quoting spelling
+> ### Aliases: prior prior_ prior_string
+> 
+> ### ** Examples
+> 
+> # the brms nonlinear vignette's spelling
+> prior(normal(5000, 1000), nlpar = "ult")
+b_ult ~ normal(5000, 1000)
+> 
+> # combine with c() or `+`, as with set_prior()
+> c(prior(normal(1, 2), nlpar = "omega"),
++   prior(normal(45, 10), nlpar = "theta"))
+          prior class coef group resp dpar nlpar   lb   ub source
+   normal(1, 2)     b                      omega <NA> <NA>   user
+ normal(45, 10)     b                      theta <NA> <NA>   user
+> 
+> # the programmatic spellings
+> prior_(~normal(0, 10), class = ~b)
+b ~ normal(0, 10)
+> prior_string(paste0("normal(0, ", 2 * 5, ")"), class = "b")
+b ~ normal(0, 10)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("prior", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("prior_summary")
+> ### * prior_summary
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: prior_summary
+> ### Title: Priors used in a fit
+> ### Aliases: prior_summary prior_summary.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+> dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+> 
+> # what was actually applied, after set_prior() was matched to the
+> # coefficients of this design
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
++            prior = set_prior("normal(0, 1)", class = "b") +
++                     set_prior("exponential(1)", class = "sd"))
+> prior_summary(fit)
+          prior class coef group resp dpar nlpar   lb   ub source
+   normal(0, 1)     b                            <NA> <NA>   user
+ exponential(1)    sd                            <NA> <NA>   user
+> 
+> # a plain maximum-likelihood fit reports that it had none
+> prior_summary(frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd))
+No priors were set (plain maximum likelihood).
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("prior_summary", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("profile.frmtmb_fit")
+> ### * profile.frmtmb_fit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: profile.frmtmb_fit
+> ### Title: Likelihood profiles
+> ### Aliases: profile.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+> dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+> 
+> # parameter names are the confint() row names, with or without the
+> # parentheses, or a one-to-one natural-scale alias
+> rownames(confint(fit))
+[1] "(Intercept)"       "x"                 "sigma_(Intercept)"
+[4] "theta_1"          
+> pr <- profile(fit, "theta_1")
+> identical(profile(fit, "(Intercept)"), profile(fit, "Intercept"))
+[1] TRUE
+> plot(pr)
+> # TMB's confint() reads the interval off the profile
+> confint(pr)
+           lower     upper
+theta -0.6835298 0.3479822
+> 
+> # several parameters at once return a named list
+> prs <- profile(fit, c("x", "theta_1"))
+> names(prs)
+[1] "x"       "theta_1"
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("profile.frmtmb_fit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("ps")
+> ### * ps
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: ps
+> ### Title: A penalized spline whose value a nonlinear body consumes
+> ### Aliases: ps
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> n_id <- 40
+> d <- expand.grid(t = seq(0, 1, length.out = 8), id = factor(1:n_id))
+> sh <- stats::rnorm(n_id, 0, 0.05)[d$id]
+> d$y <- 2 + sin(2 * pi * (d$t + sh)) + stats::rnorm(nrow(d), 0, 0.1)
+> fit <- frm(bf(y ~ lev + ps(t + shift, k = 8),
++               lev ~ 1, shift ~ 0 + (1 | id), nl = TRUE),
++            data = d)
+Warning: 2 of 320 fitted values of t + shift fall outside the knot span of ps(t + shift, k = 8) [-0.1, 1.1], where the basis is exactly zero and its gradient with it. Refit with a larger pad =
+> fixef(fit)
+                   Estimate Est.Error      Q2.5     Q97.5
+lev_Intercept      2.002918 0.1003904  1.806156  2.199679
+pstPshiftkEQ8.fx1 -1.993027 0.4793116 -2.932460 -1.053593
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("ps", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("ranef")
+> ### * ranef
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: ranef.frmtmb_fit
+> ### Title: Extract random-effect modes
+> ### Aliases: ranef.frmtmb_fit ranef
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+> dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+> 
+> # one matrix per random-effect term, levels by coefficients
+> ranef(fit)
+$g   (1 | g)
+    Intercept
+1  -0.7929115
+2   0.1938107
+3  -0.6968785
+4  -0.3665259
+5  -1.2649313
+6   1.0458808
+7   0.8996844
+8   0.2424397
+9  -0.2011950
+10  0.9405886
+
+> ranef(fit)$g[1:3, ]                 # keyed by the grouping factor
+         1          2          3 
+-0.7929115  0.1938107 -0.6968785 
+> attr(ranef(fit)$g, "term")          # the block it came from
+[1] "1 | g"
+> ranef(fit)[["1 | g"]][1:3, ]        # or by that label
+         1          2          3 
+-0.7929115  0.1938107 -0.6968785 
+> 
+> # condVar adds the conditional SDs a caterpillar plot needs
+> re <- as.data.frame(ranef(fit, condVar = TRUE))
+> head(re)
+    grp      term level    condval    condsd
+1 1 | g Intercept     1 -0.7929115 0.3795333
+2 1 | g Intercept     2  0.1938107 0.3736784
+3 1 | g Intercept     3 -0.6968785 0.3773146
+4 1 | g Intercept     4 -0.3665259 0.3788799
+5 1 | g Intercept     5 -1.2649313 0.3829424
+6 1 | g Intercept     6  1.0458808 0.3798946
+> with(re[order(re$condval), ],
++      plot(condval, seq_along(condval), pch = 16,
++           xlim = range(condval - 2 * condsd, condval + 2 * condsd),
++           xlab = "conditional mode", ylab = "group"))
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("ranef", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("refit")
+> ### * refit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: refit
+> ### Title: Refit a model to a new response
+> ### Aliases: refit refit.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(2)
+> dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
+> dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+> # refit to a simulated response (the parametric-bootstrap step)
+> ysim <- simulate(fit, nsim = 1, re_formula = NA)[[1]]
+> rf <- refit(fit, ysim)
+> fixef(rf)
+           Estimate Est.Error      Q2.5     Q97.5
+Intercept 0.9330103 0.2342002 0.4739864 1.3920342
+x         0.5717605 0.1101704 0.3558305 0.7876906
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("refit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("rescor_matrix")
+> ### * rescor_matrix
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: rescor_matrix
+> ### Title: Estimated residual correlation matrix (rescor fits), else NULL
+> ### Aliases: rescor_matrix
+> 
+> ### ** Examples
+> 
+> set.seed(2)
+> n <- 80
+> dd <- data.frame(x = rnorm(n))
+> # two responses that share a residual disturbance
+> e <- rnorm(n)
+> dd$y1 <- 1 + 0.5 * dd$x + e + rnorm(n, 0, 0.5)
+> dd$y2 <- 2 - 0.3 * dd$x + e + rnorm(n, 0, 0.5)
+> fit <- frm(mvbf(bf(y1 ~ x), bf(y2 ~ x), rescor = TRUE) + gaussian(),
++            data = dd)
+> rescor_matrix(fit)
+          y1        y2
+y1 1.0000000 0.8371743
+y2 0.8371743 1.0000000
+> 
+> # a fit without rescor has no residual correlation to report
+> fit0 <- frm(mvbf(bf(y1 ~ x), bf(y2 ~ x)) + gaussian(), data = dd)
+> rescor_matrix(fit0)
+NULL
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("rescor_matrix", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("residuals.frmtmb_fit")
+> ### * residuals.frmtmb_fit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: residuals.frmtmb_fit
+> ### Title: Residuals from a frmtmb fit
+> ### Aliases: residuals.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+> dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
+> fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+> 
+> # raw and variance-standardized residuals
+> head(residuals(fit))
+       Estimate Est.Error       Q2.5      Q97.5
+[1,] -0.4940281 0.1731106 -0.8333187 -0.1547376
+[2,] -0.9276322 0.2799946 -1.4764116 -0.3788528
+[3,] -0.7935414 0.2259217 -1.2363398 -0.3507429
+[4,]  0.3403558 0.7525356 -1.1345869  1.8152986
+[5,]  2.0031268 0.2886996  1.4372859  2.5689676
+[6,]  0.4382665 0.4892102 -0.5205679  1.3971010
+> head(residuals(fit, type = "pearson"))
+       Estimate Est.Error       Q2.5      Q97.5
+[1,] -0.7028714 0.2462906 -1.1855920 -0.2201507
+[2,] -0.9631367 0.2907112 -1.5329202 -0.3933531
+[3,] -0.8908094 0.2536140 -1.3878837 -0.3937351
+[4,]  0.2086995 0.4614401 -0.6957064  1.1131054
+[5,]  2.0062658 0.2891520  1.4395383  2.5729933
+[6,]  0.2738239 0.3056529 -0.3252448  0.8728926
+> # the usual overdispersion check for a poisson fit
+> pr <- residuals(fit, type = "pearson")[, "Estimate"]
+> sum(pr^2) / df.residual(fit)
+[1] 0.9176762
+> 
+> # one-step-ahead quantile residuals are standard normal under a
+> # correctly specified model, whatever the family
+> r <- residuals(fit, type = "osa")[, "Estimate"]
+> qqnorm(r); qqline(r)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("residuals.frmtmb_fit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("set_prior")
+> ### * set_prior
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: set_prior
+> ### Title: Set up priors brms-style
+> ### Aliases: set_prior
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100), z = rnorm(100),
++                  g = factor(rep(1:10, 10)))
+> dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+> 
+> # `+` combines specifications; the class-wide one goes first so the
+> # coefficient-specific one can override it
+> pr <- set_prior("normal(0, 1)", class = "b") +
++   set_prior("normal(0, 0.2)", class = "b", coef = "z") +
++   set_prior("exponential(1)", class = "sd", group = "g")
+> pr
+          prior class coef group resp dpar nlpar   lb   ub source
+   normal(0, 1)     b                            <NA> <NA>   user
+ normal(0, 0.2)     b    z                       <NA> <NA>   user
+ exponential(1)    sd          g                 <NA> <NA>   user
+> 
+> # the priors penalize the likelihood: the fit is a MAP estimate
+> fit <- frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd, prior = pr)
+> fixef_by_dpar(fit)$mu
+(Intercept)           x           z 
+ 1.43922922  0.56382992  0.05323151 
+> # the tight prior on z shrinks it toward zero
+> fixef_by_dpar(frm(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd))$mu
+(Intercept)           x           z 
+ 1.43901021  0.57150937  0.06947063 
+> 
+> # an empty distribution string sets a hard bound only
+> set_prior("", class = "b", coef = "x", lb = 0)
+<lower=0> b_x ~ (flat)
+> 
+> # a distributional parameter's own class is a density on the
+> # parameter itself, on its own scale, where the model gives that
+> # parameter no predictor. This model does not, so this is the
+> # spelling it offers, and get_prior() lists it
+> fit_s <- frm(bf(y ~ x + z) + gaussian(), data = dd,
++              prior = set_prior("student_t(3, 0, 2.5)",
++                                class = "sigma"))
+> sigma(fit_s)
+[1] 1.336249
+> # with sigma ~ 1 the model has a log-scale intercept instead, and
+> # that is the slot the prior addresses. brms draws the same line
+> set_prior("student_t(3, 0, 2.5)", class = "Intercept",
++           dpar = "sigma")
+Intercept_sigma ~ student_t(3, 0, 2.5)
+> 
+> # bounds address a nonlinear parameter the way a distribution does,
+> # so a guessing rate is held in [0, 1]
+> set_prior("", nlpar = "guess", lb = 0, ub = 1)
+<lower=0,upper=1> b_guess ~ (flat)
+> 
+> # the residual-correlation classes are brms's own names
+> set_prior("normal(0, 0.5)", class = "ar")
+ar ~ normal(0, 0.5)
+> set_prior("lkj(2)", class = "rescor")
+rescor ~ lkj(2)
+> # and one internal covariance parameter, by its name
+> set_prior("", class = "theta", coef = "thetaac_1", lb = -2, ub = 2)
+<lower=-2,upper=2> theta_thetaac_1 ~ (flat)
+> 
+> # class "cor" addresses a correlated block as a whole, brms's
+> # spelling; eta > 1 pulls the correlation toward zero
+> dd$z <- rnorm(100)
+> dd$y2 <- dd$y + rnorm(10, 0, 0.6)[dd$g] * dd$z
+> fitc <- frm(bf(y2 ~ x + z + (z | g)) + gaussian(), data = dd,
++             prior = set_prior("lkj(4)", class = "cor"))
+> VarCorr(fitc)
+$g
+$g$sd
+           Estimate Est.Error      Q2.5    Q97.5
+Intercept 0.8478563 0.2064010 0.4433177 1.252395
+z         0.7601023 0.1980369 0.3719571 1.148247
+
+$g$cor
+, , Intercept
+
+           Estimate Est.Error       Q2.5     Q97.5
+Intercept 1.0000000 0.0000000  1.0000000 1.0000000
+z         0.3342718 0.2368195 -0.1298859 0.7984294
+
+, , z
+
+           Estimate Est.Error       Q2.5     Q97.5
+Intercept 0.3342718 0.2368195 -0.1298859 0.7984294
+z         1.0000000 0.0000000  1.0000000 1.0000000
+
+
+$g$cov
+, , Intercept
+
+           Estimate Est.Error        Q2.5     Q97.5
+Intercept 0.7188603 0.3499968  0.03287919 1.4048413
+z         0.2154239 0.1706866 -0.11911567 0.5499635
+
+, , z
+
+           Estimate Est.Error        Q2.5     Q97.5
+Intercept 0.2154239 0.1706866 -0.11911567 0.5499635
+z         0.5777554 0.3010566 -0.01230463 1.1678155
+
+
+
+$residual__
+$residual__$sd
+ Estimate  Est.Error      Q2.5    Q97.5
+ 0.976346 0.07648265 0.8264427 1.126249
+
+
+> 
+> # get_prior() shows which rows a design offers
+> get_prior(bf(y ~ x + z + (1 | g)) + gaussian(), data = dd)
+route = "fit": the prior defaults frm() applies
+   prior     class    coef group resp dpar nlpar lb ub  source
+1 (flat) Intercept                               NA NA default
+2 (flat)         b                               NA NA default
+3 (flat)         b       x                       NA NA default
+4 (flat)         b       z                       NA NA default
+5 (flat)     sigma                               NA NA default
+6 (flat)        sd                               NA NA default
+7 (flat)        sd             g                 NA NA default
+8 (flat)     theta                               NA NA default
+9 (flat)     theta theta_1                       NA NA default
+> 
+> # prior() quotes its first argument, brms's spelling, and reaches
+> # the same machinery
+> prior(normal(0, 1), class = "b")
+b ~ normal(0, 1)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("set_prior", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("sigma.frmtmb_fit")
+> ### * sigma.frmtmb_fit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: sigma.frmtmb_fit
+> ### Title: Residual standard deviation
+> ### Aliases: sigma.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+> dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+> 
+> # the residual SD, on the response scale
+> sigma(fit)
+[1] 0.9658235
+> # which is what the standardized residuals divide by
+> max(abs(residuals(fit, type = "pearson")[, "Estimate"] -
++           residuals(fit)[, "Estimate"] / sigma(fit)))
+[1] 0
+> 
+> # a poisson fit has no dispersion parameter, so sigma() is 1
+> dd$cnt <- rpois(100, exp(0.5 + 0.3 * dd$x))
+> sigma(frm(bf(cnt ~ x) + poisson(), data = dd))
+[1] 1
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("sigma.frmtmb_fit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("simulate.frmtmb_fit")
+> ### * simulate.frmtmb_fit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: simulate.frmtmb_fit
+> ### Title: Simulate responses from a frmtmb fit
+> ### Aliases: simulate.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+> dd$y <- rpois(100, exp(0.3 + 0.4 * dd$x + rnorm(10, 0, 0.6)[dd$g]))
+> fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
+> 
+> # one column per draw; the seed used is attached
+> sims <- simulate(fit, nsim = 5, seed = 42)
+> str(sims)
+'data.frame':	100 obs. of  5 variables:
+ $ sim_1: int  2 3 0 4 1 2 2 1 2 5 ...
+ $ sim_2: int  1 0 0 2 3 6 2 3 2 0 ...
+ $ sim_3: int  1 1 2 2 0 2 4 2 1 2 ...
+ $ sim_4: int  0 1 0 2 2 5 1 1 1 3 ...
+ $ sim_5: int  0 1 1 2 2 1 4 1 0 3 ...
+ - attr(*, "seed")= num 42
+  ..- attr(*, "kind")=List of 3
+  .. ..$ : chr "Mersenne-Twister"
+  .. ..$ : chr "Inversion"
+  .. ..$ : chr "Rejection"
+> attr(sims, "seed")
+[1] 42
+attr(,"kind")
+attr(,"kind")[[1]]
+[1] "Mersenne-Twister"
+
+attr(,"kind")[[2]]
+[1] "Inversion"
+
+attr(,"kind")[[3]]
+[1] "Rejection"
+
+> 
+> # re_formula = NA redraws the group effects, which is the right choice
+> # for a parametric bootstrap over new groups
+> sims_m <- simulate(fit, nsim = 5, re_formula = NA, seed = 42)
+> apply(sims_m, 2, var) > apply(sims, 2, var)
+sim_1 sim_2 sim_3 sim_4 sim_5 
+ TRUE FALSE FALSE FALSE  TRUE 
+> 
+> # a posterior-predictive check by hand: does the fit reproduce the
+> # share of zeros in the data?
+> mean(dd$y == 0)
+[1] 0.29
+> colMeans(simulate(fit, nsim = 20, seed = 1) == 0)
+ sim_1  sim_2  sim_3  sim_4  sim_5  sim_6  sim_7  sim_8  sim_9 sim_10 sim_11 
+  0.30   0.24   0.35   0.30   0.25   0.25   0.23   0.24   0.33   0.32   0.27 
+sim_12 sim_13 sim_14 sim_15 sim_16 sim_17 sim_18 sim_19 sim_20 
+  0.27   0.30   0.37   0.27   0.29   0.24   0.29   0.28   0.34 
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("simulate.frmtmb_fit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("update.frmtmb_fit")
+> ### * update.frmtmb_fit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: update.frmtmb_fit
+> ### Title: Update and refit a model
+> ### Aliases: update.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(3)
+> dd <- data.frame(x = rnorm(60), z = rnorm(60))
+> dd$y <- rnorm(60, 1 + 0.5 * dd$x, 1)
+> fit <- frm(bf(y ~ x), family = gaussian(), data = dd)
+> 
+> # a delta on the stored formula, in either spelling
+> fit2 <- update(fit, ~ . + z)
+> formula(fit2)
+y ~ x + z
+> formula(update(fit, . ~ . + z))
+y ~ x + z
+> fit3 <- update(fit, formula. = ~ . - x, newdata = dd[1:40, ])
+> nobs(fit3)
+[1] 40
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("update.frmtmb_fit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("validate_prior")
+> ### * validate_prior
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: validate_prior
+> ### Title: Check a prior against a model
+> ### Aliases: validate_prior
+> 
+> ### ** Examples
+> 
+> dd <- data.frame(y = rnorm(60), x = rnorm(60), z = rnorm(60),
++                  g = factor(rep(1:6, 10)))
+> validate_prior(prior(normal(0, 10), class = b) +
++                  prior(cauchy(0, 2), class = sd),
++                y ~ x + z + (1 | g), data = dd)
+route = "fit": the prior defaults frm() applies
+          prior     class    coef group resp dpar nlpar lb ub       source
+1        (flat) Intercept                               NA NA      default
+2 normal(0, 10)         b                               NA NA         user
+3 normal(0, 10)         b       x                       NA NA (vectorized)
+4 normal(0, 10)         b       z                       NA NA (vectorized)
+5        (flat)     sigma                               NA NA      default
+6  cauchy(0, 2)        sd                               NA NA         user
+7  cauchy(0, 2)        sd             g                 NA NA (vectorized)
+8        (flat)     theta                               NA NA      default
+9        (flat)     theta theta_1                       NA NA      default
+> # a prior on a coefficient the model does not have is refused
+> try(validate_prior(prior(normal(0, 1), coef = w), y ~ x, data = dd))
+Error : Prior target not found (class=b, coef=w)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("validate_prior", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("variables")
+> ### * variables
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: variables
+> ### Title: Usable parameter names
+> ### Aliases: variables variables.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
+> dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+> variables(fit)
+[1] "b_Intercept"     "b_x"             "sd_g__Intercept" "sigma"          
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("variables", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("vcov.frmtmb_fit")
+> ### * vcov.frmtmb_fit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: vcov.frmtmb_fit
+> ### Title: Covariance matrix of the fixed-effect estimates
+> ### Aliases: vcov.frmtmb_fit
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> dd <- data.frame(x = rnorm(100), g = factor(rep(1:10, 10)))
+> dd$y <- rnorm(100, 1 + 0.5 * dd$x + rnorm(10, 0, 0.8)[dd$g], 1)
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
+> 
+> # standard errors of the fixed effects, which is fixef()'s Est.Error
+> sqrt(diag(vcov(fit)))
+Intercept         x 
+0.2745663 0.1132852 
+> # the covariance parameters join the block on their internal scale,
+> # under the internal names, which is confint()'s vocabulary
+> rownames(vcov(fit, full = TRUE))
+[1] "(Intercept)"       "x"                 "sigma_(Intercept)"
+[4] "theta_1"          
+> 
+> # the matrix is what a delta-method calculation needs
+> V <- vcov(fit)
+> a <- c(1, 2)                       # prediction at x = 2, no group
+> sqrt(drop(t(a) %*% V[1:2, 1:2] %*% a))
+[1] 0.348039
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("vcov.frmtmb_fit", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("vcov_cluster")
+> ### * vcov_cluster
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: vcov_cluster
+> ### Title: Cluster-robust (sandwich) covariance
+> ### Aliases: vcov_cluster
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> G <- 40
+> dd <- data.frame(g = factor(rep(seq_len(G), each = 6)),
++                  x = rnorm(G * 6))
+> # cluster-specific error scale the model does not describe
+> dd$y <- 1 + 0.5 * dd$x +
++   rnorm(G * 6, 0, rep(runif(G, 0.3, 2.5), each = 6))
+> fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd,
++            REML = FALSE)
+> 
+> sqrt(diag(vcov(fit)))                          # model-based
+Intercept         x 
+ 0.107877  0.112256 
+> sqrt(diag(vcov_cluster(fit, ~ g, "CR1")))      # cluster-robust
+      (Intercept)                 x sigma_(Intercept) 
+       0.09237769        0.12179568        0.08048348 
+> 
+> # feeds straight into the inference methods, which need the whole
+> # outer parameter vector and pick up the t(G - 1) reference from it
+> confint(fit, parm = "x",
++         vcov = vcov_cluster(fit, ~ g, "CR1", full = TRUE))
+        lwr       upr       est
+x 0.4379456 0.9306556 0.6843006
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("vcov_cluster", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("whittle")
+> ### * whittle
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: whittle
+> ### Title: Whittle likelihood for a periodogram response
+> ### Aliases: whittle
+> 
+> ### ** Examples
+> 
+> set.seed(1)
+> y <- as.numeric(arima.sim(list(ar = 0.6), 512))
+> pg <- frm_periodogram(y)
+> 
+> # a nonparametric log spectrum: the smoothing parameter is estimated
+> # by the same Laplace marginal likelihood as any other smooth
+> fit <- frm(bf(pgram ~ s(freq, k = 8)), family = whittle(), data = pg)
+> fixef(fit)
+             Estimate  Est.Error        Q2.5      Q97.5
+Intercept  0.02596863 0.06279847 -0.09711411  0.1490514
+sfreq_1   -0.82825927 0.26107404 -1.33995499 -0.3165636
+> 
+> # an averaged periodogram needs the shape it was averaged with
+> pg4 <- frm_periodogram(y, segments = 4)
+> frm(bf(pgram ~ log(freq)), family = whittle(tapers = 4), data = pg4)
+ Family: whittle 
+ Links: mu = log; shape = log
+
+Formula: pgram ~ log(freq) 
+   Data: pg4 (Number of observations: 63) 
+ Method: ML   logLik: -43.121   AIC: 90.242   BIC: 94.5283 
+
+Regression Coefficients:
+          Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept    -1.57      0.15    -1.86    -1.28  -10.62   <2e-16
+logfreq      -0.98      0.08    -1.14    -0.82  -12.15   <2e-16
+
+Fixed dpar: shape = 4
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("whittle", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> ### * <FOOTER>
+> ###
+> cleanEx()
+> options(digits = 7L)
+> base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
+Time elapsed:  43.7 3.1 47.76 NA NA 
+> grDevices::dev.off()
+null device 
+          1 
+> ###
+> ### Local variables: ***
+> ### mode: outline-minor ***
+> ### outline-regexp: "\\(> \\)?### [*]+" ***
+> ### End: ***
+> quit('no')

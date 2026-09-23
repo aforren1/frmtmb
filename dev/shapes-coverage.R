@@ -8,7 +8,7 @@
 #
 # The arms, so that the construction is justified rather than assumed:
 #   joint    parameters drawn from N(theta_hat, vcov(full = TRUE))
-#   plugin   simulated at the estimates alone (param_uncertainty = FALSE)
+#   plugin   simulated at the estimates alone (propagate_error = FALSE)
 #   wald     the Wald interval around the FITTED value, which carries no
 #            observation noise at all: the control that MUST under-cover
 #            badly, so that a coverage near 0.95 in the other arms is
@@ -137,9 +137,15 @@ for (r in seq_len(nrep)) {
     predict(fit, newdata = nd, ndraws = ndraws,
             allow_new_levels = anl)), error = function(e) NULL)
   set.seed(seed * 7L + 1L)
+  # The 2026-09-23 rename from `param_uncertainty` PRESERVES this
+  # arm's meaning, unlike the same-looking arm in dev/reunc-coverage.R.
+  # This script predates the group-effect draw: when it was run there
+  # was no b draw to switch off, so "hold the parameters" and "hold
+  # the parameters and the effects" were the same thing here, and its
+  # plugin rows still reproduce.
   pp <- tryCatch(suppressWarnings(
     predict(fit, newdata = nd, ndraws = ndraws, allow_new_levels = anl,
-            param_uncertainty = FALSE)), error = function(e) NULL)
+            propagate_error = FALSE)), error = function(e) NULL)
   pw <- tryCatch(suppressWarnings(
     fitted(fit, newdata = nd, allow_new_levels = anl)),
     error = function(e) NULL)

@@ -12,11 +12,7 @@
 get_joint_cov <- function(fit) {
   cache <- fit$cache
   if (!is.null(cache$Vjoint)) return(cache$Vjoint)
-  Q <- sdr_of(fit)$jointPrecision
-  if (is.null(Q) && !is.null(sdr_of(fit)$par.random) &&
-      length(sdr_of(fit)$par.random)) {
-    Q <- autoscale_sdreport(fit, jp = TRUE)$jointPrecision
-  }
+  Q <- joint_precision(fit)
   if (is.null(Q)) {
     V <- sdr_of(fit)$cov.fixed
     rn <- rownames(V)
@@ -29,6 +25,27 @@ get_joint_cov <- function(fit) {
   }
   cache$Vjoint <- list(V = V, names = rn)
   cache$Vjoint
+}
+
+#' The joint precision of every estimated parameter, fixed and random,
+#' or `NULL` when the objective has no inner parameters. Memoized in
+#' `fit$cache`: `get_joint_cov()` inverts it, and `predict()` draws the
+#' group effects from its conditional blocks.
+#'
+#' @noRd
+joint_precision <- function(fit) {
+  # the stored sdreport's own matrix wins whenever it has one, so a
+  # caller that replaces the sdreport is read, not a copy from before;
+  # only the separate joint-precision sdreport an ML fit needs is kept
+  Q <- sdr_of(fit)$jointPrecision
+  if (!is.null(Q)) return(Q)
+  cache <- fit$cache
+  if (!is.null(cache$Qjoint)) return(cache$Qjoint)
+  if (!is.null(sdr_of(fit)$par.random) && length(sdr_of(fit)$par.random)) {
+    Q <- autoscale_sdreport(fit, jp = TRUE)$jointPrecision
+  }
+  if (is.environment(cache)) cache$Qjoint <- Q
+  Q
 }
 
 #' The three argument checks `predict()` and `frm_lp_basis()` share.
@@ -53,7 +70,10 @@ check_re_form <- function(re_formula) {
 #' Whether `re_formula` keeps the random effects.
 #'
 #' `NULL` keeps them, `NA` drops them, and a one-sided formula keeps
-#' them unless it is `~0`. Factored out beside the message templates for
+#' them when it names at least one group-level term: `~0` and `~1` name
+#' none, and brms reads both as "no group-level effects". WHICH terms a
+#' formula keeps is `re_resolve()`'s question; this answers only whether
+#' any are. Factored out beside the message templates for
 #' the same reason those were: `predict()` and `frm_lp_basis()` take the
 #' same argument, and the whole point of section 3 of the review is that
 #' the two return the same numbers, which they can only do while they
@@ -63,7 +83,7 @@ check_re_form <- function(re_formula) {
 re_form_keeps <- function(re_formula) {
   if (is.null(re_formula)) return(TRUE)
   if (!inherits(re_formula, "formula")) return(FALSE)
-  !identical(deparse1(re_formula[[2]]), "0")
+  length(re_formula_bars(re_formula)) > 0L
 }
 
 #' @noRd
@@ -573,6 +593,8 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
                  paste(colnames(mm), collapse = ", "), " vs ",
                  paste(comp$cnms, collapse = ", "), ")", call. = FALSE)
       }
+      # a partial re_formula keeps some columns of this term (re_view())
+      if (!is.null(comp$keep_cols)) mm[, !comp$keep_cols] <- 0
       gvr <- eval(comp$bar[[3]], newdata, env)
       # an spde block's levels are mesh ROW NUMBERS, so the node has to
       # be read as a number here too: as.character() on a double would
@@ -633,11 +655,14 @@ mm_newdata_parts <- function(comp, bk, newdata, env, xlevels,
              "contribute their fitted effects", call. = FALSE)
   }
   lapply(seq_len(iw$n_members), function(k) {
+    mmk <- md$designs[[k]] * iw$W[, k]
+    # a partial re_formula keeps some columns of this term (re_view())
+    if (!is.null(comp$keep_cols)) mmk[, !comp$keep_cols] <- 0
     # new_key names WHICH unseen level this member landed on, because a
     # row whose members carry the SAME unseen label loads one draw of
     # the block, not two independent ones (see extra_var_blocks())
     list(bk = bk, comp = comp,
-         mm = md$designs[[k]] * iw$W[, k], j = iw$J[, k],
+         mm = mmk, j = iw$J[, k],
          new_key = as.character(gv[[k]]))
   })
 }
@@ -1095,10 +1120,42 @@ predict_retired <- c(
 #' `dpar = "mu"`) when that is what you want.
 #' @param resp For multivariate fits: which response to predict (defaults
 #'   to the first).
-#' @param re_formula `NULL` (default) includes random effects; `NA` or `~0`
-#'   gives population-level predictions. See
+#' @param re_formula Which group-level terms enter the prediction.
+#'   `NULL` (default) keeps all of them; `NA` keeps none, which is the
+#'   population-level prediction. A one-sided formula keeps the terms it
+#'   names; see *A one-sided `re_formula`*. See
 #'   *What `re_formula = NA` drops* for what that means when the model has
 #'   smooths.
+#' @section A one-sided `re_formula`:
+#' A formula keeps the group-level terms it names and drops the others,
+#' with brms's rule (`update_re_terms()`). A term in the formula is
+#' matched to a term of the fit that has the same grouping factor and
+#' whose columns include the formula term's columns. So on a fit with
+#' `(1 + x | g) + (1 | h)`:
+#'
+#' * `~ (1 | g)` keeps the intercept of `g` and drops its slope and `h`.
+#' * `~ (0 + x | g)` keeps the slope of `g` alone.
+#' * `~ (1 + x | g) + (1 | h)` keeps everything, and the answer is
+#'   identical to `re_formula = NULL`.
+#' * `~0` and `~1` name no group-level term, so they are `NA`.
+#'
+#' The same term is kept in every distributional parameter that has it.
+#' brms's spellings are read too: an id (`(1 | p | g)`), a `gr()`
+#' wrapper, `||` and a nested group (`a/b`). A term outside the bars is
+#' ignored.
+#'
+#' A dropped term is dropped everywhere: from the estimate, from the
+#' standard error, and from `predict()`'s draws. Its grouping column is
+#' not needed in `newdata`, and a level of it the fit never saw is not
+#' an error.
+#'
+#' Two cases are refused. A formula term that matches no term of the
+#' fit is an error that names it, because a misspelled grouping factor
+#' would otherwise change the answer with nothing said; brms drops such
+#' a term silently. And a formula that keeps SOME terms is refused on a
+#' fit that also has group-level content a formula cannot name, such as
+#' a factor-smooth term: `NA` drops that content and `NULL` keeps it,
+#' and a partial formula cannot say which.
 #' @section What `re_formula = NA` drops:
 #' `re_formula = NA` (equivalently `~0`) asks for the POPULATION-level
 #' prediction. Every `(x | g)` block is dropped, and so is any smooth
@@ -1181,8 +1238,9 @@ predict_retired <- c(
 #' `dm/deta_k` are central differences of the family mean, taken one
 #' predictor at a time with a relative step.
 #'
-#' Random effects enter conditional on their modes, the same convention
-#' `se.fit` uses for the linear predictor. Unseen grouping levels
+#' The estimate is at the random-effect modes, and the standard error
+#' carries their uncertainty, through the joint covariance, as `se.fit`
+#' does for the linear predictor. Unseen grouping levels
 #' (`allow_new_levels = TRUE`) add their block's marginal variance,
 #' propagated through the same gradients.
 #' @param allow_new_levels Predict unseen grouping-factor levels at the
@@ -1341,6 +1399,13 @@ frm_linpred <- function(object, newdata = NULL,
   }
   check_re_form(re_formula)
   type <- frm_match_arg(type)
+  # the structure gate below asks whether the caller set re_formula at
+  # all, which the resolution would hide by turning a partial formula
+  # into NULL on a reduced design
+  re_asked <- !is.null(re_formula)
+  rr <- re_resolve(object, re_formula, "frm_linpred()")
+  object <- rr$fit
+  re_formula <- rr$re_formula
   use_re <- re_form_keeps(re_formula)
 
   resp <- resp %||% names(object$spec$responses)[1]
@@ -1400,7 +1465,7 @@ frm_linpred <- function(object, newdata = NULL,
                      structure_generic(
                        fam_, "predict(newdata =, type = \"response\")"))
     }
-    if (!is.null(re_formula)) {
+    if (re_asked) {
       structure_gate(st, "re_form",
                      structure_generic(
                        fam_, "re_formula = on the response scale"))
@@ -1871,9 +1936,9 @@ mean_eta_grad <- function(fam, dp, av, dnm, link, eta) {
 #' predictor, so the gradient row stacks `dm/deta_k` times each predictor's
 #' own A matrix and the quadratic form is taken over the JOINT
 #' coefficient covariance: the cross-dpar covariances (and the shared b
-#' block) are part of the answer, not an afterthought. Random effects
-#' enter conditional on their modes, the same convention `predict()` uses
-#' for eta.
+#' block) are part of the answer, not an afterthought. The mean is at
+#' the random-effect modes and the b block of the joint covariance puts
+#' their uncertainty in the standard error, as for eta.
 #'
 #' @noRd
 predict_mean_se <- function(object, rspec, newdata, use_re,
@@ -2004,7 +2069,15 @@ napred <- function(fit, x) {
 #' A maximum-likelihood fit has no draws to summarize, so `Est.Error` is
 #' the delta-method standard error [frm_linpred()] reports for the same
 #' quantity, and the `Q` columns are the Wald interval at those
-#' probabilities. The interval is around the EXPECTED response and
+#' probabilities. The estimate is at the modes, and the standard error
+#' carries the uncertainty in them: at a grouping level the fit saw,
+#' the level's group effect enters with its covariance taken jointly
+#' with the fixed effects from the joint precision, the frequentist
+#' analogue of the posterior of that effect in brms's
+#' `posterior_epred()`. The interval covers the expected response at a
+#' known level with the nominal coverage averaged over the groups, not
+#' for one group's realized effect. The interval is around the EXPECTED
+#' response and
 #' carries no observation noise; [predict.frmtmb_fit()] is the
 #' predictive interval that does.
 #'
@@ -2016,10 +2089,11 @@ napred <- function(fit, x) {
 #' @param object A `frmtmb_fit`.
 #' @param newdata Optional data frame to evaluate on. Defaults to the
 #'   training data.
-#' @param re_formula `NULL` (default) keeps the random effects, so the
-#'   answer is conditional on the modes; `NA` or `~0` gives the
-#'   population-level answer. brms's spelling, and the only one:
-#'   lme4's `re.form` is not accepted here.
+#' @param re_formula Which group-level terms enter the answer: `NULL`
+#'   (default) keeps all of them, `NA` keeps none, and a one-sided
+#'   formula keeps the terms it names, as in brms (see [frm_linpred()]).
+#'   brms's spelling, and the only one: lme4's `re.form` is not
+#'   accepted here.
 #' @param scale `"response"` (default) for the modelled response, or
 #'   `"linear"` for the linear predictor. brms's spelling of what
 #'   [predict.frmtmb_fit()] calls `type`.
@@ -2058,11 +2132,11 @@ napred <- function(fit, x) {
 #' finite-difference delta method
 #' over the whole outer parameter vector, because the probability
 #' depends on the thresholds and the `cs()` coefficients as well as on
-#' the linear predictor. That route covers the OUTER parameters only, so
-#' on a mixed ordinal fit it does not carry the conditional variance of
-#' the random-effect modes, which the scalar route does: `se.fit` reads
-#' the joint precision and this reads `vcov(full = TRUE)`. The estimates
-#' are unaffected. The latent linear predictor, which is where the
+#' the linear predictor. On a mixed ordinal fit the group effects join
+#' the differenced vector, with their covariance taken jointly with the
+#' parameters from the joint precision, so the standard error carries
+#' their uncertainty as the scalar route does. The estimates are
+#' unaffected. The latent linear predictor, which is where the
 #' coefficients live, is `frm_linpred(object, type = "link")`.
 #' @seealso [predict.frmtmb_fit()] for the predictive interval,
 #'   [frm_linpred()] for the linear predictor,
@@ -2103,6 +2177,16 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
   # first; fitted() refuses instead, as it always has, because the
   # caller who did not name one is asking for all of them
   if (is.null(resp)) single_response(object, "fitted()")
+  check_re_form(re_formula)
+  rs <- object$spec$responses[[resp %||% names(object$spec$responses)[1L]]]
+  if (is.null(rs) || is.null(fam_structure(rs$family))) {
+    # once, so the finite-difference route below perturbs the reduced
+    # design rather than resolving the formula again at every step; a
+    # structured family keeps the formula, which frm_linpred() gates
+    rr <- re_resolve(object, re_formula, "fitted()")
+    object <- rr$fit
+    re_formula <- rr$re_formula
+  }
   est <- fitted_point(object, newdata, re_formula, scale, resp, dpar,
                       allow_new_levels)
   se <- fitted_point_se(object, newdata, re_formula, scale, resp, dpar,
@@ -2185,7 +2269,27 @@ fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
       fitted_point(fit, newdata, re_formula, scale, resp, dpar,
                    allow_new_levels)
     }
-    return(fit_fd_se(object, f))
+    # a category probability moves with the group effects of the levels
+    # the fit saw, so they join the differenced vector: the scalar route
+    # below carries them through the joint covariance, and this route
+    # carried the outer parameters alone.
+    # Only the levels THESE ROWS load are differenced. Every other kept
+    # level has a derivative of exactly zero here and would cost two
+    # model evaluations, which on a fit with many levels is the whole
+    # cost. `NULL` from re_used_b() means the design could not be
+    # rebuilt, and then every kept level is differenced, as before.
+    b_idx <- if (re_form_keeps(re_formula)) {
+      gov <- re_governed_b(object)
+      used <- re_used_b(object, newdata, resp, allow_new_levels)
+      if (is.null(used)) gov else intersect(gov, used)
+    }
+    # In sample every level IS loaded, so the bound above cannot help
+    # there; what does is that the levels of ONE block can be perturbed
+    # together and attributed by row, exactly (re_b_batches()).
+    bt <- if (length(b_idx)) {
+      re_b_batches(object, newdata, resp, allow_new_levels, b_idx)
+    }
+    return(fit_fd_se(object, f, b_idx = b_idx, b_batch = bt))
   }
   p <- tryCatch(suppressWarnings(
     frm_linpred(object, newdata = newdata,
@@ -3683,7 +3787,9 @@ frm_lp_basis <- function(object, newdata = NULL, dpar = NULL, resp = NULL,
              "data, not ", arg_desc(newdata), call. = FALSE)
   }
   check_re_form(re_formula)
-  use_re <- re_form_keeps(re_formula)
+  rr <- re_resolve(object, re_formula, "frm_lp_basis()")
+  object <- rr$fit
+  use_re <- re_form_keeps(rr$re_formula)
   resp <- resp %||% names(object$spec$responses)[1]
   rspec <- object$spec$responses[[resp]]
   if (is.null(rspec)) {

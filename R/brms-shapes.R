@@ -432,17 +432,38 @@ fit_draw_space <- function(fit) {
 #' reports `NA` standard errors rather than bounds built from `NaN`.
 #'
 #' @noRd
-fit_fd_se <- function(fit, f, eps = 1e-5) {
+fit_fd_se <- function(fit, f, eps = 1e-5, b_idx = NULL, b_batch = NULL) {
   ds <- fit_draw_space(fit)
   V <- ds$V
-  if (is.null(V) || !all(is.finite(V))) return(NULL)
   map <- ds$map
+  nbd <- 0L
+  if (length(b_idx)) {
+    # the group effects at the levels the fit saw join the perturbed
+    # vector, with their covariance taken JOINTLY with the parameters
+    # from the joint precision: the delta-method twin of the conditional
+    # draw predict() takes (predict_b_drawer())
+    Vb <- fd_joint_cov(fit, map, b_idx)
+    if (!is.null(Vb)) {
+      V <- Vb
+      nbd <- length(b_idx)
+    } else {
+      # a marginalized (quadrature) objective has no b rows to pair the
+      # perturbation with; the standard error is then conditional on the
+      # modes, which is a missing variance component and is said out loud
+      warn_modes_conditional_se()
+    }
+  }
+  if (is.null(V) || !all(is.finite(V))) return(NULL)
   v0 <- fit_outer_vector(fit, map)
+  b0 <- fit$estimates[["b"]]
   m0 <- as.matrix(f(fit))
   p <- length(v0)
   # J is (n * K) x p: one column per outer parameter, flattened the way
   # as.vector() flattens the prediction, so the quadratic form below is
-  # elementwise over the same flattening
+  # elementwise over the same flattening. The group effects do NOT get a
+  # column each unless they have to: a column per level made this matrix
+  # (n * K) x (p + levels), which is where the time and the memory went
+  # on a fit with many levels.
   J <- matrix(NA_real_, length(m0), p)
   for (j in seq_len(p)) {
     h <- eps * max(1, abs(v0[j]))
@@ -452,8 +473,101 @@ fit_fd_se <- function(fit, f, eps = 1e-5) {
     dn <- as.vector(as.matrix(f(fit_set_outer(fit, vm, map))))
     J[, j] <- (up - dn) / (2 * h)
   }
-  se <- sqrt(pmax(0, rowSums((J %*% V) * J)))
+  parts <- NULL
+  if (nbd) {
+    # a fresh cache with the perturbed values, for the reason
+    # fit_set_outer() gives: a stored sdreport, joint precision or
+    # covariance belongs to the estimates it was computed at, and a
+    # list copy shares the ORIGINAL fit's cache environment
+    perturb <- function(idx, step) {
+      g <- fit
+      g$estimates[["b"]][idx] <- b0[idx] + step
+      g$cache <- new.env(parent = emptyenv())
+      as.vector(as.matrix(f(g)))
+    }
+    nr <- nrow(m0)
+    nk <- max(1L, length(m0) %/% max(1L, nr))
+    batched <- rep(FALSE, nbd)
+    parts <- list()
+    for (bt in b_batch %||% list()) {
+      k <- match(bt$idx, b_idx)
+      if (anyNA(k) || length(bt$owner) != nr) next
+      h <- eps * pmax(1, abs(b0[bt$idx]))
+      up <- perturb(bt$idx, h)
+      dn <- perturb(bt$idx, -h)
+      # each row belongs to at most one effect of this batch
+      # (re_b_batches() checks it), so the difference seen on that row is
+      # that effect's alone and every other entry of its column is
+      # exactly zero. The column index and the value are kept per output
+      # position instead of a column of zeros per level, which is what
+      # made the dense Jacobian (n * K) x (p + levels).
+      own <- rep(bt$owner, times = nk)
+      val <- numeric(length(up))
+      ok <- !is.na(own)
+      val[ok] <- (up[ok] - dn[ok]) / (2 * h[own[ok]])
+      col <- ifelse(ok, k[own], NA_integer_)
+      parts[[length(parts) + 1L]] <- list(col = col, val = val)
+      batched[k] <- TRUE
+    }
+    if (!all(batched)) {
+      # a mixed case would need the cross terms between the batched
+      # effects and the dense ones as well; one effect at a time is the
+      # answer that needs no new algebra, and the blocks that land here
+      # (multi-membership, rr) are the small ones
+      parts <- NULL
+      J <- cbind(J, matrix(0, nrow(J), nbd))
+      for (k in seq_len(nbd)) {
+        j <- b_idx[k]
+        h <- eps * max(1, abs(b0[j]))
+        J[, p + k] <- (perturb(j, h) - perturb(j, -h)) / (2 * h)
+      }
+      V_dense <- V
+    } else {
+      V_dense <- V[seq_len(p), seq_len(p), drop = FALSE]
+    }
+  } else {
+    V_dense <- V
+  }
+  var_out <- rowSums((J %*% V_dense) * J)
+  if (length(parts)) {
+    # var = Jd' Vdd Jd + 2 Jd' Vdb Jb + Jb' Vbb Jb, with the b part held
+    # as one (column, value) pair per batch per output position rather
+    # than as a matrix of mostly zeros
+    Jd <- J[, seq_len(p), drop = FALSE]
+    Vdb <- V[seq_len(p), p + seq_len(nbd), drop = FALSE]
+    Vbb <- V[p + seq_len(nbd), p + seq_len(nbd), drop = FALSE]
+    for (a in parts) {
+      ca <- ifelse(is.na(a$col), 1L, a$col)
+      var_out <- var_out +
+        2 * a$val * rowSums(Jd * t(Vdb)[ca, , drop = FALSE])
+      for (b in parts) {
+        cb <- ifelse(is.na(b$col), 1L, b$col)
+        var_out <- var_out + a$val * b$val * Vbb[cbind(ca, cb)]
+      }
+    }
+  }
+  se <- sqrt(pmax(0, var_out))
   matrix(se, nrow(m0), ncol(m0), dimnames = dimnames(m0))
+}
+
+#' The joint covariance of the drawn parameters and the group effects
+#' `b_idx`, from the inverse of the joint precision, in the order
+#' `c(map$names, b_idx)`. `NULL` when the joint precision has no `b`
+#' rows (a quadrature fit) or does not line up with the parameters.
+#'
+#' @noRd
+fd_joint_cov <- function(fit, map, b_idx) {
+  jc <- get_joint_cov(fit)
+  rn <- jc$names
+  if (is.null(rn) || !any(rn == "b")) return(NULL)
+  pos_d <- unlist(lapply(unique(map$comp), function(cp) which(rn == cp)))
+  pos_b <- which(rn == "b")
+  if (length(pos_d) != length(map$names) ||
+        length(pos_b) != length(fit$estimates[["b"]])) {
+    return(NULL)
+  }
+  pos <- c(pos_d, pos_b[b_idx])
+  as.matrix(jc$V[pos, pos, drop = FALSE])
 }
 
 #' brms's `P(Y = k)` labels: the response's own categories, or their
