@@ -1,0 +1,24 @@
+frmtmb 0.61.0 from C:/Users/adf44/source/r 
+gau_sig_noint    -397.386593190062 conv 0 warn 0
+gau_sig_noint_x  -402.121079300446 conv 0 warn 0
+stu_sig_noint    -397.386593221585 conv 0 warn 0
+gam_shape_noint  -349.086271209732 conv 0 warn 0
+beta_phi_noint   182.539933539949 conv 0 warn 0
+nb_shape_noint   -709.015912692957 conv 0 warn 0
+sn_alpha_noint   -339.552804089395 conv 0 warn 0
+sn_sig_noint     -328.732234694876 conv 0 warn 0
+gau_mu_noint     -501.596923449737 conv 0 warn 0
+pois_mu_noint    -831.487697715467 conv 0 warn 0
+gau_off          -438.975765755618 conv 0 warn 0
+gau_off_only     -524.65952267949 conv 0 warn 0
+pois_off         -869.200989727413 conv 0 warn 0
+nb_off           -776.851702084812 conv 0 warn 0
+gam_off          -445.441628016226 conv 0 warn 0
+stu_off          -438.975765803212 conv 0 warn 0
+sn_off           -398.331482118205 conv 0 warn 0
+sn_off_reml      -402.408931295279 conv 0 warn 0
+gau_plain        -400.348101345378 conv 0 warn 0
+sn_plain         -330.602333737975 conv 0 warn 0
+Warning message:
+In sqrt(diag(vcov(f))) : NaNs produced
+wrote C:/Users/adf44/source/r/frmtmb-wt-skewinit/dev/skewinit-log/blast-base.rds 

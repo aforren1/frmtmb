@@ -1,0 +1,13 @@
+frmtmb from C:/Users/adf44/source/r 
+FILE test-skew-normal-start.R PASS=46 FAIL=16 ERROR=4 WARN=0 SKIP=0
+-- the alpha start reads the residual skew, not the response's 
+    Expected `a0 * sn_skew(residuals(lm(y ~ xs, data = dd)))` > 0. Actual comparison: -2.0 <= 0.0 Difference: -2.0 <= 0 
+-- the sigma start is the residual sd, not the marginal sd 
+    Expected `s0` to equal `log(stats::sd(r))`. Differences:   `actual`: 0.66 `expected`: 0.00  
+    Expected `abs(log(stats::sd(dd$y)) - s0)` > `0.1 * abs(s0 + 1)`. Actual comparison: 0.00 <= 0.17 Difference: -0.17 <= 0 
+-- skew_normal reaches the maximum where it used to stop at zero 
+    Expected `ref - ll` < `abs(ref) * 1e-08`. Actual comparison: 24.687207 >= 0.000003 Difference: 24.687205 >= 0 
+    Expected `abs(fit$opt$par[[4]])` > 1. Actual comparison: 0.0008 <= 1.0000 Difference: -0.9992 <= 0 
+-- a fit driven onto the stationary point is refit off it 
+    Expected `is.null(esc)` to be FALSE. Differences: `actual`:   TRUE  `expected`: FALSE  
+    Expected `unname(esc[["starts"]])` to 

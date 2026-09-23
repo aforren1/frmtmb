@@ -1,0 +1,11 @@
+rows short > 1e-6 (not at the optimum): 157 
+  max |alpha|: 0.55128998 
+  sorted top 8: 0.551290 0.006305 0.004689 0.004649 0.004608 0.003958 0.003645 0.003633 
+rows short <= 1e-6 (at the optimum): 83 
+  min |alpha|: 0.0064416394 
+  sorted bottom 8: 0.006442 0.091507 0.104779 0.153500 0.187949 0.249519 0.264599 0.406371 
+t=0.01  fires 157/240  FN(miss short>1e-6)  1  FP(fires, short<=1e-6)  1  FP(fires, gain<=0.01) 17
+t=0.02  fires 157/240  FN(miss short>1e-6)  1  FP(fires, short<=1e-6)  1  FP(fires, gain<=0.01) 17
+t=0.05  fires 157/240  FN(miss short>1e-6)  1  FP(fires, short<=1e-6)  1  FP(fires, gain<=0.01) 17
+t=0.1   fires 158/240  FN(miss short>1e-6)  1  FP(fires, short<=1e-6)  2  FP(fires, gain<=0.01) 18
+t=0.2   fires 161/240  FN(miss short>1e-6)  1  FP(fires, short<=1e-6)  5  FP(fires, gain<=0.01) 21

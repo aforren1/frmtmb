@@ -1,0 +1,26 @@
+frmtmb 0.61.0 from C:/Users/adf44/source/r 
+
+stalls (logLik below sn::selm by more than 1e-6), 40 seeds each
+stream     arm          stalls    worst gap max |a| kept
+stated     default          28    35.137329           NA
+stated     raw_sdy          28    35.137329       8.4184
+stated     res_sdy           0     0.000000      31.0314
+stated     res_sdr           0     0.000000      31.0305
+stated     raw_sdr          31    35.137329       6.2514
+dead_draw  default          33    32.692143           NA
+dead_draw  raw_sdy          33    32.692143       8.4700
+dead_draw  res_sdy           1    25.307078      15.1759
+dead_draw  res_sdr           0     0.000000      16.0011
+dead_draw  raw_sdr          28    32.692143       8.4699
+
+seeds that stall, by arm
+stated     default    1 2 3 4 6 7 12 15 16 17 19 20 21 22 24 25 26 27 28 29 30 31 34 35 36 37 38 40
+stated     raw_sdy    1 2 3 4 6 7 12 15 16 17 19 20 21 22 24 25 26 27 28 29 30 31 34 35 36 37 38 40
+stated     raw_sdr    1 2 3 4 5 6 7 8 9 11 12 13 14 15 17 18 19 20 21 22 23 26 28 29 30 31 32 35 36 37 38
+dead_draw  default    1 2 4 5 6 7 8 10 11 12 13 15 16 17 18 20 21 23 24 25 26 28 30 31 32 33 34 35 36 37 38 39 40
+dead_draw  raw_sdy    1 2 4 5 6 7 8 10 11 12 13 15 16 17 18 20 21 23 24 25 26 28 30 31 32 33 34 35 36 37 38 39 40
+dead_draw  res_sdy    34
+dead_draw  raw_sdr    1 2 3 6 7 8 11 12 14 15 16 17 18 19 21 22 23 25 26 27 28 29 30 32 33 34 36 40
+
+sigma start against the fitted sigma, arm res_sdy, stream stated
+seed 1: log(sd(y)) = 0.662949  log(sd(resid)) = 0.00369845  fitted sigma_Intercept = -0.0147595 

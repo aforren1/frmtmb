@@ -1,0 +1,1 @@
+sd(y) differs from sd(y - mean(y)) on 5 of 5000 samples (n = 200, mean 50, sd 3)

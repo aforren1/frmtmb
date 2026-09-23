@@ -1,0 +1,32 @@
+frmtmb 0.61.0 from C:/Users/adf44/source/r 
+seed 34 dead draw: residual skew 1.1048193  start rule 2.5524097 
+
+sym seed 1: alpha        4.961  se        2.473
+  convergence: 0
+  message: relative convergence (4)
+  nonfinite_trials: 0
+  max_grad: 3.232128e-05
+  worst_grad: xs
+  pdHess: TRUE
+  min_cov_eigenvalue: 0.001718799
+  extreme_theta: 
+
+sym seed 3: alpha       0.2477  se         5.09
+  convergence: 0
+  message: relative convergence (4)
+  nonfinite_trials: 0
+  max_grad: 4.331572e-05
+  worst_grad: xs
+  pdHess: TRUE
+  min_cov_eigenvalue: 0.004477722
+  extreme_theta: 
+
+sym seed 6: alpha    2.692e+06  se    1.168e+04
+  convergence: 1
+  message: false convergence (8)
+  nonfinite_trials: 0
+  max_grad: 0.903515
+  worst_grad: xs
+  pdHess: FALSE
+  min_cov_eigenvalue: -0.3784399
+  extreme_theta: 

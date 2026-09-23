@@ -1,0 +1,11 @@
+frmtmb 0.61.0 from C:/Users/adf44/source/r 
+
+=== quadrature rescue, acceptance seed 1 plus (1 | g)
+  quadrature=FALSE default   -259.338935425  rescued   -259.338935434  d  -9.501e-09  esc 24.272
+           best of starts 1,3,6   -259.338935427  spread   1.183e-08
+  quadrature=TRUE  default   -259.338935429  rescued   -259.348966104  d  -1.003e-02  esc 24.262
+           best of starts 1,3,6   -259.338935431  spread   1.183e-08
+
+=== mixture() carries a component's stationary declaration
+  declared dpars: alpha1 alpha2 
+  mixture fit ll    -776.714350  alphas 4.751, 6.705  esc -

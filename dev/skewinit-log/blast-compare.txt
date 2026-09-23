@@ -1,0 +1,28 @@
+job              bitwise    rel dlogLik     rel dpar      rel dse conv/warn
+gau_sig_noint    identical    0.000e+00    0.000e+00    0.000e+00 0/0 -> 0/0
+gau_sig_noint_x  identical    0.000e+00    0.000e+00    0.000e+00 0/0 -> 0/0
+stu_sig_noint    identical    0.000e+00    0.000e+00    0.000e+00 0/0 -> 0/0
+gam_shape_noint  identical    0.000e+00    0.000e+00    0.000e+00 0/0 -> 0/0
+beta_phi_noint   identical    0.000e+00    0.000e+00    0.000e+00 0/0 -> 0/0
+nb_shape_noint   identical    0.000e+00    0.000e+00    0.000e+00 0/0 -> 0/0
+sn_alpha_noint   moved        3.006e-02    4.538e+12    9.995e-01 0/0 -> 0/0
+sn_sig_noint     moved        1.326e-12    6.486e-06    2.187e-06 0/0 -> 0/0
+gau_mu_noint     identical    0.000e+00    0.000e+00    0.000e+00 0/0 -> 0/0
+pois_mu_noint    identical    0.000e+00    0.000e+00    0.000e+00 0/0 -> 0/0
+gau_off          identical    0.000e+00    0.000e+00    0.000e+00 0/0 -> 0/0
+gau_off_only     identical    0.000e+00    0.000e+00    0.000e+00 0/0 -> 0/0
+pois_off         identical    0.000e+00    0.000e+00    0.000e+00 0/0 -> 0/0
+nb_off           identical    0.000e+00    0.000e+00    0.000e+00 0/0 -> 0/0
+gam_off          identical    0.000e+00    0.000e+00    0.000e+00 0/0 -> 0/0
+stu_off          identical    0.000e+00    0.000e+00    0.000e+00 0/0 -> 0/0
+sn_off           moved        1.123e-13    1.967e-06    6.522e-07 0/0 -> 0/0
+sn_off_reml      moved        2.303e-14    8.768e-07    1.323e-07 0/0 -> 0/0
+gau_plain        identical    0.000e+00    0.000e+00    0.000e+00 0/0 -> 0/0
+sn_plain         moved        6.878e-16    1.603e-07    1.964e-07 0/0 -> 0/0
+
+bitwise identical: 15 of 20 
+jobs where the lane is LOWER by more than 1e-8: 0 
+jobs where the lane is HIGHER by more than 1e-8: 1 sn_alpha_noint 
+   sn_alpha_noint: base -339.552804089  lane -329.346656684  gain 10.206147
+new warnings introduced: 0 
+new nonzero convergence codes: 0 

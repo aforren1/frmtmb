@@ -1,0 +1,26 @@
+=========== LIB=C:/Users/adf44/source/r/skewinit-lib
+reps per block: 34  (slowest arm 0.0385 s per call)
+
+seconds per call, minimum of 9 rounds
+  default             0.02618
+  raw_start           0.03412
+  control_default     0.02382
+  arith               0.00706
+
+CONTROL  control_default / default  0.9101  (must be near 1)
+fallback raw_start / default          1.3034
+arith control, cross-build load gauge 0.00706 s
+raw_start arm escape: fired, 2 restarts, gain 24.6872 
+=========== LIB=C:/Users/adf44/source/r/rellib-r3
+reps per block: 13  (slowest arm 0.1 s per call)
+
+seconds per call, minimum of 9 rounds
+  default             0.03385
+  raw_start           0.03231
+  control_default     0.03154
+  arith               0.01154
+
+CONTROL  control_default / default  0.9318  (must be near 1)
+fallback raw_start / default          0.9545
+arith control, cross-build load gauge 0.01154 s
+raw_start arm escape: did not fire 

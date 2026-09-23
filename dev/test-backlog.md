@@ -623,6 +623,180 @@ Found while clearing other debt; none of it is done. The first entry is a SILENT
   `expose_functions`, none of which the file attaches. Qualifying the
   calls would make each file runnable on its own.
 
+## Recorded by the skew-normal start lane (wt-skewinit), 2026-09-22
+
+Found while fixing the `alpha = 0` stall. Neither item is done, and
+neither is the defect that lane fixed.
+
+- **A `sigma` start taken from `sd(y)` ignores the `mu` predictor, in
+  every family that does it.** `sigma` in these families is the
+  CONDITIONAL standard deviation, so the marginal `sd(y)` overstates it
+  by whatever the mean structure explains. On the wt-skewinit design
+  the start was `log(sd(y)) = 0.662949` against a fitted
+  `sigma_(Intercept)` of `-0.014760`, a factor of two. `skew_normal()`
+  now starts from the residual sd; `gaussian()`, `student()`,
+  `lognormal()`, `exgaussian()`, `asym_laplace()` and every other
+  family written as `sigma = function(y, aterms) stats::sd(y)` in
+  `R/families.R` still do not. For those families the optimizer
+  recovers without help, so this is cost and conditioning rather than a
+  wrong answer, and changing it moves the optimizer path of nearly
+  every fit in the package. `dev/skewinit-starts.R` measures what the
+  change is worth on skew_normal, where it does change the answer:
+  arm `res_sdy` (residual alpha, marginal sigma) stalls on 1 of 40
+  seeds of the dead-draw stream, arm `res_sdr` (residual sigma too) on
+  0 of 40.
+
+- **`skew_normal()` has a second local optimum away from `alpha = 0`,
+  which the stationary-point escape does not reach.** Construction, in
+  `dev/skewinit-falsealarm.R`, arm `mild_a05` seed 22: true `alpha`
+  0.5, n = 200, the data from that script's `make_mild(22, 0.5, 200)`.
+  The fit converges at `alpha = -0.551280` with logLik -351.81810,
+  while `sn::selm` reports -351.79426 at `alpha = 0.672091`, a
+  shortfall of 0.023841. The escape does not fire because `|alpha|` is
+  0.55, far outside the 0.05 stationary-point window, and it should
+  not: this is ordinary multimodality, not the singular point, and a
+  window wide enough to catch it would refit on genuine optima. It is
+  1 of 240 fits over six arms. Filed rather than fixed because the
+  remedy is a multi-start policy, which is a decision about every
+  family rather than about this one.
+
+- **`diagnose()` says nothing about a dpar whose information is
+  singular.** A `skew_normal()` fit can converge cleanly with `alpha`
+  0.2477 and a standard error of 5.09, and every check passes:
+  convergence 0, `pdHess = TRUE`, smallest covariance eigenvalue
+  0.0045, max abs gradient 4.3e-05. Construction in
+  `dev/skewinit-claims.R`, seed 3 of that script's `make_sym()` at
+  n = 50. The only signal the user gets is the standard error. When
+  `alpha` runs away instead, `diagnose()` does speak (convergence 1,
+  `pdHess = FALSE`, eigenvalue -0.378), so the gap is the FINITE
+  weakly-identified case. Whether `diagnose()` should carry a
+  "this parameter is barely identified" line is a design question about
+  every family, not about skew_normal, which is why the wt-skewinit
+  lane did not add one.
+
+## Added by wt-skewinit after punch round 1, 2026-09-22
+
+- **`quadrature = TRUE` calibrates the Gauss-Kronrod tape at the
+  Laplace optimum and never recalibrates it.** When that Laplace
+  optimum is a stall, the stationary-point escape re-optimizes a tape
+  frozen at the wrong point: on acceptance seed 1 with `(1 | g)` it
+  recovers 24.262 of 24.272 units and still lands 1.003e-02 below the
+  unstalled fit, against 9.5e-09 for the same model under Laplace.
+  Reproduction: `dev/skewinit-punch1c.R`. The fix is to escape BEFORE
+  `quad_fit()` calibrates, or to recalibrate after it, both of which
+  are changes to `quad_fit()` rather than to the escape.
+
+- **nlminb reports "false convergence (8)" on fits that satisfy
+  frmtmb's own gradient criterion.** Construction in
+  `dev/skewinit-m3.R`: `set.seed(8)`, n = 200, `x ~ N(0, 1e4^2)`,
+  `y = 0.001 x + rskewnorm2(n, 0, 1.5, 4)`. The fit reaches
+  logLik -342.388188574, which equals `sn::selm` to 2.3e-10, at a
+  finite alpha of 5.79, with max abs gradient 4.81e-04 against a
+  `grad_tol` of 1e-3, and warns. Measured causes ruled OUT: autoscale
+  (`par_units` is NULL, it never engaged) and the escape (it never
+  fired); the cause is which start the optimizer arrives from, and
+  five extra restarts do not clear it. frmtmb reports the optimizer's
+  code verbatim, so the question is whether a nonzero PORT code should
+  still warn when the package's own convergence criterion is met. That
+  is a policy decision about every family and every fit mode, which is
+  why wt-skewinit did not change it.
+
+- **`hmm()` does not carry a component's `post$stationary`.**
+  `extensions/frmtmb.latent/R/hmm.R` copies `comp$init_dpars[[dp]]`
+  into the composed family but nothing copies the stationary
+  declaration, so `hmm(K, skew_normal())` keeps the alpha = 0 stall
+  unguarded. `mixture()` was fixed in core in the same round and is
+  the model to copy: build the declaration alongside `init_fns`, keyed
+  by the same `paste0(dp, k)` name. Left to the extension's own lane.
+
+## Added by wt-skewinit after punch round 2, 2026-09-22
+
+- **A least-squares start for an intercept-less design helps several
+  families and is NOT safe to ship as a general rule.** wt-skewinit
+  briefly placed one for every family and had to withdraw it. The
+  upside is real: on ordinary cell-means factor models with no scaling
+  pathology the reviewer measured gaussian **+263.96**, Gamma
+  **+624.94** and exgaussian **+16.85** log-likelihood units, and
+  seven jobs in six families improved.
+
+  The counterexample is why it is filed rather than shipped.
+  `ypois ~ 0 + xt` with `xt` on a 1e-6 scale, n = 250, seed 23:
+  the placement starts the coefficient at 1.6e6, nlminb reports
+  "X-convergence (3)" before the fit moves because the relative step
+  is negligible at that magnitude, and the answer is **1967.03 units**
+  below `stats::glm()`, with convergence 0 and no warning. A six-start
+  sweep from 0 to 1e7 reaches glm's value, so it is the start and not
+  multimodality. A scale sweep puts the crossover between 1e-4 (matches
+  glm) and 1e-6. The value is right on the PREDICTOR scale and ruinous
+  on the PARAMETER scale.
+
+  A safe version needs one of: a guard on the resulting coefficient
+  magnitude, or keeping the new start only when its objective beats the
+  old one, which costs an extra evaluation but cannot lose. Either is a
+  change to `make_start()` for every family and wants its own lane.
+  Batteries to reuse: `dev/skewinit-noint.R` and its comparator.
+
+- **frmtmb sits below `glm()` on a no-intercept poisson with a
+  1e-6-scaled covariate, on the UNCHANGED build.** Same construction as
+  above: `dev/skewinit-noint.R` job `pois_s6` gives -512.543671042038
+  against glm's -449.965387300331, a gap of **62.578284**, and
+  `rellib-r3` and the lane build agree to the last bit, so this is not
+  wt-skewinit's. At scales 1, 1e-2 and 1e-4 frmtmb matches glm exactly.
+
+  **`frmtmb_control(autoscale = TRUE)` fixes it completely.** An
+  earlier version of this entry said autoscale does not rescue it,
+  which was WRONG and would have sent the next reader away from the one
+  remedy that already works; the claim is withdrawn here rather than
+  edited out. Measured in `dev/skewinit-punch3.R`, log
+  `skewinit-log/punch3-lane.txt`, autoscale off against on, both
+  compared to `glm()`:
+
+  | covariate scale | autoscale off | autoscale ON |
+  |---|---|---|
+  | 1 | 0.000000 | 0.000000 |
+  | 1e-2 | 0.000000 | 0.000000 |
+  | 1e-4 | 0.000000 | 0.000000 |
+  | 1e-6 | **-62.578284** | 0.000000 |
+  | 1e-8 | **-62.578284** | 0.000000 |
+
+  So the open question is narrower than it looked: not "why is the fit
+  wrong" but "why does the default not turn autoscale on here", since
+  the default leaves the 62.58 gap in place. The fit still reports
+  convergence 0 and says nothing, which is the part worth fixing.
+
+- **The same scale mechanism survives INSIDE a dpar that declares a
+  stationary point, which is the one place wt-skewinit still places a
+  start on an intercept-less design.** Reproduction in
+  `dev/skewinit-punch3.R` part 2: `bf(y ~ xr, sigma ~ 1,
+  alpha ~ 0 + xs)` with `xs` the covariate rescaled, n = 250, seed 1.
+  At scale 1e-6 the placement starts the alpha coefficient at
+  -6.769e+05 and the fit stops at **-346.8767477** with
+  "X-convergence (3)", convergence 0 and no warning, against
+  **-340.9903976** from a sweep of predictor-scale starts: **5.886
+  units short, silently**. At 1e-9 the same, starting at -6.769e+08.
+  At scales 1 and 1e-3 the default equals the sweep exactly.
+
+  Two facts that keep this in proportion, and both belong here. Base
+  is **-356.8824988** on the same design at every scale, so the lane
+  is **9.65 to 18.91 units BETTER** than base, not worse. And over 48
+  paired fits (12 seeds x scales 1, 1e-3, 1e-6, 1e-9,
+  `dev/skewinit-alphascale-cmp.R`) the lane is better on **48 of 48**,
+  worst gain +3.70194, best +26.444, mean better at every scale, with
+  0 nonzero convergence codes on either build. The reviewer's own
+  construction gave 33 better and 15 worse with a worst deficit of
+  -0.012426; the designs differ, so both are recorded rather than
+  reconciled. The defect is the shortfall against a predictor-scale
+  sweep, NOT a regression against base.
+
+  Why no test catches it: the lane's complement test uses a
+  well-conditioned cell-means factor, where every column is 0 or 1 and
+  the placement cannot produce a large coefficient. A test for this
+  needs an intercept-less alpha design on a CONTINUOUS covariate whose
+  scale is swept, asserting the default fit against the best of a
+  predictor-scale start sweep on the same data. Filed beside the
+  poisson entry because they share one mechanism: a start that is
+  right on the predictor scale and too large on the parameter scale.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

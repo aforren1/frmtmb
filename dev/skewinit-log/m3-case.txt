@@ -1,0 +1,7 @@
+frmtmb 0.61.0 from C:/Users/adf44/source/r 
+M3 case: alpha 5.7914721 
+  conv 1 ' false convergence (8) ' 
+  max|grad| 0.000481  grad_tol 0.001 
+  par_units NULL (autoscale never engaged) 
+  escape did not fire 
+  logLik -342.388188574  sn -342.388188574 

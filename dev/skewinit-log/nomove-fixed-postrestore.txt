@@ -1,0 +1,38 @@
+frmtmb 0.61.0 from C:/Users/adf44/source/r 
+gaussian_ml    -452.715919957983
+gaussian_re    -412.711340227073
+gaussian_reml  -415.650906715098
+gaussian_prof  -412.711340227073
+gaussian_sig   -452.499779372014
+student_ml     -452.715919990074
+gamma_log      -362.082923099646
+lognormal_ml   -376.472568952348
+weibull_ml     -364.781161776547
+invgauss_ml    -436.762164837126
+exgaussian_ml  -464.059483910803
+asymlap_ml     -462.13542301985
+poisson_ml     -458.581177808957
+negbin_ml      -458.58117834065
+bernoulli_ml   -182.005990109359
+beta_ml        204.660664230992
+poisson_re     -458.581177852681
+poisson_prof   -458.581177845699
+skew_icpt      -332.22178327159
+skew_icpt_re   -332.221783558572
+skew_cov       -337.981656473464
+skew_cov_reml  -346.584036247176
+skew_cov_prof  -337.984408311008
+skew_fin       -368.803732597759
+skew_fin_reml  -373.303531365654
+skew_fin_prof  -368.803732597759
+skew_fin_sig   -368.537561685801
+Warning messages:
+1: Optimizer did not report convergence: false convergence (8) 
+2: Large maximum absolute gradient at the optimum (1.07); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+3: Optimizer did not report convergence: false convergence (8) 
+4: Optimizer did not report convergence: false convergence (8) 
+5: Large maximum absolute gradient at the optimum (61.6); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+6: In sqrt(diag(vcov(f))) : NaNs produced
+7: Optimizer did not report convergence: singular convergence (7) 
+8: In sqrt(diag(vcov(f))) : NaNs produced
+wrote C:/Users/adf44/source/r/frmtmb-wt-skewinit/dev/skewinit-log/nomove-fixed-postrestore.rds 

@@ -1,0 +1,2 @@
+stated     stalls 28 of 40   gaps 6.406930 to 35.137329
+dead_draw  stalls 33 of 40   gaps 6.107917 to 32.692143

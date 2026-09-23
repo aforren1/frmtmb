@@ -1,0 +1,41 @@
+job                bitwise         d logLik conv/warn base -> lane
+gaussian_noint     identical              0 0/0 -> 0/0
+gaussian_sig_noi   identical              0 0/0 -> 0/0
+student_noint      identical              0 0/0 -> 0/0
+student_nu_noint   identical              0 0/0 -> 0/0
+gamma_noint        identical              0 0/0 -> 0/0
+gamma_shape_noi    identical              0 0/0 -> 0/0
+exgaussian_noint   identical              0 1/2 -> 1/2
+lognormal_noint    identical              0 0/0 -> 0/0
+poisson_noint      identical              0 0/0 -> 0/0
+negbin_noint       identical              0 0/0 -> 0/0
+bernoulli_noint    identical              0 0/0 -> 0/0
+beta_noint         identical              0 0/0 -> 0/0
+beta_phi_noint     identical              0 0/0 -> 0/0
+zi_noint           identical              0 0/0 -> 0/0
+zi_zi_noint        identical              0 0/0 -> 0/0
+weibull_noint      identical              0 0/0 -> 0/0
+sn_alpha_noint     MOVED            14.3752 0/0 -> 0/0
+sn_sigma_noint     MOVED            10.2988 0/0 -> 0/0
+sn_mu_noint        MOVED        2.92636e-09 0/0 -> 0/0
+pois_s0            identical              0 0/0 -> 0/0
+pois_s2            identical              0 0/0 -> 0/0
+pois_s4            identical              0 0/0 -> 0/0
+pois_s6            identical              0 0/0 -> 0/0
+
+bitwise identical: 20 of 23 
+moved: sn_alpha_noint sn_sigma_noint sn_mu_noint 
+NON-skew_normal jobs that moved: 0 
+PASS: the blast radius is skew_normal only
+  sn_alpha_noint: base -291.060520806  lane -276.685312324  d +14.3752
+  sn_sigma_noint: base -287.155142526  lane -276.856358581  d +10.2988
+  sn_mu_noint: base -367.491662411  lane -367.491662408  d +2.92636e-09
+
+-- the poisson scale sweep against glm()
+scale                   glm               base               lane     base-glm     lane-glm
+s0           -449.965387300     -449.965387300     -449.965387300    -0.000000    -0.000000
+s2           -449.965387300     -449.965387300     -449.965387300    -0.000000    -0.000000
+s4           -449.965387300     -449.965387300     -449.965387300     0.000000     0.000000
+s6           -449.965387300     -512.543671042     -512.543671042   -62.578284   -62.578284
+
+lane equals base on every poisson scale: TRUE 

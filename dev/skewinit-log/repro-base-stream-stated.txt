@@ -1,0 +1,41 @@
+frmtmb 0.61.0 from C:/Users/adf44/source/r 
+
+--- seed 1, dead_draw = FALSE 
+skew(raw y)       -0.424213543522 
+skew(lm resid)    0.913191947002 
+default logLik    -284.026142739 
+default alpha     -0.000836862957676 
+convergence       0  ' relative convergence (4) '
+max|grad|         1.40473334642e-05 
+ Family: skew_normal 
+ Links: mu = identity; sigma = log; alpha = identity
+
+Formula: y ~ xs 
+   Data: dd (Number of observations: 200) 
+ Method: ML   logLik: -284.026   AIC: 576.052   BIC: 589.246 
+
+Regression Coefficients:
+                Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept          -0.05      0.12    -0.28     0.18   -0.39     0.69
+sigma_Intercept     0.00      0.05    -0.10     0.10    0.02     0.98
+alpha_Intercept     0.00      5.46   -10.70    10.70    0.00     1.00
+xs                  0.99      0.04     0.90     1.07   23.40   <2e-16
+conditions raised 0 
+start(0,2) logLik -259.338935404 
+gap               24.6872073344 
+sn::selm logLik   -259.338935404 
+sn::selm alpha    7.50645961055 
+sn vs frm start   1.85536919162e-10 
+ Family: skew_normal 
+ Links: mu = identity; sigma = log; alpha = identity
+
+Formula: y ~ xs 
+   Data: dd (Number of observations: 200) 
+ Method: ML   logLik: -284.026   AIC: 576.052   BIC: 589.246 
+
+Regression Coefficients:
+                Estimate Est.Error l-95% CI u-95% CI z value Pr(>|z|)
+Intercept          -0.05      0.12    -0.28     0.18   -0.39     0.69
+sigma_Intercept     0.00      0.05    -0.10     0.10    0.02     0.98
+alpha_Intercept     0.00      5.46   -10.70    10.70    0.00     1.00
+xs                  0.99      0.04     0.90     1.07   23.40   <2e-16

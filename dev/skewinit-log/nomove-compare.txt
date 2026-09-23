@@ -1,0 +1,41 @@
+job            logLik    par       se        delta logLik
+gaussian_ml    identical identical identical 0
+gaussian_re    identical identical identical 0
+gaussian_reml  identical identical identical 0
+gaussian_prof  identical identical identical 0
+gaussian_sig   identical identical identical 0
+student_ml     identical identical identical 0
+gamma_log      identical identical identical 0
+lognormal_ml   identical identical identical 0
+weibull_ml     identical identical identical 0
+invgauss_ml    identical identical identical 0
+exgaussian_ml  identical identical identical 0
+asymlap_ml     identical identical identical 0
+poisson_ml     identical identical identical 0
+negbin_ml      identical identical identical 0
+bernoulli_ml   identical identical identical 0
+beta_ml        identical identical identical 0
+poisson_re     identical identical identical 0
+poisson_prof   identical identical identical 0
+skew_icpt      identical identical identical 0
+skew_icpt_re   identical identical identical 0
+skew_cov       MOVED     MOVED     MOVED     0.0004174319425
+skew_cov_reml  MOVED     MOVED     MOVED     -5.684341886e-14
+skew_cov_prof  MOVED     MOVED     MOVED     -0.0001770416494
+skew_fin       MOVED     MOVED     MOVED     1.193711796e-12
+skew_fin_reml  MOVED     MOVED     MOVED     2.842170943e-13
+skew_fin_prof  MOVED     MOVED     MOVED     1.193711796e-12
+skew_fin_sig   MOVED     MOVED     MOVED     3.637978807e-12
+
+bitwise identical on all three: 20 of 27 
+
+-- the jobs that moved, at full precision
+job              rel d logLik max rel dpar  max rel dse
+skew_cov            1.235e-06    2.057e+01    1.570e-02
+skew_cov_reml       1.640e-16    1.699e-07    3.455e-08
+skew_cov_prof       5.238e-07    6.787e-02    9.767e-02
+skew_fin            3.237e-15    2.181e-07    1.593e-07
+skew_fin_reml       7.614e-16    6.314e-08    4.752e-08
+skew_fin_prof       3.237e-15    4.523e-07    8.079e-08
+skew_fin_sig        9.871e-15    1.936e-06    1.083e-06
+jobs that moved: skew_cov skew_cov_reml skew_cov_prof skew_fin skew_fin_reml skew_fin_prof skew_fin_sig 

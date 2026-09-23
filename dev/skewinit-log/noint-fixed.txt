@@ -1,0 +1,29 @@
+frmtmb 0.61.0 from C:/Users/adf44/source/r 
+gaussian_noint     -404.173933912802 conv 0 warn 0
+gaussian_sig_noi   -345.468840218581 conv 0 warn 0
+student_noint      -404.173933968455 conv 0 warn 0
+student_nu_noint   -346.035902134818 conv 0 warn 0
+gamma_noint        -406.863524552621 conv 0 warn 0
+gamma_shape_noi    -276.77659809745 conv 0 warn 0
+exgaussian_noint   -396.419962759251 conv 1 warn 2
+lognormal_noint    -401.221693546908 conv 0 warn 0
+poisson_noint      -411.296913991327 conv 0 warn 0
+negbin_noint       -410.845497289758 conv 0 warn 0
+bernoulli_noint    -171.183809237063 conv 0 warn 0
+beta_noint         40.7182381491423 conv 0 warn 0
+beta_phi_noint     154.219535309511 conv 0 warn 0
+zi_noint           -388.637904811041 conv 0 warn 0
+zi_zi_noint        -364.155291503494 conv 0 warn 0
+weibull_noint      -409.019307935116 conv 0 warn 0
+sn_alpha_noint     -276.685312324307 conv 0 warn 0
+sn_sigma_noint     -276.856358581077 conv 0 warn 0
+sn_mu_noint        -367.491662407865 conv 0 warn 0
+pois_s0            -449.965387300331 conv 0 warn 0
+pois_s2            -449.965387300331 conv 0 warn 0
+pois_s4            -449.96538730033 conv 0 warn 0
+pois_s6            -512.543671042038 conv 0 warn 0
+glm_s0             -449.965387300331  (glm oracle, scale 1)
+glm_s2             -449.965387300331  (glm oracle, scale 0.01)
+glm_s4             -449.965387300331  (glm oracle, scale 0.0001)
+glm_s6             -449.965387300331  (glm oracle, scale 1e-06)
+wrote C:/Users/adf44/source/r/frmtmb-wt-skewinit/dev/skewinit-log/noint-fixed.rds 
