@@ -1,0 +1,29 @@
+
+ drmTMB::drmTMB(dbf(yh ~ x, sigma ~ 1, hu ~ 1), family = drmTMB::truncated_nbinom2(), 
+    data = d) 
+FITTED: logLik -405.6020425  convergence 0 
+
+ frm(bf(yh ~ x, hu ~ 1), family = "hurdle_negbinomial", data = d) 
+REFUSED: hurdle_negbinomial is not a supported family. Supported families are: gaussian, poisson, binomial, Gamma, lognormal, student, negbinomial, nbinom2, nbinom1, beta, Beta, tweedie, compois, zero_inflated_poisson, zero_inflated_negbinomial, hurdle_poisson, multinomial, cumulative, beta_binomial, skew_no 
+
+ drmTMB::drmTMB(dbf(ypos ~ x, sigma ~ 1), family = drmTMB::truncated_nbinom2(), 
+    data = d) 
+FITTED: logLik -420.2113398  convergence 0 
+
+ frm(bf(ypos | trunc(lb = 1) ~ x), family = negbinomial(), data = d) 
+REFUSED: cens()/trunc() need a family with a CDF (currently: gaussian, lognormal, poisson, exponential, weibull, inverse.gaussian, cox). The list is not closed: a family supplies one through the lcdf argument of frmtmb_family(), and a family that only ever sees RIGHT censoring may supply the log survivor fun 
+
+ drmTMB::drmTMB(dbf(p ~ x, sigma ~ 1, zoi ~ 1, coi ~ 1), family = drmTMB::zero_one_beta(), 
+    data = d) 
+FITTED: logLik -81.98869736  convergence 0 
+
+ frm(bf(p ~ x, zoi ~ 1, coi ~ 1), family = "zero_one_inflated_beta", data = d) 
+REFUSED: zero_one_inflated_beta is not a supported family. Supported families are: gaussian, poisson, binomial, Gamma, lognormal, student, negbinomial, nbinom2, nbinom1, beta, Beta, tweedie, compois, zero_inflated_poisson, zero_inflated_negbinomial, hurdle_poisson, multinomial, cumulative, beta_binomial, ske 
+
+ drmTMB::drmTMB(dbf(yg ~ x + phylo(1 | sp, tree = tree), sigma ~ 1), family = gaussian(), 
+    data = d) 
+FITTED: logLik -281.8832843  convergence 0 
+
+ frm(bf(yg ~ x + (1 | gr(sp, cov = tree))), family = gaussian(), data = d, 
+    data2 = list(tree = tree)) 
+REFUSED: gr(cov=): cov must be a square matrix 

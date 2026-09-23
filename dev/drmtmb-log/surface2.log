@@ -1,0 +1,194 @@
+
+##### A. frmtmb fits these; drmTMB 0.7.0 refusals are in surface.log
+
+=== frm: nonlinear formula
+frm(bf(y ~ a * exp(b * x), a ~ 1 + (1 | g), b ~ 1, nl = TRUE), family = gaussian(), data = d, start = list(beta = c(1, 
+    0.3))) 
+  FITTED. logLik = -588.665598904  convergence = 0 ( relative convergence (4) )
+
+=== frm: three responses with rescor
+frm(mvbf(bf(y ~ x), bf(y2 ~ x), bf(y3 ~ x)) + set_rescor(TRUE), family = gaussian(), data = d) 
+  FITTED. logLik = -1678.70945402  convergence = 0 ( relative convergence (4) )
+
+=== frm: mixed-family multivariate, gaussian + negbinomial, shared |p|
+frm(mvbf(bf(y2 ~ x + (1 | p | g), family = gaussian()), bf(yc ~ x + (1 | p | g), family = negbinomial())), 
+    data = d) 
+  FITTED. logLik = -1390.87855564  convergence = 0 ( relative convergence (4) )
+
+=== frm: |p| across mu and shape, negbinomial
+frm(bf(yc ~ x + (1 | p | g), shape ~ 1 + (1 | p | g)), family = negbinomial(), data = d) 
+  FITTED. logLik = -865.24939553  convergence = 0 ( relative convergence (4) )
+
+=== frm: |p| across mu and phi, Beta
+frm(bf(yb ~ x + (1 | p | g), phi ~ 1 + (1 | p | g)), family = Beta(), data = d) 
+  FITTED. logLik = 282.920387549  convergence = 1 ( singular convergence (7) )
+
+=== frm: correlated slope block, Beta
+frm(bf(yb ~ x + (1 + x | g), phi ~ 1), family = Beta(), data = d) 
+  FITTED. logLik = 282.849036736  convergence = 1 ( singular convergence (7) )
+
+=== frm: student sigma random effect
+frm(bf(yt ~ x + (1 | g), sigma ~ 1 + (1 | g), nu ~ 1), family = student(), data = d) 
+  FITTED. logLik = -581.219833517  convergence = 0 ( relative convergence (4) )
+
+=== frm: zero-inflation random effect
+frm(bf(yzi ~ x, shape ~ 1, zi ~ 1 + (1 | g)), family = zero_inflated_negbinomial(), data = d) 
+  FITTED. logLik = -821.33904512  convergence = 0 ( relative convergence (4) )
+
+=== frm: REML, Beta
+frm(bf(yb ~ x + (1 | g), phi ~ 1), family = Beta(), data = d, REML = TRUE) 
+  FITTED. logLik = 278.585252984  convergence = 0 ( relative convergence (4) )
+
+=== frm: REML, negbinomial
+frm(bf(yc ~ x + (1 | g), shape ~ 1), family = negbinomial(), data = d, REML = TRUE) 
+  FITTED. logLik = -870.035263394  convergence = 0 ( relative convergence (4) )
+
+=== frm: penalized smooth s(x)
+frm(bf(y ~ s(x) + (1 | g)), family = gaussian(), data = d) 
+  FITTED. logLik = -584.886976169  convergence = 0 ( relative convergence (4) )
+
+=== frm: custom family (logistic log-density)
+frm(bf(y ~ x), data = d, family = custom_family("mylogistic", dpars = c("mu", "sigma"), links = list(mu = "identity", 
+    sigma = "log"), type = "continuous", lpdf = function(y, dpars, aterms) -(y - dpars$mu)/dpars$sigma - 
+    log(dpars$sigma) - 2 * log1p(exp(-(y - dpars$mu)/dpars$sigma)))) 
+  FITTED. logLik = -600.996470468  convergence = 0 ( relative convergence (4) )
+
+=== frm: nbinom2 mu RE and shape RE together
+frm(bf(yc ~ x + (1 | g), shape ~ 1 + (1 | g)), family = negbinomial(), data = d) 
+  FITTED. logLik = -866.135491146  convergence = 0 ( relative convergence (4) )
+
+##### B. drmTMB extras, run in drmTMB and tried in frmtmb
+
+=== drm: worm_plot()
+drmTMB::worm_plot(f_g, seed = 1) 
+  RETURNED a ggplot with 3 layers
+
+=== drm: centile_chart()
+drmTMB::centile_chart(f_g, covariate = "x") 
+  RETURNED a ggplot with 1 layers
+
+=== drm: check_drm()
+drmTMB::check_drm(f_g) 
+<drm_check: 15 checks>
+ok: 14; notes: 1; warnings: 0; errors: 0
+                        check status
+        optimizer_convergence     ok
+             optimizer_budget     ok
+             finite_objective     ok
+        logsigma_clamp_active     ok
+               fixed_gradient     ok
+              sdreport_status     ok
+    hessian_positive_definite     ok
+       standard_errors_finite     ok
+     standard_errors_inflated     ok
+                 dropped_rows     ok
+               positive_scale     ok
+    random_effect_sd_boundary     ok
+   interval_reliability_scope   note
+     fixed_effect_design_size     ok
+ mu_random_effect_replication     ok
+                                                                                 value
+                                                                                     0
+                                               iterations=32; function=50; gradient=32
+                                                                                 549.4
+                                                                                  <NA>
+                                                    max=0.0007206; component=log_sd_mu
+                                                                                    ok
+                                                                                  TRUE
+                                                               range=[0.03732,0.09502]
+                                       n_inflated=0; max_se=0.09502; median_se=0.04150
+                                                                   nobs=400; dropped=0
+                                                                            min=0.3189
+                                       min=0.5421; boundary=0.0001000; term=mu.(1 | g)
+                                                         sd_targets=1; assessed_here=0
+ total_mb=0.06255; max_cols=2; largest=mu; largest_class=matrix; largest_density=1.000
+                                                                            (1 | g)=10
+                                                                                                                                                                                                                                                                                                                                 message
+                                                                                                                                                                                                                                                                                                           nlminb convergence code is 0.
+                                                                                                                                                                                                                                                     Optimizer evaluation counts recorded; no eval.max or iter.max control was supplied.
+                                                                                                                                                                                                                                                                                                Objective and log-likelihood are finite.
+                                                                                                                                                                                                                                                                                      The log(sigma) clamp is not active at the optimum.
+                                                                                                                                                                                                                                                            Maximum absolute fixed gradient is <= 0.001; largest component is log_sd_mu.
+                                                                                                                                                                                                                                                                                                 TMB::sdreport() completed successfully.
+                                                                                                                                                                                                                                                                                           sdreport reports a positive-definite Hessian.
+                                                                                                                                                                                                                                                                                            All fixed-effect standard errors are finite.
+                                                                                                                                                                                                                                                                      No fixed-effect standard error is inflated relative to the others.
+                                                                                                                                                                                                                                                                      No rows were dropped by model-frame or known-covariance filtering.
+                                                                                                                                                                                                                                                                                        All fitted scale values are finite and positive.
+                                                                                                                                                                                                            All fitted random-effect standard deviations are finite, positive, and above the requested lower-boundary warning threshold.
+ This fit has 1 random-effect standard-deviation target. `check_drm()` assesses the fit, not interval reliability: a target can pass every check above and still return an interval that `confint()` warns about at a variance boundary. Before reporting an interval, call `confint()` and read `conf.status` and any boundary warning.
+                                                                                                                                                                                                                                                                             Dense fixed-effect design matrices are modest for this fit.
+                                                                                                                                                                                                                                                                         Every random-effect level has at least two fitted observations.
+
+=== drm: anova() LRT between two fits
+anova(D(dbf(y ~ x, sigma ~ z), family = gaussian(), data = d), f_g) 
+  REFUSED/ERROR: `anova()` likelihood-ratio comparisons are not implemented for <drmTMB> fits. 
+
+=== drm: mspl estimator, binomial random intercept
+D(dbf(ybin ~ x + (1 | g)), family = binomial(), data = d, estimator = "mspl") 
+  FITTED. logLik = unavailable: `logLik()` is not available for experimental MSPL fits.
+ℹ MSPL Phase 3 validates point estimation and objec  convergence = 0 ( relative convergence (4) )
+
+=== drm: binary missing predictor, impute_model(binomial)
+{
+    dm <- d
+    dm$bx <- rbinom(nrow(dm), 1, plogis(dm$z))
+    dm$y <- dm$y + 0.5 * dm$bx
+    dm$bx[seq(1, nrow(dm), 7)] <- NA
+    D(dbf(y ~ x + mi(bx), sigma ~ 1), family = gaussian(), data = dm, impute = list(bx = drmTMB::impute_model(bx ~ 
+        z, family = binomial())), missing = drmTMB::miss_control(predictor = "model"))
+} 
+  FITTED. logLik = -815.364208204  convergence = 0 ( relative convergence (4) )
+
+=== frm: binary missing predictor, bf(bx | mi() ~ z) + bernoulli
+{
+    dm <- d
+    dm$bx <- rbinom(nrow(dm), 1, plogis(dm$z))
+    dm$y <- dm$y + 0.5 * dm$bx
+    dm$bx[seq(1, nrow(dm), 7)] <- NA
+    frm(bf(y ~ x + mi(bx), family = gaussian()) + bf(bx | mi() ~ z, family = bernoulli()) + set_rescor(FALSE), 
+        data = dm)
+} 
+  REFUSED/ERROR: mi() responses need a gaussian or student model 
+
+=== drm: missing response included, gaussian
+{
+    dm <- d
+    dm$y[seq(1, nrow(dm), 9)] <- NA
+    D(dbf(y ~ x + (1 | g), sigma ~ 1), family = gaussian(), data = dm, missing = drmTMB::miss_control(response = "include"))
+} 
+  FITTED. logLik = -523.780024113  convergence = 0 ( relative convergence (4) )
+
+=== drm: bivariate labelled all-four block mu1, mu2, sigma1, sigma2
+D(dbf(mu1 = y ~ x + (1 | p | g), mu2 = y2 ~ x + (1 | p | g), sigma1 = ~1 + (1 | p | g), sigma2 = ~1 + 
+    (1 | p | g)), family = drmTMB::biv_gaussian(), data = d) 
+  FITTED. logLik = -1033.43072358  convergence = 1 ( singular convergence (7) )
+
+=== frm: same all-four block
+frm(mvbf(bf(y ~ x + (1 | p | g), sigma ~ 1 + (1 | p | g)), bf(y2 ~ x + (1 | p | g), sigma ~ 1 + (1 | 
+    p | g))) + set_rescor(TRUE), family = gaussian(), data = d) 
+  FITTED. logLik = -1033.43072871  convergence = 1 ( singular convergence (7) )
+
+=== drm: rho12 regression rho12 ~ x
+D(dbf(mu1 = y ~ x, mu2 = y2 ~ x, rho12 = ~x), family = drmTMB::biv_gaussian(), data = d) 
+  FITTED. logLik = -1100.16161665  convergence = 0 ( relative convergence (4) )
+
+=== drm: phylo_interaction(1 | plant:poll)
+D(dbf(y ~ x + phylo_interaction(1 | plant:poll, tree1 = t1, tree2 = t2), sigma ~ 1), family = gaussian(), 
+    data = dn) 
+  FITTED. logLik = -134.472457084  convergence = 0 ( relative convergence (4) )
+
+=== frm: gr(pair, cov = kronecker(C2, C1))
+frm(bf(y ~ x + (1 | gr(pair, cov = K))), family = gaussian(), data = dn, data2 = list(K = K)) 
+  FITTED. logLik = -134.472457084  convergence = 0 ( relative convergence (4) )
+  logLik difference frm - drm: 3.979e-13 
+
+=== drm: meta_V(V = M) with a full covariance
+D(dbf(yi ~ x + meta_V(V = M), sigma ~ 1), family = gaussian(), data = dmeta) 
+  FITTED. logLik = -13.8250665681  convergence = 0 ( relative convergence (4) )
+
+=== frm: fcor(M)
+frm(bf(yi ~ x + fcor(M)), family = gaussian(), data = dmeta, data2 = list(M = M)) 
+  REFUSED/ERROR: fcor() is a brms autocorrelation term that frmtmb does not support: fcor(M). The supported residual correlation terms are ar(), ma(), arma(), cosy(), unstr() and car() 
+  hand ML, Cov = M + s^2 I: -13.82506657 
+  hand ML, Cov = s^2 M    : -15.74576115 

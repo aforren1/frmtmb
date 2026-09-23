@@ -1,0 +1,62 @@
+drmTMB 0.7.0 : 1531 objects in namespace
+herit :  
+icc :  
+repeatab :  
+chibar :  
+lrt :  
+boundary_p :  
+objective_at :  
+worm : worm_plot 
+centile : bootstrap_percentile_draws, bootstrap_percentile_interval, bootstrap_uses_link_percentiles, centile_chart, centile_chart.drmTMB, drm_centile_reference_caption, drm_centile_require_ggplot2 
+phylo_interaction : build_phylo_interaction_mu_structure, extract_gaussian_mu_phylo_interaction_term, parse_phylo_interaction_bar_term, phylo_interaction, phylo_interaction_mu_vars, validate_zero_one_beta_atom_phylo_interaction_term, validate_zero_one_beta_mu_phylo_interaction_term, validate_zero_one_beta_sigma_phylo_interaction_term 
+coevol :  
+meta_V : drm_julia_rewrite_meta_V, meta_V, meta_vcov_bivariate, validate_meta_variance_vector 
+sample :  
+tmbstan :  
+mcmc :  
+
+exports:
+ [1] "animal"                  "associate_pairs"        
+ [3] "association"             "beta"                   
+ [5] "beta_binomial"           "bf"                     
+ [7] "biv_associate"           "biv_gaussian"           
+ [9] "biv_lognormal"           "biv_student"            
+[11] "categorical"             "centile_chart"          
+[13] "check_drm"               "corpair"                
+[15] "corpairs"                "cumulative_logit"       
+[17] "drm_control"             "drm_formula"            
+[19] "drm_phylo_penalty"       "drm_phylo_penalty_sweep"
+[21] "drmTMB"                  "exceedance"             
+[23] "fitted_distribution"     "fixef"                  
+[25] "gr"                      "impute_model"           
+[27] "imputed"                 "is_converged"           
+[29] "latent_normal"           "lognormal"              
+[31] "make_mesh"               "marginal_parameters"    
+[33] "meta_known_V"            "meta_V"                 
+[35] "meta_vcov_bivariate"     "mi"                     
+[37] "miss_control"            "nbinom2"                
+[39] "phylo"                   "phylo_interaction"      
+[41] "plot_corpairs"           "plot_parameter_surface" 
+[43] "predict_parameters"      "prediction_grid"        
+[45] "profile_targets"         "qq_plot"                
+[47] "ranef"                   "relmat"                 
+[49] "rho_latent"              "rho12"                  
+[51] "skew_normal"             "spatial"                
+[53] "spatial_coords"          "structured_effects"     
+[55] "student"                 "truncated_nbinom2"      
+[57] "tweedie"                 "worm_plot"              
+[59] "zero_one_beta"          
+
+anova.drmTMB:
+function (object, ..., test = NULL) 
+{
+    fits <- c(list(object), list(...))
+    mspl <- vapply(fits, drm_is_mspl, logical(1L))
+    if (any(mspl)) {
+        drm_abort_mspl_inference(fits[[which(mspl)[[1L]]]], "anova")
+    }
+    cli::cli_abort("{.fn anova} likelihood-ratio comparisons are not implemented for {.cls drmTMB} fits.")
+}
+<bytecode: 0x000001cc4231c8c8>
+<environment: namespace:drmTMB>
+functions calling pchisq: 0 

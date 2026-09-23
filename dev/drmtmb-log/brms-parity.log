@@ -1,0 +1,24 @@
+brms 2.23.0 
+hurdle_negbinomial       exported: TRUE
+zero_one_inflated_beta   exported: TRUE
+fcor                     exported: TRUE
+gr                       exported: TRUE
+mi                       exported: TRUE
+icc                      exported: FALSE
+heritability             exported: FALSE
+variance_decomposition   exported: FALSE
+gr() arguments: ..., by, cor, id, pw, cov, dist 
+fcor() arguments: M 
+negbinomial trunc(lb = 1) Stan code uses a CDF: TRUE 
+gr(by =) declares one SD set per level of by (Nby_1 in Stan code): TRUE 
+   *   sigma: residual standard deviation
+  real normal_fcor_hom_lpdf(vector y, vector mu, real sigma, data matrix chol_cor) {
+    return multi_normal_cholesky_lpdf(y | mu, sigma * chol_cor);
+   *   sigma: residual standard deviation vector
+  real normal_fcor_het_lpdf(vector y, vector mu, vector sigma, data matrix chol_cor) {
+    return multi_normal_cholesky_lpdf(y | mu, diag_pre_multiply(sigma, chol_cor));
+  matrix[N, N] Mfcor;  // known residual covariance matrix
+  matrix[N, N] Lfcor = cholesky_decompose(Mfcor);
+  real<lower=0> sigma;  // dispersion parameter
+  lprior += student_t_lpdf(sigma | 3, 0, 3)
+    target += normal_fcor_hom_lpdf(Y | mu, sigma, Lfcor);

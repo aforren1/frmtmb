@@ -6,9 +6,11 @@
 #'   available is checked against a package that implements the same
 #'   likelihood (G5.4a covers the rest): glmmTMB for the
 #'   covariance structures, the zero-inflated and hurdle families and the
-#'   distributional models; lme4 for the classical LMM and GLMM surface;
-#'   mgcv for smooths and functional terms; MASS for `polr` ordinal and
-#'   `glm.nb`; survival for censored responses; quantreg for
+#'   distributional models; drmTMB for location-scale mixed models, the
+#'   animal-model and phylogenetic effects, the bivariate gaussian and
+#'   known-variance meta-analysis; lme4 for the classical LMM and GLMM
+#'   surface; mgcv for smooths and functional terms; MASS for `polr`
+#'   ordinal and `glm.nb`; survival for censored responses; quantreg for
 #'   `asym_laplace`; nnet for `multinomial`; mclust for the multivariate
 #'   gaussian mixtures; nlme for nonlinear standard errors; GLMMadaptive
 #'   as a second adaptive-quadrature implementation; mice for

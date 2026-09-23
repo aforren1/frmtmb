@@ -1,0 +1,73 @@
+drmTMB visible: TRUE  NOT_CRAN: true 
+drmtmb-mut1: .................1...................2....3....4................................................................................
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-drmtmb-mut1.R:175:3'): random intercepts in mu and sigma, i
+Expected `abs(m$gap_off)/scale` < 1e-11.
+Actual comparison: 0.00000000061 >= 0.00000000001
+Difference: 0.00000000060 >= 0
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) expect_same_model(...) at test-drmtmb-mut1.R:175:3
+ 2.   └─testthat::expect_lt(abs(m$gap_off)/scale, 1e-11) at test-drmtmb-mut1.R:114:3
+
+── 2. Failure ('test-drmtmb-mut1.R:209:3'): bivariate gaussian: rho12, correlate
+Expected `abs(m$gap_off)/scale` < 1e-11.
+Actual comparison: 0.00000002206 >= 0.00000000001
+Difference: 0.00000002205 >= 0
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) expect_same_model(...) at test-drmtmb-mut1.R:209:3
+ 2.   └─testthat::expect_lt(abs(m$gap_off)/scale, 1e-11) at test-drmtmb-mut1.R:114:3
+
+── 3. Failure ('test-drmtmb-mut1.R:217:3'): bivariate gaussian: rho12, correlate
+Expected `abs(m$gap_off)/scale` < 1e-11.
+Actual comparison: 0.00000001850 >= 0.00000000001
+Difference: 0.00000001849 >= 0
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) expect_same_model(...) at test-drmtmb-mut1.R:217:3
+ 2.   └─testthat::expect_lt(abs(m$gap_off)/scale, 1e-11) at test-drmtmb-mut1.R:114:3
+
+── 4. Failure ('test-drmtmb-mut1.R:223:3'): bivariate gaussian: rho12, correlate
+Expected `abs(m$gap_off)/scale` < 1e-11.
+Actual comparison: 0.00000001884 >= 0.00000000001
+Difference: 0.00000001883 >= 0
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) expect_same_model(...) at test-drmtmb-mut1.R:223:3
+ 2.   └─testthat::expect_lt(abs(m$gap_off)/scale, 1e-11) at test-drmtmb-mut1.R:114:3
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+No one is perfect!
+
+elapsed s: 117 
+tests: 13  expectations: 128  failed: 4  error: 0  skipped: 0  warnings: 0 
+                                                              test nb failed
+1  gaussian location-scale with a mu random intercept, ML and REML 10      0
+2    random intercepts in mu and sigma, independent and correlated 10      1
+3           beta and NB2: drmTMB's sigma is 1 / sqrt(phi or shape) 15      0
+4        bivariate gaussian: rho12, correlated group effects, REML 15      3
+5         animal model: drmTMB animal(A = A) is frmtmb gr(cov = A) 10      0
+6                     phylo(tree) rescales the tree to unit height 11      0
+7          student and cumulative logit with a mu random intercept 10      0
+8           more families: lognormal, Gamma, beta-binomial, ZI NB2 20      0
+9           meta-analysis: meta_V(V = vi) is se(sei, sigma = TRUE)  5      0
+10                 sd(g) ~ w is the nl model b0 + exp(c1 * w) * zz  5      0
+11           mi(): a gaussian missing predictor with its own model  5      0
+12     skew_normal: same likelihood; frmtmb's default start stalls  8      0
+13         REML with a sigma random effect: not the same criterion  4      0
+   skipped error warning
+1    FALSE FALSE       0
+2    FALSE FALSE       0
+3    FALSE FALSE       0
+4    FALSE FALSE       0
+5    FALSE FALSE       0
+6    FALSE FALSE       0
+7    FALSE FALSE       0
+8    FALSE FALSE       0
+9    FALSE FALSE       0
+10   FALSE FALSE       0
+11   FALSE FALSE       0
+12   FALSE FALSE       0
+13   FALSE FALSE       0

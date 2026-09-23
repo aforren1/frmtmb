@@ -43,6 +43,17 @@ at a different place.
   additive predictor, which is the part lme4 and glmmTMB lack. Random
   effects are additive terms there rather than an lme4 grammar with
   structured covariances, and the spelling is not brms's.
+- [drmTMB](https://itchyshin.github.io/drmTMB/) comes closest. It
+  fits distributional regression by maximum likelihood on a compiled
+  TMB template. Its formulas resemble brms: `bf()`, one formula for
+  each parameter, and `|p|` labels. It fits one or two responses, and
+  it refuses a pair of different families. For the beta and NB2
+  families, it refuses effects correlated across formulas. It also
+  refuses random effects in some parameters, for example the beta
+  precision and the Student-t scale. It has no nonlinear formulas,
+  smooths, or custom families. Its REML covers the gaussian and
+  binomial families only. These statements describe drmTMB 0.7.0 on
+  CRAN.
 
 frmtmb supplies the combination: distributional regression on every
 parameter of the family, nonlinear formulas, multivariate responses
@@ -91,9 +102,25 @@ teaching setting where no toolchain can be installed. Fields where
 this comes up include psychology and psychophysics, ecology,
 pharmacometrics, and meta-analysis.
 
-Related work: glmmTMB is the closest relative, a mature and fast
-TMB-based mixed-model package. frmtmb matches its fits where the
-models overlap and follows its conventions in several places.
+Related work: glmmTMB and drmTMB are the closest relatives. glmmTMB
+is a mature and fast TMB-based mixed-model package. frmtmb matches its
+fits where the models overlap and follows its conventions in several
+places. drmTMB is the closest in scope. In 27 comparisons of models
+that both packages fit, from beta and NB2 mixed models to
+animal-model and bivariate fits, the two log-likelihoods agree to
+within 3e-8. Each comparison states the map between the two
+parameterizations (`tests/testthat/test-drmtmb-agreement.R`).
+drmTMB also does work that frmtmb does not do. It gives a
+random-effect standard deviation its own formula, `sd(g) ~ w`, in
+gaussian models, where `w` must be constant within the group; frmtmb
+reaches the same model only through a nonlinear formula. It takes a
+phylogeny, a pedigree, or a pair of trees directly, where frmtmb needs
+the covariance matrix. It accepts
+a full known sampling covariance for meta-analysis. It fits the
+zero-one-inflated beta and the hurdle and zero-truncated NB2
+families. It imputes a binary missing predictor, and it draws worm
+plots and centile charts. Its documentation grades each model route
+by the evidence behind its estimate and its interval.
 [BayesRTMB](https://github.com/norimune/BayesRTMB) is a
 Bayesian-first, Stan-like modeling layer on the same RTMB backend.
 [qbrms](https://github.com/Tony-Myers/qbrms) also reads brms syntax
@@ -167,9 +194,9 @@ original per-participant procedure could not express.
 Pre-release. The goal is a CRAN release. Validation has three layers:
 
 - Every model class is compared with an exact external reference:
-  glmmTMB, lme4, mgcv, nlme, MASS, survival, nnet, GLMMadaptive,
-  quantreg, mice, closed-form marginals, or hand-written maximum
-  likelihood. The core suite and each companion package's suite run
+  glmmTMB, drmTMB, lme4, mgcv, nlme, MASS, survival, nnet,
+  GLMMadaptive, quantreg, mice, closed-form marginals, or hand-written
+  maximum likelihood. The core suite and each companion package's suite run
   on every change, and each companion package has its own check
   workflow.
 - The model-building layer is compared with brms itself. Design

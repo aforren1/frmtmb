@@ -1,0 +1,259 @@
+frmtmb 0.61.0  drmTMB 0.7.0  RTMB 2.0  TMB 1.9.25 
+
+========== a gaussian mu RE, ML 
+                model       ll_frm       ll_drm         ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt  obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio        grad_frm        grad_drm
+ a gaussian mu RE, ML -549.4194272 -549.4194272 5.578954188e-09   -1.818989404e-12   -3.296918294e-12 -2.728484105e-12      9.481512753e-05      1.070235138e-05 7.566513007e-05 0.0007205780012
+ conv_frm conv_drm
+        0        0
+  par_frm       par_drm      map       est_frm est_drm_mapped     diff_over_se        se_frm se_drm_mapped     se_ratio
+  beta[1]    beta_mu[1] identity  0.9765380240   0.9765406787 -2.793801621e-05 0.09502171117 0.09502272813 0.9999892977
+  beta[2]    beta_mu[2] identity  0.5386231219   0.5386232694 -3.435969702e-06 0.04292045938 0.04292049611 0.9999991444
+ betad[3] beta_sigma[3] identity -0.1071496077  -0.1071490187 -1.578548182e-05 0.03731789033 0.03731790174 0.9999996943
+ betad[4] beta_sigma[4] identity  0.3313224183   0.3313222857  3.307595483e-06 0.04007605683 0.04007609788 0.9999989758
+ theta[5]  log_sd_mu[5] identity -0.6122882309  -0.6122750570 -9.481512753e-05 0.13894399457 0.13894444557 0.9999967541
+
+========== a gaussian mu RE, REML 
+                  model       ll_frm       ll_drm          ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt  obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio       grad_frm        grad_drm
+ a gaussian mu RE, REML -553.0821927 -553.0821927 -2.614797268e-12   -2.046363079e-12   -2.614797268e-12 -2.842170943e-12      1.075444813e-06      4.197577363e-08 2.22508615e-05 5.331063476e-06
+ conv_frm conv_drm
+        0        0
+  par_frm       par_drm      map       est_frm est_drm_mapped     diff_over_se        se_frm se_drm_mapped    se_ratio
+ betad[1] beta_sigma[1] identity -0.1058391188  -0.1058391123 -1.730090705e-07 0.03736394239 0.03736394250 0.999999997
+ betad[2] beta_sigma[2] identity  0.3304285415   0.3304284984  1.075444813e-06 0.04009697848 0.04009697839 1.000000002
+ theta[3]  log_sd_mu[3] identity -0.5964640267  -0.5964638993 -9.103204097e-07 0.13993922092 0.13993922680 0.999999958
+
+========== b gaussian mu+sigma RE, ML 
+                      model       ll_frm       ll_drm         ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt  obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio        grad_frm        grad_drm
+ b gaussian mu+sigma RE, ML -543.0814724 -543.0814724 2.781916919e-10    1.025114216e-09   -6.707523426e-12 -2.046363079e-12      1.612831381e-05       2.41480569e-06 0.0003459237298 0.0003507157047
+ conv_frm conv_drm
+        0        0
+  par_frm         par_drm      map       est_frm est_drm_mapped     diff_over_se        se_frm se_drm_mapped     se_ratio
+  beta[1]      beta_mu[1] identity  0.9697923218   0.9697914891  8.704081198e-06 0.09566005519 0.09566007324 0.9999998112
+  beta[2]      beta_mu[2] identity  0.5283666826   0.5283667100 -6.678190312e-07 0.04098974456 0.04098975451 0.9999997574
+ betad[3]   beta_sigma[3] identity -0.1662138185  -0.1662129416 -1.612831381e-05 0.05437082095 0.05437076049 1.0000011119
+ betad[4]   beta_sigma[4] identity  0.3311683258   0.3311688286 -1.124157666e-05 0.04473071186 0.04473071723 0.9999998800
+ theta[5]    log_sd_mu[5] identity -0.5990406465  -0.5990404637 -1.358642297e-06 0.13454768220 0.13454770454 0.9999998340
+ theta[6] log_sd_sigma[6] identity -1.4489404811  -1.4489425806  9.487905168e-06 0.22128718348 0.22128771784 0.9999975852
+
+========== b gaussian mu+sigma RE correlated |p|, ML 
+                                     model      ll_frm      ll_drm         ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt  obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio        grad_frm
+ b gaussian mu+sigma RE correlated |p|, ML -542.208327 -542.208327 2.832291557e-08    2.055526238e-08    1.988041731e-09 -1.182343112e-11      8.783060368e-05      8.404553452e-06 0.0007740130049
+      grad_drm conv_frm conv_drm
+ 0.00178199304        0        0
+  par_frm             par_drm                                   map       est_frm est_drm_mapped     diff_over_se        se_frm se_drm_mapped     se_ratio
+  beta[1]          beta_mu[1]                              identity  0.9745710577   0.9745794973 -8.783060368e-05 0.09608953210 0.09608939276 1.0000014501
+  beta[2]          beta_mu[2]                              identity  0.5279424927   0.5279452924 -6.931446616e-05 0.04039045699 0.04039046217 0.9999998718
+ betad[3]       beta_sigma[3]                              identity -0.1669062577  -0.1669031477 -5.697116298e-05 0.05458941551 0.05458934612 1.0000012711
+ betad[4]       beta_sigma[4]                              identity  0.3399060429   0.3399086194 -5.745050599e-05 0.04484811150 0.04484817222 0.9999986461
+ theta[5]        log_sd_mu[5]                              identity -0.5927206265  -0.5927228407  1.660023426e-05 0.13338440408 0.13338419760 1.0000015480
+ theta[6]     log_sd_sigma[7]                              identity -1.4371614066  -1.4371624120  4.585986100e-06 0.21922700212 0.21922694593 1.0000002563
+ theta[7] eta_cor_mu_sigma[6] rho: 0.999999*tanh(d) = f/sqrt(1+f^2)  0.3521605101   0.3521482870  4.337841964e-05 0.28177876766 0.28177639944 1.0000084046
+
+========== c beta mu RE, ML 
+            model      ll_frm      ll_drm         ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio        grad_frm       grad_drm conv_frm
+ c beta mu RE, ML 282.8472578 282.8472577 6.461220892e-09    6.241407391e-11    1.660964699e-10 4.013145372e-11      8.496664441e-05       8.86680935e-06 0.0002035117639 0.001549044896        0
+ conv_drm
+        0
+  par_frm       par_drm        map       est_frm est_drm_mapped     diff_over_se        se_frm se_drm_mapped     se_ratio
+  beta[1]    beta_mu[1]   identity  0.1228327205   0.1228251896  8.496664441e-05 0.08863337497 0.08863416087 0.9999911332
+  beta[2]    beta_mu[2]   identity  0.4135159752   0.4135151436  3.241697420e-05 0.02565419471 0.02565415599 1.0000015095
+ betad[3] beta_sigma[3] f = -2*d+0  2.9512852314   2.9512883952 -4.331431280e-05 0.07304274907 0.07304261431 1.0000018450
+ theta[4]  log_sd_mu[4]   identity -0.6148730782  -0.6148634584 -7.931096805e-05 0.12129176489 0.12129253156 0.9999936792
+
+========== d nbinom2 mu RE, ML 
+               model       ll_frm       ll_drm         ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio        grad_frm        grad_drm conv_frm
+ d nbinom2 mu RE, ML -866.1765001 -866.1765001 7.088033271e-09    8.071765478e-12   -1.273292582e-11 3.410605132e-13      8.639507885e-05      8.438271058e-06 0.0001047231769 0.0007987001099        0
+ conv_drm
+        0
+  par_frm       par_drm        map       est_frm est_drm_mapped     diff_over_se        se_frm se_drm_mapped     se_ratio
+  beta[1]    beta_mu[1]   identity  1.0487581157   1.0487617252 -4.470268992e-05 0.08074653463 0.08074721600 0.9999915618
+  beta[2]    beta_mu[2]   identity  0.2745514535   0.2745502484  2.870704566e-05 0.04197926832 0.04197919339 1.0000017848
+ betad[3] beta_sigma[3] f = -2*d+0  1.3405802757   1.3405889882 -4.802782542e-05 0.18140513335 0.18140588232 0.9999958713
+ theta[4]  log_sd_mu[4]   identity -0.8261406391  -0.8261262465 -8.639507885e-05 0.16659062536 0.16659004342 1.0000034932
+
+========== d nbinom2 sigma RE, ML 
+                  model       ll_frm       ll_drm         ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt  obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio       grad_frm        grad_drm
+ d nbinom2 sigma RE, ML -882.1684716 -882.1684716 1.549324224e-09    2.661408871e-10   -3.100240065e-10 -1.250555215e-12      4.775642243e-05      7.639380923e-06 7.15029541e-05 0.0007168182688
+ conv_frm conv_drm
+        0        0
+  par_frm         par_drm              map       est_frm est_drm_mapped     diff_over_se        se_frm se_drm_mapped     se_ratio
+  beta[1]      beta_mu[1]         identity  1.1812851258   1.1812859138 -1.657440814e-05 0.04753844573 0.04753851423 0.9999985592
+  beta[2]      beta_mu[2]         identity  0.2633980705   0.2633995630 -3.356796668e-05 0.04446259514 0.04446266882 0.9999983429
+ betad[3]   beta_sigma[3]       f = -2*d+0  0.9500546585   0.9500451769  4.775642243e-05 0.19854054901 0.19853903229 1.0000076394
+ theta[4] log_sd_sigma[4] f = 1*d+0.693147 -0.2891632678  -0.2891675273  1.529826024e-05 0.27842806155 0.27842838445 0.9999988403
+
+========== e bivariate gaussian rho12, ML 
+                          model       ll_frm       ll_drm          ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt  obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio        grad_frm
+ e bivariate gaussian rho12, ML -1102.488311 -1102.488311 -1.266471372e-09    -1.11413101e-11   -1.182343112e-11 -1.705302566e-11      3.863895166e-05      1.102735954e-06 0.0004881548626
+       grad_drm conv_frm conv_drm
+ 1.60200188e-05        0        0
+   par_frm        par_drm                                   map        est_frm est_drm_mapped     diff_over_se        se_frm se_drm_mapped     se_ratio
+   beta[1]    beta_mu1[1]                              identity  0.96437338960  0.96437267920  1.271093104e-05 0.05588916836 0.05588914695 1.0000003830
+   beta[2]    beta_mu1[2]                              identity  0.50364134966  0.50363914825  3.849319688e-05 0.05718977749 0.05718975558 1.0000003830
+   beta[3]    beta_mu2[3]                              identity  0.18843824252  0.18843736778  1.783121289e-05 0.04905671336 0.04905671740 0.9999999177
+   beta[4]    beta_mu2[4]                              identity  0.06994917293  0.06994723332  3.863895166e-05 0.05019832293 0.05019832706 0.9999999177
+  betad[5] beta_sigma1[5]                              identity  0.11007763964  0.11007725668  1.083190593e-05 0.03535534184 0.03535532676 1.0000004267
+  betad[6] beta_sigma2[6]                              identity -0.02031590913 -0.02031582683 -2.327801206e-06 0.03535533017 0.03535532675 1.0000000965
+ thetar[7]  beta_rho12[7] rho: 0.999999*tanh(d) = f/sqrt(1+f^2)  0.63948247889  0.63948164412  1.406548247e-05 0.05934936006 0.05934929461 1.0000011027
+
+========== e bivariate gaussian rho12 + correlated RE |p|, ML 
+                                              model       ll_frm       ll_drm         ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt  obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio
+ e bivariate gaussian rho12 + correlated RE |p|, ML -1048.911121 -1048.911121 1.531179805e-08   -2.546585165e-11   -1.705302566e-11 -6.821210263e-12      0.0001487910592      5.653186613e-06
+        grad_frm       grad_drm conv_frm conv_drm
+ 0.0003832169506 0.003808480594        0        0
+    par_frm        par_drm                                   map        est_frm est_drm_mapped     diff_over_se        se_frm se_drm_mapped     se_ratio
+    beta[1]    beta_mu1[1]                              identity  0.96567856367  0.96568309011 -4.543357637e-05 0.09962764391 0.09962721101 1.0000043452
+    beta[2]    beta_mu1[2]                              identity  0.53019739517  0.53019755293 -3.051940615e-06 0.05169110600 0.05169109904 1.0000001347
+    beta[3]    beta_mu2[3]                              identity  0.18954661465  0.18954692665 -3.528633433e-06 0.08842113791 0.08842119296 0.9999993774
+    beta[4]    beta_mu2[4]                              identity  0.09250691127  0.09250872353 -4.014020631e-05 0.04514809536 0.04514784969 1.0000054416
+   betad[5] beta_sigma1[5]                              identity -0.02847851954 -0.02847852901  2.542279945e-07 0.03727073979 0.03727069600 1.0000011749
+   betad[6] beta_sigma2[6]                              identity -0.16415125336 -0.16415679887  1.487910592e-04 0.03727043151 0.03727023053 1.0000053927
+ thetar[10]  beta_rho12[7] rho: 0.999999*tanh(d) = f/sqrt(1+f^2)  0.62857903546  0.62857411739  7.899879081e-05 0.06225504620 0.06225469426 1.0000056532
+   theta[7]   log_sd_mu[8]                              identity -0.59816056118 -0.59816627619  3.879465566e-05 0.14731450992 0.14731473584 0.9999984664
+   theta[8]   log_sd_mu[9]                              identity -0.71247629002 -0.71247382047 -1.693740423e-05 0.14580465977 0.14580410664 1.0000037936
+   theta[9] eta_cor_mu[10] rho: 0.999999*tanh(d) = f/sqrt(1+f^2)  0.67574505687  0.67576102323 -6.349780599e-05 0.25144742551 0.25144828845 0.9999965682
+
+========== e bivariate gaussian rho12 + correlated RE |p|, REML 
+                                                model       ll_frm       ll_drm         ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio
+ e bivariate gaussian rho12 + correlated RE |p|, REML -1056.365117 -1056.365117 -2.78691914e-09    2.751221473e-11   -7.958078641e-12 1.637090463e-11      6.934685253e-05      2.769537533e-06
+        grad_frm        grad_drm conv_frm conv_drm
+ 0.0008937661834 0.0001701779973        0        0
+   par_frm        par_drm                                   map        est_frm est_drm_mapped     diff_over_se        se_frm se_drm_mapped     se_ratio
+  betad[1] beta_sigma1[1]                              identity -0.02712286439 -0.02712141098 -3.894469836e-05 0.03732003212 0.03732010732 0.9999979851
+  betad[2] beta_sigma2[2]                              identity -0.16279464609 -0.16279345197 -3.199705568e-05 0.03731980893 0.03731987091 0.9999983392
+ thetar[6]  beta_rho12[3] rho: 0.999999*tanh(d) = f/sqrt(1+f^2)  0.62857472712  0.62857905002 -6.934685253e-05 0.06233736784 0.06233754049 0.9999972305
+  theta[3]   log_sd_mu[4]                              identity -0.58160647532 -0.58161054244  2.746326411e-05 0.14809334964 0.14809363968 0.9999980415
+  theta[4]   log_sd_mu[5]                              identity -0.69608801362 -0.69608699986 -6.914090081e-06 0.14662269806 0.14662276942 0.9999995133
+  theta[5]  eta_cor_mu[6] rho: 0.999999*tanh(d) = f/sqrt(1+f^2)  0.67541093660  0.67541449350 -1.407350092e-05 0.25273745298 0.25273797114 0.9999979498
+
+========== e boundary: bivariate RE correlation at 1, ML 
+                                         model       ll_frm       ll_drm        ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt  obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio
+ e boundary: bivariate RE correlation at 1, ML -1056.209243 -1056.209243 1.38697942e-11    1.136868377e-12    2.455635695e-11 -6.366462912e-12      4.966234046e-06       9.88180998e-05
+        grad_frm        grad_drm conv_frm conv_drm
+ 5.083606207e-05 0.0001115850189        0        0
+    par_frm        par_drm                                   map        est_frm est_drm_mapped     diff_over_se         se_frm  se_drm_mapped     se_ratio
+    beta[1]    beta_mu1[1]                              identity  0.96575651229  0.96575660503 -9.307698663e-07  0.09964075804  0.09964076559 0.9999999242
+    beta[2]    beta_mu1[2]                              identity  0.53175692577  0.53175689895  5.190143413e-07  0.05167034355  0.05167033916 1.0000000850
+    beta[3]    beta_mu2[3]                              identity  0.25060246802  0.25060270412 -3.120860388e-06  0.07565398077  0.07565398631 0.9999999268
+    beta[4]    beta_mu2[4]                              identity  0.20978078506  0.20978078556 -1.002392969e-08  0.04966237473  0.04966237515 0.9999999916
+   betad[5] beta_sigma1[5]                              identity -0.02849100529 -0.02849109397  2.379399629e-06  0.03726980766  0.03726980313 1.0000001217
+   betad[6] beta_sigma2[6]                              identity -0.05212294821 -0.05212289129 -1.527052612e-06  0.03727772194  0.03727768340 1.0000010337
+ thetar[10]  beta_rho12[7] rho: 0.999999*tanh(d) = f/sqrt(1+f^2)  0.68151064055  0.68151049797  2.235227395e-06  0.06378930807  0.06378919834 1.0000017202
+   theta[7]   log_sd_mu[8]                              identity -0.59798346328 -0.59798333666 -8.595555479e-07  0.14730115655  0.14730114314 1.0000000910
+   theta[8]   log_sd_mu[9]                              identity -0.98807574799 -0.98807566753 -4.315145231e-07  0.18646361635  0.18646329788 1.0000017080
+   theta[9] eta_cor_mu[10] rho: 0.999999*tanh(d) = f/sqrt(1+f^2)  8.91457184300  8.91437539738  4.966234046e-06 39.55625460501 39.55234592423 1.0000988230
+
+========== f animal model A, ML 
+                model       ll_frm       ll_drm         ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt  obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio        grad_frm       grad_drm
+ f animal model A, ML -581.9867149 -581.9867149 1.420562512e-08    4.547473509e-13   -1.273292582e-11 -6.821210263e-13       0.000120216249      2.402189217e-06 7.697230588e-05 0.002066699506
+ conv_frm conv_drm
+        0        0
+  par_frm         par_drm      map       est_frm est_drm_mapped     diff_over_se        se_frm se_drm_mapped     se_ratio
+  beta[1]      beta_mu[1] identity  1.1898472883   1.1898249053  1.202162490e-04 0.18618938431 0.18618968406 0.9999983901
+  beta[2]      beta_mu[2] identity  0.3678235837   0.3678192947  9.300439562e-05 0.04611608534 0.04611619612 0.9999975978
+ betad[3]   beta_sigma[3] identity -0.1977377183  -0.1977350726 -6.427128026e-05 0.04116532576 0.04116541857 0.9999977455
+ theta[4] log_sd_phylo[4] identity -0.2800947319  -0.2800946290 -9.925697214e-07 0.10371139770 0.10371160523 0.9999979989
+
+========== f animal model A, REML 
+                  model       ll_frm       ll_drm         ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio       grad_frm        grad_drm
+ f animal model A, REML -584.9032466 -584.9032466 6.934897101e-12    6.934897101e-12    5.229594535e-12 6.252776075e-12       1.99146783e-07      6.348424211e-09 2.66143486e-06 1.090195785e-06
+ conv_frm conv_drm
+        0        0
+  par_frm         par_drm      map       est_frm est_drm_mapped     diff_over_se        se_frm se_drm_mapped     se_ratio
+ betad[1]   beta_sigma[1] identity -0.1970087509  -0.1970087486 -5.573407871e-08 0.04117704891 0.04117704893 0.9999999994
+ theta[2] log_sd_phylo[2] identity -0.2704813602  -0.2704813396 -1.991467830e-07 0.10346126354 0.10346126288 1.0000000063
+
+animal: drmTMB pedigree route minus A route, logLik: 0 
+tree height (diag of vcv): 0.76148186 0.76148186 
+
+========== f2 phylo vs gr(cov = vcv(tree)), ML 
+                               model       ll_frm       ll_drm        ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio        grad_frm
+ f2 phylo vs gr(cov = vcv(tree)), ML -215.2668203 -215.2668203 1.47792889e-12   -1.080024958e-12   -1.307398634e-12 1.705302566e-13      1.656593436e-06      1.869257636e-07 1.493497415e-05
+        grad_drm conv_frm conv_drm
+ 1.758785861e-05        0        0
+  par_frm         par_drm              map       est_frm est_drm_mapped     diff_over_se        se_frm se_drm_mapped    se_ratio
+  beta[1]      beta_mu[1]         identity  1.0185575987   1.0185580894 -1.656593436e-06 0.29620451946 0.29620446409 1.000000187
+  beta[2]      beta_mu[2]         identity  0.2774674493   0.2774674627 -2.728590422e-07 0.04920476769 0.04920476554 1.000000044
+ betad[3]   beta_sigma[3]         identity -0.4358320456  -0.4358320836  7.079820076e-07 0.05364264955 0.05364264741 1.000000040
+ theta[4] log_sd_phylo[4] f = 1*d+0.136244 -0.2403959799  -0.2403961862  9.862887011e-07 0.20915078590 0.20915077759 1.000000040
+
+========== f2 phylo vs gr(cov = vcv(tree, corr = TRUE)), ML 
+                                            model       ll_frm       ll_drm         ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt  obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio
+ f2 phylo vs gr(cov = vcv(tree, corr = TRUE)), ML -215.2668203 -215.2668203 -1.47792889e-12   -1.250555215e-12   -1.534772309e-12 -5.684341886e-14       1.91556246e-06       3.81466282e-07
+        grad_frm        grad_drm conv_frm conv_drm
+ 1.764223787e-05 1.758785861e-05        0        0
+  par_frm         par_drm      map       est_frm est_drm_mapped    diff_over_se        se_frm se_drm_mapped    se_ratio
+  beta[1]      beta_mu[1] identity  1.0185581004   1.0185580894 3.716230636e-08 0.29620457708 0.29620446409 1.000000381
+  beta[2]      beta_mu[2] identity  0.2774675256   0.2774674627 1.278663933e-06 0.04920476851 0.04920476554 1.000000060
+ betad[3]   beta_sigma[3] identity -0.4358320364  -0.4358320836 8.803537174e-07 0.05364265021 0.05364264741 1.000000052
+ theta[4] log_sd_phylo[4] identity -0.3766402511  -0.3766406518 1.915562460e-06 0.20915079014 0.20915077759 1.000000060
+
+========== g student mu RE, ML 
+               model       ll_frm       ll_drm         ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt  obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio        grad_frm        grad_drm
+ g student mu RE, ML -581.2203336 -581.2203336 8.867573342e-12    8.640199667e-12    1.466560207e-11 -1.352873369e-11      5.750680145e-07      1.414169526e-07 1.317861722e-05 6.936960094e-06
+ conv_frm conv_drm
+        0        0
+  par_frm       par_drm                     map       est_frm est_drm_mapped     diff_over_se        se_frm se_drm_mapped     se_ratio
+  beta[1]    beta_mu[1]                identity  0.9715770199   0.9715769691  5.750680145e-07 0.08818536122 0.08818536157 0.9999999960
+  beta[2]    beta_mu[2]                identity  0.4792274854   0.4792274613  4.747253417e-07 0.05094791504 0.05094791628 0.9999999756
+ betad[3] beta_sigma[3]                identity -0.1645029444  -0.1645029088 -5.147719721e-07 0.06905218362 0.06905218696 0.9999999515
+ betad[4]    beta_nu[4] nu: 2+exp(d) = 1+exp(f)  1.8866060921   1.8866061063 -2.977194817e-08 0.47744955792 0.47744962544 0.9999998586
+ theta[5]  log_sd_mu[5]                identity -0.7548509510  -0.7548509561  3.216695179e-08 0.15805871318 0.15805871679 0.9999999771
+
+========== h cumulative logit mu RE, ML 
+                        model       ll_frm       ll_drm         ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio        grad_frm        grad_drm
+ h cumulative logit mu RE, ML -511.8444404 -511.8444404 9.727045835e-10    4.547473509e-13    -2.50111043e-12 6.377831596e-11      3.197195227e-05      1.825573354e-05 3.352842773e-05 0.0001792951821
+ conv_frm conv_drm
+        0        0
+    par_frm      par_drm      map       est_frm est_drm_mapped     diff_over_se        se_frm se_drm_mapped     se_ratio
+    beta[1]   beta_mu[1] identity  0.7331249086   0.7331275213 -2.464714878e-05 0.10600409678 0.10600417973 0.9999992176
+ tau_raw[3] theta_ord[2] identity -0.8921582504  -0.8921624146  3.197195227e-05 0.13024574996 0.13024621819 0.9999964050
+ tau_raw[4] theta_ord[3] identity  0.3510664965   0.3510683965 -2.273127681e-05 0.08358370038 0.08358366279 1.0000004497
+ tau_raw[5] theta_ord[4] identity  0.3360675625   0.3360687900 -1.253913649e-05 0.09789650780 0.09789647328 1.0000003526
+   theta[2] log_sd_mu[5] identity -0.9544988367  -0.9544877156 -2.896505997e-05 0.38394917713 0.38394216792 1.0000182559
+
+========== i skew_normal, ML 
+             model       ll_frm       ll_drm         ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio        grad_frm       grad_drm conv_frm
+ i skew_normal, ML -449.5645419 -449.5603136 -0.004228379033   -2.046363079e-12   -2.614797268e-12  3.97903932e-13        0.02801674493          2.164654242 2.331872165e-05 3.67535591e-07        0
+ conv_drm
+        0
+  par_frm       par_drm      map         est_frm est_drm_mapped     diff_over_se         se_frm se_drm_mapped     se_ratio
+  beta[1]    beta_mu[1] identity  0.980908012612   0.9809061742  4.932415707e-05  0.03727287225 0.03727289364 0.9999994261
+  beta[2]    beta_mu[2] identity  0.495766827614   0.4957767719 -2.607283302e-04  0.03814025746 0.03813686219 1.0000890287
+ betad[3] beta_sigma[3] identity -0.295027176989  -0.2950263027 -2.472960166e-05  0.03535532732 0.03537057914 0.9995687994
+ betad[4]    beta_nu[4] identity -0.003364506912   0.3578443828 -2.801674493e-02 12.89260728555 1.47993745490 8.7115892924
+
+========== j meta-analysis meta_V vs se(sigma = TRUE), ML 
+                                          model       ll_frm       ll_drm          ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio
+ j meta-analysis meta_V vs se(sigma = TRUE), ML -34.81610925 -34.81610925 -9.947598301e-14    7.105427358e-14    1.136868377e-13 6.394884622e-14      5.627716027e-07      4.678608357e-07
+        grad_frm        grad_drm conv_frm conv_drm
+ 2.622558585e-06 4.855413849e-10        0        0
+  par_frm       par_drm      map       est_frm est_drm_mapped     diff_over_se        se_frm se_drm_mapped     se_ratio
+  beta[1]    beta_mu[1] identity  0.2415503178   0.2415503213 -6.531271707e-08 0.05322705794 0.05322706073 0.9999999477
+  beta[2]    beta_mu[2] identity  0.2132561182   0.2132561145  7.667169098e-08 0.04922458722 0.04922459023 0.9999999389
+ betad[3] beta_sigma[3] identity -1.6549570271  -1.6549567917 -5.627716027e-07 0.41826596795 0.41826577226 1.0000004679
+    metafor_ll    metafor_tau      drm_sigma      frm_sigma 
+-34.8161092509   0.1911019362   0.1911003126   0.1911002677 
+
+
+########## SUMMARY
+                                                model   ll_frm   ll_drm    ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio  grad_frm  grad_drm
+                                 a gaussian mu RE, ML  -549.42  -549.42  5.579e-09         -1.819e-12         -3.297e-12      -2.728e-12            9.482e-05            1.070e-05 7.567e-05 7.206e-04
+                               a gaussian mu RE, REML  -553.08  -553.08 -2.615e-12         -2.046e-12         -2.615e-12      -2.842e-12            1.075e-06            4.198e-08 2.225e-05 5.331e-06
+                           b gaussian mu+sigma RE, ML  -543.08  -543.08  2.782e-10          1.025e-09         -6.708e-12      -2.046e-12            1.613e-05            2.415e-06 3.459e-04 3.507e-04
+            b gaussian mu+sigma RE correlated |p|, ML  -542.21  -542.21  2.832e-08          2.056e-08          1.988e-09      -1.182e-11            8.783e-05            8.405e-06 7.740e-04 1.782e-03
+                                     c beta mu RE, ML   282.85   282.85  6.461e-09          6.241e-11          1.661e-10       4.013e-11            8.497e-05            8.867e-06 2.035e-04 1.549e-03
+                                  d nbinom2 mu RE, ML  -866.18  -866.18  7.088e-09          8.072e-12         -1.273e-11       3.411e-13            8.640e-05            8.438e-06 1.047e-04 7.987e-04
+                               d nbinom2 sigma RE, ML  -882.17  -882.17  1.549e-09          2.661e-10         -3.100e-10      -1.251e-12            4.776e-05            7.639e-06 7.150e-05 7.168e-04
+                       e bivariate gaussian rho12, ML -1102.49 -1102.49 -1.266e-09         -1.114e-11         -1.182e-11      -1.705e-11            3.864e-05            1.103e-06 4.882e-04 1.602e-05
+   e bivariate gaussian rho12 + correlated RE |p|, ML -1048.91 -1048.91  1.531e-08         -2.547e-11         -1.705e-11      -6.821e-12            1.488e-04            5.653e-06 3.832e-04 3.808e-03
+ e bivariate gaussian rho12 + correlated RE |p|, REML -1056.37 -1056.37 -2.787e-09          2.751e-11         -7.958e-12       1.637e-11            6.935e-05            2.770e-06 8.938e-04 1.702e-04
+        e boundary: bivariate RE correlation at 1, ML -1056.21 -1056.21  1.387e-11          1.137e-12          2.456e-11      -6.366e-12            4.966e-06            9.882e-05 5.084e-05 1.116e-04
+                                 f animal model A, ML  -581.99  -581.99  1.421e-08          4.547e-13         -1.273e-11      -6.821e-13            1.202e-04            2.402e-06 7.697e-05 2.067e-03
+                               f animal model A, REML  -584.90  -584.90  6.935e-12          6.935e-12          5.230e-12       6.253e-12            1.991e-07            6.348e-09 2.661e-06 1.090e-06
+                  f2 phylo vs gr(cov = vcv(tree)), ML  -215.27  -215.27  1.478e-12         -1.080e-12         -1.307e-12       1.705e-13            1.657e-06            1.869e-07 1.493e-05 1.759e-05
+     f2 phylo vs gr(cov = vcv(tree, corr = TRUE)), ML  -215.27  -215.27 -1.478e-12         -1.251e-12         -1.535e-12      -5.684e-14            1.916e-06            3.815e-07 1.764e-05 1.759e-05
+                                  g student mu RE, ML  -581.22  -581.22  8.868e-12          8.640e-12          1.467e-11      -1.353e-11            5.751e-07            1.414e-07 1.318e-05 6.937e-06
+                         h cumulative logit mu RE, ML  -511.84  -511.84  9.727e-10          4.547e-13         -2.501e-12       6.378e-11            3.197e-05            1.826e-05 3.353e-05 1.793e-04
+                                    i skew_normal, ML  -449.56  -449.56 -4.228e-03         -2.046e-12         -2.615e-12       3.979e-13            2.802e-02            2.165e+00 2.332e-05 3.675e-07
+       j meta-analysis meta_V vs se(sigma = TRUE), ML   -34.82   -34.82 -9.948e-14          7.105e-14          1.137e-13       6.395e-14            5.628e-07            4.679e-07 2.623e-06 4.855e-10

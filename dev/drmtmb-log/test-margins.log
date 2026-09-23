@@ -1,0 +1,31 @@
+                                       test call       ll   at_drm      off  diff_se   log_se
+1  gaussian location-scale with a mu random    1 1.02e-11 3.31e-15 4.97e-15 9.48e-05 1.07e-05
+2  gaussian location-scale with a mu random    2 4.73e-15 3.70e-15 5.14e-15 1.08e-06 4.20e-08
+3  random intercepts in mu and sigma, indep    1 5.12e-13 1.89e-12 3.77e-15 1.61e-05 2.41e-06
+4  random intercepts in mu and sigma, indep    2 5.22e-11 3.79e-11 2.20e-14 8.78e-05 8.40e-06
+5  beta and NB2: drmTMB's sigma is 1 / sqrt    1 2.28e-11 2.21e-13 1.39e-13 8.50e-05 8.87e-06
+6  beta and NB2: drmTMB's sigma is 1 / sqrt    2 8.18e-12 9.32e-15 3.94e-16 8.64e-05 8.44e-06
+7  beta and NB2: drmTMB's sigma is 1 / sqrt    3 1.76e-12 3.02e-13 2.19e-15 4.78e-05 7.64e-06
+8  bivariate gaussian: rho12, correlated gr    1 1.15e-12 1.01e-14 1.55e-14 3.86e-05 1.10e-06
+9  bivariate gaussian: rho12, correlated gr    2 1.46e-11 2.43e-14 6.50e-15 1.49e-04 5.65e-06
+10 bivariate gaussian: rho12, correlated gr    3 2.64e-12 2.60e-14 1.55e-14 6.93e-05 2.77e-06
+11 animal model: drmTMB animal(A = A) is fr    1 2.44e-11 7.81e-16 7.81e-16 1.20e-04 2.40e-06
+12 animal model: drmTMB animal(A = A) is fr    2 1.19e-14 1.19e-14 1.11e-14 1.99e-07 6.35e-09
+13 phylo(tree) rescales the tree to unit he    1 6.87e-15 5.02e-15 1.58e-15 1.66e-06 1.87e-07
+14 phylo(tree) rescales the tree to unit he    2 6.87e-15 5.02e-15 2.64e-15 1.92e-06 3.81e-07
+15 student and cumulative logit with a mu r    1 1.53e-14 1.49e-14 2.33e-14 5.75e-07 1.41e-07
+16 student and cumulative logit with a mu r    2 1.90e-12 8.88e-16 1.25e-13 3.20e-05 1.83e-05
+17 more families: lognormal, Gamma, beta-bi    1 5.65e-15 5.65e-15 1.25e-13 2.27e-07 7.80e-09
+18 more families: lognormal, Gamma, beta-bi    2 1.17e-13 8.18e-14 1.89e-14 1.46e-05 8.76e-07
+19 more families: lognormal, Gamma, beta-bi    3 8.27e-12 1.31e-13 2.32e-14 1.17e-04 1.34e-05
+20 more families: lognormal, Gamma, beta-bi    4 2.58e-12 2.57e-14 2.43e-14 2.85e-05 9.18e-06
+21 meta-analysis: meta_V(V = vi) is se(sei,    1 2.86e-15 2.04e-15 1.84e-15 5.63e-07 4.68e-07
+22 sd(g) ~ w is the nl model b0 + exp(c1 *     1 2.52e-12 1.27e-14 1.00e-14 3.64e-05 1.37e-06
+23 mi(): a gaussian missing predictor with     1 2.82e-12 2.08e-14 4.73e-15 5.99e-05 1.62e-06
+24 skew_normal: same likelihood; frmtmb's d    1 7.00e-13 5.48e-15 4.16e-15 1.68e-05 1.44e-06
+
+gap between the two optima         worst 5.22e-11  bound  1.0e-09  margin  19.1 x
+gap at drmTMB's optimum            worst 3.79e-11  bound  1.0e-09  margin  26.4 x
+gap one SE off the optimum         worst 1.39e-13  bound  1.0e-11  margin  72.1 x
+estimate gap / standard error      worst 1.49e-04  bound  1.0e-02  margin  67.2 x
+|log standard-error ratio|         worst 1.83e-05  bound  1.0e-03  margin  54.8 x

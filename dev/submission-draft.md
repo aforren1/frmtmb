@@ -204,7 +204,14 @@ across formulas. gamlss, and its successor gamlss2, give every
 distributional parameter its own additive predictor, which is the part
 lme4 and glmmTMB lack. Random effects are additive terms there rather
 than an lme4 grammar with structured covariances, and the spelling is
-not brms's.
+not brms's. drmTMB comes closest: it fits distributional regression by
+maximum likelihood on a compiled TMB template, with `bf()`, a formula
+for each parameter, and `|p|` labels. As of 0.7.0 on CRAN it fits one
+or two responses and refuses a pair of different families. For the
+beta and NB2 families it refuses effects correlated across formulas,
+and it refuses random effects in the beta precision and the Student-t
+scale. It has no nonlinear formulas, smooths or custom families, and
+its REML covers the gaussian and binomial families only.
 
 frmtmb supplies the combination, under ML or REML: distributional
 regression on every parameter of the family, nonlinear formulas,
@@ -212,6 +219,24 @@ multivariate responses with `rescor`, effects correlated across
 formulas with `|ID|`, custom families written as plain R
 log-densities, and the lme4 random-effect grammar with structured and
 spatial covariances.
+
+drmTMB is also a reference. In 27 comparisons of models both packages
+fit, including beta, NB2, Student-t, ordinal, animal-model,
+phylogenetic, bivariate and meta-analysis models, the log-likelihoods
+agree to within 3e-8, and the two objectives evaluated at one shared
+point agree to within 4e-11 of the log-likelihood. The
+comparison is `tests/testthat/test-drmtmb-agreement.R`; the maps
+between the two parameterizations and the disagreements found on the
+way are in `dev/drmtmb-findings.md`. drmTMB covers ground frmtmb does
+not: a formula for a random-effect standard deviation (`sd(g) ~ w`,
+with `w` constant within the group),
+trees and pedigrees as direct inputs, a full known sampling
+covariance for meta-analysis, the zero-one-inflated beta and the
+hurdle and zero-truncated NB2 families, imputation of a binary missing
+predictor, worm plots and centile charts, and documentation that
+grades each model route by the evidence behind it. The first of these
+frmtmb reaches only through a nonlinear formula, and three of the
+families are brms families that frmtmb does not yet implement.
 
 The second need is migration. brms code ports by changing `brm()` to
 `frm()`. The priors can stay where they are: `frm(prior = )` takes
@@ -269,8 +294,9 @@ Validation has three layers. The README states them under "Status".
 
 1. **Comparison against an exact external reference.** Each model
    class for which an existing implementation is available is compared
-   with a package that implements the same likelihood: glmmTMB, lme4,
-   mgcv, nlme, MASS, survival, nnet, GLMMadaptive, quantreg or mice.
+   with a package that implements the same likelihood: glmmTMB,
+   drmTMB, lme4, mgcv, nlme, MASS, survival, nnet, GLMMadaptive,
+   quantreg or mice.
    For the classes with no such package, the comparison is against a
    closed-form marginal or a hand-written maximum likelihood built
    with `RTMB::MakeADFun()`. References are called live in the test
