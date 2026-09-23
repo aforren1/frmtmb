@@ -1,0 +1,17 @@
+frmtmb 0.61.0 from C:/Users/adf44/source/r 
+=== does not fire
+frmtmb: parse [1.38s]
+frmtmb: frame [0.03s]: 200 obs, 3 linear predictors, 0 random-effect blocks
+frmtmb: fit: skew_normal, ML, nlminb
+frmtmb: tape [1.17s]: 4 outer, 0 inner parameters
+frmtmb: optimize [0.00s]: objective 259.33894
+frmtmb: done [1.19s]: objective 259.33894, max|grad| 2.99e-05, 0 warnings
+
+=== fires
+frmtmb: parse [0.00s]
+frmtmb: frame [0.00s]: 200 obs, 3 linear predictors, 0 random-effect blocks
+frmtmb: fit: skew_normal, ML, nlminb
+frmtmb: tape [0.10s]: 4 outer, 0 inner parameters
+frmtmb: optimize [0.00s]: objective 284.02614
+frmtmb: stationary escape [0.00s]: 2 restarts, gain 24.7
+frmtmb: done [0.10s]: objective 259.33894, max|grad| 0.000173, 0 warnings

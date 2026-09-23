@@ -1,0 +1,2 @@
+frmtmb from C:/Users/adf44/source/r 
+FILE test-skew-normal-start.R PASS=51 FAIL=0 ERROR=0 WARN=0 SKIP=0

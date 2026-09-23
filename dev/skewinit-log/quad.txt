@@ -1,0 +1,11 @@
+frmtmb 0.61.0 from C:/Users/adf44/source/r 
+== Laplace
+default                      ll   -282.347016980 alpha     6.8932 esc -
+raw-skew start               ll   -282.347016980 alpha     6.8932 esc 2/15.837
+
+== importance = 200 (escape deliberately skipped)
+default                      ll   -281.922718676 alpha     9.9786 esc -
+
+== quadrature = TRUE
+default                      ll   -281.668403148 alpha     8.4409 esc -
+raw-skew start               ll   -281.668402673 alpha     8.4409 esc 2/16.515

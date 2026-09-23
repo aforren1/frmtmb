@@ -1,0 +1,26 @@
+frmtmb 0.61.0 from C:/Users/adf44/source/r 
+
+=== Q1: is `alpha ~ 0 + x` at ITS OWN optimum?
+  default          ll     -392.5188098  b     1.2550  esc -
+  start b=-20        ll     -392.5188098  b     1.2549
+  start b=-8         ll     -392.5188098  b     1.2549
+  start b=-4         ll     -392.5188098  b     1.2550
+  start b=-2         ll     -392.5188098  b     1.2549
+  start b=-1         ll     -392.5188098  b     1.2549
+  start b=-0.25      ll     -392.5188098  b     1.2549
+  start b=0.25       ll     -392.5188098  b     1.2550
+  start b=1          ll     -392.5188098  b     1.2549
+  start b=2          ll     -392.5188098  b     1.2550
+  start b=4          ll     -392.5188098  b     1.2549
+  start b=8          ll     -392.5188098  b     1.2549
+  start b=20         ll     -392.5188098  b     1.2549
+  BEST over starts ll     -392.5188098  b     1.2549   default short by 0.000000
+
+=== Q2: what causes the M3 convergence-1 warning?
+  start LANE  sigma    0.39224 alpha   2.4718
+  start BASE  sigma    2.38816 alpha  -2.0470
+  default (lane start, autoscale auto) ll   -342.38818857 conv 1 warn 1 max|grad|  0.000481 units none
+  lane start, autoscale FALSE        ll   -342.38818857 conv 1 warn 1 max|grad|  0.000481 units none
+  BASE start, autoscale auto         ll   -342.38818857 conv 0 warn 0 max|grad|  3.47e-05 units none
+  BASE start, autoscale FALSE        ll   -342.38818857 conv 0 warn 0 max|grad|  3.47e-05 units none
+  lane start, more restarts          ll   -342.38818857 conv 1 warn 2 max|grad|  0.000481 units none

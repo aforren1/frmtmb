@@ -1,0 +1,28 @@
+frmtmb 0.61.0 from C:/Users/adf44/source/r 
+
+===== B1: a dpar design with no intercept
+structure(list(formula = y ~ x, pforms = list(sigma = sigma ~  ll     -340.6074122  conv 1  false convergence (8)    max|a|  3.86e+05  esc -
+structure(list(formula = y ~ x, pforms = list(sigma = sigma ~  ll     -340.6075687  conv 0  relative convergence (4) max|a|  2.18e+05  esc -
+structure(list(formula = y ~ x, pforms = list(sigma = sigma ~  ll     -340.9001331  conv 0  relative convergence (4) max|a|       130  esc -
+structure(list(formula = y ~ x, pforms = list(sigma = sigma ~  ll     -392.5188098  conv 0  relative convergence (4) max|a|      1.25  esc -
+
+===== B2: an ATOMIC post$stationary
+  none       ok, ll -162.2058065
+  character  ok, ll -162.2058065
+  numeric    ok, ll -162.2058065
+  named_num  ok, ll -162.2058065
+  logical    ok, ll -162.2058065
+  na         ok, ll -162.2058065
+
+===== M2: offset() in the mu predictor
+  offset seed 1: ll    -259.405745  best    -259.405745  short    0.00000  esc -
+  offset seed 2: ll    -261.431817  best    -261.431817  short    0.00000  esc -
+  offset seed 3: ll    -250.246899  best    -250.246899  short    0.00000  esc -
+  offset seed 4: ll    -246.744250  best    -246.744250  short    0.00000  esc -
+  offset seed 5: ll    -252.951391  best    -252.951391  short    0.00000  esc -
+  offset seed 6: ll    -244.235313  best    -244.235313  short    0.00000  esc -
+
+===== M3: the spurious convergence warning
+   WARNING: Optimizer did not report convergence: false convergence (8) 
+   ll    -342.38818857  conv 1  'false convergence (8)'  warnings 1  esc -
+   sn::selm ll  -342.388188574 

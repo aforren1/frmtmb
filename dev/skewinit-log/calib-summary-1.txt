@@ -1,0 +1,80 @@
+rows 240 
+
+arm            n  short>1e-6  short>0.01  short>1  maxshort  refit>sn
+stall_stated  40         28          28       28   35.1373        0
+stall_dead    40         33          33       33   32.6921        0
+sym_n200      40         20          19        6    2.6140        0
+sym_n50       40         17          13        5    7.9132        2
+mild_a1       40         32          31        7    4.0195        0
+mild_a0.5     40         27          17        2    1.9758        0
+
+-- |alpha| against shortfall, all 240 rows
+                short_gt_0.01
+bin              FALSE TRUE
+  (-1,0.0001]        0    0
+  (0.0001,0.001]     0   40
+  (0.001,0.01]      17  100
+  (0.01,0.05]        0    0
+  (0.05,0.2]         4    0
+  (0.2,1]           20    1
+  (1,Inf]           58    0
+
+-- shortfall by |alpha| bin
+$`(-1,0.0001]`
+NULL
+
+$`(0.0001,0.001]`
+       n      max 
+40.00000 32.69214 
+
+$`(0.001,0.01]`
+        n       max 
+117.00000  35.13733 
+
+$`(0.01,0.05]`
+NULL
+
+$`(0.05,0.2]`
+           n          max 
+4.000000e+00 2.660272e-11 
+
+$`(0.2,1]`
+          n         max 
+21.00000000  0.02384089 
+
+$`(1,Inf]`
+           n          max 
+5.800000e+01 8.610073e-10 
+
+
+-- rows with short > 0.01 and |alpha| > 0.05
+          arm seed    alpha  alpha_sn        ll     ll_sn  ll_refit      short
+222 mild_a0.5   22 -0.55129 0.6720908 -351.8181 -351.7943 -351.7943 0.02384089
+    se_alpha
+222       NA
+
+-- rows with |alpha| < 1e-2 : how often is a refit worth it
+n = 157  short>1e-6: 156  short>0.01: 140  short>1: 81 
+              worth
+arm            FALSE TRUE
+  mild_a0.5       10   16
+  mild_a1          1   31
+  stall_dead       0   33
+  stall_stated     0   28
+  sym_n200         1   19
+  sym_n50          5   13
+
+-- se_alpha on the |alpha| < 1e-2 rows
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.     NAs 
+ 0.4801  0.5692  0.6488  1.7332  0.9876 48.8308       4 
+NA se: 4 
+
+-- probe on the |alpha| < 1e-2 rows, split by worth
+probe_0.25  worth: 0.0024 0.0037 0.0343 0.1487
+            not  : -0.0004 0.0007 0.0025 0.0026
+probe_0.5   worth: 0.0113 0.0213 0.2470 1.0884
+            not  : -0.0095 -0.0025 0.0073 0.0080
+probe_1     worth: -0.1786 -0.0401 1.1770 5.6152
+            not  : -0.2845 -0.1952 -0.0550 -0.0149
+probe_2     worth: -3.8943 -2.6680 1.7146 15.6917
+            not  : -3.8287 -2.8174 -0.5644 -0.5613

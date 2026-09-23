@@ -1,3 +1,54 @@
+# frmtmb (development version)
+
+* **A `skew_normal()` fit that used to stop at `alpha = 0` now finds
+  the maximum.** `alpha = 0` is a stationary point of the skew-normal
+  likelihood at every sample, and the information is singular there, so
+  a fit that reached it converged with code 0, no warning, and a
+  log-likelihood up to 35 units below the optimum. The start is what
+  put it there: `alpha` was started from the sign of the RESPONSE's
+  skewness, and a covariate can give the response the opposite skew
+  from the residual. Two things change. `alpha` and `sigma` now start
+  from the response with its `mu` predictor removed, including any
+  `offset()`, not from the raw response. And a fit that lands on
+  `alpha = 0` anyway is refit from `+2` and from `-2`, keeping the best
+  optimum.
+
+  Both halves read the `alpha` PREDICTOR rather than an `"(Intercept)"`
+  coefficient, so they apply to `alpha ~ 0 + g` as well as to
+  `alpha ~ g`. Cell-means syntax used to get neither: it started every
+  coefficient at zero, which is exactly the stationary point, and
+  stayed there. `mixture()` carries a component's escape through.
+
+  That placement is confined to a dpar that declares a stationary
+  point, which today means `skew_normal()`'s `alpha` and nothing else.
+  Every other dpar keeps the previous rule, an intercept or nothing.
+
+  Nothing is printed. The refit runs only when a fit reaches the
+  stationary point, and on a 200-fit spread of skew-normal designs that
+  was 10 fits, costing 0.1 extra optimizer runs per fit overall; a fit
+  that pays for it takes about 1.3 times as long. `fit$opt$stationary_escape`
+  records the restarts and what they gained.
+
+  What this changes for you, and nothing else does. A `skew_normal()`
+  fit moves when its `mu` predictor is anything other than a bare
+  intercept: a covariate, an `offset()`, or a design with no intercept.
+  It also moves when `alpha`'s own design has no intercept. There
+  `logLik()`, the estimates and the standard errors can all differ from
+  0.61.0, and where they differ the new value is the higher likelihood.
+
+  A `skew_normal()` fit with `mu ~ 1` and no offset is unchanged to the
+  last bit, and so is **every other family**, including intercept-less
+  designs such as `y ~ 0 + g` and distributional ones such as
+  `sigma ~ 0 + g`.
+
+* A family's `init_dpars` function may declare a third argument,
+  `(y, aterms, resid)`, and is then given the response with its `mu`
+  predictor taken out by least squares. A two-argument initializer is
+  still called with two arguments. A family may also declare
+  `post$stationary`, which says where its likelihood has a stationary
+  point and where to restart from when a fit reaches one. See
+  `?frmtmb_family`.
+
 # frmtmb 0.61.0
 
 The silent wrong answers brms's own ported test suite found

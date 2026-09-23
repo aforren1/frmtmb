@@ -1,0 +1,25 @@
+user    C:/Users/adf44/AppData/Local/R/win-library/4.6
+        410 dirs, 187 with DESCRIPTION, 223 hollow
+        00LOCK dirs: none 
+        hollow mtimes, sorted:
+
+2026-09-22 17:05 2026-09-22 17:06 2026-09-22 17:07 
+               6              134               83 
+        first: 2026-09-22 17:05:29  last: 2026-09-22 17:07:06 
+        first five hollow: abind ape askpass backports base64enc 
+        ZZZ-canary.txt SURVIVED, mtime 2026-09-09 05:32:03 
+rellib  C:/Users/adf44/source/r/rellib-r3
+        8 dirs, 8 with DESCRIPTION, 0 hollow
+        00LOCK dirs: none 
+pinlib  C:/Users/adf44/source/r/pinlib
+        2 dirs, 1 with DESCRIPTION, 1 hollow
+        00LOCK dirs: none 
+        hollow mtimes, sorted:
+
+2026-09-09 22:30 
+               1 
+        first: 2026-09-09 22:30:10  last: 2026-09-09 22:30:10 
+        first five hollow: .src 
+lane    C:/Users/adf44/source/r/skewinit-lib
+        0 dirs, 0 with DESCRIPTION, 0 hollow
+        00LOCK dirs: none 

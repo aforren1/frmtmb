@@ -1,0 +1,42 @@
+=========== LIB=C:/Users/adf44/source/r/rellib-r3
+frmtmb 0.61.0 from C:/Users/adf44/source/r 
+sd(y) 1.232205643  sd(resid) 0.897455595964  skew(y) 0.680809204898  skew(resid) 1.09292781277 
+
+== ML
+default                    ll    -337.9820739054  alpha 2418142.62889  max|grad|      2.774  esc -
+start raw sd(y), a=+2      ll    -337.9817157435  alpha 13955195.66689  max|grad|      26.41  esc -
+start resid sd, a=+2       ll    -337.9817171477  alpha 13712516.44550  max|grad|      5.016  esc -
+start resid sd, a=-2       ll    -392.7232342505  alpha     -0.00083  max|grad|  5.911e-05  esc -
+
+== profile = TRUE
+default                    ll    -337.9842312694  alpha 369766.74492  max|grad|  0.0006703  esc -
+start raw sd(y), a=+2      ll    -337.9842211410  alpha 371309.38770  max|grad|  0.0007465  esc -
+start resid sd, a=+2       ll    -337.9848836532  alpha 291151.92381  max|grad|  0.0006772  esc -
+start resid sd, a=-2       ll    -392.7232342478  alpha     -0.00070  max|grad|  2.047e-05  esc -
+
+== profile = TRUE, tighter optimizer
+default, 5 restarts        ll    -337.9842312694  alpha 369766.74492  max|grad|  0.0006703  esc -
+
+== sn::selm
+sn logLik -339.45925952  alpha 183.446148148 
+=========== LIB=C:/Users/adf44/source/r/skewinit-lib
+frmtmb 0.61.0 from C:/Users/adf44/source/r 
+sd(y) 1.232205643  sd(resid) 0.897455595964  skew(y) 0.680809204898  skew(resid) 1.09292781277 
+
+== ML
+default                    ll    -337.9816564735  alpha 52157440.73451  max|grad|      61.62  esc -
+start raw sd(y), a=+2      ll    -337.9817157435  alpha 13955195.66689  max|grad|      26.41  esc -
+start resid sd, a=+2       ll    -337.9817171477  alpha 13712516.44550  max|grad|      5.016  esc -
+start resid sd, a=-2       ll    -337.9816761042  alpha 27382186.58511  max|grad|      21.32  esc 54.74
+
+== profile = TRUE
+default                    ll    -337.9844083110  alpha 344669.96905  max|grad|  0.0007534  esc -
+start raw sd(y), a=+2      ll    -337.9842211410  alpha 371309.38770  max|grad|  0.0007465  esc -
+start resid sd, a=+2       ll    -337.9848836532  alpha 291151.92381  max|grad|  0.0006772  esc -
+start resid sd, a=-2       ll    -337.9816525706  alpha 61507128.37006  max|grad|  4.525e-06  esc 54.74
+
+== profile = TRUE, tighter optimizer
+default, 5 restarts        ll    -337.9844083110  alpha 344669.96905  max|grad|  0.0007534  esc -
+
+== sn::selm
+sn logLik -339.45925952  alpha 183.446148148 

@@ -26,6 +26,25 @@
 #' @param init_dpars Optional named list of functions `(y, aterms)` giving a
 #'   response-scale starting value per dpar (applied to the intercept
 #'   through the link).
+#'
+#'   A function that declares a THIRD argument, `(y, aterms, resid)`,
+#'   is given the response with its `mu` predictor taken out: any
+#'   `offset()` subtracted, then least squares on that predictor's own
+#'   design. A start that depends on the SHAPE of the residual rather
+#'   than on the response cannot be read off `y`: a covariate can give
+#'   the raw response the opposite skew, whether it enters as a column
+#'   or as an offset (see `skew_normal()`). When `mu` is an intercept
+#'   alone and carries no offset there is nothing to take out and
+#'   `resid` is the response itself, so such a model starts exactly
+#'   where it did. A two-argument function is called with two
+#'   arguments, so nothing already written has to change.
+#'
+#'   The value an initializer returns names the PREDICTOR, and it is
+#'   placed in whichever coefficients that design uses to carry one: an
+#'   intercept when there is one, and otherwise the least-squares
+#'   solution, which puts the value in every cell of `~ 0 + g`. A
+#'   design that was skipped for having no intercept used to start
+#'   every coefficient at zero.
 #' @param type One of `"continuous"`, `"discrete"`, `"ordinal"`,
 #'   `"categorical"`. The last two say the modelled response is a
 #'   distribution over `1..K` categories rather than a number, so
@@ -48,6 +67,32 @@
 #'   no way to report it. Warn from it rather than stopping; a hook that
 #'   throws is caught, reported as a warning naming the family, and the
 #'   fit is returned regardless.
+#'
+#'   `post$stationary` is a declaration rather than a function: a named
+#'   list, one entry per dpar, each `list(at =, tol =, from =)`. It says
+#'   that the likelihood has a stationary point where that dpar's
+#'   PREDICTOR equals `at` on the LINK scale at every row. A fit whose
+#'   fitted predictor is within `tol` of that everywhere is refitted
+#'   from each value in `from`, with the coefficients solved so the
+#'   predictor takes that value, and whichever optimum is best is kept.
+#'
+#'   Reading the predictor rather than the coefficients is what makes
+#'   this work for a design without an intercept: `alpha ~ 0 + g` sits
+#'   on the same point as `alpha ~ g` with no coefficient named
+#'   `"(Intercept)"` to read or to write a restart into. Declaring a
+#'   stationary point is ALSO what earns a dpar a starting value on an
+#'   intercept-less design at all: a dpar that declares none keeps the
+#'   plain rule, an intercept or nothing, because a least-squares start
+#'   is right on the predictor scale and can be ruinous on the
+#'   parameter scale. Non-finite entries in `from` are dropped, so
+#'   `from = c(Inf, -2)` restarts from one side only. Declare one
+#'   only for a point the likelihood has at EVERY sample, such as
+#'   `alpha = 0` for the skew normal, where the information is singular
+#'   and no convergence test can separate a stall from a maximum. The
+#'   extra fits only ever run when the declared point is reached.
+#'
+#'   `mixture()` carries a component's declaration through under the
+#'   dpar name the mixture gives it (`alpha1`, `alpha2`, ...).
 #' @param sim Optional numeric simulator `(dpars, aterms, n)` returning `n`
 #'   response draws; used by [simulate()], `posterior_predict()` and
 #'   [frm_simulate()]. It is stateless and rowwise: it sees the
@@ -2907,7 +2952,9 @@ fam_beta_binomial <- function(link = "logit", link_phi = "log") {
 
 #' Skew-normal family in the mean parameterization, dpars `mu` (the
 #' mean), `sigma` and `alpha` (the skewness). The `alpha` start avoids
-#' zero, which is a stationary point of the likelihood.
+#' zero, which is a stationary point of the likelihood, and the family
+#' declares that point so a fit that lands on it is sent out from both
+#' sides.
 #'
 #' @noRd
 fam_skew_normal <- function(link = "identity", link_sigma = "log",
@@ -2926,16 +2973,38 @@ fam_skew_normal <- function(link = "identity", link_sigma = "log",
     },
     init_dpars = list(
       mu = function(y, aterms) mean(y),
-      sigma = function(y, aterms) stats::sd(y),
-      alpha = function(y, aterms) {
-        # alpha = 0 is a stationary point of the skew-normal likelihood
-        # (singular information); start from the sample skewness side
-        m3 <- mean((y - mean(y))^3) / stats::sd(y)^3
+      # sigma here is the CONDITIONAL standard deviation, so the
+      # marginal sd(y) overstates it by whatever the mu predictor
+      # explains: 2.0x on the design in dev/skewinit-findings.md. With
+      # no mu covariate `resid` IS the response, so this is bitwise the
+      # number sd(y) gave before.
+      sigma = function(y, aterms, resid) stats::sd(resid),
+      # The third argument asks make_start() for the response with its
+      # mu predictor taken out. alpha describes the RESIDUAL skew, and
+      # a covariate can give the raw response the opposite sign: the
+      # start then lands on the wrong side of alpha = 0 and the
+      # optimizer stops there. Measured in dev/skewinit-findings.md.
+      alpha = function(y, aterms, resid) {
+        s <- stats::sd(resid)
+        m3 <- if (is.finite(s) && s > 0) {
+          mean((resid - mean(resid))^3) / s^3
+        } else 0
+        # a zero third moment would start AT the stationary point, which
+        # is the one value from which no optimizer can leave
+        if (!is.finite(m3) || m3 == 0) m3 <- 1
         2 * sign(m3) + 0.5 * m3
       }
     ),
     type = "continuous",
-    post = list(mean_fn = function(dpars, aterms) dpars[["mu"]]),
+    post = list(
+      mean_fn = function(dpars, aterms) dpars[["mu"]],
+      # alpha = 0 is a stationary point of the skew-normal likelihood at
+      # EVERY sample, and its information is singular there, so the
+      # gradient and the curvature both vanish and no convergence test
+      # can see it. An optimizer that stops there has to be sent out
+      # from both sides to find out whether it is the maximum.
+      stationary = list(alpha = list(at = 0, tol = 0.05, from = c(2, -2)))
+    ),
     sim = function(dpars, aterms, n) {
       RTMBdist::rskewnorm2(n, dpars[["mu"]], dpars[["sigma"]], dpars[["alpha"]])
     }
@@ -3879,6 +3948,7 @@ mixture <- function(..., groups = NULL) {
   }
 
   init <- list()
+  stat <- list()
   for (k in seq_len(K)) {
     kk <- k
     init[[paste0("mu", k)]] <- local({
@@ -3888,9 +3958,18 @@ mixture <- function(..., groups = NULL) {
         mixture_mu_start(y, aterms, k_ / (K + 1), bounded)
       }
     })
+    st_k <- comps[[k]][["post"]][["stationary"]]
     for (dp in setdiff(comps[[k]]$dpars, "mu")) {
       fn <- comps[[k]]$init_dpars[[dp]]
       if (!is.null(fn)) init[[paste0(dp, k)]] <- fn
+      # A component's stationary point is still one of the mixture's,
+      # in that component's own dpar, and the mixture renames the dpar
+      # by appending the component index. Without this,
+      # mixture(skew_normal(), ...) keeps the alpha = 0 stall that the
+      # component declares an escape for.
+      if (is.list(st_k) && is.list(st_k[[dp]])) {
+        stat[[paste0(dp, k)]] <- st_k[[dp]]
+      }
     }
   }
 
@@ -3941,7 +4020,7 @@ mixture <- function(..., groups = NULL) {
     },
     init_dpars = init,
     type = if (length(types) == 1L) types else "continuous",
-    post = list(
+    post = c(if (length(stat)) list(stationary = stat), list(
       mean_fn = function(dpars, aterms) {
         lp <- log_pi(dpars)
         out <- 0
@@ -3970,7 +4049,7 @@ mixture <- function(..., groups = NULL) {
           p * (1 - p)
         }
       )
-    ),
+    )),
     sim = function(dpars, aterms, n) {
       lp <- log_pi(dpars)
       P <- vapply(lp, function(l) rep(exp(l), length.out = n),

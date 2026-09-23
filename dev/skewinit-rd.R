@@ -1,0 +1,8 @@
+setwd("C:/Users/adf44/source/r/frmtmb-wt-skewinit")
+o <- tempfile()
+tools::Rd2txt("man/frmtmb_family.Rd", out = o)
+L <- readLines(o, warn = FALSE)
+i <- grep("stationary|resid", L)
+k <- sort(unique(pmin(pmax(as.vector(outer(i, -2:2, "+")), 1), length(L))))
+cat(paste(L[k], collapse = "\n"), "\n")
+cat("\n-- percent signs in the rendered text:", sum(grepl("%", L)), "\n")

@@ -1,0 +1,16 @@
+fits: 200 
+conv != 0   base 7   lane 37 
+warnings>0  base 7   lane 37 
+         lane
+base      conv!=0 conv0
+  conv!=0       7     0
+  conv0        30   163
+lane-only nonzero codes: 30 sym_n50 6; sym_n50 22; strong 2; strong 5; strong 6; strong 7; strong 8; strong 9; strong 10; strong 11; strong 12; strong 13; strong 14; strong 15; strong 16; strong 17; strong 19; strong 22; strong 23; strong 25; strong 27; strong 30; strong 31; strong 33; strong 34; strong 35; strong 36; strong 37; strong 39; strong 40 
+base-only nonzero codes: 0 
+
+by arm, conv != 0 (base -> lane):
+  sym_n200  0 -> 0
+  sym_n50   0 -> 2
+  mild_a1   0 -> 0
+  mild_a05  0 -> 0
+  strong    7 -> 35

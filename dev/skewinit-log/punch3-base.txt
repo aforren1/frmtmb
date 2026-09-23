@@ -1,0 +1,20 @@
+frmtmb 0.61.0 from C:/Users/adf44/source/r 
+
+=== 1. does autoscale rescue the poisson no-intercept case?
+scale                 glm    autoscale off     autoscale ON    off - glm     ON - glm
+1             -449.965387      -449.965387      -449.965387    -0.000000     0.000000
+0.01          -449.965387      -449.965387      -449.965387    -0.000000     0.000000
+0.0001        -449.965387      -449.965387      -449.965387     0.000000     0.000000
+1e-06         -449.965387      -512.543671      -449.965387   -62.578284     0.000000
+1e-08         -449.965387      -512.543671      -449.965387   -62.578284     0.000000
+
+=== 2. the same mechanism INSIDE the declaring dpar
+scale             default       best sweep       start coef   conv/msg
+1            -356.8824988     -337.9724091                0 relative convergen
+0.001        -356.8824988     -337.9724091                0 relative convergen
+1e-06        -356.8824988     -340.9903976                0 relative convergen
+1e-09        -356.8824988     -340.9910132                0 relative convergen
+
+=== 3. paired sweep, lane against BASE, 12 seeds x 4 scales
+   (run this script on both builds and pair the CSVs)
+   wrote 48 fits

@@ -1,0 +1,5 @@
+frmtmb 0.61.0 from C:/Users/adf44/source/r 
+xbig, default                      ll   -259.338935404 alpha     7.5065  units none  esc -
+xbig, raw-skew start               ll   -259.338935404 alpha     7.5065  units none  esc 2/24.687
+xbig, autoscale TRUE               ll   -259.338935404 alpha     7.5065  units on  esc -
+xbig, autoscale TRUE, raw start    ll   -259.338935404 alpha     7.5065  units on  esc -

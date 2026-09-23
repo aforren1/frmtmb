@@ -933,6 +933,11 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     ctl_opt$optCtrl <- vb_trace_ctrl(control$optCtrl, control$optimizer)
   }
   imp <- NULL
+  # shared by the first attempt, every recovery start and every
+  # stationary-point escape, so the trials a failed attempt mapped are
+  # still in the count the fit reports
+  tally <- new.env(parent = emptyenv())
+  tally$n <- 0L
   if (n_imp > 0L) {
     imp <- importance_fit(nll, template, random, frame[["map"]], lap_obj,
                           ctl_opt, bounds, par_units, frame,
@@ -940,10 +945,6 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
     obj <- imp$obj
     opt <- imp$opt
   } else if (is.null(integrate)) {
-    # shared by the first attempt and every recovery start, so the trials
-    # a failed attempt mapped are still in the count the fit reports
-    tally <- new.env(parent = emptyenv())
-    tally$n <- 0L
     opt <- fit_error_context(
       spec, start, REML, control, quadrature, prior,
       tryCatch(optimize_obj(obj, ctl_opt, bounds, par_units, verbose = vb,
@@ -972,6 +973,15 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                    ctl_opt, bounds, par_units, frame, vb)
     obj <- qf$obj
     opt <- qf$opt
+  }
+  # A family that declares a stationary point gets looked at from both
+  # sides of it. Not under importance=: its diagnostics (the effective
+  # sample size, the proposal) belong to the optimum importance_fit()
+  # returned, and replacing that optimum would leave them describing a
+  # point the fit no longer reports.
+  if (is.null(imp)) {
+    opt <- escape_stationary(obj, opt, frame, ctl_opt, bounds, par_units,
+                             verbose = vb, tally = tally)
   }
 
   # Estimates come cheaply from the parameter list at the optimum;
@@ -1893,6 +1903,252 @@ optimize_obj <- function(obj, control,
   opt
 }
 
+#' Where a linear predictor's coefficients sit in the outer parameter
+#' vector the optimizer iterates on, one index per column of its design,
+#' or NULL when they are not there at all (`beta` under
+#' `profile = TRUE`, or a component whose length does not line up).
+#'
+#' Same bookkeeping outer_from_template() and autoscale_units() walk:
+#' the components of `names(obj$par)` in order, with the `betad` entries
+#' that se() maps to constants removed.
+#'
+#' @noRd
+outer_index_of <- function(lp, par_names, frame) {
+  cp <- lp[["par"]]
+  off <- which(par_names == cp)
+  if (!length(off)) return(NULL)
+  keep <- seq_along(frame[["par_template"]][[cp]])
+  if (identical(cp, "betad") && length(fx <- frame[["betad_fixed_idx"]])) {
+    keep <- setdiff(keep, fx)
+  }
+  if (length(off) != length(keep)) return(NULL)
+  pos <- match(lp[["idx"]], keep)
+  if (anyNA(pos)) return(NULL)
+  off[pos]
+}
+
+#' Coefficients that put a linear predictor at a constant `value`
+#' everywhere, or NULL when the design cannot be solved.
+#'
+#' An intercept takes the value and the other columns take zero, which
+#' is the exact answer and keeps such a design bit-for-bit where it
+#' was. WITHOUT an intercept there is no single coefficient to carry
+#' the value, and skipping the design entirely is what let
+#' `alpha ~ 0 + grp` start on the stationary point and never leave it:
+#' cell-means syntax spans the same columns as `alpha ~ grp` and lost
+#' tens of log-likelihood units to it. The least-squares solution of
+#' `X b = value` is the generalization: on `0 + grp` it sets every cell
+#' to `value`, and on a design with an intercept it returns exactly the
+#' intercept answer.
+#'
+#' A design whose column space cannot represent a constant gets the
+#' closest predictor it can, which the caller checks before using.
+#'
+#' @noRd
+predictor_at <- function(X, value) {
+  # a sparse() design is a Matrix and not a base matrix, so the shape
+  # is judged by dim(): an is.matrix() gate here silently dropped the
+  # initializer of every sparse model
+  if (!design_ok(X) || length(value) != 1L || !is.finite(value)) {
+    return(NULL)
+  }
+  icpt <- match("(Intercept)", colnames(X))
+  if (!is.na(icpt)) {
+    b <- rep(0, ncol(X))
+    b[icpt] <- value
+    return(b)
+  }
+  Xd <- tryCatch(as.matrix(X), error = function(e) NULL)
+  if (!is.matrix(Xd)) return(NULL)
+  b <- tryCatch(base::qr.coef(base::qr(Xd), rep(value, nrow(Xd))),
+                error = function(e) NULL)
+  if (is.null(b) || length(b) != ncol(X)) return(NULL)
+  # an aliased column gets NA from qr.coef; it contributes nothing
+  b[is.na(b)] <- 0
+  if (!all(is.finite(b))) return(NULL)
+  as.numeric(b)
+}
+
+#' Is this a usable two-dimensional design? Base matrix or Matrix
+#' alike, because `sparse()` predictors are the latter.
+#'
+#' @noRd
+design_ok <- function(X) {
+  d <- dim(X)
+  !is.null(X) && length(d) == 2L && d[1L] > 0L && d[2L] > 0L
+}
+
+#' A linear predictor as a plain numeric vector, for a base matrix or a
+#' Matrix. `as.vector()` alone does not flatten a Matrix product.
+#'
+#' @noRd
+predictor_eta <- function(X, b) {
+  tryCatch(as.numeric(as.matrix(X %*% b)), error = function(e) NULL)
+}
+
+#' Coefficients that move a linear predictor AWAY from zero by `value`
+#' in root mean square, for a design whose columns cannot represent a
+#' constant at all (`alpha ~ 0 + x` with a centred x is the case).
+#'
+#' There `predictor_at()` returns the least-squares fit of a constant,
+#' which on such a design is the zero vector, so the escape would start
+#' on the very point it is escaping. Moving along the design's largest
+#' column instead gives a start that is genuinely elsewhere, scaled so
+#' the predictor's spread is the size the family asked for.
+#'
+#' @noRd
+predictor_away <- function(X, value) {
+  if (!design_ok(X) || length(value) != 1L || !is.finite(value) ||
+        value == 0) {
+    return(NULL)
+  }
+  nrm <- tryCatch(as.numeric(sqrt(Matrix::colSums(X^2))),
+                  error = function(e) NULL)
+  if (is.null(nrm) || length(nrm) != ncol(X) ||
+        !any(is.finite(nrm) & nrm > 0)) {
+    return(NULL)
+  }
+  j <- which.max(ifelse(is.finite(nrm), nrm, -Inf))
+  s <- nrm[j] / sqrt(nrow(X))
+  if (!is.finite(s) || s <= 0) return(NULL)
+  b <- rep(0, ncol(X))
+  b[j] <- value / s
+  if (!all(is.finite(b))) return(NULL)
+  b
+}
+
+#' The starting points that a family's declared stationary points ask
+#' for, given where the optimizer actually stopped.
+#'
+#' A `post$stationary` entry says the likelihood has a stationary point
+#' at a known place, at every sample. The skew normal's alpha = 0 is the
+#' case this exists for: the information is singular there, so the
+#' gradient AND the curvature vanish and a converged fit is
+#' indistinguishable from a maximum by any test of the optimum itself.
+#' The only way to tell is to look from somewhere else.
+#'
+#' Empty unless the fit landed on a declared point, so a fit that did
+#' not pays one comparison per declaration and nothing else.
+#'
+#' @noRd
+stationary_escapes <- function(obj, opt, frame) {
+  out <- list()
+  par_names <- names(obj$par)
+  for (lp in frame[["linpreds"]]) {
+    if (!is.null(lp[["constant"]])) next
+    resp <- frame[["spec"]]$responses[[lp[["resp"]]]]
+    # `[[` on an ATOMIC declaration raises "subscript out of bounds",
+    # so the shape of the whole field is checked before it is indexed:
+    # post$stationary = "alpha" used to kill the fit outright
+    st_all <- resp$family[["post"]][["stationary"]]
+    if (!is.list(st_all)) next
+    st <- st_all[[lp[["dpar"]]]]
+    # a malformed declaration from a third-party family must not reach
+    # the parameter vector: a character `from` would coerce the whole
+    # start, and a non-finite `tol` would fire on every fit
+    if (!is.list(st)) next
+    from <- st[["from"]]
+    at <- st[["at"]] %||% 0
+    tol <- st[["tol"]] %||% 0.05
+    if (!is.numeric(from)) next
+    # A non-finite restart is dropped HERE rather than failing later
+    # inside predictor_at(): `from = c(Inf, -2)` then yields one start
+    # by decision and not by accident, which is what the Rd says.
+    from <- from[is.finite(from)]
+    if (!length(from) ||
+          !is.numeric(at) || length(at) != 1L || !is.finite(at) ||
+          !is.numeric(tol) || length(tol) != 1L || !is.finite(tol) ||
+          tol <= 0) next
+    idx <- outer_index_of(lp, par_names, frame)
+    if (is.null(idx)) next
+    X <- lp[["X"]]
+    if (!design_ok(X) || ncol(X) != length(idx)) next
+    # The stationary point is a property of the PREDICTOR, not of the
+    # coefficients: `alpha ~ 0 + grp` sits on it with every cell at
+    # zero and no coefficient named "(Intercept)" to read. Judging the
+    # fitted predictor covers both spellings, and on an intercept-only
+    # design it is the same comparison as before.
+    eta <- predictor_eta(X, opt$par[idx])
+    if (is.null(eta) || !all(is.finite(eta)) ||
+          max(abs(eta - at)) >= tol) next
+    # A start counts as an escape when it moves the predictor a fair
+    # share of what the family asked for. The yardstick is the
+    # requested move and NOT `tol`: a family that declares a wide
+    # window would otherwise reject every start it asked for.
+    moved <- function(b, v) {
+      if (is.null(b)) return(FALSE)
+      e <- predictor_eta(X, b)
+      if (is.null(e) || !all(is.finite(e))) return(FALSE)
+      max(abs(e - at)) >= 0.5 * abs(v - at)
+    }
+    for (v in from) {
+      b <- predictor_at(X, v)
+      # a design that cannot represent a constant would "escape" to the
+      # point it is already on, which is the one start that never
+      # leaves; move along the design's own largest column instead
+      if (!moved(b, v)) b <- predictor_away(X, v - at)
+      if (!moved(b, v)) next
+      p <- opt$par
+      p[idx] <- b
+      out[[length(out) + 1L]] <- p
+    }
+  }
+  out
+}
+
+#' Refit from each escape start and keep the best optimum.
+#'
+#' Silent. The optimizer's other recoveries (restarts, the
+#' restart-from-best after a failure) say nothing either, and this one
+#' would speak on roughly half of all skew-normal fits of symmetric
+#' data, where alpha = 0 is reached legitimately. `verbose = TRUE`
+#' reports it with the other optimizer stages, and the result carries
+#' `stationary_escape` so the event stays measurable.
+#'
+#' @noRd
+escape_stationary <- function(obj, opt, frame, control, bounds,
+                              par_units = NULL, verbose = 0L,
+                              tally = NULL) {
+  starts <- stationary_escapes(obj, opt, frame)
+  if (!length(starts)) return(opt)
+  if (verbose) t0 <- vb_now()
+  # what the tally already held before this escape: quad_fit() counts
+  # into no tally, so `tally$n` alone is the escape's own trials and
+  # would REPLACE a quadrature fit's total with a smaller number
+  n_before <- if (is.null(tally)) 0L else tally$n
+  best <- opt
+  for (p in starts) {
+    p <- pmin(pmax(p, bounds$lower), bounds$upper)
+    o <- tryCatch(optimize_obj(obj, control, bounds, par_units,
+                               start_par = p, tally = tally),
+                  error = function(e) NULL)
+    if (!is.null(o) && is.finite(o$objective) &&
+          o$objective < best$objective) {
+      best <- o
+    }
+  }
+  # recorded whenever the escape RAN, gain or no gain: a fit that paid
+  # for two restarts and kept its own optimum is the measurement that
+  # says what the fallback costs
+  gain <- opt$objective - best$objective
+  best$stationary_escape <- c(starts = length(starts), gain = gain)
+  # the count a fit reports is the total over every run of its
+  # objective, so the escape ADDS its own trials to whatever the run
+  # being kept already carried rather than overwriting the total
+  if (!is.null(tally) && !is.null(best$nonfinite_trials)) {
+    added <- max(tally$n - n_before, 0L)
+    base_n <- opt$nonfinite_trials %||% 0L
+    best$nonfinite_trials <- base_n + added
+  }
+  if (verbose) {
+    vb_stage("stationary escape", t0,
+             paste0(length(starts), " restart",
+                    if (length(starts) != 1L) "s", ", gain ",
+                    format(gain, digits = 3)))
+  }
+  best
+}
+
 #' Does an optimizer failure message read like an undefined objective?
 #'
 #' The diagnosis is only attached to errors that actually look numerical.
@@ -2027,6 +2283,83 @@ nl_start_collision_msg <- function(nm, tpl, arg = "start") {
          ". par_template() lists both")
 }
 
+#' The response with its primary predictor taken out, by least squares
+#' on that predictor's own design matrix.
+#'
+#' A family whose starting value describes the SHAPE of the residual
+#' cannot read that shape off the response. skew_normal()'s alpha is
+#' the case: a covariate large enough to dominate the marginal
+#' distribution gives the raw response the opposite skew, alpha then
+#' starts on the wrong side of zero, and zero is a stationary point
+#' with singular information, so the optimizer stops there with a
+#' clean convergence code (dev/skewinit-findings.md).
+#'
+#' Least squares, not the model: this runs before any parameter has a
+#' value, the answer only has to get a sign right, and a fit is not
+#' affordable here. Grouping structure is not removed either, so a
+#' random effect's variance stays in the residual; it widens the
+#' residual without biasing its third moment.
+#'
+#' An intercept-only predictor, and anything that does not resolve to a
+#' design at all, gives back the RESPONSE rather than the centred
+#' response. There is nothing to take out in either case, and an
+#' initializer then computes the same floating-point number it computed
+#' from `y` before, so a model without a mu covariate does not move at
+#' all. Centring moves `sd()` in its last bit on about one sample in a
+#' thousand, and a start that moves in its last bit moves every iterate
+#' after it.
+#'
+#' @noRd
+mu_residuals <- function(frame, resp, cache = NULL) {
+  # linpreds key a response by name on a multivariate model and by
+  # position on a univariate one; an environment takes only a string
+  key <- as.character(resp)
+  if (!is.null(cache) && !is.null(cache[[key]])) return(cache[[key]])
+  y <- frame[["y"]][[resp]]
+  out <- NULL
+  if (is.numeric(y) && is.null(dim(y))) {
+    fam <- frame[["spec"]]$responses[[resp]]$family
+    prim <- (fam[["primary_dpars"]] %||% "mu")[1L]
+    for (l in frame[["linpreds"]]) {
+      if (!identical(l[["resp"]], resp) ||
+            !identical(l[["dpar"]], prim)) next
+      X <- if (is.null(l[["constant"]])) l[["X"]] else NULL
+      # offset() is part of the predictor and is not in X, so a model
+      # that enters its covariate as an offset kept the covariate's
+      # skew in the "residual" and started alpha from the wrong side
+      # exactly as the raw response did
+      off <- l[["offset"]]
+      has_off <- is.numeric(off) && length(off) == length(y) &&
+        all(is.finite(off))
+      yo <- if (has_off) as.numeric(y) - as.numeric(off) else as.numeric(y)
+      if (design_ok(X) && nrow(X) == length(y)) {
+        out <- if (!has_off && ncol(X) == 1L &&
+                     all(as.numeric(X[, 1L]) == 1)) {
+          # an intercept has nothing to take out; see this function's
+          # header for why the response and not the centred response
+          as.numeric(y)
+        } else {
+          # qr() pivots, so a rank-deficient design still gives
+          # residuals; as.matrix() because a sparse() design is a
+          # Matrix, which base::qr() does not take
+          tryCatch(as.numeric(base::qr.resid(base::qr(as.matrix(X)), yo)),
+                   error = function(e) NULL)
+        }
+      } else if (has_off) {
+        out <- yo                    # an offset with no design of its own
+      }
+      break
+    }
+  }
+  # nothing resolved to a design, so nothing is taken out and the
+  # answer is the response, which is what an initializer saw before
+  if (is.null(out) || length(out) != length(y) || anyNA(out)) {
+    out <- as.numeric(y)
+  }
+  if (!is.null(cache)) cache[[key]] <- out
+  out
+}
+
 #' The cold starting values: the parameter template with each linear
 #' predictor's intercept seeded from the family's own initializer, then
 #' any nonlinear parameter a prior's location places, then whatever the
@@ -2043,18 +2376,46 @@ nl_start_collision_msg <- function(nm, tpl, arg = "start") {
 make_start <- function(frame, start, prior_entries = NULL,
                        announce = FALSE) {
   tpl <- frame[["par_template"]]
+  # computed at most once per response, and only for a family that asks
+  resid_cache <- new.env(parent = emptyenv())
   for (lp in frame[["linpreds"]]) {
     if (!is.null(lp[["constant"]])) next   # mapped; keep link(constant)
     resp <- frame[["spec"]]$responses[[lp[["resp"]]]]
     init_fn <- resp$family[["init_dpars"]][[lp[["dpar"]]]]
     if (is.null(init_fn)) next
     icpt <- match("(Intercept)", colnames(lp[["X"]]))
-    if (is.na(icpt)) next
-    raw <- init_fn(frame[["y"]][[lp[["resp"]]]],
-      frame[["aterm_values"]][[lp[["resp"]]]])
+    # ONLY a dpar that declares a stationary point gets its start
+    # spread over a design with no intercept. Every other dpar keeps
+    # the old rule, an intercept or nothing, and that restriction is
+    # the point: placing a least-squares start for every family read
+    # as an improvement and is NOT safe. The value is right on the
+    # PREDICTOR scale and can be ruinous on the PARAMETER scale,
+    # because nlminb judges its step relative to the parameter. On
+    # `ypois ~ 0 + xt` with xt at 1e-6 it starts the coefficient at
+    # 1.6e6, nlminb reports X-convergence before moving, and the fit
+    # lands 1967 log-likelihood units below glm() without a warning.
+    # dev/test-backlog.md has the measurement and what a safe general
+    # version would need.
+    st_all <- resp$family[["post"]][["stationary"]]
+    declares <- is.list(st_all) && is.list(st_all[[lp[["dpar"]]]])
+    if (is.na(icpt) && !declares) next
+    raw <- if (length(formals(init_fn)) >= 3L) {
+      init_fn(frame[["y"]][[lp[["resp"]]]],
+              frame[["aterm_values"]][[lp[["resp"]]]],
+              mu_residuals(frame, lp[["resp"]], resid_cache))
+    } else {
+      init_fn(frame[["y"]][[lp[["resp"]]]],
+              frame[["aterm_values"]][[lp[["resp"]]]])
+    }
     val <- lp[["link"]]$linkfun(raw)
-    if (is.finite(val)) {
-      tpl[[lp[["par"]]]][lp[["idx"]][icpt]] <- val
+    b <- if (is.finite(val)) {
+      if (is.na(icpt)) predictor_at(lp[["X"]], val) else NULL
+    }
+    if (!is.null(b)) {
+      tpl[[lp[["par"]]]][lp[["idx"]]] <- b
+    } else if (is.finite(val)) {
+      # the intercept path, byte for byte what it was before this lane
+      if (!is.na(icpt)) tpl[[lp[["par"]]]][lp[["idx"]][icpt]] <- val
     } else if (announce) {
       # A bounded link sends an init at or past its bound to Inf, and
       # the value used to be dropped without a word: the fit then

@@ -1,0 +1,18 @@
+frmtmb 0.61.0 from C:/Users/adf44/source/r 
+
+=== ACCEPTANCE, 80 fits against sn::selm
+stated     n=40  worst shortfall below sn 4.308e-10  best excess 5.684e-14
+            |gap| max 4.308e-10   fits reaching sn within 1e-6: 40
+            escape ran on 28 of 40, gained > 1e-6 on 28
+dead_draw  n=40  worst shortfall below sn 7.474e-10  best excess 1.137e-13
+            |gap| max 7.474e-10   fits reaching sn within 1e-6: 40
+            escape ran on 33 of 40, gained > 1e-6 on 33
+
+worst |gap| over all 80: 7.47434114601e-10 
+max relative |gap| / |ll_sn|: 2.99884511364e-12 
+rows where frmtmb BEATS sn by more than 1e-6: 0 
+total escape restarts over 80 fits: 122 
+Error in Math.data.frame(list(seed = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10,  : 
+  non-numeric-alike variable(s) in data frame: stream
+Calls: print -> Math.data.frame
+Execution halted

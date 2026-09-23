@@ -80,7 +80,26 @@ invalid responses. Called once at assembly time.}
 
 \item{init_dpars}{Optional named list of functions \verb{(y, aterms)} giving a
 response-scale starting value per dpar (applied to the intercept
-through the link).}
+through the link).
+
+A function that declares a THIRD argument, \verb{(y, aterms, resid)},
+is given the response with its \code{mu} predictor taken out: any
+\code{offset()} subtracted, then least squares on that predictor's own
+design. A start that depends on the SHAPE of the residual rather
+than on the response cannot be read off \code{y}: a covariate can give
+the raw response the opposite skew, whether it enters as a column
+or as an offset (see \code{skew_normal()}). When \code{mu} is an intercept
+alone and carries no offset there is nothing to take out and
+\code{resid} is the response itself, so such a model starts exactly
+where it did. A two-argument function is called with two
+arguments, so nothing already written has to change.
+
+The value an initializer returns names the PREDICTOR, and it is
+placed in whichever coefficients that design uses to carry one: an
+intercept when there is one, and otherwise the least-squares
+solution, which puts the value in every cell of \code{~ 0 + g}. A
+design that was skipped for having no intercept used to start
+every coefficient at zero.}
 
 \item{type}{One of \code{"continuous"}, \code{"discrete"}, \code{"ordinal"},
 \code{"categorical"}. The last two say the modelled response is a
@@ -103,7 +122,33 @@ nothing else can: \code{logLik()} reads the optimizer's own value, so a
 family whose likelihood is floored or degenerate in some region had
 no way to report it. Warn from it rather than stopping; a hook that
 throws is caught, reported as a warning naming the family, and the
-fit is returned regardless.}
+fit is returned regardless.
+
+\code{post$stationary} is a declaration rather than a function: a named
+list, one entry per dpar, each \code{list(at =, tol =, from =)}. It says
+that the likelihood has a stationary point where that dpar's
+PREDICTOR equals \code{at} on the LINK scale at every row. A fit whose
+fitted predictor is within \code{tol} of that everywhere is refitted
+from each value in \code{from}, with the coefficients solved so the
+predictor takes that value, and whichever optimum is best is kept.
+
+Reading the predictor rather than the coefficients is what makes
+this work for a design without an intercept: \code{alpha ~ 0 + g} sits
+on the same point as \code{alpha ~ g} with no coefficient named
+\code{"(Intercept)"} to read or to write a restart into. Declaring a
+stationary point is ALSO what earns a dpar a starting value on an
+intercept-less design at all: a dpar that declares none keeps the
+plain rule, an intercept or nothing, because a least-squares start
+is right on the predictor scale and can be ruinous on the
+parameter scale. Non-finite entries in \code{from} are dropped, so
+\code{from = c(Inf, -2)} restarts from one side only. Declare one
+only for a point the likelihood has at EVERY sample, such as
+\code{alpha = 0} for the skew normal, where the information is singular
+and no convergence test can separate a stall from a maximum. The
+extra fits only ever run when the declared point is reached.
+
+\code{mixture()} carries a component's declaration through under the
+dpar name the mixture gives it (\code{alpha1}, \code{alpha2}, ...).}
 
 \item{sim}{Optional numeric simulator \verb{(dpars, aterms, n)} returning \code{n}
 response draws; used by \code{\link[=simulate]{simulate()}}, \code{posterior_predict()} and

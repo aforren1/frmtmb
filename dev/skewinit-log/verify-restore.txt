@@ -1,0 +1,12 @@
+jobs bitwise identical before and after the restore: 21 of 27 
+MOVED: gaussian_ml gaussian_reml gaussian_prof gaussian_sig lognormal_ml skew_icpt_re 
+  gaussian_ml    d logLik 1.136868377e-13
+  gaussian_reml  d logLik -5.684341886e-14
+  gaussian_prof  d logLik 0
+  gaussian_sig   d logLik 1.136868377e-13
+  lognormal_ml   d logLik 1.705302566e-13
+  skew_icpt_re   d logLik 0
+
+two reference values, for the next restore:
+  gaussian_re    logLik -412.711340227
+  skew_icpt      logLik -332.221783272

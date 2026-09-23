@@ -1,0 +1,23 @@
+fits: 80 
+
+stream     build   conv!=0  warns>0   msgs>0 worst|g|
+stated     base          0        0        0   0.0009
+stated     lane          0        0        0  0.00043
+dead_draw  base          0        0        0  0.00093
+dead_draw  lane          0        0        0  0.00092
+
+-- per-fit transitions, all 80
+       lane
+base    conv0
+  conv0    80
+
+lane introduces a nonzero code on: 0 
+lane removes a nonzero code on: 0 
+
+warnings: base 0  lane 0 
+messages: base 0  lane 0 
+
+-- on the fits where BOTH converge cleanly, did logLik move?
+n = 80  max |d logLik| = 35.1373 
+
+-- shortfall against sn by build

@@ -1,0 +1,11 @@
+paired fits: 48 
+lane BETTER than base: 48   worse: 0   tied: 0 
+worst deficit: 3.70194   best gain: 26.444 
+
+by scale (mean d logLik, lane minus base):
+  1        n=12  mean  +19.70510  better 12  worse  0  worst  +3.93756
+  0.001    n=12  mean  +19.70510  better 12  worse  0  worst  +3.93756
+  1e-06    n=12  mean   +9.64720  better 12  worse  0  worst  +3.70195
+  1e-09    n=12  mean   +9.64704  better 12  worse  0  worst  +3.70194
+
+nonzero convergence codes: base 0  lane 0 
