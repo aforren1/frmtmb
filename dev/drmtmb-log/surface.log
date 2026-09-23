@@ -1,0 +1,444 @@
+drmTMB 0.7.0 
+
+##### 1. Which distributional parameters take random effects
+
+=== gaussian mu RE only
+drmTMB(bf(y ~ x + (1 | g), sigma ~ z), family = gaussian(), data = d) 
+  FITTED. logLik = -394.611358073  df = 5 
+   beta_mu    beta_mu beta_sigma beta_sigma  log_sd_mu 
+  0.947212   0.433849  -0.225973   0.269566  -0.371264 
+
+=== gaussian sigma RE
+drmTMB(bf(y ~ x + (1 | g), sigma ~ z + (1 | g)), family = gaussian(), data = d) 
+  FITTED. logLik = -382.441978688  df = 6 
+     beta_mu      beta_mu   beta_sigma   beta_sigma    log_sd_mu log_sd_sigma 
+    0.945497     0.451832    -0.326353     0.221301    -0.357274    -1.211190 
+
+=== gaussian sigma random slope
+drmTMB(bf(y ~ x + (1 | g), sigma ~ z + (0 + z | g)), family = gaussian(), data = d) 
+  FITTED. logLik = -392.916165744  df = 6 
+     beta_mu      beta_mu   beta_sigma   beta_sigma    log_sd_mu log_sd_sigma 
+    0.957934     0.426405    -0.244601     0.215467    -0.352858    -1.859140 
+
+=== gaussian correlated mu/sigma via label |p|
+drmTMB(bf(y ~ x + (1 | p | g), sigma ~ z + (1 | p | g)), family = gaussian(), data = d) 
+  FITTED. logLik = -382.399720247  df = 7 
+         beta_mu          beta_mu       beta_sigma       beta_sigma 
+       0.9476300        0.4519710       -0.3262080        0.2215530 
+       log_sd_mu eta_cor_mu_sigma     log_sd_sigma 
+      -0.3555940        0.0773978       -1.2149900 
+
+=== gaussian correlated intercept-slope block in mu
+drmTMB(bf(y ~ x + (1 + x | g), sigma ~ 1), family = gaussian(), data = d) 
+  FITTED. logLik = -413.980291535  df = 6 
+   beta_mu    beta_mu beta_sigma  log_sd_mu  log_sd_mu eta_cor_mu 
+  0.970831   0.461822  -0.136773  -0.395155  -2.951850  -8.336040 
+
+=== student mu RE
+drmTMB(bf(yt ~ x + (1 | g), sigma ~ 1, nu ~ 1), family = student(), data = d) 
+  FITTED. logLik = -420.95620591  df = 5 
+   beta_mu    beta_mu beta_sigma    beta_nu  log_sd_mu 
+  0.892390   0.538991  -0.277611   1.537480  -0.319839 
+
+=== student sigma RE
+drmTMB(bf(yt ~ x, sigma ~ 1 + (1 | g), nu ~ 1), family = student(), data = d) 
+  REFUSED/ERROR: Non-Gaussian `sigma` random effects are not implemented for `student()`. ✖ Unsupported random-effect term: `(1 | g)`. ℹ This slice adds only ordinary Student-t `mu` random intercepts;   residual-scale random effects need their own likelihood and recovery tests. 
+
+=== student nu RE
+drmTMB(bf(yt ~ x, sigma ~ 1, nu ~ 1 + (1 | g)), family = student(), data = d) 
+  REFUSED/ERROR: Shape random effects are not implemented. ✖ The `nu` formula contains a random-effect bar term. ℹ Keep shape formulas fixed-effect for now, such as `nu ~ x`. ℹ Student-t `nu` models tail shape; skew-normal fixed-effect `nu` models   residual slant; skew-normal and skew-t shape random effects need separate   likelihood recovery before fitting. ℹ Latent group-level skewness, such as future `skew(id) ~ x`, remains   design-only until simulations separate it from residual skewness and   heteroscedasticity. 
+
+=== beta mu RE
+drmTMB(bf(yb ~ x + (1 | g), sigma ~ 1), family = beta(), data = d) 
+  FITTED. logLik = 221.056061443  df = 4 
+   beta_mu    beta_mu beta_sigma  log_sd_mu 
+  0.155228   0.397709  -1.495530  -0.295215 
+
+=== beta sigma RE
+drmTMB(bf(yb ~ x, sigma ~ 1 + (1 | g)), family = beta(), data = d) 
+  REFUSED/ERROR: Non-Gaussian `sigma` random effects are not implemented for `beta()`. ✖ Unsupported random-effect term: `(1 | g)`. ℹ Use the row-specific known-covariance gate `sigma ~ animal(1 | id, ...)` for   the beta scale recovery smoke; ordinary beta scale random effects and other   scale routes need separate recovery tests. 
+
+=== beta correlated mu slope block
+drmTMB(bf(yb ~ x + (1 + x | g), sigma ~ 1), family = beta(), data = d) 
+  REFUSED/ERROR: Only independent `beta()` `mu` random intercepts and slopes are implemented in this slice. ✖ Unsupported random-effect term: `(1 + x | g)`. ℹ Use syntax like `bf(prop ~ x + (1 | id) + (0 + x | id), sigma ~ z)` for   strict `(0, 1)` responses. ℹ The row-specific structured beta gates are the unlabelled `animal()` routes   and one exact unlabelled q1 `phylo()` intercept in `mu` with fixed-effect   family `sigma`; correlated beta slopes, labelled covariance blocks, other   structured effects, exact-boundary mass, and mixed bounded-response models   remain planned until separate recovery tests exi 
+
+=== nbinom2 mu RE
+drmTMB(bf(yc ~ x + (1 | g), sigma ~ 1), family = nbinom2(), data = d) 
+  FITTED. logLik = -658.302884059  df = 4 
+   beta_mu    beta_mu beta_sigma  log_sd_mu 
+  0.977502   0.342711  -0.428394  -0.403487 
+
+=== nbinom2 sigma RE
+drmTMB(bf(yc ~ x, sigma ~ 1 + (1 | g)), family = nbinom2(), data = d) 
+  FITTED. logLik = -686.678592956  df = 4 
+     beta_mu      beta_mu   beta_sigma log_sd_sigma 
+     1.24320      0.32814     -0.10711     -1.08600 
+
+=== nbinom2 mu RE + sigma RE together
+drmTMB(bf(yc ~ x + (1 | g), sigma ~ 1 + (1 | g)), family = nbinom2(), data = d) 
+  REFUSED/ERROR: NB2 `sigma` random intercepts cannot be combined with `mu` random effects in this first gate. ✖ The formula contains a `sigma` random effect plus an ordinary or structured   `mu` random effect. ℹ Fit the NB2 mean random-effect model or the NB2 overdispersion   random-intercept model separately until joint recovery tests exist. 
+
+=== cumulative_logit mu RE
+drmTMB(bf(yo ~ x + (1 | g)), family = cumulative_logit(), data = d) 
+  FITTED. logLik = -371.251807832  df = 5 
+  beta_mu theta_ord theta_ord theta_ord log_sd_mu 
+ 0.940327 -1.052210  0.452566  0.440472 -0.622138 
+
+=== poisson correlated slope block (1 + x | g)
+drmTMB(bf(yp ~ x + (1 + x | g)), family = poisson(), data = d) 
+  FITTED. logLik = -517.917573811  df = 5 
+   beta_mu    beta_mu  log_sd_mu  log_sd_mu eta_cor_mu 
+  0.469841   0.260287  -0.390006  -2.840370   7.812690 
+
+##### 2. What sd(g) ~ x does
+
+=== sd(g) ~ w, gaussian
+drmTMB(bf(y ~ x + (1 | g), sigma ~ 1, sd(g) ~ w), family = gaussian(), data = d) 
+  FITTED. logLik = -414.013377128  df = 5 
+   beta_mu    beta_mu beta_sigma beta_sd_mu beta_sd_mu 
+  0.990562   0.468754  -0.135760  -0.386599   0.178791 
+
+=== sd(g) ~ x (row-level covariate, varies within group)
+drmTMB(bf(y ~ x + (1 | g), sigma ~ 1, sd(g) ~ x), family = gaussian(), data = d) 
+  REFUSED/ERROR: `sd(g)` formulas are group-level random-effect scale models. ✖ Predictor x varies within g level "1". ℹ Use predictors that are constant within g, or use `sigma ~ x` for   observation-level residual scale. 
+
+=== sd(g) ~ w, poisson
+drmTMB(bf(yp ~ x + (1 | g), sd(g) ~ w), family = poisson(), data = d) 
+  REFUSED/ERROR: Random-effect scale formulae are not implemented for Poisson models. ℹ Poisson models currently have no fitted `sigma` parameter. 
+
+=== sd(g) ~ w, nbinom2
+drmTMB(bf(yc ~ x + (1 | g), sigma ~ 1, sd(g) ~ w), family = nbinom2(), data = d) 
+  REFUSED/ERROR: Random-effect scale formulae are not implemented for `nbinom2()` models. ℹ Start with fixed-effect count formulas such as `bf(count ~ x, sigma ~ z)`. 
+
+=== sd(g) ~ w with REML
+drmTMB(bf(y ~ x + (1 | g), sigma ~ 1, sd(g) ~ w), family = gaussian(), data = d, REML = TRUE) 
+  REFUSED/ERROR: `REML` is not implemented with direct ordinary random-effect scale formulae yet. ℹ Use a phylogenetic direct-SD scale (`sd_phylo(...) ~ ...`), ordinary location   random effects, or set `REML = FALSE`. 
+
+##### 3. REML scope
+
+=== REML gaussian (1|g), sigma ~ 1
+drmTMB(bf(y ~ x + (1 | g), sigma ~ 1), family = gaussian(), data = d, REML = TRUE) 
+  FITTED. logLik = -417.567060814  df = 4 
+beta_sigma  log_sd_mu 
+ -0.133695  -0.361330 
+
+=== REML gaussian (1|g), sigma ~ z
+drmTMB(bf(y ~ x + (1 | g), sigma ~ z), family = gaussian(), data = d, REML = TRUE) 
+  FITTED. logLik = -397.872073248  df = 5 
+beta_sigma beta_sigma  log_sd_mu 
+  -0.22405    0.26850   -0.35224 
+
+=== REML gaussian sigma RE
+drmTMB(bf(y ~ x + (1 | g), sigma ~ z + (1 | g)), family = gaussian(), data = d, REML = TRUE) 
+  FITTED. logLik = -390.578616415  df = 6 
+   log_sd_mu log_sd_sigma 
+   -0.340722    -1.162240 
+
+=== REML gaussian correlated (1 + x | g)
+drmTMB(bf(y ~ x + (1 + x | g), sigma ~ 1), family = gaussian(), data = d, REML = TRUE) 
+  FITTED. logLik = -417.084507373  df = 6 
+beta_sigma  log_sd_mu  log_sd_mu eta_cor_mu 
+ -0.134945  -0.375374  -2.939010  -8.507960 
+
+=== REML gaussian fixed only
+drmTMB(bf(y ~ x, sigma ~ 1), family = gaussian(), data = d, REML = TRUE) 
+  FITTED. logLik = -460.117625426  df = 3 
+beta_sigma 
+   0.10595 
+
+=== REML student
+drmTMB(bf(yt ~ x + (1 | g), sigma ~ 1, nu ~ 1), family = student(), data = d, REML = TRUE) 
+  REFUSED/ERROR: `REML` is implemented for univariate/bivariate Gaussian and binomial models. ℹ Use `family = gaussian()`, `biv_gaussian()`, or `binomial()`, or set `REML =   FALSE`. 
+
+=== REML beta
+drmTMB(bf(yb ~ x + (1 | g), sigma ~ 1), family = beta(), data = d, REML = TRUE) 
+  REFUSED/ERROR: `REML` is implemented for univariate/bivariate Gaussian and binomial models. ℹ Use `family = gaussian()`, `biv_gaussian()`, or `binomial()`, or set `REML =   FALSE`. 
+
+=== REML nbinom2
+drmTMB(bf(yc ~ x + (1 | g), sigma ~ 1), family = nbinom2(), data = d, REML = TRUE) 
+  REFUSED/ERROR: `REML` is implemented for univariate/bivariate Gaussian and binomial models. ℹ Use `family = gaussian()`, `biv_gaussian()`, or `binomial()`, or set `REML =   FALSE`. 
+
+=== REML poisson
+drmTMB(bf(yp ~ x + (1 | g)), family = poisson(), data = d, REML = TRUE) 
+  REFUSED/ERROR: `REML` is implemented for univariate/bivariate Gaussian and binomial models. ℹ Use `family = gaussian()`, `biv_gaussian()`, or `binomial()`, or set `REML =   FALSE`. 
+
+=== REML binomial (1|g)
+drmTMB(bf(ybin ~ x + (1 | g)), family = binomial(), data = d, REML = TRUE) 
+  FITTED. logLik = -202.368175951  df = 3 
+log_sd_mu 
+-0.355994 
+
+=== REML cumulative_logit
+drmTMB(bf(yo ~ x + (1 | g)), family = cumulative_logit(), data = d, REML = TRUE) 
+  REFUSED/ERROR: `REML` is implemented for univariate/bivariate Gaussian and binomial models. ℹ Use `family = gaussian()`, `biv_gaussian()`, or `binomial()`, or set `REML =   FALSE`. 
+
+=== REML biv_gaussian ordinary RE
+drmTMB(bf(mu1 = y ~ x + (1 | p | g), mu2 = y2 ~ x + (1 | p | g)), family = biv_gaussian(), data = d, 
+    REML = TRUE) 
+  FITTED. logLik = -855.705823124  df = 10 
+beta_sigma1 beta_sigma2  beta_rho12   log_sd_mu   log_sd_mu  eta_cor_mu 
+ -0.1341070   0.0720122   0.2868920  -0.3609100  -0.9819180   9.5880500 
+
+##### 4. Parameterizations and links (fixed-effect fits)
+
+=== nbinom2 sigma
+drmTMB(bf(yc ~ x, sigma ~ 1), family = nbinom2(), data = d) 
+  FITTED. logLik = -689.685081099  df = 3 
+   beta_mu    beta_mu beta_sigma 
+ 1.1793700  0.3422180 -0.0864674 
+    beta_mu     beta_mu  beta_sigma 
+ 1.17937200  0.34221780 -0.08646741 
+  fixef():
+$mu
+(Intercept)           x 
+  1.1793716   0.3422178 
+
+$sigma
+(Intercept) 
+-0.08646741 
+
+  exp(-2 * log sigma) = theta: 1.188789   MASS::glm.nb theta: 1.188793 
+
+=== beta sigma
+drmTMB(bf(yb ~ x, sigma ~ 1), family = beta(), data = d) 
+  FITTED. logLik = 82.0457019612  df = 3 
+   beta_mu    beta_mu beta_sigma 
+  0.138561   0.385579  -0.860585 
+   beta_mu    beta_mu beta_sigma 
+ 0.1385606  0.3855794 -0.8605849 
+  fixef():
+$mu
+(Intercept)           x 
+  0.1385606   0.3855794 
+
+$sigma
+(Intercept) 
+ -0.8605849 
+
+
+=== student nu link
+drmTMB(bf(yt ~ x, sigma ~ 1, nu ~ 1), family = student(), data = d) 
+  FITTED. logLik = -469.163866496  df = 4 
+   beta_mu    beta_mu beta_sigma    beta_nu 
+ 0.8893950  0.5618470  0.0459154  2.1194100 
+   beta_mu    beta_mu beta_sigma    beta_nu 
+0.88939480 0.56184660 0.04591543 2.11940900 
+  fixef():
+$mu
+(Intercept)           x 
+  0.8893948   0.5618466 
+
+$sigma
+(Intercept) 
+ 0.04591543 
+
+$nu
+(Intercept) 
+   2.119409 
+
+
+=== skew_normal
+drmTMB(bf(yt ~ x, sigma ~ 1, nu ~ 1), family = skew_normal(), data = d) 
+  FITTED. logLik = -469.499220043  df = 4 
+   beta_mu    beta_mu beta_sigma    beta_nu 
+  0.869610   0.567951   0.150582  -1.265570 
+   beta_mu    beta_mu beta_sigma    beta_nu 
+ 0.8696098  0.5679513  0.1505823 -1.2655710 
+  fixef():
+$mu
+(Intercept)           x 
+  0.8696098   0.5679513 
+
+$sigma
+(Intercept) 
+  0.1505823 
+
+$nu
+(Intercept) 
+  -1.265571 
+
+
+=== cumulative_logit thresholds
+drmTMB(bf(yo ~ x), family = cumulative_logit(), data = d) 
+  FITTED. logLik = -374.250954249  df = 4 
+  beta_mu theta_ord theta_ord theta_ord 
+ 0.881778 -1.001930  0.396746  0.393473 
+   beta_mu  theta_ord  theta_ord  theta_ord 
+ 0.8817776 -1.0019270  0.3967464  0.3934726 
+  fixef():
+$mu
+        x 
+0.8817776 
+
+<summary.drmTMB>
+estimator: ML
+      estimate std_error
+mu:x 0.8817776 0.1192424
+Ordinal cutpoints:
+      1|2       2|3       3|4 
+-1.001927  0.485052  1.967171 
+logLik: -374.3
+convergence: 0
+
+=== biv_gaussian rho12 link
+drmTMB(bf(mu1 = y ~ x, mu2 = y2 ~ x, rho12 = ~1), family = biv_gaussian(), data = d) 
+  FITTED. logLik = -892.105857122  df = 7 
+   beta_mu1    beta_mu1    beta_mu2    beta_mu2 beta_sigma1 beta_sigma2 
+   0.971368    0.507872    0.489851    0.150044    0.102604    0.124371 
+ beta_rho12 
+   0.433521 
+   beta_mu1    beta_mu1    beta_mu2    beta_mu2 beta_sigma1 beta_sigma2 
+  0.9713676   0.5078716   0.4898507   0.1500436   0.1026044   0.1243705 
+ beta_rho12 
+  0.4335211 
+  fixef():
+$mu1
+(Intercept)           x 
+  0.9713676   0.5078716 
+
+$mu2
+(Intercept)           x 
+  0.4898507   0.1500436 
+
+$sigma1
+(Intercept) 
+  0.1026044 
+
+$sigma2
+(Intercept) 
+  0.1243705 
+
+$rho12
+(Intercept) 
+  0.4335211 
+
+<summary.drmTMB>
+estimator: ML
+                    estimate  std_error
+mu1:(Intercept)    0.9713676 0.06416955
+mu1:x              0.5078716 0.06415210
+mu2:(Intercept)    0.4898507 0.06558158
+mu2:x              0.1500436 0.06556375
+sigma1:(Intercept) 0.1026044 0.04082478
+sigma2:(Intercept) 0.1243705 0.04082478
+rho12:(Intercept)  0.4335211 0.05773505
+Distributional, random-effect, scale, and correlation parameters:
+                  component   dpar       term  estimate  std_error    scale
+sigma1 distributional-scale sigma1 (constant) 1.1080530 0.04523603 response
+sigma2 distributional-scale sigma2 (constant) 1.1324354 0.04623143 response
+rho12  residual-correlation  rho12 (constant) 0.4082594 0.04811195 response
+logLik: -892.1
+convergence: 0
+
+##### 5. Things frmtmb has: does drmTMB accept them?
+
+=== nonlinear formula y ~ a * exp(b * x)
+drmTMB(bf(y ~ a * exp(b * x), a ~ 1, b ~ 1, nl = TRUE), family = gaussian(), data = d) 
+  REFUSED/ERROR: `drm_formula()` inputs must be formulas; input 4 is not a formula. 
+
+=== nonlinear formula without nl flag
+drmTMB(bf(y ~ exp(x)), family = gaussian(), data = d) 
+  FITTED. logLik = -471.922779042  df = 3 
+   beta_mu    beta_mu beta_sigma 
+  0.620197   0.207990   0.154137 
+
+=== three responses mvbind(y, y2, y3)
+drmTMB(bf(mvbind(y, y2, y3) ~ x), family = gaussian(), data = d) 
+  REFUSED/ERROR: `mvbind()` shorthand is only available for two-response Gaussian models. ✖ Use `family = c(gaussian(), gaussian())` or explicit formulas such as `mu1 =   y1 ~ x` and `mu2 = y2 ~ x`. 
+
+=== three responses family c(gaussian x3)
+drmTMB(bf(mu1 = y ~ x, mu2 = y2 ~ x, mu3 = y3 ~ x), family = c(gaussian(), gaussian(), gaussian()), data = d) 
+  REFUSED/ERROR: drmTMB currently supports one-response and two-response models only. ✖ Received 3 response families: "gaussian", "gaussian", and "gaussian". ℹ Use a single family such as `gaussian()` or a two-response family such as   `c(gaussian(), gaussian())`. 
+
+=== mixed family bivariate gaussian + poisson
+drmTMB(bf(mu1 = y ~ x, mu2 = yp ~ x), family = c(gaussian(), poisson()), data = d) 
+  REFUSED/ERROR: Mixed-response bivariate families are not implemented yet. ✖ Requested families: "gaussian" and "poisson". ℹ Only `family = c(gaussian(), gaussian())` or `family = list(gaussian(),   gaussian())` is currently routed to the bivariate Gaussian engine. 
+
+=== mixed family bivariate gaussian + nbinom2
+drmTMB(bf(mu1 = y ~ x, mu2 = yc ~ x), family = list(gaussian(), nbinom2()), data = d) 
+  REFUSED/ERROR: Currently supported families are `gaussian()`, `student()`, `skew_normal()`, `lognormal()`, `biv_lognormal()`, `biv_student()`, `Gamma(link = "log")`, `tweedie()`, `beta()`, `zero_one_beta()`, `beta_binomial()`, `binomial(link = "logit"/"probit"/"cloglog")`, `cumulative_logit()`, `poisson(link = "log")`, `nbinom2()`, `truncated_nbinom2()`, `biv_gaussian()`, `c(gaussian(), gaussian())`, and `list(gaussian(), gaussian())`. Zero-inflated Poisson and NB2 models use the same family route plus a `zi ~ ...` formula; hurdle NB2 models use `truncated_nbinom2()` plus a `hu ~ ...` formula. 
+
+=== |p| cross-formula correlation in nbinom2 mu and sigma
+drmTMB(bf(yc ~ x + (1 | p | g), sigma ~ 1 + (1 | p | g)), family = nbinom2(), data = d) 
+  REFUSED/ERROR: Only independent NB2 `mu` random intercepts and slopes are implemented in this slice. ✖ Unsupported random-effect term: `(1 | p | g)`. ℹ Use syntax like `count ~ x + (1 | id)` or `count ~ x + (0 + x | id)`. ℹ Ordinary Poisson and ordinary NB2 also admit one complete-data unlabelled `(1   + x | id)` block; labelled covariance blocks remain planned. 
+
+=== |p| cross-formula correlation in beta mu and sigma
+drmTMB(bf(yb ~ x + (1 | p | g), sigma ~ 1 + (1 | p | g)), family = beta(), data = d) 
+  REFUSED/ERROR: Only independent `beta()` `mu` random intercepts and slopes are implemented in this slice. ✖ Unsupported random-effect term: `(1 | p | g)`. ℹ Use syntax like `bf(prop ~ x + (1 | id) + (0 + x | id), sigma ~ z)` for   strict `(0, 1)` responses. ℹ The row-specific structured beta gates are the unlabelled `animal()` routes   and one exact unlabelled q1 `phylo()` intercept in `mu` with fixed-effect   family `sigma`; correlated beta slopes, labelled covariance blocks, other   structured effects, exact-boundary mass, and mixed bounded-response models   remain planned until separate recovery tests exi 
+
+=== custom family object (quasi)
+drmTMB(bf(y ~ x), family = quasi(), data = d) 
+  REFUSED/ERROR: Currently supported families are `gaussian()`, `student()`, `skew_normal()`, `lognormal()`, `biv_lognormal()`, `biv_student()`, `Gamma(link = "log")`, `tweedie()`, `beta()`, `zero_one_beta()`, `beta_binomial()`, `binomial(link = "logit"/"probit"/"cloglog")`, `cumulative_logit()`, `poisson(link = "log")`, `nbinom2()`, `truncated_nbinom2()`, `biv_gaussian()`, `c(gaussian(), gaussian())`, and `list(gaussian(), gaussian())`. Zero-inflated Poisson and NB2 models use the same family route plus a `zi ~ ...` formula; hurdle NB2 models use `truncated_nbinom2()` plus a `hu ~ ...` formula. 
+
+=== custom family list with loglik function
+drmTMB(bf(y ~ x), family = structure(list(family = "mylaplace", link = "identity", loglik = function(y, 
+    mu, sigma) {
+    -abs(y - mu)/sigma - log(2 * sigma)
+}), class = "family"), data = d) 
+  REFUSED/ERROR: Currently supported families are `gaussian()`, `student()`, `skew_normal()`, `lognormal()`, `biv_lognormal()`, `biv_student()`, `Gamma(link = "log")`, `tweedie()`, `beta()`, `zero_one_beta()`, `beta_binomial()`, `binomial(link = "logit"/"probit"/"cloglog")`, `cumulative_logit()`, `poisson(link = "log")`, `nbinom2()`, `truncated_nbinom2()`, `biv_gaussian()`, `c(gaussian(), gaussian())`, and `list(gaussian(), gaussian())`. Zero-inflated Poisson and NB2 models use the same family route plus a `zi ~ ...` formula; hurdle NB2 models use `truncated_nbinom2()` plus a `hu ~ ...` formula. 
+
+=== smooth s(x)
+drmTMB(bf(y ~ s(x)), family = gaussian(), data = d) 
+  REFUSED/ERROR: Smooth terms are not supported. ✖ The model formula uses `s()`. ℹ Use `poly()` for a polynomial, or a fixed basis such as `splines::ns(x, df =   3)`. ℹ Penalised smooths are not implemented; mgcv and gamlss fit those. 
+
+=== monotonic mo()
+drmTMB(bf(y ~ mo(yo)), family = gaussian(), data = d) 
+  REFUSED/ERROR: could not find function "mo" 
+
+=== brms addition term y | trials()
+drmTMB(bf(yc | trials(20) ~ x), family = binomial(), data = d) 
+  REFUSED/ERROR: could not find function "trials" 
+
+=== brms gr(g, cov = A) spelling
+drmTMB(bf(y ~ x + (1 | gr(g, cov = A))), family = gaussian(), data = d) 
+  REFUSED/ERROR: Random-effect grouping terms must be simple variables. ✖ Use syntax like `(1 | id)`, `(0 + x | id)`, or `(1 + x | p | id)`. 
+
+=== brms family object brms::student() stand-in: frmtmb-style family name
+drmTMB(bf(y ~ x), family = "student", data = d) 
+  REFUSED/ERROR: Currently supported families are `gaussian()`, `student()`, `skew_normal()`, `lognormal()`, `biv_lognormal()`, `biv_student()`, `Gamma(link = "log")`, `tweedie()`, `beta()`, `zero_one_beta()`, `beta_binomial()`, `binomial(link = "logit"/"probit"/"cloglog")`, `cumulative_logit()`, `poisson(link = "log")`, `nbinom2()`, `truncated_nbinom2()`, `biv_gaussian()`, `c(gaussian(), gaussian())`, and `list(gaussian(), gaussian())`. Zero-inflated Poisson and NB2 models use the same family route plus a `zi ~ ...` formula; hurdle NB2 models use `truncated_nbinom2()` plus a `hu ~ ...` formula. 
+
+=== autocorrelation ar()
+drmTMB(bf(y ~ x + ar(p = 1)), family = gaussian(), data = d) 
+  REFUSED/ERROR: argument "x" is missing, with no default 
+
+=== zero-inflation zi ~ on nbinom2
+drmTMB(bf(yc ~ x, sigma ~ 1, zi ~ 1), family = nbinom2(), data = d) 
+  FITTED. logLik = -689.685081109  df = 4 
+    beta_mu     beta_mu  beta_sigma     beta_zi 
+  1.1793500   0.3422200  -0.0864693 -19.4295000 
+
+=== zero-inflation zi ~ (1|g)
+drmTMB(bf(yc ~ x, sigma ~ 1, zi ~ 1 + (1 | g)), family = nbinom2(), data = d) 
+  REFUSED/ERROR: Zero-inflation random effects are not implemented. ✖ The `zi` formula contains a random-effect bar term. ℹ Keep the `zi` formula fixed-effect for now, such as `zi ~ x`. ℹ Inflation, hurdle, and one-inflation random effects need family-specific   likelihood, extractor, interval, and recovery-test support before fitting. ℹ Cross-parameter covariance with `mu`, `sigma`, or shape random effects   remains future work after the separate random-effect paths are stable. 
+
+##### 6. Methods and sampling
+ [1] "AIC"                 "anova"               "BIC"                
+ [4] "centile_chart"       "check_drm"           "coef"               
+ [7] "confint"             "corpairs"            "deviance"           
+[10] "df.residual"         "exceedance"          "fitted"             
+[13] "fitted_distribution" "fixef"               "imputed"            
+[16] "is_converged"        "logLik"              "marginal_parameters"
+[19] "nobs"                "predict"             "predict_parameters" 
+[22] "prediction_grid"     "print"               "profile"            
+[25] "ranef"               "residuals"           "rho12"              
+[28] "sigma"               "simulate"            "structured_effects" 
+[31] "summary"             "vcov"                "weights"            
+ [1] "bootstrap_boundary_min_draws"             
+ [2] "bootstrap_empty_draws"                    
+ [3] "bootstrap_percentile_draws"               
+ [4] "check_standard_errors_finite"             
+ [5] "check_standard_errors_inflated"           
+ [6] "drm_constant_residual_sigma"              
+ [7] "drm_grid_posterior_sd"                    
+ [8] "drm_ordinary_random_effect_draws"         
+ [9] "drm_standard_error_status"                
+[10] "drm_standardize_impute_model"             
+[11] "drm_standardize_pedigree"                 
+[12] "drm_standardize_relatedness_matrix"       
+[13] "drm_structured_mu_random_effect_draws"    
+[14] "drm_summary_add_parameter_standard_errors"
+[15] "inflated_standard_error_floor"            
+[16] "inflated_standard_error_ratio"            
+[17] "profile_wald_standard_errors"             
+[18] "standardize_spatial_coords"               
+[19] "validate_sd_mu_group_constant"            

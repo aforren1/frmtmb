@@ -1,0 +1,91 @@
+drmTMB visible: TRUE  NOT_CRAN: true 
+drmtmb-mut3: ...............................123.....................................................456......................................
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-drmtmb-mut3.R:198:3'): beta and NB2: drmTMB's sigma is 1 / 
+Expected `abs(m$gap_at_drm)/scale` < 1e-09.
+Actual comparison: 0.002233152 >= 0.000000001
+Difference: 0.002233151 >= 0
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) expect_same_model(...) at test-drmtmb-mut3.R:198:3
+ 2.   └─testthat::expect_lt(abs(m$gap_at_drm)/scale, 1e-09) at test-drmtmb-mut3.R:113:3
+
+── 2. Failure ('test-drmtmb-mut3.R:198:3'): beta and NB2: drmTMB's sigma is 1 / 
+Expected `abs(m$gap_off)/scale` < 1e-11.
+Actual comparison: 0.00291844197 >= 0.00000000001
+Difference: 0.00291844196 >= 0
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) expect_same_model(...) at test-drmtmb-mut3.R:198:3
+ 2.   └─testthat::expect_lt(abs(m$gap_off)/scale, 1e-11) at test-drmtmb-mut3.R:114:3
+
+── 3. Failure ('test-drmtmb-mut3.R:198:3'): beta and NB2: drmTMB's sigma is 1 / 
+Expected `m$diff_over_se` < 0.01.
+Actual comparison: 2.49 >= 0.01
+Difference: 2.48 >= 0
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) expect_same_model(...) at test-drmtmb-mut3.R:198:3
+ 2.   └─testthat::expect_lt(m$diff_over_se, 0.01) at test-drmtmb-mut3.R:115:3
+
+── 4. Failure ('test-drmtmb-mut3.R:334:3'): more families: lognormal, Gamma, bet
+Expected `abs(m$gap_at_drm)/scale` < 1e-09.
+Actual comparison: 0.008690062 >= 0.000000001
+Difference: 0.008690061 >= 0
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) expect_same_model(...) at test-drmtmb-mut3.R:334:3
+ 2.   └─testthat::expect_lt(abs(m$gap_at_drm)/scale, 1e-09) at test-drmtmb-mut3.R:113:3
+
+── 5. Failure ('test-drmtmb-mut3.R:334:3'): more families: lognormal, Gamma, bet
+Expected `abs(m$gap_off)/scale` < 1e-11.
+Actual comparison: 0.01159114147 >= 0.00000000001
+Difference: 0.01159114146 >= 0
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) expect_same_model(...) at test-drmtmb-mut3.R:334:3
+ 2.   └─testthat::expect_lt(abs(m$gap_off)/scale, 1e-11) at test-drmtmb-mut3.R:114:3
+
+── 6. Failure ('test-drmtmb-mut3.R:334:3'): more families: lognormal, Gamma, bet
+Expected `m$diff_over_se` < 0.01.
+Actual comparison: 3.44 >= 0.01
+Difference: 3.43 >= 0
+Backtrace:
+    ▆
+ 1. └─frmtmb (local) expect_same_model(...) at test-drmtmb-mut3.R:334:3
+ 2.   └─testthat::expect_lt(m$diff_over_se, 0.01) at test-drmtmb-mut3.R:115:3
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+No one is perfect!
+
+elapsed s: 56.5 
+tests: 13  expectations: 128  failed: 6  error: 0  skipped: 0  warnings: 0 
+                                                              test nb failed
+1  gaussian location-scale with a mu random intercept, ML and REML 10      0
+2    random intercepts in mu and sigma, independent and correlated 10      0
+3           beta and NB2: drmTMB's sigma is 1 / sqrt(phi or shape) 15      3
+4        bivariate gaussian: rho12, correlated group effects, REML 15      0
+5         animal model: drmTMB animal(A = A) is frmtmb gr(cov = A) 10      0
+6                     phylo(tree) rescales the tree to unit height 11      0
+7          student and cumulative logit with a mu random intercept 10      0
+8           more families: lognormal, Gamma, beta-binomial, ZI NB2 20      3
+9           meta-analysis: meta_V(V = vi) is se(sei, sigma = TRUE)  5      0
+10                 sd(g) ~ w is the nl model b0 + exp(c1 * w) * zz  5      0
+11           mi(): a gaussian missing predictor with its own model  5      0
+12     skew_normal: same likelihood; frmtmb's default start stalls  8      0
+13         REML with a sigma random effect: not the same criterion  4      0
+   skipped error warning
+1    FALSE FALSE       0
+2    FALSE FALSE       0
+3    FALSE FALSE       0
+4    FALSE FALSE       0
+5    FALSE FALSE       0
+6    FALSE FALSE       0
+7    FALSE FALSE       0
+8    FALSE FALSE       0
+9    FALSE FALSE       0
+10   FALSE FALSE       0
+11   FALSE FALSE       0
+12   FALSE FALSE       0
+13   FALSE FALSE       0

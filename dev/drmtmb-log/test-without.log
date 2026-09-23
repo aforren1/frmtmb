@@ -1,0 +1,62 @@
+drmTMB visible: FALSE  NOT_CRAN: true 
+drmtmb-agreement: SSSSSSSSSSSSS
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. gaussian location-scale with a mu random intercept, ML and REML ('test-drmtmb-agreement.R:152:3') - Reason: {drmTMB} is not installed
+
+2. random intercepts in mu and sigma, independent and correlated ('test-drmtmb-agreement.R:167:3') - Reason: {drmTMB} is not installed
+
+3. beta and NB2: drmTMB's sigma is 1 / sqrt(phi or shape) ('test-drmtmb-agreement.R:185:3') - Reason: {drmTMB} is not installed
+
+4. bivariate gaussian: rho12, correlated group effects, REML ('test-drmtmb-agreement.R:208:3') - Reason: {drmTMB} is not installed
+
+5. animal model: drmTMB animal(A = A) is frmtmb gr(cov = A) ('test-drmtmb-agreement.R:235:3') - Reason: {drmTMB} is not installed
+
+6. phylo(tree) rescales the tree to unit height ('test-drmtmb-agreement.R:279:3') - Reason: {drmTMB} is not installed
+
+7. student and cumulative logit with a mu random intercept ('test-drmtmb-agreement.R:307:3') - Reason: {drmTMB} is not installed
+
+8. more families: lognormal, Gamma, beta-binomial, ZI NB2 ('test-drmtmb-agreement.R:327:3') - Reason: {drmTMB} is not installed
+
+9. meta-analysis: meta_V(V = vi) is se(sei, sigma = TRUE) ('test-drmtmb-agreement.R:357:3') - Reason: {drmTMB} is not installed
+
+10. sd(g) ~ w is the nl model b0 + exp(c1 * w) * zz ('test-drmtmb-agreement.R:370:3') - Reason: {drmTMB} is not installed
+
+11. mi(): a gaussian missing predictor with its own model ('test-drmtmb-agreement.R:390:3') - Reason: {drmTMB} is not installed
+
+12. skew_normal: same likelihood; frmtmb's default start stalls ('test-drmtmb-agreement.R:408:3') - Reason: {drmTMB} is not installed
+
+13. REML with a sigma random effect: not the same criterion ('test-drmtmb-agreement.R:441:3') - Reason: {drmTMB} is not installed
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+elapsed s: 5.6 
+tests: 13  expectations: 13  failed: 0  error: 0  skipped: 13  warnings: 0 
+                                                              test nb failed
+1  gaussian location-scale with a mu random intercept, ML and REML  1      0
+2    random intercepts in mu and sigma, independent and correlated  1      0
+3           beta and NB2: drmTMB's sigma is 1 / sqrt(phi or shape)  1      0
+4        bivariate gaussian: rho12, correlated group effects, REML  1      0
+5         animal model: drmTMB animal(A = A) is frmtmb gr(cov = A)  1      0
+6                     phylo(tree) rescales the tree to unit height  1      0
+7          student and cumulative logit with a mu random intercept  1      0
+8           more families: lognormal, Gamma, beta-binomial, ZI NB2  1      0
+9           meta-analysis: meta_V(V = vi) is se(sei, sigma = TRUE)  1      0
+10                 sd(g) ~ w is the nl model b0 + exp(c1 * w) * zz  1      0
+11           mi(): a gaussian missing predictor with its own model  1      0
+12     skew_normal: same likelihood; frmtmb's default start stalls  1      0
+13         REML with a sigma random effect: not the same criterion  1      0
+   skipped error warning
+1     TRUE FALSE       0
+2     TRUE FALSE       0
+3     TRUE FALSE       0
+4     TRUE FALSE       0
+5     TRUE FALSE       0
+6     TRUE FALSE       0
+7     TRUE FALSE       0
+8     TRUE FALSE       0
+9     TRUE FALSE       0
+10    TRUE FALSE       0
+11    TRUE FALSE       0
+12    TRUE FALSE       0
+13    TRUE FALSE       0

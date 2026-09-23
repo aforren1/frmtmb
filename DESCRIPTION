@@ -46,6 +46,7 @@ Suggests:
     clubSandwich,
     data.table,
     DHARMa,
+    drmTMB (>= 0.7.0),
     emmeans,
     fmesher,
     GLMMadaptive,

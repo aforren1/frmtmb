@@ -1,0 +1,51 @@
+Warning message:
+In sqrt(diag(Vf)) : NaNs produced
+
+========== v0 boundary 
+       model       ll_frm      ll_drm         ll_diff obj_gap_at_drm_opt obj_gap_at_frm_opt obj_gap_off_opt max_abs_diff_over_se max_abs_log_se_ratio        grad_frm        grad_drm conv_frm conv_drm
+ v0 boundary -1068.481761 -1068.48177 9.456421139e-06    2.797293519e-05    2.830124095e-05             NaN                  NaN                  NaN 0.0005499600427 2.639368901e-07        0        0
+    par_frm        par_drm                            map         est_frm   est_drm_mapped     diff_over_se        se_frm   se_drm_mapped     se_ratio
+    beta[1]    beta_mu1[1]                       identity   0.96571340248  9.657123855e-01  1.018792377e-05 0.09982158021 9.982178263e-02 0.9999979722
+    beta[2]    beta_mu1[2]                       identity   0.53085779999  5.308578916e-01 -1.777375284e-06 0.05156682103 5.156883092e-02 0.9999610251
+    beta[3]    beta_mu2[3]                       identity   0.21653658325  2.165361558e-01  5.274651110e-06 0.08104340585 8.104386479e-02 0.9999943371
+    beta[4]    beta_mu2[4]                       identity   0.16947404037  1.694741520e-01 -2.208083054e-06 0.05055030273 5.058664761e-02 0.9992815321
+   betad[5] beta_sigma1[5]                       identity  -0.02936951357 -2.937011028e-02  1.605271278e-05 0.03717205202 3.719287251e-02 0.9994402021
+   betad[6] beta_sigma2[6]                       identity  -0.03381003811 -3.381011200e-02  2.029752406e-06 0.03640432478 3.650643722e-02 0.9972028921
+ thetar[10]  beta_rho12[7] rho: 1*tanh(d) = f/sqrt(1+f^2)   0.65327911293  6.532796721e-01 -9.109979084e-06 0.06138088799 6.146625792e-02 0.9986111090
+   theta[7]   log_sd_mu[8]                       identity  -0.59532931752 -5.953265206e-01 -1.927673840e-05 0.14509425432 1.468585181e-01 0.9879866432
+   theta[8]   log_sd_mu[9]                       identity  -0.88889224886 -8.888844769e-01 -5.356201849e-05 0.14510218985 1.700232784e-01 0.8534254322
+   theta[9] eta_cor_mu[10] rho: 1*tanh(d) = f/sqrt(1+f^2) 864.14481235511  1.152280635e+04              NaN           NaN 1.764798407e+07          NaN
+drm group rho = tanh(eta): 0.999999996234233   1 - rho: 3.766e-09 
+frm group rho = f/sqrt(1+f^2): 0.999999330429187   1 - rho: 6.696e-07 
+drm objective, eta fixed at 10.0: logLik -1068.4817702615
+drm objective, eta fixed at 11.0: logLik -1068.4817701606
+drm objective, eta fixed at 12.0: logLik -1068.4817701470
+drm objective, eta fixed at 14.0: logLik -1068.4817701448
+drm objective, eta fixed at 16.0: logLik -1068.4817701448
+drm objective, eta fixed at 18.0: logLik -1068.4817701448
+drm opt message: relative convergence (4)  iterations: 78 
+c = 1.0000000: frm objective minus drm objective at drm optimum: 2.801e-05
+c = 0.9999999: frm objective minus drm objective at drm optimum: 2.546e-05
+c = 0.9999990: frm objective minus drm objective at drm optimum: 2.176e-09
+c = 0.9999900: frm objective minus drm objective at drm optimum: -2.547e-04
+drmTMB R functions containing the literal 0.999999: 27 
+ [1] "drm_inverse_link"                                 
+ [2] "drm_julia_phylo_corpairs"                         
+ [3] "drm_pair_bernoulli_bernoulli_probabilities"       
+ [4] "drm_pair_bernoulli_bernoulli_sandwich_row_logprob"
+ [5] "drm_pair_bernoulli_nbinom2_probabilities"         
+ [6] "drm_pair_fit_eta"                                 
+ [7] "drm_pair_gaussian_bernoulli_loglik"               
+ [8] "drm_pair_gaussian_nbinom2_conditional_prob"       
+ [9] "drm_pair_nbinom2_interval_log_prob"               
+[10] "drm_pair_nbinom2_nbinom2_probabilities"           
+[11] "drm_pair_nbinom2_nbinom2_sandwich_row_logprob"    
+[12] "drm_pair_response_diagnostics"                    
+[13] "drm_pair_sandwich_assemble"                       
+[14] "drm_pair_sandwich_row_logprob"                    
+[15] "modelled_corpair_values"                          
+[16] "phylo_mu_corpairs"                                
+[17] "plot_corpairs_eye_row"                            
+[18] "predict.drm_pair_association"                     
+[19] "predict_parameters_inverse_link_derivative"       
+[20] "random_effect_corpair"                            

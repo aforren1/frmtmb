@@ -1,0 +1,17 @@
+
+Attaching package: 'drmTMB'
+
+The following object is masked from 'package:base':
+
+    beta
+
+REML logLik, sigma ~ z                       : -346.0609852 
+REML logLik, sigma ~ z + (1 | g)             : -351.2997895 
+fitted sd of the sigma effect                : 1.578e-05 
+integrated (random) blocks, A: beta_mu u_mu 
+integrated (random) blocks, B: beta_mu beta_sigma u_mu u_sigma 
+logLik(B) - logLik(A)                        : -5.2388043 
+ML logLik(B) - logLik(A)                     : -2.913e-08 
+rebuilt outer parameters: log_sd_mu 
+joint-Laplace criterion of A at B's log_sd_mu : -351.2997895 
+B's reported REML logLik                     : -351.2997895 

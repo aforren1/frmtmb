@@ -63,9 +63,12 @@ Every change to model code needs a test. The test suite is
 Validation is layered. Put your test in the layer that fits:
 
 - **Reference agreement.** Fit the same model with an exact reference
-  (glmmTMB, lme4, mgcv, MASS, survival, nnet, GLMMadaptive, quantreg,
-  or a closed-form result) and compare estimates within an explicit
-  tolerance. This is the strongest test and is preferred.
+  (glmmTMB, drmTMB, lme4, mgcv, MASS, survival, nnet, GLMMadaptive,
+  quantreg, or a closed-form result) and compare estimates within an
+  explicit tolerance. This is the strongest test and is preferred.
+  The drmTMB tier is gated on `FRMTMB_DRMTMB_FIT_TESTS`, because every
+  test in it fits about 50 models; see
+  `tests/testthat/test-drmtmb-agreement.R`.
 - **Parameter recovery.** Simulate data from known parameters with a
   fixed seed, fit, and check the estimates are inside tolerance.
 - **Invariants.** Check a property that must hold, such as agreement

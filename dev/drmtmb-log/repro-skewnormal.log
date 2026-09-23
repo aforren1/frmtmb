@@ -1,0 +1,17 @@
+default start: logLik -284.0261427  alpha -0.000836863  convergence 0  message relative convergence (4) 
+alpha start 2: logLik -259.3389354  alpha 7.506462 
+conditions raised by the default fit: 0 
+$mu
+               Estimate Std. Error    z value      Pr(>|z|)
+(Intercept) -0.04625281 0.11715289 -0.3948073  6.929851e-01
+xs           0.98527357 0.04210561 23.4000567 4.267901e-121
+
+$sigma
+              Estimate Std. Error    z value  Pr(>|z|)
+(Intercept) 0.00119218 0.04999998 0.02384362 0.9809773
+
+$alpha
+                Estimate Std. Error       z value  Pr(>|z|)
+(Intercept) -0.000836863   5.457972 -0.0001533286 0.9998777
+
+max |gradient| at the stalled point: 1.404733e-05 
