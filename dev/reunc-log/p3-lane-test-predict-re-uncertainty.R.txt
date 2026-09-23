@@ -1,0 +1,3 @@
+﻿LIB C:/Users/adf44/source/r/reunc2-lib/frmtmb frmtmb C:/Users/adf44/source/r/reunc2-lib/frmtmb
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 47 ]
+RESULT test-predict-re-uncertainty.R pass=47 fail=0 err=0 skip=0

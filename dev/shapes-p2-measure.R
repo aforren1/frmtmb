@@ -13,12 +13,12 @@ d$y1 <- 1 + 0.5 * d$x + e[, 1]
 d$y2 <- -0.3 * d$x + e[, 2]
 d$cnt <- rpois(n, exp(0.3 + 0.4 * d$x))
 
-cat("== A. unseen levels, param_uncertainty = FALSE, 4000 draws\n")
+cat("== A. unseen levels, propagate_error = FALSE, 4000 draws\n")
 fm <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = d)
 nd <- data.frame(x = 0, g = factor(c("new1", "new2", "new3", "new4", "new4")))
 set.seed(1)
 dr <- predict(fm, newdata = nd, allow_new_levels = TRUE,
-              param_uncertainty = FALSE, ndraws = 4000, summary = FALSE)
+              propagate_error = FALSE, ndraws = 4000, summary = FALSE)
 tau2 <- VarCorr(fm)$g$sd[1L, "Estimate"]^2
 s2 <- sigma(fm)^2
 print(round(cor(dr), 4))
@@ -44,9 +44,9 @@ cat("== C. rescor draws, 3000 draws\n")
 fr <- frm(bf(mvbind(y1, y2) ~ x) + gaussian() + set_rescor(TRUE), data = d)
 for (pu in c(FALSE, TRUE)) {
   set.seed(3)
-  dd <- predict(fr, summary = FALSE, ndraws = 3000, param_uncertainty = pu)
+  dd <- predict(fr, summary = FALSE, ndraws = 3000, propagate_error = pu)
   w <- vapply(seq_len(dim(dd)[2L]), function(i) cor(dd[, i, 1], dd[, i, 2]), 0)
-  cat("param_uncertainty =", pu, " mean within-row draw correlation",
+  cat("propagate_error =", pu, " mean within-row draw correlation",
       round(mean(w), 4), "\n")
 }
 cat("estimated rescor", round(rescor_matrix(fr)[1, 2], 4), "\n")

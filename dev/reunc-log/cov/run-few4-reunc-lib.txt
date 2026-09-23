@@ -1,0 +1,16 @@
+rep 20 of 300, 362 s
+rep 40 of 300, 689 s
+rep 60 of 300, 1004 s
+rep 80 of 300, 1362 s
+rep 100 of 300, 1682 s
+rep 120 of 300, 2043 s
+rep 140 of 300, 2370 s
+rep 160 of 300, 2720 s
+rep 180 of 300, 3023 s
+rep 200 of 300, 3396 s
+rep 220 of 300, 3781 s
+rep 240 of 300, 4106 s
+rep 260 of 300, 4487 s
+rep 280 of 300, 4824 s
+rep 300 of 300, 5084 s
+done few4 lane in 5084.21 s

@@ -1,0 +1,171 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb.sample
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1.4, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  cor                lkj(1)  [correlation matrix]
+  b                  (flat), as brms leaves slopes
+Saving _problems/test-re-formula-draws-57.R
+Saving _problems/test-re-formula-draws-57.R
+Saving _problems/test-re-formula-draws-57.R
+Saving _problems/test-re-formula-draws-57.R
+Saving _problems/test-re-formula-draws-57.R
+Saving _problems/test-re-formula-draws-57.R
+Saving _problems/test-re-formula-draws-57.R
+Saving _problems/test-re-formula-draws-57.R
+Saving _problems/test-re-formula-draws-86.R
+Saving _problems/test-re-formula-draws-94.R
+Saving _problems/test-re-formula-draws-96.R
+Saving _problems/test-re-formula-draws-98.R
+[ FAIL 12 | WARN 0 | SKIP 0 | PASS 10 ]
+
+══ Failed tests ════════════════════════════════════════════════════════════════
+── Failure ('test-re-formula-draws.R:55:7'): posterior_epred() on draws keeps the named terms ──
+Expected `unname(ep[k, ])` to equal `unname(reunc_hand(ds, k, cs$k[1], cs$k[2], cs$k[3]))`.
+Differences:
+     actual  | expected                
+ [1] 1.46434 - 1.25618  [1]            
+ [2] 0.85858 - 1.68918  [2]            
+ [3] 1.84859 - 2.04579  [3]            
+ [4] 0.74992 - 1.13315  [4]            
+ [5] 2.13258 - 2.00504  [5]            
+ [6] 1.04481 - 1.89788  [6]            
+ [7] 2.06549 - 2.23724  [7]            
+ [8] 2.53795 - 2.90426  [8]            
+ [9] 1.42872 - 1.39359  [9]            
+[10] 2.26107 - 3.00178  [10]           
+ ... ...       ...      and 50 more ...
+
+~(1 | g)
+── Failure ('test-re-formula-draws.R:55:7'): posterior_epred() on draws keeps the named terms ──
+Expected `unname(ep[k, ])` to equal `unname(reunc_hand(ds, k, cs$k[1], cs$k[2], cs$k[3]))`.
+Differences:
+     actual | expected                
+ [1] 1.6357 - 1.1823   [1]            
+ [2] 1.3116 - 1.7788   [2]            
+ [3] 2.2033 - 2.2700   [3]            
+ [4] 0.8636 - 1.0129   [4]            
+ [5] 2.7855 - 2.2138   [5]            
+ [6] 1.6321 - 2.0662   [6]            
+ [7] 1.5104 - 1.6130   [7]            
+ [8] 2.3760 - 2.5318   [8]            
+ [9] 1.1383 - 0.4509   [9]            
+[10] 2.0877 - 2.6661   [10]           
+ ... ...      ...      and 50 more ...
+
+~(1 | g)
+── Failure ('test-re-formula-draws.R:55:7'): posterior_epred() on draws keeps the named terms ──
+Expected `unname(ep[k, ])` to equal `unname(reunc_hand(ds, k, cs$k[1], cs$k[2], cs$k[3]))`.
+Differences:
+     actual | expected                
+ [1] 1.464  - 0.906    [1]            
+ [2] 0.859  - 1.293    [2]            
+ [3] 1.849  - 1.611    [3]            
+ [4] 0.750  - 0.797    [4]            
+ [5] 2.133  - 1.575    [5]            
+ [6] 1.045  - 1.479    [6]            
+ [7] 2.065  - 1.524    [7]            
+ [8] 2.538  - 2.281    [8]            
+ [9] 1.429  - 0.567    [9]            
+[10] 2.261  - 2.392    [10]           
+ ... ...      ...      and 50 more ...
+
+~(0 + x | g)
+── Failure ('test-re-formula-draws.R:55:7'): posterior_epred() on draws keeps the named terms ──
+Expected `unname(ep[k, ])` to equal `unname(reunc_hand(ds, k, cs$k[1], cs$k[2], cs$k[3]))`.
+Differences:
+     actual | expected                
+ [1] 1.6357 - 0.4007   [1]            
+ [2] 1.3116 - 1.0656   [2]            
+ [3] 2.2033 - 1.6131   [3]            
+ [4] 0.8636 - 0.2118   [4]            
+ [5] 2.7855 - 1.5506   [5]            
+ [6] 1.6321 - 1.3860   [6]            
+ [7] 1.5104 - 1.4227   [7]            
+ [8] 2.3760 - 2.2267   [8]            
+ [9] 1.1383 - 0.4058   [9]            
+[10] 2.0877 - 2.3442   [10]           
+ ... ...      ...      and 50 more ...
+
+~(0 + x | g)
+── Failure ('test-re-formula-draws.R:55:7'): posterior_epred() on draws keeps the named terms ──
+Expected `unname(ep[k, ])` to equal `unname(reunc_hand(ds, k, cs$k[1], cs$k[2], cs$k[3]))`.
+Differences:
+     actual | expected                
+ [1] 1.4643 - 0.9805   [1]            
+ [2] 0.8586 - 0.4214   [2]            
+ [3] 1.8486 - 1.4498   [3]            
+ [4] 0.7499 - 0.2529   [4]            
+ [5] 2.1326 - 1.7294   [5]            
+ [6] 1.0448 - 0.6301   [6]            
+ [7] 2.0655 - 1.3376   [7]            
+ [8] 2.5380 - 1.7204   [8]            
+ [9] 1.4287 - 0.8143   [9]            
+[10] 2.2611 - 1.4304   [10]           
+ ... ...      ...      and 50 more ...
+
+~(1 | h)
+── Failure ('test-re-formula-draws.R:55:7'): posterior_epred() on draws keeps the named terms ──
+Expected `unname(ep[k, ])` to equal `unname(reunc_hand(ds, k, cs$k[1], cs$k[2], cs$k[3]))`.
+Differences:
+     actual | expected                
+ [1] 1.636  - 1.051    [1]            
+ [2] 1.312  - 0.658    [2]            
+ [3] 2.203  - 1.494    [3]            
+ [4] 0.864  - 0.298    [4]            
+ [5] 2.786  - 2.082    [5]            
+ [6] 1.632  - 0.946    [6]            
+ [7] 1.510  - 1.339    [7]            
+ [8] 2.376  - 2.320    [8]            
+ [9] 1.138  - 0.822    [9]            
+[10] 2.088  - 2.048    [10]           
+ ... ...      ...      and 50 more ...
+
+~(1 | h)
+── Failure ('test-re-formula-draws.R:55:7'): posterior_epred() on draws keeps the named terms ──
+Expected `unname(ep[k, ])` to equal `unname(reunc_hand(ds, k, cs$k[1], cs$k[2], cs$k[3]))`.
+Differences:
+     actual  | expected                
+ [1] 1.46434 - 1.39736  [1]            
+ [2] 0.85858 - 0.83821  [2]            
+ [3] 1.84859 - 1.86661  [3]            
+ [4] 0.74992 - 0.66970  [4]            
+ [5] 2.13258 - 2.14621  [5]            
+ [6] 1.04481 - 1.04691  [6]            
+ [7] 2.06549 - 2.05806  [7]            
+ [8] 2.53795 - 2.44081  [8]            
+ [9] 1.42872 - 1.53476  [9]            
+[10] 2.26107 - 2.15081  [10]           
+ ... ...       ...      and 50 more ...
+
+~(1 | g) + (1 | h)
+── Failure ('test-re-formula-draws.R:55:7'): posterior_epred() on draws keeps the named terms ──
+Expected `unname(ep[k, ])` to equal `unname(reunc_hand(ds, k, cs$k[1], cs$k[2], cs$k[3]))`.
+Differences:
+     actual  | expected                
+ [1] 1.63566 - 1.73401  [1]            
+ [2] 1.31159 - 1.34149  [2]            
+ [3] 2.20332 - 2.17686  [3]            
+ [4] 0.86361 - 0.98140  [4]            
+ [5] 2.78554 - 2.76552  [5]            
+ [6] 1.63205 - 1.62897  [6]            
+ [7] 1.51040 - 1.51991  [7]            
+ [8] 2.37601 - 2.50034  [8]            
+ [9] 1.13833 - 1.00261  [9]            
+[10] 2.08774 - 2.22886  [10]           
+ ... ...       ...      and 50 more ...
+
+~(1 | g) + (1 | h)
+── Failure ('test-re-formula-draws.R:86:3'): posterior_predict() and predict() on draws keep them too ──
+Expected `mean(abs(z_full) > 4)` > 0.05.
+Actual comparison: 0.000 <= 0.050
+Difference: -0.050 <= 0
+── Failure ('test-re-formula-draws.R:93:3'): a term the fit does not have is refused on draws ──
+Expected `posterior_epred(ds, re_formula = ~(1 | nosuch))` to throw a error with class <frmtmb_error>.
+── Failure ('test-re-formula-draws.R:95:3'): a term the fit does not have is refused on draws ──
+Expected `posterior_predict(ds, re_formula = ~(1 | nosuch))` to throw a error with class <frmtmb_error>.
+── Failure ('test-re-formula-draws.R:97:3'): a term the fit does not have is refused on draws ──
+Expected `fitted(ds, re_formula = ~(1 | nosuch))` to throw a error with class <frmtmb_error>.
+
+[ FAIL 12 | WARN 0 | SKIP 0 | PASS 10 ]
+RESULT test-re-formula-draws.R pass=10 fail=12 err=0 skip=0

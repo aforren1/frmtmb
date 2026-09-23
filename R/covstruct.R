@@ -1803,6 +1803,30 @@ block_is_esicar <- function(bk) {
     identical(bk[["car_type"]], "esicar")
 }
 
+#' Whether a block's coefficients are its parameters POSITIONWISE, so
+#' that `cvec[c_idx[i]]` is a function of `b[b_idx[i]]` alone.
+#'
+#' This is the property every caller that perturbs, bounds or batches
+#' `b` one entry at a time depends on, and `expand_b()` is where it can
+#' fail: an `rr` block's coefficients are the loadings times that
+#' level's factors, and an esicar block's are `b` with each connected
+#' component's mean removed, so one `b` entry reaches every coefficient
+#' of its component. Everything else copies `b` across unchanged.
+#'
+#' Stated as one predicate beside `expand_b()` rather than tested where
+#' it is needed, because the two have to agree and a caller that
+#' spelled the test itself got it wrong: the finite-difference route
+#' used `length(c_idx) != length(b_idx)` as a proxy for "not
+#' positionwise", which catches `rr` below full rank and misses both
+#' `rr` AT full rank and esicar, where the lengths are equal and the
+#' map is not the identity. That was a silent wrong `Est.Error` on an
+#' esicar fit (`dev/reunc-findings.md`, punch round 2).
+#'
+#' @noRd
+block_b_positionwise <- function(bk) {
+  !identical(bk[["covstruct"]], "rr") && !block_is_esicar(bk)
+}
+
 #' Whether a frame's `b` and its coefficient vector are different
 #' objects, so that `expand_b()` has to run. DERIVED from the blocks,
 #' with the frame's own flag only as a fast path.
@@ -1823,9 +1847,9 @@ frame_needs_expand <- function(frame) {
     return(TRUE)
   }
   bks <- frame[["re_blocks"]] %||% list()
-  any(vapply(bks, function(bk) {
-    identical(bk[["covstruct"]], "rr") || block_is_esicar(bk)
-  }, logical(1)))
+  # the same disjunction as block_b_positionwise(), and it is called
+  # rather than repeated so the two cannot drift
+  any(vapply(bks, function(bk) !block_b_positionwise(bk), logical(1)))
 }
 
 #' Coefficient-space vector the Z matrices multiply: identical to b

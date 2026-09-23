@@ -1,0 +1,18 @@
+frmtmb from C:/Users/adf44/source/r/reunc-lib/frmtmb 
+fitted() seconds: 0.39 
+Est.Error at known level:
+       P(Y = 1)   P(Y = 2)  P(Y = 3)
+[1,] 0.08445052 0.05707398 0.1145108
+[2,] 0.06494708 0.07131486 0.1228196
+Est.Error re_formula = NA:
+       P(Y = 1)   P(Y = 2)   P(Y = 3)
+[1,] 0.06519650 0.05146118 0.06283349
+[2,] 0.05546532 0.05462254 0.08424649
+Monte Carlo sd over the joint law:
+        [,1]    [,2]    [,3]
+[1,] 0.08516 0.05708 0.10740
+[2,] 0.07029 0.06516 0.11578
+ratio delta / MC:
+     P(Y = 1) P(Y = 2) P(Y = 3)
+[1,]   0.9916   0.9999   1.0662
+[2,]   0.9240   1.0945   1.0608

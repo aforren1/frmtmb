@@ -1,0 +1,844 @@
+
+R version 4.6.1 (2026-06-24 ucrt) -- "Happy Hop"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-w64-mingw32/x64
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> pkgname <- "frmtmb.sample"
+> source(file.path(R.home("share"), "R", "examples-header.R"))
+> options(warn = 1)
+> options(pager = "console")
+> base::assign(".ExTimings", "frmtmb.sample-Ex.timings", pos = 'CheckExEnv')
+> base::cat("name\tuser\tsystem\telapsed\n", file=base::get(".ExTimings", pos = 'CheckExEnv'))
+> base::assign(".format_ptime",
++ function(x) {
++   if(!is.na(x[4L])) x[1L] <- x[1L] + x[4L]
++   if(!is.na(x[5L])) x[2L] <- x[2L] + x[5L]
++   options(OutDec = '.')
++   format(x[1L:3L], digits = 7L)
++ },
++ pos = 'CheckExEnv')
+> 
+> ### * </HEADER>
+> library('frmtmb.sample')
+> 
+> base::assign(".oldSearch", base::search(), pos = 'CheckExEnv')
+> base::assign(".old_wd", base::getwd(), pos = 'CheckExEnv')
+> cleanEx()
+> nameEx("as_tmbstan")
+> ### * as_tmbstan
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: as_tmbstan
+> ### Title: Sample from a frmtmb fit with tmbstan (NUTS)
+> ### Aliases: as_tmbstan
+> 
+> ### ** Examples
+> 
+> ## No test: 
+> if (requireNamespace("tmbstan", quietly = TRUE) &&
++     requireNamespace("rstan", quietly = TRUE) &&
++     !frmtmb.sample:::tmbstan_build_broken()) {
++ set.seed(9)
++ dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
++ dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
++ fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
++ 
++ # The raw stanfit, for rstan and bayesplot code that wants one.
++ # Use frm_sample() instead when you want frmtmb parameter names.
++ # This run is deliberately short, so expect sampler warnings.
++ sf <- as_tmbstan(fit, chains = 1, iter = 400, refresh = 0)
++ class(sf)
++ # every parameter is sampled, random effects included, because Stan
++ # sees the joint density. Pass laplace = TRUE to integrate them out.
++ dim(as.matrix(sf))
++ }
+Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+[1] 200  13
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("as_tmbstan", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("check_laplace")
+> ### * check_laplace
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: check_laplace
+> ### Title: Check the Laplace/Wald approximation against NUTS
+> ### Aliases: check_laplace
+> 
+> ### ** Examples
+> 
+> ## No test: 
+> if (requireNamespace("tmbstan", quietly = TRUE) &&
++     requireNamespace("rstan", quietly = TRUE) &&
++     !frmtmb.sample:::tmbstan_build_broken()) {
++ # a binary GLMM with small clusters: the regime where the Laplace
++ # approximation and Wald intervals are least reliable
++ set.seed(4)
++ dd <- data.frame(x = rnorm(120), g = factor(rep(1:30, 4)))
++ dd$y <- rbinom(120, 1,
++                plogis(0.3 + 0.5 * dd$x + rnorm(30, 0, 1)[dd$g]))
++ fit <- frm(bf(y ~ x + (1 | g)) + frmtmb::bernoulli(), data = dd)
++ 
++ cl <- check_laplace(fit, chains = 1, iter = 500, refresh = 0)
++ cl
++ # |z_shift| well above 0 or sd_ratio far from 1 marks the parameters
++ # whose Wald interval to replace with a profile or bootstrap one
++ cl[abs(cl$z_shift) > 0.3 | cl$sd_ratio > 1.3, ]
++ }
+frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:
+  1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which frm_sample() supplies by default unless prior = "flat" turned it off
+Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+check_laplace(): the chain mixed too poorly to judge the approximation (bulk ESS under 100 for theta_1). Rerun with more iterations before reading z_shift or sd_ratio
+  parameter         ml post_mean   wald_se   post_sd  z_shift  sd_ratio
+3   theta_1 0.09859697 0.2022925 0.3522135 0.3425834 0.302687 0.9726583
+  ess_bulk
+3 44.21178
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("check_laplace", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("draws-diagnostics")
+> ### * draws-diagnostics
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: draws-diagnostics
+> ### Title: Sampler diagnostics and MCMC plots
+> ### Aliases: draws-diagnostics mcmc_plot mcmc_plot.frmtmb_draws
+> ###   pairs.frmtmb_draws nuts_params nuts_params.frmtmb_draws log_posterior
+> ###   log_posterior.frmtmb_draws rhat rhat.frmtmb_draws neff_ratio
+> ###   neff_ratio.frmtmb_draws
+> 
+> ### ** Examples
+> 
+> ## No test: 
+> if (requireNamespace("tmbstan", quietly = TRUE) &&
++     requireNamespace("rstan", quietly = TRUE) &&
++     requireNamespace("bayesplot", quietly = TRUE) &&
++     !frmtmb.sample:::tmbstan_build_broken()) {
++   set.seed(9)
++   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
++   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
++   ds <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
++                    data = dd, chains = 1, iter = 500, refresh = 0)
++   mcmc_plot(ds)
++   mcmc_plot(ds, type = "trace", variable = "b_x")
++   head(rhat(ds))
++ }
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+     b_Intercept              b_x            sigma r_g[1,Intercept] 
+       1.0074392        0.9977798        1.0067763        1.0137461 
+r_g[2,Intercept] r_g[3,Intercept] 
+       1.0213443        1.0129258 
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("draws-diagnostics", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("draws-dimensions")
+> ### * draws-dimensions
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: draws-dimensions
+> ### Title: Size of a draws object
+> ### Aliases: draws-dimensions ndraws.frmtmb_draws nchains.frmtmb_draws
+> ###   niterations.frmtmb_draws nvariables.frmtmb_draws
+> 
+> ### ** Examples
+> 
+> ## No test: 
+> if (requireNamespace("tmbstan", quietly = TRUE) &&
++     requireNamespace("rstan", quietly = TRUE) &&
++     !frmtmb.sample:::tmbstan_build_broken()) {
++   set.seed(9)
++   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
++   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
++   ds <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
++                    data = dd, chains = 1, iter = 500, refresh = 0)
++   c(ndraws(ds), niterations(ds), nchains(ds), nvariables(ds))
++ }
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+[1] 250 250   1  11
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("draws-dimensions", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("draws-structure")
+> ### * draws-structure
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: fixef.frmtmb_draws
+> ### Title: Model structure behind a set of draws
+> ### Aliases: fixef.frmtmb_draws VarCorr.frmtmb_draws ranef.frmtmb_draws
+> ###   draws-structure nobs.frmtmb_draws formula.frmtmb_draws
+> ###   family.frmtmb_draws getCall.frmtmb_draws coef.frmtmb_draws
+> 
+> ### ** Examples
+> 
+> ## No test: 
+> if (requireNamespace("tmbstan", quietly = TRUE) &&
++     requireNamespace("rstan", quietly = TRUE) &&
++     !frmtmb.sample:::tmbstan_build_broken()) {
++   set.seed(9)
++   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
++   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
++   ds <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
++                    data = dd, chains = 1, iter = 500, refresh = 0)
++   nobs(ds)
++   ngrps(ds)
++   coef(ds)$g[1:3, , "Intercept"]
++   dim(ranef(ds, summary = FALSE)$g)
++   VarCorr(ds)$g$sd
++ }
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+           Estimate Est.Error       Q2.5   Q97.5
+Intercept 0.3661108 0.2621795 0.01226208 1.06828
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("draws-structure", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frm_sample")
+> ### * frm_sample
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frm_sample
+> ### Title: Sample a model with NUTS
+> ### Aliases: frm_sample
+> 
+> ### ** Examples
+> 
+> ## No test: 
+> if (requireNamespace("tmbstan", quietly = TRUE) &&
++     requireNamespace("rstan", quietly = TRUE) &&
++     !frmtmb.sample:::tmbstan_build_broken()) {
++ set.seed(9)
++ dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
++ dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
++ fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
++ ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0)
++ summary(ds)
++ fixef(ds)
++ hypothesis(ds, "sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0",
++            class = NULL)
++ 
++ # the same model sampled straight from the formula, with no ML fit.
++ # It reports the brms default priors it chose, and prior_summary()
++ # gives them back.
++ ds2 <- frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian(),
++                   chains = 1, iter = 500, refresh = 0)
++ prior_summary(ds2)
++ fixef(ds2)
++ 
++ # a set_prior() specification takes over the classes it names and
++ # leaves the rest of the defaults alone
++ ds3 <- frm_sample(bf(y ~ x + (1 | g)), data = dd, family = gaussian(),
++                   chains = 1, iter = 500, refresh = 0,
++                   prior = set_prior("exponential(1)", class = "sd"))
++ prior_summary(ds3)
++ }
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+Warning: hypothesis(): no evidence ratio for 1 of 1 point hypothesis. A Savage-Dickey ratio divides the posterior density at the tested point by the PRIOR density there, and
+  sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0: it names sd_g__Intercept, sigma, which is not a population-level coefficient. A standard deviation, a correlation and a dispersion have their prior on the internal parameter with a change of variables in between, and a group-level coefficient has the group's distribution rather than a prior of its own, so neither density is the prior density of the tested quantity
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+Warning: The largest R-hat is 1.08, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat
+Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+                prior     class coef group resp dpar nlpar   lb   ub source
+ student_t(3, 1, 2.5) Intercept                            <NA> <NA>   user
+ student_t(3, 0, 2.5)     sigma                            <NA> <NA>   user
+       exponential(1)        sd                            <NA> <NA>   user
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frm_sample", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb-draws-refusals")
+> ### * frmtmb-draws-refusals
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb-draws-refusals
+> ### Title: Methods a ported brms script may call that frmtmb does not have
+> ### Aliases: frmtmb-draws-refusals stancode stancode.frmtmb_draws standata
+> ###   standata.frmtmb_draws expose_functions.frmtmb_draws plot.frmtmb_draws
+> ###   update.frmtmb_draws restructure restructure.frmtmb_draws
+> 
+> ### ** Examples
+> 
+> ## No test: 
+> if (requireNamespace("tmbstan", quietly = TRUE) &&
++     requireNamespace("rstan", quietly = TRUE) &&
++     !frmtmb.sample:::tmbstan_build_broken()) {
++   set.seed(1)
++   dd <- data.frame(x = rnorm(40))
++   dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
++   fit <- frm(bf(y ~ x), family = gaussian(), data = dd)
++   ds <- frm_sample(fit, chains = 1, iter = 400, refresh = 0)
++   # each refusal names its reason and the replacement
++   try(stancode(ds))
++   try(standata(ds))
++ }
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1.1, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+Error : stancode() has no meaning for frmtmb: there is no Stan program. The model is an R closure built by build_objective() from the assembled frame and differentiated by RTMB, and the closure IS the source: print `ds$fit$obj$fn` for the evaluator and `ds$fit$frame` for everything baked into it
+Error : standata() has no meaning for frmtmb: nothing is exported to a Stan data list. The assembled frame `ds$fit$frame` holds the same content (the response, the design matrices, the sparse Z, the addition terms), and model.matrix(), getME() and model.frame() read the pieces of it individually
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb-draws-refusals", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("frmtmb-loo-refusals")
+> ### * frmtmb-loo-refusals
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: frmtmb-loo-refusals
+> ### Title: Refusals for the refit-based and marginal-likelihood brmsfit
+> ###   methods
+> ### Aliases: frmtmb-loo-refusals loo_moment_match
+> ###   loo_moment_match.frmtmb_draws loo_subsample
+> ###   loo_subsample.frmtmb_draws reloo reloo.frmtmb_draws kfold
+> ###   kfold.frmtmb_draws bridge_sampler bridge_sampler.frmtmb_draws
+> ###   bayes_factor bayes_factor.frmtmb_draws post_prob
+> ###   post_prob.frmtmb_draws
+> 
+> ### ** Examples
+> 
+> ## No test: 
+> if (requireNamespace("tmbstan", quietly = TRUE) &&
++     requireNamespace("rstan", quietly = TRUE) &&
++     !frmtmb.sample:::tmbstan_build_broken()) {
++   set.seed(1)
++   dd <- data.frame(x = rnorm(40))
++   dd$y <- rnorm(40, 1 + 0.5 * dd$x, 1)
++   fit <- frm(bf(y ~ x), family = gaussian(), data = dd)
++   ds <- frm_sample(fit, chains = 1, iter = 400, refresh = 0)
++   # each refusal names its reason and the replacement
++   try(reloo(ds))
++   try(bayes_factor(ds, ds))
++ }
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1.1, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+Error : reloo() is not implemented for frmtmb draws: it re-runs the sampler once per observation with a high Pareto k, and frm_sample() has no stored program to re-run on modified data. Read loo()'s Pareto k table and treat a bad k as the diagnostic it is (usually many group-level parameters left to the data alone; see the prior section of ?loo), or compare the maximum-likelihood fits with AIC()
+Error : bayes_factor() is not available for frmtmb draws: it is a ratio of the marginal likelihoods bridge_sampler() would have to estimate, and those are undefined under prior = "flat" and unavailable from the tape. hypothesis() gives the posterior probability of a directional claim, and loo() the predictive comparison
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("frmtmb-loo-refusals", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("posterior_epred")
+> ### * posterior_epred
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: posterior_epred
+> ### Title: Expected-value and predictive draws from sampled parameters
+> ### Aliases: posterior_epred posterior_epred.frmtmb_draws posterior_linpred
+> ###   posterior_linpred.frmtmb_draws posterior_predict
+> ###   posterior_predict.frmtmb_draws
+> 
+> ### ** Examples
+> 
+> ## No test: 
+> if (requireNamespace("tmbstan", quietly = TRUE) &&
++     requireNamespace("rstan", quietly = TRUE) &&
++     !frmtmb.sample:::tmbstan_build_broken()) {
++ set.seed(9)
++ dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
++ dd$y <- rpois(80, exp(0.3 + 0.4 * dd$x + rnorm(8, 0, 0.5)[dd$g]))
++ fit <- frm(bf(y ~ x + (1 | g)) + poisson(), data = dd)
++ ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0)
++ 
++ nd <- data.frame(x = c(-1, 0, 1),
++                  g = factor(1, levels = levels(dd$g)))
++ 
++ # the expected response per draw: uncertainty in the mean
++ ep <- posterior_epred(ds, newdata = nd)
++ apply(ep, 2, quantile, c(0.025, 0.5, 0.975))
++ 
++ # the predictive distribution adds the family's own noise, so its
++ # intervals are wider
++ pp <- posterior_predict(ds, newdata = nd)
++ apply(pp, 2, quantile, c(0.025, 0.5, 0.975))
++ 
++ # the linear predictor itself, on the link scale by default
++ head(posterior_linpred(ds, newdata = nd, ndraws = 5))
++ }
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0, 2.5)
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+Warning: The largest R-hat is 1.13, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat
+Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+            [,1]      [,2]      [,3]
+[1,]  0.48954070 0.6555560 0.8215714
+[2,]  0.33465244 0.7663111 1.1979698
+[3,] -0.34015303 0.1554798 0.6511126
+[4,]  0.08794828 0.3320401 0.5761320
+[5,]  0.28325834 0.5987430 0.9142276
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("posterior_epred", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("pp_mixture")
+> ### * pp_mixture
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: pp_mixture
+> ### Title: Posterior mixture-component probabilities
+> ### Aliases: pp_mixture pp_mixture.frmtmb_draws
+> 
+> ### ** Examples
+> 
+> ## No test: 
+> if (requireNamespace("tmbstan", quietly = TRUE) &&
++     requireNamespace("rstan", quietly = TRUE) &&
++     !frmtmb.sample:::tmbstan_build_broken()) {
++   set.seed(4)
++   dd <- data.frame(y = c(rnorm(60, -2), rnorm(60, 3)))
++   fit <- frm(bf(y ~ 1), family = frmtmb::mixture(gaussian(), gaussian()),
++              data = dd)
++   ds <- frm_sample(fit, chains = 1, iter = 400, refresh = 0)
++   head(pp_mixture(ds)[, "Estimate", ])
++ }
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.6, 3.5)
+  Intercept          student_t(3, 0.6, 3.5)
+  b                  (flat), as brms leaves slopes
+Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+        class1       class2
+[1,] 0.9999820 1.798661e-05
+[2,] 0.9999990 9.966469e-07
+[3,] 0.9996895 3.104748e-04
+[4,] 0.9999137 8.634107e-05
+[5,] 0.9901016 9.898355e-03
+[6,] 0.9998713 1.286582e-04
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("pp_mixture", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("sample-as_draws")
+> ### * sample-as_draws
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: sample-as_draws
+> ### Title: Convert draws to a posterior draws object
+> ### Aliases: sample-as_draws as_draws.frmtmb_draws
+> ###   as.data.frame.frmtmb_draws as.array.frmtmb_draws
+> ###   as_draws_matrix.frmtmb_draws as_draws_array.frmtmb_draws
+> ###   as_draws_df.frmtmb_draws as_draws_list.frmtmb_draws
+> ###   as_draws_rvars.frmtmb_draws as.mcmc as.mcmc.frmtmb_draws
+> ###   as.matrix.frmtmb_draws
+> 
+> ### ** Examples
+> 
+> ## No test: 
+> if (requireNamespace("posterior", quietly = TRUE) &&
++     requireNamespace("tmbstan", quietly = TRUE) &&
++     requireNamespace("rstan", quietly = TRUE) &&
++     !frmtmb.sample:::tmbstan_build_broken()) {
++   set.seed(9)
++   dd <- data.frame(x = rnorm(80), g = factor(rep(1:8, 10)))
++   dd$y <- rnorm(80, 1 + 0.5 * dd$x + rnorm(8, 0, 0.5)[dd$g], 1)
++   fit <- frm(bf(y ~ x + (1 | g)) + gaussian(), data = dd)
++   ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0)
++ 
++   # hands the draws to the posterior package, keeping the frmtmb
++   # parameter names
++   dm <- as_draws(ds)
++   posterior::summarise_draws(dm)
++   # which is what variables() lists
++   head(variables(ds))
++ }
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+[1] "b_Intercept"      "b_x"              "sigma"            "r_g[1,Intercept]"
+[5] "r_g[2,Intercept]" "r_g[3,Intercept]"
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("sample-as_draws", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("sample-bayes_R2")
+> ### * sample-bayes_R2
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: sample-bayes_R2
+> ### Title: Bayesian R-squared
+> ### Aliases: sample-bayes_R2 bayes_R2.frmtmb_draws
+> 
+> ### ** Examples
+> 
+> ## No test: 
+> if (requireNamespace("tmbstan", quietly = TRUE) &&
++     requireNamespace("rstan", quietly = TRUE) &&
++     !frmtmb.sample:::tmbstan_build_broken()) {
++   set.seed(9)
++   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
++   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
++   ds <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
++                    data = dd, chains = 1, iter = 500, refresh = 0)
++   bayes_R2(ds)
++   quantile(bayes_R2(ds, summary = FALSE), c(0.1, 0.9))
++ }
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+      10%       90% 
+0.2041248 0.4147706 
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("sample-bayes_R2", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("sample-log_lik")
+> ### * sample-log_lik
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: sample-log_lik
+> ### Title: Pointwise log-likelihood of posterior draws
+> ### Aliases: sample-log_lik log_lik.frmtmb_draws
+> 
+> ### ** Examples
+> 
+> ## No test: 
+> if (requireNamespace("tmbstan", quietly = TRUE) &&
++     requireNamespace("rstan", quietly = TRUE) &&
++     !frmtmb.sample:::tmbstan_build_broken()) {
++   set.seed(9)
++   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
++   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
++   fit <- frm(bf(y ~ x + (1 | g)), family = gaussian(), data = dd)
++   ds <- frm_sample(fit, chains = 1, iter = 500, refresh = 0)
++ 
++   ll <- log_lik(ds)
++   dim(ll)
++   # the column means are the per-observation expected log-densities
++   head(colMeans(ll))
++ }
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+Warning: The largest R-hat is 1.09, indicating chains have not mixed.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#r-hat
+Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+[1] -0.8830592 -2.1166335 -1.2627876 -2.6183643 -0.8877249 -3.1346528
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("sample-log_lik", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("sample-loo")
+> ### * sample-loo
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: sample-loo
+> ### Title: Approximate leave-one-out cross-validation
+> ### Aliases: sample-loo loo.frmtmb_draws waic.frmtmb_draws
+> ###   loo_compare.frmtmb_draws psis psis.frmtmb_draws LOO.frmtmb_draws
+> ###   WAIC.frmtmb_draws
+> 
+> ### ** Examples
+> 
+> ## No test: 
+> if (requireNamespace("tmbstan", quietly = TRUE) &&
++     requireNamespace("rstan", quietly = TRUE) &&
++     requireNamespace("loo", quietly = TRUE) &&
++     !frmtmb.sample:::tmbstan_build_broken()) {
++   set.seed(9)
++   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
++   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
++ 
++   # sample with priors: an elpd is a posterior quantity
++   d1 <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
++                    data = dd, chains = 1, iter = 500, refresh = 0)
++   d2 <- frm_sample(bf(y ~ 1 + (1 | g)), family = gaussian(),
++                    data = dd, chains = 1, iter = 500, refresh = 0)
++   loo_compare(d1, d2)
++   # the same thing, one step at a time
++   loo_compare(loo(d1), loo(d2))
++ }
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
+
+Warning: Some Pareto k diagnostic values are too high. See help('pareto-k-diagnostic') for details.
+
+  model elpd_diff se_diff p_worse diag_diff       diag_elpd
+ model1       0.0     0.0      NA                          
+ model2      -5.3     2.8    0.97   N < 100 2 k_psis > 0.58
+
+Diagnostic flags present.
+See ?`loo-glossary` (sections `diag_diff` and `diag_elpd`)
+or https://mc-stan.org/loo/reference/loo-glossary.html.
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("sample-loo", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> cleanEx()
+> nameEx("sample-posterior_summary")
+> ### * sample-posterior_summary
+> 
+> flush(stderr()); flush(stdout())
+> 
+> base::assign(".ptime", proc.time(), pos = "CheckExEnv")
+> ### Name: sample-posterior_summary
+> ### Title: Summaries and intervals of draws
+> ### Aliases: sample-posterior_summary posterior_summary.frmtmb_draws
+> ###   posterior_interval posterior_interval.frmtmb_draws
+> ###   predictive_interval predictive_interval.frmtmb_draws predictive_error
+> ###   predictive_error.frmtmb_draws
+> 
+> ### ** Examples
+> 
+> ## No test: 
+> if (requireNamespace("tmbstan", quietly = TRUE) &&
++     requireNamespace("rstan", quietly = TRUE) &&
++     !frmtmb.sample:::tmbstan_build_broken()) {
++   set.seed(9)
++   dd <- data.frame(x = rnorm(60), g = factor(rep(1:6, 10)))
++   dd$y <- rnorm(60, 1 + 0.5 * dd$x + rnorm(6, 0, 0.5)[dd$g], 1)
++   ds <- frm_sample(bf(y ~ x + (1 | g)), family = gaussian(),
++                    data = dd, chains = 1, iter = 500, refresh = 0)
++   posterior_summary(ds, variable = c("b_Intercept", "b_x"))
++   posterior_interval(ds, prob = 0.9, variable = "b_x")
++   head(predictive_interval(ds))
++ }
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess
+Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess
+             5%      95%
+[1,] -1.0475016 1.995271
+[2,] -1.4658902 1.670161
+[3,] -0.7037054 2.587566
+[4,] -0.9750094 2.553942
+[5,] -0.6195457 2.699921
+[6,] -1.7698078 1.384440
+> ## End(No test)
+> 
+> 
+> 
+> base::assign(".dptime", (proc.time() - get(".ptime", pos = "CheckExEnv")), pos = "CheckExEnv")
+> base::cat("sample-posterior_summary", base::get(".format_ptime", pos = 'CheckExEnv')(get(".dptime", pos = "CheckExEnv")), "\n", file=base::get(".ExTimings", pos = 'CheckExEnv'), append=TRUE, sep="\t")
+> ### * <FOOTER>
+> ###
+> cleanEx()
+> options(digits = 7L)
+> base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
+Time elapsed:  15.72 1.39 17.18 NA NA 
+> grDevices::dev.off()
+null device 
+          1 
+> ###
+> ### Local variables: ***
+> ### mode: outline-minor ***
+> ### outline-regexp: "\\(> \\)?### [*]+" ***
+> ### End: ***
+> quit('no')

@@ -91,11 +91,11 @@ assert	frmtmb	brmsfit-methods:340	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:341		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:342	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:344		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:345	defect	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:345	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:347		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:348	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:349		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:350	defect	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:350	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:351		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:352	defect	FALSE	FALSE	Expected `dim(fi)` to equal `c(1, 4, 3)`. Differences:   `actual`: 1 4   `expected`: 1 4 3 		FALSE
 setup	frmtmb	brmsfit-methods:354		TRUE	FALSE			TRUE
@@ -185,7 +185,7 @@ setup	frmtmb	brmsfit-methods:760		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:761	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:762	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:763		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:764	pending 2.6d	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:764	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:766		TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:767	pass	TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:768		TRUE	FALSE			TRUE
@@ -193,7 +193,7 @@ setup	frmtmb	brmsfit-methods:769		TRUE	FALSE			TRUE
 setup	frmtmb	brmsfit-methods:770		FALSE	FALSE	predict() honors sample_new_levels = "gaussian" only. An unseen level's effect is drawn from its block's own estimated covariance, which is what brms's "gaussian" does. "uncertainty" and "old_levels" resample the POSTERIOR draws of the levels that were seen, and a maximum-likelihood fit has no such draws		FALSE
 assert	frmtmb	brmsfit-methods:772	defect	FALSE	TRUE	STALE: reads 'pred', whose last assignment failed: predict() honors sample_new_levels = "gaussian" only. An unseen level's effect is drawn from its block's own estimated covariance, which is what brms's "gaussian" does. "uncertainty" and "old_levels" resample the POSTERIOR draws of the levels that were seen, and a maximum-likelihood fit has no such draws		FALSE
 setup	frmtmb	brmsfit-methods:773		TRUE	FALSE			TRUE
-assert	frmtmb	brmsfit-methods:775	defect	TRUE	FALSE			TRUE
+assert	frmtmb	brmsfit-methods:775	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:784	pass	TRUE	FALSE			TRUE
 assert	frmtmb	brmsfit-methods:806	divergence	FALSE	FALSE	Expected `is(prior_summary(fit1), "brmsprior")` to be TRUE. Differences: `actual`:   FALSE `expected`: TRUE  		FALSE
 setup	frmtmb	brmsfit-methods:810		TRUE	FALSE			TRUE

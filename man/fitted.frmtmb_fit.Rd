@@ -28,10 +28,11 @@
 \item{newdata}{Optional data frame to evaluate on. Defaults to the
 training data.}
 
-\item{re_formula}{\code{NULL} (default) keeps the random effects, so the
-answer is conditional on the modes; \code{NA} or \code{~0} gives the
-population-level answer. brms's spelling, and the only one:
-lme4's \code{re.form} is not accepted here.}
+\item{re_formula}{Which group-level terms enter the answer: \code{NULL}
+(default) keeps all of them, \code{NA} keeps none, and a one-sided
+formula keeps the terms it names, as in brms (see \code{\link[=frm_linpred]{frm_linpred()}}).
+brms's spelling, and the only one: lme4's \code{re.form} is not
+accepted here.}
 
 \item{scale}{\code{"response"} (default) for the modelled response, or
 \code{"linear"} for the linear predictor. brms's spelling of what
@@ -84,7 +85,15 @@ training data for every family.
 A maximum-likelihood fit has no draws to summarize, so \code{Est.Error} is
 the delta-method standard error \code{\link[=frm_linpred]{frm_linpred()}} reports for the same
 quantity, and the \code{Q} columns are the Wald interval at those
-probabilities. The interval is around the EXPECTED response and
+probabilities. The estimate is at the modes, and the standard error
+carries the uncertainty in them: at a grouping level the fit saw,
+the level's group effect enters with its covariance taken jointly
+with the fixed effects from the joint precision, the frequentist
+analogue of the posterior of that effect in brms's
+\code{posterior_epred()}. The interval covers the expected response at a
+known level with the nominal coverage averaged over the groups, not
+for one group's realized effect. The interval is around the EXPECTED
+response and
 carries no observation noise; \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} is the
 predictive interval that does.
 
@@ -102,11 +111,11 @@ The standard error of a category probability is the
 finite-difference delta method
 over the whole outer parameter vector, because the probability
 depends on the thresholds and the \code{cs()} coefficients as well as on
-the linear predictor. That route covers the OUTER parameters only, so
-on a mixed ordinal fit it does not carry the conditional variance of
-the random-effect modes, which the scalar route does: \code{se.fit} reads
-the joint precision and this reads \code{vcov(full = TRUE)}. The estimates
-are unaffected. The latent linear predictor, which is where the
+the linear predictor. On a mixed ordinal fit the group effects join
+the differenced vector, with their covariance taken jointly with the
+parameters from the joint precision, so the standard error carries
+their uncertainty as the scalar route does. The estimates are
+unaffected. The latent linear predictor, which is where the
 coefficients live, is \code{frm_linpred(object, type = "link")}.
 }
 

@@ -1,0 +1,27 @@
+frmtmb 0.61.0 from C:/Users/adf44/source/r/reunc-lib/frmtmb 
+brms 2.23.0 
+
+1 and 2. brms against its own hand construction, and frmtmb's dropped contribution against brms's
+~(1 | g)             brms vs hand max|d| 0.00e+00 | dropped: brms sd 0.7716, frmtmb sd 0.7542, max|brms - frmtmb| 0.1890, cor 0.9983
+~(0 + x | g)         brms vs hand max|d| 0.00e+00 | dropped: brms sd 1.0576, frmtmb sd 1.0449, max|brms - frmtmb| 0.0594, cor 0.9999
+~(1 + x | g)         brms vs hand max|d| 8.88e-16 | dropped: brms sd 0.7671, frmtmb sd 0.7541, max|brms - frmtmb| 0.0241, cor 0.9999
+~(1 | h)             brms vs hand max|d| 0.00e+00 | dropped: brms sd 0.7393, frmtmb sd 0.7304, max|brms - frmtmb| 0.2106, cor 0.9983
+~(1 | g) + (1 | h)   brms vs hand max|d| 8.88e-16 | dropped: brms sd 0.0785, frmtmb sd 0.0336, max|brms - frmtmb| 0.2107, cor 0.9709
+brms ~(1 | nosuch) identical to re_formula = NA: TRUE 
+frmtmb ~(1 | nosuch): frmtmb_error fitted(): the re_formula term (1 | nosuch) matches no group-level term of this fit. A term is kept when its grouping factor is one the fit has and its columns are among that term's columns. The fit's group-level terms are: (1 + x | g), (1 | h). brms drops such a term silently, which turns a misspelled grouping factor into a population-level prediction; use re_formula = NA to ask for that 
+newdata without h, ~(1 | g): brms 0.2549926 1.5980110 1.3095383 
+                              frmtmb 0.2736766 1.5884770 1.3493397 
+
+3. frmtmb.sample draws
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1.6, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  cor                lkj(1)  [correlation matrix]
+  b                  (flat), as brms leaves slopes
+~(1 | g)             epred vs hand max|d| 0.00e+00 (25 draws) | fitted Est = colMeans(epred) TRUE | predict Est vs colMeans(pp) max|d| 0.00e+00
+~(0 + x | g)         epred vs hand max|d| 0.00e+00 (25 draws) | fitted Est = colMeans(epred) TRUE | predict Est vs colMeans(pp) max|d| 0.00e+00
+~(1 + x | g)         epred vs hand max|d| 8.88e-16 (25 draws) | fitted Est = colMeans(epred) TRUE | predict Est vs colMeans(pp) max|d| 0.00e+00
+~(1 | h)             epred vs hand max|d| 0.00e+00 (25 draws) | fitted Est = colMeans(epred) TRUE | predict Est vs colMeans(pp) max|d| 0.00e+00
+~(1 | g) + (1 | h)   epred vs hand max|d| 8.88e-16 (25 draws) | fitted Est = colMeans(epred) TRUE | predict Est vs colMeans(pp) max|d| 0.00e+00
+draws ~(1 | nosuch): frmtmb_error frm_linpred(): the re_formula term (1 | nosuch) matches no group-level term of t 

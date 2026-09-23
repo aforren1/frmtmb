@@ -1,0 +1,306 @@
+LIB C:/Users/adf44/source/r/rellib-r3/frmtmb
+Saving _problems/test-re-formula-partial-52.R
+Saving _problems/test-re-formula-partial-54.R
+Saving _problems/test-re-formula-partial-52.R
+Saving _problems/test-re-formula-partial-54.R
+Saving _problems/test-re-formula-partial-52.R
+Saving _problems/test-re-formula-partial-54.R
+Saving _problems/test-re-formula-partial-52.R
+Saving _problems/test-re-formula-partial-54.R
+Saving _problems/test-re-formula-partial-52.R
+Saving _problems/test-re-formula-partial-54.R
+Saving _problems/test-re-formula-partial-68.R
+Saving _problems/test-re-formula-partial-79.R
+Saving _problems/test-re-formula-partial-102.R
+Saving _problems/test-re-formula-partial-105.R
+Saving _problems/test-re-formula-partial-114.R
+Saving _problems/test-re-formula-partial-124.R
+Saving _problems/test-re-formula-partial-126.R
+Saving _problems/test-re-formula-partial-128.R
+Saving _problems/test-re-formula-partial-124.R
+Saving _problems/test-re-formula-partial-126.R
+Saving _problems/test-re-formula-partial-128.R
+Saving _problems/test-re-formula-partial-124.R
+Saving _problems/test-re-formula-partial-126.R
+Saving _problems/test-re-formula-partial-128.R
+Saving _problems/test-re-formula-partial-132.R
+Saving _problems/test-re-formula-partial-158.R
+Saving _problems/test-re-formula-partial-160.R
+Saving _problems/test-re-formula-partial-176.R
+[ FAIL 28 | WARN 0 | SKIP 0 | PASS 8 ]
+
+══ Failed tests ════════════════════════════════════════════════════════════════
+── Failure ('test-re-formula-partial.R:51:5'): a partial re_formula keeps exactly the terms it names ──
+Expected `unname(frm_linpred(fit, re_formula = cs$f))` to equal `unname(want)`.
+Differences:
+     actual  | expected                 
+ [1] -0.9023 - 0.2737   [1]             
+ [2] 1.5910  - 0.6064   [2]             
+ [3] 0.5190  - 0.8804   [3]             
+ [4] 0.2122  - 0.1791   [4]             
+ [5] 1.4026  - 0.8491   [5]             
+ [6] -0.4264 - 0.7668   [6]             
+ [7] 1.7723  - 0.7943   [7]             
+ [8] 0.9305  - 1.3068   [8]             
+ [9] 1.5322  - 1.5885   [9]             
+[10] 3.4534  - 2.8242   [10]            
+ ... ...       ...      and 110 more ...
+
+~(1 | g)
+── Failure ('test-re-formula-partial.R:53:5'): a partial re_formula keeps exactly the terms it names ──
+Expected `unname(fitted(fit, re_formula = cs$f)[, "Estimate"])` to equal `unname(want)`.
+Differences:
+     actual  | expected                 
+ [1] -0.9023 - 0.2737   [1]             
+ [2] 1.5910  - 0.6064   [2]             
+ [3] 0.5190  - 0.8804   [3]             
+ [4] 0.2122  - 0.1791   [4]             
+ [5] 1.4026  - 0.8491   [5]             
+ [6] -0.4264 - 0.7668   [6]             
+ [7] 1.7723  - 0.7943   [7]             
+ [8] 0.9305  - 1.3068   [8]             
+ [9] 1.5322  - 1.5885   [9]             
+[10] 3.4534  - 2.8242   [10]            
+ ... ...       ...      and 110 more ...
+
+~(1 | g)
+── Failure ('test-re-formula-partial.R:51:5'): a partial re_formula keeps exactly the terms it names ──
+Expected `unname(frm_linpred(fit, re_formula = cs$f))` to equal `unname(want)`.
+Differences:
+     actual | expected                 
+ [1] -0.902 - 1.043    [1]             
+ [2] 1.591  - 1.364    [2]             
+ [3] 0.519  - 1.628    [3]             
+ [4] 0.212  - 0.951    [4]             
+ [5] 1.403  - 1.598    [5]             
+ [6] -0.426 - 1.519    [6]             
+ [7] 1.772  - 1.545    [7]             
+ [8] 0.931  - 2.040    [8]             
+ [9] 1.532  - 0.829    [9]             
+[10] 3.453  - 2.206    [10]            
+ ... ...      ...      and 110 more ...
+
+~(0 + x | g)
+── Failure ('test-re-formula-partial.R:53:5'): a partial re_formula keeps exactly the terms it names ──
+Expected `unname(fitted(fit, re_formula = cs$f)[, "Estimate"])` to equal `unname(want)`.
+Differences:
+     actual | expected                 
+ [1] -0.902 - 1.043    [1]             
+ [2] 1.591  - 1.364    [2]             
+ [3] 0.519  - 1.628    [3]             
+ [4] 0.212  - 0.951    [4]             
+ [5] 1.403  - 1.598    [5]             
+ [6] -0.426 - 1.519    [6]             
+ [7] 1.772  - 1.545    [7]             
+ [8] 0.931  - 2.040    [8]             
+ [9] 1.532  - 0.829    [9]             
+[10] 3.453  - 2.206    [10]            
+ ... ...      ...      and 110 more ...
+
+~(0 + x | g)
+── Failure ('test-re-formula-partial.R:51:5'): a partial re_formula keeps exactly the terms it names ──
+Expected `unname(frm_linpred(fit, re_formula = cs$f))` to equal `unname(want)`.
+Differences:
+     actual | expected                 
+ [1] -0.902 - 0.290    [1]             
+ [2] 1.591  - 0.611    [2]             
+ [3] 0.519  - 0.876    [3]             
+ [4] 0.212  - 0.199    [4]             
+ [5] 1.403  - 0.846    [5]             
+ [6] -0.426 - 0.766    [6]             
+ [7] 1.772  - 0.793    [7]             
+ [8] 0.931  - 1.288    [8]             
+ [9] 1.532  - 1.519    [9]             
+[10] 3.453  - 2.897    [10]            
+ ... ...      ...      and 110 more ...
+
+~(1 + x | g)
+── Failure ('test-re-formula-partial.R:53:5'): a partial re_formula keeps exactly the terms it names ──
+Expected `unname(fitted(fit, re_formula = cs$f)[, "Estimate"])` to equal `unname(want)`.
+Differences:
+     actual | expected                 
+ [1] -0.902 - 0.290    [1]             
+ [2] 1.591  - 0.611    [2]             
+ [3] 0.519  - 0.876    [3]             
+ [4] 0.212  - 0.199    [4]             
+ [5] 1.403  - 0.846    [5]             
+ [6] -0.426 - 0.766    [6]             
+ [7] 1.772  - 0.793    [7]             
+ [8] 0.931  - 1.288    [8]             
+ [9] 1.532  - 1.519    [9]             
+[10] 3.453  - 2.897    [10]            
+ ... ...      ...      and 110 more ...
+
+~(1 + x | g)
+── Failure ('test-re-formula-partial.R:51:5'): a partial re_formula keeps exactly the terms it names ──
+Expected `unname(frm_linpred(fit, re_formula = cs$f))` to equal `unname(want)`.
+Differences:
+  `actual`: -0.90 1.59 0.52 0.21 1.40 -0.43 1.77 0.93 1.53 3.45 and 110 more...
+`expected`: -0.17 2.34 1.28 0.94 2.16  0.33 2.53 1.70 0.91 2.69             ...
+
+~(1 | h)
+── Failure ('test-re-formula-partial.R:53:5'): a partial re_formula keeps exactly the terms it names ──
+Expected `unname(fitted(fit, re_formula = cs$f)[, "Estimate"])` to equal `unname(want)`.
+Differences:
+  `actual`: -0.90 1.59 0.52 0.21 1.40 -0.43 1.77 0.93 1.53 3.45 and 110 more...
+`expected`: -0.17 2.34 1.28 0.94 2.16  0.33 2.53 1.70 0.91 2.69             ...
+
+~(1 | h)
+── Failure ('test-re-formula-partial.R:51:5'): a partial re_formula keeps exactly the terms it names ──
+Expected `unname(frm_linpred(fit, re_formula = cs$f))` to equal `unname(want)`.
+Differences:
+     actual    | expected                  
+ [1] -0.902316 - -0.918928 [1]             
+ [2] 1.590963  - 1.585912  [2]             
+ [3] 0.518978  - 0.523447  [3]             
+ [4] 0.212229  - 0.192332  [4]             
+ [5] 1.402608  - 1.405989  [5]             
+ [6] -0.426354 - -0.425834 [6]             
+ [7] 1.772290  - 1.773765  [7]             
+ [8] 0.930538  - 0.949821  [8]             
+ [9] 1.532166  - 1.601669  [9]             
+[10] 3.453384  - 3.381114  [10]            
+ ... ...         ...       and 110 more ...
+
+~(1 | g) + (1 | h)
+── Failure ('test-re-formula-partial.R:53:5'): a partial re_formula keeps exactly the terms it names ──
+Expected `unname(fitted(fit, re_formula = cs$f)[, "Estimate"])` to equal `unname(want)`.
+Differences:
+     actual    | expected                  
+ [1] -0.902316 - -0.918928 [1]             
+ [2] 1.590963  - 1.585912  [2]             
+ [3] 0.518978  - 0.523447  [3]             
+ [4] 0.212229  - 0.192332  [4]             
+ [5] 1.402608  - 1.405989  [5]             
+ [6] -0.426354 - -0.425834 [6]             
+ [7] 1.772290  - 1.773765  [7]             
+ [8] 0.930538  - 0.949821  [8]             
+ [9] 1.532166  - 1.601669  [9]             
+[10] 3.453384  - 3.381114  [10]            
+ ... ...         ...       and 110 more ...
+
+~(1 | g) + (1 | h)
+── Failure ('test-re-formula-partial.R:67:3'): a formula with no group-level term is the population level ──
+Expected `frm_linpred(fit, re_formula = ~1)` to be identical to `frm_linpred(fit, re_formula = NA)`.
+Differences:
+     actual  | expected                 
+ [1] -0.9023 - 1.0260   [1]             
+ [2] 1.5910  - 1.3588   [2]             
+ [3] 0.5190  - 1.6328   [3]             
+ [4] 0.2122  - 0.9315   [4]             
+ [5] 1.4026  - 1.6015   [5]             
+ [6] -0.4264 - 1.5191   [6]             
+ [7] 1.7723  - 1.5466   [7]             
+ [8] 0.9305  - 2.0592   [8]             
+ [9] 1.5322  - 0.8983   [9]             
+[10] 3.4534  - 2.1341   [10]            
+ ... ...       ...      and 110 more ...
+
+── Error ('test-re-formula-partial.R:78:3'): a dropped term's grouping column is not needed in newdata ──
+<frmtmb_error/error/condition>
+Error: newdata has no column `h`, the grouping factor of a random effect. Add it, or say what the prediction should do without it: allow_new_levels = TRUE treats every row as an unseen level (the population value, plus that block's variance in an interval), and re_formula = NA drops the random effects altogether
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_equal(...) at test-re-formula-partial.R:78:3
+ 2. │ └─testthat::quasi_label(enquo(object), label)
+ 3. │   └─rlang::eval_bare(expr, quo_get_env(quo))
+ 4. ├─base::unname(...)
+ 5. └─frmtmb::frm_linpred(fit, newdata = nd, re_formula = ~(1 | g))
+ 6.   └─frmtmb:::lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+ 7.     └─frmtmb:::pred_design(object, lp, newdata, allow_new_levels, use_re = use_re)
+ 8.       └─frmtmb:::fill_new_group_vars(...)
+ 9.         └─frmtmb::frm_stop(...)
+── Failure ('test-re-formula-partial.R:102:3'): only the kept terms contribute their uncertainty ──
+Expected `unname(fit_h$se.fit)` to equal `sqrt(rowSums((A %*% V) * A))`.
+Differences:
+`names(actual)` is absent
+`names(expected)` is a character vector ('1', '2', '3', '4', '5', ...)
+
+     actual | expected                 
+ [1] 0.434  - 0.336    [1]             
+ [2] 0.403  - 0.308    [2]             
+ [3] 0.407  - 0.309    [3]             
+ [4] 0.463  - 0.343    [4]             
+ [5] 0.420  - 0.307    [5]             
+ [6] 0.409  - 0.311    [6]             
+ [7] 0.404  - 0.310    [7]             
+ [8] 0.468  - 0.333    [8]             
+ [9] 0.484  - 0.348    [9]             
+[10] 0.662  - 0.354    [10]            
+ ... ...      ...      and 110 more ...
+
+── Failure ('test-re-formula-partial.R:105:3'): only the kept terms contribute their uncertainty ──
+Expected `isTRUE(all.equal(unname(full), unname(fit_h$se.fit)))` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+── Error ('test-re-formula-partial.R:113:3'): predict() honors a partial re_formula ──
+<frmtmb_error/error/condition>
+Error: newdata has no column `h`, the grouping factor of a random effect. Add it, or say what the prediction should do without it: allow_new_levels = TRUE treats every row as an unseen level (the population value, plus that block's variance in an interval), and re_formula = NA drops the random effects altogether
+Backtrace:
+     ▆
+  1. ├─stats::predict(...) at test-re-formula-partial.R:113:3
+  2. └─frmtmb:::predict.frmtmb_fit(...)
+  3.   └─frmtmb:::predict_simulate(...)
+  4.     └─base::lapply(...)
+  5.       └─frmtmb (local) FUN(X[[i]], ...)
+  6.         └─frmtmb:::predict_dpar_values(...)
+  7.           └─frmtmb::frm_linpred(...)
+  8.             └─frmtmb:::lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
+  9.               └─frmtmb:::pred_design(object, lp, newdata, allow_new_levels, use_re = use_re)
+ 10.                 └─frmtmb:::fill_new_group_vars(...)
+ 11.                   └─frmtmb::frm_stop(...)
+── Failure ('test-re-formula-partial.R:123:5'): a term the fit does not have is refused, naming it ──
+Expected `frm_linpred(fit, re_formula = f)` to throw a error with class <frmtmb_error>.
+── Failure ('test-re-formula-partial.R:125:5'): a term the fit does not have is refused, naming it ──
+Expected `fitted(fit, re_formula = f)` to throw a error with class <frmtmb_error>.
+── Failure ('test-re-formula-partial.R:127:5'): a term the fit does not have is refused, naming it ──
+Expected `predict(fit, re_formula = f, ndraws = 5)` to throw a error with class <frmtmb_error>.
+── Failure ('test-re-formula-partial.R:123:5'): a term the fit does not have is refused, naming it ──
+Expected `frm_linpred(fit, re_formula = f)` to throw a error with class <frmtmb_error>.
+── Failure ('test-re-formula-partial.R:125:5'): a term the fit does not have is refused, naming it ──
+Expected `fitted(fit, re_formula = f)` to throw a error with class <frmtmb_error>.
+── Failure ('test-re-formula-partial.R:127:5'): a term the fit does not have is refused, naming it ──
+Expected `predict(fit, re_formula = f, ndraws = 5)` to throw a error with class <frmtmb_error>.
+── Failure ('test-re-formula-partial.R:123:5'): a term the fit does not have is refused, naming it ──
+Expected `frm_linpred(fit, re_formula = f)` to throw a error with class <frmtmb_error>.
+── Failure ('test-re-formula-partial.R:125:5'): a term the fit does not have is refused, naming it ──
+Expected `fitted(fit, re_formula = f)` to throw a error with class <frmtmb_error>.
+── Failure ('test-re-formula-partial.R:127:5'): a term the fit does not have is refused, naming it ──
+Expected `predict(fit, re_formula = f, ndraws = 5)` to throw a error with class <frmtmb_error>.
+── Error ('test-re-formula-partial.R:132:3'): a term the fit does not have is refused, naming it ──
+Error in `expect_match(e, "(1 | nosuch)", fixed = TRUE)`: `object` must be a character vector, not a double matrix.
+Backtrace:
+    ▆
+ 1. └─testthat::expect_match(object = e) at test-re-formula-partial.R:132:3
+ 2.   └─testthat:::check_character(object)
+ 3.     └─testthat:::stop_input_type(...)
+ 4.       └─rlang::abort(message, ..., call = call, arg = arg)
+── Failure ('test-re-formula-partial.R:158:3'): a term shared by two distributional parameters is kept in both ──
+Expected `s_h` to be identical to `s_na`.
+Differences:
+     actual | expected                 
+ [1] 0.003  - -0.058   [1]             
+ [2] 0.003  - -0.058   [2]             
+ [3] 0.003  - -0.058   [3]             
+ [4] 0.003  - -0.058   [4]             
+ [5] 0.003  - -0.058   [5]             
+ [6] 0.003  - -0.058   [6]             
+ [7] 0.003  - -0.058   [7]             
+ [8] 0.003  - -0.058   [8]             
+ [9] 0.003  - -0.058   [9]             
+[10] 0.003  - -0.058   [10]            
+ ... ...      ...      and 110 more ...
+
+── Failure ('test-re-formula-partial.R:160:3'): a term shared by two distributional parameters is kept in both ──
+Expected `isTRUE(all.equal(mu_g, frm_linpred(fit)))` to be FALSE.
+Differences:
+`actual`:   TRUE 
+`expected`: FALSE
+
+── Failure ('test-re-formula-partial.R:175:3'): a partial formula is refused where a term cannot be named ──
+Expected `frm_linpred(fit, re_formula = ~(1 | h))` to throw a error with class <frmtmb_error>.
+
+[ FAIL 28 | WARN 0 | SKIP 0 | PASS 8 ]
+RESULT test-re-formula-partial.R pass=8 fail=25 err=3 skip=0

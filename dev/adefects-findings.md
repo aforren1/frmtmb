@@ -638,7 +638,10 @@ is the only SILENT one in this list. The rest are loud.
    a compound expression on purpose. Recorded because the next reader
    of D1 will ask.
 
-7. **A partial `re_formula` is silently ignored**, which is the most
+7. **FIXED in lane wt-reunc** (`dev/reunc-findings.md`): a one-sided
+   `re_formula` keeps the terms it names now, as brms's does, and the
+   D6 divergence below is gone with it. As filed:
+   **A partial `re_formula` is silently ignored**, which is the most
    valuable thing the review found and the one this lane would file
    first. On a `y ~ x + (1 | g) + (1 | h)` fit,
    `predict(fit, newdata, re_formula = ~ (1 | h))` returns a result

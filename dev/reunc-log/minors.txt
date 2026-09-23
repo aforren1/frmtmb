@@ -1,0 +1,26 @@
+﻿frmtmb from C:/Users/adf44/source/r/reunc2-lib/frmtmb 
+
+minor 2: re_formula = ~1 reads two ways
+  simulate(~1)       identical to NULL: TRUE
+  simulate(~0)       identical to NULL: TRUE
+  simulate(~(1 | g)) identical to NULL: TRUE
+  simulate(NA)       identical to NULL: FALSE
+  predict(~1)        identical to NA:   TRUE
+  predict(~1)        identical to NULL: FALSE
+  fitted(~1) identical to NA: TRUE
+
+minor 3: a b-perturbed fit does not inherit the cache
+  original memoized: TRUE
+  copy's cache is a different environment: TRUE
+  copy's cache is empty: TRUE
+  fit_set_outer() does the same: TRUE
+
+minor 1: an unmatched term, including a nested one
+  ~(1 | nosuch) -> refused: predict(): the re_formula term (1 | nosuch) matches
+  ~(1 | g/h) -> refused: predict(): the re_formula term (1 | g/h) matches no
+  ~(1 | g:h) -> refused: predict(): the re_formula term (1 | g:h) matches no
+
+minor 5: a quadrature fit is silent on the scalar route
+  quadrature, known level: 0.09407 0.08913; re_formula = NA: 0.0934 0.09095
+  Laplace,    known level: 0.15115 0.14998; re_formula = NA: 0.09158 0.08906
+  scalar route warns on the quadrature fit: FALSE

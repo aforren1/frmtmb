@@ -1,0 +1,16 @@
+rep 20 of 300, 330 s
+rep 40 of 300, 639 s
+rep 60 of 300, 923 s
+rep 80 of 300, 1210 s
+rep 100 of 300, 1516 s
+rep 120 of 300, 1816 s
+rep 140 of 300, 2156 s
+rep 160 of 300, 2462 s
+rep 180 of 300, 2757 s
+rep 200 of 300, 3034 s
+rep 220 of 300, 3381 s
+rep 240 of 300, 3740 s
+rep 260 of 300, 4043 s
+rep 280 of 300, 4348 s
+rep 300 of 300, 4714 s
+done few4 base in 4714.3 s

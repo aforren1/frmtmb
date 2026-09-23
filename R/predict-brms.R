@@ -19,18 +19,19 @@
 # simulator, the one `simulate()` and `posterior_predict()` use. That
 # is a parametric bootstrap of the predictive distribution, and it
 # carries both sources of spread brms's carries: the observation noise
-# and the uncertainty in the estimates. `param_uncertainty = FALSE`
+# and the uncertainty in the estimates. `propagate_error = FALSE`
 # drops the second and simulates at the estimates alone, which is the
 # plug-in predictive distribution; `dev/shapes-findings.md` reports what
 # each one covers.
 #
-# The random effects stay at their conditional modes, as they do
-# everywhere else in this package (`fitted()`, `frm_linpred()` and
-# `residuals()` are all conditional on the modes). Their own conditional
-# variance is therefore NOT in the interval; on a design with few
-# observations per group that is the term the coverage measurement is
-# sensitive to, and the section "Which uncertainty is in the interval"
-# of `?predict.frmtmb_fit` says so.
+# The group effects at the levels the fit saw are DRAWN too, jointly,
+# from their conditional law given the data and the replicate's
+# parameters (predict_b_drawer()). brms's draws carry the posterior of
+# each seen level's effect, and holding them at their modes made the
+# interval at a known level narrow: 0.9445 and 0.9336 out of sample on
+# two designs (dev/shapes-findings.md section 3). The user decided on
+# 2026-09-22 to match brms; dev/reunc-findings.md has the construction
+# and the coverage it claims.
 
 #' Arguments `predict()` carried before it became brms's, and the brms
 #' arguments it cannot answer.
@@ -88,37 +89,75 @@ predict_type_retired <- c(
 #' on the counts.
 #'
 #' @section Which uncertainty is in the interval:
-#' Two of the three sources.
+#' All three sources.
 #'
 #' * Observation noise, from the family's simulator. This is almost
 #'   always the largest term.
-#' * Uncertainty in the estimates, from the asymptotic covariance of
-#'   the outer parameter vector. `param_uncertainty = FALSE` drops it
-#'   and simulates at the estimates alone.
-#' * Uncertainty in the random-effect modes of a level the fit SAW is
-#'   NOT included. The draw is conditional on them, the convention
-#'   every other method here follows. On a design with few
-#'   observations per grouping level that term is not small, and the
-#'   interval is then narrower than a fully marginal one.
-#'   `dev/shapes-findings.md` reports the measured coverage for a
-#'   design with and without a grouping factor.
+#' * Uncertainty in the estimates, from their asymptotic covariance.
+#' * Uncertainty in the group effects of a level the fit SAW. Each
+#'   replicate draws the whole vector of group effects from its
+#'   conditional law given the data and that replicate's parameters,
+#'   which the joint precision of the fit describes. For a linear mixed
+#'   model this is the prediction error variance of the best linear
+#'   unbiased predictor, jointly with the fixed effects. brms's draws
+#'   carry the posterior of each seen level's effect, and this is the
+#'   frequentist analogue. Two rows of one group share that group's
+#'   draw, so `summary = FALSE` is right across rows as well as per
+#'   row.
 #'
-#' A level the fit did NOT see is different: there is no mode to
-#' condition on, so `allow_new_levels = TRUE` draws its effect from the
-#' block's own estimated covariance, once per replicate, at that
+#' `propagate_error = FALSE` drops the second and the third together
+#' and simulates at the estimates alone, which leaves the observation
+#' noise. Everything estimated is then treated as known.
+#'
+#' What the interval covers: a new observation at a known level, with
+#' the nominal coverage AVERAGED over the groups. It is not a coverage
+#' statement for one group's realized effect. The predictor shrinks a
+#' group toward the population, so for a group far from the population
+#' the interval covers less than nominal and for a group near it more.
+#' `dev/reunc-findings.md` reports the measured coverage.
+#'
+#' A level the fit did NOT see is different: there is no conditional
+#' law to draw from, so `allow_new_levels = TRUE` draws its effect from
+#' the block's own estimated covariance, once per replicate, at that
 #' replicate's parameters. This is brms's `sample_new_levels =
 #' "gaussian"` and it is the whole between-group variance, so the
 #' interval at an unseen level is wider than at a known one.
 #'
+#' @section re_formula and propagate_error are different questions:
+#' The two are easy to confuse and neither can express the other.
+#'
+#' * `re_formula` chooses WHICH terms enter the prediction. Only
+#'   `re_formula = NA` can say "predict for an average group", by
+#'   leaving the group effects out of the linear predictor.
+#' * `propagate_error` chooses whether the error in the ESTIMATES is
+#'   propagated into the interval. Only `propagate_error = FALSE` can
+#'   say "include this group's own effect but treat it as known".
+#'
+#' So a prediction for the group in front of you, with its effect held
+#' at the fitted value, is `propagate_error = FALSE`, and a prediction
+#' for a group you have not met is `re_formula = NA`. They combine:
+#' `re_formula = NA` with `propagate_error = FALSE` is the population
+#' curve with no estimation error at all.
+#'
+#' brms has no such argument, because its draws always carry both: a
+#' posterior draw has its own parameters and its own group effects, so
+#' there is nothing to switch off. A brms user looking for the missing
+#' argument is looking for this one.
+#'
+#' Only the terms `re_formula` keeps are drawn. A population smooth and
+#' a `gp()` curve stay at their modes under every setting.
+#'
 #' A fit whose covariance could not be recovered from the Hessian has no
 #' second term to draw: the simulation falls back to the estimates and
-#' warns, rather than drawing from a matrix of `NaN`.
+#' warns, rather than drawing from a matrix of `NaN`. A fit made with
+#' `quadrature = TRUE` has no group effects in its joint precision: its
+#' group effects stay at their modes, and a warning says so.
 #'
 #' Under `REML = TRUE` (or `frmtmb_control(profile = TRUE)`) the fixed
 #' effects are integrated out of the outer problem, so they are not in
-#' `vcov(object, full = TRUE)` and are not drawn either. The interval
-#' there carries the covariance parameters' uncertainty and the
-#' observation noise, and holds the coefficients fixed.
+#' `vcov(object, full = TRUE)`. They are drawn from their joint
+#' covariance with the outer parameters, which the joint precision
+#' gives, and the group effects are then drawn given both.
 #'
 #' @section Ordinal and categorical responses:
 #' There is no mean to summarize, so `predict()` returns the simulated
@@ -130,9 +169,14 @@ predict_type_retired <- c(
 #' @param object A `frmtmb_fit`.
 #' @param newdata Optional data frame to predict on. Defaults to the
 #'   training data.
-#' @param re_formula `NULL` (default) keeps the random effects, so the
-#'   draw is conditional on the modes; `NA` or `~0` draws at the
-#'   population level.
+#' @param re_formula Which group-level terms enter the prediction.
+#'   `NULL` (default) keeps all of them, `NA` keeps none. A one-sided
+#'   formula keeps the terms it names and drops the others, as in brms:
+#'   `~ (1 | g)` on a fit with `(1 + x | g) + (1 | h)` keeps the
+#'   intercept of `g` alone. A formula that names no group-level term,
+#'   such as `~0` or `~1`, is `NA`. A term the fit does not have is an
+#'   error that names it; brms drops such a term silently. See
+#'   [frm_linpred()] for the full rule.
 #' @param transform A function applied to the draws before they are
 #'   summarized, as in brms.
 #' @param resp For multivariate fits: which response, or `NULL`
@@ -164,9 +208,15 @@ predict_type_retired <- c(
 #'   what happens, or `NULL`. `"uncertainty"` and `"old_levels"`
 #'   resample the posterior draws of the levels that were seen, and a
 #'   maximum-likelihood fit has none, so both are refused by name.
-#' @param param_uncertainty If `FALSE`, simulate at the estimates alone
-#'   (the plug-in predictive distribution) instead of drawing the
-#'   parameters first.
+#' @param propagate_error Whether the error in the estimates is
+#'   propagated into the interval. `TRUE`, the default, draws the
+#'   parameters and the group effects of a level the fit saw. `FALSE`
+#'   holds both at their estimates, so the interval carries the
+#'   observation noise alone: the plug-in predictive distribution. It
+#'   is the only way to include a group's own effect and still treat it
+#'   as known; `re_formula` cannot say that, because it chooses which
+#'   terms are in the prediction and not whether their error is
+#'   carried.
 #' @param ... Refused. An argument this method does not have is an
 #'   error naming it, and `type`, `se.fit`, `dpar` and `scale` are
 #'   refused with the name of the function that took over each one.
@@ -206,14 +256,14 @@ predict.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
                                robust = FALSE, probs = c(0.025, 0.975),
                                ..., allow_new_levels = FALSE,
                                sample_new_levels = NULL,
-                               param_uncertainty = TRUE) {
+                               propagate_error = TRUE) {
   frm_check_dots(..., .unsupported = predict_type_retired)
   require_fitted(object, "predict()")
   check_flag(summary, "summary")
   check_flag(robust, "robust")
   check_flag(negative_rt, "negative_rt")
   check_flag(allow_new_levels, "allow_new_levels")
-  check_flag(param_uncertainty, "param_uncertainty")
+  check_flag(propagate_error, "propagate_error")
   check_re_form(re_formula)
   if (negative_rt) {
     frm_stop("predict(negative_rt = TRUE) is brms's sign convention for ",
@@ -275,8 +325,13 @@ predict.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
   }
   rspecs <- object$spec$responses[resp]
   if (length(rspecs) > 1L) predict_mv_refuse(object, rspecs)
+  # once, here: every replicate then predicts on the reduced design, and
+  # the group-effect draw sees which blocks are left in it
+  rr <- re_resolve(object, re_formula, "predict()")
+  object <- rr$fit
+  re_formula <- rr$re_formula
   ds <- predict_simulate(object, rspecs, newdata, re_formula,
-                         allow_new_levels, ndraws, ntrys, param_uncertainty)
+                         allow_new_levels, ndraws, ntrys, propagate_error)
   if (!is.null(transform)) ds <- lapply(ds, match.fun(transform))
   if (!summary) {
     return(if (length(ds) == 1L) ds[[1L]] else predict_stack(ds))
@@ -402,7 +457,7 @@ predict_category_props <- function(object, rspec, d) {
 #' @noRd
 predict_simulate <- function(object, rspecs, newdata, re_formula,
                              allow_new_levels, ndraws, ntrys,
-                             param_uncertainty) {
+                             propagate_error) {
   av <- list()
   nls <- list()
   for (nm in names(rspecs)) {
@@ -444,16 +499,27 @@ predict_simulate <- function(object, rspecs, newdata, re_formula,
   # depend on the rows AFTER it; they still shift with the rows before
   # it, which share the replicate's stream. The caller's stream is left
   # where the up-front draws put it.
-  draw <- predict_par_drawer(object, param_uncertainty, ndraws)
+  draw <- predict_par_drawer(object, propagate_error, ndraws)
   seeds <- sample.int(.Machine$integer.max, ndraws)
+  # the stream is captured HERE, before the group-effect draw takes its
+  # own seeds, so that draw costs the caller nothing: a conditional
+  # predict() leaves .Random.seed exactly where the parameter draws and
+  # the simulation seeds left it, which is where 0.61.0 left it. Taking
+  # them after the capture was worth 18 differing quantities in a
+  # reviewer's rebuild, on rows whose PREDICTIONS were identical.
   saved <- get(".Random.seed", envir = globalenv())
   on.exit(assign(".Random.seed", saved, envir = globalenv()), add = TRUE)
+  bdraw <- predict_b_drawer(object, re_formula, attr(draw, "delta"),
+                            ndraws, propagate_error)
   joint <- isTRUE(object$spec[["rescor"]]) && length(rspecs) > 1L
   out <- stats::setNames(vector("list", length(rspecs)), names(rspecs))
   masked <- stats::setNames(vector("list", length(rspecs)), names(rspecs))
   for (s in seq_len(ndraws)) {
-    set.seed(seeds[s])
     fs <- draw(s)
+    if (!is.null(bdraw)) fs <- bdraw(fs, s)
+    # after the group-effect draw, which has a stream of its own; draw()
+    # takes nothing from the stream, so this is where it always was
+    set.seed(seeds[s])
     dps <- lapply(stats::setNames(names(rspecs), names(rspecs)), function(nm) {
       predict_dpar_values(fs, rspecs[[nm]], newdata, re_formula,
                           allow_new_levels,
@@ -614,7 +680,7 @@ predict_report_masked <- function(out, masked, ndraws) {
              "there is no predictive distribution to summarize. A ",
              "parameter the draw law covers is barely identified; ",
              "vcov(object, full = TRUE) has its variance. ",
-             "param_uncertainty = FALSE simulates at the estimates ",
+             "propagate_error = FALSE simulates at the estimates ",
              "alone", call. = FALSE)
   }
   msgs <- character(0)
@@ -635,7 +701,7 @@ predict_report_masked <- function(out, masked, ndraws) {
                 "other rows are not affected. The draw law puts mass ",
                 "where a parameter overflows: a row far outside the data, ",
                 "or a parameter barely identified, whose variance ",
-                "vcov(object, full = TRUE) shows. param_uncertainty = ",
+                "vcov(object, full = TRUE) shows. propagate_error = ",
                 "FALSE simulates at the estimates alone", call. = FALSE)
   }
   invisible(NULL)
@@ -778,7 +844,7 @@ predict_dpar_values <- function(fit, rspec, newdata, re_formula,
 }
 
 #' A closure returning one fit-like object per call: the fit itself
-#' under `param_uncertainty = FALSE`, and otherwise the fit with its
+#' under `propagate_error = FALSE`, and otherwise the fit with its
 #' outer parameters replaced by a draw from
 #' `N(theta_hat, vcov(full = TRUE))`.
 #'
@@ -786,8 +852,8 @@ predict_dpar_values <- function(fit, rspec, newdata, re_formula,
 #' the only expensive part of the draw.
 #'
 #' @noRd
-predict_par_drawer <- function(object, param_uncertainty, ndraws) {
-  if (!param_uncertainty) return(function(s) object)
+predict_par_drawer <- function(object, propagate_error, ndraws) {
+  if (!propagate_error) return(function(s) object)
   ds <- fit_draw_space(object)
   V <- ds$V
   L <- if (is.null(V) || !all(is.finite(V))) NULL else {
@@ -801,7 +867,7 @@ predict_par_drawer <- function(object, param_uncertainty, ndraws) {
                 "recovered from the Hessian, so the draws are taken at the ",
                 "estimates alone. The interval carries the observation ",
                 "noise and NOT the uncertainty in the estimates. ",
-                "param_uncertainty = FALSE asks for this on purpose",
+                "propagate_error = FALSE asks for this on purpose",
                 call. = FALSE)
     return(function(s) object)
   }
@@ -811,5 +877,331 @@ predict_par_drawer <- function(object, param_uncertainty, ndraws) {
   # all ndraws draws at once, column s for replicate s: the caller's
   # stream is consumed by the same amount whatever the rows are
   D <- v0 + crossprod(L, matrix(stats::rnorm(p * ndraws), p, ndraws))
-  function(s) fit_set_outer(object, D[, s], map)
+  out <- function(s) fit_set_outer(object, D[, s], map)
+  # the group-effect draw conditions on this replicate's parameters, so
+  # it needs how far they moved (predict_b_drawer())
+  attr(out, "delta") <- function(s) D[, s] - v0
+  out
+}
+
+#' The replicate's group effects at the levels the fit SAW, drawn from
+#' their conditional law given the data and the replicate's parameters.
+#'
+#' brms's draws carry the posterior of each seen level's effect `r_g`,
+#' so its predictive interval at a known level includes the uncertainty
+#' in that effect. The frequentist analogue is the conditional law of
+#' `b` given the data, which is what the joint precision `Q` of
+#' `sdreport()` describes: its `b` block is the Hessian of the inner
+#' problem, and its off-diagonal block says how the modes move with the
+#' parameters. Partitioning `Q` into the drawn parameters `d` (the
+#' outer vector, plus `beta` under REML or profile) and the rest `r`,
+#'
+#'     r | d  ~  N(r_hat - Q_rr^-1 Q_rd (d - d_hat),  Q_rr^-1),
+#'
+#' which for a linear mixed model is Henderson's prediction error
+#' variance of the BLUP, jointly with the fixed effects. `Q` is read
+#' ONCE, at the estimates: the replicate's own parameters shift the
+#' conditional MEAN, through `d - d_hat`, and not the conditional
+#' variance, which would need the joint precision re-evaluated at every
+#' draw. The draw is of the WHOLE vector, so
+#' two rows of one group share that group's draw and rows of different
+#' groups carry exactly the correlation `Q` implies. A per-row added
+#' variance would get the summary right and `summary = FALSE` wrong.
+#'
+#' Only the blocks `re_formula = NA` would drop are written back: a
+#' population smooth or a `gp()` curve is held at its mode as before.
+#'
+#' `propagate_error = FALSE` turns this draw OFF along with the
+#' parameter draw. The two are one axis and the argument names it:
+#' with it `FALSE` every estimated quantity is held at its estimate,
+#' the group effects included, and the interval carries the
+#' observation noise alone. That is the only way to ask for a group's
+#' own effect while treating it as KNOWN, which `re_formula` cannot
+#' express, because `re_formula` chooses WHICH terms are in the
+#' prediction and not whether their error is propagated.
+#'
+#' Each replicate draws from its own seed, taken up front AFTER the
+#' parameter draws and the simulation seeds, so those two are exactly
+#' what they were before this draw existed and the rows at an unseen
+#' level come out bitwise as they did.
+#'
+#' Returns `NULL`, and takes nothing from the caller's stream, when
+#' `propagate_error` is `FALSE` or no kept block has a seen level to
+#' draw.
+#'
+#' @noRd
+predict_b_drawer <- function(object, re_formula, delta, ndraws,
+                             propagate_error) {
+  if (!propagate_error) return(NULL)
+  if (!re_form_keeps(re_formula)) return(NULL)
+  gov <- re_governed_b(object)
+  if (!length(gov)) return(NULL)
+  Q <- joint_precision(object)
+  rn <- rownames(Q)
+  if (is.null(Q) || !any(rn == "b")) {
+    frm_warning("predict(): the fitted objective carries no random-effect ",
+                "block in its joint precision (quadrature = TRUE ",
+                "marginalizes it), so the group effects at the levels the ",
+                "fit saw are held at their modes and their uncertainty is ",
+                "NOT in the interval", call. = FALSE)
+    return(NULL)
+  }
+  map <- fit_draw_space(object)$map
+  pos_d <- unlist(lapply(unique(map$comp), function(cp) which(rn == cp)))
+  pos_r <- setdiff(seq_len(nrow(Q)), pos_d)
+  b_r <- which(rn[pos_r] == "b")
+  nb <- length(object$estimates[["b"]])
+  if (length(pos_d) != length(map$names) || length(b_r) != nb) {
+    frm_warning("predict(): the joint precision does not line up with ",
+                "the fit's parameters (", length(pos_d), " drawn rows for ",
+                length(map$names), " parameters, ", length(b_r),
+                " b rows for ", nb, " effects), so the group effects at the ",
+                "levels the fit saw are held at their modes and their ",
+                "uncertainty is NOT in the interval. Please report this ",
+                "model", call. = FALSE)
+    return(NULL)
+  }
+  Qrr <- methods::as(Matrix::forceSymmetric(Q[pos_r, pos_r, drop = FALSE]),
+                     "CsparseMatrix")
+  ch <- tryCatch(Matrix::Cholesky(Qrr, perm = TRUE, LDL = FALSE),
+                 error = function(e) NULL)
+  if (is.null(ch)) {
+    frm_warning("predict(): the conditional precision of the random ",
+                "effects is not positive definite, so the group effects at ",
+                "the levels the fit saw are held at their modes and their ",
+                "uncertainty is NOT in the interval. diagnose() names the ",
+                "likely cause", call. = FALSE)
+    return(NULL)
+  }
+  Qrd <- Q[pos_r, pos_d, drop = FALSE]
+  sel <- b_r[gov]
+  b0 <- object$estimates[["b"]][gov]
+  nr <- length(pos_r)
+  bseeds <- sample.int(.Machine$integer.max, ndraws)
+  function(fs, s) {
+    set.seed(bseeds[s])
+    x <- Matrix::solve(ch, Matrix::solve(ch, stats::rnorm(nr), system = "Lt"),
+                       system = "Pt")
+    x <- as.numeric(x)
+    if (!is.null(delta)) {
+      x <- x - as.numeric(Matrix::solve(ch, Qrd %*% delta(s),
+                                        system = "A"))
+    }
+    fs$estimates[["b"]][gov] <- b0 + x[sel]
+    fs
+  }
+}
+
+#' Positions in `b` of the group effects the ROWS being predicted
+#' actually load, which is what a finite-difference delta method has to
+#' perturb.
+#'
+#' `re_governed_b()` names every level of every kept block, and a
+#' prediction of a few rows loads a few of them; the rest have a
+#' derivative of exactly zero and cost one model evaluation each. On a
+#' cumulative fit with 200 grouping levels, differencing all of them
+#' took 10.92 s against 0.31 s before the group effects joined the
+#' difference. Bounding the set by the rows makes the cost grow with the
+#' rows rather than with the number of levels.
+#'
+#' The design that multiplies the coefficient vector is the source, so
+#' this is the same set `re_eta()` and `lp_delta_A()` read: in sample
+#' each predictor's `Z`, and on new data the rebuilt
+#' `re_design_matrix()` plus the smooth parts. A column with a nonzero
+#' entry is loaded; every other column contributes exactly nothing.
+#'
+#' Returns `NULL` when the design cannot be rebuilt, which means "no
+#' bound": the caller then perturbs every kept level, as it did before.
+#'
+#' @noRd
+re_used_b <- function(fit, newdata, resp, allow_new_levels) {
+  blocks <- fit$frame[["re_blocks"]]
+  if (!length(blocks)) return(integer(0))
+  cols <- integer(0)
+  n_c <- fit$frame[["n_c"]] %||% length(fit$estimates[["b"]])
+  for (lp in fit$frame[["linpreds"]]) {
+    if (!is.null(resp) && !identical(lp[["resp"]], resp)) next
+    if (is.null(lp[["Z"]])) next
+    if (is.null(newdata)) {
+      cols <- c(cols, which(Matrix::colSums(abs(lp[["Z"]])) > 0))
+      next
+    }
+    ed <- tryCatch(suppressWarnings(
+      lp_eta_design(fit, lp, newdata, TRUE, allow_new_levels)),
+      error = function(e) NULL)
+    if (is.null(ed)) return(NULL)
+    if (length(ed[["re_parts"]])) {
+      Zn <- re_design_matrix(ed[["re_parts"]], ed[["n"]], n_c)
+      cols <- c(cols, which(Matrix::colSums(abs(Zn)) > 0))
+    }
+    for (sp in ed[["sm_parts"]]) {
+      used <- which(Matrix::colSums(abs(as.matrix(sp$Xr))) > 0)
+      cols <- c(cols, sp$bk[["c_idx"]][used])
+    }
+  }
+  cols <- unique(cols)
+  out <- integer(0)
+  for (bk in blocks) {
+    ci <- bk[["c_idx"]]
+    bi <- bk[["b_idx"]]
+    hit <- which(ci %in% cols)
+    if (!length(hit)) next
+    # A loaded COLUMN names one b position only where expand_b() is
+    # positionwise. An rr block's coefficient is that level's factors
+    # through the loadings, and an esicar block's is b minus its
+    # component's mean, so there one b entry reaches every coefficient
+    # of its component and a bound would drop Jacobian columns that are
+    # not zero. The whole block joins instead.
+    out <- c(out, if (block_b_positionwise(bk)) bi[hit] else bi)
+  }
+  sort(unique(out))
+}
+
+#' The rows each candidate group effect reaches, as one sparse
+#' indicator per linear predictor of `resp`, summed.
+#'
+#' It must cover EVERY column `re_used_b()` can return, because a
+#' column with no support here looks to `re_b_batches()` like a
+#' coefficient no row loads, and the batch then writes it a derivative
+#' of exactly zero. In sample the predictor's `Z` carries every block,
+#' including a factor smooth's basis. On new data the design is rebuilt
+#' in two pieces, and reading only `re_parts` left every factor-smooth
+#' column unsupported: `fitted(newdata = )` on a cumulative fit with
+#' `s(x, g, bs = "fs")` AND an ordinary group term put `Est.Error` 68
+#' percent wrong, silently, because the ordinary term gave the batch
+#' something to attribute while the smooth gave it nothing
+#' (`dev/reunc-log/fdsmooth-prefix.txt`). The error is not one-signed:
+#' the variance carries `2 Jd' Vdb Jb`, so zeroing a `Jb` column can
+#' move a cell either way. The smooth parts join it here.
+#'
+#' @noRd
+re_row_support <- function(fit, newdata, resp, allow_new_levels) {
+  n_c <- fit$frame[["n_c"]] %||% length(fit$estimates[["b"]])
+  out <- NULL
+  for (lp in fit$frame[["linpreds"]]) {
+    if (!is.null(resp) && !identical(lp[["resp"]], resp)) next
+    if (is.null(lp[["Z"]])) next
+    M <- if (is.null(newdata)) {
+      lp[["Z"]]
+    } else {
+      ed <- tryCatch(suppressWarnings(
+        lp_eta_design(fit, lp, newdata, TRUE, allow_new_levels)),
+        error = function(e) NULL)
+      if (is.null(ed)) return(NULL)
+      if (!length(ed[["re_parts"]]) && !length(ed[["sm_parts"]])) next
+      Zn <- if (length(ed[["re_parts"]])) {
+        re_design_matrix(ed[["re_parts"]], ed[["n"]], n_c)
+      } else {
+        Matrix::sparseMatrix(i = integer(0), j = integer(0),
+                             x = numeric(0), dims = c(ed[["n"]], n_c))
+      }
+      for (sp in ed[["sm_parts"]]) {
+        nz <- which(abs(as.matrix(sp$Xr)) > 0, arr.ind = TRUE)
+        if (!nrow(nz)) next
+        Zn <- Zn + Matrix::sparseMatrix(
+          i = nz[, 1L], j = sp$bk[["c_idx"]][nz[, 2L]], x = 1,
+          dims = c(ed[["n"]], n_c))
+      }
+      Zn
+    }
+    M <- methods::as(abs(M) > 0, "dMatrix")
+    out <- if (is.null(out)) M else out + M
+  }
+  out
+}
+
+#' Group the perturbed effects into batches that can be differenced
+#' TOGETHER, exactly.
+#'
+#' A finite difference over `b` costs one pair of model evaluations per
+#' coefficient, and in sample every level of every block is loaded, so
+#' the bound `re_used_b()` gives cannot help there: a cumulative fit
+#' with 1000 levels took 142 s.
+#'
+#' It does not have to cost that. Within ONE block a row loads at most
+#' one level, so perturbing every level of that block at once changes
+#' each row by exactly its own level's perturbation, and the difference
+#' read off that row is exactly the difference the single-coefficient
+#' perturbation would have produced. The other entries of that column
+#' are exactly zero either way. So a block costs ONE pair of
+#' evaluations rather than one per level, and the answer is the same
+#' number, not an approximation of it.
+#'
+#' The condition is checked, not assumed: a row that loads two levels of
+#' one block (a multi-membership term) breaks it, and so does a block
+#' whose coefficients are a function of several of its `b` entries (an
+#' `rr` block). Those fall back to one coefficient at a time.
+#'
+#' Returns a list of batches, each `list(idx, owner)`, where `owner[r]`
+#' is the position in `idx` of the effect that row `r` loads, or `NA`;
+#' or `NULL` when the design could not be built, which means "no
+#' batching".
+#'
+#' @noRd
+re_b_batches <- function(fit, newdata, resp, allow_new_levels, b_idx) {
+  if (!length(b_idx)) return(list())
+  S <- re_row_support(fit, newdata, resp, allow_new_levels)
+  if (is.null(S)) return(NULL)
+  out <- list()
+  for (bk in fit$frame[["re_blocks"]]) {
+    ci <- bk[["c_idx"]]
+    bi <- bk[["b_idx"]]
+    if (!any(bi %in% b_idx)) next
+    # The batch assumes expand_b() carries b to the coefficients
+    # POSITIONWISE, so that perturbing every level at once moves each
+    # row by its own level's step and nothing else. That is the whole
+    # premise and it is asked as itself, not through a proxy: the
+    # earlier test was `length(c_idx) != length(b_idx)`, which catches
+    # rr below full rank and misses rr AT full rank and esicar, where
+    # the lengths agree and `car_center()` subtracts the component
+    # mean, so every row moved by its own step MINUS the mean of all of
+    # them. No batching at all for such a block.
+    if (!block_b_positionwise(bk)) return(NULL)
+    # a positionwise block has one b entry per coefficient by
+    # definition, so this cannot fire; it is kept as an indexing guard
+    # because everything below indexes b_idx through c_idx's length
+    if (length(ci) != length(bi)) return(NULL)
+    D <- max(1L, bk[["dim"]])
+    # one batch per COLUMN POSITION of the block, not per block: a row
+    # of a `(1 + x | g)` term loads its level's intercept AND its slope,
+    # so a batch over the whole block could not attribute the
+    # difference, while a batch over one position holds one nonzero per
+    # row. An |ID| block spanning two predictors splits the same way,
+    # because each predictor is its own position.
+    for (k in seq_len(D)) {
+      at <- seq.int(k, length(ci), by = D)
+      keep <- at[bi[at] %in% b_idx]
+      if (!length(keep)) next
+      Sb <- S[, ci[keep], drop = FALSE]
+      # a row that loads two levels at this position cannot be
+      # attributed (a multi-membership term does exactly that)
+      if (max(Matrix::rowSums(Sb)) > 1) return(NULL)
+      owner <- rep(NA_integer_, nrow(Sb))
+      nz <- Matrix::which(Sb != 0, arr.ind = TRUE)
+      owner[nz[, 1L]] <- nz[, 2L]
+      out[[length(out) + 1L]] <- list(idx = bi[keep], owner = owner)
+    }
+  }
+  out
+}
+
+#' Positions in `b` of the blocks `re_formula` governs: every block with
+#' a component left in the (possibly reduced) design, and a smooth whose
+#' basis is indexed by a grouping factor. A population smooth, `gp()`
+#' and `hsgp()` stay out, because `re_formula = NA` keeps them too.
+#'
+#' @noRd
+re_governed_b <- function(fit) {
+  blocks <- fit$frame[["re_blocks"]]
+  gs <- unlist(lapply(fit$frame[["linpreds"]], smooth_group_block_ids))
+  ids <- integer(0)
+  for (i in seq_along(blocks)) {
+    bk <- blocks[[i]]
+    if (bk[["covstruct"]] %in% c("smooth", "gp", "hsgp")) {
+      if (i %in% gs) ids <- c(ids, bk[["b_idx"]])
+      next
+    }
+    if (length(bk[["components"]])) ids <- c(ids, bk[["b_idx"]])
+  }
+  sort(unique(ids))
 }

@@ -1,0 +1,16 @@
+rep 20 of 300, 364 s
+rep 40 of 300, 692 s
+rep 60 of 300, 1013 s
+rep 80 of 300, 1367 s
+rep 100 of 300, 1692 s
+rep 120 of 300, 2049 s
+rep 140 of 300, 2383 s
+rep 160 of 300, 2726 s
+rep 180 of 300, 3030 s
+rep 200 of 300, 3406 s
+rep 220 of 300, 3790 s
+rep 240 of 300, 4114 s
+rep 260 of 300, 4496 s
+rep 280 of 300, 4831 s
+rep 300 of 300, 5092 s
+done mixed12 lane in 5092.14 s

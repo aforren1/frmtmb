@@ -1,0 +1,11 @@
+﻿frmtmb from C:/Users/adf44/source/r/reunc2-lib/frmtmb 
+
+FIXED build
+  stream after conditional predict() == after re_formula = NA: TRUE
+  next runif() equal: TRUE  (0.5671238950 vs 0.5671238950)
+
+ROUND-1 ordering, reconstructed
+  stream after conditional predict() == after re_formula = NA: FALSE
+  next runif() equal: FALSE  (0.5671238950 vs 0.1416320675)
+  predictions identical to the fixed build: TRUE
+  uniforms consumed by the drawer (ndraws = 25): TRUE

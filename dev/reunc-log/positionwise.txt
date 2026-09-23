@@ -1,0 +1,44 @@
+﻿frmtmb from C:/Users/adf44/source/r/reunc2-lib/frmtmb 
+
+1. expand_b()'s own branches
+   rr branch present:            TRUE
+   esicar branch present:        TRUE
+   else branch is a plain copy:  TRUE
+   assignments to cvec[c_idx]:   3 (rr, esicar, copy)
+
+2. the registry: 24 covstructs, 4 car types
+
+ covstruct car_type guard_says expand_b_says agree
+       ar1                TRUE          TRUE  TRUE
+       car    escar       TRUE          TRUE  TRUE
+       car   esicar      FALSE         FALSE  TRUE
+       car     icar       TRUE          TRUE  TRUE
+       car     bym2       TRUE          TRUE  TRUE
+        cs                TRUE          TRUE  TRUE
+      diag                TRUE          TRUE  TRUE
+    diag_t                TRUE          TRUE  TRUE
+   equalto                TRUE          TRUE  TRUE
+       exp                TRUE          TRUE  TRUE
+       gau                TRUE          TRUE  TRUE
+        gp                TRUE          TRUE  TRUE
+    gr_cov                TRUE          TRUE  TRUE
+   gr_prec                TRUE          TRUE  TRUE
+    hetar1                TRUE          TRUE  TRUE
+     homcs                TRUE          TRUE  TRUE
+   homdiag                TRUE          TRUE  TRUE
+   homtoep                TRUE          TRUE  TRUE
+      hsgp                TRUE          TRUE  TRUE
+       mat                TRUE          TRUE  TRUE
+        ou                TRUE          TRUE  TRUE
+        rr               FALSE         FALSE  TRUE
+    smooth                TRUE          TRUE  TRUE
+      spde                TRUE          TRUE  TRUE
+      toep                TRUE          TRUE  TRUE
+        us                TRUE          TRUE  TRUE
+      us_t                TRUE          TRUE  TRUE
+
+   rows: 27; disagreements: 0
+   not positionwise: car(esicar), rr
+
+3. frame_needs_expand() agrees block by block
+   all 27 agree

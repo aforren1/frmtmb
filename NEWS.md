@@ -1,3 +1,95 @@
+# frmtmb (development version)
+
+`predict()` and `fitted()` carry the uncertainty in the group effects at
+a grouping level the fit saw, as brms does (user decision, 2026-09-22),
+and `re_formula` keeps the terms it names (lane `wt-reunc`).
+`dev/reunc-findings.md` has the construction and every measurement.
+
+* **`predict()` draws the group effects at a known level.** Each
+  replicate draws the whole vector of group effects from its
+  conditional law given the data and that replicate's parameters, read
+  from the fit's joint precision. For a linear mixed model this is the
+  prediction error variance of the best linear unbiased predictor,
+  jointly with the fixed effects. Two rows of one group share that
+  group's draw, so `predict(summary = FALSE)` is right across rows as
+  well as per row. The interval at a known level is wider than in
+  0.61.0, where the effects were held at their modes and the interval
+  under-covered. This holds under ML, `REML = TRUE` and
+  `control(profile = TRUE)`.
+  `re_formula = NA`, a model with no group-level term, and rows at a
+  level the fit never saw give the same draws as 0.61.0, bit for bit.
+  A fit made with `quadrature = TRUE` has no group effects in its joint
+  precision: it keeps them at their modes and warns.
+
+* **`fitted()` on an ordinal or categorical mixed fit** carries the
+  group-effect uncertainty in `Est.Error` and in the interval. The
+  finite-difference delta method used to cover the outer parameters
+  only; the group effects now join it, with their covariance taken
+  jointly with the parameters. On a cumulative fit with 10 groups the
+  0.61.0 standard error of a category probability was 0.59 to 0.95 of
+  the Monte Carlo value over the same joint law, and for `P(Y = 1)`
+  smaller than at `re_formula = NA`; it is now 0.92 to 1.09 of it. The
+  scalar route of `fitted()` already carried this term and does not
+  change.
+
+* **BREAKING: `predict()`'s `param_uncertainty` is now
+  `propagate_error`**, still defaulting to `TRUE`, and it now holds the
+  group effects at their estimates as well as the parameters. The old
+  name is removed rather than deprecated, so a call that uses it is an
+  error naming it. The new name states the axis: whether the error in
+  the ESTIMATES is propagated into the interval. A fitted group effect
+  is an estimate, so `propagate_error = FALSE` holds it, and what is
+  left is the observation noise. The fresh effect drawn for a level the
+  fit never saw is not an estimate and is unaffected, and neither is
+  the observation noise itself.
+
+  **It is not `re_formula` and neither argument can say the other's
+  thing.** `re_formula` chooses WHICH terms enter the prediction, so
+  only `re_formula = NA` can say "predict for an average group";
+  `propagate_error` chooses whether their error is carried, so only
+  `propagate_error = FALSE` can say "include this group's own effect
+  but treat it as known", which is what 0.61.0 did at every known
+  level. brms has no such argument, because each posterior draw carries
+  its own parameters and its own group effects.
+  `?predict.frmtmb_fit` has the four combinations.
+
+* **BREAKING: a one-sided `re_formula` keeps the terms it names**, in
+  `predict()`, `fitted()`, `frm_linpred()`, `frm_lp_basis()` and
+  everything that reads them. It used to keep EVERY term with nothing
+  said, so `re_formula = ~ (1 | g)` on a fit with `(1 | g) + (1 | h)`
+  returned the full prediction. brms's rule applies now: a term is kept
+  when the fit has a term with the same grouping factor whose columns
+  include its columns, so `~ (1 | g)` on a `(1 + x | g)` fit keeps the
+  intercept and drops the slope. A dropped term is gone from the
+  estimate, the standard error and the draws, and its grouping column is
+  not needed in `newdata`.
+
+* **BREAKING: `re_formula = ~1` means no group-level effects**, as in
+  brms and as `~0` already did, in `predict()`, `fitted()`,
+  `frm_linpred()` and `frm_lp_basis()`. It used to keep all of them.
+
+  **`simulate()` is the exception and does not change.** There
+  `re_formula` is lme4's switch: `NA` REDRAWS the group effects and
+  every other value conditions on them, so `~1`, `~0` and `~ (1 | g)`
+  all still give the same draws as `NULL`. The two readings now
+  differ, which matters for `dharma_residuals()` and for `pp_check()`
+  on a fit, because both go through `simulate()`. What a partial
+  formula should MEAN there is a decision rather than a fix, since
+  brms has no `simulate()`; it is filed in `dev/test-backlog.md`.
+
+* **BREAKING: a `re_formula` term that matches no term of the fit is an
+  error** that names the term and lists the fit's terms. It used to be
+  read as `NULL`. brms drops such a term silently, so
+  `re_formula = ~ (1 | nosuch)` there is the population-level
+  prediction; here it is refused, because a misspelled grouping factor
+  should not change the answer with nothing said. Use `re_formula = NA`
+  for the population level.
+
+* A `re_formula` that keeps SOME terms is refused on a fit that also
+  has group-level content a formula cannot name, such as a
+  factor-smooth term `s(x, g, bs = "fs")`: `NA` drops that content and
+  `NULL` keeps it, and a partial formula cannot say which.
+
 # frmtmb 0.61.0
 
 The silent wrong answers brms's own ported test suite found

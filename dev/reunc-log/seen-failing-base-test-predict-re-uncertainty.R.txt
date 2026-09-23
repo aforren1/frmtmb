@@ -1,0 +1,77 @@
+﻿LIB C:/Users/adf44/source/r/rellib-r3/frmtmb frmtmb C:/Users/adf44/source/r/rellib-r3/frmtmb
+Saving _problems/test-predict-re-uncertainty-51.R
+Saving _problems/test-predict-re-uncertainty-57.R
+Saving _problems/test-predict-re-uncertainty-51.R
+Saving _problems/test-predict-re-uncertainty-57.R
+Saving _problems/test-predict-re-uncertainty-51.R
+Saving _problems/test-predict-re-uncertainty-57.R
+Saving _problems/test-predict-re-uncertainty-78.R
+Saving _problems/test-predict-re-uncertainty-78.R
+Saving _problems/test-predict-re-uncertainty-78.R
+Saving _problems/test-predict-re-uncertainty-78.R
+Saving _problems/test-predict-re-uncertainty-131.R
+Saving _problems/test-predict-re-uncertainty-154.R
+Saving _problems/test-predict-re-uncertainty-206.R
+Saving _problems/test-predict-re-uncertainty-261.R
+Saving _problems/test-predict-re-uncertainty-318.R
+[ FAIL 15 | WARN 0 | SKIP 0 | PASS 15 ]
+
+══ Failed tests ════════════════════════════════════════════════════════════════
+── Failure ('test-predict-re-uncertainty.R:51:5'): two rows of one known group share that group's draw ──
+Expected ML < 4.
+Actual comparison: 17.8 >= 4.0
+Difference: 13.8 >= 0
+── Failure ('test-predict-re-uncertainty.R:57:5'): two rows of one known group share that group's draw ──
+Expected ML < 4.
+Actual comparison: 12.7 >= 4.0
+Difference: 8.7 >= 0
+── Failure ('test-predict-re-uncertainty.R:51:5'): two rows of one known group share that group's draw ──
+Expected REML < 4.
+Actual comparison: 18.6 >= 4.0
+Difference: 14.6 >= 0
+── Failure ('test-predict-re-uncertainty.R:57:5'): two rows of one known group share that group's draw ──
+Expected REML < 4.
+Actual comparison: 13.3 >= 4.0
+Difference: 9.3 >= 0
+── Failure ('test-predict-re-uncertainty.R:51:5'): two rows of one known group share that group's draw ──
+Expected profile < 4.
+Actual comparison: 17.8 >= 4.0
+Difference: 13.8 >= 0
+── Failure ('test-predict-re-uncertainty.R:57:5'): two rows of one known group share that group's draw ──
+Expected profile < 4.
+Actual comparison: 12.7 >= 4.0
+Difference: 8.7 >= 0
+── Failure ('test-predict-re-uncertainty.R:77:7'): with the parameter draw, rows covary as the joint law says ──
+Expected ML 1 3 < 4.
+Actual comparison: 14.2 >= 4.0
+Difference: 10.2 >= 0
+── Failure ('test-predict-re-uncertainty.R:77:7'): with the parameter draw, rows covary as the joint law says ──
+Expected ML 3 4 < 4.
+Actual comparison: 15.0 >= 4.0
+Difference: 11.0 >= 0
+── Failure ('test-predict-re-uncertainty.R:77:7'): with the parameter draw, rows covary as the joint law says ──
+Expected REML 1 3 < 4.
+Actual comparison: 16.0 >= 4.0
+Difference: 12.0 >= 0
+── Failure ('test-predict-re-uncertainty.R:77:7'): with the parameter draw, rows covary as the joint law says ──
+Expected REML 3 4 < 4.
+Actual comparison: 16.4 >= 4.0
+Difference: 12.4 >= 0
+── Failure ('test-predict-re-uncertainty.R:130:3'): an ordinal fit's category probabilities carry it too ──
+Expected `all(r > 0.85 & r < 1.18)` to be TRUE.
+Differences:
+`actual`:   FALSE
+`expected`: TRUE 
+
+0.598 0.941 0.688
+── Failure ('test-predict-re-uncertainty.R:153:3'): a quadrature fit says it cannot draw the group effects ──
+Expected `predict(fit, ndraws = 20)` to throw a warning with class <frmtmb_warning>.
+── Error ('test-predict-re-uncertainty.R:206:3'): bounding and batching the b difference changes no answer ──
+Error in `eval(code, test_env)`: object 're_governed_b' not found
+── Error ('test-predict-re-uncertainty.R:261:3'): a factor smooth keeps its contribution on newdata ──
+Error in `eval(code, test_env)`: object 're_governed_b' not found
+── Error ('test-predict-re-uncertainty.R:318:3'): a block whose b is not positionwise refuses to batch ──
+Error in `eval(code, test_env)`: object 're_governed_b' not found
+
+[ FAIL 15 | WARN 0 | SKIP 0 | PASS 15 ]
+RESULT test-predict-re-uncertainty.R pass=15 fail=12 err=3 skip=0

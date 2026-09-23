@@ -1,0 +1,2 @@
+﻿frmtmb 0.61.0 from C:/Users/adf44/source/r/reunc2-lib/frmtmb 
+wrote C:/Users/adf44/source/r/frmtmb-wt-reunc/dev/reunc-log/bitwise-lane.rds with 15 fits

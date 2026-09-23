@@ -215,7 +215,11 @@ wald      1531 of  2200 = 0.6959  (0.6762, 0.7151) binomial; replicate mean 0.69
   0.0046, 0.0004, 0.0140 and 0.0223. That is the direction the theory gives: the plug-in
   interval ignores the uncertainty in the estimates, so it is too
   narrow, and the gap grows with the number of parameters relative to
-  n. It is why `param_uncertainty = TRUE` is the default.
+  n. It is why that draw is on by default. (The argument was
+  `param_uncertainty` when this was measured and is `propagate_error`
+  since 2026-09-23; `dev/reunc-findings.md` section 13 has the rename.
+  The other mentions in this document are measurements taken under the
+  old name and are left as they were recorded.)
 - The poisson design OVER-covers, 0.9827, and that is not a defect of
   the construction. A predictive interval for a count is read off a
   LATTICE: the 2.5 and 97.5 percent empirical quantiles land on whole

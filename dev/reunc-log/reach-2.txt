@@ -1,0 +1,6 @@
+RESULT test-draws-methods.R pass=143 fail=0 err=0 skip=0
+RESULT test-brms-shapes-draws.R pass=61 fail=0 err=0 skip=0
+RESULT test-conditional-effects-draws.R pass=61 fail=0 err=0 skip=0
+RESULT test-adefects.R pass=20 fail=0 err=0 skip=0
+RESULT test-draws-spellings.R pass=97 fail=0 err=0 skip=0
+RESULT test-brms-output.R pass=21 fail=0 err=0 skip=0

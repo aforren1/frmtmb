@@ -1,0 +1,10 @@
+design mixed12, 300 replicates of 10 points, script dev/reunc-attrib.R
+true      coverage 0.9523  rep se 0.0040  z 0.59
+ml_est    coverage 0.9403  rep se 0.0047  z -2.06
+reml_est  coverage 0.9437  rep se 0.0045  z -1.40
+
+design few4, 300 replicates of 10 points, script dev/reunc-attrib.R
+true      coverage 0.9513  rep se 0.0039  z 0.34
+ml_est    coverage 0.9337  rep se 0.0048  z -3.38
+reml_est  coverage 0.9380  rep se 0.0047  z -2.56
+

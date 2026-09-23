@@ -1,0 +1,22 @@
+﻿frmtmb from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+
+1. the bound changes no answer (lane build only)
+  (base build has no bound to prove)
+
+2a. model evaluations, which do not depend on the machine
+
+2b. cost, best of 3, seconds. READ THE CONTROL FIRST: nd_NA is
+   0.61.0's own route and this lane does not touch it, so a
+   nd_NA that moves between runs says the machine moved.
+   in/nd: fitted() in sample and on 5 newdata rows, as shipped
+   in_full/nd_full: the same two calls differencing EVERY kept
+   level, one coefficient at a time, which is what this lane did
+   before the bound and the batch. in_full at 1000 levels is one
+   round rather than the best of three, because it is minutes.
+   nd_NA: re_formula = NA, which differences no group effect at
+   all and is what 0.61.0 cost
+levels   rows       in       nd  in_full  nd_full    nd_NA
+    20    120     0.05     0.05       NA       NA     0.03
+   100    600     0.20     0.08       NA       NA     0.03
+   200   1200     0.23     0.03       NA       NA     0.03
+  1000   6000     1.29     0.07       NA       NA     0.05

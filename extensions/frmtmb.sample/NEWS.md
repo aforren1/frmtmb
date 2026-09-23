@@ -1,3 +1,16 @@
+# frmtmb.sample (development version)
+
+* **A one-sided `re_formula` on draws keeps the terms it names**, in
+  `posterior_epred()`, `posterior_linpred()`, `posterior_predict()`,
+  `fitted()` and `predict()`. Each draw is evaluated through
+  `frmtmb::frm_linpred()`, which kept every term for any formula; the
+  fix is in frmtmb's development version, so it needs that frmtmb. On
+  a `(1 + x | g) + (1 | h)` fit, `re_formula = ~ (1 | g)` used to be
+  off the draw's own intercept-only construction by up to 2.98; it now
+  equals it. A term the fit does not have is an error that names it.
+  The draws already carry each draw's sampled group effects, so the
+  uncertainty at a known level was in them before and nothing is added.
+
 # frmtmb.sample 0.9.0
 
 * **`log_lik()` is frmtmb's generic now, re-exported here**, rather than

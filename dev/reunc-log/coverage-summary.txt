@@ -1,0 +1,76 @@
+design few4  build base (frmtmb 0.61.0)  script dev/reunc-coverage.R
+replicates with results 300 of 300 (distinct seeds 300, failed 0)  points per replicate 10  ndraws 1000  seed0 20260923
+arm                 hits   cover   binomial 95% CI  rep se       z       p    width
+pred_ml       2818/ 3000  0.9393  (0.9302, 0.9476)  0.0048   -2.24  0.0252   4.1176
+pred_reml     2837/ 3000  0.9457  (0.9369, 0.9535)  0.0045   -0.96  0.3393   4.2298
+pred_prof     2820/ 3000  0.9400  (0.9309, 0.9482)  0.0048   -2.10  0.0360   4.1092
+pred_plug     2753/ 3000  0.9177  (0.9073, 0.9273)  0.0054   -5.96  0.0000   3.7714
+oracle_pred   2854/ 3000  0.9513  (0.9430, 0.9588)  0.0039    0.34  0.7310   4.1138
+fit_ml        2693/ 3000  0.8977  (0.8863, 0.9083)  0.0095   -5.50  0.0000   1.2452
+fit_reml      2741/ 3000  0.9137  (0.9030, 0.9235)  0.0085   -4.29  0.0000   1.2772
+oracle_mean   2844/ 3000  0.9480  (0.9394, 0.9557)  0.0062   -0.32  0.7456   1.2479
+wald_obs      1330/ 3000  0.4433  (0.4255, 0.4613)  0.0097  -52.24  0.0000   1.2452
+coverage by |u| tercile (the claim is the average, not these):
+  pred_ml      low 0.9431  mid 0.9281  high 0.9468
+  pred_reml    low 0.9491  mid 0.9341  high 0.9539
+  oracle_pred  low 0.9530  mid 0.9521  high 0.9488
+  fit_ml       low 0.9141  mid 0.9002  high 0.8786
+  oracle_mean  low 0.9510  mid 0.9571  high 0.9358
+
+design few4  build lane (frmtmb 0.61.0)  script dev/reunc-coverage.R
+replicates with results 300 of 300 (distinct seeds 300, failed 0)  points per replicate 10  ndraws 1000  seed0 20260923
+arm                 hits   cover   binomial 95% CI  rep se       z       p    width
+pred_ml       2815/ 3000  0.9383  (0.9291, 0.9467)  0.0048   -2.45  0.0142   4.0525
+pred_reml     2826/ 3000  0.9420  (0.9330, 0.9501)  0.0046   -1.75  0.0798   4.1230
+pred_prof     2815/ 3000  0.9383  (0.9291, 0.9467)  0.0048   -2.43  0.0151   4.0546
+pred_plug     2773/ 3000  0.9243  (0.9143, 0.9335)  0.0053   -4.87  0.0000   3.8854
+oracle_pred   2854/ 3000  0.9513  (0.9430, 0.9588)  0.0039    0.34  0.7310   4.1138
+fit_ml        2693/ 3000  0.8977  (0.8863, 0.9083)  0.0095   -5.50  0.0000   1.2452
+fit_reml      2741/ 3000  0.9137  (0.9030, 0.9235)  0.0085   -4.29  0.0000   1.2772
+oracle_mean   2844/ 3000  0.9480  (0.9394, 0.9557)  0.0062   -0.32  0.7456   1.2479
+wald_obs      1330/ 3000  0.4433  (0.4255, 0.4613)  0.0097  -52.24  0.0000   1.2452
+coverage by |u| tercile (the claim is the average, not these):
+  pred_ml      low 0.9411  mid 0.9331  high 0.9408
+  pred_reml    low 0.9431  mid 0.9331  high 0.9498
+  oracle_pred  low 0.9530  mid 0.9521  high 0.9488
+  fit_ml       low 0.9141  mid 0.9002  high 0.8786
+  oracle_mean  low 0.9510  mid 0.9571  high 0.9358
+
+design mixed12  build base (frmtmb 0.61.0)  script dev/reunc-coverage.R
+replicates with results 300 of 300 (distinct seeds 300, failed 0)  points per replicate 10  ndraws 1000  seed0 20260922
+arm                 hits   cover   binomial 95% CI  rep se       z       p    width
+pred_ml       2794/ 3000  0.9313  (0.9217, 0.9401)  0.0051   -3.67  0.0002   4.0254
+pred_reml     2803/ 3000  0.9343  (0.9249, 0.9429)  0.0050   -3.14  0.0017   4.0772
+pred_prof     2791/ 3000  0.9303  (0.9206, 0.9392)  0.0051   -3.84  0.0001   4.0254
+pred_plug     2740/ 3000  0.9133  (0.9027, 0.9232)  0.0056   -6.60  0.0000   3.8343
+oracle_pred   2857/ 3000  0.9523  (0.9441, 0.9597)  0.0040    0.59  0.5560   4.2153
+fit_ml        2751/ 3000  0.9170  (0.9065, 0.9266)  0.0072   -4.58  0.0000   1.5586
+fit_reml      2778/ 3000  0.9260  (0.9160, 0.9351)  0.0067   -3.57  0.0004   1.5892
+oracle_mean   2844/ 3000  0.9480  (0.9394, 0.9557)  0.0050   -0.40  0.6909   1.5503
+wald_obs      1602/ 3000  0.5340  (0.5160, 0.5520)  0.0090  -46.01  0.0000   1.5586
+coverage by |u| tercile (the claim is the average, not these):
+  pred_ml      low 0.9351  mid 0.9309  high 0.9280
+  pred_reml    low 0.9361  mid 0.9329  high 0.9340
+  oracle_pred  low 0.9530  mid 0.9540  high 0.9500
+  fit_ml       low 0.9590  mid 0.9229  high 0.8690
+  oracle_mean  low 0.9670  mid 0.9590  high 0.9180
+
+design mixed12  build lane (frmtmb 0.61.0)  script dev/reunc-coverage.R
+replicates with results 300 of 300 (distinct seeds 300, failed 0)  points per replicate 10  ndraws 1000  seed0 20260922
+arm                 hits   cover   binomial 95% CI  rep se       z       p    width
+pred_ml       2822/ 3000  0.9407  (0.9316, 0.9489)  0.0048   -1.96  0.0506   4.1839
+pred_reml     2835/ 3000  0.9450  (0.9362, 0.9529)  0.0047   -1.06  0.2900   4.2358
+pred_prof     2822/ 3000  0.9407  (0.9316, 0.9489)  0.0047   -1.99  0.0461   4.1828
+pred_plug     2795/ 3000  0.9317  (0.9220, 0.9404)  0.0050   -3.68  0.0002   4.0560
+oracle_pred   2857/ 3000  0.9523  (0.9441, 0.9597)  0.0040    0.59  0.5560   4.2153
+fit_ml        2751/ 3000  0.9170  (0.9065, 0.9266)  0.0072   -4.58  0.0000   1.5586
+fit_reml      2778/ 3000  0.9260  (0.9160, 0.9351)  0.0067   -3.57  0.0004   1.5892
+oracle_mean   2844/ 3000  0.9480  (0.9394, 0.9557)  0.0050   -0.40  0.6909   1.5503
+wald_obs      1602/ 3000  0.5340  (0.5160, 0.5520)  0.0090  -46.01  0.0000   1.5586
+coverage by |u| tercile (the claim is the average, not these):
+  pred_ml      low 0.9431  mid 0.9399  high 0.9390
+  pred_reml    low 0.9461  mid 0.9469  high 0.9420
+  oracle_pred  low 0.9530  mid 0.9540  high 0.9500
+  fit_ml       low 0.9590  mid 0.9229  high 0.8690
+  oracle_mean  low 0.9670  mid 0.9590  high 0.9180
+

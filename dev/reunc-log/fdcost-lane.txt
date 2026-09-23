@@ -1,0 +1,37 @@
+﻿frmtmb from C:/Users/adf44/source/r/reunc2-lib/frmtmb 
+
+1. the bound changes no answer (lane build only)
+  20 levels: kept 20, loaded by the 2 rows 2 (1,11)
+  against differencing every kept level, one at a time:
+    identical FALSE; max abs 2.78e-17, max relative 2.05e-16, max ulp 0.9
+  in sample: loaded 20 of 20 kept
+  in sample, batched against one at a time:
+    identical FALSE; max abs 2.78e-17, max relative 2.22e-16, max ulp 1.0
+  two blocks, batched against one at a time:
+    identical FALSE; max abs 5.55e-17, max relative 4.14e-16, max ulp 1.9
+  random slope: 40 coefficients in 2 batches
+    identical FALSE; max abs 5.55e-17, max relative 3.5e-16, max ulp 1.6
+  multi-membership: batches refused (as it must), identical: TRUE
+
+2a. model evaluations, which do not depend on the machine
+levels       in       nd  in_full  nd_full
+    20       11       11       49       49
+   100       11       11      209      209
+   200       11       11      409      409
+  1000       11       11     2009     2009
+
+2b. cost, best of 3, seconds. READ THE CONTROL FIRST: nd_NA is
+   0.61.0's own route and this lane does not touch it, so a
+   nd_NA that moves between runs says the machine moved.
+   in/nd: fitted() in sample and on 5 newdata rows, as shipped
+   in_full/nd_full: the same two calls differencing EVERY kept
+   level, one coefficient at a time, which is what this lane did
+   before the bound and the batch. in_full at 1000 levels is one
+   round rather than the best of three, because it is minutes.
+   nd_NA: re_formula = NA, which differences no group effect at
+   all and is what 0.61.0 cost
+levels   rows       in       nd  in_full  nd_full    nd_NA
+    20    120     0.03     0.03     0.11     0.09     0.01
+   100    600     0.09     0.03     1.63     0.44     0.01
+   200   1200     0.17     0.03     6.08     0.85     0.01
+  1000   6000     1.08     0.05   190.10     4.64     0.01
