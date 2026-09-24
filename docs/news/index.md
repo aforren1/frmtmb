@@ -1,5 +1,276 @@
 # Changelog
 
+## frmtmb 0.62.0
+
+- **A
+  [`skew_normal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  fit that used to stop at `alpha = 0` now finds the maximum.**
+  `alpha = 0` is a stationary point of the skew-normal likelihood at
+  every sample, and the information is singular there, so a fit that
+  reached it converged with code 0, no warning, and a log-likelihood up
+  to 35 units below the optimum. The start is what put it there: `alpha`
+  was started from the sign of the RESPONSE’s skewness, and a covariate
+  can give the response the opposite skew from the residual. Two things
+  change. `alpha` and `sigma` now start from the response with its `mu`
+  predictor removed, including any
+  [`offset()`](https://rdrr.io/r/stats/offset.html), not from the raw
+  response. And a fit that lands on `alpha = 0` anyway is refit from
+  `+2` and from `-2`, keeping the best optimum.
+
+  Both halves read the `alpha` PREDICTOR rather than an `"(Intercept)"`
+  coefficient, so they apply to `alpha ~ 0 + g` as well as to
+  `alpha ~ g`. Cell-means syntax used to get neither: it started every
+  coefficient at zero, which is exactly the stationary point, and stayed
+  there.
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+  carries a component’s escape through.
+
+  That placement is confined to a dpar that declares a stationary point,
+  which today means
+  [`skew_normal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)’s
+  `alpha` and nothing else. Every other dpar keeps the previous rule, an
+  intercept or nothing.
+
+  Nothing is printed. The refit runs only when a fit reaches the
+  stationary point, and on a 200-fit spread of skew-normal designs that
+  was 10 fits, costing 0.1 extra optimizer runs per fit overall; a fit
+  that pays for it takes about 1.3 times as long.
+  `fit$opt$stationary_escape` records the restarts and what they gained.
+
+  What this changes for you, and nothing else does. A
+  [`skew_normal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  fit moves when its `mu` predictor is anything other than a bare
+  intercept: a covariate, an
+  [`offset()`](https://rdrr.io/r/stats/offset.html), or a design with no
+  intercept. It also moves when `alpha`’s own design has no intercept.
+  There [`logLik()`](https://rdrr.io/r/stats/logLik.html), the estimates
+  and the standard errors can all differ from 0.61.0, and where they
+  differ the new value is the higher likelihood.
+
+  A
+  [`skew_normal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  fit with `mu ~ 1` and no offset is unchanged to the last bit, and so
+  is **every other family**, including intercept-less designs such as
+  `y ~ 0 + g` and distributional ones such as `sigma ~ 0 + g`.
+
+- A family’s `init_dpars` function may declare a third argument,
+  `(y, aterms, resid)`, and is then given the response with its `mu`
+  predictor taken out by least squares. A two-argument initializer is
+  still called with two arguments. A family may also declare
+  `post$stationary`, which says where its likelihood has a stationary
+  point and where to restart from when a fit reaches one. See
+  [`?frmtmb_family`](https://aforren1.github.io/frmtmb/reference/frmtmb_family.md).
+
+Seven places where frmtmb answered differently from brms 2.23.0 on the
+same model (lane `wt-correct`; `dev/correct-findings.md` has each
+construction and its brms measurement).
+
+- **BREAKING: [`residuals()`](https://rdrr.io/r/stats/residuals.html)
+  refuses `type = "response"` (brms’s `"ordinary"`, also the default)
+  and `type = "pearson"` on an ordinal
+  ([`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md))
+  or
+  [`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  fit**, as brms refuses them (“Predictive errors are not defined for
+  ordinal or categorical models”). Until now an ordinal fit returned a
+  residual on the category codes, `y - sum_k k P(Y = k)`, which brms
+  does not define. `type = "osa"` still works on an ordinal fit and uses
+  only the order. `plot(fit)` is unchanged.
+
+- **[`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
+  on a fit works for every `*_grouped` type and takes `x`.**
+  `group = "g"` and `x = "x"` reached bayesplot as one string, so every
+  grouped type and every type with an `x` failed. Both names are now
+  looked up in the model frame, as brms looks them up, and a name the
+  model does not use is refused. Every type
+  [`bayesplot::available_ppc()`](https://mc-stan.org/bayesplot/reference/available_ppc.html)
+  lists (49 in bayesplot 1.16.0) now does on a fit what it does in brms,
+  except the `loo_*` types, which need posterior draws and are refused
+  with the reason.
+
+- **BREAKING:
+  [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
+  on a fit takes brms’s arguments in brms’s order**: `type`, `ndraws`,
+  `prefix`, `group`, `x`, `newdata`, `resp`, with `re_formula` after the
+  dots. A positional fourth argument used to be `re_formula` and is now
+  `prefix`. `prefix = "ppd"` plots the simulated responses alone. A type
+  that is not a ppc type, such as `"violin"`, is refused with the list
+  of valid types instead of “object ‘ppc_violin’ not found”.
+  `type = "error_binned"` is refused on an ordinal, categorical or
+  multinomial fit, as in brms. `newdata`, `draw_ids`, `nsamples` and
+  `subset` are refused with the reason. On a categorical fit the
+  simulated categories reach bayesplot as their codes, so `"bars"` and
+  `"error_hist"` work there.
+
+- [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
+  on a fit follows brms on two smaller points as well. `resp` is
+  accepted and ignored on a model with one response, which is what brms
+  does with it there. And a `group` or `x` given for a type that has no
+  such argument reaches bayesplot, so bayesplot warns “unrecognized and
+  ignored” exactly where brms makes it warn. brms is asymmetric about a
+  name its data does not carry, and the asymmetry is copied: such a
+  `group` is dropped and warns nothing, while such an `x` becomes
+  `numeric(0)`, stays, and warns.
+
+- **BREAKING: a class `"sd"` prior reaches only its own response,
+  distributional parameter and nonlinear parameter**, which is how brms
+  scopes it. `set_prior("normal(0, 5)", class = "sd", group = "g")` on
+  `bf(y ~ x + (1 | g), phi ~ (1 | g))` put the prior on the `phi` block
+  too, where brms leaves that block at its own default. In a
+  multivariate model a class `"sd"` prior with no `resp`, and in a
+  nonlinear model one with no `nlpar`, used to reach every block; both
+  are now refused, as brms refuses them, and the message lists the
+  prefixes the model has. A block that spans several predictors,
+  `(1 | q | g)` in `mu` and `sigma`, keeps brms’s own rule: there a
+  specification with a field left empty reaches the whole block. A fit
+  with such a prior changes its estimate;
+  [`default_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+  lists one class-wide `"sd"` row per prefix. This covers a SMOOTH’s
+  smoothing standard deviation as well, which class `"sd"` also
+  addresses here: on `bf(y ~ s(x), sigma ~ s(z))` a bare class `"sd"`
+  prior reached both smooths and now reaches the `mu` one only, and
+  [`default_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+  grows a `dpar = "sigma"` row for the other. brms keys its `sds` rows
+  by the same prefix.
+
+- **BREAKING: a `mi()` coefficient is named `bsp_<resp>_mi<x>`**, as in
+  brms, where it was `b_<resp>_mi<x>`. This changes
+  [`variables()`](https://aforren1.github.io/frmtmb/reference/variables.md),
+  draws, and
+  [`hypothesis()`](https://aforren1.github.io/frmtmb/reference/hypothesis.md):
+  the bare `"y_mixm > 0"` is refused as brms refuses it; write
+  `hypothesis(fit, "bsp_y_mixm > 0", class = NULL)`.
+  [`fixef()`](https://aforren1.github.io/frmtmb/reference/fixef.md),
+  [`vcov()`](https://rdrr.io/r/stats/vcov.html) and
+  [`summary()`](https://rdrr.io/r/base/summary.html) keep the name
+  `y_mixm` and now list it after every ordinary coefficient, in brms’s
+  order, with a `mi(x) * z` main effect ahead of its interaction.
+
+- **BREAKING: a mixture’s reference component is the one whose theta has
+  no formula**, as in brms. `bf(y ~ 1, theta2 ~ x)` on two components
+  used to be refused; it now fits with component 1 as the reference, so
+  `theta2`’s coefficients are the log odds of component 2 against
+  component 1. A formula for fewer than `K - 1` of the thetas is refused
+  (“Can only predict all but one mixing proportion”), where `theta1 ~ x`
+  on three components used to fit with an intercept-only `theta2`.
+
+- [`?frm`](https://aforren1.github.io/frmtmb/reference/frm.md) now says,
+  under `REML`, that mgcv’s `method = "REML"` for a location-scale
+  family integrates the coefficients of every linear predictor, so the
+  two REML criteria differ for a smooth in `sigma`. `test-smooths.R`
+  measures the gap.
+
+[`predict()`](https://rdrr.io/r/stats/predict.html) and
+[`fitted()`](https://rdrr.io/r/stats/fitted.values.html) carry the
+uncertainty in the group effects at a grouping level the fit saw, as
+brms does (user decision, 2026-09-22), and `re_formula` keeps the terms
+it names (lane `wt-reunc`). `dev/reunc-findings.md` has the construction
+and every measurement.
+
+- **[`predict()`](https://rdrr.io/r/stats/predict.html) draws the group
+  effects at a known level.** Each replicate draws the whole vector of
+  group effects from its conditional law given the data and that
+  replicate’s parameters, read from the fit’s joint precision. For a
+  linear mixed model this is the prediction error variance of the best
+  linear unbiased predictor, jointly with the fixed effects. Two rows of
+  one group share that group’s draw, so `predict(summary = FALSE)` is
+  right across rows as well as per row. The interval at a known level is
+  wider than in 0.61.0, where the effects were held at their modes and
+  the interval under-covered. This holds under ML, `REML = TRUE` and
+  `control(profile = TRUE)`. `re_formula = NA`, a model with no
+  group-level term, and rows at a level the fit never saw give the same
+  draws as 0.61.0, bit for bit. A fit made with `quadrature = TRUE` has
+  no group effects in its joint precision: it keeps them at their modes
+  and warns.
+
+- **[`fitted()`](https://rdrr.io/r/stats/fitted.values.html) on an
+  ordinal or categorical mixed fit** carries the group-effect
+  uncertainty in `Est.Error` and in the interval. The finite-difference
+  delta method used to cover the outer parameters only; the group
+  effects now join it, with their covariance taken jointly with the
+  parameters. On a cumulative fit with 10 groups the 0.61.0 standard
+  error of a category probability was 0.59 to 0.95 of the Monte Carlo
+  value over the same joint law, and for `P(Y = 1)` smaller than at
+  `re_formula = NA`; it is now 0.92 to 1.09 of it. The scalar route of
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) already
+  carried this term and does not change.
+
+- **BREAKING: [`predict()`](https://rdrr.io/r/stats/predict.html)’s
+  `param_uncertainty` is now `propagate_error`**, still defaulting to
+  `TRUE`, and it now holds the group effects at their estimates as well
+  as the parameters. The old name is removed rather than deprecated, so
+  a call that uses it is an error naming it. The new name states the
+  axis: whether the error in the ESTIMATES is propagated into the
+  interval. A fitted group effect is an estimate, so
+  `propagate_error = FALSE` holds it, and what is left is the
+  observation noise. The fresh effect drawn for a level the fit never
+  saw is not an estimate and is unaffected, and neither is the
+  observation noise itself.
+
+  **It is not `re_formula` and neither argument can say the other’s
+  thing.** `re_formula` chooses WHICH terms enter the prediction, so
+  only `re_formula = NA` can say “predict for an average group”;
+  `propagate_error` chooses whether their error is carried, so only
+  `propagate_error = FALSE` can say “include this group’s own effect but
+  treat it as known”, which is what 0.61.0 did at every known level.
+  brms has no such argument, because each posterior draw carries its own
+  parameters and its own group effects.
+  [`?predict.frmtmb_fit`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md)
+  has the four combinations.
+
+- **BREAKING: a one-sided `re_formula` keeps the terms it names**, in
+  [`predict()`](https://rdrr.io/r/stats/predict.html),
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  [`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md),
+  [`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.md)
+  and everything that reads them. It used to keep EVERY term with
+  nothing said, so `re_formula = ~ (1 | g)` on a fit with
+  `(1 | g) + (1 | h)` returned the full prediction. brms’s rule applies
+  now: a term is kept when the fit has a term with the same grouping
+  factor whose columns include its columns, so `~ (1 | g)` on a
+  `(1 + x | g)` fit keeps the intercept and drops the slope. A dropped
+  term is gone from the estimate, the standard error and the draws, and
+  its grouping column is not needed in `newdata`.
+
+- **BREAKING: `re_formula = ~1` means no group-level effects**, as in
+  brms and as `~0` already did, in
+  [`predict()`](https://rdrr.io/r/stats/predict.html),
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  [`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md)
+  and
+  [`frm_lp_basis()`](https://aforren1.github.io/frmtmb/reference/frm_lp_basis.md).
+  It used to keep all of them.
+
+  **[`simulate()`](https://rdrr.io/r/stats/simulate.html) is the
+  exception and does not change.** There `re_formula` is lme4’s switch:
+  `NA` REDRAWS the group effects and every other value conditions on
+  them, so `~1`, `~0` and `~ (1 | g)` all still give the same draws as
+  `NULL`. The two readings now differ, which matters for
+  [`dharma_residuals()`](https://aforren1.github.io/frmtmb/reference/dharma_residuals.md)
+  and for
+  [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
+  on a fit, because both go through
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html). What a partial
+  formula should MEAN there is a decision rather than a fix, since brms
+  has no [`simulate()`](https://rdrr.io/r/stats/simulate.html); it is
+  filed in `dev/test-backlog.md`.
+
+- **BREAKING: a `re_formula` term that matches no term of the fit is an
+  error** that names the term and lists the fit’s terms. It used to be
+  read as `NULL`. brms drops such a term silently, so
+  `re_formula = ~ (1 | nosuch)` there is the population-level
+  prediction; here it is refused, because a misspelled grouping factor
+  should not change the answer with nothing said. Use `re_formula = NA`
+  for the population level.
+
+- A `re_formula` that keeps SOME terms is refused on a fit that also has
+  group-level content a formula cannot name, such as a factor-smooth
+  term `s(x, g, bs = "fs")`: `NA` drops that content and `NULL` keeps
+  it, and a partial formula cannot say which.
+
 ## frmtmb 0.61.0
 
 The silent wrong answers brms’s own ported test suite found (item 2.6f,

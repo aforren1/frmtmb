@@ -2,17 +2,11 @@
 
 `mixture(fam1, fam2, ...)` builds a K-component mixture: each component
 keeps its own distributional parameters, suffixed by the component index
-(`mu1`, `sigma1`, `mu2`, ...), and the mixing A mixing weight's RESPONSE
-scale is the softmax over the component predictors, so
-`frm_linpred(type = "response", dpar = "theta1")` is a probability while
-`type = "link"` stays the predictor the density works on. Under
-`se.fit = TRUE` that probability's standard error is the delta method
-through its OWN predictor, `p (1 - p)` times the predictor's standard
-error. For two components that is exact. For three or more the softmax
-also moves with the other components' predictors, and those terms are
-dropped, so the standard error is CONSERVATIVE: measured 5.5% to 26.1%
-wider than the joint delta method on a three-component fit, never
-narrower.
+(`mu1`, `sigma1`, `mu2`, ...), and the mixing proportions come from
+`theta1 ... theta{K-1}` (multinomial logit against the last component,
+each with its own linear predictor, so mixing weights may depend on
+covariates). The main model formula applies to every component mean;
+override per component with `bf(y ~ x, mu2 ~ 1)`.
 
 ## Usage
 
@@ -36,10 +30,23 @@ A `frmtmb_family`.
 
 ## Details
 
-proportions come from `theta1 ... theta{K-1}` (multinomial-logit against
-the last component, each with its own linear predictor - so mixing
-weights may depend on covariates). The main model formula applies to
-every component mean; override per component with `bf(y ~ x, mu2 ~ 1)`.
+A formula for a mixing weight follows brms's rule. Write one for all of
+`theta1 ... thetaK` but one, and the one left out is the reference
+component, whose linear predictor is 0: `bf(y ~ 1, theta2 ~ x)` on two
+components makes component 1 the reference, so `theta2`'s coefficients
+are the log odds of component 2 against component 1. A formula for fewer
+of them is refused, as brms refuses it.
+
+A mixing weight's RESPONSE scale is the softmax over the component
+predictors, so `frm_linpred(type = "response", dpar = "theta1")` is a
+probability while `type = "link"` stays the predictor the density works
+on. Under `se.fit = TRUE` that probability's standard error is the delta
+method through its OWN predictor, `p (1 - p)` times the predictor's
+standard error. For two components that is exact. For three or more the
+softmax also moves with the other components' predictors, and those
+terms are dropped, so the standard error is CONSERVATIVE: measured 5.5%
+to 26.1% wider than the joint delta method on a three-component fit,
+never narrower.
 
 The likelihood is a parameter-branch-free logsumexp, so Laplace
 machinery is untouched; the usual finite-mixture ML caveats apply

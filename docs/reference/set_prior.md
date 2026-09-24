@@ -85,7 +85,16 @@ Classes and their scales:
 - `"sd"`: random-effect standard deviations (and smoothing SDs), on the
   NATURAL sd scale with the log-Jacobian applied, so
   `set_prior("exponential(1)", class = "sd")` means what it says; narrow
-  with `group`.
+  with `group`. As in brms, `resp`, `dpar` and `nlpar` select the
+  standard deviations of that response, distributional parameter and
+  nonlinear parameter only, and leaving one empty selects the empty one:
+  with no `dpar` the specification reaches the location parameter's
+  blocks and not a `phi ~ (1 | g)` block, and in a multivariate model a
+  specification with no `resp` reaches nothing and is refused. A block
+  that spans several predictors, `(1 | q | g)` in both `mu` and `sigma`,
+  is the one exception, as it is in brms: there a specification that
+  leaves a field empty reaches every standard deviation of the block,
+  and a more specific one takes over its own.
 
 - `"cor"`: the CORRELATION of a random-effect block, as a whole.
   `lkj(eta)` only, and it addresses a BLOCK the way class `"sd"` does,

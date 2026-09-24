@@ -17,7 +17,7 @@ formula)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -367,7 +367,21 @@ and no fitted object ever carries a non-centered tape.</p>
 <p>Both routes default to brms 2.23's own weakly-informative
 priors, read off <code><a href="https://paulbuerkner.com/brms/reference/default_prior.html" class="external-link">brms::default_prior()</a></code> on matched models. Write
 <code>y*</code> for the response transformed by the <code>mu</code> link and
-<code>s = max(2.5, round(mad(y*), 1))</code>:</p><table class="table table"><tr><td>class</td><td>default</td><td>scale</td></tr><tr><td><code>b</code> (slopes)</td><td>flat</td><td>-</td></tr><tr><td><code>Intercept</code></td><td><code>student_t(3, round(median(y*), 1), s)</code></td><td>link</td></tr><tr><td><code>sd</code></td><td><code>student_t(3, 0, s)</code></td><td>natural sd, log-Jacobian applied</td></tr><tr><td><code>cor</code></td><td><code>lkj(1)</code></td><td>correlation matrix, Jacobian applied</td></tr><tr><td><code>sigma</code> (intercept only)</td><td><code>student_t(3, 0, s)</code></td><td>natural</td></tr><tr><td><code>sigma</code> (with a predictor)</td><td><code>student_t(3, 0, 2.5)</code></td><td>log</td></tr></table><p>The link is transformed only for <code>identity</code>, <code>log</code>, <code>inverse</code>,
+<code>s = max(2.5, round(mad(y*), 1))</code>:</p><table class="table table"><tr><td>class</td><td>default</td><td>scale</td></tr><tr><td><code>b</code> (slopes)</td><td>flat</td><td>-</td></tr><tr><td><code>Intercept</code></td><td><code>student_t(3, round(median(y*), 1) - m, s)</code></td><td>link</td></tr><tr><td><code>sd</code></td><td><code>student_t(3, 0, s)</code></td><td>natural sd, log-Jacobian applied</td></tr><tr><td><code>cor</code></td><td><code>lkj(1)</code></td><td>correlation matrix, Jacobian applied</td></tr><tr><td><code>rescor</code></td><td><code>lkj(1)</code></td><td>correlation matrix, Jacobian applied</td></tr><tr><td><code>sigma</code> (intercept only)</td><td><code>student_t(3, 0, s)</code></td><td>natural</td></tr><tr><td><code>sigma</code> (with a predictor)</td><td><code>student_t(3, 0, 2.5)</code></td><td>log</td></tr></table><p><code>m</code> is the mean of the predictor's <code><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset()</a></code>, 0 without one. brms
+takes it off because an offset moves the intercept by that much, and
+only under the links below that transform the response; under any
+other link the location stays 0.</p>
+<p>The <code>sd</code> default is written once per response, distributional
+parameter and nonlinear parameter that has a random-effect standard
+deviation, as brms writes one row for each. A class <code>"sd"</code>
+specification reaches only its own response, distributional
+parameter and nonlinear parameter (see <code><a href="https://aforren1.github.io/frmtmb/reference/set_prior.html" class="external-link">frmtmb::set_prior()</a></code>), so a
+<code>set_prior(class = "sd")</code> of your own replaces the location
+parameter's default and leaves, for example, a <code>phi</code> block's default
+in place, as in brms.</p>
+<p>A multivariate model reads <code>y*</code> and <code>s</code> off each response for that
+response's rows, which are written with <code>resp</code>, as brms's are.</p>
+<p>The link is transformed only for <code>identity</code>, <code>log</code>, <code>inverse</code>,
 <code>sqrt</code> and <code>1/mu^2</code> - brms's own list - with a log-scale family
 (<code><a href="https://aforren1.github.io/frmtmb/reference/frmtmb-families.html" class="external-link">frmtmb::lognormal()</a></code> and its relatives, whose <code>mu</code> link is spelled
 <code>identity</code> but whose response is logged inside the density) counted
@@ -407,10 +421,6 @@ coefficients are class <code>b</code>, and the response's median and mad say
 nothing about a rate or a shape sitting inside a nonlinear body.
 Write them with <code>set_prior(nlpar = )</code>, as the brms nonlinear
 vignette does.</p></li>
-<li><p>MULTIVARIATE models get no defaults at all: the default location
-and scale are read off ONE response, and frmtmb does not read them
-per response. <code>set_prior(resp = )</code> addresses one response, so
-they can be written by hand.</p></li>
 </ul><p><em>Overriding and opting out.</em> A <code><a href="https://aforren1.github.io/frmtmb/reference/set_prior.html" class="external-link">set_prior()</a></code> specification takes over
 the classes it names and leaves the other defaults in place, which is
 brms's partial-override rule; a named list of prior objects takes

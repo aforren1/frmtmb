@@ -9,7 +9,7 @@ Laplace approximation for random effects through RTMB."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.62.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -143,7 +143,10 @@ variance-parameter set, exactly as a <code>varExp()</code> coefficient does
 in <code>nlme::gls(method = "REML")</code>, and the two agree to optimizer
 precision for gaussian models. Random effects appearing in a
 distributional parameter's own formula are integrated like any
-other latent.</p></dd>
+other latent. <code>mgcv</code>'s <code>method = "REML"</code> for a location-scale
+family such as <code>gaulss()</code> integrates the coefficients of every
+linear predictor, so for a smooth in <code>sigma</code> the two REML criteria
+are different and give different curves and smoothing parameters.</p></dd>
 
 
 <dt id="arg-start">start<a class="anchor" aria-label="anchor" href="#arg-start"></a></dt>

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.62.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -117,8 +117,10 @@ to the first).</p></dd>
 
 
 <dt id="arg-re-formula">re_formula<a class="anchor" aria-label="anchor" href="#arg-re-formula"></a></dt>
-<dd><p><code>NULL</code> (default) includes random effects; <code>NA</code> or <code>~0</code>
-gives population-level predictions. See
+<dd><p>Which group-level terms enter the prediction.
+<code>NULL</code> (default) keeps all of them; <code>NA</code> keeps none, which is the
+population-level prediction. A one-sided formula keeps the terms it
+names; see <em>A one-sided <code>re_formula</code></em>. See
 <em>What <code>re_formula = NA</code> drops</em> for what that means when the model has
 smooths.</p></dd>
 
@@ -214,6 +216,35 @@ exists to remove. Ask for the predictor by name (<code>type = "link"</code>, or
 <code>dpar = "mu"</code>) when that is what you want.</p>
     </div>
     <div class="section level2">
+    <h2 id="a-one-sided-re-formula">A one-sided <code>re_formula</code><a class="anchor" aria-label="anchor" href="#a-one-sided-re-formula"></a></h2>
+
+
+<p>A formula keeps the group-level terms it names and drops the others,
+with brms's rule (<code>update_re_terms()</code>). A term in the formula is
+matched to a term of the fit that has the same grouping factor and
+whose columns include the formula term's columns. So on a fit with
+<code>(1 + x | g) + (1 | h)</code>:</p><ul><li><p><code>~ (1 | g)</code> keeps the intercept of <code>g</code> and drops its slope and <code>h</code>.</p></li>
+<li><p><code>~ (0 + x | g)</code> keeps the slope of <code>g</code> alone.</p></li>
+<li><p><code>~ (1 + x | g) + (1 | h)</code> keeps everything, and the answer is
+identical to <code>re_formula = NULL</code>.</p></li>
+<li><p><code>~0</code> and <code>~1</code> name no group-level term, so they are <code>NA</code>.</p></li>
+</ul><p>The same term is kept in every distributional parameter that has it.
+brms's spellings are read too: an id (<code>(1 | p | g)</code>), a <code>gr()</code>
+wrapper, <code>||</code> and a nested group (<code>a/b</code>). A term outside the bars is
+ignored.</p>
+<p>A dropped term is dropped everywhere: from the estimate, from the
+standard error, and from <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>'s draws. Its grouping column is
+not needed in <code>newdata</code>, and a level of it the fit never saw is not
+an error.</p>
+<p>Two cases are refused. A formula term that matches no term of the
+fit is an error that names it, because a misspelled grouping factor
+would otherwise change the answer with nothing said; brms drops such
+a term silently. And a formula that keeps SOME terms is refused on a
+fit that also has group-level content a formula cannot name, such as
+a factor-smooth term: <code>NA</code> drops that content and <code>NULL</code> keeps it,
+and a partial formula cannot say which.</p>
+    </div>
+    <div class="section level2">
     <h2 id="what-re-formula-na-drops">What <code>re_formula = NA</code> drops<a class="anchor" aria-label="anchor" href="#what-re-formula-na-drops"></a></h2>
 
 
@@ -283,8 +314,9 @@ is the joint covariance of all the coefficients (<code><a href="https://rdrr.io/
 shared random-effect block are included). The gradients
 <code>dm/deta_k</code> are central differences of the family mean, taken one
 predictor at a time with a relative step.</p>
-<p>Random effects enter conditional on their modes, the same convention
-<code>se.fit</code> uses for the linear predictor. Unseen grouping levels
+<p>The estimate is at the random-effect modes, and the standard error
+carries their uncertainty, through the joint covariance, as <code>se.fit</code>
+does for the linear predictor. Unseen grouping levels
 (<code>allow_new_levels = TRUE</code>) add their block's marginal variance,
 propagated through the same gradients.</p>
     </div>

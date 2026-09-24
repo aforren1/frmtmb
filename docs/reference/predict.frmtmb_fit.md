@@ -39,7 +39,7 @@ predict(
   ...,
   allow_new_levels = FALSE,
   sample_new_levels = NULL,
-  param_uncertainty = TRUE
+  propagate_error = TRUE
 )
 ```
 
@@ -55,8 +55,15 @@ predict(
 
 - re_formula:
 
-  `NULL` (default) keeps the random effects, so the draw is conditional
-  on the modes; `NA` or `~0` draws at the population level.
+  Which group-level terms enter the prediction. `NULL` (default) keeps
+  all of them, `NA` keeps none. A one-sided formula keeps the terms it
+  names and drops the others, as in brms: `~ (1 | g)` on a fit with
+  `(1 + x | g) + (1 | h)` keeps the intercept of `g` alone. A formula
+  that names no group-level term, such as `~0` or `~1`, is `NA`. A term
+  the fit does not have is an error that names it; brms drops such a
+  term silently. See
+  [`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md)
+  for the full rule.
 
 - transform:
 
@@ -126,10 +133,16 @@ predict(
   levels that were seen, and a maximum-likelihood fit has none, so both
   are refused by name.
 
-- param_uncertainty:
+- propagate_error:
 
-  If `FALSE`, simulate at the estimates alone (the plug-in predictive
-  distribution) instead of drawing the parameters first.
+  Whether the error in the estimates is propagated into the interval.
+  `TRUE`, the default, draws the parameters and the group effects of a
+  level the fit saw. `FALSE` holds both at their estimates, so the
+  interval carries the observation noise alone: the plug-in predictive
+  distribution. It is the only way to include a group's own effect and
+  still treat it as known; `re_formula` cannot say that, because it
+  chooses which terms are in the prediction and not whether their error
+  is carried.
 
 ## Value
 
@@ -142,38 +155,78 @@ matrix of draws, or `ndraws x nrow x nresp` for a multivariate fit.
 
 ## Which uncertainty is in the interval
 
-Two of the three sources.
+All three sources.
 
 - Observation noise, from the family's simulator. This is almost always
   the largest term.
 
-- Uncertainty in the estimates, from the asymptotic covariance of the
-  outer parameter vector. `param_uncertainty = FALSE` drops it and
-  simulates at the estimates alone.
+- Uncertainty in the estimates, from their asymptotic covariance.
 
-- Uncertainty in the random-effect modes of a level the fit SAW is NOT
-  included. The draw is conditional on them, the convention every other
-  method here follows. On a design with few observations per grouping
-  level that term is not small, and the interval is then narrower than a
-  fully marginal one. `dev/shapes-findings.md` reports the measured
-  coverage for a design with and without a grouping factor.
+- Uncertainty in the group effects of a level the fit SAW. Each
+  replicate draws the whole vector of group effects from its conditional
+  law given the data and that replicate's parameters, which the joint
+  precision of the fit describes. For a linear mixed model this is the
+  prediction error variance of the best linear unbiased predictor,
+  jointly with the fixed effects. brms's draws carry the posterior of
+  each seen level's effect, and this is the frequentist analogue. Two
+  rows of one group share that group's draw, so `summary = FALSE` is
+  right across rows as well as per row.
 
-A level the fit did NOT see is different: there is no mode to condition
-on, so `allow_new_levels = TRUE` draws its effect from the block's own
-estimated covariance, once per replicate, at that replicate's
-parameters. This is brms's `sample_new_levels = "gaussian"` and it is
-the whole between-group variance, so the interval at an unseen level is
-wider than at a known one.
+`propagate_error = FALSE` drops the second and the third together and
+simulates at the estimates alone, which leaves the observation noise.
+Everything estimated is then treated as known.
+
+What the interval covers: a new observation at a known level, with the
+nominal coverage AVERAGED over the groups. It is not a coverage
+statement for one group's realized effect. The predictor shrinks a group
+toward the population, so for a group far from the population the
+interval covers less than nominal and for a group near it more.
+`dev/reunc-findings.md` reports the measured coverage.
+
+A level the fit did NOT see is different: there is no conditional law to
+draw from, so `allow_new_levels = TRUE` draws its effect from the
+block's own estimated covariance, once per replicate, at that
+replicate's parameters. This is brms's `sample_new_levels = "gaussian"`
+and it is the whole between-group variance, so the interval at an unseen
+level is wider than at a known one.
+
+## re_formula and propagate_error are different questions
+
+The two are easy to confuse and neither can express the other.
+
+- `re_formula` chooses WHICH terms enter the prediction. Only
+  `re_formula = NA` can say "predict for an average group", by leaving
+  the group effects out of the linear predictor.
+
+- `propagate_error` chooses whether the error in the ESTIMATES is
+  propagated into the interval. Only `propagate_error = FALSE` can say
+  "include this group's own effect but treat it as known".
+
+So a prediction for the group in front of you, with its effect held at
+the fitted value, is `propagate_error = FALSE`, and a prediction for a
+group you have not met is `re_formula = NA`. They combine:
+`re_formula = NA` with `propagate_error = FALSE` is the population curve
+with no estimation error at all.
+
+brms has no such argument, because its draws always carry both: a
+posterior draw has its own parameters and its own group effects, so
+there is nothing to switch off. A brms user looking for the missing
+argument is looking for this one.
+
+Only the terms `re_formula` keeps are drawn. A population smooth and a
+`gp()` curve stay at their modes under every setting.
 
 A fit whose covariance could not be recovered from the Hessian has no
 second term to draw: the simulation falls back to the estimates and
-warns, rather than drawing from a matrix of `NaN`.
+warns, rather than drawing from a matrix of `NaN`. A fit made with
+`quadrature = TRUE` has no group effects in its joint precision: its
+group effects stay at their modes, and a warning says so.
 
 Under `REML = TRUE` (or `frmtmb_control(profile = TRUE)`) the fixed
 effects are integrated out of the outer problem, so they are not in
-`vcov(object, full = TRUE)` and are not drawn either. The interval there
-carries the covariance parameters' uncertainty and the observation
-noise, and holds the coefficients fixed.
+`vcov(object, full = TRUE)`. They are drawn from their joint covariance
+with the outer parameters, which the joint precision gives, and the
+group effects are then drawn given both.
 
 ## Ordinal and categorical responses
 

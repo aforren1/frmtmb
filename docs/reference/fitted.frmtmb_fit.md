@@ -42,10 +42,12 @@ fitted(
 
 - re_formula:
 
-  `NULL` (default) keeps the random effects, so the answer is
-  conditional on the modes; `NA` or `~0` gives the population-level
-  answer. brms's spelling, and the only one: lme4's `re.form` is not
-  accepted here.
+  Which group-level terms enter the answer: `NULL` (default) keeps all
+  of them, `NA` keeps none, and a one-sided formula keeps the terms it
+  names, as in brms (see
+  [`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md)).
+  brms's spelling, and the only one: lme4's `re.form` is not accepted
+  here.
 
 - scale:
 
@@ -109,8 +111,15 @@ A maximum-likelihood fit has no draws to summarize, so `Est.Error` is
 the delta-method standard error
 [`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md)
 reports for the same quantity, and the `Q` columns are the Wald interval
-at those probabilities. The interval is around the EXPECTED response and
-carries no observation noise;
+at those probabilities. The estimate is at the modes, and the standard
+error carries the uncertainty in them: at a grouping level the fit saw,
+the level's group effect enters with its covariance taken jointly with
+the fixed effects from the joint precision, the frequentist analogue of
+the posterior of that effect in brms's `posterior_epred()`. The interval
+covers the expected response at a known level with the nominal coverage
+averaged over the groups, not for one group's realized effect. The
+interval is around the EXPECTED response and carries no observation
+noise;
 [`predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md)
 is the predictive interval that does.
 
@@ -129,13 +138,12 @@ which is the brms
 `cs()` terms are honored. The standard error of a category probability
 is the finite-difference delta method over the whole outer parameter
 vector, because the probability depends on the thresholds and the `cs()`
-coefficients as well as on the linear predictor. That route covers the
-OUTER parameters only, so on a mixed ordinal fit it does not carry the
-conditional variance of the random-effect modes, which the scalar route
-does: `se.fit` reads the joint precision and this reads
-`vcov(full = TRUE)`. The estimates are unaffected. The latent linear
-predictor, which is where the coefficients live, is
-`frm_linpred(object, type = "link")`.
+coefficients as well as on the linear predictor. On a mixed ordinal fit
+the group effects join the differenced vector, with their covariance
+taken jointly with the parameters from the joint precision, so the
+standard error carries their uncertainty as the scalar route does. The
+estimates are unaffected. The latent linear predictor, which is where
+the coefficients live, is `frm_linpred(object, type = "link")`.
 
 ## See also
 

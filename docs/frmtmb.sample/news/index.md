@@ -1,5 +1,61 @@
 # Changelog
 
+## frmtmb.sample 0.10.0
+
+- **The default priors are brms’s on a multivariate model**: each
+  response gets its own `Intercept`, `sigma` and `sd` defaults, read off
+  that response, and `set_rescor(TRUE)` gets `lkj(1)` on the residual
+  correlation. Until now a multivariate model was sampled with no
+  default priors at all. This moves the draws of every multivariate
+  model sampled without `prior = "flat"`.
+
+- **The default intercept location takes off the mean
+  [`offset()`](https://rdrr.io/r/stats/offset.html)**, as brms does:
+  `y ~ 1 + offset(off)` with `y` near 2 and `off = 10` gets
+  `student_t(3, -8, 2.5)`, where it got `student_t(3, 2, 2.5)`. A
+  location is now written to 15 significant digits, as brms writes it.
+  This moves the draws of a model with an offset in its location
+  formula.
+
+- **The `sd` default is written once per response, distributional
+  parameter and nonlinear parameter**, to follow frmtmb’s brms scoping
+  of class `"sd"`. With no `prior =`, every standard deviation gets the
+  density it got before. With `prior = set_prior(..., class = "sd")`,
+  that prior now replaces the location parameter’s default only, and a
+  `phi` or `sigma` block keeps its own default, as in brms. A SMOOTH’s
+  smoothing standard deviation is keyed the same way, so `sigma ~ s(z)`
+  gets its own default and its own `sd` row. This moves the draws of a
+  distributional model sampled with a class-wide `sd` prior.
+
+- **BREAKING:
+  [`predictive_error()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/sample-posterior_summary.md)
+  and [`residuals()`](https://rdrr.io/r/stats/residuals.html) on draws
+  refuse an ordinal, categorical or multinomial model**, as brms refuses
+  them.
+
+- [`pp_check()`](https://mc-stan.org/bayesplot/reference/pp_check.html)
+  on draws refuses `type = "error_binned"` for a category response in
+  the same words the fit method uses, and ignores `resp` on a model with
+  one response, which is what brms does with it. A multivariate model
+  still selects with `resp` and still refuses a name none of its
+  responses has.
+
+- **A one-sided `re_formula` on draws keeps the terms it names**, in
+  [`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
+  [`posterior_linpred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
+  [`posterior_predict()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md),
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and
+  [`predict()`](https://rdrr.io/r/stats/predict.html). Each draw is
+  evaluated through
+  [`frmtmb::frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.html),
+  which kept every term for any formula; the fix is in frmtmb’s
+  development version, so it needs that frmtmb. On a
+  `(1 + x | g) + (1 | h)` fit, `re_formula = ~ (1 | g)` used to be off
+  the draw’s own intercept-only construction by up to 2.98; it now
+  equals it. A term the fit does not have is an error that names it. The
+  draws already carry each draw’s sampled group effects, so the
+  uncertainty at a known level was in them before and nothing is added.
+
 ## frmtmb.sample 0.9.0
 
 - **[`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html)

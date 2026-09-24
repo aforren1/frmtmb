@@ -15,7 +15,7 @@ gamma(shape, rate), lkj(eta); an empty string sets bounds only.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.62.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -156,7 +156,17 @@ vector; see Ordinal thresholds.</p></li>
 <li><p><code>"sd"</code>: random-effect standard deviations (and smoothing SDs), on
 the NATURAL sd scale with the log-Jacobian applied, so
 <code>set_prior("exponential(1)", class = "sd")</code> means what it says;
-narrow with <code>group</code>.</p></li>
+narrow with <code>group</code>. As in brms, <code>resp</code>, <code>dpar</code> and <code>nlpar</code> select
+the standard deviations of that response, distributional parameter
+and nonlinear parameter only, and leaving one empty selects the
+empty one: with no <code>dpar</code> the specification reaches the location
+parameter's blocks and not a <code>phi ~ (1 | g)</code> block, and in a
+multivariate model a specification with no <code>resp</code> reaches nothing
+and is refused. A block that spans several predictors,
+<code>(1 | q | g)</code> in both <code>mu</code> and <code>sigma</code>, is the one exception, as it
+is in brms: there a specification that leaves a field empty reaches
+every standard deviation of the block, and a more specific one
+takes over its own.</p></li>
 <li><p><code>"cor"</code>: the CORRELATION of a random-effect block, as a whole.
 <code>lkj(eta)</code> only, and it addresses a BLOCK the way class <code>"sd"</code>
 does, by <code>group</code>; <code>set_prior("lkj(2)", class = "cor")</code> covers every

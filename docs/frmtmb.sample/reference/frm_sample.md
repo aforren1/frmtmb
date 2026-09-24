@@ -350,11 +350,30 @@ link and `s = max(2.5, round(mad(y*), 1))`:
 |----|----|----|
 | class | default | scale |
 | `b` (slopes) | flat | \- |
-| `Intercept` | `student_t(3, round(median(y*), 1), s)` | link |
+| `Intercept` | `student_t(3, round(median(y*), 1) - m, s)` | link |
 | `sd` | `student_t(3, 0, s)` | natural sd, log-Jacobian applied |
 | `cor` | `lkj(1)` | correlation matrix, Jacobian applied |
+| `rescor` | `lkj(1)` | correlation matrix, Jacobian applied |
 | `sigma` (intercept only) | `student_t(3, 0, s)` | natural |
 | `sigma` (with a predictor) | `student_t(3, 0, 2.5)` | log |
+
+`m` is the mean of the predictor's
+[`offset()`](https://rdrr.io/r/stats/offset.html), 0 without one. brms
+takes it off because an offset moves the intercept by that much, and
+only under the links below that transform the response; under any other
+link the location stays 0.
+
+The `sd` default is written once per response, distributional parameter
+and nonlinear parameter that has a random-effect standard deviation, as
+brms writes one row for each. A class `"sd"` specification reaches only
+its own response, distributional parameter and nonlinear parameter (see
+[`frmtmb::set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.html)),
+so a `set_prior(class = "sd")` of your own replaces the location
+parameter's default and leaves, for example, a `phi` block's default in
+place, as in brms.
+
+A multivariate model reads `y*` and `s` off each response for that
+response's rows, which are written with `resp`, as brms's are.
 
 The link is transformed only for `identity`, `log`, `inverse`, `sqrt`
 and `1/mu^2` - brms's own list - with a log-scale family
@@ -406,11 +425,6 @@ message whenever the model has one.
   coefficients are class `b`, and the response's median and mad say
   nothing about a rate or a shape sitting inside a nonlinear body. Write
   them with `set_prior(nlpar = )`, as the brms nonlinear vignette does.
-
-- MULTIVARIATE models get no defaults at all: the default location and
-  scale are read off ONE response, and frmtmb does not read them per
-  response. `set_prior(resp = )` addresses one response, so they can be
-  written by hand.
 
 *Overriding and opting out.* A
 [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.html)

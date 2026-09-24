@@ -101,6 +101,25 @@ custom_family(
   Optional named list of functions `(y, aterms)` giving a response-scale
   starting value per dpar (applied to the intercept through the link).
 
+  A function that declares a THIRD argument, `(y, aterms, resid)`, is
+  given the response with its `mu` predictor taken out: any
+  [`offset()`](https://rdrr.io/r/stats/offset.html) subtracted, then
+  least squares on that predictor's own design. A start that depends on
+  the SHAPE of the residual rather than on the response cannot be read
+  off `y`: a covariate can give the raw response the opposite skew,
+  whether it enters as a column or as an offset (see
+  [`skew_normal()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)).
+  When `mu` is an intercept alone and carries no offset there is nothing
+  to take out and `resid` is the response itself, so such a model starts
+  exactly where it did. A two-argument function is called with two
+  arguments, so nothing already written has to change.
+
+  The value an initializer returns names the PREDICTOR, and it is placed
+  in whichever coefficients that design uses to carry one: an intercept
+  when there is one, and otherwise the least-squares solution, which
+  puts the value in every cell of `~ 0 + g`. A design that was skipped
+  for having no intercept used to start every coefficient at zero.
+
 - type:
 
   One of `"continuous"`, `"discrete"`, `"ordinal"`, `"categorical"`. The
@@ -132,6 +151,32 @@ custom_family(
   degenerate in some region had no way to report it. Warn from it rather
   than stopping; a hook that throws is caught, reported as a warning
   naming the family, and the fit is returned regardless.
+
+  `post$stationary` is a declaration rather than a function: a named
+  list, one entry per dpar, each `list(at =, tol =, from =)`. It says
+  that the likelihood has a stationary point where that dpar's PREDICTOR
+  equals `at` on the LINK scale at every row. A fit whose fitted
+  predictor is within `tol` of that everywhere is refitted from each
+  value in `from`, with the coefficients solved so the predictor takes
+  that value, and whichever optimum is best is kept.
+
+  Reading the predictor rather than the coefficients is what makes this
+  work for a design without an intercept: `alpha ~ 0 + g` sits on the
+  same point as `alpha ~ g` with no coefficient named `"(Intercept)"` to
+  read or to write a restart into. Declaring a stationary point is ALSO
+  what earns a dpar a starting value on an intercept-less design at all:
+  a dpar that declares none keeps the plain rule, an intercept or
+  nothing, because a least-squares start is right on the predictor scale
+  and can be ruinous on the parameter scale. Non-finite entries in
+  `from` are dropped, so `from = c(Inf, -2)` restarts from one side
+  only. Declare one only for a point the likelihood has at EVERY sample,
+  such as `alpha = 0` for the skew normal, where the information is
+  singular and no convergence test can separate a stall from a maximum.
+  The extra fits only ever run when the declared point is reached.
+
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+  carries a component's declaration through under the dpar name the
+  mixture gives it (`alpha1`, `alpha2`, ...).
 
 - sim:
 

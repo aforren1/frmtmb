@@ -11,7 +11,18 @@ installed, but not necessarily attached).
 pp_check(object, ...)
 
 # S3 method for class 'frmtmb_fit'
-pp_check(object, type = "dens_overlay", ndraws = 10, re_formula = NA, ...)
+pp_check(
+  object,
+  type = "dens_overlay",
+  ndraws = 10,
+  prefix = c("ppc", "ppd"),
+  group = NULL,
+  x = NULL,
+  newdata = NULL,
+  resp = NULL,
+  ...,
+  re_formula = NA
+)
 ```
 
 ## Arguments
@@ -27,11 +38,40 @@ pp_check(object, type = "dens_overlay", ndraws = 10, re_formula = NA, ...)
 - type:
 
   The bayesplot check, i.e. the part after `ppc_` (`"dens_overlay"`,
-  `"hist"`, `"stat"`, `"scatter_avg"`, ...).
+  `"hist"`, `"stat"`, `"stat_grouped"`, `"scatter_avg"`, ...). With
+  `prefix = "ppc"` a name that
+  [`bayesplot::available_ppc()`](https://mc-stan.org/bayesplot/reference/available_ppc.html)
+  does not list is refused, as brms refuses it.
 
 - ndraws:
 
   Number of simulated response vectors.
+
+- prefix:
+
+  `"ppc"` (the default) plots the observed response against the
+  simulated ones; `"ppd"` plots the simulated ones alone, through
+  bayesplot's `ppd_*` function of the same name.
+
+- group:
+
+  The name of a model variable to stratify by, for the `*_grouped`
+  types, which need it. The name is looked up in the model frame, as
+  brms looks it up in the model's data, so a column the model does not
+  use is refused.
+
+- x:
+
+  The name of a model variable for the types that take an `x`
+  (`"intervals"`, `"ribbon"`, `"error_scatter_avg_vs_x"`, ...), looked
+  up as `group` is.
+
+- newdata, resp:
+
+  brms's arguments. A fit simulates only its own rows, so a `newdata` is
+  refused. `resp` is accepted and ignored, which is what brms does with
+  it on a model that has one response; a multivariate fit is refused
+  before `resp` could select one.
 
 - re_formula:
 
@@ -48,6 +88,15 @@ pp_check(object, type = "dens_overlay", ndraws = 10, re_formula = NA, ...)
 
 A ggplot object, as returned by the bayesplot `ppc_*` function that
 `type` selects.
+
+## Types a fit cannot draw
+
+The `loo_*` types weight posterior draws by Pareto-smoothed importance
+sampling, and a maximum-likelihood fit has no posterior draws, so they
+are refused on a fit. `pp_check()` on the draws of
+[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
+is the route to them. `"error_binned"` is refused on an ordinal,
+categorical or multinomial fit, as brms refuses it.
 
 ## Examples
 

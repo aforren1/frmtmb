@@ -53,9 +53,11 @@ frm_linpred(
 
 - re_formula:
 
-  `NULL` (default) includes random effects; `NA` or `~0` gives
-  population-level predictions. See *What `re_formula = NA` drops* for
-  what that means when the model has smooths.
+  Which group-level terms enter the prediction. `NULL` (default) keeps
+  all of them; `NA` keeps none, which is the population-level
+  prediction. A one-sided formula keeps the terms it names; see *A
+  one-sided `re_formula`*. See *What `re_formula = NA` drops* for what
+  that means when the model has smooths.
 
 - se.fit:
 
@@ -155,6 +157,41 @@ about a mean with a latent predictor is the confusion this section
 exists to remove. Ask for the predictor by name (`type = "link"`, or
 `dpar = "mu"`) when that is what you want.
 
+## A one-sided `re_formula`
+
+A formula keeps the group-level terms it names and drops the others,
+with brms's rule (`update_re_terms()`). A term in the formula is matched
+to a term of the fit that has the same grouping factor and whose columns
+include the formula term's columns. So on a fit with
+`(1 + x | g) + (1 | h)`:
+
+- `~ (1 | g)` keeps the intercept of `g` and drops its slope and `h`.
+
+- `~ (0 + x | g)` keeps the slope of `g` alone.
+
+- `~ (1 + x | g) + (1 | h)` keeps everything, and the answer is
+  identical to `re_formula = NULL`.
+
+- `~0` and `~1` name no group-level term, so they are `NA`.
+
+The same term is kept in every distributional parameter that has it.
+brms's spellings are read too: an id (`(1 | p | g)`), a `gr()` wrapper,
+`||` and a nested group (`a/b`). A term outside the bars is ignored.
+
+A dropped term is dropped everywhere: from the estimate, from the
+standard error, and from
+[`predict()`](https://rdrr.io/r/stats/predict.html)'s draws. Its
+grouping column is not needed in `newdata`, and a level of it the fit
+never saw is not an error.
+
+Two cases are refused. A formula term that matches no term of the fit is
+an error that names it, because a misspelled grouping factor would
+otherwise change the answer with nothing said; brms drops such a term
+silently. And a formula that keeps SOME terms is refused on a fit that
+also has group-level content a formula cannot name, such as a
+factor-smooth term: `NA` drops that content and `NULL` keeps it, and a
+partial formula cannot say which.
+
 ## What `re_formula = NA` drops
 
 `re_formula = NA` (equivalently `~0`) asks for the POPULATION-level
@@ -241,8 +278,9 @@ so the cross-predictor covariances and the shared random-effect block
 are included). The gradients `dm/deta_k` are central differences of the
 family mean, taken one predictor at a time with a relative step.
 
-Random effects enter conditional on their modes, the same convention
-`se.fit` uses for the linear predictor. Unseen grouping levels
+The estimate is at the random-effect modes, and the standard error
+carries their uncertainty, through the joint covariance, as `se.fit`
+does for the linear predictor. Unseen grouping levels
 (`allow_new_levels = TRUE`) add their block's marginal variance,
 propagated through the same gradients.
 

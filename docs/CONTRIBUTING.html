@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.61.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.62.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -103,7 +103,7 @@
 <p>Every change to model code needs a test. The test suite is <code>testthat</code> edition 3, in <code>tests/testthat/</code>.</p>
 <p>Validation is layered. Put your test in the layer that fits:</p>
 <ul><li>
-<strong>Reference agreement.</strong> Fit the same model with an exact reference (glmmTMB, lme4, mgcv, MASS, survival, nnet, GLMMadaptive, quantreg, or a closed-form result) and compare estimates within an explicit tolerance. This is the strongest test and is preferred.</li>
+<strong>Reference agreement.</strong> Fit the same model with an exact reference (glmmTMB, drmTMB, lme4, mgcv, MASS, survival, nnet, GLMMadaptive, quantreg, or a closed-form result) and compare estimates within an explicit tolerance. This is the strongest test and is preferred. The drmTMB tier is gated on <code>FRMTMB_DRMTMB_FIT_TESTS</code>, because every test in it fits about 50 models; see <code>tests/testthat/test-drmtmb-agreement.R</code>.</li>
 <li>
 <strong>Parameter recovery.</strong> Simulate data from known parameters with a fixed seed, fit, and check the estimates are inside tolerance.</li>
 <li>

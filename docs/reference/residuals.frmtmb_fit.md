@@ -105,24 +105,29 @@ observed censored values; `simulate(censored = TRUE)` makes them
 comparable, but the resulting point mass at each censoring point is not
 a distribution DHARMa's rank transform can use.
 
-## Ordinal responses
+## Ordinal and other category responses
 
-An ordinal response has no mean, so `"response"` and `"pearson"` score
-the categories by the integer codes `1..K` the likelihood itself uses:
-`"response"` is `y - E[Y]` with `E[Y] = sum_k k * P(y = k)` taken from
-[`fitted()`](https://rdrr.io/r/stats/fitted.values.html)'s category
-probabilities, and `"pearson"` divides by the standard deviation of that
-same distribution. This is the frequentist point-estimate form of what
-brms's [`residuals()`](https://rdrr.io/r/stats/residuals.html) reports
-on an ordinal fit (there, the observed category minus a drawn one). It
-is a residual on a SCORE, not on the ordinal scale, so read it for gross
-lack of fit and pattern, not as a calibrated quantity: `"osa"` and
+`"response"` (`"ordinary"`) and `"pearson"` are refused for an ordinal
+family
+([`cumulative()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+[`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+[`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+[`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)),
+a
+[`categorical()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+family and a
+[`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+family. brms refuses the same two types for the same families
+("Predictive errors are not defined for ordinal or categorical models"):
+the response is a category or a vector of counts over categories, so
+`y - E[Y]` has no scale to be read on.
+
+On an ordinal fit, `"osa"` gives a residual that uses only the order. It
+uses `"oneStepGeneric"` over the discrete support `1..K`, which makes
+the residuals randomized quantile residuals.
 [`dharma_residuals()`](https://aforren1.github.io/frmtmb/reference/dharma_residuals.md)
-give residuals that use only the order. `"deviance"` is refused, as it
-is for every family without a standard unit deviance.
-
-`"osa"` uses `"oneStepGeneric"` over the discrete support `1..K`, which
-makes the residuals randomized quantile residuals.
+is the simulation-based alternative. `"deviance"` is refused, as it is
+for every family without a standard unit deviance.
 
 ## Deviance residuals
 
@@ -216,7 +221,13 @@ sum(pr^2) / df.residual(fit)
 #> [1] 0.9176762
 
 # one-step-ahead quantile residuals are standard normal under a
-# correctly specified model, whatever the family
+# correctly specified model, whatever the family. This block is
+# \donttest{} because oneStepPredict() is 5.9 s of this example's
+# 8.9 s, which puts the examples phase over R CMD check's 5 s
+# threshold; --run-donttest still runs it.
+# \donttest{
 r <- residuals(fit, type = "osa")[, "Estimate"]
 qqnorm(r); qqline(r)
+
+# }
 ```
