@@ -1,4 +1,4 @@
-# frmtmb (development version)
+# frmtmb 0.62.0
 
 * **A `skew_normal()` fit that used to stop at `alpha = 0` now finds
   the maximum.** `alpha = 0` is a stationary point of the skew-normal

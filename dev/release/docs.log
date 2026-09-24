@@ -10,10 +10,15 @@ G£ö Articles metadata ok.
 G£ö Reference metadata ok.
 GöÇGöÇ Initialising site GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 GöÇGöÇ Building home GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+Writing `authors.html`
 Reading CODE_OF_CONDUCT.md
+Writing `CODE_OF_CONDUCT.html`
 Reading CONTRIBUTING.md
+Writing `CONTRIBUTING.html`
 Reading SPEC.md
+Writing `SPEC.html`
 Reading README.md
+Writing `index.html`
 Writing `404.html`
 GöÇGöÇ Building function reference GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Writing `reference/index.html`
@@ -247,27 +252,8 @@ Writing `articles/spectral.html`
 GöÇGöÇ Building news GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 Writing `news/index.html`
 GöÇGöÇ Building sitemap GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Writing `sitemap.xml`
 GöÇGöÇ Building docs for llms GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 GöÇGöÇ Building redirects GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
-Adding redirect from reference/brms_fixef_rows.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/brms_prob_cols.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/brms_summarize_draws.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/brms_summary_array.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/brms_summary_matrix.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/fam_is_category_valued.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/log_lik.frmtmb_fit.html to
-reference/log_lik.html.
-Adding redirect from reference/predict_category_props.html to
-reference/frmtmb-sampling-api.html.
-Adding redirect from reference/vcov_estimated.html to
-reference/frmtmb-sampling-api.html.
 GöÇGöÇ Building search index GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 GöÇGöÇ Checking for problems GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 GöÇGöÇ Finished building pkgdown site for package frmtmb GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
@@ -468,33 +454,60 @@ G£ö Articles metadata ok.
 G£ö Reference metadata ok.
 GöÇGöÇ Initialising site GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 GöÇGöÇ Building home GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+Writing `authors.html`
 Reading 'DESCRIPTION'
+Writing `index.html`
 Writing `404.html`
 GöÇGöÇ Building function reference GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+Writing `reference/index.html`
 Reading man/as_tmbstan.Rd
+Writing `reference/as_tmbstan.html`
 Reading man/check_laplace.Rd
+Writing `reference/check_laplace.html`
 Reading man/draws-diagnostics.Rd
+Writing `reference/draws-diagnostics.html`
 Reading man/draws-dimensions.Rd
+Writing `reference/draws-dimensions.html`
 Reading man/draws-structure.Rd
+Writing `reference/draws-structure.html`
 Reading man/frmtmb-draws-deprecated.Rd
+Writing `reference/frmtmb-draws-deprecated.html`
 Reading man/frmtmb-draws-refusals.Rd
+Writing `reference/frmtmb-draws-refusals.html`
 Reading man/frmtmb-draws-summaries.Rd
+Writing `reference/frmtmb-draws-summaries.html`
 Reading man/frmtmb-loo-refusals.Rd
+Writing `reference/frmtmb-loo-refusals.html`
 Reading man/frmtmb.sample-package.Rd
+Writing `reference/frmtmb.sample-package.html`
 Reading man/frm_sample.Rd
+Writing `reference/frm_sample.html`
 Reading man/posterior_epred.Rd
+Writing `reference/posterior_epred.html`
 Reading man/pp_mixture.Rd
+Writing `reference/pp_mixture.html`
 Reading man/reexports.Rd
+Writing `reference/reexports.html`
 Reading man/sample-as_draws.Rd
+Writing `reference/sample-as_draws.html`
 Reading man/sample-bayes_R2.Rd
+Writing `reference/sample-bayes_R2.html`
 Reading man/sample-log_lik.Rd
+Writing `reference/sample-log_lik.html`
 Reading man/sample-loo.Rd
+Writing `reference/sample-loo.html`
 Reading man/sample-posterior_summary.Rd
+Writing `reference/sample-posterior_summary.html`
 GöÇGöÇ Building articles GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+Writing `articles/index.html`
 Reading vignettes/brms-posterior.Rmd
+Writing `articles/brms-posterior.html`
 Reading vignettes/posterior-diagnostics.Rmd
+Writing `articles/posterior-diagnostics.html`
 Reading vignettes/sampling.Rmd
+Writing `articles/sampling.html`
 GöÇGöÇ Building news GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
+Writing `news/index.html`
 GöÇGöÇ Building sitemap GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 GöÇGöÇ Building docs for llms GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ
 GöÇGöÇ Building redirects GöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇGöÇ

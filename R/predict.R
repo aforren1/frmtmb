@@ -2941,9 +2941,14 @@ residuals_unsupported <- c(
 #' sum(pr^2) / df.residual(fit)
 #'
 #' # one-step-ahead quantile residuals are standard normal under a
-#' # correctly specified model, whatever the family
+#' # correctly specified model, whatever the family. This block is
+#' # \donttest{} because oneStepPredict() is 5.9 s of this example's
+#' # 8.9 s, which puts the examples phase over R CMD check's 5 s
+#' # threshold; --run-donttest still runs it.
+#' \donttest{
 #' r <- residuals(fit, type = "osa")[, "Estimate"]
 #' qqnorm(r); qqline(r)
+#' }
 #' @seealso [frmtmb-scales] for which scale each type is on.
 #' @export
 residuals.frmtmb_fit <- function(object, type = c("response", "ordinary",

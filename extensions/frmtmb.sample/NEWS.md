@@ -1,4 +1,4 @@
-# frmtmb.sample (development version)
+# frmtmb.sample 0.10.0
 
 * **The default priors are brms's on a multivariate model**: each
   response gets its own `Intercept`, `sigma` and `sd` defaults, read off

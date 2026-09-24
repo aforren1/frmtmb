@@ -1,97 +1,97 @@
 # Handing a round to a new session
 
-Written 2026-09-22, at the 0.61.0 release. Read this, then
+Written 2026-09-23, at the 0.62.0 release. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
 `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
-anything: the library has been lost SIX times, and the sixth has a
-dated trigger (a hard kill of R processes).
+anything: the library has been lost SEVEN times, the seventh with a
+named mechanism.
 
-Main carries items 2.6d (`predict()` is brms's predictive summary; the
-old predictor is `frm_linpred()`) and 2.6f (brms's post-fit shapes and
-names), lane `wt-shapes`; the silent wrong answers of lane `wt-adefects`;
-and the RTMB 2.0 fallout. `wt-vectorize` and `wt-vecshape` stay
-branches, deferred by the user and never merged.
+Four lanes merged: `wt-drmtmb` (drmTMB 0.7.0 measured against frmtmb),
+`wt-skewinit` (skew_normal's silent stall at alpha = 0), `wt-correct`
+(seven brms-parity defects), `wt-reunc` (group-effect uncertainty at a
+known level, the partial `re_formula`, and the `propagate_error`
+rename). `wt-vectorize` and `wt-vecshape` stay branches, deferred.
 
-Versions: frmtmb **0.61.0**, frmtmb.sample **0.9.0**, frmtmb.eam 0.10.0,
-frmtmb.learn 0.6.0, frmtmb.latent 0.5.0, frmtmb.spline 0.7.0,
-frmtmb.coupling 0.5.0, frmtmb.ode 0.6.0. Every extension floors on
-frmtmb 0.61.0, because each reads `frm_linpred()` or the new exports.
+Versions: frmtmb **0.62.0**, frmtmb.sample **0.10.0**. The other six
+extensions have NO changed file this round, so their versions and their
+`frmtmb (>= 0.61.0)` floors stand; the review ran all six suites against
+the base build and got identical results. frmtmb.sample floors on 0.62.0.
 
-**RTMB 2.0 is in the user library** (the user's install, 2026-09-21).
-It changes no answer: the objective agrees with 1.9 to 2 ulp. It
-exports `atan2`, now in the `nl()` shadow set. RTMB 1.9 remains the
-Windows R 4.6 binary on CRAN, so the transparency block skips there.
+**drmTMB is now a Suggests of core** and must be installed in the release
+library, or `R CMD check --as-cran` stops at "Package suggested but not
+available". Its agreement tests are gated behind
+`FRMTMB_DRMTMB_FIT_TESTS`, so ordinary runs skip them.
 
 ### Verified at the release commit
 
-- Suite: 269 files, 15,919 assertions, 0 fail, 0 error; every drop
-  against 0.60.0 explained in `dev/suite-baseline.md`.
-- Gated: 38 of 38 files, 3,130 assertions, 0 fail.
+- Suite: 279 files, 16,408 assertions, 0 fail, 0 error. NO file fell
+  against 0.61.0; 10 are new. `dev/suite-baseline.md` has the reading.
+- Gated: 39 of 39 files, 3,157 assertions, 0 fail.
 - Scale: 7 of 7.
-- `R CMD check --as-cran`: 8 of 8, no warnings or errors after one
-  merge-artifact Rd fix in frmtmb.sample; 5 packages carry the
-  environmental "V8 unavailable" NOTE.
-- Ported brms bin 1: 243 of 494 (was 231), ledger rebuilt on the merged
-  build.
+- `R CMD check --as-cran`: 8 of 8. frmtmb 2 NOTEs, four extensions 1
+  NOTE (the environmental V8 one), three OK. In-check tests FAIL 0 /
+  PASS 10,874 for core, kept as `dev/release/frmtmb-testthat.Rout`
+  because a passing check echoes no counts and the tree is deleted.
+- The second core NOTE is examples timing on `conditional_effects`:
+  0.15 s user against 18.94 s SYSTEM in the check, where the whole
+  example is 1.7 s on a quiet box. That is I/O while eight packages
+  checked in sequence. `?residuals.frmtmb_fit`'s example WAS real (5.9 s
+  of oneStepPredict) and its OSA block is now `\donttest{}`.
+- Ported brms bin 1: 250 of 494, from 243.
 
-**Consolidation found four defects the lane's three review rounds did
-not**, all now fixed and pinned (`dev/shapes-findings.md` section 13):
-`summary()` stopped on every REML and profile fit; `predict()` under
-REML dropped the fixed-effect uncertainty (1.0147 against 1.1611);
-the adefects forward of `allow_new_levels` on draws was bit-identical
-to `re_formula = NA`; and two `skip_if_not()` guards in
-`test-unpinned-seams.R` skipped a measurement in silence after the
-`vcov()` rename. The lesson for a review: no harness in the lane or
-review touched a REML fit, and a gate the lane never set
-(`FRMTMB_BRMS_FIT_TESTS`) hid 25 errors until round 3. Ask every lane
-to run the release tiers, not its own subset.
+**Four wrong answers were found by review rather than by the suite**, all
+silent, all now fixed and pinned: `skew_normal()` stalling at a
+stationary point; a factor smooth's whole contribution missing from an
+ordinal `fitted()` standard error on newdata; `car(esicar)` and `rr`
+batched as if their coefficient map were positionwise, understating a
+standard error by up to 30 percent; and `predict()` moving the caller's
+RNG stream. None of them would have shown in any tier.
 
 ## What is next, in order
 
-**One lane, next: `predict()` and `fitted()` carry the group effects'
-uncertainty at a level the fit saw** (user decision, 2026-09-22: match
-brms), with the partial-`re_formula` defect below, because a partial
-`re_formula` must add only its own terms' variance. Draw each
-replicate's group effects jointly from their conditional law, not a
-per-row variance, or `summary = FALSE` is wrong across rows of one group
-(the shared-new-level-draw lesson). The lane states which coverage the
-interval claims and measures that one (`dev/test-backlog.md`).
+**Two lanes the user approved on 2026-09-23.** They touch different
+files and can run together.
 
-**Silent first.**
-- A partial `re_formula` is accepted and not honored, with nothing said
-  (`dev/adefects-findings.md` section 11, item 7), and
-  `re_formula = ~(1 | nosuch)` is treated as `NULL` silently
-  (`dev/test-backlog.md`).
-- `residuals()` on an ordinal fit still answers where brms refuses.
+1. **`simulate(newdata = )`**, with `pp_check()` passing it through, so
+   `pp_check(newdata = )` answers as brms does instead of being refused.
+   Two ported rows become passes (bin 1 to 252). The lane owns
+   `simulate()`'s argument surface, so it also brings `re_formula` into
+   line with `predict()`: `~1` means no group effects, and a partial
+   formula is honored. `dev/correct-findings.md` has the feasibility
+   report, reproduced by the reviewer: about 25 lines, every piece
+   already exported, and the only new thinking is composing
+   `re_formula = NA` at newdata.
+2. **The prefix-less prior rule past `sd`**: brms refuses multivariate
+   `b`, `Intercept` and `sigma` priors with no `resp`, and frmtmb still
+   broadcasts them. Wider blast radius than the `sd` half, so its own
+   lane.
 
-**Then loud ones.** `pp_check(type = "*_grouped")` is broken for every
-grouped type, and `type = "violin"`; `fitted()` on a multivariate fit
-refuses while `predict()` answers; on draws, an unseen level without
-the flag gets a hint that leads to a refusal (`dev/test-backlog.md`).
+**Filed defects, in `dev/test-backlog.md`**, none blocking: the
+`error_binned` refusal calling a multinomial response a category; two
+frmtmb.sample test files that draw without a device guard, one of them
+generated by `dev/brmsport-gen.R`; the draws unseen-level hint that
+leads to a refusal; a finite-but-absurd `predict()` draw; `fitted()`
+refusing a multivariate fit while `predict()` answers; poisson
+`y ~ 0 + x` at covariate scale 1e-6 sitting 62.58 below `glm()`, which
+`autoscale = TRUE` closes completely; the same hazard inside a declaring
+dpar; `vcov()` on a REML poisson fit with no random effects; and whether
+a nonzero optimizer code on an unbounded parameter should be reported or
+suppressed.
 
-**Open for the user:** new levels on draws are refused rather than
-drawn per posterior draw.
+**From the drmTMB comparison**, sized in `dev/drmtmb-findings.md` and
+ordered by brms parity: three brms families frmtmb lacks
+(`hurdle_negbinomial`, `zero_one_inflated_beta`, a negbinomial CDF for
+`trunc()`), `gr(g, by = f)`, `fcor()`, boundary-corrected
+variance-component tests, and heritability/ICC accessors.
 
-**Filed during 2.6c and not fixed**, details in each lane's findings:
-two prior-scope differences from brms (a `sd` prior with a group and no
-dpar reaches `phi`; mv `sd group = g` without `resp` is accepted); two
-frmtmb.sample default priors (rescor flat where brms uses `lkj(1)`, and
-the offset intercept location); `mi()` still `b_` where brms uses
-`bsp_`; and a written `theta` formula's reference component.
+**Two upstream reports are drafted and NOT filed**: drmTMB's REML
+integrating `beta_sigma` only when sigma carries a random effect
+(`dev/drmtmb-findings.md`, runnable as pasted), and TMB's macOS binary
+referencing OpenMP symbols it does not link, which broke macOS CI when
+RTMB 2.0 reached CRAN.
 
-**Small follow-ups:** a sentence in `?frm` that frmtmb's REML and
-mgcv's differ on a location-scale smooth, and a test measuring the gap
-(`dev/test-backlog.md`).
-
-**Deferred by the user:** `frmtmb_control(vectorize = FALSE)`
-(2026-09-17; branches `wt-vectorize`, `wt-vecshape`): slower on every
-random-effects model, 1.36x to 1,116x. EM-seeded starts for the
-latent-discrete families (2026-09-21; `dev/extension-gaps-plan.md`).
-
-**Bin 2 of brms's suite is NOT ported and the audit recommends against
-it** (`dev/brms-suite-audit.md` section 9). Quote any "passes brms's
-suite" fraction against 823, bins 1 and 2, never 2,011. Today bin 1 is
-243 of 494.
+**Phases 3, 4 and 5 of `dev/extension-gaps-plan.md` are untouched.**
+Item 4.6 is unblocked now that `wt-reunc` has merged.
 
 ## Decisions the user made on 2026-09-23, for the four-lane round
 
@@ -236,6 +236,6 @@ document, and the fix found a real error on its first run.
 
 ## Worktrees
 
-`wt-shapes` and `wt-adefects` are merged and removed, with their evidence
-committed on main under `dev/`. Create fresh worktrees off the current
-main.
+`wt-drmtmb`, `wt-skewinit`, `wt-correct` and `wt-reunc` are merged and
+removed, with their evidence committed on main under `dev/`. Create
+fresh worktrees off the current main.

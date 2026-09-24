@@ -1,20 +1,20 @@
 # The per-file suite baseline, and what it is for
 
-`dev/suite-baseline.tsv` records one row per test file as of the 0.61.0
-release, at frmtmb 0.61.0 and frmtmb.sample 0.9.0: package, file, passing
+`dev/suite-baseline.tsv` records one row per test file as of the 0.62.0
+release, at frmtmb 0.62.0 and frmtmb.sample 0.10.0: package, file, passing
 assertions, skips. It is a floor, not a target.
 
-One row is not from the release run: `test-unpinned-seams.R` (30, 0).
-The release run showed it at 23 with one skip, because two
-`skip_if_not()` guards read `vcov()` under the internal names that item
-2.6f replaced with brms's, and so skipped the mixture-weight
-measurement in silence. The guards are assertions now, on
-`vcov_estimated()`, and the row is that file's rerun. Every other drop
-against 0.60.0 is a deliberate change: `test-stan-control.R` and
-`test-sample-direct.R` assert over seeds or on the density instead of
-one chain (RTMB 2.0), and `test-arg-refusal.R` and
-`test-draws-methods.R` lost refusals of arguments and functions that now
-answer as brms's do.
+Every row is from the release run. NO file's passing count fell against
+0.61.0, and 10 files are new. Two files gained one skip each,
+`test-brms-likelihood.R` and `test-brms-methods.R`: both are gated, and
+the correctness lane added a block to each, which the ungated tier skips
+by design.
+
+Read a tier log only when it POSTDATES every file it covers. Three lanes
+of this round quoted a suite log written before their last edit, and in
+each case the arithmetic gave the lane away: a file's count in the log
+differed from its standalone count by exactly the assertions the last
+edit added.
 
 ## Why it exists
 
