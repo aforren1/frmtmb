@@ -114,6 +114,17 @@ it names the exact version rather than a date that has to be looked up.
   write, so the run finishes and reports `SUITE ran 272 of 272` over a log
   holding 17 of them. The count was right and the evidence was gone. Found
   by lane wt-reunc, 2026-09-23, at the cost of one full suite run.
+- The GATED tier must skip NOTHING; it exists to run what the ungated
+  tier skips. Read its skip column, not only pass and fail. At 0.62.0
+  the release reported "39 of 39, 0 fail" while test-drmtmb-agreement.R
+  read pass=0 skip=13, because drmTMB reached the release library only
+  after the tier ran, and that file held two real failures.
+  run-gated.ps1 now names every file with a skip.
+- With Rtools first on PATH, `bash` resolves to Rtools' own bash, which
+  drops exported variables including TMP, so R fails with "cannot create
+  R_TempDir". It also sent one lane's gated runs into its plain logs
+  before it was caught (wt-phase3b, 2026-09-24). Call Rscript directly,
+  or check TMP inside the shell that launches R.
 - Prefix every scratch file and log with your lane name.
 
 ## House style, which the reviewer will check

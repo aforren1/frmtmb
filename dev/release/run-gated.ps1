@@ -88,3 +88,18 @@ foreach ($j in $jobs) {
 }
 Add-Content -Path $LOG -Value ("GATED ran " + $ran + " of " + $jobs.Count)
 Write-Output ("GATED ran " + $ran + " of " + $jobs.Count)
+
+# A gated file that SKIPS is a gated file that did not run, and the
+# RESULT line still counts it as ran. The 0.62.0 release reported
+# 39 of 39 with test-drmtmb-agreement.R at pass=0 skip=13, because
+# drmTMB was installed into the release library only after this tier
+# ran, and the file carried two real failures. Nothing in this tier
+# should skip, so every skip is named here rather than summed away.
+$skipped = Get-Content $LOG | Select-String -Pattern '^RESULT .* skip=([1-9][0-9]*)'
+$nskip = @($skipped).Count
+Add-Content -Path $LOG -Value ("GATED files with skips: " + $nskip)
+Write-Output ("GATED files with skips: " + $nskip)
+foreach ($skipLine in $skipped) {
+  Add-Content -Path $LOG -Value ("SKIPPED " + $skipLine.Line)
+  Write-Output ("SKIPPED " + $skipLine.Line)
+}

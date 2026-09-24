@@ -404,7 +404,7 @@ test_that("mi(): a gaussian missing predictor with its own model", {
          drm_lin(4, 5), drm_lin(5, 6), drm_lin(7, 7)))
 })
 
-test_that("skew_normal: same likelihood; frmtmb's default start stalls", {
+test_that("skew_normal: same likelihood, from frmtmb's default start", {
   skip_unless_drmtmb()
   set.seed(1)
   n <- 200
@@ -419,22 +419,19 @@ test_that("skew_normal: same likelihood; frmtmb's default start stalls", {
     frm(bf(y ~ xs, sigma ~ 1, alpha ~ 1), family = skew_normal(), data = d,
         start = list(betad = c(0, 2))),
     drm_ids(4))
-  # KNOWN DEFECT, pinned on purpose. frmtmb's alpha start takes its sign
-  # from the skewness of the RAW response, which here is opposite to the
-  # residual skewness, and alpha = 0 is a stationary point of the
-  # mean-parameterized skew normal. The default fit stops there with
-  # convergence code 0, about 25 log-likelihood units low. When the start
-  # is fixed this expectation fails: flip it to expect_same_model(), do
-  # not delete it.
+  # This was pinned as a KNOWN DEFECT by lane wt-drmtmb: the alpha start
+  # took its sign from the RAW response's skewness, opposite here to the
+  # residual skewness, so the default fit stopped at the stationary point
+  # alpha = 0, 24.7 units low on a logLik of -284, with convergence 0.
+  # Lane wt-skewinit fixed the start (0.62.0), and this expectation is
+  # the flip the pin asked for: the default fit now reaches drmTMB's
+  # optimum. Both lanes merged in one release without the flip, and the
+  # release's gated run skipped this file because drmTMB was not yet in
+  # the release library, so the failure surfaced only afterwards.
   ff <- frm(bf(y ~ xs, sigma ~ 1, alpha ~ 1), family = skew_normal(),
             data = d)
   expect_identical(ff$opt$convergence, 0L)
-  # Measured: 24.7 units on a logLik of -284, and alpha within 2e-4 of
-  # its standard error from zero.
-  expect_gt((as.numeric(logLik(fd)) - as.numeric(logLik(ff))) /
-              abs(as.numeric(logLik(fd))), 0.01)
-  se_alpha <- sqrt(diag(vcov(ff, full = TRUE)))[[4]]
-  expect_lt(abs(ff$opt$par[[4]]) / se_alpha, 0.01)
+  expect_same_model(fd, ff, drm_ids(4))
 })
 
 test_that("REML with a sigma random effect: not the same criterion", {
