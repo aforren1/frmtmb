@@ -1,0 +1,75 @@
+trying URL 'https://kaskr.r-universe.dev/bin/windows/contrib/4.6/RTMB_2.0.zip?sha256=41d9b3f80a06d86c5b50adc782a8c71386e58e4a00be7eb683f6b399e98c7577&file=/RTMB_2.0.zip'
+Content type 'application/zip' length 5367423 bytes (5.1 MB)
+==================================================
+downloaded 5.1 MB
+
+package 'RTMB' successfully unpacked and MD5 sums checked
+
+The downloaded binary packages are in
+	C:\Users\adf44\AppData\Local\Temp\1\Rtmp4qLa41\downloaded_packages
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/drmTMB_0.7.0.zip'
+Content type 'application/zip' length 7136516 bytes (6.8 MB)
+==================================================
+downloaded 6.8 MB
+
+package 'drmTMB' successfully unpacked and MD5 sums checked
+
+The downloaded binary packages are in
+	C:\Users\adf44\AppData\Local\Temp\1\Rtmp4qLa41\downloaded_packages
+* installing *source* package 'frmtmb.eam' ...
+** this is package 'frmtmb.eam' version '0.10.0'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.eam)
+
+* installing *source* package 'frmtmb.ode' ...
+** this is package 'frmtmb.ode' version '0.6.0'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.ode)
+* installing *source* package 'frmtmb' ...
+** this is package 'frmtmb' version '0.62.0'
+** using staged installation
+** R
+** data
+*** moving datasets to lazyload DB
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb)
+
+* installing *source* package 'frmtmb.latent' ...
+** this is package 'frmtmb.latent' version '0.5.0'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (frmtmb.latent)

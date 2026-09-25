@@ -125,6 +125,14 @@ it names the exact version rather than a date that has to be looked up.
   R_TempDir". It also sent one lane's gated runs into its plain logs
   before it was caught (wt-phase3b, 2026-09-24). Call Rscript directly,
   or check TMP inside the shell that launches R.
+- Memory is shared by every lane. On 2026-09-24 the machine crashed
+  with memory exhausted while one lane ran 11 R fitting processes at up
+  to 2.4 GB each beside four other lanes; 34 of its fits had already
+  failed with `std::bad_alloc`, and NaN gradients clustered in the same
+  time windows. Run at most 3 fitting processes at a time, and before
+  starting each one check that at least 5 GB is free. A fit that
+  fails with `bad_alloc` or a NaN gradient under memory pressure is not
+  evidence about the model until it reproduces alone.
 - Prefix every scratch file and log with your lane name.
 
 ## House style, which the reviewer will check

@@ -1,0 +1,468 @@
+hollow: 230  on CRAN binary: 230  not on CRAN: 0 
+NOT ON CRAN:  
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/abind_1.4-8.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/ape_5.8-1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/askpass_1.2.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/backports_1.5.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/base64enc_0.1-6.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/bayesplot_1.16.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/BH_1.90.0-1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/bit_4.6.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/bit64_4.8.6.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/boot_1.3-32.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/bridgesampling_1.2-1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/brio_1.1.5.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/brms_2.23.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/Brobdingnag_1.3-1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/brokenstick_2.7.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/broom_1.0.13.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/bslib_0.12.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/cachem_1.1.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/callr_3.8.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/checkmate_2.3.4.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/circular_0.5-2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/class_7.3-24.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/classInt_0.4-11.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/cli_3.6.6.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/clipr_0.8.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/clubSandwich_0.7.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/clue_0.3-68.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/cluster_2.1.8.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/coda_0.19-4.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/codetools_0.2-20.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/colorspace_2.1-3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/commonmark_2.0.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/cowplot_1.2.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/cpp11_0.5.5.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/crayon_1.5.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/crosstalk_1.2.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/curl_8.0.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/data.table_1.18.6.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/DBI_1.3.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/Deriv_4.3.5.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/desc_1.4.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/DHARMa_0.5.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/diffobj_0.3.9.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/digest_0.6.39.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/distributional_0.9.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/doBy_4.7.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/doParallel_1.0.17.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/dplyr_1.2.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/e1071_1.7-17.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/emmeans_2.0.4.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/estimability_2.0.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/evaluate_1.0.5.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/farver_2.1.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/fastmap_1.2.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/fmesher_0.8.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/fontawesome_0.5.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/forcats_1.0.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/foreach_1.5.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/forecast_9.0.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/Formula_1.2-6.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/fracdiff_1.5-4.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/fs_2.1.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/future_1.75.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/future.apply_1.20.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/gap_1.15.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/gap.datasets_0.0.6.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/generics_0.1.4.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/ggdist_3.3.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/ggokabeito_0.1.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/ggplot2_4.0.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/ggridges_0.5.7.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/GLMMadaptive_0.9-7.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/glmmTMB_1.1.14.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/glmnet_5.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/globals_0.19.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/glue_1.8.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/gratia_0.11.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/gridExtra_2.3.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/gtable_0.3.6.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/haven_2.5.5.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/highr_0.12.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/hms_1.1.4.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/htmltools_0.5.9.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/htmlwidgets_1.6.4.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/httpuv_1.6.17.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/httr_1.4.9.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/inline_0.3.21.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/insight_1.5.4.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/isoband_0.3.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/iterators_1.0.14.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/jomo_2.7-6.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/jquerylib_0.1.4.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/jsonlite_2.0.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/keep_1.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/KernSmooth_2.23-27.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/knitr_1.52.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/labeling_0.4.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/later_1.4.8.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/lattice_0.23-1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/lazyeval_0.2.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/lifecycle_1.0.5.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/listenv_1.0.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/lme4_2.0-6.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/lmtest_0.9-40.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/loo_2.10.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/magrittr_2.0.5.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/marginaleffects_1.0.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/MASS_7.3-66.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/mathjaxr_2.0-0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/Matrix_1.7-6.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/MatrixModels_0.5-4.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/matrixsampling_2.0.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/matrixStats_1.5.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/mclust_6.1.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/memoise_2.0.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/metadat_1.6-0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/metafor_5.2-1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/mgcv_1.9-4.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/mice_3.19.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/mime_0.13.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/minqa_1.2.8.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/mirai_2.7.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/mitml_0.4-5.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/mnormt_2.1.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/modelr_0.1.11.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/movMF_0.2-11.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/mvnfast_0.2.8.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/mvtnorm_1.4-2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/nanonext_1.10.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/nleqslv_3.3.7.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/nlme_3.1-171.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/nloptr_2.2.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/nnet_7.3-21.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/numDeriv_2016.8-1.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/openssl_2.4.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/ordinal_2026.7-26.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/otel_0.2.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/pan_2.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/parallelly_1.48.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/patchwork_1.3.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/pbapply_1.7-5.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/pbkrtest_0.5.5.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/pillar_1.11.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/pkgbuild_1.4.8.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/pkgconfig_2.0.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/pkgload_1.5.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/plotly_4.12.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/plyr_1.8.9.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/posterior_1.7.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/praise_1.0.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/prettyunits_1.2.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/processx_3.9.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/progress_1.2.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/promises_1.5.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/proxy_0.4-29.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/ps_1.9.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/purrr_1.2.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/qgam_2.0.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/quadprog_1.5-8.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/quantreg_6.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/QuickJSR_1.11.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/R6_2.6.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/rappdirs_0.3.4.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/rbibutils_2.4.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/RColorBrewer_1.1-3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/Rcpp_1.1.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/RcppArmadillo_15.6.0-1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/RcppEigen_0.3.4.0.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/RcppParallel_6.2.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/Rdpack_2.6.6.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/readr_2.2.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/reformulas_0.4.4.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/reshape2_1.4.5.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/rlang_1.3.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/rmarkdown_2.32.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/rpart_4.1.27.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/rprojroot_2.1.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/rstan_2.32.7.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/rstantools_2.7.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/RTMB_1.9.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/RTMBdist_1.1.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/RWiener_1.3-3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/s2_1.1.12.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/S7_0.2.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/sandwich_3.1-3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/sass_0.4.10.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/scales_1.4.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/sf_1.1-3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/shape_1.4.6.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/shiny_1.14.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/skmeans_0.2-20.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/slam_0.1-56.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/sn_2.1.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/sourcetools_0.1.7-2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/sp_2.2-3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/SparseM_1.84-2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/splancs_2.01-45.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/splines2_0.5.4.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/StanHeaders_2.39.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/statmod_1.5.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/stringi_1.8.9.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/stringr_1.6.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/survival_3.8-12.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/sys_3.4.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/tensorA_0.36.2.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/testthat_3.3.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/tibble_3.3.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/tidyr_1.3.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/tidyselect_1.2.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/timeDate_4052.112.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/tinyplot_0.7.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/tinytex_0.60.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/TMB_1.9.25.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/tmbstan_1.2.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/tweedie_3.1.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/tzdb_0.5.0.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/ucminf_1.2.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/units_1.0-1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/urca_1.3-4.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/utf8_1.2.6.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/vctrs_0.7.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/viridisLite_0.4.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/vroom_1.7.1.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/waldo_0.6.2.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/withr_3.0.3.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/wk_0.9.5.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/xfun_0.60.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/xtable_1.8-8.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/yaml_2.3.12.zip'
+trying URL 'https://cloud.r-project.org/bin/windows/contrib/4.6/zoo_1.9-0.zip'
+package 'abind' successfully unpacked and MD5 sums checked
+package 'ape' successfully unpacked and MD5 sums checked
+package 'askpass' successfully unpacked and MD5 sums checked
+package 'backports' successfully unpacked and MD5 sums checked
+package 'base64enc' successfully unpacked and MD5 sums checked
+package 'bayesplot' successfully unpacked and MD5 sums checked
+package 'BH' successfully unpacked and MD5 sums checked
+package 'bit' successfully unpacked and MD5 sums checked
+package 'bit64' successfully unpacked and MD5 sums checked
+package 'boot' successfully unpacked and MD5 sums checked
+package 'bridgesampling' successfully unpacked and MD5 sums checked
+package 'brio' successfully unpacked and MD5 sums checked
+package 'brms' successfully unpacked and MD5 sums checked
+package 'Brobdingnag' successfully unpacked and MD5 sums checked
+package 'brokenstick' successfully unpacked and MD5 sums checked
+package 'broom' successfully unpacked and MD5 sums checked
+package 'bslib' successfully unpacked and MD5 sums checked
+package 'cachem' successfully unpacked and MD5 sums checked
+package 'callr' successfully unpacked and MD5 sums checked
+package 'checkmate' successfully unpacked and MD5 sums checked
+package 'circular' successfully unpacked and MD5 sums checked
+package 'class' successfully unpacked and MD5 sums checked
+package 'classInt' successfully unpacked and MD5 sums checked
+package 'cli' successfully unpacked and MD5 sums checked
+package 'clipr' successfully unpacked and MD5 sums checked
+package 'clubSandwich' successfully unpacked and MD5 sums checked
+package 'clue' successfully unpacked and MD5 sums checked
+package 'cluster' successfully unpacked and MD5 sums checked
+package 'coda' successfully unpacked and MD5 sums checked
+package 'codetools' successfully unpacked and MD5 sums checked
+package 'colorspace' successfully unpacked and MD5 sums checked
+package 'commonmark' successfully unpacked and MD5 sums checked
+package 'cowplot' successfully unpacked and MD5 sums checked
+package 'cpp11' successfully unpacked and MD5 sums checked
+package 'crayon' successfully unpacked and MD5 sums checked
+package 'crosstalk' successfully unpacked and MD5 sums checked
+package 'curl' successfully unpacked and MD5 sums checked
+package 'data.table' successfully unpacked and MD5 sums checked
+package 'DBI' successfully unpacked and MD5 sums checked
+package 'Deriv' successfully unpacked and MD5 sums checked
+package 'desc' successfully unpacked and MD5 sums checked
+package 'DHARMa' successfully unpacked and MD5 sums checked
+package 'diffobj' successfully unpacked and MD5 sums checked
+package 'digest' successfully unpacked and MD5 sums checked
+package 'distributional' successfully unpacked and MD5 sums checked
+package 'doBy' successfully unpacked and MD5 sums checked
+package 'doParallel' successfully unpacked and MD5 sums checked
+package 'dplyr' successfully unpacked and MD5 sums checked
+package 'e1071' successfully unpacked and MD5 sums checked
+package 'emmeans' successfully unpacked and MD5 sums checked
+package 'estimability' successfully unpacked and MD5 sums checked
+package 'evaluate' successfully unpacked and MD5 sums checked
+package 'farver' successfully unpacked and MD5 sums checked
+package 'fastmap' successfully unpacked and MD5 sums checked
+package 'fmesher' successfully unpacked and MD5 sums checked
+package 'fontawesome' successfully unpacked and MD5 sums checked
+package 'forcats' successfully unpacked and MD5 sums checked
+package 'foreach' successfully unpacked and MD5 sums checked
+package 'forecast' successfully unpacked and MD5 sums checked
+package 'Formula' successfully unpacked and MD5 sums checked
+package 'fracdiff' successfully unpacked and MD5 sums checked
+package 'fs' successfully unpacked and MD5 sums checked
+package 'future' successfully unpacked and MD5 sums checked
+package 'future.apply' successfully unpacked and MD5 sums checked
+package 'gap' successfully unpacked and MD5 sums checked
+package 'gap.datasets' successfully unpacked and MD5 sums checked
+package 'generics' successfully unpacked and MD5 sums checked
+package 'ggdist' successfully unpacked and MD5 sums checked
+package 'ggokabeito' successfully unpacked and MD5 sums checked
+package 'ggplot2' successfully unpacked and MD5 sums checked
+package 'ggridges' successfully unpacked and MD5 sums checked
+package 'GLMMadaptive' successfully unpacked and MD5 sums checked
+package 'glmmTMB' successfully unpacked and MD5 sums checked
+package 'glmnet' successfully unpacked and MD5 sums checked
+package 'globals' successfully unpacked and MD5 sums checked
+package 'glue' successfully unpacked and MD5 sums checked
+package 'gratia' successfully unpacked and MD5 sums checked
+package 'gridExtra' successfully unpacked and MD5 sums checked
+package 'gtable' successfully unpacked and MD5 sums checked
+package 'haven' successfully unpacked and MD5 sums checked
+package 'highr' successfully unpacked and MD5 sums checked
+package 'hms' successfully unpacked and MD5 sums checked
+package 'htmltools' successfully unpacked and MD5 sums checked
+package 'htmlwidgets' successfully unpacked and MD5 sums checked
+package 'httpuv' successfully unpacked and MD5 sums checked
+package 'httr' successfully unpacked and MD5 sums checked
+package 'inline' successfully unpacked and MD5 sums checked
+package 'insight' successfully unpacked and MD5 sums checked
+package 'isoband' successfully unpacked and MD5 sums checked
+package 'iterators' successfully unpacked and MD5 sums checked
+package 'jomo' successfully unpacked and MD5 sums checked
+package 'jquerylib' successfully unpacked and MD5 sums checked
+package 'jsonlite' successfully unpacked and MD5 sums checked
+package 'keep' successfully unpacked and MD5 sums checked
+package 'KernSmooth' successfully unpacked and MD5 sums checked
+package 'knitr' successfully unpacked and MD5 sums checked
+package 'labeling' successfully unpacked and MD5 sums checked
+package 'later' successfully unpacked and MD5 sums checked
+package 'lattice' successfully unpacked and MD5 sums checked
+package 'lazyeval' successfully unpacked and MD5 sums checked
+package 'lifecycle' successfully unpacked and MD5 sums checked
+package 'listenv' successfully unpacked and MD5 sums checked
+package 'lme4' successfully unpacked and MD5 sums checked
+package 'lmtest' successfully unpacked and MD5 sums checked
+package 'loo' successfully unpacked and MD5 sums checked
+package 'magrittr' successfully unpacked and MD5 sums checked
+package 'marginaleffects' successfully unpacked and MD5 sums checked
+package 'MASS' successfully unpacked and MD5 sums checked
+package 'mathjaxr' successfully unpacked and MD5 sums checked
+package 'Matrix' successfully unpacked and MD5 sums checked
+package 'MatrixModels' successfully unpacked and MD5 sums checked
+package 'matrixsampling' successfully unpacked and MD5 sums checked
+package 'matrixStats' successfully unpacked and MD5 sums checked
+package 'mclust' successfully unpacked and MD5 sums checked
+package 'memoise' successfully unpacked and MD5 sums checked
+package 'metadat' successfully unpacked and MD5 sums checked
+package 'metafor' successfully unpacked and MD5 sums checked
+package 'mgcv' successfully unpacked and MD5 sums checked
+package 'mice' successfully unpacked and MD5 sums checked
+package 'mime' successfully unpacked and MD5 sums checked
+package 'minqa' successfully unpacked and MD5 sums checked
+package 'mirai' successfully unpacked and MD5 sums checked
+package 'mitml' successfully unpacked and MD5 sums checked
+package 'mnormt' successfully unpacked and MD5 sums checked
+package 'modelr' successfully unpacked and MD5 sums checked
+package 'movMF' successfully unpacked and MD5 sums checked
+package 'mvnfast' successfully unpacked and MD5 sums checked
+package 'mvtnorm' successfully unpacked and MD5 sums checked
+package 'nanonext' successfully unpacked and MD5 sums checked
+package 'nleqslv' successfully unpacked and MD5 sums checked
+package 'nlme' successfully unpacked and MD5 sums checked
+package 'nloptr' successfully unpacked and MD5 sums checked
+package 'nnet' successfully unpacked and MD5 sums checked
+package 'numDeriv' successfully unpacked and MD5 sums checked
+package 'openssl' successfully unpacked and MD5 sums checked
+package 'ordinal' successfully unpacked and MD5 sums checked
+package 'otel' successfully unpacked and MD5 sums checked
+package 'pan' successfully unpacked and MD5 sums checked
+package 'parallelly' successfully unpacked and MD5 sums checked
+package 'patchwork' successfully unpacked and MD5 sums checked
+package 'pbapply' successfully unpacked and MD5 sums checked
+package 'pbkrtest' successfully unpacked and MD5 sums checked
+package 'pillar' successfully unpacked and MD5 sums checked
+package 'pkgbuild' successfully unpacked and MD5 sums checked
+package 'pkgconfig' successfully unpacked and MD5 sums checked
+package 'pkgload' successfully unpacked and MD5 sums checked
+package 'plotly' successfully unpacked and MD5 sums checked
+package 'plyr' successfully unpacked and MD5 sums checked
+package 'posterior' successfully unpacked and MD5 sums checked
+package 'praise' successfully unpacked and MD5 sums checked
+package 'prettyunits' successfully unpacked and MD5 sums checked
+package 'processx' successfully unpacked and MD5 sums checked
+package 'progress' successfully unpacked and MD5 sums checked
+package 'promises' successfully unpacked and MD5 sums checked
+package 'proxy' successfully unpacked and MD5 sums checked
+package 'ps' successfully unpacked and MD5 sums checked
+package 'purrr' successfully unpacked and MD5 sums checked
+package 'qgam' successfully unpacked and MD5 sums checked
+package 'quadprog' successfully unpacked and MD5 sums checked
+package 'quantreg' successfully unpacked and MD5 sums checked
+package 'QuickJSR' successfully unpacked and MD5 sums checked
+package 'R6' successfully unpacked and MD5 sums checked
+package 'rappdirs' successfully unpacked and MD5 sums checked
+package 'rbibutils' successfully unpacked and MD5 sums checked
+package 'RColorBrewer' successfully unpacked and MD5 sums checked
+package 'Rcpp' successfully unpacked and MD5 sums checked
+package 'RcppArmadillo' successfully unpacked and MD5 sums checked
+package 'RcppEigen' successfully unpacked and MD5 sums checked
+package 'RcppParallel' successfully unpacked and MD5 sums checked
+package 'Rdpack' successfully unpacked and MD5 sums checked
+package 'readr' successfully unpacked and MD5 sums checked
+package 'reformulas' successfully unpacked and MD5 sums checked
+package 'reshape2' successfully unpacked and MD5 sums checked
+package 'rlang' successfully unpacked and MD5 sums checked
+package 'rmarkdown' successfully unpacked and MD5 sums checked
+package 'rpart' successfully unpacked and MD5 sums checked
+package 'rprojroot' successfully unpacked and MD5 sums checked
+package 'rstan' successfully unpacked and MD5 sums checked
+package 'rstantools' successfully unpacked and MD5 sums checked
+package 'RTMB' successfully unpacked and MD5 sums checked
+package 'RTMBdist' successfully unpacked and MD5 sums checked
+package 'RWiener' successfully unpacked and MD5 sums checked
+package 's2' successfully unpacked and MD5 sums checked
+package 'S7' successfully unpacked and MD5 sums checked
+package 'sandwich' successfully unpacked and MD5 sums checked
+package 'sass' successfully unpacked and MD5 sums checked
+package 'scales' successfully unpacked and MD5 sums checked
+package 'sf' successfully unpacked and MD5 sums checked
+package 'shape' successfully unpacked and MD5 sums checked
+package 'shiny' successfully unpacked and MD5 sums checked
+package 'skmeans' successfully unpacked and MD5 sums checked
+package 'slam' successfully unpacked and MD5 sums checked
+package 'sn' successfully unpacked and MD5 sums checked
+package 'sourcetools' successfully unpacked and MD5 sums checked
+package 'sp' successfully unpacked and MD5 sums checked
+package 'SparseM' successfully unpacked and MD5 sums checked
+package 'splancs' successfully unpacked and MD5 sums checked
+package 'splines2' successfully unpacked and MD5 sums checked
+package 'StanHeaders' successfully unpacked and MD5 sums checked
+package 'statmod' successfully unpacked and MD5 sums checked
+package 'stringi' successfully unpacked and MD5 sums checked
+package 'stringr' successfully unpacked and MD5 sums checked
+package 'survival' successfully unpacked and MD5 sums checked
+package 'sys' successfully unpacked and MD5 sums checked
+package 'tensorA' successfully unpacked and MD5 sums checked
+package 'testthat' successfully unpacked and MD5 sums checked
+package 'tibble' successfully unpacked and MD5 sums checked
+package 'tidyr' successfully unpacked and MD5 sums checked
+package 'tidyselect' successfully unpacked and MD5 sums checked
+package 'timeDate' successfully unpacked and MD5 sums checked
+package 'tinyplot' successfully unpacked and MD5 sums checked
+package 'tinytex' successfully unpacked and MD5 sums checked
+package 'TMB' successfully unpacked and MD5 sums checked
+package 'tmbstan' successfully unpacked and MD5 sums checked
+package 'tweedie' successfully unpacked and MD5 sums checked
+package 'tzdb' successfully unpacked and MD5 sums checked
+package 'ucminf' successfully unpacked and MD5 sums checked
+package 'units' successfully unpacked and MD5 sums checked
+package 'urca' successfully unpacked and MD5 sums checked
+package 'utf8' successfully unpacked and MD5 sums checked
+package 'vctrs' successfully unpacked and MD5 sums checked
+package 'viridisLite' successfully unpacked and MD5 sums checked
+package 'vroom' successfully unpacked and MD5 sums checked
+package 'waldo' successfully unpacked and MD5 sums checked
+package 'withr' successfully unpacked and MD5 sums checked
+package 'wk' successfully unpacked and MD5 sums checked
+package 'xfun' successfully unpacked and MD5 sums checked
+package 'xtable' successfully unpacked and MD5 sums checked
+package 'yaml' successfully unpacked and MD5 sums checked
+package 'zoo' successfully unpacked and MD5 sums checked
+
+The downloaded binary packages are in
+	C:\Users\adf44\AppData\Local\Temp\1\RtmpukOp7m\downloaded_packages
+RESTORED 230 of 230 
+STILL HOLLOW:  
+RESTORE DONE

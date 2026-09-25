@@ -422,3 +422,54 @@ CRAN binary. `frmtmb` itself is
 excluded by the script and was not touched. Reinstalling RTMB 2.0 means
 `install.packages("RTMB", repos = "https://kaskr.r-universe.dev")` into
 the user library, which is the user's call, not a lane's.
+
+## The eighth loss, 2026-09-24, at a critical-battery shutdown
+
+Found at 19:16 after the laptop was plugged back in. Evidence collected
+BEFORE the restore:
+
+| | seventh, 17:05 (09-22) | eighth, 18:41 (09-24) |
+|---|---|---|
+| user-library directories emptied | 223 of 410 | **230 of 410** |
+| window | 97 s | **12 s**, 18:40:57 to 18:41:09 |
+| order | alphabetical from `abind` | alphabetical, `abind` to `zoo`, with some left whole |
+| `ZZZ-canary.txt` | survived | **survived** |
+| `rellib-r3` | untouched | **3 of 9 emptied**: `drmTMB`, `frmtmb.eam`, `frmtmb.ode`, 18:41:03 to 18:41:08 |
+| lane libraries | untouched | **`predfix-lib` 2 of 5 emptied** (`frmtmb`, `frmtmb.latent`, 18:41:08); `mvprior-lib`, `phase3b-lib`, `simnewdata-lib`, `phase3a-lib`, `pinlib` untouched |
+| `00LOCK` present | none | **none** |
+| free space | 38 GB | **114 GB** at 19:16 |
+| preceded by | a session cut during `R CMD build` | **`Kernel-Power` 524, "Critical Battery Trigger Met", at 18:38:57**; the next System event is the boot at 19:01 |
+
+**What this rules out.** Free space was far above any low-space
+threshold, so Storage Sense on low disk is not the trigger this time.
+Storage Sense also does not reach `C:/Users/adf44/source/r`, and two
+libraries there were emptied inside the same 12 seconds. A lane script
+is unlikely: a search of every `.R`, `.ps1` and `.sh` file changed in
+the worktrees since noon found no deletion that keeps directories.
+
+**The common factor across the sixth, seventh and eighth losses** is
+that processes were killed, not that the disk was low: a hard kill of
+every R process (sixth), an agent session cut mid-install (seventh), and
+agent sessions and R processes dying at a critical-battery shutdown
+(eighth). Which process does the deleting is still unknown. Two lanes
+were idle with their check trees already deleted; `wt-mvprior` and
+`wt-predfix` had last written logs at 18:37 and 18:33, and the
+`wt-phase3b` review at 18:37.
+
+**The restore**, about 19:25 to 19:40:
+
+- `dev/release/restore-library.R`: 230 of 230 recovered from CRAN
+  binaries, none off CRAN (`dev/release/restore-8th.log`). It
+  reinstalled RTMB as CRAN's Windows binary, 1.9, so RTMB 2.0 went back
+  from `https://kaskr.r-universe.dev`, as the user approved after the
+  seventh loss.
+- `rellib-r3`: `drmTMB` 0.7.0 from CRAN; `frmtmb.eam` 0.10.0 and
+  `frmtmb.ode` 0.6.0 from the main checkout at `cad68e21` (the 0.62.0
+  release plus a CI change).
+- `predfix-lib`: `frmtmb` and `frmtmb.latent` from the `wt-predfix`
+  worktree as it stood.
+- 0 hollow in all three afterwards. Verified by FITTING with
+  `dev/correct-libcheck.R`, identical to the seventh loss's values:
+  gaussian `(1 | g)` logLik -295.602189818, poisson -332.137876329.
+- StanHeaders in the user library is 2.39.1 as before; the 2.32.10 pin
+  in `pinlib` was untouched.
