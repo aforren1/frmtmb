@@ -1,0 +1,3 @@
+LIB frmtmb from /opt/rlib/base
+RESULT frmtmb.sample test-simulators.R pass=52 fail=2 err=0 skip=0
+  BLOCK a cov = FALSE term: fresh recursion, or brms's one-step draw fail=2 err=FALSE

@@ -402,6 +402,25 @@ build_objective <- function(frame) {
       dparv[[lp[["resp"]]]][[paste0(".eta_", lp[["dpar"]])]] <- eta
     }
 
+    # brms's cov = FALSE ARMA: mu moves by a regression on the earlier
+    # residuals of its group, on the response scale (brms adds it after
+    # the inverse link), and every density below, rowwise or rescor,
+    # then reads the shifted mu. The residual is taken against the
+    # observed-or-imputed response, brms's Yl under mi().
+    for (r in names(acs)) {
+      ac <- acs[[r]]
+      if (!autocor_is_cond(ac)) next
+      mu_r <- dparv[[r]]$mu
+      if (length(mu_r) == 1L) mu_r <- mu_r + numeric(n)
+      yl <- mivals[[r]] %||% y[[r]]
+      dparv[[r]]$mu <- mu_r +
+        autocor_cond_shift(yl - mu_r, pars[["thetaac"]][ac[["theta_idx"]]],
+                           ac)
+      # the link-scale value no longer describes mu, and a density
+      # reading it through the public accessors would miss the shift
+      dparv[[r]][[".eta_mu"]] <- NULL
+    }
+
     if (rescor) {
       # gaussian joint likelihood: standardized residuals against a
       # constant correlation matrix keeps this vectorized even with
@@ -430,7 +449,7 @@ build_objective <- function(frame) {
         fam <- resps[[r]]$family
         w <- atv[[r]]$weights %||% 1
         if (!is.null(clw_idx)) w <- w * pars[["clw"]][clw_idx[[r]]]
-        if (!is.null(acs[[r]])) {
+        if (!is.null(acs[[r]]) && !autocor_is_cond(acs[[r]])) {
           # R-side residual correlation: the response's density is a
           # joint (multivariate normal / t) one per group, not a
           # product over rows, so it replaces fam$lpdf entirely. Every

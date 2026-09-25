@@ -232,6 +232,47 @@ test_that("an autocor residual is one group draw on every path", {
   expect_equal(unname(s_new), unname(s_fit))
 })
 
+# brms's cov = FALSE ARMA splits the three paths on purpose. simulate()
+# and frm_simulate() draw a fresh replicate by running the recursion over
+# its own draws; posterior_predict() is brms's, which draws each row
+# around its ONE-STEP mean, the one that reads the observed earlier
+# residuals (fitted()), so its rows are independent given the data.
+test_that("a cov = FALSE term: fresh recursion, or brms's one-step draw", {
+  set.seed(78)
+  G <- 30L
+  K <- 8L
+  dd <- expand.grid(week = seq_len(K), subj = factor(seq_len(G)))
+  dd$x <- stats::rnorm(nrow(dd))
+  e <- as.vector(vapply(seq_len(G), function(i) {
+    as.vector(stats::arima.sim(list(ar = 0.8), K, n.start = 200, sd = 1))
+  }, numeric(K)))
+  dd$y <- 1 + 0.5 * dd$x + e
+  form <- bf(y ~ x + ar(week, subj)) + gaussian()
+  fit <- frm(form, data = dd)
+  n <- nrow(dd)
+  R <- 20L
+  m1 <- as.vector(fitted(fit)[, "Estimate"])
+
+  set.seed(5); s_pp <- posterior_predict(ml_draws(fit, R))
+  set.seed(5)
+  ref <- t(vapply(seq_len(R), function(k) {
+    stats::rnorm(n, m1, sigma(fit))
+  }, numeric(n)))
+  expect_equal(unname(s_pp), ref)
+
+  set.seed(5); s_fit <- as.matrix(simulate(fit, nsim = R))
+  set.seed(5)
+  s_new <- as.matrix(frm_simulate(form, dd, nsim = R,
+                                  newparams = np_of(fit)))
+  expect_equal(unname(s_new), unname(s_fit))
+  # a fresh replicate carries the serial dependence, so it strays from
+  # the one-step mean of the OBSERVED series by more than sigma; the
+  # one-step draw does not
+  ms <- function(s) mean((s - m1)^2) / sigma(fit)^2
+  expect_gt(ms(s_fit), 1.5)
+  expect_lt(abs(ms(t(s_pp)) - 1), 5 * sqrt(2 / (n * R)))
+})
+
 ## ---- lca: the extras-aware rowwise contract, all three paths ---------
 
 test_that("lca() simulates item codes from every entry point", {

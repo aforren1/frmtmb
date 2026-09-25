@@ -1167,7 +1167,7 @@ compat_hand_rules_tbl <- function() {
   r("importance", "mvbf", "refused",
     "Refused in this version: a multivariate model spreads its groups over several likelihood terms, which the first version does not gather.")
   r("importance", "group:autocor", "refused",
-    "Refused: the correction resamples a random effect against a PRODUCT of per-row densities, and an R-side residual is one joint density over each group, so no per-row integrand exists.")
+    "Refused: the correction resamples a random effect against a PRODUCT of per-row densities, and an R-side residual is one joint density over each group, so no per-row integrand exists. Under brms's cov = FALSE the rows are separate densities but each one's mean reads the residuals of the rows before it, which the per-row integrand does not carry either.")
   r("importance", "mixture", "refused",
     "Refused: a mixture supplies its own log-likelihood, which does not factorize over rows, so a group's rows have no separable integrand to resample.")
   r("importance", "bounds", "works", "Verified by a tiny fit.")
@@ -1766,11 +1766,14 @@ compat_hand_rules_tbl <- function() {
   ## R-side residual correlation -----------------------------------------------
   # Everything refused here is refused for one reason: the likelihood
   # is a joint density over each group, so it no longer factorizes into
-  # per-row contributions. brms refuses the same core set.
+  # per-row contributions. brms refuses the same core set. brms's
+  # default cov = FALSE for ar(), ma() and arma() keeps per-row
+  # densities, so the rows naming those three after this block say
+  # where its answer differs.
   r("group:autocor", "kind:family", "refused",
-    "Refused: a residual correlation needs a family with a real residual. brms accepts the same spelling for other families but fits a different model there - a latent gaussian AR process added to the linear predictor - which is spelled here as a random effect over the time factor: + ar1(factor(week) + 0 | subj), or toep()/us() for a freer lag structure.")
+    "Refused: a residual correlation needs a family with a real residual. brms accepts the same spelling for other families but fits a different model there - a latent gaussian AR process added to the linear predictor - which is spelled here as a random effect over the time factor: + ar1(factor(week) + 0 | subj), or toep()/us() for a freer lag structure. Under cov = FALSE brms itself refuses an MA part for these families ('Please set cov = TRUE when modeling MA structures for this family') and fits latent residuals for an AR part; both are refused here with that explanation.")
   r("group:autocor", "group:autocor_families", "works",
-    "Written as a formula term - ar(week, subj, cov = TRUE), cosy(gr = subj), unstr(week, subj) - it makes the residuals of one group a single correlated draw, y_g ~ N(mu_g, D R D) with D the diagonal of that group's sigma values; student() gets the multivariate-t analog. These are exactly the two families brms treats this way. brms's default cov = FALSE (the residual-regression formulation) is a different likelihood and is refused; the call must say cov = TRUE. The lag is the distance between the rows' positions in the GLOBAL set of time levels, so a group missing a time point gets the wider lag (nlme's reading, not brms's). Validated against nlme::gls (corAR1, corARMA, corCompSymm, corSymm) under ML and REML: log-likelihoods agree to 1e-9 or better and the correlation parameters to 1e-5 or better.")
+    "Written as a formula term - ar(week, subj, cov = TRUE), cosy(gr = subj), unstr(week, subj) - it makes the residuals of one group a single correlated draw, y_g ~ N(mu_g, D R D) with D the diagonal of that group's sigma values; student() gets the multivariate-t analog. These are exactly the two families brms treats this way. The lag is the distance between the rows' positions in the GLOBAL set of time levels, so a group missing a time point gets the wider lag (nlme's reading, not brms's). Validated against nlme::gls (corAR1, corARMA, corCompSymm, corSymm) under ML and REML: log-likelihoods agree to 1e-9 or better and the correlation parameters to 1e-5 or better. ar(), ma() and arma() WITHOUT cov = TRUE are brms's default residual-regression form (see their own rows): mu gains ma * err[t - i] + ar * err[t - i] with err = y - mu - MA, the family density stays per row, the first rows of a group get no lagged term, and the lag is counted in ROWS of the (gr, time) order as brms counts it. Validated against brms 2.23.0's model block on its own make_standata() data to 1e-15 relative, and against stats::arima(method = \"CSS\") on one series (dev/arcov-validate.R).")
   r("group:autocor", "student", "conditional",
     "The multivariate-t has one shape parameter per group, so nu must be constant; a predicted nu ~ ... is refused. The density is brms's multi_student_t with scale matrix D R D, verified against mvtnorm::dmvt exactly.")
   r("group:autocor", "kind:aterm", "refused",
@@ -1792,7 +1795,7 @@ compat_hand_rules_tbl <- function() {
   r("group:autocor", "sparse_x", "works", "Verified by a tiny fit.")
   r("group:autocor", "autoscale", "works", "Verified by a tiny fit.")
   r("group:autocor", "bounds", "works",
-    "A bound is written as a prior. set_prior(class = \"ar\"/\"ma\"/\"cosy\", lb =, ub =) bounds the natural coefficient of a first-order structure; class = \"theta\" with coef = \"thetaac_1\" bounds the internal parameter of any of them. A higher-order ar/ma coefficient takes no lb/ub, because it is a function of several internal parameters at once and no box in internal space is the box asked for; the parameterization already keeps the process stationary and invertible.")
+    "A bound is written as a prior. set_prior(class = \"ar\"/\"ma\"/\"cosy\", lb =, ub =) bounds the natural coefficient of a first-order structure; class = \"theta\" with coef = \"thetaac_1\" bounds the internal parameter of any of them. A higher-order ar/ma coefficient takes no lb/ub, because it is a function of several internal parameters at once and no box in internal space is the box asked for; the parameterization already keeps the process stationary and invertible. Under brms's cov = FALSE the coefficients are unconstrained and ARE the internal parameters, as in brms, so lb/ub apply at any order.")
   r("group:autocor", "prior", "works",
     "Priors on the fixed effects and on random-effect covariance parameters work as usual, and since 0.49 the residual-correlation parameters have brms's own classes: \"ar\", \"ma\" and \"cosy\" carry a density on the natural coefficient with the transform's Jacobian, and \"cortime\" takes lkj() on an unstr() time correlation.")
   r("group:autocor", "kind:covstruct", "works",
@@ -1816,6 +1819,31 @@ compat_hand_rules_tbl <- function() {
   r("group:autocor", "kind:special", "untested", "")
   r("group:autocor", "kind:autocor", "refused",
     "Refused: a response has one residual covariance, so it carries one such term. brms refuses the same with 'Can only model one time-series term'.")
+
+  ## brms's cov = FALSE ARMA ---------------------------------------------
+  # One spelling, two likelihoods: cov = TRUE is the joint residual the
+  # group:autocor rows describe, and brms's default cov = FALSE is a
+  # regression of mu on the group's earlier residuals, with the
+  # family's own per-row density. These rows name the three terms, so
+  # they outrank the group rows exactly where the two answers differ.
+  for (nm in c("ar()", "ma()", "arma()")) {
+    r(nm, "kind:aterm", "conditional",
+      "Under cov = FALSE weights(), cens(), trunc() and mi() work: the term shifts mu and the density stays per row, so each addition term acts on its row as it does without the term, and under mi() the residual is taken against the observed-or-imputed response (brms's Yl). brms 2.23.0 generates the same Stan code for each; verified against its model block to 1e-15 (dev/arcov-validate.R). Under cov = TRUE all of them are refused, because the group's density is joint.")
+    r(nm, "se()", "refused",
+      "Refused under both forms. brms refuses se() with cov = FALSE ('Please set cov = TRUE in ARMA structures when including known standard errors'), and the cov = TRUE form here has no per-row density for a known standard error to add to.")
+    r(nm, "student", "conditional",
+      "Under cov = TRUE the multivariate-t has one shape per group, so nu must be constant. Under cov = FALSE the density is brms's rowwise student_t at the shifted mu, and a predicted nu ~ ... works.")
+    r(nm, "rescor", "conditional",
+      "Works under cov = FALSE: each response's mu is shifted by its own term and the rows keep their multivariate normal density across responses, which is brms's Stan code; verified against it to 1e-15. Refused under cov = TRUE, where the joint structure would be a Kronecker product.")
+    r(nm, "fitted", "conditional",
+      "Under cov = TRUE the mean structure is untouched. Under cov = FALSE fitted(), frm_linpred() and predict(type = \"response\") report brms's one-step mean: mu plus the ARMA term of the OBSERVED earlier residuals of the row's group. newdata must then carry the response, whose rows are read as their own groups in their own time order, as brms reads new data; without it the call is refused by name. The standard error is a finite-difference delta method over the parameters and the group effects, because the mean reads the residuals of other rows. conditional_effects() and emmeans() drop the term, as brms's do (incl_autocor = FALSE).")
+    r(nm, "predict", "conditional",
+      "Under cov = TRUE unchanged. Under cov = FALSE predict() draws each row around its one-step mean, conditional on the observed earlier residuals, which is brms's posterior_predict(); newdata must carry the response.")
+    r(nm, "simulate", "works",
+      "Under cov = FALSE simulate() runs brms's recursion over its own draws, one within-group position at a time, so a replicate has the fitted serial dependence and a group's first row has no lagged term. Rows are drawn by the family's rowwise simulator, so trunc() works. newdata starts every group from an empty past and needs no response, which makes it the forecasting route. Under cov = TRUE see the group:autocor row.")
+    r(nm, "residuals", "conditional",
+      "Under cov = FALSE \"response\" and \"pearson\" are against the one-step mean, so for a well-specified model they are the innovations, uncorrelated in time. Under cov = TRUE they are against mu and keep the fitted autocorrelation. \"osa\" is refused under both.")
+  }
 
   ## formula grammar --------------------------------------------------------------
   # The two permissive grammar defaults are declared with the other

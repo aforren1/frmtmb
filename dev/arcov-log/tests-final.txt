@@ -1,0 +1,7 @@
+RESULT frmtmb test-autocor-cond.R pass=46 fail=0 err=0 skip=0
+RESULT frmtmb test-autocor.R pass=192 fail=0 err=0 skip=0
+RESULT frmtmb test-brms-likelihood.R pass=17 fail=0 err=0 skip=34
+RESULT frmtmb test-brms-suite-brm.R pass=23 fail=0 err=0 skip=0 (FRMTMB_BRMS_FIT_TESTS=true)
+RESULT frmtmb test-brms-suite-standata.R pass=87 fail=0 err=0 skip=0 (FRMTMB_BRMS_FIT_TESTS=true)
+RESULT frmtmb test-brms-suite-priors.R pass=36 fail=0 err=0 skip=0 (FRMTMB_BRMS_FIT_TESTS=true)
+RESULT frmtmb.sample test-simulators.R pass=54 fail=0 err=0 skip=0

@@ -2690,7 +2690,9 @@ resolve_priorlist <- function(fit, pl) {
       # set_prior() has already refused lb/ub on the matrix-valued
       # classes, so only the transformed scalar maps reach this
       if (!is.na(s$lb) || !is.na(s$ub)) {
-        if (length(idx) > 1L) {
+        # a box on unconstrained coefficients IS a box on the internal
+        # ones, so only the transformed maps are limited to order one
+        if (length(idx) > 1L && !identical(tr$map, "identity")) {
           frm_stop("class = \"", s$class, "\" takes no lb/ub at order ",
                    length(idx), ": coefficient ", s$class,
                    "[1] is a function of every one of this block's ",
@@ -3657,6 +3659,9 @@ autocor_class_idx <- function(ac, cls) {
 #'
 #' @noRd
 autocor_trans <- function(ac, cls) {
+  # brms's cov = FALSE coefficients are unconstrained and ARE the
+  # internal parameters, so a prior on them needs no change of variables
+  if (autocor_is_cond(ac)) return(list(map = "identity"))
   if (identical(cls, "cosy")) return(list(map = "cosy",
                                           a = 1 / (ac[["d"]] - 1)))
   if (identical(cls, "cortime")) return(NULL)
@@ -3678,6 +3683,7 @@ trans_dist <- function(inner, trans) {
 #'
 #' @noRd
 ac_trans_value <- function(th, tr) {
+  if (identical(tr$map, "identity")) return(th)
   if (identical(tr$map, "cosy")) {
     return(-tr$a + (1 + tr$a) / (1 + exp(-th[1])))
   }
@@ -3699,6 +3705,7 @@ ac_trans_value <- function(th, tr) {
 #'
 #' @noRd
 ac_trans_logjac <- function(th, tr) {
+  if (identical(tr$map, "identity")) return(0)
   if (identical(tr$map, "cosy")) {
     s <- 1 / (1 + exp(-th[1]))
     return(log(1 + tr$a) + log(s) + log(1 - s))
@@ -3723,6 +3730,7 @@ ac_trans_logjac <- function(th, tr) {
 #'
 #' @noRd
 ac_bound_theta <- function(v, tr, ac, cls, what) {
+  if (identical(tr$map, "identity")) return(v)
   if (identical(tr$map, "cosy")) {
     a <- tr$a
     if (v <= -a || v >= 1) {

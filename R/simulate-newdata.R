@@ -335,6 +335,8 @@ autocor_for_newdata <- function(fit, ac, rspec, newdata) {
     autocor_gr_value(ac, newdata, env)
   }
   gidx <- if (is.null(gv)) rep(1L, n) else as.integer(factor(gv))
+  if (autocor_is_cond(ac)) return(autocor_cond_for_newdata(ac, newdata,
+                                                           env, gidx, n))
   if (is.null(ac[["time_expr"]])) {
     tidx <- integer(n)
     for (g in split(seq_len(n), gidx)) tidx[g] <- seq_along(g)
@@ -386,6 +388,37 @@ autocor_for_newdata <- function(fit, ac, rspec, newdata) {
          })))
   }))
   ac[["n_groups"]] <- length(by_g)
+  ac
+}
+
+#' A `cov = FALSE` term on the rows of `newdata`: only the ORDER of each
+#' group's rows matters, because the lag is counted in rows, so a time
+#' the fit never saw is no obstacle and each new group starts from an
+#' empty past, as a group's first row does at fit time.
+#'
+#' @noRd
+autocor_cond_for_newdata <- function(ac, newdata, env, gidx, n) {
+  tkey <- if (is.null(ac[["time_expr"]])) {
+    seq_len(n)
+  } else {
+    tv <- eval(ac[["time_expr"]], newdata, env)
+    if (anyNA(tv)) {
+      frm_stop("simulate(newdata = ): the time variable '",
+               deparse1(ac[["time_expr"]]), "' has missing values",
+               call. = FALSE)
+    }
+    if (is.factor(tv) || is.numeric(tv)) xtfrm(tv) else
+      match(as.character(tv), sort(unique(as.character(tv))))
+  }
+  if (anyDuplicated(paste(gidx, tkey, sep = "\r"))) {
+    frm_stop("simulate(newdata = ): the term ", ac[["label"]], " needs ",
+             "each group's rows at distinct times, and newdata repeats a ",
+             "time within a group", call. = FALSE)
+  }
+  ps <- autocor_cond_positions(gidx, tkey, n, ac[["p"]])
+  ac[["pos_rows"]] <- ps$pos_rows
+  ac[["lag_idx"]] <- ps$lag_idx
+  ac[["n_groups"]] <- length(ps$len)
   ac
 }
 

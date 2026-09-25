@@ -477,12 +477,16 @@ test_that("only gaussian and student are accepted", {
     "needs a constant nu")
 })
 
-test_that("brms's cov = FALSE spelling is refused, not reinterpreted", {
+test_that("brms's cov = FALSE spelling is its own likelihood", {
   d <- ac_sim(seed = 2, G = 8, K = 4)
-  expect_error(frm(bf(y ~ x + ar(week, subj)) + gaussian(), data = d),
-               "needs cov = TRUE")
-  expect_error(frm(bf(y ~ x + arma(week, subj)) + gaussian(), data = d),
-               "needs cov = TRUE")
+  # the default is brms's residual regression, not the covariance form:
+  # the two log-likelihoods differ (test-autocor-cond.R pins the value)
+  f0 <- frm(bf(y ~ x + ar(week, subj)) + gaussian(), data = d)
+  f1 <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(), data = d)
+  expect_false(isTRUE(all.equal(as.numeric(logLik(f0)),
+                                as.numeric(logLik(f1)))))
+  expect_false(f0$frame$autocor[[1L]]$cov)
+  expect_true(f1$frame$autocor[[1L]]$cov)
   # cosy() and unstr() have no cov argument in brms either
   expect_s3_class(frm(bf(y ~ x + cosy(week, subj)) + gaussian(),
                       data = d, dry_run = "frame"), "frmtmb_frame")

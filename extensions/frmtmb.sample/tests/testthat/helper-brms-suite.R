@@ -559,8 +559,10 @@ brms_fixture_spec <- function(k) {
                      arma(visit, patient, cov = TRUE),
                    sigma ~ Trt),
       family = student(),
-      changed = paste("arma() gains cov = TRUE: frmtmb has only the",
-                      "residual-covariance ARMA (?frmtmb-autocor)")),
+      changed = paste("arma() gains cov = TRUE: the ledger's verdicts",
+                      "on this fixture were settled on the covariance",
+                      "form, before frmtmb fitted brms's default",
+                      "cov = FALSE (?frmtmb-autocor)")),
     list(
       brms = paste("count | weights(AgeSD) ~ 1/(1 + exp(-a)) *",
                    "exp(b * Trt), a ~ Age + (1 | ID1 | patient),",
