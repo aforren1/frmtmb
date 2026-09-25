@@ -1,0 +1,20 @@
+frmtmb from /opt/rlib/base/frmtmb 
+BLOCK crossing thresholds reach the closed-form maximum : 0 pass, 12 not
+    Expected `fe["Intercept[2]", "Estimate"]` < `fe["Intercept[1]", "Estimate"]`. Actual comparison: -0.847297859 >= -0.847297860 Difference: 0.000000002 >= 0 
+    Expected logit < 0.001. Actual comparison: 6.640 >= 0.001 Difference: 6.639 >= 0 
+BLOCK the thresholds are stored as they are reported : 0 pass, 3 not
+    Expected `unname(fixef(fit)[, "Estimate"])` to be identical to `unname(raw)`. Differences:   `actual`: -0.85  -0.85 0.47 `expected`: -0.85 -20.24 0.28  
+    Expected `map(raw)` to be identical to `raw`. Differences:   `actual`: -0.85  -0.85 0.47 `expected`: -0.85 -20.24 0.28  
+BLOCK sratio and cratio are one model under the logit : 0 pass, 3 not
+    Expected `th[[2L]]` < `th[[1L]]`. Actual comparison: 0.124868479 >= 0.124868478 Difference: 0.000000001 >= 0 
+    Expected `abs(as.numeric(logLik(fs)) - ll)/abs(ll)` < `sqrt(.Machine$double.eps)`. Actual comparison: 0.08238698 >= 0.00000001 Difference: 0.08238697 >= 0 
+BLOCK with cs() the fit is K - 1 binomial regressions : 1 pass, 2 not
+    Expected `abs(as.numeric(logLik(fit)) - ll)/abs(ll)` < `sqrt(.Machine$double.eps)`. Actual comparison: 0.09207724 >= 0.00000001 Difference: 0.09207723 >= 0 
+    Expected `max(abs(fe[nm, "Estimate"] - a)/se)` < 0.001. Actual comparison: 6.221 >= 0.001 Difference: 6.220 >= 0 
+BLOCK grouped thresholds cross within a level : 0 pass, 1 not
+    <frmtmb_error/error/condition> Error: Addition term `thres()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() f 
+BLOCK a class Intercept prior carries no Jacobian, as in brms : 2 pass, 2 not
+    Expected sratio < 0.001. Actual comparison: 6.367 >= 0.001 Difference: 6.366 >= 0 
+    Expected sratio < `64 * .Machine$double.eps * abs(want)`. Actual comparison: 23.010713240407 >= 0.000000000002 Difference: 23.010713240404 >= 0 
+BLOCK a multivariate model reaches each sratio response's own maximum : 0 pass, 1 not
+    <frmtmb_error/error/condition> Error: Families with extra parameters ('sratio') are not supported in multivariate fits yet 

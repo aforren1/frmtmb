@@ -138,11 +138,12 @@
 #' ordinal model addresses the whole threshold vector. It addresses the
 #' THRESHOLDS, at the mean of the predictors (at zero under
 #' `bf(center = FALSE)`, as in brms), with the log-Jacobian of
-#' the map from frmtmb's internal storage; `cumulative()` and
-#' `sratio()` hold `(tau_1, log increments)`, which is the same map
-#' Stan's `ordered` type applies, and `cratio()` and `acat()` hold the
-#' thresholds themselves. `lb`/`ub` are refused there, because one
-#' number cannot box a whole vector of ordered thresholds.
+#' the map from frmtmb's internal storage. `cumulative()` holds
+#' `(tau_1, log increments)`, which is the same map Stan's `ordered`
+#' type applies to brms's ordered thresholds. `sratio()`, `cratio()` and
+#' `acat()` hold the thresholds themselves, which brms declares as an
+#' unconstrained vector, so there is no Jacobian. `lb`/`ub` are refused
+#' there, because one number cannot box a whole vector of thresholds.
 #'
 #' `prior = list(tau_raw = prior_normal(0, 5))` reaches the same
 #' parameters on the INTERNAL scale, one entry per threshold, which is
@@ -2780,12 +2781,13 @@ resolve_priorlist <- function(fit, pl) {
           !identical(s$resp, rspec$resp_name)) {
       return(NULL)
     }
-    # cumulative() and sratio() hold (tau_1, log increments), which is
-    # the same map Stan's `ordered` type applies, so the density on the
-    # thresholds carries that map's log-Jacobian. cratio() and acat()
-    # hold the thresholds themselves and brms declares them unordered,
-    # so neither side has a Jacobian there
-    ordered <- rspec$family[["family"]] %in% c("cumulative", "sratio")
+    # cumulative() holds (tau_1, log increments), which is the same map
+    # Stan's `ordered` type applies, so the density on the thresholds
+    # carries that map's log-Jacobian. sratio(), cratio() and acat()
+    # hold the thresholds themselves and brms declares them unordered
+    # (brms:::has_ordered_thres() is FALSE for all three), so neither
+    # side has a Jacobian there
+    ordered <- identical(rspec$family[["family"]], "cumulative")
     th <- rspec$family[["thres"]]
     grouped <- isTRUE(th[["grouped"]])
     if (nzchar(s$group) && !grouped) {
@@ -2802,8 +2804,8 @@ resolve_priorlist <- function(fit, pl) {
                        offset = ordinal_center_offset(frame, rspec),
                        lb = s$lb, ub = s$ub)))
     }
-    # one entry per group: each slice is an ordered vector of its own,
-    # so the map and its Jacobian are per slice. brms does not center
+    # one entry per group: each slice is a vector of its own, so an
+    # ordered map and its Jacobian are per slice. brms does not center
     # the design of a model with grouped thresholds, so no offset
     lay <- thres_layout(th[["nthres"]])
     gs <- seq_len(lay$G)

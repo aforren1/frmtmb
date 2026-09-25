@@ -295,9 +295,9 @@ brms_block_group <- function(nm) {
 #
 # The storage convention is not the same for all four ordinal families,
 # and the family object does not carry the flag: R/families.R passes
-# ordered = TRUE for cumulative and sratio, which store
-# (tau_1, log increments), and ordered = FALSE for cratio and acat,
-# which store the thresholds themselves. Reading the family name here
+# ordered = TRUE for cumulative, which stores (tau_1, log increments),
+# and ordered = FALSE for sratio, cratio and acat, which store the
+# thresholds themselves, as brms declares them. Reading the family name here
 # duplicates that one fact deliberately. If frmtmb ever changes a
 # convention, checks A and B fail loudly, which is the point.
 #
@@ -307,7 +307,7 @@ brms_block_group <- function(nm) {
 brms_ord_thresholds <- function(fit) {
   fam <- family(fit)[["family"]]
   ord_tau_from_raw(fit$estimates[["tau_raw"]],
-                   ordered = fam %in% c("cumulative", "sratio"))
+                   ordered = identical(fam, "cumulative"))
 }
 
 # frmtmb's column name for one brms group-level coefficient. An

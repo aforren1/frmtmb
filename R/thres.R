@@ -68,10 +68,10 @@ thres_row_groups <- function(aterms, n) {
 }
 
 #' The merged internal vector mapped to the thresholds, one slice per
-#' group. cumulative and sratio hold each slice as (first threshold, log
-#' increments), cratio and acat hold the thresholds themselves. The
-#' loop runs over the parameter layout, not over rows, and works on the
-#' tape and on plain doubles alike.
+#' group. cumulative holds each slice as (first threshold, log
+#' increments); sratio, cratio and acat hold the thresholds themselves.
+#' The loop runs over the parameter layout, not over rows, and works on
+#' the tape and on plain doubles alike.
 #'
 #' @noRd
 thres_tau <- function(raw, lay, ordered) {

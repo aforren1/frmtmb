@@ -1355,7 +1355,7 @@ compat_hand_rules_tbl <- function() {
   r("thres()", "profile", "works",
     "Verified: confint(method = \"profile\") on a slope of a grouped-threshold fit.")
   r("thres()", "prior", "works",
-    "class = \"Intercept\" reaches every threshold; with group = \"<level>\" it reaches that level's thresholds only, each level an ordered vector of its own. As in brms, the design is not centered under grouped thresholds, so the prior is on the thresholds themselves.")
+    "class = \"Intercept\" reaches every threshold; with group = \"<level>\" it reaches that level's thresholds only, each level a vector of its own: ordered, with the log-Jacobian of the ordered map, for cumulative(), and unconstrained for sratio(), cratio() and acat(), as brms declares them. As in brms, the design is not centered under grouped thresholds, so the prior is on the thresholds themselves.")
   r("thres()", "fitted", "works",
     "An n x (max count + 1) matrix of category probabilities. Under grouped thresholds a column past a row's own categories is 0, as in brms's posterior_epred(). Newdata must hold the grouping variable, with levels the fit has seen; any other level is refused by name.")
   r("thres()", "predict", "works",

@@ -1,0 +1,20 @@
+frmtmb from /opt/rlib/lane-sratio/frmtmb 
+rstan 2.32.7 StanHeaders 2.32.10 
+
+== flat priors: brms log_prob against frmtmb logLik at the MLE ==
+grouped  brms -312.98070801181348 frmtmb -312.98070801181348 diff 0 max|grad| 2.19e-04
+         min gap Intercept[a,] -0.1091, Intercept[b,] 0.3069, Intercept[c,] 0.1205
+inhaler  brms -451.25679933758295 frmtmb -451.25679933758295 diff 0 max|grad| 4.34e-05
+         min gap Intercept[] -1.869
+o2       brms -126.85411925629103 frmtmb -126.85411925629103 diff 0 max|grad| 7.48e-05
+         min gap Intercept[] -0.8748
+
+== normal(0, 2) on class Intercept: brms log_prob against minus frmtmb's penalized objective, no Jacobian ==
+sratio  grouped  brms -328.24582770575796 frmtmb -328.24582770575796 diff 0 max|grad| 1.06e-04
+sratio  inhaler  brms -456.81964153662528 frmtmb -456.81964153662528 diff 0 max|grad| 9.10e-05
+cratio  grouped  brms -328.24582770575796 frmtmb -328.24582770575796 diff 0 max|grad| 1.06e-04
+cratio  inhaler  brms -456.81964153662528 frmtmb -456.81964153662528 diff 0 max|grad| 9.10e-05
+
+== multivariate: cumulative o, sratio o2, gaussian y1 ==
+mv logLik -535.22338503967512, sum of univariate -535.22338503702156, rel diff 4.96e-12
+mv o2 thresholds:  0.09044166225 -0.78436149780 

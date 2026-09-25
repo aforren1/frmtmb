@@ -483,11 +483,11 @@ for (sp in sim_specs) {
 # change in layout is an error here rather than a silently wrong test.
 
 ord_specs <- list(
-  # cumulative and sratio store thresholds as (tau_1, log increments);
+  # cumulative stores thresholds as (tau_1, log increments); sratio,
   # cratio and acat store them raw. Passing tau_raw straight through to
   # the density means this test never has to know which.
   list(nm = "cumulative", fam = quote(cumulative()), raw = c(-1, 0, 0)),
-  list(nm = "sratio", fam = quote(sratio()), raw = c(-1, 0, 0)),
+  list(nm = "sratio", fam = quote(sratio()), raw = c(-1, 0, 1)),
   list(nm = "cratio", fam = quote(cratio()), raw = c(-1, 0, 1)),
   list(nm = "acat", fam = quote(acat()), raw = c(-1, 0, 1))
 )

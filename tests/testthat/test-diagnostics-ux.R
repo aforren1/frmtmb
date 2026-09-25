@@ -263,7 +263,7 @@ test_that("ordinal category probabilities reproduce the lpdf exactly", {
   for (fam in c("cumulative", "sratio", "cratio", "acat")) {
     f <- frm(o ~ x, data = d, family = get(fam, envir = asNamespace(
       "frmtmb"))())
-    ordered <- fam %in% c("cumulative", "sratio")
+    ordered <- identical(fam, "cumulative")
     tau <- frmtmb:::ord_tau_from_raw(f$estimates$tau_raw, ordered)
     eta <- as.numeric(model.matrix(~ x - 1, d) %*% fixef_by_dpar(f)$mu)
     P <- frmtmb:::ord_cat_probs(fam, eta, tau, NULL, "logit")

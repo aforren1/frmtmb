@@ -773,9 +773,9 @@ fcs <- frm(bf(y ~ cs(x)) + sratio(), data = dord)
 confint(fcs)
 ```
 
-`tau_raw` holds the thresholds on an internal increasing scale.
-`bcs2_k` is the effect of `x` at threshold `k`. The three effects grow,
-which is what the simulation put there.
+`tau_raw` holds the thresholds themselves: `sratio()` does not order
+them, as brms does not. `bcs2_k` is the effect of `x` at threshold
+`k`. The three effects grow, which is what the simulation put there.
 
 ### Cross-check against a set of binomial regressions
 
