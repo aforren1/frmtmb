@@ -15,7 +15,7 @@ gamma(shape, rate), lkj(eta); an empty string sets bounds only.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.62.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.63.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -120,7 +120,9 @@ own class.</p></dd>
 
 
 <dt id="arg-resp">resp<a class="anchor" aria-label="anchor" href="#arg-resp"></a></dt>
-<dd><p>Response of a multivariate model.</p></dd>
+<dd><p>Response of a multivariate model. Required there for
+every class except <code>"cor"</code>, <code>"rescor"</code> and <code>"theta"</code>; refused on a
+model with one response and on class <code>"rescor"</code>.</p></dd>
 
 
 <dt id="arg-dpar">dpar<a class="anchor" aria-label="anchor" href="#arg-dpar"></a></dt>
@@ -181,7 +183,7 @@ map's Jacobian applied, as class <code>"sd"</code> does; <code>"cortime"</code> 
 one response with <code>resp</code>. See Residual correlation below.</p></li>
 <li><p><code>"rescor"</code>: the residual correlation BETWEEN responses of a
 multivariate model (<code>set_rescor(TRUE)</code>), as a whole. <code>lkj(eta)</code>
-only, as brms spells it.</p></li>
+only, as brms spells it, and no <code>resp</code>.</p></li>
 <li><p><code>"theta"</code>: raw internal covariance parameters (escape hatch).
 <code>coef</code> names one by its internal name and spans all three
 covariance components: <code>"theta_2"</code> for a random-effect block,
@@ -195,7 +197,28 @@ on its NATURAL scale, with the inverse link's log-Jacobian
 applied, so <code>set_prior("student_t(3, 0, 2.5)", class = "sigma")</code>
 means what it says. Available where the parameter has no predictor
 of its own; see A distributional parameter's own class.</p></li>
-</ul><p>Two specifications for the same slot (the same class, coef, group,
+</ul><p>In a MULTIVARIATE model, every specification of class <code>"b"</code>,
+<code>"Intercept"</code>, <code>"sd"</code>, <code>"ar"</code>, <code>"ma"</code>, <code>"cosy"</code> or <code>"cortime"</code>, and
+every distributional parameter's own class, names its response with
+<code>resp</code>. A specification without <code>resp</code> is refused, as brms refuses
+it: write one specification per response. Classes <code>"rescor"</code> and
+<code>"theta"</code> take no <code>resp</code>, and <code>"cor"</code> needs none. On a model with ONE
+response, <code>resp</code> is refused, as in brms.</p>
+<p>Two spellings are frmtmb's own, and brms refuses both: <code>"cor"</code> with
+<code>resp</code>, which narrows the prior to that response's blocks, and
+<code>"Intercept"</code> with <code>nlpar</code>, which addresses the intercept of one
+nonlinear parameter (see Nonlinear parameters). A class <code>"b"</code>
+specification that reaches no coefficient, because the predictor it
+names has no population-level slope (<code>y ~ 1</code>), is refused, as in
+brms. In the same way, a class
+<code>"b"</code> or <code>"Intercept"</code> specification on a NONLINEAR location names
+its nonlinear parameter with <code>nlpar</code>; see Nonlinear parameters.
+And where a family's location is SEVERAL distributional parameters,
+as in <code><a href="frmtmb-families.html">categorical()</a></code>, <code><a href="frmtmb-families.html">multinomial()</a></code> and <code><a href="mixture.html">mixture()</a></code>, a class
+<code>"b"</code>, <code>"Intercept"</code> or <code>"sd"</code> specification names one of them with
+<code>dpar</code> (<code>"mub"</code>, <code>"mu1"</code>), and <code><a href="default_prior.html">default_prior()</a></code> lists the rows that
+way, as brms does.</p>
+<p>Two specifications for the same slot (the same class, coef, group,
 resp, dpar and nlpar) are refused wherever a prior is passed in, as
 brms refuses them; that includes a density followed by a bounds-only
 specification, so write the density and its bounds in one call.
@@ -358,8 +381,15 @@ why the vignette spelling above lands on <code>ult_(Intercept)</code> rather
 than on nothing. Narrow to one column with <code>coef</code> (<code>"Intercept"</code> and
 <code>"(Intercept)"</code> both name the intercept), or write
 <code>class = "Intercept", nlpar = "ult"</code>, which is frmtmb's spelling of
-the same slot. <code>nlpar</code> narrows classes <code>"sd"</code> and <code>"cor"</code> to the
-random-effect blocks of that parameter as well.</p>
+the same slot; brms does not take that spelling. <code>nlpar</code> narrows
+classes <code>"sd"</code> and <code>"cor"</code> to the random-effect blocks of that
+parameter as well.</p>
+<p>A class <code>"b"</code> or <code>"Intercept"</code> specification without <code>nlpar</code> does not
+reach a nonlinear parameter. On a model whose location is nonlinear,
+such a specification addresses no parameter, and it is refused, as
+in brms. A distributional parameter keeps its own spelling there:
+<code>set_prior("student_t(3, 0, 2.5)", class = "sigma")</code> needs no
+<code>nlpar</code>.</p>
 <p>A prior with a location places <code><a href="frm.html">frm()</a></code>'s <code>start</code> for a nonlinear
 parameter. <code>normal()</code>, <code>student_t()</code> and <code>cauchy()</code> all carry one,
 and where <code>start</code> does not set a nonlinear coefficient, that
@@ -368,11 +398,9 @@ Other parameters keep their usual starts: a prior is a penalty, not
 a claim about where to begin. Without a located prior a nonlinear
 model still needs <code>start</code>, because <code><a href="frm.html">frm()</a></code> evaluates the objective
 AT the starting values; <code><a href="par_template.html">par_template()</a></code> names them.</p>
-<p><code>resp</code> picks one response of a multivariate model; the default
-priors of <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html">frmtmb.sample::frm_sample()</a></code> still stay off there (see
-its Default priors section), so a multivariate model's priors are the
-ones
-written by hand.</p>
+<p><code>resp</code> picks one response of a multivariate model, and a nonlinear
+parameter of one response is addressed with both <code>resp</code> and
+<code>nlpar</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="translating-a-brms-prior">Translating a brms prior<a class="anchor" aria-label="anchor" href="#translating-a-brms-prior"></a></h2>
@@ -446,10 +474,8 @@ nothing, and it is refused rather than accepted as a silent no-op.
 brms refuses it there too.</p>
 <p>A distributional class names ONE parameter, so it takes <code>resp</code> and
 neither <code>coef</code> nor <code>group</code>; both are refused rather than dropped.
-Written without <code>resp</code> on a multivariate model it applies to every
-response, which is frmtmb's convention for a class-wide prior and
-one of the few rows brms refuses where frmtmb accepts (brms asks for
-<code>resp</code>).</p>
+On a multivariate model it needs <code>resp</code>, as it does in brms: without
+it, the specification is refused.</p>
 <p><code><a href="default_prior.html">get_prior()</a></code> lists whichever of the two spellings a model offers.
 Where a parameter has NEITHER, because frmtmb refuses its class by
 name, the table leaves it out rather than advertising a slot nothing

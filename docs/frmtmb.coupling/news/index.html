@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.coupling</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +43,13 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.coupling/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.6.0" id="frmtmbcoupling-060">frmtmb.coupling 0.6.0<a class="anchor" aria-label="anchor" href="#frmtmbcoupling-060"></a></h2>
+<ul><li><p><code><a href="../reference/frm_cross_spectrum.html">frm_cross_spectrum()</a></code> takes two lists of epochs of unequal length, with <code>group</code> naming the unit each epoch belongs to. A unit’s epochs are read as the clean spans of one record, so no transform crosses from one epoch into the next. A vector pair takes <code>group</code> too, one label per sample, the way <code><a href="https://aforren1.github.io/frmtmb/reference/frm_periodogram.html" class="external-link">frmtmb::frm_periodogram()</a></code> does.</p></li>
+<li><p>New <code><a href="../reference/frm_cross_pairs.html">frm_cross_pairs()</a></code> runs <code><a href="../reference/frm_cross_spectrum.html">frm_cross_spectrum()</a></code> on every pair of channels of one recording and stacks the results with a <code>pair</code> factor, so that <code>coh ~ 1 + (1 | pair)</code> and <code>s(freq, by = pair)</code> put all the pairs in one model. The vignette has a section on it.</p></li>
+<li><p>A data frame passed as <code>x</code> or <code>y</code> to <code><a href="../reference/frm_cross_spectrum.html">frm_cross_spectrum()</a></code> is now refused by name. It used to fail inside the numeric check with a message about a non-empty numeric vector.</p></li>
+<li><p><code>frm_compat()</code> records <code>autoscale</code> as working for <code><a href="../reference/cross_wishart.html">cross_wishart()</a></code>, which frmtmb’s default now engages below a column spread of 1e-3: measured at 1e-6, it reaches the scale-1 log-likelihood on 3 of 3 seeds (<code>dev/predfix-p1-ext.R</code> in the frmtmb repository).</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.5.0" id="frmtmbcoupling-050">frmtmb.coupling 0.5.0<a class="anchor" aria-label="anchor" href="#frmtmbcoupling-050"></a></h2>
 <ul><li>

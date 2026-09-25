@@ -17,7 +17,7 @@ observed time is its arrival time plus a non-decision time."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -66,7 +66,7 @@ observed time is its arrival time plus a non-decision time.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">rdm</span><span class="op">(</span><span class="va">n</span>, max_ndt <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">rdm</span><span class="op">(</span><span class="va">n</span>, max_ndt <span class="op">=</span> <span class="cn">NULL</span>, contaminant <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -85,6 +85,11 @@ fastest response of each row's <code>ndt_group()</code>, or of the whole data
 set when the model has no <code>ndt_group()</code>. It cannot be combined with
 <code>ndt_group()</code>. Give it when a component of a <code><a href="https://aforren1.github.io/frmtmb/reference/mixture.html" class="external-link">frmtmb::mixture()</a></code>
 needs the bound up front.</p></dd>
+
+
+<dt id="arg-contaminant">contaminant<a class="anchor" aria-label="anchor" href="#arg-contaminant"></a></dt>
+<dd><p>Not built for this family: <code>TRUE</code> is refused by
+name. The uniform contaminant is built for <code><a href="wiener.html">wiener()</a></code> only.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -237,10 +242,21 @@ for censoring: it is the same <code>lsurv</code> the density's loser terms use,
 multiplied over all <code>n</code> accumulators instead of over <code>n - 1</code> of them.</p>
 <p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">frm</span>(<span class="fu">bf</span>(rt <span class="sc">|</span> <span class="fu">vint</span>(choice) <span class="sc">+</span> <span class="fu">cens</span>(censored) <span class="sc">~</span> cond), <span class="at">family =</span> <span class="fu">rdm</span>(<span class="dv">3</span>),</span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>    <span class="at">data =</span> dat)</span></code></pre><p></p></div>
-<p>A censored trial has no winner to report, because the race had not
-finished when the clock ran out. <code>vint()</code> is still required, since a
-declaration cannot be conditional on a censoring code, so give such a
-row any accumulator index: the likelihood does not read it. The
+<p>A RIGHT-censored trial has no winner to report, because the race had
+not finished when the clock ran out. <code>vint()</code> is still required,
+since a declaration cannot be conditional on a censoring code, so
+give such a row any accumulator index: the likelihood does not read
+it.</p>
+<p>A LEFT- or INTERVAL-censored trial did finish, and its winner is
+known, but this family scores it with the distribution function of
+the race over ALL winners and does not read <code>vint()</code> there either.
+That is a known gap, not a choice. <code><a href="wiener.html">wiener()</a></code> scores such a row with
+its known boundary's defective distribution function; the race's
+analogue, <code>P(T &lt;= t, winner j)</code>, is the integral of accumulator
+<code>j</code>'s density times the other accumulators' survivals, which has no
+closed form and would need a quadrature per row. Until it is
+written, a left- or interval-censored row here discards its winner.
+Right censoring is exact. The
 distribution function is written as <code>-expm1(log S)</code>, which keeps its
 digits where <code>1 - S</code> would lose them, and the log survivor goes to
 <code>frmtmb</code> on the LOG scale, so a right-censored row stays exact past

@@ -13,7 +13,7 @@ cross_wishart() consumes."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.coupling</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -67,7 +67,8 @@ draws that went into it. Those rows are the response
 <span>  tapers <span class="op">=</span> <span class="fl">1L</span>,</span>
 <span>  smooth <span class="op">=</span> <span class="fl">1L</span>,</span>
 <span>  window <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"none"</span>, <span class="st">"hann"</span><span class="op">)</span>,</span>
-<span>  frange <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  frange <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  group <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -82,9 +83,11 @@ UNITS (subjects, trials, sessions) and never channels; a matrix pair
 adds an <code>id</code> column naming the column. A three-column pair is three
 units of the same two signals, not a three-channel recording:
 <code><a href="cross_wishart.html">cross_wishart()</a></code> models a channel PAIR, and a third channel has no
-route in. To relate three channels, fit the three pairs separately
-and say so. <code>NA</code> marks a sample the record does not have; see
-"Gaps in the record".</p></dd>
+route in. To relate three channels, use <code><a href="frm_cross_pairs.html">frm_cross_pairs()</a></code>. Or
+two lists of epochs, where <code>x[[k]]</code> and <code>y[[k]]</code> are the two signals
+of epoch <code>k</code> and epochs may differ in length; see "Epochs of unequal
+length". <code>NA</code> marks a sample the record does not have; see "Gaps in
+the record".</p></dd>
 
 
 <dt id="arg-sfreq">sfreq<a class="anchor" aria-label="anchor" href="#arg-sfreq"></a></dt>
@@ -124,12 +127,22 @@ no degrees of freedom and costs none, and it cannot be combined with
 <dd><p>Optional <code>c(low, high)</code> in the same units as <code>freq</code>,
 applied after everything else.</p></dd>
 
+
+<dt id="arg-group">group<a class="anchor" aria-label="anchor" href="#arg-group"></a></dt>
+<dd><p>Which unit each piece of the record belongs to. For a
+vector pair, one label per sample, as in
+<code><a href="https://aforren1.github.io/frmtmb/reference/frm_periodogram.html" class="external-link">frmtmb::frm_periodogram()</a></code>: each label is one record of its own.
+For a list pair, one label per epoch: the epochs that share a label
+are one unit. <code>NULL</code>, the default, makes every epoch its own unit,
+named by <code>names(x)</code> when it has names. Not used with a matrix pair.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A data frame with one row per retained frequency and columns
 <code>freq</code>, <code>w11</code>, <code>w22</code>, <code>w12r</code>, <code>w12i</code> and <code>n</code>, plus <code>id</code> for the
-matrix form. <code>w11</code> and <code>w22</code> are the two auto-spectra summed over
+matrix form, the list form and a vector pair with <code>group</code>. <code>w11</code>
+and <code>w22</code> are the two auto-spectra summed over
 draws, <code>w12r</code> and <code>w12i</code> the real and imaginary parts of the summed
 cross-spectrum, and <code>n</code> the degrees of freedom the record actually
 supplied. The matrix is
@@ -192,6 +205,25 @@ more rejected samples than its neighbors gets a shorter segment, its
 own frequency grid and its own <code>n</code>. That is correct and it is why
 <code>freq</code> is a column of the frame rather than an attribute of it: a
 model reads <code>freq</code> per row.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="epochs-of-unequal-length">Epochs of unequal length<a class="anchor" aria-label="anchor" href="#epochs-of-unequal-length"></a></h2>
+
+
+<p>A trial-based recording is a list of epochs, and artifact rejection
+leaves them of different lengths. Pass them as two lists, with
+<code>group</code> naming the unit each epoch belongs to. The epochs of one unit
+are read exactly as the clean spans of one record are: the segment
+length is the unit's usable sample count divided by <code>segments</code>, each
+epoch supplies as many whole segments as fit in it, and no transform
+crosses from one epoch into the next. So each unit gets one
+frequency grid and one <code>n</code>, and a short epoch that holds no whole
+segment supplies nothing.</p>
+<p>A vector pair with a <code>group</code> of one label per sample is the other
+spelling, the one <code><a href="https://aforren1.github.io/frmtmb/reference/frm_periodogram.html" class="external-link">frmtmb::frm_periodogram()</a></code> takes: each label is
+one record. The two agree when they describe the same records, which
+is when every unit is one epoch, or when each unit's epochs are all
+of one length that the segment length divides.</p>
     </div>
     <div class="section level2">
     <h2 id="how-many-degrees-of-freedom-and-where-to-get-them">How many degrees of freedom, and where to get them<a class="anchor" aria-label="anchor" href="#how-many-degrees-of-freedom-and-where-to-get-them"></a></h2>
@@ -292,6 +324,18 @@ steep spectrum, and not by default.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4    4 17.254757 15.84840  7.4288153  0.07170445 8</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5    5 22.136941 17.15566  7.6355380 -9.01984914 8</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6    6 23.842360 11.99445  1.1244380 -3.54011558 8</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Six trials of unequal length from two subjects</span></span></span>
+<span class="r-in"><span><span class="va">len</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">700</span>, <span class="fl">900</span>, <span class="fl">820</span>, <span class="fl">1000</span>, <span class="fl">640</span>, <span class="fl">760</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">ex</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">len</span>, <span class="va">rnorm</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">ey</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">ex</span>, <span class="kw">function</span><span class="op">(</span><span class="va">v</span><span class="op">)</span> <span class="fl">0.8</span> <span class="op">*</span> <span class="va">v</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">v</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">xe</span> <span class="op">&lt;-</span> <span class="fu">frm_cross_spectrum</span><span class="op">(</span><span class="va">ex</span>, <span class="va">ey</span>, sfreq <span class="op">=</span> <span class="fl">256</span>, segments <span class="op">=</span> <span class="fl">8</span>,</span></span>
+<span class="r-in"><span>                         group <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"s1"</span>, <span class="st">"s2"</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">xe</span><span class="op">$</span><span class="va">id</span>, <span class="va">xe</span><span class="op">$</span><span class="va">n</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        6   7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   s1 150   0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   s2   0 149</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

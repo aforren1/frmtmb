@@ -15,7 +15,7 @@ average out. ORL carries three:"></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.learn</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -62,7 +62,7 @@ average out. ORL carries three:</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">igt_orl</span><span class="op">(</span><span class="va">subject</span>, trial <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">igt_orl</span><span class="op">(</span><span class="va">subject</span>, trial <span class="op">=</span> <span class="cn">NULL</span>, session <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -77,6 +77,19 @@ from the next, given unquoted.</p></dd>
 <dt id="arg-trial">trial<a class="anchor" aria-label="anchor" href="#arg-trial"></a></dt>
 <dd><p>The column giving trial order within a subject, given
 unquoted. <code>NULL</code> uses the order the rows appear in.</p></dd>
+
+
+<dt id="arg-session">session<a class="anchor" aria-label="anchor" href="#arg-session"></a></dt>
+<dd><p>The column naming the session each trial belongs to,
+given unquoted. <code>NULL</code>, the default, is one session per subject.
+Every subject's value store starts again from its initial values
+at the first trial of each of its sessions, so nothing learned in
+one session carries into the next. The subject stays the unit a
+random effect and <code>frm(importance =)</code> group on: the sessions of
+one subject share that subject's effects. Trial numbers need to be
+unique only within a session. A label reused in two runs that are
+not adjacent in trial order is refused. See the Sessions section of
+<code><a href="bandit2arm_delta.html">bandit2arm_delta()</a></code>.</p></dd>
 
 </dl></div>
     <div class="section level2">

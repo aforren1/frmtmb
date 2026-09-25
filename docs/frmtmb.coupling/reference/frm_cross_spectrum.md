@@ -17,7 +17,8 @@ frm_cross_spectrum(
   tapers = 1L,
   smooth = 1L,
   window = c("none", "hann"),
-  frange = NULL
+  frange = NULL,
+  group = NULL
 )
 ```
 
@@ -32,8 +33,12 @@ frm_cross_spectrum(
   same two signals, not a three-channel recording:
   [`cross_wishart()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/cross_wishart.md)
   models a channel PAIR, and a third channel has no route in. To relate
-  three channels, fit the three pairs separately and say so. `NA` marks
-  a sample the record does not have; see "Gaps in the record".
+  three channels, use
+  [`frm_cross_pairs()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frm_cross_pairs.md).
+  Or two lists of epochs, where `x[[k]]` and `y[[k]]` are the two
+  signals of epoch `k` and epochs may differ in length; see "Epochs of
+  unequal length". `NA` marks a sample the record does not have; see
+  "Gaps in the record".
 
 - sfreq:
 
@@ -72,13 +77,24 @@ frm_cross_spectrum(
   Optional `c(low, high)` in the same units as `freq`, applied after
   everything else.
 
+- group:
+
+  Which unit each piece of the record belongs to. For a vector pair, one
+  label per sample, as in
+  [`frmtmb::frm_periodogram()`](https://aforren1.github.io/frmtmb/reference/frm_periodogram.html):
+  each label is one record of its own. For a list pair, one label per
+  epoch: the epochs that share a label are one unit. `NULL`, the
+  default, makes every epoch its own unit, named by `names(x)` when it
+  has names. Not used with a matrix pair.
+
 ## Value
 
 A data frame with one row per retained frequency and columns `freq`,
-`w11`, `w22`, `w12r`, `w12i` and `n`, plus `id` for the matrix form.
-`w11` and `w22` are the two auto-spectra summed over draws, `w12r` and
-`w12i` the real and imaginary parts of the summed cross-spectrum, and
-`n` the degrees of freedom the record actually supplied. The matrix is
+`w11`, `w22`, `w12r`, `w12i` and `n`, plus `id` for the matrix form, the
+list form and a vector pair with `group`. `w11` and `w22` are the two
+auto-spectra summed over draws, `w12r` and `w12i` the real and imaginary
+parts of the summed cross-spectrum, and `n` the degrees of freedom the
+record actually supplied. The matrix is
 `[[w11, w12r + 1i w12i], [w12r - 1i w12i, w22]]`, and it is the SUM over
 draws rather than the average, which is the scaling the complex Wishart
 density is written for. Each draw carries the `1/N` periodogram
@@ -138,6 +154,24 @@ rejected samples than its neighbors gets a shorter segment, its own
 frequency grid and its own `n`. That is correct and it is why `freq` is
 a column of the frame rather than an attribute of it: a model reads
 `freq` per row.
+
+## Epochs of unequal length
+
+A trial-based recording is a list of epochs, and artifact rejection
+leaves them of different lengths. Pass them as two lists, with `group`
+naming the unit each epoch belongs to. The epochs of one unit are read
+exactly as the clean spans of one record are: the segment length is the
+unit's usable sample count divided by `segments`, each epoch supplies as
+many whole segments as fit in it, and no transform crosses from one
+epoch into the next. So each unit gets one frequency grid and one `n`,
+and a short epoch that holds no whole segment supplies nothing.
+
+A vector pair with a `group` of one label per sample is the other
+spelling, the one
+[`frmtmb::frm_periodogram()`](https://aforren1.github.io/frmtmb/reference/frm_periodogram.html)
+takes: each label is one record. The two agree when they describe the
+same records, which is when every unit is one epoch, or when each unit's
+epochs are all of one length that the segment length divides.
 
 ## How many degrees of freedom, and where to get them
 
@@ -269,4 +303,16 @@ head(xs)
 #> 4    4 17.254757 15.84840  7.4288153  0.07170445 8
 #> 5    5 22.136941 17.15566  7.6355380 -9.01984914 8
 #> 6    6 23.842360 11.99445  1.1244380 -3.54011558 8
+
+# Six trials of unequal length from two subjects
+len <- c(700, 900, 820, 1000, 640, 760)
+ex <- lapply(len, rnorm)
+ey <- lapply(ex, function(v) 0.8 * v + rnorm(length(v)))
+xe <- frm_cross_spectrum(ex, ey, sfreq = 256, segments = 8,
+                         group = rep(c("s1", "s2"), each = 3))
+table(xe$id, xe$n)
+#>     
+#>        6   7
+#>   s1 150   0
+#>   s2   0 149
 ```

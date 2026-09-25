@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,6 +44,17 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.spline/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.8.0" id="frmtmbspline-080">frmtmb.spline 0.8.0<a class="anchor" aria-label="anchor" href="#frmtmbspline-080"></a></h2>
+<ul><li>
+<strong><code><a href="../reference/rp_floored.html">rp_floored()</a></code> sees a group with no events.</strong> It tested only the EVENT rows for a non-positive <code>d(eta)/d(log t)</code>, so a random effect or a covariate on <code>gamma1</code> could put a group whose rows are all censored on a falling slope, a fitted survival function that RISES with time, and the check returned zero. On <code>dev/frailty/frailty-floor3.R</code>’s design that happened on 4 of 6 seeds, with <code>nlminb</code> code 0 and nothing warning. It now also tests every censored row at its own time (an interval row at both ends) and returns the count as <code>n_nonmonotone_censored</code>, with the rows in the <code>"rows"</code> attribute as <code>nonmonotone_censored</code>. <code>n_nonmonotone</code> keeps its meaning, the event rows whose density is floored.</li>
+<li>
+<code><a href="../reference/rp_floored.html">rp_floored()</a></code>, <code><a href="../reference/frm_curve.html">frm_curve()</a></code>, <code><a href="../reference/frm_curve_deriv.html">frm_curve_deriv()</a></code> and <code><a href="../reference/frm_curve_feature.html">frm_curve_feature()</a></code> WARN on a fit with such a censored row and still answer; the fit warns as it is returned too. The warning gives the largest rise in the fitted survival, reported as the new field <code>max_survival_rise</code>, because the size is what a user judges. An EVENT row on a non-positive slope still refuses, as before. The line is the one flexsurv draws: <code>dsurvspline()</code> makes an event row there <code>-Inf</code>, so its fit avoids it, and never checks a censored row, so a rise there passes silently. brms’s <code>cox()</code> cannot rise at all (an M-spline times non-negative weights).</li>
+<li>
+<strong>BREAKING:</strong> the report has two new fields, <code>n_nonmonotone_censored</code> and <code>max_survival_rise</code>, between <code>n_nonmonotone</code> and <code>scale</code>.</li>
+<li>On ordinary right-censored designs without a cure fraction the new count never fired: 0 of 1600 simulated fits and 0 of 270 fits on nine designs from eight real datasets, at <code>df</code> 1 to 5, proportional hazards and <code>gamma1 ~ x</code> (<code>dev/phase3a-findings.md</code>).</li>
+<li>The widened check DOES fire on one ordinary design: a cure fraction with a time-varying effect (<code>gamma1 ~ arm</code>). Past an arm’s last event its spline is fitted to censored rows only and can turn over there. Measured on two arms of 250 with 40 and 55 percent cured, <code>df</code> 3 to 6: 27 of 80 fits fire, every flagged row lies past its own arm’s last event, and the fitted survival rises across them by 5.2e-04 to 0.13. Those fits warn and answer; <code><a href="../reference/rp_floored.html">?rp_floored</a></code> says why the check fires.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.7.0" id="frmtmbspline-070">frmtmb.spline 0.7.0<a class="anchor" aria-label="anchor" href="#frmtmbspline-070"></a></h2>
 <ul><li>

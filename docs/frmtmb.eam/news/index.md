@@ -1,5 +1,89 @@
 # Changelog
 
+## frmtmb.eam 0.11.0
+
+- **BREAKING:** a prior on a drift rate of
+  [`lba()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/lba.md)
+  or
+  [`rdm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/rdm.md)
+  names its accumulator with `dpar`:
+  `set_prior("normal(0, 1)", class = "b", dpar = "v1")`, one
+  specification per accumulator. A class `"b"` or `"Intercept"` prior
+  without `dpar` is now refused by frmtmb. Until now it reached every
+  accumulator’s drift at once. `default_prior()` lists the rows per
+  `dpar`. This is frmtmb’s rule for every family whose location is
+  several distributional parameters. Requires the frmtmb release that
+  carries it.
+
+- **`cens()` and [`trunc()`](https://rdrr.io/r/base/Round.html) work on
+  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)**
+  (item 3.4 of the extension plan), on the plain model. A RIGHT-censored
+  row, a trial with no response by the deadline, is scored with the
+  survival over both boundaries, and its `dec()` value is not read. A
+  LEFT- or INTERVAL-censored row reached a boundary, and is scored with
+  the defective distribution function of the boundary its `dec()` names.
+  A deadline design is `rt | dec(response) + cens(censored)`. Every
+  quantity is a log, computed from two series that each avoid a
+  complement. Against a 700-bit reference to \|v\| a = 120 the worst
+  relative error is 4.3e-14 on the distribution function, 1.2e-12 on
+  either defective one, and 8.0e-11 on the survival, which rises with
+  \|v\| a, on that grid; the worst measured anywhere is 1.6e-9, at \|v\|
+  a = 250.
+  [`?wiener`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)
+  has the table. An interval-censored row’s mass is a difference of
+  logs, 4.9e-11 worst on the log against 751 Rmpfr intervals.
+
+- Refused by name: censoring under `variability =`, and left or interval
+  censoring together with
+  [`trunc()`](https://rdrr.io/r/base/Round.html).
+
+- **`wiener(contaminant = TRUE)`** (item 3.5) mixes the density with a
+  uniform response time and a coin-flip boundary, at a mixing proportion
+  `lambda` that is a distributional parameter on a logit link. It needs
+  no `mixture()`. The window is `contaminant_range =`. Without it, a
+  model that declares its deadline with `trunc(ub = )` uses the fastest
+  response to that deadline, and any other model is refused with the
+  class `frmtmb_eam_contaminant_range_error`: without a deadline the
+  slowest diffusion trial sets the observed range, and on one subject of
+  4000 trials `lambda` then came back at 0.0212 against 0.0495 and
+  covered on 2 of 25. With `contaminant = TRUE`, `max_ndt` may be above
+  the fastest response. A response outside the window is refused, with
+  the same class.
+
+- **Not built, and refused by name rather than by a generic message:**
+  `lba(contaminant = TRUE)`, `rdm(contaminant = TRUE)`, and `cens()` or
+  [`trunc()`](https://rdrr.io/r/base/Round.html) on
+  [`lba()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/lba.md)
+  and
+  [`gddm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/gddm.md).
+  Item 3.4 of the plan also names
+  [`gddm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/gddm.md)
+  and
+  [`lba()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/lba.md),
+  and item 3.5 names
+  [`lba()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/lba.md)
+  and
+  [`rdm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/rdm.md);
+  those parts are not done.
+
+- [`rdm()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/rdm.md)
+  scores a left- or interval-censored row with the race’s distribution
+  function over all winners, and does not read the known winner. That is
+  recorded in
+  [`?rdm`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/rdm.md)
+  as a gap: the per-winner defective function has no closed form.
+
+- `frm_compat("wiener", "cens()")` and `"trunc()"` read `works`.
+
+- No existing fit moved: the plain, variability, per-group bound,
+  `max_ndt`, `vint()` and mixture
+  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)
+  fits,
+  [`lba()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/lba.md)
+  fits and
+  [`wiener_lpdf()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener_lpdf.md)
+  are bit-identical to 0.10.0.
+
 ## frmtmb.eam 0.10.0
 
 - [`ndt_time()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/ndt_time.md)

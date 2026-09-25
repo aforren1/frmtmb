@@ -291,7 +291,13 @@ The gating coefficients are ordinary fixed effects, so `fixef()`,
 uniroot), `hypothesis()`, `set_prior()`, `lower`/`upper` bounds and
 [`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
 all work on them; [`anova()`](https://rdrr.io/r/stats/anova.html)
-compares nested gating formulas at one `K`.
+compares nested gating formulas at one `K`. Each class's gate is its own
+distributional parameter, so a prior names it with `dpar`:
+`set_prior("normal(0, 1)", class = "b", dpar = "theta1")`, one
+specification per class. A class `"b"` or `"Intercept"` prior without
+`dpar` is refused, because it does not say which class it means;
+[`frmtmb::default_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.html)
+lists the rows per `dpar`.
 
 Refused in this version: random effects and smooths anywhere in the
 model (latent classes plus continuous random effects is the

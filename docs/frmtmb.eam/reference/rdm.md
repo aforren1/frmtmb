@@ -10,7 +10,7 @@ time is its arrival time plus a non-decision time.
 ## Usage
 
 ``` r
-rdm(n, max_ndt = NULL)
+rdm(n, max_ndt = NULL, contaminant = FALSE)
 ```
 
 ## Arguments
@@ -29,6 +29,13 @@ rdm(n, max_ndt = NULL)
   it when a component of a
   [`frmtmb::mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html)
   needs the bound up front.
+
+- contaminant:
+
+  Not built for this family: `TRUE` is refused by name. The uniform
+  contaminant is built for
+  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)
+  only.
 
 ## Value
 
@@ -209,14 +216,26 @@ accumulators instead of over `n - 1` of them.
     frm(bf(rt | vint(choice) + cens(censored) ~ cond), family = rdm(3),
         data = dat)
 
-A censored trial has no winner to report, because the race had not
+A RIGHT-censored trial has no winner to report, because the race had not
 finished when the clock ran out. `vint()` is still required, since a
 declaration cannot be conditional on a censoring code, so give such a
-row any accumulator index: the likelihood does not read it. The
-distribution function is written as `-expm1(log S)`, which keeps its
-digits where `1 - S` would lose them, and the log survivor goes to
-`frmtmb` on the LOG scale, so a right-censored row stays exact past the
-point where `log(1 - F)` is a constant with a zero gradient.
+row any accumulator index: the likelihood does not read it.
+
+A LEFT- or INTERVAL-censored trial did finish, and its winner is known,
+but this family scores it with the distribution function of the race
+over ALL winners and does not read `vint()` there either. That is a
+known gap, not a choice.
+[`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)
+scores such a row with its known boundary's defective distribution
+function; the race's analogue, `P(T <= t, winner j)`, is the integral of
+accumulator `j`'s density times the other accumulators' survivals, which
+has no closed form and would need a quadrature per row. Until it is
+written, a left- or interval-censored row here discards its winner.
+Right censoring is exact. The distribution function is written as
+`-expm1(log S)`, which keeps its digits where `1 - S` would lose them,
+and the log survivor goes to `frmtmb` on the LOG scale, so a
+right-censored row stays exact past the point where `log(1 - F)` is a
+constant with a zero gradient.
 
 ## Accuracy
 

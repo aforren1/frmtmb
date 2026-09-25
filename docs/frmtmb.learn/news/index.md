@@ -1,5 +1,47 @@
 # Changelog
 
+## frmtmb.learn 0.7.0
+
+- The duplicated-payoff refusal and
+  [`?bandit2arm_delta`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/bandit2arm_delta.md)
+  no longer say that
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) takes no
+  `newdata`: frmtmb’s
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) takes it now,
+  and refuses it for a learning family, whose draw walks the fitted
+  trial sequence.
+
+- `frm_compat()` records `autoscale` as working for the learning
+  families, which frmtmb’s default now engages below a column spread of
+  1e-3: measured on
+  [`bandit2arm_delta()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/bandit2arm_delta.md)
+  at 1e-6, it reaches the scale-1 log-likelihood on 3 of 3 seeds
+  (`dev/predfix-p1-ext.R` in the frmtmb repository).
+
+- **Every family takes `session =`** (item 3.3 of the extension plan).
+  At the first trial of each session the value store goes back to its
+  initial values, and trial numbers need be unique only within a
+  session. The subject stays the unit that random effects and
+  `frm(importance =)` group on, so a subject’s sessions share its
+  effects and are resampled together. A two-session fit’s objective is
+  the sum of the two single-session objectives at the same parameters.
+  [`frm_value_trace()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_value_trace.md)
+  gains a `session` column, and
+  [`frm_task_simulate()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/frm_task_simulate.md)
+  reads `session =` too. See
+  [`?bandit2arm_delta`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/bandit2arm_delta.md),
+  “Sessions”.
+
+- A session label reused in two runs that are not adjacent in trial
+  order is refused by name: the runs would join into one sequence and
+  the value store would carry across the trials between them. It is
+  checked where the trial column orders a subject’s sessions, that is,
+  where its numbers are unique across them. Interleaved contexts, one
+  value store per context kept across its runs, are not built.
+
+- No single-session fit moved: every family’s fit without `session =` is
+  bit-identical to 0.6.0.
+
 ## frmtmb.learn 0.6.0
 
 - Documentation only: the compatibility notes and the family refusals

@@ -286,8 +286,8 @@ frm_compat("wiener")[, c("feature_b", "status")]
 #> 24             diag_t       works
 #> 25          weights()       works
 #> 26           trials()     refused
-#> 27             cens()     refused
-#> 28            trunc()     refused
+#> 27             cens()       works
+#> 28            trunc()       works
 #> 29               se()     refused
 #> 30               mi()     refused
 #> 31             vint()       works

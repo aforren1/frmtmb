@@ -48,7 +48,9 @@ set_prior(
 
 - resp:
 
-  Response of a multivariate model.
+  Response of a multivariate model. Required there for every class
+  except `"cor"`, `"rescor"` and `"theta"`; refused on a model with one
+  response and on class `"rescor"`.
 
 - dpar:
 
@@ -113,7 +115,7 @@ Classes and their scales:
 
 - `"rescor"`: the residual correlation BETWEEN responses of a
   multivariate model (`set_rescor(TRUE)`), as a whole. `lkj(eta)` only,
-  as brms spells it.
+  as brms spells it, and no `resp`.
 
 - `"theta"`: raw internal covariance parameters (escape hatch). `coef`
   names one by its internal name and spans all three covariance
@@ -128,6 +130,33 @@ Classes and their scales:
   `set_prior("student_t(3, 0, 2.5)", class = "sigma")` means what it
   says. Available where the parameter has no predictor of its own; see A
   distributional parameter's own class.
+
+In a MULTIVARIATE model, every specification of class `"b"`,
+`"Intercept"`, `"sd"`, `"ar"`, `"ma"`, `"cosy"` or `"cortime"`, and
+every distributional parameter's own class, names its response with
+`resp`. A specification without `resp` is refused, as brms refuses it:
+write one specification per response. Classes `"rescor"` and `"theta"`
+take no `resp`, and `"cor"` needs none. On a model with ONE response,
+`resp` is refused, as in brms.
+
+Two spellings are frmtmb's own, and brms refuses both: `"cor"` with
+`resp`, which narrows the prior to that response's blocks, and
+`"Intercept"` with `nlpar`, which addresses the intercept of one
+nonlinear parameter (see Nonlinear parameters). A class `"b"`
+specification that reaches no coefficient, because the predictor it
+names has no population-level slope (`y ~ 1`), is refused, as in brms.
+In the same way, a class `"b"` or `"Intercept"` specification on a
+NONLINEAR location names its nonlinear parameter with `nlpar`; see
+Nonlinear parameters. And where a family's location is SEVERAL
+distributional parameters, as in
+[`categorical()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+[`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+and
+[`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md), a
+class `"b"`, `"Intercept"` or `"sd"` specification names one of them
+with `dpar` (`"mub"`, `"mu1"`), and
+[`default_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+lists the rows that way, as brms does.
 
 Two specifications for the same slot (the same class, coef, group, resp,
 dpar and nlpar) are refused wherever a prior is passed in, as brms
@@ -301,8 +330,15 @@ vignette spelling above lands on `ult_(Intercept)` rather than on
 nothing. Narrow to one column with `coef` (`"Intercept"` and
 `"(Intercept)"` both name the intercept), or write
 `class = "Intercept", nlpar = "ult"`, which is frmtmb's spelling of the
-same slot. `nlpar` narrows classes `"sd"` and `"cor"` to the
-random-effect blocks of that parameter as well.
+same slot; brms does not take that spelling. `nlpar` narrows classes
+`"sd"` and `"cor"` to the random-effect blocks of that parameter as
+well.
+
+A class `"b"` or `"Intercept"` specification without `nlpar` does not
+reach a nonlinear parameter. On a model whose location is nonlinear,
+such a specification addresses no parameter, and it is refused, as in
+brms. A distributional parameter keeps its own spelling there:
+`set_prior("student_t(3, 0, 2.5)", class = "sigma")` needs no `nlpar`.
 
 A prior with a location places
 [`frm()`](https://aforren1.github.io/frmtmb/reference/frm.md)'s `start`
@@ -317,10 +353,8 @@ the objective AT the starting values;
 [`par_template()`](https://aforren1.github.io/frmtmb/reference/par_template.md)
 names them.
 
-`resp` picks one response of a multivariate model; the default priors of
-[`frmtmb.sample::frm_sample()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html)
-still stay off there (see its Default priors section), so a multivariate
-model's priors are the ones written by hand.
+`resp` picks one response of a multivariate model, and a nonlinear
+parameter of one response is addressed with both `resp` and `nlpar`.
 
 ## Translating a brms prior
 
@@ -405,10 +439,9 @@ nothing, and it is refused rather than accepted as a silent no-op. brms
 refuses it there too.
 
 A distributional class names ONE parameter, so it takes `resp` and
-neither `coef` nor `group`; both are refused rather than dropped.
-Written without `resp` on a multivariate model it applies to every
-response, which is frmtmb's convention for a class-wide prior and one of
-the few rows brms refuses where frmtmb accepts (brms asks for `resp`).
+neither `coef` nor `group`; both are refused rather than dropped. On a
+multivariate model it needs `resp`, as it does in brms: without it, the
+specification is refused.
 
 [`get_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
 lists whichever of the two spellings a model offers. Where a parameter

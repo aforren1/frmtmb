@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -298,6 +298,12 @@ used to be a floor and is not one any more:</p>
 <span><span class="co">#&gt; $n_nonmonotone</span></span>
 <span><span class="co">#&gt; [1] 0</span></span>
 <span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $n_nonmonotone_censored</span></span>
+<span><span class="co">#&gt; [1] 0</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $max_survival_rise</span></span>
+<span><span class="co">#&gt; [1] 0</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $scale</span></span>
 <span><span class="co">#&gt; [1] "hazard"</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -309,8 +315,11 @@ used to be a floor and is not one any more:</p>
 <span><span class="co">#&gt; integer(0)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; attr(,"rows")$nonmonotone</span></span>
+<span><span class="co">#&gt; integer(0)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; attr(,"rows")$nonmonotone_censored</span></span>
 <span><span class="co">#&gt; integer(0)</span></span></code></pre></div>
-<p>Zero on both counts here. Run it on every fit whose data carry
+<p>Zero on each count here. Run it on every fit whose data carry
 censoring, because neither <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> nor <code><a href="https://rdrr.io/r/stats/AIC.html" class="external-link">AIC()</a></code>
 can tell you.</p>
 <p><strong>What the censored count used to mean.</strong> Up to frmtmb
@@ -349,16 +358,19 @@ reported a log likelihood thousands of units away from the model’s:</p>
 <span><span class="co">#&gt; converged    logLik </span></span>
 <span><span class="co">#&gt;    1.0000 -575.5379</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="fu"><a href="../reference/rp_floored.html">rp_floored</a></span><span class="op">(</span><span class="va">bad_fit</span>, action <span class="op">=</span> <span class="st">"report"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; List of 6</span></span>
-<span><span class="co">#&gt;  $ n_censored_deep: int 1</span></span>
-<span><span class="co">#&gt;  $ max_nlogS      : num 55.7</span></span>
-<span><span class="co">#&gt;  $ threshold      : num 19.2</span></span>
-<span><span class="co">#&gt;  $ n_nonmonotone  : int 0</span></span>
-<span><span class="co">#&gt;  $ scale          : chr "hazard"</span></span>
-<span><span class="co">#&gt;  $ n_obs          : int 600</span></span>
-<span><span class="co">#&gt;  - attr(*, "rows")=List of 2</span></span>
-<span><span class="co">#&gt;   ..$ censored   : int 1</span></span>
-<span><span class="co">#&gt;   ..$ nonmonotone: int(0)</span></span></code></pre></div>
+<span><span class="co">#&gt; List of 8</span></span>
+<span><span class="co">#&gt;  $ n_censored_deep       : int 1</span></span>
+<span><span class="co">#&gt;  $ max_nlogS             : num 55.7</span></span>
+<span><span class="co">#&gt;  $ threshold             : num 19.2</span></span>
+<span><span class="co">#&gt;  $ n_nonmonotone         : int 0</span></span>
+<span><span class="co">#&gt;  $ n_nonmonotone_censored: int 0</span></span>
+<span><span class="co">#&gt;  $ max_survival_rise     : num 0</span></span>
+<span><span class="co">#&gt;  $ scale                 : chr "hazard"</span></span>
+<span><span class="co">#&gt;  $ n_obs                 : int 600</span></span>
+<span><span class="co">#&gt;  - attr(*, "rows")=List of 3</span></span>
+<span><span class="co">#&gt;   ..$ censored            : int 1</span></span>
+<span><span class="co">#&gt;   ..$ nonmonotone         : int(0) </span></span>
+<span><span class="co">#&gt;   ..$ nonmonotone_censored: int(0)</span></span></code></pre></div>
 <p>That fit is now SCORED CORRECTLY and <code><a href="../reference/rp_floored.html">rp_floored()</a></code> does
 not refuse it. The one deep row is counted, at <code>-log S</code> of
 55.73, and its contribution is <code>-55.7302136</code> exactly where
@@ -391,6 +403,19 @@ cumulative hazard, which must stay positive:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>min_slope <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">dlogH</span><span class="op">)</span>, all_increasing <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">dlogH</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;      min_slope all_increasing </span></span>
 <span><span class="co">#&gt;      0.9852775      1.0000000</span></span></code></pre></div>
+<p>A censored row is never floored, because it has no density: its
+<code>log S</code> is scored exactly whatever the slope. A censored row
+where the slope is not positive is still a defect, of the MODEL rather
+than of <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code>: the fitted survival function rises with
+time there. It happens when a group has its own slope on
+<code>gamma1</code> and no events, because the
+<code>log(gamma1 + u)</code> barrier that keeps a slope positive lives
+in the density and that group contributes none. The same happens past an
+arm’s last event in a cure-fraction design with
+<code>gamma1 ~ arm</code>. <code><a href="../reference/rp_floored.html">rp_floored()</a></code> counts those rows
+apart, as <code>n_nonmonotone_censored</code>, and WARNS on them with
+the size of the rise, since <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> is still the model’s;
+it refuses only on the event rows.</p>
 </div>
 <div class="section level2">
 <h2 id="how-many-knots">How many knots<a class="anchor" aria-label="anchor" href="#how-many-knots"></a>

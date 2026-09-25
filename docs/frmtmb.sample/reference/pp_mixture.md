@@ -107,8 +107,8 @@ if (requireNamespace("tmbstan", quietly = TRUE) &&
   head(pp_mixture(ds)[, "Estimate", ])
 }
 #> frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
-#>   Intercept          student_t(3, 0.6, 3.5)
-#>   Intercept          student_t(3, 0.6, 3.5)
+#>   Intercept (dpar = mu1) student_t(3, 0.6, 3.5)
+#>   Intercept (dpar = mu2) student_t(3, 0.6, 3.5)
 #>   b                  (flat), as brms leaves slopes
 #> Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
 #> Running the chains for more iterations may help. See

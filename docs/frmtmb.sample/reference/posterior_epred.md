@@ -84,13 +84,15 @@ posterior_predict(
   rather than a silently ignored name. The exceptions are brms's
   `allow_new_levels` (and `allow.new.levels`) and `sample_new_levels`.
   `allow_new_levels = FALSE`, and `TRUE` with levels the fit saw, answer
-  as the call without it does. `TRUE` with a level the fit did not see,
-  including a `newdata` that leaves the grouping column out, is refused:
-  brms draws that level's effect from each posterior draw, which is not
-  built here, and predicting it at the population level would drop the
-  group variance from every draw.
+  as the call without it does. A level the fit did not see, in a term
+  `re_formula` keeps, is refused with or without the flag, and so is a
+  `newdata` that leaves the grouping column out under `TRUE`: brms draws
+  that level's effect from each posterior draw, which is not built here,
+  and predicting it at the population level would drop the group
+  variance from every draw.
   [`frmtmb::predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.html)
-  predicts unseen levels from the maximum-likelihood fit.
+  predicts unseen levels from the maximum-likelihood fit, and
+  `re_formula = NA` predicts here at the population level.
 
 - newdata, resp:
 

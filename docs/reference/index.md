@@ -219,6 +219,7 @@
   [`build_objective`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`row_lpdf`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`with_cs_offsets`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  [`cs_offsets_add`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`us_chol_cor`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`expand_b`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
   [`aterms_for_newdata`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)

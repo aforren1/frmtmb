@@ -17,7 +17,7 @@ the same number."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.spline</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -239,46 +239,34 @@ zero and 32.01 at -0.2, against a normal prior that spends a fraction
 of one. Nothing was floored over those 60 replicates, nor over 15
 more on a design built to reach it at 10 subjects per centre, where
 the smallest fitted per-centre slope was 0.0332.</p>
-<p>A group with NO events is the exception, and NOTHING REPORTS IT. The
-barrier lives in the density, and an all-censored group contributes
-no density term at all; what it does contribute pushes its slope
-DOWN, because the score in <code>u</code> is then <code>-sum(x_i H_i)</code>, which is
-negative for rows past <code>t = 1</code>. <code><a href="rp_floored.html">rp_floored()</a></code> tests the observed
-EVENT rows for a non-positive <code>d(eta)/d(log t)</code>, so for such a group
-it has nothing to test and returns a count of zero. Measured on 40
-centres of 10 with five of them followed to a common administrative
-time and no deaths in any of them: on 4 of 6 seeds those five come
-back with slopes of -0.21 to -0.31, and on one of them the fit
-converges with no warning, a maximum absolute gradient of 2.7e-05 and
-a positive definite Hessian, <code><a href="rp_floored.html">rp_floored()</a></code> reports no non-monotone
-row and does not refuse, <code><a href="frm_curve.html">frm_curve()</a></code> passes it through, and one
-centre's fitted survival RISES with time rather than falling: 4.2e-50
-at <code>t = 1e-12</code> against 0.774 at <code>t = 2.8</code>. A survival function that
-increases is not one.</p>
-<p>So where a group can have no events, check it yourself, in two lines:</p>
-<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>slope <span class="ot">&lt;-</span> <span class="fu">fixef_by_dpar</span>(fit)<span class="sc">$</span>gamma1[[<span class="st">"(Intercept)"</span>]] <span class="sc">+</span></span>
-<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>  <span class="fu">ranef</span>(fit)[[<span class="st">"centre"</span>]][, <span class="st">"gamma1_Intercept"</span>]</span>
-<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">rownames</span>(<span class="fu">ranef</span>(fit)[[<span class="st">"centre"</span>]])[slope <span class="sc">&lt;=</span> <span class="dv">0</span>]</span></code></pre><p></p></div>
-<p>and confirm that comes back empty. Name the column: under the paired
-spelling recommended below, that grouping carries TWO of them,
-<code>Intercept</code> and <code>gamma1_Intercept</code> (brms's names, which <code><a href="https://rdrr.io/pkg/nlme/man/random.effects.html" class="external-link">frmtmb::ranef()</a></code>
-uses), and the <code>Intercept</code> one is the frailty deviation on <code>mu</code>,
-which says nothing about monotonicity. With a block on <code>gamma1</code>
-alone there is one column and <code>[, 1]</code> will do.</p>
-<p>Those two lines are the <code>df = 1</code> FORM, and they are exact only
-there, because <code>d(eta)/d(log t)</code> is <code>gamma_1 + u</code> and nothing else.
-Above <code>df = 1</code> the derivative carries the interior coefficients too,
-<code>gamma_1 + u + sum_j gamma_{j+1} v'_j(x)</code>, so the two lines drop
-terms and they err OPTIMISTIC: on a <code>df = 3</code> fit they read 1.207 to
-2.162 where the real derivative at the rows runs 0.768 to 2.017, a
-margin 20 to 36 percent too generous per centre. What that leaves
-exposed is narrow, because <code><a href="rp_floored.html">rp_floored()</a></code> already answers any group
-WITH events at any <code>df</code>: it is a group with NO events at <code>df &gt;= 2</code>,
-and there the honest check evaluates the derivative on the basis
-rather than reading <code>gamma1</code> off.</p>
-<p>Widening <code><a href="rp_floored.html">rp_floored()</a></code> to test censored rows too would change a
-shipped refusal and needs a false-alarm rate behind it, so it is
-filed rather than done.</p>
+<p>A group with NO events is the exception. The barrier lives in the
+density, and an all-censored group contributes no density term at
+all; what it does contribute pushes its slope DOWN, because the score
+in <code>u</code> is then <code>-sum(x_i H_i)</code>, which is negative for rows past
+<code>t = 1</code>. Measured on 40 centres of 10 with five of them followed to a
+common administrative time and no deaths in any of them: on 4 of 6
+seeds those five come back with slopes of -0.18 to -0.31, and on one
+of them the fit converges with a maximum absolute gradient of 2.7e-05
+and a positive definite Hessian while one centre's fitted survival
+RISES with time rather than falling: 4.2e-50 at <code>t = 1e-12</code> against
+0.774 at <code>t = 2.8</code>. A survival function that increases is not one.</p>
+<p><code><a href="rp_floored.html">rp_floored()</a></code> reports it. Up to frmtmb.spline 0.7.0 it tested only
+the EVENT rows, so such a group had nothing to test and the fit above
+came back clean. It now also tests every censored row at its own
+time and counts the hits as <code>n_nonmonotone_censored</code>; the fit warns
+as it is returned, and <code><a href="rp_floored.html">rp_floored()</a></code>, <code><a href="frm_curve.html">frm_curve()</a></code> and its two
+companions warn with the size of the rise and answer. They warn rather
+than refuse because a censored row is scored exactly: <code><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik()</a></code> is
+the model's, and only the fitted curve is wrong, usually where it
+extrapolates past a group's last event. See <code><a href="rp_floored.html">rp_floored()</a></code>. On the
+four seeds above it counts the 50 rows
+of the five centres.</p>
+<p>The row test is exact at <code>df = 1</code>, where <code>d(eta)/d(log t)</code> is
+<code>gamma_1 + u</code> at every time. At <code>df &gt;= 2</code> the derivative carries the
+interior coefficients too, <code>gamma_1 + u + sum_j gamma_{j+1} v'_j(x)</code>,
+and it is tested at the observed times only, so a dip between two
+observed times of one group that recovers at both is not searched
+for.</p>
 <p>Second, a block on <code>gamma1</code> ALONE is anchored at <code>t = 1</code>, and <code>t = 1</code>
 is a unit rather than a fact. Rescale time by <code>c</code> and <code>log t</code> moves
 by <code>log c</code>, so the same model in the new units carries a random

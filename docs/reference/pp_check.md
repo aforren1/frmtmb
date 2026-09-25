@@ -68,8 +68,12 @@ pp_check(
 
 - newdata, resp:
 
-  brms's arguments. A fit simulates only its own rows, so a `newdata` is
-  refused. `resp` is accepted and ignored, which is what brms does with
+  brms's arguments. With `newdata` the check is on its rows:
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) draws for them,
+  the observed series is its response column (needed for
+  `prefix = "ppc"` only), and `group` and `x` are read from it, as brms
+  reads them. A row with a missing response is dropped with brms's
+  warning. `resp` is accepted and ignored, which is what brms does with
   it on a model that has one response; a multivariate fit is refused
   before `resp` could select one.
 
@@ -78,11 +82,14 @@ pp_check(
   The random-effect switch, in brms's spelling (`pp_check()` is a brms
   function). On a fit it is passed to
   [`simulate()`](https://rdrr.io/r/stats/simulate.html) and defaults to
-  `NA`, which simulates new random effects; on draws it is passed to
-  `posterior_predict()` and defaults to `NULL`, because a draw already
-  carries its own. lme4's `re.form` is refused. brms honors it on
-  `pp_check()` and warns that it ignored it, which is a leak through its
-  dots rather than a decision to copy.
+  `NA`, which redraws every group-level effect in each replicate; `~0`
+  and `~1` mean the same, and a one-sided formula keeps the terms it
+  names and redraws the rest (see
+  [`simulate.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/simulate.frmtmb_fit.md)).
+  On draws it is passed to `posterior_predict()` and defaults to `NULL`,
+  because a draw already carries its own. lme4's `re.form` is refused.
+  brms honors it on `pp_check()` and warns that it ignored it, which is
+  a leak through its dots rather than a decision to copy.
 
 ## Value
 

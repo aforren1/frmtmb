@@ -15,7 +15,7 @@ training data for every family."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.62.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.63.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -128,8 +128,8 @@ accepted here.</p></dd>
 
 
 <dt id="arg-resp">resp<a class="anchor" aria-label="anchor" href="#arg-resp"></a></dt>
-<dd><p>For multivariate fits: which response (defaults to the
-first).</p></dd>
+<dd><p>For multivariate fits: the response or responses to
+report. <code>NULL</code> (default) reports all of them, as brms does.</p></dd>
 
 
 <dt id="arg-dpar">dpar<a class="anchor" aria-label="anchor" href="#arg-dpar"></a></dt>
@@ -175,8 +175,14 @@ population level instead of erroring, as in
     <p>An <code>n x 4</code> matrix with the columns <code>Estimate</code>, <code>Est.Error</code>
 and one per entry of <code>probs</code>. For an ordinal or categorical family
 an <code>n x 4 x K</code> array, the third dimension named <code>P(Y = k)</code>, which
-is brms's shape. The ROW dimnames are <code>NULL</code>, as brms's are; the
-data's row names are on <code><a href="frm_linpred.html">frm_linpred()</a></code> and <code><a href="https://rdrr.io/r/stats/model.frame.html" class="external-link">model.frame()</a></code>.</p>
+is brms's shape. For a multivariate fit asked for more than one
+response, an <code>n x 4 x nresp</code> array with the third dimension named
+by response, which is brms's shape too; each cell's <code>Est.Error</code> is
+the standard error of that response's own expected value. A
+category-valued response contributes one layer per category, named
+<code>P(Y = k)</code>, in its place, as brms stacks it. The ROW dimnames are
+<code>NULL</code>, as brms's are; the data's row names are on <code><a href="frm_linpred.html">frm_linpred()</a></code>
+and <code><a href="https://rdrr.io/r/stats/model.frame.html" class="external-link">model.frame()</a></code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

@@ -58,7 +58,8 @@ fitted(
 
 - resp:
 
-  For multivariate fits: which response (defaults to the first).
+  For multivariate fits: the response or responses to report. `NULL`
+  (default) reports all of them, as brms does.
 
 - dpar:
 
@@ -100,8 +101,13 @@ fitted(
 
 An `n x 4` matrix with the columns `Estimate`, `Est.Error` and one per
 entry of `probs`. For an ordinal or categorical family an `n x 4 x K`
-array, the third dimension named `P(Y = k)`, which is brms's shape. The
-ROW dimnames are `NULL`, as brms's are; the data's row names are on
+array, the third dimension named `P(Y = k)`, which is brms's shape. For
+a multivariate fit asked for more than one response, an `n x 4 x nresp`
+array with the third dimension named by response, which is brms's shape
+too; each cell's `Est.Error` is the standard error of that response's
+own expected value. A category-valued response contributes one layer per
+category, named `P(Y = k)`, in its place, as brms stacks it. The ROW
+dimnames are `NULL`, as brms's are; the data's row names are on
 [`frm_linpred()`](https://aforren1.github.io/frmtmb/reference/frm_linpred.md)
 and [`model.frame()`](https://rdrr.io/r/stats/model.frame.html).
 

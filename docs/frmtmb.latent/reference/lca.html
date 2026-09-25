@@ -13,7 +13,7 @@ items conditionally independent given the class,"></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.latent</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -333,7 +333,12 @@ returns the gating linear predictor (<code>theta1</code> by default, any
 <code><a href="https://rdrr.io/r/stats/confint.html" class="external-link">confint()</a></code> (Wald, profile and uniroot), <code>hypothesis()</code>,
 <code>set_prior()</code>, <code>lower</code>/<code>upper</code> bounds and
 <code><a href="https://aforren1.github.io/frmtmb/frmtmb.sample/reference/frm_sample.html" class="external-link">frmtmb.sample::frm_sample()</a></code> all work on
-them; <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> compares nested gating formulas at one <code>K</code>.</p>
+them; <code><a href="https://rdrr.io/r/stats/anova.html" class="external-link">anova()</a></code> compares nested gating formulas at one <code>K</code>. Each
+class's gate is its own distributional parameter, so a prior names
+it with <code>dpar</code>: <code>set_prior("normal(0, 1)", class = "b", dpar = "theta1")</code>, one specification per class. A class <code>"b"</code> or
+<code>"Intercept"</code> prior without <code>dpar</code> is refused, because it does not
+say which class it means; <code><a href="https://aforren1.github.io/frmtmb/reference/default_prior.html" class="external-link">frmtmb::default_prior()</a></code> lists the rows
+per <code>dpar</code>.</p>
 <p>Refused in this version: random effects and smooths anywhere in the
 model (latent classes plus continuous random effects is the
 growth-mixture shape - use <code>mixture(..., groups = ~g)</code> for that),

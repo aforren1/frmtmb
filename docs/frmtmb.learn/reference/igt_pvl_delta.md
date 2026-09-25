@@ -10,7 +10,7 @@ that.
 ## Usage
 
 ``` r
-igt_pvl_delta(subject, trial = NULL)
+igt_pvl_delta(subject, trial = NULL, session = NULL)
 ```
 
 ## Arguments
@@ -28,6 +28,19 @@ igt_pvl_delta(subject, trial = NULL)
 
   The column giving trial order within a subject, given unquoted. `NULL`
   uses the order the rows appear in.
+
+- session:
+
+  The column naming the session each trial belongs to, given unquoted.
+  `NULL`, the default, is one session per subject. Every subject's value
+  store starts again from its initial values at the first trial of each
+  of its sessions, so nothing learned in one session carries into the
+  next. The subject stays the unit a random effect and
+  `frm(importance =)` group on: the sessions of one subject share that
+  subject's effects. Trial numbers need to be unique only within a
+  session. A label reused in two runs that are not adjacent in trial
+  order is refused. See the Sessions section of
+  [`bandit2arm_delta()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/bandit2arm_delta.md).
 
 ## Value
 

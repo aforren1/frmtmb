@@ -372,8 +372,9 @@ not matter.
 
 `frm_ode()` does not read NONMEM column names, and there is no `evid`
 column: observation rows are the rows of `data`, and dose rows are the
-rows of `events`, which is a separate table. A NONMEM-shaped dataset has
-to be split into the two.
+rows of `events`, which is a separate table.
+[`frm_ode_records()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode_records.md)
+splits a NONMEM-shaped dataset into the two.
 
 An observation at exactly a dose time reads the state **before** the
 dose, which is the trough, matching both the deSolve convention and the

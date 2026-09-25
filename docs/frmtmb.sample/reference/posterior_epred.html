@@ -17,7 +17,7 @@ spellings)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.sample</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -142,13 +142,15 @@ spellings</em>).</p>
 naming it, rather than a silently ignored name. The exceptions are
 brms's <code>allow_new_levels</code> (and <code>allow.new.levels</code>) and
 <code>sample_new_levels</code>. <code>allow_new_levels = FALSE</code>, and <code>TRUE</code> with
-levels the fit saw, answer as the call without it does. <code>TRUE</code>
-with a level the fit did not see, including a <code>newdata</code> that leaves
-the grouping column out, is refused: brms draws that level's
-effect from each posterior draw, which is not built here, and
-predicting it at the population level would drop the group
-variance from every draw. <code><a href="https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.html" class="external-link">frmtmb::predict.frmtmb_fit()</a></code> predicts
-unseen levels from the maximum-likelihood fit.</p></dd>
+levels the fit saw, answer as the call without it does. A level
+the fit did not see, in a term <code>re_formula</code> keeps, is refused with
+or without the flag, and so is a <code>newdata</code> that leaves the grouping
+column out under <code>TRUE</code>: brms draws that level's effect from each
+posterior draw, which is not built here, and predicting it at the
+population level would drop the group variance from every draw.
+<code><a href="https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.html" class="external-link">frmtmb::predict.frmtmb_fit()</a></code> predicts unseen levels from the
+maximum-likelihood fit, and <code>re_formula = NA</code> predicts here at the
+population level.</p></dd>
 
 
 <dt id="arg-newdata-resp">newdata, resp<a class="anchor" aria-label="anchor" href="#arg-newdata-resp"></a></dt>

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.62.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.63.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -3446,7 +3446,7 @@ vector, which a multivariate fit has like any other.</p>
 <tbody>
 <tr class="odd">
 <td align="left">mvbf</td>
-<td align="center">x</td>
+<td align="center">+</td>
 <td align="center">+</td>
 <td align="center">x</td>
 <td align="center">x</td>
@@ -3458,7 +3458,7 @@ vector, which a multivariate fit has like any other.</p>
 </tr>
 <tr class="even">
 <td align="left">rescor</td>
-<td align="center">x</td>
+<td align="center">+</td>
 <td align="center">+</td>
 <td align="center">x</td>
 <td align="center">x</td>
@@ -3520,9 +3520,9 @@ vector, which a multivariate fit has like any other.</p>
 </table>
 <table class="table">
 <colgroup>
-<col width="2%">
-<col width="28%">
-<col width="69%">
+<col width="3%">
+<col width="34%">
+<col width="61%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">Status</th>
@@ -3545,43 +3545,36 @@ simulator.</td>
 </tr>
 <tr class="odd">
 <td align="left">x</td>
-<td align="left">mvbf + fitted; rescor + fitted</td>
-<td align="left">Refused: fitted() calls single_response() and stops
-with ‘fitted() is not supported yet for multivariate fits’. Predict one
-response at a time instead: predict(fit, resp = ).</td>
-</tr>
-<tr class="even">
-<td align="left">x</td>
 <td align="left">mvbf + simulate; mvbf + residuals; mvbf + emmeans; mvbf
 + frm_lp_basis</td>
 <td align="left">Refused: the post-fit methods below are univariate-only
 for now.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">x</td>
 <td align="left">mvbf + residuals_osa</td>
 <td align="left">Refused: residuals() is not supported for multivariate
 fits yet, one-step-ahead residuals included.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">x</td>
 <td align="left">rescor + simulate</td>
 <td align="left">Refused: simulate() is not supported for multivariate
 fits yet.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">x</td>
 <td align="left">rescor + residuals; rescor + residuals_osa</td>
 <td align="left">Refused: residuals() is not supported for multivariate
 fits yet.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">x</td>
 <td align="left">rescor + emmeans</td>
 <td align="left">Refused: emmeans support is univariate-only for
 now.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">x</td>
 <td align="left">nl + emmeans</td>
 <td align="left">Refused: emmeans support needs a linear mu
@@ -4518,7 +4511,7 @@ column.</td>
 <tbody>
 <tr class="odd">
 <td align="left">works</td>
-<td align="right">1768</td>
+<td align="right">1770</td>
 <td align="left">34%</td>
 </tr>
 <tr class="even">
@@ -4528,7 +4521,7 @@ column.</td>
 </tr>
 <tr class="odd">
 <td align="left">refused</td>
-<td align="right">838</td>
+<td align="right">836</td>
 <td align="left">16%</td>
 </tr>
 <tr class="even">

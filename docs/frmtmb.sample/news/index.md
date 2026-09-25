@@ -1,5 +1,77 @@
 # Changelog
 
+## frmtmb.sample 0.11.0
+
+- The `pp_check(type = "error_binned")` refusal on draws of a
+  multinomial fit calls the response a set of counts over categories,
+  not a category, as the fit method now does.
+
+- Two test files no longer leave `Rplots.pdf` in the tests directory:
+  `test-draws-methods.R`, whose device guard covered one block and not
+  the [`pairs()`](https://rdrr.io/r/graphics/pairs.html) call, and the
+  generated `test-brms-suite-methods.R`, whose generator now opens a
+  null device for the file.
+
+- **[`posterior_predict()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md)
+  on draws now draws a `cs()` term.** On an
+  [`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.html),
+  [`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.html)
+  or
+  [`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.html)
+  model with a category-specific effect it drew every row as if the term
+  were absent, in sample and at `newdata`, with no warning.
+  [`predict()`](https://rdrr.io/r/stats/predict.html) and
+  [`pp_check()`](https://mc-stan.org/bayesplot/reference/pp_check.html)
+  on draws go through it and change with it.
+  [`posterior_epred()`](https://aforren1.github.io/frmtmb/frmtmb.sample/reference/posterior_epred.md)
+  and
+  [`log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html)
+  were right and are unchanged. Needs the frmtmb that exports
+  [`cs_offsets_add()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.html).
+
+- On draws, a `newdata` with a grouping level the fit did not see is
+  refused by the draws methods themselves, with or without
+  `allow_new_levels`, and the refusal says that
+  `allow_new_levels = TRUE` is refused too. Without the flag, core’s
+  message reached the caller and recommended “Use allow_new_levels =
+  TRUE”, which the draws methods then refused. The same holds for
+  `sample_new_levels` alone and for a `newdata` without the grouping
+  column.
+
+- `re_formula = NA` with `allow_new_levels = TRUE` and an unseen level
+  now answers, as brms does, instead of being refused: the check asked
+  about the level without the `re_formula` that drops it.
+
+- The default priors of a categorical, multinomial, mixture or
+  latent-class model carry the `dpar` of each location (`mub`, `mu1`),
+  as brms writes them. They used to be written without it, which frmtmb
+  now refuses, so this is what keeps those models sampling. The resolved
+  defaults are the same parameters with the same densities. With no
+  prior of your own, a categorical or mixture fit samples exactly as
+  before. With a `dpar` prior of your own on a mixture, the default for
+  that slot now steps aside instead of being written and then
+  overridden, which changes the order the priors are applied in: the
+  draws at a fixed seed differ (by up to 8.74 on one measured fit), and
+  [`prior_summary()`](https://mc-stan.org/rstantools/reference/prior_summary.html)
+  no longer lists the overridden defaults. The resp-, dpar- and
+  nlpar-qualified defaults of the other families with several location
+  dpars (`lba()`, `rdm()`, `hmm()`, `lca()`,
+  [`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.html))
+  follow the same rule.
+
+- The default-prior announcement names each slot with its `resp`, `dpar`
+  and `nlpar`, so every line is a spelling
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.html)
+  takes. On a multivariate model it used to print `Intercept` with no
+  response.
+
+- [`hypothesis()`](https://paulbuerkner.com/brms/reference/hypothesis.brmsfit.html)’s
+  advice for a coefficient with no proper prior gives a full
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.html)
+  call, with `resp`, `dpar`, `nlpar` and `coef` as the model needs them.
+  It used to say `set_prior(class = "b")`, which a multivariate model
+  refuses.
+
 ## frmtmb.sample 0.10.0
 
 - **The default priors are brms’s on a multivariate model**: each

@@ -5,10 +5,13 @@ alias since 2.20.14: one row per slot a prior can target, with the
 class/coef/dpar/group values to pass to
 [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md).
 Classes `"sd"` and `"cor"` are targeted by `group` and `nlpar`; the
-residual-correlation classes (`"ar"`, `"ma"`, `"cosy"`, `"cortime"`,
-`"rescor"`) by `resp`; and class `"theta"` rows name the raw internal
-covariance parameters (escape hatch, including correlations one at a
-time, across all three covariance components).
+residual-correlation classes (`"ar"`, `"ma"`, `"cosy"`, `"cortime"`) by
+`resp`; class `"rescor"` has one row and takes no `resp`; and class
+`"theta"` rows name the raw internal covariance parameters (escape
+hatch, including correlations one at a time, across all three covariance
+components). Where the location is several distributional parameters (a
+categorical or mixture model), each one's `b`, `Intercept` and `sd` rows
+carry its `dpar`, as in brms.
 
 ## Usage
 

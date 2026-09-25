@@ -1,5 +1,35 @@
 # Changelog
 
+## frmtmb.coupling 0.6.0
+
+- [`frm_cross_spectrum()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frm_cross_spectrum.md)
+  takes two lists of epochs of unequal length, with `group` naming the
+  unit each epoch belongs to. A unit’s epochs are read as the clean
+  spans of one record, so no transform crosses from one epoch into the
+  next. A vector pair takes `group` too, one label per sample, the way
+  [`frmtmb::frm_periodogram()`](https://aforren1.github.io/frmtmb/reference/frm_periodogram.html)
+  does.
+
+- New
+  [`frm_cross_pairs()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frm_cross_pairs.md)
+  runs
+  [`frm_cross_spectrum()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frm_cross_spectrum.md)
+  on every pair of channels of one recording and stacks the results with
+  a `pair` factor, so that `coh ~ 1 + (1 | pair)` and
+  `s(freq, by = pair)` put all the pairs in one model. The vignette has
+  a section on it.
+
+- A data frame passed as `x` or `y` to
+  [`frm_cross_spectrum()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frm_cross_spectrum.md)
+  is now refused by name. It used to fail inside the numeric check with
+  a message about a non-empty numeric vector.
+
+- `frm_compat()` records `autoscale` as working for
+  [`cross_wishart()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/cross_wishart.md),
+  which frmtmb’s default now engages below a column spread of 1e-3:
+  measured at 1e-6, it reaches the scale-1 log-likelihood on 3 of 3
+  seeds (`dev/predfix-p1-ext.R` in the frmtmb repository).
+
 ## frmtmb.coupling 0.5.0
 
 - [`frm_coherence()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frm_coherence.md)

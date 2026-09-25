@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.latent</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,6 +43,11 @@
       <small>Source: <a href="https://github.com/aforren1/frmtmb/blob/main/extensions/frmtmb.latent/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.6.0" id="frmtmblatent-060">frmtmb.latent 0.6.0<a class="anchor" aria-label="anchor" href="#frmtmblatent-060"></a></h2>
+<ul><li><p><code>frm_compat()</code> records <code>autoscale</code> as working for <code><a href="../reference/hmm.html">hmm()</a></code> and <code><a href="../reference/lca.html">lca()</a></code>, which frmtmb’s default now engages below a column spread of 1e-3: measured at 1e-6, both reach the scale-1 log-likelihood on 3 of 3 seeds (<code>dev/predfix-p1-ext.R</code> in the frmtmb repository).</p></li>
+<li><p><strong>BREAKING:</strong> a prior on the location of <code><a href="../reference/lca.html">lca()</a></code> or <code><a href="../reference/hmm.html">hmm()</a></code> names its class or state with <code>dpar</code>: <code>set_prior("normal(0, 1)", class = "b", dpar = "theta1")</code> for a latent class’s gate, <code>dpar = "mu1"</code> for a hidden state’s mean. A class <code>"b"</code> or <code>"Intercept"</code> prior without <code>dpar</code> is now refused by frmtmb. Until now it reached every class’s or every state’s coefficients at once. <code>default_prior()</code> lists the rows per <code>dpar</code>. This is frmtmb’s rule for every family whose location is several distributional parameters, the one brms applies to its categorical and mixture families. Requires the frmtmb release that carries it.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.5.0" id="frmtmblatent-050">frmtmb.latent 0.5.0<a class="anchor" aria-label="anchor" href="#frmtmblatent-050"></a></h2>
 <ul><li>

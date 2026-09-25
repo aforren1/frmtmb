@@ -13,7 +13,7 @@ and handed to the corresponding bayesplot ppc_* function
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.62.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.63.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -138,17 +138,24 @@ looked up as <code>group</code> is.</p></dd>
 
 
 <dt id="arg-newdata-resp">newdata, resp<a class="anchor" aria-label="anchor" href="#arg-newdata-resp"></a></dt>
-<dd><p>brms's arguments. A fit simulates only its own
-rows, so a <code>newdata</code> is refused. <code>resp</code> is accepted and ignored,
-which is what brms does with it on a model that has one response;
-a multivariate fit is refused before <code>resp</code> could select one.</p></dd>
+<dd><p>brms's arguments. With <code>newdata</code> the check is on
+its rows: <code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> draws for them, the observed series is its
+response column (needed for <code>prefix = "ppc"</code> only), and <code>group</code> and
+<code>x</code> are read from it, as brms reads them. A row with a missing
+response is dropped with brms's warning. <code>resp</code> is accepted and
+ignored, which is what brms does with it on a model that has one
+response; a multivariate fit is refused before <code>resp</code> could select
+one.</p></dd>
 
 
 <dt id="arg-re-formula">re_formula<a class="anchor" aria-label="anchor" href="#arg-re-formula"></a></dt>
 <dd><p>The random-effect switch, in brms's spelling
 (<code>pp_check()</code> is a brms function). On a fit it is passed to
-<code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> and defaults to <code>NA</code>, which simulates new random
-effects; on draws it is passed to <code>posterior_predict()</code> and
+<code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> and defaults to <code>NA</code>, which redraws every group-level
+effect in each replicate; <code>~0</code> and <code>~1</code> mean the same, and a
+one-sided formula keeps the terms it names and redraws the rest
+(see <code><a href="simulate.frmtmb_fit.html">simulate.frmtmb_fit()</a></code>). On draws it is passed to
+<code>posterior_predict()</code> and
 defaults to <code>NULL</code>, because a draw already carries its own. lme4's
 <code>re.form</code> is refused. brms honors it on <code>pp_check()</code> and warns that
 it ignored it, which is a leak through its dots rather than a

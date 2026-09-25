@@ -184,7 +184,7 @@ ms
 #>        logLik found
 #>  -330.8885276     4
 #> 
-#>   seconds: 0.07971 total, 0.02603 median per refit
+#>   seconds: 0.08481 total, 0.02857 median per refit
 #>   gradient evaluations: 86 total, 28 median per refit
 logLik(ms$best)
 #> 'log Lik.' -330.8885 (df=6)

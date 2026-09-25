@@ -14,7 +14,9 @@ wiener(
   variability = character(0),
   nodes = c(sz = 7L, st = 21L),
   allow_unreachable = FALSE,
-  link = "identity"
+  link = "identity",
+  contaminant = FALSE,
+  contaminant_range = NULL
 )
 ```
 
@@ -57,6 +59,20 @@ wiener(
 
   Link for the drift rate. Identity by default, and there is rarely a
   reason to change it: the drift rate is signed.
+
+- contaminant:
+
+  Mix a uniform contaminant into the density, with its mixing proportion
+  estimated as the distributional parameter `lambda` on a logit link.
+  `FALSE`, the default, is the plain model. See Contaminant trials.
+
+- contaminant_range:
+
+  The response times the uniform contaminant spreads over, as
+  `c(lower, upper)` in the units of the response: the task's response
+  window. `NULL`, the default, is allowed only when the model declares a
+  deadline with `trunc(ub = )`, and is then the fastest response to that
+  deadline; otherwise it is refused. See Contaminant trials for why.
 
 ## Value
 
@@ -400,6 +416,175 @@ A row below the non-decision time gets a log density of about
 it exponentiates to exactly zero, which is the right likelihood for the
 component, and it differentiates to exactly zero, which a true `-Inf`
 would not.
+
+## Censoring and truncation
+
+`cens()` and [`trunc()`](https://rdrr.io/r/base/Round.html) work on the
+response time, on the plain model. What a censored row means depends on
+its code, because the boundary is known on some and not on others:
+
+- right:
+
+  The trial had not reached EITHER boundary by the recorded time: a
+  deadline passed with no response. Its probability is the survival over
+  both boundaries, `P(T > t)`. Its `dec()` value is required, since a
+  declaration cannot depend on a censoring code, and is NOT read: any 0
+  or 1 gives the same fit, bit for bit.
+
+- left and interval:
+
+  The trial DID reach a boundary, and `dec()` says which; only its time
+  is coarse. Its probability is that boundary's defective distribution
+  function, `P(T <= t, boundary b)`, or its difference across the
+  interval. `dec()` is read. A row whose `dec()` is missing is dropped
+  by frmtmb's `na.action` with a message, before this family sees it;
+  this family cannot refuse it by name.
+
+A deadline design is
+
+    frm(bf(rt | dec(response) + cens(censored) ~ condition, bias = 0.5),
+        family = wiener(), data = dat)
+
+with `censored` set to `"right"` on the trials with no response and `rt`
+set to the deadline there.
+
+[`trunc()`](https://rdrr.io/r/base/Round.html) divides by the window's
+mass over both boundaries. Left or interval censoring cannot be combined
+with [`trunc()`](https://rdrr.io/r/base/Round.html): frmtmb forms the
+censored rows and the truncation window from the one
+distribution-function slot a family has, and the two need different
+functions here, so the pair is refused by name.
+
+Every quantity is computed as a LOG and never as a complement: the
+survival from the method of images for small times and from the
+eigenfunction series for large ones, and each defective function the
+same way. Against a 700-bit reference over drift -20 to 20, boundary
+separation 0.3 to 6, relative start 0.001 to 0.999 and normalized time
+1e-3 to 10, 3150 points, the worst relative error is 4.3e-14 on the
+distribution function over both boundaries, 1.2e-12 on either defective
+one, and on the survival 1.7e-12 where \|v\| a is at most 1, 7.4e-12 up
+to 24, 4.6e-11 up to 72 and 8.0e-11 up to 120. These hold on that grid
+only. The review of 2026-09-24 measured 798 more points at 1200 bits, to
+\|v\| a = 250 and a relative start of 0.9999, and there the survival's
+relative error is 1.7e-11 where \|v\| a is at most 1, 1.5e-9 at 120 and
+1.6e-9 at 250, the worst at relative start 0.9999 and normalized time
+0.01. 1.6e-9 is the worst measured anywhere. A survival of exp(-72063)
+comes back as that log.
+[`RWiener::pwiener()`](https://rdrr.io/pkg/RWiener/man/wienerdist.html)
+agrees to 4.5e-11 absolute on the grid the density is pinned on, and all
+of that difference is RWiener's own error.
+
+An interval's mass is formed as a difference of logs, never of
+probabilities: F(t2) (1 - F(t1) / F(t2)), or the same with the mass
+still to come after each edge, whichever keeps more digits, or a
+quadrature of the density where the interval holds a tiny share of the
+mass on both sides. Against 751 intervals at 1200 bits, 511 of them the
+review's, with the lower edge at normalized time 1e-3 to 3, \|v\| a up
+to 80 and masses down to 1e-99 of F(t1), the worst error of the log mass
+is 4.9e-11. The probability of a left-censored row, or of an interval,
+is held at 1e-300 or above, because frmtmb takes it on the probability
+scale: a row whose true probability is smaller than that contributes a
+flat barrier rather than its value.
+
+**What it recovers, at 30 subjects by 400 trials** (drift 0.4 and 0.9 by
+condition with a subject deviation of 0.35, boundary separation 1.4 with
+a subject deviation of 0.20 on its log, non-decision time 0.25 s). With
+a 1 s deadline, 16 percent of trials right-censored, 40 replicates:
+every fixed effect and both variance components covered on 33 to 38 of
+38 fits with an interval. With trials faster than 0.45 s recorded as
+left-censored and every fifth other trial as interval-censored into its
+100 ms bin, 29 and 14 percent of trials, 60 replicates: they covered on
+47 to 55 of 55, the lowest being the drift intercept at 85.5 percent,
+Wilson interval 73.8 to 92.4. Every fit converged. The arms draw from
+the same seeds, so their coverages are not independent of each other.
+
+The plain model only. Under `variability` the distribution function is
+the same series averaged over the per-trial parameters, and the drift
+average has no closed form there, so the pair is refused.
+
+## Contaminant trials
+
+`contaminant = TRUE` mixes a second process into every row: a response
+time uniform over a window, with a boundary that is a coin flip. Its
+share is the distributional parameter `lambda`, on a logit link, which
+takes a formula like any other:
+
+    frm(bf(rt | dec(response) ~ condition, lambda ~ 1, bias = 0.5),
+        family = wiener(contaminant = TRUE, contaminant_range = c(0, 3)),
+        data = dat)
+
+It needs no
+[`frmtmb::mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html):
+the uniform has no free parameter, so it is one more term in the density
+rather than a second family. A right-censored row enters through both
+parts' survivals; a left- or interval-censored row through the
+diffusion's defective function at its boundary and half of the
+uniform's, the coin flip landing there.
+
+**The window.** Give it as `contaminant_range =`: the task's response
+window, such as `c(0, deadline)`. Without it, a model that declares its
+deadline through `trunc(ub = )` uses the fastest response to that
+deadline, and any other model is refused, with the class
+`frmtmb_eam_contaminant_range_error`. A response outside the window is
+refused with the same class, since the contaminant has density zero
+there. The refusal of a missing window is the measured reason: without a
+deadline bounding both processes, the slowest diffusion trial sets the
+top of the observed range, the window grows with the sample, and
+`lambda` collapses. On one subject of 4000 trials, 25 seeds, true share
+0.0495, contaminants uniform on 0 to 5 s: the observed range gave
+`lambda` 0.0212 and covered on 2 of 25, the true window 0.0498 and 25 of
+25. With a 5 s deadline declared by `trunc(ub = 5)`, the window from the
+fastest response to the deadline gave 0.0508 against a recorded share of
+0.0496, and the one to the slowest response 0.0518, both covering on 25
+of 25; the deadline is the top used, being the one that does not move
+with the sample (`dev/phase3b-cont-window.R`). The review of 2026-09-24
+measured the same pattern on its own design: 0.0050 and 5 of 25 without
+a deadline, 0.0545 and 22 of 25 with one.
+
+Where the practice comes from. Ratcliff and Tuerlinckx (2002) model the
+contaminant as uniform over the range of the observed response times,
+and the DMAT toolbox follows them; HDDM uses a uniform of fixed density
+instead. None of the three was checked against its source or text for
+this page; the attributions are the review's of 2026-09-24, recorded as
+such.
+
+**What it recovers, at 30 subjects by 400 trials.** Drift 0.4 and 0.9 by
+condition with a subject deviation of 0.35, boundary separation 1.4 with
+a subject deviation of 0.20 on its log, non-decision time 0.25 s, 5
+percent contaminants uniform on 0.1 to 5 s, `max_ndt = 0.5`. With
+`contaminant_range = c(0.1, 5)`, over 40 replicates, `lambda` came back
+at 0.0499 and its Wald interval covered on 39 of 40; every fixed effect
+and both variance components covered on 34 to 40 of 40, and every fit
+converged. The same draws with a 3 s deadline declared by
+`trunc(ub = 3)` and the default window, 44 replicates: `lambda` 0.0306
+against a recorded share of 0.0307, covering on 35 of 36. On data with
+no contaminant and the window given, 30 replicates: see the collapse
+case below.
+
+**A guess faster than the non-decision time.** The non-decision time is
+bounded by the fastest response, so a contaminant faster than the true
+non-decision time pulls the bound under it and the fit cannot reach the
+truth. On the design above at the default bound, 20 replicates on the
+first round's build, the non-decision time came back at 0.111 s against
+0.25 and the drift effect covered on 0 of 20. Under the contaminant such
+a row has a likelihood, so `max_ndt` above the fastest response is
+allowed with `contaminant = TRUE`: give a bound you know the
+non-decision time is under.
+
+**The collapse case.** Maximum likelihood has no prior to hold `lambda`
+off its edge. When the data give it nothing, it runs down the logit: the
+estimate is a logit near -20, its standard error is in the thousands,
+and the log-likelihood is the plain family's.
+[`frmtmb::diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.html)
+reports it as a parameter at the end of its link. On the design above
+with no contaminant and the window `c(0, 5)` given, 30 replicates:
+`lambda` reached the edge on 25, `diagnose()` named it on 27, all 25 at
+the edge among them, and at the edge the log-likelihood was the plain
+family's to within 8.9e-07 on every one.
+
+At `lambda = 0` the density is the plain family's: bit for bit on every
+row whose diffusion density is at least the contaminant's, and to the
+rounding of one log-sum anchor on the others.
 
 ## Accuracy
 

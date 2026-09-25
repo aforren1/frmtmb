@@ -83,34 +83,84 @@ head(d, 3)
 #> 3       1 79.6 4.02 0.57 6.57
 ```
 
+A pharmacokinetic dataset usually arrives in the layout NONMEM defined:
+one table, one row per record, with an `evid` column that says whether
+the row is an observation (0) or a dose (1), and `amt` and `cmt` on the
+dose rows. Here is Theoph in that layout, one dose record per subject
+into compartment 1, the depot. Each time-0 sample is listed before its
+dose, which in NONMEM order makes it the pre-dose sample:
+
+``` r
+
+dose_rec <- d[!duplicated(d$Subject), c("Subject", "Time", "Dose")]
+dose_rec$Time <- 0
+rec <- rbind(
+  data.frame(Subject = d$Subject, Time = d$Time, evid = 0, amt = 0,
+             cmt = 2, conc = d$conc),
+  data.frame(Subject = dose_rec$Subject, Time = 0, evid = 1,
+             amt = dose_rec$Dose, cmt = 1, conc = NA))
+rec <- rec[order(rec$Subject, rec$Time, rec$evid), ]
+head(rec, 3)
+#>     Subject Time evid  amt cmt conc
+#> 1         1 0.00    0 0.00   2 0.74
+#> 133       1 0.00    1 4.02   1   NA
+#> 2         1 0.25    0 0.00   2 2.84
+```
+
+[`frm_ode_records()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode_records.md)
+splits such a table into the two things
+[`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)
+reads: the observations, which are the rows of the data, and the doses,
+which become the `events` table. It only reshapes: a dose means what its
+record says, and a record it cannot read that way is refused by name.
+
+``` r
+
+theo <- frm_ode_records(rec, id = "Subject", time = "Time")
+doses <- theo$events
+head(doses, 3)
+#>   group time state value method duration ii addl    ss
+#> 1     1    0     1  4.02    add        0  0    0 FALSE
+#> 2    10    0     1  5.50    add        0  0    0 FALSE
+#> 3    11    0     1  4.92    add        0  0    0 FALSE
+```
+
 The model is one `bf(nl = TRUE)` formula. The body says how a
 concentration is produced; the three nonlinear parameter formulas say
-how each constant varies between subjects.
+how each constant varies between subjects. Both compartments start
+empty, and the dose arrives as an event. The solver tolerances are
+tightened from the default `1e-8` to `1e-10`: at the default, this fit
+stops with `nlminb` reporting false convergence and a gradient of
+1.7e-03, at a log likelihood 9e-08 from the tight fit. That is the
+integrator’s error showing through as noise in the objective.
 
 ``` r
 
 form <- bf(
   conc ~ frm_ode(pk_dyn,
-                 init   = list(Dose, 0),
+                 init   = list(0, 0),
                  times  = Time,
                  parms  = list(exp(lka), exp(lke), exp(lV)),
                  group  = Subject,
                  states = c("depot", "central"),
-                 output = "central"),
+                 output = "central",
+                 events = doses,
+                 atol   = 1e-10,
+                 rtol   = 1e-10),
   lka ~ 1 + (1 | Subject),
   lke ~ 1 + (1 | Subject),
   lV  ~ 1,
   nl = TRUE
 )
 
-fit <- frm(form + gaussian(), data = d, se = TRUE,
+fit <- frm(form + gaussian(), data = theo$data, se = TRUE,
            start = list(beta = c(0.5, log(0.08), log(0.5))))
 summary(fit)
 #>  Family: gaussian 
 #>  Links: mu = identity; sigma = log
 #> 
-#> Formula: conc ~ frm_ode(pk_dyn, init = list(Dose, 0), times = Time, parms = list(exp(lka), exp(lke), exp(lV)), group = Subject, states = c("depot", "central"), output = "central") 
-#>    Data: d (Number of observations: 132) 
+#> Formula: conc ~ frm_ode(pk_dyn, init = list(0, 0), times = Time, parms = list(exp(lka), exp(lke), exp(lV)), group = Subject, states = c("depot", "central"), output = "central", events = doses, atol = 1e-10, rtol = 1e-10) 
+#>    Data: theo$data (Number of observations: 132) 
 #>  Method: ML   logLik: -191.192   AIC: 394.384   BIC: 411.68 
 #> 
 #> Multilevel Hyperparameters:
@@ -141,22 +191,32 @@ c(ka = ka, ke = ke, V = V,
   half_life = log(2) / ke,       # hours
   clearance = ke * V)            # L/h per kg of body weight
 #>        ka.(Intercept)        ke.(Intercept)         V.(Intercept) 
-#>            1.46004472            0.09321157            0.43992080 
+#>            1.46004483            0.09321159            0.43992080 
 #> half_life.(Intercept) clearance.(Intercept) 
-#>            7.43627865            0.04100571
+#>            7.43627637            0.04100572
 ```
 
 Everything downstream works as usual: `frm_linpred()` on new times,
 `ranef()` for the subject deviations,
 [`confint()`](https://rdrr.io/r/stats/confint.html),
 [`simulate()`](https://rdrr.io/r/stats/simulate.html), `REML = TRUE`.
+The dosing table names every subject, and
+[`frm_ode()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode.md)
+refuses an `events$group` that the new data do not have, so new data
+carry every subject:
 
 ``` r
 
-nd <- data.frame(Subject = factor("1", levels = levels(d$Subject)),
-                 Time = seq(0, 25, length.out = 5), Dose = 4.02)
-frm_linpred(fit, newdata = nd)
-#> [1] 0.000000 7.257109 5.663743 4.420213 3.449711
+nd <- expand.grid(Time = seq(0, 25, length.out = 5),
+                  Subject = levels(d$Subject))
+nd$conc <- frm_linpred(fit, newdata = nd)
+nd[nd$Subject == "1", ]
+#>    Time Subject     conc
+#> 1  0.00       1 0.000000
+#> 2  6.25       1 7.257109
+#> 3 12.50       1 5.663743
+#> 4 18.75       1 4.420213
+#> 5 25.00       1 3.449711
 ```
 
 The same call on a dense time grid draws the fitted curve for every
@@ -221,10 +281,12 @@ name is clearer and is what the example above does.
 
 ## Repeated dosing
 
-Theophylline is a single dose, and a single dose is just an initial
-condition. A course of treatment is not: the depot is refilled at each
-dose time, and the trajectory is the sum of what every dose so far has
-contributed. `events` is the table of those doses.
+Theophylline is a single dose, so the dose could equally be written as
+the initial condition, `init = list(Dose, 0)`, with no `events`; the two
+spellings give the same fit. A course of treatment cannot be written
+that way: the depot is refilled at each dose time, and the trajectory is
+the sum of what every dose so far has contributed. `events` is the table
+of those doses.
 
 ``` r
 
@@ -269,6 +331,8 @@ In NONMEM terms an `"add"` row is a dosing record, `value` is `amt`,
 `addl` are spelled the same way. There is no `evid` column, because
 observations and doses live in two separate tables here: the rows of
 `data` are the observations, the rows of `events` are the doses.
+[`frm_ode_records()`](https://aforren1.github.io/frmtmb/frmtmb.ode/reference/frm_ode_records.md),
+used on Theoph above, turns a NONMEM-shaped table into the two.
 
 Solving directly, with the first dose as the initial condition and three
 more as events:

@@ -17,6 +17,8 @@ simulate(
   seed = NULL,
   re_formula = NULL,
   censored = FALSE,
+  newdata = NULL,
+  allow_new_levels = FALSE,
   ...
 )
 ```
@@ -40,13 +42,26 @@ simulate(
 
 - re_formula:
 
-  `NULL` (default) conditions on the estimated random effects; `NA`
-  redraws them from their estimated distribution (marginal simulation).
+  Which group-level terms the draws condition on: `NULL` (default) all
+  of them, `NA` (or `~0`, `~1`) none, and a one-sided formula the terms
+  it names. A term not kept is redrawn from its estimated distribution
+  in each replicate (see Group-level terms).
 
 - censored:
 
   Apply the fitted `cens()` mechanism to the draws (see Censored
   responses). Ignored without `cens()`.
+
+- newdata:
+
+  Optional data frame to simulate the responses of, instead of the
+  fitted rows (see New data).
+
+- allow_new_levels:
+
+  With `newdata`: draw the effect of a grouping level the fit never saw
+  from its term's estimated distribution, rather than refuse it. brms's
+  spelling.
 
 - ...:
 
@@ -55,7 +70,8 @@ simulate(
 
 ## Value
 
-A data frame with `nsim` columns and a `"seed"` attribute.
+A data frame with `nsim` columns and a `"seed"` attribute, with one row
+per fitted row, or per row of `newdata`.
 
 ## Structured draws
 
@@ -87,8 +103,55 @@ A structured draw covers whole sequences or groups, so
 [`trunc()`](https://rdrr.io/r/base/Round.html) rejection cannot resample
 single rows within it (every structured model refuses
 [`trunc()`](https://rdrr.io/r/base/Round.html) when the frame is
-assembled) and `posterior_predict(newdata =)` is refused: the structure
-indexes the rows the model was fitted on.
+assembled). At `newdata` a structured FAMILY is refused, because its
+structure indexes the rows the model was fitted on:
+`mixture(groups = )`, a hidden Markov family, a learning family, and
+[`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md),
+which `predict(newdata = )` refuses as well. A residual correlation term
+is rebuilt on the new rows instead: rows that share a group are drawn
+jointly, and a time the fit never saw is refused. A lag is counted in
+the FITTED time levels, as the likelihood counts it, so rows at times 2
+and 4 are two levels apart even with nothing at time 3 in newdata. brms
+counts a lag by a row's position among its group's newdata rows instead,
+which makes the correlation of two rows depend on which other rows
+newdata holds; frmtmb departs from it on purpose.
+
+## Group-level terms
+
+`re_formula` chooses which group-level terms the draws condition on,
+read as
+[`predict.frmtmb_fit()`](https://aforren1.github.io/frmtmb/reference/predict.frmtmb_fit.md)
+reads it: `NULL` keeps every term, `NA`, `~0` and `~1` keep none, and a
+one-sided formula keeps the terms it names (a term the fit does not have
+is an error). A term that is kept enters at its estimated effects. A
+term that is not kept is REDRAWN from its estimated distribution in
+every replicate, which is lme4's unconditional simulation. That is where
+[`simulate()`](https://rdrr.io/r/stats/simulate.html) and
+[`predict()`](https://rdrr.io/r/stats/predict.html) differ: a prediction
+is for an average group, so a dropped term contributes nothing there,
+and a simulated response needs a group, so here it gets a new one. When
+a formula keeps some columns of a term and drops others, as `~ (1 | g)`
+does on a `(1 + x | g)` fit, the dropped columns are drawn given the
+kept ones at their estimates.
+
+A population smooth, `gp()` or `hsgp()` curve is not a group-level term
+and is never redrawn. A factor-smooth term is, with the other
+group-level terms.
+
+## New data
+
+With `newdata` the draws are for its rows. The response column is not
+needed. At a grouping level the fit saw, a kept term enters at that
+level's estimate, and a redrawn term shares one draw across the rows of
+the level, so newdata must carry the grouping column. A level the fit
+never saw is an error unless `allow_new_levels = TRUE`, which draws its
+effect from the term's estimated distribution, as
+[`predict()`](https://rdrr.io/r/stats/predict.html) does. Under
+`re_formula = NA` (or `~0`, `~1`) every term is redrawn anyway, so an
+unseen level is one more fresh level and needs nothing, except on a fit
+with a factor-smooth term: there an unseen level takes the population
+curve under `allow_new_levels = TRUE`, as in
+[`predict()`](https://rdrr.io/r/stats/predict.html), and is not redrawn.
 
 ## Censored responses
 
@@ -111,7 +174,8 @@ censored rows, and they must be the same for every censored row on a
 side (type-I censoring): with row-varying censoring times an uncensored
 row's censoring point is unknown, so the mechanism cannot be applied to
 its draws and the call is refused. Interval censoring has no
-single-value representation and is refused too.
+single-value representation and is refused too. At `newdata` the same
+fitted window applies.
 
 ## Examples
 
@@ -154,6 +218,13 @@ sims_m <- simulate(fit, nsim = 5, re_formula = NA, seed = 42)
 apply(sims_m, 2, var) > apply(sims, 2, var)
 #> sim_1 sim_2 sim_3 sim_4 sim_5 
 #>  TRUE FALSE FALSE FALSE  TRUE 
+
+# draws for rows the fit never saw, at a known group and a new one
+nd <- data.frame(x = c(-1, 1), g = factor(c("3", "new")))
+simulate(fit, nsim = 3, seed = 1, newdata = nd, allow_new_levels = TRUE)
+#>   sim_1 sim_2 sim_3
+#> 1     1     2     0
+#> 2     3     1     1
 
 # a posterior-predictive check by hand: does the fit reproduce the
 # share of zeros in the data?

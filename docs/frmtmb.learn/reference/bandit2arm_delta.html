@@ -13,7 +13,7 @@ arm's estimate toward what it just paid:"></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.learn</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -59,7 +59,7 @@ arm's estimate toward what it just paid:</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">bandit2arm_delta</span><span class="op">(</span><span class="va">subject</span>, trial <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">bandit2arm_delta</span><span class="op">(</span><span class="va">subject</span>, trial <span class="op">=</span> <span class="cn">NULL</span>, session <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -77,6 +77,19 @@ entering a linear predictor.</p></dd>
 <dt id="arg-trial">trial<a class="anchor" aria-label="anchor" href="#arg-trial"></a></dt>
 <dd><p>The column giving trial order within a subject, given
 unquoted. <code>NULL</code> uses the order the rows appear in.</p></dd>
+
+
+<dt id="arg-session">session<a class="anchor" aria-label="anchor" href="#arg-session"></a></dt>
+<dd><p>The column naming the session each trial belongs to,
+given unquoted. <code>NULL</code>, the default, is one session per subject.
+Every subject's value store starts again from its initial values
+at the first trial of each of its sessions, so nothing learned in
+one session carries into the next. The subject stays the unit a
+random effect and <code>frm(importance =)</code> group on: the sessions of
+one subject share that subject's effects. Trial numbers need to be
+unique only within a session. A label reused in two runs that are
+not adjacent in trial order is refused. See the Sessions section of
+<code>bandit2arm_delta()</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -113,9 +126,10 @@ learning signal at all, so <code><a href="https://rdrr.io/r/stats/simulate.html"
 <code><a href="frm_task_simulate.html">frm_task_simulate()</a></code> refuse that data by name rather than returning
 a draw from a task nobody ran. Some rows equal is not the signature;
 every row is. There is no way round it through the data:
-<code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> takes no <code>newdata</code>, and any other data set drawn through
-this model is read by a formula that names one column twice. Refit
-with a column per arm.</p>
+<code><a href="https://rdrr.io/r/stats/simulate.html" class="external-link">simulate()</a></code> refuses <code>newdata</code> for a learning family, whose draw walks
+the fitted trial sequence, and any other data set drawn through this
+model is read by a formula that names one column twice. Refit with a
+column per arm.</p>
 <p>This is true of every family in the package, not only this one. All
 eight read the CHOSEN option's entry alone, which is measured rather
 than asserted: replacing the unchosen entries with noise leaves the
@@ -137,6 +151,49 @@ reversal and one after. This fits the DIFFERENCE, with a standard
 error, and it takes a factor with any number of levels, a smooth term
 or a random slope in the same place. <code><a href="../articles/learning.html">vignette("learning")</a></code> works the
 example through.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="sessions">Sessions<a class="anchor" aria-label="anchor" href="#sessions"></a></h2>
+
+
+<p>A subject tested on two days, or on two task versions, learns each
+session from scratch: the options are new, so nothing learned in one
+session applies in the next. <code>session =</code> says so, and every family
+in this package takes it:</p>
+<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">frm</span>(<span class="fu">bf</span>(choice <span class="sc">|</span> <span class="fu">reward</span>(pay1, pay2) <span class="sc">~</span> <span class="dv">1</span> <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> id), tau <span class="sc">~</span> <span class="dv">1</span>),</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>    <span class="at">family =</span> <span class="fu">bandit2arm_delta</span>(<span class="at">subject =</span> id, <span class="at">trial =</span> trial,</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>                              <span class="at">session =</span> day),</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>    <span class="at">data =</span> d)</span></code></pre><p></p></div>
+<p>At the first trial of each session the value store goes back to its
+initial values. Trial numbers need to be unique only within a
+session, so a count that starts again at 1 each day needs no
+renumbering. The subject is still the unit: its sessions share its
+random effects, and <code>frm(importance =)</code> resamples it whole, with all
+of its sessions. <code><a href="frm_value_trace.html">frm_value_trace()</a></code> gains a <code>session</code> column.</p>
+<p>A session is one unbroken run of a subject's trials. Where the trial
+numbers order a subject's sessions against each other, a label that
+comes back after another session, as in <code>a b a b</code>, is refused by
+name: one session over its two runs would carry the value store
+across the trials between them, which is neither a restart nor a
+continuous sequence. Interleaved contexts, such as two tasks that
+alternate within a day with a value store each, are a different
+model: one store per context, kept across that context's runs. That
+model is not built; it is filed as a possible later extension.</p>
+<p>Without <code>session =</code> a subject's rows are one sequence, and the value
+store carries across the boundary. What that costs, measured on 202
+replicates of 40 subjects by two sessions of 100 trials, each
+session drawn from a fresh store, with <code>alpha ~ 1 + (1 | id)</code> at a
+between-subject standard deviation of 0.5 and <code>tau</code> = 3:</p>
+<table class="table table"><tr><td></td><td>truth</td><td>mean, with</td><td>covered, with</td><td>covered, without</td></tr><tr><td>logit alpha</td><td>-0.619</td><td>-0.605</td><td>94.6</td><td>91.1</td></tr><tr><td>log tau</td><td>1.099</td><td>1.099</td><td>95.0</td><td>74.8</td></tr><tr><td>log sd(alpha | id)</td><td>-0.693</td><td>-0.763</td><td>97.5</td><td>97.5</td></tr></table><p>The last two columns are percent coverage of the Wald interval, and
+every fit converged. With
+<code>session =</code> no interval's Wilson bound excludes 95 percent. Without
+it the choice sensitivity comes back 2.7 percent low and its
+interval covers three times in four. The log standard deviation
+comes back 0.070 low with <code>session =</code>, 4.9 Monte Carlo standard
+errors, and its interval still covers at 97.5 percent; this study
+does not separate the Laplace caveat below from ordinary maximum
+likelihood shrinkage as its cause. <code>dev/phase3b-findings.md</code> has the
+construction.</p>
     </div>
     <div class="section level2">
     <h2 id="the-laplace-caveat">The Laplace caveat<a class="anchor" aria-label="anchor" href="#the-laplace-caveat"></a></h2>

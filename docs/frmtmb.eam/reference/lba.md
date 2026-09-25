@@ -11,7 +11,7 @@ time.
 ## Usage
 
 ``` r
-lba(n, sd_v = 1, posdrift = TRUE, max_ndt = NULL)
+lba(n, sd_v = 1, posdrift = TRUE, max_ndt = NULL, contaminant = FALSE)
 ```
 
 ## Arguments
@@ -40,6 +40,13 @@ lba(n, sd_v = 1, posdrift = TRUE, max_ndt = NULL)
   it when a component of a
   [`frmtmb::mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.html)
   needs the bound up front.
+
+- contaminant:
+
+  Not built for this family: `TRUE` is refused by name. The uniform
+  contaminant is built for
+  [`wiener()`](https://aforren1.github.io/frmtmb/frmtmb.eam/reference/wiener.md)
+  only.
 
 ## Value
 

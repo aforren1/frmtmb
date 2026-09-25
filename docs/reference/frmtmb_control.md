@@ -12,7 +12,7 @@ frmtmb_control(
   grad_tol = 0.001,
   profile = FALSE,
   sparse_x = FALSE,
-  autoscale = FALSE,
+  autoscale = NULL,
   check_nlev_1 = c("warning", "ignore", "stop"),
   check_olre = c("warning", "ignore", "stop"),
   importance_seed = 1L,
@@ -93,7 +93,28 @@ frmtmb_control(
   mo()/mi() columns are never touched, and the whole step is a silent
   no-op when nothing qualifies. Compatible with `profile = TRUE`. Under
   `prior` or bounds, the first stage applies them to the scaled
-  coefficients; the second stage is the fit that is reported.
+  coefficients; the second stage is the fit that is reported. A random
+  slope on a rescaled column (`(1 + x | g)`) is rescaled with it in
+  `us()`, [`diag()`](https://rdrr.io/r/base/diag.html) and the Student-t
+  blocks, its log standard deviation and its effects mapped back
+  exactly; other covariance structures keep their slope unscaled. The
+  pre-fit's own warnings are not shown. Under the default, a pre-fit
+  that errors or does not converge in its coefficients never makes the
+  reported fit less diagnostic than `autoscale = FALSE`: the default
+  then reports the plain fit, unless the fit from the pre-fit has the
+  better likelihood and either warns at least as often or is a verified
+  optimum. Under `TRUE` the pre-fit's error stands and its
+  non-convergence is a warning. `TRUE` always does this, `FALSE` never
+  does. The default, `NULL`, does it when a qualifying column has a
+  standard deviation below 1e-3 and its coefficient is optimized
+  directly (not a `mu` coefficient under `REML = TRUE` or
+  `profile = TRUE`, which the inner solver integrates), or when a column
+  carrying such a random slope has one below 0.05. Without it such a fit
+  can stop short and report convergence: a poisson `y ~ 0 + x` with `x`
+  on a 1e-6 scale lost 62.6 log-likelihood units against
+  [`stats::glm()`](https://rdrr.io/r/stats/glm.html), and a random slope
+  on a column spread 0.01 lost up to 14.4. Every other fit is the fit
+  `autoscale = FALSE` gives, bit for bit.
 
 - check_nlev_1:
 

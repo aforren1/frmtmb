@@ -260,6 +260,12 @@ rp_floored(fit, action = "report")
 #> $n_nonmonotone
 #> [1] 0
 #> 
+#> $n_nonmonotone_censored
+#> [1] 0
+#> 
+#> $max_survival_rise
+#> [1] 0
+#> 
 #> $scale
 #> [1] "hazard"
 #> 
@@ -272,11 +278,13 @@ rp_floored(fit, action = "report")
 #> 
 #> attr(,"rows")$nonmonotone
 #> integer(0)
+#> 
+#> attr(,"rows")$nonmonotone_censored
+#> integer(0)
 ```
 
-Zero on both counts here. Run it on every fit whose data carry
-censoring, because neither
-[`logLik()`](https://rdrr.io/r/stats/logLik.html) nor
+Zero on each count here. Run it on every fit whose data carry censoring,
+because neither [`logLik()`](https://rdrr.io/r/stats/logLik.html) nor
 [`AIC()`](https://rdrr.io/r/stats/AIC.html) can tell you.
 
 **What the censored count used to mean.** Up to frmtmb 0.51.0 core
@@ -317,16 +325,19 @@ c(converged = bad_fit$opt$convergence, logLik = as.numeric(logLik(bad_fit)))
 #> converged    logLik 
 #>    1.0000 -575.5379
 str(rp_floored(bad_fit, action = "report"))
-#> List of 6
-#>  $ n_censored_deep: int 1
-#>  $ max_nlogS      : num 55.7
-#>  $ threshold      : num 19.2
-#>  $ n_nonmonotone  : int 0
-#>  $ scale          : chr "hazard"
-#>  $ n_obs          : int 600
-#>  - attr(*, "rows")=List of 2
-#>   ..$ censored   : int 1
-#>   ..$ nonmonotone: int(0)
+#> List of 8
+#>  $ n_censored_deep       : int 1
+#>  $ max_nlogS             : num 55.7
+#>  $ threshold             : num 19.2
+#>  $ n_nonmonotone         : int 0
+#>  $ n_nonmonotone_censored: int 0
+#>  $ max_survival_rise     : num 0
+#>  $ scale                 : chr "hazard"
+#>  $ n_obs                 : int 600
+#>  - attr(*, "rows")=List of 3
+#>   ..$ censored            : int 1
+#>   ..$ nonmonotone         : int(0) 
+#>   ..$ nonmonotone_censored: int(0)
 ```
 
 That fit is now SCORED CORRECTLY and
@@ -367,6 +378,21 @@ c(min_slope = min(dlogH), all_increasing = all(dlogH > 0))
 #>      min_slope all_increasing 
 #>      0.9852775      1.0000000
 ```
+
+A censored row is never floored, because it has no density: its `log S`
+is scored exactly whatever the slope. A censored row where the slope is
+not positive is still a defect, of the MODEL rather than of
+[`logLik()`](https://rdrr.io/r/stats/logLik.html): the fitted survival
+function rises with time there. It happens when a group has its own
+slope on `gamma1` and no events, because the `log(gamma1 + u)` barrier
+that keeps a slope positive lives in the density and that group
+contributes none. The same happens past an arm’s last event in a
+cure-fraction design with `gamma1 ~ arm`.
+[`rp_floored()`](https://aforren1.github.io/frmtmb/frmtmb.spline/reference/rp_floored.md)
+counts those rows apart, as `n_nonmonotone_censored`, and WARNS on them
+with the size of the rise, since
+[`logLik()`](https://rdrr.io/r/stats/logLik.html) is still the model’s;
+it refuses only on the event rows.
 
 ## How many knots
 

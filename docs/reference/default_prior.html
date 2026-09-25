@@ -3,17 +3,23 @@
 its alias since 2.20.14: one row per slot a prior can target, with
 the class/coef/dpar/group values to pass to set_prior(). Classes
 &quot;sd&quot; and &quot;cor&quot; are targeted by group and nlpar; the
-residual-correlation classes (&quot;ar&quot;, &quot;ma&quot;, &quot;cosy&quot;, &quot;cortime&quot;,
-&quot;rescor&quot;) by resp; and class &quot;theta&quot; rows name the raw internal
-covariance parameters (escape hatch, including correlations one at a
-time, across all three covariance components)."><meta property="og:description" content="brms's default_prior(), and get_prior(), which brms has kept as
+residual-correlation classes (&quot;ar&quot;, &quot;ma&quot;, &quot;cosy&quot;, &quot;cortime&quot;)
+by resp; class &quot;rescor&quot; has one row and takes no resp; and
+class &quot;theta&quot; rows name the raw internal covariance parameters
+(escape hatch, including correlations one at a time, across all
+three covariance components). Where the location is several
+distributional parameters (a categorical or mixture model), each
+one's b, Intercept and sd rows carry its dpar, as in brms."><meta property="og:description" content="brms's default_prior(), and get_prior(), which brms has kept as
 its alias since 2.20.14: one row per slot a prior can target, with
 the class/coef/dpar/group values to pass to set_prior(). Classes
 &quot;sd&quot; and &quot;cor&quot; are targeted by group and nlpar; the
-residual-correlation classes (&quot;ar&quot;, &quot;ma&quot;, &quot;cosy&quot;, &quot;cortime&quot;,
-&quot;rescor&quot;) by resp; and class &quot;theta&quot; rows name the raw internal
-covariance parameters (escape hatch, including correlations one at a
-time, across all three covariance components)."></head><body>
+residual-correlation classes (&quot;ar&quot;, &quot;ma&quot;, &quot;cosy&quot;, &quot;cortime&quot;)
+by resp; class &quot;rescor&quot; has one row and takes no resp; and
+class &quot;theta&quot; rows name the raw internal covariance parameters
+(escape hatch, including correlations one at a time, across all
+three covariance components). Where the location is several
+distributional parameters (a categorical or mixture model), each
+one's b, Intercept and sd rows carry its dpar, as in brms."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -21,7 +27,7 @@ time, across all three covariance components)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.62.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.63.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -81,10 +87,13 @@ time, across all three covariance components)."></head><body>
 its alias since 2.20.14: one row per slot a prior can target, with
 the class/coef/dpar/group values to pass to <code><a href="set_prior.html">set_prior()</a></code>. Classes
 <code>"sd"</code> and <code>"cor"</code> are targeted by <code>group</code> and <code>nlpar</code>; the
-residual-correlation classes (<code>"ar"</code>, <code>"ma"</code>, <code>"cosy"</code>, <code>"cortime"</code>,
-<code>"rescor"</code>) by <code>resp</code>; and class <code>"theta"</code> rows name the raw internal
-covariance parameters (escape hatch, including correlations one at a
-time, across all three covariance components).</p>
+residual-correlation classes (<code>"ar"</code>, <code>"ma"</code>, <code>"cosy"</code>, <code>"cortime"</code>)
+by <code>resp</code>; class <code>"rescor"</code> has one row and takes no <code>resp</code>; and
+class <code>"theta"</code> rows name the raw internal covariance parameters
+(escape hatch, including correlations one at a time, across all
+three covariance components). Where the location is several
+distributional parameters (a categorical or mixture model), each
+one's <code>b</code>, <code>Intercept</code> and <code>sd</code> rows carry its <code>dpar</code>, as in brms.</p>
     </div>
 
     <div class="section level2">

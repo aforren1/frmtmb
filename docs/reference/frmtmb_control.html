@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.62.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.63.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -75,7 +75,7 @@
 <span>  grad_tol <span class="op">=</span> <span class="fl">0.001</span>,</span>
 <span>  profile <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  sparse_x <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  autoscale <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  autoscale <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  check_nlev_1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"warning"</span>, <span class="st">"ignore"</span>, <span class="st">"stop"</span><span class="op">)</span>,</span>
 <span>  check_olre <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"warning"</span>, <span class="st">"ignore"</span>, <span class="st">"stop"</span><span class="op">)</span>,</span>
 <span>  importance_seed <span class="op">=</span> <span class="fl">1L</span>,</span>
@@ -154,7 +154,28 @@ intercepts, factor contrasts, smooth bases, and mo()/mi() columns
 are never touched, and the whole step is a silent no-op when
 nothing qualifies. Compatible with <code>profile = TRUE</code>. Under
 <code>prior</code> or bounds, the first stage applies them to the scaled
-coefficients; the second stage is the fit that is reported.</p></dd>
+coefficients; the second stage is the fit that is reported.
+A random slope on a rescaled column (<code>(1 + x | g)</code>) is rescaled
+with it in <code>us()</code>, <code><a href="https://rdrr.io/r/base/diag.html" class="external-link">diag()</a></code> and the Student-t blocks, its log
+standard deviation and its effects mapped back exactly; other
+covariance structures keep their slope unscaled. The pre-fit's own
+warnings are not shown. Under the default, a pre-fit that errors
+or does not converge in its coefficients never makes the reported
+fit less diagnostic than <code>autoscale = FALSE</code>: the default then
+reports the plain fit, unless the fit from the pre-fit has the
+better likelihood and either warns at least as often or is a
+verified optimum. Under <code>TRUE</code> the pre-fit's error stands and its
+non-convergence is a warning. <code>TRUE</code> always does this, <code>FALSE</code> never
+does. The default, <code>NULL</code>, does it when a qualifying column has a
+standard deviation below 1e-3 and its coefficient is optimized
+directly (not a <code>mu</code> coefficient under <code>REML = TRUE</code> or
+<code>profile = TRUE</code>, which the inner solver integrates), or when a
+column carrying such a random slope has one below 0.05. Without
+it such a fit can stop short and report convergence: a poisson
+<code>y ~ 0 + x</code> with <code>x</code> on a 1e-6 scale lost 62.6 log-likelihood
+units against <code><a href="https://rdrr.io/r/stats/glm.html" class="external-link">stats::glm()</a></code>, and a random slope on a column
+spread 0.01 lost up to 14.4. Every other fit is the fit
+<code>autoscale = FALSE</code> gives, bit for bit.</p></dd>
 
 
 <dt id="arg-check-nlev-">check_nlev_1<a class="anchor" aria-label="anchor" href="#arg-check-nlev-"></a></dt>

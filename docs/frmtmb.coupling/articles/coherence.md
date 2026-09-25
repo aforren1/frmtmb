@@ -256,6 +256,32 @@ answer is exactly the sum of the clean pieces. `n` then reports the
 segments the record supplied rather than the number asked for, which is
 the count every standard error downstream is formed from.
 
+A trial-based recording is a list of epochs, and after artifact
+rejection they are rarely of one length. Pass the two signals as two
+lists, one element per epoch, with `group` naming the unit each epoch
+belongs to. The epochs of one unit are read as the clean spans of one
+record: one segment length for the unit, segments laid inside each
+epoch, and no transform crossing from one epoch into the next.
+
+``` r
+
+len <- c(900, 1300, 700, 1100, 1000, 800)
+ea <- lapply(len, function(m) rnorm(m))
+eb <- lapply(ea, function(v) 0.7 * v + rnorm(length(v)))
+ep <- frm_cross_spectrum(ea, eb, sfreq = sfreq, segments = 8,
+                         group = rep(c("s01", "s02"), each = 3))
+table(ep$id, ep$n)
+#>      
+#>         6   7
+#>   s01 180   0
+#>   s02   0 180
+```
+
+Each subject gets one frequency grid and one `n`. A vector pair with a
+`group` of one label per sample, the spelling
+[`frmtmb::frm_periodogram()`](https://aforren1.github.io/frmtmb/reference/frm_periodogram.html)
+takes, is the same thing when each label is one epoch.
+
 ## The one trap
 
 The likelihood couples the powers and the coherence. A power formula too
@@ -353,6 +379,75 @@ The grey points are each bin’s own coherence, every one of them biased
 upward by about `1/16`; the line is the fitted spectrum, which borrows
 strength across frequency and does not have to be.
 
+## Many channels: every pair in one model
+
+[`cross_wishart()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/cross_wishart.md)
+models one pair. A recording with four channels has six pairs, and the
+usual analysis fits each pair on its own and then corrects six p-values
+for multiplicity.
+[`frm_cross_pairs()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frm_cross_pairs.md)
+stacks the pairs instead, with a `pair` factor, so that one model holds
+all of them.
+
+``` r
+
+n4 <- 4096
+s4 <- rnorm(n4)
+X <- cbind(Fz = s4 + rnorm(n4), Cz = 0.8 * s4 + rnorm(n4),
+           Pz = 0.5 * s4 + rnorm(n4), Oz = 0.25 * s4 + rnorm(n4))
+xp <- frm_cross_pairs(X, sfreq = sfreq, segments = 16)
+levels(xp$pair)
+#> [1] "Fz-Cz" "Fz-Pz" "Fz-Oz" "Cz-Pz" "Cz-Oz" "Pz-Oz"
+```
+
+`(1 | pair)` on `coh` is the multiple-comparison story. Each pair gets
+its own coherence, drawn toward the pairs’ common level by as much as
+the data say the pairs differ, so a pair that stands out does so against
+the other pairs and not against a correction applied afterwards. The
+powers and the phase belong to the pair, so they are fixed effects of
+it.
+
+``` r
+
+pf <- frm(bf(w11 | vreal(w22, w12r, w12i) + vint(n) ~ 0 + pair,
+             pow2 ~ 0 + pair, coh ~ 1 + (1 | pair), phase ~ 0 + pair),
+          family = cross_wishart(), data = xp)
+#> Warning: Large maximum absolute gradient at the optimum (0.00125); the fit may
+#> not have converged. diagnose() names the offending parameter; see the
+#> 'Convergence problems' section of vignette('diagnostics') for the remedies
+nd <- data.frame(pair = factor(levels(xp$pair), levels = levels(xp$pair)))
+cbind(nd, round(frm_coherence(pf, newdata = nd), 3))
+#>    pair .estimate   .se .lower .upper   .eta
+#> 1 Fz-Cz     0.196 0.071  0.175  0.219 -1.413
+#> 2 Fz-Pz     0.090 0.104  0.075  0.108 -2.312
+#> 3 Fz-Oz     0.030 0.179  0.021  0.042 -3.477
+#> 4 Cz-Pz     0.079 0.111  0.065  0.097 -2.454
+#> 5 Cz-Oz     0.023 0.205  0.015  0.033 -3.770
+#> 6 Pz-Oz     0.010 0.299  0.006  0.018 -4.566
+```
+
+A coherence that varies with frequency differently in each pair is
+`s(freq, by = pair)`, with `pair` also a fixed effect so that each
+smooth has its own level;
+[`frm_coherence()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frm_coherence.md)
+then gives each pair’s spectrum with a band.
+
+``` r
+
+frm(bf(w11 | vreal(w22, w12r, w12i) + vint(n) ~ 0 + pair,
+       pow2 ~ 0 + pair, coh ~ pair + s(freq, by = pair, k = 6),
+       phase ~ 0 + pair),
+    family = cross_wishart(), data = xp)
+```
+
+Two limits. Every parameter by `pair`, with no shared term, is the six
+separate fits in one call: the likelihood is then a sum of one term per
+pair, and each pair’s estimate is the one its own fit gives. And the
+pairs share channels, so their blocks are not independent of one
+another; the stacked likelihood treats them as if they were, which is
+worth remembering when reading a standard error of a term the pairs
+share.
+
 ## Checking the fit
 
 [`simulate()`](https://rdrr.io/r/stats/simulate.html) refuses on this
@@ -381,13 +476,17 @@ than merely plotted.
 
 ## What this does not do
 
-- **More than two channels.** This is a scope decision of this package
-  and not a limit of `frmtmb`: core carries a matrix-valued response and
-  a custom family reading `y[, 1]` and `y[, 2]` fits today. What stops
-  it here is that `p` channels need `p^2` linear predictors written by
-  hand, that the clean `power, power, coherence, phase` coordinates do
-  not survive past two, and that the log determinant and trace stop
-  being closed forms. Fit pairs. Note that a matrix pair passed to
+- **A joint model of more than two channels.** This is a scope decision
+  of this package and not a limit of `frmtmb`: core carries a
+  matrix-valued response and a custom family reading `y[, 1]` and
+  `y[, 2]` fits today. What stops it here is that `p` channels need
+  `p^2` linear predictors written by hand, that the clean
+  `power, power, coherence, phase` coordinates do not survive past two,
+  and that the log determinant and trace stop being closed forms.
+  [`frm_cross_pairs()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frm_cross_pairs.md)
+  fits pairs in one model, as above, and does not model the dependence
+  between two pairs that share a channel. Note that a matrix pair passed
+  to
   [`frm_cross_spectrum()`](https://aforren1.github.io/frmtmb/frmtmb.coupling/reference/frm_cross_spectrum.md)
   is many UNITS of one channel pair, never many channels.
 - **Non-stationary epochs.** Everything here assumes the spectral matrix

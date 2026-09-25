@@ -463,8 +463,8 @@ other.
 
 |  | fitted | predict | simulate | residuals | residuals_osa | emmeans | confint_profile | hypothesis_profile | frm_lp_basis |
 |:---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| mvbf | x | \+ | x | x | x | x | \+ | \+ | x |
-| rescor | x | \+ | x | x | x | x | \+ | \+ | ? |
+| mvbf | \+ | \+ | x | x | x | x | \+ | \+ | x |
+| rescor | \+ | \+ | x | x | x | x | \+ | \+ | ? |
 | \|ID\| | ? | ? | ? | ? | ? | ? | ? | ? | ? |
 | nl | \+ | ~ | ? | ? | ? | x | ? | ? | \+ |
 | mixture | ? | ? | ~ | ? | ? | ? | ? | ? | ? |
@@ -474,7 +474,6 @@ other.
 |:---|:---|:---|
 | ~ | nl + predict | Point predictions work. se.fit is not supported for the nonlinear predictor; request a nonlinear parameter with dpar instead. |
 | ~ | mixture + simulate | Works only when every component family has a simulator. |
-| x | mvbf + fitted; rescor + fitted | Refused: fitted() calls single_response() and stops with ‘fitted() is not supported yet for multivariate fits’. Predict one response at a time instead: predict(fit, resp = ). |
 | x | mvbf + simulate; mvbf + residuals; mvbf + emmeans; mvbf + frm_lp_basis | Refused: the post-fit methods below are univariate-only for now. |
 | x | mvbf + residuals_osa | Refused: residuals() is not supported for multivariate fits yet, one-step-ahead residuals included. |
 | x | rescor + simulate | Refused: simulate() is not supported for multivariate fits yet. |
@@ -593,9 +592,9 @@ row; see `?frmtmb-multimembership`.
 
 | Status      | Pairs | Share |
 |:------------|------:|:------|
-| works       |  1768 | 34%   |
+| works       |  1770 | 34%   |
 | conditional |  1805 | 34%   |
-| refused     |   838 | 16%   |
+| refused     |   836 | 16%   |
 | broken      |     0 | 0%    |
 | untested    |   845 | 16%   |
 

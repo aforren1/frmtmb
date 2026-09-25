@@ -251,7 +251,10 @@ An unpenalized multinomial logit will send an emission or transition
 probability to 0 whenever a category is rare inside a state, and the
 optimizer then reports singular convergence at a perfectly good optimum.
 [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.html)
-on the affected logit is the remedy.
+on the affected logit is the remedy. A prior on a state's location names
+the state with `dpar` (`dpar = "mu1"`), one specification per state: a
+class `"b"` or `"Intercept"` prior without `dpar` is refused, because it
+does not say which state it means.
 
 ## Random effects and the Laplace approximation
 

@@ -1,5 +1,257 @@
 # Changelog
 
+## frmtmb 0.63.0
+
+- **[`simulate()`](https://rdrr.io/r/stats/simulate.html) takes
+  `newdata`**, and `pp_check(newdata = )` on a fit answers as brms does
+  instead of refusing. The draws are for the new rows;
+  [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
+  plots them against the newdata’s own response and reads `group` and
+  `x` from it, as brms reads them. A newdata row with a missing response
+  is dropped with brms’s warning, and a newdata without the response is
+  refused for a `ppc` type, as brms refuses it. A grouping level the fit
+  never saw is refused, as in
+  [`predict()`](https://rdrr.io/r/stats/predict.html), unless
+  `allow_new_levels = TRUE`, a new argument of
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html); under
+  `re_formula = NA` every level is redrawn anyway, so an unseen one
+  needs nothing. A residual correlation term such as
+  `ar(time, gr = g, cov = TRUE)` is rebuilt on the new rows, so rows of
+  one group are drawn jointly at their lags, counted in the fitted time
+  levels; a time the fit never saw is refused. brms counts a lag by a
+  row’s position among the newdata rows of its group, so the two differ
+  when newdata skips a time: rows at times 2 and 4 correlated at 0.389
+  here and 0.656 in brms on one AR(1) fit. The departure is deliberate,
+  because under brms’s reading the correlation of two rows changes when
+  a third row is added to newdata. `mixture(groups = )`,
+  [`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md),
+  and the hidden Markov and learning families of frmtmb.latent and
+  frmtmb.learn refuse `newdata`: their draw walks the fitted groups or
+  sequence, and
+  [`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md)
+  goes through the same structured slot.
+
+- **BREAKING: [`simulate()`](https://rdrr.io/r/stats/simulate.html)
+  reads `re_formula` as
+  [`predict()`](https://rdrr.io/r/stats/predict.html) reads it.** `NULL`
+  keeps every group-level term, `NA`, `~0` and `~1` keep none, and a
+  one-sided formula keeps the terms it names. A term that is not kept is
+  REDRAWN from its estimated distribution in every replicate, as `NA`
+  always did. Through 0.62.0 every formula meant “keep everything”, so
+  `simulate(re_formula = ~1)` gave the conditional draws while
+  `predict(re_formula = ~1)` gave the population prediction.
+  [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
+  and
+  [`dharma_residuals()`](https://aforren1.github.io/frmtmb/reference/dharma_residuals.md)
+  on a fit pass `re_formula` to
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) and change with
+  it. A term the fit does not have, and a partial formula on a fit with
+  a factor-smooth term, are refused with
+  [`predict()`](https://rdrr.io/r/stats/predict.html)’s words, and so is
+  a `re_formula` that is not `NULL`, `NA` or a formula, which used to
+  condition on everything with nothing said. When a formula keeps some
+  columns of a term and drops others, as `~ (1 | g)` does on a
+  `(1 + x | g)` fit, the dropped columns are drawn given the kept ones.
+
+- **BREAKING: `simulate(re_formula = NA)` keeps a population smooth.**
+  It redrew the penalized coefficients of `s()`, `gp()` and `hsgp()`
+  terms from their smoothing prior, which replaced the fitted curve with
+  a random one: on `y ~ s(x)` the draws spread with an sd of 2.13 around
+  a fit whose residual sd is 0.28.
+  [`pp_check()`](https://aforren1.github.io/frmtmb/reference/pp_check.md)
+  on a fit defaults to `re_formula = NA`, so its check of any smooth
+  model compared the data with those draws. A factor-smooth term is
+  group-level and is still redrawn.
+
+- [`frm_bootstrap()`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
+  is unchanged: by default it still redraws the group effects AND the
+  penalized coefficients of every smooth, `gp()` and `hsgp()` term in
+  every replicate, a whole-model parametric bootstrap, and its draws are
+  identical to 0.62.0’s at the same seed. `re_formula = NULL` is the
+  bootstrap that conditions on the fitted random effects and smooths and
+  redraws the noise alone.
+  [`?frm_bootstrap`](https://aforren1.github.io/frmtmb/reference/frm_bootstrap.md)
+  now says which terms each setting redraws.
+
+- The `pp_check(type = "error_binned")` refusal on a multinomial fit
+  calls the response a set of counts over categories, not a category.
+
+Five defects filed in the 0.62.0 round (lane `wt-predfix`;
+`dev/predfix-findings.md` has each reproduction and measurement).
+
+- **BREAKING: a fit with a badly scaled predictor is now standardized by
+  default.** `frmtmb_control(autoscale = )` defaults to `NULL`, which
+  runs the `autoscale = TRUE` pre-fit when a qualifying column has a
+  standard deviation below 1e-3 and its coefficient is optimized
+  directly, or when a column that carries a random slope (`(1 + x | g)`)
+  has one below 0.05. Without it such a fit could stop short, report
+  convergence 0 and say nothing: a poisson `y ~ 0 + x` with `x` on a
+  1e-6 scale sat 62.58 log-likelihood units below
+  [`glm()`](https://rdrr.io/r/stats/glm.html), the same happened with an
+  intercept and a group effect in every family measured, by up to 91
+  units, and a random slope fell short by up to 14.4 units at a spread
+  of 0.01.
+
+  The pre-fit now also rescales a random slope’s column in `Z`, with its
+  log standard deviation and its effects, for `us()`,
+  [`diag()`](https://rdrr.io/r/base/diag.html) and the Student-t blocks;
+  before, `autoscale = TRUE` rescaled the fixed effect only and a random
+  slope on a 1e-6 column was still up to 6.35 units short. A random
+  slope in any other covariance structure, or on a column the fixed
+  effects do not carry, is not rescaled. The pre-fit’s own warnings are
+  no longer shown; only the reported fit’s are.
+
+  The default never reports less than `autoscale = FALSE` would. When
+  the pre-fit errors, the default fits the model as `autoscale = FALSE`
+  does. When the pre-fit stops without converging in its coefficients (a
+  completely separated fit does), the default fits both from the pre-fit
+  and without it and reports the one without it, with its warnings,
+  unless the other has the better likelihood and either warns at least
+  as often or is a verified optimum. `verbose = TRUE` says which. With
+  `autoscale = TRUE`, which you asked for, a pre-fit error stands and
+  names `autoscale = FALSE`, and a pre-fit that did not converge warns.
+
+  A `mu` coefficient under `REML = TRUE` or `profile = TRUE` does not
+  engage it by itself: those coefficients are fitted by the inner
+  solver, which reached the optimum at every scale measured. A fit that
+  engages is not guaranteed to be higher: on 108 skew-normal fits it was
+  never lower by more than 1e-6, and one REML random-slope fit was lower
+  by 5.5e-7, which is optimizer tolerance. A fit with no such column is
+  unchanged to the last bit: 444 of 480 fits over 32 families and five
+  designs, under ML, REML and `profile = TRUE`, are identical, and the
+  other 36 differ only in the
+  [`vcov()`](https://rdrr.io/r/stats/vcov.html) fix below.
+  `autoscale = FALSE` turns it off, and `frmtmb_control()$autoscale` is
+  now `NULL`.
+  [`diagnose()`](https://aforren1.github.io/frmtmb/reference/diagnose.md)
+  and `verbose = TRUE` say when it ran.
+
+- **[`predict()`](https://rdrr.io/r/stats/predict.html) now draws a
+  `cs()` term.** On an
+  [`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  or
+  [`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  fit with a category-specific effect,
+  [`predict()`](https://rdrr.io/r/stats/predict.html) drew every row as
+  if the term were absent, in sample and at `newdata`, with no warning:
+  at `x = 3`, where the category probabilities are (0.95, 0.002, 0.045),
+  it reported about (0.42, 0.39, 0.19). The offsets were written one
+  level too deep in the list the simulator reads, and at `newdata` they
+  were the training rows’ offsets. Every
+  [`predict()`](https://rdrr.io/r/stats/predict.html) of such a fit
+  changes. [`fitted()`](https://rdrr.io/r/stats/fitted.values.html),
+  [`simulate()`](https://rdrr.io/r/stats/simulate.html) and the
+  log-likelihood were right and are unchanged.
+
+- [`cs_offsets_add()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  joins the extension API: it adds one response’s `cs()` offsets at
+  `newdata`. The documentation of
+  [`with_cs_offsets()`](https://aforren1.github.io/frmtmb/reference/frmtmb-sampling-api.md)
+  now says what it does: it takes the list of every response, not one
+  response’s list.
+
+- [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) answers a
+  multivariate fit, in brms’s `n x 4 x nresp` array. It refused before,
+  while [`predict()`](https://rdrr.io/r/stats/predict.html) answered. A
+  scalar response is one layer named by the response, and a categorical
+  one is one layer per category, `P(Y = k)`, as brms 2.23.0 stacks them.
+  `resp` takes several responses in the order given, and one scalar
+  response is still an `n x 4` matrix.
+
+- [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) on a
+  `quadrature = TRUE` fit warns that `Est.Error` leaves out the
+  group-effect uncertainty at a level the fit saw. The ordinal route and
+  [`predict()`](https://rdrr.io/r/stats/predict.html) already said so;
+  the ordinary route returned the smaller number silently. At a level
+  the fit never saw nothing is left out, and it does not warn.
+
+- [`vcov()`](https://rdrr.io/r/stats/vcov.html) answers a `REML = TRUE`
+  or `profile = TRUE` fit that has no random effect and no free
+  dispersion (poisson, bernoulli, binomial, geometric, exponential,
+  categorical). It died with “length of ‘dimnames’ \[1\] not equal to
+  array extent”. The standard errors are
+  [`glm()`](https://rdrr.io/r/stats/glm.html)‘s for poisson (1.9e-11
+  relative) and bernoulli (3.8e-8). For geometric and exponential they
+  differ from [`glm()`](https://rdrr.io/r/stats/glm.html)’s by 2.3e-2,
+  because frmtmb uses the observed information and
+  [`glm()`](https://rdrr.io/r/stats/glm.html) the expected information,
+  which differ on those families’ log link.
+
+- A new grouping level refused by
+  [`predict()`](https://rdrr.io/r/stats/predict.html),
+  [`fitted()`](https://rdrr.io/r/stats/fitted.values.html) and friends
+  is now classed `frmtmb_new_levels`, so an extension can say what it
+  can do instead. The message is unchanged.
+
+- **BREAKING: in a multivariate model a prior needs `resp`**, as it does
+  in brms. A class `"b"` or `"Intercept"` prior, a distributional
+  parameter’s own class (`"sigma"`, `"nu"`, …), and a residual
+  correlation class (`"ar"`, `"ma"`, `"cosy"`, `"cortime"`) written
+  without `resp` are now refused with a `frmtmb_error`. Until now frmtmb
+  applied such a prior to every response that had the slot, where brms
+  2.23.0 refuses it. The message gives the
+  [`set_prior()`](https://aforren1.github.io/frmtmb/reference/set_prior.md)
+  call for each response on which that call resolves. What stops
+  working: `set_prior("normal(0, 1)", class = "b")` on
+  `bf(y1 ~ x) + bf(y2 ~ x)`, and on a `mi()` model, which is
+  multivariate. Write
+  `set_prior("normal(0, 1)", class = "b", resp = "y1") + set_prior("normal(0, 1)", class = "b", resp = "y2")`.
+  Class `"sd"` got the same rule in 0.62.0.
+
+- **BREAKING: where the location is several distributional parameters, a
+  prior names one with `dpar`.** On
+  [`categorical()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`multinomial()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  and
+  [`mixture()`](https://aforren1.github.io/frmtmb/reference/mixture.md)
+  this is brms’s rule. frmtmb applies the same rule to its other
+  families with several location dpars:
+  [`mixture_mvn()`](https://aforren1.github.io/frmtmb/reference/mixture_mvn.md),
+  and in the extensions `lca()`, `hmm()`, `lba()` and `rdm()`. Class
+  `"b"`, `"Intercept"` and `"sd"` without `dpar` are now refused there;
+  write `dpar = "mub"`, `dpar = "mu1"` or `dpar = "v1"`. Until now such
+  a prior reached every category’s, component’s or accumulator’s
+  coefficients at once.
+  [`default_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+  lists these rows with their `dpar`, where it listed them with none.
+
+- **Class `"b"` reaches the category-specific coefficients of `cs()`**
+  on
+  [`sratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  [`cratio()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md)
+  and
+  [`acat()`](https://aforren1.github.io/frmtmb/reference/frmtmb-families.md),
+  and `coef = "x"` names the term `cs(x)`, as in brms. Until now class
+  `"b"` missed them: on `ord ~ cs(x)` it applied nothing, and on
+  `ord ~ z + cs(x)` it reached `z` only. A MAP fit with such a prior
+  moves, because the prior now applies.
+  [`default_prior()`](https://aforren1.github.io/frmtmb/reference/default_prior.md)
+  lists a `b` row for each `cs()` term.
+
+- **BREAKING: on a nonlinear location a class `"b"` or `"Intercept"`
+  prior needs `nlpar`**, as in brms. Until now class `"b"` without
+  `nlpar` on `bf(y ~ a * exp(b * x), a ~ 1 + z, b ~ 1, nl = TRUE)` went
+  to the slope `a_z` and nowhere else, and on a model whose nonlinear
+  parameters are all intercept-only it went nowhere, without a word.
+  Class `"Intercept"` or `coef = "Intercept"` reached the intercept of
+  EVERY nonlinear parameter. All are now refused.
+  `class = "Intercept", nlpar = "a"` stays accepted as frmtmb’s own
+  spelling, although brms refuses it.
+
+- **BREAKING: three more spellings brms refuses are refused** (user
+  decisions, 2026-09-24). `resp` on a model with one response; `resp` on
+  class `"rescor"`, which used to be ignored while the prior went on the
+  whole residual correlation; and class `"b"` on a predictor with no
+  population-level slope, such as `y ~ 1`, which used to apply nothing
+  while
+  [`prior_summary()`](https://aforren1.github.io/frmtmb/reference/prior_summary.md)
+  listed it. `resp` on class `"cor"` stays accepted as frmtmb’s own
+  spelling.
+
+- A fit that used one of the refused priors does not move: it now stops
+  before fitting. No other fit moves.
+
 ## frmtmb 0.62.0
 
 - **A

@@ -7,7 +7,9 @@ distributional parameter with its own linear predictor, so a learning
 rate takes a condition effect, a smooth term or a correlated per-subject
 random effect the way a mean does. Seven turn a value store into a
 softmax over options; rlddm() turns it into the drift rate of a
-diffusion, so choices and response times are one likelihood.
+diffusion, so choices and response times are one likelihood. Every
+family takes session =, which starts the value store again at each
+session boundary.
 
 - [`bandit2arm_delta()`](https://aforren1.github.io/frmtmb/frmtmb.learn/reference/bandit2arm_delta.md)
   : Rescorla-Wagner delta learning on a two-armed bandit

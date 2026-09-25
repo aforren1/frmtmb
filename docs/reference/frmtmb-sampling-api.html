@@ -23,7 +23,7 @@ arguments the way the user-facing surface does."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.62.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.63.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -132,12 +132,19 @@ log-density composition the objective itself runs, with <code>cens()</code> and
 <code><a href="https://rdrr.io/r/base/Round.html" class="external-link">trunc()</a></code> folded in; it runs on numeric dpar values as readily as on
 the tape, which is what makes a pointwise <code><a href="log_lik.html">log_lik()</a></code> reproduce the
 fitted density exactly instead of approximating it.
-<code>with_cs_offsets(fit, rspec, dpv)</code> takes one response spec from
-<code>fit$spec$responses</code> and the dpar-value list <code><a href="frmtmb-extension-api.html">eval_dpars()</a></code> returns
-for that response, and gives back the same list with the
-category-specific (<code>cs()</code>) offsets applied; on a model without
-<code>cs()</code> terms it returns <code>dpv</code> unchanged, so it is safe to call
-unconditionally before <code>row_lpdf()</code>. <code>us_chol_cor(theta, K)</code> is the
+<code>with_cs_offsets(fit, rspec, dpv)</code> takes the WHOLE list
+<code><a href="frmtmb-extension-api.html">eval_dpars()</a></code> returns, one element per response (<code>rspec</code> is
+ignored), and gives it back with the category-specific (<code>cs()</code>)
+offsets of the fitted rows added as each response's <code>.cs</code>; on a model
+without <code>cs()</code> terms it returns <code>dpv</code> unchanged, so it is safe to
+call unconditionally before <code>row_lpdf()</code>. In frmtmb 0.62.0 and
+earlier this paragraph said it took one response's list; a caller
+that passed one got no offsets, because they were written a level
+deeper than the simulator reads.
+<code>cs_offsets_add(fit, resp, newdata, dpv)</code> takes ONE response's
+dpar-value list, however it was built, and adds that response's
+<code>.cs</code> evaluated at <code>newdata</code> (the fitted rows when <code>NULL</code>); it is the
+one to use when drawing at new data. <code>us_chol_cor(theta, K)</code> is the
 unstructured correlation matrix of a <code>thetar</code> segment, which a
 <code>set_rescor(TRUE)</code> model's joint row density needs.</p>
     </div>

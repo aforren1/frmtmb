@@ -19,7 +19,7 @@ predictors compose with it unchanged."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.latent</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -303,7 +303,11 @@ does; judge <code>max|grad|</code> per observation rather than in absolute terms
 <p>An unpenalized multinomial logit will send an emission or transition
 probability to 0 whenever a category is rare inside a state, and the
 optimizer then reports singular convergence at a perfectly good
-optimum. <code><a href="https://aforren1.github.io/frmtmb/reference/set_prior.html" class="external-link">set_prior()</a></code> on the affected logit is the remedy.</p>
+optimum. <code><a href="https://aforren1.github.io/frmtmb/reference/set_prior.html" class="external-link">set_prior()</a></code> on the affected logit is the remedy. A prior
+on a state's location names the state with <code>dpar</code> (<code>dpar = "mu1"</code>),
+one specification per state: a class <code>"b"</code> or <code>"Intercept"</code> prior
+without <code>dpar</code> is refused, because it does not say which state it
+means.</p>
     </div>
     <div class="section level2">
     <h2 id="random-effects-and-the-laplace-approximation">Random effects and the Laplace approximation<a class="anchor" aria-label="anchor" href="#random-effects-and-the-laplace-approximation"></a></h2>

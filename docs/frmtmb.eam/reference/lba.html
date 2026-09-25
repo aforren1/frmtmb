@@ -19,7 +19,7 @@ non-decision time."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">frmtmb.eam</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -69,7 +69,7 @@ non-decision time.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">lba</span><span class="op">(</span><span class="va">n</span>, sd_v <span class="op">=</span> <span class="fl">1</span>, posdrift <span class="op">=</span> <span class="cn">TRUE</span>, max_ndt <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">lba</span><span class="op">(</span><span class="va">n</span>, sd_v <span class="op">=</span> <span class="fl">1</span>, posdrift <span class="op">=</span> <span class="cn">TRUE</span>, max_ndt <span class="op">=</span> <span class="cn">NULL</span>, contaminant <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -98,6 +98,11 @@ fastest response of each row's <code>ndt_group()</code>, or of the whole data
 set when the model has no <code>ndt_group()</code>. It cannot be combined with
 <code>ndt_group()</code>. Give it when a component of a <code><a href="https://aforren1.github.io/frmtmb/reference/mixture.html" class="external-link">frmtmb::mixture()</a></code>
 needs the bound up front.</p></dd>
+
+
+<dt id="arg-contaminant">contaminant<a class="anchor" aria-label="anchor" href="#arg-contaminant"></a></dt>
+<dd><p>Not built for this family: <code>TRUE</code> is refused by
+name. The uniform contaminant is built for <code><a href="wiener.html">wiener()</a></code> only.</p></dd>
 
 </dl></div>
     <div class="section level2">
