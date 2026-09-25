@@ -1,4 +1,4 @@
-# frmtmb.sample (development version)
+# frmtmb.sample 0.11.0
 
 * The `pp_check(type = "error_binned")` refusal on draws of a
   multinomial fit calls the response a set of counts over categories,

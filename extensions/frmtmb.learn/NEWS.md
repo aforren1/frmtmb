@@ -1,4 +1,4 @@
-# frmtmb.learn (development version)
+# frmtmb.learn 0.7.0
 
 * The duplicated-payoff refusal and `?bandit2arm_delta` no longer say
   that `simulate()` takes no `newdata`: frmtmb's `simulate()` takes it

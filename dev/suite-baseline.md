@@ -1,14 +1,14 @@
 # The per-file suite baseline, and what it is for
 
-`dev/suite-baseline.tsv` records one row per test file as of the 0.62.0
-release, at frmtmb 0.62.0 and frmtmb.sample 0.10.0: package, file, passing
-assertions, skips. It is a floor, not a target.
+`dev/suite-baseline.tsv` records one row per test file as of the 0.63.0
+release, at frmtmb 0.63.0 and every extension's version of that release:
+package, file, passing assertions, skips. It is a floor, not a target.
 
-Every row is from the release run. NO file's passing count fell against
-0.61.0, and 10 files are new. Two files gained one skip each,
-`test-brms-likelihood.R` and `test-brms-methods.R`: both are gated, and
-the correctness lane added a block to each, which the ungated tier skips
-by design.
+Every row is from the release run (`dev/release/suite.log`, 292 files).
+13 files are new. One file's passing count fell against 0.62.0, by
+design: frmtmb.learn's `test-counterfactual.R` went from 70 to 69,
+because lane `wt-simnewdata` removed an assertion that `simulate()` has
+no `newdata` argument, which it now has. No other file fell.
 
 Read a tier log only when it POSTDATES every file it covers. Three lanes
 of this round quoted a suite log written before their last edit, and in

@@ -1,4 +1,4 @@
-# frmtmb.latent (development version)
+# frmtmb.latent 0.6.0
 
 * `frm_compat()` records `autoscale` as working for `hmm()` and `lca()`,
   which frmtmb's default now engages below a column spread of 1e-3:

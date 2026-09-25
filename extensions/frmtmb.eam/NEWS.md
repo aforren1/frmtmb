@@ -1,4 +1,4 @@
-# frmtmb.eam (development version)
+# frmtmb.eam 0.11.0
 
 * **BREAKING:** a prior on a drift rate of `lba()` or `rdm()` names its
   accumulator with `dpar`: `set_prior("normal(0, 1)", class = "b",

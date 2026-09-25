@@ -1,4 +1,4 @@
-# frmtmb.coupling (development version)
+# frmtmb.coupling 0.6.0
 
 * `frm_cross_spectrum()` takes two lists of epochs of unequal length,
   with `group` naming the unit each epoch belongs to. A unit's epochs are

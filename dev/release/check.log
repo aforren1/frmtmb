@@ -7,7 +7,7 @@
 * checking for LF line-endings in source and make files and shell scripts
 * checking for empty or unneeded directories
 Removed empty directory 'frmtmb/tests/testthat/_snaps'
-* building 'frmtmb_0.62.0.tar.gz'
+* building 'frmtmb_0.63.0.tar.gz'
 R.exe : 
 At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
 +   & $R CMD build $p 2>&1 | Out-File -FilePath $LOG -Append -Encoding  ...
@@ -23,22 +23,73 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
     GNU Fortran (GCC) 14.3.0
 * running under: Windows 11 x64 (build 26200)
 * using session charset: UTF-8
-* current time: 2026-09-24 01:19:01 UTC
+* current time: 2026-09-25 01:41:24 UTC
 * using option '--as-cran'
 * checking for file 'frmtmb/DESCRIPTION' ... OK
-* this is package 'frmtmb' version '0.62.0'
+* this is package 'frmtmb' version '0.63.0'
 * package encoding: UTF-8
 * checking CRAN incoming feasibility ... OK
 * checking package namespace information ... OK
-* checking package dependencies ... ERROR
-Package suggested but not available: 'drmTMB'
-
-The suggested packages are required for a complete check.
-Checking can be attempted without them by setting the environment
-variable _R_CHECK_FORCE_SUGGESTS_ to a false value.
-
-See section 'The DESCRIPTION file' in the 'Writing R Extensions'
-manual.
+* checking package dependencies ... OK
+* checking if this is a source package ... OK
+* checking if there is a namespace ... OK
+* checking for executable files ... OK
+* checking for hidden files and directories ... OK
+* checking for portable file names ... OK
+* checking whether package 'frmtmb' can be installed ... [32s] OK
+* checking installed package size ... OK
+* checking package directory ... OK
+* checking for future file timestamps ... OK
+* checking 'build' directory ... OK
+* checking DESCRIPTION meta-information ... OK
+* checking top-level files ... OK
+* checking for left-over files ... OK
+* checking index information ... OK
+* checking package subdirectories ... OK
+* checking code files for non-ASCII characters ... OK
+* checking R files for syntax errors ... OK
+* checking whether the package can be loaded ... OK
+* checking whether the package can be loaded with stated dependencies ... OK
+* checking whether the package can be unloaded cleanly ... OK
+* checking whether the namespace can be loaded with stated dependencies ... OK
+* checking whether the namespace can be unloaded cleanly ... OK
+* checking loading without being on the library search path ... OK
+* checking whether startup messages can be suppressed ... OK
+* checking use of S3 registration ... OK
+* checking dependencies in R code ... OK
+* checking S3 generic/method consistency ... OK
+* checking replacement functions ... OK
+* checking foreign function calls ... OK
+* checking R code for possible problems ... [34s] OK
+* checking Rd files ... OK
+* checking Rd metadata ... OK
+* checking Rd line widths ... OK
+* checking Rd cross-references ... OK
+* checking for missing documentation entries ... OK
+* checking for code/documentation mismatches ... OK
+* checking Rd \usage sections ... OK
+* checking Rd contents ... OK
+* checking for unstated dependencies in examples ... OK
+* checking contents of 'data' directory ... OK
+* checking data for non-ASCII characters ... OK
+* checking LazyData ... OK
+* checking data for ASCII and uncompressed saves ... OK
+* checking installed files from 'inst/doc' ... OK
+* checking files in 'vignettes' ... OK
+* checking examples ... [28s] OK
+* checking examples with --run-donttest ... [50s] OK
+* checking for unstated dependencies in 'tests' ... OK
+* checking tests ...
+  Running 'testthat.R' [14m]
+ [14m] OK
+* checking for unstated dependencies in vignettes ... OK
+* checking package vignettes ... OK
+* checking re-building of vignette outputs ... [260s] OK
+* checking PDF version of manual ... OK
+* checking HTML version of manual ... [34s] NOTE
+Skipping checking math rendering: package 'V8' unavailable
+* checking for non-standard things in the check directory ... OK
+* checking for detritus in the temp directory ... OK
 * DONE
 R.exe : 
 At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:53 char:5
@@ -47,7 +98,7 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:53 char:5
     + CategoryInfo          : NotSpecified: (:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
  
-Status: 1 ERROR
+Status: 1 NOTE
 See
   'C:/Users/adf44/source/r/checkout-r3/frmtmb.Rcheck/00check.log'
 for details.
@@ -61,7 +112,7 @@ for details.
 * checking for LF line-endings in source and make files and shell scripts
 * checking for empty or unneeded directories
 Removed empty directory 'frmtmb.eam/tests/testthat/_snaps'
-* building 'frmtmb.eam_0.10.0.tar.gz'
+* building 'frmtmb.eam_0.11.0.tar.gz'
 R.exe : 
 At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
 +   & $R CMD build $p 2>&1 | Out-File -FilePath $LOG -Append -Encoding  ...
@@ -77,10 +128,10 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
     GNU Fortran (GCC) 14.3.0
 * running under: Windows 11 x64 (build 26200)
 * using session charset: UTF-8
-* current time: 2026-09-24 01:19:44 UTC
+* current time: 2026-09-25 02:05:09 UTC
 * using option '--as-cran'
 * checking for file 'frmtmb.eam/DESCRIPTION' ... OK
-* this is package 'frmtmb.eam' version '0.10.0'
+* this is package 'frmtmb.eam' version '0.11.0'
 * package encoding: UTF-8
 * checking CRAN incoming feasibility ... OK
 * checking package namespace information ... OK
@@ -91,6 +142,110 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
 * checking for hidden files and directories ... OK
 * checking for portable file names ... OK
 * checking whether package 'frmtmb.eam' can be installed ... OK
+* checking installed package size ... OK
+* checking package directory ... OK
+* checking for future file timestamps ... OK
+* checking 'build' directory ... OK
+* checking DESCRIPTION meta-information ... OK
+* checking top-level files ... OK
+* checking for left-over files ... OK
+* checking index information ... OK
+* checking package subdirectories ... OK
+* checking code files for non-ASCII characters ... OK
+* checking R files for syntax errors ... OK
+* checking whether the package can be loaded ... OK
+* checking whether the package can be loaded with stated dependencies ... OK
+* checking whether the package can be unloaded cleanly ... OK
+* checking whether the namespace can be loaded with stated dependencies ... OK
+* checking whether the namespace can be unloaded cleanly ... OK
+R.exe : Warning in Sys.junction(from, to) :
+At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:53 char:5
++     & $R CMD check --as-cran $tgz.FullName 2>&1 | Out-File -FilePath  ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Warning in Sys.junction(from, to) ::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  cannot open reparse point 'C:\Users\adf44\AppData\Local\Temp\1\RtmpgH8FTY\RLIBS_128c2ea92fcf/nlme', reason 'The 
+process cannot access the file because it is being used by another process'
+* checking loading without being on the library search path ... OK
+* checking whether startup messages can be suppressed ... OK
+* checking use of S3 registration ... OK
+* checking dependencies in R code ... OK
+* checking S3 generic/method consistency ... OK
+* checking replacement functions ... OK
+* checking foreign function calls ... OK
+* checking R code for possible problems ... [22s] OK
+* checking Rd files ... OK
+* checking Rd metadata ... OK
+* checking Rd line widths ... OK
+* checking Rd cross-references ... OK
+* checking for missing documentation entries ... OK
+* checking for code/documentation mismatches ... OK
+* checking Rd \usage sections ... OK
+* checking Rd contents ... OK
+* checking for unstated dependencies in examples ... OK
+* checking installed files from 'inst/doc' ... OK
+* checking files in 'vignettes' ... OK
+* checking examples ... [10s] OK
+* checking examples with --run-donttest ... [26s] OK
+* checking for unstated dependencies in 'tests' ... OK
+* checking tests ...
+  Running 'testthat.R' [10m]
+ [10m] OK
+* checking for unstated dependencies in vignettes ... OK
+* checking package vignettes ... OK
+* checking re-building of vignette outputs ... [36s] OK
+* checking PDF version of manual ... OK
+* checking HTML version of manual ... NOTE
+Skipping checking math rendering: package 'V8' unavailable
+* checking for non-standard things in the check directory ... OK
+* checking for detritus in the temp directory ... OK
+* DONE
+
+Status: 1 NOTE
+See
+  'C:/Users/adf44/source/r/checkout-r3/frmtmb.eam.Rcheck/00check.log'
+for details.
+
+===== CHECK C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.latent =====
+* checking for file 'C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.latent/DESCRIPTION' ... OK
+* preparing 'frmtmb.latent':
+* checking DESCRIPTION meta-information ... OK
+* installing the package (it is needed to build vignettes)
+* creating vignettes ... OK
+* checking for LF line-endings in source and make files and shell scripts
+* checking for empty or unneeded directories
+Removed empty directory 'frmtmb.latent/tests/testthat/_snaps'
+* building 'frmtmb.latent_0.6.0.tar.gz'
+R.exe : 
+At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
++   & $R CMD build $p 2>&1 | Out-File -FilePath $LOG -Append -Encoding  ...
++   ~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+* using log directory 'C:/Users/adf44/source/r/checkout-r3/frmtmb.latent.Rcheck'
+* using R version 4.6.1 (2026-06-24 ucrt)
+* using platform: x86_64-w64-mingw32
+* R was compiled by
+    gcc.exe (GCC) 14.3.0
+    GNU Fortran (GCC) 14.3.0
+* running under: Windows 11 x64 (build 26200)
+* using session charset: UTF-8
+* current time: 2026-09-25 02:18:35 UTC
+* using option '--as-cran'
+* checking for file 'frmtmb.latent/DESCRIPTION' ... OK
+* this is package 'frmtmb.latent' version '0.6.0'
+* package encoding: UTF-8
+* checking CRAN incoming feasibility ... OK
+* checking package namespace information ... OK
+* checking package dependencies ... OK
+* checking if this is a source package ... OK
+* checking if there is a namespace ... OK
+* checking for executable files ... OK
+* checking for hidden files and directories ... OK
+* checking for portable file names ... OK
+* checking whether package 'frmtmb.latent' can be installed ... OK
 * checking installed package size ... OK
 * checking package directory ... OK
 * checking for future file timestamps ... OK
@@ -127,112 +282,11 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
 * checking installed files from 'inst/doc' ... OK
 * checking files in 'vignettes' ... OK
 * checking examples ... OK
-* checking examples with --run-donttest ... [11s] OK
-* checking for unstated dependencies in 'tests' ... OK
-* checking tests ...
-  Running 'testthat.R' [582s]
- [582s] OK
-* checking for unstated dependencies in vignettes ... OK
-* checking package vignettes ... OK
-* checking re-building of vignette outputs ... [31s] OK
-* checking PDF version of manual ... OK
-* checking HTML version of manual ... NOTE
-Skipping checking math rendering: package 'V8' unavailable
-* checking for non-standard things in the check directory ... OK
-* checking for detritus in the temp directory ... OK
-* DONE
-R.exe : 
-At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:53 char:5
-+     & $R CMD check --as-cran $tgz.FullName 2>&1 | Out-File -FilePath  ...
-+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-Status: 1 NOTE
-See
-  'C:/Users/adf44/source/r/checkout-r3/frmtmb.eam.Rcheck/00check.log'
-for details.
-
-===== CHECK C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.latent =====
-* checking for file 'C:/Users/adf44/source/r/frmtmb/extensions/frmtmb.latent/DESCRIPTION' ... OK
-* preparing 'frmtmb.latent':
-* checking DESCRIPTION meta-information ... OK
-* installing the package (it is needed to build vignettes)
-* creating vignettes ... OK
-* checking for LF line-endings in source and make files and shell scripts
-* checking for empty or unneeded directories
-Removed empty directory 'frmtmb.latent/tests/testthat/_snaps'
-* building 'frmtmb.latent_0.5.0.tar.gz'
-R.exe : 
-At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
-+   & $R CMD build $p 2>&1 | Out-File -FilePath $LOG -Append -Encoding  ...
-+   ~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-* using log directory 'C:/Users/adf44/source/r/checkout-r3/frmtmb.latent.Rcheck'
-* using R version 4.6.1 (2026-06-24 ucrt)
-* using platform: x86_64-w64-mingw32
-* R was compiled by
-    gcc.exe (GCC) 14.3.0
-    GNU Fortran (GCC) 14.3.0
-* running under: Windows 11 x64 (build 26200)
-* using session charset: UTF-8
-* current time: 2026-09-24 01:31:33 UTC
-* using option '--as-cran'
-* checking for file 'frmtmb.latent/DESCRIPTION' ... OK
-* this is package 'frmtmb.latent' version '0.5.0'
-* package encoding: UTF-8
-* checking CRAN incoming feasibility ... OK
-* checking package namespace information ... OK
-* checking package dependencies ... OK
-* checking if this is a source package ... OK
-* checking if there is a namespace ... OK
-* checking for executable files ... OK
-* checking for hidden files and directories ... OK
-* checking for portable file names ... OK
-* checking whether package 'frmtmb.latent' can be installed ... OK
-* checking installed package size ... OK
-* checking package directory ... OK
-* checking for future file timestamps ... OK
-* checking 'build' directory ... OK
-* checking DESCRIPTION meta-information ... OK
-* checking top-level files ... OK
-* checking for left-over files ... OK
-* checking index information ... OK
-* checking package subdirectories ... OK
-* checking code files for non-ASCII characters ... OK
-* checking R files for syntax errors ... OK
-* checking whether the package can be loaded ... OK
-* checking whether the package can be loaded with stated dependencies ... OK
-* checking whether the package can be unloaded cleanly ... OK
-* checking whether the namespace can be loaded with stated dependencies ... OK
-* checking whether the namespace can be unloaded cleanly ... OK
-* checking loading without being on the library search path ... OK
-* checking whether startup messages can be suppressed ... OK
-* checking use of S3 registration ... OK
-* checking dependencies in R code ... OK
-* checking S3 generic/method consistency ... OK
-* checking replacement functions ... OK
-* checking foreign function calls ... OK
-* checking R code for possible problems ... [12s] OK
-* checking Rd files ... OK
-* checking Rd metadata ... OK
-* checking Rd line widths ... OK
-* checking Rd cross-references ... OK
-* checking for missing documentation entries ... OK
-* checking for code/documentation mismatches ... OK
-* checking Rd \usage sections ... OK
-* checking Rd contents ... OK
-* checking for unstated dependencies in examples ... OK
-* checking installed files from 'inst/doc' ... OK
-* checking files in 'vignettes' ... OK
-* checking examples ... OK
 * checking examples with --run-donttest ... OK
 * checking for unstated dependencies in 'tests' ... OK
 * checking tests ...
-  Running 'testthat.R' [62s]
- [63s] OK
+  Running 'testthat.R' [80s]
+ [81s] OK
 * checking for unstated dependencies in vignettes ... OK
 * checking package vignettes ... OK
 * checking re-building of vignette outputs ... OK
@@ -263,7 +317,7 @@ for details.
 * checking for LF line-endings in source and make files and shell scripts
 * checking for empty or unneeded directories
 Removed empty directory 'frmtmb.ode/tests/testthat/_snaps'
-* building 'frmtmb.ode_0.6.0.tar.gz'
+* building 'frmtmb.ode_0.7.0.tar.gz'
 R.exe : 
 At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
 +   & $R CMD build $p 2>&1 | Out-File -FilePath $LOG -Append -Encoding  ...
@@ -279,10 +333,10 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
     GNU Fortran (GCC) 14.3.0
 * running under: Windows 11 x64 (build 26200)
 * using session charset: UTF-8
-* current time: 2026-09-24 01:34:14 UTC
+* current time: 2026-09-25 02:21:24 UTC
 * using option '--as-cran'
 * checking for file 'frmtmb.ode/DESCRIPTION' ... OK
-* this is package 'frmtmb.ode' version '0.6.0'
+* this is package 'frmtmb.ode' version '0.7.0'
 * package encoding: UTF-8
 * checking CRAN incoming feasibility ... OK
 * checking package namespace information ... OK
@@ -332,11 +386,11 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
 * checking examples with --run-donttest ... OK
 * checking for unstated dependencies in 'tests' ... OK
 * checking tests ...
-  Running 'testthat.R' [86s]
- [86s] OK
+  Running 'testthat.R' [131s]
+ [131s] OK
 * checking for unstated dependencies in vignettes ... OK
 * checking package vignettes ... OK
-* checking re-building of vignette outputs ... [24s] OK
+* checking re-building of vignette outputs ... [22s] OK
 * checking PDF version of manual ... OK
 * checking HTML version of manual ... NOTE
 Skipping checking math rendering: package 'V8' unavailable
@@ -364,7 +418,7 @@ for details.
 * checking for LF line-endings in source and make files and shell scripts
 * checking for empty or unneeded directories
 Removed empty directory 'frmtmb.spline/tests/testthat/_snaps'
-* building 'frmtmb.spline_0.7.0.tar.gz'
+* building 'frmtmb.spline_0.8.0.tar.gz'
 R.exe : 
 At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
 +   & $R CMD build $p 2>&1 | Out-File -FilePath $LOG -Append -Encoding  ...
@@ -380,10 +434,10 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
     GNU Fortran (GCC) 14.3.0
 * running under: Windows 11 x64 (build 26200)
 * using session charset: UTF-8
-* current time: 2026-09-24 01:37:04 UTC
+* current time: 2026-09-25 02:24:55 UTC
 * using option '--as-cran'
 * checking for file 'frmtmb.spline/DESCRIPTION' ... OK
-* this is package 'frmtmb.spline' version '0.7.0'
+* this is package 'frmtmb.spline' version '0.8.0'
 * package encoding: UTF-8
 * checking CRAN incoming feasibility ... OK
 * checking package namespace information ... OK
@@ -432,8 +486,8 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
 * checking examples ... OK
 * checking for unstated dependencies in 'tests' ... OK
 * checking tests ...
-  Running 'testthat.R' [40s]
- [40s] OK
+  Running 'testthat.R' [52s]
+ [52s] OK
 * checking for unstated dependencies in vignettes ... OK
 * checking package vignettes ... OK
 * checking re-building of vignette outputs ... OK
@@ -443,7 +497,6 @@ Skipping checking math rendering: package 'V8' unavailable
 * checking for non-standard things in the check directory ... OK
 * checking for detritus in the temp directory ... OK
 * DONE
-Status: 1 NOTE
 R.exe : 
 At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:53 char:5
 +     & $R CMD check --as-cran $tgz.FullName 2>&1 | Out-File -FilePath  ...
@@ -451,6 +504,7 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:53 char:5
     + CategoryInfo          : NotSpecified: (:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
  
+Status: 1 NOTE
 See
   'C:/Users/adf44/source/r/checkout-r3/frmtmb.spline.Rcheck/00check.log'
 for details.
@@ -464,7 +518,7 @@ for details.
 * checking for LF line-endings in source and make files and shell scripts
 * checking for empty or unneeded directories
 Removed empty directory 'frmtmb.coupling/tests/testthat/_snaps'
-* building 'frmtmb.coupling_0.5.0.tar.gz'
+* building 'frmtmb.coupling_0.6.0.tar.gz'
 R.exe : 
 At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
 +   & $R CMD build $p 2>&1 | Out-File -FilePath $LOG -Append -Encoding  ...
@@ -480,10 +534,10 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
     GNU Fortran (GCC) 14.3.0
 * running under: Windows 11 x64 (build 26200)
 * using session charset: UTF-8
-* current time: 2026-09-24 01:38:58 UTC
+* current time: 2026-09-25 02:26:47 UTC
 * using option '--as-cran'
 * checking for file 'frmtmb.coupling/DESCRIPTION' ... OK
-* this is package 'frmtmb.coupling' version '0.5.0'
+* this is package 'frmtmb.coupling' version '0.6.0'
 * package encoding: UTF-8
 * checking CRAN incoming feasibility ... OK
 * checking package namespace information ... OK
@@ -532,8 +586,8 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
 * checking examples ... OK
 * checking for unstated dependencies in 'tests' ... OK
 * checking tests ...
-  Running 'testthat.R' [36s]
- [36s] OK
+  Running 'testthat.R' [33s]
+ [33s] OK
 * checking for unstated dependencies in vignettes ... OK
 * checking package vignettes ... OK
 * checking re-building of vignette outputs ... OK
@@ -560,7 +614,7 @@ Status: OK
 * checking for LF line-endings in source and make files and shell scripts
 * checking for empty or unneeded directories
 Removed empty directory 'frmtmb.sample/tests/testthat/_snaps'
-* building 'frmtmb.sample_0.10.0.tar.gz'
+* building 'frmtmb.sample_0.11.0.tar.gz'
 R.exe : 
 At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
 +   & $R CMD build $p 2>&1 | Out-File -FilePath $LOG -Append -Encoding  ...
@@ -576,10 +630,10 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
     GNU Fortran (GCC) 14.3.0
 * running under: Windows 11 x64 (build 26200)
 * using session charset: UTF-8
-* current time: 2026-09-24 01:40:36 UTC
+* current time: 2026-09-25 02:28:12 UTC
 * using option '--as-cran'
 * checking for file 'frmtmb.sample/DESCRIPTION' ... OK
-* this is package 'frmtmb.sample' version '0.10.0'
+* this is package 'frmtmb.sample' version '0.11.0'
 * package encoding: UTF-8
 * checking CRAN incoming feasibility ... OK
 * checking package namespace information ... OK
@@ -629,8 +683,8 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
 * checking examples with --run-donttest ... [14s] OK
 * checking for unstated dependencies in 'tests' ... OK
 * checking tests ...
-  Running 'testthat.R' [299s]
- [300s] OK
+  Running 'testthat.R' [184s]
+ [185s] OK
 * checking for unstated dependencies in vignettes ... OK
 * checking package vignettes ... OK
 * checking re-building of vignette outputs ... OK
@@ -657,7 +711,7 @@ Status: OK
 * checking for LF line-endings in source and make files and shell scripts
 * checking for empty or unneeded directories
 Removed empty directory 'frmtmb.learn/tests/testthat/_snaps'
-* building 'frmtmb.learn_0.6.0.tar.gz'
+* building 'frmtmb.learn_0.7.0.tar.gz'
 R.exe : 
 At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
 +   & $R CMD build $p 2>&1 | Out-File -FilePath $LOG -Append -Encoding  ...
@@ -673,10 +727,10 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
     GNU Fortran (GCC) 14.3.0
 * running under: Windows 11 x64 (build 26200)
 * using session charset: UTF-8
-* current time: 2026-09-24 01:46:58 UTC
+* current time: 2026-09-25 02:32:37 UTC
 * using option '--as-cran'
 * checking for file 'frmtmb.learn/DESCRIPTION' ... OK
-* this is package 'frmtmb.learn' version '0.6.0'
+* this is package 'frmtmb.learn' version '0.7.0'
 * package encoding: UTF-8
 * checking CRAN incoming feasibility ... OK
 * checking package namespace information ... OK
@@ -722,19 +776,20 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:50 char:3
 * checking for unstated dependencies in examples ... OK
 * checking installed files from 'inst/doc' ... OK
 * checking files in 'vignettes' ... OK
-* checking examples ... [12s] OK
+* checking examples ... OK
 * checking for unstated dependencies in 'tests' ... OK
 * checking tests ...
-  Running 'testthat.R' [101s]
- [102s] OK
+  Running 'testthat.R' [78s]
+ [78s] OK
 * checking for unstated dependencies in vignettes ... OK
 * checking package vignettes ... OK
 * checking re-building of vignette outputs ... OK
 * checking PDF version of manual ... OK
-* checking HTML version of manual ... [12s] OK
+* checking HTML version of manual ... OK
 * checking for non-standard things in the check directory ... OK
 * checking for detritus in the temp directory ... OK
 * DONE
+Status: OK
 R.exe : 
 At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:53 char:5
 +     & $R CMD check --as-cran $tgz.FullName 2>&1 | Out-File -FilePath  ...
@@ -742,100 +797,5 @@ At C:\Users\adf44\source\r\frmtmb\dev\release\run-check.ps1:53 char:5
     + CategoryInfo          : NotSpecified: (:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
  
-Status: OK
 
 CHECKED 8 of 8
-
-===== RECHECK frmtmb after installing drmTMB into the release library =====
-The first run errored on "Package suggested but not available: drmTMB",
-which the drmTMB lane added to Suggests. Status below is the real one.
-The examples NOTE names conditional_effects at 0.15 user / 18.94 system /
-40.39 elapsed; measured standalone on a quiet box that example is 1.7 s
-of work (fit 1.60, ce 0.03, plot 0.02, predict 0.05), so the NOTE is I/O
-time while eight packages checked in sequence, not the example.
-
-* using log directory 'C:/Users/adf44/AppData/Local/Temp/1/ck4/frmtmb.Rcheck'
-* using R version 4.6.1 (2026-06-24 ucrt)
-* using platform: x86_64-w64-mingw32
-* R was compiled by
-    gcc.exe (GCC) 14.3.0
-    GNU Fortran (GCC) 14.3.0
-* running under: Windows 11 x64 (build 26200)
-* using session charset: UTF-8
-* current time: 2026-09-24 01:59:03 UTC
-* using option '--as-cran'
-* checking for file 'frmtmb/DESCRIPTION' ... OK
-* this is package 'frmtmb' version '0.62.0'
-* package encoding: UTF-8
-* checking CRAN incoming feasibility ... OK
-* checking package namespace information ... OK
-* checking package dependencies ... OK
-* checking if this is a source package ... OK
-* checking if there is a namespace ... OK
-* checking for executable files ... OK
-* checking for hidden files and directories ... OK
-* checking for portable file names ... OK
-* checking whether package 'frmtmb' can be installed ... [25s] OK
-* checking installed package size ... OK
-* checking package directory ... OK
-* checking for future file timestamps ... OK
-* checking 'build' directory ... OK
-* checking DESCRIPTION meta-information ... OK
-* checking top-level files ... OK
-* checking for left-over files ... OK
-* checking index information ... OK
-* checking package subdirectories ... OK
-* checking code files for non-ASCII characters ... OK
-* checking R files for syntax errors ... OK
-* checking whether the package can be loaded ... OK
-* checking whether the package can be loaded with stated dependencies ... OK
-* checking whether the package can be unloaded cleanly ... OK
-* checking whether the namespace can be loaded with stated dependencies ... OK
-* checking whether the namespace can be unloaded cleanly ... OK
-* checking loading without being on the library search path ... OK
-* checking whether startup messages can be suppressed ... OK
-* checking use of S3 registration ... OK
-* checking dependencies in R code ... OK
-* checking S3 generic/method consistency ... OK
-* checking replacement functions ... OK
-* checking foreign function calls ... OK
-* checking R code for possible problems ... [250s] OK
-* checking Rd files ... OK
-* checking Rd metadata ... OK
-* checking Rd line widths ... OK
-* checking Rd cross-references ... OK
-* checking for missing documentation entries ... OK
-* checking for code/documentation mismatches ... OK
-* checking Rd \usage sections ... OK
-* checking Rd contents ... OK
-* checking for unstated dependencies in examples ... OK
-* checking contents of 'data' directory ... OK
-* checking data for non-ASCII characters ... OK
-* checking LazyData ... OK
-* checking data for ASCII and uncompressed saves ... OK
-* checking installed files from 'inst/doc' ... OK
-* checking files in 'vignettes' ... OK
-* checking examples ... [80s] NOTE
-Examples with CPU (user + system) or elapsed time > 5s
-                    user system elapsed
-conditional_effects 0.15  18.94   40.39
-* checking examples with --run-donttest ... [196s] OK
-* checking for unstated dependencies in 'tests' ... OK
-* checking tests ...
-  Running 'testthat.R' [20m]
- [20m] OK
-* checking for unstated dependencies in vignettes ... OK
-* checking package vignettes ... OK
-* checking re-building of vignette outputs ... [244s] OK
-* checking PDF version of manual ... OK
-* checking HTML version of manual ... [26s] NOTE
-Skipping checking math rendering: package 'V8' unavailable
-* checking for non-standard things in the check directory ... OK
-* checking for detritus in the temp directory ... OK
-* DONE
-
-Status: 2 NOTEs
-See
-  'C:/Users/adf44/AppData/Local/Temp/1/ck4/frmtmb.Rcheck/00check.log'
-for details.
-

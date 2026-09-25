@@ -1,184 +1,162 @@
 # Handing a round to a new session
 
-Written 2026-09-23, at the 0.62.0 release. Read this, then
+Written 2026-09-24, at the 0.63.0 release. Read this, then
 `dev/extension-gaps-plan.md`, then `dev/organizer-rules.md` and
 `dev/lane-rules.md`. Read `dev/machine-library.md` BEFORE you run
-anything: the library has been lost SEVEN times, the seventh with a
-named mechanism.
+anything: the library has been lost EIGHT times, and the last three
+losses each followed processes being killed, not low disk.
 
-Four lanes merged: `wt-drmtmb` (drmTMB 0.7.0 measured against frmtmb),
-`wt-skewinit` (skew_normal's silent stall at alpha = 0), `wt-correct`
-(seven brms-parity defects), `wt-reunc` (group-effect uncertainty at a
-known level, the partial `re_formula`, and the `propagate_error`
-rename). `wt-vectorize` and `wt-vecshape` stay branches, deferred.
+Five lanes merged:
 
-Versions: frmtmb **0.62.0**, frmtmb.sample **0.10.0**. The other six
-extensions have NO changed file this round, so their versions and their
-`frmtmb (>= 0.61.0)` floors stand; the review ran all six suites against
-the base build and got identical results. frmtmb.sample floors on 0.62.0.
+- `wt-simnewdata`: `simulate(newdata = )` and `pp_check(newdata = )`,
+  and `re_formula` in `simulate()` read as in `predict()`.
+- `wt-mvprior`: a prior whose target brms refuses is refused, not
+  broadcast, in multivariate, nonlinear, categorical, mixture and
+  several-location extension families.
+- `wt-predfix`: the filed `predict()`/`fitted()` defects, `cs()` in
+  `predict()`, and the `autoscale = NULL` default.
+- `wt-phase3a`: items 3.1, 3.2 and 3.6 (`frm_ode_records()`, coupling
+  ingestion, `rp_floored()` on groups with no events).
+- `wt-phase3b`: items 3.3, 3.4 and 3.5 (learn sessions, `wiener()`
+  censoring, the `wiener()` contaminant).
 
-**drmTMB is now a Suggests of core** and must be installed in the release
-library, or `R CMD check --as-cran` stops at "Package suggested but not
-available". Its agreement tests are gated behind
-`FRMTMB_DRMTMB_FIT_TESTS`, so ordinary runs skip them.
+Versions: frmtmb **0.63.0**; frmtmb.sample **0.11.0**, frmtmb.eam
+**0.11.0**, frmtmb.latent **0.6.0** and frmtmb.learn **0.7.0**, which
+floor on frmtmb 0.63.0 because each needs something only it has;
+frmtmb.coupling **0.6.0**, frmtmb.spline **0.8.0** and frmtmb.ode
+**0.7.0**, whose floors stay at 0.61.0 because they call nothing new.
 
 ### Verified at the release commit
 
-- Suite: 279 files, 16,408 assertions, 0 fail, 0 error. NO file fell
-  against 0.61.0; 10 are new. `dev/suite-baseline.md` has the reading.
-- Gated: 39 of 39 files, 3,157 assertions, 0 fail.
+- Suite: 292 files, 17,167 assertions, 0 fail, 0 error. 13 files are
+  new; one fell by one assertion, by design (`dev/suite-baseline.md`).
+- Gated: 39 of 39 files, 3,288 assertions, 0 fail, 0 files with a skip.
 - Scale: 7 of 7.
-- `R CMD check --as-cran`: 8 of 8. frmtmb 2 NOTEs, four extensions 1
-  NOTE (the environmental V8 one), three OK. In-check tests FAIL 0 /
-  PASS 10,874 for core, kept as `dev/release/frmtmb-testthat.Rout`
-  because a passing check echoes no counts and the tree is deleted.
-- The second core NOTE is examples timing on `conditional_effects`:
-  0.15 s user against 18.94 s SYSTEM in the check, where the whole
-  example is 1.7 s on a quiet box. That is I/O while eight packages
-  checked in sequence. `?residuals.frmtmb_fit`'s example WAS real (5.9 s
-  of oneStepPredict) and its OSA block is now `\donttest{}`.
-- Ported brms bin 1: 250 of 494, from 243.
+- `R CMD check --as-cran`: 8 of 8. Five with 1 NOTE, the environmental
+  V8 one on the HTML manual; three OK. No examples-timing NOTE, on a
+  quiet machine. In-check tests FAIL 0 everywhere; core PASS 11,115,
+  kept as `dev/release/frmtmb-testthat.Rout`.
+- Ported brms bin 1: 252 of 494, from 250.
 
-**Four wrong answers were found by review rather than by the suite**, all
-silent, all now fixed and pinned: `skew_normal()` stalling at a
-stationary point; a factor smooth's whole contribution missing from an
-ordinal `fitted()` standard error on newdata; `car(esicar)` and `rr`
-batched as if their coefficient map were positionwise, understating a
-standard error by up to 30 percent; and `predict()` moving the caller's
-RNG stream. None of them would have shown in any tier.
+**Silent wrong answers found and fixed this round**, most by adversarial
+review rather than by any tier:
+
+- `simulate(re_formula = NA)` redrew population smooths, so
+  `pp_check()` was wrong on every smooth model by default.
+- `predict()` and draws `posterior_predict()` dropped `cs()` entirely.
+- Priors: `b` without `nlpar` on `a ~ 1 + z` went to `a_z` only;
+  categorical and mixture models broadcast `b` and `Intercept` across
+  every `mu`; `class = "b"` left `cs()` coefficients out.
+- `wiener()`'s contaminant gradient was a staircase (in-lane, never
+  released).
+- The new autoscale default hid separation and turned returned fits into
+  errors (in-lane, caught by review, never released).
 
 ## What is next, in order
 
-**Two lanes the user approved on 2026-09-23.** They touch different
-files and can run together.
+**Silent wrong answers filed and not fixed**, highest first:
 
-1. **`simulate(newdata = )`**, with `pp_check()` passing it through, so
-   `pp_check(newdata = )` answers as brms does instead of being refused.
-   Two ported rows become passes (bin 1 to 252). The lane owns
-   `simulate()`'s argument surface, so it also brings `re_formula` into
-   line with `predict()`: `~1` means no group effects, and a partial
-   formula is honored. `dev/correct-findings.md` has the feasibility
-   report, reproduced by the reviewer: about 25 lines, every piece
-   already exported, and the only new thinking is composing
-   `re_formula = NA` at newdata.
-2. **The prefix-less prior rule past `sd`**: brms refuses multivariate
-   `b`, `Intercept` and `sigma` priors with no `resp`, and frmtmb still
-   broadcasts them. Wider blast radius than the `sd` half, so its own
-   lane.
+1. `cs()` on a factor is fitted on the factor's integer codes, and a
+   newdata factor is re-coded from its own levels. brms builds treatment
+   dummies. `dev/test-backlog.md`, wt-predfix section.
+2. `predict(re_formula = NA)`, and so `simulate(NA)`, drops
+   `s(g, bs = "re")`, `fs` smooths and `t2` smooths with an `re` margin;
+   brms keeps every smooth. User decision 2026-09-24: match brms.
 
-**Filed defects, in `dev/test-backlog.md`**, none blocking: the
-`error_binned` refusal calling a multinomial response a category; two
-frmtmb.sample test files that draw without a device guard, one of them
-generated by `dev/brmsport-gen.R`; the draws unseen-level hint that
-leads to a refusal; a finite-but-absurd `predict()` draw; `fitted()`
-refusing a multivariate fit while `predict()` answers; poisson
-`y ~ 0 + x` at covariate scale 1e-6 sitting 62.58 below `glm()`, which
-`autoscale = TRUE` closes completely; the same hazard inside a declaring
-dpar; `vcov()` on a REML poisson fit with no random effects; and whether
-a nonzero optimizer code on an unbounded parameter should be reported or
-suppressed.
+**Filed defects and gaps**, in `dev/test-backlog.md`: autoscale on
+covariance structures other than `us`, `diag` and Student-t; `frm_sample()`
+on a one-parameter model; mixture sampling defaults for `sigma` and
+`theta`; six prior spellings where frmtmb and brms disagree on accept or
+refuse; missing `default_prior()` rows; `bf + bf + bf`, `cumulative` in a
+multivariate model, `me()`, `0 + Intercept`, and `student` with
+`rescor`; a negative-hazard penalty for `royston_parmar()`;
+`frm_curve()` refusing on `gamma1 ~ x`; two core seams for frmtmb.eam
+(a log-difference `lcdf` slot, a refusal of NA `dec()` on censored
+rows); `lba()` and `gddm()` censoring and `lba()`/`rdm()` contaminant,
+not built; base under-coverage of `log sd(log bs | s)`.
 
-**From the drmTMB comparison**, sized in `dev/drmtmb-findings.md` and
-ordered by brms parity: three brms families frmtmb lacks
-(`hurdle_negbinomial`, `zero_one_inflated_beta`, a negbinomial CDF for
-`trunc()`), `gr(g, by = f)`, `fcor()`, boundary-corrected
-variance-component tests, and heritability/ICC accessors.
+**Upstream reports, drafted and NOT filed**: RTMB `log_pnorm_both`'s
+derivative (`dev/phase3b-rtmb-report-pnorm.md`); TMB `TanhOp::reverse`
+(`dev/phase3b-rtmb-report-tanh.md`); drmTMB's REML and `beta_sigma`
+(`dev/drmtmb-findings.md`); TMB's macOS binary and OpenMP.
 
-**Two upstream reports are drafted and NOT filed**: drmTMB's REML
-integrating `beta_sigma` only when sigma carries a random effect
-(`dev/drmtmb-findings.md`, runnable as pasted), and TMB's macOS binary
-referencing OpenMP symbols it does not link, which broke macOS CI when
-RTMB 2.0 reached CRAN.
+**From the drmTMB comparison** (`dev/drmtmb-findings.md`):
+`hurdle_negbinomial`, `zero_one_inflated_beta`, a negbinomial CDF for
+`trunc()`, `gr(g, by = f)`, `fcor()`, boundary-corrected
+variance-component tests, heritability and ICC accessors.
 
-**Phases 3, 4 and 5 of `dev/extension-gaps-plan.md` are untouched.**
-Item 4.6 is unblocked now that `wt-reunc` has merged.
+**Phases 4 and 5 of `dev/extension-gaps-plan.md` are untouched.**
 
-## Decisions the user made on 2026-09-23, for the four-lane round
+## Decisions the user made on 2026-09-24
 
-- **The tiebreaker, refined:** match brms, UNLESS it is clearly obvious
-  that brms should be doing it the other way.
-- **`re_formula = ~(1 | nosuch)` stays REFUSED**, against brms, which drops
-  an unmatched term silently: a user who names a term meant something by
-  it. The same reading governs `~(1 | a/b)` on a fit that has `a` but not
-  `a:b`, where brms keeps the half it recognizes.
-- **A partial `re_formula` stays REFUSED on a fit with a factor-smooth
-  term** (user, 2026-09-23). `NA` drops the smooth and `NULL` keeps it, and
-  a partial formula cannot say which, so frmtmb refuses rather than guess;
-  brms would keep the smooth. Same principle as the `~(1 | nosuch)`
-  decision: naming some terms and not others must not silently answer a
-  different question. This is the second departure from brms in the same
-  argument, and both go the same way.
-- **Prefix-less `b`, `Intercept` and `sigma` priors in a multivariate model
-  are refused**, as brms refuses them. This is wider than the `sd` half the
-  correctness lane took, and it breaks more call sites; it is a lane of its
-  own.
-- **`param_uncertainty` is renamed `propagate_error`** (user, 2026-09-23),
-  defaulting to `TRUE`, so `predict(fit, propagate_error = FALSE)` holds
-  the parameters AND the group effects at their estimates. The name states
-  the axis: `re_formula` chooses WHICH terms are in the prediction, and
-  this chooses whether the error in the estimates is propagated into the
-  interval. Neither can express the other, which is why both exist: only
-  this one can say "include the group effect but treat it as known", and
-  only `re_formula` can say "predict for an average group". brms needs no
-  such argument because its draws always carry both. Spelled out, not
-  `propagate_err`: 191 documented argument names in core contain no
-  clipped word. `plug_in` and `incl_uncertainty` were considered and
-  rejected, the first as jargon that reads backwards, the second because
-  it reads as "which things are included". The old name goes outright
-  rather than deprecated. It is a `predict()` argument only; `fitted()`
-  and `frm_linpred()` do not take it.
-- **Build `simulate(newdata = )`** and let `pp_check()` pass it through, so
-  `pp_check(newdata = )` answers as brms does instead of being refused. Two
-  ported rows go to passes. That lane owns `simulate()`'s argument surface,
-  and it BRINGS `simulate()` INTO LINE with `predict()` (user decision,
-  2026-09-23): `~1` means no group effects, and a partial formula is honored.
-- **Versions at this consolidation:** frmtmb 0.62.0, frmtmb.sample 0.10.0,
-  a bump on every extension that changed, and every extension floor moved
-  to frmtmb 0.62.0.
+- **Prior spellings brms refuses:** refuse `class = "b"` where the
+  predictor has no slope, `rescor` with `resp`, and `resp = "y"` on a
+  univariate model. Keep `cor` with `resp` and `Intercept` with `nlpar`
+  as frmtmb extensions.
+- **Several-location extension families** (`lca`, `hmm`, `lba`, `rdm`,
+  `mixture_mvn`) need `dpar` on `b` and `Intercept` priors, frmtmb's own
+  rule where brms has no such family (organizer's call, not objected to).
+- **`frm_bootstrap()` keeps its whole-model default**, redrawing group
+  effects and smooths; `re_formula = NULL` conditions on them. No new
+  argument.
+- **Residual correlation at newdata counts fitted time levels**, a
+  documented departure from brms, whose position-based reading is not
+  consistent under marginalization.
+- **Random-effect smooths under `re_formula = NA` should match brms**
+  (keep them). Filed, not built.
+- **Keep reporting nonzero optimizer convergence codes.**
+- **`autoscale` defaults to `NULL`** (BREAKING), engaging below sd 1e-3,
+  or 0.05 for a random-slope column, and falling back to the plain fit
+  when its pre-fit fails.
+- **eam contaminant window:** `contaminant_range =`, or with a `trunc()`
+  upper bound, the fastest response to the deadline; otherwise refused.
+- **eam left and interval censoring** use the boundary `dec()` names.
+- **`rp_floored()`** warns when every flagged row is censored and refuses
+  on a flagged event row.
 
-**Settled, do not reopen:**
+**Settled earlier, do not reopen:**
+- The tiebreaker: match brms, UNLESS it is clearly obvious that brms
+  should be doing it the other way.
+- `re_formula = ~(1 | nosuch)` stays refused, and a partial `re_formula`
+  stays refused on a fit with a factor-smooth term.
+- `propagate_error` is the name, spelled out.
 - The non-generic name collisions with brms stay, because `::` is
   sufficient in both load orders.
 - A gratia older than 0.9.0, loaded before frmtmb.sample, stops it
   loading; the user accepted that.
-- `inverse.gaussian` defaults to brms's `1/mu^2`, knowing 135 of 240
-  designs fit cleanly on it against 234 on `log`.
-- Duplicate priors on one slot, and duplicate group-level effects
-  including the animal model, are refused as brms refuses them.
+- `inverse.gaussian` defaults to brms's `1/mu^2`.
+- Duplicate priors on one slot, and duplicate group-level effects, are
+  refused as brms refuses them.
 - `frm_simulate(newparams =)` takes brms names only.
-- `variables()` keeps frmtmb's order (2026-09-17); frmtmb objects carry
-  no brms class, so `hypothesis()` output is `frmtmb_hypothesis` alone.
-- `REML = TRUE` integrates the `mu` coefficients only; distributional
-  coefficients stay outer (the double-GLM REML, `cd5bb83`). Integrating
-  them would make a gaussian sigma the ML estimate again, and the inner
-  problem can be unbounded.
+- `variables()` keeps frmtmb's order; frmtmb objects carry no brms class.
+- `REML = TRUE` integrates the `mu` coefficients only.
 
 ## How a round runs here
 
 Lanes in manual git worktrees off main, one item or one coherent group
 per lane. A worker writes. A reviewer whose job is to FALSIFY rather
 than confirm reads the same worktree against a shared reference build
-of the base commit. Punch rounds go back to the worker, and the SAME
-reviewer re-checks.
+of the base commit. Punch rounds go back to the worker, and a reviewer
+re-checks.
 
     git worktree add ../frmtmb-wt-<name> -b wt-<name> <sha>
 
-Two punch rounds is the cap, a third only for a blocker. **Build ONE
-reference library for the round.** This round did not build one at all:
-the previous release's library was already the base commit at the right
-versions, so it served as the reference and four lanes read it
-read-only. Check whether that is true again before paying for a build.
+Two punch rounds is the cap, a third only for a blocker. The previous
+release's library served as the reference build again this round.
 
 Consolidation: commit each lane on its branch, merge, set versions,
-roxygenise, THEN install (that order), verify each installed NAMESPACE
-against the tree, run the tiers, commit the release and the docs
-separately, remove the worktrees, prune branches, regenerate
-`dev/suite-baseline.tsv`.
+roxygenise, THEN install (that order), verify the tree is unchanged by
+roxygenise, run the tiers, commit the release and the docs separately,
+remove the worktrees, prune branches, regenerate
+`dev/suite-baseline.tsv`. Do not install into the release library while
+any lane still uses it as its base build.
 
 **Run `R CMD check` on a QUIET machine.** Its examples-timing NOTE
-measures load here, established with a control: a fixed arithmetic
-control swings a factor of 4.7 on identical work, and the base build
-itself crossed the five second threshold at 6.75 s under load.
+measures load here; it did not appear at this release, run alone.
+
+**Memory is shared.** At most 3 R fitting processes per lane, each
+started with 5 GB free (`dev/lane-rules.md`). One lane running 11 at
+once crashed the machine this round.
 
 ## What the user has settled
 
@@ -186,56 +164,45 @@ itself crossed the five second threshold at 6.75 s under load.
   their say so.
 - **Nobody uses this package yet.** Break backward compatibility
   freely: ship the refusal, bump, and say plainly in NEWS what stops
-  working. No disclosure is owed beyond that, which is why item 2.2's
-  correction to what `?rlddm` says needs a NEWS bullet and nothing more.
+  working.
 - **StanHeaders is pinned OUTSIDE `%LOCALAPPDATA%`**, in `pinlib` at
-  2.32.10. It survived all five library losses. The user library keeps
-  2.39.1 and is not to be downgraded.
+  2.32.10. It survived every library loss. The user library keeps
+  2.39.1.
 - **The R user library stays under `%LOCALAPPDATA%`** by the user's
-  decision, knowing it will recur.
+  decision, knowing it will recur. RTMB 2.0 comes from r-universe after
+  a restore, because CRAN's Windows binary is 1.9.
 - Core is the user's lane except where they ask otherwise.
 
 ## What this round is evidence for
 
-Four lanes, four reviewers, six punch rounds. Every row's claim held,
-and three of the six rows found something the row was not sent for.
+Five lanes, each with at least one adversarial review and one or two
+punch rounds; one machine crash and one power loss.
 
-**The thing worth carrying is how often an early number dissolved.**
-Two signals that looked like findings did not survive their own
-replicates: a coverage of 3 of 6 that became 0.85 at 20, and an `se/sd`
-of 0.694 at 14 that became 0.984 at 60. The second is the instructive
-one, because the lane first explained it as "a ratio of two spreads is
-noisy" and the review showed the real reason: 0.694 sat at the 0.3rd
-PERCENTILE of 20,000 random 14-subsets, so it was an unlucky prefix,
-and the coverage count had agreed with it at 14. Both instruments were
-too few. A dissolved signal is a result about the count and belongs on
-the page, not in the bin.
+**Review still finds silent wrong answers at about one per lane.** Most
+of those listed above were found by a reviewer, not by a tier, and
+several predate this round. Until that rate falls, a result should not
+be trusted without a check against brms or an exact reference.
 
-**And a target can be the biased quantity.** Item 2.2 spent most of a
-long mechanism hunt asking why an estimate sat 22 percent below a
-target, refuting three candidate explanations including two of its own,
-before finding that `qlogis(ndt/floor) = log(ndt) - log(m)` identically
-and the target was 94 percent nuisance. Nobody had asked whether the
-target was right. When an estimator looks biased against one quantity
-and unbiased against eight others, ask what is different about the
-quantity before asking what is wrong with the estimator.
+**A shared seed is a hidden replicate count.** Phase 3b reported a
+drift-intercept interval covering 84.8 percent over 231 fits. The arms
+drew their random effects right after the same `set.seed()`, so the 231
+fits were 80 seeds, and an interval that knew every true drift did no
+better. Fresh seeds on the released build cover 65 of 70. Coverage
+claims now use seeds independent across arms, or say they are shared.
 
-**Guards improved.** Two failed CLOSED on their first spelling, after
-three rounds in which every guard failed open. Both were written with
-their inverse case at the same time as the assertion rather than after
-it, and one was built deliberately to FAIL when a filed defect is
-fixed, with a comment saying to flip it rather than delete it.
+**A fix can be worse than the defect it fixes.** The autoscale default
+closed a 62-unit silent stall and opened a path where a separated fit
+reported success with no warning. The rule that closed it is general:
+a default must never be LESS diagnostic than the setting it replaces.
 
-**The provenance failures were all one failure.** A count taken from
-launches, a guard whose condition had never been observed true, and a
-count taken from the plan rather than from the files. In each the thing
-being measured was not the thing being reported. The third is the one
-that generalizes: a lane's verifier checks files, and that was a
-SENTENCE. It was closed structurally, by generating counts into the
-document, and the fix found a real error on its first run.
+**Interrupted runs are a standing condition, not an accident.** A crash
+and a battery shutdown each cut every lane mid-tier this round. What
+held: treat every log after the cut as void, check each saved result
+reads back, verify each lane library against its source before trusting
+it.
 
 ## Worktrees
 
-`wt-drmtmb`, `wt-skewinit`, `wt-correct` and `wt-reunc` are merged and
-removed, with their evidence committed on main under `dev/`. Create
-fresh worktrees off the current main.
+`wt-simnewdata`, `wt-mvprior`, `wt-predfix`, `wt-phase3a` and
+`wt-phase3b` are merged and removed, with their evidence committed on
+main under `dev/`. Create fresh worktrees off the current main.

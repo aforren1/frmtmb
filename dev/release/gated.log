@@ -18,7 +18,7 @@ RESULT test-brms-methods.R pass=979 fail=0 err=0 skip=0
 RESULT test-brms-priors.R pass=103 fail=0 err=0 skip=0
 RESULT test-brms-port.R pass=21 fail=0 err=0 skip=0
 RESULT test-rl-example.R pass=102 fail=0 err=0 skip=0
-RESULT test-drmtmb-agreement.R pass=0 fail=0 err=0 skip=13
+RESULT test-drmtmb-agreement.R pass=131 fail=0 err=0 skip=0
 RESULT test-fuzz.R pass=2 fail=0 err=0 skip=0
 RESULT test-brms-suite-brm.R pass=23 fail=0 err=0 skip=0
 RESULT test-brms-suite-brmsfit-helpers.R pass=3 fail=0 err=0 skip=0
@@ -39,3 +39,4 @@ RESULT test-stan-identity.R pass=71 fail=0 err=0 skip=0
 RESULT test-loo.R pass=79 fail=0 err=0 skip=0
 RESULT test-sampling-ported.R pass=213 fail=0 err=0 skip=0
 GATED ran 39 of 39
+GATED files with skips: 0

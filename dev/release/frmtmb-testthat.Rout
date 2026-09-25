@@ -37,7 +37,7 @@ Only 2 levels detected so that family 'bernoulli' might be a more efficient choi
 Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
 5 rows removed because of missing values (na.action)
 5 rows removed because of missing values (na.action)
-[ FAIL 0 | WARN 16 | SKIP 169 | PASS 10874 ]
+[ FAIL 0 | WARN 16 | SKIP 169 | PASS 11115 ]
 
 ══ Skipped tests (169) ═════════════════════════════════════════════════════════
 • dev/ not reachable from the test dir (1): 'test-arg-refusal.R:352:3'
@@ -131,7 +131,7 @@ Only 2 levels detected so that family 'bernoulli' might be a more efficient choi
   'test-drmtmb-agreement.R:307:3', 'test-drmtmb-agreement.R:327:3',
   'test-drmtmb-agreement.R:357:3', 'test-drmtmb-agreement.R:370:3',
   'test-drmtmb-agreement.R:390:3', 'test-drmtmb-agreement.R:408:3',
-  'test-drmtmb-agreement.R:441:3'
+  'test-drmtmb-agreement.R:438:3'
 • set FRMTMB_FUZZ=true to run the grammar fuzz tier (1): 'test-fuzz.R:43:3'
 
 ══ Warnings ════════════════════════════════════════════════════════════════════
@@ -532,8 +532,8 @@ Backtrace:
  3.     └─frmtmb:::check_convergence(fit, control)
  4.       └─frmtmb::frm_warning(m, call. = FALSE)
 
-[ FAIL 0 | WARN 16 | SKIP 169 | PASS 10874 ]
+[ FAIL 0 | WARN 16 | SKIP 169 | PASS 11115 ]
 > 
 > proc.time()
    user  system elapsed 
- 886.09  114.98 1196.17 
+ 747.84   48.81  819.17 

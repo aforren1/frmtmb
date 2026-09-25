@@ -1,4 +1,4 @@
-# frmtmb (development version)
+# frmtmb 0.63.0
 
 * **`simulate()` takes `newdata`**, and `pp_check(newdata = )` on a fit
   answers as brms does instead of refusing. The draws are for the new

@@ -1,4 +1,4 @@
-# frmtmb.spline (development version)
+# frmtmb.spline 0.8.0
 
 * **`rp_floored()` sees a group with no events.** It tested only the
   EVENT rows for a non-positive `d(eta)/d(log t)`, so a random effect or

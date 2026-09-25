@@ -1,4 +1,4 @@
-# frmtmb.ode (development version)
+# frmtmb.ode 0.7.0
 
 * New `frm_ode_records()` splits one NONMEM-shaped table (`evid`, `amt`,
   `cmt`, `rate`, `dur`, `ii`, `addl`, `ss`) into the observations and the
