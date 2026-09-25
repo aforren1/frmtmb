@@ -839,7 +839,7 @@ compat_features_build <- function(extra = NULL) {
     lapply(c("weights()", "trials()", "cens()", "trunc()", "se()",
              "mi()", "vint()", "vreal()"), f, kind = "aterm"),
     lapply(c("s()", "t2()", "mo()", "mi_pred()", "gp_pred()",
-             "cs_pred()", "ps()"), f, kind = "special"),
+             "cs_pred()", "ps()", "me()"), f, kind = "special"),
     # R-side (within-group residual) correlation terms. They carry no
     # random effect, so they are not a covariance structure, and they
     # contribute no design column, so they are not a predictor special:
@@ -1498,6 +1498,58 @@ compat_hand_rules_tbl <- function() {
   r("mo()", "profile", "works", "Verified by a tiny fit.")
   r("mo()", "predict", "conditional",
     "New data must stay inside the fitted category range; unknown categories are refused.")
+  ## me() ----------------------------------------------------------------
+  # brms's noise-free predictor, me(x, sdx, gr = ): latent values
+  # integrated by the Laplace approximation, one set per distinct call,
+  # shared across dpars and responses (R/me.R, test-me.R).
+  r("me()", "kind:family", "works",
+    "Verified: the latent values enter the linear predictor, so the family only sees the predictor. For a gaussian response with linear me() terms the Laplace approximation is exact and logLik() equals the closed-form multivariate-normal likelihood; an interaction of me() terms or another family makes it approximate. The noisy variable and its SD must be numeric and the SD positive (brms's messages), and an interaction multiplier must be one numeric column.")
+  r("me()", "mo()", "conditional",
+    "Both may appear in one formula as separate terms. One interaction cannot hold both: mo(x):me(z, sz) is refused by name.")
+  r("me()", "mi_pred()", "conditional",
+    "Both may appear in one formula as separate terms, and their latent values share one inner vector (verified by a fit). One interaction cannot hold both: mi(x):me(z, sz) is refused by name.")
+  r("me()", "mi()", "works",
+    "Verified: a model may carry an mi() response and me() terms; the latent values of both are integrated together.")
+  r("me()", "kind:covstruct", "conditional",
+    "Random-effect terms sit beside me() terms and are integrated together (verified with (1 | g)). me() inside a group-level term, (me(x, sx) | g), is refused by name: a varying slope on a latent predictor has no implementation.")
+  r("me()", "kind:mode", "untested", "", override = TRUE)
+  r("me()", "REML", "conditional",
+    "Runs (verified by a tiny fit), but REML integrates a mu me() coefficient together with the latent values it multiplies, so the integrand is not gaussian and even for a gaussian response the criterion is the Laplace-approximated integrated likelihood, not the exact restricted likelihood.")
+  r("me()", "profile", "works",
+    "Verified: control profile = TRUE gives the same logLik as the default fit to optimizer tolerance.")
+  r("me()", "autoscale", "works",
+    "Verified: the fit is identical with and without autoscale; the placeholder columns of the me() terms carry no scale.")
+  r("me()", "sparse_x", "works",
+    "Verified: the sparse design gives the same estimates.")
+  r("me()", "quadrature", "refused",
+    "Refused: the latent values are one integral each, not the one scalar random effect the rule marginalizes.")
+  r("me()", "importance", "refused",
+    "Refused: the latent values have no grouping factor to give them a per-group proposal.")
+  r("me()", "prior", "conditional",
+    "The me() coefficients are class \"b\" coefficients, e.g. coef = \"mexsx\". brms's classes meanme, sdme and corme have no prior slot here and are refused by name; the flat rows of a brms get_prior() table, and its lkj(1) corme row, are dropped because they apply nothing.")
+  r("me()", "mvbf", "works",
+    "Verified: one set of latent values per distinct me() call is shared by every response that uses it, as in brms. set_mecor() is one setting for the whole model.")
+  r("me()", "rescor", "works", "Verified by a tiny fit.")
+  r("me()", "nl", "conditional",
+    "me() belongs in a nonlinear parameter's linear formula, a ~ me(x, sx). In the nonlinear body it is refused by name.")
+  r("me()", "mixture", "untested",
+    "A mixture fit with a me() term runs; nothing checks its estimates.")
+  r("me()", "fitted", "works",
+    "In-sample, fitted() uses the latent modes (brms with save_pars(latent = TRUE)). On new data the observed value stands in for the latent one, which is the mean of the N(x, sdx) draw brms makes there; sdx is not read.")
+  r("me()", "predict", "conditional",
+    "As fitted(): latent modes in-sample, the observed value on new data. brms adds the measurement noise N(x, sdx) to a new-data prediction; frmtmb does not, so a new-data interval is narrower than brms's. A missing noisy value in new data is refused.")
+  r("me()", "simulate", "works",
+    "Simulates the response at the latent modes, as for a random effect's conditional modes; the noisy variable itself is data and is not simulated.")
+  r("me()", "residuals", "works",
+    "Residuals are taken against the fitted values at the latent modes.")
+  r("me()", "residuals_osa", "works",
+    "Verified by a tiny fit: the latent values are inner parameters of the one-step-ahead predictions like any random effect.")
+  r("me()", "emmeans", "conditional",
+    "The reference grid predicts on new data, so the noisy variable enters at its grid value, the observed-value convention of predict().")
+  r("me()", "confint_profile", "works",
+    "Verified: profile intervals for a me() coefficient.")
+  r("me()", "hypothesis_profile", "untested", "")
+
   r("cs_pred()", "kind:family", "refused",
     "Refused: cs() needs an sratio, cratio, or acat family.")
   r("cs_pred()", "group:ordinal_cs", "works", "")

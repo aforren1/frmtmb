@@ -974,8 +974,9 @@ expand_double_verts <- function(form) {
 #' dpar formula plus the environment it was written in, and returns a
 #' list with one slot per term family: `fixed` (the parametric formula),
 #' `re` (bar terms with their covariance structure, `|ID|` key, and
-#' known covariance or rank), `smooth`, `mo`, `miterms`, `csterms`,
-#' `gpterms`, `carterms`, `spdeterms`, and `rhs` (the expanded formula).
+#' known covariance or rank), `smooth`, `mo`, `miterms`, `meterms`,
+#' `csterms`, `gpterms`, `carterms`, `spdeterms`, and `rhs` (the
+#' expanded formula).
 #' Every entry is an unevaluated expression plus its tuning values; the
 #' data is never touched here. `assemble_frame()` turns these slots into
 #' design matrices and random-effect blocks.
@@ -1038,6 +1039,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   smooth <- list()
   mo <- list()
   miterms <- list()
+  meterms <- list()
   csterms <- list()
   gpterms <- list()
   carterms <- list()
@@ -1067,7 +1069,14 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
                intersect(autocor_structs, all.names(tm))[1L], "(...)",
                call. = FALSE)
     }
-    if (is_smooth_call(tm)) {
+    if (calls_function(tm, "me")) {
+      # brms me(x, sdx): noise-free latent predictors (R/me.R). Checked
+      # first, so that a me() inside a smooth, an interaction or a bar
+      # term is refused by name rather than reaching a constructor
+      pm <- parse_me_term(tm)
+      meterms <- c(meterms, pm$entries)
+      rest <- c(rest, pm$rest)
+    } else if (is_smooth_call(tm)) {
       fn <- as.character(tm[[1]])[1]
       if (fn %in% c("te", "ti")) {
         frm_stop("te() and ti() smooths are not supported (no random-effect ",
@@ -1395,8 +1404,9 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   fixed <- sf$fixedFormula
   environment(fixed) <- env_lp
   list(fixed = fixed, re = re, smooth = smooth, mo = mo,
-       miterms = miterms, csterms = csterms, gpterms = gpterms,
-       carterms = carterms, spdeterms = spdeterms, acterms = acterms,
+       miterms = miterms, meterms = meterms, csterms = csterms,
+       gpterms = gpterms, carterms = carterms, spdeterms = spdeterms,
+       acterms = acterms,
        rhs = rhs_form)
 }
 
@@ -1696,6 +1706,15 @@ parse_one_response <- function(bform) {
 
   if (length(nl_dpars)) {
     for (b in nl_bodies) {
+      # me() in a body would be evaluated as a call to a function that
+      # does not exist; its place is a nonlinear parameter's formula
+      if (calls_function(b, "me")) {
+        frm_stop("me() is not supported in a nonlinear formula body: ",
+                 deparse1(b), ". Give the noise-free variable its own ",
+                 "nonlinear parameter and put me() in that parameter's ",
+                 "linear formula, e.g. bf(y ~ a * exp(b), a ~ 0 + ",
+                 "me(x, sx), b ~ 1, nl = TRUE)", call. = FALSE)
+      }
       # A nonlinear body is arbitrary R code, so an ar() written there
       # is EVALUATED, not parsed, and fails deep inside the objective
       # with a message about the body. Say what is wrong instead.
@@ -2053,6 +2072,25 @@ check_id_covstructs <- function(spec) {
   invisible(NULL)
 }
 
+#' The model's set_mecor() setting: one value for the whole model,
+#' because the latent values of the me() terms are shared by every
+#' response that uses them. A multivariate formula takes its own
+#' setting, else the one its responses agree on.
+#'
+#' @noRd
+spec_mecor <- function(bform) {
+  if (!is.null(bform[["mecor"]])) return(isTRUE(bform[["mecor"]]))
+  if (!inherits(bform, "frmtmb_mvformula")) return(TRUE)
+  v <- unique(unlist(lapply(bform$forms, `[[`, "mecor")))
+  if (length(v) > 1L) {
+    frm_stop("set_mecor() is TRUE on one response and FALSE on another. ",
+             "The latent values of me() terms are shared by the whole ",
+             "model, so set it once: mvbf(...) + set_mecor(FALSE)",
+             call. = FALSE)
+  }
+  if (length(v)) isTRUE(v) else TRUE
+}
+
 #' @noRd
 parse_spec <- function(bform) {
   if (inherits(bform, "frmtmb_mvformula")) {
@@ -2072,7 +2110,7 @@ parse_spec <- function(bform) {
       }
     }
     out <- structure(
-      list(responses = resps, rescor = rescor),
+      list(responses = resps, rescor = rescor, mecor = spec_mecor(bform)),
       class = "frmtmb_spec"
     )
     check_id_covstructs(out)
@@ -2082,7 +2120,7 @@ parse_spec <- function(bform) {
   resp <- parse_one_response(bform)
   out <- structure(
     list(responses = stats::setNames(list(resp), resp$resp_name),
-         rescor = FALSE),
+         rescor = FALSE, mecor = spec_mecor(bform)),
     class = "frmtmb_spec"
   )
   check_id_covstructs(out)

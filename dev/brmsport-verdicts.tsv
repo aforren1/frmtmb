@@ -11,7 +11,7 @@ brm:92	frmtmb	pass	frmtmb's own words: The [|]abc[|] key is used over more than 
 brm:94	frmtmb	pass	
 brm:96	frmtmb	pass	
 brm:98	frmtmb	pass	
-brm:100	frmtmb	cannot transfer	frmtmb has no me() noise-free term (dev/brms-suite-audit.md section 5)
+brm:100	frmtmb	pass	
 brm:102	frmtmb	defect	set_rescor() on the right-hand side reaches model.frame and dies with R's 'invalid type (list) for variable', not a designed refusal (dev/brmsport-probe3.R)
 brm:106	frmtmb	pass	frmtmb's own words: the time index must be ONE variable name | brms: Cannot coerce 'x + y' to a single variable name. The grammar check runs before the cov = TRUE one, so the ported call, which omits cov, reaches it (dev/adefects-log/evidence.txt)
 brm:108	frmtmb	pass	frmtmb's own words: grouping term must be variable names combined by | brms: Illegal grouping term 'g1/g2'. The grammar check runs before the cov = TRUE one, so the ported call reaches it

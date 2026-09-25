@@ -449,6 +449,10 @@ print.frmtmb_nlf <- function(x, ...) {
     }
     return(e1)
   }
+  if (inherits(e2, "frmtmb_mecor")) {
+    e1$mecor <- e2$mecor
+    return(e1)
+  }
   if (inherits(e2, "frmtmb_rescor")) {
     frm_stop("set_rescor() applies to multivariate formulas; combine ",
              "responses with mvbf() or `bf() + bf()` first", call. = FALSE)
@@ -521,10 +525,14 @@ mvbf <- function(..., rescor = FALSE) {
   check_flag(rescor, "rescor")
   forms <- list(...)
   flat <- list()
+  # a set_mecor() already added to a multivariate formula survives the
+  # formula being combined with another response
+  mecor <- NULL
   for (f in forms) {
     if (inherits(f, "frmtmb_mvformula")) {
       flat <- c(flat, f$forms)
       if (isTRUE(f$rescor)) rescor <- TRUE
+      mecor <- f[["mecor"]] %||% mecor
     } else if (inherits(f, "frmtmb_formula")) {
       flat <- c(flat, list(f))
     } else {
@@ -534,8 +542,9 @@ mvbf <- function(..., rescor = FALSE) {
   if (length(flat) < 2) {
     frm_stop("mvbf() needs at least two responses", call. = FALSE)
   }
-  structure(list(forms = flat, rescor = isTRUE(rescor)),
-            class = "frmtmb_mvformula")
+  out <- list(forms = flat, rescor = isTRUE(rescor))
+  if (!is.null(mecor)) out$mecor <- mecor
+  structure(out, class = "frmtmb_mvformula")
 }
 
 #' @rdname mvbf
@@ -572,6 +581,10 @@ set_rescor <- function(rescor = arg_unset(),
   }
   if (inherits(e2, "frmtmb_rescor")) {
     e1$rescor <- e2$rescor
+    return(e1)
+  }
+  if (inherits(e2, "frmtmb_mecor")) {
+    e1$mecor <- e2$mecor
     return(e1)
   }
   if (inherits(e2, "frmtmb_mvformula")) {

@@ -158,6 +158,7 @@ dpar_frame_rhs <- function(dp) {
   for (ent in dp[["miterms"]] %||% list()) {
     if (!is.null(ent$mult)) parts <- c(parts, list(ent$mult))
   }
+  for (v in me_frame_vars(dp)) parts <- c(parts, list(as.name(v)))
   for (cexpr in dp[["csterms"]] %||% list()) {
     for (v in all.vars(cexpr)) parts <- c(parts, list(as.name(v)))
   }
@@ -1850,6 +1851,14 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     aterm_values[[resp$resp_name]] <- av
   }
 
+  # me() latent values: after every mi() response, so the mi() slots
+  # of `miss` keep the positions they have always had
+  me_fr <- me_build_frame(spec, mf, env, n, n_miss)
+  if (!is.null(me_fr)) {
+    n_miss <- n_miss + me_fr$n_latent
+    miss_init <- c(miss_init, me_fr$latent_init)
+  }
+
   ## Phase 1: per-linpred design matrices and random-effect components.
   linpreds <- list()
   components <- list()
@@ -2471,6 +2480,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         )
       }
 
+      # me() terms: zero placeholder columns, filled from the latent
+      # values by the objective and the post-fit paths (R/me.R)
+      mec <- me_lp_columns(dp, me_fr, X, mf, resp$formula_env)
+      X <- mec$X
+      me_info <- mec$info
+
       # Category-specific ordinal effects cs(x): K-1 coefficients per
       # term (extras), entering the threshold-specific predictors.
       cs_info <- list()
@@ -2546,6 +2561,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         gps = gp_info,
         mo = mo_info,
         mi = mi_info,
+        me = me_info,
         cs = cs_info,
         comp_ids = comp_ids,
         constant = dp[["constant"]]
@@ -2821,6 +2837,13 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     par_template[["thetar"]] <- numeric(K * (K - 1L) / 2L)
   }
   if (n_miss) par_template[["miss"]] <- miss_init
+  if (!is.null(me_fr)) {
+    par_template[["meanme"]] <- me_fr$meanme
+    par_template[["logsdme"]] <- me_fr$logsdme
+    if (me_fr$n_thetame) {
+      par_template[["thetame"]] <- numeric(me_fr$n_thetame)
+    }
+  }
   for (nm in names(extras)) {
     if (nm %in% names(par_template)) {
       frm_stop("Extra-parameter name collides with the template: ", nm,
@@ -2873,7 +2896,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
          aterm_values = aterm_values,
          linpreds = linpreds, re_blocks = re_blocks,
          n_c = n_c, has_rr = has_rr, has_expand = has_rr || has_esicar,
-         mi_map = mi_map, blocks = blocks,
+         mi_map = mi_map, me = me_fr, blocks = blocks,
          autocor = autocor,
          par_template = par_template, map = map,
          betad_fixed_idx = betad_fixed_idx,

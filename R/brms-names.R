@@ -215,7 +215,10 @@ brms_coef_table <- function(fit) {
     # dev/correct-log/brms-mi.txt)
     mi <- vapply(lp[["mi"]] %||% list(), function(e) as.integer(e[["col"]]),
                  1L)
-    sp <- c(mo, mi)
+    # and so is a me() term, bsp_<prefix>_mexsx (brms 2.23.0 stan_sp())
+    me <- vapply(lp[["me"]] %||% list(), function(e) as.integer(e[["col"]]),
+                 1L)
+    sp <- c(mo, mi, me)
     if (length(sp)) {
       out[sp] <- paste0("bsp_", brms_usc(pre, brms_rename(cn[sp])))
     }
@@ -461,9 +464,13 @@ brms_check_re_dups <- function(fit) {
 #'   group for a non-`mu` or multivariate component, for every block
 #'   `brms_block_has_r()` accepts. Any other block keeps `b[<i>]`, the
 #'   name the `stanfit` itself carries.
+#' - `miss`: `miss_<i>` for an `mi()` value and brms's
+#'   `Xme_<coef>[<i>]` for a `me()` latent value.
 #' - everything else: the internal name, `theta_1`, `thetaac_1`,
-#'   `miss_1`, or the family's own extra-parameter names, with
-#'   parentheses dropped. brms has no parameter with that content.
+#'   `meanme_<coef>` (brms's name and brms's scale), `logsdme_<coef>`,
+#'   or the family's own extra-parameter names, with parentheses
+#'   dropped. brms has no parameter with that content, except
+#'   `meanme_<coef>`.
 #'
 #' `include_random = FALSE` drops `b` and `miss`, the layout of draws
 #' taken with the random effects integrated out.
@@ -489,6 +496,10 @@ brms_par_labels <- function(fit, include_random = TRUE) {
       out <- c(out, brms_r_labels(fit))
       next
     }
+    if (cp == "miss") {
+      out <- c(out, brms_miss_labels(fit))
+      next
+    }
     v <- names(tpl[[cp]])
     if (is.null(v)) v <- paste0(cp, "_", seq_along(tpl[[cp]]))
     out <- c(out, par_name_bare(v))
@@ -496,6 +507,24 @@ brms_par_labels <- function(fit, include_random = TRUE) {
   # brms's repair_stanfit(): a label given twice, such as the r_ level
   # names of `lvl 1` and `lvl.1`, takes a __1 suffix on the later copy
   make.unique(out, sep = "__")
+}
+
+#' The `miss` segment's labels: `miss_<i>` for the values of an `mi()`
+#' response, which brms splits into `Ymi_` and `Yl_` vectors with no
+#' name per entry, and brms's `Xme_<coef>[<i>]` for the latent values of
+#' a `me()` call (`rename_Xme()`), indexed by row, or by level of `gr`
+#' with whitespace turned into `.`.
+#'
+#' @noRd
+brms_miss_labels <- function(fit) {
+  n <- length(fit$frame[["par_template"]][["miss"]])
+  lab <- paste0("miss_", seq_len(n))
+  for (t in fit$frame[["me"]]$terms %||% list()) {
+    ix <- if (is.null(t$levels)) seq_along(t$idx) else
+      gsub("[ \t\r\n]", ".", t$levels)
+    lab[t$idx] <- paste0("Xme_", t$coef, "[", ix, "]")
+  }
+  lab
 }
 
 #' The `b` segment's labels, see `brms_par_labels()`.

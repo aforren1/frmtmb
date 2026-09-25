@@ -349,8 +349,9 @@ log-Jacobian, which is the change of variables class \code{"sd"}
 performs. A bound travels with it, so \code{lb = 0} on a log-linked
 dispersion becomes no constraint rather than a floor of 1.
 \item \code{theta}/\code{theta1}/\code{theta2}, \code{simo}, \code{sds}, \code{sdgp}, \code{lscale},
-\code{sdcar} and \code{car} are refused by name, each saying where frmtmb
-keeps that quantity instead. A refusal is deliberate: translating
+\code{sdcar}, \code{car}, \code{meanme}, \code{sdme} and \code{corme} are refused by name,
+each saying where frmtmb keeps that quantity instead, or that it
+has no prior slot. A refusal is deliberate: translating
 one of them would produce a different model rather than no model.
 \item a \code{coef} on a \code{sd} or \code{cor} row is refused for the same reason.
 brms narrows such a row to one coefficient of a block; frmtmb

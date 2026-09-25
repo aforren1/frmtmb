@@ -1679,6 +1679,22 @@ anova.frmtmb_fit <- function(object, ..., refit = FALSE) {
              "); models fit to different data or with different NA rows ",
              "dropped are not comparable", call. = FALSE)
   }
+  # A me() term adds its noisy variable's measurements to the
+  # likelihood, so two fits with different me() calls are likelihoods of
+  # different data even over the same rows
+  me_keys <- vapply(fits, function(f) {
+    paste(sort(vapply(f$frame[["me"]]$terms %||% list(), `[[`, "", "key")),
+          collapse = "\r")
+  }, "")
+  if (length(unique(me_keys)) > 1L) {
+    frm_stop("anova() needs fits with the same me() terms: a me() term ",
+             "puts the measurements of its noisy variable into the ",
+             "likelihood, so fits that differ in their me() calls are ",
+             "likelihoods of different data. Compare models that keep ",
+             "the same me() calls; test a me() coefficient with its Wald ",
+             "test in summary() or with confint(method = \"profile\")",
+             call. = FALSE)
+  }
   ll <- vapply(fits, function(f) as.numeric(logLik(f)), 0)
   df <- vapply(fits, function(f) attr(logLik(f), "df"), 0L)
   ord <- order(df)
@@ -1990,6 +2006,13 @@ hyp_vals_only <- function(fit) {
     vals <- c(vals, v)
     comp <- c(comp, rep(cp, length(v)))
   }
+  # the me() hyperparameters, which brms reports as meanme_, sdme_ and
+  # corme__ variables
+  for (cp in me_comps(fit)) {
+    v <- est[[cp]]
+    vals <- c(vals, v)
+    comp <- c(comp, rep(cp, length(v)))
+  }
   list(vals = vals, comp = comp)
 }
 
@@ -2029,7 +2052,7 @@ ord_threshold_values <- function(fam, raw) {
 #' @noRd
 hyp_par_cov <- function(fit) {
   comps <- c("beta", "betad", "theta", "thetaac", "thetar",
-             ord_extra_comps(fit))
+             ord_extra_comps(fit), me_comps(fit))
   if (!fit$REML && !isTRUE(fit$control$profile)) {
     sdr <- sdr_of(fit)
     V <- sdr$cov.fixed
@@ -2069,7 +2092,9 @@ hyp_par_cov <- function(fit) {
 #'   `sd_<group>__<coef>` and `cor_<group>__<c1>__<c2>`;
 #' - the residual autocorrelation parameters, `ar[1]`, `cosy`;
 #' - the residual correlations of a multivariate model,
-#'   `rescor__<resp1>__<resp2>`.
+#'   `rescor__<resp1>__<resp2>`;
+#' - the hyperparameters of the `me()` terms, `meanme_<coef>`,
+#'   `sdme_<coef>` and `corme__<coef1>__<coef2>`.
 #'
 #' Every name is brms's. brms refuses a model whose renaming gives two
 #' coefficients one name, suffixes a clash across predictors with
@@ -2161,6 +2186,7 @@ hyp_env_vals <- function(fit, vals, comp) {
       }
     }
   }
+  me_put_hyper(fit, vals, comp, put)
   env
 }
 

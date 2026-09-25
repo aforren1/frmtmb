@@ -630,6 +630,41 @@ test_that("check C: row 4, mi() imputation and mi(sdx) measurement error", {
   brms_lp_check(bform, gaussian(), d4, fit, joint = TRUE)
 })
 
+test_that("check C: row 23, me() noise-free terms", {
+  skip_unless_brms_fit()
+
+  # brms samples the standardized latent values zme and builds
+  # Xme = meanme + sdme * L * zme; frmtmb keeps Xme itself as the inner
+  # vector, so each shape is a joint-density row whose log-Jacobian is
+  # that linear map's. Three shapes: two correlated terms and their
+  # interaction (zme is a matrix and Lme a Cholesky factor), a me() in
+  # a dpar formula, and two uncorrelated groups, one of them one latent
+  # value per level of g (Jme_2). dev/me-brms-lp.R prints the numbers.
+  set.seed(23)
+  n <- 80
+  tx <- rnorm(n, 1, 0.8)
+  tz <- 0.5 * tx + rnorm(n, 0, 0.7)
+  d <- data.frame(x = tx + rnorm(n, 0, 0.3), sx = runif(n, 0.2, 0.4),
+                  z = tz + rnorm(n, 0, 0.3), sz = 0.3, w = rnorm(n),
+                  g = factor(rep(1:16, each = 5)))
+  d$y <- 2 + 0.7 * tx - 0.4 * tz + 0.2 * d$w + rnorm(n, 0, 0.5)
+  d$xg <- rep(rnorm(16), each = 5)
+  d$sxg <- rep(runif(16, 0.2, 0.4), each = 5)
+  cases <- list(
+    list(brm = brms::bf(y ~ me(x, sx) * me(z, sz) + w),
+         frm = bf(y ~ me(x, sx) * me(z, sz) + w)),
+    list(brm = brms::bf(y ~ w, sigma ~ me(x, sx)),
+         frm = bf(y ~ w, sigma ~ me(x, sx))),
+    list(brm = brms::bf(y ~ me(x, sx) + me(xg, sxg, gr = g)),
+         frm = bf(y ~ me(x, sx) + me(xg, sxg, gr = g))))
+  for (cs in cases) {
+    fit <- frm(cs$frm + gaussian(), data = d)
+    with_brms_me(function() {
+      brms_lp_check(cs$brm, gaussian(), d, fit, joint = TRUE)
+    })
+  }
+})
+
 test_that("check C: row 6, nonlinear with a ~ 1 + (1 | g)", {
   skip_unless_brms_fit()
 
