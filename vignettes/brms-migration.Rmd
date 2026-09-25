@@ -36,6 +36,7 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `cumulative()`, `multinomial()` | same | multinomial takes `K` explicitly |
 | `car(M, gr = g, type =)` | same | all four types |
 | `(1 | mm(g1, g2))`, `mmc(x1, x2)` | same | multi-membership, `weights =` and `scale =` included (below) |
+| `me(x, sdx)`, `me(x, sdx, gr = g)`, `set_mecor()` | same | latent values integrated by Laplace; new data uses the observed `x` (below) |
 | `ar(t, g, cov = TRUE)`, `ma()`, `arma()`, `cosy()`, `unstr()` | same | gaussian/student only; `cov = TRUE` required (below) |
 | `data2 = list(W = W)` | same | also resolves compound expressions (below) |
 | `bernoulli(link = "probit")`, and every other brms link name | same | the whole brms 2.23.0 roster (below) |
@@ -216,8 +217,8 @@ has not written.
   a parameter vector per simulation and returns it alongside the
   responses.
 - `mo()` monotonic effects, `mi()` one-step imputation of continuous
-  predictors, `mi(sdx)` measurement error (the `me()` replacement,
-  as in current brms), `cs()` category-specific ordinal effects,
+  predictors, `me(x, sdx)` noise-free predictors and `mi(sdx)`
+  measurement error, `cs()` category-specific ordinal effects,
   `gp(x)` / `gp(x, k =)` Gaussian processes, and `mixture()`
   families (including group-level latent classes via `groups = ~g`)
   all work. `mo()`/`mi()` support two-way `:`/`*` interactions with
@@ -400,6 +401,33 @@ when it refuses one:
 | `mm(g1, g2, by = )`, `pw =`, `dist =` | no equivalent yet |
 
 `?frmtmb-multimembership` is the full page.
+
+## Noise-free predictors: `me()`
+
+`me(x, sdx)` means what it means in brms: the column `x` is a noisy
+reading of a latent value with known measurement SD `sdx`, the latent
+values are normal with an estimated mean `meanme` and SD `sdme`, and
+the model uses the latent value. `gr = g` gives one latent value per
+level of `g`. Several `me()` terms have correlated latent values
+unless `set_mecor(FALSE)` is added, as in brms.
+
+frmtmb integrates the latent values out with the Laplace
+approximation. For a gaussian response with linear `me()` terms the
+marginal likelihood is multivariate normal and the approximation is
+exact. The names follow brms: the coefficient of `me(x, sx)` is
+`bsp_mexsx`, and `summary()` reports `meanme_mex`, `sdme_mex` and
+`corme__mex__mez`, which brms reports only through `variables()`.
+
+Two differences to know when you port:
+
+- On new data, `predict()` and `fitted()` use the observed `x` in place
+  of the latent value. brms draws it from `N(x, sdx)`, so the two agree
+  on the mean of a linear term, but brms's prediction interval is wider.
+- brms's prior classes `meanme`, `sdme` and `corme` have no slot here
+  and are refused by name. The flat rows of a `get_prior()` table and
+  its `lkj(1)` `corme` row are dropped, because they apply nothing.
+
+`?frmtmb-me` is the full page.
 
 ## Within-group residual correlation
 

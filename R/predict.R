@@ -182,7 +182,7 @@ mi_values <- function(fit, vn) {
 }
 
 #' Fill the zero placeholder columns of a stored design matrix with the
-#' `mo()` and `mi()` values at the current estimates.
+#' `mo()`, `mi()` and `me()` values at the current estimates.
 #'
 #' @noRd
 patch_mo_cols <- function(fit, lp, X) {
@@ -195,6 +195,10 @@ patch_mo_cols <- function(fit, lp, X) {
     v <- mi_values(fit, mt$var)
     if (!is.null(mt$mult)) v <- v * mt$mult
     X[, mt$col] <- v
+  }
+  if (length(lp[["me"]] %||% list())) {
+    vals <- me_latent(fit$frame[["me"]], fit$estimates)$values
+    for (mt in lp[["me"]]) X[, mt$col] <- me_col_value(mt, vals)
   }
   X
 }
@@ -552,6 +556,10 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     }
     X <- cbind(X, matrix(as.numeric(v) * nd_mult(mt$mult_expr),
                          ncol = 1, dimnames = list(NULL, mt$label)))
+  }
+  for (mt in lp[["me"]] %||% list()) {
+    v <- me_newdata_value(fit, mt, newdata, env, nd_mult)
+    X <- cbind(X, matrix(v, ncol = 1, dimnames = list(NULL, mt$label)))
   }
 
   if (!use_re) {

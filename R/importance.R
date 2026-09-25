@@ -93,8 +93,10 @@ check_importance_scope <- function(spec, frame, template, REML, quadrature,
              "profile = TRUE", call. = FALSE)
   }
   if (!is.null(template[["miss"]])) {
-    frm_stop("`importance` cannot be combined with mi(). The imputed ",
-             "values are latent variables of their own, with no grouping ",
+    frm_stop("`importance` cannot be combined with ",
+             if (is.null(frame[["me"]])) "mi(). The imputed" else
+               "me() or mi(). The latent",
+             " values are latent variables of their own, with no grouping ",
              "factor to give them a per-group proposal. Fit with ",
              "importance = 0", call. = FALSE)
   }

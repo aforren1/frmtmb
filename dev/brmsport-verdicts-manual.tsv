@@ -37,7 +37,6 @@ families:117	*	cannot transfer	absent	frmtmb has no xbeta(); it also reads a Sta
 families:118	*	cannot transfer	absent	frmtmb has no xbeta(); it also reads a Stan prior string (famlink ledger row 83)
 families:122	*	cannot transfer	stan	frmtmb has no xbeta(), and the assertion reads the Stan include file (famlink ledger row 84)
 brm:81	frmtmb	defect	different-error	not the same refusal: frmtmb validates the data first and refuses the missing column by name, 'The model uses `sei`, which is not a column of `data`', where brms refuses se() for weibull from the formula alone; with sei present frmtmb does refuse se() for weibull (dev/brmsport-probe3.R). The message is frmtmb's own, not base R's 'object not found', which is what this reason used to say
-brm:100	frmtmb	cannot transfer	absent	frmtmb has no me() noise-free term (dev/brms-suite-audit.md section 5)
 brm:102	frmtmb	defect	internal-error	set_rescor() on the right-hand side reaches model.frame and dies with R's 'invalid type (list) for variable', not a designed refusal (dev/brmsport-probe3.R)
 brm:112	frmtmb	cannot transfer	absent	frmtmb has no arma() function object to add to a formula; the term exists only inside a formula
 brm:116	frmtmb	defect	refuses-accepted	categorical() refuses the integer response inhaler$rating (4 categories) with the FALSE claim 'fewer than two categories', before reaching the cs() check brms asserts; a factor response is accepted (dev/brmsport-probe3.R; priorform ledger P20 deferred it to famlink)

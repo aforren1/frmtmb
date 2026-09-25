@@ -584,9 +584,9 @@ brms_fixture_spec <- function(k) {
       formula = bf(count ~ Trt * Age +
                      (1 + mmc(Age, volume) | mm(patient, visit))),
       family = gaussian(),
-      changed = paste("me(Age, AgeSD) becomes Age: frmtmb has no",
-                      "noise-free me() term (dev/brms-suite-audit.md",
-                      "section 5)")),
+      changed = paste("me(Age, AgeSD) becomes Age: frmtmb's me()",
+                      "takes numeric interaction multipliers only, and",
+                      "brms's Trt is a factor (dev/me-findings.md)")),
     list(
       brms = "rating ~ x1 + cs(x2) + (cs(x2) || subject), disc ~ 1; sratio",
       formula = bf(rating ~ x1 + cs(x2) + (1 + x2 || subject)),

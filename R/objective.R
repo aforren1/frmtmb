@@ -154,7 +154,8 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
 }
 
 #' The part of one linear predictor that the random-effect coefficients
-#' do not enter: `X beta`, the offset, and the `mo()` and `mi()` terms.
+#' do not enter: `X beta`, the offset, and the `mo()`, `mi()` and `me()`
+#' terms.
 #' `zterm` is the block contribution `Z b`, added in the position it has
 #' always occupied so that the fitted Laplace tape is unchanged to the
 #' last bit.
@@ -167,7 +168,8 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
 #' drift away from the objective it corrects.
 #'
 #' @noRd
-lp_eta_fixed <- function(lp, pars, n, mivals, yfall, zterm = NULL) {
+lp_eta_fixed <- function(lp, pars, n, mivals, yfall, zterm = NULL,
+                         mevals = NULL) {
   # The overloads have to be re-established here, and this is the same
   # trio frmtmb_ad_overload() installs (R/ad-env.R). This code used to
   # sit inside the objective closure, which sets them once at the top;
@@ -208,6 +210,11 @@ lp_eta_fixed <- function(lp, pars, n, mivals, yfall, zterm = NULL) {
     if (!is.null(mt$mult)) xv <- xv * mt$mult
     eta <- eta + pars[[lp[["par"]]]][lp[["idx"]][mt$col]] * xv
   }
+  # me() terms: coefficient times the product of latent values
+  for (mt in lp[["me"]] %||% list()) {
+    eta <- eta + pars[[lp[["par"]]]][lp[["idx"]][mt$col]] *
+      me_col_value(mt, mevals)
+  }
   eta
 }
 
@@ -247,6 +254,7 @@ build_objective <- function(frame) {
   acs <- frame[["autocor"]] %||% list()
 
   extra_names <- frame[["extra_names"]] %||% character(0)
+  me_fr <- frame[["me"]]
 
   # Cluster-robust scores (R/sandwich.R) need the per-cluster pieces of
   # the objective as a function of one extra parameter each, so that
@@ -320,6 +328,15 @@ build_objective <- function(frame) {
       }
     }
 
+    # me(): the latent values and their measurement and latent
+    # densities (R/me.R)
+    mevals <- NULL
+    if (!is.null(me_fr)) {
+      mel <- me_latent(me_fr, pars)
+      nll <- nll - mel$ll
+      mevals <- mel$values
+    }
+
     dparv <- list()
     for (lp in lps) {
       if (!is.null(lp[["nl_body"]])) {
@@ -352,7 +369,8 @@ build_objective <- function(frame) {
       }
       eta <- lp_eta_fixed(
         lp, pars, n, mivals, y,
-        zterm = if (!is.null(lp[["Z"]])) as.vector(lp[["Z"]] %*% bvec))
+        zterm = if (!is.null(lp[["Z"]])) as.vector(lp[["Z"]] %*% bvec),
+        mevals = mevals)
       # cs(x) terms: n x (K-1) threshold-specific offsets, consumed by
       # the sequential ordinal lpdfs through dpars$.cs
       if (length(lp[["cs"]] %||% list())) {

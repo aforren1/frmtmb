@@ -246,7 +246,7 @@ test_that("declared addition terms are the ones the parser accepts", {
 test_that("declared specials still parse", {
   ft <- frm_compat_features()
   expect_setequal(ft$key[ft$kind == "special"],
-                  c("s", "t2", "mo", "mi", "gp", "cs", "ps"))
+                  c("s", "t2", "mo", "mi", "gp", "cs", "ps", "me"))
   set.seed(1)
   n <- 60
   d <- data.frame(
@@ -270,6 +270,9 @@ test_that("declared specials still parse", {
                       data = d, family = gaussian(), dry_run = "frame"),
                   "frmtmb_frame")
   expect_s3_class(frm(o ~ cs(x), data = d, family = sratio(),
+                      dry_run = "frame"), "frmtmb_frame")
+  d$sx <- 0.3
+  expect_s3_class(frm(y ~ me(x, sx), data = d, family = gaussian(),
                       dry_run = "frame"), "frmtmb_frame")
 })
 

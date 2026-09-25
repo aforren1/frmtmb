@@ -253,6 +253,9 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
          } else NULL,
          coefficients = coefs, varcor = varcorr_matrices(object),
          rescor = rescor_matrix(object),
+         # brms's meanme_, sdme_ and corme__ variables, which its own
+         # summary leaves out; here they are the only report of them
+         me = me_hyper_table(object, prob),
          # R-side residual correlation, on the natural scale with the
          # same delta-method interval confint_varcorr() reports
          autocor = local({
@@ -607,6 +610,10 @@ print.summary.frmtmb_fit <- function(x, ...) {
   if (!is.null(x$rescor)) {
     cat("\nResidual correlation:\n")
     print(signif(x$rescor, 4))
+  }
+  if (NROW(x[["me"]])) {
+    cat("\nNoise-free Terms (me()):\n")
+    print_summary_block(x[["me"]])
   }
   if (isTRUE(x$priors)) {
     cat("\nPriors:\n")

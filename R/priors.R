@@ -295,8 +295,9 @@
 #'   performs. A bound travels with it, so `lb = 0` on a log-linked
 #'   dispersion becomes no constraint rather than a floor of 1.
 #' - `theta`/`theta1`/`theta2`, `simo`, `sds`, `sdgp`, `lscale`,
-#'   `sdcar` and `car` are refused by name, each saying where frmtmb
-#'   keeps that quantity instead. A refusal is deliberate: translating
+#'   `sdcar`, `car`, `meanme`, `sdme` and `corme` are refused by name,
+#'   each saying where frmtmb keeps that quantity instead, or that it
+#'   has no prior slot. A refusal is deliberate: translating
 #'   one of them would produce a different model rather than no model.
 #' - a `coef` on a `sd` or `cor` row is refused for the same reason.
 #'   brms narrows such a row to one coefficient of a block; frmtmb
@@ -791,6 +792,13 @@ as_priorlist <- function(x) {
       if (is.na(lb) && is.na(ub)) next
       if (!is.null(brms_prior_class_refusal(cls))) next
     }
+    # brms fills its corme row with lkj(1), which is flat over the
+    # correlation matrices and so applies nothing; only a row somebody
+    # edited is a prior frmtmb cannot honor
+    if (identical(cls, "corme") &&
+        identical(gsub("[[:space:]]", "", dist), "lkj(1)")) {
+      next
+    }
     if (nzchar(chr("tag", i))) {
       refuse(i, dist, cls,
              paste0("tag = \"", chr("tag", i), "\" names a prior for ",
@@ -930,6 +938,22 @@ brms_prior_class_refusal <- function(cls) {
       "class that would rename it: drop the row. A flat simo row from ",
       "get_prior() is dropped for you, and only an explicit one reaches ",
       "here. "),
+    meanme = paste0(
+      "brms's \"meanme\" is the mean of a me() term's latent values. ",
+      "frmtmb estimates it by maximum likelihood and has no prior slot ",
+      "for it, so there is no class to carry the row into: drop the ",
+      "row. A flat meanme row from get_prior() is dropped for you. "),
+    sdme = paste0(
+      "brms's \"sdme\" is the SD of a me() term's latent values. frmtmb ",
+      "estimates it by maximum likelihood and has no prior slot for it, ",
+      "so there is no class to carry the row into: drop the row. A flat ",
+      "sdme row from get_prior() is dropped for you. "),
+    corme = paste0(
+      "brms's \"corme\" is the correlation of the latent values of ",
+      "several me() terms. frmtmb estimates it by maximum likelihood and ",
+      "has no prior slot for it: drop the row. brms's default lkj(1) is ",
+      "flat and is dropped for you, and set_mecor(FALSE) fixes the ",
+      "correlation at zero. "),
     sds = paste0(
       "brms's \"sds\" is the wiggliness standard deviation of a smooth. ",
       "frmtmb holds a smooth as a random-effect block, so its frmtmb ",

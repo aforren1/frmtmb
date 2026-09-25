@@ -868,7 +868,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   integrate <- NULL
   if (isTRUE(quadrature)) {
     if (!is.null(template[["miss"]])) {
-      frm_stop("quadrature = TRUE cannot be combined with mi()",
+      # the latent values of mi() and me() are one integral per value,
+      # not the one scalar random effect the rule integrates
+      frm_stop("quadrature = TRUE cannot be combined with ",
+               if (is.null(frame[["me"]])) "mi()" else "me() or mi()",
                call. = FALSE)
     }
     # The Gauss-Kronrod rule integrates whatever density the tape

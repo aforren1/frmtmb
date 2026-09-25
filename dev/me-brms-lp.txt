@@ -1,0 +1,11 @@
+# dev/me-brms-lp.R, 2026-09-25, brms 2.23.0, rstan 2.32.7, lane library
+LPCHECK const -8.526512829e-14 grad 1.09e-11 ours -233.3309124
+ME-LP cor_interaction  brms lp -233.3309124409  frmtmb joint + logJ -233.3309124409  diff -8.527e-14  rel 3.654e-16  max|grad zme| 1.091e-11
+LPCHECK const -2.842170943e-14 grad 4e-15 ours -247.5872299
+ME-LP mecor_false      brms lp -247.5872298927  frmtmb joint + logJ -247.5872298927  diff -2.842e-14  rel 1.148e-16  max|grad zme| 3.997e-15
+LPCHECK const 0 grad 4e-15 ours -167.9400498
+ME-LP sigma_dpar       brms lp -167.9400498435  frmtmb joint + logJ -167.9400498435  diff 0.000e+00  rel 0.000e+00  max|grad zme| 3.997e-15
+LPCHECK const -2.842170943e-14 grad 5.33e-15 ours -187.3006559
+ME-LP gr_level         brms lp -187.3006558606  frmtmb joint + logJ -187.3006558606  diff -2.842e-14  rel 1.517e-16  max|grad zme| 5.329e-15
+LPCHECK const -2.842170943e-14 grad 7.7e-12 ours -221.1169332
+ME-LP poisson          brms lp -221.1169332401  frmtmb joint + logJ -221.1169332401  diff -2.842e-14  rel 1.285e-16  max|grad zme| 7.697e-12

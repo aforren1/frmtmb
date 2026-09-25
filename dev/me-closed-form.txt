@@ -1,0 +1,5 @@
+one term               logLik -185.185806139521 closed form -185.185806139521 diff -5.684e-14 rel 3.070e-16
+one term, optim max -185.185806137979 frmtmb max -185.185806139521 diff 1.542e-09; max |coef diff| / SE 1.971e-05
+two terms, corme       logLik -267.628869736112 closed form -267.628869736112 diff 0.000e+00 rel 0.000e+00
+two terms, mecor FALSE logLik -279.450641455521 closed form -279.450641455521 diff 1.137e-13 rel 4.068e-16
+gr = g, 25 levels      logLik -86.221757838305 closed form -86.221757838305 diff -1.421e-14 rel 1.648e-16

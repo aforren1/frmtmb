@@ -171,6 +171,9 @@ ce_lp_vars <- function(lp) {
   for (m in lp[["mi"]] %||% list()) {
     v <- c(v, m$var, all.vars(m$mult_expr))
   }
+  for (m in lp[["me"]] %||% list()) {
+    v <- c(v, m$xvars, all.vars(m$mult_expr))
+  }
   unique(v)
 }
 

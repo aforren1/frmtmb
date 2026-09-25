@@ -40,8 +40,10 @@ reference:
   - mvbf
   - set_rescor
   - plus-bform
+  - set_mecor
   - num_factor
   - frmtmb-autocor
+  - frmtmb-me
   - frmtmb-multimembership
 - title: Fitting
   contents:

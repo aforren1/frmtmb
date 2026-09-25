@@ -91,10 +91,8 @@ test_that("brm produces expected errors", {
     expect_error(brm(y~x*cs(g), dat), fixed = TRUE,
                  "The term 'x:cs(g)' is invalid")
   )
-  brms_port("brm:100", "cannot transfer",
-    paste0(
-      "frmtmb has no me() noise-free term (dev/brms-suite-audit.md ",
-      "section 5)"),
+  brms_port("brm:100", "pass",
+    "",
     expect_error(brm(y~me(x, 2 * g)*me(x, g), dat),
                  "Variable 'x' is used in different calls to 'me'")
   )
