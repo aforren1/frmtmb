@@ -69,9 +69,8 @@ standata:740	frmtmb	cannot transfer	absent	lf() takes no cmc argument
 standata:744	frmtmb	cannot transfer	absent	bf() takes no cmc argument
 standata:745	frmtmb	cannot transfer	absent	bf() takes no cmc argument, and Z_1_1 is Stan data
 standata:928	frmtmb	defect	internal-error	y ~ . is not expanded: frm() dies with R's ''.' in formula and no data argument' on the fit route and the frame route alike, where brms expands the dot against the data (dev/brmsport-probe3.R)
-standata:970	frmtmb	cannot transfer	absent	frmtmb has no reserved Intercept variable, so 0 + intercept dies with R's object 'intercept' not found
-standata:974	frmtmb	cannot transfer	absent	frmtmb has no reserved intercept variable
-standata:976	frmtmb	cannot transfer	absent	frmtmb has no reserved Intercept variable: y ~ 0 + Intercept dies with R's object 'Intercept' not found
+standata:970	frmtmb	cannot transfer	absent	frmtmb reserves Intercept but refuses brms's deprecated lower-case intercept by name and asks for Intercept, where brms accepts it with a deprecation warning
+standata:974	frmtmb	cannot transfer	absent	0 + intercept is refused (standata:970), so there is no intercept column to read
 standata:1047	frmtmb	cannot transfer	absent	frmtmb has no rate() addition term
 standata:1133	frmtmb	cannot transfer	absent	frm() takes no drop_unused_levels argument; the unused level is always dropped
 priors:5	frmtmb	divergence	policy	frmtmb lists 5 class theta rows (its covariance parameters) and no per-coefficient sd rows, since its class sd addresses a block and refuses coef (priorform ledger P1)
