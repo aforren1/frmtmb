@@ -1353,8 +1353,8 @@ compat_hand_rules_tbl <- function() {
     "Refused: residuals() is not supported for multivariate fits yet.")
   r("rescor", "residuals_osa", "refused",
     "Refused: residuals() is not supported for multivariate fits yet.")
-  r("rescor", "emmeans", "refused",
-    "Refused: emmeans support is univariate-only for now.")
+  r("rescor", "emmeans", "works",
+    "Verified: without resp = the responses stack as the rep.meas factor, and a contrast across responses carries the cross-response covariance of the coefficients. The residual correlation does not enter a marginal mean.")
   # confint() and hypothesis() work on the outer parameter vector,
   # which a multivariate fit has like any other: verified on a
   # two-response gaussian fit, rescor = TRUE included.
@@ -1372,6 +1372,8 @@ compat_hand_rules_tbl <- function() {
   # single_response() guard and stops.
   r("mvbf", "residuals_osa", "refused",
     "Refused: residuals() is not supported for multivariate fits yet, one-step-ahead residuals included.")
+  r("mvbf", "emmeans", "works",
+    "Verified against univariate fits (dev/emm-validate.R): resp = selects one response, and without it the responses stack as brms's rep.meas factor. Without resp = the responses must share a link, as in brms; epred = TRUE has no such need.")
   r("mvbf", "fitted", "works",
     "Verified: fitted() returns brms's n x 4 x nresp array with the responses named, one layer per response; resp = narrows it, and one response is an n x 4 matrix. A category-valued response does not stack with the others and is refused there, naming resp =.")
   r("mvbf", "predict", "works",
@@ -1608,9 +1610,19 @@ compat_hand_rules_tbl <- function() {
     "Runs, but the residuals ignore the case weights. Treat them as unweighted.")
   r("residuals_osa", "kind:structure", "untested", "")
   r("emmeans", "kind:family", "conditional",
-    "Univariate fits only, and the mu predictor must be linear.")
-  r("emmeans", "nl", "refused",
-    "Refused: emmeans support needs a linear mu predictor.")
+    "Takes brms's dpar =, nlpar =, resp =, epred = and re_formula = (see ?frmtmb-emmeans). A family with no mu needs dpar =. epred = TRUE needs one mean per row, so it is refused for the ordinal and categorical families.")
+  r("emmeans", "nl", "works",
+    "Verified (dev/emm-validate.R): nlpar = gives that parameter's own linear predictor, and the whole mu goes through the taped Jacobian of the body, the delta method. The covariance agrees with a numerical Jacobian to 1.3e-7 relative, and the standard error over a parametric bootstrap of 1500 refits is 0.97 to 1.03 times the bootstrap one, on two models.")
+  r("emmeans", "s()", "works",
+    "The smooth's value at the grid is part of the means. The design basis used to leave it out.")
+  r("emmeans", "t2()", "works",
+    "The smooth's value at the grid is part of the means, as for s().")
+  r("emmeans", "mo()", "works",
+    "The monotonic variable joins the reference grid, and its contribution is part of the means. The design basis used to leave it out.")
+  r("emmeans", "mi_pred()", "untested",
+    "Takes the grid route through frm_lp_basis(), which needs the variable complete in the grid. Not exercised.")
+  r("emmeans", "gp_pred()", "conditional",
+    "An approximate gp(..., k = ) works. An exact gp() is refused at a position the fit did not see, because its kriging variance has no covariance between grid points here; at = an observed value works.")
   r("emmeans", "group:ordinal", "conditional",
     "Works on the LATENT linear predictor, emmeans's mode = \"latent\" convention for clm-like models: the intercept is dropped there (the K-1 thresholds take its place), so contrasts are on the latent scale and absolute means carry no threshold offset. For category probabilities use frm_linpred(fit, type = \"response\") or conditional_effects(), which are on a different scale from these means.")
   r("confint_profile", "kind:mode", "untested", "")

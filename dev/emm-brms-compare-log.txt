@@ -1,0 +1,29 @@
+== 1. brms's reference-grid variables and refusals
+nl, no nlpar                 grid variables: x
+nl, nlpar = 'a'              grid variables: f
+nl, nlpar a, re NULL         grid variables: f g
+nl, epred                    grid variables: x f
+nl, dpar + nlpar             ERROR: 'dpar' and 'nlpar' cannot be specified at the same time.
+nl, unknown nlpar            ERROR: Non-linear parameter 'zz' is not part of the model. Supported parameters are: 'a', 'b'
+mv, no resp                  grid variables: f x
+mv, resp = 'y1'              grid variables: f
+mv, unknown resp             ERROR: Invalid argument 'resp'. Valid response variables are: 'y1', 'y2'
+mv, mixed families           ERROR: brms' emmeans support for multivariate models is limited to cases where all univariate models have the same family.
+mv, mixed families, epred    grid variables: f
+
+== 1b. frmtmb, the same calls
+nl, no nlpar                 grid variables: x f
+nl, nlpar = 'a'              grid variables: f
+nl, nlpar a, re NULL         grid variables: f g
+nl, epred                    grid variables: x f
+nl, dpar + nlpar             'dpar' and 'nlpar' cannot be specified at the same time.
+nl, unknown nlpar            Non-linear parameter 'zz' is not part of the model. Supported parameters are: 'a', 'b'
+mv, no resp                  grid variables: f x
+mv, resp = 'y1'              grid variables: f
+mv, unknown resp             Invalid argument 'resp'. Valid response variables are: 'y1', 'y2'
+mv, mixed families           emmeans without resp = stacks the responses of a multivariate fit on one scale, and these have different links (y1: identity, cnt: log). Name one response with resp =, or use epred = TRUE for the response scale
+mv, mixed families, epred    grid variables: f
+rep.meas levels, frmtmb: y1 y2 
+
+part 2 skipped: set EMM_BRMS_SAMPLE=true to sample
+EXIT 0

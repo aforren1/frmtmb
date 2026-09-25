@@ -613,6 +613,11 @@ the SHAPE of what a standard generic returns:
   is wider than at a known one. brms's `"uncertainty"` and
   `"old_levels"` resample the draws of the levels that were seen, and
   a maximum-likelihood fit has none, so both are refused by name.
+- `emmeans()` takes brms's `dpar`, `nlpar`, `resp`, `epred` and
+  `re_formula`, with brms's defaults. A multivariate fit without
+  `resp` stacks its responses as brms's `rep.meas` factor. Where brms
+  summarizes draws, a nonlinear `mu` and `epred = TRUE` use the delta
+  method through `frm_lp_basis()`; see `?frmtmb-emmeans`.
 - `plot(fit)` draws residual diagnostics, not MCMC traces; for
   simulation-based residual checks use `dharma_residuals()`.
 
