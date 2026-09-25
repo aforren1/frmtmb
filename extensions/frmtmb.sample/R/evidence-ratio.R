@@ -167,16 +167,21 @@ er_slot_spelling <- function(fit, slot) {
     dp <- lp[["dpar"]]
     is_nl <- dp %in% (rspec$nlpars %||% character(0))
     cn <- colnames(lp[["X"]])[k]
-    icpt <- identical(cn, "(Intercept)") && !is_nl
-    f <- c(coef = if (icpt) "" else cn,
+    icpt <- identical(cn, "(Intercept)") && !is_nl &&
+      !isFALSE(lp[["center"]])
+    f <- c(coef = if (icpt) "" else sub("^[(]Intercept[)]$", "Intercept",
+                                        cn),
            dpar = default_lp_dpar(rspec, dp),
            nlpar = if (is_nl) dp else "",
            resp = if (multi) lp[["resp"]] else "")
     f <- f[nzchar(f)]
+    # paste0() over no fields still pastes its constants, which wrote
+    # `class = "Intercept",  = ""` for a univariate model's intercept
+    fields <- if (length(f)) {
+      paste0(", ", names(f), " = \"", f, "\"", collapse = "")
+    } else ""
     return(paste0("set_prior(\"normal(0, 1)\", class = \"",
-                  if (icpt) "Intercept" else "b", "\"",
-                  paste0(", ", names(f), " = \"", f, "\"", collapse = ""),
-                  ")"))
+                  if (icpt) "Intercept" else "b", "\"", fields, ")"))
   }
   "set_prior(\"normal(0, 1)\", class = \"b\")"
 }

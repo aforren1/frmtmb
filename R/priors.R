@@ -124,8 +124,11 @@
 #' sub-formula is not centered on either side, and neither are a
 #' smooth's unpenalized columns or a `mo()` term, which sit outside
 #' brms's `Xc` as well. To put a density on the intercept at zero, name
-#' it as a coefficient instead: `class = "b", coef = "Intercept"`,
-#' which is also how a `brms::bf(center = FALSE)` model's prior arrives.
+#' it as a coefficient instead: `class = "b", coef = "Intercept"`.
+#' A formula written `0 + Intercept + x`, or `bf(center = FALSE)`, makes
+#' that the intercept's only prior slot, as brms does: the intercept is
+#' then class `"b"` and a class `"b"` prior without a coef reaches it
+#' too, while class `"Intercept"` has no slot and is refused.
 #'
 #' @section Ordinal thresholds:
 #' `cumulative()`, `sratio()`, `cratio()` and `acat()` have no intercept
@@ -133,7 +136,8 @@
 #' `Intercept` class and so does frmtmb, so
 #' `set_prior("student_t(3, 0, 2.5)", class = "Intercept")` on an
 #' ordinal model addresses the whole threshold vector. It addresses the
-#' THRESHOLDS, at the mean of the predictors, with the log-Jacobian of
+#' THRESHOLDS, at the mean of the predictors (at zero under
+#' `bf(center = FALSE)`, as in brms), with the log-Jacobian of
 #' the map from frmtmb's internal storage; `cumulative()` and
 #' `sratio()` hold `(tau_1, log increments)`, which is the same map
 #' Stan's `ordered` type applies, and `cratio()` and `acat()` hold the
@@ -1753,7 +1757,8 @@ prior_table <- function(spec, frame, route) {
       if (length(cn)) add(lp[["dpar"]], resp = resp_lab)
       next
     }
-    if ("(Intercept)" %in% cn) {
+    icpt_b <- isFALSE(lp[["center"]])
+    if ("(Intercept)" %in% cn && !icpt_b) {
       add("Intercept", dpar = dpar_lab, resp = resp_lab)
     } else if (!nzchar(dpar_lab) &&
                  identical(rspec$family[["type"]], "ordinal") &&
@@ -1766,7 +1771,9 @@ prior_table <- function(spec, frame, route) {
     }
     # cs() terms are class "b" rows under their own coef, as brms lists
     # them; the resolver reaches them through the same class
-    others <- c(setdiff(cn, "(Intercept)"),
+    # brms spells the uncentered intercept's coef "Intercept"
+    others <- c(if (icpt_b) sub("^[(]Intercept[)]$", "Intercept", cn) else
+                  setdiff(cn, "(Intercept)"),
                 vapply(lp[["cs"]] %||% list(), cs_term_coef, ""))
     if (length(others)) {
       add("b", dpar = dpar_lab, resp = resp_lab)
@@ -2489,8 +2496,11 @@ resolve_priorlist <- function(fit, pl) {
         next
       }
       cn <- colnames(lp[["X"]])
+      # `0 + Intercept` or center = FALSE: the intercept is a class "b"
+      # coefficient like any other, and class "Intercept" has no slot here
+      icpt_b <- isFALSE(lp[["center"]])
       pick <- if (s$class == "Intercept") {
-        which(cn == "(Intercept)")
+        if (!icpt_b) which(cn == "(Intercept)") else integer(0)
       } else if (nzchar(s$coef)) {
         # brms writes an intercept as "Intercept"; the design matrix
         # spells it "(Intercept)", and both name the same column
@@ -2503,7 +2513,7 @@ resolve_priorlist <- function(fit, pl) {
         # intercept-only nonlinear parameter
         seq_along(cn)
       } else {
-        which(cn != "(Intercept)")
+        which(cn != "(Intercept)" | icpt_b)
       }
       # `name` is what a BOUND is keyed by, and resolve_bounds() matches
       # against outer_par_names(): the template spelling, which carries
@@ -2609,6 +2619,11 @@ resolve_priorlist <- function(fit, pl) {
                "coef, dpar or nlpar addresses the whole threshold ",
                "vector; prior = list(tau_raw = ) reaches the same ",
                "parameters on the internal scale")
+      } else if (s$class == "Intercept" && any(vapply(
+        frame[["linpreds"]], function(lp) isFALSE(lp[["center"]]), NA))) {
+        paste0(". An intercept written 0 + Intercept, or under ",
+               "center = FALSE, is an ordinary coefficient, as in brms: ",
+               "address it with class = \"b\", coef = \"Intercept\"")
       } else {
         ""
       }
@@ -2964,6 +2979,8 @@ ordinal_center_offset <- function(frame, rspec) {
   for (lp in frame[["linpreds"]]) {
     if (!identical(lp[["resp"]], rspec$resp_name)) next
     if (!lp[["dpar"]] %in% rspec$primary_dpars) next
+    # bf(center = FALSE): brms's thresholds are then the uncentered ones
+    if (isFALSE(lp[["center"]])) return(NULL)
     X <- lp[["X"]]
     np <- lp[["n_param_cols"]] %||% 0L
     if (is.null(X) || !nrow(X) || np < 1L) return(NULL)
@@ -3022,6 +3039,9 @@ coef_placement <- function(s, tg) {
 dpar_has_predictor <- function(spec, lp) {
   X <- lp[["X"]]
   if (!is.null(X) && ncol(X) > 1L) return(TRUE)
+  # `sigma ~ 0 + Intercept` is a predictor with one class "b"
+  # coefficient in brms, not the scalar a class "sigma" prior names
+  if (isFALSE(lp[["center"]])) return(TRUE)
   if (!is.null(lp[["Z"]])) return(TRUE)
   if (length(lp[["smooths"]] %||% list())) return(TRUE)
   if (length(lp[["gps"]] %||% list())) return(TRUE)

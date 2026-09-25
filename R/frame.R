@@ -1172,6 +1172,54 @@ smooth_pen_order <- function(sm, re2) {
   ord
 }
 
+#' Move the intercept column of a `0 + Intercept` design to where brms
+#' puts it: after the columns of the `pos` terms written before
+#' `Intercept`. model.matrix() orders columns by term, and the rewritten
+#' formula keeps the other terms in their written order, so `assign`
+#' says which columns those are. See rsv_intercept_fixed().
+#'
+#' @noRd
+rsv_intercept_order <- function(X, pos) {
+  asg <- attr(X, "assign")
+  contr <- attr(X, "contrasts")
+  j <- match("(Intercept)", colnames(X))
+  if (pos < 1L || is.na(j) || is.null(asg)) return(X)
+  before <- setdiff(which(asg >= 1L & asg <= pos), j)
+  ord <- c(before, j, setdiff(seq_len(ncol(X)), c(before, j)))
+  out <- X[, ord, drop = FALSE]
+  attr(out, "assign") <- asg[ord]
+  attr(out, "contrasts") <- contr
+  out
+}
+
+#' Refuse a `0 + Intercept` model whose data carry an `Intercept` (or
+#' `intercept`) column that is not all ones.
+#'
+#' brms fills both names with ones in such a model and refuses data that
+#' say otherwise ("Variable name 'Intercept' is reserved in models
+#' without a population-level intercept", `data_rsv_intercept()`), so a
+#' column the user meant as a covariate is never silently replaced by
+#' the intercept. frmtmb never reads the column; the refusal is kept so
+#' that a model brms refuses is not quietly given a meaning here.
+#'
+#' @noRd
+check_rsv_intercept_data <- function(spec, data) {
+  rsv <- any(vapply(spec$responses, function(r) {
+    any(vapply(r$dpars, function(dp) !is.null(dp[["rsv_intercept"]]), NA))
+  }, NA))
+  if (!rsv || is.environment(data)) return(invisible(NULL))
+  for (v in intersect(c("Intercept", "intercept"), names(data))) {
+    x <- data[[v]]
+    if (!(is.numeric(x) || is.logical(x)) || anyNA(x) || any(x != 1)) {
+      frm_stop("`data` has a column `", v, "` that is not all ones, and ",
+               "the model writes 0 + Intercept, where `", v, "` is the ",
+               "reserved name of the intercept's column of ones; brms ",
+               "refuses it too. Rename the column", call. = FALSE)
+    }
+  }
+  invisible(NULL)
+}
+
 #' Refuse, by name, the variables stats::model.frame() would refuse in
 #' its own words: a name that neither `data` nor the formula
 #' environment holds, a list used as a variable, and an object from the
@@ -1196,9 +1244,17 @@ check_frame_variables <- function(rhs, data, env) {
   }
   for (v in all.vars(rhs)) {
     if (!in_data(v) && (data_env || !exists(v, envir = env))) {
+      # brms's reserved name reaches here only where it is not reserved,
+      # so say where it is
+      hint <- if (v %in% c("Intercept", "intercept")) {
+        paste0(". `Intercept` is the reserved name of the intercept only ",
+               "in a population-level formula without one, as in ",
+               "y ~ 0 + Intercept + x; elsewhere it is an ordinary ",
+               "variable. A group-level intercept is (1 | g)")
+      } else ""
       frm_stop("The model uses `", v, "`, which is not a column of `data` ",
                "and not an object that R finds from the formula. Add the ",
-               "column to `data` or correct the name", call. = FALSE)
+               "column to `data` or correct the name", hint, call. = FALSE)
     }
   }
   leaves <- function(e) {
@@ -1331,6 +1387,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   env <- spec$responses[[1]]$formula_env
   fr_formula <- stats::as.formula(call("~", rhs_comb), env = env)
   check_frame_variables(rhs_comb, data, env)
+  check_rsv_intercept_data(spec, data)
   # x | mi() responses may carry NAs (they become latent parameters);
   # rows are dropped only for NAs in every OTHER variable. A structured
   # family that declares `keep_na` reads the NAs itself and takes the
@@ -1957,6 +2014,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         # (y ~ 1) leaves X with zero columns, which is fine
         X <- X[, colnames(X) != "(Intercept)", drop = FALSE]
       }
+      if (!is.null(dp[["rsv_intercept"]])) {
+        X <- rsv_intercept_order(X, dp[["rsv_intercept"]])
+      }
       # rank-deficient designs: drop aliased columns like lm() (lme4#144).
       # Sparse X densifies a copy only when the cheap screen flags a
       # possible deficiency, so the dropped-column set never differs
@@ -2548,7 +2608,10 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         mi = mi_info,
         cs = cs_info,
         comp_ids = comp_ids,
-        constant = dp[["constant"]]
+        constant = dp[["constant"]],
+        # FALSE: the intercept is class "b" and not centered (brms's
+        # `0 + Intercept` and `center = FALSE`); see rsv_intercept_fixed()
+        center = !isFALSE(dp[["center"]])
       )
     }
   }

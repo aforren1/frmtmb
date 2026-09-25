@@ -626,24 +626,25 @@ test_that("reserved variables 'Intercept' is handled correctly", {
   )
   brms_port("standata:970", "cannot transfer",
     paste0(
-      "frmtmb has no reserved Intercept variable, so 0 + intercept ",
-      "dies with R's object 'intercept' not found"),
+      "frmtmb reserves Intercept but refuses brms's deprecated ",
+      "lower-case intercept by name and asks for Intercept, where ",
+      "brms accepts it with a deprecation warning"),
     expect_warning(
       sdata <- standata(y ~ 0 + intercept, dat),
       "Reserved variable name 'intercept' is deprecated."
     )
   )
   brms_port("standata:974", "cannot transfer",
-    "frmtmb has no reserved intercept variable",
+    paste0(
+      "0 + intercept is refused (standata:970), so there is no ",
+      "intercept column to read"),
     expect_true(all(sdata$X[, "intercept"] == 1))
   )
   brms_setup("standata:975",
     sdata <- standata(y ~ 0 + Intercept, dat)
   )
-  brms_port("standata:976", "cannot transfer",
-    paste0(
-      "frmtmb has no reserved Intercept variable: y ~ 0 + ",
-      "Intercept dies with R's object 'Intercept' not found"),
+  brms_port("standata:976", "pass",
+    "",
     expect_true(all(sdata$X[, "Intercept"] == 1))
   )
 })

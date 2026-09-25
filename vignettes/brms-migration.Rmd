@@ -31,6 +31,7 @@ frequentist (Wald and profile intervals, likelihood-ratio tests, AIC).
 | `y | trials(n)`, `weights(w)`, `cens(c)`, `trunc(lb=, ub=)` | same | `cens`/`trunc` need a CDF-carrying family; a DISCRETE censoring bound is read inclusively, unlike brms (below) |
 | `nl = TRUE` | same | a located prior places the start, else provide `start` (`par_template()` names it); se.fit on the nonlinear mu not yet |
 | `lf()`, `nlf()` | same | `nlf()` on any dpar, bodies chain to any depth (below) |
+| `y ~ 0 + Intercept + x`, `bf(center = FALSE)` | same | the intercept is class `"b"` at zero, not class `"Intercept"` at the predictor means; refused in an ordinal family, as in brms |
 | `custom_family()` | same idea | the lpdf is plain R over RTMB advectors, not Stan code |
 | `cumulative()`, `multinomial()` | same | multinomial takes `K` explicitly |
 | `car(M, gr = g, type =)` | same | all four types |

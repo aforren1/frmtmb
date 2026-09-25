@@ -1127,6 +1127,9 @@ default_priors_for <- function(fit) {
   for (lp in fit$frame[["linpreds"]]) {
     if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]])) next
     if (!"(Intercept)" %in% colnames(lp[["X"]])) next
+    # `0 + Intercept` or center = FALSE: brms's intercept is then class
+    # "b", which brms leaves flat
+    if (isFALSE(lp[["center"]])) next
     rspec <- fit$spec$responses[[lp[["resp"]]]]
     ps <- scales[[lp[["resp"]]]]
     rs <- if (multi) lp[["resp"]] else ""

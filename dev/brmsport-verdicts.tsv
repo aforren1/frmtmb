@@ -577,9 +577,9 @@ standata:740	frmtmb	cannot transfer	lf() takes no cmc argument
 standata:744	frmtmb	cannot transfer	bf() takes no cmc argument
 standata:745	frmtmb	cannot transfer	bf() takes no cmc argument, and Z_1_1 is Stan data
 standata:928	frmtmb	defect	y ~ . is not expanded: frm() dies with R's ''.' in formula and no data argument' on the fit route and the frame route alike, where brms expands the dot against the data (dev/brmsport-probe3.R)
-standata:970	frmtmb	cannot transfer	frmtmb has no reserved Intercept variable, so 0 + intercept dies with R's object 'intercept' not found
-standata:974	frmtmb	cannot transfer	frmtmb has no reserved intercept variable
-standata:976	frmtmb	cannot transfer	frmtmb has no reserved Intercept variable: y ~ 0 + Intercept dies with R's object 'Intercept' not found
+standata:970	frmtmb	cannot transfer	frmtmb reserves Intercept but refuses brms's deprecated lower-case intercept by name and asks for Intercept, where brms accepts it with a deprecation warning
+standata:974	frmtmb	cannot transfer	0 + intercept is refused (standata:970), so there is no intercept column to read
+standata:976	frmtmb	pass	
 standata:1047	frmtmb	cannot transfer	frmtmb has no rate() addition term
 standata:1060	frmtmb	pass	
 standata:1063	frmtmb	cannot transfer	frmtmb has no thres() addition term (dev/brms-suite-audit.md section 5)

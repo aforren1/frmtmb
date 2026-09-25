@@ -964,6 +964,91 @@ expand_double_verts <- function(form) {
   form
 }
 
+#' The right-hand side `e` with brms's reserved `Intercept` term and
+#' every intercept-removing `0` or `- 1` taken out of its top-level sum,
+#' or `NULL` when nothing is left.
+#'
+#' @noRd
+strip_rsv_intercept <- function(e) {
+  is_num <- function(z, v) is.numeric(z) && length(z) == 1L && z %in% v
+  if (identical(e, as.name("Intercept")) || is_num(e, 0)) return(NULL)
+  if (is.call(e) && identical(e[[1L]], as.name("+"))) {
+    if (length(e) == 2L) return(strip_rsv_intercept(e[[2L]]))
+    a <- strip_rsv_intercept(e[[2L]])
+    b <- strip_rsv_intercept(e[[3L]])
+    if (is.null(a)) return(b)
+    if (is.null(b)) return(a)
+    return(call("+", a, b))
+  }
+  if (is.call(e) && identical(e[[1L]], as.name("-"))) {
+    if (length(e) == 2L && is_num(e[[2L]], 1)) return(NULL)
+    if (length(e) == 3L && is_num(e[[3L]], c(0, 1))) {
+      return(strip_rsv_intercept(e[[2L]]))
+    }
+    if (length(e) == 3L) {
+      return(call("-", strip_rsv_intercept(e[[2L]]) %||% 1, e[[3L]]))
+    }
+  }
+  e
+}
+
+#' brms's reserved `Intercept` in a fixed-effect formula, read as the
+#' formula with an intercept, or `NULL` when the formula does not use it.
+#'
+#' brms reserves `Intercept` in a formula that removes the intercept
+#' (brms 2.23.0 `has_rsv_intercept()`): `y ~ 0 + Intercept + x` gets a
+#' column of ones named `Intercept` and treatment contrasts for its
+#' factors, as if the intercept were there, so the likelihood is that of
+#' `y ~ 1 + x`. The one difference is that the intercept is then an
+#' ordinary population-level coefficient: brms does not center the
+#' design for it, and a class "b" prior reaches it where a class
+#' "Intercept" prior does not. So the formula is rewritten here to the
+#' one with an intercept, and the caller marks the linear predictor
+#' `center = FALSE`, which is also what `bf(center = FALSE)` sets.
+#'
+#' `pos` is the number of terms written before `Intercept`. brms's design
+#' puts the column there, after the columns of those terms, and the frame
+#' moves it there so the coefficients come in brms's order.
+#'
+#' Only `Intercept` as a term of its own is read. Inside another term
+#' (`Intercept:x`, `I(2 * Intercept)`) brms multiplies by its column of
+#' ones, which spells a different term; that is refused by name rather
+#' than guessed. So is brms's deprecated lower-case `intercept`.
+#'
+#' @noRd
+rsv_intercept_fixed <- function(fixed) {
+  vars <- all.vars(fixed)
+  if (!any(c("Intercept", "intercept") %in% vars)) return(NULL)
+  tt <- tryCatch(stats::terms(fixed), error = function(e) NULL)
+  if (is.null(tt) || attr(tt, "intercept") != 0L) return(NULL)
+  if ("intercept" %in% vars) {
+    frm_stop("`intercept` in a formula without an intercept is brms's ",
+             "deprecated spelling of the reserved variable `Intercept`, and ",
+             "frmtmb does not read it: write 0 + Intercept for an intercept ",
+             "that is an ordinary coefficient, or rename the data column ",
+             "if `intercept` is a covariate", call. = FALSE)
+  }
+  labs <- attr(tt, "term.labels")
+  k <- match("Intercept", labs)
+  rhs <- strip_rsv_intercept(reformulas::RHSForm(fixed))
+  new <- stats::as.formula(call("~", if (is.null(rhs)) 1 else {
+    call("+", 1, rhs)
+  }), env = environment(fixed))
+  tn <- tryCatch(stats::terms(new), error = function(e) NULL)
+  if (is.na(k) || is.null(tn) || "Intercept" %in% all.vars(new) ||
+        attr(tn, "intercept") != 1L ||
+        !identical(attr(tn, "term.labels"), labs[-k])) {
+    frm_stop("`Intercept` is brms's reserved intercept only as a term of ",
+             "its own in a formula without an intercept, as in ",
+             "y ~ 0 + Intercept + x. '", deparse1(reformulas::RHSForm(fixed)),
+             "' uses it inside another term or in a form frmtmb cannot ",
+             "read. Write that term without it (Intercept:x is x), or ",
+             "rename the data column if `Intercept` is a covariate",
+             call. = FALSE)
+  }
+  list(fixed = new, pos = k - 1L)
+}
+
 #' Split one linear-predictor RHS (a one-sided formula) into a parametric
 #' fixed formula, random-effect terms (reformulas), and mgcv smooth
 #' specifications. `shared` is the response-level environment that keeps
@@ -1394,10 +1479,22 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
 
   fixed <- sf$fixedFormula
   environment(fixed) <- env_lp
-  list(fixed = fixed, re = re, smooth = smooth, mo = mo,
-       miterms = miterms, csterms = csterms, gpterms = gpterms,
-       carterms = carterms, spdeterms = spdeterms, acterms = acterms,
-       rhs = rhs_form)
+  rsv <- rsv_intercept_fixed(fixed)
+  if (!is.null(rsv)) {
+    fixed <- rsv$fixed
+    # `rhs` is where a variable scan looks, and `Intercept` is not data
+    reformulas::RHSForm(rhs_form) <- call(
+      "+", 1, strip_rsv_intercept(reformulas::RHSForm(rhs_form)) %||% 1)
+  }
+  out <- list(fixed = fixed, re = re, smooth = smooth, mo = mo,
+              miterms = miterms, csterms = csterms, gpterms = gpterms,
+              carterms = carterms, spdeterms = spdeterms,
+              acterms = acterms, rhs = rhs_form)
+  if (!is.null(rsv)) {
+    out$center <- FALSE
+    out$rsv_intercept <- rsv$pos
+  }
+  out
 }
 
 #' Lift the response's residual-correlation term out of its linear
@@ -1865,6 +1962,16 @@ parse_one_response <- function(bform) {
   main_lp <- if (!primaries[1L] %in% nl_dpars) {
     parse_linpred(reformulas::RHSForm(f, as.form = TRUE), env, shared_env)
   }
+  if (!is.null(main_lp[["rsv_intercept"]]) &&
+        isTRUE(fam[["drop_intercept"]])) {
+    frm_stop("0 + Intercept removes the intercept of an ordinal model, ",
+             "whose thresholds take its place; brms refuses it too. Drop ",
+             "both terms: ", deparse1(ri$resp), " ~ x keeps the thresholds ",
+             "as the intercept", call. = FALSE)
+  }
+  # brms's bf(center = FALSE) is the location formula's alone; a
+  # parameter formula takes its own from lf(center = FALSE)
+  if (!is.null(main_lp) && isFALSE(bform$center)) main_lp$center <- FALSE
 
   # A family may ship a DEFAULT formula for some of its own dpars, which
   # stands in wherever the user wrote neither a formula nor a fixed
@@ -1893,6 +2000,7 @@ parse_one_response <- function(bform) {
     pf <- pforms[[nm]]
     lp <- parse_linpred(reformulas::RHSForm(pf, as.form = TRUE),
                         environment(pf) %||% env, shared_env)
+    if (isFALSE(attr(pf, "center", exact = TRUE))) lp$center <- FALSE
     c(list(name = nm, link = link, constant = NULL), lp)
   }
 

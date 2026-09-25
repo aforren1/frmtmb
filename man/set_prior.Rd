@@ -169,8 +169,11 @@ does (\code{means_X}, \code{means_X_sigma}, ...). A NONLINEAR parameter's
 sub-formula is not centered on either side, and neither are a
 smooth's unpenalized columns or a \code{mo()} term, which sit outside
 brms's \code{Xc} as well. To put a density on the intercept at zero, name
-it as a coefficient instead: \verb{class = "b", coef = "Intercept"},
-which is also how a \code{brms::bf(center = FALSE)} model's prior arrives.
+it as a coefficient instead: \verb{class = "b", coef = "Intercept"}.
+A formula written \code{0 + Intercept + x}, or \code{bf(center = FALSE)}, makes
+that the intercept's only prior slot, as brms does: the intercept is
+then class \code{"b"} and a class \code{"b"} prior without a coef reaches it
+too, while class \code{"Intercept"} has no slot and is refused.
 }
 
 \section{Ordinal thresholds}{
@@ -180,7 +183,8 @@ column: the thresholds replace it. brms priors them as its
 \code{Intercept} class and so does frmtmb, so
 \code{set_prior("student_t(3, 0, 2.5)", class = "Intercept")} on an
 ordinal model addresses the whole threshold vector. It addresses the
-THRESHOLDS, at the mean of the predictors, with the log-Jacobian of
+THRESHOLDS, at the mean of the predictors (at zero under
+\code{bf(center = FALSE)}, as in brms), with the log-Jacobian of
 the map from frmtmb's internal storage; \code{cumulative()} and
 \code{sratio()} hold \verb{(tau_1, log increments)}, which is the same map
 Stan's \code{ordered} type applies, and \code{cratio()} and \code{acat()} hold the

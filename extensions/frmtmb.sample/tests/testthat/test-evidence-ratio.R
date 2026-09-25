@@ -208,3 +208,30 @@ test_that("the flat-prior advice on a multivariate fit names resp", {
                  "coef = \"x\", resp = \"y1\")")
   expect_warning(hypothesis(ds, "y1_x = 0"), want, fixed = TRUE)
 })
+
+# The advice names the class brms gives the intercept: "Intercept" for a
+# centered one, "b" with coef "Intercept" for 0 + Intercept, where a
+# class "Intercept" prior is refused.
+er_slot_data <- function() {
+  set.seed(23)
+  d <- data.frame(x = stats::rnorm(30))
+  d$y <- 1 + d$x + stats::rnorm(30)
+  d
+}
+
+test_that("the flat-prior advice for a centered intercept has no stray field", {
+  # it used to read `class = "Intercept",  = ""` on a univariate model
+  uf <- frm(bf(y ~ x), data = er_slot_data(), dry_run = "objective")
+  expect_identical(
+    frmtmb.sample:::er_slot_spelling(uf, list(comp = "beta", idx = 1L)),
+    "set_prior(\"normal(0, 1)\", class = \"Intercept\")")
+})
+
+test_that("the flat-prior advice for a 0 + Intercept intercept is class b", {
+  uf <- frm(bf(y ~ 0 + Intercept + x), data = er_slot_data(),
+            dry_run = "objective")
+  expect_identical(
+    frmtmb.sample:::er_slot_spelling(uf, list(comp = "beta", idx = 1L)),
+    paste0("set_prior(\"normal(0, 1)\", class = \"b\", ",
+           "coef = \"Intercept\")"))
+})
