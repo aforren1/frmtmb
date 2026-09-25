@@ -2036,7 +2036,9 @@ parse_one_response <- function(bform) {
   }
   # brms's bf(center = FALSE) is the location formula's alone; a
   # parameter formula takes its own from lf(center = FALSE)
-  if (!is.null(main_lp) && isFALSE(bform$center)) main_lp$center <- FALSE
+  if (!is.null(main_lp) && isFALSE(bform[["center"]])) {
+    main_lp[["center"]] <- FALSE
+  }
 
   # A family may ship a DEFAULT formula for some of its own dpars, which
   # stands in wherever the user wrote neither a formula nor a fixed
@@ -2065,7 +2067,7 @@ parse_one_response <- function(bform) {
     pf <- pforms[[nm]]
     lp <- parse_linpred(reformulas::RHSForm(pf, as.form = TRUE),
                         environment(pf) %||% env, shared_env)
-    if (isFALSE(attr(pf, "center", exact = TRUE))) lp$center <- FALSE
+    if (isFALSE(attr(pf, "center", exact = TRUE))) lp[["center"]] <- FALSE
     c(list(name = nm, link = link, constant = NULL), lp)
   }
 
