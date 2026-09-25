@@ -1,0 +1,5 @@
+frmtmb from /opt/rlib/lane-thres/frmtmb 
+
+== flat priors: brms log_prob vs frmtmb logLik at the MLE ==
+cumulative brms -312.9682702218 frmtmb -312.9682702218 rel 0.00e+00 max|grad| 3.32e-04
+sratio     brms -313.0103647481 frmtmb -313.0103647481 rel 0.00e+00 max|grad| 5.44e-01

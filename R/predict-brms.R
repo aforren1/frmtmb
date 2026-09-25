@@ -473,9 +473,11 @@ predict_simulate <- function(object, rspecs, newdata, re_formula,
     }
     av[[nm]] <- if (is.null(newdata)) {
       object$frame[["aterm_values"]][[rspec$resp_name]]
-    } else if (has_trunc(rspec)) {
+    } else if (has_trunc(rspec) || "thres_gr" %in% names(rspec$aterms)) {
       # truncation bounds must follow the newdata rows, or the draws
-      # land outside the support the likelihood was normalized on
+      # land outside the support the likelihood was normalized on; so
+      # must a row's group under grouped thresholds, which picks the
+      # thresholds it is drawn from
       aterms_for_newdata(rspec, newdata)
     } else {
       list()

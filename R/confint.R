@@ -2185,10 +2185,13 @@ hyp_put_ordinal <- function(fit, vals, comp, put) {
     }, fit$frame[["linpreds"]])
     if (length(ord_lps) == 1L) {
       lp <- ord_lps[[1L]]
-      th <- ord_threshold_values(brms_lp_family(fit, lp), raw)
+      fam <- brms_lp_family(fit, lp)
+      th <- ord_threshold_values(fam, raw)
       pre <- brms_lp_prefix(fit, lp)
+      lab <- thres_labels(fam, length(th))
       for (k in seq_along(th)) {
-        put(paste0("b_", brms_usc(pre, "Intercept"), "[", k, "]"), th[k])
+        put(paste0("b_", brms_usc(pre, "Intercept"), "[", lab[k], "]"),
+            th[k])
       }
     }
   }

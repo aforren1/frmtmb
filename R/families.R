@@ -3191,7 +3191,9 @@ fam_cumulative <- function(link = "logit") {
   q <- lk[["logit_eta"]]
   fam <- frmtmb_family(
     "cumulative",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "thres"),
+    family_finalize = thres_finalizer("cumulative", ordered = TRUE,
+                                      link = lk),
     dpars = "mu",
     links = list(mu = "identity"),
     lpdf = function(y, dpars, aterms, extra) {
@@ -3326,11 +3328,11 @@ ord_valid_y <- function(name) {
 
 #' Starting values for the K-1 ordinal thresholds, from the observed
 #' cumulative category frequencies. With `ordered = TRUE` they come back
-#' in the (first threshold, log increments) parameterization.
+#' in the (first threshold, log increments) parameterization. `K` is
+#' larger than `max(y)` when `thres(x = )` names categories nobody chose.
 #'
 #' @noRd
-ord_tau_init <- function(y, ordered = TRUE, link = "logit") {
-  K <- max(y)
+ord_tau_init <- function(y, ordered = TRUE, link = "logit", K = max(y)) {
   p <- cumsum(tabulate(y, K) / length(y))[-K]
   p <- pmin(pmax(p, 0.01), 0.99)
   # the thresholds live on the link's own scale, so the observed
@@ -3578,7 +3580,8 @@ fam_sratio <- function(link = "logit") {
   lg <- ord_log_cdf_pair(lk)
   fam <- frmtmb_family(
     "sratio",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "thres"),
+    family_finalize = thres_finalizer("sratio", ordered = TRUE, link = lk),
     dpars = "mu",
     links = list(mu = "identity"),
     lpdf = function(y, dpars, aterms, extra) {
@@ -3638,7 +3641,8 @@ fam_cratio <- function(link = "logit") {
   }
   fam <- frmtmb_family(
     "cratio",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "thres"),
+    family_finalize = thres_finalizer("cratio", ordered = FALSE, link = lk),
     dpars = "mu",
     links = list(mu = "identity"),
     lpdf = function(y, dpars, aterms, extra) {
@@ -3685,7 +3689,8 @@ fam_acat <- function(link = "logit") {
   lk <- acat_link(link)
   fam <- frmtmb_family(
     "acat",
-    accepts_aterms = "weights",
+    accepts_aterms = c("weights", "thres"),
+    family_finalize = thres_finalizer("acat", ordered = FALSE, link = lk),
     dpars = "mu",
     links = list(mu = "identity"),
     lpdf = function(y, dpars, aterms, extra) {

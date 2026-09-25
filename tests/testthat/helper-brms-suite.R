@@ -501,6 +501,16 @@ brms_standata_view <- function(fr) {
   }
   tau <- fr$par_template$tau_raw
   if (!is.null(tau)) out$nthres <- length(tau)
+  # grouped thresholds, thres(gr = ): brms's per-group counts and the
+  # [start, end] slice of the merged vector each row reads
+  th <- fr$spec$responses[[1L]]$family[["thres"]]
+  if (isTRUE(th[["grouped"]])) {
+    out$nthres <- as.array(th[["nthres"]])
+    out$ngrthres <- length(th[["nthres"]])
+    end <- cumsum(th[["nthres"]])
+    J <- cbind(Kthres_start = end - th[["nthres"]] + 1L, Kthres_end = end)
+    out$Jthres <- J[fr$aterm_values[[1L]][["thres_gr"]], , drop = FALSE]
+  }
   out
 }
 

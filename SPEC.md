@@ -420,9 +420,9 @@ refit. Tapes do not serialize; `strip_tape(fit)` and `retape(fit)` handle
 frmtmb reimplements a documented subset of the brms grammar with identical
 spelling: `bf()`, `lf()`, `nlf()`, `mvbf()`, `set_rescor()`, dpar formulas,
 `nl = TRUE`, aterm names (`weights`, `trials`, `cens`, `trunc`, `se`,
-`rate`), RE specials (`gr`, `mm`), and `s()`/`t2()`. Unsupported brms terms
-fail at parse time with a clear message naming the term. brms code ports
-mechanically, priors included: `frm()`, `frm_sample()` and
+`rate`, `thres`), RE specials (`gr`, `mm`), and `s()`/`t2()`. Unsupported
+brms terms fail at parse time with a clear message naming the term. brms
+code ports mechanically, priors included: `frm()`, `frm_sample()` and
 `frm_simulate()` spell the argument `prior`, as brms does; `prior()`,
 `prior_()` and `prior_string()` build the specification `set_prior()`
 does, and a prior object brms itself built is translated row by row,

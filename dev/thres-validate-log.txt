@@ -1,0 +1,36 @@
+frmtmb from /opt/rlib/lane-thres/frmtmb 
+
+== 1. frmtmb objective vs brms densities at a shared point ==
+cumulative logit    frmtmb -320.971733615564 brms -320.971733615564 rel 5.313e-16
+cumulative probit   frmtmb -352.235618992248 brms -352.235618992248 rel 3.228e-16
+cumulative cauchit  frmtmb -320.226039178067 brms -320.226039178067 rel 1.775e-16
+sratio     logit    frmtmb -359.947552754553 brms -359.947552754553 rel 3.158e-16
+sratio     probit   frmtmb -405.636057698747 brms -405.636057698747 rel 2.803e-16
+cratio     logit    frmtmb -359.947552754553 brms -359.947552754553 rel 3.158e-16
+cratio     probit   frmtmb -405.636057698747 brms -405.636057698747 rel 2.803e-16
+acat       logit    frmtmb -357.650855471611 brms -357.650855471611 rel 1.589e-16
+
+== 2. MASS::polr per group, group-specific slopes ==
+frmtmb -763.3918321075 polr sum -763.3918321069 rel 7.629e-13
+thresholds, max |frmtmb - polr| / max|polr|: 3.24e-06 
+                   frmtmb       polr
+Intercept[a,1] -1.0502702 -1.0502711
+Intercept[a,2]  0.1662690  0.1662650
+Intercept[a,3]  1.2370182  1.2370129
+Intercept[b,1] -0.5927277 -0.5927263
+Intercept[b,2]  0.4957248  0.4957239
+Intercept[c,1] -1.5460467 -1.5460493
+Intercept[c,2] -0.5748098 -0.5748112
+Intercept[c,3]  0.3913524  0.3913504
+Intercept[c,4]  1.6303523  1.6303487
+
+== 3. ordinal::clm, shared slope, nominal = ~ g ==
+frmtmb -740.0992040582 clm -740.0992040564 rel 2.373e-12
+slope frmtmb 0.81822529 clm 0.81822544
+thresholds, max |frmtmb - clm|: 3.27e-06 
+
+== 4. thres(x = 5) without groups, brms density at a point ==
+cumulative nthres 5 frmtmb -365.446356239605 brms -365.446356239605 rel 1.555e-16
+sratio     nthres 5 frmtmb -302.169576795785 brms -302.169576795785 rel 0.000e+00
+cratio     nthres 5 frmtmb -302.169576795785 brms -302.169576795785 rel 0.000e+00
+acat       nthres 5 frmtmb -340.113170217489 brms -340.113170217489 rel 0.000e+00

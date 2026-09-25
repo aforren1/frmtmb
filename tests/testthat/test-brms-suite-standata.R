@@ -681,14 +681,12 @@ test_that("standata handles grouped ordinal thresholds correctly", {
   brms_setup("standata:1062",
     sdata <- standata(y | thres(5) ~ x, dat, cumulative())
   )
-  brms_port("standata:1063", "cannot transfer",
-    paste0(
-      "frmtmb has no thres() addition term ",
-      "(dev/brms-suite-audit.md section 5)"),
+  brms_port("standata:1063", "pass",
+    "",
     expect_equal(sdata$nthres, 5)
   )
-  brms_port("standata:1065", "cannot transfer",
-    "frmtmb has no thres() addition term",
+  brms_port("standata:1065", "pass",
+    "",
     expect_error(
       standata(y | thres(th) ~ x, dat, cumulative()),
       "Number of thresholds needs to be a single value"
@@ -697,52 +695,42 @@ test_that("standata handles grouped ordinal thresholds correctly", {
   brms_setup("standata:1071",
     sdata <- standata(y | thres(th, gr) ~ x, dat, cumulative())
   )
-  brms_port("standata:1072", "cannot transfer",
-    "frmtmb has no thres() addition term",
+  brms_port("standata:1072", "pass",
+    "",
     expect_equal(sdata$nthres, as.array(c(5, 6)))
   )
-  brms_port("standata:1073", "cannot transfer",
-    paste0(
-      "frmtmb has no thres() addition term; ngrthres is also Stan ",
-      "data"),
+  brms_port("standata:1073", "pass",
+    "",
     expect_equal(sdata$ngrthres, 2)
   )
-  brms_port("standata:1074", "cannot transfer",
-    paste0(
-      "frmtmb has no thres() addition term; Jthres is also Stan ",
-      "data"),
+  brms_port("standata:1074", "pass",
+    "",
     expect_equal(unname(sdata$Jthres[1, ]), c(1, 5))
   )
-  brms_port("standata:1075", "cannot transfer",
-    paste0(
-      "frmtmb has no thres() addition term; Jthres is also Stan ",
-      "data"),
+  brms_port("standata:1075", "pass",
+    "",
     expect_equal(unname(sdata$Jthres[10, ]), c(6, 11))
   )
   brms_setup("standata:1077",
     sdata <- standata(y | thres(gr = gr) ~ x, dat, cumulative())
   )
-  brms_port("standata:1078", "cannot transfer",
-    "frmtmb has no thres() addition term",
+  brms_port("standata:1078", "pass",
+    "",
     expect_equal(sdata$nthres, as.array(c(4, 3)))
   )
-  brms_port("standata:1079", "cannot transfer",
-    paste0(
-      "frmtmb has no thres() addition term; ngrthres is also Stan ",
-      "data"),
+  brms_port("standata:1079", "pass",
+    "",
     expect_equal(sdata$ngrthres, 2)
   )
   brms_setup("standata:1081",
     sdata <- standata(y | thres(6, gr = gr) ~ x, dat, cumulative())
   )
-  brms_port("standata:1082", "cannot transfer",
-    "frmtmb has no thres() addition term",
+  brms_port("standata:1082", "pass",
+    "",
     expect_equal(sdata$nthres, as.array(c(6, 6)))
   )
-  brms_port("standata:1083", "cannot transfer",
-    paste0(
-      "frmtmb has no thres() addition term; ngrthres is also Stan ",
-      "data"),
+  brms_port("standata:1083", "pass",
+    "",
     expect_equal(sdata$ngrthres, 2)
   )
 })

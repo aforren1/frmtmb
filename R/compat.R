@@ -837,7 +837,7 @@ compat_features_build <- function(extra = NULL) {
     lapply(fams, f, kind = "family"),
     lapply(covs, f, kind = "covstruct"),
     lapply(c("weights()", "trials()", "cens()", "trunc()", "se()",
-             "mi()", "vint()", "vreal()"), f, kind = "aterm"),
+             "mi()", "vint()", "vreal()", "thres()"), f, kind = "aterm"),
     lapply(c("s()", "t2()", "mo()", "mi_pred()", "gp_pred()",
              "cs_pred()", "ps()"), f, kind = "special"),
     # R-side (within-group residual) correlation terms. They carry no
@@ -1319,6 +1319,46 @@ compat_hand_rules_tbl <- function() {
     "Required. The row sums of the response matrix must equal the trials.")
   r("trials()", "binomial", "works",
     "Also accepted as the glm spelling cbind(successes, failures), which is rewritten to successes | trials(successes + failures); the two fits are identical. The two spellings cannot be combined.")
+
+  ## thres() -------------------------------------------------------------
+  r("thres()", "kind:family", "refused",
+    "Refused by name: thres() sets the number of thresholds of an ordinal family, and any other family has none.")
+  r("thres()", "group:ordinal", "works",
+    "thres(x = K) sets the number of thresholds; thres(gr = g) gives each level of g a threshold vector of its own, merged as brms merges them, with a count per level. The log-likelihood agrees with brms's own densities at a shared parameter point to about 5e-16, relative, for all four families under the logit, probit and cauchit links, and with MASS::polr fitted per group and ordinal::clm(nominal = ~ g) at the optimum to about 3e-12 (dev/thres-validate.R). Thresholds above a level's highest observed category are not identified without a prior on class Intercept, and the fit warns about them.")
+  r("thres()", "weights()", "works",
+    "Verified: weights of 2 give the fit of the duplicated data, to the last printed digit.")
+  r("thres()", "cs_pred()", "conditional",
+    "thres(x = K) takes cs(), with one coefficient per threshold. thres(gr = ) with cs() is refused, as brms refuses it: the threshold positions differ by group.")
+  r("thres()", "mo()", "works",
+    "Verified by a tiny fit. mo() changes only the latent predictor.")
+  for (at in c("cens()", "trunc()", "se()", "trials()", "mi()")) {
+    r("thres()", at, "refused",
+      "Refused: the ordinal families that thres() belongs to do not take this term.")
+  }
+  r("thres()", "mvbf", "refused",
+    "Refused with every ordinal family: families with extra parameters are not supported in multivariate fits yet.")
+  r("thres()", "mixture", "refused",
+    "Refused with every ordinal family: an ordinal family is not a mixture component.")
+  r("thres()", "REML", "works",
+    "Verified by a tiny fit with a random intercept.")
+  r("thres()", "quadrature", "works",
+    "Verified by a tiny fit with a random intercept.")
+  r("thres()", "importance", "works",
+    "Verified by a tiny fit with a random intercept.")
+  r("thres()", "profile", "works",
+    "Verified: confint(method = \"profile\") on a slope of a grouped-threshold fit.")
+  r("thres()", "prior", "works",
+    "class = \"Intercept\" reaches every threshold; with group = \"<level>\" it reaches that level's thresholds only, each level an ordered vector of its own. As in brms, the design is not centered under grouped thresholds, so the prior is on the thresholds themselves.")
+  r("thres()", "fitted", "works",
+    "An n x (max count + 1) matrix of category probabilities. Under grouped thresholds a column past a row's own categories is 0, as in brms's posterior_epred(). Newdata must hold the grouping variable, with levels the fit has seen; any other level is refused by name.")
+  r("thres()", "predict", "works",
+    "As fitted(): the columns past a row's own categories are 0, and newdata needs the grouping variable.")
+  r("thres()", "simulate", "works",
+    "Each row is drawn from its own group's thresholds, in sample and on newdata.")
+  r("thres()", "residuals_osa", "conditional",
+    "thres(x = K) works. thres(gr = ) is refused: the one-step density selects the category over one shared set, and here the set differs by group. dharma_residuals() is the check to use.")
+  r("thres()", "emmeans", "works",
+    "The latent-scale means of the ordinal families; the thresholds, grouped or not, do not enter them.")
 
   ## vint() and vreal() --------------------------------------------------
   # override: "nothing checks this" outranks the permissive blanket
