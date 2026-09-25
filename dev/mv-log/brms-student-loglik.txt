@@ -1,0 +1,6 @@
+Compiling Stan program...
+Start sampling
+brms log_lik summed   -444.134618990114
+frmtmb objective      -444.134618990114
+relative difference   2.560e-16
+brms draw nu: 4.618093  frmtmb nu: 4.618093 

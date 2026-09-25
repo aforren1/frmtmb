@@ -868,24 +868,36 @@ autocor_loglik <- function(z, R, ac, log_sigma_sum, nu = NULL) {
       }
       next
     }
-    # multivariate Student-t with scale matrix R (brms's
-    # multi_student_t_lpdf): log|R| comes from the gaussian density at
-    # the origin, which avoids needing a Cholesky of an advector matrix
-    Z <- RTMB::matrix(zs, k, pt$G)
-    l0 <- RTMB::dmvnorm(0 * Z[, 1], 0, Rp, log = TRUE)
-    half_ldet <- -(l0 + 0.5 * k * log(2 * pi))
-    tZ <- t(Z)
-    qv <- as.vector(((tZ %*% RTMB::solve(Rp)) * tZ) %*% rep(1, k))
-    # both halves have to survive a large nu, which is how this block
-    # reduces to its gaussian limit: lgamma_shift_diff() for the head,
-    # where the two lgamma() values agree in every leading digit, and
-    # log1p() for the tail, which is multiplied by (nu + k) / 2 and so
-    # amplifies the rounding of 1 + qv/nu by that same factor
-    ll <- ll + pt$G * (lgamma_shift_diff(nu / 2, k / 2) -
-                         0.5 * k * (log(nu) + log(pi)) - half_ldet) -
-      0.5 * (nu + k) * sum(log1p(qv / nu))
+    ll <- ll + mvt_std_loglik(t(RTMB::matrix(zs, k, pt$G)), Rp, nu)
   }
   ll
+}
+
+#' Summed log-density of the rows of `tZ` under a standard multivariate
+#' Student-t with scale matrix `R` and shape `nu`: brms's
+#' `multi_student_t_lpdf(z | nu, 0, R)`, one row per independent draw.
+#' The residual scales are NOT in it; a caller that standardized its
+#' residuals subtracts their log once. Shared by the within-group
+#' residual correlation above and the across-response one (`rescor`).
+#' AD-safe.
+#'
+#' @noRd
+mvt_std_loglik <- function(tZ, R, nu) {
+  k <- ncol(R)
+  G <- nrow(tZ)
+  # log|R| comes from the gaussian density at the origin, which avoids
+  # needing a Cholesky of an advector matrix
+  l0 <- RTMB::dmvnorm(0 * tZ[1, ], 0, R, log = TRUE)
+  half_ldet <- -(l0 + 0.5 * k * log(2 * pi))
+  qv <- as.vector(((tZ %*% RTMB::solve(R)) * tZ) %*% rep(1, k))
+  # both halves have to survive a large nu, which is how this block
+  # reduces to its gaussian limit: lgamma_shift_diff() for the head,
+  # where the two lgamma() values agree in every leading digit, and
+  # log1p() for the tail, which is multiplied by (nu + k) / 2 and so
+  # amplifies the rounding of 1 + qv/nu by that same factor
+  G * (lgamma_shift_diff(nu / 2, k / 2) -
+         0.5 * k * (log(nu) + log(pi)) - half_ldet) -
+    0.5 * (nu + k) * sum(log1p(qv / nu))
 }
 
 # ---------------------------------------------------------- reporting

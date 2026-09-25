@@ -27,7 +27,7 @@ eval_dpars(fit, b = fit$estimates[["b"]])
 
 single_response(fit, what)
 
-fit_extras(fit)
+fit_extras(fit, resp = NULL)
 
 dpar_linpred(frame, params, resp, dpar)
 
@@ -57,13 +57,13 @@ family constructor, or a family name.}
 \item{b}{Random-effect vector to evaluate at, defaulting to the fit's
 own estimates. \code{NULL} drops the random-effect contribution.}
 
+\item{resp, dpar}{The response name and the distributional parameter
+name, as \code{eval_dpars()} returns them.}
+
 \item{frame}{A \code{fit$frame}, or the frame a \code{check_fit} slot is given.}
 
 \item{params}{A parameter list in the frame's layout: a fit's
 \code{estimates}, or the starting template a \code{check_fit} slot is given.}
-
-\item{resp, dpar}{The response name and the distributional parameter
-name, as \code{eval_dpars()} returns them.}
 
 \item{...}{Capability flags to override, named as in the \code{supports}
 table of \code{\link[=frmtmb_structure]{frmtmb_structure()}}.}
@@ -131,7 +131,11 @@ modes of a resampled fit. This is the same evaluation
 \item{\code{fit_extras()}}{The family's extra (non-dpar) parameters at
 the estimates, as a named list in the order \code{extra_pars} declared
 them, or \code{NULL} when the family declared none. Item profiles,
-ordinal thresholds and class covariances arrive here.}
+ordinal thresholds and class covariances arrive here. In a
+multivariate model each response's block is stored under a name
+that carries the response; \code{resp} adds that response's block
+back under the names its family declared, which is the list its
+density and simulator read.}
 \item{\code{dpar_linpred()}}{The FIXED-effect part of one dpar's linear
 predictor, on the link scale, at a parameter list in the frame's
 own layout, or \code{NULL} when that response and dpar have no linear

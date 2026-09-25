@@ -1331,8 +1331,10 @@ compat_hand_rules_tbl <- function() {
 
   ## rescor ---------------------------------------------------------------
   r("rescor", "kind:family", "refused",
-    "Refused: rescor = TRUE requires every response to be gaussian.")
+    "Refused: rescor = TRUE requires every response to be gaussian, or every response to be student. A mix of the two is refused as well, as brms refuses it.")
   r("rescor", "gaussian", "works", "")
+  r("rescor", "student", "conditional",
+    "Every response must be student(). The responses share ONE nu, brms's multi_student_t(nu, Mu, Sigma) with Sigma = D C D, so the row density is a multivariate t and a distributional sigma still works; nu is named nu, with no response, in variables(), summary() and priors (set_prior(class = \"nu\") takes no resp). A formula or a constant for nu is refused, as brms refuses it. Verified against mvtnorm::dmvt at a shared parameter point (relative residual 5e-16) and against a hand-written RTMB objective at the ML optimum (dev/mv-validate-student.R). fitted(), predict() (a joint multivariate-t draw) and the refusals of simulate() and residuals() are those of the gaussian rescor model.")
   r("rescor", "cens()", "refused",
     "Refused. This pair was once accepted with the censoring silently dropped.")
   r("rescor", "trunc()", "refused",
@@ -1385,6 +1387,10 @@ compat_hand_rules_tbl <- function() {
     "Verified: profile likelihood tests address the per-response coefficients by their vcov() names (y1_x and so on).")
   r("mvbf", "kind:family", "works",
     "Each response carries its own family unless rescor = TRUE.")
+  r("mvbf", "group:ordinal", "works",
+    "Each ordinal response has its own thresholds, stored under a name that carries the response (o_tau_raw) and reported as brms names them, b_o_Intercept[k]; set_prior(class = \"Intercept\", resp = \"o\") addresses them. |ID| correlates an ordinal response's group effects with another response's. Verified: with no shared random effect the log-likelihood is the sum of the univariate fits' (an identity: residual 0 at a shared parameter point), and with a shared |ID| effect it agrees with a hand-written RTMB objective at a shared point and at the ML optimum (dev/mv-validate-ordinal.R). fitted() stacks the category probabilities as P(Y = k) layers, as brms does; predict() answers one ordinal response at a time.")
+  r("mvbf", "cox", "refused",
+    "Refused: the Cox baseline is an extra parameter block that the post-fit methods read without a response in hand. Fit the survival response in a model of its own.")
   r("mvbf", "kind:aterm", "works",
     "Addition terms are per response.")
   r("mvbf", "|ID|", "works",

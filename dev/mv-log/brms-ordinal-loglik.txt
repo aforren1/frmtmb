@@ -1,0 +1,9 @@
+Compiling Stan program...
+Start sampling
+brms log_lik summed   -400.061086992231
+frmtmb objective      -400.061086992230
+relative difference   1.421e-16
+brms b_o_Intercept: -1.032468 -0.2007506 1.21134 
+frmtmb thresholds:  -1.032468 -0.2007506 1.21134 
+Warning message:
+Dropping 'draws_df' class as required metadata was removed. 

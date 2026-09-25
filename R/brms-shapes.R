@@ -124,9 +124,10 @@ brms_summarize_draws <- function(d, probs = c(0.025, 0.975),
 #' otherwise. The covariance needs that map's derivative, so it is
 #' carried rather than the values alone.
 #'
-#' The thresholds of a model with more than one ordinal response are
-#' left out, as in `hyp_put_ordinal()`: one component holds them all
-#' and nothing says which belongs to which response.
+#' In a multivariate model each ordinal response has its own
+#' threshold block, stored under a name that carries the response
+#' (`extra_tpl_name()`), so each gets its own rows,
+#' `o_Intercept[1]` in brms's spelling.
 #'
 #' @noRd
 brms_extra_fixef <- function(fit) {
@@ -140,15 +141,19 @@ brms_extra_fixef <- function(fit) {
     identical(brms_lp_family(fit, lp)[["type"]], "ordinal") &&
       identical(lp[["dpar"]], "mu")
   }, fit$frame[["linpreds"]])
-  raw <- est[["tau_raw"]]
-  if (length(tpl[["tau_raw"]]) && length(raw) && length(ord_lps) == 1L) {
-    lp <- ord_lps[[1L]]
+  for (lp in ord_lps) {
+    comp <- extra_tpl_name(fit$frame, lp[["resp"]], "tau_raw")
+    raw <- est[[comp]]
+    if (!length(tpl[[comp]]) || !length(raw)) next
     fam <- brms_lp_family(fit, lp)
-    map <- function(r) ord_threshold_values(fam, r)
+    map <- local({
+      fam_ <- fam
+      function(r) ord_threshold_values(fam_, r)
+    })
     v <- map(as.numeric(raw))
     pre <- brms_lp_prefix(fit, lp)
     out[[length(out) + 1L]] <- list(
-      comp = "tau_raw", cls = "b", is_int = TRUE, dp = lp_dp(lp),
+      comp = comp, cls = "b", is_int = TRUE, dp = lp_dp(lp),
       key = coef_block_key(fit, lp),
       names = paste0(brms_usc(pre, "Intercept"), "[", seq_along(v), "]"),
       values = v, raw = as.numeric(raw), map = map)

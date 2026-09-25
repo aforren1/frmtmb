@@ -4,13 +4,18 @@
 \alias{lf}
 \title{Add parameter formulas to a model formula}
 \usage{
-lf(...)
+lf(..., resp = NULL)
 }
 \arguments{
 \item{...}{Two-sided formulas naming the parameter on the left, e.g.
 \code{sigma ~ x} or (with \code{nl = TRUE} on the \code{bf()}) a nonlinear
 parameter's formula \code{a ~ 1 + (1 | g)}, or one-sided formulas named
 by their parameter, \code{sigma = ~ x}.}
+
+\item{resp}{The response the formulas belong to, when the \code{lf()} is
+added to a multivariate formula. \code{NULL} (the default) adds them to
+the \code{bf()} on the left of the \code{+}, which must then be a single
+formula.}
 }
 \value{
 An object of class \code{frmtmb_lf}, to be added to a \code{\link[=bf]{bf()}}.
@@ -24,8 +29,9 @@ formula.
 }
 \details{
 \code{bf(y ~ x) + lf(sigma ~ z)} and \code{bf(y ~ x, sigma ~ z)} give the same
-model. In a multivariate model an \code{lf()} must be added to the \code{bf()}
-of the response it belongs to, before the responses are combined.
+model. In a multivariate model, add an \code{lf()} to the \code{bf()} of the
+response it belongs to, or name that response with \verb{resp =}:
+\code{bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ x) + lf(sigma ~ z, resp = "y3")}.
 }
 \examples{
 # the two spellings are the same model
@@ -34,4 +40,7 @@ bf(y ~ x, sigma ~ z)
 
 # nonlinear parameter formulas can arrive the same way
 bf(y ~ a * exp(-b * x), a ~ 1, nl = TRUE) + lf(b ~ 1 + (1 | g))
+
+# in a multivariate formula, resp = says which response it modifies
+bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ x) + lf(sigma ~ z, resp = "y3")
 }

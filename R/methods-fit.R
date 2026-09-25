@@ -220,6 +220,9 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
          # kind of fit whose families need not agree.
          links = family_links_str(object$spec$responses),
          formula = formula(object), nobs = stats::nobs(object),
+         formulas = if (inherits(object$bform, "frmtmb_mvformula")) {
+           lapply(object$bform$forms, `[[`, "formula")
+         },
          ngrps = ngrps(object),
          data_name = summary_data_name(object),
          group = names(ngrps(object) %||% list()),
@@ -540,9 +543,23 @@ print_summary_block <- function(df, digits = 2) {
 #' @export
 print.summary.frmtmb_fit <- function(x, ...) {
   frm_check_dots(..., .unsupported = brms_print_args)
-  cat(" Family:", x$family[["family"]], "\n")
+  # a multivariate fit's family() is a list of families and its
+  # formula() the first response's, so brms's MV(...) line and one
+  # formula line per response are built here
+  mv_forms <- x$formulas %||% list()
+  if (length(mv_forms) > 1L) {
+    cat(" Family: MV(", paste(vapply(x$family, `[[`, "", "family"),
+                              collapse = ", "), ") \n", sep = "")
+  } else {
+    cat(" Family:", x$family[["family"]], "\n")
+  }
   cat_family_links(x$links %||% family_link_str(x$family))
-  cat("Formula:", deparse1(x$formula), "\n")
+  if (length(mv_forms) > 1L) {
+    cat("Formula: ", paste(vapply(mv_forms, deparse1, ""),
+                           collapse = " \n         "), " \n", sep = "")
+  } else {
+    cat("Formula:", deparse1(x$formula), "\n")
+  }
   cat("   Data:", x$data_name,
       paste0("(Number of observations: ", x$nobs, ")"), "\n")
   cat(" Method:", x$algorithm,
@@ -1031,7 +1048,9 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
         )
       }
       thr <- Filter(function(e) {
-        identical(e$comp, "tau_raw") && identical(e$key, key)
+        identical(e$comp, extra_tpl_name(object$frame, lp[["resp"]],
+                                         "tau_raw")) &&
+          identical(e$key, key)
       }, rows$extra)
       for (j in seq_len(cp$dim)) {
         cn <- cp$cnms[j]

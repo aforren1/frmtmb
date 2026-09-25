@@ -4,7 +4,7 @@
 \alias{nlf}
 \title{Add a nonlinear parameter formula to a model formula}
 \usage{
-nlf(formula, ..., loop = NULL)
+nlf(formula, ..., resp = NULL, loop = NULL)
 }
 \arguments{
 \item{formula}{A two-sided formula naming the parameter on the left
@@ -12,6 +12,9 @@ and its nonlinear body on the right, e.g. \code{sigma ~ a * exp(b * x)}.}
 
 \item{...}{Further two-sided formulas, treated as LINEAR parameter
 formulas exactly as if passed to \code{\link[=lf]{lf()}} - the brms convention.}
+
+\item{resp}{The response the formulas belong to, when the \code{nlf()} is
+added to a multivariate formula, as in \code{\link[=lf]{lf()}}.}
 
 \item{loop}{Accepted for brms source compatibility and ignored.
 frmtmb evaluates a nonlinear body once over whole vectors, which is
@@ -59,9 +62,9 @@ needs no \verb{RTMB::} prefix. See the "What a nonlinear body sees"
 section of \code{\link[=frm]{frm()}} for the whole rule, including the \verb{stats::} escape
 hatch.
 
-Like \code{\link[=lf]{lf()}}, an \code{nlf()} in a multivariate model must be added to the
-\code{bf()} of the response it belongs to, before the responses are
-combined.
+Like \code{\link[=lf]{lf()}}, an \code{nlf()} in a multivariate model is added to the
+\code{bf()} of the response it belongs to, or names that response with
+\verb{resp =}.
 }
 \examples{
 # the composed spelling of a nonlinear model

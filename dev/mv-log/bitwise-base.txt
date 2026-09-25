@@ -1,0 +1,10 @@
+cumulative fn 0x1.5040a281999c7p+7 
+cumulative gr -0x1.523b2eab523c8p+4 0x1.e2d27e3769d44p+2 0x1.016d87f90b6a6p+0 -0x1.9e33c29c9069p+1 -0x1.41e18b7d33e1fp+0 
+acat fn 0x1.775aa150a7d92p+7 
+acat gr -0x1.aca57443198bfp+5 -0x1.1682cd67746dp+4 -0x1.59236a9f787p-1 0x1.24820ffa14e13p+4 
+mv_gauss fn 0x1.9c26f9543c06bp+8 
+mv_gauss gr -0x1.930d5e8811a6ap-1 -0x1.6e9c3a8a8e7a3p+5 0x1.9f7e1e894e7f8p+0 -0x1.952687276370bp+5 0x1.bb473e4da227p+0 -0x1.45be739a262cep+3 0x1.1df704cb4d3d7p+3 0x1.31e58f42dee84p+3 
+rescor fn 0x1.8ac99d0359a3ap+8 
+rescor gr -0x1.a30dfe2a3a6dep+2 -0x1.7f230b31c5c7fp+5 0x1.c50b080e7be18p+3 -0x1.80689ec1f280dp+5 0x1.1d24181d2ab99p+1 -0x1.d6001a5041c55p+2 -0x1.8aefd51ceb50ep+4 
+Error: ar(): time points within groups must be unique; group '1' has 2 rows at time '1'. Aggregate the repeated rows, or add the replicate to the grouping variable.
+Execution halted

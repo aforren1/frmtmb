@@ -1718,7 +1718,8 @@ prior_table <- function(spec, frame, route) {
     # location dpars are the default target (dpar = ""), matching
     # set_prior()'s resolution
     dpar_lab <- lp_prior_dpar(rspec, lp[["dpar"]])
-    resp_lab <- if (multi) lp[["resp"]] else ""
+    # the shared nu of a Student-t rescor model has no response
+    resp_lab <- if (multi && !isTRUE(lp[["shared"]])) lp[["resp"]] else ""
     nl_lab <- if (lp[["dpar"]] %in% (rspec$nlpars %||% character(0))) {
       lp[["dpar"]]
     } else {
@@ -1757,7 +1758,8 @@ prior_table <- function(spec, frame, route) {
       add("Intercept", dpar = dpar_lab, resp = resp_lab)
     } else if (!nzchar(dpar_lab) &&
                  identical(rspec$family[["type"]], "ordinal") &&
-                 length(frame[["par_template"]][["tau_raw"]] %||%
+                 length(frame[["par_template"]][[
+                   extra_tpl_name(frame, rspec$resp_name, "tau_raw")]] %||%
                           numeric(0))) {
       # an ordinal family has no intercept column: the thresholds
       # replace it, and class "Intercept" is what addresses them here as
@@ -2603,7 +2605,8 @@ resolve_priorlist <- function(fit, pl) {
       # replace it, and a bare class = "Intercept" reaches them. Saying
       # so here is the difference between "this model has no such slot"
       # and "you narrowed the row past the slot it has"
-      hint <- if (s$class == "Intercept" && has_ordinal_thresholds(fit)) {
+      hint <- if (s$class == "Intercept" &&
+                    has_ordinal_thresholds(fit, s$resp)) {
         paste0(". On an ordinal family the thresholds ARE the ",
                "intercept, and a bare class = \"Intercept\" with no ",
                "coef, dpar or nlpar addresses the whole threshold ",
@@ -2718,10 +2721,16 @@ resolve_priorlist <- function(fit, pl) {
   # the default student_t there. frmtmb holds them in `tau_raw`, which
   # had no class spelling at all, so the row used to reach the resolver
   # and stop with a bare "Prior target not found".
+  # A multivariate model holds each ordinal response's thresholds under
+  # a name of its own, and there the specification always carries resp
+  # (resp_missing_refusal() has refused it otherwise).
   ordinal_threshold_entry <- function(s) {
-    raw <- frame[["par_template"]][["tau_raw"]] %||% numeric(0)
-    if (!length(raw) || length(fit$spec$responses) != 1L) return(NULL)
-    rspec <- fit$spec$responses[[1L]]
+    rs <- fit$spec$responses
+    rspec <- if (length(rs) == 1L) rs[[1L]] else rs[[s$resp %||% ""]]
+    if (is.null(rspec)) return(NULL)
+    comp <- extra_tpl_name(frame, rspec$resp_name, "tau_raw")
+    raw <- frame[["par_template"]][[comp]] %||% numeric(0)
+    if (!length(raw)) return(NULL)
     if (!identical(rspec$family[["type"]], "ordinal")) return(NULL)
     if (nzchar(s$coef) || nzchar(s$dpar) || nzchar(s$nlpar %||% "")) {
       return(NULL)
@@ -2736,7 +2745,7 @@ resolve_priorlist <- function(fit, pl) {
     # hold the thresholds themselves and brms declares them unordered,
     # so neither side has a Jacobian there
     ordered <- rspec$family[["family"]] %in% c("cumulative", "sratio")
-    list(comp = "tau_raw", idx = seq_along(raw), dist = s$dist,
+    list(comp = comp, idx = seq_along(raw), dist = s$dist,
          scale = if (ordered) "ordthres" else "internal",
          link = NULL, offset = ordinal_center_offset(frame, rspec),
          lb = s$lb, ub = s$ub)
@@ -2747,6 +2756,15 @@ resolve_priorlist <- function(fit, pl) {
     # judge the spelling against whichever response it met first
     no_resp <- resp_missing_refusal(fit$spec, frame, s)
     if (!is.null(no_resp)) frm_stop(no_resp, call. = FALSE)
+    if (!is.null(fit$spec[["rescor_nu"]]) && nzchar(s$resp %||% "") &&
+          identical(s$dpar %||% "", "nu")) {
+      # the same rule as class = "rescor": one parameter across the
+      # responses, which brms names nu with no response in it
+      frm_stop("A prior on nu (", spec_target(s), ") takes no resp in ",
+               "this model: with rescor = TRUE the Student-t responses ",
+               "share one nu. Drop resp = \"", s$resp, "\", as brms ",
+               "requires", call. = FALSE)
+    }
     if (length(fit$spec$responses) > 1L && nzchar(s$resp %||% "") &&
           !s$resp %in% names(fit$spec$responses)) {
       # said first, so that no later refusal describes a response that
@@ -2769,8 +2787,8 @@ resolve_priorlist <- function(fit, pl) {
     ord_th <- if (s$class == "Intercept") ordinal_threshold_entry(s)
     if (!is.null(ord_th)) {
       if (!is.null(s$dist)) {
-        claim("tau_raw", ord_th$idx)
-        assigned[[nm_of("tau_raw", ord_th$idx)]] <- ord_th
+        claim(ord_th$comp, ord_th$idx)
+        assigned[[nm_of(ord_th$comp, ord_th$idx)]] <- ord_th
       }
       if (!is.na(s$lb) || !is.na(s$ub)) {
         frm_stop("class = \"Intercept\" on an ordinal family addresses the ",
@@ -2944,10 +2962,13 @@ lp_center_offset <- function(frame, lp) {
 #' Does this model hold ordinal thresholds a prior can address?
 #'
 #' @noRd
-has_ordinal_thresholds <- function(fit) {
-  raw <- fit$frame[["par_template"]][["tau_raw"]] %||% numeric(0)
-  length(raw) > 0L && length(fit$spec$responses) == 1L &&
-    identical(fit$spec$responses[[1L]]$family[["type"]], "ordinal")
+has_ordinal_thresholds <- function(fit, resp = NULL) {
+  rs <- fit$spec$responses
+  rspec <- if (length(rs) == 1L) rs[[1L]] else rs[[resp %||% ""]]
+  if (is.null(rspec)) return(FALSE)
+  nm <- extra_tpl_name(fit$frame, rspec$resp_name, "tau_raw")
+  raw <- fit$frame[["par_template"]][[nm]] %||% numeric(0)
+  length(raw) > 0L && identical(rspec$family[["type"]], "ordinal")
 }
 
 #' brms's centering offset for an ordinal threshold vector, or `NULL`.

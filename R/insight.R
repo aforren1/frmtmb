@@ -78,9 +78,9 @@ insight_param_scale <- function(x) {
   est <- interop_coef_vector(x)
   V <- interop_vcov(x)
   ex <- brms_extra_fixef(x)
-  # a model whose thresholds brms_extra_fixef() cannot name (more than
-  # one ordinal response shares one component) keeps the internal scale
-  # rather than a guessed alignment
+  # a model whose extra blocks brms_extra_fixef() does not list in
+  # ord_extra_comps() order keeps the internal scale rather than a
+  # guessed alignment
   if (!length(ex) ||
         !identical(vapply(ex, `[[`, "", "comp"), ord_extra_comps(x))) {
     return(list(est = est, V = V))

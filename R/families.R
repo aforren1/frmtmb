@@ -1308,7 +1308,9 @@ sim_context <- function(fit, rspec, dpars, aterms = NULL, n = NULL,
        dpars = dpars,
        aterms = aterms %||% frame[["aterm_values"]][[resp]] %||% list(),
        n = n %||% frame[["n_obs"]],
-       extra = extra %||% fit_extras(fit),
+       # a multivariate fit's extras are namespaced by response; the
+       # simulator reads its own block under its family's names
+       extra = resp_extras(frame, extra %||% fit_extras(fit), resp),
        autocor = frame[["autocor"]][[resp]],
        # the rejection-sampling limit a trunc()ed response needs, which
        # predict() exposes as brms's `ntrys`; absent means the
