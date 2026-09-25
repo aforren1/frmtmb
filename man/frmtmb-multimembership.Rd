@@ -88,8 +88,8 @@ observation row; an \code{mm()} row loads several at once.}
 \code{gr(g, cov = A)} over a single-membership factor, and \verb{dist =} is
 \code{gr(g, dist = "student")} over one (see
 \link{frmtmb-student-re}), though not over a membership design, whose
-rows load several levels at once. \verb{by =} and \verb{pw =} have no
-equivalent yet.}
+rows load several levels at once. \verb{pw =} has no equivalent
+yet.}
 \item{Non-name members}{\code{mm()} reads its membership variables as
 column names, as brms does. Build the column first.}
 }
@@ -98,6 +98,22 @@ On \code{newdata}, a membership level that was not in the fitted data
 needs \code{allow_new_levels = TRUE}; that member then contributes the
 population value while the row's remaining members still contribute
 their fitted effects.
+}
+
+\section{One covariance per by-level}{
+
+
+\code{mm(g1, g2, by = cbind(f1, f2))} is brms's by-split: \code{by} is a matrix
+with one column per membership variable, and each pooled level gets
+the covariance of its by-level. A pooled level must have one
+by-level wherever it appears, in any member column; brms refuses the
+data otherwise, and so does frmtmb, with brms's message. The block
+splits into one block per by-level, and the standard deviations take
+brms's names, \verb{sd_mmg1g2__Intercept:cbind(f1, f2)1} (brms evaluates
+\code{cbind()} of two factors to their integer codes). A new level on
+\code{newdata} takes the covariance of the by-level its own member column
+names. The same split over a single grouping factor is
+\code{gr(g, by = f)}.
 }
 
 \examples{

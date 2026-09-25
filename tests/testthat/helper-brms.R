@@ -29,6 +29,17 @@ brms_standata <- function(...) {
   suppressMessages(brms::make_standata(...))
 }
 
+# brms reads a me() term by evaluating the call from inside an lapply(),
+# where only the search path can supply the function, so brms's me() is
+# put there for the length of one call and nothing else of brms is
+# attached to mask frmtmb.
+with_brms_me <- function(f) {
+  attach(list(me = brms::me), name = "frmtmb_test_brms_me",
+         warn.conflicts = FALSE)
+  on.exit(detach("frmtmb_test_brms_me"))
+  f()
+}
+
 # Design matrices are compared by VALUE: brms names the intercept
 # "Intercept" (no parentheses) so that it survives Stan's identifier
 # rules, and drops matrix dimnames in places.
@@ -284,9 +295,9 @@ brms_block_group <- function(nm) {
 #
 # The storage convention is not the same for all four ordinal families,
 # and the family object does not carry the flag: R/families.R passes
-# ordered = TRUE for cumulative and sratio, which store
-# (tau_1, log increments), and ordered = FALSE for cratio and acat,
-# which store the thresholds themselves. Reading the family name here
+# ordered = TRUE for cumulative, which stores (tau_1, log increments),
+# and ordered = FALSE for sratio, cratio and acat, which store the
+# thresholds themselves, as brms declares them. Reading the family name here
 # duplicates that one fact deliberately. If frmtmb ever changes a
 # convention, checks A and B fail loudly, which is the point.
 #
@@ -296,7 +307,7 @@ brms_block_group <- function(nm) {
 brms_ord_thresholds <- function(fit) {
   fam <- family(fit)[["family"]]
   ord_tau_from_raw(fit$estimates[["tau_raw"]],
-                   ordered = fam %in% c("cumulative", "sratio"))
+                   ordered = identical(fam, "cumulative"))
 }
 
 # frmtmb's column name for one brms group-level coefficient. An
@@ -539,6 +550,41 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
       }
       v <- unname(fit$estimates[["miss"]][mm$idx])
       out[[nm]] <- array(v, length(v))
+    } else if (grepl("^(meanme|sdme|zme|Lme)_\\d+$", nm)) {
+      # me(): brms numbers the hyperparameters and the Cholesky factor by
+      # GROUP (one per distinct gr = ), and the standardized latent
+      # values by group when the group is correlated and by term when it
+      # is not. frmtmb holds the latent values themselves, so zme is
+      # their standardization, and the linear map X = meanme + sdme * L z
+      # adds N * (sum(log(sdme)) + sum(log(diag(L)))) to the log-Jacobian.
+      me <- fit$frame[["me"]]
+      if (is.null(me)) stop("brms declares ", nm, " but the fit has no me()")
+      i <- as.integer(sub("^[A-Za-z]+_", "", nm))
+      est <- fit$estimates
+      grp <- me$groups[[min(i, length(me$groups))]]
+      K <- grp$K
+      if (startsWith(nm, "meanme")) {
+        out[[nm]] <- array(unname(est$meanme[K]), length(K))
+      } else if (startsWith(nm, "sdme")) {
+        out[[nm]] <- array(unname(exp(est$logsdme[K])), length(K))
+      } else if (startsWith(nm, "Lme")) {
+        out[[nm]] <- as.matrix(us_chol_L(est$thetame[grp$th_idx], length(K)))
+      } else if (i <= length(me$groups) && me$groups[[i]]$cor) {
+        L <- us_chol_L(est$thetame[grp$th_idx], length(K))
+        sdv <- exp(unname(est$logsdme[K]))
+        X <- vapply(K, function(k) est$miss[me$terms[[k]]$idx],
+                    numeric(grp$N))
+        X <- matrix(X, nrow = grp$N)
+        out[[nm]] <- solve(diag(sdv, length(K)) %*% L,
+                           t(X) - unname(est$meanme[K]))
+        jac <- jac + grp$N * (sum(log(sdv)) + sum(log(diag(L))))
+      } else {
+        t <- me$terms[[i]]
+        sdk <- exp(unname(est$logsdme[i]))
+        v <- (est$miss[t$idx] - unname(est$meanme[i])) / sdk
+        out[[nm]] <- array(v, length(v))
+        jac <- jac + length(v) * log(sdk)
+      }
     } else if (grepl("^bs(_(.+))?$", nm)) {
       # the unpenalized part of a smooth. brms puts it in Xs, which it
       # does NOT center, and frmtmb names the same columns
@@ -718,8 +764,9 @@ stan_pars_from_fit <- function(fit, sdat, code, rtab = NULL) {
 #   Yl_<r>      the latent values of a measurement-error response
 #   rcar, zcar  a CAR field, on its own scale for the proper form and
 #               standardized for the intrinsic one
+#   zme_<i>     the standardized latent values of the me() terms
 brms_inner_pat <-
-  "^(z_\\d+|zs_\\d+_\\d+|zgp_\\d+|Ymi_.+|Yl_.+|rcar|zcar)$"
+  "^(z_\\d+|zs_\\d+_\\d+|zgp_\\d+|Ymi_.+|Yl_.+|rcar|zcar|zme_\\d+)$"
 
 # Which entries of the unconstrained vector those blocks occupy, found
 # by perturbing them and diffing, so it needs no knowledge of the

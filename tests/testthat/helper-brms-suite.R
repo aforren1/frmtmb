@@ -501,6 +501,16 @@ brms_standata_view <- function(fr) {
   }
   tau <- fr$par_template$tau_raw
   if (!is.null(tau)) out$nthres <- length(tau)
+  # grouped thresholds, thres(gr = ): brms's per-group counts and the
+  # [start, end] slice of the merged vector each row reads
+  th <- fr$spec$responses[[1L]]$family[["thres"]]
+  if (isTRUE(th[["grouped"]])) {
+    out$nthres <- as.array(th[["nthres"]])
+    out$ngrthres <- length(th[["nthres"]])
+    end <- cumsum(th[["nthres"]])
+    J <- cbind(Kthres_start = end - th[["nthres"]] + 1L, Kthres_end = end)
+    out$Jthres <- J[fr$aterm_values[[1L]][["thres_gr"]], , drop = FALSE]
+  }
   out
 }
 
@@ -546,8 +556,10 @@ brms_fixture_spec <- function(k) {
                      arma(visit, patient, cov = TRUE),
                    sigma ~ Trt),
       family = student(),
-      changed = paste("arma() gains cov = TRUE: frmtmb has only the",
-                      "residual-covariance ARMA (?frmtmb-autocor)")),
+      changed = paste("arma() gains cov = TRUE: the ledger's verdicts",
+                      "on this fixture were settled on the covariance",
+                      "form, before frmtmb fitted brms's default",
+                      "cov = FALSE (?frmtmb-autocor)")),
     list(
       brms = paste("count | weights(AgeSD) ~ 1/(1 + exp(-a)) *",
                    "exp(b * Trt), a ~ Age + (1 | ID1 | patient),",
@@ -571,9 +583,9 @@ brms_fixture_spec <- function(k) {
       formula = bf(count ~ Trt * Age +
                      (1 + mmc(Age, volume) | mm(patient, visit))),
       family = gaussian(),
-      changed = paste("me(Age, AgeSD) becomes Age: frmtmb has no",
-                      "noise-free me() term (dev/brms-suite-audit.md",
-                      "section 5)")),
+      changed = paste("me(Age, AgeSD) becomes Age: frmtmb's me()",
+                      "takes numeric interaction multipliers only, and",
+                      "brms's Trt is a factor (dev/me-findings.md)")),
     list(
       brms = "rating ~ x1 + cs(x2) + (cs(x2) || subject), disc ~ 1; sratio",
       formula = bf(rating ~ x1 + cs(x2) + (1 + x2 || subject)),
@@ -585,11 +597,9 @@ brms_fixture_spec <- function(k) {
     list(
       brms = paste("count ~ Age + (1 | gr(patient, by = gender)),",
                    "mu2 ~ Age; mixture(gaussian, exponential)"),
-      formula = bf(count ~ Age + (1 | patient), mu2 ~ Age),
-      family = mixture(gaussian(), exponential()),
-      changed = paste("gr(patient, by = gender) becomes patient: frmtmb's",
-                      "gr() takes no by (dev/brms-suite-audit.md",
-                      "section 5)")),
+      formula = bf(count ~ Age + (1 | gr(patient, by = gender)),
+                   mu2 ~ Age),
+      family = mixture(gaussian(), exponential())),
     list(
       brms = paste("volume ~ Trt + gp(Age, by = Trt, gr = TRUE); gaussian",
                    "and count ~ Trt + Age; poisson; no rescor"),

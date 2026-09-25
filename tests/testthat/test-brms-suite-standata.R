@@ -368,8 +368,9 @@ test_that("standata allows to retrieve the initial data order", {
     paste0(
       "reads brms's internal old_order attribute of Stan data, ",
       "which exists because brms sorts rows for its ",
-      "autocorrelation code; the setup ar(time, id) is also ",
-      "refused without cov = TRUE (?frmtmb-autocor)"),
+      "autocorrelation code; frmtmb keeps the data order and has ",
+      "no such attribute. The setup ar(time, id) runs (brms's cov ",
+      "= FALSE form, ?frmtmb-autocor)"),
     expect_equal(dat$y1, as.numeric(sdata1$Y[attr(sdata1, "old_order")]))
   )
   brms_setup("standata:313",
@@ -380,16 +381,16 @@ test_that("standata allows to retrieve the initial data order", {
   )
   brms_port("standata:315", "cannot transfer",
     paste0(
-      "reads brms's internal old_order attribute of Stan data; the ",
-      "setup ma(time, id) is also refused without cov = TRUE ",
-      "(?frmtmb-autocor)"),
+      "reads brms's internal old_order attribute of Stan data; ",
+      "frmtmb keeps the data order and has no such attribute. The ",
+      "setup ma(time, id) runs (?frmtmb-autocor)"),
     expect_equal(sdata2$Y_y1[attr(sdata2, "old_order")], as.array(dat$y1))
   )
   brms_port("standata:316", "cannot transfer",
     paste0(
-      "reads brms's internal old_order attribute of Stan data; the ",
-      "setup ma(time, id) is also refused without cov = TRUE ",
-      "(?frmtmb-autocor)"),
+      "reads brms's internal old_order attribute of Stan data; ",
+      "frmtmb keeps the data order and has no such attribute. The ",
+      "setup ma(time, id) runs (?frmtmb-autocor)"),
     expect_equal(sdata2$Y_y2[attr(sdata2, "old_order")], as.array(dat$y2))
   )
 })
@@ -486,32 +487,37 @@ test_that("by variables in grouping terms are handled correctly", {
   )
   brms_port("standata:705", "cannot transfer",
     paste0(
-      "frmtmb's gr() takes cov and prec only, not by ",
-      "(dev/brms-suite-audit.md section 5); Nby_1 is also Stan ",
-      "data"),
+      "Nby_1 is Stan data, which frmtmb does not build: it fits ",
+      "gr(g, by = z) as one random-effect block per by-level, five ",
+      "here (dev/grby-findings.md)"),
     expect_equal(sdata$Nby_1, 5)
   )
   brms_port("standata:706", "cannot transfer",
     paste0(
-      "frmtmb's gr() takes cov and prec only, not by; Jby_1 is ",
-      "also Stan data"),
+      "Jby_1 is Stan data, which frmtmb does not build; ",
+      "test-gr-by.R asserts the same level-to-by-level map on the ",
+      "fitted blocks (dev/grby-findings.md)"),
     expect_equal(sdata$Jby_1, as.array(c(2, 2, 1, 1, 5, 4, 4, 5, 3, 3)))
   )
   brms_setup("standata:708",
     sdata <- standata(y ~ x + (x | mm(g, g2, by = cbind(z, z2))), dat)
   )
   brms_port("standata:709", "cannot transfer",
-    "frmtmb's mm() refuses by = by name",
+    paste0(
+      "Nby_1 is Stan data, which frmtmb does not build: it fits ",
+      "mm(g, g2, by = cbind(z, z2)) as one block per by-level, ",
+      "five here (dev/grby-findings.md)"),
     expect_equal(sdata$Nby_1, 5)
   )
   brms_port("standata:710", "cannot transfer",
-    "frmtmb's mm() refuses by = by name",
+    paste0(
+      "Jby_1 is Stan data, which frmtmb does not build; ",
+      "test-gr-by.R asserts the same pooled-level-to-by-level map ",
+      "on the fitted blocks (dev/grby-findings.md)"),
     expect_equal(sdata$Jby_1, as.array(c(2, 2, 1, 1, 5, 4, 4, 5, 3, 3)))
   )
-  brms_port("standata:712", "cannot transfer",
-    paste0(
-      "frmtmb's gr() takes no by, so the level check brms asserts ",
-      "is never reached"),
+  brms_port("standata:712", "pass",
+    "",
     expect_error(standata(y ~ x + (1|gr(g, by = z3)), dat),
                  "Some levels of 'g' correspond to multiple levels of 'z3'")
   )
@@ -626,24 +632,25 @@ test_that("reserved variables 'Intercept' is handled correctly", {
   )
   brms_port("standata:970", "cannot transfer",
     paste0(
-      "frmtmb has no reserved Intercept variable, so 0 + intercept ",
-      "dies with R's object 'intercept' not found"),
+      "frmtmb reserves Intercept but refuses brms's deprecated ",
+      "lower-case intercept by name and asks for Intercept, where ",
+      "brms accepts it with a deprecation warning"),
     expect_warning(
       sdata <- standata(y ~ 0 + intercept, dat),
       "Reserved variable name 'intercept' is deprecated."
     )
   )
   brms_port("standata:974", "cannot transfer",
-    "frmtmb has no reserved intercept variable",
+    paste0(
+      "0 + intercept is refused (standata:970), so there is no ",
+      "intercept column to read"),
     expect_true(all(sdata$X[, "intercept"] == 1))
   )
   brms_setup("standata:975",
     sdata <- standata(y ~ 0 + Intercept, dat)
   )
-  brms_port("standata:976", "cannot transfer",
-    paste0(
-      "frmtmb has no reserved Intercept variable: y ~ 0 + ",
-      "Intercept dies with R's object 'Intercept' not found"),
+  brms_port("standata:976", "pass",
+    "",
     expect_true(all(sdata$X[, "Intercept"] == 1))
   )
 })
@@ -680,14 +687,12 @@ test_that("standata handles grouped ordinal thresholds correctly", {
   brms_setup("standata:1062",
     sdata <- standata(y | thres(5) ~ x, dat, cumulative())
   )
-  brms_port("standata:1063", "cannot transfer",
-    paste0(
-      "frmtmb has no thres() addition term ",
-      "(dev/brms-suite-audit.md section 5)"),
+  brms_port("standata:1063", "pass",
+    "",
     expect_equal(sdata$nthres, 5)
   )
-  brms_port("standata:1065", "cannot transfer",
-    "frmtmb has no thres() addition term",
+  brms_port("standata:1065", "pass",
+    "",
     expect_error(
       standata(y | thres(th) ~ x, dat, cumulative()),
       "Number of thresholds needs to be a single value"
@@ -696,52 +701,42 @@ test_that("standata handles grouped ordinal thresholds correctly", {
   brms_setup("standata:1071",
     sdata <- standata(y | thres(th, gr) ~ x, dat, cumulative())
   )
-  brms_port("standata:1072", "cannot transfer",
-    "frmtmb has no thres() addition term",
+  brms_port("standata:1072", "pass",
+    "",
     expect_equal(sdata$nthres, as.array(c(5, 6)))
   )
-  brms_port("standata:1073", "cannot transfer",
-    paste0(
-      "frmtmb has no thres() addition term; ngrthres is also Stan ",
-      "data"),
+  brms_port("standata:1073", "pass",
+    "",
     expect_equal(sdata$ngrthres, 2)
   )
-  brms_port("standata:1074", "cannot transfer",
-    paste0(
-      "frmtmb has no thres() addition term; Jthres is also Stan ",
-      "data"),
+  brms_port("standata:1074", "pass",
+    "",
     expect_equal(unname(sdata$Jthres[1, ]), c(1, 5))
   )
-  brms_port("standata:1075", "cannot transfer",
-    paste0(
-      "frmtmb has no thres() addition term; Jthres is also Stan ",
-      "data"),
+  brms_port("standata:1075", "pass",
+    "",
     expect_equal(unname(sdata$Jthres[10, ]), c(6, 11))
   )
   brms_setup("standata:1077",
     sdata <- standata(y | thres(gr = gr) ~ x, dat, cumulative())
   )
-  brms_port("standata:1078", "cannot transfer",
-    "frmtmb has no thres() addition term",
+  brms_port("standata:1078", "pass",
+    "",
     expect_equal(sdata$nthres, as.array(c(4, 3)))
   )
-  brms_port("standata:1079", "cannot transfer",
-    paste0(
-      "frmtmb has no thres() addition term; ngrthres is also Stan ",
-      "data"),
+  brms_port("standata:1079", "pass",
+    "",
     expect_equal(sdata$ngrthres, 2)
   )
   brms_setup("standata:1081",
     sdata <- standata(y | thres(6, gr = gr) ~ x, dat, cumulative())
   )
-  brms_port("standata:1082", "cannot transfer",
-    "frmtmb has no thres() addition term",
+  brms_port("standata:1082", "pass",
+    "",
     expect_equal(sdata$nthres, as.array(c(6, 6)))
   )
-  brms_port("standata:1083", "cannot transfer",
-    paste0(
-      "frmtmb has no thres() addition term; ngrthres is also Stan ",
-      "data"),
+  brms_port("standata:1083", "pass",
+    "",
     expect_equal(sdata$ngrthres, 2)
   )
 })

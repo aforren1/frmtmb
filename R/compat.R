@@ -826,7 +826,8 @@ compat_features_build <- function(extra = NULL) {
             "compois", "binomial", "bernoulli", "beta_binomial",
             "multinomial", "zero_inflated_poisson",
             "zero_inflated_negbinomial", "zero_inflated_binomial",
-            "zero_inflated_beta", "hurdle_poisson", "hurdle_gamma",
+            "zero_inflated_beta", "zero_one_inflated_beta",
+            "hurdle_poisson", "hurdle_negbinomial", "hurdle_gamma",
             "hurdle_lognormal", "cumulative", "sratio", "cratio",
             "acat", "categorical", "von_mises", "cox")
   covs <- c("us", "diag", "homdiag", "cs", "ar1", "hetar1", "ou",
@@ -837,9 +838,9 @@ compat_features_build <- function(extra = NULL) {
     lapply(fams, f, kind = "family"),
     lapply(covs, f, kind = "covstruct"),
     lapply(c("weights()", "trials()", "cens()", "trunc()", "se()",
-             "mi()", "vint()", "vreal()"), f, kind = "aterm"),
+             "mi()", "vint()", "vreal()", "thres()"), f, kind = "aterm"),
     lapply(c("s()", "t2()", "mo()", "mi_pred()", "gp_pred()",
-             "cs_pred()", "ps()"), f, kind = "special"),
+             "cs_pred()", "ps()", "me()"), f, kind = "special"),
     # R-side (within-group residual) correlation terms. They carry no
     # random effect, so they are not a covariance structure, and they
     # contribute no design column, so they are not a predictor special:
@@ -858,7 +859,7 @@ compat_features_build <- function(extra = NULL) {
     # formula-grammar spellings, which have their own restrictions and
     # belong in the table even though they name no package object
     lapply(c("bar_crossing", "call_group", "double_bar", "mm()",
-             "mmc()"), f, kind = "grammar"),
+             "mmc()", "0 + Intercept", "gr_by"), f, kind = "grammar"),
     # contributed last, so that the vocabulary a contributor adds cannot
     # displace a core feature's position in the pair table
     lapply(seq_along(contrib), function(i) {
@@ -905,8 +906,14 @@ frmtmb_compat_groups_lst <- list(
   discrete = c("poisson", "negbinomial", "nbinom1", "geometric",
                "compois", "binomial", "bernoulli", "beta_binomial",
                "zero_inflated_poisson", "zero_inflated_negbinomial",
-               "zero_inflated_binomial", "hurdle_poisson"),
-  no_simulator = c("tweedie", "compois", "hurdle_poisson", "cox"),
+               "zero_inflated_binomial", "hurdle_poisson",
+               "hurdle_negbinomial"),
+  # a point mass on an exact response value, which the density reads
+  # off y == 0 (and y == 1); osa_point_mass_families in R/predict.R
+  point_mass = c("zero_inflated_poisson", "zero_inflated_negbinomial",
+                 "zero_inflated_binomial", "zero_inflated_beta",
+                 "zero_one_inflated_beta", "hurdle_poisson",
+                 "hurdle_negbinomial", "hurdle_gamma", "hurdle_lognormal"),
   matrix_response = c("multinomial"),
   trials_families = c("binomial", "beta_binomial",
                       "zero_inflated_binomial", "multinomial"),
@@ -1062,6 +1069,12 @@ compat_hand_rules_tbl <- function() {
     "Call-valued grouping factors are supported: (1 | factor(x)) and (1 | interaction(a, b)) both build the grouping factor from the model frame.")
   r("double_bar", "*", "works",
     "(x || g) gives uncorrelated terms. With a factor on the left, (f || g) routes to diag, that is one independent effect per factor level.")
+  r("0 + Intercept", "*", "works",
+    "brms's reserved Intercept: y ~ 0 + Intercept + x is the model y ~ 1 + x, factors take treatment contrasts, and the intercept is an ordinary class \"b\" coefficient that is not centered. bf(center = FALSE) and lf(center = FALSE) are the same mechanism. The likelihood, the maximum likelihood fit and every post-fit method are those of the model with an intercept, and newdata needs no Intercept column; only the prior classes and brms's coefficient order differ. Intercept must be a term of its own: Intercept:x is refused, and so is brms's deprecated lower-case intercept.")
+  r("0 + Intercept", "group:ordinal", "refused",
+    "Refused, as brms refuses it: an ordinal family's thresholds take the intercept's place. bf(center = FALSE) is accepted there and puts the thresholds' class \"Intercept\" prior at the thresholds themselves rather than at the means of the predictors, as brms does.")
+  r("0 + Intercept", "prior", "works",
+    "Verified against brms's generated Stan code: class \"b\" reaches the intercept, coef = \"Intercept\" names it alone, and class \"Intercept\" is refused with that advice, as brms refuses it.")
   # sparse_x and autoscale are claimed only where the model surface is
   # exercised. Structures and post-fit methods keep the untested
   # default until something checks them.
@@ -1154,7 +1167,7 @@ compat_hand_rules_tbl <- function() {
   r("importance", "mvbf", "refused",
     "Refused in this version: a multivariate model spreads its groups over several likelihood terms, which the first version does not gather.")
   r("importance", "group:autocor", "refused",
-    "Refused: the correction resamples a random effect against a PRODUCT of per-row densities, and an R-side residual is one joint density over each group, so no per-row integrand exists.")
+    "Refused: the correction resamples a random effect against a PRODUCT of per-row densities, and an R-side residual is one joint density over each group, so no per-row integrand exists. Under brms's cov = FALSE the rows are separate densities but each one's mean reads the residuals of the rows before it, which the per-row integrand does not carry either.")
   r("importance", "mixture", "refused",
     "Refused: a mixture supplies its own log-likelihood, which does not factorize over rows, so a group's rows have no separable integrand to resample.")
   r("importance", "bounds", "works", "Verified by a tiny fit.")
@@ -1314,6 +1327,46 @@ compat_hand_rules_tbl <- function() {
   r("trials()", "binomial", "works",
     "Also accepted as the glm spelling cbind(successes, failures), which is rewritten to successes | trials(successes + failures); the two fits are identical. The two spellings cannot be combined.")
 
+  ## thres() -------------------------------------------------------------
+  r("thres()", "kind:family", "refused",
+    "Refused by name: thres() sets the number of thresholds of an ordinal family, and any other family has none.")
+  r("thres()", "group:ordinal", "works",
+    "thres(x = K) sets the number of thresholds; thres(gr = g) gives each level of g a threshold vector of its own, merged as brms merges them, with a count per level. The log-likelihood agrees with brms's own densities at a shared parameter point to about 5e-16, relative, for all four families under the logit, probit and cauchit links, and with MASS::polr fitted per group and ordinal::clm(nominal = ~ g) at the optimum to about 3e-12 (dev/thres-validate.R). Thresholds above a level's highest observed category are not identified without a prior on class Intercept, and the fit warns about them.")
+  r("thres()", "weights()", "works",
+    "Verified: weights of 2 give the fit of the duplicated data, to the last printed digit.")
+  r("thres()", "cs_pred()", "conditional",
+    "thres(x = K) takes cs(), with one coefficient per threshold. thres(gr = ) with cs() is refused, as brms refuses it: the threshold positions differ by group.")
+  r("thres()", "mo()", "works",
+    "Verified by a tiny fit. mo() changes only the latent predictor.")
+  for (at in c("cens()", "trunc()", "se()", "trials()", "mi()")) {
+    r("thres()", at, "refused",
+      "Refused: the ordinal families that thres() belongs to do not take this term.")
+  }
+  r("thres()", "mvbf", "refused",
+    "Refused with every ordinal family: families with extra parameters are not supported in multivariate fits yet.")
+  r("thres()", "mixture", "refused",
+    "Refused with every ordinal family: an ordinal family is not a mixture component.")
+  r("thres()", "REML", "works",
+    "Verified by a tiny fit with a random intercept.")
+  r("thres()", "quadrature", "works",
+    "Verified by a tiny fit with a random intercept.")
+  r("thres()", "importance", "works",
+    "Verified by a tiny fit with a random intercept.")
+  r("thres()", "profile", "works",
+    "Verified: confint(method = \"profile\") on a slope of a grouped-threshold fit.")
+  r("thres()", "prior", "works",
+    "class = \"Intercept\" reaches every threshold; with group = \"<level>\" it reaches that level's thresholds only, each level a vector of its own: ordered, with the log-Jacobian of the ordered map, for cumulative(), and unconstrained for sratio(), cratio() and acat(), as brms declares them. As in brms, the design is not centered under grouped thresholds, so the prior is on the thresholds themselves.")
+  r("thres()", "fitted", "works",
+    "An n x (max count + 1) matrix of category probabilities. Under grouped thresholds a column past a row's own categories is 0, as in brms's posterior_epred(). Newdata must hold the grouping variable, with levels the fit has seen; any other level is refused by name.")
+  r("thres()", "predict", "works",
+    "As fitted(): the columns past a row's own categories are 0, and newdata needs the grouping variable.")
+  r("thres()", "simulate", "works",
+    "Each row is drawn from its own group's thresholds, in sample and on newdata.")
+  r("thres()", "residuals_osa", "conditional",
+    "thres(x = K) works. thres(gr = ) is refused: the one-step density selects the category over one shared set, and here the set differs by group. dharma_residuals() is the check to use.")
+  r("thres()", "emmeans", "works",
+    "The latent-scale means of the ordinal families; the thresholds, grouped or not, do not enter them.")
+
   ## vint() and vreal() --------------------------------------------------
   # override: "nothing checks this" outranks the permissive blanket
   # defaults (verbose, call_group, double_bar) at the same signature.
@@ -1331,8 +1384,10 @@ compat_hand_rules_tbl <- function() {
 
   ## rescor ---------------------------------------------------------------
   r("rescor", "kind:family", "refused",
-    "Refused: rescor = TRUE requires every response to be gaussian.")
+    "Refused: rescor = TRUE requires every response to be gaussian, or every response to be student. A mix of the two is refused as well, as brms refuses it.")
   r("rescor", "gaussian", "works", "")
+  r("rescor", "student", "conditional",
+    "Every response must be student(). The responses share ONE nu, brms's multi_student_t(nu, Mu, Sigma) with Sigma = D C D, so the row density is a multivariate t and a distributional sigma still works; nu is named nu, with no response, in variables(), summary() and priors (set_prior(class = \"nu\") takes no resp). A formula or a constant for nu is refused, as brms refuses it. Verified against mvtnorm::dmvt at a shared parameter point (relative residual 5e-16) and against a hand-written RTMB objective at the ML optimum (dev/mv-validate-student.R). fitted(), predict() (a joint multivariate-t draw) and the refusals of simulate() and residuals() are those of the gaussian rescor model.")
   r("rescor", "cens()", "refused",
     "Refused. This pair was once accepted with the censoring silently dropped.")
   r("rescor", "trunc()", "refused",
@@ -1353,8 +1408,8 @@ compat_hand_rules_tbl <- function() {
     "Refused: residuals() is not supported for multivariate fits yet.")
   r("rescor", "residuals_osa", "refused",
     "Refused: residuals() is not supported for multivariate fits yet.")
-  r("rescor", "emmeans", "refused",
-    "Refused: emmeans support is univariate-only for now.")
+  r("rescor", "emmeans", "works",
+    "Verified: without resp = the responses stack as the rep.meas factor, and a contrast across responses carries the cross-response covariance of the coefficients. The residual correlation does not enter a marginal mean.")
   # confint() and hypothesis() work on the outer parameter vector,
   # which a multivariate fit has like any other: verified on a
   # two-response gaussian fit, rescor = TRUE included.
@@ -1372,6 +1427,8 @@ compat_hand_rules_tbl <- function() {
   # single_response() guard and stops.
   r("mvbf", "residuals_osa", "refused",
     "Refused: residuals() is not supported for multivariate fits yet, one-step-ahead residuals included.")
+  r("mvbf", "emmeans", "works",
+    "Verified against univariate fits (dev/emm-validate.R): resp = selects one response, and without it the responses stack as brms's rep.meas factor. Without resp = the responses must share a link, as in brms; epred = TRUE has no such need.")
   r("mvbf", "fitted", "works",
     "Verified: fitted() returns brms's n x 4 x nresp array with the responses named, one layer per response; resp = narrows it, and one response is an n x 4 matrix. A category-valued response does not stack with the others and is refused there, naming resp =.")
   r("mvbf", "predict", "works",
@@ -1385,6 +1442,10 @@ compat_hand_rules_tbl <- function() {
     "Verified: profile likelihood tests address the per-response coefficients by their vcov() names (y1_x and so on).")
   r("mvbf", "kind:family", "works",
     "Each response carries its own family unless rescor = TRUE.")
+  r("mvbf", "group:ordinal", "works",
+    "Each ordinal response has its own thresholds, stored under a name that carries the response (o_tau_raw) and reported as brms names them, b_o_Intercept[k]; set_prior(class = \"Intercept\", resp = \"o\") addresses them. |ID| correlates an ordinal response's group effects with another response's. Verified: with no shared random effect the log-likelihood is the sum of the univariate fits' (an identity: residual 0 at a shared parameter point), and with a shared |ID| effect it agrees with a hand-written RTMB objective at a shared point and at the ML optimum (dev/mv-validate-ordinal.R). fitted() stacks the category probabilities as P(Y = k) layers, as brms does; predict() answers one ordinal response at a time.")
+  r("mvbf", "cox", "refused",
+    "Refused: the Cox baseline is an extra parameter block that the post-fit methods read without a response in hand. Fit the survival response in a model of its own.")
   r("mvbf", "kind:aterm", "works",
     "Addition terms are per response.")
   r("mvbf", "|ID|", "works",
@@ -1498,6 +1559,58 @@ compat_hand_rules_tbl <- function() {
   r("mo()", "profile", "works", "Verified by a tiny fit.")
   r("mo()", "predict", "conditional",
     "New data must stay inside the fitted category range; unknown categories are refused.")
+  ## me() ----------------------------------------------------------------
+  # brms's noise-free predictor, me(x, sdx, gr = ): latent values
+  # integrated by the Laplace approximation, one set per distinct call,
+  # shared across dpars and responses (R/me.R, test-me.R).
+  r("me()", "kind:family", "works",
+    "Verified: the latent values enter the linear predictor, so the family only sees the predictor. For a gaussian response with linear me() terms the Laplace approximation is exact and logLik() equals the closed-form multivariate-normal likelihood; an interaction of me() terms or another family makes it approximate. The noisy variable and its SD must be numeric and the SD positive (brms's messages), and an interaction multiplier must be one numeric column.")
+  r("me()", "mo()", "conditional",
+    "Both may appear in one formula as separate terms. One interaction cannot hold both: mo(x):me(z, sz) is refused by name.")
+  r("me()", "mi_pred()", "conditional",
+    "Both may appear in one formula as separate terms, and their latent values share one inner vector (verified by a fit). One interaction cannot hold both: mi(x):me(z, sz) is refused by name.")
+  r("me()", "mi()", "works",
+    "Verified: a model may carry an mi() response and me() terms; the latent values of both are integrated together.")
+  r("me()", "kind:covstruct", "conditional",
+    "Random-effect terms sit beside me() terms and are integrated together (verified with (1 | g)). me() inside a group-level term, (me(x, sx) | g), is refused by name: a varying slope on a latent predictor has no implementation.")
+  r("me()", "kind:mode", "untested", "", override = TRUE)
+  r("me()", "REML", "conditional",
+    "Runs (verified by a tiny fit), but REML integrates a mu me() coefficient together with the latent values it multiplies, so the integrand is not gaussian and even for a gaussian response the criterion is the Laplace-approximated integrated likelihood, not the exact restricted likelihood.")
+  r("me()", "profile", "works",
+    "Verified: control profile = TRUE gives the same logLik as the default fit to optimizer tolerance.")
+  r("me()", "autoscale", "works",
+    "Verified: the fit is identical with and without autoscale; the placeholder columns of the me() terms carry no scale.")
+  r("me()", "sparse_x", "works",
+    "Verified: the sparse design gives the same estimates.")
+  r("me()", "quadrature", "refused",
+    "Refused: the latent values are one integral each, not the one scalar random effect the rule marginalizes.")
+  r("me()", "importance", "refused",
+    "Refused: the latent values have no grouping factor to give them a per-group proposal.")
+  r("me()", "prior", "conditional",
+    "The me() coefficients are class \"b\" coefficients, e.g. coef = \"mexsx\". brms's classes meanme, sdme and corme have no prior slot here and are refused by name; the flat rows of a brms get_prior() table, and its lkj(1) corme row, are dropped because they apply nothing.")
+  r("me()", "mvbf", "works",
+    "Verified: one set of latent values per distinct me() call is shared by every response that uses it, as in brms. set_mecor() is one setting for the whole model.")
+  r("me()", "rescor", "works", "Verified by a tiny fit.")
+  r("me()", "nl", "conditional",
+    "me() belongs in a nonlinear parameter's linear formula, a ~ me(x, sx). In the nonlinear body it is refused by name.")
+  r("me()", "mixture", "untested",
+    "A mixture fit with a me() term runs; nothing checks its estimates.")
+  r("me()", "fitted", "works",
+    "In-sample, fitted() uses the latent modes (brms with save_pars(latent = TRUE)). On new data the observed value stands in for the latent one, which is the mean of the N(x, sdx) draw brms makes there; sdx is not read.")
+  r("me()", "predict", "conditional",
+    "As fitted(): latent modes in-sample, the observed value on new data. brms adds the measurement noise N(x, sdx) to a new-data prediction; frmtmb does not, so a new-data interval is narrower than brms's. A missing noisy value in new data is refused.")
+  r("me()", "simulate", "works",
+    "Simulates the response at the latent modes, as for a random effect's conditional modes; the noisy variable itself is data and is not simulated.")
+  r("me()", "residuals", "works",
+    "Residuals are taken against the fitted values at the latent modes.")
+  r("me()", "residuals_osa", "works",
+    "Verified by a tiny fit: the latent values are inner parameters of the one-step-ahead predictions like any random effect.")
+  r("me()", "emmeans", "conditional",
+    "The reference grid predicts on new data, so the noisy variable enters at its grid value, the observed-value convention of predict().")
+  r("me()", "confint_profile", "works",
+    "Verified: profile intervals for a me() coefficient.")
+  r("me()", "hypothesis_profile", "untested", "")
+
   r("cs_pred()", "kind:family", "refused",
     "Refused: cs() needs an sratio, cratio, or acat family.")
   r("cs_pred()", "group:ordinal_cs", "works", "")
@@ -1578,8 +1691,10 @@ compat_hand_rules_tbl <- function() {
   ## post-fit methods --------------------------------------------------------------
   r("simulate", "kind:family", "works",
     "The family supplies a simulator.")
-  r("simulate", "group:no_simulator", "refused",
-    "Refused: this family has no simulator yet.")
+  # No group of simulator-less families: test-simulate-density.R reads
+  # that gap off the family registry and finds cox alone, which has its
+  # own rule below. The group this replaces also listed tweedie, compois
+  # and hurdle_poisson, whose simulators work.
   r("simulate", "group:ordinal", "works",
     "Draws come back as an ordered factor carrying the response's own levels, not as 1..K codes.")
   r("simulate", "multinomial", "works",
@@ -1592,6 +1707,8 @@ compat_hand_rules_tbl <- function() {
     "Refused: drawing a survival time means inverting the cumulative baseline hazard, which this family does not carry a quantile function for. simulate(), posterior_predict() and frm_simulate() each say so in their own words and then repeat the family's reason.")
   r("residuals_osa", "kind:family", "conditional",
     "One-step-ahead residuals need the family to register its observation through OBS().")
+  r("residuals_osa", "group:point_mass", "refused",
+    "Refused by name: the density branches on y == 0 for its point mass, and oneStepPredict() hands it an observation object with no comparison operator. Through 0.63.0 each of these failed there with base R's own message. Use residuals(type = \"pearson\") or dharma_residuals().")
   r("residuals_osa", "categorical", "refused",
     "Refused with residuals() as a whole: a one-step-ahead residual is a CDF value, and a nominal response has no CDF.")
   r("residuals", "categorical", "refused",
@@ -1608,9 +1725,19 @@ compat_hand_rules_tbl <- function() {
     "Runs, but the residuals ignore the case weights. Treat them as unweighted.")
   r("residuals_osa", "kind:structure", "untested", "")
   r("emmeans", "kind:family", "conditional",
-    "Univariate fits only, and the mu predictor must be linear.")
-  r("emmeans", "nl", "refused",
-    "Refused: emmeans support needs a linear mu predictor.")
+    "Takes brms's dpar =, nlpar =, resp =, epred = and re_formula = (see ?frmtmb-emmeans). A family with no mu needs dpar =. epred = TRUE needs one mean per row, so it is refused for the ordinal and categorical families.")
+  r("emmeans", "nl", "works",
+    "Verified (dev/emm-validate.R): nlpar = gives that parameter's own linear predictor, and the whole mu goes through the taped Jacobian of the body, the delta method. The covariance agrees with a numerical Jacobian to 1.3e-7 relative, and the standard error over a parametric bootstrap of 1500 refits is 0.97 to 1.03 times the bootstrap one, on two models.")
+  r("emmeans", "s()", "works",
+    "The smooth's value at the grid is part of the means. The design basis used to leave it out.")
+  r("emmeans", "t2()", "works",
+    "The smooth's value at the grid is part of the means, as for s().")
+  r("emmeans", "mo()", "works",
+    "The monotonic variable joins the reference grid, and its contribution is part of the means. The design basis used to leave it out.")
+  r("emmeans", "mi_pred()", "untested",
+    "Takes the grid route through frm_lp_basis(), which needs the variable complete in the grid. Not exercised.")
+  r("emmeans", "gp_pred()", "conditional",
+    "An approximate gp(..., k = ) works. An exact gp() is refused at a position the fit did not see, because its kriging variance has no covariance between grid points here; at = an observed value works.")
   r("emmeans", "group:ordinal", "conditional",
     "Works on the LATENT linear predictor, emmeans's mode = \"latent\" convention for clm-like models: the intercept is dropped there (the K-1 thresholds take its place), so contrasts are on the latent scale and absolute means carry no threshold offset. For category probabilities use frm_linpred(fit, type = \"response\") or conditional_effects(), which are on a different scale from these means.")
   r("confint_profile", "kind:mode", "untested", "")
@@ -1639,11 +1766,14 @@ compat_hand_rules_tbl <- function() {
   ## R-side residual correlation -----------------------------------------------
   # Everything refused here is refused for one reason: the likelihood
   # is a joint density over each group, so it no longer factorizes into
-  # per-row contributions. brms refuses the same core set.
+  # per-row contributions. brms refuses the same core set. brms's
+  # default cov = FALSE for ar(), ma() and arma() keeps per-row
+  # densities, so the rows naming those three after this block say
+  # where its answer differs.
   r("group:autocor", "kind:family", "refused",
-    "Refused: a residual correlation needs a family with a real residual. brms accepts the same spelling for other families but fits a different model there - a latent gaussian AR process added to the linear predictor - which is spelled here as a random effect over the time factor: + ar1(factor(week) + 0 | subj), or toep()/us() for a freer lag structure.")
+    "Refused: a residual correlation needs a family with a real residual. brms accepts the same spelling for other families but fits a different model there - a latent gaussian AR process added to the linear predictor - which is spelled here as a random effect over the time factor: + ar1(factor(week) + 0 | subj), or toep()/us() for a freer lag structure. Under cov = FALSE brms itself refuses an MA part for these families ('Please set cov = TRUE when modeling MA structures for this family') and fits latent residuals for an AR part; both are refused here with that explanation.")
   r("group:autocor", "group:autocor_families", "works",
-    "Written as a formula term - ar(week, subj, cov = TRUE), cosy(gr = subj), unstr(week, subj) - it makes the residuals of one group a single correlated draw, y_g ~ N(mu_g, D R D) with D the diagonal of that group's sigma values; student() gets the multivariate-t analog. These are exactly the two families brms treats this way. brms's default cov = FALSE (the residual-regression formulation) is a different likelihood and is refused; the call must say cov = TRUE. The lag is the distance between the rows' positions in the GLOBAL set of time levels, so a group missing a time point gets the wider lag (nlme's reading, not brms's). Validated against nlme::gls (corAR1, corARMA, corCompSymm, corSymm) under ML and REML: log-likelihoods agree to 1e-9 or better and the correlation parameters to 1e-5 or better.")
+    "Written as a formula term - ar(week, subj, cov = TRUE), cosy(gr = subj), unstr(week, subj) - it makes the residuals of one group a single correlated draw, y_g ~ N(mu_g, D R D) with D the diagonal of that group's sigma values; student() gets the multivariate-t analog. These are exactly the two families brms treats this way. The lag is the distance between the rows' positions in the GLOBAL set of time levels, so a group missing a time point gets the wider lag (nlme's reading, not brms's). Validated against nlme::gls (corAR1, corARMA, corCompSymm, corSymm) under ML and REML: log-likelihoods agree to 1e-9 or better and the correlation parameters to 1e-5 or better. ar(), ma() and arma() WITHOUT cov = TRUE are brms's default residual-regression form (see their own rows): mu gains ma * err[t - i] + ar * err[t - i] with err = y - mu - MA, the family density stays per row, the first rows of a group get no lagged term, and the lag is counted in ROWS of the (gr, time) order as brms counts it. Validated against brms 2.23.0's model block on its own make_standata() data to 1e-15 relative, and against stats::arima(method = \"CSS\") on one series (dev/arcov-validate.R).")
   r("group:autocor", "student", "conditional",
     "The multivariate-t has one shape parameter per group, so nu must be constant; a predicted nu ~ ... is refused. The density is brms's multi_student_t with scale matrix D R D, verified against mvtnorm::dmvt exactly.")
   r("group:autocor", "kind:aterm", "refused",
@@ -1665,7 +1795,7 @@ compat_hand_rules_tbl <- function() {
   r("group:autocor", "sparse_x", "works", "Verified by a tiny fit.")
   r("group:autocor", "autoscale", "works", "Verified by a tiny fit.")
   r("group:autocor", "bounds", "works",
-    "A bound is written as a prior. set_prior(class = \"ar\"/\"ma\"/\"cosy\", lb =, ub =) bounds the natural coefficient of a first-order structure; class = \"theta\" with coef = \"thetaac_1\" bounds the internal parameter of any of them. A higher-order ar/ma coefficient takes no lb/ub, because it is a function of several internal parameters at once and no box in internal space is the box asked for; the parameterization already keeps the process stationary and invertible.")
+    "A bound is written as a prior. set_prior(class = \"ar\"/\"ma\"/\"cosy\", lb =, ub =) bounds the natural coefficient of a first-order structure; class = \"theta\" with coef = \"thetaac_1\" bounds the internal parameter of any of them. A higher-order ar/ma coefficient takes no lb/ub, because it is a function of several internal parameters at once and no box in internal space is the box asked for; the parameterization already keeps the process stationary and invertible. Under brms's cov = FALSE the coefficients are unconstrained and ARE the internal parameters, as in brms, so lb/ub apply at any order.")
   r("group:autocor", "prior", "works",
     "Priors on the fixed effects and on random-effect covariance parameters work as usual, and since 0.49 the residual-correlation parameters have brms's own classes: \"ar\", \"ma\" and \"cosy\" carry a density on the natural coefficient with the transform's Jacobian, and \"cortime\" takes lkj() on an unstr() time correlation.")
   r("group:autocor", "kind:covstruct", "works",
@@ -1689,6 +1819,31 @@ compat_hand_rules_tbl <- function() {
   r("group:autocor", "kind:special", "untested", "")
   r("group:autocor", "kind:autocor", "refused",
     "Refused: a response has one residual covariance, so it carries one such term. brms refuses the same with 'Can only model one time-series term'.")
+
+  ## brms's cov = FALSE ARMA ---------------------------------------------
+  # One spelling, two likelihoods: cov = TRUE is the joint residual the
+  # group:autocor rows describe, and brms's default cov = FALSE is a
+  # regression of mu on the group's earlier residuals, with the
+  # family's own per-row density. These rows name the three terms, so
+  # they outrank the group rows exactly where the two answers differ.
+  for (nm in c("ar()", "ma()", "arma()")) {
+    r(nm, "kind:aterm", "conditional",
+      "Under cov = FALSE weights(), cens(), trunc() and mi() work: the term shifts mu and the density stays per row, so each addition term acts on its row as it does without the term, and under mi() the residual is taken against the observed-or-imputed response (brms's Yl). brms 2.23.0 generates the same Stan code for each; verified against its model block to 1e-15 (dev/arcov-validate.R). Under cov = TRUE all of them are refused, because the group's density is joint.")
+    r(nm, "se()", "refused",
+      "Refused under both forms. brms refuses se() with cov = FALSE ('Please set cov = TRUE in ARMA structures when including known standard errors'), and the cov = TRUE form here has no per-row density for a known standard error to add to.")
+    r(nm, "student", "conditional",
+      "Under cov = TRUE the multivariate-t has one shape per group, so nu must be constant. Under cov = FALSE the density is brms's rowwise student_t at the shifted mu, and a predicted nu ~ ... works.")
+    r(nm, "rescor", "conditional",
+      "Works under cov = FALSE: each response's mu is shifted by its own term and the rows keep their multivariate normal density across responses, which is brms's Stan code; verified against it to 1e-15. Refused under cov = TRUE, where the joint structure would be a Kronecker product.")
+    r(nm, "fitted", "conditional",
+      "Under cov = TRUE the mean structure is untouched. Under cov = FALSE fitted(), frm_linpred() and predict(type = \"response\") report brms's one-step mean: mu plus the ARMA term of the OBSERVED earlier residuals of the row's group. newdata must then carry the response, whose rows are read as their own groups in their own time order, as brms reads new data; without it the call is refused by name. The standard error is a finite-difference delta method over the parameters and the group effects, because the mean reads the residuals of other rows. conditional_effects() and emmeans() drop the term, as brms's do (incl_autocor = FALSE).")
+    r(nm, "predict", "conditional",
+      "Under cov = TRUE unchanged. Under cov = FALSE predict() draws each row around its one-step mean, conditional on the observed earlier residuals, which is brms's posterior_predict(); newdata must carry the response.")
+    r(nm, "simulate", "works",
+      "Under cov = FALSE simulate() runs brms's recursion over its own draws, one within-group position at a time, so a replicate has the fitted serial dependence and a group's first row has no lagged term. Rows are drawn by the family's rowwise simulator, so trunc() works. newdata starts every group from an empty past and needs no response, which makes it the forecasting route. Under cov = TRUE see the group:autocor row.")
+    r(nm, "residuals", "conditional",
+      "Under cov = FALSE \"response\" and \"pearson\" are against the one-step mean, so for a well-specified model they are the innovations, uncorrelated in time. Under cov = TRUE they are against mu and keep the fitted autocorrelation. \"osa\" is refused under both.")
+  }
 
   ## formula grammar --------------------------------------------------------------
   # The two permissive grammar defaults are declared with the other
@@ -1744,6 +1899,45 @@ compat_hand_rules_tbl <- function() {
   r("mmc()", "*", "conditional",
     "mmc() only means something on the left of a multi-membership bar, where it supplies one covariate value per member. Anywhere else it is refused, including over a single-membership grouping factor. Inside an mm() term it composes like any other random-slope column.",
     override = TRUE)
+
+  ## by-split terms, gr(g, by = f) and mm(g1, g2, by = ) --------------------
+  # A by-split term is one ordinary block per by-level over the levels of
+  # g in that by-level (R/gr-by.R), so whatever reads a block reads it
+  # unchanged; what is refused is a structure that is not a product over
+  # the grouping levels. The numbers are in dev/grby-findings.md.
+  r("gr_by", "kind:family", "works",
+    "The by-split changes the covariance of the group-level effects only; the family sees an ordinary linear predictor. Verified on gaussian (against lme4 and brms's density), poisson (against glmmTMB), bernoulli (quadrature against integrate()) and brms's own brmsfit_example5 mixture formula.")
+  r("gr_by", "kind:aterm", "works",
+    "Addition terms change the likelihood; the by-split changes the covariance of the group-level effects.")
+  r("gr_by", "kind:special", "works",
+    "Smooths, Gaussian processes and monotonic terms are separate additive terms and separate blocks.")
+  r("gr_by", "kind:covstruct", "refused",
+    "Refused by name: a by-split term is one block per by-level with its own parameters, which covers the structures whose density is a product over the grouping levels. rr() shares its loadings across the whole factor, equalto() has no parameters to split, and car(), spde(), gp() and smooths are not bar terms.")
+  for (cs in c("us", "diag", "homdiag", "cs", "homcs", "ar1", "hetar1",
+               "toep", "homtoep", "ou", "exp", "gau", "mat")) {
+    r("gr_by", cs, "works",
+      "One block of this structure per by-level. Verified: us, diag, ar1, cs, homcs, toep and hetar1 against glmmTMB writing one term per by-level with indicator columns; homdiag, homtoep, ou, exp, gau and mat by the by-split objective equalling the sum of the by-levels' subset fits at their estimates.")
+  }
+  r("gr_by", "group:student_blocks", "works",
+    "gr(g, by = f, dist = \"student\"): one multivariate-t block per by-level with the same fixed nu. Verified by the by-split objective equalling the sum of the by-levels' subset fits.")
+  r("gr_by", "gr_cov", "refused",
+    "Refused by name: brms scales each level's effects by its by-level's covariance and then correlates the levels through the Cholesky factor of A, so levels in different by-levels stay correlated. That covariance is neither block-diagonal over the by-levels nor a Kronecker product, and splitting A into its by-level blocks would fit a different model.")
+  r("gr_by", "gr_prec", "refused",
+    "Refused by name, for the reason gr(cov = ) with by = is.")
+  r("gr_by", "mm()", "works",
+    "mm(g1, g2, by = cbind(f1, f2)): brms's by-matrix, one column per member, maps each POOLED level to one by-level, and the pooled levels split into one mm block per by-level. Verified against brms's density written from its Stan data (J_1_k, W_1_k, Jby_1). A new membership level on newdata takes the covariance of the by-level its own member column names.")
+  r("gr_by", "|ID|", "conditional",
+    "Works when every term sharing the key writes the same gr(g, by = f): the linked terms merge into one block per by-level, under brms's names (cor_g__Intercept:fa__sigma_Intercept:fa). Refused when the key mixes gr(g, by = f) with g, or two by-variables, since that is two grouping specifications.")
+  r("gr_by", "REML", "works",
+    "Verified against lme4's REML fit of one term per by-level: the log-likelihoods and standard deviations agree.")
+  r("gr_by", "quadrature", "works",
+    "A scalar by-split term is one scalar block per by-level, each level of g in exactly one of them. Verified on a bernoulli fit against integrate() over each level at the estimates, to 7e-10 in the log-likelihood.")
+  r("gr_by", "importance", "refused",
+    "Refused by name: the correction draws one level's coefficients from every block over the grouping factor at once, and the by-levels' blocks carry disjoint levels of it.")
+  r("gr_by", "group:post_fit", "works",
+    "Verified: ranef(), coef() and ngrps() merge the by-levels into one entry over every level of g, as brms keys them; VarCorr(), summary(), confint() and hypothesis() use brms's names (sd_g__Intercept:fa); fitted(), residuals() (OSA included), simulate() and emmeans read the blocks as any others. predict(allow_new_levels = TRUE) draws an unseen level from the covariance of the by-level its new row names, as brms does, and refuses a row whose by-level the fit did not estimate; a level the fit saw keeps its fitted effect whatever by-value the new row carries.")
+  r("gr_by", "mvbf", "works",
+    "Each response builds its own by-split blocks; an |ID| key across responses merges the linked terms per by-level.")
 
   # A covariance structure's own conditions (num_factor() coordinates
   # for exp/gau/mat, level order for ar1, a rank for rr) hold whatever

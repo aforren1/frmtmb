@@ -4,7 +4,7 @@
 \alias{bf}
 \title{Set up a model formula}
 \usage{
-bf(formula, ..., family = NULL, nl = NULL)
+bf(formula, ..., family = NULL, nl = NULL, center = NULL)
 }
 \arguments{
 \item{formula}{The model formula for \code{mu}, or a formula \code{bf()}
@@ -26,6 +26,17 @@ nonlinear expression of named parameters, each given its own
 \code{...} formula with the full predictor grammar. \code{NULL}, the default
 as in brms, means \code{FALSE} for a new formula and keeps the setting
 of a formula \code{bf()} already built.}
+
+\item{center}{Whether the location formula's intercept is brms's
+class \code{"Intercept"}, a density on the intercept at the means of the
+predictors. \code{NULL}, the default, means \code{TRUE} for a new formula and
+keeps the setting of a formula \code{bf()} already built. \code{FALSE} makes
+the intercept an ordinary coefficient, class \code{"b"} with coef
+\code{"Intercept"}, as \code{0 + Intercept} in the formula does; see the
+section on brms's reserved \code{Intercept} below. It changes priors
+only: the likelihood and the maximum likelihood fit are the same.
+It applies to the location formula alone, as in brms; give a
+parameter formula its own with \code{\link[=lf]{lf()}}.}
 }
 \value{
 An object of class \code{frmtmb_formula}.
@@ -48,6 +59,30 @@ Every linear predictor accepts lme4-style random effects \code{(1 | g)},
 Attach a family with \code{+}, for example \code{bf(y ~ x) + gaussian()}, or
 pass one to \code{\link[=frm]{frm()}}. A model that names no family is gaussian.
 }
+\section{brms's reserved \code{Intercept}}{
+
+In a formula without an intercept, \code{Intercept} is a reserved name, as
+in brms: \code{y ~ 0 + Intercept + x} is the model \code{y ~ 1 + x}, with the
+intercept as an ordinary population-level coefficient. Factors get
+treatment contrasts, as they do beside an intercept. The likelihood
+is the same, so a maximum likelihood fit is the same; what changes
+is the prior. brms places a class \code{"Intercept"} prior at the means
+of the predictors, and a class \code{"b"} prior on this coefficient at
+zero, and so does frmtmb: \code{set_prior(..., class = "b")} reaches it,
+\code{class = "Intercept"} does not. \code{bf(y ~ x, center = FALSE)} gives
+the same model. The spelling works in every linear formula: the
+location, a distributional parameter (\code{sigma ~ 0 + Intercept + z})
+and a nonlinear parameter (\code{a ~ 0 + Intercept + x}, where it changes
+nothing, because brms never centers a nonlinear parameter).
+
+\code{Intercept} must be a term of its own; \code{Intercept:x} is refused.
+An ordinal family refuses \code{0 + Intercept}, as brms does, because its
+thresholds take the intercept's place. A data column named
+\code{Intercept} must hold only ones in such a model, as brms requires;
+in a formula with an intercept, \code{Intercept} is an ordinary variable.
+Prediction needs no \code{Intercept} column in \code{newdata}.
+}
+
 \examples{
 # brms-style model formulas: attach a family with `+`
 bf(y ~ x + (1 | g)) + gaussian()
@@ -56,4 +91,7 @@ bf(y ~ x, sigma ~ x)
 bf(y ~ x, shape = 2) + Gamma()
 # nonlinear models declare parameter formulas and nl = TRUE
 bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1 + (1 | g), nl = TRUE)
+# an intercept that a class "b" prior reaches; the two are one model
+bf(y ~ 0 + Intercept + x)
+bf(y ~ x, center = FALSE)
 }

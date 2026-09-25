@@ -1,6 +1,4 @@
 id	pkg	verdict	class	reason
-families:19	*	cannot transfer	absent	frmtmb has no hurdle_negbinomial() (famlink ledger row 16)
-families:20	*	cannot transfer	absent	frmtmb has no hurdle_negbinomial(); the expect_error passes only on could not find function (famlink ledger row 17)
 families:37	*	divergence	policy	acat() takes the logit link only: off the logit acat is a second density frmtmb has not written (?frmtmb-links; famlink ledger row 32)
 families:52	*	cannot transfer	absent	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 43)
 families:53	*	cannot transfer	absent	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 44)
@@ -39,7 +37,6 @@ families:117	*	cannot transfer	absent	frmtmb has no xbeta(); it also reads a Sta
 families:118	*	cannot transfer	absent	frmtmb has no xbeta(); it also reads a Stan prior string (famlink ledger row 83)
 families:122	*	cannot transfer	stan	frmtmb has no xbeta(), and the assertion reads the Stan include file (famlink ledger row 84)
 brm:81	frmtmb	defect	different-error	not the same refusal: frmtmb validates the data first and refuses the missing column by name, 'The model uses `sei`, which is not a column of `data`', where brms refuses se() for weibull from the formula alone; with sei present frmtmb does refuse se() for weibull (dev/brmsport-probe3.R). The message is frmtmb's own, not base R's 'object not found', which is what this reason used to say
-brm:100	frmtmb	cannot transfer	absent	frmtmb has no me() noise-free term (dev/brms-suite-audit.md section 5)
 brm:102	frmtmb	defect	internal-error	set_rescor() on the right-hand side reaches model.frame and dies with R's 'invalid type (list) for variable', not a designed refusal (dev/brmsport-probe3.R)
 brm:112	frmtmb	cannot transfer	absent	frmtmb has no arma() function object to add to a formula; the term exists only inside a formula
 brm:116	frmtmb	defect	refuses-accepted	categorical() refuses the integer response inhaler$rating (4 categories) with the FALSE claim 'fewer than two categories', before reaching the cs() check brms asserts; a factor response is accepted (dev/brmsport-probe3.R; priorform ledger P20 deferred it to famlink)
@@ -52,18 +49,17 @@ standata:266	frmtmb	cannot transfer	absent	frmtmb has no subset() addition term
 standata:267	frmtmb	cannot transfer	absent	frmtmb has no subset() addition term
 standata:268	frmtmb	cannot transfer	absent	frmtmb has no subset() addition term
 standata:269	frmtmb	cannot transfer	absent	frmtmb has no subset() addition term
-standata:310	frmtmb	cannot transfer	stan	reads brms's internal old_order attribute of Stan data, which exists because brms sorts rows for its autocorrelation code; the setup ar(time, id) is also refused without cov = TRUE (?frmtmb-autocor)
-standata:315	frmtmb	cannot transfer	stan	reads brms's internal old_order attribute of Stan data; the setup ma(time, id) is also refused without cov = TRUE (?frmtmb-autocor)
-standata:316	frmtmb	cannot transfer	stan	reads brms's internal old_order attribute of Stan data; the setup ma(time, id) is also refused without cov = TRUE (?frmtmb-autocor)
+standata:310	frmtmb	cannot transfer	stan	reads brms's internal old_order attribute of Stan data, which exists because brms sorts rows for its autocorrelation code; frmtmb keeps the data order and has no such attribute. The setup ar(time, id) runs (brms's cov = FALSE form, ?frmtmb-autocor)
+standata:315	frmtmb	cannot transfer	stan	reads brms's internal old_order attribute of Stan data; frmtmb keeps the data order and has no such attribute. The setup ma(time, id) runs (?frmtmb-autocor)
+standata:316	frmtmb	cannot transfer	stan	reads brms's internal old_order attribute of Stan data; frmtmb keeps the data order and has no such attribute. The setup ma(time, id) runs (?frmtmb-autocor)
 standata:620	frmtmb	cannot transfer	absent	frmtmb has no mi(x, idx = ) and no subset() or index() addition terms
 standata:634	frmtmb	cannot transfer	absent	frmtmb has no mi(x, idx = ); the call is refused on that, before the index() check brms asserts
 standata:641	frmtmb	cannot transfer	absent	frmtmb has no subset() addition term
 standata:649	frmtmb	cannot transfer	absent	frmtmb has no mi(x, idx = ) and no subset() addition term
-standata:705	frmtmb	cannot transfer	absent	frmtmb's gr() takes cov and prec only, not by (dev/brms-suite-audit.md section 5); Nby_1 is also Stan data
-standata:706	frmtmb	cannot transfer	absent	frmtmb's gr() takes cov and prec only, not by; Jby_1 is also Stan data
-standata:709	frmtmb	cannot transfer	absent	frmtmb's mm() refuses by = by name
-standata:710	frmtmb	cannot transfer	absent	frmtmb's mm() refuses by = by name
-standata:712	frmtmb	cannot transfer	absent	frmtmb's gr() takes no by, so the level check brms asserts is never reached
+standata:705	frmtmb	cannot transfer	stan	Nby_1 is Stan data, which frmtmb does not build: it fits gr(g, by = z) as one random-effect block per by-level, five here (dev/grby-findings.md)
+standata:706	frmtmb	cannot transfer	stan	Jby_1 is Stan data, which frmtmb does not build; test-gr-by.R asserts the same level-to-by-level map on the fitted blocks (dev/grby-findings.md)
+standata:709	frmtmb	cannot transfer	stan	Nby_1 is Stan data, which frmtmb does not build: it fits mm(g, g2, by = cbind(z, z2)) as one block per by-level, five here (dev/grby-findings.md)
+standata:710	frmtmb	cannot transfer	stan	Jby_1 is Stan data, which frmtmb does not build; test-gr-by.R asserts the same pooled-level-to-by-level map on the fitted blocks (dev/grby-findings.md)
 standata:718	frmtmb	cannot transfer	stan	Stan data column names: brms renames poly(x, 3)1 to polyx31 to make a Stan identifier; frmtmb's brms-facing names already agree, variables() reads b_polyx31 (dev/brmsport-probe3.R)
 standata:724	frmtmb	cannot transfer	stan	reads the Stan data slot nu; frmtmb accepts bf(y ~ 1, nu = 3) and keeps the constant in its parameter map, not in a data slot
 standata:725	frmtmb	cannot transfer	stan	reads the Stan data slot disc, which brms passes as the constant 1; frmtmb's acat() has no disc data
@@ -73,20 +69,9 @@ standata:740	frmtmb	cannot transfer	absent	lf() takes no cmc argument
 standata:744	frmtmb	cannot transfer	absent	bf() takes no cmc argument
 standata:745	frmtmb	cannot transfer	absent	bf() takes no cmc argument, and Z_1_1 is Stan data
 standata:928	frmtmb	defect	internal-error	y ~ . is not expanded: frm() dies with R's ''.' in formula and no data argument' on the fit route and the frame route alike, where brms expands the dot against the data (dev/brmsport-probe3.R)
-standata:970	frmtmb	cannot transfer	absent	frmtmb has no reserved Intercept variable, so 0 + intercept dies with R's object 'intercept' not found
-standata:974	frmtmb	cannot transfer	absent	frmtmb has no reserved intercept variable
-standata:976	frmtmb	cannot transfer	absent	frmtmb has no reserved Intercept variable: y ~ 0 + Intercept dies with R's object 'Intercept' not found
+standata:970	frmtmb	cannot transfer	absent	frmtmb reserves Intercept but refuses brms's deprecated lower-case intercept by name and asks for Intercept, where brms accepts it with a deprecation warning
+standata:974	frmtmb	cannot transfer	absent	0 + intercept is refused (standata:970), so there is no intercept column to read
 standata:1047	frmtmb	cannot transfer	absent	frmtmb has no rate() addition term
-standata:1063	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term (dev/brms-suite-audit.md section 5)
-standata:1065	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term
-standata:1072	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term
-standata:1073	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term; ngrthres is also Stan data
-standata:1074	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term; Jthres is also Stan data
-standata:1075	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term; Jthres is also Stan data
-standata:1078	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term
-standata:1079	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term; ngrthres is also Stan data
-standata:1082	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term
-standata:1083	frmtmb	cannot transfer	absent	frmtmb has no thres() addition term; ngrthres is also Stan data
 standata:1133	frmtmb	cannot transfer	absent	frm() takes no drop_unused_levels argument; the unused level is always dropped
 priors:5	frmtmb	divergence	policy	frmtmb lists 5 class theta rows (its covariance parameters) and no per-coefficient sd rows, since its class sd addresses a block and refuses coef (priorform ledger P1)
 priors:14	frmtmb	cannot transfer	absent	sratio() takes no threshold = 'equidistant' and there is no cse() alias (priorform ledger P2)

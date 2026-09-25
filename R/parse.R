@@ -1,4 +1,4 @@
-# The addition-term registry. The eight core terms below are spelled out
+# The addition-term registry. The core terms below are spelled out
 # because the core acts on each of them: weights() enters the objective,
 # cens() reshapes the density, mi() creates parameters. A contributed
 # term does none of that - it carries a column of data to a family that
@@ -19,7 +19,7 @@ frmtmb_aterm_registry$reg <- list()
 #'
 #' @noRd
 core_aterms <- c("weights", "trials", "cens", "trunc", "se",
-                 "vint", "vreal", "mi")
+                 "vint", "vreal", "mi", "thres")
 
 #' Add an addition term from another package
 #'
@@ -147,6 +147,7 @@ aterm_base <- function(nm) {
   if (nm == "cens_y2") return("cens")
   if (nm == "se_sigma") return("se")
   if (nm == "mi_sd") return("mi")
+  if (nm == "thres_gr") return("thres")
   base <- sub("[0-9]+$", "", nm)
   if (base %in% c("vint", "vreal")) return(base)
   e <- registered_aterm_of(nm)
@@ -179,6 +180,7 @@ aterm_spelling <- function(nm) {
   if (nm %in% c("trunc_lb", "trunc_ub")) {
     return(paste0("trunc(", substring(nm, 7L), " = <bound>)"))
   }
+  if (nm == "thres_gr") return("thres(gr = <column>)")
   paste0(nm, "(<column>)")
 }
 
@@ -213,6 +215,7 @@ parse_response <- function(formula) {
       if (nm %in% names(aterms) ||
           (nm == "trunc" && any(c("trunc_lb", "trunc_ub") %in%
                                   names(aterms))) ||
+          (nm == "thres" && "thres_gr" %in% names(aterms)) ||
           (multi && paste0(nm, "1") %in% names(aterms))) {
         frm_stop("Duplicated addition term `", nm, "()`", call. = FALSE)
       }
@@ -244,6 +247,20 @@ parse_response <- function(formula) {
         }
         aterms[["mi"]] <- TRUE
         if (length(tm) == 2L) aterms[["mi_sd"]] <- tm[[2]]
+      } else if (nm == "thres") {
+        # brms's resp_thres(x, gr = NA): the number of thresholds and the
+        # factor whose levels get a threshold vector each. Matched the
+        # way R matches the call, so thres(5), thres(gr = g) and
+        # thres(n, g) all mean what they mean in brms
+        mc <- tryCatch(match.call(function(x, gr) NULL, tm),
+                       error = function(e) {
+                         frm_stop("thres() takes the number of thresholds ",
+                                  "and a grouping factor, thres(x, gr): ",
+                                  conditionMessage(e), call. = FALSE)
+                       })
+        args <- as.list(mc)[-1L]
+        if (!is.null(args$x)) aterms[["thres"]] <- args$x
+        if (!is.null(args$gr)) aterms[["thres_gr"]] <- args$gr
       } else if (nm %in% c("vint", "vreal")) {
         # custom-family data vectors (brms vint()/vreal()): each
         # argument becomes aterms$vint1, vint2, ... for the lpdf
@@ -517,8 +534,8 @@ parse_spde_call <- function(tm, env) {
 #'     `gr(g, cov = A)` over a single-membership factor, and `dist =` is
 #'     `gr(g, dist = "student")` over one (see
 #'     [frmtmb-student-re]), though not over a membership design, whose
-#'     rows load several levels at once. `by =` and `pw =` have no
-#'     equivalent yet.}
+#'     rows load several levels at once. `pw =` has no equivalent
+#'     yet.}
 #'   \item{Non-name members}{`mm()` reads its membership variables as
 #'     column names, as brms does. Build the column first.}
 #' }
@@ -527,6 +544,20 @@ parse_spde_call <- function(tm, env) {
 #' needs `allow_new_levels = TRUE`; that member then contributes the
 #' population value while the row's remaining members still contribute
 #' their fitted effects.
+#'
+#' @section One covariance per by-level:
+#'
+#' `mm(g1, g2, by = cbind(f1, f2))` is brms's by-split: `by` is a matrix
+#' with one column per membership variable, and each pooled level gets
+#' the covariance of its by-level. A pooled level must have one
+#' by-level wherever it appears, in any member column; brms refuses the
+#' data otherwise, and so does frmtmb, with brms's message. The block
+#' splits into one block per by-level, and the standard deviations take
+#' brms's names, `sd_mmg1g2__Intercept:cbind(f1, f2)1` (brms evaluates
+#' `cbind()` of two factors to their integer codes). A new level on
+#' `newdata` takes the covariance of the by-level its own member column
+#' names. The same split over a single grouping factor is
+#' `gr(g, by = f)`.
 #'
 #' @return `mm()` and `mmc()` are formula terms, not free-standing
 #'   functions: `bf()` reads them at parse time, and the value they
@@ -577,9 +608,10 @@ calls_function <- function(e, nm) {
   hd <- e[[1L]]
   if (is.name(hd) && identical(as.character(hd), nm)) return(TRUE)
   for (i in seq_along(e)[-1L]) {
-    ei <- e[[i]]
-    if (is.symbol(ei) && !nzchar(as.character(ei))) next
-    if (calls_function(ei, nm)) return(TRUE)
+    # the empty argument of m[, 1] is the missing symbol, and binding it
+    # to a local makes every later read of that local an error
+    if (identical(e[[i]], quote(expr = ))) next
+    if (calls_function(e[[i]], nm)) return(TRUE)
   }
   FALSE
 }
@@ -656,7 +688,7 @@ cs_term_labels <- function(tm) {
 # brms mm() arguments that describe something other than the membership
 # design itself. Each has a spelling here that is already supported, so
 # the refusal can name it rather than just say no.
-mm_brms_only_args <- c("by", "cor", "id", "pw", "cov", "dist")
+mm_brms_only_args <- c("cor", "id", "pw", "cov", "dist")
 
 #' brms multi-membership grouping: `(x | mm(g1, g2, weights = W))`.
 #'
@@ -676,11 +708,12 @@ mm_brms_only_args <- c("by", "cor", "id", "pw", "cov", "dist")
 parse_mm_call <- function(tm, env) {
   aa <- as.list(tm)[-1L]
   nms <- names(aa) %||% rep("", length(aa))
-  bad <- setdiff(nms[nzchar(nms)], c("weights", "scale", mm_brms_only_args))
+  bad <- setdiff(nms[nzchar(nms)],
+                 c("weights", "scale", "by", mm_brms_only_args))
   if (length(bad)) {
     frm_stop("mm(): unknown argument(s) ", paste(bad, collapse = ", "),
-             " (takes the membership variables plus weights = and scale = )",
-             call. = FALSE)
+             " (takes the membership variables plus weights =, scale = ",
+             "and by = )", call. = FALSE)
   }
   used <- intersect(nms, mm_brms_only_args)
   if (length(used)) {
@@ -689,8 +722,8 @@ parse_mm_call <- function(tm, env) {
              "term: cor = FALSE is diag(x | mm(g1, g2)), id = is the ",
              "|ID| key (x | q | g), cov = is gr(g, cov = A), and dist = is ",
              "gr(g, dist = \"student\"). The last two take a ",
-             "single-membership factor only. by = / pw = have no ",
-             "equivalent yet", call. = FALSE)
+             "single-membership factor only. pw = has no equivalent yet",
+             call. = FALSE)
   }
   groups <- aa[!nzchar(nms)]
   if (length(groups) < 2L) {
@@ -714,8 +747,15 @@ parse_mm_call <- function(tm, env) {
   scale <- if (is.null(aa$scale)) TRUE else {
     eval_spec_arg(aa$scale, "scale", env, fn = "mm")
   }
+  # brms's mm(by = ): a matrix with one by-variable column per member
+  # (R/gr-by.R). The group is named without it, as brms names it.
+  by <- NULL
+  if (!is.null(aa[["by"]])) {
+    by <- list(expr = aa[["by"]], label = deparse1(aa[["by"]]), fn = "mm")
+    tm[["by"]] <- NULL
+  }
   list(groups = groups, gvars = gvars, weights_expr = aa$weights,
-       scale = scale, label = deparse1(tm))
+       scale = scale, by = by, label = deparse1(tm))
 }
 
 #' `gr(g, dist = )`: the latent density of a grouping term.
@@ -964,6 +1004,91 @@ expand_double_verts <- function(form) {
   form
 }
 
+#' The right-hand side `e` with brms's reserved `Intercept` term and
+#' every intercept-removing `0` or `- 1` taken out of its top-level sum,
+#' or `NULL` when nothing is left.
+#'
+#' @noRd
+strip_rsv_intercept <- function(e) {
+  is_num <- function(z, v) is.numeric(z) && length(z) == 1L && z %in% v
+  if (identical(e, as.name("Intercept")) || is_num(e, 0)) return(NULL)
+  if (is.call(e) && identical(e[[1L]], as.name("+"))) {
+    if (length(e) == 2L) return(strip_rsv_intercept(e[[2L]]))
+    a <- strip_rsv_intercept(e[[2L]])
+    b <- strip_rsv_intercept(e[[3L]])
+    if (is.null(a)) return(b)
+    if (is.null(b)) return(a)
+    return(call("+", a, b))
+  }
+  if (is.call(e) && identical(e[[1L]], as.name("-"))) {
+    if (length(e) == 2L && is_num(e[[2L]], 1)) return(NULL)
+    if (length(e) == 3L && is_num(e[[3L]], c(0, 1))) {
+      return(strip_rsv_intercept(e[[2L]]))
+    }
+    if (length(e) == 3L) {
+      return(call("-", strip_rsv_intercept(e[[2L]]) %||% 1, e[[3L]]))
+    }
+  }
+  e
+}
+
+#' brms's reserved `Intercept` in a fixed-effect formula, read as the
+#' formula with an intercept, or `NULL` when the formula does not use it.
+#'
+#' brms reserves `Intercept` in a formula that removes the intercept
+#' (brms 2.23.0 `has_rsv_intercept()`): `y ~ 0 + Intercept + x` gets a
+#' column of ones named `Intercept` and treatment contrasts for its
+#' factors, as if the intercept were there, so the likelihood is that of
+#' `y ~ 1 + x`. The one difference is that the intercept is then an
+#' ordinary population-level coefficient: brms does not center the
+#' design for it, and a class "b" prior reaches it where a class
+#' "Intercept" prior does not. So the formula is rewritten here to the
+#' one with an intercept, and the caller marks the linear predictor
+#' `center = FALSE`, which is also what `bf(center = FALSE)` sets.
+#'
+#' `pos` is the number of terms written before `Intercept`. brms's design
+#' puts the column there, after the columns of those terms, and the frame
+#' moves it there so the coefficients come in brms's order.
+#'
+#' Only `Intercept` as a term of its own is read. Inside another term
+#' (`Intercept:x`, `I(2 * Intercept)`) brms multiplies by its column of
+#' ones, which spells a different term; that is refused by name rather
+#' than guessed. So is brms's deprecated lower-case `intercept`.
+#'
+#' @noRd
+rsv_intercept_fixed <- function(fixed) {
+  vars <- all.vars(fixed)
+  if (!any(c("Intercept", "intercept") %in% vars)) return(NULL)
+  tt <- tryCatch(stats::terms(fixed), error = function(e) NULL)
+  if (is.null(tt) || attr(tt, "intercept") != 0L) return(NULL)
+  if ("intercept" %in% vars) {
+    frm_stop("`intercept` in a formula without an intercept is brms's ",
+             "deprecated spelling of the reserved variable `Intercept`, and ",
+             "frmtmb does not read it: write 0 + Intercept for an intercept ",
+             "that is an ordinary coefficient, or rename the data column ",
+             "if `intercept` is a covariate", call. = FALSE)
+  }
+  labs <- attr(tt, "term.labels")
+  k <- match("Intercept", labs)
+  rhs <- strip_rsv_intercept(reformulas::RHSForm(fixed))
+  new <- stats::as.formula(call("~", if (is.null(rhs)) 1 else {
+    call("+", 1, rhs)
+  }), env = environment(fixed))
+  tn <- tryCatch(stats::terms(new), error = function(e) NULL)
+  if (is.na(k) || is.null(tn) || "Intercept" %in% all.vars(new) ||
+        attr(tn, "intercept") != 1L ||
+        !identical(attr(tn, "term.labels"), labs[-k])) {
+    frm_stop("`Intercept` is brms's reserved intercept only as a term of ",
+             "its own in a formula without an intercept, as in ",
+             "y ~ 0 + Intercept + x. '", deparse1(reformulas::RHSForm(fixed)),
+             "' uses it inside another term or in a form frmtmb cannot ",
+             "read. Write that term without it (Intercept:x is x), or ",
+             "rename the data column if `Intercept` is a covariate",
+             call. = FALSE)
+  }
+  list(fixed = new, pos = k - 1L)
+}
+
 #' Split one linear-predictor RHS (a one-sided formula) into a parametric
 #' fixed formula, random-effect terms (reformulas), and mgcv smooth
 #' specifications. `shared` is the response-level environment that keeps
@@ -974,8 +1099,9 @@ expand_double_verts <- function(form) {
 #' dpar formula plus the environment it was written in, and returns a
 #' list with one slot per term family: `fixed` (the parametric formula),
 #' `re` (bar terms with their covariance structure, `|ID|` key, and
-#' known covariance or rank), `smooth`, `mo`, `miterms`, `csterms`,
-#' `gpterms`, `carterms`, `spdeterms`, and `rhs` (the expanded formula).
+#' known covariance or rank), `smooth`, `mo`, `miterms`, `meterms`,
+#' `csterms`, `gpterms`, `carterms`, `spdeterms`, and `rhs` (the
+#' expanded formula).
 #' Every entry is an unevaluated expression plus its tuning values; the
 #' data is never touched here. `assemble_frame()` turns these slots into
 #' design matrices and random-effect blocks.
@@ -1038,6 +1164,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
   smooth <- list()
   mo <- list()
   miterms <- list()
+  meterms <- list()
   csterms <- list()
   gpterms <- list()
   carterms <- list()
@@ -1067,7 +1194,14 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
                intersect(autocor_structs, all.names(tm))[1L], "(...)",
                call. = FALSE)
     }
-    if (is_smooth_call(tm)) {
+    if (calls_function(tm, "me")) {
+      # brms me(x, sdx): noise-free latent predictors (R/me.R). Checked
+      # first, so that a me() inside a smooth, an interaction or a bar
+      # term is refused by name rather than reaching a constructor
+      pm <- parse_me_term(tm)
+      meterms <- c(meterms, pm$entries)
+      rest <- c(rest, pm$rest)
+    } else if (is_smooth_call(tm)) {
       fn <- as.character(tm[[1]])[1]
       if (fn %in% c("te", "ti")) {
         frm_stop("te() and ti() smooths are not supported (no random-effect ",
@@ -1338,6 +1472,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     # gr(g, prec = Q) takes a (sparse) precision matrix instead;
     # gr(g, dist = "student") swaps the latent density for a t
     dist_nu <- NULL
+    by_spec <- NULL
     if (is.call(bar[[3]]) && identical(bar[[3]][[1]], as.name("gr"))) {
       ga <- as.list(bar[[3]])[-1]
       nms <- names(ga) %||% rep("", length(ga))
@@ -1357,11 +1492,17 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       }
       has_cov <- !is.null(ga$cov)
       has_prec <- !is.null(ga$prec)
+      has_by <- "by" %in% nms
       if (length(gvar) != 1 || (has_cov + has_prec) > 1 ||
-          (is.null(st) && (has_cov + has_prec) != 1) ||
-          !all(nms %in% c("", "cov", "prec"))) {
-        frm_stop("gr() supports (x | gr(g, cov = A)) or ",
-                 "(1 | gr(g, prec = Q))", call. = FALSE)
+          (is.null(st) && !has_by && (has_cov + has_prec) != 1) ||
+          !all(nms %in% c("", "cov", "prec", "by"))) {
+        frm_stop("gr() supports (x | gr(g, cov = A)), ",
+                 "(1 | gr(g, prec = Q)), (x | gr(g, by = f)) and ",
+                 "(x | gr(g, dist = \"student\"))", call. = FALSE)
+      }
+      if (has_by) {
+        by_spec <- parse_gr_by(ga[["by"]], gvar[[1L]], cls, bar,
+                               has_cov || has_prec)
       }
       if (has_cov || has_prec) {
         if (calls_function(gvar[[1L]], "mm")) {
@@ -1388,16 +1529,29 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     list(bar = bar, group = bar[[3]], covstruct = cls, id = id,
          id_label = id_label, id_group = id_group,
          cov_expr = cov_expr, rank = rank, mm = mm,
-         dist_nu = dist_nu, written = written, from_slash = from_slash)
+         dist_nu = dist_nu, by = by_spec, written = written,
+         from_slash = from_slash)
   }, sf$reTrmFormulas, sf$reTrmClasses, sf$reTrmAddArgs, slash)
   names(re) <- vapply(re, function(z) deparse1(z$bar), "")
 
   fixed <- sf$fixedFormula
   environment(fixed) <- env_lp
-  list(fixed = fixed, re = re, smooth = smooth, mo = mo,
-       miterms = miterms, csterms = csterms, gpterms = gpterms,
-       carterms = carterms, spdeterms = spdeterms, acterms = acterms,
-       rhs = rhs_form)
+  rsv <- rsv_intercept_fixed(fixed)
+  if (!is.null(rsv)) {
+    fixed <- rsv$fixed
+    # `rhs` is where a variable scan looks, and `Intercept` is not data
+    reformulas::RHSForm(rhs_form) <- call(
+      "+", 1, strip_rsv_intercept(reformulas::RHSForm(rhs_form)) %||% 1)
+  }
+  out <- list(fixed = fixed, re = re, smooth = smooth, mo = mo,
+              miterms = miterms, meterms = meterms, csterms = csterms,
+              gpterms = gpterms, carterms = carterms,
+              spdeterms = spdeterms, acterms = acterms, rhs = rhs_form)
+  if (!is.null(rsv)) {
+    out$center <- FALSE
+    out$rsv_intercept <- rsv$pos
+  }
+  out
 }
 
 #' Lift the response's residual-correlation term out of its linear
@@ -1696,6 +1850,15 @@ parse_one_response <- function(bform) {
 
   if (length(nl_dpars)) {
     for (b in nl_bodies) {
+      # me() in a body would be evaluated as a call to a function that
+      # does not exist; its place is a nonlinear parameter's formula
+      if (calls_function(b, "me")) {
+        frm_stop("me() is not supported in a nonlinear formula body: ",
+                 deparse1(b), ". Give the noise-free variable its own ",
+                 "nonlinear parameter and put me() in that parameter's ",
+                 "linear formula, e.g. bf(y ~ a * exp(b), a ~ 0 + ",
+                 "me(x, sx), b ~ 1, nl = TRUE)", call. = FALSE)
+      }
       # A nonlinear body is arbitrary R code, so an ar() written there
       # is EVALUATED, not parsed, and fails deep inside the objective
       # with a message about the body. Say what is wrong instead.
@@ -1732,9 +1895,9 @@ parse_one_response <- function(bform) {
                  "nonlinear parameter. This family reserves: ",
                  paste(fam[["dpars"]], collapse = ", "), call. = FALSE)
       }
-      # UNREACHABLE while `+.frmtmb_formula` stands: a name needs a
-      # formula AND a body to get here, and R/bf.R:338, :351 and :358
-      # refuse that combination on all three orderings ("nlf() sets 'a',
+      # UNREACHABLE while plus_bf() (R/bf.R) stands: a name needs a
+      # formula AND a body to get here, and plus_bf() and nlf() refuse
+      # that combination on all three orderings ("nlf() sets 'a',
       # which the bf() it is added to already sets"), while a duplicate
       # inside one bf() is refused as "Duplicated dpar formula". So the
       # only member `both` can hold is the location dpar injected above,
@@ -1865,6 +2028,18 @@ parse_one_response <- function(bform) {
   main_lp <- if (!primaries[1L] %in% nl_dpars) {
     parse_linpred(reformulas::RHSForm(f, as.form = TRUE), env, shared_env)
   }
+  if (!is.null(main_lp[["rsv_intercept"]]) &&
+        isTRUE(fam[["drop_intercept"]])) {
+    frm_stop("0 + Intercept removes the intercept of an ordinal model, ",
+             "whose thresholds take its place; brms refuses it too. Drop ",
+             "both terms: ", deparse1(ri$resp), " ~ x keeps the thresholds ",
+             "as the intercept", call. = FALSE)
+  }
+  # brms's bf(center = FALSE) is the location formula's alone; a
+  # parameter formula takes its own from lf(center = FALSE)
+  if (!is.null(main_lp) && isFALSE(bform[["center"]])) {
+    main_lp[["center"]] <- FALSE
+  }
 
   # A family may ship a DEFAULT formula for some of its own dpars, which
   # stands in wherever the user wrote neither a formula nor a fixed
@@ -1893,6 +2068,7 @@ parse_one_response <- function(bform) {
     pf <- pforms[[nm]]
     lp <- parse_linpred(reformulas::RHSForm(pf, as.form = TRUE),
                         environment(pf) %||% env, shared_env)
+    if (isFALSE(attr(pf, "center", exact = TRUE))) lp[["center"]] <- FALSE
     c(list(name = nm, link = link, constant = NULL), lp)
   }
 
@@ -2053,6 +2229,53 @@ check_id_covstructs <- function(spec) {
   invisible(NULL)
 }
 
+#' A multivariate Student-t residual has ONE shape parameter.
+#'
+#' brms writes `multi_student_t(nu, Mu, Sigma)` with a single `nu`
+#' across the responses and refuses any formula or constant for it
+#' ("Cannot predict or fix 'nu' in this model"). The shared `nu` is
+#' kept as the first response's dpar, flagged `shared`, so it is
+#' estimated, named, and given a prior exactly once; the other
+#' responses carry no `nu` of their own, and every path that needs
+#' their value reads the shared one (`rescor_shared_nu()`).
+#'
+#' @noRd
+rescor_share_nu <- function(resps, forms) {
+  for (i in seq_along(resps)) {
+    f <- forms[[i]]
+    if ("nu" %in% c(names(f$pforms), names(f$pfix), names(f$nlforms))) {
+      frm_stop("Cannot predict or fix 'nu' in this model (response '",
+               names(resps)[i], "'). With rescor = TRUE the responses ",
+               "share one multivariate Student-t, which has a single nu ",
+               "across all of them; brms refuses the same formula. Drop ",
+               "the nu formula, or fit rescor = FALSE to give each ",
+               "response its own nu", call. = FALSE)
+    }
+  }
+  resps[[1L]]$dpars[["nu"]]$shared <- TRUE
+  for (i in seq_along(resps)[-1L]) resps[[i]]$dpars[["nu"]] <- NULL
+  resps
+}
+
+#' The model's set_mecor() setting: one value for the whole model,
+#' because the latent values of the me() terms are shared by every
+#' response that uses them. A multivariate formula takes its own
+#' setting, else the one its responses agree on.
+#'
+#' @noRd
+spec_mecor <- function(bform) {
+  if (!is.null(bform[["mecor"]])) return(isTRUE(bform[["mecor"]]))
+  if (!inherits(bform, "frmtmb_mvformula")) return(TRUE)
+  v <- unique(unlist(lapply(bform$forms, `[[`, "mecor")))
+  if (length(v) > 1L) {
+    frm_stop("set_mecor() is TRUE on one response and FALSE on another. ",
+             "The latent values of me() terms are shared by the whole ",
+             "model, so set it once: mvbf(...) + set_mecor(FALSE)",
+             call. = FALSE)
+  }
+  if (length(v)) isTRUE(v) else TRUE
+}
+
 #' @noRd
 parse_spec <- function(bform) {
   if (inherits(bform, "frmtmb_mvformula")) {
@@ -2063,29 +2286,40 @@ parse_spec <- function(bform) {
                names(resps)[duplicated(names(resps))][1], call. = FALSE)
     }
     rescor <- isTRUE(bform$rescor)
+    rescor_nu <- NULL
     if (rescor) {
       fams <- vapply(resps, function(r) r$family[["family"]], "")
-      if (!all(fams == "gaussian")) {
-        frm_stop("rescor = TRUE requires all responses to be gaussian ",
-                 "(got: ", paste(unique(fams), collapse = ", "), ")",
+      if (!all(fams == "gaussian") && !all(fams == "student")) {
+        frm_stop("rescor = TRUE requires all responses to be gaussian, ",
+                 "or all to be student (got: ",
+                 paste(unique(fams), collapse = ", "), "). The joint ",
+                 "density is a multivariate normal or a multivariate t; ",
+                 "a mix of the two has neither, and brms refuses it too",
                  call. = FALSE)
+      }
+      if (all(fams == "student")) {
+        resps <- rescor_share_nu(resps, bform$forms)
+        rescor_nu <- names(resps)[1L]
       }
     }
     out <- structure(
-      list(responses = resps, rescor = rescor),
+      list(responses = resps, rescor = rescor, rescor_nu = rescor_nu,
+           mecor = spec_mecor(bform)),
       class = "frmtmb_spec"
     )
     check_id_covstructs(out)
+    check_gr_by_groups(out)
     return(out)
   }
   stopifnot(inherits(bform, "frmtmb_formula"))
   resp <- parse_one_response(bform)
   out <- structure(
     list(responses = stats::setNames(list(resp), resp$resp_name),
-         rescor = FALSE),
+         rescor = FALSE, mecor = spec_mecor(bform)),
     class = "frmtmb_spec"
   )
   check_id_covstructs(out)
+  check_gr_by_groups(out)
   out
 }
 

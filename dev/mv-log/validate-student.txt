@@ -1,0 +1,17 @@
+[1] "y1_(Intercept)" "y1_x"           "y2_(Intercept)" "y2_x"          
+[5] "y3_(Intercept)" "y3_x"          
+[1] "y1_sigma_(Intercept)" "nu_(Intercept)"       "y2_sigma_(Intercept)"
+[4] "y2_sigma_z"           "y3_sigma_(Intercept)"
+objective at shared point  -1808.490955043689
+sum mvtnorm::dmvt          -1808.490955043688
+relative residual          5.029e-16
+logLik(fit)                -1786.502695046127
+sum rescor_row_loglik      -1786.502695046127
+ML logLik frmtmb           -1786.5026950461
+ML logLik reference        -1786.5026950653
+nu frmtmb 4.817534  reference 4.817581
+rescor frmtmb: 0.450770 0.181481 -0.350295
+rescor reference: 0.450767 0.181482 -0.350296
+log(nu - 1) =  5: student -1873.1012690491 gaussian -1886.2859464671
+log(nu - 1) = 10: student -1886.1795047571 gaussian -1886.2859464671
+log(nu - 1) = 20: student -1886.2859416280 gaussian -1886.2859464671

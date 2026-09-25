@@ -163,7 +163,7 @@ ngrps.frmtmb_fit <- function(object, ...) {
   # report a group of one level that brms has no entry for at all.
   bks <- Filter(function(bk) {
     !bk[["covstruct"]] %in% c("smooth", "gp", "hsgp", "car", "spde")
-  }, object$frame[["re_blocks"]])
+  }, by_merged_blocks(object$frame[["re_blocks"]]))
   if (!length(bks)) return(NULL)
   ng <- vapply(bks, `[[`, 0L, "n_levels")
   names(ng) <- vapply(bks, `[[`, "", "group_name")

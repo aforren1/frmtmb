@@ -91,10 +91,8 @@ test_that("brm produces expected errors", {
     expect_error(brm(y~x*cs(g), dat), fixed = TRUE,
                  "The term 'x:cs(g)' is invalid")
   )
-  brms_port("brm:100", "cannot transfer",
-    paste0(
-      "frmtmb has no me() noise-free term (dev/brms-suite-audit.md ",
-      "section 5)"),
+  brms_port("brm:100", "pass",
+    "",
     expect_error(brm(y~me(x, 2 * g)*me(x, g), dat),
                  "Variable 'x' is used in different calls to 'me'")
   )
@@ -110,8 +108,7 @@ test_that("brm produces expected errors", {
     "the time index must be ONE variable name",
     paste0(
       "brms: Cannot coerce 'x + y' to a single variable name. The ",
-      "grammar check runs before the cov = TRUE one, so the ported ",
-      "call, which omits cov, reaches it ",
+      "same refusal of the same call in frmtmb's words ",
       "(dev/adefects-log/evidence.txt)"),
     expect_error(brm(y ~ ar(x+y, g), dat),
                  "Cannot coerce 'x \\+ y' to a single variable name")
@@ -119,19 +116,13 @@ test_that("brm produces expected errors", {
   brms_port_own("brm:108",
     "grouping term must be variable names combined by",
     paste0(
-      "brms: Illegal grouping term 'g1/g2'. The grammar check runs ",
-      "before the cov = TRUE one, so the ported call reaches it"),
+      "brms: Illegal grouping term 'g1/g2'. The same refusal of ",
+      "the same call in frmtmb's words"),
     expect_error(brm(y ~ ar(gr = g1/g2), dat),
                  "Illegal grouping term 'g1/g2'")
   )
-  brms_port_own("brm:110",
-    paste0(
-      "ma[(][)]: only the residual-covariance formulation is ",
-      "implemented, so the call needs cov = TRUE"),
-    paste0(
-      "brms: Please set cov = TRUE. CAVEAT: frmtmb gives this ",
-      "message for ma(x) on every family, including gaussian, ",
-      "which brms fits (defect filed)"),
+  brms_port("brm:110", "pass",
+    "",
     expect_error(brm(y ~ ma(x), dat, poisson()),
                  "Please set cov = TRUE")
   )

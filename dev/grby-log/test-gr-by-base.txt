@@ -1,0 +1,17 @@
+LIB frmtmb from /opt/rlib/base
+RESULT frmtmb test-gr-by.R pass=0 fail=0 err=15 skip=0
+  BLOCK the term is one block per by-level over that level's groups fail=0 err=TRUE
+  BLOCK the fit agrees with lme4 fitting one term per by-level fail=0 err=TRUE
+  BLOCK logLik is brms's marginal density at the estimates fail=0 err=TRUE
+  BLOCK a structured block splits too: ar1 against glmmTMB fail=0 err=TRUE
+  BLOCK mm(g1, g2, by = ) is brms's density at the estimates fail=0 err=TRUE
+  BLOCK the parameters carry brms's names fail=0 err=TRUE
+  BLOCK a by-split on sigma takes the dpar prefix before the by-level fail=0 err=TRUE
+  BLOCK ranef(), coef() and ngrps() have one entry over every level fail=0 err=TRUE
+  BLOCK a new level takes the covariance of its own by-level fail=0 err=TRUE
+  BLOCK new data that cannot be routed is refused by name fail=0 err=TRUE
+  BLOCK simulate() draws from the split blocks fail=0 err=TRUE
+  BLOCK frm_simulate() takes the by-level names fail=0 err=TRUE
+  BLOCK a level of g in two by-levels is refused with brms's message fail=0 err=TRUE
+  BLOCK brms's other by refusals are brms's fail=0 err=TRUE
+  BLOCK structures that do not split are refused by name fail=0 err=TRUE

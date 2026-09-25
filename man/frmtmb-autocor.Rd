@@ -13,9 +13,10 @@ the term grammar and returns nothing.
 }
 \description{
 \code{ar()}, \code{ma()}, \code{arma()}, \code{cosy()} and \code{unstr()} are written as terms
-of the model formula, next to the fixed and random effects, and make
-the residuals of one group a single correlated draw instead of
-independent ones:
+of the model formula, next to the fixed and random effects. They come
+in two forms. The covariance form (\code{cov = TRUE}, and always for
+\code{cosy()} and \code{unstr()}) makes the residuals of one group a single
+correlated draw instead of independent ones:
 }
 \details{
 \deqn{y_g \sim N(\mu_g,\; D_g R D_g), \qquad
@@ -27,6 +28,10 @@ deviation - and a \code{sigma ~ ...} distributional model enters through
 the diagonal. Nothing is added to the linear predictor, so
 \code{\link[=fitted]{fitted()}}, \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} and \code{se.fit} are unchanged; what
 changes is the likelihood. This is the model \code{nlme::gls(correlation = corAR1())} fits, and the one brms fits under \code{cov = TRUE}.
+
+The residual-regression form is brms's DEFAULT for \code{ar()}, \code{ma()}
+and \code{arma()}, so it is what those terms mean without \code{cov = TRUE}.
+It is described in its own section below.
 }
 \section{Structures}{
 
@@ -82,15 +87,71 @@ injective: levels \verb{("x_1", "2")} and \verb{("x", "1_2")} both become
 them apart. brms merges them too; make the column yourself if the
 labels can collide.}
 \item{\code{p}, \code{q}}{Autoregressive and moving-average orders.}
-\item{\code{cov}}{Must be \code{TRUE}. brms's default \code{cov = FALSE} is a
-different likelihood (a residual regression that conditions on
-each group's first rows), which is not implemented; the call is
-refused rather than silently reinterpreted.}
+\item{\code{cov}}{\code{FALSE}, the default as in brms, gives the
+residual-regression form; \code{TRUE} gives the covariance form. They
+are different likelihoods, not two implementations of one.}
+}
+}
+
+\section{The residual-regression form (\code{cov = FALSE})}{
+
+This is the model brms 2.23.0 fits for \code{ar()}, \code{ma()} and \code{arma()}
+when \code{cov} is not set. Within each group, in time order, let
+\eqn{r_t = y_t - \mu_t} and
+\deqn{e_t = r_t - \sum_{i=1}^{q} \theta_i e_{t-i},}
+with \eqn{e_s = 0} before the group's first row. The mean of row
+\eqn{t} becomes
+\deqn{\mu^*_t = \mu_t + \sum_{i=1}^{q} \theta_i e_{t-i} +
+      \sum_{i=1}^{p} \phi_i e_{t-i},}
+and every row keeps the family's own density at \eqn{\mu^*_t}. The
+MA part enters \eqn{e} and the AR part does not, exactly as in
+brms's Stan code. So:
+\itemize{
+\item It is a CONDITIONAL likelihood. A group's first rows get no
+lagged term, rather than the stationary distribution the
+covariance form gives them. For one series this is the
+conditional sum of squares of \code{stats::arima(method = "CSS")}.
+\item The coefficients \code{ar[i]} and \code{ma[i]} are unconstrained reals,
+as in brms, because nothing in this likelihood needs a stationary
+or invertible process. A prior or a bound with \code{set_prior(class = "ar")} acts on them directly, at any order.
+\item \code{sigma} is the sd of each row around \eqn{\mu^*_t}, which for
+a correct model is the innovation sd.
+\item The lag is counted in ROWS of the group, sorted by \code{time}, as
+brms counts it: a group that skips a time point treats the next
+row as one step later. The covariance form counts levels instead
+(see below).
+\item Families: \code{gaussian()} and \code{student()}, the two families brms
+gives a residual \code{y - mu}. A predicted \code{nu ~ ...} works. For other
+families brms refuses an MA part ("Please set cov = TRUE when
+modeling MA structures for this family") and fits latent residuals
+for an AR part; both are refused here, and the refusal names the
+random-effect spelling of a latent autoregressive process. With a
+non-identity link the term is added to \code{mu} on the response
+scale, after the inverse link, as brms's Stan code adds it.
+\item It combines with \code{weights()}, \code{cens()}, \code{trunc()}, \code{mi()} on
+the response (the residual is then taken against the imputed
+value), random effects and \code{rescor = TRUE}, as in brms. \code{se()} is
+refused, as brms refuses it.
+\item After the fit, \code{\link[=fitted]{fitted()}}, \code{\link[=frm_linpred]{frm_linpred()}} and
+\code{predict(type = "response")} give brms's one-step mean
+\eqn{\mu^*_t}, which reads the OBSERVED earlier residuals; so
+\code{residuals()} are against it. \code{newdata} must then carry the
+response, and its rows form their own groups in their own time
+order. \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} draws each row around its one-step
+mean, as brms's \code{posterior_predict()} does. \code{\link[=simulate]{simulate()}} instead
+runs the recursion over its own draws, so a replicate carries the
+fitted serial dependence; on \code{newdata} it starts each group from
+an empty past and needs no response, which makes it the
+forecasting route. \code{conditional_effects()} and \code{emmeans()} drop
+the term, as brms's do. \code{\link[=autocor_matrix]{autocor_matrix()}} and
+\code{residuals(type = "osa")} are refused: this form defines no
+correlation matrix, and its tape reads the response as data.
 }
 }
 
 \section{Families}{
 
+This section and the two after it describe the covariance form.
 \code{gaussian()} and \code{student()} only - the two families with a real
 residual, and exactly the two brms treats this way (\code{student()} gets
 the multivariate-t analog, with one \code{nu} per group, so a predicted
@@ -178,6 +239,12 @@ fit <- frm(bf(y ~ x + ar(week, subj, cov = TRUE)) + gaussian(),
            data = d)
 summary(fit)
 autocor_matrix(fit)
+
+# brms's default residual-regression form: mu gains ar * (y - mu) of
+# the previous row of the same subject
+fit0 <- frm(bf(y ~ x + ar(week, subj)) + gaussian(), data = d)
+summary(fit0)
+head(fitted(fit0))
 
 # compound symmetry, and the unstructured correlation over the five
 # weeks

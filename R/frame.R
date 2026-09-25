@@ -132,6 +132,7 @@ dpar_frame_rhs <- function(dp) {
   }
   parts <- list(reformulas::RHSForm(dp[["fixed"]]))
   for (rt in dp[["re"]] %||% list()) {
+    for (v in by_term_vars(rt)) parts <- c(parts, list(as.name(v)))
     if (is.null(rt$mm)) {
       parts <- c(parts, list(rt$bar[[2]], rt$bar[[3]]))
       next
@@ -158,6 +159,7 @@ dpar_frame_rhs <- function(dp) {
   for (ent in dp[["miterms"]] %||% list()) {
     if (!is.null(ent$mult)) parts <- c(parts, list(ent$mult))
   }
+  for (v in me_frame_vars(dp)) parts <- c(parts, list(as.name(v)))
   for (cexpr in dp[["csterms"]] %||% list()) {
     for (v in all.vars(cexpr)) parts <- c(parts, list(as.name(v)))
   }
@@ -1049,7 +1051,7 @@ nonpredictor_frame_vars <- function(spec) {
     for (dp in resp$dpars) {
       for (rt in dp[["re"]] %||% list()) {
         out <- c(out, if (is.null(rt$mm)) deparse1(rt$bar[[3L]]) else
-                        rt$mm$gvars)
+                        rt$mm$gvars, by_term_vars(rt))
       }
       for (ce in c(dp[["carterms"]] %||% list(),
            dp[["spdeterms"]] %||% list())) {
@@ -1172,6 +1174,54 @@ smooth_pen_order <- function(sm, re2) {
   ord
 }
 
+#' Move the intercept column of a `0 + Intercept` design to where brms
+#' puts it: after the columns of the `pos` terms written before
+#' `Intercept`. model.matrix() orders columns by term, and the rewritten
+#' formula keeps the other terms in their written order, so `assign`
+#' says which columns those are. See rsv_intercept_fixed().
+#'
+#' @noRd
+rsv_intercept_order <- function(X, pos) {
+  asg <- attr(X, "assign")
+  contr <- attr(X, "contrasts")
+  j <- match("(Intercept)", colnames(X))
+  if (pos < 1L || is.na(j) || is.null(asg)) return(X)
+  before <- setdiff(which(asg >= 1L & asg <= pos), j)
+  ord <- c(before, j, setdiff(seq_len(ncol(X)), c(before, j)))
+  out <- X[, ord, drop = FALSE]
+  attr(out, "assign") <- asg[ord]
+  attr(out, "contrasts") <- contr
+  out
+}
+
+#' Refuse a `0 + Intercept` model whose data carry an `Intercept` (or
+#' `intercept`) column that is not all ones.
+#'
+#' brms fills both names with ones in such a model and refuses data that
+#' say otherwise ("Variable name 'Intercept' is reserved in models
+#' without a population-level intercept", `data_rsv_intercept()`), so a
+#' column the user meant as a covariate is never silently replaced by
+#' the intercept. frmtmb never reads the column; the refusal is kept so
+#' that a model brms refuses is not quietly given a meaning here.
+#'
+#' @noRd
+check_rsv_intercept_data <- function(spec, data) {
+  rsv <- any(vapply(spec$responses, function(r) {
+    any(vapply(r$dpars, function(dp) !is.null(dp[["rsv_intercept"]]), NA))
+  }, NA))
+  if (!rsv || is.environment(data)) return(invisible(NULL))
+  for (v in intersect(c("Intercept", "intercept"), names(data))) {
+    x <- data[[v]]
+    if (!(is.numeric(x) || is.logical(x)) || anyNA(x) || any(x != 1)) {
+      frm_stop("`data` has a column `", v, "` that is not all ones, and ",
+               "the model writes 0 + Intercept, where `", v, "` is the ",
+               "reserved name of the intercept's column of ones; brms ",
+               "refuses it too. Rename the column", call. = FALSE)
+    }
+  }
+  invisible(NULL)
+}
+
 #' Refuse, by name, the variables stats::model.frame() would refuse in
 #' its own words: a name that neither `data` nor the formula
 #' environment holds, a list used as a variable, and an object from the
@@ -1196,9 +1246,17 @@ check_frame_variables <- function(rhs, data, env) {
   }
   for (v in all.vars(rhs)) {
     if (!in_data(v) && (data_env || !exists(v, envir = env))) {
+      # brms's reserved name reaches here only where it is not reserved,
+      # so say where it is
+      hint <- if (v %in% c("Intercept", "intercept")) {
+        paste0(". `Intercept` is the reserved name of the intercept only ",
+               "in a population-level formula without one, as in ",
+               "y ~ 0 + Intercept + x; elsewhere it is an ordinary ",
+               "variable. A group-level intercept is (1 | g)")
+      } else ""
       frm_stop("The model uses `", v, "`, which is not a column of `data` ",
                "and not an object that R finds from the formula. Add the ",
-               "column to `data` or correct the name", call. = FALSE)
+               "column to `data` or correct the name", hint, call. = FALSE)
     }
   }
   leaves <- function(e) {
@@ -1331,6 +1389,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   env <- spec$responses[[1]]$formula_env
   fr_formula <- stats::as.formula(call("~", rhs_comb), env = env)
   check_frame_variables(rhs_comb, data, env)
+  check_rsv_intercept_data(spec, data)
   # x | mi() responses may carry NAs (they become latent parameters);
   # rows are dropped only for NAs in every OTHER variable. A structured
   # family that declares `keep_na` reads the NAs itself and takes the
@@ -1404,6 +1463,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
   y_levels <- list()
   aterm_values <- list()
   extras <- list()
+  extra_map <- list()  # per response: family extra name -> template name
   mi_map <- list()   # per mi() response: missing rows + miss indices
   n_miss <- 0L
   miss_init <- numeric(0)
@@ -1437,6 +1497,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       v <- mf[[deparse1(a)]]
       if (is.null(v)) v <- eval(a, mf, resp$formula_env)
       if (nm_at == "cens") return(decode_cens(v))
+      if (nm_at == "thres_gr") return(thres_group_codes(v))
       # a registered term brings its own coercion, which is the point of
       # registering one: the spelling a literature uses (a factor, a
       # two-level character) becomes the numbers the density indexes
@@ -1501,6 +1562,17 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     # family's missing CDF further down
     st_ <- fam_structure(resp$family)
     if (!is.null(st_[["check_spec"]])) st_[["check_spec"]](resp, spec, av)
+    if (any(c("thres", "thres_gr") %in% names(resp$aterms)) &&
+          !identical(resp$family[["type"]], "ordinal")) {
+      # brms's own sentence: the term is refused for any family without
+      # thresholds, and a custom family that declares no allow-list
+      # would otherwise read nothing and fit as if it were absent
+      frm_stop("thres() is not a valid addition term for family '",
+               resp$family[["family"]], "': it sets the number of ",
+               "thresholds of an ordinal family, and this family has ",
+               "none. The ordinal families are cumulative(), sratio(), ",
+               "cratio() and acat()", call. = FALSE)
+    }
     if (isTRUE(resp$aterms[["mi"]])) {
       if (!resp$family[["family"]] %in% c("gaussian", "student")) {
         frm_stop("mi() responses need a gaussian or student model",
@@ -1830,6 +1902,23 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       }
       spec$responses[[resp$resp_name]] <- resp
     }
+    # an ordered factor names its categories, and simulate() hands draws
+    # back as that factor, so thres(x = ) may not ask for more categories
+    # than it has levels; brms returns bare codes there instead
+    th_ <- resp$family[["thres"]]
+    lv_ <- y_levels[[resp$resp_name]]
+    if (!is.null(th_) && !is.null(lv_) &&
+          max(th_[["nthres"]]) + 1L > length(lv_)) {
+      frm_stop("thres(x = ", max(th_[["nthres"]]), ") asks for ",
+               max(th_[["nthres"]]) + 1L, " categories, and the response ",
+               "is an ordered factor with ", length(lv_), " levels in the ",
+               "data: a level no row takes is dropped with the model ",
+               "frame, as brms drops it. frmtmb returns simulated ",
+               "responses as that factor, so it cannot hold more ",
+               "categories than levels. Code the response as integers ",
+               "1..", max(th_[["nthres"]]) + 1L, " to fit the categories ",
+               "nobody chose, or lower the count", call. = FALSE)
+    }
     # Family-level DATA a likelihood needs but no addition term supplies
     # (the Cox baseline's spline bases). It is a function of the
     # validated response, so it is built here, once, and rides with the
@@ -1838,16 +1927,27 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       av <- c(av, resp$family[["aterm_data"]](y[[resp$resp_name]], av))
     }
     if (!is.null(resp$family[["extra_pars"]])) {
-      if (length(spec$responses) > 1) {
-        frm_stop("Families with extra parameters ('",
-                 resp$family[["family"]],
-                 "') are not supported in multivariate ",
-                 "fits yet", call. = FALSE,
-                 package = frm_family_package(resp$family))
+      ex_r <- resp$family[["extra_pars"]](y[[resp$resp_name]], av)
+      if (length(spec$responses) > 1L) {
+        # Every response's extras live in one parameter list, so each
+        # response's block is namespaced by the response and handed
+        # back to its own density under the family's own names.
+        check_mv_extra_family(resp$family)
+        tpl_nm <- mv_extra_name(resp$resp_name, names(ex_r))
+        extra_map[[resp$resp_name]] <- stats::setNames(tpl_nm, names(ex_r))
+        names(ex_r) <- tpl_nm
       }
-      extras <- resp$family[["extra_pars"]](y[[resp$resp_name]], av)
+      extras <- c(extras, ex_r)
     }
     aterm_values[[resp$resp_name]] <- av
+  }
+
+  # me() latent values: after every mi() response, so the mi() slots
+  # of `miss` keep the positions they have always had
+  me_fr <- me_build_frame(spec, mf, env, n, n_miss)
+  if (!is.null(me_fr)) {
+    n_miss <- n_miss + me_fr$n_latent
+    miss_init <- c(miss_init, me_fr$latent_init)
   }
 
   ## Phase 1: per-linpred design matrices and random-effect components.
@@ -1957,6 +2057,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         # (y ~ 1) leaves X with zero columns, which is fine
         X <- X[, colnames(X) != "(Intercept)", drop = FALSE]
       }
+      if (!is.null(dp[["rsv_intercept"]])) {
+        X <- rsv_intercept_order(X, dp[["rsv_intercept"]])
+      }
       # rank-deficient designs: drop aliased columns like lm() (lme4#144).
       # Sparse X densifies a copy only when the cheap screen flags a
       # possible deficiency, so the dropped-column set never differs
@@ -2014,6 +2117,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                                      reorder.terms = FALSE)
           fassign <- attr(rt$flist, "assign")
         }
+        dup_cps <- list()
         for (k in seq_along(bars)) {
           cs_name <- dp[["re"]][[k]]$covstruct
           if (is_mm[k]) {
@@ -2036,6 +2140,23 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
               label = paste0(dp_prefix, deparse1(bars[[k]]))
             )
             comp_ids <- c(comp_ids, length(components))
+            dup_cps[[length(dup_cps) + 1L]] <- components[[length(components)]]
+            if (!is.null(mms$by)) {
+              # mm(g1, g2, by = cbind(f1, f2)): brms maps each POOLED
+              # level to one by-level, read across every member column
+              cp <- components[[length(components)]]
+              byv <- by_eval(mms$by, mf, resp$formula_env, n, "in the data",
+                             members = iw$n_members)
+              lev_by <- by_level_map(iw$J, byv, length(levs), mms$gvars,
+                                     mms$by)
+              subs <- by_split_component(cp, mms$by, lev_by,
+                                         by_extract_levels(byv))
+              components[[length(components)]] <- subs[[1L]]
+              for (s in subs[-1L]) {
+                components[[length(components) + 1L]] <- s
+                comp_ids <- c(comp_ids, length(components))
+              }
+            }
             next
           }
           kk <- rt_pos[k]
@@ -2134,8 +2255,25 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             label = paste0(dp_prefix, deparse1(bars[[k]]))
           )
           comp_ids <- c(comp_ids, length(components))
+          # gr(g, by = f): the term as written is what the duplicate
+          # check reads, and one block per by-level is what is fitted
+          dup_cps[[length(dup_cps) + 1L]] <- components[[length(components)]]
+          by_k <- dp[["re"]][[k]]$by
+          if (!is.null(by_k)) {
+            cp <- components[[length(components)]]
+            byv <- by_eval(by_k, mf, resp$formula_env, n, "in the data")
+            lev_by <- by_level_map(as.integer(fac), byv, length(cp$levels),
+                                   cp$group_name, by_k)
+            subs <- by_split_component(cp, by_k, lev_by,
+                                       by_extract_levels(byv))
+            components[[length(components)]] <- subs[[1L]]
+            for (s in subs[-1L]) {
+              components[[length(components) + 1L]] <- s
+              comp_ids <- c(comp_ids, length(components))
+            }
+          }
         }
-        refuse_duplicated_re(components[comp_ids])
+        refuse_duplicated_re(dup_cps)
       }
 
       # Smooths: fixed (null-space) part into X, wiggly part as an
@@ -2471,6 +2609,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         )
       }
 
+      # me() terms: zero placeholder columns, filled from the latent
+      # values by the objective and the post-fit paths (R/me.R)
+      mec <- me_lp_columns(dp, me_fr, X, mf, resp$formula_env)
+      X <- mec$X
+      me_info <- mec$info
+
       # Category-specific ordinal effects cs(x): K-1 coefficients per
       # term (extras), entering the threshold-specific predictors.
       cs_info <- list()
@@ -2480,7 +2624,18 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
           frm_stop("cs() needs an sratio, cratio, or acat family",
                    call. = FALSE)
         }
-        K_cs <- max(y[[resp$resp_name]])
+        if (thres_grouped(resp$family)) {
+          # brms 2.23.0 refuses the pair in the same words
+          frm_stop("Cannot use category specific effects in models with ",
+                   "multiple thresholds. cs() gives each threshold ",
+                   "position one coefficient, and with thres(gr = ) the ",
+                   "positions differ by group", call. = FALSE)
+        }
+        # the threshold count, not max(y): thres(x = ) may name
+        # categories above the highest one observed. A multivariate
+        # frame holds this response's thresholds under its own name
+        tau_nm <- extra_map[[resp$resp_name]][["tau_raw"]] %||% "tau_raw"
+        K_cs <- length(extras[[tau_nm]]) + 1L
         for (cexpr in dp[["csterms"]]) {
           v <- as.numeric(eval(cexpr, mf, resp$formula_env))
           csname <- paste0("bcs", length(extras) + 1L)
@@ -2509,7 +2664,9 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         if (!identical(dp[["name"]], "mu")) {
           cn <- paste(dp[["name"]], cn, sep = "_")
         }
-        if (length(spec$responses) > 1) {
+        # the shared nu of a Student-t rescor model belongs to no one
+        # response, so it is named as in a univariate model
+        if (length(spec$responses) > 1 && !isTRUE(dp[["shared"]])) {
           cn <- paste(resp$resp_name, cn, sep = "_")
         }
       } else {
@@ -2546,9 +2703,14 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
         gps = gp_info,
         mo = mo_info,
         mi = mi_info,
+        me = me_info,
         cs = cs_info,
         comp_ids = comp_ids,
-        constant = dp[["constant"]]
+        constant = dp[["constant"]],
+        # FALSE: the intercept is class "b" and not centered (brms's
+        # `0 + Intercept` and `center = FALSE`); see rsv_intercept_fixed()
+        center = !isFALSE(dp[["center"]]),
+        shared = isTRUE(dp[["shared"]])
       )
     }
   }
@@ -2694,6 +2856,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       dim = D,
       rank = rank_k,
       dist_nu = cps[[1]]$dist_nu,
+      # gr(g, by = f): which by-level this block is (R/gr-by.R)
+      by = cps[[1]]$by,
       n_levels = n_levels,
       b_idx = n_b + seq_len(nb_k),
       c_idx = n_c + seq_len(D * n_levels),
@@ -2723,7 +2887,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       components = lapply(seq_along(gd), function(k) {
         list(lp_key = cps[[k]]$lp_key, offset = comp_offset[gd[k]],
              dim = cps[[k]]$dim, bar = cps[[k]]$bar,
-             mm = cps[[k]]$mm,
+             mm = cps[[k]]$mm, by = cps[[k]]$by,
              cnms = cps[[k]]$cnms, label = cps[[k]]$label)
       })
     )
@@ -2821,6 +2985,13 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
     par_template[["thetar"]] <- numeric(K * (K - 1L) / 2L)
   }
   if (n_miss) par_template[["miss"]] <- miss_init
+  if (!is.null(me_fr)) {
+    par_template[["meanme"]] <- me_fr$meanme
+    par_template[["logsdme"]] <- me_fr$logsdme
+    if (me_fr$n_thetame) {
+      par_template[["thetame"]] <- numeric(me_fr$n_thetame)
+    }
+  }
   for (nm in names(extras)) {
     if (nm %in% names(par_template)) {
       frm_stop("Extra-parameter name collides with the template: ", nm,
@@ -2873,11 +3044,12 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
          aterm_values = aterm_values,
          linpreds = linpreds, re_blocks = re_blocks,
          n_c = n_c, has_rr = has_rr, has_expand = has_rr || has_esicar,
-         mi_map = mi_map, blocks = blocks,
+         mi_map = mi_map, me = me_fr, blocks = blocks,
          autocor = autocor,
          par_template = par_template, map = map,
          betad_fixed_idx = betad_fixed_idx,
          extra_names = names(extras),
+         extra_map = if (length(extra_map)) extra_map,
          predvar_map = predvar_map,
          sparse_x = isTRUE(sparse_x),
          data_frame = mf,

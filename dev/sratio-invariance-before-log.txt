@@ -1,0 +1,20 @@
+arm before frmtmb from /opt/rlib/lane-sratio/frmtmb 
+logit          logLik -719.7289034754873 conv 0 max|gr| 1.23e-04 min gap: Intercept[] 0.322
+probit         logLik -353.52836661016789 conv 0 max|gr| 1.47e-04 min gap: Intercept[] 0.302
+cloglog        logLik -356.34133675344776 conv 0 max|gr| 3.49e-06 min gap: Intercept[] 0.315
+cauchit        logLik -354.00362814643859 conv 0 max|gr| 4.28e-05 min gap: Intercept[] 0.449
+probit_approx  logLik -353.52955695975351 conv 0 max|gr| 3.81e-04 min gap: Intercept[] 0.302
+v29_42         logLik -247.90231867570589 conv 0 max|gr| 3.02e-05 min gap: Intercept[] 0.758
+v29_43_cs      logLik -243.81650782557369 conv 0 max|gr| 1.92e-04 min gap: Intercept[] 0.766
+fitted_102_cs  logLik -238.77227489592315 conv 0 max|gr| 6.73e-05 min gap: Intercept[] 0.834
+shapes_cs      logLik -92.959987166190686 conv 0 max|gr| 8.57e-07 min gap: Intercept[] 1.25
+punch_cs       logLik -111.30144951535289 conv 0 max|gr| 2.79e-05 min gap: Intercept[] 1.31
+likelihood     logLik -299.14405694339638 conv 0 max|gr| 2.63e-04 min gap: Intercept[] 1.09
+likelihood_cs  logLik -298.95207711164937 conv 0 max|gr| 3.50e-04 min gap: Intercept[] 1.09
+inhaler_cs     logLik -455.11499228446138 conv 0 max|gr| 7.89e-06 min gap: Intercept[] 1.79e-08
+ranef          logLik -719.72890353146022 conv 0 max|gr| 1.32e-06 min gap: Intercept[] 0.322
+weights        logLik -1425.7883915368345 conv 0 max|gr| 9.74e-05 min gap: Intercept[] 0.397
+mv             logLik -538.66876894981533 conv 0 max|gr| 8.53e-08 min gap: o2_Intercept[] 6.33e-09, o_Intercept[] 0.857
+thres_gr       logLik -314.00166813766918 conv 0 max|gr| 4.48e-05 min gap: Intercept[a,] 0.153, Intercept[b,] 0.459, Intercept[c,] 0.68
+thres_gr_noid  logLik -313.0103647480845 conv 0 max|gr| 1.89e-04 min gap: Intercept[a,] 5.65e-08, Intercept[b,] 0.307, Intercept[c,] 0.121
+thres_5        logLik -349.05446275027526 conv 0 max|gr| 1.31e-05 min gap: Intercept[] 0.413

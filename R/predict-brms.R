@@ -421,7 +421,7 @@ predict_category_props <- function(object, rspec, d) {
   K <- if (!is.null(lv)) {
     length(lv)
   } else if (identical(rspec$family[["type"]], "ordinal")) {
-    ordinal_ncat(object)
+    ordinal_ncat(object, rspec$resp_name)
   } else {
     max(c(as.integer(d), object$frame[["y"]][[rspec$resp_name]]))
   }
@@ -473,16 +473,20 @@ predict_simulate <- function(object, rspecs, newdata, re_formula,
     }
     av[[nm]] <- if (is.null(newdata)) {
       object$frame[["aterm_values"]][[rspec$resp_name]]
-    } else if (has_trunc(rspec)) {
+    } else if (has_trunc(rspec) || "thres_gr" %in% names(rspec$aterms)) {
       # truncation bounds must follow the newdata rows, or the draws
-      # land outside the support the likelihood was normalized on
+      # land outside the support the likelihood was normalized on; so
+      # must a row's group under grouped thresholds, which picks the
+      # thresholds it is drawn from
       aterms_for_newdata(rspec, newdata)
     } else {
       list()
     }
-    if (!is.null(newdata) &&
-        sim_is_structured(sim_context(object, rspec, list(),
-                                      aterms = av[[nm]]))) {
+    ctx0 <- sim_context(object, rspec, list(), aterms = av[[nm]])
+    # a cov = FALSE term is drawn row by row around the one-step mean,
+    # which frm_linpred() forms on newdata from newdata's own response
+    if (autocor_is_cond(ctx0[["autocor"]])) ctx0[["autocor"]] <- NULL
+    if (!is.null(newdata) && sim_is_structured(ctx0)) {
       frm_stop("predict(newdata = ) is not supported for this model: its ",
                "draws are structured (a hidden state sequence, a ",
                "group-level latent class, or a correlated residual) and ",
@@ -629,14 +633,22 @@ subset_rows <- function(x, keep) {
 #' @noRd
 predict_sim_rows <- function(fs, rspec, dpv, av, ok, ntrys) {
   n <- length(ok)
+  # a cov = FALSE term is already in dpv's mu (predict_dpar_values()),
+  # conditional on the observed past, so the rows are drawn one by one
+  # rather than by the recursion simulate() runs over its own draws
+  rowwise <- autocor_is_cond(fs$frame[["autocor"]][[rspec$resp_name]])
   if (!all(ok)) {
     ctx0 <- sim_context(fs, rspec, list(), aterms = av)
+    if (rowwise) ctx0[["autocor"]] <- NULL
     if (sim_is_structured(ctx0)) return(NULL)
     dpv <- lapply(dpv, subset_rows, keep = ok)
     av <- lapply(av %||% list(), subset_rows, keep = ok)
   }
-  sim_draw(sim_context(fs, rspec, dpv, aterms = av, n = sum(ok),
-                       extra = fit_extras(fs), max_iter = ntrys))
+  ctx <- sim_context(fs, rspec, dpv, aterms = av, n = sum(ok),
+                     extra = fit_extras(fs, rspec$resp_name),
+                     max_iter = ntrys)
+  if (rowwise) ctx[["autocor"]] <- NULL
+  sim_draw(ctx)
 }
 
 #' One replicate's JOINT draw of the responses of a `rescor` fit.
@@ -647,8 +659,11 @@ predict_sim_rows <- function(fs, rspec, dpv, av, ok, ntrys) {
 #' simulator gave draws that correlated at 0.009 on a fit whose rescor
 #' was estimated at 0.7. The correlation matrix is read at THIS
 #' replicate's parameters, so its own uncertainty is carried as well.
-#' `rescor = TRUE` is refused for every family but gaussian, so the
-#' joint law is always the multivariate normal.
+#' The joint law is the multivariate normal, or for a Student-t model
+#' the multivariate t with the replicate's one `nu`: a normal draw
+#' divided by `sqrt(W / nu)`, `W ~ chi^2(nu)`, with one `W` per row
+#' shared by the responses, which is what makes them jointly t rather
+#' than K independent t's.
 #'
 #' @noRd
 predict_rescor_draw <- function(fs, rspecs, dps, ok) {
@@ -657,6 +672,8 @@ predict_rescor_draw <- function(fs, rspecs, dps, ok) {
   L <- chol(R)
   m <- sum(ok)
   Z <- matrix(stats::rnorm(m * length(rspecs)), m) %*% L
+  nu <- rescor_shared_nu(fs)
+  if (!is.null(nu)) Z <- Z / sqrt(stats::rchisq(m, nu) / nu)
   out <- list()
   for (k in seq_along(rspecs)) {
     dp <- dps[[k]]
@@ -665,6 +682,38 @@ predict_rescor_draw <- function(fs, rspecs, dps, ok) {
     out[[names(rspecs)[k]]] <- mu + sg * Z[, k]
   }
   out
+}
+
+#' The joint log-density of each row of a `rescor` fit, at the dpar
+#' values `dpv` (every response's, as `eval_dpars()` returns them).
+#'
+#' Plain numeric R, written apart from the taped objective on purpose:
+#' the Student-t branch is brms's `multi_student_t_lpdf()` term by term,
+#' `lgamma((nu + K) / 2) - lgamma(nu / 2) - K / 2 log(nu pi)
+#' - 1/2 log|Sigma| - (nu + K) / 2 log(1 + q / nu)`, with
+#' `Sigma = D C D` entering as `log|C| + 2 sum(log sigma)`.
+#'
+#' @noRd
+rescor_row_loglik <- function(fit, dpv) {
+  frame <- fit$frame
+  rs <- names(fit$spec$responses)
+  K <- length(rs)
+  n <- frame[["n_obs"]]
+  Z <- matrix(vapply(rs, function(r) {
+    as.numeric((frame[["y"]][[r]] - dpv[[r]]$mu) / dpv[[r]]$sigma)
+  }, numeric(n)), n, K)
+  lsig <- rowSums(matrix(vapply(rs, function(r) {
+    rep(log(as.numeric(dpv[[r]]$sigma)), length.out = n)
+  }, numeric(n)), n, K))
+  C <- us_chol_cor(fit$estimates[["thetar"]], K)
+  nu <- rescor_shared_nu(fit)
+  if (is.null(nu)) {
+    return(as.numeric(RTMB::dmvnorm(Z, 0, C, log = TRUE)) - lsig)
+  }
+  q <- rowSums((Z %*% solve(C)) * Z)
+  ldet <- as.numeric(determinant(C, logarithm = TRUE)$modulus)
+  lgamma((nu + K) / 2) - lgamma(nu / 2) - K / 2 * log(nu * pi) -
+    ldet / 2 - (nu + K) / 2 * log1p(q / nu) - lsig
 }
 
 #' Say which rows lost cells to a non-finite parameter draw, and stop
@@ -816,7 +865,10 @@ predict_dpar_values <- function(fit, rspec, newdata, re_formula,
                                 allow_new_levels, new_level_off = NULL) {
   resp <- rspec$resp_name
   if (is.null(newdata) && is.null(re_formula)) {
-    dpv <- eval_dpars(fit)[[resp]]
+    # brms's posterior_predict() under cov = FALSE draws around the
+    # one-step mean, which conditions on the observed earlier residuals;
+    # the frm_linpred() route below already carries it
+    dpv <- autocor_cond_dpars(fit, resp, eval_dpars(fit)[[resp]])
     return(cs_offsets_add(fit, resp, NULL, dpv))
   }
   dpv <- list()
@@ -845,7 +897,7 @@ predict_dpar_values <- function(fit, rspec, newdata, re_formula,
   # cs() values of the training rows; handed this one response's list
   # it wrote the offsets one level down, where no simulator reads them,
   # and predict() drew every cs() model as if the term were absent
-  cs_offsets_add(fit, resp, newdata, dpv)
+  cs_offsets_add(fit, resp, newdata, with_shared_nu(fit, resp, dpv))
 }
 
 #' A closure returning one fit-like object per call: the fit itself

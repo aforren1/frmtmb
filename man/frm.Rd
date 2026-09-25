@@ -329,6 +329,41 @@ refused (the simplex carries one coefficient and a contrast expansion
 has no column to go in), and \code{mo(x):mo(w)} is refused outright.
 }
 
+\section{Ordinal thresholds, thres()}{
+
+The four ordinal families take brms's \code{thres()} addition term.
+\code{y | thres(K) ~ x} fits \code{K} thresholds, so the response has \code{K + 1}
+categories even when the top ones are never observed. The data do
+not place a threshold above the highest observed category: its
+maximum likelihood estimate runs off toward infinity. Set a prior on
+class \code{"Intercept"} to hold it, as brms's default prior does. Without
+such a prior the fit warns.
+
+\code{y | thres(gr = g) ~ x} gives each level of the factor \code{g} a
+threshold vector of its own and keeps one linear predictor for all
+rows. The number of thresholds of a level is the highest category
+observed in that level less one, or \code{n} from \code{thres(n, gr = g)},
+where \code{n} is a column that is constant within each level. These are
+brms's counts. A category above the highest one a level takes is
+not a category of that level, unless \code{thres(n, gr = g)} asks for it.
+An ordered-factor response takes its categories from the levels that
+occur in the data, as in brms, and \code{thres()} may not ask for more.
+Code the response as integers to fit categories nobody chose.
+
+The thresholds have brms's names: \code{Intercept[a,1]} in \code{fixef()} and
+\code{b_Intercept[a,1]} in \code{variables()} and \code{hypothesis()}.
+\code{set_prior(..., class = "Intercept", group = "a")} puts a prior on
+the thresholds of level \code{a} only. As in brms, the design is not
+centered under grouped thresholds.
+
+A row in level \code{a} falls in one of the categories \verb{1..n_a + 1}.
+\code{fitted()} and \code{predict()} return \code{max(n) + 1} categories, and the
+probability of a category past a row's own is 0, as in brms's
+\code{posterior_epred()}. \code{newdata} must hold the grouping variable, with
+levels the fit has seen. With \code{gr}, \code{cs()} is refused, as in brms,
+and so is \code{residuals(type = "osa")}.
+}
+
 \section{The Laplace approximation, and how to check it}{
 
 Random effects are integrated out by the Laplace approximation,

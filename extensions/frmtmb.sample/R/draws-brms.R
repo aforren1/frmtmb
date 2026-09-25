@@ -315,6 +315,12 @@ draws_varcorr_values <- function(x, lay) {
 #' `block` and `pos` say which block and which coefficient to compute
 #' them from; see `draws_ranef_fill()`.
 #'
+#' A `gr(g, by = f)` term is one block per by-level, each over the levels
+#' of `g` in that by-level, and `VarCorr()` names its coefficients per
+#' by-level (`Intercept:fa`). brms's `ranef()` has one column per
+#' coefficient over every level of `g`, so the by-levels of one
+#' coefficient fill one column here, each at its own levels.
+#'
 #' @noRd
 draws_ranef_layout <- function(x) {
   fit <- draws_base_fit(x)
@@ -327,22 +333,44 @@ draws_ranef_layout <- function(x) {
   for (g in names(lay)) {
     L <- lay[[g]]
     bk1 <- blocks[[L$block[1L]]]
-    levels <- bk1[["levels"]]
-    bare <- character(length(L$rnames))
-    cols <- matrix(NA_integer_, length(levels), length(L$rnames))
+    by1 <- NULL
+    for (bk in blocks[L$block]) by1 <- by1 %||% bk[["by"]]
+    levels <- by1[["group_levels"]] %||% bk1[["levels"]]
+    parts <- lapply(seq_along(L$rnames), function(k) {
+      pr <- brms_re_parts(fit, blocks[[L$block[k]]])
+      list(coef = pr$coef[L$pos[k]], rcoef = pr$rcoef[L$pos[k]])
+    })
+    # one column per coefficient, the by-levels of a by-split term merged
+    key <- vapply(seq_along(L$rnames), function(k) {
+      by <- blocks[[L$block[k]]][["by"]]
+      if (is.null(by)) paste0("\r", k) else
+        paste0(by$key, "\r", parts[[k]]$rcoef)
+    }, "")
+    col_of <- match(key, unique(key))
+    first <- !duplicated(key)
+    bare <- vapply(parts[first], `[[`, "", "coef")
+    coefs <- ifelse(vapply(blocks[L$block[first]], function(bk) {
+      is.null(bk[["by"]])
+    }, NA), L$rnames[first], vapply(parts[first], `[[`, "", "rcoef"))
+    cols <- matrix(NA_integer_, length(levels), length(bare))
     for (k in seq_along(L$rnames)) {
       bk <- blocks[[L$block[k]]]
       p <- L$pos[k]
-      bare[k] <- brms_re_parts(fit, bk)$coef[p]
       if (is.null(b_pos) || !brms_block_has_r(bk)) next
       li <- match(levels, bk[["levels"]])
       ok <- !is.na(li)
       bi <- bk[["b_idx"]][(li[ok] - 1L) * bk[["dim"]] + p]
-      cols[which(ok), k] <- b_pos[bi]
+      cols[which(ok), col_of[k]] <- b_pos[bi]
     }
-    out[[g]] <- list(levels = brms_levels(bk1), raw_levels = levels,
-                     coefs = L$rnames, coef = bare, cols = cols,
-                     block = L$block, pos = L$pos)
+    bkl <- bk1
+    bkl[["levels"]] <- levels
+    lv <- brms_levels(bkl)
+    # brms keeps each level's by-level on its level names
+    # (frame_re(): attr(levels, "by")), and ranef() carries them over
+    if (!is.null(by1)) attr(lv, "by") <- gsub("[ \t\r\n]+", "", by1$level_by)
+    out[[g]] <- list(levels = lv, raw_levels = levels,
+                     coefs = coefs, coef = bare, cols = cols,
+                     block = L$block[first], pos = L$pos[first])
   }
   out
 }

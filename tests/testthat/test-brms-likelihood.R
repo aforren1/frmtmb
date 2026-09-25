@@ -28,12 +28,13 @@
 # asserting the structural difference rather than by skipping the row.
 # That list held one entry, row 3's `mo(inc) * z`, until every mo()
 # TERM was given its own simplex; that row is now an identity. Four
-# entries remain, over three rows: the exact `gp()` nugget (row 10a),
+# entries remained, over three rows: the exact `gp()` nugget (row 10a),
 # brms's `ar(cov = FALSE)` likelihood (row 18d), and the esicar and
 # bym2 CAR parameterizations (row 19c). esicar left that list when it
 # was given the exact sum-to-zero constraint brms imposes and became
-# row 19c-esicar, an identity; three entries remain, over three rows,
-# and bym2 is what is left of row 19c.
+# row 19c-esicar, an identity. Row 18d left it when frmtmb implemented
+# brms's cov = FALSE form and became an identity too; two entries
+# remain, over two rows, and bym2 is what is left of row 19c.
 #
 # Stan compiles here. The whole file is opt-in, and skip_unless_brms()
 # calls skip_on_cran(), so outside R CMD check BOTH are needed:
@@ -233,7 +234,7 @@ test_that("row 12: ordinal families, cumulative sratio cratio acat", {
   # because the thresholds are compared to mu rather than added to it.
   #
   # It is also the one shape where frmtmb's own storage differs between
-  # families: cumulative and sratio hold (tau_1, log increments) while
+  # families: cumulative holds (tau_1, log increments) while sratio,
   # cratio and acat hold the thresholds themselves. brms_ord_thresholds()
   # carries that distinction, and these four rows are what pin it down.
   set.seed(5)
@@ -328,6 +329,45 @@ test_that("row 16: zero-inflated poisson with zi ~ x", {
   fit <- frm(bf(y ~ x, zi ~ x) + zero_inflated_poisson(), data = dz)
   brms_lp_check(brms::bf(y ~ x, zi ~ x),
                 brms::zero_inflated_poisson(), dz, fit)
+})
+
+test_that("row 16b: hurdle negative binomial with hu ~ x", {
+  skip_unless_brms_fit()
+
+  # the positive part drawn above the NB zero, so every zero is the
+  # hurdle's; shape has no predictor and takes the natural-scale rule
+  set.seed(13)
+  n <- 300
+  dh <- data.frame(x = rnorm(n))
+  mu <- exp(0.6 + 0.4 * dh$x)
+  p0 <- stats::dnbinom(0, size = 1.5, mu = mu)
+  yp <- pmax(stats::qnbinom(p0 + runif(n) * (1 - p0), size = 1.5,
+                            mu = mu), 1)
+  dh$y <- ifelse(runif(n) < plogis(-0.5 + 0.3 * dh$x), 0L,
+                 as.integer(yp))
+  fit <- frm(bf(y ~ x, hu ~ x) + hurdle_negbinomial(), data = dh)
+  brms_lp_check(brms::bf(y ~ x, hu ~ x), brms::hurdle_negbinomial(), dh,
+                fit)
+})
+
+test_that("row 16c: zero-one-inflated beta with zoi ~ x", {
+  skip_unless_brms_fit()
+
+  # phi and coi have no predictor. Check B reads the gradient at
+  # frmtmb's optimum, where nlminb stops at 7.6e-4 on this seed, inside
+  # the 1e-3 bound frm()'s own grad_tol also uses. Three Newton steps
+  # from there take it to 1.9e-14 and move no parameter by more than
+  # 6.0e-6, so the point is brms's optimum to that precision.
+  set.seed(14)
+  n <- 300
+  dz <- data.frame(x = rnorm(n))
+  mu <- plogis(-0.2 + 0.5 * dz$x)
+  zoi <- plogis(-1 + 0.6 * dz$x)
+  dz$y <- ifelse(runif(n) < zoi, as.numeric(runif(n) < 0.4),
+                 stats::rbeta(n, mu * 5, (1 - mu) * 5))
+  fit <- frm(bf(y ~ x, zoi ~ x) + zero_one_inflated_beta(), data = dz)
+  brms_lp_check(brms::bf(y ~ x, zoi ~ x), brms::zero_one_inflated_beta(),
+                dz, fit)
 })
 
 test_that("row 20: weights(w)", {
@@ -628,6 +668,41 @@ test_that("check C: row 4, mi() imputation and mi(sdx) measurement error", {
   expect_lt(abs(pars[["bsp_y"]][[1]] - fixef_by_dpar(fit)$y_mu[["mix"]]), 1e-12)
 
   brms_lp_check(bform, gaussian(), d4, fit, joint = TRUE)
+})
+
+test_that("check C: row 23, me() noise-free terms", {
+  skip_unless_brms_fit()
+
+  # brms samples the standardized latent values zme and builds
+  # Xme = meanme + sdme * L * zme; frmtmb keeps Xme itself as the inner
+  # vector, so each shape is a joint-density row whose log-Jacobian is
+  # that linear map's. Three shapes: two correlated terms and their
+  # interaction (zme is a matrix and Lme a Cholesky factor), a me() in
+  # a dpar formula, and two uncorrelated groups, one of them one latent
+  # value per level of g (Jme_2). dev/me-brms-lp.R prints the numbers.
+  set.seed(23)
+  n <- 80
+  tx <- rnorm(n, 1, 0.8)
+  tz <- 0.5 * tx + rnorm(n, 0, 0.7)
+  d <- data.frame(x = tx + rnorm(n, 0, 0.3), sx = runif(n, 0.2, 0.4),
+                  z = tz + rnorm(n, 0, 0.3), sz = 0.3, w = rnorm(n),
+                  g = factor(rep(1:16, each = 5)))
+  d$y <- 2 + 0.7 * tx - 0.4 * tz + 0.2 * d$w + rnorm(n, 0, 0.5)
+  d$xg <- rep(rnorm(16), each = 5)
+  d$sxg <- rep(runif(16, 0.2, 0.4), each = 5)
+  cases <- list(
+    list(brm = brms::bf(y ~ me(x, sx) * me(z, sz) + w),
+         frm = bf(y ~ me(x, sx) * me(z, sz) + w)),
+    list(brm = brms::bf(y ~ w, sigma ~ me(x, sx)),
+         frm = bf(y ~ w, sigma ~ me(x, sx))),
+    list(brm = brms::bf(y ~ me(x, sx) + me(xg, sxg, gr = g)),
+         frm = bf(y ~ me(x, sx) + me(xg, sxg, gr = g))))
+  for (cs in cases) {
+    fit <- frm(cs$frm + gaussian(), data = d)
+    with_brms_me(function() {
+      brms_lp_check(cs$brm, gaussian(), d, fit, joint = TRUE)
+    })
+  }
 })
 
 test_that("check C: row 6, nonlinear with a ~ 1 + (1 | g)", {
@@ -977,29 +1052,32 @@ test_that("row 18: ar(p = 1), cosy and unstr residual correlation", {
   brms_lp_check(bform_un, gaussian(), d18, fit_un)
 })
 
-test_that("row 18: brms's ar(cov = FALSE) is another likelihood", {
-  skip_unless_brms()
+test_that("row 18d: brms's default cov = FALSE ARMA is an identity", {
+  skip_unless_brms_fit()
 
-  # EXEMPTION. brms's ar() defaults to cov = FALSE, the residual
-  # REGRESSION form, which conditions on the first observations of each
-  # group instead of giving them their stationary distribution. frmtmb
-  # implements only the marginal residual-covariance form and refuses
-  # the other one by name rather than fitting something else under it.
-  # The two are different likelihoods on the same data, so there is no
-  # parameter map between them and the row is run on cov = TRUE above.
+  # Once an exemption: frmtmb refused the default cov = FALSE and this
+  # row asserted the refusal. It is brms's likelihood now, run on
+  # RAGGED groups with interior gaps and SHUFFLED rows, because brms
+  # sorts by (gr, time) and counts lags in rows (its J_lag), and both
+  # have to be matched rather than assumed away by a balanced design.
   d18 <- brms_ac_data()
-  expect_error(frm(bf(y ~ x + ar(time, gr = g, p = 1)) + gaussian(),
-                   data = d18), "cov = TRUE")
-  # brms's two spellings really are two programs: the default declares
-  # no correlation factor at all and drops the first observation of
-  # each group from the AR recursion
-  p0 <- brms_flat_prior(brms::bf(y ~ x + ar(time, gr = g, p = 1)),
-                        data = d18, family = gaussian())
-  code0 <- brms::make_stancode(brms::bf(y ~ x + ar(time, gr = g, p = 1)),
-                               data = d18, family = gaussian(),
-                               prior = p0)
-  expect_false(grepl("Lcortime", code0, fixed = TRUE))
-  expect_true(grepl("J_lag", code0, fixed = TRUE))
+  set.seed(31)
+  d18 <- d18[-c(3, 17, 18, 40, 77, 150), ]
+  d18 <- d18[sample(nrow(d18)), ]
+  for (tm in c("ar(time, gr = g, p = 1)", "ma(time, gr = g, q = 1)",
+               "arma(time, gr = g, p = 2, q = 1)")) {
+    fo <- stats::as.formula(paste("y ~ x +", tm))
+    fit <- frm(bf(fo) + gaussian(), data = d18)
+    bform <- brms::bf(fo)
+    prior <- brms_flat_prior(bform, data = d18, family = gaussian())
+    code <- brms::make_stancode(bform, data = d18, family = gaussian(),
+                                prior = prior)
+    # the residual-regression program: no correlation factor, and the
+    # lag bookkeeping brms builds in data_ac()
+    expect_false(grepl("Lcortime", code, fixed = TRUE))
+    expect_true(grepl("J_lag", code, fixed = TRUE))
+    brms_lp_check(bform, gaussian(), d18, fit)
+  }
 })
 
 # ---------------------------------------------------------------------

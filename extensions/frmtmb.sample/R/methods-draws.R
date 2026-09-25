@@ -199,7 +199,7 @@ fixef.frmtmb_draws <- function(object, summary = TRUE, robust = FALSE,
 #' `Intercept[1]`, `Intercept[2]`, the coefficients, then `cs()` terms.
 #'
 #' The sampler stores the thresholds on the internal scale (`tau_raw`,
-#' the first threshold and log increments for cumulative and sratio), so
+#' the first threshold and log increments for cumulative), so
 #' the `b_` regex found only the slopes and `fixef(ds)` reported `x`
 #' where the fit's `fixef()` and brms report three rows. Each draw is
 #' mapped through the map the family declares, the same map the fit's
@@ -794,9 +794,10 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
   rows <- draws_subsample(object, ndraws, draw_ids)
   av <- if (is.null(newdata)) {
     fit$frame[["aterm_values"]][[resp]]
-  } else if (has_trunc(rspec)) {
+  } else if (has_trunc(rspec) || "thres_gr" %in% names(rspec$aterms)) {
     # truncation bounds must follow the newdata rows, or the draws land
-    # outside the support the likelihood was normalized on
+    # outside the support the likelihood was normalized on; so must a
+    # row's group under grouped thresholds, thres(gr = )
     aterms_for_newdata(rspec, newdata)
   } else {
     list()
@@ -822,6 +823,11 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
              "group-level content a re_formula would remove. Drop the ",
              "argument to draw from the fitted structure", call. = FALSE)
   }
+  # brms's cov = FALSE ARMA: brms's posterior_predict() draws each row
+  # around its one-step mean, which reads the OBSERVED earlier residuals
+  # and which frm_linpred() gives; the rows are then drawn one by one,
+  # not by the recursion simulate() runs over its own draws
+  arma_cond <- isFALSE(fit$frame[["autocor"]][[resp]][["cov"]])
   out <- NULL
   arr <- FALSE
   for (k in seq_along(rows)) {
@@ -832,7 +838,17 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
       # re_formula routes through predict() on the training rows, the
       # same as the newdata branch, so NA and one-sided formulas mean
       # here exactly what they mean there
-      eval_dpars(sh)[[resp]]
+      dpk <- eval_dpars(sh)[[resp]]
+      if (arma_cond) {
+        # frm_linpred() pads the rows na.exclude dropped; the draw is on
+        # the fitted rows, as eval_dpars() is
+        m1 <- as.vector(frm_linpred(sh, dpar = "mu", resp = resp,
+                                    type = "response"))
+        na <- fit$frame[["na_action"]]
+        if (inherits(na, "exclude")) m1 <- m1[-as.integer(na)]
+        dpk[["mu"]] <- m1
+      }
+      dpk
     } else {
       dpv <- list()
       for (dnm in names(rspec$dpars)) {
@@ -847,9 +863,10 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
     # neither list above carries them: without this every cs() model
     # was drawn as if the term were absent
     dp <- cs_offsets_add(sh, resp, newdata, dp)
-    ys <- sim_draw(sim_context(sh, rspec, dp, aterms = av,
-                               n = length(dp[[1L]]),
-                               extra = fit_extras(sh)))
+    ctx <- sim_context(sh, rspec, dp, aterms = av, n = length(dp[[1L]]),
+                       extra = fit_extras(sh))
+    if (arma_cond) ctx[["autocor"]] <- NULL
+    ys <- sim_draw(ctx)
     if (is.null(out)) {
       # a matrix-valued response (multinomial counts, mixture_mvn draws,
       # lca item codes) gives a ROW per observation, so the draws stack

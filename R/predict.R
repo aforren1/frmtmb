@@ -182,7 +182,7 @@ mi_values <- function(fit, vn) {
 }
 
 #' Fill the zero placeholder columns of a stored design matrix with the
-#' `mo()` and `mi()` values at the current estimates.
+#' `mo()`, `mi()` and `me()` values at the current estimates.
 #'
 #' @noRd
 patch_mo_cols <- function(fit, lp, X) {
@@ -195,6 +195,10 @@ patch_mo_cols <- function(fit, lp, X) {
     v <- mi_values(fit, mt$var)
     if (!is.null(mt$mult)) v <- v * mt$mult
     X[, mt$col] <- v
+  }
+  if (length(lp[["me"]] %||% list())) {
+    vals <- me_latent(fit$frame[["me"]], fit$estimates)$values
+    for (mt in lp[["me"]]) X[, mt$col] <- me_col_value(mt, vals)
   }
   X
 }
@@ -553,6 +557,10 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
     X <- cbind(X, matrix(as.numeric(v) * nd_mult(mt$mult_expr),
                          ncol = 1, dimnames = list(NULL, mt$label)))
   }
+  for (mt in lp[["me"]] %||% list()) {
+    v <- me_newdata_value(fit, mt, newdata, env, nd_mult)
+    X <- cbind(X, matrix(v, ncol = 1, dimnames = list(NULL, mt$label)))
+  }
 
   if (!use_re) {
     # a POPULATION smooth's wiggly part is part of the curve, not a
@@ -604,11 +612,19 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
         as.character(gvr)
       }
       j <- match(gv, bk[["levels"]])
-      if (anyNA(j) && !allow_new_levels) {
+      is_new <- is.na(j)
+      if (!is.null(comp$by)) {
+        # one by-level of a gr(g, by = f) term: a row it does not serve
+        # contributes nothing here and is not an unseen level of it
+        rt <- by_route_rows(bk, gv, j, newdata, env)
+        mm[rt$off, ] <- 0
+        is_new <- rt$new
+      }
+      if (any(is_new) && !allow_new_levels) {
         stop_new_levels(
           paste0("New levels in grouping factor `",
                  deparse1(comp$bar[[3]]), "`: ",
-                 paste(unique(gv[is.na(j)]), collapse = ", ")),
+                 paste(unique(gv[is_new]), collapse = ", ")),
           "Use allow_new_levels = TRUE to predict them at the population level")
       }
       # new_key is the level label: two rows at the SAME unseen level
@@ -658,9 +674,18 @@ mm_newdata_parts <- function(comp, bk, newdata, env, xlevels,
              paste(comp$cnms, collapse = ", "), ")", call. = FALSE)
   }
   gv <- mm_member_values(mms, newdata, env)
-  if (anyNA(iw$J) && !allow_new_levels) {
-    new <- unique(unlist(lapply(gv, function(v) {
-      setdiff(as.character(v), bk[["levels"]])
+  is_new <- is.na(iw$J)
+  off <- NULL
+  if (!is.null(comp$by)) {
+    # one by-level of mm(g1, g2, by = ): a member it does not serve
+    # contributes nothing here and is not an unseen level of it
+    rt <- by_route_rows(bk, lapply(gv, as.character), iw$J, newdata, env)
+    off <- rt$off
+    is_new <- rt$new
+  }
+  if (any(is_new) && !allow_new_levels) {
+    new <- unique(unlist(lapply(seq_along(gv), function(k) {
+      as.character(gv[[k]])[is_new[, k]]
     }), use.names = FALSE))
     stop_new_levels(
       paste0("New levels in multi-membership factor `", mms$label, "`: ",
@@ -671,6 +696,7 @@ mm_newdata_parts <- function(comp, bk, newdata, env, xlevels,
   }
   lapply(seq_len(iw$n_members), function(k) {
     mmk <- md$designs[[k]] * iw$W[, k]
+    if (!is.null(off)) mmk[off[, k], ] <- 0
     # a partial re_formula keeps some columns of this term (re_view())
     if (!is.null(comp$keep_cols)) mmk[, !comp$keep_cols] <- 0
     # new_key names WHICH unseen level this member landed on, because a
@@ -749,7 +775,36 @@ eval_dpars <- function(fit, b = fit$estimates[["b"]]) {
     if (!is.null(lp[["offset"]])) eta <- eta + lp[["offset"]]
     out[[lp[["resp"]]]][[lp[["dpar"]]]] <- lp[["link"]]$linkinv(eta)
   }
+  for (r in names(out)) out[[r]] <- with_shared_nu(fit, r, out[[r]])
   out
+}
+
+#' The one `nu` of a Student-t `rescor` model, at the fit's estimates.
+#' It is an intercept-only dpar carried by the first response
+#' (`rescor_share_nu()`), or `NULL` in any other model.
+#'
+#' @noRd
+rescor_shared_nu <- function(fit) {
+  carrier <- fit$spec[["rescor_nu"]]
+  if (is.null(carrier)) return(NULL)
+  lp <- fit$frame[["linpreds"]][[linpred_key(carrier, "nu")]]
+  as.numeric(lp[["link"]]$linkinv(fit$estimates[[lp[["par"]]]][lp[["idx"]]]))
+}
+
+#' One response's dpar values with the shared `nu` of a Student-t
+#' `rescor` model filled in, for a response that does not carry it.
+#' Every response's marginal is a Student-t with that same `nu`, so a
+#' simulator or a moment of the response reads the shared value.
+#'
+#' @noRd
+with_shared_nu <- function(fit, resp, dpv) {
+  carrier <- fit$spec[["rescor_nu"]]
+  if (is.null(carrier) || identical(resp, carrier) ||
+        !is.null(dpv[["nu"]])) {
+    return(dpv)
+  }
+  dpv[["nu"]] <- rescor_shared_nu(fit)
+  dpv
 }
 
 #' Sparse RE design (`n x n_c`) for the newdata delta method, columns at
@@ -898,12 +953,30 @@ is_custom_data_aterm <- function(nm) {
 #'
 #' @noRd
 aterms_for_newdata <- function(rspec, newdata) {
-  skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights")
+  # a thres() count lives on the family once the fit is made, so newdata
+  # need not repeat it
+  skip <- c("cens", "cens_y2", "se_sigma", "mi", "mi_sd", "weights",
+            "thres")
   need <- c("trials", "se", "trunc_lb", "trunc_ub")
   nd_n <- nrow(newdata)
   av <- list()
   for (nm in setdiff(names(rspec$aterms), skip)) {
     ex <- rspec$aterms[[nm]]
+    if (nm == "thres_gr") {
+      # the group's thresholds are what a category probability is made
+      # of, so a row without its group has no prediction at all
+      v <- tryCatch(eval(ex, newdata, rspec$formula_env),
+                    error = function(e) NULL)
+      if (is.null(v) || !length(v) %in% c(1L, nd_n %||% length(v))) {
+        frm_stop("Addition term thres(gr = ", deparse1(ex), ") could not ",
+                 "be evaluated on newdata: the fit has one threshold ",
+                 "vector per level of ", deparse1(ex), ", so newdata ",
+                 "needs that variable", call. = FALSE)
+      }
+      av[[nm]] <- rep_len(thres_newdata_codes(rspec$family, v),
+                          nd_n %||% length(v))
+      next
+    }
     # the same coercion the frame applied, or newdata's factor would
     # reach the density as level codes where training data reached it as
     # whatever the contributing package meant
@@ -976,7 +1049,7 @@ dpars_natural <- function(fit, rspec, newdata, re_formula,
                        allow_new_levels = allow_new_levels)
     dp[[dnm]] <- as.vector(lp[["link"]]$linkinv(eta))
   }
-  dp
+  with_shared_nu(fit, rn, dp)
 }
 
 #' `y | se(s)` without `sigma = TRUE`: the residual standard deviation
@@ -1023,7 +1096,7 @@ predict_mean_response <- function(fit, rspec, newdata, re_formula,
   rn <- rspec$resp_name
   if (is.null(newdata) && is.null(re_formula)) {
     # exactly fitted(): dpars at the estimates, conditional on the modes
-    dp <- eval_dpars(fit)[[rn]]
+    dp <- autocor_cond_dpars(fit, rn, eval_dpars(fit)[[rn]])
     out <- response_mean(fam, dp, fit$frame[["aterm_values"]][[rn]])
     return(napred(fit, out))
   }
@@ -1504,6 +1577,15 @@ frm_linpred <- function(object, newdata = NULL,
       disp = intersect(c("sigma", "shape", "phi"),
                        names(rspec$dpars))[1]
     )
+    if (is.na(dpar) && "zoi" %in% names(rspec$dpars)) {
+      # glmmTMB's zprob is P(Y = 0) under one gate; zero-one inflation
+      # has two gates, and P(Y = 0) = zoi * (1 - coi) is neither
+      frm_stop("type = '", type, "' names one zero-inflation gate, and ",
+               "family '", rspec$family[["family"]], "' has two. Use ",
+               "dpar = \"zoi\" for P(Y is 0 or 1) or dpar = \"coi\" for ",
+               "P(Y = 1 | Y is 0 or 1), with type = \"response\" or ",
+               "\"link\"", call. = FALSE)
+    }
     if (is.na(dpar)) {
       frm_stop("type = '", type, "' needs a family with a ",
                if (type == "disp") "dispersion" else "zero-inflation/hurdle",
@@ -1521,6 +1603,22 @@ frm_linpred <- function(object, newdata = NULL,
     # expected response, the fitted()/glmmTMB/brms-epred convention.
     # Per-dpar values stay available through dpar = or
     # type = "conditional".
+    if (se.fit && autocor_is_cond(object$frame[["autocor"]][[resp]])) {
+      # the shifted mean moves with the residuals of earlier rows, which
+      # the one-predictor delta method below does not see
+      f <- function(fit) {
+        v <- predict_mean_response(fit, rspec, newdata, re_formula,
+                                   allow_new_levels)
+        if (is.null(newdata)) {
+          v <- v[!is.na(napred(fit, rep(1, fit$frame[["n_obs"]])))]
+        }
+        v
+      }
+      se <- autocor_cond_fd_se(object, f, use_re)
+      return(list(fit = predict_mean_response(object, rspec, newdata,
+                                              re_formula, allow_new_levels),
+                  se.fit = if (is.null(newdata)) napred(object, se) else se))
+    }
     if (se.fit) {
       return(predict_mean_se(object, rspec, newdata, use_re,
                              allow_new_levels))
@@ -1533,8 +1631,14 @@ frm_linpred <- function(object, newdata = NULL,
   key <- linpred_key(resp, dpar)
   lp <- object$frame[["linpreds"]][[key]]
   if (is.null(lp)) {
+    carrier <- object$spec[["rescor_nu"]]
     frm_stop("Unknown dpar: '", dpar, "' for response '", resp,
              "'. Available: ", paste(names(rspec$dpars), collapse = ", "),
+             if (identical(dpar, "nu") && !is.null(carrier)) {
+               paste0(". The responses of this Student-t rescor model ",
+                      "share one nu, which resp = \"", carrier,
+                      "\" reports")
+             },
              call. = FALSE)
   }
 
@@ -1587,6 +1691,12 @@ frm_linpred <- function(object, newdata = NULL,
     return(if (is.null(newdata)) napred(object, out) else out)
   }
 
+  # brms's cov = FALSE ARMA is part of mu itself: the one-step mean
+  ac_c <- object$frame[["autocor"]][[rspec$resp_name]]
+  if (autocor_is_cond(ac_c) && identical(dpar, "mu")) {
+    return(linpred_arma_cond(object, lp, rspec, ac_c, newdata, type,
+                             use_re, se.fit, allow_new_levels))
+  }
   ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
   eta <- ed[["eta"]]
   n <- ed[["n"]]
@@ -2460,13 +2570,33 @@ fitted_no_draws <- c(
 #' from the data: the top category may be unobserved.
 #'
 #' @noRd
-ordinal_ncat <- function(fit) {
-  raw <- fit$estimates[["tau_raw"]]
+ordinal_ncat <- function(fit, resp = NULL) {
+  raw <- fit$estimates[[extra_tpl_name(fit$frame, resp, "tau_raw")]]
   if (is.null(raw)) {
-    rspec <- single_response(fit, "residuals()")
+    rspec <- if (is.null(resp)) {
+      single_response(fit, "residuals()")
+    } else {
+      fit$spec$responses[[resp]]
+    }
     return(max(fit$frame[["y"]][[rspec$resp_name]]))
   }
-  length(raw) + 1L
+  # grouped thresholds, thres(gr = ): the largest group's categories
+  rspec <- if (is.null(resp)) fit$spec$responses[[1L]] else
+    fit$spec$responses[[resp]]
+  thres_ncat(rspec$family, raw)
+}
+
+#' The addition-term values an ordinal category probability reads: the
+#' row groups of `thres(gr = )`, and nothing for any other model.
+#' In-sample rows take the frame's values; newdata is evaluated.
+#'
+#' @noRd
+ord_prob_aterms <- function(object, rspec, newdata) {
+  if (!thres_grouped(rspec$family)) return(list())
+  if (is.null(newdata)) {
+    return(object$frame[["aterm_values"]][[rspec$resp_name]])
+  }
+  aterms_for_newdata(rspec, newdata)
 }
 
 #' The `n x (K-1)` matrix of threshold-specific offsets a `cs()` term
@@ -2542,7 +2672,7 @@ cs_offsets_add <- function(fit, resp, newdata, dpv) {
 #' custom ordinal family gets the same treatment for free.
 #'
 #' @noRd
-ord_probs_from_eta <- function(fam, eta, cs, extra, K) {
+ord_probs_from_eta <- function(fam, eta, cs, extra, K, aterms = list()) {
   n <- length(eta)
   dp <- list(mu = eta)
   if (!is.null(cs)) dp[[".cs"]] <- cs
@@ -2552,9 +2682,9 @@ ord_probs_from_eta <- function(fam, eta, cs, extra, K) {
   four <- length(formals(fam[["lpdf"]])) >= 4L
   for (k in seq_len(K)) {
     P[, k] <- exp(as.numeric(if (four) {
-      fam[["lpdf"]](rep.int(k, n), dp, list(), extra)
+      fam[["lpdf"]](rep.int(k, n), dp, aterms, extra)
     } else {
-      fam[["lpdf"]](rep.int(k, n), dp, list())
+      fam[["lpdf"]](rep.int(k, n), dp, aterms)
     }))
   }
   # analytically the rows already sum to one; the division only removes
@@ -2578,11 +2708,13 @@ ord_probs <- function(object, rspec, newdata = NULL, use_re = TRUE,
   ed <- lp_eta_design(object, lp, newdata, use_re, allow_new_levels)
   eta <- unname(ed[["eta"]])
   n <- length(eta)
-  K <- ordinal_ncat(object)
+  K <- ordinal_ncat(object, rspec$resp_name)
   cs <- ord_cs_offsets(object, lp, newdata, n, K - 1L)
-  # the ordinal lpdfs read only `extra` (the thresholds and the cs
-  # coefficients); no addition term enters a category probability
-  P <- ord_probs_from_eta(fam, eta, cs, fit_extras(object), K)
+  # the ordinal lpdfs read `extra` (the thresholds and the cs
+  # coefficients) and, under thres(gr = ), each row's group
+  P <- ord_probs_from_eta(fam, eta, cs,
+                          fit_extras(object, rspec$resp_name), K,
+                          ord_prob_aterms(object, rspec, newdata))
   colnames(P) <- object$frame[["y_levels"]][[rspec$resp_name]] %||%
     as.character(seq_len(K))
   rn <- names(ed[["eta"]])
@@ -2690,17 +2822,27 @@ predict_categorical <- function(object, rspec, newdata, use_re,
 ord_prob_se <- function(object, rspec, lp, ed, newdata, use_re,
                         weights = NULL) {
   fam <- rspec$family
-  K <- ordinal_ncat(object)
+  K <- ordinal_ncat(object, rspec$resp_name)
   eta <- unname(ed[["eta"]])
   n <- length(eta)
+  # perturbed by TEMPLATE name, each once, and handed to the density
+  # through the response's view; the view repeats a multivariate
+  # response's block under its family names, which perturbing directly
+  # would count twice
   extra <- fit_extras(object)
+  extra <- extra[setdiff(names(extra),
+                         other_resp_extras(object$frame, rspec$resp_name))]
   csv <- ord_cs_values(object, lp, newdata, n)
   CS <- if (length(csv)) {
     M <- matrix(0, n, K - 1L)
     for (ct in csv) M <- M + outer(ct$vals, object$estimates[[ct$par]])
     M
   }
-  probs <- function(e, cs, ex) ord_probs_from_eta(fam, e, cs, ex, K)
+  av <- ord_prob_aterms(object, rspec, newdata)
+  probs <- function(e, cs, ex) {
+    ord_probs_from_eta(fam, e, cs,
+                       resp_extras(object$frame, ex, rspec$resp_name), K, av)
+  }
   P0 <- probs(eta, CS, extra)
 
   jc <- get_joint_cov(object)
@@ -3157,6 +3299,20 @@ residual_point_se <- function(object, type, r) {
   se_mu / sc
 }
 
+# The core families whose density branches on y == 0 (and y == 1) for a
+# point mass. oneStepPredict() re-tapes the density with the response as
+# an "osa" object, which has no comparison operator, so each of them
+# failed there with base R's "comparison (==) is possible only for
+# atomic and list types" (all ten measured, dev/fams-findings.md). Named
+# rather than read off a zi, hu or zoi dpar, so that a custom family
+# whose density unwraps the osa object is not refused with them.
+osa_point_mass_families <- c(
+  "zero_inflated_poisson", "zero_inflated_negbinomial",
+  "zero_inflated_binomial", "zero_inflated_beta",
+  "zero_inflated_asym_laplace", "zero_one_inflated_beta",
+  "hurdle_poisson", "hurdle_negbinomial", "hurdle_gamma",
+  "hurdle_lognormal")
+
 #' @noRd
 residual_values <- function(object, type = c("response", "pearson",
                                              "deviance", "osa"),
@@ -3244,6 +3400,16 @@ residual_values <- function(object, type = c("response", "pearson",
     }
   }
   if (type == "osa") {
+    if (autocor_is_cond(object$frame[["autocor"]][[rspec$resp_name]])) {
+      frm_stop("residuals(type = \"osa\") is not available for a fit with ",
+               object$frame[["autocor"]][[rspec$resp_name]]$label,
+               ": the mean of each row is a function of the earlier ",
+               "responses, which the tape reads as data rather than as the ",
+               "observations oneStepPredict() steps through. Under cov = ",
+               "FALSE, type = \"pearson\" already standardizes each row by ",
+               "its one-step mean, and dharma_residuals() simulates the ",
+               "recursion", call. = FALSE)
+    }
     if (!is.null(object$frame[["autocor"]][[rspec$resp_name]])) {
       # oneStepPredict needs the taped density of ONE observation given
       # the previous ones; under an R-side residual the tape holds a
@@ -3257,6 +3423,14 @@ residual_values <- function(object, type = c("response", "pearson",
                "which divides by the marginal residual SD, or ",
                "dharma_residuals(), which uses simulate() and does draw ",
                "correlated residuals", call. = FALSE)
+    }
+    if (fam[["family"]] %in% osa_point_mass_families) {
+      frm_stop("residuals(type = \"osa\") is not available for family '",
+               fam[["family"]], "': its density puts a point mass on an ",
+               "exact response value and branches on y == 0, and the ",
+               "one-step tape hands the density no value to compare. Use ",
+               "type = \"pearson\", or dharma_residuals(), which uses ",
+               "simulate()", call. = FALSE)
     }
     av0 <- object$frame[["aterm_values"]][[rspec$resp_name]]
     tb <- trunc_bounds(av0, object$frame[["n_obs"]])
@@ -3345,7 +3519,9 @@ residual_values <- function(object, type = c("response", "pearson",
     if (type == "pearson") r <- r / sqrt(mom$var)
     return(napred(object, r))
   }
-  dp <- eval_dpars(object)[[rspec$resp_name]]
+  # under cov = FALSE the residual is against brms's one-step mean
+  dp <- autocor_cond_dpars(object, rspec$resp_name,
+                           eval_dpars(object)[[rspec$resp_name]])
   av <- object$frame[["aterm_values"]][[rspec$resp_name]]
   yv <- object$frame[["y"]][[rspec$resp_name]]
   if (type == "deviance") {
@@ -3732,7 +3908,7 @@ sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
       dp <- with_cs_offsets(object, rspec, eval_dpars(object, b = b_use))
       dp <- dp[[rspec$resp_name]]
       ctx <- sim_context(object, rspec, dp, aterms = av, n = n,
-                         extra = fit_extras(object))
+                         extra = fit_extras(object, rspec$resp_name))
       out[[s]] <- sim_draw(ctx)
     } else {
       fb <- object
@@ -3742,7 +3918,7 @@ sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
       ok <- ok0 & dpv_row_finite(dp)
       if (all(ok)) {
         ctx <- sim_context(fb, rspec, dp, aterms = av_nd, n = n,
-                           extra = fit_extras(fb))
+                           extra = fit_extras(fb, rspec$resp_name))
         ctx[["autocor"]] <- ac_nd
         out[[s]] <- sim_draw(ctx)
       } else {
@@ -3765,10 +3941,77 @@ sim_fit_draws <- function(object, nsim = 1, seed = NULL, re_formula = NULL,
 
 #' @rdname frmtmb-extension-api
 #' @export
-fit_extras <- function(fit) {
+fit_extras <- function(fit, resp = NULL) {
   nms <- fit$frame[["extra_names"]] %||% character(0)
   if (!length(nms)) return(NULL)
-  fit$estimates[nms]
+  resp_extras(fit$frame, fit$estimates[nms], resp)
+}
+
+#' One response's view of the extra parameters.
+#'
+#' A multivariate frame holds every response's family extras in one
+#' parameter list, each block under a name that carries its response
+#' (`mv_extra_name()`). A density reads its own block under the names
+#' its family's `extra_pars` declared, so this adds that block back
+#' under those names. A univariate frame has no map and the list passes
+#' through unchanged, which is also what `resp = NULL` gets.
+#'
+#' @noRd
+resp_extras <- function(frame, ex, resp) {
+  if (is.null(ex)) return(NULL)
+  map <- if (!is.null(resp)) frame[["extra_map"]][[resp]]
+  for (nm in names(map)) ex[[nm]] <- ex[[map[[nm]]]]
+  ex
+}
+
+#' The template names of every OTHER response's family extras, which a
+#' per-response computation leaves alone.
+#'
+#' @noRd
+other_resp_extras <- function(frame, resp) {
+  map <- frame[["extra_map"]]
+  unlist(map[setdiff(names(map), resp)], use.names = FALSE) %||% character(0)
+}
+
+#' The template name of one response's family extra in a multivariate
+#' frame.
+#'
+#' @noRd
+mv_extra_name <- function(resp, nm) paste0(resp, "_", nm)
+
+#' The template name a family extra of `resp` is stored under: the
+#' family's own name in a univariate frame, the namespaced one in a
+#' multivariate frame.
+#'
+#' @noRd
+extra_tpl_name <- function(frame, resp, nm) {
+  map <- if (!is.null(resp)) frame[["extra_map"]][[resp]]
+  if (!is.null(map) && nm %in% names(map)) map[[nm]] else nm
+}
+
+#' Which families may carry extra parameters inside a multivariate
+#' model.
+#'
+#' An ordinal family's extras are its thresholds, a block that belongs
+#' to one response and that every post-fit path reads through the
+#' response (`fit_extras(fit, resp)`), so they are namespaced by the
+#' response and supported. Any other family's extras are refused by
+#' name: the Cox baseline and the class covariances of mixture_mvn()
+#' are read by post-fit methods that have not been checked with a
+#' response in hand, and a family from another package has declared
+#' nothing about them.
+#'
+#' @noRd
+check_mv_extra_family <- function(fam) {
+  if (identical(fam[["type"]], "ordinal")) return(invisible(NULL))
+  frm_stop("Families with extra parameters ('", fam[["family"]],
+           "') are not supported in multivariate fits yet. The ordinal ",
+           "families (cumulative, sratio, cratio, acat) are, because ",
+           "their thresholds are a block of one response; this family's ",
+           "extra parameters are read by post-fit methods that have not ",
+           "been checked inside a multivariate model. Fit this response ",
+           "in a model of its own", call. = FALSE,
+           package = frm_family_package(fam))
 }
 
 #' @rdname frmtmb-extension-api

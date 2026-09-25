@@ -1,0 +1,14 @@
+frmtmb from /opt/rlib/base 
+  simulate x hurdle_poisson  registry refused  sim_can TRUE
+  simulate x compois         registry refused  sim_can TRUE
+  simulate x tweedie         registry refused  sim_can TRUE
+  simulate x cox             registry refused  sim_can FALSE
+  residuals_osa x hurdle_poisson registry conditional 
+  residuals(type = "osa"): comparison (==) is possible only for atomic and list types 
+frmtmb from /opt/rlib/lane-fams 
+  simulate x hurdle_poisson  registry works    sim_can TRUE
+  simulate x compois         registry works    sim_can TRUE
+  simulate x tweedie         registry works    sim_can TRUE
+  simulate x cox             registry refused  sim_can FALSE
+  residuals_osa x hurdle_poisson registry refused 
+  residuals(type = "osa"): residuals(type = "osa") is not available for family 'hurdle_poisson': its density puts a point mass on an exact response value and branches on y == 0, and the one-step tape hands the density no value to compare. Use type = "pearson", or dharma_residuals(), which uses simulate() 

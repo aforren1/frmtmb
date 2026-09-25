@@ -1,0 +1,406 @@
+
+##### 0 + Intercept + x 
+[1] 40  2
+[1] "Intercept" "x"        
+  Intercept          x
+1         1 -0.1645236
+2         1 -0.2533617
+3         1  0.6969634
+4         1  0.5566632
+                 prior class      coef dpar nlpar resp
+1                          b                          
+2                          b Intercept                
+3                          b         x                
+4 student_t(3, 0, 2.5) sigma                          
+
+##### 1 + x 
+[1] 40  2
+[1] "Intercept" "x"        
+  Intercept          x
+1         1 -0.1645236
+2         1 -0.2533617
+3         1  0.6969634
+4         1  0.5566632
+                   prior     class coef dpar nlpar resp
+1 student_t(3, 0.1, 2.5) Intercept                     
+2                                b                     
+3                                b    x                
+4   student_t(3, 0, 2.5)     sigma                     
+
+##### 0 + x + Intercept (order) 
+[1] 40  2
+[1] "x"         "Intercept"
+           x Intercept
+1 -0.1645236         1
+2 -0.2533617         1
+3  0.6969634         1
+4  0.5566632         1
+
+##### 0 + Intercept + f 
+[1] 40  4
+[1] "Intercept" "fb"        "fc"        "fd"       
+  Intercept fb fc fd
+1         1  0  0  0
+2         1  1  0  0
+3         1  0  1  0
+4         1  0  0  1
+
+##### 0 + f 
+[1] 40  4
+[1] "fa" "fb" "fc" "fd"
+  fa fb fc fd
+1  1  0  0  0
+2  0  1  0  0
+3  0  0  1  0
+4  0  0  0  1
+
+##### 0 + Intercept + x:f 
+[1] 40  5
+[1] "Intercept" "x:fa"      "x:fb"      "x:fc"      "x:fd"     
+  Intercept       x:fa       x:fb      x:fc      x:fd
+1         1 -0.1645236  0.0000000 0.0000000 0.0000000
+2         1  0.0000000 -0.2533617 0.0000000 0.0000000
+3         1  0.0000000  0.0000000 0.6969634 0.0000000
+4         1  0.0000000  0.0000000 0.0000000 0.5566632
+
+##### 0 + Intercept + x*f 
+[1] 40  8
+[1] "Intercept" "x"         "fb"        "fc"        "fd"        "x:fb"     
+[7] "x:fc"      "x:fd"     
+  Intercept          x fb fc fd       x:fb      x:fc      x:fd
+1         1 -0.1645236  0  0  0  0.0000000 0.0000000 0.0000000
+2         1 -0.2533617  1  0  0 -0.2533617 0.0000000 0.0000000
+3         1  0.6969634  0  1  0  0.0000000 0.6969634 0.0000000
+4         1  0.5566632  0  0  1  0.0000000 0.0000000 0.5566632
+
+##### 0 + Intercept + f + z:f 
+[1] 40  8
+[1] "Intercept" "fb"        "fc"        "fd"        "fa:x"      "fb:x"     
+[7] "fc:x"      "fd:x"     
+  Intercept fb fc fd       fa:x       fb:x      fc:x      fd:x
+1         1  0  0  0 -0.1645236  0.0000000 0.0000000 0.0000000
+2         1  1  0  0  0.0000000 -0.2533617 0.0000000 0.0000000
+3         1  0  1  0  0.0000000  0.0000000 0.6969634 0.0000000
+4         1  0  0  1  0.0000000  0.0000000 0.0000000 0.5566632
+
+##### 0 + Intercept:x 
+[1] 40  1
+[1] "Intercept:x"
+  Intercept:x
+1  -0.1645236
+2  -0.2533617
+3   0.6969634
+4   0.5566632
+
+##### 0 + Intercept alone 
+[1] 40  1
+[1] "Intercept"
+  Intercept
+1         1
+2         1
+3         1
+4         1
+                 prior class      coef dpar nlpar resp
+1                          b                          
+2                          b Intercept                
+3 student_t(3, 0, 2.5) sigma                          
+
+##### lowercase intercept 
+WARNING: Reserved variable name 'intercept' is deprecated. Please use 'Intercept' instead. 
+[1] 40  2
+[1] "intercept" "x"        
+  intercept          x
+1         1 -0.1645236
+2         1 -0.2533617
+3         1  0.6969634
+4         1  0.5566632
+
+##### 1 + Intercept + x 
+ERROR: The following variables can neither be found in 'data' nor in 'data2':
+'Intercept' 
+
+##### Intercept + x 
+ERROR: The following variables can neither be found in 'data' nor in 'data2':
+'Intercept' 
+
+##### -1 + Intercept + x 
+[1] 40  2
+[1] "Intercept" "x"        
+  Intercept          x
+1         1 -0.1645236
+2         1 -0.2533617
+3         1  0.6969634
+4         1  0.5566632
+
+##### x + Intercept - 1 
+[1] 40  2
+[1] "x"         "Intercept"
+           x Intercept
+1 -0.1645236         1
+2 -0.2533617         1
+3  0.6969634         1
+4  0.5566632         1
+
+##### data col Intercept=2, 0+Intercept 
+ERROR: Variable name 'Intercept' is reserved in models without a population-level intercept. 
+
+##### data col Intercept=2, 1 + x (unused) 
+[1] 40  2
+[1] "Intercept" "x"        
+  Intercept          x
+1         1 -0.1645236
+2         1 -0.2533617
+3         1  0.6969634
+4         1  0.5566632
+
+##### data col Intercept=2, x + Intercept 
+ERROR: Internal renaming led to duplicated names. Consider renaming your variables to have different suffixes.
+Occured for: '(Intercept)', 'Intercept' 
+
+##### data col Intercept=1, 0+Intercept 
+[1] 40  2
+[1] "Intercept" "x"        
+  Intercept          x
+1         1 -0.1645236
+2         1 -0.2533617
+3         1  0.6969634
+4         1  0.5566632
+
+##### data col Intercept=2, 1 + x, sigma ~ 0 + Intercept 
+ERROR: Variable name 'Intercept' is reserved in models without a population-level intercept. 
+
+##### data col Intercept=2, 0 + Intercept + x (x also named) 
+ERROR: Variable name 'Intercept' is reserved in models without a population-level intercept. 
+
+##### dpar sigma ~ 0 + Intercept + z 
+[1] 40  2
+[1] "Intercept" "z"        
+  Intercept          z
+1         1 -0.5686687
+2         1 -0.1351786
+3         1  1.1780870
+4         1 -1.5235668
+                   prior     class      coef  dpar nlpar resp
+1 student_t(3, 0.1, 2.5) Intercept                           
+2                                b                           
+3                                b         x                 
+4                                b           sigma           
+5                                b Intercept sigma           
+6                                b         z sigma           
+
+##### mu 1+x, sigma ~ 1 + Intercept + z 
+ERROR: The following variables can neither be found in 'data' nor in 'data2':
+'Intercept' 
+
+##### mu 0+Intercept, sigma ~ 1 + Intercept + z 
+ERROR: Internal renaming led to duplicated names. Consider renaming your variables to have different suffixes.
+Occured for: '(Intercept)', 'Intercept' 
+
+##### nl a ~ 0 + Intercept + x 
+[1] 40  2
+[1] "Intercept" "x"        
+  Intercept          x
+1         1 -0.1645236
+2         1 -0.2533617
+3         1  0.6969634
+4         1  0.5566632
+                 prior class      coef dpar nlpar resp
+1 student_t(3, 0, 2.5) sigma                          
+2                          b                    a     
+3                          b Intercept          a     
+4                          b         x          a     
+5                          b                    b     
+6                          b Intercept          b     
+
+##### nl a ~ 1 + x 
+[1] 40  2
+[1] "Intercept" "x"        
+  Intercept          x
+1         1 -0.1645236
+2         1 -0.2533617
+3         1  0.6969634
+4         1  0.5566632
+                 prior class      coef dpar nlpar resp
+1 student_t(3, 0, 2.5) sigma                          
+2                          b                    a     
+3                          b Intercept          a     
+4                          b         x          a     
+5                          b                    b     
+6                          b Intercept          b     
+
+##### center = FALSE 
+[1] 40  2
+[1] "Intercept" "x"        
+  Intercept          x
+1         1 -0.1645236
+2         1 -0.2533617
+3         1  0.6969634
+4         1  0.5566632
+                 prior class      coef dpar nlpar resp
+1                          b                          
+2                          b Intercept                
+3                          b         x                
+4 student_t(3, 0, 2.5) sigma                          
+
+##### center = FALSE, sigma 
+                 prior     class      coef  dpar nlpar resp
+1                              b                           
+2                              b Intercept                 
+3                              b         x                 
+4 student_t(3, 0, 2.5) Intercept           sigma           
+5                              b           sigma           
+6                              b         z sigma           
+
+##### center = FALSE, 0 + x 
+                 prior class coef dpar nlpar resp
+1                          b                     
+2                          b    x                
+3 student_t(3, 0, 2.5) sigma                     
+
+##### center = FALSE factor 
+[1] 40  4
+[1] "Intercept" "fb"        "fc"        "fd"       
+  Intercept fb fc fd
+1         1  0  0  0
+2         1  1  0  0
+3         1  0  1  0
+4         1  0  0  1
+
+##### ordinal 0 + Intercept + x 
+ERROR: Cannot remove the intercept in an ordinal model. 
+
+##### ordinal stancode 
+ERROR: Cannot remove the intercept in an ordinal model. 
+
+##### ordinal center=FALSE 
+                 prior     class coef dpar nlpar resp
+1 student_t(3, 0, 2.5) Intercept                     
+2                      Intercept    1                
+3                      Intercept    2                
+4                      Intercept    3                
+5                              b                     
+6                              b    x                
+
+##### cs(): 0 + Intercept + cs(x) acat 
+ERROR: Cannot remove the intercept in an ordinal model. 
+
+##### cs(Intercept) 
+ERROR: Cannot remove the intercept in an ordinal model. 
+
+##### mo() 
+[1] 40  1
+[1] "Intercept"
+  Intercept
+1         1
+2         1
+3         1
+4         1
+                 prior class      coef dpar nlpar resp
+1                          b                          
+2                          b Intercept                
+3                          b      moxm                
+4 student_t(3, 0, 2.5) sigma                          
+5         dirichlet(1)  simo     moxm1                
+
+##### smooth 
+[1] 40  1
+[1] "Intercept"
+  Intercept
+1         1
+2         1
+3         1
+4         1
+ [1] "N"          "Y"          "K"          "X"          "nb_1"      
+ [6] "Zs_1_1"     "knots_1"    "Ks"         "Xs"         "prior_only"
+                 prior class      coef dpar nlpar resp
+1                          b                          
+2                          b Intercept                
+3                          b      sx_1                
+4 student_t(3, 0, 2.5)   sds                          
+5                        sds      s(x)                
+6 student_t(3, 0, 2.5) sigma                          
+
+##### smooth 1 + s(x) 
+[1] 40  1
+[1] "Intercept"
+  Intercept
+1         1
+2         1
+3         1
+4         1
+ [1] "N"          "Y"          "K"          "Kc"         "X"         
+ [6] "nb_1"       "Zs_1_1"     "knots_1"    "Ks"         "Xs"        
+[11] "prior_only"
+
+##### RE (0 + Intercept | g) 
+1 2 3 4 
+1 1 1 1 
+                 prior class      coef dpar nlpar resp
+1                          b                          
+2                          b Intercept                
+3                          b         x                
+4 student_t(3, 0, 2.5)    sd                          
+5                         sd                          
+6                         sd Intercept                
+7 student_t(3, 0, 2.5) sigma                          
+
+##### RE (1 + Intercept | g) with 1+x 
+ERROR: The following variables can neither be found in 'data' nor in 'data2':
+'Intercept' 
+
+##### mv 
+                    prior     class      coef dpar nlpar resp
+1                                 b                         y
+2                                 b Intercept               y
+3                                 b         x               y
+4    student_t(3, 0, 2.5)     sigma                         y
+5 student_t(3, -0.1, 2.5) Intercept                        y2
+6                                 b                        y2
+7                                 b         x              y2
+8    student_t(3, 0, 2.5)     sigma                        y2
+
+##### Intercept in mu and a data col not 1 but mu has 1 
+[1] 40  2
+[1] "Intercept" "x"        
+  Intercept          x
+1         1 -0.1645236
+2         1 -0.2533617
+3         1  0.6969634
+4         1  0.5566632
+
+##### 0 + Intercept + Intercept:x 
+[1] 40  2
+[1] "Intercept"   "Intercept:x"
+  Intercept Intercept:x
+1         1  -0.1645236
+2         1  -0.2533617
+3         1   0.6969634
+4         1   0.5566632
+
+##### 0 + Intercept + I(Intercept*2) 
+[1] 40  2
+[1] "Intercept"     "I2MUIntercept"
+  Intercept I2MUIntercept
+1         1             2
+2         1             2
+3         1             2
+4         1             2
+
+##### 0 + Intercept + poly(x,2) 
+[1] 40  3
+[1] "Intercept" "polyx21"   "polyx22"  
+  Intercept     polyx21     polyx22
+1         1 -0.04925632 -0.08461577
+2         1 -0.06462144 -0.07121509
+3         1  0.09974334 -0.10370678
+4         1  0.07547753 -0.11429878
+
+##### zi dpar 
+                 prior     class      coef dpar nlpar resp
+1 student_t(3, 0, 2.5) Intercept                          
+2                              b                          
+3                              b         x                
+4 student_t(3, 0, 2.5)     sigma                          
+5                              b             hu           
+6                              b Intercept   hu           
+7                              b         z   hu           

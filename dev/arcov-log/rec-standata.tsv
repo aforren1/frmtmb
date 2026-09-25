@@ -1,0 +1,148 @@
+assert	frmtmb	standata:69	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:71	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:73	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:75	defect	FALSE	FALSE	ERROR: bernoulli: response must be 0/1		FALSE
+assert	frmtmb	standata:77	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:79	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:81	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:83	defect	FALSE	FALSE	ERROR: categorical(): the response 'y' has fewer than two categories		FALSE
+assert	frmtmb	standata:85	defect	FALSE	FALSE	ERROR: categorical(): the response 'y' has fewer than two categories		FALSE
+assert	frmtmb	standata:87	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:89	pass	TRUE	FALSE			TRUE
+setup	frmtmb	standata:91		TRUE	FALSE			TRUE
+assert	frmtmb	standata:92	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:94	pass	TRUE	FALSE			TRUE
+setup	frmtmb	standata:97		TRUE	FALSE			TRUE
+setup	frmtmb	standata:98		TRUE	FALSE			TRUE
+setup	frmtmb	standata:99		TRUE	FALSE			TRUE
+assert	frmtmb	standata:100	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:101	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:106	own	TRUE	FALSE		Factor responses are only supported for binomial families with 2 levels (ordinal families accept ordered factors)	FALSE
+assert	frmtmb	standata:109	own	TRUE	FALSE		geometric: response must be non-negative integers	FALSE
+assert	frmtmb	standata:112	own	TRUE	FALSE		bernoulli: response must be 0/1	FALSE
+assert	frmtmb	standata:115	pass	TRUE	FALSE		Family 'cratio' requires either positive integers or ordered factors as responses. 'y' is an unordered factor, whose level order (-1 < 0 < 1) is not a category order anyone stated. Use factor(..., levels = ..., ordered = TRUE)	TRUE
+assert	frmtmb	standata:118	pass	TRUE	FALSE		Family 'sratio' requires either positive integers or ordered factors as responses: integer codes 1..K	TRUE
+assert	frmtmb	standata:121	own	TRUE	FALSE		Gamma: response must be strictly positive	FALSE
+assert	frmtmb	standata:124	own	TRUE	FALSE		beta: response must lie strictly in (0, 1)	FALSE
+assert	frmtmb	standata:127	own	TRUE	FALSE		von_mises: response must be angles in radians on (-pi, pi]; wrap the response first, for example atan2(sin(y), cos(y))	FALSE
+assert	frmtmb	standata:130	own	TRUE	FALSE		hurdle_gamma: response must be non-negative	FALSE
+assert	frmtmb	standata:136	pass	TRUE	FALSE		Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 	TRUE
+assert	frmtmb	standata:139	pass	TRUE	FALSE		Only 2 levels detected so that family 'bernoulli' might be a more efficient choice. 	TRUE
+assert	frmtmb	standata:142	defect	FALSE	FALSE	ERROR: categorical(): the response 'y' has fewer than two categories		FALSE
+setup	frmtmb	standata:148		TRUE	FALSE			TRUE
+assert	frmtmb	standata:153	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:155	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:157	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:159	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:161	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:163	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:165	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:168	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:171	cannot transfer	FALSE	FALSE	ERROR: Addition term `cat()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()		FALSE
+setup	frmtmb	standata:177		TRUE	FALSE			TRUE
+assert	frmtmb	standata:179	own	TRUE	FALSE		se() values must be positive	FALSE
+assert	frmtmb	standata:181	own	TRUE	FALSE		weights() must be non-negative	FALSE
+assert	frmtmb	standata:183	pass	TRUE	FALSE		cens() codes must be -1 (left), 0 (observed), 1 (right), or 2 (interval), or the matching names "left", "none", "right", "interval"; got: -2	TRUE
+assert	frmtmb	standata:184	own	TRUE	FALSE		binomial: response must be integer counts in [0, trials]	FALSE
+setup	frmtmb	standata:240		TRUE	FALSE			TRUE
+setup	frmtmb	standata:241		TRUE	FALSE			TRUE
+assert	frmtmb	standata:242	pass	TRUE	FALSE			TRUE
+setup	frmtmb	standata:246		TRUE	FALSE			TRUE
+setup	frmtmb	standata:251		TRUE	FALSE			TRUE
+setup	frmtmb	standata:256		TRUE	FALSE			TRUE
+setup	frmtmb	standata:258		TRUE	FALSE			TRUE
+setup	frmtmb	standata:263		FALSE	FALSE	Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()		FALSE
+setup	frmtmb	standata:264		TRUE	FALSE			TRUE
+setup	frmtmb	standata:265		TRUE	FALSE			TRUE
+assert	frmtmb	standata:266	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its ow		FALSE
+assert	frmtmb	standata:267	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its ow		FALSE
+assert	frmtmb	standata:268	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its ow		FALSE
+assert	frmtmb	standata:269	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its ow		FALSE
+setup	frmtmb	standata:305		TRUE	FALSE			TRUE
+setup	frmtmb	standata:309		TRUE	FALSE			TRUE
+assert	frmtmb	standata:310	cannot transfer	FALSE	FALSE	Expected `dat$y1` to equal `as.numeric(sdata1$Y[attr(sdata1, "old_order")])`. Differences:      actual              | expected                  [1] 0.167104372005242   -                           [2] 0.53362330929305    -                           [3] 0.911398601501307   -                           [4] 0.740769501338726   -                           [5] -0.790930000322178  -                       		FALSE
+setup	frmtmb	standata:313		TRUE	FALSE			TRUE
+setup	frmtmb	standata:314		TRUE	FALSE			TRUE
+assert	frmtmb	standata:315	cannot transfer	FALSE	FALSE	Expected `sdata2$Y_y1[attr(sdata2, "old_order")]` to equal `as.array(dat$y1)`. Differences: `dim(actual)` is absent `dim(expected)` is an integer vector (100)     actual | expected                                       - 0.167104372005242   [1]                        - 0.53362330929305    [2]                        - 0.911398601501307   [3]                        - 0.740769501338726   [4]         		FALSE
+assert	frmtmb	standata:316	cannot transfer	FALSE	FALSE	Expected `sdata2$Y_y2[attr(sdata2, "old_order")]` to equal `as.array(dat$y2)`. Differences: `dim(actual)` is absent `dim(expected)` is an integer vector (100)     actual | expected                                      - 1.5396778048313    [1]                        - 0.489199733102075  [2]                        - 0.578224035748769  [3]                        - -0.675814712469743 [4]              		FALSE
+setup	frmtmb	standata:610		TRUE	FALSE			TRUE
+setup	frmtmb	standata:616		TRUE	FALSE			TRUE
+setup	frmtmb	standata:619		FALSE	FALSE	mi() in a predictor takes one variable name: mi(x)		FALSE
+assert	frmtmb	standata:620	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: mi() in a predictor takes one variable name: mi(x)		FALSE
+setup	frmtmb	standata:631		TRUE	FALSE			TRUE
+assert	frmtmb	standata:634	cannot transfer	FALSE	FALSE	ERROR: mi() in a predictor takes one variable name: mi(x)		FALSE
+setup	frmtmb	standata:638		TRUE	FALSE			TRUE
+assert	frmtmb	standata:641	cannot transfer	FALSE	FALSE	ERROR: Addition term `subset()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()		FALSE
+setup	frmtmb	standata:646		TRUE	FALSE			TRUE
+assert	frmtmb	standata:649	cannot transfer	FALSE	FALSE	ERROR: mi() in a predictor takes one variable name: mi(x)		FALSE
+setup	frmtmb	standata:691		TRUE	FALSE			TRUE
+setup	frmtmb	standata:692		TRUE	FALSE			TRUE
+setup	frmtmb	standata:693		TRUE	FALSE			TRUE
+setup	frmtmb	standata:694		TRUE	FALSE			TRUE
+setup	frmtmb	standata:695		TRUE	FALSE			TRUE
+setup	frmtmb	standata:696		TRUE	FALSE			TRUE
+setup	frmtmb	standata:704		FALSE	FALSE	gr() supports (x | gr(g, cov = A)) or (1 | gr(g, prec = Q))		FALSE
+assert	frmtmb	standata:705	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: gr() supports (x | gr(g, cov = A)) or (1 | gr(g, prec = Q))		FALSE
+assert	frmtmb	standata:706	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: gr() supports (x | gr(g, cov = A)) or (1 | gr(g, prec = Q))		FALSE
+setup	frmtmb	standata:708		FALSE	FALSE	mm(by = ) is not supported. brms's other mm() arguments have spellings here that apply to any grouping term: cor = FALSE is diag(x | mm(g1, g2)), id = is the |ID| key (x | q | g), cov = is gr(g, cov = A), and dist = is gr(g, dist = "student"). The last two take a single-membership factor only. by = / pw = have no equivalent yet		FALSE
+assert	frmtmb	standata:709	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: mm(by = ) is not supported. brms's other mm() arguments have spellings here that apply to any grouping term: cor = FALSE is diag(x | mm(g1, g2)), id = is the |ID| key (x | q | g), cov = is gr(g, cov = A), and dist = is gr(g, dist = "student"). The last two take a single-membership factor only. by = / pw = have no equivalent yet		FALSE
+assert	frmtmb	standata:710	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: mm(by = ) is not supported. brms's other mm() arguments have spellings here that apply to any grouping term: cor = FALSE is diag(x | mm(g1, g2)), id = is the |ID| key (x | q | g), cov = is gr(g, cov = A), and dist = is gr(g, dist = "student"). The last two take a single-membership factor only. by = / pw = have no equivalent yet		FALSE
+assert	frmtmb	standata:712	cannot transfer	FALSE	FALSE	ERROR: gr() supports (x | gr(g, cov = A)) or (1 | gr(g, prec = Q))		FALSE
+setup	frmtmb	standata:717		TRUE	FALSE			TRUE
+assert	frmtmb	standata:718	cannot transfer	FALSE	FALSE	Expected `colnames(standata(y ~ 1 + poly(x, 3), dat)$X)` to equal `c("Intercept", "polyx31", "polyx32", "polyx33")`. Differences: `actual`:   "Intercept" "poly(x, 3)1" "poly(x, 3)2" "poly(x, 3)3" `expected`: "Intercept" "polyx31"     "polyx32"     "polyx33"     		FALSE
+setup	frmtmb	standata:723		TRUE	FALSE			TRUE
+assert	frmtmb	standata:724	cannot transfer	FALSE	FALSE	Expected `standata(bf(y ~ 1, nu = 3), dat, student())$nu` to equal 3. Differences: `actual` is NULL `expected` is a double vector (3) 		FALSE
+assert	frmtmb	standata:725	cannot transfer	FALSE	FALSE	Expected `standata(y ~ 1, dat, acat())$disc` to equal 1. Differences: `actual` is NULL `expected` is a double vector (1) 		FALSE
+assert	frmtmb	standata:726	own	TRUE	FALSE		dpar(s) not available for family 'gaussian': bias (available: sigma)	FALSE
+setup	frmtmb	standata:731		TRUE	FALSE			TRUE
+setup	frmtmb	standata:732		FALSE	FALSE	lf() takes two-sided formulas naming the parameter on the left: e.g. lf(sigma ~ x)		FALSE
+setup	frmtmb	standata:736		FALSE	FALSE	object 'bform' not found		FALSE
+setup	frmtmb	standata:737		TRUE	FALSE			TRUE
+assert	frmtmb	standata:738	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: object 'bform' not found		FALSE
+assert	frmtmb	standata:739	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: object 'bform' not found		FALSE
+assert	frmtmb	standata:740	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: object 'bform' not found		FALSE
+setup	frmtmb	standata:742		FALSE	FALSE	Cannot interpret bf() argument 'cmc': expected a dpar formula or a named numeric constant		FALSE
+setup	frmtmb	standata:743		FALSE	FALSE	object 'bform' not found		FALSE
+assert	frmtmb	standata:744	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: object 'bform' not found		FALSE
+assert	frmtmb	standata:745	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: object 'bform' not found		FALSE
+setup	frmtmb	standata:926		TRUE	FALSE			TRUE
+setup	frmtmb	standata:927		FALSE	FALSE	A formula with `.` is not supported: frmtmb does not expand `.` into the columns of `data`. Write the predictors out, e.g. y ~ x1 + x2		FALSE
+assert	frmtmb	standata:928	defect	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: A formula with `.` is not supported: frmtmb does not expand `.` into the columns of `data`. Write the predictors out, e.g. y ~ x1 + x2		FALSE
+setup	frmtmb	standata:969		TRUE	FALSE			TRUE
+assert	frmtmb	standata:970	cannot transfer	FALSE	FALSE	ERROR: The model uses `intercept`, which is not a column of `data` and not an object that R finds from the formula. Add the column to `data` or correct the name		FALSE
+assert	frmtmb	standata:974	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: ERROR: The model uses `intercept`, which is not a column of `data` and not an object that R finds from the formula. Add the column to `data` or correct the name		FALSE
+setup	frmtmb	standata:975		FALSE	FALSE	The model uses `Intercept`, which is not a column of `data` and not an object that R finds from the formula. Add the column to `data` or correct the name		FALSE
+assert	frmtmb	standata:976	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: The model uses `Intercept`, which is not a column of `data` and not an object that R finds from the formula. Add the column to `data` or correct the name		FALSE
+setup	frmtmb	standata:1045		TRUE	FALSE			TRUE
+setup	frmtmb	standata:1046		FALSE	FALSE	Addition term `rate()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()		FALSE
+assert	frmtmb	standata:1047	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: Addition term `rate()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own 		FALSE
+setup	frmtmb	standata:1051		TRUE	FALSE			TRUE
+setup	frmtmb	standata:1059		TRUE	FALSE			TRUE
+assert	frmtmb	standata:1060	pass	TRUE	FALSE			TRUE
+setup	frmtmb	standata:1062		FALSE	FALSE	Addition term `thres()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()		FALSE
+assert	frmtmb	standata:1063	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: Addition term `thres()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own		FALSE
+assert	frmtmb	standata:1065	cannot transfer	FALSE	FALSE	ERROR: Addition term `thres()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()		FALSE
+setup	frmtmb	standata:1071		FALSE	FALSE	Addition term `thres()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()		FALSE
+assert	frmtmb	standata:1072	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: Addition term `thres()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own		FALSE
+assert	frmtmb	standata:1073	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: Addition term `thres()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own		FALSE
+assert	frmtmb	standata:1074	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: Addition term `thres()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own		FALSE
+assert	frmtmb	standata:1075	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: Addition term `thres()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own		FALSE
+setup	frmtmb	standata:1077		FALSE	FALSE	Addition term `thres()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()		FALSE
+assert	frmtmb	standata:1078	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: Addition term `thres()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own		FALSE
+assert	frmtmb	standata:1079	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: Addition term `thres()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own		FALSE
+setup	frmtmb	standata:1081		FALSE	FALSE	Addition term `thres()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own name with frmtmb_register_aterm()		FALSE
+assert	frmtmb	standata:1082	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: Addition term `thres()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own		FALSE
+assert	frmtmb	standata:1083	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: Addition term `thres()` is not supported (supported: weights(), trials(), cens(), trunc(), se(), vint(), vreal(), mi(), reward()). A custom family carries its own per-row data through vint() for integers and vreal() for reals, which reach the density as aterms$vint1, aterms$vreal1, ...; a package that supplies the family can give the term its own		FALSE
+setup	frmtmb	standata:1110		TRUE	FALSE			TRUE
+setup	frmtmb	standata:1111		TRUE	FALSE			TRUE
+setup	frmtmb	standata:1112		TRUE	FALSE			TRUE
+setup	frmtmb	standata:1113		TRUE	FALSE			TRUE
+assert	frmtmb	standata:1114	pass	TRUE	FALSE			TRUE
+assert	frmtmb	standata:1115	pass	TRUE	FALSE			TRUE
+setup	frmtmb	standata:1117		TRUE	FALSE			TRUE
+assert	frmtmb	standata:1118	own	TRUE	FALSE		cens() upper bounds must not be NA on interval-censored rows	FALSE
+setup	frmtmb	standata:1125		TRUE	FALSE			TRUE
+setup	frmtmb	standata:1128		TRUE	FALSE			TRUE
+assert	frmtmb	standata:1129	pass	TRUE	FALSE			TRUE
+setup	frmtmb	standata:1132		FALSE	FALSE	unused argument (drop_unused_levels = FALSE)		FALSE
+assert	frmtmb	standata:1133	cannot transfer	FALSE	TRUE	STALE: reads 'sdata', whose last assignment failed: unused argument (drop_unused_levels = FALSE)		FALSE

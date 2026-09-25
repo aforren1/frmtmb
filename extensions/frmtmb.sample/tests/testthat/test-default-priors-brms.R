@@ -194,3 +194,33 @@ test_that("the announcement names the slot, resp and dpar included", {
   expect_message(frmtmb.sample:::announce_default_priors(defs, character(0)),
                  "Intercept (dpar = mub, resp = cat)", fixed = TRUE)
 })
+
+test_that("0 + Intercept leaves the intercept flat, as brms's class b", {
+  # brms 2.23.0 lists b, b Intercept and b x, all flat, and no
+  # Intercept row; the default student-t goes to a centered intercept
+  # only. Before, frm_sample() gave this one the student-t as well.
+  set.seed(108)
+  d <- data.frame(x = rnorm(40), z = rnorm(40))
+  d$y <- 2 + d$x + rnorm(40)
+  for (f in list(bf(y ~ 0 + Intercept + x), bf(y ~ x, center = FALSE))) {
+    uf <- frm(f, d, dry_run = "objective")
+    defs <- unclass(frmtmb.sample:::default_priors_for(uf))
+    # sigma's own default arrives as a natural-scale class "Intercept"
+    # entry on dpar sigma; the location has none
+    expect_false(any(vapply(defs, function(s) {
+      identical(s$class, "Intercept") && !nzchar(s$dpar)
+    }, NA)))
+  }
+  r <- dpb_rows(default_prior(bf(y ~ x, sigma ~ 0 + Intercept + z), d,
+                              route = "sample"))
+  expect_false("Intercept||||sigma" %in% names(r))
+  expect_identical(r[["b|Intercept|||sigma"]], "(flat)")
+  expect_true("Intercept||||" %in% names(r))
+  skip_if_not_installed("brms")
+  want <- dpb_rows(brms::default_prior(y ~ 0 + Intercept + x, data = d))
+  # brms stores a flat prior as "" and prints it as (flat)
+  want[!nzchar(want)] <- "(flat)"
+  got <- dpb_rows(default_prior(bf(y ~ 0 + Intercept + x), d,
+                                route = "sample"))
+  expect_identical(got[sort(names(want))], want[sort(names(want))])
+})

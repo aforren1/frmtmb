@@ -30,8 +30,6 @@ brmsfit-methods:305	frmtmb	defect	argument	fitted() refuses brms's allow_new_lev
 brmsfit-methods:314	frmtmb	defect	argument	fitted() is brms's four-column summary now (item 2.6f) and still refuses ndraws BY NAME: a maximum-likelihood fit has no draws to thin. The setup line dies on that refusal, so the assertion reads a stale object
 brmsfit-methods:317	frmtmb	defect	argument	fitted() is brms's four-column summary now (item 2.6f) and still refuses ndraws BY NAME: a maximum-likelihood fit has no draws to thin. The setup line dies on that refusal, so the assertion reads a stale object
 brmsfit-methods:352	frmtmb	defect	shape	dim(fitted(fit4, newdata = fit4$data[1, ], scale = ...)) is NULL where brms gives 1 x 4 x 3. Rule 3, item 2.6f. Was fit-data
-brmsfit-methods:358	frmtmb	defect	refuses-accepted	fitted() exists and refuses the multivariate fit6 as 'not supported yet'; brms answers (user decision, 2026-09-17, rule 3; item 2.6f)
-brmsfit-methods:359	frmtmb	defect	refuses-accepted	fitted() exists and refuses the multivariate fit6 as 'not supported yet'; brms answers (user decision, 2026-09-17, rule 3; item 2.6f)
 brmsfit-methods:373	frmtmb	divergence	class	is.brmsformula(formula(fit1)): brms's class name; frmtmb objects must NOT carry brms's class names (user decision, 2026-09-17, rule 2)
 brmsfit-methods:391	frmtmb	defect	argument	plot() of a hypothesis refuses brms's plot = FALSE by name
 brmsfit-methods:396	frmtmb	defect	argument	plot() of a hypothesis refuses brms's ignore_prior and plot by name
@@ -102,13 +100,7 @@ brmsfit-methods:794	frmtmb.sample	cannot transfer	stan	frmtmb.sample stores no p
 brmsfit-methods:797	frmtmb.sample	cannot transfer	stan	frmtmb.sample stores no prior draws (D10)
 brmsfit-methods:798	frmtmb.sample	cannot transfer	stan	frmtmb.sample stores no prior draws (D10)
 brmsfit-methods:802	frmtmb.sample	cannot transfer	stan	prior_draws() on fit1$fit, the stanfit, and no prior draws (D10)
-emmeans:21	frmtmb	defect	refuses-accepted	emmeans(fit1, 'Age', by = 'Exp') is refused, 'No variable named Exp in the reference grid': the mo(Exp) variable is not in frmtmb's recover_data()
-emmeans:24	frmtmb	defect	refuses-accepted	emmeans(fit1, 'Exp') is refused: the mo(Exp) variable is not in the reference grid
-emmeans:27	frmtmb	cannot transfer	absent	frmtmb's emmeans support is declared refused for a nonlinear mu ('needs a linear mu predictor', R/compat.R:1612, enforced by emm_mu_linpred()); the reason is hidden by emmeans, a separate defect
-emmeans:35	frmtmb	cannot transfer	absent	frmtmb's emmeans support is declared refused for a nonlinear mu ('needs a linear mu predictor', R/compat.R:1612, enforced by emm_mu_linpred()); the reason is hidden by emmeans, a separate defect
-emmeans:38	frmtmb	cannot transfer	absent	frmtmb's emmeans support is declared refused for a nonlinear mu ('needs a linear mu predictor', R/compat.R:1612, enforced by emm_mu_linpred()); the reason is hidden by emmeans, a separate defect
-emmeans:42	frmtmb	cannot transfer	absent	frmtmb's emmeans support is declared univariate only (R/compat.R:1356); the reason is hidden by emmeans, a separate defect
-emmeans:50	frmtmb	cannot transfer	absent	frmtmb's emmeans support is declared refused for a nonlinear mu ('needs a linear mu predictor', R/compat.R:1612, enforced by emm_mu_linpred()); the reason is hidden by emmeans, a separate defect
+emmeans:42	frmtmb	cannot transfer	absent	frmtmb refuses it by name: fit6's volume response has an exact gp(Age), predicted at the grid's mean Age, which is not a fitted position, and the kriging covariance between two grid points is not available (emm_check_part(), R/interop.R). brms draws that covariance jointly. at = list(Age = <an observed value>) or an approximate gp(Age, k = ) answers
 data-helpers:7	frmtmb	defect	output	expect_silent() fails on R's 'contrasts dropped from factor Trt' warning, twice, from model.matrix() on the newdata slice; brms is silent. The NUMBERS are unaffected: the five predictions equal the first five of the full-data ones, max absolute difference 0 (dev/adefects-log/evidence.txt). Was fit-data
 data-helpers:12	frmtmb	defect	different-error	brms refuses the integer codes of `fac`, a factor column of the data that the model does not use; frmtmb refuses the new `visit` level set on the line before, and never checks an unused column. Both refuse the call, for different faults. Was fit-data
 data-helpers:22	frmtmb	cannot transfer	brms-internal	reads brms:::validate_data() and brms's internal brmsterms()

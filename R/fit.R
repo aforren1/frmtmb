@@ -287,6 +287,39 @@
 #' refused (the simplex carries one coefficient and a contrast expansion
 #' has no column to go in), and `mo(x):mo(w)` is refused outright.
 #'
+#' @section Ordinal thresholds, thres():
+#' The four ordinal families take brms's `thres()` addition term.
+#' `y | thres(K) ~ x` fits `K` thresholds, so the response has `K + 1`
+#' categories even when the top ones are never observed. The data do
+#' not place a threshold above the highest observed category: its
+#' maximum likelihood estimate runs off toward infinity. Set a prior on
+#' class `"Intercept"` to hold it, as brms's default prior does. Without
+#' such a prior the fit warns.
+#'
+#' `y | thres(gr = g) ~ x` gives each level of the factor `g` a
+#' threshold vector of its own and keeps one linear predictor for all
+#' rows. The number of thresholds of a level is the highest category
+#' observed in that level less one, or `n` from `thres(n, gr = g)`,
+#' where `n` is a column that is constant within each level. These are
+#' brms's counts. A category above the highest one a level takes is
+#' not a category of that level, unless `thres(n, gr = g)` asks for it.
+#' An ordered-factor response takes its categories from the levels that
+#' occur in the data, as in brms, and `thres()` may not ask for more.
+#' Code the response as integers to fit categories nobody chose.
+#'
+#' The thresholds have brms's names: `Intercept[a,1]` in `fixef()` and
+#' `b_Intercept[a,1]` in `variables()` and `hypothesis()`.
+#' `set_prior(..., class = "Intercept", group = "a")` puts a prior on
+#' the thresholds of level `a` only. As in brms, the design is not
+#' centered under grouped thresholds.
+#'
+#' A row in level `a` falls in one of the categories `1..n_a + 1`.
+#' `fitted()` and `predict()` return `max(n) + 1` categories, and the
+#' probability of a category past a row's own is 0, as in brms's
+#' `posterior_epred()`. `newdata` must hold the grouping variable, with
+#' levels the fit has seen. With `gr`, `cs()` is refused, as in brms,
+#' and so is `residuals(type = "osa")`.
+#'
 #' @section The Laplace approximation, and how to check it:
 #' Random effects are integrated out by the Laplace approximation,
 #' which assumes the integrand is close to Gaussian around the
@@ -337,7 +370,9 @@
 #'   grouping factors use `as.integer()` for the level index, and a
 #'   grouping value is matched to its level through `as.character()`, so
 #'   an integer, a factor and a character grouping column index alike;
-#'   addition terms other than `cens()` use `as.numeric()`.
+#'   addition terms other than `cens()` and `thres(gr = )` use
+#'   `as.numeric()`; the `thres(gr = )` variable is coded by the levels
+#'   of `factor()`, as brms codes it.
 #' @srrstats {G2.5} Where a factor input is expected, the expected kind is
 #'   checked and documented. `mo()` requires an ordered factor and errors
 #'   otherwise ("mo(): factor variables must be ordered factors"). An
@@ -833,7 +868,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
   integrate <- NULL
   if (isTRUE(quadrature)) {
     if (!is.null(template[["miss"]])) {
-      frm_stop("quadrature = TRUE cannot be combined with mi()",
+      # the latent values of mi() and me() are one integral per value,
+      # not the one scalar random effect the rule integrates
+      frm_stop("quadrature = TRUE cannot be combined with ",
+               if (is.null(frame[["me"]])) "mi()" else "me() or mi()",
                call. = FALSE)
     }
     # The Gauss-Kronrod rule integrates whatever density the tape
@@ -862,8 +900,10 @@ fit_assembled <- function(spec, frame, bform, cl, REML, start, control,
                "correlation term ", frame[["autocor"]][[1L]]$label,
                ": the rule integrates a random effect against ",
                "per-observation densities, and this residual is a joint ",
-               "density over each group. Use quadrature = FALSE (Laplace) ",
-               "or REML = TRUE", call. = FALSE)
+               "density over each group (cov = TRUE) or gives each row a ",
+               "mean that reads the residuals of earlier rows (cov = ",
+               "FALSE). Use quadrature = FALSE (Laplace) or REML = TRUE",
+               call. = FALSE)
     }
     # The truncation normalizer is log(F(ub) - F(lb)) over plain CDFs.
     # The Gauss-Kronrod nodes reach random-effect values where that

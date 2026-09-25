@@ -1,0 +1,10 @@
+fits per timed block: plain 8, by 8, control 8 
+seconds per fit, minimum of 5 rounds:
+  plain      by control 
+ 0.1650  0.2011  0.1726 
+ratio by / plain 1.219   control / plain 1.046 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00531); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+theta length: by 6  plain 3 
+optimizer iterations: by 4  plain 5 
+objective / gradient evaluations: by 8 / 4  plain 10 / 5 

@@ -124,8 +124,11 @@
 #' sub-formula is not centered on either side, and neither are a
 #' smooth's unpenalized columns or a `mo()` term, which sit outside
 #' brms's `Xc` as well. To put a density on the intercept at zero, name
-#' it as a coefficient instead: `class = "b", coef = "Intercept"`,
-#' which is also how a `brms::bf(center = FALSE)` model's prior arrives.
+#' it as a coefficient instead: `class = "b", coef = "Intercept"`.
+#' A formula written `0 + Intercept + x`, or `bf(center = FALSE)`, makes
+#' that the intercept's only prior slot, as brms does: the intercept is
+#' then class `"b"` and a class `"b"` prior without a coef reaches it
+#' too, while class `"Intercept"` has no slot and is refused.
 #'
 #' @section Ordinal thresholds:
 #' `cumulative()`, `sratio()`, `cratio()` and `acat()` have no intercept
@@ -133,12 +136,14 @@
 #' `Intercept` class and so does frmtmb, so
 #' `set_prior("student_t(3, 0, 2.5)", class = "Intercept")` on an
 #' ordinal model addresses the whole threshold vector. It addresses the
-#' THRESHOLDS, at the mean of the predictors, with the log-Jacobian of
-#' the map from frmtmb's internal storage; `cumulative()` and
-#' `sratio()` hold `(tau_1, log increments)`, which is the same map
-#' Stan's `ordered` type applies, and `cratio()` and `acat()` hold the
-#' thresholds themselves. `lb`/`ub` are refused there, because one
-#' number cannot box a whole vector of ordered thresholds.
+#' THRESHOLDS, at the mean of the predictors (at zero under
+#' `bf(center = FALSE)`, as in brms), with the log-Jacobian of
+#' the map from frmtmb's internal storage. `cumulative()` holds
+#' `(tau_1, log increments)`, which is the same map Stan's `ordered`
+#' type applies to brms's ordered thresholds. `sratio()`, `cratio()` and
+#' `acat()` hold the thresholds themselves, which brms declares as an
+#' unconstrained vector, so there is no Jacobian. `lb`/`ub` are refused
+#' there, because one number cannot box a whole vector of thresholds.
 #'
 #' `prior = list(tau_raw = prior_normal(0, 5))` reaches the same
 #' parameters on the INTERNAL scale, one entry per threshold, which is
@@ -291,8 +296,9 @@
 #'   performs. A bound travels with it, so `lb = 0` on a log-linked
 #'   dispersion becomes no constraint rather than a floor of 1.
 #' - `theta`/`theta1`/`theta2`, `simo`, `sds`, `sdgp`, `lscale`,
-#'   `sdcar` and `car` are refused by name, each saying where frmtmb
-#'   keeps that quantity instead. A refusal is deliberate: translating
+#'   `sdcar`, `car`, `meanme`, `sdme` and `corme` are refused by name,
+#'   each saying where frmtmb keeps that quantity instead, or that it
+#'   has no prior slot. A refusal is deliberate: translating
 #'   one of them would produce a different model rather than no model.
 #' - a `coef` on a `sd` or `cor` row is refused for the same reason.
 #'   brms narrows such a row to one coefficient of a block; frmtmb
@@ -787,6 +793,13 @@ as_priorlist <- function(x) {
       if (is.na(lb) && is.na(ub)) next
       if (!is.null(brms_prior_class_refusal(cls))) next
     }
+    # brms fills its corme row with lkj(1), which is flat over the
+    # correlation matrices and so applies nothing; only a row somebody
+    # edited is a prior frmtmb cannot honor
+    if (identical(cls, "corme") &&
+        identical(gsub("[[:space:]]", "", dist), "lkj(1)")) {
+      next
+    }
     if (nzchar(chr("tag", i))) {
       refuse(i, dist, cls,
              paste0("tag = \"", chr("tag", i), "\" names a prior for ",
@@ -926,6 +939,22 @@ brms_prior_class_refusal <- function(cls) {
       "class that would rename it: drop the row. A flat simo row from ",
       "get_prior() is dropped for you, and only an explicit one reaches ",
       "here. "),
+    meanme = paste0(
+      "brms's \"meanme\" is the mean of a me() term's latent values. ",
+      "frmtmb estimates it by maximum likelihood and has no prior slot ",
+      "for it, so there is no class to carry the row into: drop the ",
+      "row. A flat meanme row from get_prior() is dropped for you. "),
+    sdme = paste0(
+      "brms's \"sdme\" is the SD of a me() term's latent values. frmtmb ",
+      "estimates it by maximum likelihood and has no prior slot for it, ",
+      "so there is no class to carry the row into: drop the row. A flat ",
+      "sdme row from get_prior() is dropped for you. "),
+    corme = paste0(
+      "brms's \"corme\" is the correlation of the latent values of ",
+      "several me() terms. frmtmb estimates it by maximum likelihood and ",
+      "has no prior slot for it: drop the row. brms's default lkj(1) is ",
+      "flat and is dropped for you, and set_mecor(FALSE) fixes the ",
+      "correlation at zero. "),
     sds = paste0(
       "brms's \"sds\" is the wiggliness standard deviation of a smooth. ",
       "frmtmb holds a smooth as a random-effect block, so its frmtmb ",
@@ -1718,7 +1747,8 @@ prior_table <- function(spec, frame, route) {
     # location dpars are the default target (dpar = ""), matching
     # set_prior()'s resolution
     dpar_lab <- lp_prior_dpar(rspec, lp[["dpar"]])
-    resp_lab <- if (multi) lp[["resp"]] else ""
+    # the shared nu of a Student-t rescor model has no response
+    resp_lab <- if (multi && !isTRUE(lp[["shared"]])) lp[["resp"]] else ""
     nl_lab <- if (lp[["dpar"]] %in% (rspec$nlpars %||% character(0))) {
       lp[["dpar"]]
     } else {
@@ -1753,11 +1783,13 @@ prior_table <- function(spec, frame, route) {
       if (length(cn)) add(lp[["dpar"]], resp = resp_lab)
       next
     }
-    if ("(Intercept)" %in% cn) {
+    icpt_b <- isFALSE(lp[["center"]])
+    if ("(Intercept)" %in% cn && !icpt_b) {
       add("Intercept", dpar = dpar_lab, resp = resp_lab)
     } else if (!nzchar(dpar_lab) &&
                  identical(rspec$family[["type"]], "ordinal") &&
-                 length(frame[["par_template"]][["tau_raw"]] %||%
+                 length(frame[["par_template"]][[
+                   extra_tpl_name(frame, rspec$resp_name, "tau_raw")]] %||%
                           numeric(0))) {
       # an ordinal family has no intercept column: the thresholds
       # replace it, and class "Intercept" is what addresses them here as
@@ -1766,7 +1798,9 @@ prior_table <- function(spec, frame, route) {
     }
     # cs() terms are class "b" rows under their own coef, as brms lists
     # them; the resolver reaches them through the same class
-    others <- c(setdiff(cn, "(Intercept)"),
+    # brms spells the uncentered intercept's coef "Intercept"
+    others <- c(if (icpt_b) sub("^[(]Intercept[)]$", "Intercept", cn) else
+                  setdiff(cn, "(Intercept)"),
                 vapply(lp[["cs"]] %||% list(), cs_term_coef, ""))
     if (length(others)) {
       add("b", dpar = dpar_lab, resp = resp_lab)
@@ -2489,8 +2523,11 @@ resolve_priorlist <- function(fit, pl) {
         next
       }
       cn <- colnames(lp[["X"]])
+      # `0 + Intercept` or center = FALSE: the intercept is a class "b"
+      # coefficient like any other, and class "Intercept" has no slot here
+      icpt_b <- isFALSE(lp[["center"]])
       pick <- if (s$class == "Intercept") {
-        which(cn == "(Intercept)")
+        if (!icpt_b) which(cn == "(Intercept)") else integer(0)
       } else if (nzchar(s$coef)) {
         # brms writes an intercept as "Intercept"; the design matrix
         # spells it "(Intercept)", and both name the same column
@@ -2503,7 +2540,7 @@ resolve_priorlist <- function(fit, pl) {
         # intercept-only nonlinear parameter
         seq_along(cn)
       } else {
-        which(cn != "(Intercept)")
+        which(cn != "(Intercept)" | icpt_b)
       }
       # `name` is what a BOUND is keyed by, and resolve_bounds() matches
       # against outer_par_names(): the template spelling, which carries
@@ -2603,12 +2640,18 @@ resolve_priorlist <- function(fit, pl) {
       # replace it, and a bare class = "Intercept" reaches them. Saying
       # so here is the difference between "this model has no such slot"
       # and "you narrowed the row past the slot it has"
-      hint <- if (s$class == "Intercept" && has_ordinal_thresholds(fit)) {
+      hint <- if (s$class == "Intercept" &&
+                    has_ordinal_thresholds(fit, s$resp)) {
         paste0(". On an ordinal family the thresholds ARE the ",
                "intercept, and a bare class = \"Intercept\" with no ",
                "coef, dpar or nlpar addresses the whole threshold ",
                "vector; prior = list(tau_raw = ) reaches the same ",
                "parameters on the internal scale")
+      } else if (s$class == "Intercept" && any(vapply(
+        frame[["linpreds"]], function(lp) isFALSE(lp[["center"]]), NA))) {
+        paste0(". An intercept written 0 + Intercept, or under ",
+               "center = FALSE, is an ordinary coefficient, as in brms: ",
+               "address it with class = \"b\", coef = \"Intercept\"")
       } else {
         ""
       }
@@ -2648,7 +2691,9 @@ resolve_priorlist <- function(fit, pl) {
       # set_prior() has already refused lb/ub on the matrix-valued
       # classes, so only the transformed scalar maps reach this
       if (!is.na(s$lb) || !is.na(s$ub)) {
-        if (length(idx) > 1L) {
+        # a box on unconstrained coefficients IS a box on the internal
+        # ones, so only the transformed maps are limited to order one
+        if (length(idx) > 1L && !identical(tr$map, "identity")) {
           frm_stop("class = \"", s$class, "\" takes no lb/ub at order ",
                    length(idx), ": coefficient ", s$class,
                    "[1] is a function of every one of this block's ",
@@ -2718,10 +2763,16 @@ resolve_priorlist <- function(fit, pl) {
   # the default student_t there. frmtmb holds them in `tau_raw`, which
   # had no class spelling at all, so the row used to reach the resolver
   # and stop with a bare "Prior target not found".
+  # A multivariate model holds each ordinal response's thresholds under
+  # a name of its own, and there the specification always carries resp
+  # (resp_missing_refusal() has refused it otherwise).
   ordinal_threshold_entry <- function(s) {
-    raw <- frame[["par_template"]][["tau_raw"]] %||% numeric(0)
-    if (!length(raw) || length(fit$spec$responses) != 1L) return(NULL)
-    rspec <- fit$spec$responses[[1L]]
+    rs <- fit$spec$responses
+    rspec <- if (length(rs) == 1L) rs[[1L]] else rs[[s$resp %||% ""]]
+    if (is.null(rspec)) return(NULL)
+    comp <- extra_tpl_name(frame, rspec$resp_name, "tau_raw")
+    raw <- frame[["par_template"]][[comp]] %||% numeric(0)
+    if (!length(raw)) return(NULL)
     if (!identical(rspec$family[["type"]], "ordinal")) return(NULL)
     if (nzchar(s$coef) || nzchar(s$dpar) || nzchar(s$nlpar %||% "")) {
       return(NULL)
@@ -2730,16 +2781,48 @@ resolve_priorlist <- function(fit, pl) {
           !identical(s$resp, rspec$resp_name)) {
       return(NULL)
     }
-    # cumulative() and sratio() hold (tau_1, log increments), which is
-    # the same map Stan's `ordered` type applies, so the density on the
-    # thresholds carries that map's log-Jacobian. cratio() and acat()
-    # hold the thresholds themselves and brms declares them unordered,
-    # so neither side has a Jacobian there
-    ordered <- rspec$family[["family"]] %in% c("cumulative", "sratio")
-    list(comp = "tau_raw", idx = seq_along(raw), dist = s$dist,
-         scale = if (ordered) "ordthres" else "internal",
-         link = NULL, offset = ordinal_center_offset(frame, rspec),
-         lb = s$lb, ub = s$ub)
+    # cumulative() holds (tau_1, log increments), which is the same map
+    # Stan's `ordered` type applies, so the density on the thresholds
+    # carries that map's log-Jacobian. sratio(), cratio() and acat()
+    # hold the thresholds themselves and brms declares them unordered
+    # (brms:::has_ordered_thres() is FALSE for all three), so neither
+    # side has a Jacobian there
+    ordered <- identical(rspec$family[["family"]], "cumulative")
+    th <- rspec$family[["thres"]]
+    grouped <- isTRUE(th[["grouped"]])
+    if (nzchar(s$group) && !grouped) {
+      frm_stop("Prior target not found (", spec_target(s), "): group = ",
+               "on class \"Intercept\" names one threshold vector of a ",
+               "model with grouped thresholds, thres(gr = ), and this ",
+               "model has one threshold vector. Drop group", call. = FALSE)
+    }
+    if (!grouped) {
+      return(list(list(comp = comp, idx = seq_along(raw),
+                       dist = s$dist,
+                       scale = if (ordered) "ordthres" else "internal",
+                       link = NULL,
+                       offset = ordinal_center_offset(frame, rspec),
+                       lb = s$lb, ub = s$ub)))
+    }
+    # one entry per group: each slice is a vector of its own, so an
+    # ordered map and its Jacobian are per slice. brms does not center
+    # the design of a model with grouped thresholds, so no offset
+    lay <- thres_layout(th[["nthres"]])
+    gs <- seq_len(lay$G)
+    if (nzchar(s$group)) {
+      gs <- which(th[["groups"]] == s$group)
+      if (!length(gs)) {
+        frm_stop("Prior target not found (", spec_target(s), "): the ",
+                 "thresholds are grouped by thres(gr = ), whose levels ",
+                 "are ", paste0("\"", th[["groups"]], "\"", collapse = ", "),
+                 call. = FALSE)
+      }
+    }
+    lapply(gs, function(g) {
+      list(comp = comp, idx = lay$start[g]:lay$end[g], dist = s$dist,
+           scale = if (ordered) "ordthres" else "internal", link = NULL,
+           offset = NULL, lb = s$lb, ub = s$ub)
+    })
   }
 
   for (s in prior_specificity_order(pl)) {
@@ -2747,6 +2830,15 @@ resolve_priorlist <- function(fit, pl) {
     # judge the spelling against whichever response it met first
     no_resp <- resp_missing_refusal(fit$spec, frame, s)
     if (!is.null(no_resp)) frm_stop(no_resp, call. = FALSE)
+    if (!is.null(fit$spec[["rescor_nu"]]) && nzchar(s$resp %||% "") &&
+          identical(s$dpar %||% "", "nu")) {
+      # the same rule as class = "rescor": one parameter across the
+      # responses, which brms names nu with no response in it
+      frm_stop("A prior on nu (", spec_target(s), ") takes no resp in ",
+               "this model: with rescor = TRUE the Student-t responses ",
+               "share one nu. Drop resp = \"", s$resp, "\", as brms ",
+               "requires", call. = FALSE)
+    }
     if (length(fit$spec$responses) > 1L && nzchar(s$resp %||% "") &&
           !s$resp %in% names(fit$spec$responses)) {
       # said first, so that no later refusal describes a response that
@@ -2769,8 +2861,10 @@ resolve_priorlist <- function(fit, pl) {
     ord_th <- if (s$class == "Intercept") ordinal_threshold_entry(s)
     if (!is.null(ord_th)) {
       if (!is.null(s$dist)) {
-        claim("tau_raw", ord_th$idx)
-        assigned[[nm_of("tau_raw", ord_th$idx)]] <- ord_th
+        for (e in ord_th) {
+          claim(e$comp, e$idx)
+          assigned[[nm_of(e$comp, e$idx)]] <- e
+        }
       }
       if (!is.na(s$lb) || !is.na(s$ub)) {
         frm_stop("class = \"Intercept\" on an ordinal family addresses the ",
@@ -2944,10 +3038,13 @@ lp_center_offset <- function(frame, lp) {
 #' Does this model hold ordinal thresholds a prior can address?
 #'
 #' @noRd
-has_ordinal_thresholds <- function(fit) {
-  raw <- fit$frame[["par_template"]][["tau_raw"]] %||% numeric(0)
-  length(raw) > 0L && length(fit$spec$responses) == 1L &&
-    identical(fit$spec$responses[[1L]]$family[["type"]], "ordinal")
+has_ordinal_thresholds <- function(fit, resp = NULL) {
+  rs <- fit$spec$responses
+  rspec <- if (length(rs) == 1L) rs[[1L]] else rs[[resp %||% ""]]
+  if (is.null(rspec)) return(FALSE)
+  nm <- extra_tpl_name(fit$frame, rspec$resp_name, "tau_raw")
+  raw <- fit$frame[["par_template"]][[nm]] %||% numeric(0)
+  length(raw) > 0L && identical(rspec$family[["type"]], "ordinal")
 }
 
 #' brms's centering offset for an ordinal threshold vector, or `NULL`.
@@ -2964,6 +3061,8 @@ ordinal_center_offset <- function(frame, rspec) {
   for (lp in frame[["linpreds"]]) {
     if (!identical(lp[["resp"]], rspec$resp_name)) next
     if (!lp[["dpar"]] %in% rspec$primary_dpars) next
+    # bf(center = FALSE): brms's thresholds are then the uncentered ones
+    if (isFALSE(lp[["center"]])) return(NULL)
     X <- lp[["X"]]
     np <- lp[["n_param_cols"]] %||% 0L
     if (is.null(X) || !nrow(X) || np < 1L) return(NULL)
@@ -3022,6 +3121,9 @@ coef_placement <- function(s, tg) {
 dpar_has_predictor <- function(spec, lp) {
   X <- lp[["X"]]
   if (!is.null(X) && ncol(X) > 1L) return(TRUE)
+  # `sigma ~ 0 + Intercept` is a predictor with one class "b"
+  # coefficient in brms, not the scalar a class "sigma" prior names
+  if (isFALSE(lp[["center"]])) return(TRUE)
   if (!is.null(lp[["Z"]])) return(TRUE)
   if (length(lp[["smooths"]] %||% list())) return(TRUE)
   if (length(lp[["gps"]] %||% list())) return(TRUE)
@@ -3559,6 +3661,9 @@ autocor_class_idx <- function(ac, cls) {
 #'
 #' @noRd
 autocor_trans <- function(ac, cls) {
+  # brms's cov = FALSE coefficients are unconstrained and ARE the
+  # internal parameters, so a prior on them needs no change of variables
+  if (autocor_is_cond(ac)) return(list(map = "identity"))
   if (identical(cls, "cosy")) return(list(map = "cosy",
                                           a = 1 / (ac[["d"]] - 1)))
   if (identical(cls, "cortime")) return(NULL)
@@ -3580,6 +3685,7 @@ trans_dist <- function(inner, trans) {
 #'
 #' @noRd
 ac_trans_value <- function(th, tr) {
+  if (identical(tr$map, "identity")) return(th)
   if (identical(tr$map, "cosy")) {
     return(-tr$a + (1 + tr$a) / (1 + exp(-th[1])))
   }
@@ -3601,6 +3707,7 @@ ac_trans_value <- function(th, tr) {
 #'
 #' @noRd
 ac_trans_logjac <- function(th, tr) {
+  if (identical(tr$map, "identity")) return(0)
   if (identical(tr$map, "cosy")) {
     s <- 1 / (1 + exp(-th[1]))
     return(log(1 + tr$a) + log(s) + log(1 - s))
@@ -3625,6 +3732,7 @@ ac_trans_logjac <- function(th, tr) {
 #'
 #' @noRd
 ac_bound_theta <- function(v, tr, ac, cls, what) {
+  if (identical(tr$map, "identity")) return(v)
   if (identical(tr$map, "cosy")) {
     a <- tr$a
     if (v <= -a || v >= 1) {

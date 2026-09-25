@@ -212,6 +212,39 @@ test_that("log_lik() on a rescor model is the joint density per row", {
   expect_equal(ll[4L, ], want, tolerance = 1e-8)
 })
 
+test_that("the pointwise density of student rescor and mv ordinal fits", {
+  # lane mv, 2026-09-25: student() rescor is a multivariate t with one
+  # shared nu, and a multivariate model's thresholds are namespaced by
+  # response. The rows read at the ML point sum to logLik(), which is
+  # the taped objective; before, the rescor rows were the gaussian
+  # density and an ordinal response read no thresholds at all
+  skip_if_not_installed("mvtnorm")
+  set.seed(9)
+  n <- 80
+  E <- mvtnorm::rmvt(n, matrix(c(1, 0.4, 0.4, 1), 2), df = 4)
+  dd <- data.frame(x = stats::rnorm(n))
+  dd$y1 <- 1 + dd$x + E[, 1]
+  dd$y2 <- E[, 2]
+  dd$o <- cut(dd$x + stats::rlogis(n), c(-Inf, -1, 0, 1, Inf),
+              labels = FALSE)
+  fs <- frm(bf(y1 ~ x) + bf(y2 ~ x) + set_rescor(TRUE) + student(),
+            data = dd)
+  ll <- frmtmb.sample:::draws_row_loglik(fs, NULL)
+  L <- as.numeric(logLik(fs))
+  expect_lt(abs(sum(ll) - L), 1e3 * .Machine$double.eps * abs(L))
+  dp <- frmtmb::eval_dpars(fs)
+  C <- frmtmb::us_chol_cor(fs$estimates[["thetar"]], 2L)
+  D <- diag(c(dp$y1$sigma[1], dp$y2$sigma[1]))
+  want <- mvtnorm::dmvt(c(dd$y1[3], dd$y2[3]),
+                        delta = c(dp$y1$mu[3], dp$y2$mu[3]),
+                        sigma = D %*% C %*% D, df = dp$y2$nu[1], log = TRUE)
+  expect_lt(abs(ll[3] - want), 1e3 * .Machine$double.eps * abs(want))
+  fo <- frm(bf(o ~ x) + cumulative() + bf(y1 ~ x) + gaussian(), data = dd)
+  lo <- frmtmb.sample:::draws_row_loglik(fo, NULL)
+  L <- as.numeric(logLik(fo))
+  expect_lt(abs(sum(lo) - L), 1e3 * .Machine$double.eps * abs(L))
+})
+
 ## ---- loo() and waic() -----------------------------------------------
 
 test_that("loo() and waic() delegate to the loo package with r_eff", {

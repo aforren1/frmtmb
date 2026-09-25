@@ -11,11 +11,11 @@ brm:92	frmtmb	pass	frmtmb's own words: The [|]abc[|] key is used over more than 
 brm:94	frmtmb	pass	
 brm:96	frmtmb	pass	
 brm:98	frmtmb	pass	
-brm:100	frmtmb	cannot transfer	frmtmb has no me() noise-free term (dev/brms-suite-audit.md section 5)
+brm:100	frmtmb	pass	
 brm:102	frmtmb	defect	set_rescor() on the right-hand side reaches model.frame and dies with R's 'invalid type (list) for variable', not a designed refusal (dev/brmsport-probe3.R)
-brm:106	frmtmb	pass	frmtmb's own words: the time index must be ONE variable name | brms: Cannot coerce 'x + y' to a single variable name. The grammar check runs before the cov = TRUE one, so the ported call, which omits cov, reaches it (dev/adefects-log/evidence.txt)
-brm:108	frmtmb	pass	frmtmb's own words: grouping term must be variable names combined by | brms: Illegal grouping term 'g1/g2'. The grammar check runs before the cov = TRUE one, so the ported call reaches it
-brm:110	frmtmb	pass	frmtmb's own words: ma[(][)]: only the residual-covariance formulation is implemented, so the call needs cov = TRUE | brms: Please set cov = TRUE. CAVEAT: frmtmb gives this message for ma(x) on every family, including gaussian, which brms fits (defect filed)
+brm:106	frmtmb	pass	frmtmb's own words: the time index must be ONE variable name | brms: Cannot coerce 'x + y' to a single variable name. The same refusal of the same call in frmtmb's words (dev/adefects-log/evidence.txt)
+brm:108	frmtmb	pass	frmtmb's own words: grouping term must be variable names combined by | brms: Illegal grouping term 'g1/g2'. The same refusal of the same call in frmtmb's words
+brm:110	frmtmb	pass	
 brm:112	frmtmb	cannot transfer	frmtmb has no arma() function object to add to a formula; the term exists only inside a formula
 brm:116	frmtmb	defect	categorical() refuses the integer response inhaler$rating (4 categories) with the FALSE claim 'fewer than two categories', before reaching the cs() check brms asserts; a factor response is accepted (dev/brmsport-probe3.R; priorform ledger P20 deferred it to famlink)
 brm:121	frmtmb	pass	
@@ -297,15 +297,15 @@ data-helpers:26	frmtmb	cannot transfer	reads brms:::validate_data() and brms's i
 data-helpers:27	frmtmb	cannot transfer	reads brms:::validate_data() and brms's internal brmsterms()
 emmeans:15	frmtmb	pass	
 emmeans:18	frmtmb	pass	
-emmeans:21	frmtmb	defect	emmeans(fit1, 'Age', by = 'Exp') is refused, 'No variable named Exp in the reference grid': the mo(Exp) variable is not in frmtmb's recover_data()
-emmeans:24	frmtmb	defect	emmeans(fit1, 'Exp') is refused: the mo(Exp) variable is not in the reference grid
-emmeans:27	frmtmb	cannot transfer	frmtmb's emmeans support is declared refused for a nonlinear mu ('needs a linear mu predictor', R/compat.R:1612, enforced by emm_mu_linpred()); the reason is hidden by emmeans, a separate defect
+emmeans:21	frmtmb	pass	
+emmeans:24	frmtmb	pass	
+emmeans:27	frmtmb	pass	
 emmeans:30	frmtmb	pass	
-emmeans:35	frmtmb	cannot transfer	frmtmb's emmeans support is declared refused for a nonlinear mu ('needs a linear mu predictor', R/compat.R:1612, enforced by emm_mu_linpred()); the reason is hidden by emmeans, a separate defect
-emmeans:38	frmtmb	cannot transfer	frmtmb's emmeans support is declared refused for a nonlinear mu ('needs a linear mu predictor', R/compat.R:1612, enforced by emm_mu_linpred()); the reason is hidden by emmeans, a separate defect
-emmeans:42	frmtmb	cannot transfer	frmtmb's emmeans support is declared univariate only (R/compat.R:1356); the reason is hidden by emmeans, a separate defect
+emmeans:35	frmtmb	pass	
+emmeans:38	frmtmb	pass	
+emmeans:42	frmtmb	cannot transfer	frmtmb refuses it by name: fit6's volume response has an exact gp(Age), predicted at the grid's mean Age, which is not a fitted position, and the kriging covariance between two grid points is not available (emm_check_part(), R/interop.R). brms draws that covariance jointly. at = list(Age = <an observed value>) or an approximate gp(Age, k = ) answers
 emmeans:47	frmtmb	pass	
-emmeans:50	frmtmb	cannot transfer	frmtmb's emmeans support is declared refused for a nonlinear mu ('needs a linear mu predictor', R/compat.R:1612, enforced by emm_mu_linpred()); the reason is hidden by emmeans, a separate defect
+emmeans:50	frmtmb	pass	
 families:4	frmtmb	pass	
 families:4	frmtmb.sample	pass	
 families:5	frmtmb	pass	
@@ -336,10 +336,10 @@ families:17	frmtmb	pass
 families:17	frmtmb.sample	pass	
 families:18	frmtmb	pass	
 families:18	frmtmb.sample	pass	
-families:19	frmtmb	cannot transfer	frmtmb has no hurdle_negbinomial() (famlink ledger row 16)
-families:19	frmtmb.sample	cannot transfer	frmtmb has no hurdle_negbinomial() (famlink ledger row 16)
-families:20	frmtmb	cannot transfer	frmtmb has no hurdle_negbinomial(); the expect_error passes only on could not find function (famlink ledger row 17)
-families:20	frmtmb.sample	cannot transfer	frmtmb has no hurdle_negbinomial(); the expect_error passes only on could not find function (famlink ledger row 17)
+families:19	frmtmb	pass	
+families:19	frmtmb.sample	pass	
+families:20	frmtmb	pass	
+families:20	frmtmb.sample	pass	
 families:21	frmtmb	pass	
 families:21	frmtmb.sample	pass	
 families:22	frmtmb	pass	
@@ -555,18 +555,18 @@ standata:266	frmtmb	cannot transfer	frmtmb has no subset() addition term
 standata:267	frmtmb	cannot transfer	frmtmb has no subset() addition term
 standata:268	frmtmb	cannot transfer	frmtmb has no subset() addition term
 standata:269	frmtmb	cannot transfer	frmtmb has no subset() addition term
-standata:310	frmtmb	cannot transfer	reads brms's internal old_order attribute of Stan data, which exists because brms sorts rows for its autocorrelation code; the setup ar(time, id) is also refused without cov = TRUE (?frmtmb-autocor)
-standata:315	frmtmb	cannot transfer	reads brms's internal old_order attribute of Stan data; the setup ma(time, id) is also refused without cov = TRUE (?frmtmb-autocor)
-standata:316	frmtmb	cannot transfer	reads brms's internal old_order attribute of Stan data; the setup ma(time, id) is also refused without cov = TRUE (?frmtmb-autocor)
+standata:310	frmtmb	cannot transfer	reads brms's internal old_order attribute of Stan data, which exists because brms sorts rows for its autocorrelation code; frmtmb keeps the data order and has no such attribute. The setup ar(time, id) runs (brms's cov = FALSE form, ?frmtmb-autocor)
+standata:315	frmtmb	cannot transfer	reads brms's internal old_order attribute of Stan data; frmtmb keeps the data order and has no such attribute. The setup ma(time, id) runs (?frmtmb-autocor)
+standata:316	frmtmb	cannot transfer	reads brms's internal old_order attribute of Stan data; frmtmb keeps the data order and has no such attribute. The setup ma(time, id) runs (?frmtmb-autocor)
 standata:620	frmtmb	cannot transfer	frmtmb has no mi(x, idx = ) and no subset() or index() addition terms
 standata:634	frmtmb	cannot transfer	frmtmb has no mi(x, idx = ); the call is refused on that, before the index() check brms asserts
 standata:641	frmtmb	cannot transfer	frmtmb has no subset() addition term
 standata:649	frmtmb	cannot transfer	frmtmb has no mi(x, idx = ) and no subset() addition term
-standata:705	frmtmb	cannot transfer	frmtmb's gr() takes cov and prec only, not by (dev/brms-suite-audit.md section 5); Nby_1 is also Stan data
-standata:706	frmtmb	cannot transfer	frmtmb's gr() takes cov and prec only, not by; Jby_1 is also Stan data
-standata:709	frmtmb	cannot transfer	frmtmb's mm() refuses by = by name
-standata:710	frmtmb	cannot transfer	frmtmb's mm() refuses by = by name
-standata:712	frmtmb	cannot transfer	frmtmb's gr() takes no by, so the level check brms asserts is never reached
+standata:705	frmtmb	cannot transfer	Nby_1 is Stan data, which frmtmb does not build: it fits gr(g, by = z) as one random-effect block per by-level, five here (dev/grby-findings.md)
+standata:706	frmtmb	cannot transfer	Jby_1 is Stan data, which frmtmb does not build; test-gr-by.R asserts the same level-to-by-level map on the fitted blocks (dev/grby-findings.md)
+standata:709	frmtmb	cannot transfer	Nby_1 is Stan data, which frmtmb does not build: it fits mm(g, g2, by = cbind(z, z2)) as one block per by-level, five here (dev/grby-findings.md)
+standata:710	frmtmb	cannot transfer	Jby_1 is Stan data, which frmtmb does not build; test-gr-by.R asserts the same pooled-level-to-by-level map on the fitted blocks (dev/grby-findings.md)
+standata:712	frmtmb	pass	
 standata:718	frmtmb	cannot transfer	Stan data column names: brms renames poly(x, 3)1 to polyx31 to make a Stan identifier; frmtmb's brms-facing names already agree, variables() reads b_polyx31 (dev/brmsport-probe3.R)
 standata:724	frmtmb	cannot transfer	reads the Stan data slot nu; frmtmb accepts bf(y ~ 1, nu = 3) and keeps the constant in its parameter map, not in a data slot
 standata:725	frmtmb	cannot transfer	reads the Stan data slot disc, which brms passes as the constant 1; frmtmb's acat() has no disc data
@@ -577,21 +577,21 @@ standata:740	frmtmb	cannot transfer	lf() takes no cmc argument
 standata:744	frmtmb	cannot transfer	bf() takes no cmc argument
 standata:745	frmtmb	cannot transfer	bf() takes no cmc argument, and Z_1_1 is Stan data
 standata:928	frmtmb	defect	y ~ . is not expanded: frm() dies with R's ''.' in formula and no data argument' on the fit route and the frame route alike, where brms expands the dot against the data (dev/brmsport-probe3.R)
-standata:970	frmtmb	cannot transfer	frmtmb has no reserved Intercept variable, so 0 + intercept dies with R's object 'intercept' not found
-standata:974	frmtmb	cannot transfer	frmtmb has no reserved intercept variable
-standata:976	frmtmb	cannot transfer	frmtmb has no reserved Intercept variable: y ~ 0 + Intercept dies with R's object 'Intercept' not found
+standata:970	frmtmb	cannot transfer	frmtmb reserves Intercept but refuses brms's deprecated lower-case intercept by name and asks for Intercept, where brms accepts it with a deprecation warning
+standata:974	frmtmb	cannot transfer	0 + intercept is refused (standata:970), so there is no intercept column to read
+standata:976	frmtmb	pass	
 standata:1047	frmtmb	cannot transfer	frmtmb has no rate() addition term
 standata:1060	frmtmb	pass	
-standata:1063	frmtmb	cannot transfer	frmtmb has no thres() addition term (dev/brms-suite-audit.md section 5)
-standata:1065	frmtmb	cannot transfer	frmtmb has no thres() addition term
-standata:1072	frmtmb	cannot transfer	frmtmb has no thres() addition term
-standata:1073	frmtmb	cannot transfer	frmtmb has no thres() addition term; ngrthres is also Stan data
-standata:1074	frmtmb	cannot transfer	frmtmb has no thres() addition term; Jthres is also Stan data
-standata:1075	frmtmb	cannot transfer	frmtmb has no thres() addition term; Jthres is also Stan data
-standata:1078	frmtmb	cannot transfer	frmtmb has no thres() addition term
-standata:1079	frmtmb	cannot transfer	frmtmb has no thres() addition term; ngrthres is also Stan data
-standata:1082	frmtmb	cannot transfer	frmtmb has no thres() addition term
-standata:1083	frmtmb	cannot transfer	frmtmb has no thres() addition term; ngrthres is also Stan data
+standata:1063	frmtmb	pass	
+standata:1065	frmtmb	pass	
+standata:1072	frmtmb	pass	
+standata:1073	frmtmb	pass	
+standata:1074	frmtmb	pass	
+standata:1075	frmtmb	pass	
+standata:1078	frmtmb	pass	
+standata:1079	frmtmb	pass	
+standata:1082	frmtmb	pass	
+standata:1083	frmtmb	pass	
 standata:1114	frmtmb	pass	
 standata:1115	frmtmb	pass	
 standata:1118	frmtmb	pass	frmtmb's own words: cens[(][)] upper bounds must not be NA on interval-censored rows | brms: 'y2' should not be NA for interval censored observations

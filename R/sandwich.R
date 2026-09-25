@@ -188,8 +188,10 @@ cluster_guard <- function(fit, cl) {
     frm_stop("vcov_cluster() does not support the residual correlation ",
              "term ", frame[["autocor"]][[1L]]$label,
              ": its density is a joint ",
-             "one over each group rather than a product over rows, so the ",
-             "cluster weights do not reach it. Use frm_bootstrap()",
+             "one over each group rather than a product over rows (cov = ",
+             "TRUE), or each row's mean reads the residuals of earlier ",
+             "rows (cov = FALSE), so a cluster's weight does not reach ",
+             "all of its contribution. Use frm_bootstrap()",
              call. = FALSE)
   }
   # A structured family says for itself whether a per-cluster score
@@ -206,7 +208,7 @@ cluster_guard <- function(fit, cl) {
              "cluster weights do not reach. Use frm_bootstrap()",
              call. = FALSE)
   }
-  if (length(frame[["mi_map"]] %||% list())) {
+  if (length(frame[["mi_map"]] %||% list()) || !is.null(frame[["me"]])) {
     frm_stop("vcov_cluster() does not support mi() / me() fits: the latent ",
              "values are parameters of the outer problem and their ",
              "contribution belongs to no cluster. Use frm_bootstrap()",

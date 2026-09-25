@@ -1,0 +1,48 @@
+frmtmb from /opt/rlib/lane-fams 
+
+== 1. hurdle_negbinomial log-likelihood vs dnbinom/pnbinom ==
+  optimum      frmtmb -982.596325928712  reference -982.596325928713  rel diff 5.79e-16
+  perturbed 1  frmtmb -1000.888328448831  reference -1000.888328448832  rel diff 6.82e-16
+  perturbed 2  frmtmb -998.768929971005  reference -998.768929971006  rel diff 1.02e-15
+  logLik(fit) -982.596325928712
+  eta  -25 off-tape max rel diff 5.72e-16
+  eta  -25 on-tape  max rel diff 5.72e-16
+  eta   -8 off-tape max rel diff 2.27e-16
+  eta   -8 on-tape  max rel diff 2.27e-16
+  eta    0 off-tape max rel diff 2.45e-16
+  eta    0 on-tape  max rel diff 2.45e-16
+  eta    4 off-tape max rel diff 5.29e-16
+  eta    4 on-tape  max rel diff 5.29e-16
+  eta -25: brms-form normalizer rel error 1.53e-07 (the package's on-tape form is above)
+  link = sqrt at its optimum: frmtmb -982.746903517702  reference -982.746903517702  rel 0.00e+00
+
+== 2. hurdle_negbinomial vs glmmTMB(truncated_nbinom2, ziformula) ==
+  fixed:  logLik frmtmb -982.5963259287  glmmTMB -982.5963259288  diff 7.19e-11
+  fixed:  max |coef diff| mu 6.59e-07  hu 9.39e-07  log shape 2.30e-06
+  (1|g):  logLik frmtmb -1434.9731538516  glmmTMB -1434.9731538561  diff 4.51e-09
+  (1|g):  max |coef diff| mu 5.92e-06  hu 3.47e-06
+  (1|g):  sd(g) frmtmb 0.67001874  glmmTMB 0.67001235
+  (1|g):  frm() elapsed 0.33 s (one run, a loaded 4-core box)
+
+== 3. zero_one_inflated_beta log-likelihood vs dbeta ==
+  data: 126 zeros, 97 ones, 577 interior
+  optimum      frmtmb -413.301592338290  reference -413.301592338290  rel diff 2.75e-16
+  perturbed 1  frmtmb -514.986261680913  reference -514.986261680913  rel diff 6.62e-16
+  perturbed 2  frmtmb -547.812798969233  reference -547.812798969233  rel diff 1.04e-15
+
+== 4. zero_one_inflated_beta factorization identity ==
+  logLik joint frmtmb -413.3015923383  sum of glm + glm + glmmTMB beta -413.3015923381
+  residual -1.77e-10
+  max |coef diff| mu 3.25e-07  zoi 3.54e-07  coi 7.24e-07  log phi 2.54e-07
+
+== 5. fitted() against brms's posterior_epred formulas ==
+  hurdle_negbinomial max rel diff 5.88e-16
+  zero_one_inflated_beta max rel diff 0.00e+00
+
+== 6. frmtmb.sample log_lik() against the reference, 50 draws ==
+  hurdle_negbinomial     max rel diff 2.66e-15 over 50 x 200
+  zero_one_inflated_beta max rel diff 2.44e-16 over 50 x 200
+
+== 7. brms:::log_lik_<family>() at the frmtmb optimum ==
+  hurdle_negbinomial     sum frmtmb -982.5963259287  brms -982.5963259287  diff 5.68e-13
+  zero_one_inflated_beta sum frmtmb -413.3015923383  brms -413.3015923383  diff -1.14e-13

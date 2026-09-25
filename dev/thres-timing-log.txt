@@ -1,0 +1,25 @@
+frmtmb from /opt/rlib/base/frmtmb 
+
+== 1. no thres(): full-precision record ==
+cumulative obj 8665.2031929795176 iter 3 est 0.6459765608518655 -0.94700351723404896 0.01679496826403333 0.30139192489395039 0.41480233655034865
+sratio     obj 8709.008203220259 iter 36 est 0.47572203945113178 -0.91482448678368011 -1.7904294984698927 0.14112031987193824 -0.23248481514026267
+cratio     obj 8709.0082032203136 iter 5 est 0.47572210264424269 -0.91482459335740174 -0.7479362488608412 0.4036276358189626 1.1961901608977994
+acat       obj 8676.5469515459863 iter 7 est 0.30196272385988832 0.21961341278478441 -0.21313219692142485 0.65274016658550316 1.1148140277854603
+Warning message:
+Large maximum absolute gradient at the optimum (0.001); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+frmtmb from /opt/rlib/lane-thres/frmtmb 
+
+== 1. no thres(): full-precision record ==
+cumulative obj 8665.2031929795176 iter 3 est 0.6459765608518655 -0.94700351723404896 0.01679496826403333 0.30139192489395039 0.41480233655034865
+sratio     obj 8709.008203220259 iter 36 est 0.47572203945113178 -0.91482448678368011 -1.7904294984698927 0.14112031987193824 -0.23248481514026267
+cratio     obj 8709.0082032203136 iter 5 est 0.47572210264424269 -0.91482459335740174 -0.7479362488608412 0.4036276358189626 1.1961901608977994
+acat       obj 8676.5469515459863 iter 7 est 0.30196272385988832 0.21961341278478441 -0.21313219692142485 0.65274016658550316 1.1148140277854603
+Warning message:
+Large maximum absolute gradient at the optimum (0.001); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+
+== 2. fit time, minimum of 5 rounds, seconds per fit ==
+cumulative controlA 0.081 controlB 0.093 grouped 0.074 | B/A 1.15 grouped/A 0.92
+sratio     controlA 0.145 controlB 0.126 grouped 0.163 | B/A 0.86 grouped/A 1.13
+cratio     controlA 0.148 controlB 0.150 grouped 0.145 | B/A 1.01 grouped/A 0.98
+acat       controlA 0.152 controlB 0.171 grouped 0.146 | B/A 1.12 grouped/A 0.96
+There were 50 or more warnings (use warnings() to see the first 50)

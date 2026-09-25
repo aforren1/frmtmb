@@ -12,6 +12,7 @@
 \alias{zero_inflated_poisson}
 \alias{zero_inflated_negbinomial}
 \alias{hurdle_poisson}
+\alias{hurdle_negbinomial}
 \alias{multinomial}
 \alias{cumulative}
 \alias{beta_binomial}
@@ -26,6 +27,7 @@
 \alias{hurdle_lognormal}
 \alias{zero_inflated_binomial}
 \alias{zero_inflated_beta}
+\alias{zero_one_inflated_beta}
 \alias{asym_laplace}
 \alias{zero_inflated_asym_laplace}
 \alias{huber}
@@ -57,6 +59,8 @@ zero_inflated_negbinomial(link = "log", link_shape = "log", link_zi = "logit")
 
 hurdle_poisson(link = "log", link_hu = "logit")
 
+hurdle_negbinomial(link = "log", link_shape = "log", link_hu = "logit")
+
 multinomial(K)
 
 cumulative(link = "logit")
@@ -84,6 +88,13 @@ hurdle_lognormal(link = "identity", link_sigma = "log", link_hu = "logit")
 zero_inflated_binomial(link = "logit", link_zi = "logit")
 
 zero_inflated_beta(link = "logit", link_phi = "log", link_zi = "logit")
+
+zero_one_inflated_beta(
+  link = "logit",
+  link_phi = "log",
+  link_zoi = "logit",
+  link_coi = "logit"
+)
 
 asym_laplace(link = "identity", link_sigma = "log", link_quantile = "logit")
 
@@ -119,8 +130,11 @@ default), \code{"identity"}, \code{"softplus"} or \code{"squareplus"}.}
 one; \code{compois()}'s dispersion is an ordinary positive parameter
 and takes the positive set.}
 
-\item{link_zi, link_hu, link_quantile}{Link for a parameter on the
-unit interval: \code{"logit"} (the default) or \code{"identity"}.}
+\item{link_zi, link_hu, link_quantile, link_zoi, link_coi}{Link for a
+parameter on the unit interval: \code{"logit"} (the default) or
+\code{"identity"}. In \code{zero_one_inflated_beta()}, \code{zoi} is the
+probability of an exact 0 or 1, and \code{coi} is the probability that
+such a value is 1.}
 
 \item{K}{For \code{multinomial()}: number of response categories (columns
 of the count-matrix response); category 1 is the reference.}
@@ -172,6 +186,28 @@ Every constructor has brms's fields: \verb{$link} is the name of the link
 for the mean, and \verb{$link_<dpar>} the link of each other parameter,
 as in \code{beta_binomial()$link_phi}. See \code{\link[=frmtmb_family]{frmtmb_family()}}.
 }
+\section{Hurdle and zero-one-inflated responses}{
+
+A hurdle family gives every zero to \code{hu}, the hurdle probability, and
+truncates its count or continuous part at zero. For
+\code{hurdle_negbinomial()}, \code{P(Y = 0) = hu} and a positive count \code{y} has
+probability \verb{(1 - hu) NB(y | mu, shape) / (1 - NB(0 | mu, shape))},
+so \code{mu} is the mean of the untruncated negative binomial and not the
+mean of the positive counts.
+
+\code{zero_one_inflated_beta()} takes a response in \verb{[0, 1]}. \code{zoi} is the
+probability of an exact 0 or 1, \code{coi} is the probability that such a
+value is 1, and a value strictly between 0 and 1 follows a beta
+distribution with mean \code{mu} and precision \code{phi}. The expected
+response, which \code{fitted()} returns, is \code{zoi * coi + (1 - zoi) * mu}.
+\code{coi} is scored only on the values at exactly 0 or 1. A response with
+0s but no 1 (or the reverse) sends \code{coi} to that boundary, and one
+with neither gives \code{coi} no data at all, so that no standard error of
+the fit is usable; the fit warns in both cases. brms fits such data
+through its prior on \code{coi}. Here, hold \code{coi} at a value with
+\code{bf(coi = 0.5)}.
+}
+
 \section{Categorical (nominal) responses}{
 
 \code{categorical()} fits a multinomial logit to an unordered factor. The
@@ -375,6 +411,12 @@ distribution function the thresholds are read through, so
 takes \code{softit}), and refuse anything else. \code{acat()} takes \code{logit}
 alone, because brms defines its other links by a different density
 rather than by substituting a distribution function.
+
+\code{cumulative()} keeps its thresholds increasing, because its category
+probabilities are differences of the distribution function. The
+thresholds of \code{sratio()}, \code{cratio()} and \code{acat()} are unconstrained,
+as in brms: their category probabilities are positive for any
+thresholds, so a fit may have two of them cross.
 }
 
 \examples{

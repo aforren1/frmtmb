@@ -1,6 +1,6 @@
 Package: frmtmb
 Title: Formula-Based Regression Models via 'RTMB'
-Version: 0.63.0
+Version: 0.64.0
 Authors@R:
     person("Alex", "Forrence", email = "alex.forrence@gmail.com",
            role = c("aut", "cre"),
@@ -66,6 +66,7 @@ Suggests:
     nloptr,
     nnet,
     numDeriv,
+    ordinal,
     posterior (>= 1.0.0),
     quantreg,
     rmarkdown,

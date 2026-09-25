@@ -66,14 +66,12 @@ test_that("family functions returns expected results", {
     "",
     expect_equal(hurdle_poisson()$link, "log")
   )
-  brms_port("families:19", "cannot transfer",
-    "frmtmb has no hurdle_negbinomial() (famlink ledger row 16)",
+  brms_port("families:19", "pass",
+    "",
     expect_equal(hurdle_negbinomial(log)$link, "log")
   )
-  brms_port("families:20", "cannot transfer",
-    paste0(
-      "frmtmb has no hurdle_negbinomial(); the expect_error passes ",
-      "only on could not find function (famlink ledger row 17)"),
+  brms_port("families:20", "pass",
+    "",
     expect_error(hurdle_negbinomial("inverse"), "hurdle_negbinomial")
   )
   brms_port("families:21", "pass",

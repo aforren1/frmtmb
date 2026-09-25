@@ -1,0 +1,18 @@
+frmtmb from /opt/rlib/base 
+Warning message:
+Large maximum absolute gradient at the optimum (0.00216); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+tape print:
+Object of class='Tape'
+ : R^128 -> R^1
+logLik -4440.0296524985006
+f(last.par.best) 4307.0738699271124
+sum|grad| 165.45392255284997
+ops NA 
+Warning messages:
+1: Large maximum absolute gradient at the optimum (0.00216); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+2: Large maximum absolute gradient at the optimum (0.00216); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+3: Large maximum absolute gradient at the optimum (0.00216); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+4: Large maximum absolute gradient at the optimum (0.00216); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+5: Large maximum absolute gradient at the optimum (0.00216); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+fit seconds min 0.505 (rounds 0.81 0.62 0.51 0.66 0.50)
+control seconds min 0.067 (rounds 0.10 0.07 0.07 0.10 0.11)

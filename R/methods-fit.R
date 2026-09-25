@@ -220,6 +220,9 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
          # kind of fit whose families need not agree.
          links = family_links_str(object$spec$responses),
          formula = formula(object), nobs = stats::nobs(object),
+         formulas = if (inherits(object$bform, "frmtmb_mvformula")) {
+           lapply(object$bform$forms, `[[`, "formula")
+         },
          ngrps = ngrps(object),
          data_name = summary_data_name(object),
          group = names(ngrps(object) %||% list()),
@@ -250,6 +253,9 @@ summary.frmtmb_fit <- function(object, priors = FALSE, prob = 0.95,
          } else NULL,
          coefficients = coefs, varcor = varcorr_matrices(object),
          rescor = rescor_matrix(object),
+         # brms's meanme_, sdme_ and corme__ variables, which its own
+         # summary leaves out; here they are the only report of them
+         me = me_hyper_table(object, prob),
          # R-side residual correlation, on the natural scale with the
          # same delta-method interval confint_varcorr() reports
          autocor = local({
@@ -502,6 +508,13 @@ summary_random_list <- function(object, prob) {
     df <- summary_nat_frame(tr[rows, , drop = FALSE], prob, lab)
     out[[g]] <- if (is.null(out[[g]])) df else rbind(out[[g]], df)
   }
+  # brms lists a group's standard deviations before its correlations
+  # (summary.brmsfit() reads sd_ then cor_ in variables() order), so a
+  # group of several blocks, one per by-level of gr(g, by = f) among
+  # them, is not block by block
+  out <- lapply(out, function(df) {
+    df[order(!startsWith(rownames(df), "sd(")), , drop = FALSE]
+  })
   if (!length(out)) NULL else out
 }
 
@@ -540,9 +553,23 @@ print_summary_block <- function(df, digits = 2) {
 #' @export
 print.summary.frmtmb_fit <- function(x, ...) {
   frm_check_dots(..., .unsupported = brms_print_args)
-  cat(" Family:", x$family[["family"]], "\n")
+  # a multivariate fit's family() is a list of families and its
+  # formula() the first response's, so brms's MV(...) line and one
+  # formula line per response are built here
+  mv_forms <- x$formulas %||% list()
+  if (length(mv_forms) > 1L) {
+    cat(" Family: MV(", paste(vapply(x$family, `[[`, "", "family"),
+                              collapse = ", "), ") \n", sep = "")
+  } else {
+    cat(" Family:", x$family[["family"]], "\n")
+  }
   cat_family_links(x$links %||% family_link_str(x$family))
-  cat("Formula:", deparse1(x$formula), "\n")
+  if (length(mv_forms) > 1L) {
+    cat("Formula: ", paste(vapply(mv_forms, deparse1, ""),
+                           collapse = " \n         "), " \n", sep = "")
+  } else {
+    cat("Formula:", deparse1(x$formula), "\n")
+  }
   cat("   Data:", x$data_name,
       paste0("(Number of observations: ", x$nobs, ")"), "\n")
   cat(" Method:", x$algorithm,
@@ -590,6 +617,10 @@ print.summary.frmtmb_fit <- function(x, ...) {
   if (!is.null(x$rescor)) {
     cat("\nResidual correlation:\n")
     print(signif(x$rescor, 4))
+  }
+  if (NROW(x[["me"]])) {
+    cat("\nNoise-free Terms (me()):\n")
+    print_summary_block(x[["me"]])
   }
   if (isTRUE(x$priors)) {
     cat("\nPriors:\n")
@@ -1008,7 +1039,7 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   }
   cvec <- coef_b(object)
   out <- list()
-  for (bk in object$frame[["re_blocks"]]) {
+  for (bk in by_merged_blocks(object$frame[["re_blocks"]])) {
     if (bk[["covstruct"]] == "smooth") next
     bmat <- t(matrix(cvec[bk[["c_idx"]]], nrow = bk[["dim"]]))
     for (cp in bk[["components"]]) {
@@ -1031,7 +1062,9 @@ coef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
         )
       }
       thr <- Filter(function(e) {
-        identical(e$comp, "tau_raw") && identical(e$key, key)
+        identical(e$comp, extra_tpl_name(object$frame, lp[["resp"]],
+                                         "tau_raw")) &&
+          identical(e$key, key)
       }, rows$extra)
       for (j in seq_len(cp$dim)) {
         cn <- cp$cnms[j]
@@ -1357,7 +1390,9 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
     }
   }
   out <- list()
-  for (bk in object$frame[["re_blocks"]]) {
+  # a gr(g, by = f) term is one entry over all levels of g, as in brms
+  blocks <- by_merged_blocks(object$frame[["re_blocks"]])
+  for (bk in blocks) {
     M <- t(matrix(cvec[bk[["c_idx"]]], nrow = bk[["dim"]]))
     # brms's coefficient names, which is what coef() puts on the same
     # columns: `Intercept`, not `(Intercept)`, and `sigma_Intercept` for
@@ -1396,7 +1431,7 @@ ranef.frmtmb_fit <- function(object, summary = TRUE, robust = FALSE,
   # keyed by the GROUPING FACTOR, as brms and lme4 key it, and as this
   # package's own coef() already did: ranef(fit)$Subject used to be NULL
   # in a model where coef(fit)$Subject was a data frame
-  names(out) <- vapply(object$frame[["re_blocks"]], function(bk) {
+  names(out) <- vapply(blocks, function(bk) {
     bk[["group_name"]] %||% bk[["term_label"]]
   }, "")
   structure(out, class = "ranef_frmtmb")
@@ -1604,12 +1639,29 @@ varcorr_layout <- function(fit) {
     rn <- brms_re_rnames(fit, bk)
     key <- brms_group_name(bk)
     g <- groups[[key]] %||% list(rnames = character(0), block = integer(0),
-                                 pos = integer(0), cor = FALSE)
+                                 pos = integer(0), cor = FALSE,
+                                 bylev = integer(0))
     g$rnames <- c(g$rnames, rn)
     g$block <- c(g$block, rep(bi, length(rn)))
     g$pos <- c(g$pos, seq_along(rn))
+    by <- bk[["by"]]
+    g$bylev <- c(g$bylev, rep(if (is.null(by)) NA_integer_ else {
+      match(by$level, by$levels)
+    }, length(rn)))
     g$cor <- g$cor || (bk[["dim"]] > 1L &&
                          !bk[["covstruct"]] %in% c("diag", "homdiag"))
+    groups[[key]] <- g
+  }
+  for (key in names(groups)) {
+    # brms's get_rnames() lists a by-split group by-level first, every
+    # term's coefficients within one by-level, where the blocks come
+    # term first
+    g <- groups[[key]]
+    if (!anyNA(g$bylev)) {
+      o <- order(g$bylev, seq_along(g$bylev))
+      for (el in c("rnames", "block", "pos")) g[[el]] <- g[[el]][o]
+    }
+    g$bylev <- NULL
     groups[[key]] <- g
   }
   list(groups = groups, residual = varcorr_residual_layout(fit))

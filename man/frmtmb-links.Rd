@@ -90,7 +90,7 @@ set of the nearest brms family: \code{negbinomial}, \code{Gamma} and
    \code{Gamma}, \code{weibull}, \code{exponential}, \code{hurdle_gamma} \tab \code{log}, \code{identity}, \code{inverse}, \code{softplus}, \code{squareplus} \cr
    \code{asym_laplace}, \code{exgaussian}, \code{zero_inflated_asym_laplace} \tab \code{identity}, \code{log}, \code{inverse}, \code{softplus}, \code{squareplus} \cr
    \code{poisson}, \code{negbinomial}, \code{geometric}, \code{compois}, and the zero-inflated and hurdle counts \tab \code{log}, \code{identity}, \code{sqrt}, \code{softplus}, \code{squareplus} \cr
-   \code{binomial}, \code{bernoulli}, \code{Beta}, \code{zero_inflated_binomial}, \code{zero_inflated_beta} \tab \code{logit}, \code{probit}, \code{probit_approx}, \code{cloglog}, \code{cauchit}, \code{softit}, \code{identity}, \code{log} \cr
+   \code{binomial}, \code{bernoulli}, \code{Beta}, \code{zero_inflated_binomial}, \code{zero_inflated_beta}, \code{zero_one_inflated_beta} \tab \code{logit}, \code{probit}, \code{probit_approx}, \code{cloglog}, \code{cauchit}, \code{softit}, \code{identity}, \code{log} \cr
    \code{beta_binomial} \tab the same list WITHOUT \code{log}: brms's own table for this one family stops at \code{identity} \cr
    \code{inverse.gaussian} \tab \code{1/mu^2}, \code{inverse}, \code{identity}, \code{log}, \code{softplus}, \code{squareplus} \cr
    \code{cox} \tab \code{log}, \code{identity}, \code{softplus}, \code{squareplus} \cr
@@ -132,7 +132,7 @@ link listed is the default.\tabular{lll}{
    Parameter \tab Argument \tab Links \cr
    \code{sigma}, \code{shape}, \code{phi}, \code{kappa}, \code{beta}, \code{ndt}, and the \code{nu} of \code{compois} \tab \code{link_sigma} and so on \tab \code{log}, \code{identity}, \code{softplus}, \code{squareplus} \cr
    \code{nu} of \code{student} \tab \code{link_nu} \tab \code{logm1}, \code{identity} \cr
-   \code{zi}, \code{hu}, \code{quantile} \tab \code{link_zi}, \code{link_hu}, \code{link_quantile} \tab \code{logit}, \code{identity} \cr
+   \code{zi}, \code{hu}, \code{zoi}, \code{coi}, \code{quantile} \tab \code{link_zi}, \code{link_hu}, \code{link_zoi}, \code{link_coi}, \code{link_quantile} \tab \code{logit}, \code{identity} \cr
    \code{alpha} of \code{skew_normal} \tab \code{link_alpha} \tab \code{identity}, \code{log}, \code{softplus}, \code{squareplus} \cr
 }
 

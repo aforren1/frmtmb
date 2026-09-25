@@ -1,3 +1,24 @@
+# frmtmb.sample 0.12.0
+
+Needs frmtmb 0.64.0, for `rescor_row_loglik()` and `fit_extras(resp =)`.
+
+* **`log_lik()` on a Student-t `rescor` model used the gaussian joint
+  density.** It now uses the multivariate t through frmtmb's
+  `rescor_row_loglik()`; on the test fixture the old value was 38.6
+  log units off. On a multivariate model with an ordinal response,
+  each response reads its own thresholds.
+
+* Draws of the models frmtmb 0.64.0 adds: `thres(gr = )` thresholds
+  per group, `gr(g, by = f)` blocks merged in `ranef()`, `coef()` and
+  `VarCorr()` as brms merges them, and `posterior_predict()` for
+  brms's `cov = FALSE` ARMA drawn around each row's one-step mean.
+
+* An intercept written `0 + Intercept`, or under `bf(center = FALSE)`,
+  gets no default prior, as brms leaves class `"b"` flat.
+
+* The flat-prior advice no longer reads `class = "Intercept",  = ""`
+  for a univariate intercept.
+
 # frmtmb.sample 0.11.0
 
 * The `pp_check(type = "error_binned")` refusal on draws of a

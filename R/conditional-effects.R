@@ -171,6 +171,9 @@ ce_lp_vars <- function(lp) {
   for (m in lp[["mi"]] %||% list()) {
     v <- c(v, m$var, all.vars(m$mult_expr))
   }
+  for (m in lp[["me"]] %||% list()) {
+    v <- c(v, m$xvars, all.vars(m$mult_expr))
+  }
   unique(v)
 }
 
@@ -1724,6 +1727,9 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
   resp <- resp %||% names(x$spec$responses)[1L]
   rspec <- x$spec$responses[[resp]]
   ce_structure_check(rspec)
+  # a grid has no response for a cov = FALSE term to regress on; brms
+  # drops the term here too (incl_autocor = FALSE)
+  x <- autocor_cond_strip(x)
   if (isTRUE(surface)) {
     frm_stop("conditional_effects(surface = TRUE) is not implemented: the ",
              "display draws curves with bands, not a fitted surface. Ask ",
@@ -1924,7 +1930,7 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
       # applied to the gradient before the quadratic form.
       ed <- lp_eta_design(x, lp, nd, !pop_level, anl)
       ps <- ord_prob_se(x, rspec, lp, ed, nd, !pop_level,
-                        weights = seq_len(ordinal_ncat(x)))
+                        weights = seq_len(ordinal_ncat(x, rspec$resp_name)))
       df <- ce_frame(nd, ev, g$v2, cond)
       df$estimate__ <- as.vector(ps$P)
       df$se__ <- as.vector(ps$se)
@@ -2006,8 +2012,8 @@ conditional_effects.frmtmb_fit <- function(x, effects = NULL, resp = NULL,
         avc <- ce_aterms(rspec, nd, cset, n)
         # sim_response(), not fam$sim(): trunc() bounds are respected by
         # rejection, as everywhere else responses are drawn
-        sims <- replicate(ndraws, sim_response(fam, dpv, avc, n,
-                                               extra = fit_extras(x)))
+        sims <- replicate(ndraws, sim_response(
+          fam, dpv, avc, n, extra = fit_extras(x, rspec$resp_name)))
         # the point estimate moves onto the response scale the bands
         # live on: a binomial band is a count, not a probability, and a
         # truncated band is centered on the truncated mean

@@ -58,9 +58,14 @@ of a multi-trait animal model the same fit as the long-format one.
 rescor
 standardizes per-response residuals and evaluates one constant
 correlation matrix (plus a log-sigma Jacobian), which stays vectorized
-under distributional sigma. Matrix responses (multinomial) use
-`primary_dpars`: families whose location predictors are mu2..muK all
-receive the main formula, individually overridable as dpar formulas.
+under distributional sigma; the Student-t case evaluates a multivariate
+t with one nu shared by all responses, carried as the first response's
+dpar. A family's extra parameters (ordinal thresholds) are namespaced
+by response in a multivariate frame (`frame$extra_map`), and each
+density reads its own block under its family's names. Matrix
+responses (multinomial) use `primary_dpars`: families whose location
+predictors are mu2..muK all receive the main formula, individually
+overridable as dpar formulas.
 
 Deviations from the original plan that remain true today:
 `simulate()` is a numeric R-level simulator per family instead of
@@ -79,8 +84,8 @@ else once listed here (OSA residuals, RTMBdist families, gr(cov=),
 ou/toep, propto-equivalent equalto, smooth edf reporting) has since
 shipped; `propto` itself is spelled `gr(g, cov = A)`; gp() now
 spans up to 3 dimensions (per-dimension or iso lengthscales) and the
-exact form kriges at unseen positions. Remaining deferrals:
-`ar()/ma()` residual autocorrelation terms.
+exact form kriges at unseen positions; `ar()`, `ma()` and `arma()`
+fit both of brms's forms, `cov = FALSE` and `cov = TRUE`.
 
 ## 1. Thesis
 
@@ -420,9 +425,9 @@ refit. Tapes do not serialize; `strip_tape(fit)` and `retape(fit)` handle
 frmtmb reimplements a documented subset of the brms grammar with identical
 spelling: `bf()`, `lf()`, `nlf()`, `mvbf()`, `set_rescor()`, dpar formulas,
 `nl = TRUE`, aterm names (`weights`, `trials`, `cens`, `trunc`, `se`,
-`rate`), RE specials (`gr`, `mm`), and `s()`/`t2()`. Unsupported brms terms
-fail at parse time with a clear message naming the term. brms code ports
-mechanically, priors included: `frm()`, `frm_sample()` and
+`rate`, `thres`), RE specials (`gr`, `mm`), and `s()`/`t2()`. Unsupported
+brms terms fail at parse time with a clear message naming the term. brms
+code ports mechanically, priors included: `frm()`, `frm_sample()` and
 `frm_simulate()` spell the argument `prior`, as brms does; `prior()`,
 `prior_()` and `prior_string()` build the specification `set_prior()`
 does, and a prior object brms itself built is translated row by row,

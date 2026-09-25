@@ -122,22 +122,13 @@ draws_row_loglik <- function(fit, resp) {
   frame <- fit$frame
   rspecs <- fit$spec$responses
   dpv <- with_cs_offsets(fit, NULL, eval_dpars(fit))
-  extra <- fit_extras(fit)
   n <- frame[["n_obs"]]
   if (isTRUE(fit$spec$rescor)) {
-    # the joint gaussian likelihood contributes ONE K-variate density
-    # per row, so the columns still index observations; this is brms's
-    # log_lik for a set_rescor(TRUE) model
-    rs <- names(rspecs)
-    K <- length(rs)
-    Z <- vapply(rs, function(r) {
-      as.numeric((frame[["y"]][[r]] - dpv[[r]]$mu) / dpv[[r]]$sigma)
-    }, numeric(n))
-    lsig <- rowSums(vapply(rs, function(r) {
-      rep(log(as.numeric(dpv[[r]]$sigma)), length.out = n)
-    }, numeric(n)))
-    C <- us_chol_cor(fit$estimates[["thetar"]], K)
-    return(as.numeric(RTMB::dmvnorm(Z, 0, C, log = TRUE)) - lsig)
+    # the joint likelihood contributes ONE K-variate density per row
+    # (normal, or Student-t with one shared nu), so the columns still
+    # index observations; this is brms's log_lik for a set_rescor(TRUE)
+    # model
+    return(rescor_row_loglik(fit, dpv))
   }
   use <- resp %||% names(rspecs)
   out <- numeric(n)
@@ -156,13 +147,15 @@ draws_row_loglik <- function(fit, resp) {
       # rows are declared, the rows are the units.
       f <- st[["loglik_group"]] %||% st[["loglik_row"]]
       v <- f(yv, dpv[[r]], av, av[["weights"]] %||% 1,
-             frame_block_of(frame, r), extra)
+             frame_block_of(frame, r), fit_extras(fit, r))
       return(structure(as.numeric(v), names = NULL,
                        unit = if (!is.null(st[["loglik_group"]])) {
                          st[["unit"]] %||% "a group"
                        } else "an observation"))
     }
-    ll <- row_lpdf(fam, yv, yv, dpv[[r]], av, extra)
+    # a multivariate model's family extras (ordinal thresholds) are
+    # namespaced by response; this gives the density its own block
+    ll <- row_lpdf(fam, yv, yv, dpv[[r]], av, fit_extras(fit, r))
     out <- out + (av[["weights"]] %||% 1) * as.numeric(ll)
   }
   out

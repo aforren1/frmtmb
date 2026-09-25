@@ -88,18 +88,21 @@ nat_slots <- function(frame, fitlike) {
     tn <- brms_re_rnames(fitlike, bk)
     g0 <- san(bk[["group_name"]])
     tn0 <- san(bk[["cnms"]])
+    # a gr(g, by = f) block never had a pre-brms spelling, and the one it
+    # would share with its sibling by-levels names neither of them
+    lg <- if (is.null(bk[["by"]])) function(x) x else function(x) NULL
     shared <- length(reg$sd_idx(d)) == 1L && d > 1L
     for (j in seq_len(d)) {
       put(paste0("sd_", g, "__", tn[j]),
           list(kind = "sd", blk = bi, pos = if (shared) seq_len(d) else j),
-          paste0("sd_", g0, "__", tn0[j]))
+          lg(paste0("sd_", g0, "__", tn0[j])))
     }
     if (reg$npar(d) > length(reg$sd_idx(d)) && d > 1L) {
       for (j in seq_len(d - 1L)) {
         for (k in seq(j + 1L, d)) {
           put(paste0("cor_", g, "__", tn[j], "__", tn[k]),
               list(kind = "cor", blk = bi, j = j, k = k),
-              paste0("cor_", g0, "__", tn0[j], "__", tn0[k]))
+              lg(paste0("cor_", g0, "__", tn0[j], "__", tn0[k])))
         }
       }
     }

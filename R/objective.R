@@ -154,7 +154,8 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
 }
 
 #' The part of one linear predictor that the random-effect coefficients
-#' do not enter: `X beta`, the offset, and the `mo()` and `mi()` terms.
+#' do not enter: `X beta`, the offset, and the `mo()`, `mi()` and `me()`
+#' terms.
 #' `zterm` is the block contribution `Z b`, added in the position it has
 #' always occupied so that the fitted Laplace tape is unchanged to the
 #' last bit.
@@ -167,7 +168,8 @@ row_lpdf <- function(fam, yobs, yraw, dpv, av, extra) {
 #' drift away from the objective it corrects.
 #'
 #' @noRd
-lp_eta_fixed <- function(lp, pars, n, mivals, yfall, zterm = NULL) {
+lp_eta_fixed <- function(lp, pars, n, mivals, yfall, zterm = NULL,
+                         mevals = NULL) {
   # The overloads have to be re-established here, and this is the same
   # trio frmtmb_ad_overload() installs (R/ad-env.R). This code used to
   # sit inside the objective closure, which sets them once at the top;
@@ -208,6 +210,11 @@ lp_eta_fixed <- function(lp, pars, n, mivals, yfall, zterm = NULL) {
     if (!is.null(mt$mult)) xv <- xv * mt$mult
     eta <- eta + pars[[lp[["par"]]]][lp[["idx"]][mt$col]] * xv
   }
+  # me() terms: coefficient times the product of latent values
+  for (mt in lp[["me"]] %||% list()) {
+    eta <- eta + pars[[lp[["par"]]]][lp[["idx"]][mt$col]] *
+      me_col_value(mt, mevals)
+  }
   eta
 }
 
@@ -239,12 +246,15 @@ build_objective <- function(frame) {
   spec <- frame[["spec"]]
   resps <- spec$responses
   rescor <- isTRUE(spec$rescor)
+  # the response carrying the one nu of a Student-t rescor model
+  rescor_nu <- spec[["rescor_nu"]]
   y <- frame[["y"]]
   atv <- frame[["aterm_values"]]
   n <- frame[["n_obs"]]
   acs <- frame[["autocor"]] %||% list()
 
   extra_names <- frame[["extra_names"]] %||% character(0)
+  me_fr <- frame[["me"]]
 
   # Cluster-robust scores (R/sandwich.R) need the per-cluster pieces of
   # the objective as a function of one extra parameter each, so that
@@ -289,6 +299,11 @@ build_objective <- function(frame) {
       extra <- lapply(stats::setNames(extra_names, extra_names),
                       function(nm) pars[[nm]])
     }
+    # each response's density reads its own family extras under the
+    # family's names; identical to `extra` outside a multivariate frame
+    extra_r <- lapply(stats::setNames(nm = names(resps)), function(r) {
+      resp_extras(frame, extra, r)
+    })
 
     # coefficient-space vector for the Z products (rr blocks expand
     # their factors through the loadings, esicar blocks center)
@@ -311,6 +326,15 @@ build_objective <- function(frame) {
         nll <- nll - sum(RTMB::dnorm(y[[vn]][mm_$obs], xv[mm_$obs],
                                      mm_$se[mm_$obs], log = TRUE))
       }
+    }
+
+    # me(): the latent values and their measurement and latent
+    # densities (R/me.R)
+    mevals <- NULL
+    if (!is.null(me_fr)) {
+      mel <- me_latent(me_fr, pars)
+      nll <- nll - mel$ll
+      mevals <- mel$values
     }
 
     dparv <- list()
@@ -345,7 +369,8 @@ build_objective <- function(frame) {
       }
       eta <- lp_eta_fixed(
         lp, pars, n, mivals, y,
-        zterm = if (!is.null(lp[["Z"]])) as.vector(lp[["Z"]] %*% bvec))
+        zterm = if (!is.null(lp[["Z"]])) as.vector(lp[["Z"]] %*% bvec),
+        mevals = mevals)
       # cs(x) terms: n x (K-1) threshold-specific offsets, consumed by
       # the sequential ordinal lpdfs through dpars$.cs
       if (length(lp[["cs"]] %||% list())) {
@@ -377,6 +402,25 @@ build_objective <- function(frame) {
       dparv[[lp[["resp"]]]][[paste0(".eta_", lp[["dpar"]])]] <- eta
     }
 
+    # brms's cov = FALSE ARMA: mu moves by a regression on the earlier
+    # residuals of its group, on the response scale (brms adds it after
+    # the inverse link), and every density below, rowwise or rescor,
+    # then reads the shifted mu. The residual is taken against the
+    # observed-or-imputed response, brms's Yl under mi().
+    for (r in names(acs)) {
+      ac <- acs[[r]]
+      if (!autocor_is_cond(ac)) next
+      mu_r <- dparv[[r]]$mu
+      if (length(mu_r) == 1L) mu_r <- mu_r + numeric(n)
+      yl <- mivals[[r]] %||% y[[r]]
+      dparv[[r]]$mu <- mu_r +
+        autocor_cond_shift(yl - mu_r, pars[["thetaac"]][ac[["theta_idx"]]],
+                           ac)
+      # the link-scale value no longer describes mu, and a density
+      # reading it through the public accessors would miss the shift
+      dparv[[r]][[".eta_mu"]] <- NULL
+    }
+
     if (rescor) {
       # gaussian joint likelihood: standardized residuals against a
       # constant correlation matrix keeps this vectorized even with
@@ -391,13 +435,21 @@ build_objective <- function(frame) {
       }
       Zstd <- RTMB::matrix(zvec, n, K)
       C <- us_chol_cor(pars[["thetar"]], K)
-      nll <- nll - sum(RTMB::dmvnorm(Zstd, 0, C, log = TRUE)) + logsig
+      if (is.null(rescor_nu)) {
+        nll <- nll - sum(RTMB::dmvnorm(Zstd, 0, C, log = TRUE)) + logsig
+      } else {
+        # brms's multi_student_t(nu, Mu, Sigma) with Sigma = D C D: the
+        # scale of row i is sigma_i, so the standardized rows are
+        # multivariate t with scale C, and logsig is the same Jacobian
+        nll <- nll - mvt_std_loglik(Zstd, C, dparv[[rescor_nu]]$nu[1]) +
+          logsig
+      }
     } else {
       for (r in names(resps)) {
         fam <- resps[[r]]$family
         w <- atv[[r]]$weights %||% 1
         if (!is.null(clw_idx)) w <- w * pars[["clw"]][clw_idx[[r]]]
-        if (!is.null(acs[[r]])) {
+        if (!is.null(acs[[r]]) && !autocor_is_cond(acs[[r]])) {
           # R-side residual correlation: the response's density is a
           # joint (multivariate normal / t) one per group, not a
           # product over rows, so it replaces fam$lpdf entirely. Every
@@ -428,7 +480,7 @@ build_objective <- function(frame) {
           # DATA (the family object and the frame block), so it resolves
           # while the tape is being built and puts no branch on it.
           nll <- nll - stll(y[[r]], dparv[[r]], atv[[r]], w,
-                            frame_block_of(frame, r), extra)
+                            frame_block_of(frame, r), extra_r[[r]])
           next
         }
         # OBS() drives simulation/OSA machinery, but registers data under
@@ -447,7 +499,7 @@ build_objective <- function(frame) {
         } else {
           y[[r]]
         }
-        ll <- row_lpdf(fam, yobs, y[[r]], dparv[[r]], atv[[r]], extra)
+        ll <- row_lpdf(fam, yobs, y[[r]], dparv[[r]], atv[[r]], extra_r[[r]])
         nll <- nll - sum(w * ll)
       }
     }

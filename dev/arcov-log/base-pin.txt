@@ -1,0 +1,60 @@
+
+== Failed ======================================================================
+-- 1. Error ('test-autocor-cond.R:88:5'): the likelihood is brms's recursion (ga
+<frmtmb_error/error/condition>
+Error: ar(): only the residual-covariance formulation is implemented, so the call needs cov = TRUE: ar(week, subj, cov = TRUE). brms's default cov = FALSE is the residual-regression form, a different likelihood (it conditions on the first observations of each group rather than giving them their stationary distribution). cov = TRUE is the marginal multivariate-normal residual that nlme::gls(correlation = corAR1()) fits
+Backtrace:
+    x
+ 1. \-frmtmb::frm(...) at test-autocor-cond.R:88:5
+ 2.   \-frmtmb:::parse_spec(bform)
+--
+ 6.           \-frmtmb::frm_stop(...)
+
+-- 2. Error ('test-autocor-cond.R:113:3'): weights(), cens() and a random interc
+<frmtmb_error/error/condition>
+Error: ma(): only the residual-covariance formulation is implemented, so the call needs cov = TRUE: ma(week, subj, cov = TRUE). brms's default cov = FALSE is the residual-regression form, a different likelihood (it conditions on the first observations of each group rather than giving them their stationary distribution). cov = TRUE is the marginal multivariate-normal residual that nlme::gls(correlation = corAR1()) fits
+Backtrace:
+    x
+ 1. \-frmtmb::frm(y | weights(w) ~ x + ma(week, subj), data = d, family = gaussian()) at test-autocor-cond.R:113:3
+ 2.   \-frmtmb:::parse_spec(bform)
+--
+ 6.           \-frmtmb::frm_stop(...)
+
+-- 3. Error ('test-autocor-cond.R:154:3'): one long series matches the condition
+<frmtmb_error/error/condition>
+Error: ma(): only the residual-covariance formulation is implemented, so the call needs cov = TRUE: ma(t, cov = TRUE). brms's default cov = FALSE is the residual-regression form, a different likelihood (it conditions on the first observations of each group rather than giving them their stationary distribution). cov = TRUE is the marginal multivariate-normal residual that nlme::gls(correlation = corAR1()) fits
+Backtrace:
+    x
+ 1. \-frmtmb::frm(y ~ 1 + ma(t), data = s, family = gaussian()) at test-autocor-cond.R:154:3
+ 2.   \-frmtmb:::parse_spec(bform)
+--
+ 6.           \-frmtmb::frm_stop(...)
+
+-- 4. Error ('test-autocor-cond.R:178:3'): families without a residual are refus
+<frmtmb_error/error/condition>
+Error: ma(): only the residual-covariance formulation is implemented, so the call needs cov = TRUE: ma(week, subj, cov = TRUE). brms's default cov = FALSE is the residual-regression form, a different likelihood (it conditions on the first observations of each group rather than giving them their stationary distribution). cov = TRUE is the marginal multivariate-normal residual that nlme::gls(correlation = corAR1()) fits
+Backtrace:
+     x
+  1. +-testthat::expect_error(...) at test-autocor-cond.R:178:3
+  2. | \-testthat:::expect_condition_matching_(...)
+--
+ 12.           \-frmtmb::frm_stop(...)
+
+-- 5. Error ('test-autocor-cond.R:199:3'): fitted() is brms's one-step mean, res
+<frmtmb_error/error/condition>
+Error: arma(): only the residual-covariance formulation is implemented, so the call needs cov = TRUE: arma(week, subj, cov = TRUE). brms's default cov = FALSE is the residual-regression form, a different likelihood (it conditions on the first observations of each group rather than giving them their stationary distribution). cov = TRUE is the marginal multivariate-normal residual that nlme::gls(correlation = corAR1()) fits
+Backtrace:
+    x
+ 1. \-frmtmb::frm(y ~ x + arma(week, subj), data = d, family = gaussian()) at test-autocor-cond.R:199:3
+ 2.   \-frmtmb:::parse_spec(bform)
+--
+ 6.           \-frmtmb::frm_stop(...)
+
+-- 6. Error ('test-autocor-cond.R:221:3'): predict() draws around the one-step m
+<frmtmb_error/error/condition>
+Error: ar(): only the residual-covariance formulation is implemented, so the call needs cov = TRUE: ar(week, subj, cov = TRUE). brms's default cov = FALSE is the residual-regression form, a different likelihood (it conditions on the first observations of each group rather than giving them their stationary distribution). cov = TRUE is the marginal multivariate-normal residual that nlme::gls(correlation = corAR1()) fits
+Backtrace:
+    x
+ 1. \-frmtmb::frm(y ~ x + ar(week, subj), data = d, family = gaussian()) at test-autocor-cond.R:221:3
+ 2.   \-frmtmb:::parse_spec(bform)
+--
