@@ -1,0 +1,7 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/phase3a-lib
+frmtmb.spline 0.7.0 from C:/Users/adf44/source/r/phase3a-lib
+difference: ...........................................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FILE test-difference.R ARM lane TESTS 11 PASS 59 FAIL 0 ERROR 0 SKIP 0 WARN 0 

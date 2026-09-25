@@ -347,31 +347,40 @@ test_that("a random effect on gamma1 is a per-centre shape, and it recovers", {
   expect_gt(g1, 0)
   expect_error(rp_floored(bad), "non-positive d\\(eta\\)/d\\(log t\\)")
 
-  ## AND THE REACH OF THAT CHECK, asserted so the next reader is not
-  ## told more than it does. rp_floored() tests `cens == 0` rows only
-  ## (R/rp-check.R), so a group with NO events can carry a negative
-  ## slope and be reported clean. Here that is shown by moving centre
-  ## 3's own rows out of reach: with every one of them censored, the
-  ## same broken deviation reports nothing at all.
+  ## AND THE REACH OF THAT CHECK when a group has NO events. Up to
+  ## frmtmb.spline 0.7.0 rp_floored() tested `cens == 0` rows only, so
+  ## moving centre 3's event rows out of reach made the same broken
+  ## deviation report nothing at all. These assertions pinned that gap
+  ## and were written to FAIL when item 3.6 landed; they are flipped,
+  ## not deleted. A censored row is not floored, so the likelihood
+  ## count stays 0, and the count of censored rows where the fitted
+  ## survival function rises carries every row of centre 3.
   d2 <- d
   d2$censored[d2$centre == levels(d2$centre)[j]] <- 1L
-  # exactly centre j's event rows moved and nothing else, so a 0 below
-  # cannot come from having censored the whole dataset by accident
+  # exactly centre j's event rows moved and nothing else, so a count
+  # below cannot come from having censored the whole dataset
   expect_equal(sum(d2$censored) - sum(d$censored), r$n_nonmonotone)
   expect_gt(sum(d2$censored == 0L), 0L)
   bad2 <- bad
   bad2$frame[["aterm_values"]][["time"]][["cens"]] <-
     as.numeric(d2$censored)
   r2 <- rp_floored(bad2, action = "report")
-  expect_equal(r2$n_nonmonotone, 0L)
-  expect_silent(rp_floored(bad2))
-  ## THIS ASSERTION PINS A GAP, NOT A GUARANTEE. It is here so that the
-  ## reach of the check is written down rather than inferred, and it is
-  ## meant to FAIL when the filed widening of `mono_rows` lands. Whoever
-  ## lands it should flip these two lines to expect the count, not
-  ## delete them.
-  # dev/frailty-findings.md carries the fitted construction, where the
-  # optimizer puts an all-censored centre below zero on its own.
+  expect_equal(r2[["n_nonmonotone"]], 0L)
+  expect_equal(r2[["n_nonmonotone_censored"]],
+               sum(d$centre == levels(d$centre)[j]))
+  # scored exactly, so a warning with the size of the rise, not a
+  # refusal (user decision, 2026-09-24)
+  w2 <- character(0)
+  e2 <- tryCatch(withCallingHandlers(rp_floored(bad2),
+                                     warning = function(cnd) {
+    w2 <<- c(w2, conditionMessage(cnd))
+    invokeRestart("muffleWarning")
+  }), error = identity)
+  expect_false(inherits(e2, "error"))
+  expect_true(any(grepl("fitted survival rises", w2)))
+  # dev/frailty-findings.md and dev/phase3a-findings.md carry the fitted
+  # construction, where the optimizer puts an all-censored centre below
+  # zero on its own; test-rp-floored.R asserts it.
 })
 
 test_that("a slope-only block on gamma1 is anchored at t = 1", {

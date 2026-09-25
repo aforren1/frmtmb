@@ -1,0 +1,15 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/phase3a-lib
+frmtmb.spline 0.7.0 from C:/Users/adf44/source/r/phase3a-lib
+rp-floored: ..........................................1................
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-rp-floored.R:273:3'): a centre with no events and a falling
+Expected `which(slope <= 0)` to equal `1:5`.
+Differences:
+`names(actual)` is a character vector ('1', '2', '3', '4', '5')
+`names(expected)` is absent
+
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FILE test-rp-floored.R ARM lane TESTS 12 PASS 58 FAIL 1 ERROR 0 SKIP 0 WARN 0 

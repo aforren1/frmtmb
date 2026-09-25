@@ -30,3 +30,14 @@ navbar:
     core:
       text: frmtmb
       href: https://aforren1.github.io/frmtmb/
+
+reference:
+  - title: Get data in
+    contents:
+      - frm_cross_spectrum
+      - frm_cross_pairs
+  - title: Fit and read the fit
+    contents:
+      - cross_wishart
+      - frm_coherence
+      - frm_cross_simulate

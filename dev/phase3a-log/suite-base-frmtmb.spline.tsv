@@ -1,0 +1,94 @@
+arm	file	test	nb	passed	failed	error	skipped	warning
+base	test-bracket-access.R	no frmtmb.spline function reads a hazard container	1	1	0	FALSE	FALSE	0
+base	test-conditions.R	a frmtmb.spline refusal is caught as a frmtmb_error	3	3	0	FALSE	FALSE	0
+base	test-conditions.R	the refusals classed in punch round 1 carry the subclass	2	2	0	FALSE	FALSE	0
+base	test-conditions-census.R	the census finds what it is looking for	7	7	0	FALSE	FALSE	0
+base	test-conditions-census.R	frmtmb.spline raises no bare stop(), warning() or message()	4	4	0	FALSE	FALSE	0
+base	test-curve.R	the assembled covariance reproduces frm_linpred(se.fit) exactly	4	4	0	FALSE	FALSE	0
+base	test-curve.R	the design costs one frm_linpred() call whatever its width	3	3	0	FALSE	FALSE	0
+base	test-curve.R	a grouping block costs nothing, because there is no probe	3	3	0	FALSE	FALSE	0
+base	test-curve.R	the simultaneous band is wider than the pointwise one, and covers	7	7	0	FALSE	FALSE	0
+base	test-curve.R	the critical value is stable in the seed and moves with nsim	2	2	0	FALSE	FALSE	0
+base	test-curve.R	transform returns the band through the link inverse	4	4	0	FALSE	FALSE	0
+base	test-curve.R	the refusals name what is wrong	7	7	0	FALSE	FALSE	0
+base	test-curve.R	a fit with no random-effect block works, through cov.fixed	3	3	0	FALSE	FALSE	0
+base	test-curve.R	the covariance is core's cached one, not a second sdreport	4	4	0	FALSE	FALSE	0
+base	test-curve.R	a t2 tensor smooth assembles like any other	2	2	0	FALSE	FALSE	0
+base	test-curve.R	a reduced-rank block is caught by the check, not by the probe	3	3	0	FALSE	FALSE	0
+base	test-curve.R	a curve on a dpar other than mu finds its coefficients	5	5	0	FALSE	FALSE	0
+base	test-curve.R	a dpar held fixed does not become a design column	1	1	0	FALSE	FALSE	0
+base	test-curve.R	a factor-smooth model costs the documented number of calls	6	6	0	FALSE	FALSE	0
+base	test-curve.R	an autoscaled fit works, because the covariance is core's	4	4	0	FALSE	FALSE	0
+base	test-curve.R	the covariance is core's, at the rows core says it is at	4	4	0	FALSE	FALSE	0
+base	test-deriv.R	the central difference reproduces a known derivative	2	2	0	FALSE	FALSE	0
+base	test-deriv.R	the default step size is per order and scales with the range	3	3	0	FALSE	FALSE	0
+base	test-deriv.R	the step size that gratia fixes at 1e-7 would ruin order 2 here	3	3	0	FALSE	FALSE	0
+base	test-deriv.R	a derivative reuses a curve's grid and predictor	2	2	0	FALSE	FALSE	0
+base	test-deriv.R	derivative refusals name the argument	5	5	0	FALSE	FALSE	0
+base	test-deriv.R	the peak of a known bell profile is recovered with an interval	6	6	0	FALSE	FALSE	0
+base	test-deriv.R	a crossing of a level is located with an interval	5	5	0	FALSE	FALSE	0
+base	test-deriv.R	no root in the window is an answer, not an error	3	3	0	FALSE	FALSE	0
+base	test-deriv.R	maximum and minimum select different stationary points	7	7	0	FALSE	FALSE	0
+base	test-deriv.R	a feature needs a grid to scan	2	2	0	FALSE	FALSE	0
+base	test-difference.R	the difference is gratia's, on the same mgcv fit	6	6	0	FALSE	FALSE	0
+base	test-difference.R	the difference variance is core's vcov(), where core has one	3	3	0	FALSE	FALSE	0
+base	test-difference.R	a grid differenced with itself is exactly zero	4	4	0	FALSE	FALSE	0
+base	test-difference.R	the simultaneous band covers the whole difference at its rate	4	4	0	FALSE	FALSE	0
+base	test-difference.R	frm_curve_feature() locates where the difference crosses zero	7	7	0	FALSE	FALSE	0
+base	test-difference.R	a difference curve does not lose its contrast downstream	5	5	0	FALSE	FALSE	0
+base	test-difference.R	a new grid on a difference curve needs a new contrast	6	6	0	FALSE	FALSE	0
+base	test-difference.R	the difference refusals name what they refuse	6	6	0	FALSE	FALSE	0
+base	test-difference.R	a gp() difference at ONE position cancels the kriging residual	5	5	0	FALSE	FALSE	0
+base	test-difference.R	a gp() difference at DIFFERENT positions is still refused	8	8	0	FALSE	FALSE	0
+base	test-difference.R	print() says the difference itself was not checked	5	5	0	FALSE	FALSE	0
+base	test-frailty.R	the frailty is the model rstpm2 fits, in another basis	7	7	0	FALSE	FALSE	0
+base	test-frailty.R	the Laplace optimum is an optimum of the exact likelihood	5	5	0	FALSE	FALSE	0
+base	test-frailty.R	a random effect on gamma1 is a per-centre shape, and it recovers	15	15	0	FALSE	FALSE	0
+base	test-frailty.R	a slope-only block on gamma1 is anchored at t = 1	1	1	0	FALSE	FALSE	0
+base	test-gratia.R	frmtmb reproduces the mgcv ML fit this package reads curves off	2	2	0	FALSE	FALSE	0
+base	test-gratia.R	the max-deviation simulation is gratia's, on gratia's own inputs	3	3	0	FALSE	FALSE	0
+base	test-gratia.R	gratia's .se really is the full predictor's, which is why the divisor is an argument	2	2	0	FALSE	FALSE	0
+base	test-gratia.R	first derivatives agree with gratia's to the fit difference	3	3	0	FALSE	FALSE	0
+base	test-gratia.R	the second derivative is the one gratia's fixed eps gets wrong	3	3	0	FALSE	FALSE	0
+base	test-message-uniqueness.R	every condition message template in this R/ is unique	4	4	0	FALSE	FALSE	0
+base	test-royston-parmar.R	the objective at flexsurv's coefficients IS flexsurv's log likelihood	36	36	0	FALSE	FALSE	0
+base	test-royston-parmar.R	the two optima agree, and frmtmb's is never the worse	6	6	0	FALSE	FALSE	0
+base	test-royston-parmar.R	the default knots are flexsurv's default knots	2	2	0	FALSE	FALSE	0
+base	test-royston-parmar.R	a covariate on gamma1 is a time-varying effect	2	2	0	FALSE	FALSE	0
+base	test-royston-parmar.R	weights and truncation behave as the compat table claims	6	6	0	FALSE	FALSE	0
+base	test-royston-parmar.R	simulate draws from the density it scores	4	4	0	FALSE	FALSE	0
+base	test-royston-parmar.R	the family refuses what it cannot do, by name	7	7	0	FALSE	FALSE	0
+base	test-royston-parmar.R	a non-positive survival time is refused	1	1	0	FALSE	FALSE	0
+base	test-royston-parmar.R	the monotonicity floor keeps the log density finite	3	3	0	FALSE	FALSE	0
+base	test-rp-floored.R	a censored row far past the old floor is now scored exactly	6	6	0	FALSE	FALSE	0
+base	test-rp-floored.R	the censored count reports and no longer refuses	2	2	0	FALSE	FALSE	0
+base	test-rp-floored.R	fitted() still refuses, and the count is named for what it is	6	6	0	FALSE	FALSE	0
+base	test-rp-floored.R	the family scores log S exactly on all three scales	9	9	0	FALSE	FALSE	0
+base	test-rp-floored.R	the curve functions draw a deeply censored fit now	2	2	0	FALSE	FALSE	0
+base	test-rp-floored.R	a non-monotone fit still refuses, and warns at fit end	3	3	0	FALSE	FALSE	0
+base	test-rp-floored.R	an ordinary censored fit passes and reports its own reach	6	6	0	FALSE	FALSE	0
+base	test-rp-floored.R	the odds and normal scales are checked on the same quantity	5	5	0	FALSE	FALSE	0
+base	test-rp-floored.R	rp_floored refuses anything that is not a royston_parmar fit	3	3	0	FALSE	FALSE	0
+base	test-scale.R	the spline curves scale row fits and reports its cost	1	0	0	FALSE	TRUE	0
+base	test-span.R	frm_curve() past the knot span warns once, with the span	8	8	0	FALSE	FALSE	0
+base	test-span.R	inside the span the three curve functions stay quiet	5	5	0	FALSE	FALSE	0
+base	test-span.R	frm_curve_deriv() past the span warns once and says stencil	5	5	0	FALSE	FALSE	0
+base	test-span.R	frm_curve_deriv() past the span works on its own defaults	9	9	0	FALSE	FALSE	0
+base	test-span.R	a grid with no uncertainty anywhere refuses by name	2	2	0	FALSE	FALSE	0
+base	test-span.R	a grid ending exactly on a knot is inside the span	7	7	0	FALSE	FALSE	0
+base	test-span.R	frm_curve_feature() refuses a bracket that leaves the span	5	5	0	FALSE	FALSE	0
+base	test-span.R	the refusal replaces a warning per Newton step, not adds to it	2	2	0	FALSE	FALSE	0
+base	test-span.R	a model with no ps() term is untouched by any of this	5	5	0	FALSE	FALSE	0
+base	test-span.R	a second ps() term's span refuses at a root by the knot	5	5	0	FALSE	FALSE	0
+base	test-span.R	a second ps() term's span refuses at a root in the middle	5	5	0	FALSE	FALSE	0
+base	test-span.R	a clean difference curve is not refused for being a difference	8	8	0	FALSE	FALSE	0
+base	test-span.R	an out-of-span row refuses from either grid of a difference	7	7	0	FALSE	FALSE	0
+base	test-surface.R	summary, fixef and logLik work	6	6	0	FALSE	FALSE	0
+base	test-surface.R	predict returns the spline coefficients, not a mean	7	7	0	FALSE	FALSE	0
+base	test-surface.R	predict on newdata works and standard errors come with it	3	3	0	FALSE	FALSE	0
+base	test-surface.R	residuals refuse for a stated reason	3	3	0	FALSE	FALSE	0
+base	test-surface.R	par_template and set_prior reach the gamma dpars	5	5	0	FALSE	FALSE	0
+base	test-surface.R	a smooth reaches a spline coefficient	3	3	0	FALSE	FALSE	0
+base	test-surface.R	the compatibility rows this package registered resolve	13	13	0	FALSE	FALSE	0
+base	test-surface.R	print methods say what was checked	3	3	0	FALSE	FALSE	0
+base	test-surface.R	a smooth on gamma1 is a smooth time-varying effect	4	4	0	FALSE	FALSE	0

@@ -1,0 +1,21 @@
+records split into observations and the events grammar         pass   4 fail   0 error FALSE
+the split events give the hand-written schedule's trajectory   pass   2 fail   0 error FALSE
+an rxode2::et() table expands to rxode2's own doses            pass   4 fail   0 error FALSE
+column names match without regard to case                      pass   4 fail   0 error FALSE
+mdv is read only to check it                                   pass   3 fail   0 error FALSE
+a pre-dose sample passes and a post-dose one is refused        pass   5 fail   0 error FALSE
+a reset inside a running infusion is refused                   pass   8 fail   0 error FALSE
+rxode2's replace and multiply codes, and doses of unseen ids   pass   3 fail   0 error FALSE
+each record the split cannot carry is refused by name          pass  58 fail   0 error FALSE
+an order-dependent event sharing a time is refused             pass  14 fail   0 error FALSE
+an addl repeat is an event at its own time                     pass   6 fail   0 error FALSE
+a sample at a steady-state record's time is refused            pass   2 fail   0 error FALSE
+items an event reads are refused on a record that does not     pass  22 fail   0 error FALSE
+records out of order within or across ids are refused          pass   4 fail   0 error FALSE
+dose-modifier column names are refused, covariates pass        pass  19 fail   0 error FALSE
+a table whose every dose is dropped says so                    pass   2 fail   0 error FALSE
+an item set to NULL while its column exists is refused         pass   4 fail  19 error FALSE
+F0 and FO pass alike, and a bioavailability Fn is refused      pass   3 fail   1 error FALSE
+censoring columns of an observation are refused                pass   0 fail   8 error FALSE
+a repeat time that differs only in floating point is caught    pass   2 fail   2 error FALSE
+TOTAL blocks 20 pass 169 fail 30 error 0

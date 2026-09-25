@@ -1,0 +1,17 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/phase3a-lib
+frmtmb.ode 0.6.0 from C:/Users/adf44/source/r/phase3a-lib
+records: ...........................................................................................................................................................................................................1
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-records.R:519:3'): the same-time tolerance follows rounding
+Expected `if (inherits(cnd, "condition")) conditionMessage(cnd) else ""` to match regexp "record 2, a reset, shares time 10000000[.]3 ".
+Actual text:
+x | frm_ode_records(): record 2, a reset, shares time 1e+07 with the event from record 1 (an addl repeat) for the same id. NONMEM reads the two in the order they are listed, frm_ode() applies a reset in a fixed order whatever the listing, and rxode2 in neither, so the records do not say one thing. Move one of them to the time it really happened
+Backtrace:
+    ▆
+ 1. └─frmtmb.ode (local) refuses(frm_ode_records(big), "record 2, a reset, shares time 10000000[.]3 ") at test-records.R:519:3
+ 2.   └─testthat::expect_match(...) at test-records.R:23:3
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FILE test-records.R ARM lane TESTS 21 PASS 203 FAIL 1 ERROR 0 SKIP 0 WARN 0 

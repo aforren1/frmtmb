@@ -1,0 +1,8 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/phase3a-lib
+frmtmb.ode 0.6.0 from C:/Users/adf44/source/r/phase3a-lib
+lincmt: .................................................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+👏 Your tests get an ovation 👏
+
+FILE test-lincmt.R ARM lane TESTS 17 PASS 65 FAIL 0 ERROR 0 SKIP 0 WARN 0 

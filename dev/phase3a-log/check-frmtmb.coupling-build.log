@@ -1,0 +1,10 @@
+* checking for file 'C:/Users/adf44/source/r/frmtmb-wt-phase3a/extensions/frmtmb.coupling/DESCRIPTION' ... OK
+* preparing 'frmtmb.coupling':
+* checking DESCRIPTION meta-information ... OK
+* installing the package (it is needed to build vignettes)
+* creating vignettes ... OK
+* checking for LF line-endings in source and make files and shell scripts
+* checking for empty or unneeded directories
+Removed empty directory 'frmtmb.coupling/tests/testthat/_snaps'
+* building 'frmtmb.coupling_0.5.0.tar.gz'
+

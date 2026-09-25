@@ -1,0 +1,7 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3
+frmtmb.ode 0.6.0 from C:/Users/adf44/source/r/rellib-r3
+conditions: ......
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FILE test-conditions.R ARM base TESTS 2 PASS 6 FAIL 0 ERROR 0 SKIP 0 WARN 0 

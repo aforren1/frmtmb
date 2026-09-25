@@ -1,0 +1,18 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3
+frmtmb.spline 0.7.0 from C:/Users/adf44/source/r/rellib-r3
+frailty: ..........................12.
+
+══ Failed ══════════════════════════════════════════════════════════════════════
+── 1. Failure ('test-frailty.R:369:3'): a random effect on gamma1 is a per-centr
+Expected `r2[["n_nonmonotone_censored"]]` to equal `sum(d$centre == levels(d$centre)[j])`.
+Differences:
+`actual` is NULL
+`expected` is an integer vector (40)
+
+
+── 2. Failure ('test-frailty.R:371:3'): a random effect on gamma1 is a per-centr
+Expected `rp_floored(bad2)` to throw a error.
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FILE test-frailty.R ARM base TESTS 4 PASS 27 FAIL 2 ERROR 0 SKIP 0 WARN 0 

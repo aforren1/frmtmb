@@ -1,0 +1,132 @@
+arm	file	test	nb	passed	failed	error	skipped	warning
+base	test-bracket-access.R	no frmtmb.ode function reads a hazard container	1	1	0	FALSE	FALSE	0
+base	test-compat.R	frm_ode() is in the compatibility vocabulary	3	3	0	FALSE	FALSE	0
+base	test-compat.R	frm_lincmt() is in the vocabulary and carries no refusal	4	4	0	FALSE	FALSE	0
+base	test-compat.R	sampling an frm_ode() model is registered as refused	4	4	0	FALSE	FALSE	0
+base	test-compat.R	the registration survives being run again, which is what
+           pkgload::load_all() does to a namespace	4	4	0	FALSE	FALSE	0
+base	test-conditions.R	a frmtmb.ode refusal is caught as a frmtmb_error	3	3	0	FALSE	FALSE	0
+base	test-conditions.R	the refusals classed in punch round 1 carry the subclass	3	3	0	FALSE	FALSE	0
+base	test-conditions-census.R	the census finds what it is looking for	7	7	0	FALSE	FALSE	0
+base	test-conditions-census.R	frmtmb.ode raises no bare stop(), warning() or message()	4	4	0	FALSE	FALSE	0
+base	test-lincmt.R	one compartment with a depot matches frm_ode() on every
+           schedule the closed form covers	9	9	0	FALSE	FALSE	0
+base	test-lincmt.R	two and three compartments match frm_ode(), with and
+           without a depot	4	4	0	FALSE	FALSE	0
+base	test-lincmt.R	groups, a per-group schedule and an estimated dose scale
+           match frm_ode()	1	1	0	FALSE	FALSE	0
+base	test-lincmt.R	the depot amount and the clearance spelling agree with what
+           they stand for	2	2	0	FALSE	FALSE	0
+base	test-lincmt.R	ka == ke is the analytic limit and not a NaN	2	2	0	FALSE	FALSE	0
+base	test-lincmt.R	the closed form keeps its digits where the textbook form
+           loses them, as ka approaches ke	3	3	0	FALSE	FALSE	0
+base	test-lincmt.R	the gradient is finite and right where two rate constants
+           meet, which is where the first version was not	3	3	0	FALSE	FALSE	0
+base	test-lincmt.R	a genuine eigenvalue collision keeps its value, and its
+           gradient once the roots are resolved	5	5	0	FALSE	FALSE	0
+base	test-lincmt.R	the tape agrees with frm_ode()'s adjoint gradient	2	2	0	FALSE	FALSE	0
+base	test-lincmt.R	a finite n_ss converges on the exact limit geometrically	3	3	0	FALSE	FALSE	0
+base	test-lincmt.R	a drug that is not eliminated accumulates without bound and
+           without a NaN	3	3	0	FALSE	FALSE	0
+base	test-lincmt.R	an observation at a dose time reads the trough, and one at
+           t0 reads init	2	2	0	FALSE	FALSE	0
+base	test-lincmt.R	the parts of the grammar superposition cannot carry are
+           refused by name	8	8	0	FALSE	FALSE	0
+base	test-lincmt.R	the parameter list is read strictly	10	10	0	FALSE	FALSE	0
+base	test-lincmt.R	frm_lincmt() needs no solver backend	1	1	0	FALSE	FALSE	0
+base	test-lincmt.R	a hierarchical fit through frm_lincmt() recovers its
+           simulator	6	6	0	FALSE	FALSE	0
+base	test-lincmt.R	a dynamics input that varies inside a group is refused at
+           frame assembly, for frm_lincmt() as for frm_ode()	1	1	0	FALSE	FALSE	0
+base	test-ode.R	a function argument of an nl body is not looked for in data	2	2	0	FALSE	FALSE	0
+base	test-ode.R	a misspelled column that matches a function is named	3	3	0	FALSE	FALSE	0
+base	test-ode.R	a column wins over a same-named function	1	1	0	FALSE	FALSE	0
+base	test-ode.R	a dynamics parameter that varies within a group is refused	1	1	0	FALSE	FALSE	0
+base	test-ode.R	a covariate constant within group is allowed	1	1	0	FALSE	FALSE	0
+base	test-ode.R	a missing backend names the r-universe repository	0	0	0	TRUE	FALSE	0
+base	test-ode.R	the solver reproduces the closed-form solution	1	1	0	FALSE	FALSE	0
+base	test-ode.R	the default returns every state as a matrix	3	3	0	FALSE	FALSE	0
+base	test-ode.R	rows are scattered back in input order	1	1	0	FALSE	FALSE	0
+base	test-ode.R	duplicate times, an observation at t0, and ragged groups work	3	3	0	FALSE	FALSE	0
+base	test-ode.R	t0 shifts the origin	2	2	0	FALSE	FALSE	0
+base	test-ode.R	group = NULL solves the whole data as one system	1	1	0	FALSE	FALSE	0
+base	test-ode.R	the arguments are validated	7	7	0	FALSE	FALSE	0
+base	test-ode.R	a large single system warns about the Laplace ceiling	1	1	0	FALSE	FALSE	0
+base	test-ode.R	the population PK fit matches the probe reference	9	9	0	FALSE	FALSE	0
+base	test-ode.R	frm_linpred() re-solves on newdata	2	2	0	FALSE	FALSE	0
+base	test-ode.R	an integrator choice does not move the likelihood	1	1	0	FALSE	FALSE	0
+base	test-ode.R	a per-row output is the two-call spelling, exactly	4	4	0	FALSE	FALSE	0
+base	test-ode.R	a per-row output shares one solve across groups	1	1	0	FALSE	FALSE	0
+base	test-ode.R	a parent-and-metabolite fit is the same one call or two	4	4	0	FALSE	FALSE	0
+base	test-ode.R	nlf(sigma ~ ) writes the combined error model	4	4	0	FALSE	FALSE	0
+base	test-ode.R	a failed solve becomes a finite penalty or an error	5	5	0	FALSE	FALSE	0
+base	test-ode.R	a penalty is never written silently	6	6	0	FALSE	FALSE	0
+base	test-ode.R	a numeric-only body is loud when a solve fails at tape time	2	2	0	FALSE	FALSE	0
+base	test-ode.R	a penalty reached through frm_linpred() warns and names the group	3	3	0	FALSE	FALSE	0
+base	test-ode.R	dynamics need no ADoverload boilerplate of their own	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	the events table is validated	18	18	0	FALSE	FALSE	0
+base	test-ode-events.R	event_scale is refused where scaling would change a meaning	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	a function-valued events table is called	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	a bare events table in a formula is the inline table	5	5	0	FALSE	FALSE	0
+base	test-ode-events.R	repeated doses match the analytic superposition	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	a per-group schedule doses only its own group	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	a group with no events takes the plain single-solve path	1	1	0	FALSE	FALSE	0
+base	test-ode-events.R	an observation at a dose time reads the pre-dose value	3	3	0	FALSE	FALSE	0
+base	test-ode-events.R	duplicate times, ragged groups and unsorted rows still work	3	3	0	FALSE	FALSE	0
+base	test-ode-events.R	an unsorted events table is put in order	1	1	0	FALSE	FALSE	0
+base	test-ode-events.R	t0 shifts the origin of a dosing solve	1	1	0	FALSE	FALSE	0
+base	test-ode-events.R	replace and multiply are exact	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	events beyond the last observation change nothing	1	1	0	FALSE	FALSE	0
+base	test-ode-events.R	a group observed only at t0 reads init, dose or no dose	1	1	0	FALSE	FALSE	0
+base	test-ode-events.R	an infusion still running at the last observation works	1	1	0	FALSE	FALSE	0
+base	test-ode-events.R	an infusion matches the analytic constant-rate solution	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	a bolus and an infusion into different states coexist	3	3	0	FALSE	FALSE	0
+base	test-ode-events.R	ii and addl expand to the hand-written rows exactly	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	ii and addl are validated	4	4	0	FALSE	FALSE	0
+base	test-ode-events.R	a reset zeroes every compartment	4	4	0	FALSE	FALSE	0
+base	test-ode-events.R	a reset beside a dose is EVID 4, in that order	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	a reset to a non-zero level sets every state to it	1	1	0	FALSE	FALSE	0
+base	test-ode-events.R	event_scale does not scale a reset	3	3	0	FALSE	FALSE	0
+base	test-ode-events.R	the gradient through a reset is exact	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	a steady-state row matches the analytic superposition	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	a steady-state row continues into ordinary doses	1	1	0	FALSE	FALSE	0
+base	test-ode-events.R	a steady-state infusion matches the infinite superposition	1	1	0	FALSE	FALSE	0
+base	test-ode-events.R	n_ss controls the run-in and its error falls off geometrically	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	an unconverged run-in warns on the numeric path	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	the geometric tail is summed rather than dropped	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	a state with no steady state does not disable the tail	1	1	0	FALSE	FALSE	0
+base	test-ode-events.R	a state whose difference is exactly zero is left alone	3	3	0	FALSE	FALSE	0
+base	test-ode-events.R	a state that is growing between cycles is left alone	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	the low gate takes tail away and never adds to it	4	4	0	FALSE	FALSE	0
+base	test-ode-events.R	the guards cannot silence the warning they act on	6	6	0	FALSE	FALSE	0
+base	test-ode-events.R	a long run-in in the stand-down band still warns	6	6	0	FALSE	FALSE	0
+base	test-ode-events.R	ss_extrapolate = FALSE does not build the correction	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	the tail correction leaves the objective differentiable	1	1	0	FALSE	FALSE	0
+base	test-ode-events.R	the run-in warning reports a distance to the limit	4	4	0	FALSE	FALSE	0
+base	test-ode-events.R	ss_extrapolate is validated	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	the gradient through a steady-state run-in is exact	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	the tail correction fixes the gradient, not only the value	1	1	0	FALSE	FALSE	0
+base	test-ode-events.R	steady-state rows are validated	5	5	0	FALSE	FALSE	0
+base	test-ode-events.R	a steady-state population fit recovers the truth	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	the gradient through repeated doses matches finite differences	1	1	0	FALSE	FALSE	0
+base	test-ode-events.R	the gradient through replace and multiply is exact	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	event_scale is an estimated dose multiplier	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	an estimated infusion rate is differentiated exactly	2	2	0	FALSE	FALSE	0
+base	test-ode-events.R	a repeated-dosing population fit recovers the truth	7	7	0	FALSE	FALSE	0
+base	test-ode-events.R	a dosing model rejects a within-group dynamics covariate	1	1	0	FALSE	FALSE	0
+base	test-ode-events.R	event_scale must be constant within a group	1	1	0	FALSE	FALSE	0
+base	test-ode-events.R	a failed dosing solve becomes a penalty naming the group	7	7	0	FALSE	FALSE	0
+base	test-ode-nlf.R	frm_ode() composes inside an nlf() body	3	3	0	FALSE	FALSE	0
+base	test-ode-nlf.R	the frame check is registered with the core	1	1	0	FALSE	FALSE	0
+base	test-ode-tv.R	tv and tv_break are validated against each other	5	5	0	FALSE	FALSE	0
+base	test-ode-tv.R	an estimated tv column needs its change points as data	2	2	0	FALSE	FALSE	0
+base	test-ode-tv.R	a piecewise-constant rate matches the segment-by-segment solution	1	1	0	FALSE	FALSE	0
+base	test-ode-tv.R	LOCF: a change point takes effect from its own row forward	4	4	0	FALSE	FALSE	0
+base	test-ode-tv.R	a constant tv column is the same model as a constant parm	1	1	0	FALSE	FALSE	0
+base	test-ode-tv.R	tv change points are unioned with the event times	1	1	0	FALSE	FALSE	0
+base	test-ode-tv.R	each group gets its own change points	2	2	0	FALSE	FALSE	0
+base	test-ode-tv.R	a time-varying input reaches a two-state system by position	1	1	0	FALSE	FALSE	0
+base	test-ode-tv.R	an estimated time-varying rate is differentiated exactly	2	2	0	FALSE	FALSE	0
+base	test-ode-tv.R	a tv nonlinear parameter is exempt from the constancy guard	2	2	0	FALSE	FALSE	0
+base	test-ode-tv.R	a fit recovers a clearance that changes at a known time	6	6	0	FALSE	FALSE	0
+base	test-scale.R	the ode scale row fits and reports its cost	1	0	0	FALSE	TRUE	0

@@ -1,0 +1,7 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3
+frmtmb.spline 0.7.0 from C:/Users/adf44/source/r/rellib-r3
+curve: ..............................................................
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FILE test-curve.R ARM base TESTS 16 PASS 62 FAIL 0 ERROR 0 SKIP 0 WARN 0 

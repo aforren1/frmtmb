@@ -11,9 +11,11 @@
 #'   adds an `id` column naming the column. A three-column pair is three
 #'   units of the same two signals, not a three-channel recording:
 #'   [cross_wishart()] models a channel PAIR, and a third channel has no
-#'   route in. To relate three channels, fit the three pairs separately
-#'   and say so. `NA` marks a sample the record does not have; see
-#'   "Gaps in the record".
+#'   route in. To relate three channels, use [frm_cross_pairs()]. Or
+#'   two lists of epochs, where `x[[k]]` and `y[[k]]` are the two signals
+#'   of epoch `k` and epochs may differ in length; see "Epochs of unequal
+#'   length". `NA` marks a sample the record does not have; see "Gaps in
+#'   the record".
 #' @param sfreq Sampling rate in Hz. `freq` comes back in Hz; the
 #'   default of 1 returns cycles per sample.
 #' @param segments How many disjoint, non-overlapping blocks the record
@@ -34,10 +36,17 @@
 #'   `tapers` or `smooth`; see "How many degrees of freedom".
 #' @param frange Optional `c(low, high)` in the same units as `freq`,
 #'   applied after everything else.
+#' @param group Which unit each piece of the record belongs to. For a
+#'   vector pair, one label per sample, as in
+#'   [frmtmb::frm_periodogram()]: each label is one record of its own.
+#'   For a list pair, one label per epoch: the epochs that share a label
+#'   are one unit. `NULL`, the default, makes every epoch its own unit,
+#'   named by `names(x)` when it has names. Not used with a matrix pair.
 #'
 #' @return A data frame with one row per retained frequency and columns
 #'   `freq`, `w11`, `w22`, `w12r`, `w12i` and `n`, plus `id` for the
-#'   matrix form. `w11` and `w22` are the two auto-spectra summed over
+#'   matrix form, the list form and a vector pair with `group`. `w11`
+#'   and `w22` are the two auto-spectra summed over
 #'   draws, `w12r` and `w12i` the real and imaginary parts of the summed
 #'   cross-spectrum, and `n` the degrees of freedom the record actually
 #'   supplied. The matrix is
@@ -100,6 +109,23 @@
 #' own frequency grid and its own `n`. That is correct and it is why
 #' `freq` is a column of the frame rather than an attribute of it: a
 #' model reads `freq` per row.
+#'
+#' @section Epochs of unequal length:
+#' A trial-based recording is a list of epochs, and artifact rejection
+#' leaves them of different lengths. Pass them as two lists, with
+#' `group` naming the unit each epoch belongs to. The epochs of one unit
+#' are read exactly as the clean spans of one record are: the segment
+#' length is the unit's usable sample count divided by `segments`, each
+#' epoch supplies as many whole segments as fit in it, and no transform
+#' crosses from one epoch into the next. So each unit gets one
+#' frequency grid and one `n`, and a short epoch that holds no whole
+#' segment supplies nothing.
+#'
+#' A vector pair with a `group` of one label per sample is the other
+#' spelling, the one [frmtmb::frm_periodogram()] takes: each label is
+#' one record. The two agree when they describe the same records, which
+#' is when every unit is one epoch, or when each unit's epochs are all
+#' of one length that the segment length divides.
 #'
 #' @section How many degrees of freedom, and where to get them:
 #' The density needs `n >= 2`, because a cross-periodogram from a single
@@ -219,18 +245,42 @@
 #' b <- 0.8 * src + rnorm(2048)
 #' xs <- frm_cross_spectrum(a, b, sfreq = 256, segments = 8)
 #' head(xs)
+#'
+#' # Six trials of unequal length from two subjects
+#' len <- c(700, 900, 820, 1000, 640, 760)
+#' ex <- lapply(len, rnorm)
+#' ey <- lapply(ex, function(v) 0.8 * v + rnorm(length(v)))
+#' xe <- frm_cross_spectrum(ex, ey, sfreq = 256, segments = 8,
+#'                          group = rep(c("s1", "s2"), each = 3))
+#' table(xe$id, xe$n)
 #' @export
 frm_cross_spectrum <- function(x, y, sfreq = 1, segments = 8L, tapers = 1L,
                                smooth = 1L, window = c("none", "hann"),
-                               frange = NULL) {
+                               frange = NULL, group = NULL) {
   segments <- cp_count(segments, "segments")
   tapers <- cp_count(tapers, "tapers")
   smooth <- cp_count(smooth, "smooth")
   window <- frm_match_arg(window)
+  if (is.data.frame(x) || is.data.frame(y)) {
+    frm_stop("`x` and `y` are a data frame, whose columns could be units, ",
+             "channels or epochs. Pass two numeric vectors, two matrices ",
+             "whose columns are units, or two lists of epochs; ",
+             "frm_cross_pairs() takes the channels of one recording.",
+             call. = FALSE)
+  }
+  if (is.list(x) || is.list(y)) {
+    return(cp_xspec_epochs(x, y, group, sfreq, segments, tapers, smooth,
+                           window, frange))
+  }
   if (is.matrix(x) || is.matrix(y)) {
     if (!is.matrix(x) || !is.matrix(y) || !identical(dim(x), dim(y))) {
       frm_stop("`x` and `y` must both be matrices of the same dimensions ",
                "when either is a matrix; their columns are the units.",
+               call. = FALSE)
+    }
+    if (!is.null(group)) {
+      frm_stop("`group` is for a vector pair or a list of epochs. The ",
+               "columns of a matrix pair are already the units.",
                call. = FALSE)
     }
     ids <- colnames(x)
@@ -250,6 +300,102 @@ frm_cross_spectrum <- function(x, y, sfreq = 1, segments = 8L, tapers = 1L,
     frm_stop("`x` and `y` must have the same length; they are ", length(x),
              " and ", length(y), ".", call. = FALSE)
   }
+  if (!is.null(group)) {
+    # frmtmb::frm_periodogram(group = )'s reading: one label per sample,
+    # and each label one record of its own
+    if (length(group) != length(x)) {
+      frm_stop("`group` must have one label per sample of the vector ",
+               "pair: it has length ", length(group), " and `x` has ",
+               length(x), ".", call. = FALSE)
+    }
+    if (anyNA(group)) {
+      frm_stop("`group` has NA, and the samples it labels would belong to ",
+               "no record. A sample the record does not have is NA in `x` ",
+               "or `y`, not in `group`.", call. = FALSE)
+    }
+    g <- factor(as.character(group), levels = unique(as.character(group)))
+    return(cp_xspec_epochs(unname(split(x, g)), unname(split(y, g)),
+                           levels(g), sfreq, segments, tapers, smooth,
+                           window, frange))
+  }
+  cp_xspec_record(list(x), list(y), sfreq, segments, tapers, smooth,
+                  window, frange)
+}
+
+#' A list pair of epochs, grouped into units.
+#'
+#' The epochs of one unit are pooled the way the clean spans of one
+#' record are: the segment length comes from the unit's whole usable
+#' sample count, and segments are laid inside each epoch, so no
+#' transform crosses the boundary between two epochs.
+#'
+#' @noRd
+cp_xspec_epochs <- function(x, y, group, sfreq, segments, tapers, smooth,
+                            window, frange) {
+  if (!is.list(x) || !is.list(y)) {
+    frm_stop("`x` and `y` must both be lists of epochs when either is.",
+             call. = FALSE)
+  }
+  k <- length(x)
+  if (!k || k != length(y)) {
+    frm_stop("`x` and `y` must hold the same number of epochs, at least ",
+             "one; they hold ", length(x), " and ", length(y), ".",
+             call. = FALSE)
+  }
+  nx <- names(x)
+  ny <- names(y)
+  if (!is.null(nx) && !is.null(ny) && !identical(nx, ny)) {
+    i <- which(nx != ny)[1L]
+    frm_stop("`x` and `y` name their epochs differently, so the pairing ",
+             "is ambiguous: epoch ", i, " is \"", nx[i], "\" in `x` and \"",
+             ny[i], "\" in `y`.", call. = FALSE)
+  }
+  for (i in seq_len(k)) {
+    if (is.list(x[[i]]) || is.list(y[[i]]) || is.matrix(x[[i]]) ||
+          is.matrix(y[[i]])) {
+      frm_stop("epoch ", i, " of `x` or `y` is not a vector. Each epoch ",
+               "is one numeric vector per signal.", call. = FALSE)
+    }
+    x[[i]] <- cp_series(x[[i]], paste0("x[[", i, "]]"))
+    y[[i]] <- cp_series(y[[i]], paste0("y[[", i, "]]"))
+    if (length(x[[i]]) != length(y[[i]])) {
+      frm_stop("epoch ", i, " has ", length(x[[i]]), " samples in `x` ",
+               "and ", length(y[[i]]), " in `y`. The two signals of one ",
+               "epoch are recorded together and must have the same length.",
+               call. = FALSE)
+    }
+  }
+  if (is.null(group)) {
+    nm <- if (is.null(nx)) ny else nx
+    group <- if (is.null(nm)) as.character(seq_len(k)) else nm
+  }
+  if (length(group) != k) {
+    frm_stop("`group` must have one label per epoch: it has length ",
+             length(group), " and there are ", k, " epochs.", call. = FALSE)
+  }
+  if (anyNA(group)) {
+    frm_stop("`group` has NA, and the epochs it labels would belong to no ",
+             "unit.", call. = FALSE)
+  }
+  ids <- unique(as.character(group))
+  out <- lapply(ids, function(u) {
+    j <- which(as.character(group) == u)
+    d <- cp_xspec_record(x[j], y[j], sfreq, segments, tapers, smooth,
+                         window, frange)
+    cbind(id = factor(u, levels = ids), d)
+  })
+  out <- do.call(rbind, out)
+  rownames(out) <- NULL
+  out
+}
+
+#' One unit's cross-spectrum, from one or more epochs.
+#'
+#' @noRd
+cp_xspec_record <- function(ex, ey, sfreq, segments, tapers, smooth, window,
+                            frange) {
+  x <- unlist(ex, use.names = FALSE)
+  y <- unlist(ey, use.names = FALSE)
   if (!is.numeric(sfreq) || length(sfreq) != 1L || !is.finite(sfreq) ||
         sfreq <= 0) {
     frm_stop("`sfreq` must be one positive finite number.", call. = FALSE)
@@ -273,7 +419,16 @@ frm_cross_spectrum <- function(x, y, sfreq = 1, segments = 8L, tapers = 1L,
   }
   ## Gaps first, because the segment length is a property of the samples
   ## that survive rather than of the record's nominal length.
-  sp <- cp_spans(!is.na(x) & !is.na(y))
+  ok <- !is.na(x) & !is.na(y)
+  # spans are found inside each epoch and never across two of them; one
+  # epoch is the unchanged single-record case
+  off <- cumsum(c(0L, lengths(ex)))
+  per <- lapply(seq_along(ex), function(i) {
+    s <- cp_spans(ok[seq.int(off[i] + 1L, length.out = off[i + 1L] - off[i])])
+    list(start = s[["start"]] + off[i], len = s[["len"]])
+  })
+  sp <- list(start = as.integer(unlist(lapply(per, `[[`, "start"))),
+             len = as.integer(unlist(lapply(per, `[[`, "len"))))
   usable <- sum(sp[["len"]])
   if (usable < 4L) {
     frm_stop("`x` and `y` have ", usable, " samples that are recorded in ",

@@ -1,0 +1,30 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3
+frmtmb.spline 0.7.0 from C:/Users/adf44/source/r/rellib-r3
+
+== n_nodeath 5 ==
+seed 20260910  min slope  -0.2852  centres<=0 5  n_nonmonotone 0  n_nonmonotone_censored NA  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: -0.2852 -0.2378 -0.2378 -0.2127 -0.2127  rows flagged NA  equal to the no-death rows NA  max abs gradient 2.74e-05  convergence 0 
+seed 20260911  min slope  -0.2583  centres<=0 5  n_nonmonotone 0  n_nonmonotone_censored NA  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: -0.2583 -0.2287 -0.2287 -0.2287 -0.1980  rows flagged NA  equal to the no-death rows NA  max abs gradient 6.36e-05  convergence 0 
+seed 20260912  min slope  -0.3056  centres<=0 5  n_nonmonotone 0  n_nonmonotone_censored NA  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: -0.3056 -0.3056 -0.2608 -0.2373 -0.1880  rows flagged NA  equal to the no-death rows NA  max abs gradient 1.49e-04  convergence 0 
+seed 20260913  min slope   0.1418  centres<=0 0  n_nonmonotone 0  n_nonmonotone_censored NA  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: none  rows flagged NA  equal to the no-death rows NA  max abs gradient 3.60e-07  convergence 0 
+seed 20260914  min slope  -0.2785  centres<=0 5  n_nonmonotone 0  n_nonmonotone_censored NA  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: -0.2785 -0.2785 -0.2547 -0.1773 -0.1773  rows flagged NA  equal to the no-death rows NA  max abs gradient 2.12e-05  convergence 0 
+seed 20260915  min slope   0.2106  centres<=0 0  n_nonmonotone 0  n_nonmonotone_censored NA  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: none  rows flagged NA  equal to the no-death rows NA  max abs gradient 2.20e-05  convergence 0 
+
+== n_nodeath 0 ==
+seed 20260910  min slope   0.0716  centres<=0 0  n_nonmonotone 0  n_nonmonotone_censored NA  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: none  rows flagged NA  equal to the no-death rows NA  max abs gradient 3.24e-06  convergence 0 
+seed 20260911  min slope   0.0375  centres<=0 0  n_nonmonotone 0  n_nonmonotone_censored NA  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: none  rows flagged NA  equal to the no-death rows NA  max abs gradient 3.43e-04  convergence 0 
+seed 20260912  min slope   0.0817  centres<=0 0  n_nonmonotone 0  n_nonmonotone_censored NA  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: none  rows flagged NA  equal to the no-death rows NA  max abs gradient 7.98e-05  convergence 0 
+seed 20260913  min slope   0.2493  centres<=0 0  n_nonmonotone 0  n_nonmonotone_censored NA  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: none  rows flagged NA  equal to the no-death rows NA  max abs gradient 2.13e-05  convergence 0 
+seed 20260914  min slope   0.1109  centres<=0 0  n_nonmonotone 0  n_nonmonotone_censored NA  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: none  rows flagged NA  equal to the no-death rows NA  max abs gradient 2.69e-04  convergence 0 
+seed 20260915  min slope   0.4286  centres<=0 0  n_nonmonotone 0  n_nonmonotone_censored NA  refuses no  frm_curve refuses no  fit-end warnings 0
+  slopes <= 0: none  rows flagged NA  equal to the no-death rows NA  max abs gradient 2.19e-05  convergence 0 

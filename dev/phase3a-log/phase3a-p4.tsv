@@ -1,0 +1,43 @@
+arm	file	test	nb	passed	failed	error	skipped	warning
+lane	test-records.R	records split into observations and the events grammar	4	4	0	FALSE	FALSE	0
+lane	test-records.R	the split events give the hand-written schedule's trajectory	2	2	0	FALSE	FALSE	0
+lane	test-records.R	an rxode2::et() table expands to rxode2's own doses	4	4	0	FALSE	FALSE	0
+lane	test-records.R	column names match without regard to case	4	4	0	FALSE	FALSE	0
+lane	test-records.R	mdv is read only to check it	3	3	0	FALSE	FALSE	0
+lane	test-records.R	a pre-dose sample passes and a post-dose one is refused	5	5	0	FALSE	FALSE	0
+lane	test-records.R	a reset inside a running infusion is refused	8	8	0	FALSE	FALSE	0
+lane	test-records.R	rxode2's replace and multiply codes, and doses of unseen ids	3	3	0	FALSE	FALSE	0
+lane	test-records.R	each record the split cannot carry is refused by name	58	58	0	FALSE	FALSE	0
+lane	test-records.R	an order-dependent event sharing a time is refused	14	14	0	FALSE	FALSE	0
+lane	test-records.R	an addl repeat is an event at its own time	6	6	0	FALSE	FALSE	0
+lane	test-records.R	a sample at a steady-state record's time is refused	2	2	0	FALSE	FALSE	0
+lane	test-records.R	items an event reads are refused on a record that does not	22	22	0	FALSE	FALSE	0
+lane	test-records.R	records out of order within or across ids are refused	4	4	0	FALSE	FALSE	0
+lane	test-records.R	dose-modifier column names are refused, covariates pass	19	19	0	FALSE	FALSE	0
+lane	test-records.R	a table whose every dose is dropped says so	2	2	0	FALSE	FALSE	0
+lane	test-records.R	an item set to NULL while its column exists is refused	23	23	0	FALSE	FALSE	0
+lane	test-records.R	F0 and FO pass alike, and a bioavailability Fn is refused	4	4	0	FALSE	FALSE	0
+lane	test-records.R	censoring columns of an observation are refused	8	8	0	FALSE	FALSE	0
+lane	test-records.R	a repeat time that differs only in floating point is caught	4	4	0	FALSE	FALSE	0
+lane	test-records.R	the same-time tolerance follows rounding, not the time scale	5	2	3	FALSE	FALSE	0
+lane	test-records.R	records split into observations and the events grammar	4	4	0	FALSE	FALSE	0
+lane	test-records.R	the split events give the hand-written schedule's trajectory	2	2	0	FALSE	FALSE	0
+lane	test-records.R	an rxode2::et() table expands to rxode2's own doses	4	4	0	FALSE	FALSE	0
+lane	test-records.R	column names match without regard to case	4	4	0	FALSE	FALSE	0
+lane	test-records.R	mdv is read only to check it	3	3	0	FALSE	FALSE	0
+lane	test-records.R	a pre-dose sample passes and a post-dose one is refused	5	5	0	FALSE	FALSE	0
+lane	test-records.R	a reset inside a running infusion is refused	8	8	0	FALSE	FALSE	0
+lane	test-records.R	rxode2's replace and multiply codes, and doses of unseen ids	3	3	0	FALSE	FALSE	0
+lane	test-records.R	each record the split cannot carry is refused by name	58	58	0	FALSE	FALSE	0
+lane	test-records.R	an order-dependent event sharing a time is refused	14	14	0	FALSE	FALSE	0
+lane	test-records.R	an addl repeat is an event at its own time	6	6	0	FALSE	FALSE	0
+lane	test-records.R	a sample at a steady-state record's time is refused	2	2	0	FALSE	FALSE	0
+lane	test-records.R	items an event reads are refused on a record that does not	22	22	0	FALSE	FALSE	0
+lane	test-records.R	records out of order within or across ids are refused	4	4	0	FALSE	FALSE	0
+lane	test-records.R	dose-modifier column names are refused, covariates pass	19	19	0	FALSE	FALSE	0
+lane	test-records.R	a table whose every dose is dropped says so	2	2	0	FALSE	FALSE	0
+lane	test-records.R	an item set to NULL while its column exists is refused	23	23	0	FALSE	FALSE	0
+lane	test-records.R	F0 and FO pass alike, and a bioavailability Fn is refused	4	4	0	FALSE	FALSE	0
+lane	test-records.R	censoring columns of an observation are refused	8	8	0	FALSE	FALSE	0
+lane	test-records.R	a repeat time that differs only in floating point is caught	4	4	0	FALSE	FALSE	0
+lane	test-records.R	the same-time tolerance follows rounding, not the time scale	5	5	0	FALSE	FALSE	0

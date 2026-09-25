@@ -1,3 +1,18 @@
+# frmtmb.coupling (development version)
+
+* `frm_cross_spectrum()` takes two lists of epochs of unequal length,
+  with `group` naming the unit each epoch belongs to. A unit's epochs are
+  read as the clean spans of one record, so no transform crosses from
+  one epoch into the next. A vector pair takes `group` too, one label per
+  sample, the way `frmtmb::frm_periodogram()` does.
+* New `frm_cross_pairs()` runs `frm_cross_spectrum()` on every pair of
+  channels of one recording and stacks the results with a `pair`
+  factor, so that `coh ~ 1 + (1 | pair)` and `s(freq, by = pair)` put
+  all the pairs in one model. The vignette has a section on it.
+* A data frame passed as `x` or `y` to `frm_cross_spectrum()` is now
+  refused by name. It used to fail inside the numeric check with a
+  message about a non-empty numeric vector.
+
 # frmtmb.coupling 0.5.0
 
 * `frm_coherence()` and `frm_phase()` read `frmtmb::frm_linpred()`

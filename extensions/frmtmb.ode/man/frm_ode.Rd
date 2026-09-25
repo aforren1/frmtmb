@@ -324,8 +324,8 @@ in the table does not matter.
 
 \code{frm_ode()} does not read NONMEM column names, and there is no \code{evid}
 column: observation rows are the rows of \code{data}, and dose rows are
-the rows of \code{events}, which is a separate table. A NONMEM-shaped
-dataset has to be split into the two.
+the rows of \code{events}, which is a separate table. \code{\link[=frm_ode_records]{frm_ode_records()}}
+splits a NONMEM-shaped dataset into the two.
 
 An observation at exactly a dose time reads the state \strong{before} the
 dose, which is the trough, matching both the \pkg{deSolve} convention

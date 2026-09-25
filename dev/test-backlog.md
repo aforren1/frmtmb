@@ -853,6 +853,33 @@ neither is the defect that lane fixed.
   poisson entry because they share one mechanism: a start that is
   right on the predictor scale and too large on the parameter scale.
 
+## Recorded by the phase-3a lane (wt-phase3a), 2026-09-24
+
+- **frmtmb.spline: a penalty on negative hazards, as rstpm2 has.** Since
+  the user decision of 2026-09-24, `rp_floored()` refuses a
+  non-positive `d(eta)/d(log t)` on an EVENT row and only warns on a
+  CENSORED row, which is where a cure-fraction design with
+  `gamma1 ~ arm` puts it: 27 of 80 such fits flag rows past an arm's
+  last event, with the fitted survival rising by 5.2e-04 to 0.13
+  (`dev/phase3a-findings.md`). rstpm2 prevents the rise during the fit
+  instead, with an adaptive quadratic penalty on negative hazards
+  (`kappa.init = 1`, raised up to `maxkappa = 1000`). A comparable
+  option on `royston_parmar()` would remove the warning at its source,
+  at the price of a penalized likelihood that `logLik()` would have to
+  report as such. Not started; the size of the change to the density
+  and to `logLik()` is the first thing to measure.
+- **frmtmb.spline: `frm_curve(dpar = "mu")` refuses on a
+  `gamma1 ~ x` fit.** On the cure design above (seed 20260932,
+  `df = 4`), `frm_curve(fit, dpar = "mu")` stops with "the assembled
+  covariance of this grid disagrees with frm_linpred(se.fit = TRUE) by 1
+  relative", on the released 0.7.0 build as well. On that one fit
+  `dpar = "gamma1"` answers, and `dpar = "mu"` on a proportional-hazards
+  fit of the same data answers; but on the reviewer's cure design
+  `dpar = "gamma1"` refuses too, on 3 of 4 fits, identically on the
+  released build. So the refusal reaches both dpars of a fit with a
+  covariate on `gamma1`. It refuses rather than answering wrong, so it
+  is filed rather than fixed; the cause is not yet known.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

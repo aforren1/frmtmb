@@ -1,0 +1,10 @@
+* checking for file 'C:/Users/adf44/source/r/frmtmb-wt-phase3a/extensions/frmtmb.ode/DESCRIPTION' ... OK
+* preparing 'frmtmb.ode':
+* checking DESCRIPTION meta-information ... OK
+* installing the package (it is needed to build vignettes)
+* creating vignettes ... OK
+* checking for LF line-endings in source and make files and shell scripts
+* checking for empty or unneeded directories
+Removed empty directory 'frmtmb.ode/tests/testthat/_snaps'
+* building 'frmtmb.ode_0.6.0.tar.gz'
+

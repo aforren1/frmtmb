@@ -2,6 +2,7 @@
 
 export(cross_wishart)
 export(frm_coherence)
+export(frm_cross_pairs)
 export(frm_cross_simulate)
 export(frm_cross_spectrum)
 export(frm_phase)

@@ -1,0 +1,8 @@
+draws 183062
+error in eps * max(|t0|, k ii): max 1.958, 99.99% 1.827, median 0.000
+share above 1: 0.0096; above 2: 0.0000
+margin of the 64-eps bound over the worst draw: 32.7x
+|t| = 1        tolerance 1.42e-14
+|t| = 1000     tolerance 1.42e-11
+|t| = 1e+07    tolerance 1.42e-07
+|t| = 1.7e+09  tolerance 2.42e-05

@@ -1,0 +1,34 @@
+
+R version 4.6.1 (2026-06-24 ucrt) -- "Happy Hop"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-w64-mingw32/x64
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(testthat)
+> library(frmtmb.spline)
+Loading required package: frmtmb
+> 
+> test_check("frmtmb.spline")
+[ FAIL 0 | WARN 0 | SKIP 3 | PASS 483 ]
+
+══ Skipped tests (3) ═══════════════════════════════════════════════════════════
+• package sources are not available (installed-package run) (2):
+  'test-conditions-census.R:294:3', 'test-message-uniqueness.R:32:3'
+• set FRMTMB_SCALE_TESTS=true to run the scale tier (1): 'test-scale.R:43:3'
+
+[ FAIL 0 | WARN 0 | SKIP 3 | PASS 483 ]
+> 
+> proc.time()
+   user  system elapsed 
+ 124.32   17.01  221.67 

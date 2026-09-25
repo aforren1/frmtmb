@@ -1,0 +1,10 @@
+arm	file	test	nb	passed	failed	error	skipped	warning
+lane	test-records.R	records split into observations and the events grammar	4	4	0	FALSE	FALSE	0
+lane	test-records.R	the split events give the hand-written schedule's trajectory	2	2	0	FALSE	FALSE	0
+lane	test-records.R	an rxode2::et() table expands to rxode2's own doses	4	4	0	FALSE	FALSE	0
+lane	test-records.R	column names match without regard to case	4	4	0	FALSE	FALSE	0
+lane	test-records.R	mdv is read only to check it	2	2	0	FALSE	FALSE	0
+lane	test-records.R	a pre-dose sample passes and a post-dose one is refused	3	3	0	FALSE	FALSE	0
+lane	test-records.R	a reset inside a running infusion is refused	5	5	0	FALSE	FALSE	0
+lane	test-records.R	rxode2's replace and multiply codes, and doses of unseen ids	2	2	0	FALSE	FALSE	0
+lane	test-records.R	each record the split cannot carry is refused by name	29	29	0	FALSE	FALSE	0

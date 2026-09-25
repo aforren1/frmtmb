@@ -1,0 +1,10 @@
+frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3
+frmtmb.ode 0.6.0 from C:/Users/adf44/source/r/rellib-r3
+scale: S
+
+══ Skipped ═════════════════════════════════════════════════════════════════════
+1. the ode scale row fits and reports its cost ('test-scale.R:101:3') - Reason: set FRMTMB_SCALE_TESTS=true to run the scale tier
+
+══ DONE ════════════════════════════════════════════════════════════════════════
+
+FILE test-scale.R ARM base TESTS 1 PASS 0 FAIL 0 ERROR 0 SKIP 1 WARN 0 
