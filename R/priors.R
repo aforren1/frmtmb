@@ -51,7 +51,7 @@
 #'   one response with `resp`. See Residual correlation below.
 #' - `"rescor"`: the residual correlation BETWEEN responses of a
 #'   multivariate model (`set_rescor(TRUE)`), as a whole. `lkj(eta)`
-#'   only, as brms spells it.
+#'   only, as brms spells it, and no `resp`.
 #' - `"theta"`: raw internal covariance parameters (escape hatch).
 #'   `coef` names one by its internal name and spans all three
 #'   covariance components: `"theta_2"` for a random-effect block,
@@ -65,6 +65,29 @@
 #'   applied, so `set_prior("student_t(3, 0, 2.5)", class = "sigma")`
 #'   means what it says. Available where the parameter has no predictor
 #'   of its own; see A distributional parameter's own class.
+#'
+#' In a MULTIVARIATE model, every specification of class `"b"`,
+#' `"Intercept"`, `"sd"`, `"ar"`, `"ma"`, `"cosy"` or `"cortime"`, and
+#' every distributional parameter's own class, names its response with
+#' `resp`. A specification without `resp` is refused, as brms refuses
+#' it: write one specification per response. Classes `"rescor"` and
+#' `"theta"` take no `resp`, and `"cor"` needs none. On a model with ONE
+#' response, `resp` is refused, as in brms.
+#'
+#' Two spellings are frmtmb's own, and brms refuses both: `"cor"` with
+#' `resp`, which narrows the prior to that response's blocks, and
+#' `"Intercept"` with `nlpar`, which addresses the intercept of one
+#' nonlinear parameter (see Nonlinear parameters). A class `"b"`
+#' specification that reaches no coefficient, because the predictor it
+#' names has no population-level slope (`y ~ 1`), is refused, as in
+#' brms. In the same way, a class
+#' `"b"` or `"Intercept"` specification on a NONLINEAR location names
+#' its nonlinear parameter with `nlpar`; see Nonlinear parameters.
+#' And where a family's location is SEVERAL distributional parameters,
+#' as in [categorical()], [multinomial()] and [mixture()], a class
+#' `"b"`, `"Intercept"` or `"sd"` specification names one of them with
+#' `dpar` (`"mub"`, `"mu1"`), and [default_prior()] lists the rows that
+#' way, as brms does.
 #'
 #' Two specifications for the same slot (the same class, coef, group,
 #' resp, dpar and nlpar) are refused wherever a prior is passed in, as
@@ -221,8 +244,16 @@
 #' than on nothing. Narrow to one column with `coef` (`"Intercept"` and
 #' `"(Intercept)"` both name the intercept), or write
 #' `class = "Intercept", nlpar = "ult"`, which is frmtmb's spelling of
-#' the same slot. `nlpar` narrows classes `"sd"` and `"cor"` to the
-#' random-effect blocks of that parameter as well.
+#' the same slot; brms does not take that spelling. `nlpar` narrows
+#' classes `"sd"` and `"cor"` to the random-effect blocks of that
+#' parameter as well.
+#'
+#' A class `"b"` or `"Intercept"` specification without `nlpar` does not
+#' reach a nonlinear parameter. On a model whose location is nonlinear,
+#' such a specification addresses no parameter, and it is refused, as
+#' in brms. A distributional parameter keeps its own spelling there:
+#' `set_prior("student_t(3, 0, 2.5)", class = "sigma")` needs no
+#' `nlpar`.
 #'
 #' A prior with a location places [frm()]'s `start` for a nonlinear
 #' parameter. `normal()`, `student_t()` and `cauchy()` all carry one,
@@ -233,11 +264,9 @@
 #' model still needs `start`, because `frm()` evaluates the objective
 #' AT the starting values; [par_template()] names them.
 #'
-#' `resp` picks one response of a multivariate model; the default
-#' priors of `frmtmb.sample::frm_sample()` still stay off there (see
-#' its Default priors section), so a multivariate model's priors are the
-#' ones
-#' written by hand.
+#' `resp` picks one response of a multivariate model, and a nonlinear
+#' parameter of one response is addressed with both `resp` and
+#' `nlpar`.
 #'
 #' @section Translating a brms prior:
 #' `frm(prior = )` takes a `brmsprior` object directly, whether it came
@@ -310,10 +339,8 @@
 #'
 #' A distributional class names ONE parameter, so it takes `resp` and
 #' neither `coef` nor `group`; both are refused rather than dropped.
-#' Written without `resp` on a multivariate model it applies to every
-#' response, which is frmtmb's convention for a class-wide prior and
-#' one of the few rows brms refuses where frmtmb accepts (brms asks for
-#' `resp`).
+#' On a multivariate model it needs `resp`, as it does in brms: without
+#' it, the specification is refused.
 #'
 #' [get_prior()] lists whichever of the two spellings a model offers.
 #' Where a parameter has NEITHER, because frmtmb refuses its class by
@@ -331,7 +358,9 @@
 #'   own class.
 #' @param coef Restrict to one coefficient (classes `"b"`/`"Intercept"`).
 #' @param group Restrict class `"sd"` or `"cor"` to one grouping factor.
-#' @param resp Response of a multivariate model.
+#' @param resp Response of a multivariate model. Required there for
+#'   every class except `"cor"`, `"rescor"` and `"theta"`; refused on a
+#'   model with one response and on class `"rescor"`.
 #' @param dpar Distributional parameter (default: the location
 #'   parameters).
 #' @param nlpar Nonlinear parameter of an `nl = TRUE` formula. See
@@ -1351,10 +1380,13 @@ priorlist_from_rows <- function(x, what) {
 #' its alias since 2.20.14: one row per slot a prior can target, with
 #' the class/coef/dpar/group values to pass to [set_prior()]. Classes
 #' `"sd"` and `"cor"` are targeted by `group` and `nlpar`; the
-#' residual-correlation classes (`"ar"`, `"ma"`, `"cosy"`, `"cortime"`,
-#' `"rescor"`) by `resp`; and class `"theta"` rows name the raw internal
-#' covariance parameters (escape hatch, including correlations one at a
-#' time, across all three covariance components).
+#' residual-correlation classes (`"ar"`, `"ma"`, `"cosy"`, `"cortime"`)
+#' by `resp`; class `"rescor"` has one row and takes no `resp`; and
+#' class `"theta"` rows name the raw internal covariance parameters
+#' (escape hatch, including correlations one at a time, across all
+#' three covariance components). Where the location is several
+#' distributional parameters (a categorical or mixture model), each
+#' one's `b`, `Intercept` and `sd` rows carry its `dpar`, as in brms.
 #'
 #' A nonlinear parameter's coefficients are listed under class `"b"`
 #' with its name in the `nlpar` column, the intercept among them, which
@@ -1558,7 +1590,9 @@ fill_prior_table <- function(tab, pl) {
   cols <- c("class", "coef", "group", "resp", "dpar", "nlpar")
   bare <- function(v) par_name_bare(v)
   # which rows a specification's resp, dpar and nlpar reach, read the
-  # way the resolver reads them: no resp means every response, and a
+  # way the resolver reads them. No resp means every response; in a
+  # multivariate model only a class with no response key gets that far,
+  # because resp_missing_refusal() stops the others. A
   # class cor specification with no dpar or nlpar reaches the blocks of
   # every predictor. A class sd one reaches its own prefix only, as in
   # brms (sd_spec_reach())
@@ -1683,7 +1717,7 @@ prior_table <- function(spec, frame, route) {
     rspec <- spec$responses[[lp[["resp"]]]]
     # location dpars are the default target (dpar = ""), matching
     # set_prior()'s resolution
-    dpar_lab <- if (lp[["dpar"]] %in% rspec$primary_dpars) "" else lp[["dpar"]]
+    dpar_lab <- lp_prior_dpar(rspec, lp[["dpar"]])
     resp_lab <- if (multi) lp[["resp"]] else ""
     nl_lab <- if (lp[["dpar"]] %in% (rspec$nlpars %||% character(0))) {
       lp[["dpar"]]
@@ -1707,7 +1741,8 @@ prior_table <- function(spec, frame, route) {
     # a distributional parameter with no predictor of its own is
     # addressed by its own class, on its own scale: brms lists the same
     # row, and set_prior() refuses the link-scale spelling there
-    if (nzchar(dpar_lab) && !dpar_has_predictor(spec, lp)) {
+    if (nzchar(dpar_lab) && !lp[["dpar"]] %in% rspec$primary_dpars &&
+          !dpar_has_predictor(spec, lp)) {
       # unless the class is one this package refuses BY NAME. A mixture
       # proportion is a predictor-free dpar whose word collides with
       # frmtmb's own "theta", so `set_prior()` refuses it and points at
@@ -1729,7 +1764,10 @@ prior_table <- function(spec, frame, route) {
       # it does in brms
       add("Intercept", resp = resp_lab)
     }
-    others <- setdiff(cn, "(Intercept)")
+    # cs() terms are class "b" rows under their own coef, as brms lists
+    # them; the resolver reaches them through the same class
+    others <- c(setdiff(cn, "(Intercept)"),
+                vapply(lp[["cs"]] %||% list(), cs_term_coef, ""))
     if (length(others)) {
       add("b", dpar = dpar_lab, resp = resp_lab)
       for (co in others) {
@@ -1839,6 +1877,63 @@ as.data.frame.frmtmb_prior_rows <- function(x, row.names = NULL,
   as.data.frame(x, row.names = row.names, optional = optional, ...)
 }
 
+#' The coef name brms gives a cs() term's row: the term with its `cs`
+#' prefix dropped, spelled as brms spells a column name (`cs(x)` is
+#' `"x"`).
+#'
+#' @noRd
+cs_term_coef <- function(ct) {
+  brms_rename(sub("^cs", "", ct[["label"]]))
+}
+
+#' Whether a response's location is several distributional parameters,
+#' each with its own prior rows.
+#'
+#' brms names them (`mub`, `muc` for a categorical response; `mu1`,
+#' `mu2` for a mixture) and lists every `b`, `Intercept` and `sd` row
+#' under that `dpar`, never under an empty one (dev/mvprior-log/
+#' brms-probe.txt, cases cat, mix, catre, mixre). A categorical or
+#' multinomial response keeps that naming with ONE non-reference
+#' category, as brms does. Every other family with several location
+#' dpars (the latent-class, hidden Markov, mixture_mvn() and
+#' accumulator families) follows the same rule, which is frmtmb's for
+#' families brms does not have: a prior with no dpar does not say which
+#' location it means.
+#'
+#' @noRd
+multi_location <- function(rspec) {
+  fam <- rspec$family
+  loc <- setdiff(rspec$primary_dpars, rspec$nlpars %||% character(0))
+  length(loc) > 1L || !is.null(fam[["mix"]]) ||
+    isTRUE(fam[["family"]] %in% c("categorical", "multinomial"))
+}
+
+#' Whether brms has this several-location family, so a refusal may say
+#' "as in brms" rather than name frmtmb's own rule.
+#'
+#' @noRd
+brms_multi_location <- function(rspec) {
+  fam <- rspec$family
+  fn <- fam[["family"]] %||% ""
+  fn %in% c("categorical", "multinomial") ||
+    (startsWith(fn, "mixture(") && !is.null(fam[["mix"]]) &&
+       !identical(fam[["mix"]][["type"]], "categorical"))
+}
+
+#' The `dpar` a linear predictor's prior rows carry, brms's label: `""`
+#' for the location parameter of a family that has one, and for a
+#' nonlinear parameter (which is addressed by `nlpar`); the parameter's
+#' own name otherwise. `primary_dpars` alone is not the location,
+#' because it also holds the nonlinear parameters REML integrates and
+#' every location of a family that has several.
+#'
+#' @noRd
+lp_prior_dpar <- function(rspec, dp) {
+  if (dp %in% (rspec$nlpars %||% character(0))) return("")
+  if (dp %in% rspec$primary_dpars && !multi_location(rspec)) return("")
+  dp
+}
+
 #' The linear predictors a random-effect block draws its columns from.
 #' A block merges the components that share an `|ID|` key, and those can
 #' come from different predictors, so this is a set rather than one
@@ -1868,17 +1963,16 @@ block_nlpar <- function(spec, frame, bk) {
 }
 
 #' The distributional parameter a block belongs to, or `""` for the
-#' location parameters, a nonlinear parameter, and a block that
-#' straddles several. brms lists a block of `phi ~ (1 | g)` as class
-#' `"sd"` with `dpar = "phi"`, and without the column two blocks on the
-#' same factor in different predictors printed as one row.
+#' location parameter of a family that has one, a nonlinear parameter,
+#' and a block that straddles several. brms lists a block of
+#' `phi ~ (1 | g)` as class `"sd"` with `dpar = "phi"`, and without the
+#' column two blocks on the same factor in different predictors printed
+#' as one row.
 #'
 #' @noRd
 block_dpar <- function(spec, frame, bk) {
   dp <- unique(vapply(block_linpreds(frame, bk), function(lp) {
-    rspec <- spec$responses[[lp[["resp"]]]]
-    nl <- rspec$nlpars %||% character(0)
-    if (lp[["dpar"]] %in% c(rspec$primary_dpars, nl)) "" else lp[["dpar"]]
+    lp_prior_dpar(spec$responses[[lp[["resp"]]]], lp[["dpar"]])
   }, ""))
   if (length(dp) == 1L) dp else ""
 }
@@ -1938,7 +2032,7 @@ block_col_prefix <- function(spec, frame, bk) {
     cols <- cp[["offset"]] + seq_len(cp[["dim"]])
     cols <- cols[cols <= d]
     out$resp[cols] <- if (multi) lp[["resp"]] else ""
-    out$dpar[cols] <- if (dp %in% c(rspec$primary_dpars, nl)) "" else dp
+    out$dpar[cols] <- lp_prior_dpar(rspec, dp)
     out$nlpar[cols] <- if (dp %in% nl) dp else ""
   }
   out
@@ -1988,14 +2082,8 @@ sd_spec_reach <- function(spec, frame, bk, s) {
   if (nzchar(s$group) && !identical(bk[["group_name"]], s$group)) {
     return(none)
   }
-  multi <- length(spec$responses) > 1L
   want <- c(resp = s$resp %||% "", dpar = s$dpar %||% "",
             nlpar = s$nlpar %||% "")
-  # a univariate model's prefix has no response, and naming its one
-  # response is naming no response
-  if (!multi && want[["resp"]] %in% names(spec$responses)) {
-    want[["resp"]] <- ""
-  }
   eq <- sp$resp == want[["resp"]] & sp$dpar == want[["dpar"]] &
     sp$nlpar == want[["nlpar"]]
   spans <- nrow(unique(sp[, c("resp", "dpar", "nlpar")])) > 1L
@@ -2193,6 +2281,94 @@ check_prior_slots <- function(prior) {
 #' @noRd
 theta_components <- c("theta", "thetaac", "thetar")
 
+#' The classes whose prior rows brms keys by response in a multivariate
+#' model, so that a specification without `resp` names no row there.
+#' Class `"sd"` is keyed the same way and is resolved per standard
+#' deviation by `sd_spec_reach()`. Classes `"cor"` and `"rescor"` carry
+#' no prefix in brms, and `"theta"` is frmtmb's own.
+#'
+#' @noRd
+resp_keyed_prior_classes <- c("b", "Intercept", "ar", "ma", "cosy",
+                              "cortime")
+
+#' Why a specification with no `resp` cannot apply to this model, or
+#' `NULL`.
+#'
+#' brms 2.23.0 refuses a class `"b"`, `"Intercept"`, distributional
+#' parameter or residual-correlation prior with no `resp` in a
+#' multivariate model: its rows there are keyed by response, and an
+#' empty `resp` matches none of them (measured in
+#' dev/mvprior-log/brms-probe.txt). frmtmb applied such a specification
+#' to every response that had the slot, which gave a different model
+#' from the same call.
+#'
+#' @noRd
+resp_missing_refusal <- function(spec, frame, s) {
+  if (length(spec$responses) < 2L || nzchar(s$resp %||% "")) return(NULL)
+  if (!s$class %in% resp_keyed_prior_classes) return(NULL)
+  sp <- spec_spelling(s)
+  # the responses the same specification resolves on once it names
+  # them, found by resolving it: reading them off the default_prior()
+  # table offered calls the resolver then refused, and missed ones it
+  # accepts (a dpar the table did not list, class Intercept with nlpar)
+  design <- list(spec = spec, frame = frame)
+  resolves <- function(s1) {
+    one <- structure(list(s1), class = "frmtmb_priorlist")
+    !inherits(tryCatch(resolve_priorlist(design, one), error = identity),
+              "error")
+  }
+  # (resp, dpar) pairs. A response whose location is several dpars
+  # takes a location prior only with its dpar, so those are offered as
+  # well, one per location
+  cand <- list()
+  for (r in names(spec$responses)) {
+    s1 <- s
+    s1$resp <- r
+    if (resolves(s1)) {
+      cand[[length(cand) + 1L]] <- c(r, sp$dpar)
+      next
+    }
+    rspec <- spec$responses[[r]]
+    if (nzchar(sp$dpar) || nzchar(s$nlpar %||% "") ||
+          !s$class %in% c("b", "Intercept") || !multi_location(rspec)) {
+      next
+    }
+    locs <- setdiff(rspec$primary_dpars, rspec$nlpars %||% character(0))
+    for (dp in locs) {
+      s2 <- s1
+      s2$dpar <- dp
+      if (resolves(s2)) cand[[length(cand) + 1L]] <- c(r, dp)
+    }
+  }
+  arg <- function(rd) {
+    r <- rd[[1L]]
+    dp <- rd[[2L]]
+    paste0("set_prior(",
+           if (is.null(s$dist)) "\"\"" else
+             encodeString(s$prior %||% "", quote = "\""),
+           ", class = \"", sp$class, "\"",
+           if (nzchar(s$coef %||% "")) paste0(", coef = \"", s$coef, "\""),
+           if (nzchar(dp)) paste0(", dpar = \"", dp, "\""),
+           if (nzchar(s$nlpar %||% "")) paste0(", nlpar = \"", s$nlpar,
+                                               "\""),
+           ", resp = \"", r, "\"",
+           if (!is.na(s$lb)) paste0(", lb = ", format(s$lb)),
+           if (!is.na(s$ub)) paste0(", ub = ", format(s$ub)), ")")
+  }
+  rs <- cand
+  paste0("A prior with no resp names no parameter of a multivariate ",
+         "model (", spec_target(s), "). As in brms, class \"", sp$class,
+         "\" is addressed per response here, and a specification ",
+         "without resp reaches none of them. ",
+         if (length(rs)) {
+           paste0("Write one specification per slot this model has: ",
+                  paste(vapply(rs, arg, ""), collapse = " + "))
+         } else {
+           paste0("No response of this model has this slot; ",
+                  "default_prior() lists the ones it has")
+         })
+}
+
 #' Which component and positions a class `"theta"` specification names.
 #' An empty `coef` means the whole `theta` component, which is what the
 #' class has always meant; a `coef` is matched against the internal
@@ -2282,16 +2458,36 @@ resolve_priorlist <- function(fit, pl) {
                ". A distributional parameter is addressed with dpar =",
                call. = FALSE)
     }
+    nl_loc <- character(0)
+    multi_loc <- character(0)
+    loc_brms <- TRUE
     for (lp in frame[["linpreds"]]) {
       if (!is.null(lp[["constant"]]) || !is.null(lp[["nl_body"]])) next
       rspec <- fit$spec$responses[[lp[["resp"]]]]
       if (nzchar(s$resp %||% "") && !identical(lp[["resp"]], s$resp)) next
-      is_loc <- lp[["dpar"]] %in% rspec$primary_dpars
+      # primary_dpars carries the nonlinear parameters a nonlinear
+      # location is built from, because REML integrates them. For a
+      # prior they are not the location: brms keys their rows by nlpar
+      # and refuses a specification without it (brms-probe.txt, case nl)
+      is_nlpar <- lp[["dpar"]] %in% (rspec$nlpars %||% character(0))
+      is_prim <- lp[["dpar"]] %in% rspec$primary_dpars
+      # a location that is one of several is addressed by its dpar, as
+      # brms lists it; without one the specification used to reach all
+      is_loc <- is_prim && !is_nlpar &&
+        !nzchar(lp_prior_dpar(rspec, lp[["dpar"]]))
       if (want_np) {
         if (!identical(lp[["dpar"]], s$nlpar)) next
       } else if (nzchar(s$dpar)) {
         if (!identical(lp[["dpar"]], s$dpar)) next
-      } else if (!is_loc) next
+      } else if (!is_loc) {
+        if (is_nlpar && is_prim) {
+          nl_loc <- c(nl_loc, lp[["dpar"]])
+        } else if (is_prim) {
+          multi_loc <- c(multi_loc, lp[["dpar"]])
+          loc_brms <- loc_brms && brms_multi_location(rspec)
+        }
+        next
+      }
       cn <- colnames(lp[["X"]])
       pick <- if (s$class == "Intercept") {
         which(cn == "(Intercept)")
@@ -2331,6 +2527,74 @@ resolve_priorlist <- function(fit, pl) {
                                         link = lp[["link"]],
                                         center = ctr)
       }
+      # a cs() term's threshold-specific coefficients are class "b" in
+      # brms, under the term's own coef name: class "b" puts the density
+      # on every one of them (to_vector(bcs)), coef = "x" on the row of x
+      # (bcs[1]) (dev/mvprior-log/cs-brms.txt). They live in their own
+      # component, outside the design matrix, which is why class "b"
+      # used to miss them: nothing on ord ~ cs(x), the ordinary slopes
+      # only on ord ~ z + cs(x)
+      if (identical(s$class, "b") && !want_np) {
+        for (ct in lp[["cs"]] %||% list()) {
+          lab <- cs_term_coef(ct)
+          if (nzchar(s$coef) &&
+                !identical(par_name_bare(lab), par_name_bare(s$coef))) {
+            next
+          }
+          v <- frame[["par_template"]][[ct[["par"]]]]
+          cnm <- par_template_names(v, ct[["par"]])
+          for (k in seq_along(v)) {
+            out[[length(out) + 1L]] <- list(comp = ct[["par"]], idx = k,
+                                            name = cnm[k], link = NULL,
+                                            center = NULL)
+          }
+        }
+      }
+    }
+    if (!length(out) && length(nl_loc)) {
+      # before, class "b" here matched nothing and was silently dropped,
+      # and class "Intercept" or a coef reached every nonlinear
+      # parameter at once
+      frm_stop("Prior target not found (", spec_target(s), "): this ",
+               "model's location is nonlinear, and as in brms its ",
+               "coefficients are class = \"b\" with nlpar = one of ",
+               paste(unique(nl_loc), collapse = ", "), ", the intercept ",
+               "among them. A class \"Intercept\" or coef = \"Intercept\" ",
+               "prior names one nonlinear parameter's intercept with nlpar = ",
+               "as well; without it, it reaches none",
+               call. = FALSE)
+    }
+    if (!length(out) && length(multi_loc)) {
+      locs <- unique(multi_loc)
+      one <- length(locs) == 1L
+      frm_stop("Prior target not found (", spec_target(s), "): this ",
+               "model's location is ",
+               if (one) {
+                 paste0("the distributional parameter ", locs,
+                        ", and a class \"", s$class, "\" prior names it ",
+                        "with dpar = \"", locs, "\"")
+               } else {
+                 paste0("several distributional parameters, ",
+                        paste(locs, collapse = ", "), ", and a class \"",
+                        s$class, "\" prior names one of them with dpar =, ",
+                        "one specification per parameter")
+               },
+               if (loc_brms) ", as in brms" else
+                 paste0(". That is frmtmb's rule for a family whose ",
+                        "location is several distributional parameters"),
+               call. = FALSE)
+    }
+    if (!length(out) && identical(s$class, "b") && !nzchar(s$coef) &&
+          !want_np) {
+      # before, this matched nothing and was dropped without a word,
+      # while prior_summary() still listed it (user decision, 2026-09-24)
+      frm_stop("Prior target not found (", spec_target(s), "): the ",
+               if (nzchar(s$dpar)) paste0(s$dpar, " predictor") else
+                 "location predictor",
+               if (nzchar(s$resp %||% "")) paste0(" of response ", s$resp),
+               " has no population-level slope, so a class \"b\" prior ",
+               "reaches no parameter. brms refuses it too. A prior on the ",
+               "intercept is class = \"Intercept\"", call. = FALSE)
     }
     if (!length(out) &&
           (nzchar(s$coef) || s$class == "Intercept" || want_np ||
@@ -2425,6 +2689,15 @@ resolve_priorlist <- function(fit, pl) {
   # matrix held as the same row-normalized Cholesky a `us` block uses,
   # so the LKJ density and its Jacobian carry over unchanged.
   resolve_rescor <- function(s) {
+    # one correlation matrix across the responses, so a resp names a part
+    # of it that has no prior of its own; brms refuses it ("Lrescor_y1"),
+    # and 0.62.0 applied it to the whole matrix with the resp ignored
+    if (nzchar(s$resp %||% "")) {
+      frm_stop("class = \"rescor\" takes no resp: the residual ",
+               "correlation is one set of parameters across all responses, ",
+               "and lkj() is a density on the whole matrix. Drop resp = \"",
+               s$resp, "\", as brms requires", call. = FALSE)
+    }
     n_r <- length(frame[["par_template"]][["thetar"]] %||% numeric(0))
     if (!n_r) {
       frm_stop("No residual correlation matches ", spec_target(s),
@@ -2470,6 +2743,27 @@ resolve_priorlist <- function(fit, pl) {
   }
 
   for (s in prior_specificity_order(pl)) {
+    # before the shape gate: in a multivariate model that gate would
+    # judge the spelling against whichever response it met first
+    no_resp <- resp_missing_refusal(fit$spec, frame, s)
+    if (!is.null(no_resp)) frm_stop(no_resp, call. = FALSE)
+    if (length(fit$spec$responses) > 1L && nzchar(s$resp %||% "") &&
+          !s$resp %in% names(fit$spec$responses)) {
+      # said first, so that no later refusal describes a response that
+      # does not exist
+      frm_stop("Prior target not found (", spec_target(s), "): resp = \"",
+               s$resp, "\" names no response of this model. It has ",
+               paste(names(fit$spec$responses), collapse = ", "),
+               call. = FALSE)
+    }
+    if (length(fit$spec$responses) == 1L && nzchar(s$resp %||% "")) {
+      # brms keys a univariate model's rows by no response, so it refuses
+      # resp = "y" there ("b_y"); frmtmb applied it (user decision,
+      # 2026-09-24)
+      frm_stop("resp = \"", s$resp, "\" (", spec_target(s), "): resp ",
+               "applies only to a multivariate model, and this model has ",
+               "one response. Drop resp, as brms requires", call. = FALSE)
+    }
     bad_shape <- dpar_shape_refusal(fit, s)
     if (!is.null(bad_shape)) frm_stop(bad_shape, call. = FALSE)
     ord_th <- if (s$class == "Intercept") ordinal_threshold_entry(s)
@@ -2796,7 +3090,11 @@ dpar_shape_refusal <- function(fit, s) {
                     "here, so it has no coefficient of its own. Prior ",
                     "the parameters the body is written from instead"))
     }
-    pred <- dpar_has_predictor(fit$spec, lp)
+    # a location parameter always has the main formula, even when that
+    # formula is an intercept only, so it takes the Intercept spelling
+    pred <- lp[["dpar"]] %in%
+      fit$spec$responses[[lp[["resp"]]]]$primary_dpars ||
+      dpar_has_predictor(fit$spec, lp)
     link <- lp[["link"]]$name %||% "identity"
     # the third spelling brms decides by model shape. `dpar ~ 1` gives
     # the parameter a predictor, so it takes the Intercept spelling,

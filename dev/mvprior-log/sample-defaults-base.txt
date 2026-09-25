@@ -1,0 +1,35 @@
+arm base 
+== catre 
+                prior     class group resp dpar
+ student_t(3, 0, 2.5) Intercept                
+ student_t(3, 0, 2.5)        sd                
+ student_t(3, 0, 2.5)        sd     g          
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0, 2.5)
+  Intercept          student_t(3, 0, 2.5)
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+ 
+== mixre 
+                  prior     class group resp dpar
+ student_t(3, 1.2, 3.2) Intercept                
+   student_t(3, 0, 3.2)        sd                
+   student_t(3, 0, 3.2)        sd     g          
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1.2, 3.2)
+  Intercept          student_t(3, 1.2, 3.2)
+  sd                 student_t(3, 0, 3.2)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+ 
+== mvcat 
+                prior     class group resp dpar
+ student_t(3, 1, 2.5) Intercept         y1     
+ student_t(3, 0, 2.5)     sigma         y1     
+ student_t(3, 0, 2.5) Intercept        cat     
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  Intercept          student_t(3, 0, 2.5)
+  Intercept          student_t(3, 0, 2.5)
+  b                  (flat), as brms leaves slopes
+ 

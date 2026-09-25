@@ -1,0 +1,30 @@
+ARM base frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+
+== lca K=3, Y ~ x ==
+primary_dpars: theta1 theta2  mix slot: TRUE 
+default rows b/Intercept/sd: Intercept|||| ; b|||| ; b|x||| 
+  b                                  ACCEPT -> theta1_x theta2_x
+  Intercept                          ACCEPT -> theta1_(Intercept) theta2_(Intercept)
+  b dpar=theta1                      ACCEPT -> theta1_x
+  b dpar=theta2 coef=x               ACCEPT -> theta2_x
+  b lb=0 dpar=theta1                 ACCEPT -> 
+
+== hmm K=2 gaussian, y ~ x ==
+primary_dpars: mu1 mu2  mix slot: FALSE 
+default rows b/Intercept/sd: Intercept|||| ; b|||| ; b|x||| 
+  b                                  ACCEPT -> mu1_x mu2_x
+  Intercept                          ACCEPT -> mu1_(Intercept) mu2_(Intercept)
+  b dpar=mu1                         ACCEPT -> mu1_x
+
+== lba(3), rt | vint(choice) ~ x ==
+primary_dpars: v1 v2 v3  mix slot: FALSE 
+default rows b/Intercept/sd: Intercept|||| ; b|||| ; b|x||| 
+  b                                  ACCEPT -> v1_x v2_x v3_x
+  Intercept                          ACCEPT -> v1_(Intercept) v2_(Intercept) v3_(Intercept)
+
+== multinomial, Ym | trials(N) ~ x ==
+primary_dpars: mu2 mu3  mix slot: FALSE 
+default rows b/Intercept/sd: Intercept|||| ; b|||| ; b|x||| 
+  b                                  ACCEPT -> mu2_x mu3_x
+  b dpar=mu2                         ACCEPT -> mu2_x
+  Intercept dpar=mu3                 ACCEPT -> mu3_(Intercept)

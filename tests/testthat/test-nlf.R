@@ -176,7 +176,11 @@ test_that("post-processing follows the nonlinear parameter a body names", {
 
   pr <- get_prior(bf(y ~ x) + nlf(sigma ~ a + b * z) + lf(a ~ 1, b ~ 1) +
                     gaussian(), data = d)
-  expect_true(all(c("a", "b") %in% pr$dpar))
+  # brms 2.23.0 lists a and b by nlpar with an empty dpar
+  # (dev/mvprior-brms-nlf.R); through 0.62.0 frmtmb filled both columns,
+  # a row set_prior() refuses to spell
+  expect_true(all(c("a", "b") %in% pr$nlpar))
+  expect_false(any(pr$dpar %in% c("a", "b")))
 })
 
 test_that("an update() delta still reaches a linear mu behind a nonlinear sigma", {

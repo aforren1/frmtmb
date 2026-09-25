@@ -226,7 +226,11 @@ does; judge \verb{max|grad|} per observation rather than in absolute terms.
 An unpenalized multinomial logit will send an emission or transition
 probability to 0 whenever a category is rare inside a state, and the
 optimizer then reports singular convergence at a perfectly good
-optimum. \code{\link[frmtmb:set_prior]{set_prior()}} on the affected logit is the remedy.
+optimum. \code{\link[frmtmb:set_prior]{set_prior()}} on the affected logit is the remedy. A prior
+on a state's location names the state with \code{dpar} (\code{dpar = "mu1"}),
+one specification per state: a class \code{"b"} or \code{"Intercept"} prior
+without \code{dpar} is refused, because it does not say which state it
+means.
 }
 
 \section{Random effects and the Laplace approximation}{

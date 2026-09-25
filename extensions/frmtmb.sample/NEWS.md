@@ -29,6 +29,30 @@
   now answers, as brms does, instead of being refused: the check asked
   about the level without the `re_formula` that drops it.
 
+* The default priors of a categorical, multinomial, mixture or
+  latent-class model carry the `dpar` of each location (`mub`, `mu1`), as
+  brms writes them. They used to be written without it, which frmtmb now
+  refuses, so this is what keeps those models sampling. The resolved
+  defaults are the same parameters with the same densities. With no
+  prior of your own, a categorical or mixture fit samples exactly as
+  before. With a `dpar` prior of your own on a mixture, the default for
+  that slot now steps aside instead of being written and then
+  overridden, which changes the order the priors are applied in: the
+  draws at a fixed seed differ (by up to 8.74 on one measured fit), and
+  `prior_summary()` no longer lists the overridden defaults. The
+  resp-, dpar- and nlpar-qualified defaults of the other families with
+  several location dpars (`lba()`, `rdm()`, `hmm()`, `lca()`,
+  `mixture_mvn()`) follow the same rule.
+
+* The default-prior announcement names each slot with its `resp`,
+  `dpar` and `nlpar`, so every line is a spelling `set_prior()` takes.
+  On a multivariate model it used to print `Intercept` with no response.
+
+* `hypothesis()`'s advice for a coefficient with no proper prior gives a
+  full `set_prior()` call, with `resp`, `dpar`, `nlpar` and `coef` as
+  the model needs them. It used to say `set_prior(class = "b")`, which a
+  multivariate model refuses.
+
 # frmtmb.sample 0.10.0
 
 * **The default priors are brms's on a multivariate model**: each

@@ -1,0 +1,9 @@
+ARM base frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+yg ~ mo(ordf) -> moordf 
+   pars: (Intercept) moordf sigma_(Intercept) zeta1_1 zeta1_2 
+y ~ s(x) -> s(x).fx1 
+   pars: (Intercept) s(x).fx1 sigma_(Intercept) b_1 b_2 b_3 b_4 b_5 b_6 b_7 b_8 theta_1 
+yg ~ 0 + x -> x 
+   pars: x sigma_(Intercept) 
+yg ~ z + mo(ordf) -> z moordf 
+   pars: (Intercept) z moordf sigma_(Intercept) zeta1_1 zeta1_2 

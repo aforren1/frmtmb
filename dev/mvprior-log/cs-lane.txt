@@ -1,0 +1,64 @@
+arm lane frmtmb from C:/Users/adf44/source/r/mvprior-lib/frmtmb 
+
+== acat ord ~ cs(x) ==
+b coef=   bcs2_1 bcs2_2 bcs2_3 
+b coef=x  bcs2_1 bcs2_2 bcs2_3 
+b coef=z  REFUSE: Prior target not found (class=b, coef=z) 
+b coef=w  REFUSE: Prior target not found (class=b, coef=w) 
+b rows: [] [x] 
+
+== acat ord ~ z + cs(x) ==
+b coef=   z bcs2_1 bcs2_2 bcs2_3 
+b coef=x  bcs2_1 bcs2_2 bcs2_3 
+b coef=z  z 
+b coef=w  REFUSE: Prior target not found (class=b, coef=w) 
+b rows: [] [z] [x] 
+
+== acat ord ~ z + cs(x) + cs(w) ==
+b coef=   z bcs2_1 bcs2_2 bcs2_3 bcs3_1 bcs3_2 bcs3_3 
+b coef=x  bcs2_1 bcs2_2 bcs2_3 
+b coef=z  z 
+b coef=w  bcs3_1 bcs3_2 bcs3_3 
+b rows: [] [z] [x] [w] 
+
+== sratio ord ~ cs(x) ==
+b coef=   bcs2_1 bcs2_2 bcs2_3 
+b coef=x  bcs2_1 bcs2_2 bcs2_3 
+b coef=z  REFUSE: Prior target not found (class=b, coef=z) 
+b coef=w  REFUSE: Prior target not found (class=b, coef=w) 
+b rows: [] [x] 
+
+== sratio ord ~ z + cs(x) ==
+b coef=   z bcs2_1 bcs2_2 bcs2_3 
+b coef=x  bcs2_1 bcs2_2 bcs2_3 
+b coef=z  z 
+b coef=w  REFUSE: Prior target not found (class=b, coef=w) 
+b rows: [] [z] [x] 
+
+== sratio ord ~ z + cs(x) + cs(w) ==
+b coef=   z bcs2_1 bcs2_2 bcs2_3 bcs3_1 bcs3_2 bcs3_3 
+b coef=x  bcs2_1 bcs2_2 bcs2_3 
+b coef=z  z 
+b coef=w  bcs3_1 bcs3_2 bcs3_3 
+b rows: [] [z] [x] [w] 
+
+== cratio ord ~ cs(x) ==
+b coef=   bcs2_1 bcs2_2 bcs2_3 
+b coef=x  bcs2_1 bcs2_2 bcs2_3 
+b coef=z  REFUSE: Prior target not found (class=b, coef=z) 
+b coef=w  REFUSE: Prior target not found (class=b, coef=w) 
+b rows: [] [x] 
+
+== cratio ord ~ z + cs(x) ==
+b coef=   z bcs2_1 bcs2_2 bcs2_3 
+b coef=x  bcs2_1 bcs2_2 bcs2_3 
+b coef=z  z 
+b coef=w  REFUSE: Prior target not found (class=b, coef=w) 
+b rows: [] [z] [x] 
+
+== cratio ord ~ z + cs(x) + cs(w) ==
+b coef=   z bcs2_1 bcs2_2 bcs2_3 bcs3_1 bcs3_2 bcs3_3 
+b coef=x  bcs2_1 bcs2_2 bcs2_3 
+b coef=z  z 
+b coef=w  bcs3_1 bcs3_2 bcs3_3 
+b rows: [] [z] [x] [w] 

@@ -1,0 +1,6 @@
+ARM lane frmtmb 0.62.0 from C:/Users/adf44/source/r/mvprior-lib/frmtmb 
+beta 2 normal 0 1 
+beta 1 normal -2 2 
+beta 3 normal 3 2 
+betad 1 t 3 0 2.5 
+nlp at estimate 7.0140376149727901 

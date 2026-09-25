@@ -1,0 +1,209 @@
+frmtmb from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | prior-mv-resp                                                  
+⠋ | 1        0 | prior-mv-resp                                                  
+⠙ | 2        0 | prior-mv-resp                                                  
+⠹ | 3        0 | prior-mv-resp                                                  
+⠸ | 4        0 | prior-mv-resp                                                  
+⠼ | 5        0 | prior-mv-resp                                                  
+⠦ | 7        0 | prior-mv-resp                                                  
+⠇ | 9        0 | prior-mv-resp                                                  
+⠋ | 11        0 | prior-mv-resp                                                 
+⠹ | 13        0 | prior-mv-resp                                                 
+⠼ | 15        0 | prior-mv-resp                                                 
+⠏ | 18        2 | prior-mv-resp                                                 
+⠙ | 20        2 | prior-mv-resp                                                 
+⠸ | 21        3 | prior-mv-resp                                                 
+⠴ | 21        5 | prior-mv-resp                                                 
+⠧ | 21        7 | prior-mv-resp                                                 
+⠋ | 21       10 | prior-mv-resp                                                 
+⠼ | 21       14 | prior-mv-resp                                                 
+✖ | 21       15 | prior-mv-resp [5.9s]
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-prior-mv-resp.R:57:5'): class b and Intercept with no resp are refused in a multivariate model
+Expected `validate_prior(p, f, data = d)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:57:5'): class b and Intercept with no resp are refused in a multivariate model
+Expected `validate_prior(p, f, data = d)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:57:5'): class b and Intercept with no resp are refused in a multivariate model
+Expected `validate_prior(p, f, data = d)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:57:5'): class b and Intercept with no resp are refused in a multivariate model
+Expected `validate_prior(p, f, data = d)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:65:3'): a distributional parameter's class with no resp is refused
+Expected `validate_prior(...)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:68:3'): a distributional parameter's class with no resp is refused
+Expected `validate_prior(...)` to throw a error with class <frmtmb_error>.
+
+Error ('test-prior-mv-resp.R:79:3'): class b with dpar and no resp is refused, not shape-judged
+<frmtmb_error/error/condition>
+Error: class = "b", dpar = "sigma" addresses sigma's slopes, and this model gives sigma no predictor, so it has none. Write class = "sigma" for a density on sigma itself, or give sigma a formula in bf()
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-prior-mv-resp.R:79:3
+ 2. │ └─testthat:::expect_condition_matching_(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─frmtmb::validate_prior(...)
+ 8.   └─frmtmb:::resolve_priorlist(design, pl)
+ 9.     └─frmtmb::frm_stop(bad_shape, call. = FALSE)
+
+Error ('test-prior-mv-resp.R:87:3'): class Intercept with dpar and no resp is refused, not shape-judged
+<frmtmb_error/error/condition>
+Error: class = "Intercept", dpar = "sigma" is a density on the log-scale intercept of sigma's linear predictor, which brms accepts only where sigma has one. This model writes no sigma formula, so the prior brms takes there is class = "sigma", a density on sigma itself. Write sigma ~ 1 in bf() to have a link-scale intercept to prior
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-prior-mv-resp.R:87:3
+ 2. │ └─testthat:::expect_condition_matching_(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─frmtmb::validate_prior(...)
+ 8.   └─frmtmb:::resolve_priorlist(design, pl)
+ 9.     └─frmtmb::frm_stop(bad_shape, call. = FALSE)
+
+Failure ('test-prior-mv-resp.R:98:3'): a residual-correlation class with no resp is refused
+Expected `validate_prior(...)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:103:3'): a residual-correlation class with no resp is refused
+Expected `validate_prior(...)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:106:3'): a residual-correlation class with no resp is refused
+Expected `validate_prior(...)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:111:3'): a residual-correlation class with no resp is refused
+Expected `validate_prior(set_prior("lkj(2)", class = "cortime"), fun, data = d)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:119:3'): frm() and a brms prior table meet the same refusal
+Expected `frm(f, data = d, prior = set_prior("normal(0, 5)", class = "b"))` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:123:3'): frm() and a brms prior table meet the same refusal
+Expected `frm(...)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:129:3'): frm() and a brms prior table meet the same refusal
+Expected `frm(f, data = d, prior = bp)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:140:3'): the refusal names the responses that have the slot
+Expected `e` to inherit from "frmtmb_error".
+Actual class: "frmtmb_prior_rows"/"data.frame".
+
+Failure ('test-prior-mv-resp.R:145:3'): the refusal names the responses that have the slot
+Expected `msg` to match string "resp = \"y1\")".
+Actual text:
+x | 
+
+Failure ('test-prior-mv-resp.R:161:5'): a class b or Intercept prior with no nlpar is refused on a nonlinear location
+Expected `validate_prior(p, f, data = d)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:161:5'): a class b or Intercept prior with no nlpar is refused on a nonlinear location
+Expected `validate_prior(p, f, data = d)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:161:5'): a class b or Intercept prior with no nlpar is refused on a nonlinear location
+Expected `validate_prior(p, f, data = d)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:161:5'): a class b or Intercept prior with no nlpar is refused on a nonlinear location
+Expected `validate_prior(p, f, data = d)` to throw a error with class <frmtmb_error>.
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 6.5 s
+
+── Failed tests ────────────────────────────────────────────────────────────────
+Failure ('test-prior-mv-resp.R:57:5'): class b and Intercept with no resp are refused in a multivariate model
+Expected `validate_prior(p, f, data = d)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:57:5'): class b and Intercept with no resp are refused in a multivariate model
+Expected `validate_prior(p, f, data = d)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:57:5'): class b and Intercept with no resp are refused in a multivariate model
+Expected `validate_prior(p, f, data = d)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:57:5'): class b and Intercept with no resp are refused in a multivariate model
+Expected `validate_prior(p, f, data = d)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:65:3'): a distributional parameter's class with no resp is refused
+Expected `validate_prior(...)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:68:3'): a distributional parameter's class with no resp is refused
+Expected `validate_prior(...)` to throw a error with class <frmtmb_error>.
+
+Error ('test-prior-mv-resp.R:79:3'): class b with dpar and no resp is refused, not shape-judged
+<frmtmb_error/error/condition>
+Error: class = "b", dpar = "sigma" addresses sigma's slopes, and this model gives sigma no predictor, so it has none. Write class = "sigma" for a density on sigma itself, or give sigma a formula in bf()
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-prior-mv-resp.R:79:3
+ 2. │ └─testthat:::expect_condition_matching_(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─frmtmb::validate_prior(...)
+ 8.   └─frmtmb:::resolve_priorlist(design, pl)
+ 9.     └─frmtmb::frm_stop(bad_shape, call. = FALSE)
+
+Error ('test-prior-mv-resp.R:87:3'): class Intercept with dpar and no resp is refused, not shape-judged
+<frmtmb_error/error/condition>
+Error: class = "Intercept", dpar = "sigma" is a density on the log-scale intercept of sigma's linear predictor, which brms accepts only where sigma has one. This model writes no sigma formula, so the prior brms takes there is class = "sigma", a density on sigma itself. Write sigma ~ 1 in bf() to have a link-scale intercept to prior
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-prior-mv-resp.R:87:3
+ 2. │ └─testthat:::expect_condition_matching_(...)
+ 3. │   └─testthat:::quasi_capture(...)
+ 4. │     ├─testthat (local) .capture(...)
+ 5. │     │ └─base::withCallingHandlers(...)
+ 6. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 7. └─frmtmb::validate_prior(...)
+ 8.   └─frmtmb:::resolve_priorlist(design, pl)
+ 9.     └─frmtmb::frm_stop(bad_shape, call. = FALSE)
+
+Failure ('test-prior-mv-resp.R:98:3'): a residual-correlation class with no resp is refused
+Expected `validate_prior(...)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:103:3'): a residual-correlation class with no resp is refused
+Expected `validate_prior(...)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:106:3'): a residual-correlation class with no resp is refused
+Expected `validate_prior(...)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:111:3'): a residual-correlation class with no resp is refused
+Expected `validate_prior(set_prior("lkj(2)", class = "cortime"), fun, data = d)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:119:3'): frm() and a brms prior table meet the same refusal
+Expected `frm(f, data = d, prior = set_prior("normal(0, 5)", class = "b"))` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:123:3'): frm() and a brms prior table meet the same refusal
+Expected `frm(...)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:129:3'): frm() and a brms prior table meet the same refusal
+Expected `frm(f, data = d, prior = bp)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:140:3'): the refusal names the responses that have the slot
+Expected `e` to inherit from "frmtmb_error".
+Actual class: "frmtmb_prior_rows"/"data.frame".
+
+Failure ('test-prior-mv-resp.R:145:3'): the refusal names the responses that have the slot
+Expected `msg` to match string "resp = \"y1\")".
+Actual text:
+x | 
+
+Failure ('test-prior-mv-resp.R:161:5'): a class b or Intercept prior with no nlpar is refused on a nonlinear location
+Expected `validate_prior(p, f, data = d)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:161:5'): a class b or Intercept prior with no nlpar is refused on a nonlinear location
+Expected `validate_prior(p, f, data = d)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:161:5'): a class b or Intercept prior with no nlpar is refused on a nonlinear location
+Expected `validate_prior(p, f, data = d)` to throw a error with class <frmtmb_error>.
+
+Failure ('test-prior-mv-resp.R:161:5'): a class b or Intercept prior with no nlpar is refused on a nonlinear location
+Expected `validate_prior(p, f, data = d)` to throw a error with class <frmtmb_error>.
+
+[ FAIL 21 | WARN 0 | SKIP 0 | PASS 15 ]

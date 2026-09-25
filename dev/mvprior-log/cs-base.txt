@@ -1,0 +1,64 @@
+arm base frmtmb from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+
+== acat ord ~ cs(x) ==
+b coef=   (no density) 
+b coef=x  REFUSE: Prior target not found (class=b, coef=x) 
+b coef=z  REFUSE: Prior target not found (class=b, coef=z) 
+b coef=w  REFUSE: Prior target not found (class=b, coef=w) 
+b rows: [] 
+
+== acat ord ~ z + cs(x) ==
+b coef=   z 
+b coef=x  REFUSE: Prior target not found (class=b, coef=x) 
+b coef=z  z 
+b coef=w  REFUSE: Prior target not found (class=b, coef=w) 
+b rows: [] [z] 
+
+== acat ord ~ z + cs(x) + cs(w) ==
+b coef=   z 
+b coef=x  REFUSE: Prior target not found (class=b, coef=x) 
+b coef=z  z 
+b coef=w  REFUSE: Prior target not found (class=b, coef=w) 
+b rows: [] [z] 
+
+== sratio ord ~ cs(x) ==
+b coef=   (no density) 
+b coef=x  REFUSE: Prior target not found (class=b, coef=x) 
+b coef=z  REFUSE: Prior target not found (class=b, coef=z) 
+b coef=w  REFUSE: Prior target not found (class=b, coef=w) 
+b rows: [] 
+
+== sratio ord ~ z + cs(x) ==
+b coef=   z 
+b coef=x  REFUSE: Prior target not found (class=b, coef=x) 
+b coef=z  z 
+b coef=w  REFUSE: Prior target not found (class=b, coef=w) 
+b rows: [] [z] 
+
+== sratio ord ~ z + cs(x) + cs(w) ==
+b coef=   z 
+b coef=x  REFUSE: Prior target not found (class=b, coef=x) 
+b coef=z  z 
+b coef=w  REFUSE: Prior target not found (class=b, coef=w) 
+b rows: [] [z] 
+
+== cratio ord ~ cs(x) ==
+b coef=   (no density) 
+b coef=x  REFUSE: Prior target not found (class=b, coef=x) 
+b coef=z  REFUSE: Prior target not found (class=b, coef=z) 
+b coef=w  REFUSE: Prior target not found (class=b, coef=w) 
+b rows: [] 
+
+== cratio ord ~ z + cs(x) ==
+b coef=   z 
+b coef=x  REFUSE: Prior target not found (class=b, coef=x) 
+b coef=z  z 
+b coef=w  REFUSE: Prior target not found (class=b, coef=w) 
+b rows: [] [z] 
+
+== cratio ord ~ z + cs(x) + cs(w) ==
+b coef=   z 
+b coef=x  REFUSE: Prior target not found (class=b, coef=x) 
+b coef=z  z 
+b coef=w  REFUSE: Prior target not found (class=b, coef=w) 
+b rows: [] [z] 

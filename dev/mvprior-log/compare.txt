@@ -1,0 +1,142 @@
+ case       spec                                                brms   base   lane   base_agrees lane_agrees
+ mv2        normal(0, 5) [class=b]                              REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mv2        normal(0, 5) [class=b, coef=x]                      REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mv2        normal(0, 5) [class=b, resp=y1]                     ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mv2        normal(0, 5) [class=b, coef=x, resp=y1]             ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mv2        normal(0, 5) [class=Intercept]                      REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mv2        normal(0, 5) [class=Intercept, resp=y2]             ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mv2        student_t(3, 0, 2.5) [class=sigma]                  REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mv2        student_t(3, 0, 2.5) [class=sigma, resp=y1]         ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mv2        normal(0, 5) [class=sd]                             REFUSE REFUSE REFUSE  TRUE        TRUE      
+ mv2        normal(0, 5) [class=sd, resp=y1]                    ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mv2        lb=0 [class=b]                                      REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mv2        lb=0 [class=b, resp=y1]                             ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mv2        normal(0, 5) [class=b, resp=nosuch]                 REFUSE REFUSE REFUSE  TRUE        TRUE      
+ mvsig      normal(0, 5) [class=b, dpar=sigma]                  REFUSE REFUSE REFUSE  TRUE        TRUE      
+ mvsig      normal(0, 5) [class=b, resp=y1, dpar=sigma]         ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mvsig      normal(0, 5) [class=Intercept, dpar=sigma]          REFUSE REFUSE REFUSE  TRUE        TRUE      
+ mvsig      normal(0, 5) [class=Intercept, resp=y1, dpar=sigma] ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mvsig      student_t(3, 0, 2.5) [class=sigma]                  REFUSE REFUSE REFUSE  TRUE        TRUE      
+ mvsig      student_t(3, 0, 2.5) [class=sigma, resp=y2]         ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mvsig      normal(0, 5) [class=b]                              REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mvsig      normal(0, 5) [class=b, resp=y2]                     ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mixed      normal(0, 5) [class=b]                              REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mixed      normal(0, 5) [class=b, resp=cnt]                    ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mixed      normal(0, 5) [class=Intercept]                      REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mixed      normal(0, 5) [class=Intercept, resp=y1]             ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mixed      student_t(3, 0, 2.5) [class=sigma]                  REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mixed      student_t(3, 0, 2.5) [class=sigma, resp=y1]         ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mixed      student_t(3, 0, 2.5) [class=sigma, resp=cnt]        REFUSE REFUSE REFUSE  TRUE        TRUE      
+ rescor     normal(0, 5) [class=b]                              REFUSE ACCEPT REFUSE FALSE        TRUE      
+ rescor     normal(0, 5) [class=b, resp=y1]                     ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ rescor     normal(0, 5) [class=Intercept]                      REFUSE ACCEPT REFUSE FALSE        TRUE      
+ rescor     normal(0, 5) [class=Intercept, resp=y1]             ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ rescor     student_t(3, 0, 2.5) [class=sigma]                  REFUSE ACCEPT REFUSE FALSE        TRUE      
+ rescor     student_t(3, 0, 2.5) [class=sigma, resp=y2]         ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ rescor     lkj(2) [class=rescor]                               ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ rescor     lkj(2) [class=rescor, resp=y1]                      REFUSE ACCEPT REFUSE FALSE        TRUE      
+ rescor     lkj(2) [class=cor]                                  ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ rescor     lkj(2) [class=cor, group=g]                         ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ rescor     lkj(2) [class=cor, resp=y1]                         REFUSE ACCEPT ACCEPT FALSE       FALSE      
+ mvstudent  gamma(2, 0.1) [class=nu]                            REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mvstudent  gamma(2, 0.1) [class=nu, resp=y1]                   ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mvar       normal(0, 0.5) [class=ar]                           REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mvar       normal(0, 0.5) [class=ar, resp=y1]                  ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mvar       normal(0, 0.5) [class=ar, resp=y2]                  REFUSE REFUSE REFUSE  TRUE        TRUE      
+ nl         normal(0, 5) [class=b]                              REFUSE ACCEPT REFUSE FALSE        TRUE      
+ nl         normal(0, 5) [class=b, nlpar=a]                     ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ nl         normal(0, 5) [class=b, coef=Intercept]              REFUSE ACCEPT REFUSE FALSE        TRUE      
+ nl         normal(0, 5) [class=b, coef=Intercept, nlpar=b]     ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ nl         normal(0, 5) [class=Intercept]                      REFUSE ACCEPT REFUSE FALSE        TRUE      
+ nl         student_t(3, 0, 2.5) [class=sigma]                  ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ nl         lb=0 [class=b]                                      REFUSE ACCEPT REFUSE FALSE        TRUE      
+ nl         lb=0 [class=b, nlpar=b]                             ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ nl         normal(0, 5) [class=Intercept, nlpar=a]             REFUSE ACCEPT ACCEPT FALSE       FALSE      
+ uni        normal(0, 5) [class=b]                              ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ uni        normal(0, 5) [class=b, coef=x]                      ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ uni        normal(0, 5) [class=Intercept]                      ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ uni        normal(0, 5) [class=b, resp=y]                      REFUSE ACCEPT REFUSE FALSE        TRUE      
+ uni        normal(0, 5) [class=Intercept, resp=y]              REFUSE ACCEPT REFUSE FALSE        TRUE      
+ uni        normal(0, 5) [class=b, resp=nosuch]                 REFUSE REFUSE REFUSE  TRUE        TRUE      
+ uni        normal(0, 5) [class=b, dpar=sigma]                  ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ uni        normal(0, 5) [class=Intercept, dpar=sigma]          ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ uni        normal(0, 5) [class=sd]                             ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ uni2       student_t(3, 0, 2.5) [class=sigma]                  ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ uni2       student_t(3, 0, 2.5) [class=sigma, resp=y]          REFUSE ACCEPT REFUSE FALSE        TRUE      
+ uni2       lb=0 [class=b]                                      ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mi         normal(0, 5) [class=b]                              REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mi         normal(0, 5) [class=b, resp=y]                      ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mi         normal(0, 5) [class=b, coef=mixm]                   REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mi         normal(0, 5) [class=b, coef=mixm, resp=y]           ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mi         normal(0, 5) [class=Intercept]                      REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mi         student_t(3, 0, 2.5) [class=sigma]                  REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mvac       normal(0, 0.5) [class=ma]                           REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mvac       normal(0, 0.5) [class=ma, resp=y1]                  ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mvac       beta(2, 2) [class=cosy]                             REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mvac       beta(2, 2) [class=cosy, resp=y2]                    ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mvunstr    lkj(2) [class=cortime]                              REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mvunstr    lkj(2) [class=cortime, resp=y1]                     ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ uni3       normal(0, 5) [class=b]                              REFUSE ACCEPT REFUSE FALSE        TRUE      
+ uni3       normal(0, 5) [class=Intercept]                      ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ cat        normal(0, 5) [class=b]                              REFUSE ACCEPT REFUSE FALSE        TRUE      
+ cat        normal(0, 5) [class=b, coef=x]                      REFUSE ACCEPT REFUSE FALSE        TRUE      
+ cat        normal(0, 5) [class=Intercept]                      REFUSE ACCEPT REFUSE FALSE        TRUE      
+ cat        normal(0, 5) [class=b, dpar=mub]                    ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ cat        normal(0, 5) [class=b, coef=x, dpar=muc]            ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ cat        normal(0, 5) [class=Intercept, dpar=mub]            ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ cat        normal(0, 5) [class=b, dpar=nosuch]                 REFUSE REFUSE REFUSE  TRUE        TRUE      
+ mix        normal(0, 5) [class=b]                              REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mix        normal(0, 5) [class=b, coef=x]                      REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mix        normal(0, 5) [class=Intercept]                      REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mix        normal(0, 5) [class=b, dpar=mu1]                    ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mix        normal(0, 5) [class=Intercept, dpar=mu2]            ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mix        student_t(3, 0, 2.5) [class=sigma1]                 ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mix        student_t(3, 0, 2.5) [class=sigma]                  REFUSE REFUSE REFUSE  TRUE        TRUE      
+ mvcat      normal(0, 5) [class=b, resp=cat]                    REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mvcat      normal(0, 5) [class=Intercept, resp=cat]            REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mvcat      normal(0, 5) [class=b, resp=y1]                     ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mvcat      normal(0, 5) [class=b, resp=cat, dpar=mub]          ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mvcat      normal(0, 5) [class=b, dpar=mub]                    REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mvcat      normal(0, 5) [class=Intercept, resp=cat, dpar=muc]  ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mvcat      normal(0, 5) [class=Intercept, dpar=muc]            REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mvnl       normal(0, 5) [class=b, nlpar=a]                     REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mvnl       normal(0, 5) [class=b, resp=ynl, nlpar=a]           ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mvnl       normal(0, 5) [class=Intercept, nlpar=a]             REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mvnl       normal(0, 5) [class=Intercept, resp=ynl, nlpar=a]   REFUSE ACCEPT ACCEPT FALSE       FALSE      
+ mvnl       normal(0, 5) [class=b, resp=ynl]                    REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mvnl       normal(0, 5) [class=b, coef=z, nlpar=a]             REFUSE ACCEPT REFUSE FALSE        TRUE      
+ nl2        normal(0, 5) [class=b]                              REFUSE ACCEPT REFUSE FALSE        TRUE      
+ nl2        lb=0 [class=b]                                      REFUSE ACCEPT REFUSE FALSE        TRUE      
+ nl2        normal(0, 5) [class=b, coef=z, nlpar=a]             ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ catre      normal(0, 5) [class=sd]                             REFUSE ACCEPT REFUSE FALSE        TRUE      
+ catre      normal(0, 5) [class=sd, group=g]                    REFUSE ACCEPT REFUSE FALSE        TRUE      
+ catre      normal(0, 5) [class=sd, dpar=mub]                   ACCEPT REFUSE ACCEPT FALSE        TRUE      
+ catre      normal(0, 5) [class=b, dpar=muc]                    ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mixre      normal(0, 5) [class=sd]                             REFUSE ACCEPT REFUSE FALSE        TRUE      
+ mixre      normal(0, 5) [class=sd, dpar=mu1]                   ACCEPT REFUSE ACCEPT FALSE        TRUE      
+ noslope    normal(0, 5) [class=b]                              REFUSE ACCEPT REFUSE FALSE        TRUE      
+ noslope    lb=0 [class=b]                                      REFUSE ACCEPT REFUSE FALSE        TRUE      
+ noslope    normal(0, 5) [class=b, dpar=sigma]                  REFUSE REFUSE REFUSE  TRUE        TRUE      
+ noslope    normal(0, 5) [class=Intercept]                      ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ noslope    normal(0, 5) [class=sd, resp=y]                     REFUSE ACCEPT REFUSE FALSE        TRUE      
+ noslope    normal(0, 5) [class=sd]                             ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mvnoslope  normal(0, 5) [class=b, resp=y2]                     REFUSE REFUSE REFUSE  TRUE        TRUE      
+ mvnoslope  normal(0, 5) [class=b, resp=y1]                     ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ mvnoslope  normal(0, 5) [class=Intercept, resp=y2]             ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ catnoslope normal(0, 5) [class=b, dpar=mub]                    REFUSE REFUSE REFUSE  TRUE        TRUE      
+ catnoslope normal(0, 5) [class=Intercept, dpar=mub]            ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ uniar      normal(0, 0.5) [class=ar]                           ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ uniar      normal(0, 0.5) [class=ar, resp=y]                   REFUSE ACCEPT REFUSE FALSE        TRUE      
+ rescor2    lkj(2) [class=rescor]                               ACCEPT ACCEPT ACCEPT  TRUE        TRUE      
+ rescor2    lkj(2) [class=rescor, resp=y1]                      REFUSE ACCEPT REFUSE FALSE        TRUE      
+ rescor2    lkj(2) [class=rescor, resp=y2]                      REFUSE ACCEPT REFUSE FALSE        TRUE      
+
+specifications: 131 
+base agrees with brms: 71 of 131 
+lane agrees with brms: 128 of 131 
+
+lane disagreements:
+ case   spec                                              brms   lane  
+ rescor lkj(2) [class=cor, resp=y1]                       REFUSE ACCEPT
+ nl     normal(0, 5) [class=Intercept, nlpar=a]           REFUSE ACCEPT
+ mvnl   normal(0, 5) [class=Intercept, resp=ynl, nlpar=a] REFUSE ACCEPT

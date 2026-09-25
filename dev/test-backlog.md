@@ -986,6 +986,60 @@ neither is the defect that lane fixed.
   reaches the caller again, and `posterior_predict()` cannot find
   `cs_offsets_add()`.
 
+## Filed by wt-mvprior after punch round 1, 2026-09-24
+
+Found by the punch-round reviewer, reproduced on the lane build and on
+brms 2.23.0's `stancode()` with the same data
+(`dev/mvprior-filed.R`, `dev/mvprior-log/filed.txt`). All five are
+pre-existing and none is a wrong answer: each is a loud refusal where
+brms accepts the model. Not fixed; outside that lane.
+
+### Open - medium
+
+- **Three `bf()` summed with `+` fail at construction.**
+  `bf(y1 ~ x) + bf(y2 ~ x) + bf(y3 ~ w) + set_rescor(FALSE)` warns
+  `Incompatible methods ("+.frmtmb_mvformula", "+.frmtmb_formula")`
+  and stops with R's "non-numeric argument to binary operator". Two
+  `bf()` work, and `mvbf(bf(y1 ~ x), bf(y2 ~ x), bf(y3 ~ w))` works.
+  brms accepts the three-term sum.
+- **`cumulative()` in a multivariate model** is refused: "Families with
+  extra parameters ('cumulative') are not supported in multivariate
+  fits yet". brms accepts `bf(y1 ~ x) + bf(o ~ x, family =
+  cumulative())`.
+- **`me()`** is not a function: `bf(y1 ~ me(xe, sde))` stops with
+  `could not find function "me"`, R's message rather than a designed
+  refusal. brms accepts it.
+- **`0 + Intercept`** reads `Intercept` as a data column: "The model uses
+  `Intercept`, which is not a column of `data`". brms accepts
+  `y1 ~ 0 + Intercept + x` as its uncentered intercept.
+- **`student()` with `set_rescor(TRUE)`** is refused: "rescor = TRUE
+  requires all responses to be gaussian (got: student)". brms accepts
+  it (a multivariate student-t).
+
+## Filed by wt-mvprior after punch round 2, 2026-09-24
+
+Reported by the punch-round-2 reviewer with probes in
+`dev/mvprior-review2/` (`r2-probe-*.txt`, `r2-brms-defaults.txt`,
+`r2-sample-*.txt`), measured on base 0.62.0 as well. Filed as reported;
+the lane did not re-measure them. None is a wrong answer from the fit.
+
+### Open - medium
+
+- **frm_sample() gives a mixture's `sigma1`, `sigma2` and `theta` no
+  default**, where brms uses `student_t(3, 0, mad)` on each sigma and
+  `dirichlet(1)` on the mixing proportions, and the announcement does
+  not list them among the slots it leaves flat.
+- **Three spellings frmtmb accepts and brms refuses:** `cor` with
+  `dpar = "mub"`; a bound (`lb`/`ub`) with `coef`; and class `b` with
+  `coef = "Intercept"` on `y ~ 1`.
+- **One spelling brms accepts and frmtmb refuses:** `Intercept` with
+  `coef = "2"` on `cumulative()`, brms's per-threshold intercept.
+- **`cratio()` with `disc ~ z`** is unsupported.
+- **default_prior() rows brms has and frmtmb lacks:** `sd` rows with
+  `coef = "Intercept"`, the per-threshold ordinal `Intercept` rows
+  (`coef = "1"`, `"2"`, ...), and a `theta1` row on a mixture whose
+  sigma is modeled.
+
 ## Reference
 
 Full agent report with per-item repro sketches and issue links:

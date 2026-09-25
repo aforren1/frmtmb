@@ -1,0 +1,17 @@
+ARM lane frmtmb 0.62.0 from C:/Users/adf44/source/r/mvprior-lib/frmtmb 
+                prior     class      coef group resp dpar nlpar
+                              b                                
+                              b         x                      
+ student_t(3, 1, 2.5) Intercept                                
+                              b                               a
+                              b Intercept                     a
+                              b                               b
+                              b Intercept                     b
+                              b         w                     b
+b nlpar=a              ACCEPT: b|||a
+b nlpar=b coef=w       ACCEPT: b|w||b
+b nlpar=b              ACCEPT: b|||b
+b dpar=sigma nlpar=a   REFUSE: The following priors do not correspond to any model parameter: b_sigma_a ~ normal(0, 1) Function 'default_prior' might be helpful to you.
+b dpar=a               REFUSE: The following priors do not correspond to any model parameter: b_a ~ normal(0, 1) Function 'default_prior' might be helpful to you.
+b (location)           ACCEPT: b|||
+Intercept nlpar=a      REFUSE: The following priors do not correspond to any model parameter: Intercept_a ~ normal(0, 1) Function 'default_prior' might be helpful to you.

@@ -1,0 +1,2 @@
+RESULT test-drmtmb-agreement.R pass=126 fail=2 err=0 skip=0
+FAILED test-drmtmb-agreement.R: skew_normal: same likelihood; frmtmb's default start stalls

@@ -1,0 +1,52 @@
+arm lane frmtmb from C:/Users/adf44/source/r/mvprior-lib/frmtmb 
+
+== lca(K = 3), Y ~ x ==
+location dpars: theta1 theta2 
+rows: Intercept|||theta1 ; b|||theta1 ; b|x||theta1 ; Intercept|||theta2 ; b|||theta2 ; b|x||theta2 
+  b                      REFUSE: Prior target not found (class=b): this model's location is several distributional parameters, theta1, theta2, and a class "b" prior names one of them with dpar =, one specification per parameter. That is frmtmb's rule for a family whose location is several dis
+  Intercept              REFUSE: Prior target not found (class=Intercept): this model's location is several distributional parameters, theta1, theta2, and a class "Intercept" prior names one of them with dpar =, one specification per parameter. That is frmtmb's rule for a family whose locatio
+  sd                     REFUSE: No random-effect SDs match class=sd. This model has no random-effect standard deviations
+  b dpar theta1          ACCEPT -> theta1_x
+  Intercept dpar theta1  ACCEPT -> theta1_(Intercept)
+  b dpar theta2          ACCEPT -> theta2_x
+  Intercept dpar theta2  ACCEPT -> theta2_(Intercept)
+
+== hmm(K = 2), y ~ x ==
+location dpars: mu1 mu2 
+rows: Intercept|||mu1 ; b|||mu1 ; b|x||mu1 ; Intercept|||mu2 ; b|||mu2 ; b|x||mu2 
+  b                      REFUSE: Prior target not found (class=b): this model's location is several distributional parameters, mu1, mu2, and a class "b" prior names one of them with dpar =, one specification per parameter. That is frmtmb's rule for a family whose location is several distribut
+  Intercept              REFUSE: Prior target not found (class=Intercept): this model's location is several distributional parameters, mu1, mu2, and a class "Intercept" prior names one of them with dpar =, one specification per parameter. That is frmtmb's rule for a family whose location is s
+  sd                     REFUSE: No random-effect SDs match class=sd. This model has no random-effect standard deviations
+  b dpar mu1             ACCEPT -> mu1_x
+  Intercept dpar mu1     ACCEPT -> mu1_(Intercept)
+  b dpar mu2             ACCEPT -> mu2_x
+  Intercept dpar mu2     ACCEPT -> mu2_(Intercept)
+
+== lba(3), rt | vint(choice) ~ x ==
+location dpars: v1 v2 v3 
+rows: Intercept|||v1 ; b|||v1 ; b|x||v1 ; Intercept|||v2 ; b|||v2 ; b|x||v2 ; Intercept|||v3 ; b|||v3 ; b|x||v3 
+  b                      REFUSE: Prior target not found (class=b): this model's location is several distributional parameters, v1, v2, v3, and a class "b" prior names one of them with dpar =, one specification per parameter. That is frmtmb's rule for a family whose location is several distrib
+  Intercept              REFUSE: Prior target not found (class=Intercept): this model's location is several distributional parameters, v1, v2, v3, and a class "Intercept" prior names one of them with dpar =, one specification per parameter. That is frmtmb's rule for a family whose location is
+  sd                     REFUSE: No random-effect SDs match class=sd. This model has no random-effect standard deviations
+  b dpar v1              ACCEPT -> v1_x
+  Intercept dpar v1      ACCEPT -> v1_(Intercept)
+  b dpar v3              ACCEPT -> v3_x
+  Intercept dpar v3      ACCEPT -> v3_(Intercept)
+
+== rdm(3), rt | vint(choice) ~ x ==
+location dpars: v1 v2 v3 
+rows: Intercept|||v1 ; b|||v1 ; b|x||v1 ; Intercept|||v2 ; b|||v2 ; b|x||v2 ; Intercept|||v3 ; b|||v3 ; b|x||v3 
+  b                      REFUSE: Prior target not found (class=b): this model's location is several distributional parameters, v1, v2, v3, and a class "b" prior names one of them with dpar =, one specification per parameter. That is frmtmb's rule for a family whose location is several distrib
+  Intercept              REFUSE: Prior target not found (class=Intercept): this model's location is several distributional parameters, v1, v2, v3, and a class "Intercept" prior names one of them with dpar =, one specification per parameter. That is frmtmb's rule for a family whose location is
+  sd                     REFUSE: No random-effect SDs match class=sd. This model has no random-effect standard deviations
+  b dpar v1              ACCEPT -> v1_x
+  Intercept dpar v1      ACCEPT -> v1_(Intercept)
+  b dpar v3              ACCEPT -> v3_x
+  Intercept dpar v3      ACCEPT -> v3_(Intercept)
+
+== mixture_mvn(K = 2, D = 2), Y ~ x ==
+location dpars: mu1d1 mu1d2 mu2d1 mu2d2 
+rows: Intercept|||mu1d1 ; b|||mu1d1 ; b|x||mu1d1 ; Intercept|||mu1d2 ; b|||mu1d2 ; b|x||mu1d2 ; Intercept|||mu2d1 ; b|||mu2d1 ; b|x||mu2d1 ; Intercept|||mu2d2 ; b|||mu2d2 ; b|x||mu2d2 
+  b                      REFUSE: Prior target not found (class=b): this model's location is several distributional parameters, mu1d1, mu1d2, mu2d1, mu2d2, and a class "b" prior names one of them with dpar =, one specification per parameter. That is frmtmb's rule for a family whose location is
+  Intercept              REFUSE: Prior target not found (class=Intercept): this model's location is several distributional parameters, mu1d1, mu1d2, mu2d1, mu2d2, and a class "Intercept" prior names one of them with dpar =, one specification per parameter. That is frmtmb's rule for a family w
+  sd                     REFUSE: No random-effect SDs match class=sd. This model has no random-effect standard deviations

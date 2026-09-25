@@ -5,6 +5,17 @@
   measured at 1e-6, both reach the scale-1 log-likelihood on 3 of 3
   seeds (`dev/predfix-p1-ext.R` in the frmtmb repository).
 
+* **BREAKING:** a prior on the location of `lca()` or `hmm()` names its
+  class or state with `dpar`: `set_prior("normal(0, 1)", class = "b",
+  dpar = "theta1")` for a latent class's gate, `dpar = "mu1"` for a
+  hidden state's mean. A class `"b"` or `"Intercept"` prior without
+  `dpar` is now refused by frmtmb. Until now it reached every class's or
+  every state's coefficients at once. `default_prior()` lists the rows
+  per `dpar`. This is frmtmb's rule for every family whose location is
+  several distributional parameters, the one brms applies to its
+  categorical and mixture families. Requires the frmtmb release that
+  carries it.
+
 # frmtmb.latent 0.5.0
 
 * `hmm_starts()`'s scale check reads `frmtmb::vcov_estimated()` rather

@@ -1,0 +1,64 @@
+brms 2.23.0 
+
+== acat ord ~ cs(x) ==
+b coef=   lprior += normal_lpdf(to_vector(bcs) | 0, 0.123); 
+b coef=x  lprior += normal_lpdf(bcs[1] | 0, 0.123); 
+b coef=z  REFUSE: The following priors do not correspond to any model parameter: b_z ~ normal(0, 0.123) Function 'default_prior' might be helpful to you. 
+b coef=w  REFUSE: The following priors do not correspond to any model parameter: b_w ~ normal(0, 0.123) Function 'default_prior' might be helpful to you. 
+b rows: [] [x] 
+
+== acat ord ~ z + cs(x) ==
+b coef=   lprior += normal_lpdf(b | 0, 0.123); | lprior += normal_lpdf(to_vector(bcs) | 0, 0.123); 
+b coef=x  lprior += normal_lpdf(bcs[1] | 0, 0.123); 
+b coef=z  lprior += normal_lpdf(b[1] | 0, 0.123); 
+b coef=w  REFUSE: The following priors do not correspond to any model parameter: b_w ~ normal(0, 0.123) Function 'default_prior' might be helpful to you. 
+b rows: [] [x] [z] 
+
+== acat ord ~ z + cs(x) + cs(w) ==
+b coef=   lprior += normal_lpdf(b | 0, 0.123); | lprior += normal_lpdf(to_vector(bcs) | 0, 0.123); 
+b coef=x  lprior += normal_lpdf(bcs[1] | 0, 0.123); 
+b coef=z  lprior += normal_lpdf(b[1] | 0, 0.123); 
+b coef=w  lprior += normal_lpdf(bcs[2] | 0, 0.123); 
+b rows: [] [w] [x] [z] 
+
+== sratio ord ~ cs(x) ==
+b coef=   lprior += normal_lpdf(to_vector(bcs) | 0, 0.123); 
+b coef=x  lprior += normal_lpdf(bcs[1] | 0, 0.123); 
+b coef=z  REFUSE: The following priors do not correspond to any model parameter: b_z ~ normal(0, 0.123) Function 'default_prior' might be helpful to you. 
+b coef=w  REFUSE: The following priors do not correspond to any model parameter: b_w ~ normal(0, 0.123) Function 'default_prior' might be helpful to you. 
+b rows: [] [x] 
+
+== sratio ord ~ z + cs(x) ==
+b coef=   lprior += normal_lpdf(b | 0, 0.123); | lprior += normal_lpdf(to_vector(bcs) | 0, 0.123); 
+b coef=x  lprior += normal_lpdf(bcs[1] | 0, 0.123); 
+b coef=z  lprior += normal_lpdf(b[1] | 0, 0.123); 
+b coef=w  REFUSE: The following priors do not correspond to any model parameter: b_w ~ normal(0, 0.123) Function 'default_prior' might be helpful to you. 
+b rows: [] [x] [z] 
+
+== sratio ord ~ z + cs(x) + cs(w) ==
+b coef=   lprior += normal_lpdf(b | 0, 0.123); | lprior += normal_lpdf(to_vector(bcs) | 0, 0.123); 
+b coef=x  lprior += normal_lpdf(bcs[1] | 0, 0.123); 
+b coef=z  lprior += normal_lpdf(b[1] | 0, 0.123); 
+b coef=w  lprior += normal_lpdf(bcs[2] | 0, 0.123); 
+b rows: [] [w] [x] [z] 
+
+== cratio ord ~ cs(x) ==
+b coef=   lprior += normal_lpdf(to_vector(bcs) | 0, 0.123); 
+b coef=x  lprior += normal_lpdf(bcs[1] | 0, 0.123); 
+b coef=z  REFUSE: The following priors do not correspond to any model parameter: b_z ~ normal(0, 0.123) Function 'default_prior' might be helpful to you. 
+b coef=w  REFUSE: The following priors do not correspond to any model parameter: b_w ~ normal(0, 0.123) Function 'default_prior' might be helpful to you. 
+b rows: [] [x] 
+
+== cratio ord ~ z + cs(x) ==
+b coef=   lprior += normal_lpdf(b | 0, 0.123); | lprior += normal_lpdf(to_vector(bcs) | 0, 0.123); 
+b coef=x  lprior += normal_lpdf(bcs[1] | 0, 0.123); 
+b coef=z  lprior += normal_lpdf(b[1] | 0, 0.123); 
+b coef=w  REFUSE: The following priors do not correspond to any model parameter: b_w ~ normal(0, 0.123) Function 'default_prior' might be helpful to you. 
+b rows: [] [x] [z] 
+
+== cratio ord ~ z + cs(x) + cs(w) ==
+b coef=   lprior += normal_lpdf(b | 0, 0.123); | lprior += normal_lpdf(to_vector(bcs) | 0, 0.123); 
+b coef=x  lprior += normal_lpdf(bcs[1] | 0, 0.123); 
+b coef=z  lprior += normal_lpdf(b[1] | 0, 0.123); 
+b coef=w  lprior += normal_lpdf(bcs[2] | 0, 0.123); 
+b rows: [] [w] [x] [z] 

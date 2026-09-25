@@ -1,0 +1,15 @@
+== roxygenise C:/Users/adf44/source/r/frmtmb-wt-mvprior/extensions/frmtmb.sample 
+ℹ Loading frmtmb.sample
+== install C:/Users/adf44/source/r/frmtmb-wt-mvprior/extensions/frmtmb.sample 
+* installing *source* package 'frmtmb.sample' ...
+** this is package 'frmtmb.sample' version '0.10.0'
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+* DONE (frmtmb.sample)
+       frmtmb frmtmb.sample 
+     "0.62.0"      "0.10.0" 

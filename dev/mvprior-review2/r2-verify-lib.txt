@@ -1,0 +1,5 @@
+ARM lane frmtmb 0.62.0 from C:/Users/adf44/source/r/mvprior-lib/frmtmb 
+frmtmb : identical 1141  differ 0  missing 0 
+frmtmb.sample : identical 211  differ 0  missing 0 
+lp_prior_dpar exists: TRUE 
+brms 2.23.0 

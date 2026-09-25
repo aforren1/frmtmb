@@ -1,0 +1,449 @@
+brms 2.23.0 
+
+== mv2: two-response gaussian, bf(y1 ~ x + (1 | g)) + bf(y2 ~ x + (1 | g)), rescor FALSE ==
+normal(0, 5) [class=b]                                     REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, coef=x]                             REFUSE: The following priors do not correspond to any model parameter: b_x ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, resp=y1]                            ACCEPT: lprior += normal_lpdf(b_y1 | 0, 5);
+normal(0, 5) [class=b, coef=x, resp=y1]                    ACCEPT: lprior += normal_lpdf(b_y1[1] | 0, 5);
+normal(0, 5) [class=Intercept]                             REFUSE: The following priors do not correspond to any model parameter: Intercept ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept, resp=y2]                    ACCEPT: lprior += normal_lpdf(Intercept_y2 | 0, 5);
+student_t(3, 0, 2.5) [class=sigma]                         REFUSE: The following priors do not correspond to any model parameter: sigma ~ student_t(3, 0, 2.5) Function 'default_prior' might be helpful to you.
+student_t(3, 0, 2.5) [class=sigma, resp=y1]                ACCEPT: (no new lprior line)
+normal(0, 5) [class=sd]                                    REFUSE: The following priors do not correspond to any model parameter: sd ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=sd, resp=y1]                           ACCEPT: lprior += normal_lpdf(sd_1 | 0, 5)
+ lb=0 [class=b]                                            REFUSE: The following priors do not correspond to any model parameter: <lower=0> b ~ (flat) Function 'default_prior' might be helpful to you.
+ lb=0 [class=b, resp=y1]                                   ACCEPT: (no new lprior line) || bounds: vector<lower=0>[Kc_y1] b_y1;  // regression coefficients
+normal(0, 5) [class=b, resp=nosuch]                        REFUSE: The following priors do not correspond to any model parameter: b_nosuch ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+-- default_prior() --
+                   prior     class      coef group resp dpar nlpar
+                                 b                   y1           
+                                 b         x         y1           
+    student_t(3, 1, 2.5) Intercept                   y1           
+    student_t(3, 0, 2.5)        sd                   y1           
+                                sd               g   y1           
+                                sd Intercept     g   y1           
+    student_t(3, 0, 2.5)     sigma                   y1           
+                                 b                   y2           
+                                 b         x         y2           
+ student_t(3, -0.9, 2.5) Intercept                   y2           
+    student_t(3, 0, 2.5)        sd                   y2           
+                                sd               g   y2           
+                                sd Intercept     g   y2           
+    student_t(3, 0, 2.5)     sigma                   y2           
+
+== mvsig: bf(y1 ~ x, sigma ~ z) + bf(y2 ~ x), rescor FALSE ==
+normal(0, 5) [class=b, dpar=sigma]                         REFUSE: The following priors do not correspond to any model parameter: b_sigma ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, resp=y1, dpar=sigma]                ACCEPT: lprior += normal_lpdf(b_sigma_y1 | 0, 5);
+normal(0, 5) [class=Intercept, dpar=sigma]                 REFUSE: The following priors do not correspond to any model parameter: Intercept_sigma ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept, resp=y1, dpar=sigma]        ACCEPT: lprior += normal_lpdf(Intercept_sigma_y1 | 0, 5);
+student_t(3, 0, 2.5) [class=sigma]                         REFUSE: The following priors do not correspond to any model parameter: sigma ~ student_t(3, 0, 2.5) Function 'default_prior' might be helpful to you.
+student_t(3, 0, 2.5) [class=sigma, resp=y2]                ACCEPT: (no new lprior line)
+normal(0, 5) [class=b]                                     REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, resp=y2]                            ACCEPT: lprior += normal_lpdf(b_y2 | 0, 5);
+-- default_prior() --
+                   prior     class coef group resp  dpar nlpar
+                                 b              y1            
+                                 b    x         y1            
+    student_t(3, 1, 2.5) Intercept              y1            
+                                 b              y1 sigma      
+                                 b    z         y1 sigma      
+    student_t(3, 0, 2.5) Intercept              y1 sigma      
+                                 b              y2            
+                                 b    x         y2            
+ student_t(3, -0.9, 2.5) Intercept              y2            
+    student_t(3, 0, 2.5)     sigma              y2            
+
+== mixed: bf(y1 ~ x) + gaussian() + bf(cnt ~ x) + poisson() ==
+normal(0, 5) [class=b]                                     REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, resp=cnt]                           ACCEPT: lprior += normal_lpdf(b_cnt | 0, 5);
+normal(0, 5) [class=Intercept]                             REFUSE: The following priors do not correspond to any model parameter: Intercept ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept, resp=y1]                    ACCEPT: lprior += normal_lpdf(Intercept_y1 | 0, 5);
+student_t(3, 0, 2.5) [class=sigma]                         REFUSE: The following priors do not correspond to any model parameter: sigma ~ student_t(3, 0, 2.5) Function 'default_prior' might be helpful to you.
+student_t(3, 0, 2.5) [class=sigma, resp=y1]                ACCEPT: (no new lprior line)
+student_t(3, 0, 2.5) [class=sigma, resp=cnt]               REFUSE: The following priors do not correspond to any model parameter: sigma_cnt ~ student_t(3, 0, 2.5) Function 'default_prior' might be helpful to you.
+-- default_prior() --
+                prior     class coef group resp dpar nlpar
+                              b             cnt           
+                              b    x        cnt           
+ student_t(3, 0, 2.5) Intercept             cnt           
+                              b              y1           
+                              b    x         y1           
+ student_t(3, 1, 2.5) Intercept              y1           
+ student_t(3, 0, 2.5)     sigma              y1           
+
+== rescor: bf(mvbind(y1, y2) ~ x + (1 + x | g)) + set_rescor(TRUE) ==
+normal(0, 5) [class=b]                                     REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, resp=y1]                            ACCEPT: lprior += normal_lpdf(b_y1 | 0, 5);
+normal(0, 5) [class=Intercept]                             REFUSE: The following priors do not correspond to any model parameter: Intercept ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept, resp=y1]                    ACCEPT: lprior += normal_lpdf(Intercept_y1 | 0, 5);
+student_t(3, 0, 2.5) [class=sigma]                         REFUSE: The following priors do not correspond to any model parameter: sigma ~ student_t(3, 0, 2.5) Function 'default_prior' might be helpful to you.
+student_t(3, 0, 2.5) [class=sigma, resp=y2]                ACCEPT: (no new lprior line)
+lkj(2) [class=rescor]                                      ACCEPT: lprior += lkj_corr_cholesky_lpdf(Lrescor | 2);
+lkj(2) [class=rescor, resp=y1]                             REFUSE: The following priors do not correspond to any model parameter: Lrescor_y1 ~ lkj(2) Function 'default_prior' might be helpful to you.
+lkj(2) [class=cor]                                         ACCEPT: lprior += lkj_corr_cholesky_lpdf(L_1 | 2); | lprior += lkj_corr_cholesky_lpdf(L_2 | 2);
+lkj(2) [class=cor, group=g]                                ACCEPT: lprior += lkj_corr_cholesky_lpdf(L_1 | 2); | lprior += lkj_corr_cholesky_lpdf(L_2 | 2);
+lkj(2) [class=cor, resp=y1]                                REFUSE: The following priors do not correspond to any model parameter: L_y1 ~ lkj(2) Function 'default_prior' might be helpful to you.
+-- default_prior() --
+                   prior     class      coef group resp dpar nlpar
+                  lkj(1)       cor                                
+                               cor               g                
+                  lkj(1)    rescor                                
+                                 b                   y1           
+                                 b         x         y1           
+    student_t(3, 1, 2.5) Intercept                   y1           
+    student_t(3, 0, 2.5)        sd                   y1           
+                                sd               g   y1           
+                                sd Intercept     g   y1           
+                                sd         x     g   y1           
+    student_t(3, 0, 2.5)     sigma                   y1           
+                                 b                   y2           
+                                 b         x         y2           
+ student_t(3, -0.9, 2.5) Intercept                   y2           
+    student_t(3, 0, 2.5)        sd                   y2           
+                                sd               g   y2           
+                                sd Intercept     g   y2           
+                                sd         x     g   y2           
+    student_t(3, 0, 2.5)     sigma                   y2           
+
+== mvstudent: bf(y1 ~ x) + bf(y2 ~ x), student(), rescor FALSE ==
+gamma(2, 0.1) [class=nu]                                   REFUSE: The following priors do not correspond to any model parameter: nu ~ gamma(2, 0.1) Function 'default_prior' might be helpful to you.
+gamma(2, 0.1) [class=nu, resp=y1]                          ACCEPT: (no new lprior line)
+-- default_prior() --
+                   prior     class coef group resp dpar nlpar
+                                 b              y1           
+                                 b    x         y1           
+    student_t(3, 1, 2.5) Intercept              y1           
+           gamma(2, 0.1)        nu              y1           
+    student_t(3, 0, 2.5)     sigma              y1           
+                                 b              y2           
+                                 b    x         y2           
+ student_t(3, -0.9, 2.5) Intercept              y2           
+           gamma(2, 0.1)        nu              y2           
+    student_t(3, 0, 2.5)     sigma              y2           
+
+== mvar: bf(y1 ~ x + ar(time = t, gr = g, cov = TRUE)) + bf(y2 ~ x), rescor FALSE ==
+normal(0, 0.5) [class=ar]                                  REFUSE: The following priors do not correspond to any model parameter: ar ~ normal(0, 0.5) Function 'default_prior' might be helpful to you.
+normal(0, 0.5) [class=ar, resp=y1]                         ACCEPT: lprior += normal_lpdf(ar_y1 | 0, 0.5)
+normal(0, 0.5) [class=ar, resp=y2]                         REFUSE: The following priors do not correspond to any model parameter: ar_y2 ~ normal(0, 0.5) Function 'default_prior' might be helpful to you.
+-- default_prior() --
+                   prior     class coef group resp dpar nlpar
+                                ar              y1           
+                                 b              y1           
+                                 b    x         y1           
+    student_t(3, 1, 2.5) Intercept              y1           
+    student_t(3, 0, 2.5)     sigma              y1           
+                                 b              y2           
+                                 b    x         y2           
+ student_t(3, -0.9, 2.5) Intercept              y2           
+    student_t(3, 0, 2.5)     sigma              y2           
+
+== nl: bf(ynl ~ a * exp(-b * ax), a ~ 1 + (1 | g), b ~ 1, nl = TRUE) ==
+normal(0, 5) [class=b]                                     REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, nlpar=a]                            ACCEPT: lprior += normal_lpdf(b_a | 0, 5);
+normal(0, 5) [class=b, coef=Intercept]                     REFUSE: The following priors do not correspond to any model parameter: b_Intercept ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, coef=Intercept, nlpar=b]            ACCEPT: lprior += normal_lpdf(b_b[1] | 0, 5);
+normal(0, 5) [class=Intercept]                             REFUSE: The following priors do not correspond to any model parameter: Intercept ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+student_t(3, 0, 2.5) [class=sigma]                         ACCEPT: (no new lprior line)
+ lb=0 [class=b]                                            REFUSE: The following priors do not correspond to any model parameter: <lower=0> b ~ (flat) Function 'default_prior' might be helpful to you.
+ lb=0 [class=b, nlpar=b]                                   ACCEPT: (no new lprior line) || bounds: vector<lower=0>[K_b] b_b;  // regression coefficients
+normal(0, 5) [class=Intercept, nlpar=a]                    REFUSE: The following priors do not correspond to any model parameter: Intercept_a ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+-- default_prior() --
+                prior class      coef group resp dpar nlpar
+ student_t(3, 0, 2.5) sigma                                
+                          b                               a
+                          b Intercept                     a
+ student_t(3, 0, 2.5)    sd                               a
+                         sd               g               a
+                         sd Intercept     g               a
+                          b                               b
+                          b Intercept                     b
+
+== uni: univariate: bf(y ~ x + (1 | g), sigma ~ z) ==
+normal(0, 5) [class=b]                                     ACCEPT: lprior += normal_lpdf(b | 0, 5);
+normal(0, 5) [class=b, coef=x]                             ACCEPT: lprior += normal_lpdf(b[1] | 0, 5);
+normal(0, 5) [class=Intercept]                             ACCEPT: lprior += normal_lpdf(Intercept | 0, 5);
+normal(0, 5) [class=b, resp=y]                             REFUSE: The following priors do not correspond to any model parameter: b_y ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept, resp=y]                     REFUSE: The following priors do not correspond to any model parameter: Intercept_y ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, resp=nosuch]                        REFUSE: The following priors do not correspond to any model parameter: b_nosuch ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, dpar=sigma]                         ACCEPT: lprior += normal_lpdf(b_sigma | 0, 5);
+normal(0, 5) [class=Intercept, dpar=sigma]                 ACCEPT: lprior += normal_lpdf(Intercept_sigma | 0, 5);
+normal(0, 5) [class=sd]                                    ACCEPT: lprior += normal_lpdf(sd_1 | 0, 5)
+-- default_prior() --
+                prior     class      coef group resp  dpar nlpar
+                              b                                 
+                              b         x                       
+ student_t(3, 1, 2.5) Intercept                                 
+ student_t(3, 0, 2.5)        sd                                 
+                             sd               g                 
+                             sd Intercept     g                 
+                              b                      sigma      
+                              b         z            sigma      
+ student_t(3, 0, 2.5) Intercept                      sigma      
+
+== uni2: univariate: bf(y ~ x) ==
+student_t(3, 0, 2.5) [class=sigma]                         ACCEPT: (no new lprior line)
+student_t(3, 0, 2.5) [class=sigma, resp=y]                 REFUSE: The following priors do not correspond to any model parameter: sigma_y ~ student_t(3, 0, 2.5) Function 'default_prior' might be helpful to you.
+ lb=0 [class=b]                                            ACCEPT: (no new lprior line) || bounds: vector<lower=0>[Kc] b;  // regression coefficients
+-- default_prior() --
+                prior     class coef group resp dpar nlpar
+                              b                           
+                              b    x                      
+ student_t(3, 1, 2.5) Intercept                           
+ student_t(3, 0, 2.5)     sigma                           
+
+== mi: bf(y ~ mi(xm) + z) + bf(xm | mi() ~ z), rescor FALSE ==
+normal(0, 5) [class=b]                                     REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, resp=y]                             ACCEPT: lprior += normal_lpdf(b_y | 0, 5); | lprior += normal_lpdf(bsp_y | 0, 5);
+normal(0, 5) [class=b, coef=mixm]                          REFUSE: The following priors do not correspond to any model parameter: b_mixm ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, coef=mixm, resp=y]                  ACCEPT: lprior += normal_lpdf(bsp_y[1] | 0, 5);
+normal(0, 5) [class=Intercept]                             REFUSE: The following priors do not correspond to any model parameter: Intercept ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+student_t(3, 0, 2.5) [class=sigma]                         REFUSE: The following priors do not correspond to any model parameter: sigma ~ student_t(3, 0, 2.5) Function 'default_prior' might be helpful to you.
+-- default_prior() --
+                prior     class coef group resp dpar nlpar
+                              b              xm           
+                              b    z         xm           
+ student_t(3, 0, 2.5) Intercept              xm           
+ student_t(3, 0, 2.5)     sigma              xm           
+                              b               y           
+                              b mixm          y           
+                              b    z          y           
+ student_t(3, 1, 2.5) Intercept               y           
+ student_t(3, 0, 2.5)     sigma               y           
+
+== mvac: bf(y1 ~ x + ma(time = t, gr = g, cov = TRUE)) + bf(y2 ~ x + cosy(time = t, gr = g)), rescor FALSE ==
+normal(0, 0.5) [class=ma]                                  REFUSE: The following priors do not correspond to any model parameter: ma ~ normal(0, 0.5) Function 'default_prior' might be helpful to you.
+normal(0, 0.5) [class=ma, resp=y1]                         ACCEPT: lprior += normal_lpdf(ma_y1 | 0, 0.5)
+beta(2, 2) [class=cosy]                                    REFUSE: The following priors do not correspond to any model parameter: cosy ~ beta(2, 2) Function 'default_prior' might be helpful to you.
+beta(2, 2) [class=cosy, resp=y2]                           ACCEPT: lprior += beta_lpdf(cosy_y2 | 2, 2);
+-- default_prior() --
+                   prior     class coef group resp dpar nlpar
+                                 b              y1           
+                                 b    x         y1           
+    student_t(3, 1, 2.5) Intercept              y1           
+                                ma              y1           
+    student_t(3, 0, 2.5)     sigma              y1           
+                                 b              y2           
+                                 b    x         y2           
+                              cosy              y2           
+ student_t(3, -0.9, 2.5) Intercept              y2           
+    student_t(3, 0, 2.5)     sigma              y2           
+
+== mvunstr: bf(y1 ~ x + unstr(time = t4, gr = g4)) + bf(y2 ~ x), rescor FALSE ==
+lkj(2) [class=cortime]                                     REFUSE: The following priors do not correspond to any model parameter: Lcortime ~ lkj(2) Function 'default_prior' might be helpful to you.
+lkj(2) [class=cortime, resp=y1]                            ACCEPT: lprior += lkj_corr_cholesky_lpdf(Lcortime_y1 | 2);
+-- default_prior() --
+                   prior     class coef group resp dpar nlpar
+                                 b              y1           
+                                 b    x         y1           
+                  lkj(1)   cortime              y1           
+    student_t(3, 1, 2.5) Intercept              y1           
+    student_t(3, 0, 2.5)     sigma              y1           
+                                 b              y2           
+                                 b    x         y2           
+ student_t(3, -0.9, 2.5) Intercept              y2           
+    student_t(3, 0, 2.5)     sigma              y2           
+
+== uni3: univariate, no slope: bf(y ~ 1) ==
+normal(0, 5) [class=b]                                     REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept]                             ACCEPT: lprior += normal_lpdf(Intercept | 0, 5);
+-- default_prior() --
+                prior     class coef group resp dpar nlpar
+ student_t(3, 1, 2.5) Intercept                           
+ student_t(3, 0, 2.5)     sigma                           
+
+== cat: univariate categorical: bf(cat ~ x), categorical() ==
+normal(0, 5) [class=b]                                     REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, coef=x]                             REFUSE: The following priors do not correspond to any model parameter: b_x ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept]                             REFUSE: The following priors do not correspond to any model parameter: Intercept ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, dpar=mub]                           ACCEPT: lprior += normal_lpdf(b_mub | 0, 5);
+normal(0, 5) [class=b, coef=x, dpar=muc]                   ACCEPT: lprior += normal_lpdf(b_muc[1] | 0, 5);
+normal(0, 5) [class=Intercept, dpar=mub]                   ACCEPT: lprior += normal_lpdf(Intercept_mub | 0, 5);
+normal(0, 5) [class=b, dpar=nosuch]                        REFUSE: The following priors do not correspond to any model parameter: b_nosuch ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+-- default_prior() --
+                prior     class coef group resp dpar nlpar
+                              b                  mub      
+                              b    x             mub      
+ student_t(3, 0, 2.5) Intercept                  mub      
+                              b                  muc      
+                              b    x             muc      
+ student_t(3, 0, 2.5) Intercept                  muc      
+Setting order = 'mu' for mixtures of the same family.
+
+== mix: mixture: bf(ym ~ x), mixture(gaussian, gaussian) ==
+normal(0, 5) [class=b]                                     REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, coef=x]                             REFUSE: The following priors do not correspond to any model parameter: b_x ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept]                             REFUSE: The following priors do not correspond to any model parameter: Intercept ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, dpar=mu1]                           ACCEPT: lprior += normal_lpdf(b_mu1 | 0, 5);
+normal(0, 5) [class=Intercept, dpar=mu2]                   ACCEPT: lprior += normal_lpdf(Intercept_mu2 | 0, 5);
+student_t(3, 0, 2.5) [class=sigma1]                        ACCEPT: lprior += student_t_lpdf(sigma1 | 3, 0, 2.5)
+student_t(3, 0, 2.5) [class=sigma]                         REFUSE: The following priors do not correspond to any model parameter: sigma ~ student_t(3, 0, 2.5) Function 'default_prior' might be helpful to you.
+-- default_prior() --
+                  prior     class coef group resp dpar nlpar
+   student_t(3, 0, 3.2)    sigma1                           
+   student_t(3, 0, 3.2)    sigma2                           
+           dirichlet(1)     theta                           
+                                b                  mu1      
+                                b    x             mu1      
+ student_t(3, 1.2, 3.2) Intercept                  mu1      
+                                b                  mu2      
+                                b    x             mu2      
+ student_t(3, 1.2, 3.2) Intercept                  mu2      
+
+== mvcat: bf(y1 ~ x) + bf(cat ~ x, family = categorical()), rescor FALSE ==
+normal(0, 5) [class=b, resp=cat]                           REFUSE: The following priors do not correspond to any model parameter: b_cat ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept, resp=cat]                   REFUSE: The following priors do not correspond to any model parameter: Intercept_cat ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, resp=y1]                            ACCEPT: lprior += normal_lpdf(b_y1 | 0, 5);
+normal(0, 5) [class=b, resp=cat, dpar=mub]                 ACCEPT: lprior += normal_lpdf(b_mub_cat | 0, 5);
+normal(0, 5) [class=b, dpar=mub]                           REFUSE: The following priors do not correspond to any model parameter: b_mub ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept, resp=cat, dpar=muc]         ACCEPT: lprior += normal_lpdf(Intercept_muc_cat | 0, 5);
+normal(0, 5) [class=Intercept, dpar=muc]                   REFUSE: The following priors do not correspond to any model parameter: Intercept_muc ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+-- default_prior() --
+                prior     class coef group resp dpar nlpar
+                              b             cat  mub      
+                              b    x        cat  mub      
+ student_t(3, 0, 2.5) Intercept             cat  mub      
+                              b             cat  muc      
+                              b    x        cat  muc      
+ student_t(3, 0, 2.5) Intercept             cat  muc      
+                              b              y1           
+                              b    x         y1           
+ student_t(3, 1, 2.5) Intercept              y1           
+ student_t(3, 0, 2.5)     sigma              y1           
+
+== mvnl: bf(y1 ~ x) + bf(ynl ~ a * exp(-b * ax), a ~ 1 + z, b ~ 1, nl = TRUE), rescor FALSE ==
+normal(0, 5) [class=b, nlpar=a]                            REFUSE: The following priors do not correspond to any model parameter: b_a ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, resp=ynl, nlpar=a]                  ACCEPT: lprior += normal_lpdf(b_ynl_a | 0, 5);
+normal(0, 5) [class=Intercept, nlpar=a]                    REFUSE: The following priors do not correspond to any model parameter: Intercept_a ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept, resp=ynl, nlpar=a]          REFUSE: The following priors do not correspond to any model parameter: Intercept_ynl_a ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, resp=ynl]                           REFUSE: The following priors do not correspond to any model parameter: b_ynl ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, coef=z, nlpar=a]                    REFUSE: The following priors do not correspond to any model parameter: b_a_z ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+-- default_prior() --
+                prior     class      coef group resp dpar nlpar
+                              b                   y1           
+                              b         x         y1           
+ student_t(3, 1, 2.5) Intercept                   y1           
+ student_t(3, 0, 2.5)     sigma                   y1           
+ student_t(3, 0, 2.5)     sigma                  ynl           
+                              b                  ynl          a
+                              b Intercept        ynl          a
+                              b         z        ynl          a
+                              b                  ynl          b
+                              b Intercept        ynl          b
+
+== nl2: bf(ynl ~ a * exp(-b * ax), a ~ 1 + z, b ~ 1, nl = TRUE) ==
+normal(0, 5) [class=b]                                     REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+ lb=0 [class=b]                                            REFUSE: The following priors do not correspond to any model parameter: <lower=0> b ~ (flat) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, coef=z, nlpar=a]                    ACCEPT: lprior += normal_lpdf(b_a[2] | 0, 5);
+-- default_prior() --
+                prior class      coef group resp dpar nlpar
+ student_t(3, 0, 2.5) sigma                                
+                          b                               a
+                          b Intercept                     a
+                          b         z                     a
+                          b                               b
+                          b Intercept                     b
+
+== catre: categorical with a group effect: bf(cat ~ x + (1 | g)) ==
+normal(0, 5) [class=sd]                                    REFUSE: The following priors do not correspond to any model parameter: sd ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=sd, group=g]                           REFUSE: The following priors do not correspond to any model parameter: sd_g ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=sd, dpar=mub]                          ACCEPT: lprior += normal_lpdf(sd_1 | 0, 5)
+normal(0, 5) [class=b, dpar=muc]                           ACCEPT: lprior += normal_lpdf(b_muc | 0, 5);
+-- default_prior() --
+                prior     class      coef group resp dpar nlpar
+                              b                       mub      
+                              b         x             mub      
+ student_t(3, 0, 2.5) Intercept                       mub      
+ student_t(3, 0, 2.5)        sd                       mub      
+                             sd               g       mub      
+                             sd Intercept     g       mub      
+                              b                       muc      
+                              b         x             muc      
+ student_t(3, 0, 2.5) Intercept                       muc      
+ student_t(3, 0, 2.5)        sd                       muc      
+                             sd               g       muc      
+                             sd Intercept     g       muc      
+Setting order = 'mu' for mixtures of the same family.
+
+== mixre: mixture with a group effect: bf(ym ~ x + (1 | g)) ==
+normal(0, 5) [class=sd]                                    REFUSE: The following priors do not correspond to any model parameter: sd ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=sd, dpar=mu1]                          ACCEPT: lprior += normal_lpdf(sd_1 | 0, 5)
+-- default_prior() --
+                  prior     class      coef group resp dpar nlpar
+   student_t(3, 0, 3.2)    sigma1                                
+   student_t(3, 0, 3.2)    sigma2                                
+           dirichlet(1)     theta                                
+                                b                       mu1      
+                                b         x             mu1      
+ student_t(3, 1.2, 3.2) Intercept                       mu1      
+   student_t(3, 0, 3.2)        sd                       mu1      
+                               sd               g       mu1      
+                               sd Intercept     g       mu1      
+                                b                       mu2      
+                                b         x             mu2      
+ student_t(3, 1.2, 3.2) Intercept                       mu2      
+   student_t(3, 0, 3.2)        sd                       mu2      
+                               sd               g       mu2      
+                               sd Intercept     g       mu2      
+
+== noslope: no slope: bf(y ~ 1 + (1 | g), sigma ~ 1) ==
+normal(0, 5) [class=b]                                     REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+ lb=0 [class=b]                                            REFUSE: The following priors do not correspond to any model parameter: <lower=0> b ~ (flat) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, dpar=sigma]                         REFUSE: The following priors do not correspond to any model parameter: b_sigma ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept]                             ACCEPT: lprior += normal_lpdf(Intercept | 0, 5);
+normal(0, 5) [class=sd, resp=y]                            REFUSE: The following priors do not correspond to any model parameter: sd_y ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=sd]                                    ACCEPT: lprior += normal_lpdf(sd_1 | 0, 5)
+-- default_prior() --
+                prior     class      coef group resp  dpar nlpar
+ student_t(3, 1, 2.5) Intercept                                 
+ student_t(3, 0, 2.5)        sd                                 
+                             sd               g                 
+                             sd Intercept     g                 
+ student_t(3, 0, 2.5) Intercept                      sigma      
+
+== mvnoslope: bf(y1 ~ x) + bf(y2 ~ 1), rescor FALSE ==
+normal(0, 5) [class=b, resp=y2]                            REFUSE: The following priors do not correspond to any model parameter: b_y2 ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, resp=y1]                            ACCEPT: lprior += normal_lpdf(b_y1 | 0, 5);
+normal(0, 5) [class=Intercept, resp=y2]                    ACCEPT: lprior += normal_lpdf(Intercept_y2 | 0, 5);
+-- default_prior() --
+                   prior     class coef group resp dpar nlpar
+                                 b              y1           
+                                 b    x         y1           
+    student_t(3, 1, 2.5) Intercept              y1           
+    student_t(3, 0, 2.5)     sigma              y1           
+ student_t(3, -0.9, 2.5) Intercept              y2           
+    student_t(3, 0, 2.5)     sigma              y2           
+
+== catnoslope: bf(cat ~ 1), categorical() ==
+normal(0, 5) [class=b, dpar=mub]                           REFUSE: The following priors do not correspond to any model parameter: b_mub ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept, dpar=mub]                   ACCEPT: lprior += normal_lpdf(Intercept_mub | 0, 5);
+-- default_prior() --
+                prior     class coef group resp dpar nlpar
+ student_t(3, 0, 2.5) Intercept                  mub      
+ student_t(3, 0, 2.5) Intercept                  muc      
+
+== uniar: univariate autocorrelation: bf(y ~ x + ar(time = t, gr = g, cov = TRUE)) ==
+normal(0, 0.5) [class=ar]                                  ACCEPT: lprior += normal_lpdf(ar | 0, 0.5)
+normal(0, 0.5) [class=ar, resp=y]                          REFUSE: The following priors do not correspond to any model parameter: ar_y ~ normal(0, 0.5) Function 'default_prior' might be helpful to you.
+-- default_prior() --
+                prior     class coef group resp dpar nlpar
+                             ar                           
+                              b                           
+                              b    x                      
+ student_t(3, 1, 2.5) Intercept                           
+ student_t(3, 0, 2.5)     sigma                           
+
+== rescor2: bf(mvbind(y1, y2) ~ x) + set_rescor(TRUE) ==
+lkj(2) [class=rescor]                                      ACCEPT: lprior += lkj_corr_cholesky_lpdf(Lrescor | 2);
+lkj(2) [class=rescor, resp=y1]                             REFUSE: The following priors do not correspond to any model parameter: Lrescor_y1 ~ lkj(2) Function 'default_prior' might be helpful to you.
+lkj(2) [class=rescor, resp=y2]                             REFUSE: The following priors do not correspond to any model parameter: Lrescor_y2 ~ lkj(2) Function 'default_prior' might be helpful to you.
+-- default_prior() --
+                   prior     class coef group resp dpar nlpar
+                  lkj(1)    rescor                           
+                                 b              y1           
+                                 b    x         y1           
+    student_t(3, 1, 2.5) Intercept              y1           
+    student_t(3, 0, 2.5)     sigma              y1           
+                                 b              y2           
+                                 b    x         y2           
+ student_t(3, -0.9, 2.5) Intercept              y2           
+    student_t(3, 0, 2.5)     sigma              y2           

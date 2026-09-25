@@ -1,0 +1,57 @@
+
+R version 4.6.1 (2026-06-24 ucrt) -- "Happy Hop"
+Copyright (C) 2026 The R Foundation for Statistical Computing
+Platform: x86_64-w64-mingw32/x64
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(testthat)
+> library(frmtmb.latent)
+Loading required package: frmtmb
+> 
+> test_check("frmtmb.latent")
+converged at iteration 19 with logLik: -746.6946 
+converged at iteration 25 with logLik: -746.6946 
+converged at iteration 21 with logLik: -746.6946 
+converged at iteration 29 with logLik: -746.6946 
+converged at iteration 28 with logLik: -701.2889 
+converged at iteration 32 with logLik: -701.2889 
+converged at iteration 25 with logLik: -701.2889 
+converged at iteration 29 with logLik: -701.2889 
+converged at iteration 27 with logLik: -701.2889 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 13 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 14 with logLik: -1217.365 
+converged at iteration 453 with logLik: -685.3785 
+converged at iteration 408 with logLik: -685.3785 
+converged at iteration 404 with logLik: -685.3785 
+converged at iteration 430 with logLik: -685.3785 
+converged at iteration 400 with logLik: -685.3785 
+converged at iteration 54 with logLik: -3093.27 
+converged at iteration 2054 with logLik: -3433.42 
+converged at iteration 67 with logLik: -3093.27 
+converged at iteration 1803 with logLik: -3433.42 
+[ FAIL 0 | WARN 0 | SKIP 4 | PASS 351 ]
+
+══ Skipped tests (4) ═══════════════════════════════════════════════════════════
+• package sources are not available (installed-package run) (2):
+  'test-conditions-census.R:294:3', 'test-message-uniqueness.R:30:3'
+• set FRMTMB_SCALE_TESTS=true to run the scale tier (2): 'test-scale.R:117:3',
+  'test-scale.R:162:3'
+
+[ FAIL 0 | WARN 0 | SKIP 4 | PASS 351 ]
+> 
+> proc.time()
+   user  system elapsed 
+  81.96    3.25   85.68 

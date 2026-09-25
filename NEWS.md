@@ -147,6 +147,59 @@ Five defects filed in the 0.62.0 round (lane `wt-predfix`;
   now classed `frmtmb_new_levels`, so an extension can say what it can
   do instead. The message is unchanged.
 
+* **BREAKING: in a multivariate model a prior needs `resp`**, as it does
+  in brms. A class `"b"` or `"Intercept"` prior, a distributional
+  parameter's own class (`"sigma"`, `"nu"`, ...), and a residual
+  correlation class (`"ar"`, `"ma"`, `"cosy"`, `"cortime"`) written
+  without `resp` are now refused with a `frmtmb_error`. Until now frmtmb
+  applied such a prior to every response that had the slot, where brms
+  2.23.0 refuses it. The message gives the `set_prior()` call for each
+  response on which that call resolves. What stops working:
+  `set_prior("normal(0, 1)", class = "b")` on `bf(y1 ~ x) + bf(y2 ~ x)`,
+  and on a `mi()` model, which is multivariate. Write
+  `set_prior("normal(0, 1)", class = "b", resp = "y1") +
+  set_prior("normal(0, 1)", class = "b", resp = "y2")`. Class `"sd"` got
+  the same rule in 0.62.0.
+
+* **BREAKING: where the location is several distributional parameters,
+  a prior names one with `dpar`.** On `categorical()`, `multinomial()`
+  and `mixture()` this is brms's rule. frmtmb applies the same rule to
+  its other families with several location dpars: `mixture_mvn()`, and
+  in the extensions `lca()`, `hmm()`, `lba()` and `rdm()`. Class `"b"`,
+  `"Intercept"` and `"sd"` without `dpar` are now refused there; write
+  `dpar = "mub"`, `dpar = "mu1"` or `dpar = "v1"`. Until now such a prior
+  reached every category's, component's or accumulator's coefficients at
+  once. `default_prior()` lists these rows with their `dpar`, where it
+  listed them with none.
+
+* **Class `"b"` reaches the category-specific coefficients of `cs()`**
+  on `sratio()`, `cratio()` and `acat()`, and `coef = "x"` names the
+  term `cs(x)`, as in brms. Until now class `"b"` missed them: on
+  `ord ~ cs(x)` it applied nothing, and on `ord ~ z + cs(x)` it reached
+  `z` only. A MAP fit with such a prior moves, because the prior now
+  applies. `default_prior()` lists a `b` row for each `cs()` term.
+
+* **BREAKING: on a nonlinear location a class `"b"` or `"Intercept"`
+  prior needs `nlpar`**, as in brms. Until now class `"b"` without
+  `nlpar` on `bf(y ~ a * exp(b * x), a ~ 1 + z, b ~ 1, nl = TRUE)` went
+  to the slope `a_z` and nowhere else, and on a model whose nonlinear
+  parameters are all intercept-only it went nowhere, without a word.
+  Class `"Intercept"` or `coef = "Intercept"` reached the intercept of
+  EVERY nonlinear parameter. All are now refused. `class = "Intercept",
+  nlpar = "a"` stays accepted as frmtmb's own spelling, although brms
+  refuses it.
+
+* **BREAKING: three more spellings brms refuses are refused** (user
+  decisions, 2026-09-24). `resp` on a model with one response; `resp` on
+  class `"rescor"`, which used to be ignored while the prior went on the
+  whole residual correlation; and class `"b"` on a predictor with no
+  population-level slope, such as `y ~ 1`, which used to apply nothing
+  while `prior_summary()` listed it. `resp` on class `"cor"` stays
+  accepted as frmtmb's own spelling.
+
+* A fit that used one of the refused priors does not move: it now
+  stops before fitting. No other fit moves.
+
 # frmtmb 0.62.0
 
 * **A `skew_normal()` fit that used to stop at `alpha = 0` now finds

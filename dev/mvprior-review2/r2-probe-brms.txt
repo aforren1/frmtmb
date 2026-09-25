@@ -1,0 +1,391 @@
+ARM lane frmtmb 0.62.0 from C:/Users/adf44/source/r/mvprior-lib/frmtmb 
+
+== cat4: bf(cat4 ~ x + z), categorical, 4 levels ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||mub|
+  b||||muc|
+  b||||mud|
+  b|x|||mub|
+  b|x|||muc|
+  b|x|||mud|
+  b|z|||mub|
+  b|z|||muc|
+  b|z|||mud|
+  Intercept||||mub|
+  Intercept||||muc|
+  Intercept||||mud|
+normal(0, 5) [class=b]                                         REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept]                                 REFUSE: The following priors do not correspond to any model parameter: Intercept ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, coef=x]                                 REFUSE: The following priors do not correspond to any model parameter: b_x ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, dpar=mub]                               ACCEPT user rows: b||||mub|
+normal(0, 5) [class=b, coef=z, dpar=mud]                       ACCEPT user rows: b|z|||mud|
+normal(0, 5) [class=Intercept, dpar=muc]                       ACCEPT user rows: Intercept||||muc|
+normal(0, 5) [class=b, dpar=mue]                               REFUSE: The following priors do not correspond to any model parameter: b_mue ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+ lb=0 [class=b, dpar=mub]                                      ACCEPT user rows: b||||mub|
+ ub=1 [class=b, coef=x, dpar=muc]                              REFUSE: Prior argument 'coef' may not be specified when using boundaries.
+normal(0, 1) lb=-2 ub=2 [class=b, dpar=mub]                    ACCEPT user rows: b||||mub|
+student_t(3, 0, 1) [class=Intercept, dpar=mud]                 ACCEPT user rows: Intercept||||mud|
+normal(0, 5) [class=b, coef=x, dpar=mu]                        REFUSE: The following priors do not correspond to any model parameter: b_x ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+
+== cat2: bf(cat2 ~ x), categorical, 2 levels (one beyond ref) ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||muyes|
+  b|x|||muyes|
+  Intercept||||muyes|
+normal(0, 5) [class=b]                                         REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept]                                 REFUSE: The following priors do not correspond to any model parameter: Intercept ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, dpar=muyes]                             ACCEPT user rows: b||||muyes|
+normal(0, 5) [class=Intercept, dpar=muyes]                     ACCEPT user rows: Intercept||||muyes|
+normal(0, 5) [class=b, coef=x, dpar=muyes]                     ACCEPT user rows: b|x|||muyes|
+normal(0, 5) [class=b, dpar=mu]                                REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+
+== cat4re: bf(cat4 ~ x + (1 | ID | g)), categorical ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||mub|
+  b||||muc|
+  b||||mud|
+  b|x|||mub|
+  b|x|||muc|
+  b|x|||mud|
+  cor|||||
+  cor||g|||
+  Intercept||||mub|
+  Intercept||||muc|
+  Intercept||||mud|
+  sd||||mub|
+  sd||||muc|
+  sd||||mud|
+  sd||g||mub|
+  sd||g||muc|
+  sd||g||mud|
+  sd|Intercept|g||mub|
+  sd|Intercept|g||muc|
+  sd|Intercept|g||mud|
+normal(0, 5) [class=sd]                                        REFUSE: The following priors do not correspond to any model parameter: sd ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=sd, group=g]                               REFUSE: The following priors do not correspond to any model parameter: sd_g ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=sd, dpar=mub]                              ACCEPT user rows: sd||||mub|
+normal(0, 5) [class=sd, group=g, dpar=muc]                     ACCEPT user rows: sd||g||muc|
+normal(0, 5) [class=sd, coef=Intercept, group=g, dpar=mud]     ACCEPT user rows: sd|Intercept|g||mud|
+lkj(2) [class=cor]                                             ACCEPT user rows: L|||||
+lkj(2) [class=cor, group=g]                                    ACCEPT user rows: L||g|||
+lkj(2) [class=cor, dpar=mub]                                   REFUSE: The following priors do not correspond to any model parameter: L_mub ~ lkj(2) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, dpar=mub]                               ACCEPT user rows: b||||mub|
+normal(0, 5) [class=sd, group=h]                               REFUSE: The following priors do not correspond to any model parameter: sd_h ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+
+== cat4re2: bf(cat4 ~ x + (1 | g)), categorical, blocks per dpar ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||mub|
+  b||||muc|
+  b||||mud|
+  b|x|||mub|
+  b|x|||muc|
+  b|x|||mud|
+  Intercept||||mub|
+  Intercept||||muc|
+  Intercept||||mud|
+  sd||||mub|
+  sd||||muc|
+  sd||||mud|
+  sd||g||mub|
+  sd||g||muc|
+  sd||g||mud|
+  sd|Intercept|g||mub|
+  sd|Intercept|g||muc|
+  sd|Intercept|g||mud|
+normal(0, 5) [class=sd]                                        REFUSE: The following priors do not correspond to any model parameter: sd ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=sd, dpar=mub]                              ACCEPT user rows: sd||||mub|
+normal(0, 5) [class=sd, group=g, dpar=muc]                     ACCEPT user rows: sd||g||muc|
+lkj(2) [class=cor]                                             REFUSE: The following priors do not correspond to any model parameter: L ~ lkj(2) Function 'default_prior' might be helpful to you.
+
+== catpart: bf(cat4 ~ x, mud ~ z), dpar formula for one category ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||mub|
+  b||||muc|
+  b||||mud|
+  b|x|||mub|
+  b|x|||muc|
+  b|z|||mud|
+  Intercept||||mub|
+  Intercept||||muc|
+  Intercept||||mud|
+normal(0, 5) [class=b]                                         REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, dpar=mub]                               ACCEPT user rows: b||||mub|
+normal(0, 5) [class=b, dpar=mud]                               ACCEPT user rows: b||||mud|
+normal(0, 5) [class=b, coef=z, dpar=mud]                       ACCEPT user rows: b|z|||mud|
+normal(0, 5) [class=b, coef=x, dpar=mud]                       REFUSE: The following priors do not correspond to any model parameter: b_mud_x ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, coef=x, dpar=muc]                       ACCEPT user rows: b|x|||muc|
+normal(0, 5) [class=Intercept, dpar=mud]                       ACCEPT user rows: Intercept||||mud|
+normal(0, 5) [class=Intercept]                                 REFUSE: The following priors do not correspond to any model parameter: Intercept ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+Setting order = 'mu' for mixtures of the same family.
+
+== mix3: bf(ym3 ~ x), mixture(gaussian x3) ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||mu1|
+  b||||mu2|
+  b||||mu3|
+  b|x|||mu1|
+  b|x|||mu2|
+  b|x|||mu3|
+  Intercept||||mu1|
+  Intercept||||mu2|
+  Intercept||||mu3|
+  sigma1|||||
+  sigma2|||||
+  sigma3|||||
+normal(0, 5) [class=b]                                         REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept]                                 REFUSE: The following priors do not correspond to any model parameter: Intercept ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, dpar=mu3]                               ACCEPT user rows: b||||mu3|
+normal(0, 5) [class=Intercept, dpar=mu2]                       ACCEPT user rows: Intercept||||mu2|
+normal(0, 5) [class=b, coef=x, dpar=mu3]                       ACCEPT user rows: b|x|||mu3|
+student_t(3, 0, 2.5) [class=sigma]                             REFUSE: The following priors do not correspond to any model parameter: sigma ~ student_t(3, 0, 2.5) Function 'default_prior' might be helpful to you.
+student_t(3, 0, 2.5) [class=sigma3]                            ACCEPT user rows: sigma3|||||
+exponential(1) [class=sigma2]                                  ACCEPT user rows: sigma2|||||
+normal(0, 1) [class=theta1]                                    REFUSE: The following priors do not correspond to any model parameter: theta1 ~ normal(0, 1) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept, dpar=theta2]                    REFUSE: The following priors do not correspond to any model parameter: Intercept_theta2 ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, dpar=mu4]                               REFUSE: The following priors do not correspond to any model parameter: b_mu4 ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+ lb=0 [class=b, dpar=mu1]                                      ACCEPT user rows: b||||mu1|
+Setting order = 'none' for mixtures of different families.
+
+== mixdiff: bf(ym ~ x), mixture(gaussian, student) ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||mu1|
+  b||||mu2|
+  b|x|||mu1|
+  b|x|||mu2|
+  Intercept||||mu1|
+  Intercept||||mu2|
+  nu2|||||
+  sigma1|||||
+  sigma2|||||
+normal(0, 5) [class=b]                                         REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, dpar=mu1]                               ACCEPT user rows: b||||mu1|
+normal(0, 5) [class=b, dpar=mu2]                               ACCEPT user rows: b||||mu2|
+normal(0, 5) [class=Intercept, dpar=mu2]                       ACCEPT user rows: Intercept||||mu2|
+gamma(2, 0.1) [class=nu2]                                      ACCEPT user rows: nu2|||||
+gamma(2, 0.1) [class=nu]                                       REFUSE: The following priors do not correspond to any model parameter: nu ~ gamma(2, 0.1) Function 'default_prior' might be helpful to you.
+student_t(3, 0, 2.5) [class=sigma1]                            ACCEPT user rows: sigma1|||||
+Setting order = 'mu' for mixtures of the same family.
+
+== mixsig: bf(ym ~ x, sigma2 ~ z, theta2 ~ w), mixture(gaussian x2) ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||mu1|
+  b||||mu2|
+  b||||sigma2|
+  b||||theta2|
+  b|w|||theta2|
+  b|x|||mu1|
+  b|x|||mu2|
+  b|z|||sigma2|
+  Intercept||||mu1|
+  Intercept||||mu2|
+  Intercept||||sigma2|
+  Intercept||||theta2|
+  sigma1|||||
+  theta1|||||
+normal(0, 5) [class=b]                                         REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, dpar=sigma2]                            ACCEPT user rows: b||||sigma2|
+normal(0, 5) [class=Intercept, dpar=sigma2]                    ACCEPT user rows: Intercept||||sigma2|
+normal(0, 5) [class=b, dpar=theta2]                            ACCEPT user rows: b||||theta2|
+normal(0, 5) [class=b, coef=w, dpar=theta2]                    ACCEPT user rows: b|w|||theta2|
+student_t(3, 0, 2.5) [class=sigma1]                            ACCEPT user rows: sigma1|||||
+normal(0, 5) [class=Intercept, dpar=mu1]                       ACCEPT user rows: Intercept||||mu1|
+normal(0, 5) [class=b, dpar=sigma1]                            REFUSE: The following priors do not correspond to any model parameter: b_sigma1 ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+Setting order = 'mu' for mixtures of the same family.
+
+== mixre: bf(ym ~ x + (1 | g)), mixture(gaussian x2) ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||mu1|
+  b||||mu2|
+  b|x|||mu1|
+  b|x|||mu2|
+  Intercept||||mu1|
+  Intercept||||mu2|
+  sd||||mu1|
+  sd||||mu2|
+  sd||g||mu1|
+  sd||g||mu2|
+  sd|Intercept|g||mu1|
+  sd|Intercept|g||mu2|
+  sigma1|||||
+  sigma2|||||
+normal(0, 5) [class=sd]                                        REFUSE: The following priors do not correspond to any model parameter: sd ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=sd, dpar=mu1]                              ACCEPT user rows: sd||||mu1|
+normal(0, 5) [class=sd, group=g, dpar=mu2]                     ACCEPT user rows: sd||g||mu2|
+normal(0, 5) [class=sd, group=g]                               REFUSE: The following priors do not correspond to any model parameter: sd_g ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+
+== mvcat: bf(yg ~ x) + bf(cat4 ~ x + (1 | g), categorical) ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b|||cat4|mub|
+  b|||cat4|muc|
+  b|||cat4|mud|
+  b|||yg||
+  b|x||cat4|mub|
+  b|x||cat4|muc|
+  b|x||cat4|mud|
+  b|x||yg||
+  Intercept|||cat4|mub|
+  Intercept|||cat4|muc|
+  Intercept|||cat4|mud|
+  Intercept|||yg||
+  sd|||cat4|mub|
+  sd|||cat4|muc|
+  sd|||cat4|mud|
+  sd||g|cat4|mub|
+  sd||g|cat4|muc|
+  sd||g|cat4|mud|
+  sd|Intercept|g|cat4|mub|
+  sd|Intercept|g|cat4|muc|
+  sd|Intercept|g|cat4|mud|
+  sigma|||yg||
+normal(0, 5) [class=b, resp=cat4]                              REFUSE: The following priors do not correspond to any model parameter: b_cat4 ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, resp=yg]                                ACCEPT user rows: b|||yg||
+normal(0, 5) [class=b, resp=cat4, dpar=mub]                    ACCEPT user rows: b|||cat4|mub|
+normal(0, 5) [class=b, dpar=mub]                               REFUSE: The following priors do not correspond to any model parameter: b_mub ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept, resp=cat4, dpar=mud]            ACCEPT user rows: Intercept|||cat4|mud|
+normal(0, 5) [class=sd, resp=cat4]                             REFUSE: The following priors do not correspond to any model parameter: sd_cat4 ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=sd, resp=cat4, dpar=muc]                   ACCEPT user rows: sd|||cat4|muc|
+normal(0, 5) [class=sd, dpar=muc]                              REFUSE: The following priors do not correspond to any model parameter: sd_muc ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+student_t(3, 0, 2.5) [class=sigma, resp=yg]                    ACCEPT user rows: sigma|||yg||
+normal(0, 5) [class=b, coef=x, resp=cat4, dpar=mub]            ACCEPT user rows: b|x||cat4|mub|
+normal(0, 5) [class=b, resp=yg, dpar=mub]                      REFUSE: The following priors do not correspond to any model parameter: b_yg_mub ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+
+== cumul: bf(ord ~ x + z + (1 | g)), cumulative ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b|||||
+  b|x||||
+  b|z||||
+  Intercept|||||
+  Intercept|1||||
+  Intercept|2||||
+  Intercept|3||||
+  sd|||||
+  sd||g|||
+  sd|Intercept|g|||
+normal(0, 5) [class=b]                                         ACCEPT user rows: b|||||
+normal(0, 5) [class=b, coef=x]                                 ACCEPT user rows: b|x||||
+normal(0, 5) [class=Intercept]                                 ACCEPT user rows: Intercept|||||
+normal(0, 5) [class=Intercept, coef=2]                         ACCEPT user rows: Intercept|2||||
+normal(0, 5) [class=sd]                                        ACCEPT user rows: sd|||||
+normal(0, 5) [class=b, dpar=mu]                                ACCEPT user rows: b|||||
+
+== sratio: bf(ord ~ x), sratio ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b|||||
+  b|x||||
+  Intercept|||||
+  Intercept|1||||
+  Intercept|2||||
+  Intercept|3||||
+normal(0, 5) [class=b]                                         ACCEPT user rows: b|||||
+normal(0, 5) [class=Intercept]                                 ACCEPT user rows: Intercept|||||
+
+== acat: bf(ord ~ x), acat ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b|||||
+  b|x||||
+  Intercept|||||
+  Intercept|1||||
+  Intercept|2||||
+  Intercept|3||||
+normal(0, 5) [class=b]                                         ACCEPT user rows: b|||||
+normal(0, 5) [class=Intercept]                                 ACCEPT user rows: Intercept|||||
+
+== cratio: bf(ord ~ x, disc ~ z), cratio ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b|||||
+  b||||disc|
+  b|x||||
+  b|z|||disc|
+  Intercept|||||
+  Intercept||||disc|
+  Intercept|1||||
+  Intercept|2||||
+  Intercept|3||||
+normal(0, 5) [class=b]                                         ACCEPT user rows: b|||||
+normal(0, 5) [class=Intercept]                                 ACCEPT user rows: Intercept|||||
+normal(0, 5) [class=b, dpar=disc]                              ACCEPT user rows: b||||disc|
+
+== zip: bf(cnt ~ x + (1 | g), zi ~ z), zero_inflated_poisson ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b|||||
+  b||||zi|
+  b|x||||
+  b|z|||zi|
+  Intercept|||||
+  Intercept||||zi|
+  sd|||||
+  sd||g|||
+  sd|Intercept|g|||
+normal(0, 5) [class=b]                                         ACCEPT user rows: b|||||
+normal(0, 5) [class=b, coef=x]                                 ACCEPT user rows: b|x||||
+normal(0, 5) [class=Intercept]                                 ACCEPT user rows: Intercept|||||
+normal(0, 5) [class=sd]                                        ACCEPT user rows: sd|||||
+normal(0, 5) [class=b, dpar=zi]                                ACCEPT user rows: b||||zi|
+normal(0, 5) [class=Intercept, dpar=zi]                        ACCEPT user rows: Intercept||||zi|
+
+== hln: bf(pos ~ x), hurdle_lognormal ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b|||||
+  b|x||||
+  hu|||||
+  Intercept|||||
+  sigma|||||
+normal(0, 5) [class=b]                                         ACCEPT user rows: b|||||
+normal(0, 5) [class=Intercept]                                 ACCEPT user rows: Intercept|||||
+beta(1, 1) [class=hu]                                          ACCEPT user rows: hu|||||
+student_t(3, 0, 2.5) [class=sigma]                             ACCEPT user rows: sigma|||||
+
+== slopes_in_sigma: bf(y ~ 1, sigma ~ x): slopes only in sigma ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||sigma|
+  b|x|||sigma|
+  Intercept|||||
+  Intercept||||sigma|
+normal(0, 5) [class=b]                                         REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, dpar=sigma]                             ACCEPT user rows: b||||sigma|
+normal(0, 5) [class=b, coef=x, dpar=sigma]                     ACCEPT user rows: b|x|||sigma|
+normal(0, 5) [class=Intercept]                                 ACCEPT user rows: Intercept|||||
+normal(0, 5) [class=b, coef=x]                                 REFUSE: The following priors do not correspond to any model parameter: b_x ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+
+== slopes_in_nl: bf(yg ~ a + b * x, a ~ 1, b ~ 1 + z, nl = TRUE) ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b|||||a
+  b|||||b
+  b|Intercept||||a
+  b|Intercept||||b
+  b|z||||b
+  sigma|||||
+normal(0, 5) [class=b]                                         REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, nlpar=b]                                ACCEPT user rows: b|||||b
+normal(0, 5) [class=b, nlpar=a]                                ACCEPT user rows: b|||||a
+normal(0, 5) [class=b, coef=z, nlpar=b]                        ACCEPT user rows: b|z||||b
+normal(0, 5) [class=b, coef=Intercept, nlpar=a]                ACCEPT user rows: b|Intercept||||a
+
+== icpt_only: bf(yg ~ 1): coef = on intercept-only ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  Intercept|||||
+  sigma|||||
+normal(0, 5) [class=b, coef=Intercept]                         REFUSE: The following priors do not correspond to any model parameter: b_Intercept ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, coef=x]                                 REFUSE: The following priors do not correspond to any model parameter: b_x ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b]                                         REFUSE: The following priors do not correspond to any model parameter: b ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept]                                 ACCEPT user rows: Intercept|||||
+
+== mvdrop: bf(yg ~ x) + bf(ym ~ 1 + (1 | g)): mv, second no slope ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b|||yg||
+  b|x||yg||
+  Intercept|||yg||
+  Intercept|||ym||
+  sd|||ym||
+  sd||g|ym||
+  sd|Intercept|g|ym||
+  sigma|||yg||
+  sigma|||ym||
+normal(0, 5) [class=b, resp=yg]                                ACCEPT user rows: b|||yg||
+normal(0, 5) [class=b, resp=ym]                                REFUSE: The following priors do not correspond to any model parameter: b_ym ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=Intercept, resp=ym]                        ACCEPT user rows: Intercept|||ym||
+normal(0, 5) [class=sd, resp=ym]                               ACCEPT user rows: sd|||ym||
+normal(0, 5) [class=sd, resp=yg]                               REFUSE: The following priors do not correspond to any model parameter: sd_yg ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+normal(0, 5) [class=b, resp=nope]                              REFUSE: The following priors do not correspond to any model parameter: b_nope ~ normal(0, 5) Function 'default_prior' might be helpful to you.
+student_t(3, 0, 2.5) [class=sigma, resp=ym]                    ACCEPT user rows: sigma|||ym||
+normal(0, 5) [class=b, coef=x, resp=yg]                        ACCEPT user rows: b|x||yg||

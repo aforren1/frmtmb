@@ -1,0 +1,5 @@
+cat4re        cols identical TRUE | draws identical TRUE | max abs diff 0 | prior_summary identical FALSE (rows lane 6 base 4)
+mix2          cols identical TRUE | draws identical TRUE | max abs diff 0 | prior_summary identical FALSE (rows lane 2 base 2)
+mix2_dpar     cols identical TRUE | draws identical FALSE | max abs diff 8.741103 | prior_summary identical FALSE (rows lane 4 base 6)
+mix2_partial  cols identical TRUE | draws identical TRUE | max abs diff 0 | prior_summary identical FALSE (rows lane 2 base 3)
+lca           cols identical TRUE | draws identical TRUE | max abs diff 0 | prior_summary identical FALSE (rows lane 1 base 1)

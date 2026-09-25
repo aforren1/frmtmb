@@ -52,10 +52,13 @@ brms's \code{default_prior()}, and \code{get_prior()}, which brms has kept as
 its alias since 2.20.14: one row per slot a prior can target, with
 the class/coef/dpar/group values to pass to \code{\link[=set_prior]{set_prior()}}. Classes
 \code{"sd"} and \code{"cor"} are targeted by \code{group} and \code{nlpar}; the
-residual-correlation classes (\code{"ar"}, \code{"ma"}, \code{"cosy"}, \code{"cortime"},
-\code{"rescor"}) by \code{resp}; and class \code{"theta"} rows name the raw internal
-covariance parameters (escape hatch, including correlations one at a
-time, across all three covariance components).
+residual-correlation classes (\code{"ar"}, \code{"ma"}, \code{"cosy"}, \code{"cortime"})
+by \code{resp}; class \code{"rescor"} has one row and takes no \code{resp}; and
+class \code{"theta"} rows name the raw internal covariance parameters
+(escape hatch, including correlations one at a time, across all
+three covariance components). Where the location is several
+distributional parameters (a categorical or mixture model), each
+one's \code{b}, \code{Intercept} and \code{sd} rows carry its \code{dpar}, as in brms.
 }
 \details{
 A nonlinear parameter's coefficients are listed under class \code{"b"}

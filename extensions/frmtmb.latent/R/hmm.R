@@ -321,7 +321,11 @@ hmm_tr_init <- function(i, j) {
 #' An unpenalized multinomial logit will send an emission or transition
 #' probability to 0 whenever a category is rare inside a state, and the
 #' optimizer then reports singular convergence at a perfectly good
-#' optimum. [set_prior()] on the affected logit is the remedy.
+#' optimum. [set_prior()] on the affected logit is the remedy. A prior
+#' on a state's location names the state with `dpar` (`dpar = "mu1"`),
+#' one specification per state: a class `"b"` or `"Intercept"` prior
+#' without `dpar` is refused, because it does not say which state it
+#' means.
 #'
 #' @section Random effects and the Laplace approximation:
 #' A random effect in a state's linear predictor is integrated by the

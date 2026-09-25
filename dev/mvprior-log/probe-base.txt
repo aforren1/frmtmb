@@ -1,0 +1,413 @@
+arm base  frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+
+== mv2: two-response gaussian, bf(y1 ~ x + (1 | g)) + bf(y2 ~ x + (1 | g)), rescor FALSE ==
+normal(0, 5) [class=b]                                     ACCEPT: y1_x y2_x
+normal(0, 5) [class=b, coef=x]                             ACCEPT: y1_x y2_x
+normal(0, 5) [class=b, resp=y1]                            ACCEPT: y1_x
+normal(0, 5) [class=b, coef=x, resp=y1]                    ACCEPT: y1_x
+normal(0, 5) [class=Intercept]                             ACCEPT: y1_(Intercept) y2_(Intercept)
+normal(0, 5) [class=Intercept, resp=y2]                    ACCEPT: y2_(Intercept)
+student_t(3, 0, 2.5) [class=sigma]                         ACCEPT: y1_sigma_(Intercept) y2_sigma_(Intercept)
+student_t(3, 0, 2.5) [class=sigma, resp=y1]                ACCEPT: y1_sigma_(Intercept)
+normal(0, 5) [class=sd]                                    REFUSE [frmtmb_error,error]: No random-effect SDs match class=sd. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification without one of these names none of the others. This model's standard deviations take: (resp = "y1"); (resp = "y2")
+normal(0, 5) [class=sd, resp=y1]                           ACCEPT: theta_1
+ lb=0 [class=b]                                            ACCEPT: (no density) || lb:y1_x,y2_x
+ lb=0 [class=b, resp=y1]                                   ACCEPT: (no density) || lb:y1_x
+normal(0, 5) [class=b, resp=nosuch]                        REFUSE [frmtmb_error,error]: Prior target not found (class=b, resp=nosuch)
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept              y1           
+ (flat)         b              y1           
+ (flat)         b    x         y1           
+ (flat)     sigma              y1           
+ (flat) Intercept              y2           
+ (flat)         b              y2           
+ (flat)         b    x         y2           
+ (flat)     sigma              y2           
+ (flat)        sd              y1           
+ (flat)        sd              y2           
+ (flat)        sd          g   y1           
+ (flat)        sd          g   y2           
+
+== mvsig: bf(y1 ~ x, sigma ~ z) + bf(y2 ~ x), rescor FALSE ==
+normal(0, 5) [class=b, dpar=sigma]                         REFUSE [frmtmb_error,error]: class = "b", dpar = "sigma" addresses sigma's slopes, and this model gives sigma no predictor, so it has none. Write class = "sigma" for a density on sigma itself, or give sigma a formula in bf()
+normal(0, 5) [class=b, resp=y1, dpar=sigma]                ACCEPT: y1_sigma_z
+normal(0, 5) [class=Intercept, dpar=sigma]                 REFUSE [frmtmb_error,error]: class = "Intercept", dpar = "sigma" is a density on the log-scale intercept of sigma's linear predictor, which brms accepts only where sigma has one. This model writes no sigma formula, so the prior brms takes there is class = "sigma", a density on sigma itself. Write sigma ~ 1 in bf() to have a link-scale intercept to prior
+normal(0, 5) [class=Intercept, resp=y1, dpar=sigma]        ACCEPT: y1_sigma_(Intercept)
+student_t(3, 0, 2.5) [class=sigma]                         REFUSE [frmtmb_error,error]: class = "sigma" is a density on sigma itself, which brms accepts only where sigma has no predictor of its own. This model gives sigma one, so the prior brms takes there is class = "Intercept", dpar = "sigma", a density on the log-scale intercept of that predictor
+student_t(3, 0, 2.5) [class=sigma, resp=y2]                ACCEPT: y2_sigma_(Intercept)
+normal(0, 5) [class=b]                                     ACCEPT: y1_x y2_x
+normal(0, 5) [class=b, resp=y2]                            ACCEPT: y2_x
+-- default_prior() --
+  prior     class coef group resp  dpar nlpar
+ (flat) Intercept              y1            
+ (flat)         b              y1            
+ (flat)         b    x         y1            
+ (flat) Intercept              y1 sigma      
+ (flat)         b              y1 sigma      
+ (flat)         b    z         y1 sigma      
+ (flat) Intercept              y2            
+ (flat)         b              y2            
+ (flat)         b    x         y2            
+ (flat)     sigma              y2            
+
+== mixed: bf(y1 ~ x) + gaussian() + bf(cnt ~ x) + poisson() ==
+normal(0, 5) [class=b]                                     ACCEPT: y1_x cnt_x
+normal(0, 5) [class=b, resp=cnt]                           ACCEPT: cnt_x
+normal(0, 5) [class=Intercept]                             ACCEPT: y1_(Intercept) cnt_(Intercept)
+normal(0, 5) [class=Intercept, resp=y1]                    ACCEPT: y1_(Intercept)
+student_t(3, 0, 2.5) [class=sigma]                         ACCEPT: y1_sigma_(Intercept)
+student_t(3, 0, 2.5) [class=sigma, resp=y1]                ACCEPT: y1_sigma_(Intercept)
+student_t(3, 0, 2.5) [class=sigma, resp=cnt]               REFUSE [frmtmb_error,error]: class = "sigma" names no distributional parameter of this model. It has mu, sigma. frmtmb's own classes are b, Intercept, sd, cor, theta, ar, ma, cosy, cortime, rescor
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept              y1           
+ (flat)         b              y1           
+ (flat)         b    x         y1           
+ (flat)     sigma              y1           
+ (flat) Intercept             cnt           
+ (flat)         b             cnt           
+ (flat)         b    x        cnt           
+
+== rescor: bf(mvbind(y1, y2) ~ x + (1 + x | g)) + set_rescor(TRUE) ==
+normal(0, 5) [class=b]                                     ACCEPT: y1_x y2_x
+normal(0, 5) [class=b, resp=y1]                            ACCEPT: y1_x
+normal(0, 5) [class=Intercept]                             ACCEPT: y1_(Intercept) y2_(Intercept)
+normal(0, 5) [class=Intercept, resp=y1]                    ACCEPT: y1_(Intercept)
+student_t(3, 0, 2.5) [class=sigma]                         ACCEPT: y1_sigma_(Intercept) y2_sigma_(Intercept)
+student_t(3, 0, 2.5) [class=sigma, resp=y2]                ACCEPT: y2_sigma_(Intercept)
+lkj(2) [class=rescor]                                      ACCEPT: thetar_1
+lkj(2) [class=rescor, resp=y1]                             ACCEPT: thetar_1
+lkj(2) [class=cor]                                         ACCEPT: theta_3 theta_6
+lkj(2) [class=cor, group=g]                                ACCEPT: theta_3 theta_6
+lkj(2) [class=cor, resp=y1]                                ACCEPT: theta_3
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept              y1           
+ (flat)         b              y1           
+ (flat)         b    x         y1           
+ (flat)     sigma              y1           
+ (flat) Intercept              y2           
+ (flat)         b              y2           
+ (flat)         b    x         y2           
+ (flat)     sigma              y2           
+ (flat)        sd              y1           
+ (flat)        sd              y2           
+ (flat)        sd          g   y1           
+ (flat)        sd          g   y2           
+ (flat)       cor                           
+ (flat)       cor          g   y1           
+ (flat)       cor          g   y2           
+ (flat)    rescor                           
+
+== mvstudent: bf(y1 ~ x) + bf(y2 ~ x), student(), rescor FALSE ==
+gamma(2, 0.1) [class=nu]                                   ACCEPT: y1_nu_(Intercept) y2_nu_(Intercept)
+gamma(2, 0.1) [class=nu, resp=y1]                          ACCEPT: y1_nu_(Intercept)
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept              y1           
+ (flat)         b              y1           
+ (flat)         b    x         y1           
+ (flat)     sigma              y1           
+ (flat)        nu              y1           
+ (flat) Intercept              y2           
+ (flat)         b              y2           
+ (flat)         b    x         y2           
+ (flat)     sigma              y2           
+ (flat)        nu              y2           
+
+== mvar: bf(y1 ~ x + ar(time = t, gr = g, cov = TRUE)) + bf(y2 ~ x), rescor FALSE ==
+normal(0, 0.5) [class=ar]                                  ACCEPT: thetaac_1
+normal(0, 0.5) [class=ar, resp=y1]                         ACCEPT: thetaac_1
+normal(0, 0.5) [class=ar, resp=y2]                         REFUSE [frmtmb_error,error]: No residual autocorrelation matches class=ar, resp=y2. This model's residual structure is ar(time = t, gr = g, cov = TRUE) [y1], which carries no "ar" parameter
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept              y1           
+ (flat)         b              y1           
+ (flat)         b    x         y1           
+ (flat)     sigma              y1           
+ (flat) Intercept              y2           
+ (flat)         b              y2           
+ (flat)         b    x         y2           
+ (flat)     sigma              y2           
+ (flat)        ar              y1           
+
+== nl: bf(ynl ~ a * exp(-b * ax), a ~ 1 + (1 | g), b ~ 1, nl = TRUE) ==
+normal(0, 5) [class=b]                                     ACCEPT: (no density)
+normal(0, 5) [class=b, nlpar=a]                            ACCEPT: a_(Intercept)
+normal(0, 5) [class=b, coef=Intercept]                     ACCEPT: a_(Intercept) b_(Intercept)
+normal(0, 5) [class=b, coef=Intercept, nlpar=b]            ACCEPT: b_(Intercept)
+normal(0, 5) [class=Intercept]                             ACCEPT: a_(Intercept) b_(Intercept)
+student_t(3, 0, 2.5) [class=sigma]                         ACCEPT: sigma_(Intercept)
+ lb=0 [class=b]                                            ACCEPT: (no density)
+ lb=0 [class=b, nlpar=b]                                   ACCEPT: (no density) || lb:b_(Intercept)
+normal(0, 5) [class=Intercept, nlpar=a]                    ACCEPT: a_(Intercept)
+-- default_prior() --
+  prior class        coef group resp dpar nlpar
+ (flat)     b                                 a
+ (flat)     b (Intercept)                     a
+ (flat)     b                                 b
+ (flat)     b (Intercept)                     b
+ (flat) sigma                                  
+ (flat)    sd                                 a
+ (flat)    sd                 g               a
+
+== uni: univariate: bf(y ~ x + (1 | g), sigma ~ z) ==
+normal(0, 5) [class=b]                                     ACCEPT: x
+normal(0, 5) [class=b, coef=x]                             ACCEPT: x
+normal(0, 5) [class=Intercept]                             ACCEPT: (Intercept)
+normal(0, 5) [class=b, resp=y]                             ACCEPT: x
+normal(0, 5) [class=Intercept, resp=y]                     ACCEPT: (Intercept)
+normal(0, 5) [class=b, resp=nosuch]                        REFUSE [frmtmb_error,error]: Prior target not found (class=b, resp=nosuch)
+normal(0, 5) [class=b, dpar=sigma]                         ACCEPT: sigma_z
+normal(0, 5) [class=Intercept, dpar=sigma]                 ACCEPT: sigma_(Intercept)
+normal(0, 5) [class=sd]                                    ACCEPT: theta_1
+-- default_prior() --
+  prior     class coef group resp  dpar nlpar
+ (flat) Intercept                            
+ (flat)         b                            
+ (flat)         b    x                       
+ (flat) Intercept                 sigma      
+ (flat)         b                 sigma      
+ (flat)         b    z            sigma      
+ (flat)        sd                            
+ (flat)        sd          g                 
+
+== uni2: univariate: bf(y ~ x) ==
+student_t(3, 0, 2.5) [class=sigma]                         ACCEPT: sigma_(Intercept)
+student_t(3, 0, 2.5) [class=sigma, resp=y]                 ACCEPT: sigma_(Intercept)
+ lb=0 [class=b]                                            ACCEPT: (no density) || lb:x
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept                           
+ (flat)         b                           
+ (flat)         b    x                      
+ (flat)     sigma                           
+
+== mi: bf(y ~ mi(xm) + z) + bf(xm | mi() ~ z), rescor FALSE ==
+normal(0, 5) [class=b]                                     ACCEPT: y_z y_mixm xm_z
+normal(0, 5) [class=b, resp=y]                             ACCEPT: y_z y_mixm
+normal(0, 5) [class=b, coef=mixm]                          ACCEPT: y_mixm
+normal(0, 5) [class=b, coef=mixm, resp=y]                  ACCEPT: y_mixm
+normal(0, 5) [class=Intercept]                             ACCEPT: y_(Intercept) xm_(Intercept)
+student_t(3, 0, 2.5) [class=sigma]                         ACCEPT: y_sigma_(Intercept) xm_sigma_(Intercept)
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept               y           
+ (flat)         b               y           
+ (flat)         b    z          y           
+ (flat)         b mixm          y           
+ (flat)     sigma               y           
+ (flat) Intercept              xm           
+ (flat)         b              xm           
+ (flat)         b    z         xm           
+ (flat)     sigma              xm           
+
+== mvac: bf(y1 ~ x + ma(time = t, gr = g, cov = TRUE)) + bf(y2 ~ x + cosy(time = t, gr = g)), rescor FALSE ==
+normal(0, 0.5) [class=ma]                                  ACCEPT: thetaac_1
+normal(0, 0.5) [class=ma, resp=y1]                         ACCEPT: thetaac_1
+beta(2, 2) [class=cosy]                                    ACCEPT: thetaac_2
+beta(2, 2) [class=cosy, resp=y2]                           ACCEPT: thetaac_2
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept              y1           
+ (flat)         b              y1           
+ (flat)         b    x         y1           
+ (flat)     sigma              y1           
+ (flat) Intercept              y2           
+ (flat)         b              y2           
+ (flat)         b    x         y2           
+ (flat)     sigma              y2           
+ (flat)        ma              y1           
+ (flat)      cosy              y2           
+
+== mvunstr: bf(y1 ~ x + unstr(time = t4, gr = g4)) + bf(y2 ~ x), rescor FALSE ==
+lkj(2) [class=cortime]                                     ACCEPT: thetaac_1+thetaac_2+thetaac_3+thetaac_4+thetaac_5+thetaac_6
+lkj(2) [class=cortime, resp=y1]                            ACCEPT: thetaac_1+thetaac_2+thetaac_3+thetaac_4+thetaac_5+thetaac_6
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept              y1           
+ (flat)         b              y1           
+ (flat)         b    x         y1           
+ (flat)     sigma              y1           
+ (flat) Intercept              y2           
+ (flat)         b              y2           
+ (flat)         b    x         y2           
+ (flat)     sigma              y2           
+ (flat)   cortime              y1           
+
+== uni3: univariate, no slope: bf(y ~ 1) ==
+normal(0, 5) [class=b]                                     ACCEPT: (no density)
+normal(0, 5) [class=Intercept]                             ACCEPT: (Intercept)
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept                           
+ (flat)     sigma                           
+
+== cat: univariate categorical: bf(cat ~ x), categorical() ==
+normal(0, 5) [class=b]                                     ACCEPT: mub_x muc_x
+normal(0, 5) [class=b, coef=x]                             ACCEPT: mub_x muc_x
+normal(0, 5) [class=Intercept]                             ACCEPT: mub_(Intercept) muc_(Intercept)
+normal(0, 5) [class=b, dpar=mub]                           ACCEPT: mub_x
+normal(0, 5) [class=b, coef=x, dpar=muc]                   ACCEPT: muc_x
+normal(0, 5) [class=Intercept, dpar=mub]                   ACCEPT: mub_(Intercept)
+normal(0, 5) [class=b, dpar=nosuch]                        REFUSE [frmtmb_error,error]: class = "b", dpar = "nosuch" names no distributional parameter of this model. It has mub, muc. frmtmb's own classes are b, Intercept, sd, cor, theta, ar, ma, cosy, cortime, rescor
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept                           
+ (flat)         b                           
+ (flat)         b    x                      
+
+== mix: mixture: bf(ym ~ x), mixture(gaussian, gaussian) ==
+normal(0, 5) [class=b]                                     ACCEPT: mu1_x mu2_x
+normal(0, 5) [class=b, coef=x]                             ACCEPT: mu1_x mu2_x
+normal(0, 5) [class=Intercept]                             ACCEPT: mu1_(Intercept) mu2_(Intercept)
+normal(0, 5) [class=b, dpar=mu1]                           ACCEPT: mu1_x
+normal(0, 5) [class=Intercept, dpar=mu2]                   ACCEPT: mu2_(Intercept)
+student_t(3, 0, 2.5) [class=sigma1]                        ACCEPT: sigma1_(Intercept)
+student_t(3, 0, 2.5) [class=sigma]                         REFUSE [frmtmb_error,error]: class = "sigma" names no distributional parameter of this model. It has mu1, sigma1, mu2, sigma2, theta1. frmtmb's own classes are b, Intercept, sd, cor, theta, ar, ma, cosy, cortime, rescor
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept                           
+ (flat)         b                           
+ (flat)         b    x                      
+ (flat)    sigma1                           
+ (flat)    sigma2                           
+
+== mvcat: bf(y1 ~ x) + bf(cat ~ x, family = categorical()), rescor FALSE ==
+normal(0, 5) [class=b, resp=cat]                           ACCEPT: cat_mub_x cat_muc_x
+normal(0, 5) [class=Intercept, resp=cat]                   ACCEPT: cat_mub_(Intercept) cat_muc_(Intercept)
+normal(0, 5) [class=b, resp=y1]                            ACCEPT: y1_x
+normal(0, 5) [class=b, resp=cat, dpar=mub]                 ACCEPT: cat_mub_x
+normal(0, 5) [class=b, dpar=mub]                           ACCEPT: cat_mub_x
+normal(0, 5) [class=Intercept, resp=cat, dpar=muc]         ACCEPT: cat_muc_(Intercept)
+normal(0, 5) [class=Intercept, dpar=muc]                   ACCEPT: cat_muc_(Intercept)
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept              y1           
+ (flat)         b              y1           
+ (flat)         b    x         y1           
+ (flat)     sigma              y1           
+ (flat) Intercept             cat           
+ (flat)         b             cat           
+ (flat)         b    x        cat           
+
+== mvnl: bf(y1 ~ x) + bf(ynl ~ a * exp(-b * ax), a ~ 1 + z, b ~ 1, nl = TRUE), rescor FALSE ==
+normal(0, 5) [class=b, nlpar=a]                            ACCEPT: ynl_a_(Intercept) ynl_a_z
+normal(0, 5) [class=b, resp=ynl, nlpar=a]                  ACCEPT: ynl_a_(Intercept) ynl_a_z
+normal(0, 5) [class=Intercept, nlpar=a]                    ACCEPT: ynl_a_(Intercept)
+normal(0, 5) [class=Intercept, resp=ynl, nlpar=a]          ACCEPT: ynl_a_(Intercept)
+normal(0, 5) [class=b, resp=ynl]                           ACCEPT: ynl_a_z
+normal(0, 5) [class=b, coef=z, nlpar=a]                    ACCEPT: ynl_a_z
+-- default_prior() --
+  prior     class        coef group resp dpar nlpar
+ (flat) Intercept                     y1           
+ (flat)         b                     y1           
+ (flat)         b           x         y1           
+ (flat)     sigma                     y1           
+ (flat)         b                    ynl          a
+ (flat)         b (Intercept)        ynl          a
+ (flat)         b           z        ynl          a
+ (flat)         b                    ynl          b
+ (flat)         b (Intercept)        ynl          b
+ (flat)     sigma                    ynl           
+
+== nl2: bf(ynl ~ a * exp(-b * ax), a ~ 1 + z, b ~ 1, nl = TRUE) ==
+normal(0, 5) [class=b]                                     ACCEPT: a_z
+ lb=0 [class=b]                                            ACCEPT: (no density) || lb:a_z
+normal(0, 5) [class=b, coef=z, nlpar=a]                    ACCEPT: a_z
+-- default_prior() --
+  prior class        coef group resp dpar nlpar
+ (flat)     b                                 a
+ (flat)     b (Intercept)                     a
+ (flat)     b           z                     a
+ (flat)     b                                 b
+ (flat)     b (Intercept)                     b
+ (flat) sigma                                  
+
+== catre: categorical with a group effect: bf(cat ~ x + (1 | g)) ==
+normal(0, 5) [class=sd]                                    ACCEPT: theta_1 theta_2
+normal(0, 5) [class=sd, group=g]                           ACCEPT: theta_1 theta_2
+normal(0, 5) [class=sd, dpar=mub]                          REFUSE [frmtmb_error,error]: No random-effect SDs match class=sd, dpar=mub. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification without one of these names none of the others. This model's standard deviations take: (no resp, dpar or nlpar)
+normal(0, 5) [class=b, dpar=muc]                           ACCEPT: muc_x
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept                           
+ (flat)         b                           
+ (flat)         b    x                      
+ (flat)        sd                           
+ (flat)        sd          g                
+
+== mixre: mixture with a group effect: bf(ym ~ x + (1 | g)) ==
+normal(0, 5) [class=sd]                                    ACCEPT: theta_1 theta_2
+normal(0, 5) [class=sd, dpar=mu1]                          REFUSE [frmtmb_error,error]: No random-effect SDs match class=sd, dpar=mu1. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification without one of these names none of the others. This model's standard deviations take: (no resp, dpar or nlpar)
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept                           
+ (flat)         b                           
+ (flat)         b    x                      
+ (flat)    sigma1                           
+ (flat)    sigma2                           
+ (flat)        sd                           
+ (flat)        sd          g                
+
+== noslope: no slope: bf(y ~ 1 + (1 | g), sigma ~ 1) ==
+normal(0, 5) [class=b]                                     ACCEPT: (no density)
+ lb=0 [class=b]                                            ACCEPT: (no density)
+normal(0, 5) [class=b, dpar=sigma]                         REFUSE [frmtmb_error,error]: class = "b", dpar = "sigma" addresses the population-level slopes of sigma's linear predictor, and this model's sigma predictor is an intercept only, so it has none. The prior brms takes there is class = "Intercept", dpar = "sigma", a density on the log-scale intercept; give sigma a predictor to have slopes to prior
+normal(0, 5) [class=Intercept]                             ACCEPT: (Intercept)
+normal(0, 5) [class=sd, resp=y]                            ACCEPT: theta_1
+normal(0, 5) [class=sd]                                    ACCEPT: theta_1
+-- default_prior() --
+  prior     class coef group resp  dpar nlpar
+ (flat) Intercept                            
+ (flat) Intercept                 sigma      
+ (flat)        sd                            
+ (flat)        sd          g                 
+
+== mvnoslope: bf(y1 ~ x) + bf(y2 ~ 1), rescor FALSE ==
+normal(0, 5) [class=b, resp=y2]                            REFUSE [frmtmb_error,error]: Prior target not found (class=b, resp=y2)
+normal(0, 5) [class=b, resp=y1]                            ACCEPT: y1_x
+normal(0, 5) [class=Intercept, resp=y2]                    ACCEPT: y2_(Intercept)
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept              y1           
+ (flat)         b              y1           
+ (flat)         b    x         y1           
+ (flat)     sigma              y1           
+ (flat) Intercept              y2           
+ (flat)     sigma              y2           
+
+== catnoslope: bf(cat ~ 1), categorical() ==
+normal(0, 5) [class=b, dpar=mub]                           REFUSE [frmtmb_error,error]: class = "b", dpar = "mub" addresses the population-level slopes of mub's linear predictor, and this model's mub predictor is an intercept only, so it has none. The prior brms takes there is class = "Intercept", dpar = "mub", a density on the identity-scale intercept; give mub a predictor to have slopes to prior
+normal(0, 5) [class=Intercept, dpar=mub]                   ACCEPT: mub_(Intercept)
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept                           
+
+== uniar: univariate autocorrelation: bf(y ~ x + ar(time = t, gr = g, cov = TRUE)) ==
+normal(0, 0.5) [class=ar]                                  ACCEPT: thetaac_1
+normal(0, 0.5) [class=ar, resp=y]                          ACCEPT: thetaac_1
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept                           
+ (flat)         b                           
+ (flat)         b    x                      
+ (flat)     sigma                           
+ (flat)        ar                           
+
+== rescor2: bf(mvbind(y1, y2) ~ x) + set_rescor(TRUE) ==
+lkj(2) [class=rescor]                                      ACCEPT: thetar_1
+lkj(2) [class=rescor, resp=y1]                             ACCEPT: thetar_1
+lkj(2) [class=rescor, resp=y2]                             ACCEPT: thetar_1
+-- default_prior() --
+  prior     class coef group resp dpar nlpar
+ (flat) Intercept              y1           
+ (flat)         b              y1           
+ (flat)         b    x         y1           
+ (flat)     sigma              y1           
+ (flat) Intercept              y2           
+ (flat)         b              y2           
+ (flat)         b    x         y2           
+ (flat)     sigma              y2           
+ (flat)    rescor                           

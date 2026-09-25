@@ -1,0 +1,48 @@
+ARM lane frmtmb 0.62.0 from C:/Users/adf44/source/r/mvprior-lib/frmtmb 
+cat4_b_mub logLik -182.891790005 
+cat2_b logLik -92.3098903713 
+mix3 logLik -310.687250113 
+mixsig logLik -251.813483799 
+mvcat logLik -427.870266452 
+zip logLik -204.022153066 
+cumul logLik -181.58474895 
+sratio logLik -178.801975124 
+hln logLik -220.671700975 
+sigslope logLik -243.207440291 
+
+-- sd targeting on (1 | ID | g) --
+none  g.mub_Intercept 0.7937  g.muc_Intercept 0.7374  g.mud_Intercept 0.6951 
+mub   g.mub_Intercept 0.02002  g.muc_Intercept 0.36181  g.mud_Intercept 0.13127 
+muc   g.mub_Intercept 0.41700  g.muc_Intercept 0.02011  g.mud_Intercept 0.24394 
+mud   g.mub_Intercept 0.18451  g.muc_Intercept 0.20503  g.mud_Intercept 0.02005 
+lca logLik -485.421989077 
+
+-- sample-route default priors --
+== cat4re 
+                prior     class coef group resp dpar
+ student_t(3, 0, 2.5) Intercept                  mub
+ student_t(3, 0, 2.5) Intercept                  muc
+ student_t(3, 0, 2.5) Intercept                  mud
+ student_t(3, 0, 2.5)        sd                  mub
+ student_t(3, 0, 2.5)        sd                  muc
+ student_t(3, 0, 2.5)        sd                  mud
+ student_t(3, 0, 2.5)        sd          g       mub
+ student_t(3, 0, 2.5)        sd          g       muc
+ student_t(3, 0, 2.5)        sd          g       mud
+== mix3 
+                  prior     class coef group resp dpar
+ student_t(3, 0.5, 5.9) Intercept                  mu1
+ student_t(3, 0.5, 5.9) Intercept                  mu2
+ student_t(3, 0.5, 5.9) Intercept                  mu3
+== mixdiff_re 
+                  prior     class coef group resp dpar
+ student_t(3, 2.4, 2.5) Intercept                  mu1
+ student_t(3, 2.4, 2.5) Intercept                  mu2
+   student_t(3, 0, 2.5)        sd                  mu1
+   student_t(3, 0, 2.5)        sd                  mu2
+   student_t(3, 0, 2.5)        sd          g       mu1
+   student_t(3, 0, 2.5)        sd          g       mu2
+== lca 
+                prior     class coef group resp   dpar
+ student_t(3, 0, 2.5) Intercept                 theta1
+ student_t(3, 0, 2.5) Intercept                 theta2

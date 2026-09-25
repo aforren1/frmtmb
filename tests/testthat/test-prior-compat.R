@@ -366,9 +366,12 @@ test_that("resp picks one response of a multivariate model", {
   expect_length(ri$entries, 1L)
   expect_identical(names(fit$frame$par_template$beta)[
     ri$entries[[1L]]$idx], "y2_x")
-  # without it, the class covers both responses
-  expect_length(frmtmb:::resolve_prior_input(
-    fit, set_prior("normal(0, 0.1)", class = "b"))$entries, 2L)
+  # without it, brms 2.23.0 refuses the row, and so does frmtmb after
+  # 0.62.0; through 0.62.0 it covered both responses
+  # (dev/mvprior-log/brms-probe.txt)
+  expect_error(frmtmb:::resolve_prior_input(
+    fit, set_prior("normal(0, 0.1)", class = "b")),
+    "names no parameter of a multivariate model", class = "frmtmb_error")
   # class "sd" narrows to the response that owns the block
   expect_length(frmtmb:::resolve_prior_input(
     fit, set_prior("exponential(1)", class = "sd",
