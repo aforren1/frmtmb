@@ -1,0 +1,14 @@
+                prior     class group dpar
+ student_t(3, 0, 2.5) Intercept        mub
+ student_t(3, 0, 2.5)        sd        mub
+ student_t(3, 0, 2.5) Intercept        muc
+ student_t(3, 0, 2.5)        sd        muc
+Setting order = 'mu' for mixtures of the same family.
+                  prior     class group dpar
+   student_t(3, 0, 3.3)    sigma1           
+   student_t(3, 0, 3.3)    sigma2           
+           dirichlet(1)     theta           
+ student_t(3, 1.3, 3.3) Intercept        mu1
+   student_t(3, 0, 3.3)        sd        mu1
+ student_t(3, 1.3, 3.3) Intercept        mu2
+   student_t(3, 0, 3.3)        sd        mu2

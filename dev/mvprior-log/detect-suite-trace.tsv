@@ -1,0 +1,1 @@
+test-prior-compat.R	A prior with no resp names no parameter of a multivariate model (class=b). As in brms, class "b" is addressed per response here, and a specification without res

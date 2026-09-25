@@ -1,0 +1,9 @@
+ARM lane frmtmb 0.62.0 from C:/Users/adf44/source/r/mvprior-lib/frmtmb 
+smooth    y ~ s(x)                   ACCEPT: b|
+mono      yg ~ mo(ordf)              ACCEPT: b|
+ranslope  yg ~ 1 + (x | g)           REFUSE: Prior target not found (class=b): the location predictor has no population-level slope, so a class "b" prior reaches no parameter. brms refuses it too. A prior on the intercept is class = "Intercept"
+offset    yg ~ 1 + offset(x)         REFUSE: Prior target not found (class=b): the location predictor has no population-level slope, so a class "b" prior reaches no parameter. brms refuses it too. A prior on the intercept is class = "Intercept"
+noint     yg ~ 0 + x                 ACCEPT: b|
+gp        yg ~ gp(x)                 REFUSE: Prior target not found (class=b): the location predictor has no population-level slope, so a class "b" prior reaches no parameter. brms refuses it too. A prior on the intercept is class = "Intercept"
+cat_by    yg ~ 1 + (1 | g) + s(z)    ACCEPT: b|
+cs        ord ~ cs(x)                REFUSE: Prior target not found (class=b): the location predictor has no population-level slope, so a class "b" prior reaches no parameter. brms refuses it too. A prior on the intercept is class = "Intercept"

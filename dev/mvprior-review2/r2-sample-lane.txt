@@ -1,0 +1,67 @@
+ARM lane frmtmb 0.62.0 from C:/Users/adf44/source/r/mvprior-lib/frmtmb 
+StanHeaders 2.32.10  rstan 2.32.7 
+
+== cat4re  ok in 7.8 s; draws 150 x 40 
+announce:
+ frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept (dpar = mub) student_t(3, 0, 2.5)
+  Intercept (dpar = muc) student_t(3, 0, 2.5)
+  Intercept (dpar = mud) student_t(3, 0, 2.5)
+  sd (dpar = mub)    student_t(3, 0, 2.5)  [natural sd scale]
+  sd (dpar = muc)    student_t(3, 0, 2.5)  [natural sd scale]
+  sd (dpar = mud)    student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+ 
+columns: b_mub_Intercept b_mub_x b_muc_Intercept b_muc_x b_mud_Intercept b_mud_x r_g__mub[1,Intercept] r_g__mub[2,Intercept] r_g__mub[3,Intercept] r_g__mub[4,Intercept] r_g__mub[5,Intercept] r_g__mub[6,Intercept] r_g__mub[7,Intercept] r_g__mub[8,Intercept] 
+                prior     class coef group resp dpar source
+ student_t(3, 0, 2.5) Intercept                  mub   user
+ student_t(3, 0, 2.5) Intercept                  muc   user
+ student_t(3, 0, 2.5) Intercept                  mud   user
+ student_t(3, 0, 2.5)        sd                  mub   user
+ student_t(3, 0, 2.5)        sd                  muc   user
+ student_t(3, 0, 2.5)        sd                  mud   user
+
+== mix2  ok in 0.9 s; draws 150 x 9 
+announce:
+ frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept (dpar = mu1) student_t(3, 2.4, 2.5)
+  Intercept (dpar = mu2) student_t(3, 2.4, 2.5)
+  b                  (flat), as brms leaves slopes
+ 
+columns: b_mu1_Intercept b_mu1_x b_mu2_Intercept b_mu2_x sigma1 sigma2 theta1 theta2 lp__ 
+                  prior     class coef group resp dpar source
+ student_t(3, 2.4, 2.5) Intercept                  mu1   user
+ student_t(3, 2.4, 2.5) Intercept                  mu2   user
+
+== mix2_dpar  ok in 0.6 s; draws 150 x 9 
+announce:
+ frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  b                  (flat), as brms leaves slopes
+ 
+columns: b_mu1_Intercept b_mu1_x b_mu2_Intercept b_mu2_x sigma1 sigma2 theta1 theta2 lp__ 
+                prior     class coef group resp dpar source
+         normal(0, 1)         b                  mu1   user
+        normal(-2, 2) Intercept                  mu1   user
+         normal(3, 2) Intercept                  mu2   user
+ student_t(3, 0, 2.5)    sigma1                        user
+
+== mix2_partial  ok in 0.6 s; draws 150 x 9 
+announce:
+ frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept (dpar = mu2) student_t(3, 2.4, 2.5)
+  b                  (flat), as brms leaves slopes
+ 
+columns: b_mu1_Intercept b_mu1_x b_mu2_Intercept b_mu2_x sigma1 sigma2 theta1 theta2 lp__ 
+                  prior     class coef group resp dpar source
+ student_t(3, 2.4, 2.5) Intercept                  mu2   user
+          normal(-2, 2) Intercept                  mu1   user
+
+== lca  ok in 32.5 s; draws 150 x 11 
+announce:
+ frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept (dpar = theta1) student_t(3, 0, 2.5)
+  b                  (flat), as brms leaves slopes
+ 
+columns: b_theta1_Intercept b_theta1_x pi1_1 pi1_2 pi2_1 pi2_2 pi3_1 pi3_2 pi4_1 pi4_2 lp__ 
+                prior     class coef group resp   dpar source
+ student_t(3, 0, 2.5) Intercept                 theta1   user

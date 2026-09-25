@@ -1,0 +1,31 @@
+== cat4re 
+                prior     class coef group resp dpar
+ student_t(3, 0, 2.5) Intercept                  mub
+ student_t(3, 0, 2.5)        sd                  mub
+ student_t(3, 0, 2.5) Intercept                  muc
+ student_t(3, 0, 2.5)        sd                  muc
+ student_t(3, 0, 2.5) Intercept                  mud
+ student_t(3, 0, 2.5)        sd                  mud
+== mix3 
+Setting order = 'mu' for mixtures of the same family.
+                  prior     class coef group resp dpar
+   student_t(3, 0, 5.9)    sigma1                     
+   student_t(3, 0, 5.9)    sigma2                     
+   student_t(3, 0, 5.9)    sigma3                     
+           dirichlet(1)     theta                     
+ student_t(3, 0.5, 5.9) Intercept                  mu1
+ student_t(3, 0.5, 5.9) Intercept                  mu2
+ student_t(3, 0.5, 5.9) Intercept                  mu3
+== mixdiff_re 
+Setting order = 'none' for mixtures of different families.
+                  prior     class coef group resp dpar
+          gamma(2, 0.1)       nu2                     
+   student_t(3, 0, 2.5)    sigma1                     
+   student_t(3, 0, 2.5)    sigma2                     
+           dirichlet(1)     theta                     
+ student_t(3, 2.4, 2.5) Intercept                  mu1
+   student_t(3, 0, 2.5)        sd                  mu1
+ student_t(3, 2.4, 2.5) Intercept                  mu2
+   student_t(3, 0, 2.5)        sd                  mu2
+mad(ym3) = 5.924683  median = 0.5485537 
+mad(ym) = 1.974087  median = 2.395524 

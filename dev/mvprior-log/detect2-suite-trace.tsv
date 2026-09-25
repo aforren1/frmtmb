@@ -1,0 +1,73 @@
+test-prior-compat.R	No random-effect SDs match class=sd, nlpar=omega. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a spec
+test-prior-compat.R	No random-effect SDs match class=sd, group=g. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specific
+test-prior-compat.R	A prior with no resp names no parameter of a multivariate model (class=b). As in brms, class "b" is addressed per response here, and a specification without res
+test-prior-compat.R	No random-effect SDs match class=sd, resp=y2. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specific
+test-prior-compat.R	Prior target not found (class=b, resp=zzz): the location predictor of response zzz has no population-level slope, so a class "b" prior reaches no parameter. brm
+test-prior-location-dpar.R	Prior target not found (class=b): this model's location is several distributional parameters, mub, muc, and as in brms a class "b" prior names one of them with 
+test-prior-location-dpar.R	Prior target not found (class=b): this model's location is several distributional parameters, mub, muc, and as in brms a class "b" prior names one of them with 
+test-prior-location-dpar.R	Prior target not found (class=b, coef=x): this model's location is several distributional parameters, mub, muc, and as in brms a class "b" prior names one of th
+test-prior-location-dpar.R	Prior target not found (class=b, coef=x): this model's location is several distributional parameters, mub, muc, and as in brms a class "b" prior names one of th
+test-prior-location-dpar.R	Prior target not found (class=Intercept): this model's location is several distributional parameters, mub, muc, and as in brms a class "Intercept" prior names o
+test-prior-location-dpar.R	Prior target not found (class=Intercept): this model's location is several distributional parameters, mub, muc, and as in brms a class "Intercept" prior names o
+test-prior-location-dpar.R	Prior target not found (class=b): this model's location is several distributional parameters, mub, muc, and as in brms a class "b" prior names one of them with 
+test-prior-location-dpar.R	Prior target not found (class=b): this model's location is several distributional parameters, mub, muc, and as in brms a class "b" prior names one of them with 
+test-prior-location-dpar.R	Prior target not found (class=b): this model's location is several distributional parameters, mu1, mu2, and as in brms a class "b" prior names one of them with 
+test-prior-location-dpar.R	Prior target not found (class=b): this model's location is several distributional parameters, mu1, mu2, and as in brms a class "b" prior names one of them with 
+test-prior-location-dpar.R	Prior target not found (class=Intercept): this model's location is several distributional parameters, mu1, mu2, and as in brms a class "Intercept" prior names o
+test-prior-location-dpar.R	Prior target not found (class=Intercept): this model's location is several distributional parameters, mu1, mu2, and as in brms a class "Intercept" prior names o
+test-prior-location-dpar.R	No random-effect SDs match class=sd. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification wit
+test-prior-location-dpar.R	No random-effect SDs match class=sd. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification wit
+test-prior-location-dpar.R	No random-effect SDs match class=sd. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification wit
+test-prior-location-dpar.R	No random-effect SDs match class=sd. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification wit
+test-prior-location-dpar.R	Prior target not found (class=b, resp=cat): this model's location is several distributional parameters, mub, muc, and as in brms a class "b" prior names one of 
+test-prior-location-dpar.R	Prior target not found (class=b, resp=cat): this model's location is several distributional parameters, mub, muc, and as in brms a class "b" prior names one of 
+test-prior-location-dpar.R	A prior with no resp names no parameter of a multivariate model (class=b, dpar=mub). As in brms, class "b" is addressed per response here, and a specification w
+test-prior-location-dpar.R	A prior with no resp names no parameter of a multivariate model (class=Intercept, nlpar=a). As in brms, class "Intercept" is addressed per response here, and a 
+test-prior-location-dpar.R	Prior target not found (class=b): the location predictor has no population-level slope, so a class "b" prior reaches no parameter. brms refuses it too. A prior 
+test-prior-location-dpar.R	Prior target not found (class=b): the location predictor has no population-level slope, so a class "b" prior reaches no parameter. brms refuses it too. A prior 
+test-prior-location-dpar.R	Prior target not found (class=b): the location predictor has no population-level slope, so a class "b" prior reaches no parameter. brms refuses it too. A prior 
+test-prior-location-dpar.R	Prior target not found (class=b): the location predictor has no population-level slope, so a class "b" prior reaches no parameter. brms refuses it too. A prior 
+test-prior-location-dpar.R	Prior target not found (class=b, resp=y2): the location predictor of response y2 has no population-level slope, so a class "b" prior reaches no parameter. brms 
+test-prior-location-dpar.R	Prior target not found (class=b, resp=y2): the location predictor of response y2 has no population-level slope, so a class "b" prior reaches no parameter. brms 
+test-prior-location-dpar.R	Prior target not found (class=b): the location predictor has no population-level slope, so a class "b" prior reaches no parameter. brms refuses it too. A prior 
+test-prior-location-dpar.R	Prior target not found (class=b): the location predictor has no population-level slope, so a class "b" prior reaches no parameter. brms refuses it too. A prior 
+test-prior-location-dpar.R	resp = "y" (class=b, resp=y): resp applies only to a multivariate model, and this model has one response. Drop resp, as brms requires
+test-prior-location-dpar.R	resp = "y" (class=b, resp=y): resp applies only to a multivariate model, and this model has one response. Drop resp, as brms requires
+test-prior-location-dpar.R	resp = "y" (class=sd, resp=y): resp applies only to a multivariate model, and this model has one response. Drop resp, as brms requires
+test-prior-location-dpar.R	resp = "y" (class=sd, resp=y): resp applies only to a multivariate model, and this model has one response. Drop resp, as brms requires
+test-prior-location-dpar.R	resp = "y" (class=sigma, resp=y): resp applies only to a multivariate model, and this model has one response. Drop resp, as brms requires
+test-prior-location-dpar.R	resp = "y" (class=sigma, resp=y): resp applies only to a multivariate model, and this model has one response. Drop resp, as brms requires
+test-prior-location-dpar.R	resp = "y" (class=ar, resp=y): resp applies only to a multivariate model, and this model has one response. Drop resp, as brms requires
+test-prior-location-dpar.R	resp = "y" (class=ar, resp=y): resp applies only to a multivariate model, and this model has one response. Drop resp, as brms requires
+test-prior-location-dpar.R	class = "rescor" takes no resp: the residual correlation is one set of parameters across all responses, and lkj() is a density on the whole matrix. Drop resp = 
+test-prior-location-dpar.R	class = "rescor" takes no resp: the residual correlation is one set of parameters across all responses, and lkj() is a density on the whole matrix. Drop resp = 
+test-prior-location-dpar.R	Prior target not found (class=b): this model's location is nonlinear, and as in brms its coefficients are class = "b" with nlpar = one of a, b, the intercept am
+test-prior-location-dpar.R	Prior target not found (class=b): this model's location is nonlinear, and as in brms its coefficients are class = "b" with nlpar = one of a, b, the intercept am
+test-prior-location-dpar.R	Prior target not found (class=b): this model's location is nonlinear, and as in brms its coefficients are class = "b" with nlpar = one of a, b, the intercept am
+test-prior-location-dpar.R	Prior target not found (class=b): this model's location is nonlinear, and as in brms its coefficients are class = "b" with nlpar = one of a, b, the intercept am
+test-prior-mv-resp.R	A prior with no resp names no parameter of a multivariate model (class=b). As in brms, class "b" is addressed per response here, and a specification without res
+test-prior-mv-resp.R	A prior with no resp names no parameter of a multivariate model (class=b, coef=x). As in brms, class "b" is addressed per response here, and a specification wit
+test-prior-mv-resp.R	A prior with no resp names no parameter of a multivariate model (class=Intercept). As in brms, class "Intercept" is addressed per response here, and a specifica
+test-prior-mv-resp.R	A prior with no resp names no parameter of a multivariate model (class=b). As in brms, class "b" is addressed per response here, and a specification without res
+test-prior-mv-resp.R	A prior with no resp names no parameter of a multivariate model (class=sigma). As in brms, class "sigma" is addressed per response here, and a specification wit
+test-prior-mv-resp.R	A prior with no resp names no parameter of a multivariate model (class=nu). As in brms, class "nu" is addressed per response here, and a specification without r
+test-prior-mv-resp.R	A prior with no resp names no parameter of a multivariate model (class=b, dpar=sigma). As in brms, class "b" is addressed per response here, and a specification
+test-prior-mv-resp.R	A prior with no resp names no parameter of a multivariate model (class=Intercept, dpar=sigma). As in brms, class "Intercept" is addressed per response here, and
+test-prior-mv-resp.R	A prior with no resp names no parameter of a multivariate model (class=ar). As in brms, class "ar" is addressed per response here, and a specification without r
+test-prior-mv-resp.R	A prior with no resp names no parameter of a multivariate model (class=ma). As in brms, class "ma" is addressed per response here, and a specification without r
+test-prior-mv-resp.R	A prior with no resp names no parameter of a multivariate model (class=cosy). As in brms, class "cosy" is addressed per response here, and a specification witho
+test-prior-mv-resp.R	A prior with no resp names no parameter of a multivariate model (class=cortime). As in brms, class "cortime" is addressed per response here, and a specification
+test-prior-mv-resp.R	A prior with no resp names no parameter of a multivariate model (class=b). As in brms, class "b" is addressed per response here, and a specification without res
+test-prior-mv-resp.R	A prior with no resp names no parameter of a multivariate model (class=Intercept). As in brms, class "Intercept" is addressed per response here, and a specifica
+test-prior-mv-resp.R	A prior with no resp names no parameter of a multivariate model (class=b). As in brms, class "b" is addressed per response here, and a specification without res
+test-prior-mv-resp.R	A prior with no resp names no parameter of a multivariate model (class=sigma). As in brms, class "sigma" is addressed per response here, and a specification wit
+test-prior-mv-resp.R	Prior target not found (class=b): this model's location is nonlinear, and as in brms its coefficients are class = "b" with nlpar = one of a, b, the intercept am
+test-prior-mv-resp.R	Prior target not found (class=b, coef=Intercept): this model's location is nonlinear, and as in brms its coefficients are class = "b" with nlpar = one of a, b, 
+test-prior-mv-resp.R	Prior target not found (class=Intercept): this model's location is nonlinear, and as in brms its coefficients are class = "b" with nlpar = one of a, b, the inte
+test-prior-mv-resp.R	Prior target not found (class=b): this model's location is nonlinear, and as in brms its coefficients are class = "b" with nlpar = one of a, b, the intercept am
+test-prior-sd-scope.R	No random-effect SDs match class=sd, group=g. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specific
+test-prior-sd-scope.R	No random-effect SDs match class=sd. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification wit
+test-prior-sd-scope.R	No random-effect SDs match class=sd. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification wit
+test-prior-sd-scope.R	No random-effect SDs match class=sd. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification wit
+test-prior-sd-scope.R	No random-effect SDs match class=sd, group=g. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specific
+test-setprior.R	No random-effect SDs match class=sd, group=zzz. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specif

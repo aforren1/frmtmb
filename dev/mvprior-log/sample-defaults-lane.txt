@@ -1,0 +1,44 @@
+arm lane 
+== catre 
+                prior     class group resp dpar
+ student_t(3, 0, 2.5) Intercept             mub
+ student_t(3, 0, 2.5) Intercept             muc
+ student_t(3, 0, 2.5)        sd             mub
+ student_t(3, 0, 2.5)        sd             muc
+ student_t(3, 0, 2.5)        sd     g       mub
+ student_t(3, 0, 2.5)        sd     g       muc
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept (dpar = mub) student_t(3, 0, 2.5)
+  Intercept (dpar = muc) student_t(3, 0, 2.5)
+  sd (dpar = mub)    student_t(3, 0, 2.5)  [natural sd scale]
+  sd (dpar = muc)    student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+ 
+== mixre 
+                  prior     class group resp dpar
+ student_t(3, 1.2, 3.2) Intercept             mu1
+ student_t(3, 1.2, 3.2) Intercept             mu2
+   student_t(3, 0, 3.2)        sd             mu1
+   student_t(3, 0, 3.2)        sd             mu2
+   student_t(3, 0, 3.2)        sd     g       mu1
+   student_t(3, 0, 3.2)        sd     g       mu2
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept (dpar = mu1) student_t(3, 1.2, 3.2)
+  Intercept (dpar = mu2) student_t(3, 1.2, 3.2)
+  sd (dpar = mu1)    student_t(3, 0, 3.2)  [natural sd scale]
+  sd (dpar = mu2)    student_t(3, 0, 3.2)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+ 
+== mvcat 
+                prior     class group resp dpar
+ student_t(3, 1, 2.5) Intercept         y1     
+ student_t(3, 0, 2.5)     sigma         y1     
+ student_t(3, 0, 2.5) Intercept        cat  mub
+ student_t(3, 0, 2.5) Intercept        cat  muc
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept (resp = y1) student_t(3, 1, 2.5)
+  sigma (resp = y1)  student_t(3, 0, 2.5)  [natural scale]
+  Intercept (dpar = mub, resp = cat) student_t(3, 0, 2.5)
+  Intercept (dpar = muc, resp = cat) student_t(3, 0, 2.5)
+  b                  (flat), as brms leaves slopes
+ 

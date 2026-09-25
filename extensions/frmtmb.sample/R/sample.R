@@ -1079,12 +1079,30 @@ default_sd_prefixes <- function(fit) {
       nl <- rspec$nlpars %||% character(0)
       dp <- lp[["dpar"]]
       key <- c(resp = if (multi) lp[["resp"]] else "",
-               dpar = if (dp %in% c(rspec$primary_dpars, nl)) "" else dp,
+               dpar = default_lp_dpar(rspec, dp),
                nlpar = if (dp %in% nl) dp else "")
       out[[paste(key, collapse = "|")]] <- c(key, rname = lp[["resp"]])
     }
   }
   unname(out)
+}
+
+#' The `dpar` a default row carries: empty for the location of a family
+#' that has one and for a nonlinear parameter, the parameter's name
+#' otherwise. A categorical, multinomial or mixture family has several
+#' locations, and brms names each (`mub`, `mu1`). frmtmb names them for
+#' every other family with several location dpars too, and refuses a
+#' location prior without that name (`lp_prior_dpar()`, which this
+#' mirrors). Before, one specification per location was written without
+#' it, and each reached every location.
+#'
+#' @noRd
+default_lp_dpar <- function(rspec, dp) {
+  if (dp %in% (rspec$nlpars %||% character(0))) return("")
+  loc <- setdiff(rspec$primary_dpars, rspec$nlpars %||% character(0))
+  several <- length(loc) > 1L || !is.null(rspec$family[["mix"]]) ||
+    isTRUE(rspec$family[["family"]] %in% c("categorical", "multinomial"))
+  if (dp %in% rspec$primary_dpars && !several) "" else dp
 }
 
 #' brms's default priors for the model this object holds, as a
@@ -1119,7 +1137,8 @@ default_priors_for <- function(fit) {
     if (lp[["dpar"]] %in% (rspec$nlpars %||% character(0))) next
     if (lp[["dpar"]] %in% rspec$primary_dpars) {
       add(set_prior(st(default_intercept_location(ps, lp), ps$scale),
-                    class = "Intercept", resp = rs))
+                    class = "Intercept", resp = rs,
+                    dpar = default_lp_dpar(rspec, lp[["dpar"]])))
     } else if (identical(lp[["dpar"]], "sigma") &&
                  identical(lp[["link"]]$name, "log")) {
       # brms scales the prior on sigma itself by the response's mad
@@ -1275,8 +1294,18 @@ announce_default_priors <- function(pl, notes) {
     # it; announcing the storage pair instead named a spelling the same
     # model refuses
     sp <- spec_spelling(s)
-    lab <- if (nzchar(sp$dpar)) paste0(sp$class, " (", sp$dpar, ")") else
+    # and with every field that narrows it, so the line names a slot
+    # set_prior() reaches: a multivariate model refuses a row without
+    # its resp, and a categorical or mixture one a location without its
+    # dpar
+    f <- c(dpar = sp$dpar, nlpar = s$nlpar %||% "", resp = s$resp %||% "")
+    f <- f[nzchar(f)]
+    lab <- if (length(f)) {
+      paste0(sp$class, " (", paste0(names(f), " = ", f, collapse = ", "),
+             ")")
+    } else {
       sp$class
+    }
     msg <- c(msg, sprintf("  %-18s %s%s", lab, d,
                           if (isTRUE(s$natural)) "  [natural scale]"
                           else if (identical(s$class, "sd"))

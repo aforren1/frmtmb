@@ -138,3 +138,59 @@ test_that("prior_summary() of sampled multivariate draws lists brms's rows", {
   expect_identical(got[names(want)], want)
   expect_identical(got[["rescor|"]], "lkj(1)")
 })
+
+# A family whose location is several dpars: brms 2.23.0 writes every
+# Intercept and sd default per dpar, measured on dpb_several_data()
+# (dev/mvprior-log/brms-sample-defaults.txt, script
+# dev/mvprior-brms-sample-defaults.R):
+#   bf(cat ~ x + (1 | g)): Intercept and sd student_t(3, 0, 2.5) for mub
+#     and for muc
+#   bf(ym ~ x + (1 | g)), two gaussians: Intercept student_t(3, 1.3, 3.3)
+#     and sd student_t(3, 0, 3.3) for mu1 and for mu2
+# Through frmtmb.sample 0.10.0 each was written without its dpar, which
+# frmtmb now refuses, and the rows it listed carried no dpar.
+dpb_several_data <- function() {
+  set.seed(2309)
+  n <- 80
+  d <- data.frame(x = rnorm(n), z = rnorm(n),
+                  g = factor(rep(1:8, length.out = n)))
+  d$cat <- factor(c("a", "b", "c")[1 + (d$x + rlogis(n) > 0) +
+                                      (d$z + rlogis(n) > 0.5)])
+  d$ym <- ifelse(rbinom(n, 1, 0.5) == 1, 3 + d$x, -1 + d$x) +
+    rnorm(n, 0, 0.5)
+  d
+}
+
+test_that("a categorical model's defaults carry brms's dpar", {
+  r <- dpb_rows(default_prior(bf(cat ~ x + (1 | g)) + categorical(),
+                              dpb_several_data(), route = "sample"))
+  want <- c("Intercept||||mub" = "student_t(3, 0, 2.5)",
+            "Intercept||||muc" = "student_t(3, 0, 2.5)",
+            "sd||||mub" = "student_t(3, 0, 2.5)",
+            "sd||||muc" = "student_t(3, 0, 2.5)")
+  expect_identical(r[names(want)], want)
+})
+
+test_that("a mixture model's defaults carry brms's dpar", {
+  r <- dpb_rows(default_prior(bf(ym ~ x + (1 | g)) +
+                                mixture(gaussian(), gaussian()),
+                              dpb_several_data(), route = "sample"))
+  want <- c("Intercept||||mu1" = "student_t(3, 1.3, 3.3)",
+            "Intercept||||mu2" = "student_t(3, 1.3, 3.3)",
+            "sd||||mu1" = "student_t(3, 0, 3.3)",
+            "sd||||mu2" = "student_t(3, 0, 3.3)")
+  expect_identical(r[names(want)], want)
+})
+
+test_that("the announcement names the slot, resp and dpar included", {
+  d <- dpb_several_data()
+  d$y1 <- d$x + rnorm(nrow(d))
+  fit <- frm(bf(y1 ~ x, family = gaussian()) +
+               bf(cat ~ x, family = categorical()) + set_rescor(FALSE),
+             data = d, dry_run = "objective")
+  defs <- frmtmb.sample:::default_priors_for(fit)
+  expect_message(frmtmb.sample:::announce_default_priors(defs, character(0)),
+                 "Intercept (resp = y1)", fixed = TRUE)
+  expect_message(frmtmb.sample:::announce_default_priors(defs, character(0)),
+                 "Intercept (dpar = mub, resp = cat)", fixed = TRUE)
+})

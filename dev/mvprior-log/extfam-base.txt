@@ -1,0 +1,52 @@
+arm base frmtmb from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+
+== lca(K = 3), Y ~ x ==
+location dpars: theta1 theta2 
+rows: Intercept||| ; b||| ; b|x|| 
+  b                      ACCEPT -> theta1_x theta2_x
+  Intercept              ACCEPT -> theta1_(Intercept) theta2_(Intercept)
+  sd                     REFUSE: No random-effect SDs match class=sd. This model has no random-effect standard deviations
+  b dpar theta1          ACCEPT -> theta1_x
+  Intercept dpar theta1  ACCEPT -> theta1_(Intercept)
+  b dpar theta2          ACCEPT -> theta2_x
+  Intercept dpar theta2  ACCEPT -> theta2_(Intercept)
+
+== hmm(K = 2), y ~ x ==
+location dpars: mu1 mu2 
+rows: Intercept||| ; b||| ; b|x|| 
+  b                      ACCEPT -> mu1_x mu2_x
+  Intercept              ACCEPT -> mu1_(Intercept) mu2_(Intercept)
+  sd                     REFUSE: No random-effect SDs match class=sd. This model has no random-effect standard deviations
+  b dpar mu1             ACCEPT -> mu1_x
+  Intercept dpar mu1     ACCEPT -> mu1_(Intercept)
+  b dpar mu2             ACCEPT -> mu2_x
+  Intercept dpar mu2     ACCEPT -> mu2_(Intercept)
+
+== lba(3), rt | vint(choice) ~ x ==
+location dpars: v1 v2 v3 
+rows: Intercept||| ; b||| ; b|x|| 
+  b                      ACCEPT -> v1_x v2_x v3_x
+  Intercept              ACCEPT -> v1_(Intercept) v2_(Intercept) v3_(Intercept)
+  sd                     REFUSE: No random-effect SDs match class=sd. This model has no random-effect standard deviations
+  b dpar v1              ACCEPT -> v1_x
+  Intercept dpar v1      ACCEPT -> v1_(Intercept)
+  b dpar v3              ACCEPT -> v3_x
+  Intercept dpar v3      ACCEPT -> v3_(Intercept)
+
+== rdm(3), rt | vint(choice) ~ x ==
+location dpars: v1 v2 v3 
+rows: Intercept||| ; b||| ; b|x|| 
+  b                      ACCEPT -> v1_x v2_x v3_x
+  Intercept              ACCEPT -> v1_(Intercept) v2_(Intercept) v3_(Intercept)
+  sd                     REFUSE: No random-effect SDs match class=sd. This model has no random-effect standard deviations
+  b dpar v1              ACCEPT -> v1_x
+  Intercept dpar v1      ACCEPT -> v1_(Intercept)
+  b dpar v3              ACCEPT -> v3_x
+  Intercept dpar v3      ACCEPT -> v3_(Intercept)
+
+== mixture_mvn(K = 2, D = 2), Y ~ x ==
+location dpars: mu1d1 mu1d2 mu2d1 mu2d2 
+rows: Intercept||| ; b||| ; b|x|| 
+  b                      ACCEPT -> mu1d1_x mu1d2_x mu2d1_x mu2d2_x
+  Intercept              ACCEPT -> mu1d1_(Intercept) mu1d2_(Intercept) mu2d1_(Intercept) mu2d2_(Intercept)
+  sd                     REFUSE: No random-effect SDs match class=sd. This model has no random-effect standard deviations

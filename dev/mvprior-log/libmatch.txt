@@ -1,0 +1,4 @@
+frmtmb identical 1143 differ 0 
+frmtmb.sample identical 211 differ 0 
+frmtmb.latent identical 62 differ 0 
+frmtmb.eam identical 155 differ 0 

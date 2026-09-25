@@ -1,0 +1,9 @@
+ARM base frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+smooth    y ~ s(x)                   ACCEPT: b|
+mono      yg ~ mo(ordf)              ACCEPT: b|
+ranslope  yg ~ 1 + (x | g)           ACCEPT: b|
+offset    yg ~ 1 + offset(x)         ACCEPT: b|
+noint     yg ~ 0 + x                 ACCEPT: b|
+gp        yg ~ gp(x)                 ACCEPT: b|
+cat_by    yg ~ 1 + (1 | g) + s(z)    ACCEPT: b|
+cs        ord ~ cs(x)                ACCEPT: b|

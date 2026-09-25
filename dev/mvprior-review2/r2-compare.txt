@@ -1,0 +1,179 @@
+specs: 127  lane agrees with brms: 119  base agrees: 90 
+both accept: 78  user rows same: 75 
+
+--- verdict disagreements lane vs brms ---
+[cat4] ub=1 [class=b, coef=x, dpar=muc]
+   brms=REFUSE lane=ACCEPT base=ACCEPT
+   lane msg: 
+[cat4re] lkj(2) [class=cor, dpar=mub]
+   brms=REFUSE lane=ACCEPT base=ACCEPT
+   lane msg: 
+[cat4re] normal(0, 5) [class=sd, coef=Intercept, group=g, dpar=mud]
+   brms=ACCEPT lane=REFUSE base=REFUSE
+   lane msg: frmtmb's class = "sd" addresses a whole random-effect BLOCK, not one coefficient of it, so coef = "Intercept" cannot be honored and applying the row without it would put the density on every s
+[cratio] normal(0, 5) [class=b, dpar=disc]
+   brms=ACCEPT lane=NA base=NA
+   lane msg: NA
+[cratio] normal(0, 5) [class=b]
+   brms=ACCEPT lane=NA base=NA
+   lane msg: NA
+[cratio] normal(0, 5) [class=Intercept]
+   brms=ACCEPT lane=NA base=NA
+   lane msg: NA
+[cumul] normal(0, 5) [class=Intercept, coef=2]
+   brms=ACCEPT lane=REFUSE base=REFUSE
+   lane msg: Prior target not found (class=Intercept, coef=2). On an ordinal family the thresholds ARE the intercept, and a bare class = "Intercept" with no coef, dpar or nlpar addresses the whole threshol
+[icpt_only] normal(0, 5) [class=b, coef=Intercept]
+   brms=REFUSE lane=ACCEPT base=ACCEPT
+   lane msg: 
+
+--- both accept but user rows differ ---
+[cat4re] lkj(2) [class=cor, group=g]
+   brms: L||g|||
+   lane: cor||g|||
+[cat4re] lkj(2) [class=cor]
+   brms: L|||||
+   lane: cor|||||
+[cumul] normal(0, 5) [class=b, dpar=mu]
+   brms: b|||||
+   lane: b||||mu|
+
+--- accepted on lane: reach, and base reach ---
+[acat] normal(0, 5) [class=b]                             lane: x | base: x  [same]
+[acat] normal(0, 5) [class=Intercept]                     lane: tau_raw_1+tau_raw_2+tau_raw_3 | base: tau_raw_1+tau_raw_2+tau_raw_3  [same]
+[cat2] normal(0, 5) [class=b, coef=x, dpar=muyes]         lane: muyes_x | base: muyes_x  [same]
+[cat2] normal(0, 5) [class=b, dpar=muyes]                 lane: muyes_x | base: muyes_x  [same]
+[cat2] normal(0, 5) [class=Intercept, dpar=muyes]         lane: muyes_(Intercept) | base: muyes_(Intercept)  [same]
+[cat4] lb=0 [class=b, dpar=mub]                           lane: (no density) lb:mub_x,mub_z | base: (no density) lb:mub_x,mub_z  [same]
+[cat4] normal(0, 1) lb=-2 ub=2 [class=b, dpar=mub]        lane: mub_x mub_z lb:mub_x,mub_z ub:mub_x,mub_z | base: mub_x mub_z lb:mub_x,mub_z ub:mub_x,mub_z  [same]
+[cat4] normal(0, 5) [class=b, coef=z, dpar=mud]           lane: mud_z | base: mud_z  [same]
+[cat4] normal(0, 5) [class=b, dpar=mub]                   lane: mub_x mub_z | base: mub_x mub_z  [same]
+[cat4] normal(0, 5) [class=Intercept, dpar=muc]           lane: muc_(Intercept) | base: muc_(Intercept)  [same]
+[cat4] student_t(3, 0, 1) [class=Intercept, dpar=mud]     lane: mud_(Intercept) | base: mud_(Intercept)  [same]
+[cat4] ub=1 [class=b, coef=x, dpar=muc]                   lane: (no density) ub:muc_x | base: (no density) ub:muc_x  [same]
+[cat4re] lkj(2) [class=cor, dpar=mub]                       lane: theta_4+theta_5+theta_6 | base: theta_4+theta_5+theta_6  [same]
+[cat4re] lkj(2) [class=cor, group=g]                        lane: theta_4+theta_5+theta_6 | base: theta_4+theta_5+theta_6  [same]
+[cat4re] lkj(2) [class=cor]                                 lane: theta_4+theta_5+theta_6 | base: theta_4+theta_5+theta_6  [same]
+[cat4re] normal(0, 5) [class=b, dpar=mub]                   lane: mub_x | base: mub_x  [same]
+[cat4re] normal(0, 5) [class=sd, dpar=mub]                  lane: theta_1 | base: REFUSED No random-effect SDs match class=sd, dpar=mub. As in brms, c  [DIFF]
+[cat4re] normal(0, 5) [class=sd, group=g, dpar=muc]         lane: theta_2 | base: REFUSED No random-effect SDs match class=sd, group=g, dpar=muc. As i  [DIFF]
+[cat4re2] normal(0, 5) [class=sd, dpar=mub]                  lane: theta_1 | base: REFUSED No random-effect SDs match class=sd, dpar=mub. As in brms, c  [DIFF]
+[cat4re2] normal(0, 5) [class=sd, group=g, dpar=muc]         lane: theta_2 | base: REFUSED No random-effect SDs match class=sd, group=g, dpar=muc. As i  [DIFF]
+[catpart] normal(0, 5) [class=b, coef=x, dpar=muc]           lane: muc_x | base: muc_x  [same]
+[catpart] normal(0, 5) [class=b, coef=z, dpar=mud]           lane: mud_z | base: mud_z  [same]
+[catpart] normal(0, 5) [class=b, dpar=mub]                   lane: mub_x | base: mub_x  [same]
+[catpart] normal(0, 5) [class=b, dpar=mud]                   lane: mud_z | base: mud_z  [same]
+[catpart] normal(0, 5) [class=Intercept, dpar=mud]           lane: mud_(Intercept) | base: mud_(Intercept)  [same]
+[cumul] normal(0, 5) [class=b, coef=x]                     lane: x | base: x  [same]
+[cumul] normal(0, 5) [class=b, dpar=mu]                    lane: x z | base: x z  [same]
+[cumul] normal(0, 5) [class=b]                             lane: x z | base: x z  [same]
+[cumul] normal(0, 5) [class=Intercept]                     lane: tau_raw_1+tau_raw_2+tau_raw_3 | base: tau_raw_1+tau_raw_2+tau_raw_3  [same]
+[cumul] normal(0, 5) [class=sd]                            lane: theta_1 | base: theta_1  [same]
+[hln] beta(1, 1) [class=hu]                              lane: hu_(Intercept) | base: hu_(Intercept)  [same]
+[hln] normal(0, 5) [class=b]                             lane: x | base: x  [same]
+[hln] normal(0, 5) [class=Intercept]                     lane: (Intercept) | base: (Intercept)  [same]
+[hln] student_t(3, 0, 2.5) [class=sigma]                 lane: sigma_(Intercept) | base: sigma_(Intercept)  [same]
+[icpt_only] normal(0, 5) [class=b, coef=Intercept]             lane: (Intercept) | base: (Intercept)  [same]
+[icpt_only] normal(0, 5) [class=Intercept]                     lane: (Intercept) | base: (Intercept)  [same]
+[mix3] exponential(1) [class=sigma2]                      lane: sigma2_(Intercept) | base: sigma2_(Intercept)  [same]
+[mix3] lb=0 [class=b, dpar=mu1]                           lane: (no density) lb:mu1_x | base: (no density) lb:mu1_x  [same]
+[mix3] normal(0, 5) [class=b, coef=x, dpar=mu3]           lane: mu3_x | base: mu3_x  [same]
+[mix3] normal(0, 5) [class=b, dpar=mu3]                   lane: mu3_x | base: mu3_x  [same]
+[mix3] normal(0, 5) [class=Intercept, dpar=mu2]           lane: mu2_(Intercept) | base: mu2_(Intercept)  [same]
+[mix3] student_t(3, 0, 2.5) [class=sigma3]                lane: sigma3_(Intercept) | base: sigma3_(Intercept)  [same]
+[mixdiff] gamma(2, 0.1) [class=nu2]                          lane: nu2_(Intercept) | base: nu2_(Intercept)  [same]
+[mixdiff] normal(0, 5) [class=b, dpar=mu1]                   lane: mu1_x | base: mu1_x  [same]
+[mixdiff] normal(0, 5) [class=b, dpar=mu2]                   lane: mu2_x | base: mu2_x  [same]
+[mixdiff] normal(0, 5) [class=Intercept, dpar=mu2]           lane: mu2_(Intercept) | base: mu2_(Intercept)  [same]
+[mixdiff] student_t(3, 0, 2.5) [class=sigma1]                lane: sigma1_(Intercept) | base: sigma1_(Intercept)  [same]
+[mixre] normal(0, 5) [class=sd, dpar=mu1]                  lane: theta_1 | base: REFUSED No random-effect SDs match class=sd, dpar=mu1. As in brms, c  [DIFF]
+[mixre] normal(0, 5) [class=sd, group=g, dpar=mu2]         lane: theta_2 | base: REFUSED No random-effect SDs match class=sd, group=g, dpar=mu2. As i  [DIFF]
+[mixsig] normal(0, 5) [class=b, coef=w, dpar=theta2]        lane: theta2_w | base: theta2_w  [same]
+[mixsig] normal(0, 5) [class=b, dpar=sigma2]                lane: sigma2_z | base: sigma2_z  [same]
+[mixsig] normal(0, 5) [class=b, dpar=theta2]                lane: theta2_w | base: theta2_w  [same]
+[mixsig] normal(0, 5) [class=Intercept, dpar=mu1]           lane: mu1_(Intercept) | base: mu1_(Intercept)  [same]
+[mixsig] normal(0, 5) [class=Intercept, dpar=sigma2]        lane: sigma2_(Intercept) | base: sigma2_(Intercept)  [same]
+[mixsig] student_t(3, 0, 2.5) [class=sigma1]                lane: sigma1_(Intercept) | base: sigma1_(Intercept)  [same]
+[mvcat] normal(0, 5) [class=b, coef=x, resp=cat4, dpar=mub] lane: cat4_mub_x | base: cat4_mub_x  [same]
+[mvcat] normal(0, 5) [class=b, resp=cat4, dpar=mub]        lane: cat4_mub_x | base: cat4_mub_x  [same]
+[mvcat] normal(0, 5) [class=b, resp=yg]                    lane: yg_x | base: yg_x  [same]
+[mvcat] normal(0, 5) [class=Intercept, resp=cat4, dpar=mud] lane: cat4_mud_(Intercept) | base: cat4_mud_(Intercept)  [same]
+[mvcat] normal(0, 5) [class=sd, resp=cat4, dpar=muc]       lane: theta_2 | base: REFUSED No random-effect SDs match class=sd, resp=cat4, dpar=muc. As  [DIFF]
+[mvcat] student_t(3, 0, 2.5) [class=sigma, resp=yg]        lane: yg_sigma_(Intercept) | base: yg_sigma_(Intercept)  [same]
+[mvdrop] normal(0, 5) [class=b, coef=x, resp=yg]            lane: yg_x | base: yg_x  [same]
+[mvdrop] normal(0, 5) [class=b, resp=yg]                    lane: yg_x | base: yg_x  [same]
+[mvdrop] normal(0, 5) [class=Intercept, resp=ym]            lane: ym_(Intercept) | base: ym_(Intercept)  [same]
+[mvdrop] normal(0, 5) [class=sd, resp=ym]                   lane: theta_1 | base: theta_1  [same]
+[mvdrop] student_t(3, 0, 2.5) [class=sigma, resp=ym]        lane: ym_sigma_(Intercept) | base: ym_sigma_(Intercept)  [same]
+[slopes_in_nl] normal(0, 5) [class=b, coef=Intercept, nlpar=a]    lane: a_(Intercept) | base: a_(Intercept)  [same]
+[slopes_in_nl] normal(0, 5) [class=b, coef=z, nlpar=b]            lane: b_z | base: b_z  [same]
+[slopes_in_nl] normal(0, 5) [class=b, nlpar=a]                    lane: a_(Intercept) | base: a_(Intercept)  [same]
+[slopes_in_nl] normal(0, 5) [class=b, nlpar=b]                    lane: b_(Intercept) b_z | base: b_(Intercept) b_z  [same]
+[slopes_in_sigma] normal(0, 5) [class=b, coef=x, dpar=sigma]         lane: sigma_x | base: sigma_x  [same]
+[slopes_in_sigma] normal(0, 5) [class=b, dpar=sigma]                 lane: sigma_x | base: sigma_x  [same]
+[slopes_in_sigma] normal(0, 5) [class=Intercept]                     lane: (Intercept) | base: (Intercept)  [same]
+[sratio] normal(0, 5) [class=b]                             lane: x | base: x  [same]
+[sratio] normal(0, 5) [class=Intercept]                     lane: tau_raw_1+tau_raw_2+tau_raw_3 | base: tau_raw_1+tau_raw_2+tau_raw_3  [same]
+[zip] normal(0, 5) [class=b, coef=x]                     lane: x | base: x  [same]
+[zip] normal(0, 5) [class=b, dpar=zi]                    lane: zi_z | base: zi_z  [same]
+[zip] normal(0, 5) [class=b]                             lane: x | base: x  [same]
+[zip] normal(0, 5) [class=Intercept, dpar=zi]            lane: zi_(Intercept) | base: zi_(Intercept)  [same]
+[zip] normal(0, 5) [class=Intercept]                     lane: (Intercept) | base: (Intercept)  [same]
+[zip] normal(0, 5) [class=sd]                            lane: theta_1 | base: theta_1  [same]
+
+--- verdict changes base -> lane ---
+[cat2] normal(0, 5) [class=b] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: muyes_x
+[cat2] normal(0, 5) [class=Intercept] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: muyes_(Intercept)
+[cat4] normal(0, 5) [class=b, coef=x] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: mub_x muc_x mud_x
+[cat4] normal(0, 5) [class=b] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: mub_x mub_z muc_x muc_z mud_x mud_z
+[cat4] normal(0, 5) [class=Intercept] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: mub_(Intercept) muc_(Intercept) mud_(Intercept)
+[cat4re] normal(0, 5) [class=sd, dpar=mub] base=REFUSE lane=ACCEPT brms=ACCEPT | base reach: 
+[cat4re] normal(0, 5) [class=sd, group=g, dpar=muc] base=REFUSE lane=ACCEPT brms=ACCEPT | base reach: 
+[cat4re] normal(0, 5) [class=sd, group=g] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: theta_1 theta_2 theta_3
+[cat4re] normal(0, 5) [class=sd] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: theta_1 theta_2 theta_3
+[cat4re2] normal(0, 5) [class=sd, dpar=mub] base=REFUSE lane=ACCEPT brms=ACCEPT | base reach: 
+[cat4re2] normal(0, 5) [class=sd, group=g, dpar=muc] base=REFUSE lane=ACCEPT brms=ACCEPT | base reach: 
+[cat4re2] normal(0, 5) [class=sd] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: theta_1 theta_2 theta_3
+[catpart] normal(0, 5) [class=b] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: mub_x muc_x mud_z
+[catpart] normal(0, 5) [class=Intercept] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: mub_(Intercept) muc_(Intercept) mud_(Intercept)
+[icpt_only] normal(0, 5) [class=b] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: (no density)
+[mix3] normal(0, 5) [class=b] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: mu1_x mu2_x mu3_x
+[mix3] normal(0, 5) [class=Intercept] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: mu1_(Intercept) mu2_(Intercept) mu3_(Intercept)
+[mixdiff] normal(0, 5) [class=b] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: mu1_x mu2_x
+[mixre] normal(0, 5) [class=sd, dpar=mu1] base=REFUSE lane=ACCEPT brms=ACCEPT | base reach: 
+[mixre] normal(0, 5) [class=sd, group=g, dpar=mu2] base=REFUSE lane=ACCEPT brms=ACCEPT | base reach: 
+[mixre] normal(0, 5) [class=sd, group=g] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: theta_1 theta_2
+[mixre] normal(0, 5) [class=sd] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: theta_1 theta_2
+[mixsig] normal(0, 5) [class=b] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: mu1_x mu2_x
+[mvcat] normal(0, 5) [class=b, dpar=mub] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: cat4_mub_x
+[mvcat] normal(0, 5) [class=b, resp=cat4] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: cat4_mub_x cat4_muc_x cat4_mud_x
+[mvcat] normal(0, 5) [class=sd, resp=cat4, dpar=muc] base=REFUSE lane=ACCEPT brms=ACCEPT | base reach: 
+[mvcat] normal(0, 5) [class=sd, resp=cat4] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: theta_1 theta_2 theta_3
+[slopes_in_nl] normal(0, 5) [class=b] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: b_z
+[slopes_in_sigma] normal(0, 5) [class=b] base=ACCEPT lane=REFUSE brms=REFUSE | base reach: (no density)
+
+--- default_prior rows, per case (brms vs lane vs base), class theta dropped ---
+cat4             brms 12 lane 12 base  4 | lane-only:  | brms-only:  | lane==base: FALSE
+cat2             brms  3 lane  3 base  3 | lane-only:  | brms-only:  | lane==base: FALSE
+cat4re           brms 20 lane 17 base  7 | lane-only:  | brms-only: sd|Intercept|g||mub| sd|Intercept|g||muc| sd|Intercept|g||mud| | lane==base: FALSE
+cat4re2          brms 18 lane 15 base  5 | lane-only:  | brms-only: sd|Intercept|g||mub| sd|Intercept|g||muc| sd|Intercept|g||mud| | lane==base: FALSE
+catpart          brms  9 lane  9 base  4 | lane-only:  | brms-only:  | lane==base: FALSE
+mix3             brms 12 lane 12 base  6 | lane-only:  | brms-only:  | lane==base: FALSE
+mixdiff          brms  9 lane  9 base  6 | lane-only:  | brms-only:  | lane==base: FALSE
+mixsig           brms 14 lane 13 base 10 | lane-only:  | brms-only: theta1||||| | lane==base: FALSE
+mixre            brms 14 lane 12 base  7 | lane-only:  | brms-only: sd|Intercept|g||mu1| sd|Intercept|g||mu2| | lane==base: FALSE
+mvcat            brms 22 lane 19 base  9 | lane-only:  | brms-only: sd|Intercept|g|cat4|mub| sd|Intercept|g|cat4|muc| sd|Intercept|g|cat4|mud| | lane==base: FALSE
+cumul            brms 10 lane  6 base  6 | lane-only:  | brms-only: Intercept|1|||| Intercept|2|||| Intercept|3|||| sd|Intercept|g||| | lane==base: TRUE
+sratio           brms  6 lane  3 base  3 | lane-only:  | brms-only: Intercept|1|||| Intercept|2|||| Intercept|3|||| | lane==base: TRUE
+acat             brms  6 lane  3 base  3 | lane-only:  | brms-only: Intercept|1|||| Intercept|2|||| Intercept|3|||| | lane==base: TRUE
+cratio           brms  9 lane  1 base  1 | lane-only: MODEL REFUSED | brms-only: b||||| b||||disc| b|x|||| b|z|||disc| Intercept||||| Intercept||||disc| Intercept|1|||| Intercept|2|||| Intercept|3|||| | lane==base: TRUE
+zip              brms  9 lane  8 base  8 | lane-only:  | brms-only: sd|Intercept|g||| | lane==base: TRUE
+hln              brms  5 lane  5 base  5 | lane-only:  | brms-only:  | lane==base: TRUE
+slopes_in_sigma  brms  4 lane  4 base  4 | lane-only:  | brms-only:  | lane==base: TRUE
+slopes_in_nl     brms  6 lane  6 base  6 | lane-only:  | brms-only:  | lane==base: TRUE
+icpt_only        brms  2 lane  2 base  2 | lane-only:  | brms-only:  | lane==base: TRUE
+mvdrop           brms  9 lane  8 base  8 | lane-only:  | brms-only: sd|Intercept|g|ym|| | lane==base: TRUE
+
+resolved objects both arms accept: 74  identical(): 74 
+lane-only accepted: cat4re 3, cat4re 4, cat4re2 2, cat4re2 3, mixre 2, mixre 3, mvcat 7 
+base-only accepted: cat4 1, cat4 2, cat4 3, cat2 1, cat2 2, cat4re 1, cat4re 2, cat4re2 1, catpart 1, catpart 8, mix3 1, mix3 2, mixdiff 1, mixsig 1, mixre 1, mixre 4, mvcat 1, mvcat 4, mvcat 6, slopes_in_sigma 1, slopes_in_nl 1, icpt_only 3 

@@ -1,0 +1,11 @@
+ARM lane frmtmb 0.62.0 from C:/Users/adf44/source/r/mvprior-lib/frmtmb 
+ord ~ cs(x) -> REFUSE: Prior target not found (class=b): the location predictor has no population-level slope, so a class "b" prior reaches no parameter. brms refuses it too. A prior on the intercept is class = "Intercept" 
+  par names: tau_raw_1 tau_raw_2 tau_raw_3 bcs2_1 bcs2_2 bcs2_3 
+      class coef dpar
+1 Intercept          
+ord ~ z + cs(x) -> z 
+  par names: z tau_raw_1 tau_raw_2 tau_raw_3 bcs2_1 bcs2_2 bcs2_3 
+      class coef dpar
+1 Intercept          
+2         b          
+3         b    z     

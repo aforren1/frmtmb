@@ -31,7 +31,9 @@ own class.}
 
 \item{group}{Restrict class \code{"sd"} or \code{"cor"} to one grouping factor.}
 
-\item{resp}{Response of a multivariate model.}
+\item{resp}{Response of a multivariate model. Required there for
+every class except \code{"cor"}, \code{"rescor"} and \code{"theta"}; refused on a
+model with one response and on class \code{"rescor"}.}
 
 \item{dpar}{Distributional parameter (default: the location
 parameters).}
@@ -92,7 +94,7 @@ map's Jacobian applied, as class \code{"sd"} does; \code{"cortime"} takes
 one response with \code{resp}. See Residual correlation below.
 \item \code{"rescor"}: the residual correlation BETWEEN responses of a
 multivariate model (\code{set_rescor(TRUE)}), as a whole. \code{lkj(eta)}
-only, as brms spells it.
+only, as brms spells it, and no \code{resp}.
 \item \code{"theta"}: raw internal covariance parameters (escape hatch).
 \code{coef} names one by its internal name and spans all three
 covariance components: \code{"theta_2"} for a random-effect block,
@@ -107,6 +109,29 @@ applied, so \code{set_prior("student_t(3, 0, 2.5)", class = "sigma")}
 means what it says. Available where the parameter has no predictor
 of its own; see A distributional parameter's own class.
 }
+
+In a MULTIVARIATE model, every specification of class \code{"b"},
+\code{"Intercept"}, \code{"sd"}, \code{"ar"}, \code{"ma"}, \code{"cosy"} or \code{"cortime"}, and
+every distributional parameter's own class, names its response with
+\code{resp}. A specification without \code{resp} is refused, as brms refuses
+it: write one specification per response. Classes \code{"rescor"} and
+\code{"theta"} take no \code{resp}, and \code{"cor"} needs none. On a model with ONE
+response, \code{resp} is refused, as in brms.
+
+Two spellings are frmtmb's own, and brms refuses both: \code{"cor"} with
+\code{resp}, which narrows the prior to that response's blocks, and
+\code{"Intercept"} with \code{nlpar}, which addresses the intercept of one
+nonlinear parameter (see Nonlinear parameters). A class \code{"b"}
+specification that reaches no coefficient, because the predictor it
+names has no population-level slope (\code{y ~ 1}), is refused, as in
+brms. In the same way, a class
+\code{"b"} or \code{"Intercept"} specification on a NONLINEAR location names
+its nonlinear parameter with \code{nlpar}; see Nonlinear parameters.
+And where a family's location is SEVERAL distributional parameters,
+as in \code{\link[=categorical]{categorical()}}, \code{\link[=multinomial]{multinomial()}} and \code{\link[=mixture]{mixture()}}, a class
+\code{"b"}, \code{"Intercept"} or \code{"sd"} specification names one of them with
+\code{dpar} (\code{"mub"}, \code{"mu1"}), and \code{\link[=default_prior]{default_prior()}} lists the rows that
+way, as brms does.
 
 Two specifications for the same slot (the same class, coef, group,
 resp, dpar and nlpar) are refused wherever a prior is passed in, as
@@ -274,8 +299,16 @@ why the vignette spelling above lands on \code{ult_(Intercept)} rather
 than on nothing. Narrow to one column with \code{coef} (\code{"Intercept"} and
 \code{"(Intercept)"} both name the intercept), or write
 \verb{class = "Intercept", nlpar = "ult"}, which is frmtmb's spelling of
-the same slot. \code{nlpar} narrows classes \code{"sd"} and \code{"cor"} to the
-random-effect blocks of that parameter as well.
+the same slot; brms does not take that spelling. \code{nlpar} narrows
+classes \code{"sd"} and \code{"cor"} to the random-effect blocks of that
+parameter as well.
+
+A class \code{"b"} or \code{"Intercept"} specification without \code{nlpar} does not
+reach a nonlinear parameter. On a model whose location is nonlinear,
+such a specification addresses no parameter, and it is refused, as
+in brms. A distributional parameter keeps its own spelling there:
+\code{set_prior("student_t(3, 0, 2.5)", class = "sigma")} needs no
+\code{nlpar}.
 
 A prior with a location places \code{\link[=frm]{frm()}}'s \code{start} for a nonlinear
 parameter. \code{normal()}, \code{student_t()} and \code{cauchy()} all carry one,
@@ -286,11 +319,9 @@ a claim about where to begin. Without a located prior a nonlinear
 model still needs \code{start}, because \code{frm()} evaluates the objective
 AT the starting values; \code{\link[=par_template]{par_template()}} names them.
 
-\code{resp} picks one response of a multivariate model; the default
-priors of \code{frmtmb.sample::frm_sample()} still stay off there (see
-its Default priors section), so a multivariate model's priors are the
-ones
-written by hand.
+\code{resp} picks one response of a multivariate model, and a nonlinear
+parameter of one response is addressed with both \code{resp} and
+\code{nlpar}.
 }
 
 \section{Translating a brms prior}{
@@ -369,10 +400,8 @@ brms refuses it there too.
 
 A distributional class names ONE parameter, so it takes \code{resp} and
 neither \code{coef} nor \code{group}; both are refused rather than dropped.
-Written without \code{resp} on a multivariate model it applies to every
-response, which is frmtmb's convention for a class-wide prior and
-one of the few rows brms refuses where frmtmb accepts (brms asks for
-\code{resp}).
+On a multivariate model it needs \code{resp}, as it does in brms: without
+it, the specification is refused.
 
 \code{\link[=get_prior]{get_prior()}} lists whichever of the two spellings a model offers.
 Where a parameter has NEITHER, because frmtmb refuses its class by

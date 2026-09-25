@@ -1,0 +1,13 @@
+base RESULT test-prior-compat.R pass=193 fail=1 err=0 skip=0
+base FAILED test-prior-compat.R: resp picks one response of a multivariate model
+base RESULT test-prior-mv-resp.R pass=15 fail=19 err=2 skip=0
+base FAILED test-prior-mv-resp.R: class b and Intercept with no resp are refused in a multivariate model
+base FAILED test-prior-mv-resp.R: a distributional parameter's class with no resp is refused
+base FAILED test-prior-mv-resp.R: class b with dpar and no resp is refused, not shape-judged
+base FAILED test-prior-mv-resp.R: class Intercept with dpar and no resp is refused, not shape-judged
+base FAILED test-prior-mv-resp.R: a residual-correlation class with no resp is refused
+base FAILED test-prior-mv-resp.R: frm() and a brms prior table meet the same refusal
+base FAILED test-prior-mv-resp.R: the refusal names the responses that have the slot
+base FAILED test-prior-mv-resp.R: a class b or Intercept prior with no nlpar is refused on a nonlinear location
+lane RESULT test-prior-compat.R pass=194 fail=0 err=0 skip=0
+lane RESULT test-prior-mv-resp.R pass=36 fail=0 err=0 skip=0

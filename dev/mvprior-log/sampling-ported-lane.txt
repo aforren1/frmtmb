@@ -1,0 +1,160 @@
+frmtmb from C:/Users/adf44/source/r/mvprior-lib/frmtmb 
+✔ | F W  S  OK | Context
+
+⠏ |          0 | sampling-ported                                                frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.7, 2.5)
+  b                  (flat), as brms leaves slopes
+
+⠋ |          1 | sampling-ported                                                frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.6, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+
+⠹ |          3 | sampling-ported                                                
+⠦ |          7 | sampling-ported                                                frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.6, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+
+⠴ |         16 | sampling-ported                                                frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.6, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+
+⠦ |         17 | sampling-ported                                                
+⠧ |         18 | sampling-ported                                                
+⠸ |         24 | sampling-ported                                                
+⠼ |         25 | sampling-ported                                                
+⠧ |         28 | sampling-ported                                                No priors were used (flat improper priors on the outer parameters).
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  b                  (flat), as brms leaves slopes
+  no defaults for this family's thresholds (brms priors them as its Intercept class) - see ?frm_sample
+
+⠏ |         30 | sampling-ported                                                
+⠸ |         34 | sampling-ported                                                
+⠇ |         39 | sampling-ported                                                
+⠼ |         45 | sampling-ported                                                
+⠧ |         48 | sampling-ported                                                
+⠋ |         51 | sampling-ported                                                
+⠹ |         53 | sampling-ported                                                
+⠼ |         55 | sampling-ported                                                
+⠴ |         56 | sampling-ported                                                
+⠦ |         57 | sampling-ported                                                
+⠇ |         59 | sampling-ported                                                
+⠏ |         60 | sampling-ported                                                
+⠹ |         63 | sampling-ported                                                
+⠼ |         65 | sampling-ported                                                frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.3, 2.5)
+  b                  (flat), as brms leaves slopes
+
+⠴ |         66 | sampling-ported                                                
+⠇ |         69 | sampling-ported                                                
+⠋ |         71 | sampling-ported                                                frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.7, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+
+⠸ |         74 | sampling-ported                                                
+⠴ |         76 | sampling-ported                                                frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+
+⠹ |         83 | sampling-ported                                                
+⠸ |         84 | sampling-ported                                                frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1.2, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+
+⠴ |         86 | sampling-ported                                                
+⠇ |         89 | sampling-ported                                                frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept (dpar = theta1) student_t(3, 0, 2.5)
+  b                  (flat), as brms leaves slopes
+
+⠏ |         90 | sampling-ported                                                
+⠙ |         92 | sampling-ported                                                frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.9, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+
+⠸ |         94 | sampling-ported                                                
+⠴ |         96 | sampling-ported                                                frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 1.2, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  sd                 student_t(3, 0, 2.5)  [natural sd scale]
+  b                  (flat), as brms leaves slopes
+
+⠏ |        100 | sampling-ported                                                
+⠼ |        105 | sampling-ported                                                
+⠏ |        110 | sampling-ported                                                
+⠹ |        113 | sampling-ported                                                
+⠏ |        120 | sampling-ported                                                
+⠹ |   1    122 | sampling-ported                                                
+⠧ |   1    127 | sampling-ported                                                frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  b                  (flat), as brms leaves slopes
+  no defaults for this family's thresholds (brms priors them as its Intercept class) - see ?frm_sample
+
+⠇ |   1    128 | sampling-ported                                                
+⠸ |   1    133 | sampling-ported                                                
+⠧ |   1    147 | sampling-ported                                                frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.7, 2.5)
+  b                  (flat), as brms leaves slopes
+
+⠴ |   1    155 | sampling-ported                                                Compiling Stan program...
+Start sampling
+frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  b                  (flat), as brms leaves slopes
+  no defaults for this family's thresholds (brms priors them as its Intercept class) - see ?frm_sample
+
+⠏ |   1    159 | sampling-ported                                                
+⠦ |   1    166 | sampling-ported                                                frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.8, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+frm_sample(): sampling stays centered: no random-effect block of this model has a non-centered form:
+  1 | g [us]: its variance parameter has a flat prior here, and a non-centered chain walks the flat tail that opens at sd = 0. Give it a prior, set_prior(class = "sd"), which frm_sample() supplies by default unless prior = "flat" turned it off
+
+⠧ |   1    167 | sampling-ported                                                
+⠹ |   1    172 | sampling-ported                                                
+⠸ |   1    173 | sampling-ported                                                
+⠼ |   1    174 | sampling-ported                                                
+⠴ |   1    175 | sampling-ported                                                
+⠦ |   1    176 | sampling-ported                                                
+⠏ |   1    179 | sampling-ported                                                
+⠹ |   1    182 | sampling-ported                                                
+⠙ |   1    191 | sampling-ported                                                
+⠋ |   1    200 | sampling-ported                                                
+⠸ |   1    203 | sampling-ported                                                frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  b                  (flat), as brms leaves slopes
+  nonlinear parameters stay flat: guess, thr (brms leaves them flat too, as class b; set_prior(nlpar = ) writes them) - see ?frm_sample
+
+⠦ |   1    206 | sampling-ported                                                
+⠧ |   1    207 | sampling-ported                                                
+⠹ |   1    212 | sampling-ported                                                frm_sample(): default priors (brms 2.23 defaults; prior = "flat" opts out)
+  Intercept          student_t(3, 0.1, 2.5)
+  sigma              student_t(3, 0, 2.5)  [natural scale]
+  b                  (flat), as brms leaves slopes
+
+⠸ |   1    213 | sampling-ported                                                
+✔ |   1    213 | sampling-ported [278.4s]
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-sampling-ported.R:547:3'): the draws surface runs the model machinery per draw
+hypothesis(): no evidence ratio for 1 of 1 point hypothesis. A Savage-Dickey ratio divides the posterior density at the tested point by the PRIOR density there, and
+  sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0: it names sd_g__Intercept, sigma, which is not a population-level coefficient. A standard deviation, a correlation and a dispersion have their prior on the internal parameter with a change of variables in between, and a group-level coefficient has the group's distribution rather than a prior of its own, so neither density is the prior density of the tested quantity
+Backtrace:
+    ▆
+ 1. ├─frmtmb::hypothesis(...) at test-sampling-ported.R:547:3
+ 2. └─frmtmb.sample:::hypothesis.frmtmb_draws(...)
+ 3.   └─frmtmb.sample:::er_evidence(...)
+ 4.     └─frmtmb::frm_warning(...)
+────────────────────────────────────────────────────────────────────────────────
+
+══ Results ═════════════════════════════════════════════════════════════════════
+Duration: 278.5 s
+
+[ FAIL 0 | WARN 1 | SKIP 0 | PASS 213 ]

@@ -150,6 +150,37 @@ er_coef_slot <- function(fit, i) {
   list(comp = "betad", idx = keep[i - nb])
 }
 
+#' A `set_prior()` call that reaches one coefficient slot, with every
+#' field the model needs: `resp` on a multivariate model, `dpar` on a
+#' distributional parameter or on one of several locations, `nlpar` on
+#' a nonlinear parameter. The bare `set_prior(class = "b")` this advice
+#' used to give is refused on a multivariate model.
+#'
+#' @noRd
+er_slot_spelling <- function(fit, slot) {
+  multi <- length(fit$spec$responses) > 1L
+  for (lp in fit$frame[["linpreds"]]) {
+    if (!identical(lp[["par"]], slot$comp)) next
+    k <- match(slot$idx, lp[["idx"]])
+    if (is.na(k)) next
+    rspec <- fit$spec$responses[[lp[["resp"]]]]
+    dp <- lp[["dpar"]]
+    is_nl <- dp %in% (rspec$nlpars %||% character(0))
+    cn <- colnames(lp[["X"]])[k]
+    icpt <- identical(cn, "(Intercept)") && !is_nl
+    f <- c(coef = if (icpt) "" else cn,
+           dpar = default_lp_dpar(rspec, dp),
+           nlpar = if (is_nl) dp else "",
+           resp = if (multi) lp[["resp"]] else "")
+    f <- f[nzchar(f)]
+    return(paste0("set_prior(\"normal(0, 1)\", class = \"",
+                  if (icpt) "Intercept" else "b", "\"",
+                  paste0(", ", names(f), " = \"", f, "\"", collapse = ""),
+                  ")"))
+  }
+  "set_prior(\"normal(0, 1)\", class = \"b\")"
+}
+
 #' The entry covering one slot, or `NULL`.
 #'
 #' @noRd
@@ -235,11 +266,12 @@ er_prior_at_zero <- function(fit, ex, vo, entries) {
   ent <- lapply(slots, function(s) er_entry_for(entries, s))
   flat <- vapply(ent, is.null, TRUE)
   if (any(flat)) {
+    calls <- vapply(slots[flat], function(sl) er_slot_spelling(fit, sl), "")
     return(list(why = paste0(paste(nms[flat], collapse = ", "),
                              " has no proper prior (frm_sample() leaves ",
-                             "class \"b\" flat, as brms does); write one ",
-                             "with set_prior(class = \"b\") and resample ",
-                             "to get a Bayes factor for it")))
+                             "class \"b\" flat, as brms does); write one, ",
+                             "e.g. ", paste(unique(calls), collapse = " + "),
+                             ", and resample to get a Bayes factor for it")))
   }
   bad <- vapply(ent, function(e) {
     !identical(e$scale, "internal") || !is.null(e$offset)

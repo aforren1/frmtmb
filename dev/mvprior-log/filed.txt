@@ -1,0 +1,11 @@
+frmtmb three_bf        REFUSE: non-numeric argument to binary operator
+frmtmb mv_cumulative   REFUSE: Families with extra parameters ('cumulative') are not supported in multivariate fits yet
+frmtmb me              REFUSE: could not find function "me"
+frmtmb zero_intercept  REFUSE: The model uses `Intercept`, which is not a column of `data` and not an object that R finds from the formula. Add the column to `data` or correct the name
+frmtmb student_rescor  REFUSE: rescor = TRUE requires all responses to be gaussian (got: student)
+frmtmb mvbf(3)         ACCEPT
+brms   three_bf        ACCEPT
+brms   mv_cumulative   ACCEPT
+brms   me              ACCEPT
+brms   zero_intercept  ACCEPT
+brms   student_rescor  ACCEPT

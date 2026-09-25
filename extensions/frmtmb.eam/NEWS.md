@@ -1,3 +1,14 @@
+# frmtmb.eam (development version)
+
+* **BREAKING:** a prior on a drift rate of `lba()` or `rdm()` names its
+  accumulator with `dpar`: `set_prior("normal(0, 1)", class = "b",
+  dpar = "v1")`, one specification per accumulator. A class `"b"` or
+  `"Intercept"` prior without `dpar` is now refused by frmtmb. Until now
+  it reached every accumulator's drift at once. `default_prior()` lists
+  the rows per `dpar`. This is frmtmb's rule for every family whose
+  location is several distributional parameters. Requires the frmtmb
+  release that carries it.
+
 # frmtmb.eam 0.10.0
 
 * `ndt_time()` reads `frmtmb::frm_linpred()` rather than `predict()`,

@@ -190,3 +190,21 @@ test_that("er_kde_at() is brms density_ratio(), bit for bit", {
   expect_identical(frmtmb.sample:::er_kde_at(w, point = 5),
                    dr(w, point = 5))
 })
+
+# The advice for a flat coefficient names every field the model needs.
+# set_prior(class = "b") alone is refused on a multivariate model, as in
+# brms, so the advice used to lead into that refusal.
+test_that("the flat-prior advice on a multivariate fit names resp", {
+  skip_sampler()
+  set.seed(22)
+  n <- 100
+  d <- data.frame(x = stats::rnorm(n))
+  d$y1 <- 0.3 * d$x + stats::rnorm(n)
+  d$y2 <- -0.2 * d$x + stats::rnorm(n)
+  ds <- suppressWarnings(suppressMessages(
+    frm_sample(bf(y1 ~ x) + bf(y2 ~ x) + set_rescor(FALSE) + gaussian(),
+               data = d, chains = 1, iter = 400, refresh = 0, seed = 3)))
+  want <- paste0("set_prior(\"normal(0, 1)\", class = \"b\", ",
+                 "coef = \"x\", resp = \"y1\")")
+  expect_warning(hypothesis(ds, "y1_x = 0"), want, fixed = TRUE)
+})

@@ -1,0 +1,21 @@
+ARM lane frmtmb 0.62.0 from C:/Users/adf44/source/r/mvprior-lib/frmtmb 
+  matrix[Kcs, nthres] bcs;  // category specific effects
+  lprior += normal_lpdf(to_vector(bcs) | 0, 0.123);
+    matrix[N, nthres] mucs = Xcs * bcs;
+                prior     class coef group resp dpar nlpar lb ub tag
+               (flat)         b                                     
+               (flat)         b    x                                
+ student_t(3, 0, 2.5) Intercept                                     
+ student_t(3, 0, 2.5) Intercept    1                                
+ student_t(3, 0, 2.5) Intercept    2                                
+ student_t(3, 0, 2.5) Intercept    3                                
+       source
+      default
+ (vectorized)
+      default
+ (vectorized)
+ (vectorized)
+ (vectorized)
+--- ord ~ z + cs(x)
+  lprior += normal_lpdf(b | 0, 0.123);
+  lprior += normal_lpdf(to_vector(bcs) | 0, 0.123);

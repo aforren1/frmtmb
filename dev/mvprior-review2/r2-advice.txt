@@ -1,0 +1,119 @@
+ARM lane frmtmb 0.62.0 from C:/Users/adf44/source/r/mvprior-lib/frmtmb 
+
+[mv] class=b
+  msg: A prior with no resp names no parameter of a multivariate model (class=b). As in brms, class "b" is addressed per response here, and a specification without resp reaches none of them. Write one specification per response that has this slot: set_prior("normal(0, 1)", class = "b", resp = "yg") + set_prior("normal(0, 1)", class = "b", resp = "ym") 
+   -> set_prior("normal(0, 1)", class = "b", resp = "yg") 
+      reaches: yg_x 
+   -> set_prior("normal(0, 1)", class = "b", resp = "ym") 
+      reaches: ym_z 
+   sum of suggestions reaches: yg_x ym_z 
+
+[mv] class=b, coef=x
+  msg: A prior with no resp names no parameter of a multivariate model (class=b, coef=x). As in brms, class "b" is addressed per response here, and a specification without resp reaches none of them. Write one specification per response that has this slot: set_prior("normal(0, 1)", class = "b", coef = "x", resp = "yg") 
+   -> set_prior("normal(0, 1)", class = "b", coef = "x", resp = "yg") 
+      reaches: yg_x 
+   sum of suggestions reaches: yg_x 
+
+[mv] class=b, coef=z
+  msg: A prior with no resp names no parameter of a multivariate model (class=b, coef=z). As in brms, class "b" is addressed per response here, and a specification without resp reaches none of them. Write one specification per response that has this slot: set_prior("normal(0, 1)", class = "b", coef = "z", resp = "ym") 
+   -> set_prior("normal(0, 1)", class = "b", coef = "z", resp = "ym") 
+      reaches: ym_z 
+   sum of suggestions reaches: ym_z 
+
+[mv] class=Intercept, dpar=sigma
+  msg: A prior with no resp names no parameter of a multivariate model (class=Intercept, dpar=sigma). As in brms, class "Intercept" is addressed per response here, and a specification without resp reaches none of them. Write one specification per response that has this slot: set_prior("normal(0, 1)", class = "Intercept", dpar = "sigma", resp = "ym") 
+   -> set_prior("normal(0, 1)", class = "Intercept", dpar = "sigma", resp = "ym") 
+      reaches: ym_sigma_(Intercept) 
+   sum of suggestions reaches: ym_sigma_(Intercept) 
+
+[mv] class=Intercept, dpar=sigma
+  msg: A prior with no resp names no parameter of a multivariate model (class=sigma). As in brms, class "sigma" is addressed per response here, and a specification without resp reaches none of them. Write one specification per response that has this slot: set_prior("student_t(3, 0, 2.5)", class = "sigma", resp = "yg") 
+   -> set_prior("student_t(3, 0, 2.5)", class = "sigma", resp = "yg") 
+      reaches: yg_sigma_(Intercept) 
+   sum of suggestions reaches: yg_sigma_(Intercept) 
+
+[mv] class=b lb=0
+  msg: A prior with no resp names no parameter of a multivariate model (class=b). As in brms, class "b" is addressed per response here, and a specification without resp reaches none of them. Write one specification per response that has this slot: set_prior("", class = "b", resp = "yg", lb = 0) + set_prior("", class = "b", resp = "ym", lb = 0) 
+   -> set_prior("", class = "b", resp = "yg", lb = 0) 
+      reaches: lb:yg_x 
+   -> set_prior("", class = "b", resp = "ym", lb = 0) 
+      reaches: lb:ym_z 
+   sum of suggestions reaches: lb:yg_x,ym_z 
+
+[mv] class=b, coef=x, dpar=sigma
+  msg: A prior with no resp names no parameter of a multivariate model (class=b, coef=x, dpar=sigma). As in brms, class "b" is addressed per response here, and a specification without resp reaches none of them. Write one specification per response that has this slot: set_prior("normal(0, 1)", class = "b", coef = "x", dpar = "sigma", resp = "ym") 
+   -> set_prior("normal(0, 1)", class = "b", coef = "x", dpar = "sigma", resp = "ym") 
+      reaches: ym_sigma_x 
+   sum of suggestions reaches: ym_sigma_x 
+
+[mv] class=sd
+  msg: No random-effect SDs match class=sd. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification without one of these names none of the others. This model's standard deviations take: (resp = "yg") 
+  (no set_prior() call suggested)
+
+[mv] class=b, resp=Yg
+  msg: Prior target not found (class=b, resp=Yg): resp = "Yg" names no response of this model. It has yg, ym 
+  (no set_prior() call suggested)
+
+[mvnl] class=b, nlpar=a
+  msg: A prior with no resp names no parameter of a multivariate model (class=b, nlpar=a). As in brms, class "b" is addressed per response here, and a specification without resp reaches none of them. Write one specification per response that has this slot: set_prior("normal(0, 1)", class = "b", nlpar = "a", resp = "ym") 
+   -> set_prior("normal(0, 1)", class = "b", nlpar = "a", resp = "ym") 
+      reaches: ym_a_(Intercept) ym_a_z 
+   sum of suggestions reaches: ym_a_(Intercept) ym_a_z 
+
+[mvnl] class=Intercept, nlpar=a
+  msg: A prior with no resp names no parameter of a multivariate model (class=Intercept, nlpar=a). As in brms, class "Intercept" is addressed per response here, and a specification without resp reaches none of them. Write one specification per response that has this slot: set_prior("normal(0, 1)", class = "Intercept", nlpar = "a", resp = "ym") 
+   -> set_prior("normal(0, 1)", class = "Intercept", nlpar = "a", resp = "ym") 
+      reaches: ym_a_(Intercept) 
+   sum of suggestions reaches: ym_a_(Intercept) 
+
+[mvnl] class=b
+  msg: A prior with no resp names no parameter of a multivariate model (class=b). As in brms, class "b" is addressed per response here, and a specification without resp reaches none of them. Write one specification per response that has this slot: set_prior("normal(0, 1)", class = "b", resp = "yg") 
+   -> set_prior("normal(0, 1)", class = "b", resp = "yg") 
+      reaches: yg_x 
+   sum of suggestions reaches: yg_x 
+
+[mvnl] class=b, coef=z, nlpar=a
+  msg: A prior with no resp names no parameter of a multivariate model (class=b, coef=z, nlpar=a). As in brms, class "b" is addressed per response here, and a specification without resp reaches none of them. Write one specification per response that has this slot: set_prior("normal(0, 1)", class = "b", coef = "z", nlpar = "a", resp = "ym") 
+   -> set_prior("normal(0, 1)", class = "b", coef = "z", nlpar = "a", resp = "ym") 
+      reaches: ym_a_z 
+   sum of suggestions reaches: ym_a_z 
+
+[mvcat] class=b, dpar=mub
+  msg: A prior with no resp names no parameter of a multivariate model (class=b, dpar=mub). As in brms, class "b" is addressed per response here, and a specification without resp reaches none of them. Write one specification per response that has this slot: set_prior("normal(0, 1)", class = "b", dpar = "mub", resp = "cat4") 
+   -> set_prior("normal(0, 1)", class = "b", dpar = "mub", resp = "cat4") 
+      reaches: cat4_mub_x 
+   sum of suggestions reaches: cat4_mub_x 
+
+[mvcat] class=Intercept
+  msg: A prior with no resp names no parameter of a multivariate model (class=Intercept). As in brms, class "Intercept" is addressed per response here, and a specification without resp reaches none of them. Write one specification per response that has this slot: set_prior("normal(0, 1)", class = "Intercept", resp = "yg") 
+   -> set_prior("normal(0, 1)", class = "Intercept", resp = "yg") 
+      reaches: yg_(Intercept) 
+   sum of suggestions reaches: yg_(Intercept) 
+
+[mvcat] class=b, coef=x
+  msg: A prior with no resp names no parameter of a multivariate model (class=b, coef=x). As in brms, class "b" is addressed per response here, and a specification without resp reaches none of them. Write one specification per response that has this slot: set_prior("normal(0, 1)", class = "b", coef = "x", resp = "yg") 
+   -> set_prior("normal(0, 1)", class = "b", coef = "x", resp = "yg") 
+      reaches: yg_x 
+   sum of suggestions reaches: yg_x 
+
+[mvmix] class=b
+  msg: A prior with no resp names no parameter of a multivariate model (class=b). As in brms, class "b" is addressed per response here, and a specification without resp reaches none of them. Write one specification per response that has this slot: set_prior("normal(0, 1)", class = "b", resp = "yg") 
+   -> set_prior("normal(0, 1)", class = "b", resp = "yg") 
+      reaches: yg_x 
+   sum of suggestions reaches: yg_x 
+
+[mvmix] class=Intercept, dpar=mu2
+  msg: A prior with no resp names no parameter of a multivariate model (class=Intercept, dpar=mu2). As in brms, class "Intercept" is addressed per response here, and a specification without resp reaches none of them. Write one specification per response that has this slot: set_prior("normal(0, 1)", class = "Intercept", dpar = "mu2", resp = "ym") 
+   -> set_prior("normal(0, 1)", class = "Intercept", dpar = "mu2", resp = "ym") 
+      reaches: ym_mu2_(Intercept) 
+   sum of suggestions reaches: ym_mu2_(Intercept) 
+
+[mvmix] class=Intercept, dpar=sigma1
+  msg: A prior with no resp names no parameter of a multivariate model (class=sigma1). As in brms, class "sigma1" is addressed per response here, and a specification without resp reaches none of them. Write one specification per response that has this slot: set_prior("student_t(3, 0, 2.5)", class = "sigma1", resp = "ym") 
+   -> set_prior("student_t(3, 0, 2.5)", class = "sigma1", resp = "ym") 
+      reaches: ym_sigma1_(Intercept) 
+   sum of suggestions reaches: ym_sigma1_(Intercept) 
+
+[mvmix] class=b, resp=ym
+  msg: Prior target not found (class=b, resp=ym): this model's location is several distributional parameters, mu1, mu2, and as in brms a class "b" prior names one of them with dpar =, one specification per parameter 
+  (no set_prior() call suggested)

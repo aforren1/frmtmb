@@ -612,7 +612,13 @@ lca_comp_lpdf <- function(y, K, extra, k) {
 #' `confint()` (Wald, profile and uniroot), `hypothesis()`,
 #' `set_prior()`, `lower`/`upper` bounds and
 #' `frmtmb.sample::frm_sample()` all work on
-#' them; `anova()` compares nested gating formulas at one `K`.
+#' them; `anova()` compares nested gating formulas at one `K`. Each
+#' class's gate is its own distributional parameter, so a prior names
+#' it with `dpar`: `set_prior("normal(0, 1)", class = "b", dpar =
+#' "theta1")`, one specification per class. A class `"b"` or
+#' `"Intercept"` prior without `dpar` is refused, because it does not
+#' say which class it means; [frmtmb::default_prior()] lists the rows
+#' per `dpar`.
 #'
 #' Refused in this version: random effects and smooths anywhere in the
 #' model (latent classes plus continuous random effects is the

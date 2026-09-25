@@ -1,0 +1,351 @@
+ARM lane frmtmb 0.62.0 from C:/Users/adf44/source/r/mvprior-lib/frmtmb 
+
+== cat4: bf(cat4 ~ x + z), categorical, 4 levels ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||mub|
+  b||||muc|
+  b||||mud|
+  b|x|||mub|
+  b|x|||muc|
+  b|x|||mud|
+  b|z|||mub|
+  b|z|||muc|
+  b|z|||mud|
+  Intercept||||mub|
+  Intercept||||muc|
+  Intercept||||mud|
+normal(0, 5) [class=b]                                         REFUSE: Prior target not found (class=b): this model's location is several distributional parameters, mub, muc, mud, and as in brms a class "b" prior names one of them with dpar =, one specification per parameter
+normal(0, 5) [class=Intercept]                                 REFUSE: Prior target not found (class=Intercept): this model's location is several distributional parameters, mub, muc, mud, and as in brms a class "Intercept" prior names one of them with dpar =, one specification per parameter
+normal(0, 5) [class=b, coef=x]                                 REFUSE: Prior target not found (class=b, coef=x): this model's location is several distributional parameters, mub, muc, mud, and as in brms a class "b" prior names one of them with dpar =, one specification per parameter
+normal(0, 5) [class=b, dpar=mub]                               ACCEPT user rows: b||||mub| || reach: mub_x mub_z
+normal(0, 5) [class=b, coef=z, dpar=mud]                       ACCEPT user rows: b|z|||mud| || reach: mud_z
+normal(0, 5) [class=Intercept, dpar=muc]                       ACCEPT user rows: Intercept||||muc| || reach: muc_(Intercept)
+normal(0, 5) [class=b, dpar=mue]                               REFUSE: class = "b", dpar = "mue" names no distributional parameter of this model. It has mub, muc, mud. frmtmb's own classes are b, Intercept, sd, cor, theta, ar, ma, cosy, cortime, rescor
+ lb=0 [class=b, dpar=mub]                                      ACCEPT user rows: b||||mub| || reach: (no density) lb:mub_x,mub_z
+ ub=1 [class=b, coef=x, dpar=muc]                              ACCEPT user rows: b|x|||muc| || reach: (no density) ub:muc_x
+normal(0, 1) lb=-2 ub=2 [class=b, dpar=mub]                    ACCEPT user rows: b||||mub| || reach: mub_x mub_z lb:mub_x,mub_z ub:mub_x,mub_z
+student_t(3, 0, 1) [class=Intercept, dpar=mud]                 ACCEPT user rows: Intercept||||mud| || reach: mud_(Intercept)
+normal(0, 5) [class=b, coef=x, dpar=mu]                        REFUSE: class = "b", dpar = "mu" names no distributional parameter of this model. It has mub, muc, mud. frmtmb's own classes are b, Intercept, sd, cor, theta, ar, ma, cosy, cortime, rescor
+
+== cat2: bf(cat2 ~ x), categorical, 2 levels (one beyond ref) ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||muyes|
+  b|x|||muyes|
+  Intercept||||muyes|
+normal(0, 5) [class=b]                                         REFUSE: Prior target not found (class=b): this model's location is several distributional parameters, muyes, and as in brms a class "b" prior names one of them with dpar =, one specification per parameter
+normal(0, 5) [class=Intercept]                                 REFUSE: Prior target not found (class=Intercept): this model's location is several distributional parameters, muyes, and as in brms a class "Intercept" prior names one of them with dpar =, one specification per parameter
+normal(0, 5) [class=b, dpar=muyes]                             ACCEPT user rows: b||||muyes| || reach: muyes_x
+normal(0, 5) [class=Intercept, dpar=muyes]                     ACCEPT user rows: Intercept||||muyes| || reach: muyes_(Intercept)
+normal(0, 5) [class=b, coef=x, dpar=muyes]                     ACCEPT user rows: b|x|||muyes| || reach: muyes_x
+normal(0, 5) [class=b, dpar=mu]                                REFUSE: class = "b", dpar = "mu" names no distributional parameter of this model. It has muyes. frmtmb's own classes are b, Intercept, sd, cor, theta, ar, ma, cosy, cortime, rescor
+
+== cat4re: bf(cat4 ~ x + (1 | ID | g)), categorical ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||mub|
+  b||||muc|
+  b||||mud|
+  b|x|||mub|
+  b|x|||muc|
+  b|x|||mud|
+  cor|||||
+  cor||g|||
+  Intercept||||mub|
+  Intercept||||muc|
+  Intercept||||mud|
+  sd||||mub|
+  sd||||muc|
+  sd||||mud|
+  sd||g||mub|
+  sd||g||muc|
+  sd||g||mud|
+normal(0, 5) [class=sd]                                        REFUSE: No random-effect SDs match class=sd. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification without one of these names none of the others. This model's standard deviations take: (dpar = "mub"); (dpar = "muc"); (dpar = "mud")
+normal(0, 5) [class=sd, group=g]                               REFUSE: No random-effect SDs match class=sd, group=g. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification without one of these names none of the others. This model's standard deviations take: (dpar = "mub"); (dpar = "muc"); (dpar = "mud")
+normal(0, 5) [class=sd, dpar=mub]                              ACCEPT user rows: sd||||mub| || reach: theta_1
+normal(0, 5) [class=sd, group=g, dpar=muc]                     ACCEPT user rows: sd||g||muc| || reach: theta_2
+normal(0, 5) [class=sd, coef=Intercept, group=g, dpar=mud]     REFUSE: frmtmb's class = "sd" addresses a whole random-effect BLOCK, not one coefficient of it, so coef = "Intercept" cannot be honored and applying the row without it would put the density on every standard deviation of the block. Drop the coef to prior the whole block (`group` selects which one), or address the one parameter with class = "theta" and the coef get_prior() lists for it. 
+lkj(2) [class=cor]                                             ACCEPT user rows: cor||||| || reach: theta_4+theta_5+theta_6
+lkj(2) [class=cor, group=g]                                    ACCEPT user rows: cor||g||| || reach: theta_4+theta_5+theta_6
+lkj(2) [class=cor, dpar=mub]                                   ACCEPT user rows: cor||||mub| || reach: theta_4+theta_5+theta_6
+normal(0, 5) [class=b, dpar=mub]                               ACCEPT user rows: b||||mub| || reach: mub_x
+normal(0, 5) [class=sd, group=h]                               REFUSE: No random-effect SDs match class=sd, group=h. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification without one of these names none of the others. This model's standard deviations take: (dpar = "mub"); (dpar = "muc"); (dpar = "mud")
+
+== cat4re2: bf(cat4 ~ x + (1 | g)), categorical, blocks per dpar ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||mub|
+  b||||muc|
+  b||||mud|
+  b|x|||mub|
+  b|x|||muc|
+  b|x|||mud|
+  Intercept||||mub|
+  Intercept||||muc|
+  Intercept||||mud|
+  sd||||mub|
+  sd||||muc|
+  sd||||mud|
+  sd||g||mub|
+  sd||g||muc|
+  sd||g||mud|
+normal(0, 5) [class=sd]                                        REFUSE: No random-effect SDs match class=sd. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification without one of these names none of the others. This model's standard deviations take: (dpar = "mub"); (dpar = "muc"); (dpar = "mud")
+normal(0, 5) [class=sd, dpar=mub]                              ACCEPT user rows: sd||||mub| || reach: theta_1
+normal(0, 5) [class=sd, group=g, dpar=muc]                     ACCEPT user rows: sd||g||muc| || reach: theta_2
+lkj(2) [class=cor]                                             REFUSE: No random-effect correlations match class=cor. These blocks have no correlation parameter: mub: 1 | g [us], muc: 1 | g [us], mud: 1 | g [us]
+
+== catpart: bf(cat4 ~ x, mud ~ z), dpar formula for one category ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||mub|
+  b||||muc|
+  b||||mud|
+  b|x|||mub|
+  b|x|||muc|
+  b|z|||mud|
+  Intercept||||mub|
+  Intercept||||muc|
+  Intercept||||mud|
+normal(0, 5) [class=b]                                         REFUSE: Prior target not found (class=b): this model's location is several distributional parameters, mub, muc, mud, and as in brms a class "b" prior names one of them with dpar =, one specification per parameter
+normal(0, 5) [class=b, dpar=mub]                               ACCEPT user rows: b||||mub| || reach: mub_x
+normal(0, 5) [class=b, dpar=mud]                               ACCEPT user rows: b||||mud| || reach: mud_z
+normal(0, 5) [class=b, coef=z, dpar=mud]                       ACCEPT user rows: b|z|||mud| || reach: mud_z
+normal(0, 5) [class=b, coef=x, dpar=mud]                       REFUSE: Prior target not found (class=b, coef=x, dpar=mud)
+normal(0, 5) [class=b, coef=x, dpar=muc]                       ACCEPT user rows: b|x|||muc| || reach: muc_x
+normal(0, 5) [class=Intercept, dpar=mud]                       ACCEPT user rows: Intercept||||mud| || reach: mud_(Intercept)
+normal(0, 5) [class=Intercept]                                 REFUSE: Prior target not found (class=Intercept): this model's location is several distributional parameters, mub, muc, mud, and as in brms a class "Intercept" prior names one of them with dpar =, one specification per parameter
+
+== mix3: bf(ym3 ~ x), mixture(gaussian x3) ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||mu1|
+  b||||mu2|
+  b||||mu3|
+  b|x|||mu1|
+  b|x|||mu2|
+  b|x|||mu3|
+  Intercept||||mu1|
+  Intercept||||mu2|
+  Intercept||||mu3|
+  sigma1|||||
+  sigma2|||||
+  sigma3|||||
+normal(0, 5) [class=b]                                         REFUSE: Prior target not found (class=b): this model's location is several distributional parameters, mu1, mu2, mu3, and as in brms a class "b" prior names one of them with dpar =, one specification per parameter
+normal(0, 5) [class=Intercept]                                 REFUSE: Prior target not found (class=Intercept): this model's location is several distributional parameters, mu1, mu2, mu3, and as in brms a class "Intercept" prior names one of them with dpar =, one specification per parameter
+normal(0, 5) [class=b, dpar=mu3]                               ACCEPT user rows: b||||mu3| || reach: mu3_x
+normal(0, 5) [class=Intercept, dpar=mu2]                       ACCEPT user rows: Intercept||||mu2| || reach: mu2_(Intercept)
+normal(0, 5) [class=b, coef=x, dpar=mu3]                       ACCEPT user rows: b|x|||mu3| || reach: mu3_x
+student_t(3, 0, 2.5) [class=sigma]                             REFUSE: class = "sigma" names no distributional parameter of this model. It has mu1, sigma1, mu2, sigma2, mu3, sigma3, theta1, theta2. frmtmb's own classes are b, Intercept, sd, cor, theta, ar, ma, cosy, cortime, rescor
+student_t(3, 0, 2.5) [class=sigma3]                            ACCEPT user rows: sigma3||||| || reach: sigma3_(Intercept)
+exponential(1) [class=sigma2]                                  ACCEPT user rows: sigma2||||| || reach: sigma2_(Intercept)
+normal(0, 1) [class=theta1]                                    REFUSE: class = "theta1" has no faithful frmtmb spelling. brms's "theta1" is a mixture proportion, and frmtmb's "theta" is the raw internal covariance vector: the word names two unrelated sets of parameters, so the row cannot be carried over. A mixture proportion that has its OWN predictor is addressed as class = "Intercept" with dpar = that proportion's name, on the link scale where brms puts it too, and
+normal(0, 5) [class=Intercept, dpar=theta2]                    REFUSE: class = "Intercept", dpar = "theta2" is a density on the identity-scale intercept of theta2's linear predictor, which brms accepts only where theta2 has one. This model writes no theta2 formula, so the prior brms takes there is class = "theta2", a density on theta2 itself. Write theta2 ~ 1 in bf() to have a link-scale intercept to prior
+normal(0, 5) [class=b, dpar=mu4]                               REFUSE: class = "b", dpar = "mu4" names no distributional parameter of this model. It has mu1, sigma1, mu2, sigma2, mu3, sigma3, theta1, theta2. frmtmb's own classes are b, Intercept, sd, cor, theta, ar, ma, cosy, cortime, rescor
+ lb=0 [class=b, dpar=mu1]                                      ACCEPT user rows: b||||mu1| || reach: (no density) lb:mu1_x
+
+== mixdiff: bf(ym ~ x), mixture(gaussian, student) ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||mu1|
+  b||||mu2|
+  b|x|||mu1|
+  b|x|||mu2|
+  Intercept||||mu1|
+  Intercept||||mu2|
+  nu2|||||
+  sigma1|||||
+  sigma2|||||
+normal(0, 5) [class=b]                                         REFUSE: Prior target not found (class=b): this model's location is several distributional parameters, mu1, mu2, and as in brms a class "b" prior names one of them with dpar =, one specification per parameter
+normal(0, 5) [class=b, dpar=mu1]                               ACCEPT user rows: b||||mu1| || reach: mu1_x
+normal(0, 5) [class=b, dpar=mu2]                               ACCEPT user rows: b||||mu2| || reach: mu2_x
+normal(0, 5) [class=Intercept, dpar=mu2]                       ACCEPT user rows: Intercept||||mu2| || reach: mu2_(Intercept)
+gamma(2, 0.1) [class=nu2]                                      ACCEPT user rows: nu2||||| || reach: nu2_(Intercept)
+gamma(2, 0.1) [class=nu]                                       REFUSE: class = "nu" names no distributional parameter of this model. It has mu1, sigma1, mu2, sigma2, nu2, theta1. frmtmb's own classes are b, Intercept, sd, cor, theta, ar, ma, cosy, cortime, rescor
+student_t(3, 0, 2.5) [class=sigma1]                            ACCEPT user rows: sigma1||||| || reach: sigma1_(Intercept)
+
+== mixsig: bf(ym ~ x, sigma2 ~ z, theta2 ~ w), mixture(gaussian x2) ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||mu1|
+  b||||mu2|
+  b||||sigma2|
+  b||||theta2|
+  b|w|||theta2|
+  b|x|||mu1|
+  b|x|||mu2|
+  b|z|||sigma2|
+  Intercept||||mu1|
+  Intercept||||mu2|
+  Intercept||||sigma2|
+  Intercept||||theta2|
+  sigma1|||||
+normal(0, 5) [class=b]                                         REFUSE: Prior target not found (class=b): this model's location is several distributional parameters, mu1, mu2, and as in brms a class "b" prior names one of them with dpar =, one specification per parameter
+normal(0, 5) [class=b, dpar=sigma2]                            ACCEPT user rows: b||||sigma2| || reach: sigma2_z
+normal(0, 5) [class=Intercept, dpar=sigma2]                    ACCEPT user rows: Intercept||||sigma2| || reach: sigma2_(Intercept)
+normal(0, 5) [class=b, dpar=theta2]                            ACCEPT user rows: b||||theta2| || reach: theta2_w
+normal(0, 5) [class=b, coef=w, dpar=theta2]                    ACCEPT user rows: b|w|||theta2| || reach: theta2_w
+student_t(3, 0, 2.5) [class=sigma1]                            ACCEPT user rows: sigma1||||| || reach: sigma1_(Intercept)
+normal(0, 5) [class=Intercept, dpar=mu1]                       ACCEPT user rows: Intercept||||mu1| || reach: mu1_(Intercept)
+normal(0, 5) [class=b, dpar=sigma1]                            REFUSE: class = "b", dpar = "sigma1" addresses sigma1's slopes, and this model gives sigma1 no predictor, so it has none. Write class = "sigma1" for a density on sigma1 itself, or give sigma1 a formula in bf()
+
+== mixre: bf(ym ~ x + (1 | g)), mixture(gaussian x2) ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||mu1|
+  b||||mu2|
+  b|x|||mu1|
+  b|x|||mu2|
+  Intercept||||mu1|
+  Intercept||||mu2|
+  sd||||mu1|
+  sd||||mu2|
+  sd||g||mu1|
+  sd||g||mu2|
+  sigma1|||||
+  sigma2|||||
+normal(0, 5) [class=sd]                                        REFUSE: No random-effect SDs match class=sd. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification without one of these names none of the others. This model's standard deviations take: (dpar = "mu1"); (dpar = "mu2")
+normal(0, 5) [class=sd, dpar=mu1]                              ACCEPT user rows: sd||||mu1| || reach: theta_1
+normal(0, 5) [class=sd, group=g, dpar=mu2]                     ACCEPT user rows: sd||g||mu2| || reach: theta_2
+normal(0, 5) [class=sd, group=g]                               REFUSE: No random-effect SDs match class=sd, group=g. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification without one of these names none of the others. This model's standard deviations take: (dpar = "mu1"); (dpar = "mu2")
+
+== mvcat: bf(yg ~ x) + bf(cat4 ~ x + (1 | g), categorical) ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b|||cat4|mub|
+  b|||cat4|muc|
+  b|||cat4|mud|
+  b|||yg||
+  b|x||cat4|mub|
+  b|x||cat4|muc|
+  b|x||cat4|mud|
+  b|x||yg||
+  Intercept|||cat4|mub|
+  Intercept|||cat4|muc|
+  Intercept|||cat4|mud|
+  Intercept|||yg||
+  sd|||cat4|mub|
+  sd|||cat4|muc|
+  sd|||cat4|mud|
+  sd||g|cat4|mub|
+  sd||g|cat4|muc|
+  sd||g|cat4|mud|
+  sigma|||yg||
+normal(0, 5) [class=b, resp=cat4]                              REFUSE: Prior target not found (class=b, resp=cat4): this model's location is several distributional parameters, mub, muc, mud, and as in brms a class "b" prior names one of them with dpar =, one specification per parameter
+normal(0, 5) [class=b, resp=yg]                                ACCEPT user rows: b|||yg|| || reach: yg_x
+normal(0, 5) [class=b, resp=cat4, dpar=mub]                    ACCEPT user rows: b|||cat4|mub| || reach: cat4_mub_x
+normal(0, 5) [class=b, dpar=mub]                               REFUSE: A prior with no resp names no parameter of a multivariate model (class=b, dpar=mub). As in brms, class "b" is addressed per response here, and a specification without resp reaches none of them. Write one specification per response that has this slot: set_prior("normal(0, 5)", class = "b", dpar = "mub", resp = "cat4")
+normal(0, 5) [class=Intercept, resp=cat4, dpar=mud]            ACCEPT user rows: Intercept|||cat4|mud| || reach: cat4_mud_(Intercept)
+normal(0, 5) [class=sd, resp=cat4]                             REFUSE: No random-effect SDs match class=sd, resp=cat4. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification without one of these names none of the others. This model's standard deviations take: (resp = "cat4", dpar = "mub"); (resp = "cat4", dpar = "muc"); (resp = "cat4", dpar = "mud")
+normal(0, 5) [class=sd, resp=cat4, dpar=muc]                   ACCEPT user rows: sd|||cat4|muc| || reach: theta_2
+normal(0, 5) [class=sd, dpar=muc]                              REFUSE: No random-effect SDs match class=sd, dpar=muc. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification without one of these names none of the others. This model's standard deviations take: (resp = "cat4", dpar = "mub"); (resp = "cat4", dpar = "muc"); (resp = "cat4", dpar = "mud")
+student_t(3, 0, 2.5) [class=sigma, resp=yg]                    ACCEPT user rows: sigma|||yg|| || reach: yg_sigma_(Intercept)
+normal(0, 5) [class=b, coef=x, resp=cat4, dpar=mub]            ACCEPT user rows: b|x||cat4|mub| || reach: cat4_mub_x
+normal(0, 5) [class=b, resp=yg, dpar=mub]                      REFUSE: class = "b", dpar = "mub" names no distributional parameter of this model. It has mu, sigma, mub, muc, mud. frmtmb's own classes are b, Intercept, sd, cor, theta, ar, ma, cosy, cortime, rescor
+
+== cumul: bf(ord ~ x + z + (1 | g)), cumulative ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b|||||
+  b|x||||
+  b|z||||
+  Intercept|||||
+  sd|||||
+  sd||g|||
+normal(0, 5) [class=b]                                         ACCEPT user rows: b||||| || reach: x z
+normal(0, 5) [class=b, coef=x]                                 ACCEPT user rows: b|x|||| || reach: x
+normal(0, 5) [class=Intercept]                                 ACCEPT user rows: Intercept||||| || reach: tau_raw_1+tau_raw_2+tau_raw_3
+normal(0, 5) [class=Intercept, coef=2]                         REFUSE: Prior target not found (class=Intercept, coef=2). On an ordinal family the thresholds ARE the intercept, and a bare class = "Intercept" with no coef, dpar or nlpar addresses the whole threshold vector; prior = list(tau_raw = ) reaches the same parameters on the internal scale
+normal(0, 5) [class=sd]                                        ACCEPT user rows: sd||||| || reach: theta_1
+normal(0, 5) [class=b, dpar=mu]                                ACCEPT user rows: b||||mu| || reach: x z
+
+== sratio: bf(ord ~ x), sratio ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b|||||
+  b|x||||
+  Intercept|||||
+normal(0, 5) [class=b]                                         ACCEPT user rows: b||||| || reach: x
+normal(0, 5) [class=Intercept]                                 ACCEPT user rows: Intercept||||| || reach: tau_raw_1+tau_raw_2+tau_raw_3
+
+== acat: bf(ord ~ x), acat ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b|||||
+  b|x||||
+  Intercept|||||
+normal(0, 5) [class=b]                                         ACCEPT user rows: b||||| || reach: x
+normal(0, 5) [class=Intercept]                                 ACCEPT user rows: Intercept||||| || reach: tau_raw_1+tau_raw_2+tau_raw_3
+
+== cratio: bf(ord ~ x, disc ~ z), cratio ==
+MODEL REFUSED: dpar(s) not available for family 'cratio': disc (available: ) 
+
+== zip: bf(cnt ~ x + (1 | g), zi ~ z), zero_inflated_poisson ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b|||||
+  b||||zi|
+  b|x||||
+  b|z|||zi|
+  Intercept|||||
+  Intercept||||zi|
+  sd|||||
+  sd||g|||
+normal(0, 5) [class=b]                                         ACCEPT user rows: b||||| || reach: x
+normal(0, 5) [class=b, coef=x]                                 ACCEPT user rows: b|x|||| || reach: x
+normal(0, 5) [class=Intercept]                                 ACCEPT user rows: Intercept||||| || reach: (Intercept)
+normal(0, 5) [class=sd]                                        ACCEPT user rows: sd||||| || reach: theta_1
+normal(0, 5) [class=b, dpar=zi]                                ACCEPT user rows: b||||zi| || reach: zi_z
+normal(0, 5) [class=Intercept, dpar=zi]                        ACCEPT user rows: Intercept||||zi| || reach: zi_(Intercept)
+
+== hln: bf(pos ~ x), hurdle_lognormal ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b|||||
+  b|x||||
+  hu|||||
+  Intercept|||||
+  sigma|||||
+normal(0, 5) [class=b]                                         ACCEPT user rows: b||||| || reach: x
+normal(0, 5) [class=Intercept]                                 ACCEPT user rows: Intercept||||| || reach: (Intercept)
+beta(1, 1) [class=hu]                                          ACCEPT user rows: hu||||| || reach: hu_(Intercept)
+student_t(3, 0, 2.5) [class=sigma]                             ACCEPT user rows: sigma||||| || reach: sigma_(Intercept)
+
+== slopes_in_sigma: bf(y ~ 1, sigma ~ x): slopes only in sigma ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b||||sigma|
+  b|x|||sigma|
+  Intercept|||||
+  Intercept||||sigma|
+normal(0, 5) [class=b]                                         REFUSE: Prior target not found (class=b): the location predictor has no population-level slope, so a class "b" prior reaches no parameter. brms refuses it too. A prior on the intercept is class = "Intercept"
+normal(0, 5) [class=b, dpar=sigma]                             ACCEPT user rows: b||||sigma| || reach: sigma_x
+normal(0, 5) [class=b, coef=x, dpar=sigma]                     ACCEPT user rows: b|x|||sigma| || reach: sigma_x
+normal(0, 5) [class=Intercept]                                 ACCEPT user rows: Intercept||||| || reach: (Intercept)
+normal(0, 5) [class=b, coef=x]                                 REFUSE: Prior target not found (class=b, coef=x)
+
+== slopes_in_nl: bf(yg ~ a + b * x, a ~ 1, b ~ 1 + z, nl = TRUE) ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b|(Intercept)||||a
+  b|(Intercept)||||b
+  b|||||a
+  b|||||b
+  b|z||||b
+  sigma|||||
+normal(0, 5) [class=b]                                         REFUSE: Prior target not found (class=b): this model's location is nonlinear, and as in brms its coefficients are class = "b" with nlpar = one of a, b, the intercept among them. A class "Intercept" or coef = "Intercept" prior names one nonlinear parameter's intercept with nlpar = as well; without it, it reaches none
+normal(0, 5) [class=b, nlpar=b]                                ACCEPT user rows: b|||||b || reach: b_(Intercept) b_z
+normal(0, 5) [class=b, nlpar=a]                                ACCEPT user rows: b|||||a || reach: a_(Intercept)
+normal(0, 5) [class=b, coef=z, nlpar=b]                        ACCEPT user rows: b|z||||b || reach: b_z
+normal(0, 5) [class=b, coef=Intercept, nlpar=a]                ACCEPT user rows: b|(Intercept)||||a || reach: a_(Intercept)
+
+== icpt_only: bf(yg ~ 1): coef = on intercept-only ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  Intercept|||||
+  sigma|||||
+normal(0, 5) [class=b, coef=Intercept]                         ACCEPT user rows: b|Intercept|||| || reach: (Intercept)
+normal(0, 5) [class=b, coef=x]                                 REFUSE: Prior target not found (class=b, coef=x)
+normal(0, 5) [class=b]                                         REFUSE: Prior target not found (class=b): the location predictor has no population-level slope, so a class "b" prior reaches no parameter. brms refuses it too. A prior on the intercept is class = "Intercept"
+normal(0, 5) [class=Intercept]                                 ACCEPT user rows: Intercept||||| || reach: (Intercept)
+
+== mvdrop: bf(yg ~ x) + bf(ym ~ 1 + (1 | g)): mv, second no slope ==
+-- default_prior rows (class|coef|group|resp|dpar|nlpar) --
+  b|||yg||
+  b|x||yg||
+  Intercept|||yg||
+  Intercept|||ym||
+  sd|||ym||
+  sd||g|ym||
+  sigma|||yg||
+  sigma|||ym||
+normal(0, 5) [class=b, resp=yg]                                ACCEPT user rows: b|||yg|| || reach: yg_x
+normal(0, 5) [class=b, resp=ym]                                REFUSE: Prior target not found (class=b, resp=ym): the location predictor of response ym has no population-level slope, so a class "b" prior reaches no parameter. brms refuses it too. A prior on the intercept is class = "Intercept"
+normal(0, 5) [class=Intercept, resp=ym]                        ACCEPT user rows: Intercept|||ym|| || reach: ym_(Intercept)
+normal(0, 5) [class=sd, resp=ym]                               ACCEPT user rows: sd|||ym|| || reach: theta_1
+normal(0, 5) [class=sd, resp=yg]                               REFUSE: No random-effect SDs match class=sd, resp=yg. As in brms, class "sd" is addressed per response, distributional parameter and nonlinear parameter, and a specification without one of these names none of the others. This model's standard deviations take: (resp = "ym")
+normal(0, 5) [class=b, resp=nope]                              REFUSE: Prior target not found (class=b, resp=nope): resp = "nope" names no response of this model. It has yg, ym
+student_t(3, 0, 2.5) [class=sigma, resp=ym]                    ACCEPT user rows: sigma|||ym|| || reach: ym_sigma_(Intercept)
+normal(0, 5) [class=b, coef=x, resp=yg]                        ACCEPT user rows: b|x||yg|| || reach: yg_x

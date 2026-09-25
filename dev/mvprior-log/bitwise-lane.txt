@@ -1,0 +1,90 @@
+arm lane frmtmb 0.62.0 from C:/Users/adf44/source/r/mvprior-lib  frmtmb.sample from C:/Users/adf44/source/r/mvprior-lib 
+uni_prefixless ML ok 
+uni_prefixless REML ok 
+uni_prefixless profile ok 
+uni_dpar ML ok 
+uni_dpar REML ok 
+uni_dpar profile ok 
+uni_poisson ML ok 
+uni_poisson REML Unknown parameter(s) in bounds: x. Available: theta_1 (parentheses may be dropped, and intercept-only nonlinear parameters may be named bare) 
+uni_poisson profile Unknown parameter(s) in bounds: x. Available: theta_1 (parentheses may be dropped, and intercept-only nonlinear parameters may be named bare) 
+uni_noprior ML ok 
+uni_noprior REML ok 
+uni_noprior profile ok 
+nl ML ok 
+nl REML ok 
+nl profile ok 
+mv_resp ML ok 
+mv_resp REML ok 
+mv_resp profile ok 
+mv_rescor ML ok 
+mv_rescor REML ok 
+mv_rescor profile ok 
+mv_mixed ML ok 
+mv_mixed REML ok 
+mv_mixed profile ok 
+mv_noprior ML ok 
+mv_noprior REML ok 
+mv_noprior profile ok 
+mv_mi ML ok 
+mv_mi REML ok 
+mv_mi profile ok 
+cat_dpar ML ok 
+cat_dpar REML ok 
+cat_dpar profile ok 
+cat_noprior ML ok 
+cat_noprior REML ok 
+cat_noprior profile ok 
+cat_re_noprior ML ok 
+cat_re_noprior REML ok 
+cat_re_noprior profile ok 
+mix_noprior ML ok 
+mix_noprior REML REML = TRUE cannot be combined with a mixture() family: the mixture likelihood is multimodal in the fixed effects REML integrates out, so the restricted likelihood is not defined. Use REML = FALSE 
+mix_noprior profile frmtmb_control(profile = TRUE) cannot be combined with a mixture() family: profiling moves the fixed effects into the inner Laplace problem, and the mixture likelihood is multimodal in them. Use profile = FALSE 
+mix_dpar ML ok 
+mix_dpar REML REML = TRUE cannot be combined with a mixture() family: the mixture likelihood is multimodal in the fixed effects REML integrates out, so the restricted likelihood is not defined. Use REML = FALSE 
+mix_dpar profile frmtmb_control(profile = TRUE) cannot be combined with a mixture() family: profiling moves the fixed effects into the inner Laplace problem, and the mixture likelihood is multimodal in them. Use profile = FALSE 
+mvcat_dpar ML ok 
+mvcat_dpar REML ok 
+mvcat_dpar profile ok 
+lca_dpar ML ok 
+lca_dpar REML REML = TRUE cannot be combined with an lca() family: the mixture likelihood is multimodal in the fixed effects REML integrates out, so the restricted likelihood is not defined. Use REML = FALSE 
+lca_dpar profile frmtmb_control(profile = TRUE) cannot be combined with an lca() family: profiling moves the fixed effects into the inner Laplace problem, and the mixture likelihood is multimodal in them. Use profile = FALSE 
+hmm_dpar ML ok 
+hmm_dpar REML REML = TRUE cannot be combined with hmm(): REML integrates out the location coefficients, which here are one set per hidden state, and leaves the transition and dispersion parameters outside. The result is a partial restricted likelihood matching no standard definition. Use REML = FALSE 
+hmm_dpar profile frmtmb_control(profile = TRUE) cannot be combined with hmm(): profiling moves the state means into an inner Laplace problem, and an HMM likelihood is multimodal in them (the states are exchangeable). Use profile = FALSE 
+lba_dpar ML ok 
+lba_dpar REML ok 
+lba_dpar profile ok 
+rdm_dpar ML ok 
+rdm_dpar REML ok 
+rdm_dpar profile ok 
+mvn_dpar ML ok 
+mvn_dpar REML REML = TRUE cannot be combined with a mixture_mvn() family: the mixture likelihood is multimodal in the fixed effects REML integrates out, so the restricted likelihood is not defined. Use REML = FALSE 
+mvn_dpar profile frmtmb_control(profile = TRUE) cannot be combined with a mixture_mvn() family: profiling moves the fixed effects into the inner Laplace problem, and the mixture likelihood is multimodal in them. Use profile = FALSE 
+cs_noprior ML ok 
+cs_noprior REML ok 
+cs_noprior profile ok 
+cs_intercept ML ok 
+cs_intercept REML ok 
+cs_intercept profile ok 
+mv_ar ML ok 
+mv_ar REML ok 
+mv_ar profile ok 
+Warning messages:
+1: predict(): the covariance of the estimates could not be recovered from the Hessian, so the draws are taken at the estimates alone. The interval carries the observation noise and NOT the uncertainty in the estimates. propagate_error = FALSE asks for this on purpose 
+2: predict(): the covariance of the estimates could not be recovered from the Hessian, so the draws are taken at the estimates alone. The interval carries the observation noise and NOT the uncertainty in the estimates. propagate_error = FALSE asks for this on purpose 
+3: predict(): a simulated parameter draw was not finite for rows 1 (355 of 1000), 2 (355 of 1000), 3 (355 of 1000), 4 (355 of 1000), 5 (355 of 1000), 6 (355 of 1000), 7 (355 of 1000), 8 (355 of 1000), 9 (355 of 1000), 10 (355 of 1000), 11 (355 of 1000), 12 (355 of 1000), 13 (355 of 1000), 14 (355 of 1000), 15 (355 of 1000), 16 (355 of 1000), 17 (355 of 1000), 18 (355 of 1000), 19 (355 of 1000), 20 (355 of 1000), 21 (355 of 1000), 22 (355 of 1000), 23 (355 of 1000), 24 (355 of 1000), 25 (355 of 1000), 26 (355 of 1000), 27 (355 of 1000), 28 (355 of 1000), 29 (355 of 1000), 30 (355 of 1000), 31 (355 of 1000), 32 (355 of 1000), 33 (355 of 1000), 34 (355 of 1000), 35 (355 of 1000), 36 (355 of 1000), 37 (355 of 1000), 38 (355 of 1000), 39 (355 of 1000), 40 (355 of 1000), 41 (355 of 1000), 42 (355 of 1000), 43 (355 of 1000), 44 (355 of 1000), 45 (355 of 1000), 46 (355 of 1000), 47 (355 of 1000), 48 (355 of 1000), 49 (355 of 1000), 50 (355 of 1000), 51 (355 of 1000), 52 (355 of 1000), 53 (355 of  [... truncated] 
+sample defaults mv_resp ok
+sample defaults mv_rescor ok
+sample defaults mv_mixed ok
+sample defaults mv_noprior ok
+sample defaults mv_mi ok
+sample defaults mv_ar ok
+sample defaults cat_dpar ok
+sample defaults cat_noprior ok
+sample defaults cat_re_noprior ok
+sample defaults mix_dpar ok
+sample defaults mix_noprior ok
+sample defaults mvcat_dpar ok
+saved 84 designs

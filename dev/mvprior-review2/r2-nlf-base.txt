@@ -1,0 +1,26 @@
+ARM base frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3/frmtmb 
+  prior     class        coef group resp dpar nlpar
+ (flat)         b                           a     a
+ (flat)         b (Intercept)               a     a
+ (flat)         b                           b     b
+ (flat)         b (Intercept)               b     b
+ (flat)         b           w               b     b
+ (flat) Intercept                                  
+ (flat)         b                                  
+ (flat)         b           x                      
+b nlpar=a              ACCEPT: b|||a
+b nlpar=b coef=w       ACCEPT: b|w||b
+b nlpar=b              ACCEPT: b|||b
+b dpar=sigma nlpar=a   REFUSE: set_prior() takes `dpar` or `nlpar`, not both: each nonlinear parameter has its own linear predictor here, so nlpar = "a" already names one slot
+b dpar=a               REFUSE: class = "b", dpar = "a" addresses the population-level slopes of a's linear predictor, and this model's a predictor is an intercept only, so it has none. The prior brms takes there is class = "Interce
+b (location)           ACCEPT: b|||
+Intercept nlpar=a      ACCEPT: Intercept|||a
+b nlpar=a reaches: a_(Intercept) 
+b nlpar=b coef=w reaches: b_w 
+b nlpar=b reaches: b_(Intercept) b_w 
+no prior:
+  Intercept a_Intercept b_Intercept           x         b_w 
+ 1.06787090  0.21783882  0.26935669  0.62792819  0.09630461 
+tight prior on nlpar b coef w:
+   Intercept  a_Intercept  b_Intercept            x          b_w 
+1.069560e+00 2.309242e-01 2.509585e-01 6.357265e-01 2.256718e-05 
