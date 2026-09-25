@@ -196,6 +196,13 @@ brms_fixef_rows <- function(fit) {
   # is written; the brms name would also match a covariate called
   # Intercept
   is_int <- grepl("[(]Intercept[)]$", tab$internal[keep])
+  # brms's `0 + Intercept` (or center = FALSE) intercept is an element of
+  # the b vector, so it keeps its column's place instead of leading
+  for (lp in fit$frame[["linpreds"]]) {
+    if (isFALSE(lp[["center"]])) {
+      is_int[keep %in% brms_lp_rows(lp, tab)] <- FALSE
+    }
+  }
   dp <- paste(tab$resp[keep], tab$dpar[keep], sep = ":")
   idx <- keep
   blk <- rep(NA_integer_, length(keep))

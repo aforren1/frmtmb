@@ -4,13 +4,19 @@
 \alias{lf}
 \title{Add parameter formulas to a model formula}
 \usage{
-lf(...)
+lf(..., center = NULL)
 }
 \arguments{
 \item{...}{Two-sided formulas naming the parameter on the left, e.g.
 \code{sigma ~ x} or (with \code{nl = TRUE} on the \code{bf()}) a nonlinear
 parameter's formula \code{a ~ 1 + (1 | g)}, or one-sided formulas named
 by their parameter, \code{sigma = ~ x}.}
+
+\item{center}{\code{FALSE} makes the intercept of each of these formulas an
+ordinary coefficient, class \code{"b"} with coef \code{"Intercept"}, instead
+of brms's class \code{"Intercept"}: the same as \code{0 + Intercept} in the
+formula. See \code{\link[=bf]{bf()}}. \code{NULL}, the default, leaves the intercept as
+class \code{"Intercept"}.}
 }
 \value{
 An object of class \code{frmtmb_lf}, to be added to a \code{\link[=bf]{bf()}}.

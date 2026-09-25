@@ -858,7 +858,7 @@ compat_features_build <- function(extra = NULL) {
     # formula-grammar spellings, which have their own restrictions and
     # belong in the table even though they name no package object
     lapply(c("bar_crossing", "call_group", "double_bar", "mm()",
-             "mmc()"), f, kind = "grammar"),
+             "mmc()", "0 + Intercept"), f, kind = "grammar"),
     # contributed last, so that the vocabulary a contributor adds cannot
     # displace a core feature's position in the pair table
     lapply(seq_along(contrib), function(i) {
@@ -1062,6 +1062,12 @@ compat_hand_rules_tbl <- function() {
     "Call-valued grouping factors are supported: (1 | factor(x)) and (1 | interaction(a, b)) both build the grouping factor from the model frame.")
   r("double_bar", "*", "works",
     "(x || g) gives uncorrelated terms. With a factor on the left, (f || g) routes to diag, that is one independent effect per factor level.")
+  r("0 + Intercept", "*", "works",
+    "brms's reserved Intercept: y ~ 0 + Intercept + x is the model y ~ 1 + x, factors take treatment contrasts, and the intercept is an ordinary class \"b\" coefficient that is not centered. bf(center = FALSE) and lf(center = FALSE) are the same mechanism. The likelihood, the maximum likelihood fit and every post-fit method are those of the model with an intercept, and newdata needs no Intercept column; only the prior classes and brms's coefficient order differ. Intercept must be a term of its own: Intercept:x is refused, and so is brms's deprecated lower-case intercept.")
+  r("0 + Intercept", "group:ordinal", "refused",
+    "Refused, as brms refuses it: an ordinal family's thresholds take the intercept's place. bf(center = FALSE) is accepted there and puts the thresholds' class \"Intercept\" prior at the thresholds themselves rather than at the means of the predictors, as brms does.")
+  r("0 + Intercept", "prior", "works",
+    "Verified against brms's generated Stan code: class \"b\" reaches the intercept, coef = \"Intercept\" names it alone, and class \"Intercept\" is refused with that advice, as brms refuses it.")
   # sparse_x and autoscale are claimed only where the model surface is
   # exercised. Structures and post-fit methods keep the untested
   # default until something checks them.

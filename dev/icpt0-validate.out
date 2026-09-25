@@ -1,0 +1,70 @@
+frmtmb 0.63.0 from /opt/rlib/lane-icpt0 
+brms 2.23.0 
+
+== A. design matrices against brms::make_standata()
+0 + Intercept + x          brms cols: Intercept,x                              names identical: TRUE  max|dX| = 0
+0 + x + Intercept          brms cols: x,Intercept                              names identical: TRUE  max|dX| = 0
+-1 + Intercept + x         brms cols: Intercept,x                              names identical: TRUE  max|dX| = 0
+x + Intercept - 1          brms cols: x,Intercept                              names identical: TRUE  max|dX| = 0
+0 + Intercept + f          brms cols: Intercept,fb,fc,fd                       names identical: TRUE  max|dX| = 0
+0 + Intercept + x * f      brms cols: Intercept,x,fb,fc,fd,x:fb,x:fc,x:fd      names identical: TRUE  max|dX| = 0
+0 + x * f + Intercept      brms cols: x,fb,fc,fd,Intercept,x:fb,x:fc,x:fd      names identical: TRUE  max|dX| = 0
+0 + Intercept + x:f        brms cols: Intercept,x:fa,x:fb,x:fc,x:fd            names identical: TRUE  max|dX| = 0
+0 + Intercept              brms cols: Intercept                                names identical: TRUE  max|dX| = 0
+sigma ~ 0 + Intercept + z  brms cols: Intercept,z                              names identical: TRUE  max|dX| = 0
+nl a ~ 0 + Intercept + x   brms cols: Intercept,x                              names identical: TRUE  max|dX| = 0
+center = FALSE             brms cols: Intercept,x,fb,fc,fd,x:fb,x:fc,x:fd      names identical: TRUE  max|dX| = 0
+
+== B. b / Intercept rows of the prior table against brms::get_prior()
+0 + Intercept + x            identical: TRUE  (3 rows)
+0 + Intercept + f            identical: TRUE  (5 rows)
+sigma ~ 0 + Intercept + z    identical: TRUE  (6 rows)
+center = FALSE               identical: TRUE  (3 rows)
+center = FALSE + lf(center)  identical: TRUE  (6 rows)
+mvbf                         identical: TRUE
+
+== C. ML: 0 + Intercept is the model 1 + x (an identity)
+gaussian 0 + Intercept + x     logLik -120.9784040609 vs -120.9784040609  dlogLik 0 max|dcoef| 0  bitwise: TRUE
+gaussian 0 + x + Intercept     logLik -120.9784040609 vs -120.9784040609  dlogLik 0 max|dcoef| 4.44e-16  bitwise: FALSE
+gaussian f                     logLik -111.0780759163 vs -111.0780759163  dlogLik 0 max|dcoef| 0  bitwise: TRUE
+sigma ~ 0 + Intercept + z      logLik -120.8792477603 vs -120.8792477603  dlogLik 0 max|dcoef| 0  bitwise: TRUE
+poisson 0 + Intercept + x*f    logLik -141.0611119325 vs -141.0611119325  dlogLik 0 max|dcoef| 0  bitwise: TRUE
+nl a ~ 0 + Intercept + x       logLik -120.8971935874 vs -120.8971935874  dlogLik 0 max|dcoef| 0  bitwise: TRUE
+center = FALSE                 logLik -108.8072562569 vs -108.8072562569  dlogLik 0 max|dcoef| 0  bitwise: TRUE
+vs lm()                        max|coef - lm| 1.69e-07 (lm scale 1.33)
+vs glm()                       max|coef - glm| 3.24e-06  dlogLik -1.43e-11
+
+== D. MAP against an independent log posterior
+0 + Intercept + x, class b normal(0, 0.1)    frmtmb (0.302231, 0.870160) reference (0.302231, 0.870160)  max|d|/se 1.4e-06
+center = FALSE, class b normal(0, 0.1)       frmtmb (0.302231, 0.870160) reference (0.302231, 0.870160)  max|d|/se 1.4e-06
+1 + x, class b normal(0, 0.1) (slope only)   frmtmb (2.918390, 0.221095) reference (2.918390, 0.221095)  max|d|/se 1e-06
+0 + Intercept + x, b coef Intercept normal(0, 0.1) frmtmb (0.062234, 1.106836) reference (0.062234, 1.106836)  max|d|/se 3.1e-07
+1 + x, class Intercept normal(0, 0.1) (centered) frmtmb (-1.961279, 0.700155) reference (-1.961290, 0.700159)  max|d|/se 8.3e-06
+class Intercept on 0 + Intercept: Prior target not found (class=Intercept). An intercept written 0 + Intercept, or under center = FALSE, is an ordinary coefficient, as in brms: address it with class = "b", coef = "Intercept" 
+
+== E. cumulative(), bf(center = FALSE): threshold prior at tau
+center = TRUE  frmtmb    2.26891 3.39652 4.49991 1.08922
+               reference 2.26891 3.39652 4.49991 1.08922  max|d| 3e-07
+center = FALSE frmtmb    -0.60825 0.39815 1.39142 0.18388
+               reference -0.60825 0.39815 1.39141 0.18388  max|d| 3.6e-06
+
+== F. brms Stan code: where the class b prior lands
+-- y ~ 0 + Intercept + x, class b 
+  vector[K] b;  // regression coefficients
+  lprior += normal_lpdf(b | 0, 1);
+  lprior += student_t_lpdf(sigma | 3, 0, 2.5)
+-- bf(y ~ x, center = FALSE), class b 
+  vector[K] b;  // regression coefficients
+  lprior += normal_lpdf(b | 0, 1);
+  lprior += student_t_lpdf(sigma | 3, 0, 2.5)
+-- sigma ~ 0 + Intercept + z, class b dpar sigma 
+  vector[Kc] means_X;  // column means of X before centering
+    means_X[i - 1] = mean(X[, i]);
+    Xc[, i - 1] = X[, i] - means_X[i - 1];
+  vector[Kc] b;  // regression coefficients
+  real Intercept;  // temporary intercept for centered predictors
+  vector[K_sigma] b_sigma;  // regression coefficients
+  lprior += student_t_lpdf(Intercept | 3, 3.6, 2.5);
+  lprior += normal_lpdf(b_sigma | 0, 1);
+    mu += Intercept + Xc * b;
+  real b_Intercept = Intercept - dot_product(means_X, b);

@@ -32,7 +32,38 @@
 #'   `...` formula with the full predictor grammar. `NULL`, the default
 #'   as in brms, means `FALSE` for a new formula and keeps the setting
 #'   of a formula `bf()` already built.
+#' @param center Whether the location formula's intercept is brms's
+#'   class `"Intercept"`, a density on the intercept at the means of the
+#'   predictors. `NULL`, the default, means `TRUE` for a new formula and
+#'   keeps the setting of a formula `bf()` already built. `FALSE` makes
+#'   the intercept an ordinary coefficient, class `"b"` with coef
+#'   `"Intercept"`, as `0 + Intercept` in the formula does; see the
+#'   section on brms's reserved `Intercept` below. It changes priors
+#'   only: the likelihood and the maximum likelihood fit are the same.
+#'   It applies to the location formula alone, as in brms; give a
+#'   parameter formula its own with [lf()].
 #' @return An object of class `frmtmb_formula`.
+#' @section brms's reserved `Intercept`:
+#' In a formula without an intercept, `Intercept` is a reserved name, as
+#' in brms: `y ~ 0 + Intercept + x` is the model `y ~ 1 + x`, with the
+#' intercept as an ordinary population-level coefficient. Factors get
+#' treatment contrasts, as they do beside an intercept. The likelihood
+#' is the same, so a maximum likelihood fit is the same; what changes
+#' is the prior. brms places a class `"Intercept"` prior at the means
+#' of the predictors, and a class `"b"` prior on this coefficient at
+#' zero, and so does frmtmb: `set_prior(..., class = "b")` reaches it,
+#' `class = "Intercept"` does not. `bf(y ~ x, center = FALSE)` gives
+#' the same model. The spelling works in every linear formula: the
+#' location, a distributional parameter (`sigma ~ 0 + Intercept + z`)
+#' and a nonlinear parameter (`a ~ 0 + Intercept + x`, where it changes
+#' nothing, because brms never centers a nonlinear parameter).
+#'
+#' `Intercept` must be a term of its own; `Intercept:x` is refused.
+#' An ordinal family refuses `0 + Intercept`, as brms does, because its
+#' thresholds take the intercept's place. A data column named
+#' `Intercept` must hold only ones in such a model, as brms requires;
+#' in a formula with an intercept, `Intercept` is an ordinary variable.
+#' Prediction needs no `Intercept` column in `newdata`.
 #' @examples
 #' # brms-style model formulas: attach a family with `+`
 #' bf(y ~ x + (1 | g)) + gaussian()
@@ -41,6 +72,9 @@
 #' bf(y ~ x, shape = 2) + Gamma()
 #' # nonlinear models declare parameter formulas and nl = TRUE
 #' bf(y ~ a * exp(-b * x), a ~ 1, b ~ 1 + (1 | g), nl = TRUE)
+#' # an intercept that a class "b" prior reaches; the two are one model
+#' bf(y ~ 0 + Intercept + x)
+#' bf(y ~ x, center = FALSE)
 #' @srrstats {G2.0} Inputs expected to be single-valued are asserted to be
 #'   so. A distributional parameter fixed to a constant must satisfy
 #'   `is.numeric(d) && length(d) == 1L`; the tuning arguments of the
@@ -72,7 +106,7 @@
 #'   and drops rows only on the non-`mi()` columns.
 #'
 #' @export
-bf <- function(formula, ..., family = NULL, nl = NULL) {
+bf <- function(formula, ..., family = NULL, nl = NULL, center = NULL) {
   if (inherits(formula, c("brmsformula", "bform"))) {
     frm_stop("this formula was built by brms::bf(): attaching brms after ",
              "frmtmb masks frmtmb's bf(), so a bare bf() call now reaches ",
@@ -90,8 +124,10 @@ bf <- function(formula, ..., family = NULL, nl = NULL) {
   # NA and c(TRUE, FALSE) as FALSE: bf(..., nl = "yes") used to build a
   # LINEAR model and say nothing. NULL keeps what an existing bf() says
   if (!is.null(nl)) check_flag(nl, "nl")
+  if (!is.null(center)) check_flag(center, "center")
   if (existing) {
-    return(bf_update(formula, ..., family = family, nl = nl))
+    return(bf_update(formula, ..., family = family, nl = nl,
+                     center = center))
   }
   refuse_nested_formula(formula)
   # mvbind(y1, y2) ~ rhs: shared predictors, one bf per response
@@ -101,7 +137,7 @@ bf <- function(formula, ..., family = NULL, nl = NULL) {
     forms <- lapply(resps, function(r) {
       f1 <- formula
       f1[[2]] <- r
-      bf(f1, ..., family = family, nl = nl)
+      bf(f1, ..., family = family, nl = nl, center = center)
     })
     return(do.call(mvbf, forms))
   }
@@ -119,12 +155,14 @@ bf <- function(formula, ..., family = NULL, nl = NULL) {
              "added afterwards with lf() or nlf() are not visible here, so ",
              "give bf() at least one of them", call. = FALSE)
   }
-  structure(
+  out <- structure(
     list(formula = formula, pforms = pforms, pfix = pfix, nl = isTRUE(nl),
          nlforms = list(),
          family = if (!is.null(family)) as_frmtmb_family(family)),
     class = "frmtmb_formula"
   )
+  if (!is.null(center)) out$center <- center
+  out
 }
 
 #' Read `bf()`'s dots into dpar formulas and constants, onto whatever an
@@ -175,9 +213,12 @@ bf_dots <- function(dots, pforms = list(), pfix = list(),
 #' `+ lf()` refuses it, rather than replacing it in silence.
 #'
 #' @noRd
-bf_update <- function(formula, ..., family = NULL, nl = NULL) {
+bf_update <- function(formula, ..., family = NULL, nl = NULL,
+                      center = NULL) {
   dots <- list(...)
-  if (!length(dots) && is.null(family) && is.null(nl)) return(formula)
+  if (!length(dots) && is.null(family) && is.null(nl) && is.null(center)) {
+    return(formula)
+  }
   if (length(dots)) {
     parsed <- bf_dots(dots, formula[["pforms"]], formula[["pfix"]],
                       taken = names(formula[["nlforms"]]))
@@ -185,6 +226,7 @@ bf_update <- function(formula, ..., family = NULL, nl = NULL) {
     formula[["pfix"]] <- parsed[["pfix"]]
   }
   if (!is.null(nl)) formula[["nl"]] <- isTRUE(nl)
+  if (!is.null(center)) formula[["center"]] <- center
   if (!is.null(family)) formula[["family"]] <- as_frmtmb_family(family)
   formula
 }
@@ -270,6 +312,11 @@ lhs_dpar_names <- function(lhs) {
 #'   `sigma ~ x` or (with `nl = TRUE` on the `bf()`) a nonlinear
 #'   parameter's formula `a ~ 1 + (1 | g)`, or one-sided formulas named
 #'   by their parameter, `sigma = ~ x`.
+#' @param center `FALSE` makes the intercept of each of these formulas an
+#'   ordinary coefficient, class `"b"` with coef `"Intercept"`, instead
+#'   of brms's class `"Intercept"`: the same as `0 + Intercept` in the
+#'   formula. See [bf()]. `NULL`, the default, leaves the intercept as
+#'   class `"Intercept"`.
 #' @return An object of class `frmtmb_lf`, to be added to a [bf()].
 #' @examples
 #' # the two spellings are the same model
@@ -279,7 +326,8 @@ lhs_dpar_names <- function(lhs) {
 #' # nonlinear parameter formulas can arrive the same way
 #' bf(y ~ a * exp(-b * x), a ~ 1, nl = TRUE) + lf(b ~ 1 + (1 | g))
 #' @export
-lf <- function(...) {
+lf <- function(..., center = NULL) {
+  if (!is.null(center)) check_flag(center, "center")
   dots <- list(...)
   pforms <- list()
   for (i in seq_along(dots)) {
@@ -297,6 +345,9 @@ lf <- function(...) {
       }
       di <- d
       di[[2]] <- as.name(dpar)
+      # carried on the formula itself, which is what reaches the parser
+      # through bf() and mvbf() unchanged
+      if (!is.null(center)) attr(di, "center") <- center
       pforms[[dpar]] <- di
     }
   }
