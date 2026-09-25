@@ -17,6 +17,8 @@
 # increments, which log_prob(adjust_transform = FALSE) leaves out, so
 # that sum is added back on frmtmb's side.
 # Data seed 11, n = 240, three levels with 4, 3 and 5 categories.
+# sratio's gradient does NOT vanish, and that is a finding: frmtmb
+# orders sratio's thresholds and brms does not (dev/thres-sratio-order.R).
 .libPaths(c("/opt/rlib/stan", "/opt/rlib/lane-thres", "/opt/rlib/base",
             "/opt/rlib/deps", "/opt/r/lib/R/library"))
 suppressMessages({
@@ -62,8 +64,8 @@ for (fam in c("cumulative", "sratio", "cratio", "acat")) {
   pr$prior <- ""
   r <- stan_at(bf0, bfam, pr, fit)
   ll <- as.numeric(logLik(fit))
-  cat(sprintf("%-10s brms %.10f frmtmb %.10f rel %.2e max|grad| %.2e\n",
-              fam, r$lp, ll, abs(r$lp - ll) / abs(ll), max(abs(r$grad))))
+  cat(sprintf("%-10s brms %.17g frmtmb %.17g diff %.3g max|grad| %.2e\n",
+              fam, r$lp, ll, r$lp - ll, max(abs(r$grad))))
 }
 
 cat("\n== normal(0, 2) on class Intercept, cumulative ==\n")
@@ -83,5 +85,11 @@ logjac <- sum(unlist(lapply(seq_len(lay$G), function(g) {
   if (lay$nthres[g] > 1L) raw[(lay$start[g] + 1L):lay$end[g]] else 0
 })))
 ours <- -fit$opt$objective - logjac
-cat(sprintf("brms %.10f frmtmb %.10f rel %.2e max|grad| %.2e\n", r$lp,
-            ours, abs(r$lp - ours) / abs(ours), max(abs(r$grad))))
+cat(sprintf("brms %.17g frmtmb %.17g diff %.3g max|grad| %.2e\n", r$lp,
+            ours, r$lp - ours, max(abs(r$grad))))
+# the gradient that is left is the Jacobian frmtmb's density carries:
+# d(sum of log increments) / d(log increment) = 1 on each of them, and
+# nothing on a level's first threshold
+cat("brms gradient on the threshold coordinates, per level the first",
+    "threshold then its log increments:",
+    format(r$grad[-1L], digits = 4), "\n")

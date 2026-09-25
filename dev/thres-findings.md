@@ -36,7 +36,7 @@ Files:
 | `tests/testthat/test-thres.R` (new), `extensions/frmtmb.sample/tests/testthat/test-thres-draws.R` (new) | see Tests |
 | `tests/testthat/helper-brms-suite.R` and its sample copy | the `standata()` shim reports `nthres`, `ngrthres`, `Jthres` |
 | `dev/brmsport-verdicts.tsv`, `dev/brmsport-verdicts-manual.tsv`, `tests/testthat/test-brms-suite-standata.R` | 10 port rows flipped; see "brms-suite ports" |
-| `dev/thres-validate.R`, `dev/thres-timing.R`, `dev/thres-brms-stancode.R` and their `-log.txt` | evidence |
+| `dev/thres-validate.R`, `dev/thres-timing.R`, `dev/thres-brms-stancode.R`, `dev/thres-brms-stan.R`, `dev/thres-brms-stan-shift.R`, `dev/thres-sratio-order.R` and their `-log.txt` | evidence |
 
 ### How it is built
 
@@ -99,6 +99,38 @@ families.
 `tests/testthat/test-thres.R` repeats the grouped comparison against a
 second, independent implementation written from brms's Stan functions
 inside the test, with the tolerance `64 * eps * sum(|terms|)`.
+
+### brms's compiled log density
+
+`dev/thres-brms-stan.R`, log `dev/thres-brms-stan-log.txt`, once Stan
+compiled on this machine. brms writes the Stan program for
+`y | thres(gr = g) ~ x` with every prior flat, rstan compiles it, and
+`log_prob(adjust_transform = FALSE)` is evaluated at frmtmb's maximum
+likelihood estimate (data seed 11, as above):
+
+| family | brms log_prob | frmtmb logLik | brms max abs gradient |
+|---|---|---|---|
+| cumulative | -312.9682702218081 | -312.9682702218081 | 3.3e-04 |
+| sratio | -313.0103647480845 | -313.0103647480845 | 0.54 (see below) |
+| cratio | -312.98070801181348 | -312.98070801181348 | 2.2e-04 |
+| acat | -313.20765778449049 | -313.20765778449049 | 4.6e-04 |
+
+The differences are exactly 0 at 17 significant digits. That is a
+measurement, not an identity: the two codes are separate (Stan's
+`log_inv_logit_diff` against frmtmb's `logspace_sub()` form), and
+they also agree to the last bit at a point moved off the optimum,
+-322.06807962107064 on both sides (`dev/thres-brms-stan-shift.R`, log
+beside it).
+
+With brms's `normal(0, 2)` on class Intercept (the per-group rows
+inherit it), brms -328.51378277637224 against frmtmb's penalized
+objective, less the log-Jacobian of the ordered map that frmtmb's
+threshold density carries, -328.51378277637224. brms's gradient there
+is -1.000 on six of the nine threshold coordinates, the six log
+increments, and below 2e-4 on the others. That is exactly the
+derivative of the Jacobian term, so frmtmb's maximum a posteriori point
+is the mode WITH the Jacobian. That is frmtmb's existing convention for
+ordered thresholds and not new here.
 
 ### Classical references at the ML optimum
 
@@ -192,6 +224,22 @@ build with "Expected `frm(...)` to throw a error" (seen, RESULT below).
 
 ## Defects seen, not fixed
 
+- **frmtmb's `sratio()` orders its thresholds and brms's does not.**
+  `brms:::has_ordered_thres(sratio())` is FALSE: brms 2.23.0 declares
+  sratio's thresholds `vector`, while frmtmb holds them as (first, log
+  increments), like cumulative (`fam_sratio()`, and the prior code's
+  comment says brms orders them, which is wrong for sratio). Where the
+  unconstrained optimum has crossing thresholds, frmtmb's estimate sits
+  on its ordering boundary and differs from brms's mode. Measured
+  (`dev/thres-sratio-order.R`, log beside it): on the grouped sratio
+  fit above, level a's second and third thresholds are equal to 1e-7
+  (frmtmb's log increment is -16.7), brms's gradient is +0.544 and
+  -0.544 on exactly those two, and moving the third 0.05 below the
+  second raises brms's log density by 0.0174. The same holds without
+  `thres()`, so it predates this lane. The fix is to make sratio's
+  thresholds unordered, as cratio's are, which changes the meaning of
+  `tau_raw` for every sratio fit and belongs to its own change.
+
 - `tests/testthat/test-pp-check-types.R` fails 4 expectations in block
   "every bayesplot ppc type does on a fit what it does in brms" on the
   base build too (`FRMTMB_LIB=base`: pass=168 fail=4), so it is not this
@@ -235,18 +283,20 @@ thresholds correctly"). The shim in `helper-brms-suite.R` now reports
 brms's `nthres` (per level), `ngrthres` and `Jthres`; the sample
 extension's copy was synced, and its copy test passes.
 
-The generator could NOT run: `dev/brmsport-blocks.R` needs
-`dev/brms-suite/brms_2.23.0.tar.gz` (sha256-checked), which is
-gitignored and absent from this machine, and CRAN is unreachable. So
-`tests/testthat/test-brms-suite-standata.R` was edited by hand to what
-the generator emits for a pass verdict with an empty reason (compare
-`standata:1060`), the ten rows were set to `pass` with an empty reason
-in `dev/brmsport-verdicts.tsv` and removed from
-`dev/brmsport-verdicts-manual.tsv` (the ledger refuses a manual verdict
-on an assertion that holds). `dev/brmsport-ledger.tsv` and
-`dev/brmsport-log/` were not regenerated; they need the recorder and the
-tarball. `standata:171` (the deprecated `cat()` spelling) stays
-"cannot transfer".
+At first the generator could not run: `dev/brmsport-blocks.R` needs
+`dev/brms-suite/brms_2.23.0.tar.gz`, which is gitignored and was absent.
+The reviewer then provided `/tmp/lanes/shared/brmsport-gen.R`, the
+same generator pointed at the cran/brms mirror at tag 2.23.0. The ten
+rows are `pass` with an empty reason in `dev/brmsport-verdicts.tsv`
+and are removed from `dev/brmsport-verdicts-manual.tsv` (the ledger
+refuses a manual verdict on an assertion that holds). The generator,
+run from the worktree root, wrote `test-brms-suite-standata.R`
+byte-identical to the hand edit made before it was available, and
+changed no other generated file (`git status` shows only this lane's
+files). `dev/brmsport-ledger.tsv` and `dev/brmsport-log/` were not
+regenerated: the recorder is `dev/brmsport-record.sh`, which runs the
+Windows Rscript. `standata:171` (the deprecated `cat()` spelling)
+stays "cannot transfer".
 
 ## Tests run
 
@@ -265,7 +315,8 @@ marked:
     test-custom-family.R              pass=126 fail=0 err=0 skip=0
     test-bracket-access.R             pass=33 fail=0 err=0 skip=0
     test-cens-trunc.R                 pass=69 fail=0 err=0 skip=0
-    test-brms-priors.R                pass=0 fail=0 err=0 skip=12 (gated)
+    test-brms-priors.R (gated, Stan compiled, /opt/rlib/stan first)
+                                      pass=103 fail=0 err=0 skip=0
     test-brms-likelihood.R            pass=20 fail=0 err=0 skip=33
     test-mo-terms.R                   pass=74 fail=0 err=0 skip=0
     test-osa-inference.R              pass=34 fail=0 err=0 skip=0

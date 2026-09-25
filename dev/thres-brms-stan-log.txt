@@ -1,5 +1,11 @@
 frmtmb from /opt/rlib/lane-thres/frmtmb 
 
 == flat priors: brms log_prob vs frmtmb logLik at the MLE ==
-cumulative brms -312.9682702218 frmtmb -312.9682702218 rel 0.00e+00 max|grad| 3.32e-04
-sratio     brms -313.0103647481 frmtmb -313.0103647481 rel 0.00e+00 max|grad| 5.44e-01
+cumulative brms -312.9682702218081 frmtmb -312.9682702218081 diff 0 max|grad| 3.32e-04
+sratio     brms -313.0103647480845 frmtmb -313.0103647480845 diff 0 max|grad| 5.44e-01
+cratio     brms -312.98070801181348 frmtmb -312.98070801181348 diff 0 max|grad| 2.19e-04
+acat       brms -313.20765778449049 frmtmb -313.20765778449049 diff 0 max|grad| 4.58e-04
+
+== normal(0, 2) on class Intercept, cumulative ==
+brms -328.51378277637224 frmtmb -328.51378277637224 diff 0 max|grad| 1.00e+00
+brms gradient on the threshold coordinates, per level the first threshold then its log increments:  3.447e-05 -9.998e-01 -1.000e+00 -1.688e-04 -1.000e+00  1.152e-05 -1.000e+00 -1.000e+00 -1.000e+00 
