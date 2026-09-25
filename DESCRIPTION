@@ -66,6 +66,7 @@ Suggests:
     nloptr,
     nnet,
     numDeriv,
+    ordinal,
     posterior (>= 1.0.0),
     quantreg,
     rmarkdown,
