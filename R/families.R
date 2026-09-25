@@ -3597,21 +3597,22 @@ ord_tau_init <- function(y, ordered = TRUE, link = "logit", K = max(y)) {
 #' The map from the internal threshold vector to the thresholds
 #' themselves, as a family declares it in `post$ord_thresholds`.
 #'
-#' Two of the four ordinal families estimate `(tau_1, log increments)`
-#' so that the thresholds cannot cross, and two estimate the thresholds
-#' directly. `variables()` and `hypothesis()` report the THRESHOLDS,
-#' brms's `b_Intercept[k]`, so they need the map; asking the family for
-#' it keeps an ordinal family shipped by another package working, which
-#' a list of four names here would not.
+#' `cumulative()` estimates `(tau_1, log increments)` so that its
+#' thresholds cannot cross, and the other three ordinal families
+#' estimate the thresholds directly, as brms declares them. `variables()`
+#' and `hypothesis()` report the THRESHOLDS, brms's `b_Intercept[k]`, so
+#' they need the map; asking the family for it keeps an ordinal family
+#' shipped by another package working, which a list of four names here
+#' would not.
 #'
 #' @noRd
 ord_threshold_map <- function(ordered) {
   function(raw) ord_tau_from_raw(raw, ordered)
 }
 
-#' cumulative and sratio store ordered thresholds as (tau_1, log
-#' increments); cratio and acat store them raw. This returns the
-#' thresholds themselves.
+#' cumulative stores ordered thresholds as (tau_1, log increments);
+#' sratio, cratio and acat store them raw. This returns the thresholds
+#' themselves.
 #'
 #' @noRd
 ord_tau_from_raw <- function(raw, ordered) {
@@ -3813,7 +3814,14 @@ ord_log_hazard_sum <- function(M, ind, K1, lstop, lgo) {
 }
 
 #' Stopping ratio (brms sratio): `P(y=k) = F(tau_k - eta) *
-#' prod_{j<k} (1 - F(tau_j - eta))`; ordered thresholds like cumulative.
+#' prod_{j<k} (1 - F(tau_j - eta))`; unordered thresholds, like cratio.
+#'
+#' Each category probability is a product of hazards, so it is positive
+#' whatever order the thresholds take, and brms 2.23.0 declares sratio's
+#' thresholds as a plain `vector` (`brms:::has_ordered_thres()` is FALSE
+#' here). Holding them ordered put the estimate on the ordering boundary
+#' wherever the unconstrained optimum has crossing thresholds, away from
+#' brms's mode (dev/sratio-findings.md).
 #'
 #' @noRd
 fam_sratio <- function(link = "logit") {
@@ -3824,15 +3832,12 @@ fam_sratio <- function(link = "logit") {
   fam <- frmtmb_family(
     "sratio",
     accepts_aterms = c("weights", "thres"),
-    family_finalize = thres_finalizer("sratio", ordered = TRUE, link = lk),
+    family_finalize = thres_finalizer("sratio", ordered = FALSE, link = lk),
     dpars = "mu",
     links = list(mu = "identity"),
     lpdf = function(y, dpars, aterms, extra) {
-      "[<-" <- RTMB::ADoverload("[<-")
-      raw <- extra$tau_raw
-      K1 <- length(raw)
-      tau <- rep(raw[1], K1)
-      if (K1 > 1) for (k in 2:K1) tau[k] <- tau[k - 1] + exp(raw[k])
+      tau <- extra$tau_raw
+      K1 <- length(tau)
       n <- length(y)
       ov <- osa_unwrap(y)
       if (!is.null(ov)) {
@@ -3857,10 +3862,10 @@ fam_sratio <- function(link = "logit") {
     valid_y = ord_valid_y("sratio"),
     type = "ordinal",
     extra_pars = function(y, aterms) {
-      ord_tau_init(y, ordered = TRUE, link = lk)
+      ord_tau_init(y, ordered = FALSE, link = lk)
     },
-    sim = ord_sim("sratio", ordered = TRUE, link = lk),
-    post = list(ord_thresholds = ord_threshold_map(TRUE)),
+    sim = ord_sim("sratio", ordered = FALSE, link = lk),
+    post = list(ord_thresholds = ord_threshold_map(FALSE)),
     drop_intercept = TRUE
   )
   ord_tag_link(fam, lk)
@@ -6174,6 +6179,12 @@ as_frmtmb_family <- function(x) {
 #' takes `softit`), and refuse anything else. `acat()` takes `logit`
 #' alone, because brms defines its other links by a different density
 #' rather than by substituting a distribution function.
+#'
+#' `cumulative()` keeps its thresholds increasing, because its category
+#' probabilities are differences of the distribution function. The
+#' thresholds of `sratio()`, `cratio()` and `acat()` are unconstrained,
+#' as in brms: their category probabilities are positive for any
+#' thresholds, so a fit may have two of them cross.
 #'
 #' @param link Link for `mu`. See [frmtmb-links].
 #' @param link_sigma,link_shape,link_phi,link_kappa,link_ndt,link_beta

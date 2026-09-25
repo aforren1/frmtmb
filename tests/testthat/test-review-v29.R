@@ -295,8 +295,8 @@ test_that("cs() terms enter the ordinal predictions and are re-evaluated", {
   # the cs() coefficients really move the answer: dropping them changes
   # the distribution at a non-zero x
   P0 <- frm_linpred(fit, newdata = data.frame(x = 0), type = "response")
-  raw <- fit$estimates$tau_raw
-  tau <- c(raw[1], raw[1] + exp(raw[2]))
+  # sratio holds its thresholds themselves, as brms declares them
+  tau <- fit$estimates$tau_raw
   h <- stats::plogis(tau)          # at x = 0 the cs offsets vanish
   expect_vector_equal(as.vector(P0),
                       c(h[1], (1 - h[1]) * h[2], (1 - h[1]) * (1 - h[2])),

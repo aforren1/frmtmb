@@ -411,6 +411,12 @@ distribution function the thresholds are read through, so
 takes \code{softit}), and refuse anything else. \code{acat()} takes \code{logit}
 alone, because brms defines its other links by a different density
 rather than by substituting a distribution function.
+
+\code{cumulative()} keeps its thresholds increasing, because its category
+probabilities are differences of the distribution function. The
+thresholds of \code{sratio()}, \code{cratio()} and \code{acat()} are unconstrained,
+as in brms: their category probabilities are positive for any
+thresholds, so a fit may have two of them cross.
 }
 
 \examples{

@@ -239,6 +239,9 @@ build with "Expected `frm(...)` to throw a error" (seen, RESULT below).
   `thres()`, so it predates this lane. The fix is to make sratio's
   thresholds unordered, as cratio's are, which changes the meaning of
   `tau_raw` for every sratio fit and belongs to its own change.
+  FIXED by lane sratio in the same round: `dev/sratio-findings.md`.
+  The sratio rows of `dev/thres-brms-stan-log.txt` and
+  `dev/thres-sratio-order-log.txt` record the build before that fix.
 
 - `tests/testthat/test-pp-check-types.R` fails 4 expectations in block
   "every bayesplot ppc type does on a fit what it does in brms" on the

@@ -1,0 +1,43 @@
+arm after frmtmb from /opt/rlib/lane-sratio/frmtmb 
+logit          logLik -719.72890347672103 conv 0 max|gr| 3.53e-04 min gap: Intercept[] 0.322
+probit         logLik -353.52836661191003 conv 0 max|gr| 5.15e-04 min gap: Intercept[] 0.302
+cloglog        logLik -356.34133675367389 conv 0 max|gr| 1.12e-04 min gap: Intercept[] 0.315
+cauchit        logLik -354.00362814655745 conv 0 max|gr| 8.02e-05 min gap: Intercept[] 0.449
+probit_approx  logLik -353.5295569607232 conv 0 max|gr| 4.95e-04 min gap: Intercept[] 0.302
+v29_42         logLik -247.90231867615543 conv 0 max|gr| 1.79e-04 min gap: Intercept[] 0.758
+v29_43_cs      logLik -243.81650782579226 conv 0 max|gr| 2.44e-04 min gap: Intercept[] 0.766
+fitted_102_cs  logLik -238.77227490851899 conv 0 max|gr| 8.08e-04 min gap: Intercept[] 0.834
+shapes_cs      logLik -92.959987166876019 conv 0 max|gr| 1.65e-04 min gap: Intercept[] 1.25
+punch_cs       logLik -111.30144951532287 conv 0 max|gr| 1.57e-05 min gap: Intercept[] 1.31
+likelihood     logLik -299.14405694285273 conv 0 max|gr| 3.14e-05 min gap: Intercept[] 1.09
+likelihood_cs  logLik -298.9520771112592 conv 0 max|gr| 5.29e-04 min gap: Intercept[] 1.09
+inhaler_cs     logLik -451.25679933758295 conv 0 max|gr| 4.34e-05 min gap: Intercept[] -1.87
+ranef          logLik -719.72890356177822 conv 0 max|gr| 2.45e-07 min gap: Intercept[] 0.322
+weights        logLik -1425.788391537046 conv 0 max|gr| 2.50e-04 min gap: Intercept[] 0.397
+mv             logLik -535.22338503967512 conv 0 max|gr| 3.84e-04 min gap: o2_Intercept[] -0.875, o_Intercept[] 0.857
+thres_gr       logLik -314.00166814211724 conv 0 max|gr| 2.13e-04 min gap: Intercept[a,] 0.153, Intercept[b,] 0.459, Intercept[c,] 0.68
+thres_gr_noid  logLik -312.98070801181348 conv 0 max|gr| 2.19e-04 min gap: Intercept[a,] -0.109, Intercept[b,] 0.307, Intercept[c,] 0.121
+thres_5        logLik -349.05446275960622 conv 0 max|gr| 3.92e-08 min gap: Intercept[] 0.413
+Warning message:
+In sqrt(diag(V)) : NaNs produced
+
+per model: |logLik after - before| / |logLik|, the largest |estimate after - before| over its fixef() rows, and the largest of that difference over the row's standard error (after; NaN where the Hessian is singular)
+logit          rel dlogLik 1.71e-12  max |d estimate| 7.78e-06  max |d| / se 5.37e-05  (4 rows)
+probit         rel dlogLik 4.93e-12  max |d estimate| 6.14e-06  max |d| / se 5.17e-05  (4 rows)
+cloglog        rel dlogLik 6.34e-13  max |d estimate| 2.00e-06  max |d| / se 1.51e-05  (4 rows)
+cauchit        rel dlogLik 3.35e-13  max |d estimate| 1.95e-06  max |d| / se 1.18e-05  (4 rows)
+probit_approx  rel dlogLik 2.74e-12  max |d estimate| 5.86e-06  max |d| / se 6.08e-05  (4 rows)
+v29_42         rel dlogLik 1.81e-12  max |d estimate| 4.94e-06  max |d| / se 3.01e-05  (3 rows)
+v29_43_cs      rel dlogLik 8.95e-13  max |d estimate| 8.96e-06  max |d| / se NaN  (5 rows)
+fitted_102_cs  rel dlogLik 5.28e-11  max |d estimate| 3.00e-05  max |d| / se 1.62e-04  (5 rows)
+shapes_cs      rel dlogLik 7.37e-12  max |d estimate| 8.90e-06  max |d| / se 3.40e-05  (5 rows)
+punch_cs       rel dlogLik 2.71e-13  max |d estimate| 2.97e-06  max |d| / se 9.71e-06  (5 rows)
+likelihood     rel dlogLik 1.82e-12  max |d estimate| 2.56e-06  max |d| / se 2.24e-05  (3 rows)
+likelihood_cs  rel dlogLik 1.30e-12  max |d estimate| 7.01e-06  max |d| / se 4.87e-05  (5 rows)
+inhaler_cs     rel dlogLik 8.48e-03  max |d estimate| 2.34e+00  max |d| / se 2.91e+00  (8 rows)
+ranef          rel dlogLik 4.21e-11  max |d estimate| 9.33e-09  max |d| / se 6.44e-08  (4 rows)
+weights        rel dlogLik 1.51e-13  max |d estimate| 2.18e-06  max |d| / se 2.74e-05  (4 rows)
+mv             rel dlogLik 6.40e-03  max |d estimate| 6.16e-01  max |d| / se 2.13e+00  (9 rows)
+thres_gr       rel dlogLik 1.42e-11  max |d estimate| 2.12e-05  max |d| / se 7.18e-05  (10 rows)
+thres_gr_noid  rel dlogLik 9.47e-05  max |d estimate| 6.95e-02  max |d| / se 1.94e-01  (10 rows)
+thres_5        rel dlogLik 2.67e-11  max |d estimate| 2.72e-01  max |d| / se 5.39e-05  (6 rows)

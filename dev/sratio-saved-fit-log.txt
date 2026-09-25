@@ -1,0 +1,38 @@
+arm save frmtmb from /opt/rlib/base/frmtmb 
+fixef:
+               Estimate Est.Error
+Intercept[1]  0.5497145 0.0899598
+Intercept[2]  2.0825563 0.2403726
+Intercept[3]  2.0825563 0.2403726
+period        0.2158487 0.1658885
+carry        -0.2049433 0.1658738
+treat[1]     -0.7824913 0.2378920
+treat[2]     -0.6994864 0.5064823
+treat[3]     -1.2064054 1.1393602
+fitted, rows 1 to 3:
+      P(Y = 1)  P(Y = 2)   P(Y = 3)    P(Y = 4)
+[1,] 0.6969965 0.2759986 0.02509899 0.001905973
+[2,] 0.6969965 0.2759986 0.02509899 0.001905973
+[3,] 0.6969965 0.2759986 0.02509899 0.001905973
+variables: b_period b_carry b_Intercept[1] 
+hypothesis Intercept[3] - Intercept[2]: 1.785968e-08 
+simulate, first 10: 1 1 1 2 1 2 2 1 1 1 
+arm check frmtmb from /opt/rlib/lane-sratio/frmtmb 
+fixef:
+               Estimate Est.Error
+Intercept[1]  0.5497145 0.0899598
+Intercept[2]  2.0825563 0.2403726
+Intercept[3]  2.0825563 0.2403726
+period        0.2158487 0.1658885
+carry        -0.2049433 0.1658738
+treat[1]     -0.7824913 0.2378920
+treat[2]     -0.6994864 0.5064823
+treat[3]     -1.2064054 1.1393602
+fitted, rows 1 to 3:
+      P(Y = 1)  P(Y = 2)   P(Y = 3)    P(Y = 4)
+[1,] 0.6969965 0.2759986 0.02509899 0.001905973
+[2,] 0.6969965 0.2759986 0.02509899 0.001905973
+[3,] 0.6969965 0.2759986 0.02509899 0.001905973
+variables: b_period b_carry b_Intercept[1] 
+hypothesis Intercept[3] - Intercept[2]: 1.785968e-08 
+simulate, first 10: 1 1 1 2 1 2 2 1 1 1 

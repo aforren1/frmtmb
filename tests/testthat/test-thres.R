@@ -59,7 +59,7 @@ test_that("grouped thresholds reproduce brms's density at a shared point", {
       par <- fit$par
       par[names(par) == "beta"] <- 0.55
       par[names(par) == "tau_raw"] <-
-        thres_raw(thres_pt, fam %in% c("cumulative", "sratio"))
+        thres_raw(thres_pt, identical(fam, "cumulative"))
       rows <- vapply(seq_len(nrow(d)), function(i) {
         log(thres_ref_prob(fam, d$y[i], 0.55 * d$x[i],
                            thres_pt[[d$g[i]]], Fs[[lk]]))
@@ -127,7 +127,7 @@ test_that("thres(x = K) keeps unobserved top categories", {
     ll <- sum(frmtmb:::row_lpdf(
       fit$spec$responses$y$family, d$y, d$y, list(mu = 0.55 * d$x), list(),
       list(tau_raw = thres_raw(list(th),
-                               fam %in% c("cumulative", "sratio")))))
+                               identical(fam, "cumulative")))))
     rows <- vapply(seq_len(nrow(d)), function(i) {
       log(thres_ref_prob(fam, d$y[i], 0.55 * d$x[i], th, stats::plogis))
     }, 0)

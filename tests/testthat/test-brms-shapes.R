@@ -188,16 +188,17 @@ test_that("variables() lists an ordinal fit's thresholds and cs terms", {
   v <- variables(fit)
   expect_true(all(c("b_Intercept[1]", "b_Intercept[2]") %in% v))
   expect_true(all(c("bcs_z[1]", "bcs_z[2]") %in% v))
-  # the thresholds reported are the model's own and not the internal
-  # (first threshold, log increment) parameterization sratio estimates,
-  # so they are increasing
+  # the thresholds reported are the model's own, through the map the
+  # family declares. sratio holds its thresholds themselves, as brms
+  # declares them, so here the map is the identity; a cumulative fit
+  # would read them off (first threshold, log increment)
   th <- vapply(c("b_Intercept[1]", "b_Intercept[2]"),
                function(nm) hypothesis(fit, paste0("`", nm, "` = 0"),
                                        class = NULL)$hypothesis$Estimate,
                numeric(1))
   expect_true(th[2] > th[1])
-  expect_false(isTRUE(all.equal(unname(th),
-                                unname(fit$estimates[["tau_raw"]][1:2]))))
+  map <- fit$spec$responses[[1L]]$family[["post"]][["ord_thresholds"]]
+  expect_equal(unname(th), map(unname(fit$estimates[["tau_raw"]])))
 })
 
 test_that("predict() is brms's predictive summary", {

@@ -199,7 +199,7 @@ fixef.frmtmb_draws <- function(object, summary = TRUE, robust = FALSE,
 #' `Intercept[1]`, `Intercept[2]`, the coefficients, then `cs()` terms.
 #'
 #' The sampler stores the thresholds on the internal scale (`tau_raw`,
-#' the first threshold and log increments for cumulative and sratio), so
+#' the first threshold and log increments for cumulative), so
 #' the `b_` regex found only the slopes and `fixef(ds)` reported `x`
 #' where the fit's `fixef()` and brms report three rows. Each draw is
 #' mapped through the map the family declares, the same map the fit's

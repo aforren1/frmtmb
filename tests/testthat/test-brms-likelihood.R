@@ -234,7 +234,7 @@ test_that("row 12: ordinal families, cumulative sratio cratio acat", {
   # because the thresholds are compared to mu rather than added to it.
   #
   # It is also the one shape where frmtmb's own storage differs between
-  # families: cumulative and sratio hold (tau_1, log increments) while
+  # families: cumulative holds (tau_1, log increments) while sratio,
   # cratio and acat hold the thresholds themselves. brms_ord_thresholds()
   # carries that distinction, and these four rows are what pin it down.
   set.seed(5)
