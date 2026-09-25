@@ -1,0 +1,44 @@
+frmtmb from C:/Users/adf44/source/r/predfix-lib/frmtmb 
+(a) default: code 0 warnings 0 
+           Estimate  Est.Error
+Intercept     724.6 2.817e+132
+z           78540.0 6.467e+132
+x         3116000.0 1.085e+137
+    FALSE: code 1 warnings 1 
+           Estimate Est.Error
+Intercept   886.600       NaN
+z         84370.000       NaN
+x             3.813       NaN
+Warning message:
+In sqrt(diag(V)) : NaNs produced
+    diagnose(default) lines mentioning separation/boundary/large: 2 of 9 
+Optimizer convergence code: 0 (both X-convergence and relative convergence (5)) 
+Max |gradient|: 5.773e-253 at (Intercept) 
+Hessian positive definite: FALSE 
+Flat directions (zero gradient, empty Hessian row): (Intercept), z, x
+  The likelihood does not depend on these parameters at this point, so the model is UNIDENTIFIED HERE rather than overparameterized, and every other standard error is NaN because the Hessian cannot be inverted. Moving them does not change the likelihood at all, so no amount of optimization will pin them down: what the fit reports for those parameters is wherever the optimizer stopped. par_template() names them.
+Likely complete separation: mu: (Intercept) =     725 (se 2.82e+132); mu: z =   78537 (se 6.47e+132); mu: x = 3115784 (se 1.09e+137)
+  Coefficients this large on the link scale with standard errors to match mean the maximum likelihood is at infinity: some combination of the predictors separates the outcome perfectly. Drop or pool the offending predictor, or add a prior (see set_prior()).
+Badly scaled predictors: mu: x (sd 9.3e-05)
+  The fit was already standardized internally (frmtmb_control(autoscale = )); rescaling the column is still the cleaner model.
+    glm warns: glm.fit: algorithm did not converge 
+    glm warns: glm.fit: fitted probabilities numerically 0 or 1 occurred 
+
+(b) random slope on a column spread 0.03, separated z
+seed 533 ERROR default: The optimizer failed on this model (bernoulli, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() | FALSE: none 
+seed 535 ERROR default: The optimizer failed on this model (bernoulli, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() | FALSE: none 
+seed 537 ERROR default: The optimizer failed on this model (bernoulli, ML, nlminb): NA/NaN gradient evaluation. The likelihood was undefined or unbounded somewhere the optimizer stepped. Refit with verbose = TRUE to see which stage broke, try another optimizer (frmtmb_control(optimizer = "optim")), or start the fit nearer the optimum with the `start` argument of frm() | FALSE: none 
+Warning message:
+In sqrt(diag(V)) : NaNs produced
+   seed engaged warnD warnF codeD codeF     bz_D      bz_F
+1   531    TRUE     0     1     0     1 1768.610 11153.743
+2   532    TRUE     0     1     0     1 1427.735  1494.388
+3   533   FALSE     0     1    NA     1       NA 27058.571
+4   534    TRUE     0     1     0     1 2370.040  2841.133
+5   535   FALSE     0     1    NA     1       NA  2499.843
+6   536    TRUE     0     1     0     1 1674.892  4352.732
+7   537   FALSE     0     1    NA     1       NA  1216.579
+8   538    TRUE     0     1     0     1 1826.423  1933.585
+9   539    TRUE     0     0     0     0 6050.927  6535.554
+10  540    TRUE     0     1     0     1 1532.141  1643.534
+warned under FALSE, silent under default: 9 of 10 

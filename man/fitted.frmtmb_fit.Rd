@@ -38,8 +38,8 @@ accepted here.}
 \code{"linear"} for the linear predictor. brms's spelling of what
 \code{\link[=predict.frmtmb_fit]{predict.frmtmb_fit()}} calls \code{type}.}
 
-\item{resp}{For multivariate fits: which response (defaults to the
-first).}
+\item{resp}{For multivariate fits: the response or responses to
+report. \code{NULL} (default) reports all of them, as brms does.}
 
 \item{dpar}{Which distributional parameter to report instead of the
 mean.}
@@ -71,8 +71,14 @@ population level instead of erroring, as in
 An \verb{n x 4} matrix with the columns \code{Estimate}, \code{Est.Error}
 and one per entry of \code{probs}. For an ordinal or categorical family
 an \verb{n x 4 x K} array, the third dimension named \code{P(Y = k)}, which
-is brms's shape. The ROW dimnames are \code{NULL}, as brms's are; the
-data's row names are on \code{frm_linpred()} and \code{model.frame()}.
+is brms's shape. For a multivariate fit asked for more than one
+response, an \verb{n x 4 x nresp} array with the third dimension named
+by response, which is brms's shape too; each cell's \code{Est.Error} is
+the standard error of that response's own expected value. A
+category-valued response contributes one layer per category, named
+\code{P(Y = k)}, in its place, as brms stacks it. The ROW dimnames are
+\code{NULL}, as brms's are; the data's row names are on \code{frm_linpred()}
+and \code{model.frame()}.
 }
 \description{
 brms's \code{fitted()}: a summary of the expected response, in the columns

@@ -74,13 +74,15 @@ posterior_predict(object, ...)
 naming it, rather than a silently ignored name. The exceptions are
 brms's \code{allow_new_levels} (and \code{allow.new.levels}) and
 \code{sample_new_levels}. \code{allow_new_levels = FALSE}, and \code{TRUE} with
-levels the fit saw, answer as the call without it does. \code{TRUE}
-with a level the fit did not see, including a \code{newdata} that leaves
-the grouping column out, is refused: brms draws that level's
-effect from each posterior draw, which is not built here, and
-predicting it at the population level would drop the group
-variance from every draw. \code{\link[frmtmb:predict.frmtmb_fit]{frmtmb::predict.frmtmb_fit()}} predicts
-unseen levels from the maximum-likelihood fit.}
+levels the fit saw, answer as the call without it does. A level
+the fit did not see, in a term \code{re_formula} keeps, is refused with
+or without the flag, and so is a \code{newdata} that leaves the grouping
+column out under \code{TRUE}: brms draws that level's effect from each
+posterior draw, which is not built here, and predicting it at the
+population level would drop the group variance from every draw.
+\code{\link[frmtmb:predict.frmtmb_fit]{frmtmb::predict.frmtmb_fit()}} predicts unseen levels from the
+maximum-likelihood fit, and \code{re_formula = NA} predicts here at the
+population level.}
 
 \item{newdata, resp}{As in \code{\link[frmtmb:predict.frmtmb_fit]{frmtmb::predict.frmtmb_fit()}}.}
 

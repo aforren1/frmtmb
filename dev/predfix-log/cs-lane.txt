@@ -1,0 +1,14 @@
+arm lane frmtmb 0.62.0 from C:/Users/adf44/source/r/predfix-lib 
+sratio     in sample, max |z| over all rows 5.3; row x = 2.771: predict (0.936, 0.005, 0.059) fitted (0.940, 0.003, 0.056)
+sratio     newdata, max |z| 4.5
+    x =  3.0: predict (0.950, 0.003, 0.047) fitted (0.953, 0.002, 0.045)
+    x =  3.0: predict (0.951, 0.004, 0.046) fitted (0.953, 0.002, 0.045)
+    x = -3.0: predict (0.026, 0.962, 0.012) fitted (0.024, 0.965, 0.011)
+    x =  0.0: predict (0.418, 0.393, 0.189) fitted (0.416, 0.390, 0.195)
+acat       in sample, max |z| over all rows 4.8; row x = 2.771: predict (0.861, 0.012, 0.127) fitted (0.869, 0.010, 0.121)
+acat       newdata, max |z| 4.5
+    x =  3.0: predict (0.872, 0.008, 0.120) fitted (0.881, 0.007, 0.112)
+    x =  3.0: predict (0.872, 0.006, 0.122) fitted (0.881, 0.007, 0.112)
+    x = -3.0: predict (0.011, 0.973, 0.016) fitted (0.010, 0.975, 0.015)
+    x =  0.0: predict (0.439, 0.378, 0.183) fitted (0.437, 0.376, 0.187)
+cumulative : frm() refuses cs(x): cs() needs an sratio, cratio, or acat family 

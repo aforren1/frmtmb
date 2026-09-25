@@ -40,6 +40,14 @@ quad_nested_data <- function(seed = 4, ng = 20, nt = 5) {
   d
 }
 
+# Muffle exactly the warning that a quadrature fit's Est.Error leaves out
+# the group-effect term; any other warning still reaches the test.
+quad_quiet <- function(expr) {
+  withCallingHandlers(expr, frmtmb_modes_conditional_se = function(w) {
+    invokeRestart("muffleWarning")
+  })
+}
+
 test_that("quadrature reports every conditional mode, not just the first", {
   set.seed(4)
   ng <- 20; nt <- 5; n <- ng * nt
@@ -54,10 +62,12 @@ test_that("quadrature reports every conditional mode, not just the first", {
   # an outer value into the twentieth
   expect_false(anyNA(fq$estimates$b))
   expect_equal(length(fq$estimates$b), ng)
-  expect_false(anyNA(fitted(fq)[, "Estimate"]))
+  # fitted() and residuals() say their Est.Error omits the group-effect
+  # term (lane wt-predfix); only the estimates are asserted here
+  expect_false(anyNA(quad_quiet(fitted(fq))[, "Estimate"]))
   expect_false(anyNA(unlist(ranef(fq))))
   expect_false(anyNA(frm_linpred(fq, newdata = d)))
-  expect_false(anyNA(residuals(fq)[, "Estimate"]))
+  expect_false(anyNA(quad_quiet(residuals(fq))[, "Estimate"]))
 
   # Gauss-Kronrod and Laplace agree exactly for a gaussian response, so
   # the modes must agree too
@@ -112,7 +122,7 @@ test_that("quadrature survives non-gaussian families and nested blocks", {
       expect_s3_class(fit, "frmtmb_fit")
       expect_true(is.finite(as.numeric(logLik(fit))), label = lab)
       expect_false(anyNA(fit$estimates$b))
-      expect_false(anyNA(fitted(fit)[, "Estimate"]))
+      expect_false(anyNA(quad_quiet(fitted(fit))[, "Estimate"]))
       expect_lt(max(abs(fit$obj$gr(fit$opt$par))), 1e-2)
     }
   }

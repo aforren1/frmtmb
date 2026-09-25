@@ -64,8 +64,8 @@ cp_compat_rules <- function() {
   r("cross_wishart", "mvbf", "untested",
     "Not exercised, and the natural way to reach more than two channels would be through it. See the family's refusal of p > 2.")
   r("cross_wishart", "quadrature", "untested", "Not exercised.")
-  r("cross_wishart", "autoscale", "untested",
-    "Not exercised. The four dpars are already on comparable scales because three of the four are on a log or logit link.")
+  r("cross_wishart", "autoscale", "works",
+    "Verified: with coh ~ z and z at 1e-6, frmtmb's default engages autoscale and reaches the scale-1 log-likelihood on 3 of 3 seeds (within 5.4e-10), where autoscale = FALSE was 75 and 76.9 units short on two of them (dev/predfix-p1-ext.R, frmtmb 0.62.0 development).")
 
   ## ---- the extractors ---------------------------------------------
   r("frm_coherence", "predict", "works",

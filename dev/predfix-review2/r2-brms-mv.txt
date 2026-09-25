@@ -1,0 +1,27 @@
+brms 2.23.0 
+Setting 'rescor' to FALSE by default for this model
+Only 2 levels detected so that family 'bernoulli' might be a more efficient choice.
+Start sampling
+Running MCMC with 1 chain...
+
+Chain 1 finished in 1.6 seconds.
+Loading required namespace: rstan
+fitted(b) : dim 150 4 10 
+   layers: 'P(Y = 1)' 'P(Y = 2)' 'P(Y = 3)' 'P(Y = 4)' 'y1' 'P(Y = a)' 'P(Y = b)' 'P(Y = c)' 'P(Y = a)' 'P(Y = b)' 
+fitted(b, resp = c('c2', 'y1')) : dim 150 4 3 
+   layers: 'P(Y = a)' 'P(Y = b)' 'y1' 
+fitted(b, resp = c('y1', 'o1')) : dim 150 4 5 
+   layers: 'y1' 'P(Y = 1)' 'P(Y = 2)' 'P(Y = 3)' 'P(Y = 4)' 
+fitted(b, resp = 'o1') : dim 150 4 4 
+   layers: 'P(Y = 1)' 'P(Y = 2)' 'P(Y = 3)' 'P(Y = 4)' 
+fitted(b, newdata = 3 rows) : dim 3 4 10 
+   layers: 'P(Y = 1)' 'P(Y = 2)' 'P(Y = 3)' 'P(Y = 4)' 'y1' 'P(Y = a)' 'P(Y = b)' 'P(Y = c)' 'P(Y = a)' 'P(Y = b)' 
+Estimate at newdata:
+     P(Y = 1) P(Y = 2) P(Y = 3) P(Y = 4)     y1 P(Y = a) P(Y = b) P(Y = c)
+[1,]   0.6303   0.2030   0.1167   0.0500 0.6391   0.6981   0.2202   0.0817
+[2,]   0.3095   0.2602   0.2663   0.1640 1.0556   0.1620   0.3923   0.4457
+[3,]   0.0320   0.0551   0.1781   0.7348 1.8886   0.0009   0.0874   0.9118
+     P(Y = a) P(Y = b)
+[1,]   0.1501   0.8499
+[2,]   0.5455   0.4545
+[3,]   0.9804   0.0196

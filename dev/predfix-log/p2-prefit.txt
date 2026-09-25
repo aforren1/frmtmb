@@ -1,0 +1,46 @@
+arm lane frmtmb 0.62.0 from C:/Users/adf44/source/r/predfix-lib 
+== reviewer design A: separated bernoulli, x sd 1e-4, standardized
+A seed 511                 code 1 eig [-2.74e-265, 6.19e-250] coef eig [-2.74e-265, 6.19e-250] coef|grad| 5.88e-250 max|coef|  9.4e+04 warn 1
+A seed 512                 code 1 eig [-1.40e-265, 4.12e-251] coef eig [-1.40e-265, 4.12e-251] coef|grad| 4.09e-251 max|coef| 4.88e+04 warn 1
+A seed 513                 code 1 eig [-1.59e-261, 7.59e-248] coef eig [-1.59e-261, 7.59e-248] coef|grad| 3.70e-248 max|coef| 3.86e+04 warn 1
+A seed 514                 code 1 eig [3.46e-273, 3.98e-258] coef eig [3.46e-273, 3.98e-258] coef|grad| 3.41e-258 max|coef| 1.37e+04 warn 1
+A seed 515                 code 1 eig [-1.37e-263, 2.83e-249] coef eig [-1.37e-263, 2.83e-249] coef|grad| 2.78e-249 max|coef| 2.42e+04 warn 1
+A seed 516                 code 1 eig [-1.32e-259, 4.58e-244] coef eig [-1.32e-259, 4.58e-244] coef|grad| 4.53e-244 max|coef| 4.51e+05 warn 1
+A seed 517                 code 1 eig [-1.58e-255, 3.89e-241] coef eig [-1.58e-255, 3.89e-241] coef|grad| 3.22e-241 max|coef| 5.14e+04 warn 1
+A seed 518                 code 1 eig [-4.81e-267, 4.08e-252] coef eig [-4.81e-267, 4.08e-252] coef|grad| 1.91e-252 max|coef| 6.82e+04 warn 1
+A seed 519                 code 1 eig [-1.82e-258, 1.36e-243] coef eig [-1.82e-258, 1.36e-243] coef|grad| 7.76e-244 max|coef| 3.89e+04 warn 1
+A seed 520                 code 1 eig [-4.97e-268, 1.80e-253] coef eig [-4.97e-268, 1.80e-253] coef|grad| 1.77e-253 max|coef| 7.53e+04 warn 1
+== reviewer design B: separated z, slope on x sd 0.03, standardized
+B seed 531                 code 1 eig [-1.77e-04,  7.17e-05] coef eig [ 2.40e-13,  2.25e-06] coef|grad| 2.02e-06 max|coef| 1.11e+03 warn 1
+B seed 532                 code 1 eig [-1.17e-07,  1.88e-07] coef eig [ 9.36e-23,  1.48e-13] coef|grad| 4.34e-14 max|coef| 1.47e+03 warn 1
+B seed 533                 code 1 eig [-2.75e+00,  4.15e+00] coef eig [ 4.39e-14,  1.30e-07] coef|grad| 9.03e-08 max|coef| 1.95e+04 warn 2
+B seed 534                   ERROR The optimizer failed on this model (bernoulli, ML, nlminb): 
+B seed 535                 code 1 eig [-1.19e-01,  3.35e-01] coef eig [-1.19e-01,  3.35e-01] coef|grad| 6.58e-01 max|coef|      972 warn 2
+B seed 536                 code 1 eig [-1.27e-06,  2.08e-06] coef eig [-2.86e-31,  4.07e-15] coef|grad| 4.04e-15 max|coef| 2.22e+03 warn 1
+B seed 537                 code 1 eig [-2.38e-01,  4.10e-02] coef eig [ 1.15e-12,  1.12e-05] coef|grad| 4.37e-06 max|coef| 1.84e+03 warn 1
+B seed 538                 code 1 eig [-6.63e-06,  3.52e-04] coef eig [ 1.13e-14,  5.92e-09] coef|grad| 3.00e-09 max|coef| 1.57e+03 warn 1
+B seed 539                 code 1 eig [-3.05e-05,  9.22e-05] coef eig [ 5.05e-23,  5.59e-09] coef|grad| 2.67e-09 max|coef| 5.78e+03 warn 1
+B seed 540                 code 1 eig [-2.41e-07,  4.42e-07] coef eig [ 2.01e-22,  4.40e-12] coef|grad| 1.85e-12 max|coef| 1.49e+03 warn 1
+== the battery's random slope with no slope variance, standardized
+battery gau slope          code 1 eig [-1.35e-06,  3.82e+02] coef eig [ 5.97e+01,  3.82e+02] coef|grad| 6.80e-04 max|coef|     0.51 warn 1
+== healthy engaged designs, standardized (what a good pre-fit is)
+pois 0 + x seed 1          code 0 eig [ 4.04e+02,  4.04e+02] coef eig [ 4.04e+02,  4.04e+02] coef|grad| 1.16e-08 max|coef|    0.646 warn 0
+bern 1 + x seed 1          code 0 eig [ 4.07e+01,  5.62e+01] coef eig [ 4.07e+01,  5.62e+01] coef|grad| 8.71e-05 max|coef|    0.718 warn 0
+gau slope seed 1           code 0 eig [ 4.19e+00,  5.30e+02] coef eig [ 2.83e+01,  5.30e+02] coef|grad| 2.68e-04 max|coef|    0.817 warn 0
+gau zero-var slope seed 1  code 1 eig [-2.62e-06,  5.60e+02] coef eig [ 3.15e+01,  5.60e+02] coef|grad| 8.49e-04 max|coef|    0.896 warn 1
+pois 0 + x seed 2          code 0 eig [ 5.54e+02,  5.54e+02] coef eig [ 5.54e+02,  5.54e+02] coef|grad| 2.79e-07 max|coef|     0.63 warn 0
+bern 1 + x seed 2          code 0 eig [ 4.41e+01,  5.76e+01] coef eig [ 4.41e+01,  5.76e+01] coef|grad| 6.33e-06 max|coef|    0.753 warn 0
+gau slope seed 2           code 0 eig [ 5.91e+00,  5.23e+02] coef eig [ 2.57e+01,  5.23e+02] coef|grad| 1.84e-04 max|coef|    0.788 warn 0
+gau zero-var slope seed 2  code 1 eig [-2.12e-08,  5.60e+02] coef eig [ 2.29e+01,  5.60e+02] coef|grad| 5.92e-05 max|coef|    0.968 warn 1
+pois 0 + x seed 3          code 0 eig [ 4.78e+02,  4.78e+02] coef eig [ 4.78e+02,  4.78e+02] coef|grad| 9.03e-08 max|coef|    0.652 warn 0
+bern 1 + x seed 3          code 0 eig [ 4.14e+01,  5.68e+01] coef eig [ 4.14e+01,  5.68e+01] coef|grad| 3.92e-08 max|coef|    0.681 warn 0
+gau slope seed 3           code 0 eig [ 1.15e+01,  5.24e+02] coef eig [ 3.10e+01,  5.24e+02] coef|grad| 6.23e-07 max|coef|     1.05 warn 0
+gau zero-var slope seed 3  code 1 eig [-4.39e-05,  5.61e+02] coef eig [ 7.37e+01,  5.61e+02] coef|grad| 6.90e-06 max|coef|    0.701 warn 1
+pois 0 + x seed 4          code 0 eig [ 3.32e+02,  3.32e+02] coef eig [ 3.32e+02,  3.32e+02] coef|grad| 2.33e-06 max|coef|    0.586 warn 0
+bern 1 + x seed 4          code 0 eig [ 3.39e+01,  5.54e+01] coef eig [ 3.39e+01,  5.54e+01] coef|grad| 9.31e-09 max|coef|     0.83 warn 0
+gau slope seed 4           code 0 eig [ 1.09e+01,  5.28e+02] coef eig [ 3.95e+01,  5.28e+02] coef|grad| 2.14e-04 max|coef|    0.811 warn 0
+gau zero-var slope seed 4  code 1 eig [-2.12e-06,  5.60e+02] coef eig [ 2.97e+01,  5.60e+02] coef|grad| 7.98e-06 max|coef|     1.03 warn 1
+pois 0 + x seed 5          code 0 eig [ 4.46e+02,  4.46e+02] coef eig [ 4.46e+02,  4.46e+02] coef|grad| 4.50e-09 max|coef|    0.699 warn 0
+bern 1 + x seed 5          code 0 eig [ 4.08e+01,  5.45e+01] coef eig [ 4.08e+01,  5.45e+01] coef|grad| 7.82e-07 max|coef|    0.811 warn 0
+gau slope seed 5           code 0 eig [ 1.23e+01,  5.27e+02] coef eig [ 4.26e+01,  5.27e+02] coef|grad| 2.68e-04 max|coef|     1.07 warn 0
+gau zero-var slope seed 5  code 0 eig [ 2.24e-01,  5.54e+02] coef eig [ 3.81e+01,  5.54e+02] coef|grad| 2.33e-05 max|coef|     1.08 warn 0

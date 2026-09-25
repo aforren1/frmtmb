@@ -417,7 +417,8 @@ test_that("the bar-crossing refusal outranks the other grammar rules", {
 
 test_that("the multivariate post-fit surface is declared as it behaves", {
   for (st in c("mvbf", "rescor")) {
-    expect_equal(frm_compat(st, "fitted")$status, "refused", info = st)
+    # fitted() answers in brms's n x 4 x nresp (lane wt-predfix)
+    expect_equal(frm_compat(st, "fitted")$status, "works", info = st)
     expect_equal(frm_compat(st, "predict")$status, "works", info = st)
     expect_equal(frm_compat(st, "simulate")$status, "refused", info = st)
     expect_equal(frm_compat(st, "residuals_osa")$status, "refused",
@@ -511,7 +512,8 @@ test_that("the multivariate declarations match a multivariate fit", {
   fit <- frm(bf(y ~ x) + bf(y2 ~ x) + set_rescor(TRUE), data = d,
              family = gaussian())
 
-  expect_error(fitted(fit), "multivariate")
+  # fitted() answers, in brms's shape (lane wt-predfix)
+  expect_identical(dim(fitted(fit)), c(as.integer(n), 4L, 2L))
   expect_error(simulate(fit), "multivariate")
   expect_error(residuals(fit), "multivariate")
   expect_length(frm_linpred(fit), n)

@@ -1,0 +1,20 @@
+arm lane frmtmb 0.62.0 from C:/Users/adf44/source/r/predfix-lib 
+autoscale = FALSE short by > 1e-6, by spread s (64 fits per s)
+0.1 0.2 0.5   1 
+  2   2   3   1 
+max shortfall by s
+      0.1       0.2       0.5         1 
+1.762e-06 1.737e-06 1.661e-06 1.397e-06 
+autoscale = TRUE short by > 1e-6, by s
+0.1 0.2 0.5   1 
+  1   1   1   1 
+NA: FALSE 0  TRUE 0 
+     fam tau seed   s       sdx short_false   short_true
+6    gau 0.1    2 0.5 0.5342660 1.28627e-06  5.42875e-07
+7    gau 0.1    2 0.2 0.2137064 1.30158e-06  5.42933e-07
+8    gau 0.1    2 0.1 0.1068532 1.00824e-06  5.42661e-07
+21   gau 0.1    6 1.0 0.9799060 1.39658e-06  0.00000e+00
+22   gau 0.1    6 0.5 0.4899530 1.29999e-06  1.25453e-10
+23   gau 0.1    6 0.2 0.1959812 1.73655e-06 -3.38673e-10
+146 pois 0.1    5 0.5 0.4907938 1.66119e-06  1.23279e-06
+192 pois 0.1   16 0.1 0.0970521 1.76165e-06  6.76034e-08

@@ -1,0 +1,6 @@
+arm lane frmtmb 0.62.0 from C:/Users/adf44/source/r/predfix-lib 
+scale scan, engaged cells: 315 ; default engaged: 315 ; fell back: 0 ; errored: 0 
+  below autoscale = TRUE by more than 1e-6: 0 ; largest loss 0 
+slope calibration, spread below 0.05: 384 fits; default engaged: 384 ; fell back: 0 ; errored: 0 
+  below autoscale = TRUE by more than 1e-6: 0 ; largest loss 0 
+  short of the reference by more than 1e-3: 0 

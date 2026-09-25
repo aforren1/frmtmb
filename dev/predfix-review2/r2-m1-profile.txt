@@ -1,0 +1,11 @@
+frmtmb from C:/Users/adf44/source/r/predfix-lib/frmtmb 
+[1] "(Intercept)"       "x"                 "sigma_(Intercept)"
+[4] "theta_1"           "theta_2"           "theta_3"          
+Warning message:
+In regularize.values(x, y, ties, missing(ties), na.rm = na.rm) :
+  collapsing to unique 'x' values
+       lwr      upr      est
+x 21.68201 39.26843 30.55332
+       lwr      upr      est
+x 21.68201 39.26843 30.55337
+profile confint max rel diff: 1.52e-06

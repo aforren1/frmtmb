@@ -40,12 +40,19 @@
 #' `trunc()` folded in; it runs on numeric dpar values as readily as on
 #' the tape, which is what makes a pointwise `log_lik()` reproduce the
 #' fitted density exactly instead of approximating it.
-#' `with_cs_offsets(fit, rspec, dpv)` takes one response spec from
-#' `fit$spec$responses` and the dpar-value list `eval_dpars()` returns
-#' for that response, and gives back the same list with the
-#' category-specific (`cs()`) offsets applied; on a model without
-#' `cs()` terms it returns `dpv` unchanged, so it is safe to call
-#' unconditionally before `row_lpdf()`. `us_chol_cor(theta, K)` is the
+#' `with_cs_offsets(fit, rspec, dpv)` takes the WHOLE list
+#' `eval_dpars()` returns, one element per response (`rspec` is
+#' ignored), and gives it back with the category-specific (`cs()`)
+#' offsets of the fitted rows added as each response's `.cs`; on a model
+#' without `cs()` terms it returns `dpv` unchanged, so it is safe to
+#' call unconditionally before `row_lpdf()`. In frmtmb 0.62.0 and
+#' earlier this paragraph said it took one response's list; a caller
+#' that passed one got no offsets, because they were written a level
+#' deeper than the simulator reads.
+#' `cs_offsets_add(fit, resp, newdata, dpv)` takes ONE response's
+#' dpar-value list, however it was built, and adds that response's
+#' `.cs` evaluated at `newdata` (the fitted rows when `NULL`); it is the
+#' one to use when drawing at new data. `us_chol_cor(theta, K)` is the
 #' unstructured correlation matrix of a `thetar` segment, which a
 #' `set_rescor(TRUE)` model's joint row density needs.
 #'
@@ -299,6 +306,7 @@
 #' @aliases build_objective
 #' @aliases row_lpdf
 #' @aliases with_cs_offsets
+#' @aliases cs_offsets_add
 #' @aliases us_chol_cor
 #' @aliases expand_b
 #' @aliases aterms_for_newdata
@@ -381,6 +389,7 @@
 #' @aliases brms_prob_cols
 #' @aliases brms_fixef_rows
 #' @rawNamespace export(build_objective, row_lpdf, with_cs_offsets,
+#'   cs_offsets_add,
 #'   us_chol_cor, expand_b, aterms_for_newdata, has_trunc, as_priorlist,
 #'   check_prior_slots, resolve_prior_input, neg_log_prior_fn,
 #'   resolve_bounds, spec_target,

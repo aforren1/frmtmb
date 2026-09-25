@@ -1,0 +1,9 @@
+| tier | files | pass | fail | error | skip | no RESULT line | load error | log mtime |
+|---|---|---|---|---|---|---|---|---|
+| ungated, 1 process per file | 281 | 16562 | 0 | 0 | 176 | 0 | 0 | 2026-09-24 17:47:58 |
+| gated, all env vars set | 39 | 3283 | 2 | 0 | 0 | 0 | 0 | 2026-09-24 16:55:15 |
+  files with a failure or error:
+  RESULT test-drmtmb-agreement.R pass=126 fail=2 err=0 skip=0
+
+ SUITE ran 281 of 281 
+ GATED ran 39 of 39 

@@ -1,0 +1,10 @@
+arm lane frmtmb 0.62.0 from C:/Users/adf44/source/r/predfix-lib 
+alpha0  seed  2 s 1e-06   default -327.0431230 (0 warnings) FALSE -332.0640866 (1): Large maximum absolute gradient at the optimum (0.00114); th
+alpha0  seed  3 s 1e-06   default -342.4578238 (0 warnings) FALSE -354.7784270 (1): Large maximum absolute gradient at the optimum (0.00424); th
+alpha0  seed  4 s 1e-06   default -313.2473745 (0 warnings) FALSE -325.3373564 (1): Large maximum absolute gradient at the optimum (0.00233); th
+alpha0  seed  8 s 1e-06   default -332.6669652 (0 warnings) FALSE -342.2913328 (1): Large maximum absolute gradient at the optimum (0.024); the 
+alpha0  seed  9 s 1e-06   default -305.2382079 (0 warnings) FALSE -319.6983482 (1): Large maximum absolute gradient at the optimum (0.00325); th
+alpha0  seed 10 s 1e-06   default -341.9488186 (0 warnings) FALSE -355.4953321 (1): Large maximum absolute gradient at the optimum (0.00678); th
+alpha0  seed 11 s 1e-06   default -327.4503642 (0 warnings) FALSE -340.7943143 (1): Large maximum absolute gradient at the optimum (0.00217); th
+alpha0  seed 12 s 1e-06   default -323.4726474 (0 warnings) FALSE -333.0427845 (1): Large maximum absolute gradient at the optimum (0.00111); th
+fits where the default warns less than FALSE: 8 of 108

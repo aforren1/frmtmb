@@ -59,6 +59,94 @@
 * The `pp_check(type = "error_binned")` refusal on a multinomial fit
   calls the response a set of counts over categories, not a category.
 
+Five defects filed in the 0.62.0 round (lane `wt-predfix`;
+`dev/predfix-findings.md` has each reproduction and measurement).
+
+* **BREAKING: a fit with a badly scaled predictor is now standardized
+  by default.** `frmtmb_control(autoscale = )` defaults to `NULL`,
+  which runs the `autoscale = TRUE` pre-fit when a qualifying column
+  has a standard deviation below 1e-3 and its coefficient is optimized
+  directly, or when a column that carries a random slope
+  (`(1 + x | g)`) has one below 0.05. Without it such a fit could stop
+  short, report convergence 0 and say nothing: a poisson `y ~ 0 + x`
+  with `x` on a 1e-6 scale sat 62.58 log-likelihood units below
+  `glm()`, the same happened with an intercept and a group effect in
+  every family measured, by up to 91 units, and a random slope fell
+  short by up to 14.4 units at a spread of 0.01.
+
+  The pre-fit now also rescales a random slope's column in `Z`, with
+  its log standard deviation and its effects, for `us()`, `diag()` and
+  the Student-t blocks; before, `autoscale = TRUE` rescaled the fixed
+  effect only and a random slope on a 1e-6 column was still up to
+  6.35 units short. A random slope in any other covariance structure,
+  or on a column the fixed effects do not carry, is not rescaled. The
+  pre-fit's own warnings are no longer shown; only the reported fit's
+  are.
+
+  The default never reports less than `autoscale = FALSE` would. When
+  the pre-fit errors, the default fits the model as `autoscale = FALSE`
+  does. When the pre-fit stops without converging in its coefficients
+  (a completely separated fit does), the default fits both from the
+  pre-fit and without it and reports the one without it, with its
+  warnings, unless the other has the better likelihood and either
+  warns at least as often or is a verified optimum. `verbose = TRUE`
+  says which. With `autoscale = TRUE`, which you asked for, a pre-fit
+  error stands and names `autoscale = FALSE`, and a pre-fit that did
+  not converge warns.
+
+  A `mu` coefficient under `REML = TRUE` or `profile = TRUE` does not
+  engage it by itself: those coefficients are fitted by the inner
+  solver, which reached the optimum at every scale measured. A fit
+  that engages is not guaranteed to be higher: on 108 skew-normal fits
+  it was never lower by more than 1e-6, and one REML random-slope fit
+  was lower by 5.5e-7, which is optimizer tolerance. A fit with no such
+  column is unchanged to the last bit: 444 of 480 fits over 32
+  families and five designs, under ML, REML and `profile = TRUE`, are
+  identical, and the other 36 differ only in the `vcov()` fix below.
+  `autoscale = FALSE` turns it off, and `frmtmb_control()$autoscale` is
+  now `NULL`. `diagnose()` and `verbose = TRUE` say when it ran.
+
+* **`predict()` now draws a `cs()` term.** On an `sratio()`, `cratio()`
+  or `acat()` fit with a category-specific effect, `predict()` drew every
+  row as if the term were absent, in sample and at `newdata`, with no
+  warning: at `x = 3`, where the category probabilities are
+  (0.95, 0.002, 0.045), it reported about (0.42, 0.39, 0.19). The
+  offsets were written one level too deep in the list the simulator
+  reads, and at `newdata` they were the training rows' offsets. Every
+  `predict()` of such a fit changes. `fitted()`, `simulate()` and the
+  log-likelihood were right and are unchanged.
+
+* `cs_offsets_add()` joins the extension API: it adds one response's
+  `cs()` offsets at `newdata`. The documentation of `with_cs_offsets()`
+  now says what it does: it takes the list of every response, not one
+  response's list.
+
+* `fitted()` answers a multivariate fit, in brms's `n x 4 x nresp`
+  array. It refused before, while `predict()` answered. A scalar
+  response is one layer named by the response, and a categorical one
+  is one layer per category, `P(Y = k)`, as brms 2.23.0 stacks them.
+  `resp` takes several responses in the order given, and one scalar
+  response is still an `n x 4` matrix.
+
+* `fitted()` on a `quadrature = TRUE` fit warns that `Est.Error` leaves
+  out the group-effect uncertainty at a level the fit saw. The
+  ordinal route and `predict()` already said so; the ordinary route
+  returned the smaller number silently. At a level the fit never saw
+  nothing is left out, and it does not warn.
+
+* `vcov()` answers a `REML = TRUE` or `profile = TRUE` fit that has no
+  random effect and no free dispersion (poisson, bernoulli, binomial,
+  geometric, exponential, categorical). It died with "length of
+  'dimnames' [1] not equal to array extent". The standard errors are
+  `glm()`'s for poisson (1.9e-11 relative) and bernoulli (3.8e-8). For
+  geometric and exponential they differ from `glm()`'s by 2.3e-2,
+  because frmtmb uses the observed information and `glm()` the expected
+  information, which differ on those families' log link.
+
+* A new grouping level refused by `predict()`, `fitted()` and friends is
+  now classed `frmtmb_new_levels`, so an extension can say what it can
+  do instead. The message is unchanged.
+
 # frmtmb 0.62.0
 
 * **A `skew_normal()` fit that used to stop at `alpha = 0` now finds

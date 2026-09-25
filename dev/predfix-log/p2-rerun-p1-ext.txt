@@ -1,0 +1,13 @@
+arm lane frmtmb 0.62.0 from C:/Users/adf44/source/r/predfix-lib 
+lca(K = 2), Y ~ x, seed 1                scale-1    -855.960456 | 1e-6 default    -855.960456 (engaged TRUE, short -2.16e-08) | FALSE short 41.8
+lca(K = 2), Y ~ x, seed 2                scale-1    -857.989576 | 1e-6 default    -857.989576 (engaged TRUE, short -5.88e-09) | FALSE short 51.5
+lca(K = 2), Y ~ x, seed 3                scale-1    -842.498905 | 1e-6 default    -842.498905 (engaged TRUE, short 1.94e-09) | FALSE short 50.8
+cross_wishart, coh ~ z, seed 1           scale-1   -1568.936429 | 1e-6 default   -1568.936429 (engaged TRUE, short -5.43e-10) | FALSE short 75
+cross_wishart, coh ~ z, seed 2           scale-1   -1543.858897 | 1e-6 default   -1543.858897 (engaged TRUE, short -3.26e-10) | FALSE short -3.42e-10
+cross_wishart, coh ~ z, seed 3           scale-1   -1582.544871 | 1e-6 default   -1582.544871 (engaged TRUE, short -8.57e-11) | FALSE short 76.9
+bandit2arm_delta, tau ~ z, seed 1        scale-1   -1409.984875 | 1e-6 default   -1409.984875 (engaged TRUE, short -5.58e-10) | FALSE short 37.1
+bandit2arm_delta, tau ~ z, seed 2        scale-1   -1384.755270 | 1e-6 default   -1384.755270 (engaged TRUE, short 2.21e-11) | FALSE short 52.3
+bandit2arm_delta, tau ~ z, seed 3        scale-1   -1516.789589 | 1e-6 default   -1516.789589 (engaged TRUE, short 7.75e-11) | FALSE short 20.4
+hmm(K = 2, gaussian()), y ~ x, seed 1    scale-1    -824.444814 | 1e-6 default    -824.444814 (engaged TRUE, short 2.44e-11) | FALSE short 119
+hmm(K = 2, gaussian()), y ~ x, seed 2    scale-1    -793.347464 | 1e-6 default    -793.347464 (engaged TRUE, short -1.06e-10) | FALSE short 132
+hmm(K = 2, gaussian()), y ~ x, seed 3    scale-1    -769.842668 | 1e-6 default    -769.842668 (engaged TRUE, short 2.64e-11) | FALSE short 14.4

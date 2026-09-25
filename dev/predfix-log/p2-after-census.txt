@@ -1,0 +1,4 @@
+RESULT test-conditions-census.R pass=11 fail=0 err=0 skip=0
+RESULT test-predfix.R pass=92 fail=0 err=0 skip=0
+RESULT test-autoscale.R pass=46 fail=0 err=0 skip=0
+RESULT test-message-uniqueness.R pass=6 fail=0 err=0 skip=0

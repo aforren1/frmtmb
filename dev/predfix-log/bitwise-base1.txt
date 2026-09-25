@@ -1,0 +1,3 @@
+arm base frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3 
+There were 19 warnings (use warnings() to see them)
+fits: 417  errors: 8  seconds: 138 

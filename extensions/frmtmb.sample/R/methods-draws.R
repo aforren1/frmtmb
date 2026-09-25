@@ -555,13 +555,15 @@ hypothesis.frmtmb_draws <- function(x, hypothesis, class = "b", group = "",
 #'   naming it, rather than a silently ignored name. The exceptions are
 #'   brms's `allow_new_levels` (and `allow.new.levels`) and
 #'   `sample_new_levels`. `allow_new_levels = FALSE`, and `TRUE` with
-#'   levels the fit saw, answer as the call without it does. `TRUE`
-#'   with a level the fit did not see, including a `newdata` that leaves
-#'   the grouping column out, is refused: brms draws that level's
-#'   effect from each posterior draw, which is not built here, and
-#'   predicting it at the population level would drop the group
-#'   variance from every draw. [frmtmb::predict.frmtmb_fit()] predicts
-#'   unseen levels from the maximum-likelihood fit.
+#'   levels the fit saw, answer as the call without it does. A level
+#'   the fit did not see, in a term `re_formula` keeps, is refused with
+#'   or without the flag, and so is a `newdata` that leaves the grouping
+#'   column out under `TRUE`: brms draws that level's effect from each
+#'   posterior draw, which is not built here, and predicting it at the
+#'   population level would drop the group variance from every draw.
+#'   [frmtmb::predict.frmtmb_fit()] predicts unseen levels from the
+#'   maximum-likelihood fit, and `re_formula = NA` predicts here at the
+#'   population level.
 #' @return A draws-by-observations matrix; for a categorical outcome
 #'   `posterior_epred()` returns a draws-by-observations-by-categories
 #'   array (see the section below).
@@ -614,7 +616,8 @@ posterior_epred.frmtmb_draws <- function(object, newdata = NULL,
   # missing from every draw. See dev/shapes-findings.md.
   frm_check_dots(..., .allow = draws_new_level_args)
   re_form <- re_form_arg(re_formula, re.form, "posterior_epred()")
-  draws_refuse_new_levels(object, newdata, list(...), "posterior_epred()")
+  draws_refuse_new_levels(object, newdata, list(...), "posterior_epred()",
+                          re_form)
   draws_refuse_sort(sort, "posterior_epred()")
   object <- draws_at_point_estimate(object, point_estimate,
                                     ndraws_point_estimate)
@@ -678,7 +681,8 @@ posterior_linpred.frmtmb_draws <- function(object, transform = FALSE,
                                            point_estimate = NULL,
                                            ndraws_point_estimate = 1, ...) {
   re_form <- re_form_arg(re_formula, re.form, "posterior_linpred()")
-  draws_refuse_new_levels(object, newdata, list(...), "posterior_linpred()")
+  draws_refuse_new_levels(object, newdata, list(...), "posterior_linpred()",
+                          re_form)
   draws_refuse_sort(sort, "posterior_linpred()")
   object <- draws_at_point_estimate(object, point_estimate,
                                     ndraws_point_estimate)
@@ -764,7 +768,8 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
                                            ndraws_point_estimate = 1, ...) {
   frm_check_dots(..., .allow = draws_new_level_args)
   re_form <- re_form_arg(re_formula, re.form, "posterior_predict()")
-  draws_refuse_new_levels(object, newdata, list(...), "posterior_predict()")
+  draws_refuse_new_levels(object, newdata, list(...), "posterior_predict()",
+                          re_form)
   draws_refuse_sort(sort, "posterior_predict()")
   draws_refuse_ntrys_cores(ntrys, cores, "posterior_predict()")
   object <- draws_at_point_estimate(object, point_estimate,
@@ -838,6 +843,10 @@ posterior_predict.frmtmb_draws <- function(object, newdata = NULL,
       }
       dpv
     }
+    # the ordinal simulators read a cs() term's offsets from `.cs`, and
+    # neither list above carries them: without this every cs() model
+    # was drawn as if the term were absent
+    dp <- cs_offsets_add(sh, resp, newdata, dp)
     ys <- sim_draw(sim_context(sh, rspec, dp, aterms = av,
                                n = length(dp[[1L]]),
                                extra = fit_extras(sh)))
@@ -2384,7 +2393,8 @@ fitted.frmtmb_draws <- function(object, newdata = NULL,
   draws_refuse_sort(sort, "fitted()")
   # checked here as well as in posterior_epred(), so a refusal names the
   # function the caller called
-  draws_refuse_new_levels(object, newdata, list(...), "fitted()")
+  draws_refuse_new_levels(object, newdata, list(...), "fitted()",
+                          re_formula)
   out <- if (identical(scale, "response")) {
     posterior_epred(object, newdata = newdata, re_formula = re_formula,
                     resp = resp, dpar = dpar, nlpar = nlpar,
@@ -2409,7 +2419,8 @@ predict.frmtmb_draws <- function(object, newdata = NULL,
                                  probs = c(0.025, 0.975), ...) {
   draws_refuse_sort(sort, "predict()")
   draws_refuse_ntrys_cores(ntrys, cores, "predict()")
-  draws_refuse_new_levels(object, newdata, list(...), "predict()")
+  draws_refuse_new_levels(object, newdata, list(...), "predict()",
+                          re_formula)
   out <- posterior_predict(object, newdata = newdata,
                            re_formula = re_formula, transform = transform,
                            resp = resp, negative_rt = negative_rt,
@@ -2438,7 +2449,8 @@ residuals.frmtmb_draws <- function(object, newdata = NULL,
                                    probs = c(0.025, 0.975), ...) {
   type <- frm_match_arg(type)
   draws_refuse_sort(sort, "residuals()")
-  draws_refuse_new_levels(object, newdata, list(...), "residuals()")
+  draws_refuse_new_levels(object, newdata, list(...), "residuals()",
+                          re_formula)
   out <- predictive_error(object, newdata = newdata,
                           re_formula = re_formula, method = method,
                           resp = resp, ndraws = ndraws,
@@ -2508,40 +2520,62 @@ draws_new_level_args <- c("allow_new_levels", "allow.new.levels",
 #' A refusal on the argument's mere PRESENCE is too wide:
 #' `allow_new_levels = FALSE` is brms's default, and `TRUE` with no
 #' `newdata`, or with only levels the fit saw, changes nothing in brms
-#' either. Those answer, as they did before. What is refused is `TRUE`
-#' together with a `newdata` that holds a level the fit did not see,
-#' which is decided by asking the fit: the rows build without the flag,
-#' or build only with it.
+#' either. Those answer, as they did before. What is refused is a
+#' `newdata` that holds a level the fit did not see, among the terms
+#' `re_formula` keeps, WITH OR WITHOUT the flag. Without it, core's own
+#' refusal would reach the caller, and its remedy, "Use
+#' allow_new_levels = TRUE", is the argument refused here: following it
+#' led from one refusal to another. `sample_new_levels` alone is the
+#' same call as no flag.
 #'
 #' @noRd
-draws_refuse_new_levels <- function(object, newdata, dots, fn) {
-  anl <- dots[["allow_new_levels"]] %||% dots[["allow.new.levels"]]
-  if (!isTRUE(anl) || is.null(newdata)) return(invisible(NULL))
-  if (!draws_has_unseen_level(draws_base_fit(object), newdata)) {
-    return(invisible(NULL))
-  }
+draws_refuse_new_levels <- function(object, newdata, dots, fn,
+                                    re_formula = NULL) {
+  if (is.null(newdata)) return(invisible(NULL))
+  # a wrapper hands its argument on unresolved, and lme4's spelling on
+  # in the dots
+  re_formula <- re_form_arg(
+    re_formula, if ("re.form" %in% names(dots)) dots[["re.form"]] else
+      arg_unset(), fn)
+  anl <- isTRUE(dots[["allow_new_levels"]] %||% dots[["allow.new.levels"]])
+  what <- draws_unseen_level(draws_base_fit(object), newdata, re_formula,
+                             anl)
+  if (is.null(what)) return(invisible(NULL))
   frm_stop(fn, " on draws cannot predict a grouping level the fit did not ",
-           "see: brms draws that level's effect from each posterior draw ",
-           "or resamples the levels it saw, and neither is implemented ",
-           "for frmtmb_draws yet. predict(fit, allow_new_levels = TRUE) on ",
-           "the maximum-likelihood fit draws it, and re_formula = NA ",
-           "predicts at the population level", call. = FALSE)
+           "see", if (nzchar(what)) paste0(" (", what, ")"), ". brms draws ",
+           "that level's effect from each posterior draw or resamples the ",
+           "levels it saw, and neither is implemented for frmtmb_draws ",
+           "yet, so allow_new_levels = TRUE is refused here as well. ",
+           "predict(fit, allow_new_levels = TRUE) on the maximum-likelihood ",
+           "fit draws it, and re_formula = NA predicts at the population ",
+           "level", call. = FALSE)
 }
 
-#' Whether `newdata` holds a grouping level the fit did not see: its
-#' rows fail to build as they are and build once unseen levels are
-#' allowed. A failure both ways is some other fault, left to the call
-#' itself to report.
+#' Whether `newdata` holds a grouping level the fit did not see among
+#' the terms `re_formula` keeps: `NULL` when it does not, otherwise the
+#' levels core named, or `""` when only the flagged build tells. A rows
+#' failure for some other reason is left to the call itself to report.
 #'
 #' @noRd
-draws_has_unseen_level <- function(fit, newdata) {
+draws_unseen_level <- function(fit, newdata, re_formula, anl) {
+  what <- NULL
   known <- tryCatch({
-    frm_linpred(fit, newdata = newdata)
+    frm_linpred(fit, newdata = newdata, re_formula = re_formula)
+    TRUE
+  }, frmtmb_new_levels = function(e) {
+    what <<- e[["what"]] %||% ""
+    FALSE
+  }, error = function(e) FALSE)
+  if (known) return(NULL)
+  if (!is.null(what)) return(what)
+  # core classes its every new-level refusal, including a newdata with
+  # no grouping column; a term from elsewhere may refuse unclassed, and
+  # under the flag the flagged build says whether that is what failed
+  if (!anl) return(NULL)
+  built <- tryCatch({
+    frm_linpred(fit, newdata = newdata, re_formula = re_formula,
+                allow_new_levels = TRUE)
     TRUE
   }, error = function(e) FALSE)
-  if (known) return(FALSE)
-  tryCatch({
-    frm_linpred(fit, newdata = newdata, allow_new_levels = TRUE)
-    TRUE
-  }, error = function(e) FALSE)
+  if (built) "" else NULL
 }

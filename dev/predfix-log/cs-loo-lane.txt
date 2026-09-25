@@ -1,0 +1,4 @@
+arm lane frmtmb 0.62.0 from C:/Users/adf44/source/r/predfix-lib 
+sratio  sum pointwise -346.201551255  logLik -346.201551255  difference 1.137e-13
+acat    sum pointwise -346.920904512  logLik -346.920904512  difference 0.000e+00
+cratio  sum pointwise -346.201551255  logLik -346.201551255  difference 2.842e-13

@@ -1,0 +1,5 @@
+A: fits 576 ; default short > 1e-6 at scale 1e-3: 2 of 96 , max 0.000463 ; at 1e-2: 0 
+B ML : default short > 1e-6 in 20 of 24 , max 201.7 ; default equals autoscale within 1e-9 in 4 
+B REML : default short > 1e-6 in 0 of 24 , max -13.82 ; default equals autoscale within 1e-9 in 21 
+B profile : default short > 1e-6 in 0 of 24 , max 4.294e-10 ; default equals autoscale within 1e-9 in 24 
+scan: fits 945 ; scale > 1, default short: 0 of 450 ; scale 1e-5 to 1, default short: 0 of 270 ; max default short: 91.368 ; autoscale short anywhere: 0 

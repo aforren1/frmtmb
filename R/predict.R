@@ -316,11 +316,12 @@ smooth_newdata_check <- function(si, newdata, use_re, allow_new_levels) {
     new <- setdiff(unique(as.character(newdata[[gv]])),
                    as.character(lev))
     if (length(new) && !allow_new_levels) {
-      frm_stop("New levels in the factor-smooth term ", si$label, ": ",
-               paste(new, collapse = ", "), ". The term has no curve for ",
-               "them. Use allow_new_levels = TRUE to predict them at the ",
-               "population level, or re_formula = NA for the population curve ",
-               "at every row", call. = FALSE)
+      stop_new_levels(
+        paste0("New levels in the factor-smooth term ", si$label, ": ",
+               paste(new, collapse = ", ")),
+        paste0("The term has no curve for them. Use allow_new_levels = ",
+               "TRUE to predict them at the population level, or ",
+               "re_formula = NA for the population curve at every row"))
     }
     if (length(new) && is.null(si$sm$flev)) {
       # an fs basis zero-rows an unknown level; a factor bs = "re"
@@ -378,17 +379,17 @@ fill_new_group_vars <- function(fit, lp, newdata, allow_new_levels, env) {
   need <- need[!vapply(need, exists, NA, envir = env)]
   if (!length(need)) return(newdata)
   if (!allow_new_levels) {
-    frm_stop("newdata has no column ",
+    them <- if (length(need) > 1L) "them" else "it"
+    stop_new_levels(
+      paste0("newdata has no column ",
              paste0("`", need, "`", collapse = ", "),
              ", the grouping factor", if (length(need) > 1L) "s" else "",
-             " of a random effect. Add ",
-             if (length(need) > 1L) "them" else "it",
-             ", or say what the prediction should do without ",
-             if (length(need) > 1L) "them" else "it",
-             ": allow_new_levels = TRUE treats every row as an unseen ",
-             "level (the population value, plus that block's variance in ",
-             "an interval), and re_formula = NA drops the random effects ",
-             "altogether", call. = FALSE)
+             " of a random effect"),
+      paste0("Add ", them, ", or say what the prediction should do ",
+             "without ", them, ": allow_new_levels = TRUE treats every row ",
+             "as an unseen level (the population value, plus that block's ",
+             "variance in an interval), and re_formula = NA drops the ",
+             "random effects altogether"))
   }
   for (v in need) newdata[[v]] <- NA
   newdata
@@ -604,10 +605,11 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
       }
       j <- match(gv, bk[["levels"]])
       if (anyNA(j) && !allow_new_levels) {
-        frm_stop("New levels in grouping factor `", deparse1(comp$bar[[3]]),
-                 "`: ", paste(unique(gv[is.na(j)]), collapse = ", "),
-                 ". Use allow_new_levels = TRUE to predict them at the ",
-                 "population level", call. = FALSE)
+        stop_new_levels(
+          paste0("New levels in grouping factor `",
+                 deparse1(comp$bar[[3]]), "`: ",
+                 paste(unique(gv[is.na(j)]), collapse = ", ")),
+          "Use allow_new_levels = TRUE to predict them at the population level")
       }
       # new_key is the level label: two rows at the SAME unseen level
       # load one draw of its effect and two DIFFERENT unseen levels load
@@ -622,6 +624,18 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
   }
   list(X = X, off = off, re_parts = re_parts, sm_parts = sm_parts,
        nonest = nonest)
+}
+
+#' The refusal of a grouping level the fit did not see. Classed, and the
+#' level list kept apart from the remedy in `what`, because the remedy is
+#' true only here: frmtmb.sample's draws methods refuse
+#' `allow_new_levels = TRUE`, so they catch this and say what they can do.
+#'
+#' @noRd
+stop_new_levels <- function(what, hint) {
+  frm_stop(structure(class = c("frmtmb_new_levels", "error", "condition"),
+                     list(message = paste0(what, ". ", hint), call = NULL,
+                          what = what)))
 }
 
 #' Rebuild one multi-membership component's design on newdata, as one
@@ -648,11 +662,12 @@ mm_newdata_parts <- function(comp, bk, newdata, env, xlevels,
     new <- unique(unlist(lapply(gv, function(v) {
       setdiff(as.character(v), bk[["levels"]])
     }), use.names = FALSE))
-    frm_stop("New levels in multi-membership factor `", mms$label, "`: ",
-             paste(new, collapse = ", "),
-             ". Use allow_new_levels = TRUE to predict those memberships ",
+    stop_new_levels(
+      paste0("New levels in multi-membership factor `", mms$label, "`: ",
+             paste(new, collapse = ", ")),
+      paste0("Use allow_new_levels = TRUE to predict those memberships ",
              "at the population level; the row's remaining members still ",
-             "contribute their fitted effects", call. = FALSE)
+             "contribute their fitted effects"))
   }
   lapply(seq_len(iw$n_members), function(k) {
     mmk <- md$designs[[k]] * iw$W[, k]
@@ -1715,6 +1730,8 @@ lp_eta_design <- function(object, lp, newdata, use_re, allow_new_levels) {
 
 #' A standard error that leaves out a variance component is only honest
 #' if it says so, so this is a warning rather than a note in the docs.
+#' Classed, so a caller that muffles its other warnings (fitted()'s
+#' scalar route) can let this one through.
 #'
 #' @noRd
 warn_modes_conditional_se <- function() {
@@ -1723,7 +1740,7 @@ warn_modes_conditional_se <- function() {
               "random-effect block: se.fit is conditional on the ",
               "conditional modes and omits random-effect uncertainty. ",
               "Refit with quadrature = FALSE for the full delta method",
-              call. = FALSE)
+              call. = FALSE, class = "frmtmb_modes_conditional_se")
   invisible(NULL)
 }
 
@@ -1790,8 +1807,13 @@ lp_delta_A <- function(object, lp, ed, newdata, use_re, jc, has_rr, rrj) {
       # vector, so the joint covariance carries no random-effect rows to
       # pair the Z columns with. Adding them anyway made A wider than V
       # and the delta method died non-conformable. Report the standard
-      # error conditional on the modes instead, and say so.
-      warn_modes_conditional_se()
+      # error conditional on the modes instead, and say so, but only
+      # where a mode is used: at a level the fit never saw the effect is
+      # not a mode, its variance comes from lp_extra_var(), and nothing
+      # is left out
+      seen <- is.null(newdata) || length(ed[["sm_parts"]]) > 0L ||
+        any(vapply(ed[["re_parts"]], function(rp) any(!is.na(rp$j)), NA))
+      if (seen) warn_modes_conditional_se()
       return(list(A = A, coef_pos = coef_pos))
     }
     if (is.null(newdata)) {
@@ -2097,8 +2119,8 @@ napred <- function(fit, x) {
 #' @param scale `"response"` (default) for the modelled response, or
 #'   `"linear"` for the linear predictor. brms's spelling of what
 #'   [predict.frmtmb_fit()] calls `type`.
-#' @param resp For multivariate fits: which response (defaults to the
-#'   first).
+#' @param resp For multivariate fits: the response or responses to
+#'   report. `NULL` (default) reports all of them, as brms does.
 #' @param dpar Which distributional parameter to report instead of the
 #'   mean.
 #' @param nlpar brms's name for a non-linear parameter, which is a
@@ -2122,8 +2144,14 @@ napred <- function(fit, x) {
 #' @return An `n x 4` matrix with the columns `Estimate`, `Est.Error`
 #'   and one per entry of `probs`. For an ordinal or categorical family
 #'   an `n x 4 x K` array, the third dimension named `P(Y = k)`, which
-#'   is brms's shape. The ROW dimnames are `NULL`, as brms's are; the
-#'   data's row names are on `frm_linpred()` and `model.frame()`.
+#'   is brms's shape. For a multivariate fit asked for more than one
+#'   response, an `n x 4 x nresp` array with the third dimension named
+#'   by response, which is brms's shape too; each cell's `Est.Error` is
+#'   the standard error of that response's own expected value. A
+#'   category-valued response contributes one layer per category, named
+#'   `P(Y = k)`, in its place, as brms stacks it. The ROW dimnames are
+#'   `NULL`, as brms's are; the data's row names are on `frm_linpred()`
+#'   and `model.frame()`.
 #' @section Ordinal responses:
 #' An ordinal response has no mean, so `fitted()` summarizes the `K`
 #' category probabilities, with rows of `Estimate` summing to one,
@@ -2173,11 +2201,17 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
     }
     dpar <- nlpar
   }
-  # frm_linpred() defaults an unnamed multivariate response to the
-  # first; fitted() refuses instead, as it always has, because the
-  # caller who did not name one is asking for all of them
-  if (is.null(resp)) single_response(object, "fitted()")
   check_re_form(re_formula)
+  # frm_linpred() defaults an unnamed multivariate response to the
+  # first; the caller who did not name one is asking for all of them,
+  # which brms answers in an n x 4 x nresp array, and so does this
+  if (is.null(resp) && length(object$spec$responses) > 1L) {
+    resp <- names(object$spec$responses)
+  }
+  if (length(resp) > 1L) {
+    return(fitted_mv(object, newdata, re_formula, scale, resp, dpar, probs,
+                     allow_new_levels))
+  }
   rs <- object$spec$responses[[resp %||% names(object$spec$responses)[1L]]]
   if (is.null(rs) || is.null(fam_structure(rs$family))) {
     # once, so the finite-difference route below perturbs the reduced
@@ -2205,6 +2239,63 @@ fitted.frmtmb_fit <- function(object, newdata = NULL, re_formula = NULL,
   }
   out <- brms_summary_matrix(est, se, probs, rownames = NULL)
   out
+}
+
+#' `fitted()` for several responses of a multivariate fit: each
+#' response's own summary, stacked along the third dimension as brms
+#' stacks it. A scalar response is one layer named by the response; a
+#' category-valued one is its `K` layers named `P(Y = k)`, which is how
+#' brms 2.23.0 answers `mvbf(y1 ~ x, o ~ x)` with `o` categorical
+#' (`dev/predfix-brms-mvcat.R`).
+#'
+#' No delta method is shared between the layers, and none is needed.
+#' A cell's `Est.Error` is the marginal standard error of that
+#' response's expected value, which is what brms's summary of a
+#' posterior_epred() draw column is; the cross-response covariance
+#' would matter only to a joint draw, and fitted() here has no draws
+#' (`summary = FALSE` is refused above).
+#'
+#' @noRd
+fitted_mv <- function(object, newdata, re_formula, scale, resp, dpar,
+                      probs, allow_new_levels) {
+  if (!is.character(resp) || anyNA(resp)) {
+    frm_stop("fitted(): `resp` must name one or more responses, or NULL ",
+             "for all of them, not ", arg_desc(resp), call. = FALSE)
+  }
+  for (r in resp) {
+    if (!r %in% names(object$spec$responses)) {
+      stop_unknown_response(object, r)
+    }
+  }
+  # names kept apart from the list: two categorical responses can share
+  # their category labels, and a named list would overwrite one
+  layers <- list()
+  labs <- character(0)
+  for (r in resp) {
+    p <- fitted.frmtmb_fit(object, newdata = newdata,
+                           re_formula = re_formula, scale = scale, resp = r,
+                           dpar = dpar, probs = probs,
+                           allow_new_levels = allow_new_levels)
+    if (length(dim(p)) == 2L) {
+      layers[[length(layers) + 1L]] <- p
+      labs <- c(labs, r)
+    } else {
+      for (k in seq_len(dim(p)[3L])) {
+        layers[[length(layers) + 1L]] <- p[, , k]
+        labs <- c(labs, dimnames(p)[[3L]][k])
+      }
+    }
+  }
+  nr <- vapply(layers, nrow, 1L)
+  if (length(unique(nr)) > 1L) {
+    frm_stop("fitted(): the responses have different numbers of rows (",
+             paste0(labs, " ", nr, collapse = ", "), "), so they do not ",
+             "stack into one nrow x 4 x nresp array. Ask for one response ",
+             "at a time with resp =", call. = FALSE)
+  }
+  array(unlist(layers, use.names = FALSE),
+        c(nr[[1L]], ncol(layers[[1L]]), length(layers)),
+        dimnames = list(NULL, colnames(layers[[1L]]), labs))
 }
 
 #' Hold the quantile columns of a category-probability summary between
@@ -2291,11 +2382,20 @@ fitted_point_se <- function(object, newdata, re_formula, scale, resp, dpar,
     }
     return(fit_fd_se(object, f, b_idx = b_idx, b_batch = bt))
   }
-  p <- tryCatch(suppressWarnings(
+  # fitted_point() has already raised this call's warnings, so they are
+  # muffled here, except the one only the standard error can raise: a
+  # quadrature fit's Est.Error without the group-effect term, which the
+  # finite-difference route above and predict() both say out loud
+  p <- tryCatch(withCallingHandlers(
     frm_linpred(object, newdata = newdata,
                 type = if (scale == "response") "response" else "link",
                 dpar = dpar, resp = resp, re_formula = re_formula,
-                allow_new_levels = allow_new_levels, se.fit = TRUE)),
+                allow_new_levels = allow_new_levels, se.fit = TRUE),
+    warning = function(w) {
+      if (!inherits(w, "frmtmb_modes_conditional_se")) {
+        invokeRestart("muffleWarning")
+      }
+    }),
     error = function(e) NULL)
   if (is.null(p)) NULL else p$se.fit
 }
@@ -2410,6 +2510,24 @@ ord_cs_offsets <- function(object, lp, newdata, n, K1) {
   CS <- matrix(0, n, K1)
   for (ct in cv) CS <- CS + outer(ct$vals, object$estimates[[ct$par]])
   CS
+}
+
+#' One response's dpar-value list with its category-specific (`cs()`)
+#' offsets as `.cs`, the `n x (K-1)` matrix the ordinal simulators read,
+#' evaluated at `newdata` (or at the fitted rows when it is `NULL`) and
+#' at `fit`'s current estimates. `dpv` is returned unchanged when the
+#' response has no `cs()` term. The row count is `dpv`'s own.
+#'
+#' @noRd
+cs_offsets_add <- function(fit, resp, newdata, dpv) {
+  for (lp in fit$frame[["linpreds"]]) {
+    cst <- lp[["cs"]] %||% list()
+    if (!length(cst) || !identical(lp[["resp"]], resp)) next
+    n <- length(dpv[[1L]])
+    K1 <- length(fit$estimates[[cst[[1L]]$par]])
+    dpv[[".cs"]] <- ord_cs_offsets(fit, lp, newdata, n, K1)
+  }
+  dpv
 }
 
 #' `n x K` category probabilities of an ordinal fit.

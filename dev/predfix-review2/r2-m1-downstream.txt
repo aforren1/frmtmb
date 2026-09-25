@@ -1,0 +1,18 @@
+frmtmb from C:/Users/adf44/source/r/predfix-lib/frmtmb 
+engaged: TRUE / FALSE 
+logLik diff 1.601e-10
+profile confint ERROR: `parm` is required for method = 'profile' | `parm` is required for method = 'profile' 
+frm_linpred fit rel 2.08e-06 se.fit rel 1.97e-06
+update() keeps engagement: TRUE logLik diff to a 0.00e+00
+bootstrap replicate estimates max rel diff: 1.40e-04
+
+-- multivariate, slope ID-linked across two responses, x at 1e-3 --
+Warning message:
+Optimizer did not report convergence: singular convergence (7) 
+Warning messages:
+1: Optimizer did not report convergence: false convergence (8) 
+2: Large maximum absolute gradient at the optimum (4099); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies 
+ref -909.730612 c1 | default -909.730599 c0 engaged TRUE | FALSE -931.567068 c1
+   y.mu z thetas: 2 
+   y2.mu z thetas: 4 
+  template move: beta 0.00e+00 betad 0.00e+00 b 0.00e+00 theta 0.00e+00 

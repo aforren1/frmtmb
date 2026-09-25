@@ -1,0 +1,49 @@
+== gated 39 files ==
+RESULT test-bcm-bart.R pass=12 fail=0 err=0 skip=0
+RESULT test-bcm-binomial.R pass=37 fail=0 err=0 skip=0
+RESULT test-bcm-data-analysis.R pass=46 fail=0 err=0 skip=0
+RESULT test-bcm-esp.R pass=17 fail=0 err=0 skip=0
+RESULT test-bcm-gaussian.R pass=23 fail=0 err=0 skip=0
+RESULT test-bcm-gcm.R pass=17 fail=0 err=0 skip=0
+RESULT test-bcm-latent-mixtures.R pass=52 fail=0 err=0 skip=0
+RESULT test-bcm-model-selection.R pass=29 fail=0 err=0 skip=0
+RESULT test-bcm-mpt.R pass=27 fail=0 err=0 skip=0
+RESULT test-bcm-psychophysics.R pass=28 fail=0 err=0 skip=0
+RESULT test-bcm-retention.R pass=32 fail=0 err=0 skip=0
+RESULT test-bcm-signal-detection.R pass=30 fail=0 err=0 skip=0
+RESULT test-bcm-simple.R pass=13 fail=0 err=0 skip=0
+RESULT test-brms-agreement.R pass=187 fail=0 err=0 skip=0
+RESULT test-brms-likelihood.R pass=406 fail=0 err=0 skip=0
+RESULT test-brms-methods.R pass=979 fail=0 err=0 skip=0
+RESULT test-brms-priors.R pass=103 fail=0 err=0 skip=0
+RESULT test-brms-port.R pass=21 fail=0 err=0 skip=0
+RESULT test-rl-example.R pass=102 fail=0 err=0 skip=0
+RESULT test-drmtmb-agreement.R pass=126 fail=2 err=0 skip=0
+  FAILED [skew_normal: same likelihood; frmtmb's default start stalls] Expected `(as.numeric(logLik(fd)) - as.numeric(logLik(ff)))/abs(as.numeric(logLik(fd)))` > 0.01. Actual comparison: 0.00000000000001 <= 0.01000000000000 Difference: -0.00999999999999 <= 0
+  FAILED [skew_normal: same likelihood; frmtmb's default start stalls] Expected `abs(ff$opt$par[[4]])/se_alpha` < 0.01. Actual comparison: 3.86 >= 0.01 Difference: 3.85 >= 0
+RESULT test-fuzz.R pass=2 fail=0 err=0 skip=0
+RESULT test-brms-suite-brm.R pass=23 fail=0 err=0 skip=0
+RESULT test-brms-suite-brmsfit-helpers.R pass=3 fail=0 err=0 skip=0
+RESULT test-brms-suite-brmsformula.R pass=16 fail=0 err=0 skip=0
+RESULT test-brms-suite-brmsterms.R pass=5 fail=0 err=0 skip=0
+RESULT test-brms-suite-data-helpers.R pass=6 fail=0 err=0 skip=0
+RESULT test-brms-suite-emmeans.R pass=11 fail=0 err=0 skip=0
+RESULT test-brms-suite-families.R pass=84 fail=0 err=0 skip=0
+RESULT test-brms-suite-methods.R pass=162 fail=0 err=0 skip=0
+RESULT test-brms-suite-priors.R pass=36 fail=0 err=0 skip=0
+RESULT test-brms-suite-standata.R pass=87 fail=0 err=0 skip=0
+RESULT test-brms-suite-brmsformula.R pass=16 fail=0 err=0 skip=0
+RESULT test-brms-suite-brmsterms.R pass=4 fail=0 err=0 skip=0
+RESULT test-brms-suite-families.R pass=84 fail=0 err=0 skip=0
+RESULT test-brms-suite-helper-copy.R pass=33 fail=0 err=0 skip=0
+RESULT test-brms-suite-methods.R pass=61 fail=0 err=0 skip=0
+RESULT test-stan-identity.R pass=71 fail=0 err=0 skip=0
+  WARNING [bandit2arm_dual reproduces Stan under both splits] Optimizer did not report convergence: false convergence (8)
+  WARNING [bandit2arm_dual reproduces Stan under both splits] Large maximum absolute gradient at the optimum (0.293); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+  WARNING [rlddm reproduces Stan with a correlated block on all four] Optimizer did not report convergence: false convergence (8)
+  WARNING [rlddm reproduces Stan with a correlated block on all four] Large maximum absolute gradient at the optimum (0.0451); the fit may not have converged. diagnose() names the offending parameter; see the 'Convergence problems' section of vignette('diagnostics') for the remedies
+RESULT test-loo.R pass=79 fail=0 err=0 skip=0
+RESULT test-sampling-ported.R pass=213 fail=0 err=0 skip=0
+  WARNING [the draws surface runs the model machinery per draw] hypothesis(): no evidence ratio for 1 of 1 point hypothesis. A Savage-Dickey ratio divides the posterior density at the tested point by the PRIOR density there, and   sd_g__Intercept^2 / (sd_g__Intercept^2 + sigma^2) = 0: it names sd_g__Intercept, sigma, which is not a population-level coefficient. 
+GATED ran 39 of 39
+GATED files with skips: 0

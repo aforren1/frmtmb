@@ -1,0 +1,19 @@
+frmtmb from C:/Users/adf44/source/r/predfix-lib/frmtmb 
+         fam   sx    short.max short.n_gt_1e3
+1  bernoulli 0.02 0.000000e+00   0.000000e+00
+2   gaussian 0.02 0.000000e+00   0.000000e+00
+3    poisson 0.02 0.000000e+00   0.000000e+00
+4  bernoulli 0.06 2.349922e-05   0.000000e+00
+5   gaussian 0.06 8.424420e-07   0.000000e+00
+6    poisson 0.06 9.276291e-07   0.000000e+00
+7  bernoulli 0.08 1.695691e-06   0.000000e+00
+8   gaussian 0.08 1.141040e-06   0.000000e+00
+9    poisson 0.08 5.526815e-07   0.000000e+00
+10 bernoulli 0.15 3.915772e-06   0.000000e+00
+11  gaussian 0.15 8.447400e-07   0.000000e+00
+12   poisson 0.15 3.320524e-07   0.000000e+00
+engaged by sx:
+0.02 0.06 0.08 0.15 
+   1    0    0    0 
+[1] fam     sx      ssd     seed    engaged short   codeD   nwD    
+<0 rows> (or 0-length row.names)

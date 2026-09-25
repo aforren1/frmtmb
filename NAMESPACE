@@ -183,6 +183,7 @@ export(beta_binomial)
 export(bf)
 export(brmsfamily)
 export(build_objective, row_lpdf, with_cs_offsets,
+  cs_offsets_add,
   us_chol_cor, expand_b, aterms_for_newdata, has_trunc, as_priorlist,
   check_prior_slots, resolve_prior_input, neg_log_prior_fn,
   resolve_bounds, spec_target,

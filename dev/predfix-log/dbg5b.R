@@ -1,0 +1,8 @@
+source("C:/Users/adf44/source/r/frmtmb-wt-predfix/dev/predfix-prelude.R")
+set.seed(5)
+d <- data.frame(x = rnorm(80)); d$cnt <- rpois(80, exp(0.2 + 0.5 * d$x)); d$y <- 1 + d$x + rnorm(80)
+f <- frm(bf(cnt ~ x) + poisson(), data = d, REML = TRUE)
+fm <- frm(bf(cnt ~ x) + poisson(), data = d)
+g <- glm(cnt ~ x, family = poisson(), data = d, control = glm.control(epsilon = 1e-14))
+print(rbind(reml = fixef_by_dpar(f)$mu, ml = fixef_by_dpar(fm)$mu, glm = coef(g)), digits = 12)
+print(vcov(f) / vcov(g)); print(vcov(fm) / vcov(g))

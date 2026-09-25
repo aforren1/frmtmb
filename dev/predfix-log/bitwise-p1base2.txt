@@ -1,0 +1,12 @@
+arm base frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3 
+There were 50 or more warnings (use warnings() to see the first 50)
+Warning messages:
+1: In sqrt(diag(vcov(fit, full = TRUE))) : NaNs produced
+2: In sqrt(diag(vcov(fit, full = TRUE))) : NaNs produced
+3: In sqrt(frmtmb:::sdr_of(fit)$diag.cov.random) : NaNs produced
+4: In sqrt(diag(vcov(fit, full = TRUE))) : NaNs produced
+5: In sqrt(frmtmb:::sdr_of(fit)$diag.cov.random) : NaNs produced
+6: In sqrt(diag(vcov(fit, full = TRUE))) : NaNs produced
+7: In sqrt(diag(vcov(fit, full = TRUE))) : NaNs produced
+8: In sqrt(diag(vcov(fit, full = TRUE))) : NaNs produced
+fits: 519  errors: 10  seconds: 112 

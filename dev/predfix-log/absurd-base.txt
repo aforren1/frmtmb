@@ -1,0 +1,14 @@
+arm base frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3 
+                                            kind  n    est_max esterr_max top1_min top1_max    mq_min     mq_max se_eta_min se_eta_max
+poisson, x at 10 x the range row 1 extrapolation 20  1.360e+00  1.187e+00  0.05365  0.05700 3.088e-01  3.400e-01  6.094e-02  6.672e-02
+poisson, x at 10 x the range row 2 extrapolation 20  3.605e+07  1.261e+08  0.23946  0.33921 1.328e-01  1.480e-01  1.601e+00  1.943e+00
+poisson, all-zero cell row 1                flat 20  1.918e+00  1.351e+00  0.03356  0.03850 3.498e-01  3.836e-01  8.987e-02  9.493e-02
+poisson, all-zero cell row 2                flat 20 2.744e+305        Inf  1.00000  1.00000 5.267e+48 2.849e+155  5.688e+03  8.031e+03
+poisson, x2 = x + N(0, 1e-3) row 1          flat 20  1.703e+00  1.241e+00  0.03685  0.04743 4.025e-01  4.231e-01  5.459e-02  5.816e-02
+poisson, x2 = x + N(0, 1e-3) row 2          flat 20 2.935e+192        Inf  1.00000  1.00000 1.721e+39  2.775e+43  1.006e+02  1.110e+02
+lognormal sigma 2.5 row 1                genuine 20  8.240e+01  7.328e+02  0.48091  0.59035 1.575e-01  1.810e-01  1.688e-01  1.935e-01
+lognormal sigma 2.5 row 2                genuine 20  1.748e+02  7.022e+02  0.26582  0.31915 8.042e-02  9.316e-02  3.676e-01  4.338e-01
+negbinomial shape 0.15 row 1             genuine 20  8.795e+00  2.218e+01  0.15411  0.18764 1.234e-01  1.310e-01  1.651e-01  1.814e-01
+negbinomial shape 0.15 row 2             genuine 20  2.738e+01  6.267e+01  0.14314  0.17331 1.111e-01  1.242e-01  3.358e-01  5.052e-01
+student nu 1.3 row 1                     genuine 20  1.209e+00  5.820e+00  0.18669  0.20113 1.308e-01  1.386e-01  1.142e-01  1.188e-01
+student nu 1.3 row 2                     genuine 20  1.659e+00  6.662e+00  0.21227  0.22718 1.265e-01  2.005e-01  2.386e-01  3.184e-01

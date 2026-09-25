@@ -1,0 +1,38 @@
+frmtmb from C:/Users/adf44/source/r/predfix-lib/frmtmb 
+sx=1 seed=11 default vs F                engaged=FALSE/FALSE dLL=0.000e+00 ll=-473.530507979 fixef=0.00e+00 ranef=0.00e+00 VarCorr=0.00e+00 vcov=0.00e+00 se=0.00e+00 pred=9.88e+00 code=0/0 nwarn=0/0
+sx=1 seed=11 TRUE vs F                   engaged=TRUE/FALSE dLL=-3.508e-10 ll=-473.530507979 fixef=3.87e-06 ranef=2.32e-05 VarCorr=3.86e-05 vcov=3.86e-05 se=3.00e-06 pred=1.41e+01 code=0/0 nwarn=0/0
+   template move (default): no template 
+   template move (TRUE):    beta 1.21e-06 betad 3.47e-07 b 1.04e-06 theta 9.61e-07 
+   theta tpl: -0.18878614448 -0.86338021901 -0.08785015076 
+   theta F  : -0.18878192373 -0.86338072994 -0.08784642328 
+sx=1 seed=12 default vs F                engaged=FALSE/FALSE dLL=0.000e+00 ll=-451.204403792 fixef=0.00e+00 ranef=0.00e+00 VarCorr=0.00e+00 vcov=0.00e+00 se=0.00e+00 pred=1.61e+01 code=0/0 nwarn=0/0
+sx=1 seed=12 TRUE vs F                   engaged=TRUE/FALSE dLL=4.668e-09 ll=-451.204403792 fixef=2.04e-05 ranef=1.26e-02 VarCorr=7.94e-05 vcov=8.08e-05 se=1.04e-05 pred=1.92e+01 code=0/0 nwarn=0/0
+   template move (default): no template 
+   template move (TRUE):    beta 2.02e-06 betad 5.78e-07 b 3.13e-06 theta 6.83e-06 
+   theta tpl: -0.2016331061 -0.6704100450  0.1300618460 
+   theta F  : -0.2016397688 -0.6703960072  0.1300521614 
+sx=1 seed=13 default vs F                engaged=FALSE/FALSE dLL=0.000e+00 ll=-460.483253048 fixef=0.00e+00 ranef=0.00e+00 VarCorr=0.00e+00 vcov=0.00e+00 se=0.00e+00 pred=3.50e+01 code=0/0 nwarn=0/0
+sx=1 seed=13 TRUE vs F                   engaged=TRUE/FALSE dLL=-6.418e-10 ll=-460.483253048 fixef=6.82e-06 ranef=1.33e-04 VarCorr=3.36e-05 vcov=3.11e-05 se=6.82e-06 pred=6.35e+01 code=0/0 nwarn=0/0
+   template move (default): no template 
+   template move (TRUE):    beta 3.60e-06 betad 1.31e-06 b 1.30e-05 theta 3.65e-05 
+   theta tpl: -0.2724743000 -0.7178113324  0.2841404092 
+   theta F  : -0.2724536568 -0.7178072194  0.2841850172 
+sx=0.04 seed=11 default vs F             engaged=TRUE/FALSE dLL=-2.685e-10 ll=-473.530507979 fixef=5.88e-06 ranef=2.51e-05 VarCorr=1.88e-05 vcov=1.78e-05 se=2.02e-06 pred=9.88e+00 code=0/0 nwarn=0/0
+sx=0.04 seed=11 TRUE vs F                engaged=TRUE/FALSE dLL=-2.685e-10 ll=-473.530507979 fixef=5.88e-06 ranef=2.51e-05 VarCorr=1.88e-05 vcov=1.78e-05 se=2.02e-06 pred=1.41e+01 code=0/0 nwarn=0/0
+   template move (default): beta 3.01e-05 betad 3.47e-07 b 2.61e-05 theta 9.61e-07 
+   template move (TRUE):    beta 3.01e-05 betad 3.47e-07 b 2.61e-05 theta 9.61e-07 
+   theta tpl: -0.18878614448  2.35549560585 -0.08785015076 
+   theta F  : -0.18878302204  2.35549597597 -0.08784817363 
+sx=0.04 seed=12 default vs F             engaged=TRUE/FALSE dLL=1.386e-10 ll=-451.204403787 fixef=3.27e-06 ranef=3.89e-03 VarCorr=6.95e-06 vcov=6.85e-06 se=1.17e-06 pred=1.62e+01 code=0/0 nwarn=0/0
+sx=0.04 seed=12 TRUE vs F                engaged=TRUE/FALSE dLL=1.386e-10 ll=-451.204403787 fixef=3.27e-06 ranef=3.89e-03 VarCorr=6.95e-06 vcov=6.85e-06 se=1.17e-06 pred=1.92e+01 code=0/0 nwarn=0/0
+   template move (default): beta 2.09e-05 betad 5.78e-07 b 7.81e-05 theta 6.83e-06 
+   template move (TRUE):    beta 2.09e-05 betad 5.78e-07 b 7.81e-05 theta 6.83e-06 
+   theta tpl: -0.2016331061  2.5484657799  0.1300618460 
+   theta F  : -0.2016297244  2.5484730961  0.1300613095 
+sx=0.04 seed=13 default vs F             engaged=TRUE/FALSE dLL=-9.396e-10 ll=-460.483253047 fixef=5.29e-06 ranef=9.22e-05 VarCorr=3.24e-05 vcov=3.01e-05 se=5.29e-06 pred=3.50e+01 code=0/0 nwarn=0/0
+sx=0.04 seed=13 TRUE vs F                engaged=TRUE/FALSE dLL=-9.396e-10 ll=-460.483253047 fixef=5.29e-06 ranef=9.22e-05 VarCorr=3.24e-05 vcov=3.01e-05 se=5.29e-06 pred=6.35e+01 code=0/0 nwarn=0/0
+   template move (default): beta 6.95e-06 betad 1.31e-06 b 2.02e-04 theta 3.65e-05 
+   template move (TRUE):    beta 6.95e-06 betad 1.31e-06 b 2.02e-04 theta 3.65e-05 
+   theta tpl: -0.2724743000  2.5010644925  0.2841404092 
+   theta F  : -0.2724553106  2.5010698778  0.2841847745 
+ chr [1:4] "beta" "betad" "b" "theta"

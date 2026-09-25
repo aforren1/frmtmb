@@ -1071,7 +1071,9 @@ lca_compat_rules <- function() {
     "Verified by a tiny fit. Bounds on the gating coefficients are also the one way to order the classes and pin the labeling.")
   r("lca", "sparse_x", "works",
     "Verified by a tiny fit: the gating design is an ordinary fixed-effect design.")
+  r("lca", "autoscale", "works",
+    "Verified: latent class regression Y ~ x with x at 1e-6: frmtmb's default engages autoscale and reaches the scale-1 log-likelihood on 3 of 3 seeds (within 2.2e-8), where autoscale = FALSE was 41.8 to 51.5 units short (dev/predfix-p1-ext.R).")
   r("lca", "kind:mode", "untested",
-    "See the REML, profile, quadrature, prior, bounds and sparse_x rules; autoscale and verbose are untested.")
+    "See the REML, profile, quadrature, prior, bounds, sparse_x and autoscale rules; verbose is untested.")
   b$rules()
 }

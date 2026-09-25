@@ -1,3 +1,10 @@
+# frmtmb.latent (development version)
+
+* `frm_compat()` records `autoscale` as working for `hmm()` and `lca()`,
+  which frmtmb's default now engages below a column spread of 1e-3:
+  measured at 1e-6, both reach the scale-1 log-likelihood on 3 of 3
+  seeds (`dev/predfix-p1-ext.R` in the frmtmb repository).
+
 # frmtmb.latent 0.5.0
 
 * `hmm_starts()`'s scale check reads `frmtmb::vcov_estimated()` rather

@@ -1,0 +1,10 @@
+frmtmb from C:/Users/adf44/source/r/predfix-lib/frmtmb 
+frmtmb.latent from C:/Users/adf44/source/r/predfix-lib/frmtmb.latent 
+hmm K=2 y ~ x, seed 909            ref -1759.181714 | default -1759.181714 engaged=TRUE code 0 | FALSE -1759.181714 code 0
+   slope default / (ref * 1/s): 1.00000057
+lca K=3 Y ~ x, seed 909            ref -1627.206125 | default -1627.206125 engaged=TRUE code 0 | FALSE -1627.961082 code 0
+   slope default / (ref * 1/s): 0.99999597
+hmm K=2 y ~ x, seed 910            ref -1777.732887 | default -1777.732887 engaged=TRUE code 0 | FALSE -1777.732887 code 0
+   slope default / (ref * 1/s): 0.99999981
+lca K=3 Y ~ x, seed 910            ref -1655.615343 | default -1655.615343 engaged=TRUE code 0 | FALSE -1660.521020 code 0
+   slope default / (ref * 1/s): 0.99999028

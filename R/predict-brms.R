@@ -816,7 +816,8 @@ predict_dpar_values <- function(fit, rspec, newdata, re_formula,
                                 allow_new_levels, new_level_off = NULL) {
   resp <- rspec$resp_name
   if (is.null(newdata) && is.null(re_formula)) {
-    return(with_cs_offsets(fit, rspec, eval_dpars(fit)[[resp]]))
+    dpv <- eval_dpars(fit)[[resp]]
+    return(cs_offsets_add(fit, resp, NULL, dpv))
   }
   dpv <- list()
   for (dnm in names(rspec$dpars)) {
@@ -840,7 +841,11 @@ predict_dpar_values <- function(fit, rspec, newdata, re_formula,
                             allow_new_levels = allow_new_levels))
     dpv[[dnm]] <- lp[["link"]]$linkinv(eta + off)
   }
-  with_cs_offsets(fit, rspec, dpv)
+  # with_cs_offsets() takes the list of EVERY response and reads the
+  # cs() values of the training rows; handed this one response's list
+  # it wrote the offsets one level down, where no simulator reads them,
+  # and predict() drew every cs() model as if the term were absent
+  cs_offsets_add(fit, resp, newdata, dpv)
 }
 
 #' A closure returning one fit-like object per call: the fit itself

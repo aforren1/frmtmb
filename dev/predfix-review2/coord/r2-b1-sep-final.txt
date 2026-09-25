@@ -1,0 +1,24 @@
+frmtmb from C:/Users/adf44/source/r/predfix-lib/frmtmb 
+   seed case                warnD warnF codeD codeF msgD                                                         msgF                                                        
+1  511  poisson zero cell   0     0     0     0                                                                                                                              
+2  511  bernoulli separated 1     1     1     1     Optimizer did not report convergence: function evaluation li Optimizer did not report convergence: function evaluation li
+3  512  poisson zero cell   0     0     0     0                                                                                                                              
+4  512  bernoulli separated 1     1     1     1     Optimizer did not report convergence: function evaluation li Optimizer did not report convergence: function evaluation li
+5  513  poisson zero cell   0     0     0     0                                                                                                                              
+6  513  bernoulli separated 1     1     1     1     Optimizer did not report convergence: function evaluation li Optimizer did not report convergence: function evaluation li
+7  514  poisson zero cell   0     0     0     0                                                                                                                              
+8  514  bernoulli separated 1     1     1     1     Optimizer did not report convergence: function evaluation li Optimizer did not report convergence: function evaluation li
+9  515  poisson zero cell   0     0     0     0                                                                                                                              
+10 515  bernoulli separated 1     1     1     1     Optimizer did not report convergence: function evaluation li Optimizer did not report convergence: function evaluation li
+11 516  poisson zero cell   0     0     0     0                                                                                                                              
+12 516  bernoulli separated 1     1     1     1     Optimizer did not report convergence: function evaluation li Optimizer did not report convergence: function evaluation li
+13 517  poisson zero cell   0     0     0     0                                                                                                                              
+14 517  bernoulli separated 1     1     1     1     Optimizer did not report convergence: function evaluation li Optimizer did not report convergence: function evaluation li
+15 518  poisson zero cell   0     0     0     0                                                                                                                              
+16 518  bernoulli separated 1     1     1     1     Optimizer did not report convergence: function evaluation li Optimizer did not report convergence: function evaluation li
+17 519  poisson zero cell   0     0     0     0                                                                                                                              
+18 519  bernoulli separated 0     0     0     0                                                                                                                              
+19 520  poisson zero cell   0     0     0     0                                                                                                                              
+20 520  bernoulli separated 0     0     0     0                                                                                                                              
+
+fits with >= 1 warning under FALSE but 0 under default: 0 of 20 

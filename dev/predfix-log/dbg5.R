@@ -1,0 +1,10 @@
+source("C:/Users/adf44/source/r/frmtmb-wt-predfix/dev/predfix-prelude.R")
+set.seed(5)
+d5 <- data.frame(x = rnorm(80))
+d5$cnt <- rpois(80, exp(0.2 + 0.5 * d5$x))
+f <- frm(bf(cnt ~ x) + poisson(), data = d5, REML = TRUE)
+sdr <- frmtmb:::sdr_of(f)
+print(names(sdr)); print(sdr$jointPrecision); print(length(f$obj$par)); print(f$obj$env$random)
+print(frmtmb:::estimated_coef_names(f))
+Q <- sdr$jointPrecision
+print(rownames(Q))

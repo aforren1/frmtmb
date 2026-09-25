@@ -92,10 +92,12 @@ test_that("the draws methods refuse an unseen level rather than drop its varianc
     # TRUE with levels the fit saw changes nothing, as in brms
     ep <- f(ds, newdata = known, allow_new_levels = TRUE, ndraws = 3)
     expect_equal(dim(ep), c(3L, 3L))
-    # without the flag the D6 message still names it (its hint then
-    # leads to the refusal above: dev/test-backlog.md, Open - medium)
+    # without the flag it is the same refusal, which says the flag is
+    # refused too: core's own hint recommended it (lane wt-predfix)
     expect_error(f(ds, newdata = nd, ndraws = 3), class = "frmtmb_error")
-    expect_error(f(ds, newdata = nd, ndraws = 3), "allow_new_levels = TRUE")
+    expect_error(f(ds, newdata = nd, ndraws = 3),
+                 "allow_new_levels = TRUE is refused here as well",
+                 fixed = TRUE)
     # every OTHER name in the dots is refused rather than ignored
     expect_error(f(ds, newdata = nd, ndraws = 3, not_an_argument = 2),
                  "not_an_argument")

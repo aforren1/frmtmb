@@ -1,0 +1,63 @@
+brms 2.23.0 StanHeaders 2.32.10 
+
+== item 1: fitted() on a multivariate fit
+Compiling Stan program...
+Start sampling
+fitted(mv): dim 150 x 4 x 2
+  dimnames[[1]]: NULL
+  dimnames[[2]]: Estimate, Est.Error, Q2.5, Q97.5
+  dimnames[[3]]: y1, y2
+fitted(mv, resp = 'y2'): dim 150 x 4
+  dimnames[[1]]: NULL
+  dimnames[[2]]: Estimate, Est.Error, Q2.5, Q97.5
+fitted(mv, resp = c('y1', 'y2')): dim 150 x 4 x 2
+  dimnames[[1]]: NULL
+  dimnames[[2]]: Estimate, Est.Error, Q2.5, Q97.5
+  dimnames[[3]]: y1, y2
+fitted(mv, newdata = 3 rows): dim 3 x 4 x 2
+  dimnames[[1]]: NULL
+  dimnames[[2]]: Estimate, Est.Error, Q2.5, Q97.5
+  dimnames[[3]]: y1, y2
+fitted(mv, dpar = 'sigma'): dim 150 x 4 x 2
+  dimnames[[1]]: NULL
+  dimnames[[2]]: Estimate, Est.Error, Q2.5, Q97.5
+  dimnames[[3]]: y1, y2
+fitted(mv, scale = 'linear'): dim 150 x 4 x 2
+  dimnames[[1]]: NULL
+  dimnames[[2]]: Estimate, Est.Error, Q2.5, Q97.5
+  dimnames[[3]]: y1, y2
+predict(mv): dim 150 x 4 x 2
+  dimnames[[1]]: NULL
+  dimnames[[2]]: Estimate, Est.Error, Q2.5, Q97.5
+  dimnames[[3]]: y1, y2
+, , y1
+
+      Estimate  Est.Error      Q2.5     Q97.5
+[1,] 1.1075271 0.08877731 0.9065779 1.2816817
+[2,] 1.4202417 0.11555402 1.1872844 1.6505575
+[3,] 0.7085699 0.11099406 0.5031538 0.9191677
+
+, , y2
+
+       Estimate  Est.Error       Q2.5         Q97.5
+[1,] -0.1798645 0.08751028 -0.3423683  5.034017e-05
+[2,] -0.4007282 0.11045928 -0.6053006 -1.776883e-01
+[3,]  0.1019104 0.10847270 -0.1055594  2.981667e-01
+
+
+== item 3: an unseen level without allow_new_levels
+Compiling Stan program...
+Start sampling
+Warning messages:
+1: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#bulk-ess 
+2: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.
+Running the chains for more iterations may help. See
+https://mc-stan.org/misc/warnings.html#tail-ess 
+fitted(no flag): ERROR: Levels 'new1' of grouping factor 'g' cannot be found in the fitted model. Consider setting argument 'allow_new_levels' to TRUE.
+predict(no flag): ERROR: Levels 'new1' of grouping factor 'g' cannot be found in the fitted model. Consider setting argument 'allow_new_levels' to TRUE.
+posterior_epred(no flag): ERROR: Levels 'new1' of grouping factor 'g' cannot be found in the fitted model. Consider setting argument 'allow_new_levels' to TRUE.
+fitted(sample_new_levels = 'gaussian' alone): ERROR: Levels 'new1' of grouping factor 'g' cannot be found in the fitted model. Consider setting argument 'allow_new_levels' to TRUE.
+fitted(re_formula = NA, no flag): answered
+fitted(re_formula = NA, allow_new_levels = TRUE): answered

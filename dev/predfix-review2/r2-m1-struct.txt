@@ -1,0 +1,57 @@
+frmtmb from C:/Users/adf44/source/r/predfix-lib/frmtmb 
+S1_us            ref=-513.659916 c0 | F@1e-3=-515.165079 c0 | default@1e-3=-513.659916 c0 engaged=TRUE fitted_rel=5.28e-04
+   plan@1e-3: y.mu:cols=2 z=[theta2/20cols/s=0.000995] 
+   template move: beta 0.00e+00 betad 0.00e+00 b 0.00e+00 theta 0.00e+00 
+S2_twoblocks     ref=-504.243731 c0 | F@1e-3=-506.113655 c0 | default@1e-3=-504.243731 c0 engaged=TRUE fitted_rel=3.58e-04
+   plan@1e-3: y.mu:cols=2 z=[theta2/20cols/s=0.000995 theta4/10cols/s=0.000995] 
+   template move: beta 1.44e-03 betad 2.65e-06 b 2.11e-03 theta 2.52e-06 
+S3_interact      ref=-488.324840 c0 | F@1e-3=-490.908622 c0 | default@1e-3=-488.324840 c0 engaged=TRUE fitted_rel=3.71e-04
+   plan@1e-3: y.mu:cols=2,3,4 z=[theta2/20cols/s=0.000995] 
+   template move: beta 5.35e-03 betad 2.57e-06 b 1.37e-02 theta 1.95e-05 
+S3b_int_slope    ref=-503.764293 c0 | F@1e-3=-504.600963 c0 | default@1e-3=-503.764293 c0 engaged=TRUE fitted_rel=1.25e-03
+   plan@1e-3: y.mu:cols=2,3,4 z=[theta2/20cols/s=0.00101] 
+   template move: beta 0.00e+00 betad 0.00e+00 b 0.00e+00 theta 0.00e+00 
+S4_by            ref=ERR gr() supports (x | gr(g, cov = A)) or (1 | gr(g, prec = Q)) | F@1e-3=ERR gr() supports (x | gr(g, cov = A)) or (1 | gr(g, prec = Q)) | default@1e-3=ERR gr() supports (x | gr(g, cov = A)) or (1 | gr(g, prec = Q)) engaged=FALSE fitted_rel=NA
+   plan@1e-3: error 
+S5_dblbar        ref=-516.328947 c0 | F@1e-3=-516.328947 c0 | default@1e-3=-516.328947 c0 engaged=TRUE fitted_rel=8.51e-06
+   plan@1e-3: y.mu:cols=2 z=[theta2/20cols/s=0.000995] 
+   template move: beta 0.00e+00 betad 0.00e+00 b 0.00e+00 theta 0.00e+00 
+S6_poly          ref=-513.611102 c0 | F@1e-3=-513.611102 c0 | default@1e-3=-513.611102 c0 engaged=FALSE fitted_rel=1.18e-04
+   plan@1e-3: y.mu:cols=2,3 z=[] 
+S6b_Ionly        ref=-513.659916 c0 | F@1e-3=-513.659916 c0 | default@1e-3=-513.659916 c0 engaged=FALSE fitted_rel=1.29e-03
+   plan@1e-3: y.mu:cols=2 z=[] 
+S7_idlink        ref=-506.999834 c1 | F@1e-3=-516.752102 c1 | default@1e-3=-506.999887 c0 engaged=TRUE fitted_rel=8.73e-03
+   plan@1e-3: y.mu:cols=2 z=[theta2/20cols/s=0.000995] ; y.sigma:cols=2 z=[theta4/20cols/s=0.000995] 
+   template move: beta 1.86e-03 betad 2.89e-04 b 3.47e-03 theta 5.65e-06 
+S8_reml          ref=-515.669411 c0 | F@1e-3=-508.761656 c0 | default@1e-3=-508.761656 c0 engaged=TRUE fitted_rel=6.11e-04
+   plan@1e-3: y.mu:cols=2 z=[theta2/20cols/s=0.000995] 
+   template move: beta 0.00e+00 betad 0.00e+00 b 0.00e+00 theta 0.00e+00 
+S9_student       ref=-515.434297 c0 | F@1e-3=-518.657194 c0 | default@1e-3=-515.434297 c0 engaged=TRUE fitted_rel=2.14e-04
+   plan@1e-3: y.mu:cols=2 z=[theta2/20cols/s=0.000995] 
+   template move: beta 4.62e-03 betad 6.14e-07 b 4.45e-03 theta 7.94e-06 
+S10_diag         ref=-516.328947 c0 | F@1e-3=-516.328947 c0 | default@1e-3=-516.328947 c0 engaged=TRUE fitted_rel=8.51e-06
+   plan@1e-3: y.mu:cols=2 z=[theta2/20cols/s=0.000995] 
+   template move: beta 0.00e+00 betad 0.00e+00 b 0.00e+00 theta 0.00e+00 
+S11_homdiag      ref=-517.633927 c0 | F@1e-3=-523.782422 c0 | default@1e-3=-523.782422 c0 engaged=TRUE fitted_rel=4.24e+02
+   plan@1e-3: y.mu:cols=2 z=[] 
+   template move: beta 1.54e-03 betad 3.30e-07 b 1.02e-06 theta 2.17e-09 
+S12_cs           ref=-513.659916 c0 | F@1e-3=-540.889653 c1 | default@1e-3=-520.212147 c1 engaged=TRUE fitted_rel=1.51e+02
+   plan@1e-3: y.mu:cols=2 z=[] 
+   template move: beta 0.00e+00 betad 0.00e+00 b 0.00e+00 theta 0.00e+00 
+   warn default:
+      Optimizer did not report convergence: false convergence (8)
+      Large maximum absolute gradient at the optimum (6e+10); the fit may not have converged. diagnose() names the o
+S13_mm           ref=-533.510355 c1 | F@1e-3=-533.510378 c0 | default@1e-3=-533.510354 c1 engaged=TRUE fitted_rel=4.34e-02
+   plan@1e-3: y.mu:cols=2 z=[] 
+   template move: beta 1.26e-04 betad 3.14e-07 b 1.66e-04 theta 1.31e-07 
+   warn default:
+      Optimizer did not report convergence: false convergence (8)
+S14_sigma_slope  ref=-543.854898 c0 | F@1e-3=-544.728372 c0 | default@1e-3=-543.854898 c0 engaged=TRUE fitted_rel=9.41e-05
+   plan@1e-3: y.mu:cols=2 z=[] ; y.sigma:cols=2 z=[theta2/20cols/s=0.000995] 
+   template move: beta 0.00e+00 betad 0.00e+00 b 0.00e+00 theta 0.00e+00 
+S15_poisson      ref=-486.061028 c0 | F@1e-3=-486.457829 c0 | default@1e-3=-486.061028 c0 engaged=TRUE fitted_rel=1.10e-06
+   plan@1e-3: yp.mu:cols=2 z=[theta2/20cols/s=0.000995] 
+   template move: beta 0.00e+00 b 0.00e+00 theta 0.00e+00 
+S16_profile      ref=-513.659916 c0 | F@1e-3=-513.659916 c0 | default@1e-3=-513.659916 c0 engaged=TRUE fitted_rel=7.08e-05
+   plan@1e-3: y.mu:cols=2 z=[theta2/20cols/s=0.000995] 
+   template move: beta 0.00e+00 betad 0.00e+00 b 0.00e+00 theta 0.00e+00 

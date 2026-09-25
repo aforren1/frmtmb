@@ -1,0 +1,11 @@
+arm lane frmtmb 0.62.0 from C:/Users/adf44/source/r/predfix-lib 
+skew_normal alpha ~ 0 + xs, seed 2 s 0.0005  default 0 warn, FALSE 0 warn; logLik -327.043122970 / -327.043122970; engaged TRUE; max|dpar| 0.000321
+skew_normal alpha ~ 0 + xs, seed 3 s 0.0005  default 0 warn, FALSE 0 warn; logLik -342.457823756 / -342.457823755; engaged TRUE; max|dpar| 0.00637
+skew_normal alpha ~ 0 + xs, seed 3 s 0.00099 default 0 warn, FALSE 0 warn; logLik -342.457823756 / -342.457823756; engaged FALSE; max|dpar| 0
+skew_normal alpha ~ 0 + xs, seed 3 s 0.00101 default 0 warn, FALSE 0 warn; logLik -342.457823756 / -342.457823756; engaged FALSE; max|dpar| 0
+skew_normal alpha ~ 0 + xs, seed 1 s 1e-06   default 0 warn, FALSE 0 warn; logLik -337.972409110 / -346.876747715; engaged TRUE; max|dpar| 2.16e+06
+gaussian, Intercept ub = 0.5                 default 1 warn, FALSE 0 warn; logLik -285.371055242 / -285.371055243; engaged TRUE; max|dpar| 0.00347
+    only under default: Large maximum absolute gradient at the optimum (83.2); the fit may not have converged. diagnose() names the of 
+gaussian, b(x) lb = 3e4                      default 2 warn, FALSE 1 warn; logLik -489.982121808 / -489.982121808; engaged TRUE; max|dpar| 5.21e-06
+    only under default: Large maximum absolute gradient at the optimum (0.00667); the fit may not have converged. diagnose() names the 
+    only under default: Large maximum absolute gradient at the optimum (66.4); the fit may not have converged. diagnose() names the of 

@@ -1,0 +1,24 @@
+standata names: N, Y, nthres, K, Kc, X, Kcs, Xcs, disc, prior_only 
+Kcs = 2 ; Xcs columns: fcb, fcc 
+  fcb fcc
+1   0   1
+2   0   0
+3   1   0
+4   0   1
+5   0   0
+6   0   1
+make_standata: built 
+                prior     class coef group resp dpar nlpar lb ub tag
+               (flat)         b                                     
+               (flat)         b  fcb                                
+               (flat)         b  fcc                                
+ student_t(3, 0, 2.5) Intercept                                     
+ student_t(3, 0, 2.5) Intercept    1                                
+ student_t(3, 0, 2.5) Intercept    2                                
+       source
+      default
+ (vectorized)
+ (vectorized)
+      default
+ (vectorized)
+ (vectorized) 

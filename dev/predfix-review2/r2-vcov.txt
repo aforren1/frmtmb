@@ -1,0 +1,16 @@
+frmtmb from C:/Users/adf44/source/r/predfix-lib/frmtmb 
+geometric  REML     dim 5x5 names fa,fb,fc,fd,x
+   vs ML vcov: max rel 8.87e-06 | vs numerical Hessian: max rel 1.11e-05 | fixef vs ML rel 1.20e-05
+   summary(): ok  se from fixef vs sqrt(diag(vcov)): 0.00e+00 
+geometric  profile  dim 5x5 names fa,fb,fc,fd,x
+   vs ML vcov: max rel 8.87e-06 | vs numerical Hessian: max rel 1.11e-05 | fixef vs ML rel 1.20e-05
+   summary(): ok  se from fixef vs sqrt(diag(vcov)): 0.00e+00 
+poisson    REML     dim 5x5 names fa,fb,fc,fd,x
+   vs ML vcov: max rel 2.98e-06 | vs numerical Hessian: max rel 3.53e-06 | fixef vs ML rel 5.72e-06
+   summary(): ok  se from fixef vs sqrt(diag(vcov)): 0.00e+00 
+poisson    profile  dim 5x5 names fa,fb,fc,fd,x
+   vs ML vcov: max rel 2.98e-06 | vs numerical Hessian: max rel 3.53e-06 | fixef vs ML rel 5.72e-06
+   summary(): ok  se from fixef vs sqrt(diag(vcov)): 0.00e+00 
+
+-- the naming guard's other side: a model WITH an outer parameter --
+[1] 5 5

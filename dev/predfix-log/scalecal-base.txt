@@ -1,0 +1,88 @@
+arm base frmtmb 0.62.0 from C:/Users/adf44/source/r/rellib-r3 
+
+== A. onset scale by n and slope, poisson and gaussian, 0 + xs and 1 + xs
+default short (> 1e-6) by n and log10 scale:
+      log10scale
+n      -7 -6 -5 -4 -3 -2
+  20   24 24 16  4  1  0
+  50   24 22 11  2  1  0
+  250  24 23  4  0  0  0
+  5000 24 13  1  0  0  0
+out of 24 fits per cell
+autoscale short, total: 0 of 576 ; NA: 0 
+largest scale at which the default is short: 0.001 
+
+== B. REML, profile and (1 | g) at scale 1e-6, against the scale-1 fit
+   seed    y              rhs    mode short_default   short_auto
+1     1 pois           0 + xs      ML   5.70748e+01 -5.11591e-13
+2     1 pois           0 + xs    REML  -1.38155e+01 -1.38155e+01
+3     1 pois           0 + xs profile  -3.97904e-13  0.00000e+00
+4     1 pois           1 + xs      ML   3.96205e+01  1.19940e-11
+5     1 pois           1 + xs    REML  -1.38155e+01 -1.38155e+01
+6     1 pois           1 + xs profile   0.00000e+00  0.00000e+00
+7     1 pois 0 + xs + (1 | g)      ML   3.79946e+01 -1.93268e-12
+8     1 pois 0 + xs + (1 | g)    REML  -1.38155e+01 -1.38155e+01
+9     1 pois 0 + xs + (1 | g) profile   0.00000e+00 -8.69704e-12
+10    1 pois 1 + xs + (1 | g)      ML   3.75909e+01 -1.73827e-10
+11    1 pois 1 + xs + (1 | g)    REML  -1.38155e+01 -1.38155e+01
+12    1 pois 1 + xs + (1 | g) profile   0.00000e+00 -5.68434e-13
+13    1  gau           0 + xs      ML   7.76894e+00  9.13474e-11
+14    1  gau           0 + xs    REML  -1.38155e+01 -1.38155e+01
+15    1  gau           0 + xs profile   0.00000e+00  0.00000e+00
+16    1  gau           1 + xs      ML   8.78961e+00 -1.10219e-10
+17    1  gau           1 + xs    REML  -1.38155e+01 -1.38155e+01
+18    1  gau           1 + xs profile   0.00000e+00  0.00000e+00
+19    1  gau 0 + xs + (1 | g)      ML   1.18010e+01 -1.19371e-11
+20    1  gau 0 + xs + (1 | g)    REML  -1.38155e+01 -1.38155e+01
+21    1  gau 0 + xs + (1 | g) profile  -5.68434e-14 -5.68434e-14
+22    1  gau 1 + xs + (1 | g)      ML   1.17197e+01 -3.49019e-11
+23    1  gau 1 + xs + (1 | g)    REML  -1.38155e+01 -1.38155e+01
+24    1  gau 1 + xs + (1 | g) profile   0.00000e+00  0.00000e+00
+25    2 pois           0 + xs      ML   2.01662e+02  5.68434e-13
+26    2 pois           0 + xs    REML  -1.38155e+01 -1.38155e+01
+27    2 pois           0 + xs profile   4.29395e-10  0.00000e+00
+28    2 pois           1 + xs      ML  -3.35945e-11  8.91873e-11
+29    2 pois           1 + xs    REML  -1.38155e+01 -1.38155e+01
+30    2 pois           1 + xs profile   0.00000e+00  0.00000e+00
+31    2 pois 0 + xs + (1 | g)      ML  -3.29692e-12 -9.66338e-12
+32    2 pois 0 + xs + (1 | g)    REML  -1.38155e+01 -1.38155e+01
+33    2 pois 0 + xs + (1 | g) profile  -1.70530e-12  0.00000e+00
+34    2 pois 1 + xs + (1 | g)      ML   1.50180e-10  1.65983e-11
+35    2 pois 1 + xs + (1 | g)    REML  -1.38155e+01 -1.38155e+01
+36    2 pois 1 + xs + (1 | g) profile   0.00000e+00 -8.52651e-13
+37    2  gau           0 + xs      ML   1.27621e+01  4.49063e-12
+38    2  gau           0 + xs    REML  -1.38155e+01 -1.38155e+01
+39    2  gau           0 + xs profile   0.00000e+00 -1.13687e-13
+40    2  gau           1 + xs      ML   2.24378e+01 -1.29546e-10
+41    2  gau           1 + xs    REML  -1.38155e+01 -1.38155e+01
+42    2  gau           1 + xs profile   0.00000e+00  0.00000e+00
+43    2  gau 0 + xs + (1 | g)      ML   2.29483e+01  2.03499e-11
+44    2  gau 0 + xs + (1 | g)    REML  -1.38155e+01 -1.38155e+01
+45    2  gau 0 + xs + (1 | g) profile   0.00000e+00  0.00000e+00
+46    2  gau 1 + xs + (1 | g)      ML   2.32052e+01  2.16005e-12
+47    2  gau 1 + xs + (1 | g)    REML  -1.38155e+01 -1.38155e+01
+48    2  gau 1 + xs + (1 | g) profile   0.00000e+00  0.00000e+00
+49    3 pois           0 + xs      ML  -5.68434e-14  4.54747e-13
+50    3 pois           0 + xs    REML  -1.38155e+01 -1.38155e+01
+51    3 pois           0 + xs profile  -5.68434e-14  0.00000e+00
+52    3 pois           1 + xs      ML   2.93608e+01 -7.99218e-11
+53    3 pois           1 + xs    REML  -1.38155e+01 -1.38155e+01
+54    3 pois           1 + xs profile   0.00000e+00  0.00000e+00
+55    3 pois 0 + xs + (1 | g)      ML   3.00544e+01 -4.32010e-12
+56    3 pois 0 + xs + (1 | g)    REML  -1.38155e+01 -1.38155e+01
+57    3 pois 0 + xs + (1 | g) profile   0.00000e+00 -6.25278e-13
+58    3 pois 1 + xs + (1 | g)      ML   2.87003e+01  9.72022e-11
+59    3 pois 1 + xs + (1 | g)    REML  -1.38155e+01 -1.38155e+01
+60    3 pois 1 + xs + (1 | g) profile   0.00000e+00 -3.86535e-12
+61    3  gau           0 + xs      ML   1.21315e+01  2.27374e-13
+62    3  gau           0 + xs    REML  -1.38155e+01 -1.38155e+01
+63    3  gau           0 + xs profile   0.00000e+00  5.68434e-14
+64    3  gau           1 + xs      ML   1.84281e+01 -6.35509e-11
+65    3  gau           1 + xs    REML  -1.38155e+01 -1.38155e+01
+66    3  gau           1 + xs profile   0.00000e+00  0.00000e+00
+67    3  gau 0 + xs + (1 | g)      ML   1.93804e+01 -7.73070e-12
+68    3  gau 0 + xs + (1 | g)    REML  -1.38155e+01 -1.38155e+01
+69    3  gau 0 + xs + (1 | g) profile  -5.68434e-14  0.00000e+00
+70    3  gau 1 + xs + (1 | g)      ML   1.94632e+01 -7.05995e-11
+71    3  gau 1 + xs + (1 | g)    REML  -1.38155e+01 -1.38155e+01
+72    3  gau 1 + xs + (1 | g) profile   5.68434e-14  1.13687e-13
