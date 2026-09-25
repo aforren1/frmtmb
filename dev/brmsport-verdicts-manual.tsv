@@ -1,6 +1,4 @@
 id	pkg	verdict	class	reason
-families:19	*	cannot transfer	absent	frmtmb has no hurdle_negbinomial() (famlink ledger row 16)
-families:20	*	cannot transfer	absent	frmtmb has no hurdle_negbinomial(); the expect_error passes only on could not find function (famlink ledger row 17)
 families:37	*	divergence	policy	acat() takes the logit link only: off the logit acat is a second density frmtmb has not written (?frmtmb-links; famlink ledger row 32)
 families:52	*	cannot transfer	absent	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 43)
 families:53	*	cannot transfer	absent	frmtmb has no zero_inflated_beta_binomial() (famlink ledger row 44)

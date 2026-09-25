@@ -121,10 +121,11 @@ dens_moments <- function(dz) {
 }
 
 #' Merge two measures (an atom at zero and a continuous part) into one,
-#' for the moments of a zero-inflated or hurdle family.
-dens_mix0 <- function(dz, p0) {
-  p <- dz[["p"]] / sum(dz[["p"]]) * (1 - p0)
-  list(y = c(0, dz[["y"]]), p = c(p0, p))
+#' for the moments of a zero-inflated or hurdle family. `p1` adds the
+#' second atom of a zero-one-inflated family, at one.
+dens_mix0 <- function(dz, p0, p1 = 0) {
+  p <- dz[["p"]] / sum(dz[["p"]]) * (1 - p0 - p1)
+  list(y = c(0, dz[["y"]], 1), p = c(p0, p, p1))
 }
 
 #' Cut a measure into at most `B` cells of roughly equal probability,
@@ -202,11 +203,11 @@ expect_moments <- function(draws, mom, moments, label) {
 #' binomial deviate. This is the statistic that would catch a
 #' zero-inflation gate read the wrong way round, which the cell test
 #' can dilute.
-expect_atom0 <- function(draws, p0, label) {
+expect_atom0 <- function(draws, p0, label, at = 0) {
   n <- length(draws)
-  testthat::expect_lt(abs(mean(draws == 0) - p0),
+  testthat::expect_lt(abs(mean(draws == at) - p0),
                       SIM_Z * sqrt(p0 * (1 - p0) / n),
-                      label = paste0(label, " P(Y = 0)"))
+                      label = paste0(label, " P(Y = ", at, ")"))
 }
 
 # --- the fixed design -------------------------------------------------
@@ -379,6 +380,11 @@ sim_specs <- list(
   list(nm = "hurdle_poisson", fam = quote(hurdle_poisson()),
        eta = c(0.6, 1.4), dp = list(hu = 0.3), kind = "disc", hi = 45,
        ydummy = 1L),
+  # a small mu and shape below one put most of the NB's own mass at
+  # zero, which is where the positive part's truncation has work to do
+  list(nm = "hurdle_negbinomial", fam = quote(hurdle_negbinomial()),
+       eta = c(-0.7, 1.2), dp = list(shape = 0.8, hu = 0.3),
+       kind = "disc", hi = 200, ydummy = 1L),
   list(nm = "compois", fam = quote(compois()),
        eta = c(0.6, 1.4), dp = list(nu = 1.5), kind = "disc", hi = 60,
        ydummy = 1L),
@@ -389,6 +395,14 @@ sim_specs <- list(
        eta = c(-0.4, 0.5), dp = list(phi = 6, zi = 0.3), kind = "cont",
        atom0 = TRUE, ydummy = c(0, 0.5),
        lo = function(mu, d) 0, hi = function(mu, d) 1),
+  # the bracket stops one ulp short of 1, where the density returns the
+  # atom's log mass instead of a density value
+  list(nm = "zero_one_inflated_beta",
+       fam = quote(zero_one_inflated_beta()),
+       eta = c(-0.4, 0.5), dp = list(phi = 6, zoi = 0.3, coi = 0.35),
+       kind = "cont", atom0 = TRUE, atom1 = TRUE, ydummy = c(0, 0.5, 1),
+       lo = function(mu, d) 0,
+       hi = function(mu, d) 1 - .Machine$double.eps),
   list(nm = "zero_inflated_asym_laplace",
        fam = quote(zero_inflated_asym_laplace()),
        eta = c(-0.3, 0.8), dp = list(sigma = 0.7, quantile = 0.4,
@@ -425,6 +439,7 @@ for (sp in sim_specs) {
       at <- if (is.null(sp[["at"]])) list() else sp[["at"]]
       linv <- ffam[["links"]][["mu"]][["linkinv"]]
       atom <- isTRUE(sp[["atom0"]])
+      atom1 <- isTRUE(sp[["atom1"]])
       for (cell in c("a", "b")) {
         mu <- linv(sp[["eta"]][if (identical(cell, "a")) 1L else 2L])
         dp <- c(list(mu = mu), sp[["dp"]])
@@ -439,11 +454,14 @@ for (sp in sim_specs) {
           # the continuous part carries 1 - P(0); a bracket that clipped
           # real mass would show up here first
           p0 <- exp(dens_lp(ffam, 0, dp, at))
-          testthat::expect_equal(mass, 1 - p0, tolerance = 1e-3,
+          p1 <- if (atom1) exp(dens_lp(ffam, 1, dp, at)) else 0
+          testthat::expect_equal(mass, 1 - p0 - p1, tolerance = 1e-3,
                                  label = paste0(lab, " continuous mass"))
           expect_atom0(d, p0, lab)
-          expect_gof(d[d != 0], dens_cells(dz, SIM_CELLS, FALSE), lab)
-          expect_moments(d, dens_moments(dens_mix0(dz, p0)), 2L, lab)
+          if (atom1) expect_atom0(d, p1, lab, at = 1)
+          expect_gof(d[d != 0 & !(atom1 & d == 1)],
+                     dens_cells(dz, SIM_CELLS, FALSE), lab)
+          expect_moments(d, dens_moments(dens_mix0(dz, p0, p1)), 2L, lab)
         } else {
           testthat::expect_equal(mass, 1, tolerance = 1e-3,
                                  label = paste0(lab, " total mass"))

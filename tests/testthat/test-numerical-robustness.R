@@ -133,6 +133,20 @@ test_that("zero-inflation and hurdle gates survive a separated gate", {
     # other half of the hurdle family's exposure
     expect_robust_at(hurdle_poisson(), ycnt, list(), list(mu = 0, hu = 0),
                      "mu", e0)
+    # hurdle_negbinomial's normalizer log(1 - P(0)) is the same exposure,
+    # and zero_one_inflated_beta has a second gate, coi. shape is not
+    # swept: at shape = exp(30) RTMB::dnbinom_robust() returns a
+    # gradient of 1.4e-3 where the truth is about 1e-13, identically in
+    # negbinomial() and zero_inflated_negbinomial() (dev/fams-findings.md)
+    for (sw in c("hu", "mu")) {
+      expect_robust_at(hurdle_negbinomial(), ycnt, list(),
+                       list(mu = 0, shape = log(2), hu = 0), sw, e0)
+    }
+    for (sw in c("zoi", "coi", "mu")) {
+      expect_robust_at(zero_one_inflated_beta(), c(0, 0.4, 1), list(),
+                       list(mu = 0, phi = log(5), zoi = 0, coi = 0), sw,
+                       e0)
+    }
     expect_robust_at(asym_laplace(), c(-1, 0, 1), list(),
                      list(mu = 0, sigma = 0, quantile = 0), "quantile", e0)
   }

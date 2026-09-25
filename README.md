@@ -117,8 +117,8 @@ reaches the same model only through a nonlinear formula. It takes a
 phylogeny, a pedigree, or a pair of trees directly, where frmtmb needs
 the covariance matrix. It accepts
 a full known sampling covariance for meta-analysis. It fits the
-zero-one-inflated beta and the hurdle and zero-truncated NB2
-families. It imputes a binary missing predictor, and it draws worm
+zero-truncated NB2 family.
+It imputes a binary missing predictor, and it draws worm
 plots and centile charts. Its documentation grades each model route
 by the evidence behind its estimate and its interval.
 [BayesRTMB](https://github.com/norimune/BayesRTMB) is a

@@ -826,7 +826,8 @@ compat_features_build <- function(extra = NULL) {
             "compois", "binomial", "bernoulli", "beta_binomial",
             "multinomial", "zero_inflated_poisson",
             "zero_inflated_negbinomial", "zero_inflated_binomial",
-            "zero_inflated_beta", "hurdle_poisson", "hurdle_gamma",
+            "zero_inflated_beta", "zero_one_inflated_beta",
+            "hurdle_poisson", "hurdle_negbinomial", "hurdle_gamma",
             "hurdle_lognormal", "cumulative", "sratio", "cratio",
             "acat", "categorical", "von_mises", "cox")
   covs <- c("us", "diag", "homdiag", "cs", "ar1", "hetar1", "ou",
@@ -905,8 +906,14 @@ frmtmb_compat_groups_lst <- list(
   discrete = c("poisson", "negbinomial", "nbinom1", "geometric",
                "compois", "binomial", "bernoulli", "beta_binomial",
                "zero_inflated_poisson", "zero_inflated_negbinomial",
-               "zero_inflated_binomial", "hurdle_poisson"),
-  no_simulator = c("tweedie", "compois", "hurdle_poisson", "cox"),
+               "zero_inflated_binomial", "hurdle_poisson",
+               "hurdle_negbinomial"),
+  # a point mass on an exact response value, which the density reads
+  # off y == 0 (and y == 1); osa_point_mass_families in R/predict.R
+  point_mass = c("zero_inflated_poisson", "zero_inflated_negbinomial",
+                 "zero_inflated_binomial", "zero_inflated_beta",
+                 "zero_one_inflated_beta", "hurdle_poisson",
+                 "hurdle_negbinomial", "hurdle_gamma", "hurdle_lognormal"),
   matrix_response = c("multinomial"),
   trials_families = c("binomial", "beta_binomial",
                       "zero_inflated_binomial", "multinomial"),
@@ -1578,8 +1585,10 @@ compat_hand_rules_tbl <- function() {
   ## post-fit methods --------------------------------------------------------------
   r("simulate", "kind:family", "works",
     "The family supplies a simulator.")
-  r("simulate", "group:no_simulator", "refused",
-    "Refused: this family has no simulator yet.")
+  # No group of simulator-less families: test-simulate-density.R reads
+  # that gap off the family registry and finds cox alone, which has its
+  # own rule below. The group this replaces also listed tweedie, compois
+  # and hurdle_poisson, whose simulators work.
   r("simulate", "group:ordinal", "works",
     "Draws come back as an ordered factor carrying the response's own levels, not as 1..K codes.")
   r("simulate", "multinomial", "works",
@@ -1592,6 +1601,8 @@ compat_hand_rules_tbl <- function() {
     "Refused: drawing a survival time means inverting the cumulative baseline hazard, which this family does not carry a quantile function for. simulate(), posterior_predict() and frm_simulate() each say so in their own words and then repeat the family's reason.")
   r("residuals_osa", "kind:family", "conditional",
     "One-step-ahead residuals need the family to register its observation through OBS().")
+  r("residuals_osa", "group:point_mass", "refused",
+    "Refused by name: the density branches on y == 0 for its point mass, and oneStepPredict() hands it an observation object with no comparison operator. Through 0.63.0 each of these failed there with base R's own message. Use residuals(type = \"pearson\") or dharma_residuals().")
   r("residuals_osa", "categorical", "refused",
     "Refused with residuals() as a whole: a one-step-ahead residual is a CDF value, and a nominal response has no CDF.")
   r("residuals", "categorical", "refused",

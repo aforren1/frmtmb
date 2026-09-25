@@ -2273,6 +2273,87 @@ fam_hurdle_poisson <- function(link = "log", link_hu = "logit") {
   )
 }
 
+#' Hurdle negative binomial (nbinom2 variance), dpars `mu`, `shape` and
+#' `hu`. As in `fam_hurdle_poisson()`, `hu` is the probability of a zero
+#' and the positive part is the negative binomial truncated at zero.
+#'
+#' @noRd
+fam_hurdle_negbinomial <- function(link = "log", link_shape = "log",
+                                   link_hu = "logit") {
+  lk_shape <- dpar_link(
+    link_shape, "shape", "hurdle_negbinomial", dpar_links_positive)
+  lk_hu <- dpar_link(link_hu, "hu", "hurdle_negbinomial", dpar_links_unit)
+  lk <- mu_link(link, "hurdle_negbinomial")
+  frmtmb_family(
+    "hurdle_negbinomial",
+    accepts_aterms = "weights",
+    dpars = c("mu", "shape", "hu"),
+    links = list(mu = lk, shape = lk_shape, hu = lk_hu),
+    lpdf = function(y, dpars, aterms) {
+      i0 <- as.numeric(y == 0)
+      g <- dpar_log_complement(dpars, "hu", lk_hu)
+      # One expression for every mean link. Off the log link, log(mu)
+      # is taken here rather than handing dnbinom2() the variance: that
+      # forms var - mu by subtraction, which at mu = exp(-25) keeps
+      # about five digits of mu^2 / shape (dev/fams-validate.R, 1)
+      lmu <- robust_logmu(dpars, lk) %||% log(dpars[["mu"]])
+      lsh <- dpar_log(dpars, "shape", lk_shape)
+      base <- RTMB::dnbinom_robust(y, lmu, 2 * lmu - lsh, log = TRUE)
+      # log P(0) = -shape * log(1 + mu / shape), with the ratio in logs
+      lp0 <- -dpars[["shape"]] * RTMB::logspace_add(0 * lmu, lmu - lsh)
+      # The truncation normalizer log(1 - P(0)). P(0) tends to one as mu
+      # falls, where 1 - exp(lp0) cancels; logspace_sub() switches to
+      # expm1() there. brms writes log1m((shape / (mu + shape))^shape),
+      # the same quantity with the cancellation left in.
+      i0 * g$l +
+        (1 - i0) * (g$l1m + base - RTMB::logspace_sub(0 * lp0, lp0))
+    },
+    valid_y = count_y("hurdle_negbinomial"),
+    init_dpars = list(
+      mu = function(y, aterms) if (any(y > 0)) mean(y[y > 0]) else 1,
+      shape = function(y, aterms) 1,
+      hu = function(y, aterms) min(max(mean(y == 0), 0.05), 0.95)
+    ),
+    type = "discrete",
+    post = list(
+      # brms's posterior_epred_hurdle_negbinomial(), with 1 - P(0)
+      # formed without the subtraction, as in the density
+      mean_fn = function(dpars, aterms) {
+        (1 - dpars[["hu"]]) * dpars[["mu"]] /
+          nb_mass_above_zero(dpars[["mu"]], dpars[["shape"]])
+      },
+      var_fn = function(dpars, aterms) {
+        mu <- dpars[["mu"]]
+        q <- (1 - dpars[["hu"]]) / nb_mass_above_zero(mu, dpars[["shape"]])
+        # E[Y^2] of the untruncated NB is mu + mu^2 (1 + 1 / shape)
+        q * (mu + mu^2 * (1 + 1 / dpars[["shape"]])) - (q * mu)^2
+      }
+    ),
+    # Inverse transform on the NB CDF above its own zero, for the reason
+    # fam_hurdle_poisson() gives: a rejection loop degenerates at the
+    # small mu where hurdle models are used. brms's own
+    # posterior_predict_hurdle_negbinomial() draws rnbinom(mu - t) + 1,
+    # which is not the zero-truncated NB, so frmtmb does not copy it.
+    sim = function(dpars, aterms, n) {
+      mu <- rep(dpars[["mu"]], length.out = n)
+      shape <- rep(dpars[["shape"]], length.out = n)
+      hu <- rep(dpars[["hu"]], length.out = n)
+      p0 <- 1 - nb_mass_above_zero(mu, shape)
+      u <- p0 + stats::runif(n) * (1 - p0)
+      (1 - stats::rbinom(n, 1L, hu)) *
+        pmax(stats::qnbinom(pmin(u, 1 - .Machine$double.eps),
+                            size = shape, mu = mu), 1L)
+    }
+  )
+}
+
+#' `1 - P(Y = 0)` of a negative binomial with mean `mu` and size `shape`,
+#' off the tape. Formed without subtracting from one, so a hurdle mean
+#' at a small `mu` keeps its digits.
+#'
+#' @noRd
+nb_mass_above_zero <- function(mu, shape) -expm1(-shape * log1p(mu / shape))
+
 #' Bernoulli family for a 0/1 response, single dpar `mu` (the success
 #' probability). Robust in the linear predictor, as [fam_binomial()]
 #' describes; separation is this family's normal failure mode, so the
@@ -2693,6 +2774,122 @@ fam_zi_beta <- function(link = "logit", link_phi = "log", link_zi = "logit") {
           (1 - dpars[["mu"]]) * dpars[["phi"]])
     }
   )
+}
+
+#' Zero-one-inflated beta for a response in `[0, 1]`, dpars `mu`, `phi`,
+#' `zoi` and `coi`. `zoi` is the probability of an exact 0 or 1, and
+#' `coi` is the probability that such a value is 1.
+#'
+#' @noRd
+fam_zoi_beta <- function(link = "logit", link_phi = "log",
+                         link_zoi = "logit", link_coi = "logit") {
+  nm <- "zero_one_inflated_beta"
+  lk_phi <- dpar_link(link_phi, "phi", nm, dpar_links_positive)
+  lk_zoi <- dpar_link(link_zoi, "zoi", nm, dpar_links_unit)
+  lk_coi <- dpar_link(link_coi, "coi", nm, dpar_links_unit)
+  lk <- mu_link(link, nm)
+  frmtmb_family(
+    nm,
+    accepts_aterms = "weights",
+    dpars = c("mu", "phi", "zoi", "coi"),
+    links = list(mu = lk, phi = lk_phi, zoi = lk_zoi, coi = lk_coi),
+    lpdf = function(y, dpars, aterms) {
+      i0 <- as.numeric(y == 0)
+      i1 <- as.numeric(y == 1)
+      ib <- i0 + i1
+      # dodge dbeta() at 0 and 1, where it is -Inf; the term carries
+      # weight 0 on those rows
+      ya <- y + 0.5 * (i0 - i1)
+      gz <- dpar_log_complement(dpars, "zoi", lk_zoi)
+      gc <- dpar_log_complement(dpars, "coi", lk_coi)
+      mp <- dpar_complement(dpars, "mu", lk)
+      ib * gz$l + i0 * gc$l1m + i1 * gc$l +
+        (1 - ib) * (gz$l1m +
+                      RTMB::dbeta(ya, mp$p * dpars[["phi"]],
+                                  mp$q * dpars[["phi"]], log = TRUE))
+    },
+    valid_y = function(y, aterms) {
+      if (any(y < 0) || any(y > 1)) {
+        frm_stop(nm, ": response must be in [0, 1]", call. = FALSE)
+      }
+    },
+    init_dpars = list(
+      mu = function(y, aterms) {
+        yi <- y[y > 0 & y < 1]
+        if (length(yi)) min(max(mean(yi), 0.05), 0.95) else 0.5
+      },
+      phi = function(y, aterms) 5,
+      zoi = function(y, aterms) min(max(mean(y == 0 | y == 1), 0.05), 0.9),
+      coi = function(y, aterms) {
+        yb <- y[y == 0 | y == 1]
+        if (length(yb)) min(max(mean(yb), 0.05), 0.95) else 0.5
+      }
+    ),
+    type = "continuous",
+    post = list(
+      # brms's posterior_epred_zero_one_inflated_beta()
+      mean_fn = function(dpars, aterms) {
+        dpars[["zoi"]] * dpars[["coi"]] +
+          (1 - dpars[["zoi"]]) * dpars[["mu"]]
+      },
+      var_fn = function(dpars, aterms) {
+        zoi <- dpars[["zoi"]]
+        mu <- dpars[["mu"]]
+        m <- zoi * dpars[["coi"]] + (1 - zoi) * mu
+        # E[Y^2]: the atom at 1 gives zoi * coi, the beta part its
+        # variance mu (1 - mu) / (1 + phi) plus mu^2
+        zoi * dpars[["coi"]] +
+          (1 - zoi) * (mu * (1 - mu) / (1 + dpars[["phi"]]) + mu^2) - m^2
+      },
+      fit_check = zoi_beta_fit_check
+    ),
+    sim = function(dpars, aterms, n) {
+      mu <- rep(dpars[["mu"]], length.out = n)
+      phi <- rep(dpars[["phi"]], length.out = n)
+      edge <- stats::rbinom(n, 1L, dpars[["zoi"]])
+      one <- stats::rbinom(n, 1L, dpars[["coi"]])
+      ifelse(edge == 1L, one, stats::rbeta(n, mu * phi, (1 - mu) * phi))
+    }
+  )
+}
+
+#' The zero-one-inflated beta's fit-end check: whether the data can
+#' identify `coi` at all.
+#'
+#' `coi` is scored on the rows at exactly 0 or 1 and on nothing else.
+#' With no such row its likelihood is flat, the Hessian is singular, and
+#' every standard error of the fit comes back `NaN`. `frm()` itself
+#' said nothing; `vcov()` and `summary()` warn later, naming `zoi` and
+#' `coi` as flat but not why. With rows at one end only, `coi` runs to
+#' that boundary without any warning. brms fits both through its
+#' `beta(1, 1)` prior on `coi`; maximum likelihood cannot, so the fit
+#' says which case it is in and what to use instead. A `coi` held at a
+#' constant, `bf(coi = 0.5)`, has nothing to identify.
+#'
+#' @noRd
+zoi_beta_fit_check <- function(fit, resp) {
+  lp <- fit$frame[["linpreds"]][[linpred_key(resp, "coi")]]
+  if (is.null(lp) || !is.null(lp[["constant"]])) return(invisible(NULL))
+  y <- fit$frame[["y"]][[resp]]
+  n0 <- sum(y == 0)
+  n1 <- sum(y == 1)
+  if (n0 > 0L && n1 > 0L) return(invisible(NULL))
+  what <- if (n0 + n1 == 0L) {
+    paste0("has no exact 0 or 1, so zoi goes to 0, coi has no data, the ",
+           "Hessian is singular and no standard error of the fit is ",
+           "usable. Use Beta(), or hold coi at a value with ",
+           "bf(coi = 0.5)")
+  } else {
+    paste0("has exact ", if (n0 > 0L) "0s but no 1" else "1s but no 0",
+           ", so coi goes to ", if (n0 > 0L) "0" else "1", " and its ",
+           "standard error is not usable. Use zero_inflated_beta() on ",
+           if (n0 > 0L) "y" else "1 - y", ", or hold coi at a value ",
+           "with bf(coi = )")
+  }
+  frm_warning("zero_one_inflated_beta: the response ",
+              if (length(fit$spec$responses) > 1L) paste0(resp, " "),
+              what, call. = FALSE)
+  invisible(NULL)
 }
 
 #' Asymmetric Laplace family, dpars `mu`, `sigma` and `quantile`. At a
@@ -3802,8 +3999,9 @@ mixture_check_components <- function(comps) {
     frm_stop("Some of the families are not allowed in mixture models: ",
              paste(unique(fams[barred]), collapse = ", "), ". A categorical ",
              "or multinomial response is not a value the other components ",
-             "can share, and a continuous hurdle or a zero-inflated beta ",
-             "puts a probability mass at zero beside a density",
+             "can share, and a continuous hurdle or a zero-inflated or ",
+             "zero-one-inflated beta puts a probability mass at zero ",
+             "(or one) beside a density",
              call. = FALSE)
   }
   invisible(NULL)
@@ -5495,6 +5693,7 @@ family_registry <- list(
   zero_inflated_poisson     = fam_zi_poisson,
   zero_inflated_negbinomial = fam_zi_negbinomial,
   hurdle_poisson            = fam_hurdle_poisson,
+  hurdle_negbinomial        = fam_hurdle_negbinomial,
   multinomial               = fam_multinomial,
   cumulative                = fam_cumulative,
   beta_binomial             = fam_beta_binomial,
@@ -5510,6 +5709,7 @@ family_registry <- list(
   hurdle_lognormal          = fam_hurdle_lognormal,
   zero_inflated_binomial    = fam_zi_binomial,
   zero_inflated_beta        = fam_zi_beta,
+  zero_one_inflated_beta    = fam_zoi_beta,
   asym_laplace              = fam_asym_laplace,
   zero_inflated_asym_laplace = fam_zi_asym_laplace,
   huber                     = fam_huber,
@@ -5710,6 +5910,26 @@ as_frmtmb_family <- function(x) {
 #' Every constructor has brms's fields: `$link` is the name of the link
 #' for the mean, and `$link_<dpar>` the link of each other parameter,
 #' as in `beta_binomial()$link_phi`. See [frmtmb_family()].
+#'
+#' @section Hurdle and zero-one-inflated responses:
+#' A hurdle family gives every zero to `hu`, the hurdle probability, and
+#' truncates its count or continuous part at zero. For
+#' `hurdle_negbinomial()`, `P(Y = 0) = hu` and a positive count `y` has
+#' probability `(1 - hu) NB(y | mu, shape) / (1 - NB(0 | mu, shape))`,
+#' so `mu` is the mean of the untruncated negative binomial and not the
+#' mean of the positive counts.
+#'
+#' `zero_one_inflated_beta()` takes a response in `[0, 1]`. `zoi` is the
+#' probability of an exact 0 or 1, `coi` is the probability that such a
+#' value is 1, and a value strictly between 0 and 1 follows a beta
+#' distribution with mean `mu` and precision `phi`. The expected
+#' response, which `fitted()` returns, is `zoi * coi + (1 - zoi) * mu`.
+#' `coi` is scored only on the values at exactly 0 or 1. A response with
+#' 0s but no 1 (or the reverse) sends `coi` to that boundary, and one
+#' with neither gives `coi` no data at all, so that no standard error of
+#' the fit is usable; the fit warns in both cases. brms fits such data
+#' through its prior on `coi`. Here, hold `coi` at a value with
+#' `bf(coi = 0.5)`.
 #'
 #' @section Categorical (nominal) responses:
 #' `categorical()` fits a multinomial logit to an unordered factor. The
@@ -5912,8 +6132,11 @@ as_frmtmb_family <- function(x) {
 #'   `"logm1"` (the default) or `"identity"`, which keeps them above
 #'   one; `compois()`'s dispersion is an ordinary positive parameter
 #'   and takes the positive set.
-#' @param link_zi,link_hu,link_quantile Link for a parameter on the
-#'   unit interval: `"logit"` (the default) or `"identity"`.
+#' @param link_zi,link_hu,link_quantile,link_zoi,link_coi Link for a
+#'   parameter on the unit interval: `"logit"` (the default) or
+#'   `"identity"`. In `zero_one_inflated_beta()`, `zoi` is the
+#'   probability of an exact 0 or 1, and `coi` is the probability that
+#'   such a value is 1.
 #' @param link_alpha Link for `skew_normal()`'s skewness, which is
 #'   signed: `"identity"` (the default), `"log"`, `"softplus"` or
 #'   `"squareplus"`.
@@ -6059,6 +6282,15 @@ hurdle_poisson <- function(link = "log", link_hu = "logit") {
 }
 
 #' @rdname frmtmb-families
+#' @export
+hurdle_negbinomial <- function(link = "log", link_shape = "log",
+                               link_hu = "logit") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["hurdle_negbinomial"]], "log")
+  fam_hurdle_negbinomial(link, link_shape, link_hu)
+}
+
+#' @rdname frmtmb-families
 #' @param K For `multinomial()`: number of response categories (columns
 #'   of the count-matrix response); category 1 is the reference.
 #' @export
@@ -6171,6 +6403,15 @@ zero_inflated_beta <- function(link = "logit", link_phi = "log",
   link <- link_arg_value(substitute(link), link,
                          brms_mu_links[["zero_inflated_beta"]], "logit")
   fam_zi_beta(link, link_phi, link_zi)
+}
+
+#' @rdname frmtmb-families
+#' @export
+zero_one_inflated_beta <- function(link = "logit", link_phi = "log",
+                                   link_zoi = "logit", link_coi = "logit") {
+  link <- link_arg_value(substitute(link), link,
+                         brms_mu_links[["zero_one_inflated_beta"]], "logit")
+  fam_zoi_beta(link, link_phi, link_zoi, link_coi)
 }
 
 #' @rdname frmtmb-families

@@ -336,10 +336,10 @@ families:17	frmtmb	pass
 families:17	frmtmb.sample	pass	
 families:18	frmtmb	pass	
 families:18	frmtmb.sample	pass	
-families:19	frmtmb	cannot transfer	frmtmb has no hurdle_negbinomial() (famlink ledger row 16)
-families:19	frmtmb.sample	cannot transfer	frmtmb has no hurdle_negbinomial() (famlink ledger row 16)
-families:20	frmtmb	cannot transfer	frmtmb has no hurdle_negbinomial(); the expect_error passes only on could not find function (famlink ledger row 17)
-families:20	frmtmb.sample	cannot transfer	frmtmb has no hurdle_negbinomial(); the expect_error passes only on could not find function (famlink ledger row 17)
+families:19	frmtmb	pass	
+families:19	frmtmb.sample	pass	
+families:20	frmtmb	pass	
+families:20	frmtmb.sample	pass	
 families:21	frmtmb	pass	
 families:21	frmtmb.sample	pass	
 families:22	frmtmb	pass	

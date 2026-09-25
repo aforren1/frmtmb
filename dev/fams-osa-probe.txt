@@ -1,0 +1,29 @@
+## base
+[1] "zero_inflated_poisson"      "zero_inflated_negbinomial" 
+[3] "hurdle_poisson"             "hurdle_gamma"              
+[5] "hurdle_lognormal"           "zero_inflated_binomial"    
+[7] "zero_inflated_beta"         "zero_inflated_asym_laplace"
+zero_inflated_poisson        comparison (==) is possible only for atomic and list types
+zero_inflated_negbinomial    comparison (==) is possible only for atomic and list types
+hurdle_poisson               comparison (==) is possible only for atomic and list types
+hurdle_gamma                 comparison (==) is possible only for atomic and list types
+hurdle_lognormal             comparison (==) is possible only for atomic and list types
+zero_inflated_binomial       comparison (==) is possible only for atomic and list types
+zero_inflated_beta           comparison (==) is possible only for atomic and list types
+zero_inflated_asym_laplace   comparison (==) is possible only for atomic and list types
+## lane
+ [1] "zero_inflated_poisson"      "zero_inflated_negbinomial" 
+ [3] "hurdle_poisson"             "hurdle_negbinomial"        
+ [5] "hurdle_gamma"               "hurdle_lognormal"          
+ [7] "zero_inflated_binomial"     "zero_inflated_beta"        
+ [9] "zero_one_inflated_beta"     "zero_inflated_asym_laplace"
+zero_inflated_poisson        residuals(type = "osa") is not available for family 'zero_inflated_poisson': its density puts a point mass on 
+zero_inflated_negbinomial    residuals(type = "osa") is not available for family 'zero_inflated_negbinomial': its density puts a point mass
+hurdle_poisson               residuals(type = "osa") is not available for family 'hurdle_poisson': its density puts a point mass on an exac
+hurdle_negbinomial           residuals(type = "osa") is not available for family 'hurdle_negbinomial': its density puts a point mass on an 
+hurdle_gamma                 residuals(type = "osa") is not available for family 'hurdle_gamma': its density puts a point mass on an exact 
+hurdle_lognormal             residuals(type = "osa") is not available for family 'hurdle_lognormal': its density puts a point mass on an ex
+zero_inflated_binomial       residuals(type = "osa") is not available for family 'zero_inflated_binomial': its density puts a point mass on
+zero_inflated_beta           residuals(type = "osa") is not available for family 'zero_inflated_beta': its density puts a point mass on an 
+zero_one_inflated_beta       residuals(type = "osa") is not available for family 'zero_one_inflated_beta': its density puts a point mass on
+zero_inflated_asym_laplace   residuals(type = "osa") is not available for family 'zero_inflated_asym_laplace': its density puts a point mas
