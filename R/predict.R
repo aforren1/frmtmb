@@ -612,11 +612,19 @@ pred_design <- function(fit, lp, newdata, allow_new_levels = FALSE,
         as.character(gvr)
       }
       j <- match(gv, bk[["levels"]])
-      if (anyNA(j) && !allow_new_levels) {
+      is_new <- is.na(j)
+      if (!is.null(comp$by)) {
+        # one by-level of a gr(g, by = f) term: a row it does not serve
+        # contributes nothing here and is not an unseen level of it
+        rt <- by_route_rows(bk, gv, j, newdata, env)
+        mm[rt$off, ] <- 0
+        is_new <- rt$new
+      }
+      if (any(is_new) && !allow_new_levels) {
         stop_new_levels(
           paste0("New levels in grouping factor `",
                  deparse1(comp$bar[[3]]), "`: ",
-                 paste(unique(gv[is.na(j)]), collapse = ", ")),
+                 paste(unique(gv[is_new]), collapse = ", ")),
           "Use allow_new_levels = TRUE to predict them at the population level")
       }
       # new_key is the level label: two rows at the SAME unseen level
@@ -666,9 +674,18 @@ mm_newdata_parts <- function(comp, bk, newdata, env, xlevels,
              paste(comp$cnms, collapse = ", "), ")", call. = FALSE)
   }
   gv <- mm_member_values(mms, newdata, env)
-  if (anyNA(iw$J) && !allow_new_levels) {
-    new <- unique(unlist(lapply(gv, function(v) {
-      setdiff(as.character(v), bk[["levels"]])
+  is_new <- is.na(iw$J)
+  off <- NULL
+  if (!is.null(comp$by)) {
+    # one by-level of mm(g1, g2, by = ): a member it does not serve
+    # contributes nothing here and is not an unseen level of it
+    rt <- by_route_rows(bk, lapply(gv, as.character), iw$J, newdata, env)
+    off <- rt$off
+    is_new <- rt$new
+  }
+  if (any(is_new) && !allow_new_levels) {
+    new <- unique(unlist(lapply(seq_along(gv), function(k) {
+      as.character(gv[[k]])[is_new[, k]]
     }), use.names = FALSE))
     stop_new_levels(
       paste0("New levels in multi-membership factor `", mms$label, "`: ",
@@ -679,6 +696,7 @@ mm_newdata_parts <- function(comp, bk, newdata, env, xlevels,
   }
   lapply(seq_len(iw$n_members), function(k) {
     mmk <- md$designs[[k]] * iw$W[, k]
+    if (!is.null(off)) mmk[off[, k], ] <- 0
     # a partial re_formula keeps some columns of this term (re_view())
     if (!is.null(comp$keep_cols)) mmk[, !comp$keep_cols] <- 0
     # new_key names WHICH unseen level this member landed on, because a

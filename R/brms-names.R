@@ -362,6 +362,12 @@ brms_levels <- function(bk, for_r = FALSE) {
 #' block's own order. An `|ID|`-merged block spans several components,
 #' and each coefficient takes the prefix of the component it came from.
 #'
+#' A block of a `gr(g, by = f)` term is one by-level of it, and brms's
+#' `get_rnames()` pastes that level after the coefficient in the names
+#' of its standard deviations and correlations, `sd_g__Intercept:fa`.
+#' `rnames` carries that suffix; `rcoef` is the same name without it,
+#' which is what brms's `r_` names and `ranef()` columns use.
+#'
 #' @noRd
 brms_re_parts <- function(fit, bk) {
   cf <- brms_rename(bk[["cnms"]])
@@ -373,8 +379,10 @@ brms_re_parts <- function(fit, bk) {
     pre[pos] <- brms_lp_prefix(fit, lp)
     cf[pos] <- brms_rename(cp[["cnms"]])
   }
-  list(prefix = pre, coef = cf,
-       rnames = ifelse(nzchar(pre), paste0(pre, "_", cf), cf))
+  rn <- ifelse(nzchar(pre), paste0(pre, "_", cf), cf)
+  by <- bk[["by"]]
+  list(prefix = pre, coef = cf, rcoef = rn,
+       rnames = if (is.null(by)) rn else paste0(rn, ":", by$name))
 }
 
 #' brms's coefficient names for one random-effect block; see

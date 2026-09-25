@@ -859,7 +859,7 @@ compat_features_build <- function(extra = NULL) {
     # formula-grammar spellings, which have their own restrictions and
     # belong in the table even though they name no package object
     lapply(c("bar_crossing", "call_group", "double_bar", "mm()",
-             "mmc()", "0 + Intercept"), f, kind = "grammar"),
+             "mmc()", "0 + Intercept", "gr_by"), f, kind = "grammar"),
     # contributed last, so that the vocabulary a contributor adds cannot
     # displace a core feature's position in the pair table
     lapply(seq_along(contrib), function(i) {
@@ -1899,6 +1899,45 @@ compat_hand_rules_tbl <- function() {
   r("mmc()", "*", "conditional",
     "mmc() only means something on the left of a multi-membership bar, where it supplies one covariate value per member. Anywhere else it is refused, including over a single-membership grouping factor. Inside an mm() term it composes like any other random-slope column.",
     override = TRUE)
+
+  ## by-split terms, gr(g, by = f) and mm(g1, g2, by = ) --------------------
+  # A by-split term is one ordinary block per by-level over the levels of
+  # g in that by-level (R/gr-by.R), so whatever reads a block reads it
+  # unchanged; what is refused is a structure that is not a product over
+  # the grouping levels. The numbers are in dev/grby-findings.md.
+  r("gr_by", "kind:family", "works",
+    "The by-split changes the covariance of the group-level effects only; the family sees an ordinary linear predictor. Verified on gaussian (against lme4 and brms's density), poisson (against glmmTMB), bernoulli (quadrature against integrate()) and brms's own brmsfit_example5 mixture formula.")
+  r("gr_by", "kind:aterm", "works",
+    "Addition terms change the likelihood; the by-split changes the covariance of the group-level effects.")
+  r("gr_by", "kind:special", "works",
+    "Smooths, Gaussian processes and monotonic terms are separate additive terms and separate blocks.")
+  r("gr_by", "kind:covstruct", "refused",
+    "Refused by name: a by-split term is one block per by-level with its own parameters, which covers the structures whose density is a product over the grouping levels. rr() shares its loadings across the whole factor, equalto() has no parameters to split, and car(), spde(), gp() and smooths are not bar terms.")
+  for (cs in c("us", "diag", "homdiag", "cs", "homcs", "ar1", "hetar1",
+               "toep", "homtoep", "ou", "exp", "gau", "mat")) {
+    r("gr_by", cs, "works",
+      "One block of this structure per by-level. Verified: us, diag, ar1, cs, homcs, toep and hetar1 against glmmTMB writing one term per by-level with indicator columns; homdiag, homtoep, ou, exp, gau and mat by the by-split objective equalling the sum of the by-levels' subset fits at their estimates.")
+  }
+  r("gr_by", "group:student_blocks", "works",
+    "gr(g, by = f, dist = \"student\"): one multivariate-t block per by-level with the same fixed nu. Verified by the by-split objective equalling the sum of the by-levels' subset fits.")
+  r("gr_by", "gr_cov", "refused",
+    "Refused by name: brms scales each level's effects by its by-level's covariance and then correlates the levels through the Cholesky factor of A, so levels in different by-levels stay correlated. That covariance is neither block-diagonal over the by-levels nor a Kronecker product, and splitting A into its by-level blocks would fit a different model.")
+  r("gr_by", "gr_prec", "refused",
+    "Refused by name, for the reason gr(cov = ) with by = is.")
+  r("gr_by", "mm()", "works",
+    "mm(g1, g2, by = cbind(f1, f2)): brms's by-matrix, one column per member, maps each POOLED level to one by-level, and the pooled levels split into one mm block per by-level. Verified against brms's density written from its Stan data (J_1_k, W_1_k, Jby_1). A new membership level on newdata takes the covariance of the by-level its own member column names.")
+  r("gr_by", "|ID|", "conditional",
+    "Works when every term sharing the key writes the same gr(g, by = f): the linked terms merge into one block per by-level, under brms's names (cor_g__Intercept:fa__sigma_Intercept:fa). Refused when the key mixes gr(g, by = f) with g, or two by-variables, since that is two grouping specifications.")
+  r("gr_by", "REML", "works",
+    "Verified against lme4's REML fit of one term per by-level: the log-likelihoods and standard deviations agree.")
+  r("gr_by", "quadrature", "works",
+    "A scalar by-split term is one scalar block per by-level, each level of g in exactly one of them. Verified on a bernoulli fit against integrate() over each level at the estimates, to 7e-10 in the log-likelihood.")
+  r("gr_by", "importance", "refused",
+    "Refused by name: the correction draws one level's coefficients from every block over the grouping factor at once, and the by-levels' blocks carry disjoint levels of it.")
+  r("gr_by", "group:post_fit", "works",
+    "Verified: ranef(), coef() and ngrps() merge the by-levels into one entry over every level of g, as brms keys them; VarCorr(), summary(), confint() and hypothesis() use brms's names (sd_g__Intercept:fa); fitted(), residuals() (OSA included), simulate() and emmeans read the blocks as any others. predict(allow_new_levels = TRUE) draws an unseen level from the covariance of the by-level its new row names, as brms does, and refuses a row whose by-level the fit did not estimate; a level the fit saw keeps its fitted effect whatever by-value the new row carries.")
+  r("gr_by", "mvbf", "works",
+    "Each response builds its own by-split blocks; an |ID| key across responses merges the linked terms per by-level.")
 
   # A covariance structure's own conditions (num_factor() coordinates
   # for exp/gau/mat, level order for ar1, a rank for rr) hold whatever

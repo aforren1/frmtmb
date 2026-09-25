@@ -534,8 +534,8 @@ parse_spde_call <- function(tm, env) {
 #'     `gr(g, cov = A)` over a single-membership factor, and `dist =` is
 #'     `gr(g, dist = "student")` over one (see
 #'     [frmtmb-student-re]), though not over a membership design, whose
-#'     rows load several levels at once. `by =` and `pw =` have no
-#'     equivalent yet.}
+#'     rows load several levels at once. `pw =` has no equivalent
+#'     yet.}
 #'   \item{Non-name members}{`mm()` reads its membership variables as
 #'     column names, as brms does. Build the column first.}
 #' }
@@ -544,6 +544,20 @@ parse_spde_call <- function(tm, env) {
 #' needs `allow_new_levels = TRUE`; that member then contributes the
 #' population value while the row's remaining members still contribute
 #' their fitted effects.
+#'
+#' @section One covariance per by-level:
+#'
+#' `mm(g1, g2, by = cbind(f1, f2))` is brms's by-split: `by` is a matrix
+#' with one column per membership variable, and each pooled level gets
+#' the covariance of its by-level. A pooled level must have one
+#' by-level wherever it appears, in any member column; brms refuses the
+#' data otherwise, and so does frmtmb, with brms's message. The block
+#' splits into one block per by-level, and the standard deviations take
+#' brms's names, `sd_mmg1g2__Intercept:cbind(f1, f2)1` (brms evaluates
+#' `cbind()` of two factors to their integer codes). A new level on
+#' `newdata` takes the covariance of the by-level its own member column
+#' names. The same split over a single grouping factor is
+#' `gr(g, by = f)`.
 #'
 #' @return `mm()` and `mmc()` are formula terms, not free-standing
 #'   functions: `bf()` reads them at parse time, and the value they
@@ -673,7 +687,7 @@ cs_term_labels <- function(tm) {
 # brms mm() arguments that describe something other than the membership
 # design itself. Each has a spelling here that is already supported, so
 # the refusal can name it rather than just say no.
-mm_brms_only_args <- c("by", "cor", "id", "pw", "cov", "dist")
+mm_brms_only_args <- c("cor", "id", "pw", "cov", "dist")
 
 #' brms multi-membership grouping: `(x | mm(g1, g2, weights = W))`.
 #'
@@ -693,11 +707,12 @@ mm_brms_only_args <- c("by", "cor", "id", "pw", "cov", "dist")
 parse_mm_call <- function(tm, env) {
   aa <- as.list(tm)[-1L]
   nms <- names(aa) %||% rep("", length(aa))
-  bad <- setdiff(nms[nzchar(nms)], c("weights", "scale", mm_brms_only_args))
+  bad <- setdiff(nms[nzchar(nms)],
+                 c("weights", "scale", "by", mm_brms_only_args))
   if (length(bad)) {
     frm_stop("mm(): unknown argument(s) ", paste(bad, collapse = ", "),
-             " (takes the membership variables plus weights = and scale = )",
-             call. = FALSE)
+             " (takes the membership variables plus weights =, scale = ",
+             "and by = )", call. = FALSE)
   }
   used <- intersect(nms, mm_brms_only_args)
   if (length(used)) {
@@ -706,8 +721,8 @@ parse_mm_call <- function(tm, env) {
              "term: cor = FALSE is diag(x | mm(g1, g2)), id = is the ",
              "|ID| key (x | q | g), cov = is gr(g, cov = A), and dist = is ",
              "gr(g, dist = \"student\"). The last two take a ",
-             "single-membership factor only. by = / pw = have no ",
-             "equivalent yet", call. = FALSE)
+             "single-membership factor only. pw = has no equivalent yet",
+             call. = FALSE)
   }
   groups <- aa[!nzchar(nms)]
   if (length(groups) < 2L) {
@@ -731,8 +746,15 @@ parse_mm_call <- function(tm, env) {
   scale <- if (is.null(aa$scale)) TRUE else {
     eval_spec_arg(aa$scale, "scale", env, fn = "mm")
   }
+  # brms's mm(by = ): a matrix with one by-variable column per member
+  # (R/gr-by.R). The group is named without it, as brms names it.
+  by <- NULL
+  if (!is.null(aa[["by"]])) {
+    by <- list(expr = aa[["by"]], label = deparse1(aa[["by"]]), fn = "mm")
+    tm[["by"]] <- NULL
+  }
   list(groups = groups, gvars = gvars, weights_expr = aa$weights,
-       scale = scale, label = deparse1(tm))
+       scale = scale, by = by, label = deparse1(tm))
 }
 
 #' `gr(g, dist = )`: the latent density of a grouping term.
@@ -1449,6 +1471,7 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     # gr(g, prec = Q) takes a (sparse) precision matrix instead;
     # gr(g, dist = "student") swaps the latent density for a t
     dist_nu <- NULL
+    by_spec <- NULL
     if (is.call(bar[[3]]) && identical(bar[[3]][[1]], as.name("gr"))) {
       ga <- as.list(bar[[3]])[-1]
       nms <- names(ga) %||% rep("", length(ga))
@@ -1468,11 +1491,17 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
       }
       has_cov <- !is.null(ga$cov)
       has_prec <- !is.null(ga$prec)
+      has_by <- "by" %in% nms
       if (length(gvar) != 1 || (has_cov + has_prec) > 1 ||
-          (is.null(st) && (has_cov + has_prec) != 1) ||
-          !all(nms %in% c("", "cov", "prec"))) {
-        frm_stop("gr() supports (x | gr(g, cov = A)) or ",
-                 "(1 | gr(g, prec = Q))", call. = FALSE)
+          (is.null(st) && !has_by && (has_cov + has_prec) != 1) ||
+          !all(nms %in% c("", "cov", "prec", "by"))) {
+        frm_stop("gr() supports (x | gr(g, cov = A)), ",
+                 "(1 | gr(g, prec = Q)), (x | gr(g, by = f)) and ",
+                 "(x | gr(g, dist = \"student\"))", call. = FALSE)
+      }
+      if (has_by) {
+        by_spec <- parse_gr_by(ga[["by"]], gvar[[1L]], cls, bar,
+                               has_cov || has_prec)
       }
       if (has_cov || has_prec) {
         if (calls_function(gvar[[1L]], "mm")) {
@@ -1499,7 +1528,8 @@ parse_linpred <- function(rhs_form, env, shared = NULL) {
     list(bar = bar, group = bar[[3]], covstruct = cls, id = id,
          id_label = id_label, id_group = id_group,
          cov_expr = cov_expr, rank = rank, mm = mm,
-         dist_nu = dist_nu, written = written, from_slash = from_slash)
+         dist_nu = dist_nu, by = by_spec, written = written,
+         from_slash = from_slash)
   }, sf$reTrmFormulas, sf$reTrmClasses, sf$reTrmAddArgs, slash)
   names(re) <- vapply(re, function(z) deparse1(z$bar), "")
 
@@ -2275,6 +2305,7 @@ parse_spec <- function(bform) {
       class = "frmtmb_spec"
     )
     check_id_covstructs(out)
+    check_gr_by_groups(out)
     return(out)
   }
   stopifnot(inherits(bform, "frmtmb_formula"))
@@ -2285,6 +2316,7 @@ parse_spec <- function(bform) {
     class = "frmtmb_spec"
   )
   check_id_covstructs(out)
+  check_gr_by_groups(out)
   out
 }
 

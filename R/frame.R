@@ -132,6 +132,7 @@ dpar_frame_rhs <- function(dp) {
   }
   parts <- list(reformulas::RHSForm(dp[["fixed"]]))
   for (rt in dp[["re"]] %||% list()) {
+    for (v in by_term_vars(rt)) parts <- c(parts, list(as.name(v)))
     if (is.null(rt$mm)) {
       parts <- c(parts, list(rt$bar[[2]], rt$bar[[3]]))
       next
@@ -1050,7 +1051,7 @@ nonpredictor_frame_vars <- function(spec) {
     for (dp in resp$dpars) {
       for (rt in dp[["re"]] %||% list()) {
         out <- c(out, if (is.null(rt$mm)) deparse1(rt$bar[[3L]]) else
-                        rt$mm$gvars)
+                        rt$mm$gvars, by_term_vars(rt))
       }
       for (ce in c(dp[["carterms"]] %||% list(),
            dp[["spdeterms"]] %||% list())) {
@@ -2116,6 +2117,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
                                      reorder.terms = FALSE)
           fassign <- attr(rt$flist, "assign")
         }
+        dup_cps <- list()
         for (k in seq_along(bars)) {
           cs_name <- dp[["re"]][[k]]$covstruct
           if (is_mm[k]) {
@@ -2138,6 +2140,23 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
               label = paste0(dp_prefix, deparse1(bars[[k]]))
             )
             comp_ids <- c(comp_ids, length(components))
+            dup_cps[[length(dup_cps) + 1L]] <- components[[length(components)]]
+            if (!is.null(mms$by)) {
+              # mm(g1, g2, by = cbind(f1, f2)): brms maps each POOLED
+              # level to one by-level, read across every member column
+              cp <- components[[length(components)]]
+              byv <- by_eval(mms$by, mf, resp$formula_env, n, "in the data",
+                             members = iw$n_members)
+              lev_by <- by_level_map(iw$J, byv, length(levs), mms$gvars,
+                                     mms$by)
+              subs <- by_split_component(cp, mms$by, lev_by,
+                                         by_extract_levels(byv))
+              components[[length(components)]] <- subs[[1L]]
+              for (s in subs[-1L]) {
+                components[[length(components) + 1L]] <- s
+                comp_ids <- c(comp_ids, length(components))
+              }
+            }
             next
           }
           kk <- rt_pos[k]
@@ -2236,8 +2255,25 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
             label = paste0(dp_prefix, deparse1(bars[[k]]))
           )
           comp_ids <- c(comp_ids, length(components))
+          # gr(g, by = f): the term as written is what the duplicate
+          # check reads, and one block per by-level is what is fitted
+          dup_cps[[length(dup_cps) + 1L]] <- components[[length(components)]]
+          by_k <- dp[["re"]][[k]]$by
+          if (!is.null(by_k)) {
+            cp <- components[[length(components)]]
+            byv <- by_eval(by_k, mf, resp$formula_env, n, "in the data")
+            lev_by <- by_level_map(as.integer(fac), byv, length(cp$levels),
+                                   cp$group_name, by_k)
+            subs <- by_split_component(cp, by_k, lev_by,
+                                       by_extract_levels(byv))
+            components[[length(components)]] <- subs[[1L]]
+            for (s in subs[-1L]) {
+              components[[length(components) + 1L]] <- s
+              comp_ids <- c(comp_ids, length(components))
+            }
+          }
         }
-        refuse_duplicated_re(components[comp_ids])
+        refuse_duplicated_re(dup_cps)
       }
 
       # Smooths: fixed (null-space) part into X, wiggly part as an
@@ -2820,6 +2856,8 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       dim = D,
       rank = rank_k,
       dist_nu = cps[[1]]$dist_nu,
+      # gr(g, by = f): which by-level this block is (R/gr-by.R)
+      by = cps[[1]]$by,
       n_levels = n_levels,
       b_idx = n_b + seq_len(nb_k),
       c_idx = n_c + seq_len(D * n_levels),
@@ -2849,7 +2887,7 @@ assemble_frame <- function(spec, data, na.action = stats::na.omit,
       components = lapply(seq_along(gd), function(k) {
         list(lp_key = cps[[k]]$lp_key, offset = comp_offset[gd[k]],
              dim = cps[[k]]$dim, bar = cps[[k]]$bar,
-             mm = cps[[k]]$mm,
+             mm = cps[[k]]$mm, by = cps[[k]]$by,
              cnms = cps[[k]]$cnms, label = cps[[k]]$label)
       })
     )

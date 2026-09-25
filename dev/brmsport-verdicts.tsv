@@ -562,11 +562,11 @@ standata:620	frmtmb	cannot transfer	frmtmb has no mi(x, idx = ) and no subset() 
 standata:634	frmtmb	cannot transfer	frmtmb has no mi(x, idx = ); the call is refused on that, before the index() check brms asserts
 standata:641	frmtmb	cannot transfer	frmtmb has no subset() addition term
 standata:649	frmtmb	cannot transfer	frmtmb has no mi(x, idx = ) and no subset() addition term
-standata:705	frmtmb	cannot transfer	frmtmb's gr() takes cov and prec only, not by (dev/brms-suite-audit.md section 5); Nby_1 is also Stan data
-standata:706	frmtmb	cannot transfer	frmtmb's gr() takes cov and prec only, not by; Jby_1 is also Stan data
-standata:709	frmtmb	cannot transfer	frmtmb's mm() refuses by = by name
-standata:710	frmtmb	cannot transfer	frmtmb's mm() refuses by = by name
-standata:712	frmtmb	cannot transfer	frmtmb's gr() takes no by, so the level check brms asserts is never reached
+standata:705	frmtmb	cannot transfer	Nby_1 is Stan data, which frmtmb does not build: it fits gr(g, by = z) as one random-effect block per by-level, five here (dev/grby-findings.md)
+standata:706	frmtmb	cannot transfer	Jby_1 is Stan data, which frmtmb does not build; test-gr-by.R asserts the same level-to-by-level map on the fitted blocks (dev/grby-findings.md)
+standata:709	frmtmb	cannot transfer	Nby_1 is Stan data, which frmtmb does not build: it fits mm(g, g2, by = cbind(z, z2)) as one block per by-level, five here (dev/grby-findings.md)
+standata:710	frmtmb	cannot transfer	Jby_1 is Stan data, which frmtmb does not build; test-gr-by.R asserts the same pooled-level-to-by-level map on the fitted blocks (dev/grby-findings.md)
+standata:712	frmtmb	pass	
 standata:718	frmtmb	cannot transfer	Stan data column names: brms renames poly(x, 3)1 to polyx31 to make a Stan identifier; frmtmb's brms-facing names already agree, variables() reads b_polyx31 (dev/brmsport-probe3.R)
 standata:724	frmtmb	cannot transfer	reads the Stan data slot nu; frmtmb accepts bf(y ~ 1, nu = 3) and keeps the constant in its parameter map, not in a data slot
 standata:725	frmtmb	cannot transfer	reads the Stan data slot disc, which brms passes as the constant 1; frmtmb's acat() has no disc data

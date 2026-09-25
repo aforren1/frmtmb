@@ -1,0 +1,32 @@
+RESULT frmtmb test-gr-by.R pass=71 fail=0 err=0 skip=0
+RESULT frmtmb test-methods.R pass=64 fail=0 err=0 skip=0
+RESULT frmtmb test-brms-shapes.R pass=72 fail=0 err=0 skip=0
+RESULT frmtmb test-brms-shapes-punch.R pass=55 fail=0 err=0 skip=0
+RESULT frmtmb test-brms-shapes-punch2.R pass=22 fail=0 err=0 skip=0
+RESULT frmtmb test-brms-names.R pass=138 fail=0 err=0 skip=0
+RESULT frmtmb test-methods-audit.R pass=58 fail=0 err=0 skip=0
+RESULT frmtmb test-sugar.R pass=45 fail=0 err=0 skip=0
+RESULT frmtmb test-mm.R pass=116 fail=0 err=0 skip=0
+GATED RESULT frmtmb test-brms-suite-methods.R pass=162 fail=0 err=0 skip=0
+GATED RESULT frmtmb test-brms-suite-standata.R pass=87 fail=0 err=0 skip=0
+RESULT frmtmb.sample test-gr-by-draws.R pass=7 fail=0 err=0 skip=0
+RESULT frmtmb.sample test-brms-output.R pass=21 fail=0 err=0 skip=0
+RESULT frmtmb.sample test-brms-suite-helper-copy.R pass=0 fail=0 err=0 skip=0
+GATED RESULT frmtmb.sample test-brms-suite-methods.R pass=61 fail=0 err=0 skip=0
+RESULT frmtmb test-compat.R pass=579 fail=0 err=0 skip=0
+RESULT frmtmb test-predict-newdata.R pass=12 fail=0 err=0 skip=0
+RESULT frmtmb test-re-formula-partial.R pass=39 fail=0 err=0 skip=0
+RESULT frmtmb test-id-kron.R pass=60 fail=0 err=0 skip=0
+RESULT frmtmb test-tre.R pass=102 fail=0 err=0 skip=0
+RESULT frmtmb test-covstruct.R pass=7 fail=0 err=0 skip=0
+RESULT frmtmb test-frame.R pass=22 fail=0 err=0 skip=0
+RESULT frmtmb test-simulate-ergonomics.R pass=50 fail=0 err=0 skip=0
+RESULT frmtmb test-naming-collisions.R pass=29 fail=0 err=0 skip=0
+RESULT frmtmb test-priors-bounds-grcov.R pass=50 fail=0 err=0 skip=0
+RESULT frmtmb test-aliased-grouping.R pass=33 fail=0 err=0 skip=0
+RESULT frmtmb test-autoscale.R pass=46 fail=0 err=0 skip=0
+RESULT frmtmb test-dry-run.R pass=23 fail=0 err=0 skip=0
+RESULT frmtmb test-simulate-newdata.R pass=44 fail=0 err=0 skip=0
+RESULT frmtmb test-predict-re-uncertainty.R pass=65 fail=0 err=0 skip=0
+RESULT frmtmb test-glmm-gaussian.R pass=17 fail=0 err=0 skip=0
+GATED RESULT frmtmb.sample test-brms-suite-helper-copy.R pass=33 fail=0 err=0 skip=0
